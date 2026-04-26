@@ -27,5 +27,12 @@
     "*.{ts,tsx,js,jsx,cjs,mjs,json,jsonc,md,yml,yaml,css}": [
       "prettier --write"
     ]
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/engines",
+      "esbuild",
+      "prisma"
+    ]
   }
 }
