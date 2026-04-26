@@ -1,0 +1,3 @@
+./scripts/check-git-identity.sh
+./scripts/check-staged-file-policy.sh
+pnpm exec lint-staged
