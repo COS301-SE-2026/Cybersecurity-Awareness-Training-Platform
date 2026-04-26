@@ -30,7 +30,7 @@ done <<< "$STAGED_FILES"
 
 if [ "$HAS_MD" = true ] && [ "$HAS_CODE" = true ]; then
   echo ""
-  echo "Staged file policy failed."
+  echo "Documentation files (.md) and code/config files are staged together."
   echo ""
   echo "Documentation files and code/config files are staged together."
   echo "Please split this into separate commits so Hyperperform can track code contributions more accurately."

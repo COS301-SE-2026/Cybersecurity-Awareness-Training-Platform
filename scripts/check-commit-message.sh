@@ -14,20 +14,23 @@ while IFS= read -r FILE; do
   fi
 done <<< "$STAGED_FILES"
 
-if grep -qi "^Co-authored-by:" "$COMMIT_MSG_FILE"; then
-  echo ""
-  echo "Commit message check failed."
+CO_AUTHOR_LINE="$(grep -i "^Co-authored-by:" "$COMMIT_MSG_FILE" | head -n 1)"
+
+if [ -n "$CO_AUTHOR_LINE" ]; then
+  echo "Commit message check failed: Contains Co-authored-by trailer."
   echo "Co-authored-by trailers are not allowed in this project."
   echo ""
-  echo "Please remove lines like:"
-  echo "  Co-authored-by: Name <email@example.com>"
+  echo "Found this line:"
+  echo "  $CO_AUTHOR_LINE"
   echo ""
+  echo "Please remove it from the commit message."
   exit 1
 fi
 
+
 if ! echo "$COMMIT_SUBJECT" | grep -Eq "^(feat|fix|docs|chore): [^[:space:]].*"; then
   echo ""
-  echo "Commit message check failed."
+  echo "Commit message check failed: Invalid format."
   echo ""
   echo "Commit messages must use exactly this format:"
   echo "  <type>: <description>"
@@ -58,7 +61,7 @@ fi
 
 if [ "$HAS_MD" = true ] && ! echo "$COMMIT_SUBJECT" | grep -Eq "^docs: [^[:space:]].*"; then
   echo ""
-  echo "Commit message check failed."
+  echo "Commit message check failed: Documentation commit must use 'docs' type."
   echo ""
   echo "This commit includes Markdown documentation files."
   echo "Documentation commits must use the docs type:"

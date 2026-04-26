@@ -14,8 +14,7 @@ ALLOWED_USERS=(
 
 if [ -z "$GIT_NAME" ]; then
   echo ""
-  echo "Git identity check failed."
-  echo "Git user.name is not configured."
+  echo "Git identity check failed: Git user.name is not configured."
   echo ""
   echo "For this project, user.name must match your GitHub username."
   echo "Fix it with:"
@@ -26,8 +25,7 @@ fi
 
 if [ -z "$GIT_EMAIL" ]; then
   echo ""
-  echo "Git identity check failed."
-  echo "Git user.email is not configured."
+  echo "Git identity check failed: Git user.email is not configured."
   echo ""
   echo "Set it to an email address linked to your GitHub account."
   echo "Fix it with:"
@@ -41,8 +39,7 @@ if [ "$GIT_NAME" = "your-github-username" ] || \
    [ "$GIT_EMAIL" = "your-github-email" ]; then
 
   echo ""
-  echo "Git identity check failed."
-  echo "Your Git identity still contains a placeholder value."
+  echo "Git identity check failed: Your Git identity still contains a placeholder value."
   echo ""
   echo "Current values:"
   echo "  user.name:  $GIT_NAME"
@@ -66,8 +63,7 @@ done
 
 if [ "$USER_ALLOWED" != true ]; then
   echo ""
-  echo "Git identity check failed."
-  echo "Git user.name must match one of the approved team GitHub usernames."
+  echo "Git identity check failed: Git user.name must match one of the approved team GitHub usernames."
   echo ""
   echo "Current user.name:"
   echo "  $GIT_NAME"
@@ -86,8 +82,7 @@ if command -v gh >/dev/null 2>&1; then
 
   if [ -n "$GH_USER" ] && [ "$GH_USER" != "$GIT_NAME" ]; then
     echo ""
-    echo "Git identity check failed."
-    echo "Your GitHub CLI account does not match your local Git user.name."
+    echo "Git identity check failed: Your GitHub CLI account does not match your local Git user.name."
     echo ""
     echo "Current values:"
     echo "  git user.name: $GIT_NAME"
@@ -102,7 +97,3 @@ if command -v gh >/dev/null 2>&1; then
     exit 1
   fi
 fi
-
-echo "Git identity check passed:"
-echo "  user.name:  $GIT_NAME"
-echo "  user.email: $GIT_EMAIL"
