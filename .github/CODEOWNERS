@@ -1,2 +1,114 @@
-# Global fallback owner
+# Insightful Phish CODEOWNERS
+# GitHub uses the last matching pattern in this file.
+# Keep broader rules near the top and more specific rules lower down.
+
+# -------------------------------------------------------------------
+# Global fallback
+# Johan is requested on all changes as team lead.
+# -------------------------------------------------------------------
 * @FJNel
+
+
+# -------------------------------------------------------------------
+# Backend
+# Backend API, server setup, environment config, and backend tests.
+# Primary: Johan and Adriano
+# Supporting: Rudolph for backend/system integration
+# -------------------------------------------------------------------
+/apps/backend/** @FJNel @Adri4no098 @RudolphLamp
+/apps/backend/src/** @FJNel @Adri4no098 @RudolphLamp
+/apps/backend/tests/** @FJNel @Adri4no098 @ZoeJ72005 @RudolphLamp
+
+
+# -------------------------------------------------------------------
+# Database / Prisma
+# Database schema, migrations, Prisma config, and local database setup.
+# Primary: Adriano
+# Supporting: Johan and Rudolph
+# -------------------------------------------------------------------
+/apps/backend/prisma/** @FJNel @Adri4no098 @RudolphLamp
+/apps/backend/prisma.config.ts @FJNel @Adri4no098 @RudolphLamp
+/docker-compose.yml @FJNel @Adri4no098 @RudolphLamp
+
+
+# -------------------------------------------------------------------
+# Frontend
+# UI, Vite, React, frontend tests, and frontend integration.
+# Primary: Connor and Zoë
+# Supporting: Rudolph and Johan
+# -------------------------------------------------------------------
+/apps/frontend/** @FJNel @u24569608 @ZoeJ72005 @RudolphLamp
+/apps/frontend/src/** @FJNel @u24569608 @ZoeJ72005 @RudolphLamp
+/apps/frontend/**/*.test.ts @FJNel @u24569608 @ZoeJ72005 @RudolphLamp
+/apps/frontend/**/*.test.tsx @FJNel @u24569608 @ZoeJ72005 @RudolphLamp
+/apps/frontend/src/test-setup.ts @FJNel @u24569608 @ZoeJ72005 @RudolphLamp
+/apps/frontend/vite.config.ts @FJNel @u24569608 @ZoeJ72005 @RudolphLamp
+
+
+# -------------------------------------------------------------------
+# Shared package
+# Shared constants/types/utilities can affect both frontend and backend.
+# Johan included for team-lead review.
+# Connor and Zoë included for frontend impact.
+# Adriano and Rudolph included for backend/system impact.
+# -------------------------------------------------------------------
+/packages/shared/** @FJNel @u24569608 @ZoeJ72005 @Adri4no098 @RudolphLamp
+
+
+# -------------------------------------------------------------------
+# Integration-sensitive files
+# These files affect how packages work together.
+# -------------------------------------------------------------------
+/package.json @FJNel @Adri4no098 @u24569608 @ZoeJ72005 @RudolphLamp
+/pnpm-lock.yaml @FJNel @Adri4no098 @u24569608 @ZoeJ72005 @RudolphLamp
+/pnpm-workspace.yaml @FJNel @Adri4no098 @u24569608 @ZoeJ72005 @RudolphLamp
+
+
+# -------------------------------------------------------------------
+# CI, repository tooling, and local enforcement
+# GitHub Actions, Husky, scripts, formatting, package management,
+# workspace setup, and commit policy tooling.
+# Primary: Johan
+# Supporting: Zoë and Rudolph
+# -------------------------------------------------------------------
+/.github/workflows/** @FJNel @ZoeJ72005 @RudolphLamp
+/.github/CODEOWNERS @FJNel @ZoeJ72005 @RudolphLamp
+/.husky/** @FJNel @ZoeJ72005 @RudolphLamp
+/scripts/** @FJNel @ZoeJ72005 @RudolphLamp
+
+/commitlint.config.cjs @FJNel @ZoeJ72005 @RudolphLamp
+/.prettierrc @FJNel @ZoeJ72005 @RudolphLamp
+/.editorconfig @FJNel @ZoeJ72005 @RudolphLamp
+/.vscode/** @FJNel @ZoeJ72005 @RudolphLamp
+/.gitignore @FJNel @ZoeJ72005 @RudolphLamp
+
+
+# -------------------------------------------------------------------
+# Documentation and GitHub process templates
+# Project docs, setup docs, issue templates, and PR templates.
+# Primary: Johan
+# Supporting: Zoë and Rudolph
+# -------------------------------------------------------------------
+/docs/** @FJNel @ZoeJ72005 @RudolphLamp
+/*.md @FJNel @ZoeJ72005 @RudolphLamp
+/.github/ISSUE_TEMPLATE/** @FJNel @ZoeJ72005 
+/.github/pull_request_template.md @FJNel @ZoeJ72005
+
+
+# -------------------------------------------------------------------
+# Architecture-sensitive documentation
+# Design and architecture documents should include system/database reviewers.
+# This appears after the general docs rules so it overrides them.
+# -------------------------------------------------------------------
+/docs/**/DESIGN.md @FJNel @ZoeJ72005 @Adri4no098 @RudolphLamp
+/docs/**/*ARCHITECTURE*.md @FJNel @ZoeJ72005 @Adri4no098 @RudolphLamp
+/docs/**/*DESIGN*.md @FJNel @ZoeJ72005 @Adri4no098 @RudolphLamp
+
+
+# -------------------------------------------------------------------
+# Project assets
+# Images and branding assets.
+# Primary: Connor and Zoë
+# Supporting: Johan
+# -------------------------------------------------------------------
+/Images/** @FJNel @u24569608 @ZoeJ72005
