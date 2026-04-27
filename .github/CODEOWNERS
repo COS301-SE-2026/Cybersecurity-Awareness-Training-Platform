@@ -1,2 +1,63 @@
-# Global fallback owner
+# Insightful Phish CODEOWNERS
+
+# -------------------------------------------------------------------
+# Global fallback
+# Johan catches anything unassigned at the root level as team lead.
+# -------------------------------------------------------------------
 * @FJNel
+
+# -------------------------------------------------------------------
+# Backend & Database
+# Backend API, server setup, and Prisma migrations.
+# Primary: Adriano and Johan | Supporting: Rudolph
+# -------------------------------------------------------------------
+/apps/backend/** @FJNel @Adri4no098 @RudolphLamp
+
+# -------------------------------------------------------------------
+# Frontend
+# UI, Vite, React, and public assets.
+# Primary: Connor and Zoe | Supporting: Rudolph
+# -------------------------------------------------------------------
+/apps/frontend/** @u24569608 @ZoeJ72005 @RudolphLamp
+/Images/** @u24569608 @ZoeJ72005
+
+# -------------------------------------------------------------------
+# Testing (Overrides domain rules)
+# Zoe as testing lead, supported by Domain Leads and Rudolph.
+# Targeting the specific test directories in the new structure.
+# -------------------------------------------------------------------
+/apps/frontend/tests/** @ZoeJ72005 @RudolphLamp @u24569608
+/apps/backend/tests/** @ZoeJ72005 @FJNel @Adri4no098
+
+# -------------------------------------------------------------------
+# Shared Packages & Integration
+# Requires cross-domain eyes from backend, frontend, and tech leads.
+# -------------------------------------------------------------------
+/packages/shared/** @FJNel @Adri4no098 @u24569608 @ZoeJ72005
+/package.json @FJNel @Adri4no098 @ZoeJ72005
+/pnpm-*.yaml @FJNel @Adri4no098 @ZoeJ72005
+
+# -------------------------------------------------------------------
+# CI/CD, Tooling & Workflows
+# Includes GitHub actions, Husky hooks, scripts, and VSCode workspace.
+# -------------------------------------------------------------------
+/.github/** @FJNel @ZoeJ72005 @RudolphLamp
+/.husky/** @FJNel @RudolphLamp
+/.vscode/** @FJNel @u24569608
+/scripts/** @FJNel @RudolphLamp
+
+# -------------------------------------------------------------------
+# General Documentation
+# Johan reviews all standard documentation and root markdown files.
+# -------------------------------------------------------------------
+/docs/** @FJNel
+/*.md @FJNel
+
+# -------------------------------------------------------------------
+# Specific Documentation (Overrides general docs)
+# Routes specialised documents to their respective domain reviewers.
+# -------------------------------------------------------------------
+/docs/**/*SRS*.md @FJNel @ZoeJ72005 @Adri4no098
+/docs/**/*DESIGN*.md @FJNel @ZoeJ72005 @u24569608
+/docs/**/*TEST*.md @FJNel @ZoeJ72005 @RudolphLamp
+/docs/**/*DATA*.md @FJNel @Adri4no098 @RudolphLamp
