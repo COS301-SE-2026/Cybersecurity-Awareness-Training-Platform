@@ -40,5 +40,6 @@
   },
 
   "prettier.useTabs": false,
-  "prettier.tabWidth": 2
+  "prettier.tabWidth": 2,
+  "cSpell.words": ["Adri", "commitlint", "Lamprecht"]
 }

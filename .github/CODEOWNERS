@@ -1,114 +1,63 @@
 # Insightful Phish CODEOWNERS
-# GitHub uses the last matching pattern in this file.
-# Keep broader rules near the top and more specific rules lower down.
 
 # -------------------------------------------------------------------
 # Global fallback
-# Johan is requested on all changes as team lead.
+# Johan catches anything unassigned at the root level as team lead.
 # -------------------------------------------------------------------
 * @FJNel
 
-
 # -------------------------------------------------------------------
-# Backend
-# Backend API, server setup, environment config, and backend tests.
-# Primary: Johan and Adriano
-# Supporting: Rudolph for backend/system integration
+# Backend & Database
+# Backend API, server setup, and Prisma migrations.
+# Primary: Adriano and Johan | Supporting: Rudolph
 # -------------------------------------------------------------------
 /apps/backend/** @FJNel @Adri4no098 @RudolphLamp
-/apps/backend/src/** @FJNel @Adri4no098 @RudolphLamp
-/apps/backend/tests/** @FJNel @Adri4no098 @ZoeJ72005 @RudolphLamp
-
-
-# -------------------------------------------------------------------
-# Database / Prisma
-# Database schema, migrations, Prisma config, and local database setup.
-# Primary: Adriano
-# Supporting: Johan and Rudolph
-# -------------------------------------------------------------------
-/apps/backend/prisma/** @FJNel @Adri4no098 @RudolphLamp
-/apps/backend/prisma.config.ts @FJNel @Adri4no098 @RudolphLamp
-/docker-compose.yml @FJNel @Adri4no098 @RudolphLamp
-
 
 # -------------------------------------------------------------------
 # Frontend
-# UI, Vite, React, frontend tests, and frontend integration.
-# Primary: Connor and Zoë
-# Supporting: Rudolph and Johan
+# UI, Vite, React, and public assets.
+# Primary: Connor and Zoe | Supporting: Rudolph
 # -------------------------------------------------------------------
-/apps/frontend/** @FJNel @u24569608 @ZoeJ72005 @RudolphLamp
-/apps/frontend/src/** @FJNel @u24569608 @ZoeJ72005 @RudolphLamp
-/apps/frontend/**/*.test.ts @FJNel @u24569608 @ZoeJ72005 @RudolphLamp
-/apps/frontend/**/*.test.tsx @FJNel @u24569608 @ZoeJ72005 @RudolphLamp
-/apps/frontend/src/test-setup.ts @FJNel @u24569608 @ZoeJ72005 @RudolphLamp
-/apps/frontend/vite.config.ts @FJNel @u24569608 @ZoeJ72005 @RudolphLamp
-
+/apps/frontend/** @u24569608 @ZoeJ72005 @RudolphLamp
+/Images/** @u24569608 @ZoeJ72005
 
 # -------------------------------------------------------------------
-# Shared package
-# Shared constants/types/utilities can affect both frontend and backend.
-# Johan included for team-lead review.
-# Connor and Zoë included for frontend impact.
-# Adriano and Rudolph included for backend/system impact.
+# Testing (Overrides domain rules)
+# Zoe as testing lead, supported by Domain Leads and Rudolph.
+# Targeting the specific test directories in the new structure.
 # -------------------------------------------------------------------
-/packages/shared/** @FJNel @u24569608 @ZoeJ72005 @Adri4no098 @RudolphLamp
-
+/apps/frontend/tests/** @ZoeJ72005 @RudolphLamp @u24569608
+/apps/backend/tests/** @ZoeJ72005 @FJNel @Adri4no098
 
 # -------------------------------------------------------------------
-# Integration-sensitive files
-# These files affect how packages work together.
+# Shared Packages & Integration
+# Requires cross-domain eyes from backend, frontend, and tech leads.
 # -------------------------------------------------------------------
-/package.json @FJNel @Adri4no098 @u24569608 @ZoeJ72005 @RudolphLamp
-/pnpm-lock.yaml @FJNel @Adri4no098 @u24569608 @ZoeJ72005 @RudolphLamp
-/pnpm-workspace.yaml @FJNel @Adri4no098 @u24569608 @ZoeJ72005 @RudolphLamp
-
-
-# -------------------------------------------------------------------
-# CI, repository tooling, and local enforcement
-# GitHub Actions, Husky, scripts, formatting, package management,
-# workspace setup, and commit policy tooling.
-# Primary: Johan
-# Supporting: Zoë and Rudolph
-# -------------------------------------------------------------------
-/.github/workflows/** @FJNel @ZoeJ72005 @RudolphLamp
-/.github/CODEOWNERS @FJNel @ZoeJ72005 @RudolphLamp
-/.husky/** @FJNel @ZoeJ72005 @RudolphLamp
-/scripts/** @FJNel @ZoeJ72005 @RudolphLamp
-
-/commitlint.config.cjs @FJNel @ZoeJ72005 @RudolphLamp
-/.prettierrc @FJNel @ZoeJ72005 @RudolphLamp
-/.editorconfig @FJNel @ZoeJ72005 @RudolphLamp
-/.vscode/** @FJNel @ZoeJ72005 @RudolphLamp
-/.gitignore @FJNel @ZoeJ72005 @RudolphLamp
-
+/packages/shared/** @FJNel @Adri4no098 @u24569608 @ZoeJ72005
+/package.json @FJNel @Adri4no098 @ZoeJ72005
+/pnpm-*.yaml @FJNel @Adri4no098 @ZoeJ72005
 
 # -------------------------------------------------------------------
-# Documentation and GitHub process templates
-# Project docs, setup docs, issue templates, and PR templates.
-# Primary: Johan
-# Supporting: Zoë and Rudolph
+# CI/CD, Tooling & Workflows
+# Includes GitHub actions, Husky hooks, scripts, and VSCode workspace.
 # -------------------------------------------------------------------
-/docs/** @FJNel @ZoeJ72005 @RudolphLamp
-/*.md @FJNel @ZoeJ72005 @RudolphLamp
-/.github/ISSUE_TEMPLATE/** @FJNel @ZoeJ72005 
-/.github/pull_request_template.md @FJNel @ZoeJ72005
-
+/.github/** @FJNel @ZoeJ72005 @RudolphLamp
+/.husky/** @FJNel @RudolphLamp
+/.vscode/** @FJNel @u24569608
+/scripts/** @FJNel @RudolphLamp
 
 # -------------------------------------------------------------------
-# Architecture-sensitive documentation
-# Design and architecture documents should include system/database reviewers.
-# This appears after the general docs rules so it overrides them.
+# General Documentation
+# Johan reviews all standard documentation and root markdown files.
 # -------------------------------------------------------------------
-/docs/**/DESIGN.md @FJNel @ZoeJ72005 @Adri4no098 @RudolphLamp
-/docs/**/*ARCHITECTURE*.md @FJNel @ZoeJ72005 @Adri4no098 @RudolphLamp
-/docs/**/*DESIGN*.md @FJNel @ZoeJ72005 @Adri4no098 @RudolphLamp
-
+/docs/** @FJNel
+/*.md @FJNel
 
 # -------------------------------------------------------------------
-# Project assets
-# Images and branding assets.
-# Primary: Connor and Zoë
-# Supporting: Johan
+# Specific Documentation (Overrides general docs)
+# Routes specialised documents to their respective domain reviewers.
 # -------------------------------------------------------------------
-/Images/** @FJNel @u24569608 @ZoeJ72005
+/docs/**/*SRS*.md @FJNel @ZoeJ72005 @Adri4no098
+/docs/**/*DESIGN*.md @FJNel @ZoeJ72005 @u24569608
+/docs/**/*TEST*.md @FJNel @ZoeJ72005 @RudolphLamp
+/docs/**/*DATA*.md @FJNel @Adri4no098 @RudolphLamp
