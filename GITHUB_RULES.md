@@ -61,6 +61,7 @@ Rules:
 - Use working branches for features, bug fixes, documentation changes, and chore work.
 - Once the work is ready and has been tested appropriately, open a pull request into `dev`.
 - Do not merge a working branch into `main` directly.
+- Do not work in another developer's branch unless you have very good reason to do so.
 
 ## Branch naming conventions
 
@@ -76,6 +77,8 @@ Use the closest matching prefix for your branch name.
   - Example: `chore/update-dependencies/johan`
 
 Keep branch names short, clear, and descriptive.
+
+Husky is set up to enforce this format on branch names: Since Husky runs locally though, you'll get a warning when you checkout a branch that is named incorrectly, and you will not be able to commit or push to branches that are not named correctly. Please rename your branch to a name that follows the format above (locally and remotely) before continuing work.
 
 ## Pull request rules
 
