@@ -648,7 +648,7 @@ It runs:
 ```bash
 pnpm install --frozen-lockfile
 pnpm --filter @insightful-phish/backend prisma:generate
-pnpm --filter @insightful-phish/backend prisma migrate deploy
+pnpm --filter @insightful-phish/backend prisma:migrate:deploy
 pnpm typecheck
 pnpm test
 pnpm build
