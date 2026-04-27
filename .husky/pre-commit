@@ -1,4 +1,5 @@
 ./scripts/check-branch-name.sh
 ./scripts/check-git-identity.sh
+./scripts/check-env-files.sh
 ./scripts/check-staged-file-policy.sh
 pnpm exec lint-staged

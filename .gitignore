@@ -6,10 +6,13 @@ coverage
 playwright-report
 test-results
 
-.env
-.env.local
-.env.*.local
-
 .DS_Store
 
 apps/backend/src/generated/prisma
+
+.env
+.env.*
+!.env.example
+
+env
+env.*
