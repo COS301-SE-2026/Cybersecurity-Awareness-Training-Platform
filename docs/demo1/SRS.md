@@ -1,31 +1,153 @@
-# Software Requirements Specification (SRS) for Insightful Phish
+# Demo 1 Software Requirements Specification
 
-## Introduction
+## Purpose
 
-## User Stories
+This document collects Sprint 1 Demo 1 requirements for the Cybersecurity Awareness Training Platform.
 
-## Use Cases
+## Demo 1 Scope
 
-## Functional Requirements
+### UC-01: View Emails in Simulated Inbox
 
-## API Contracts
+### UC-02: View Training Document
 
-## Domain Model
+### UC-03: Complete Quiz Flow
 
-## Architectural Requirements
+## Base Features
 
-### Quality Requirements
+### Login/Register
 
-### Architectural Patterns
+### Themes
 
-### Design Patterns
+### General Form Validation
 
-### Constraints
+## Document Structure and Integration (Johan)
 
-## Technical Requirements
+### Introduction
 
----
+### Project Scope
 
-## Appendix of changes
+### User Characteristics
 
-Initial creation of design document.
+### Assumptions
+
+### Dependencies
+
+### Cross-Reference Structure
+
+## UC-01: Simulated Inbox Requirements (Adriano)
+
+### User Story
+
+### Actor
+
+### Preconditions
+
+### Postconditions
+
+### Main Flow
+
+### Exceptions
+
+### Functional Requirements
+
+### Domain References
+
+### API References
+
+### Traceability References
+
+## UC-02: Training Document Viewing Requirements (Connor)
+
+### User Story
+
+### Actor
+
+### Preconditions
+
+### Postconditions
+
+### Main Flow
+
+### Exceptions
+
+### Functional Requirements
+
+### Domain References
+
+### API References
+
+### Traceability References
+
+## UC-03: Quiz Flow Requirements (Zoë)
+
+### User Story
+
+### Actor
+
+### Preconditions
+
+### Postconditions
+
+### Main Flow
+
+### Exceptions
+
+### Functional Requirements
+
+### Domain References
+
+### API References
+
+### Traceability References
+
+## Validation, Error-State, and Feedback Requirements (Zoë)
+
+### Required Field Validation
+
+### Quiz Answer Validation
+
+### Submission Feedback
+
+### Success Messages
+
+### Error Messages
+
+### Loading States
+
+### Empty States
+
+## Interaction Tracking, Progress, and Reporting Requirements (Adriano)
+
+### Simulated Inbox Interaction Tracking
+
+### Training Progress
+
+### Quiz Attempts
+
+### Quiz Results
+
+### Preliminary Reporting Support
+
+## Admin and Campaign Supporting Context (Rudolph)
+
+### Administrator User Characteristics
+
+### Basic Campaign Concept
+
+### Employee Assignment Context
+
+### Simulation Content Setup
+
+### Training and Quiz Setup
+
+## Supporting Document References
+
+### Domain Model and Diagrams
+
+### API Contracts
+
+### Architecture and Technical Requirements
+
+### Design and Wireframes
+
+### Testing and Traceability
