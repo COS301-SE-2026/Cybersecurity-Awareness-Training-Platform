@@ -61,7 +61,7 @@ jobs:
         run: pnpm --filter @insightful-phish/backend prisma:generate
 
       - name: Apply database migrations
-        run: pnpm --filter @insightful-phish/backend prisma migrate deploy
+        run: pnpm --filter @insightful-phish/backend prisma:migrate:deploy
 
       - name: Typecheck
         run: pnpm typecheck
