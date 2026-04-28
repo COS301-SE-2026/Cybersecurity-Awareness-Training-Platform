@@ -38,21 +38,19 @@
 </p>
 
 <p align="left">
-  <a href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/issues">
-    <img src="https://img.shields.io/github/issues/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge&color=brightgreen" />
-  </a>
-  <a href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/issues?q=is%3Aissue+state%3Aclosed">
-    <img src="https://img.shields.io/github/issues-closed/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge&color=brightgreen" />
-  </a>
+
+  <img src="https://img.shields.io/github/issues/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge&color=brightgreen" />
+
+  <img src="https://img.shields.io/github/issues-closed/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge&color=brightgreen" />
+
 </p>
 
 <p align="left">
-  <a href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/graphs/contributors">
-    <img src="https://img.shields.io/github/contributors/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge" />
-  </a>
-  <a href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/stargazers"> 
-    <img src="https://img.shields.io/github/stars/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge" /> 
-  </a>
+
+  <img src="https://img.shields.io/github/contributors/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge" />
+
+  <img src="https://img.shields.io/github/stars/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge" />
+
 </p>
 
 <p align="left">
