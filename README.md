@@ -20,7 +20,7 @@
 # <img src="https://img.icons8.com/?size=100&id=jKEjuyGFaF8x&format=png&color=000000" width="32"> About the Project <img src="https://img.icons8.com/?size=100&id=gUkmkUEWoS7h&format=png&color=000000" width="32">
 ***Insightful Phish*** is a _web-based_ **cybersecurity awareness training platform** that helps individuals and organisations learn how to recognise and respond to common cyber threats, especially phishing attacks.
 
-The platform combines realistic attack simulations with interactive training to create a practical learning experience. Administrators can create and send simulated phishing emails to users, allowing them to safely experience real-world attack scenarios. The system then tracks how users respond—such as clicking links or submitting information—and provides feedback to help them improve.
+The platform combines realistic attack simulations with interactive training to create a practical learning experience. Administrators can create and send simulated phishing emails to users, allowing them to safely experience real-world attack scenarios. The system then tracks how users respond, such as clicking links or submitting information, and provides feedback to help them improve.
 
 In addition to simulations, the platform offers training modules and quizzes that teach users how to identify suspicious behaviour, avoid common mistakes, and build better security habits.
 
