@@ -17,36 +17,47 @@
 
 ---
 
-## Project Dashboard
+# <img src="https://img.icons8.com/?size=100&id=UDtE3CKjacrI&format=png&color=000000" width="32"> Project Dashboard
 
 <p align="left">
-    <img src="https://img.shields.io/badge/Tests-Passing-brightgreen?style=for-the-badge&logo=jest&logoColor=white" />
-    <img src="https://img.shields.io/badge/Coverage-85%25-green?style=for-the-badge&logo=codecov&logoColor=white" />
-    <img src="https://img.shields.io/badge/Build-Passing-brightgreen?style=for-the-badge&logo=githubactions&logoColor=white" />
-    <img src="https://img.shields.io/badge/Linting-Clean-blue?style=for-the-badge&logo=eslint&logoColor=white" />
-  
+  <img src="https://img.shields.io/badge/Tests-Passing-brightgreen?style=for-the-badge&logo=jest&logoColor=white" />
+  <img src="https://img.shields.io/badge/Coverage-85%25-green?style=for-the-badge&logo=codecov&logoColor=white" />
+  <img src="https://img.shields.io/badge/Build-Passing-brightgreen?style=for-the-badge&logo=githubactions&logoColor=white" />
+  <img src="https://img.shields.io/badge/Linting-Clean-blue?style=for-the-badge&logo=eslint&logoColor=white" />
+  <img src="https://img.shields.io/badge/CI/CD-Automated-blue?style=for-the-badge&logo=githubactions&logoColor=white" />
+</p>
+
+<p align="left">
   <img src="https://img.shields.io/badge/Status-Active-success?style=for-the-badge" />
   <img src="https://img.shields.io/badge/Maintained-Yes-brightgreen?style=for-the-badge" />
-    
-  <img src="https://img.shields.io/badge/CI/CD-Automated-blue?style=for-the-badge&logo=githubactions&logoColor=white" />
-<a href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/commits/main/"><img src="https://img.shields.io/github/last-commit/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge&color=yellow" /></a>
-  
-  <a href="https://github.com/COS301-SE-2025/Smart-Student-Handbook/issues"><img src="https://img.shields.io/github/issues/COS301-SE-2025/Smart-Student-Handbook?style=for-the-badge&color=brightgreen" /></a>
-  <a href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/issues?q=is%3Aissue+state%3Aclosed"><img src="https://img.shields.io/github/issues-closed/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge&color=brightgreen" /></a>
-  
-<a href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/graphs/contributors">
+  <a href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/commits/main/">
+    <img src="https://img.shields.io/github/last-commit/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge&color=yellow" />
+  </a>
+</p>
+
+<p align="left">
+
+  <img src="https://img.shields.io/github/issues/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge&color=brightgreen" />
+
+  <img src="https://img.shields.io/github/issues-closed/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge&color=brightgreen" />
+
+</p>
+
+<p align="left">
+
   <img src="https://img.shields.io/github/contributors/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge" />
-</a>
-  
-   <a href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/stargazers"> <img src="https://img.shields.io/github/stars/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge" /> </a>
-   
+
+  <img src="https://img.shields.io/github/stars/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge" />
+
+</p>
+
+<p align="left">
   <img src="https://img.shields.io/badge/Fuel-Cheesecake-000000?style=for-the-badge" />
 </p>
 
-
 ---
 
-## Tech Stack
+# <img src="https://img.icons8.com/?size=100&id=hSm5FhlnhnlL&format=png&color=000000" width="32"> Technology Stack
 
 <p align="center">
     <a href="https://skillicons.dev">
@@ -54,7 +65,7 @@
     </a>
 </p>
 
-| Area                 | Tools                                    |
+| <img src="https://img.icons8.com/?size=100&id=WtGfO5jMSugE&format=png&color=000000" width="20"> **Area**                 | <img src="https://img.icons8.com/?size=100&id=zcevikcPgMsD&format=png&color=000000" width="20"> **Tools**                                    |
 | -------------------- | ---------------------------------------- |
 | Frontend             | React, Vite, TypeScript, HTML, CSS       |
 | Backend              | Node.js, Express, TypeScript             |
@@ -67,14 +78,22 @@
 
 ---
 
-## Team
+# <img src="https://img.icons8.com/?size=100&id=v2YvxrjerxWq&format=png&color=000000" width="32"> The Project Cheesecake Team
 
-> Team Photo here
+<!-- Team Logo -->
+<p align="center">
+    <img src="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/blob/main/Images/Light%20Team%20Logo.png#gh-light-mode-only" width="150">
+    <img src="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/blob/main/Images/Dark%20Team%20Logo.png#gh-dark-mode-only" width="150">
+</p>
 
-| Team Member       | Role                                | GitHub                                         | LinkedIn      |
-| ----------------- | ----------------------------------- | ---------------------------------------------- | ------------- |
-| Johan Nel         | Team Lead & Backend Engineer        | [@FJNel](https://github.com/FJNel)             | [LinkedIn](#) |
-| Connor Bell       | Frontend Lead & UI/UX Designer      | [@u24569608](https://github.com/u24569608)     | [LinkedIn](#) |
-| Adriano Jorge     | Technical Lead & Database Architect | [@Adri4no098](https://github.com/Adri4no098)   | [LinkedIn](#) |
-| Zoë Joubert       | QA Lead & Frontend Engineer         | [@ZoeJ72005](https://github.com/ZoeJ72005)     | [LinkedIn](#) |
-| Rudolph Lamprecht | Full-Stack Integration Engineer     | [@RudolphLamp](https://github.com/RudolphLamp) | [LinkedIn](#) |
+## <img src="https://img.icons8.com/?size=100&id=vthqLC9ZovO9&format=png&color=000000" width="32"> Team Members
+| <img src="https://img.icons8.com/?size=100&id=tdljzjMBRKHI&format=png&color=000000" width="20"> **Team Member** | <img src="https://img.icons8.com/?size=100&id=caeMrKOh8EuI&format=png&color=000000" width="20">  **Role** | <img src="https://img.icons8.com/?size=100&id=OekWdZr7M4hU&format=png&color=000000" width="20"> **GitHub** | <img src="https://img.icons8.com/?size=100&id=zgB79k03qhUu&format=png&color=000000" width="20"> **LinkedIn** |
+|------------|------|--------|----------|
+| <p align="center"><img src="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/blob/2fc5d219a33fa8989c22e6346d6b0fe6230fa4a7/Images/Headshots/Johan.jpg" width="80"><br>Johan Nel</p> | <ul><li>Team Lead</li><li>Backend Engineer</li></ul> | <img src="https://img.icons8.com/?size=100&id=OekWdZr7M4hU&format=png&color=000000" width="18"> [@FJNel](https://github.com/FJNel) | <img src="https://img.icons8.com/?size=100&id=zgB79k03qhUu&format=png&color=000000" width="18"> [Johan's LinkedIn](https://www.linkedin.com/in/ferdinand-johannes-nel/) |
+| <p align="center"><img src="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/blob/2fc5d219a33fa8989c22e6346d6b0fe6230fa4a7/Images/Headshots/Connor.jpg" width="80"><br>Connor Bell</p> | <ul><li>Frontend Lead</li><li>UI/UX Designer</li><li>Brand Designer</li></ul> | <img src="https://img.icons8.com/?size=100&id=OekWdZr7M4hU&format=png&color=000000" width="18"> [@u24569608](https://github.com/u24569608) | <img src="https://img.icons8.com/?size=100&id=zgB79k03qhUu&format=png&color=000000" width="18"> [Connor's LinkedIn](https://www.linkedin.com/in/connorbellUP/) |
+| <p align="center"><img src="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/blob/2fc5d219a33fa8989c22e6346d6b0fe6230fa4a7/Images/Headshots/Adriano.jpg" width="80"><br>Adriano Jorge</p> | <ul><li>Technical Lead</li><li>Database Architect</li></ul> | <img src="https://img.icons8.com/?size=100&id=OekWdZr7M4hU&format=png&color=000000" width="18"> [@Adri4no098](https://github.com/Adri4no098) | <img src="https://img.icons8.com/?size=100&id=zgB79k03qhUu&format=png&color=000000" width="18"> [Adriano's LinkedIn](https://www.linkedin.com/in/adriano-jorge-909486378/) |
+| <p align="center"><img src="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/blob/2fc5d219a33fa8989c22e6346d6b0fe6230fa4a7/Images/Headshots/Zoe.jpg" width="80"><br>Zoë Joubert</p> | <ul><li>QA Lead</li><li>Frontend Engineer</li></ul> | <img src="https://img.icons8.com/?size=100&id=OekWdZr7M4hU&format=png&color=000000" width="18"> [@ZoeJ72005](https://github.com/ZoeJ72005) | <img src="https://img.icons8.com/?size=100&id=zgB79k03qhUu&format=png&color=000000" width="18"> [Zoë's LinkedIn](https://www.linkedin.com/in/zoë-joubert/) |
+| <p align="center"><img src="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/blob/2fc5d219a33fa8989c22e6346d6b0fe6230fa4a7/Images/Headshots/Rudolph.jpg" width="80"><br>Rudolph Lamprecht</p> | <ul><li>Full-Stack Integration Engineer</li></ul> | <img src="https://img.icons8.com/?size=100&id=OekWdZr7M4hU&format=png&color=000000" width="18"> [@RudolphLamp](https://github.com/RudolphLamp) | <img src="https://img.icons8.com/?size=100&id=zgB79k03qhUu&format=png&color=000000" width="18"> [Rudolph's LinkedIn](https://www.linkedin.com/in/rudolph-lamprecht-2b9511380/) |
+
+## <img src="https://img.icons8.com/?size=100&id=FpuBglgBxX4C&format=png&color=000000" width="32">  Contact Us 
+<img src="https://img.icons8.com/?size=100&id=czpd3OfwK2l4&format=png&color=000000" width="18"> teamcontact@projectcheesecake.co.za
