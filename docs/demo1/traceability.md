@@ -20,14 +20,14 @@ This document links Demo 1 user stories, use cases, functional requirements, API
 
 ## Traceability Table
 
-| Area                     | User Story | Use Case     | Functional Requirements | API Contracts | Domain Entities | Design/Wireframes | QA/Test References | Owner   | Status  |
-| ------------------------ | ---------- | ------------ | ----------------------- | ------------- | --------------- | ----------------- | ------------------ | ------- | ------- |
-| UC-01: Simulated Inbox   | Pending    | UC-01        | Pending                 | Pending       | Pending         | Pending           | Pending            | Adriano | Pending |
-| UC-02: Training Document | Pending    | UC-02        | Pending                 | Pending       | Pending         | Pending           | Pending            | Connor  | Pending |
-| UC-03: Quiz Flow         | Pending    | UC-03        | Pending                 | Pending       | Pending         | Pending           | Pending            | Zoë     | Pending |
-| Base: Login/Register     | Pending    | Base feature | Pending                 | Pending       | Pending         | Pending           | Pending            | Pending | Pending |
-| Base: Themes             | Pending    | Base feature | Pending                 | Pending       | Pending         | Pending           | Pending            | Pending | Pending |
-| Base: General Validation | Pending    | Base feature | Pending                 | Pending       | Pending         | Pending           | Pending            | Zoë     | Pending |
+| Area                     | User Story | Use Case     | Functional Requirements  | API Contracts              | Domain Entities          | Design/Wireframes          | QA/Test References       | Owner   | Status  |
+| ------------------------ | ---------- | ------------ | ------------------------ | -------------------------- | ------------------------ | -------------------------- | ------------------------ | ------- | ------- |
+| UC-01: Simulated Inbox   | US-UC01-01 | UC-01        | FR-UC01-01 to FR-UC01-10 | API-UC01-01 to API-UC01-03 | DE-UC01-01 to DE-UC01-06 | DES-UC01-01 to DES-UC01-03 | QA-UC01-01 to QA-UC01-05 | Adriano | Draft   |
+| UC-02: Training Document | Pending    | UC-02        | Pending                  | Pending                    | Pending                  | Pending                    | Pending                  | Connor  | Pending |
+| UC-03: Quiz Flow         | Pending    | UC-03        | Pending                  | Pending                    | Pending                  | Pending                    | Pending                  | Zoë     | Pending |
+| Base: Login/Register     | Pending    | Base feature | Pending                  | Pending                    | Pending                  | Pending                    | Pending                  | Pending | Pending |
+| Base: Themes             | Pending    | Base feature | Pending                  | Pending                    | Pending                  | Pending                    | Pending                  | Pending | Pending |
+| Base: General Validation | Pending    | Base feature | Pending                  | Pending                    | Pending                  | Pending                    | Pending                  | Zoë     | Pending |
 
 ## Integration Notes (Johan)
 

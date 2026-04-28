@@ -34,7 +34,7 @@ This document collects Sprint 1 Demo 1 requirements for the Cybersecurity Awaren
 
 ### Cross-Reference Structure
 
-## UC-01: Simulated Inbox Requirements (Adriano)
+## UC-01: Simulated Inbox Requirements
 
 ### User Story
 
@@ -242,7 +242,7 @@ PLEASE NOTE: These contracts are subjected to change throughout the course of im
 
 ### Empty States
 
-## Interaction Tracking, Progress, and Reporting Requirements (Adriano)
+## Interaction Tracking, Progress, and Reporting Requirements
 
 ### Simulated Inbox Interaction Tracking
 
