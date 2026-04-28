@@ -95,7 +95,7 @@ By focusing on human behaviour, the most common source of security breaches, the
 
 ---
 
-# <img src="https://img.icons8.com/?size=100&id=v2YvxrjerxWq&format=png&color=000000" width="32"> The Project Cheesecake Team
+# <img src="https://img.icons8.com/?size=100&id=v2YvxrjerxWq&format=png&color=000000" width="32"> The Project Cheesecake Team <img src="https://img.icons8.com/?size=100&id=XgZiw3MnrLE1&format=png&color=000000" width="32">
 
 <!-- Team Logo -->
 <p align="left">
