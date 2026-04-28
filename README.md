@@ -19,39 +19,44 @@
 
 ## Project Dashboard
 
+## Project Dashboard
+
 <p align="left">
+  <img src="https://img.shields.io/badge/Tests-Passing-brightgreen?style=for-the-badge&logo=jest&logoColor=white" />
+  <img src="https://img.shields.io/badge/Coverage-85%25-green?style=for-the-badge&logo=codecov&logoColor=white" />
+  <img src="https://img.shields.io/badge/Build-Passing-brightgreen?style=for-the-badge&logo=githubactions&logoColor=white" />
+  <img src="https://img.shields.io/badge/Linting-Clean-blue?style=for-the-badge&logo=eslint&logoColor=white" />
+  <img src="https://img.shields.io/badge/CI/CD-Automated-blue?style=for-the-badge&logo=githubactions&logoColor=white" />
+</p>
 
-<img src="https://img.shields.io/badge/Tests-Passing-brightgreen?style=for-the-badge&logo=jest&logoColor=white" />
-<img src="https://img.shields.io/badge/Coverage-85%25-green?style=for-the-badge&logo=codecov&logoColor=white" />
-<img src="https://img.shields.io/badge/Build-Passing-brightgreen?style=for-the-badge&logo=githubactions&logoColor=white" />
-<img src="https://img.shields.io/badge/Linting-Clean-blue?style=for-the-badge&logo=eslint&logoColor=white" />
-<img src="https://img.shields.io/badge/CI/CD-Automated-blue?style=for-the-badge&logo=githubactions&logoColor=white" />
-<br></br>
-<img src="https://img.shields.io/badge/Status-Active-success?style=for-the-badge" />
-<img src="https://img.shields.io/badge/Maintained-Yes-brightgreen?style=for-the-badge" />
+<p align="left">
+  <img src="https://img.shields.io/badge/Status-Active-success?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Maintained-Yes-brightgreen?style=for-the-badge" />
+  <a href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/commits/main/">
+    <img src="https://img.shields.io/github/last-commit/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge&color=yellow" />
+  </a>
+</p>
 
-<a href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/commits/main/">
-  <img src="https://img.shields.io/github/last-commit/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge&color=yellow" />
-</a>
-<br></br>
-<a href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/issues">
-  <img src="https://img.shields.io/github/issues/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge&color=brightgreen" />
-</a>
+<p align="left">
+  <a href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/issues">
+    <img src="https://img.shields.io/github/issues/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge&color=brightgreen" />
+  </a>
+  <a href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/issues?q=is%3Aissue+state%3Aclosed">
+    <img src="https://img.shields.io/github/issues-closed/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge&color=brightgreen" />
+  </a>
+</p>
 
-<a href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/issues?q=is%3Aissue+state%3Aclosed">
-  <img src="https://img.shields.io/github/issues-closed/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge&color=brightgreen" />
-</a>
-<br></br>
-<a href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/graphs/contributors">
-  <img src="https://img.shields.io/github/contributors/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge" />
-</a>
+<p align="left">
+  <a href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/graphs/contributors">
+    <img src="https://img.shields.io/github/contributors/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge" />
+  </a>
+  <a href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/stargazers"> 
+    <img src="https://img.shields.io/github/stars/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge" /> 
+  </a>
+</p>
 
-<a href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/stargazers"> 
-  <img src="https://img.shields.io/github/stars/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge" /> 
-</a>
-<br></br>
-<img src="https://img.shields.io/badge/Fuel-Cheesecake-000000?style=for-the-badge" />
-
+<p align="left">
+  <img src="https://img.shields.io/badge/Fuel-Cheesecake-000000?style=for-the-badge" />
 </p>
 
 ---
