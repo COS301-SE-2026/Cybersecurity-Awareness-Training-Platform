@@ -46,7 +46,7 @@
 
 ---
 
-## Tech Stack
+## Technology Stack
 
 <p align="center">
     <a href="https://skillicons.dev">
@@ -67,14 +67,22 @@
 
 ---
 
-## Team
+# The Project Cheesecake Team
 
-> Team Photo here
+<!-- Team Logo -->
+<p align="center">
+    <img src="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/blob/main/Images/Light%20Team%20Logo.png#gh-light-mode-only" width="150">
+    <img src="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/blob/main/Images/Dark%20Team%20Logo.png#gh-dark-mode-only" width="150">
+</p>
 
+## Team Members
 | Team Member       | Role                                | GitHub                                         | LinkedIn      |
 | ----------------- | ----------------------------------- | ---------------------------------------------- | ------------- |
-| Johan Nel         | Team Lead & Backend Engineer        | [@FJNel](https://github.com/FJNel)             | [LinkedIn](#) |
-| Connor Bell       | Frontend Lead & UI/UX Designer      | [@u24569608](https://github.com/u24569608)     | [LinkedIn](#) |
-| Adriano Jorge     | Technical Lead & Database Architect | [@Adri4no098](https://github.com/Adri4no098)   | [LinkedIn](#) |
-| Zoë Joubert       | QA Lead & Frontend Engineer         | [@ZoeJ72005](https://github.com/ZoeJ72005)     | [LinkedIn](#) |
-| Rudolph Lamprecht | Full-Stack Integration Engineer     | [@RudolphLamp](https://github.com/RudolphLamp) | [LinkedIn](#) |
+| Johan Nel         | Team Lead & Backend Engineer        | [@FJNel](https://github.com/FJNel)             | [LinkedIn](https://www.linkedin.com/in/ferdinand-johannes-nel/) |
+| Connor Bell       | Frontend Lead, UI/UX Designer & Brand Manager    | [@u24569608](https://github.com/u24569608)     | [LinkedIn](https://www.linkedin.com/in/connorbellUP/) |
+| Adriano Jorge     | Technical Lead & Database Architect | [@Adri4no098](https://github.com/Adri4no098)   | [LinkedIn](https://www.linkedin.com/in/adriano-jorge-909486378/) |
+| Zoë Joubert       | QA Lead & Frontend Engineer         | [@ZoeJ72005](https://github.com/ZoeJ72005)     | [LinkedIn](https://www.linkedin.com/in/zoë-joubert/) |
+| Rudolph Lamprecht | Full-Stack Integration Engineer     | [@RudolphLamp](https://github.com/RudolphLamp) | [LinkedIn](https://www.linkedin.com/in/rudolph-lamprecht-2b9511380/) |
+
+## Contact Us 
+teamcontact@projectcheesecake.co.za
