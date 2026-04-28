@@ -17,7 +17,7 @@
 
 ---
 
-## Project Dashboard
+# <img src="https://img.icons8.com/?size=100&id=UDtE3CKjacrI&format=png&color=000000" width="32"> Project Dashboard
 
 <p align="left">
   <img src="https://img.shields.io/badge/Tests-Passing-brightgreen?style=for-the-badge&logo=jest&logoColor=white" />
@@ -57,7 +57,7 @@
 
 ---
 
-## Technology Stack
+# <img src="https://img.icons8.com/?size=100&id=hSm5FhlnhnlL&format=png&color=000000" width="32"> Technology Stack
 
 <p align="center">
     <a href="https://skillicons.dev">
@@ -78,7 +78,7 @@
 
 ---
 
-# The Project Cheesecake Team
+# <img src="https://img.icons8.com/?size=100&id=v2YvxrjerxWq&format=png&color=000000" width="32"> The Project Cheesecake Team
 
 <!-- Team Logo -->
 <p align="center">
@@ -86,7 +86,7 @@
     <img src="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/blob/main/Images/Dark%20Team%20Logo.png#gh-dark-mode-only" width="150">
 </p>
 
-## Team Members
+## <img src="https://img.icons8.com/?size=100&id=vthqLC9ZovO9&format=png&color=000000" width="32"> Team Members
 | Team Member | Role | GitHub | LinkedIn |
 |------------|------|--------|----------|
 | <p align="center"><img src="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/blob/2fc5d219a33fa8989c22e6346d6b0fe6230fa4a7/Images/Headshots/Johan.jpg" width="80"><br>Johan Nel</p> | <ul><li>Team Lead</li><li>Backend Engineer</li></ul> | <img src="https://img.icons8.com/?size=100&id=OekWdZr7M4hU&format=png&color=000000" width="16"> [@FJNel](https://github.com/FJNel) | <img src="https://img.icons8.com/?size=100&id=zgB79k03qhUu&format=png&color=000000" width="16"> [Johan's LinkedIn](https://www.linkedin.com/in/ferdinand-johannes-nel/) |
@@ -95,5 +95,5 @@
 | <p align="center"><img src="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/blob/2fc5d219a33fa8989c22e6346d6b0fe6230fa4a7/Images/Headshots/Zoe.jpg" width="80"><br>Zoë Joubert</p> | <ul><li>QA Lead</li><li>Frontend Engineer</li></ul> | <img src="https://img.icons8.com/?size=100&id=OekWdZr7M4hU&format=png&color=000000" width="16"> [@ZoeJ72005](https://github.com/ZoeJ72005) | <img src="https://img.icons8.com/?size=100&id=zgB79k03qhUu&format=png&color=000000" width="16"> [Zoë's LinkedIn](https://www.linkedin.com/in/zoë-joubert/) |
 | <p align="center"><img src="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/blob/2fc5d219a33fa8989c22e6346d6b0fe6230fa4a7/Images/Headshots/Rudolph.jpg" width="80"><br>Rudolph Lamprecht</p> | <ul><li>Full-Stack Integration Engineer</li></ul> | <img src="https://img.icons8.com/?size=100&id=OekWdZr7M4hU&format=png&color=000000" width="16"> [@RudolphLamp](https://github.com/RudolphLamp) | <img src="https://img.icons8.com/?size=100&id=zgB79k03qhUu&format=png&color=000000" width="16"> [Rudolph's LinkedIn](https://www.linkedin.com/in/rudolph-lamprecht-2b9511380/) |
 
-## Contact Us 
+## <img src="https://img.icons8.com/?size=100&id=FpuBglgBxX4C&format=png&color=000000" width="32">  Contact Us 
 <img src="https://img.icons8.com/?size=100&id=czpd3OfwK2l4&format=png&color=000000" width="16"> teamcontact@projectcheesecake.co.za
