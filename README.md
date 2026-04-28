@@ -17,6 +17,23 @@
 
 ---
 
+# <img src="https://img.icons8.com/?size=100&id=jKEjuyGFaF8x&format=png&color=000000" width="32"> About the Project <img src="https://img.icons8.com/?size=100&id=gUkmkUEWoS7h&format=png&color=000000" width="32">
+***Insightful Phish*** is a _web-based_ **cybersecurity awareness training platform** that helps individuals and organisations learn how to recognise and respond to common cyber threats, especially phishing attacks.
+
+The platform combines realistic attack simulations with interactive training to create a practical learning experience. Administrators can create and send simulated phishing emails to users, allowing them to safely experience real-world attack scenarios. The system then tracks how users respond—such as clicking links or submitting information—and provides feedback to help them improve.
+
+In addition to simulations, the platform offers training modules and quizzes that teach users how to identify suspicious behaviour, avoid common mistakes, and build better security habits.
+
+To support organisations, ***Insightful Phish*** provides reporting and insights that highlight user performance, identify potential risks, and measure overall cybersecurity awareness. This allows teams to understand where vulnerabilities exist and take steps to improve.
+
+By focusing on human behaviour, the most common source of security breaches, the platform helps organisations reduce risk and build a stronger security culture.
+
+
+***DON'T TAKE THE BAIT.***
+***LEARN TO SPOT IT.***
+
+---
+
 # <img src="https://img.icons8.com/?size=100&id=UDtE3CKjacrI&format=png&color=000000" width="32"> Project Dashboard
 
 <p align="left">
@@ -81,7 +98,7 @@
 # <img src="https://img.icons8.com/?size=100&id=v2YvxrjerxWq&format=png&color=000000" width="32"> The Project Cheesecake Team
 
 <!-- Team Logo -->
-<p align="center">
+<p align="left">
     <img src="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/blob/main/Images/Light%20Team%20Logo.png#gh-light-mode-only" width="150">
     <img src="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/blob/main/Images/Dark%20Team%20Logo.png#gh-dark-mode-only" width="150">
 </p>
