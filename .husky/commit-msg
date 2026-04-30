@@ -1,2 +1,6 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
 ./scripts/check-commit-message.sh "$1"
 pnpm exec commitlint --edit "$1"

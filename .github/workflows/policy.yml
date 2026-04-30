@@ -1,0 +1,74 @@
+name: Policy
+
+on:
+  pull_request:
+    branches:
+      - dev
+      - main
+    types:
+      - opened
+      - edited
+      - synchronize
+      - reopened
+      - ready_for_review
+
+permissions:
+  contents: read
+
+jobs:
+  env-files:
+    name: Env files
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    steps:
+      - name: Checkout PR history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check env files
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          base_sha="${{ github.event.pull_request.base.sha }}"
+          head_sha="${{ github.event.pull_request.head.sha }}"
+
+          changed_files="$(git diff --name-only --diff-filter=ACMR "$base_sha" "$head_sha" || true)"
+
+          if [ -z "$changed_files" ]; then
+            echo "No changed files to check."
+            exit 0
+          fi
+
+          blocked_files=()
+
+          while IFS= read -r file; do
+            basename="$(basename "$file")"
+
+            if [ "$basename" = ".env.example" ]; then
+              continue
+            fi
+
+            if [ "$basename" = "env" ] || [ "$basename" = ".env" ]; then
+              blocked_files+=("$file")
+              continue
+            fi
+
+            if [[ "$basename" =~ ^\.env\..+ ]] || [[ "$basename" =~ ^env\..+ ]]; then
+              blocked_files+=("$file")
+              continue
+            fi
+          done <<< "$changed_files"
+
+          if [ "${#blocked_files[@]}" -gt 0 ]; then
+            echo "Environment file policy failed."
+            echo "The following environment files must not be committed:"
+            printf '  - %s\n' "${blocked_files[@]}"
+            echo ""
+            echo "Only .env.example may be committed."
+            exit 1
+          fi
+
+          echo "Environment file policy passed."

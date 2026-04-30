@@ -1,3 +1,8 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+./scripts/check-protected-branch.sh commit
 ./scripts/check-branch-name.sh
 ./scripts/check-git-identity.sh
 ./scripts/check-env-files.sh
