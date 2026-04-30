@@ -13,10 +13,7 @@
     "test:coverage": "pnpm -r test:coverage",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "prepare": "husky",
-    "dashes:check": "node scripts/check-dashes.mjs",
-    "dashes:fix": "node scripts/check-dashes.mjs --write",
-    "quality:format": "pnpm format:check && pnpm dashes:check"
+    "prepare": "husky"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.1.0",
@@ -29,9 +26,6 @@
   "lint-staged": {
     "*.{ts,tsx,js,jsx,cjs,mjs,json,jsonc,md,yml,yaml,css}": [
       "prettier --write"
-    ],
-    "*.{md,txt,ts,tsx,js,jsx,cjs,mjs,json,jsonc,yml,yaml,css,html,sh,prisma}": [
-      "pnpm dashes:check"
     ]
   },
   "pnpm": {

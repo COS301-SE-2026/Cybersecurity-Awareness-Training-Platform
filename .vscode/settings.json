@@ -41,5 +41,5 @@
 
   "prettier.useTabs": false,
   "prettier.tabWidth": 2,
-  "cSpell.words": ["Adri", "commitlint", "Lamprecht"]
+  "cSpell.words": ["Adri", "commitlint", "Lamprecht", "unsubmitted", "VITE"]
 }
