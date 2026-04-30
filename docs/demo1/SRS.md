@@ -112,7 +112,7 @@ If the system cannot record the email-open interaction, the system should not ex
 
 #### EX-UC01-05: Attempted Real Email Access
 
-If any flow attempts to access real external email infrastructure, the system must block or exclude that behavior for Demo 1.
+If any flow attempts to access real external email infrastructure, the system must block or exclude that behaviour for Demo 1.
 
 ### Functional Requirements
 
@@ -182,13 +182,13 @@ PLEASE NOTE: These contracts are subject to change throughout the course of impl
 | TRACE-UC01-04   | UC-01 to FR-UC01-05, DE-UC01-05, DES-UC01-03              |
 | TRACE-UC01-05   | UC-01 to FR-UC01-08 and Demo 1 simulation safety boundary |
 
-## UC-02: Training Document Viewing Requirements 
+## UC-02: Training Document Viewing Requirements
 
 ### User Story
 
 As a learner, I want to view training documents assigned to me so that I can learn how to recognise and respond to cyber threats in a controlled educational environment.
 
-### Purpose 
+### Purpose
 
 UC-02 defines the Demo 1 "training document viewing feature" slice. The feature allows a learner to access a list of assigned training materials, open a selected training document, and view its contents in a structured and readable format.
 
@@ -196,7 +196,8 @@ This use case is limited to viewing training content and recording basic interac
 
 ### Actor
 
-#### Primary Actor: 
+#### Primary Actor:
+
 - Learner
 
 #### Supporting Actors:
@@ -244,7 +245,7 @@ This use case is limited to viewing training content and recording basic interac
 
 #### `EX-UC02-01`: No Training Documents Assigned
 
-If the learner has no training documents assigned, the system displays an empty state indicating that no training content is currently available. 
+If the learner has no training documents assigned, the system displays an empty state indicating that no training content is currently available.
 
 #### `EX-UC02-02`: Training Document Not Found
 
@@ -260,46 +261,46 @@ If the system cannot record training interaction, the system should not expose t
 
 ### Functional Requirements
 
-| ID | Requirement | Priority | Notes |
-|----|-------------|----------|-------|
-| `FR-UC02-01` | The system shall allow a learner to view a list of assigned training documents. | **Must** | Includes summary information such as title, description, and basic interaction status (e.g., not started, started, completed). |
-| `FR-UC02-02` | The system shall allow a learner to open a selected training document. | **Must** | Displays full training content. |
-| `FR-UC02-03` | The system shall present training content in a structured and readable format. | **Must** | Supports accessibility and clarity. |
-| `FR-UC02-04` | The system shall record a basic interaction event when training is viewed. | Should | Supports more detailed future reporting. |
-| `FR-UC02-05` | The system shall display an empty state when no training documents are assigned. | **Must** | Clear, non-technical messaging. |
-| `FR-UC02-06` | The system shall display a safe error state when a training document cannot be loaded. | **Must** | Allow recovery navigation. |
-| `FR-UC02-07` | The system shall allow navigation to a linked quiz without executing the quiz flow. | Should | Quiz handled in `UC-03`. |
-| `FR-UC02-08` | The system shall not allow modification of training content by learners. | **Must** | Maintains scope boundary. |
-| `FR-UC02-09` | The system shall treat all training documents as controlled educational content. | **Must** | Reinforces training context. |
-| `FR-UC02-10` | The system shall allow the learner to access training content independently of quiz completion. | Should | Maintains separation between `UC-02` and `UC-03`. |
+| ID           | Requirement                                                                                     | Priority | Notes                                                                                                                          |
+| ------------ | ----------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `FR-UC02-01` | The system shall allow a learner to view a list of assigned training documents.                 | **Must** | Includes summary information such as title, description, and basic interaction status (e.g., not started, started, completed). |
+| `FR-UC02-02` | The system shall allow a learner to open a selected training document.                          | **Must** | Displays full training content.                                                                                                |
+| `FR-UC02-03` | The system shall present training content in a structured and readable format.                  | **Must** | Supports accessibility and clarity.                                                                                            |
+| `FR-UC02-04` | The system shall record a basic interaction event when training is viewed.                      | Should   | Supports more detailed future reporting.                                                                                       |
+| `FR-UC02-05` | The system shall display an empty state when no training documents are assigned.                | **Must** | Clear, non-technical messaging.                                                                                                |
+| `FR-UC02-06` | The system shall display a safe error state when a training document cannot be loaded.          | **Must** | Allow recovery navigation.                                                                                                     |
+| `FR-UC02-07` | The system shall allow navigation to a linked quiz without executing the quiz flow.             | Should   | Quiz handled in `UC-03`.                                                                                                       |
+| `FR-UC02-08` | The system shall not allow modification of training content by learners.                        | **Must** | Maintains scope boundary.                                                                                                      |
+| `FR-UC02-09` | The system shall treat all training documents as controlled educational content.                | **Must** | Reinforces training context.                                                                                                   |
+| `FR-UC02-10` | The system shall allow the learner to access training content independently of quiz completion. | Should   | Maintains separation between `UC-02` and `UC-03`.                                                                              |
 
 ### Domain References
 
-| ID | Entity | Description |
-|----|--------|-------------|
-| `DE-UC02-01` | Learner | The user viewing assigned training documents. |
-| `DE-UC02-02` | TrainingDocument | A structured educational content item (e.g., PDF, HTML module). |
-| `DE-UC02-03` | TrainingAssignment | Links a training document to a learner via a campaign. |
-| `DE-UC02-04` | TrainingProgress | A basic record of training interaction or status. |
-| `DE-UC02-05` | TrainingReference | Optional link or button to related quiz or follow-up content. |
+| ID           | Entity             | Description                                                     |
+| ------------ | ------------------ | --------------------------------------------------------------- |
+| `DE-UC02-01` | Learner            | The user viewing assigned training documents.                   |
+| `DE-UC02-02` | TrainingDocument   | A structured educational content item (e.g., PDF, HTML module). |
+| `DE-UC02-03` | TrainingAssignment | Links a training document to a learner via a campaign.          |
+| `DE-UC02-04` | TrainingProgress   | A basic record of training interaction or status.               |
+| `DE-UC02-05` | TrainingReference  | Optional link or button to related quiz or follow-up content.   |
 
 ### API References
 
-| ID | Contract | Purpose |
-|----|----------|---------|
-| `API-UC02-01` | `GET /training/assigned` | Retrieve assigned training documents for the learner. |
-| `API-UC02-02` | `GET /training/:trainingId` | Retrieve full training document content. |
-| `API-UC02-03` | `POST /training/:trainingId/progress` | Record a basic training interaction event. |
+| ID            | Contract                              | Purpose                                               |
+| ------------- | ------------------------------------- | ----------------------------------------------------- |
+| `API-UC02-01` | `GET /training/assigned`              | Retrieve assigned training documents for the learner. |
+| `API-UC02-02` | `GET /training/:trainingId`           | Retrieve full training document content.              |
+| `API-UC02-03` | `POST /training/:trainingId/progress` | Record a basic training interaction event.            |
 
 ### Traceability References
 
-| Traceability ID | Linked Item |
-|-----------------|-------------|
+| Traceability ID | Linked Item                                                 |
+| --------------- | ----------------------------------------------------------- |
 | `TRACE-UC02-01` | `UC-02 -> FR-UC02-01, API-UC02-01, DE-UC02-02, DES-UC02-01` |
 | `TRACE-UC02-02` | `UC-02 -> FR-UC02-02, API-UC02-02, DE-UC02-02, DES-UC02-02` |
-| `TRACE-UC02-03` | `UC-02 -> FR-UC02-04, API-UC02-03, DE-UC02-04` |
-| `TRACE-UC02-04` | `UC-02 -> FR-UC02-07, DE-UC02-05, DES-UC02-03` |
-| `TRACE-UC02-05` | `UC-02 -> FR-UC02-08` |
+| `TRACE-UC02-03` | `UC-02 -> FR-UC02-04, API-UC02-03, DE-UC02-04`              |
+| `TRACE-UC02-04` | `UC-02 -> FR-UC02-07, DE-UC02-05, DES-UC02-03`              |
+| `TRACE-UC02-05` | `UC-02 -> FR-UC02-08`                                       |
 
 ## UC-03: Quiz Flow Requirements (Zoë)
 
@@ -489,7 +490,7 @@ Quiz results are covered by UC-03 and are out of scope for UC-01.
 
 ### Preliminary Reporting Support
 
-UC-01 prepares for future reporting by defining lightweight interaction events. Demo 1 does not require a full reporting dashboard for simulated inbox behavior.
+UC-01 prepares for future reporting by defining lightweight interaction events. Demo 1 does not require a full reporting dashboard for simulated inbox behaviour.
 
 ## Admin and Campaign Supporting Context (Rudolph)
 
