@@ -1,51 +1,45 @@
 ---
 name: Chore
 about: Track maintenance, cleanup, tooling, or configuration work
-title: "chore: short-description"
+title: 'chore: short-description'
 labels: type:chore
-assignees: ""
+assignees: ''
 ---
 
 ## Summary
-Briefly describe the maintenance or housekeeping task.
 
-## Why this matters
-Explain why this work is needed.
-Examples: improve consistency, reduce technical debt, fix tooling friction, clean up repo structure, update dependencies, improve workflow reliability.
+What maintenance task is needed?
 
-## Area affected
-Which part of the project is affected?
-Examples: frontend, backend, database, devops, docs, repo setup.
+**Suggested branch name:**
+
+## Reason
+
+Why should this be done?
 
 ## Scope
-Describe what should change.
-Be clear about what is included in this chore.
 
-## Out of scope
-List anything that should not be changed as part of this issue.
+Included:
 
-## Scope / affected files
-List the files, folders, scripts, config, workflows, or tooling likely involved.
-Examples:
-- `.github/...`
-- `apps/web/...`
-- `apps/api/...`
-- `docker/...`
-- root config files
+Out of scope:
 
-## Risks/Considerations
-Anything that could affect builds, tests, CI/CD, environments, team workflow, or other developers?
+## Files / Areas to Touch
 
-## Proposed approach (optional)
-If there is already a preferred approach, note it here.
+-
 
-## Acceptance criteria
+## Risks
+
+Anything that could affect builds, CI, environments, or team workflow?
+
+## Tasks
+
+- [ ]
+
+## Deadlines
+
+Target completion:
+
+## Acceptance Criteria
+
 - [ ] The chore is completed
-- [ ] Relevant files/config/scripts/workflows were updated as needed
 - [ ] Existing workflows still work
-- [ ] Relevant tests/checks still pass if applicable
-- [ ] Documentation was updated if needed
-- [ ] No unrelated changes are included
-
-## Additional notes
-Anything else the team should know.
+- [ ] Relevant tests/docs are updated if needed

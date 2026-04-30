@@ -1,11 +1,10 @@
 ## Summary
 
-Briefly describe what changed and why.
+What changed, and why?
 
-## Related issue(s)
+## Linked Issue
 
 Closes #
-Related to #
 
 ## Type of change
 
@@ -13,42 +12,19 @@ Related to #
 - [ ] Bug Fix
 - [ ] Documentation
 - [ ] Chore/Maintenance
-- [ ] Refactor
-- [ ] Test update
 
 ## Testing
 
-What was tested locally?
-Examples:
+What did you run or verify?
 
-- unit tests
-- integration tests
-- manual UI/API testing
-- lint/type-check/build
+## Review Notes
 
-## Files/Areas to review
+Anything specific reviewers should focus on?
 
-List the main files, folders, components, services, endpoints, workflows, or modules touched.
-Examples:
-
-- `apps/web/...`
-- `apps/api/...`
-- `.github/...`
-- specific component/service/controller names
-
-## Notes for reviewer
-
-Anything specific to focus on, verify, or be careful about?
-
-## Checklist before merging into `dev`
+## Checklist
 
 - [ ] I tested the change locally
-- [ ] I pulled the latest `dev` into my branch and resolved any conflicts before opening this PR
 - [ ] No unrelated changes are included
-- [ ] Linting/formatting was run if applicable
 - [ ] Relevant tests were added or updated if applicable
-- [ ] Existing related tests pass locally if applicable
 - [ ] Documentation was updated if needed
 - [ ] No secrets, credentials, or sensitive values were committed
-- [ ] I tagged the appropriate members to review this PR
-- [ ] The change is ready for review and safe to merge into `dev`

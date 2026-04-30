@@ -1,1 +1,5 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
 ./scripts/check-branch-name.sh --warn-only

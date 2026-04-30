@@ -1,1 +1,6 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+./scripts/check-protected-branch.sh push
 ./scripts/check-branch-name.sh
