@@ -280,6 +280,9 @@ UC-01 prepares for future reporting by defining lightweight interaction events. 
 
 ## Admin and Campaign Supporting Context (Rudolph)
 
+> [!NOTE]
+> The following User Stories and Functional Requirements are provided as **supporting context** and **future-facing placeholders** only. They describe the administrative setup required to enable the employee-facing use cases (UC-01, UC-02, and UC-03) and are not part of the core Demo 1 implementation scope.
+
 ### User Stories (Supporting Context)
 
 | ID | User Story |
@@ -302,16 +305,16 @@ The Administrator is a specialized user responsible for managing the security aw
     - **User Orchestration:** Mapping employees to specific training paths.
     - **Risk Analysis:** Reviewing interaction data to assess organizational vulnerability.
 
-### Campaign Lifecycle and State Management
+### Preliminary Campaign Lifecycle (Supporting Context)
 
-A Campaign follows a structured lifecycle to ensure controlled delivery of simulations and training:
+To support the delivery of simulations and training, a preliminary campaign lifecycle is envisioned:
 
-1.  **Draft:** The campaign is being configured. No content is visible to employees. Admins can freely modify content and assignments.
-2.  **Scheduled:** (Future Scope) The campaign is ready and will automatically transition to Active at a specific date/time.
-3.  **Active:** The campaign is live. Employees can see assigned simulated emails and training modules. Admins can no longer modify the core "type" of the campaign but can add/remove participants.
-4.  **Paused:** (Future Scope) Temporary suspension of the campaign. Content is hidden or inaccessible to employees.
-5.  **Completed:** The campaign duration has ended. Final reports are generated. Content may remain accessible for review but interaction events stop being recorded for the "Active" status.
-6.  **Archived:** The campaign is moved to long-term storage. It no longer appears in active dashboards but remains available for historical reporting.
+1.  **Draft:** The campaign is being configured. No content is visible to employees.
+2.  **Scheduled:** (Future Scope) The campaign is prepared for automatic activation at a specific date.
+3.  **Active:** The campaign is live, making assigned content visible to employees.
+4.  **Paused:** (Future Scope) Temporary suspension of content accessibility.
+5.  **Completed:** The campaign duration has ended. Final status is recorded.
+6.  **Archived:** (Future Scope) Historical record storage.
 
 ### Detailed Campaign Configuration
 
@@ -327,13 +330,12 @@ Administrators link educational content and assessments to the campaign.
 - **Quiz Builder:** Configuration of questions, multiple-choice options, and correct answer explanations.
 - **Mastery Criteria:** Setting a minimum percentage (e.g., 80%) for a quiz to be considered "passed".
 
-### Admin Reporting and Interaction Data
+### Preliminary Reporting and Data Support (Future Scope)
 
-While a full dashboard is out of scope for Demo 1, the system must capture the following data points to support future reporting:
+To support future analytics, the system provides placeholders for capturing lightweight interaction data:
 
-- **Email Interaction:** `OpenedAt`, `LinkClickedAt`, `ReportedAt`.
-- **Training Progress:** `StartedAt`, `LastViewedAt`, `TimeSpent`.
-- **Quiz Performance:** `AttemptCount`, `BestScore`, `CompletionStatus`.
+- **Email Interaction:** Basic timestamps for `OpenedAt` or `LinkClickedAt`.
+- **Training/Quiz Progress:** Placeholders for `StartedAt` or `CompletionStatus`.
 
 ### Data Privacy and Ethical Constraints
 
@@ -346,16 +348,16 @@ Administrators must adhere to strict boundaries when configuring campaigns:
 
 | ID | Requirement | Priority | Notes |
 | :--- | :--- | :--- | :--- |
-| FR-ADM-01 | The system shall support the definition of a Campaign entity to group simulations and training. | Must | Includes title, description, and status tracking. |
-| FR-ADM-02 | The system shall allow an Administrator to assign a Campaign to specific Employees. | Must | Precondition for Demo 1 use cases. |
-| FR-ADM-03 | The system shall support the configuration of Simulated Emails within a Campaign. | Must | Includes sender name, subject, and body content. |
-| FR-ADM-04 | The system shall support the linking of Training Documents to a Campaign. | Must | Powers UC-02. |
-| FR-ADM-05 | The system shall support the linking of Quizzes to Training Documents. | Must | Powers UC-03. |
-| FR-ADM-06 | The system shall record timestamped interaction events for campaign analytics. | Should | `OpenedAt`, `CompletedAt`, etc. |
-| FR-ADM-07 | The system shall maintain a repository of Simulation Templates. | Should | Allows reuse across different campaigns. |
-| FR-ADM-08 | The system shall support transition logic between campaign statuses (Draft -> Active -> Completed). | Must | Controls visibility to actors. |
-| FR-ADM-09 | The system shall allow Admins to preview simulation content before activating a campaign. | Should | Safety check for content formatting. |
-| FR-ADM-10 | The system shall prevent the collection of sensitive PII through simulated links. | Must | Security boundary. |
+| FR-ADM-01 | The system shall support a Campaign entity to group simulations and training. | Should | Precondition for UC-01, UC-02, UC-03. |
+| FR-ADM-02 | The system shall support assigning a Campaign to Employees. | Should | Precondition for Demo 1 use cases. |
+| FR-ADM-03 | The system shall support the configuration of Simulated Emails for a Campaign. | Should | Precondition for UC-01. |
+| FR-ADM-04 | The system shall support the linking of Training Documents to a Campaign. | Should | Precondition for UC-02. |
+| FR-ADM-05 | The system shall support the linking of Quizzes to Training Documents. | Should | Precondition for UC-03. |
+| FR-ADM-06 | The system may provide placeholders for recording campaign-level interaction data. | May | Future reporting support. |
+| FR-ADM-07 | The system may support a repository for Simulation Templates. | May | Future optimization. |
+| FR-ADM-08 | The system should support transition logic to activate a campaign. | Should | Controls visibility to actors. |
+| FR-ADM-09 | The system may allow previewing simulation content before activation. | May | Future quality check. |
+| FR-ADM-10 | The system should prevent the collection of sensitive PII through simulated links. | Should | Safety constraint. |
 
 ### Domain References (Admin Context)
 
@@ -369,11 +371,16 @@ Administrators must adhere to strict boundaries when configuring campaigns:
 
 | Traceability ID | Linked Item |
 | :--- | :--- |
-| TRACE-ADM-01 | Admin Context to FR-ADM-01, API-ADM-01, DE-ADM-02 |
-| TRACE-ADM-02 | Admin Context to FR-ADM-02, API-ADM-02, DE-ADM-03 |
+| TRACE-ADM-01 | Admin Context to FR-ADM-01, API Contract ID: API-ADM-01, DE-ADM-02 |
+| TRACE-ADM-02 | Admin Context to FR-ADM-02, API Contract ID: API-ADM-02, DE-ADM-03 |
 | TRACE-ADM-03 | Admin Context to FR-ADM-03, DE-UC01-03 |
 | TRACE-ADM-04 | Admin Context to FR-ADM-04, DE-UC02-01 (Placeholder) |
 | TRACE-ADM-05 | Admin Context to FR-ADM-05, DE-UC03-01 (Placeholder) |
+| TRACE-ADM-06 | Admin Context to FR-ADM-06, API Contract ID: API-ADM-04 |
+| TRACE-ADM-07 | Admin Context to FR-ADM-07, API Contract ID: API-ADM-05 |
+| TRACE-ADM-08 | Admin Context to FR-ADM-08, API Contract ID: API-ADM-04 |
+| TRACE-ADM-09 | Admin Context to FR-ADM-09 |
+| TRACE-ADM-10 | Admin Context to FR-ADM-10 |
 
 ## Supporting Document References
 
