@@ -170,7 +170,7 @@ Preliminary API placeholders linked to UC-01:
 | API-UC01-02 | `GET /simulations/emails/:emailId`               | Retrieve details for a selected simulated email.                                        |
 | API-UC01-03 | `POST /simulations/emails/:emailId/interactions` | Record a lightweight interaction event, such as opening or viewing the simulated email. |
 
-PLEASE NOTE: These contracts are subjected to change throughout the course of implementation.
+PLEASE NOTE: These contracts are subject to change throughout the course of implementation.
 
 ### Traceability References
 
@@ -210,41 +210,159 @@ As an employee, I want to view training documents assigned to me so that I can l
 
 ### User Story
 
-As an employee, I want to complete a quiz after my training session so that I can verify my understanding of the material and receive feedback on my security knowledge.
+As an employee, I want to complete a quiz after my training session so that I can verify my understanding of the material and receive feedback on my security knowledge
 
 ### Actor
 
+Primary Actor:
+
+- Employee
+
+Supporting Actors:
+
+- System
+
 ### Preconditions
+
+- The employee is authenticated and registered.
+
+- The employee has access to an assigned or available quiz.
+- Quiz questions and answer content exist as controlled training content inside the platform.
+- The quiz is available from the learner/employee dashboard, assigned training path, or related training follow-up path.
 
 ### Postconditions
 
+Successful postconditions:
+
+- The system creates a quiz attempt when the employee starts the quiz.
+- The employee can answer the quiz questions and submit the attempt.
+- The submitted answers are recorded against the quiz attempt.
+- The system marks the attempt as submitted and makes results available.
+- The employee receives a result summary and educational feedback for the submitted attempt.
+
+Unsuccessful postconditions:
+
+- If the quiz cannot be loaded or started, no attempt is completed and the employee sees a safe error state.
+- If submission validation fails, the attempt remains unsubmitted and the employee can correct the highlighted questions.
+- If submission succeeds but the results or feedback view cannot be loaded, the attempt remains submitted while the system provides a retry or return path.
+
 ### Main Flow
+
+1. The employee navigates to an assigned quiz from the learner/employee dashboard, assigned training path, or related follow-up link.
+2. The system loads the selected quiz and displays the quiz entry view or quiz page.
+3. The employee selects the option to start the quiz.
+4. The system creates a quiz attempt for the employee and opens the active quiz view.
+5. The system displays the quiz questions and the supported answer controls for the selected quiz.
+6. The employee answers the quiz questions and may review or change answers before submission.
+7. The employee submits the quiz attempt.
+8. The system validates the submission and, if valid, records the final answers and marks the attempt as submitted.
+9. The system calculates or retrieves the result for the submitted attempt.
+10. The system displays the quiz results, including the result summary and educational feedback where available.
+11. The employee reviews the results and feedback and may return to the relevant learner navigation path.
 
 ### Exceptions
 
+#### EX-UC03-01: Quiz Not Available
+
+If the selected quiz does not exist, is no longer assigned, or cannot be accessed by the employee, the system displays a safe error state and allows the employee to return to the previous learner path.
+
+#### EX-UC03-02: Quiz Start Failure
+
+If the system cannot create or open a quiz attempt after the employee starts the quiz, the system displays a safe error message and allows the employee to retry or return without exposing technical details.
+
+#### EX-UC03-03: Incomplete or Invalid Submission
+
+If the employee attempts to submit the quiz with missing required answers or invalid answer data, the system prevents submission, highlights the affected questions, and allows the employee to correct the attempt.
+
+#### EX-UC03-04: Quiz Submission Failure
+
+If the system cannot record the final submission, the system informs the employee that the submission was not completed and allows a retry without discarding answers where possible.
+
+#### EX-UC03-05: Results or Feedback Loading Failure
+
+If the submitted attempt cannot load its results or feedback, the system displays a safe error state and allows the employee to retry or return later to the results view.
+
 ### Functional Requirements
+
+| ID         | Requirement                                                                                                                 | Priority | Notes                                                                                     |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------- | -------: | ----------------------------------------------------------------------------------------- |
+| FR-UC03-01 | The system shall allow an employee to start an assigned or available quiz.                                                  |     Must | Starting the quiz begins the Demo 1 quiz flow for the learner.                            |
+| FR-UC03-02 | The system shall retrieve and display the selected quiz content, including its questions and answer content.                |     Must | The quiz content should be presented in a clear and readable format.                      |
+| FR-UC03-03 | The system shall create a quiz attempt when the employee starts the quiz.                                                   |     Must | The attempt provides the reference used for submission and results retrieval.             |
+| FR-UC03-04 | The system shall allow the employee to answer supported quiz questions and review or change answers before submission.      |     Must | Demo 1 question formats remain implementation-dependent.                                  |
+| FR-UC03-05 | The system shall validate required quiz answers before accepting a final submission.                                        |     Must | Missing or invalid answers should produce clear correction feedback.                      |
+| FR-UC03-06 | The system shall submit the employee's quiz attempt and record the final answers against that attempt.                      |     Must | The attempt should be marked as submitted once accepted.                                  |
+| FR-UC03-07 | The system shall display the submitted attempt's results to the employee.                                                   |     Must | Results may include score, status, or summary outcome where defined.                      |
+| FR-UC03-08 | The system shall display educational feedback for the submitted attempt.                                                    |     Must | Feedback may include correct/incorrect indicators, explanations, or improvement guidance. |
+| FR-UC03-09 | The system shall prevent further editing or duplicate final submission of a completed quiz attempt.                         |     Must | A completed attempt should remain read-only.                                              |
+| FR-UC03-10 | The system shall display safe validation and error states when quiz content, attempt creation, submission, or results fail. |     Must | Messages should be clear, non-technical, and safe for the learner.                        |
 
 ### Domain References
 
+Preliminary domain entities linked to UC-03:
+
+| ID         | Entity        | Description                                                                  |
+| ---------- | ------------- | ---------------------------------------------------------------------------- |
+| DE-UC03-01 | Employee/User | The learner who starts, completes, and reviews an assigned quiz.             |
+| DE-UC03-02 | Quiz          | The assigned assessment that the employee can open and complete.             |
+| DE-UC03-03 | QuizQuestion  | An individual question presented to the employee inside the quiz flow.       |
+| DE-UC03-04 | QuizAttempt   | The employee's attempt record for a started or submitted quiz.               |
+| DE-UC03-05 | AttemptAnswer | A recorded answer linked to a question within a specific quiz attempt.       |
+| DE-UC03-06 | QuizResult    | The result summary produced after a quiz attempt is submitted and processed. |
+| DE-UC03-07 | FeedbackItem  | Educational feedback linked to the submitted attempt or its questions.       |
+
 ### API References
 
+Preliminary API placeholders linked to UC-03:
+
+| ID          | Contract                                         | Purpose                                                                         |
+| ----------- | ------------------------------------------------ | ------------------------------------------------------------------------------- |
+| API-UC03-01 | `GET /training/quizzes/:quizId`                  | Retrieve the selected quiz content before or when the employee starts the quiz. |
+| API-UC03-02 | `POST /training/quizzes/:quizId/attempts`        | Create a quiz attempt for the employee when the quiz is started.                |
+| API-UC03-03 | `POST /training/quiz-attempts/:attemptId/submit` | Submit the completed quiz attempt and record the final answers.                 |
+| API-UC03-04 | `GET /training/quiz-attempts/:attemptId/results` | Retrieve the submitted attempt's results and feedback.                          |
+
+PLEASE NOTE: These contracts are subject to change throughout the course of implementation.
+
 ### Traceability References
+
+| Traceability ID | Linked Item                                                                                                |
+| --------------- | ---------------------------------------------------------------------------------------------------------- |
+| TRACE-UC03-01   | UC-03 to FR-UC03-01, FR-UC03-02, API-UC03-01, DE-UC03-02, DE-UC03-03, DES-UC03-01, DES-UC03-02             |
+| TRACE-UC03-02   | UC-03 to FR-UC03-03, API-UC03-02, DE-UC03-04, DES-UC03-01                                                  |
+| TRACE-UC03-03   | UC-03 to FR-UC03-04, FR-UC03-05, DE-UC03-05, DES-UC03-02                                                   |
+| TRACE-UC03-04   | UC-03 to FR-UC03-06, FR-UC03-09, API-UC03-03, DE-UC03-04, DES-UC03-03                                      |
+| TRACE-UC03-05   | UC-03 to FR-UC03-07, FR-UC03-08, FR-UC03-10, API-UC03-04, DE-UC03-06, DE-UC03-07, DES-UC03-04, DES-UC03-05 |
 
 ## Validation, Error-State, and Feedback Requirements (Zoë)
 
 ### Required Field Validation
 
+For Demo 1, quiz submission should validate that all required questions have an answer before the final submission is accepted. If a required answer is missing, the system should identify the affected question and allow the employee to complete it without losing other answers.
+
 ### Quiz Answer Validation
+
+Quiz answer validation is limited to ensuring that the submitted answer matches the expected input structure for the question type supported in Demo 1. The system should reject malformed or unsupported answer data safely and display a clear correction message to the employee.
 
 ### Submission Feedback
 
+When the employee submits a quiz attempt, the system should show clear progress feedback that the attempt is being processed. If submission fails, the system should explain that the attempt was not completed and allow a safe retry where possible.
+
 ### Success Messages
+
+After a successful submission, the employee should receive a confirmation that the quiz was submitted and that results are available. Success messaging should be concise, learner-facing, and consistent with the controlled training context.
 
 ### Error Messages
 
+Quiz errors should be presented in plain, non-technical language. Messages should distinguish between loading failures, validation issues, submission failures, and results-loading failures without exposing internal system details.
+
 ### Loading States
 
+The system should provide a visible loading state when quiz content, submission, results, or feedback are being retrieved or processed. During final submission, duplicate submission actions should be prevented where possible.
+
 ### Empty States
+
+If a quiz has no available questions, no available results, or no available feedback, the system should present a safe empty or unavailable state with a clear return path for the employee.
 
 ## Interaction Tracking, Progress, and Reporting Requirements
 
@@ -309,12 +427,12 @@ The Administrator is a specialized user responsible for managing the security aw
 
 To support the delivery of simulations and training, a preliminary campaign lifecycle is envisioned:
 
-1.  **Draft:** The campaign is being configured. No content is visible to employees.
-2.  **Scheduled:** (Future Scope) The campaign is prepared for automatic activation at a specific date.
-3.  **Active:** The campaign is live, making assigned content visible to employees.
-4.  **Paused:** (Future Scope) Temporary suspension of content accessibility.
-5.  **Completed:** The campaign duration has ended. Final status is recorded.
-6.  **Archived:** (Future Scope) Historical record storage.
+1. **Draft:** The campaign is being configured. No content is visible to employees.
+2. **Scheduled:** (Future Scope) The campaign is prepared for automatic activation at a specific date.
+3. **Active:** The campaign is live, making assigned content visible to employees.
+4. **Paused:** (Future Scope) Temporary suspension of content accessibility.
+5. **Completed:** The campaign duration has ended. Final status is recorded.
+6. **Archived:** (Future Scope) Historical record storage.
 
 ### Detailed Campaign Configuration
 
