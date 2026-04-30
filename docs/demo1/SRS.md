@@ -211,8 +211,9 @@ As an employee, I want to view training documents assigned to me so that I can l
 ### User Story
 
 <<<<<<< HEAD
-As an employee, I want to complete a quiz after my training session so that I can verify my understanding of the material and receive feedback on my security knowledge.
+As an employee, I want to complete a quiz after my training session so that I can verify my understanding of the material and receive feedback on my security knowledge
 =======
+
 As an employee, I want to complete an assigned quiz after reviewing cybersecurity awareness training so that I can confirm my understanding and receive immediate results and feedback.
 
 ### Purpose
@@ -428,32 +429,36 @@ The Administrator is a specialized user responsible for managing the security aw
 - **Goal:** To set up training campaigns that improve the organization's security posture.
 - **Technical Literacy:** Moderate to high; familiar with organizational structure and common cyber threats.
 - **Responsibilities:**
-    - **Campaign Management:** Defining start/end dates, target groups, and objectives.
-    - **Content Curation:** Selecting or creating simulated emails, training documents, and quizzes.
-    - **User Orchestration:** Mapping employees to specific training paths.
-    - **Risk Analysis:** Reviewing interaction data to assess organizational vulnerability.
+  - **Campaign Management:** Defining start/end dates, target groups, and objectives.
+  - **Content Curation:** Selecting or creating simulated emails, training documents, and quizzes.
+  - **User Orchestration:** Mapping employees to specific training paths.
+  - **Risk Analysis:** Reviewing interaction data to assess organizational vulnerability.
 
 ### Preliminary Campaign Lifecycle (Supporting Context)
 
 To support the delivery of simulations and training, a preliminary campaign lifecycle is envisioned:
 
-1.  **Draft:** The campaign is being configured. No content is visible to employees.
-2.  **Scheduled:** (Future Scope) The campaign is prepared for automatic activation at a specific date.
-3.  **Active:** The campaign is live, making assigned content visible to employees.
-4.  **Paused:** (Future Scope) Temporary suspension of content accessibility.
-5.  **Completed:** The campaign duration has ended. Final status is recorded.
-6.  **Archived:** (Future Scope) Historical record storage.
+1. **Draft:** The campaign is being configured. No content is visible to employees.
+2. **Scheduled:** (Future Scope) The campaign is prepared for automatic activation at a specific date.
+3. **Active:** The campaign is live, making assigned content visible to employees.
+4. **Paused:** (Future Scope) Temporary suspension of content accessibility.
+5. **Completed:** The campaign duration has ended. Final status is recorded.
+6. **Archived:** (Future Scope) Historical record storage.
 
 ### Detailed Campaign Configuration
 
 #### Simulation Content Setup (UC-01)
+
 Administrators configure the simulated emails that appear in the employee's inbox.
+
 - **Sender Metadata:** Setting the display name (e.g., "IT Support") and a spoofed-style email address (e.g., `support@corp-security.com`).
 - **Phishing Indicators:** Configuring specific "red flags" in the email body (e.g., urgent language, suspicious links, grammatical errors) to be used for educational feedback.
 - **Link Tracking:** Defining the destination for any links in the simulated email (usually a "You've been phished" landing page).
 
 #### Training and Quiz Setup (UC-02, UC-03)
+
 Administrators link educational content and assessments to the campaign.
+
 - **Document Library:** A central repository of training materials (PDFs, HTML modules).
 - **Quiz Builder:** Configuration of questions, multiple-choice options, and correct answer explanations.
 - **Mastery Criteria:** Setting a minimum percentage (e.g., 80%) for a quiz to be considered "passed".
@@ -468,6 +473,7 @@ To support future analytics, the system provides placeholders for capturing ligh
 ### Data Privacy and Ethical Constraints
 
 Administrators must adhere to strict boundaries when configuring campaigns:
+
 - **No Real Credential Harvesting:** Simulated landing pages must never capture or store actual user passwords.
 - **Tone and Content:** Simulations should not use overly traumatic themes (e.g., fake termination notices) without organizational approval.
 - **Data Minimization:** Interaction tracking should focus on learning outcomes rather than punitive monitoring.
