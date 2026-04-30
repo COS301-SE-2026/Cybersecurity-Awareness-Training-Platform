@@ -60,8 +60,8 @@ Supporting Actors:
 ### Preconditions
 
 - The employee is authenticated and registered.
-- The employee has access to at least one assigned simulated email inbox.
-- Simulated emails exist as controlled training content inside the platform.
+- **The employee has access to at least one assigned simulated email inbox (assigned via an admin-managed campaign, see Admin Supporting Context).**
+- **Simulated emails exist as controlled training content inside the platform (configured by an Admin, see FR-ADM-03).**
 - The simulated inbox is available from the learner/employee dashboard or equivalent employee navigation path.
 
 ### Postconditions
@@ -186,6 +186,8 @@ PLEASE NOTE: These contracts are subjected to change throughout the course of im
 
 ### User Story
 
+As an employee, I want to view training documents assigned to me so that I can learn how to recognize and respond to cyber threats in a controlled educational environment.
+
 ### Actor
 
 ### Preconditions
@@ -207,6 +209,8 @@ PLEASE NOTE: These contracts are subjected to change throughout the course of im
 ## UC-03: Quiz Flow Requirements (Zoë)
 
 ### User Story
+
+As an employee, I want to complete a quiz after my training session so that I can verify my understanding of the material and receive feedback on my security knowledge.
 
 ### Actor
 
@@ -276,15 +280,107 @@ UC-01 prepares for future reporting by defining lightweight interaction events. 
 
 ## Admin and Campaign Supporting Context (Rudolph)
 
+> [!NOTE]
+> The following User Stories and Functional Requirements are provided as **supporting context** and **future-facing placeholders** only. They describe the administrative setup required to enable the employee-facing use cases (UC-01, UC-02, and UC-03) and are not part of the core Demo 1 implementation scope.
+
+### User Stories (Supporting Context)
+
+| ID | User Story |
+| :--- | :--- |
+| US-ADM-01 | As an Administrator, I want to create a new campaign so that I can group related simulations and training materials for specific security initiatives. |
+| US-ADM-02 | As an Administrator, I want to assign specific employees to a campaign so that they receive the targeted training relevant to their role or risk profile. |
+| US-ADM-03 | As an Administrator, I want to configure simulated emails and training content for a campaign so that the learner experience is aligned with current organizational threats. |
+| US-ADM-04 | As an Administrator, I want to monitor the progress of a campaign so that I can identify high-risk groups or employees who need additional support. |
+| US-ADM-05 | As an Administrator, I want to manage a library of simulation templates so that I can quickly deploy standardized training across different campaigns. |
+
 ### Administrator User Characteristics
 
-### Basic Campaign Concept
+The Administrator is a specialized user responsible for managing the security awareness program. For Demo 1, the Administrator role is documented as the source of configuration for the employee-facing use cases.
 
-### Employee Assignment Context
+- **Goal:** To set up training campaigns that improve the organization's security posture.
+- **Technical Literacy:** Moderate to high; familiar with organizational structure and common cyber threats.
+- **Responsibilities:**
+    - **Campaign Management:** Defining start/end dates, target groups, and objectives.
+    - **Content Curation:** Selecting or creating simulated emails, training documents, and quizzes.
+    - **User Orchestration:** Mapping employees to specific training paths.
+    - **Risk Analysis:** Reviewing interaction data to assess organizational vulnerability.
 
-### Simulation Content Setup
+### Preliminary Campaign Lifecycle (Supporting Context)
 
-### Training and Quiz Setup
+To support the delivery of simulations and training, a preliminary campaign lifecycle is envisioned:
+
+1.  **Draft:** The campaign is being configured. No content is visible to employees.
+2.  **Scheduled:** (Future Scope) The campaign is prepared for automatic activation at a specific date.
+3.  **Active:** The campaign is live, making assigned content visible to employees.
+4.  **Paused:** (Future Scope) Temporary suspension of content accessibility.
+5.  **Completed:** The campaign duration has ended. Final status is recorded.
+6.  **Archived:** (Future Scope) Historical record storage.
+
+### Detailed Campaign Configuration
+
+#### Simulation Content Setup (UC-01)
+Administrators configure the simulated emails that appear in the employee's inbox.
+- **Sender Metadata:** Setting the display name (e.g., "IT Support") and a spoofed-style email address (e.g., `support@corp-security.com`).
+- **Phishing Indicators:** Configuring specific "red flags" in the email body (e.g., urgent language, suspicious links, grammatical errors) to be used for educational feedback.
+- **Link Tracking:** Defining the destination for any links in the simulated email (usually a "You've been phished" landing page).
+
+#### Training and Quiz Setup (UC-02, UC-03)
+Administrators link educational content and assessments to the campaign.
+- **Document Library:** A central repository of training materials (PDFs, HTML modules).
+- **Quiz Builder:** Configuration of questions, multiple-choice options, and correct answer explanations.
+- **Mastery Criteria:** Setting a minimum percentage (e.g., 80%) for a quiz to be considered "passed".
+
+### Preliminary Reporting and Data Support (Future Scope)
+
+To support future analytics, the system provides placeholders for capturing lightweight interaction data:
+
+- **Email Interaction:** Basic timestamps for `OpenedAt` or `LinkClickedAt`.
+- **Training/Quiz Progress:** Placeholders for `StartedAt` or `CompletionStatus`.
+
+### Data Privacy and Ethical Constraints
+
+Administrators must adhere to strict boundaries when configuring campaigns:
+- **No Real Credential Harvesting:** Simulated landing pages must never capture or store actual user passwords.
+- **Tone and Content:** Simulations should not use overly traumatic themes (e.g., fake termination notices) without organizational approval.
+- **Data Minimization:** Interaction tracking should focus on learning outcomes rather than punitive monitoring.
+
+### Admin/Campaign Functional Requirements (Supporting Context)
+
+| ID | Requirement | Priority | Notes |
+| :--- | :--- | :--- | :--- |
+| FR-ADM-01 | The system shall support a Campaign entity to group simulations and training. | Should | Precondition for UC-01, UC-02, UC-03. |
+| FR-ADM-02 | The system shall support assigning a Campaign to Employees. | Should | Precondition for Demo 1 use cases. |
+| FR-ADM-03 | The system shall support the configuration of Simulated Emails for a Campaign. | Should | Precondition for UC-01. |
+| FR-ADM-04 | The system shall support the linking of Training Documents to a Campaign. | Should | Precondition for UC-02. |
+| FR-ADM-05 | The system shall support the linking of Quizzes to Training Documents. | Should | Precondition for UC-03. |
+| FR-ADM-06 | The system may provide placeholders for recording campaign-level interaction data. | May | Future reporting support. |
+| FR-ADM-07 | The system may support a repository for Simulation Templates. | May | Future optimization. |
+| FR-ADM-08 | The system should support transition logic to activate a campaign. | Should | Controls visibility to actors. |
+| FR-ADM-09 | The system may allow previewing simulation content before activation. | May | Future quality check. |
+| FR-ADM-10 | The system should prevent the collection of sensitive PII through simulated links. | Should | Safety constraint. |
+
+### Domain References (Admin Context)
+
+| ID | Entity | Description |
+| :--- | :--- | :--- |
+| DE-ADM-01 | Administrator | The user who manages campaigns and content. |
+| DE-ADM-02 | Campaign | The core entity grouping simulations, training, and assignments. |
+| DE-ADM-03 | CampaignAssignment | The link between a Campaign and an Employee. |
+
+### Traceability References (Admin Context)
+
+| Traceability ID | Linked Item |
+| :--- | :--- |
+| TRACE-ADM-01 | Admin Context to FR-ADM-01, API Contract ID: API-ADM-01, DE-ADM-02 |
+| TRACE-ADM-02 | Admin Context to FR-ADM-02, API Contract ID: API-ADM-02, DE-ADM-03 |
+| TRACE-ADM-03 | Admin Context to FR-ADM-03, DE-UC01-03 |
+| TRACE-ADM-04 | Admin Context to FR-ADM-04, DE-UC02-01 (Placeholder) |
+| TRACE-ADM-05 | Admin Context to FR-ADM-05, DE-UC03-01 (Placeholder) |
+| TRACE-ADM-06 | Admin Context to FR-ADM-06, API Contract ID: API-ADM-04 |
+| TRACE-ADM-07 | Admin Context to FR-ADM-07, API Contract ID: API-ADM-05 |
+| TRACE-ADM-08 | Admin Context to FR-ADM-08, API Contract ID: API-ADM-04 |
+| TRACE-ADM-09 | Admin Context to FR-ADM-09 |
+| TRACE-ADM-10 | Admin Context to FR-ADM-10 |
 
 ## Supporting Document References
 
