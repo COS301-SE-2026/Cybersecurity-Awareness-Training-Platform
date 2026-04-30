@@ -182,29 +182,124 @@ PLEASE NOTE: These contracts are subject to change throughout the course of impl
 | TRACE-UC01-04   | UC-01 to FR-UC01-05, DE-UC01-05, DES-UC01-03              |
 | TRACE-UC01-05   | UC-01 to FR-UC01-08 and Demo 1 simulation safety boundary |
 
-## UC-02: Training Document Viewing Requirements (Connor)
+## UC-02: Training Document Viewing Requirements 
 
 ### User Story
 
-As an employee, I want to view training documents assigned to me so that I can learn how to recognize and respond to cyber threats in a controlled educational environment.
+As a learner, I want to view training documents assigned to me so that I can learn how to recognise and respond to cyber threats in a controlled educational environment.
+
+### Purpose 
+
+UC-02 defines the Demo 1 "training document viewing feature" slice. The feature allows a learner to access a list of assigned training materials, open a selected training document, and view its contents in a structured and readable format.
+
+This use case is limited to viewing training content and recording basic interaction tracking. It does not include training content creation, editing, campaign management, or full quiz execution.
 
 ### Actor
 
+#### Primary Actor: 
+- Learner
+
+#### Supporting Actors:
+
+- System
+- Administrator (as a supporting context for assigning training content via campaigns)
+
 ### Preconditions
+
+- The learner is authenticated and registered.
+- The learner has access to at least one assigned training document (via an administrator-managed campaign, see `FR-ADM-04`).
+- Training documents exist as controlled educational content within the platform.
+- The training module list is accessible from the learner dashboard or equivalent navigation path.
 
 ### Postconditions
 
+#### Successful Postconditions:
+
+- The learner can view a list of assigned training documents.
+- The learner can open and read a selected training document.
+- The system records a basic interaction event.
+- The learner understands that the content is part of a structured training experience.
+- If a quiz is linked, the system may display a link or button to proceed to the associated quiz.
+
+#### Unsuccessful Postconditions:
+
+- If no training documents are assigned, the learner sees an appropriate empty state.
+- If a selected training document cannot be found, the learner sees a safe error state.
+- If interaction tracking fails, the learner can still view the training content.
+
 ### Main Flow
+
+1. The learner navigates to the training module list from the dashboard or navigation menu.
+2. The system retrieves and displays a list of training documents assigned to the learner.
+3. Each training item displays summary information such as title, description, and basic interaction status (if available).
+4. The learner selects a training document from the list.
+5. The system retrieves the selected training document.
+6. The system displays the training content in a structured and readable format (e.g., text, sections, or embedded media).
+7. The system records a basic interaction event (e.g., training viewed or started).
+8. The learner reviews the training material.
+9. If a related quiz exists, the system may display a link or button to proceed to the quiz (covered in UC-03).
+10. The learner may return to the training module list or dashboard.
 
 ### Exceptions
 
+#### `EX-UC02-01`: No Training Documents Assigned
+
+If the learner has no training documents assigned, the system displays an empty state indicating that no training content is currently available. 
+
+#### `EX-UC02-02`: Training Document Not Found
+
+If the learner attempts to open a training document that does not exist or is no longer assigned, the system displays an error state and allows the learner to return to the training list.
+
+#### `EX-UC02-03`: Training Content Loading Failure
+
+If the system cannot load the training document, it displays a safe error message and allows the learner to retry or return to the dashboard.
+
+#### `EX-UC02-04`: Interaction Tracking Failure
+
+If the system cannot record training interaction, the system should not expose technical details to the learner. The training content should still be displayed where possible.
+
 ### Functional Requirements
+
+| ID | Requirement | Priority | Notes |
+|----|-------------|----------|-------|
+| `FR-UC02-01` | The system shall allow a learner to view a list of assigned training documents. | **Must** | Includes summary information such as title, description, and basic interaction status (e.g., not started, started, completed). |
+| `FR-UC02-02` | The system shall allow a learner to open a selected training document. | **Must** | Displays full training content. |
+| `FR-UC02-03` | The system shall present training content in a structured and readable format. | **Must** | Supports accessibility and clarity. |
+| `FR-UC02-04` | The system shall record a basic interaction event when training is viewed. | Should | Supports more detailed future reporting. |
+| `FR-UC02-05` | The system shall display an empty state when no training documents are assigned. | **Must** | Clear, non-technical messaging. |
+| `FR-UC02-06` | The system shall display a safe error state when a training document cannot be loaded. | **Must** | Allow recovery navigation. |
+| `FR-UC02-07` | The system shall allow navigation to a linked quiz without executing the quiz flow. | Should | Quiz handled in `UC-03`. |
+| `FR-UC02-08` | The system shall not allow modification of training content by learners. | **Must** | Maintains scope boundary. |
+| `FR-UC02-09` | The system shall treat all training documents as controlled educational content. | **Must** | Reinforces training context. |
+| `FR-UC02-10` | The system shall allow the learner to access training content independently of quiz completion. | Should | Maintains separation between `UC-02` and `UC-03`. |
 
 ### Domain References
 
+| ID | Entity | Description |
+|----|--------|-------------|
+| `DE-UC02-01` | Learner | The user viewing assigned training documents. |
+| `DE-UC02-02` | TrainingDocument | A structured educational content item (e.g., PDF, HTML module). |
+| `DE-UC02-03` | TrainingAssignment | Links a training document to a learner via a campaign. |
+| `DE-UC02-04` | TrainingProgress | A basic record of training interaction or status. |
+| `DE-UC02-05` | TrainingReference | Optional link or button to related quiz or follow-up content. |
+
 ### API References
 
+| ID | Contract | Purpose |
+|----|----------|---------|
+| `API-UC02-01` | `GET /training/assigned` | Retrieve assigned training documents for the learner. |
+| `API-UC02-02` | `GET /training/:trainingId` | Retrieve full training document content. |
+| `API-UC02-03` | `POST /training/:trainingId/progress` | Record a basic training interaction event. |
+
 ### Traceability References
+
+| Traceability ID | Linked Item |
+|-----------------|-------------|
+| `TRACE-UC02-01` | `UC-02 -> FR-UC02-01, API-UC02-01, DE-UC02-02, DES-UC02-01` |
+| `TRACE-UC02-02` | `UC-02 -> FR-UC02-02, API-UC02-02, DE-UC02-02, DES-UC02-02` |
+| `TRACE-UC02-03` | `UC-02 -> FR-UC02-04, API-UC02-03, DE-UC02-04` |
+| `TRACE-UC02-04` | `UC-02 -> FR-UC02-07, DE-UC02-05, DES-UC02-03` |
+| `TRACE-UC02-05` | `UC-02 -> FR-UC02-08` |
 
 ## UC-03: Quiz Flow Requirements (Zoë)
 
