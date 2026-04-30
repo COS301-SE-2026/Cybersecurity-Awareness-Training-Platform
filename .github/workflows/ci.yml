@@ -16,7 +16,7 @@ jobs:
   build-test:
     name: Build and test
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     permissions:
       contents: read
     env:
@@ -40,6 +40,12 @@ jobs:
 
       - name: Generate Prisma client
         run: pnpm --filter backend exec prisma generate
+
+      - name: Format check
+        run: pnpm format:check
+
+      - name: Lint
+        run: pnpm lint
 
       - name: Typecheck
         run: pnpm typecheck
