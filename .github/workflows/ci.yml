@@ -19,6 +19,8 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: read
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/insightful_phish_test?schema=public
 
     steps:
       - name: Checkout
@@ -38,9 +40,6 @@ jobs:
 
       - name: Generate Prisma client
         run: pnpm --filter backend exec prisma generate
-
-      - name: Apply database migrations
-        run: pnpm --filter backend exec prisma migrate deploy
 
       - name: Typecheck
         run: pnpm typecheck

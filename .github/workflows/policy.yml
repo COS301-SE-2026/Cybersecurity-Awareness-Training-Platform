@@ -1,5 +1,3 @@
-# cSpell:ignore pipefail ACMR
-
 name: Policy
 
 'on':
