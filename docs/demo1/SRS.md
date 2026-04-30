@@ -170,7 +170,7 @@ Preliminary API placeholders linked to UC-01:
 | API-UC01-02 | `GET /simulations/emails/:emailId`               | Retrieve details for a selected simulated email.                                        |
 | API-UC01-03 | `POST /simulations/emails/:emailId/interactions` | Record a lightweight interaction event, such as opening or viewing the simulated email. |
 
-PLEASE NOTE: These contracts are subjected to change throughout the course of implementation.
+PLEASE NOTE: These contracts are subject to change throughout the course of implementation.
 
 ### Traceability References
 
@@ -210,18 +210,7 @@ As an employee, I want to view training documents assigned to me so that I can l
 
 ### User Story
 
-<<<<<<< HEAD
 As an employee, I want to complete a quiz after my training session so that I can verify my understanding of the material and receive feedback on my security knowledge
-=======
-
-As an employee, I want to complete an assigned quiz after reviewing cybersecurity awareness training so that I can confirm my understanding and receive immediate results and feedback.
-
-### Purpose
-
-UC-03 defines the Demo 1 quiz feature slice. The quiz flow allows an employee to open an assigned quiz, start an attempt, answer quiz questions, submit the attempt, and receive results and educational feedback inside the platform.
-
-This use case is limited to straightforward quiz completion and feedback for Demo 1. It does not include advanced analytics, adaptive learning, gamification, admin quiz-builder behaviour, campaign configuration, unrelated simulated inbox requirements, or unrelated training document requirements beyond the quiz entry point.
->>>>>>> 9ce419b (docs: add quiz flow srs requirements)
 
 ### Actor
 
@@ -235,7 +224,7 @@ Supporting Actors:
 
 ### Preconditions
 
--The employee is authenticated and registered.
+- The employee is authenticated and registered.
 
 - The employee has access to an assigned or available quiz.
 - Quiz questions and answer content exist as controlled training content inside the platform.
@@ -243,7 +232,7 @@ Supporting Actors:
 
 ### Postconditions
 
-Successful Post conditions:
+Successful postconditions:
 
 - The system creates a quiz attempt when the employee starts the quiz.
 - The employee can answer the quiz questions and submit the attempt.
@@ -251,7 +240,7 @@ Successful Post conditions:
 - The system marks the attempt as submitted and makes results available.
 - The employee receives a result summary and educational feedback for the submitted attempt.
 
-Unsuccessful Post conditions:
+Unsuccessful postconditions:
 
 - If the quiz cannot be loaded or started, no attempt is completed and the employee sees a safe error state.
 - If submission validation fails, the attempt remains unsubmitted and the employee can correct the highlighted questions.
@@ -414,13 +403,13 @@ UC-01 prepares for future reporting by defining lightweight interaction events. 
 
 ### User Stories (Supporting Context)
 
-| ID | User Story |
-| :--- | :--- |
-| US-ADM-01 | As an Administrator, I want to create a new campaign so that I can group related simulations and training materials for specific security initiatives. |
-| US-ADM-02 | As an Administrator, I want to assign specific employees to a campaign so that they receive the targeted training relevant to their role or risk profile. |
+| ID        | User Story                                                                                                                                                                   |
+| :-------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| US-ADM-01 | As an Administrator, I want to create a new campaign so that I can group related simulations and training materials for specific security initiatives.                       |
+| US-ADM-02 | As an Administrator, I want to assign specific employees to a campaign so that they receive the targeted training relevant to their role or risk profile.                    |
 | US-ADM-03 | As an Administrator, I want to configure simulated emails and training content for a campaign so that the learner experience is aligned with current organizational threats. |
-| US-ADM-04 | As an Administrator, I want to monitor the progress of a campaign so that I can identify high-risk groups or employees who need additional support. |
-| US-ADM-05 | As an Administrator, I want to manage a library of simulation templates so that I can quickly deploy standardized training across different campaigns. |
+| US-ADM-04 | As an Administrator, I want to monitor the progress of a campaign so that I can identify high-risk groups or employees who need additional support.                          |
+| US-ADM-05 | As an Administrator, I want to manage a library of simulation templates so that I can quickly deploy standardized training across different campaigns.                       |
 
 ### Administrator User Characteristics
 
@@ -480,41 +469,41 @@ Administrators must adhere to strict boundaries when configuring campaigns:
 
 ### Admin/Campaign Functional Requirements (Supporting Context)
 
-| ID | Requirement | Priority | Notes |
-| :--- | :--- | :--- | :--- |
-| FR-ADM-01 | The system shall support a Campaign entity to group simulations and training. | Should | Precondition for UC-01, UC-02, UC-03. |
-| FR-ADM-02 | The system shall support assigning a Campaign to Employees. | Should | Precondition for Demo 1 use cases. |
-| FR-ADM-03 | The system shall support the configuration of Simulated Emails for a Campaign. | Should | Precondition for UC-01. |
-| FR-ADM-04 | The system shall support the linking of Training Documents to a Campaign. | Should | Precondition for UC-02. |
-| FR-ADM-05 | The system shall support the linking of Quizzes to Training Documents. | Should | Precondition for UC-03. |
-| FR-ADM-06 | The system may provide placeholders for recording campaign-level interaction data. | May | Future reporting support. |
-| FR-ADM-07 | The system may support a repository for Simulation Templates. | May | Future optimization. |
-| FR-ADM-08 | The system should support transition logic to activate a campaign. | Should | Controls visibility to actors. |
-| FR-ADM-09 | The system may allow previewing simulation content before activation. | May | Future quality check. |
-| FR-ADM-10 | The system should prevent the collection of sensitive PII through simulated links. | Should | Safety constraint. |
+| ID        | Requirement                                                                        | Priority | Notes                                 |
+| :-------- | :--------------------------------------------------------------------------------- | :------- | :------------------------------------ |
+| FR-ADM-01 | The system shall support a Campaign entity to group simulations and training.      | Should   | Precondition for UC-01, UC-02, UC-03. |
+| FR-ADM-02 | The system shall support assigning a Campaign to Employees.                        | Should   | Precondition for Demo 1 use cases.    |
+| FR-ADM-03 | The system shall support the configuration of Simulated Emails for a Campaign.     | Should   | Precondition for UC-01.               |
+| FR-ADM-04 | The system shall support the linking of Training Documents to a Campaign.          | Should   | Precondition for UC-02.               |
+| FR-ADM-05 | The system shall support the linking of Quizzes to Training Documents.             | Should   | Precondition for UC-03.               |
+| FR-ADM-06 | The system may provide placeholders for recording campaign-level interaction data. | May      | Future reporting support.             |
+| FR-ADM-07 | The system may support a repository for Simulation Templates.                      | May      | Future optimization.                  |
+| FR-ADM-08 | The system should support transition logic to activate a campaign.                 | Should   | Controls visibility to actors.        |
+| FR-ADM-09 | The system may allow previewing simulation content before activation.              | May      | Future quality check.                 |
+| FR-ADM-10 | The system should prevent the collection of sensitive PII through simulated links. | Should   | Safety constraint.                    |
 
 ### Domain References (Admin Context)
 
-| ID | Entity | Description |
-| :--- | :--- | :--- |
-| DE-ADM-01 | Administrator | The user who manages campaigns and content. |
-| DE-ADM-02 | Campaign | The core entity grouping simulations, training, and assignments. |
-| DE-ADM-03 | CampaignAssignment | The link between a Campaign and an Employee. |
+| ID        | Entity             | Description                                                      |
+| :-------- | :----------------- | :--------------------------------------------------------------- |
+| DE-ADM-01 | Administrator      | The user who manages campaigns and content.                      |
+| DE-ADM-02 | Campaign           | The core entity grouping simulations, training, and assignments. |
+| DE-ADM-03 | CampaignAssignment | The link between a Campaign and an Employee.                     |
 
 ### Traceability References (Admin Context)
 
-| Traceability ID | Linked Item |
-| :--- | :--- |
-| TRACE-ADM-01 | Admin Context to FR-ADM-01, API Contract ID: API-ADM-01, DE-ADM-02 |
-| TRACE-ADM-02 | Admin Context to FR-ADM-02, API Contract ID: API-ADM-02, DE-ADM-03 |
-| TRACE-ADM-03 | Admin Context to FR-ADM-03, DE-UC01-03 |
-| TRACE-ADM-04 | Admin Context to FR-ADM-04, DE-UC02-01 (Placeholder) |
-| TRACE-ADM-05 | Admin Context to FR-ADM-05, DE-UC03-01 (Placeholder) |
-| TRACE-ADM-06 | Admin Context to FR-ADM-06, API Contract ID: API-ADM-04 |
-| TRACE-ADM-07 | Admin Context to FR-ADM-07, API Contract ID: API-ADM-05 |
-| TRACE-ADM-08 | Admin Context to FR-ADM-08, API Contract ID: API-ADM-04 |
-| TRACE-ADM-09 | Admin Context to FR-ADM-09 |
-| TRACE-ADM-10 | Admin Context to FR-ADM-10 |
+| Traceability ID | Linked Item                                                        |
+| :-------------- | :----------------------------------------------------------------- |
+| TRACE-ADM-01    | Admin Context to FR-ADM-01, API Contract ID: API-ADM-01, DE-ADM-02 |
+| TRACE-ADM-02    | Admin Context to FR-ADM-02, API Contract ID: API-ADM-02, DE-ADM-03 |
+| TRACE-ADM-03    | Admin Context to FR-ADM-03, DE-UC01-03                             |
+| TRACE-ADM-04    | Admin Context to FR-ADM-04, DE-UC02-01 (Placeholder)               |
+| TRACE-ADM-05    | Admin Context to FR-ADM-05, DE-UC03-01 (Placeholder)               |
+| TRACE-ADM-06    | Admin Context to FR-ADM-06, API Contract ID: API-ADM-04            |
+| TRACE-ADM-07    | Admin Context to FR-ADM-07, API Contract ID: API-ADM-05            |
+| TRACE-ADM-08    | Admin Context to FR-ADM-08, API Contract ID: API-ADM-04            |
+| TRACE-ADM-09    | Admin Context to FR-ADM-09                                         |
+| TRACE-ADM-10    | Admin Context to FR-ADM-10                                         |
 
 ## Supporting Document References
 
