@@ -5,7 +5,7 @@ set -euo pipefail
 MODE="${1:-commit}"
 BRANCH_NAME="$(git rev-parse --abbrev-ref HEAD)"
 
-if [ "$BRANCH_NAME" = "main" ] || [ "$BRANCH_NAME" = "dev" ]; then
+if [[ "$BRANCH_NAME" == "main" || "$BRANCH_NAME" == "dev" ]]; then
   echo ""
   echo "Direct $MODE on '$BRANCH_NAME' is not allowed."
   echo ""

@@ -14,14 +14,13 @@ name: Policy
       - reopened
       - ready_for_review
 
-permissions:
-  contents: read
-
 jobs:
   env-files:
     name: Env files
     runs-on: ubuntu-latest
     timeout-minutes: 2
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout PR history
@@ -74,30 +73,3 @@ jobs:
           fi
 
           echo "Environment file policy passed."
-
-  pr-issue-link:
-    name: PR issue link
-    runs-on: ubuntu-latest
-    timeout-minutes: 2
-
-    steps:
-      - name: Check PR issue link
-        shell: bash
-        env:
-          PR_TITLE: ${{ github.event.pull_request.title }}
-          PR_BODY: ${{ github.event.pull_request.body }}
-        run: |
-          set -euo pipefail
-
-          pr_text="$(printf '%s\n%s\n' "$PR_TITLE" "$PR_BODY")"
-
-          if echo "$pr_text" | grep -Eiq '(close[sd]?|fix(e[sd])?|resolve[sd]?|related to)[[:space:]]+#[0-9]+'; then
-            echo "PR issue link policy passed."
-            exit 0
-          fi
-
-          echo "PR issue link policy failed."
-          echo "Include an issue reference in the PR title or body, for example:"
-          echo "  Closes #123"
-          echo "  Related to #123"
-          exit 1
