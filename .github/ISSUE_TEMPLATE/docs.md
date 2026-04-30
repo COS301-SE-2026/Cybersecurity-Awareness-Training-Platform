@@ -8,58 +8,40 @@ assignees: ''
 
 ## Summary
 
-Briefly describe what documentation needs to be added, updated, clarified, or removed.
+What documentation should change?
 
-## Why this matters
+**Suggested branch name:**
 
-Explain why this documentation work is needed.
-Examples: missing guidance, outdated content, unclear setup steps, inaccurate diagrams, poor onboarding, missing technical detail.
+## Reason
 
-## Area affected
-
-Which part of the project is affected?
-Examples: SRS, README, setup docs, API docs, architecture docs, diagrams, developer workflow, deployment docs.
+Why is this needed?
 
 ## Scope
 
-Describe what should be covered or changed.
-Be clear about what is included in this documentation task.
+Included:
 
-## Out of scope
+Out of scope:
 
-List anything that should not be changed as part of this issue.
+## Files / Areas to Touch
 
-## Files / areas likely affected
+-
 
-List the files, folders, diagrams, or sections likely involved.
-Examples:
+## References
 
-- `README.md`
-- `docs/...`
-- `.github/...`
-- architecture diagrams
-- API contract sections
+Source material, links, code, designs, or notes to follow:
 
-## Source of truth / references
+## Tasks
 
-List any source material that should be followed.
-Examples:
+- [ ]
 
-- implemented code
-- approved designs
-- meeting notes
-- client feedback
-- existing issue/PR links
+## Deadlines
 
-## Acceptance criteria
+First usable draft:
+
+Final review-ready update:
+
+## Acceptance Criteria
 
 - [ ] The required documentation is added, updated, or removed as needed
-- [ ] Content is accurate and aligned with the current system or agreed design
-- [ ] Relevant files/sections/diagrams were updated as needed
 - [ ] Links, examples, and references were checked
-- [ ] Formatting and structure were reviewed
-- [ ] No unrelated documentation changes are included
-
-## Additional notes
-
-Anything else the team should know.
+- [ ] Formatting is reviewed
