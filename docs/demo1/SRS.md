@@ -605,6 +605,139 @@ Administrators must adhere to strict boundaries when configuring campaigns:
 
 ### Domain Model and Diagrams
 
+### Demo 1 Domain Model
+
+The Demo 1 domain model provides a high-level UML view of the main concepts required to support the first three Demo 1 use cases:
+
+- `UC-01: View Emails in Simulated Inbox`
+- `UC-02: View Training Document`
+- `UC-03: Complete Quiz Flow`
+
+The model is intended for SRS alignment, terminology consistency, API planning, traceability, and future database planning. It is not a final database schema and should not be treated as a direct Prisma model or migration design.
+
+Diagram file:
+
+- `docs/demo1/diagrams/demo1-domain-model.drawio`
+
+#### Domain Model Scope
+
+The model is divided into four main areas:
+
+| Area                            | Purpose                                                                                                                           |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Users and Access Context        | Represents platform users, organisation membership, company context, and general learner access.                                  |
+| Campaign and Simulation Support | Represents the supporting campaign structure used to assign simulations, learning paths, and simulated emails.                    |
+| Training and Quiz Flow          | Represents the core Demo 1 learning entities for training documents, quizzes, attempts, answers, results, feedback, and progress. |
+| Future / Reporting Support      | Represents future-facing reporting and risk concepts without defining a full reporting schema.                                    |
+
+#### User Types
+
+The model supports three high-level user types:
+
+| User Type        | Description                                                                                                         |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `Admin`          | A company-linked user who manages employees, campaigns, simulations, and training setup.                            |
+| `Employee`       | A company-linked learner who receives company-context simulated emails, training content, and quizzes.              |
+| `GeneralLearner` | A non-company learner who uses the platform for general cybersecurity learning outside a company-specific campaign. |
+
+Admins and employees are connected to an organisation through `OrganisationMembership`.
+
+General learners are not required to belong to an organisation. They may access general cybersecurity content through `GeneralLearningAccess` and general `LearningPath` records.
+
+#### Core Entity Summary
+
+| Entity                   | Role in Demo 1                                                                                           |
+| ------------------------ | -------------------------------------------------------------------------------------------------------- |
+| `User`                   | Represents the person using the platform. A user may be an admin, employee, or general learner.          |
+| `Organisation`           | Represents a company or organisation using the platform.                                                 |
+| `OrganisationMembership` | Links users to organisations and captures whether they act as admins or employees in that organisation.  |
+| `CompanyContext`         | Provides optional company-specific context used to support realistic simulations and training.           |
+| `Campaign`               | Groups simulations, learning paths, and assignments for company-linked training.                         |
+| `CampaignAssignment`     | Links employees or organisation members to a campaign.                                                   |
+| `LearningPath`           | Groups training and quiz content. It may be company-context or general learning content.                 |
+| `Simulation`             | Represents a controlled simulated security-awareness scenario.                                           |
+| `SimulatedEmail`         | Represents a safe simulated email shown in the simulated inbox for UC-01.                                |
+| `SimulatedInbox`         | Represents the learner-facing inbox view for assigned simulated emails.                                  |
+| `InteractionEvent`       | Records lightweight learner interactions, such as opening a simulated email or viewing training content. |
+| `TrainingModule`         | Groups related training content.                                                                         |
+| `TrainingDocument`       | Represents readable training material for UC-02.                                                         |
+| `TrainingProgress`       | Tracks learner progress through assigned training content.                                               |
+| `Quiz`                   | Represents an assessment linked to training content.                                                     |
+| `QuizQuestion`           | Represents a question inside a quiz.                                                                     |
+| `QuizAttempt`            | Represents a learner's attempt at completing a quiz.                                                     |
+| `AttemptAnswer`          | Represents an answer recorded as part of a quiz attempt.                                                 |
+| `QuizResult`             | Represents the result summary after a quiz attempt is submitted.                                         |
+| `FeedbackItem`           | Represents educational feedback shown after a quiz or simulation-related interaction.                    |
+| `ReportSummary`          | Future-facing reporting aggregation concept.                                                             |
+| `RiskIndicator`          | Future-facing risk indicator concept for reporting and dashboards.                                       |
+
+#### Support for UC-01: View Emails in Simulated Inbox
+
+UC-01 is supported by:
+
+- `User`
+- `OrganisationMembership`
+- `CampaignAssignment`
+- `Simulation`
+- `SimulatedEmail`
+- `SimulatedInbox`
+- `InteractionEvent`
+- optional `TrainingDocument` reference
+
+An employee is represented as a `User` connected to an organisation through `OrganisationMembership`. A campaign assignment can determine which simulated emails are available to the employee. The simulated inbox displays assigned `SimulatedEmail` summaries and allows the employee to open a selected email.
+
+When an email is opened, the system may record an `InteractionEvent`, such as `EMAIL_OPENED`.
+
+For Demo 1, the simulated inbox is controlled platform content only. It does not connect to a real mailbox and does not send real external emails.
+
+#### Support for UC-02: View Training Document
+
+UC-02 is supported by:
+
+- `User`
+- `LearningPath`
+- `TrainingModule`
+- `TrainingDocument`
+- `TrainingProgress`
+- `InteractionEvent`
+- optional `Quiz` reference
+
+A learner accesses training content through a learning path. A learning path contains training modules, and a training module contains one or more training documents. When a learner opens or views a training document, the system may update `TrainingProgress` or record a lightweight `InteractionEvent`.
+
+If a quiz is linked to the training document, the learner may navigate to that quiz, but the quiz execution flow remains part of UC-03.
+
+#### Support for UC-03: Complete Quiz Flow
+
+UC-03 is supported by:
+
+- `User`
+- `Quiz`
+- `QuizQuestion`
+- `QuizAttempt`
+- `AttemptAnswer`
+- `QuizResult`
+- `FeedbackItem`
+
+When a learner starts a quiz, the system creates a `QuizAttempt`. The quiz contains one or more `QuizQuestion` records. The learner's submitted responses are represented as `AttemptAnswer` records. Once the attempt is submitted, the system can produce a `QuizResult` and related `FeedbackItem` records.
+
+This supports the Demo 1 quiz flow without requiring adaptive learning, advanced analytics, or a full reporting dashboard.
+
+#### Scope Boundary
+
+This domain model does not define:
+
+- final database migrations,
+- Prisma models,
+- a full ERD,
+- every final field required for production,
+- real external email delivery,
+- advanced campaign scheduling,
+- AI-generated simulations,
+- adaptive learning,
+- or full reporting/dashboard schemas.
+
+The purpose of the model is to align Demo 1 terminology across the SRS, API planning, diagrams, and traceability.
+
 ### API Contracts
 
 ### Architecture and Technical Requirements
