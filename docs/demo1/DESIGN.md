@@ -99,6 +99,10 @@ Design notes:
 
 ### Phishing Feedback Page
 
+This page is included only as high-level Demo 1 feedback context for the simulated phishing learner experience. It should not be treated as a separate core use case or a full phishing-feedback workflow for Demo 1.
+
+The page should summarise safe learning feedback about a simulated phishing interaction, such as suspicious sender details, urgent wording, or risky links. It should provide a clear path back to the learner dashboard, training material, or simulated inbox where relevant.
+
 ## Wireframe Refinement and Polish (Connor)
 
 ### UI/UX Refinement
