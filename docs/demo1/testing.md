@@ -439,47 +439,47 @@ QA placeholders should be linked to the relevant SRS sections once implementatio
 
 Suggested mapping:
 
-| Area | SRS Reference | QA Placeholder Range |
-| --- | --- | --- |
-| UC-01: View Emails in Simulated Inbox | `docs/demo1/SRS.md` UC-01 section | `QA-UC01-01` to `QA-UC01-05` |
-| UC-02: View Training Document | `docs/demo1/SRS.md` UC-02 section | `QA-UC02-01` to `QA-UC02-05` |
-| UC-03: Complete Quiz Flow | `docs/demo1/SRS.md` UC-03 section | `QA-UC03-01` to `QA-UC03-05` |
-| Login/Register | `docs/demo1/SRS.md` base features section | `QA-AUTH-01` to `QA-AUTH-05` |
-| Themes | `docs/demo1/SRS.md` base features section | `QA-THEME-01` to `QA-THEME-04` |
-| General Form Validation | `docs/demo1/SRS.md` base features section | `QA-VALIDATION-01` to `QA-VALIDATION-05` |
+| Area                                  | SRS Reference                             | QA Placeholder Range                     |
+| ------------------------------------- | ----------------------------------------- | ---------------------------------------- |
+| UC-01: View Emails in Simulated Inbox | `docs/demo1/SRS.md` UC-01 section         | `QA-UC01-01` to `QA-UC01-05`             |
+| UC-02: View Training Document         | `docs/demo1/SRS.md` UC-02 section         | `QA-UC02-01` to `QA-UC02-05`             |
+| UC-03: Complete Quiz Flow             | `docs/demo1/SRS.md` UC-03 section         | `QA-UC03-01` to `QA-UC03-05`             |
+| Login/Register                        | `docs/demo1/SRS.md` base features section | `QA-AUTH-01` to `QA-AUTH-05`             |
+| Themes                                | `docs/demo1/SRS.md` base features section | `QA-THEME-01` to `QA-THEME-04`           |
+| General Form Validation               | `docs/demo1/SRS.md` base features section | `QA-VALIDATION-01` to `QA-VALIDATION-05` |
 
 ### Traceability Rows
 
 The following rows are placeholders for later integration with actual automated tests. They do not require test files to exist as part of this documentation issue.
 
-| QA ID | Area | Verification Focus | Suggested Future Test Location |
-| --- | --- | --- | --- |
-| `QA-UC01-01` | UC-01 | Simulated inbox list success path | `apps/frontend/tests/uc01-simulated-inbox` |
-| `QA-UC01-02` | UC-01 | Inbox empty, loading, and error states | `apps/frontend/tests/uc01-simulated-inbox` |
-| `QA-UC01-03` | UC-01 | Simulated email detail success path | `apps/frontend/tests/uc01-simulated-inbox` |
-| `QA-UC01-04` | UC-01 | Missing or invalid email detail handling | `apps/backend/tests/uc01-simulated-inbox` |
-| `QA-UC01-05` | UC-01 | Authenticated access to inbox flow | `apps/frontend/tests/e2e/uc01-simulated-inbox` |
-| `QA-UC02-01` | UC-02 | Training material list or entry point success path | `apps/frontend/tests/uc02-training-document` |
-| `QA-UC02-02` | UC-02 | Training document view success path | `apps/frontend/tests/uc02-training-document` |
-| `QA-UC02-03` | UC-02 | Training loading, empty, and error states | `apps/frontend/tests/uc02-training-document` |
-| `QA-UC02-04` | UC-02 | Missing or invalid training document handling | `apps/backend/tests/uc02-training-document` |
-| `QA-UC02-05` | UC-02 | Training-to-quiz navigation | `apps/frontend/tests/e2e/uc02-training-document` |
-| `QA-UC03-01` | UC-03 | Quiz page success path | `apps/frontend/tests/uc03-quiz-flow` |
-| `QA-UC03-02` | UC-03 | Answer selection and required validation | `apps/frontend/tests/uc03-quiz-flow` |
-| `QA-UC03-03` | UC-03 | Quiz submission success path | `apps/backend/tests/uc03-quiz-flow` |
-| `QA-UC03-04` | UC-03 | Quiz loading and error states | `apps/frontend/tests/uc03-quiz-flow` |
-| `QA-UC03-05` | UC-03 | Quiz result or completion feedback state | `apps/frontend/tests/e2e/uc03-quiz-flow` |
-| `QA-AUTH-01` | Login/Register | Login success path | `apps/frontend/tests/base-auth` |
-| `QA-AUTH-02` | Login/Register | Registration success path where applicable | `apps/frontend/tests/base-auth` |
-| `QA-AUTH-03` | Login/Register | Login/register validation states | `apps/frontend/tests/base-auth` |
-| `QA-AUTH-04` | Login/Register | Authentication error handling | `apps/backend/tests/base-auth` |
-| `QA-AUTH-05` | Login/Register | Protected Demo 1 page access | `apps/frontend/tests/e2e/base-auth` |
-| `QA-THEME-01` | Themes | Default theme application | `apps/frontend/tests/base-themes` |
-| `QA-THEME-02` | Themes | Theme consistency across Demo 1 screens | `apps/frontend/tests/base-themes` |
-| `QA-THEME-03` | Themes | Theme toggle or persistence where implemented | `apps/frontend/tests/base-themes` |
-| `QA-THEME-04` | Themes | Manual readability and contrast check | Manual demo verification |
-| `QA-VALIDATION-01` | General Form Validation | Required field validation | `apps/frontend/tests/base-form-validation` |
-| `QA-VALIDATION-02` | General Form Validation | Invalid format validation | `apps/frontend/tests/base-form-validation` |
-| `QA-VALIDATION-03` | General Form Validation | Quiz required-answer validation | `apps/frontend/tests/uc03-quiz-flow` |
-| `QA-VALIDATION-04` | General Form Validation | Backend validation error display | `apps/backend/tests/base-form-validation` |
-| `QA-VALIDATION-05` | General Form Validation | Repeated submission handling | `apps/frontend/tests/base-form-validation` |
+| QA ID              | Area                    | Verification Focus                                 | Suggested Future Test Location                   |
+| ------------------ | ----------------------- | -------------------------------------------------- | ------------------------------------------------ |
+| `QA-UC01-01`       | UC-01                   | Simulated inbox list success path                  | `apps/frontend/tests/uc01-simulated-inbox`       |
+| `QA-UC01-02`       | UC-01                   | Inbox empty, loading, and error states             | `apps/frontend/tests/uc01-simulated-inbox`       |
+| `QA-UC01-03`       | UC-01                   | Simulated email detail success path                | `apps/frontend/tests/uc01-simulated-inbox`       |
+| `QA-UC01-04`       | UC-01                   | Missing or invalid email detail handling           | `apps/backend/tests/uc01-simulated-inbox`        |
+| `QA-UC01-05`       | UC-01                   | Authenticated access to inbox flow                 | `apps/frontend/tests/e2e/uc01-simulated-inbox`   |
+| `QA-UC02-01`       | UC-02                   | Training material list or entry point success path | `apps/frontend/tests/uc02-training-document`     |
+| `QA-UC02-02`       | UC-02                   | Training document view success path                | `apps/frontend/tests/uc02-training-document`     |
+| `QA-UC02-03`       | UC-02                   | Training loading, empty, and error states          | `apps/frontend/tests/uc02-training-document`     |
+| `QA-UC02-04`       | UC-02                   | Missing or invalid training document handling      | `apps/backend/tests/uc02-training-document`      |
+| `QA-UC02-05`       | UC-02                   | Training-to-quiz navigation                        | `apps/frontend/tests/e2e/uc02-training-document` |
+| `QA-UC03-01`       | UC-03                   | Quiz page success path                             | `apps/frontend/tests/uc03-quiz-flow`             |
+| `QA-UC03-02`       | UC-03                   | Answer selection and required validation           | `apps/frontend/tests/uc03-quiz-flow`             |
+| `QA-UC03-03`       | UC-03                   | Quiz submission success path                       | `apps/backend/tests/uc03-quiz-flow`              |
+| `QA-UC03-04`       | UC-03                   | Quiz loading and error states                      | `apps/frontend/tests/uc03-quiz-flow`             |
+| `QA-UC03-05`       | UC-03                   | Quiz result or completion feedback state           | `apps/frontend/tests/e2e/uc03-quiz-flow`         |
+| `QA-AUTH-01`       | Login/Register          | Login success path                                 | `apps/frontend/tests/base-auth`                  |
+| `QA-AUTH-02`       | Login/Register          | Registration success path where applicable         | `apps/frontend/tests/base-auth`                  |
+| `QA-AUTH-03`       | Login/Register          | Login/register validation states                   | `apps/frontend/tests/base-auth`                  |
+| `QA-AUTH-04`       | Login/Register          | Authentication error handling                      | `apps/backend/tests/base-auth`                   |
+| `QA-AUTH-05`       | Login/Register          | Protected Demo 1 page access                       | `apps/frontend/tests/e2e/base-auth`              |
+| `QA-THEME-01`      | Themes                  | Default theme application                          | `apps/frontend/tests/base-themes`                |
+| `QA-THEME-02`      | Themes                  | Theme consistency across Demo 1 screens            | `apps/frontend/tests/base-themes`                |
+| `QA-THEME-03`      | Themes                  | Theme toggle or persistence where implemented      | `apps/frontend/tests/base-themes`                |
+| `QA-THEME-04`      | Themes                  | Manual readability and contrast check              | Manual demo verification                         |
+| `QA-VALIDATION-01` | General Form Validation | Required field validation                          | `apps/frontend/tests/base-form-validation`       |
+| `QA-VALIDATION-02` | General Form Validation | Invalid format validation                          | `apps/frontend/tests/base-form-validation`       |
+| `QA-VALIDATION-03` | General Form Validation | Quiz required-answer validation                    | `apps/frontend/tests/uc03-quiz-flow`             |
+| `QA-VALIDATION-04` | General Form Validation | Backend validation error display                   | `apps/backend/tests/base-form-validation`        |
+| `QA-VALIDATION-05` | General Form Validation | Repeated submission handling                       | `apps/frontend/tests/base-form-validation`       |
