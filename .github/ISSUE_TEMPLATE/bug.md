@@ -10,6 +10,8 @@ assignees: ''
 
 What is broken?
 
+**Suggested branch name:**
+
 ## Expected vs Actual
 
 - Expected:
