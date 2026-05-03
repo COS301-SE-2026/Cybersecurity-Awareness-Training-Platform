@@ -26,6 +26,21 @@ This document collects preliminary API contracts for Sprint 1 Demo 1. Contracts 
 
 ### General Validation and Error Responses
 
+These validation and error-response notes are preliminary and exist only to support Demo 1 SRS/design alignment. Final route names, response structures, status codes, and backend validation behaviour remain subject to the API contract owner’s refinement.
+
+For Demo 1, expected validation and error-response categories may include:
+
+- missing or invalid learner input;
+- unanswered required quiz questions;
+- unavailable training or quiz content;
+- failed training document load;
+- failed quiz submission;
+- duplicate quiz submission attempt;
+- failed quiz results or feedback load;
+- unauthorised access to assigned learner content.
+
+These categories support frontend feedback states and should not be treated as final backend implementation detail.
+
 ## UC-01: Simulated Inbox Contracts (Rudolph)
 
 ### `GET /simulations/inbox`
