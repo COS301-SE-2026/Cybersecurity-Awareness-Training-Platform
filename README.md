@@ -6,6 +6,7 @@
 
 <h3 align="center">Insightful Phish.</h3>
 <p align="center">DON'T TAKE THE BAIT</p>
+<p align="center"> www.insightfulphish.co.za</p>
 <h4 align="center">Cybersecurity Awareness Training Platform</h4>
 <p align="center">Created by <i>The Project Cheesecake Team</i></p>
 
@@ -14,6 +15,9 @@
     <img src="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/blob/main/Images/Light%20Team%20Logo.png#gh-light-mode-only" width="150">
     <img src="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/blob/main/Images/Dark%20Team%20Logo.png#gh-dark-mode-only" width="150">
 </p>
+<p align="center"> on behalf of </p>
+<h3 align="center">Southern Cross Solutions</h3>
+<p align="center">www.southerncross.solutions</p>
 
 ---
 
@@ -116,3 +120,5 @@ By focusing on human behaviour, the most common source of security breaches, the
 ## <img src="https://img.icons8.com/?size=100&id=FpuBglgBxX4C&format=png&color=000000" width="32"> Contact Us
 
 <img src="https://img.icons8.com/?size=100&id=czpd3OfwK2l4&format=png&color=000000" width="18"> teamcontact@projectcheesecake.co.za
+
+---
