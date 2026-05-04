@@ -31,7 +31,7 @@ In addition to simulations, the platform offers training modules and quizzes tha
 
 To support organisations, **_Insightful Phish_** provides reporting and insights that highlight user performance, identify potential risks, and measure overall cybersecurity awareness. This allows teams to understand where vulnerabilities exist and take steps to improve.
 
-By focusing on human behaviour, the most common source of security breaches, the platform helps organisations reduce risk and build a stronger security culture.
+By focusing on human behaviour, the most common source of security breaches, the platform helps individuals and organisations reduce risk and build a stronger security culture.
 
 **_DON'T TAKE THE BAIT._**
 **_LEARN TO SPOT IT._**
