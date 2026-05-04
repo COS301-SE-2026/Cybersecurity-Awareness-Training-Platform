@@ -40,6 +40,8 @@ By focusing on human behaviour, the most common source of security breaches, the
 
 # <img src="https://img.icons8.com/?size=100&id=UDtE3CKjacrI&format=png&color=000000" width="32"> Project Dashboard
 
+## <img src="https://img.icons8.com/?size=100&id=VbgGe1XzgPAK&format=png&color=000000" width="24"> Badges
+
 <p align="left">
   <img src="https://img.shields.io/badge/Tests-Passing-brightgreen?style=for-the-badge&logo=jest&logoColor=white" />
   <img src="https://img.shields.io/badge/Coverage-85%25-green?style=for-the-badge&logo=codecov&logoColor=white" />
@@ -76,6 +78,17 @@ By focusing on human behaviour, the most common source of security breaches, the
   <img src="https://img.shields.io/badge/Fuel-Cheesecake-000000?style=for-the-badge" />
 </p>
 
+## <img src="https://img.icons8.com/?size=100&id=1BYH0ZFsjeIy&format=png&color=000000" width="24"> Important Project Links
+
+1. **Project Board**: developer.insightfulphish.co.za/repository/project-board
+2. **Project Issues**: developer.insightfulphish.co.za/repository/issues
+3. **Project Pull Requests**: developer.insightfulphish.co.za/repository/pull-requests
+
+### Demo 1 Documentation
+
+1. **Functional Requirements (SRS) Document**:
+   developer.insightfulphish.co.za/documentation/demo-1/functional-requirements
+
 ---
 
 # <img src="https://img.icons8.com/?size=100&id=hSm5FhlnhnlL&format=png&color=000000" width="32"> Technology Stack
@@ -107,7 +120,7 @@ By focusing on human behaviour, the most common source of security breaches, the
     <img src="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/blob/main/Images/Dark%20Team%20Logo.png#gh-dark-mode-only" width="150">
 </p>
 
-## <img src="https://img.icons8.com/?size=100&id=vthqLC9ZovO9&format=png&color=000000" width="32"> Team Members
+## <img src="https://img.icons8.com/?size=100&id=vthqLC9ZovO9&format=png&color=000000" width="24"> Team Members
 
 | <img src="https://img.icons8.com/?size=100&id=tdljzjMBRKHI&format=png&color=000000" width="20"> **Team Member**                                                                                                          | <img src="https://img.icons8.com/?size=100&id=caeMrKOh8EuI&format=png&color=000000" width="20"> **Role** | <img src="https://img.icons8.com/?size=100&id=OekWdZr7M4hU&format=png&color=000000" width="20"> **GitHub**                                     | <img src="https://img.icons8.com/?size=100&id=zgB79k03qhUu&format=png&color=000000" width="20"> **LinkedIn**                                                                   |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -117,7 +130,9 @@ By focusing on human behaviour, the most common source of security breaches, the
 | <p align="center"><img src="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/blob/2fc5d219a33fa8989c22e6346d6b0fe6230fa4a7/Images/Headshots/Zoe.jpg" width="80"><br>Zoë Joubert</p>           | <ul><li>QA Lead</li><li>Frontend Engineer</li></ul>                                                      | <img src="https://img.icons8.com/?size=100&id=OekWdZr7M4hU&format=png&color=000000" width="18"> [@ZoeJ72005](https://github.com/ZoeJ72005)     | <img src="https://img.icons8.com/?size=100&id=zgB79k03qhUu&format=png&color=000000" width="18"> [Zoë's LinkedIn](https://www.linkedin.com/in/zoë-joubert/)                     |
 | <p align="center"><img src="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/blob/2fc5d219a33fa8989c22e6346d6b0fe6230fa4a7/Images/Headshots/Rudolph.jpg" width="80"><br>Rudolph Lamprecht</p> | <ul><li>Full-Stack Integration Engineer</li></ul>                                                        | <img src="https://img.icons8.com/?size=100&id=OekWdZr7M4hU&format=png&color=000000" width="18"> [@RudolphLamp](https://github.com/RudolphLamp) | <img src="https://img.icons8.com/?size=100&id=zgB79k03qhUu&format=png&color=000000" width="18"> [Rudolph's LinkedIn](https://www.linkedin.com/in/rudolph-lamprecht-2b9511380/) |
 
-## <img src="https://img.icons8.com/?size=100&id=FpuBglgBxX4C&format=png&color=000000" width="32"> Contact Us
+> _While roles are clearly defined, the team will work collaboratively across different areas of the system. Members will support one another where needed, ensuring flexibility and consistent progress throughout the project._
+
+## <img src="https://img.icons8.com/?size=100&id=FpuBglgBxX4C&format=png&color=000000" width="24"> Contact Us
 
 <img src="https://img.icons8.com/?size=100&id=czpd3OfwK2l4&format=png&color=000000" width="18"> teamcontact@projectcheesecake.co.za
 
