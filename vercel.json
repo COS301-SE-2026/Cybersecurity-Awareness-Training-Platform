@@ -1,0 +1,50 @@
+{
+  "routes": [
+    {
+      "src": "^/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "brand.insightfulphish.co.za"
+        }
+      ],
+      "dest": "/brand/guidelines/$1"
+    },
+    {
+      "src": "^/repository$",
+      "has": [
+        {
+          "type": "host",
+          "value": "developer.insightfulphish.co.za"
+        }
+      ],
+      "status": 307,
+      "headers": {
+        "Location": "https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform"
+      }
+    },
+    {
+      "src": "^/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "brand.iphish.co.za"
+        }
+      ],
+      "dest": "/brand/guidelines/$1"
+    },
+    {
+      "src": "^/repository$",
+      "has": [
+        {
+          "type": "host",
+          "value": "developer.iphish.co.za"
+        }
+      ],
+      "status": 307,
+      "headers": {
+        "Location": "https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform"
+      }
+    }
+  ]
+}
