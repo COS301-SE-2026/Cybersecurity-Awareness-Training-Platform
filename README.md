@@ -80,14 +80,14 @@ By focusing on human behaviour, the most common source of security breaches, the
 
 ## <img src="https://img.icons8.com/?size=100&id=1BYH0ZFsjeIy&format=png&color=000000" width="24"> Important Project Links
 
-1. **Project Board**: developer.insightfulphish.co.za/repository/project-board
-2. **Project Issues**: developer.insightfulphish.co.za/repository/issues
-3. **Project Pull Requests**: developer.insightfulphish.co.za/repository/pull-requests
+1. **Project Board**: https://developer.insightfulphish.co.za/repository/project-board
+2. **Project Issues**: https://developer.insightfulphish.co.za/repository/issues
+3. **Project Pull Requests**: https://developer.insightfulphish.co.za/repository/pull-requests
 
 ### Demo 1 Documentation
 
 1. **Functional Requirements (SRS) Document**:
-   developer.insightfulphish.co.za/documentation/demo-1/functional-requirements
+   https://developer.insightfulphish.co.za/documentation/demo-1/functional-requirements
 
 ---
 
