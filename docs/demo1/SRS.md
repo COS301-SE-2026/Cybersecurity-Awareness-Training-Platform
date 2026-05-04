@@ -16,9 +16,40 @@ This document collects Sprint 1 Demo 1 requirements for the Cybersecurity Awaren
 
 ### Login/Register
 
+Login and registration are base features that support access to the Demo 1 learner flows. They are not counted as separate Demo 1 core use cases.
+
+The system should provide basic form validation for login and registration screens so that learners receive clear feedback before attempting to continue. Required fields should be checked before submission, and invalid or incomplete input should be explained using concise, non-technical messages.
+
+For Demo 1, login/register validation should support the following requirements:
+
+- Required input fields must be visibly identified before submission.
+- If a learner submits an incomplete form, the system must show which required fields need attention.
+- Error messages must be learner-friendly and should not expose technical implementation details.
+- While a login or registration request is being processed, the interface should show a loading or submitting state and prevent duplicate submission.
+- If authentication fails, the learner should receive a clear error message and remain on the relevant form so they can correct the issue.
+- If authentication succeeds, the learner should receive appropriate navigation feedback and continue to the relevant learner area.
+- These behaviours are supporting form requirements only and must not be treated as additional Demo 1 use cases.
+
 ### Themes
 
 ### General Form Validation
+
+General form validation is a supporting base feature for Demo 1. It exists to keep learner-facing forms, quiz submissions, and feedback states consistent, but it is not a separate core use case.
+
+Reusable validation rules for Demo 1 should follow these principles:
+
+- Required fields must be validated before submission where possible.
+- Validation messages must appear close to the relevant field, question, or action.
+- Page-level errors may be used when a problem affects the whole screen or submission.
+- Error messages must describe what the learner can do next, such as completing a missing answer or retrying a failed submission.
+- Technical details such as stack traces, raw database errors, or internal exception names must not be shown to learners.
+- Loading and submitting states must clearly indicate that the system is processing an action.
+- Buttons that could create duplicate requests should be disabled while the relevant action is being processed.
+- Success messages should confirm that the learner’s action was completed.
+- Empty and unavailable states should explain the situation and provide a safe next step where possible.
+- Feedback messages should be accessible, readable, and understandable without relying only on colour.
+
+These rules apply as supporting guidance for UC-02 and UC-03, and as base-feature support for login/register and other simple Demo 1 forms.
 
 ## Document Structure and Integration (Johan)
 
@@ -196,11 +227,11 @@ This use case is limited to viewing training content and recording basic interac
 
 ### Actor
 
-#### Primary Actor:
+#### Primary Actor
 
 - Learner
 
-#### Supporting Actors:
+#### Supporting Actors
 
 - System
 - Administrator (as a supporting context for assigning training content via campaigns)
@@ -214,7 +245,7 @@ This use case is limited to viewing training content and recording basic interac
 
 ### Postconditions
 
-#### Successful Postconditions:
+#### Successful Postconditions
 
 - The learner can view a list of assigned training documents.
 - The learner can open and read a selected training document.
@@ -222,7 +253,7 @@ This use case is limited to viewing training content and recording basic interac
 - The learner understands that the content is part of a structured training experience.
 - If a quiz is linked, the system may display a link or button to proceed to the associated quiz.
 
-#### Unsuccessful Postconditions:
+#### Unsuccessful Postconditions
 
 - If no training documents are assigned, the learner sees an appropriate empty state.
 - If a selected training document cannot be found, the learner sees a safe error state.
@@ -273,6 +304,22 @@ If the system cannot record training interaction, the system should not expose t
 | `FR-UC02-08` | The system shall not allow modification of training content by learners.                        | **Must** | Maintains scope boundary.                                                                                                      |
 | `FR-UC02-09` | The system shall treat all training documents as controlled educational content.                | **Must** | Reinforces training context.                                                                                                   |
 | `FR-UC02-10` | The system shall allow the learner to access training content independently of quiz completion. | Should   | Maintains separation between `UC-02` and `UC-03`.                                                                              |
+
+### UC-02 Validation, Error-State, and Feedback Support
+
+The training document view should use the shared validation and feedback rules defined for Demo 1. These rules support the learner experience without expanding UC-02 beyond viewing assigned training content.
+
+For UC-02, the system should provide the following feedback states:
+
+- **Loading state:** When assigned training documents or document details are being loaded, the learner should see a clear loading indication instead of an empty or broken page.
+- **Empty state:** If the learner has no assigned training documents, the system should show a friendly empty-state message explaining that no training is currently available.
+- **Unavailable-content state:** If a selected training document is missing, unavailable, or no longer assigned, the system should explain that the content cannot be opened and provide a safe way to return to the training list or dashboard.
+- **Load-failure state:** If the document cannot be loaded because of a system or network problem, the learner should see a non-technical error message and, where appropriate, a retry or back-navigation option.
+- **Progress feedback:** If the system records that the learner opened or viewed a document, this should happen without interrupting the reading experience. If progress tracking fails, the learner should still be able to read the content.
+- **Quiz-link feedback:** If the document links to a quiz, the interface should make it clear that selecting the quiz link starts or continues the quiz flow under UC-03.
+- **Accessible feedback:** Training feedback messages should be readable, keyboard-accessible, and understandable without relying only on colour.
+
+These feedback rules are limited to supporting the training document viewing flow. They do not add content authoring, admin content management, or quiz completion behaviour to UC-02.
 
 ### Domain References
 
@@ -393,6 +440,27 @@ If the submitted attempt cannot load its results or feedback, the system display
 | FR-UC03-09 | The system shall prevent further editing or duplicate final submission of a completed quiz attempt.                         |     Must | A completed attempt should remain read-only.                                              |
 | FR-UC03-10 | The system shall display safe validation and error states when quiz content, attempt creation, submission, or results fail. |     Must | Messages should be clear, non-technical, and safe for the learner.                        |
 
+### UC-03 Validation, Submission, and Feedback Support
+
+The quiz flow must provide clear validation and feedback so that the learner understands what is required, what is being processed, and what result or next step is available. These rules support UC-03 and do not create a separate validation use case.
+
+For UC-03, the system should support the following behaviours:
+
+- **Required-answer validation:** The learner must be informed when one or more required quiz questions have not been answered before submission.
+- **Answer-format validation:** If an answer is malformed, unsupported, or cannot be accepted, the system should show a clear message explaining what needs to be corrected.
+- **Inline guidance:** Validation messages should appear close to the relevant question where possible, with a page-level summary used only when helpful.
+- **Submission state:** When the learner submits a quiz, the system should show a submitting or processing state.
+- **Duplicate-submission prevention:** The submit action should be disabled or guarded while the submission is being processed.
+- **Submission success feedback:** After a successful submission, the learner should receive confirmation that the attempt was submitted and that results or feedback are available.
+- **Submission failure feedback:** If submission fails, the learner should see a safe, non-technical error message and should not lose their current answers where possible.
+- **Results-loading feedback:** If quiz results or feedback are still loading, the system should indicate that the result is being prepared.
+- **Results failure feedback:** If results cannot be loaded, the learner should receive a retry or safe navigation option.
+- **Educational feedback:** Quiz feedback should explain correct and incorrect answers in a supportive learning tone.
+- **Unavailable quiz state:** If a quiz is unavailable, empty, or no longer assigned, the system should explain the situation and provide a safe way back to the training material or learner dashboard.
+- **Accessible feedback:** Quiz validation, submission, and result messages should be perceivable to keyboard and screen-reader users and should not rely only on colour.
+
+The quiz flow should prioritise clear learner recovery: the learner should know what happened, what needs attention, and what action they can take next.
+
 ### Domain References
 
 Preliminary domain entities linked to UC-03:
@@ -432,65 +500,90 @@ PLEASE NOTE: These contracts are subject to change throughout the course of impl
 
 ## Validation, Error-State, and Feedback Requirements (Zoë)
 
+This section defines supporting validation, error-state, and feedback requirements for Demo 1 learner-facing flows. These requirements support UC-02, UC-03, and base form behaviour, but they are not a separate Demo 1 core use case.
+
+Demo 1 core use cases remain limited to:
+
+- UC-01: View emails in simulated inbox
+- UC-02: View training document
+- UC-03: Complete quiz flow
+
 ### Required Field Validation
 
-For Demo 1, quiz submission should validate that all required questions have an answer before the final submission is accepted. If a required answer is missing, the system should identify the affected question and allow the employee to complete it without losing other answers.
+For Demo 1, required fields and required quiz questions should be validated before final submission is accepted. If required information is missing, the system should identify the affected field or question and allow the learner to complete it without losing other valid input.
+
+For UC-03, quiz submission should validate that all required questions have an answer before the final submission is accepted.
 
 ### Quiz Answer Validation
 
-Quiz answer validation is limited to ensuring that the submitted answer matches the expected input structure for the question type supported in Demo 1. The system should reject malformed or unsupported answer data safely and display a clear correction message to the employee.
+Quiz answer validation is limited to ensuring that submitted answers match the expected input structure for the question types supported in Demo 1. The system should reject malformed or unsupported answer data safely and display a clear correction message to the learner.
+
+This requirement does not define final backend validation logic or final quiz schemas.
 
 ### Submission Feedback
 
-When the employee submits a quiz attempt, the system should show clear progress feedback that the attempt is being processed. If submission fails, the system should explain that the attempt was not completed and allow a safe retry where possible.
+When the learner submits a quiz attempt, the system should show clear progress feedback that the attempt is being processed. During this state, duplicate submission actions should be prevented where possible.
+
+If submission fails, the system should explain that the attempt was not completed and allow a safe retry where possible.
 
 ### Success Messages
 
-After a successful submission, the employee should receive a confirmation that the quiz was submitted and that results are available. Success messaging should be concise, learner-facing, and consistent with the controlled training context.
+After a successful submission, the learner should receive confirmation that the quiz was submitted and that results are available. Success messaging should be concise, learner-facing, and consistent with the controlled training context.
+
+Success messages may also support base features, such as confirming successful login or registration, where relevant.
 
 ### Error Messages
 
-Quiz errors should be presented in plain, non-technical language. Messages should distinguish between loading failures, validation issues, submission failures, and results-loading failures without exposing internal system details.
+Errors should be presented in plain, non-technical language. Messages should distinguish between validation issues, unavailable content, loading failures, submission failures, and results-loading failures without exposing internal system details.
+
+Error messages should explain what happened at a learner-facing level and what action the learner can take next.
 
 ### Loading States
 
-The system should provide a visible loading state when quiz content, submission, results, or feedback are being retrieved or processed. During final submission, duplicate submission actions should be prevented where possible.
+The system should provide a visible loading state when training content, quiz content, submission, results, or feedback are being retrieved or processed. The learner should not be left on a blank or broken page while content is loading.
+
+During final quiz submission, duplicate submission actions should be prevented where possible.
 
 ### Empty States
 
-If a quiz has no available questions, no available results, or no available feedback, the system should present a safe empty or unavailable state with a clear return path for the employee.
+If a learner has no assigned training documents, or if a quiz has no available questions, results, or feedback, the system should present a safe empty or unavailable state with a clear return path.
 
-## Interaction Tracking, Progress, and Reporting Requirements
+Empty states should explain the situation in learner-friendly language and should not make the page appear broken.
 
-### Simulated Inbox Interaction Tracking
+### Unavailable-Content States
 
-For Demo 1, simulated inbox tracking is limited to lightweight learner/employee interaction events that support future traceability and reporting.
+If assigned content cannot be accessed, such as a missing training document or unavailable quiz, the system should explain that the content is not currently available and provide a safe way to return to the training list, quiz page, or learner dashboard.
 
-The primary tracked interaction for UC-01 is opening or viewing a simulated email. This event helps the system later determine whether a learner engaged with a simulated email item.
+Unavailable-content messages should not blame the learner or expose internal system details.
 
-| ID          | Requirement                                                                                                              | Notes                                                                        |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
-| TRK-UC01-01 | The system should record when a learner opens a simulated email.                                                         | Supports later reporting and campaign analysis.                              |
-| TRK-UC01-02 | The system may record when a learner views the simulated inbox list.                                                     | Optional for Demo 1.                                                         |
-| TRK-UC01-03 | The system should record event metadata such as learner reference, simulated email reference, event type, and timestamp. | Exact implementation fields are preliminary.                                 |
-| TRK-UC01-04 | The system must not record real passwords, real credentials, or sensitive user input as part of UC-01.                   | Important safety and privacy requirement.                                    |
-| TRK-UC01-05 | Interaction tracking failure should not prevent the learner from safely viewing simulated content where possible.        | Avoids blocking the learner experience due to non-critical tracking failure. |
+### Accessibility Considerations
 
-### Training Progress
+Validation, feedback, loading, empty, and error messages should be accessible to learners using keyboard navigation or assistive technologies.
 
-Training progress is primarily covered by UC-02. UC-01 may only reference training progress when a simulated email provides a safe follow-up link or feedback prompt to related training content about the specific email.
+At minimum:
 
-### Quiz Attempts
+- important messages should appear near the relevant content, field, question, or action;
+- feedback should not rely only on colour;
+- recovery actions such as retry, return, or continue should be keyboard-accessible;
+- screen-reader users should be able to understand important validation, submission, success, and error states.
 
-Quiz attempts are covered by UC-03 and are out of scope for UC-01.
+### User-Friendly Wording Guidelines
 
-### Quiz Results
+Feedback wording should be clear, calm, and supportive. The system should avoid harsh, vague, or technical phrasing.
 
-Quiz results are covered by UC-03 and are out of scope for UC-01.
+Preferred examples:
 
-### Preliminary Reporting Support
+- “Please answer all required questions before submitting.”
+- “We could not load this training document. Please try again or return to the training list.”
+- “Your quiz was submitted. Your results are ready.”
+- “This quiz is not currently available.”
 
-UC-01 prepares for future reporting by defining lightweight interaction events. Demo 1 does not require a full reporting dashboard for simulated inbox behaviour.
+Avoid examples:
+
+- “Validation failed.”
+- “Invalid payload.”
+- “Unhandled exception.”
+- “Backend submission error.”
 
 ## Admin and Campaign Supporting Context (Rudolph)
 
