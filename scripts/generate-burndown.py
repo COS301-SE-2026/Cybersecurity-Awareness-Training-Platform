@@ -242,7 +242,7 @@ def write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
 
 def write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, indent=2) + "\n")
+    path.write_text(json.dumps(payload, indent=2, default=str) + "\n")
 
 
 def relative_days_late(closed_date: date, end_date: date) -> int:
@@ -560,7 +560,8 @@ def main() -> int:
         raise RuntimeError("REPOSITORY must use the format `owner/repo`.")
 
     owner, repo = REPO.split("/", 1)
-    today = datetime.now(timezone.utc).date()
+    run_datetime = datetime.now(timezone.utc)
+    today = run_datetime.date()
     milestones = paged_rest(f"/repos/{owner}/{repo}/milestones?state=all")
     warnings: list[str] = []
     generated_sprints: list[dict[str, Any]] = []
@@ -582,6 +583,7 @@ def main() -> int:
     report.parent.mkdir(parents=True, exist_ok=True)
     report.write_text(
         "# Burndown Check Report\n\n"
+        + f"Last run: {run_datetime.strftime('%Y-%m-%d %H:%M:%S UTC')}\n\n"
         + ("\n".join(warnings) if warnings else "No issues found.")
         + "\n"
     )
