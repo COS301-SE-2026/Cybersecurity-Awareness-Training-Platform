@@ -12,6 +12,10 @@ What is broken?
 
 **Suggested branch name:**
 
+**Story Points:** <value here>
+
+<!-- Use 1, 2, 3, or 5. -->
+
 ## Expected vs Actual
 
 - Expected:

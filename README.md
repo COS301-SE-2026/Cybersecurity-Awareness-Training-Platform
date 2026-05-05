@@ -121,4 +121,12 @@ By focusing on human behaviour, the most common source of security breaches, the
 
 <img src="https://img.icons8.com/?size=100&id=czpd3OfwK2l4&format=png&color=000000" width="18"> teamcontact@projectcheesecake.co.za
 
+## Burndown Charts
+
+<!-- BURNDOWN:START -->
+
+Burndown charts are generated automatically from GitHub sprint milestones and issue Story Points.
+
+<!-- BURNDOWN:END -->
+
 ---

@@ -12,6 +12,10 @@ What should be built?
 
 **Suggested branch name:**
 
+**Story Points:** <value here>
+
+<!-- Use 1, 2, 3, or 5. -->
+
 ## Problem / Value
 
 Why is this needed?

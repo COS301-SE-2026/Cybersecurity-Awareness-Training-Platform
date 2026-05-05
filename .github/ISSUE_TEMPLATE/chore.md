@@ -12,6 +12,10 @@ What maintenance task is needed?
 
 **Suggested branch name:**
 
+**Story Points:** <value here>
+
+<!-- Use 1, 2, 3, or 5. -->
+
 ## Reason
 
 Why should this be done?
