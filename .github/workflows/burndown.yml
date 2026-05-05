@@ -17,7 +17,7 @@ jobs:
       GITHUB_TOKEN: ${{ github.token }}
       REPOSITORY: ${{ github.repository }}
       BURNDOWN_ASSET_BRANCH: automation/burndown-assets
-      SHOW_PROJECT_BURNDOWN: 'false'
+      SHOW_PROJECT_BURNDOWN: 'true'
 
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
