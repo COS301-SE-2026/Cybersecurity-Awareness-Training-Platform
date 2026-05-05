@@ -1,0 +1,228 @@
+{
+  "sprints": [
+    {
+      "sprint_no": 1,
+      "demo_no": 1,
+      "milestone": "Sprint 1 (Demo 1)",
+      "start": "2026-04-27",
+      "end": "2026-05-08",
+      "issues": [
+        {
+          "number": 43,
+          "title": "fix: Husky Hooks",
+          "points": 1,
+          "state": "closed",
+          "closed_date": "2026-05-03"
+        },
+        {
+          "number": 25,
+          "title": "[repo] Add Husky guard against direct commits to main and dev",
+          "points": 2,
+          "state": "closed",
+          "closed_date": "2026-04-30"
+        },
+        {
+          "number": 24,
+          "title": "[review] Review Demo 1 documentation for consistency and scope",
+          "points": 3,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 23,
+          "title": "[traceability] Build Demo 1 traceability table",
+          "points": 5,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 22,
+          "title": "[srs] Integrate Demo 1 SRS feature slices",
+          "points": 3,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 21,
+          "title": "[diagrams] Create Demo 1 use case diagrams",
+          "points": 3,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 20,
+          "title": "[architecture] Document technical requirements and constraints",
+          "points": 5,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 19,
+          "title": "[architecture] Document design patterns and simulation modularity",
+          "points": 3,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 18,
+          "title": "[architecture] Draft quality requirements and architectural approach",
+          "points": 5,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 17,
+          "title": "[api] Draft preliminary API contracts for Demo 1 flows",
+          "points": 5,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 16,
+          "title": "[srs] Define admin and campaign requirements slice",
+          "points": 3,
+          "state": "closed",
+          "closed_date": "2026-04-30"
+        },
+        {
+          "number": 15,
+          "title": "[design] Document learner navigation and training screen behaviour",
+          "points": 3,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 14,
+          "title": "[design] Refine Demo 1 Wireframes",
+          "points": 3,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 13,
+          "title": "[design] Create Demo 1 brand style guide",
+          "points": 5,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 12,
+          "title": "[srs] Define training document viewing requirements slice",
+          "points": 3,
+          "state": "closed",
+          "closed_date": "2026-04-30"
+        },
+        {
+          "number": 11,
+          "title": "[domain] Align domain model with API and feature slices",
+          "points": 3,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 10,
+          "title": "[srs] Document interaction tracking, progress, and reporting requirements",
+          "points": 3,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 9,
+          "title": "[domain] Create Demo 1 domain model and explanation",
+          "points": 5,
+          "state": "closed",
+          "closed_date": "2026-05-01"
+        },
+        {
+          "number": 8,
+          "title": "[srs] Define simulated inbox requirements slice",
+          "points": 3,
+          "state": "closed",
+          "closed_date": "2026-04-28"
+        },
+        {
+          "number": 7,
+          "title": "[testing] Draft Demo 1 QA plan for core use cases",
+          "points": 3,
+          "state": "closed",
+          "closed_date": "2026-05-03"
+        },
+        {
+          "number": 6,
+          "title": "[design] Document feedback, validation, and accessibility UI rules",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 5,
+          "title": "[design] Create first-pass Demo 1 wireframes",
+          "points": 5,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 4,
+          "title": "[srs] Define validation, error-state, and feedback requirements",
+          "points": 2,
+          "state": "closed",
+          "closed_date": "2026-05-03"
+        },
+        {
+          "number": 3,
+          "title": "[srs] Define quiz flow requirements slice",
+          "points": 3,
+          "state": "closed",
+          "closed_date": "2026-04-30"
+        }
+      ]
+    }
+  ],
+  "series": [
+    {
+      "date": "2026-04-27",
+      "remaining": 81,
+      "ideal": 81.0
+    },
+    {
+      "date": "2026-04-28",
+      "remaining": 78,
+      "ideal": 73.64
+    },
+    {
+      "date": "2026-04-29",
+      "remaining": 78,
+      "ideal": 66.27
+    },
+    {
+      "date": "2026-04-30",
+      "remaining": 67,
+      "ideal": 58.91
+    },
+    {
+      "date": "2026-05-01",
+      "remaining": 62,
+      "ideal": 51.55
+    },
+    {
+      "date": "2026-05-02",
+      "remaining": 62,
+      "ideal": 44.18
+    },
+    {
+      "date": "2026-05-03",
+      "remaining": 56,
+      "ideal": 36.82
+    },
+    {
+      "date": "2026-05-04",
+      "remaining": 56,
+      "ideal": 29.45
+    },
+    {
+      "date": "2026-05-05",
+      "remaining": 56,
+      "ideal": 22.09
+    }
+  ]
+}
