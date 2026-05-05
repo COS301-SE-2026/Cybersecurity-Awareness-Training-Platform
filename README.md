@@ -140,7 +140,23 @@ By focusing on human behaviour, the most common source of security breaches, the
 
 <!-- BURNDOWN:START -->
 
-Burndown charts are generated automatically from GitHub sprint milestones and issue Story Points.
+### Latest Sprint Burndown
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/automation/burndown-assets/docs/burndown/latest-sprint-burndown-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/automation/burndown-assets/docs/burndown/latest-sprint-burndown-light.svg">
+  <img alt="Latest Sprint Burndown" src="https://raw.githubusercontent.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/automation/burndown-assets/docs/burndown/latest-sprint-burndown-light.svg">
+</picture>
+
+### Project Burndown
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/automation/burndown-assets/docs/burndown/project-burndown-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/automation/burndown-assets/docs/burndown/project-burndown-light.svg">
+  <img alt="Project Burndown" src="https://raw.githubusercontent.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/automation/burndown-assets/docs/burndown/project-burndown-light.svg">
+</picture>
+
+[Burndown process](docs/demo1/burndown/PROCESS.md)
 
 <!-- BURNDOWN:END -->
 
