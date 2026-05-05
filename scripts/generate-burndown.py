@@ -57,7 +57,9 @@ def get_env(name: str, default: str | None = None) -> str:
 TOKEN = os.environ.get("GITHUB_TOKEN")
 REPO = get_env("REPOSITORY")
 README_PATH = Path(os.environ.get("README_PATH", "README.md"))
-SHOW_PROJECT_BURNDOWN = os.environ.get("SHOW_PROJECT_BURNDOWN", "false").lower() == "true"
+SHOW_PROJECT_BURNDOWN = os.environ.get("SHOW_PROJECT_BURNDOWN", "true").lower() == "true"
+ASSET_BRANCH = os.environ.get("BURNDOWN_ASSET_BRANCH", "automation/burndown-assets")
+RAW_ASSET_BASE = f"https://raw.githubusercontent.com/{REPO}/{ASSET_BRANCH}/docs/burndown"
 
 
 def request_json(url: str, body: dict[str, Any] | None = None) -> Any:
@@ -391,7 +393,7 @@ def write_themed_svgs(path_without_suffix: Path, title: str, rows: list[dict[str
     return {"light": str(light_path.relative_to(ROOT)), "dark": str(dark_path.relative_to(ROOT))}
 
 
-def update_readme(latest_charts: dict[str, str], warnings: list[str]) -> None:
+def update_readme(warnings: list[str]) -> None:
     # Input
     readme = ROOT / README_PATH
 
@@ -408,21 +410,21 @@ def update_readme(latest_charts: dict[str, str], warnings: list[str]) -> None:
 ### Latest Sprint Burndown
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="{latest_charts["dark"]}">
-  <source media="(prefers-color-scheme: light)" srcset="{latest_charts["light"]}">
-  <img alt="Latest Sprint Burndown" src="{latest_charts["light"]}">
+  <source media="(prefers-color-scheme: dark)" srcset="{RAW_ASSET_BASE}/latest-sprint-burndown-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="{RAW_ASSET_BASE}/latest-sprint-burndown-light.svg">
+  <img alt="Latest Sprint Burndown" src="{RAW_ASSET_BASE}/latest-sprint-burndown-light.svg">
 </picture>
 """
 
     project_block = ""
     if SHOW_PROJECT_BURNDOWN:
-        project_block = """
+        project_block = f"""
 ### Project Burndown
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/burndown/project-burndown-dark.svg">
-  <source media="(prefers-color-scheme: light)" srcset="docs/burndown/project-burndown-light.svg">
-  <img alt="Project Burndown" src="docs/burndown/project-burndown-light.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="{RAW_ASSET_BASE}/project-burndown-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="{RAW_ASSET_BASE}/project-burndown-light.svg">
+  <img alt="Project Burndown" src="{RAW_ASSET_BASE}/project-burndown-light.svg">
 </picture>
 """
 
@@ -579,7 +581,22 @@ def write_project_outputs(generated_sprints: list[dict[str, Any]], today: date, 
         write_themed_svgs(ROOT / "docs/burndown/project-burndown", "Project Burndown", project_rows)
 
     latest = max(generated_sprints, key=lambda sprint: (sprint["end"], sprint["demo_no"], sprint["sprint_no"]))
-    update_readme(latest["charts"], warnings)
+    latest_rows = sprint_series(latest["issues"], latest["start"], latest["end"], as_of=today)
+    write_csv(ROOT / "docs/burndown/latest-sprint-burndown.csv", latest_rows)
+    write_json(
+        ROOT / "docs/burndown/latest-sprint-burndown.json",
+        {
+            "sprint_no": latest["sprint_no"],
+            "demo_no": latest["demo_no"],
+            "milestone": latest["milestone"],
+            "start": str(latest["start"]),
+            "end": str(latest["end"]),
+            "issues": latest["issues"],
+            "series": latest_rows,
+        },
+    )
+    write_themed_svgs(ROOT / "docs/burndown/latest-sprint-burndown", f"{latest['milestone']} Burndown", latest_rows)
+    update_readme(warnings)
 
 
 def main() -> int:

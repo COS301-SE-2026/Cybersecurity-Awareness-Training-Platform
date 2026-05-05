@@ -16,7 +16,8 @@ jobs:
     env:
       GITHUB_TOKEN: ${{ github.token }}
       REPOSITORY: ${{ github.repository }}
-      SHOW_PROJECT_BURNDOWN: 'false' # Set to true to render the project burndown chart.
+      BURNDOWN_ASSET_BRANCH: automation/burndown-assets
+      SHOW_PROJECT_BURNDOWN: 'false'
 
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -28,8 +29,39 @@ jobs:
       - name: Generate Burndown charts
         run: python scripts/generate-burndown.py
 
-      - name: Commit updated burndown files
-        uses: stefanzweifel/git-auto-commit-action@b863ae1933cb653a53c021fe36dbb774e1fb9403 # v5
-        with:
-          commit_message: 'docs: automatically update burndown charts'
-          file_pattern: 'docs/burndown/** docs/demo*/burndown/** README.md'
+      - name: Publish burndown assets
+        run: |
+          if [ ! -d docs/burndown ]; then
+            echo "No burndown assets were generated."
+            exit 0
+          fi
+
+          asset_worktree="$(mktemp -d)"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if git ls-remote --exit-code --heads origin "$BURNDOWN_ASSET_BRANCH" >/dev/null 2>&1; then
+            git fetch origin "$BURNDOWN_ASSET_BRANCH"
+            git worktree add "$asset_worktree" "origin/$BURNDOWN_ASSET_BRANCH"
+            cd "$asset_worktree"
+            git checkout -B "$BURNDOWN_ASSET_BRANCH"
+          else
+            git worktree add --detach "$asset_worktree"
+            cd "$asset_worktree"
+            git checkout --orphan "$BURNDOWN_ASSET_BRANCH"
+            git rm -rf . >/dev/null 2>&1 || true
+          fi
+
+          mkdir -p docs
+          rm -rf docs/burndown
+          cp -R "$GITHUB_WORKSPACE/docs/burndown" docs/burndown
+
+          if [ -z "$(git status --porcelain -- docs/burndown)" ]; then
+            echo "No burndown asset changes to publish."
+            exit 0
+          fi
+
+          git add docs/burndown
+          git commit -m "docs: automatically update burndown assets"
+          git push origin "HEAD:$BURNDOWN_ASSET_BRANCH"
