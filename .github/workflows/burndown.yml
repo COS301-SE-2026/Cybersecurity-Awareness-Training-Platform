@@ -1,0 +1,35 @@
+name: Burndown Charts
+
+on:
+  schedule:
+    - cron: '0 22 * * *' # Runs at midnight SAST
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      REPOSITORY: ${{ github.repository }}
+      SHOW_PROJECT_BURNDOWN: 'false' # Set to true to render the project burndown chart.
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Generate Burndown charts
+        run: python scripts/generate-burndown.py
+
+      - name: Commit updated burndown files
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: 'docs: automatically update burndown charts'
+          file_pattern: 'docs/burndown/** docs/demo*/burndown/** README.md'
