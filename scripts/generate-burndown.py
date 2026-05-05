@@ -16,10 +16,6 @@ from typing import Any
 
 API = "https://api.github.com"
 SPRINT_RE = re.compile(r"^Sprint (\d+) \(Demo ([1-4])\)$")
-STORY_POINTS_RE = re.compile(
-    r"^\s*(?:[-*]\s*)?(?:\*\*)?Story Points\s*:?(?:\*\*)?\s*:?\s*(?:\*\*)?(\d+)(?:\*\*)?\s*$",
-    re.IGNORECASE | re.MULTILINE,
-)
 START_RE = re.compile(r"^Start:\s*(\S+)\s*$", re.MULTILINE)
 END_RE = re.compile(r"^End:\s*(\S+)\s*$", re.MULTILINE)
 
@@ -105,20 +101,52 @@ def paged_rest(path: str) -> list[dict[str, Any]]:
 
 
 
+def parse_story_points_line(line: str) -> int | None:
+    cleaned_line = line.strip()
+
+    if cleaned_line.startswith("- ") or cleaned_line.startswith("* "):
+        cleaned_line = cleaned_line[2:].strip()
+
+    cleaned_line = cleaned_line.replace("**", "").strip()
+
+    if not cleaned_line.lower().startswith("story points"):
+        return None
+
+    point_text = cleaned_line[len("Story Points") :].strip()
+    if point_text.startswith(":"):
+        point_text = point_text[1:].strip()
+
+    if not point_text:
+        return None
+
+    point_value = point_text.split()[0].strip(".,;")
+    if not point_value.isdigit():
+        return None
+
+    return int(point_value)
+
+
+def extract_story_points_from_body(body: str) -> int | None:
+    for line in body.splitlines():
+        points = parse_story_points_line(line)
+        if points is not None:
+            return points
+
+    return None
+
+
 def extract_story_points(issue: dict[str, Any], milestone_title: str, warnings: list[str]) -> int | None:
     # Input
     body = issue.get("body") or ""
-    match = STORY_POINTS_RE.search(body)
+    points = extract_story_points_from_body(body)
 
     # Validation
-    if not match:
+    if points is None:
         warnings.append(
             f"- #{issue['number']} {issue['title']} is in `{milestone_title}` but is missing "
             "`Story Points: <value>` in the issue body."
         )
         return None
-
-    points = int(match.group(1))
 
     if points not in VALID_POINTS:
         warnings.append(
