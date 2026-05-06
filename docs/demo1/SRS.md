@@ -67,6 +67,8 @@ These rules apply as supporting guidance for UC-02 and UC-03, and as base-featur
 
 ## UC-01: Simulated Inbox Requirements
 
+[UC-01 use case diagram](./diagrams/demo1-use-cases-uc01-simulated-inbox.svg)
+
 ### User Story
 
 As an employee, I want to view my simulated emails in a controlled inbox(rather than my own) so that i can recognize potentially suspicious messages in a safe training environment before encountering similar effects/threats in real life.
@@ -215,6 +217,8 @@ PLEASE NOTE: These contracts are subject to change throughout the course of impl
 
 ## UC-02: Training Document Viewing Requirements
 
+[UC-02 use case diagram](./diagrams/demo1-use-cases-uc02-training-document.svg)
+
 ### User Story
 
 As a learner, I want to view training documents assigned to me so that I can learn how to recognise and respond to cyber threats in a controlled educational environment.
@@ -350,6 +354,8 @@ These feedback rules are limited to supporting the training document viewing flo
 | `TRACE-UC02-05` | `UC-02 -> FR-UC02-08`                                       |
 
 ## UC-03: Quiz Flow Requirements (Zoë)
+
+[UC-03 use case diagram](./diagrams/demo1-use-cases-uc03-quiz-flow.svg)
 
 ### User Story
 
