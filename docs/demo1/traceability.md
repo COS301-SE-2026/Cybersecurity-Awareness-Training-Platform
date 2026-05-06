@@ -63,9 +63,3 @@ Supporting validation and feedback behaviour for forms and quiz submission.
 ### Testing References
 
 - `docs/demo1/testing.md` contains QA planning and future test placeholders for UC-01, UC-02, UC-03, and base features.
-
-### Missing Reference Owners
-
-- Final diagram ownership remains separate until the diagram issue is ready.
-- Final API route/schema ownership remains with the API contract owner.
-- Final implementation tests remain future work unless explicitly added under the testing issue.
