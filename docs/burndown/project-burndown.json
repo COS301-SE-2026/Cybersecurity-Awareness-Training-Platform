@@ -5,8 +5,15 @@
       "demo_no": 1,
       "milestone": "Sprint 1 (Demo 1)",
       "start": "2026-04-27",
-      "end": "2026-05-08",
+      "end": "2026-05-10",
       "issues": [
+        {
+          "number": 46,
+          "title": "chore: setup sprint burndown tracking and visualisation",
+          "points": 1,
+          "state": "closed",
+          "closed_date": "2026-05-05"
+        },
         {
           "number": 43,
           "title": "fix: Husky Hooks",
@@ -181,48 +188,53 @@
   "series": [
     {
       "date": "2026-04-27",
-      "remaining": 81,
-      "ideal": 81.0
+      "remaining": 82,
+      "ideal": 82.0
     },
     {
       "date": "2026-04-28",
-      "remaining": 78,
-      "ideal": 73.64
+      "remaining": 79,
+      "ideal": 75.69
     },
     {
       "date": "2026-04-29",
-      "remaining": 78,
-      "ideal": 66.27
+      "remaining": 79,
+      "ideal": 69.38
     },
     {
       "date": "2026-04-30",
-      "remaining": 67,
-      "ideal": 58.91
+      "remaining": 68,
+      "ideal": 63.08
     },
     {
       "date": "2026-05-01",
-      "remaining": 62,
-      "ideal": 51.55
+      "remaining": 63,
+      "ideal": 56.77
     },
     {
       "date": "2026-05-02",
-      "remaining": 62,
-      "ideal": 44.18
+      "remaining": 63,
+      "ideal": 50.46
     },
     {
       "date": "2026-05-03",
-      "remaining": 56,
-      "ideal": 36.82
+      "remaining": 57,
+      "ideal": 44.15
     },
     {
       "date": "2026-05-04",
-      "remaining": 56,
-      "ideal": 29.45
+      "remaining": 57,
+      "ideal": 37.85
     },
     {
       "date": "2026-05-05",
       "remaining": 56,
-      "ideal": 22.09
+      "ideal": 31.54
+    },
+    {
+      "date": "2026-05-06",
+      "remaining": 56,
+      "ideal": 25.23
     }
   ]
 }
