@@ -887,13 +887,17 @@ This domain model does not define:
 The purpose of the model is to align Demo 1 terminology across the SRS, API planning, diagrams, and traceability.
 
 ### API Contracts
+
 See `docs/demo1/API.md` for preliminary API contracts and payloads supporting these use cases.
 
 ### Architecture and Technical Requirements
+
 See `docs/demo1/architecture.md` for the overarching architectural approach, quality requirements, design patterns, and constraints guiding Demo 1 implementation.
 
 ### Design and Wireframes
+
 See `docs/demo1/DESIGN.md` for UI guidelines, interaction states, and accessibility standards.
 
 ### Testing and Traceability
+
 See `docs/demo1/testing.md` and `docs/demo1/traceability.md` for QA strategies and testing scope boundaries.

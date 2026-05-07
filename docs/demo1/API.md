@@ -2,15 +2,16 @@
 
 ## Purpose
 
-This document collects preliminary API contracts for Sprint 1 Demo 1. Contracts support frontend/backend alignment, SRS use cases, domain terminology, and testing preparation. They provide enough detail to unblock frontend mock development and backend routing without becoming final, restrictive OpenAPI specifications.
+This document collects preliminary API contracts for Sprint 1 Demo 1. Contracts support frontend/backend alignment, SRS use cases, domain terminology, and testing preparation. They provide enough detail to unblock frontend mock development and backend routing without requiring final OpenAPI/Swagger specifications at this stage.
 
 ## Base Feature Contracts
 
 ### `POST /auth/register`
+
 - **Purpose**: Registers a new Learner/Employee user in the system.
 - **Related Use Case / Base Feature**: Base Feature: Login/Register
 - **Method & Route**: `POST /auth/register`
-- **Expected Request Data**: 
+- **Expected Request Data**:
   - `email` (string, required)
   - `password` (string, required)
   - `name` (string, required)
@@ -23,6 +24,7 @@ This document collects preliminary API contracts for Sprint 1 Demo 1. Contracts 
 - **Related Requirement IDs**: SRS Base Features section
 
 ### `POST /auth/login`
+
 - **Purpose**: Authenticates an existing user and returns a session token.
 - **Related Use Case / Base Feature**: Base Feature: Login/Register
 - **Method & Route**: `POST /auth/login`
@@ -37,28 +39,28 @@ This document collects preliminary API contracts for Sprint 1 Demo 1. Contracts 
 - **Related Requirement IDs**: SRS Base Features section
 
 ### General Form Validation Responses
+
 - **Purpose**: Establishes a standard error shape for frontend forms to consume.
 - **Related Use Case / Base Feature**: Base Feature: General form validation responses
 - **Expected Response Data**:
-  - `422 Unprocessable Entity` or `400 Bad Request`: 
+  - `422 Unprocessable Entity` or `400 Bad Request`:
     ```json
     {
       "error": "Validation Error",
-      "details": [
-        { "field": "password", "message": "Password is required" }
-      ]
+      "details": [{ "field": "password", "message": "Password is required" }]
     }
     ```
 
 ## UC-01: Simulated Inbox Contracts
 
 ### `GET /simulations/inbox`
+
 - **Purpose**: Retrieves a summary list of simulated emails assigned to the authenticated Learner/Employee.
 - **Related Use Case / Base Feature**: UC-01: View emails in simulated inbox
 - **Method & Route**: `GET /simulations/inbox`
 - **Expected Request Data**: None (Relies on auth context)
 - **Expected Response Data**:
-  - `200 OK`: 
+  - `200 OK`:
     ```json
     {
       "emails": [
@@ -78,6 +80,7 @@ This document collects preliminary API contracts for Sprint 1 Demo 1. Contracts 
 - **Related Requirement IDs**: FR-UC01-01, API-UC01-01
 
 ### `GET /simulations/emails/:emailId`
+
 - **Purpose**: Retrieves the detailed content of a specific simulated email.
 - **Related Use Case / Base Feature**: UC-01: View emails in simulated inbox
 - **Method & Route**: `GET /simulations/emails/:emailId`
@@ -103,6 +106,7 @@ This document collects preliminary API contracts for Sprint 1 Demo 1. Contracts 
 - **Related Requirement IDs**: FR-UC01-02, FR-UC01-05, API-UC01-02
 
 ### `POST /simulations/emails/:emailId/interactions`
+
 - **Purpose**: Records a lightweight interaction event (e.g., opened, link clicked) for a simulated email.
 - **Related Use Case / Base Feature**: UC-01: View emails in simulated inbox
 - **Method & Route**: `POST /simulations/emails/:emailId/interactions`
@@ -118,6 +122,7 @@ This document collects preliminary API contracts for Sprint 1 Demo 1. Contracts 
 ## UC-02: Training Document Contracts
 
 ### `GET /training/assigned`
+
 - **Purpose**: Retrieves a list of training documents assigned to the learner.
 - **Related Use Case / Base Feature**: UC-02: View training document
 - **Method & Route**: `GET /training/assigned`
@@ -142,6 +147,7 @@ This document collects preliminary API contracts for Sprint 1 Demo 1. Contracts 
 - **Related Requirement IDs**: FR-UC02-01, API-UC02-01
 
 ### `GET /training/:trainingId`
+
 - **Purpose**: Retrieves the full content of a specific training document.
 - **Related Use Case / Base Feature**: UC-02: View training document
 - **Method & Route**: `GET /training/:trainingId`
@@ -162,6 +168,7 @@ This document collects preliminary API contracts for Sprint 1 Demo 1. Contracts 
 - **Related Requirement IDs**: FR-UC02-02, API-UC02-02
 
 ### `POST /training/:trainingId/progress`
+
 - **Purpose**: Records learner progression or interaction with a training document.
 - **Related Use Case / Base Feature**: UC-02: View training document
 - **Method & Route**: `POST /training/:trainingId/progress`
@@ -177,6 +184,7 @@ This document collects preliminary API contracts for Sprint 1 Demo 1. Contracts 
 ## UC-03: Quiz Flow Contracts
 
 ### `GET /quizzes/:quizId`
+
 - **Purpose**: Retrieves the content and structure of a quiz before starting an attempt.
 - **Related Use Case / Base Feature**: UC-03: Complete quiz flow
 - **Method & Route**: `GET /quizzes/:quizId`
@@ -203,6 +211,7 @@ This document collects preliminary API contracts for Sprint 1 Demo 1. Contracts 
 - **Related Requirement IDs**: FR-UC03-02, API-UC03-01
 
 ### `POST /quizzes/:quizId/attempts`
+
 - **Purpose**: Creates a new attempt session when the learner starts the quiz.
 - **Related Use Case / Base Feature**: UC-03: Complete quiz flow
 - **Method & Route**: `POST /quizzes/:quizId/attempts`
@@ -215,6 +224,7 @@ This document collects preliminary API contracts for Sprint 1 Demo 1. Contracts 
 - **Related Requirement IDs**: FR-UC03-03, API-UC03-02
 
 ### `POST /quiz-attempts/:attemptId/submit`
+
 - **Purpose**: Submits the final answers for a quiz attempt and calculates the result.
 - **Related Use Case / Base Feature**: UC-03: Complete quiz flow
 - **Method & Route**: `POST /quiz-attempts/:attemptId/submit`
@@ -229,6 +239,7 @@ This document collects preliminary API contracts for Sprint 1 Demo 1. Contracts 
 - **Related Requirement IDs**: FR-UC03-05, FR-UC03-06, API-UC03-03
 
 ### `GET /quiz-attempts/:attemptId/results`
+
 - **Purpose**: Retrieves the results and educational feedback for a submitted attempt.
 - **Related Use Case / Base Feature**: UC-03: Complete quiz flow
 - **Method & Route**: `GET /quiz-attempts/:attemptId/results`
@@ -260,6 +271,7 @@ This document collects preliminary API contracts for Sprint 1 Demo 1. Contracts 
 > The following API endpoints are **preliminary placeholder contracts** only. They are documented to establish the necessary context for campaign-managed data and are **not** required backend endpoints for the Demo 1 implementation.
 
 ### `POST /campaigns`
+
 - **Purpose**: Allows an administrator to initialize a new campaign entity.
 - **Related Use Case / Base Feature**: Admin Context (Supporting Context)
 - **Method & Route**: `POST /campaigns`
@@ -275,6 +287,7 @@ This document collects preliminary API contracts for Sprint 1 Demo 1. Contracts 
 - **Related Requirement IDs**: FR-ADM-01, API-ADM-01
 
 ### `POST /campaigns/:campaignId/assign`
+
 - **Purpose**: Links a list of employees to the campaign for training delivery.
 - **Related Use Case / Base Feature**: Admin Context (Supporting Context)
 - **Method & Route**: `POST /campaigns/:campaignId/assign`
@@ -288,19 +301,24 @@ This document collects preliminary API contracts for Sprint 1 Demo 1. Contracts 
 - **Related Requirement IDs**: FR-ADM-02, API-ADM-02
 
 ## QA and Testing Expectations
+
 - **Reviewable Code**: QA can review these contracts against frontend logic to verify error states (like `400 Bad Request` or `404 Not Found`) are properly mapped to user-facing messages.
 - **Mock Responses**: The exact JSON structures above should be used by developers and QA to build and test frontend mock servers before the backend is fully implemented.
 
 ## Cross-References
 
 ### SRS
+
 See `SRS.md` for full Demo 1 requirements, use cases, and functional specifications.
 
 ### Domain Diagrams
+
 See `diagrams/demo1-domain-model-(initial).drawio` for relationships between domain entities (e.g., `QuizAttempt`, `InteractionEvent`).
 
 ### Testing
+
 See `testing.md` for QA strategies and test plans utilizing these contracts.
 
 ### Traceability
+
 See `traceability.md` for tracking requirement alignment.
