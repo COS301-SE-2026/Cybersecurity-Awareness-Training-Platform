@@ -135,8 +135,11 @@ By focusing on human behaviour, the most common source of security breaches, the
 ## <img src="https://img.icons8.com/?size=100&id=FpuBglgBxX4C&format=png&color=000000" width="24"> Contact Us
 
 <img src="https://img.icons8.com/?size=100&id=czpd3OfwK2l4&format=png&color=000000" width="18"> teamcontact@projectcheesecake.co.za
-___
+
+---
+
 # <img src="https://img.icons8.com/?size=100&id=8BWYvHP7vIbq&format=png&color=000000" width="24"> Team Project Progress
+
 ## <img src="https://img.icons8.com/?size=100&id=pIIj8UnASSNZ&format=png&color=000000" width="24"> Burndown Charts
 
 <!-- BURNDOWN:START -->
