@@ -12,17 +12,28 @@ Current draft source:
 
 The use-case overview is draft material until the diagram issue is reviewed. It should show UC-01, UC-02, UC-03, base features, and supporting admin context without expanding the Demo 1 use case list.
 
+Current SVG exports:
+
+- [Demo 1 use case overview](./demo1-use-cases-overview.svg)
+- [UC-01 simulated inbox use case diagram](./demo1-use-cases-uc01-simulated-inbox.svg)
+- [UC-02 training document use case diagram](./demo1-use-cases-uc02-training-document.svg)
+- [UC-03 quiz flow use case diagram](./demo1-use-cases-uc03-quiz-flow.svg)
+
+### Overview
+
+![Demo 1 use case overview](./demo1-use-cases-overview.svg)
+
 ### UC-01: View Emails in Simulated Inbox
 
-Learner/Employee core use case.
+![UC-01 simulated inbox use case diagram](./demo1-use-cases-uc01-simulated-inbox.svg)
 
 ### UC-02: View Training Document
 
-Learner/Employee core use case.
+![UC-02 training document use case diagram](./demo1-use-cases-uc02-training-document.svg)
 
 ### UC-03: Complete Quiz Flow
 
-Learner/Employee core use case.
+![UC-03 quiz flow use case diagram](./demo1-use-cases-uc03-quiz-flow.svg)
 
 ### Base Features
 

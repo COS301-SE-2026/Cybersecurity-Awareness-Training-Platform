@@ -105,6 +105,8 @@ Primary supporting documents:
 
 ## UC-01: Simulated Inbox Requirements
 
+[UC-01 use case diagram](./diagrams/demo1-use-cases-uc01-simulated-inbox.svg)
+
 ### User Story
 
 As a Learner/Employee, I want to view my simulated emails in a controlled inbox rather than my own mailbox so that I can recognise potentially suspicious messages in a safe training environment before encountering similar threats in real life.
@@ -253,6 +255,8 @@ PLEASE NOTE: These contracts are subject to change throughout the course of impl
 
 ## UC-02: Training Document Requirements
 
+[UC-02 use case diagram](./diagrams/demo1-use-cases-uc02-training-document.svg)
+
 ### User Story
 
 As a Learner/Employee, I want to view training documents assigned to me so that I can learn how to recognise and respond to cyber threats in a controlled educational environment.
@@ -394,6 +398,8 @@ PLEASE NOTE: These contracts are subject to change throughout the course of impl
 | TRACE-UC02-05   | UC-02 to FR-UC02-08                                                                                 |
 
 ## UC-03: Quiz Flow Requirements
+
+[UC-03 use case diagram](./diagrams/demo1-use-cases-uc03-quiz-flow.svg)
 
 ### User Story
 

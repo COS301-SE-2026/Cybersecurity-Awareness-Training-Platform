@@ -16,3 +16,6 @@ apps/backend/src/generated/prisma
 
 env
 env.*
+
+.bkp
+.dtmp
