@@ -53,8 +53,8 @@
           "number": 21,
           "title": "[diagrams] Create Demo 1 use case diagrams",
           "points": 3,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-05-07"
         },
         {
           "number": 20,
@@ -235,6 +235,11 @@
       "date": "2026-05-06",
       "remaining": 56,
       "ideal": 25.23
+    },
+    {
+      "date": "2026-05-07",
+      "remaining": 53,
+      "ideal": 18.92
     }
   ]
 }
