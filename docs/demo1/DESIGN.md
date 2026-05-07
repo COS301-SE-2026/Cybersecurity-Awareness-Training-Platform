@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document collects Demo 1 design guidance, brand direction, UI rules, learner navigation notes, and wireframe references.
+This document collects Demo 1 design guidance, brand direction, UI rules, Learner/Employee navigation notes, and wireframe references.
 
 ## Demo 1 Design Scope
 
@@ -46,7 +46,7 @@ This document collects Demo 1 design guidance, brand direction, UI rules, learne
 
 ### Training Material Page
 
-The training material page should support the UC-02 learner flow by presenting assigned training content in a readable, focused layout.
+The training material page should support the UC-02 Learner/Employee flow by presenting assigned training content in a readable, focused layout.
 
 Design notes:
 
@@ -54,13 +54,13 @@ Design notes:
 - Use readable spacing, paragraphs, and section breaks so the content is easy to scan.
 - Show a loading state while the document is being retrieved.
 - Show an empty or unavailable-content message if the document cannot be opened.
-- Provide a clear way back to the training list or learner dashboard.
+- Provide a clear way back to the training list or Learner/Employee dashboard.
 - If a linked quiz is available, present the quiz action as a clear next step without making quiz completion part of UC-02.
 - Feedback messages on this page should follow the shared validation, error-state, and accessibility rules.
 
 ### Quiz Page
 
-The quiz page should support UC-03 by allowing the learner to answer assigned quiz questions and understand what is required before submission.
+The quiz page should support UC-03 by allowing the Learner/Employee to answer assigned quiz questions and understand what is required before submission.
 
 Design notes:
 
@@ -70,19 +70,19 @@ Design notes:
 - Validation messages should appear near the relevant question when an answer is missing or invalid.
 - A page-level validation summary may be shown when multiple required answers are missing.
 - The submit action should be clearly visible after the questions.
-- The learner should be able to correct validation errors without losing existing answers.
+- The Learner/Employee should be able to correct validation errors without losing existing answers.
 
 ### Quiz Submission State
 
-The quiz submission state should make it clear that the learner’s answers are being processed.
+The quiz submission state should make it clear that the Learner/Employee's answers are being processed.
 
 Design notes:
 
-- Show a loading or submitting indicator after the learner submits the quiz.
+- Show a loading or submitting indicator after the Learner/Employee submits the quiz.
 - Disable or guard the submit action while processing to prevent duplicate submissions.
-- Keep the learner on the quiz page or transition state until submission completes.
+- Keep the Learner/Employee on the quiz page or transition state until submission completes.
 - Do not show raw technical errors if submission fails.
-- If submission fails, explain the issue in learner-friendly language and provide a retry path where appropriate.
+- If submission fails, explain the issue in Learner/Employee-friendly language and provide a retry path where appropriate.
 
 ### Quiz Results Page
 
@@ -94,14 +94,14 @@ Design notes:
 - Display feedback in a supportive learning tone.
 - Where answer-level feedback is shown, distinguish correct and incorrect responses using text labels and visual treatment.
 - Avoid relying only on colour to communicate correctness.
-- Provide a clear navigation option back to the training material, module list, or learner dashboard.
+- Provide a clear navigation option back to the training material, module list, or Learner/Employee dashboard.
 - If results cannot be loaded, show a safe error message and provide a retry or back-navigation option.
 
 ### Phishing Feedback Page
 
-This page is included only as high-level Demo 1 feedback context for the simulated phishing learner experience. It should not be treated as a separate core use case or a full phishing-feedback workflow for Demo 1.
+This page is included only as high-level Demo 1 feedback context for the simulated phishing Learner/Employee experience. It should not be treated as a separate core use case or a full phishing-feedback workflow for Demo 1.
 
-The page should summarise safe learning feedback about a simulated phishing interaction, such as suspicious sender details, urgent wording, or risky links. It should provide a clear path back to the learner dashboard, training material, or simulated inbox where relevant.
+The page should summarise safe learning feedback about a simulated phishing interaction, such as suspicious sender details, urgent wording, or risky links. It should provide a clear path back to the Learner/Employee dashboard, training material, or simulated inbox where relevant.
 
 ## Wireframe Refinement and Polish (Connor)
 
@@ -119,7 +119,7 @@ The page should summarise safe learning feedback about a simulated phishing inte
 
 ## Feedback, Validation, and Accessibility UI Rules (Zoë)
 
-These rules define supporting UI behaviour for Demo 1 validation, feedback, loading, empty, unavailable, and accessibility states. They support the learner-facing flows but do not create a separate Demo 1 use case.
+These rules define supporting UI behaviour for Demo 1 validation, feedback, loading, empty, unavailable, and accessibility states. They support the Learner/Employee-facing flows but do not create a separate Demo 1 use case.
 
 The rules apply mainly to:
 
@@ -128,7 +128,7 @@ The rules apply mainly to:
 - Login/Register as base feature support
 - Phishing feedback only as high-level contextual support
 
-The UI should help learners understand:
+The UI should help Learner/Employee users understand:
 
 - what is required;
 - what is happening;
@@ -145,9 +145,9 @@ Rules:
 - Use field-level messages for missing required input, invalid answer format, or unsupported selections.
 - Keep messages short and specific.
 - Do not rely only on colour to identify the problem.
-- Required-field messages should explain what the learner needs to provide.
+- Required-field messages should explain what the Learner/Employee needs to provide.
 - Quiz validation messages should appear near the relevant question where possible.
-- Existing learner input should remain visible after validation fails.
+- Existing Learner/Employee input should remain visible after validation fails.
 
 Example wording:
 
@@ -162,10 +162,10 @@ Page-level error banners should be used when an issue affects the whole page, fl
 Rules:
 
 - Place the banner near the top of the relevant content area.
-- Use plain, learner-friendly wording.
+- Use plain, Learner/Employee-friendly wording.
 - Explain the next safe action where possible.
 - Do not show stack traces, raw exception names, or backend implementation details.
-- Keep the learner on the current page when they can correct or retry the action.
+- Keep the Learner/Employee on the current page when they can correct or retry the action.
 
 Appropriate uses include:
 
@@ -177,7 +177,7 @@ Appropriate uses include:
 
 ### Success Messages
 
-Success messages should confirm that the learner’s action was completed.
+Success messages should confirm that the Learner/Employee's action was completed.
 
 Rules:
 
@@ -194,13 +194,13 @@ Example wording:
 
 ### Warning Messages
 
-Warning messages should be used when the learner can continue but should be aware of a limitation or state.
+Warning messages should be used when the Learner/Employee can continue but should be aware of a limitation or state.
 
 Rules:
 
 - Use warnings for non-blocking issues or important context.
 - Keep the tone helpful rather than alarming.
-- Explain whether the learner needs to take action.
+- Explain whether the Learner/Employee needs to take action.
 - Do not use warnings for normal required-field validation; use field-level validation instead.
 
 Examples:
@@ -217,7 +217,7 @@ Rules:
 - State clearly what is missing.
 - Avoid making the page look broken.
 - Provide a safe next step, such as returning to the dashboard.
-- Keep the wording learner-friendly.
+- Keep the wording Learner/Employee-friendly.
 
 Applicable Demo 1 examples:
 
@@ -262,7 +262,7 @@ Applicable Demo 1 examples:
 
 ### Quiz Feedback Display
 
-Quiz feedback should help the learner understand their result and learn from the attempt.
+Quiz feedback should help the Learner/Employee understand their result and learn from the attempt.
 
 Rules:
 
@@ -307,18 +307,18 @@ Rules:
 - Use text labels in addition to colour.
 - Ensure messages are readable at normal zoom levels.
 - Important page-level messages should be noticeable without disrupting the whole flow.
-- Learners should be able to reach recovery actions, such as retry or back navigation, using the keyboard.
+- Learner/Employee users should be able to reach recovery actions, such as retry or back navigation, using the keyboard.
 
 ### Keyboard Interaction Expectations
 
-Learners should be able to complete the Demo 1 learner flows using keyboard navigation.
+Learner/Employee users should be able to complete the Demo 1 Learner/Employee flows using keyboard navigation.
 
 Rules:
 
 - Interactive elements should follow a logical tab order.
 - Buttons, links, quiz options, and recovery actions should be keyboard-accessible.
 - Focus should not be trapped unexpectedly.
-- After validation fails, the learner should be able to navigate to the relevant message or field.
+- After validation fails, the Learner/Employee should be able to navigate to the relevant message or field.
 - Disabled controls should not create confusion in the focus order.
 
 ### Screen-Reader Feedback Expectations
@@ -330,7 +330,7 @@ Rules:
 - Important messages should be written as meaningful text.
 - Messages should identify the relevant field, question, or page state.
 - Status changes such as submitting, success, or failure should be presented clearly.
-- Error summaries should help the learner find what needs attention.
+- Error summaries should help the Learner/Employee find what needs attention.
 - Visual-only feedback, such as colour changes without text, should be avoided.
 
 ### Contrast Considerations
@@ -344,7 +344,7 @@ Rules:
 - Error, warning, and success states should have distinguishable labels or icons where appropriate.
 - Final colour choices should align with the Demo 1 brand style guide when available.
 
-## Learner Navigation and Training Screen Behaviour (Connor)
+## Learner/Employee Navigation and Training Screen Behaviour (Connor)
 
 ### Dashboard to Training Module List
 
