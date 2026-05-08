@@ -103,9 +103,11 @@ The platform utilizes a standard 3-tier client-server architecture consisting of
 The core `Simulation` entity acts as a generic wrapper. Specific simulation details are stored in specialized tables or JSON structures. This prevents the core campaign logic from becoming bloated with type-specific fields.
 
 #### Strategy Pattern for Simulation Handling
+
 To support diverse simulation formats cleanly, the backend will leverage a **Strategy Pattern** for handling simulation interaction logic. Rather than a massive `switch` statement across all simulation types, the core interaction controller delegates to specific strategies (e.g., `EmailSimulationStrategy`, `SmsSimulationStrategy`). Each strategy knows how to validate its specific payload and extract relevant interaction events.
 
 #### Template/Configuration Pattern for Simulation Content
+
 Simulation content is stored using a **Template/Configuration Pattern**. The base campaign assigns a generic "Simulation Context," which references a configurable template (e.g., an Email Template with placeholders for sender, subject, and payload links). The frontend dynamically renders this template. This avoids duplicating static content for every user while allowing campaign-specific overrides.
 
 ### Email Simulation
@@ -123,9 +125,11 @@ Training content (reading material/videos) and Quizzes (assessments) are modeled
 ### Architectural Data Patterns
 
 #### Repository/Data-Access Pattern
+
 To maintain a clear boundary between business logic and database interactions, the backend will utilize a lightweight **Repository Pattern** around Prisma. This abstracts direct Prisma client calls out of controllers/services, improving testability and ensuring that changes to the database schema require updates only in the repository layer.
 
 #### DTO/Shared-Type Pattern
+
 To enforce a strong contract between the React frontend and Express backend, we employ a **DTO (Data Transfer Object) / Shared-Type Pattern**. A `packages/shared` workspace containing Zod schemas and TypeScript types serves as the single source of truth for API request/response payloads. This eliminates drift between frontend expectations and backend outputs.
 
 ### Interaction Event Tracking
