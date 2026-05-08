@@ -126,3 +126,25 @@ export interface GetQuizResultResponse {
   passed: boolean;
   feedback: FeedbackItem[];
 }
+
+// --- Supporting Admin/Campaign Context ---
+export interface CreateCampaignRequest {
+  name: string;
+  description?: string;
+  status: 'DRAFT';
+}
+
+export interface CreateCampaignResponse {
+  campaignId: string;
+  name: string;
+  status: 'DRAFT';
+}
+
+export interface AssignCampaignRequest {
+  employeeIds: string[];
+}
+
+export interface AssignCampaignResponse {
+  success: boolean;
+  assignedCount: number;
+}
