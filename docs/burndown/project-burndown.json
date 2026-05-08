@@ -8,6 +8,13 @@
       "end": "2026-05-10",
       "issues": [
         {
+          "number": 59,
+          "title": "chore: improve CI workflow labels and burndown trigger",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
           "number": 56,
           "title": "[chore] Replace CODEOWNERS with PR reviewer guidance",
           "points": 1,
@@ -195,63 +202,63 @@
   "series": [
     {
       "date": "2026-04-27",
-      "remaining": 83,
-      "ideal": 83.0
+      "remaining": 85,
+      "ideal": 85.0
     },
     {
       "date": "2026-04-28",
-      "remaining": 80,
-      "ideal": 76.62
+      "remaining": 82,
+      "ideal": 78.46
     },
     {
       "date": "2026-04-29",
-      "remaining": 80,
-      "ideal": 70.23
+      "remaining": 82,
+      "ideal": 71.92
     },
     {
       "date": "2026-04-30",
-      "remaining": 69,
-      "ideal": 63.85
+      "remaining": 71,
+      "ideal": 65.38
     },
     {
       "date": "2026-05-01",
-      "remaining": 64,
-      "ideal": 57.46
+      "remaining": 66,
+      "ideal": 58.85
     },
     {
       "date": "2026-05-02",
-      "remaining": 64,
-      "ideal": 51.08
+      "remaining": 66,
+      "ideal": 52.31
     },
     {
       "date": "2026-05-03",
-      "remaining": 58,
-      "ideal": 44.69
+      "remaining": 60,
+      "ideal": 45.77
     },
     {
       "date": "2026-05-04",
-      "remaining": 58,
-      "ideal": 38.31
+      "remaining": 60,
+      "ideal": 39.23
     },
     {
       "date": "2026-05-05",
-      "remaining": 57,
-      "ideal": 31.92
+      "remaining": 59,
+      "ideal": 32.69
     },
     {
       "date": "2026-05-06",
-      "remaining": 57,
-      "ideal": 25.54
+      "remaining": 59,
+      "ideal": 26.15
     },
     {
       "date": "2026-05-07",
-      "remaining": 54,
-      "ideal": 19.15
+      "remaining": 56,
+      "ideal": 19.62
     },
     {
       "date": "2026-05-08",
-      "remaining": 40,
-      "ideal": 12.77
+      "remaining": 42,
+      "ideal": 13.08
     }
   ]
 }
