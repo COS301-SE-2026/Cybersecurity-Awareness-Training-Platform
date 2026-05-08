@@ -102,25 +102,43 @@ The platform utilizes a standard 3-tier client-server architecture consisting of
 
 The core `Simulation` entity acts as a generic wrapper. Specific simulation details are stored in specialized tables or JSON structures. This prevents the core campaign logic from becoming bloated with type-specific fields.
 
+#### Strategy Pattern for Simulation Handling
+To support diverse simulation formats cleanly, the backend will leverage a **Strategy Pattern** for handling simulation interaction logic. Rather than a massive `switch` statement across all simulation types, the core interaction controller delegates to specific strategies (e.g., `EmailSimulationStrategy`, `SmsSimulationStrategy`). Each strategy knows how to validate its specific payload and extract relevant interaction events.
+
+#### Template/Configuration Pattern for Simulation Content
+Simulation content is stored using a **Template/Configuration Pattern**. The base campaign assigns a generic "Simulation Context," which references a configurable template (e.g., an Email Template with placeholders for sender, subject, and payload links). The frontend dynamically renders this template. This avoids duplicating static content for every user while allowing campaign-specific overrides.
+
 ### Email Simulation
 
 For Demo 1, the primary simulation type is Email. The database stores the simulated sender, subject, body, and payload links. The frontend renders this exactly as an email client would, relying on the backend to serve the precise payload configuration.
 
 ### Future Simulation Types
 
-The modular design guarantees that adding a "Smishing" (SMS) simulation in the future will only require adding a new specific UI component and database relation, without modifying the base campaign assignment engine.
+The modular design guarantees that adding a "Smishing" (SMS), voice, or even AI-generated simulations in the future will only require adding a new specific UI component, backend strategy, and database relation, without modifying the base campaign assignment engine. These are marked strictly as future scope.
 
 ### Training Module and Quiz Separation
 
-Training content (reading material/videos) and Quizzes (assessments) are modeled as distinct but linkable entities. A user can complete the training module, which may optionally unlock or direct them to a related quiz.
+Training content (reading material/videos) and Quizzes (assessments) are modeled as distinct but linkable entities. A user can complete the training module, which may optionally unlock or direct them to a related quiz. This ensures quizzes can exist independently or be attached to varied learning paths.
+
+### Architectural Data Patterns
+
+#### Repository/Data-Access Pattern
+To maintain a clear boundary between business logic and database interactions, the backend will utilize a lightweight **Repository Pattern** around Prisma. This abstracts direct Prisma client calls out of controllers/services, improving testability and ensuring that changes to the database schema require updates only in the repository layer.
+
+#### DTO/Shared-Type Pattern
+To enforce a strong contract between the React frontend and Express backend, we employ a **DTO (Data Transfer Object) / Shared-Type Pattern**. A `packages/shared` workspace containing Zod schemas and TypeScript types serves as the single source of truth for API request/response payloads. This eliminates drift between frontend expectations and backend outputs.
 
 ### Interaction Event Tracking
 
-A unified `InteractionEvent` pattern is used to track all user activity. Instead of updating a boolean flag on an assignment, the system logs discrete events (e.g., `type: 'LINK_CLICKED', timestamp: '...'`). This append-only pattern is crucial for future reporting and analytics.
+A unified `InteractionEvent` pattern is used to track all user activity using **Event-Style Interaction Logging**. Instead of updating a boolean flag on an assignment, the system logs discrete events (e.g., `type: 'LINK_CLICKED', timestamp: '...'`). This append-only logging pattern creates an immutable audit trail, which is crucial for future reporting, analytics, and adaptive learning extensions.
 
 ### Progress Tracking
 
-User progress through a campaign is derived by aggregating their `InteractionEvents` against the assigned simulations and training modules.
+User progress through a campaign is derived dynamically by aggregating their `InteractionEvents` against the assigned simulations and training modules, rather than storing brittle, hard-coded progress states.
+
+### Safe Handling of Simulated Phishing Interactions
+
+Simulated interactions must be handled with strict boundaries. Phishing links inside `EmailSimulation` payloads must route safely back to our platform's feedback controllers. The architecture enforces that real external email infrastructures are never used, and no actual credentials are ever stored or processed during a simulated phishing exercise.
 
 ### Campaign-Simulation Linkage
 
