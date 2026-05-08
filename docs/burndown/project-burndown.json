@@ -11,8 +11,8 @@
           "number": 56,
           "title": "[chore] Replace CODEOWNERS with PR reviewer guidance",
           "points": 1,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-05-08"
         },
         {
           "number": 46,
@@ -74,15 +74,15 @@
           "number": 19,
           "title": "[architecture] Document design patterns and simulation modularity",
           "points": 3,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-05-08"
         },
         {
           "number": 18,
           "title": "[architecture] Draft quality requirements and architectural approach",
           "points": 5,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-05-08"
         },
         {
           "number": 17,
@@ -250,7 +250,7 @@
     },
     {
       "date": "2026-05-08",
-      "remaining": 49,
+      "remaining": 40,
       "ideal": 12.77
     }
   ]
