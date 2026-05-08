@@ -77,13 +77,13 @@ The platform utilizes a standard 3-tier client-server architecture consisting of
 
 - **Stack**: React (potentially via Vite) for building the user interface.
 - **Responsibilities**: Routing between the simulated inbox, training view, and quiz interface; managing local UI state; rendering data fetched from the API; handling user interactions.
-- **Structure**: Housed in an `apps/web` (or similar) directory within the monorepo.
+- **Structure**: Housed in an `apps/frontend` directory within the monorepo.
 
 ### Backend API Boundary
 
 - **Stack**: Node.js with Express.
 - **Responsibilities**: Serving RESTful endpoints for the frontend; enforcing business rules (e.g., validating a quiz submission); managing authentication contexts; interacting with the database.
-- **Structure**: Housed in an `apps/api` (or similar) directory.
+- **Structure**: Housed in an `apps/backend` directory.
 
 ### Database Boundary
 
@@ -136,7 +136,7 @@ Simulations and training modules are decoupled from campaigns through a linking 
 ### Backend API
 
 - Built with Express.js.
-- Must follow RESTful principles, providing predictable endpoints (e.g., `GET /api/inbox`, `POST /api/quizzes/:id/submit`).
+- Must follow RESTful principles, providing predictable endpoints (e.g., `GET /simulations/inbox`, `POST /quiz-attempts/:attemptId/submit`).
 - Do not over-specify microservices; a modular monolith approach in Express is sufficient and expected for Demo 1.
 
 ### Database and Prisma Usage

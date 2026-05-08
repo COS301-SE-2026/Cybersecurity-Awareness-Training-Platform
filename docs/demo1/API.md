@@ -40,16 +40,23 @@ This document collects preliminary API contracts for Sprint 1 Demo 1. Contracts 
 
 ### General Form Validation Responses
 
-- **Purpose**: Establishes a standard error shape for frontend forms to consume.
+- **Request Context**: Any endpoint accepting input data or requiring authorization.
+- **Purpose**: Establishes a standard error shape for frontend forms and actions to consume consistently.
 - **Related Use Case / Base Feature**: Base Feature: General form validation responses
-- **Expected Response Data**:
-  - `422 Unprocessable Entity` or `400 Bad Request`:
-    ```json
-    {
-      "error": "Validation Error",
-      "details": [{ "field": "password", "message": "Password is required" }]
-    }
-    ```
+- **Expected Response Shape**: Standardized error object with an optional array of specific field validation details.
+  ```json
+  {
+    "error": "Validation Error",
+    "details": [{ "field": "password", "message": "Password is required" }]
+  }
+  ```
+- **Common Validation/Status Errors**:
+  - `400 Bad Request`: General malformed input or missing required fields (e.g., unanswered quiz questions).
+  - `401 Unauthorized`: Missing or invalid authentication token.
+  - `403 Forbidden`: Authenticated, but lacking permission (e.g., trying to access unassigned campaign data).
+  - `422 Unprocessable Entity`: Data is formatted correctly but semantically invalid (e.g., submitting an answer for a non-existent question).
+- **Linked Domain Entities**: Not domain-specific (applies globally).
+- **Related Requirement IDs**: SRS validation sections (QA-VALIDATION placeholders).
 
 ## UC-01: Simulated Inbox Contracts
 
