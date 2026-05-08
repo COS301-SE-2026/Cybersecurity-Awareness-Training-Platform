@@ -88,8 +88,8 @@
           "number": 17,
           "title": "[api] Draft preliminary API contracts for Demo 1 flows",
           "points": 5,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-05-08"
         },
         {
           "number": 16,
@@ -247,6 +247,11 @@
       "date": "2026-05-07",
       "remaining": 54,
       "ideal": 19.15
+    },
+    {
+      "date": "2026-05-08",
+      "remaining": 49,
+      "ideal": 12.77
     }
   ]
 }
