@@ -344,17 +344,189 @@ Rules:
 - Error, warning, and success states should have distinguishable labels or icons where appropriate.
 - Final colour choices should align with the Demo 1 brand style guide when available.
 
-## Learner/Employee Navigation and Training Screen Behaviour (Connor)
+---
 
-### Dashboard to Training Module List
+## Learner Navigation and Training Screen Behaviour (Connor)
 
-### Training Module List to Training Material
+This section defines the expected learner navigation flow and high-level screen behaviour for Demo 1 training-related screens.
 
-### Training Material to Quiz Flow
+The _learner training journey_ should remain **simple**, **predictable**, and **aligned with the Demo 1 use cases and wireframes**.
 
-### Return Navigation
+The primary Demo 1 learner flow is:
 
-### Loading, Empty, Locked, Unavailable, and Error States
+1. Login/Register (Authentication)
+2. Basic Onboarding and Orientation (First-Time Users)
+3. Learner Dashboard
+4. Training Module List
+5. Training Material Page
+6. Quiz Entry Point
+7. Return Navigation
+
+This section supports:
+
+- `UC-02`: View Training Document
+- `UC-03`: Complete Quiz Flow
+
+> This section does not define detailed quiz interaction behaviour, frontend routing implementation, or administrator navigation.
+
+### Dashboard to Training Module List (Connor)
+
+The _learner dashboard_ acts as the primary landing page after authentication (login).
+
+> First-time users may receive basic onboarding and orientation guidance before or shortly after reaching the dashboard. This guidance should help learners understand the platform structure, available cybersecurity learning areas, and how to begin their learning journey.
+
+The dashboard should provide clear visibility into assigned training modules and current learning activity (if learning/training activity has been started).
+
+The learner should be able to:
+
+- identify available training quickly;
+- continue existing learning progress where available;
+- navigate into assigned training modules with minimal navigation depth.
+
+Training modules should represent broader cybersecurity learning categories, such as “Phishing Awareness" or “Password Security".
+
+Selecting a training module should take the learner to a list of related training material for that topic.
+
+For example, a phishing-awareness module may contain learning material such as:
+
+- identifying phishing emails;
+- spotting fake login pages;
+- SMS phishing awareness.
+
+Selecting a training item should open the relevant training-material page, where the learner can read the content and continue to related quiz content where applicable.
+
+> The dashboard should prioritise clarity and quick access to active learning tasks rather than large amounts of secondary information.
+
+#### Learner Orientation and Onboarding Guidance (Connor)
+
+The Demo 1 _learner experience_ should avoid presenting the platform as an unstructured or overwhelming set of tools immediately after authentication (login).
+
+The _learner dashboard_ should provide basic onboarding and orientation guidance to help first-time learners understand:
+
+- the purpose of the platform;
+- the types of cybersecurity topics available;
+- how training modules are structured;
+- how to begin assigned or recommended learning activities;
+- how training material connects to quizzes or simulations.
+
+Examples of supported learning areas may include:
+
+- phishing awareness;
+- password security;
+- suspicious links and attachments;
+- social-engineering awareness;
+- safe credential and payment practices.
+
+> For Demo 1, onboarding guidance should remain basic and informational rather than adaptive or highly personalised.
+
+Future enhancements may expand onboarding into personalised learning paths, learner skill assessment, or adaptive training recommendations, but those behaviours are outside current Demo 1 scope.
+
+The learner should understand:
+
+- what the platform offers;
+- where to begin;
+- and what actions to take next after authentication (login).
+
+### Training Module List to Training Material (Connor)
+
+The training module list should display assigned or available training modules in a clear and scannable format.
+
+Training modules should represent broader cybersecurity learning categories, such as “Phishing Awareness" or “Password Security".
+
+Each module item may display:
+
+- module title;
+- short summary or description;
+- completion or learning progress status;
+- availability state;
+- navigation action to open the related training material.
+
+Selecting a training module should open the associated training-material list for that topic.
+
+The training-material list may contain individual learning items such as:
+
+- identifying phishing emails;
+- spotting fake login pages;
+- SMS phishing awareness.
+
+Selecting a training item should open the corresponding training-material page.
+
+Locked, unavailable, or incomplete content states should be visually distinguishable from available content.
+
+The learner should be able to return to the dashboard easily without confusion or unnecessary navigation steps.
+
+Demo 1 should avoid deeply nested training hierarchies or unnecessarily complex navigation paths.
+
+### Training Material to Quiz Flow (Connor)
+
+The training material page supports the learner flow for `UC-02` by presenting assigned training content in a structured and readable format.
+
+The learner should be able to:
+
+- read assigned training content;
+- understand the relationship between the training material and the associated quiz;
+- navigate to the associated quiz flow when available;
+- return safely to the module list or dashboard.
+
+If a linked quiz exists, the training material page should present the quiz action as a clear next step within the learning flow.
+
+The transition from training material into the quiz flow should preserve learner context and maintain a clear relationship between the viewed material and the associated assessment.
+
+Detailed quiz interaction behaviour remains part of `UC-03` documentation and is outside this section's scope.
+
+### Return Navigation (Connor)
+
+Training-related screens should provide consistent and predictable return navigation.
+
+The learner should be able to return to:
+
+- the learner dashboard;
+- the training module list;
+- previously viewed training content where applicable.
+
+Navigation actions should remain visible and understandable across supported screen sizes.
+
+The learner should not encounter dead-end flows after viewing training material or accessing quiz-related screens.
+
+Learners should always understand where they are in the training flow and how to return to previous screens.
+
+### Loading, Empty, Locked, Unavailable, and Error States (Connor)
+
+Training-related screens should follow the shared validation, accessibility, loading, and feedback rules defined elsewhere in this document.
+
+Loading states should communicate when training content, module information, or quiz-entry information is being retrieved.
+
+Empty states should explain when:
+
+- no training modules are assigned;
+- no training content is available;
+- no related quiz content exists.
+
+Locked or unavailable states should clearly distinguish inaccessible content from available content and should explain the limitation where appropriate.
+
+Error states should:
+
+- avoid exposing technical implementation details;
+- provide safe retry or return-navigation behaviour;
+- preserve learner orientation where possible.
+
+Training flows should avoid blank, broken, or dead-end screens during loading or failure conditions.
+
+### Responsive Behaviour Expectations
+
+Demo 1 learner flows should remain usable across desktop, tablet, and mobile layouts.
+
+Training-related screens should prioritise:
+
+- readable training content;
+- visible primary navigation actions;
+- touch-friendly interaction areas;
+- clear back-navigation behaviour;
+- accessible quiz-entry actions.
+
+Training content should adapt responsively without requiring horizontal scrolling during normal reading behaviour.
+
+Primary learner actions should remain accessible on smaller screens without excessive navigation complexity.
 
 ## Wireframe References
 
