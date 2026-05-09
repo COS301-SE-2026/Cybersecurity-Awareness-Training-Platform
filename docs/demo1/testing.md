@@ -380,6 +380,44 @@ Suggested future E2E paths:
 
 E2E tests should be limited to high-value demo paths and should not become detailed implementation tickets.
 
+## Technical Requirements and Constraints Reference
+
+The following constraints from `architecture.md` directly affect what QA must verify for Demo 1. They are listed here to ensure testing planning remains aligned with the agreed architectural boundaries.
+
+### Simulated Inbox Safety
+
+- QA must confirm that no real email is sent or received during any test run or demo execution.
+- QA must verify that simulated phishing links route only to internal frontend routes (e.g., `/phishing-feedback`) and do not point to real external URLs.
+- QA must verify that the inbox screen clearly labels the environment as simulated.
+
+### Training Document Content
+
+- QA must verify that training content is correctly seeded, loads reliably, and is relevant to the phishing awareness theme.
+- QA must verify that the training document links to the correct quiz via `linkedQuizId` where applicable.
+- QA must confirm that no adaptive learning, gamification, or progress scoring behaviour appears in the Demo 1 training flow.
+
+### Quiz Attempts and Results
+
+- QA must verify that duplicate quiz submissions are rejected with a `409 Conflict` response.
+- QA must verify that quiz scores are calculated server-side and that the frontend only displays the returned result.
+- QA must verify that question-level feedback is returned and rendered in plain, educational language.
+- QA must confirm that quiz results are persistently stored and retrievable after submission.
+
+### Data Privacy
+
+- QA must confirm that no plain-text passwords appear in API responses or application logs.
+- QA must verify that interaction events (e.g., `EMAIL_OPENED`, `LINK_CLICKED`) store only event type, timestamp, and linked entity IDs — no typed input, message content, or credential data.
+- QA must confirm that no sensitive data is captured or stored during simulated phishing interactions.
+
+### Scope Boundary Verification
+
+- QA must confirm that only UC-01, UC-02, and UC-03 screens and endpoints are reachable and functional for Demo 1.
+- QA must verify that base features (login, registration, form validation) function correctly but are not presented or counted as core use cases.
+- QA must confirm that no admin UI screens, campaign management endpoints, or reporting dashboards are accessible in the Demo 1 flow.
+
+> [!NOTE]
+> Full technical requirements and constraint definitions are in `architecture.md` under the **Technical Requirements and Constraints** section. This section references those constraints for QA alignment only and does not duplicate them.
+
 ## Traceability References
 
 ### SRS Requirements
