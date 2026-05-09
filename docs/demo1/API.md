@@ -272,6 +272,46 @@ This document collects preliminary API contracts for Sprint 1 Demo 1. Contracts 
 - **Linked Domain Entities**: `QuizResult`, `FeedbackItem`
 - **Related Requirement IDs**: FR-UC03-07, FR-UC03-08, API-UC03-04
 
+## Cross-Use-Case Tracking, Progress, and Reporting Support
+
+The following table summaries the preliminary API contracts that support lightweight interaction tracking, progress tracking, quiz attempts, quiz results, and future reporting alignment for Demo 1.
+
+These references do not introduce final analytics dashboards, final risk scoring, production reporting schemas, or database implementation details.
+
+| Tracking API ID | Existing / Placeholder Contract                  | Related Use Case         | Purpose                                                                                    | Related Requirements                                     |
+| --------------- | ------------------------------------------------ | ------------------------ | ------------------------------------------------------------------------------------------ | -------------------------------------------------------- |
+| API-TRK-01      | `POST /simulations/emails/:emailId/interactions` | UC-01                    | Records lightweight simulated email interaction events, such as opening a simulated email. | `FR-UC01-04`, `TRK-UC01-01`, `TRK-UC01-02`               |
+| API-TRK-02      | `POST /training/:trainingId/progress`            | UC-02                    | Records basic training document progress or viewed status.                                 | `FR-UC02-04`, `TRK-UC02-01`, `TRK-UC02-02`               |
+| API-TRK-03      | `POST /quizzes/:quizId/attempts`                 | UC-03                    | Creates a quiz attempt when the Learner/Employee starts a quiz.                            | `FR-UC03-03`, `TRK-UC03-01`                              |
+| API-TRK-04      | `POST /quiz-attempts/:attemptId/submit`          | UC-03                    | Submits quiz answers and marks the quiz attempt as submitted.                              | `FR-UC03-06`, `TRK-UC03-02`, `TRK-UC03-03`               |
+| API-TRK-05      | `GET /quiz-attempts/:attemptId/results`          | UC-03                    | Retrieves quiz result and educational feedback for a submitted attempt.                    | `FR-UC03-07`, `FR-UC03-08`, `TRK-UC03-04`, `TRK-UC03-05` |
+| API-TRK-06      | Future reporting endpoint placeholder            | Future reporting support | May later retrieve aggregated interaction, progress, quiz, or risk summary data.           | `RPT-DEMO1-01` to `RPT-DEMO1-06`                         |
+
+### Future Reporting Endpoint Placeholder
+
+> [!NOTE]
+> This endpoint is a future-facing placeholder only. It is not required for the Demo 1 backend implementation and should not be treated as a final route or response schema.
+
+#### `GET /reports/demo1/summary`
+
+- **Purpose**: Future placeholder for retrieving a lightweight summary of interaction, training progress, quiz result, and risk-support data.
+- **Related Use Case / Base Feature**: Future reporting support only.
+- **Method & Route**: `GET /reports/demo1/summary`
+- **Expected Request Data**: None defined for Demo 1.
+- **Expected Response Data**: Not finalised. Future responses may include aggregate counts or summaries such as:
+  - simulated emails opened;
+  - training documents viewed or completed;
+  - quiz attempts submitted;
+  - quiz pass/fail summaries;
+  - preliminary risk indicators.
+- **Linked Domain Entities**: `ReportSummary`, `RiskIndicator`, `InteractionEvent`, `TrainingProgress`, `QuizResult`
+- **Related Requirement IDs**: `RPT-DEMO1-01` to `RPT-DEMO1-06`
+- **Scope Notes**:
+  - This does not define a final analytics dashboard.
+  - This does not define a final risk scoring algorithm.
+  - This does not define production reporting schemas.
+  - This does not require implementation for Demo 1.
+
 ## Supporting Admin/Campaign Context
 
 > [!NOTE]

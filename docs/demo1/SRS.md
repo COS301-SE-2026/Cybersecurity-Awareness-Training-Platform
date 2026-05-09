@@ -640,6 +640,140 @@ Avoid examples:
 - “Unhandled exception.”
 - “Backend submission error.”
 
+## Interaction Tracking, Progress, Quiz Attempts, and Reporting Support Requirements
+
+This section defines lightweight Demo 1 requirements for tracking Learner/Employee activity across the three core use cases:
+
+- `UC-01: View Emails in Simulated Inbox`
+- `UC-02: View Training Document`
+- `UC-03: Complete Quiz Flow`
+
+These requirements exist to support traceability, future reporting, and later database/API planning. They do not define final analytics dashboards, final risk scoring formulas, production reporting schemas, or adaptive learning rules.
+
+For Demo 1, tracking should remain lightweight, safe, and learner-supportive. The system should record only the minimum information needed to show that a user interacted with simulated content, training material, or quiz attempts.
+
+### Tracking and Progress Scope
+
+In scope for Demo 1:
+
+- recording when a Learner/Employee views or opens a simulated email;
+- recording basic simulated inbox interaction events;
+- recording when a Learner/Employee views or progresses through a training document;
+- recording quiz attempts, submitted answers, quiz results, and educational feedback at a high level;
+- linking tracking records to relevant users and domain concepts such as simulations, simulated emails, training documents, quiz attempts, and progress records;
+- preparing lightweight reporting/risk placeholders for future dashboards.
+
+Out of scope for Demo 1:
+
+- final analytics dashboards;
+- final risk scoring formulas;
+- production reporting algorithms;
+- database migrations or final Prisma models;
+- advanced adaptive learning rules;
+- real phishing delivery metrics outside the simulated inbox scope;
+- storing sensitive credentials, passwords, or unnecessary personal data.
+
+### General Tracking Requirements
+
+| ID           | Requirement                                                                                                                                   | Related Domain Entities                                                 | Notes                                                                         |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| TRK-DEMO1-01 | The system shall support lightweight interaction events for Learner/Employee actions across Demo 1 use cases.                                 | `User`, `InteractionEvent`                                              | Events should capture what happened without storing sensitive content.        |
+| TRK-DEMO1-02 | Each tracked event should reference the acting user where possible.                                                                           | `User`, `InteractionEvent`                                              | Exact field names are implementation details and may change.                  |
+| TRK-DEMO1-03 | Each tracked event should identify the target type and target reference where possible.                                                       | `InteractionEvent`, `SimulatedEmail`, `TrainingDocument`, `QuizAttempt` | Example target types: `SIMULATED_EMAIL`, `TRAINING_DOCUMENT`, `QUIZ_ATTEMPT`. |
+| TRK-DEMO1-04 | Tracked events should include a timestamp or equivalent recorded time.                                                                        | `InteractionEvent`                                                      | Supports later progress and reporting views.                                  |
+| TRK-DEMO1-05 | Tracking failures should not block Learner/Employee access to readable simulated content where the content itself can still be loaded safely. | `InteractionEvent`                                                      | Supports resilience and avoids interrupting learning.                         |
+| TRK-DEMO1-06 | Tracking should avoid storing real credentials, passwords, or sensitive user input.                                                           | `InteractionEvent`                                                      | Important safety and privacy boundary.                                        |
+| TRK-DEMO1-07 | Tracking records should support future aggregation without defining final reporting dashboards in Demo 1.                                     | `InteractionEvent`, `ReportSummary`, `RiskIndicator`                    | Reporting concepts remain future-facing.                                      |
+| TRK-DEMO1-08 | Tracking and progress data should remain aligned with the domain model and preliminary API contracts.                                         | `InteractionEvent`, `TrainingProgress`, `QuizAttempt`, `QuizResult`     | Supports SRS, API, domain, and traceability consistency.                      |
+
+### UC-01 Simulated Inbox Tracking Requirements
+
+UC-01 tracking focuses on the Learner/Employee viewing simulated inbox content and opening simulated emails.
+
+| ID          | Requirement                                                                                      | Event or State Example                    | Related Requirement/API                  | Notes                                                |
+| ----------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------- | ---------------------------------------- | ---------------------------------------------------- |
+| TRK-UC01-01 | The system should record when a Learner/Employee opens a simulated email.                        | `EMAIL_OPENED`                            | `FR-UC01-04`, `API-UC01-03`              | Existing UC-01 tracking requirement.                 |
+| TRK-UC01-02 | The system may record when a Learner/Employee views the simulated inbox list.                    | `INBOX_VIEWED`                            | `FR-UC01-04`, `API-UC01-03`              | Optional for Demo 1.                                 |
+| TRK-UC01-03 | Simulated email interaction events should reference the user and simulated email where possible. | `userId`, `emailId`                       | `DE-UC01-01`, `DE-UC01-03`, `DE-UC01-04` | Exact field names are preliminary.                   |
+| TRK-UC01-04 | UC-01 tracking must not store real credential values or sensitive user input.                    | Not applicable                            | `FR-UC01-09`                             | Credential-submission capture is out of scope.       |
+| TRK-UC01-05 | UC-01 tracking may support future reporting about simulated email engagement.                    | Email opened count, interaction timestamp | Future `ReportSummary` / `RiskIndicator` | No final reporting dashboard is required for Demo 1. |
+
+### UC-02 Training Progress Requirements
+
+UC-02 progress tracking focuses on whether a Learner/Employee opened, viewed, started, or completed assigned training material at a high level.
+
+| ID          | Requirement                                                                                                         | Event or State Example                          | Related Requirement/API                  | Notes                                               |
+| ----------- | ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- | ---------------------------------------- | --------------------------------------------------- |
+| TRK-UC02-01 | The system should record when a Learner/Employee views or opens a training document.                                | `TRAINING_VIEWED`                               | `FR-UC02-04`, `API-UC02-03`              | Supports training engagement tracking.              |
+| TRK-UC02-02 | The system may record a high-level progress state for a training document.                                          | `NOT_STARTED`, `STARTED`, `VIEWED`, `COMPLETED` | `API-UC02-03`                            | Exact state names are preliminary.                  |
+| TRK-UC02-03 | Training progress should reference the user and training document where possible.                                   | `userId`, `trainingId`, `status`                | `TrainingProgress`, `TrainingDocument`   | Supports future reporting and progress views.       |
+| TRK-UC02-04 | Training progress tracking failure should not prevent the Learner/Employee from reading available training content. | Progress save failure                           | `EX-UC02-04`                             | The learning experience should continue where safe. |
+| TRK-UC02-05 | Training progress may support future reporting about training engagement and completion.                            | Completion status, viewed timestamp             | Future `ReportSummary` / `RiskIndicator` | No advanced analytics are required in Demo 1.       |
+
+### UC-03 Quiz Attempt and Result Tracking Requirements
+
+UC-03 tracking focuses on starting a quiz attempt, submitting answers, recording a result, and showing feedback.
+
+| ID          | Requirement                                                                                           | Event or State Example                | Related Requirement/API                  | Notes                                                 |
+| ----------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------- | ---------------------------------------- | ----------------------------------------------------- |
+| TRK-UC03-01 | The system shall create a quiz attempt when a Learner/Employee starts a quiz.                         | `IN_PROGRESS` attempt                 | `FR-UC03-03`, `API-UC03-02`              | Supports submission and result retrieval.             |
+| TRK-UC03-02 | The system shall record submitted answers against the quiz attempt.                                   | `AttemptAnswer` records               | `FR-UC03-06`, `API-UC03-03`              | Answer structure remains preliminary.                 |
+| TRK-UC03-03 | The system shall mark a completed quiz attempt as submitted.                                          | `SUBMITTED`                           | `FR-UC03-06`, `FR-UC03-09`               | Helps prevent duplicate final submissions.            |
+| TRK-UC03-04 | The system shall make a result summary available after a submitted quiz attempt is processed.         | `QuizResult`                          | `FR-UC03-07`, `API-UC03-04`              | Result details remain high level for Demo 1.          |
+| TRK-UC03-05 | The system should link educational feedback to the submitted quiz attempt or result.                  | `FeedbackItem`                        | `FR-UC03-08`, `API-UC03-04`              | Supports learning without defining adaptive learning. |
+| TRK-UC03-06 | Quiz attempt tracking should reference the user and quiz where possible.                              | `userId`, `quizId`, `attemptId`       | `Quiz`, `QuizAttempt`, `QuizResult`      | Exact implementation fields may change.               |
+| TRK-UC03-07 | Quiz attempt and result records may support future reporting about quiz completion and understanding. | Score, pass/fail, submitted timestamp | Future `ReportSummary` / `RiskIndicator` | No final risk scoring formula is defined in Demo 1.   |
+
+### Preliminary Reporting and Risk Support Requirements
+
+Reporting and risk support for Demo 1 is limited to future-facing placeholders. The system should prepare terminology and traceability for later reporting without committing the team to final dashboards or scoring logic.
+
+| ID           | Requirement                                                                                                             | Related Domain Entities                                               | Notes                                                  |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------ |
+| RPT-DEMO1-01 | The system may later aggregate simulated email interactions, training progress, and quiz results into report summaries. | `InteractionEvent`, `TrainingProgress`, `QuizResult`, `ReportSummary` | Future-facing only.                                    |
+| RPT-DEMO1-02 | The system may later derive basic risk indicators from aggregated learning and interaction data.                        | `ReportSummary`, `RiskIndicator`                                      | No final risk formula is defined.                      |
+| RPT-DEMO1-03 | Demo 1 reporting support should remain limited to traceability and domain alignment.                                    | `ReportSummary`, `RiskIndicator`                                      | No dashboard implementation required.                  |
+| RPT-DEMO1-04 | Reporting placeholders should not introduce punitive monitoring language.                                               | `ReportSummary`, `RiskIndicator`                                      | The platform should remain educational and supportive. |
+| RPT-DEMO1-05 | Reporting concepts should respect data minimisation and avoid storing sensitive credential content.                     | `InteractionEvent`, `ReportSummary`                                   | Aligns with simulation safety constraints.             |
+| RPT-DEMO1-06 | Reporting/risk concepts should be marked as preliminary or future scope wherever they are referenced.                   | `ReportSummary`, `RiskIndicator`                                      | Prevents Demo 1 scope expansion.                       |
+
+### Tracking and Progress Domain References
+
+| ID        | Entity             | Usage in Tracking/Progress                                                                    |
+| --------- | ------------------ | --------------------------------------------------------------------------------------------- |
+| DE-TRK-01 | `InteractionEvent` | Records lightweight actions such as simulated email opened, inbox viewed, or training viewed. |
+| DE-TRK-02 | `TrainingProgress` | Tracks high-level training document status.                                                   |
+| DE-TRK-03 | `QuizAttempt`      | Tracks quiz start/submission state.                                                           |
+| DE-TRK-04 | `AttemptAnswer`    | Represents submitted answers in a quiz attempt.                                               |
+| DE-TRK-05 | `QuizResult`       | Represents the submitted attempt result.                                                      |
+| DE-TRK-06 | `FeedbackItem`     | Represents educational feedback linked to quiz results or learning outcomes.                  |
+| DE-TRK-07 | `ReportSummary`    | Future-facing aggregation concept.                                                            |
+| DE-TRK-08 | `RiskIndicator`    | Future-facing risk/reporting concept.                                                         |
+
+### Tracking and Progress API References
+
+| ID         | Preliminary API Reference                        | Tracking Purpose                                                               |
+| ---------- | ------------------------------------------------ | ------------------------------------------------------------------------------ |
+| API-TRK-01 | `POST /simulations/emails/:emailId/interactions` | Records UC-01 simulated email interaction events.                              |
+| API-TRK-02 | `POST /training/:trainingId/progress`            | Records UC-02 training progress or viewed status.                              |
+| API-TRK-03 | `POST /quizzes/:quizId/attempts`                 | Creates a UC-03 quiz attempt.                                                  |
+| API-TRK-04 | `POST /quiz-attempts/:attemptId/submit`          | Submits a UC-03 quiz attempt and answer set.                                   |
+| API-TRK-05 | `GET /quiz-attempts/:attemptId/results`          | Retrieves UC-03 quiz result and feedback.                                      |
+| API-TRK-06 | Future reporting endpoint placeholder            | Future reporting/risk summaries only; no final endpoint is defined for Demo 1. |
+
+These API references are preliminary planning references and may change during implementation. They should not be treated as final backend route or payload commitments.
+
+### Tracking and Progress Traceability References
+
+| Traceability ID | Linked Item                                                                                                          |
+| --------------- | -------------------------------------------------------------------------------------------------------------------- |
+| TRACE-TRK-01    | UC-01 to TRK-UC01-01, TRK-UC01-02, TRK-UC01-03, FR-UC01-04, API-TRK-01, DE-TRK-01                                    |
+| TRACE-TRK-02    | UC-02 to TRK-UC02-01, TRK-UC02-02, TRK-UC02-03, FR-UC02-04, API-TRK-02, DE-TRK-02                                    |
+| TRACE-TRK-03    | UC-03 to TRK-UC03-01, TRK-UC03-02, TRK-UC03-03, FR-UC03-03, FR-UC03-06, API-TRK-03, API-TRK-04, DE-TRK-03, DE-TRK-04 |
+| TRACE-TRK-04    | UC-03 to TRK-UC03-04, TRK-UC03-05, FR-UC03-07, FR-UC03-08, API-TRK-05, DE-TRK-05, DE-TRK-06                          |
+| TRACE-TRK-05    | Demo 1 reporting support to RPT-DEMO1-01 through RPT-DEMO1-06, DE-TRK-07, DE-TRK-08                                  |
+| TRACE-TRK-06    | Demo 1 safety boundary to TRK-DEMO1-06, RPT-DEMO1-05, FR-UC01-09, and the no-sensitive-credential-storage constraint |
+
 ## Admin and Campaign Supporting Context (Rudolph)
 
 > [!NOTE]
