@@ -137,8 +137,8 @@
           "number": 11,
           "title": "[domain] Align domain model with API and feature slices",
           "points": 3,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-05-09"
         },
         {
           "number": 10,
@@ -262,7 +262,7 @@
     },
     {
       "date": "2026-05-09",
-      "remaining": 29,
+      "remaining": 26,
       "ideal": 6.54
     }
   ]
