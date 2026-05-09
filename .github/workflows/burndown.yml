@@ -1,16 +1,19 @@
 name: Burndown Charts
 
 on:
+  push:
+    branches:
+      - dev
   schedule:
-    - cron: '0 22 * * *' # Runs at midnight SAST
+    - cron: '0 23 * * *' # Runs at 1AM SAST
   workflow_dispatch:
-
-permissions:
-  contents: write
 
 jobs:
   generate:
+    name: Generate Burndown Charts
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     timeout-minutes: 5
 
     env:
