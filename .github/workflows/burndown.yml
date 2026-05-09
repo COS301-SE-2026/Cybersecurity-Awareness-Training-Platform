@@ -29,6 +29,9 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Wait for linked issue to be closed
+        run: sleep 30
+
       - name: Generate Burndown charts
         run: python scripts/generate-burndown.py
 
