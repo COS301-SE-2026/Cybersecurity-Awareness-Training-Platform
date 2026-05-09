@@ -1,0 +1,19 @@
+.github/workflows/ci.yml
+  s_c690f98408dc16::t_d00ca4f8010a34 48-49,113-114
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "652158903556fbad609a0d0a7e998a41bd90f693",
+  "prompts": {},
+  "sessions": {
+    "s_c690f98408dc16": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e0d3a-468e-7cc0-b554-b0c7f7564893",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
