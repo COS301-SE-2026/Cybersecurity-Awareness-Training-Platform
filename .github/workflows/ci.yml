@@ -1,4 +1,4 @@
-name: CI
+name: Continuous Integration
 
 on:
   pull_request:
@@ -13,17 +13,43 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-test:
-    name: Build and test
+  formatting-check:
+    name: Formatting Check
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     permissions:
       contents: read
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run formatting check
+        run: pnpm format:check
+
+  lint-and-typecheck:
+    name: Lint and Typecheck
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/insightful_phish_test?schema=public
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Enable Corepack
@@ -39,19 +65,72 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma client
-        run: pnpm --filter backend exec prisma generate
+        run: pnpm --filter @insightful-phish/backend exec prisma generate
 
-      - name: Format check
-        run: pnpm format:check
-
-      - name: Lint
+      - name: Run linting
         run: pnpm lint
 
-      - name: Typecheck
+      - name: Run typecheck
         run: pnpm typecheck
 
-      - name: Test
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/insightful_phish_test?schema=public
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @insightful-phish/backend exec prisma generate
+
+      - name: Run tests
         run: pnpm test
 
-      - name: Build
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/insightful_phish_test?schema=public
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @insightful-phish/backend exec prisma generate
+
+      - name: Build project
         run: pnpm build
