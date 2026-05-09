@@ -16,7 +16,7 @@ The Learner/Employee views assigned simulated emails in a safe platform inbox. T
 
 ### UC-02: View Training Document
 
-The Learner/Employee views assigned training material. This use case covers finding available training material, opening a selected training document, reading the content, and optionally navigating toward a related quiz without making quiz completion part of UC-02.
+The Learner views assigned training material. This use case covers finding available training material, opening a selected training document, reading the content, and optionally navigating toward a related quiz without making quiz completion part of `UC-02`.
 
 ### UC-03: Complete Quiz Flow
 
@@ -303,9 +303,9 @@ Unsuccessful Post conditions:
 
 ### Main Flow
 
-1. The Learner/Employee navigates to the training module list from the dashboard or navigation menu.
-2. The system retrieves and displays a list of training documents assigned to the Learner/Employee.
-3. Each training item displays summary information such as title, description, and basic interaction status (if available).
+1. The Learner/Employee navigates from the dashboard to a training module ( cybersecurity learning category).
+2. The system retrieves and displays the related training-material list for the selected topic.
+3. Each training module and training item display summary information such as title, description, and basic interaction status (if available).
 4. The Learner/Employee selects a training document from the list.
 5. The system retrieves the selected training document.
 6. The system displays the training content in a structured and readable format (e.g., text, sections, or embedded media).
