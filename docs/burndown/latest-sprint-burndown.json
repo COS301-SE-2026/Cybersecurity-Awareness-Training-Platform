@@ -142,8 +142,8 @@
       "number": 10,
       "title": "[srs] Document interaction tracking, progress, and reporting requirements",
       "points": 3,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-05-09"
     },
     {
       "number": 9,
@@ -258,7 +258,7 @@
     },
     {
       "date": "2026-05-09",
-      "remaining": 32,
+      "remaining": 29,
       "ideal": 6.54
     }
   ]
