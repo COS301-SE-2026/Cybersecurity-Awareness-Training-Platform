@@ -4,6 +4,30 @@
 
 This document collects preliminary API contracts for Sprint 1 Demo 1. Contracts support frontend/backend alignment, SRS use cases, domain terminology, and testing preparation. They provide enough detail to unblock frontend mock development and backend routing without requiring final OpenAPI/Swagger specifications at this stage.
 
+## API and Domain Terminology Alignment
+
+These API contracts use preliminary route names and payload shapes to support planning and frontend/backend alignment. They are not final OpenAPI specifications.
+
+The following terminology should remain aligned with the SRS and domain model:
+
+| API Term / Route Area                       | Aligned Domain Concept                                                   | Related SRS Area                  |
+| ------------------------------------------- | ------------------------------------------------------------------------ | --------------------------------- |
+| `/simulations/inbox`                        | `SimulatedInbox`                                                         | UC-01 simulated inbox             |
+| `/simulations/emails/:emailId`              | `SimulatedEmail`                                                         | UC-01 simulated email detail      |
+| `/simulations/emails/:emailId/interactions` | `InteractionEvent`                                                       | UC-01 simulated email tracking    |
+| `/training/assigned`                        | `LearningPath`, `TrainingModule`, `TrainingDocument`, `TrainingProgress` | UC-02 training document viewing   |
+| `/training/:trainingId`                     | `TrainingDocument`                                                       | UC-02 selected training document  |
+| `/training/:trainingId/progress`            | `TrainingProgress`, `InteractionEvent`                                   | UC-02 training progress           |
+| `/quizzes/:quizId`                          | `Quiz`, `QuizQuestion`                                                   | UC-03 quiz content                |
+| `/quizzes/:quizId/attempts`                 | `QuizAttempt`                                                            | UC-03 quiz attempt creation       |
+| `/quiz-attempts/:attemptId/submit`          | `QuizAttempt`, `AttemptAnswer`                                           | UC-03 quiz submission             |
+| `/quiz-attempts/:attemptId/results`         | `QuizResult`, `FeedbackItem`                                             | UC-03 results and feedback        |
+| `/campaigns`                                | `Campaign`                                                               | Supporting admin/campaign context |
+| `/campaigns/:campaignId/assign`             | `CampaignAssignment`, `User`                                             | Supporting admin/campaign context |
+| Future reporting placeholder                | `ReportSummary`, `RiskIndicator`                                         | Future reporting support          |
+
+Where the API uses practical route names such as `trainingId` or `emailId`, these are preliminary identifiers for the related conceptual domain entities. Final backend route naming, payload fields, and database schema names may change during implementation.
+
 ## Base Feature Contracts
 
 ### `POST /auth/register`
@@ -274,7 +298,7 @@ This document collects preliminary API contracts for Sprint 1 Demo 1. Contracts 
 
 ## Cross-Use-Case Tracking, Progress, and Reporting Support
 
-The following table summaries the preliminary API contracts that support lightweight interaction tracking, progress tracking, quiz attempts, quiz results, and future reporting alignment for Demo 1.
+The following table summarises the preliminary API contracts that support lightweight interaction tracking, progress tracking, quiz attempts, quiz results, and future reporting alignment for Demo 1.
 
 These references do not introduce final analytics dashboards, final risk scoring, production reporting schemas, or database implementation details.
 
@@ -335,11 +359,12 @@ These references do not introduce final analytics dashboards, final risk scoring
 
 ### `POST /campaigns/:campaignId/assign`
 
-- **Purpose**: Links a list of employees to the campaign for training delivery.
+- **Purpose**: Links one or more users to a campaign for training delivery. Organisation-based assignments may target company-linked employees, while premade/general campaigns may target GeneralLearner users.
 - **Related Use Case / Base Feature**: Admin Context (Supporting Context)
 - **Method & Route**: `POST /campaigns/:campaignId/assign`
 - **Expected Request Data**:
-  - `employeeIds` (array of strings, required)
+  - `userIds` (array of strings, required)
+  - `membershipIds` (array of strings, optional; used only where organisation membership context applies)
 - **Expected Response Data**:
   - `200 OK`: `{ "success": true, "assignedCount": 2 }`
 - **Common Error Responses**:

@@ -63,6 +63,36 @@ This section links lightweight Demo 1 tracking and progress requirements to the 
 - No new UI screen is required for this tracking/progress issue.
 - No change is required to the current domain model diagram for this issue.
 
+## Domain, SRS, and API Alignment Review
+
+This section records the Demo 1 alignment pass between the SRS feature slices, preliminary API contracts, traceability references, and domain model terminology.
+
+| Alignment Area           | SRS Term                            | API Reference                                         | Domain Model Term                                    | Status  | Notes                                                                                            |
+| ------------------------ | ----------------------------------- | ----------------------------------------------------- | ---------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------ |
+| Learner-facing account   | Learner/Employee                    | Auth context / `userId`                               | `User`                                               | Aligned | `Learner/Employee` is the SRS actor label; `User` is the conceptual domain entity.               |
+| User types               | Admin, Employee, GeneralLearner     | Auth/user context                                     | `User.userType`                                      | Aligned | User type naming remains conceptual and not a final role implementation.                         |
+| Campaign wrapper         | Campaign                            | `POST /campaigns`                                     | `Campaign`                                           | Aligned | Supporting context only for Demo 1.                                                              |
+| Campaign assignment      | Campaign assignment context         | `POST /campaigns/:campaignId/assign`                  | `CampaignAssignment`                                 | Aligned | Assignment links a `Campaign` to a `User`; organisation membership is optional where applicable. |
+| Simulated inbox          | Simulated inbox                     | `GET /simulations/inbox`                              | `SimulatedInbox`                                     | Aligned | Represents controlled platform inbox content only.                                               |
+| Simulated email          | Simulated email                     | `GET /simulations/emails/:emailId`                    | `SimulatedEmail`                                     | Aligned | Does not represent real mailbox email delivery.                                                  |
+| Simulated email tracking | Email opened/viewed interaction     | `POST /simulations/emails/:emailId/interactions`      | `InteractionEvent`                                   | Aligned | Used for lightweight UC-01 interaction tracking.                                                 |
+| Training list/content    | Training document / training module | `GET /training/assigned`, `GET /training/:trainingId` | `LearningPath`, `TrainingModule`, `TrainingDocument` | Aligned | `LearningPath` and `TrainingModule` group content; `TrainingDocument` is the readable item.      |
+| Training progress        | Training progress                   | `POST /training/:trainingId/progress`                 | `TrainingProgress`, `InteractionEvent`               | Aligned | Records high-level progress only.                                                                |
+| Quiz content             | Quiz                                | `GET /quizzes/:quizId`                                | `Quiz`, `QuizQuestion`                               | Aligned | Supports UC-03 quiz display.                                                                     |
+| Quiz attempt             | Quiz attempt                        | `POST /quizzes/:quizId/attempts`                      | `QuizAttempt`                                        | Aligned | Created when quiz starts.                                                                        |
+| Quiz submission          | Submitted quiz attempt              | `POST /quiz-attempts/:attemptId/submit`               | `QuizAttempt`, `AttemptAnswer`                       | Aligned | Records final answers and submitted state.                                                       |
+| Quiz results/feedback    | Quiz results and feedback           | `GET /quiz-attempts/:attemptId/results`               | `QuizResult`, `FeedbackItem`                         | Aligned | Supports result summary and educational feedback.                                                |
+| Future reporting         | Reporting support                   | Future reporting placeholder                          | `ReportSummary`                                      | Aligned | Future-facing only; no dashboard implementation.                                                 |
+| Future risk              | Risk support                        | Future reporting placeholder                          | `RiskIndicator`                                      | Aligned | Future-facing only; no final risk scoring formula.                                               |
+
+### Alignment Scope Notes
+
+- This alignment pass does not introduce new Demo 1 use cases.
+- API contracts remain preliminary placeholders and should not be treated as final backend implementation details.
+- Domain model entities remain conceptual and should not be treated as final database tables or Prisma models.
+- Reporting and risk terminology remains future-facing and should not expand the Demo 1 scope.
+- The current domain model diagram already contains the main entities needed for UC-01, UC-02, UC-03, tracking/progress, and future reporting support.
+
 ## Integration Notes (Johan)
 
 ### SRS References
