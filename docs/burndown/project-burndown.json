@@ -11,8 +11,8 @@
           "number": 59,
           "title": "chore: improve CI workflow labels and burndown trigger",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-05-09"
         },
         {
           "number": 56,
@@ -74,8 +74,8 @@
           "number": 20,
           "title": "[architecture] Document technical requirements and constraints",
           "points": 5,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-05-09"
         },
         {
           "number": 19,
@@ -109,8 +109,8 @@
           "number": 15,
           "title": "[design] Document learner navigation and training screen behaviour",
           "points": 3,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-05-09"
         },
         {
           "number": 14,
@@ -259,6 +259,11 @@
       "date": "2026-05-08",
       "remaining": 42,
       "ideal": 13.08
+    },
+    {
+      "date": "2026-05-09",
+      "remaining": 32,
+      "ideal": 6.54
     }
   ]
 }
