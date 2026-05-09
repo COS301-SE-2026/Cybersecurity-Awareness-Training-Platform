@@ -103,6 +103,26 @@ Primary supporting documents:
 - `docs/demo1/traceability.md` for integration placeholders and review traceability.
 - `docs/demo1/diagrams/` for draft diagram sources and exports.
 
+### Terminology Alignment Rules
+
+The SRS, preliminary API contracts, traceability table, and domain model should use consistent terminology for Demo 1 concepts.
+
+For Demo 1 documentation:
+
+- `User` is the domain model entity representing a platform account.
+- `Learner/Employee` is the SRS actor label used for the learner-facing Demo 1 flows.
+- `Employee` and `GeneralLearner` are user types represented by `User.userType` in the domain model.
+- `Administrator` or `Admin` is a supporting user type for campaign/content setup context.
+- `CampaignAssignment` links a `Campaign` to a `User`; for organisation-based campaigns it may also reference `OrganisationMembership`.
+- `SimulatedEmail` is the domain entity used for controlled simulated email content.
+- `TrainingDocument` is the readable training content opened in UC-02.
+- `TrainingModule` groups related training content.
+- `LearningPath` groups training modules and quiz content for either organisation-context or general learning flows.
+- `InteractionEvent`, `TrainingProgress`, `QuizAttempt`, `QuizResult`, and `FeedbackItem` are the main tracking/progress entities used across UC-01, UC-02, and UC-03.
+- `ReportSummary` and `RiskIndicator` are future-facing reporting support concepts and should not be treated as final analytics or risk-scoring implementation details.
+
+API routes and payloads remain preliminary placeholders. Domain entity names are conceptual and should not be treated as final Prisma model names, database table names, or final backend implementation details.
+
 ## UC-01: Simulated Inbox Requirements
 
 [UC-01 use case diagram](./diagrams/demo1-use-cases-uc01-simulated-inbox.svg)
@@ -928,32 +948,53 @@ General Learner/Employee users are not required to belong to an organisation. Th
 
 #### Core Entity Summary
 
-| Entity                   | Role in Demo 1                                                                                                                              |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `User`                   | Represents the person using the platform. A user may act as an Administrator, company-linked Learner/Employee, or general Learner/Employee. |
-| `Organisation`           | Represents a company or organisation using the platform.                                                                                    |
-| `OrganisationMembership` | Links users to organisations and captures whether they act as Administrators or Learner/Employee users in that organisation.                |
-| `CompanyContext`         | Provides optional company-specific context used to support realistic simulations and training.                                              |
-| `Campaign`               | Groups simulations, learning paths, and assignments for company-linked training.                                                            |
-| `CampaignAssignment`     | Links Learner/Employee users or organisation members to a campaign.                                                                         |
-| `LearningPath`           | Groups training and quiz content. It may be company-context or general learning content.                                                    |
-| `Simulation`             | Represents a controlled simulated security-awareness scenario.                                                                              |
-| `SimulatedEmail`         | Represents a safe simulated email shown in the simulated inbox for UC-01.                                                                   |
-| `SimulatedInbox`         | Represents the Learner/Employee-facing inbox view for assigned simulated emails.                                                            |
-| `InteractionEvent`       | Records lightweight Learner/Employee interactions, such as opening a simulated email or viewing training content.                           |
-| `TrainingModule`         | Groups related training content.                                                                                                            |
-| `TrainingDocument`       | Represents readable training material for UC-02.                                                                                            |
-| `TrainingProgress`       | Tracks Learner/Employee progress through assigned training content.                                                                         |
-| `Quiz`                   | Represents an assessment linked to training content.                                                                                        |
-| `QuizQuestion`           | Represents a question inside a quiz.                                                                                                        |
-| `QuizAttempt`            | Represents a Learner/Employee's attempt at completing a quiz.                                                                               |
-| `AttemptAnswer`          | Represents an answer recorded as part of a quiz attempt.                                                                                    |
-| `QuizResult`             | Represents the result summary after a quiz attempt is submitted.                                                                            |
-| `FeedbackItem`           | Represents educational feedback shown after a quiz or simulation-related interaction.                                                       |
-| `ReportSummary`          | Future-facing reporting aggregation concept.                                                                                                |
-| `RiskIndicator`          | Future-facing risk indicator concept for reporting and dashboards.                                                                          |
+| Entity                   | Role in Demo 1                                                                                                                                                                     |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- | ---------------------------------------------------------------------------------------- |
+| `User`                   | Represents the person using the platform. A user may act as an Administrator, company-linked Learner/Employee, or general Learner/Employee.                                        |
+| `Organisation`           | Represents a company or organisation using the platform.                                                                                                                           |
+| `OrganisationMembership` | Links users to organisations and captures whether they act as Administrators or Learner/Employee users in that organisation.                                                       |
+| `CompanyContext`         | Provides optional company-specific context used to support realistic simulations and training.                                                                                     |
+| `Campaign`               | Groups simulations, learning paths, quizzes, and assignments. A campaign may be organisation-assigned or premade/general.                                                          |
+| `CampaignAssignment`     | Links a `Campaign` to a `User`. For organisation-based campaigns it may also reference `OrganisationMembership`; for general learners it does not require organisation membership. | `LearningPath` | Groups training and quiz content. It may be company-context or general learning content. |
+| `Simulation`             | Represents a controlled simulated security-awareness scenario.                                                                                                                     |
+| `SimulatedEmail`         | Represents a safe simulated email shown in the simulated inbox for UC-01.                                                                                                          |
+| `SimulatedInbox`         | Represents the Learner/Employee-facing inbox view for assigned simulated emails.                                                                                                   |
+| `InteractionEvent`       | Records lightweight Learner/Employee interactions, such as opening a simulated email or viewing training content.                                                                  |
+| `TrainingModule`         | Groups related training content.                                                                                                                                                   |
+| `TrainingDocument`       | Represents readable training material for UC-02.                                                                                                                                   |
+| `TrainingProgress`       | Tracks Learner/Employee progress through assigned training content.                                                                                                                |
+| `Quiz`                   | Represents an assessment linked to training content.                                                                                                                               |
+| `QuizQuestion`           | Represents a question inside a quiz.                                                                                                                                               |
+| `QuizAttempt`            | Represents a Learner/Employee's attempt at completing a quiz.                                                                                                                      |
+| `AttemptAnswer`          | Represents an answer recorded as part of a quiz attempt.                                                                                                                           |
+| `QuizResult`             | Represents the result summary after a quiz attempt is submitted.                                                                                                                   |
+| `FeedbackItem`           | Represents educational feedback shown after a quiz or simulation-related interaction.                                                                                              |
+| `ReportSummary`          | Future-facing reporting aggregation concept.                                                                                                                                       |
+| `RiskIndicator`          | Future-facing risk indicator concept for reporting and dashboards.                                                                                                                 |
 
-#### Support for UC-01: View Emails in Simulated Inbox
+#### Domain, SRS, and API Alignment Notes
+
+The domain model, SRS feature slices, preliminary API contracts, and traceability table use the following aligned terminology:
+
+| Concept             | Domain Model Name                | SRS Reference                           | Preliminary API Reference                                                               | Notes                                                                                     |
+| ------------------- | -------------------------------- | --------------------------------------- | --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Platform account    | `User`                           | Learner/Employee, Admin, GeneralLearner | Auth context / `userId` fields                                                          | `Learner/Employee` is the SRS actor label; `User` is the domain entity.                   |
+| Campaign wrapper    | `Campaign`                       | Admin/Campaign Supporting Context       | `POST /campaigns`                                                                       | Supporting context only for Demo 1; not a full scheduling implementation.                 |
+| Campaign assignment | `CampaignAssignment`             | Campaign assignment context             | `POST /campaigns/:campaignId/assign`                                                    | Links campaigns to users; organisation membership is optional depending on campaign type. |
+| Simulated inbox     | `SimulatedInbox`                 | UC-01 simulated inbox                   | `GET /simulations/inbox`                                                                | Represents the learner-facing controlled inbox view.                                      |
+| Simulated email     | `SimulatedEmail`                 | UC-01 simulated email                   | `GET /simulations/emails/:emailId`                                                      | Represents controlled simulated email content, not a real mailbox email.                  |
+| Interaction event   | `InteractionEvent`               | UC-01/UC-02 tracking                    | `POST /simulations/emails/:emailId/interactions`; `POST /training/:trainingId/progress` | Records lightweight learner actions without sensitive credential storage.                 |
+| Training content    | `TrainingDocument`               | UC-02 training document                 | `GET /training/:trainingId`                                                             | Represents readable training content.                                                     |
+| Training grouping   | `TrainingModule`, `LearningPath` | UC-02 training module/list context      | `GET /training/assigned`                                                                | `LearningPath` groups training/quiz content; `TrainingModule` groups documents.           |
+| Training progress   | `TrainingProgress`               | UC-02 progress tracking                 | `POST /training/:trainingId/progress`                                                   | Tracks high-level progress only.                                                          |
+| Quiz                | `Quiz`                           | UC-03 quiz flow                         | `GET /quizzes/:quizId`                                                                  | Represents an assessment linked to training content.                                      |
+| Quiz question       | `QuizQuestion`                   | UC-03 quiz questions                    | Included in `GET /quizzes/:quizId` response                                             | Represents individual quiz questions.                                                     |
+| Quiz attempt        | `QuizAttempt`                    | UC-03 attempt                           | `POST /quizzes/:quizId/attempts`                                                        | Created when a learner starts a quiz.                                                     |
+| Attempt answer      | `AttemptAnswer`                  | UC-03 submitted answers                 | `POST /quiz-attempts/:attemptId/submit`                                                 | Represents answers submitted for a quiz attempt.                                          |
+| Quiz result         | `QuizResult`                     | UC-03 result summary                    | `GET /quiz-attempts/:attemptId/results`                                                 | Represents a submitted attempt result.                                                    |
+| Feedback            | `FeedbackItem`                   | UC-03 educational feedback              | `GET /quiz-attempts/:attemptId/results`                                                 | Represents learner-facing feedback.                                                       |
+| Reporting summary   | `ReportSummary`                  | Future reporting support                | Future reporting placeholder                                                            | Future-facing only.                                                                       |
+| Risk indicator      | `RiskIndicator`                  | Future risk support                     | Future reporting placeholder                                                            | No final risk scoring formula is defined for Demo 1.                                      |
 
 UC-01 is supported by:
 
