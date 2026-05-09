@@ -45,6 +45,8 @@ jobs:
     permissions:
       contents: read
     timeout-minutes: 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/insightful_phish_test?schema=public
 
     steps:
       - name: Checkout repository
@@ -108,6 +110,8 @@ jobs:
     permissions:
       contents: read
     timeout-minutes: 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/insightful_phish_test?schema=public
 
     steps:
       - name: Checkout repository
