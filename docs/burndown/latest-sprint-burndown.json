@@ -1,277 +1,233 @@
 {
-  "sprint_no": 1,
+  "sprint_no": 2,
   "demo_no": 1,
-  "milestone": "Sprint 1 (Demo 1)",
-  "start": "2026-04-27",
-  "end": "2026-05-10",
+  "milestone": "Sprint 2 (Demo 1)",
+  "start": "2026-05-11",
+  "end": "2026-05-20",
   "issues": [
     {
-      "number": 96,
-      "title": "chore: publish explicit per-demo burndown assets",
+      "number": 95,
+      "title": "test: Verify Demo 1 seed data and database reset before rehearsal",
       "points": 2,
-      "state": "closed",
-      "closed_date": "2026-05-10"
+      "state": "open",
+      "closed_date": null
     },
     {
-      "number": 59,
-      "title": "chore: improve CI workflow labels and burndown trigger",
-      "points": 2,
-      "state": "closed",
-      "closed_date": "2026-05-09"
+      "number": 94,
+      "title": "feat: [frontend] Implement guided onboarding process (Stretch Goal)",
+      "points": 3,
+      "state": "open",
+      "closed_date": null
     },
     {
-      "number": 56,
-      "title": "[chore] Replace CODEOWNERS with PR reviewer guidance",
+      "number": 93,
+      "title": "docs: Create Demo 1 script and seeded demo path",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 92,
+      "title": "docs: Create Demo 1 slideshow presentation",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 91,
+      "title": "feat: [integration] Implement automated smoke test for Demo 1 path",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 90,
+      "title": "docs: Create Demo 1 manual QA checklist",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 89,
+      "title": "docs: Finalise brand guidelines",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 88,
+      "title": "feat: [integration] Coordinate final Demo 1 learner journey verification",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 87,
+      "title": "feat: [integration] Integrate UC-03 quiz flow",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 86,
+      "title": "feat: [integration] Integrate UC-02 training flow",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 85,
+      "title": "feat: [frontend] Implement UC-03 quiz screens",
+      "points": 5,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 84,
+      "title": "feat: [frontend] Implement UC-02 training module screens",
+      "points": 3,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 83,
+      "title": "feat: [integration] Complete UC-01 vertical slice",
+      "points": 3,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 82,
+      "title": "feat: [frontend] Implement UC-01 simulated inbox UI",
+      "points": 3,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 81,
+      "title": "feat: [backend] Implement quiz API for UC-03",
+      "points": 5,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 80,
+      "title": "feat: [backend] Implement training document API for UC-02",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 79,
+      "title": "feat: [backend] Implement simulated inbox API for UC-01",
+      "points": 3,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 78,
+      "title": "feat: [frontend] Establish shared API client and auth state integration",
+      "points": 3,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 77,
+      "title": "feat: [frontend] Implement trainee navigation shell, dashboard, and protected UI",
+      "points": 3,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 76,
+      "title": "chore: Add coverage reporting/checks",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 75,
+      "title": "feat: [backend] Implement Demo 1 auth API and security middleware",
+      "points": 5,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 74,
+      "title": "feat: [database] Add stable Demo 1 seed data",
+      "points": 3,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 73,
+      "title": "feat: [database] Add Demo 1 Prisma schema and migrations",
+      "points": 5,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 72,
+      "title": "feat: [backend] Set up Swagger API documentation framework",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 71,
+      "title": "test: Add backend test database/reset strategy",
+      "points": 3,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 70,
+      "title": "feat: [shared] Define Demo 1 shared DTO structure",
+      "points": 3,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 69,
+      "title": "chore: Add local demo setup command/documentation",
       "points": 1,
-      "state": "closed",
-      "closed_date": "2026-05-08"
+      "state": "open",
+      "closed_date": null
     },
     {
-      "number": 46,
-      "title": "chore: setup sprint burndown tracking and visualisation",
+      "number": 68,
+      "title": "chore: Merge CI split checks and fix workspace filters",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 67,
+      "title": "feat: [frontend] Add final brand logo assets and icons",
       "points": 1,
-      "state": "closed",
-      "closed_date": "2026-05-05"
+      "state": "open",
+      "closed_date": null
     },
     {
-      "number": 43,
-      "title": "fix: Husky Hooks",
+      "number": 66,
+      "title": "chore: Set up Google Calendar for the team",
       "points": 1,
-      "state": "closed",
-      "closed_date": "2026-05-03"
+      "state": "open",
+      "closed_date": null
     },
     {
-      "number": 25,
-      "title": "[repo] Add Husky guard against direct commits to main and dev",
-      "points": 2,
-      "state": "closed",
-      "closed_date": "2026-04-30"
-    },
-    {
-      "number": 24,
-      "title": "[review] Review Demo 1 documentation for consistency and scope",
-      "points": 3,
-      "state": "closed",
-      "closed_date": "2026-05-10"
-    },
-    {
-      "number": 23,
-      "title": "[traceability] Build Demo 1 traceability table",
-      "points": 5,
-      "state": "closed",
-      "closed_date": "2026-05-10"
-    },
-    {
-      "number": 22,
-      "title": "[srs] Integrate Demo 1 SRS feature slices",
-      "points": 3,
-      "state": "closed",
-      "closed_date": "2026-05-10"
-    },
-    {
-      "number": 21,
-      "title": "[diagrams] Create Demo 1 use case diagrams",
-      "points": 3,
-      "state": "closed",
-      "closed_date": "2026-05-07"
-    },
-    {
-      "number": 20,
-      "title": "[architecture] Document technical requirements and constraints",
-      "points": 5,
-      "state": "closed",
-      "closed_date": "2026-05-09"
-    },
-    {
-      "number": 19,
-      "title": "[architecture] Document design patterns and simulation modularity",
-      "points": 3,
-      "state": "closed",
-      "closed_date": "2026-05-08"
-    },
-    {
-      "number": 18,
-      "title": "[architecture] Draft quality requirements and architectural approach",
-      "points": 5,
-      "state": "closed",
-      "closed_date": "2026-05-08"
-    },
-    {
-      "number": 17,
-      "title": "[api] Draft preliminary API contracts for Demo 1 flows",
-      "points": 5,
-      "state": "closed",
-      "closed_date": "2026-05-08"
-    },
-    {
-      "number": 16,
-      "title": "[srs] Define admin and campaign requirements slice",
-      "points": 3,
-      "state": "closed",
-      "closed_date": "2026-04-30"
-    },
-    {
-      "number": 15,
-      "title": "[design] Document learner navigation and training screen behaviour",
-      "points": 3,
-      "state": "closed",
-      "closed_date": "2026-05-09"
-    },
-    {
-      "number": 14,
-      "title": "[design] Refine Demo 1 Wireframes",
-      "points": 3,
-      "state": "closed",
-      "closed_date": "2026-05-10"
-    },
-    {
-      "number": 13,
-      "title": "[design] Create Demo 1 brand style guide",
-      "points": 5,
-      "state": "closed",
-      "closed_date": "2026-05-10"
-    },
-    {
-      "number": 12,
-      "title": "[srs] Define training document viewing requirements slice",
-      "points": 3,
-      "state": "closed",
-      "closed_date": "2026-04-30"
-    },
-    {
-      "number": 11,
-      "title": "[domain] Align domain model with API and feature slices",
-      "points": 3,
-      "state": "closed",
-      "closed_date": "2026-05-09"
-    },
-    {
-      "number": 10,
-      "title": "[srs] Document interaction tracking, progress, and reporting requirements",
-      "points": 3,
-      "state": "closed",
-      "closed_date": "2026-05-09"
-    },
-    {
-      "number": 9,
-      "title": "[domain] Create Demo 1 domain model and explanation",
-      "points": 5,
-      "state": "closed",
-      "closed_date": "2026-05-01"
-    },
-    {
-      "number": 8,
-      "title": "[srs] Define simulated inbox requirements slice",
-      "points": 3,
-      "state": "closed",
-      "closed_date": "2026-04-28"
-    },
-    {
-      "number": 7,
-      "title": "[testing] Draft Demo 1 QA plan for core use cases",
-      "points": 3,
-      "state": "closed",
-      "closed_date": "2026-05-03"
-    },
-    {
-      "number": 6,
-      "title": "[design] Document feedback, validation, and accessibility UI rules",
-      "points": 2,
-      "state": "closed",
-      "closed_date": "2026-05-10"
-    },
-    {
-      "number": 5,
-      "title": "[design] Create first-pass Demo 1 wireframes",
-      "points": 5,
-      "state": "closed",
-      "closed_date": "2026-05-10"
-    },
-    {
-      "number": 4,
-      "title": "[srs] Define validation, error-state, and feedback requirements",
-      "points": 2,
-      "state": "closed",
-      "closed_date": "2026-05-03"
-    },
-    {
-      "number": 3,
-      "title": "[srs] Define quiz flow requirements slice",
-      "points": 3,
-      "state": "closed",
-      "closed_date": "2026-04-30"
+      "number": 65,
+      "title": "chore: Distribute issues and deadlines on GitHub",
+      "points": 1,
+      "state": "open",
+      "closed_date": null
     }
   ],
   "series": [
     {
-      "date": "2026-04-27",
-      "remaining": 87,
-      "ideal": 87.0
-    },
-    {
-      "date": "2026-04-28",
-      "remaining": 84,
-      "ideal": 80.31
-    },
-    {
-      "date": "2026-04-29",
-      "remaining": 84,
-      "ideal": 73.62
-    },
-    {
-      "date": "2026-04-30",
-      "remaining": 73,
-      "ideal": 66.92
-    },
-    {
-      "date": "2026-05-01",
-      "remaining": 68,
-      "ideal": 60.23
-    },
-    {
-      "date": "2026-05-02",
-      "remaining": 68,
-      "ideal": 53.54
-    },
-    {
-      "date": "2026-05-03",
-      "remaining": 62,
-      "ideal": 46.85
-    },
-    {
-      "date": "2026-05-04",
-      "remaining": 62,
-      "ideal": 40.15
-    },
-    {
-      "date": "2026-05-05",
-      "remaining": 61,
-      "ideal": 33.46
-    },
-    {
-      "date": "2026-05-06",
-      "remaining": 61,
-      "ideal": 26.77
-    },
-    {
-      "date": "2026-05-07",
-      "remaining": 58,
-      "ideal": 20.08
-    },
-    {
-      "date": "2026-05-08",
-      "remaining": 44,
-      "ideal": 13.38
-    },
-    {
-      "date": "2026-05-09",
-      "remaining": 28,
-      "ideal": 6.69
-    },
-    {
-      "date": "2026-05-10",
-      "remaining": 0,
-      "ideal": 0.0
+      "date": "2026-05-11",
+      "remaining": 80,
+      "ideal": 80.0
     }
   ]
 }
