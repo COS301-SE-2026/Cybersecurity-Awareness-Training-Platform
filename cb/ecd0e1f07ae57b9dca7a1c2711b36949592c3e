@@ -1,0 +1,25 @@
+scripts/generate-burndown.py
+  s_21c2f108012d7b::t_7061ac2b2aa8d6 325-334,372,384-385
+  s_21c2f108012d7b::t_4f8effffa40029 48,163,599
+  s_21c2f108012d7b::t_ff72418020e045 460,474-478
+  s_21c2f108012d7b::t_a3571cb56b440f 580,587
+  s_21c2f108012d7b::t_e8ca98e5d5d590 162,542,558-579,581-586,588-590,622
+.github/workflows/burndown.yml
+  s_21c2f108012d7b::t_4f1f11715c8dda 66-77,82
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "cbecd0e1f07ae57b9dca7a1c2711b36949592c3e",
+  "prompts": {},
+  "sessions": {
+    "s_21c2f108012d7b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e0e76-b56f-74f0-a17b-63a0f2d5720b",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
