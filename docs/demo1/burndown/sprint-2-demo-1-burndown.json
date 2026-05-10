@@ -1,0 +1,231 @@
+{
+  "milestone": "Sprint 2 (Demo 1)",
+  "start": "2026-05-11",
+  "end": "2026-05-20",
+  "issues": [
+    {
+      "number": 95,
+      "title": "test: Verify Demo 1 seed data and database reset before rehearsal",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 94,
+      "title": "feat: [frontend] Implement guided onboarding process (Stretch Goal)",
+      "points": 3,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 93,
+      "title": "docs: Create Demo 1 script and seeded demo path",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 92,
+      "title": "docs: Create Demo 1 slideshow presentation",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 91,
+      "title": "feat: [integration] Implement automated smoke test for Demo 1 path",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 90,
+      "title": "docs: Create Demo 1 manual QA checklist",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 89,
+      "title": "docs: Finalise brand guidelines",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 88,
+      "title": "feat: [integration] Coordinate final Demo 1 learner journey verification",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 87,
+      "title": "feat: [integration] Integrate UC-03 quiz flow",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 86,
+      "title": "feat: [integration] Integrate UC-02 training flow",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 85,
+      "title": "feat: [frontend] Implement UC-03 quiz screens",
+      "points": 5,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 84,
+      "title": "feat: [frontend] Implement UC-02 training module screens",
+      "points": 3,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 83,
+      "title": "feat: [integration] Complete UC-01 vertical slice",
+      "points": 3,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 82,
+      "title": "feat: [frontend] Implement UC-01 simulated inbox UI",
+      "points": 3,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 81,
+      "title": "feat: [backend] Implement quiz API for UC-03",
+      "points": 5,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 80,
+      "title": "feat: [backend] Implement training document API for UC-02",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 79,
+      "title": "feat: [backend] Implement simulated inbox API for UC-01",
+      "points": 3,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 78,
+      "title": "feat: [frontend] Establish shared API client and auth state integration",
+      "points": 3,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 77,
+      "title": "feat: [frontend] Implement trainee navigation shell, dashboard, and protected UI",
+      "points": 3,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 76,
+      "title": "chore: Add coverage reporting/checks",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 75,
+      "title": "feat: [backend] Implement Demo 1 auth API and security middleware",
+      "points": 5,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 74,
+      "title": "feat: [database] Add stable Demo 1 seed data",
+      "points": 3,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 73,
+      "title": "feat: [database] Add Demo 1 Prisma schema and migrations",
+      "points": 5,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 72,
+      "title": "feat: [backend] Set up Swagger API documentation framework",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 71,
+      "title": "test: Add backend test database/reset strategy",
+      "points": 3,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 70,
+      "title": "feat: [shared] Define Demo 1 shared DTO structure",
+      "points": 3,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 69,
+      "title": "chore: Add local demo setup command/documentation",
+      "points": 1,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 68,
+      "title": "chore: Merge CI split checks and fix workspace filters",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 67,
+      "title": "feat: [frontend] Add final brand logo assets and icons",
+      "points": 1,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 66,
+      "title": "chore: Set up Google Calendar for the team",
+      "points": 1,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 65,
+      "title": "chore: Distribute issues and deadlines on GitHub",
+      "points": 1,
+      "state": "open",
+      "closed_date": null
+    }
+  ],
+  "series": [
+    {
+      "date": "2026-05-11",
+      "remaining": 80,
+      "ideal": 80.0
+    }
+  ]
+}

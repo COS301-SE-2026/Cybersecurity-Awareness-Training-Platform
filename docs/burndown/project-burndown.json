@@ -11,8 +11,8 @@
           "number": 96,
           "title": "chore: publish explicit per-demo burndown assets",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-05-10"
         },
         {
           "number": 59,
@@ -500,7 +500,7 @@
     },
     {
       "date": "2026-05-10",
-      "remaining": 90,
+      "remaining": 88,
       "ideal": 72.61
     }
   ]

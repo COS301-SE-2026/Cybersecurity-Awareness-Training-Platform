@@ -40,9 +40,8 @@ Issues larger than 5 points should be split into sub-issues.
 
 ## Rules
 
-- Every sprint issue must be assigned to the correct milestone.
-- Every sprint issue must be on the GitHub Project board.
-- Every sprint issue must have a Story Points value.
+- Every sprint issue must be assigned to the correct sprint milestone.
+- Every sprint issue must have a Story Points value in the issue description.
 - Story points must not be changed after an issue enters a sprint.
 - Closed issues burn down their full point value on the day they are closed.
 - Partially completed issues do not reduce remaining work.
@@ -50,10 +49,13 @@ Issues larger than 5 points should be split into sub-issues.
 
 ## Outputs
 
-Latest sprint charts are stored under:
+The workflow publishes generated burndown assets to the unprotected `automation/burndown-assets` branch.
+The README on `dev` links to stable raw GitHub URLs from that branch, so `dev` does not need daily generated commits.
 
-`docs/demoM/burndown/`
+Latest sprint assets are published under:
 
-The project-wide burndown chart is stored under:
+`docs/burndown/latest-sprint-burndown-*`
 
-`docs/burndown/`
+Project-wide burndown assets are published under:
+
+`docs/burndown/project-burndown-*`
