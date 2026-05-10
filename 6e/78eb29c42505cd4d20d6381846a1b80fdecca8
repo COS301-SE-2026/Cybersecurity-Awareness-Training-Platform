@@ -1,0 +1,26 @@
+docs/demo1/diagrams/README.md
+  s_21c2f108012d7b::t_13be2ad45d4262 26,30,34
+docs/demo1/diagrams/use-case-overview-demo1.drawio
+  s_21c2f108012d7b::t_13be2ad45d4262 16,19,22,83,91,139,154,209,214
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "6e78eb29c42505cd4d20d6381846a1b80fdecca8",
+  "prompts": {},
+  "humans": {
+    "h_1fff265ad32c51": {
+      "author": "FJNel <u24594475@tuks.co.za>"
+    }
+  },
+  "sessions": {
+    "s_21c2f108012d7b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e0e76-b56f-74f0-a17b-63a0f2d5720b",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
