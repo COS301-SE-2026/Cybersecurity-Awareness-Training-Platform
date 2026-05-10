@@ -45,6 +45,7 @@ BODY_FONT = "Overpass, Arial, Helvetica, sans-serif"
 
 
 ROOT = Path(__file__).resolve().parents[1]
+SAST = timezone(timedelta(hours=2), name="SAST")
 
 
 def get_env(name: str, default: str | None = None) -> str:
@@ -56,10 +57,7 @@ def get_env(name: str, default: str | None = None) -> str:
 
 TOKEN = os.environ.get("GITHUB_TOKEN")
 REPO = get_env("REPOSITORY")
-README_PATH = Path(os.environ.get("README_PATH", "README.md"))
 SHOW_PROJECT_BURNDOWN = os.environ.get("SHOW_PROJECT_BURNDOWN", "true").lower() == "true"
-ASSET_BRANCH = os.environ.get("BURNDOWN_ASSET_BRANCH", "automation/burndown-assets")
-RAW_ASSET_BASE = f"https://raw.githubusercontent.com/{REPO}/{ASSET_BRANCH}/docs/burndown"
 
 
 def request_json(url: str, body: dict[str, Any] | None = None) -> Any:
@@ -161,7 +159,8 @@ def extract_story_points(issue: dict[str, Any], milestone_title: str, warnings: 
 
 
 def parse_github_datetime(value: str) -> date:
-    return datetime.fromisoformat(value.replace("Z", "+00:00")).date()
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    return parsed.astimezone(SAST).date()
 
 
 def parse_optional_date(value: str | None) -> date | None:
@@ -323,6 +322,16 @@ def format_chart_date(value: str) -> str:
     return parsed.strftime("%d %b").lstrip("0")
 
 
+def title_case_label(value: str) -> str:
+    def replace_word(match: re.Match[str]) -> str:
+        word = match.group(0)
+        if word.isupper():
+            return word
+        return word[0].upper() + word[1:].lower()
+
+    return re.sub(r"[A-Za-z][A-Za-z0-9'-]*", replace_word, value)
+
+
 def write_svg(path: Path, title: str, rows: list[dict[str, Any]], theme: str = "light") -> None:
     # Input
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -360,7 +369,7 @@ def write_svg(path: Path, title: str, rows: list[dict[str, Any]], theme: str = "
 
     remaining = " ".join(xy(i, float(row["remaining"])) for i, row in enumerate(rows))
     ideal = " ".join(xy(i, float(row["ideal"])) for i, row in enumerate(rows))
-    escaped_title = html.escape(title)
+    escaped_title = html.escape(title_case_label(title))
 
     # Output
     svg = f"""<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}" role="img" aria-labelledby="title desc">
@@ -372,8 +381,8 @@ def write_svg(path: Path, title: str, rows: list[dict[str, Any]], theme: str = "
 {x_axis_ticks}
 <line x1="{left}" y1="{top}" x2="{left}" y2="{height-bottom}" stroke="{colours["axis"]}"/>
 <line x1="{left}" y1="{height-bottom}" x2="{width-right}" y2="{height-bottom}" stroke="{colours["axis"]}"/>
-<text x="18" y="{top + plot_h / 2:.1f}" font-family="{BODY_FONT}" font-size="13" text-anchor="middle" transform="rotate(-90 18 {top + plot_h / 2:.1f})" fill="{colours["text"]}">Story points remaining</text>
-<text x="{left + plot_w / 2:.1f}" y="{height-12}" font-family="{BODY_FONT}" font-size="13" text-anchor="middle" fill="{colours["text"]}">Sprint timeline</text>
+<text x="18" y="{top + plot_h / 2:.1f}" font-family="{BODY_FONT}" font-size="13" text-anchor="middle" transform="rotate(-90 18 {top + plot_h / 2:.1f})" fill="{colours["text"]}">Story Points Remaining</text>
+<text x="{left + plot_w / 2:.1f}" y="{height-12}" font-family="{BODY_FONT}" font-size="13" text-anchor="middle" fill="{colours["text"]}">Sprint Timeline</text>
 <polyline points="{ideal}" fill="none" stroke="{colours["ideal"]}" stroke-width="3" stroke-dasharray="8 6"/>
 <polyline points="{remaining}" fill="none" stroke="{colours["remaining"]}" stroke-width="4"/>
 <line x1="{width-right-260}" y1="{top+20}" x2="{width-right-225}" y2="{top+20}" stroke="{colours["remaining"]}" stroke-width="4"/>
@@ -391,60 +400,6 @@ def write_themed_svgs(path_without_suffix: Path, title: str, rows: list[dict[str
     write_svg(light_path, title, rows, theme="light")
     write_svg(dark_path, title, rows, theme="dark")
     return {"light": str(light_path.relative_to(ROOT)), "dark": str(dark_path.relative_to(ROOT))}
-
-
-def update_readme(warnings: list[str]) -> None:
-    # Input
-    readme = ROOT / README_PATH
-
-    # Validation
-    if not readme.exists():
-        warnings.append(f"- README file `{README_PATH}` was not found. Burndown chart links were not injected.")
-        return
-
-    # Processing
-    text = readme.read_text()
-    start = "<!-- BURNDOWN:START -->"
-    end = "<!-- BURNDOWN:END -->"
-    latest_sprint_block = f"""
-### Latest Sprint Burndown
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="{RAW_ASSET_BASE}/latest-sprint-burndown-dark.svg">
-  <source media="(prefers-color-scheme: light)" srcset="{RAW_ASSET_BASE}/latest-sprint-burndown-light.svg">
-  <img alt="Latest Sprint Burndown" src="{RAW_ASSET_BASE}/latest-sprint-burndown-light.svg">
-</picture>
-"""
-
-    project_block = ""
-    if SHOW_PROJECT_BURNDOWN:
-        project_block = f"""
-### Project Burndown
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="{RAW_ASSET_BASE}/project-burndown-dark.svg">
-  <source media="(prefers-color-scheme: light)" srcset="{RAW_ASSET_BASE}/project-burndown-light.svg">
-  <img alt="Project Burndown" src="{RAW_ASSET_BASE}/project-burndown-light.svg">
-</picture>
-"""
-
-    block = f"""{start}
-{latest_sprint_block}
-{project_block}
-[Burndown process](docs/demo1/burndown/PROCESS.md)
-
-{end}"""
-
-    if start not in text or end not in text:
-        warnings.append(
-            f"- README file `{README_PATH}` does not contain both burndown markers. "
-            "Expected `<!-- BURNDOWN:START -->` and `<!-- BURNDOWN:END -->`. Appending a new burndown section."
-        )
-        text += f"\n\n## Burndown Charts\n\n{block}\n"
-    else:
-        text = re.sub(f"{re.escape(start)}.*?{re.escape(end)}", block, text, flags=re.DOTALL)
-
-    readme.write_text(text)
 
 
 def warn_about_non_sprint_milestones(milestones: list[dict[str, Any]], warnings: list[str]) -> None:
@@ -502,7 +457,7 @@ def write_sprint_outputs(
     # Processing
     rows = sprint_series(issues, start_date, end_date, as_of=today)
     base = ROOT / f"docs/demo{demo_no}/burndown"
-    name = f"sprint-{sprint_no}-burndown"
+    name = f"sprint-{sprint_no}-demo-{demo_no}-burndown"
 
     # Output
     write_csv(base / f"{name}.csv", rows)
@@ -516,7 +471,11 @@ def write_sprint_outputs(
             "series": rows,
         },
     )
-    chart_paths = write_themed_svgs(base / name, f"{milestone['title']} Burndown", rows)
+    chart_paths = (
+        write_themed_svgs(base / name, f"{milestone['title']} Burndown", rows)
+        if start_date <= today
+        else {}
+    )
 
     return {
         "sprint_no": sprint_no,
@@ -580,7 +539,7 @@ def write_project_outputs(generated_sprints: list[dict[str, Any]], today: date, 
     if SHOW_PROJECT_BURNDOWN:
         write_themed_svgs(ROOT / "docs/burndown/project-burndown", "Project Burndown", project_rows)
 
-    latest = max(generated_sprints, key=lambda sprint: (sprint["end"], sprint["demo_no"], sprint["sprint_no"]))
+    latest = select_latest_sprint(generated_sprints, today, warnings)
     latest_rows = sprint_series(latest["issues"], latest["start"], latest["end"], as_of=today)
     write_csv(ROOT / "docs/burndown/latest-sprint-burndown.csv", latest_rows)
     write_json(
@@ -596,7 +555,39 @@ def write_project_outputs(generated_sprints: list[dict[str, Any]], today: date, 
         },
     )
     write_themed_svgs(ROOT / "docs/burndown/latest-sprint-burndown", f"{latest['milestone']} Burndown", latest_rows)
-    update_readme(warnings)
+
+
+def select_latest_sprint(
+    generated_sprints: list[dict[str, Any]],
+    today: date,
+    warnings: list[str],
+) -> dict[str, Any]:
+    # Sprint end dates are inclusive for the configured local timezone. For
+    # example, a sprint ending on 2026-05-10 remains current until 23:59 SAST.
+    active_sprints = [
+        sprint for sprint in generated_sprints if sprint["start"] <= today <= sprint["end"]
+    ]
+    if active_sprints:
+        return max(active_sprints, key=lambda sprint: (sprint["end"], sprint["demo_no"], sprint["sprint_no"]))
+
+    started_sprints = [sprint for sprint in generated_sprints if sprint["start"] <= today]
+    if started_sprints:
+        latest_started = max(
+            started_sprints,
+            key=lambda sprint: (sprint["end"], sprint["demo_no"], sprint["sprint_no"]),
+        )
+        warnings.append(
+            f"- No sprint is active on {today} in SAST. "
+            f"Keeping latest started sprint `{latest_started['milestone']}` as the latest sprint burndown."
+        )
+        return latest_started
+
+    earliest = min(generated_sprints, key=lambda sprint: (sprint["start"], sprint["demo_no"], sprint["sprint_no"]))
+    warnings.append(
+        f"- No sprint has started by {today} in SAST. "
+        f"Using earliest sprint `{earliest['milestone']}` for the latest sprint burndown."
+    )
+    return earliest
 
 
 def main() -> int:
@@ -605,7 +596,7 @@ def main() -> int:
         raise RuntimeError("REPOSITORY must use the format `owner/repo`.")
 
     owner, repo = REPO.split("/", 1)
-    run_datetime = datetime.now(timezone.utc)
+    run_datetime = datetime.now(SAST)
     today = run_datetime.date()
     milestones = paged_rest(f"/repos/{owner}/{repo}/milestones?state=all")
     warnings: list[str] = []
@@ -628,7 +619,7 @@ def main() -> int:
     report.parent.mkdir(parents=True, exist_ok=True)
     report.write_text(
         "# Burndown Check Report\n\n"
-        + f"Last run: {run_datetime.strftime('%Y-%m-%d %H:%M:%S UTC')}\n\n"
+        + f"Last run: {run_datetime.strftime('%Y-%m-%d %H:%M:%S %Z')}\n\n"
         + ("\n".join(warnings) if warnings else "No issues found.")
         + "\n"
     )
