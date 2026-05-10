@@ -48,7 +48,9 @@ Administrator and campaign setup appear only as supporting context for assigning
 Current source/export:
 
 - `demo1-domain-model-(initial).drawio`
-- `demo1-domain-model-(initial).drawio.pdf`
+- `demo1-domain-model-(initial).svg`
+
+![Demo 1 domain model](<./demo1-domain-model-(initial).svg>)
 
 ### UML Class Diagram
 
