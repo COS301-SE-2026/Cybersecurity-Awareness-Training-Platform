@@ -23,15 +23,15 @@ Current SVG exports:
 
 ![Demo 1 use case overview](./demo1-use-cases-overview.svg)
 
-### UC-01: View Emails in Simulated Inbox
+### UC-01: View emails in simulated inbox
 
 ![UC-01 simulated inbox use case diagram](./demo1-use-cases-uc01-simulated-inbox.svg)
 
-### UC-02: View Training Document
+### UC-02: View training document
 
 ![UC-02 training document use case diagram](./demo1-use-cases-uc02-training-document.svg)
 
-### UC-03: Complete Quiz Flow
+### UC-03: Complete quiz flow
 
 ![UC-03 quiz flow use case diagram](./demo1-use-cases-uc03-quiz-flow.svg)
 
@@ -48,7 +48,9 @@ Administrator and campaign setup appear only as supporting context for assigning
 Current source/export:
 
 - `demo1-domain-model-(initial).drawio`
-- `demo1-domain-model-(initial).drawio.pdf`
+- `demo1-domain-model-(initial).svg`
+
+![Demo 1 domain model](<./demo1-domain-model-(initial).svg>)
 
 ### UML Class Diagram
 
