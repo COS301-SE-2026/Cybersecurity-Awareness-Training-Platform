@@ -1,0 +1,25 @@
+docs/demo1/diagrams/README.md
+  s_21c2f108012d7b::t_ed301349127576 26,30,34
+  s_21c2f108012d7b::t_a508f14d69bb5a 51-52
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "b81d2c40f645863d3787136f1c1ba5872bb5a2ac",
+  "prompts": {},
+  "humans": {
+    "h_1fff265ad32c51": {
+      "author": "FJNel <u24594475@tuks.co.za>"
+    }
+  },
+  "sessions": {
+    "s_21c2f108012d7b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e0e76-b56f-74f0-a17b-63a0f2d5720b",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
