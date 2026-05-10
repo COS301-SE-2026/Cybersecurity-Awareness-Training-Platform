@@ -1,0 +1,34 @@
+docs/demo1/diagrams/demo1-use-cases-uc01-simulated-inbox.svg
+  s_21c2f108012d7b::t_47a7eb2b613527 3
+docs/demo1/diagrams/demo1-use-cases-overview.svg
+  s_21c2f108012d7b::t_47a7eb2b613527 3
+docs/demo1/diagrams/use-case-overview-demo1.drawio
+  s_21c2f108012d7b::t_fc0722a7a3836e 139,160,202,265
+  s_21c2f108012d7b::t_49cf6418b69143 16,19,22,91,154,217
+  s_21c2f108012d7b::t_e64e1b8b314616 10,88,151,214
+docs/demo1/diagrams/demo1-use-cases-uc02-training-document.svg
+  s_21c2f108012d7b::t_c602e3a809a9ee 3
+docs/demo1/diagrams/demo1-use-cases-uc03-quiz-flow.svg
+  s_21c2f108012d7b::t_47a7eb2b613527 3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "d63d3bbdbcd86696e25018737931d55629602c6c",
+  "prompts": {},
+  "humans": {
+    "h_1fff265ad32c51": {
+      "author": "FJNel <u24594475@tuks.co.za>"
+    }
+  },
+  "sessions": {
+    "s_21c2f108012d7b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e0e76-b56f-74f0-a17b-63a0f2d5720b",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
