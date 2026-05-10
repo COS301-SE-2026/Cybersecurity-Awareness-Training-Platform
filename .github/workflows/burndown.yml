@@ -63,11 +63,22 @@ jobs:
           rm -rf docs/burndown
           cp -R "$GITHUB_WORKSPACE/docs/burndown" docs/burndown
 
-          if [ -z "$(git status --porcelain -- docs/burndown)" ]; then
+          for demo_burndown in "$GITHUB_WORKSPACE"/docs/demo*/burndown; do
+            if [ ! -d "$demo_burndown" ]; then
+              continue
+            fi
+
+            demo_dir="$(basename "$(dirname "$demo_burndown")")"
+            mkdir -p "docs/$demo_dir"
+            rm -rf "docs/$demo_dir/burndown"
+            cp -R "$demo_burndown" "docs/$demo_dir/burndown"
+          done
+
+          if [ -z "$(git status --porcelain -- docs/burndown docs/demo*/burndown)" ]; then
             echo "No burndown asset changes to publish."
             exit 0
           fi
 
-          git add docs/burndown
+          git add docs/burndown docs/demo*/burndown
           git commit -m "docs: automatically update burndown assets"
           git push origin "HEAD:$BURNDOWN_ASSET_BRANCH"
