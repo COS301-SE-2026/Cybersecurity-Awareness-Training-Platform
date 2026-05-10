@@ -12,21 +12,37 @@ Zoë owns the initial Figma frames and first-pass user-flow coverage.
 
 ### Register
 
+![Register page](Register.png)
+
 ### Login
+
+![Login page](Login.png)
 
 ### Learner/Employee Dashboard
 
 ### Simulated Inbox
 
+![Simulated Inbox](SimulatedInbox.png)
+
 ### Simulated Email Detail
+
+![Simulated Email Detail](SimulatedEmailDetail.png)
 
 ### Training Module List
 
+![Training Module List](TrainingModuleList.png)
+
 ### Training Material Page
+
+![Training Material Page](TrainingMaterialPage.png)
 
 ### Quiz Page
 
+![Quiz Page](QuizPage.png)
+
 ### Quiz Submission State
+
+![Quiz Submission Page](QuizSubmission.png)
 
 ### Quiz Results Page
 
