@@ -8,36 +8,38 @@ This document collects preliminary Demo 1 architecture, quality requirements, de
 
 ### UC-01: View Emails in Simulated Inbox
 
-The architecture supports retrieving and rendering a list of simulated emails assigned to the current user. It handles the display of phishing characteristics and tracks interaction events (e.g., email opened, simulated malicious link clicked) without integrating with real email infrastructure.
+The architecture supports retrieving and rendering a list of simulated emails assigned to the current trainee. It handles the display of phishing characteristics and tracks interaction events (e.g., email opened, simulated malicious link clicked) without integrating with real email infrastructure.
 
 ### UC-02: View Training Document
 
-The system supports fetching structured training content associated with the user's active assignments. The architecture ensures that training content is delivered reliably, with tracking for when a user views or completes reading the material.
+The system supports fetching structured training content associated with the trainee's active assignments. The architecture ensures that training content is delivered reliably, with tracking for when a trainee views or completes reading the material.
 
 ### UC-03: Complete Quiz Flow
 
-The architecture manages the state of a quiz attempt, including presenting questions, capturing user responses, evaluating the submission against correct answers, and persistently storing the result and score for future reporting.
+The architecture manages the state of a quiz attempt, including presenting questions, capturing trainee responses, evaluating the submission against correct answers, and persistently storing the result and score for future reporting.
+
+Architecture guidance in this document is preliminary and scoped to Demo 1 implementation planning. It should be read alongside `SRS.md`, `API.md`, `traceability.md`, and `testing.md`; it is not a final production architecture or deployment specification.
 
 ### Admin/Campaign Control Plane (Preliminary Context)
 
-The Admin Control Plane is documented as a preliminary orchestration layer to support the platform's employee-facing activities. It outlines the conceptual management of configuration and targeting for simulations and training modules.
+The Admin Control Plane is documented as a preliminary orchestration layer to support the platform's trainee-facing activities. It outlines the conceptual management of configuration and targeting for simulations and training modules.
 
-- **Campaign Orchestration**: Conceptual logic for managing campaign states (Draft, Active) to ensure content visibility for employees.
+- **Campaign Orchestration**: Conceptual logic for managing campaign states (Draft, Active) to ensure content visibility for trainees.
 - **Content Resolution**: A mechanism to map campaign configurations to simulation templates (UC-01) and training documents (UC-02).
-- **Assignment Mapping**: Conceptual mapping between campaigns and employee groups for targeted content delivery.
+- **Assignment Mapping**: Conceptual mapping between campaigns and trainee groups for targeted content delivery.
 - **Preliminary Telemetry (Future Scope)**: Future capability for aggregating interaction events (opens, clicks) for reporting and analytics.
 
 ## Quality Requirements (Rudolph)
 
 ### Security
 
-- **Authentication & Authorization**: API endpoints must verify user identity (e.g., JWT) before returning simulation or training data.
+- **Authentication & Authorization**: API endpoints must verify the authenticated account identity (e.g., JWT) before returning simulation or training data.
 - **Safe Simulated Data**: Simulated phishing content must be purely internal. No actual emails or SMS messages will be sent or received in Demo 1.
-- **Data Sanitization**: All user inputs, specifically quiz answers, must be validated and sanitized to prevent injection attacks.
+- **Data Sanitization**: All trainee inputs, specifically quiz answers, must be validated and sanitized to prevent injection attacks.
 
 ### Reliability
 
-- **Graceful Error Handling**: The frontend must handle API failures gracefully, displaying user-friendly error messages (e.g., if a training document fails to load).
+- **Graceful Error Handling**: The frontend must handle API failures gracefully, displaying trainee-friendly error messages (e.g., if a training document fails to load).
 - **Stateless API**: The Express backend should remain stateless, relying on the database for session and progress tracking to ensure consistent request handling.
 
 ### Maintainability
@@ -53,13 +55,13 @@ The Admin Control Plane is documented as a preliminary orchestration layer to su
 ### Scalability
 
 - **Event-Based Tracking**: Interaction events (opens, clicks) should be stored in a unified, append-only structure that can easily scale as the number of users and campaigns grows.
-- **Database Indexing**: Ensure appropriate indexing on user assignments and campaign IDs to maintain fast read times for the employee dashboard.
+- **Database Indexing**: Ensure appropriate indexing on trainee assignments and campaign IDs to maintain fast read times for the trainee dashboard.
 
 ### Usability and Accessibility
 
 - **Responsive Design**: The application must be fully usable on both desktop and mobile devices.
 - **Accessibility (a11y)**: All interactive elements (inbox items, quiz forms) must support keyboard navigation and screen readers.
-- **Clear Feedback**: Loading spinners and success/error toasts must be utilized to keep the user informed during asynchronous operations.
+- **Clear Feedback**: Loading spinners and success/error toasts must be utilized to keep the trainee informed during asynchronous operations.
 
 ### Testability
 
@@ -75,8 +77,8 @@ The platform utilizes a standard 3-tier client-server architecture consisting of
 
 ### Frontend Boundary
 
-- **Stack**: React (potentially via Vite) for building the user interface.
-- **Responsibilities**: Routing between the simulated inbox, training view, and quiz interface; managing local UI state; rendering data fetched from the API; handling user interactions.
+- **Stack**: React (potentially via Vite) for building the frontend interface.
+- **Responsibilities**: Routing between the simulated inbox, training view, and quiz interface; managing local UI state; rendering data fetched from the API; handling trainee interactions.
 - **Structure**: Housed in an `apps/frontend` directory within the monorepo.
 
 ### Backend API Boundary
@@ -88,7 +90,7 @@ The platform utilizes a standard 3-tier client-server architecture consisting of
 ### Database Boundary
 
 - **Stack**: Relational Database (e.g., PostgreSQL) managed via Prisma ORM.
-- **Responsibilities**: Persistent storage of users, campaigns, simulation content, training modules, and interaction telemetry.
+- **Responsibilities**: Persistent storage of `User` records, campaigns, simulation content, training modules, and interaction telemetry.
 - **Usage**: Prisma acts as the single source of truth for the data model, generating type-safe database clients for the backend.
 
 ### Shared Types and Constants
@@ -108,7 +110,7 @@ To support diverse simulation formats cleanly, the backend will leverage a **Str
 
 #### Template/Configuration Pattern for Simulation Content
 
-Simulation content is stored using a **Template/Configuration Pattern**. The base campaign assigns a generic "Simulation Context," which references a configurable template (e.g., an Email Template with placeholders for sender, subject, and payload links). The frontend dynamically renders this template. This avoids duplicating static content for every user while allowing campaign-specific overrides.
+Simulation content is stored using a **Template/Configuration Pattern**. The base campaign assigns a generic "Simulation Context," which references a configurable template (e.g., an Email Template with placeholders for sender, subject, and payload links). The frontend dynamically renders this template. This avoids duplicating static content for every trainee while allowing campaign-specific overrides.
 
 ### Email Simulation
 
@@ -120,7 +122,7 @@ The modular design guarantees that adding a "Smishing" (SMS), voice, or even AI-
 
 ### Training Module and Quiz Separation
 
-Training content (reading material/videos) and Quizzes (assessments) are modeled as distinct but linkable entities. A user can complete the training module, which may optionally unlock or direct them to a related quiz. This ensures quizzes can exist independently or be attached to varied learning paths.
+Training content (reading material/videos) and quizzes (assessments) are modeled as distinct but linkable entities. A trainee can complete the training module, which may optionally unlock or direct them to a related quiz. This ensures quizzes can exist independently or be attached to varied learning paths.
 
 ### Architectural Data Patterns
 
@@ -134,11 +136,11 @@ To enforce a strong contract between the React frontend and Express backend, we 
 
 ### Interaction Event Tracking
 
-A unified `InteractionEvent` pattern is used to track all user activity using **Event-Style Interaction Logging**. Instead of updating a boolean flag on an assignment, the system logs discrete events (e.g., `type: 'LINK_CLICKED', timestamp: '...'`). This append-only logging pattern creates an immutable audit trail, which is crucial for future reporting, analytics, and adaptive learning extensions.
+A unified `InteractionEvent` pattern is used to track trainee activity using **Event-Style Interaction Logging**. Instead of updating a boolean flag on an assignment, the system logs discrete events (e.g., `type: 'LINK_CLICKED', timestamp: '...'`). This append-only logging pattern creates an immutable audit trail for future reporting, analytics, and adaptive learning extensions.
 
 ### Progress Tracking
 
-User progress through a campaign is derived dynamically by aggregating their `InteractionEvents` against the assigned simulations and training modules, rather than storing brittle, hard-coded progress states.
+Trainee progress through a campaign is derived dynamically by aggregating their `InteractionEvents` against the assigned simulations and training modules, rather than storing brittle, hard-coded progress states.
 
 ### Safe Handling of Simulated Phishing Interactions
 
@@ -208,7 +210,7 @@ Simulations and training modules are decoupled from campaigns through a linking 
 - **Constraint**: Simulated phishing emails exist solely as database records rendered by the React frontend. No actual emails may be sent to or received from any external mail server.
 - Simulated email content (sender labels, subject lines, body HTML, and payload links) must be authored, seeded, and fully controlled within the project repository.
 - Simulated phishing links inside email bodies must route to internal frontend feedback routes (e.g., `/phishing-feedback`) and must never point to real external URLs.
-- The UI must make it clear to the Learner/Employee that the inbox is a simulated environment. Wording such as "Simulated Inbox" or equivalent must be present on the screen.
+- The UI must make it clear to the trainee that the inbox is a simulated environment. Wording such as "Simulated Inbox" or equivalent must be present on the screen.
 
 ### Training Document Content
 
@@ -219,19 +221,19 @@ Simulations and training modules are decoupled from campaigns through a linking 
 
 ### Quiz Attempts and Results
 
-- A quiz attempt is created when the Learner/Employee starts the quiz (`POST /quizzes/:quizId/attempts`) and submitted when they complete it (`POST /quiz-attempts/:attemptId/submit`).
+- A quiz attempt is created when the trainee starts the quiz (`POST /quizzes/:quizId/attempts`) and submitted when they complete it (`POST /quiz-attempts/:attemptId/submit`).
 - The backend must prevent duplicate submissions for the same attempt. A `409 Conflict` response must be returned if a submit is attempted on an already-submitted attempt.
 - Quiz results must be stored persistently in the database and retrievable via `GET /quiz-attempts/:attemptId/results`.
 - Score calculation must be performed server-side. The frontend must not calculate or modify scores.
-- Question-level feedback (correct/incorrect + explanation) must be returned in the results response and displayed to the Learner/Employee in plain, educational language.
+- Question-level feedback (correct/incorrect + explanation) must be returned in the results response and displayed to the trainee in plain, educational language.
 - Quiz content must be seeded for Demo 1 and aligned with the linked training document.
 
 ### Data Privacy and Sensitive Input Handling
 
-- **Constraint**: No real user credentials, passwords, or sensitive personal data captured during simulated phishing interactions may be stored in the database, logged to the console, or transmitted anywhere.
+- **Constraint**: No real trainee credentials, passwords, or sensitive personal data captured during simulated phishing interactions may be stored in the database, logged to the console, or transmitted anywhere.
 - Interaction events (e.g., `EMAIL_OPENED`, `LINK_CLICKED`) must capture only the event type, timestamp, and linked entity IDs. No message content, typed input, or credential data may be stored in an event record.
 - User passwords must be hashed using a standard algorithm (e.g., bcrypt) before storage. Plain-text passwords must never appear in logs or API responses.
-- Future analytics or reporting features must be designed so that individual user activity cannot be exposed outside their designated administrative group. This is a constraint for future design, not an implementation requirement for Demo 1.
+- Future analytics or reporting features must be designed so that individual trainee activity cannot be exposed outside their designated administrative group. This is a constraint for future design, not an implementation requirement for Demo 1.
 
 ### Open-Source and Project Repository Expectations
 

@@ -10,19 +10,23 @@ The purpose of this plan is to align implementation work with what must be demon
 
 ### UC-01: View Emails in Simulated Inbox
 
-Covers the Learner/Employee viewing a simulated inbox, seeing simulated email summaries, opening a simulated email, and reviewing the email detail content.
+Covers the trainee viewing a simulated inbox, seeing simulated email summaries, opening a simulated email, and reviewing the email detail content.
 
 ### UC-02: View Training Document
 
-Covers the Learner/Employee opening training content, reading a training document, and navigating through the training material needed for Demo 1.
+Covers the trainee opening training content, reading a training document, and navigating through the training material needed for Demo 1.
 
 ### UC-03: Complete Quiz Flow
 
-Covers the Learner/Employee opening a quiz, answering questions, submitting the quiz, and viewing the submission/result state.
+Covers the trainee opening a quiz, answering questions, submitting the quiz, and viewing the submission/result state.
 
 ### Base Feature: Login/Register
 
-Covers the basic authentication screens needed to access the Demo 1 Learner/Employee flow.
+Covers the basic authentication screens needed to access the Demo 1 trainee flow.
+
+### Base Feature: Basic Themes
+
+Covers visual consistency for the Demo 1 screens, including brand colours, typography, spacing, and component styling. This remains a base feature and does not create a separate Demo 1 use case.
 
 ### Base Feature: General Form Validation
 
@@ -32,13 +36,13 @@ Covers common validation behaviour for login, registration, quiz submission, and
 
 ### Success Scenarios
 
-- The authenticated Learner/Employee can open the simulated inbox.
+- The authenticated trainee can open the simulated inbox.
 - The inbox displays a list of simulated email summaries.
 - Each simulated email summary shows key information such as sender, subject, preview text, and received date/time where available.
-- The user can select an email from the inbox list.
+- The trainee can select an email from the inbox list.
 - The selected email opens in a detail view.
 - The email detail view displays the simulated email content clearly.
-- The user can navigate back from the email detail view to the inbox.
+- The trainee can navigate back from the email detail view to the inbox.
 - The inbox and email detail screens use the agreed Demo 1 layout and visual styling.
 
 ### Negative and Error Scenarios
@@ -48,14 +52,14 @@ Covers common validation behaviour for login, registration, quiz submission, and
 - Simulated inbox data fails to load.
 - A selected email cannot be found.
 - A selected email detail request fails.
-- The user attempts to access the inbox without being authenticated.
+- The trainee attempts to access the inbox without being authenticated.
 - Email summary data is incomplete or missing optional fields.
 - Email detail content is unavailable or malformed.
 - The inbox page must not imply that real emails are being sent or received.
 
 ### Suggested Automated Test Level
 
-- Frontend tests for inbox rendering, states, and user interaction.
+- Frontend tests for inbox rendering, states, and trainee interaction.
 - Backend integration tests for simulated inbox and email detail endpoints.
 - End-to-end tests for the complete inbox-to-detail demo path.
 - Manual verification for demo readiness, readability, and seeded data quality.
@@ -91,12 +95,12 @@ Before Demo 1, manually verify that:
 
 ### Success Scenarios
 
-- The authenticated Learner/Employee can open the training area.
+- The authenticated trainee can open the training area.
 - The system displays available Demo 1 training material.
-- The user can open a training document.
+- The trainee can open a training document.
 - The training document displays a clear title and readable body content.
-- The user can navigate through or return from the training document as expected.
-- The user can continue from training material toward the quiz flow where applicable.
+- The trainee can navigate through or return from the training document as expected.
+- The trainee can continue from training material toward the quiz flow where applicable.
 - The training material screen uses the agreed Demo 1 layout and visual styling.
 
 ### Negative and Error Scenarios
@@ -106,7 +110,7 @@ Before Demo 1, manually verify that:
 - Training content fails to load.
 - The selected training document cannot be found.
 - Training document content is incomplete.
-- The user attempts to access training material without being authenticated.
+- The trainee attempts to access training material without being authenticated.
 - Long training content causes layout or readability issues.
 - Training material accidentally introduces future features outside Demo 1 scope.
 
@@ -139,19 +143,19 @@ Before Demo 1, manually verify that:
 - The training screen layout matches the documented design baseline.
 - Navigation into and out of the training document is clear.
 - The flow does not imply advanced adaptive learning, reporting, or gamified progression.
-- The training document supports the Demo 1 Learner/Employee journey without expanding scope.
+- The training document supports the Demo 1 trainee journey without expanding scope.
 
 ## UC-03 Test Planning: Quiz Flow (Zoë)
 
 ### Success Scenarios
 
-- The authenticated Learner/Employee can open the quiz page.
+- The authenticated trainee can open the quiz page.
 - The quiz page displays questions and available answer options.
-- The user can select answers.
-- The user can submit the quiz once required answers are provided.
+- The trainee can select answers.
+- The trainee can submit the quiz once required answers are provided.
 - The system shows a clear submission/loading state where applicable.
 - The system displays quiz results or completion feedback.
-- The user can understand that the quiz flow has been completed.
+- The trainee can understand that the quiz flow has been completed.
 - The quiz flow uses the agreed Demo 1 layout and visual styling.
 
 ### Negative and Error Scenarios
@@ -159,11 +163,11 @@ Before Demo 1, manually verify that:
 - Quiz data is still loading.
 - Quiz data fails to load.
 - The quiz has no available questions.
-- The user attempts to submit without answering required questions.
-- The user submits invalid answer data.
+- The trainee attempts to submit without answering required questions.
+- The trainee submits invalid answer data.
 - Quiz submission fails.
 - Quiz result data cannot be loaded.
-- The user attempts to access the quiz without being authenticated.
+- The trainee attempts to access the quiz without being authenticated.
 - The quiz flow accidentally introduces advanced scoring, gamification, or adaptive learning behaviour.
 
 ### Suggested Automated Test Level
@@ -208,10 +212,10 @@ Before Demo 1, manually verify that:
 
 #### Success Scenarios
 
-- A new user can register with valid information where registration is included in the Demo 1 flow.
-- An existing user can log in with valid credentials.
-- Successful login redirects the user to the appropriate Demo 1 Learner/Employee area.
-- Authenticated users can access the simulated inbox, training material, and quiz flow.
+- A new trainee can register with valid information where registration is included in the Demo 1 flow.
+- An existing trainee can log in with valid credentials.
+- Successful login redirects the trainee to the appropriate Demo 1 trainee area.
+- Authenticated trainees can access the simulated inbox, training material, and quiz flow.
 - Authentication state is handled consistently during navigation.
 
 #### Negative and Error Scenarios
@@ -222,7 +226,7 @@ Before Demo 1, manually verify that:
 - Login credentials are incorrect.
 - Registration details are already in use.
 - Authentication request fails.
-- Unauthenticated users attempt to access protected Demo 1 pages.
+- Unauthenticated trainees attempt to access protected Demo 1 pages.
 
 #### Suggested Test Levels
 
@@ -243,8 +247,8 @@ Future automated tests should cover:
 - Successful login using seeded demo credentials.
 - Successful registration where applicable.
 - Rejecting invalid login/register requests.
-- Redirecting authenticated users to the Demo 1 Learner/Employee area.
-- Blocking or redirecting unauthenticated users from protected Demo 1 screens.
+- Redirecting authenticated trainees to the Demo 1 trainee area.
+- Blocking or redirecting unauthenticated trainees from protected Demo 1 screens.
 
 #### Manual Demo Verification Notes
 
@@ -255,7 +259,43 @@ Before Demo 1, manually verify that:
 - Register works only if it is part of the planned demo flow.
 - Authentication errors are understandable.
 - Auth screens follow the agreed visual design baseline.
-- Authentication does not block the main Demo 1 Learner/Employee journey.
+- Authentication does not block the main Demo 1 trainee journey.
+
+### Basic Themes
+
+#### Success Scenarios
+
+- Demo 1 screens use the agreed brand colour palette consistently.
+- Typography hierarchy is readable and consistent across authentication, inbox, training, quiz, and feedback screens.
+- Buttons, cards, form fields, validation messages, and navigation elements follow the shared component styling direction.
+- Visual styling supports the trainee flow without introducing unrelated production theming behaviour.
+
+#### Negative and Error Scenarios
+
+- A Demo 1 screen uses inconsistent colours, typography, or spacing.
+- Feedback or validation states are styled in a way that reduces readability.
+- Theme styling suggests unsupported runtime theme switching or unrelated production brand features.
+
+#### Suggested Test Levels
+
+- Frontend visual/component checks for shared UI styling.
+- Manual review against `DESIGN.md` brand and component guidance.
+
+#### Suggested Automated Test Coverage
+
+Future automated tests should cover:
+
+- Rendering shared buttons, fields, cards, and feedback states with expected class names or design tokens where available.
+- Confirming visible text remains readable against the selected background colours.
+- Checking that core Demo 1 screens use the shared component styling consistently.
+
+#### Manual Demo Verification Notes
+
+Before Demo 1, manually verify that:
+
+- Login/register, simulated inbox, training document, quiz, and results screens look visually consistent.
+- Theme choices do not make validation, loading, success, warning, or error states hard to read.
+- Basic theme work remains supporting UI polish and is not presented as a separate Demo 1 use case.
 
 ### General Form Validation
 
@@ -263,8 +303,8 @@ Before Demo 1, manually verify that:
 
 - Required fields show validation when missing.
 - Invalid field formats are rejected.
-- Valid input allows the user to continue.
-- Validation messages are clear and user-facing.
+- Valid input allows the trainee to continue.
+- Validation messages are clear and trainee-facing.
 - Validation works consistently across login, register, and quiz forms.
 - Backend validation errors are displayed clearly where applicable.
 
@@ -276,7 +316,7 @@ Before Demo 1, manually verify that:
 - Quiz questions requiring answers are left unanswered.
 - Invalid form payloads are submitted.
 - Backend validation errors are returned.
-- A user submits the same form repeatedly while a request is in progress.
+- A trainee submits the same form repeatedly while a request is in progress.
 
 #### Suggested Test Levels
 
@@ -321,7 +361,7 @@ Examples:
 - Quiz scoring helpers where applicable.
 - Request/response mapping helpers where applicable.
 
-Unit tests should stay focused and should not duplicate full user flows.
+Unit tests should stay focused and should not duplicate full trainee flows.
 
 ### Integration
 
@@ -339,7 +379,7 @@ Integration tests should be used where simple unit tests cannot verify the behav
 
 ### Frontend
 
-Frontend tests should verify that UI screens render correctly and respond to user interaction.
+Frontend tests should verify that UI screens render correctly and respond to trainee interaction.
 
 Examples:
 
@@ -351,7 +391,7 @@ Examples:
 - Form validation messages.
 - Loading, empty, error, and submission states.
 
-Frontend tests should support confidence that the user-visible Demo 1 flow behaves correctly.
+Frontend tests should support confidence that the trainee-visible Demo 1 flow behaves correctly.
 
 ### Backend
 
@@ -373,7 +413,7 @@ End-to-end tests should cover only the most important Demo 1 paths.
 
 Suggested future E2E paths:
 
-- Login and access Demo 1 Learner/Employee area.
+- Login and access Demo 1 trainee area.
 - Open simulated inbox and view simulated email detail.
 - Open training material and continue toward quiz.
 - Complete quiz and view result/completion feedback.
@@ -432,6 +472,7 @@ Suggested mapping:
 | UC-02: View Training Document         | `docs/demo1/SRS.md` UC-02 section         | `QA-UC02-01` to `QA-UC02-05`             |
 | UC-03: Complete Quiz Flow             | `docs/demo1/SRS.md` UC-03 section         | `QA-UC03-01` to `QA-UC03-05`             |
 | Login/Register                        | `docs/demo1/SRS.md` base features section | `QA-AUTH-01` to `QA-AUTH-05`             |
+| Basic Themes                          | `docs/demo1/SRS.md` base features section | `QA-THEME-01` to `QA-THEME-03`           |
 | General Form Validation               | `docs/demo1/SRS.md` base features section | `QA-VALIDATION-01` to `QA-VALIDATION-05` |
 
 ### Traceability Rows
@@ -460,6 +501,9 @@ The following rows are placeholders for later integration with actual automated 
 | `QA-AUTH-03`       | Login/Register          | Login/register validation states                   | `apps/frontend/tests/base-auth`                  |
 | `QA-AUTH-04`       | Login/Register          | Authentication error handling                      | `apps/backend/tests/base-auth`                   |
 | `QA-AUTH-05`       | Login/Register          | Protected Demo 1 page access                       | `apps/frontend/tests/e2e/base-auth`              |
+| `QA-THEME-01`      | Basic Themes            | Shared colour, typography, and spacing consistency | `apps/frontend/tests/base-theme`                 |
+| `QA-THEME-02`      | Basic Themes            | Shared component styling for Demo 1 screens        | `apps/frontend/tests/base-theme`                 |
+| `QA-THEME-03`      | Basic Themes            | Readable feedback and validation visual states     | `apps/frontend/tests/base-theme`                 |
 | `QA-VALIDATION-01` | General Form Validation | Required field validation                          | `apps/frontend/tests/base-form-validation`       |
 | `QA-VALIDATION-02` | General Form Validation | Invalid format validation                          | `apps/frontend/tests/base-form-validation`       |
 | `QA-VALIDATION-03` | General Form Validation | Quiz required-answer validation                    | `apps/frontend/tests/uc03-quiz-flow`             |

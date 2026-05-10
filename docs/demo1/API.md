@@ -32,7 +32,7 @@ Where the API uses practical route names such as `trainingId` or `emailId`, thes
 
 ### `POST /auth/register`
 
-- **Purpose**: Registers a new Learner/Employee user in the system.
+- **Purpose**: Registers a new trainee account in the system.
 - **Related Use Case / Base Feature**: Base Feature: Login/Register
 - **Method & Route**: `POST /auth/register`
 - **Expected Request Data**:
@@ -49,7 +49,7 @@ Where the API uses practical route names such as `trainingId` or `emailId`, thes
 
 ### `POST /auth/login`
 
-- **Purpose**: Authenticates an existing user and returns a session token.
+- **Purpose**: Authenticates an existing account and returns a session token.
 - **Related Use Case / Base Feature**: Base Feature: Login/Register
 - **Method & Route**: `POST /auth/login`
 - **Expected Request Data**:
@@ -82,12 +82,12 @@ Where the API uses practical route names such as `trainingId` or `emailId`, thes
 - **Linked Domain Entities**: Not domain-specific (applies globally).
 - **Related Requirement IDs**: SRS validation sections (QA-VALIDATION placeholders).
 
-## UC-01: Simulated Inbox Contracts
+## UC-01: View Emails in Simulated Inbox Contracts
 
 ### `GET /simulations/inbox`
 
-- **Purpose**: Retrieves a summary list of simulated emails assigned to the authenticated Learner/Employee.
-- **Related Use Case / Base Feature**: UC-01: View emails in simulated inbox
+- **Purpose**: Retrieves a summary list of simulated emails assigned to the authenticated trainee.
+- **Related Use Case / Base Feature**: UC-01: View Emails in Simulated Inbox
 - **Method & Route**: `GET /simulations/inbox`
 - **Expected Request Data**: None (Relies on auth context)
 - **Expected Response Data**:
@@ -113,7 +113,7 @@ Where the API uses practical route names such as `trainingId` or `emailId`, thes
 ### `GET /simulations/emails/:emailId`
 
 - **Purpose**: Retrieves the detailed content of a specific simulated email.
-- **Related Use Case / Base Feature**: UC-01: View emails in simulated inbox
+- **Related Use Case / Base Feature**: UC-01: View Emails in Simulated Inbox
 - **Method & Route**: `GET /simulations/emails/:emailId`
 - **Expected Request Data**: URL Param `emailId`
 - **Expected Response Data**:
@@ -139,7 +139,7 @@ Where the API uses practical route names such as `trainingId` or `emailId`, thes
 ### `POST /simulations/emails/:emailId/interactions`
 
 - **Purpose**: Records a lightweight interaction event (e.g., opened, link clicked) for a simulated email.
-- **Related Use Case / Base Feature**: UC-01: View emails in simulated inbox
+- **Related Use Case / Base Feature**: UC-01: View Emails in Simulated Inbox
 - **Method & Route**: `POST /simulations/emails/:emailId/interactions`
 - **Expected Request Data**:
   - `eventType` (enum: "EMAIL_OPENED", "LINK_CLICKED", required)
@@ -150,12 +150,12 @@ Where the API uses practical route names such as `trainingId` or `emailId`, thes
 - **Linked Domain Entities**: `InteractionEvent`, `SimulatedEmail`
 - **Related Requirement IDs**: FR-UC01-04, TRK-UC01-01, API-UC01-03
 
-## UC-02: Training Document Contracts
+## UC-02: View Training Document Contracts
 
 ### `GET /training/assigned`
 
-- **Purpose**: Retrieves a list of training documents assigned to the learner.
-- **Related Use Case / Base Feature**: UC-02: View training document
+- **Purpose**: Retrieves a list of training documents assigned to the trainee.
+- **Related Use Case / Base Feature**: UC-02: View Training Document
 - **Method & Route**: `GET /training/assigned`
 - **Expected Request Data**: None (Relies on auth context)
 - **Expected Response Data**:
@@ -180,7 +180,7 @@ Where the API uses practical route names such as `trainingId` or `emailId`, thes
 ### `GET /training/:trainingId`
 
 - **Purpose**: Retrieves the full content of a specific training document.
-- **Related Use Case / Base Feature**: UC-02: View training document
+- **Related Use Case / Base Feature**: UC-02: View Training Document
 - **Method & Route**: `GET /training/:trainingId`
 - **Expected Request Data**: URL Param `trainingId`
 - **Expected Response Data**:
@@ -200,8 +200,8 @@ Where the API uses practical route names such as `trainingId` or `emailId`, thes
 
 ### `POST /training/:trainingId/progress`
 
-- **Purpose**: Records learner progression or interaction with a training document.
-- **Related Use Case / Base Feature**: UC-02: View training document
+- **Purpose**: Records trainee progression or interaction with a training document.
+- **Related Use Case / Base Feature**: UC-02: View Training Document
 - **Method & Route**: `POST /training/:trainingId/progress`
 - **Expected Request Data**:
   - `status` (enum: "STARTED", "VIEWED", "COMPLETED", required)
@@ -212,12 +212,12 @@ Where the API uses practical route names such as `trainingId` or `emailId`, thes
 - **Linked Domain Entities**: `TrainingProgress`, `InteractionEvent`
 - **Related Requirement IDs**: FR-UC02-04, API-UC02-03
 
-## UC-03: Quiz Flow Contracts
+## UC-03: Complete Quiz Flow Contracts
 
 ### `GET /quizzes/:quizId`
 
 - **Purpose**: Retrieves the content and structure of a quiz before starting an attempt.
-- **Related Use Case / Base Feature**: UC-03: Complete quiz flow
+- **Related Use Case / Base Feature**: UC-03: Complete Quiz Flow
 - **Method & Route**: `GET /quizzes/:quizId`
 - **Expected Request Data**: URL Param `quizId`
 - **Expected Response Data**:
@@ -243,8 +243,8 @@ Where the API uses practical route names such as `trainingId` or `emailId`, thes
 
 ### `POST /quizzes/:quizId/attempts`
 
-- **Purpose**: Creates a new attempt session when the learner starts the quiz.
-- **Related Use Case / Base Feature**: UC-03: Complete quiz flow
+- **Purpose**: Creates a new attempt session when the trainee starts the quiz.
+- **Related Use Case / Base Feature**: UC-03: Complete Quiz Flow
 - **Method & Route**: `POST /quizzes/:quizId/attempts`
 - **Expected Request Data**: None
 - **Expected Response Data**:
@@ -257,7 +257,7 @@ Where the API uses practical route names such as `trainingId` or `emailId`, thes
 ### `POST /quiz-attempts/:attemptId/submit`
 
 - **Purpose**: Submits the final answers for a quiz attempt and calculates the result.
-- **Related Use Case / Base Feature**: UC-03: Complete quiz flow
+- **Related Use Case / Base Feature**: UC-03: Complete Quiz Flow
 - **Method & Route**: `POST /quiz-attempts/:attemptId/submit`
 - **Expected Request Data**:
   - `answers` (array of objects containing `questionId` and `answerValue`)
@@ -272,7 +272,7 @@ Where the API uses practical route names such as `trainingId` or `emailId`, thes
 ### `GET /quiz-attempts/:attemptId/results`
 
 - **Purpose**: Retrieves the results and educational feedback for a submitted attempt.
-- **Related Use Case / Base Feature**: UC-03: Complete quiz flow
+- **Related Use Case / Base Feature**: UC-03: Complete Quiz Flow
 - **Method & Route**: `GET /quiz-attempts/:attemptId/results`
 - **Expected Request Data**: URL Param `attemptId`
 - **Expected Response Data**:
@@ -306,7 +306,7 @@ These references do not introduce final analytics dashboards, final risk scoring
 | --------------- | ------------------------------------------------ | ------------------------ | ------------------------------------------------------------------------------------------ | -------------------------------------------------------- |
 | API-TRK-01      | `POST /simulations/emails/:emailId/interactions` | UC-01                    | Records lightweight simulated email interaction events, such as opening a simulated email. | `FR-UC01-04`, `TRK-UC01-01`, `TRK-UC01-02`               |
 | API-TRK-02      | `POST /training/:trainingId/progress`            | UC-02                    | Records basic training document progress or viewed status.                                 | `FR-UC02-04`, `TRK-UC02-01`, `TRK-UC02-02`               |
-| API-TRK-03      | `POST /quizzes/:quizId/attempts`                 | UC-03                    | Creates a quiz attempt when the Learner/Employee starts a quiz.                            | `FR-UC03-03`, `TRK-UC03-01`                              |
+| API-TRK-03      | `POST /quizzes/:quizId/attempts`                 | UC-03                    | Creates a quiz attempt when the trainee starts a quiz.                                     | `FR-UC03-03`, `TRK-UC03-01`                              |
 | API-TRK-04      | `POST /quiz-attempts/:attemptId/submit`          | UC-03                    | Submits quiz answers and marks the quiz attempt as submitted.                              | `FR-UC03-06`, `TRK-UC03-02`, `TRK-UC03-03`               |
 | API-TRK-05      | `GET /quiz-attempts/:attemptId/results`          | UC-03                    | Retrieves quiz result and educational feedback for a submitted attempt.                    | `FR-UC03-07`, `FR-UC03-08`, `TRK-UC03-04`, `TRK-UC03-05` |
 | API-TRK-06      | Future reporting endpoint placeholder            | Future reporting support | May later retrieve aggregated interaction, progress, quiz, or risk summary data.           | `RPT-DEMO1-01` to `RPT-DEMO1-06`                         |
@@ -359,7 +359,7 @@ These references do not introduce final analytics dashboards, final risk scoring
 
 ### `POST /campaigns/:campaignId/assign`
 
-- **Purpose**: Links one or more users to a campaign for training delivery. Organisation-based assignments may target company-linked employees, while premade/general campaigns may target GeneralLearner users.
+- **Purpose**: Links one or more `User` records to a campaign for training delivery. Organisation-based assignments may target company-linked trainee accounts, while premade/general campaigns may target general trainee accounts.
 - **Related Use Case / Base Feature**: Admin Context (Supporting Context)
 - **Method & Route**: `POST /campaigns/:campaignId/assign`
 - **Expected Request Data**:
@@ -374,7 +374,7 @@ These references do not introduce final analytics dashboards, final risk scoring
 
 ## QA and Testing Expectations
 
-- **Reviewable Code**: QA can review these contracts against frontend logic to verify error states (like `400 Bad Request` or `404 Not Found`) are properly mapped to user-facing messages.
+- **Reviewable Code**: QA can review these contracts against frontend logic to verify error states (like `400 Bad Request` or `404 Not Found`) are properly mapped to trainee-facing messages.
 - **Mock Responses**: The exact JSON structures above should be used by developers and QA to build and test frontend mock servers before the backend is fully implemented.
 
 ## Cross-References
