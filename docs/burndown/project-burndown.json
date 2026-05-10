@@ -8,6 +8,13 @@
       "end": "2026-05-10",
       "issues": [
         {
+          "number": 96,
+          "title": "chore: publish explicit per-demo burndown assets",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
           "number": 59,
           "title": "chore: improve CI workflow labels and burndown trigger",
           "points": 2,
@@ -46,22 +53,22 @@
           "number": 24,
           "title": "[review] Review Demo 1 documentation for consistency and scope",
           "points": 3,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-05-10"
         },
         {
           "number": 23,
           "title": "[traceability] Build Demo 1 traceability table",
           "points": 5,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-05-10"
         },
         {
           "number": 22,
           "title": "[srs] Integrate Demo 1 SRS feature slices",
           "points": 3,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-05-10"
         },
         {
           "number": 21,
@@ -205,6 +212,13 @@
       "start": "2026-05-11",
       "end": "2026-05-20",
       "issues": [
+        {
+          "number": 95,
+          "title": "test: Verify Demo 1 seed data and database reset before rehearsal",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
         {
           "number": 94,
           "title": "feat: [frontend] Implement guided onboarding process (Stretch Goal)",
@@ -421,68 +435,73 @@
   "series": [
     {
       "date": "2026-04-27",
-      "remaining": 163,
-      "ideal": 163.0
+      "remaining": 167,
+      "ideal": 167.0
     },
     {
       "date": "2026-04-28",
-      "remaining": 160,
-      "ideal": 155.91
+      "remaining": 164,
+      "ideal": 159.74
     },
     {
       "date": "2026-04-29",
-      "remaining": 160,
-      "ideal": 148.83
+      "remaining": 164,
+      "ideal": 152.48
     },
     {
       "date": "2026-04-30",
-      "remaining": 149,
-      "ideal": 141.74
+      "remaining": 153,
+      "ideal": 145.22
     },
     {
       "date": "2026-05-01",
-      "remaining": 144,
-      "ideal": 134.65
+      "remaining": 148,
+      "ideal": 137.96
     },
     {
       "date": "2026-05-02",
-      "remaining": 144,
-      "ideal": 127.57
+      "remaining": 148,
+      "ideal": 130.7
     },
     {
       "date": "2026-05-03",
-      "remaining": 138,
-      "ideal": 120.48
+      "remaining": 142,
+      "ideal": 123.43
     },
     {
       "date": "2026-05-04",
-      "remaining": 138,
-      "ideal": 113.39
+      "remaining": 142,
+      "ideal": 116.17
     },
     {
       "date": "2026-05-05",
-      "remaining": 137,
-      "ideal": 106.3
+      "remaining": 141,
+      "ideal": 108.91
     },
     {
       "date": "2026-05-06",
-      "remaining": 137,
-      "ideal": 99.22
+      "remaining": 141,
+      "ideal": 101.65
     },
     {
       "date": "2026-05-07",
-      "remaining": 134,
-      "ideal": 92.13
+      "remaining": 138,
+      "ideal": 94.39
     },
     {
       "date": "2026-05-08",
-      "remaining": 120,
-      "ideal": 85.04
+      "remaining": 124,
+      "ideal": 87.13
     },
     {
       "date": "2026-05-09",
-      "remaining": 104,
-      "ideal": 77.96
+      "remaining": 108,
+      "ideal": 79.87
+    },
+    {
+      "date": "2026-05-10",
+      "remaining": 97,
+      "ideal": 72.61
     }
   ]
 }

@@ -6,6 +6,13 @@
   "end": "2026-05-20",
   "issues": [
     {
+      "number": 95,
+      "title": "test: Verify Demo 1 seed data and database reset before rehearsal",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
       "number": 94,
       "title": "feat: [frontend] Implement guided onboarding process (Stretch Goal)",
       "points": 3,
@@ -219,8 +226,8 @@
   "series": [
     {
       "date": "2026-05-11",
-      "remaining": 78,
-      "ideal": 78.0
+      "remaining": 80,
+      "ideal": 80.0
     }
   ]
 }
