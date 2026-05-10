@@ -6,6 +6,12 @@ This document collects Demo 1 design guidance, brand direction, UI rules, traine
 
 ## Demo 1 Design Scope
 
+Demo 1 design guidance is limited to the trainee-facing demonstration flow and the base authentication screens needed to access it. The design should support review, wireframe planning, and implementation discussion without becoming a full design system.
+
+Base feature screens are separate from the Demo 1 core use cases. Register and Login support access to the platform, while UC-01, UC-02, and UC-03 describe the trainee journey inside Demo 1.
+
+Future-facing or supporting ideas should be clearly labelled so they do not expand the Demo 1 implementation scope.
+
 ### UC-01: View Emails in Simulated Inbox
 
 ### UC-02: View Training Document
@@ -13,6 +19,10 @@ This document collects Demo 1 design guidance, brand direction, UI rules, traine
 ### UC-03: Complete Quiz Flow
 
 ### Base Feature Screens
+
+Base feature screens include Register and Login only. These screens support Demo 1 access but should not be treated as separate Demo 1 core use cases.
+
+Validation on base feature screens should be practical and trainee-facing. Examples include missing required fields, invalid email format, password requirements, incorrect login details, and temporary authentication errors.
 
 ## Brand Style Guide (Connor)
 
@@ -34,15 +44,35 @@ This document collects Demo 1 design guidance, brand direction, UI rules, traine
 
 ### Register
 
+The Register screen should present only the fields required for the Demo 1 base feature.
+
+Required fields should be visually clear, and field-level validation should appear near the relevant field. The primary registration action should show a submitting state after selection and should prevent duplicate submission while processing.
+
 ### Login
+
+The Login screen should support the trainee entering existing credentials and accessing Demo 1 screens.
+
+Field-level validation should appear for missing or incorrectly formatted input before submission where possible. Authentication failure should be shown as a page-level error message because the issue may relate to the submitted credential combination rather than one field only.
 
 ### Trainee Dashboard
 
 ### Simulated Inbox
 
+The Simulated Inbox should support UC-01 by showing simulated email summaries in a clear, scannable format.
+
+The inbox should show enough information for the trainee to identify each simulated message, such as sender, subject, preview text, and status where applicable. Empty, loading, and error states should explain what the trainee can do next without implying real email delivery or live campaign infrastructure.
+
 ### Simulated Email Detail
 
+The Simulated Email Detail screen should show the selected simulated email in a readable format.
+
+The screen should support the trainee reviewing sender details, message content, links or suspicious indicators, and any relevant feedback path. Navigation back to the inbox should remain clear.
+
 ### Training Module List
+
+The Training Module List should show available or assigned training content in a clear and scannable way.
+
+Each item should make the topic, availability, and next action understandable. Empty, locked, unavailable, and loading states should follow the shared feedback and accessibility rules in this document.
 
 ### Training Material Page
 
@@ -123,6 +153,7 @@ These rules define supporting UI behaviour for Demo 1 validation, feedback, load
 
 The rules apply mainly to:
 
+- UC-01: View Emails in Simulated Inbox
 - UC-02: View Training Document
 - UC-03: Complete Quiz Flow
 - Login/Register as base feature support
