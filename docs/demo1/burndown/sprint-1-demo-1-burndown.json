@@ -119,15 +119,15 @@
       "number": 14,
       "title": "[design] Refine Demo 1 Wireframes",
       "points": 3,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-05-10"
     },
     {
       "number": 13,
       "title": "[design] Create Demo 1 brand style guide",
       "points": 5,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-05-10"
     },
     {
       "number": 12,
@@ -268,7 +268,7 @@
     },
     {
       "date": "2026-05-10",
-      "remaining": 8,
+      "remaining": 0,
       "ideal": 0.0
     }
   ]
