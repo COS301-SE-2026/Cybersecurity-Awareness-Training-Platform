@@ -186,8 +186,8 @@
           "number": 5,
           "title": "[design] Create first-pass Demo 1 wireframes",
           "points": 5,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-05-10"
         },
         {
           "number": 4,
@@ -500,7 +500,7 @@
     },
     {
       "date": "2026-05-10",
-      "remaining": 97,
+      "remaining": 92,
       "ideal": 72.61
     }
   ]
