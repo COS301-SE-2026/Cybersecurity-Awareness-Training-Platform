@@ -8,7 +8,7 @@ This folder stores or indexes wireframe sources, exports, or links for Demo 1 sc
 
 ## First-Pass Wireframes (Zoë)
 
-Zoë owns the initial Figma frames and first-pass user-flow coverage.
+Zoë owns the initial Figma frames and first-pass trainee-flow coverage.
 
 ### Register
 
@@ -16,9 +16,7 @@ Zoë owns the initial Figma frames and first-pass user-flow coverage.
 
 ### Login
 
-![Login page](Login.png)
-
-### Learner/Employee Dashboard
+### Trainee Dashboard
 
 ### Simulated Inbox
 

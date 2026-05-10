@@ -136,11 +136,15 @@ By focusing on human behaviour, the most common source of security breaches, the
 
 <img src="https://img.icons8.com/?size=100&id=czpd3OfwK2l4&format=png&color=000000" width="18"> teamcontact@projectcheesecake.co.za
 
-## Burndown Charts
+---
+
+# <img src="https://img.icons8.com/?size=100&id=8BWYvHP7vIbq&format=png&color=000000" width="24"> Team Project Progress
+
+## <img src="https://img.icons8.com/?size=100&id=pIIj8UnASSNZ&format=png&color=000000" width="24"> Burndown Charts
 
 <!-- BURNDOWN:START -->
 
-### Latest Sprint Burndown
+### Latest Sprint Burndown Chart
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/automation/burndown-assets/docs/burndown/latest-sprint-burndown-dark.svg">
@@ -148,15 +152,13 @@ By focusing on human behaviour, the most common source of security breaches, the
   <img alt="Latest Sprint Burndown" src="https://raw.githubusercontent.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/automation/burndown-assets/docs/burndown/latest-sprint-burndown-light.svg">
 </picture>
 
-### Project Burndown
+### Project Burndown Chart
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/automation/burndown-assets/docs/burndown/project-burndown-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/automation/burndown-assets/docs/burndown/project-burndown-light.svg">
   <img alt="Project Burndown" src="https://raw.githubusercontent.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/automation/burndown-assets/docs/burndown/project-burndown-light.svg">
 </picture>
-
-[Burndown process](docs/demo1/burndown/PROCESS.md)
 
 <!-- BURNDOWN:END -->
 

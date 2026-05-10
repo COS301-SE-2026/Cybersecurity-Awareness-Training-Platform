@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document collects Demo 1 design guidance, brand direction, UI rules, learner navigation notes, and wireframe references.
+This document collects Demo 1 design guidance, brand direction, UI rules, trainee navigation notes, and wireframe references.
 
 ## Demo 1 Design Scope
 
@@ -36,7 +36,7 @@ This document collects Demo 1 design guidance, brand direction, UI rules, learne
 
 ### Login
 
-### Learner/Employee Dashboard
+### Trainee Dashboard
 
 ### Simulated Inbox
 
@@ -46,7 +46,7 @@ This document collects Demo 1 design guidance, brand direction, UI rules, learne
 
 ### Training Material Page
 
-The training material page should support the UC-02 learner flow by presenting assigned training content in a readable, focused layout.
+The training material page should support the UC-02 trainee flow by presenting assigned training content in a readable, focused layout.
 
 Design notes:
 
@@ -54,13 +54,13 @@ Design notes:
 - Use readable spacing, paragraphs, and section breaks so the content is easy to scan.
 - Show a loading state while the document is being retrieved.
 - Show an empty or unavailable-content message if the document cannot be opened.
-- Provide a clear way back to the training list or learner dashboard.
+- Provide a clear way back to the training list or trainee dashboard.
 - If a linked quiz is available, present the quiz action as a clear next step without making quiz completion part of UC-02.
 - Feedback messages on this page should follow the shared validation, error-state, and accessibility rules.
 
 ### Quiz Page
 
-The quiz page should support UC-03 by allowing the learner to answer assigned quiz questions and understand what is required before submission.
+The quiz page should support UC-03 by allowing the trainee to answer assigned quiz questions and understand what is required before submission.
 
 Design notes:
 
@@ -70,19 +70,19 @@ Design notes:
 - Validation messages should appear near the relevant question when an answer is missing or invalid.
 - A page-level validation summary may be shown when multiple required answers are missing.
 - The submit action should be clearly visible after the questions.
-- The learner should be able to correct validation errors without losing existing answers.
+- The trainee should be able to correct validation errors without losing existing answers.
 
 ### Quiz Submission State
 
-The quiz submission state should make it clear that the learner’s answers are being processed.
+The quiz submission state should make it clear that the trainee's answers are being processed.
 
 Design notes:
 
-- Show a loading or submitting indicator after the learner submits the quiz.
+- Show a loading or submitting indicator after the trainee submits the quiz.
 - Disable or guard the submit action while processing to prevent duplicate submissions.
-- Keep the learner on the quiz page or transition state until submission completes.
+- Keep the trainee on the quiz page or transition state until submission completes.
 - Do not show raw technical errors if submission fails.
-- If submission fails, explain the issue in learner-friendly language and provide a retry path where appropriate.
+- If submission fails, explain the issue in trainee-friendly language and provide a retry path where appropriate.
 
 ### Quiz Results Page
 
@@ -94,14 +94,14 @@ Design notes:
 - Display feedback in a supportive learning tone.
 - Where answer-level feedback is shown, distinguish correct and incorrect responses using text labels and visual treatment.
 - Avoid relying only on colour to communicate correctness.
-- Provide a clear navigation option back to the training material, module list, or learner dashboard.
+- Provide a clear navigation option back to the training material, module list, or trainee dashboard.
 - If results cannot be loaded, show a safe error message and provide a retry or back-navigation option.
 
 ### Phishing Feedback Page
 
-This page is included only as high-level Demo 1 feedback context for the simulated phishing learner experience. It should not be treated as a separate core use case or a full phishing-feedback workflow for Demo 1.
+This page is included only as high-level Demo 1 feedback context for the simulated phishing trainee experience. It should not be treated as a separate core use case or a full phishing-feedback workflow for Demo 1.
 
-The page should summarise safe learning feedback about a simulated phishing interaction, such as suspicious sender details, urgent wording, or risky links. It should provide a clear path back to the learner dashboard, training material, or simulated inbox where relevant.
+The page should summarise safe learning feedback about a simulated phishing interaction, such as suspicious sender details, urgent wording, or risky links. It should provide a clear path back to the trainee dashboard, training material, or simulated inbox where relevant.
 
 ## Wireframe Refinement and Polish (Connor)
 
@@ -119,16 +119,16 @@ The page should summarise safe learning feedback about a simulated phishing inte
 
 ## Feedback, Validation, and Accessibility UI Rules (Zoë)
 
-These rules define supporting UI behaviour for Demo 1 validation, feedback, loading, empty, unavailable, and accessibility states. They support the learner-facing flows but do not create a separate Demo 1 use case.
+These rules define supporting UI behaviour for Demo 1 validation, feedback, loading, empty, unavailable, and accessibility states. They support the trainee-facing flows but do not create a separate Demo 1 use case.
 
 The rules apply mainly to:
 
-- UC-02: View training document
-- UC-03: Complete quiz flow
+- UC-02: View Training Document
+- UC-03: Complete Quiz Flow
 - Login/Register as base feature support
 - Phishing feedback only as high-level contextual support
 
-The UI should help learners understand:
+The UI should help trainees understand:
 
 - what is required;
 - what is happening;
@@ -145,9 +145,9 @@ Rules:
 - Use field-level messages for missing required input, invalid answer format, or unsupported selections.
 - Keep messages short and specific.
 - Do not rely only on colour to identify the problem.
-- Required-field messages should explain what the learner needs to provide.
+- Required-field messages should explain what the trainee needs to provide.
 - Quiz validation messages should appear near the relevant question where possible.
-- Existing learner input should remain visible after validation fails.
+- Existing trainee input should remain visible after validation fails.
 
 Example wording:
 
@@ -162,10 +162,10 @@ Page-level error banners should be used when an issue affects the whole page, fl
 Rules:
 
 - Place the banner near the top of the relevant content area.
-- Use plain, learner-friendly wording.
+- Use plain, trainee-friendly wording.
 - Explain the next safe action where possible.
 - Do not show stack traces, raw exception names, or backend implementation details.
-- Keep the learner on the current page when they can correct or retry the action.
+- Keep the trainee on the current page when they can correct or retry the action.
 
 Appropriate uses include:
 
@@ -177,7 +177,7 @@ Appropriate uses include:
 
 ### Success Messages
 
-Success messages should confirm that the learner’s action was completed.
+Success messages should confirm that the trainee's action was completed.
 
 Rules:
 
@@ -194,13 +194,13 @@ Example wording:
 
 ### Warning Messages
 
-Warning messages should be used when the learner can continue but should be aware of a limitation or state.
+Warning messages should be used when the trainee can continue but should be aware of a limitation or state.
 
 Rules:
 
 - Use warnings for non-blocking issues or important context.
 - Keep the tone helpful rather than alarming.
-- Explain whether the learner needs to take action.
+- Explain whether the trainee needs to take action.
 - Do not use warnings for normal required-field validation; use field-level validation instead.
 
 Examples:
@@ -217,7 +217,7 @@ Rules:
 - State clearly what is missing.
 - Avoid making the page look broken.
 - Provide a safe next step, such as returning to the dashboard.
-- Keep the wording learner-friendly.
+- Keep the wording trainee-friendly.
 
 Applicable Demo 1 examples:
 
@@ -262,7 +262,7 @@ Applicable Demo 1 examples:
 
 ### Quiz Feedback Display
 
-Quiz feedback should help the learner understand their result and learn from the attempt.
+Quiz feedback should help the trainee understand their result and learn from the attempt.
 
 Rules:
 
@@ -307,18 +307,18 @@ Rules:
 - Use text labels in addition to colour.
 - Ensure messages are readable at normal zoom levels.
 - Important page-level messages should be noticeable without disrupting the whole flow.
-- Learners should be able to reach recovery actions, such as retry or back navigation, using the keyboard.
+- Trainees should be able to reach recovery actions, such as retry or back navigation, using the keyboard.
 
 ### Keyboard Interaction Expectations
 
-Learners should be able to complete the Demo 1 learner flows using keyboard navigation.
+Trainees should be able to complete the Demo 1 trainee flows using keyboard navigation.
 
 Rules:
 
 - Interactive elements should follow a logical tab order.
 - Buttons, links, quiz options, and recovery actions should be keyboard-accessible.
 - Focus should not be trapped unexpectedly.
-- After validation fails, the learner should be able to navigate to the relevant message or field.
+- After validation fails, the trainee should be able to navigate to the relevant message or field.
 - Disabled controls should not create confusion in the focus order.
 
 ### Screen-Reader Feedback Expectations
@@ -330,7 +330,7 @@ Rules:
 - Important messages should be written as meaningful text.
 - Messages should identify the relevant field, question, or page state.
 - Status changes such as submitting, success, or failure should be presented clearly.
-- Error summaries should help the learner find what needs attention.
+- Error summaries should help the trainee find what needs attention.
 - Visual-only feedback, such as colour changes without text, should be avoided.
 
 ### Contrast Considerations
@@ -344,17 +344,189 @@ Rules:
 - Error, warning, and success states should have distinguishable labels or icons where appropriate.
 - Final colour choices should align with the Demo 1 brand style guide when available.
 
-## Learner Navigation and Training Screen Behaviour (Connor)
+---
 
-### Dashboard to Training Module List
+## Trainee Navigation and Training Screen Behaviour (Connor)
 
-### Training Module List to Training Material
+This section defines the expected trainee navigation flow and high-level screen behaviour for Demo 1 training-related screens.
 
-### Training Material to Quiz Flow
+The _trainee training journey_ should remain **simple**, **predictable**, and **aligned with the Demo 1 use cases and wireframes**.
 
-### Return Navigation
+The primary Demo 1 trainee flow is:
 
-### Loading, Empty, Locked, Unavailable, and Error States
+1. Login/Register (Authentication)
+2. Basic Onboarding and Orientation (First-Time Trainees)
+3. Trainee Dashboard
+4. Training Module List
+5. Training Material Page
+6. Quiz Entry Point
+7. Return Navigation
+
+This section supports:
+
+- `UC-02`: View Training Document
+- `UC-03`: Complete Quiz Flow
+
+> This section does not define detailed quiz interaction behaviour, frontend routing implementation, or administrator navigation.
+
+### Dashboard to Training Module List (Connor)
+
+The _trainee dashboard_ acts as the primary landing page after authentication (login).
+
+> First-time trainees may receive basic onboarding and orientation guidance before or shortly after reaching the dashboard. This guidance should help trainees understand the platform structure, available cybersecurity learning areas, and how to begin their learning journey.
+
+The dashboard should provide clear visibility into assigned training modules and current learning activity (if learning/training activity has been started).
+
+The trainee should be able to:
+
+- identify available training quickly;
+- continue existing learning progress where available;
+- navigate into assigned training modules with minimal navigation depth.
+
+Training modules should represent broader cybersecurity learning categories, such as “Phishing Awareness" or “Password Security".
+
+Selecting a training module should take the trainee to a list of related training material for that topic.
+
+For example, a phishing-awareness module may contain learning material such as:
+
+- identifying phishing emails;
+- spotting fake login pages;
+- SMS phishing awareness.
+
+Selecting a training item should open the relevant training-material page, where the trainee can read the content and continue to related quiz content where applicable.
+
+> The dashboard should prioritise clarity and quick access to active learning tasks rather than large amounts of secondary information.
+
+#### Trainee Orientation and Onboarding Guidance (Connor)
+
+The Demo 1 _trainee experience_ should avoid presenting the platform as an unstructured or overwhelming set of tools immediately after authentication (login).
+
+The _trainee dashboard_ should provide basic onboarding and orientation guidance to help first-time trainees understand:
+
+- the purpose of the platform;
+- the types of cybersecurity topics available;
+- how training modules are structured;
+- how to begin assigned or recommended learning activities;
+- how training material connects to quizzes or simulations.
+
+Examples of supported learning areas may include:
+
+- phishing awareness;
+- password security;
+- suspicious links and attachments;
+- social-engineering awareness;
+- safe credential and payment practices.
+
+> For Demo 1, onboarding guidance should remain basic and informational rather than adaptive or highly personalised.
+
+Future enhancements may expand onboarding into personalised learning paths, trainee skill assessment, or adaptive training recommendations, but those behaviours are outside current Demo 1 scope.
+
+The trainee should understand:
+
+- what the platform offers;
+- where to begin;
+- and what actions to take next after authentication (login).
+
+### Training Module List to Training Material (Connor)
+
+The training module list should display assigned or available training modules in a clear and scannable format.
+
+Training modules should represent broader cybersecurity learning categories, such as “Phishing Awareness" or “Password Security".
+
+Each module item may display:
+
+- module title;
+- short summary or description;
+- completion or learning progress status;
+- availability state;
+- navigation action to open the related training material.
+
+Selecting a training module should open the associated training-material list for that topic.
+
+The training-material list may contain individual learning items such as:
+
+- identifying phishing emails;
+- spotting fake login pages;
+- SMS phishing awareness.
+
+Selecting a training item should open the corresponding training-material page.
+
+Locked, unavailable, or incomplete content states should be visually distinguishable from available content.
+
+The trainee should be able to return to the dashboard easily without confusion or unnecessary navigation steps.
+
+Demo 1 should avoid deeply nested training hierarchies or unnecessarily complex navigation paths.
+
+### Training Material to Quiz Flow (Connor)
+
+The training material page supports the trainee flow for `UC-02` by presenting assigned training content in a structured and readable format.
+
+The trainee should be able to:
+
+- read assigned training content;
+- understand the relationship between the training material and the associated quiz;
+- navigate to the associated quiz flow when available;
+- return safely to the module list or dashboard.
+
+If a linked quiz exists, the training material page should present the quiz action as a clear next step within the learning flow.
+
+The transition from training material into the quiz flow should preserve trainee context and maintain a clear relationship between the viewed material and the associated assessment.
+
+Detailed quiz interaction behaviour remains part of `UC-03` documentation and is outside this section's scope.
+
+### Return Navigation (Connor)
+
+Training-related screens should provide consistent and predictable return navigation.
+
+The trainee should be able to return to:
+
+- the trainee dashboard;
+- the training module list;
+- previously viewed training content where applicable.
+
+Navigation actions should remain visible and understandable across supported screen sizes.
+
+The trainee should not encounter dead-end flows after viewing training material or accessing quiz-related screens.
+
+Trainees should always understand where they are in the training flow and how to return to previous screens.
+
+### Loading, Empty, Locked, Unavailable, and Error States (Connor)
+
+Training-related screens should follow the shared validation, accessibility, loading, and feedback rules defined elsewhere in this document.
+
+Loading states should communicate when training content, module information, or quiz-entry information is being retrieved.
+
+Empty states should explain when:
+
+- no training modules are assigned;
+- no training content is available;
+- no related quiz content exists.
+
+Locked or unavailable states should clearly distinguish inaccessible content from available content and should explain the limitation where appropriate.
+
+Error states should:
+
+- avoid exposing technical implementation details;
+- provide safe retry or return-navigation behaviour;
+- preserve trainee orientation where possible.
+
+Training flows should avoid blank, broken, or dead-end screens during loading or failure conditions.
+
+### Responsive Behaviour Expectations
+
+Demo 1 trainee flows should remain usable across desktop, tablet, and mobile layouts.
+
+Training-related screens should prioritise:
+
+- readable training content;
+- visible primary navigation actions;
+- touch-friendly interaction areas;
+- clear back-navigation behaviour;
+- accessible quiz-entry actions.
+
+Training content should adapt responsively without requiring horizontal scrolling during normal reading behaviour.
+
+Primary trainee actions should remain accessible on smaller screens without excessive navigation complexity.
 
 ## Wireframe References
 
