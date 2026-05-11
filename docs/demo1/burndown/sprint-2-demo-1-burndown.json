@@ -210,8 +210,8 @@
       "number": 66,
       "title": "chore: Set up Google Calendar for the team",
       "points": 1,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-05-11"
     },
     {
       "number": 65,
@@ -224,7 +224,7 @@
   "series": [
     {
       "date": "2026-05-11",
-      "remaining": 80,
+      "remaining": 79,
       "ideal": 80.0
     }
   ]
