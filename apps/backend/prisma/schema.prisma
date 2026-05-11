@@ -7,8 +7,97 @@ datasource db {
   provider = "postgresql"
 }
 
+enum UserType {
+  ADMIN
+  EMPLOYEE
+  GENERAL_LEARNER
+}
+
+enum AuthStatus {
+  PENDING
+  ACTIVE
+  DISABLED
+}
+
+enum ContextStatus {
+  NOT_PROVIDED
+  PROVIDED
+  NEEDS_REVIEW
+}
+
+enum OrganisationRole {
+  ADMIN
+  EMPLOYEE
+}
+
+enum MembershipStatus {
+  ACTIVE
+  INACTIVE
+}
+
 model HealthCheck {
   id        String   @id @default(uuid())
   message   String
   createdAt DateTime @default(now())
+}
+
+model User {
+  id                      String                   @id @default(uuid())
+  name                    String
+  email                   String                   @unique
+  passwordHash            String
+  userType                UserType
+  authStatus              AuthStatus               @default(ACTIVE)
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  organisationMemberships OrganisationMembership[]
+  generalLearningAccess   GeneralLearningAccess?
+}
+
+model Organisation {
+  id             String                   @id @default(uuid())
+  name           String
+  contextStatus  ContextStatus            @default(NOT_PROVIDED)
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+  memberships    OrganisationMembership[]
+  companyContext CompanyContext?
+}
+
+model OrganisationMembership {
+  id             String           @id @default(uuid())
+  userId         String
+  organisationId String
+  role           OrganisationRole
+  status         MembershipStatus @default(ACTIVE)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organisation   Organisation     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organisationId])
+  @@index([userId])
+  @@index([organisationId])
+}
+
+model GeneralLearningAccess {
+  id         String   @id @default(uuid())
+  userId     String   @unique
+  assignedAt DateTime @default(now())
+  source     String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CompanyContext {
+  id             String       @id @default(uuid())
+  organisationId String       @unique
+  industry       String?
+  departments    Json?
+  terminology    Json?
+  safetyNotes    String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
 }
