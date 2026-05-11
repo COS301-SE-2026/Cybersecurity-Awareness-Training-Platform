@@ -377,8 +377,8 @@
           "number": 72,
           "title": "feat: [backend] Set up Swagger API documentation framework",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-05-11"
         },
         {
           "number": 71,
@@ -505,7 +505,7 @@
     },
     {
       "date": "2026-05-11",
-      "remaining": 79,
+      "remaining": 77,
       "ideal": 65.35
     }
   ]
