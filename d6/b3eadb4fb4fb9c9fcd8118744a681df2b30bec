@@ -1,0 +1,28 @@
+packages/shared/src/quizzes.ts
+  s_1a35a5917e528a::t_54ab5cbcd4923b 1-79
+packages/shared/src/simulations.ts
+  s_1a35a5917e528a::t_54ab5cbcd4923b 1-14,16-60
+packages/shared/src/training.ts
+  s_1a35a5917e528a::t_54ab5cbcd4923b 1-4,6-42
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "d6b3eadb4fb4fb9c9fcd8118744a681df2b30bec",
+  "prompts": {},
+  "humans": {
+    "h_1fff265ad32c51": {
+      "author": "FJNel <u24594475@tuks.co.za>"
+    }
+  },
+  "sessions": {
+    "s_1a35a5917e528a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e18a9-fd0b-7922-82ec-7ea2877a1dbb",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
