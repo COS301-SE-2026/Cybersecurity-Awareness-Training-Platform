@@ -1,0 +1,24 @@
+packages/shared/src/entities.ts
+  s_1a35a5917e528a::t_8f5e78b28bee8a 1-297
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "1d8248b81e1fff1a64ba50205528ea4a70000de1",
+  "prompts": {},
+  "humans": {
+    "h_1fff265ad32c51": {
+      "author": "FJNel <u24594475@tuks.co.za>"
+    }
+  },
+  "sessions": {
+    "s_1a35a5917e528a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e18a9-fd0b-7922-82ec-7ea2877a1dbb",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
