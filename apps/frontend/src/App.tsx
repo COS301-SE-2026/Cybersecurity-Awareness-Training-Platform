@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { getHealth } from './lib/api';
+import { AuthProvider } from './context/AuthContext';
 import './App.css';
 
 import { BrowserRouter } from 'react-router-dom';
@@ -50,9 +51,11 @@ export function StatusPage() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
+      <AuthProvider>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
