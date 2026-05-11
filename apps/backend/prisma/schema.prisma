@@ -104,6 +104,47 @@ enum TrainingProgressStatus {
   COMPLETED
 }
 
+enum QuizStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum QuestionType {
+  SINGLE_CHOICE
+}
+
+enum QuizAttemptStatus {
+  IN_PROGRESS
+  SUBMITTED
+}
+
+enum FeedbackType {
+  SUCCESS
+  WARNING
+  ERROR
+  INFO
+}
+
+enum InteractionEventType {
+  EMAIL_OPENED
+  EMAIL_LINK_CLICKED
+  CREDENTIAL_SUBMISSION_ATTEMPTED
+  TRAINING_VIEWED
+  TRAINING_COMPLETED
+  QUIZ_STARTED
+  QUIZ_ANSWER_SUBMITTED
+  QUIZ_COMPLETED
+}
+
+enum InteractionTargetType {
+  SIMULATED_EMAIL
+  TRAINING_DOCUMENT
+  QUIZ
+  QUIZ_ATTEMPT
+  QUIZ_QUESTION
+}
+
 model HealthCheck {
   id        String   @id @default(uuid())
   message   String
@@ -124,6 +165,8 @@ model User {
   campaignAssignments     CampaignAssignment[]
   simulatedInbox          SimulatedInbox?
   trainingProgress        TrainingProgress[]
+  quizAttempts            QuizAttempt[]
+  interactionEvents       InteractionEvent[]
 }
 
 model Organisation {
@@ -257,7 +300,7 @@ model SimulatedInbox {
 }
 
 model SimulatedEmail {
-  id                 String            @id @default(uuid())
+  id                 String             @id @default(uuid())
   inboxId            String
   simulationId       String?
   trainingDocumentId String?
@@ -266,14 +309,15 @@ model SimulatedEmail {
   subject            String
   preview            String?
   body               String
-  isSimulated        Boolean           @default(true)
-  receivedAt         DateTime          @default(now())
-  isRead             Boolean           @default(false)
-  createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
-  inbox              SimulatedInbox    @relation(fields: [inboxId], references: [id], onDelete: Cascade)
-  simulation         Simulation?       @relation(fields: [simulationId], references: [id], onDelete: SetNull)
-  trainingDocument   TrainingDocument? @relation(fields: [trainingDocumentId], references: [id], onDelete: SetNull)
+  isSimulated        Boolean            @default(true)
+  receivedAt         DateTime           @default(now())
+  isRead             Boolean            @default(false)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  inbox              SimulatedInbox     @relation(fields: [inboxId], references: [id], onDelete: Cascade)
+  simulation         Simulation?        @relation(fields: [simulationId], references: [id], onDelete: SetNull)
+  trainingDocument   TrainingDocument?  @relation(fields: [trainingDocumentId], references: [id], onDelete: SetNull)
+  interactionEvents  InteractionEvent[]
 
   @@index([inboxId])
   @@index([simulationId])
@@ -296,17 +340,19 @@ model TrainingModule {
 }
 
 model TrainingDocument {
-  id               String              @id @default(uuid())
-  moduleId         String
-  title            String
-  contentType      TrainingContentType
-  contentRef       String
-  readableStatus   ReadableStatus      @default(AVAILABLE)
-  createdAt        DateTime            @default(now())
-  updatedAt        DateTime            @updatedAt
-  module           TrainingModule      @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  simulatedEmails  SimulatedEmail[]
-  trainingProgress TrainingProgress[]
+  id                String              @id @default(uuid())
+  moduleId          String
+  title             String
+  contentType       TrainingContentType
+  contentRef        String
+  readableStatus    ReadableStatus      @default(AVAILABLE)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  module            TrainingModule      @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  simulatedEmails   SimulatedEmail[]
+  trainingProgress  TrainingProgress[]
+  quizzes           Quiz[]
+  interactionEvents InteractionEvent[]
 
   @@index([moduleId])
   @@index([readableStatus])
@@ -328,4 +374,146 @@ model TrainingProgress {
   @@index([userId])
   @@index([trainingDocumentId])
   @@index([status])
+}
+
+model Quiz {
+  id                 String            @id @default(uuid())
+  trainingDocumentId String?
+  title              String
+  passThreshold      Int
+  status             QuizStatus        @default(DRAFT)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  trainingDocument   TrainingDocument? @relation(fields: [trainingDocumentId], references: [id], onDelete: SetNull)
+  questions          QuizQuestion[]
+  attempts           QuizAttempt[]
+
+  @@index([trainingDocumentId])
+  @@index([status])
+}
+
+model QuizQuestion {
+  id             String          @id @default(uuid())
+  quizId         String
+  prompt         String
+  questionType   QuestionType    @default(SINGLE_CHOICE)
+  order          Int
+  points         Int             @default(1)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  quiz           Quiz            @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  answerOptions  AnswerOption[]
+  attemptAnswers AttemptAnswer[]
+
+  @@unique([quizId, order])
+  @@index([quizId])
+}
+
+model AnswerOption {
+  id             String          @id @default(uuid())
+  questionId     String
+  label          String?
+  text           String
+  isCorrect      Boolean         @default(false)
+  order          Int
+  feedback       String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  question       QuizQuestion    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  attemptAnswers AttemptAnswer[]
+
+  @@unique([questionId, order])
+  @@index([questionId])
+}
+
+model QuizAttempt {
+  id                String             @id @default(uuid())
+  userId            String
+  quizId            String
+  status            QuizAttemptStatus  @default(IN_PROGRESS)
+  startedAt         DateTime           @default(now())
+  submittedAt       DateTime?
+  score             Int?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quiz              Quiz               @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  answers           AttemptAnswer[]
+  quizResult        QuizResult?
+  interactionEvents InteractionEvent[]
+
+  @@index([userId])
+  @@index([quizId])
+  @@index([status])
+}
+
+model AttemptAnswer {
+  id               String        @id @default(uuid())
+  attemptId        String
+  questionId       String
+  selectedOptionId String?
+  selectedValue    String?
+  isCorrect        Boolean?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  attempt          QuizAttempt   @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question         QuizQuestion  @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  selectedOption   AnswerOption? @relation(fields: [selectedOptionId], references: [id], onDelete: SetNull)
+
+  @@unique([attemptId, questionId])
+  @@index([attemptId])
+  @@index([questionId])
+  @@index([selectedOptionId])
+}
+
+model QuizResult {
+  id            String         @id @default(uuid())
+  attemptId     String         @unique
+  score         Int
+  passed        Boolean
+  summary       String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  attempt       QuizAttempt    @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  feedbackItems FeedbackItem[]
+}
+
+model FeedbackItem {
+  id           String       @id @default(uuid())
+  quizResultId String
+  message      String
+  feedbackType FeedbackType
+  linkedTopic  String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  quizResult   QuizResult   @relation(fields: [quizResultId], references: [id], onDelete: Cascade)
+
+  @@index([quizResultId])
+  @@index([feedbackType])
+}
+
+model InteractionEvent {
+  id                 String                @id @default(uuid())
+  userId             String
+  eventType          InteractionEventType
+  targetType         InteractionTargetType
+  targetId           String
+  occurredAt         DateTime              @default(now())
+  metadata           Json?
+  simulatedEmailId   String?
+  trainingDocumentId String?
+  quizAttemptId      String?
+  createdAt          DateTime              @default(now())
+  user               User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  simulatedEmail     SimulatedEmail?       @relation(fields: [simulatedEmailId], references: [id], onDelete: SetNull)
+  trainingDocument   TrainingDocument?     @relation(fields: [trainingDocumentId], references: [id], onDelete: SetNull)
+  quizAttempt        QuizAttempt?          @relation(fields: [quizAttemptId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([eventType])
+  @@index([targetType, targetId])
+  @@index([simulatedEmailId])
+  @@index([trainingDocumentId])
+  @@index([quizAttemptId])
+  @@index([occurredAt])
 }
