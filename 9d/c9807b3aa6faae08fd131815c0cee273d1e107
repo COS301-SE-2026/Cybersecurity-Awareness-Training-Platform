@@ -1,0 +1,33 @@
+apps/backend/src/controllers/health.controller.ts
+  s_1a35a5917e528a::t_6c97c1d8f6ed8c 1-8
+apps/backend/src/routes/health.routes.ts
+  s_1a35a5917e528a::t_8fe5e512826ed3 14,19-23,27,30-31,34-35,38-39,41-66
+  s_1a35a5917e528a::t_6c97c1d8f6ed8c 1-13,15-18,24-26,28-29,32-33,36-37,40,67-68
+apps/backend/src/services/health.service.ts
+  s_1a35a5917e528a::t_6c97c1d8f6ed8c 1-38
+apps/backend/src/app.ts
+  s_1a35a5917e528a::t_6c97c1d8f6ed8c 7,26
+apps/backend/src/repositories/health.repository.ts
+  s_1a35a5917e528a::t_6c97c1d8f6ed8c 1-5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "9dc9807b3aa6faae08fd131815c0cee273d1e107",
+  "prompts": {},
+  "humans": {
+    "h_1fff265ad32c51": {
+      "author": "FJNel <u24594475@tuks.co.za>"
+    }
+  },
+  "sessions": {
+    "s_1a35a5917e528a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e18a9-fd0b-7922-82ec-7ea2877a1dbb",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
