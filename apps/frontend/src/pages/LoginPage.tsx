@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../context/AuthContext';
 
+import { Link } from 'react-router-dom';
+
 function LoginPage() {
   const navigate = useNavigate();
 
@@ -242,26 +244,48 @@ function LoginPage() {
           </button>
 
           {/* REGISTER */}
-
-          <p
+          <Link
+            to="/register"
             style={{
-              margin: 0,
-              fontFamily: 'Jost',
-              fontSize: '1.4rem',
-              letterSpacing: '0.05em',
-              color: '#B37DFF',
-              fontWeight: 400,
+              textDecoration: 'none',
             }}
           >
-            NEW?{' '}
-            <span
+            <div
               style={{
-                fontWeight: 500,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                margin: 0,
+                fontFamily: 'Jost',
+                fontSize: '1.4rem',
+                letterSpacing: '0.05em',
+                color: '#B37DFF',
+                fontWeight: 400,
+                cursor: 'pointer',
               }}
             >
-              Register an Account
-            </span>
-          </p>
+              <span>
+                NEW?{' '}
+                <span
+                  style={{
+                    fontWeight: 500,
+                  }}
+                >
+                  Register an Account
+                </span>
+              </span>
+
+              <span
+                className="material-symbols-outlined"
+                style={{
+                  fontSize: '2rem',
+                  color: '#B37DFF',
+                }}
+              >
+                arrow_forward
+              </span>
+            </div>
+          </Link>
         </form>
       </section>
 
