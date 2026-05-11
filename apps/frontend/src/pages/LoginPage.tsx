@@ -1,4 +1,53 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+import { useAuth } from '../context/AuthContext';
+
 function LoginPage() {
+  const navigate = useNavigate();
+
+  const { login } = useAuth();
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+
+  const [loginMessage, setLoginMessage] = useState('');
+
+  function handleLogin(event: React.FormEvent) {
+    event.preventDefault();
+
+    setEmailError('');
+    setPasswordError('');
+    setLoginMessage('');
+
+    let valid = true;
+
+    if (!email.trim() || !email.includes('@')) {
+      setEmailError('PLEASE ENTER A VALID EMAIL ADDRESS');
+
+      valid = false;
+    }
+
+    if (!password.trim()) {
+      setPasswordError('PLEASE ENTER YOUR PASSWORD');
+
+      valid = false;
+    }
+
+    if (!valid) {
+      return;
+    }
+
+    setLoginMessage('LOGGING IN...');
+
+    login();
+
+    navigate('/dashboard');
+  }
+
   return (
     <main
       style={{
@@ -58,128 +107,162 @@ function LoginPage() {
             width: '100%',
             height: '5px',
             backgroundColor: '#8400FF',
-            marginBottom: '2.5rem',
+            marginBottom: '2rem',
           }}
         />
 
-        {/* EMAIL */}
+        {/* LOGIN MESSAGE */}
 
-        <div
-          style={{
-            marginBottom: '1.5rem',
-          }}
-        >
-          <label
+        {(emailError || passwordError || loginMessage) && (
+          <p
             style={{
-              display: 'block',
-              fontFamily: 'Jost',
-              fontWeight: 400,
-              fontSize: '1.5rem',
-              letterSpacing: '0.05em',
-              color: '#B37DFF',
-              marginBottom: '0.4rem',
-            }}
-          >
-            Email Address
-          </label>
-
-          <input
-            type="email"
-            style={{
-              width: '100%',
-              height: '52px',
-              backgroundColor: '#090054',
-              border: 'none',
-              outline: 'none',
-              padding: '0 1rem',
-              letterSpacing: '0.05em',
+              margin: 0,
+              marginBottom: '1rem',
               color: 'white',
-              fontFamily: 'Overpass',
-              fontSize: '1.4rem',
-            }}
-          />
-        </div>
-
-        {/* PASSWORD */}
-
-        <div
-          style={{
-            marginBottom: '2rem',
-          }}
-        >
-          <label
-            style={{
-              display: 'block',
               fontFamily: 'Jost',
-              fontWeight: 400,
-              fontSize: '1.5rem',
-              letterSpacing: '0.05em',
-              color: '#B37DFF',
-              marginBottom: '0.4rem',
-            }}
-          >
-            Password
-          </label>
-
-          <input
-            type="password"
-            style={{
-              width: '100%',
-              height: '52px',
-              backgroundColor: '#090054',
-              border: 'none',
-              outline: 'none',
-              padding: '0 1rem',
-              letterSpacing: '0.05em',
-              color: 'white',
-              fontFamily: 'Overpass',
-              fontSize: '1.4rem',
-            }}
-          />
-        </div>
-
-        {/* BUTTON */}
-
-        <button
-          style={{
-            width: '100%',
-            height: '56px',
-            border: 'none',
-            cursor: 'pointer',
-            background: '#8400FF',
-            color: '#D6B3FF',
-            fontFamily: 'Jost',
-            fontWeight: 400,
-            fontSize: '1.7rem',
-            letterSpacing: '0.02em',
-            textTransform: 'uppercase',
-            marginBottom: '1rem',
-          }}
-        >
-          LOGIN
-        </button>
-
-        {/* REGISTER */}
-
-        <p
-          style={{
-            margin: 0,
-            fontFamily: 'Jost',
-            fontSize: '1.4rem',
-            letterSpacing: '0.05em',
-            color: '#B37DFF',
-            fontWeight: 400,
-          }}
-        >
-          NEW?{' '}
-          <span
-            style={{
               fontWeight: 500,
+              fontSize: '1.2rem',
+              letterSpacing: '0.03em',
             }}
           >
-            Register an Account
-          </span>
-        </p>
+            {emailError || passwordError || loginMessage}
+          </p>
+        )}
+
+        {/* FORM */}
+
+        <form
+          onSubmit={handleLogin}
+          noValidate
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          {/* EMAIL */}
+
+          <div
+            style={{
+              marginBottom: '1.5rem',
+            }}
+          >
+            <label
+              style={{
+                display: 'block',
+                fontFamily: 'Jost',
+                fontWeight: 400,
+                fontSize: '1.5rem',
+                letterSpacing: '0.05em',
+                color: '#B37DFF',
+                marginBottom: '0.4rem',
+              }}
+            >
+              Email Address
+            </label>
+
+            <input
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              style={{
+                width: '100%',
+                height: '52px',
+                backgroundColor: '#090054',
+                border: 'none',
+                outline: 'none',
+                padding: '0 1rem',
+                letterSpacing: '0.05em',
+                color: 'white',
+                fontFamily: 'Overpass',
+                fontSize: '1.4rem',
+              }}
+            />
+          </div>
+
+          {/* PASSWORD */}
+
+          <div
+            style={{
+              marginBottom: '2rem',
+            }}
+          >
+            <label
+              style={{
+                display: 'block',
+                fontFamily: 'Jost',
+                fontWeight: 400,
+                fontSize: '1.5rem',
+                letterSpacing: '0.05em',
+                color: '#B37DFF',
+                marginBottom: '0.4rem',
+              }}
+            >
+              Password
+            </label>
+
+            <input
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              style={{
+                width: '100%',
+                height: '52px',
+                backgroundColor: '#090054',
+                border: 'none',
+                outline: 'none',
+                padding: '0 1rem',
+                letterSpacing: '0.05em',
+                color: 'white',
+                fontFamily: 'Overpass',
+                fontSize: '1.4rem',
+              }}
+            />
+          </div>
+
+          {/* BUTTON */}
+
+          <button
+            type="submit"
+            style={{
+              width: '100%',
+              height: '56px',
+              border: 'none',
+              cursor: 'pointer',
+              background: '#8400FF',
+              color: '#D6B3FF',
+              fontFamily: 'Jost',
+              fontWeight: 400,
+              fontSize: '1.7rem',
+              letterSpacing: '0.02em',
+              textTransform: 'uppercase',
+              marginBottom: '1rem',
+            }}
+          >
+            LOGIN
+          </button>
+
+          {/* REGISTER */}
+
+          <p
+            style={{
+              margin: 0,
+              fontFamily: 'Jost',
+              fontSize: '1.4rem',
+              letterSpacing: '0.05em',
+              color: '#B37DFF',
+              fontWeight: 400,
+            }}
+          >
+            NEW?{' '}
+            <span
+              style={{
+                fontWeight: 500,
+              }}
+            >
+              Register an Account
+            </span>
+          </p>
+        </form>
       </section>
 
       {/* RIGHT PANEL */}
