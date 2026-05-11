@@ -213,6 +213,27 @@
       "end": "2026-05-20",
       "issues": [
         {
+          "number": 107,
+          "title": "docs: Align domain model with L18 guidance",
+          "points": 5,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 106,
+          "title": "fix: Align architecture document with L18 guidance",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 104,
+          "title": "fix: correct Vercel frontend deployment configuration",
+          "points": 1,
+          "state": "open",
+          "closed_date": null
+        },
+        {
           "number": 95,
           "title": "test: Verify Demo 1 seed data and database reset before rehearsal",
           "points": 2,
@@ -370,8 +391,8 @@
           "number": 73,
           "title": "feat: [database] Add Demo 1 Prisma schema and migrations",
           "points": 5,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-05-11"
         },
         {
           "number": 72,
@@ -426,8 +447,8 @@
           "number": 65,
           "title": "chore: Distribute issues and deadlines on GitHub",
           "points": 1,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-05-11"
         }
       ]
     }
@@ -435,78 +456,78 @@
   "series": [
     {
       "date": "2026-04-27",
-      "remaining": 167,
-      "ideal": 167.0
+      "remaining": 175,
+      "ideal": 175.0
     },
     {
       "date": "2026-04-28",
-      "remaining": 164,
-      "ideal": 159.74
+      "remaining": 172,
+      "ideal": 167.39
     },
     {
       "date": "2026-04-29",
-      "remaining": 164,
-      "ideal": 152.48
+      "remaining": 172,
+      "ideal": 159.78
     },
     {
       "date": "2026-04-30",
-      "remaining": 153,
-      "ideal": 145.22
+      "remaining": 161,
+      "ideal": 152.17
     },
     {
       "date": "2026-05-01",
-      "remaining": 148,
-      "ideal": 137.96
+      "remaining": 156,
+      "ideal": 144.57
     },
     {
       "date": "2026-05-02",
-      "remaining": 148,
-      "ideal": 130.7
+      "remaining": 156,
+      "ideal": 136.96
     },
     {
       "date": "2026-05-03",
-      "remaining": 142,
-      "ideal": 123.43
+      "remaining": 150,
+      "ideal": 129.35
     },
     {
       "date": "2026-05-04",
-      "remaining": 142,
-      "ideal": 116.17
+      "remaining": 150,
+      "ideal": 121.74
     },
     {
       "date": "2026-05-05",
-      "remaining": 141,
-      "ideal": 108.91
+      "remaining": 149,
+      "ideal": 114.13
     },
     {
       "date": "2026-05-06",
-      "remaining": 141,
-      "ideal": 101.65
+      "remaining": 149,
+      "ideal": 106.52
     },
     {
       "date": "2026-05-07",
-      "remaining": 138,
-      "ideal": 94.39
+      "remaining": 146,
+      "ideal": 98.91
     },
     {
       "date": "2026-05-08",
-      "remaining": 124,
-      "ideal": 87.13
+      "remaining": 132,
+      "ideal": 91.3
     },
     {
       "date": "2026-05-09",
-      "remaining": 108,
-      "ideal": 79.87
+      "remaining": 116,
+      "ideal": 83.7
     },
     {
       "date": "2026-05-10",
-      "remaining": 80,
-      "ideal": 72.61
+      "remaining": 88,
+      "ideal": 76.09
     },
     {
       "date": "2026-05-11",
-      "remaining": 77,
-      "ideal": 65.35
+      "remaining": 79,
+      "ideal": 68.48
     }
   ]
 }

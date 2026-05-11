@@ -4,6 +4,27 @@
   "end": "2026-05-20",
   "issues": [
     {
+      "number": 107,
+      "title": "docs: Align domain model with L18 guidance",
+      "points": 5,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 106,
+      "title": "fix: Align architecture document with L18 guidance",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 104,
+      "title": "fix: correct Vercel frontend deployment configuration",
+      "points": 1,
+      "state": "open",
+      "closed_date": null
+    },
+    {
       "number": 95,
       "title": "test: Verify Demo 1 seed data and database reset before rehearsal",
       "points": 2,
@@ -161,8 +182,8 @@
       "number": 73,
       "title": "feat: [database] Add Demo 1 Prisma schema and migrations",
       "points": 5,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-05-11"
     },
     {
       "number": 72,
@@ -217,15 +238,15 @@
       "number": 65,
       "title": "chore: Distribute issues and deadlines on GitHub",
       "points": 1,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-05-11"
     }
   ],
   "series": [
     {
       "date": "2026-05-11",
-      "remaining": 77,
-      "ideal": 80.0
+      "remaining": 79,
+      "ideal": 88.0
     }
   ]
 }
