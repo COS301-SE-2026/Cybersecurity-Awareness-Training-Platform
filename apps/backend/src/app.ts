@@ -1,9 +1,11 @@
 import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
+import swaggerUi from 'swagger-ui-express';
 import { APP_NAME } from '@insightful-phish/shared';
 import { env } from './config/env.js';
 import { prisma } from './lib/prisma.js';
+import { swaggerSpec } from './config/swagger.js';
 
 export function createApp() {
   const app = express();
@@ -19,6 +21,34 @@ export function createApp() {
 
   app.use(express.json());
 
+  // Swagger Documentation
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+  /**
+   * @openapi
+   * /health:
+   *   get:
+   *     summary: Check system health
+   *     description: Verifies API status and database connectivity.
+   *     responses:
+   *       200:
+   *         description: System is healthy
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 app:
+   *                   type: string
+   *                 api:
+   *                   type: string
+   *                 database:
+   *                   type: string
+   *                 timestamp:
+   *                   type: string
+   *       500:
+   *         description: System is unhealthy (usually database disconnected)
+   */
   app.get('/health', async (_req, res) => {
     try {
       await prisma.$queryRaw`SELECT 1`;
