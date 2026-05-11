@@ -125,6 +125,7 @@ Where the API uses practical route names such as `trainingId` or `emailId`, thes
       "senderAddress": "support@corp-security.com",
       "subject": "Urgent Password Reset",
       "bodyHtml": "<p>Please click here to reset your password...</p>",
+      "recommendedTrainingDocumentId": "train-001",
       "simulationContext": {
         "isPhishing": true,
         "warningMessage": "This is a simulated phishing email."
@@ -142,7 +143,7 @@ Where the API uses practical route names such as `trainingId` or `emailId`, thes
 - **Related Use Case / Base Feature**: UC-01: View Emails in Simulated Inbox
 - **Method & Route**: `POST /simulations/emails/:emailId/interactions`
 - **Expected Request Data**:
-  - `eventType` (enum: "EMAIL_OPENED", "LINK_CLICKED", required)
+  - `eventType` (enum: "EMAIL_OPENED", "EMAIL_LINK_CLICKED", required)
 - **Expected Response Data**:
   - `201 Created`: `{ "success": true }`
 - **Common Error Responses**:
@@ -189,8 +190,9 @@ Where the API uses practical route names such as `trainingId` or `emailId`, thes
     {
       "id": "train-001",
       "title": "Identifying Phishing Emails",
-      "contentMarkdown": "# Introduction\nPhishing is...",
-      "linkedQuizId": "quiz-001"
+      "contentType": "MARKDOWN",
+      "contentRef": "training/train-001",
+      "linkedQuizIds": ["quiz-001"]
     }
     ```
 - **Common Error Responses**:
@@ -198,13 +200,19 @@ Where the API uses practical route names such as `trainingId` or `emailId`, thes
 - **Linked Domain Entities**: `TrainingDocument`, `TrainingReference`
 - **Related Requirement IDs**: FR-UC02-02, API-UC02-02
 
+### Training Document Status Meaning
+
+- `AVAILABLE`: The training document can currently be shown to learners.
+- `UNAVAILABLE`: The training document exists but should not currently be shown.
+- `ARCHIVED`: The training document is retained for history/reference but is no longer active in current learner flows.
+
 ### `POST /training/:trainingId/progress`
 
 - **Purpose**: Records trainee progression or interaction with a training document.
 - **Related Use Case / Base Feature**: UC-02: View Training Document
 - **Method & Route**: `POST /training/:trainingId/progress`
 - **Expected Request Data**:
-  - `status` (enum: "STARTED", "VIEWED", "COMPLETED", required)
+  - `status` (enum: "IN_PROGRESS", "COMPLETED", required)
 - **Expected Response Data**:
   - `201 Created`: `{ "success": true }`
 - **Common Error Responses**:
@@ -226,11 +234,12 @@ Where the API uses practical route names such as `trainingId` or `emailId`, thes
     {
       "id": "quiz-001",
       "title": "Phishing Knowledge Check",
+      "passThresholdPercentage": 70,
       "questions": [
         {
           "id": "q-001",
           "text": "What is the best way to verify an email sender?",
-          "type": "MULTIPLE_CHOICE",
+          "type": "SINGLE_CHOICE",
           "options": ["Click the link", "Check the sender address", "Reply and ask"]
         }
       ]
@@ -240,6 +249,24 @@ Where the API uses practical route names such as `trainingId` or `emailId`, thes
   - `404 Not Found`: `{ "error": "Quiz not found" }`
 - **Linked Domain Entities**: `Quiz`, `QuizQuestion`
 - **Related Requirement IDs**: FR-UC03-02, API-UC03-01
+
+## Schema-Aligned Validation Notes
+
+- Auth services should trim and lowercase emails before insert and lookup because PostgreSQL text uniqueness is case-sensitive.
+- `Organisation.contextStatus` should be kept consistent with `CompanyContext` state.
+- `ORGANISATION_ASSIGNED` campaigns should require `organisationId`, while `PREMADE_GENERAL` campaigns should keep `organisationId` null.
+- If both campaign dates are provided, `endDate` should be greater than or equal to `startDate`.
+- `CampaignAssignment.userId` should match `CampaignAssignment.membership.userId`.
+- Training module and quiz question/option ordering is one-based within each parent scope.
+- For `TrainingContentType.URL`, `contentRef` should be a valid URL. For `MARKDOWN` or `HTML`, `contentRef` should be a valid internal content reference.
+- `InboxStatus` lifecycle cascades with user deletion for Demo 1 local/demo data. Longer-term retention can be revisited later.
+- `SafetyStatus.BLOCKED` means a simulation is not approved for delivery.
+- `passThresholdPercentage` and `scorePercentage` should be in the range 0-100.
+- For `SINGLE_CHOICE`, exactly one answer option should be correct per question.
+- Learner-facing quiz fetch endpoints should not expose `AnswerOption.isCorrect` before submission.
+- `AttemptAnswer.selectedOptionId` should belong to the same `questionId`.
+- For campaign-scoped progress and attempts, set `campaignAssignmentId`. General/premade usage may keep it null.
+- For typed interaction targets, services should set the matching typed foreign key and keep `targetId` consistent with it.
 
 ### `POST /quizzes/:quizId/attempts`
 

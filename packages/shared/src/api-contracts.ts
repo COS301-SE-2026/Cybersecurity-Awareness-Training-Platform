@@ -47,6 +47,7 @@ export interface GetInboxResponse {
 export interface SimulatedEmailDetail extends SimulatedEmailSummary {
   senderAddress: string;
   bodyHtml: string;
+  recommendedTrainingDocumentId?: string | null;
   simulationContext: {
     isPhishing: boolean;
     warningMessage?: string;
@@ -54,7 +55,7 @@ export interface SimulatedEmailDetail extends SimulatedEmailSummary {
 }
 
 export interface RecordInteractionRequest {
-  eventType: 'EMAIL_OPENED' | 'LINK_CLICKED';
+  eventType: 'EMAIL_OPENED' | 'EMAIL_LINK_CLICKED';
 }
 
 // --- UC-02: Training Document ---
@@ -62,7 +63,7 @@ export interface TrainingDocumentSummary {
   id: string;
   title: string;
   description: string;
-  status: 'NOT_STARTED' | 'STARTED' | 'VIEWED' | 'COMPLETED';
+  status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
 }
 
 export interface GetAssignedTrainingResponse {
@@ -72,25 +73,27 @@ export interface GetAssignedTrainingResponse {
 export interface TrainingDocumentDetail {
   id: string;
   title: string;
-  contentMarkdown: string;
-  linkedQuizId?: string;
+  contentType: 'MARKDOWN' | 'HTML' | 'URL';
+  contentRef: string;
+  linkedQuizIds?: string[];
 }
 
 export interface RecordTrainingProgressRequest {
-  status: 'STARTED' | 'VIEWED' | 'COMPLETED';
+  status: 'IN_PROGRESS' | 'COMPLETED';
 }
 
 // --- UC-03: Quiz Flow ---
 export interface QuizQuestion {
   id: string;
   text: string;
-  type: 'MULTIPLE_CHOICE';
+  type: 'SINGLE_CHOICE';
   options: string[];
 }
 
 export interface QuizDetail {
   id: string;
   title: string;
+  passThresholdPercentage: number;
   questions: QuizQuestion[];
 }
 

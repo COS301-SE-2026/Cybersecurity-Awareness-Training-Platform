@@ -337,7 +337,7 @@ Database: insightful_phish_dev
 The backend connects with this URL:
 
 ```env
-DATABASE_URL="postgresql://insightful_phish:insightful_phish@localhost:5432/insightful_phish_dev?schema=public"
+DATABASE_URL="postgresql://insightful_phish:insightful_phish@localhost:5432/insightful_phish_dev"
 ```
 
 ### Useful Docker commands
@@ -398,7 +398,7 @@ The example file contains:
 NODE_ENV=development
 PORT=4000
 
-DATABASE_URL="postgresql://insightful_phish:insightful_phish@localhost:5432/insightful_phish_dev?schema=public"
+DATABASE_URL="postgresql://insightful_phish:insightful_phish@localhost:5432/insightful_phish_dev"
 
 FRONTEND_ORIGIN="http://localhost:5173"
 ```
