@@ -1,4 +1,10 @@
+import type { z } from 'zod';
 import type { Id, IsoDateTimeString, SuccessResponseDto } from './common.js';
+import type {
+  getSimulatedEmailRequestParamsSchema,
+  recordSimulatedEmailInteractionRequestParamsSchema,
+  recordSimulatedEmailInteractionRequestSchema,
+} from './validation/simulations.schemas.js';
 
 export type InboxStatusDto = 'ACTIVE' | 'ARCHIVED';
 
@@ -28,9 +34,9 @@ export interface GetSimulatedInboxResponseDto {
   emails: SimulatedEmailSummaryDto[];
 }
 
-export interface GetSimulatedEmailRequestParamsDto {
-  emailId: Id;
-}
+export type GetSimulatedEmailRequestParamsDto = z.infer<
+  typeof getSimulatedEmailRequestParamsSchema
+>;
 
 export interface SimulationContextDto {
   isPhishing: boolean;
@@ -49,12 +55,12 @@ export interface SimulatedEmailDetailDto {
 
 export interface GetSimulatedEmailResponseDto extends SimulatedEmailDetailDto {}
 
-export interface RecordSimulatedEmailInteractionRequestParamsDto {
-  emailId: Id;
-}
+export type RecordSimulatedEmailInteractionRequestParamsDto = z.infer<
+  typeof recordSimulatedEmailInteractionRequestParamsSchema
+>;
 
-export interface RecordSimulatedEmailInteractionRequestDto {
-  eventType: SimulatedEmailInteractionEventTypeDto;
-}
+export type RecordSimulatedEmailInteractionRequestDto = z.infer<
+  typeof recordSimulatedEmailInteractionRequestSchema
+>;
 
 export interface RecordSimulatedEmailInteractionResponseDto extends SuccessResponseDto {}

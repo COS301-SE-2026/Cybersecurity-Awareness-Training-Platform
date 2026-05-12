@@ -1,12 +1,19 @@
+import type { z } from 'zod';
 import type { Id, SuccessResponseDto } from './common.js';
+import type {
+  getQuizRequestParamsSchema,
+  getQuizResultRequestParamsSchema,
+  quizAnswerInputSchema,
+  startQuizAttemptRequestParamsSchema,
+  submitQuizAttemptRequestParamsSchema,
+  submitQuizAttemptRequestSchema,
+} from './validation/quizzes.schemas.js';
 
 export type QuestionTypeDto = 'SINGLE_CHOICE';
 export type QuizAttemptStatusDto = 'IN_PROGRESS' | 'SUBMITTED';
 export type FeedbackTypeDto = 'SUCCESS' | 'WARNING' | 'ERROR' | 'INFO';
 
-export interface GetQuizRequestParamsDto {
-  quizId: Id;
-}
+export type GetQuizRequestParamsDto = z.infer<typeof getQuizRequestParamsSchema>;
 
 export interface SafeQuizAnswerOptionDto {
   id: Id;
@@ -31,36 +38,27 @@ export interface GetQuizResponseDto {
   questions: SafeQuizQuestionDto[];
 }
 
-export interface StartQuizAttemptRequestParamsDto {
-  quizId: Id;
-}
+export type StartQuizAttemptRequestParamsDto = z.infer<typeof startQuizAttemptRequestParamsSchema>;
 
 export interface StartQuizAttemptResponseDto {
   attemptId: Id;
   status: Extract<QuizAttemptStatusDto, 'IN_PROGRESS'>;
 }
 
-export interface SubmitQuizAttemptRequestParamsDto {
-  attemptId: Id;
-}
+export type SubmitQuizAttemptRequestParamsDto = z.infer<
+  typeof submitQuizAttemptRequestParamsSchema
+>;
 
-export interface QuizAnswerInputDto {
-  questionId: Id;
-  answerValue: Id;
-}
+export type QuizAnswerInputDto = z.infer<typeof quizAnswerInputSchema>;
 
-export interface SubmitQuizAttemptRequestDto {
-  answers: QuizAnswerInputDto[];
-}
+export type SubmitQuizAttemptRequestDto = z.infer<typeof submitQuizAttemptRequestSchema>;
 
 export interface SubmitQuizAttemptResponseDto extends SuccessResponseDto {
   attemptId: Id;
   status: Extract<QuizAttemptStatusDto, 'SUBMITTED'>;
 }
 
-export interface GetQuizResultRequestParamsDto {
-  attemptId: Id;
-}
+export type GetQuizResultRequestParamsDto = z.infer<typeof getQuizResultRequestParamsSchema>;
 
 export interface QuizResultFeedbackItemDto {
   questionId: Id;

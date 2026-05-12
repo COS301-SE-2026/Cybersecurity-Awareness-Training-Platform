@@ -1,4 +1,9 @@
+import type { z } from 'zod';
 import type { Id, IsoDateTimeString } from './common.js';
+import type {
+  authLoginRequestSchema,
+  authRegisterRequestSchema,
+} from './validation/auth.schemas.js';
 
 export type UserTypeDto = 'IP_ADMIN' | 'COMPANY_ADMIN' | 'COMPANY_LEARNER' | 'GENERAL_LEARNER';
 
@@ -14,17 +19,9 @@ export interface PublicUserDto {
   createdAt: IsoDateTimeString;
 }
 
-export interface AuthRegisterRequestDto {
-  email: string;
-  password: string;
-  firstName: string;
-  lastName: string;
-}
+export type AuthRegisterRequestDto = z.infer<typeof authRegisterRequestSchema>;
 
-export interface AuthLoginRequestDto {
-  email: string;
-  password: string;
-}
+export type AuthLoginRequestDto = z.infer<typeof authLoginRequestSchema>;
 
 export interface AuthSuccessResponseDto {
   userId: Id;

@@ -1,4 +1,10 @@
+import type { z } from 'zod';
 import type { Id, SuccessResponseDto } from './common.js';
+import type {
+  getTrainingDocumentRequestParamsSchema,
+  recordTrainingProgressRequestParamsSchema,
+  recordTrainingProgressRequestSchema,
+} from './validation/training.schemas.js';
 
 export type TrainingContentTypeDto = 'MARKDOWN' | 'HTML' | 'URL';
 export type TrainingDocumentStatusDto = 'AVAILABLE' | 'UNAVAILABLE' | 'ARCHIVED';
@@ -17,9 +23,9 @@ export interface GetAssignedTrainingResponseDto {
   trainingDocuments: TrainingDocumentSummaryDto[];
 }
 
-export interface GetTrainingDocumentRequestParamsDto {
-  trainingId: Id;
-}
+export type GetTrainingDocumentRequestParamsDto = z.infer<
+  typeof getTrainingDocumentRequestParamsSchema
+>;
 
 export interface TrainingDocumentDetailDto {
   id: Id;
@@ -31,12 +37,10 @@ export interface TrainingDocumentDetailDto {
 
 export interface GetTrainingDocumentResponseDto extends TrainingDocumentDetailDto {}
 
-export interface RecordTrainingProgressRequestParamsDto {
-  trainingId: Id;
-}
+export type RecordTrainingProgressRequestParamsDto = z.infer<
+  typeof recordTrainingProgressRequestParamsSchema
+>;
 
-export interface RecordTrainingProgressRequestDto {
-  status: Extract<TrainingProgressStatusDto, 'IN_PROGRESS' | 'COMPLETED'>;
-}
+export type RecordTrainingProgressRequestDto = z.infer<typeof recordTrainingProgressRequestSchema>;
 
 export interface RecordTrainingProgressResponseDto extends SuccessResponseDto {}
