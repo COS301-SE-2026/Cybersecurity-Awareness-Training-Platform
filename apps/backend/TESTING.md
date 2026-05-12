@@ -118,6 +118,8 @@ pnpm --filter @insightful-phish/backend test
 
 The default backend `test` script currently runs unit tests only. Run `test:integration` explicitly when the local test database is available.
 
+Integration test files run serially because they share one test database that is cleaned before each test.
+
 ## How Cleanup Works
 
 Integration test setup is configured in `vitest.integration.config.ts` and `tests/setup.integration.ts`.

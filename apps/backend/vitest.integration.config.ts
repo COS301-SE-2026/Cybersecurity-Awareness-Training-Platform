@@ -6,6 +6,6 @@ export default defineConfig({
     environment: 'node',
     include: ['tests/integration/**/*.test.ts'],
     setupFiles: ['tests/setup.integration.ts'],
-    passWithNoTests: true,
+    fileParallelism: false,
   },
 });
