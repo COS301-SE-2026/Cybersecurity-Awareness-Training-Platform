@@ -47,7 +47,8 @@ export interface HealthCheckDto {
 
 export interface UserDto {
   id: Id;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   userType: UserTypeDto;
   authStatus: AuthStatusDto;

@@ -6,7 +6,8 @@ export type AuthStatusDto = 'PENDING' | 'ACTIVE' | 'DISABLED';
 
 export interface PublicUserDto {
   id: Id;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   userType: UserTypeDto;
   authStatus: AuthStatusDto;
@@ -16,7 +17,8 @@ export interface PublicUserDto {
 export interface AuthRegisterRequestDto {
   email: string;
   password: string;
-  name: string;
+  firstName: string;
+  lastName: string;
 }
 
 export interface AuthLoginRequestDto {
