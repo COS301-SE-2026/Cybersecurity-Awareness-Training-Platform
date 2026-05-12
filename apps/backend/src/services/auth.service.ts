@@ -75,7 +75,7 @@ export async function loginUser(input: AuthLoginRequestDto): Promise<AuthLoginRe
 export async function getCurrentUser(userId: string): Promise<AuthMeResponseDto> {
   const user = await UserRepository.findUserById(userId);
 
-  if (!user || user.authStatus !== 'ACTIVE') {
+  if (user?.authStatus !== 'ACTIVE') {
     throw new AuthUnauthorizedError('Invalid authentication token');
   }
 
