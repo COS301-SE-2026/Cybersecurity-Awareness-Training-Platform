@@ -71,8 +71,14 @@ jobs:
       - name: Generate Prisma client
         run: pnpm --filter @insightful-phish/backend exec prisma generate
 
-      - name: Run linting
-        run: pnpm lint
+      - name: Run linting (backend)
+        run: pnpm --filter @insightful-phish/backend lint
+
+      - name: Run linting (frontend)
+        run: pnpm --filter @insightful-phish/frontend lint
+
+      - name: Run linting (shared)
+        run: pnpm --filter @insightful-phish/shared lint
 
   typecheck:
     name: Typecheck
