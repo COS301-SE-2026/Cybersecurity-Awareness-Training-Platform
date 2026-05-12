@@ -1,0 +1,30 @@
+apps/backend/src/services/auth.service.ts
+  s_fd6806a2f02b4c::t_f1a8d95f1370a9 78
+scripts/check-env-files.sh
+  s_fd6806a2f02b4c::t_18f0f773643931 34-38,66
+.github/workflows/policy.yml
+  s_fd6806a2f02b4c::t_18f0f773643931 58
+apps/backend/src/routes/auth.routes.ts
+  s_fd6806a2f02b4c::t_eb6d9f3e370d81 12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "33399a80f0a290ad44aaae40b7f9e49fd6100e73",
+  "prompts": {},
+  "humans": {
+    "h_1fff265ad32c51": {
+      "author": "FJNel <u24594475@tuks.co.za>"
+    }
+  },
+  "sessions": {
+    "s_fd6806a2f02b4c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e1d1a-30bb-7da0-bc7a-891a28c9dad5",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
