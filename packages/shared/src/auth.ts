@@ -31,3 +31,7 @@ export interface AuthSuccessResponseDto {
 export interface AuthMeResponseDto {
   user: PublicUserDto;
 }
+
+export interface AuthRegisterResponseDto {
+  user: PublicUserDto;
+}
