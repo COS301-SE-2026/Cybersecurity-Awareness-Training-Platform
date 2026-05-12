@@ -1,3 +1,7 @@
+# Continuous Integration Workflow
+# This workflow runs on pull requests to main and dev branches.
+# It includes formatting, linting, typechecking, testing, and building.
+
 name: Continuous Integration
 
 on:
@@ -13,12 +17,12 @@ on:
   workflow_dispatch:
 
 jobs:
-  formatting-check:
+  format:
     name: Formatting Check
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    timeout-minutes: 10
+    timeout-minutes: 5
 
     steps:
       - name: Checkout repository
