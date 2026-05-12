@@ -108,8 +108,14 @@ jobs:
       - name: Generate Prisma client
         run: pnpm --filter @insightful-phish/backend exec prisma generate
 
-      - name: Run typecheck
-        run: pnpm typecheck
+      - name: Run typecheck (backend)
+        run: pnpm --filter @insightful-phish/backend typecheck
+
+      - name: Run typecheck (frontend)
+        run: pnpm --filter @insightful-phish/frontend typecheck
+
+      - name: Run typecheck (shared)
+        run: pnpm --filter @insightful-phish/shared typecheck
 
   tests:
     name: Tests
