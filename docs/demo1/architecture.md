@@ -55,26 +55,29 @@ The Admin Control Plane is a preliminary orchestration layer that supports train
 The platform utilizes a **3-tier client-server architecture**. This structure provides a clear separation between presentation, logic, and data storage.
 
 ### 1. Client Tier
+
 - **Description**: The trainee-facing interface responsible for presenting information and capturing interactions.
-- **Responsibilities**: 
-    - Rendering the simulated inbox, training document views, and quiz interfaces.
-    - Managing client-side navigation and local UI state.
-    - Communicating with the Application Tier via structured requests.
-    - Displaying feedback (loading, success, error) to the trainee.
+- **Responsibilities**:
+  - Rendering the simulated inbox, training document views, and quiz interfaces.
+  - Managing client-side navigation and local UI state.
+  - Communicating with the Application Tier via structured requests.
+  - Displaying feedback (loading, success, error) to the trainee.
 
 ### 2. Application/API Tier
+
 - **Description**: The server-side component that coordinates use-case logic and serves as the boundary for request handling.
 - **Internal Layered Structure**:
-    - **Controller/API Layer**: Receives requests, validates inputs, and shapes responses.
-    - **Service/Domain Layer**: Coordinates business rules and use-case logic (e.g., scoring a quiz, validating assignment access).
-    - **Data-Access Layer**: Isolates persistence operations, providing a clean interface for reading from and writing to the Data Tier.
+  - **Controller/API Layer**: Receives requests, validates inputs, and shapes responses.
+  - **Service/Domain Layer**: Coordinates business rules and use-case logic (e.g., scoring a quiz, validating assignment access).
+  - **Data-Access Layer**: Isolates persistence operations, providing a clean interface for reading from and writing to the Data Tier.
 
 ### 3. Data Tier
+
 - **Description**: The persistence layer responsible for storing system state and content.
 - **Responsibilities**:
-    - Storing user accounts, campaign assignments, and educational content.
-    - Persisting interaction events, quiz attempts, and progress records.
-    - Ensuring data integrity and relationship consistency.
+  - Storing user accounts, campaign assignments, and educational content.
+  - Persisting interaction events, quiz attempts, and progress records.
+  - Ensuring data integrity and relationship consistency.
 
 ## Architecture Justification
 
@@ -88,38 +91,47 @@ The 3-tier client-server architecture is selected for Demo 1 for the following r
 ## Design Patterns
 
 ### Strategy Pattern for Simulation Handling
+
 The Application Tier leverages a Strategy Pattern to handle different simulation formats. This allows the system to delegate type-specific logic to specialized handlers without bloating the core interaction controllers.
 
 ### Template Pattern for Content Management
+
 Simulation and training content follow a Template/Configuration Pattern. Generic templates are mapped to specific trainee assignments, allowing for dynamic content delivery while maintaining consistency across the platform.
 
 ### Data-Access Abstraction
+
 A Repository-style abstraction is used in the Data-Access Layer to decouple business logic from specific storage implementations. This improves testability and ensures that storage schema changes are isolated.
 
 ### Shared Contract Pattern
+
 A centralized set of data transfer object (DTO) definitions ensures that the Client and Application Tiers stay aligned on request and response formats. This prevents contract drift across the system boundary.
 
 ### Event-Style Interaction Logging
+
 A unified pattern is used to track trainee activity. Instead of simple status flags, the system logs discrete interaction events, creating an immutable audit trail for reporting and analytics.
 
 ## System Constraints and Standards
 
 ### Client Application Standards
+
 - Must be a single-page interface that interacts with the Application Tier via a standardized protocol.
 - Navigation between training modules, inbox items, and quiz screens must occur without full page reloads.
 - Must consume data using shared definitions to ensure consistency with the Application Tier.
 
 ### Application API Standards
+
 - Must expose a consistent, resource-oriented boundary for the client.
 - All requests targeting trainee-specific data must be protected by an identity verification mechanism.
 - Input validation must be applied before any data persistence or logic execution.
 
 ### Data Persistence Standards
+
 - All storage access must go through the defined Data-Access Layer.
 - Seed data must be provided to populate the environment for the three core use cases.
 - Sensitive information, such as passwords, must be securely hashed before storage.
 
 ### Simulation Safety Standards
+
 - Simulated interactions must never leave the platform's controlled environment.
 - All simulated links must route back to internal feedback handlers.
 - No actual credentials or sensitive personal data may be captured or stored during simulations.
@@ -127,13 +139,17 @@ A unified pattern is used to track trainee activity. Instead of simple status fl
 ## Cross-References
 
 ### SRS
+
 See `SRS.md` for full Demo 1 requirements and use cases.
 
 ### API
+
 See `API.md` for specific communication contracts and payload shapes.
 
 ### Testing
+
 See `testing.md` for QA strategies and verification plans.
 
 ### Traceability
+
 See `traceability.md` for tracking requirements through the architecture.
