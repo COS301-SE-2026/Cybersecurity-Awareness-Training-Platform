@@ -88,34 +88,34 @@ The 3-tier client-server architecture is selected for Demo 1 for the following r
 - **Maintainability**: The internal layering of the Application Tier ensures that business logic is isolated from both transport-level concerns and storage-specific details.
 - **Simulation Safety**: A centralized Application Tier allows for strict enforcement of simulation boundaries and interaction tracking.
 
-## Design Patterns
+## Architectural Principles
 
-### Strategy Pattern for Simulation Handling
+### Modular Simulation Handling
 
-The Application Tier leverages a Strategy Pattern to handle different simulation formats. This allows the system to delegate type-specific logic to specialized handlers without bloating the core interaction controllers.
+The system handles diverse simulation formats by delegating type-specific logic to modular components. This ensures the core interaction logic remains decoupled from the details of any single simulation type, supporting the future addition of new simulation formats.
 
-### Template Pattern for Content Management
+### Reusable Content Configuration
 
-Simulation and training content follow a Template/Configuration Pattern. Generic templates are mapped to specific trainee assignments, allowing for dynamic content delivery while maintaining consistency across the platform.
+Simulation and training content are managed through reusable configurations. Generic content structures are mapped to specific trainee assignments, allowing for dynamic delivery while maintaining consistency across the platform.
 
-### Data-Access Abstraction
+### Isolation of Persistence Concerns
 
-A Repository-style abstraction is used in the Data-Access Layer to decouple business logic from specific storage implementations. This improves testability and ensures that storage schema changes are isolated.
+Business logic is isolated from specific storage implementations. This decoupling ensures that the application's core logic remains independent of the underlying persistence mechanism, improving system flexibility and testability.
 
-### Shared Contract Pattern
+### Contract Consistency
 
-A centralized set of data transfer object (DTO) definitions ensures that the Client and Application Tiers stay aligned on request and response formats. This prevents contract drift across the system boundary.
+A centralized set of data definitions ensures that the Client and Application Tiers stay aligned on request and response formats. This prevents drift between system components and ensures reliable communication across the tier boundary.
 
-### Event-Style Interaction Logging
+### Immutable Interaction Auditing
 
-A unified pattern is used to track trainee activity. Instead of simple status flags, the system logs discrete interaction events, creating an immutable audit trail for reporting and analytics.
+A unified pattern is used to track trainee activity. Instead of simple status flags, the system records discrete interaction events to create an accurate and immutable audit trail for learning progress and future reporting.
 
 ## System Constraints and Standards
 
 ### Client Application Standards
 
-- Must be a single-page interface that interacts with the Application Tier via a standardized protocol.
-- Navigation between training modules, inbox items, and quiz screens must occur without full page reloads.
+- The Client Tier must provide a continuous, unified flow for the trainee across inbox, training, and quiz screens.
+- Interaction with the Application Tier must follow a standardized communication protocol to maintain a responsive user experience.
 - Must consume data using shared definitions to ensure consistency with the Application Tier.
 
 ### Application API Standards
