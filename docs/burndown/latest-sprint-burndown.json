@@ -163,8 +163,8 @@
       "number": 76,
       "title": "chore: Add coverage reporting/checks",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-05-12"
     },
     {
       "number": 75,
@@ -252,7 +252,7 @@
     },
     {
       "date": "2026-05-12",
-      "remaining": 74,
+      "remaining": 72,
       "ideal": 78.22
     }
   ]
