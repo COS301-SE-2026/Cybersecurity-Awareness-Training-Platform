@@ -420,6 +420,18 @@ Suggested future E2E paths:
 
 E2E tests should be limited to high-value demo paths and should not become detailed implementation tickets.
 
+### Test Coverage
+
+Test coverage is tracked to ensure critical demo paths and logic are verified.
+
+- **Tools**: Vitest with the `v8` coverage provider.
+- **Local Command**: `pnpm test:coverage`.
+- **CI Integration**: Coverage is generated in the CI `tests` job and uploaded as artifacts (`coverage-backend` and `coverage-frontend`).
+- **Reporting**: Reports include `text`, `html`, `lcov`, and `json-summary`.
+
+> [!NOTE]
+> During the Demo 1 sprint, coverage thresholds are not strictly enforced to avoid blocking implementation work. Coverage is used as a quality signal rather than a hard gate.
+
 ## Technical Requirements and Constraints Reference
 
 The following constraints from `architecture.md` directly affect what QA must verify for Demo 1. They are listed here to ensure testing planning remains aligned with the agreed architectural boundaries.

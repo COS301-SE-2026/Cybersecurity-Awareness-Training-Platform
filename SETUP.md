@@ -607,6 +607,14 @@ pnpm test
 
 This runs tests in all workspace packages.
 
+### Run test coverage
+
+```bash
+pnpm test:coverage
+```
+
+This runs tests and generates coverage reports for all workspace packages. Reports are generated in `apps/backend/coverage/` and `apps/frontend/coverage/`.
+
 ### Build everything
 
 ```bash
