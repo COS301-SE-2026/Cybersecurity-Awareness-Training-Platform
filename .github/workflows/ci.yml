@@ -154,6 +154,12 @@ jobs:
       - name: Run tests (shared)
         run: pnpm test:coverage:shared
 
+      - name: Verify backend coverage
+        run: ls -R apps/backend/coverage/
+
+      - name: Verify frontend coverage
+        run: ls -R apps/frontend/coverage/
+
       - name: Upload backend coverage report
         uses: actions/upload-artifact@v4
         if: always()
