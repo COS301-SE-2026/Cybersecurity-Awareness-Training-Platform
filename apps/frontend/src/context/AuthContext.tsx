@@ -1,39 +1,37 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useState } from 'react';
+
+import type { ReactNode } from 'react';
 
 type AuthContextType = {
   isAuthenticated: boolean;
+
   login: () => void;
+
   logout: () => void;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-type Props = {
-  children: React.ReactNode;
+type AuthProviderProps = {
+  children: ReactNode;
 };
 
-export function AuthProvider({ children }: Props) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+export function AuthProvider({ children }: AuthProviderProps) {
+  const [isAuthenticated, setIsAuthenticated] = useState(
+    localStorage.getItem('authenticated') === 'true',
+  );
 
-  useEffect(() => {
-    const storedAuth = localStorage.getItem('authenticated');
-
-    if (storedAuth === 'true') {
-      setIsAuthenticated(true);
-    }
-  }, []);
-
-  function login() {
+  const login = () => {
     localStorage.setItem('authenticated', 'true');
 
     setIsAuthenticated(true);
-  }
+  };
 
-  function logout() {
+  const logout = () => {
     localStorage.removeItem('authenticated');
 
     setIsAuthenticated(false);
-  }
+  };
 
   return (
     <AuthContext.Provider
@@ -52,7 +50,7 @@ export function useAuth() {
   const context = useContext(AuthContext);
 
   if (!context) {
-    throw new Error('useAuth must be used inside AuthProvider');
+    throw new Error('useAuth must be used within an AuthProvider');
   }
 
   return context;
