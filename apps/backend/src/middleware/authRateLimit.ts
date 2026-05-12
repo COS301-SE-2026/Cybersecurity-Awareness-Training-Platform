@@ -1,9 +1,12 @@
-import rateLimit from 'express-rate-limit';
+import rateLimit, { MemoryStore } from 'express-rate-limit';
 import { env } from '../config/env.js';
+
+const authRateLimitStore = new MemoryStore();
 
 export const authRateLimit = rateLimit({
   windowMs: env.AUTH_RATE_LIMIT_WINDOW_MS,
   limit: env.AUTH_RATE_LIMIT_MAX_REQUESTS,
+  store: authRateLimitStore,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -11,3 +14,7 @@ export const authRateLimit = rateLimit({
     message: 'Too many authentication requests. Please try again later.',
   },
 });
+
+export function clearAuthRateLimitStore() {
+  authRateLimitStore.resetAll();
+}

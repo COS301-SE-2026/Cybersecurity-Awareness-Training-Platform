@@ -3,7 +3,7 @@ import { Router } from 'express';
 import { getMe, login, register } from '../controllers/auth.controller.js';
 import { authRateLimit } from '../middleware/authRateLimit.js';
 import { requireAuth } from '../middleware/requireAuth.js';
-import { validateBody } from '../middleware/validateReqeust.js';
+import { validateBody } from '../middleware/validateRequest.js';
 
 export const authRouter = Router();
 

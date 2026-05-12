@@ -1,6 +1,8 @@
 import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../../src/app.js';
+import { env } from '../../src/config/env.js';
+import { clearAuthRateLimitStore } from '../../src/middleware/authRateLimit.js';
 import { generateAuthToken } from '../../src/services/auth-token.service.js';
 import { hashPassword } from '../../src/services/password.service.js';
 
@@ -18,6 +20,7 @@ vi.mock('../../src/lib/prisma.js', () => ({
 describe('Auth routes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearAuthRateLimitStore();
   });
 
   it('registers a valid user with a hashed password and safe response structure', async () => {
@@ -225,5 +228,58 @@ describe('Auth routes', () => {
     expect(response.status).toBe(401);
     expect(response.body).toHaveProperty('error', 'AUTH_INVALID');
     expect(prismaMock.user.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('returns 429 when login requests exceed the auth rate limit', async () => {
+    prismaMock.user.findUnique.mockResolvedValue(null);
+
+    const app = createApp();
+    let response: request.Response | undefined;
+
+    for (let index = 0; index <= env.AUTH_RATE_LIMIT_MAX_REQUESTS; index += 1) {
+      response = await request(app).post('/auth/login').send({
+        email: 'johan@example.com',
+        password: 'mySecurePassword123!',
+      });
+    }
+
+    expect(response?.status).toBe(429);
+    expect(response?.body).toEqual({
+      error: 'AUTH_RATE_LIMITED',
+      message: 'Too many authentication requests. Please try again later.',
+    });
+    expect(response?.headers).toHaveProperty('retry-after');
+  });
+
+  it('returns 429 when register requests exceed the auth rate limit', async () => {
+    prismaMock.user.findUnique.mockResolvedValue({
+      id: 'existing-user-id',
+      email: 'johan@example.com',
+      firstName: 'Johan',
+      lastName: 'Nel',
+      passwordHash: 'scrypt$existinghash',
+      userType: 'GENERAL_LEARNER',
+      authStatus: 'ACTIVE',
+      createdAt: new Date('2026-05-12T06:00:00.000Z'),
+    });
+
+    const app = createApp();
+    let response: request.Response | undefined;
+
+    for (let index = 0; index <= env.AUTH_RATE_LIMIT_MAX_REQUESTS; index += 1) {
+      response = await request(app).post('/auth/register').send({
+        email: 'johan@example.com',
+        firstName: 'Johan',
+        lastName: 'Nel',
+        password: 'mySecurePassword123!',
+      });
+    }
+
+    expect(response?.status).toBe(429);
+    expect(response?.body).toEqual({
+      error: 'AUTH_RATE_LIMITED',
+      message: 'Too many authentication requests. Please try again later.',
+    });
+    expect(response?.headers).toHaveProperty('retry-after');
   });
 });
