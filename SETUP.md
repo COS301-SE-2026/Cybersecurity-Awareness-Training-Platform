@@ -631,6 +631,12 @@ pnpm --filter @insightful-phish/backend test
 pnpm --filter @insightful-phish/backend build
 ```
 
+For backend integration tests that use the dedicated test database, see:
+
+```txt
+apps/backend/TESTING.md
+```
+
 ### Run frontend-only checks
 
 ```bash
