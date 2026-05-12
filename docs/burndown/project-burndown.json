@@ -223,8 +223,8 @@
           "number": 106,
           "title": "fix: Align architecture document with L18 guidance",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-05-12"
         },
         {
           "number": 104,
@@ -531,7 +531,7 @@
     },
     {
       "date": "2026-05-12",
-      "remaining": 79,
+      "remaining": 77,
       "ideal": 60.87
     }
   ]
