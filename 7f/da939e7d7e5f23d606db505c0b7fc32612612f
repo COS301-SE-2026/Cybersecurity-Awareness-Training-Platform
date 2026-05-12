@@ -1,0 +1,30 @@
+apps/backend/prisma/schema.prisma
+  s_1a35a5917e528a::t_5f8ba1fad0c9eb 159-160
+apps/backend/prisma/migrations/20260512120000_user_first_last_name/migration.sql
+  s_1a35a5917e528a::t_5f8ba1fad0c9eb 1-17
+packages/shared/src/entities.ts
+  s_1a35a5917e528a::t_5f8ba1fad0c9eb 50-51
+packages/shared/src/auth.ts
+  s_1a35a5917e528a::t_5f8ba1fad0c9eb 9-10,20-21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "7fda939e7d7e5f23d606db505c0b7fc32612612f",
+  "prompts": {},
+  "humans": {
+    "h_1fff265ad32c51": {
+      "author": "FJNel <u24594475@tuks.co.za>"
+    }
+  },
+  "sessions": {
+    "s_1a35a5917e528a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e18a9-fd0b-7922-82ec-7ea2877a1dbb",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
