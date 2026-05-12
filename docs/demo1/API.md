@@ -38,7 +38,8 @@ Where the API uses practical route names such as `trainingId` or `emailId`, thes
 - **Expected Request Data**:
   - `email` (string, required)
   - `password` (string, required)
-  - `name` (string, required)
+  - `firstName` (string, required)
+  - `lastName` (string, required)
 - **Expected Response Data**:
   - `201 Created`: `{ "userId": "uuid", "token": "jwt-placeholder", "message": "Registration successful" }`
 - **Common Error Responses**:
