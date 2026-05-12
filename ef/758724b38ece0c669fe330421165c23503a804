@@ -1,0 +1,26 @@
+package.json
+  s_329ac6344433de::t_a9eee8318adc3b 36-37,39-40,43-44
+  s_329ac6344433de::t_6b731b8e129f51 42
+  s_329ac6344433de::t_801cfb580f4a37 38,41
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "ef758724b38ece0c669fe330421165c23503a804",
+  "prompts": {},
+  "humans": {
+    "h_1fff265ad32c51": {
+      "author": "FJNel <u24594475@tuks.co.za>"
+    }
+  },
+  "sessions": {
+    "s_329ac6344433de": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e1b55-2a0b-7991-86db-0fcef35b2c3d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
