@@ -1,0 +1,29 @@
+apps/backend/tests/unit/user.mapper.test.ts
+  s_1a35a5917e528a::t_9da5a101145b53 1-5,7-14,18-30
+  s_1a35a5917e528a::t_0766857f01df23 6,15-17
+apps/backend/tests/unit/quiz.mapper.test.ts
+  s_1a35a5917e528a::t_0766857f01df23 6,52-53
+  s_1a35a5917e528a::t_9da5a101145b53 1-5,7-13,15-36,38-50,54-100
+  s_1a35a5917e528a::t_b8077ca73048d0 14,37,51
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "89f0a38132c85fe3341e83aeaa00c3757b14e8eb",
+  "prompts": {},
+  "humans": {
+    "h_1fff265ad32c51": {
+      "author": "FJNel <u24594475@tuks.co.za>"
+    }
+  },
+  "sessions": {
+    "s_1a35a5917e528a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e18a9-fd0b-7922-82ec-7ea2877a1dbb",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
