@@ -30,3 +30,11 @@ export function createGeneralLearnerUser(input: {
     },
   });
 }
+
+export function findUserById(id: string) {
+  return prisma.user.findUnique({
+    where: {
+      id,
+    },
+  });
+}

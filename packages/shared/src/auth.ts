@@ -35,3 +35,10 @@ export interface AuthMeResponseDto {
 export interface AuthRegisterResponseDto {
   user: PublicUserDto;
 }
+
+export interface AuthLoginResponseDto {
+  user: PublicUserDto;
+  token: string;
+  tokenType: 'Bearer';
+  expiresAt: string;
+}
