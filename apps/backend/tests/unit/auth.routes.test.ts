@@ -1,6 +1,8 @@
 import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../../src/app.js';
+import { generateAuthToken } from '../../src/services/auth-token.service.js';
+import { hashPassword } from '../../src/services/password.service.js';
 
 const prismaMock = vi.hoisted(() => ({
   user: {
@@ -102,5 +104,126 @@ describe('Auth routes', () => {
     expect(response.status).toBe(409);
     expect(response.body).toHaveProperty('error', 'AUTH_EMAIL_EXISTS');
     expect(prismaMock.user.create).not.toHaveBeenCalled();
+  });
+
+  it('logs in a valid user with a token and safe response structure', async () => {
+    const passwordHash = await hashPassword('mySecurePassword123!');
+
+    prismaMock.user.findUnique.mockResolvedValue({
+      id: 'id-123',
+      firstName: 'Johan',
+      lastName: 'Nel',
+      email: 'johan@example.com',
+      passwordHash,
+      userType: 'GENERAL_LEARNER',
+      authStatus: 'ACTIVE',
+      createdAt: new Date('2026-05-12T06:00:00.000Z'),
+    });
+
+    const response = await request(createApp()).post('/auth/login').send({
+      email: '  Johan@example.com  ',
+      password: 'mySecurePassword123!',
+    });
+
+    expect(response.status).toBe(200);
+    expect(prismaMock.user.findUnique).toHaveBeenCalledWith({
+      where: {
+        email: 'johan@example.com',
+      },
+    });
+    expect(response.body).toEqual({
+      user: {
+        id: 'id-123',
+        firstName: 'Johan',
+        lastName: 'Nel',
+        email: 'johan@example.com',
+        userType: 'GENERAL_LEARNER',
+        authStatus: 'ACTIVE',
+        createdAt: '2026-05-12T06:00:00.000Z',
+      },
+      token: expect.any(String),
+      tokenType: 'Bearer',
+      expiresAt: expect.any(String),
+    });
+    expect(response.body.user).not.toHaveProperty('passwordHash');
+  });
+
+  it('returns 401 for invalid login credentials', async () => {
+    const passwordHash = await hashPassword('mySecurePassword123!');
+
+    prismaMock.user.findUnique.mockResolvedValue({
+      id: 'id-123',
+      firstName: 'Johan',
+      lastName: 'Nel',
+      email: 'johan@example.com',
+      passwordHash,
+      userType: 'GENERAL_LEARNER',
+      authStatus: 'ACTIVE',
+      createdAt: new Date('2026-05-12T06:00:00.000Z'),
+    });
+
+    const response = await request(createApp()).post('/auth/login').send({
+      email: 'johan@example.com',
+      password: 'wrongPassword',
+    });
+
+    expect(response.status).toBe(401);
+    expect(response.body).toHaveProperty('error', 'AUTH_INVALID');
+  });
+
+  it('returns the current authenticated user without exposing the password hash', async () => {
+    const token = generateAuthToken('id-123').token;
+
+    prismaMock.user.findUnique.mockResolvedValue({
+      id: 'id-123',
+      firstName: 'Johan',
+      lastName: 'Nel',
+      email: 'johan@example.com',
+      passwordHash: 'hashed-password',
+      userType: 'GENERAL_LEARNER',
+      authStatus: 'ACTIVE',
+      createdAt: new Date('2026-05-12T06:00:00.000Z'),
+    });
+
+    const response = await request(createApp())
+      .get('/auth/me')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(200);
+    expect(prismaMock.user.findUnique).toHaveBeenCalledWith({
+      where: {
+        id: 'id-123',
+      },
+    });
+    expect(response.body).toEqual({
+      user: {
+        id: 'id-123',
+        firstName: 'Johan',
+        lastName: 'Nel',
+        email: 'johan@example.com',
+        userType: 'GENERAL_LEARNER',
+        authStatus: 'ACTIVE',
+        createdAt: '2026-05-12T06:00:00.000Z',
+      },
+    });
+    expect(response.body.user).not.toHaveProperty('passwordHash');
+  });
+
+  it('returns 401 when the token is missing', async () => {
+    const response = await request(createApp()).get('/auth/me');
+
+    expect(response.status).toBe(401);
+    expect(response.body).toHaveProperty('error', 'AUTH_REQUIRED');
+    expect(prismaMock.user.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('returns 401 when the token is invalid', async () => {
+    const response = await request(createApp())
+      .get('/auth/me')
+      .set('Authorization', 'Bearer invalid-token');
+
+    expect(response.status).toBe(401);
+    expect(response.body).toHaveProperty('error', 'AUTH_INVALID');
+    expect(prismaMock.user.findUnique).not.toHaveBeenCalled();
   });
 });
