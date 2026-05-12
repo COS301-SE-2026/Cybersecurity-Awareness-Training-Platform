@@ -1,6 +1,6 @@
 import AppLayout from '../components/layout/AppLayout';
 
-function TrainingModulesPage() {
+function QuizGradesPage() {
   return (
     <AppLayout>
       <div
@@ -22,11 +22,11 @@ function TrainingModulesPage() {
             fontFamily: 'Jost',
           }}
         >
-          Training Modules
+          Quiz Grades
         </h1>
       </div>
     </AppLayout>
   );
 }
 
-export default TrainingModulesPage;
+export default QuizGradesPage;

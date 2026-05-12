@@ -1,6 +1,6 @@
 import AppLayout from '../components/layout/AppLayout';
 
-function TrainingModulesPage() {
+function FeedbackPage() {
   return (
     <AppLayout>
       <div
@@ -22,11 +22,11 @@ function TrainingModulesPage() {
             fontFamily: 'Jost',
           }}
         >
-          Training Modules
+          Feedback
         </h1>
       </div>
     </AppLayout>
   );
 }
 
-export default TrainingModulesPage;
+export default FeedbackPage;

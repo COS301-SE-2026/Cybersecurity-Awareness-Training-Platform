@@ -9,7 +9,8 @@ import TrainingModulesPage from '../pages/TrainingModulesPage';
 import TrainingDocumentPage from '../pages/TrainingDocumentPage';
 import QuizPage from '../pages/QuizPage';
 import ResultsPage from '../pages/ResultsPage';
-
+import FeedbackPage from '../pages/FeedbackPage';
+import QuizGradesPage from '../pages/QuizGradesPage';
 import ProtectedRoute from './ProtectedRoute';
 function AppRoutes() {
   return (
@@ -20,17 +21,21 @@ function AppRoutes() {
       <Route element={<ProtectedRoute />}>
         <Route path="/dashboard" element={<DashboardPage />} />
 
-        <Route path="/inbox" element={<InboxPage />} />
+        <Route path="/simulation/inbox" element={<InboxPage />} />
 
-        <Route path="/inbox/:emailId" element={<EmailDetailPage />} />
+        <Route path="/simulation/inbox/:emailId" element={<EmailDetailPage />} />
 
-        <Route path="/training" element={<TrainingModulesPage />} />
+        <Route path="/training/modules" element={<TrainingModulesPage />} />
 
-        <Route path="/training/:trainingId" element={<TrainingDocumentPage />} />
+        <Route path="/training/modules/:trainingId" element={<TrainingDocumentPage />} />
 
         <Route path="/quiz/:quizId" element={<QuizPage />} />
 
+        <Route path="/quiz/grades" element={<QuizGradesPage />} />
+
         <Route path="/results/:attemptId" element={<ResultsPage />} />
+
+        <Route path="/feedback" element={<FeedbackPage />} />
       </Route>
     </Routes>
   );
