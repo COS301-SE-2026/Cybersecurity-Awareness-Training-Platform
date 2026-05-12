@@ -145,8 +145,14 @@ jobs:
       - name: Generate Prisma client
         run: pnpm --filter @insightful-phish/backend exec prisma generate
 
-      - name: Run tests with coverage
-        run: pnpm test:coverage
+      - name: Run tests (backend)
+        run: pnpm --filter @insightful-phish/backend test:coverage
+
+      - name: Run tests (frontend)
+        run: pnpm --filter @insightful-phish/frontend test:coverage
+
+      - name: Run tests (shared)
+        run: pnpm --filter @insightful-phish/shared test:coverage
 
       - name: Upload backend coverage report
         uses: actions/upload-artifact@v4
