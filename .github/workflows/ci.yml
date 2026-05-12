@@ -72,13 +72,13 @@ jobs:
         run: pnpm --filter @insightful-phish/backend exec prisma generate
 
       - name: Run linting (backend)
-        run: pnpm --filter @insightful-phish/backend lint
+        run: pnpm lint:backend
 
       - name: Run linting (frontend)
-        run: pnpm --filter @insightful-phish/frontend lint
+        run: pnpm lint:frontend
 
       - name: Run linting (shared)
-        run: pnpm --filter @insightful-phish/shared lint
+        run: pnpm lint:shared
 
   typecheck:
     name: Typecheck
@@ -109,13 +109,13 @@ jobs:
         run: pnpm --filter @insightful-phish/backend exec prisma generate
 
       - name: Run typecheck (backend)
-        run: pnpm --filter @insightful-phish/backend typecheck
+        run: pnpm typecheck:backend
 
       - name: Run typecheck (frontend)
-        run: pnpm --filter @insightful-phish/frontend typecheck
+        run: pnpm typecheck:frontend
 
       - name: Run typecheck (shared)
-        run: pnpm --filter @insightful-phish/shared typecheck
+        run: pnpm typecheck:shared
 
   tests:
     name: Tests
@@ -146,13 +146,13 @@ jobs:
         run: pnpm --filter @insightful-phish/backend exec prisma generate
 
       - name: Run tests (backend)
-        run: pnpm --filter @insightful-phish/backend test:coverage
+        run: pnpm test:coverage:backend
 
       - name: Run tests (frontend)
-        run: pnpm --filter @insightful-phish/frontend test:coverage
+        run: pnpm test:coverage:frontend
 
       - name: Run tests (shared)
-        run: pnpm --filter @insightful-phish/shared test:coverage
+        run: pnpm test:coverage:shared
 
       - name: Upload backend coverage report
         uses: actions/upload-artifact@v4
@@ -197,10 +197,10 @@ jobs:
         run: pnpm --filter @insightful-phish/backend exec prisma generate
 
       - name: Build (shared)
-        run: pnpm --filter @insightful-phish/shared build
+        run: pnpm build:shared
 
       - name: Build (backend)
-        run: pnpm --filter @insightful-phish/backend build
+        run: pnpm build:backend
 
       - name: Build (frontend)
-        run: pnpm --filter @insightful-phish/frontend build
+        run: pnpm build:frontend
