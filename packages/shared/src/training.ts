@@ -1,5 +1,5 @@
 import type { z } from 'zod';
-import type { Id, SuccessResponseDto } from './common.js';
+import type { SuccessResponseDto } from './common.js';
 import type {
   getTrainingDocumentRequestParamsSchema,
   recordTrainingProgressRequestParamsSchema,
@@ -13,7 +13,7 @@ export type TrainingProgressStatusDto = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLET
 export interface GetAssignedTrainingRequestParamsDto {}
 
 export interface TrainingDocumentSummaryDto {
-  id: Id;
+  id: string;
   title: string;
   description: string;
   status: TrainingProgressStatusDto;
@@ -28,11 +28,11 @@ export type GetTrainingDocumentRequestParamsDto = z.infer<
 >;
 
 export interface TrainingDocumentDetailDto {
-  id: Id;
+  id: string;
   title: string;
   contentType: TrainingContentTypeDto;
   contentRef: string;
-  linkedQuizIds?: Id[];
+  linkedQuizIds?: string[];
 }
 
 export interface GetTrainingDocumentResponseDto extends TrainingDocumentDetailDto {}

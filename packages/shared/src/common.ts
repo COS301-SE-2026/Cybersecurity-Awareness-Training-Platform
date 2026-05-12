@@ -1,6 +1,3 @@
-export type Id = string;
-export type IsoDateTimeString = string;
-
 export interface ValidationErrorDetailDto {
   field: string;
   message: string;

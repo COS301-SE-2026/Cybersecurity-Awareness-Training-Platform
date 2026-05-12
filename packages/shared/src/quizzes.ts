@@ -1,5 +1,5 @@
 import type { z } from 'zod';
-import type { Id, SuccessResponseDto } from './common.js';
+import type { SuccessResponseDto } from './common.js';
 import type {
   getQuizRequestParamsSchema,
   getQuizResultRequestParamsSchema,
@@ -16,14 +16,14 @@ export type FeedbackTypeDto = 'SUCCESS' | 'WARNING' | 'ERROR' | 'INFO';
 export type GetQuizRequestParamsDto = z.infer<typeof getQuizRequestParamsSchema>;
 
 export interface SafeQuizAnswerOptionDto {
-  id: Id;
+  id: string;
   label: string;
   text: string;
   order: number;
 }
 
 export interface SafeQuizQuestionDto {
-  id: Id;
+  id: string;
   text: string;
   type: QuestionTypeDto;
   order: number;
@@ -32,7 +32,7 @@ export interface SafeQuizQuestionDto {
 }
 
 export interface GetQuizResponseDto {
-  id: Id;
+  id: string;
   title: string;
   passThresholdPercentage: number;
   questions: SafeQuizQuestionDto[];
@@ -41,7 +41,7 @@ export interface GetQuizResponseDto {
 export type StartQuizAttemptRequestParamsDto = z.infer<typeof startQuizAttemptRequestParamsSchema>;
 
 export interface StartQuizAttemptResponseDto {
-  attemptId: Id;
+  attemptId: string;
   status: Extract<QuizAttemptStatusDto, 'IN_PROGRESS'>;
 }
 
@@ -54,14 +54,14 @@ export type QuizAnswerInputDto = z.infer<typeof quizAnswerInputSchema>;
 export type SubmitQuizAttemptRequestDto = z.infer<typeof submitQuizAttemptRequestSchema>;
 
 export interface SubmitQuizAttemptResponseDto extends SuccessResponseDto {
-  attemptId: Id;
+  attemptId: string;
   status: Extract<QuizAttemptStatusDto, 'SUBMITTED'>;
 }
 
 export type GetQuizResultRequestParamsDto = z.infer<typeof getQuizResultRequestParamsSchema>;
 
 export interface QuizResultFeedbackItemDto {
-  questionId: Id;
+  questionId: string;
   isCorrect: boolean;
   explanation: string;
   feedbackType?: FeedbackTypeDto;
@@ -69,7 +69,7 @@ export interface QuizResultFeedbackItemDto {
 }
 
 export interface GetQuizResultResponseDto {
-  attemptId: Id;
+  attemptId: string;
   scorePercentage: number;
   passed: boolean;
   summary?: string | null;

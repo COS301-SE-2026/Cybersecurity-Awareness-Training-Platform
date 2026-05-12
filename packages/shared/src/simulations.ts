@@ -1,5 +1,5 @@
 import type { z } from 'zod';
-import type { Id, IsoDateTimeString, SuccessResponseDto } from './common.js';
+import type { SuccessResponseDto } from './common.js';
 import type {
   getSimulatedEmailRequestParamsSchema,
   recordSimulatedEmailInteractionRequestParamsSchema,
@@ -23,10 +23,10 @@ export type SimulatedEmailInteractionEventTypeDto = 'EMAIL_OPENED' | 'EMAIL_LINK
 export interface GetSimulatedInboxRequestParamsDto {}
 
 export interface SimulatedEmailSummaryDto {
-  id: Id;
+  id: string;
   senderLabel: string;
   subject: string;
-  receivedDate: IsoDateTimeString;
+  receivedDate: string;
   isRead: boolean;
 }
 
@@ -44,12 +44,12 @@ export interface SimulationContextDto {
 }
 
 export interface SimulatedEmailDetailDto {
-  id: Id;
+  id: string;
   senderLabel: string;
   senderAddress: string;
   subject: string;
   bodyHtml: string;
-  recommendedTrainingDocumentId?: Id | null;
+  recommendedTrainingDocumentId?: string | null;
   simulationContext: SimulationContextDto;
 }
 

@@ -1,5 +1,4 @@
 import type { z } from 'zod';
-import type { Id, IsoDateTimeString } from './common.js';
 import type {
   authLoginRequestSchema,
   authRegisterRequestSchema,
@@ -10,13 +9,13 @@ export type UserTypeDto = 'IP_ADMIN' | 'COMPANY_ADMIN' | 'COMPANY_LEARNER' | 'GE
 export type AuthStatusDto = 'PENDING' | 'ACTIVE' | 'DISABLED';
 
 export interface PublicUserDto {
-  id: Id;
+  id: string;
   firstName: string;
   lastName: string;
   email: string;
   userType: UserTypeDto;
   authStatus: AuthStatusDto;
-  createdAt: IsoDateTimeString;
+  createdAt: string;
 }
 
 export type AuthRegisterRequestDto = z.infer<typeof authRegisterRequestSchema>;
@@ -24,7 +23,7 @@ export type AuthRegisterRequestDto = z.infer<typeof authRegisterRequestSchema>;
 export type AuthLoginRequestDto = z.infer<typeof authLoginRequestSchema>;
 
 export interface AuthSuccessResponseDto {
-  userId: Id;
+  userId: string;
   token: string;
   message?: string;
 }

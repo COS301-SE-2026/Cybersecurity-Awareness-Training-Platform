@@ -1,5 +1,4 @@
 import type { AuthStatusDto, UserTypeDto } from './auth.js';
-import type { Id, IsoDateTimeString } from './common.js';
 import type { FeedbackTypeDto, QuestionTypeDto, QuizAttemptStatusDto } from './quizzes.js';
 import type { InboxStatusDto, InteractionEventTypeDto } from './simulations.js';
 import type {
@@ -40,259 +39,259 @@ export type InteractionTargetTypeDto =
   | 'QUIZ_QUESTION';
 
 export interface HealthCheckDto {
-  id: Id;
+  id: string;
   message: string;
-  createdAt: IsoDateTimeString;
+  createdAt: string;
 }
 
 export interface UserDto {
-  id: Id;
+  id: string;
   firstName: string;
   lastName: string;
   email: string;
   userType: UserTypeDto;
   authStatus: AuthStatusDto;
-  createdAt: IsoDateTimeString;
-  updatedAt: IsoDateTimeString;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface OrganisationDto {
-  id: Id;
+  id: string;
   name: string;
   contextStatus: ContextStatusDto;
-  createdAt: IsoDateTimeString;
-  updatedAt: IsoDateTimeString;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface OrganisationMembershipDto {
-  id: Id;
-  userId: Id;
-  organisationId: Id;
+  id: string;
+  userId: string;
+  organisationId: string;
   role: OrganisationRoleDto;
   status: MembershipStatusDto;
-  departmentId?: Id | null;
-  createdAt: IsoDateTimeString;
-  updatedAt: IsoDateTimeString;
+  departmentId?: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface GeneralLearningAccessDto {
-  id: Id;
-  userId: Id;
-  assignedAt: IsoDateTimeString;
+  id: string;
+  userId: string;
+  assignedAt: string;
   source: GeneralLearningAccessSourceDto;
-  createdAt: IsoDateTimeString;
-  updatedAt: IsoDateTimeString;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface DepartmentDto {
-  id: Id;
-  organisationId: Id;
+  id: string;
+  organisationId: string;
   name: string;
-  createdAt: IsoDateTimeString;
-  updatedAt: IsoDateTimeString;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CompanyContextDto {
-  id: Id;
-  organisationId: Id;
+  id: string;
+  organisationId: string;
   industry?: string | null;
   terminology?: Record<string, unknown> | null;
   safetyNotes?: string | null;
-  createdAt: IsoDateTimeString;
-  updatedAt: IsoDateTimeString;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CampaignDto {
-  id: Id;
-  organisationId?: Id | null;
+  id: string;
+  organisationId?: string | null;
   name: string;
   description?: string | null;
   campaignType: CampaignTypeDto;
   status: CampaignStatusDto;
-  startDate?: IsoDateTimeString | null;
-  endDate?: IsoDateTimeString | null;
-  createdAt: IsoDateTimeString;
-  updatedAt: IsoDateTimeString;
+  startDate?: string | null;
+  endDate?: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CampaignAssignmentDto {
-  id: Id;
-  campaignId: Id;
-  userId: Id;
-  membershipId: Id;
-  assignedAt: IsoDateTimeString;
+  id: string;
+  campaignId: string;
+  userId: string;
+  membershipId: string;
+  assignedAt: string;
   assignmentStatus: AssignmentStatusDto;
-  createdAt: IsoDateTimeString;
-  updatedAt: IsoDateTimeString;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface LearningPathDto {
-  id: Id;
-  campaignId: Id;
+  id: string;
+  campaignId: string;
   title: string;
   status: LearningPathStatusDto;
-  createdAt: IsoDateTimeString;
-  updatedAt: IsoDateTimeString;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface SimulationDto {
-  id: Id;
-  campaignId: Id;
+  id: string;
+  campaignId: string;
   simulationType: SimulationTypeDto;
   objective?: string | null;
   safetyStatus: SafetyStatusDto;
-  createdAt: IsoDateTimeString;
-  updatedAt: IsoDateTimeString;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface SimulatedInboxDto {
-  id: Id;
-  ownerUserId: Id;
+  id: string;
+  ownerUserId: string;
   status: InboxStatusDto;
-  createdAt: IsoDateTimeString;
-  updatedAt: IsoDateTimeString;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface SimulatedEmailDto {
-  id: Id;
-  inboxId: Id;
-  simulationId: Id;
-  recommendedTrainingDocumentId?: Id | null;
+  id: string;
+  inboxId: string;
+  simulationId: string;
+  recommendedTrainingDocumentId?: string | null;
   senderLabel: string;
   senderAddress: string;
   subject: string;
   preview?: string | null;
   bodyHtml: string;
-  receivedAt: IsoDateTimeString;
+  receivedAt: string;
   isRead: boolean;
-  createdAt: IsoDateTimeString;
-  updatedAt: IsoDateTimeString;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface TrainingModuleDto {
-  id: Id;
-  learningPathId?: Id | null;
+  id: string;
+  learningPathId?: string | null;
   title: string;
   order: number;
   description?: string | null;
   difficulty: DifficultyLevelDto;
-  createdAt: IsoDateTimeString;
-  updatedAt: IsoDateTimeString;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface TrainingDocumentDto {
-  id: Id;
-  moduleId: Id;
+  id: string;
+  moduleId: string;
   title: string;
   contentType: TrainingContentTypeDto;
   contentRef: string;
   status: TrainingDocumentStatusDto;
-  createdAt: IsoDateTimeString;
-  updatedAt: IsoDateTimeString;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface TrainingProgressDto {
-  id: Id;
-  userId: Id;
-  trainingDocumentId: Id;
-  campaignAssignmentId?: Id | null;
+  id: string;
+  userId: string;
+  trainingDocumentId: string;
+  campaignAssignmentId?: string | null;
   status: TrainingProgressStatusDto;
-  startedAt?: IsoDateTimeString | null;
-  completedAt?: IsoDateTimeString | null;
-  createdAt: IsoDateTimeString;
-  updatedAt: IsoDateTimeString;
+  startedAt?: string | null;
+  completedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface QuizDto {
-  id: Id;
-  trainingDocumentId?: Id | null;
+  id: string;
+  trainingDocumentId?: string | null;
   title: string;
   passThresholdPercentage: number;
   status: QuizStatusDto;
-  createdAt: IsoDateTimeString;
-  updatedAt: IsoDateTimeString;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface QuizQuestionDto {
-  id: Id;
-  quizId: Id;
+  id: string;
+  quizId: string;
   prompt: string;
   questionType: QuestionTypeDto;
   order: number;
   points: number;
-  createdAt: IsoDateTimeString;
-  updatedAt: IsoDateTimeString;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface AnswerOptionDto {
-  id: Id;
-  questionId: Id;
+  id: string;
+  questionId: string;
   label: string;
   text: string;
   isCorrect: boolean;
   order: number;
   feedback?: string | null;
-  createdAt: IsoDateTimeString;
-  updatedAt: IsoDateTimeString;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface QuizAttemptDto {
-  id: Id;
-  userId: Id;
-  quizId: Id;
-  campaignAssignmentId?: Id | null;
-  trainingProgressId?: Id | null;
+  id: string;
+  userId: string;
+  quizId: string;
+  campaignAssignmentId?: string | null;
+  trainingProgressId?: string | null;
   status: QuizAttemptStatusDto;
-  startedAt: IsoDateTimeString;
-  submittedAt?: IsoDateTimeString | null;
-  createdAt: IsoDateTimeString;
-  updatedAt: IsoDateTimeString;
+  startedAt: string;
+  submittedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface AttemptAnswerDto {
-  id: Id;
-  attemptId: Id;
-  questionId: Id;
-  selectedOptionId: Id;
-  createdAt: IsoDateTimeString;
-  updatedAt: IsoDateTimeString;
+  id: string;
+  attemptId: string;
+  questionId: string;
+  selectedOptionId: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface QuizResultDto {
-  id: Id;
-  attemptId: Id;
+  id: string;
+  attemptId: string;
   scorePercentage: number;
   passed: boolean;
   summary?: string | null;
-  createdAt: IsoDateTimeString;
-  updatedAt: IsoDateTimeString;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface FeedbackItemDto {
-  id: Id;
-  quizResultId: Id;
-  questionId: Id;
-  attemptAnswerId?: Id | null;
+  id: string;
+  quizResultId: string;
+  questionId: string;
+  attemptAnswerId?: string | null;
   isCorrect: boolean;
   explanation: string;
   feedbackType: FeedbackTypeDto;
   linkedTopic?: string | null;
-  createdAt: IsoDateTimeString;
-  updatedAt: IsoDateTimeString;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface InteractionEventDto {
-  id: Id;
-  userId: Id;
+  id: string;
+  userId: string;
   eventType: InteractionEventTypeDto;
   targetType: InteractionTargetTypeDto;
-  targetId: Id;
-  occurredAt: IsoDateTimeString;
+  targetId: string;
+  occurredAt: string;
   metadata?: Record<string, unknown> | null;
-  simulatedEmailId?: Id | null;
-  trainingDocumentId?: Id | null;
-  quizAttemptId?: Id | null;
-  quizId?: Id | null;
-  quizQuestionId?: Id | null;
-  createdAt: IsoDateTimeString;
+  simulatedEmailId?: string | null;
+  trainingDocumentId?: string | null;
+  quizAttemptId?: string | null;
+  quizId?: string | null;
+  quizQuestionId?: string | null;
+  createdAt: string;
 }
