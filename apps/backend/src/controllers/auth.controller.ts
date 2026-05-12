@@ -8,7 +8,7 @@ export async function register(req: Request, res: Response) {
   } catch (error) {
     if (error instanceof AuthConflictError) {
       return res.status(409).json({
-        error: 'AUTH_CONFLICT',
+        error: 'AUTH_EMAIL_EXISTS',
         message: error.message,
       });
     }
