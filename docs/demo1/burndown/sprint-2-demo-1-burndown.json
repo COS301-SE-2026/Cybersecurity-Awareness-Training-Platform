@@ -168,8 +168,8 @@
       "number": 75,
       "title": "feat: [backend] Implement Demo 1 auth API and security middleware",
       "points": 5,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-05-13"
     },
     {
       "number": 74,
@@ -255,7 +255,7 @@
     },
     {
       "date": "2026-05-13",
-      "remaining": 67,
+      "remaining": 62,
       "ideal": 68.44
     }
   ]
