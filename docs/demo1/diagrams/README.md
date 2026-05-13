@@ -41,7 +41,7 @@ Login/register and general validation are supporting features, not standalone De
 
 ### Supporting Admin Context
 
-Administrator and campaign setup appear only as supporting context for assigning campaigns that expose simulations and learning paths.
+Administrator and campaign setup appear only as supporting context for assigning campaigns that expose simulations, training documents, quizzes, and modular campaign items/components.
 
 ## Domain Model Diagrams (Adriano)
 
