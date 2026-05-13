@@ -1,5 +1,6 @@
 import type {
   GetTrainingDocumentResponseDto,
+  TrainingProgressResultDto,
   TrainingDocumentSummaryDto,
   TrainingProgressStatusDto,
 } from '@insightful-phish/shared';
@@ -27,6 +28,15 @@ interface TrainingDocumentDetailRecord {
   }>;
 }
 
+interface TrainingProgressResultRecord {
+  id: string;
+  trainingDocumentId: string;
+  campaignAssignmentId: string | null;
+  status: TrainingProgressStatusDto;
+  startedAt: Date | null;
+  completedAt: Date | null;
+}
+
 export function toTrainingDocumentSummaryDto(
   document: TrainingDocumentSummaryRecord,
 ): TrainingDocumentSummaryDto {
@@ -49,5 +59,18 @@ export function toGetTrainingDocumentResponseDto(
     contentType: document.contentType,
     contentRef: document.contentRef,
     ...(linkedQuizIds.length > 0 ? { linkedQuizIds } : {}),
+  };
+}
+
+export function toTrainingProgressResultDto(
+  progress: TrainingProgressResultRecord,
+): TrainingProgressResultDto {
+  return {
+    id: progress.id,
+    trainingDocumentId: progress.trainingDocumentId,
+    campaignAssignmentId: progress.campaignAssignmentId,
+    status: progress.status,
+    startedAt: progress.startedAt?.toISOString() ?? null,
+    completedAt: progress.completedAt?.toISOString() ?? null,
   };
 }

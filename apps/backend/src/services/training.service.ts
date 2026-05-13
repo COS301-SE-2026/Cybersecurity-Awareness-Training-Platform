@@ -8,6 +8,7 @@ import type { Prisma } from '../generated/prisma/client.js';
 import { prisma } from '../lib/prisma.js';
 import {
   toGetTrainingDocumentResponseDto,
+  toTrainingProgressResultDto,
   toTrainingDocumentSummaryDto,
 } from '../mappers/training.mapper.js';
 
@@ -212,29 +213,27 @@ export async function recordTrainingProgress(
   const storedStatus = toStoredProgressStatus(input.status);
   const now = new Date();
 
-  if (existingProgress) {
-    await prisma.trainingProgress.update({
-      where: {
-        id: existingProgress.id,
-      },
-      data: {
-        status: storedStatus,
-        startedAt: existingProgress.startedAt ?? now,
-        ...(storedStatus === 'COMPLETED' ? { completedAt: now } : {}),
-      },
-    });
-  } else {
-    await prisma.trainingProgress.create({
-      data: {
-        userId,
-        trainingDocumentId,
-        campaignAssignmentId,
-        status: storedStatus,
-        startedAt: now,
-        ...(storedStatus === 'COMPLETED' ? { completedAt: now } : {}),
-      },
-    });
-  }
+  const progress = existingProgress
+    ? await prisma.trainingProgress.update({
+        where: {
+          id: existingProgress.id,
+        },
+        data: {
+          status: storedStatus,
+          startedAt: existingProgress.startedAt ?? now,
+          ...(storedStatus === 'COMPLETED' ? { completedAt: now } : {}),
+        },
+      })
+    : await prisma.trainingProgress.create({
+        data: {
+          userId,
+          trainingDocumentId,
+          campaignAssignmentId,
+          status: storedStatus,
+          startedAt: now,
+          ...(storedStatus === 'COMPLETED' ? { completedAt: now } : {}),
+        },
+      });
 
   await prisma.interactionEvent.create({
     data: {
@@ -251,5 +250,6 @@ export async function recordTrainingProgress(
 
   return {
     success: true,
+    progress: toTrainingProgressResultDto(progress),
   };
 }

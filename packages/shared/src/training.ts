@@ -43,4 +43,15 @@ export type RecordTrainingProgressRequestParamsDto = z.infer<
 
 export type RecordTrainingProgressRequestDto = z.infer<typeof recordTrainingProgressRequestSchema>;
 
-export interface RecordTrainingProgressResponseDto extends SuccessResponseDto {}
+export interface TrainingProgressResultDto {
+  id: string;
+  trainingDocumentId: string;
+  campaignAssignmentId?: string | null;
+  status: TrainingProgressStatusDto;
+  startedAt?: string | null;
+  completedAt?: string | null;
+}
+
+export interface RecordTrainingProgressResponseDto extends SuccessResponseDto {
+  progress: TrainingProgressResultDto;
+}

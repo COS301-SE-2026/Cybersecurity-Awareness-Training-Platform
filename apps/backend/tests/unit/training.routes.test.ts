@@ -158,6 +158,11 @@ describe('Training routes', () => {
     prismaMock.trainingProgress.findFirst.mockResolvedValue(null);
     prismaMock.trainingProgress.create.mockResolvedValue({
       id: 'progress-1',
+      trainingDocumentId: 'training-1',
+      campaignAssignmentId: 'assignment-1',
+      status: 'IN_PROGRESS',
+      startedAt: new Date('2026-05-13T10:00:00.000Z'),
+      completedAt: null,
     });
     prismaMock.interactionEvent.create.mockResolvedValue({
       id: 'event-1',
@@ -194,6 +199,14 @@ describe('Training routes', () => {
     });
     expect(response.body).toEqual({
       success: true,
+      progress: {
+        id: 'progress-1',
+        trainingDocumentId: 'training-1',
+        campaignAssignmentId: 'assignment-1',
+        status: 'IN_PROGRESS',
+        startedAt: '2026-05-13T10:00:00.000Z',
+        completedAt: null,
+      },
     });
   });
 
