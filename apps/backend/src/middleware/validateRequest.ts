@@ -23,6 +23,26 @@ export function validateBody<T>(schema: ZodSchema<T>) {
   };
 }
 
+export function validateParams<T>(schema: ZodSchema<T>) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const result = schema.safeParse(req.params);
+
+    if (!result.success) {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Invalid request parameters',
+        details: result.error.issues.map((issue) => ({
+          field: issue.path.join('.'),
+          message: issue.message,
+        })),
+      });
+    }
+
+    req.params = result.data as Request['params'];
+    next();
+  };
+}
+
 // Helper function to check if an error is a ZodError.. if it is we can handle it in a centralized error handler
 export function isZodError(error: unknown): error is ZodError {
   return error instanceof ZodError;

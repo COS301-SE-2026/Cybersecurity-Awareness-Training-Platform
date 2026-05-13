@@ -3,7 +3,7 @@ import { idParamSchema } from './common.schemas.js';
 
 export const trainingProgressStatusSchema = z.enum(['NOT_STARTED', 'IN_PROGRESS', 'COMPLETED']);
 
-export const recordTrainingProgressStatusSchema = z.enum(['IN_PROGRESS', 'COMPLETED']);
+export const recordTrainingProgressStatusSchema = z.enum(['STARTED', 'VIEWED', 'COMPLETED']);
 
 export const getTrainingDocumentRequestParamsSchema = z.object({
   trainingId: idParamSchema,

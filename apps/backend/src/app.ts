@@ -6,6 +6,7 @@ import { env } from './config/env.js';
 import { swaggerSpec } from './config/swagger.js';
 import { healthRoutes } from './routes/health.routes.js';
 import { authRouter } from './routes/auth.routes.js';
+import { trainingRouter } from './routes/training.routes.js';
 
 export function createApp() {
   const app = express();
@@ -28,6 +29,7 @@ export function createApp() {
 
   app.use(healthRoutes);
   app.use(authRouter);
+  app.use(trainingRouter);
 
   // Preliminary Demo 1 API Route Placeholders (To be implemented)
   // Base Features
@@ -35,9 +37,6 @@ export function createApp() {
 
   // UC-01: Simulated Inbox
   // app.use('/simulations', simulationRoutes); // GET /simulations/inbox, GET /simulations/emails/:id, POST /simulations/emails/:id/interactions
-
-  // UC-02: Training Document
-  // app.use('/training', trainingRoutes); // GET /training/assigned, GET /training/:id, POST /training/:id/progress
 
   // UC-03: Quiz Flow
   // app.use('/quizzes', quizRoutes); // GET /quizzes/:id, POST /quizzes/:id/attempts
