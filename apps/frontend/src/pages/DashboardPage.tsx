@@ -316,7 +316,7 @@ function DashboardPage() {
 
               {/* FEEDBACK */}
 
-              <div
+              {/* <div
                 style={{
                   ...cardStyle,
 
@@ -359,7 +359,7 @@ function DashboardPage() {
                       color: '#FFE2A1',
                     }}
                   >
-                    Your LAST attempt was SAFE
+                    Available
                   </p>
                 </div>
 
@@ -373,7 +373,7 @@ function DashboardPage() {
                   height="64px"
                   fontSize="1.15rem"
                 />
-              </div>
+              </div> */}
             </div>
           </div>
 

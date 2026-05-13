@@ -33,11 +33,11 @@ function Sidebar() {
       label: 'Quiz Grades',
       path: '/quiz/grades',
     },
-    {
+    /*{
       icon: <FeedbackOutlined />,
       label: 'Feedback',
       path: '/feedback',
-    },
+    },*/
   ];
 
   return (
