@@ -213,9 +213,24 @@ Where the API uses practical route names such as `trainingId` or `emailId`, thes
 - **Related Use Case / Base Feature**: UC-02: View Training Document
 - **Method & Route**: `POST /training/:trainingId/progress`
 - **Expected Request Data**:
-  - `status` (enum: "IN_PROGRESS", "COMPLETED", required)
+  - `status` (enum: "STARTED", "VIEWED", "COMPLETED", required)
+  - API inputs `STARTED` and `VIEWED` are stored internally as `IN_PROGRESS`.
+  - API input `COMPLETED` is stored internally as `COMPLETED`.
 - **Expected Response Data**:
-  - `201 Created`: `{ "success": true }`
+  - `200 OK`:
+    ```json
+    {
+      "success": true,
+      "progress": {
+        "id": "progress-001",
+        "trainingDocumentId": "train-001",
+        "campaignAssignmentId": "assignment-001",
+        "status": "IN_PROGRESS",
+        "startedAt": "2026-05-01T10:00:00Z",
+        "completedAt": null
+      }
+    }
+    ```
 - **Common Error Responses**:
   - `404 Not Found`
 - **Linked Domain Entities**: `TrainingProgress`, `InteractionEvent`
