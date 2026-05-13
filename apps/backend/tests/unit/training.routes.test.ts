@@ -63,6 +63,34 @@ function assignedTrainingDocument(overrides = {}) {
   };
 }
 
+function expectAssignedAvailableTrainingWhere(where: unknown) {
+  expect(where).toEqual(
+    expect.objectContaining({
+      OR: [
+        expect.objectContaining({
+          status: 'AVAILABLE',
+          module: {
+            learningPath: {
+              status: 'ACTIVE',
+              campaign: {
+                status: 'ACTIVE',
+                assignments: {
+                  some: {
+                    userId: 'learner-1',
+                    assignmentStatus: {
+                      not: 'CANCELLED',
+                    },
+                  },
+                },
+              },
+            },
+          },
+        }),
+      ],
+    }),
+  );
+}
+
 describe('Training routes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -78,16 +106,19 @@ describe('Training routes', () => {
       .set('Authorization', authHeader());
 
     expect(response.status).toBe(200);
-    expect(prismaMock.trainingDocument.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: {
-          OR: [
-            expect.objectContaining({
-              status: 'AVAILABLE',
-            }),
-          ],
+    expect(prismaMock.trainingDocument.findMany).toHaveBeenCalledWith({
+      where: expect.any(Object),
+      include: expect.objectContaining({
+        module: {
+          select: {
+            description: true,
+          },
         },
       }),
+      orderBy: expect.any(Array),
+    });
+    expectAssignedAvailableTrainingWhere(
+      prismaMock.trainingDocument.findMany.mock.calls[0][0].where,
     );
     expect(response.body).toEqual({
       trainingDocuments: [
@@ -111,11 +142,28 @@ describe('Training routes', () => {
     expect(response.status).toBe(200);
     expect(prismaMock.trainingDocument.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({
-          id: 'training-1',
+        include: expect.objectContaining({
+          quizzes: {
+            where: {
+              status: 'PUBLISHED',
+            },
+            select: {
+              id: true,
+            },
+            orderBy: {
+              createdAt: 'asc',
+            },
+          },
         }),
       }),
     );
+    const detailWhere = prismaMock.trainingDocument.findFirst.mock.calls[0][0].where;
+    expect(detailWhere).toEqual(
+      expect.objectContaining({
+        id: 'training-1',
+      }),
+    );
+    expectAssignedAvailableTrainingWhere(detailWhere);
     expect(response.body).toEqual({
       id: 'training-1',
       title: 'Spotting phishing links',
@@ -151,6 +199,17 @@ describe('Training routes', () => {
       error: 'TRAINING_DOCUMENT_NOT_FOUND',
       message: 'Training document was not found',
     });
+  });
+
+  it('returns 401 when training routes are requested without authentication', async () => {
+    const response = await request(createApp()).get('/training/assigned');
+
+    expect(response.status).toBe(401);
+    expect(response.body).toEqual({
+      error: 'AUTH_REQUIRED',
+      message: 'Authentication credentials are required',
+    });
+    expect(prismaMock.trainingDocument.findMany).not.toHaveBeenCalled();
   });
 
   it('records training progress and writes an interaction event', async () => {
