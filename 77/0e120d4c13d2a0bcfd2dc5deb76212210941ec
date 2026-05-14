@@ -1,0 +1,43 @@
+packages/shared/src/simulations.ts
+  s_88b4d709219027::t_f72ead68d69ab9 3,12-24,26-28,33-48,50-53,59-61,63,65-67,78-83,88-90,94,96-99,112-114
+packages/shared/src/training.ts
+  s_88b4d709219027::t_85f97959e6d1d5 11
+  s_88b4d709219027::t_bb58a4dc2c34cf 5-6,9,12-15,21-22,24-29,42-43,47-50,55-56,59-61,63-65
+packages/shared/src/auth.ts
+  s_88b4d709219027::t_1fb314a3e8cdf4 7-11,15-33,41-42
+packages/shared/src/quizzes.ts
+  s_88b4d709219027::t_762c89be3246ee 3,13,15,23,28-30,37-38,40,42-43,51-54,56,74-77,79-87,92-94,98
+packages/shared/src/entities.ts
+  s_88b4d709219027::t_0c19db17c6fd7b 2,4-12,17,19,21,23,25,27-35,37-42,44,46,48,50,52-57,59,63-69,71,73,75,96,98-99,104-123,127-128,133,136,141,144,149,152-160,168,172,189,192-196,198-205,210,213-221,228,232-234,242,244,246,257,259-261,272-273,280,283,295-299,304-310,321,323-360,362-380,382,387-393,396-398,409
+  s_42e4813ef39065::t_d4ff5d0efd028d 49,51,58,61,72,74,76,180,183-184
+  s_42e4813ef39065::t_47ea01b18e8bbb 361
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "770e120d4c13d2a0bcfd2dc5deb76212210941ec",
+  "prompts": {},
+  "humans": {
+    "h_1fff265ad32c51": {
+      "author": "FJNel <u24594475@tuks.co.za>"
+    }
+  },
+  "sessions": {
+    "s_42e4813ef39065": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e22fc-ff23-71f3-aeff-1bd4ef76e948",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    },
+    "s_88b4d709219027": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e229d-52e4-7171-b7e1-f23ef2e19beb",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
