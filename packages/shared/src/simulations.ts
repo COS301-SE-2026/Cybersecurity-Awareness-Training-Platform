@@ -2,7 +2,10 @@ import type { z } from 'zod';
 import type { SuccessResponseDto } from './common.js';
 import type { DifficultyLevelDto } from './training.js';
 import type {
+  classifySimulatedEmailRequestParamsSchema,
+  classifySimulatedEmailRequestSchema,
   getSimulatedEmailRequestParamsSchema,
+  getSimulatedInboxRequestParamsSchema,
   recordSimulatedEmailInteractionRequestParamsSchema,
   recordSimulatedEmailInteractionRequestSchema,
 } from './validation/simulations.schemas.js';
@@ -52,7 +55,9 @@ export type SimulatedEmailInteractionEventTypeDto =
   | 'SIMULATED_EMAIL_LINK_CLICKED'
   | 'CREDENTIAL_SUBMISSION_ATTEMPTED';
 
-export interface GetSimulatedInboxRequestParamsDto {}
+export type GetSimulatedInboxRequestParamsDto = z.infer<
+  typeof getSimulatedInboxRequestParamsSchema
+>;
 
 export interface SimulatedEmailSummaryDto {
   id: string;
@@ -111,4 +116,18 @@ export type RecordSimulatedEmailInteractionRequestDto = z.infer<
 
 export interface RecordSimulatedEmailInteractionResponseDto extends SuccessResponseDto {
   eventType: SimulatedEmailInteractionEventTypeDto;
+}
+
+export type ClassifySimulatedEmailRequestParamsDto = z.infer<
+  typeof classifySimulatedEmailRequestParamsSchema
+>;
+
+export type ClassifySimulatedEmailRequestDto = z.infer<typeof classifySimulatedEmailRequestSchema>;
+
+export interface ClassifySimulatedEmailResponseDto extends SuccessResponseDto {
+  responseId: string;
+  selectedClassification: EmailClassificationDto;
+  isCorrect: boolean;
+  feedback?: string | null;
+  redFlags?: EmailRedFlagDto[];
 }

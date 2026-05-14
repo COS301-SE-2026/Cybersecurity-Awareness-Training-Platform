@@ -39,7 +39,7 @@ export type GetTrainingDocumentRequestParamsDto = z.infer<
 
 export interface TrainingDocumentDetailDto {
   id: string;
-  campaignItemId?: string | null;
+  campaignItemId: string;
   campaignAssignmentId?: string | null;
   title: string;
   contentType: TrainingContentTypeDto;

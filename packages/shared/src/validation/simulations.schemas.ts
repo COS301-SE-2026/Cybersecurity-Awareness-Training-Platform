@@ -11,12 +11,25 @@ export const getSimulatedEmailRequestParamsSchema = z.object({
   emailId: idParamSchema,
 });
 
+export const getSimulatedInboxRequestParamsSchema = z.object({
+  campaignItemId: idParamSchema,
+});
+
 export const recordSimulatedEmailInteractionRequestParamsSchema =
   getSimulatedEmailRequestParamsSchema;
+
+export const classifySimulatedEmailRequestParamsSchema = getSimulatedEmailRequestParamsSchema;
 
 export const recordSimulatedEmailInteractionRequestSchema = z.object({
   eventType: simulatedEmailInteractionEventTypeSchema,
   campaignAssignmentId: idParamSchema.optional(),
   campaignItemId: idParamSchema.optional(),
-  metadata: z.record(z.unknown()).optional(),
+});
+
+export const classifySimulatedEmailRequestSchema = z.object({
+  selectedClassification: z.enum(['SAFE', 'SUSPICIOUS', 'PHISHING']),
+  selectedRedFlagIds: z.array(idParamSchema).optional(),
+  freeTextReason: z.string().trim().max(1000).optional(),
+  campaignAssignmentId: idParamSchema.optional(),
+  campaignItemId: idParamSchema.optional(),
 });

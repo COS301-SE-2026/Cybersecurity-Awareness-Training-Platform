@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { idParamSchema } from './common.schemas.js';
 
 export const getQuizRequestParamsSchema = z.object({
-  quizId: idParamSchema,
+  campaignItemId: idParamSchema,
 });
 
 export const startQuizAttemptRequestParamsSchema = getQuizRequestParamsSchema;

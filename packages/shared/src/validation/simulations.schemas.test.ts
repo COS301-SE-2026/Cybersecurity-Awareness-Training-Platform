@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { recordSimulatedEmailInteractionRequestSchema } from './simulations.schemas.js';
+import {
+  classifySimulatedEmailRequestSchema,
+  recordSimulatedEmailInteractionRequestSchema,
+} from './simulations.schemas.js';
 
 describe('simulation validation schemas', () => {
   it('accepts supported simulated email interaction events', () => {
@@ -14,5 +17,16 @@ describe('simulation validation schemas', () => {
         eventType: 'SIMULATED_EMAIL_LINK_CLICKED',
       }).success,
     ).toBe(true);
+  });
+
+  it('accepts campaign-scoped email classifications', () => {
+    const result = classifySimulatedEmailRequestSchema.safeParse({
+      selectedClassification: 'PHISHING',
+      selectedRedFlagIds: ['red-flag-1'],
+      campaignAssignmentId: 'assignment-1',
+      campaignItemId: 'item-1',
+    });
+
+    expect(result.success).toBe(true);
   });
 });

@@ -6,15 +6,14 @@ describe('training validation schemas', () => {
     const result = recordTrainingInteractionRequestSchema.safeParse({
       eventType: 'TRAINING_VIEWED',
       campaignAssignmentId: 'assignment-1',
-      campaignItemId: 'item-1',
     });
 
     expect(result.success).toBe(true);
   });
 
-  it('rejects old progress-state payloads', () => {
+  it('rejects interaction payloads without an event type', () => {
     const result = recordTrainingInteractionRequestSchema.safeParse({
-      status: 'IN_PROGRESS',
+      campaignAssignmentId: 'assignment-1',
     });
 
     expect(result.success).toBe(false);
