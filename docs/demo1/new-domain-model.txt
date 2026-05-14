@@ -168,7 +168,7 @@ TRAININGDOCUMENT
 - id (String)
 - createdByUserId (String?)
 - title (String)
-- contentType (enum: PDF, MARKDOWN, HTML, URL, FLASHCARDS, INTERACTIVE)
+- contentType (enum: PDF, MARKDOWN, HTML, URL, INTERACTIVE)
 - contentRef (String)
 - contentSummary (String?)
 - estimatedReadTimeMinutes (Int?)

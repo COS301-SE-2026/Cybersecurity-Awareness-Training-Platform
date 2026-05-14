@@ -45,12 +45,7 @@ Administrator and campaign setup appear only as supporting context for assigning
 
 ## Domain Model Diagrams (Adriano)
 
-Current source/export:
-
-- `demo1-domain-model-(initial).drawio`
-- `demo1-domain-model-(initial).svg`
-
-![Demo 1 domain model](<./demo1-domain-model-(initial).svg>)
+The Demo 1 domain model is documented in `docs/demo1/SRS.md`.
 
 ### UML Class Diagram
 
