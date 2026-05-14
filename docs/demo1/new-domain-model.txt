@@ -335,9 +335,3 @@ SIMULATEDEMAIL 1 --- 0..* EMAILCLASSIFICATIONRESPONSE
 SIMULATEDEMAIL 1 --- 0..* EMAILREDFLAG
 EMAILREDFLAG 0..* --- 0..* EMAILCLASSIFICATIONRESPONSE
 LEARNER 1 --- 0..* EMAILCLASSIFICATIONRESPONSE
-
-Future implementation notes
-- Prisma should not directly mirror the conceptual inheritance unless there is a clear reason. Prefer composition/profile tables for users and a single CampaignItem table with itemType and parentItemId for campaign structure.
-- CampaignPrerequisite may be required to implement campaign prerequisite relationships.
-- AttemptAnswerOption may be required to implement multiple-choice answer selections.
-- EmailClassificationSelectedRedFlag may be required to implement selected red flags on email classification responses.
