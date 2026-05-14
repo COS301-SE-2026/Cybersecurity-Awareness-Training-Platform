@@ -9,24 +9,38 @@ export default function TrainingModulesPage() {
   const [trainingDocuments, setTrainingDocuments] = useState<TrainingDocumentSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  async function loadAssignedTraining() {
-    try {
-      setIsLoading(true);
-      setErrorMessage(null);
-
-      const response = await trainingApi.getAssignedTraining();
-      setTrainingDocuments(response.trainingDocuments);
-    } catch {
-      setErrorMessage('We could not load your assigned training modules. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  }
+  const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
+    let isMounted = true;
+
+    async function loadAssignedTraining() {
+      try {
+        const response = await trainingApi.getAssignedTraining();
+
+        if (!isMounted) {
+          return;
+        }
+
+        setTrainingDocuments(response.trainingDocuments);
+        setErrorMessage(null);
+      } catch {
+        if (isMounted) {
+          setErrorMessage('We could not load your assigned training modules. Please try again.');
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
     void loadAssignedTraining();
-  }, []);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [reloadToken]);
 
   const totalCount = trainingDocuments.length;
   const completedCount = trainingDocuments.filter(
@@ -101,7 +115,11 @@ export default function TrainingModulesPage() {
             action={
               <button
                 type="button"
-                onClick={() => void loadAssignedTraining()}
+                onClick={() => {
+                  setIsLoading(true);
+                  setErrorMessage(null);
+                  setReloadToken((currentValue) => currentValue + 1);
+                }}
                 style={{
                   padding: '0.85rem 1.2rem',
                   backgroundColor: '#8400FF',
