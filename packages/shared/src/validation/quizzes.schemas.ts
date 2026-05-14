@@ -15,7 +15,9 @@ export const getQuizResultRequestParamsSchema = submitQuizAttemptRequestParamsSc
 
 export const quizAnswerInputSchema = z.object({
   questionId: idParamSchema,
-  answerValue: idParamSchema,
+  selectedOptionIds: z.array(idParamSchema).min(1),
+  responseSummary: z.string().trim().max(1000).optional(),
+  typedResponse: z.string().trim().max(4000).optional(),
 });
 
 export const submitQuizAttemptRequestSchema = z.object({

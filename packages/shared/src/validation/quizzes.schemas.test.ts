@@ -7,7 +7,7 @@ describe('quiz validation schemas', () => {
       answers: [
         {
           questionId: 'question-1',
-          answerValue: 'option-1',
+          selectedOptionIds: ['option-1'],
         },
       ],
     });

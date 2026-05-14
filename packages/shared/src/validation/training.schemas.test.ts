@@ -1,24 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { recordTrainingProgressRequestSchema } from './training.schemas.js';
+import { recordTrainingInteractionRequestSchema } from './training.schemas.js';
 
 describe('training validation schemas', () => {
-  it('accepts progress states learners can record', () => {
-    expect(
-      recordTrainingProgressRequestSchema.safeParse({
-        status: 'IN_PROGRESS',
-      }).success,
-    ).toBe(true);
+  it('accepts training interaction events with campaign context', () => {
+    const result = recordTrainingInteractionRequestSchema.safeParse({
+      eventType: 'TRAINING_VIEWED',
+      campaignAssignmentId: 'assignment-1',
+      campaignItemId: 'item-1',
+    });
 
-    expect(
-      recordTrainingProgressRequestSchema.safeParse({
-        status: 'COMPLETED',
-      }).success,
-    ).toBe(true);
+    expect(result.success).toBe(true);
   });
 
-  it('rejects NOT_STARTED for progress recording', () => {
-    const result = recordTrainingProgressRequestSchema.safeParse({
-      status: 'NOT_STARTED',
+  it('rejects old progress-state payloads', () => {
+    const result = recordTrainingInteractionRequestSchema.safeParse({
+      status: 'IN_PROGRESS',
     });
 
     expect(result.success).toBe(false);

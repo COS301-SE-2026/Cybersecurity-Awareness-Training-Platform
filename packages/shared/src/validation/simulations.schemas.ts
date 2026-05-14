@@ -2,8 +2,9 @@ import { z } from 'zod';
 import { idParamSchema } from './common.schemas.js';
 
 export const simulatedEmailInteractionEventTypeSchema = z.enum([
-  'EMAIL_OPENED',
-  'EMAIL_LINK_CLICKED',
+  'SIMULATED_EMAIL_OPENED',
+  'SIMULATED_EMAIL_LINK_CLICKED',
+  'CREDENTIAL_SUBMISSION_ATTEMPTED',
 ]);
 
 export const getSimulatedEmailRequestParamsSchema = z.object({
@@ -15,4 +16,7 @@ export const recordSimulatedEmailInteractionRequestParamsSchema =
 
 export const recordSimulatedEmailInteractionRequestSchema = z.object({
   eventType: simulatedEmailInteractionEventTypeSchema,
+  campaignAssignmentId: idParamSchema.optional(),
+  campaignItemId: idParamSchema.optional(),
+  metadata: z.record(z.unknown()).optional(),
 });
