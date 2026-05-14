@@ -4,9 +4,32 @@ import type {
   authRegisterRequestSchema,
 } from './validation/auth.schemas.js';
 
-export type UserTypeDto = 'IP_ADMIN' | 'COMPANY_ADMIN' | 'COMPANY_LEARNER' | 'GENERAL_LEARNER';
+export type UserTypeDto =
+  | 'IP_ADMIN'
+  | 'ORGANISATION_ADMIN'
+  | 'ORGANISATION_LEARNER'
+  | 'GENERAL_LEARNER';
 
 export type AuthStatusDto = 'PENDING' | 'ACTIVE' | 'DISABLED';
+
+export interface PublicOrganisationDto {
+  id: string;
+  name: string;
+}
+
+export interface PublicLearnerProfileDto {
+  id: string;
+  learnerStatus: 'ACTIVE' | 'INACTIVE';
+  learnerType: 'GENERAL' | 'ORGANISATION';
+  organisation?: PublicOrganisationDto | null;
+}
+
+export interface PublicAdminProfileDto {
+  id: string;
+  adminStatus: 'ACTIVE' | 'INACTIVE';
+  adminType: 'ORGANISATION' | 'IP';
+  organisation?: PublicOrganisationDto | null;
+}
 
 export interface PublicUserDto {
   id: string;
@@ -15,6 +38,8 @@ export interface PublicUserDto {
   email: string;
   userType: UserTypeDto;
   authStatus: AuthStatusDto;
+  learnerProfile?: PublicLearnerProfileDto | null;
+  adminProfile?: PublicAdminProfileDto | null;
   createdAt: string;
 }
 
