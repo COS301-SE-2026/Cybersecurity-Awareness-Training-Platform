@@ -6,7 +6,6 @@ import {
   HomeOutlined,
   SchoolOutlined,
   EditOutlined,
-  FeedbackOutlined,
 } from '@mui/icons-material';
 
 function Sidebar() {

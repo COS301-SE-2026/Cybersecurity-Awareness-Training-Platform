@@ -1,34 +1,33 @@
-import { createContext, useContext, useState } from 'react';
+import { useState } from 'react';
 
 import type { ReactNode } from 'react';
-
-type AuthContextType = {
-  isAuthenticated: boolean;
-
-  login: () => void;
-
-  logout: () => void;
-};
-
-const AuthContext = createContext<AuthContextType | null>(null);
+import { AuthContext } from './auth-context';
 
 type AuthProviderProps = {
   children: ReactNode;
 };
 
+function getStorage() {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  return typeof window.localStorage?.getItem === 'function' ? window.localStorage : null;
+}
+
 export function AuthProvider({ children }: AuthProviderProps) {
   const [isAuthenticated, setIsAuthenticated] = useState(
-    localStorage.getItem('authenticated') === 'true',
+    () => getStorage()?.getItem('authenticated') === 'true',
   );
 
   const login = () => {
-    localStorage.setItem('authenticated', 'true');
+    getStorage()?.setItem('authenticated', 'true');
 
     setIsAuthenticated(true);
   };
 
   const logout = () => {
-    localStorage.removeItem('authenticated');
+    getStorage()?.removeItem('authenticated');
 
     setIsAuthenticated(false);
   };
@@ -44,14 +43,4 @@ export function AuthProvider({ children }: AuthProviderProps) {
       {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-
-  return context;
 }

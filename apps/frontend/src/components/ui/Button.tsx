@@ -42,7 +42,7 @@ function Button({
         textTransform: 'uppercase',
         cursor: 'pointer',
         transition: '0.2s ease',
-        marginTop: '0.3rem',
+        marginTop,
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.backgroundColor = hoverColor;
