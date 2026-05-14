@@ -1,0 +1,46 @@
+packages/shared/src/validation/simulations.schemas.test.ts
+  s_88b4d709219027::t_d826aaa3cc831a 2-5,21-30
+packages/shared/src/simulations.ts
+  s_88b4d709219027::t_5bbe204dfe6b52 5-6,8,58-60,120-132
+packages/shared/src/validation/training.schemas.ts
+  s_88b4d709219027::t_5bbe204dfe6b52 7
+packages/shared/src/validation/training.schemas.test.ts
+  s_88b4d709219027::t_d826aaa3cc831a 14,16
+packages/shared/src/validation/quizzes.schemas.ts
+  s_88b4d709219027::t_5bbe204dfe6b52 5
+packages/shared/src/validation/index.ts
+  s_88b4d709219027::t_c393cede82ef83 3
+packages/shared/src/validation/campaigns.schemas.ts
+  s_88b4d709219027::t_c393cede82ef83 1-10
+packages/shared/src/validation/simulations.schemas.ts
+  s_88b4d709219027::t_5bbe204dfe6b52 14-17,21-22,27-34
+packages/shared/src/api-contracts.ts
+  s_88b4d709219027::t_c393cede82ef83 3
+packages/shared/src/campaigns.ts
+  s_88b4d709219027::t_c393cede82ef83 1-73
+packages/shared/src/validation/campaigns.schemas.test.ts
+  s_88b4d709219027::t_c393cede82ef83 1-18
+packages/shared/src/training.ts
+  s_88b4d709219027::t_5bbe204dfe6b52 42
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "279b89c44a72543304f47a9565f90fbf8008f3df",
+  "prompts": {},
+  "humans": {
+    "h_1fff265ad32c51": {
+      "author": "FJNel <u24594475@tuks.co.za>"
+    }
+  },
+  "sessions": {
+    "s_88b4d709219027": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e229d-52e4-7171-b7e1-f23ef2e19beb",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
