@@ -56,3 +56,14 @@ export interface AuthSuccessResponseDto {
 export interface AuthMeResponseDto {
   user: PublicUserDto;
 }
+
+export interface AuthRegisterResponseDto {
+  user: PublicUserDto;
+}
+
+export interface AuthLoginResponseDto {
+  user: PublicUserDto;
+  token: string;
+  tokenType: 'Bearer';
+  expiresAt: string;
+}

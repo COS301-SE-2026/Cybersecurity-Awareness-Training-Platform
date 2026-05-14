@@ -31,8 +31,11 @@ while IFS= read -r FILE; do
   # .env.anything
   # env.local
   # env.production
-  # env.anything
-  if [[ "$BASENAME" =~ ^\.env\..+ ]] || [[ "$BASENAME" =~ ^env\..+ ]]; then
+  # env.test
+  # env.development
+  #
+  # Do not block source modules like env.ts.
+  if [[ "$BASENAME" =~ ^\.env\..+ ]] || [[ "$BASENAME" =~ ^env\.(local|production|prod|development|dev|test|staging)$ ]]; then
     BLOCKED_ENV_FILES+=("$FILE")
     continue
   fi

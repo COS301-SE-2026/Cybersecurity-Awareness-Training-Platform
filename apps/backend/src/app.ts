@@ -5,6 +5,7 @@ import swaggerUi from 'swagger-ui-express';
 import { env } from './config/env.js';
 import { swaggerSpec } from './config/swagger.js';
 import { healthRoutes } from './routes/health.routes.js';
+import { authRouter } from './routes/auth.routes.js';
 
 export function createApp() {
   const app = express();
@@ -15,6 +16,8 @@ export function createApp() {
     cors({
       origin: env.FRONTEND_ORIGIN,
       credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization'],
     }),
   );
 
@@ -24,6 +27,7 @@ export function createApp() {
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
   app.use(healthRoutes);
+  app.use(authRouter);
 
   // Preliminary Demo 1 API Route Placeholders (To be implemented)
   // app.use('/auth', authRoutes);

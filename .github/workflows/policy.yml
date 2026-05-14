@@ -55,7 +55,7 @@ jobs:
               continue
             fi
 
-            if [[ "$basename" =~ ^\.env\..+ ]] || [[ "$basename" =~ ^env\..+ ]]; then
+            if [[ "$basename" =~ ^\.env\..+ ]] || [[ "$basename" =~ ^env\.(local|production|prod|development|dev|test|staging)$ ]]; then
               blocked_files+=("$file")
               continue
             fi
