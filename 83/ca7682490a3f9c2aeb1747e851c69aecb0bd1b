@@ -1,0 +1,37 @@
+packages/shared/src/validation/campaigns.schemas.ts
+  s_88b4d709219027::t_d1f48c02659f81 4,8
+packages/shared/src/entities.ts
+  s_88b4d709219027::t_d1f48c02659f81 17,23,96,99,104,106-107,112,114,213,280,374,396
+packages/shared/src/quizzes.ts
+  s_88b4d709219027::t_d1f48c02659f81 51
+packages/shared/src/campaigns.ts
+  s_88b4d709219027::t_d1f48c02659f81 12-13,16-17,20-21,50,54,57,62-63,66-67,70
+packages/shared/src/validation/auth.schemas.test.ts
+  s_88b4d709219027::t_d1f48c02659f81 14,39
+  s_88b4d709219027::t_b23c78d51455df 7,34
+packages/shared/src/auth.ts
+  s_88b4d709219027::t_d1f48c02659f81 10-11,20,22-23,41
+packages/shared/src/validation/campaigns.schemas.test.ts
+  s_88b4d709219027::t_d1f48c02659f81 2,5-6,13-14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "83ca7682490a3f9c2aeb1747e851c69aecb0bd1b",
+  "prompts": {},
+  "humans": {
+    "h_1fff265ad32c51": {
+      "author": "FJNel <u24594475@tuks.co.za>"
+    }
+  },
+  "sessions": {
+    "s_88b4d709219027": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e229d-52e4-7171-b7e1-f23ef2e19beb",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
