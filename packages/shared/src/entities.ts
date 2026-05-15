@@ -14,13 +14,13 @@ import type {
   TrainingDocumentStatusDto,
 } from './training.js';
 
-export type LearnerStatusDto = 'ACTIVE' | 'INACTIVE';
+export type TraineeStatusDto = 'ACTIVE' | 'INACTIVE';
 
 export type OrganisationUserStatusDto = 'ACTIVE' | 'INACTIVE';
 
 export type AdminStatusDto = 'ACTIVE' | 'INACTIVE';
 
-export type GeneralLearnerAccessSourceDto = 'SELF_SIGNUP' | 'INVITE' | 'SEED' | 'ADMIN_CREATED';
+export type GeneralTraineeAccessSourceDto = 'SELF_SIGNUP' | 'INVITE' | 'SEED' | 'ADMIN_CREATED';
 
 export type OrganisationStatusDto = 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';
 
@@ -93,25 +93,25 @@ export interface UserDto {
   updatedAt: string;
 }
 
-export interface LearnerProfileDto {
+export interface TraineeProfileDto {
   id: string;
   userId: string;
-  learnerStatus: LearnerStatusDto;
+  traineeStatus: TraineeStatusDto;
   createdAt: string;
   updatedAt: string;
 }
 
-export interface GeneralLearnerProfileDto {
+export interface GeneralTraineeProfileDto {
   id: string;
-  learnerProfileId: string;
-  accessSource: GeneralLearnerAccessSourceDto;
+  traineeProfileId: string;
+  accessSource: GeneralTraineeAccessSourceDto;
   createdAt: string;
   updatedAt: string;
 }
 
-export interface OrganisationLearnerProfileDto {
+export interface OrganisationTraineeProfileDto {
   id: string;
-  learnerProfileId: string;
+  traineeProfileId: string;
   organisationId: string;
   employeeLabel?: string | null;
   joinedAt: string;
@@ -210,7 +210,7 @@ export interface CampaignItemDto {
 export interface CampaignAssignmentDto {
   id: string;
   campaignId: string;
-  learnerProfileId: string;
+  traineeProfileId: string;
   assignedByUserId?: string | null;
   currentCampaignItemId?: string | null;
   assignedAt: string;
@@ -277,7 +277,7 @@ export interface AnswerOptionDto {
 
 export interface QuizAttemptDto {
   id: string;
-  learnerProfileId: string;
+  traineeProfileId: string;
   quizId: string;
   campaignAssignmentId?: string | null;
   campaignItemId?: string | null;
@@ -371,7 +371,7 @@ export interface EmailRedFlagEntityDto {
 
 export interface EmailClassificationResponseDto {
   id: string;
-  learnerProfileId: string;
+  traineeProfileId: string;
   simulatedEmailId: string;
   campaignAssignmentId?: string | null;
   campaignItemId?: string | null;
@@ -393,7 +393,7 @@ export interface EmailClassificationSelectedRedFlagDto {
 
 export interface InteractionEventDto {
   id: string;
-  learnerProfileId: string;
+  traineeProfileId: string;
   campaignAssignmentId?: string | null;
   campaignItemId?: string | null;
   eventType: InteractionEventTypeDto;

@@ -9,16 +9,16 @@ import type {
 import type { QuizStatusDto } from './quizzes.js';
 import type { DifficultyLevelDto, TrainingDocumentStatusDto } from './training.js';
 import type {
-  getLearnerCampaignRequestParamsSchema,
-  learnerCampaignItemRequestParamsSchema,
+  getTraineeCampaignRequestParamsSchema,
+  traineeCampaignItemRequestParamsSchema,
 } from './validation/campaigns.schemas.js';
 
-export type GetLearnerCampaignRequestParamsDto = z.infer<
-  typeof getLearnerCampaignRequestParamsSchema
+export type GetTraineeCampaignRequestParamsDto = z.infer<
+  typeof getTraineeCampaignRequestParamsSchema
 >;
 
-export type LearnerCampaignItemRequestParamsDto = z.infer<
-  typeof learnerCampaignItemRequestParamsSchema
+export type TraineeCampaignItemRequestParamsDto = z.infer<
+  typeof traineeCampaignItemRequestParamsSchema
 >;
 
 export interface CampaignTrainingDocumentSummaryDto {
@@ -47,27 +47,27 @@ export interface CampaignSimulationSummaryDto {
   difficultyLevel: DifficultyLevelDto;
 }
 
-export interface LearnerCampaignItemDto extends CampaignItemDto {
+export interface TraineeCampaignItemDto extends CampaignItemDto {
   trainingDocument?: CampaignTrainingDocumentSummaryDto | null;
   quiz?: CampaignQuizSummaryDto | null;
   simulation?: CampaignSimulationSummaryDto | null;
-  children?: LearnerCampaignItemDto[];
+  children?: TraineeCampaignItemDto[];
 }
 
-export interface LearnerCampaignSummaryDto extends CampaignDto {
+export interface TraineeCampaignSummaryDto extends CampaignDto {
   assignment?: CampaignAssignmentDto | null;
   accessType?: CampaignAccessTypeDto | null;
 }
 
-export interface GetLearnerCampaignsResponseDto {
-  campaigns: LearnerCampaignSummaryDto[];
+export interface GetTraineeCampaignsResponseDto {
+  campaigns: TraineeCampaignSummaryDto[];
 }
 
-export interface GetLearnerCampaignResponseDto extends LearnerCampaignSummaryDto {
-  items: LearnerCampaignItemDto[];
+export interface GetTraineeCampaignResponseDto extends TraineeCampaignSummaryDto {
+  items: TraineeCampaignItemDto[];
 }
 
-export interface LearnerCampaignActionResponseDto extends SuccessResponseDto {
+export interface TraineeCampaignActionResponseDto extends SuccessResponseDto {
   campaignId?: string;
   campaignItemId?: string;
 }

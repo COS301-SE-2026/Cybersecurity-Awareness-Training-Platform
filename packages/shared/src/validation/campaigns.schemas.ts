@@ -1,10 +1,10 @@
 import { z } from 'zod';
 import { idParamSchema } from './common.schemas.js';
 
-export const getLearnerCampaignRequestParamsSchema = z.object({
+export const getTraineeCampaignRequestParamsSchema = z.object({
   campaignId: idParamSchema,
 });
 
-export const learnerCampaignItemRequestParamsSchema = z.object({
+export const traineeCampaignItemRequestParamsSchema = z.object({
   campaignItemId: idParamSchema,
 });

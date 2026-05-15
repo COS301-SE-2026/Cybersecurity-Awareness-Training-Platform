@@ -48,7 +48,7 @@ export type StartQuizAttemptRequestParamsDto = z.infer<typeof startQuizAttemptRe
 
 export interface StartQuizAttemptResponseDto {
   attemptId: string;
-  learnerProfileId: string;
+  traineeProfileId: string;
   quizId: string;
   campaignAssignmentId?: string | null;
   campaignItemId?: string | null;

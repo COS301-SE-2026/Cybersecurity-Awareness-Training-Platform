@@ -7,8 +7,8 @@ import type {
 export type UserTypeDto =
   | 'IP_ADMIN'
   | 'ORGANISATION_ADMIN'
-  | 'ORGANISATION_LEARNER'
-  | 'GENERAL_LEARNER';
+  | 'ORGANISATION_TRAINEE'
+  | 'GENERAL_TRAINEE';
 
 export type AuthStatusDto = 'PENDING' | 'ACTIVE' | 'DISABLED';
 
@@ -17,10 +17,10 @@ export interface PublicOrganisationDto {
   name: string;
 }
 
-export interface PublicLearnerProfileDto {
+export interface PublicTraineeProfileDto {
   id: string;
-  learnerStatus: 'ACTIVE' | 'INACTIVE';
-  learnerType: 'GENERAL' | 'ORGANISATION';
+  traineeStatus: 'ACTIVE' | 'INACTIVE';
+  traineeType: 'GENERAL' | 'ORGANISATION';
   organisation?: PublicOrganisationDto | null;
 }
 
@@ -38,7 +38,7 @@ export interface PublicUserDto {
   email: string;
   userType: UserTypeDto;
   authStatus: AuthStatusDto;
-  learnerProfile?: PublicLearnerProfileDto | null;
+  traineeProfile?: PublicTraineeProfileDto | null;
   adminProfile?: PublicAdminProfileDto | null;
   createdAt: string;
 }
