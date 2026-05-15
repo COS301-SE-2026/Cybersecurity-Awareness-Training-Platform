@@ -1,0 +1,26 @@
+apps/backend/prisma/schema.prisma
+  s_88b4d709219027::t_d1f48c02659f81 13-14,23,38,251,262,265,269-270,276,279,281-282,285,288,290,297,334,450,462,469,471,562,571,579,708,719,726,749,764,774
+apps/backend/prisma/migrations/20260515110000_rename_learner_to_trainee/migration.sql
+  s_88b4d709219027::t_5123f71d55af48 1-49
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "84db2f48eb34fdbfe30d530d6eff0cb4fd4ef557",
+  "prompts": {},
+  "humans": {
+    "h_1fff265ad32c51": {
+      "author": "FJNel <u24594475@tuks.co.za>"
+    }
+  },
+  "sessions": {
+    "s_88b4d709219027": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e229d-52e4-7171-b7e1-f23ef2e19beb",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
