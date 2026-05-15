@@ -31,7 +31,7 @@ export function createApp() {
 
   // Preliminary Demo 1 API Route Placeholders (To be implemented)
   // app.use('/auth', authRoutes);
-  // app.use('/learner', learnerRoutes); // campaigns, campaign items, training, quiz, and simulated email flows
+  // app.use('/trainee', traineeRoutes); // campaigns, campaign items, training, quiz, and simulated email flows
   // app.use('/quiz-attempts', quizAttemptRoutes); // submit attempts and fetch attempt results
   // app.use('/campaigns', campaignRoutes); // supporting admin/campaign context
 

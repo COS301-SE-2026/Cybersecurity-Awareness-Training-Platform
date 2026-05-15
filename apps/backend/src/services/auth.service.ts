@@ -35,7 +35,7 @@ export async function registerUser(
 
   const passwordHash = await PasswordService.hashPassword(input.password);
 
-  const newUser = await UserRepository.createGeneralLearnerUser({
+  const newUser = await UserRepository.createGeneralTraineeUser({
     email: input.email,
     firstName: input.firstName,
     lastName: input.lastName,
