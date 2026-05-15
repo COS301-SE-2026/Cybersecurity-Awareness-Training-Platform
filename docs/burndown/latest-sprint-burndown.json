@@ -23,8 +23,8 @@
       "number": 104,
       "title": "fix: correct Vercel frontend deployment configuration",
       "points": 1,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-05-15"
     },
     {
       "number": 95,
@@ -267,8 +267,13 @@
     },
     {
       "date": "2026-05-15",
-      "remaining": 62,
+      "remaining": 61,
       "ideal": 48.89
+    },
+    {
+      "date": "2026-05-16",
+      "remaining": 61,
+      "ideal": 39.11
     }
   ]
 }
