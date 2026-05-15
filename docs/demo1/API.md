@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document defines the preliminary Demo 1 API contracts around the revised modular campaign domain model. The API is intentionally learner-campaign oriented: campaigns provide access and sequencing, campaign items place reusable content, and learner-facing endpoints resolve training, quiz, and simulation content through campaign assignments and campaign items.
+This document defines the preliminary Demo 1 API contracts around the revised modular campaign domain model. The API is intentionally trainee-campaign oriented: campaigns provide access and sequencing, campaign items place reusable content, and trainee-facing endpoints resolve training, quiz, and simulation content through campaign assignments and campaign items.
 
 These contracts support frontend/backend alignment, SRS traceability, and shared DTO planning. They are not final OpenAPI specifications.
 
@@ -10,25 +10,25 @@ These contracts support frontend/backend alignment, SRS traceability, and shared
 
 | API Route Area                                              | Aligned Domain Concept                                                              | Related SRS Area                  |
 | ----------------------------------------------------------- | ----------------------------------------------------------------------------------- | --------------------------------- |
-| `/auth/*`                                                   | `User`, learner/admin profiles, optional `Organisation`                             | Base access                       |
-| `/learner/campaigns`                                        | `Campaign`, `CampaignAssignment`                                                    | Learner campaign access           |
-| `/learner/campaigns/:campaignId`                            | `Campaign`, ordered `CampaignItem` records                                          | Learner campaign detail           |
-| `/learner/campaign-items/:campaignItemId/*`                 | `CampaignItem`, `CampaignComponent`, `CampaignComponentGroup`                       | Campaign item activity            |
-| `/learner/campaign-items/:campaignItemId/training-document` | `TrainingDocumentComponent`, reusable `TrainingDocument`                            | UC-02 training document viewing   |
-| `/learner/campaign-items/:campaignItemId/quiz`              | `QuizComponent`, reusable `Quiz`, `QuizQuestion`, `AnswerOption`                    | UC-03 quiz content                |
+| `/auth/*`                                                   | `User`, trainee/admin profiles, optional `Organisation`                             | Base access                       |
+| `/trainee/campaigns`                                        | `Campaign`, `CampaignAssignment`                                                    | Trainee campaign access           |
+| `/trainee/campaigns/:campaignId`                            | `Campaign`, ordered `CampaignItem` records                                          | Trainee campaign detail           |
+| `/trainee/campaign-items/:campaignItemId/*`                 | `CampaignItem`, `CampaignComponent`, `CampaignComponentGroup`                       | Campaign item activity            |
+| `/trainee/campaign-items/:campaignItemId/training-document` | `TrainingDocumentComponent`, reusable `TrainingDocument`                            | UC-02 training document viewing   |
+| `/trainee/campaign-items/:campaignItemId/quiz`              | `QuizComponent`, reusable `Quiz`, `QuizQuestion`, `AnswerOption`                    | UC-03 quiz content                |
 | `/quiz-attempts/:attemptId/*`                               | `QuizAttempt`, `AttemptAnswer`, `AttemptAnswerOption`, `QuizResult`                 | UC-03 quiz submission/results     |
-| `/learner/campaign-items/:campaignItemId/simulated-inbox`   | `SimulationComponent`, reusable `Simulation`, `SimulatedInbox`                      | UC-01 simulated inbox             |
-| `/learner/simulated-emails/:emailId/*`                      | `SimulatedEmail`, `EmailClassificationResponse`, `EmailRedFlag`, `InteractionEvent` | UC-01 email interaction           |
+| `/trainee/campaign-items/:campaignItemId/simulated-inbox`   | `SimulationComponent`, reusable `Simulation`, `SimulatedInbox`                      | UC-01 simulated inbox             |
+| `/trainee/simulated-emails/:emailId/*`                      | `SimulatedEmail`, `EmailClassificationResponse`, `EmailRedFlag`, `InteractionEvent` | UC-01 email interaction           |
 | Supporting admin/campaign placeholders                      | `Campaign`, ordered `CampaignItem`, reusable content references                     | Supporting admin/campaign context |
 | Future reporting placeholder                                | `ReportSummary`, `RiskIndicator`                                                    | Future reporting support          |
 
-Training documents, quizzes, and simulations are reusable content records made available to learners through campaign items.
+Training documents, quizzes, and simulations are reusable content records made available to trainees through campaign items.
 
 ## Base Feature Contracts
 
 ### `POST /auth/register`
 
-- **Purpose**: Registers a new learner account in the system.
+- **Purpose**: Registers a new trainee account in the system.
 - **Expected Request Data**:
   - `email` (string, required)
   - `password` (string, required)
@@ -36,7 +36,7 @@ Training documents, quizzes, and simulations are reusable content records made a
   - `lastName` (string, required)
 - **Expected Response Data**:
   - `201 Created`: `{ "userId": "uuid", "token": "jwt-placeholder", "message": "Registration successful" }`
-- **Linked Domain Entities**: `User`, optional learner/admin profile
+- **Linked Domain Entities**: `User`, optional trainee/admin profile
 
 ### `POST /auth/login`
 
@@ -57,28 +57,28 @@ Training documents, quizzes, and simulations are reusable content records made a
 {
   "id": "user-001",
   "firstName": "Ava",
-  "lastName": "Learner",
+  "lastName": "Trainee",
   "email": "ava@example.com",
-  "userType": "ORGANISATION_LEARNER",
+  "userType": "ORGANISATION_TRAINEE",
   "authStatus": "ACTIVE",
   "organisation": {
     "id": "org-001",
     "name": "Example Organisation"
   },
-  "learnerProfile": {
-    "id": "learner-profile-001",
-    "learnerStatus": "ACTIVE"
+  "traineeProfile": {
+    "id": "trainee-profile-001",
+    "traineeStatus": "ACTIVE"
   }
 }
 ```
 
-`GeneralLearner` users have no organisation. `OrganisationLearner` and `OrganisationAdmin` users belong to exactly one organisation. `IPAdmin` users are platform-level and are not organisation-linked.
+`GeneralTrainee` users have no organisation. `OrganisationTrainee` and `OrganisationAdmin` users belong to exactly one organisation. `IPAdmin` users are platform-level and are not organisation-linked.
 
-## Learner Campaign Access
+## Trainee Campaign Access
 
-### `GET /learner/campaigns`
+### `GET /trainee/campaigns`
 
-- **Purpose**: Retrieves campaigns assigned to, or made available to, the authenticated learner.
+- **Purpose**: Retrieves campaigns assigned to, or made available to, the authenticated trainee.
 - **Expected Request Data**: None.
 - **Expected Response Data**:
 
@@ -96,7 +96,7 @@ Training documents, quizzes, and simulations are reusable content records made a
       "assignment": {
         "id": "assignment-001",
         "campaignId": "campaign-001",
-        "learnerProfileId": "learner-profile-001",
+        "traineeProfileId": "trainee-profile-001",
         "assignedAt": "2026-05-01T09:00:00Z",
         "dueDate": "2026-05-31T23:59:59Z",
         "assignmentStatus": "IN_PROGRESS",
@@ -107,9 +107,9 @@ Training documents, quizzes, and simulations are reusable content records made a
 }
 ```
 
-### `GET /learner/campaigns/:campaignId`
+### `GET /trainee/campaigns/:campaignId`
 
-- **Purpose**: Retrieves a campaign, its learner assignment context, and ordered top-level campaign items.
+- **Purpose**: Retrieves a campaign, its trainee assignment context, and ordered top-level campaign items.
 - **Expected Response Data**:
 
 ```json
@@ -123,7 +123,7 @@ Training documents, quizzes, and simulations are reusable content records made a
   "assignment": {
     "id": "assignment-001",
     "campaignId": "campaign-001",
-    "learnerProfileId": "learner-profile-001",
+    "traineeProfileId": "trainee-profile-001",
     "assignedAt": "2026-05-01T09:00:00Z",
     "assignmentStatus": "IN_PROGRESS",
     "accessType": "ASSIGNED"
@@ -187,29 +187,29 @@ Training documents, quizzes, and simulations are reusable content records made a
 
 Component groups support one level of grouping for Demo 1. API responses should not return groups inside groups.
 
-### `POST /learner/campaigns/:campaignId/start`
+### `POST /trainee/campaigns/:campaignId/start`
 
-- **Purpose**: Marks a learner's campaign assignment as started.
+- **Purpose**: Marks a trainee's campaign assignment as started.
 - **Expected Response Data**:
   - `200 OK`: `{ "success": true, "campaignId": "campaign-001" }`
 
-### `POST /learner/campaign-items/:campaignItemId/start`
+### `POST /trainee/campaign-items/:campaignItemId/start`
 
-- **Purpose**: Records that the learner started a campaign item.
+- **Purpose**: Records that the trainee started a campaign item.
 - **Expected Response Data**:
   - `200 OK`: `{ "success": true, "campaignItemId": "item-001" }`
 
-### `POST /learner/campaign-items/:campaignItemId/complete`
+### `POST /trainee/campaign-items/:campaignItemId/complete`
 
-- **Purpose**: Records that the learner completed a campaign item where completion can be explicitly marked.
+- **Purpose**: Records that the trainee completed a campaign item where completion can be explicitly marked.
 - **Expected Response Data**:
   - `200 OK`: `{ "success": true, "campaignItemId": "item-001" }`
 
 ## UC-02: View Training Document Contracts
 
-### `GET /learner/campaign-items/:campaignItemId/training-document`
+### `GET /trainee/campaign-items/:campaignItemId/training-document`
 
-- **Purpose**: Retrieves the training document placed at a specific learner-accessible campaign item.
+- **Purpose**: Retrieves the training document placed at a specific trainee-accessible campaign item.
 - **Expected Request Data**: URL Param `campaignItemId`.
 - **Expected Response Data**:
 
@@ -230,9 +230,9 @@ Component groups support one level of grouping for Demo 1. API responses should 
 
 The backend should resolve access through:
 
-`Learner -> CampaignAssignment -> Campaign -> CampaignItem -> TrainingDocumentComponent -> TrainingDocument`
+`Trainee -> CampaignAssignment -> Campaign -> CampaignItem -> TrainingDocumentComponent -> TrainingDocument`
 
-### `POST /learner/campaign-items/:campaignItemId/training-document/viewed`
+### `POST /trainee/campaign-items/:campaignItemId/training-document/viewed`
 
 - **Purpose**: Records a `TRAINING_VIEWED` interaction event for the campaign item.
 - **Expected Request Data**:
@@ -240,7 +240,7 @@ The backend should resolve access through:
 - **Expected Response Data**:
   - `201 Created`: `{ "success": true, "eventType": "TRAINING_VIEWED" }`
 
-### `POST /learner/campaign-items/:campaignItemId/training-document/completed`
+### `POST /trainee/campaign-items/:campaignItemId/training-document/completed`
 
 - **Purpose**: Records a `TRAINING_COMPLETED` interaction event for the campaign item.
 - **Expected Request Data**:
@@ -250,9 +250,9 @@ The backend should resolve access through:
 
 ## UC-03: Complete Quiz Flow Contracts
 
-### `GET /learner/campaign-items/:campaignItemId/quiz`
+### `GET /trainee/campaign-items/:campaignItemId/quiz`
 
-- **Purpose**: Retrieves the quiz placed at a specific learner-accessible campaign item.
+- **Purpose**: Retrieves the quiz placed at a specific trainee-accessible campaign item.
 - **Expected Request Data**: URL Param `campaignItemId`.
 - **Expected Response Data**:
 
@@ -282,9 +282,9 @@ The backend should resolve access through:
 }
 ```
 
-Before submission, learner-facing quiz fetch endpoints must not expose `AnswerOption.isCorrect` or `feedbackText`.
+Before submission, trainee-facing quiz fetch endpoints must not expose `AnswerOption.isCorrect` or `feedbackText`.
 
-### `POST /learner/campaign-items/:campaignItemId/quiz-attempts`
+### `POST /trainee/campaign-items/:campaignItemId/quiz-attempts`
 
 - **Purpose**: Creates a quiz attempt for the quiz placed at the selected campaign item.
 - **Expected Request Data**:
@@ -294,7 +294,7 @@ Before submission, learner-facing quiz fetch endpoints must not expose `AnswerOp
 ```json
 {
   "attemptId": "attempt-123",
-  "learnerProfileId": "learner-profile-001",
+  "traineeProfileId": "trainee-profile-001",
   "quizId": "quiz-001",
   "campaignAssignmentId": "assignment-001",
   "campaignItemId": "item-002",
@@ -347,9 +347,9 @@ Before submission, learner-facing quiz fetch endpoints must not expose `AnswerOp
 
 ## UC-01: View Emails in Simulated Inbox Contracts
 
-### `GET /learner/campaign-items/:campaignItemId/simulated-inbox`
+### `GET /trainee/campaign-items/:campaignItemId/simulated-inbox`
 
-- **Purpose**: Retrieves the simulated inbox placed at a specific learner-accessible campaign item.
+- **Purpose**: Retrieves the simulated inbox placed at a specific trainee-accessible campaign item.
 - **Expected Request Data**: URL Param `campaignItemId`.
 - **Expected Response Data**:
 
@@ -374,10 +374,10 @@ Before submission, learner-facing quiz fetch endpoints must not expose `AnswerOp
 
 This endpoint returns campaign-provided simulation content. It does not expose a permanent user-owned inbox.
 
-### `GET /learner/simulated-emails/:emailId`
+### `GET /trainee/simulated-emails/:emailId`
 
-- **Purpose**: Retrieves a simulated email that the learner can access through an assigned or available campaign simulation item.
-- **Access Rule**: The backend must resolve the simulated email through a campaign item and campaign assignment available to the authenticated learner. The `emailId` alone is not sufficient authorization.
+- **Purpose**: Retrieves a simulated email that the trainee can access through an assigned or available campaign simulation item.
+- **Access Rule**: The backend must resolve the simulated email through a campaign item and campaign assignment available to the authenticated trainee. The `emailId` alone is not sufficient authorization.
 - **Expected Response Data**:
 
 ```json
@@ -398,9 +398,9 @@ This endpoint returns campaign-provided simulation content. It does not expose a
 }
 ```
 
-Learner-facing responses must not reveal `expectedClassification` or correct red flags before classification feedback is intentionally shown.
+Trainee-facing responses must not reveal `expectedClassification` or correct red flags before classification feedback is intentionally shown.
 
-### `POST /learner/simulated-emails/:emailId/opened`
+### `POST /trainee/simulated-emails/:emailId/opened`
 
 - **Purpose**: Records a `SIMULATED_EMAIL_OPENED` interaction event.
 - **Expected Request Data**:
@@ -409,7 +409,7 @@ Learner-facing responses must not reveal `expectedClassification` or correct red
 - **Expected Response Data**:
   - `201 Created`: `{ "success": true, "eventType": "SIMULATED_EMAIL_OPENED" }`
 
-### `POST /learner/simulated-emails/:emailId/link-clicked`
+### `POST /trainee/simulated-emails/:emailId/link-clicked`
 
 - **Purpose**: Records a `SIMULATED_EMAIL_LINK_CLICKED` interaction event.
 - **Expected Request Data**:
@@ -418,9 +418,9 @@ Learner-facing responses must not reveal `expectedClassification` or correct red
 - **Expected Response Data**:
   - `201 Created`: `{ "success": true, "eventType": "SIMULATED_EMAIL_LINK_CLICKED" }`
 
-### `POST /learner/simulated-emails/:emailId/credential-submission-attempted`
+### `POST /trainee/simulated-emails/:emailId/credential-submission-attempted`
 
-- **Purpose**: Records that a learner attempted credential submission inside a simulation.
+- **Purpose**: Records that a trainee attempted credential submission inside a simulation.
 - **Expected Request Data**:
   - `campaignAssignmentId` (string, optional)
   - `campaignItemId` (string, optional)
@@ -429,9 +429,9 @@ Learner-facing responses must not reveal `expectedClassification` or correct red
 
 This endpoint must never store or return submitted credential values.
 
-### `POST /learner/simulated-emails/:emailId/classification`
+### `POST /trainee/simulated-emails/:emailId/classification`
 
-- **Purpose**: Records a learner's classification judgement for a simulated email.
+- **Purpose**: Records a trainee's classification judgement for a simulated email.
 - **Expected Request Data**:
   - `selectedClassification` (enum: `SAFE`, `SUSPICIOUS`, `PHISHING`, required)
   - `selectedRedFlagIds` (string array, optional)
@@ -462,7 +462,7 @@ Email classification is separate from quiz attempts.
 
 ## Cross-Use-Case Tracking and Reporting Support
 
-Interaction events are lightweight tracking records created by learner actions such as:
+Interaction events are lightweight tracking records created by trainee actions such as:
 
 - campaign started;
 - campaign item started;
@@ -511,9 +511,9 @@ Interaction event metadata must not include real credentials or sensitive submit
 
 ### `POST /campaigns/:campaignId/assign`
 
-- **Purpose**: Assigns a campaign to one or more learner profiles.
+- **Purpose**: Assigns a campaign to one or more trainee profiles.
 - **Expected Request Data**:
-  - `learnerProfileIds` (string array, required)
+  - `traineeProfileIds` (string array, required)
   - `dueDate` (string, optional)
 
 ## Validation Notes
@@ -524,7 +524,7 @@ Interaction event metadata must not include real credentials or sensitive submit
 - A component group may contain campaign components for Demo 1. Nested groups are out of scope.
 - For `SINGLE_CHOICE`, exactly one answer option should be correct per question.
 - Submitted answer option IDs should belong to the submitted question.
-- Learner-facing quiz retrieval must not leak correct answers or feedback before submission.
-- Learner-facing simulated email retrieval must not leak expected classifications or correct red flags before classification feedback.
-- Learner-facing simulated email retrieval must verify that the requested email belongs to a simulated inbox placed in a campaign item available to the authenticated learner.
+- Trainee-facing quiz retrieval must not leak correct answers or feedback before submission.
+- Trainee-facing simulated email retrieval must not leak expected classifications or correct red flags before classification feedback.
+- Trainee-facing simulated email retrieval must verify that the requested email belongs to a simulated inbox placed in a campaign item available to the authenticated trainee.
 - Interaction event metadata must not include real credentials or sensitive submitted values.
