@@ -1,0 +1,34 @@
+apps/backend/tests/unit/auth.service.test.ts
+  s_88b4d709219027::t_d1f48c02659f81 13,36,39,45,59,71,95,111,138,195,209
+apps/backend/src/app.ts
+  s_88b4d709219027::t_d1f48c02659f81 34
+apps/backend/src/services/auth.service.ts
+  s_88b4d709219027::t_d1f48c02659f81 38
+apps/backend/tests/unit/auth.routes.test.ts
+  s_88b4d709219027::t_d1f48c02659f81 53,67,95,121,143,163,186,207,261
+apps/backend/src/repositories/user.repository.ts
+  s_88b4d709219027::t_d1f48c02659f81 11,23,25,27-28
+apps/backend/tests/unit/user.mapper.test.ts
+  s_88b4d709219027::t_d1f48c02659f81 12,24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "9d1b5afdb8f9e4339dbfec5d361dac2ab83501ff",
+  "prompts": {},
+  "humans": {
+    "h_1fff265ad32c51": {
+      "author": "FJNel <u24594475@tuks.co.za>"
+    }
+  },
+  "sessions": {
+    "s_88b4d709219027": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e229d-52e4-7171-b7e1-f23ef2e19beb",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
