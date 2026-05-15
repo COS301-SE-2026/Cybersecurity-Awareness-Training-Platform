@@ -10,8 +10,8 @@ datasource db {
 enum UserType {
   IP_ADMIN
   ORGANISATION_ADMIN
-  ORGANISATION_LEARNER
-  GENERAL_LEARNER
+  ORGANISATION_TRAINEE
+  GENERAL_TRAINEE
 }
 
 enum AuthStatus {
@@ -20,7 +20,7 @@ enum AuthStatus {
   DISABLED
 }
 
-enum LearnerStatus {
+enum TraineeStatus {
   ACTIVE
   INACTIVE
 }
@@ -35,7 +35,7 @@ enum AdminStatus {
   INACTIVE
 }
 
-enum GeneralLearnerAccessSource {
+enum GeneralTraineeAccessSource {
   SELF_SIGNUP
   INVITE
   SEED
@@ -248,7 +248,7 @@ model User {
   authStatus                   AuthStatus                @default(ACTIVE)
   createdAt                    DateTime                  @default(now())
   updatedAt                    DateTime                  @updatedAt
-  learnerProfile               LearnerProfile?
+  traineeProfile               TraineeProfile?
   organisationAdminProfile     OrganisationAdminProfile?
   ipAdminProfile               IpAdminProfile?
   uploadedOrganisationContexts OrganisationContext[]     @relation("OrganisationContextUploadedBy")
@@ -259,42 +259,42 @@ model User {
   createdSimulations           Simulation[]              @relation("SimulationCreatedBy")
 }
 
-model LearnerProfile {
+model TraineeProfile {
   id                           String                        @id @default(uuid())
   userId                       String                        @unique
-  learnerStatus                LearnerStatus                 @default(ACTIVE)
+  traineeStatus                TraineeStatus                 @default(ACTIVE)
   createdAt                    DateTime                      @default(now())
   updatedAt                    DateTime                      @updatedAt
   user                         User                          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  generalLearnerProfile        GeneralLearnerProfile?
-  organisationLearnerProfile   OrganisationLearnerProfile?
+  generalTraineeProfile        GeneralTraineeProfile?
+  organisationTraineeProfile   OrganisationTraineeProfile?
   campaignAssignments          CampaignAssignment[]
   quizAttempts                 QuizAttempt[]
   emailClassificationResponses EmailClassificationResponse[]
   interactionEvents            InteractionEvent[]
 
-  @@index([learnerStatus])
+  @@index([traineeStatus])
 }
 
-model GeneralLearnerProfile {
+model GeneralTraineeProfile {
   id               String                     @id @default(uuid())
-  learnerProfileId String                     @unique
-  accessSource     GeneralLearnerAccessSource @default(SELF_SIGNUP)
+  traineeProfileId String                     @unique
+  accessSource     GeneralTraineeAccessSource @default(SELF_SIGNUP)
   createdAt        DateTime                   @default(now())
   updatedAt        DateTime                   @updatedAt
-  learnerProfile   LearnerProfile             @relation(fields: [learnerProfileId], references: [id], onDelete: Cascade)
+  traineeProfile   TraineeProfile             @relation(fields: [traineeProfileId], references: [id], onDelete: Cascade)
 }
 
-model OrganisationLearnerProfile {
+model OrganisationTraineeProfile {
   id                     String                 @id @default(uuid())
-  learnerProfileId       String                 @unique
+  traineeProfileId       String                 @unique
   organisationId         String
   employeeLabel          String?
   joinedAt               DateTime               @default(now())
   organisationUserStatus OrganisationUserStatus @default(ACTIVE)
   createdAt              DateTime               @default(now())
   updatedAt              DateTime               @updatedAt
-  learnerProfile         LearnerProfile         @relation(fields: [learnerProfileId], references: [id], onDelete: Cascade)
+  traineeProfile         TraineeProfile         @relation(fields: [traineeProfileId], references: [id], onDelete: Cascade)
   organisation           Organisation           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
 
   @@index([organisationId])
@@ -331,7 +331,7 @@ model Organisation {
   status          OrganisationStatus           @default(ACTIVE)
   createdAt       DateTime                     @default(now())
   updatedAt       DateTime                     @updatedAt
-  learnerProfiles OrganisationLearnerProfile[]
+  traineeProfiles OrganisationTraineeProfile[]
   adminProfiles   OrganisationAdminProfile[]
   contexts        OrganisationContext[]
   campaigns       Campaign[]
@@ -447,7 +447,7 @@ model CampaignItem {
 model CampaignAssignment {
   id                           String                        @id @default(uuid())
   campaignId                   String
-  learnerProfileId             String
+  traineeProfileId             String
   assignedByUserId             String?
   currentCampaignItemId        String?
   assignedAt                   DateTime                      @default(now())
@@ -459,16 +459,16 @@ model CampaignAssignment {
   createdAt                    DateTime                      @default(now())
   updatedAt                    DateTime                      @updatedAt
   campaign                     Campaign                      @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  learnerProfile               LearnerProfile                @relation(fields: [learnerProfileId], references: [id], onDelete: Cascade)
+  traineeProfile               TraineeProfile                @relation(fields: [traineeProfileId], references: [id], onDelete: Cascade)
   assignedBy                   User?                         @relation("CampaignAssignmentAssignedBy", fields: [assignedByUserId], references: [id], onDelete: SetNull)
   currentCampaignItem          CampaignItem?                 @relation(fields: [currentCampaignItemId], references: [id], onDelete: SetNull)
   quizAttempts                 QuizAttempt[]
   emailClassificationResponses EmailClassificationResponse[]
   interactionEvents            InteractionEvent[]
 
-  @@unique([campaignId, learnerProfileId])
+  @@unique([campaignId, traineeProfileId])
   @@index([campaignId])
-  @@index([learnerProfileId])
+  @@index([traineeProfileId])
   @@index([assignedByUserId])
   @@index([currentCampaignItemId])
   @@index([assignmentStatus])
@@ -559,7 +559,7 @@ model AnswerOption {
 
 model QuizAttempt {
   id                   String              @id @default(uuid())
-  learnerProfileId     String
+  traineeProfileId     String
   quizId               String
   campaignAssignmentId String?
   campaignItemId       String?
@@ -568,7 +568,7 @@ model QuizAttempt {
   submittedAt          DateTime?
   createdAt            DateTime            @default(now())
   updatedAt            DateTime            @updatedAt
-  learnerProfile       LearnerProfile      @relation(fields: [learnerProfileId], references: [id], onDelete: Cascade)
+  traineeProfile       TraineeProfile      @relation(fields: [traineeProfileId], references: [id], onDelete: Cascade)
   quiz                 Quiz                @relation(fields: [quizId], references: [id], onDelete: Cascade)
   campaignAssignment   CampaignAssignment? @relation(fields: [campaignAssignmentId], references: [id], onDelete: SetNull)
   campaignItem         CampaignItem?       @relation(fields: [campaignItemId], references: [id], onDelete: SetNull)
@@ -576,7 +576,7 @@ model QuizAttempt {
   quizResult           QuizResult?
   interactionEvents    InteractionEvent[]
 
-  @@index([learnerProfileId])
+  @@index([traineeProfileId])
   @@index([quizId])
   @@index([campaignAssignmentId])
   @@index([campaignItemId])
@@ -705,7 +705,7 @@ model EmailRedFlag {
 
 model EmailClassificationResponse {
   id                     String                               @id @default(uuid())
-  learnerProfileId       String
+  traineeProfileId       String
   simulatedEmailId       String
   campaignAssignmentId   String?
   campaignItemId         String?
@@ -716,14 +716,14 @@ model EmailClassificationResponse {
   submittedAt            DateTime                             @default(now())
   createdAt              DateTime                             @default(now())
   updatedAt              DateTime                             @updatedAt
-  learnerProfile         LearnerProfile                       @relation(fields: [learnerProfileId], references: [id], onDelete: Cascade)
+  traineeProfile         TraineeProfile                       @relation(fields: [traineeProfileId], references: [id], onDelete: Cascade)
   simulatedEmail         SimulatedEmail                       @relation(fields: [simulatedEmailId], references: [id], onDelete: Cascade)
   campaignAssignment     CampaignAssignment?                  @relation(fields: [campaignAssignmentId], references: [id], onDelete: SetNull)
   campaignItem           CampaignItem?                        @relation(fields: [campaignItemId], references: [id], onDelete: SetNull)
   selectedRedFlags       EmailClassificationSelectedRedFlag[]
   interactionEvents      InteractionEvent[]
 
-  @@index([learnerProfileId])
+  @@index([traineeProfileId])
   @@index([simulatedEmailId])
   @@index([campaignAssignmentId])
   @@index([campaignItemId])
@@ -746,7 +746,7 @@ model EmailClassificationSelectedRedFlag {
 
 model InteractionEvent {
   id                            String                       @id @default(uuid())
-  learnerProfileId              String
+  traineeProfileId              String
   campaignAssignmentId          String?
   campaignItemId                String?
   eventType                     InteractionEventType
@@ -761,7 +761,7 @@ model InteractionEvent {
   quizQuestionId                String?
   emailClassificationResponseId String?
   createdAt                     DateTime                     @default(now())
-  learnerProfile                LearnerProfile               @relation(fields: [learnerProfileId], references: [id], onDelete: Cascade)
+  traineeProfile                TraineeProfile               @relation(fields: [traineeProfileId], references: [id], onDelete: Cascade)
   campaignAssignment            CampaignAssignment?          @relation(fields: [campaignAssignmentId], references: [id], onDelete: SetNull)
   campaignItem                  CampaignItem?                @relation(fields: [campaignItemId], references: [id], onDelete: SetNull)
   simulatedEmail                SimulatedEmail?              @relation(fields: [simulatedEmailId], references: [id], onDelete: SetNull)
@@ -771,7 +771,7 @@ model InteractionEvent {
   quizQuestion                  QuizQuestion?                @relation(fields: [quizQuestionId], references: [id], onDelete: SetNull)
   emailClassificationResponse   EmailClassificationResponse? @relation(fields: [emailClassificationResponseId], references: [id], onDelete: SetNull)
 
-  @@index([learnerProfileId])
+  @@index([traineeProfileId])
   @@index([campaignAssignmentId])
   @@index([campaignItemId])
   @@index([eventType])
