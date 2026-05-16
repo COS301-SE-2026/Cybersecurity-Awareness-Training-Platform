@@ -115,7 +115,20 @@ export class SimulationService {
             simulation: {
               include: {
                 campaignItems: {
-                  include: this.getCampaignAccessInclude(traineeProfileId),
+                  include: {
+                    campaign: {
+                      include: {
+                        assignments: {
+                          where: {
+                            traineeProfileId,
+                            assignmentStatus: {
+                              in: ['AVAILABLE', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED'] as any,
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
                 },
               },
             },
@@ -129,7 +142,7 @@ export class SimulationService {
     }
 
     const matchedItem = email.inbox.simulation.campaignItems.find(
-      (item) =>
+      (item: any) =>
         item.campaign.assignments.length > 0 &&
         item.itemType === 'COMPONENT' &&
         item.componentType === 'SIMULATED_INBOX' &&
