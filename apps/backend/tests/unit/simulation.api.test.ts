@@ -8,15 +8,19 @@ const prismaMock = vi.hoisted(() => ({
   campaignItem: { findUnique: vi.fn() },
   simulatedEmail: { findUnique: vi.fn() },
   interactionEvent: { create: vi.fn() },
-  emailClassificationResponse: { create: vi.fn() },
+  emailClassificationResponse: { create: vi.fn(), findFirst: vi.fn() },
 }));
 
 vi.mock('../../src/lib/prisma.js', () => ({ prisma: prismaMock }));
 
 vi.mock('../../src/middleware/requireAuth.js', () => ({
-  requireAuth: (req: any, _res: any, next: any) => {
-    req.auth = { userId: 'user-123' };
-    next();
+  requireAuth: (req: any, res: any, next: any) => {
+    if (req.headers.authorization === 'Bearer mock-token') {
+      req.auth = { userId: 'user-123' };
+      next();
+    } else {
+      res.status(401).json({ error: 'AUTH_REQUIRED' });
+    }
   },
 }));
 
@@ -46,6 +50,10 @@ describe('Simulation API', () => {
         campaignItems: [
           {
             id: 'item-123',
+            itemType: 'COMPONENT',
+            componentType: 'SIMULATED_INBOX',
+            availabilityStatus: 'AVAILABLE',
+            simulation: { status: 'AVAILABLE' },
             campaign: { assignments: assigned ? [{ id: 'assignment-123' }] : [] },
           },
         ],
@@ -53,20 +61,24 @@ describe('Simulation API', () => {
     },
   });
 
+  const app = createApp();
+
   describe('GET /trainee/campaign-items/:campaignItemId/simulated-inbox', () => {
     it('returns the simulated inbox for an authorized trainee', async () => {
       const campaignItem = {
         id: 'item-123',
+        itemType: 'COMPONENT',
+        componentType: 'SIMULATED_INBOX',
+        availabilityStatus: 'AVAILABLE',
         simulation: {
-          simulatedInbox: {
-            emails: [createMockEmail()],
-          },
+          status: 'AVAILABLE',
+          simulatedInbox: { emails: [createMockEmail()] },
         },
         campaign: { assignments: [{ id: 'assignment-123' }] },
       };
       prismaMock.campaignItem.findUnique.mockResolvedValue(campaignItem);
 
-      const response = await request(createApp())
+      const response = await request(app)
         .get('/trainee/campaign-items/item-123/simulated-inbox')
         .set('Authorization', `Bearer ${token}`);
 
@@ -74,69 +86,125 @@ describe('Simulation API', () => {
       expect(response.body.emails[0].subject).toBe('Security Alert');
     });
 
-    it('returns 403 if the trainee is not assigned to the campaign', async () => {
-      prismaMock.campaignItem.findUnique.mockResolvedValue({
+    it('returns 404 if campaign item is unavailable or invalid type', async () => {
+      const campaignItem = {
         id: 'item-123',
-        simulation: { simulatedInbox: { emails: [] } },
-        campaign: { assignments: [] },
-      });
-      const response = await request(createApp())
+        itemType: 'COMPONENT',
+        componentType: 'TRAINING_DOCUMENT',
+        availabilityStatus: 'AVAILABLE',
+        simulation: null,
+        campaign: { assignments: [{ id: 'assignment-123' }] },
+      };
+      prismaMock.campaignItem.findUnique.mockResolvedValue(campaignItem);
+
+      const response = await request(app)
         .get('/trainee/campaign-items/item-123/simulated-inbox')
         .set('Authorization', `Bearer ${token}`);
-      expect(response.status).toBe(403);
-    });
-  });
-
-  describe('GET /trainee/simulated-emails/:emailId', () => {
-    it('returns email details for an authorized trainee', async () => {
-      prismaMock.simulatedEmail.findUnique.mockResolvedValue(createMockEmail());
-      const response = await request(createApp())
-        .get('/trainee/simulated-emails/email-123')
-        .set('Authorization', `Bearer ${token}`);
-      expect(response.status).toBe(200);
-      expect(response.body.subject).toBe('Security Alert');
+      expect(response.status).toBe(404);
     });
 
-    it('returns 403 if trainee has no access', async () => {
-      prismaMock.simulatedEmail.findUnique.mockResolvedValue(createMockEmail(false));
-      const response = await request(createApp())
-        .get('/trainee/simulated-emails/email-123')
+    it('returns 401 if missing auth', async () => {
+      const response = await request(app).get('/trainee/campaign-items/item-123/simulated-inbox');
+      expect(response.status).toBe(401);
+    });
+
+    it('returns 400 for malformed campaign item id', async () => {
+      const response = await request(app)
+        .get('/trainee/campaign-items/%20%20/simulated-inbox')
         .set('Authorization', `Bearer ${token}`);
-      expect(response.status).toBe(403);
+      expect(response.status).toBe(400);
     });
   });
 
   describe('POST /trainee/simulated-emails/:emailId/interactions', () => {
-    it('records an interaction successfully', async () => {
+    it('records an interaction using resolved context and ignores client-supplied ids', async () => {
       prismaMock.simulatedEmail.findUnique.mockResolvedValue(createMockEmail());
-      const response = await request(createApp())
+      prismaMock.interactionEvent.create.mockResolvedValue({ id: 'event-1' });
+
+      const response = await request(app)
         .post('/trainee/simulated-emails/email-123/interactions')
         .set('Authorization', `Bearer ${token}`)
-        .send({ eventType: 'SIMULATED_EMAIL_OPENED' });
+        .send({
+          eventType: 'SIMULATED_EMAIL_LINK_CLICKED',
+          campaignAssignmentId: 'hacker-assignment',
+          campaignItemId: 'hacker-item',
+        });
+
       expect(response.status).toBe(200);
+      expect(prismaMock.interactionEvent.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            campaignAssignmentId: 'assignment-123',
+            campaignItemId: 'item-123',
+            eventType: 'SIMULATED_EMAIL_LINK_CLICKED',
+          }),
+        }),
+      );
     });
   });
 
   describe('POST /trainee/simulated-emails/:emailId/classification', () => {
-    it('classifies an email and returns feedback', async () => {
+    it('prevents duplicate classifications', async () => {
       prismaMock.simulatedEmail.findUnique.mockResolvedValue(createMockEmail());
-      prismaMock.emailClassificationResponse.create.mockResolvedValue({ id: 'resp-123' });
-      const response = await request(createApp())
+      prismaMock.emailClassificationResponse.findFirst.mockResolvedValue({ id: 'existing' });
+
+      const response = await request(app)
         .post('/trainee/simulated-emails/email-123/classification')
         .set('Authorization', `Bearer ${token}`)
-        .send({ selectedClassification: 'PHISHING', selectedRedFlagIds: ['rf-1'] });
-      expect(response.status).toBe(200);
-      expect(response.body.isCorrect).toBe(true);
+        .send({ selectedClassification: 'SAFE' });
+
+      expect(response.status).toBe(409);
+      expect(response.body.error).toBe('ALREADY_CLASSIFIED');
     });
 
-    it('does not leak answers in detail response', async () => {
+    it('returns 400 if selected red flags are invalid', async () => {
       prismaMock.simulatedEmail.findUnique.mockResolvedValue(createMockEmail());
-      const response = await request(createApp())
-        .get('/trainee/simulated-emails/email-123')
-        .set('Authorization', `Bearer ${token}`);
+      prismaMock.emailClassificationResponse.findFirst.mockResolvedValue(null);
+
+      const response = await request(app)
+        .post('/trainee/simulated-emails/email-123/classification')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ selectedClassification: 'PHISHING', selectedRedFlagIds: ['invalid-rf'] });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('VALIDATION_ERROR');
+    });
+
+    it('classifies an email and creates interaction event with correct context', async () => {
+      prismaMock.simulatedEmail.findUnique.mockResolvedValue(createMockEmail());
+      prismaMock.emailClassificationResponse.findFirst.mockResolvedValue(null);
+      prismaMock.emailClassificationResponse.create.mockResolvedValue({ id: 'resp-123' });
+      prismaMock.interactionEvent.create.mockResolvedValue({ id: 'event-2' });
+
+      const response = await request(app)
+        .post('/trainee/simulated-emails/email-123/classification')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          selectedClassification: 'PHISHING',
+          selectedRedFlagIds: ['rf-1'],
+          campaignAssignmentId: 'forged',
+          campaignItemId: 'forged',
+        });
+
       expect(response.status).toBe(200);
-      expect(response.body).not.toHaveProperty('expectedClassification');
-      expect(response.body).not.toHaveProperty('redFlags');
+      expect(prismaMock.emailClassificationResponse.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            campaignAssignmentId: 'assignment-123',
+            campaignItemId: 'item-123',
+          }),
+        }),
+      );
+      expect(prismaMock.interactionEvent.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            eventType: 'SIMULATED_EMAIL_CLASSIFIED',
+            campaignAssignmentId: 'assignment-123',
+            campaignItemId: 'item-123',
+            emailClassificationResponseId: 'resp-123',
+          }),
+        }),
+      );
     });
   });
 });

@@ -18,7 +18,15 @@ export class SimulationController {
       return res.json(response);
     } catch (error: any) {
       const status =
-        error.message === 'NOT_FOUND' ? 404 : error.message === 'FORBIDDEN' ? 403 : 500;
+        error.message === 'NOT_FOUND'
+          ? 404
+          : error.message === 'FORBIDDEN'
+            ? 403
+            : error.message === 'ALREADY_CLASSIFIED'
+              ? 409
+              : error.message === 'VALIDATION_ERROR'
+                ? 400
+                : 500;
       return res.status(status).json({ error: error.message });
     }
   };
