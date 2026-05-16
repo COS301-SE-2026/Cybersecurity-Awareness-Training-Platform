@@ -9,14 +9,14 @@ interface AnswerOptionRecord {
   id: string;
   label: string;
   text: string;
-  order: number;
+  position: number;
 }
 
 interface QuizQuestionRecord {
   id: string;
   prompt: string;
   questionType: QuestionTypeDto;
-  order: number;
+  position: number;
   points: number;
   answerOptions: AnswerOptionRecord[];
 }
@@ -24,7 +24,10 @@ interface QuizQuestionRecord {
 interface QuizWithQuestionsRecord {
   id: string;
   title: string;
+  description?: string | null;
   passThresholdPercentage: number;
+  difficultyLevel: GetQuizResponseDto['difficultyLevel'];
+  status: GetQuizResponseDto['status'];
   questions: QuizQuestionRecord[];
 }
 
@@ -33,20 +36,20 @@ export function toSafeQuizAnswerOptionDto(option: AnswerOptionRecord): SafeQuizA
     id: option.id,
     label: option.label,
     text: option.text,
-    order: option.order,
+    position: option.position,
   };
 }
 
 export function toSafeQuizQuestionDto(question: QuizQuestionRecord): SafeQuizQuestionDto {
   return {
     id: question.id,
-    text: question.prompt,
-    type: question.questionType,
-    order: question.order,
+    prompt: question.prompt,
+    questionType: question.questionType,
+    position: question.position,
     points: question.points,
     options: question.answerOptions
       .map(toSafeQuizAnswerOptionDto)
-      .sort((left, right) => left.order - right.order),
+      .sort((left, right) => left.position - right.position),
   };
 }
 
@@ -54,9 +57,12 @@ export function toGetQuizResponseDto(quiz: QuizWithQuestionsRecord): GetQuizResp
   return {
     id: quiz.id,
     title: quiz.title,
+    description: quiz.description,
     passThresholdPercentage: quiz.passThresholdPercentage,
+    difficultyLevel: quiz.difficultyLevel,
+    status: quiz.status,
     questions: quiz.questions
       .map(toSafeQuizQuestionDto)
-      .sort((left, right) => left.order - right.order),
+      .sort((left, right) => left.position - right.position),
   };
 }

@@ -1,16 +1,15 @@
 import { z } from 'zod';
 import { idParamSchema } from './common.schemas.js';
 
-export const trainingProgressStatusSchema = z.enum(['NOT_STARTED', 'IN_PROGRESS', 'COMPLETED']);
-
-export const recordTrainingProgressStatusSchema = z.enum(['IN_PROGRESS', 'COMPLETED']);
+export const trainingInteractionEventTypeSchema = z.enum(['TRAINING_VIEWED', 'TRAINING_COMPLETED']);
 
 export const getTrainingDocumentRequestParamsSchema = z.object({
-  trainingId: idParamSchema,
+  campaignItemId: idParamSchema,
 });
 
-export const recordTrainingProgressRequestParamsSchema = getTrainingDocumentRequestParamsSchema;
+export const recordTrainingInteractionRequestParamsSchema = getTrainingDocumentRequestParamsSchema;
 
-export const recordTrainingProgressRequestSchema = z.object({
-  status: recordTrainingProgressStatusSchema,
+export const recordTrainingInteractionRequestSchema = z.object({
+  eventType: trainingInteractionEventTypeSchema,
+  campaignAssignmentId: idParamSchema.optional(),
 });

@@ -41,16 +41,11 @@ Login/register and general validation are supporting features, not standalone De
 
 ### Supporting Admin Context
 
-Administrator and campaign setup appear only as supporting context for assigning campaigns that expose simulations and learning paths.
+Administrator and campaign setup appear only as supporting context for assigning campaigns that expose simulations, training documents, quizzes, and modular campaign items/components.
 
 ## Domain Model Diagrams (Adriano)
 
-Current source/export:
-
-- `demo1-domain-model-(initial).drawio`
-- `demo1-domain-model-(initial).svg`
-
-![Demo 1 domain model](<./demo1-domain-model-(initial).svg>)
+The Demo 1 domain model is documented in `docs/demo1/SRS.md`.
 
 ### UML Class Diagram
 

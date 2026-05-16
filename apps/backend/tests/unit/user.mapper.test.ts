@@ -9,7 +9,7 @@ describe('toPublicUserDto', () => {
       lastName: 'Doe',
       email: 'jane@example.com',
       passwordHash: 'hashed-secret',
-      userType: 'GENERAL_LEARNER',
+      userType: 'GENERAL_TRAINEE',
       authStatus: 'ACTIVE',
       createdAt: new Date('2026-05-12T06:00:00.000Z'),
     } as const;
@@ -21,7 +21,7 @@ describe('toPublicUserDto', () => {
       firstName: 'Jane',
       lastName: 'Doe',
       email: 'jane@example.com',
-      userType: 'GENERAL_LEARNER',
+      userType: 'GENERAL_TRAINEE',
       authStatus: 'ACTIVE',
       createdAt: '2026-05-12T06:00:00.000Z',
     });

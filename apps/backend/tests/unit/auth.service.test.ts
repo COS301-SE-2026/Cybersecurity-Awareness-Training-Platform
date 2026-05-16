@@ -10,7 +10,7 @@ import {
 const userRepositoryMock = vi.hoisted(() => ({
   findUserByEmail: vi.fn(),
   findUserById: vi.fn(),
-  createGeneralLearnerUser: vi.fn(),
+  createGeneralTraineeUser: vi.fn(),
 }));
 
 const passwordServiceMock = vi.hoisted(() => ({
@@ -33,16 +33,16 @@ describe('registerUser', () => {
     vi.clearAllMocks();
   });
 
-  it('hashes the password, creates a learner user, and returns a safe public user', async () => {
+  it('hashes the password, creates a trainee user, and returns a safe public user', async () => {
     userRepositoryMock.findUserByEmail.mockResolvedValue(null);
     passwordServiceMock.hashPassword.mockResolvedValue('hashed-password');
-    userRepositoryMock.createGeneralLearnerUser.mockResolvedValue({
+    userRepositoryMock.createGeneralTraineeUser.mockResolvedValue({
       id: 'user-1',
       firstName: 'Johan',
       lastName: 'Nel',
       email: 'johan@example.com',
       passwordHash: 'hashed-password',
-      userType: 'GENERAL_LEARNER',
+      userType: 'GENERAL_TRAINEE',
       authStatus: 'ACTIVE',
       createdAt: new Date('2026-05-12T06:00:00.000Z'),
     });
@@ -56,7 +56,7 @@ describe('registerUser', () => {
 
     expect(userRepositoryMock.findUserByEmail).toHaveBeenCalledWith('johan@example.com');
     expect(passwordServiceMock.hashPassword).toHaveBeenCalledWith('mySecurePassword123!');
-    expect(userRepositoryMock.createGeneralLearnerUser).toHaveBeenCalledWith({
+    expect(userRepositoryMock.createGeneralTraineeUser).toHaveBeenCalledWith({
       email: 'johan@example.com',
       firstName: 'Johan',
       lastName: 'Nel',
@@ -68,7 +68,7 @@ describe('registerUser', () => {
         firstName: 'Johan',
         lastName: 'Nel',
         email: 'johan@example.com',
-        userType: 'GENERAL_LEARNER',
+        userType: 'GENERAL_TRAINEE',
         authStatus: 'ACTIVE',
         createdAt: '2026-05-12T06:00:00.000Z',
       },
@@ -92,7 +92,7 @@ describe('registerUser', () => {
     ).rejects.toBeInstanceOf(AuthConflictError);
 
     expect(passwordServiceMock.hashPassword).not.toHaveBeenCalled();
-    expect(userRepositoryMock.createGeneralLearnerUser).not.toHaveBeenCalled();
+    expect(userRepositoryMock.createGeneralTraineeUser).not.toHaveBeenCalled();
   });
 });
 
@@ -108,7 +108,7 @@ describe('loginUser', () => {
       lastName: 'Nel',
       email: 'johan@example.com',
       passwordHash: 'hashed-password',
-      userType: 'GENERAL_LEARNER',
+      userType: 'GENERAL_TRAINEE',
       authStatus: 'ACTIVE',
       createdAt: new Date('2026-05-12T06:00:00.000Z'),
     });
@@ -135,7 +135,7 @@ describe('loginUser', () => {
         firstName: 'Johan',
         lastName: 'Nel',
         email: 'johan@example.com',
-        userType: 'GENERAL_LEARNER',
+        userType: 'GENERAL_TRAINEE',
         authStatus: 'ACTIVE',
         createdAt: '2026-05-12T06:00:00.000Z',
       },
@@ -192,7 +192,7 @@ describe('getCurrentUser', () => {
       lastName: 'Nel',
       email: 'johan@example.com',
       passwordHash: 'hashed-password',
-      userType: 'GENERAL_LEARNER',
+      userType: 'GENERAL_TRAINEE',
       authStatus: 'ACTIVE',
       createdAt: new Date('2026-05-12T06:00:00.000Z'),
     });
@@ -206,7 +206,7 @@ describe('getCurrentUser', () => {
         firstName: 'Johan',
         lastName: 'Nel',
         email: 'johan@example.com',
-        userType: 'GENERAL_LEARNER',
+        userType: 'GENERAL_TRAINEE',
         authStatus: 'ACTIVE',
         createdAt: '2026-05-12T06:00:00.000Z',
       },

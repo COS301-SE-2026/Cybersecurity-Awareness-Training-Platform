@@ -4,14 +4,14 @@ import { authLoginRequestSchema, authRegisterRequestSchema } from './auth.schema
 describe('auth validation schemas', () => {
   it('normalizes valid register input', () => {
     const result = authRegisterRequestSchema.parse({
-      email: '  LEARNER@EXAMPLE.COM  ',
+      email: '  TRAINEE@EXAMPLE.COM  ',
       password: 'password123',
       firstName: ' Jane ',
       lastName: ' Doe ',
     });
 
     expect(result).toEqual({
-      email: 'learner@example.com',
+      email: 'trainee@example.com',
       password: 'password123',
       firstName: 'Jane',
       lastName: 'Doe',
@@ -31,12 +31,12 @@ describe('auth validation schemas', () => {
 
   it('normalizes valid login input', () => {
     const result = authLoginRequestSchema.parse({
-      email: '  LEARNER@EXAMPLE.COM  ',
+      email: '  TRAINEE@EXAMPLE.COM  ',
       password: 'password123',
     });
 
     expect(result).toEqual({
-      email: 'learner@example.com',
+      email: 'trainee@example.com',
       password: 'password123',
     });
   });

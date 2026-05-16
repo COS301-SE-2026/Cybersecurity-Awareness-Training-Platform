@@ -8,7 +8,7 @@ export function findUserByEmail(email: string) {
   });
 }
 
-export function createGeneralLearnerUser(input: {
+export function createGeneralTraineeUser(input: {
   email: string;
   firstName: string;
   lastName: string;
@@ -20,11 +20,16 @@ export function createGeneralLearnerUser(input: {
       firstName: input.firstName,
       lastName: input.lastName,
       passwordHash: input.passwordHash,
-      userType: 'GENERAL_LEARNER',
-      authStatus: 'ACTIVE', //In future this will be PENDING for email verification
-      generalLearningAccess: {
+      userType: 'GENERAL_TRAINEE',
+      authStatus: 'ACTIVE',
+      traineeProfile: {
         create: {
-          source: 'SELF_SIGNUP',
+          traineeStatus: 'ACTIVE',
+          generalTraineeProfile: {
+            create: {
+              accessSource: 'SELF_SIGNUP',
+            },
+          },
         },
       },
     },

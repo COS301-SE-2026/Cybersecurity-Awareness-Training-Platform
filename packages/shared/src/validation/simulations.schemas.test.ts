@@ -1,26 +1,32 @@
 import { describe, expect, it } from 'vitest';
-import { recordSimulatedEmailInteractionRequestSchema } from './simulations.schemas.js';
+import {
+  classifySimulatedEmailRequestSchema,
+  recordSimulatedEmailInteractionRequestSchema,
+} from './simulations.schemas.js';
 
 describe('simulation validation schemas', () => {
   it('accepts supported simulated email interaction events', () => {
     expect(
       recordSimulatedEmailInteractionRequestSchema.safeParse({
-        eventType: 'EMAIL_OPENED',
+        eventType: 'SIMULATED_EMAIL_OPENED',
       }).success,
     ).toBe(true);
 
     expect(
       recordSimulatedEmailInteractionRequestSchema.safeParse({
-        eventType: 'EMAIL_LINK_CLICKED',
+        eventType: 'SIMULATED_EMAIL_LINK_CLICKED',
       }).success,
     ).toBe(true);
   });
 
-  it('rejects the old generic link-clicked event name', () => {
-    const result = recordSimulatedEmailInteractionRequestSchema.safeParse({
-      eventType: 'LINK_CLICKED',
+  it('accepts campaign-scoped email classifications', () => {
+    const result = classifySimulatedEmailRequestSchema.safeParse({
+      selectedClassification: 'PHISHING',
+      selectedRedFlagIds: ['red-flag-1'],
+      campaignAssignmentId: 'assignment-1',
+      campaignItemId: 'item-1',
     });
 
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
   });
 });
