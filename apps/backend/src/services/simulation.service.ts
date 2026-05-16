@@ -58,8 +58,9 @@ export class SimulationService {
       campaignItem.componentType !== 'SIMULATED_INBOX' ||
       campaignItem.availabilityStatus !== 'AVAILABLE' ||
       !campaignItem.simulation ||
-      campaignItem.simulation.status !== 'AVAILABLE' ||
-      !campaignItem.simulation.simulatedInbox
+      campaignItem.simulation.safetyStatus !== 'APPROVED' ||
+      !campaignItem.simulation.simulatedInbox ||
+      campaignItem.simulation.simulatedInbox.status !== 'ACTIVE'
     ) {
       throw new Error('NOT_FOUND');
     }
@@ -132,7 +133,7 @@ export class SimulationService {
         item.itemType === 'COMPONENT' &&
         item.componentType === 'SIMULATED_INBOX' &&
         item.availabilityStatus === 'AVAILABLE' &&
-        item.simulation?.status === 'AVAILABLE',
+        item.simulation?.safetyStatus === 'APPROVED',
     );
 
     if (!matchedItem) {

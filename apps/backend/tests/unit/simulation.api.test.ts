@@ -53,7 +53,10 @@ describe('Simulation API', () => {
             itemType: 'COMPONENT',
             componentType: 'SIMULATED_INBOX',
             availabilityStatus: 'AVAILABLE',
-            simulation: { status: 'AVAILABLE' },
+            simulation: {
+              safetyStatus: 'APPROVED',
+              simulatedInbox: { status: 'ACTIVE' },
+            },
             campaign: { assignments: assigned ? [{ id: 'assignment-123' }] : [] },
           },
         ],
@@ -71,8 +74,8 @@ describe('Simulation API', () => {
         componentType: 'SIMULATED_INBOX',
         availabilityStatus: 'AVAILABLE',
         simulation: {
-          status: 'AVAILABLE',
-          simulatedInbox: { emails: [createMockEmail()] },
+          safetyStatus: 'APPROVED',
+          simulatedInbox: { status: 'ACTIVE', emails: [createMockEmail()] },
         },
         campaign: { assignments: [{ id: 'assignment-123' }] },
       };
