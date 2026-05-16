@@ -7,8 +7,8 @@
       "number": 107,
       "title": "docs: Align domain model with L18 guidance",
       "points": 5,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-05-16"
     },
     {
       "number": 106,
@@ -270,8 +270,13 @@
     },
     {
       "date": "2026-05-16",
-      "remaining": 61,
+      "remaining": 56,
       "ideal": 39.11
+    },
+    {
+      "date": "2026-05-17",
+      "remaining": 56,
+      "ideal": 29.33
     }
   ]
 }
