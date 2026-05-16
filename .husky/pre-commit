@@ -1,0 +1,29 @@
+#!/usr/bin/env sh
+
+if [ -z "${BASH_VERSION:-}" ]; then
+  if command -v bash >/dev/null 2>&1; then
+    exec bash "$0" "$@"
+  fi
+
+  echo "Husky pre-commit requires bash. Install Git Bash, WSL, or bash on PATH."
+  exit 127
+fi
+
+set -euo pipefail
+
+MERGE_MSG_FILE="$(git rev-parse --git-path MERGE_MSG)"
+
+if git rev-parse -q --verify MERGE_HEAD >/dev/null && \
+  [ -f "$MERGE_MSG_FILE" ] && \
+  [[ "$(head -n 1 "$MERGE_MSG_FILE")" == Merge* ]]; then
+  ./scripts/check-protected-branch.sh commit
+  ./scripts/check-env-files.sh
+  exit 0
+fi
+
+./scripts/check-protected-branch.sh commit
+./scripts/check-branch-name.sh
+./scripts/check-git-identity.sh
+./scripts/check-env-files.sh
+./scripts/check-staged-file-policy.sh
+pnpm exec lint-staged

@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: insightful-phish-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: insightful_phish
+      POSTGRES_PASSWORD: insightful_phish
+      POSTGRES_DB: insightful_phish_dev
+    ports:
+      - '5432:5432'
+    volumes:
+      - insightful_phish_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  insightful_phish_postgres_data:

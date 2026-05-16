@@ -1,0 +1,61 @@
+{
+  "name": "insightful-phish",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Insightful Phish is a cybersecurity awareness training platform for phishing simulation, training, interaction tracking, and reporting.",
+  "packageManager": "pnpm@10.33.2",
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "build": "pnpm -r build",
+    "build:backend": "pnpm --filter @insightful-phish/backend build",
+    "build:frontend": "pnpm --filter @insightful-phish/frontend build",
+    "build:shared": "pnpm --filter @insightful-phish/shared build",
+    "lint": "pnpm -r lint",
+    "lint:backend": "pnpm --filter @insightful-phish/backend lint",
+    "lint:frontend": "pnpm --filter @insightful-phish/frontend lint",
+    "lint:shared": "pnpm --filter @insightful-phish/shared lint",
+    "typecheck": "pnpm -r typecheck",
+    "typecheck:backend": "pnpm --filter @insightful-phish/backend typecheck",
+    "typecheck:frontend": "pnpm --filter @insightful-phish/frontend typecheck",
+    "typecheck:shared": "pnpm --filter @insightful-phish/shared typecheck",
+    "test": "pnpm -r test",
+    "test:backend": "pnpm --filter @insightful-phish/backend test",
+    "test:frontend": "pnpm --filter @insightful-phish/frontend test",
+    "test:shared": "pnpm --filter @insightful-phish/shared test",
+    "test:coverage": "pnpm -r test:coverage",
+    "test:coverage:backend": "pnpm --filter @insightful-phish/backend test:coverage",
+    "test:coverage:frontend": "pnpm --filter @insightful-phish/frontend test:coverage",
+    "test:coverage:shared": "pnpm --filter @insightful-phish/shared test:coverage",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^20.1.0",
+    "@commitlint/config-conventional": "^20.0.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.6",
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.3"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,cjs,mjs,json,jsonc,md,yml,yaml,css}": [
+      "prettier --write"
+    ]
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/engines",
+      "esbuild",
+      "prisma"
+    ],
+    "overrides": {
+      "@hono/node-server": "1.19.13",
+      "effect": "3.20.0",
+      "fast-uri": "3.1.2",
+      "hono": "4.12.18",
+      "lodash": "4.18.0",
+      "valibot": "1.2.0"
+    }
+  }
+}
