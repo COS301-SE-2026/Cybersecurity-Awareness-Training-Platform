@@ -2,20 +2,17 @@ import { describe, expect, it } from 'vitest';
 import { recordTrainingInteractionRequestSchema } from './training.schemas.js';
 
 describe('training validation schemas', () => {
-  it('accepts training interaction events with campaign context', () => {
-    const result = recordTrainingInteractionRequestSchema.safeParse({
-      eventType: 'TRAINING_VIEWED',
-      campaignAssignmentId: 'assignment-1',
-    });
+  it('accepts empty training interaction payloads', () => {
+    const result = recordTrainingInteractionRequestSchema.safeParse({});
 
     expect(result.success).toBe(true);
   });
 
-  it('rejects interaction payloads without an event type', () => {
+  it('ignores unknown safe fields in training interaction payloads', () => {
     const result = recordTrainingInteractionRequestSchema.safeParse({
-      campaignAssignmentId: 'assignment-1',
+      clientTime: '2026-05-16T10:00:00.000Z',
     });
 
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
   });
 });

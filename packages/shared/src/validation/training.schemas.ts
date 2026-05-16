@@ -9,7 +9,4 @@ export const getTrainingDocumentRequestParamsSchema = z.object({
 
 export const recordTrainingInteractionRequestParamsSchema = getTrainingDocumentRequestParamsSchema;
 
-export const recordTrainingInteractionRequestSchema = z.object({
-  eventType: trainingInteractionEventTypeSchema,
-  campaignAssignmentId: idParamSchema.optional(),
-});
+export const recordTrainingInteractionRequestSchema = z.object({}).passthrough();
