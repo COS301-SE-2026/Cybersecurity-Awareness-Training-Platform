@@ -420,6 +420,18 @@ Suggested future E2E paths:
 
 E2E tests should be limited to high-value demo paths and should not become detailed implementation tickets.
 
+### Test Coverage
+
+Test coverage is tracked to ensure critical demo paths and logic are verified.
+
+- **Tools**: Vitest with the `v8` coverage provider.
+- **Local Command**: `pnpm test:coverage`.
+- **CI Integration**: Coverage is generated in the CI `tests` job and uploaded as artifacts (`coverage-backend` and `coverage-frontend`).
+- **Reporting**: Reports include `text`, `html`, `lcov`, and `json-summary`.
+
+> [!NOTE]
+> During the Demo 1 sprint, coverage thresholds are not strictly enforced to avoid blocking implementation work. Coverage is used as a quality signal rather than a hard gate.
+
 ## Technical Requirements and Constraints Reference
 
 The following constraints from `architecture.md` directly affect what QA must verify for Demo 1. They are listed here to ensure testing planning remains aligned with the agreed architectural boundaries.
@@ -433,7 +445,7 @@ The following constraints from `architecture.md` directly affect what QA must ve
 ### Training Document Content
 
 - QA must verify that training content is correctly seeded, loads reliably, and is relevant to the phishing awareness theme.
-- QA must verify that the training document links to the correct quiz via `linkedQuizId` where applicable.
+- QA must verify that training and quiz content are made available through the relevant campaign items where applicable.
 - QA must confirm that no adaptive learning, gamification, or progress scoring behaviour appears in the Demo 1 training flow.
 
 ### Quiz Attempts and Results
@@ -446,7 +458,7 @@ The following constraints from `architecture.md` directly affect what QA must ve
 ### Data Privacy
 
 - QA must confirm that no plain-text passwords appear in API responses or application logs.
-- QA must verify that interaction events (e.g., `EMAIL_OPENED`, `LINK_CLICKED`) store only event type, timestamp, and linked entity IDs — no typed input, message content, or credential data.
+- QA must verify that interaction events (e.g., `SIMULATED_EMAIL_OPENED`, `SIMULATED_EMAIL_LINK_CLICKED`) store only event type, timestamp, and linked entity IDs — no typed input, message content, or credential data.
 - QA must confirm that no sensitive data is captured or stored during simulated phishing interactions.
 
 ### Scope Boundary Verification
