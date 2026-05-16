@@ -17,22 +17,7 @@ export class SimulationService {
     });
   }
 
-  private getCampaignAccessInclude(traineeProfileId: string) {
-    return {
-      campaign: {
-        include: {
-          assignments: {
-            where: {
-              traineeProfileId,
-              assignmentStatus: {
-                in: ['AVAILABLE', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED'],
-              },
-            },
-          },
-        },
-      },
-    };
-  }
+
 
   async getSimulatedInbox(
     campaignItemId: string,
@@ -233,7 +218,7 @@ export class SimulationService {
 
     // Validate red flags
     if (input.selectedRedFlagIds && input.selectedRedFlagIds.length > 0) {
-      const validRedFlagIds = new Set(email.redFlags.map((rf) => rf.id));
+      const validRedFlagIds = new Set(email.redFlags.map((rf: any) => rf.id));
       const invalidFlags = input.selectedRedFlagIds.filter((id) => !validRedFlagIds.has(id));
       if (invalidFlags.length > 0) {
         throw new Error('VALIDATION_ERROR');
@@ -281,7 +266,7 @@ export class SimulationService {
       feedback: isCorrect
         ? 'Great job! You correctly identified the email.'
         : 'Not quite. Take a closer look at the red flags.',
-      redFlags: email.redFlags.map((rf) => ({
+      redFlags: email.redFlags.map((rf: any) => ({
         id: rf.id,
         redFlagType: rf.redFlagType as any,
         label: rf.label,
