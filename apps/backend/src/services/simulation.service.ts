@@ -17,8 +17,6 @@ export class SimulationService {
     });
   }
 
-
-
   async getSimulatedInbox(
     campaignItemId: string,
     traineeProfileId: string,
