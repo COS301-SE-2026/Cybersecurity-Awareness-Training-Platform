@@ -18,6 +18,11 @@ export function findTrainingCampaignItemById(campaignItemId: string) {
       id: campaignItemId,
     },
     include: {
+      campaign: {
+        select: {
+          status: true,
+        },
+      },
       trainingDocument: true,
     },
   });
@@ -37,6 +42,30 @@ export function findAccessibleCampaignAssignment(input: {
     },
     select: {
       id: true,
+    },
+  });
+}
+
+export function findExistingTrainingCompletedEvent(input: {
+  traineeProfileId: string;
+  campaignAssignmentId: string;
+  campaignItemId: string;
+  trainingDocumentId: string;
+}) {
+  return prisma.interactionEvent.findFirst({
+    where: {
+      traineeProfileId: input.traineeProfileId,
+      campaignAssignmentId: input.campaignAssignmentId,
+      campaignItemId: input.campaignItemId,
+      eventType: 'TRAINING_COMPLETED',
+      targetType: 'TRAINING_DOCUMENT',
+      targetId: input.trainingDocumentId,
+      trainingDocumentId: input.trainingDocumentId,
+    },
+    select: {
+      id: true,
+      eventType: true,
+      occurredAt: true,
     },
   });
 }

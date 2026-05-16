@@ -18,6 +18,7 @@ const prismaMock = vi.hoisted(() => ({
     findFirst: vi.fn(),
   },
   interactionEvent: {
+    findFirst: vi.fn(),
     create: vi.fn(),
   },
 }));
@@ -37,8 +38,14 @@ const user = {
   createdAt: new Date('2026-05-16T08:00:00.000Z'),
 };
 
+const campaignItemId = '11111111-1111-4111-8111-111111111111';
+const campaignId = '22222222-2222-4222-8222-222222222222';
+const trainingDocumentId = '33333333-3333-4333-8333-333333333333';
+const campaignAssignmentId = '44444444-4444-4444-8444-444444444444';
+const traineeProfileId = '55555555-5555-4555-8555-555555555555';
+
 const trainingDocument = {
-  id: 'training-doc-1',
+  id: trainingDocumentId,
   createdByUserId: null,
   title: 'Identifying Phishing Emails',
   contentType: 'MARKDOWN',
@@ -52,8 +59,8 @@ const trainingDocument = {
 };
 
 const campaignItem = {
-  id: 'campaign-item-1',
-  campaignId: 'campaign-1',
+  id: campaignItemId,
+  campaignId,
   parentGroupId: null,
   itemType: 'COMPONENT',
   componentType: 'TRAINING_DOCUMENT',
@@ -70,19 +77,29 @@ const campaignItem = {
   simulationId: null,
   createdAt: new Date('2026-05-16T08:00:00.000Z'),
   updatedAt: new Date('2026-05-16T08:00:00.000Z'),
+  campaign: {
+    status: 'ACTIVE',
+  },
   trainingDocument,
 };
 
 const authHeader = () => `Bearer ${generateAuthToken(user.id).token}`;
+const trainingDocumentPath = (id = campaignItemId) =>
+  `/trainee/campaign-items/${id}/training-document`;
+const viewedPath = (id = campaignItemId) =>
+  `/trainee/campaign-items/${id}/training-document/viewed`;
+const completedPath = (id = campaignItemId) =>
+  `/trainee/campaign-items/${id}/training-document/completed`;
 
 function mockAuthenticatedUser() {
   prismaMock.user.findUnique.mockResolvedValue(user);
 }
 
 function mockTrainingAccess() {
-  prismaMock.traineeProfile.findFirst.mockResolvedValue({ id: 'trainee-profile-1' });
+  prismaMock.traineeProfile.findFirst.mockResolvedValue({ id: traineeProfileId });
   prismaMock.campaignItem.findUnique.mockResolvedValue(campaignItem);
-  prismaMock.campaignAssignment.findFirst.mockResolvedValue({ id: 'assignment-1' });
+  prismaMock.campaignAssignment.findFirst.mockResolvedValue({ id: campaignAssignmentId });
+  prismaMock.interactionEvent.findFirst.mockResolvedValue(null);
 }
 
 describe('Trainee training document routes', () => {
@@ -95,23 +112,28 @@ describe('Trainee training document routes', () => {
 
   it('gets a training document resolved through the campaign item', async () => {
     const response = await request(createApp())
-      .get('/trainee/campaign-items/campaign-item-1/training-document')
+      .get(trainingDocumentPath())
       .set('Authorization', authHeader());
 
     expect(response.status).toBe(200);
     expect(prismaMock.campaignItem.findUnique).toHaveBeenCalledWith({
       where: {
-        id: 'campaign-item-1',
+        id: campaignItemId,
       },
       include: {
+        campaign: {
+          select: {
+            status: true,
+          },
+        },
         trainingDocument: true,
       },
     });
     expect(response.body).toEqual({
-      campaignItemId: 'campaign-item-1',
-      campaignAssignmentId: 'assignment-1',
+      campaignItemId,
+      campaignAssignmentId,
       trainingDocument: {
-        id: 'training-doc-1',
+        id: trainingDocumentId,
         title: 'Identifying Phishing Emails',
         contentType: 'MARKDOWN',
         contentRef: 'training/training-doc-1',
@@ -131,9 +153,7 @@ describe('Trainee training document routes', () => {
   });
 
   it('returns 401 when authentication is missing', async () => {
-    const response = await request(createApp()).get(
-      '/trainee/campaign-items/campaign-item-1/training-document',
-    );
+    const response = await request(createApp()).get(trainingDocumentPath());
 
     expect(response.status).toBe(401);
     expect(response.body).toHaveProperty('error', 'AUTH_REQUIRED');
@@ -147,18 +167,35 @@ describe('Trainee training document routes', () => {
     });
 
     const response = await request(createApp())
-      .get('/trainee/campaign-items/campaign-item-1/training-document')
+      .get(trainingDocumentPath())
       .set('Authorization', authHeader());
 
     expect(response.status).toBe(404);
     expect(response.body).toHaveProperty('error', 'TRAINING_DOCUMENT_NOT_FOUND');
   });
 
+  it('returns safe 404 when the campaign is not active', async () => {
+    prismaMock.campaignItem.findUnique.mockResolvedValue({
+      ...campaignItem,
+      campaign: {
+        status: 'ARCHIVED',
+      },
+    });
+
+    const response = await request(createApp())
+      .get(trainingDocumentPath())
+      .set('Authorization', authHeader());
+
+    expect(response.status).toBe(404);
+    expect(response.body).toHaveProperty('error', 'TRAINING_DOCUMENT_NOT_FOUND');
+    expect(prismaMock.campaignAssignment.findFirst).not.toHaveBeenCalled();
+  });
+
   it('returns safe 404 when the trainee is not assigned to the campaign', async () => {
     prismaMock.campaignAssignment.findFirst.mockResolvedValue(null);
 
     const response = await request(createApp())
-      .get('/trainee/campaign-items/campaign-item-1/training-document')
+      .get(trainingDocumentPath())
       .set('Authorization', authHeader());
 
     expect(response.status).toBe(404);
@@ -175,7 +212,7 @@ describe('Trainee training document routes', () => {
     });
 
     const response = await request(createApp())
-      .get('/trainee/campaign-items/campaign-item-1/training-document')
+      .get(trainingDocumentPath())
       .set('Authorization', authHeader());
 
     expect(response.status).toBe(404);
@@ -190,20 +227,21 @@ describe('Trainee training document routes', () => {
     });
 
     const response = await request(createApp())
-      .post('/trainee/campaign-items/campaign-item-1/training-document/viewed')
+      .post(viewedPath())
       .set('Authorization', authHeader())
-      .send({ ignoredClientField: 'safe-to-ignore' });
+      .send();
 
     expect(response.status).toBe(201);
+    expect(prismaMock.interactionEvent.findFirst).not.toHaveBeenCalled();
     expect(prismaMock.interactionEvent.create).toHaveBeenCalledWith({
       data: {
-        traineeProfileId: 'trainee-profile-1',
-        campaignAssignmentId: 'assignment-1',
-        campaignItemId: 'campaign-item-1',
+        traineeProfileId,
+        campaignAssignmentId,
+        campaignItemId,
         eventType: 'TRAINING_VIEWED',
         targetType: 'TRAINING_DOCUMENT',
-        targetId: 'training-doc-1',
-        trainingDocumentId: 'training-doc-1',
+        targetId: trainingDocumentId,
+        trainingDocumentId,
       },
       select: {
         id: true,
@@ -214,14 +252,42 @@ describe('Trainee training document routes', () => {
     expect(prismaMock.interactionEvent.create.mock.calls[0][0].data).not.toHaveProperty('metadata');
     expect(response.body).toEqual({
       success: true,
-      campaignItemId: 'campaign-item-1',
-      trainingDocumentId: 'training-doc-1',
+      campaignItemId,
+      trainingDocumentId,
       event: {
         id: 'event-1',
         eventType: 'TRAINING_VIEWED',
         occurredAt: '2026-05-16T09:00:00.000Z',
       },
     });
+  });
+
+  it('keeps TRAINING_VIEWED repeatable across valid requests', async () => {
+    prismaMock.interactionEvent.create
+      .mockResolvedValueOnce({
+        id: 'event-1',
+        eventType: 'TRAINING_VIEWED',
+        occurredAt: new Date('2026-05-16T09:00:00.000Z'),
+      })
+      .mockResolvedValueOnce({
+        id: 'event-2',
+        eventType: 'TRAINING_VIEWED',
+        occurredAt: new Date('2026-05-16T09:01:00.000Z'),
+      });
+
+    const app = createApp();
+    const firstResponse = await request(app)
+      .post(viewedPath())
+      .set('Authorization', authHeader())
+      .send();
+    const secondResponse = await request(app)
+      .post(viewedPath())
+      .set('Authorization', authHeader())
+      .send();
+
+    expect(firstResponse.status).toBe(201);
+    expect(secondResponse.status).toBe(201);
+    expect(prismaMock.interactionEvent.create).toHaveBeenCalledTimes(2);
   });
 
   it('records a TRAINING_COMPLETED interaction event with campaign context and no metadata', async () => {
@@ -232,19 +298,35 @@ describe('Trainee training document routes', () => {
     });
 
     const response = await request(createApp())
-      .post('/trainee/campaign-items/campaign-item-1/training-document/completed')
+      .post(completedPath())
       .set('Authorization', authHeader())
       .send();
 
     expect(response.status).toBe(201);
+    expect(prismaMock.interactionEvent.findFirst).toHaveBeenCalledWith({
+      where: {
+        traineeProfileId,
+        campaignAssignmentId,
+        campaignItemId,
+        eventType: 'TRAINING_COMPLETED',
+        targetType: 'TRAINING_DOCUMENT',
+        targetId: trainingDocumentId,
+        trainingDocumentId,
+      },
+      select: {
+        id: true,
+        eventType: true,
+        occurredAt: true,
+      },
+    });
     expect(prismaMock.interactionEvent.create.mock.calls[0][0].data).toMatchObject({
-      traineeProfileId: 'trainee-profile-1',
-      campaignAssignmentId: 'assignment-1',
-      campaignItemId: 'campaign-item-1',
+      traineeProfileId,
+      campaignAssignmentId,
+      campaignItemId,
       eventType: 'TRAINING_COMPLETED',
       targetType: 'TRAINING_DOCUMENT',
-      targetId: 'training-doc-1',
-      trainingDocumentId: 'training-doc-1',
+      targetId: trainingDocumentId,
+      trainingDocumentId,
     });
     expect(prismaMock.interactionEvent.create.mock.calls[0][0].data).not.toHaveProperty('metadata');
     expect(response.body.event).toEqual({
@@ -254,10 +336,62 @@ describe('Trainee training document routes', () => {
     });
   });
 
-  it('returns 400 for malformed campaign item ids', async () => {
+  it('returns success without creating duplicate TRAINING_COMPLETED events', async () => {
+    prismaMock.interactionEvent.create.mockResolvedValue({
+      id: 'event-2',
+      eventType: 'TRAINING_COMPLETED',
+      occurredAt: new Date('2026-05-16T09:05:00.000Z'),
+    });
+    prismaMock.interactionEvent.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({
+      id: 'event-2',
+      eventType: 'TRAINING_COMPLETED',
+      occurredAt: new Date('2026-05-16T09:05:00.000Z'),
+    });
+
+    const app = createApp();
+    const firstResponse = await request(app)
+      .post(completedPath())
+      .set('Authorization', authHeader())
+      .send();
+    const secondResponse = await request(app)
+      .post(completedPath())
+      .set('Authorization', authHeader())
+      .send();
+
+    expect(firstResponse.status).toBe(201);
+    expect(secondResponse.status).toBe(201);
+    expect(prismaMock.interactionEvent.findFirst).toHaveBeenCalledTimes(2);
+    expect(prismaMock.interactionEvent.create).toHaveBeenCalledTimes(1);
+    expect(secondResponse.body.event).toEqual({
+      id: 'event-2',
+      eventType: 'TRAINING_COMPLETED',
+      occurredAt: '2026-05-16T09:05:00.000Z',
+    });
+  });
+
+  it.each([
+    ['GET training document', 'get', trainingDocumentPath('not-a-uuid')],
+    ['POST viewed', 'post', viewedPath('not-a-uuid')],
+    ['POST completed', 'post', completedPath('not-a-uuid')],
+  ] as const)('returns 400 for malformed campaign item ids on %s', async (_name, method, path) => {
     const response = await request(createApp())
-      .get('/trainee/campaign-items/%20%20/training-document')
-      .set('Authorization', authHeader());
+      [method](path)
+      .set('Authorization', authHeader())
+      .send();
+
+    expect(response.status).toBe(400);
+    expect(response.body).toHaveProperty('error', 'VALIDATION_ERROR');
+    expect(prismaMock.campaignItem.findUnique).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['viewed', viewedPath()],
+    ['completed', completedPath()],
+  ])('returns 400 when %s request bodies contain unknown fields', async (_name, path) => {
+    const response = await request(createApp())
+      .post(path)
+      .set('Authorization', authHeader())
+      .send({ clientTime: '2026-05-16T10:00:00.000Z' });
 
     expect(response.status).toBe(400);
     expect(response.body).toHaveProperty('error', 'VALIDATION_ERROR');
@@ -269,9 +403,7 @@ describe('Trainee training document routes', () => {
     let response: request.Response | undefined;
 
     for (let index = 0; index <= 60; index += 1) {
-      response = await request(app)
-        .get('/trainee/campaign-items/campaign-item-1/training-document')
-        .set('Authorization', authHeader());
+      response = await request(app).get(trainingDocumentPath()).set('Authorization', authHeader());
     }
 
     expect(response?.status).toBe(429);

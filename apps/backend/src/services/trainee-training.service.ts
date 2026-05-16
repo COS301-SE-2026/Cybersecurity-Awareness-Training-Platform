@@ -56,6 +56,7 @@ function isAccessibleTrainingDocumentItem(
 } {
   return Boolean(
     campaignItem &&
+    campaignItem.campaign.status === 'ACTIVE' &&
     campaignItem.itemType === 'COMPONENT' &&
     campaignItem.componentType === 'TRAINING_DOCUMENT' &&
     campaignItem.availabilityStatus === 'AVAILABLE' &&
@@ -115,13 +116,19 @@ export async function recordTrainingInteraction(input: {
 }): Promise<RecordTrainingInteractionResponseDto> {
   const access = await resolveTrainingDocumentAccess(input.userId, input.campaignItemId);
 
-  const event = await TraineeTrainingRepository.createTrainingInteractionEvent({
+  const eventInput = {
     traineeProfileId: access.traineeProfileId,
     campaignAssignmentId: access.campaignAssignment.id,
     campaignItemId: access.campaignItem.id,
     trainingDocumentId: access.trainingDocument.id,
     eventType: input.eventType,
-  });
+  };
+
+  const event =
+    input.eventType === 'TRAINING_COMPLETED'
+      ? ((await TraineeTrainingRepository.findExistingTrainingCompletedEvent(eventInput)) ??
+        (await TraineeTrainingRepository.createTrainingInteractionEvent(eventInput)))
+      : await TraineeTrainingRepository.createTrainingInteractionEvent(eventInput);
 
   return {
     success: true,
