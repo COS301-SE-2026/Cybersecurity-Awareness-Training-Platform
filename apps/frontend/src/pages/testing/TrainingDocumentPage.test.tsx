@@ -54,7 +54,7 @@ describe('TrainingDocumentPage', () => {
 
     await expectPageHeading('Recognising Phishing Emails');
 
-    expect(screen.getByRole('link', { name: /start quiz/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /start linked quiz/i })).toHaveAttribute(
       'href',
       '/quiz/phishing-basics-quiz',
     );
@@ -65,7 +65,7 @@ describe('TrainingDocumentPage', () => {
 
     await expectPageHeading('Social Engineering Awareness');
 
-    expect(screen.queryByRole('link', { name: /start quiz/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /start linked quiz/i })).not.toBeInTheDocument();
   });
 
   it('shows unavailable-content state when content is missing', async () => {
@@ -101,7 +101,7 @@ describe('TrainingDocumentPage', () => {
 
     await expectPageHeading('Password Safety');
 
-    screen.getByRole('button', { name: /mark as read/i }).click();
+    screen.getByRole('button', { name: /complete module/i }).click();
 
     await waitFor(() => {
       expect(postTrainingProgressSpy).toHaveBeenCalledWith('password-safety', {
@@ -134,7 +134,7 @@ describe('TrainingDocumentPage', () => {
 
     await expectPageHeading('Password Safety');
 
-    screen.getByRole('button', { name: /mark as read/i }).click();
+    screen.getByRole('button', { name: /complete module/i }).click();
 
     expect(await screen.findByText(/could not save your progress/i)).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 1, name: 'Password Safety' })).toBeInTheDocument();

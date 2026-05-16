@@ -84,12 +84,12 @@ export default function TrainingDocumentPage() {
   }
 
   return (
-    <AppLayout>
+    <AppLayout showSidebar={false}>
       <div
         style={{
           height: '100%',
           overflowY: 'auto',
-          padding: '1.4rem 2rem 2.5rem',
+          padding: '1rem 3rem 3rem',
         }}
       >
         {isLoading ? (
