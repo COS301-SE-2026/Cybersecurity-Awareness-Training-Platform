@@ -52,7 +52,18 @@ export class SimulationService {
             },
           },
         },
-        ...this.getCampaignAccessInclude(traineeProfileId),
+        campaign: {
+          include: {
+            assignments: {
+              where: {
+                traineeProfileId,
+                assignmentStatus: {
+                  in: ['AVAILABLE', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED'] as any,
+                },
+              },
+            },
+          },
+        },
       },
     });
 
@@ -75,7 +86,7 @@ export class SimulationService {
     const campaignAssignmentId = campaignItem.campaign.assignments[0].id;
 
     return {
-      emails: campaignItem.simulation.simulatedInbox.emails.map((email) => ({
+      emails: campaignItem.simulation.simulatedInbox.emails.map((email: any) => ({
         id: email.id,
         campaignAssignmentId,
         campaignItemId,
