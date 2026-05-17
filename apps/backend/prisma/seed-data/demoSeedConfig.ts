@@ -30,19 +30,6 @@ import {
 } from './demoSeedHelpers.js';
 
 export const DEMO_SEED_VERSION = 'demo-1-content';
-export const DEMO_SEED_PASSWORD_ENV_VAR = 'DEMO_SEED_PASSWORD';
-
-export function getDemoSeedPassword(): string {
-  const password = process.env[DEMO_SEED_PASSWORD_ENV_VAR]?.trim();
-
-  if (!password) {
-    throw new Error(
-      `${DEMO_SEED_PASSWORD_ENV_VAR} must be set before running the Demo 1 seed command.`,
-    );
-  }
-
-  return password;
-}
 
 export const DEMO_SEED_IDS = {
   users: {

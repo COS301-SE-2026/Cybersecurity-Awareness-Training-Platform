@@ -13,9 +13,8 @@ import {
   DEMO_SEED_TRAINEE_PROFILES,
   DEMO_SEED_TRAINING_DOCUMENTS,
   DEMO_SEED_USERS,
-  getDemoSeedPassword,
 } from './demoSeedConfig.js';
-import { hashDemoPassword } from './demoSeedHelpers.js';
+import { getDemoSeedAuthValue, hashDemoPassword } from './demoSeedHelpers.js';
 
 type DemoSeedTransaction = Prisma.TransactionClient;
 
@@ -56,7 +55,7 @@ const DEMO_SIMULATED_EMAIL_IDS = Object.values(DEMO_SEED_IDS.simulatedEmails);
 const DEMO_RED_FLAG_IDS = Object.values(DEMO_SEED_IDS.redFlags);
 
 export async function seedDemoCore(client: PrismaClient = prisma): Promise<DemoSeedSummary> {
-  const passwordHash = await hashDemoPassword(getDemoSeedPassword());
+  const passwordHash = await hashDemoPassword(getDemoSeedAuthValue());
 
   await client.$transaction(async (tx) => {
     await deleteDemoCore(tx);

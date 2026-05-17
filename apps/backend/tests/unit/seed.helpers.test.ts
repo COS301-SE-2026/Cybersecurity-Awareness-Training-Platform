@@ -1,9 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import {
   assertDemoSeedIdsAreUuids,
   buildAnswerOptionSeed,
+  DEMO_SEED_AUTH_VALUE_ENV_VAR,
   demoPosition,
   demoSeedDate,
+  getDemoSeedAuthValue,
   hashDemoPassword,
   isDemoUuid,
   normaliseDemoEmail,
@@ -16,6 +18,29 @@ import { EmailClassification } from '../../src/generated/prisma/enums.js';
 import { verifyPassword } from '../../src/services/password.service.js';
 
 describe('demo seed helpers', () => {
+  const originalDemoSeedAuthValue = process.env[DEMO_SEED_AUTH_VALUE_ENV_VAR];
+
+  afterEach(() => {
+    if (originalDemoSeedAuthValue === undefined) {
+      delete process.env[DEMO_SEED_AUTH_VALUE_ENV_VAR];
+      return;
+    }
+
+    process.env[DEMO_SEED_AUTH_VALUE_ENV_VAR] = originalDemoSeedAuthValue;
+  });
+
+  it('reads the demo auth value from the environment', () => {
+    process.env[DEMO_SEED_AUTH_VALUE_ENV_VAR] = ' local-demo-auth-value ';
+
+    expect(getDemoSeedAuthValue()).toBe('local-demo-auth-value');
+  });
+
+  it('fails clearly when the demo auth value is missing', () => {
+    delete process.env[DEMO_SEED_AUTH_VALUE_ENV_VAR];
+
+    expect(() => getDemoSeedAuthValue()).toThrow(DEMO_SEED_AUTH_VALUE_ENV_VAR);
+  });
+
   it('creates stable UTC dates and rejects invalid values', () => {
     expect(demoSeedDate('2026-05-17T00:00:00.000Z').toISOString()).toBe('2026-05-17T00:00:00.000Z');
     expect(() => demoSeedDate('not-a-date')).toThrow('Invalid demo seed date');
@@ -63,12 +88,12 @@ describe('demo seed helpers', () => {
     });
   });
 
-  it('hashes demo passwords with the project password helper', async () => {
-    const password = ['Demo', 'Password', '123!'].join('');
-    const hash = await hashDemoPassword(password);
+  it('hashes demo auth values with the project hashing helper', async () => {
+    const authValue = ['Demo', 'Auth', '123!'].join('');
+    const hash = await hashDemoPassword(authValue);
 
-    expect(hash).not.toBe(password);
-    expect(await verifyPassword(password, hash)).toBe(true);
+    expect(hash).not.toBe(authValue);
+    expect(await verifyPassword(authValue, hash)).toBe(true);
   });
 
   it('defines at least two quizzes with at least five questions each', () => {
