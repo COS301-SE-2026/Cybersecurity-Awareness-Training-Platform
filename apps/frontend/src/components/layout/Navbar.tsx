@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/useAuth';
 
 import { ExpandLess, ExpandMore, Logout, PersonOutlined, Settings } from '@mui/icons-material';
 

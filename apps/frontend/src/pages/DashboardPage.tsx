@@ -4,7 +4,7 @@ import Sidebar from '../components/layout/Sidebar';
 
 import Button from '../components/ui/Button';
 
-import { MailOutlined, SchoolOutlined, QuizOutlined, FeedbackOutlined } from '@mui/icons-material';
+import { MailOutlined, SchoolOutlined, QuizOutlined } from '@mui/icons-material';
 
 function DashboardPage() {
   const cardStyle = {

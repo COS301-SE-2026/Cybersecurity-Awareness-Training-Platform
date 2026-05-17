@@ -1,12 +1,14 @@
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 
 type AppLayoutProps = {
   children: ReactNode;
+  showSidebar?: boolean;
+  contentStyle?: CSSProperties;
 };
 
-function AppLayout({ children }: AppLayoutProps) {
+function AppLayout({ children, showSidebar = true, contentStyle }: AppLayoutProps) {
   return (
     <main
       style={{
@@ -28,7 +30,7 @@ function AppLayout({ children }: AppLayoutProps) {
           overflow: 'hidden',
         }}
       >
-        <Sidebar />
+        {showSidebar ? <Sidebar /> : null}
 
         <section
           style={{
@@ -38,6 +40,8 @@ function AppLayout({ children }: AppLayoutProps) {
             justifyContent: 'space-between',
             overflow: 'hidden',
             height: '100%',
+            backgroundColor: '#0E0020',
+            ...contentStyle,
           }}
         >
           {children}
