@@ -24,7 +24,7 @@ traineeQuizRouter.get(
 );
 
 traineeQuizRouter.post(
-  '/:campaignItemId/quiz/attempts',
+  '/:campaignItemId/quiz-attempts',
   authRateLimit,
   requireAuth,
   validateParams(startQuizAttemptRequestParamsSchema),
@@ -42,7 +42,7 @@ quizAttemptRouter.post(
 );
 
 quizAttemptRouter.get(
-  '/:attemptId/results',
+  '/:attemptId/result',
   authRateLimit,
   requireAuth,
   validateParams(getQuizResultRequestParamsSchema),

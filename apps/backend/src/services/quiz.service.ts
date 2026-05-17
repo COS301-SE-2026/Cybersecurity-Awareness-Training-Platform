@@ -43,13 +43,28 @@ export async function getQuizByCampaignItemId(
   const campaignItem = await prisma.campaignItem.findFirst({
     where: {
       id: campaignItemId,
+      itemType: 'COMPONENT',
+      componentType: 'QUIZ',
+      availabilityStatus: 'AVAILABLE',
       quizId: { not: null },
+      campaign: {
+        status: 'ACTIVE',
+        assignments: {
+          some: {
+            traineeProfileId,
+            assignmentStatus: { in: ['ASSIGNED', 'IN_PROGRESS', 'COMPLETED'] },
+          },
+        },
+      },
     },
     include: {
       campaign: {
         include: {
           assignments: {
-            where: { traineeProfileId },
+            where: {
+              traineeProfileId,
+              assignmentStatus: { in: ['ASSIGNED', 'IN_PROGRESS', 'COMPLETED'] },
+            },
           },
         },
       },
@@ -71,6 +86,10 @@ export async function getQuizByCampaignItemId(
     throw new QuizForbiddenError();
   }
 
+  if (campaignItem.quiz.status !== 'PUBLISHED') {
+    throw new QuizForbiddenError('Quiz is not published');
+  }
+
   return {
     ...toGetQuizResponseDto(campaignItem.quiz),
     campaignItemId: campaignItem.id,
@@ -85,25 +104,45 @@ export async function startQuizAttempt(
   const campaignItem = await prisma.campaignItem.findFirst({
     where: {
       id: campaignItemId,
+      itemType: 'COMPONENT',
+      componentType: 'QUIZ',
+      availabilityStatus: 'AVAILABLE',
       quizId: { not: null },
+      campaign: {
+        status: 'ACTIVE',
+        assignments: {
+          some: {
+            traineeProfileId,
+            assignmentStatus: { in: ['ASSIGNED', 'IN_PROGRESS', 'COMPLETED'] },
+          },
+        },
+      },
     },
     include: {
       campaign: {
         include: {
           assignments: {
-            where: { traineeProfileId },
+            where: {
+              traineeProfileId,
+              assignmentStatus: { in: ['ASSIGNED', 'IN_PROGRESS', 'COMPLETED'] },
+            },
           },
         },
       },
+      quiz: true,
     },
   });
 
-  if (!campaignItem || !campaignItem.quizId) {
+  if (!campaignItem || !campaignItem.quizId || !campaignItem.quiz) {
     throw new QuizNotFoundError();
   }
 
   if (campaignItem.campaign.assignments.length === 0) {
     throw new QuizForbiddenError();
+  }
+
+  if (campaignItem.quiz.status !== 'PUBLISHED') {
+    throw new QuizForbiddenError('Quiz is not published');
   }
 
   const assignment = campaignItem.campaign.assignments[0];
@@ -186,12 +225,17 @@ export async function submitQuizAttempt(
       throw new QuizValidationError(`Missing answer for question ${question.id}`);
     }
 
+    const uniqueOptionIds = new Set(answerInput.selectedOptionIds);
+    if (uniqueOptionIds.size !== answerInput.selectedOptionIds.length) {
+      throw new QuizValidationError(`Duplicate options selected for question ${question.id}`);
+    }
+
     const selectedOptions = question.answerOptions.filter((opt: any) =>
       answerInput.selectedOptionIds.includes(opt.id),
     );
 
-    if (selectedOptions.length === 0) {
-      throw new QuizValidationError(`No valid options selected for question ${question.id}`);
+    if (selectedOptions.length !== answerInput.selectedOptionIds.length) {
+      throw new QuizValidationError(`Invalid options selected for question ${question.id}`);
     }
 
     const correctOptions = question.answerOptions.filter((opt: any) => opt.isCorrect);

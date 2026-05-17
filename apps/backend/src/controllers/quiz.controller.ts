@@ -9,6 +9,13 @@ import {
   startQuizAttempt,
   submitQuizAttempt,
 } from '../services/quiz.service.js';
+import { prisma } from '../lib/prisma.js';
+
+async function getTraineeProfileId(userId?: string) {
+  if (!userId) return null;
+  const profile = await prisma.traineeProfile.findUnique({ where: { userId } });
+  return profile?.id;
+}
 
 function handleError(res: Response, error: unknown) {
   if (error instanceof QuizNotFoundError) {
@@ -28,7 +35,7 @@ function handleError(res: Response, error: unknown) {
 
 export async function getQuiz(req: Request, res: Response) {
   try {
-    const traineeProfileId = req.auth?.user?.traineeProfile?.id;
+    const traineeProfileId = await getTraineeProfileId(req.auth?.userId);
     if (!traineeProfileId) {
       return res.status(403).json({ error: 'FORBIDDEN', message: 'User is not a trainee' });
     }
@@ -43,7 +50,7 @@ export async function getQuiz(req: Request, res: Response) {
 
 export async function startAttempt(req: Request, res: Response) {
   try {
-    const traineeProfileId = req.auth?.user?.traineeProfile?.id;
+    const traineeProfileId = await getTraineeProfileId(req.auth?.userId);
     if (!traineeProfileId) {
       return res.status(403).json({ error: 'FORBIDDEN', message: 'User is not a trainee' });
     }
@@ -58,7 +65,7 @@ export async function startAttempt(req: Request, res: Response) {
 
 export async function submitAttempt(req: Request, res: Response) {
   try {
-    const traineeProfileId = req.auth?.user?.traineeProfile?.id;
+    const traineeProfileId = await getTraineeProfileId(req.auth?.userId);
     if (!traineeProfileId) {
       return res.status(403).json({ error: 'FORBIDDEN', message: 'User is not a trainee' });
     }
@@ -74,7 +81,7 @@ export async function submitAttempt(req: Request, res: Response) {
 
 export async function getResult(req: Request, res: Response) {
   try {
-    const traineeProfileId = req.auth?.user?.traineeProfile?.id;
+    const traineeProfileId = await getTraineeProfileId(req.auth?.userId);
     if (!traineeProfileId) {
       return res.status(403).json({ error: 'FORBIDDEN', message: 'User is not a trainee' });
     }
