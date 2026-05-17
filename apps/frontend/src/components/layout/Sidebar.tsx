@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  MailOutlined,
+  // MailOutlined,
   Menu,
   HomeOutlined,
   SchoolOutlined,
@@ -17,11 +17,11 @@ function Sidebar() {
       label: 'Dashboard',
       path: '/dashboard',
     },
-    {
+    /*{
       icon: <MailOutlined />,
       label: 'Simulated Email Inbox',
       path: '/simulation/inbox',
-    },
+    },*/
     {
       icon: <SchoolOutlined />,
       label: 'Training Modules',
