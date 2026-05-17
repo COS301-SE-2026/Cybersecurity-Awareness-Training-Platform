@@ -3,7 +3,6 @@ import type { SuccessResponseDto } from './common.js';
 import type {
   getTrainingDocumentRequestParamsSchema,
   recordTrainingInteractionRequestParamsSchema,
-  recordTrainingInteractionRequestSchema,
 } from './validation/training.schemas.js';
 
 export type DifficultyLevelDto = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'ADAPTIVE';
@@ -14,33 +13,14 @@ export type TrainingDocumentStatusDto = 'DRAFT' | 'AVAILABLE' | 'UNAVAILABLE' | 
 
 export type TrainingInteractionEventTypeDto = 'TRAINING_VIEWED' | 'TRAINING_COMPLETED';
 
-export interface GetAssignedTrainingRequestParamsDto {}
+type TrainingCampaignItemAvailabilityStatusDto =
+  | 'AVAILABLE'
+  | 'LOCKED'
+  | 'UNAVAILABLE'
+  | 'ARCHIVED';
 
-export interface TrainingDocumentSummaryDto {
+export interface TrainingDocumentContentDto {
   id: string;
-  campaignItemId: string;
-  campaignAssignmentId?: string | null;
-  title: string;
-  description?: string | null;
-  contentSummary?: string | null;
-  estimatedReadTimeMinutes?: number | null;
-  difficultyLevel: DifficultyLevelDto;
-  status: TrainingDocumentStatusDto;
-  availabilityStatus: 'AVAILABLE' | 'LOCKED' | 'UNAVAILABLE' | 'ARCHIVED';
-}
-
-export interface GetAssignedTrainingResponseDto {
-  trainingDocuments: TrainingDocumentSummaryDto[];
-}
-
-export type GetTrainingDocumentRequestParamsDto = z.infer<
-  typeof getTrainingDocumentRequestParamsSchema
->;
-
-export interface TrainingDocumentDetailDto {
-  id: string;
-  campaignItemId: string;
-  campaignAssignmentId?: string | null;
   title: string;
   contentType: TrainingContentTypeDto;
   contentRef: string;
@@ -50,16 +30,37 @@ export interface TrainingDocumentDetailDto {
   status: TrainingDocumentStatusDto;
 }
 
-export interface GetTrainingDocumentResponseDto extends TrainingDocumentDetailDto {}
+export interface TrainingCampaignItemContextDto {
+  title: string;
+  description?: string | null;
+  position: number;
+  isRequired: boolean;
+  availabilityStatus: TrainingCampaignItemAvailabilityStatusDto;
+}
+
+export type GetTrainingDocumentRequestParamsDto = z.infer<
+  typeof getTrainingDocumentRequestParamsSchema
+>;
+
+export interface GetTrainingDocumentResponseDto {
+  campaignItemId: string;
+  campaignAssignmentId?: string | null;
+  trainingDocument: TrainingDocumentContentDto;
+  campaignItem: TrainingCampaignItemContextDto;
+}
 
 export type RecordTrainingInteractionRequestParamsDto = z.infer<
   typeof recordTrainingInteractionRequestParamsSchema
 >;
 
-export type RecordTrainingInteractionRequestDto = z.infer<
-  typeof recordTrainingInteractionRequestSchema
->;
+export interface RecordTrainingInteractionRequestDto {}
 
 export interface RecordTrainingInteractionResponseDto extends SuccessResponseDto {
-  eventType: TrainingInteractionEventTypeDto;
+  campaignItemId: string;
+  trainingDocumentId: string;
+  event: {
+    id: string;
+    eventType: TrainingInteractionEventTypeDto;
+    occurredAt: string;
+  };
 }

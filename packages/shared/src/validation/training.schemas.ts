@@ -1,15 +1,16 @@
 import { z } from 'zod';
-import { idParamSchema } from './common.schemas.js';
 
 export const trainingInteractionEventTypeSchema = z.enum(['TRAINING_VIEWED', 'TRAINING_COMPLETED']);
 
+const campaignItemIdParamSchema = z.string().trim().uuid();
+
 export const getTrainingDocumentRequestParamsSchema = z.object({
-  campaignItemId: idParamSchema,
+  campaignItemId: campaignItemIdParamSchema,
 });
 
 export const recordTrainingInteractionRequestParamsSchema = getTrainingDocumentRequestParamsSchema;
 
-export const recordTrainingInteractionRequestSchema = z.object({
-  eventType: trainingInteractionEventTypeSchema,
-  campaignAssignmentId: idParamSchema.optional(),
-});
+export const recordTrainingInteractionRequestSchema = z.preprocess(
+  (value) => value ?? {},
+  z.object({}).strict(),
+);

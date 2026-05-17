@@ -211,42 +211,82 @@ Component groups support one level of grouping for Demo 1. API responses should 
 
 - **Purpose**: Retrieves the training document placed at a specific trainee-accessible campaign item.
 - **Expected Request Data**: URL Param `campaignItemId`.
+- **Access**: Requires authentication. The authenticated trainee must have an active campaign assignment for the campaign that contains the available campaign item.
 - **Expected Response Data**:
 
 ```json
 {
-  "id": "train-001",
-  "campaignAssignmentId": "assignment-001",
   "campaignItemId": "item-001",
-  "title": "Identifying Phishing Emails",
-  "contentType": "MARKDOWN",
-  "contentRef": "training/train-001",
-  "contentSummary": "Common phishing indicators and safe response steps.",
-  "estimatedReadTimeMinutes": 8,
-  "difficultyLevel": "BEGINNER",
-  "status": "AVAILABLE"
+  "campaignAssignmentId": "assignment-001",
+  "trainingDocument": {
+    "id": "train-001",
+    "title": "Identifying Phishing Emails",
+    "contentType": "MARKDOWN",
+    "contentRef": "training/train-001",
+    "contentSummary": "Common phishing indicators and safe response steps.",
+    "estimatedReadTimeMinutes": 8,
+    "difficultyLevel": "BEGINNER",
+    "status": "AVAILABLE"
+  },
+  "campaignItem": {
+    "title": "Identifying Phishing Emails",
+    "description": "Read the guide before completing the quiz.",
+    "position": 1,
+    "isRequired": true,
+    "availabilityStatus": "AVAILABLE"
+  }
 }
 ```
 
-The backend should resolve access through:
+The backend resolves access through the campaign item placement:
 
 `Trainee -> CampaignAssignment -> Campaign -> CampaignItem -> TrainingDocumentComponent -> TrainingDocument`
+
+In the current Prisma implementation, the conceptual `TrainingDocumentComponent` is represented by a `CampaignItem` with `itemType = COMPONENT`, `componentType = TRAINING_DOCUMENT`, and `trainingDocumentId`.
+
+Training documents are reusable content records. They are not owned by learning paths or training modules, and this endpoint does not require a linked quiz. Missing, unavailable, non-training, or unauthorised campaign items should return a safe `404` so the API does not leak content existence. The endpoint may return `429` if the trainee training route rate limit is exceeded.
 
 ### `POST /trainee/campaign-items/:campaignItemId/training-document/viewed`
 
 - **Purpose**: Records a `TRAINING_VIEWED` interaction event for the campaign item.
-- **Expected Request Data**:
-  - `campaignAssignmentId` (string, optional)
+- **Expected Request Data**: URL Param `campaignItemId`. No request body is required.
 - **Expected Response Data**:
-  - `201 Created`: `{ "success": true, "eventType": "TRAINING_VIEWED" }`
+
+```json
+{
+  "success": true,
+  "campaignItemId": "item-001",
+  "trainingDocumentId": "train-001",
+  "event": {
+    "id": "event-001",
+    "eventType": "TRAINING_VIEWED",
+    "occurredAt": "2026-05-16T09:00:00.000Z"
+  }
+}
+```
+
+The backend reuses the same campaign assignment and item availability checks as the detail endpoint, then records a lightweight `InteractionEvent` with `targetType = TRAINING_DOCUMENT`, `targetId = trainingDocumentId`, `campaignAssignmentId`, and `campaignItemId`. Interaction event metadata should be omitted or kept minimal and must not contain sensitive values. No `TrainingProgress` record is created.
 
 ### `POST /trainee/campaign-items/:campaignItemId/training-document/completed`
 
 - **Purpose**: Records a `TRAINING_COMPLETED` interaction event for the campaign item.
-- **Expected Request Data**:
-  - `campaignAssignmentId` (string, optional)
+- **Expected Request Data**: URL Param `campaignItemId`. No request body is required.
 - **Expected Response Data**:
-  - `201 Created`: `{ "success": true, "eventType": "TRAINING_COMPLETED" }`
+
+```json
+{
+  "success": true,
+  "campaignItemId": "item-001",
+  "trainingDocumentId": "train-001",
+  "event": {
+    "id": "event-002",
+    "eventType": "TRAINING_COMPLETED",
+    "occurredAt": "2026-05-16T09:05:00.000Z"
+  }
+}
+```
+
+The backend records a lightweight `InteractionEvent` with `targetType = TRAINING_DOCUMENT`, `targetId = trainingDocumentId`, `campaignAssignmentId`, and `campaignItemId`. Missing auth returns `401`; malformed `campaignItemId` returns `400`; missing, unavailable, non-training, or unauthorised content returns a safe `404`; route rate limits may return `429`; unexpected failures return a safe `500`.
 
 ## UC-03: Complete Quiz Flow Contracts
 
