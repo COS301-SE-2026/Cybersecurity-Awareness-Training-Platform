@@ -35,7 +35,7 @@ export interface RecordTrainingProgressResponse {
 export const trainingRoutes = {
   modules: '/training/modules',
   document: (trainingId: string) => `/training/modules/${trainingId}`,
-  quiz: (quizId: string) => `/quiz/${quizId}`,
+  quiz: (quizId: string) => `/quizzes/${quizId}`,
 };
 
 function delay(ms = 150) {

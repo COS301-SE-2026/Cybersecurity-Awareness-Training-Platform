@@ -56,7 +56,7 @@ describe('TrainingDocumentPage', () => {
 
     expect(screen.getByRole('link', { name: /start linked quiz/i })).toHaveAttribute(
       'href',
-      '/quiz/phishing-basics-quiz',
+      '/quizzes/phishing-basics-quiz',
     );
   });
 

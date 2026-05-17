@@ -29,11 +29,11 @@ function AppRoutes() {
 
         <Route path="/training/modules/:trainingId" element={<TrainingDocumentPage />} />
 
-        <Route path="/quiz/:quizId" element={<QuizPage />} />
+        <Route path="/quizzes/:quizId" element={<QuizPage />} />
 
         <Route path="/quiz/grades" element={<QuizGradesPage />} />
 
-        <Route path="/results/:attemptId" element={<ResultsPage />} />
+        <Route path="/quiz-attempts/:attemptId/results" element={<ResultsPage />} />
 
         <Route path="/feedback" element={<FeedbackPage />} />
       </Route>
