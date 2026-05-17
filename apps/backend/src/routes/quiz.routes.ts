@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { getQuiz, startAttempt, submitAttempt, getResult } from '../controllers/quiz.controller.js';
 import { requireAuth } from '../middleware/requireAuth.js';
+import { authRateLimit } from '../middleware/authRateLimit.js';
 import { validateBody, validateParams } from '../middleware/validateRequest.js';
 import {
   getQuizRequestParamsSchema,
@@ -8,7 +9,7 @@ import {
   submitQuizAttemptRequestParamsSchema,
   getQuizResultRequestParamsSchema,
   submitQuizAttemptRequestSchema,
-} from '@insightful-phish/shared/validation';
+} from '@insightful-phish/shared';
 
 export const traineeQuizRouter = Router();
 export const quizAttemptRouter = Router();
@@ -16,6 +17,7 @@ export const quizAttemptRouter = Router();
 // Routes for /trainee/campaign-items/:campaignItemId/quiz
 traineeQuizRouter.get(
   '/:campaignItemId/quiz',
+  authRateLimit,
   requireAuth,
   validateParams(getQuizRequestParamsSchema),
   getQuiz,
@@ -23,6 +25,7 @@ traineeQuizRouter.get(
 
 traineeQuizRouter.post(
   '/:campaignItemId/quiz/attempts',
+  authRateLimit,
   requireAuth,
   validateParams(startQuizAttemptRequestParamsSchema),
   startAttempt,
@@ -31,6 +34,7 @@ traineeQuizRouter.post(
 // Routes for /quiz-attempts/:attemptId
 quizAttemptRouter.post(
   '/:attemptId/submit',
+  authRateLimit,
   requireAuth,
   validateParams(submitQuizAttemptRequestParamsSchema),
   validateBody(submitQuizAttemptRequestSchema),
@@ -39,6 +43,7 @@ quizAttemptRouter.post(
 
 quizAttemptRouter.get(
   '/:attemptId/results',
+  authRateLimit,
   requireAuth,
   validateParams(getQuizResultRequestParamsSchema),
   getResult,

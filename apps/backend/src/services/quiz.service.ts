@@ -169,7 +169,14 @@ export async function submitQuizAttempt(
   const quiz = attempt.quiz;
   let totalScore = 0;
   let maxPossibleScore = 0;
-  const createdAnswers = [];
+  const createdAnswers: {
+    questionId: string;
+    selectedOptionIds: string[];
+    isCorrect: boolean;
+    awardedPoints: number;
+    responseSummary?: string;
+    typedResponse?: string;
+  }[] = [];
 
   for (const question of quiz.questions) {
     maxPossibleScore += question.points;
@@ -179,7 +186,7 @@ export async function submitQuizAttempt(
       throw new QuizValidationError(`Missing answer for question ${question.id}`);
     }
 
-    const selectedOptions = question.answerOptions.filter((opt) =>
+    const selectedOptions = question.answerOptions.filter((opt: any) =>
       answerInput.selectedOptionIds.includes(opt.id),
     );
 
@@ -187,12 +194,12 @@ export async function submitQuizAttempt(
       throw new QuizValidationError(`No valid options selected for question ${question.id}`);
     }
 
-    const correctOptions = question.answerOptions.filter((opt) => opt.isCorrect);
+    const correctOptions = question.answerOptions.filter((opt: any) => opt.isCorrect);
 
     // Score calculation logic for SINGLE/MULTIPLE_CHOICE (exact match)
     const isCorrect =
       correctOptions.length === selectedOptions.length &&
-      correctOptions.every((opt) => answerInput.selectedOptionIds.includes(opt.id));
+      correctOptions.every((opt: any) => answerInput.selectedOptionIds.includes(opt.id));
 
     const awardedPoints = isCorrect ? question.points : 0;
     totalScore += awardedPoints;
@@ -210,7 +217,7 @@ export async function submitQuizAttempt(
   const scorePercentage = Math.round((totalScore / maxPossibleScore) * 100) || 0;
   const passed = scorePercentage >= quiz.passThresholdPercentage;
 
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: any) => {
     for (const answer of createdAnswers) {
       const createdAnswer = await tx.attemptAnswer.create({
         data: {
@@ -224,7 +231,7 @@ export async function submitQuizAttempt(
       });
 
       await tx.attemptAnswerOption.createMany({
-        data: answer.selectedOptionIds.map((optId) => ({
+        data: answer.selectedOptionIds.map((optId: string) => ({
           attemptAnswerId: createdAnswer.id,
           answerOptionId: optId,
         })),
@@ -287,12 +294,12 @@ export async function getQuizResult(
     scorePercentage: attempt.quizResult.scorePercentage,
     passed: attempt.quizResult.passed,
     summary: attempt.quizResult.summary,
-    answers: attempt.answers.map((answer) => ({
+    answers: attempt.answers.map((answer: any) => ({
       questionId: answer.questionId,
       isCorrect: answer.isCorrect,
       awardedPoints: answer.awardedPoints,
       feedbackShown: answer.feedbackShown,
-      selectedOptions: answer.selectedOptions.map((sel) => ({
+      selectedOptions: answer.selectedOptions.map((sel: any) => ({
         optionId: sel.answerOption.id,
         label: sel.answerOption.label,
         text: sel.answerOption.text,

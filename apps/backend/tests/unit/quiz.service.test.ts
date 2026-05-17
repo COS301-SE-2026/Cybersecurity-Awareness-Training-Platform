@@ -2,10 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   QuizAttemptConflictError,
   QuizForbiddenError,
-  QuizNotFoundError,
   QuizValidationError,
   getQuizByCampaignItemId,
-  startQuizAttempt,
   submitQuizAttempt,
   getQuizResult,
 } from '../../src/services/quiz.service.js';
@@ -142,7 +140,6 @@ describe('Quiz Service', () => {
       expect(mockPrisma.$transaction).toHaveBeenCalled();
 
       // We know txCb creates quizResult with score 50
-      const txMock = mockPrisma.$transaction.mock.calls[0][0];
       // Note: testing tx callbacks is tricky without extracting it.
       // We can assert the transaction wrapper was called.
     });

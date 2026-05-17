@@ -33,7 +33,7 @@ export async function getQuiz(req: Request, res: Response) {
       return res.status(403).json({ error: 'FORBIDDEN', message: 'User is not a trainee' });
     }
 
-    const { campaignItemId } = req.params;
+    const campaignItemId = req.params.campaignItemId as string;
     const response = await getQuizByCampaignItemId(campaignItemId, traineeProfileId);
     return res.status(200).json(response);
   } catch (error) {
@@ -48,7 +48,7 @@ export async function startAttempt(req: Request, res: Response) {
       return res.status(403).json({ error: 'FORBIDDEN', message: 'User is not a trainee' });
     }
 
-    const { campaignItemId } = req.params;
+    const campaignItemId = req.params.campaignItemId as string;
     const response = await startQuizAttempt(campaignItemId, traineeProfileId);
     return res.status(201).json(response);
   } catch (error) {
@@ -63,7 +63,7 @@ export async function submitAttempt(req: Request, res: Response) {
       return res.status(403).json({ error: 'FORBIDDEN', message: 'User is not a trainee' });
     }
 
-    const { attemptId } = req.params;
+    const attemptId = req.params.attemptId as string;
     const { answers } = req.body;
     const response = await submitQuizAttempt(attemptId, traineeProfileId, answers);
     return res.status(200).json(response);
@@ -79,7 +79,7 @@ export async function getResult(req: Request, res: Response) {
       return res.status(403).json({ error: 'FORBIDDEN', message: 'User is not a trainee' });
     }
 
-    const { attemptId } = req.params;
+    const attemptId = req.params.attemptId as string;
     const response = await getQuizResult(attemptId, traineeProfileId);
     return res.status(200).json(response);
   } catch (error) {
