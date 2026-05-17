@@ -349,8 +349,8 @@
           "number": 79,
           "title": "feat: [backend] Implement simulated inbox API for UC-01",
           "points": 3,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-05-17"
         },
         {
           "number": 78,
@@ -556,7 +556,7 @@
     },
     {
       "date": "2026-05-17",
-      "remaining": 54,
+      "remaining": 51,
       "ideal": 22.83
     }
   ]
