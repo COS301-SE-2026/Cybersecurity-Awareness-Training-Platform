@@ -1,14 +1,11 @@
 import type { EmailRedFlagType, RedFlagSeverity } from '../../src/generated/prisma/enums.js';
 
-export type DemoSeedId = string;
-
 export type DemoSeedCredentials = {
   readonly email: string;
-  readonly plaintextPassword: string;
 };
 
 export type DemoAnswerOptionSeed = {
-  readonly id: DemoSeedId;
+  readonly id: string;
   readonly label: string;
   readonly text: string;
   readonly isCorrect: boolean;
@@ -17,7 +14,7 @@ export type DemoAnswerOptionSeed = {
 };
 
 export type DemoRedFlagSeed = {
-  readonly id: DemoSeedId;
+  readonly id: string;
   readonly redFlagType: EmailRedFlagType;
   readonly label: string;
   readonly description?: string;

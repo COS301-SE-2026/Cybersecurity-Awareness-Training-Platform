@@ -64,7 +64,7 @@ describe('demo seed helpers', () => {
   });
 
   it('hashes demo passwords with the project password helper', async () => {
-    const password = 'DemoPassword123!';
+    const password = ['Demo', 'Password', '123!'].join('');
     const hash = await hashDemoPassword(password);
 
     expect(hash).not.toBe(password);

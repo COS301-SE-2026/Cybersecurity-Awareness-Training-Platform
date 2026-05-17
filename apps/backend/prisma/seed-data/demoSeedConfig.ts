@@ -30,7 +30,19 @@ import {
 } from './demoSeedHelpers.js';
 
 export const DEMO_SEED_VERSION = 'demo-1-content';
-export const DEMO_ONLY_PASSWORD = 'DemoPassword123!';
+export const DEMO_SEED_PASSWORD_ENV_VAR = 'DEMO_SEED_PASSWORD';
+
+export function getDemoSeedPassword(): string {
+  const password = process.env[DEMO_SEED_PASSWORD_ENV_VAR]?.trim();
+
+  if (!password) {
+    throw new Error(
+      `${DEMO_SEED_PASSWORD_ENV_VAR} must be set before running the Demo 1 seed command.`,
+    );
+  }
+
+  return password;
+}
 
 export const DEMO_SEED_IDS = {
   users: {
@@ -129,15 +141,12 @@ export const DEMO_SEED_IDS = {
 export const DEMO_SEED_CREDENTIALS = {
   populatedTrainee: {
     email: normaliseDemoEmail('demo.populated.trainee@example.com'),
-    plaintextPassword: DEMO_ONLY_PASSWORD,
   },
   emptyStateTrainee: {
     email: normaliseDemoEmail('demo.empty.trainee@example.com'),
-    plaintextPassword: DEMO_ONLY_PASSWORD,
   },
   admin: {
     email: normaliseDemoEmail('demo.admin@example.com'),
-    plaintextPassword: DEMO_ONLY_PASSWORD,
   },
 } as const;
 

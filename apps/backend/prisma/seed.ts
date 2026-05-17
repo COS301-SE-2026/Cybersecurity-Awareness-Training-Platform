@@ -1,8 +1,8 @@
 import { prisma } from '../src/lib/prisma.js';
-import { DEMO_ONLY_PASSWORD } from './seed-data/demoSeedConfig.js';
+import { DEMO_SEED_PASSWORD_ENV_VAR } from './seed-data/demoSeedConfig.js';
 import { seedDemoCore, type DemoSeedSummary } from './seed-data/demoSeedCore.js';
 
-async function main(): Promise<void> {
+async function seedDemo1(): Promise<void> {
   const summary = await seedDemoCore(prisma);
   printDemoSeedSummary(summary);
 }
@@ -15,7 +15,7 @@ function printDemoSeedSummary(summary: DemoSeedSummary): void {
     console.log(`- ${user.label}: ${user.email} (${user.role})`);
   }
 
-  console.log(`Demo-only password for all listed users: ${DEMO_ONLY_PASSWORD}`);
+  console.log(`Demo-only password source: ${DEMO_SEED_PASSWORD_ENV_VAR}`);
   console.log('No password hashes printed.');
   console.log(
     `Campaign: ${summary.campaign.name}, items: ${summary.campaign.itemCount}, assigned trainee: ${summary.campaign.assignedTraineeEmail}`,
@@ -25,12 +25,11 @@ function printDemoSeedSummary(summary: DemoSeedSummary): void {
   );
 }
 
-main()
-  .then(async () => {
-    await prisma.$disconnect();
-  })
-  .catch(async (error: unknown) => {
-    console.error(error);
-    await prisma.$disconnect();
-    process.exit(1);
-  });
+try {
+  await seedDemo1();
+} catch (error: unknown) {
+  console.error(error);
+  process.exitCode = 1;
+} finally {
+  await prisma.$disconnect();
+}
