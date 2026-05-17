@@ -152,7 +152,7 @@ describe('Quiz API Routes', () => {
     });
   });
 
-  describe('POST /trainee/campaign-items/:campaignItemId/quiz-attempts', () => {
+  describe('POST /trainee/campaign-items/:campaignItemId/quiz/attempts', () => {
     it('successfully starts attempt and returns attempt payload', async () => {
       mockPrisma.campaignItem.findFirst.mockResolvedValue(mockCampaignItem());
       mockPrisma.quizAttempt.findFirst.mockResolvedValue(null);
@@ -167,7 +167,7 @@ describe('Quiz API Routes', () => {
       });
 
       const response = await request(createApp())
-        .post(`/trainee/campaign-items/${campaignItemId}/quiz-attempts`)
+        .post(`/trainee/campaign-items/${campaignItemId}/quiz/attempts`)
         .set('Authorization', `Bearer ${token}`);
 
       expect(response.status).toBe(201);
@@ -244,12 +244,11 @@ describe('Quiz API Routes', () => {
       expect(response.body).toHaveProperty('error', 'CONFLICT');
     });
   });
-
-  describe('GET /quiz-attempts/:attemptId/result', () => {
+  describe('GET /quiz-attempts/:attemptId/results', () => {
     it('returns 403 Forbidden before the attempt is submitted', async () => {
       mockPrisma.quizAttempt.findFirst.mockResolvedValue(mockQuizAttempt('IN_PROGRESS'));
       const response = await request(createApp())
-        .get(`/quiz-attempts/${attemptId}/result`)
+        .get(`/quiz-attempts/${attemptId}/results`)
         .set('Authorization', `Bearer ${token}`);
       expect(response.status).toBe(403);
       expect(response.body).toHaveProperty('error', 'FORBIDDEN');
@@ -285,7 +284,7 @@ describe('Quiz API Routes', () => {
       });
 
       const response = await request(createApp())
-        .get(`/quiz-attempts/${attemptId}/result`)
+        .get(`/quiz-attempts/${attemptId}/results`)
         .set('Authorization', `Bearer ${token}`);
 
       expect(response.status).toBe(200);
