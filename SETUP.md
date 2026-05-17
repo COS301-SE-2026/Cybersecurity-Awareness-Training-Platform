@@ -499,8 +499,9 @@ The short version:
 ```bash
 docker compose up -d
 pnpm --filter @insightful-phish/backend prisma:migrate:deploy
-pnpm --filter @insightful-phish/backend seed:demo1
 ```
+
+Set `DEMO_SEED_PASSWORD` before running `pnpm --filter @insightful-phish/backend seed:demo1`. See `apps/backend/SEEDING.md` for PowerShell and Command Prompt examples.
 
 Only run the Demo 1 seed against a local development database.
 

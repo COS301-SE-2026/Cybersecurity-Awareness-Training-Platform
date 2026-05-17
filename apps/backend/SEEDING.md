@@ -41,13 +41,17 @@ The Demo 1 seed does not use or seed these old structures:
 
 These credentials are for local Demo 1 development only and must not be used in production.
 
-| User                | Email                                | Password           |
-| ------------------- | ------------------------------------ | ------------------ |
-| Populated trainee   | `demo.populated.trainee@example.com` | `DemoPassword123!` |
-| Empty-state trainee | `demo.empty.trainee@example.com`     | `DemoPassword123!` |
-| Demo admin          | `demo.admin@example.com`             | `DemoPassword123!` |
+Set the local demo password with `DEMO_SEED_PASSWORD` before running the seed. The same value is used for all Demo 1 users created by the seed.
 
-The seed script hashes the password before storing it. Do not document or print password hashes.
+| User                | Email                                | Password source      |
+| ------------------- | ------------------------------------ | -------------------- |
+| Populated trainee   | `demo.populated.trainee@example.com` | `DEMO_SEED_PASSWORD` |
+| Empty-state trainee | `demo.empty.trainee@example.com`     | `DEMO_SEED_PASSWORD` |
+| Demo admin          | `demo.admin@example.com`             | `DEMO_SEED_PASSWORD` |
+
+The seed script hashes the password before storing it. It does not print password hashes.
+
+Do not commit `DEMO_SEED_PASSWORD` in `.env` unless the project explicitly allows local ignored `.env` usage. Prefer setting it only in the current shell when running the seed.
 
 ## Seeded Data
 
@@ -98,17 +102,37 @@ Do not use `prisma migrate reset` for normal Demo 1 seeding.
 
 ### Run the Demo 1 seed
 
-```bash
+Set `DEMO_SEED_PASSWORD` in the same terminal session before running the seed.
+
+Windows PowerShell:
+
+```powershell
+$env:DEMO_SEED_PASSWORD = "your-local-demo-password"
 pnpm --filter @insightful-phish/backend seed:demo1
 ```
 
-The command prints a summary of the demo users and seeded content. It does not print password hashes.
+Windows Command Prompt:
+
+```bat
+set "DEMO_SEED_PASSWORD=your-local-demo-password"
+pnpm --filter @insightful-phish/backend seed:demo1
+```
+
+Other shells:
+
+```bash
+DEMO_SEED_PASSWORD="your-local-demo-password" \
+pnpm --filter @insightful-phish/backend seed:demo1
+```
+
+The command prints a summary of the demo users and seeded content. It reports that `DEMO_SEED_PASSWORD` was used as the password source, but it does not print password hashes.
 
 ### Rerun the Demo 1 seed
 
 Run the same command again:
 
-```bash
+```powershell
+$env:DEMO_SEED_PASSWORD = "your-local-demo-password"
 pnpm --filter @insightful-phish/backend seed:demo1
 ```
 
