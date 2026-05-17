@@ -1,6 +1,6 @@
 import { prisma } from '../src/lib/prisma.js';
 import { seedDemoCore, type DemoSeedSummary } from './seed-data/demoSeedCore.js';
-import { DEMO_SEED_PASSWORD_ENV_VAR } from './seed-data/demoSeedHelpers.js';
+import { getDemoSeedAuthEnvVarName } from './seed-data/demoSeedHelpers.js';
 
 async function seedDemo1(): Promise<void> {
   const summary = await seedDemoCore(prisma);
@@ -15,7 +15,7 @@ function printDemoSeedSummary(summary: DemoSeedSummary): void {
     console.log(`- ${user.label}: ${user.email} (${user.role})`);
   }
 
-  console.log(`Demo-only password source: ${DEMO_SEED_PASSWORD_ENV_VAR}`);
+  console.log(`Demo-only password source: ${getDemoSeedAuthEnvVarName()}`);
   console.log('No password hashes printed.');
   console.log(
     `Campaign: ${summary.campaign.name}, items: ${summary.campaign.itemCount}, assigned trainee: ${summary.campaign.assignedTraineeEmail}`,

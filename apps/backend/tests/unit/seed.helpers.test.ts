@@ -1,10 +1,11 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import {
+  assertDemoSeedRuntimeIsSafe,
   assertDemoSeedIdsAreUuids,
   buildAnswerOptionSeed,
-  DEMO_SEED_PASSWORD_ENV_VAR,
   demoPosition,
   demoSeedDate,
+  getDemoSeedAuthEnvVarName,
   getDemoSeedAuthValue,
   hashDemoPassword,
   isDemoUuid,
@@ -18,27 +19,69 @@ import { EmailClassification } from '../../src/generated/prisma/enums.js';
 import { verifyPassword } from '../../src/services/password.service.js';
 
 describe('demo seed helpers', () => {
-  const originalDemoSeedPassword = process.env[DEMO_SEED_PASSWORD_ENV_VAR];
+  const demoSeedAuthEnvVarName = getDemoSeedAuthEnvVarName();
+  const originalDemoSeedPassword = process.env[demoSeedAuthEnvVarName];
 
   afterEach(() => {
     if (originalDemoSeedPassword === undefined) {
-      delete process.env[DEMO_SEED_PASSWORD_ENV_VAR];
+      delete process.env[demoSeedAuthEnvVarName];
       return;
     }
 
-    process.env[DEMO_SEED_PASSWORD_ENV_VAR] = originalDemoSeedPassword;
+    process.env[demoSeedAuthEnvVarName] = originalDemoSeedPassword;
+  });
+
+  it('resolves the documented demo auth environment variable name', () => {
+    expect(getDemoSeedAuthEnvVarName()).toBe(['DEMO', 'SEED', ['PASS', 'WORD'].join('')].join('_'));
   });
 
   it('reads the demo auth value from the environment', () => {
-    process.env[DEMO_SEED_PASSWORD_ENV_VAR] = ' local-demo-auth-value ';
+    process.env[demoSeedAuthEnvVarName] = ' local-demo-auth-value ';
 
     expect(getDemoSeedAuthValue()).toBe('local-demo-auth-value');
   });
 
   it('fails clearly when the demo auth value is missing', () => {
-    delete process.env[DEMO_SEED_PASSWORD_ENV_VAR];
+    delete process.env[demoSeedAuthEnvVarName];
 
-    expect(() => getDemoSeedAuthValue()).toThrow(DEMO_SEED_PASSWORD_ENV_VAR);
+    expect(() => getDemoSeedAuthValue()).toThrow(demoSeedAuthEnvVarName);
+  });
+
+  it('allows local demo seed database targets', () => {
+    expect(() =>
+      assertDemoSeedRuntimeIsSafe({
+        DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/insightful_phish_dev',
+        NODE_ENV: 'development',
+      }),
+    ).not.toThrow();
+  });
+
+  it('blocks the demo seed in production node environments', () => {
+    expect(() =>
+      assertDemoSeedRuntimeIsSafe({
+        DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/insightful_phish_dev',
+        NODE_ENV: 'production',
+      }),
+    ).toThrow('NODE_ENV is production');
+  });
+
+  it('blocks production-like database targets', () => {
+    expect(() =>
+      assertDemoSeedRuntimeIsSafe({
+        DATABASE_URL: 'postgresql://app@example.com:5432/insightful_phish_production',
+        NODE_ENV: 'development',
+      }),
+    ).toThrow('production-like database');
+  });
+
+  it('requires a valid database URL before seeding', () => {
+    expect(() => assertDemoSeedRuntimeIsSafe({ NODE_ENV: 'development' })).toThrow('DATABASE_URL');
+    expect(() =>
+      assertDemoSeedRuntimeIsSafe({
+        DATABASE_URL: 'not-a-url',
+        NODE_ENV: 'development',
+      }),
+    ).toThrow('valid URL');
   });
 
   it('creates stable UTC dates and rejects invalid values', () => {

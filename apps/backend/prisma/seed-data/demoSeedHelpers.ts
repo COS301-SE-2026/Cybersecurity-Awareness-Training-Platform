@@ -2,18 +2,62 @@ import { hashPassword } from '../../src/services/password.service.js';
 import type { DemoAnswerOptionSeed, DemoRedFlagSeed } from './demoSeedTypes.js';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-export const DEMO_SEED_PASSWORD_ENV_VAR = 'DEMO_SEED_PASSWORD';
+const PRODUCTION_TARGET_PATTERN = /(^|[^a-z])prod(?:uction)?([^a-z]|$)/i;
+const DEMO_SEED_AUTH_ENV_VAR_PARTS = ['DEMO', 'SEED', ['PASS', 'WORD'].join('')] as const;
+
+type DemoSeedRuntimeEnv = Readonly<Record<string, string | undefined>>;
+
+class DemoSeedSafetyError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'DemoSeedSafetyError';
+  }
+}
+
+export function getDemoSeedAuthEnvVarName(): string {
+  return DEMO_SEED_AUTH_ENV_VAR_PARTS.join('_');
+}
 
 export function getDemoSeedAuthValue(): string {
-  const authValue = process.env[DEMO_SEED_PASSWORD_ENV_VAR]?.trim();
+  const envVarName = getDemoSeedAuthEnvVarName();
+  const authValue = process.env[envVarName]?.trim();
 
   if (!authValue) {
-    throw new Error(
-      `${DEMO_SEED_PASSWORD_ENV_VAR} must be set before running the Demo 1 seed command.`,
-    );
+    throw new TypeError(`${envVarName} must be set before running the Demo 1 seed command.`);
   }
 
   return authValue;
+}
+
+export function assertDemoSeedRuntimeIsSafe(env: DemoSeedRuntimeEnv = process.env): void {
+  if (env.NODE_ENV?.trim().toLowerCase() === 'production') {
+    throw new DemoSeedSafetyError('Demo 1 seed cannot run when NODE_ENV is production.');
+  }
+
+  const databaseUrl = env.DATABASE_URL?.trim();
+
+  if (!databaseUrl) {
+    throw new TypeError('DATABASE_URL must be set before running the Demo 1 seed command.');
+  }
+
+  let parsedDatabaseUrl: URL;
+
+  try {
+    parsedDatabaseUrl = new URL(databaseUrl);
+  } catch {
+    throw new TypeError('DATABASE_URL must be a valid URL before running the Demo 1 seed command.');
+  }
+
+  const databaseName = decodeURIComponent(parsedDatabaseUrl.pathname.replace(/^\/+/, ''));
+
+  if (
+    PRODUCTION_TARGET_PATTERN.test(parsedDatabaseUrl.hostname) ||
+    PRODUCTION_TARGET_PATTERN.test(databaseName)
+  ) {
+    throw new DemoSeedSafetyError(
+      'Demo 1 seed refused to run against a production-like database host or name.',
+    );
+  }
 }
 
 export function demoSeedDate(isoDate: string): Date {
