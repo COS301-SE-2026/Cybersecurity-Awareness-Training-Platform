@@ -135,8 +135,8 @@
       "number": 80,
       "title": "feat: [backend] Implement training document API for UC-02",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-05-17"
     },
     {
       "number": 79,
@@ -277,7 +277,7 @@
     },
     {
       "date": "2026-05-17",
-      "remaining": 56,
+      "remaining": 54,
       "ideal": 29.33
     }
   ]
