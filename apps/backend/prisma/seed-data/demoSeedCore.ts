@@ -19,6 +19,28 @@ import { hashDemoPassword } from './demoSeedHelpers.js';
 
 type DemoSeedTransaction = Prisma.TransactionClient;
 
+export type DemoSeedSummary = {
+  readonly version: string;
+  readonly users: ReadonlyArray<{
+    readonly label: string;
+    readonly email: string;
+    readonly role: string;
+  }>;
+  readonly campaign: {
+    readonly name: string;
+    readonly itemCount: number;
+    readonly assignedTraineeEmail: string;
+  };
+  readonly content: {
+    readonly trainingDocumentCount: number;
+    readonly quizCount: number;
+    readonly quizQuestionCount: number;
+    readonly answerOptionCount: number;
+    readonly simulatedEmailCount: number;
+    readonly redFlagCount: number;
+  };
+};
+
 const DEMO_USER_IDS = Object.values(DEMO_SEED_IDS.users);
 const DEMO_USER_EMAILS = Object.values(DEMO_SEED_CREDENTIALS).map(
   (credentials) => credentials.email,
@@ -33,13 +55,65 @@ const DEMO_ANSWER_OPTION_IDS = Object.values(DEMO_SEED_IDS.answerOptions);
 const DEMO_SIMULATED_EMAIL_IDS = Object.values(DEMO_SEED_IDS.simulatedEmails);
 const DEMO_RED_FLAG_IDS = Object.values(DEMO_SEED_IDS.redFlags);
 
-export async function seedDemoCore(client: PrismaClient = prisma): Promise<void> {
+export async function seedDemoCore(client: PrismaClient = prisma): Promise<DemoSeedSummary> {
   const passwordHash = await hashDemoPassword(DEMO_ONLY_PASSWORD);
 
   await client.$transaction(async (tx) => {
     await deleteDemoCore(tx);
     await createDemoCore(tx, passwordHash);
   });
+
+  return buildDemoSeedSummary();
+}
+
+export function buildDemoSeedSummary(): DemoSeedSummary {
+  return {
+    version: 'Demo 1',
+    users: [
+      {
+        label: 'Populated trainee',
+        email: DEMO_SEED_CREDENTIALS.populatedTrainee.email,
+        role: DEMO_SEED_USERS.populatedTrainee.userType,
+      },
+      {
+        label: 'Empty-state trainee',
+        email: DEMO_SEED_CREDENTIALS.emptyStateTrainee.email,
+        role: DEMO_SEED_USERS.emptyStateTrainee.userType,
+      },
+      {
+        label: 'Demo admin',
+        email: DEMO_SEED_CREDENTIALS.admin.email,
+        role: DEMO_SEED_USERS.admin.userType,
+      },
+    ],
+    campaign: {
+      name: DEMO_SEED_CAMPAIGN.name,
+      itemCount: DEMO_SEED_CAMPAIGN_ITEMS.length,
+      assignedTraineeEmail: DEMO_SEED_CREDENTIALS.populatedTrainee.email,
+    },
+    content: {
+      trainingDocumentCount: DEMO_SEED_TRAINING_DOCUMENTS.length,
+      quizCount: DEMO_SEED_QUIZZES.length,
+      quizQuestionCount: DEMO_SEED_QUIZZES.reduce(
+        (count, quiz) => count + quiz.questions.length,
+        0,
+      ),
+      answerOptionCount: DEMO_SEED_QUIZZES.reduce(
+        (count, quiz) =>
+          count +
+          quiz.questions.reduce(
+            (questionCount, question) => questionCount + question.answerOptions.length,
+            0,
+          ),
+        0,
+      ),
+      simulatedEmailCount: DEMO_SEED_SIMULATED_EMAILS.length,
+      redFlagCount: DEMO_SEED_SIMULATED_EMAILS.reduce(
+        (count, email) => count + email.redFlags.length,
+        0,
+      ),
+    },
+  };
 }
 
 async function deleteDemoCore(tx: DemoSeedTransaction): Promise<void> {
