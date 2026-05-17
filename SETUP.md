@@ -486,6 +486,24 @@ apps/backend/.env
 apps/backend/src/generated/prisma
 ```
 
+### Demo 1 seed data
+
+For repeatable local Demo 1 users, campaign content, quizzes, and simulated inbox data, see:
+
+```txt
+apps/backend/SEEDING.md
+```
+
+The short version:
+
+```bash
+docker compose up -d
+pnpm --filter @insightful-phish/backend prisma:migrate:deploy
+pnpm --filter @insightful-phish/backend seed:demo1
+```
+
+Only run the Demo 1 seed against a local development database.
+
 ---
 
 ## 10. Run the backend
