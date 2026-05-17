@@ -7,7 +7,12 @@ import {
   DEMO_SEED_CAMPAIGN_ITEMS,
   DEMO_SEED_CREDENTIALS,
   DEMO_SEED_IDS,
+  DEMO_SEED_QUIZZES,
+  DEMO_SEED_SIMULATED_EMAILS,
+  DEMO_SEED_SIMULATED_INBOX,
+  DEMO_SEED_SIMULATION,
   DEMO_SEED_TRAINEE_PROFILES,
+  DEMO_SEED_TRAINING_DOCUMENTS,
   DEMO_SEED_USERS,
 } from './demoSeedConfig.js';
 import { hashDemoPassword } from './demoSeedHelpers.js';
@@ -21,6 +26,12 @@ const DEMO_USER_EMAILS = Object.values(DEMO_SEED_CREDENTIALS).map(
 const DEMO_TRAINEE_PROFILE_IDS = Object.values(DEMO_SEED_IDS.traineeProfiles);
 const DEMO_GENERAL_TRAINEE_PROFILE_IDS = Object.values(DEMO_SEED_IDS.generalTraineeProfiles);
 const DEMO_CAMPAIGN_ITEM_IDS = Object.values(DEMO_SEED_IDS.campaignItems);
+const DEMO_TRAINING_DOCUMENT_IDS = Object.values(DEMO_SEED_IDS.trainingDocuments);
+const DEMO_QUIZ_IDS = Object.values(DEMO_SEED_IDS.quizzes);
+const DEMO_QUIZ_QUESTION_IDS = Object.values(DEMO_SEED_IDS.quizQuestions);
+const DEMO_ANSWER_OPTION_IDS = Object.values(DEMO_SEED_IDS.answerOptions);
+const DEMO_SIMULATED_EMAIL_IDS = Object.values(DEMO_SEED_IDS.simulatedEmails);
+const DEMO_RED_FLAG_IDS = Object.values(DEMO_SEED_IDS.redFlags);
 
 export async function seedDemoCore(client: PrismaClient = prisma): Promise<void> {
   const passwordHash = await hashDemoPassword(DEMO_ONLY_PASSWORD);
@@ -55,6 +66,66 @@ async function deleteDemoCore(tx: DemoSeedTransaction): Promise<void> {
   await tx.campaign.deleteMany({
     where: {
       id: DEMO_SEED_IDS.campaign,
+    },
+  });
+
+  await tx.emailRedFlag.deleteMany({
+    where: {
+      id: {
+        in: DEMO_RED_FLAG_IDS,
+      },
+    },
+  });
+
+  await tx.simulatedEmail.deleteMany({
+    where: {
+      id: {
+        in: DEMO_SIMULATED_EMAIL_IDS,
+      },
+    },
+  });
+
+  await tx.simulatedInbox.deleteMany({
+    where: {
+      id: DEMO_SEED_IDS.simulatedInbox,
+    },
+  });
+
+  await tx.simulation.deleteMany({
+    where: {
+      id: DEMO_SEED_IDS.simulation,
+    },
+  });
+
+  await tx.answerOption.deleteMany({
+    where: {
+      id: {
+        in: DEMO_ANSWER_OPTION_IDS,
+      },
+    },
+  });
+
+  await tx.quizQuestion.deleteMany({
+    where: {
+      id: {
+        in: DEMO_QUIZ_QUESTION_IDS,
+      },
+    },
+  });
+
+  await tx.quiz.deleteMany({
+    where: {
+      id: {
+        in: DEMO_QUIZ_IDS,
+      },
+    },
+  });
+
+  await tx.trainingDocument.deleteMany({
+    where: {
+      id: {
+        in: DEMO_TRAINING_DOCUMENT_IDS,
+      },
     },
   });
 
@@ -101,6 +172,7 @@ async function deleteDemoCore(tx: DemoSeedTransaction): Promise<void> {
 async function createDemoCore(tx: DemoSeedTransaction, passwordHash: string): Promise<void> {
   await createDemoUsers(tx, passwordHash);
   await createDemoProfiles(tx);
+  await createDemoContent(tx);
   await createDemoCampaign(tx);
   await createDemoCampaignItems(tx);
   await createDemoCampaignAssignment(tx);
@@ -164,6 +236,77 @@ async function createDemoCampaign(tx: DemoSeedTransaction): Promise<void> {
   });
 }
 
+async function createDemoContent(tx: DemoSeedTransaction): Promise<void> {
+  await createDemoTrainingDocuments(tx);
+  await createDemoQuizzes(tx);
+  await createDemoSimulation(tx);
+}
+
+async function createDemoTrainingDocuments(tx: DemoSeedTransaction): Promise<void> {
+  for (const document of DEMO_SEED_TRAINING_DOCUMENTS) {
+    await tx.trainingDocument.create({
+      data: document,
+    });
+  }
+}
+
+async function createDemoQuizzes(tx: DemoSeedTransaction): Promise<void> {
+  for (const quiz of DEMO_SEED_QUIZZES) {
+    const { questions, ...quizData } = quiz;
+
+    await tx.quiz.create({
+      data: quizData,
+    });
+
+    for (const question of questions) {
+      const { answerOptions, ...questionData } = question;
+
+      await tx.quizQuestion.create({
+        data: {
+          ...questionData,
+          quizId: quiz.id,
+        },
+      });
+
+      for (const answerOption of answerOptions) {
+        await tx.answerOption.create({
+          data: {
+            ...answerOption,
+            questionId: question.id,
+          },
+        });
+      }
+    }
+  }
+}
+
+async function createDemoSimulation(tx: DemoSeedTransaction): Promise<void> {
+  await tx.simulation.create({
+    data: DEMO_SEED_SIMULATION,
+  });
+
+  await tx.simulatedInbox.create({
+    data: DEMO_SEED_SIMULATED_INBOX,
+  });
+
+  for (const email of DEMO_SEED_SIMULATED_EMAILS) {
+    const { redFlags, ...emailData } = email;
+
+    await tx.simulatedEmail.create({
+      data: emailData,
+    });
+
+    for (const redFlag of redFlags) {
+      await tx.emailRedFlag.create({
+        data: {
+          ...redFlag,
+          simulatedEmailId: email.id,
+        },
+      });
+    }
+  }
+}
+
 async function createDemoCampaignItems(tx: DemoSeedTransaction): Promise<void> {
   for (const item of DEMO_SEED_CAMPAIGN_ITEMS) {
     await tx.campaignItem.create({
@@ -177,6 +320,9 @@ async function createDemoCampaignItems(tx: DemoSeedTransaction): Promise<void> {
         position: item.position,
         isRequired: item.isRequired,
         availabilityStatus: item.availabilityStatus,
+        trainingDocumentId: 'trainingDocumentId' in item ? item.trainingDocumentId : undefined,
+        quizId: 'quizId' in item ? item.quizId : undefined,
+        simulationId: 'simulationId' in item ? item.simulationId : undefined,
       },
     });
   }

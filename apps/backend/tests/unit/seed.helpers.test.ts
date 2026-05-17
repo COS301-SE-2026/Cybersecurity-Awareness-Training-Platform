@@ -8,6 +8,11 @@ import {
   isDemoUuid,
   normaliseDemoEmail,
 } from '../../prisma/seed-data/demoSeedHelpers.js';
+import {
+  DEMO_SEED_QUIZZES,
+  DEMO_SEED_SIMULATED_EMAILS,
+} from '../../prisma/seed-data/demoSeedConfig.js';
+import { EmailClassification } from '../../src/generated/prisma/enums.js';
 import { verifyPassword } from '../../src/services/password.service.js';
 
 describe('demo seed helpers', () => {
@@ -64,5 +69,50 @@ describe('demo seed helpers', () => {
 
     expect(hash).not.toBe(password);
     expect(await verifyPassword(password, hash)).toBe(true);
+  });
+
+  it('defines at least two quizzes with at least five questions each', () => {
+    expect(DEMO_SEED_QUIZZES.length).toBeGreaterThanOrEqual(2);
+
+    for (const quiz of DEMO_SEED_QUIZZES) {
+      expect(quiz.questions.length).toBeGreaterThanOrEqual(5);
+    }
+  });
+
+  it('defines exactly one correct answer option for each quiz question', () => {
+    for (const quiz of DEMO_SEED_QUIZZES) {
+      for (const question of quiz.questions) {
+        expect(question.answerOptions.filter((option) => option.isCorrect)).toHaveLength(1);
+        expect(question.answerOptions.every((option) => option.feedbackText)).toBe(true);
+      }
+    }
+  });
+
+  it('defines simulated emails with safe and unsafe classifications', () => {
+    expect(
+      DEMO_SEED_SIMULATED_EMAILS.some(
+        (email) => email.expectedClassification === EmailClassification.PHISHING,
+      ),
+    ).toBe(true);
+    expect(
+      DEMO_SEED_SIMULATED_EMAILS.some(
+        (email) => email.expectedClassification === EmailClassification.SUSPICIOUS,
+      ),
+    ).toBe(true);
+    expect(
+      DEMO_SEED_SIMULATED_EMAILS.filter(
+        (email) => email.expectedClassification === EmailClassification.SAFE,
+      ).length,
+    ).toBeGreaterThanOrEqual(2);
+  });
+
+  it('defines red flags for phishing and suspicious simulated emails only', () => {
+    for (const email of DEMO_SEED_SIMULATED_EMAILS) {
+      if (email.expectedClassification === EmailClassification.SAFE) {
+        expect(email.redFlags).toHaveLength(0);
+      } else {
+        expect(email.redFlags.length).toBeGreaterThan(0);
+      }
+    }
   });
 });
