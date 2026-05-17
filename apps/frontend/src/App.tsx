@@ -1,10 +1,14 @@
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { getHealth } from './lib/api';
+import { AuthProvider } from './context/AuthContext';
 import './App.css';
+
+import { BrowserRouter } from 'react-router-dom';
+import AppRoutes from './routes/AppRoutes';
 
 const queryClient = new QueryClient();
 
-function StatusPage() {
+export function StatusPage() {
   const health = useQuery({
     queryKey: ['health'],
     queryFn: getHealth,
@@ -47,7 +51,11 @@ function StatusPage() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <StatusPage />
+      <AuthProvider>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
