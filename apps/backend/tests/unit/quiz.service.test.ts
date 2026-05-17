@@ -31,83 +31,83 @@ vi.mock('../../src/lib/prisma.js', () => ({
   prisma: mockPrisma,
 }));
 
+function mockCampaignItem() {
+  return {
+    id: 'ci-1',
+    quiz: {
+      id: 'quiz-1',
+      title: 'Security 101',
+      passThresholdPercentage: 80,
+      difficultyLevel: 'BEGINNER',
+      status: 'PUBLISHED',
+      questions: [
+        {
+          id: 'q-1',
+          prompt: 'What is phishing?',
+          questionType: 'SINGLE_CHOICE',
+          position: 1,
+          points: 10,
+          answerOptions: [
+            {
+              id: 'opt-1',
+              label: 'A',
+              text: 'Bad',
+              isCorrect: true,
+              position: 1,
+              feedbackText: 'Yes',
+            },
+            {
+              id: 'opt-2',
+              label: 'B',
+              text: 'Good',
+              isCorrect: false,
+              position: 2,
+              feedbackText: 'No',
+            },
+          ],
+        },
+      ],
+    },
+    campaign: {
+      assignments: [{ id: 'assign-1', traineeProfileId: 'trainee-1' }],
+    },
+  };
+}
+
+function mockQuizAttempt(status = 'IN_PROGRESS') {
+  return {
+    id: 'attempt-1',
+    traineeProfileId: 'trainee-1',
+    status,
+    quiz: {
+      id: 'quiz-1',
+      passThresholdPercentage: 50,
+      questions: [
+        {
+          id: 'q-1',
+          points: 10,
+          answerOptions: [
+            { id: 'opt-1', isCorrect: true },
+            { id: 'opt-2', isCorrect: false },
+          ],
+        },
+        {
+          id: 'q-2',
+          points: 10,
+          answerOptions: [
+            { id: 'opt-3', isCorrect: true },
+            { id: 'opt-4', isCorrect: false },
+          ],
+        },
+      ],
+    },
+  };
+}
+
 describe('Quiz Service', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
-
-  function mockCampaignItem() {
-    return {
-      id: 'ci-1',
-      quiz: {
-        id: 'quiz-1',
-        title: 'Security 101',
-        passThresholdPercentage: 80,
-        difficultyLevel: 'BEGINNER',
-        status: 'PUBLISHED',
-        questions: [
-          {
-            id: 'q-1',
-            prompt: 'What is phishing?',
-            questionType: 'SINGLE_CHOICE',
-            position: 1,
-            points: 10,
-            answerOptions: [
-              {
-                id: 'opt-1',
-                label: 'A',
-                text: 'Bad',
-                isCorrect: true,
-                position: 1,
-                feedbackText: 'Yes',
-              },
-              {
-                id: 'opt-2',
-                label: 'B',
-                text: 'Good',
-                isCorrect: false,
-                position: 2,
-                feedbackText: 'No',
-              },
-            ],
-          },
-        ],
-      },
-      campaign: {
-        assignments: [{ id: 'assign-1', traineeProfileId: 'trainee-1' }],
-      },
-    };
-  }
-
-  function mockQuizAttempt(status = 'IN_PROGRESS') {
-    return {
-      id: 'attempt-1',
-      traineeProfileId: 'trainee-1',
-      status,
-      quiz: {
-        id: 'quiz-1',
-        passThresholdPercentage: 50,
-        questions: [
-          {
-            id: 'q-1',
-            points: 10,
-            answerOptions: [
-              { id: 'opt-1', isCorrect: true },
-              { id: 'opt-2', isCorrect: false },
-            ],
-          },
-          {
-            id: 'q-2',
-            points: 10,
-            answerOptions: [
-              { id: 'opt-3', isCorrect: true },
-              { id: 'opt-4', isCorrect: false },
-            ],
-          },
-        ],
-      },
-    };
-  }
 
   describe('getQuizByCampaignItemId', () => {
     it('returns a safe quiz object without correct answers or feedback', async () => {

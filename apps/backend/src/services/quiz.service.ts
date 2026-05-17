@@ -81,7 +81,7 @@ async function getValidatedCampaignItem(
     },
   });
 
-  if (!campaignItem || !campaignItem.quiz) {
+  if (!campaignItem?.quiz) {
     throw new QuizNotFoundError();
   }
 
@@ -125,7 +125,7 @@ export async function startQuizAttempt(
     orderBy: { createdAt: 'desc' },
   });
 
-  if (!attempt || attempt.status !== 'IN_PROGRESS') {
+  if (attempt?.status !== 'IN_PROGRESS') {
     attempt = await prisma.quizAttempt.create({
       data: {
         quizId: campaignItem.quizId!,

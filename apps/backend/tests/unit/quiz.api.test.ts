@@ -25,72 +25,73 @@ vi.mock('../../src/lib/prisma.js', () => ({
   prisma: mockPrisma,
 }));
 
+const campaignItemId = '11111111-1111-1111-1111-111111111111';
+const attemptId = '22222222-2222-2222-2222-222222222222';
+const questionId = '33333333-3333-3333-3333-333333333333';
+const optionId1 = '44444444-4444-4444-4444-444444444444';
+const optionId2 = '55555555-5555-5555-5555-555555555555';
+
+function mockCampaignItem(quizStatus = 'PUBLISHED') {
+  return {
+    id: campaignItemId,
+    quizId: 'quiz-1',
+    quiz: {
+      id: 'quiz-1',
+      title: 'Phishing Check',
+      passThresholdPercentage: 70,
+      difficultyLevel: 'BEGINNER',
+      status: quizStatus,
+      questions: [
+        {
+          id: questionId,
+          prompt: 'Is this phishing?',
+          questionType: 'SINGLE_CHOICE',
+          position: 1,
+          points: 5,
+          answerOptions: [
+            {
+              id: optionId1,
+              label: 'A',
+              text: 'Yes',
+              isCorrect: true,
+              position: 1,
+              feedbackText: 'Correct feedback',
+            },
+          ],
+        },
+      ],
+    },
+    campaign: {
+      assignments: [
+        {
+          id: 'assign-1',
+          traineeProfileId: 'trainee-profile-id',
+          assignmentStatus: 'ASSIGNED',
+        },
+      ],
+    },
+  };
+}
+
+function mockQuizAttempt(status = 'IN_PROGRESS') {
+  return {
+    id: attemptId,
+    status,
+    quiz: {
+      passThresholdPercentage: 50,
+      questions: [
+        {
+          id: questionId,
+          points: 5,
+          answerOptions: [{ id: optionId1, isCorrect: true }],
+        },
+      ],
+    },
+  };
+}
+
 describe('Quiz API Routes', () => {
   const token = generateAuthToken('trainee-user-id').token;
-  const campaignItemId = '11111111-1111-1111-1111-111111111111';
-  const attemptId = '22222222-2222-2222-2222-222222222222';
-  const questionId = '33333333-3333-3333-3333-333333333333';
-  const optionId1 = '44444444-4444-4444-4444-444444444444';
-  const optionId2 = '55555555-5555-5555-5555-555555555555';
-
-  function mockCampaignItem(quizStatus = 'PUBLISHED') {
-    return {
-      id: campaignItemId,
-      quizId: 'quiz-1',
-      quiz: {
-        id: 'quiz-1',
-        title: 'Phishing Check',
-        passThresholdPercentage: 70,
-        difficultyLevel: 'BEGINNER',
-        status: quizStatus,
-        questions: [
-          {
-            id: questionId,
-            prompt: 'Is this phishing?',
-            questionType: 'SINGLE_CHOICE',
-            position: 1,
-            points: 5,
-            answerOptions: [
-              {
-                id: optionId1,
-                label: 'A',
-                text: 'Yes',
-                isCorrect: true,
-                position: 1,
-                feedbackText: 'Correct feedback',
-              },
-            ],
-          },
-        ],
-      },
-      campaign: {
-        assignments: [
-          {
-            id: 'assign-1',
-            traineeProfileId: 'trainee-profile-id',
-            assignmentStatus: 'ASSIGNED',
-          },
-        ],
-      },
-    };
-  }
-
-  function mockQuizAttempt(status = 'IN_PROGRESS') {
-    return {
-      id: attemptId,
-      status,
-      quiz: {
-        passThresholdPercentage: 50,
-        questions: [
-          {
-            id: questionId,
-            points: 5,
-            answerOptions: [{ id: optionId1, isCorrect: true }],
-          },
-        ],
-      },
-    };
-  }
 
   beforeEach(() => {
     vi.clearAllMocks();
