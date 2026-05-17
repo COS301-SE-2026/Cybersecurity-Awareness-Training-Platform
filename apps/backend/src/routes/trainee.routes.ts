@@ -29,7 +29,7 @@ router.get(
 
 // Simulated Email Details
 router.get(
-  '/simulated-emails/:emailId',
+  '/campaign-items/:campaignItemId/simulated-emails/:emailId',
   requireAuth,
   validateParams(getSimulatedEmailRequestParamsSchema),
   simulationController.getSimulatedEmail,
@@ -37,7 +37,7 @@ router.get(
 
 // Simulated Email Interactions
 router.post(
-  '/simulated-emails/:emailId/interactions',
+  '/campaign-items/:campaignItemId/simulated-emails/:emailId/interactions',
   requireAuth,
   validateParams(recordSimulatedEmailInteractionRequestParamsSchema),
   validateBody(recordSimulatedEmailInteractionRequestSchema),
@@ -46,7 +46,7 @@ router.post(
 
 // Simulated Email Classification
 router.post(
-  '/simulated-emails/:emailId/classification',
+  '/campaign-items/:campaignItemId/simulated-emails/:emailId/classification',
   requireAuth,
   validateParams(classifySimulatedEmailRequestParamsSchema),
   validateBody(classifySimulatedEmailRequestSchema),

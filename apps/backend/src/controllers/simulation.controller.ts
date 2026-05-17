@@ -39,19 +39,33 @@ export class SimulationController {
 
   getSimulatedEmail = async (req: Request, res: Response) => {
     return this.handleTraineeRequest(req, res, (id) =>
-      simulationService.getSimulatedEmail(req.params.emailId as string, id),
+      simulationService.getSimulatedEmail(
+        req.params.emailId as string,
+        req.params.campaignItemId as string,
+        id,
+      ),
     );
   };
 
   recordInteraction = async (req: Request, res: Response) => {
     return this.handleTraineeRequest(req, res, (id) =>
-      simulationService.recordInteraction(req.params.emailId as string, id, req.body),
+      simulationService.recordInteraction(
+        req.params.emailId as string,
+        req.params.campaignItemId as string,
+        id,
+        req.body,
+      ),
     );
   };
 
   classifyEmail = async (req: Request, res: Response) => {
     return this.handleTraineeRequest(req, res, (id) =>
-      simulationService.classifyEmail(req.params.emailId as string, id, req.body),
+      simulationService.classifyEmail(
+        req.params.emailId as string,
+        req.params.campaignItemId as string,
+        id,
+        req.body,
+      ),
     );
   };
 }

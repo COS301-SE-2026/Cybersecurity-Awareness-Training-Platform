@@ -8,19 +8,19 @@ These contracts support frontend/backend alignment, SRS traceability, and shared
 
 ## API and Domain Terminology Alignment
 
-| API Route Area                                              | Aligned Domain Concept                                                              | Related SRS Area                  |
-| ----------------------------------------------------------- | ----------------------------------------------------------------------------------- | --------------------------------- |
-| `/auth/*`                                                   | `User`, trainee/admin profiles, optional `Organisation`                             | Base access                       |
-| `/trainee/campaigns`                                        | `Campaign`, `CampaignAssignment`                                                    | Trainee campaign access           |
-| `/trainee/campaigns/:campaignId`                            | `Campaign`, ordered `CampaignItem` records                                          | Trainee campaign detail           |
-| `/trainee/campaign-items/:campaignItemId/*`                 | `CampaignItem`, `CampaignComponent`, `CampaignComponentGroup`                       | Campaign item activity            |
-| `/trainee/campaign-items/:campaignItemId/training-document` | `TrainingDocumentComponent`, reusable `TrainingDocument`                            | UC-02 training document viewing   |
-| `/trainee/campaign-items/:campaignItemId/quiz`              | `QuizComponent`, reusable `Quiz`, `QuizQuestion`, `AnswerOption`                    | UC-03 quiz content                |
-| `/quiz-attempts/:attemptId/*`                               | `QuizAttempt`, `AttemptAnswer`, `AttemptAnswerOption`, `QuizResult`                 | UC-03 quiz submission/results     |
-| `/trainee/campaign-items/:campaignItemId/simulated-inbox`   | `SimulationComponent`, reusable `Simulation`, `SimulatedInbox`                      | UC-01 simulated inbox             |
-| `/trainee/simulated-emails/:emailId/*`                      | `SimulatedEmail`, `EmailClassificationResponse`, `EmailRedFlag`, `InteractionEvent` | UC-01 email interaction           |
-| Supporting admin/campaign placeholders                      | `Campaign`, ordered `CampaignItem`, reusable content references                     | Supporting admin/campaign context |
-| Future reporting placeholder                                | `ReportSummary`, `RiskIndicator`                                                    | Future reporting support          |
+| API Route Area                                                        | Aligned Domain Concept                                                              | Related SRS Area                  |
+| --------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | --------------------------------- |
+| `/auth/*`                                                             | `User`, trainee/admin profiles, optional `Organisation`                             | Base access                       |
+| `/trainee/campaigns`                                                  | `Campaign`, `CampaignAssignment`                                                    | Trainee campaign access           |
+| `/trainee/campaigns/:campaignId`                                      | `Campaign`, ordered `CampaignItem` records                                          | Trainee campaign detail           |
+| `/trainee/campaign-items/:campaignItemId/*`                           | `CampaignItem`, `CampaignComponent`, `CampaignComponentGroup`                       | Campaign item activity            |
+| `/trainee/campaign-items/:campaignItemId/training-document`           | `TrainingDocumentComponent`, reusable `TrainingDocument`                            | UC-02 training document viewing   |
+| `/trainee/campaign-items/:campaignItemId/quiz`                        | `QuizComponent`, reusable `Quiz`, `QuizQuestion`, `AnswerOption`                    | UC-03 quiz content                |
+| `/quiz-attempts/:attemptId/*`                                         | `QuizAttempt`, `AttemptAnswer`, `AttemptAnswerOption`, `QuizResult`                 | UC-03 quiz submission/results     |
+| `/trainee/campaign-items/:campaignItemId/simulated-inbox`             | `SimulationComponent`, reusable `Simulation`, `SimulatedInbox`                      | UC-01 simulated inbox             |
+| `/trainee/campaign-items/:campaignItemId/simulated-emails/:emailId/*` | `SimulatedEmail`, `EmailClassificationResponse`, `EmailRedFlag`, `InteractionEvent` | UC-01 email interaction           |
+| Supporting admin/campaign placeholders                                | `Campaign`, ordered `CampaignItem`, reusable content references                     | Supporting admin/campaign context |
+| Future reporting placeholder                                          | `ReportSummary`, `RiskIndicator`                                                    | Future reporting support          |
 
 Training documents, quizzes, and simulations are reusable content records made available to trainees through campaign items.
 
@@ -374,7 +374,7 @@ Before submission, trainee-facing quiz fetch endpoints must not expose `AnswerOp
 
 This endpoint returns campaign-provided simulation content. It does not expose a permanent user-owned inbox.
 
-### `GET /trainee/simulated-emails/:emailId`
+### `GET /trainee/campaign-items/:campaignItemId/simulated-emails/:emailId`
 
 - **Purpose**: Retrieves a simulated email that the trainee can access through an assigned or available campaign simulation item.
 - **Access Rule**: The backend must resolve the simulated email through a campaign item and campaign assignment available to the authenticated trainee. The `emailId` alone is not sufficient authorization.
@@ -400,44 +400,23 @@ This endpoint returns campaign-provided simulation content. It does not expose a
 
 Trainee-facing responses must not reveal `expectedClassification` or correct red flags before classification feedback is intentionally shown.
 
-### `POST /trainee/simulated-emails/:emailId/opened`
+### `POST /trainee/campaign-items/:campaignItemId/simulated-emails/:emailId/interactions`
 
-- **Purpose**: Records a `SIMULATED_EMAIL_OPENED` interaction event.
+- **Purpose**: Records a `SIMULATED_EMAIL_OPENED`, `SIMULATED_EMAIL_LINK_CLICKED`, or `CREDENTIAL_SUBMISSION_ATTEMPTED` interaction event.
 - **Expected Request Data**:
-  - `campaignAssignmentId` (string, optional)
-  - `campaignItemId` (string, optional)
+  - `eventType` (string: enum, required)
 - **Expected Response Data**:
-  - `201 Created`: `{ "success": true, "eventType": "SIMULATED_EMAIL_OPENED" }`
-
-### `POST /trainee/simulated-emails/:emailId/link-clicked`
-
-- **Purpose**: Records a `SIMULATED_EMAIL_LINK_CLICKED` interaction event.
-- **Expected Request Data**:
-  - `campaignAssignmentId` (string, optional)
-  - `campaignItemId` (string, optional)
-- **Expected Response Data**:
-  - `201 Created`: `{ "success": true, "eventType": "SIMULATED_EMAIL_LINK_CLICKED" }`
-
-### `POST /trainee/simulated-emails/:emailId/credential-submission-attempted`
-
-- **Purpose**: Records that a trainee attempted credential submission inside a simulation.
-- **Expected Request Data**:
-  - `campaignAssignmentId` (string, optional)
-  - `campaignItemId` (string, optional)
-- **Expected Response Data**:
-  - `201 Created`: `{ "success": true, "eventType": "CREDENTIAL_SUBMISSION_ATTEMPTED" }`
+  - `201 Created` or `200 OK`: `{ "success": true, "eventType": "..." }`
 
 This endpoint must never store or return submitted credential values.
 
-### `POST /trainee/simulated-emails/:emailId/classification`
+### `POST /trainee/campaign-items/:campaignItemId/simulated-emails/:emailId/classification`
 
 - **Purpose**: Records a trainee's classification judgement for a simulated email.
 - **Expected Request Data**:
   - `selectedClassification` (enum: `SAFE`, `SUSPICIOUS`, `PHISHING`, required)
   - `selectedRedFlagIds` (string array, optional)
   - `freeTextReason` (string, optional)
-  - `campaignAssignmentId` (string, optional)
-  - `campaignItemId` (string, optional)
 - **Expected Response Data**:
 
 ```json

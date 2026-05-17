@@ -87,6 +87,7 @@ export class SimulationService {
 
   private async getEmailWithAccess(
     emailId: string,
+    campaignItemId: string,
     traineeProfileId: string,
     includeRedFlags = false,
   ) {
@@ -100,6 +101,7 @@ export class SimulationService {
               include: {
                 campaignItems: {
                   include: {
+                    simulation: true,
                     campaign: {
                       include: {
                         assignments: {
@@ -127,6 +129,7 @@ export class SimulationService {
 
     const matchedItem = email.inbox.simulation.campaignItems.find(
       (item: any) =>
+        item.id === campaignItemId &&
         item.campaign.assignments.length > 0 &&
         item.itemType === 'COMPONENT' &&
         item.componentType === 'SIMULATED_INBOX' &&
@@ -143,9 +146,14 @@ export class SimulationService {
 
   async getSimulatedEmail(
     emailId: string,
+    campaignItemId: string,
     traineeProfileId: string,
   ): Promise<GetSimulatedEmailResponseDto> {
-    const { email, matchedItem } = await this.getEmailWithAccess(emailId, traineeProfileId);
+    const { email, matchedItem } = await this.getEmailWithAccess(
+      emailId,
+      campaignItemId,
+      traineeProfileId,
+    );
     const campaignAssignmentId = matchedItem.campaign.assignments[0].id;
 
     return {
@@ -167,10 +175,15 @@ export class SimulationService {
 
   async recordInteraction(
     emailId: string,
+    campaignItemId: string,
     traineeProfileId: string,
     input: RecordSimulatedEmailInteractionRequestDto,
   ): Promise<RecordSimulatedEmailInteractionResponseDto> {
-    const { email, matchedItem } = await this.getEmailWithAccess(emailId, traineeProfileId);
+    const { email, matchedItem } = await this.getEmailWithAccess(
+      emailId,
+      campaignItemId,
+      traineeProfileId,
+    );
 
     const assignmentId = matchedItem.campaign.assignments[0].id;
     const itemId = matchedItem.id;
@@ -195,10 +208,16 @@ export class SimulationService {
 
   async classifyEmail(
     emailId: string,
+    campaignItemId: string,
     traineeProfileId: string,
     input: ClassifySimulatedEmailRequestDto,
   ): Promise<ClassifySimulatedEmailResponseDto> {
-    const { email, matchedItem } = await this.getEmailWithAccess(emailId, traineeProfileId, true);
+    const { email, matchedItem } = await this.getEmailWithAccess(
+      emailId,
+      campaignItemId,
+      traineeProfileId,
+      true,
+    );
 
     const assignmentId = matchedItem.campaign.assignments[0].id;
     const itemId = matchedItem.id;
