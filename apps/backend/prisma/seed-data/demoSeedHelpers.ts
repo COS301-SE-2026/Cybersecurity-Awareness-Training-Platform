@@ -2,14 +2,14 @@ import { hashPassword } from '../../src/services/password.service.js';
 import type { DemoAnswerOptionSeed, DemoRedFlagSeed } from './demoSeedTypes.js';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-export const DEMO_SEED_AUTH_VALUE_ENV_VAR = 'DEMO_SEED_AUTH_VALUE';
+export const DEMO_SEED_PASSWORD_ENV_VAR = 'DEMO_SEED_PASSWORD';
 
 export function getDemoSeedAuthValue(): string {
-  const authValue = process.env[DEMO_SEED_AUTH_VALUE_ENV_VAR]?.trim();
+  const authValue = process.env[DEMO_SEED_PASSWORD_ENV_VAR]?.trim();
 
   if (!authValue) {
     throw new Error(
-      `${DEMO_SEED_AUTH_VALUE_ENV_VAR} must be set before running the Demo 1 seed command.`,
+      `${DEMO_SEED_PASSWORD_ENV_VAR} must be set before running the Demo 1 seed command.`,
     );
   }
 
