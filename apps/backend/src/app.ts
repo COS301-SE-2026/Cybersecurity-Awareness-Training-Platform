@@ -7,6 +7,7 @@ import { swaggerSpec } from './config/swagger.js';
 import { healthRoutes } from './routes/health.routes.js';
 import { authRouter } from './routes/auth.routes.js';
 import { traineeRouter } from './routes/trainee.routes.js';
+import { traineeTrainingRouter } from './routes/trainee-training.routes.js';
 
 export function createApp() {
   const app = express();
@@ -30,6 +31,7 @@ export function createApp() {
   app.use(healthRoutes);
   app.use(authRouter);
   app.use('/trainee', traineeRouter);
+  app.use(traineeTrainingRouter);
 
   // Preliminary Demo 1 API Route Placeholders (To be implemented)
   // app.use('/auth', authRoutes);
