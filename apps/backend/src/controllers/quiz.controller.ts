@@ -33,63 +33,50 @@ function handleError(res: Response, error: unknown) {
   throw error;
 }
 
-export async function getQuiz(req: Request, res: Response) {
+async function withTraineeProfile(
+  req: Request,
+  res: Response,
+  fn: (traineeProfileId: string) => Promise<any>,
+  successStatus = 200,
+) {
   try {
     const traineeProfileId = await getTraineeProfileId(req.auth?.userId);
     if (!traineeProfileId) {
       return res.status(403).json({ error: 'FORBIDDEN', message: 'User is not a trainee' });
     }
-
-    const campaignItemId = req.params.campaignItemId as string;
-    const response = await getQuizByCampaignItemId(campaignItemId, traineeProfileId);
-    return res.status(200).json(response);
+    const response = await fn(traineeProfileId);
+    return res.status(successStatus).json(response);
   } catch (error) {
     return handleError(res, error);
   }
+}
+
+export async function getQuiz(req: Request, res: Response) {
+  const campaignItemId = req.params.campaignItemId as string;
+  return withTraineeProfile(req, res, (profileId) =>
+    getQuizByCampaignItemId(campaignItemId, profileId),
+  );
 }
 
 export async function startAttempt(req: Request, res: Response) {
-  try {
-    const traineeProfileId = await getTraineeProfileId(req.auth?.userId);
-    if (!traineeProfileId) {
-      return res.status(403).json({ error: 'FORBIDDEN', message: 'User is not a trainee' });
-    }
-
-    const campaignItemId = req.params.campaignItemId as string;
-    const response = await startQuizAttempt(campaignItemId, traineeProfileId);
-    return res.status(201).json(response);
-  } catch (error) {
-    return handleError(res, error);
-  }
+  const campaignItemId = req.params.campaignItemId as string;
+  return withTraineeProfile(
+    req,
+    res,
+    (profileId) => startQuizAttempt(campaignItemId, profileId),
+    201,
+  );
 }
 
 export async function submitAttempt(req: Request, res: Response) {
-  try {
-    const traineeProfileId = await getTraineeProfileId(req.auth?.userId);
-    if (!traineeProfileId) {
-      return res.status(403).json({ error: 'FORBIDDEN', message: 'User is not a trainee' });
-    }
-
-    const attemptId = req.params.attemptId as string;
-    const { answers } = req.body;
-    const response = await submitQuizAttempt(attemptId, traineeProfileId, answers);
-    return res.status(200).json(response);
-  } catch (error) {
-    return handleError(res, error);
-  }
+  const attemptId = req.params.attemptId as string;
+  const { answers } = req.body;
+  return withTraineeProfile(req, res, (profileId) =>
+    submitQuizAttempt(attemptId, profileId, answers),
+  );
 }
 
 export async function getResult(req: Request, res: Response) {
-  try {
-    const traineeProfileId = await getTraineeProfileId(req.auth?.userId);
-    if (!traineeProfileId) {
-      return res.status(403).json({ error: 'FORBIDDEN', message: 'User is not a trainee' });
-    }
-
-    const attemptId = req.params.attemptId as string;
-    const response = await getQuizResult(attemptId, traineeProfileId);
-    return res.status(200).json(response);
-  } catch (error) {
-    return handleError(res, error);
-  }
+  const attemptId = req.params.attemptId as string;
+  return withTraineeProfile(req, res, (profileId) => getQuizResult(attemptId, profileId));
 }
