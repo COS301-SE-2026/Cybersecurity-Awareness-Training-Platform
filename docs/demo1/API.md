@@ -284,7 +284,7 @@ The backend should resolve access through:
 
 Before submission, trainee-facing quiz fetch endpoints must not expose `AnswerOption.isCorrect` or `feedbackText`.
 
-### `POST /trainee/campaign-items/:campaignItemId/quiz-attempts`
+### `POST /trainee/campaign-items/:campaignItemId/quiz/attempts`
 
 - **Purpose**: Creates a quiz attempt for the quiz placed at the selected campaign item.
 - **Expected Request Data**:
@@ -311,7 +311,7 @@ Before submission, trainee-facing quiz fetch endpoints must not expose `AnswerOp
 - **Expected Response Data**:
   - `200 OK`: `{ "success": true, "attemptId": "attempt-123", "status": "SUBMITTED" }`
 
-### `GET /quiz-attempts/:attemptId/result`
+### `GET /quiz-attempts/:attemptId/results`
 
 - **Purpose**: Retrieves the result summary and answer-level educational feedback for a submitted attempt.
 - **Expected Response Data**:
