@@ -130,6 +130,35 @@ describe('Simulation API', () => {
     });
   });
 
+  describe('GET /trainee/campaign-items/:campaignItemId/simulated-emails/:emailId', () => {
+    it('returns the simulated email for an authorized trainee', async () => {
+      prismaMock.simulatedEmail.findUnique.mockResolvedValue(createMockEmail());
+
+      const response = await request(app)
+        .get(
+          '/trainee/campaign-items/22222222-2222-2222-2222-222222222222/simulated-emails/11111111-1111-1111-1111-111111111111',
+        )
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.subject).toBe('Security Alert');
+    });
+
+    it('returns 403 if the simulated inbox is inactive', async () => {
+      const inactiveEmail = createMockEmail();
+      inactiveEmail.inbox.simulation.campaignItems[0].simulation.simulatedInbox.status = 'INACTIVE';
+      prismaMock.simulatedEmail.findUnique.mockResolvedValue(inactiveEmail);
+
+      const response = await request(app)
+        .get(
+          '/trainee/campaign-items/22222222-2222-2222-2222-222222222222/simulated-emails/11111111-1111-1111-1111-111111111111',
+        )
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(response.status).toBe(403);
+    });
+  });
+
   describe('POST /trainee/campaign-items/:campaignItemId/simulated-emails/:emailId/interactions', () => {
     it('records an interaction using resolved context and correctly validates UUIDs', async () => {
       prismaMock.simulatedEmail.findUnique.mockResolvedValue(createMockEmail());
@@ -167,6 +196,21 @@ describe('Simulation API', () => {
           campaignItemId: 'hacker-id',
         });
       expect(response.status).toBe(400);
+    });
+
+    it('returns 403 if the simulated inbox is inactive', async () => {
+      const inactiveEmail = createMockEmail();
+      inactiveEmail.inbox.simulation.campaignItems[0].simulation.simulatedInbox.status = 'INACTIVE';
+      prismaMock.simulatedEmail.findUnique.mockResolvedValue(inactiveEmail);
+
+      const response = await request(app)
+        .post(
+          '/trainee/campaign-items/22222222-2222-2222-2222-222222222222/simulated-emails/11111111-1111-1111-1111-111111111111/interactions',
+        )
+        .set('Authorization', `Bearer ${token}`)
+        .send({ eventType: 'SIMULATED_EMAIL_OPENED' });
+
+      expect(response.status).toBe(403);
     });
   });
 
@@ -235,6 +279,21 @@ describe('Simulation API', () => {
           }),
         }),
       );
+    });
+
+    it('returns 403 if the simulated inbox is inactive', async () => {
+      const inactiveEmail = createMockEmail();
+      inactiveEmail.inbox.simulation.campaignItems[0].simulation.simulatedInbox.status = 'INACTIVE';
+      prismaMock.simulatedEmail.findUnique.mockResolvedValue(inactiveEmail);
+
+      const response = await request(app)
+        .post(
+          '/trainee/campaign-items/22222222-2222-2222-2222-222222222222/simulated-emails/11111111-1111-1111-1111-111111111111/classification',
+        )
+        .set('Authorization', `Bearer ${token}`)
+        .send({ selectedClassification: 'SAFE' });
+
+      expect(response.status).toBe(403);
     });
   });
 });

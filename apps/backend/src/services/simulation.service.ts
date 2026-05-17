@@ -101,7 +101,11 @@ export class SimulationService {
               include: {
                 campaignItems: {
                   include: {
-                    simulation: true,
+                    simulation: {
+                      include: {
+                        simulatedInbox: true,
+                      },
+                    },
                     campaign: {
                       include: {
                         assignments: {
@@ -134,7 +138,8 @@ export class SimulationService {
         item.itemType === 'COMPONENT' &&
         item.componentType === 'SIMULATED_INBOX' &&
         item.availabilityStatus === 'AVAILABLE' &&
-        item.simulation?.safetyStatus === 'APPROVED',
+        item.simulation?.safetyStatus === 'APPROVED' &&
+        item.simulation?.simulatedInbox?.status === 'ACTIVE',
     );
 
     if (!matchedItem) {

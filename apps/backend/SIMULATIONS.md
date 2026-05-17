@@ -16,21 +16,21 @@ Returns the list of simulated emails for a specific campaign item.
 - **Access**: Requires the trainee to be assigned to the campaign containing the item.
 - **Filtering**: Automatically filters by the authenticated trainee's assignments.
 
-### 2. GET /trainee/simulated-emails/:emailId
+### 2. GET /trainee/campaign-items/:campaignItemId/simulated-emails/:emailId
 
 Returns the full content of a specific simulated email.
 
 - **Access**: Validates access through campaign assignment.
 - **Privacy**: Does NOT expose `expectedClassification` or `redFlags` before classification.
 
-### 3. POST /trainee/simulated-emails/:emailId/interactions
+### 3. POST /trainee/campaign-items/:campaignItemId/simulated-emails/:emailId/interactions
 
 Records interaction events for an email.
 
 - **Event Types**: `SIMULATED_EMAIL_OPENED`, `SIMULATED_EMAIL_LINK_CLICKED`, `CREDENTIAL_SUBMISSION_ATTEMPTED`.
 - **Validation**: Rejects invalid event types.
 
-### 4. POST /trainee/simulated-emails/:emailId/classification (Optional/Future)
+### 4. POST /trainee/campaign-items/:campaignItemId/simulated-emails/:emailId/classification (Optional/Future)
 
 Records the trainee's classification of an email.
 
