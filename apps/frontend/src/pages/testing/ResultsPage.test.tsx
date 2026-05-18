@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 import type { ReactNode } from 'react';
-import { render, screen } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as quizApi from '../../lib/quizApi';
@@ -53,6 +53,7 @@ describe('ResultsPage', () => {
   });
 
   afterEach(() => {
+    cleanup();
     vi.restoreAllMocks();
   });
 

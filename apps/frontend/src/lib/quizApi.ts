@@ -241,6 +241,7 @@ export async function submitQuizAttempt(
   attemptId: string,
   _payload: SubmitQuizAttemptRequestDto,
 ): Promise<SubmitQuizAttemptResponseDto> {
+  void _payload;
   await delay();
 
   if (attemptId !== mockResult.attemptId) {
