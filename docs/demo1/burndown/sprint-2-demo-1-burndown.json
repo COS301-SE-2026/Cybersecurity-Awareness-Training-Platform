@@ -175,8 +175,8 @@
       "number": 74,
       "title": "feat: [database] Add stable Demo 1 seed data",
       "points": 3,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-05-18"
     },
     {
       "number": 73,
@@ -280,7 +280,7 @@
     },
     {
       "date": "2026-05-18",
-      "remaining": 51,
+      "remaining": 48,
       "ideal": 19.56
     }
   ]
