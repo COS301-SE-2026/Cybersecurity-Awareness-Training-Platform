@@ -74,6 +74,14 @@ function arrayOf(schema: OpenApiSchema): OpenApiSchema {
   };
 }
 
+function uuidArray(example: string[]): OpenApiSchema {
+  return {
+    type: 'array',
+    items: uuidString(example[0] ?? '11111111-1111-1111-1111-111111111111'),
+    example,
+  };
+}
+
 function errorResponseSchema(
   baseSchemaName: string,
   errorCode: string,
@@ -478,9 +486,7 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
               example: 'Bearer',
             },
             expiresAt: {
-              type: 'string',
-              format: 'date-time',
-              example: '2026-05-12T20:44:54.000Z',
+              ...dateTimeString('2026-05-12T20:44:54.000Z'),
             },
           },
         },
@@ -616,14 +622,10 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
               ...trueSuccessProperty(),
             },
             campaignItemId: {
-              type: 'string',
-              format: 'uuid',
-              example: '11111111-1111-4111-8111-111111111111',
+              ...uuidString('11111111-1111-4111-8111-111111111111'),
             },
             trainingDocumentId: {
-              type: 'string',
-              format: 'uuid',
-              example: '33333333-3333-4333-8333-333333333333',
+              ...uuidString('33333333-3333-4333-8333-333333333333'),
             },
             event: {
               $ref: '#/components/schemas/TrainingInteractionEvent',
@@ -657,21 +659,13 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
           ],
           properties: {
             id: {
-              type: 'string',
-              format: 'uuid',
-              example: '11111111-1111-1111-1111-111111111111',
+              ...uuidString('11111111-1111-1111-1111-111111111111'),
             },
             campaignAssignmentId: {
-              type: 'string',
-              format: 'uuid',
-              nullable: true,
-              example: '44444444-4444-4444-4444-444444444444',
+              ...nullableUuidString('44444444-4444-4444-4444-444444444444'),
             },
             campaignItemId: {
-              type: 'string',
-              format: 'uuid',
-              nullable: true,
-              example: '22222222-2222-2222-2222-222222222222',
+              ...nullableUuidString('22222222-2222-2222-2222-222222222222'),
             },
             inboxId: {
               type: 'string',
@@ -696,9 +690,7 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
               example: 'Please review this important security notice.',
             },
             receivedAt: {
-              type: 'string',
-              format: 'date-time',
-              example: '2026-05-16T09:00:00.000Z',
+              ...dateTimeString(),
             },
             difficultyLevel: {
               $ref: '#/components/schemas/DifficultyLevel',
@@ -729,21 +721,13 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
           ],
           properties: {
             id: {
-              type: 'string',
-              format: 'uuid',
-              example: '11111111-1111-1111-1111-111111111111',
+              ...uuidString('11111111-1111-1111-1111-111111111111'),
             },
             campaignAssignmentId: {
-              type: 'string',
-              format: 'uuid',
-              nullable: true,
-              example: '44444444-4444-4444-4444-444444444444',
+              ...nullableUuidString('44444444-4444-4444-4444-444444444444'),
             },
             campaignItemId: {
-              type: 'string',
-              format: 'uuid',
-              nullable: true,
-              example: '22222222-2222-2222-2222-222222222222',
+              ...nullableUuidString('22222222-2222-2222-2222-222222222222'),
             },
             inboxId: {
               type: 'string',
@@ -781,9 +765,7 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
               example: false,
             },
             receivedAt: {
-              type: 'string',
-              format: 'date-time',
-              example: '2026-05-16T09:00:00.000Z',
+              ...dateTimeString(),
             },
             difficultyLevel: {
               $ref: '#/components/schemas/DifficultyLevel',
@@ -805,9 +787,7 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
           required: ['success', 'eventType'],
           properties: {
             success: {
-              type: 'boolean',
-              enum: [true],
-              example: true,
+              ...trueSuccessProperty(),
             },
             eventType: {
               $ref: '#/components/schemas/SimulatedEmailInteractionEventType',
@@ -823,12 +803,7 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
               $ref: '#/components/schemas/EmailClassification',
             },
             selectedRedFlagIds: {
-              type: 'array',
-              items: {
-                type: 'string',
-                format: 'uuid',
-              },
-              example: ['33333333-3333-3333-3333-333333333333'],
+              ...uuidArray(['33333333-3333-3333-3333-333333333333']),
             },
             freeTextReason: {
               type: 'string',
@@ -842,9 +817,7 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
           required: ['id', 'redFlagType', 'label', 'severity'],
           properties: {
             id: {
-              type: 'string',
-              format: 'uuid',
-              example: '33333333-3333-3333-3333-333333333333',
+              ...uuidString('33333333-3333-3333-3333-333333333333'),
             },
             redFlagType: {
               $ref: '#/components/schemas/EmailRedFlagType',
@@ -868,9 +841,7 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
           required: ['success', 'responseId', 'selectedClassification', 'isCorrect'],
           properties: {
             success: {
-              type: 'boolean',
-              enum: [true],
-              example: true,
+              ...trueSuccessProperty(),
             },
             responseId: {
               type: 'string',
@@ -889,10 +860,7 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
               example: 'Great job! You correctly identified the email.',
             },
             redFlags: {
-              type: 'array',
-              items: {
-                $ref: '#/components/schemas/EmailRedFlag',
-              },
+              ...arrayOf(schemaRef('EmailRedFlag')),
             },
           },
         },
@@ -903,16 +871,10 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
           type: 'object',
           properties: {
             campaignItemId: {
-              type: 'string',
-              format: 'uuid',
-              nullable: true,
-              example: '11111111-1111-1111-1111-111111111111',
+              ...nullableUuidString('11111111-1111-1111-1111-111111111111'),
             },
             campaignAssignmentId: {
-              type: 'string',
-              format: 'uuid',
-              nullable: true,
-              example: '44444444-4444-4444-4444-444444444444',
+              ...nullableUuidString('44444444-4444-4444-4444-444444444444'),
             },
           },
         },
@@ -921,9 +883,7 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
           required: ['id', 'label', 'text', 'position'],
           properties: {
             id: {
-              type: 'string',
-              format: 'uuid',
-              example: '44444444-4444-4444-4444-444444444444',
+              ...uuidString('44444444-4444-4444-4444-444444444444'),
             },
             label: {
               type: 'string',
@@ -944,9 +904,7 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
           required: ['id', 'prompt', 'questionType', 'position', 'points', 'options'],
           properties: {
             id: {
-              type: 'string',
-              format: 'uuid',
-              example: '33333333-3333-3333-3333-333333333333',
+              ...uuidString('33333333-3333-3333-3333-333333333333'),
             },
             prompt: {
               type: 'string',
@@ -964,10 +922,7 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
               example: 5,
             },
             options: {
-              type: 'array',
-              items: {
-                $ref: '#/components/schemas/QuizOptionForTrainee',
-              },
+              ...arrayOf(schemaRef('QuizOptionForTrainee')),
             },
           },
         },
@@ -987,10 +942,7 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
               example: 'quiz-1',
             },
             campaignItemId: {
-              type: 'string',
-              format: 'uuid',
-              nullable: true,
-              example: '11111111-1111-1111-1111-111111111111',
+              ...nullableUuidString('11111111-1111-1111-1111-111111111111'),
             },
             campaignAssignmentId: {
               type: 'string',
@@ -1019,10 +971,7 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
               $ref: '#/components/schemas/QuizStatus',
             },
             questions: {
-              type: 'array',
-              items: {
-                $ref: '#/components/schemas/QuizQuestionForTrainee',
-              },
+              ...arrayOf(schemaRef('QuizQuestionForTrainee')),
             },
           },
         },
@@ -1031,9 +980,7 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
           required: ['attemptId', 'traineeProfileId', 'quizId', 'status', 'startedAt'],
           properties: {
             attemptId: {
-              type: 'string',
-              format: 'uuid',
-              example: '22222222-2222-2222-2222-222222222222',
+              ...uuidString('22222222-2222-2222-2222-222222222222'),
             },
             traineeProfileId: {
               type: 'string',
@@ -1049,10 +996,7 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
               example: 'assign-1',
             },
             campaignItemId: {
-              type: 'string',
-              format: 'uuid',
-              nullable: true,
-              example: '11111111-1111-1111-1111-111111111111',
+              ...nullableUuidString('11111111-1111-1111-1111-111111111111'),
             },
             status: {
               type: 'string',
@@ -1060,9 +1004,7 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
               example: 'IN_PROGRESS',
             },
             startedAt: {
-              type: 'string',
-              format: 'date-time',
-              example: '2026-05-16T09:00:00.000Z',
+              ...dateTimeString(),
             },
           },
         },
@@ -1079,18 +1021,11 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
           additionalProperties: false,
           properties: {
             questionId: {
-              type: 'string',
-              format: 'uuid',
-              example: '33333333-3333-3333-3333-333333333333',
+              ...uuidString('33333333-3333-3333-3333-333333333333'),
             },
             selectedOptionIds: {
-              type: 'array',
+              ...uuidArray(['44444444-4444-4444-4444-444444444444']),
               minItems: 1,
-              items: {
-                type: 'string',
-                format: 'uuid',
-              },
-              example: ['44444444-4444-4444-4444-444444444444'],
             },
             responseSummary: {
               type: 'string',
@@ -1110,11 +1045,8 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
           additionalProperties: false,
           properties: {
             answers: {
-              type: 'array',
+              ...arrayOf(schemaRef('AttemptAnswer')),
               minItems: 1,
-              items: {
-                $ref: '#/components/schemas/AttemptAnswer',
-              },
             },
           },
         },
@@ -1123,14 +1055,10 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
           required: ['success', 'attemptId', 'status'],
           properties: {
             success: {
-              type: 'boolean',
-              enum: [true],
-              example: true,
+              ...trueSuccessProperty(),
             },
             attemptId: {
-              type: 'string',
-              format: 'uuid',
-              example: '22222222-2222-2222-2222-222222222222',
+              ...uuidString('22222222-2222-2222-2222-222222222222'),
             },
             status: {
               type: 'string',
@@ -1144,9 +1072,7 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
           required: ['optionId', 'label', 'text', 'isCorrect'],
           properties: {
             optionId: {
-              type: 'string',
-              format: 'uuid',
-              example: '44444444-4444-4444-4444-444444444444',
+              ...uuidString('44444444-4444-4444-4444-444444444444'),
             },
             label: {
               type: 'string',
@@ -1172,9 +1098,7 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
           required: ['questionId', 'selectedOptions'],
           properties: {
             questionId: {
-              type: 'string',
-              format: 'uuid',
-              example: '33333333-3333-3333-3333-333333333333',
+              ...uuidString('33333333-3333-3333-3333-333333333333'),
             },
             isCorrect: {
               type: 'boolean',
@@ -1192,10 +1116,7 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
               example: 'Correct!',
             },
             selectedOptions: {
-              type: 'array',
-              items: {
-                $ref: '#/components/schemas/QuizResultOption',
-              },
+              ...arrayOf(schemaRef('QuizResultOption')),
             },
           },
         },
@@ -1204,9 +1125,7 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
           required: ['attemptId', 'quizId', 'scorePercentage', 'passed', 'answers'],
           properties: {
             attemptId: {
-              type: 'string',
-              format: 'uuid',
-              example: '22222222-2222-2222-2222-222222222222',
+              ...uuidString('22222222-2222-2222-2222-222222222222'),
             },
             quizId: {
               type: 'string',
@@ -1218,10 +1137,7 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
               example: 'assign-1',
             },
             campaignItemId: {
-              type: 'string',
-              format: 'uuid',
-              nullable: true,
-              example: '11111111-1111-1111-1111-111111111111',
+              ...nullableUuidString('11111111-1111-1111-1111-111111111111'),
             },
             scorePercentage: {
               type: 'integer',
@@ -1239,10 +1155,7 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
               example: 'Well done',
             },
             answers: {
-              type: 'array',
-              items: {
-                $ref: '#/components/schemas/QuizResultQuestion',
-              },
+              ...arrayOf(schemaRef('QuizResultQuestion')),
             },
           },
         },
