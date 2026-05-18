@@ -5,6 +5,7 @@ import CampaignAccordion from '../components/ui/CampaignAccordion';
 import TrainingPartAccordion from '../components/ui/TrainingPartAccordion';
 
 import TrainingActionRow from '../components/ui/TrainingActionRow';
+import CampaignActionRow from '../components/ui/CampaignActionRow';
 
 function CampaignsPage() {
   return (
@@ -81,14 +82,13 @@ function CampaignsPage() {
             <TrainingActionRow label="Quiz" status="COMPLETE LEARN FIRST" disabled />
           </TrainingPartAccordion>
 
-          <TrainingActionRow
-            label="Password Security Simulation"
+          <CampaignActionRow
+            title="Password Security Simulation"
             status="COMPLETE ALL PARTS FIRST"
             disabled
-            large
           />
 
-          <TrainingActionRow label="Final Quiz" status="COMPLETE ALL PARTS FIRST" disabled large />
+          <CampaignActionRow title="Final Quiz" status="COMPLETE ALL PARTS FIRST" disabled />
         </CampaignAccordion>
       </div>
     </AppLayout>
