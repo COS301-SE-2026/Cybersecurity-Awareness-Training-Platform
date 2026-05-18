@@ -28,8 +28,15 @@ describe('swaggerSpec', () => {
     expect(spec.components?.schemas).toHaveProperty('AuthRegisterResponse');
     expect(spec.components?.schemas).toHaveProperty('AuthLoginResponse');
     expect(spec.components?.schemas).toHaveProperty('AuthMeResponse');
+    expect(spec.components?.schemas).toHaveProperty('AuthRateLimitErrorResponse');
     expect(spec.components?.schemas).toHaveProperty('UserType');
     expect(spec.components?.schemas).toHaveProperty('AuthStatus');
     expect(JSON.stringify(spec.components?.schemas?.PublicUser)).not.toContain('passwordHash');
+  });
+
+  it('includes the mounted auth paths', () => {
+    expect(spec.paths).toHaveProperty('/auth/register');
+    expect(spec.paths).toHaveProperty('/auth/login');
+    expect(spec.paths).toHaveProperty('/auth/me');
   });
 });

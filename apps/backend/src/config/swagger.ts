@@ -192,6 +192,27 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
             },
           ],
         },
+        AuthRateLimitErrorResponse: {
+          allOf: [
+            {
+              $ref: '#/components/schemas/RateLimitErrorResponse',
+            },
+            {
+              type: 'object',
+              properties: {
+                error: {
+                  type: 'string',
+                  enum: ['AUTH_RATE_LIMITED'],
+                  example: 'AUTH_RATE_LIMITED',
+                },
+                message: {
+                  type: 'string',
+                  example: 'Too many authentication requests. Please try again later.',
+                },
+              },
+            },
+          ],
+        },
         UserType: {
           type: 'string',
           enum: ['IP_ADMIN', 'ORGANISATION_ADMIN', 'ORGANISATION_TRAINEE', 'GENERAL_TRAINEE'],
