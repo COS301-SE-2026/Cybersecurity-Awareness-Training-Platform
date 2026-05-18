@@ -1,0 +1,254 @@
+import { describe, expect, it } from 'vitest';
+import { swaggerSpec } from '../../src/config/swagger.js';
+
+type HttpMethod = 'get' | 'post';
+
+interface SwaggerOperationShape {
+  responses?: Record<string, unknown>;
+}
+
+interface SwaggerSpecShape {
+  openapi?: string;
+  paths?: Record<string, Record<string, SwaggerOperationShape>>;
+  components?: {
+    schemas?: Record<string, unknown>;
+    responses?: Record<string, unknown>;
+    requestBodies?: Record<string, unknown>;
+    parameters?: Record<string, unknown>;
+    securitySchemes?: Record<string, unknown>;
+  };
+}
+
+const expectedSchemas = [
+  'HealthStatus',
+  'ApiErrorResponse',
+  'ValidationErrorResponse',
+  'RateLimitErrorResponse',
+  'PublicUser',
+  'AuthRegisterRequest',
+  'AuthLoginRequest',
+  'AuthRegisterResponse',
+  'AuthLoginResponse',
+  'AuthMeResponse',
+  'AuthRateLimitErrorResponse',
+  'UserType',
+  'AuthStatus',
+  'TrainingDocument',
+  'TrainingCampaignItemContext',
+  'GetTrainingDocumentResponse',
+  'RecordTrainingInteractionResponse',
+  'TrainingInteractionEvent',
+  'EmptyRequestBody',
+  'TrainingContentType',
+  'DifficultyLevel',
+  'TrainingDocumentStatus',
+  'TrainingInteractionEventType',
+  'SimulatedInbox',
+  'SimulatedInboxEmailSummary',
+  'SimulatedEmailDetail',
+  'RecordSimulatedEmailInteractionRequest',
+  'RecordSimulatedEmailInteractionResponse',
+  'ClassifySimulatedEmailRequest',
+  'ClassifySimulatedEmailResponse',
+  'EmailRedFlag',
+  'EmailClassification',
+  'EmailRedFlagType',
+  'RedFlagSeverity',
+  'SimulatedEmailInteractionEventType',
+  'QuizCampaignItemContext',
+  'QuizOptionForTrainee',
+  'QuizQuestionForTrainee',
+  'GetQuizResponse',
+  'StartQuizAttemptResponse',
+  'SubmitQuizAttemptRequest',
+  'SubmitQuizAttemptResponse',
+  'GetQuizResultResponse',
+  'QuizResultQuestion',
+  'QuizResultOption',
+  'QuizAttempt',
+  'AttemptAnswer',
+  'QuestionType',
+  'QuizAttemptStatus',
+  'QuizStatus',
+] as const;
+
+const expectedResponses = [
+  'BadRequest',
+  'Unauthorized',
+  'Forbidden',
+  'NotFound',
+  'Conflict',
+  'TooManyRequests',
+  'InternalServerError',
+] as const;
+
+const expectedParameters = [
+  'CampaignItemIdPathParam',
+  'EmailIdPathParam',
+  'AttemptIdPathParam',
+] as const;
+
+const expectedRequestBodies = [
+  'AuthRegister',
+  'AuthLogin',
+  'EmptyJson',
+  'RecordSimulatedEmailInteraction',
+  'ClassifySimulatedEmail',
+  'SubmitQuizAttempt',
+] as const;
+
+const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
+  ['get', '/health', ['200', '500']],
+  ['post', '/auth/register', ['201', '400', '409', '429', '500']],
+  ['post', '/auth/login', ['200', '400', '401', '429', '500']],
+  ['get', '/auth/me', ['200', '401', '429', '500']],
+  [
+    'get',
+    '/trainee/campaign-items/{campaignItemId}/training-document',
+    ['200', '400', '401', '404', '429', '500'],
+  ],
+  [
+    'post',
+    '/trainee/campaign-items/{campaignItemId}/training-document/viewed',
+    ['201', '400', '401', '404', '429', '500'],
+  ],
+  [
+    'post',
+    '/trainee/campaign-items/{campaignItemId}/training-document/completed',
+    ['201', '400', '401', '404', '429', '500'],
+  ],
+  [
+    'get',
+    '/trainee/campaign-items/{campaignItemId}/simulated-inbox',
+    ['200', '400', '401', '403', '404', '429', '500'],
+  ],
+  [
+    'get',
+    '/trainee/campaign-items/{campaignItemId}/simulated-emails/{emailId}',
+    ['200', '400', '401', '403', '404', '429', '500'],
+  ],
+  [
+    'post',
+    '/trainee/campaign-items/{campaignItemId}/simulated-emails/{emailId}/interactions',
+    ['200', '400', '401', '403', '404', '429', '500'],
+  ],
+  [
+    'post',
+    '/trainee/campaign-items/{campaignItemId}/simulated-emails/{emailId}/classification',
+    ['200', '400', '401', '403', '404', '409', '429', '500'],
+  ],
+  [
+    'get',
+    '/trainee/campaign-items/{campaignItemId}/quiz',
+    ['200', '400', '401', '403', '404', '429', '500'],
+  ],
+  [
+    'post',
+    '/trainee/campaign-items/{campaignItemId}/quiz/attempts',
+    ['201', '400', '401', '403', '404', '429', '500'],
+  ],
+  [
+    'post',
+    '/quiz-attempts/{attemptId}/submit',
+    ['200', '400', '401', '403', '404', '409', '429', '500'],
+  ],
+  ['get', '/quiz-attempts/{attemptId}/results', ['200', '400', '401', '403', '404', '429', '500']],
+];
+
+const inactiveRouteDocs = [
+  '/training/assigned',
+  '/training/{trainingId}',
+  '/training/{trainingId}/progress',
+  '/simulations/inbox',
+  '/simulations/emails/{emailId}',
+  '/quizzes/{quizId}',
+  '/trainee/simulated-emails/{emailId}',
+  '/trainee/campaign-items/{campaignItemId}/quiz-attempts',
+  '/quiz-attempts/{attemptId}/result',
+] as const;
+
+describe('swaggerSpec', () => {
+  const spec = swaggerSpec as SwaggerSpecShape;
+
+  function getPath(path: string, method: HttpMethod) {
+    return spec.paths?.[path]?.[method];
+  }
+
+  function expectPathExists(path: string, method: HttpMethod) {
+    expect(getPath(path, method), `${method.toUpperCase()} ${path}`).toBeDefined();
+  }
+
+  function expectSchemaExists(name: string) {
+    expect(spec.components?.schemas).toHaveProperty(name);
+  }
+
+  function expectPathResponse(path: string, method: HttpMethod, status: string) {
+    expect(getPath(path, method)?.responses).toHaveProperty(status);
+  }
+
+  function expectSchemaNotToContain(schemaName: string, forbiddenTerms: string[]) {
+    const serializedSchema = JSON.stringify(spec.components?.schemas?.[schemaName]);
+
+    for (const term of forbiddenTerms) {
+      expect(serializedSchema).not.toContain(term);
+    }
+  }
+
+  it('generates the base OpenAPI spec with bearer auth', () => {
+    expect(spec).toBeDefined();
+    expect(spec.openapi).toBe('3.0.0');
+    expect(spec.components?.securitySchemes).toHaveProperty('bearerAuth');
+  });
+
+  it.each(expectedSchemas)('includes reusable schema %s', (schemaName) => {
+    expectSchemaExists(schemaName);
+  });
+
+  it.each(expectedResponses)('includes reusable response %s', (responseName) => {
+    expect(spec.components?.responses).toHaveProperty(responseName);
+  });
+
+  it.each(expectedParameters)('includes reusable UUID parameter %s', (parameterName) => {
+    expect(spec.components?.parameters).toHaveProperty(parameterName);
+    expect(JSON.stringify(spec.components?.parameters?.[parameterName])).toContain('"uuid"');
+  });
+
+  it.each(expectedRequestBodies)('includes reusable request body %s', (requestBodyName) => {
+    expect(spec.components?.requestBodies).toHaveProperty(requestBodyName);
+  });
+
+  it.each(expectedRouteDocs)('documents %s %s', (method, path, statuses) => {
+    expectPathExists(path, method);
+
+    for (const status of statuses) {
+      expectPathResponse(path, method, status);
+    }
+  });
+
+  it.each(inactiveRouteDocs)('does not document inactive route %s', (path) => {
+    expect(spec.paths).not.toHaveProperty(path);
+  });
+
+  it('keeps public user schemas free of password hashes', () => {
+    expectSchemaNotToContain('PublicUser', ['passwordHash']);
+  });
+
+  it('keeps simulated email detail free of pre-classification answers', () => {
+    expectSchemaNotToContain('SimulatedEmailDetail', ['expectedClassification', 'redFlags']);
+  });
+
+  it('keeps quiz fetch response free of pre-submission answers', () => {
+    expectSchemaNotToContain('GetQuizResponse', ['isCorrect', 'feedbackText']);
+  });
+
+  it('includes quiz result feedback fields only in post-submission result schemas', () => {
+    const resultSchema = JSON.stringify([
+      spec.components?.schemas?.GetQuizResultResponse,
+      spec.components?.schemas?.QuizResultQuestion,
+      spec.components?.schemas?.QuizResultOption,
+    ]);
+
+    expect(resultSchema).toContain('isCorrect');
+    expect(resultSchema).toContain('feedbackText');
+  });
+});
