@@ -1,19 +1,25 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import {
+  AuthActionLink,
+  AuthFormField,
+  AuthPageFrame,
+  AuthPageIntro,
+} from '../components/auth/AuthPrimitives';
+import {
+  authFieldRowStyle,
+  authFormStyle,
+  authPrimaryButtonStyle,
+} from '../components/auth/authStyles';
 
 function RegisterPage() {
   const navigate = useNavigate();
 
   const [firstName, setFirstName] = useState('');
-
   const [lastName, setLastName] = useState('');
-
   const [email, setEmail] = useState('');
-
   const [password, setPassword] = useState('');
-
   const [confirmPassword, setConfirmPassword] = useState('');
-
   const [message, setMessage] = useState('');
 
   function handleRegister(event: React.FormEvent) {
@@ -65,438 +71,112 @@ function RegisterPage() {
   }
 
   return (
-    <main
-      style={{
-        width: '100vw',
-        height: '100vh',
-        display: 'flex',
-        overflow: 'hidden',
-        backgroundColor: '#040025',
-      }}
-    >
-      {/* LEFT PANEL */}
+    <AuthPageFrame
+      leftWidth="78%"
+      rightWidth="22%"
+      rightPanelStyle={{ padding: '2rem' }}
+      leftChildren={
+        <>
+          <AuthPageIntro
+            title="Welcome"
+            dividerStyle={{ marginBottom: '0.9rem' }}
+            afterDivider={
+              <AuthActionLink
+                to="/register"
+                prefix="ORGANISATION?"
+                emphasis="Register as an Organisation"
+                outerStyle={{ marginBottom: '1.5rem' }}
+              />
+            }
+            message={message}
+            messageStyle={{ marginBottom: '1.5rem' }}
+          />
 
-      <section
-        style={{
-          width: '78%',
-          backgroundColor: '#2F0360',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          paddingLeft: '5vw',
-          paddingRight: '4vw',
-        }}
-      >
-        {/* WELCOME */}
-
-        <h1
-          style={{
-            fontFamily: 'Jost',
-            fontWeight: 400,
-            fontSize: '5rem',
-            letterSpacing: '0.03em',
-            color: '#D6B3FF',
-            margin: 0,
-            marginBottom: '1rem',
-            lineHeight: 1,
-          }}
-        >
-          Welcome
-        </h1>
-
-        {/* DIVIDER */}
-
-        <div
-          style={{
-            width: '100%',
-            height: '5px',
-            backgroundColor: '#8400FF',
-            marginBottom: '0.9rem',
-          }}
-        />
-
-        {/* ORGANISATION */}
-
-        <Link
-          to="/register"
-          style={{
-            textDecoration: 'none',
-            width: 'fit-content',
-            marginBottom: '1.5rem',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.3rem',
-              fontFamily: 'Jost',
-              fontSize: '1.4rem',
-              letterSpacing: '0.05em',
-              color: '#D6B3FF',
-              fontWeight: 400,
-            }}
-          >
-            <span>
-              ORGANISATION?{' '}
-              <span
-                style={{
-                  fontWeight: 500,
-                }}
-              >
-                Register as an Organisation
-              </span>
-            </span>
-
-            <span
-              className="material-symbols-outlined"
-              style={{
-                fontSize: '2rem',
-                color: '#B37DFF',
-              }}
-            >
-              arrow_forward
-            </span>
-          </div>
-        </Link>
-
-        {/* MESSAGE */}
-
-        {message && (
-          <p
-            style={{
-              margin: 0,
-              marginBottom: '1.5rem',
-              color: 'white',
-              fontFamily: 'Jost',
-              fontWeight: 500,
-              fontSize: '1.2rem',
-              letterSpacing: '0.03em',
-            }}
-          >
-            {message}
-          </p>
-        )}
-
-        {/* FORM */}
-
-        <form
-          onSubmit={handleRegister}
-          noValidate
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
-          {/* NAME ROW */}
-
-          <div
-            style={{
-              display: 'flex',
-              gap: '2.5rem',
-              marginBottom: '1.8rem',
-            }}
-          >
-            {/* FIRST NAME */}
-
+          <form onSubmit={handleRegister} noValidate style={authFormStyle}>
             <div
               style={{
-                flex: 1,
+                ...authFieldRowStyle,
+                marginBottom: '1.8rem',
               }}
             >
-              <label
-                style={{
-                  display: 'block',
-                  fontFamily: 'Jost',
-                  fontWeight: 400,
-                  fontSize: '1.5rem',
-                  letterSpacing: '0.05em',
-                  color: '#B37DFF',
-                  marginBottom: '0.4rem',
-                }}
-              >
-                First Name
-              </label>
-
-              <input
+              <AuthFormField
+                label="First Name"
                 type="text"
                 value={firstName}
                 onChange={(event) => setFirstName(event.target.value)}
-                style={{
-                  width: '100%',
-                  height: '60px',
-                  backgroundColor: '#090054',
-                  border: 'none',
-                  outline: 'none',
-                  padding: '0 1rem',
-                  letterSpacing: '0.05em',
-                  color: 'white',
-                  fontFamily: 'Overpass',
-                  fontSize: '1.4rem',
-                }}
+                autoComplete="given-name"
+                wrapperStyle={{ flex: 1 }}
               />
-            </div>
 
-            {/* LAST NAME */}
-
-            <div
-              style={{
-                flex: 1,
-              }}
-            >
-              <label
-                style={{
-                  display: 'block',
-                  fontFamily: 'Jost',
-                  fontWeight: 400,
-                  fontSize: '1.5rem',
-                  letterSpacing: '0.05em',
-                  color: '#B37DFF',
-                  marginBottom: '0.4rem',
-                }}
-              >
-                Last Name
-              </label>
-
-              <input
+              <AuthFormField
+                label="Last Name"
                 type="text"
                 value={lastName}
                 onChange={(event) => setLastName(event.target.value)}
-                style={{
-                  width: '100%',
-                  height: '60px',
-                  backgroundColor: '#090054',
-                  border: 'none',
-                  outline: 'none',
-                  padding: '0 1rem',
-                  letterSpacing: '0.05em',
-                  color: 'white',
-                  fontFamily: 'Overpass',
-                  fontSize: '1.4rem',
-                }}
+                autoComplete="family-name"
+                wrapperStyle={{ flex: 1 }}
               />
             </div>
-          </div>
 
-          {/* EMAIL */}
-
-          <div
-            style={{
-              marginBottom: '1.8rem',
-            }}
-          >
-            <label
-              style={{
-                display: 'block',
-                fontFamily: 'Jost',
-                fontWeight: 400,
-                fontSize: '1.5rem',
-                letterSpacing: '0.05em',
-                color: '#B37DFF',
-                marginBottom: '0.4rem',
-              }}
-            >
-              Email Address
-            </label>
-
-            <input
+            <AuthFormField
+              label="Email Address"
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              style={{
-                width: '100%',
-                height: '60px',
-                backgroundColor: '#090054',
-                border: 'none',
-                outline: 'none',
-                padding: '0 1rem',
-                letterSpacing: '0.05em',
-                color: 'white',
-                fontFamily: 'Overpass',
-                fontSize: '1.4rem',
-              }}
+              autoComplete="email"
+              wrapperStyle={{ marginBottom: '1.8rem' }}
             />
-          </div>
-
-          {/* PASSWORD ROW */}
-
-          <div
-            style={{
-              display: 'flex',
-              gap: '2.5rem',
-              marginBottom: '2.5rem',
-            }}
-          >
-            {/* PASSWORD */}
 
             <div
               style={{
-                flex: 1,
+                ...authFieldRowStyle,
+                marginBottom: '2.5rem',
               }}
             >
-              <label
-                style={{
-                  display: 'block',
-                  fontFamily: 'Jost',
-                  fontWeight: 400,
-                  fontSize: '1.5rem',
-                  letterSpacing: '0.05em',
-                  color: '#B37DFF',
-                  marginBottom: '0.4rem',
-                }}
-              >
-                Password
-              </label>
-
-              <input
+              <AuthFormField
+                label="Password"
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                style={{
-                  width: '100%',
-                  height: '60px',
-                  backgroundColor: '#090054',
-                  border: 'none',
-                  outline: 'none',
-                  padding: '0 1rem',
-                  letterSpacing: '0.05em',
-                  color: 'white',
-                  fontFamily: 'Overpass',
-                  fontSize: '1.4rem',
-                }}
+                autoComplete="new-password"
+                wrapperStyle={{ flex: 1 }}
               />
-            </div>
 
-            {/* CONFIRM PASSWORD */}
-
-            <div
-              style={{
-                flex: 1,
-              }}
-            >
-              <label
-                style={{
-                  display: 'block',
-                  fontFamily: 'Jost',
-                  fontWeight: 400,
-                  fontSize: '1.5rem',
-                  letterSpacing: '0.05em',
-                  color: '#B37DFF',
-                  marginBottom: '0.4rem',
-                }}
-              >
-                Password
-              </label>
-
-              <input
+              <AuthFormField
+                label="Password"
                 type="password"
                 value={confirmPassword}
                 onChange={(event) => setConfirmPassword(event.target.value)}
-                style={{
-                  width: '100%',
-                  height: '60px',
-                  backgroundColor: '#090054',
-                  border: 'none',
-                  outline: 'none',
-                  padding: '0 1rem',
-                  letterSpacing: '0.05em',
-                  color: 'white',
-                  fontFamily: 'Overpass',
-                  fontSize: '1.4rem',
-                }}
+                autoComplete="new-password"
+                wrapperStyle={{ flex: 1 }}
               />
             </div>
-          </div>
 
-          {/* BOTTOM ROW */}
-
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '2.5rem',
-            }}
-          >
-            {/* BUTTON */}
-
-            <button
-              type="submit"
+            <div
               style={{
-                width: '48%',
-                height: '60px',
-                border: 'none',
-                cursor: 'pointer',
-                background: '#8400FF',
-                color: '#D6B3FF',
-                fontFamily: 'Jost',
-                fontWeight: 400,
-                fontSize: '2rem',
-                letterSpacing: '0.02em',
-                textTransform: 'uppercase',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '2.5rem',
               }}
             >
-              REGISTER
-            </button>
-
-            {/* LOGIN */}
-
-            <Link
-              to="/login"
-              style={{
-                textDecoration: 'none',
-                width: 'fit-content',
-              }}
-            >
-              <div
+              <button
+                type="submit"
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.3rem',
-                  fontFamily: 'Jost',
-                  fontSize: '1.4rem',
-                  letterSpacing: '0.05em',
-                  color: '#B37DFF',
-                  fontWeight: 400,
+                  ...authPrimaryButtonStyle,
+                  width: '48%',
+                  height: '60px',
+                  fontSize: '2rem',
                 }}
               >
-                <span>
-                  ALREADY REGISTERED?{' '}
-                  <span
-                    style={{
-                      fontWeight: 500,
-                    }}
-                  >
-                    Login
-                  </span>
-                </span>
+                REGISTER
+              </button>
 
-                <span
-                  className="material-symbols-outlined"
-                  style={{
-                    fontSize: '2rem',
-                    color: '#B37DFF',
-                  }}
-                >
-                  arrow_forward
-                </span>
-              </div>
-            </Link>
-          </div>
-        </form>
-      </section>
-
-      {/* RIGHT PANEL */}
-
-      <section
-        style={{
-          width: '22%',
-          backgroundColor: '#090054',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          padding: '2rem',
-        }}
-      >
+              <AuthActionLink to="/login" prefix="ALREADY REGISTERED?" emphasis="Login" />
+            </div>
+          </form>
+        </>
+      }
+      rightChildren={
         <img
           src="/logo-motto.png"
           alt="Insightful Phish Logo"
@@ -505,8 +185,8 @@ function RegisterPage() {
             maxWidth: '300px',
           }}
         />
-      </section>
-    </main>
+      }
+    />
   );
 }
 
