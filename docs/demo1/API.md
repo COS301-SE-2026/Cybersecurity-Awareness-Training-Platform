@@ -6,29 +6,42 @@ This document defines the preliminary Demo 1 API contracts around the revised mo
 
 These contracts support frontend/backend alignment, SRS traceability, and shared DTO planning. They are not final OpenAPI specifications.
 
+## Contract Status Legend
+
+Some API contracts are included to document planned support around the Demo 1 prototype. The detailed Demo 1 APIs are the priority; future/admin/reporting/AI/real-email APIs are placeholders or later-demo direction unless explicitly implemented elsewhere.
+
+| Status                     | Meaning                                                               |
+| -------------------------- | --------------------------------------------------------------------- |
+| Demo 1 required            | Needed for the three detailed Demo 1 trainee use cases.               |
+| Demo 1 optional/supporting | Useful supporting behaviour, but not a counted Demo 1 use case.       |
+| Future/later-demo          | Directional placeholder only; not required for Demo 1 implementation. |
+
 ## API and Domain Terminology Alignment
 
-| API Route Area                                              | Aligned Domain Concept                                                              | Related SRS Area                  |
-| ----------------------------------------------------------- | ----------------------------------------------------------------------------------- | --------------------------------- |
-| `/auth/*`                                                   | `User`, trainee/admin profiles, optional `Organisation`                             | Base access                       |
-| `/trainee/campaigns`                                        | `Campaign`, `CampaignAssignment`                                                    | Trainee campaign access           |
-| `/trainee/campaigns/:campaignId`                            | `Campaign`, ordered `CampaignItem` records                                          | Trainee campaign detail           |
-| `/trainee/campaign-items/:campaignItemId/*`                 | `CampaignItem`, `CampaignComponent`, `CampaignComponentGroup`                       | Campaign item activity            |
-| `/trainee/campaign-items/:campaignItemId/training-document` | `TrainingDocumentComponent`, reusable `TrainingDocument`                            | UC-02 training document viewing   |
-| `/trainee/campaign-items/:campaignItemId/quiz`              | `QuizComponent`, reusable `Quiz`, `QuizQuestion`, `AnswerOption`                    | UC-03 quiz content                |
-| `/quiz-attempts/:attemptId/*`                               | `QuizAttempt`, `AttemptAnswer`, `AttemptAnswerOption`, `QuizResult`                 | UC-03 quiz submission/results     |
-| `/trainee/campaign-items/:campaignItemId/simulated-inbox`   | `SimulationComponent`, reusable `Simulation`, `SimulatedInbox`                      | UC-01 simulated inbox             |
-| `/trainee/simulated-emails/:emailId/*`                      | `SimulatedEmail`, `EmailClassificationResponse`, `EmailRedFlag`, `InteractionEvent` | UC-01 email interaction           |
-| Supporting admin/campaign placeholders                      | `Campaign`, ordered `CampaignItem`, reusable content references                     | Supporting admin/campaign context |
-| Future reporting placeholder                                | `ReportSummary`, `RiskIndicator`                                                    | Future reporting support          |
+| API Route Area                                                        | Aligned Domain Concept                                                              | Related SRS Area                |
+| --------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ------------------------------- |
+| `/auth/*`                                                             | `User`, trainee/organisation admin profiles, optional `Organisation`                | Base access, Demo 1 supporting  |
+| `/trainee/campaigns`                                                  | `Campaign`, `CampaignAssignment`                                                    | Trainee campaign access         |
+| `/trainee/campaigns/:campaignId`                                      | `Campaign`, ordered `CampaignItem` records                                          | Trainee campaign detail         |
+| `/trainee/campaign-items/:campaignItemId/*`                           | `CampaignItem`, `CampaignComponent`, `CampaignComponentGroup`                       | Campaign item activity          |
+| `/trainee/campaign-items/:campaignItemId/training-document`           | `TrainingDocumentComponent`, reusable `TrainingDocument`                            | UC-02 training document viewing |
+| `/trainee/campaign-items/:campaignItemId/quiz`                        | `QuizComponent`, reusable `Quiz`, `QuizQuestion`, `AnswerOption`                    | UC-03 quiz content              |
+| `/quiz-attempts/:attemptId/*`                                         | `QuizAttempt`, `AttemptAnswer`, `AttemptAnswerOption`, `QuizResult`                 | UC-03 quiz submission/results   |
+| `/trainee/campaign-items/:campaignItemId/simulated-inbox`             | `SimulationComponent`, reusable `Simulation`, `SimulatedInbox`                      | UC-01 simulated inbox           |
+| `/trainee/campaign-items/:campaignItemId/simulated-emails/:emailId/*` | `SimulatedEmail`, `EmailClassificationResponse`, `EmailRedFlag`, `InteractionEvent` | UC-01 detail/future interaction |
+| Supporting admin/campaign placeholders                                | `Campaign`, ordered `CampaignItem`, reusable content references                     | Future admin/campaign context   |
+| Future reporting placeholder                                          | `ReportSummary`, `RiskIndicator`                                                    | Future reporting support        |
 
 Training documents, quizzes, and simulations are reusable content records made available to trainees through campaign items.
 
 ## Base Feature Contracts
 
+Base feature endpoints support access to the Demo 1 trainee flow. They are not counted as separate Demo 1 use cases.
+
 ### `POST /auth/register`
 
 - **Purpose**: Registers a new trainee account in the system.
+- **Status**: Demo 1 optional/supporting base feature.
 - **Expected Request Data**:
   - `email` (string, required)
   - `password` (string, required)
@@ -41,6 +54,7 @@ Training documents, quizzes, and simulations are reusable content records made a
 ### `POST /auth/login`
 
 - **Purpose**: Authenticates an existing account and returns a session token.
+- **Status**: Demo 1 optional/supporting base feature.
 - **Expected Request Data**:
   - `email` (string, required)
   - `password` (string, required)
@@ -51,6 +65,7 @@ Training documents, quizzes, and simulations are reusable content records made a
 ### `GET /auth/me`
 
 - **Purpose**: Returns the authenticated user's identity, role, and applicable profile context.
+- **Status**: Demo 1 optional/supporting base feature.
 - **Expected Response Data**:
 
 ```json
@@ -76,9 +91,12 @@ Training documents, quizzes, and simulations are reusable content records made a
 
 ## Trainee Campaign Access
 
+Trainee campaign-access endpoints are supporting Demo 1 delivery endpoints. They may be used to expose seeded simulated inbox, training document, and quiz campaign items to the authenticated trainee. They are not admin campaign-management APIs.
+
 ### `GET /trainee/campaigns`
 
 - **Purpose**: Retrieves campaigns assigned to, or made available to, the authenticated trainee.
+- **Status**: Demo 1 optional/supporting for campaign-based content delivery.
 - **Expected Request Data**: None.
 - **Expected Response Data**:
 
@@ -110,6 +128,7 @@ Training documents, quizzes, and simulations are reusable content records made a
 ### `GET /trainee/campaigns/:campaignId`
 
 - **Purpose**: Retrieves a campaign, its trainee assignment context, and ordered top-level campaign items.
+- **Status**: Demo 1 optional/supporting for campaign-based content delivery.
 - **Expected Response Data**:
 
 ```json
@@ -190,18 +209,21 @@ Component groups support one level of grouping for Demo 1. API responses should 
 ### `POST /trainee/campaigns/:campaignId/start`
 
 - **Purpose**: Marks a trainee's campaign assignment as started.
+- **Status**: Demo 1 optional/supporting tracking.
 - **Expected Response Data**:
   - `200 OK`: `{ "success": true, "campaignId": "campaign-001" }`
 
 ### `POST /trainee/campaign-items/:campaignItemId/start`
 
 - **Purpose**: Records that the trainee started a campaign item.
+- **Status**: Demo 1 optional/supporting tracking.
 - **Expected Response Data**:
   - `200 OK`: `{ "success": true, "campaignItemId": "item-001" }`
 
 ### `POST /trainee/campaign-items/:campaignItemId/complete`
 
 - **Purpose**: Records that the trainee completed a campaign item where completion can be explicitly marked.
+- **Status**: Demo 1 optional/supporting tracking.
 - **Expected Response Data**:
   - `200 OK`: `{ "success": true, "campaignItemId": "item-001" }`
 
@@ -210,6 +232,7 @@ Component groups support one level of grouping for Demo 1. API responses should 
 ### `GET /trainee/campaign-items/:campaignItemId/training-document`
 
 - **Purpose**: Retrieves the training document placed at a specific trainee-accessible campaign item.
+- **Status**: Demo 1 required for UC-02.
 - **Expected Request Data**: URL Param `campaignItemId`.
 - **Access**: Requires authentication. The authenticated trainee must have an active campaign assignment for the campaign that contains the available campaign item.
 - **Expected Response Data**:
@@ -249,6 +272,7 @@ Training documents are reusable content records. They are not owned by learning 
 ### `POST /trainee/campaign-items/:campaignItemId/training-document/viewed`
 
 - **Purpose**: Records a `TRAINING_VIEWED` interaction event for the campaign item.
+- **Status**: Demo 1 optional/supporting tracking.
 - **Expected Request Data**: URL Param `campaignItemId`. No request body is required.
 - **Expected Response Data**:
 
@@ -270,6 +294,7 @@ The backend reuses the same campaign assignment and item availability checks as 
 ### `POST /trainee/campaign-items/:campaignItemId/training-document/completed`
 
 - **Purpose**: Records a `TRAINING_COMPLETED` interaction event for the campaign item.
+- **Status**: Demo 1 optional/supporting tracking if completion marking is included.
 - **Expected Request Data**: URL Param `campaignItemId`. No request body is required.
 - **Expected Response Data**:
 
@@ -293,6 +318,7 @@ The backend records a lightweight `InteractionEvent` with `targetType = TRAINING
 ### `GET /trainee/campaign-items/:campaignItemId/quiz`
 
 - **Purpose**: Retrieves the quiz placed at a specific trainee-accessible campaign item.
+- **Status**: Demo 1 required for UC-03.
 - **Expected Request Data**: URL Param `campaignItemId`.
 - **Expected Response Data**:
 
@@ -324,11 +350,11 @@ The backend records a lightweight `InteractionEvent` with `targetType = TRAINING
 
 Before submission, trainee-facing quiz fetch endpoints must not expose `AnswerOption.isCorrect` or `feedbackText`.
 
-### `POST /trainee/campaign-items/:campaignItemId/quiz-attempts`
+### `POST /trainee/campaign-items/:campaignItemId/quiz/attempts`
 
 - **Purpose**: Creates a quiz attempt for the quiz placed at the selected campaign item.
-- **Expected Request Data**:
-  - `campaignAssignmentId` (string, optional)
+- **Status**: Demo 1 required for UC-03.
+- **Expected Request Data**: None. The backend resolves trainee, campaign assignment, campaign item, and quiz context from authenticated server-side state and the URL parameter.
 - **Expected Response Data**:
 
 ```json
@@ -346,14 +372,16 @@ Before submission, trainee-facing quiz fetch endpoints must not expose `AnswerOp
 ### `POST /quiz-attempts/:attemptId/submit`
 
 - **Purpose**: Submits final answers for an existing quiz attempt and calculates the result.
+- **Status**: Demo 1 required for UC-03.
 - **Expected Request Data**:
   - `answers` (array of objects containing `questionId` and `selectedOptionIds`)
 - **Expected Response Data**:
   - `200 OK`: `{ "success": true, "attemptId": "attempt-123", "status": "SUBMITTED" }`
 
-### `GET /quiz-attempts/:attemptId/result`
+### `GET /quiz-attempts/:attemptId/results`
 
 - **Purpose**: Retrieves the result summary and answer-level educational feedback for a submitted attempt.
+- **Status**: Demo 1 required for UC-03. Results are available only after submission.
 - **Expected Response Data**:
 
 ```json
@@ -390,6 +418,7 @@ Before submission, trainee-facing quiz fetch endpoints must not expose `AnswerOp
 ### `GET /trainee/campaign-items/:campaignItemId/simulated-inbox`
 
 - **Purpose**: Retrieves the simulated inbox placed at a specific trainee-accessible campaign item.
+- **Status**: Demo 1 required for UC-01.
 - **Expected Request Data**: URL Param `campaignItemId`.
 - **Expected Response Data**:
 
@@ -414,9 +443,10 @@ Before submission, trainee-facing quiz fetch endpoints must not expose `AnswerOp
 
 This endpoint returns campaign-provided simulation content. It does not expose a permanent user-owned inbox.
 
-### `GET /trainee/simulated-emails/:emailId`
+### `GET /trainee/campaign-items/:campaignItemId/simulated-emails/:emailId`
 
 - **Purpose**: Retrieves a simulated email that the trainee can access through an assigned or available campaign simulation item.
+- **Status**: Demo 1 required for UC-01.
 - **Access Rule**: The backend must resolve the simulated email through a campaign item and campaign assignment available to the authenticated trainee. The `emailId` alone is not sufficient authorization.
 - **Expected Response Data**:
 
@@ -438,46 +468,28 @@ This endpoint returns campaign-provided simulation content. It does not expose a
 }
 ```
 
-Trainee-facing responses must not reveal `expectedClassification` or correct red flags before classification feedback is intentionally shown.
+Trainee-facing responses must not reveal `expectedClassification` or correct red flags before any future/optional classification feedback is intentionally shown.
 
-### `POST /trainee/simulated-emails/:emailId/opened`
+### `POST /trainee/campaign-items/:campaignItemId/simulated-emails/:emailId/interactions`
 
-- **Purpose**: Records a `SIMULATED_EMAIL_OPENED` interaction event.
+- **Purpose**: Records a Demo 1 optional/supporting simulated-email interaction event, such as `SIMULATED_EMAIL_OPENED`.
 - **Expected Request Data**:
-  - `campaignAssignmentId` (string, optional)
-  - `campaignItemId` (string, optional)
+  - `eventType` (string enum, required)
 - **Expected Response Data**:
-  - `201 Created`: `{ "success": true, "eventType": "SIMULATED_EMAIL_OPENED" }`
+  - `201 Created` or `200 OK`: `{ "success": true, "eventType": "SIMULATED_EMAIL_OPENED" }`
 
-### `POST /trainee/simulated-emails/:emailId/link-clicked`
+### Future/optional simulated-email interactions
 
-- **Purpose**: Records a `SIMULATED_EMAIL_LINK_CLICKED` interaction event.
-- **Expected Request Data**:
-  - `campaignAssignmentId` (string, optional)
-  - `campaignItemId` (string, optional)
-- **Expected Response Data**:
-  - `201 Created`: `{ "success": true, "eventType": "SIMULATED_EMAIL_LINK_CLICKED" }`
+Link-clicked, credential-submission-attempted, and classification flows are future/optional unless the team explicitly chooses to demo them. Credential-submission tracking must never store or return submitted credential values.
 
-### `POST /trainee/simulated-emails/:emailId/credential-submission-attempted`
-
-- **Purpose**: Records that a trainee attempted credential submission inside a simulation.
-- **Expected Request Data**:
-  - `campaignAssignmentId` (string, optional)
-  - `campaignItemId` (string, optional)
-- **Expected Response Data**:
-  - `201 Created`: `{ "success": true, "eventType": "CREDENTIAL_SUBMISSION_ATTEMPTED" }`
-
-This endpoint must never store or return submitted credential values.
-
-### `POST /trainee/simulated-emails/:emailId/classification`
+### `POST /trainee/campaign-items/:campaignItemId/simulated-emails/:emailId/classification`
 
 - **Purpose**: Records a trainee's classification judgement for a simulated email.
+- **Status**: Future/later-demo or optional support. Not required for Demo 1's core UC-01 viewing/opening flow.
 - **Expected Request Data**:
   - `selectedClassification` (enum: `SAFE`, `SUSPICIOUS`, `PHISHING`, required)
   - `selectedRedFlagIds` (string array, optional)
   - `freeTextReason` (string, optional)
-  - `campaignAssignmentId` (string, optional)
-  - `campaignItemId` (string, optional)
 - **Expected Response Data**:
 
 ```json
@@ -498,24 +510,17 @@ This endpoint must never store or return submitted credential values.
 }
 ```
 
-Email classification is separate from quiz attempts.
+Email classification is separate from quiz attempts and is not required for the core Demo 1 viewing/opening flow.
 
 ## Cross-Use-Case Tracking and Reporting Support
 
 Interaction events are lightweight tracking records created by trainee actions such as:
 
-- campaign started;
-- campaign item started;
-- campaign item completed;
-- training viewed;
-- training completed;
-- quiz started;
-- quiz answer submitted;
-- quiz completed;
+- campaign started, campaign item started, or campaign item completed, where supporting tracking is included;
+- training viewed or training completed, where supporting tracking is included;
+- quiz started, quiz answer submitted, or quiz completed;
 - simulated email opened;
-- simulated email link clicked;
-- simulated email classified;
-- credential submission attempted.
+- future/optional simulated email link clicked, simulated email classified, or credential submission attempted events.
 
 Interaction event metadata must not include real credentials or sensitive submitted values. For Demo 1, interaction event creation should normally happen inside the specific action endpoints above instead of exposing a broad arbitrary public event-ingestion endpoint.
 
@@ -526,7 +531,7 @@ Interaction event metadata must not include real credentials or sensitive submit
 
 #### `GET /reports/demo1/summary`
 
-- **Purpose**: Future placeholder for a lightweight summary of interaction, quiz result, email classification, and risk-support data.
+- **Purpose**: Future placeholder for a lightweight summary of interaction, quiz result, optional email classification, and risk-support data.
 - **Linked Domain Entities**: `ReportSummary`, `RiskIndicator`, `InteractionEvent`, `EmailClassificationResponse`, `QuizResult`
 - **Scope Notes**:
   - This does not define a final analytics dashboard.
@@ -534,7 +539,7 @@ Interaction event metadata must not include real credentials or sensitive submit
   - This does not define production reporting schemas.
   - This does not require implementation for Demo 1.
 
-## Supporting Admin/Campaign Context
+## Supporting Organisation Admin and Campaign Context
 
 > [!NOTE]
 > The following endpoints are preliminary placeholders only. They establish campaign-managed data context and are not required backend endpoints for the Demo 1 implementation.
