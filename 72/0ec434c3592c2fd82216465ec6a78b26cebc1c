@@ -1,0 +1,27 @@
+SETUP.md
+  s_30727a4aa35864::t_967131e6674705 523
+  s_30727a4aa35864::t_72a6b2953e3cba 207
+  s_30727a4aa35864::t_aca8323ba8516b 14,196-206,208-228,397-405,407-411,472,492,495,498-500,513,529,531-539,617,619,621,627-629,631,633-644,702,739,825,834,855,861-862,864
+  s_30727a4aa35864::t_293e92b0f7f16f 406
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "720ec434c3592c2fd82216465ec6a78b26cebc1c",
+  "prompts": {},
+  "humans": {
+    "h_1fff265ad32c51": {
+      "author": "FJNel <u24594475@tuks.co.za>"
+    }
+  },
+  "sessions": {
+    "s_30727a4aa35864": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e3b43-d96b-7a60-998d-2a5ecd189741",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
