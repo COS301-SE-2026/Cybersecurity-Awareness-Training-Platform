@@ -6,8 +6,8 @@ describe('quiz validation schemas', () => {
     const result = submitQuizAttemptRequestSchema.safeParse({
       answers: [
         {
-          questionId: 'question-1',
-          selectedOptionIds: ['option-1'],
+          questionId: '33333333-3333-3333-3333-333333333333',
+          selectedOptionIds: ['44444444-4444-4444-4444-444444444444'],
         },
       ],
     });
@@ -27,7 +27,7 @@ describe('quiz validation schemas', () => {
     const result = submitQuizAttemptRequestSchema.safeParse({
       answers: [
         {
-          questionId: 'question-1',
+          questionId: '33333333-3333-3333-3333-333333333333',
         },
       ],
     });
