@@ -1,0 +1,91 @@
+sonar-project.properties
+  s_8de403d86845e1::t_ed9d1351feebc0 1-2
+apps/backend/prisma/seed-data/demoSeedTypes.ts
+  s_8de403d86845e1::t_ed9d1351feebc0 1-22
+docs/demo1/wireframes/README.md
+  s_8de403d86845e1::t_a3984beda1f8a9 9-10,51
+apps/backend/package.json
+  s_8de403d86845e1::t_ed9d1351feebc0 16
+apps/backend/src/routes/quiz.routes.ts
+  s_8de403d86845e1::t_ed9d1351feebc0 1-52
+packages/shared/src/validation/campaigns.schemas.test.ts
+  s_8de403d86845e1::t_ed9d1351feebc0 7
+apps/backend/src/controllers/quiz.controller.ts
+  s_8de403d86845e1::t_ed9d1351feebc0 1-84
+apps/backend/tests/unit/quiz.service.test.ts
+  s_8de403d86845e1::t_ed9d1351feebc0 1-222
+packages/shared/src/validation/common.schemas.ts
+  s_8de403d86845e1::t_ed9d1351feebc0 3
+packages/shared/src/validation/quizzes.schemas.test.ts
+  s_8de403d86845e1::t_ed9d1351feebc0 9-10,30
+packages/shared/src/validation/quizzes.schemas.ts
+  s_8de403d86845e1::t_ed9d1351feebc0 4-8,12-21,25-32,34-38
+apps/backend/tests/unit/simulation.api.test.ts
+  s_8de403d86845e1::t_ed9d1351feebc0 1-299
+apps/backend/prisma/seed-data/demoSeedHelpers.ts
+  s_8de403d86845e1::t_ed9d1351feebc0 5-60
+apps/backend/tests/unit/seed.helpers.test.ts
+  s_8de403d86845e1::t_ed9d1351feebc0 3-23,27-84
+  s_cff71a4a28afd4::t_490080b22bcd83 26
+apps/backend/src/services/simulation.service.ts
+  s_8de403d86845e1::t_ed9d1351feebc0 1-303
+apps/backend/src/middleware/validateRequest.ts
+  s_8de403d86845e1::t_ed9d1351feebc0 26-45
+apps/backend/tests/unit/quiz.api.test.ts
+  s_8de403d86845e1::t_ed9d1351feebc0 1-468
+packages/shared/src/validation/simulations.schemas.ts
+  s_8de403d86845e1::t_ed9d1351feebc0 11,24-28,30-36
+SETUP.md
+  s_8de403d86845e1::t_ed9d1351feebc0 489-507
+apps/backend/src/middleware/apiRateLimit.ts
+  s_8de403d86845e1::t_ed9d1351feebc0 1-12
+packages/shared/src/validation/simulations.schemas.test.ts
+  s_8de403d86845e1::t_ed9d1351feebc0 25
+apps/backend/SEEDING.md
+  s_8de403d86845e1::t_ed9d1351feebc0 1-167
+apps/backend/src/controllers/simulation.controller.ts
+  s_8de403d86845e1::t_ed9d1351feebc0 1-71
+apps/backend/prisma/seed-data/demoSeedConfig.ts
+  s_8de403d86845e1::t_ed9d1351feebc0 1-822
+apps/backend/src/routes/trainee.routes.ts
+  s_8de403d86845e1::t_ed9d1351feebc0 1-56
+apps/backend/src/services/quiz.service.ts
+  s_8de403d86845e1::t_ed9d1351feebc0 1-366
+apps/backend/prisma/seed-data/demoSeedCore.ts
+  s_8de403d86845e1::t_ed9d1351feebc0 1-414
+apps/backend/src/app.ts
+  s_8de403d86845e1::t_ed9d1351feebc0 9,11,34,39-40
+apps/backend/prisma/seed.ts
+  s_8de403d86845e1::t_ed9d1351feebc0 3-18
+apps/backend/SIMULATIONS.md
+  s_8de403d86845e1::t_ed9d1351feebc0 1-53
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "5c22c73706f004889df1325c3c32625250e5d967",
+  "prompts": {},
+  "humans": {
+    "h_1fff265ad32c51": {
+      "author": "FJNel <u24594475@tuks.co.za>"
+    }
+  },
+  "sessions": {
+    "s_8de403d86845e1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e3a31-0279-7042-be4e-cfa19eecfc56",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    },
+    "s_cff71a4a28afd4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e3205-79d5-7a51-8edc-ae78053ac80f",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
