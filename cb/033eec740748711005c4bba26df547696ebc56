@@ -1,0 +1,34 @@
+docs/demo1/architecture.md
+  s_8de403d86845e1::t_a3984beda1f8a9 17,19,25-26,140-141
+docs/demo1/new-domain-model.txt
+  s_8de403d86845e1::t_a3984beda1f8a9 8-19
+docs/demo1/SRS.md
+  s_8de403d86845e1::t_f923d5672d7ff3 6
+  s_8de403d86845e1::t_f99c405691d24a 980-981,985-987,1033
+  s_8de403d86845e1::t_a3984beda1f8a9 5,7-68,148,189-190,201,228,324-331,337,339-340,368-370,381,514-516,594,644,646,765,768,850,860-867,882,889-895,897,899,924,928,932,947,953,968,972,976-978,982-984,988-989,1092-1108
+  s_8de403d86845e1::t_5f49bd64b7861c 341-342,1083,1125,1127
+README.md
+  s_8de403d86845e1::t_ee24618e4936ac 67-69,114-124
+  s_8de403d86845e1::t_a3984beda1f8a9 26,28,30,32,41-59
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "cb033eec740748711005c4bba26df547696ebc56",
+  "prompts": {},
+  "humans": {
+    "h_1fff265ad32c51": {
+      "author": "FJNel <u24594475@tuks.co.za>"
+    }
+  },
+  "sessions": {
+    "s_8de403d86845e1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e3a31-0279-7042-be4e-cfa19eecfc56",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
