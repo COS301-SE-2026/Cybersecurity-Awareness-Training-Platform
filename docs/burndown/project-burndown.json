@@ -216,8 +216,8 @@
           "number": 123,
           "title": "chore: swagger-demo1-api",
           "points": 5,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-05-18"
         },
         {
           "number": 107,
@@ -568,7 +568,7 @@
     },
     {
       "date": "2026-05-18",
-      "remaining": 48,
+      "remaining": 43,
       "ideal": 15.65
     }
   ]
