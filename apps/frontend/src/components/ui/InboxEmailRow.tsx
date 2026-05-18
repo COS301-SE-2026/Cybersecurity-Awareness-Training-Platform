@@ -23,8 +23,23 @@ function InboxEmailRow({ sender, subject, preview, time, unread = false }: Inbox
         userSelect: 'none',
         cursor: 'pointer',
         transition: '0.18s ease',
+        position: 'relative',
+        overflow: 'visible',
       }}
     >
+      {unread && (
+        <div
+          style={{
+            position: 'absolute',
+            left: '-3px',
+            top: '-3px',
+            width: '10px',
+            height: 'calc(100% + 6px)',
+            backgroundColor: '#7700ff',
+            zIndex: 3,
+          }}
+        />
+      )}
       {/* AVATAR */}
 
       <div
