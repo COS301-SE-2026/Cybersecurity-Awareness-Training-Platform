@@ -239,13 +239,16 @@ export async function startQuizAttempt(quizId: string): Promise<StartQuizAttempt
 
 export async function submitQuizAttempt(
   attemptId: string,
-  _payload: SubmitQuizAttemptRequestDto,
+  payload: SubmitQuizAttemptRequestDto,
 ): Promise<SubmitQuizAttemptResponseDto> {
-  void _payload;
   await delay();
 
   if (attemptId !== mockResult.attemptId) {
     throw new Error('Quiz attempt not found.');
+  }
+
+  if (payload.answers.length === 0) {
+    throw new Error('Quiz answers are required.');
   }
 
   return {
