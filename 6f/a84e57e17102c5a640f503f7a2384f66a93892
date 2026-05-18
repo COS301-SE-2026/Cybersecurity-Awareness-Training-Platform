@@ -1,0 +1,24 @@
+docs/demo1/API.md
+  s_8de403d86845e1::t_ed9d1351feebc0 353,356-357,375,381,384,421,446,449,471,473,475,477,479,481,483,485
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "6fa84e57e17102c5a640f503f7a2384f66a93892",
+  "prompts": {},
+  "humans": {
+    "h_1fff265ad32c51": {
+      "author": "FJNel <u24594475@tuks.co.za>"
+    }
+  },
+  "sessions": {
+    "s_8de403d86845e1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e3a31-0279-7042-be4e-cfa19eecfc56",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
