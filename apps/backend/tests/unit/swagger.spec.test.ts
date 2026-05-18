@@ -39,4 +39,23 @@ describe('swaggerSpec', () => {
     expect(spec.paths).toHaveProperty('/auth/login');
     expect(spec.paths).toHaveProperty('/auth/me');
   });
+
+  it('includes reusable trainee training schemas', () => {
+    expect(spec.components?.schemas).toHaveProperty('TrainingDocument');
+    expect(spec.components?.schemas).toHaveProperty('TrainingCampaignItemContext');
+    expect(spec.components?.schemas).toHaveProperty('GetTrainingDocumentResponse');
+    expect(spec.components?.schemas).toHaveProperty('RecordTrainingInteractionResponse');
+    expect(spec.components?.schemas).toHaveProperty('TrainingInteractionEvent');
+    expect(spec.components?.schemas).toHaveProperty('EmptyRequestBody');
+    expect(spec.components?.schemas).toHaveProperty('TrainingContentType');
+    expect(spec.components?.schemas).toHaveProperty('DifficultyLevel');
+    expect(spec.components?.schemas).toHaveProperty('TrainingDocumentStatus');
+    expect(spec.components?.schemas).toHaveProperty('TrainingInteractionEventType');
+    expect(JSON.stringify(spec.components?.schemas?.GetTrainingDocumentResponse)).not.toContain(
+      'TrainingProgress',
+    );
+    expect(JSON.stringify(spec.components?.schemas?.GetTrainingDocumentResponse)).not.toContain(
+      'quiz',
+    );
+  });
 });

@@ -213,6 +213,54 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
             },
           ],
         },
+        TrainingDocumentNotFoundErrorResponse: {
+          allOf: [
+            {
+              $ref: '#/components/schemas/ApiErrorResponse',
+            },
+            {
+              type: 'object',
+              properties: {
+                error: {
+                  type: 'string',
+                  enum: ['TRAINING_DOCUMENT_NOT_FOUND'],
+                  example: 'TRAINING_DOCUMENT_NOT_FOUND',
+                },
+                message: {
+                  type: 'string',
+                  example: 'Training document was not found',
+                },
+              },
+            },
+          ],
+        },
+        TrainingRateLimitErrorResponse: {
+          allOf: [
+            {
+              $ref: '#/components/schemas/RateLimitErrorResponse',
+            },
+            {
+              type: 'object',
+              properties: {
+                error: {
+                  type: 'string',
+                  enum: ['TRAINING_RATE_LIMITED'],
+                  example: 'TRAINING_RATE_LIMITED',
+                },
+                message: {
+                  type: 'string',
+                  example: 'Too many training requests. Please try again later.',
+                },
+              },
+            },
+          ],
+        },
+        EmptyRequestBody: {
+          type: 'object',
+          additionalProperties: false,
+          description: 'Request body must be omitted or an empty JSON object.',
+          example: {},
+        },
         UserType: {
           type: 'string',
           enum: ['IP_ADMIN', 'ORGANISATION_ADMIN', 'ORGANISATION_TRAINEE', 'GENERAL_TRAINEE'],
@@ -439,6 +487,161 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
           properties: {
             user: {
               $ref: '#/components/schemas/PublicUser',
+            },
+          },
+        },
+        DifficultyLevel: {
+          type: 'string',
+          enum: ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ADAPTIVE'],
+          example: 'BEGINNER',
+        },
+        TrainingContentType: {
+          type: 'string',
+          enum: ['PDF', 'MARKDOWN', 'HTML', 'URL', 'INTERACTIVE'],
+          example: 'MARKDOWN',
+        },
+        TrainingDocumentStatus: {
+          type: 'string',
+          enum: ['DRAFT', 'AVAILABLE', 'UNAVAILABLE', 'ARCHIVED'],
+          example: 'AVAILABLE',
+        },
+        TrainingCampaignItemAvailabilityStatus: {
+          type: 'string',
+          enum: ['AVAILABLE', 'LOCKED', 'UNAVAILABLE', 'ARCHIVED'],
+          example: 'AVAILABLE',
+        },
+        TrainingInteractionEventType: {
+          type: 'string',
+          enum: ['TRAINING_VIEWED', 'TRAINING_COMPLETED'],
+          example: 'TRAINING_VIEWED',
+        },
+        TrainingDocument: {
+          type: 'object',
+          required: ['id', 'title', 'contentType', 'contentRef', 'difficultyLevel', 'status'],
+          properties: {
+            id: {
+              type: 'string',
+              format: 'uuid',
+              example: '33333333-3333-4333-8333-333333333333',
+            },
+            title: {
+              type: 'string',
+              example: 'Identifying Phishing Emails',
+            },
+            contentType: {
+              $ref: '#/components/schemas/TrainingContentType',
+            },
+            contentRef: {
+              type: 'string',
+              example: 'training/training-doc-1',
+            },
+            contentSummary: {
+              type: 'string',
+              nullable: true,
+              example: 'Common phishing indicators and safe response steps.',
+            },
+            estimatedReadTimeMinutes: {
+              type: 'integer',
+              nullable: true,
+              minimum: 0,
+              example: 8,
+            },
+            difficultyLevel: {
+              $ref: '#/components/schemas/DifficultyLevel',
+            },
+            status: {
+              $ref: '#/components/schemas/TrainingDocumentStatus',
+            },
+          },
+        },
+        TrainingCampaignItemContext: {
+          type: 'object',
+          required: ['title', 'position', 'isRequired', 'availabilityStatus'],
+          properties: {
+            title: {
+              type: 'string',
+              example: 'Phishing Basics',
+            },
+            description: {
+              type: 'string',
+              nullable: true,
+              example: 'Read the basics before the quiz.',
+            },
+            position: {
+              type: 'integer',
+              example: 1,
+            },
+            isRequired: {
+              type: 'boolean',
+              example: true,
+            },
+            availabilityStatus: {
+              $ref: '#/components/schemas/TrainingCampaignItemAvailabilityStatus',
+            },
+          },
+        },
+        GetTrainingDocumentResponse: {
+          type: 'object',
+          required: ['campaignItemId', 'trainingDocument', 'campaignItem'],
+          properties: {
+            campaignItemId: {
+              type: 'string',
+              format: 'uuid',
+              example: '11111111-1111-4111-8111-111111111111',
+            },
+            campaignAssignmentId: {
+              type: 'string',
+              format: 'uuid',
+              nullable: true,
+              example: '44444444-4444-4444-8444-444444444444',
+            },
+            trainingDocument: {
+              $ref: '#/components/schemas/TrainingDocument',
+            },
+            campaignItem: {
+              $ref: '#/components/schemas/TrainingCampaignItemContext',
+            },
+          },
+        },
+        TrainingInteractionEvent: {
+          type: 'object',
+          required: ['id', 'eventType', 'occurredAt'],
+          properties: {
+            id: {
+              type: 'string',
+              example: 'event-1',
+            },
+            eventType: {
+              $ref: '#/components/schemas/TrainingInteractionEventType',
+            },
+            occurredAt: {
+              type: 'string',
+              format: 'date-time',
+              example: '2026-05-16T09:00:00.000Z',
+            },
+          },
+        },
+        RecordTrainingInteractionResponse: {
+          type: 'object',
+          required: ['success', 'campaignItemId', 'trainingDocumentId', 'event'],
+          properties: {
+            success: {
+              type: 'boolean',
+              enum: [true],
+              example: true,
+            },
+            campaignItemId: {
+              type: 'string',
+              format: 'uuid',
+              example: '11111111-1111-4111-8111-111111111111',
+            },
+            trainingDocumentId: {
+              type: 'string',
+              format: 'uuid',
+              example: '33333333-3333-4333-8333-333333333333',
+            },
+            event: {
+              $ref: '#/components/schemas/TrainingInteractionEvent',
             },
           },
         },
