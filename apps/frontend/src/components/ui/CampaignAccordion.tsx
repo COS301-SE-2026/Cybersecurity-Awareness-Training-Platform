@@ -25,7 +25,7 @@ function CampaignAccordion({
     <div
       style={{
         border: `4px solid ${accentColor}33`,
-        backgroundColor: `${accentColor}12`,
+        backgroundColor: `${accentColor}13`,
         position: 'relative',
         overflow: 'visible',
       }}

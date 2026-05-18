@@ -20,7 +20,7 @@ function TrainingPartAccordion({
   return (
     <div
       style={{
-        backgroundColor: 'rgba(78, 0, 140, 0.55)',
+        backgroundColor: 'rgba(49, 0, 90, 0.55)',
       }}
     >
       {/* HEADER */}
@@ -29,25 +29,19 @@ function TrainingPartAccordion({
         onClick={() => setOpen(!open)}
         style={{
           display: 'flex',
-
           justifyContent: 'space-between',
-
           alignItems: 'center',
-
           padding: '1.2rem 1.6rem',
-
           cursor: 'pointer',
         }}
       >
         <div
           style={{
             color: 'white',
-
             fontFamily: 'Jost',
-
             fontSize: '1.8rem',
-
-            fontWeight: 500,
+            letterSpacing: '0.08rem',
+            fontWeight: 400,
           }}
         >
           {title}
@@ -56,21 +50,17 @@ function TrainingPartAccordion({
         <div
           style={{
             display: 'flex',
-
             alignItems: 'center',
-
             gap: '1.5rem',
           }}
         >
           <div
             style={{
               color: '#C98FFF',
-
               fontFamily: 'Jost',
-
-              fontSize: '1rem',
-
-              fontWeight: 600,
+              fontSize: '1.1rem',
+              letterSpacing: '0.08rem',
+              fontWeight: 500,
             }}
           >
             {status}
@@ -79,15 +69,15 @@ function TrainingPartAccordion({
           {open ? (
             <KeyboardArrowUp
               style={{
-                color: 'white',
-                fontSize: '2.5rem',
+                color: '#C98FFF',
+                fontSize: '2.4rem',
               }}
             />
           ) : (
             <KeyboardArrowDown
               style={{
-                color: 'white',
-                fontSize: '2.5rem',
+                color: '#C98FFF',
+                fontSize: '2.4rem',
               }}
             />
           )}
@@ -100,11 +90,8 @@ function TrainingPartAccordion({
         <div
           style={{
             padding: '0 1.6rem 1.4rem 1.6rem',
-
             display: 'flex',
-
             flexDirection: 'column',
-
             gap: '0.8rem',
           }}
         >
