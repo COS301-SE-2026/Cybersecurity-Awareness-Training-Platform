@@ -2,7 +2,8 @@ import type { CSSProperties } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout';
-import { TrainingStatePanel } from '../components/training/TrainingStatePanel';
+import { TrainingAsyncContent } from '../components/training/TrainingAsyncContent';
+import { trainingStateActionStyle } from '../components/training/trainingStateStyles';
 import { getQuizResult, quizRoutes, type GetQuizResultResponseDto } from '../lib/quizApi';
 
 export default function ResultsPage() {
@@ -51,48 +52,7 @@ export default function ResultsPage() {
   }, [attemptId, reloadToken]);
 
   const orderedAnswers = useMemo(() => result?.answers ?? [], [result]);
-
-  if (isLoading) {
-    return (
-      <AppLayout>
-        <TrainingStatePanel
-          title="Loading results"
-          message="Your quiz result feedback is being loaded."
-        />
-      </AppLayout>
-    );
-  }
-
-  if (errorMessage) {
-    return (
-      <AppLayout>
-        <TrainingStatePanel
-          title="Unable to load results"
-          message={errorMessage}
-          action={
-            <button
-              type="button"
-              onClick={() => setReloadToken((currentValue) => currentValue + 1)}
-              style={primaryButtonStyle}
-            >
-              Try Again
-            </button>
-          }
-        />
-      </AppLayout>
-    );
-  }
-
-  if (!result) {
-    return (
-      <AppLayout>
-        <TrainingStatePanel
-          title="No result available"
-          message="No quiz result feedback could be found for this attempt."
-        />
-      </AppLayout>
-    );
-  }
+  const hasResult = result !== null;
 
   return (
     <AppLayout
@@ -101,91 +61,113 @@ export default function ResultsPage() {
         padding: '2rem',
       }}
     >
-      <div style={pageShellStyle}>
-        <section style={summaryCardStyle}>
-          <p style={eyebrowStyle}>Quiz Results</p>
-          <h1 style={titleStyle}>{result.passed ? 'Passed' : 'Not Passed'}</h1>
+      <TrainingAsyncContent
+        isLoading={isLoading}
+        loadingTitle="Loading results"
+        loadingMessage="Your quiz result feedback is being loaded."
+        errorMessage={errorMessage}
+        errorTitle="Unable to load results"
+        errorAction={
+          <button
+            type="button"
+            onClick={() => setReloadToken((currentValue) => currentValue + 1)}
+            style={trainingStateActionStyle}
+          >
+            Try Again
+          </button>
+        }
+        isEmpty={!hasResult}
+        emptyTitle="No result available"
+        emptyMessage="No quiz result feedback could be found for this attempt."
+      >
+        {result ? (
+          <div style={pageShellStyle}>
+            <section style={summaryCardStyle}>
+              <p style={eyebrowStyle}>Quiz Results</p>
+              <h1 style={titleStyle}>{result.passed ? 'Passed' : 'Not Passed'}</h1>
 
-          <p style={scoreStyle}>{Math.round(result.scorePercentage)}%</p>
+              <p style={scoreStyle}>{Math.round(result.scorePercentage)}%</p>
 
-          <p style={descriptionStyle}>
-            {result.summary ??
-              'Your result was calculated by the backend response. Review the answer-level feedback below.'}
-          </p>
+              <p style={descriptionStyle}>
+                {result.summary ??
+                  'Your result was calculated by the backend response. Review the answer-level feedback below.'}
+              </p>
 
-          <p style={metaStyle}>Attempt: {result.attemptId}</p>
-        </section>
+              <p style={metaStyle}>Attempt: {result.attemptId}</p>
+            </section>
 
-        <section style={feedbackSectionStyle}>
-          <h2 style={sectionTitleStyle}>Answer Feedback</h2>
+            <section style={feedbackSectionStyle}>
+              <h2 style={sectionTitleStyle}>Answer Feedback</h2>
 
-          {orderedAnswers.length === 0 ? (
-            <div style={emptyFeedbackStyle}>No answer-level feedback was returned.</div>
-          ) : (
-            <div style={answerListStyle}>
-              {orderedAnswers.map((answer, answerIndex) => (
-                <article key={answer.questionId} style={answerCardStyle}>
-                  <div style={answerHeaderStyle}>
-                    <h3 style={answerTitleStyle}>Question {answerIndex + 1}</h3>
+              {orderedAnswers.length === 0 ? (
+                <div style={emptyFeedbackStyle}>No answer-level feedback was returned.</div>
+              ) : (
+                <div style={answerListStyle}>
+                  {orderedAnswers.map((answer, answerIndex) => (
+                    <article key={answer.questionId} style={answerCardStyle}>
+                      <div style={answerHeaderStyle}>
+                        <h3 style={answerTitleStyle}>Question {answerIndex + 1}</h3>
 
-                    {typeof answer.isCorrect === 'boolean' ? (
-                      <span
-                        style={{
-                          ...statusPillStyle,
-                          borderColor: answer.isCorrect ? '#00E6A8' : '#FF6B8A',
-                          color: answer.isCorrect ? '#00E6A8' : '#FF9FB3',
-                        }}
-                      >
-                        {answer.isCorrect ? 'Correct' : 'Needs Review'}
-                      </span>
-                    ) : null}
-                  </div>
-
-                  {typeof answer.awardedPoints === 'number' ? (
-                    <p style={metaStyle}>Awarded points: {answer.awardedPoints}</p>
-                  ) : null}
-
-                  {answer.feedbackShown ? (
-                    <p style={feedbackTextStyle}>{answer.feedbackShown}</p>
-                  ) : null}
-
-                  <div style={selectedOptionsStyle}>
-                    {answer.selectedOptions.map((option) => (
-                      <div key={option.optionId} style={selectedOptionStyle}>
-                        <div style={selectedOptionHeaderStyle}>
-                          <span style={optionLabelStyle}>{option.label}</span>
-                          <span>{option.text}</span>
-                        </div>
-
-                        <p
-                          style={{
-                            ...optionStatusStyle,
-                            color: option.isCorrect ? '#00E6A8' : '#FF9FB3',
-                          }}
-                        >
-                          {option.isCorrect
-                            ? 'Selected correct option'
-                            : 'Selected incorrect option'}
-                        </p>
-
-                        {option.feedbackText ? (
-                          <p style={feedbackTextStyle}>{option.feedbackText}</p>
+                        {typeof answer.isCorrect === 'boolean' ? (
+                          <span
+                            style={{
+                              ...statusPillStyle,
+                              borderColor: answer.isCorrect ? '#00E6A8' : '#FF6B8A',
+                              color: answer.isCorrect ? '#00E6A8' : '#FF9FB3',
+                            }}
+                          >
+                            {answer.isCorrect ? 'Correct' : 'Needs Review'}
+                          </span>
                         ) : null}
                       </div>
-                    ))}
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
 
-        <div style={actionRowStyle}>
-          <Link to={quizRoutes.quiz(result.quizId)} style={secondaryLinkStyle}>
-            Back to quiz
-          </Link>
-        </div>
-      </div>
+                      {typeof answer.awardedPoints === 'number' ? (
+                        <p style={metaStyle}>Awarded points: {answer.awardedPoints}</p>
+                      ) : null}
+
+                      {answer.feedbackShown ? (
+                        <p style={feedbackTextStyle}>{answer.feedbackShown}</p>
+                      ) : null}
+
+                      <div style={selectedOptionsStyle}>
+                        {answer.selectedOptions.map((option) => (
+                          <div key={option.optionId} style={selectedOptionStyle}>
+                            <div style={selectedOptionHeaderStyle}>
+                              <span style={optionLabelStyle}>{option.label}</span>
+                              <span>{option.text}</span>
+                            </div>
+
+                            <p
+                              style={{
+                                ...optionStatusStyle,
+                                color: option.isCorrect ? '#00E6A8' : '#FF9FB3',
+                              }}
+                            >
+                              {option.isCorrect
+                                ? 'Selected correct option'
+                                : 'Selected incorrect option'}
+                            </p>
+
+                            {option.feedbackText ? (
+                              <p style={feedbackTextStyle}>{option.feedbackText}</p>
+                            ) : null}
+                          </div>
+                        ))}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <div style={actionRowStyle}>
+              <Link to={quizRoutes.quiz(result.quizId)} style={secondaryLinkStyle}>
+                Back to quiz
+              </Link>
+            </div>
+          </div>
+        ) : null}
+      </TrainingAsyncContent>
     </AppLayout>
   );
 }
@@ -335,18 +317,6 @@ const secondaryLinkStyle = {
   border: '1px solid #FF00D4',
   padding: '0.85rem 1.2rem',
   textDecoration: 'none',
-  fontFamily: 'Jost',
-  fontWeight: 700,
-  letterSpacing: '0.06em',
-  textTransform: 'uppercase',
-} satisfies CSSProperties;
-
-const primaryButtonStyle = {
-  padding: '0.85rem 1.2rem',
-  backgroundColor: '#8400FF',
-  color: '#FFFFFF',
-  border: '1px solid #FF00D4',
-  cursor: 'pointer',
   fontFamily: 'Jost',
   fontWeight: 700,
   letterSpacing: '0.06em',

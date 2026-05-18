@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout';
+import { TrainingAsyncContent } from '../components/training/TrainingAsyncContent';
 import { TrainingDocumentReader } from '../components/training/TrainingDocumentReader';
-import { TrainingStatePanel } from '../components/training/TrainingStatePanel';
+import { trainingStateActionStyle } from '../components/training/trainingStateStyles';
 import * as trainingApi from '../lib/trainingApi';
 import type { TrainingDocumentDetail } from '../lib/trainingApi';
 
@@ -83,6 +84,12 @@ export default function TrainingDocumentPage() {
     }
   }
 
+  const backToModulesAction = (
+    <Link to={trainingApi.trainingRoutes.modules} style={trainingStateActionStyle}>
+      Back to Training Modules
+    </Link>
+  );
+
   return (
     <AppLayout showSidebar={false}>
       <div
@@ -92,73 +99,27 @@ export default function TrainingDocumentPage() {
           padding: '1rem 3rem 3rem',
         }}
       >
-        {isLoading ? (
-          <TrainingStatePanel
-            title="Loading training document"
-            message="The selected training material is being loaded."
-          />
-        ) : null}
-
-        {!isLoading && errorMessage ? (
-          <TrainingStatePanel
-            title="Unable to load training"
-            message={errorMessage}
-            action={
-              <Link
-                to={trainingApi.trainingRoutes.modules}
-                style={{
-                  display: 'inline-flex',
-                  padding: '0.85rem 1.2rem',
-                  backgroundColor: '#8400FF',
-                  color: '#FFFFFF',
-                  border: '1px solid #FF00D4',
-                  textDecoration: 'none',
-                  fontFamily: 'Jost',
-                  fontWeight: 700,
-                  letterSpacing: '0.06em',
-                  textTransform: 'uppercase',
-                }}
-              >
-                Back to Training Modules
-              </Link>
-            }
-          />
-        ) : null}
-
-        {!isLoading && !errorMessage && !trainingDocument ? (
-          <TrainingStatePanel
-            title="Training not found"
-            message="The requested training document could not be found."
-            action={
-              <Link
-                to={trainingApi.trainingRoutes.modules}
-                style={{
-                  display: 'inline-flex',
-                  padding: '0.85rem 1.2rem',
-                  backgroundColor: '#8400FF',
-                  color: '#FFFFFF',
-                  border: '1px solid #FF00D4',
-                  textDecoration: 'none',
-                  fontFamily: 'Jost',
-                  fontWeight: 700,
-                  letterSpacing: '0.06em',
-                  textTransform: 'uppercase',
-                }}
-              >
-                Back to Training Modules
-              </Link>
-            }
-          />
-        ) : null}
-
-        {!isLoading && !errorMessage && trainingDocument ? (
-          <TrainingDocumentReader
-            trainingDocument={trainingDocument}
-            onMarkAsRead={handleMarkAsRead}
-            isSavingProgress={isSavingProgress}
-            progressError={progressError}
-          />
-        ) : null}
+        <TrainingAsyncContent
+          isLoading={isLoading}
+          loadingTitle="Loading training document"
+          loadingMessage="The selected training material is being loaded."
+          errorMessage={errorMessage}
+          errorTitle="Unable to load training"
+          errorAction={backToModulesAction}
+          isEmpty={!trainingDocument}
+          emptyTitle="Training not found"
+          emptyMessage="The requested training document could not be found."
+          emptyAction={backToModulesAction}
+        >
+          {trainingDocument ? (
+            <TrainingDocumentReader
+              trainingDocument={trainingDocument}
+              onMarkAsRead={handleMarkAsRead}
+              isSavingProgress={isSavingProgress}
+              progressError={progressError}
+            />
+          ) : null}
+        </TrainingAsyncContent>
       </div>
     </AppLayout>
   );

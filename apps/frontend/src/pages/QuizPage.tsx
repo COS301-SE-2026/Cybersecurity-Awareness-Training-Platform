@@ -2,7 +2,8 @@ import type { CSSProperties } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout';
-import { TrainingStatePanel } from '../components/training/TrainingStatePanel';
+import { TrainingAsyncContent } from '../components/training/TrainingAsyncContent';
+import { trainingStateActionStyle } from '../components/training/trainingStateStyles';
 import {
   getQuiz,
   quizRoutes,
@@ -71,6 +72,7 @@ export default function QuizPage() {
   const orderedQuestions = useMemo(() => {
     return [...(quiz?.questions ?? [])].sort((a, b) => a.position - b.position);
   }, [quiz]);
+  const hasQuizContent = quiz !== null && orderedQuestions.length > 0;
 
   function selectSingleAnswer(questionId: string, optionId: string) {
     setSelectedAnswers((currentAnswers) => ({
@@ -125,45 +127,6 @@ export default function QuizPage() {
     }
   }
 
-  if (isLoading) {
-    return (
-      <AppLayout>
-        <TrainingStatePanel title="Loading quiz" message="Your quiz questions are being loaded." />
-      </AppLayout>
-    );
-  }
-
-  if (errorMessage) {
-    return (
-      <AppLayout>
-        <TrainingStatePanel
-          title="Unable to load quiz"
-          message={errorMessage}
-          action={
-            <button
-              type="button"
-              onClick={() => setReloadToken((currentValue) => currentValue + 1)}
-              style={primaryButtonStyle}
-            >
-              Try Again
-            </button>
-          }
-        />
-      </AppLayout>
-    );
-  }
-
-  if (!quiz || orderedQuestions.length === 0) {
-    return (
-      <AppLayout>
-        <TrainingStatePanel
-          title="No quiz questions available"
-          message="This quiz does not have any available questions yet."
-        />
-      </AppLayout>
-    );
-  }
-
   return (
     <AppLayout
       contentStyle={{
@@ -171,101 +134,127 @@ export default function QuizPage() {
         padding: '2rem',
       }}
     >
-      <div style={pageShellStyle}>
-        <section style={headerStyle}>
-          <p style={eyebrowStyle}>UC-03 Quiz</p>
-          <h1 style={titleStyle}>{quiz.title}</h1>
-          {quiz.description ? <p style={descriptionStyle}>{quiz.description}</p> : null}
-          <p style={metaStyle}>
-            Pass mark: {quiz.passThresholdPercentage}% · Difficulty: {quiz.difficultyLevel}
-          </p>
-        </section>
+      <TrainingAsyncContent
+        isLoading={isLoading}
+        loadingTitle="Loading quiz"
+        loadingMessage="Your quiz questions are being loaded."
+        errorMessage={errorMessage}
+        errorTitle="Unable to load quiz"
+        errorAction={
+          <button
+            type="button"
+            onClick={() => setReloadToken((currentValue) => currentValue + 1)}
+            style={trainingStateActionStyle}
+          >
+            Try Again
+          </button>
+        }
+        isEmpty={!hasQuizContent}
+        emptyTitle="No quiz questions available"
+        emptyMessage="This quiz does not have any available questions yet."
+      >
+        {quiz && orderedQuestions.length > 0 ? (
+          <div style={pageShellStyle}>
+            <section style={headerStyle}>
+              <p style={eyebrowStyle}>UC-03 Quiz</p>
+              <h1 style={titleStyle}>{quiz.title}</h1>
+              {quiz.description ? <p style={descriptionStyle}>{quiz.description}</p> : null}
+              <p style={metaStyle}>
+                Pass mark: {quiz.passThresholdPercentage}% · Difficulty: {quiz.difficultyLevel}
+              </p>
+            </section>
 
-        {submitErrorMessage ? (
-          <div role="alert" style={alertStyle}>
-            {submitErrorMessage}
+            {submitErrorMessage ? (
+              <div role="alert" style={alertStyle}>
+                {submitErrorMessage}
+              </div>
+            ) : null}
+
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                void handleSubmit();
+              }}
+              style={formStyle}
+            >
+              {orderedQuestions.map((question, questionIndex) => {
+                const selectedOptionIds = selectedAnswers[question.id] ?? [];
+                const hasValidationError = missingQuestionIds.includes(question.id);
+                const orderedOptions = [...question.options].sort(
+                  (a, b) => a.position - b.position,
+                );
+
+                return (
+                  <fieldset
+                    key={question.id}
+                    style={{
+                      ...questionCardStyle,
+                      borderColor: hasValidationError ? '#FF6B8A' : 'rgba(255, 255, 255, 0.16)',
+                    }}
+                  >
+                    <legend style={questionLegendStyle}>Question {questionIndex + 1}</legend>
+
+                    <h2 style={questionPromptStyle}>{question.prompt}</h2>
+
+                    <div style={optionsListStyle}>
+                      {orderedOptions.map((option) => {
+                        const inputId = `${question.id}-${option.id}`;
+                        const isSelected = selectedOptionIds.includes(option.id);
+
+                        return (
+                          <label
+                            key={option.id}
+                            htmlFor={inputId}
+                            style={{
+                              ...optionStyle,
+                              borderColor: isSelected ? '#FF00D4' : 'rgba(255, 255, 255, 0.14)',
+                              backgroundColor: isSelected
+                                ? 'rgba(132, 0, 255, 0.28)'
+                                : 'rgba(255, 255, 255, 0.04)',
+                            }}
+                          >
+                            <input
+                              id={inputId}
+                              type="radio"
+                              name={question.id}
+                              value={option.id}
+                              checked={isSelected}
+                              onChange={() => selectSingleAnswer(question.id, option.id)}
+                              style={{ accentColor: '#FF00D4' }}
+                            />
+                            <span style={optionLabelStyle}>{option.label}</span>
+                            <span>{option.text}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+
+                    {hasValidationError ? (
+                      <p style={validationMessageStyle}>
+                        Please select an answer for this question.
+                      </p>
+                    ) : null}
+                  </fieldset>
+                );
+              })}
+
+              <div style={submitRowStyle}>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  style={{
+                    ...primaryButtonStyle,
+                    cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                    opacity: isSubmitting ? 0.72 : 1,
+                  }}
+                >
+                  {isSubmitting ? 'Submitting...' : 'Submit Quiz'}
+                </button>
+              </div>
+            </form>
           </div>
         ) : null}
-
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            void handleSubmit();
-          }}
-          style={formStyle}
-        >
-          {orderedQuestions.map((question, questionIndex) => {
-            const selectedOptionIds = selectedAnswers[question.id] ?? [];
-            const hasValidationError = missingQuestionIds.includes(question.id);
-            const orderedOptions = [...question.options].sort((a, b) => a.position - b.position);
-
-            return (
-              <fieldset
-                key={question.id}
-                style={{
-                  ...questionCardStyle,
-                  borderColor: hasValidationError ? '#FF6B8A' : 'rgba(255, 255, 255, 0.16)',
-                }}
-              >
-                <legend style={questionLegendStyle}>Question {questionIndex + 1}</legend>
-
-                <h2 style={questionPromptStyle}>{question.prompt}</h2>
-
-                <div style={optionsListStyle}>
-                  {orderedOptions.map((option) => {
-                    const inputId = `${question.id}-${option.id}`;
-                    const isSelected = selectedOptionIds.includes(option.id);
-
-                    return (
-                      <label
-                        key={option.id}
-                        htmlFor={inputId}
-                        style={{
-                          ...optionStyle,
-                          borderColor: isSelected ? '#FF00D4' : 'rgba(255, 255, 255, 0.14)',
-                          backgroundColor: isSelected
-                            ? 'rgba(132, 0, 255, 0.28)'
-                            : 'rgba(255, 255, 255, 0.04)',
-                        }}
-                      >
-                        <input
-                          id={inputId}
-                          type="radio"
-                          name={question.id}
-                          value={option.id}
-                          checked={isSelected}
-                          onChange={() => selectSingleAnswer(question.id, option.id)}
-                          style={{ accentColor: '#FF00D4' }}
-                        />
-                        <span style={optionLabelStyle}>{option.label}</span>
-                        <span>{option.text}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-
-                {hasValidationError ? (
-                  <p style={validationMessageStyle}>Please select an answer for this question.</p>
-                ) : null}
-              </fieldset>
-            );
-          })}
-
-          <div style={submitRowStyle}>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              style={{
-                ...primaryButtonStyle,
-                cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                opacity: isSubmitting ? 0.72 : 1,
-              }}
-            >
-              {isSubmitting ? 'Submitting...' : 'Submit Quiz'}
-            </button>
-          </div>
-        </form>
-      </div>
+      </TrainingAsyncContent>
     </AppLayout>
   );
 }

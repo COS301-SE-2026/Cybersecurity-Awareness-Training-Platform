@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import AppLayout from '../components/layout/AppLayout';
+import { TrainingAsyncContent } from '../components/training/TrainingAsyncContent';
 import { TrainingList } from '../components/training/TrainingList';
-import { TrainingStatePanel } from '../components/training/TrainingStatePanel';
+import { trainingStateActionStyle } from '../components/training/trainingStateStyles';
 import * as trainingApi from '../lib/trainingApi';
 import type { TrainingDocumentSummary } from '../lib/trainingApi';
 
@@ -101,51 +102,29 @@ export default function TrainingModulesPage() {
           </p>
         </header>
 
-        {isLoading ? (
-          <TrainingStatePanel
-            title="Loading training modules"
-            message="Your assigned training content is being loaded."
-          />
-        ) : null}
-
-        {!isLoading && errorMessage ? (
-          <TrainingStatePanel
-            title="Unable to load training"
-            message={errorMessage}
-            action={
-              <button
-                type="button"
-                onClick={() => {
-                  setIsLoading(true);
-                  setErrorMessage(null);
-                  setReloadToken((currentValue) => currentValue + 1);
-                }}
-                style={{
-                  padding: '0.85rem 1.2rem',
-                  backgroundColor: '#8400FF',
-                  color: '#FFFFFF',
-                  border: '1px solid #FF00D4',
-                  cursor: 'pointer',
-                  fontFamily: 'Jost',
-                  fontWeight: 700,
-                  letterSpacing: '0.06em',
-                  textTransform: 'uppercase',
-                }}
-              >
-                Try Again
-              </button>
-            }
-          />
-        ) : null}
-
-        {!isLoading && !errorMessage && trainingDocuments.length === 0 ? (
-          <TrainingStatePanel
-            title="No assigned training"
-            message="You do not have any training modules assigned right now."
-          />
-        ) : null}
-
-        {!isLoading && !errorMessage && trainingDocuments.length > 0 ? (
+        <TrainingAsyncContent
+          isLoading={isLoading}
+          loadingTitle="Loading training modules"
+          loadingMessage="Your assigned training content is being loaded."
+          errorMessage={errorMessage}
+          errorTitle="Unable to load training"
+          errorAction={
+            <button
+              type="button"
+              onClick={() => {
+                setIsLoading(true);
+                setErrorMessage(null);
+                setReloadToken((currentValue) => currentValue + 1);
+              }}
+              style={trainingStateActionStyle}
+            >
+              Try Again
+            </button>
+          }
+          isEmpty={trainingDocuments.length === 0}
+          emptyTitle="No assigned training"
+          emptyMessage="You do not have any training modules assigned right now."
+        >
           <>
             <section
               aria-label="Training progress summary"
@@ -250,7 +229,7 @@ export default function TrainingModulesPage() {
 
             <TrainingList trainingDocuments={trainingDocuments} />
           </>
-        ) : null}
+        </TrainingAsyncContent>
       </div>
     </AppLayout>
   );
