@@ -1,0 +1,29 @@
+docs/demo1/diagrams/README.md
+  s_8de403d86845e1::t_a3984beda1f8a9 42,44
+docs/demo1/traceability.md
+  s_8de403d86845e1::t_a3984beda1f8a9 35-44,50-60,75-92
+docs/demo1/testing.md
+  s_8de403d86845e1::t_a3984beda1f8a9 466
+  s_8de403d86845e1::t_9db0ffd1225144 471
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "d85e09dd9caece5e890fb979520a555929feaf56",
+  "prompts": {},
+  "humans": {
+    "h_1fff265ad32c51": {
+      "author": "FJNel <u24594475@tuks.co.za>"
+    }
+  },
+  "sessions": {
+    "s_8de403d86845e1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e3a31-0279-7042-be4e-cfa19eecfc56",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
