@@ -2,6 +2,107 @@ import swaggerJsdoc from 'swagger-jsdoc';
 import { APP_NAME } from '@insightful-phish/shared';
 import { env } from './env.js';
 
+type OpenApiSchema = Record<string, unknown>;
+
+function schemaRef(name: string): OpenApiSchema {
+  return {
+    $ref: `#/components/schemas/${name}`,
+  };
+}
+
+function jsonContent(schema: OpenApiSchema) {
+  return {
+    content: {
+      'application/json': {
+        schema,
+      },
+    },
+  };
+}
+
+function enumString(values: string[], example: string): OpenApiSchema {
+  return {
+    type: 'string',
+    enum: values,
+    example,
+  };
+}
+
+function uuidString(example: string): OpenApiSchema {
+  return {
+    type: 'string',
+    format: 'uuid',
+    example,
+  };
+}
+
+function nullableUuidString(example: string): OpenApiSchema {
+  return {
+    ...uuidString(example),
+    nullable: true,
+  };
+}
+
+function dateTimeString(example = '2026-05-16T09:00:00.000Z'): OpenApiSchema {
+  return {
+    type: 'string',
+    format: 'date-time',
+    example,
+  };
+}
+
+function nullableString(example: string): OpenApiSchema {
+  return {
+    type: 'string',
+    nullable: true,
+    example,
+  };
+}
+
+function trueSuccessProperty(): OpenApiSchema {
+  return {
+    type: 'boolean',
+    enum: [true],
+    example: true,
+  };
+}
+
+function arrayOf(schema: OpenApiSchema): OpenApiSchema {
+  return {
+    type: 'array',
+    items: schema,
+  };
+}
+
+function errorResponseSchema(
+  baseSchemaName: string,
+  errorCode: string,
+  messageExample: string,
+): OpenApiSchema {
+  return {
+    allOf: [
+      schemaRef(baseSchemaName),
+      {
+        type: 'object',
+        properties: {
+          error: enumString([errorCode], errorCode),
+          message: {
+            type: 'string',
+            example: messageExample,
+          },
+        },
+      },
+    ],
+  };
+}
+
+function responseComponent(description: string, schemaName: string) {
+  return {
+    description,
+    ...jsonContent(schemaRef(schemaName)),
+  };
+}
+
 const options: swaggerJsdoc.Options = {
   definition: {
     openapi: '3.0.0',
@@ -72,9 +173,7 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
               example: 'connected',
             },
             timestamp: {
-              type: 'string',
-              format: 'date-time',
-              example: '2026-05-11T20:44:54.000Z',
+              ...dateTimeString('2026-05-11T20:44:54.000Z'),
             },
           },
         },
@@ -135,146 +234,48 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
           ],
         },
         RateLimitErrorResponse: {
-          allOf: [
-            {
-              $ref: '#/components/schemas/ApiErrorResponse',
-            },
-            {
-              type: 'object',
-              properties: {
-                error: {
-                  type: 'string',
-                  example: 'TOO_MANY_REQUESTS',
-                },
-                message: {
-                  type: 'string',
-                  example: 'Too many requests from this IP, please try again after 15 minutes',
-                },
-              },
-            },
-          ],
+          ...errorResponseSchema(
+            'ApiErrorResponse',
+            'TOO_MANY_REQUESTS',
+            'Too many requests from this IP, please try again after 15 minutes',
+          ),
         },
-        AuthEmailExistsErrorResponse: {
-          allOf: [
-            {
-              $ref: '#/components/schemas/ApiErrorResponse',
-            },
-            {
-              type: 'object',
-              properties: {
-                error: {
-                  type: 'string',
-                  enum: ['AUTH_EMAIL_EXISTS'],
-                  example: 'AUTH_EMAIL_EXISTS',
-                },
-                message: {
-                  type: 'string',
-                  example: 'A user with the provided email already exists',
-                },
-              },
-            },
-          ],
-        },
-        AuthInvalidErrorResponse: {
-          allOf: [
-            {
-              $ref: '#/components/schemas/ApiErrorResponse',
-            },
-            {
-              type: 'object',
-              properties: {
-                error: {
-                  type: 'string',
-                  enum: ['AUTH_INVALID'],
-                  example: 'AUTH_INVALID',
-                },
-                message: {
-                  type: 'string',
-                  example: 'Invalid email or password',
-                },
-              },
-            },
-          ],
-        },
-        AuthRateLimitErrorResponse: {
-          allOf: [
-            {
-              $ref: '#/components/schemas/RateLimitErrorResponse',
-            },
-            {
-              type: 'object',
-              properties: {
-                error: {
-                  type: 'string',
-                  enum: ['AUTH_RATE_LIMITED'],
-                  example: 'AUTH_RATE_LIMITED',
-                },
-                message: {
-                  type: 'string',
-                  example: 'Too many authentication requests. Please try again later.',
-                },
-              },
-            },
-          ],
-        },
-        TrainingDocumentNotFoundErrorResponse: {
-          allOf: [
-            {
-              $ref: '#/components/schemas/ApiErrorResponse',
-            },
-            {
-              type: 'object',
-              properties: {
-                error: {
-                  type: 'string',
-                  enum: ['TRAINING_DOCUMENT_NOT_FOUND'],
-                  example: 'TRAINING_DOCUMENT_NOT_FOUND',
-                },
-                message: {
-                  type: 'string',
-                  example: 'Training document was not found',
-                },
-              },
-            },
-          ],
-        },
-        TrainingRateLimitErrorResponse: {
-          allOf: [
-            {
-              $ref: '#/components/schemas/RateLimitErrorResponse',
-            },
-            {
-              type: 'object',
-              properties: {
-                error: {
-                  type: 'string',
-                  enum: ['TRAINING_RATE_LIMITED'],
-                  example: 'TRAINING_RATE_LIMITED',
-                },
-                message: {
-                  type: 'string',
-                  example: 'Too many training requests. Please try again later.',
-                },
-              },
-            },
-          ],
-        },
+        AuthEmailExistsErrorResponse: errorResponseSchema(
+          'ApiErrorResponse',
+          'AUTH_EMAIL_EXISTS',
+          'A user with the provided email already exists',
+        ),
+        AuthInvalidErrorResponse: errorResponseSchema(
+          'ApiErrorResponse',
+          'AUTH_INVALID',
+          'Invalid email or password',
+        ),
+        AuthRateLimitErrorResponse: errorResponseSchema(
+          'RateLimitErrorResponse',
+          'AUTH_RATE_LIMITED',
+          'Too many authentication requests. Please try again later.',
+        ),
+        TrainingDocumentNotFoundErrorResponse: errorResponseSchema(
+          'ApiErrorResponse',
+          'TRAINING_DOCUMENT_NOT_FOUND',
+          'Training document was not found',
+        ),
+        TrainingRateLimitErrorResponse: errorResponseSchema(
+          'RateLimitErrorResponse',
+          'TRAINING_RATE_LIMITED',
+          'Too many training requests. Please try again later.',
+        ),
         EmptyRequestBody: {
           type: 'object',
           additionalProperties: false,
           description: 'Request body must be omitted or an empty JSON object.',
           example: {},
         },
-        UserType: {
-          type: 'string',
-          enum: ['IP_ADMIN', 'ORGANISATION_ADMIN', 'ORGANISATION_TRAINEE', 'GENERAL_TRAINEE'],
-          example: 'GENERAL_TRAINEE',
-        },
-        AuthStatus: {
-          type: 'string',
-          enum: ['PENDING', 'ACTIVE', 'DISABLED'],
-          example: 'ACTIVE',
-        },
+        UserType: enumString(
+          ['IP_ADMIN', 'ORGANISATION_ADMIN', 'ORGANISATION_TRAINEE', 'GENERAL_TRAINEE'],
+          'GENERAL_TRAINEE',
+        ),
+        AuthStatus: enumString(['PENDING', 'ACTIVE', 'DISABLED'], 'ACTIVE'),
         PublicOrganisation: {
           type: 'object',
           required: ['id', 'name'],
@@ -389,9 +390,7 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
               ],
             },
             createdAt: {
-              type: 'string',
-              format: 'date-time',
-              example: '2026-05-11T20:44:54.000Z',
+              ...dateTimeString('2026-05-11T20:44:54.000Z'),
             },
           },
         },
@@ -494,39 +493,32 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
             },
           },
         },
-        DifficultyLevel: {
-          type: 'string',
-          enum: ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ADAPTIVE'],
-          example: 'BEGINNER',
-        },
-        TrainingContentType: {
-          type: 'string',
-          enum: ['PDF', 'MARKDOWN', 'HTML', 'URL', 'INTERACTIVE'],
-          example: 'MARKDOWN',
-        },
-        TrainingDocumentStatus: {
-          type: 'string',
-          enum: ['DRAFT', 'AVAILABLE', 'UNAVAILABLE', 'ARCHIVED'],
-          example: 'AVAILABLE',
-        },
-        TrainingCampaignItemAvailabilityStatus: {
-          type: 'string',
-          enum: ['AVAILABLE', 'LOCKED', 'UNAVAILABLE', 'ARCHIVED'],
-          example: 'AVAILABLE',
-        },
-        TrainingInteractionEventType: {
-          type: 'string',
-          enum: ['TRAINING_VIEWED', 'TRAINING_COMPLETED'],
-          example: 'TRAINING_VIEWED',
-        },
+        DifficultyLevel: enumString(
+          ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ADAPTIVE'],
+          'BEGINNER',
+        ),
+        TrainingContentType: enumString(
+          ['PDF', 'MARKDOWN', 'HTML', 'URL', 'INTERACTIVE'],
+          'MARKDOWN',
+        ),
+        TrainingDocumentStatus: enumString(
+          ['DRAFT', 'AVAILABLE', 'UNAVAILABLE', 'ARCHIVED'],
+          'AVAILABLE',
+        ),
+        TrainingCampaignItemAvailabilityStatus: enumString(
+          ['AVAILABLE', 'LOCKED', 'UNAVAILABLE', 'ARCHIVED'],
+          'AVAILABLE',
+        ),
+        TrainingInteractionEventType: enumString(
+          ['TRAINING_VIEWED', 'TRAINING_COMPLETED'],
+          'TRAINING_VIEWED',
+        ),
         TrainingDocument: {
           type: 'object',
           required: ['id', 'title', 'contentType', 'contentRef', 'difficultyLevel', 'status'],
           properties: {
             id: {
-              type: 'string',
-              format: 'uuid',
-              example: '33333333-3333-4333-8333-333333333333',
+              ...uuidString('33333333-3333-4333-8333-333333333333'),
             },
             title: {
               type: 'string',
@@ -540,9 +532,7 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
               example: 'training/training-doc-1',
             },
             contentSummary: {
-              type: 'string',
-              nullable: true,
-              example: 'Common phishing indicators and safe response steps.',
+              ...nullableString('Common phishing indicators and safe response steps.'),
             },
             estimatedReadTimeMinutes: {
               type: 'integer',
@@ -589,15 +579,10 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
           required: ['campaignItemId', 'trainingDocument', 'campaignItem'],
           properties: {
             campaignItemId: {
-              type: 'string',
-              format: 'uuid',
-              example: '11111111-1111-4111-8111-111111111111',
+              ...uuidString('11111111-1111-4111-8111-111111111111'),
             },
             campaignAssignmentId: {
-              type: 'string',
-              format: 'uuid',
-              nullable: true,
-              example: '44444444-4444-4444-8444-444444444444',
+              ...nullableUuidString('44444444-4444-4444-8444-444444444444'),
             },
             trainingDocument: {
               $ref: '#/components/schemas/TrainingDocument',
@@ -619,9 +604,7 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
               $ref: '#/components/schemas/TrainingInteractionEventType',
             },
             occurredAt: {
-              type: 'string',
-              format: 'date-time',
-              example: '2026-05-16T09:00:00.000Z',
+              ...dateTimeString(),
             },
           },
         },
@@ -630,9 +613,7 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
           required: ['success', 'campaignItemId', 'trainingDocumentId', 'event'],
           properties: {
             success: {
-              type: 'boolean',
-              enum: [true],
-              example: true,
+              ...trueSuccessProperty(),
             },
             campaignItemId: {
               type: 'string',
@@ -649,30 +630,20 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
             },
           },
         },
-        EmailClassification: {
-          type: 'string',
-          enum: ['SAFE', 'SUSPICIOUS', 'PHISHING'],
-          example: 'PHISHING',
-        },
-        EmailRedFlagType: {
-          type: 'string',
-          enum: ['SENDER', 'LINK', 'LANGUAGE', 'ATTACHMENT', 'REQUEST', 'DOMAIN', 'OTHER'],
-          example: 'LANGUAGE',
-        },
-        RedFlagSeverity: {
-          type: 'string',
-          enum: ['LOW', 'MEDIUM', 'HIGH'],
-          example: 'MEDIUM',
-        },
-        SimulatedEmailInteractionEventType: {
-          type: 'string',
-          enum: [
+        EmailClassification: enumString(['SAFE', 'SUSPICIOUS', 'PHISHING'], 'PHISHING'),
+        EmailRedFlagType: enumString(
+          ['SENDER', 'LINK', 'LANGUAGE', 'ATTACHMENT', 'REQUEST', 'DOMAIN', 'OTHER'],
+          'LANGUAGE',
+        ),
+        RedFlagSeverity: enumString(['LOW', 'MEDIUM', 'HIGH'], 'MEDIUM'),
+        SimulatedEmailInteractionEventType: enumString(
+          [
             'SIMULATED_EMAIL_OPENED',
             'SIMULATED_EMAIL_LINK_CLICKED',
             'CREDENTIAL_SUBMISSION_ATTEMPTED',
           ],
-          example: 'SIMULATED_EMAIL_LINK_CLICKED',
-        },
+          'SIMULATED_EMAIL_LINK_CLICKED',
+        ),
         SimulatedInboxEmailSummary: {
           type: 'object',
           required: [
@@ -739,10 +710,7 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
           required: ['emails'],
           properties: {
             emails: {
-              type: 'array',
-              items: {
-                $ref: '#/components/schemas/SimulatedInboxEmailSummary',
-              },
+              ...arrayOf(schemaRef('SimulatedInboxEmailSummary')),
             },
           },
         },
@@ -928,21 +896,9 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
             },
           },
         },
-        QuestionType: {
-          type: 'string',
-          enum: ['SINGLE_CHOICE', 'MULTIPLE_CHOICE'],
-          example: 'SINGLE_CHOICE',
-        },
-        QuizAttemptStatus: {
-          type: 'string',
-          enum: ['IN_PROGRESS', 'SUBMITTED'],
-          example: 'IN_PROGRESS',
-        },
-        QuizStatus: {
-          type: 'string',
-          enum: ['DRAFT', 'PUBLISHED', 'ARCHIVED'],
-          example: 'PUBLISHED',
-        },
+        QuestionType: enumString(['SINGLE_CHOICE', 'MULTIPLE_CHOICE'], 'SINGLE_CHOICE'),
+        QuizAttemptStatus: enumString(['IN_PROGRESS', 'SUBMITTED'], 'IN_PROGRESS'),
+        QuizStatus: enumString(['DRAFT', 'PUBLISHED', 'ARCHIVED'], 'PUBLISHED'),
         QuizCampaignItemContext: {
           type: 'object',
           properties: {
@@ -1327,76 +1283,31 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
         },
       },
       responses: {
-        BadRequest: {
-          description: 'The request payload or parameters are invalid.',
-          content: {
-            'application/json': {
-              schema: {
-                $ref: '#/components/schemas/ValidationErrorResponse',
-              },
-            },
-          },
-        },
-        Unauthorized: {
-          description: 'Authentication credentials are missing or invalid.',
-          content: {
-            'application/json': {
-              schema: {
-                $ref: '#/components/schemas/ApiErrorResponse',
-              },
-            },
-          },
-        },
-        Forbidden: {
-          description: 'The authenticated user is not allowed to perform this action.',
-          content: {
-            'application/json': {
-              schema: {
-                $ref: '#/components/schemas/ApiErrorResponse',
-              },
-            },
-          },
-        },
-        NotFound: {
-          description: 'The requested resource was not found.',
-          content: {
-            'application/json': {
-              schema: {
-                $ref: '#/components/schemas/ApiErrorResponse',
-              },
-            },
-          },
-        },
-        Conflict: {
-          description: 'The request conflicts with an existing resource or state.',
-          content: {
-            'application/json': {
-              schema: {
-                $ref: '#/components/schemas/ApiErrorResponse',
-              },
-            },
-          },
-        },
-        TooManyRequests: {
-          description: 'The client has exceeded the configured rate limit.',
-          content: {
-            'application/json': {
-              schema: {
-                $ref: '#/components/schemas/RateLimitErrorResponse',
-              },
-            },
-          },
-        },
-        InternalServerError: {
-          description: 'An unexpected server error occurred.',
-          content: {
-            'application/json': {
-              schema: {
-                $ref: '#/components/schemas/ApiErrorResponse',
-              },
-            },
-          },
-        },
+        BadRequest: responseComponent(
+          'The request payload or parameters are invalid.',
+          'ValidationErrorResponse',
+        ),
+        Unauthorized: responseComponent(
+          'Authentication credentials are missing or invalid.',
+          'ApiErrorResponse',
+        ),
+        Forbidden: responseComponent(
+          'The authenticated user is not allowed to perform this action.',
+          'ApiErrorResponse',
+        ),
+        NotFound: responseComponent('The requested resource was not found.', 'ApiErrorResponse'),
+        Conflict: responseComponent(
+          'The request conflicts with an existing resource or state.',
+          'ApiErrorResponse',
+        ),
+        TooManyRequests: responseComponent(
+          'The client has exceeded the configured rate limit.',
+          'RateLimitErrorResponse',
+        ),
+        InternalServerError: responseComponent(
+          'An unexpected server error occurred.',
+          'ApiErrorResponse',
+        ),
       },
     },
   },
