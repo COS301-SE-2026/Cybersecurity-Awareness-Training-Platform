@@ -58,4 +58,14 @@ describe('swaggerSpec', () => {
       'quiz',
     );
   });
+
+  it('includes the mounted trainee training paths', () => {
+    expect(spec.paths).toHaveProperty('/trainee/campaign-items/{campaignItemId}/training-document');
+    expect(spec.paths).toHaveProperty(
+      '/trainee/campaign-items/{campaignItemId}/training-document/viewed',
+    );
+    expect(spec.paths).toHaveProperty(
+      '/trainee/campaign-items/{campaignItemId}/training-document/completed',
+    );
+  });
 });

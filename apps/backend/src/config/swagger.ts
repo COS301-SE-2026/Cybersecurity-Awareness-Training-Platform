@@ -654,8 +654,9 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
           description: 'Campaign item identifier.',
           schema: {
             type: 'string',
+            format: 'uuid',
           },
-          example: 'campaign-item-123',
+          example: '11111111-1111-4111-8111-111111111111',
         },
         EmailIdPathParam: {
           name: 'emailId',
