@@ -26,8 +26,21 @@ function CampaignAccordion({
       style={{
         border: `4px solid ${accentColor}33`,
         backgroundColor: `${accentColor}12`,
+        position: 'relative',
+        overflow: 'hidden',
       }}
     >
+      <div
+        style={{
+          position: 'absolute',
+          left: '-4px',
+          top: '-4px',
+          width: '12px',
+          height: 'calc(100% + 8px)',
+          backgroundColor: accentColor,
+          zIndex: 2,
+        }}
+      />
       {/* HEADER */}
 
       <div
@@ -38,7 +51,6 @@ function CampaignAccordion({
           justifyContent: 'space-between',
           alignItems: 'center',
           padding: '1.6rem 1.8rem',
-          borderLeft: `10px solid ${accentColor}`,
         }}
       >
         <div>
