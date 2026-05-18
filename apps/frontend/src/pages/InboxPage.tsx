@@ -42,7 +42,8 @@ function InboxPage() {
         <div
           style={{
             height: '58px',
-            backgroundColor: 'rgb(12, 0, 99)',
+            backgroundColor: 'rgba(12, 0, 99, 0.53)',
+            border: '3px solid rgb(12, 0, 99)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
