@@ -40,7 +40,6 @@ function CampaignsPage() {
         </h1>
 
         {/* CAMPAIGN 1 */}
-
         <CampaignAccordion
           title="Campaign 1"
           subtitle="Phishing"
@@ -69,7 +68,6 @@ function CampaignsPage() {
         </CampaignAccordion>
 
         {/* CAMPAIGN 2 */}
-
         <CampaignAccordion
           title="Campaign 2"
           subtitle="Password Security"
