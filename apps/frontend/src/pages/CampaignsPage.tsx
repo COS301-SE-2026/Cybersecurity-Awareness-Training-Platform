@@ -18,6 +18,7 @@ function CampaignsPage() {
           display: 'flex',
           flexDirection: 'column',
           gap: '1.5rem',
+          userSelect: 'none',
         }}
       >
         {/* HEADING */}
@@ -64,7 +65,6 @@ function CampaignsPage() {
           subtitle="Password Security"
           status="STARTED"
           accentColor="#FF00D4"
-          defaultOpen
         >
           <TrainingPartAccordion title="Part 1: What is Password Security?" status="COMPLETED">
             <TrainingActionRow label="Learn" status="COMPLETED" />
@@ -72,11 +72,7 @@ function CampaignsPage() {
             <TrainingActionRow label="Quiz" status="COMPLETED" />
           </TrainingPartAccordion>
 
-          <TrainingPartAccordion
-            title="Part 2: Is your Password Secure?"
-            status="STARTED"
-            defaultOpen
-          >
+          <TrainingPartAccordion title="Part 2: Is your Password Secure?" status="STARTED">
             <TrainingActionRow label="Learn" status="STARTED" />
 
             <TrainingActionRow label="Quiz" status="COMPLETE LEARN FIRST" disabled />

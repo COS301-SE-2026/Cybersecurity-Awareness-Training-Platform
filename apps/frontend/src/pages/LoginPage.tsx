@@ -47,7 +47,7 @@ function LoginPage() {
 
     login();
 
-    navigate('/dashboard');
+    navigate('/campaigns');
   }
 
   return (
