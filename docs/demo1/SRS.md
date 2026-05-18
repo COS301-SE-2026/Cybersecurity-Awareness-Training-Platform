@@ -2,7 +2,70 @@
 
 ## Purpose
 
-This document contains Demo 1 requirements for the Cybersecurity Awareness Training Platform.
+This document contains the base, incremental Demo 1 requirements for the Cybersecurity Awareness Training Platform. It is not a complete final SRS for the full-year product.
+
+## Whole-Project Vision
+
+Insightful Phish is intended to become a modular cybersecurity awareness training platform for individual trainees, organisation-linked trainees, organisation admins, and Insightful Phish admins. The long-term platform direction includes campaign-based training, reusable campaign components, simulated inboxes and emails, training documents, quizzes, future reports and dashboards, future real email delivery, future AI-assisted content generation, and future advanced simulations.
+
+Campaigns are the main assignment and ordering container. A campaign may belong to an organisation or may represent default Insightful Phish content, depending on context. A campaign contains ordered campaign components/items that place reusable content into the trainee journey. For Demo 1, campaign components are limited to a simulated inbox, a training document, and a quiz. Future campaign components may include richer simulations, fake login pages, simulated calls, smart password checkers, attachment/link exercises, and other cybersecurity awareness activities.
+
+The conceptual `CampaignComponent` is represented in the current implementation and supporting documents as a `CampaignItem` where applicable. A `CampaignItem` can place reusable content such as a `TrainingDocument`, `Quiz`, or `Simulation` into a specific campaign order.
+
+Simulated emails are stored under a simulated inbox campaign component. They may be benign/safe, suspicious, phishing, or scam-like controlled training content. Demo 1 only requires viewing and opening seeded simulated emails. Future versions may support trainee classification decisions, simulated links, attachments, fake login pages, and richer interaction tracking. Interaction tracking must remain safe and must never store real credentials or sensitive submitted values.
+
+## Incremental Scope for Demo 1
+
+Demo 1 is an early prototype increment. It details and implements the three trainee-facing Demo 1 use cases plus base access features needed to reach them:
+
+- UC-01: View emails in simulated inbox
+- UC-02: View training document/module
+- UC-03: Complete quiz flow and view results
+
+Registration and login, basic themes, and form validation are base features. They support the demo but are not counted as Demo 1 use cases.
+
+## Demo 1 vs Future Scope
+
+| Capability                                  | Demo 1 status                                                | Later-demo direction                                                                 |
+| ------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| Authentication / registration               | Base feature, not a counted use case                         | Production account management, password recovery, role administration                |
+| Basic themes                                | Base feature, not a counted use case                         | Mature design system and broader theming where needed                                |
+| Form validation                             | Base feature, not a counted use case                         | Shared validation patterns across all production workflows                           |
+| Simulated inbox                             | View/open seeded simulated emails                            | Classification, richer interactions, links, attachments, and tracking                |
+| Email classification                        | Future/optional only unless explicitly selected for the demo | Trainee judgement capture, red-flag selection, and learning feedback                 |
+| Training documents                          | View seeded markdown/content; mark completion if implemented | Richer progress tracking and additional content formats                              |
+| Training document authoring/uploading       | Future                                                       | Organisation admins upload, create, edit, and organise content                       |
+| Quiz flow                                   | Simple single-choice quiz and result display                 | Advanced question types, richer scoring, review modes, and quiz authoring            |
+| Advanced quiz editor/question types         | Future                                                       | Multiple-choice, combo/select, fill-in-the-blank, free text, richer marking rules    |
+| Campaign builder/editor                     | Future                                                       | Drag-and-drop ordered campaign flow from reusable components                         |
+| Admin campaign CRUD                         | Future                                                       | Organisation admin create, edit, delete, activate, archive, and assign campaigns     |
+| Organisation/user management                | Future/high-level                                            | Add trainees manually, onboarding emails, approved-domain sign-up linking            |
+| Reporting/risk dashboard                    | Future/high-level                                            | Progress, completion, quiz results, risky behaviour, organisation-level risk         |
+| Real email delivery to actual inboxes       | Future only                                                  | Opt-in, ethically constrained, using approved organisational context where suitable  |
+| AI generation                               | Future/high-level                                            | Schema-controlled, reviewed generation for quizzes, emails, training transformations |
+| Advanced simulations                        | Future/high-level                                            | Fake login pages, calls, password checker, safe attachment/link exercises            |
+| Deployment to Southern Cross infrastructure | Not required for Demo 1                                      | Later deployment target                                                              |
+
+## High-Level Future / Later-Demo Stories
+
+The following stories describe possible later platform direction. They are not Demo 1 acceptance criteria.
+
+- As an organisation admin, I want to add trainees to my organisation so that organisation employees can be onboarded into cybersecurity awareness training.
+- Organisation admins may eventually add trainees manually, send onboarding emails, or configure an approved email domain so that sign-ups from that domain can be linked to the organisation.
+- As an organisation admin, I want to create, edit, and delete campaigns for my organisation.
+- As an organisation admin, I want to build campaigns from reusable components such as training documents, quizzes, and simulated inboxes.
+- As an organisation admin, I want to drag and drop campaign components into an ordered campaign flow.
+- As an organisation admin, I want to create and edit quizzes, including future support for multiple question types.
+- As an organisation admin, I want to upload, create, edit, and organise training documents.
+- As an organisation admin, I want to review trainee progress, campaign completion, quiz results, risky behaviour, and organisation-level risk on dashboards.
+- As a trainee, I want to participate in assigned campaigns containing training documents, quizzes, and simulated inboxes.
+- As a trainee not linked to an organisation, I want to access default Insightful Phish campaigns and optionally opt into extra features later.
+- As the platform, I may eventually send opt-in real simulated emails to real inboxes, using safe and ethical constraints and organisation context where appropriate.
+- As the platform, I may eventually use AI-assisted generation for quizzes, emails, training transformations, and company-context-aware content.
+
+Real email delivery to actual inboxes is future-facing and must be opt-in, auditable, and ethically constrained. The team has not yet committed to whether real company domains, Insightful Phish-owned domains, or another approved delivery model will be used. Simulated inboxes remain important because they provide a controlled environment where content and trainee interactions can be demonstrated safely.
+
+AI-assisted generation is also future-facing. It would require schema-controlled generation, careful context preparation, review workflows, and data-safety boundaries rather than blindly calling an LLM. Training a custom model is undecided and should not be promised.
 
 ## Demo 1 Scope
 
@@ -82,7 +145,7 @@ This SRS does not finalise production implementation details, final database sch
 
 The primary actor is the **trainee**. This actor represents a person who accesses assigned simulated emails, training content, and quizzes through the platform.
 
-The **Administrator** is documented as supporting context. The Administrator configures or assigns campaigns, simulated emails, training material, and quizzes, but full administrative workflows are not core Demo 1 use cases.
+The **organisation admin** is documented as supporting context. The organisation admin configures or assigns campaigns, simulated emails, training material, and quizzes in the future platform vision, but full administrative workflows are not core Demo 1 use cases.
 
 The **System** supports authentication, content retrieval, validation, tracking placeholders, and safe feedback states.
 
@@ -123,7 +186,8 @@ For Demo 1 documentation:
 - `User` is the domain model entity representing a platform account.
 - `trainee` is the SRS actor label used for the trainee-facing Demo 1 flows.
 - `Trainee` is the conceptual trainee role. A trainee may be a `GeneralTrainee` with no organisation or an `OrganisationTrainee` linked to exactly one organisation.
-- `Administrator` or `Admin` is a supporting user type for campaign/content setup context.
+- `organisation admin` is the SRS actor label for company/admin users who manage organisation employees, campaigns, content, and reporting in later demos.
+- `Insightful Phish admin` is used only for platform-level administration context.
 - `OrganisationAdmin` belongs to exactly one organisation. `IPAdmin` is platform-level and is not linked to an organisation.
 - `CampaignAssignment` links a `Campaign` to a `Trainee`.
 - `CampaignItem` is the ordered campaign structure. A campaign item may be a trainee-facing `CampaignComponent` or a `CampaignComponentGroup`.
@@ -134,6 +198,7 @@ For Demo 1 documentation:
 - `Quiz` and `Simulation` are reusable content concepts that are placed into campaigns through components.
 - `InteractionEvent`, `EmailClassificationResponse`, `QuizAttempt`, `AttemptAnswer`, and `QuizResult` are the main tracking/progress entities used across UC-01, UC-02, and UC-03.
 - `ReportSummary` and `RiskIndicator` are future-facing reporting support concepts and should not be treated as final analytics or risk-scoring implementation details.
+- Avoid using "learner" as an actor label. "Employee" may appear in organisation-specific contexts, but the system role should remain "trainee".
 
 API routes and payloads remain preliminary placeholders. Domain entity names are conceptual and should not be treated as final Prisma model names, database table names, or final backend implementation details.
 
@@ -160,7 +225,7 @@ Primary Actor:
 Supporting Actors:
 
 - System
-- Administrator (as future supporting context)
+- organisation admin (as future supporting context)
 
 ### Preconditions
 
@@ -256,25 +321,25 @@ If any flow attempts to access real external email infrastructure, the system mu
 
 Preliminary domain entities linked to UC-01:
 
-| ID         | Entity                      | Description                                                                                                |
-| ---------- | --------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| DE-UC01-01 | trainee (`Trainee`)         | The trainee who views campaign-provided simulated emails.                                                  |
-| DE-UC01-02 | SimulatedInbox              | The controlled inbox simulation containing simulated email summaries.                                      |
-| DE-UC01-03 | SimulatedEmail              | A safe, preconfigured email used for training or phishing-awareness simulation.                            |
-| DE-UC01-04 | InteractionEvent            | A lightweight record of trainee interaction, such as opening a simulated email.                            |
-| DE-UC01-05 | EmailClassificationResponse | The trainee's classification judgement for a simulated email.                                              |
-| DE-UC01-06 | EmailRedFlag                | Expected or selected indicators such as suspicious sender, link, language, attachment, request, or domain. |
+| ID         | Entity                      | Description                                                                                           |
+| ---------- | --------------------------- | ----------------------------------------------------------------------------------------------------- |
+| DE-UC01-01 | trainee (`Trainee`)         | The trainee who views campaign-provided simulated emails.                                             |
+| DE-UC01-02 | SimulatedInbox              | The controlled inbox simulation containing simulated email summaries.                                 |
+| DE-UC01-03 | SimulatedEmail              | A safe, preconfigured email used for training or phishing-awareness simulation.                       |
+| DE-UC01-04 | InteractionEvent            | A lightweight record of trainee interaction, such as opening a simulated email.                       |
+| DE-UC01-05 | EmailClassificationResponse | Future/optional trainee judgement on a simulated email; not required for Demo 1 viewing/opening.      |
+| DE-UC01-06 | EmailRedFlag                | Future/optional indicators such as suspicious sender, link, language, attachment, request, or domain. |
 
 ### API References
 
 Preliminary API placeholders linked to UC-01:
 
-| ID          | Contract                                                      | Purpose                                                                     |
-| ----------- | ------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| API-UC01-01 | `GET /trainee/campaign-items/:campaignItemId/simulated-inbox` | Retrieve simulated email summaries for a campaign-provided inbox.           |
-| API-UC01-02 | `GET /trainee/simulated-emails/:emailId`                      | Retrieve details for a selected simulated email.                            |
-| API-UC01-03 | `POST /trainee/simulated-emails/:emailId/opened`              | Record that the trainee opened the simulated email.                         |
-| API-UC01-04 | `POST /trainee/simulated-emails/:emailId/classification`      | Record the trainee's classification response separately from quiz attempts. |
+| ID          | Contract                                                                              | Purpose                                                                                   |
+| ----------- | ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| API-UC01-01 | `GET /trainee/campaign-items/:campaignItemId/simulated-inbox`                         | Retrieve simulated email summaries for a campaign-provided inbox.                         |
+| API-UC01-02 | `GET /trainee/campaign-items/:campaignItemId/simulated-emails/:emailId`               | Retrieve details for a selected simulated email through campaign item access.             |
+| API-UC01-03 | `POST /trainee/campaign-items/:campaignItemId/simulated-emails/:emailId/interactions` | Record that the trainee opened the simulated email, if interaction tracking is included.  |
+| API-UC01-04 | Future/optional classification endpoint                                               | Record trainee classification separately from quiz attempts in a later or optional scope. |
 
 PLEASE NOTE: These contracts are subject to change throughout the course of implementation.
 
@@ -300,7 +365,9 @@ As a trainee, I want to view training documents assigned to me so that I can lea
 
 UC-02 defines the Demo 1 training document viewing feature slice. The feature allows a trainee to access a list of assigned training materials, open a selected training document, and view its contents in a structured and readable format.
 
-This use case is limited to viewing training content and recording basic interaction tracking. It does not include training content creation, editing, campaign management, or full quiz execution.
+This use case is limited to viewing seeded or preconfigured training content and recording basic interaction tracking. It does not include training content creation, editing, uploading, campaign management, or full quiz execution.
+
+Future organisation admin support may include uploading, creating, editing, and organising training documents. Future support may also include multiple file types, live editing, markdown editing, PDF-to-readable-site-content transformations, flashcard-style presentation, and other engaging formats. Demo 1 does not require full document authoring or uploading.
 
 ### Actor
 
@@ -311,7 +378,7 @@ Primary Actor:
 Supporting Actors:
 
 - System
-- Administrator (as a supporting context for assigning training content via campaigns)
+- organisation admin (as future supporting context for assigning training content via campaigns)
 
 ### Preconditions
 
@@ -444,7 +511,9 @@ As a trainee, I want to complete a quiz after my training session so that I can 
 
 UC-03 defines the Demo 1 quiz flow feature slice. The quiz flow allows a trainee to open assigned quiz content, answer supported questions, submit a quiz attempt, and view results or feedback where available.
 
-This use case is limited to completing a controlled quiz flow and viewing the submitted result or feedback. It does not include quiz authoring, campaign management, adaptive learning, gamified progression, or full reporting dashboards.
+This use case is limited to completing a controlled quiz flow and viewing the submitted result or feedback. Demo 1 supports simple single-choice quiz questions. It does not include quiz authoring, campaign management, adaptive learning, gamified progression, AI-assisted generation, or full reporting dashboards.
+
+Future quiz authoring may support multiple-choice, combo/select answers, fill-in-the-blank, free-text answers, richer marking rules, and possible AI-assisted marking or generation. These are later-demo capabilities and are not part of Demo 1.
 
 ### Actor
 
@@ -522,7 +591,7 @@ If the submitted attempt cannot load its results or feedback, the system display
 | FR-UC03-01 | The system shall allow a trainee to start an assigned or available quiz.                                                    | Starting the quiz begins the Demo 1 quiz flow for the trainee.                            |
 | FR-UC03-02 | The system shall retrieve and display the selected quiz content, including its questions and answer content.                | The quiz content should be presented in a clear and readable format.                      |
 | FR-UC03-03 | The system shall create a quiz attempt when the trainee starts the quiz.                                                    | The attempt provides the reference used for submission and results retrieval.             |
-| FR-UC03-04 | The system shall allow the trainee to answer supported quiz questions and review or change answers before submission.       | Demo 1 question formats remain implementation-dependent.                                  |
+| FR-UC03-04 | The system shall allow the trainee to answer supported quiz questions and review or change answers before submission.       | Demo 1 supports simple single-choice questions; advanced question types are future scope. |
 | FR-UC03-05 | The system shall validate required quiz answers before accepting a final submission.                                        | Missing or invalid answers should produce clear correction feedback.                      |
 | FR-UC03-06 | The system shall submit the trainee's quiz attempt and record the final answers against that attempt.                       | The attempt should be marked as submitted once accepted.                                  |
 | FR-UC03-07 | The system shall display the submitted attempt's results to the trainee.                                                    | Results may include score, status, or summary outcome where defined.                      |
@@ -572,9 +641,9 @@ Preliminary API placeholders linked to UC-03:
 | ID          | Contract                                                     | Purpose                                                                  |
 | ----------- | ------------------------------------------------------------ | ------------------------------------------------------------------------ |
 | API-UC03-01 | `GET /trainee/campaign-items/:campaignItemId/quiz`           | Retrieve quiz content through a campaign item before the trainee starts. |
-| API-UC03-02 | `POST /trainee/campaign-items/:campaignItemId/quiz-attempts` | Create a quiz attempt for the quiz placed at the campaign item.          |
+| API-UC03-02 | `POST /trainee/campaign-items/:campaignItemId/quiz/attempts` | Create a quiz attempt for the quiz placed at the campaign item.          |
 | API-UC03-03 | `POST /quiz-attempts/:attemptId/submit`                      | Submit the completed quiz attempt and record the final answers.          |
-| API-UC03-04 | `GET /quiz-attempts/:attemptId/result`                       | Retrieve the submitted attempt's result and answer-level feedback.       |
+| API-UC03-04 | `GET /quiz-attempts/:attemptId/results`                      | Retrieve the submitted attempt's result and answer-level feedback.       |
 
 PLEASE NOTE: These contracts are subject to change throughout the course of implementation.
 
@@ -693,10 +762,10 @@ In scope for Demo 1:
 
 - recording when a trainee views or opens a simulated email;
 - recording basic simulated inbox interaction events;
-- recording email classification responses separately from quiz attempts;
+- documenting email classification responses as future/optional tracking, separate from quiz attempts;
 - recording when a trainee views or progresses through a training document;
 - recording quiz attempts, submitted answers, quiz results, and answer-level educational feedback at a high level;
-- linking tracking records to relevant `Trainee` records and domain concepts such as campaign assignments, campaign components, simulations, simulated emails, training documents, quiz attempts, and email classification responses;
+- linking tracking records to relevant `Trainee` records and domain concepts such as campaign assignments, campaign components, simulations, simulated emails, training documents, and quiz attempts;
 - preparing lightweight reporting/risk placeholders for future dashboards.
 
 Out of scope for Demo 1:
@@ -778,7 +847,7 @@ Reporting and risk support for Demo 1 is limited to future-facing placeholders. 
 | ID        | Entity                        | Usage in Tracking/Progress                                                                    |
 | --------- | ----------------------------- | --------------------------------------------------------------------------------------------- |
 | DE-TRK-01 | `InteractionEvent`            | Records lightweight actions such as simulated email opened, inbox viewed, or training viewed. |
-| DE-TRK-02 | `EmailClassificationResponse` | Records a trainee's judgement on a simulated email separately from quiz attempts.             |
+| DE-TRK-02 | `EmailClassificationResponse` | Future/optional trainee judgement on a simulated email, separate from quiz attempts.          |
 | DE-TRK-03 | `QuizAttempt`                 | Tracks quiz start/submission state.                                                           |
 | DE-TRK-04 | `AttemptAnswer`               | Represents submitted answers in a quiz attempt.                                               |
 | DE-TRK-05 | `QuizResult`                  | Represents the submitted attempt result.                                                      |
@@ -788,14 +857,14 @@ Reporting and risk support for Demo 1 is limited to future-facing placeholders. 
 
 ### Tracking and Progress API References
 
-| ID         | Preliminary API Reference                                               | Tracking Purpose                                                               |
-| ---------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| API-TRK-01 | `POST /trainee/simulated-emails/:emailId/opened`                        | Records UC-01 simulated email open events.                                     |
-| API-TRK-02 | `POST /trainee/campaign-items/:campaignItemId/training-document/viewed` | Records UC-02 training viewed events.                                          |
-| API-TRK-03 | `POST /trainee/campaign-items/:campaignItemId/quiz-attempts`            | Creates a UC-03 quiz attempt.                                                  |
-| API-TRK-04 | `POST /quiz-attempts/:attemptId/submit`                                 | Submits a UC-03 quiz attempt and answer set.                                   |
-| API-TRK-05 | `GET /quiz-attempts/:attemptId/result`                                  | Retrieves UC-03 quiz result and answer-level feedback.                         |
-| API-TRK-06 | Future reporting endpoint placeholder                                   | Future reporting/risk summaries only; no final endpoint is defined for Demo 1. |
+| ID         | Preliminary API Reference                                                             | Tracking Purpose                                                               |
+| ---------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| API-TRK-01 | `POST /trainee/campaign-items/:campaignItemId/simulated-emails/:emailId/interactions` | Records UC-01 simulated email open events if interaction tracking is included. |
+| API-TRK-02 | `POST /trainee/campaign-items/:campaignItemId/training-document/viewed`               | Records UC-02 training viewed events.                                          |
+| API-TRK-03 | `POST /trainee/campaign-items/:campaignItemId/quiz/attempts`                          | Creates a UC-03 quiz attempt.                                                  |
+| API-TRK-04 | `POST /quiz-attempts/:attemptId/submit`                                               | Submits a UC-03 quiz attempt and answer set.                                   |
+| API-TRK-05 | `GET /quiz-attempts/:attemptId/results`                                               | Retrieves UC-03 quiz result and answer-level feedback.                         |
+| API-TRK-06 | Future reporting endpoint placeholder                                                 | Future reporting/risk summaries only; no final endpoint is defined for Demo 1. |
 
 These API references are preliminary planning references and may change during implementation. They should not be treated as final backend route or payload commitments.
 
@@ -810,24 +879,24 @@ These API references are preliminary planning references and may change during i
 | TRACE-TRK-05    | Demo 1 reporting support to RPT-DEMO1-01 through RPT-DEMO1-06, DE-TRK-07, DE-TRK-08                                  |
 | TRACE-TRK-06    | Demo 1 safety boundary to TRK-DEMO1-06, RPT-DEMO1-05, FR-UC01-09, and the no-sensitive-credential-storage constraint |
 
-## Admin and Campaign Supporting Context (Rudolph)
+## Organisation Admin and Campaign Supporting Context (Rudolph)
 
 > [!NOTE]
 > The following User Stories and Functional Requirements are provided as **supporting context** and **future-facing placeholders** only. They describe the administrative setup required to enable the trainee-facing use cases (UC-01, UC-02, and UC-03) and are not part of the core Demo 1 implementation scope.
 
 ### User Stories (Supporting Context)
 
-| ID        | User Story                                                                                                                                                  |
-| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| US-ADM-01 | As an Administrator, I want to create a new campaign so that I can group related simulations, training, and quizzes for specific security initiatives.      |
-| US-ADM-02 | As an Administrator, I want to assign specific trainees to a campaign so that they receive the targeted training relevant to their role or risk profile.    |
-| US-ADM-03 | As an Administrator, I want to configure campaign items and reusable content so that the trainee experience is aligned with current organisational threats. |
-| US-ADM-04 | As an Administrator, I want to monitor the progress of a campaign so that I can identify high-risk groups or trainees who need additional support.          |
-| US-ADM-05 | As an Administrator, I want to manage a library of simulation templates so that I can quickly deploy standardized training across different campaigns.      |
+| ID        | User Story                                                                                                                                                       |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| US-ADM-01 | As an organisation admin, I want to create a new campaign so that I can group related simulations, training, and quizzes for specific security initiatives.      |
+| US-ADM-02 | As an organisation admin, I want to assign specific trainees to a campaign so that they receive the targeted training relevant to their role or risk profile.    |
+| US-ADM-03 | As an organisation admin, I want to configure campaign items and reusable content so that the trainee experience is aligned with current organisational threats. |
+| US-ADM-04 | As an organisation admin, I want to monitor the progress of a campaign so that I can identify high-risk groups or trainees who need additional support.          |
+| US-ADM-05 | As an organisation admin, I want to manage a library of simulation templates so that I can quickly deploy standardised training across different campaigns.      |
 
-### Administrator User Characteristics
+### Organisation Admin User Characteristics
 
-The Administrator is a specialized user responsible for managing the security awareness program. For Demo 1, the Administrator role is documented as the source of configuration for the trainee-facing use cases.
+The organisation admin is a specialised user responsible for managing an organisation's security awareness programme. For Demo 1, the organisation admin role is documented as future/supporting context for the trainee-facing use cases.
 
 - **Goal:** To set up training campaigns that improve the organisation's security posture.
 - **Technical Literacy:** Moderate to high; familiar with organisational structure and common cyber threats.
@@ -852,15 +921,15 @@ To support the delivery of simulations and training, a preliminary campaign life
 
 #### Simulation Content Setup (UC-01)
 
-Administrators configure simulations that use simulated emails shown in the trainee's inbox.
+Organisation admins may later configure simulations that use simulated emails shown in the trainee's inbox.
 
 - **Sender Metadata:** Setting the display name (e.g., "IT Support") and a spoofed-style email address (e.g., `support@corp-security.com`).
 - **Phishing Indicators:** Configuring specific "red flags" in the email body (e.g., urgent language, suspicious links, grammatical errors) to be used for educational feedback.
-- **Link Tracking:** Defining the destination for any links in the simulated email (usually a "You've been phished" landing page).
+- **Link Tracking:** Future/supporting configuration for safe internal destinations such as educational feedback pages. "You've been phished" landing pages are not required Demo 1 functionality.
 
 #### Training and Quiz Setup (UC-02, UC-03)
 
-Administrators link reusable training documents and assessments into the campaign through campaign components.
+Organisation admins may later link reusable training documents and assessments into campaigns through campaign components.
 
 - **Document Library:** A central repository of training materials (PDFs, HTML modules).
 - **Quiz Builder:** Configuration of questions, multiple-choice options, and correct answer explanations.
@@ -875,13 +944,13 @@ To support future analytics, the system provides placeholders for capturing ligh
 
 ### Data Privacy and Ethical Constraints
 
-Administrators must adhere to strict boundaries when configuring campaigns:
+Organisation admins must adhere to strict boundaries when configuring campaigns:
 
 - **No Real Credential Harvesting:** Simulated landing pages must never capture or store actual trainee passwords.
 - **Tone and Content:** Simulations should not use overly traumatic themes (e.g., fake termination notices) without organisational approval.
 - **Data Minimization:** Interaction tracking should focus on learning outcomes rather than punitive monitoring.
 
-### Admin/Campaign Functional Requirements (Supporting Context)
+### Organisation Admin and Campaign Functional Requirements (Supporting Context)
 
 | ID        | Requirement                                                                                         | Notes                                 |
 | --------- | --------------------------------------------------------------------------------------------------- | ------------------------------------- |
@@ -896,28 +965,28 @@ Administrators must adhere to strict boundaries when configuring campaigns:
 | FR-ADM-09 | The system may allow previewing simulation content before activation.                               | Future quality check.                 |
 | FR-ADM-10 | The system should prevent the collection of sensitive PII through simulated links.                  | Safety constraint.                    |
 
-### Domain References (Admin Context)
+### Domain References (Organisation Admin Context)
 
 | ID        | Entity             | Description                                                                               |
 | --------- | ------------------ | ----------------------------------------------------------------------------------------- |
-| DE-ADM-01 | Administrator      | The user who manages campaigns and content.                                               |
+| DE-ADM-01 | organisation admin | The user who manages organisation campaigns and content in later demos.                   |
 | DE-ADM-02 | Campaign           | The core entity sequencing campaign items, components, reusable content, and assignments. |
 | DE-ADM-03 | CampaignAssignment | The link between a Campaign and a trainee.                                                |
 
-### Traceability References (Admin Context)
+### Traceability References (Organisation Admin Context)
 
-| Traceability ID | Linked Item                                                        |
-| --------------- | ------------------------------------------------------------------ |
-| TRACE-ADM-01    | Admin Context to FR-ADM-01, API Contract ID: API-ADM-01, DE-ADM-02 |
-| TRACE-ADM-02    | Admin Context to FR-ADM-02, API Contract ID: API-ADM-02, DE-ADM-03 |
-| TRACE-ADM-03    | Admin Context to FR-ADM-03, DE-UC01-03                             |
-| TRACE-ADM-04    | Admin Context to FR-ADM-04, DE-UC02-01 (Placeholder)               |
-| TRACE-ADM-05    | Admin Context to FR-ADM-05, DE-UC03-01 (Placeholder)               |
-| TRACE-ADM-06    | Admin Context to FR-ADM-06, API Contract ID: API-ADM-04            |
-| TRACE-ADM-07    | Admin Context to FR-ADM-07, API Contract ID: API-ADM-05            |
-| TRACE-ADM-08    | Admin Context to FR-ADM-08, API Contract ID: API-ADM-04            |
-| TRACE-ADM-09    | Admin Context to FR-ADM-09                                         |
-| TRACE-ADM-10    | Admin Context to FR-ADM-10                                         |
+| Traceability ID | Linked Item                                                                                   |
+| --------------- | --------------------------------------------------------------------------------------------- |
+| TRACE-ADM-01    | Organisation admin context to FR-ADM-01 and future admin/campaign API placeholders, DE-ADM-02 |
+| TRACE-ADM-02    | Organisation admin context to FR-ADM-02 and future admin/campaign API placeholders, DE-ADM-03 |
+| TRACE-ADM-03    | Organisation admin context to FR-ADM-03, DE-UC01-03                                           |
+| TRACE-ADM-04    | Organisation admin context to FR-ADM-04, DE-UC02-01 (Placeholder)                             |
+| TRACE-ADM-05    | Organisation admin context to FR-ADM-05, DE-UC03-01 (Placeholder)                             |
+| TRACE-ADM-06    | Organisation admin context to FR-ADM-06 and future reporting placeholders                     |
+| TRACE-ADM-07    | Organisation admin context to FR-ADM-07 and future content-library placeholders               |
+| TRACE-ADM-08    | Organisation admin context to FR-ADM-08 and future campaign lifecycle support                 |
+| TRACE-ADM-09    | Organisation admin context to FR-ADM-09                                                       |
+| TRACE-ADM-10    | Organisation admin context to FR-ADM-10                                                       |
 
 ## Supporting Document References
 
@@ -961,7 +1030,7 @@ The domain model can be read as the following working structure for Demo 1:
 - Reusable content such as `TrainingDocument`, `Quiz`, and `Simulation` exists independently and is placed into a campaign through components.
 - `CampaignAssignment` links a `Trainee` to a `Campaign`. Organisation trainees receive organisation campaigns assigned by organisation admins, while general trainees may have pre-made platform campaigns made available to them.
 - `CampaignAssignment` fields such as `dueDate`, `startedAt`, `completedAt`, `assignmentStatus`, and `accessType` support deadlines, availability, trainee progress state, and self-selected campaign access.
-- `InteractionEvent` is a lightweight tracking concept for trainee actions such as training viewed, quiz started, quiz completed, simulated email opened, simulated email link clicked, simulated email classified, or credential submission attempted. It must not store real credentials or sensitive submitted values.
+- `InteractionEvent` is a lightweight tracking concept for trainee actions such as training viewed, quiz started, quiz completed, or simulated email opened. Later demos may add simulated email link clicked, simulated email classified, or credential submission attempted events. Interaction tracking must not store real credentials or sensitive submitted values.
 
 This means the team should treat campaign assignment and campaign item placement as the main links between a trainee and the Demo 1 learning/simulation content they can see. The use cases then read from that campaign-provided content: UC-01 reads simulated emails through a simulated inbox, UC-02 presents training documents, and UC-03 creates and submits quiz attempts.
 
@@ -982,61 +1051,61 @@ The SRS uses "trainee" as the actor label for trainee-facing Demo 1 flows. The d
 
 #### Core Entity Summary
 
-| Entity                        | Role in Demo 1                                                                                                      |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `User`                        | Represents the person using the platform.                                                                           |
-| `Trainee`                     | Conceptual trainee role for trainee-facing flows.                                                                   |
-| `GeneralTrainee`              | Trainee with no organisation link.                                                                                  |
-| `OrganisationTrainee`         | Trainee belonging to exactly one organisation.                                                                      |
-| `OrganisationAdmin`           | Organisation-linked administrator for campaign/content setup context.                                               |
-| `IPAdmin`                     | Platform-level administrator for platform content and oversight.                                                    |
-| `Organisation`                | Represents an organisation using the platform.                                                                      |
-| `OrganisationContext`         | Represents named/uploaded context items such as policies, logos, approved domains, terminology, and brand guidance. |
-| `Campaign`                    | Main assignment and sequencing concept for Demo 1 activities.                                                       |
-| `CampaignAssignment`          | Links a `Trainee` to a `Campaign` and tracks assignment/access state.                                               |
-| `CampaignItem`                | Ordered campaign structure item.                                                                                    |
-| `CampaignComponent`           | Trainee-facing activity placement inside a campaign.                                                                |
-| `CampaignComponentGroup`      | Groups related campaign components with one grouping level only.                                                    |
-| `TrainingDocumentComponent`   | Places a reusable training document into a campaign.                                                                |
-| `QuizComponent`               | Places a reusable quiz into a campaign.                                                                             |
-| `SimulationComponent`         | Places a reusable simulation into a campaign.                                                                       |
-| `TrainingDocument`            | Reusable readable training content for UC-02.                                                                       |
-| `Quiz`                        | Reusable assessment content for UC-03.                                                                              |
-| `QuizQuestion`                | General quiz question concept; Demo 1 supports `SingleChoiceQuestion`.                                              |
-| `AnswerOption`                | Answer choice with correctness and answer-level educational feedback.                                               |
-| `QuizAttempt`                 | A trainee's attempt at completing a quiz.                                                                           |
-| `AttemptAnswer`               | An answer recorded as part of a quiz attempt.                                                                       |
-| `QuizResult`                  | The result summary after a quiz attempt is submitted.                                                               |
-| `Simulation`                  | Reusable simulation concept.                                                                                        |
-| `SimulatedInbox`              | Main Demo 1 simulation type containing simulated emails.                                                            |
-| `SimulatedEmail`              | Safe simulated email shown as part of a campaign-provided simulated inbox.                                          |
-| `EmailClassificationResponse` | Trainee judgement on a simulated email, separate from quiz attempts.                                                |
-| `EmailRedFlag`                | Expected or selected email indicators such as suspicious sender, link, language, attachment, request, or domain.    |
-| `InteractionEvent`            | Lightweight tracking record for trainee actions.                                                                    |
-| `ReportSummary`               | Future-facing reporting aggregation concept.                                                                        |
-| `RiskIndicator`               | Future-facing risk indicator concept for reporting and dashboards.                                                  |
+| Entity                        | Role in Demo 1                                                                                                       |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `User`                        | Represents the person using the platform.                                                                            |
+| `Trainee`                     | Conceptual trainee role for trainee-facing flows.                                                                    |
+| `GeneralTrainee`              | Trainee with no organisation link.                                                                                   |
+| `OrganisationTrainee`         | Trainee belonging to exactly one organisation.                                                                       |
+| `OrganisationAdmin`           | Organisation-linked administrator for campaign/content setup context.                                                |
+| `IPAdmin`                     | Platform-level administrator for platform content and oversight.                                                     |
+| `Organisation`                | Represents an organisation using the platform.                                                                       |
+| `OrganisationContext`         | Represents named/uploaded context items such as policies, logos, approved domains, terminology, and brand guidance.  |
+| `Campaign`                    | Main assignment and sequencing concept for Demo 1 activities.                                                        |
+| `CampaignAssignment`          | Links a `Trainee` to a `Campaign` and tracks assignment/access state.                                                |
+| `CampaignItem`                | Ordered campaign structure item.                                                                                     |
+| `CampaignComponent`           | Trainee-facing activity placement inside a campaign.                                                                 |
+| `CampaignComponentGroup`      | Groups related campaign components with one grouping level only.                                                     |
+| `TrainingDocumentComponent`   | Places a reusable training document into a campaign.                                                                 |
+| `QuizComponent`               | Places a reusable quiz into a campaign.                                                                              |
+| `SimulationComponent`         | Places a reusable simulation into a campaign.                                                                        |
+| `TrainingDocument`            | Reusable readable training content for UC-02.                                                                        |
+| `Quiz`                        | Reusable assessment content for UC-03.                                                                               |
+| `QuizQuestion`                | General quiz question concept; Demo 1 supports `SingleChoiceQuestion`.                                               |
+| `AnswerOption`                | Answer choice with correctness and answer-level educational feedback.                                                |
+| `QuizAttempt`                 | A trainee's attempt at completing a quiz.                                                                            |
+| `AttemptAnswer`               | An answer recorded as part of a quiz attempt.                                                                        |
+| `QuizResult`                  | The result summary after a quiz attempt is submitted.                                                                |
+| `Simulation`                  | Reusable simulation concept.                                                                                         |
+| `SimulatedInbox`              | Main Demo 1 simulation type containing simulated emails.                                                             |
+| `SimulatedEmail`              | Safe simulated email shown as part of a campaign-provided simulated inbox.                                           |
+| `EmailClassificationResponse` | Future/optional trainee judgement on a simulated email, separate from quiz attempts.                                 |
+| `EmailRedFlag`                | Future/optional expected or selected email indicators such as suspicious sender, link, language, request, or domain. |
+| `InteractionEvent`            | Lightweight tracking record for trainee actions.                                                                     |
+| `ReportSummary`               | Future-facing reporting aggregation concept.                                                                         |
+| `RiskIndicator`               | Future-facing risk indicator concept for reporting and dashboards.                                                   |
 
 #### Domain, SRS, and API Alignment Notes
 
 The domain model, SRS feature slices, preliminary API contracts, and traceability table use the following aligned terminology:
 
-| Concept              | Domain Model Name                                             | SRS Reference                     | Preliminary API Reference                                                                             | Notes                                                                                     |
-| -------------------- | ------------------------------------------------------------- | --------------------------------- | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| Platform account     | `User`                                                        | trainee, Admin                    | Auth context / `userId` fields                                                                        | `trainee` is the SRS actor label; `Trainee` is the domain concept.                        |
-| Organisation context | `OrganisationContext`                                         | Admin/Campaign Supporting Context | Future organisation/context endpoints                                                                 | Supports organisation-specific simulation and training context.                           |
-| Campaign wrapper     | `Campaign`                                                    | Admin/Campaign Supporting Context | `POST /campaigns`                                                                                     | Supporting context only for Demo 1; not a full scheduling system.                         |
-| Campaign assignment  | `CampaignAssignment`                                          | Campaign assignment context       | `POST /campaigns/:campaignId/assign`                                                                  | Links campaigns to trainees and supports assigned/self-selected access.                   |
-| Campaign structure   | `CampaignItem`, `CampaignComponent`, `CampaignComponentGroup` | Trainee campaign access           | `GET /trainee/campaigns`; `GET /trainee/campaigns/:campaignId`                                        | Provides ordered modular campaign structure.                                              |
-| Simulated inbox      | `SimulatedInbox`                                              | UC-01 simulated inbox             | `GET /trainee/campaign-items/:campaignItemId/simulated-inbox`                                         | Represents a simulated inbox inside campaign content, not a user-owned permanent mailbox. |
-| Simulated email      | `SimulatedEmail`                                              | UC-01 simulated email             | `GET /trainee/simulated-emails/:emailId`                                                              | Represents controlled simulated email content, not a real mailbox email.                  |
-| Email classification | `EmailClassificationResponse`, `EmailRedFlag`                 | UC-01 email judgement             | `POST /trainee/simulated-emails/:emailId/classification`                                              | Classification is separate from quiz attempts.                                            |
-| Interaction event    | `InteractionEvent`                                            | UC-01/UC-02/UC-03 tracking        | Specific trainee action endpoints                                                                     | Records lightweight trainee actions without sensitive credential storage.                 |
-| Training content     | `TrainingDocument`, `TrainingDocumentComponent`               | UC-02 training document           | `GET /trainee/campaign-items/:campaignItemId/training-document`                                       | Reusable content presented through campaign components.                                   |
-| Quiz                 | `Quiz`, `QuizComponent`                                       | UC-03 quiz flow                   | `GET /trainee/campaign-items/:campaignItemId/quiz`                                                    | Reusable assessment content presented through campaign components.                        |
-| Quiz question        | `QuizQuestion`, `SingleChoiceQuestion`, `AnswerOption`        | UC-03 quiz questions              | Included in campaign-item quiz response                                                               | Demo 1 supports single-choice questions; the model can later add more question types.     |
-| Quiz attempt         | `QuizAttempt`, `AttemptAnswer`, `QuizResult`                  | UC-03 attempt/result              | `POST /trainee/campaign-items/:campaignItemId/quiz-attempts`; `POST /quiz-attempts/:attemptId/submit` | Captures trainee quiz activity and result summaries.                                      |
-| Reporting summary    | `ReportSummary`                                               | Future reporting support          | Future reporting placeholder                                                                          | Future-facing only.                                                                       |
-| Risk indicator       | `RiskIndicator`                                               | Future risk support               | Future reporting placeholder                                                                          | No final risk scoring formula is defined for Demo 1.                                      |
+| Concept              | Domain Model Name                                             | SRS Reference                       | Preliminary API Reference                                                                             | Notes                                                                                     |
+| -------------------- | ------------------------------------------------------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Platform account     | `User`                                                        | trainee, organisation admin         | Auth context / `userId` fields                                                                        | `trainee` is the SRS actor label; `Trainee` is the domain concept.                        |
+| Organisation context | `OrganisationContext`                                         | Organisation admin/campaign context | Future organisation/context endpoints                                                                 | Supports organisation-specific simulation and training context.                           |
+| Campaign wrapper     | `Campaign`                                                    | Organisation admin/campaign context | `POST /campaigns`                                                                                     | Supporting context only for Demo 1; not a full scheduling system.                         |
+| Campaign assignment  | `CampaignAssignment`                                          | Campaign assignment context         | `POST /campaigns/:campaignId/assign`                                                                  | Links campaigns to trainees and supports assigned/self-selected access.                   |
+| Campaign structure   | `CampaignItem`, `CampaignComponent`, `CampaignComponentGroup` | Trainee campaign access             | `GET /trainee/campaigns`; `GET /trainee/campaigns/:campaignId`                                        | Provides ordered modular campaign structure.                                              |
+| Simulated inbox      | `SimulatedInbox`                                              | UC-01 simulated inbox               | `GET /trainee/campaign-items/:campaignItemId/simulated-inbox`                                         | Represents a simulated inbox inside campaign content, not a user-owned permanent mailbox. |
+| Simulated email      | `SimulatedEmail`                                              | UC-01 simulated email               | `GET /trainee/campaign-items/:campaignItemId/simulated-emails/:emailId`                               | Represents controlled simulated email content, not a real mailbox email.                  |
+| Email classification | `EmailClassificationResponse`, `EmailRedFlag`                 | Future/optional email judgement     | Future/optional classification endpoint                                                               | Classification is separate from quiz attempts and not required for Demo 1 UC-01.          |
+| Interaction event    | `InteractionEvent`                                            | UC-01/UC-02/UC-03 tracking          | Specific trainee action endpoints                                                                     | Records lightweight trainee actions without sensitive credential storage.                 |
+| Training content     | `TrainingDocument`, `TrainingDocumentComponent`               | UC-02 training document             | `GET /trainee/campaign-items/:campaignItemId/training-document`                                       | Reusable content presented through campaign components.                                   |
+| Quiz                 | `Quiz`, `QuizComponent`                                       | UC-03 quiz flow                     | `GET /trainee/campaign-items/:campaignItemId/quiz`                                                    | Reusable assessment content presented through campaign components.                        |
+| Quiz question        | `QuizQuestion`, `SingleChoiceQuestion`, `AnswerOption`        | UC-03 quiz questions                | Included in campaign-item quiz response                                                               | Demo 1 supports single-choice questions; the model can later add more question types.     |
+| Quiz attempt         | `QuizAttempt`, `AttemptAnswer`, `QuizResult`                  | UC-03 attempt/result                | `POST /trainee/campaign-items/:campaignItemId/quiz/attempts`; `POST /quiz-attempts/:attemptId/submit` | Captures trainee quiz activity and result summaries.                                      |
+| Reporting summary    | `ReportSummary`                                               | Future reporting support            | Future reporting placeholder                                                                          | Future-facing only.                                                                       |
+| Risk indicator       | `RiskIndicator`                                               | Future risk support                 | Future reporting placeholder                                                                          | No final risk scoring formula is defined for Demo 1.                                      |
 
 UC-01 is supported by:
 
@@ -1053,9 +1122,9 @@ UC-01 is supported by:
 
 A trainee sees a simulated inbox because a campaign assigned or made available to them includes a `SimulationComponent`. Demo 1 uses `SimulatedInbox` as the main simulation type. The `SimulatedInbox` contains `SimulatedEmail` records and is not a permanent mailbox attached to the trainee account.
 
-When an email is opened, the system may record an `InteractionEvent`, such as simulated email opened. When the trainee classifies an email, the system records an `EmailClassificationResponse`. This response is separate from quiz attempts.
+When an email is opened, the system may record an `InteractionEvent`, such as simulated email opened. Future or optional classification flows may record an `EmailClassificationResponse`; that response remains separate from quiz attempts and is not required for Demo 1 viewing/opening.
 
-`EmailRedFlag` represents expected or selected indicators/reasons such as suspicious sender, link, language, attachment, request, or domain. For Demo 1, the simulated inbox is controlled platform content only. It does not connect to a real mailbox and does not send real external emails.
+`EmailRedFlag` represents future/optional expected or selected indicators/reasons such as suspicious sender, link, language, request, or domain. For Demo 1, the simulated inbox is controlled platform content only. It does not connect to a real mailbox and does not send real external emails.
 
 #### Support for UC-02: View Training Document
 
