@@ -38,9 +38,8 @@ export function validateParams<T>(schema: ZodSchema<T>) {
       });
     }
 
-    // Assign validated params back to the request
-    req.params = result.data as any;
-    next();
+    req.params = result.data as Request['params'];
+    return next();
   };
 }
 

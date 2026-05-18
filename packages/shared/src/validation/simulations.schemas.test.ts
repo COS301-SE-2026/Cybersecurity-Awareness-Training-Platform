@@ -23,8 +23,6 @@ describe('simulation validation schemas', () => {
     const result = classifySimulatedEmailRequestSchema.safeParse({
       selectedClassification: 'PHISHING',
       selectedRedFlagIds: ['11111111-1111-1111-1111-111111111111'],
-      campaignAssignmentId: '22222222-2222-2222-2222-222222222222',
-      campaignItemId: '33333333-3333-3333-3333-333333333333',
     });
 
     expect(result.success).toBe(true);
