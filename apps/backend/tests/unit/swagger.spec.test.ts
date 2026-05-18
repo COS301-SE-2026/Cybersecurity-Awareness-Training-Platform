@@ -102,4 +102,32 @@ describe('swaggerSpec', () => {
       '/trainee/campaign-items/{campaignItemId}/simulated-emails/{emailId}/classification',
     );
   });
+
+  it('includes reusable trainee quiz schemas without leaking pre-submission answers', () => {
+    expect(spec.components?.schemas).toHaveProperty('QuizCampaignItemContext');
+    expect(spec.components?.schemas).toHaveProperty('QuizOptionForTrainee');
+    expect(spec.components?.schemas).toHaveProperty('QuizQuestionForTrainee');
+    expect(spec.components?.schemas).toHaveProperty('GetQuizResponse');
+    expect(spec.components?.schemas).toHaveProperty('StartQuizAttemptResponse');
+    expect(spec.components?.schemas).toHaveProperty('SubmitQuizAttemptRequest');
+    expect(spec.components?.schemas).toHaveProperty('SubmitQuizAttemptResponse');
+    expect(spec.components?.schemas).toHaveProperty('GetQuizResultResponse');
+    expect(spec.components?.schemas).toHaveProperty('QuizResultQuestion');
+    expect(spec.components?.schemas).toHaveProperty('QuizResultOption');
+    expect(spec.components?.schemas).toHaveProperty('QuizAttempt');
+    expect(spec.components?.schemas).toHaveProperty('AttemptAnswer');
+    expect(spec.components?.schemas).toHaveProperty('QuestionType');
+    expect(spec.components?.schemas).toHaveProperty('QuizAttemptStatus');
+    expect(spec.components?.schemas).toHaveProperty('QuizStatus');
+    expect(spec.components?.securitySchemes).toHaveProperty('bearerAuth');
+    expect(JSON.stringify(spec.components?.schemas?.GetQuizResponse)).not.toContain('isCorrect');
+    expect(JSON.stringify(spec.components?.schemas?.GetQuizResponse)).not.toContain('feedbackText');
+  });
+
+  it('includes the mounted trainee quiz paths', () => {
+    expect(spec.paths).toHaveProperty('/trainee/campaign-items/{campaignItemId}/quiz');
+    expect(spec.paths).toHaveProperty('/trainee/campaign-items/{campaignItemId}/quiz/attempts');
+    expect(spec.paths).toHaveProperty('/quiz-attempts/{attemptId}/submit');
+    expect(spec.paths).toHaveProperty('/quiz-attempts/{attemptId}/results');
+  });
 });

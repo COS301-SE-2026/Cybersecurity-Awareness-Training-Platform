@@ -38,6 +38,10 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
         name: 'Trainee Training',
         description: 'Trainee training document workflows.',
       },
+      {
+        name: 'Trainee Quiz',
+        description: 'Trainee quiz retrieval, attempts, submissions, and results.',
+      },
     ],
     components: {
       securitySchemes: {
@@ -924,6 +928,368 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
             },
           },
         },
+        QuestionType: {
+          type: 'string',
+          enum: ['SINGLE_CHOICE', 'MULTIPLE_CHOICE'],
+          example: 'SINGLE_CHOICE',
+        },
+        QuizAttemptStatus: {
+          type: 'string',
+          enum: ['IN_PROGRESS', 'SUBMITTED'],
+          example: 'IN_PROGRESS',
+        },
+        QuizStatus: {
+          type: 'string',
+          enum: ['DRAFT', 'PUBLISHED', 'ARCHIVED'],
+          example: 'PUBLISHED',
+        },
+        QuizCampaignItemContext: {
+          type: 'object',
+          properties: {
+            campaignItemId: {
+              type: 'string',
+              format: 'uuid',
+              nullable: true,
+              example: '11111111-1111-1111-1111-111111111111',
+            },
+            campaignAssignmentId: {
+              type: 'string',
+              format: 'uuid',
+              nullable: true,
+              example: '44444444-4444-4444-4444-444444444444',
+            },
+          },
+        },
+        QuizOptionForTrainee: {
+          type: 'object',
+          required: ['id', 'label', 'text', 'position'],
+          properties: {
+            id: {
+              type: 'string',
+              format: 'uuid',
+              example: '44444444-4444-4444-4444-444444444444',
+            },
+            label: {
+              type: 'string',
+              example: 'A',
+            },
+            text: {
+              type: 'string',
+              example: 'Check the sender address',
+            },
+            position: {
+              type: 'integer',
+              example: 1,
+            },
+          },
+        },
+        QuizQuestionForTrainee: {
+          type: 'object',
+          required: ['id', 'prompt', 'questionType', 'position', 'points', 'options'],
+          properties: {
+            id: {
+              type: 'string',
+              format: 'uuid',
+              example: '33333333-3333-3333-3333-333333333333',
+            },
+            prompt: {
+              type: 'string',
+              example: 'What is the best way to verify an email sender?',
+            },
+            questionType: {
+              $ref: '#/components/schemas/QuestionType',
+            },
+            position: {
+              type: 'integer',
+              example: 1,
+            },
+            points: {
+              type: 'integer',
+              example: 5,
+            },
+            options: {
+              type: 'array',
+              items: {
+                $ref: '#/components/schemas/QuizOptionForTrainee',
+              },
+            },
+          },
+        },
+        GetQuizResponse: {
+          type: 'object',
+          required: [
+            'id',
+            'title',
+            'passThresholdPercentage',
+            'difficultyLevel',
+            'status',
+            'questions',
+          ],
+          properties: {
+            id: {
+              type: 'string',
+              example: 'quiz-1',
+            },
+            campaignItemId: {
+              type: 'string',
+              format: 'uuid',
+              nullable: true,
+              example: '11111111-1111-1111-1111-111111111111',
+            },
+            campaignAssignmentId: {
+              type: 'string',
+              nullable: true,
+              example: 'assign-1',
+            },
+            title: {
+              type: 'string',
+              example: 'Phishing Check',
+            },
+            description: {
+              type: 'string',
+              nullable: true,
+              example: 'Check your phishing awareness.',
+            },
+            passThresholdPercentage: {
+              type: 'integer',
+              minimum: 0,
+              maximum: 100,
+              example: 70,
+            },
+            difficultyLevel: {
+              $ref: '#/components/schemas/DifficultyLevel',
+            },
+            status: {
+              $ref: '#/components/schemas/QuizStatus',
+            },
+            questions: {
+              type: 'array',
+              items: {
+                $ref: '#/components/schemas/QuizQuestionForTrainee',
+              },
+            },
+          },
+        },
+        QuizAttempt: {
+          type: 'object',
+          required: ['attemptId', 'traineeProfileId', 'quizId', 'status', 'startedAt'],
+          properties: {
+            attemptId: {
+              type: 'string',
+              format: 'uuid',
+              example: '22222222-2222-2222-2222-222222222222',
+            },
+            traineeProfileId: {
+              type: 'string',
+              example: 'trainee-profile-id',
+            },
+            quizId: {
+              type: 'string',
+              example: 'quiz-1',
+            },
+            campaignAssignmentId: {
+              type: 'string',
+              nullable: true,
+              example: 'assign-1',
+            },
+            campaignItemId: {
+              type: 'string',
+              format: 'uuid',
+              nullable: true,
+              example: '11111111-1111-1111-1111-111111111111',
+            },
+            status: {
+              type: 'string',
+              enum: ['IN_PROGRESS'],
+              example: 'IN_PROGRESS',
+            },
+            startedAt: {
+              type: 'string',
+              format: 'date-time',
+              example: '2026-05-16T09:00:00.000Z',
+            },
+          },
+        },
+        StartQuizAttemptResponse: {
+          allOf: [
+            {
+              $ref: '#/components/schemas/QuizAttempt',
+            },
+          ],
+        },
+        AttemptAnswer: {
+          type: 'object',
+          required: ['questionId', 'selectedOptionIds'],
+          additionalProperties: false,
+          properties: {
+            questionId: {
+              type: 'string',
+              format: 'uuid',
+              example: '33333333-3333-3333-3333-333333333333',
+            },
+            selectedOptionIds: {
+              type: 'array',
+              minItems: 1,
+              items: {
+                type: 'string',
+                format: 'uuid',
+              },
+              example: ['44444444-4444-4444-4444-444444444444'],
+            },
+            responseSummary: {
+              type: 'string',
+              maxLength: 1000,
+              example: 'Selected the sender verification answer.',
+            },
+            typedResponse: {
+              type: 'string',
+              maxLength: 4000,
+              example: 'I would inspect the sender domain before clicking links.',
+            },
+          },
+        },
+        SubmitQuizAttemptRequest: {
+          type: 'object',
+          required: ['answers'],
+          additionalProperties: false,
+          properties: {
+            answers: {
+              type: 'array',
+              minItems: 1,
+              items: {
+                $ref: '#/components/schemas/AttemptAnswer',
+              },
+            },
+          },
+        },
+        SubmitQuizAttemptResponse: {
+          type: 'object',
+          required: ['success', 'attemptId', 'status'],
+          properties: {
+            success: {
+              type: 'boolean',
+              enum: [true],
+              example: true,
+            },
+            attemptId: {
+              type: 'string',
+              format: 'uuid',
+              example: '22222222-2222-2222-2222-222222222222',
+            },
+            status: {
+              type: 'string',
+              enum: ['SUBMITTED'],
+              example: 'SUBMITTED',
+            },
+          },
+        },
+        QuizResultOption: {
+          type: 'object',
+          required: ['optionId', 'label', 'text', 'isCorrect'],
+          properties: {
+            optionId: {
+              type: 'string',
+              format: 'uuid',
+              example: '44444444-4444-4444-4444-444444444444',
+            },
+            label: {
+              type: 'string',
+              example: 'A',
+            },
+            text: {
+              type: 'string',
+              example: 'Check the sender address',
+            },
+            isCorrect: {
+              type: 'boolean',
+              example: true,
+            },
+            feedbackText: {
+              type: 'string',
+              nullable: true,
+              example: 'Checking the exact sender address helps detect spoofing.',
+            },
+          },
+        },
+        QuizResultQuestion: {
+          type: 'object',
+          required: ['questionId', 'selectedOptions'],
+          properties: {
+            questionId: {
+              type: 'string',
+              format: 'uuid',
+              example: '33333333-3333-3333-3333-333333333333',
+            },
+            isCorrect: {
+              type: 'boolean',
+              nullable: true,
+              example: true,
+            },
+            awardedPoints: {
+              type: 'number',
+              nullable: true,
+              example: 5,
+            },
+            feedbackShown: {
+              type: 'string',
+              nullable: true,
+              example: 'Correct!',
+            },
+            selectedOptions: {
+              type: 'array',
+              items: {
+                $ref: '#/components/schemas/QuizResultOption',
+              },
+            },
+          },
+        },
+        GetQuizResultResponse: {
+          type: 'object',
+          required: ['attemptId', 'quizId', 'scorePercentage', 'passed', 'answers'],
+          properties: {
+            attemptId: {
+              type: 'string',
+              format: 'uuid',
+              example: '22222222-2222-2222-2222-222222222222',
+            },
+            quizId: {
+              type: 'string',
+              example: 'quiz-1',
+            },
+            campaignAssignmentId: {
+              type: 'string',
+              nullable: true,
+              example: 'assign-1',
+            },
+            campaignItemId: {
+              type: 'string',
+              format: 'uuid',
+              nullable: true,
+              example: '11111111-1111-1111-1111-111111111111',
+            },
+            scorePercentage: {
+              type: 'integer',
+              minimum: 0,
+              maximum: 100,
+              example: 100,
+            },
+            passed: {
+              type: 'boolean',
+              example: true,
+            },
+            summary: {
+              type: 'string',
+              nullable: true,
+              example: 'Well done',
+            },
+            answers: {
+              type: 'array',
+              items: {
+                $ref: '#/components/schemas/QuizResultQuestion',
+              },
+            },
+          },
+        },
       },
       parameters: {
         CampaignItemIdPathParam: {
@@ -947,6 +1313,17 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
             format: 'uuid',
           },
           example: '11111111-1111-1111-1111-111111111111',
+        },
+        AttemptIdPathParam: {
+          name: 'attemptId',
+          in: 'path',
+          required: true,
+          description: 'Quiz attempt identifier.',
+          schema: {
+            type: 'string',
+            format: 'uuid',
+          },
+          example: '22222222-2222-2222-2222-222222222222',
         },
       },
       responses: {
