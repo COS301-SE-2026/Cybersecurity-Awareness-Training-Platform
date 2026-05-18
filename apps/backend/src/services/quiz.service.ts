@@ -175,7 +175,7 @@ export async function submitQuizAttempt(
   }
 
   const quiz = attempt.quiz;
-  
+
   // Validate submitted question IDs (no duplicates, no unknown, no missing)
   const quizQuestionIds = new Set(quiz.questions.map((q) => q.id));
   const submittedQuestionIds = answersInput.map((a) => a.questionId);
@@ -215,7 +215,9 @@ export async function submitQuizAttempt(
     }
 
     if (question.questionType === 'SINGLE_CHOICE' && answerInput.selectedOptionIds.length !== 1) {
-      throw new QuizValidationError(`Single-choice question ${question.id} must have exactly one selected option`);
+      throw new QuizValidationError(
+        `Single-choice question ${question.id} must have exactly one selected option`,
+      );
     }
 
     const uniqueOptionIds = new Set(answerInput.selectedOptionIds);
