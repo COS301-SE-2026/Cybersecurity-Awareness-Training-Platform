@@ -645,6 +645,285 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
             },
           },
         },
+        EmailClassification: {
+          type: 'string',
+          enum: ['SAFE', 'SUSPICIOUS', 'PHISHING'],
+          example: 'PHISHING',
+        },
+        EmailRedFlagType: {
+          type: 'string',
+          enum: ['SENDER', 'LINK', 'LANGUAGE', 'ATTACHMENT', 'REQUEST', 'DOMAIN', 'OTHER'],
+          example: 'LANGUAGE',
+        },
+        RedFlagSeverity: {
+          type: 'string',
+          enum: ['LOW', 'MEDIUM', 'HIGH'],
+          example: 'MEDIUM',
+        },
+        SimulatedEmailInteractionEventType: {
+          type: 'string',
+          enum: [
+            'SIMULATED_EMAIL_OPENED',
+            'SIMULATED_EMAIL_LINK_CLICKED',
+            'CREDENTIAL_SUBMISSION_ATTEMPTED',
+          ],
+          example: 'SIMULATED_EMAIL_LINK_CLICKED',
+        },
+        SimulatedInboxEmailSummary: {
+          type: 'object',
+          required: [
+            'id',
+            'inboxId',
+            'senderLabel',
+            'senderAddress',
+            'subject',
+            'receivedAt',
+            'difficultyLevel',
+          ],
+          properties: {
+            id: {
+              type: 'string',
+              format: 'uuid',
+              example: '11111111-1111-1111-1111-111111111111',
+            },
+            campaignAssignmentId: {
+              type: 'string',
+              format: 'uuid',
+              nullable: true,
+              example: '44444444-4444-4444-4444-444444444444',
+            },
+            campaignItemId: {
+              type: 'string',
+              format: 'uuid',
+              nullable: true,
+              example: '22222222-2222-2222-2222-222222222222',
+            },
+            inboxId: {
+              type: 'string',
+              example: 'inbox-1',
+            },
+            senderLabel: {
+              type: 'string',
+              example: 'Bank',
+            },
+            senderAddress: {
+              type: 'string',
+              format: 'email',
+              example: 'bank@example.com',
+            },
+            subject: {
+              type: 'string',
+              example: 'Security Alert',
+            },
+            preview: {
+              type: 'string',
+              nullable: true,
+              example: 'Please review this important security notice.',
+            },
+            receivedAt: {
+              type: 'string',
+              format: 'date-time',
+              example: '2026-05-16T09:00:00.000Z',
+            },
+            difficultyLevel: {
+              $ref: '#/components/schemas/DifficultyLevel',
+            },
+          },
+        },
+        SimulatedInbox: {
+          type: 'object',
+          required: ['emails'],
+          properties: {
+            emails: {
+              type: 'array',
+              items: {
+                $ref: '#/components/schemas/SimulatedInboxEmailSummary',
+              },
+            },
+          },
+        },
+        SimulatedEmailDetail: {
+          type: 'object',
+          required: [
+            'id',
+            'inboxId',
+            'senderLabel',
+            'senderAddress',
+            'subject',
+            'bodyHtml',
+            'hasAttachment',
+            'receivedAt',
+            'difficultyLevel',
+          ],
+          properties: {
+            id: {
+              type: 'string',
+              format: 'uuid',
+              example: '11111111-1111-1111-1111-111111111111',
+            },
+            campaignAssignmentId: {
+              type: 'string',
+              format: 'uuid',
+              nullable: true,
+              example: '44444444-4444-4444-4444-444444444444',
+            },
+            campaignItemId: {
+              type: 'string',
+              format: 'uuid',
+              nullable: true,
+              example: '22222222-2222-2222-2222-222222222222',
+            },
+            inboxId: {
+              type: 'string',
+              example: 'inbox-1',
+            },
+            senderLabel: {
+              type: 'string',
+              example: 'Bank',
+            },
+            senderAddress: {
+              type: 'string',
+              format: 'email',
+              example: 'bank@example.com',
+            },
+            subject: {
+              type: 'string',
+              example: 'Security Alert',
+            },
+            preview: {
+              type: 'string',
+              nullable: true,
+              example: 'Please review this important security notice.',
+            },
+            bodyHtml: {
+              type: 'string',
+              example: '<p>Hello</p>',
+            },
+            simulatedLinkTarget: {
+              type: 'string',
+              nullable: true,
+              example: '/simulations/credential-warning',
+            },
+            hasAttachment: {
+              type: 'boolean',
+              example: false,
+            },
+            receivedAt: {
+              type: 'string',
+              format: 'date-time',
+              example: '2026-05-16T09:00:00.000Z',
+            },
+            difficultyLevel: {
+              $ref: '#/components/schemas/DifficultyLevel',
+            },
+          },
+        },
+        RecordSimulatedEmailInteractionRequest: {
+          type: 'object',
+          required: ['eventType'],
+          additionalProperties: false,
+          properties: {
+            eventType: {
+              $ref: '#/components/schemas/SimulatedEmailInteractionEventType',
+            },
+          },
+        },
+        RecordSimulatedEmailInteractionResponse: {
+          type: 'object',
+          required: ['success', 'eventType'],
+          properties: {
+            success: {
+              type: 'boolean',
+              enum: [true],
+              example: true,
+            },
+            eventType: {
+              $ref: '#/components/schemas/SimulatedEmailInteractionEventType',
+            },
+          },
+        },
+        ClassifySimulatedEmailRequest: {
+          type: 'object',
+          required: ['selectedClassification'],
+          additionalProperties: false,
+          properties: {
+            selectedClassification: {
+              $ref: '#/components/schemas/EmailClassification',
+            },
+            selectedRedFlagIds: {
+              type: 'array',
+              items: {
+                type: 'string',
+                format: 'uuid',
+              },
+              example: ['33333333-3333-3333-3333-333333333333'],
+            },
+            freeTextReason: {
+              type: 'string',
+              maxLength: 1000,
+              example: 'The message uses urgent language and asks me to click a suspicious link.',
+            },
+          },
+        },
+        EmailRedFlag: {
+          type: 'object',
+          required: ['id', 'redFlagType', 'label', 'severity'],
+          properties: {
+            id: {
+              type: 'string',
+              format: 'uuid',
+              example: '33333333-3333-3333-3333-333333333333',
+            },
+            redFlagType: {
+              $ref: '#/components/schemas/EmailRedFlagType',
+            },
+            label: {
+              type: 'string',
+              example: 'Urgent language',
+            },
+            description: {
+              type: 'string',
+              nullable: true,
+              example: 'The email pressures the trainee to act quickly.',
+            },
+            severity: {
+              $ref: '#/components/schemas/RedFlagSeverity',
+            },
+          },
+        },
+        ClassifySimulatedEmailResponse: {
+          type: 'object',
+          required: ['success', 'responseId', 'selectedClassification', 'isCorrect'],
+          properties: {
+            success: {
+              type: 'boolean',
+              enum: [true],
+              example: true,
+            },
+            responseId: {
+              type: 'string',
+              example: 'resp-123',
+            },
+            selectedClassification: {
+              $ref: '#/components/schemas/EmailClassification',
+            },
+            isCorrect: {
+              type: 'boolean',
+              example: true,
+            },
+            feedback: {
+              type: 'string',
+              nullable: true,
+              example: 'Great job! You correctly identified the email.',
+            },
+            redFlags: {
+              type: 'array',
+              items: {
+                $ref: '#/components/schemas/EmailRedFlag',
+              },
+            },
+          },
+        },
       },
       parameters: {
         CampaignItemIdPathParam: {
@@ -665,8 +944,9 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
           description: 'Simulated email identifier.',
           schema: {
             type: 'string',
+            format: 'uuid',
           },
-          example: 'email-123',
+          example: '11111111-1111-1111-1111-111111111111',
         },
       },
       responses: {

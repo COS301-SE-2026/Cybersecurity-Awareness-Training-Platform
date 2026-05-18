@@ -68,4 +68,25 @@ describe('swaggerSpec', () => {
       '/trainee/campaign-items/{campaignItemId}/training-document/completed',
     );
   });
+
+  it('includes reusable trainee simulation schemas without leaking classification answers', () => {
+    expect(spec.components?.schemas).toHaveProperty('SimulatedInbox');
+    expect(spec.components?.schemas).toHaveProperty('SimulatedInboxEmailSummary');
+    expect(spec.components?.schemas).toHaveProperty('SimulatedEmailDetail');
+    expect(spec.components?.schemas).toHaveProperty('RecordSimulatedEmailInteractionRequest');
+    expect(spec.components?.schemas).toHaveProperty('RecordSimulatedEmailInteractionResponse');
+    expect(spec.components?.schemas).toHaveProperty('ClassifySimulatedEmailRequest');
+    expect(spec.components?.schemas).toHaveProperty('ClassifySimulatedEmailResponse');
+    expect(spec.components?.schemas).toHaveProperty('EmailRedFlag');
+    expect(spec.components?.schemas).toHaveProperty('EmailClassification');
+    expect(spec.components?.schemas).toHaveProperty('EmailRedFlagType');
+    expect(spec.components?.schemas).toHaveProperty('RedFlagSeverity');
+    expect(spec.components?.schemas).toHaveProperty('SimulatedEmailInteractionEventType');
+    expect(JSON.stringify(spec.components?.schemas?.SimulatedEmailDetail)).not.toContain(
+      'expectedClassification',
+    );
+    expect(JSON.stringify(spec.components?.schemas?.SimulatedEmailDetail)).not.toContain(
+      'redFlags',
+    );
+  });
 });
