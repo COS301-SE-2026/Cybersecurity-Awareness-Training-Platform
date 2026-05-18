@@ -1,4 +1,5 @@
 import AppLayout from '../components/layout/AppLayout';
+import { useNavigate } from 'react-router-dom';
 
 import CampaignAccordion from '../components/ui/CampaignAccordion';
 
@@ -8,6 +9,7 @@ import TrainingActionRow from '../components/ui/TrainingActionRow';
 import CampaignActionRow from '../components/ui/CampaignActionRow';
 
 function CampaignsPage() {
+  const navigate = useNavigate();
   return (
     <AppLayout>
       <div
@@ -42,20 +44,28 @@ function CampaignsPage() {
         <CampaignAccordion
           title="Campaign 1"
           subtitle="Phishing"
-          status="NOT STARTED"
+          status="STARTED"
           accentColor="#00FFA6"
         >
-          <TrainingPartAccordion title="Part 1: Introduction to Phishing" status="NOT STARTED">
-            <TrainingActionRow label="Learn" status="NOT STARTED" />
+          <TrainingPartAccordion title="Part 1: Introduction to Phishing" status="COMPLETED">
+            <TrainingActionRow label="Learn" status="COMPLETED" />
 
-            <TrainingActionRow label="Quiz" status="COMPLETE LEARN FIRST" disabled />
+            <TrainingActionRow label="Quiz" status="COMPLETED" />
           </TrainingPartAccordion>
 
-          <TrainingPartAccordion title="Part 2: Spotting Suspicious Emails" status="NOT STARTED">
-            <TrainingActionRow label="Learn" status="NOT STARTED" />
+          <TrainingPartAccordion title="Part 2: Spotting Suspicious Emails" status="COMPLETED">
+            <TrainingActionRow label="Learn" status="COMPLETED" />
 
-            <TrainingActionRow label="Quiz" status="COMPLETE LEARN FIRST" disabled />
+            <TrainingActionRow label="Quiz" status="COMPLETED" />
           </TrainingPartAccordion>
+
+          <CampaignActionRow
+            title="Simulated Email Inbox"
+            status=""
+            onClick={() => navigate('/simulation/inbox')}
+          />
+
+          <CampaignActionRow title="Final Quiz" status="NOT STARTED" />
         </CampaignAccordion>
 
         {/* CAMPAIGN 2 */}
