@@ -12,16 +12,17 @@
 <line x1="65" y1="97.9" x2="870" y2="97.9" stroke="#3A3A3A"/><text x="58" y="101.9" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="end" fill="#EEDEFF">150</text>
 <line x1="65" y1="55.0" x2="870" y2="55.0" stroke="#3A3A3A"/><text x="58" y="59.0" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="end" fill="#EEDEFF">175</text>
 <line x1="70.0" y1="355" x2="70.0" y2="360" stroke="#EEDEFF"/><text x="70.0" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#EEDEFF">27 Apr</text>
-<line x1="270.0" y1="355" x2="270.0" y2="360" stroke="#EEDEFF"/><text x="270.0" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#EEDEFF">2 May</text>
-<line x1="470.0" y1="355" x2="470.0" y2="360" stroke="#EEDEFF"/><text x="470.0" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#EEDEFF">7 May</text>
-<line x1="670.0" y1="355" x2="670.0" y2="360" stroke="#EEDEFF"/><text x="670.0" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#EEDEFF">12 May</text>
-<line x1="870.0" y1="355" x2="870.0" y2="360" stroke="#EEDEFF"/><text x="870.0" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#EEDEFF">17 May</text>
+<line x1="260.5" y1="355" x2="260.5" y2="360" stroke="#EEDEFF"/><text x="260.5" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#EEDEFF">2 May</text>
+<line x1="451.0" y1="355" x2="451.0" y2="360" stroke="#EEDEFF"/><text x="451.0" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#EEDEFF">7 May</text>
+<line x1="641.4" y1="355" x2="641.4" y2="360" stroke="#EEDEFF"/><text x="641.4" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#EEDEFF">12 May</text>
+<line x1="831.9" y1="355" x2="831.9" y2="360" stroke="#EEDEFF"/><text x="831.9" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#EEDEFF">17 May</text>
+<line x1="870.0" y1="355" x2="870.0" y2="360" stroke="#EEDEFF"/><text x="870.0" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#EEDEFF">18 May</text>
 <line x1="70" y1="55" x2="70" y2="355" stroke="#EEDEFF"/>
 <line x1="70" y1="355" x2="870" y2="355" stroke="#EEDEFF"/>
 <text x="18" y="205.0" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="13" text-anchor="middle" transform="rotate(-90 18 205.0)" fill="#EEDEFF">Story Points Remaining</text>
 <text x="470.0" y="408" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="13" text-anchor="middle" fill="#EEDEFF">Sprint Timeline</text>
-<polyline points="70.0,55.0 110.0,68.0 150.0,81.1 190.0,94.1 230.0,107.2 270.0,120.2 310.0,133.3 350.0,146.3 390.0,159.3 430.0,172.4 470.0,185.4 510.0,198.5 550.0,211.5 590.0,224.6 630.0,237.6 670.0,250.7 710.0,263.7 750.0,276.7 790.0,289.8 830.0,302.8 870.0,315.9" fill="none" stroke="#B37DFF" stroke-width="3" stroke-dasharray="8 6"/>
-<polyline points="70.0,55.0 110.0,60.1 150.0,60.1 190.0,79.0 230.0,87.6 270.0,87.6 310.0,97.9 350.0,97.9 390.0,99.6 430.0,99.6 470.0,104.7 510.0,128.7 550.0,156.1 590.0,204.1 630.0,219.6 670.0,240.1 710.0,248.7 750.0,248.7 790.0,250.4 830.0,259.0 870.0,267.6" fill="none" stroke="#D6B3FF" stroke-width="4"/>
+<polyline points="70.0,55.0 108.1,68.0 146.2,81.1 184.3,94.1 222.4,107.2 260.5,120.2 298.6,133.3 336.7,146.3 374.8,159.3 412.9,172.4 451.0,185.4 489.0,198.5 527.1,211.5 565.2,224.6 603.3,237.6 641.4,250.7 679.5,263.7 717.6,276.7 755.7,289.8 793.8,302.8 831.9,315.9 870.0,328.9" fill="none" stroke="#B37DFF" stroke-width="3" stroke-dasharray="8 6"/>
+<polyline points="70.0,55.0 108.1,60.1 146.2,60.1 184.3,79.0 222.4,87.6 260.5,87.6 298.6,97.9 336.7,97.9 374.8,99.6 412.9,99.6 451.0,104.7 489.0,128.7 527.1,156.1 565.2,204.1 603.3,219.6 641.4,240.1 679.5,248.7 717.6,248.7 755.7,250.4 793.8,259.0 831.9,267.6 870.0,267.6" fill="none" stroke="#D6B3FF" stroke-width="4"/>
 <line x1="610" y1="75" x2="645" y2="75" stroke="#D6B3FF" stroke-width="4"/>
 <text x="655" y="80" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="13" fill="#EEDEFF">Remaining work</text>
 <line x1="610" y1="97" x2="645" y2="97" stroke="#B37DFF" stroke-width="3" stroke-dasharray="8 6"/>
