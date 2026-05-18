@@ -13,7 +13,9 @@ import { prisma } from '../lib/prisma.js';
 
 async function getTraineeProfileId(userId?: string) {
   if (!userId) return null;
-  const profile = await prisma.traineeProfile.findUnique({ where: { userId } });
+  const profile = await prisma.traineeProfile.findFirst({
+    where: { userId, traineeStatus: 'ACTIVE' },
+  });
   return profile?.id;
 }
 

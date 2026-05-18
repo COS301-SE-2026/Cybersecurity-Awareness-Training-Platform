@@ -14,7 +14,7 @@ const mockPrisma = vi.hoisted(() => {
 
   return {
     user: { findUnique: vi.fn() },
-    traineeProfile: { findUnique: vi.fn() },
+    traineeProfile: { findUnique: vi.fn(), findFirst: vi.fn() },
     campaignItem: { findFirst: vi.fn() },
     quizAttempt: { findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
     $transaction: vi.fn(async (cb) => cb(mockTx)),
@@ -30,6 +30,7 @@ const attemptId = '22222222-2222-2222-2222-222222222222';
 const questionId = '33333333-3333-3333-3333-333333333333';
 const optionId1 = '44444444-4444-4444-4444-444444444444';
 const optionId2 = '55555555-5555-5555-5555-555555555555';
+const optionId3 = '66666666-6666-6666-6666-666666666666';
 
 function mockCampaignItem(quizStatus = 'PUBLISHED') {
   return {
@@ -83,7 +84,32 @@ function mockQuizAttempt(status = 'IN_PROGRESS') {
         {
           id: questionId,
           points: 5,
-          answerOptions: [{ id: optionId1, isCorrect: true }],
+          questionType: 'SINGLE_CHOICE',
+          answerOptions: [
+            { id: optionId1, isCorrect: true },
+            { id: optionId2, isCorrect: false },
+          ],
+        },
+      ],
+    },
+  };
+}
+
+function mockMultipleChoiceQuizAttempt(status = 'IN_PROGRESS') {
+  return {
+    id: attemptId,
+    status,
+    quiz: {
+      passThresholdPercentage: 50,
+      questions: [
+        {
+          id: questionId,
+          points: 5,
+          questionType: 'MULTIPLE_CHOICE',
+          answerOptions: [
+            { id: optionId1, isCorrect: true },
+            { id: optionId2, isCorrect: false },
+          ],
         },
       ],
     },
@@ -110,6 +136,13 @@ describe('Quiz API Routes', () => {
     mockPrisma.traineeProfile.findUnique.mockResolvedValue({
       id: 'trainee-profile-id',
       userId: 'trainee-user-id',
+      traineeStatus: 'ACTIVE',
+    });
+
+    mockPrisma.traineeProfile.findFirst.mockResolvedValue({
+      id: 'trainee-profile-id',
+      userId: 'trainee-user-id',
+      traineeStatus: 'ACTIVE',
     });
   });
 
@@ -151,6 +184,16 @@ describe('Quiz API Routes', () => {
       expect(response.body.questions[0].options[0]).not.toHaveProperty('isCorrect');
       expect(response.body.questions[0].options[0]).not.toHaveProperty('feedbackText');
     });
+
+    it('returns 403 Forbidden for inactive trainee profile', async () => {
+      mockPrisma.traineeProfile.findFirst.mockResolvedValue(null);
+      const response = await request(createApp())
+        .get(`/trainee/campaign-items/${campaignItemId}/quiz`)
+        .set('Authorization', `Bearer ${token}`);
+      expect(response.status).toBe(403);
+      expect(response.body).toHaveProperty('error', 'FORBIDDEN');
+      expect(response.body.message).toContain('User is not a trainee');
+    });
   });
 
   describe('POST /trainee/campaign-items/:campaignItemId/quiz/attempts', () => {
@@ -174,6 +217,15 @@ describe('Quiz API Routes', () => {
       expect(response.status).toBe(201);
       expect(response.body).toHaveProperty('attemptId', attemptId);
       expect(response.body).toHaveProperty('status', 'IN_PROGRESS');
+    });
+
+    it('rejects attempt creation with extra body properties (strict schema check)', async () => {
+      const response = await request(createApp())
+        .post(`/trainee/campaign-items/${campaignItemId}/quiz/attempts`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ extraField: 'not-allowed' });
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty('error', 'VALIDATION_ERROR');
     });
   });
 
@@ -201,7 +253,7 @@ describe('Quiz API Routes', () => {
     });
 
     it('rejects submission with duplicate option IDs', async () => {
-      mockPrisma.quizAttempt.findFirst.mockResolvedValue(mockQuizAttempt());
+      mockPrisma.quizAttempt.findFirst.mockResolvedValue(mockMultipleChoiceQuizAttempt());
       const response = await request(createApp())
         .post(`/quiz-attempts/${attemptId}/submit`)
         .set('Authorization', `Bearer ${token}`)
@@ -211,11 +263,11 @@ describe('Quiz API Routes', () => {
     });
 
     it('rejects submission with option IDs from another question', async () => {
-      mockPrisma.quizAttempt.findFirst.mockResolvedValue(mockQuizAttempt());
+      mockPrisma.quizAttempt.findFirst.mockResolvedValue(mockMultipleChoiceQuizAttempt());
       const response = await request(createApp())
         .post(`/quiz-attempts/${attemptId}/submit`)
         .set('Authorization', `Bearer ${token}`)
-        .send({ answers: [{ questionId, selectedOptionIds: [optionId1, optionId2] }] });
+        .send({ answers: [{ questionId, selectedOptionIds: [optionId1, optionId3] }] });
       expect(response.status).toBe(400);
       expect(response.body.message).toContain('Invalid options selected');
     });
@@ -243,6 +295,48 @@ describe('Quiz API Routes', () => {
         .send({ answers: [{ questionId, selectedOptionIds: [optionId1] }] });
       expect(response.status).toBe(409);
       expect(response.body).toHaveProperty('error', 'CONFLICT');
+    });
+
+    it('rejects submission with unknown question ID', async () => {
+      mockPrisma.quizAttempt.findFirst.mockResolvedValue(mockQuizAttempt());
+      const response = await request(createApp())
+        .post(`/quiz-attempts/${attemptId}/submit`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          answers: [
+            { questionId, selectedOptionIds: [optionId1] },
+            { questionId: '99999999-9999-9999-9999-999999999999', selectedOptionIds: [optionId1] },
+          ],
+        });
+      expect(response.status).toBe(400);
+      expect(response.body.message).toContain('Submitted answer for unknown question ID');
+    });
+
+    it('rejects submission with duplicate question IDs', async () => {
+      mockPrisma.quizAttempt.findFirst.mockResolvedValue(mockQuizAttempt());
+      const response = await request(createApp())
+        .post(`/quiz-attempts/${attemptId}/submit`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          answers: [
+            { questionId, selectedOptionIds: [optionId1] },
+            { questionId, selectedOptionIds: [optionId1] },
+          ],
+        });
+      expect(response.status).toBe(400);
+      expect(response.body.message).toContain('Duplicate question answers submitted');
+    });
+
+    it('rejects submission with multiple options selected for a single-choice question', async () => {
+      mockPrisma.quizAttempt.findFirst.mockResolvedValue(mockQuizAttempt());
+      const response = await request(createApp())
+        .post(`/quiz-attempts/${attemptId}/submit`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          answers: [{ questionId, selectedOptionIds: [optionId1, optionId2] }],
+        });
+      expect(response.status).toBe(400);
+      expect(response.body.message).toContain('must have exactly one selected option');
     });
   });
   describe('GET /quiz-attempts/:attemptId/results', () => {

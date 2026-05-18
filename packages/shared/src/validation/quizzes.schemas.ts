@@ -9,6 +9,11 @@ export const getQuizRequestParamsSchema = z
 
 export const startQuizAttemptRequestParamsSchema = getQuizRequestParamsSchema;
 
+export const startQuizAttemptRequestSchema = z.preprocess(
+  (value) => value ?? {},
+  z.object({}).strict(),
+);
+
 export const submitQuizAttemptRequestParamsSchema = z
   .object({
     attemptId: idParamSchema,

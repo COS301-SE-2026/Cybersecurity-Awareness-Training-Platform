@@ -327,8 +327,7 @@ Before submission, trainee-facing quiz fetch endpoints must not expose `AnswerOp
 ### `POST /trainee/campaign-items/:campaignItemId/quiz/attempts`
 
 - **Purpose**: Creates a quiz attempt for the quiz placed at the selected campaign item.
-- **Expected Request Data**:
-  - `campaignAssignmentId` (string, optional)
+- **Expected Request Data**: None.
 - **Expected Response Data**:
 
 ```json

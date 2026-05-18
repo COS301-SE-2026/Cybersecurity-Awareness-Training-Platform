@@ -6,6 +6,7 @@ import { validateBody, validateParams } from '../middleware/validateRequest.js';
 import {
   getQuizRequestParamsSchema,
   startQuizAttemptRequestParamsSchema,
+  startQuizAttemptRequestSchema,
   submitQuizAttemptRequestParamsSchema,
   getQuizResultRequestParamsSchema,
   submitQuizAttemptRequestSchema,
@@ -28,6 +29,7 @@ traineeQuizRouter.post(
   authRateLimit,
   requireAuth,
   validateParams(startQuizAttemptRequestParamsSchema),
+  validateBody(startQuizAttemptRequestSchema),
   startAttempt,
 );
 
