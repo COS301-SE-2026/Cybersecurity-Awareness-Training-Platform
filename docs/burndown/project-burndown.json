@@ -213,6 +213,13 @@
       "end": "2026-05-20",
       "issues": [
         {
+          "number": 123,
+          "title": "chore: swagger-demo1-api",
+          "points": 5,
+          "state": "open",
+          "closed_date": null
+        },
+        {
           "number": 107,
           "title": "docs: Align domain model with L18 guidance",
           "points": 5,
@@ -335,8 +342,8 @@
           "number": 81,
           "title": "feat: [backend] Implement quiz API for UC-03",
           "points": 5,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-05-18"
         },
         {
           "number": 80,
@@ -456,113 +463,113 @@
   "series": [
     {
       "date": "2026-04-27",
-      "remaining": 175,
-      "ideal": 175.0
+      "remaining": 180,
+      "ideal": 180.0
     },
     {
       "date": "2026-04-28",
-      "remaining": 172,
-      "ideal": 167.39
+      "remaining": 177,
+      "ideal": 172.17
     },
     {
       "date": "2026-04-29",
-      "remaining": 172,
-      "ideal": 159.78
+      "remaining": 177,
+      "ideal": 164.35
     },
     {
       "date": "2026-04-30",
-      "remaining": 161,
-      "ideal": 152.17
+      "remaining": 166,
+      "ideal": 156.52
     },
     {
       "date": "2026-05-01",
-      "remaining": 156,
-      "ideal": 144.57
+      "remaining": 161,
+      "ideal": 148.7
     },
     {
       "date": "2026-05-02",
-      "remaining": 156,
-      "ideal": 136.96
+      "remaining": 161,
+      "ideal": 140.87
     },
     {
       "date": "2026-05-03",
-      "remaining": 150,
-      "ideal": 129.35
+      "remaining": 155,
+      "ideal": 133.04
     },
     {
       "date": "2026-05-04",
-      "remaining": 150,
-      "ideal": 121.74
+      "remaining": 155,
+      "ideal": 125.22
     },
     {
       "date": "2026-05-05",
-      "remaining": 149,
-      "ideal": 114.13
+      "remaining": 154,
+      "ideal": 117.39
     },
     {
       "date": "2026-05-06",
-      "remaining": 149,
-      "ideal": 106.52
+      "remaining": 154,
+      "ideal": 109.57
     },
     {
       "date": "2026-05-07",
-      "remaining": 146,
-      "ideal": 98.91
+      "remaining": 151,
+      "ideal": 101.74
     },
     {
       "date": "2026-05-08",
-      "remaining": 132,
-      "ideal": 91.3
+      "remaining": 137,
+      "ideal": 93.91
     },
     {
       "date": "2026-05-09",
-      "remaining": 116,
-      "ideal": 83.7
+      "remaining": 121,
+      "ideal": 86.09
     },
     {
       "date": "2026-05-10",
-      "remaining": 88,
-      "ideal": 76.09
+      "remaining": 93,
+      "ideal": 78.26
     },
     {
       "date": "2026-05-11",
-      "remaining": 79,
-      "ideal": 68.48
+      "remaining": 84,
+      "ideal": 70.43
     },
     {
       "date": "2026-05-12",
-      "remaining": 67,
-      "ideal": 60.87
+      "remaining": 72,
+      "ideal": 62.61
     },
     {
       "date": "2026-05-13",
-      "remaining": 62,
-      "ideal": 53.26
+      "remaining": 67,
+      "ideal": 54.78
     },
     {
       "date": "2026-05-14",
-      "remaining": 62,
-      "ideal": 45.65
+      "remaining": 67,
+      "ideal": 46.96
     },
     {
       "date": "2026-05-15",
-      "remaining": 61,
-      "ideal": 38.04
+      "remaining": 66,
+      "ideal": 39.13
     },
     {
       "date": "2026-05-16",
-      "remaining": 56,
-      "ideal": 30.43
+      "remaining": 61,
+      "ideal": 31.3
     },
     {
       "date": "2026-05-17",
-      "remaining": 51,
-      "ideal": 22.83
+      "remaining": 56,
+      "ideal": 23.48
     },
     {
       "date": "2026-05-18",
       "remaining": 48,
-      "ideal": 15.22
+      "ideal": 15.65
     }
   ]
 }

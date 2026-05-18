@@ -6,6 +6,13 @@
   "end": "2026-05-20",
   "issues": [
     {
+      "number": 123,
+      "title": "chore: swagger-demo1-api",
+      "points": 5,
+      "state": "open",
+      "closed_date": null
+    },
+    {
       "number": 107,
       "title": "docs: Align domain model with L18 guidance",
       "points": 5,
@@ -128,8 +135,8 @@
       "number": 81,
       "title": "feat: [backend] Implement quiz API for UC-03",
       "points": 5,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-05-18"
     },
     {
       "number": 80,
@@ -247,43 +254,43 @@
   "series": [
     {
       "date": "2026-05-11",
-      "remaining": 79,
-      "ideal": 88.0
+      "remaining": 84,
+      "ideal": 93.0
     },
     {
       "date": "2026-05-12",
-      "remaining": 67,
-      "ideal": 78.22
+      "remaining": 72,
+      "ideal": 82.67
     },
     {
       "date": "2026-05-13",
-      "remaining": 62,
-      "ideal": 68.44
+      "remaining": 67,
+      "ideal": 72.33
     },
     {
       "date": "2026-05-14",
-      "remaining": 62,
-      "ideal": 58.67
+      "remaining": 67,
+      "ideal": 62.0
     },
     {
       "date": "2026-05-15",
-      "remaining": 61,
-      "ideal": 48.89
+      "remaining": 66,
+      "ideal": 51.67
     },
     {
       "date": "2026-05-16",
-      "remaining": 56,
-      "ideal": 39.11
+      "remaining": 61,
+      "ideal": 41.33
     },
     {
       "date": "2026-05-17",
-      "remaining": 51,
-      "ideal": 29.33
+      "remaining": 56,
+      "ideal": 31.0
     },
     {
       "date": "2026-05-18",
       "remaining": 48,
-      "ideal": 19.56
+      "ideal": 20.67
     }
   ]
 }
