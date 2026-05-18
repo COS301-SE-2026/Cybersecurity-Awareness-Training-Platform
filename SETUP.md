@@ -561,6 +561,28 @@ In that case, start PostgreSQL with:
 docker compose up -d
 ```
 
+### Swagger UI
+
+When the backend is running, Swagger UI is available at:
+
+```txt
+http://localhost:4000/api-docs
+```
+
+Start the backend with:
+
+```bash
+pnpm --filter @insightful-phish/backend dev
+```
+
+Protected endpoints in Swagger require a Bearer token. Use the Authorize button and enter:
+
+```txt
+Bearer <token>
+```
+
+The Swagger docs cover the Demo 1 backend routes currently active on dev. Planned routes that are not mounted on dev, such as future quiz or campaign endpoints, are intentionally not documented yet.
+
 ---
 
 ## 11. Run the frontend
