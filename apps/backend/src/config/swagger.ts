@@ -49,6 +49,31 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
         },
       },
       schemas: {
+        HealthStatus: {
+          type: 'object',
+          required: ['app', 'api', 'database', 'timestamp'],
+          properties: {
+            app: {
+              type: 'string',
+              example: APP_NAME,
+            },
+            api: {
+              type: 'string',
+              enum: ['working'],
+              example: 'working',
+            },
+            database: {
+              type: 'string',
+              enum: ['connected', 'not connected'],
+              example: 'connected',
+            },
+            timestamp: {
+              type: 'string',
+              format: 'date-time',
+              example: '2026-05-11T20:44:54.000Z',
+            },
+          },
+        },
         ApiErrorResponse: {
           type: 'object',
           required: ['error', 'message'],

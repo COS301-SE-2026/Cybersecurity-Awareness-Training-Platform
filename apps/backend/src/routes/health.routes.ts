@@ -7,62 +7,39 @@ export const healthRoutes = Router();
  * @openapi
  * /health:
  *   get:
+ *     tags:
+ *       - Health
  *     summary: Check system health
- *     description: Verifies API status and database connectivity.
+ *     description: Verifies that the API is reachable and reports the current database connectivity status.
+ *     security: []
  *     responses:
  *       200:
  *         description: API and database are reachable.
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               required:
- *                 - app
- *                 - api
- *                 - database
- *                 - timestamp
- *               properties:
- *                 app:
- *                   type: string
- *                   example: Insightful Phish
- *                 api:
- *                   type: string
- *                   enum: [working]
- *                   example: working
- *                 database:
- *                   type: string
- *                   enum: [connected]
- *                   example: connected
- *                 timestamp:
- *                   type: string
- *                   format: date-time
- *                   example: 2026-05-11T20:44:54.000Z
+ *               $ref: '#/components/schemas/HealthStatus'
+ *             examples:
+ *               connected:
+ *                 summary: Healthy response
+ *                 value:
+ *                   app: Insightful Phish
+ *                   api: working
+ *                   database: connected
+ *                   timestamp: 2026-05-11T20:44:54.000Z
  *       500:
  *         description: API is reachable, but the database check failed.
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               required:
- *                 - app
- *                 - api
- *                 - database
- *                 - timestamp
- *               properties:
- *                 app:
- *                   type: string
- *                   example: Insightful Phish
- *                 api:
- *                   type: string
- *                   enum: [working]
- *                   example: working
- *                 database:
- *                   type: string
- *                   enum: [not connected]
- *                   example: not connected
- *                 timestamp:
- *                   type: string
- *                   format: date-time
- *                   example: 2026-05-11T20:44:54.000Z
+ *               $ref: '#/components/schemas/HealthStatus'
+ *             examples:
+ *               databaseUnavailable:
+ *                 summary: Database connectivity failure
+ *                 value:
+ *                   app: Insightful Phish
+ *                   api: working
+ *                   database: not connected
+ *                   timestamp: 2026-05-11T20:44:54.000Z
  */
 healthRoutes.get('/health', getHealth);
