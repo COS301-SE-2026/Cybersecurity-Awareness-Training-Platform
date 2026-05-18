@@ -11,46 +11,21 @@ export const authRouter = Router();
  * @openapi
  * /auth/register:
  *   post:
- *     tags:
- *       - Auth
+ *     tags: [Auth]
  *     summary: Register a trainee account
- *     description: Creates a general trainee user account and returns the safe public user representation.
+ *     description: Creates a general trainee user account and returns the public user DTO.
  *     security: []
  *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/AuthRegisterRequest'
- *           examples:
- *             traineeRegistration:
- *               summary: Register a trainee
- *               value:
- *                 email: johan@example.com
- *                 password: correct-horse-battery-staple
- *                 firstName: Johan
- *                 lastName: Botha
+ *       $ref: '#/components/requestBodies/AuthRegister'
  *     responses:
  *       201:
- *         description: Account registered successfully.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/AuthRegisterResponse'
+ *         $ref: '#/components/responses/AuthRegisterCreated'
  *       400:
  *         $ref: '#/components/responses/BadRequest'
  *       409:
- *         description: A user with the provided email already exists.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/AuthEmailExistsErrorResponse'
+ *         $ref: '#/components/responses/AuthEmailExists'
  *       429:
- *         description: Too many authentication requests.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/AuthRateLimitErrorResponse'
+ *         $ref: '#/components/responses/AuthRateLimited'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
@@ -60,44 +35,21 @@ authRouter.post('/auth/register', authRateLimit, validateBody(authRegisterReques
  * @openapi
  * /auth/login:
  *   post:
- *     tags:
- *       - Auth
+ *     tags: [Auth]
  *     summary: Log in with email and password
- *     description: Authenticates an active user and returns a bearer token with the safe public user representation.
+ *     description: Authenticates an active user and returns a bearer token.
  *     security: []
  *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/AuthLoginRequest'
- *           examples:
- *             traineeLogin:
- *               summary: Log in a user
- *               value:
- *                 email: johan@example.com
- *                 password: correct-horse-battery-staple
+ *       $ref: '#/components/requestBodies/AuthLogin'
  *     responses:
  *       200:
- *         description: Login successful.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/AuthLoginResponse'
+ *         $ref: '#/components/responses/AuthLoginOk'
  *       400:
  *         $ref: '#/components/responses/BadRequest'
  *       401:
- *         description: Email, password, or account status is invalid.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/AuthInvalidErrorResponse'
+ *         $ref: '#/components/responses/AuthInvalid'
  *       429:
- *         description: Too many authentication requests.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/AuthRateLimitErrorResponse'
+ *         $ref: '#/components/responses/AuthRateLimited'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
@@ -107,33 +59,18 @@ authRouter.post('/auth/login', authRateLimit, validateBody(authLoginRequestSchem
  * @openapi
  * /auth/me:
  *   get:
- *     tags:
- *       - Auth
+ *     tags: [Auth]
  *     summary: Get the current authenticated user
- *     description: Returns the safe public user representation for the bearer token on the request.
+ *     description: Returns the public user DTO for the bearer token on the request.
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Current authenticated user.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/AuthMeResponse'
+ *         $ref: '#/components/responses/AuthMeOk'
  *       401:
- *         description: Authentication credentials are missing or invalid.
- *         content:
- *           application/json:
- *             schema:
- *               oneOf:
- *                 - $ref: '#/components/schemas/ApiErrorResponse'
- *                 - $ref: '#/components/schemas/AuthInvalidErrorResponse'
+ *         $ref: '#/components/responses/Unauthorized'
  *       429:
- *         description: Too many authentication requests.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/AuthRateLimitErrorResponse'
+ *         $ref: '#/components/responses/AuthRateLimited'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */

@@ -20,37 +20,24 @@ export const traineeTrainingRouter = Router();
  * @openapi
  * /trainee/campaign-items/{campaignItemId}/training-document:
  *   get:
- *     tags:
- *       - Trainee Training
+ *     tags: [Trainee Training]
  *     summary: Get a training document for a campaign item
- *     description: Resolves a trainee-accessible training document through the authenticated user's campaign assignment and campaign item availability.
+ *     description: Resolves a trainee-accessible training document through campaign item access.
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - $ref: '#/components/parameters/CampaignItemIdPathParam'
  *     responses:
  *       200:
- *         description: Training document resolved for the campaign item.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/GetTrainingDocumentResponse'
+ *         $ref: '#/components/responses/TrainingDocumentOk'
  *       400:
  *         $ref: '#/components/responses/BadRequest'
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  *       404:
- *         description: Training document is missing, unavailable, or not accessible to the trainee.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/TrainingDocumentNotFoundErrorResponse'
+ *         $ref: '#/components/responses/TrainingDocumentNotFound'
  *       429:
- *         description: Too many trainee training requests.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/TrainingRateLimitErrorResponse'
+ *         $ref: '#/components/responses/TrainingRateLimited'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
@@ -66,43 +53,26 @@ traineeTrainingRouter.get(
  * @openapi
  * /trainee/campaign-items/{campaignItemId}/training-document/viewed:
  *   post:
- *     tags:
- *       - Trainee Training
+ *     tags: [Trainee Training]
  *     summary: Record a training document view
- *     description: Records a TRAINING_VIEWED interaction after resolving access through the authenticated user's campaign assignment and campaign item availability.
+ *     description: Records a TRAINING_VIEWED interaction for the campaign item.
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - $ref: '#/components/parameters/CampaignItemIdPathParam'
  *     requestBody:
- *       required: false
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/EmptyRequestBody'
+ *       $ref: '#/components/requestBodies/EmptyJson'
  *     responses:
  *       201:
- *         description: Training view interaction recorded.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/RecordTrainingInteractionResponse'
+ *         $ref: '#/components/responses/TrainingViewedCreated'
  *       400:
  *         $ref: '#/components/responses/BadRequest'
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  *       404:
- *         description: Training document is missing, unavailable, or not accessible to the trainee.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/TrainingDocumentNotFoundErrorResponse'
+ *         $ref: '#/components/responses/TrainingDocumentNotFound'
  *       429:
- *         description: Too many trainee training requests.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/TrainingRateLimitErrorResponse'
+ *         $ref: '#/components/responses/TrainingRateLimited'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
@@ -119,43 +89,26 @@ traineeTrainingRouter.post(
  * @openapi
  * /trainee/campaign-items/{campaignItemId}/training-document/completed:
  *   post:
- *     tags:
- *       - Trainee Training
+ *     tags: [Trainee Training]
  *     summary: Record training document completion
- *     description: Records a TRAINING_COMPLETED interaction after resolving access through the authenticated user's campaign assignment and campaign item availability.
+ *     description: Records a TRAINING_COMPLETED interaction for the campaign item.
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - $ref: '#/components/parameters/CampaignItemIdPathParam'
  *     requestBody:
- *       required: false
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/EmptyRequestBody'
+ *       $ref: '#/components/requestBodies/EmptyJson'
  *     responses:
  *       201:
- *         description: Training completion interaction recorded.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/RecordTrainingInteractionResponse'
+ *         $ref: '#/components/responses/TrainingCompletedCreated'
  *       400:
  *         $ref: '#/components/responses/BadRequest'
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  *       404:
- *         description: Training document is missing, unavailable, or not accessible to the trainee.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/TrainingDocumentNotFoundErrorResponse'
+ *         $ref: '#/components/responses/TrainingDocumentNotFound'
  *       429:
- *         description: Too many trainee training requests.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/TrainingRateLimitErrorResponse'
+ *         $ref: '#/components/responses/TrainingRateLimited'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */

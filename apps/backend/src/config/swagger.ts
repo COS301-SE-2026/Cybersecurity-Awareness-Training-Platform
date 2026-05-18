@@ -120,8 +120,8 @@ const options: swaggerJsdoc.Options = {
       description: `
 API documentation for ${APP_NAME}.
 
-### Sprint 2 Note
-Full endpoint coverage is optional for Sprint 2. This documentation serves as a proof-of-concept and will be expanded as features are finalized.
+### Demo 1 API Coverage
+This reference covers the currently mounted Demo 1 backend routes. Planned or unmounted routes are intentionally omitted.
       `,
     },
     servers: [
@@ -1195,7 +1195,128 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
           example: '22222222-2222-2222-2222-222222222222',
         },
       },
+      requestBodies: {
+        AuthRegister: {
+          required: true,
+          ...jsonContent(schemaRef('AuthRegisterRequest')),
+        },
+        AuthLogin: {
+          required: true,
+          ...jsonContent(schemaRef('AuthLoginRequest')),
+        },
+        EmptyJson: {
+          required: false,
+          ...jsonContent(schemaRef('EmptyRequestBody')),
+        },
+        RecordSimulatedEmailInteraction: {
+          required: true,
+          ...jsonContent(schemaRef('RecordSimulatedEmailInteractionRequest')),
+        },
+        ClassifySimulatedEmail: {
+          required: true,
+          ...jsonContent(schemaRef('ClassifySimulatedEmailRequest')),
+        },
+        SubmitQuizAttempt: {
+          required: true,
+          ...jsonContent(schemaRef('SubmitQuizAttemptRequest')),
+        },
+      },
       responses: {
+        HealthOk: responseComponent('API and database are reachable.', 'HealthStatus'),
+        HealthDatabaseUnavailable: responseComponent(
+          'API is reachable, but the database check failed.',
+          'HealthStatus',
+        ),
+        AuthRegisterCreated: responseComponent(
+          'Account registered successfully.',
+          'AuthRegisterResponse',
+        ),
+        AuthLoginOk: responseComponent('Login successful.', 'AuthLoginResponse'),
+        AuthMeOk: responseComponent('Current authenticated user.', 'AuthMeResponse'),
+        AuthEmailExists: responseComponent(
+          'A user with the provided email already exists.',
+          'AuthEmailExistsErrorResponse',
+        ),
+        AuthInvalid: responseComponent(
+          'Email, password, or account status is invalid.',
+          'AuthInvalidErrorResponse',
+        ),
+        AuthRateLimited: responseComponent(
+          'Too many authentication requests.',
+          'AuthRateLimitErrorResponse',
+        ),
+        SimulatedInboxOk: responseComponent(
+          'Simulated inbox email summaries for the campaign item.',
+          'SimulatedInbox',
+        ),
+        SimulatedEmailDetailOk: responseComponent(
+          'Simulated email details safe for pre-classification display.',
+          'SimulatedEmailDetail',
+        ),
+        SimulatedEmailInteractionOk: responseComponent(
+          'Simulated email interaction recorded.',
+          'RecordSimulatedEmailInteractionResponse',
+        ),
+        SimulatedEmailClassificationOk: responseComponent(
+          'Simulated email classification recorded with feedback.',
+          'ClassifySimulatedEmailResponse',
+        ),
+        SimulationNotFound: responseComponent(
+          'Simulated inbox or email is missing, unavailable, or not accessible through this campaign item.',
+          'ApiErrorResponse',
+        ),
+        SimulatedEmailAlreadyClassified: responseComponent(
+          'The simulated email has already been classified by this trainee.',
+          'ApiErrorResponse',
+        ),
+        TrainingDocumentOk: responseComponent(
+          'Training document resolved for the campaign item.',
+          'GetTrainingDocumentResponse',
+        ),
+        TrainingViewedCreated: responseComponent(
+          'Training view interaction recorded.',
+          'RecordTrainingInteractionResponse',
+        ),
+        TrainingCompletedCreated: responseComponent(
+          'Training completion interaction recorded.',
+          'RecordTrainingInteractionResponse',
+        ),
+        TrainingDocumentNotFound: responseComponent(
+          'Training document is missing, unavailable, or not accessible to the trainee.',
+          'TrainingDocumentNotFoundErrorResponse',
+        ),
+        TrainingRateLimited: responseComponent(
+          'Too many trainee training requests.',
+          'TrainingRateLimitErrorResponse',
+        ),
+        QuizOk: responseComponent(
+          'Quiz content safe for trainee pre-submission display.',
+          'GetQuizResponse',
+        ),
+        QuizAttemptCreated: responseComponent(
+          'Quiz attempt is ready for answers.',
+          'StartQuizAttemptResponse',
+        ),
+        QuizAttemptSubmitted: responseComponent(
+          'Quiz attempt submitted successfully.',
+          'SubmitQuizAttemptResponse',
+        ),
+        QuizResultOk: responseComponent(
+          'Quiz result and answer feedback for a submitted attempt.',
+          'GetQuizResultResponse',
+        ),
+        QuizNotFound: responseComponent(
+          'Quiz, quiz attempt, or associated campaign item was not found.',
+          'ApiErrorResponse',
+        ),
+        QuizAttemptAlreadySubmitted: responseComponent(
+          'Quiz attempt has already been submitted.',
+          'ApiErrorResponse',
+        ),
+        QuizResultUnavailable: responseComponent(
+          'Results are not available until the attempt is submitted, or the user cannot access the attempt.',
+          'ApiErrorResponse',
+        ),
         BadRequest: responseComponent(
           'The request payload or parameters are invalid.',
           'ValidationErrorResponse',

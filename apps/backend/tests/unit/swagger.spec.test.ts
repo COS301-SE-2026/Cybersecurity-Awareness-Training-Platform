@@ -13,6 +13,8 @@ interface SwaggerSpecShape {
   components?: {
     schemas?: Record<string, unknown>;
     responses?: Record<string, unknown>;
+    requestBodies?: Record<string, unknown>;
+    parameters?: Record<string, unknown>;
     securitySchemes?: Record<string, unknown>;
   };
 }
@@ -80,6 +82,21 @@ const expectedResponses = [
   'InternalServerError',
 ] as const;
 
+const expectedParameters = [
+  'CampaignItemIdPathParam',
+  'EmailIdPathParam',
+  'AttemptIdPathParam',
+] as const;
+
+const expectedRequestBodies = [
+  'AuthRegister',
+  'AuthLogin',
+  'EmptyJson',
+  'RecordSimulatedEmailInteraction',
+  'ClassifySimulatedEmail',
+  'SubmitQuizAttempt',
+] as const;
+
 const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
   ['get', '/health', ['200', '500']],
   ['post', '/auth/register', ['201', '400', '409', '429', '500']],
@@ -138,6 +155,18 @@ const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
   ['get', '/quiz-attempts/{attemptId}/results', ['200', '400', '401', '403', '404', '429', '500']],
 ];
 
+const inactiveRouteDocs = [
+  '/training/assigned',
+  '/training/{trainingId}',
+  '/training/{trainingId}/progress',
+  '/simulations/inbox',
+  '/simulations/emails/{emailId}',
+  '/quizzes/{quizId}',
+  '/trainee/simulated-emails/{emailId}',
+  '/trainee/campaign-items/{campaignItemId}/quiz-attempts',
+  '/quiz-attempts/{attemptId}/result',
+] as const;
+
 describe('swaggerSpec', () => {
   const spec = swaggerSpec as SwaggerSpecShape;
 
@@ -179,12 +208,25 @@ describe('swaggerSpec', () => {
     expect(spec.components?.responses).toHaveProperty(responseName);
   });
 
+  it.each(expectedParameters)('includes reusable UUID parameter %s', (parameterName) => {
+    expect(spec.components?.parameters).toHaveProperty(parameterName);
+    expect(JSON.stringify(spec.components?.parameters?.[parameterName])).toContain('"uuid"');
+  });
+
+  it.each(expectedRequestBodies)('includes reusable request body %s', (requestBodyName) => {
+    expect(spec.components?.requestBodies).toHaveProperty(requestBodyName);
+  });
+
   it.each(expectedRouteDocs)('documents %s %s', (method, path, statuses) => {
     expectPathExists(path, method);
 
     for (const status of statuses) {
       expectPathResponse(path, method, status);
     }
+  });
+
+  it.each(inactiveRouteDocs)('does not document inactive route %s', (path) => {
+    expect(spec.paths).not.toHaveProperty(path);
   });
 
   it('keeps public user schemas free of password hashes', () => {
@@ -197,5 +239,16 @@ describe('swaggerSpec', () => {
 
   it('keeps quiz fetch response free of pre-submission answers', () => {
     expectSchemaNotToContain('GetQuizResponse', ['isCorrect', 'feedbackText']);
+  });
+
+  it('includes quiz result feedback fields only in post-submission result schemas', () => {
+    const resultSchema = JSON.stringify([
+      spec.components?.schemas?.GetQuizResultResponse,
+      spec.components?.schemas?.QuizResultQuestion,
+      spec.components?.schemas?.QuizResultOption,
+    ]);
+
+    expect(resultSchema).toContain('isCorrect');
+    expect(resultSchema).toContain('feedbackText');
   });
 });

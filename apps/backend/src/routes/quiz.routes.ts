@@ -20,21 +20,16 @@ export const quizAttemptRouter = Router();
  * @openapi
  * /trainee/campaign-items/{campaignItemId}/quiz:
  *   get:
- *     tags:
- *       - Trainee Quiz
+ *     tags: [Trainee Quiz]
  *     summary: Get a quiz for a campaign item
- *     description: Resolves a trainee-accessible quiz through campaign assignment and campaign item availability. The trainee-facing response does not expose correct answers or answer feedback before submission.
+ *     description: Returns trainee-safe quiz content without correct answers or feedback.
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - $ref: '#/components/parameters/CampaignItemIdPathParam'
  *     responses:
  *       200:
- *         description: Quiz content safe for trainee pre-submission display.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/GetQuizResponse'
+ *         $ref: '#/components/responses/QuizOk'
  *       400:
  *         $ref: '#/components/responses/BadRequest'
  *       401:
@@ -42,17 +37,9 @@ export const quizAttemptRouter = Router();
  *       403:
  *         $ref: '#/components/responses/Forbidden'
  *       404:
- *         description: Quiz or associated campaign item was not found.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ApiErrorResponse'
+ *         $ref: '#/components/responses/QuizNotFound'
  *       429:
- *         description: Too many authentication-protected quiz requests.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/AuthRateLimitErrorResponse'
+ *         $ref: '#/components/responses/AuthRateLimited'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
@@ -68,27 +55,18 @@ traineeQuizRouter.get(
  * @openapi
  * /trainee/campaign-items/{campaignItemId}/quiz/attempts:
  *   post:
- *     tags:
- *       - Trainee Quiz
+ *     tags: [Trainee Quiz]
  *     summary: Start or reuse a quiz attempt
- *     description: Starts a quiz attempt for the campaign item, or returns the latest in-progress attempt when one already exists.
+ *     description: Starts an attempt or returns the latest in-progress attempt for the campaign item.
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - $ref: '#/components/parameters/CampaignItemIdPathParam'
  *     requestBody:
- *       required: false
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/EmptyRequestBody'
+ *       $ref: '#/components/requestBodies/EmptyJson'
  *     responses:
  *       201:
- *         description: Quiz attempt is ready for answers.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/StartQuizAttemptResponse'
+ *         $ref: '#/components/responses/QuizAttemptCreated'
  *       400:
  *         $ref: '#/components/responses/BadRequest'
  *       401:
@@ -96,17 +74,9 @@ traineeQuizRouter.get(
  *       403:
  *         $ref: '#/components/responses/Forbidden'
  *       404:
- *         description: Quiz or associated campaign item was not found.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ApiErrorResponse'
+ *         $ref: '#/components/responses/QuizNotFound'
  *       429:
- *         description: Too many authentication-protected quiz requests.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/AuthRateLimitErrorResponse'
+ *         $ref: '#/components/responses/AuthRateLimited'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
@@ -124,35 +94,18 @@ traineeQuizRouter.post(
  * @openapi
  * /quiz-attempts/{attemptId}/submit:
  *   post:
- *     tags:
- *       - Trainee Quiz
+ *     tags: [Trainee Quiz]
  *     summary: Submit a quiz attempt
- *     description: Submits final answers for an in-progress attempt and scores the quiz. Validation rejects malformed IDs, duplicate question answers, unknown question or option IDs, duplicate selected options, missing answers, and invalid selection counts.
+ *     description: Submits final answers and validates question IDs, option IDs, and selection counts.
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - $ref: '#/components/parameters/AttemptIdPathParam'
  *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/SubmitQuizAttemptRequest'
- *           examples:
- *             singleChoiceSubmission:
- *               summary: Submit a selected option
- *               value:
- *                 answers:
- *                   - questionId: 33333333-3333-3333-3333-333333333333
- *                     selectedOptionIds:
- *                       - 44444444-4444-4444-4444-444444444444
+ *       $ref: '#/components/requestBodies/SubmitQuizAttempt'
  *     responses:
  *       200:
- *         description: Quiz attempt submitted successfully.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/SubmitQuizAttemptResponse'
+ *         $ref: '#/components/responses/QuizAttemptSubmitted'
  *       400:
  *         $ref: '#/components/responses/BadRequest'
  *       401:
@@ -160,23 +113,11 @@ traineeQuizRouter.post(
  *       403:
  *         $ref: '#/components/responses/Forbidden'
  *       404:
- *         description: Quiz attempt was not found for this trainee.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ApiErrorResponse'
+ *         $ref: '#/components/responses/QuizNotFound'
  *       409:
- *         description: Quiz attempt has already been submitted.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ApiErrorResponse'
+ *         $ref: '#/components/responses/QuizAttemptAlreadySubmitted'
  *       429:
- *         description: Too many authentication-protected quiz requests.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/AuthRateLimitErrorResponse'
+ *         $ref: '#/components/responses/AuthRateLimited'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
@@ -193,43 +134,26 @@ quizAttemptRouter.post(
  * @openapi
  * /quiz-attempts/{attemptId}/results:
  *   get:
- *     tags:
- *       - Trainee Quiz
+ *     tags: [Trainee Quiz]
  *     summary: Get quiz attempt results
- *     description: Returns quiz result scoring and answer-level feedback after the attempt has been submitted.
+ *     description: Returns scoring and answer-level feedback after the attempt has been submitted.
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - $ref: '#/components/parameters/AttemptIdPathParam'
  *     responses:
  *       200:
- *         description: Quiz result and answer feedback for a submitted attempt.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/GetQuizResultResponse'
+ *         $ref: '#/components/responses/QuizResultOk'
  *       400:
  *         $ref: '#/components/responses/BadRequest'
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  *       403:
- *         description: Results are not available until the attempt is submitted, or the user cannot access the attempt.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ApiErrorResponse'
+ *         $ref: '#/components/responses/QuizResultUnavailable'
  *       404:
- *         description: Quiz attempt was not found for this trainee.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ApiErrorResponse'
+ *         $ref: '#/components/responses/QuizNotFound'
  *       429:
- *         description: Too many authentication-protected quiz requests.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/AuthRateLimitErrorResponse'
+ *         $ref: '#/components/responses/AuthRateLimited'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
