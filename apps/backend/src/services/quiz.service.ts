@@ -220,6 +220,22 @@ export async function submitQuizAttempt(
       );
     }
 
+    if (question.questionType === 'MULTIPLE_CHOICE') {
+      const count = answerInput.selectedOptionIds.length;
+      const min = (question as any).minSelections;
+      const max = (question as any).maxSelections;
+      if (min !== null && min !== undefined && count < min) {
+        throw new QuizValidationError(
+          `Multiple-choice question ${question.id} requires at least ${min} selected option(s)`,
+        );
+      }
+      if (max !== null && max !== undefined && count > max) {
+        throw new QuizValidationError(
+          `Multiple-choice question ${question.id} allows at most ${max} selected option(s)`,
+        );
+      }
+    }
+
     const uniqueOptionIds = new Set(answerInput.selectedOptionIds);
     if (uniqueOptionIds.size !== answerInput.selectedOptionIds.length) {
       throw new QuizValidationError(`Duplicate options selected for question ${question.id}`);

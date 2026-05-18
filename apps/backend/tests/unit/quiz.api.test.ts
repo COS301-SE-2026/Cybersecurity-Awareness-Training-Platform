@@ -106,9 +106,35 @@ function mockMultipleChoiceQuizAttempt(status = 'IN_PROGRESS') {
           id: questionId,
           points: 5,
           questionType: 'MULTIPLE_CHOICE',
+          minSelections: null,
+          maxSelections: null,
           answerOptions: [
             { id: optionId1, isCorrect: true },
             { id: optionId2, isCorrect: false },
+          ],
+        },
+      ],
+    },
+  };
+}
+
+function mockBoundedMultipleChoiceQuizAttempt(min: number, max: number, status = 'IN_PROGRESS') {
+  return {
+    id: attemptId,
+    status,
+    quiz: {
+      passThresholdPercentage: 50,
+      questions: [
+        {
+          id: questionId,
+          points: 5,
+          questionType: 'MULTIPLE_CHOICE',
+          minSelections: min,
+          maxSelections: max,
+          answerOptions: [
+            { id: optionId1, isCorrect: true },
+            { id: optionId2, isCorrect: true },
+            { id: optionId3, isCorrect: false },
           ],
         },
       ],
@@ -337,6 +363,34 @@ describe('Quiz API Routes', () => {
         });
       expect(response.status).toBe(400);
       expect(response.body.message).toContain('must have exactly one selected option');
+    });
+
+    it('rejects submission with fewer options than minSelections for a multiple-choice question', async () => {
+      mockPrisma.quizAttempt.findFirst.mockResolvedValue(
+        mockBoundedMultipleChoiceQuizAttempt(2, 3),
+      );
+      const response = await request(createApp())
+        .post(`/quiz-attempts/${attemptId}/submit`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          answers: [{ questionId, selectedOptionIds: [optionId1] }],
+        });
+      expect(response.status).toBe(400);
+      expect(response.body.message).toContain('requires at least 2 selected option(s)');
+    });
+
+    it('rejects submission with more options than maxSelections for a multiple-choice question', async () => {
+      mockPrisma.quizAttempt.findFirst.mockResolvedValue(
+        mockBoundedMultipleChoiceQuizAttempt(1, 1),
+      );
+      const response = await request(createApp())
+        .post(`/quiz-attempts/${attemptId}/submit`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          answers: [{ questionId, selectedOptionIds: [optionId1, optionId2] }],
+        });
+      expect(response.status).toBe(400);
+      expect(response.body.message).toContain('allows at most 1 selected option(s)');
     });
   });
   describe('GET /quiz-attempts/:attemptId/results', () => {
