@@ -53,7 +53,7 @@ async function getValidatedCampaignItem(
         assignments: {
           some: {
             traineeProfileId,
-            assignmentStatus: { in: ['ASSIGNED', 'IN_PROGRESS', 'COMPLETED'] },
+            assignmentStatus: { in: ['AVAILABLE', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED'] },
           },
         },
       },
@@ -64,7 +64,7 @@ async function getValidatedCampaignItem(
           assignments: {
             where: {
               traineeProfileId,
-              assignmentStatus: { in: ['ASSIGNED', 'IN_PROGRESS', 'COMPLETED'] },
+              assignmentStatus: { in: ['AVAILABLE', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED'] },
             },
           },
         },

@@ -220,6 +220,26 @@ describe('Quiz API Routes', () => {
       expect(response.body).toHaveProperty('error', 'FORBIDDEN');
       expect(response.body.message).toContain('User is not a trainee');
     });
+
+    it('returns 200 for a trainee with AVAILABLE campaign assignment status', async () => {
+      mockPrisma.campaignItem.findFirst.mockResolvedValue({
+        ...mockCampaignItem(),
+        campaign: {
+          assignments: [
+            {
+              id: 'assign-1',
+              traineeProfileId: 'trainee-profile-id',
+              assignmentStatus: 'AVAILABLE',
+            },
+          ],
+        },
+      });
+      const response = await request(createApp())
+        .get(`/trainee/campaign-items/${campaignItemId}/quiz`)
+        .set('Authorization', `Bearer ${token}`);
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('id', 'quiz-1');
+    });
   });
 
   describe('POST /trainee/campaign-items/:campaignItemId/quiz/attempts', () => {
