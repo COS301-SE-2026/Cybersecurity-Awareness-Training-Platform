@@ -1,42 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  // MailOutlined,
-  Menu,
-  HomeOutlined,
-  SchoolOutlined,
-  EditOutlined,
-} from '@mui/icons-material';
+import { Menu, SchoolOutlined } from '@mui/icons-material';
 
 function Sidebar() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const navigate = useNavigate();
   const navItems = [
     {
-      icon: <HomeOutlined />,
-      label: 'Dashboard',
-      path: '/dashboard',
-    },
-    /*{
-      icon: <MailOutlined />,
-      label: 'Simulated Email Inbox',
-      path: '/simulation/inbox',
-    },*/
-    {
       icon: <SchoolOutlined />,
-      label: 'Training Modules',
-      path: '/training/modules',
+      label: 'Campaigns',
+      path: '/campaigns',
     },
-    {
-      icon: <EditOutlined />,
-      label: 'Quiz Grades',
-      path: '/quiz/grades',
-    },
-    /*{
-      icon: <FeedbackOutlined />,
-      label: 'Feedback',
-      path: '/feedback',
-    },*/
   ];
 
   return (

@@ -38,7 +38,7 @@ function AppLayout({ children, showSidebar = true, contentStyle }: AppLayoutProp
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
-            overflow: 'hidden',
+            overflow: 'auto',
             height: '100%',
             backgroundColor: '#0E0020',
             ...contentStyle,
