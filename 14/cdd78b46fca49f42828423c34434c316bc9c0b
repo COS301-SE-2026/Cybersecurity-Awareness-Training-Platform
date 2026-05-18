@@ -1,0 +1,36 @@
+apps/backend/src/routes/trainee.routes.ts
+  s_30727a4aa35864::t_b30468fbac1009 27,29,36,44,62,64,72,80,98,100,107,110,118,137,139,146,149,157,159
+apps/backend/src/routes/trainee-training.routes.ts
+  s_30727a4aa35864::t_e8081eae5bda21 23,25,32,38,40,56,58,64,67,73,75,92,94,100,103,109,111
+apps/backend/src/routes/auth.routes.ts
+  s_30727a4aa35864::t_a6f7eb4d45b338 14,16,19,22,26,28,38,40,43,46,50,52,62,64,69,71,73
+apps/backend/src/routes/quiz.routes.ts
+  s_30727a4aa35864::t_2aa68015639adf 23,25,32,40,42,58,60,66,69,77,79,97,99,105,108,116,118,120,137,139,146,152,154,156
+sonar-project.properties
+  s_30727a4aa35864::t_39de352bfa84e5 2
+apps/backend/src/config/swagger.ts
+  s_30727a4aa35864::t_f051dc78349938 123-124
+  s_30727a4aa35864::t_f1cfab80aa5995 1198-1223,1225-1319
+apps/backend/src/routes/health.routes.ts
+  s_30727a4aa35864::t_65c67d1bdb3a74 10,12,16,18
+apps/backend/tests/unit/swagger.spec.test.ts
+  s_30727a4aa35864::t_91cc8b8436b601 16,91-99,214-217
+  s_30727a4aa35864::t_b1f50ce26e5725 17,85-90,158-169,211-213,228-231,243-244,250-252
+  s_30727a4aa35864::t_eae4cde6f29481 245-249
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "14cdd78b46fca49f42828423c34434c316bc9c0b",
+  "prompts": {},
+  "sessions": {
+    "s_30727a4aa35864": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e3b43-d96b-7a60-998d-2a5ecd189741",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
