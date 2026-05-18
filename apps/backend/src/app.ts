@@ -6,7 +6,9 @@ import { env } from './config/env.js';
 import { swaggerSpec } from './config/swagger.js';
 import { healthRoutes } from './routes/health.routes.js';
 import { authRouter } from './routes/auth.routes.js';
+import { traineeRouter } from './routes/trainee.routes.js';
 import { traineeTrainingRouter } from './routes/trainee-training.routes.js';
+import { traineeQuizRouter, quizAttemptRouter } from './routes/quiz.routes.js';
 
 export function createApp() {
   const app = express();
@@ -29,12 +31,13 @@ export function createApp() {
 
   app.use(healthRoutes);
   app.use(authRouter);
+  app.use('/trainee', traineeRouter);
   app.use(traineeTrainingRouter);
 
   // Preliminary Demo 1 API Route Placeholders (To be implemented)
   // app.use('/auth', authRoutes);
-  // app.use('/trainee', traineeRoutes); // campaigns, campaign items, training, quiz, and simulated email flows
-  // app.use('/quiz-attempts', quizAttemptRoutes); // submit attempts and fetch attempt results
+  app.use('/trainee/campaign-items', traineeQuizRouter);
+  app.use('/quiz-attempts', quizAttemptRouter);
   // app.use('/campaigns', campaignRoutes); // supporting admin/campaign context
 
   return app;
