@@ -463,12 +463,12 @@ The following constraints from `architecture.md` directly affect what QA must ve
 
 ### Scope Boundary Verification
 
-- QA must confirm that only UC-01, UC-02, and UC-03 screens and endpoints are reachable and functional for Demo 1.
+- QA must confirm that only UC-01, UC-02, and UC-03 screens and required/supporting endpoints are reachable and functional for Demo 1.
 - QA must verify that base features (login, registration, form validation) function correctly but are not presented or counted as core use cases.
-- QA must confirm that no admin UI screens, campaign management endpoints, or reporting dashboards are accessible in the Demo 1 flow.
+- QA must confirm that trainee campaign-access endpoints may exist for content delivery, but admin campaign management endpoints, admin campaign builder screens, and reporting dashboards are not presented as Demo 1 requirements.
 
 > [!NOTE]
-> Full technical requirements and constraint definitions are in `architecture.md` under the **Technical Requirements and Constraints** section. This section references those constraints for QA alignment only and does not duplicate them.
+> Full technical requirements and constraint definitions are in `architecture.md` under the **Quality Requirements** and **System Constraints and Standards** sections. This section references those constraints for QA alignment only and does not duplicate them.
 
 ## Traceability References
 
