@@ -150,6 +150,128 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
             },
           ],
         },
+        AuthEmailExistsErrorResponse: {
+          allOf: [
+            {
+              $ref: '#/components/schemas/ApiErrorResponse',
+            },
+            {
+              type: 'object',
+              properties: {
+                error: {
+                  type: 'string',
+                  enum: ['AUTH_EMAIL_EXISTS'],
+                  example: 'AUTH_EMAIL_EXISTS',
+                },
+                message: {
+                  type: 'string',
+                  example: 'A user with the provided email already exists',
+                },
+              },
+            },
+          ],
+        },
+        AuthInvalidErrorResponse: {
+          allOf: [
+            {
+              $ref: '#/components/schemas/ApiErrorResponse',
+            },
+            {
+              type: 'object',
+              properties: {
+                error: {
+                  type: 'string',
+                  enum: ['AUTH_INVALID'],
+                  example: 'AUTH_INVALID',
+                },
+                message: {
+                  type: 'string',
+                  example: 'Invalid email or password',
+                },
+              },
+            },
+          ],
+        },
+        UserType: {
+          type: 'string',
+          enum: ['IP_ADMIN', 'ORGANISATION_ADMIN', 'ORGANISATION_TRAINEE', 'GENERAL_TRAINEE'],
+          example: 'GENERAL_TRAINEE',
+        },
+        AuthStatus: {
+          type: 'string',
+          enum: ['PENDING', 'ACTIVE', 'DISABLED'],
+          example: 'ACTIVE',
+        },
+        PublicOrganisation: {
+          type: 'object',
+          required: ['id', 'name'],
+          properties: {
+            id: {
+              type: 'string',
+              example: 'org-123',
+            },
+            name: {
+              type: 'string',
+              example: 'Example Organisation',
+            },
+          },
+        },
+        PublicTraineeProfile: {
+          type: 'object',
+          required: ['id', 'traineeStatus', 'traineeType'],
+          properties: {
+            id: {
+              type: 'string',
+              example: 'trainee-profile-123',
+            },
+            traineeStatus: {
+              type: 'string',
+              enum: ['ACTIVE', 'INACTIVE'],
+              example: 'ACTIVE',
+            },
+            traineeType: {
+              type: 'string',
+              enum: ['GENERAL', 'ORGANISATION'],
+              example: 'GENERAL',
+            },
+            organisation: {
+              nullable: true,
+              allOf: [
+                {
+                  $ref: '#/components/schemas/PublicOrganisation',
+                },
+              ],
+            },
+          },
+        },
+        PublicAdminProfile: {
+          type: 'object',
+          required: ['id', 'adminStatus', 'adminType'],
+          properties: {
+            id: {
+              type: 'string',
+              example: 'admin-profile-123',
+            },
+            adminStatus: {
+              type: 'string',
+              enum: ['ACTIVE', 'INACTIVE'],
+              example: 'ACTIVE',
+            },
+            adminType: {
+              type: 'string',
+              enum: ['ORGANISATION', 'IP'],
+              example: 'ORGANISATION',
+            },
+            organisation: {
+              nullable: true,
+              allOf: [
+                {
+                  $ref: '#/components/schemas/PublicOrganisation',
+                },
+              ],
+            },
+          },
+        },
         PublicUser: {
           type: 'object',
           required: ['id', 'firstName', 'lastName', 'email', 'userType', 'authStatus', 'createdAt'],
@@ -172,24 +294,26 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
               example: 'johan@example.com',
             },
             userType: {
-              type: 'string',
-              enum: ['IP_ADMIN', 'ORGANISATION_ADMIN', 'ORGANISATION_TRAINEE', 'GENERAL_TRAINEE'],
-              example: 'GENERAL_TRAINEE',
+              $ref: '#/components/schemas/UserType',
             },
             authStatus: {
-              type: 'string',
-              enum: ['PENDING', 'ACTIVE', 'DISABLED'],
-              example: 'ACTIVE',
+              $ref: '#/components/schemas/AuthStatus',
             },
             traineeProfile: {
-              type: 'object',
               nullable: true,
-              additionalProperties: true,
+              allOf: [
+                {
+                  $ref: '#/components/schemas/PublicTraineeProfile',
+                },
+              ],
             },
             adminProfile: {
-              type: 'object',
               nullable: true,
-              additionalProperties: true,
+              allOf: [
+                {
+                  $ref: '#/components/schemas/PublicAdminProfile',
+                },
+              ],
             },
             createdAt: {
               type: 'string',
@@ -205,6 +329,97 @@ Full endpoint coverage is optional for Sprint 2. This documentation serves as a 
             },
           ],
           description: 'Authenticated user attached to protected requests.',
+        },
+        AuthRegisterRequest: {
+          type: 'object',
+          required: ['email', 'password', 'firstName', 'lastName'],
+          properties: {
+            email: {
+              type: 'string',
+              format: 'email',
+              description: 'Email is trimmed and lowercased before registration.',
+              example: 'johan@example.com',
+            },
+            password: {
+              type: 'string',
+              format: 'password',
+              minLength: 8,
+              example: 'correct-horse-battery-staple',
+            },
+            firstName: {
+              type: 'string',
+              minLength: 1,
+              description: 'First name is trimmed before registration.',
+              example: 'Johan',
+            },
+            lastName: {
+              type: 'string',
+              minLength: 1,
+              description: 'Last name is trimmed before registration.',
+              example: 'Botha',
+            },
+          },
+        },
+        AuthLoginRequest: {
+          type: 'object',
+          required: ['email', 'password'],
+          properties: {
+            email: {
+              type: 'string',
+              format: 'email',
+              description: 'Email is trimmed and lowercased before login.',
+              example: 'johan@example.com',
+            },
+            password: {
+              type: 'string',
+              format: 'password',
+              minLength: 1,
+              example: 'correct-horse-battery-staple',
+            },
+          },
+        },
+        AuthRegisterResponse: {
+          type: 'object',
+          required: ['user'],
+          properties: {
+            user: {
+              $ref: '#/components/schemas/PublicUser',
+            },
+          },
+        },
+        AuthLoginResponse: {
+          type: 'object',
+          required: ['user', 'token', 'tokenType', 'expiresAt'],
+          properties: {
+            user: {
+              $ref: '#/components/schemas/PublicUser',
+            },
+            token: {
+              type: 'string',
+              description: 'Bearer token for authenticated requests.',
+              example:
+                'eyJ1c2VySWQiOiJ1c2VyLTEyMyIsImV4cGlyZXNBdCI6IjIwMjYtMDUtMTJUMjA6NDQ6NTQuMDAwWiJ9.signature',
+            },
+            tokenType: {
+              type: 'string',
+              enum: ['Bearer'],
+              example: 'Bearer',
+            },
+            expiresAt: {
+              type: 'string',
+              format: 'date-time',
+              example: '2026-05-12T20:44:54.000Z',
+            },
+          },
+        },
+        AuthMeResponse: {
+          type: 'object',
+          required: ['user'],
+          properties: {
+            user: {
+              $ref: '#/components/schemas/PublicUser',
+            },
+          },
         },
       },
       parameters: {

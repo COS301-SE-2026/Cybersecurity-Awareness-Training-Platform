@@ -21,4 +21,15 @@ describe('swaggerSpec', () => {
     expect(spec.components?.schemas).toHaveProperty('ApiErrorResponse');
     expect(spec.components?.securitySchemes).toHaveProperty('bearerAuth');
   });
+
+  it('includes reusable auth schemas without exposing password hashes', () => {
+    expect(spec.components?.schemas).toHaveProperty('AuthRegisterRequest');
+    expect(spec.components?.schemas).toHaveProperty('AuthLoginRequest');
+    expect(spec.components?.schemas).toHaveProperty('AuthRegisterResponse');
+    expect(spec.components?.schemas).toHaveProperty('AuthLoginResponse');
+    expect(spec.components?.schemas).toHaveProperty('AuthMeResponse');
+    expect(spec.components?.schemas).toHaveProperty('UserType');
+    expect(spec.components?.schemas).toHaveProperty('AuthStatus');
+    expect(JSON.stringify(spec.components?.schemas?.PublicUser)).not.toContain('passwordHash');
+  });
 });
