@@ -90,10 +90,16 @@ describe('swaggerSpec', () => {
     );
   });
 
-  it('includes the mounted trainee simulation read paths', () => {
+  it('includes the mounted trainee simulation paths', () => {
     expect(spec.paths).toHaveProperty('/trainee/campaign-items/{campaignItemId}/simulated-inbox');
     expect(spec.paths).toHaveProperty(
       '/trainee/campaign-items/{campaignItemId}/simulated-emails/{emailId}',
+    );
+    expect(spec.paths).toHaveProperty(
+      '/trainee/campaign-items/{campaignItemId}/simulated-emails/{emailId}/interactions',
+    );
+    expect(spec.paths).toHaveProperty(
+      '/trainee/campaign-items/{campaignItemId}/simulated-emails/{emailId}/classification',
     );
   });
 });

@@ -109,6 +109,54 @@ router.get(
 );
 
 // Simulated Email Interactions
+/**
+ * @openapi
+ * /trainee/campaign-items/{campaignItemId}/simulated-emails/{emailId}/interactions:
+ *   post:
+ *     tags:
+ *       - Trainee Simulation
+ *     summary: Record a simulated email interaction
+ *     description: Records an allowed simulated email interaction event after resolving access through the authenticated user's campaign assignment and campaign item availability. No client-supplied context or sensitive metadata is accepted.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/CampaignItemIdPathParam'
+ *       - $ref: '#/components/parameters/EmailIdPathParam'
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/RecordSimulatedEmailInteractionRequest'
+ *           examples:
+ *             linkClicked:
+ *               summary: Link clicked interaction
+ *               value:
+ *                 eventType: SIMULATED_EMAIL_LINK_CLICKED
+ *     responses:
+ *       200:
+ *         description: Simulated email interaction recorded.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RecordSimulatedEmailInteractionResponse'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         description: Simulated email is missing or not accessible through this campaign item.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiErrorResponse'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
 router.post(
   '/campaign-items/:campaignItemId/simulated-emails/:emailId/interactions',
   requireAuth,
@@ -118,6 +166,62 @@ router.post(
 );
 
 // Simulated Email Classification
+/**
+ * @openapi
+ * /trainee/campaign-items/{campaignItemId}/simulated-emails/{emailId}/classification:
+ *   post:
+ *     tags:
+ *       - Trainee Simulation
+ *     summary: Classify a simulated email
+ *     description: Records the trainee's selected email classification after resolving access through the authenticated user's campaign assignment and campaign item availability. The expectedClassification and redFlags are not provided before classification; feedback and redFlags are returned after classification.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/CampaignItemIdPathParam'
+ *       - $ref: '#/components/parameters/EmailIdPathParam'
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ClassifySimulatedEmailRequest'
+ *           examples:
+ *             phishingClassification:
+ *               summary: Classify an email as phishing
+ *               value:
+ *                 selectedClassification: PHISHING
+ *                 selectedRedFlagIds:
+ *                   - 33333333-3333-3333-3333-333333333333
+ *     responses:
+ *       200:
+ *         description: Simulated email classification recorded with feedback.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ClassifySimulatedEmailResponse'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         description: Simulated email is missing or not accessible through this campaign item.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiErrorResponse'
+ *       409:
+ *         description: The simulated email has already been classified by this trainee.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiErrorResponse'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
 router.post(
   '/campaign-items/:campaignItemId/simulated-emails/:emailId/classification',
   requireAuth,
