@@ -19,7 +19,7 @@ function TrainingActionRow({
     <div
       onClick={onClick}
       style={{
-        backgroundColor: disabled ? 'rgba(80, 40, 120, 0.45)' : 'rgba(53, 0, 94, 0.75)',
+        backgroundColor: disabled ? '#2A0844' : 'rgba(53, 0, 94, 0.75)',
         opacity: disabled ? 0.65 : 1,
         padding: large ? '1.5rem 1.8rem' : '1rem 1.4rem',
         display: 'flex',
@@ -38,7 +38,7 @@ function TrainingActionRow({
       >
         <div
           style={{
-            color: 'white',
+            color: disabled ? '#9A7AB8' : 'white',
             fontFamily: 'Overpass',
             fontSize: large ? '1.8rem' : '1.4rem',
             fontWeight: 500,
@@ -53,7 +53,7 @@ function TrainingActionRow({
         {!large && (
           <div
             style={{
-              color: '#C98FFF',
+              color: disabled ? '#8E63B3' : '#C98FFF',
               fontFamily: 'Jost',
               fontSize: '1rem',
               fontWeight: 500,
@@ -76,7 +76,7 @@ function TrainingActionRow({
         {large && (
           <div
             style={{
-              color: '#C98FFF',
+              color: disabled ? '#8E63B3' : '#C98FFF',
               fontFamily: 'Jost',
               fontSize: '1rem',
               fontWeight: 500,
@@ -89,7 +89,7 @@ function TrainingActionRow({
 
         <ChevronRight
           style={{
-            color: '#C98FFF',
+            color: disabled ? '#8E63B3' : '#C98FFF',
             fontSize: '2.5rem',
           }}
         />
