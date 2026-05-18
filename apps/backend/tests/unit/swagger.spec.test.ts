@@ -89,4 +89,11 @@ describe('swaggerSpec', () => {
       'redFlags',
     );
   });
+
+  it('includes the mounted trainee simulation read paths', () => {
+    expect(spec.paths).toHaveProperty('/trainee/campaign-items/{campaignItemId}/simulated-inbox');
+    expect(spec.paths).toHaveProperty(
+      '/trainee/campaign-items/{campaignItemId}/simulated-emails/{emailId}',
+    );
+  });
 });
