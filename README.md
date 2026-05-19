@@ -38,25 +38,25 @@ By focusing on human behaviour, the most common source of security breaches, the
 
 ---
 
-# Current Demo Scope
+# <img src="https://img.icons8.com/?size=100&id=OxDyKkYjQ5Yk&format=png&color=000000" width="32"> Current Demo Scope
 
-Demo 1 is an early local prototype of the trainee journey. It is not a complete final SRS or full-year platform implementation.
+> _Demo 1_ is an **_early local prototype_** of the trainee journey. It is not a complete final SRS or full-year platform implementation.
 
-Detailed Demo 1 scope:
+#### _Demo 1_ Scope
 
-- view and open seeded simulated inbox emails;
-- view seeded training material;
-- complete a simple quiz flow and view results.
+- View and open seeded simulated inbox emails
+- View seeded training material
+- Complete a simple quiz flow and view results
 
-Base supporting features:
+#### Base Supporting Features
 
-- login/register;
-- form and payload validation;
-- basic theme, navigation, and trainee-facing feedback states.
+- Login, logout, and register
+- Form (login and register) and payload validation
+- Basic theme, navigation (sidebar), and trainee-facing feedback states (e.g., training material or quizzes started, not stated, etc.).
 
 Future platform direction includes organisation admin campaign builders, trainee/user management, reporting dashboards, real email delivery to actual inboxes, AI-assisted content generation, and advanced simulations such as fake login pages, richer link/attachment interactions, calls, or password-checker activities. Real email delivery must be opt-in and ethically constrained. AI-assisted generation remains future-facing and would require controlled schemas, prepared context, and review; training a custom model is undecided and is not promised.
 
-Demo 1 runs locally unless explicitly configured otherwise. Deployment to Southern Cross infrastructure is a later target.
+> _Demo 1_ **runs locally** unless explicitly configured otherwise. Deployment to _Southern Cross_ infrastructure is a later target.
 
 ---
 
@@ -119,9 +119,6 @@ Demo 1 runs locally unless explicitly configured otherwise. Deployment to Southe
 6. **Design Specification**: [docs/demo1/DESIGN.md](docs/demo1/DESIGN.md)
 7. **Diagrams**: [docs/demo1/diagrams/README.md](docs/demo1/diagrams/README.md)
 8. **Wireframes**: [docs/demo1/wireframes/README.md](docs/demo1/wireframes/README.md)
-
-External published Demo 1 documentation may also be available at:
-https://developer.insightfulphish.co.za/documentation/demo-1/functional-requirements
 
 ---
 
