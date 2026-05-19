@@ -5,14 +5,14 @@ describe('auth validation schemas', () => {
   it('normalizes valid register input', () => {
     const result = authRegisterRequestSchema.parse({
       email: '  TRAINEE@EXAMPLE.COM  ',
-      password: 'password123',
+      password: 'StrongerPass1!',
       firstName: ' Jane ',
       lastName: ' Doe ',
     });
 
     expect(result).toEqual({
       email: 'trainee@example.com',
-      password: 'password123',
+      password: 'StrongerPass1!',
       firstName: 'Jane',
       lastName: 'Doe',
     });
@@ -29,15 +29,112 @@ describe('auth validation schemas', () => {
     expect(result.success).toBe(false);
   });
 
+  it('rejects register payloads with unexpected fields', () => {
+    const result = authRegisterRequestSchema.safeParse({
+      email: 'trainee@example.com',
+      password: 'StrongerPass1!',
+      firstName: 'Jane',
+      lastName: 'Doe',
+      role: 'IP_ADMIN',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects register passwords shorter than 12 characters', () => {
+    const result = authRegisterRequestSchema.safeParse({
+      email: 'trainee@example.com',
+      password: 'Short1!',
+      firstName: 'Jane',
+      lastName: 'Doe',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects register passwords without a lowercase letter', () => {
+    const result = authRegisterRequestSchema.safeParse({
+      email: 'trainee@example.com',
+      password: 'STRONGERPASS1!',
+      firstName: 'Jane',
+      lastName: 'Doe',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects register passwords without an uppercase letter', () => {
+    const result = authRegisterRequestSchema.safeParse({
+      email: 'trainee@example.com',
+      password: 'strongerpass1!',
+      firstName: 'Jane',
+      lastName: 'Doe',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects register passwords without a number', () => {
+    const result = authRegisterRequestSchema.safeParse({
+      email: 'trainee@example.com',
+      password: 'StrongerPass!',
+      firstName: 'Jane',
+      lastName: 'Doe',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects register passwords without a special character', () => {
+    const result = authRegisterRequestSchema.safeParse({
+      email: 'trainee@example.com',
+      password: 'StrongerPass1',
+      firstName: 'Jane',
+      lastName: 'Doe',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects whitespace-only register names after trimming', () => {
+    const result = authRegisterRequestSchema.safeParse({
+      email: 'trainee@example.com',
+      password: 'StrongerPass1!',
+      firstName: '   ',
+      lastName: '\t',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
   it('normalizes valid login input', () => {
     const result = authLoginRequestSchema.parse({
       email: '  TRAINEE@EXAMPLE.COM  ',
-      password: 'password123',
+      password: 'password',
     });
 
     expect(result).toEqual({
       email: 'trainee@example.com',
-      password: 'password123',
+      password: 'password',
     });
+  });
+
+  it('keeps login password validation weaker than registration', () => {
+    const result = authLoginRequestSchema.safeParse({
+      email: 'trainee@example.com',
+      password: 'legacy',
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects login payloads with unexpected fields', () => {
+    const result = authLoginRequestSchema.safeParse({
+      email: 'trainee@example.com',
+      password: 'password',
+      rememberMe: true,
+    });
+
+    expect(result.success).toBe(false);
   });
 });
