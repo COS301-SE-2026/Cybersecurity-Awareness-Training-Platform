@@ -193,7 +193,7 @@ pnpm build
 
 These run across all workspace packages.
 
-## Quick fresh checkout path
+### Quick fresh checkout path
 
 Use this compact path when starting from a clean checkout for local Demo 1 rehearsal.
 
