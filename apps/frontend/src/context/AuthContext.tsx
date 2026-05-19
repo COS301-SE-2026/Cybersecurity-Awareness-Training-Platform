@@ -16,14 +16,22 @@ function getStorage() {
   return typeof window.localStorage?.getItem === 'function' ? window.localStorage : null;
 }
 
-export function AuthProvider({ children }: AuthProviderProps) {
-  const [token, setToken] = useState<string | null>(() => getStorage()?.getItem('token') ?? null);
-
-  const [user, setUser] = useState<AuthUser | null>(() => {
+function getStoredUser(): AuthUser | null {
+  try {
     const storedUser = getStorage()?.getItem('user');
 
     return storedUser ? (JSON.parse(storedUser) as AuthUser) : null;
-  });
+  } catch {
+    getStorage()?.removeItem('user');
+
+    return null;
+  }
+}
+
+export function AuthProvider({ children }: AuthProviderProps) {
+  const [token, setToken] = useState<string | null>(() => getStorage()?.getItem('token') ?? null);
+
+  const [user, setUser] = useState<AuthUser | null>(() => getStoredUser());
 
   const [isAuthenticated, setIsAuthenticated] = useState(() =>
     Boolean(getStorage()?.getItem('token')),
