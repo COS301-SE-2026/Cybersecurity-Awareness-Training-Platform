@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const authRegisterRequestSchema = z.object({
-  email: z.string().trim().email().toLowerCase(),
+  email: z.string().trim().email('PLEASE ENTER A VALID EMAIL ADDRESS').toLowerCase(),
 
   password: z
     .string()

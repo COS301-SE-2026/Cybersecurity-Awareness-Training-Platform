@@ -12,7 +12,7 @@ import {
   authFormStyle,
   authPrimaryButtonStyle,
 } from '../components/auth/authStyles';
-
+import { authRegisterRequestSchema } from '../../../../packages/shared/src/validation/auth.schemas';
 function RegisterPage() {
   const navigate = useNavigate();
 
@@ -28,50 +28,15 @@ function RegisterPage() {
 
     setMessage('');
 
-    if (!firstName.trim()) {
-      setMessage('PLEASE ENTER YOUR FIRST NAME(S)');
+    const validationResult = authRegisterRequestSchema.safeParse({
+      firstName,
+      lastName,
+      email,
+      password,
+    });
 
-      return;
-    }
-
-    if (!lastName.trim()) {
-      setMessage('PLEASE ENTER YOUR LAST NAME');
-
-      return;
-    }
-
-    if (!email.trim() || !email.includes('@')) {
-      setMessage('PLEASE ENTER A VALID EMAIL ADDRESS');
-
-      return;
-    }
-
-    if (password.length < 8) {
-      setMessage('PASSWORD MUST BE AT LEAST 8 CHARACTERS');
-
-      return;
-    }
-
-    if (!/[A-Z]/.test(password)) {
-      setMessage('PASSWORD MUST CONTAIN AN UPPERCASE LETTER');
-
-      return;
-    }
-
-    if (!/[a-z]/.test(password)) {
-      setMessage('PASSWORD MUST CONTAIN A LOWERCASE LETTER');
-
-      return;
-    }
-
-    if (!/\d/.test(password)) {
-      setMessage('PASSWORD MUST CONTAIN AT LEAST ONE NUMBER');
-
-      return;
-    }
-
-    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
-      setMessage('PASSWORD MUST CONTAIN A SPECIAL CHARACTER');
+    if (!validationResult.success) {
+      setMessage(validationResult.error.issues[0]?.message || 'INVALID INPUT');
 
       return;
     }
@@ -88,12 +53,7 @@ function RegisterPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          firstName: firstName.trim(),
-          lastName: lastName.trim(),
-          email: email.trim(),
-          password,
-        }),
+        body: JSON.stringify(validationResult.data),
       });
 
       const data = await response.json();
