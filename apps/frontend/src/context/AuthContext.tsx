@@ -16,26 +16,68 @@ function getStorage() {
   return typeof window.localStorage?.getItem === 'function' ? window.localStorage : null;
 }
 
-function getStoredUser(): AuthUser | null {
+function clearStoredAuth() {
+  getStorage()?.removeItem('token');
+  getStorage()?.removeItem('user');
+}
+
+function getStoredAuth(): {
+  token: string | null;
+  user: AuthUser | null;
+  isAuthenticated: boolean;
+} {
+  const storage = getStorage();
+
+  const storedToken = storage?.getItem('token') ?? null;
+  const storedUser = storage?.getItem('user');
+
+  if (!storedToken) {
+    storage?.removeItem('user');
+
+    return {
+      token: null,
+      user: null,
+      isAuthenticated: false,
+    };
+  }
+
+  if (!storedUser) {
+    clearStoredAuth();
+
+    return {
+      token: null,
+      user: null,
+      isAuthenticated: false,
+    };
+  }
+
   try {
-    const storedUser = getStorage()?.getItem('user');
+    const parsedUser = JSON.parse(storedUser) as AuthUser;
 
-    return storedUser ? (JSON.parse(storedUser) as AuthUser) : null;
+    return {
+      token: storedToken,
+      user: parsedUser,
+      isAuthenticated: true,
+    };
   } catch {
-    getStorage()?.removeItem('user');
+    clearStoredAuth();
 
-    return null;
+    return {
+      token: null,
+      user: null,
+      isAuthenticated: false,
+    };
   }
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [token, setToken] = useState<string | null>(() => getStorage()?.getItem('token') ?? null);
+  const storedAuth = getStoredAuth();
 
-  const [user, setUser] = useState<AuthUser | null>(() => getStoredUser());
+  const [token, setToken] = useState<string | null>(storedAuth.token);
 
-  const [isAuthenticated, setIsAuthenticated] = useState(() =>
-    Boolean(getStorage()?.getItem('token')),
-  );
+  const [user, setUser] = useState<AuthUser | null>(storedAuth.user);
+
+  const [isAuthenticated, setIsAuthenticated] = useState(storedAuth.isAuthenticated);
 
   const login = (newToken: string, newUser: AuthUser) => {
     getStorage()?.setItem('token', newToken);
