@@ -213,6 +213,13 @@
       "end": "2026-05-20",
       "issues": [
         {
+          "number": 126,
+          "title": "feat: campaign discovery",
+          "points": 3,
+          "state": "open",
+          "closed_date": null
+        },
+        {
           "number": 123,
           "title": "chore: swagger-demo1-api",
           "points": 5,
@@ -314,15 +321,15 @@
           "number": 85,
           "title": "feat: [frontend] Implement UC-03 quiz screens",
           "points": 5,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-05-18"
         },
         {
           "number": 84,
           "title": "feat: [frontend] Implement UC-02 training module screens",
           "points": 3,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-05-18"
         },
         {
           "number": 83,
@@ -463,113 +470,118 @@
   "series": [
     {
       "date": "2026-04-27",
-      "remaining": 180,
-      "ideal": 180.0
+      "remaining": 183,
+      "ideal": 183.0
     },
     {
       "date": "2026-04-28",
-      "remaining": 177,
-      "ideal": 172.17
+      "remaining": 180,
+      "ideal": 175.04
     },
     {
       "date": "2026-04-29",
-      "remaining": 177,
-      "ideal": 164.35
+      "remaining": 180,
+      "ideal": 167.09
     },
     {
       "date": "2026-04-30",
-      "remaining": 166,
-      "ideal": 156.52
+      "remaining": 169,
+      "ideal": 159.13
     },
     {
       "date": "2026-05-01",
-      "remaining": 161,
-      "ideal": 148.7
+      "remaining": 164,
+      "ideal": 151.17
     },
     {
       "date": "2026-05-02",
-      "remaining": 161,
-      "ideal": 140.87
+      "remaining": 164,
+      "ideal": 143.22
     },
     {
       "date": "2026-05-03",
-      "remaining": 155,
-      "ideal": 133.04
+      "remaining": 158,
+      "ideal": 135.26
     },
     {
       "date": "2026-05-04",
-      "remaining": 155,
-      "ideal": 125.22
+      "remaining": 158,
+      "ideal": 127.3
     },
     {
       "date": "2026-05-05",
-      "remaining": 154,
-      "ideal": 117.39
+      "remaining": 157,
+      "ideal": 119.35
     },
     {
       "date": "2026-05-06",
-      "remaining": 154,
-      "ideal": 109.57
+      "remaining": 157,
+      "ideal": 111.39
     },
     {
       "date": "2026-05-07",
-      "remaining": 151,
-      "ideal": 101.74
+      "remaining": 154,
+      "ideal": 103.43
     },
     {
       "date": "2026-05-08",
-      "remaining": 137,
-      "ideal": 93.91
+      "remaining": 140,
+      "ideal": 95.48
     },
     {
       "date": "2026-05-09",
-      "remaining": 121,
-      "ideal": 86.09
+      "remaining": 124,
+      "ideal": 87.52
     },
     {
       "date": "2026-05-10",
-      "remaining": 93,
-      "ideal": 78.26
+      "remaining": 96,
+      "ideal": 79.57
     },
     {
       "date": "2026-05-11",
-      "remaining": 84,
-      "ideal": 70.43
+      "remaining": 87,
+      "ideal": 71.61
     },
     {
       "date": "2026-05-12",
-      "remaining": 72,
-      "ideal": 62.61
+      "remaining": 75,
+      "ideal": 63.65
     },
     {
       "date": "2026-05-13",
-      "remaining": 67,
-      "ideal": 54.78
+      "remaining": 70,
+      "ideal": 55.7
     },
     {
       "date": "2026-05-14",
-      "remaining": 67,
-      "ideal": 46.96
+      "remaining": 70,
+      "ideal": 47.74
     },
     {
       "date": "2026-05-15",
-      "remaining": 66,
-      "ideal": 39.13
+      "remaining": 69,
+      "ideal": 39.78
     },
     {
       "date": "2026-05-16",
-      "remaining": 61,
-      "ideal": 31.3
+      "remaining": 64,
+      "ideal": 31.83
     },
     {
       "date": "2026-05-17",
-      "remaining": 56,
-      "ideal": 23.48
+      "remaining": 59,
+      "ideal": 23.87
     },
     {
       "date": "2026-05-18",
-      "remaining": 43,
-      "ideal": 15.65
+      "remaining": 38,
+      "ideal": 15.91
+    },
+    {
+      "date": "2026-05-19",
+      "remaining": 38,
+      "ideal": 7.96
     }
   ]
 }

@@ -4,6 +4,13 @@
   "end": "2026-05-20",
   "issues": [
     {
+      "number": 126,
+      "title": "feat: campaign discovery",
+      "points": 3,
+      "state": "open",
+      "closed_date": null
+    },
+    {
       "number": 123,
       "title": "chore: swagger-demo1-api",
       "points": 5,
@@ -105,15 +112,15 @@
       "number": 85,
       "title": "feat: [frontend] Implement UC-03 quiz screens",
       "points": 5,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-05-18"
     },
     {
       "number": 84,
       "title": "feat: [frontend] Implement UC-02 training module screens",
       "points": 3,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-05-18"
     },
     {
       "number": 83,
@@ -252,43 +259,48 @@
   "series": [
     {
       "date": "2026-05-11",
-      "remaining": 84,
-      "ideal": 93.0
+      "remaining": 87,
+      "ideal": 96.0
     },
     {
       "date": "2026-05-12",
-      "remaining": 72,
-      "ideal": 82.67
+      "remaining": 75,
+      "ideal": 85.33
     },
     {
       "date": "2026-05-13",
-      "remaining": 67,
-      "ideal": 72.33
+      "remaining": 70,
+      "ideal": 74.67
     },
     {
       "date": "2026-05-14",
-      "remaining": 67,
-      "ideal": 62.0
+      "remaining": 70,
+      "ideal": 64.0
     },
     {
       "date": "2026-05-15",
-      "remaining": 66,
-      "ideal": 51.67
+      "remaining": 69,
+      "ideal": 53.33
     },
     {
       "date": "2026-05-16",
-      "remaining": 61,
-      "ideal": 41.33
+      "remaining": 64,
+      "ideal": 42.67
     },
     {
       "date": "2026-05-17",
-      "remaining": 56,
-      "ideal": 31.0
+      "remaining": 59,
+      "ideal": 32.0
     },
     {
       "date": "2026-05-18",
-      "remaining": 43,
-      "ideal": 20.67
+      "remaining": 38,
+      "ideal": 21.33
+    },
+    {
+      "date": "2026-05-19",
+      "remaining": 38,
+      "ideal": 10.67
     }
   ]
 }
