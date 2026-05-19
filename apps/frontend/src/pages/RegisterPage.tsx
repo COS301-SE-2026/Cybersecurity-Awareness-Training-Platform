@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AuthActionLink,
@@ -11,9 +12,10 @@ import {
   authFormStyle,
   authPrimaryButtonStyle,
 } from '../components/auth/authStyles';
-
+import { authRegisterRequestSchema } from '@insightful-phish/shared';
 function RegisterPage() {
   const navigate = useNavigate();
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -22,52 +24,61 @@ function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [message, setMessage] = useState('');
 
-  function handleRegister(event: React.FormEvent) {
+  async function handleRegister(event: FormEvent) {
     event.preventDefault();
 
     setMessage('');
 
-    if (!firstName.trim()) {
-      setMessage('PLEASE ENTER YOUR FIRST NAME');
+    const validationResult = authRegisterRequestSchema.safeParse({
+      firstName,
+      lastName,
+      email,
+      password,
+    });
 
-      return;
-    }
-
-    if (!lastName.trim()) {
-      setMessage('PLEASE ENTER YOUR LAST NAME');
-
-      return;
-    }
-
-    if (!email.trim() || !email.includes('@')) {
-      setMessage('PLEASE ENTER A VALID EMAIL ADDRESS');
-
-      return;
-    }
-
-    if (password.length < 8) {
-      setMessage('PASSWORD MUST BE AT LEAST 8 CHARACTERS');
-
-      return;
-    }
-
-    if (!/\d/.test(password)) {
-      setMessage('PASSWORD MUST CONTAIN AT LEAST ONE NUMBER');
+    if (!validationResult.success) {
+      setMessage(validationResult.error.issues[0]?.message || 'INVALID INPUT');
 
       return;
     }
 
     if (password !== confirmPassword) {
-      setMessage('PASSWORD DO NOT MATCH');
+      setMessage('PASSWORDS DO NOT MATCH');
 
       return;
     }
 
-    setMessage('REGISTRATION SUCCESSFULL. REDIRECTING TO LOGIN...');
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(validationResult.data),
+      });
 
-    setTimeout(() => {
-      navigate('/login');
-    }, 1500);
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 409) {
+          setMessage('AN ACCOUNT WITH THIS EMAIL ALREADY EXISTS');
+
+          return;
+        }
+
+        setMessage(data.message || 'REGISTRATION FAILED');
+
+        return;
+      }
+
+      setMessage('REGISTRATION SUCCESSFUL. REDIRECTING TO LOGIN...');
+
+      setTimeout(() => {
+        navigate('/login');
+      }, 1500);
+    } catch {
+      setMessage('UNABLE TO CONNECT TO SERVER');
+    }
   }
 
   return (
@@ -79,15 +90,15 @@ function RegisterPage() {
         <>
           <AuthPageIntro
             title="Welcome"
-            dividerStyle={{ marginBottom: '0.9rem' }}
-            afterDivider={
+            dividerStyle={{ marginBottom: '3rem' }} // Set to 0.9 later
+            /*afterDivider={
               <AuthActionLink
                 to="/register"
                 prefix="ORGANISATION?"
                 emphasis="Register as an Organisation"
                 outerStyle={{ marginBottom: '1.5rem' }}
               />
-            }
+            }*/
             message={message}
             messageStyle={{ marginBottom: '1.5rem' }}
           />
@@ -100,7 +111,7 @@ function RegisterPage() {
               }}
             >
               <AuthFormField
-                label="First Name"
+                label="First Name(s)"
                 type="text"
                 value={firstName}
                 onChange={(event) => setFirstName(event.target.value)}
@@ -143,7 +154,7 @@ function RegisterPage() {
               />
 
               <AuthFormField
-                label="Password"
+                label="Confirm Password"
                 type="password"
                 value={confirmPassword}
                 onChange={(event) => setConfirmPassword(event.target.value)}
@@ -165,7 +176,8 @@ function RegisterPage() {
                   ...authPrimaryButtonStyle,
                   width: '48%',
                   height: '60px',
-                  fontSize: '2rem',
+                  fontSize: '1.7rem',
+                  cursor: 'pointer',
                 }}
               >
                 REGISTER
