@@ -10,7 +10,7 @@ vi.mock('../../components/layout/AppLayout', () => ({
   default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
 
-const resultFixture: quizApi.GetQuizResultResponseDto = {
+const resultFixture: quizApi.QuizResult = {
   attemptId: 'attempt-phishing-basics-quiz',
   quizId: 'phishing-basics-quiz',
   campaignAssignmentId: 'campaign-assignment-demo',

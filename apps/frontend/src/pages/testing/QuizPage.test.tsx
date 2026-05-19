@@ -1,16 +1,11 @@
 import '@testing-library/jest-dom/vitest';
-import type { ReactNode } from 'react';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as quizApi from '../../lib/quizApi';
 import QuizPage from '../QuizPage';
 
-vi.mock('../../components/layout/AppLayout', () => ({
-  default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-}));
-
-const quizFixture: quizApi.GetQuizResponseDto = {
+const quizFixture: quizApi.CampaignItemQuiz = {
   id: 'phishing-basics-quiz',
   campaignItemId: 'campaign-item-phishing-basics-quiz',
   campaignAssignmentId: 'campaign-assignment-demo',
@@ -22,22 +17,17 @@ const quizFixture: quizApi.GetQuizResponseDto = {
   questions: [
     {
       id: 'question-sender',
-      prompt: 'Which email detail is most suspicious?',
-      questionType: 'SINGLE_CHOICE',
-      position: 1,
-      points: 1,
+      text: 'Which email detail is most suspicious?',
       options: [
         {
           id: 'option-sender-a',
           label: 'A',
           text: 'A strange sender address',
-          position: 1,
         },
         {
           id: 'option-sender-b',
           label: 'B',
           text: 'A normal company footer',
-          position: 2,
         },
       ],
     },
@@ -83,8 +73,10 @@ describe('QuizPage', () => {
     renderQuizPage();
 
     expect(await screen.findByText('Phishing Basics Quiz')).toBeInTheDocument();
-    expect(screen.getByText('Which email detail is most suspicious?')).toBeInTheDocument();
-    expect(screen.getByText('A strange sender address')).toBeInTheDocument();
+    expect(
+      screen.getByRole('group', { name: /which email detail is most suspicious/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText(/a strange sender address/i)).toBeInTheDocument();
 
     expect(quizApi.getQuiz).toHaveBeenCalledWith('phishing-basics-quiz');
   });
@@ -100,7 +92,7 @@ describe('QuizPage', () => {
               ...quizFixture.questions[0].options[0],
               isCorrect: true,
               feedbackText: 'Hidden feedback before submit',
-            } as unknown as quizApi.SafeQuizAnswerOptionDto,
+            } as unknown as quizApi.QuizOption,
           ],
         },
       ],
@@ -120,9 +112,8 @@ describe('QuizPage', () => {
     submitButton.click();
 
     expect(
-      await screen.findByText('Please answer all questions before submitting the quiz.'),
+      await screen.findByText('Please answer every question before submitting the quiz.'),
     ).toBeInTheDocument();
-    expect(screen.getByText('Please select an answer for this question.')).toBeInTheDocument();
 
     expect(quizApi.startQuizAttempt).not.toHaveBeenCalled();
     expect(quizApi.submitQuizAttempt).not.toHaveBeenCalled();
@@ -141,20 +132,18 @@ describe('QuizPage', () => {
       expect(quizApi.startQuizAttempt).toHaveBeenCalledWith('phishing-basics-quiz');
     });
 
-    expect(quizApi.submitQuizAttempt).toHaveBeenCalledWith('attempt-phishing-basics-quiz', {
-      answers: [
-        {
-          questionId: 'question-sender',
-          selectedOptionIds: ['option-sender-a'],
-        },
-      ],
-    });
+    expect(quizApi.submitQuizAttempt).toHaveBeenCalledWith('attempt-phishing-basics-quiz', [
+      {
+        questionId: 'question-sender',
+        selectedOptionIds: ['option-sender-a'],
+      },
+    ]);
 
     expect(await screen.findByText('Results route')).toBeInTheDocument();
   });
 
   it('prevents duplicate submissions while submitting', async () => {
-    let resolveSubmit: ((value: quizApi.SubmitQuizAttemptResponseDto) => void) | undefined;
+    let resolveSubmit: ((value: quizApi.SubmitQuizAttemptResponse) => void) | undefined;
 
     vi.spyOn(quizApi, 'submitQuizAttempt').mockImplementation(
       () =>

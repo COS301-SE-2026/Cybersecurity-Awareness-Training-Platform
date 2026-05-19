@@ -4,12 +4,12 @@ import { Link, useParams } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout';
 import { TrainingAsyncContent } from '../components/training/TrainingAsyncContent';
 import { trainingStateActionStyle } from '../components/training/trainingStateStyles';
-import { getQuizResult, quizRoutes, type GetQuizResultResponseDto } from '../lib/quizApi';
+import { getQuizResult, type QuizResult } from '../lib/quizApi';
 
 export default function ResultsPage() {
   const { attemptId } = useParams<{ attemptId: string }>();
 
-  const [result, setResult] = useState<GetQuizResultResponseDto | null>(null);
+  const [result, setResult] = useState<QuizResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
@@ -161,7 +161,10 @@ export default function ResultsPage() {
             </section>
 
             <div style={actionRowStyle}>
-              <Link to={quizRoutes.quiz(result.quizId)} style={secondaryLinkStyle}>
+              <Link
+                to={`/quizzes/${result.campaignItemId ?? result.quizId}`}
+                style={secondaryLinkStyle}
+              >
                 Back to quiz
               </Link>
             </div>

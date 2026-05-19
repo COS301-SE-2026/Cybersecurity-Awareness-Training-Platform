@@ -1,62 +1,57 @@
-import type { CSSProperties } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { SubmitEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import AppLayout from '../components/layout/AppLayout';
-import { TrainingAsyncContent } from '../components/training/TrainingAsyncContent';
-import { trainingStateActionStyle } from '../components/training/trainingStateStyles';
-import {
-  getQuiz,
-  quizRoutes,
-  startQuizAttempt,
-  submitQuizAttempt,
-  type GetQuizResponseDto,
-} from '../lib/quizApi';
+import { getQuiz, startQuizAttempt, submitQuizAttempt } from '../lib/quizApi';
+import type { CampaignItemQuiz } from '../lib/quizApi';
 
-type SelectedAnswers = Record<string, string[]>;
+type SelectedAnswers = Record<string, string>;
 
-export default function QuizPage() {
+export function QuizPage() {
   const { quizId } = useParams<{ quizId: string }>();
   const navigate = useNavigate();
 
+  const campaignItemId = quizId;
+
+  const [quiz, setQuiz] = useState<CampaignItemQuiz | null>(null);
+  const [selectedAnswers, setSelectedAnswers] = useState<SelectedAnswers>({});
+  const [attemptId, setAttemptId] = useState<string | null>(null);
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [isStartingAttempt, setIsStartingAttempt] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+
+  const [error, setError] = useState<string | null>(null);
+  const [validationMessage, setValidationMessage] = useState<string | null>(null);
   const isSubmittingRef = useRef(false);
 
-  const [quiz, setQuiz] = useState<GetQuizResponseDto | null>(null);
-  const [selectedAnswers, setSelectedAnswers] = useState<SelectedAnswers>({});
-  const [missingQuestionIds, setMissingQuestionIds] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [submitErrorMessage, setSubmitErrorMessage] = useState<string | null>(null);
-  const [reloadToken, setReloadToken] = useState(0);
-
   useEffect(() => {
-    let isMounted = true;
+    let isActive = true;
 
     async function loadQuiz() {
-      if (!quizId) {
-        setErrorMessage('Quiz identifier is missing.');
+      if (!campaignItemId) {
+        setError('No campaign item was provided for this quiz.');
         setIsLoading(false);
         return;
       }
 
       try {
         setIsLoading(true);
-        setErrorMessage(null);
+        setError(null);
 
-        const quizResponse = await getQuiz(quizId);
+        const loadedQuiz = await getQuiz(campaignItemId);
 
-        if (isMounted) {
-          setQuiz(quizResponse);
-          setSelectedAnswers({});
-          setMissingQuestionIds([]);
-          setSubmitErrorMessage(null);
+        if (isActive) {
+          setQuiz(loadedQuiz);
         }
-      } catch (error) {
-        if (isMounted) {
-          setErrorMessage(error instanceof Error ? error.message : 'Unable to load quiz.');
+      } catch (loadError) {
+        if (isActive) {
+          setError(
+            loadError instanceof Error ? loadError.message : 'The quiz could not be loaded.',
+          );
         }
       } finally {
-        if (isMounted) {
+        if (isActive) {
           setIsLoading(false);
         }
       }
@@ -65,61 +60,91 @@ export default function QuizPage() {
     void loadQuiz();
 
     return () => {
-      isMounted = false;
+      isActive = false;
     };
-  }, [quizId, reloadToken]);
+  }, [campaignItemId]);
 
-  const orderedQuestions = useMemo(() => {
-    return [...(quiz?.questions ?? [])].sort((a, b) => a.position - b.position);
-  }, [quiz]);
-  const hasQuizContent = quiz !== null && orderedQuestions.length > 0;
+  const answeredQuestionCount = useMemo(() => {
+    return Object.keys(selectedAnswers).length;
+  }, [selectedAnswers]);
 
-  function selectSingleAnswer(questionId: string, optionId: string) {
-    setSelectedAnswers((currentAnswers) => ({
-      ...currentAnswers,
-      [questionId]: [optionId],
-    }));
+  const allQuestionsAnswered = useMemo(() => {
+    if (!quiz) {
+      return false;
+    }
 
-    setMissingQuestionIds((currentMissingIds) =>
-      currentMissingIds.filter((currentQuestionId) => currentQuestionId !== questionId),
-    );
+    return quiz.questions.every((question) => Boolean(selectedAnswers[question.id]));
+  }, [quiz, selectedAnswers]);
 
-    setSubmitErrorMessage(null);
-  }
-
-  async function handleSubmit() {
-    if (!quiz || !quizId || isSubmittingRef.current) {
+  function handleSelectAnswer(questionId: string, optionId: string) {
+    if (isSubmitting || hasSubmitted) {
       return;
     }
 
-    const unansweredQuestionIds = orderedQuestions
-      .filter((question) => (selectedAnswers[question.id] ?? []).length === 0)
-      .map((question) => question.id);
+    setValidationMessage(null);
 
-    if (unansweredQuestionIds.length > 0) {
-      setMissingQuestionIds(unansweredQuestionIds);
-      setSubmitErrorMessage('Please answer all questions before submitting the quiz.');
+    setSelectedAnswers((currentAnswers) => ({
+      ...currentAnswers,
+      [questionId]: optionId,
+    }));
+  }
+
+  async function ensureAttemptStarted(): Promise<string> {
+    if (attemptId) {
+      return attemptId;
+    }
+
+    if (!campaignItemId) {
+      throw new Error('No campaign item was provided for this quiz.');
+    }
+
+    setIsStartingAttempt(true);
+
+    try {
+      const attempt = await startQuizAttempt(campaignItemId);
+      setAttemptId(attempt.attemptId);
+      return attempt.attemptId;
+    } finally {
+      setIsStartingAttempt(false);
+    }
+  }
+
+  async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!quiz) {
+      return;
+    }
+
+    if (isSubmittingRef.current || isSubmitting || hasSubmitted) {
+      return;
+    }
+
+    if (!allQuestionsAnswered) {
+      setValidationMessage('Please answer every question before submitting the quiz.');
       return;
     }
 
     try {
       isSubmittingRef.current = true;
       setIsSubmitting(true);
-      setSubmitErrorMessage(null);
+      setError(null);
+      setValidationMessage(null);
 
-      const attempt = await startQuizAttempt(quizId);
+      const activeAttemptId = await ensureAttemptStarted();
 
-      const submitResponse = await submitQuizAttempt(attempt.attemptId, {
-        answers: orderedQuestions.map((question) => ({
-          questionId: question.id,
-          selectedOptionIds: selectedAnswers[question.id] ?? [],
-        })),
-      });
+      const answers = quiz.questions.map((question) => ({
+        questionId: question.id,
+        selectedOptionIds: [selectedAnswers[question.id]],
+      }));
 
-      navigate(quizRoutes.result(submitResponse.attemptId));
-    } catch (error) {
-      setSubmitErrorMessage(
-        error instanceof Error ? error.message : 'Unable to submit quiz attempt.',
+      await submitQuizAttempt(activeAttemptId, answers);
+
+      setHasSubmitted(true);
+      navigate(`/quiz-attempts/${activeAttemptId}/results`);
+    } catch (submitError) {
+      setError(
+        submitError instanceof Error ? submitError.message : 'The quiz could not be submitted.',
       );
     } finally {
       isSubmittingRef.current = false;
@@ -127,250 +152,86 @@ export default function QuizPage() {
     }
   }
 
+  if (isLoading) {
+    return (
+      <main className="quiz-page">
+        <p>Loading quiz…</p>
+      </main>
+    );
+  }
+
+  if (error && !quiz) {
+    return (
+      <main className="quiz-page">
+        <h1>Quiz unavailable</h1>
+        <p role="alert">{error}</p>
+      </main>
+    );
+  }
+
+  if (!quiz) {
+    return (
+      <main className="quiz-page">
+        <h1>Quiz unavailable</h1>
+        <p role="alert">No quiz content was found.</p>
+      </main>
+    );
+  }
+
   return (
-    <AppLayout
-      contentStyle={{
-        overflowY: 'auto',
-        padding: '2rem',
-      }}
-    >
-      <TrainingAsyncContent
-        isLoading={isLoading}
-        loadingTitle="Loading quiz"
-        loadingMessage="Your quiz questions are being loaded."
-        errorMessage={errorMessage}
-        errorTitle="Unable to load quiz"
-        errorAction={
-          <button
-            type="button"
-            onClick={() => setReloadToken((currentValue) => currentValue + 1)}
-            style={trainingStateActionStyle}
-          >
-            Try Again
-          </button>
-        }
-        isEmpty={!hasQuizContent}
-        emptyTitle="No quiz questions available"
-        emptyMessage="This quiz does not have any available questions yet."
-      >
-        {quiz && orderedQuestions.length > 0 ? (
-          <div style={pageShellStyle}>
-            <section style={headerStyle}>
-              <p style={eyebrowStyle}>UC-03 Quiz</p>
-              <h1 style={titleStyle}>{quiz.title}</h1>
-              {quiz.description ? <p style={descriptionStyle}>{quiz.description}</p> : null}
-              <p style={metaStyle}>
-                Pass mark: {quiz.passThresholdPercentage}% · Difficulty: {quiz.difficultyLevel}
-              </p>
-            </section>
+    <main className="quiz-page">
+      <header>
+        <p>
+          Question {answeredQuestionCount} of {quiz.questions.length} answered
+        </p>
 
-            {submitErrorMessage ? (
-              <div role="alert" style={alertStyle}>
-                {submitErrorMessage}
-              </div>
-            ) : null}
+        <h1>{quiz.title}</h1>
 
-            <form
-              onSubmit={(event) => {
-                event.preventDefault();
-                void handleSubmit();
-              }}
-              style={formStyle}
-            >
-              {orderedQuestions.map((question, questionIndex) => {
-                const selectedOptionIds = selectedAnswers[question.id] ?? [];
-                const hasValidationError = missingQuestionIds.includes(question.id);
-                const orderedOptions = [...question.options].sort(
-                  (a, b) => a.position - b.position,
-                );
+        {quiz.description ? <p>{quiz.description}</p> : null}
 
-                return (
-                  <fieldset
-                    key={question.id}
-                    style={{
-                      ...questionCardStyle,
-                      borderColor: hasValidationError ? '#FF6B8A' : 'rgba(255, 255, 255, 0.16)',
-                    }}
-                  >
-                    <legend style={questionLegendStyle}>Question {questionIndex + 1}</legend>
-
-                    <h2 style={questionPromptStyle}>{question.prompt}</h2>
-
-                    <div style={optionsListStyle}>
-                      {orderedOptions.map((option) => {
-                        const inputId = `${question.id}-${option.id}`;
-                        const isSelected = selectedOptionIds.includes(option.id);
-
-                        return (
-                          <label
-                            key={option.id}
-                            htmlFor={inputId}
-                            style={{
-                              ...optionStyle,
-                              borderColor: isSelected ? '#FF00D4' : 'rgba(255, 255, 255, 0.14)',
-                              backgroundColor: isSelected
-                                ? 'rgba(132, 0, 255, 0.28)'
-                                : 'rgba(255, 255, 255, 0.04)',
-                            }}
-                          >
-                            <input
-                              id={inputId}
-                              type="radio"
-                              name={question.id}
-                              value={option.id}
-                              checked={isSelected}
-                              onChange={() => selectSingleAnswer(question.id, option.id)}
-                              style={{ accentColor: '#FF00D4' }}
-                            />
-                            <span style={optionLabelStyle}>{option.label}</span>
-                            <span>{option.text}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
-
-                    {hasValidationError ? (
-                      <p style={validationMessageStyle}>
-                        Please select an answer for this question.
-                      </p>
-                    ) : null}
-                  </fieldset>
-                );
-              })}
-
-              <div style={submitRowStyle}>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  style={{
-                    ...primaryButtonStyle,
-                    cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                    opacity: isSubmitting ? 0.72 : 1,
-                  }}
-                >
-                  {isSubmitting ? 'Submitting...' : 'Submit Quiz'}
-                </button>
-              </div>
-            </form>
-          </div>
+        {quiz.passThresholdPercentage !== null && quiz.passThresholdPercentage !== undefined ? (
+          <p>Pass mark: {quiz.passThresholdPercentage}%</p>
         ) : null}
-      </TrainingAsyncContent>
-    </AppLayout>
+      </header>
+
+      {error ? <p role="alert">{error}</p> : null}
+      {validationMessage ? <p role="alert">{validationMessage}</p> : null}
+
+      <form onSubmit={handleSubmit}>
+        {quiz.questions.map((question, questionIndex) => (
+          <fieldset key={question.id} disabled={isSubmitting || hasSubmitted}>
+            <legend>
+              {questionIndex + 1}. {question.text}
+            </legend>
+
+            {question.options.map((option) => {
+              const inputId = `${question.id}-${option.id}`;
+
+              return (
+                <label key={option.id} htmlFor={inputId}>
+                  <input
+                    id={inputId}
+                    type="radio"
+                    name={question.id}
+                    value={option.id}
+                    checked={selectedAnswers[question.id] === option.id}
+                    onChange={() => handleSelectAnswer(question.id, option.id)}
+                  />
+                  <span>
+                    {option.label}. {option.text}
+                  </span>
+                </label>
+              );
+            })}
+          </fieldset>
+        ))}
+
+        <button type="submit" disabled={isSubmitting || isStartingAttempt || hasSubmitted}>
+          {isSubmitting || isStartingAttempt ? 'Submitting…' : 'Submit quiz'}
+        </button>
+      </form>
+    </main>
   );
 }
 
-const pageShellStyle = {
-  width: 'min(980px, 100%)',
-  margin: '0 auto',
-  color: '#FFFFFF',
-  fontFamily: 'Overpass',
-} satisfies CSSProperties;
-
-const headerStyle = {
-  marginBottom: '1.5rem',
-} satisfies CSSProperties;
-
-const eyebrowStyle = {
-  margin: 0,
-  color: '#FF00D4',
-  fontFamily: 'Jost',
-  fontSize: '0.8rem',
-  fontWeight: 700,
-  letterSpacing: '0.12em',
-  textTransform: 'uppercase',
-} satisfies CSSProperties;
-
-const titleStyle = {
-  margin: '0.4rem 0',
-  fontFamily: 'Jost',
-  fontSize: '2.4rem',
-  lineHeight: 1.1,
-} satisfies CSSProperties;
-
-const descriptionStyle = {
-  maxWidth: '720px',
-  color: '#D8CCE8',
-  lineHeight: 1.6,
-} satisfies CSSProperties;
-
-const metaStyle = {
-  color: '#BFA9DD',
-  fontSize: '0.95rem',
-} satisfies CSSProperties;
-
-const alertStyle = {
-  marginBottom: '1rem',
-  padding: '1rem',
-  border: '1px solid #FF6B8A',
-  backgroundColor: 'rgba(255, 107, 138, 0.12)',
-  color: '#FFFFFF',
-} satisfies CSSProperties;
-
-const formStyle = {
-  display: 'grid',
-  gap: '1.25rem',
-} satisfies CSSProperties;
-
-const questionCardStyle = {
-  padding: '1.4rem',
-  border: '1px solid rgba(255, 255, 255, 0.16)',
-  backgroundColor: 'rgba(255, 255, 255, 0.06)',
-} satisfies CSSProperties;
-
-const questionLegendStyle = {
-  padding: '0 0.5rem',
-  color: '#FF00D4',
-  fontFamily: 'Jost',
-  fontWeight: 700,
-} satisfies CSSProperties;
-
-const questionPromptStyle = {
-  margin: '0 0 1rem',
-  fontFamily: 'Jost',
-  fontSize: '1.25rem',
-} satisfies CSSProperties;
-
-const optionsListStyle = {
-  display: 'grid',
-  gap: '0.8rem',
-} satisfies CSSProperties;
-
-const optionStyle = {
-  display: 'grid',
-  gridTemplateColumns: 'auto auto 1fr',
-  alignItems: 'center',
-  gap: '0.75rem',
-  padding: '0.9rem 1rem',
-  border: '1px solid rgba(255, 255, 255, 0.14)',
-  cursor: 'pointer',
-} satisfies CSSProperties;
-
-const optionLabelStyle = {
-  color: '#FF00D4',
-  fontFamily: 'Jost',
-  fontWeight: 700,
-} satisfies CSSProperties;
-
-const validationMessageStyle = {
-  margin: '0.85rem 0 0',
-  color: '#FF9FB3',
-  fontWeight: 700,
-} satisfies CSSProperties;
-
-const submitRowStyle = {
-  display: 'flex',
-  justifyContent: 'flex-end',
-  paddingBottom: '2rem',
-} satisfies CSSProperties;
-
-const primaryButtonStyle = {
-  padding: '0.85rem 1.2rem',
-  backgroundColor: '#8400FF',
-  color: '#FFFFFF',
-  border: '1px solid #FF00D4',
-  cursor: 'pointer',
-  fontFamily: 'Jost',
-  fontWeight: 700,
-  letterSpacing: '0.06em',
-  textTransform: 'uppercase',
-} satisfies CSSProperties;
+export default QuizPage;
