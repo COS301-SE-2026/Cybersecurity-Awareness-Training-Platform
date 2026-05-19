@@ -148,6 +148,10 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         description: 'Trainee training document workflows.',
       },
       {
+        name: 'Trainee Campaigns',
+        description: 'Trainee campaign discovery and campaign item navigation.',
+      },
+      {
         name: 'Trainee Quiz',
         description: 'Trainee quiz retrieval, attempts, submissions, and results.',
       },
@@ -519,6 +523,409 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           ['TRAINING_VIEWED', 'TRAINING_COMPLETED'],
           'TRAINING_VIEWED',
         ),
+        CampaignType: enumString(['PREMADE_GENERAL', 'ORGANISATION_CUSTOM'], 'PREMADE_GENERAL'),
+        CampaignStatus: enumString(
+          ['DRAFT', 'ACTIVE', 'PAUSED', 'COMPLETED', 'ARCHIVED'],
+          'ACTIVE',
+        ),
+        CampaignAssignmentStatus: enumString(
+          ['AVAILABLE', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'EXPIRED'],
+          'IN_PROGRESS',
+        ),
+        CampaignAccessType: enumString(['ASSIGNED', 'SELF_SELECTED'], 'ASSIGNED'),
+        CampaignItemType: enumString(['COMPONENT', 'GROUP'], 'COMPONENT'),
+        CampaignComponentType: enumString(
+          ['SIMULATED_INBOX', 'TRAINING_DOCUMENT', 'QUIZ'],
+          'TRAINING_DOCUMENT',
+        ),
+        CampaignGroupType: enumString(
+          ['SECTION', 'MODULE', 'REVISION_SET', 'ASSESSMENT_SET', 'SIMULATION_SET'],
+          'MODULE',
+        ),
+        CampaignCompletionRule: enumString(
+          ['COMPLETE_ALL', 'COMPLETE_ANY', 'COMPLETE_REQUIRED_ONLY'],
+          'COMPLETE_REQUIRED_ONLY',
+        ),
+        CampaignItemAvailabilityStatus: enumString(
+          ['AVAILABLE', 'LOCKED', 'UNAVAILABLE', 'ARCHIVED'],
+          'AVAILABLE',
+        ),
+        TraineeCampaignProgressStatus: enumString(
+          [
+            'NOT_STARTED',
+            'VIEWED',
+            'INTERACTED',
+            'CLASSIFIED',
+            'IN_PROGRESS',
+            'COMPLETED',
+            'SUBMITTED',
+          ],
+          'VIEWED',
+        ),
+        TraineeCampaignAssignmentSummary: {
+          type: 'object',
+          required: ['assignmentId', 'assignmentStatus', 'accessType', 'assignedAt'],
+          properties: {
+            assignmentId: {
+              ...uuidString('55555555-5555-4555-8555-555555555555'),
+            },
+            assignmentStatus: {
+              $ref: '#/components/schemas/CampaignAssignmentStatus',
+            },
+            accessType: {
+              $ref: '#/components/schemas/CampaignAccessType',
+            },
+            currentCampaignItemId: {
+              ...nullableUuidString('88888888-8888-4888-8888-888888888888'),
+            },
+            assignedAt: {
+              ...dateTimeString('2026-05-16T08:00:00.000Z'),
+            },
+            dueDate: {
+              ...dateTimeString('2026-06-16T08:00:00.000Z'),
+              nullable: true,
+            },
+            startedAt: {
+              ...dateTimeString('2026-05-16T08:30:00.000Z'),
+              nullable: true,
+            },
+            completedAt: {
+              ...dateTimeString('2026-05-17T08:30:00.000Z'),
+              nullable: true,
+            },
+          },
+        },
+        TraineeCampaignSummary: {
+          type: 'object',
+          required: ['campaignId', 'name', 'campaignType', 'difficultyLevel', 'status'],
+          properties: {
+            campaignId: {
+              ...uuidString('44444444-4444-4444-8444-444444444444'),
+            },
+            name: {
+              type: 'string',
+              example: 'Phishing Fundamentals',
+            },
+            description: {
+              ...nullableString('Build safe email habits.'),
+            },
+            campaignType: {
+              $ref: '#/components/schemas/CampaignType',
+            },
+            difficultyLevel: {
+              $ref: '#/components/schemas/DifficultyLevel',
+            },
+            status: {
+              $ref: '#/components/schemas/CampaignStatus',
+            },
+            startDate: {
+              ...dateTimeString('2026-05-16T08:00:00.000Z'),
+              nullable: true,
+            },
+            endDate: {
+              ...dateTimeString('2026-06-16T08:00:00.000Z'),
+              nullable: true,
+            },
+            assignment: {
+              nullable: true,
+              allOf: [schemaRef('TraineeCampaignAssignmentSummary')],
+            },
+            accessType: {
+              nullable: true,
+              allOf: [schemaRef('CampaignAccessType')],
+            },
+            progressStatus: {
+              nullable: true,
+              allOf: [schemaRef('TraineeCampaignProgressStatus')],
+            },
+            itemCount: {
+              type: 'integer',
+              minimum: 0,
+              example: 4,
+            },
+            availableItemCount: {
+              type: 'integer',
+              minimum: 0,
+              example: 3,
+            },
+          },
+        },
+        CampaignTrainingDocumentSummary: {
+          type: 'object',
+          required: ['id', 'title', 'difficultyLevel', 'status'],
+          properties: {
+            id: {
+              ...uuidString('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
+            },
+            title: {
+              type: 'string',
+              example: 'Identifying Phishing Emails',
+            },
+            contentSummary: {
+              ...nullableString('Common phishing indicators.'),
+            },
+            estimatedReadTimeMinutes: {
+              type: 'integer',
+              nullable: true,
+              minimum: 0,
+              example: 8,
+            },
+            difficultyLevel: {
+              $ref: '#/components/schemas/DifficultyLevel',
+            },
+            status: {
+              $ref: '#/components/schemas/TrainingDocumentStatus',
+            },
+          },
+        },
+        CampaignQuizSummary: {
+          type: 'object',
+          required: ['id', 'title', 'passThresholdPercentage', 'difficultyLevel', 'status'],
+          properties: {
+            id: {
+              ...uuidString('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'),
+            },
+            title: {
+              type: 'string',
+              example: 'Phishing Check',
+            },
+            description: {
+              ...nullableString('Choose the safest action.'),
+            },
+            passThresholdPercentage: {
+              type: 'integer',
+              minimum: 0,
+              maximum: 100,
+              example: 70,
+            },
+            difficultyLevel: {
+              $ref: '#/components/schemas/DifficultyLevel',
+            },
+            status: {
+              $ref: '#/components/schemas/QuizStatus',
+            },
+            questionCount: {
+              type: 'integer',
+              minimum: 0,
+              example: 4,
+            },
+          },
+        },
+        CampaignSimulationSummary: {
+          type: 'object',
+          required: ['id', 'title', 'difficultyLevel'],
+          properties: {
+            id: {
+              ...uuidString('cccccccc-cccc-4ccc-8ccc-cccccccccccc'),
+            },
+            title: {
+              type: 'string',
+              example: 'Inbox Simulation',
+            },
+            description: {
+              ...nullableString('Practice with a realistic inbox.'),
+            },
+            difficultyLevel: {
+              $ref: '#/components/schemas/DifficultyLevel',
+            },
+          },
+        },
+        TraineeCampaignItemSummary: {
+          oneOf: [schemaRef('TraineeCampaignComponentItem'), schemaRef('TraineeCampaignGroupItem')],
+          discriminator: {
+            propertyName: 'itemType',
+          },
+        },
+        TraineeCampaignComponentItem: {
+          type: 'object',
+          required: [
+            'campaignItemId',
+            'campaignId',
+            'itemType',
+            'componentType',
+            'title',
+            'position',
+            'isRequired',
+            'availabilityStatus',
+            'isOpenable',
+            'activityApiPath',
+          ],
+          properties: {
+            campaignItemId: {
+              ...uuidString('88888888-8888-4888-8888-888888888888'),
+            },
+            campaignId: {
+              ...uuidString('44444444-4444-4444-8444-444444444444'),
+            },
+            parentGroupId: {
+              ...nullableUuidString('66666666-6666-4666-8666-666666666666'),
+            },
+            itemType: {
+              type: 'string',
+              enum: ['COMPONENT'],
+              example: 'COMPONENT',
+            },
+            componentType: {
+              $ref: '#/components/schemas/CampaignComponentType',
+            },
+            groupType: {
+              type: 'string',
+              nullable: true,
+              example: null,
+            },
+            completionRule: {
+              type: 'string',
+              nullable: true,
+              example: null,
+            },
+            title: {
+              type: 'string',
+              example: 'Phishing basics',
+            },
+            description: {
+              ...nullableString('Read this first.'),
+            },
+            position: {
+              type: 'integer',
+              example: 1,
+            },
+            isRequired: {
+              type: 'boolean',
+              example: true,
+            },
+            availabilityStatus: {
+              $ref: '#/components/schemas/CampaignItemAvailabilityStatus',
+            },
+            isOpenable: {
+              type: 'boolean',
+              example: true,
+            },
+            activityApiPath: {
+              type: 'string',
+              description:
+                'Activity endpoint for supported components. SIMULATED_INBOX maps to /trainee/campaign-items/{campaignItemId}/simulated-inbox, TRAINING_DOCUMENT maps to /trainee/campaign-items/{campaignItemId}/training-document, and QUIZ maps to /trainee/campaign-items/{campaignItemId}/quiz.',
+              example:
+                '/trainee/campaign-items/88888888-8888-4888-8888-888888888888/training-document',
+            },
+            progressStatus: {
+              nullable: true,
+              allOf: [schemaRef('TraineeCampaignProgressStatus')],
+            },
+            trainingDocument: {
+              nullable: true,
+              allOf: [schemaRef('CampaignTrainingDocumentSummary')],
+            },
+            quiz: {
+              nullable: true,
+              allOf: [schemaRef('CampaignQuizSummary')],
+            },
+            simulation: {
+              nullable: true,
+              allOf: [schemaRef('CampaignSimulationSummary')],
+            },
+          },
+        },
+        TraineeCampaignGroupItem: {
+          type: 'object',
+          required: [
+            'campaignItemId',
+            'campaignId',
+            'itemType',
+            'groupType',
+            'completionRule',
+            'title',
+            'position',
+            'isRequired',
+            'availabilityStatus',
+            'isOpenable',
+            'children',
+          ],
+          properties: {
+            campaignItemId: {
+              ...uuidString('66666666-6666-4666-8666-666666666666'),
+            },
+            campaignId: {
+              ...uuidString('44444444-4444-4444-8444-444444444444'),
+            },
+            parentGroupId: {
+              ...nullableUuidString('66666666-6666-4666-8666-666666666666'),
+            },
+            itemType: {
+              type: 'string',
+              enum: ['GROUP'],
+              example: 'GROUP',
+            },
+            componentType: {
+              type: 'string',
+              nullable: true,
+              example: null,
+            },
+            groupType: {
+              $ref: '#/components/schemas/CampaignGroupType',
+            },
+            completionRule: {
+              $ref: '#/components/schemas/CampaignCompletionRule',
+            },
+            title: {
+              type: 'string',
+              example: 'Email safety module',
+            },
+            description: {
+              ...nullableString('Work through the essentials.'),
+            },
+            position: {
+              type: 'integer',
+              example: 1,
+            },
+            isRequired: {
+              type: 'boolean',
+              example: true,
+            },
+            availabilityStatus: {
+              $ref: '#/components/schemas/CampaignItemAvailabilityStatus',
+            },
+            isOpenable: {
+              type: 'boolean',
+              enum: [false],
+              example: false,
+            },
+            activityApiPath: {
+              type: 'string',
+              nullable: true,
+              example: null,
+            },
+            progressStatus: {
+              nullable: true,
+              allOf: [schemaRef('TraineeCampaignProgressStatus')],
+            },
+            children: {
+              ...arrayOf(schemaRef('TraineeCampaignItemSummary')),
+            },
+          },
+        },
+        GetTraineeCampaignsResponse: {
+          type: 'object',
+          required: ['campaigns'],
+          properties: {
+            campaigns: {
+              ...arrayOf(schemaRef('TraineeCampaignSummary')),
+            },
+          },
+        },
+        GetTraineeCampaignDetailResponse: {
+          allOf: [
+            schemaRef('TraineeCampaignSummary'),
+            {
+              type: 'object',
+              required: ['items'],
+              properties: {
+                items: {
+                  ...arrayOf(schemaRef('TraineeCampaignItemSummary')),
+                },
+              },
+            },
+          ],
+        },
         TrainingDocument: {
           type: 'object',
           required: ['id', 'title', 'contentType', 'contentRef', 'difficultyLevel', 'status'],
@@ -1161,6 +1568,17 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         },
       },
       parameters: {
+        CampaignIdPathParam: {
+          name: 'campaignId',
+          in: 'path',
+          required: true,
+          description: 'Campaign identifier.',
+          schema: {
+            type: 'string',
+            format: 'uuid',
+          },
+          example: '44444444-4444-4444-8444-444444444444',
+        },
         CampaignItemIdPathParam: {
           name: 'campaignItemId',
           in: 'path',
@@ -1244,6 +1662,18 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         AuthRateLimited: responseComponent(
           'Too many authentication requests.',
           'AuthRateLimitErrorResponse',
+        ),
+        TraineeCampaignsOk: responseComponent(
+          'Campaigns accessible to the authenticated active trainee.',
+          'GetTraineeCampaignsResponse',
+        ),
+        TraineeCampaignDetailOk: responseComponent(
+          'Campaign detail with ordered trainee-safe item tree.',
+          'GetTraineeCampaignDetailResponse',
+        ),
+        TraineeCampaignNotFound: responseComponent(
+          'Campaign is missing, inactive, or not accessible to the trainee.',
+          'ApiErrorResponse',
         ),
         SimulatedInboxOk: responseComponent(
           'Simulated inbox email summaries for the campaign item.',

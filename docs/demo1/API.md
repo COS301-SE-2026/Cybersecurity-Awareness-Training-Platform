@@ -91,120 +91,251 @@ Base feature endpoints support access to the Demo 1 trainee flow. They are not c
 
 ## Trainee Campaign Access
 
-Trainee campaign-access endpoints are supporting Demo 1 delivery endpoints. They may be used to expose seeded simulated inbox, training document, and quiz campaign items to the authenticated trainee. They are not admin campaign-management APIs.
+These endpoints are **discovery endpoints**. Their primary purpose is to allow the frontend trainee dashboard to discover accessible campaigns, campaign metadata, campaign item tree structures, progress, and `campaignItemId` values to build navigation and display. They do not start, run, or complete activities, and they do not replace existing activity endpoints.
+
+All trainee campaign endpoints require authentication.
 
 ### `GET /trainee/campaigns`
 
-- **Purpose**: Retrieves campaigns assigned to, or made available to, the authenticated trainee.
-- **Status**: Demo 1 optional/supporting for campaign-based content delivery.
-- **Expected Request Data**: None.
+- **Purpose**: Allows the frontend dashboard to discover active campaigns assigned or available to the authenticated active trainee.
+- **Access Control & Filtering**:
+  - Requires a valid Bearer JWT token in the `Authorization` header.
+  - The trainee profile associated with the user must be `ACTIVE`.
+  - The campaign status must be `ACTIVE`.
+  - The trainee must have an associated campaign assignment.
+  - Allowed assignment statuses are:
+    - `AVAILABLE`
+    - `ASSIGNED`
+    - `IN_PROGRESS`
+    - `COMPLETED`
+  - Assignments with other statuses (such as cancelled, expired, or archived) are excluded.
+- **Security & Scope Guards**:
+  - No internal or administrative fields (such as `createdByUserId` or internal database keys) are exposed in the response DTO.
+  - No LearningPath, TrainingModule, TrainingProgress, or permanent user-owned inbox assumptions are made.
 - **Expected Response Data**:
+  - `200 OK`: Returns a list of campaigns with summary info and counts.
 
 ```json
 {
   "campaigns": [
     {
-      "id": "campaign-001",
-      "organisationId": "org-001",
-      "name": "Phishing Awareness Basics",
-      "description": "Demo 1 phishing-awareness campaign.",
-      "campaignType": "ORGANISATION_CUSTOM",
+      "campaignId": "44444444-4444-4444-8444-444444444444",
+      "name": "Phishing Fundamentals",
+      "description": "Build safe email habits.",
+      "campaignType": "PREMADE_GENERAL",
       "difficultyLevel": "BEGINNER",
       "status": "ACTIVE",
+      "startDate": "2026-05-16T08:00:00.000Z",
+      "endDate": null,
       "assignment": {
-        "id": "assignment-001",
-        "campaignId": "campaign-001",
-        "traineeProfileId": "trainee-profile-001",
-        "assignedAt": "2026-05-01T09:00:00Z",
-        "dueDate": "2026-05-31T23:59:59Z",
+        "assignmentId": "55555555-5555-4555-8555-555555555555",
         "assignmentStatus": "IN_PROGRESS",
-        "accessType": "ASSIGNED"
-      }
+        "accessType": "ASSIGNED",
+        "currentCampaignItemId": "88888888-8888-4888-8888-888888888888",
+        "assignedAt": "2026-05-16T08:00:00.000Z",
+        "dueDate": "2026-06-16T08:00:00.000Z",
+        "startedAt": "2026-05-16T08:30:00.000Z",
+        "completedAt": null
+      },
+      "accessType": "ASSIGNED",
+      "itemCount": 4,
+      "availableItemCount": 3
     }
   ]
 }
 ```
+
+- **Safe Error Responses**:
+  - `401 Unauthorized`: Returned if the request is missing authentication or the credentials are invalid.
+  - `429 Too Many Requests`: Returned if the client has exceeded rate limits.
+  - `500 Internal Server Error`: Returned for unexpected system errors.
+
+---
 
 ### `GET /trainee/campaigns/:campaignId`
 
-- **Purpose**: Retrieves a campaign, its trainee assignment context, and ordered top-level campaign items.
-- **Status**: Demo 1 optional/supporting for campaign-based content delivery.
+- **Purpose**: Retrieves detail for a specific campaign, including its assignment context, item count summaries, and an ordered hierarchy of campaign items (including group and child item structures).
+- **Access Control & Filtering**:
+  - Requires a valid Bearer JWT token in the `Authorization` header.
+  - The trainee profile associated with the user must be `ACTIVE`.
+  - The campaign status must be `ACTIVE`.
+  - The trainee must have an active campaign assignment for the specified `campaignId` with an allowed status (`AVAILABLE`, `ASSIGNED`, `IN_PROGRESS`, `COMPLETED`).
+- **Security & Scope Guards**:
+  - Requesting an invalid or malformed UUID string format returns a `400 Bad Request` validation error.
+  - Requesting a missing campaign, or a campaign that is not assigned to the trainee, returns a safe `404 Not Found` response. This prevents leaking the existence of other campaigns in the system.
+  - The endpoint does not expose internal administrative fields (such as `createdByUserId` or DB internal primary keys).
+  - No sensitive activity content is exposed, such as correct quiz answers, quiz question feedback, simulated email expected classifications, or correct email red flags.
+  - No legacy model assumptions (like `LearningPath`, `TrainingModule`, `TrainingProgress`, or permanent user-owned inboxes) are present.
+- **Hierarchy & Ordering Rules**:
+  - Top-level items (where `parentGroupId` is `null`) are returned first.
+  - Group items (`itemType` = `GROUP`) include a nested `children` array containing their immediate child component items.
+  - Campaign items are ordered deterministically by `parentGroupId` (ascending) and then by `position` (ascending).
+  - Component groups only support one level of grouping (nested groups/groups within groups are not supported).
+- **Activity API Path Mapping**:
+  - Group items are not openable and have `isOpenable` set to `false` and `activityApiPath` set to `null`.
+  - Component items have their `activityApiPath` populated based on their type:
+    - `SIMULATED_INBOX` -> `/trainee/campaign-items/:campaignItemId/simulated-inbox`
+    - `TRAINING_DOCUMENT` -> `/trainee/campaign-items/:campaignItemId/training-document`
+    - `QUIZ` -> `/trainee/campaign-items/:campaignItemId/quiz`
+- **Lightweight Progress Status Derivation**:
+  - Group items have `progressStatus` set to `null`.
+  - Component items resolve a progress status dynamically:
+    - **`TRAINING_DOCUMENT`**:
+      - `COMPLETED`: If a `TRAINING_COMPLETED` interaction event exists.
+      - `VIEWED`: If a `TRAINING_VIEWED` interaction event exists (and not completed).
+      - `NOT_STARTED`: Default state if no interaction events exist.
+    - **`QUIZ`**:
+      - `SUBMITTED`: If a submitted quiz attempt exists.
+      - `IN_PROGRESS`: If an in-progress quiz attempt exists.
+      - `NOT_STARTED`: Default state if no quiz attempts exist.
+    - **`SIMULATED_INBOX`**:
+      - `CLASSIFIED`: If a classification response or `SIMULATED_EMAIL_CLASSIFIED` event exists.
+      - `INTERACTED`: If a link click (`SIMULATED_EMAIL_LINK_CLICKED`) or credential submission (`CREDENTIAL_SUBMISSION_ATTEMPTED`) event exists.
+      - `VIEWED`: If a simulated email opened event exists.
+      - `NOT_STARTED`: Default state if no events exist.
 - **Expected Response Data**:
+  - `200 OK`: Returns the detailed campaign object.
 
 ```json
 {
-  "id": "campaign-001",
-  "organisationId": "org-001",
-  "name": "Phishing Awareness Basics",
-  "campaignType": "ORGANISATION_CUSTOM",
+  "campaignId": "44444444-4444-4444-8444-444444444444",
+  "name": "Phishing Fundamentals",
+  "description": "Build safe email habits.",
+  "campaignType": "PREMADE_GENERAL",
   "difficultyLevel": "BEGINNER",
   "status": "ACTIVE",
+  "startDate": "2026-05-16T08:00:00.000Z",
+  "endDate": null,
   "assignment": {
-    "id": "assignment-001",
-    "campaignId": "campaign-001",
-    "traineeProfileId": "trainee-profile-001",
-    "assignedAt": "2026-05-01T09:00:00Z",
+    "assignmentId": "55555555-5555-4555-8555-555555555555",
     "assignmentStatus": "IN_PROGRESS",
-    "accessType": "ASSIGNED"
+    "accessType": "ASSIGNED",
+    "currentCampaignItemId": "88888888-8888-4888-8888-888888888888",
+    "assignedAt": "2026-05-16T08:00:00.000Z",
+    "dueDate": "2026-06-16T08:00:00.000Z",
+    "startedAt": "2026-05-16T08:30:00.000Z",
+    "completedAt": null
   },
+  "accessType": "ASSIGNED",
+  "itemCount": 4,
+  "availableItemCount": 3,
   "items": [
     {
-      "id": "item-001",
-      "campaignId": "campaign-001",
-      "itemType": "COMPONENT",
-      "componentType": "TRAINING_DOCUMENT",
-      "title": "Identifying Phishing Emails",
-      "position": 1,
-      "isRequired": true,
-      "availabilityStatus": "AVAILABLE",
-      "trainingDocumentId": "train-001",
-      "trainingDocument": {
-        "id": "train-001",
-        "title": "Identifying Phishing Emails",
-        "contentSummary": "Sender verification, suspicious links, and safe reporting habits.",
-        "estimatedReadTimeMinutes": 8,
-        "difficultyLevel": "BEGINNER",
-        "status": "AVAILABLE"
-      }
-    },
-    {
-      "id": "group-001",
-      "campaignId": "campaign-001",
+      "campaignItemId": "66666666-6666-4666-8666-666666666666",
+      "campaignId": "44444444-4444-4444-8444-444444444444",
+      "parentGroupId": null,
       "itemType": "GROUP",
-      "groupType": "ASSESSMENT_SET",
-      "completionRule": "COMPLETE_ALL",
-      "title": "Practice",
+      "componentType": null,
+      "groupType": "MODULE",
+      "completionRule": "COMPLETE_REQUIRED_ONLY",
+      "title": "Email safety module",
+      "description": "Work through the essentials.",
       "position": 2,
       "isRequired": true,
       "availabilityStatus": "AVAILABLE",
+      "isOpenable": false,
+      "activityApiPath": null,
+      "progressStatus": null,
       "children": [
         {
-          "id": "item-002",
-          "campaignId": "campaign-001",
-          "parentGroupId": "group-001",
+          "campaignItemId": "88888888-8888-4888-8888-888888888888",
+          "campaignId": "44444444-4444-4444-8444-444444444444",
+          "parentGroupId": "66666666-6666-4666-8666-666666666666",
           "itemType": "COMPONENT",
-          "componentType": "QUIZ",
-          "title": "Phishing Knowledge Check",
+          "componentType": "TRAINING_DOCUMENT",
+          "groupType": null,
+          "completionRule": null,
+          "title": "Phishing basics",
+          "description": "Read this first.",
           "position": 1,
           "isRequired": true,
           "availabilityStatus": "AVAILABLE",
-          "quizId": "quiz-001",
+          "isOpenable": true,
+          "activityApiPath": "/trainee/campaign-items/88888888-8888-4888-8888-888888888888/training-document",
+          "progressStatus": "NOT_STARTED",
+          "trainingDocument": {
+            "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+            "title": "Identifying Phishing Emails",
+            "contentSummary": "Common phishing indicators.",
+            "estimatedReadTimeMinutes": 8,
+            "difficultyLevel": "BEGINNER",
+            "status": "AVAILABLE"
+          },
+          "quiz": null,
+          "simulation": null
+        },
+        {
+          "campaignItemId": "77777777-7777-4777-8777-777777777777",
+          "campaignId": "44444444-4444-4444-8444-444444444444",
+          "parentGroupId": "66666666-6666-4666-8666-666666666666",
+          "itemType": "COMPONENT",
+          "componentType": "QUIZ",
+          "groupType": null,
+          "completionRule": null,
+          "title": "Phishing quiz",
+          "description": "Check your judgement.",
+          "position": 2,
+          "isRequired": true,
+          "availabilityStatus": "AVAILABLE",
+          "isOpenable": false,
+          "activityApiPath": "/trainee/campaign-items/77777777-7777-4777-8777-777777777777/quiz",
+          "progressStatus": "NOT_STARTED",
+          "trainingDocument": null,
           "quiz": {
-            "id": "quiz-001",
-            "title": "Phishing Knowledge Check",
+            "id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+            "title": "Phishing Check",
+            "description": "Choose the safest action.",
             "passThresholdPercentage": 70,
             "difficultyLevel": "BEGINNER",
             "status": "PUBLISHED",
-            "questionCount": 3
-          }
+            "questionCount": 4
+          },
+          "simulation": null
         }
       ]
+    },
+    {
+      "campaignItemId": "99999999-9999-4999-8999-999999999999",
+      "campaignId": "44444444-4444-4444-8444-444444444444",
+      "parentGroupId": null,
+      "itemType": "COMPONENT",
+      "componentType": "SIMULATED_INBOX",
+      "groupType": null,
+      "completionRule": null,
+      "title": "Inbox drill",
+      "description": "Classify the emails.",
+      "position": 3,
+      "isRequired": true,
+      "availabilityStatus": "AVAILABLE",
+      "isOpenable": true,
+      "activityApiPath": "/trainee/campaign-items/99999999-9999-4999-8999-999999999999/simulated-inbox",
+      "progressStatus": "NOT_STARTED",
+      "trainingDocument": null,
+      "quiz": null,
+      "simulation": {
+        "id": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+        "title": "Inbox Simulation",
+        "description": "Practice with a realistic inbox.",
+        "difficultyLevel": "BEGINNER"
+      }
     }
   ]
 }
 ```
 
-Component groups support one level of grouping for Demo 1. API responses should not return groups inside groups.
+- **Safe Error Responses**:
+  - `400 Bad Request`: Returned if the URL parameter `campaignId` is malformed (not a valid UUID string).
+  - `401 Unauthorized`: Returned if the request is missing authentication or the credentials are invalid.
+  - `404 Not Found`: Returned if the campaign does not exist or is not assigned to the authenticated active trainee (or is not in an allowed assignment status).
+  - `429 Too Many Requests`: Returned if the client has exceeded rate limits.
+  - `500 Internal Server Error`: Returned for unexpected system errors.
+
+---
+
+### Preliminary Activity Placeholders
+
+> [!NOTE]
+> The following endpoints are preliminary placeholders. They indicate how status or completion was modeled historically or for future extensions. They are not the primary endpoints for starting and completing activities in Demo 1.
 
 ### `POST /trainee/campaigns/:campaignId/start`
 
