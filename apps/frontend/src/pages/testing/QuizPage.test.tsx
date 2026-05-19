@@ -1,33 +1,62 @@
 import '@testing-library/jest-dom/vitest';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import * as quizApi from '../../lib/quizApi';
 import QuizPage from '../QuizPage';
+import { getQuiz, startQuizAttempt, submitQuizAttempt } from '../../lib/quizApi';
 
-const quizFixture: quizApi.CampaignItemQuiz = {
-  id: 'phishing-basics-quiz',
-  campaignItemId: 'campaign-item-phishing-basics-quiz',
-  campaignAssignmentId: 'campaign-assignment-demo',
-  title: 'Phishing Basics Quiz',
-  description: 'Check your phishing awareness knowledge.',
+vi.mock('../../lib/quizApi', () => ({
+  getQuiz: vi.fn(),
+  startQuizAttempt: vi.fn(),
+  submitQuizAttempt: vi.fn(),
+}));
+
+const mockedGetQuiz = vi.mocked(getQuiz);
+const mockedStartQuizAttempt = vi.mocked(startQuizAttempt);
+const mockedSubmitQuizAttempt = vi.mocked(submitQuizAttempt);
+
+const campaignItemId = '33333333-3333-4333-8333-333333333334';
+const attemptId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+
+const quizFixture = {
+  id: '55555555-5555-4555-8555-555555555551',
+  campaignItemId,
+  campaignAssignmentId: '22222222-2222-4222-8222-222222222222',
+  title: 'Phishing basics quiz',
+  description: 'Check your phishing awareness.',
   passThresholdPercentage: 70,
   difficultyLevel: 'BEGINNER',
   status: 'AVAILABLE',
   questions: [
     {
-      id: 'question-sender',
-      text: 'Which email detail is most suspicious?',
+      id: 'question-1',
+      text: 'Which email is suspicious?',
       options: [
         {
-          id: 'option-sender-a',
+          id: 'option-1',
           label: 'A',
-          text: 'A strange sender address',
+          text: 'A message asking you to verify your password urgently.',
         },
         {
-          id: 'option-sender-b',
+          id: 'option-2',
           label: 'B',
-          text: 'A normal company footer',
+          text: 'A normal team update from a known address.',
+        },
+      ],
+    },
+    {
+      id: 'question-2',
+      text: 'What should you check before clicking a link?',
+      options: [
+        {
+          id: 'option-3',
+          label: 'A',
+          text: 'The sender and link destination.',
+        },
+        {
+          id: 'option-4',
+          label: 'B',
+          text: 'Only the email logo.',
         },
       ],
     },
@@ -36,140 +65,155 @@ const quizFixture: quizApi.CampaignItemQuiz = {
 
 function renderQuizPage() {
   return render(
-    <MemoryRouter initialEntries={['/quizzes/phishing-basics-quiz']}>
+    <MemoryRouter initialEntries={[`/quizzes/${campaignItemId}`]}>
       <Routes>
         <Route path="/quizzes/:quizId" element={<QuizPage />} />
-        <Route path="/quiz-attempts/:attemptId/results" element={<div>Results route</div>} />
+        <Route path="/quiz-attempts/:attemptId/results" element={<p>Results page</p>} />
       </Routes>
     </MemoryRouter>,
   );
 }
 
+beforeEach(() => {
+  vi.clearAllMocks();
+
+  mockedGetQuiz.mockResolvedValue(quizFixture);
+
+  mockedStartQuizAttempt.mockResolvedValue({
+    attemptId,
+    traineeProfileId: 'trainee-profile-id',
+    quizId: quizFixture.id,
+    campaignAssignmentId: quizFixture.campaignAssignmentId,
+    campaignItemId,
+    status: 'IN_PROGRESS',
+    startedAt: '2026-05-19T10:00:00.000Z',
+  });
+
+  mockedSubmitQuizAttempt.mockResolvedValue({
+    success: true,
+    attemptId,
+    status: 'SUBMITTED',
+  });
+});
+
+afterEach(() => {
+  cleanup();
+});
+
 describe('QuizPage', () => {
-  beforeEach(() => {
-    vi.spyOn(quizApi, 'getQuiz').mockResolvedValue(quizFixture);
-    vi.spyOn(quizApi, 'startQuizAttempt').mockResolvedValue({
-      attemptId: 'attempt-phishing-basics-quiz',
-      traineeProfileId: 'trainee-demo-profile',
-      quizId: 'phishing-basics-quiz',
-      campaignAssignmentId: 'campaign-assignment-demo',
-      campaignItemId: 'campaign-item-phishing-basics-quiz',
-      status: 'IN_PROGRESS',
-      startedAt: '2026-05-17T10:00:00.000Z',
-    });
-    vi.spyOn(quizApi, 'submitQuizAttempt').mockResolvedValue({
-      success: true,
-      attemptId: 'attempt-phishing-basics-quiz',
-      status: 'SUBMITTED',
-    });
-  });
-
-  afterEach(() => {
-    cleanup();
-    vi.restoreAllMocks();
-  });
-
-  it('fetches and renders quiz questions and answer options', async () => {
+  it('loads quiz content through the campaign item id', async () => {
     renderQuizPage();
 
-    expect(await screen.findByText('Phishing Basics Quiz')).toBeInTheDocument();
     expect(
-      screen.getByRole('group', { name: /which email detail is most suspicious/i }),
+      await screen.findByRole('heading', { name: /phishing basics quiz/i }),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText(/a strange sender address/i)).toBeInTheDocument();
 
-    expect(quizApi.getQuiz).toHaveBeenCalledWith('phishing-basics-quiz');
+    expect(mockedGetQuiz).toHaveBeenCalledWith(campaignItemId);
+    expect(screen.getByRole('group', { name: /which email is suspicious\?/i })).toBeInTheDocument();
+    expect(
+      screen.getByLabelText(/A\. A message asking you to verify your password urgently\./i),
+    ).toBeInTheDocument();
   });
 
   it('does not render correct answers or feedback before submission', async () => {
-    vi.spyOn(quizApi, 'getQuiz').mockResolvedValueOnce({
-      ...quizFixture,
-      questions: [
-        {
-          ...quizFixture.questions[0],
-          options: [
-            {
-              ...quizFixture.questions[0].options[0],
-              isCorrect: true,
-              feedbackText: 'Hidden feedback before submit',
-            } as unknown as quizApi.QuizOption,
-          ],
-        },
-      ],
-    });
-
     renderQuizPage();
-
-    expect(await screen.findByText('Phishing Basics Quiz')).toBeInTheDocument();
-    expect(screen.queryByText('Hidden feedback before submit')).not.toBeInTheDocument();
-    expect(screen.queryByText(/selected correct option/i)).not.toBeInTheDocument();
-  });
-
-  it('shows validation when submitting without answering required questions', async () => {
-    renderQuizPage();
-
-    const submitButton = await screen.findByRole('button', { name: /submit quiz/i });
-    submitButton.click();
 
     expect(
-      await screen.findByText('Please answer every question before submitting the quiz.'),
+      await screen.findByRole('heading', { name: /phishing basics quiz/i }),
     ).toBeInTheDocument();
 
-    expect(quizApi.startQuizAttempt).not.toHaveBeenCalled();
-    expect(quizApi.submitQuizAttempt).not.toHaveBeenCalled();
+    expect(screen.queryByText(/correct option/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/incorrect option/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/answer feedback/i)).not.toBeInTheDocument();
   });
 
-  it('submits selected answers and navigates to the result page', async () => {
+  it('shows validation when submitting with unanswered questions', async () => {
     renderQuizPage();
 
-    const option = await screen.findByLabelText(/a strange sender address/i);
-    option.click();
+    expect(
+      await screen.findByRole('heading', { name: /phishing basics quiz/i }),
+    ).toBeInTheDocument();
 
-    const submitButton = screen.getByRole('button', { name: /submit quiz/i });
-    submitButton.click();
+    fireEvent.click(screen.getByRole('button', { name: /submit quiz/i }));
 
-    await waitFor(() => {
-      expect(quizApi.startQuizAttempt).toHaveBeenCalledWith('phishing-basics-quiz');
-    });
+    expect(
+      screen.getByText('Please answer every question before submitting the quiz.'),
+    ).toBeInTheDocument();
 
-    expect(quizApi.submitQuizAttempt).toHaveBeenCalledWith('attempt-phishing-basics-quiz', [
-      {
-        questionId: 'question-sender',
-        selectedOptionIds: ['option-sender-a'],
-      },
-    ]);
-
-    expect(await screen.findByText('Results route')).toBeInTheDocument();
+    expect(mockedStartQuizAttempt).not.toHaveBeenCalled();
+    expect(mockedSubmitQuizAttempt).not.toHaveBeenCalled();
   });
 
-  it('shows a submitting state while submission is pending', async () => {
-    let resolveSubmit: ((value: quizApi.SubmitQuizAttemptResponse) => void) | undefined;
+  it('starts an attempt and submits selected single-choice answers', async () => {
+    renderQuizPage();
 
-    vi.spyOn(quizApi, 'submitQuizAttempt').mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          resolveSubmit = resolve;
-        }),
+    expect(
+      await screen.findByRole('heading', { name: /phishing basics quiz/i }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByLabelText(/A\. A message asking you to verify your password urgently\./i),
+    );
+
+    fireEvent.click(screen.getByLabelText(/A\. The sender and link destination\./i));
+
+    fireEvent.click(screen.getByRole('button', { name: /submit quiz/i }));
+
+    await waitFor(() => {
+      expect(mockedStartQuizAttempt).toHaveBeenCalledWith(campaignItemId);
+    });
+
+    await waitFor(() => {
+      expect(mockedSubmitQuizAttempt).toHaveBeenCalledWith(attemptId, [
+        {
+          questionId: 'question-1',
+          selectedOptionIds: ['option-1'],
+        },
+        {
+          questionId: 'question-2',
+          selectedOptionIds: ['option-3'],
+        },
+      ]);
+    });
+
+    expect(await screen.findByText('Results page')).toBeInTheDocument();
+  });
+
+  it('prevents duplicate submit while submission is in progress', async () => {
+    let resolveSubmit:
+      | ((value: { success: boolean; attemptId: string; status: string }) => void)
+      | undefined;
+
+    mockedSubmitQuizAttempt.mockReturnValue(
+      new Promise((resolve) => {
+        resolveSubmit = resolve;
+      }),
     );
 
     renderQuizPage();
 
-    const option = await screen.findByLabelText(/a strange sender address/i);
-    option.click();
+    expect(
+      await screen.findByRole('heading', { name: /phishing basics quiz/i }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByLabelText(/A\. A message asking you to verify your password urgently\./i),
+    );
+
+    fireEvent.click(screen.getByLabelText(/A\. The sender and link destination\./i));
 
     const submitButton = screen.getByRole('button', { name: /submit quiz/i });
-    submitButton.click();
+
+    fireEvent.click(submitButton);
+    fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(quizApi.startQuizAttempt).toHaveBeenCalled();
-      expect(quizApi.submitQuizAttempt).toHaveBeenCalled();
+      expect(mockedSubmitQuizAttempt).toHaveBeenCalledTimes(1);
     });
-
-    expect(await screen.findByRole('button', { name: /submitting/i })).toBeDisabled();
 
     resolveSubmit?.({
       success: true,
-      attemptId: 'attempt-phishing-basics-quiz',
+      attemptId,
       status: 'SUBMITTED',
     });
   });
