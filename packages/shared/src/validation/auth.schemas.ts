@@ -17,6 +17,6 @@ export const authRegisterRequestSchema = z.object({
 });
 
 export const authLoginRequestSchema = z.object({
-  email: z.string().trim().email().toLowerCase(),
-  password: z.string().min(1),
+  email: z.string().trim().email('PLEASE ENTER A VALID EMAIL ADDRESS').toLowerCase(),
+  password: z.string().min(1, 'PLEASE ENTER YOUR PASSWORD'),
 });
