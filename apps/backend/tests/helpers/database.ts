@@ -52,6 +52,12 @@ export function assertTestDatabase(): TestDatabaseDetails {
     );
   }
 
+  if (PRODUCTION_HOST_PARTS.some((part) => databaseName.toLowerCase().includes(part))) {
+    throw new Error(
+      `Refusing to clean database "${databaseName}" because its name contains a production-like keyword "${databaseName}".`,
+    );
+  }
+
   if (BLOCKED_DATABASE_NAMES.has(databaseName.toLowerCase())) {
     throw new Error(
       `Refusing to clean protected database "${databaseName}". Use a dedicated test database instead.`,

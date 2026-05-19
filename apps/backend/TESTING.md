@@ -150,7 +150,7 @@ Before running integration tests, CI should:
 - run `pnpm --filter @insightful-phish/backend exec prisma migrate deploy`;
 - run `pnpm --filter @insightful-phish/backend test:integration`.
 
-Full CI database provisioning is deferred and remains out of scope for this issue.
+CI database provisioning is fully configured in the `.github/workflows/ci.yml` workflow using a PostgreSQL service container.
 
 ## Troubleshooting
 
