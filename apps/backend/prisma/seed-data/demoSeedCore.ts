@@ -2,6 +2,7 @@ import { prisma } from '../../src/lib/prisma.js';
 import type { Prisma, PrismaClient } from '../../src/generated/prisma/client.js';
 import {
   DEMO_SEED_CAMPAIGN,
+  DEMO_SEED_CAMPAIGN_B,
   DEMO_SEED_CAMPAIGN_ASSIGNMENT,
   DEMO_SEED_CAMPAIGN_ITEMS,
   DEMO_SEED_CREDENTIALS,
@@ -93,7 +94,9 @@ export function buildDemoSeedSummary(): DemoSeedSummary {
     ],
     campaign: {
       name: DEMO_SEED_CAMPAIGN.name,
-      itemCount: DEMO_SEED_CAMPAIGN_ITEMS.length,
+      itemCount: DEMO_SEED_CAMPAIGN_ITEMS.filter(
+        (item) => item.campaignId === DEMO_SEED_IDS.campaign,
+      ).length,
       assignedTraineeEmail: DEMO_SEED_CREDENTIALS.populatedTrainee.email,
     },
     content: {
@@ -127,6 +130,7 @@ async function deleteDemoCore(tx: DemoSeedTransaction): Promise<void> {
       OR: [
         { id: DEMO_SEED_IDS.campaignAssignments.populatedTrainee },
         { campaignId: DEMO_SEED_IDS.campaign },
+        { campaignId: DEMO_SEED_IDS.campaignB },
         {
           traineeProfileId: {
             in: DEMO_TRAINEE_PROFILE_IDS,
@@ -138,13 +142,19 @@ async function deleteDemoCore(tx: DemoSeedTransaction): Promise<void> {
 
   await tx.campaignItem.deleteMany({
     where: {
-      OR: [{ id: { in: DEMO_CAMPAIGN_ITEM_IDS } }, { campaignId: DEMO_SEED_IDS.campaign }],
+      OR: [
+        { id: { in: DEMO_CAMPAIGN_ITEM_IDS } },
+        { campaignId: DEMO_SEED_IDS.campaign },
+        { campaignId: DEMO_SEED_IDS.campaignB },
+      ],
     },
   });
 
   await tx.campaign.deleteMany({
     where: {
-      id: DEMO_SEED_IDS.campaign,
+      id: {
+        in: [DEMO_SEED_IDS.campaign, DEMO_SEED_IDS.campaignB],
+      },
     },
   });
 
@@ -313,6 +323,9 @@ async function createDemoCampaign(tx: DemoSeedTransaction): Promise<void> {
   await tx.campaign.create({
     data: DEMO_SEED_CAMPAIGN,
   });
+  await tx.campaign.create({
+    data: DEMO_SEED_CAMPAIGN_B,
+  });
 }
 
 async function createDemoContent(tx: DemoSeedTransaction): Promise<void> {
@@ -392,16 +405,19 @@ async function createDemoCampaignItems(tx: DemoSeedTransaction): Promise<void> {
       data: {
         id: item.id,
         campaignId: item.campaignId,
+        parentGroupId: 'parentGroupId' in item ? item.parentGroupId : null,
         itemType: item.itemType,
-        componentType: item.componentType,
+        componentType: 'componentType' in item ? item.componentType : null,
+        groupType: 'groupType' in item ? item.groupType : null,
+        completionRule: 'completionRule' in item ? item.completionRule : null,
         title: item.title,
         description: item.description,
         position: item.position,
         isRequired: item.isRequired,
         availabilityStatus: item.availabilityStatus,
-        trainingDocumentId: 'trainingDocumentId' in item ? item.trainingDocumentId : undefined,
-        quizId: 'quizId' in item ? item.quizId : undefined,
-        simulationId: 'simulationId' in item ? item.simulationId : undefined,
+        trainingDocumentId: 'trainingDocumentId' in item ? item.trainingDocumentId : null,
+        quizId: 'quizId' in item ? item.quizId : null,
+        simulationId: 'simulationId' in item ? item.simulationId : null,
       },
     });
   }

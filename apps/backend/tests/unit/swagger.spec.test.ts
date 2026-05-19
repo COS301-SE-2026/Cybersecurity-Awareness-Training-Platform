@@ -43,6 +43,26 @@ const expectedSchemas = [
   'DifficultyLevel',
   'TrainingDocumentStatus',
   'TrainingInteractionEventType',
+  'CampaignType',
+  'CampaignStatus',
+  'CampaignAssignmentStatus',
+  'CampaignAccessType',
+  'CampaignItemType',
+  'CampaignComponentType',
+  'CampaignGroupType',
+  'CampaignCompletionRule',
+  'CampaignItemAvailabilityStatus',
+  'TraineeCampaignProgressStatus',
+  'TraineeCampaignAssignmentSummary',
+  'TraineeCampaignSummary',
+  'CampaignTrainingDocumentSummary',
+  'CampaignQuizSummary',
+  'CampaignSimulationSummary',
+  'TraineeCampaignItemSummary',
+  'TraineeCampaignGroupItem',
+  'TraineeCampaignComponentItem',
+  'GetTraineeCampaignsResponse',
+  'GetTraineeCampaignDetailResponse',
   'SimulatedInbox',
   'SimulatedInboxEmailSummary',
   'SimulatedEmailDetail',
@@ -83,6 +103,7 @@ const expectedResponses = [
 ] as const;
 
 const expectedParameters = [
+  'CampaignIdPathParam',
   'CampaignItemIdPathParam',
   'EmailIdPathParam',
   'AttemptIdPathParam',
@@ -102,6 +123,8 @@ const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
   ['post', '/auth/register', ['201', '400', '409', '429', '500']],
   ['post', '/auth/login', ['200', '400', '401', '429', '500']],
   ['get', '/auth/me', ['200', '401', '429', '500']],
+  ['get', '/trainee/campaigns', ['200', '401', '429', '500']],
+  ['get', '/trainee/campaigns/{campaignId}', ['200', '400', '401', '404', '429', '500']],
   [
     'get',
     '/trainee/campaign-items/{campaignItemId}/training-document',
@@ -164,6 +187,9 @@ const inactiveRouteDocs = [
   '/quizzes/{quizId}',
   '/trainee/simulated-emails/{emailId}',
   '/trainee/campaign-items/{campaignItemId}/quiz-attempts',
+  '/trainee/campaigns/{campaignId}/start',
+  '/trainee/campaigns/{campaignId}/complete',
+  '/trainee/campaigns/{campaignId}/items/{campaignItemId}/complete',
   '/quiz-attempts/{attemptId}/result',
 ] as const;
 
@@ -184,6 +210,10 @@ describe('swaggerSpec', () => {
 
   function expectPathResponse(path: string, method: HttpMethod, status: string) {
     expect(getPath(path, method)?.responses).toHaveProperty(status);
+  }
+
+  function expectBearerAuth(path: string, method: HttpMethod) {
+    expect(JSON.stringify(getPath(path, method))).toContain('bearerAuth');
   }
 
   function expectSchemaNotToContain(schemaName: string, forbiddenTerms: string[]) {
@@ -225,6 +255,13 @@ describe('swaggerSpec', () => {
     }
   });
 
+  it('documents trainee campaign routes with bearer auth', () => {
+    expectPathExists('/trainee/campaigns', 'get');
+    expectPathExists('/trainee/campaigns/{campaignId}', 'get');
+    expectBearerAuth('/trainee/campaigns', 'get');
+    expectBearerAuth('/trainee/campaigns/{campaignId}', 'get');
+  });
+
   it.each(inactiveRouteDocs)('does not document inactive route %s', (path) => {
     expect(spec.paths).not.toHaveProperty(path);
   });
@@ -239,6 +276,40 @@ describe('swaggerSpec', () => {
 
   it('keeps quiz fetch response free of pre-submission answers', () => {
     expectSchemaNotToContain('GetQuizResponse', ['isCorrect', 'feedbackText']);
+  });
+
+  it('keeps trainee campaign schemas free of internal and sensitive activity fields', () => {
+    const serializedSchemas = JSON.stringify([
+      spec.components?.schemas?.GetTraineeCampaignsResponse,
+      spec.components?.schemas?.GetTraineeCampaignDetailResponse,
+      spec.components?.schemas?.TraineeCampaignSummary,
+      spec.components?.schemas?.TraineeCampaignComponentItem,
+      spec.components?.schemas?.TraineeCampaignGroupItem,
+      spec.components?.schemas?.CampaignTrainingDocumentSummary,
+      spec.components?.schemas?.CampaignQuizSummary,
+      spec.components?.schemas?.CampaignSimulationSummary,
+    ]);
+
+    for (const term of [
+      'createdByUserId',
+      'traineeProfileId',
+      'trainingDocumentId',
+      'quizId',
+      'simulationId',
+      'answerOptions',
+      'expectedClassification',
+      'redFlags',
+    ]) {
+      expect(serializedSchemas).not.toContain(term);
+    }
+  });
+
+  it('documents trainee campaign activity path mapping', () => {
+    const componentSchema = JSON.stringify(spec.components?.schemas?.TraineeCampaignComponentItem);
+
+    expect(componentSchema).toContain('/simulated-inbox');
+    expect(componentSchema).toContain('/training-document');
+    expect(componentSchema).toContain('/quiz');
   });
 
   it('includes quiz result feedback fields only in post-submission result schemas', () => {

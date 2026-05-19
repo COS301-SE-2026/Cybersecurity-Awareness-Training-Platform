@@ -12,6 +12,7 @@ import {
   normaliseDemoEmail,
 } from '../../prisma/seed-data/demoSeedHelpers.js';
 import {
+  DEMO_SEED_CAMPAIGN_ITEMS,
   DEMO_SEED_QUIZZES,
   DEMO_SEED_SIMULATED_EMAILS,
 } from '../../prisma/seed-data/demoSeedConfig.js';
@@ -182,5 +183,56 @@ describe('demo seed helpers', () => {
         expect(email.redFlags.length).toBeGreaterThan(0);
       }
     }
+  });
+
+  it('defines campaign items with at least one group containing two or more child items', () => {
+    const groupItems = DEMO_SEED_CAMPAIGN_ITEMS.filter((item) => item.itemType === 'GROUP');
+    expect(groupItems.length).toBeGreaterThanOrEqual(1);
+
+    for (const group of groupItems) {
+      const children = DEMO_SEED_CAMPAIGN_ITEMS.filter(
+        (item) => 'parentGroupId' in item && item.parentGroupId === group.id,
+      );
+      expect(children.length).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  it('defines at least two ungrouped campaign items', () => {
+    const ungroupedItems = DEMO_SEED_CAMPAIGN_ITEMS.filter(
+      (item) => !('parentGroupId' in item) || item.parentGroupId === null,
+    );
+    expect(ungroupedItems.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('includes required component types (TRAINING_DOCUMENT, QUIZ, SIMULATED_INBOX) across seeded items', () => {
+    const componentTypes = DEMO_SEED_CAMPAIGN_ITEMS.filter(
+      (item) => item.itemType === 'COMPONENT',
+    ).map((item) => ('componentType' in item ? item.componentType : null));
+
+    expect(componentTypes).toContain('TRAINING_DOCUMENT');
+    expect(componentTypes).toContain('QUIZ');
+    expect(componentTypes).toContain('SIMULATED_INBOX');
+  });
+
+  it('defines deterministic positions for all campaign items', () => {
+    for (const item of DEMO_SEED_CAMPAIGN_ITEMS) {
+      expect(typeof item.position).toBe('number');
+      expect(item.position % 100).toBe(0);
+      expect(item.position).toBeGreaterThan(0);
+    }
+  });
+
+  it('includes training, quiz, and simulated inbox flow content linked to items', () => {
+    const hasTrainingLink = DEMO_SEED_CAMPAIGN_ITEMS.some(
+      (item) => 'trainingDocumentId' in item && item.trainingDocumentId,
+    );
+    const hasQuizLink = DEMO_SEED_CAMPAIGN_ITEMS.some((item) => 'quizId' in item && item.quizId);
+    const hasSimulationLink = DEMO_SEED_CAMPAIGN_ITEMS.some(
+      (item) => 'simulationId' in item && item.simulationId,
+    );
+
+    expect(hasTrainingLink).toBe(true);
+    expect(hasQuizLink).toBe(true);
+    expect(hasSimulationLink).toBe(true);
   });
 });
