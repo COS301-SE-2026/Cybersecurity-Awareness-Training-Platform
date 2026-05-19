@@ -4,6 +4,7 @@ import {
   getTraineeCampaignRequestParamsSchema,
   listTraineeCampaignsRequestSchema,
   traineeCampaignComponentItemSummarySchema,
+  getTraineeCampaignsResponseSchema,
   traineeCampaignItemRequestParamsSchema,
   traineeCampaignItemSummarySchema,
 } from './campaigns.schemas.js';
@@ -44,6 +45,33 @@ describe('campaign validation schemas', () => {
     });
 
     expect(result.success).toBe(false);
+  });
+
+  it('rejects campaign summaries over maximum display lengths', () => {
+    const result = getTraineeCampaignsResponseSchema.safeParse({
+      campaigns: [
+        {
+          campaignId,
+          name: 'A'.repeat(201),
+          description: 'B'.repeat(2001),
+          campaignType: 'PREMADE_GENERAL',
+          difficultyLevel: 'BEGINNER',
+          status: 'ACTIVE',
+          accessType: 'ASSIGNED',
+          progressStatus: 'IN_PROGRESS',
+        },
+      ],
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.map((issue) => issue.message)).toEqual(
+        expect.arrayContaining([
+          'Campaign name must be at most 200 characters.',
+          'Description must be at most 2000 characters.',
+        ]),
+      );
+    }
   });
 
   it('accepts trainee campaign item route params', () => {
@@ -87,6 +115,28 @@ describe('campaign validation schemas', () => {
     });
 
     expect(result.success).toBe(false);
+  });
+
+  it('rejects component item titles over maximum length', () => {
+    const result = traineeCampaignComponentItemSummarySchema.safeParse({
+      campaignItemId,
+      campaignId,
+      itemType: 'COMPONENT',
+      componentType: 'QUIZ',
+      title: 'Q'.repeat(201),
+      position: 0,
+      isRequired: true,
+      availabilityStatus: 'AVAILABLE',
+      isOpenable: true,
+      activityApiPath: getTraineeCampaignActivityApiPath('QUIZ', campaignItemId),
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.map((issue) => issue.message)).toContain(
+        'Title must be at most 200 characters.',
+      );
+    }
   });
 
   it('accepts group items with child campaign items', () => {

@@ -2,6 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { authLoginRequestSchema, authRegisterRequestSchema } from './auth.schemas.js';
 
 describe('auth validation schemas', () => {
+  const issueMessagesFor = (result: ReturnType<typeof authRegisterRequestSchema.safeParse>) => {
+    if (result.success) {
+      return [];
+    }
+
+    return result.error.issues.map((issue) => issue.message);
+  };
+
   it('normalizes valid register input', () => {
     const result = authRegisterRequestSchema.parse({
       email: '  TRAINEE@EXAMPLE.COM  ',
@@ -27,6 +35,13 @@ describe('auth validation schemas', () => {
     });
 
     expect(result.success).toBe(false);
+    expect(issueMessagesFor(result)).toEqual(
+      expect.arrayContaining([
+        'Please enter a valid email address.',
+        'Please enter a first name.',
+        'Please enter a last name.',
+      ]),
+    );
   });
 
   it('rejects register payloads with unexpected fields', () => {
@@ -50,6 +65,7 @@ describe('auth validation schemas', () => {
     });
 
     expect(result.success).toBe(false);
+    expect(issueMessagesFor(result)).toContain('Password must be at least 12 characters long');
   });
 
   it('rejects register passwords without a lowercase letter', () => {
@@ -61,6 +77,9 @@ describe('auth validation schemas', () => {
     });
 
     expect(result.success).toBe(false);
+    expect(issueMessagesFor(result)).toContain(
+      'Password must contain at least one lowercase letter',
+    );
   });
 
   it('rejects register passwords without an uppercase letter', () => {
@@ -72,6 +91,9 @@ describe('auth validation schemas', () => {
     });
 
     expect(result.success).toBe(false);
+    expect(issueMessagesFor(result)).toContain(
+      'Password must contain at least one uppercase letter',
+    );
   });
 
   it('rejects register passwords without a number', () => {
@@ -83,6 +105,7 @@ describe('auth validation schemas', () => {
     });
 
     expect(result.success).toBe(false);
+    expect(issueMessagesFor(result)).toContain('Password must contain at least one number');
   });
 
   it('rejects register passwords without a special character', () => {
@@ -94,6 +117,9 @@ describe('auth validation schemas', () => {
     });
 
     expect(result.success).toBe(false);
+    expect(issueMessagesFor(result)).toContain(
+      'Password must contain at least one special character',
+    );
   });
 
   it('does not count whitespace as a register password special character', () => {
@@ -105,6 +131,28 @@ describe('auth validation schemas', () => {
     });
 
     expect(result.success).toBe(false);
+    expect(issueMessagesFor(result)).toContain(
+      'Password must contain at least one special character',
+    );
+  });
+
+  it('rejects register fields over maximum length', () => {
+    const result = authRegisterRequestSchema.safeParse({
+      email: `${'a'.repeat(250)}@example.com`,
+      password: `${'A'.repeat(126)}a1!`,
+      firstName: 'J'.repeat(101),
+      lastName: 'D'.repeat(101),
+    });
+
+    expect(result.success).toBe(false);
+    expect(issueMessagesFor(result)).toEqual(
+      expect.arrayContaining([
+        'Email address must be at most 254 characters.',
+        'Password must be at most 128 characters long',
+        'First name must be at most 100 characters.',
+        'Last name must be at most 100 characters.',
+      ]),
+    );
   });
 
   it('rejects whitespace-only register names after trimming', () => {
@@ -137,6 +185,27 @@ describe('auth validation schemas', () => {
     });
 
     expect(result.success).toBe(true);
+  });
+
+  it('rejects empty and too-long login passwords without requiring register strength', () => {
+    expect(
+      authLoginRequestSchema.safeParse({
+        email: 'trainee@example.com',
+        password: '',
+      }).success,
+    ).toBe(false);
+
+    const tooLongResult = authLoginRequestSchema.safeParse({
+      email: 'trainee@example.com',
+      password: 'a'.repeat(129),
+    });
+
+    expect(tooLongResult.success).toBe(false);
+    if (!tooLongResult.success) {
+      expect(tooLongResult.error.issues.map((issue) => issue.message)).toContain(
+        'Password must be at most 128 characters long.',
+      );
+    }
   });
 
   it('rejects login payloads with unexpected fields', () => {

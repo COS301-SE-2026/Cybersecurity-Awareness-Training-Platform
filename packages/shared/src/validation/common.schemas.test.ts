@@ -12,5 +12,8 @@ describe('common validation schemas', () => {
     const result = idParamSchema.safeParse('not-a-uuid');
 
     expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe('Invalid identifier format.');
+    }
   });
 });

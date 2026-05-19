@@ -39,6 +39,9 @@ describe('training validation schemas', () => {
     });
 
     expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe('Invalid identifier format.');
+    }
   });
 
   it('rejects unexpected training route params', () => {
