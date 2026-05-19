@@ -1,0 +1,21 @@
+packages/shared/src/validation/auth.schemas.test.ts
+  s_fe371699497113::t_f54dbfbd8f65b9 99-109
+packages/shared/src/validation/auth.schemas.ts
+  s_fe371699497113::t_f54dbfbd8f65b9 12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "66c917bd4973c02d05d6940f66313ade67301826",
+  "prompts": {},
+  "sessions": {
+    "s_fe371699497113": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e4131-a1c7-79c2-a181-aa9ecde333a4",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
