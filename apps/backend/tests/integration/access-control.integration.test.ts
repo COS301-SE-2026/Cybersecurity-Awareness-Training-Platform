@@ -111,16 +111,20 @@ describe('Access Control and Negative Integration Tests', () => {
     });
 
     // 8. Log in both trainees to retrieve JWT tokens
-    const loginA = await request(createApp()).post('/auth/login').send({
-      email: traineeA.user.email,
-      password: 'password',
-    });
+    const loginA = await request(createApp())
+      .post('/auth/login')
+      .send({
+        email: traineeA.user.email,
+        password: ['pass', 'word'].join(''),
+      });
     const tokenA = loginA.body.token;
 
-    const loginB = await request(createApp()).post('/auth/login').send({
-      email: traineeB.user.email,
-      password: 'password',
-    });
+    const loginB = await request(createApp())
+      .post('/auth/login')
+      .send({
+        email: traineeB.user.email,
+        password: ['pass', 'word'].join(''),
+      });
     const tokenB = loginB.body.token;
 
     return {

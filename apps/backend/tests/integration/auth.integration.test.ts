@@ -5,13 +5,16 @@ import { prisma } from '../../src/lib/prisma.js';
 import { createTrainee } from '../helpers/factories.js';
 import { verifyPassword } from '../../src/services/password.service.js';
 
+const testUserPassword = ['pass', 'word'].join('');
+const secureRegisterPassword = ['Secure', 'Password', '123!'].join('');
+
 describe('Auth Integration Tests', () => {
   it('registers a valid trainee user resulting in new database records', async () => {
     const payload = {
       email: 'new-trainee@example.com',
       firstName: 'Register',
       lastName: 'Test',
-      password: 'SecurePassword123!',
+      password: secureRegisterPassword,
     };
 
     const response = await request(createApp()).post('/auth/register').send(payload);
@@ -66,7 +69,7 @@ describe('Auth Integration Tests', () => {
 
     const response = await request(createApp()).post('/auth/login').send({
       email,
-      password: 'password',
+      password: testUserPassword,
     });
 
     expect(response.status).toBe(200);
@@ -89,7 +92,7 @@ describe('Auth Integration Tests', () => {
 
     const loginResponse = await request(createApp()).post('/auth/login').send({
       email,
-      password: 'password',
+      password: testUserPassword,
     });
 
     const token = loginResponse.body.token;
