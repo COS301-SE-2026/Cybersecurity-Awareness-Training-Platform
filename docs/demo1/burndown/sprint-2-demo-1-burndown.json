@@ -7,8 +7,8 @@
       "number": 126,
       "title": "feat: campaign discovery",
       "points": 3,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-05-19"
     },
     {
       "number": 123,
@@ -299,7 +299,7 @@
     },
     {
       "date": "2026-05-19",
-      "remaining": 30,
+      "remaining": 27,
       "ideal": 10.67
     }
   ]
