@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AuthActionLink,
@@ -22,7 +23,7 @@ function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [message, setMessage] = useState('');
 
-  function handleRegister(event: React.FormEvent) {
+  async function handleRegister(event: FormEvent) {
     event.preventDefault();
 
     setMessage('');
@@ -51,23 +52,72 @@ function RegisterPage() {
       return;
     }
 
+    if (!/[A-Z]/.test(password)) {
+      setMessage('PASSWORD MUST CONTAIN AN UPPERCASE LETTER');
+
+      return;
+    }
+
+    if (!/[a-z]/.test(password)) {
+      setMessage('PASSWORD MUST CONTAIN A LOWERCASE LETTER');
+
+      return;
+    }
+
     if (!/\d/.test(password)) {
       setMessage('PASSWORD MUST CONTAIN AT LEAST ONE NUMBER');
 
       return;
     }
 
-    if (password !== confirmPassword) {
-      setMessage('PASSWORD DO NOT MATCH');
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+      setMessage('PASSWORD MUST CONTAIN A SPECIAL CHARACTER');
 
       return;
     }
 
-    setMessage('REGISTRATION SUCCESSFULL. REDIRECTING TO LOGIN...');
+    if (password !== confirmPassword) {
+      setMessage('PASSWORDS DO NOT MATCH');
 
-    setTimeout(() => {
-      navigate('/login');
-    }, 1500);
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:4000/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          email: email.trim(),
+          password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 409) {
+          setMessage('AN ACCOUNT WITH THIS EMAIL ALREADY EXISTS');
+
+          return;
+        }
+
+        setMessage(data.message || 'REGISTRATION FAILED');
+
+        return;
+      }
+
+      setMessage('REGISTRATION SUCCESSFUL. REDIRECTING TO LOGIN...');
+
+      setTimeout(() => {
+        navigate('/login');
+      }, 1500);
+    } catch {
+      setMessage('UNABLE TO CONNECT TO SERVER');
+    }
   }
 
   return (
@@ -79,7 +129,7 @@ function RegisterPage() {
         <>
           <AuthPageIntro
             title="Welcome"
-            dividerStyle={{ marginBottom: '0.9rem' }}
+            dividerStyle={{ marginBottom: '3rem' }} // Set to 0.9 later
             /*afterDivider={
               <AuthActionLink
                 to="/register"
@@ -166,6 +216,7 @@ function RegisterPage() {
                   width: '48%',
                   height: '60px',
                   fontSize: '1.7rem',
+                  cursor: 'pointer',
                 }}
               >
                 REGISTER
