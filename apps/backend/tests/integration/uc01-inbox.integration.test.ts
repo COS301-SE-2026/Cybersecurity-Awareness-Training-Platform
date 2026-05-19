@@ -18,7 +18,6 @@ import {
   InboxStatus,
   EmailClassification,
   EmailRedFlagType,
-  RedFlagSeverity,
 } from '../../src/generated/prisma/enums.js';
 
 describe('UC-01 Simulated Inbox Integration Tests', () => {

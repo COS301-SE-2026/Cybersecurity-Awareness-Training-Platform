@@ -1,7 +1,6 @@
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../../src/app.js';
-import { prisma } from '../../src/lib/prisma.js';
 import { clearAuthRateLimitStore } from '../../src/middleware/authRateLimit.js';
 import {
   createTrainee,
@@ -10,8 +9,6 @@ import {
   createSimulatedInbox,
   createSimulatedEmail,
   createQuiz,
-  createQuizQuestion,
-  createAnswerOption,
   createCampaignItem,
   createCampaignAssignment,
   createTrainingDocument,
@@ -23,7 +20,6 @@ import {
   InboxStatus,
   EmailClassification,
   TrainingDocumentStatus,
-  TrainingContentType,
 } from '../../src/generated/prisma/enums.js';
 
 describe('Access Control and Negative Integration Tests', () => {
