@@ -15,6 +15,7 @@ import {
 import { authRegisterRequestSchema } from '@insightful-phish/shared';
 function RegisterPage() {
   const navigate = useNavigate();
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -48,7 +49,7 @@ function RegisterPage() {
     }
 
     try {
-      const response = await fetch('http://localhost:4000/auth/register', {
+      const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
