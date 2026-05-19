@@ -1,0 +1,34 @@
+packages/shared/src/validation/simulations.schemas.test.ts
+  s_fe371699497113::t_2610557485a869 76-80,111,113-115,117-130,138-141,143-145
+  s_fe371699497113::t_90ddafef80121b 110,112,116
+  s_fe371699497113::t_1892150d6b3919 142
+packages/shared/src/validation/quizzes.schemas.test.ts
+  s_fe371699497113::t_79eeabff228e49 65-67,93-95,109-110,112-136
+  s_fe371699497113::t_1892150d6b3919 111
+packages/shared/src/validation/simulations.schemas.ts
+  s_fe371699497113::t_2d65fb3933cb74 4-9
+  s_fe371699497113::t_5d0a01db841081 2,37-39,41-44
+packages/shared/src/validation/quizzes.schemas.ts
+  s_fe371699497113::t_fef7b3d5b25120 2,28-36,42
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "c80c2eee568fbc9c0186f80bd7d046e4ba974d17",
+  "prompts": {},
+  "humans": {
+    "h_1fff265ad32c51": {
+      "author": "FJNel <u24594475@tuks.co.za>"
+    }
+  },
+  "sessions": {
+    "s_fe371699497113": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e4131-a1c7-79c2-a181-aa9ecde333a4",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
