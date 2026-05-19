@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import type { ReactNode } from 'react';
 import { AuthContext } from './auth-context';
+import type { AuthUser } from './auth-context';
 
 type AuthProviderProps = {
   children: ReactNode;
@@ -16,18 +17,34 @@ function getStorage() {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [isAuthenticated, setIsAuthenticated] = useState(
-    () => getStorage()?.getItem('authenticated') === 'true',
+  const [token, setToken] = useState<string | null>(() => getStorage()?.getItem('token') ?? null);
+
+  const [user, setUser] = useState<AuthUser | null>(() => {
+    const storedUser = getStorage()?.getItem('user');
+
+    return storedUser ? (JSON.parse(storedUser) as AuthUser) : null;
+  });
+
+  const [isAuthenticated, setIsAuthenticated] = useState(() =>
+    Boolean(getStorage()?.getItem('token')),
   );
 
-  const login = () => {
-    getStorage()?.setItem('authenticated', 'true');
+  const login = (newToken: string, newUser: AuthUser) => {
+    getStorage()?.setItem('token', newToken);
+    getStorage()?.setItem('user', JSON.stringify(newUser));
+
+    setToken(newToken);
+    setUser(newUser);
 
     setIsAuthenticated(true);
   };
 
   const logout = () => {
-    getStorage()?.removeItem('authenticated');
+    getStorage()?.removeItem('token');
+    getStorage()?.removeItem('user');
+
+    setToken(null);
+    setUser(null);
 
     setIsAuthenticated(false);
   };
@@ -36,6 +53,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     <AuthContext.Provider
       value={{
         isAuthenticated,
+        token,
+        user,
         login,
         logout,
       }}
