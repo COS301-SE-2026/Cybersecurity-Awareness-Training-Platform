@@ -28,7 +28,7 @@ function RegisterPage() {
     setMessage('');
 
     if (!firstName.trim()) {
-      setMessage('PLEASE ENTER YOUR FIRST NAME');
+      setMessage('PLEASE ENTER YOUR FIRST NAME(S)');
 
       return;
     }
@@ -80,14 +80,14 @@ function RegisterPage() {
           <AuthPageIntro
             title="Welcome"
             dividerStyle={{ marginBottom: '0.9rem' }}
-            afterDivider={
+            /*afterDivider={
               <AuthActionLink
                 to="/register"
                 prefix="ORGANISATION?"
                 emphasis="Register as an Organisation"
                 outerStyle={{ marginBottom: '1.5rem' }}
               />
-            }
+            }*/
             message={message}
             messageStyle={{ marginBottom: '1.5rem' }}
           />
@@ -100,7 +100,7 @@ function RegisterPage() {
               }}
             >
               <AuthFormField
-                label="First Name"
+                label="First Name(s)"
                 type="text"
                 value={firstName}
                 onChange={(event) => setFirstName(event.target.value)}
@@ -143,7 +143,7 @@ function RegisterPage() {
               />
 
               <AuthFormField
-                label="Password"
+                label="Confirm Password"
                 type="password"
                 value={confirmPassword}
                 onChange={(event) => setConfirmPassword(event.target.value)}
@@ -165,7 +165,7 @@ function RegisterPage() {
                   ...authPrimaryButtonStyle,
                   width: '48%',
                   height: '60px',
-                  fontSize: '2rem',
+                  fontSize: '1.7rem',
                 }}
               >
                 REGISTER
