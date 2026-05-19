@@ -40,21 +40,23 @@ By focusing on human behaviour, the most common source of security breaches, the
 
 # <img src="https://img.icons8.com/?size=100&id=OxDyKkYjQ5Yk&format=png&color=000000" width="32"> Current Demo Scope
 
-> _Demo 1_ is an ***early local prototype*** of the trainee journey. It is not a complete final SRS or full-year platform implementation.
+> _Demo 1_ is an **_early local prototype_** of the trainee journey. It is not a complete final SRS or full-year platform implementation.
 
 #### _Demo 1_ Scope
+
 - View and open seeded simulated inbox emails
 - View seeded training material
 - Complete a simple quiz flow and view results
 
 #### Base Supporting Features
+
 - Login, logout, and register
 - Form (login and register) and payload validation
 - Basic theme, navigation (sidebar), and trainee-facing feedback states (e.g., training material or quizzes started, not stated, etc.).
 
 Future platform direction includes organisation admin campaign builders, trainee/user management, reporting dashboards, real email delivery to actual inboxes, AI-assisted content generation, and advanced simulations such as fake login pages, richer link/attachment interactions, calls, or password-checker activities. Real email delivery must be opt-in and ethically constrained. AI-assisted generation remains future-facing and would require controlled schemas, prepared context, and review; training a custom model is undecided and is not promised.
 
->_Demo 1_ **runs locally** unless explicitly configured otherwise. Deployment to _Southern Cross_ infrastructure is a later target.
+> _Demo 1_ **runs locally** unless explicitly configured otherwise. Deployment to _Southern Cross_ infrastructure is a later target.
 
 ---
 
@@ -117,7 +119,7 @@ Future platform direction includes organisation admin campaign builders, trainee
 6. **Design Specification**: [docs/demo1/DESIGN.md](docs/demo1/DESIGN.md)
 7. **Diagrams**: [docs/demo1/diagrams/README.md](docs/demo1/diagrams/README.md)
 8. **Wireframes**: [docs/demo1/wireframes/README.md](docs/demo1/wireframes/README.md)
-   
+
 ---
 
 # <img src="https://img.icons8.com/?size=100&id=hSm5FhlnhnlL&format=png&color=000000" width="32"> Technology Stack
