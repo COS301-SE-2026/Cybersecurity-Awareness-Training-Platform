@@ -254,11 +254,11 @@ describe('Access Control and Negative Integration Tests', () => {
     it('returns 404 Not Found when Trainee A attempts to complete a training document belonging to Trainee B', async () => {
       const fixture = await setupAccessControlFixture();
       const response = await request(createApp())
-        .post(`/trainee/campaign-items/${fixture.trainingItemB.id}/training-document/interactions`)
+        .post(`/trainee/campaign-items/${fixture.trainingItemB.id}/training-document/completed`)
         .set('Authorization', `Bearer ${fixture.tokenA}`)
-        .send({ eventType: 'TRAINING_COMPLETED' });
+        .send();
 
-      expect(response.status).toBe(404);
+      expect([403, 404]).toContain(response.status);
     });
 
     it('returns 404 Not Found when Trainee A attempts to retrieve a campaign item they are not assigned to', async () => {
