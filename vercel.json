@@ -149,6 +149,10 @@
       "headers": {
         "Location": "https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/blob/dev/docs/demo1/SRS.md"
       }
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/"
     }
   ]
 }

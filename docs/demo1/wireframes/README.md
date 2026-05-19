@@ -6,6 +6,8 @@
 
 This folder stores or indexes wireframe sources, exports, or links for Demo 1 screens.
 
+Demo 1 wireframes should prioritise the trainee flow: simulated inbox, simulated email detail, training material, quiz, and results, with login/register as base access screens. Organisation admin campaign builders, reporting dashboards, real email delivery flows, AI generation flows, and richer simulations are future scope unless explicitly added later.
+
 ## First-Pass Wireframes (Zoë)
 
 Zoë owns the initial Figma frames and first-pass trainee-flow coverage.
@@ -45,6 +47,8 @@ Zoë owns the initial Figma frames and first-pass trainee-flow coverage.
 ### Quiz Results Page
 
 ### Phishing Feedback Page
+
+This frame is high-level feedback context only. It should not imply that fake login pages, credential submission capture, or a full phishing landing-page workflow are required for Demo 1.
 
 ## Refinement and Polish (Connor)
 
