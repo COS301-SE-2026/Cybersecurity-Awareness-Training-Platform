@@ -1,0 +1,24 @@
+SETUP.md
+  s_56b97fc00624e8::t_768e0679f69be6 196
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "a891438114051c7c410e9d2ef3000a8803a3598f",
+  "prompts": {},
+  "humans": {
+    "h_1fff265ad32c51": {
+      "author": "FJNel <u24594475@tuks.co.za>"
+    }
+  },
+  "sessions": {
+    "s_56b97fc00624e8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e3c80-2fe7-79c0-bbd8-7f7275b1493b",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
