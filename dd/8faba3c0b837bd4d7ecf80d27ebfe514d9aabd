@@ -1,0 +1,42 @@
+packages/shared/src/validation/campaigns.schemas.test.ts
+  s_fe371699497113::t_fb5b5f6360b83c 50-76,120-139
+  s_fe371699497113::t_5883810f33b8f9 7
+packages/shared/src/validation/auth.schemas.ts
+  s_fe371699497113::t_a2e30859e62981 2-25,29,31-34,36,41-42,48-55
+packages/shared/src/validation/campaigns.schemas.ts
+  s_fe371699497113::t_811ccda32ea9d1 2-24,76-81,116-117,132-133,143-144,155-156,166-167
+  s_fe371699497113::t_41be83702d46a8 25
+packages/shared/src/validation/auth.schemas.test.ts
+  s_fe371699497113::t_49fc0731d35645 5-12,38-44,68,80-82,94-96,108,120-122,134-155,190-208
+packages/shared/src/validation/common.schemas.test.ts
+  s_fe371699497113::t_1892150d6b3919 16
+  s_fe371699497113::t_b7897ca885bca1 15,17
+packages/shared/src/validation/training.schemas.test.ts
+  s_fe371699497113::t_1892150d6b3919 43
+  s_fe371699497113::t_32bd8e0a4d42dd 42,44
+packages/shared/src/validation/common.schemas.ts
+  s_fe371699497113::t_3e459b96f742de 11-12,15
+  s_fe371699497113::t_e8aafb99e5c805 37-38,42-44
+  s_fe371699497113::t_8b3754fd069fb8 3-10,13-14,16-34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "dd8faba3c0b837bd4d7ecf80d27ebfe514d9aabd",
+  "prompts": {},
+  "humans": {
+    "h_1fff265ad32c51": {
+      "author": "FJNel <u24594475@tuks.co.za>"
+    }
+  },
+  "sessions": {
+    "s_fe371699497113": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e4131-a1c7-79c2-a181-aa9ecde333a4",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
