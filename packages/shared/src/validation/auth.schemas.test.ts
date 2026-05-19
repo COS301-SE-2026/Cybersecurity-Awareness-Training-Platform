@@ -96,6 +96,17 @@ describe('auth validation schemas', () => {
     expect(result.success).toBe(false);
   });
 
+  it('does not count whitespace as a register password special character', () => {
+    const result = authRegisterRequestSchema.safeParse({
+      email: 'trainee@example.com',
+      password: 'Stronger Pass1',
+      firstName: 'Jane',
+      lastName: 'Doe',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
   it('rejects whitespace-only register names after trimming', () => {
     const result = authRegisterRequestSchema.safeParse({
       email: 'trainee@example.com',
