@@ -12,7 +12,7 @@ import {
   authFormStyle,
   authPrimaryButtonStyle,
 } from '../components/auth/authStyles';
-import { authRegisterRequestSchema } from '../../../../packages/shared/src/validation/auth.schemas';
+import { authRegisterRequestSchema } from '@insightful-phish/shared';
 function RegisterPage() {
   const navigate = useNavigate();
 

@@ -9,7 +9,8 @@ import {
 } from '../components/auth/AuthPrimitives';
 import { authFormStyle, authPrimaryButtonStyle } from '../components/auth/authStyles';
 import { useAuth } from '../context/useAuth';
-import { authLoginRequestSchema } from '../../../../packages/shared/src/validation/auth.schemas';
+
+import { authLoginRequestSchema } from '@insightful-phish/shared';
 
 function LoginPage() {
   const navigate = useNavigate();
