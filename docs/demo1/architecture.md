@@ -14,13 +14,15 @@ The architecture is designed to support the following core use cases for Demo 1:
 
 Architecture guidance in this document is preliminary and scoped to Demo 1 implementation. It should be read alongside `SRS.md`, `API.md`, and `traceability.md`.
 
-### Admin/Campaign Control Plane (Preliminary Context)
+### Organisation Admin/Campaign Control Plane (Preliminary Context)
 
-The Admin Control Plane is a preliminary orchestration layer that supports trainee-facing activities. It outlines the conceptual management of configurations for simulations and training modules.
+The Admin Control Plane is a preliminary, mostly future-facing orchestration layer that supports trainee-facing activities. It outlines the conceptual management of configurations for simulations and training modules without requiring full admin campaign management for Demo 1.
 
 - **Campaign Orchestration**: Logic for managing campaign states (e.g., Draft, Active) to ensure content visibility.
 - **Content Resolution**: A mechanism to map campaign configurations to simulation templates and training documents.
 - **Assignment Mapping**: Mapping between campaigns and trainee groups for targeted content delivery.
+
+For Demo 1, campaigns act as the assignment and ordering container for trainee activities. Campaigns contain ordered campaign components/items, limited to simulated inbox, training document, and quiz components. Current implementation references may use `CampaignItem` to represent the conceptual campaign component placement. Later demos may extend the same modular model with richer simulations, fake login pages, simulated calls, smart password checker activities, and other cybersecurity awareness components.
 
 ## Quality Requirements
 
@@ -135,6 +137,8 @@ A unified pattern is used to track trainee activity. Instead of simple status fl
 - Simulated interactions must never leave the platform's controlled environment.
 - All simulated links must route back to internal feedback handlers.
 - No actual credentials or sensitive personal data may be captured or stored during simulations.
+- Real email delivery to actual inboxes is future scope only. If introduced later, it must be opt-in, ethically constrained, and reviewed against organisation context.
+- AI-assisted generation is future scope only. If introduced later, generated quizzes, simulated emails, and training transformations should use controlled schemas, prepared context, and review workflows rather than unrestricted model output.
 
 ## Cross-References
 

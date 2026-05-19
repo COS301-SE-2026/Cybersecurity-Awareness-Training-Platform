@@ -23,13 +23,13 @@
 
 # <img src="https://img.icons8.com/?size=100&id=jKEjuyGFaF8x&format=png&color=000000" width="32"> About the Project <img src="https://img.icons8.com/?size=100&id=gUkmkUEWoS7h&format=png&color=000000" width="32">
 
-**_Insightful Phish_** is a _web-based_ **cybersecurity awareness and training platform** that helps individuals and organisations learn how to recognise and respond to common cyber threats, especially phishing attacks.
+**_Insightful Phish_** is a _web-based_ **cybersecurity awareness and training platform** that helps individual trainees and organisations learn how to recognise and respond to common cyber threats, especially phishing attacks.
 
-The platform combines realistic attack simulations with interactive training to create a practical learning experience. Administrators can create and send simulated phishing emails to users, allowing them to safely experience real-world attack scenarios. The system then tracks how users respond, such as clicking links or submitting information, and provides feedback to help them improve.
+The platform vision combines realistic attack simulations with interactive training to create a practical learning experience. In later demos, organisation admins should be able to build campaign-based training from reusable simulated inboxes, training documents, quizzes, and richer simulation components. The system can then track trainee interactions safely and provide feedback to help trainees improve.
 
-In addition to simulations, the platform offers training modules and quizzes that teach users how to identify suspicious behaviour, avoid common mistakes, and build better security habits.
+In addition to simulations, the platform uses training material and quizzes to teach trainees how to identify suspicious behaviour, avoid common mistakes, and build better security habits.
 
-To support organisations, **_Insightful Phish_** provides reporting and insights that highlight user performance, identify potential risks, and measure overall cybersecurity awareness. This allows teams to understand where vulnerabilities exist and take steps to improve.
+To support organisations, **_Insightful Phish_** is intended to provide future reporting and insights that highlight trainee progress, campaign completion, quiz results, risky behaviour, and organisation-level risk. These reporting dashboards are later-demo direction, not part of the current Demo 1 trainee flow.
 
 By focusing on human behaviour, the most common source of security breaches, the platform helps individuals and organisations reduce risk and build a stronger security culture.
 
@@ -38,9 +38,34 @@ By focusing on human behaviour, the most common source of security breaches, the
 
 ---
 
+# Current Demo Scope
+
+Demo 1 is an early local prototype of the trainee journey. It is not a complete final SRS or full-year platform implementation.
+
+Detailed Demo 1 scope:
+
+- view and open seeded simulated inbox emails;
+- view seeded training material;
+- complete a simple quiz flow and view results.
+
+Base supporting features:
+
+- login/register;
+- form and payload validation;
+- basic theme, navigation, and trainee-facing feedback states.
+
+Future platform direction includes organisation admin campaign builders, trainee/user management, reporting dashboards, real email delivery to actual inboxes, AI-assisted content generation, and advanced simulations such as fake login pages, richer link/attachment interactions, calls, or password-checker activities. Real email delivery must be opt-in and ethically constrained. AI-assisted generation remains future-facing and would require controlled schemas, prepared context, and review; training a custom model is undecided and is not promised.
+
+Demo 1 runs locally unless explicitly configured otherwise. Deployment to Southern Cross infrastructure is a later target.
+
+---
+
 # <img src="https://img.icons8.com/?size=100&id=UDtE3CKjacrI&format=png&color=000000" width="32"> Project Dashboard
 
 ## <img src="https://img.icons8.com/?size=100&id=VbgGe1XzgPAK&format=png&color=000000" width="24"> Badges
+
+> [!NOTE]
+> Static badges in this README are project-status indicators for presentation. For merge decisions, use the current GitHub Actions checks and repository test output.
 
 <p align="left">
   <img src="https://img.shields.io/badge/Tests-Passing-brightgreen?style=for-the-badge&logo=jest&logoColor=white" />
@@ -86,8 +111,17 @@ By focusing on human behaviour, the most common source of security breaches, the
 
 ### Demo 1 Documentation
 
-1. **Functional Requirements (SRS) Document**:
-   https://developer.insightfulphish.co.za/documentation/demo-1/functional-requirements
+1. **Functional Requirements (SRS)**: [docs/demo1/SRS.md](docs/demo1/SRS.md)
+2. **API Contracts**: [docs/demo1/API.md](docs/demo1/API.md)
+3. **Architecture**: [docs/demo1/architecture.md](docs/demo1/architecture.md)
+4. **Traceability**: [docs/demo1/traceability.md](docs/demo1/traceability.md)
+5. **Testing Plan**: [docs/demo1/testing.md](docs/demo1/testing.md)
+6. **Design Specification**: [docs/demo1/DESIGN.md](docs/demo1/DESIGN.md)
+7. **Diagrams**: [docs/demo1/diagrams/README.md](docs/demo1/diagrams/README.md)
+8. **Wireframes**: [docs/demo1/wireframes/README.md](docs/demo1/wireframes/README.md)
+
+External published Demo 1 documentation may also be available at:
+https://developer.insightfulphish.co.za/documentation/demo-1/functional-requirements
 
 ---
 

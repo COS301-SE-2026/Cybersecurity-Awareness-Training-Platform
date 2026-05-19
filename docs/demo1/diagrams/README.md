@@ -39,9 +39,9 @@ Current SVG exports:
 
 Login/register and general validation are supporting features, not standalone Demo 1 core use cases.
 
-### Supporting Admin Context
+### Supporting Organisation Admin Context
 
-Administrator and campaign setup appear only as supporting context for assigning campaigns that expose simulations, training documents, quizzes, and modular campaign items/components.
+Organisation admin and campaign setup appear only as future/supporting context for assigning campaigns that expose simulations, training documents, quizzes, and modular campaign items/components. They should not expand the Demo 1 use case list.
 
 ## Domain Model Diagrams (Adriano)
 
