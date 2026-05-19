@@ -433,8 +433,8 @@
           "number": 69,
           "title": "chore: Add local demo setup command/documentation",
           "points": 1,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-05-19"
         },
         {
           "number": 68,
@@ -580,7 +580,7 @@
     },
     {
       "date": "2026-05-19",
-      "remaining": 38,
+      "remaining": 37,
       "ideal": 7.96
     }
   ]
