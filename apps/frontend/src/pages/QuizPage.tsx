@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { SubmitEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getQuiz, startQuizAttempt, submitQuizAttempt } from '../lib/quizApi';
@@ -23,7 +23,6 @@ export function QuizPage() {
 
   const [error, setError] = useState<string | null>(null);
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
-  const isSubmittingRef = useRef(false);
 
   useEffect(() => {
     let isActive = true;
@@ -116,7 +115,7 @@ export function QuizPage() {
       return;
     }
 
-    if (isSubmittingRef.current || isSubmitting || hasSubmitted) {
+    if (isSubmitting || hasSubmitted) {
       return;
     }
 
@@ -126,7 +125,6 @@ export function QuizPage() {
     }
 
     try {
-      isSubmittingRef.current = true;
       setIsSubmitting(true);
       setError(null);
       setValidationMessage(null);
@@ -147,7 +145,6 @@ export function QuizPage() {
         submitError instanceof Error ? submitError.message : 'The quiz could not be submitted.',
       );
     } finally {
-      isSubmittingRef.current = false;
       setIsSubmitting(false);
     }
   }

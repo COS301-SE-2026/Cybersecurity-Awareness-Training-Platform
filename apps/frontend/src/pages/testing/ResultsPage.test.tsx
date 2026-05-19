@@ -60,7 +60,7 @@ describe('ResultsPage', () => {
   it('fetches results using the attempt id from the route', async () => {
     renderResultsPage();
 
-    expect(await screen.findByText('Passed')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /quiz results/i })).toBeInTheDocument();
 
     expect(quizApi.getQuizResult).toHaveBeenCalledWith('attempt-phishing-basics-quiz');
   });
@@ -68,8 +68,9 @@ describe('ResultsPage', () => {
   it('renders the backend-shaped score and pass status', async () => {
     renderResultsPage();
 
-    expect(await screen.findByText('Passed')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /quiz results/i })).toBeInTheDocument();
     expect(screen.getByText('80%')).toBeInTheDocument();
+    expect(screen.getByText('Passed')).toBeInTheDocument();
     expect(
       screen.getByText('Good work. You recognised the phishing indicator.'),
     ).toBeInTheDocument();
@@ -78,8 +79,8 @@ describe('ResultsPage', () => {
   it('renders answer-level feedback after submission', async () => {
     renderResultsPage();
 
-    expect(await screen.findByText('A strange sender address')).toBeInTheDocument();
-    expect(screen.getByText('Selected correct option')).toBeInTheDocument();
+    expect(await screen.findByText(/selected: a\. a strange sender address/i)).toBeInTheDocument();
+    expect(screen.getByText('Correct option')).toBeInTheDocument();
     expect(screen.getByText('Sender address mismatches are suspicious.')).toBeInTheDocument();
     expect(
       screen.getByText('Correct. Sender address mismatches are a common phishing warning sign.'),

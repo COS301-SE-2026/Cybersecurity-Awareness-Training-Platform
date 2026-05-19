@@ -8,7 +8,7 @@ import EmailDetailPage from '../pages/EmailDetailPage';
 // import TrainingModulesPage from '../pages/TrainingModulesPage';
 // import TrainingDocumentPage from '../pages/TrainingDocumentPage';
 import QuizPage from '../pages/QuizPage';
-// import ResultsPage from '../pages/ResultsPage';
+import ResultsPage from '../pages/ResultsPage';
 // import FeedbackPage from '../pages/FeedbackPage';
 // import QuizGradesPage from '../pages/QuizGradesPage';
 import ProtectedRoute from './ProtectedRoute';
@@ -32,9 +32,9 @@ function AppRoutes() {
 
         <Route path="/quizzes/:quizId" element={<QuizPage />} />
 
-        {/* <Route path="/quiz/grades" element={<QuizGradesPage />} /> */}
+        <Route path="/quiz-attempts/:attemptId/results" element={<ResultsPage />} />
 
-        {/* <Route path="/results/:attemptId" element={<ResultsPage />} /> */}
+        {/* <Route path="/quiz/grades" element={<QuizGradesPage />} /> */}
 
         {/* <Route path="/feedback" element={<FeedbackPage />} /> */}
 
