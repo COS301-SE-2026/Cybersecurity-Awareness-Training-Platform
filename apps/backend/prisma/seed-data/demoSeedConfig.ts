@@ -3,10 +3,12 @@ import {
   AssignmentStatus,
   CampaignAccessType,
   CampaignComponentType,
+  CampaignGroupType,
   CampaignItemAvailabilityStatus,
   CampaignItemType,
   CampaignStatus,
   CampaignType,
+  CompletionRule,
   DifficultyLevel,
   EmailClassification,
   EmailRedFlagType,
@@ -47,13 +49,17 @@ export const DEMO_SEED_IDS = {
   },
   ipAdminProfile: '22222222-2222-4222-8222-222222222225',
   campaign: '33333333-3333-4333-8333-333333333331',
+  campaignB: '33333333-3333-4333-8333-333333333339',
   campaignAssignments: {
     populatedTrainee: '33333333-3333-4333-8333-333333333332',
   },
   campaignItems: {
     trainingDocument: '33333333-3333-4333-8333-333333333333',
+    practiceActivitiesGroup: '33333333-3333-4333-8333-333333333336',
     quiz: '33333333-3333-4333-8333-333333333334',
     simulatedInbox: '33333333-3333-4333-8333-333333333335',
+    safeLinkHandlingQuiz: '33333333-3333-4333-8333-333333333337',
+    campaignBTrainingDocument: '33333333-3333-4333-8333-333333333338',
   },
   trainingDocuments: {
     warningSigns: '44444444-4444-4444-8444-444444444441',
@@ -187,6 +193,17 @@ export const DEMO_SEED_CAMPAIGN = {
     'Repeatable demo campaign for phishing awareness, safe link handling, and inbox classification.',
   campaignType: CampaignType.PREMADE_GENERAL,
   difficultyLevel: DifficultyLevel.BEGINNER,
+  status: CampaignStatus.ACTIVE,
+} as const;
+
+export const DEMO_SEED_CAMPAIGN_B = {
+  id: DEMO_SEED_IDS.campaignB,
+  createdByUserId: DEMO_SEED_IDS.users.admin,
+  name: 'Demo 1 Advanced Phishing Defenses',
+  description:
+    'Active demo campaign for advanced email verification, headers, and protocol analysis.',
+  campaignType: CampaignType.PREMADE_GENERAL,
+  difficultyLevel: DifficultyLevel.ADVANCED,
   status: CampaignStatus.ACTIVE,
 } as const;
 
@@ -783,6 +800,7 @@ export const DEMO_SEED_SIMULATED_EMAILS = [
 ] as const;
 
 export const DEMO_SEED_CAMPAIGN_ITEMS = [
+  // Campaign A
   {
     id: DEMO_SEED_IDS.campaignItems.trainingDocument,
     campaignId: DEMO_SEED_IDS.campaign,
@@ -796,13 +814,26 @@ export const DEMO_SEED_CAMPAIGN_ITEMS = [
     trainingDocumentId: DEMO_SEED_IDS.trainingDocuments.warningSigns,
   },
   {
+    id: DEMO_SEED_IDS.campaignItems.practiceActivitiesGroup,
+    campaignId: DEMO_SEED_IDS.campaign,
+    itemType: CampaignItemType.GROUP,
+    groupType: CampaignGroupType.MODULE,
+    completionRule: CompletionRule.COMPLETE_ALL,
+    title: 'Practice activities',
+    description: 'Complete the quiz and simulated inbox exercises.',
+    position: demoPosition(1),
+    isRequired: true,
+    availabilityStatus: CampaignItemAvailabilityStatus.AVAILABLE,
+  },
+  {
     id: DEMO_SEED_IDS.campaignItems.quiz,
     campaignId: DEMO_SEED_IDS.campaign,
+    parentGroupId: DEMO_SEED_IDS.campaignItems.practiceActivitiesGroup,
     itemType: CampaignItemType.COMPONENT,
     componentType: CampaignComponentType.QUIZ,
     title: 'Complete the warning signs check',
     description: 'Answer the Demo 1 phishing warning signs quiz.',
-    position: demoPosition(1),
+    position: demoPosition(0),
     isRequired: true,
     availabilityStatus: CampaignItemAvailabilityStatus.AVAILABLE,
     quizId: DEMO_SEED_IDS.quizzes.warningSigns,
@@ -810,13 +841,40 @@ export const DEMO_SEED_CAMPAIGN_ITEMS = [
   {
     id: DEMO_SEED_IDS.campaignItems.simulatedInbox,
     campaignId: DEMO_SEED_IDS.campaign,
+    parentGroupId: DEMO_SEED_IDS.campaignItems.practiceActivitiesGroup,
     itemType: CampaignItemType.COMPONENT,
     componentType: CampaignComponentType.SIMULATED_INBOX,
     title: 'Classify simulated emails',
     description: 'Use the reusable simulated inbox exercise.',
-    position: demoPosition(2),
+    position: demoPosition(1),
     isRequired: true,
     availabilityStatus: CampaignItemAvailabilityStatus.AVAILABLE,
     simulationId: DEMO_SEED_IDS.simulation,
+  },
+  {
+    id: DEMO_SEED_IDS.campaignItems.safeLinkHandlingQuiz,
+    campaignId: DEMO_SEED_IDS.campaign,
+    itemType: CampaignItemType.COMPONENT,
+    componentType: CampaignComponentType.QUIZ,
+    title: 'Complete the safe link handling check',
+    description: 'Answer the Demo 1 safe link handling quiz.',
+    position: demoPosition(2),
+    isRequired: true,
+    availabilityStatus: CampaignItemAvailabilityStatus.AVAILABLE,
+    quizId: DEMO_SEED_IDS.quizzes.safeLinkHandling,
+  },
+
+  // Campaign B
+  {
+    id: DEMO_SEED_IDS.campaignItems.campaignBTrainingDocument,
+    campaignId: DEMO_SEED_IDS.campaignB,
+    itemType: CampaignItemType.COMPONENT,
+    componentType: CampaignComponentType.TRAINING_DOCUMENT,
+    title: 'Verify link destinations',
+    description: 'Learn how to inspect URLs before clicking.',
+    position: demoPosition(0),
+    isRequired: true,
+    availabilityStatus: CampaignItemAvailabilityStatus.AVAILABLE,
+    trainingDocumentId: DEMO_SEED_IDS.trainingDocuments.safeLinkHandling,
   },
 ] as const;
