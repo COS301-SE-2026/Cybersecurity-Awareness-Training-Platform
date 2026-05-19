@@ -49,8 +49,8 @@
       "number": 94,
       "title": "feat: [frontend] Implement guided onboarding process (Stretch Goal)",
       "points": 3,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-05-19"
     },
     {
       "number": 93,
@@ -168,8 +168,8 @@
       "number": 77,
       "title": "feat: [frontend] Implement trainee navigation shell, dashboard, and protected UI",
       "points": 3,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-05-19"
     },
     {
       "number": 76,
@@ -238,8 +238,8 @@
       "number": 67,
       "title": "feat: [frontend] Add final brand logo assets and icons",
       "points": 1,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-05-19"
     },
     {
       "number": 66,
@@ -299,7 +299,7 @@
     },
     {
       "date": "2026-05-19",
-      "remaining": 37,
+      "remaining": 30,
       "ideal": 10.67
     }
   ]
