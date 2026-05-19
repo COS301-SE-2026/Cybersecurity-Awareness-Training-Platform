@@ -5,14 +5,14 @@ describe('auth validation schemas', () => {
   it('normalizes valid register input', () => {
     const result = authRegisterRequestSchema.parse({
       email: '  TRAINEE@EXAMPLE.COM  ',
-      password: 'password123',
+      password: 'Password123!',
       firstName: ' Jane ',
       lastName: ' Doe ',
     });
 
     expect(result).toEqual({
       email: 'trainee@example.com',
-      password: 'password123',
+      password: 'Password123!',
       firstName: 'Jane',
       lastName: 'Doe',
     });
@@ -32,12 +32,12 @@ describe('auth validation schemas', () => {
   it('normalizes valid login input', () => {
     const result = authLoginRequestSchema.parse({
       email: '  TRAINEE@EXAMPLE.COM  ',
-      password: 'password123',
+      password: 'Password123!',
     });
 
     expect(result).toEqual({
       email: 'trainee@example.com',
-      password: 'password123',
+      password: 'Password123!',
     });
   });
 });
