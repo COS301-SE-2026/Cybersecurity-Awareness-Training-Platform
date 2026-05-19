@@ -73,6 +73,11 @@ describe('simulation validation schemas', () => {
     });
 
     expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe(
+        'Please select a supported simulated email interaction event.',
+      );
+    }
   });
 
   it('rejects simulated email interaction payloads with unexpected fields', () => {
@@ -102,6 +107,27 @@ describe('simulation validation schemas', () => {
     expect(result.freeTextReason).toBe('Urgent tone and suspicious link');
   });
 
+  it('allows empty selected red flag arrays when no red flags are selected', () => {
+    const result = classifySimulatedEmailRequestSchema.safeParse({
+      selectedClassification: 'SAFE',
+      selectedRedFlagIds: [],
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects classification free text over maximum length', () => {
+    const result = classifySimulatedEmailRequestSchema.safeParse({
+      selectedClassification: 'SUSPICIOUS',
+      freeTextReason: 'A'.repeat(1001),
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe('Reason must be at most 1000 characters.');
+    }
+  });
+
   it('rejects invalid classification values and red flag IDs', () => {
     const result = classifySimulatedEmailRequestSchema.safeParse({
       selectedClassification: 'MAYBE',
@@ -109,6 +135,14 @@ describe('simulation validation schemas', () => {
     });
 
     expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.map((issue) => issue.message)).toEqual(
+        expect.arrayContaining([
+          'Please select a valid email classification.',
+          'Invalid identifier format.',
+        ]),
+      );
+    }
   });
 
   it('rejects classification payloads with unexpected fields', () => {

@@ -62,6 +62,9 @@ describe('quiz validation schemas', () => {
     });
 
     expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe('Please select at least one answer.');
+    }
   });
 
   it('rejects answers missing required identifiers', () => {
@@ -87,6 +90,9 @@ describe('quiz validation schemas', () => {
     });
 
     expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe('Please select at least one answer.');
+    }
   });
 
   it('rejects non-UUID question and option IDs', () => {
@@ -100,6 +106,34 @@ describe('quiz validation schemas', () => {
     });
 
     expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.map((issue) => issue.message)).toContain(
+        'Invalid identifier format.',
+      );
+    }
+  });
+
+  it('rejects answer free-text fields over maximum lengths', () => {
+    const result = submitQuizAttemptRequestSchema.safeParse({
+      answers: [
+        {
+          questionId,
+          selectedOptionIds: [optionId],
+          responseSummary: 'A'.repeat(1001),
+          typedResponse: 'B'.repeat(4001),
+        },
+      ],
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.map((issue) => issue.message)).toEqual(
+        expect.arrayContaining([
+          'Response summary must be at most 1000 characters.',
+          'Typed response must be at most 4000 characters.',
+        ]),
+      );
+    }
   });
 
   it('rejects quiz submission payloads with unexpected top-level fields', () => {

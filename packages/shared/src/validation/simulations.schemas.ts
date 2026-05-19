@@ -1,11 +1,12 @@
 import { z } from 'zod';
-import { idParamSchema } from './common.schemas.js';
+import { idParamSchema, optionalTrimmedStringSchema } from './common.schemas.js';
 
-export const simulatedEmailInteractionEventTypeSchema = z.enum([
-  'SIMULATED_EMAIL_OPENED',
-  'SIMULATED_EMAIL_LINK_CLICKED',
-  'CREDENTIAL_SUBMISSION_ATTEMPTED',
-]);
+export const simulatedEmailInteractionEventTypeSchema = z.enum(
+  ['SIMULATED_EMAIL_OPENED', 'SIMULATED_EMAIL_LINK_CLICKED', 'CREDENTIAL_SUBMISSION_ATTEMPTED'],
+  {
+    errorMap: () => ({ message: 'Please select a supported simulated email interaction event.' }),
+  },
+);
 
 export const getSimulatedEmailRequestParamsSchema = z
   .object({
@@ -33,8 +34,13 @@ export const recordSimulatedEmailInteractionRequestSchema = z
 
 export const classifySimulatedEmailRequestSchema = z
   .object({
-    selectedClassification: z.enum(['SAFE', 'SUSPICIOUS', 'PHISHING']),
+    selectedClassification: z.enum(['SAFE', 'SUSPICIOUS', 'PHISHING'], {
+      errorMap: () => ({ message: 'Please select a valid email classification.' }),
+    }),
     selectedRedFlagIds: z.array(idParamSchema).optional(),
-    freeTextReason: z.string().trim().max(1000).optional(),
+    freeTextReason: optionalTrimmedStringSchema(
+      1000,
+      'Reason must be at most 1000 characters.',
+    ).optional(),
   })
   .strict();
