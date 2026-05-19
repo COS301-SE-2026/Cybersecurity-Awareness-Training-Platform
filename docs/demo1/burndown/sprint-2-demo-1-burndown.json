@@ -7,8 +7,8 @@
       "number": 132,
       "title": "chore: add Demo 1 backend integration test coverage",
       "points": 5,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-05-19"
     },
     {
       "number": 131,
@@ -313,7 +313,7 @@
     },
     {
       "date": "2026-05-19",
-      "remaining": 35,
+      "remaining": 30,
       "ideal": 11.56
     }
   ]
