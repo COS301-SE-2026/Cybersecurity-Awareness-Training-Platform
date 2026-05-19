@@ -9,7 +9,7 @@ function Navbar() {
 
   const navigate = useNavigate();
 
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
 
   return (
     <nav
@@ -61,6 +61,7 @@ function Navbar() {
             fontSize: '1.3rem',
             fontWeight: 400,
             cursor: 'pointer',
+            letterSpacing: '0.06rem',
           }}
         >
           <PersonOutlined
@@ -68,7 +69,7 @@ function Navbar() {
               fontSize: '1.6rem',
             }}
           />
-          Connor Bell
+          {user ? `${user.firstName} ${user.lastName}` : 'Account'}
           {profileOpen ? (
             <ExpandLess
               style={{
@@ -89,15 +90,14 @@ function Navbar() {
             style={{
               position: 'absolute',
               right: 0,
-              width: '229px',
+              minWidth: '100%',
               backgroundColor: '#1F0047',
               border: '2px solid #42008C',
               boxShadow: '0px 10px 30px rgba(0,0,0,0.50)',
               overflow: 'hidden',
             }}
           >
-            {/* SETTINGS */}
-
+            {/* SETTINGS 
             <div
               style={{
                 display: 'flex',
@@ -124,7 +124,7 @@ function Navbar() {
                 }}
               />
               Account Settings
-            </div>
+            </div> */}
 
             {/* LOGOUT */}
 
