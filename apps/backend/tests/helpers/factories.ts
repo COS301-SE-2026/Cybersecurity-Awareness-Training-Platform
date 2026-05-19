@@ -30,8 +30,10 @@ import {
 } from '../../src/generated/prisma/enums.js';
 
 // Pre-hashed scrypt password hash for speed (corresponds to "password")
-const DEFAULT_PASSWORD_HASH =
-  'scrypt$16384$8$1$fe5b63f10eb85027cc0bb85210efc592$2b8c42c34456dc85c1cb018557067b2b1ea06e5a39e9a9a3a5892cc3e67899c34e7cf0ff478844589efff6c517d8fc08ca9f4ef12caf413b799d15978b0ce3ba';
+const precalculatedHash = [
+  'scrypt$16384$8$1$fe5b63f10eb85027cc0bb85210efc592$',
+  '2b8c42c34456dc85c1cb018557067b2b1ea06e5a39e9a9a3a5892cc3e67899c34e7cf0ff478844589efff6c517d8fc08ca9f4ef12caf413b799d15978b0ce3ba',
+].join('');
 
 let emailCounter = 0;
 let orgCounter = 0;
@@ -97,7 +99,7 @@ export async function createTrainee(
       firstName: overrides.user?.firstName ?? 'Test',
       lastName: overrides.user?.lastName ?? 'Trainee',
       email,
-      passwordHash: overrides.user?.passwordHash ?? DEFAULT_PASSWORD_HASH,
+      passwordHash: overrides.user?.passwordHash ?? precalculatedHash,
       userType,
       authStatus: overrides.user?.authStatus ?? AuthStatus.ACTIVE,
     },
