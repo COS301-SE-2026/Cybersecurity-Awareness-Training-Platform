@@ -213,6 +213,20 @@
       "end": "2026-05-20",
       "issues": [
         {
+          "number": 132,
+          "title": "chore: add Demo 1 backend integration test coverage",
+          "points": 5,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 131,
+          "title": "fix: update shared DTOs to be stricter",
+          "points": 3,
+          "state": "open",
+          "closed_date": null
+        },
+        {
           "number": 126,
           "title": "feat: campaign discovery",
           "points": 3,
@@ -470,118 +484,118 @@
   "series": [
     {
       "date": "2026-04-27",
-      "remaining": 183,
-      "ideal": 183.0
+      "remaining": 191,
+      "ideal": 191.0
     },
     {
       "date": "2026-04-28",
-      "remaining": 180,
-      "ideal": 175.04
+      "remaining": 188,
+      "ideal": 182.7
     },
     {
       "date": "2026-04-29",
-      "remaining": 180,
-      "ideal": 167.09
+      "remaining": 188,
+      "ideal": 174.39
     },
     {
       "date": "2026-04-30",
-      "remaining": 169,
-      "ideal": 159.13
+      "remaining": 177,
+      "ideal": 166.09
     },
     {
       "date": "2026-05-01",
-      "remaining": 164,
-      "ideal": 151.17
+      "remaining": 172,
+      "ideal": 157.78
     },
     {
       "date": "2026-05-02",
-      "remaining": 164,
-      "ideal": 143.22
+      "remaining": 172,
+      "ideal": 149.48
     },
     {
       "date": "2026-05-03",
-      "remaining": 158,
-      "ideal": 135.26
+      "remaining": 166,
+      "ideal": 141.17
     },
     {
       "date": "2026-05-04",
-      "remaining": 158,
-      "ideal": 127.3
+      "remaining": 166,
+      "ideal": 132.87
     },
     {
       "date": "2026-05-05",
-      "remaining": 157,
-      "ideal": 119.35
+      "remaining": 165,
+      "ideal": 124.57
     },
     {
       "date": "2026-05-06",
-      "remaining": 157,
-      "ideal": 111.39
+      "remaining": 165,
+      "ideal": 116.26
     },
     {
       "date": "2026-05-07",
-      "remaining": 154,
-      "ideal": 103.43
+      "remaining": 162,
+      "ideal": 107.96
     },
     {
       "date": "2026-05-08",
-      "remaining": 140,
-      "ideal": 95.48
+      "remaining": 148,
+      "ideal": 99.65
     },
     {
       "date": "2026-05-09",
-      "remaining": 124,
-      "ideal": 87.52
+      "remaining": 132,
+      "ideal": 91.35
     },
     {
       "date": "2026-05-10",
-      "remaining": 96,
-      "ideal": 79.57
+      "remaining": 104,
+      "ideal": 83.04
     },
     {
       "date": "2026-05-11",
-      "remaining": 87,
-      "ideal": 71.61
+      "remaining": 95,
+      "ideal": 74.74
     },
     {
       "date": "2026-05-12",
-      "remaining": 75,
-      "ideal": 63.65
+      "remaining": 83,
+      "ideal": 66.43
     },
     {
       "date": "2026-05-13",
-      "remaining": 70,
-      "ideal": 55.7
+      "remaining": 78,
+      "ideal": 58.13
     },
     {
       "date": "2026-05-14",
-      "remaining": 70,
-      "ideal": 47.74
+      "remaining": 78,
+      "ideal": 49.83
     },
     {
       "date": "2026-05-15",
-      "remaining": 69,
-      "ideal": 39.78
+      "remaining": 77,
+      "ideal": 41.52
     },
     {
       "date": "2026-05-16",
-      "remaining": 64,
-      "ideal": 31.83
+      "remaining": 72,
+      "ideal": 33.22
     },
     {
       "date": "2026-05-17",
-      "remaining": 59,
-      "ideal": 23.87
+      "remaining": 67,
+      "ideal": 24.91
     },
     {
       "date": "2026-05-18",
-      "remaining": 38,
-      "ideal": 15.91
+      "remaining": 46,
+      "ideal": 16.61
     },
     {
       "date": "2026-05-19",
-      "remaining": 27,
-      "ideal": 7.96
+      "remaining": 35,
+      "ideal": 8.3
     }
   ]
 }

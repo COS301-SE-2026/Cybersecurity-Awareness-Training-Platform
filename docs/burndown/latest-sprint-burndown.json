@@ -6,6 +6,20 @@
   "end": "2026-05-20",
   "issues": [
     {
+      "number": 132,
+      "title": "chore: add Demo 1 backend integration test coverage",
+      "points": 5,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 131,
+      "title": "fix: update shared DTOs to be stricter",
+      "points": 3,
+      "state": "open",
+      "closed_date": null
+    },
+    {
       "number": 126,
       "title": "feat: campaign discovery",
       "points": 3,
@@ -261,48 +275,48 @@
   "series": [
     {
       "date": "2026-05-11",
-      "remaining": 87,
-      "ideal": 96.0
+      "remaining": 95,
+      "ideal": 104.0
     },
     {
       "date": "2026-05-12",
-      "remaining": 75,
-      "ideal": 85.33
+      "remaining": 83,
+      "ideal": 92.44
     },
     {
       "date": "2026-05-13",
-      "remaining": 70,
-      "ideal": 74.67
+      "remaining": 78,
+      "ideal": 80.89
     },
     {
       "date": "2026-05-14",
-      "remaining": 70,
-      "ideal": 64.0
+      "remaining": 78,
+      "ideal": 69.33
     },
     {
       "date": "2026-05-15",
-      "remaining": 69,
-      "ideal": 53.33
+      "remaining": 77,
+      "ideal": 57.78
     },
     {
       "date": "2026-05-16",
-      "remaining": 64,
-      "ideal": 42.67
+      "remaining": 72,
+      "ideal": 46.22
     },
     {
       "date": "2026-05-17",
-      "remaining": 59,
-      "ideal": 32.0
+      "remaining": 67,
+      "ideal": 34.67
     },
     {
       "date": "2026-05-18",
-      "remaining": 38,
-      "ideal": 21.33
+      "remaining": 46,
+      "ideal": 23.11
     },
     {
       "date": "2026-05-19",
-      "remaining": 27,
-      "ideal": 10.67
+      "remaining": 35,
+      "ideal": 11.56
     }
   ]
 }
