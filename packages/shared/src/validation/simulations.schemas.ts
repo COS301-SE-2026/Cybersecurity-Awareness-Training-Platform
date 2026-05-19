@@ -7,14 +7,18 @@ export const simulatedEmailInteractionEventTypeSchema = z.enum([
   'CREDENTIAL_SUBMISSION_ATTEMPTED',
 ]);
 
-export const getSimulatedEmailRequestParamsSchema = z.object({
-  campaignItemId: idParamSchema,
-  emailId: idParamSchema,
-});
+export const getSimulatedEmailRequestParamsSchema = z
+  .object({
+    campaignItemId: idParamSchema,
+    emailId: idParamSchema,
+  })
+  .strict();
 
-export const getSimulatedInboxRequestParamsSchema = z.object({
-  campaignItemId: idParamSchema,
-});
+export const getSimulatedInboxRequestParamsSchema = z
+  .object({
+    campaignItemId: idParamSchema,
+  })
+  .strict();
 
 export const recordSimulatedEmailInteractionRequestParamsSchema =
   getSimulatedEmailRequestParamsSchema;

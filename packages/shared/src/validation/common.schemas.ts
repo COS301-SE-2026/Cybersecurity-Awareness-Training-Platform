@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const idParamSchema = z.string().uuid();
+export const idParamSchema = z.string().trim().uuid();
 
 export const validationErrorDetailSchema = z.object({
   field: z.string(),

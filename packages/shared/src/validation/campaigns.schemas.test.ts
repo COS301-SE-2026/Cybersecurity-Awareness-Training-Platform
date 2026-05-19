@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { getTraineeCampaignActivityApiPath } from '../campaigns.js';
 import {
   getTraineeCampaignRequestParamsSchema,
+  listTraineeCampaignsRequestSchema,
   traineeCampaignComponentItemSummarySchema,
   traineeCampaignItemRequestParamsSchema,
   traineeCampaignItemSummarySchema,
@@ -23,6 +24,23 @@ describe('campaign validation schemas', () => {
   it('rejects malformed trainee campaign route params', () => {
     const result = getTraineeCampaignRequestParamsSchema.safeParse({
       campaignId: 'not-a-uuid',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects unexpected trainee campaign route params', () => {
+    const result = getTraineeCampaignRequestParamsSchema.safeParse({
+      campaignId,
+      organisationId: '44444444-4444-4444-8444-444444444444',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects list trainee campaign payload fields', () => {
+    const result = listTraineeCampaignsRequestSchema.safeParse({
+      includeArchived: true,
     });
 
     expect(result.success).toBe(false);
