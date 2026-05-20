@@ -4,6 +4,7 @@ import type {
   TrainingInteractionEventTypeDto,
 } from '@insightful-phish/shared';
 import * as TraineeTrainingRepository from '../repositories/trainee-training.repository.js';
+import { resolveContent } from './content-resolver.service.js';
 
 type TrainingCampaignItem = NonNullable<
   Awaited<ReturnType<typeof TraineeTrainingRepository.findTrainingCampaignItemById>>
@@ -70,8 +71,9 @@ function toTrainingDocumentResponse(input: {
     trainingDocument: NonNullable<TrainingCampaignItem['trainingDocument']>;
   };
   campaignAssignment: CampaignAssignment;
+  content: string | null;
 }): GetTrainingDocumentResponseDto {
-  const { campaignItem, campaignAssignment } = input;
+  const { campaignItem, campaignAssignment, content } = input;
   const { trainingDocument } = campaignItem;
 
   return {
@@ -82,6 +84,7 @@ function toTrainingDocumentResponse(input: {
       title: trainingDocument.title,
       contentType: trainingDocument.contentType,
       contentRef: trainingDocument.contentRef,
+      content,
       contentSummary: trainingDocument.contentSummary,
       estimatedReadTimeMinutes: trainingDocument.estimatedReadTimeMinutes,
       difficultyLevel: trainingDocument.difficultyLevel,
@@ -102,10 +105,12 @@ export async function getTrainingDocumentForCampaignItem(
   campaignItemId: string,
 ): Promise<GetTrainingDocumentResponseDto> {
   const access = await resolveTrainingDocumentAccess(userId, campaignItemId);
+  const content = await resolveContent(access.trainingDocument.contentRef);
 
   return toTrainingDocumentResponse({
     campaignItem: access.campaignItem,
     campaignAssignment: access.campaignAssignment,
+    content,
   });
 }
 
