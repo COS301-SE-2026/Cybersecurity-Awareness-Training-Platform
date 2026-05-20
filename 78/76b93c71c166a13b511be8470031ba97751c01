@@ -1,0 +1,25 @@
+packages/shared/src/validation/auth.schemas.test.ts
+  s_4f1d79239641ac::t_e26f3d28f1f13f 44-46,115-118,136-137,147
+  s_4f1d79239641ac::t_e208061bea14fa 13-40,42-43,47-48,77,82-86,88-91,93-97,99-106,109,113-114,119-120,134-135,138-139,145-146,148-149,158,164-168,179
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.10",
+  "base_commit_sha": "7876b93c71c166a13b511be8470031ba97751c01",
+  "prompts": {},
+  "humans": {
+    "h_1fff265ad32c51": {
+      "author": "FJNel <u24594475@tuks.co.za>"
+    }
+  },
+  "sessions": {
+    "s_4f1d79239641ac": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e4215-bbb4-7a01-9ec3-429b31914a8d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
