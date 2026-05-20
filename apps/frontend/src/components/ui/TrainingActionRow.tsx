@@ -1,4 +1,4 @@
-import { ChevronRight, LockOutlined } from '@mui/icons-material';
+import { ChevronRight, LockOutlined, MenuBookSharp, QuizSharp } from '@mui/icons-material';
 
 type TrainingActionRowProps = {
   label: string;
@@ -6,6 +6,7 @@ type TrainingActionRowProps = {
   disabled?: boolean;
   showLockIcon?: boolean;
   large?: boolean;
+  iconType?: 'learn' | 'quiz';
   onClick?: () => void;
 };
 
@@ -15,8 +16,17 @@ function TrainingActionRow({
   disabled = false,
   showLockIcon = false,
   large = false,
+  iconType,
   onClick,
 }: TrainingActionRowProps) {
+  const cleanedLabel = label.replace(/"/g, '');
+
+  const labelParts = cleanedLabel.split(': ');
+
+  const labelPrefix = labelParts[0];
+
+  const labelTitle = labelParts.slice(1).join(': ');
+
   return (
     <div
       onClick={disabled ? undefined : onClick}
@@ -38,34 +48,54 @@ function TrainingActionRow({
           gap: '1rem',
         }}
       >
+        {iconType === 'learn' && (
+          <MenuBookSharp
+            style={{
+              color: disabled ? '#9A7AB8' : '#C98FFF',
+              fontSize: large ? '2rem' : '1.8rem',
+            }}
+          />
+        )}
+        {iconType === 'quiz' && (
+          <QuizSharp
+            style={{
+              color: disabled ? '#9A7AB8' : '#C98FFF',
+              fontSize: large ? '2rem' : '1.8rem',
+            }}
+          />
+        )}
         <div
           style={{
             color: disabled ? '#9A7AB8' : 'white',
             fontFamily: 'Overpass',
             fontSize: large ? '1.8rem' : '1.4rem',
-            fontWeight: 500,
             letterSpacing: '0.08rem',
-            width: '120px',
-            flexShrink: 0,
+            flex: 1,
+            minWidth: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.45rem',
+            flexWrap: 'wrap',
           }}
         >
-          {label}
-        </div>
-
-        {!large && (
-          <div
+          <span
             style={{
-              color: disabled ? '#8E63B3' : '#C98FFF',
-              fontFamily: 'Jost',
-              fontSize: '1rem',
               fontWeight: 500,
-              letterSpacing: '0.08rem',
-              minWidth: '260px',
+              color: disabled ? '#9A7AB8' : 'white',
             }}
           >
-            {status}
-          </div>
-        )}
+            {labelPrefix}:
+          </span>
+
+          <span
+            style={{
+              fontWeight: 400,
+              color: disabled ? '#9A7AB8' : 'white',
+            }}
+          >
+            {labelTitle}
+          </span>
+        </div>
       </div>
 
       <div
@@ -75,19 +105,17 @@ function TrainingActionRow({
           gap: '1rem',
         }}
       >
-        {large && (
-          <div
-            style={{
-              color: disabled ? '#8E63B3' : '#C98FFF',
-              fontFamily: 'Jost',
-              fontSize: '1rem',
-              fontWeight: 500,
-              letterSpacing: '0.08rem',
-            }}
-          >
-            {status}
-          </div>
-        )}
+        <div
+          style={{
+            color: disabled ? '#8E63B3' : '#C98FFF',
+            fontFamily: 'Jost',
+            fontSize: '1rem',
+            fontWeight: 500,
+            letterSpacing: '0.08rem',
+          }}
+        >
+          {status}
+        </div>
         {showLockIcon ? (
           <LockOutlined
             style={{

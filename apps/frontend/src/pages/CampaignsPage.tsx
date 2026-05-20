@@ -74,6 +74,7 @@ function renderCampaignItems(
           status={formatCampaignStatus(item.progressStatus)}
           disabled={disabled}
           showLockIcon={disabled}
+          iconType="learn"
           onClick={disabled ? undefined : () => navigate(item.activityApiPath)}
         />
       );
@@ -87,6 +88,7 @@ function renderCampaignItems(
           status={formatCampaignStatus(item.progressStatus)}
           disabled={disabled}
           showLockIcon={disabled}
+          iconType="quiz"
           onClick={disabled ? undefined : () => navigate(item.activityApiPath)}
         />
       );
