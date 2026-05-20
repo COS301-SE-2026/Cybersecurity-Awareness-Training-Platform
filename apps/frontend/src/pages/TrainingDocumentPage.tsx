@@ -12,6 +12,7 @@ import {
 
 export default function TrainingDocumentPage() {
   const { campaignItemId } = useParams<{ campaignItemId: string }>();
+  const missingCampaignItemId = !campaignItemId;
 
   const [documentResponse, setDocumentResponse] = useState<GetTrainingDocumentResponseDto | null>(
     null,
@@ -25,22 +26,22 @@ export default function TrainingDocumentPage() {
   const viewedRecordedRef = useRef(false);
 
   useEffect(() => {
-    if (!campaignItemId) {
-      setErrorMessage('Campaign item ID is missing.');
-      setIsLoading(false);
+    const currentCampaignItemId = campaignItemId;
+
+    if (!currentCampaignItemId) {
       return;
     }
 
     let isMounted = true;
 
-    async function loadTrainingDocument() {
+    async function loadTrainingDocument(campaignItemIdToLoad: string) {
       try {
         setIsLoading(true);
         setErrorMessage(null);
         setCompleted(false);
         setCompletionError(null);
 
-        const response = await getCampaignItemTrainingDocument(campaignItemId);
+        const response = await getCampaignItemTrainingDocument(campaignItemIdToLoad);
 
         if (isMounted) {
           setDocumentResponse(response);
@@ -57,7 +58,7 @@ export default function TrainingDocumentPage() {
     }
 
     viewedRecordedRef.current = false;
-    void loadTrainingDocument();
+    void loadTrainingDocument(currentCampaignItemId);
 
     return () => {
       isMounted = false;
@@ -80,6 +81,7 @@ export default function TrainingDocumentPage() {
     () => resolveDemoTrainingContent(documentResponse?.trainingDocument.contentRef),
     [documentResponse],
   );
+  const pageErrorMessage = missingCampaignItemId ? 'Campaign item ID is missing.' : errorMessage;
 
   async function handleComplete() {
     if (!campaignItemId) {
@@ -120,11 +122,11 @@ export default function TrainingDocumentPage() {
           ← Back to campaigns
         </Link>
 
-        {isLoading ? (
+        {!missingCampaignItemId && isLoading ? (
           <p style={pageMessageStyle}>Loading training document...</p>
-        ) : errorMessage || !documentResponse ? (
+        ) : pageErrorMessage || !documentResponse ? (
           <div role="alert" style={pageAlertStyle}>
-            <p style={{ margin: 0 }}>{errorMessage ?? 'Training document was not found.'}</p>
+            <p style={{ margin: 0 }}>{pageErrorMessage ?? 'Training document was not found.'}</p>
           </div>
         ) : (
           <>
