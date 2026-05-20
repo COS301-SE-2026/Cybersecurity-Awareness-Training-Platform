@@ -9,7 +9,6 @@ import type {
 import AppLayout from '../components/layout/AppLayout';
 import CampaignAccordion from '../components/ui/CampaignAccordion';
 import TrainingActionRow from '../components/ui/TrainingActionRow';
-import CampaignActionRow from '../components/ui/CampaignActionRow';
 import TrainingPartAccordion from '../components/ui/TrainingPartAccordion';
 
 import { useAuth } from '../context/useAuth';
@@ -96,12 +95,13 @@ function renderCampaignItems(
 
     if (item.componentType === 'SIMULATED_INBOX') {
       return (
-        <CampaignActionRow
+        <TrainingActionRow
           key={item.campaignItemId}
-          title={toTitleCase(item.title)}
+          label={`Simulation: ${toTitleCase(item.title)}`}
           status={formatCampaignStatus(item.progressStatus)}
           disabled={disabled}
           showLockIcon={disabled}
+          iconType="simulation"
           onClick={disabled ? undefined : () => navigate(item.activityApiPath)}
         />
       );

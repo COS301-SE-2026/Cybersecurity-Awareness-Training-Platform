@@ -1,4 +1,10 @@
-import { ChevronRight, LockOutlined, MenuBookSharp, QuizSharp } from '@mui/icons-material';
+import {
+  ChevronRight,
+  LockOutlined,
+  MenuBookSharp,
+  QuizSharp,
+  GamepadSharp,
+} from '@mui/icons-material';
 
 type TrainingActionRowProps = {
   label: string;
@@ -6,7 +12,7 @@ type TrainingActionRowProps = {
   disabled?: boolean;
   showLockIcon?: boolean;
   large?: boolean;
-  iconType?: 'learn' | 'quiz';
+  iconType?: 'learn' | 'quiz' | 'simulation';
   onClick?: () => void;
 };
 
@@ -58,6 +64,14 @@ function TrainingActionRow({
         )}
         {iconType === 'quiz' && (
           <QuizSharp
+            style={{
+              color: disabled ? '#9A7AB8' : '#C98FFF',
+              fontSize: large ? '2rem' : '1.8rem',
+            }}
+          />
+        )}
+        {iconType === 'simulation' && (
+          <GamepadSharp
             style={{
               color: disabled ? '#9A7AB8' : '#C98FFF',
               fontSize: large ? '2rem' : '1.8rem',
