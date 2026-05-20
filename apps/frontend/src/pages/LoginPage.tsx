@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AuthActionLink,
@@ -9,8 +10,11 @@ import {
 import { authFormStyle, authPrimaryButtonStyle } from '../components/auth/authStyles';
 import { useAuth } from '../context/useAuth';
 
+import { authLoginRequestSchema } from '@insightful-phish/shared';
+
 function LoginPage() {
   const navigate = useNavigate();
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
   const { login } = useAuth();
 
@@ -22,36 +26,65 @@ function LoginPage() {
 
   const [loginMessage, setLoginMessage] = useState('');
 
-  function handleLogin(event: React.FormEvent) {
+  async function handleLogin(event: FormEvent) {
     event.preventDefault();
 
     setEmailError('');
     setPasswordError('');
     setLoginMessage('');
 
-    let valid = true;
+    const validationResult = authLoginRequestSchema.safeParse({
+      email,
+      password,
+    });
 
-    if (!email.trim() || !email.includes('@')) {
-      setEmailError('PLEASE ENTER A VALID EMAIL ADDRESS');
+    if (!validationResult.success) {
+      const issue = validationResult.error.issues[0];
 
-      valid = false;
-    }
+      if (issue?.path.includes('email')) {
+        setEmailError(issue.message);
+      } else if (issue?.path.includes('password')) {
+        setPasswordError(issue.message);
+      }
 
-    if (!password.trim()) {
-      setPasswordError('PLEASE ENTER YOUR PASSWORD');
-
-      valid = false;
-    }
-
-    if (!valid) {
       return;
     }
 
-    setLoginMessage('LOGGING IN...');
+    try {
+      setLoginMessage('LOGGING IN...');
 
-    login();
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(validationResult.data),
+      });
 
-    navigate('/campaigns');
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          setLoginMessage('INVALID EMAIL OR PASSWORD');
+
+          return;
+        }
+
+        setLoginMessage(data.message || 'LOGIN FAILED');
+
+        return;
+      }
+
+      login(data.token, {
+        firstName: data.user.firstName,
+        lastName: data.user.lastName,
+        email: data.user.email,
+      });
+
+      navigate('/campaigns');
+    } catch {
+      setLoginMessage('UNABLE TO CONNECT TO SERVER');
+    }
   }
 
   return (
@@ -111,6 +144,7 @@ function LoginPage() {
                 height: '56px',
                 fontSize: '1.7rem',
                 marginBottom: '1rem',
+                cursor: 'pointer',
               }}
             >
               LOGIN

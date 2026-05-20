@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { SimulationController } from '../controllers/simulation.controller.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { validateBody, validateParams } from '../middleware/validateRequest.js';
+import { traineeCampaignRouter } from './trainee-campaign.routes.js';
 import {
   classifySimulatedEmailRequestSchema,
   recordSimulatedEmailInteractionRequestSchema,
@@ -18,6 +19,7 @@ const simulationController = new SimulationController();
 
 // Apply rate limiting to all trainee routes
 router.use(apiRateLimit);
+router.use(traineeCampaignRouter);
 
 // Simulated Inbox
 /**
