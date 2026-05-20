@@ -7,6 +7,8 @@ import {
   DEMO_SEED_CAMPAIGN_ITEMS,
   DEMO_SEED_CREDENTIALS,
   DEMO_SEED_IDS,
+  DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN,
+  DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN_ASSIGNMENT,
   DEMO_SEED_QUIZZES,
   DEMO_SEED_SIMULATED_EMAILS,
   DEMO_SEED_SIMULATED_INBOX,
@@ -51,6 +53,12 @@ const DEMO_USER_EMAILS = Object.values(DEMO_SEED_CREDENTIALS).map(
 );
 const DEMO_TRAINEE_PROFILE_IDS = Object.values(DEMO_SEED_IDS.traineeProfiles);
 const DEMO_GENERAL_TRAINEE_PROFILE_IDS = Object.values(DEMO_SEED_IDS.generalTraineeProfiles);
+const DEMO_CAMPAIGN_IDS = [
+  DEMO_SEED_IDS.campaign,
+  DEMO_SEED_IDS.campaignB,
+  DEMO_SEED_IDS.passwordSecurityCampaign,
+];
+const DEMO_CAMPAIGN_ASSIGNMENT_IDS = Object.values(DEMO_SEED_IDS.campaignAssignments);
 const DEMO_CAMPAIGN_ITEM_IDS = Object.values(DEMO_SEED_IDS.campaignItems);
 const DEMO_TRAINING_DOCUMENT_IDS = Object.values(DEMO_SEED_IDS.trainingDocuments);
 const DEMO_QUIZ_IDS = Object.values(DEMO_SEED_IDS.quizzes);
@@ -127,33 +135,20 @@ export function buildDemoSeedSummary(): DemoSeedSummary {
 async function deleteDemoCore(tx: DemoSeedTransaction): Promise<void> {
   await tx.campaignAssignment.deleteMany({
     where: {
-      OR: [
-        { id: DEMO_SEED_IDS.campaignAssignments.populatedTrainee },
-        { campaignId: DEMO_SEED_IDS.campaign },
-        { campaignId: DEMO_SEED_IDS.campaignB },
-        {
-          traineeProfileId: {
-            in: DEMO_TRAINEE_PROFILE_IDS,
-          },
-        },
-      ],
+      OR: [{ id: { in: DEMO_CAMPAIGN_ASSIGNMENT_IDS } }, { campaignId: { in: DEMO_CAMPAIGN_IDS } }],
     },
   });
 
   await tx.campaignItem.deleteMany({
     where: {
-      OR: [
-        { id: { in: DEMO_CAMPAIGN_ITEM_IDS } },
-        { campaignId: DEMO_SEED_IDS.campaign },
-        { campaignId: DEMO_SEED_IDS.campaignB },
-      ],
+      OR: [{ id: { in: DEMO_CAMPAIGN_ITEM_IDS } }, { campaignId: { in: DEMO_CAMPAIGN_IDS } }],
     },
   });
 
   await tx.campaign.deleteMany({
     where: {
       id: {
-        in: [DEMO_SEED_IDS.campaign, DEMO_SEED_IDS.campaignB],
+        in: DEMO_CAMPAIGN_IDS,
       },
     },
   });
@@ -326,6 +321,9 @@ async function createDemoCampaign(tx: DemoSeedTransaction): Promise<void> {
   await tx.campaign.create({
     data: DEMO_SEED_CAMPAIGN_B,
   });
+  await tx.campaign.create({
+    data: DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN,
+  });
 }
 
 async function createDemoContent(tx: DemoSeedTransaction): Promise<void> {
@@ -426,5 +424,8 @@ async function createDemoCampaignItems(tx: DemoSeedTransaction): Promise<void> {
 async function createDemoCampaignAssignment(tx: DemoSeedTransaction): Promise<void> {
   await tx.campaignAssignment.create({
     data: DEMO_SEED_CAMPAIGN_ASSIGNMENT,
+  });
+  await tx.campaignAssignment.create({
+    data: DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN_ASSIGNMENT,
   });
 }

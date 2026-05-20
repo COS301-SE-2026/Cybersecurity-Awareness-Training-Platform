@@ -254,6 +254,7 @@ describe('demo seed helpers', () => {
       uniquePasswordValueQuestion: DEMO_SEED_IDS.quizQuestions.uniquePasswordValue,
       passphraseStrengthQuestion: DEMO_SEED_IDS.quizQuestions.passphraseStrength,
       breachResponseQuestion: DEMO_SEED_IDS.quizQuestions.breachResponse,
+      passwordMfaQuestion: DEMO_SEED_IDS.quizQuestions.passwordMfa,
       passwordManagerPurposeA: DEMO_SEED_IDS.answerOptions.passwordManagerPurposeA,
       passwordManagerPurposeB: DEMO_SEED_IDS.answerOptions.passwordManagerPurposeB,
       passwordManagerPurposeC: DEMO_SEED_IDS.answerOptions.passwordManagerPurposeC,
@@ -266,6 +267,9 @@ describe('demo seed helpers', () => {
       breachResponseA: DEMO_SEED_IDS.answerOptions.breachResponseA,
       breachResponseB: DEMO_SEED_IDS.answerOptions.breachResponseB,
       breachResponseC: DEMO_SEED_IDS.answerOptions.breachResponseC,
+      passwordMfaA: DEMO_SEED_IDS.answerOptions.passwordMfaA,
+      passwordMfaB: DEMO_SEED_IDS.answerOptions.passwordMfaB,
+      passwordMfaC: DEMO_SEED_IDS.answerOptions.passwordMfaC,
     });
   });
 
@@ -294,7 +298,7 @@ describe('demo seed helpers', () => {
       difficultyLevel: 'BEGINNER',
       status: 'PUBLISHED',
     });
-    expect(DEMO_SEED_PASSWORD_SECURITY_QUIZ.questions.length).toBeGreaterThanOrEqual(4);
+    expect(DEMO_SEED_PASSWORD_SECURITY_QUIZ.questions.length).toBeGreaterThanOrEqual(5);
 
     for (const question of DEMO_SEED_PASSWORD_SECURITY_QUIZ.questions) {
       expect(question.questionType).toBe('SINGLE_CHOICE');
@@ -318,12 +322,16 @@ describe('demo seed helpers', () => {
       traineeProfileId: DEMO_SEED_IDS.traineeProfiles.populated,
       currentCampaignItemId: DEMO_SEED_IDS.campaignItems.passwordSecurityTrainingDocument,
     });
+    expect(DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN_ASSIGNMENT.traineeProfileId).not.toBe(
+      DEMO_SEED_IDS.traineeProfiles.emptyState,
+    );
     expect(DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN_ITEMS).toHaveLength(2);
     expect(DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN_ITEMS[0]).toMatchObject({
       id: DEMO_SEED_IDS.campaignItems.passwordSecurityTrainingDocument,
       campaignId: DEMO_SEED_IDS.passwordSecurityCampaign,
       componentType: 'TRAINING_DOCUMENT',
       position: 100,
+      availabilityStatus: 'AVAILABLE',
       trainingDocumentId: DEMO_SEED_IDS.trainingDocuments.passwordSecurity,
     });
     expect(DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN_ITEMS[1]).toMatchObject({
@@ -331,6 +339,7 @@ describe('demo seed helpers', () => {
       campaignId: DEMO_SEED_IDS.passwordSecurityCampaign,
       componentType: 'QUIZ',
       position: 200,
+      availabilityStatus: 'LOCKED',
       quizId: DEMO_SEED_IDS.quizzes.passwordSecurity,
     });
   });

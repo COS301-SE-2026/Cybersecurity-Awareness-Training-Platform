@@ -90,6 +90,7 @@ export const DEMO_SEED_IDS = {
     uniquePasswordValue: '55555555-5555-4555-8555-555555555572',
     passphraseStrength: '55555555-5555-4555-8555-555555555573',
     breachResponse: '55555555-5555-4555-8555-555555555574',
+    passwordMfa: '55555555-5555-4555-8555-555555555575',
   },
   answerOptions: {
     spoofedSenderA: '55555555-5555-4555-8555-555555555601',
@@ -134,6 +135,9 @@ export const DEMO_SEED_IDS = {
     breachResponseA: '55555555-5555-4555-8555-555555555640',
     breachResponseB: '55555555-5555-4555-8555-555555555641',
     breachResponseC: '55555555-5555-4555-8555-555555555642',
+    passwordMfaA: '55555555-5555-4555-8555-555555555643',
+    passwordMfaB: '55555555-5555-4555-8555-555555555644',
+    passwordMfaC: '55555555-5555-4555-8555-555555555645',
   },
   simulation: '66666666-6666-4666-8666-666666666661',
   simulatedInbox: '66666666-6666-4666-8666-666666666662',
@@ -443,6 +447,46 @@ export const DEMO_SEED_PASSWORD_SECURITY_QUIZ = {
         ),
       ],
     },
+    {
+      id: DEMO_SEED_IDS.quizQuestions.passwordMfa,
+      prompt: 'How does MFA help protect an account password?',
+      questionType: QuestionType.SINGLE_CHOICE,
+      position: demoPosition(4),
+      points: 1,
+      shuffleOptions: false,
+      answerOptions: [
+        buildAnswerOptionSeed(
+          {
+            id: DEMO_SEED_IDS.answerOptions.passwordMfaA,
+            label: 'A',
+            text: 'It adds another check if a password is stolen.',
+            isCorrect: true,
+            feedbackText: 'MFA can block access even when an attacker knows the password.',
+          },
+          0,
+        ),
+        buildAnswerOptionSeed(
+          {
+            id: DEMO_SEED_IDS.answerOptions.passwordMfaB,
+            label: 'B',
+            text: 'It makes weak passwords safe to reuse.',
+            isCorrect: false,
+            feedbackText: 'MFA helps, but passwords should still be strong and unique.',
+          },
+          1,
+        ),
+        buildAnswerOptionSeed(
+          {
+            id: DEMO_SEED_IDS.answerOptions.passwordMfaC,
+            label: 'C',
+            text: 'It lets you approve every prompt automatically.',
+            isCorrect: false,
+            feedbackText: 'Unexpected prompts should be denied and reported.',
+          },
+          2,
+        ),
+      ],
+    },
   ],
 } as const;
 
@@ -468,7 +512,7 @@ export const DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN_ITEMS = [
     description: 'Answer the password security basics quiz.',
     position: demoPosition(1),
     isRequired: true,
-    availabilityStatus: CampaignItemAvailabilityStatus.AVAILABLE,
+    availabilityStatus: CampaignItemAvailabilityStatus.LOCKED,
     quizId: DEMO_SEED_IDS.quizzes.passwordSecurity,
   },
 ] as const;
@@ -498,6 +542,7 @@ export const DEMO_SEED_TRAINING_DOCUMENTS = [
     difficultyLevel: DifficultyLevel.BEGINNER,
     status: TrainingDocumentStatus.AVAILABLE,
   },
+  DEMO_SEED_PASSWORD_SECURITY_TRAINING_DOCUMENT,
 ] as const;
 
 export const DEMO_SEED_QUIZZES = [
@@ -926,6 +971,7 @@ export const DEMO_SEED_QUIZZES = [
       },
     ],
   },
+  DEMO_SEED_PASSWORD_SECURITY_QUIZ,
 ] as const;
 
 export const DEMO_SEED_SIMULATION = {
@@ -1133,4 +1179,7 @@ export const DEMO_SEED_CAMPAIGN_ITEMS = [
     availabilityStatus: CampaignItemAvailabilityStatus.AVAILABLE,
     trainingDocumentId: DEMO_SEED_IDS.trainingDocuments.safeLinkHandling,
   },
+
+  // Password Security Campaign
+  ...DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN_ITEMS,
 ] as const;
