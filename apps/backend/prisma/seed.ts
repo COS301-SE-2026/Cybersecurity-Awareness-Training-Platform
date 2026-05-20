@@ -17,9 +17,14 @@ function printDemoSeedSummary(summary: DemoSeedSummary): void {
 
   console.log(`Demo-only password source: ${getDemoSeedAuthEnvVarName()}`);
   console.log('No password hashes printed.');
-  console.log(
-    `Campaign: ${summary.campaign.name}, items: ${summary.campaign.itemCount}, assigned trainee: ${summary.campaign.assignedTraineeEmail}`,
-  );
+  console.log('Seeded assigned campaigns:');
+  for (const campaign of summary.assignedCampaigns) {
+    const lockedItemNote =
+      campaign.lockedItemCount > 0 ? `, locked items: ${campaign.lockedItemCount}` : '';
+    console.log(
+      `- ${campaign.name} (${campaign.id}), assignment: ${campaign.assignmentId}, items: ${campaign.itemCount}${lockedItemNote}, assigned trainee: ${campaign.assignedTraineeEmail}`,
+    );
+  }
   console.log(
     `Content: ${summary.content.trainingDocumentCount} training documents, ${summary.content.quizCount} quizzes, ${summary.content.quizQuestionCount} questions, ${summary.content.answerOptionCount} answer options, ${summary.content.simulatedEmailCount} simulated emails, ${summary.content.redFlagCount} red flags.`,
   );

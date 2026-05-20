@@ -11,7 +11,7 @@ Insightful Phish is a `pnpm workspace` monorepo with:
 - Prisma 7 for database schema management
 - Husky, lint-staged, and commitlint for local Git quality checks
 
-The local setup path applies the current committed database migrations and can seed repeatable Demo 1 data using the modular campaign model. Demo 1 data is campaign-based: trainees access seeded campaign items for simulated inbox, training document, and quiz flows where the current app and APIs support them.
+The local setup path applies the current committed database migrations and can seed repeatable Demo 1 data using the modular campaign model. Demo 1 data is campaign-based: trainees access seeded campaign items for simulated inbox, training document, and quiz flows where the current app and APIs support them. The populated trainee has seeded phishing awareness and password security campaigns, while the empty-state trainee remains unassigned.
 
 ## 1. Required tools
 
@@ -536,6 +536,13 @@ demo.admin@example.com
 
 All three use the password supplied through `DEMO_SEED_PASSWORD`.
 
+The populated trainee is assigned to two active seeded campaigns:
+
+- phishing awareness
+- password security
+
+The password security campaign is a simple sequence with an available training document followed by a statically locked quiz. Training completion records interaction data but does not unlock the quiz, because dynamic unlock logic is out of scope for this seed.
+
 Only run the Demo 1 seed against a local development database.
 
 ## 10. Run the backend
@@ -636,6 +643,7 @@ Before a local Demo 1 rehearsal, verify:
 - The backend responds at `http://localhost:4000/health`.
 - The frontend starts at `http://localhost:5173`.
 - `demo.populated.trainee@example.com` can log in with the local `DEMO_SEED_PASSWORD`.
+- The populated trainee can see both seeded campaigns where campaign discovery is supported.
 - `demo.empty.trainee@example.com` can log in and show the intended empty state where the current frontend supports it.
 - Seeded campaign-based content is reachable through the current app or APIs where implemented.
 - If UI/API verification is not wired yet, use Prisma Studio to inspect `Campaign`, `CampaignItem`, `CampaignAssignment`, `Simulation`, and `SimulatedInbox`.

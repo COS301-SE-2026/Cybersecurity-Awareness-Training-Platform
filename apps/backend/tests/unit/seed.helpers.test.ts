@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import { buildDemoSeedSummary } from '../../prisma/seed-data/demoSeedCore.js';
 import {
   assertDemoSeedRuntimeIsSafe,
   assertDemoSeedIdsAreUuids,
@@ -12,7 +13,14 @@ import {
   normaliseDemoEmail,
 } from '../../prisma/seed-data/demoSeedHelpers.js';
 import {
+  DEMO_SEED_CAMPAIGN_ASSIGNMENT,
   DEMO_SEED_CAMPAIGN_ITEMS,
+  DEMO_SEED_IDS,
+  DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN,
+  DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN_ASSIGNMENT,
+  DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN_ITEMS,
+  DEMO_SEED_PASSWORD_SECURITY_QUIZ,
+  DEMO_SEED_PASSWORD_SECURITY_TRAINING_DOCUMENT,
   DEMO_SEED_QUIZZES,
   DEMO_SEED_SIMULATED_EMAILS,
 } from '../../prisma/seed-data/demoSeedConfig.js';
@@ -234,5 +242,178 @@ describe('demo seed helpers', () => {
     expect(hasTrainingLink).toBe(true);
     expect(hasQuizLink).toBe(true);
     expect(hasSimulationLink).toBe(true);
+  });
+
+  it('defines stable UUID-like IDs for the password security campaign content', () => {
+    assertDemoSeedIdsAreUuids({
+      passwordSecurityCampaign: DEMO_SEED_IDS.passwordSecurityCampaign,
+      passwordSecurityCampaignAssignment: DEMO_SEED_IDS.campaignAssignments.passwordSecurity,
+      passwordSecurityTrainingDocument: DEMO_SEED_IDS.trainingDocuments.passwordSecurity,
+      passwordSecurityQuiz: DEMO_SEED_IDS.quizzes.passwordSecurity,
+      passwordSecurityTrainingItem: DEMO_SEED_IDS.campaignItems.passwordSecurityTrainingDocument,
+      passwordSecurityQuizItem: DEMO_SEED_IDS.campaignItems.passwordSecurityQuiz,
+      passwordManagerPurposeQuestion: DEMO_SEED_IDS.quizQuestions.passwordManagerPurpose,
+      uniquePasswordValueQuestion: DEMO_SEED_IDS.quizQuestions.uniquePasswordValue,
+      passphraseStrengthQuestion: DEMO_SEED_IDS.quizQuestions.passphraseStrength,
+      breachResponseQuestion: DEMO_SEED_IDS.quizQuestions.breachResponse,
+      passwordMfaQuestion: DEMO_SEED_IDS.quizQuestions.passwordMfa,
+      passwordManagerPurposeA: DEMO_SEED_IDS.answerOptions.passwordManagerPurposeA,
+      passwordManagerPurposeB: DEMO_SEED_IDS.answerOptions.passwordManagerPurposeB,
+      passwordManagerPurposeC: DEMO_SEED_IDS.answerOptions.passwordManagerPurposeC,
+      uniquePasswordValueA: DEMO_SEED_IDS.answerOptions.uniquePasswordValueA,
+      uniquePasswordValueB: DEMO_SEED_IDS.answerOptions.uniquePasswordValueB,
+      uniquePasswordValueC: DEMO_SEED_IDS.answerOptions.uniquePasswordValueC,
+      passphraseStrengthA: DEMO_SEED_IDS.answerOptions.passphraseStrengthA,
+      passphraseStrengthB: DEMO_SEED_IDS.answerOptions.passphraseStrengthB,
+      passphraseStrengthC: DEMO_SEED_IDS.answerOptions.passphraseStrengthC,
+      breachResponseA: DEMO_SEED_IDS.answerOptions.breachResponseA,
+      breachResponseB: DEMO_SEED_IDS.answerOptions.breachResponseB,
+      breachResponseC: DEMO_SEED_IDS.answerOptions.breachResponseC,
+      passwordMfaA: DEMO_SEED_IDS.answerOptions.passwordMfaA,
+      passwordMfaB: DEMO_SEED_IDS.answerOptions.passwordMfaB,
+      passwordMfaC: DEMO_SEED_IDS.answerOptions.passwordMfaC,
+    });
+  });
+
+  it('defines valid password security training metadata without inline body content', () => {
+    expect(DEMO_SEED_PASSWORD_SECURITY_TRAINING_DOCUMENT).toMatchObject({
+      id: DEMO_SEED_IDS.trainingDocuments.passwordSecurity,
+      createdByUserId: DEMO_SEED_IDS.users.admin,
+      title: 'Password Security Basics',
+      contentType: 'HTML',
+      contentRef: 'demo://training/password-security-basics',
+      difficultyLevel: 'BEGINNER',
+      status: 'AVAILABLE',
+    });
+    expect(DEMO_SEED_PASSWORD_SECURITY_TRAINING_DOCUMENT.contentSummary).toContain('password');
+    expect(DEMO_SEED_PASSWORD_SECURITY_TRAINING_DOCUMENT.estimatedReadTimeMinutes).toBeGreaterThan(
+      0,
+    );
+    expect(DEMO_SEED_PASSWORD_SECURITY_TRAINING_DOCUMENT).not.toHaveProperty('contentMarkdown');
+  });
+
+  it('defines a published password security quiz with feedback and one correct answer per question', () => {
+    expect(DEMO_SEED_PASSWORD_SECURITY_QUIZ).toMatchObject({
+      id: DEMO_SEED_IDS.quizzes.passwordSecurity,
+      createdByUserId: DEMO_SEED_IDS.users.admin,
+      title: 'Password Security Basics Check',
+      difficultyLevel: 'BEGINNER',
+      status: 'PUBLISHED',
+    });
+    expect(DEMO_SEED_PASSWORD_SECURITY_QUIZ.questions.length).toBeGreaterThanOrEqual(5);
+
+    for (const question of DEMO_SEED_PASSWORD_SECURITY_QUIZ.questions) {
+      expect(question.questionType).toBe('SINGLE_CHOICE');
+      expect(question.answerOptions.length).toBeGreaterThanOrEqual(3);
+      expect(question.answerOptions.filter((option) => option.isCorrect)).toHaveLength(1);
+      expect(question.answerOptions.every((option) => option.feedbackText)).toBe(true);
+    }
+  });
+
+  it('defines password security campaign constants as a simple training then quiz path', () => {
+    expect(DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN).toMatchObject({
+      id: DEMO_SEED_IDS.passwordSecurityCampaign,
+      createdByUserId: DEMO_SEED_IDS.users.admin,
+      name: 'Demo 1 Password Security',
+      campaignType: 'PREMADE_GENERAL',
+      status: 'ACTIVE',
+    });
+    expect(DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN_ASSIGNMENT).toMatchObject({
+      id: DEMO_SEED_IDS.campaignAssignments.passwordSecurity,
+      campaignId: DEMO_SEED_IDS.passwordSecurityCampaign,
+      traineeProfileId: DEMO_SEED_IDS.traineeProfiles.populated,
+      currentCampaignItemId: DEMO_SEED_IDS.campaignItems.passwordSecurityTrainingDocument,
+    });
+    expect(DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN_ASSIGNMENT.traineeProfileId).not.toBe(
+      DEMO_SEED_IDS.traineeProfiles.emptyState,
+    );
+    expect(DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN_ITEMS).toHaveLength(2);
+    expect(DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN_ITEMS[0]).toMatchObject({
+      id: DEMO_SEED_IDS.campaignItems.passwordSecurityTrainingDocument,
+      campaignId: DEMO_SEED_IDS.passwordSecurityCampaign,
+      componentType: 'TRAINING_DOCUMENT',
+      position: 100,
+      availabilityStatus: 'AVAILABLE',
+      trainingDocumentId: DEMO_SEED_IDS.trainingDocuments.passwordSecurity,
+    });
+    expect(DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN_ITEMS[1]).toMatchObject({
+      id: DEMO_SEED_IDS.campaignItems.passwordSecurityQuiz,
+      campaignId: DEMO_SEED_IDS.passwordSecurityCampaign,
+      componentType: 'QUIZ',
+      position: 200,
+      availabilityStatus: 'LOCKED',
+      quizId: DEMO_SEED_IDS.quizzes.passwordSecurity,
+    });
+  });
+
+  it('includes the password security content in the wired Demo 1 seed arrays', () => {
+    expect(DEMO_SEED_QUIZZES.map((quiz) => quiz.id)).toContain(
+      DEMO_SEED_IDS.quizzes.passwordSecurity,
+    );
+    expect(DEMO_SEED_CAMPAIGN_ITEMS.map((item) => item.id)).toEqual(
+      expect.arrayContaining([
+        DEMO_SEED_IDS.campaignItems.passwordSecurityTrainingDocument,
+        DEMO_SEED_IDS.campaignItems.passwordSecurityQuiz,
+      ]),
+    );
+  });
+
+  it('assigns only the populated trainee to both Demo 1 seeded campaigns', () => {
+    const seededAssignments: ReadonlyArray<{ campaignId: string; traineeProfileId: string }> = [
+      DEMO_SEED_CAMPAIGN_ASSIGNMENT,
+      DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN_ASSIGNMENT,
+    ];
+
+    expect(seededAssignments).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          campaignId: DEMO_SEED_IDS.campaign,
+          traineeProfileId: DEMO_SEED_IDS.traineeProfiles.populated,
+        }),
+        expect.objectContaining({
+          campaignId: DEMO_SEED_IDS.passwordSecurityCampaign,
+          traineeProfileId: DEMO_SEED_IDS.traineeProfiles.populated,
+        }),
+      ]),
+    );
+    expect(
+      seededAssignments.some(
+        (assignment) => assignment.traineeProfileId === DEMO_SEED_IDS.traineeProfiles.emptyState,
+      ),
+    ).toBe(false);
+  });
+
+  it('builds a plural seed summary for both assigned Demo 1 campaigns', () => {
+    const summary = buildDemoSeedSummary();
+
+    expect(summary).not.toHaveProperty('campaign');
+    expect(summary.assignedCampaigns).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: DEMO_SEED_IDS.campaign,
+          name: 'Demo 1 Phishing Awareness',
+          assignmentId: DEMO_SEED_IDS.campaignAssignments.populatedTrainee,
+          assignedTraineeEmail: 'demo.populated.trainee@example.com',
+        }),
+        expect.objectContaining({
+          id: DEMO_SEED_IDS.passwordSecurityCampaign,
+          name: 'Demo 1 Password Security',
+          assignmentId: DEMO_SEED_IDS.campaignAssignments.passwordSecurity,
+          assignedTraineeEmail: 'demo.populated.trainee@example.com',
+          itemCount: 2,
+          lockedItemCount: 1,
+        }),
+      ]),
+    );
+    expect(summary.assignedCampaigns).toHaveLength(2);
+  });
+
+  it('keeps password values and hashes out of the seed summary', () => {
+    const serializedSummary = JSON.stringify(buildDemoSeedSummary());
+
+    expect(serializedSummary).not.toContain(getDemoSeedAuthEnvVarName());
+    expect(serializedSummary).not.toContain('DEMO_SEED_PASSWORD');
+    expect(serializedSummary).not.toContain('scrypt$');
+    expect(serializedSummary).not.toContain('passwordHash');
   });
 });
