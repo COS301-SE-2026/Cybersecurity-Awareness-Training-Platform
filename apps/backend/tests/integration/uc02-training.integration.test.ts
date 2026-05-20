@@ -1,4 +1,6 @@
 import request from 'supertest';
+import { readFile, rename } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../../src/app.js';
 import { prisma } from '../../src/lib/prisma.js';
@@ -13,10 +15,12 @@ import {
   CampaignStatus,
   TrainingDocumentStatus,
   CampaignComponentType,
+  TrainingContentType,
 } from '../../src/generated/prisma/enums.js';
 
 describe('UC-02 Training Document Integration Tests', () => {
   let token: string;
+  let campaignId: string;
   let campaignItemId: string;
   let campaignAssignmentId: string;
   let traineeProfileId: string;
@@ -24,6 +28,7 @@ describe('UC-02 Training Document Integration Tests', () => {
   let trainingDocTitle: string;
   let trainingDocContentType: any;
   let trainingDocContentRef: string;
+  let trainingDocContent: string;
   let trainingDocContentSummary: string | null;
   let trainingDocEstimatedReadTimeMinutes: number | null;
   let trainingDocDifficultyLevel: any;
@@ -34,7 +39,13 @@ describe('UC-02 Training Document Integration Tests', () => {
   let campaignItemIsRequired: boolean;
   let campaignItemAvailabilityStatus: any;
 
+  const phishingContentUrl = new URL(
+    '../../src/content/training/phishing-warning-signs.md',
+    import.meta.url,
+  );
+
   beforeEach(async () => {
+    trainingDocContent = await readFile(phishingContentUrl, 'utf8');
     const { user, traineeProfile } = await createTrainee();
 
     const campaign = await createCampaign({
@@ -43,6 +54,8 @@ describe('UC-02 Training Document Integration Tests', () => {
 
     const trainingDoc = await createTrainingDocument({
       status: TrainingDocumentStatus.AVAILABLE,
+      contentType: TrainingContentType.MARKDOWN,
+      contentRef: 'demo://training/phishing-warning-signs',
     });
 
     const campaignItem = await createCampaignItem({
@@ -65,6 +78,7 @@ describe('UC-02 Training Document Integration Tests', () => {
 
     token = loginResponse.body.token;
     campaignItemId = campaignItem.id;
+    campaignId = campaign.id;
     campaignAssignmentId = assignment.id;
     traineeProfileId = traineeProfile.id;
     trainingDocId = trainingDoc.id;
@@ -137,6 +151,7 @@ describe('UC-02 Training Document Integration Tests', () => {
         title: trainingDocTitle,
         contentType: trainingDocContentType,
         contentRef: trainingDocContentRef,
+        content: trainingDocContent,
         contentSummary: trainingDocContentSummary,
         estimatedReadTimeMinutes: trainingDocEstimatedReadTimeMinutes,
         difficultyLevel: trainingDocDifficultyLevel,
@@ -150,6 +165,48 @@ describe('UC-02 Training Document Integration Tests', () => {
         availabilityStatus: campaignItemAvailabilityStatus,
       },
     });
+  });
+
+  it('returns null content for unsupported training refs', async () => {
+    const unsupportedDoc = await createTrainingDocument({
+      status: TrainingDocumentStatus.AVAILABLE,
+      contentType: TrainingContentType.MARKDOWN,
+      contentRef: 'test://training/unsupported',
+    });
+
+    const unsupportedItem = await createCampaignItem({
+      campaignId,
+      componentType: CampaignComponentType.TRAINING_DOCUMENT,
+      trainingDocumentId: unsupportedDoc.id,
+    });
+
+    const response = await request(createApp())
+      .get(`/trainee/campaign-items/${unsupportedItem.id}/training-document`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.trainingDocument.content).toBeNull();
+  });
+
+  it('returns a controlled error when content files are missing', async () => {
+    const originalPath = fileURLToPath(phishingContentUrl);
+    const tempPath = `${originalPath}.bak`;
+
+    await rename(originalPath, tempPath);
+
+    try {
+      const response = await request(createApp())
+        .get(`/trainee/campaign-items/${campaignItemId}/training-document`)
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(response.status).toBe(500);
+      expect(response.body).toEqual({
+        error: 'TRAINING_CONTENT_UNAVAILABLE',
+        message: 'Training content could not be loaded',
+      });
+    } finally {
+      await rename(tempPath, originalPath);
+    }
   });
 
   it('marks a training document as viewed and asserts persisted interaction in database', async () => {
