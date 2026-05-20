@@ -1,12 +1,13 @@
 import { useState } from 'react';
 
-import { KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material';
+import { KeyboardArrowDown, KeyboardArrowUp, LockOutlined } from '@mui/icons-material';
 
 type TrainingPartAccordionProps = {
   title: string;
   status: string;
   children: React.ReactNode;
   defaultOpen?: boolean;
+  disabled?: boolean;
 };
 
 function TrainingPartAccordion({
@@ -14,6 +15,7 @@ function TrainingPartAccordion({
   status,
   children,
   defaultOpen = false,
+  disabled = false,
 }: TrainingPartAccordionProps) {
   const [open, setOpen] = useState(defaultOpen);
 
@@ -26,13 +28,14 @@ function TrainingPartAccordion({
       {/* HEADER */}
 
       <div
-        onClick={() => setOpen(!open)}
+        onClick={disabled ? undefined : () => setOpen(!open)}
         style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           padding: '1.2rem 1.6rem',
-          cursor: 'pointer',
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          opacity: disabled ? 0.65 : 1,
         }}
       >
         <div
@@ -66,7 +69,14 @@ function TrainingPartAccordion({
             {status}
           </div>
 
-          {open ? (
+          {disabled ? (
+            <LockOutlined
+              style={{
+                color: '#8E63B3',
+                fontSize: '2rem',
+              }}
+            />
+          ) : open ? (
             <KeyboardArrowUp
               style={{
                 color: '#C98FFF',

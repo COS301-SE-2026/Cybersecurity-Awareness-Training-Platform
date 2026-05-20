@@ -1,9 +1,10 @@
-import { ChevronRight } from '@mui/icons-material';
+import { ChevronRight, LockOutlined } from '@mui/icons-material';
 
 type TrainingActionRowProps = {
   label: string;
   status: string;
   disabled?: boolean;
+  showLockIcon?: boolean;
   large?: boolean;
   onClick?: () => void;
 };
@@ -12,12 +13,13 @@ function TrainingActionRow({
   label,
   status,
   disabled = false,
+  showLockIcon = false,
   large = false,
   onClick,
 }: TrainingActionRowProps) {
   return (
     <div
-      onClick={onClick}
+      onClick={disabled ? undefined : onClick}
       style={{
         backgroundColor: disabled ? '#2A0844' : 'rgba(53, 0, 94, 0.75)',
         opacity: disabled ? 0.65 : 1,
@@ -25,7 +27,7 @@ function TrainingActionRow({
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        cursor: disabled ? 'default' : 'pointer',
+        cursor: disabled ? 'not-allowed' : 'pointer',
         transition: '0.2s ease',
       }}
     >
@@ -86,13 +88,21 @@ function TrainingActionRow({
             {status}
           </div>
         )}
-
-        <ChevronRight
-          style={{
-            color: disabled ? '#8E63B3' : '#C98FFF',
-            fontSize: '2.5rem',
-          }}
-        />
+        {showLockIcon ? (
+          <LockOutlined
+            style={{
+              color: '#8E63B3',
+              fontSize: '2.2rem',
+            }}
+          />
+        ) : (
+          <ChevronRight
+            style={{
+              color: disabled ? '#8E63B3' : '#C98FFF',
+              fontSize: '2.5rem',
+            }}
+          />
+        )}
       </div>
     </div>
   );

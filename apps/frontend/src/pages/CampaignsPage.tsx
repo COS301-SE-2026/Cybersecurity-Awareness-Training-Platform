@@ -39,8 +39,8 @@ function toTitleCase(value: string): string {
   });
 }
 
-function isCampaignItemDisabled(availabilityStatus: string): boolean {
-  return availabilityStatus !== 'AVAILABLE';
+function isCampaignItemDisabled(availabilityStatus: string, isOpenable: boolean): boolean {
+  return availabilityStatus !== 'AVAILABLE' || !isOpenable;
 }
 
 function renderCampaignItems(
@@ -54,6 +54,7 @@ function renderCampaignItems(
           key={item.campaignItemId}
           title={toTitleCase(item.title)}
           status={formatCampaignStatus(item.progressStatus)}
+          disabled={!item.isOpenable}
         >
           {renderCampaignItems(item.children, navigate)}
         </TrainingPartAccordion>
@@ -64,7 +65,7 @@ function renderCampaignItems(
       return null;
     }
 
-    const disabled = isCampaignItemDisabled(item.availabilityStatus);
+    const disabled = isCampaignItemDisabled(item.availabilityStatus, item.isOpenable);
 
     if (item.componentType === 'TRAINING_DOCUMENT') {
       return (
@@ -73,6 +74,7 @@ function renderCampaignItems(
           label="Learn"
           status={formatCampaignStatus(item.progressStatus)}
           disabled={disabled}
+          showLockIcon={disabled}
           onClick={disabled ? undefined : () => navigate(item.activityApiPath)}
         />
       );
@@ -85,6 +87,7 @@ function renderCampaignItems(
           label="Quiz"
           status={formatCampaignStatus(item.progressStatus)}
           disabled={disabled}
+          showLockIcon={disabled}
           onClick={disabled ? undefined : () => navigate(item.activityApiPath)}
         />
       );
@@ -97,6 +100,7 @@ function renderCampaignItems(
           title={toTitleCase(item.title)}
           status={formatCampaignStatus(item.progressStatus)}
           disabled={disabled}
+          showLockIcon={disabled}
           onClick={disabled ? undefined : () => navigate(item.activityApiPath)}
         />
       );
