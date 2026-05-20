@@ -28,7 +28,10 @@ function AppRoutes() {
           element={<InboxPage />}
         />
 
-        <Route path="/simulation/inbox/:emailId" element={<EmailDetailPage />} />
+        <Route
+          path="/trainee/campaign-items/:campaignItemId/simulated-emails/:emailId"
+          element={<EmailDetailPage />}
+        />
 
         {/* <Route path="/training/modules" element={<TrainingModulesPage />} /> */}
 
