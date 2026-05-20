@@ -96,18 +96,31 @@ function TrainingPartAccordion({
 
       {/* CONTENT */}
 
-      {open && (
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateRows: open ? '1fr' : '0fr',
+          opacity: open ? 1 : 0,
+          transition: 'grid-template-rows 0.35s ease, opacity 0.25s ease',
+        }}
+      >
         <div
           style={{
-            padding: '0 1.6rem 1.4rem 1.6rem',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.8rem',
+            overflow: 'hidden',
           }}
         >
-          {children}
+          <div
+            style={{
+              padding: '0 1.6rem 1.4rem 1.6rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.8rem',
+            }}
+          >
+            {children}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

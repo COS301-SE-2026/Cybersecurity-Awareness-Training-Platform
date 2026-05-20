@@ -94,16 +94,16 @@ function TrainingActionRow({
         >
           <span
             style={{
-              fontWeight: 500,
-              color: disabled ? '#9A7AB8' : 'white',
+              fontWeight: 800,
+              color: disabled ? '#9A7AB8' : '#c383ff',
             }}
           >
-            {labelPrefix}:
+            {labelPrefix}
           </span>
 
           <span
             style={{
-              fontWeight: 400,
+              fontWeight: 100,
               color: disabled ? '#9A7AB8' : 'white',
             }}
           >
