@@ -12,6 +12,7 @@ import {
   normaliseDemoEmail,
 } from '../../prisma/seed-data/demoSeedHelpers.js';
 import {
+  DEMO_SEED_CAMPAIGN_ASSIGNMENT,
   DEMO_SEED_CAMPAIGN_ITEMS,
   DEMO_SEED_IDS,
   DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN,
@@ -342,5 +343,42 @@ describe('demo seed helpers', () => {
       availabilityStatus: 'LOCKED',
       quizId: DEMO_SEED_IDS.quizzes.passwordSecurity,
     });
+  });
+
+  it('includes the password security content in the wired Demo 1 seed arrays', () => {
+    expect(DEMO_SEED_QUIZZES.map((quiz) => quiz.id)).toContain(
+      DEMO_SEED_IDS.quizzes.passwordSecurity,
+    );
+    expect(DEMO_SEED_CAMPAIGN_ITEMS.map((item) => item.id)).toEqual(
+      expect.arrayContaining([
+        DEMO_SEED_IDS.campaignItems.passwordSecurityTrainingDocument,
+        DEMO_SEED_IDS.campaignItems.passwordSecurityQuiz,
+      ]),
+    );
+  });
+
+  it('assigns only the populated trainee to both Demo 1 seeded campaigns', () => {
+    const seededAssignments: ReadonlyArray<{ campaignId: string; traineeProfileId: string }> = [
+      DEMO_SEED_CAMPAIGN_ASSIGNMENT,
+      DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN_ASSIGNMENT,
+    ];
+
+    expect(seededAssignments).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          campaignId: DEMO_SEED_IDS.campaign,
+          traineeProfileId: DEMO_SEED_IDS.traineeProfiles.populated,
+        }),
+        expect.objectContaining({
+          campaignId: DEMO_SEED_IDS.passwordSecurityCampaign,
+          traineeProfileId: DEMO_SEED_IDS.traineeProfiles.populated,
+        }),
+      ]),
+    );
+    expect(
+      seededAssignments.some(
+        (assignment) => assignment.traineeProfileId === DEMO_SEED_IDS.traineeProfiles.emptyState,
+      ),
+    ).toBe(false);
   });
 });

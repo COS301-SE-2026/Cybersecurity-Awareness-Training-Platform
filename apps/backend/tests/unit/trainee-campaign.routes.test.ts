@@ -1,5 +1,13 @@
 import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  DEMO_SEED_IDS,
+  DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN,
+  DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN_ASSIGNMENT,
+  DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN_ITEMS,
+  DEMO_SEED_PASSWORD_SECURITY_QUIZ,
+  DEMO_SEED_PASSWORD_SECURITY_TRAINING_DOCUMENT,
+} from '../../prisma/seed-data/demoSeedConfig.js';
 import { createApp } from '../../src/app.js';
 import { generateAuthToken } from '../../src/services/auth-token.service.js';
 
@@ -85,6 +93,33 @@ function baseAssignment() {
       startDate: new Date('2026-05-16T08:00:00.000Z'),
       endDate: null,
       items: campaignSummaryItems(),
+    },
+  };
+}
+
+function passwordSecuritySummaryAssignment() {
+  return {
+    id: DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN_ASSIGNMENT.id,
+    currentCampaignItemId: DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN_ASSIGNMENT.currentCampaignItemId,
+    assignedAt: new Date('2026-05-17T08:00:00.000Z'),
+    dueDate: null,
+    startedAt: null,
+    completedAt: null,
+    assignmentStatus: DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN_ASSIGNMENT.assignmentStatus,
+    accessType: DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN_ASSIGNMENT.accessType,
+    campaign: {
+      id: DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN.id,
+      name: DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN.name,
+      description: DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN.description,
+      campaignType: DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN.campaignType,
+      difficultyLevel: DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN.difficultyLevel,
+      status: DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN.status,
+      startDate: null,
+      endDate: null,
+      items: DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN_ITEMS.map((item) => ({
+        id: item.id,
+        availabilityStatus: item.availabilityStatus,
+      })),
     },
   };
 }
@@ -184,12 +219,79 @@ function campaignItems() {
   ];
 }
 
+function passwordSecurityCampaignItems() {
+  const [trainingItem, quizItem] = DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN_ITEMS;
+
+  return [
+    {
+      id: quizItem.id,
+      campaignId: DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN.id,
+      parentGroupId: null,
+      itemType: quizItem.itemType,
+      componentType: quizItem.componentType,
+      groupType: null,
+      completionRule: null,
+      title: quizItem.title,
+      description: quizItem.description,
+      position: quizItem.position,
+      isRequired: quizItem.isRequired,
+      availabilityStatus: quizItem.availabilityStatus,
+      trainingDocument: null,
+      quiz: {
+        id: DEMO_SEED_PASSWORD_SECURITY_QUIZ.id,
+        title: DEMO_SEED_PASSWORD_SECURITY_QUIZ.title,
+        description: DEMO_SEED_PASSWORD_SECURITY_QUIZ.description,
+        passThresholdPercentage: DEMO_SEED_PASSWORD_SECURITY_QUIZ.passThresholdPercentage,
+        difficultyLevel: DEMO_SEED_PASSWORD_SECURITY_QUIZ.difficultyLevel,
+        status: DEMO_SEED_PASSWORD_SECURITY_QUIZ.status,
+        _count: { questions: DEMO_SEED_PASSWORD_SECURITY_QUIZ.questions.length },
+      },
+      simulation: null,
+    },
+    {
+      id: trainingItem.id,
+      campaignId: DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN.id,
+      parentGroupId: null,
+      itemType: trainingItem.itemType,
+      componentType: trainingItem.componentType,
+      groupType: null,
+      completionRule: null,
+      title: trainingItem.title,
+      description: trainingItem.description,
+      position: trainingItem.position,
+      isRequired: trainingItem.isRequired,
+      availabilityStatus: trainingItem.availabilityStatus,
+      trainingDocument: {
+        id: DEMO_SEED_PASSWORD_SECURITY_TRAINING_DOCUMENT.id,
+        title: DEMO_SEED_PASSWORD_SECURITY_TRAINING_DOCUMENT.title,
+        contentSummary: DEMO_SEED_PASSWORD_SECURITY_TRAINING_DOCUMENT.contentSummary,
+        estimatedReadTimeMinutes:
+          DEMO_SEED_PASSWORD_SECURITY_TRAINING_DOCUMENT.estimatedReadTimeMinutes,
+        difficultyLevel: DEMO_SEED_PASSWORD_SECURITY_TRAINING_DOCUMENT.difficultyLevel,
+        status: DEMO_SEED_PASSWORD_SECURITY_TRAINING_DOCUMENT.status,
+      },
+      quiz: null,
+      simulation: null,
+    },
+  ];
+}
+
 function detailedAssignment() {
   return {
     ...baseAssignment(),
     campaign: {
       ...baseAssignment().campaign,
       items: campaignItems(),
+    },
+  };
+}
+
+function passwordSecurityDetailedAssignment() {
+  return {
+    ...passwordSecuritySummaryAssignment(),
+    campaign: {
+      ...passwordSecuritySummaryAssignment().campaign,
+      items: passwordSecurityCampaignItems(),
     },
   };
 }
@@ -242,6 +344,41 @@ describe('Trainee campaign discovery routes', () => {
     });
   });
 
+  it('returns multiple assigned campaigns for the populated Demo 1 trainee', async () => {
+    prismaMock.campaignAssignment.findMany.mockResolvedValue([
+      baseAssignment(),
+      passwordSecuritySummaryAssignment(),
+    ]);
+
+    const response = await request(createApp())
+      .get('/trainee/campaigns')
+      .set('Authorization', authHeader());
+
+    expect(response.status).toBe(200);
+    expect(response.body.campaigns).toHaveLength(2);
+    expect(response.body.campaigns).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          campaignId,
+          name: 'Phishing Fundamentals',
+          assignment: expect.objectContaining({
+            assignmentId,
+          }),
+        }),
+        expect.objectContaining({
+          campaignId: DEMO_SEED_IDS.passwordSecurityCampaign,
+          name: 'Demo 1 Password Security',
+          itemCount: 2,
+          availableItemCount: 1,
+          assignment: expect.objectContaining({
+            assignmentId: DEMO_SEED_IDS.campaignAssignments.passwordSecurity,
+            currentCampaignItemId: DEMO_SEED_IDS.campaignItems.passwordSecurityTrainingDocument,
+          }),
+        }),
+      ]),
+    );
+  });
+
   it('returns an empty campaign list for an active trainee with no accessible campaigns', async () => {
     prismaMock.campaignAssignment.findMany.mockResolvedValue([]);
 
@@ -274,6 +411,62 @@ describe('Trainee campaign discovery routes', () => {
       name: 'Phishing Fundamentals',
       assignment: {
         assignmentId,
+      },
+    });
+  });
+
+  it('returns password security campaign detail with ordered static availability and openability', async () => {
+    prismaMock.campaignAssignment.findFirst.mockResolvedValue(passwordSecurityDetailedAssignment());
+
+    const response = await request(createApp())
+      .get(`/trainee/campaigns/${DEMO_SEED_IDS.passwordSecurityCampaign}`)
+      .set('Authorization', authHeader());
+
+    expect(response.status).toBe(200);
+    expect(prismaMock.campaignAssignment.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          campaignId: DEMO_SEED_IDS.passwordSecurityCampaign,
+          traineeProfileId,
+        }),
+      }),
+    );
+    expect(response.body).toMatchObject({
+      campaignId: DEMO_SEED_IDS.passwordSecurityCampaign,
+      name: 'Demo 1 Password Security',
+      assignment: {
+        assignmentId: DEMO_SEED_IDS.campaignAssignments.passwordSecurity,
+        currentCampaignItemId: DEMO_SEED_IDS.campaignItems.passwordSecurityTrainingDocument,
+      },
+    });
+    expect(response.body.items.map((item: any) => item.campaignItemId)).toEqual([
+      DEMO_SEED_IDS.campaignItems.passwordSecurityTrainingDocument,
+      DEMO_SEED_IDS.campaignItems.passwordSecurityQuiz,
+    ]);
+    expect(response.body.items[0]).toMatchObject({
+      componentType: 'TRAINING_DOCUMENT',
+      position: 100,
+      availabilityStatus: 'AVAILABLE',
+      isOpenable: true,
+      trainingDocument: {
+        id: DEMO_SEED_IDS.trainingDocuments.passwordSecurity,
+        title: 'Password Security Basics',
+        contentSummary: expect.any(String),
+        estimatedReadTimeMinutes: expect.any(Number),
+        difficultyLevel: 'BEGINNER',
+        status: 'AVAILABLE',
+      },
+    });
+    expect(response.body.items[1]).toMatchObject({
+      componentType: 'QUIZ',
+      position: 200,
+      availabilityStatus: 'LOCKED',
+      isOpenable: false,
+      quiz: {
+        id: DEMO_SEED_IDS.quizzes.passwordSecurity,
+        title: 'Password Security Basics Check',
+        status: 'PUBLISHED',
+        questionCount: DEMO_SEED_PASSWORD_SECURITY_QUIZ.questions.length,
       },
     });
   });
