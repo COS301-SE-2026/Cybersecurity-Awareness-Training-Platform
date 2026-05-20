@@ -10,6 +10,7 @@ import AppLayout from '../components/layout/AppLayout';
 import CampaignAccordion from '../components/ui/CampaignAccordion';
 import TrainingActionRow from '../components/ui/TrainingActionRow';
 import CampaignActionRow from '../components/ui/CampaignActionRow';
+import TrainingPartAccordion from '../components/ui/TrainingPartAccordion';
 
 import { useAuth } from '../context/useAuth';
 import { getTraineeCampaign, getTraineeCampaigns } from '../services/campaigns.service';
@@ -30,6 +31,73 @@ function formatCampaignStatus(status?: string | null): string {
     default:
       return 'NOT STARTED';
   }
+}
+
+function isCampaignItemDisabled(availabilityStatus: string): boolean {
+  return availabilityStatus !== 'AVAILABLE';
+}
+
+function renderCampaignItems(
+  items: GetTraineeCampaignDetailResponseDto['items'],
+  navigate: ReturnType<typeof useNavigate>,
+) {
+  return items.map((item) => {
+    if (item.itemType === 'GROUP') {
+      return (
+        <TrainingPartAccordion
+          key={item.campaignItemId}
+          title={item.title}
+          status={formatCampaignStatus(item.progressStatus)}
+        >
+          {renderCampaignItems(item.children, navigate)}
+        </TrainingPartAccordion>
+      );
+    }
+
+    if (item.itemType !== 'COMPONENT') {
+      return null;
+    }
+
+    const disabled = isCampaignItemDisabled(item.availabilityStatus);
+
+    if (item.componentType === 'TRAINING_DOCUMENT') {
+      return (
+        <TrainingActionRow
+          key={item.campaignItemId}
+          label="Learn"
+          status={formatCampaignStatus(item.progressStatus)}
+          disabled={disabled}
+          onClick={disabled ? undefined : () => navigate(item.activityApiPath)}
+        />
+      );
+    }
+
+    if (item.componentType === 'QUIZ') {
+      return (
+        <TrainingActionRow
+          key={item.campaignItemId}
+          label="Quiz"
+          status={formatCampaignStatus(item.progressStatus)}
+          disabled={disabled}
+          onClick={disabled ? undefined : () => navigate(item.activityApiPath)}
+        />
+      );
+    }
+
+    if (item.componentType === 'SIMULATED_INBOX') {
+      return (
+        <CampaignActionRow
+          key={item.campaignItemId}
+          title={item.title}
+          status={formatCampaignStatus(item.progressStatus)}
+          disabled={disabled}
+          onClick={disabled ? undefined : () => navigate(item.activityApiPath)}
+        />
+      );
+    }
+
+    return null;
+  });
 }
 
 function CampaignsPage() {
@@ -185,46 +253,8 @@ function CampaignsPage() {
                 </div>
               )}
 
-              {campaignDetails[campaign.campaignId]?.items.map((item) => {
-                if (item.itemType !== 'COMPONENT') {
-                  return null;
-                }
-
-                if (item.componentType === 'TRAINING_DOCUMENT') {
-                  return (
-                    <TrainingActionRow
-                      key={item.campaignItemId}
-                      label="Learn"
-                      status={formatCampaignStatus(item.progressStatus)}
-                      onClick={() => navigate(item.activityApiPath)}
-                    />
-                  );
-                }
-
-                if (item.componentType === 'QUIZ') {
-                  return (
-                    <TrainingActionRow
-                      key={item.campaignItemId}
-                      label="Quiz"
-                      status={formatCampaignStatus(item.progressStatus)}
-                      onClick={() => navigate(item.activityApiPath)}
-                    />
-                  );
-                }
-
-                if (item.componentType === 'SIMULATED_INBOX') {
-                  return (
-                    <CampaignActionRow
-                      key={item.campaignItemId}
-                      title={item.title}
-                      status={formatCampaignStatus(item.progressStatus)}
-                      onClick={() => navigate(item.activityApiPath)}
-                    />
-                  );
-                }
-
-                return null;
-              })}
+              {campaignDetails[campaign.campaignId] &&
+                renderCampaignItems(campaignDetails[campaign.campaignId].items, navigate)}
             </CampaignAccordion>
           ))}
       </div>
