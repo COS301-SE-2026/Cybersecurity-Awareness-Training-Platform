@@ -132,7 +132,10 @@ describe('Trainee training document routes', () => {
       .set('Authorization', authHeader());
 
     expect(response.status).toBe(200);
-    expect(contentResolverMock.resolveContent).toHaveBeenCalledWith('training/training-doc-1');
+    expect(contentResolverMock.resolveContent).toHaveBeenCalledWith(
+      'MARKDOWN',
+      'training/training-doc-1',
+    );
     expect(prismaMock.campaignItem.findUnique).toHaveBeenCalledWith({
       where: {
         id: campaignItemId,

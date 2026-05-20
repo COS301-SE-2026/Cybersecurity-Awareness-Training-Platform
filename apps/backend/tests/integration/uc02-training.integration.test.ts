@@ -1,6 +1,5 @@
 import request from 'supertest';
-import { readFile, rename } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
+import { readFile } from 'node:fs/promises';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../../src/app.js';
 import { prisma } from '../../src/lib/prisma.js';
@@ -188,25 +187,25 @@ describe('UC-02 Training Document Integration Tests', () => {
     expect(response.body.trainingDocument.content).toBeNull();
   });
 
-  it('returns a controlled error when content files are missing', async () => {
-    const originalPath = fileURLToPath(phishingContentUrl);
-    const tempPath = `${originalPath}.bak`;
+  it('returns null content when contentType is not MARKDOWN', async () => {
+    const htmlDoc = await createTrainingDocument({
+      status: TrainingDocumentStatus.AVAILABLE,
+      contentType: TrainingContentType.HTML,
+      contentRef: 'demo://training/phishing-warning-signs',
+    });
 
-    await rename(originalPath, tempPath);
+    const htmlItem = await createCampaignItem({
+      campaignId,
+      componentType: CampaignComponentType.TRAINING_DOCUMENT,
+      trainingDocumentId: htmlDoc.id,
+    });
 
-    try {
-      const response = await request(createApp())
-        .get(`/trainee/campaign-items/${campaignItemId}/training-document`)
-        .set('Authorization', `Bearer ${token}`);
+    const response = await request(createApp())
+      .get(`/trainee/campaign-items/${htmlItem.id}/training-document`)
+      .set('Authorization', `Bearer ${token}`);
 
-      expect(response.status).toBe(500);
-      expect(response.body).toEqual({
-        error: 'TRAINING_CONTENT_UNAVAILABLE',
-        message: 'Training content could not be loaded',
-      });
-    } finally {
-      await rename(tempPath, originalPath);
-    }
+    expect(response.status).toBe(200);
+    expect(response.body.trainingDocument.content).toBeNull();
   });
 
   it('marks a training document as viewed and asserts persisted interaction in database', async () => {

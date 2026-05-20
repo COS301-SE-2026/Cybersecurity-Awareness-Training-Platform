@@ -105,7 +105,10 @@ export async function getTrainingDocumentForCampaignItem(
   campaignItemId: string,
 ): Promise<GetTrainingDocumentResponseDto> {
   const access = await resolveTrainingDocumentAccess(userId, campaignItemId);
-  const content = await resolveContent(access.trainingDocument.contentRef);
+  const content = await resolveContent(
+    access.trainingDocument.contentType,
+    access.trainingDocument.contentRef,
+  );
 
   return toTrainingDocumentResponse({
     campaignItem: access.campaignItem,

@@ -22,7 +22,16 @@ const demoContentMap: Record<string, URL> = {
   ),
 };
 
-export async function resolveContent(contentRef: string): Promise<string | null> {
+const MARKDOWN_CONTENT_TYPE = 'MARKDOWN';
+
+export async function resolveContent(
+  contentType: string,
+  contentRef: string,
+): Promise<string | null> {
+  if (contentType !== MARKDOWN_CONTENT_TYPE) {
+    return null;
+  }
+
   const contentUrl = demoContentMap[contentRef];
 
   if (!contentUrl) {
