@@ -1,6 +1,7 @@
 import AppLayout from '../components/layout/AppLayout';
 
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 
 import InboxEmailRow from '../components/ui/InboxEmailRow';
 
@@ -59,6 +60,38 @@ function InboxPage() {
         }}
       >
         {/* HEADING */}
+
+        <div
+          onClick={() => navigate(-1)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.1rem',
+            width: 'fit-content',
+            cursor: 'pointer',
+            marginBottom: '-1.2rem',
+            color: '#b882ff',
+            transition: '0.18s ease',
+            userSelect: 'none',
+          }}
+        >
+          <ChevronLeftIcon
+            style={{
+              fontSize: '2.2rem',
+            }}
+          />
+
+          <span
+            style={{
+              fontFamily: 'Jost',
+              fontSize: '1rem',
+              fontWeight: 500,
+              letterSpacing: '0.12rem',
+            }}
+          >
+            BACK
+          </span>
+        </div>
 
         <h1
           style={{

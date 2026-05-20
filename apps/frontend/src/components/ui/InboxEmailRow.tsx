@@ -106,7 +106,7 @@ function InboxEmailRow({
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           flexShrink: 0,
-          paddingRight: '2rem',
+          paddingRight: '1rem',
         }}
       >
         {subject.replace(/\w\S*/g, (word) => {
@@ -126,7 +126,7 @@ function InboxEmailRow({
           whiteSpace: 'nowrap',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
-          paddingRight: '6rem',
+          paddingRight: '4rem',
         }}
       >
         {preview}
