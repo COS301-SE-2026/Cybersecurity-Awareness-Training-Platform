@@ -9,6 +9,8 @@ import TrainingDocumentPage from '../TrainingDocumentPage';
 const getTrainingMock = vi.fn();
 const viewedMock = vi.fn();
 const completedMock = vi.fn();
+const getCampaignsMock = vi.fn();
+const getCampaignDetailMock = vi.fn();
 
 vi.mock('../../components/layout/AppLayout', () => ({
   default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
@@ -20,6 +22,11 @@ vi.mock('../../lib/trainingApi', () => ({
   recordTrainingDocumentCompleted: (...args: unknown[]) => completedMock(...args),
 }));
 
+vi.mock('../../lib/campaignsApi', () => ({
+  getTraineeCampaigns: (...args: unknown[]) => getCampaignsMock(...args),
+  getTraineeCampaignDetail: (...args: unknown[]) => getCampaignDetailMock(...args),
+}));
+
 describe('TrainingDocumentPage', () => {
   afterEach(() => {
     cleanup();
@@ -29,6 +36,8 @@ describe('TrainingDocumentPage', () => {
     getTrainingMock.mockReset();
     viewedMock.mockReset();
     completedMock.mockReset();
+    getCampaignsMock.mockReset();
+    getCampaignDetailMock.mockReset();
 
     getTrainingMock.mockResolvedValue({
       campaignItemId: '33333333-3333-4333-8333-333333333333',
@@ -53,6 +62,67 @@ describe('TrainingDocumentPage', () => {
 
     viewedMock.mockResolvedValue(undefined);
     completedMock.mockResolvedValue(undefined);
+    getCampaignsMock.mockResolvedValue({
+      campaigns: [
+        {
+          campaignId: 'campaign-001',
+          name: 'Demo campaign',
+          campaignType: 'PREMADE_GENERAL',
+          difficultyLevel: 'BEGINNER',
+          status: 'ACTIVE',
+          assignment: {
+            assignmentId: 'assignment-001',
+            assignmentStatus: 'ASSIGNED',
+            accessType: 'DIRECT',
+            currentCampaignItemId: '33333333-3333-4333-8333-333333333333',
+            assignedAt: '2026-05-20T08:00:00.000Z',
+            dueDate: null,
+            startedAt: null,
+            completedAt: null,
+          },
+          progressStatus: 'NOT_STARTED',
+        },
+      ],
+    });
+    getCampaignDetailMock.mockResolvedValue({
+      campaignId: 'campaign-001',
+      name: 'Demo campaign',
+      campaignType: 'PREMADE_GENERAL',
+      difficultyLevel: 'BEGINNER',
+      status: 'ACTIVE',
+      assignment: {
+        assignmentId: 'assignment-001',
+        assignmentStatus: 'ASSIGNED',
+        accessType: 'DIRECT',
+        currentCampaignItemId: '33333333-3333-4333-8333-333333333333',
+        assignedAt: '2026-05-20T08:00:00.000Z',
+        dueDate: null,
+        startedAt: null,
+        completedAt: null,
+      },
+      items: [
+        {
+          campaignItemId: '33333333-3333-4333-8333-333333333333',
+          campaignId: 'campaign-001',
+          itemType: 'COMPONENT',
+          componentType: 'TRAINING_DOCUMENT',
+          groupType: null,
+          completionRule: null,
+          title: 'Read phishing warning signs',
+          description: 'Training document',
+          position: 1000,
+          isRequired: true,
+          availabilityStatus: 'AVAILABLE',
+          isOpenable: true,
+          activityApiPath:
+            '/trainee/campaign-items/33333333-3333-4333-8333-333333333333/training-document',
+          progressStatus: 'NOT_STARTED',
+          trainingDocument: null,
+          quiz: null,
+          simulation: null,
+        },
+      ],
+    });
   });
 
   function renderTrainingDocumentPage() {
@@ -98,6 +168,58 @@ describe('TrainingDocumentPage', () => {
     expect(await screen.findByText(/training completion recorded/i)).toBeInTheDocument();
   });
 
+  it('shows completed state when backend campaign progress already marks the item completed', async () => {
+    getCampaignDetailMock.mockResolvedValueOnce({
+      campaignId: 'campaign-001',
+      name: 'Demo campaign',
+      campaignType: 'PREMADE_GENERAL',
+      difficultyLevel: 'BEGINNER',
+      status: 'ACTIVE',
+      assignment: {
+        assignmentId: 'assignment-001',
+        assignmentStatus: 'ASSIGNED',
+        accessType: 'DIRECT',
+        currentCampaignItemId: '33333333-3333-4333-8333-333333333333',
+        assignedAt: '2026-05-20T08:00:00.000Z',
+        dueDate: null,
+        startedAt: null,
+        completedAt: null,
+      },
+      items: [
+        {
+          campaignItemId: '33333333-3333-4333-8333-333333333333',
+          campaignId: 'campaign-001',
+          itemType: 'COMPONENT',
+          componentType: 'TRAINING_DOCUMENT',
+          groupType: null,
+          completionRule: null,
+          title: 'Read phishing warning signs',
+          description: 'Training document',
+          position: 1000,
+          isRequired: true,
+          availabilityStatus: 'AVAILABLE',
+          isOpenable: true,
+          activityApiPath:
+            '/trainee/campaign-items/33333333-3333-4333-8333-333333333333/training-document',
+          progressStatus: 'COMPLETED',
+          trainingDocument: null,
+          quiz: null,
+          simulation: null,
+        },
+      ],
+    });
+
+    renderTrainingDocumentPage();
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Phishing warning signs' }),
+    ).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Completed' })).toBeDisabled();
+    });
+  });
+
   it('still renders content if viewed tracking fails', async () => {
     viewedMock.mockRejectedValueOnce(new Error('tracking failed'));
 
@@ -109,21 +231,21 @@ describe('TrainingDocumentPage', () => {
     expect(screen.getByText(/Phishing messages often try to pressure you/i)).toBeInTheDocument();
   });
 
-  it('does not require linked quiz or legacy progress data to render demo content', async () => {
+  it('does not require linked quiz or legacy progress data to render seeded password training content', async () => {
     getTrainingMock.mockResolvedValueOnce({
       campaignItemId: '33333333-3333-4333-8333-333333333333',
       campaignAssignmentId: 'assignment-001',
       trainingDocument: {
         id: 'training-doc-002',
-        title: 'Safe link handling',
+        title: 'Password Security Basics',
         contentType: 'HTML',
-        contentRef: 'demo://training/safe-link-handling',
-        contentSummary: 'Review safe link handling.',
+        contentRef: 'demo://training/password-security-basics',
+        contentSummary: 'Review core password safety habits.',
         difficultyLevel: 'BEGINNER',
         status: 'AVAILABLE',
       },
       campaignItem: {
-        title: 'Read safe link handling',
+        title: 'Read password security basics',
         description: 'Training document',
         position: 1000,
         isRequired: true,
@@ -134,10 +256,10 @@ describe('TrainingDocumentPage', () => {
     renderTrainingDocumentPage();
 
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Safe link handling' }),
+      await screen.findByRole('heading', { level: 1, name: 'Password Security Basics' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/Before opening a link, confirm that the destination matches/i),
+      screen.getByText(/Strong password habits reduce the impact of phishing/i),
     ).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /quiz/i })).not.toBeInTheDocument();
   });

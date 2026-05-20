@@ -1,14 +1,39 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import type { GetTrainingDocumentResponseDto } from '@insightful-phish/shared';
+import type {
+  GetTrainingDocumentResponseDto,
+  TraineeCampaignItemSummaryDto,
+} from '@insightful-phish/shared';
 import AppLayout from '../components/layout/AppLayout';
 import TrainingDocumentReader from '../components/training/TrainingDocumentReader';
+import { getTraineeCampaignDetail, getTraineeCampaigns } from '../lib/campaignsApi';
 import { resolveDemoTrainingContent } from '../lib/demoTrainingContent';
 import {
   getCampaignItemTrainingDocument,
   recordTrainingDocumentCompleted,
   recordTrainingDocumentViewed,
 } from '../lib/trainingApi';
+
+function findCampaignItemProgressStatus(
+  items: ReadonlyArray<TraineeCampaignItemSummaryDto>,
+  campaignItemId: string,
+): string | null {
+  for (const item of items) {
+    if (item.campaignItemId === campaignItemId) {
+      return item.progressStatus ?? null;
+    }
+
+    if (item.itemType === 'GROUP' && item.children) {
+      const childProgressStatus = findCampaignItemProgressStatus(item.children, campaignItemId);
+
+      if (childProgressStatus) {
+        return childProgressStatus;
+      }
+    }
+  }
+
+  return null;
+}
 
 export default function TrainingDocumentPage() {
   const { campaignItemId } = useParams<{ campaignItemId: string }>();
@@ -19,7 +44,8 @@ export default function TrainingDocumentPage() {
   );
   const [isLoading, setIsLoading] = useState(true);
   const [isCompleting, setIsCompleting] = useState(false);
-  const [completed, setCompleted] = useState(false);
+  const [isPreviouslyCompleted, setIsPreviouslyCompleted] = useState(false);
+  const [didCompleteInSession, setDidCompleteInSession] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [completionError, setCompletionError] = useState<string | null>(null);
 
@@ -38,7 +64,8 @@ export default function TrainingDocumentPage() {
       try {
         setIsLoading(true);
         setErrorMessage(null);
-        setCompleted(false);
+        setIsPreviouslyCompleted(false);
+        setDidCompleteInSession(false);
         setCompletionError(null);
 
         const response = await getCampaignItemTrainingDocument(campaignItemIdToLoad);
@@ -66,6 +93,51 @@ export default function TrainingDocumentPage() {
   }, [campaignItemId]);
 
   useEffect(() => {
+    const currentCampaignItemId = campaignItemId;
+    const currentCampaignAssignmentId = documentResponse?.campaignAssignmentId;
+
+    if (!currentCampaignItemId || !currentCampaignAssignmentId) {
+      return;
+    }
+
+    let isMounted = true;
+
+    async function loadPersistedCompletionStatus(
+      campaignItemIdToLoad: string,
+      campaignAssignmentIdToLoad: string,
+    ) {
+      try {
+        const campaignsResponse = await getTraineeCampaigns();
+        const matchingCampaign = campaignsResponse.campaigns.find(
+          (campaign) => campaign.assignment?.assignmentId === campaignAssignmentIdToLoad,
+        );
+
+        if (!matchingCampaign) {
+          return;
+        }
+
+        const campaignDetail = await getTraineeCampaignDetail(matchingCampaign.campaignId);
+        const progressStatus = findCampaignItemProgressStatus(
+          campaignDetail.items,
+          campaignItemIdToLoad,
+        );
+
+        if (isMounted) {
+          setIsPreviouslyCompleted(progressStatus === 'COMPLETED');
+        }
+      } catch {
+        // Training access should still work even if campaign progress refresh fails.
+      }
+    }
+
+    void loadPersistedCompletionStatus(currentCampaignItemId, currentCampaignAssignmentId);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [campaignItemId, documentResponse]);
+
+  useEffect(() => {
     if (!campaignItemId || !documentResponse || viewedRecordedRef.current) {
       return;
     }
@@ -82,6 +154,7 @@ export default function TrainingDocumentPage() {
     [documentResponse],
   );
   const pageErrorMessage = missingCampaignItemId ? 'Campaign item ID is missing.' : errorMessage;
+  const isCompleted = isPreviouslyCompleted || didCompleteInSession;
 
   async function handleComplete() {
     if (!campaignItemId) {
@@ -93,7 +166,8 @@ export default function TrainingDocumentPage() {
       setCompletionError(null);
 
       await recordTrainingDocumentCompleted(campaignItemId);
-      setCompleted(true);
+      setDidCompleteInSession(true);
+      setIsPreviouslyCompleted(true);
     } catch {
       setCompletionError('Could not record completion. Please try again.');
     } finally {
@@ -182,7 +256,7 @@ export default function TrainingDocumentPage() {
               </div>
             ) : null}
 
-            {completed ? (
+            {didCompleteInSession ? (
               <div style={successStyle}>
                 <p style={{ margin: 0 }}>Training completion recorded.</p>
               </div>
@@ -200,10 +274,10 @@ export default function TrainingDocumentPage() {
                 onClick={() => {
                   void handleComplete();
                 }}
-                disabled={isCompleting || completed}
+                disabled={isCompleting || isCompleted}
                 style={primaryButtonStyle}
               >
-                {completed ? 'Completed' : isCompleting ? 'Recording...' : 'Mark as completed'}
+                {isCompleted ? 'Completed' : isCompleting ? 'Recording...' : 'Mark as completed'}
               </button>
 
               <Link to="/campaigns" style={secondaryLinkStyle}>

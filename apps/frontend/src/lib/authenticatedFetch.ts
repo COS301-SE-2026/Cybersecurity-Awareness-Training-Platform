@@ -28,5 +28,11 @@ export async function authenticatedFetch<T>(path: string, options: RequestInit =
     return undefined as T;
   }
 
-  return response.json() as Promise<T>;
+  const responseText = await response.text();
+
+  if (!responseText) {
+    return undefined as T;
+  }
+
+  return JSON.parse(responseText) as T;
 }

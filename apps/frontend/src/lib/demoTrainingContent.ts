@@ -31,6 +31,21 @@ const DEMO_TRAINING_CONTENT: Record<string, ResolvedTrainingContent> = {
       </ul>
     `,
   },
+
+  'demo://training/password-security-basics': {
+    format: 'html',
+    body: `
+      <h2>Password security basics</h2>
+      <p>Strong password habits reduce the impact of phishing, credential stuffing, and reused-password breaches.</p>
+      <ul>
+        <li>Use a unique password for every important account.</li>
+        <li>Prefer long passphrases that are easier to remember and harder to guess.</li>
+        <li>Use a password manager to create and store strong credentials safely.</li>
+        <li>Turn on multi-factor authentication wherever it is available.</li>
+        <li>If you suspect a breach, change the password quickly and review recent account activity.</li>
+      </ul>
+    `,
+  },
 };
 
 export function resolveDemoTrainingContent(
