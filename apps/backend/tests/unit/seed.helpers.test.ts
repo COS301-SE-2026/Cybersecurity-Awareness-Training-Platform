@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import { buildDemoSeedSummary } from '../../prisma/seed-data/demoSeedCore.js';
 import {
   assertDemoSeedRuntimeIsSafe,
   assertDemoSeedIdsAreUuids,
@@ -380,5 +381,39 @@ describe('demo seed helpers', () => {
         (assignment) => assignment.traineeProfileId === DEMO_SEED_IDS.traineeProfiles.emptyState,
       ),
     ).toBe(false);
+  });
+
+  it('builds a plural seed summary for both assigned Demo 1 campaigns', () => {
+    const summary = buildDemoSeedSummary();
+
+    expect(summary).not.toHaveProperty('campaign');
+    expect(summary.assignedCampaigns).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: DEMO_SEED_IDS.campaign,
+          name: 'Demo 1 Phishing Awareness',
+          assignmentId: DEMO_SEED_IDS.campaignAssignments.populatedTrainee,
+          assignedTraineeEmail: 'demo.populated.trainee@example.com',
+        }),
+        expect.objectContaining({
+          id: DEMO_SEED_IDS.passwordSecurityCampaign,
+          name: 'Demo 1 Password Security',
+          assignmentId: DEMO_SEED_IDS.campaignAssignments.passwordSecurity,
+          assignedTraineeEmail: 'demo.populated.trainee@example.com',
+          itemCount: 2,
+          lockedItemCount: 1,
+        }),
+      ]),
+    );
+    expect(summary.assignedCampaigns).toHaveLength(2);
+  });
+
+  it('keeps password values and hashes out of the seed summary', () => {
+    const serializedSummary = JSON.stringify(buildDemoSeedSummary());
+
+    expect(serializedSummary).not.toContain(getDemoSeedAuthEnvVarName());
+    expect(serializedSummary).not.toContain('DEMO_SEED_PASSWORD');
+    expect(serializedSummary).not.toContain('scrypt$');
+    expect(serializedSummary).not.toContain('passwordHash');
   });
 });

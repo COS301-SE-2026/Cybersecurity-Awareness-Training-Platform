@@ -32,11 +32,14 @@ export type DemoSeedSummary = {
     readonly email: string;
     readonly role: string;
   }>;
-  readonly campaign: {
+  readonly assignedCampaigns: ReadonlyArray<{
+    readonly id: string;
     readonly name: string;
+    readonly assignmentId: string;
     readonly itemCount: number;
     readonly assignedTraineeEmail: string;
-  };
+    readonly lockedItemCount: number;
+  }>;
   readonly content: {
     readonly trainingDocumentCount: number;
     readonly quizCount: number;
@@ -100,13 +103,18 @@ export function buildDemoSeedSummary(): DemoSeedSummary {
         role: DEMO_SEED_USERS.admin.userType,
       },
     ],
-    campaign: {
-      name: DEMO_SEED_CAMPAIGN.name,
-      itemCount: DEMO_SEED_CAMPAIGN_ITEMS.filter(
-        (item) => item.campaignId === DEMO_SEED_IDS.campaign,
-      ).length,
-      assignedTraineeEmail: DEMO_SEED_CREDENTIALS.populatedTrainee.email,
-    },
+    assignedCampaigns: [
+      buildAssignedCampaignSummary({
+        campaign: DEMO_SEED_CAMPAIGN,
+        assignmentId: DEMO_SEED_CAMPAIGN_ASSIGNMENT.id,
+        assignedTraineeEmail: DEMO_SEED_CREDENTIALS.populatedTrainee.email,
+      }),
+      buildAssignedCampaignSummary({
+        campaign: DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN,
+        assignmentId: DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN_ASSIGNMENT.id,
+        assignedTraineeEmail: DEMO_SEED_CREDENTIALS.populatedTrainee.email,
+      }),
+    ],
     content: {
       trainingDocumentCount: DEMO_SEED_TRAINING_DOCUMENTS.length,
       quizCount: DEMO_SEED_QUIZZES.length,
@@ -129,6 +137,25 @@ export function buildDemoSeedSummary(): DemoSeedSummary {
         0,
       ),
     },
+  };
+}
+
+function buildAssignedCampaignSummary(input: {
+  campaign: typeof DEMO_SEED_CAMPAIGN | typeof DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN;
+  assignmentId: string;
+  assignedTraineeEmail: string;
+}): DemoSeedSummary['assignedCampaigns'][number] {
+  const campaignItems = DEMO_SEED_CAMPAIGN_ITEMS.filter(
+    (item) => item.campaignId === input.campaign.id,
+  );
+
+  return {
+    id: input.campaign.id,
+    name: input.campaign.name,
+    assignmentId: input.assignmentId,
+    itemCount: campaignItems.length,
+    assignedTraineeEmail: input.assignedTraineeEmail,
+    lockedItemCount: campaignItems.filter((item) => item.availabilityStatus === 'LOCKED').length,
   };
 }
 
