@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import QuizPage from '../QuizPage';
+import { AuthProvider } from '../../context/AuthContext';
 import { getQuiz, startQuizAttempt, submitQuizAttempt } from '../../lib/quizApi';
 
 vi.mock('../../lib/quizApi', () => ({
@@ -65,12 +66,14 @@ const quizFixture = {
 
 function renderQuizPage() {
   return render(
-    <MemoryRouter initialEntries={[`/quizzes/${campaignItemId}`]}>
-      <Routes>
-        <Route path="/quizzes/:quizId" element={<QuizPage />} />
-        <Route path="/quiz-attempts/:attemptId/results" element={<p>Results page</p>} />
-      </Routes>
-    </MemoryRouter>,
+    <AuthProvider>
+      <MemoryRouter initialEntries={[`/quizzes/${campaignItemId}`]}>
+        <Routes>
+          <Route path="/quizzes/:quizId" element={<QuizPage />} />
+          <Route path="/quiz-attempts/:attemptId/results" element={<p>Results page</p>} />
+        </Routes>
+      </MemoryRouter>
+    </AuthProvider>,
   );
 }
 
