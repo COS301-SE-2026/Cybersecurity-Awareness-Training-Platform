@@ -1,5 +1,28 @@
 import { z } from 'zod';
-import { idParamSchema } from './common.schemas.js';
+import {
+  idParamSchema,
+  optionalTrimmedStringSchema,
+  requiredTrimmedStringSchema,
+} from './common.schemas.js';
+
+const titleSchema = requiredTrimmedStringSchema({
+  requiredMessage: 'Please enter a title.',
+  maxLength: 200,
+  maxMessage: 'Title must be at most 200 characters.',
+});
+
+const campaignNameSchema = requiredTrimmedStringSchema({
+  requiredMessage: 'Please enter a campaign name.',
+  maxLength: 200,
+  maxMessage: 'Campaign name must be at most 200 characters.',
+});
+
+const descriptionSchema = optionalTrimmedStringSchema(
+  2000,
+  'Description must be at most 2000 characters.',
+);
+
+const summarySchema = optionalTrimmedStringSchema(2000, 'Summary must be at most 2000 characters.');
 
 const campaignTypeSchema = z.enum(['PREMADE_GENERAL', 'ORGANISATION_CUSTOM']);
 
@@ -50,8 +73,12 @@ export const traineeCampaignProgressStatusSchema = z.enum([
 const activityApiPathSchema = z
   .string()
   .trim()
-  .min(1)
-  .regex(/^\/trainee\/campaign-items\/[^/]+\/(simulated-inbox|training-document|quiz)$/);
+  .min(1, 'Please enter an activity API path.')
+  .max(500, 'Activity API path must be at most 500 characters.')
+  .regex(
+    /^\/trainee\/campaign-items\/[^/]+\/(simulated-inbox|training-document|quiz)$/,
+    'Activity API path must reference a supported trainee campaign item activity.',
+  );
 
 export const getTraineeCampaignRequestParamsSchema = z
   .object({
@@ -86,8 +113,8 @@ export const traineeCampaignAssignmentSummarySchema = z
 export const traineeCampaignSummarySchema = z
   .object({
     campaignId: idParamSchema,
-    name: z.string().trim().min(1),
-    description: z.string().trim().nullish(),
+    name: campaignNameSchema,
+    description: descriptionSchema.nullish(),
     campaignType: campaignTypeSchema,
     difficultyLevel: difficultyLevelSchema,
     status: campaignStatusSchema,
@@ -102,8 +129,8 @@ export const traineeCampaignSummarySchema = z
 const campaignTrainingDocumentSummarySchema = z
   .object({
     id: idParamSchema,
-    title: z.string().trim().min(1),
-    contentSummary: z.string().trim().nullish(),
+    title: titleSchema,
+    contentSummary: summarySchema.nullish(),
     estimatedReadTimeMinutes: z.number().int().positive().nullish(),
     difficultyLevel: difficultyLevelSchema,
     status: z.enum(['DRAFT', 'AVAILABLE', 'UNAVAILABLE', 'ARCHIVED']),
@@ -113,8 +140,8 @@ const campaignTrainingDocumentSummarySchema = z
 const campaignQuizSummarySchema = z
   .object({
     id: idParamSchema,
-    title: z.string().trim().min(1),
-    description: z.string().trim().nullish(),
+    title: titleSchema,
+    description: descriptionSchema.nullish(),
     passThresholdPercentage: z.number().min(0).max(100),
     difficultyLevel: difficultyLevelSchema,
     status: z.enum(['DRAFT', 'PUBLISHED', 'ARCHIVED']),
@@ -125,8 +152,8 @@ const campaignQuizSummarySchema = z
 const campaignSimulationSummarySchema = z
   .object({
     id: idParamSchema,
-    title: z.string().trim().min(1),
-    description: z.string().trim().nullish(),
+    title: titleSchema,
+    description: descriptionSchema.nullish(),
     difficultyLevel: difficultyLevelSchema,
   })
   .strict();
@@ -136,8 +163,8 @@ const traineeCampaignItemSummaryBaseSchema = z
     campaignItemId: idParamSchema,
     campaignId: idParamSchema,
     parentGroupId: idParamSchema.nullish(),
-    title: z.string().trim().min(1),
-    description: z.string().trim().nullish(),
+    title: titleSchema,
+    description: descriptionSchema.nullish(),
     position: z.number().int().nonnegative(),
     isRequired: z.boolean(),
     availabilityStatus: campaignItemAvailabilityStatusSchema,
