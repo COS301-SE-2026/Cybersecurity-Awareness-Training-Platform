@@ -87,6 +87,7 @@ function InboxEmailRow({
           textOverflow: 'ellipsis',
           flexShrink: 0,
           letterSpacing: '0.08rem',
+          paddingRight: '1rem',
         }}
       >
         {sender}
@@ -99,15 +100,18 @@ function InboxEmailRow({
           width: '380px',
           color: unread ? 'white' : '#E2D8F1',
           fontFamily: 'Overpass',
-          fontSize: '1.1rem',
+          fontSize: '1.2rem',
           fontWeight: unread ? 500 : 400,
           whiteSpace: 'nowrap',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           flexShrink: 0,
+          paddingRight: '2rem',
         }}
       >
-        {subject}
+        {subject.replace(/\w\S*/g, (word) => {
+          return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+        })}
       </div>
 
       {/* PREVIEW */}
@@ -122,7 +126,7 @@ function InboxEmailRow({
           whiteSpace: 'nowrap',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
-          paddingRight: '1.2rem',
+          paddingRight: '6rem',
         }}
       >
         {preview}
@@ -134,7 +138,7 @@ function InboxEmailRow({
         style={{
           color: unread ? '#F2D7FF' : '#C3AFD9',
           fontFamily: 'Overpass',
-          fontSize: '1.1rem',
+          fontSize: '1rem',
           fontWeight: unread ? 600 : 400,
           whiteSpace: 'nowrap',
           flexShrink: 0,
