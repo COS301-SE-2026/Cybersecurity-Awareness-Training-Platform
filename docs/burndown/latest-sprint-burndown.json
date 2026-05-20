@@ -16,8 +16,8 @@
       "number": 131,
       "title": "fix: update shared DTOs to be stricter",
       "points": 3,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-05-20"
     },
     {
       "number": 126,
@@ -320,7 +320,7 @@
     },
     {
       "date": "2026-05-20",
-      "remaining": 30,
+      "remaining": 27,
       "ideal": 0.0
     }
   ]
