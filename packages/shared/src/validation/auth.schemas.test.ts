@@ -10,13 +10,42 @@ describe('auth validation schemas', () => {
     return result.error.issues.map((issue) => issue.message);
   };
 
+  const validRegisterInput = (
+    overrides: Partial<{
+      email: string;
+      password: string;
+      firstName: string;
+      lastName: string;
+      role: string;
+    }> = {},
+  ) => ({
+    email: 'trainee@example.com',
+    password: 'StrongerPass1!',
+    firstName: 'Jane',
+    lastName: 'Doe',
+    ...overrides,
+  });
+
+  const validLoginInput = (
+    overrides: Partial<{
+      email: string;
+      password: string;
+      rememberMe: boolean;
+    }> = {},
+  ) => ({
+    email: 'trainee@example.com',
+    password: 'password',
+    ...overrides,
+  });
+
   it('normalizes valid register input', () => {
-    const result = authRegisterRequestSchema.parse({
-      email: '  TRAINEE@EXAMPLE.COM  ',
-      password: 'StrongerPass1!',
-      firstName: ' Jane ',
-      lastName: ' Doe ',
-    });
+    const result = authRegisterRequestSchema.parse(
+      validRegisterInput({
+        email: '  TRAINEE@EXAMPLE.COM  ',
+        firstName: ' Jane ',
+        lastName: ' Doe ',
+      }),
+    );
 
     expect(result).toEqual({
       email: 'trainee@example.com',
@@ -45,104 +74,50 @@ describe('auth validation schemas', () => {
   });
 
   it('rejects register payloads with unexpected fields', () => {
-    const result = authRegisterRequestSchema.safeParse({
-      email: 'trainee@example.com',
-      password: 'StrongerPass1!',
-      firstName: 'Jane',
-      lastName: 'Doe',
-      role: 'IP_ADMIN',
-    });
+    const result = authRegisterRequestSchema.safeParse(validRegisterInput({ role: 'IP_ADMIN' }));
 
     expect(result.success).toBe(false);
   });
 
-  it('rejects register passwords shorter than 12 characters', () => {
-    const result = authRegisterRequestSchema.safeParse({
-      email: 'trainee@example.com',
-      password: 'Short1!',
-      firstName: 'Jane',
-      lastName: 'Doe',
-    });
-
-    expect(result.success).toBe(false);
-    expect(issueMessagesFor(result)).toContain('Password must be at least 12 characters long');
-  });
-
-  it('rejects register passwords without a lowercase letter', () => {
-    const result = authRegisterRequestSchema.safeParse({
-      email: 'trainee@example.com',
-      password: 'STRONGERPASS1!',
-      firstName: 'Jane',
-      lastName: 'Doe',
-    });
-
-    expect(result.success).toBe(false);
-    expect(issueMessagesFor(result)).toContain(
+  it.each([
+    ['shorter than 12 characters', 'Short1!', 'Password must be at least 12 characters long'],
+    [
+      'without a lowercase letter',
+      'STRONGERPASS1!',
       'Password must contain at least one lowercase letter',
-    );
-  });
-
-  it('rejects register passwords without an uppercase letter', () => {
-    const result = authRegisterRequestSchema.safeParse({
-      email: 'trainee@example.com',
-      password: 'strongerpass1!',
-      firstName: 'Jane',
-      lastName: 'Doe',
-    });
-
-    expect(result.success).toBe(false);
-    expect(issueMessagesFor(result)).toContain(
+    ],
+    [
+      'without an uppercase letter',
+      'strongerpass1!',
       'Password must contain at least one uppercase letter',
-    );
-  });
-
-  it('rejects register passwords without a number', () => {
-    const result = authRegisterRequestSchema.safeParse({
-      email: 'trainee@example.com',
-      password: 'StrongerPass!',
-      firstName: 'Jane',
-      lastName: 'Doe',
-    });
-
-    expect(result.success).toBe(false);
-    expect(issueMessagesFor(result)).toContain('Password must contain at least one number');
-  });
-
-  it('rejects register passwords without a special character', () => {
-    const result = authRegisterRequestSchema.safeParse({
-      email: 'trainee@example.com',
-      password: 'StrongerPass1',
-      firstName: 'Jane',
-      lastName: 'Doe',
-    });
-
-    expect(result.success).toBe(false);
-    expect(issueMessagesFor(result)).toContain(
+    ],
+    ['without a number', 'StrongerPass!', 'Password must contain at least one number'],
+    [
+      'without a special character',
+      'StrongerPass1',
       'Password must contain at least one special character',
-    );
-  });
-
-  it('does not count whitespace as a register password special character', () => {
-    const result = authRegisterRequestSchema.safeParse({
-      email: 'trainee@example.com',
-      password: 'Stronger Pass1',
-      firstName: 'Jane',
-      lastName: 'Doe',
-    });
+    ],
+    [
+      'with whitespace as the only special character',
+      'Stronger Pass1',
+      'Password must contain at least one special character',
+    ],
+  ])('rejects register passwords %s', (_caseName, password, expectedMessage) => {
+    const result = authRegisterRequestSchema.safeParse(validRegisterInput({ password }));
 
     expect(result.success).toBe(false);
-    expect(issueMessagesFor(result)).toContain(
-      'Password must contain at least one special character',
-    );
+    expect(issueMessagesFor(result)).toContain(expectedMessage);
   });
 
   it('rejects register fields over maximum length', () => {
-    const result = authRegisterRequestSchema.safeParse({
-      email: `${'a'.repeat(250)}@example.com`,
-      password: `${'A'.repeat(126)}a1!`,
-      firstName: 'J'.repeat(101),
-      lastName: 'D'.repeat(101),
-    });
+    const result = authRegisterRequestSchema.safeParse(
+      validRegisterInput({
+        email: `${'a'.repeat(250)}@example.com`,
+        password: `${'A'.repeat(126)}a1!`,
+        firstName: 'J'.repeat(101),
+        lastName: 'D'.repeat(101),
+      }),
+    );
 
     expect(result.success).toBe(false);
     expect(issueMessagesFor(result)).toEqual(
@@ -156,21 +131,22 @@ describe('auth validation schemas', () => {
   });
 
   it('rejects whitespace-only register names after trimming', () => {
-    const result = authRegisterRequestSchema.safeParse({
-      email: 'trainee@example.com',
-      password: 'StrongerPass1!',
-      firstName: '   ',
-      lastName: '\t',
-    });
+    const result = authRegisterRequestSchema.safeParse(
+      validRegisterInput({
+        firstName: '   ',
+        lastName: '\t',
+      }),
+    );
 
     expect(result.success).toBe(false);
   });
 
   it('normalizes valid login input', () => {
-    const result = authLoginRequestSchema.parse({
-      email: '  TRAINEE@EXAMPLE.COM  ',
-      password: 'password',
-    });
+    const result = authLoginRequestSchema.parse(
+      validLoginInput({
+        email: '  TRAINEE@EXAMPLE.COM  ',
+      }),
+    );
 
     expect(result).toEqual({
       email: 'trainee@example.com',
@@ -179,26 +155,17 @@ describe('auth validation schemas', () => {
   });
 
   it('keeps login password validation weaker than registration', () => {
-    const result = authLoginRequestSchema.safeParse({
-      email: 'trainee@example.com',
-      password: 'legacy',
-    });
+    const result = authLoginRequestSchema.safeParse(validLoginInput({ password: 'legacy' }));
 
     expect(result.success).toBe(true);
   });
 
   it('rejects empty and too-long login passwords without requiring register strength', () => {
-    expect(
-      authLoginRequestSchema.safeParse({
-        email: 'trainee@example.com',
-        password: '',
-      }).success,
-    ).toBe(false);
+    expect(authLoginRequestSchema.safeParse(validLoginInput({ password: '' })).success).toBe(false);
 
-    const tooLongResult = authLoginRequestSchema.safeParse({
-      email: 'trainee@example.com',
-      password: 'a'.repeat(129),
-    });
+    const tooLongResult = authLoginRequestSchema.safeParse(
+      validLoginInput({ password: 'a'.repeat(129) }),
+    );
 
     expect(tooLongResult.success).toBe(false);
     if (!tooLongResult.success) {
@@ -209,11 +176,7 @@ describe('auth validation schemas', () => {
   });
 
   it('rejects login payloads with unexpected fields', () => {
-    const result = authLoginRequestSchema.safeParse({
-      email: 'trainee@example.com',
-      password: 'password',
-      rememberMe: true,
-    });
+    const result = authLoginRequestSchema.safeParse(validLoginInput({ rememberMe: true }));
 
     expect(result.success).toBe(false);
   });
