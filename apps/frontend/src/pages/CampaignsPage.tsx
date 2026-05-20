@@ -33,6 +33,12 @@ function formatCampaignStatus(status?: string | null): string {
   }
 }
 
+function toTitleCase(value: string): string {
+  return value.replace(/\w\S*/g, (word) => {
+    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+  });
+}
+
 function isCampaignItemDisabled(availabilityStatus: string): boolean {
   return availabilityStatus !== 'AVAILABLE';
 }
@@ -46,7 +52,7 @@ function renderCampaignItems(
       return (
         <TrainingPartAccordion
           key={item.campaignItemId}
-          title={item.title}
+          title={toTitleCase(item.title)}
           status={formatCampaignStatus(item.progressStatus)}
         >
           {renderCampaignItems(item.children, navigate)}
@@ -88,7 +94,7 @@ function renderCampaignItems(
       return (
         <CampaignActionRow
           key={item.campaignItemId}
-          title={item.title}
+          title={toTitleCase(item.title)}
           status={formatCampaignStatus(item.progressStatus)}
           disabled={disabled}
           onClick={disabled ? undefined : () => navigate(item.activityApiPath)}
