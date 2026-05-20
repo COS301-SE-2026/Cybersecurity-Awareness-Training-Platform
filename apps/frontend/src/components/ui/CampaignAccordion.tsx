@@ -1,5 +1,3 @@
-import { useState } from 'react';
-
 import { KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material';
 
 type CampaignAccordionProps = {
@@ -7,8 +5,9 @@ type CampaignAccordionProps = {
   subtitle: string;
   status: string;
   accentColor: string;
-  children: React.ReactNode;
-  defaultOpen?: boolean;
+  children?: React.ReactNode;
+  isOpen: boolean;
+  onToggle: () => void;
 };
 
 function CampaignAccordion({
@@ -17,10 +16,9 @@ function CampaignAccordion({
   status,
   accentColor,
   children,
-  defaultOpen = false,
+  isOpen,
+  onToggle,
 }: CampaignAccordionProps) {
-  const [open, setOpen] = useState(defaultOpen);
-
   return (
     <div
       style={{
@@ -45,7 +43,7 @@ function CampaignAccordion({
       {/* HEADER */}
 
       <div
-        onClick={() => setOpen(!open)}
+        onClick={onToggle}
         style={{
           cursor: 'pointer',
           display: 'flex',
@@ -108,7 +106,7 @@ function CampaignAccordion({
             {status}
           </div>
 
-          {open ? (
+          {isOpen ? (
             <KeyboardArrowUp
               style={{
                 color: 'white',
@@ -128,7 +126,7 @@ function CampaignAccordion({
 
       {/* CONTENT */}
 
-      {open && (
+      {isOpen && (
         <div
           style={{
             padding: '1rem',
