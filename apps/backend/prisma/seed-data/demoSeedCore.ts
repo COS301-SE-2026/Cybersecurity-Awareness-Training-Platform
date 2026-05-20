@@ -7,6 +7,8 @@ import {
   DEMO_SEED_CAMPAIGN_ITEMS,
   DEMO_SEED_CREDENTIALS,
   DEMO_SEED_IDS,
+  DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN,
+  DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN_ASSIGNMENT,
   DEMO_SEED_QUIZZES,
   DEMO_SEED_SIMULATED_EMAILS,
   DEMO_SEED_SIMULATED_INBOX,
@@ -30,11 +32,14 @@ export type DemoSeedSummary = {
     readonly email: string;
     readonly role: string;
   }>;
-  readonly campaign: {
+  readonly assignedCampaigns: ReadonlyArray<{
+    readonly id: string;
     readonly name: string;
+    readonly assignmentId: string;
     readonly itemCount: number;
     readonly assignedTraineeEmail: string;
-  };
+    readonly lockedItemCount: number;
+  }>;
   readonly content: {
     readonly trainingDocumentCount: number;
     readonly quizCount: number;
@@ -51,6 +56,12 @@ const DEMO_USER_EMAILS = Object.values(DEMO_SEED_CREDENTIALS).map(
 );
 const DEMO_TRAINEE_PROFILE_IDS = Object.values(DEMO_SEED_IDS.traineeProfiles);
 const DEMO_GENERAL_TRAINEE_PROFILE_IDS = Object.values(DEMO_SEED_IDS.generalTraineeProfiles);
+const DEMO_CAMPAIGN_IDS = [
+  DEMO_SEED_IDS.campaign,
+  DEMO_SEED_IDS.campaignB,
+  DEMO_SEED_IDS.passwordSecurityCampaign,
+];
+const DEMO_CAMPAIGN_ASSIGNMENT_IDS = Object.values(DEMO_SEED_IDS.campaignAssignments);
 const DEMO_CAMPAIGN_ITEM_IDS = Object.values(DEMO_SEED_IDS.campaignItems);
 const DEMO_TRAINING_DOCUMENT_IDS = Object.values(DEMO_SEED_IDS.trainingDocuments);
 const DEMO_QUIZ_IDS = Object.values(DEMO_SEED_IDS.quizzes);
@@ -92,13 +103,18 @@ export function buildDemoSeedSummary(): DemoSeedSummary {
         role: DEMO_SEED_USERS.admin.userType,
       },
     ],
-    campaign: {
-      name: DEMO_SEED_CAMPAIGN.name,
-      itemCount: DEMO_SEED_CAMPAIGN_ITEMS.filter(
-        (item) => item.campaignId === DEMO_SEED_IDS.campaign,
-      ).length,
-      assignedTraineeEmail: DEMO_SEED_CREDENTIALS.populatedTrainee.email,
-    },
+    assignedCampaigns: [
+      buildAssignedCampaignSummary({
+        campaign: DEMO_SEED_CAMPAIGN,
+        assignmentId: DEMO_SEED_CAMPAIGN_ASSIGNMENT.id,
+        assignedTraineeEmail: DEMO_SEED_CREDENTIALS.populatedTrainee.email,
+      }),
+      buildAssignedCampaignSummary({
+        campaign: DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN,
+        assignmentId: DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN_ASSIGNMENT.id,
+        assignedTraineeEmail: DEMO_SEED_CREDENTIALS.populatedTrainee.email,
+      }),
+    ],
     content: {
       trainingDocumentCount: DEMO_SEED_TRAINING_DOCUMENTS.length,
       quizCount: DEMO_SEED_QUIZZES.length,
@@ -124,36 +140,42 @@ export function buildDemoSeedSummary(): DemoSeedSummary {
   };
 }
 
+function buildAssignedCampaignSummary(input: {
+  campaign: typeof DEMO_SEED_CAMPAIGN | typeof DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN;
+  assignmentId: string;
+  assignedTraineeEmail: string;
+}): DemoSeedSummary['assignedCampaigns'][number] {
+  const campaignItems = DEMO_SEED_CAMPAIGN_ITEMS.filter(
+    (item) => item.campaignId === input.campaign.id,
+  );
+
+  return {
+    id: input.campaign.id,
+    name: input.campaign.name,
+    assignmentId: input.assignmentId,
+    itemCount: campaignItems.length,
+    assignedTraineeEmail: input.assignedTraineeEmail,
+    lockedItemCount: campaignItems.filter((item) => item.availabilityStatus === 'LOCKED').length,
+  };
+}
+
 async function deleteDemoCore(tx: DemoSeedTransaction): Promise<void> {
   await tx.campaignAssignment.deleteMany({
     where: {
-      OR: [
-        { id: DEMO_SEED_IDS.campaignAssignments.populatedTrainee },
-        { campaignId: DEMO_SEED_IDS.campaign },
-        { campaignId: DEMO_SEED_IDS.campaignB },
-        {
-          traineeProfileId: {
-            in: DEMO_TRAINEE_PROFILE_IDS,
-          },
-        },
-      ],
+      OR: [{ id: { in: DEMO_CAMPAIGN_ASSIGNMENT_IDS } }, { campaignId: { in: DEMO_CAMPAIGN_IDS } }],
     },
   });
 
   await tx.campaignItem.deleteMany({
     where: {
-      OR: [
-        { id: { in: DEMO_CAMPAIGN_ITEM_IDS } },
-        { campaignId: DEMO_SEED_IDS.campaign },
-        { campaignId: DEMO_SEED_IDS.campaignB },
-      ],
+      OR: [{ id: { in: DEMO_CAMPAIGN_ITEM_IDS } }, { campaignId: { in: DEMO_CAMPAIGN_IDS } }],
     },
   });
 
   await tx.campaign.deleteMany({
     where: {
       id: {
-        in: [DEMO_SEED_IDS.campaign, DEMO_SEED_IDS.campaignB],
+        in: DEMO_CAMPAIGN_IDS,
       },
     },
   });
@@ -326,6 +348,9 @@ async function createDemoCampaign(tx: DemoSeedTransaction): Promise<void> {
   await tx.campaign.create({
     data: DEMO_SEED_CAMPAIGN_B,
   });
+  await tx.campaign.create({
+    data: DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN,
+  });
 }
 
 async function createDemoContent(tx: DemoSeedTransaction): Promise<void> {
@@ -426,5 +451,8 @@ async function createDemoCampaignItems(tx: DemoSeedTransaction): Promise<void> {
 async function createDemoCampaignAssignment(tx: DemoSeedTransaction): Promise<void> {
   await tx.campaignAssignment.create({
     data: DEMO_SEED_CAMPAIGN_ASSIGNMENT,
+  });
+  await tx.campaignAssignment.create({
+    data: DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN_ASSIGNMENT,
   });
 }
