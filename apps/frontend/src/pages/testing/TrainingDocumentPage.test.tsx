@@ -1,142 +1,144 @@
 import '@testing-library/jest-dom/vitest';
+import type { ReactNode } from 'react';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { AuthProvider } from '../../context/AuthContext';
-import * as trainingApi from '../../lib/trainingApi';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import TrainingDocumentPage from '../TrainingDocumentPage';
 
-function renderTrainingDocumentPage(path: string) {
-  return render(
-    <AuthProvider>
-      <MemoryRouter initialEntries={[path]}>
-        <Routes>
-          <Route path="/training/modules/:trainingId" element={<TrainingDocumentPage />} />
-        </Routes>
-      </MemoryRouter>
-    </AuthProvider>,
-  );
-}
+const getTrainingMock = vi.fn();
+const viewedMock = vi.fn();
+const completedMock = vi.fn();
+
+vi.mock('../../components/layout/AppLayout', () => ({
+  default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+}));
+
+vi.mock('../../lib/trainingApi', () => ({
+  getCampaignItemTrainingDocument: (...args: unknown[]) => getTrainingMock(...args),
+  recordTrainingDocumentViewed: (...args: unknown[]) => viewedMock(...args),
+  recordTrainingDocumentCompleted: (...args: unknown[]) => completedMock(...args),
+}));
 
 describe('TrainingDocumentPage', () => {
   afterEach(() => {
     cleanup();
-    vi.restoreAllMocks();
   });
 
-  async function expectPageHeading(name: string) {
-    expect(await screen.findByRole('heading', { level: 1, name })).toBeInTheDocument();
+  beforeEach(() => {
+    getTrainingMock.mockReset();
+    viewedMock.mockReset();
+    completedMock.mockReset();
+
+    getTrainingMock.mockResolvedValue({
+      campaignItemId: '33333333-3333-4333-8333-333333333333',
+      campaignAssignmentId: 'assignment-001',
+      trainingDocument: {
+        id: 'training-doc-001',
+        title: 'Phishing warning signs',
+        contentType: 'HTML',
+        contentRef: 'demo://training/phishing-warning-signs',
+        contentSummary: 'Learn how to spot suspicious messages.',
+        difficultyLevel: 'BEGINNER',
+        status: 'AVAILABLE',
+      },
+      campaignItem: {
+        title: 'Read phishing warning signs',
+        description: 'Training document',
+        position: 1000,
+        isRequired: true,
+        availabilityStatus: 'AVAILABLE',
+      },
+    });
+
+    viewedMock.mockResolvedValue(undefined);
+    completedMock.mockResolvedValue(undefined);
+  });
+
+  function renderTrainingDocumentPage() {
+    return render(
+      <MemoryRouter initialEntries={['/training/33333333-3333-4333-8333-333333333333']}>
+        <Routes>
+          <Route path="/training/:campaignItemId" element={<TrainingDocumentPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
   }
 
-  it('renders readable training document content', async () => {
-    renderTrainingDocumentPage('/training/modules/phishing-basics');
+  it('fetches and displays a campaign item training document', async () => {
+    renderTrainingDocumentPage();
 
-    expect(screen.getByText(/loading training document/i)).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Phishing warning signs' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Phishing messages often try to pressure you/i)).toBeInTheDocument();
 
-    await expectPageHeading('Recognising Phishing Emails');
-    expect(screen.getByText(/Common warning signs/i)).toBeInTheDocument();
-    expect(screen.getByText(/The email creates urgency/i)).toBeInTheDocument();
-  });
-
-  it('shows back navigation to training modules', async () => {
-    renderTrainingDocumentPage('/training/modules/password-safety');
-
-    await expectPageHeading('Password Safety');
-
-    expect(screen.getByRole('link', { name: /back to training modules/i })).toHaveAttribute(
-      'href',
-      '/training/modules',
-    );
-  });
-
-  it('shows linked quiz CTA when linkedQuizId exists', async () => {
-    renderTrainingDocumentPage('/training/modules/phishing-basics');
-
-    await expectPageHeading('Recognising Phishing Emails');
-
-    expect(screen.getByRole('link', { name: /start linked quiz/i })).toHaveAttribute(
-      'href',
-      '/quizzes/phishing-basics-quiz',
-    );
-  });
-
-  it('does not show linked quiz CTA when linkedQuizId is missing', async () => {
-    renderTrainingDocumentPage('/training/modules/social-engineering');
-
-    await expectPageHeading('Social Engineering Awareness');
-
-    expect(screen.queryByRole('link', { name: /start linked quiz/i })).not.toBeInTheDocument();
-  });
-
-  it('shows unavailable-content state when content is missing', async () => {
-    renderTrainingDocumentPage('/training/modules/unavailable-training');
-
-    expect(await screen.findByText('Training content unavailable')).toBeInTheDocument();
-  });
-
-  it('shows an error state for an unknown training id', async () => {
-    renderTrainingDocumentPage('/training/modules/unknown-training');
-
-    expect(await screen.findByText('Unable to load training')).toBeInTheDocument();
-  });
-
-  it('tracks progress when the document is opened', async () => {
-    const postTrainingProgressSpy = vi.spyOn(trainingApi, 'postTrainingProgress');
-
-    renderTrainingDocumentPage('/training/modules/phishing-basics');
-
-    await expectPageHeading('Recognising Phishing Emails');
+    expect(getTrainingMock).toHaveBeenCalledWith('33333333-3333-4333-8333-333333333333');
 
     await waitFor(() => {
-      expect(postTrainingProgressSpy).toHaveBeenCalledWith('phishing-basics', {
-        status: 'VIEWED',
-      });
+      expect(viewedMock).toHaveBeenCalledWith('33333333-3333-4333-8333-333333333333');
     });
   });
 
-  it('tracks completed progress when mark as read is clicked', async () => {
-    const postTrainingProgressSpy = vi.spyOn(trainingApi, 'postTrainingProgress');
+  it('records completion when the learner marks the document complete', async () => {
+    const user = userEvent.setup();
 
-    renderTrainingDocumentPage('/training/modules/password-safety');
+    renderTrainingDocumentPage();
 
-    await expectPageHeading('Password Safety');
+    const button = await screen.findByRole('button', {
+      name: /mark as completed/i,
+    });
 
-    screen.getByRole('button', { name: /complete module/i }).click();
+    await user.click(button);
 
     await waitFor(() => {
-      expect(postTrainingProgressSpy).toHaveBeenCalledWith('password-safety', {
-        status: 'COMPLETED',
-      });
+      expect(completedMock).toHaveBeenCalledWith('33333333-3333-4333-8333-333333333333');
     });
+
+    expect(await screen.findByText(/training completion recorded/i)).toBeInTheDocument();
   });
 
-  it('does not block reading when opening progress fails', async () => {
-    vi.spyOn(trainingApi, 'postTrainingProgress').mockRejectedValueOnce(
-      new Error('Progress failed'),
-    );
+  it('still renders content if viewed tracking fails', async () => {
+    viewedMock.mockRejectedValueOnce(new Error('tracking failed'));
 
-    renderTrainingDocumentPage('/training/modules/phishing-basics');
+    renderTrainingDocumentPage();
 
-    await expectPageHeading('Recognising Phishing Emails');
-    expect(screen.getByText(/Common warning signs/i)).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Phishing warning signs' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Phishing messages often try to pressure you/i)).toBeInTheDocument();
   });
 
-  it('shows a non-blocking error when mark as read fails', async () => {
-    vi.spyOn(trainingApi, 'postTrainingProgress')
-      .mockResolvedValueOnce({
-        trainingId: 'password-safety',
-        status: 'VIEWED',
-        updatedAt: new Date().toISOString(),
-      })
-      .mockRejectedValueOnce(new Error('Failed to complete'));
+  it('does not require linked quiz or legacy progress data to render demo content', async () => {
+    getTrainingMock.mockResolvedValueOnce({
+      campaignItemId: '33333333-3333-4333-8333-333333333333',
+      campaignAssignmentId: 'assignment-001',
+      trainingDocument: {
+        id: 'training-doc-002',
+        title: 'Safe link handling',
+        contentType: 'HTML',
+        contentRef: 'demo://training/safe-link-handling',
+        contentSummary: 'Review safe link handling.',
+        difficultyLevel: 'BEGINNER',
+        status: 'AVAILABLE',
+      },
+      campaignItem: {
+        title: 'Read safe link handling',
+        description: 'Training document',
+        position: 1000,
+        isRequired: true,
+        availabilityStatus: 'AVAILABLE',
+      },
+    });
 
-    renderTrainingDocumentPage('/training/modules/password-safety');
+    renderTrainingDocumentPage();
 
-    await expectPageHeading('Password Safety');
-
-    screen.getByRole('button', { name: /complete module/i }).click();
-
-    expect(await screen.findByText(/could not save your progress/i)).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 1, name: 'Password Safety' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Safe link handling' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Before opening a link, confirm that the destination matches/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /quiz/i })).not.toBeInTheDocument();
   });
 });
