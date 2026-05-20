@@ -1,8 +1,15 @@
 {
   "milestone": "Sprint 2 (Demo 1)",
   "start": "2026-05-11",
-  "end": "2026-05-20",
+  "end": "2026-05-21",
   "issues": [
+    {
+      "number": 138,
+      "title": "chore: add second campaign",
+      "points": 3,
+      "state": "closed",
+      "closed_date": "2026-05-20"
+    },
     {
       "number": 132,
       "title": "chore: add Demo 1 backend integration test coverage",
@@ -56,8 +63,8 @@
       "number": 95,
       "title": "test: Verify Demo 1 seed data and database reset before rehearsal",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-05-20"
     },
     {
       "number": 94,
@@ -273,53 +280,53 @@
   "series": [
     {
       "date": "2026-05-11",
-      "remaining": 95,
-      "ideal": 104.0
+      "remaining": 98,
+      "ideal": 107.0
     },
     {
       "date": "2026-05-12",
-      "remaining": 83,
-      "ideal": 92.44
+      "remaining": 86,
+      "ideal": 96.3
     },
     {
       "date": "2026-05-13",
-      "remaining": 78,
-      "ideal": 80.89
+      "remaining": 81,
+      "ideal": 85.6
     },
     {
       "date": "2026-05-14",
-      "remaining": 78,
-      "ideal": 69.33
+      "remaining": 81,
+      "ideal": 74.9
     },
     {
       "date": "2026-05-15",
-      "remaining": 77,
-      "ideal": 57.78
+      "remaining": 80,
+      "ideal": 64.2
     },
     {
       "date": "2026-05-16",
-      "remaining": 72,
-      "ideal": 46.22
+      "remaining": 75,
+      "ideal": 53.5
     },
     {
       "date": "2026-05-17",
-      "remaining": 67,
-      "ideal": 34.67
+      "remaining": 70,
+      "ideal": 42.8
     },
     {
       "date": "2026-05-18",
-      "remaining": 46,
-      "ideal": 23.11
+      "remaining": 49,
+      "ideal": 32.1
     },
     {
       "date": "2026-05-19",
-      "remaining": 30,
-      "ideal": 11.56
+      "remaining": 33,
+      "ideal": 21.4
     },
     {
       "date": "2026-05-20",
-      "remaining": 27,
-      "ideal": 0.0
+      "remaining": 25,
+      "ideal": 10.7
     }
   ]
 }
