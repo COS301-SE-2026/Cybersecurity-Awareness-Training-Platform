@@ -1,6 +1,5 @@
 import type { GetTrainingDocumentResponseDto } from '@insightful-phish/shared';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000';
+import { authenticatedFetch } from './authenticatedFetch';
 
 export type TrainingDocumentStatus = 'NOT_STARTED' | 'STARTED' | 'VIEWED' | 'COMPLETED';
 
@@ -16,37 +15,6 @@ export const trainingRoutes = {
   document: (campaignItemId: string) => `/training/${campaignItemId}`,
   quiz: (campaignItemId: string) => `/quizzes/${campaignItemId}`,
 };
-
-function getAuthToken(): string | null {
-  return (
-    localStorage.getItem('authToken') ??
-    localStorage.getItem('accessToken') ??
-    localStorage.getItem('token')
-  );
-}
-
-async function authenticatedFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = getAuthToken();
-
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`Request failed: ${response.status}`);
-  }
-
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
-  return response.json() as Promise<T>;
-}
 
 export async function getCampaignItemTrainingDocument(
   campaignItemId: string,
