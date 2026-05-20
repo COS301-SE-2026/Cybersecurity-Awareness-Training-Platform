@@ -5,9 +5,8 @@ vi.mock('node:fs/promises', () => ({
 }));
 
 const { readFile } = await import('node:fs/promises');
-const { resolveContent, TrainingContentResolveError } = await import(
-  '../../src/services/content-resolver.service.js'
-);
+const { resolveContent, TrainingContentResolveError } =
+  await import('../../src/services/content-resolver.service.js');
 
 describe('content resolver service', () => {
   beforeEach(() => {
