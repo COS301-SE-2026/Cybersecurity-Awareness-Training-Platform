@@ -1,15 +1,193 @@
-import AppLayout from '../components/layout/AppLayout';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import CampaignAccordion from '../components/ui/CampaignAccordion';
+import type {
+  GetTraineeCampaignDetailResponseDto,
+  TraineeCampaignSummaryDto,
+} from '@insightful-phish/shared';
 
+import AppLayout from '../components/layout/AppLayout';
+import CampaignAccordion from '../components/ui/CampaignAccordion';
+import TrainingActionRow from '../components/ui/TrainingActionRow';
 import TrainingPartAccordion from '../components/ui/TrainingPartAccordion';
 
-import TrainingActionRow from '../components/ui/TrainingActionRow';
-import CampaignActionRow from '../components/ui/CampaignActionRow';
+import { useAuth } from '../context/useAuth';
+import { getTraineeCampaign, getTraineeCampaigns } from '../services/campaigns.service';
+
+const ACCENT_COLORS = ['#00FFA6', '#FF00D4', '#00D1FF', '#FF9F1C'];
+
+function formatCampaignStatus(status?: string | null): string {
+  switch (status) {
+    case 'COMPLETED':
+      return 'COMPLETED';
+
+    case 'IN_PROGRESS':
+    case 'VIEWED':
+    case 'INTERACTED':
+      return 'STARTED';
+
+    case 'NOT_STARTED':
+    default:
+      return 'NOT STARTED';
+  }
+}
+
+function toTitleCase(value: string): string {
+  return value.replace(/\w\S*/g, (word) => {
+    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+  });
+}
+
+function isCampaignItemDisabled(availabilityStatus: string, isOpenable: boolean): boolean {
+  return availabilityStatus !== 'AVAILABLE' || !isOpenable;
+}
+
+function renderCampaignItems(
+  items: GetTraineeCampaignDetailResponseDto['items'],
+  navigate: ReturnType<typeof useNavigate>,
+) {
+  return items.map((item) => {
+    if (item.itemType === 'GROUP') {
+      return (
+        <TrainingPartAccordion
+          key={item.campaignItemId}
+          title={toTitleCase(item.title)}
+          status={formatCampaignStatus(item.progressStatus)}
+        >
+          {renderCampaignItems(item.children, navigate)}
+        </TrainingPartAccordion>
+      );
+    }
+
+    if (item.itemType !== 'COMPONENT') {
+      return null;
+    }
+
+    const disabled = isCampaignItemDisabled(item.availabilityStatus, item.isOpenable);
+
+    if (item.componentType === 'TRAINING_DOCUMENT') {
+      return (
+        <TrainingActionRow
+          key={item.campaignItemId}
+          label={`Learn: "${toTitleCase(item.title)}"`}
+          status={formatCampaignStatus(item.progressStatus)}
+          disabled={disabled}
+          showLockIcon={disabled}
+          iconType="learn"
+          onClick={disabled ? undefined : () => navigate(item.activityApiPath)}
+        />
+      );
+    }
+
+    if (item.componentType === 'QUIZ') {
+      return (
+        <TrainingActionRow
+          key={item.campaignItemId}
+          label={`Quiz: "${toTitleCase(item.title)}"`}
+          status={formatCampaignStatus(item.progressStatus)}
+          disabled={disabled}
+          showLockIcon={disabled}
+          iconType="quiz"
+          onClick={disabled ? undefined : () => navigate(item.activityApiPath)}
+        />
+      );
+    }
+
+    if (item.componentType === 'SIMULATED_INBOX') {
+      return (
+        <TrainingActionRow
+          key={item.campaignItemId}
+          label={`Simulation: ${toTitleCase(item.title)}`}
+          status={formatCampaignStatus(item.progressStatus)}
+          disabled={disabled}
+          showLockIcon={disabled}
+          iconType="simulation"
+          onClick={disabled ? undefined : () => navigate(item.activityApiPath)}
+        />
+      );
+    }
+
+    return null;
+  });
+}
 
 function CampaignsPage() {
   const navigate = useNavigate();
+
+  const { token } = useAuth();
+
+  const [campaigns, setCampaigns] = useState<TraineeCampaignSummaryDto[]>([]);
+
+  const [openCampaigns, setOpenCampaigns] = useState<Record<string, boolean>>({});
+
+  const [campaignDetails, setCampaignDetails] = useState<
+    Record<string, GetTraineeCampaignDetailResponseDto>
+  >({});
+
+  const [loadingCampaignDetails, setLoadingCampaignDetails] = useState<Record<string, boolean>>({});
+
+  const [loading, setLoading] = useState(true);
+
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    async function loadCampaigns() {
+      if (!token) {
+        setError('NOT AUTHENTICATED');
+
+        setLoading(false);
+
+        return;
+      }
+
+      try {
+        const data = await getTraineeCampaigns(token);
+
+        setCampaigns(data.campaigns);
+      } catch {
+        setError('FAILED TO LOAD CAMPAIGNS');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    void loadCampaigns();
+  }, [token]);
+
+  async function toggleCampaign(campaignId: string) {
+    const isCurrentlyOpen = Boolean(openCampaigns[campaignId]);
+
+    setOpenCampaigns((previous) => ({
+      ...previous,
+      [campaignId]: !previous[campaignId],
+    }));
+
+    if (isCurrentlyOpen || campaignDetails[campaignId] || !token) {
+      return;
+    }
+
+    try {
+      setLoadingCampaignDetails((previous) => ({
+        ...previous,
+        [campaignId]: true,
+      }));
+
+      const detail = await getTraineeCampaign(campaignId, token);
+
+      setCampaignDetails((previous) => ({
+        ...previous,
+        [campaignId]: detail,
+      }));
+    } catch {
+      setError('FAILED TO LOAD CAMPAIGN DETAILS');
+    } finally {
+      setLoadingCampaignDetails((previous) => ({
+        ...previous,
+        [campaignId]: false,
+      }));
+    }
+  }
+
   return (
     <AppLayout>
       <div
@@ -23,8 +201,6 @@ function CampaignsPage() {
           userSelect: 'none',
         }}
       >
-        {/* HEADING */}
-
         <h1
           style={{
             margin: 0,
@@ -39,61 +215,58 @@ function CampaignsPage() {
           Campaigns
         </h1>
 
-        {/* CAMPAIGN 1 */}
-        <CampaignAccordion
-          title="Campaign 1"
-          subtitle="Phishing"
-          status="STARTED"
-          accentColor="#00FFA6"
-        >
-          <TrainingPartAccordion title="Part 1: Introduction to Phishing" status="COMPLETED">
-            <TrainingActionRow label="Learn" status="COMPLETED" />
+        {loading && (
+          <div
+            style={{
+              color: '#C98FFF',
+              fontFamily: 'Jost',
+              fontSize: '1.2rem',
+            }}
+          >
+            LOADING CAMPAIGNS...
+          </div>
+        )}
 
-            <TrainingActionRow label="Quiz" status="COMPLETED" />
-          </TrainingPartAccordion>
+        {error && (
+          <div
+            style={{
+              color: '#FF7A7A',
+              fontFamily: 'Jost',
+              fontSize: '1.2rem',
+            }}
+          >
+            {error}
+          </div>
+        )}
 
-          <TrainingPartAccordion title="Part 2: Spotting Suspicious Emails" status="COMPLETED">
-            <TrainingActionRow label="Learn" status="COMPLETED" />
+        {!loading &&
+          !error &&
+          campaigns.map((campaign, index) => (
+            <CampaignAccordion
+              key={campaign.campaignId}
+              title={`Campaign ${index + 1}`}
+              subtitle={campaign.name}
+              status={formatCampaignStatus(campaign.progressStatus)}
+              accentColor={ACCENT_COLORS[index % ACCENT_COLORS.length]}
+              isOpen={Boolean(openCampaigns[campaign.campaignId])}
+              onToggle={() => void toggleCampaign(campaign.campaignId)}
+            >
+              {loadingCampaignDetails[campaign.campaignId] && (
+                <div
+                  style={{
+                    color: '#C98FFF',
+                    fontFamily: 'Jost',
+                    padding: '1rem',
+                  }}
+                >
+                  LOADING CAMPAIGN...
+                </div>
+              )}
 
-            <TrainingActionRow label="Quiz" status="COMPLETED" />
-          </TrainingPartAccordion>
-
-          <CampaignActionRow
-            title="Simulated Email Inbox"
-            status=""
-            onClick={() => navigate('/simulation/inbox')}
-          />
-
-          <CampaignActionRow title="Final Quiz" status="NOT STARTED" />
-        </CampaignAccordion>
-
-        {/* CAMPAIGN 2 */}
-        <CampaignAccordion
-          title="Campaign 2"
-          subtitle="Password Security"
-          status="STARTED"
-          accentColor="#FF00D4"
-        >
-          <TrainingPartAccordion title="Part 1: What is Password Security?" status="COMPLETED">
-            <TrainingActionRow label="Learn" status="COMPLETED" />
-
-            <TrainingActionRow label="Quiz" status="COMPLETED" />
-          </TrainingPartAccordion>
-
-          <TrainingPartAccordion title="Part 2: Is your Password Secure?" status="STARTED">
-            <TrainingActionRow label="Learn" status="STARTED" />
-
-            <TrainingActionRow label="Quiz" status="COMPLETE LEARN FIRST" disabled />
-          </TrainingPartAccordion>
-
-          <CampaignActionRow
-            title="Password Security Simulation"
-            status="COMPLETE ALL PARTS FIRST"
-            disabled
-          />
-
-          <CampaignActionRow title="Final Quiz" status="COMPLETE ALL PARTS FIRST" disabled />
-        </CampaignAccordion>
+              {campaignDetails[campaign.campaignId] &&
+                renderCampaignItems(campaignDetails[campaign.campaignId].items, navigate)}
+            </CampaignAccordion>
+          ))}
       </div>
     </AppLayout>
   );

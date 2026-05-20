@@ -1,5 +1,3 @@
-import { useState } from 'react';
-
 import { KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material';
 
 type CampaignAccordionProps = {
@@ -7,8 +5,9 @@ type CampaignAccordionProps = {
   subtitle: string;
   status: string;
   accentColor: string;
-  children: React.ReactNode;
-  defaultOpen?: boolean;
+  children?: React.ReactNode;
+  isOpen: boolean;
+  onToggle: () => void;
 };
 
 function CampaignAccordion({
@@ -17,10 +16,9 @@ function CampaignAccordion({
   status,
   accentColor,
   children,
-  defaultOpen = false,
+  isOpen,
+  onToggle,
 }: CampaignAccordionProps) {
-  const [open, setOpen] = useState(defaultOpen);
-
   return (
     <div
       style={{
@@ -45,7 +43,7 @@ function CampaignAccordion({
       {/* HEADER */}
 
       <div
-        onClick={() => setOpen(!open)}
+        onClick={onToggle}
         style={{
           cursor: 'pointer',
           display: 'flex',
@@ -108,7 +106,7 @@ function CampaignAccordion({
             {status}
           </div>
 
-          {open ? (
+          {isOpen ? (
             <KeyboardArrowUp
               style={{
                 color: 'white',
@@ -128,18 +126,31 @@ function CampaignAccordion({
 
       {/* CONTENT */}
 
-      {open && (
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateRows: isOpen ? '1fr' : '0fr',
+          opacity: isOpen ? 1 : 0,
+          transition: 'grid-template-rows 0.35s ease, opacity 0.25s ease',
+        }}
+      >
         <div
           style={{
-            padding: '1rem',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '1rem',
+            overflow: 'hidden',
           }}
         >
-          {children}
+          <div
+            style={{
+              padding: '1rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1rem',
+            }}
+          >
+            {children}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
