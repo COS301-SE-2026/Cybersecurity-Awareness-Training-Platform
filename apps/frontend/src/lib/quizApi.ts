@@ -237,7 +237,7 @@ function normaliseQuiz(rawQuiz: RawCampaignItemQuiz): CampaignItemQuiz {
 export async function getQuiz(campaignItemId: string): Promise<CampaignItemQuiz> {
   const existingRequest = quizRequestCache.get(campaignItemId);
 
-  if (existingRequest) {
+  if (existingRequest !== undefined) {
     return existingRequest;
   }
 
@@ -282,7 +282,7 @@ export async function submitQuizAttempt(
 export async function getQuizResult(attemptId: string): Promise<QuizResult> {
   const existingRequest = quizResultRequestCache.get(attemptId);
 
-  if (existingRequest) {
+  if (existingRequest !== undefined) {
     return existingRequest;
   }
 
