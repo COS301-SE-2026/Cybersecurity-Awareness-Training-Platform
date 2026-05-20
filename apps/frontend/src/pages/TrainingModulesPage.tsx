@@ -1,64 +1,14 @@
-import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout';
-import { TrainingAsyncContent } from '../components/training/TrainingAsyncContent';
-import { TrainingList } from '../components/training/TrainingList';
-import { trainingStateActionStyle } from '../components/training/trainingStateStyles';
-import * as trainingApi from '../lib/trainingApi';
-import type { TrainingDocumentSummary } from '../lib/trainingApi';
 
 export default function TrainingModulesPage() {
-  const [trainingDocuments, setTrainingDocuments] = useState<TrainingDocumentSummary[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [reloadToken, setReloadToken] = useState(0);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadAssignedTraining() {
-      try {
-        const response = await trainingApi.getAssignedTraining();
-
-        if (!isMounted) {
-          return;
-        }
-
-        setTrainingDocuments(response.trainingDocuments);
-        setErrorMessage(null);
-      } catch {
-        if (isMounted) {
-          setErrorMessage('We could not load your assigned training modules. Please try again.');
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    void loadAssignedTraining();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [reloadToken]);
-
-  const totalCount = trainingDocuments.length;
-  const completedCount = trainingDocuments.filter(
-    (trainingDocument) => trainingDocument.status === 'COMPLETED',
-  ).length;
-  const inProgressCount = trainingDocuments.filter(
-    (trainingDocument) =>
-      trainingDocument.status === 'STARTED' || trainingDocument.status === 'VIEWED',
-  ).length;
-
   return (
     <AppLayout>
       <div
         style={{
-          height: '100%',
-          overflowY: 'auto',
           padding: '1.4rem 2rem 2.5rem',
+          display: 'grid',
+          gap: '1rem',
         }}
       >
         <header style={{ marginBottom: '1.8rem' }}>
@@ -98,138 +48,60 @@ export default function TrainingModulesPage() {
               maxWidth: '48rem',
             }}
           >
-            View and complete your assigned cybersecurity awareness training material.
+            Training access is now campaign-based. Open your assigned campaign to reach its training
+            documents, quizzes, and simulations.
           </p>
         </header>
 
-        <TrainingAsyncContent
-          isLoading={isLoading}
-          loadingTitle="Loading training modules"
-          loadingMessage="Your assigned training content is being loaded."
-          errorMessage={errorMessage}
-          errorTitle="Unable to load training"
-          errorAction={
-            <button
-              type="button"
-              onClick={() => {
-                setIsLoading(true);
-                setErrorMessage(null);
-                setReloadToken((currentValue) => currentValue + 1);
-              }}
-              style={trainingStateActionStyle}
-            >
-              Try Again
-            </button>
-          }
-          isEmpty={trainingDocuments.length === 0}
-          emptyTitle="No assigned training"
-          emptyMessage="You do not have any training modules assigned right now."
+        <section
+          style={{
+            border: '1px solid rgba(255, 255, 255, 0.16)',
+            backgroundColor: 'rgba(255, 255, 255, 0.04)',
+            padding: '1.3rem',
+            maxWidth: '52rem',
+          }}
         >
-          <>
-            <section
-              aria-label="Training progress summary"
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-                gap: '1rem',
-                marginBottom: '1.5rem',
-                maxWidth: '56rem',
-              }}
-            >
-              <div
-                style={{
-                  border: '1px solid rgba(255, 0, 212, 0.55)',
-                  backgroundColor: 'rgba(255, 0, 212, 0.1)',
-                  padding: '1rem',
-                }}
-              >
-                <p
-                  style={{
-                    margin: 0,
-                    color: '#FFB7EF',
-                    fontFamily: 'Jost',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.08em',
-                  }}
-                >
-                  Assigned
-                </p>
-                <p
-                  style={{
-                    margin: '0.3rem 0 0',
-                    color: '#FFFFFF',
-                    fontFamily: 'Jost',
-                    fontSize: '2rem',
-                  }}
-                >
-                  {totalCount}
-                </p>
-              </div>
+          <h2
+            style={{
+              margin: 0,
+              color: '#FFFFFF',
+              fontFamily: 'Jost',
+              fontSize: '1.5rem',
+              fontWeight: 500,
+            }}
+          >
+            Training now lives inside campaigns
+          </h2>
 
-              <div
-                style={{
-                  border: '1px solid rgba(0, 187, 255, 0.55)',
-                  backgroundColor: 'rgba(0, 187, 255, 0.1)',
-                  padding: '1rem',
-                }}
-              >
-                <p
-                  style={{
-                    margin: 0,
-                    color: '#AEEAFF',
-                    fontFamily: 'Jost',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.08em',
-                  }}
-                >
-                  In Progress
-                </p>
-                <p
-                  style={{
-                    margin: '0.3rem 0 0',
-                    color: '#FFFFFF',
-                    fontFamily: 'Jost',
-                    fontSize: '2rem',
-                  }}
-                >
-                  {inProgressCount}
-                </p>
-              </div>
+          <p
+            style={{
+              margin: '0.7rem 0 0',
+              color: '#D8CCE8',
+              fontFamily: 'Overpass',
+              lineHeight: 1.7,
+            }}
+          >
+            Use the campaigns page to discover assigned activities and open each training document
+            by campaign item.
+          </p>
 
-              <div
-                style={{
-                  border: '1px solid rgba(0, 255, 166, 0.55)',
-                  backgroundColor: 'rgba(0, 255, 166, 0.1)',
-                  padding: '1rem',
-                }}
-              >
-                <p
-                  style={{
-                    margin: 0,
-                    color: '#B7FFD9',
-                    fontFamily: 'Jost',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.08em',
-                  }}
-                >
-                  Completed
-                </p>
-                <p
-                  style={{
-                    margin: '0.3rem 0 0',
-                    color: '#FFFFFF',
-                    fontFamily: 'Jost',
-                    fontSize: '2rem',
-                  }}
-                >
-                  {completedCount}
-                </p>
-              </div>
-            </section>
-
-            <TrainingList trainingDocuments={trainingDocuments} />
-          </>
-        </TrainingAsyncContent>
+          <Link
+            to="/campaigns"
+            style={{
+              display: 'inline-flex',
+              marginTop: '1rem',
+              padding: '0.9rem 1.2rem',
+              backgroundColor: '#8400FF',
+              border: '1px solid #FF00D4',
+              color: '#FFFFFF',
+              textDecoration: 'none',
+              fontFamily: 'Jost',
+              fontWeight: 700,
+            }}
+          >
+            Open campaigns
+          </Link>
+        </section>
       </div>
     </AppLayout>
   );

@@ -6,9 +6,9 @@ import RegisterPage from '../pages/RegisterPage';
 import InboxPage from '../pages/InboxPage';
 import EmailDetailPage from '../pages/EmailDetailPage';
 // import TrainingModulesPage from '../pages/TrainingModulesPage';
-// import TrainingDocumentPage from '../pages/TrainingDocumentPage';
+import TrainingDocumentPage from '../pages/TrainingDocumentPage';
 import QuizPage from '../pages/QuizPage';
-// import ResultsPage from '../pages/ResultsPage';
+import ResultsPage from '../pages/ResultsPage';
 // import FeedbackPage from '../pages/FeedbackPage';
 // import QuizGradesPage from '../pages/QuizGradesPage';
 import ProtectedRoute from './ProtectedRoute';
@@ -28,13 +28,13 @@ function AppRoutes() {
 
         {/* <Route path="/training/modules" element={<TrainingModulesPage />} /> */}
 
-        {/* <Route path="/training/modules/:trainingId" element={<TrainingDocumentPage />} /> */}
+        <Route path="/training/:campaignItemId" element={<TrainingDocumentPage />} />
 
         <Route path="/quizzes/:quizId" element={<QuizPage />} />
 
         {/* <Route path="/quiz/grades" element={<QuizGradesPage />} /> */}
 
-        {/* <Route path="/results/:attemptId" element={<ResultsPage />} /> */}
+        <Route path="/quiz-attempts/:attemptId/results" element={<ResultsPage />} />
 
         {/* <Route path="/feedback" element={<FeedbackPage />} /> */}
 

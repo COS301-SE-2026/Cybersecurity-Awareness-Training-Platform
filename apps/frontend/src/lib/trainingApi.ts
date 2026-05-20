@@ -1,8 +1,8 @@
-import { mockAssignedTrainingResponse, mockTrainingDocumentDetails } from './trainingMocks';
+import type { GetTrainingDocumentResponseDto } from '@insightful-phish/shared';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000';
 
 export type TrainingDocumentStatus = 'NOT_STARTED' | 'STARTED' | 'VIEWED' | 'COMPLETED';
-
-export type TrainingProgressStatus = 'STARTED' | 'VIEWED' | 'COMPLETED';
 
 export interface TrainingDocumentSummary {
   id: string;
@@ -11,66 +11,67 @@ export interface TrainingDocumentSummary {
   status: TrainingDocumentStatus;
 }
 
-export interface GetAssignedTrainingResponse {
-  trainingDocuments: TrainingDocumentSummary[];
-}
-
-export interface TrainingDocumentDetail {
-  id: string;
-  title: string;
-  contentMarkdown: string;
-  linkedQuizId?: string;
-}
-
-export interface RecordTrainingProgressRequest {
-  status: TrainingProgressStatus;
-}
-
-export interface RecordTrainingProgressResponse {
-  trainingId: string;
-  status: TrainingProgressStatus;
-  updatedAt: string;
-}
-
 export const trainingRoutes = {
-  modules: '/training/modules',
-  document: (trainingId: string) => `/training/modules/${trainingId}`,
-  quiz: (quizId: string) => `/quizzes/${quizId}`,
+  modules: '/campaigns',
+  document: (campaignItemId: string) => `/training/${campaignItemId}`,
+  quiz: (campaignItemId: string) => `/quizzes/${campaignItemId}`,
 };
 
-function delay(ms = 150) {
-  return new Promise((resolve) => {
-    window.setTimeout(resolve, ms);
+function getAuthToken(): string | null {
+  return (
+    localStorage.getItem('authToken') ??
+    localStorage.getItem('accessToken') ??
+    localStorage.getItem('token')
+  );
+}
+
+async function authenticatedFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const token = getAuthToken();
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...options.headers,
+    },
   });
-}
 
-export async function getAssignedTraining(): Promise<GetAssignedTrainingResponse> {
-  await delay();
-
-  return mockAssignedTrainingResponse;
-}
-
-export async function getTrainingById(trainingId: string): Promise<TrainingDocumentDetail> {
-  await delay();
-
-  const trainingDocument = mockTrainingDocumentDetails[trainingId];
-
-  if (!trainingDocument) {
-    throw new Error('Training document not found.');
+  if (!response.ok) {
+    throw new Error(`Request failed: ${response.status}`);
   }
 
-  return trainingDocument;
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  return response.json() as Promise<T>;
 }
 
-export async function postTrainingProgress(
-  trainingId: string,
-  payload: RecordTrainingProgressRequest,
-): Promise<RecordTrainingProgressResponse> {
-  await delay(100);
+export async function getCampaignItemTrainingDocument(
+  campaignItemId: string,
+): Promise<GetTrainingDocumentResponseDto> {
+  return authenticatedFetch<GetTrainingDocumentResponseDto>(
+    `/trainee/campaign-items/${campaignItemId}/training-document`,
+  );
+}
 
-  return {
-    trainingId,
-    status: payload.status,
-    updatedAt: new Date().toISOString(),
-  };
+export async function recordTrainingDocumentViewed(campaignItemId: string): Promise<void> {
+  await authenticatedFetch<void>(
+    `/trainee/campaign-items/${campaignItemId}/training-document/viewed`,
+    {
+      method: 'POST',
+      body: JSON.stringify({}),
+    },
+  );
+}
+
+export async function recordTrainingDocumentCompleted(campaignItemId: string): Promise<void> {
+  await authenticatedFetch<void>(
+    `/trainee/campaign-items/${campaignItemId}/training-document/completed`,
+    {
+      method: 'POST',
+      body: JSON.stringify({}),
+    },
+  );
 }
