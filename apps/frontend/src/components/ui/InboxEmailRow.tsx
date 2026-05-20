@@ -6,11 +6,20 @@ type InboxEmailRowProps = {
   preview: string;
   time: string;
   unread?: boolean;
+  onClick?: () => void;
 };
 
-function InboxEmailRow({ sender, subject, preview, time, unread = false }: InboxEmailRowProps) {
+function InboxEmailRow({
+  sender,
+  subject,
+  preview,
+  time,
+  unread = false,
+  onClick,
+}: InboxEmailRowProps) {
   return (
     <div
+      onClick={onClick}
       style={{
         height: '62px',
         display: 'flex',

@@ -23,6 +23,10 @@ function AppRoutes() {
         {/* <Route path="/dashboard" element={<DashboardPage />} /> */}
 
         <Route path="/simulation/inbox" element={<InboxPage />} />
+        <Route
+          path="/trainee/campaign-items/:campaignItemId/simulated-inbox"
+          element={<InboxPage />}
+        />
 
         <Route path="/simulation/inbox/:emailId" element={<EmailDetailPage />} />
 

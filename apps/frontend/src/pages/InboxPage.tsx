@@ -4,10 +4,46 @@ import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 
 import InboxEmailRow from '../components/ui/InboxEmailRow';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+
+import { useNavigate, useParams } from 'react-router-dom';
+import type { SimulatedEmailSummaryDto } from '@insightful-phish/shared';
+import { useAuth } from '../context/useAuth';
+import { getSimulatedInbox } from '../services/campaigns.service';
 
 function InboxPage() {
   const [hovered, setHovered] = useState(false);
+
+  const navigate = useNavigate();
+
+  const { campaignItemId } = useParams<{ campaignItemId: string }>();
+
+  const { token } = useAuth();
+
+  const [emails, setEmails] = useState<SimulatedEmailSummaryDto[]>([]);
+
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadInbox() {
+      if (!campaignItemId || !token) {
+        return;
+      }
+
+      try {
+        const data = await getSimulatedInbox(campaignItemId, token);
+
+        setEmails(data.emails);
+      } catch (error) {
+        console.error('FAILED TO LOAD SIMULATED INBOX', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    void loadInbox();
+  }, [campaignItemId, token]);
+
   return (
     <AppLayout>
       <div
@@ -107,56 +143,32 @@ function InboxPage() {
             paddingRight: '0.3rem',
           }}
         >
-          <InboxEmailRow
-            sender="Virgin Active"
-            subject="We’re Moving Updates to the App"
-            preview="Gym updates can now be found from within the Virgin Active app..."
-            time="Today 12:33 PM"
-            unread
-          />
-
-          <InboxEmailRow
-            sender="Virgin Active"
-            subject="We’re Moving Updates to the App"
-            preview="Gym updates can now be found from within the Virgin Active app..."
-            time="Today 12:33 PM"
-          />
-
-          <InboxEmailRow
-            sender="Discovery Health"
-            subject="Important Policy Reminder"
-            preview="Please review the attached policy update before next month..."
-            time="Today 11:02 AM"
-          />
-
-          <InboxEmailRow
-            sender="Steam"
-            subject="Your Account Security Notice"
-            preview="A login attempt was detected from a new location..."
-            time="Yesterday 9:14 PM"
-          />
-
-          <InboxEmailRow
-            sender="FNB"
-            subject="Verify Your Banking Details"
-            preview="Your banking profile requires verification to avoid interruption..."
-            time="Yesterday 6:48 PM"
-            unread
-          />
-
-          <InboxEmailRow
-            sender="Takealot"
-            subject="Order Delivery Update"
-            preview="Your parcel has been delayed due to weather conditions..."
-            time="Yesterday 2:12 PM"
-          />
-
-          <InboxEmailRow
-            sender="LinkedIn"
-            subject="Connor, you appeared in 12 searches"
-            preview="See who’s viewing your profile this week..."
-            time="Monday 8:22 AM"
-          />
+          {loading ? (
+            <div
+              style={{
+                color: 'white',
+                fontFamily: 'Overpass',
+                fontSize: '1.2rem',
+                padding: '1rem',
+              }}
+            >
+              LOADING INBOX...
+            </div>
+          ) : (
+            emails.map((email) => (
+              <InboxEmailRow
+                key={email.id}
+                sender={email.senderLabel}
+                subject={email.subject}
+                preview={email.preview ?? ''}
+                time={new Date(email.receivedAt).toLocaleString()}
+                unread
+                onClick={() =>
+                  navigate(`/trainee/campaign-items/${campaignItemId}/simulated-emails/${email.id}`)
+                }
+              />
+            ))
+          )}
         </div>
       </div>
     </AppLayout>
