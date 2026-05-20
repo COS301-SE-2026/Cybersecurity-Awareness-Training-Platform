@@ -12,6 +12,7 @@ The Demo 1 seed creates repeatable local data for:
 - inbox and email detail views
 - training material views
 - quiz and result paths
+- password-security campaign views
 - classification feedback and red flag feedback
 
 The seed is designed for local Demo 1 development only.
@@ -60,8 +61,9 @@ The Demo 1 seed creates:
 - a populated trainee user and profile
 - an empty-state trainee user and profile
 - a demo admin user and admin profile
-- one Demo 1 campaign
-- one campaign assignment for the populated trainee
+- two Demo 1 campaigns assigned to the populated trainee:
+  - phishing awareness campaign
+  - password security campaign
 - no campaign assignment for the empty-state trainee
 - ordered campaign items for training, quiz, and simulated inbox components
 - reusable training documents
@@ -73,6 +75,42 @@ The Demo 1 seed creates:
 - a mix of phishing, suspicious, and safe simulated emails
 - expected email classifications
 - red flags for phishing and suspicious emails
+
+## Seeded Campaigns
+
+The populated trainee is assigned to two active Demo 1 campaigns.
+
+### Phishing Awareness Campaign
+
+The phishing awareness campaign demonstrates the broader Demo 1 flow for training, quiz, and simulated inbox content.
+
+### Password Security Campaign
+
+The password security campaign demonstrates a simple sequential path:
+
+1. password-security training document
+2. password-security quiz
+
+The password-security training item is seeded as `AVAILABLE`, so it is openable immediately under the current backend rules.
+
+The password-security quiz item is seeded as `LOCKED`. This locked state is static seed behavior. There is no dynamic unlock engine in this issue, and completing the password-security training document does not unlock later campaign items.
+
+Training completion records an `InteractionEvent`, but the current Demo 1 seed does not include prerequisite or sequential unlock logic.
+
+The empty-state trainee remains unassigned and should not receive either seeded campaign.
+
+## Password Training Content Metadata
+
+The password-security training document uses the current backend metadata fields:
+
+- `contentType`
+- `contentRef`
+- `contentSummary`
+- `estimatedReadTimeMinutes`
+- `difficultyLevel`
+- `status`
+
+Runtime markdown body loading is out of scope for this seed. The seed uses metadata and content references only.
 
 ## Commands
 
