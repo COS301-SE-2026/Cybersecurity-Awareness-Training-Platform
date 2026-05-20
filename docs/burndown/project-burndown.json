@@ -391,8 +391,8 @@
           "number": 78,
           "title": "feat: [frontend] Establish shared API client and auth state integration",
           "points": 3,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-05-20"
         },
         {
           "number": 77,
@@ -606,7 +606,7 @@
     },
     {
       "date": "2026-05-20",
-      "remaining": 25,
+      "remaining": 22,
       "ideal": 8.08
     }
   ]
