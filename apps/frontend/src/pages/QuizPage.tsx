@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import type { SubmitEvent } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getQuiz, startQuizAttempt, submitQuizAttempt } from '../lib/quizApi';
 import type { CampaignItemQuiz } from '../lib/quizApi';
@@ -11,6 +11,9 @@ export function QuizPage() {
   const navigate = useNavigate();
 
   const campaignItemId = quizId;
+  const submitInFlightRef = useRef(false);
+  const attemptPromiseRef = useRef<Promise<string> | null>(null);
+  const hasNavigatedToResultsRef = useRef(false);
 
   const [quiz, setQuiz] = useState<CampaignItemQuiz | null>(null);
   const [selectedAnswers, setSelectedAnswers] = useState<SelectedAnswers>({});
@@ -93,29 +96,37 @@ export function QuizPage() {
       return attemptId;
     }
 
+    if (attemptPromiseRef.current) {
+      return attemptPromiseRef.current;
+    }
+
     if (!campaignItemId) {
       throw new Error('No campaign item was provided for this quiz.');
     }
 
     setIsStartingAttempt(true);
 
-    try {
-      const attempt = await startQuizAttempt(campaignItemId);
-      setAttemptId(attempt.attemptId);
-      return attempt.attemptId;
-    } finally {
-      setIsStartingAttempt(false);
-    }
+    attemptPromiseRef.current = startQuizAttempt(campaignItemId)
+      .then((attempt) => {
+        setAttemptId(attempt.attemptId);
+        return attempt.attemptId;
+      })
+      .finally(() => {
+        setIsStartingAttempt(false);
+        attemptPromiseRef.current = null;
+      });
+
+    return attemptPromiseRef.current;
   }
 
-  async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!quiz) {
       return;
     }
 
-    if (isSubmitting || hasSubmitted) {
+    if (submitInFlightRef.current || isSubmitting || hasSubmitted) {
       return;
     }
 
@@ -125,6 +136,7 @@ export function QuizPage() {
     }
 
     try {
+      submitInFlightRef.current = true;
       setIsSubmitting(true);
       setError(null);
       setValidationMessage(null);
@@ -139,12 +151,20 @@ export function QuizPage() {
       await submitQuizAttempt(activeAttemptId, answers);
 
       setHasSubmitted(true);
-      navigate(`/quiz-attempts/${activeAttemptId}/results`);
+      if (!hasNavigatedToResultsRef.current) {
+        hasNavigatedToResultsRef.current = true;
+        navigate(`/quiz-attempts/${activeAttemptId}/results`);
+      }
     } catch (submitError) {
+      submitInFlightRef.current = false;
+      hasNavigatedToResultsRef.current = false;
       setError(
         submitError instanceof Error ? submitError.message : 'The quiz could not be submitted.',
       );
     } finally {
+      if (hasNavigatedToResultsRef.current) {
+        submitInFlightRef.current = false;
+      }
       setIsSubmitting(false);
     }
   }

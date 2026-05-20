@@ -142,6 +142,9 @@ export type QuizResult = {
   answers: QuizResultAnswer[];
 };
 
+const quizRequestCache = new Map<string, Promise<CampaignItemQuiz>>();
+const quizResultRequestCache = new Map<string, Promise<QuizResult>>();
+
 type RawQuizOption = {
   id?: string;
   optionId?: string;
@@ -232,13 +235,26 @@ function normaliseQuiz(rawQuiz: RawCampaignItemQuiz): CampaignItemQuiz {
 }
 
 export async function getQuiz(campaignItemId: string): Promise<CampaignItemQuiz> {
-  const quiz = await quizApiRequest<RawCampaignItemQuiz>(
+  const existingRequest = quizRequestCache.get(campaignItemId);
+
+  if (existingRequest) {
+    return existingRequest;
+  }
+
+  const request = quizApiRequest<RawCampaignItemQuiz>(
     `/trainee/campaign-items/${campaignItemId}/quiz`,
-  );
+  )
+    .then((quiz) => {
+      assertNoPreSubmitAnswerLeak(quiz);
+      return normaliseQuiz(quiz);
+    })
+    .finally(() => {
+      quizRequestCache.delete(campaignItemId);
+    });
 
-  assertNoPreSubmitAnswerLeak(quiz);
+  quizRequestCache.set(campaignItemId, request);
 
-  return normaliseQuiz(quiz);
+  return request;
 }
 
 export async function startQuizAttempt(campaignItemId: string): Promise<StartQuizAttemptResponse> {
@@ -264,5 +280,17 @@ export async function submitQuizAttempt(
 }
 
 export async function getQuizResult(attemptId: string): Promise<QuizResult> {
-  return quizApiRequest<QuizResult>(`/quiz-attempts/${attemptId}/results`);
+  const existingRequest = quizResultRequestCache.get(attemptId);
+
+  if (existingRequest) {
+    return existingRequest;
+  }
+
+  const request = quizApiRequest<QuizResult>(`/quiz-attempts/${attemptId}/results`).finally(() => {
+    quizResultRequestCache.delete(attemptId);
+  });
+
+  quizResultRequestCache.set(attemptId, request);
+
+  return request;
 }
