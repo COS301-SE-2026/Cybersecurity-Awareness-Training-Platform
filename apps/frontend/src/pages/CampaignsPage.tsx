@@ -1,13 +1,18 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import type { TraineeCampaignSummaryDto } from '@insightful-phish/shared';
+import type {
+  GetTraineeCampaignDetailResponseDto,
+  TraineeCampaignSummaryDto,
+} from '@insightful-phish/shared';
 
 import AppLayout from '../components/layout/AppLayout';
 import CampaignAccordion from '../components/ui/CampaignAccordion';
+import TrainingActionRow from '../components/ui/TrainingActionRow';
+import CampaignActionRow from '../components/ui/CampaignActionRow';
 
 import { useAuth } from '../context/useAuth';
-import { getTraineeCampaigns } from '../services/campaigns.service';
+import { getTraineeCampaign, getTraineeCampaigns } from '../services/campaigns.service';
 
 const ACCENT_COLORS = ['#00FFA6', '#FF00D4', '#00D1FF', '#FF9F1C'];
 
@@ -35,6 +40,12 @@ function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<TraineeCampaignSummaryDto[]>([]);
 
   const [openCampaigns, setOpenCampaigns] = useState<Record<string, boolean>>({});
+
+  const [campaignDetails, setCampaignDetails] = useState<
+    Record<string, GetTraineeCampaignDetailResponseDto>
+  >({});
+
+  const [loadingCampaignDetails, setLoadingCampaignDetails] = useState<Record<string, boolean>>({});
 
   const [loading, setLoading] = useState(true);
 
@@ -64,11 +75,39 @@ function CampaignsPage() {
     void loadCampaigns();
   }, [token]);
 
-  function toggleCampaign(campaignId: string) {
+  async function toggleCampaign(campaignId: string) {
+    const isCurrentlyOpen = Boolean(openCampaigns[campaignId]);
+
     setOpenCampaigns((previous) => ({
       ...previous,
       [campaignId]: !previous[campaignId],
     }));
+
+    if (isCurrentlyOpen || campaignDetails[campaignId] || !token) {
+      return;
+    }
+
+    try {
+      setLoadingCampaignDetails((previous) => ({
+        ...previous,
+        [campaignId]: true,
+      }));
+
+      const detail = await getTraineeCampaign(campaignId, token);
+      console.log('CAMPAIGN DETAIL:', detail);
+
+      setCampaignDetails((previous) => ({
+        ...previous,
+        [campaignId]: detail,
+      }));
+    } catch {
+      setError('FAILED TO LOAD CAMPAIGN DETAILS');
+    } finally {
+      setLoadingCampaignDetails((previous) => ({
+        ...previous,
+        [campaignId]: false,
+      }));
+    }
   }
 
   return (
@@ -132,8 +171,61 @@ function CampaignsPage() {
               status={formatCampaignStatus(campaign.progressStatus)}
               accentColor={ACCENT_COLORS[index % ACCENT_COLORS.length]}
               isOpen={Boolean(openCampaigns[campaign.campaignId])}
-              onToggle={() => toggleCampaign(campaign.campaignId)}
-            />
+              onToggle={() => void toggleCampaign(campaign.campaignId)}
+            >
+              {loadingCampaignDetails[campaign.campaignId] && (
+                <div
+                  style={{
+                    color: '#C98FFF',
+                    fontFamily: 'Jost',
+                    padding: '1rem',
+                  }}
+                >
+                  LOADING CAMPAIGN...
+                </div>
+              )}
+
+              {campaignDetails[campaign.campaignId]?.items.map((item) => {
+                if (item.itemType !== 'COMPONENT') {
+                  return null;
+                }
+
+                if (item.componentType === 'TRAINING_DOCUMENT') {
+                  return (
+                    <TrainingActionRow
+                      key={item.campaignItemId}
+                      label="Learn"
+                      status={formatCampaignStatus(item.progressStatus)}
+                      onClick={() => navigate(item.activityApiPath)}
+                    />
+                  );
+                }
+
+                if (item.componentType === 'QUIZ') {
+                  return (
+                    <TrainingActionRow
+                      key={item.campaignItemId}
+                      label="Quiz"
+                      status={formatCampaignStatus(item.progressStatus)}
+                      onClick={() => navigate(item.activityApiPath)}
+                    />
+                  );
+                }
+
+                if (item.componentType === 'SIMULATED_INBOX') {
+                  return (
+                    <CampaignActionRow
+                      key={item.campaignItemId}
+                      title={item.title}
+                      status={formatCampaignStatus(item.progressStatus)}
+                      onClick={() => navigate(item.activityApiPath)}
+                    />
+                  );
+                }
+
+                return null;
+              })}
+            </CampaignAccordion>
           ))}
       </div>
     </AppLayout>
