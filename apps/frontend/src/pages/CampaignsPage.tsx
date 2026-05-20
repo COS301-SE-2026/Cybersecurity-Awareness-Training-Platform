@@ -162,7 +162,6 @@ function CampaignsPage() {
       }));
 
       const detail = await getTraineeCampaign(campaignId, token);
-      console.log('CAMPAIGN DETAIL:', detail);
 
       setCampaignDetails((previous) => ({
         ...previous,
