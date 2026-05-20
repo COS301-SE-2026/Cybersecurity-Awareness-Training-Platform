@@ -11,8 +11,7 @@ import CampaignAccordion from '../components/ui/CampaignAccordion';
 import TrainingActionRow from '../components/ui/TrainingActionRow';
 import TrainingPartAccordion from '../components/ui/TrainingPartAccordion';
 
-import { useAuth } from '../context/useAuth';
-import { getTraineeCampaign, getTraineeCampaigns } from '../services/campaigns.service';
+import { getTraineeCampaignDetail, getTraineeCampaigns } from '../lib/campaignsApi';
 
 const ACCENT_COLORS = ['#00FFA6', '#FF00D4', '#00D1FF', '#FF9F1C'];
 
@@ -38,8 +37,25 @@ function toTitleCase(value: string): string {
   });
 }
 
-function isCampaignItemDisabled(availabilityStatus: string, isOpenable: boolean): boolean {
-  return availabilityStatus !== 'AVAILABLE' || !isOpenable;
+function getCampaignItemRoute(
+  item: GetTraineeCampaignDetailResponseDto['items'][number],
+): string | null {
+  if (item.itemType !== 'COMPONENT' || !item.isOpenable || !item.activityApiPath) {
+    return null;
+  }
+
+  switch (item.componentType) {
+    case 'TRAINING_DOCUMENT':
+      return item.activityApiPath.endsWith('/training-document')
+        ? `/training/${item.campaignItemId}`
+        : null;
+    case 'QUIZ':
+      return item.activityApiPath.endsWith('/quiz') ? `/quizzes/${item.campaignItemId}` : null;
+    case 'SIMULATED_INBOX':
+      return item.activityApiPath.endsWith('/simulated-inbox') ? '/simulation/inbox' : null;
+    default:
+      return null;
+  }
 }
 
 function renderCampaignItems(
@@ -59,11 +75,13 @@ function renderCampaignItems(
       );
     }
 
-    if (item.itemType !== 'COMPONENT') {
+    const actionRoute = getCampaignItemRoute(item);
+
+    if (!actionRoute) {
       return null;
     }
 
-    const disabled = isCampaignItemDisabled(item.availabilityStatus, item.isOpenable);
+    const disabled = item.availabilityStatus !== 'AVAILABLE';
 
     if (item.componentType === 'TRAINING_DOCUMENT') {
       return (
@@ -74,7 +92,7 @@ function renderCampaignItems(
           disabled={disabled}
           showLockIcon={disabled}
           iconType="learn"
-          onClick={disabled ? undefined : () => navigate(item.activityApiPath)}
+          onClick={disabled ? undefined : () => navigate(actionRoute)}
         />
       );
     }
@@ -88,7 +106,7 @@ function renderCampaignItems(
           disabled={disabled}
           showLockIcon={disabled}
           iconType="quiz"
-          onClick={disabled ? undefined : () => navigate(item.activityApiPath)}
+          onClick={disabled ? undefined : () => navigate(actionRoute)}
         />
       );
     }
@@ -102,7 +120,7 @@ function renderCampaignItems(
           disabled={disabled}
           showLockIcon={disabled}
           iconType="simulation"
-          onClick={disabled ? undefined : () => navigate(item.activityApiPath)}
+          onClick={disabled ? undefined : () => navigate(actionRoute)}
         />
       );
     }
@@ -114,34 +132,19 @@ function renderCampaignItems(
 function CampaignsPage() {
   const navigate = useNavigate();
 
-  const { token } = useAuth();
-
   const [campaigns, setCampaigns] = useState<TraineeCampaignSummaryDto[]>([]);
-
   const [openCampaigns, setOpenCampaigns] = useState<Record<string, boolean>>({});
-
   const [campaignDetails, setCampaignDetails] = useState<
     Record<string, GetTraineeCampaignDetailResponseDto>
   >({});
-
   const [loadingCampaignDetails, setLoadingCampaignDetails] = useState<Record<string, boolean>>({});
-
   const [loading, setLoading] = useState(true);
-
   const [error, setError] = useState('');
 
   useEffect(() => {
     async function loadCampaigns() {
-      if (!token) {
-        setError('NOT AUTHENTICATED');
-
-        setLoading(false);
-
-        return;
-      }
-
       try {
-        const data = await getTraineeCampaigns(token);
+        const data = await getTraineeCampaigns();
 
         setCampaigns(data.campaigns);
       } catch {
@@ -152,7 +155,7 @@ function CampaignsPage() {
     }
 
     void loadCampaigns();
-  }, [token]);
+  }, []);
 
   async function toggleCampaign(campaignId: string) {
     const isCurrentlyOpen = Boolean(openCampaigns[campaignId]);
@@ -162,7 +165,7 @@ function CampaignsPage() {
       [campaignId]: !previous[campaignId],
     }));
 
-    if (isCurrentlyOpen || campaignDetails[campaignId] || !token) {
+    if (isCurrentlyOpen || campaignDetails[campaignId]) {
       return;
     }
 
@@ -172,7 +175,7 @@ function CampaignsPage() {
         [campaignId]: true,
       }));
 
-      const detail = await getTraineeCampaign(campaignId, token);
+      const detail = await getTraineeCampaignDetail(campaignId);
 
       setCampaignDetails((previous) => ({
         ...previous,
