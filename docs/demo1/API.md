@@ -95,6 +95,24 @@ These endpoints are **discovery endpoints**. Their primary purpose is to allow t
 
 All trainee campaign endpoints require authentication.
 
+### Demo 1 Seeded Campaign Notes
+
+After running the Demo 1 seed, the populated trainee has two active assigned campaigns:
+
+- phishing awareness campaign
+- password security campaign
+
+The empty-state trainee still has no campaign assignments.
+
+The password security campaign is intentionally simple:
+
+1. password-security training document
+2. password-security quiz
+
+The training item is seeded as `AVAILABLE` and should be openable through campaign detail when the backing training document is available. The quiz item is seeded as `LOCKED`, so it should not be openable unless a future dynamic unlock engine is implemented.
+
+Training completion records interaction data, but this issue does not add sequential unlock behavior. The campaign discovery endpoint should show both assigned campaigns for the populated trainee after reseeding, and the campaign detail endpoint should show the password campaign items in training-to-quiz order with their seeded availability and openability.
+
 ### `GET /trainee/campaigns`
 
 - **Purpose**: Allows the frontend dashboard to discover active campaigns assigned or available to the authenticated active trainee.
