@@ -126,18 +126,31 @@ function CampaignAccordion({
 
       {/* CONTENT */}
 
-      {isOpen && (
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateRows: isOpen ? '1fr' : '0fr',
+          opacity: isOpen ? 1 : 0,
+          transition: 'grid-template-rows 0.35s ease, opacity 0.25s ease',
+        }}
+      >
         <div
           style={{
-            padding: '1rem',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '1rem',
+            overflow: 'hidden',
           }}
         >
-          {children}
+          <div
+            style={{
+              padding: '1rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1rem',
+            }}
+          >
+            {children}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

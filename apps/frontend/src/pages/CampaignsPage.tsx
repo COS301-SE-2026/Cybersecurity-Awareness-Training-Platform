@@ -54,7 +54,6 @@ function renderCampaignItems(
           key={item.campaignItemId}
           title={toTitleCase(item.title)}
           status={formatCampaignStatus(item.progressStatus)}
-          disabled={!item.isOpenable}
         >
           {renderCampaignItems(item.children, navigate)}
         </TrainingPartAccordion>
@@ -71,7 +70,7 @@ function renderCampaignItems(
       return (
         <TrainingActionRow
           key={item.campaignItemId}
-          label="Learn"
+          label={`Learn: "${toTitleCase(item.title)}"`}
           status={formatCampaignStatus(item.progressStatus)}
           disabled={disabled}
           showLockIcon={disabled}
@@ -84,7 +83,7 @@ function renderCampaignItems(
       return (
         <TrainingActionRow
           key={item.campaignItemId}
-          label="Quiz"
+          label={`Quiz: "${toTitleCase(item.title)}"`}
           status={formatCampaignStatus(item.progressStatus)}
           disabled={disabled}
           showLockIcon={disabled}
