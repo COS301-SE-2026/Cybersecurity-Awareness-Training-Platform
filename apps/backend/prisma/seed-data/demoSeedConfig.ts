@@ -50,8 +50,10 @@ export const DEMO_SEED_IDS = {
   ipAdminProfile: '22222222-2222-4222-8222-222222222225',
   campaign: '33333333-3333-4333-8333-333333333331',
   campaignB: '33333333-3333-4333-8333-333333333339',
+  passwordSecurityCampaign: '33333333-3333-4333-8333-333333333340',
   campaignAssignments: {
     populatedTrainee: '33333333-3333-4333-8333-333333333332',
+    passwordSecurity: '33333333-3333-4333-8333-333333333341',
   },
   campaignItems: {
     trainingDocument: '33333333-3333-4333-8333-333333333333',
@@ -60,14 +62,18 @@ export const DEMO_SEED_IDS = {
     simulatedInbox: '33333333-3333-4333-8333-333333333335',
     safeLinkHandlingQuiz: '33333333-3333-4333-8333-333333333337',
     campaignBTrainingDocument: '33333333-3333-4333-8333-333333333338',
+    passwordSecurityTrainingDocument: '33333333-3333-4333-8333-333333333342',
+    passwordSecurityQuiz: '33333333-3333-4333-8333-333333333343',
   },
   trainingDocuments: {
     warningSigns: '44444444-4444-4444-8444-444444444441',
     safeLinkHandling: '44444444-4444-4444-8444-444444444442',
+    passwordSecurity: '44444444-4444-4444-8444-444444444443',
   },
   quizzes: {
     warningSigns: '55555555-5555-4555-8555-555555555551',
     safeLinkHandling: '55555555-5555-4555-8555-555555555552',
+    passwordSecurity: '55555555-5555-4555-8555-555555555553',
   },
   quizQuestions: {
     spoofedSender: '55555555-5555-4555-8555-555555555561',
@@ -80,6 +86,10 @@ export const DEMO_SEED_IDS = {
     mfaPrompt: '55555555-5555-4555-8555-555555555568',
     safeCredentialPage: '55555555-5555-4555-8555-555555555569',
     shortenedUrl: '55555555-5555-4555-8555-555555555570',
+    passwordManagerPurpose: '55555555-5555-4555-8555-555555555571',
+    uniquePasswordValue: '55555555-5555-4555-8555-555555555572',
+    passphraseStrength: '55555555-5555-4555-8555-555555555573',
+    breachResponse: '55555555-5555-4555-8555-555555555574',
   },
   answerOptions: {
     spoofedSenderA: '55555555-5555-4555-8555-555555555601',
@@ -112,6 +122,18 @@ export const DEMO_SEED_IDS = {
     shortenedUrlA: '55555555-5555-4555-8555-555555555628',
     shortenedUrlB: '55555555-5555-4555-8555-555555555629',
     shortenedUrlC: '55555555-5555-4555-8555-555555555630',
+    passwordManagerPurposeA: '55555555-5555-4555-8555-555555555631',
+    passwordManagerPurposeB: '55555555-5555-4555-8555-555555555632',
+    passwordManagerPurposeC: '55555555-5555-4555-8555-555555555633',
+    uniquePasswordValueA: '55555555-5555-4555-8555-555555555634',
+    uniquePasswordValueB: '55555555-5555-4555-8555-555555555635',
+    uniquePasswordValueC: '55555555-5555-4555-8555-555555555636',
+    passphraseStrengthA: '55555555-5555-4555-8555-555555555637',
+    passphraseStrengthB: '55555555-5555-4555-8555-555555555638',
+    passphraseStrengthC: '55555555-5555-4555-8555-555555555639',
+    breachResponseA: '55555555-5555-4555-8555-555555555640',
+    breachResponseB: '55555555-5555-4555-8555-555555555641',
+    breachResponseC: '55555555-5555-4555-8555-555555555642',
   },
   simulation: '66666666-6666-4666-8666-666666666661',
   simulatedInbox: '66666666-6666-4666-8666-666666666662',
@@ -207,6 +229,17 @@ export const DEMO_SEED_CAMPAIGN_B = {
   status: CampaignStatus.ACTIVE,
 } as const;
 
+export const DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN = {
+  id: DEMO_SEED_IDS.passwordSecurityCampaign,
+  createdByUserId: DEMO_SEED_IDS.users.admin,
+  name: 'Demo 1 Password Security',
+  description:
+    'Sequential demo campaign for password manager habits, unique passwords, and breach response.',
+  campaignType: CampaignType.PREMADE_GENERAL,
+  difficultyLevel: DifficultyLevel.BEGINNER,
+  status: CampaignStatus.ACTIVE,
+} as const;
+
 export const DEMO_SEED_CAMPAIGN_ASSIGNMENT = {
   id: DEMO_SEED_IDS.campaignAssignments.populatedTrainee,
   campaignId: DEMO_SEED_IDS.campaign,
@@ -216,6 +249,229 @@ export const DEMO_SEED_CAMPAIGN_ASSIGNMENT = {
   assignmentStatus: AssignmentStatus.ASSIGNED,
   accessType: CampaignAccessType.ASSIGNED,
 } as const;
+
+export const DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN_ASSIGNMENT = {
+  id: DEMO_SEED_IDS.campaignAssignments.passwordSecurity,
+  campaignId: DEMO_SEED_IDS.passwordSecurityCampaign,
+  traineeProfileId: DEMO_SEED_IDS.traineeProfiles.populated,
+  assignedByUserId: DEMO_SEED_IDS.users.admin,
+  currentCampaignItemId: DEMO_SEED_IDS.campaignItems.passwordSecurityTrainingDocument,
+  assignmentStatus: AssignmentStatus.ASSIGNED,
+  accessType: CampaignAccessType.ASSIGNED,
+} as const;
+
+export const DEMO_SEED_PASSWORD_SECURITY_TRAINING_DOCUMENT = {
+  id: DEMO_SEED_IDS.trainingDocuments.passwordSecurity,
+  createdByUserId: DEMO_SEED_IDS.users.admin,
+  title: 'Password Security Basics',
+  contentType: TrainingContentType.HTML,
+  contentRef: 'demo://training/password-security-basics',
+  contentSummary:
+    'How to use unique passwords, passphrases, password managers, MFA, and breach response habits.',
+  estimatedReadTimeMinutes: 5,
+  difficultyLevel: DifficultyLevel.BEGINNER,
+  status: TrainingDocumentStatus.AVAILABLE,
+} as const;
+
+export const DEMO_SEED_PASSWORD_SECURITY_QUIZ = {
+  id: DEMO_SEED_IDS.quizzes.passwordSecurity,
+  createdByUserId: DEMO_SEED_IDS.users.admin,
+  title: 'Password Security Basics Check',
+  description:
+    'Knowledge check on password managers, unique passwords, strong passphrases, and breach response.',
+  passThresholdPercentage: 75,
+  difficultyLevel: DifficultyLevel.BEGINNER,
+  status: QuizStatus.PUBLISHED,
+  questions: [
+    {
+      id: DEMO_SEED_IDS.quizQuestions.passwordManagerPurpose,
+      prompt: 'What is the main security benefit of using a password manager?',
+      questionType: QuestionType.SINGLE_CHOICE,
+      position: demoPosition(0),
+      points: 1,
+      shuffleOptions: false,
+      answerOptions: [
+        buildAnswerOptionSeed(
+          {
+            id: DEMO_SEED_IDS.answerOptions.passwordManagerPurposeA,
+            label: 'A',
+            text: 'It helps create and store unique passwords for each account.',
+            isCorrect: true,
+            feedbackText: 'Password managers make unique passwords practical to use safely.',
+          },
+          0,
+        ),
+        buildAnswerOptionSeed(
+          {
+            id: DEMO_SEED_IDS.answerOptions.passwordManagerPurposeB,
+            label: 'B',
+            text: 'It lets you reuse one password without extra risk.',
+            isCorrect: false,
+            feedbackText: 'Reusing one password still creates risk if that password is stolen.',
+          },
+          1,
+        ),
+        buildAnswerOptionSeed(
+          {
+            id: DEMO_SEED_IDS.answerOptions.passwordManagerPurposeC,
+            label: 'C',
+            text: 'It removes the need to lock your device.',
+            isCorrect: false,
+            feedbackText: 'Device locking is still needed to protect signed-in sessions.',
+          },
+          2,
+        ),
+      ],
+    },
+    {
+      id: DEMO_SEED_IDS.quizQuestions.uniquePasswordValue,
+      prompt: 'Why should important accounts use different passwords?',
+      questionType: QuestionType.SINGLE_CHOICE,
+      position: demoPosition(1),
+      points: 1,
+      shuffleOptions: false,
+      answerOptions: [
+        buildAnswerOptionSeed(
+          {
+            id: DEMO_SEED_IDS.answerOptions.uniquePasswordValueA,
+            label: 'A',
+            text: 'Different passwords limit damage if one service is breached.',
+            isCorrect: true,
+            feedbackText: 'Unique passwords keep one stolen password from opening other accounts.',
+          },
+          0,
+        ),
+        buildAnswerOptionSeed(
+          {
+            id: DEMO_SEED_IDS.answerOptions.uniquePasswordValueB,
+            label: 'B',
+            text: 'Different passwords make MFA unnecessary.',
+            isCorrect: false,
+            feedbackText: 'MFA remains valuable even when every password is unique.',
+          },
+          1,
+        ),
+        buildAnswerOptionSeed(
+          {
+            id: DEMO_SEED_IDS.answerOptions.uniquePasswordValueC,
+            label: 'C',
+            text: 'Different passwords only matter for personal accounts.',
+            isCorrect: false,
+            feedbackText: 'Work and personal accounts both benefit from unique passwords.',
+          },
+          2,
+        ),
+      ],
+    },
+    {
+      id: DEMO_SEED_IDS.quizQuestions.passphraseStrength,
+      prompt: 'Which password habit is strongest?',
+      questionType: QuestionType.SINGLE_CHOICE,
+      position: demoPosition(2),
+      points: 1,
+      shuffleOptions: false,
+      answerOptions: [
+        buildAnswerOptionSeed(
+          {
+            id: DEMO_SEED_IDS.answerOptions.passphraseStrengthA,
+            label: 'A',
+            text: 'Use a long, unique passphrase or generated password.',
+            isCorrect: true,
+            feedbackText: 'Length and uniqueness make passwords harder to guess or reuse.',
+          },
+          0,
+        ),
+        buildAnswerOptionSeed(
+          {
+            id: DEMO_SEED_IDS.answerOptions.passphraseStrengthB,
+            label: 'B',
+            text: 'Use the company name with the current year.',
+            isCorrect: false,
+            feedbackText: 'Predictable patterns are easier for attackers to guess.',
+          },
+          1,
+        ),
+        buildAnswerOptionSeed(
+          {
+            id: DEMO_SEED_IDS.answerOptions.passphraseStrengthC,
+            label: 'C',
+            text: 'Use the same memorable password everywhere.',
+            isCorrect: false,
+            feedbackText: 'A reused password can expose many accounts after one breach.',
+          },
+          2,
+        ),
+      ],
+    },
+    {
+      id: DEMO_SEED_IDS.quizQuestions.breachResponse,
+      prompt: 'What should you do after learning a password may have been exposed?',
+      questionType: QuestionType.SINGLE_CHOICE,
+      position: demoPosition(3),
+      points: 1,
+      shuffleOptions: false,
+      answerOptions: [
+        buildAnswerOptionSeed(
+          {
+            id: DEMO_SEED_IDS.answerOptions.breachResponseA,
+            label: 'A',
+            text: 'Change that password and any reused copies, then report if it affects work.',
+            isCorrect: true,
+            feedbackText: 'Fast rotation and reporting reduce the chance of account takeover.',
+          },
+          0,
+        ),
+        buildAnswerOptionSeed(
+          {
+            id: DEMO_SEED_IDS.answerOptions.breachResponseB,
+            label: 'B',
+            text: 'Wait to see whether someone logs in first.',
+            isCorrect: false,
+            feedbackText: 'Waiting gives attackers more time to use exposed credentials.',
+          },
+          1,
+        ),
+        buildAnswerOptionSeed(
+          {
+            id: DEMO_SEED_IDS.answerOptions.breachResponseC,
+            label: 'C',
+            text: 'Email the password to your manager for checking.',
+            isCorrect: false,
+            feedbackText: 'Passwords should never be shared by email or chat.',
+          },
+          2,
+        ),
+      ],
+    },
+  ],
+} as const;
+
+export const DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN_ITEMS = [
+  {
+    id: DEMO_SEED_IDS.campaignItems.passwordSecurityTrainingDocument,
+    campaignId: DEMO_SEED_IDS.passwordSecurityCampaign,
+    itemType: CampaignItemType.COMPONENT,
+    componentType: CampaignComponentType.TRAINING_DOCUMENT,
+    title: 'Read password security basics',
+    description: 'Start with the password security basics training document.',
+    position: demoPosition(0),
+    isRequired: true,
+    availabilityStatus: CampaignItemAvailabilityStatus.AVAILABLE,
+    trainingDocumentId: DEMO_SEED_IDS.trainingDocuments.passwordSecurity,
+  },
+  {
+    id: DEMO_SEED_IDS.campaignItems.passwordSecurityQuiz,
+    campaignId: DEMO_SEED_IDS.passwordSecurityCampaign,
+    itemType: CampaignItemType.COMPONENT,
+    componentType: CampaignComponentType.QUIZ,
+    title: 'Complete the password security check',
+    description: 'Answer the password security basics quiz.',
+    position: demoPosition(1),
+    isRequired: true,
+    availabilityStatus: CampaignItemAvailabilityStatus.AVAILABLE,
+    quizId: DEMO_SEED_IDS.quizzes.passwordSecurity,
+  },
+] as const;
 
 export const DEMO_SEED_TRAINING_DOCUMENTS = [
   {
