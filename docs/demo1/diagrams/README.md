@@ -8,7 +8,7 @@ This folder stores or indexes diagram sources and exports for Demo 1 planning do
 
 Current draft source:
 
-- `use-case-overview-demo1.drawio`
+- [use-case-overview-demo1.drawio](./use-case-overview-demo1.drawio)
 
 The use-case overview is draft material until the diagram issue is reviewed. It should show UC-01, UC-02, UC-03, base features, and supporting admin context without expanding the Demo 1 use case list.
 
@@ -43,23 +43,41 @@ Login/register and general validation are supporting features, not standalone De
 
 Organisation admin and campaign setup appear only as future/supporting context for assigning campaigns that expose simulations, training documents, quizzes, and modular campaign items/components. They should not expand the Demo 1 use case list.
 
-## Domain Model Diagrams (Adriano)
+## Domain Model Diagrams
 
-The Demo 1 domain model is documented in `docs/demo1/SRS.md`.
+The Demo 1 domain model is documented in [SRS.md](../SRS.md).
 
 ### UML Class Diagram
 
 The domain model is preliminary and conceptual. It supports SRS, API, traceability, and terminology alignment; it is not a final database schema or Prisma migration plan.
 
+Current source:
+
+- [Initial domain model source](<./demo1-domain-model-(initial).drawio>)
+- [Final domain model source](./demo1-domain-model-final.drawio)
+
+Current SVG exports:
+
+- [Initial domain model diagram](<./demo1-domain-model-(initial).svg>)
+- [Final domain model diagram](./demo1-domain-model-final.svg)
+
+#### Final Domain Model
+
+![Final domain model diagram](./demo1-domain-model-final.svg)
+
+#### Initial Domain Model
+
+![Initial domain model diagram](<./demo1-domain-model-(initial).svg>)
+
 ### Domain Model Explanation Support
 
-Domain explanations are integrated in `docs/demo1/SRS.md` under Supporting Document References.
+Domain explanations are integrated in [SRS.md](../SRS.md) under Supporting Document References.
 
-## Architecture Diagrams (Rudolph)
+## Architecture Diagrams
 
 ### High-Level Architecture
 
-Preliminary architecture guidance is documented in `docs/demo1/architecture.md`. Final architecture diagrams are not required here unless separately completed.
+Preliminary architecture guidance is documented in [architecture.md](../architecture.md). Final architecture diagrams are not required here unless separately completed.
 
 ### Simulation Modularity
 
@@ -73,16 +91,16 @@ Future-facing architecture context only unless the diagram issue finalises this 
 
 ### SRS Reference
 
-`docs/demo1/SRS.md`
+[SRS.md](../SRS.md)
 
 ### Architecture Reference
 
-`docs/demo1/architecture.md`
+[architecture.md](../architecture.md)
 
 ### API Reference
 
-`docs/demo1/API.md`
+[API.md](../API.md)
 
 ### Traceability Reference
 
-`docs/demo1/traceability.md`
+[traceability.md](../traceability.md)

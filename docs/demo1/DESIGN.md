@@ -24,7 +24,7 @@ Base feature screens include Register and Login only. These screens support Demo
 
 Validation on base feature screens should be practical and trainee-facing. Examples include missing required fields, invalid email format, password requirements, incorrect login details, and temporary authentication errors.
 
-## Brand Style Guide (Connor)
+## Brand Style Guide
 
 ### Colour Palette
 
@@ -40,7 +40,7 @@ Validation on base feature screens should be practical and trainee-facing. Examp
 
 ### Component Styling Principles
 
-## First-Pass Wireframe Direction (Zoë)
+## First-Pass Wireframe Direction
 
 ### Register
 
@@ -133,7 +133,7 @@ This page is included only as high-level Demo 1 feedback context for the simulat
 
 The page should summarise safe learning feedback about a simulated phishing interaction, such as suspicious sender details, urgent wording, or risky links. It should provide a clear path back to the trainee dashboard, training material, or simulated inbox where relevant.
 
-## Wireframe Refinement and Polish (Connor)
+## Wireframe Refinement and Polish
 
 ### UI/UX Refinement
 
@@ -147,7 +147,7 @@ The page should summarise safe learning feedback about a simulated phishing inte
 
 ### Final Review Notes
 
-## Feedback, Validation, and Accessibility UI Rules (Zoë)
+## Feedback, Validation, and Accessibility UI Rules
 
 These rules define supporting UI behaviour for Demo 1 validation, feedback, loading, empty, unavailable, and accessibility states. They support the trainee-facing flows but do not create a separate Demo 1 use case.
 
@@ -377,7 +377,7 @@ Rules:
 
 ---
 
-## Trainee Navigation and Training Screen Behaviour (Connor)
+## Trainee Navigation and Training Screen Behaviour
 
 This section defines the expected trainee navigation flow and high-level screen behaviour for Demo 1 training-related screens.
 
@@ -400,7 +400,7 @@ This section supports:
 
 > This section does not define detailed quiz interaction behaviour, frontend routing implementation, or administrator navigation.
 
-### Dashboard to Training Module List (Connor)
+### Dashboard to Training Module List
 
 The _trainee dashboard_ acts as the primary landing page after authentication (login).
 
@@ -428,7 +428,7 @@ Selecting a training item should open the relevant training-material page, where
 
 > The dashboard should prioritise clarity and quick access to active learning tasks rather than large amounts of secondary information.
 
-#### Trainee Orientation and Onboarding Guidance (Connor)
+#### Trainee Orientation and Onboarding Guidance
 
 The Demo 1 _trainee experience_ should avoid presenting the platform as an unstructured or overwhelming set of tools immediately after authentication (login).
 
@@ -458,7 +458,7 @@ The trainee should understand:
 - where to begin;
 - and what actions to take next after authentication (login).
 
-### Training Module List to Training Material (Connor)
+### Training Module List to Training Material
 
 The training module list should display assigned or available training modules in a clear and scannable format.
 
@@ -488,7 +488,7 @@ The trainee should be able to return to the dashboard easily without confusion o
 
 Demo 1 should avoid deeply nested training hierarchies or unnecessarily complex navigation paths.
 
-### Training Material to Quiz Flow (Connor)
+### Training Material to Quiz Flow
 
 The training material page supports the trainee flow for `UC-02` by presenting assigned training content in a structured and readable format.
 
@@ -505,7 +505,7 @@ The transition from training material into the quiz flow should preserve trainee
 
 Detailed quiz interaction behaviour remains part of `UC-03` documentation and is outside this section's scope.
 
-### Return Navigation (Connor)
+### Return Navigation
 
 Training-related screens should provide consistent and predictable return navigation.
 
@@ -521,7 +521,7 @@ The trainee should not encounter dead-end flows after viewing training material 
 
 Trainees should always understand where they are in the training flow and how to return to previous screens.
 
-### Loading, Empty, Locked, Unavailable, and Error States (Connor)
+### Loading, Empty, Locked, Unavailable, and Error States
 
 Training-related screens should follow the shared validation, accessibility, loading, and feedback rules defined elsewhere in this document.
 
@@ -561,7 +561,7 @@ Primary trainee actions should remain accessible on smaller screens without exce
 
 ## Wireframe References
 
-### `docs/demo1/wireframes/`
+### [wireframes/](./wireframes/)
 
 ## Cross-References
 

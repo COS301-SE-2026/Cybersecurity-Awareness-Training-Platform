@@ -12,7 +12,7 @@ The architecture is designed to support the following core use cases for Demo 1:
 - **UC-02: View Training Document**: Delivering structured educational content and tracking trainee engagement.
 - **UC-03: Complete Quiz Flow**: Managing assessment logic, capturing responses, scoring, and providing educational feedback.
 
-Architecture guidance in this document is preliminary and scoped to Demo 1 implementation. It should be read alongside `SRS.md`, `API.md`, and `traceability.md`.
+Architecture guidance in this document is preliminary and scoped to Demo 1 implementation. It should be read alongside [SRS.md](./SRS.md), [API.md](./API.md), and [traceability.md](./traceability.md).
 
 ### Organisation Admin/Campaign Control Plane (Preliminary Context)
 
@@ -144,16 +144,16 @@ A unified pattern is used to track trainee activity. Instead of simple status fl
 
 ### SRS
 
-See `SRS.md` for full Demo 1 requirements and use cases.
+See [SRS.md](./SRS.md) for full Demo 1 requirements and use cases.
 
 ### API
 
-See `API.md` for specific communication contracts and payload shapes.
+See [API.md](./API.md) for specific communication contracts and payload shapes.
 
 ### Testing
 
-See `testing.md` for QA strategies and verification plans.
+See [testing.md](./testing.md) for QA strategies and verification plans.
 
 ### Traceability
 
-See `traceability.md` for tracking requirements through the architecture.
+See [traceability.md](./traceability.md) for tracking requirements through the architecture.
