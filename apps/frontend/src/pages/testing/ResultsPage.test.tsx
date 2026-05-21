@@ -1,154 +1,135 @@
+import '@testing-library/jest-dom/vitest';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import type { ReactNode } from 'react';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { getQuiz } from '../../lib/quizApi';
+import ResultsPage from '../ResultsPage';
+import { getQuizResult } from '../../lib/quizApi';
 
+vi.mock('../../components/layout/AppLayout', () => ({
+  default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+}));
+
+vi.mock('../../lib/quizApi', () => ({
+  getQuizResult: vi.fn(),
+}));
+
+const mockedGetQuizResult = vi.mocked(getQuizResult);
+const attemptId = 'attempt-123';
 const campaignItemId = '33333333-3333-4333-8333-333333333334';
 
-function installLocalStorageMock(authToken: string | null = null) {
-  vi.stubGlobal('localStorage', {
-    getItem: vi.fn((key: string) => (key === 'authToken' ? authToken : null)),
-    setItem: vi.fn(),
-    removeItem: vi.fn(),
-    clear: vi.fn(),
-  });
-}
-
-function mockJsonResponse(body: unknown, ok = true, status = 200) {
-  return Promise.resolve({
-    ok,
-    status,
-    headers: {
-      get: () => 'application/json',
+const resultFixture = {
+  attemptId,
+  quizId: 'quiz-1',
+  campaignAssignmentId: 'assignment-1',
+  campaignItemId,
+  scorePercentage: 83.6,
+  passed: true,
+  summary: 'Great job identifying the suspicious message and unsafe link.',
+  answers: [
+    {
+      questionId: 'question-1',
+      isCorrect: true,
+      awardedPoints: 5,
+      feedbackShown: 'You correctly identified the phishing indicator.',
+      selectedOptions: [
+        {
+          optionId: 'option-1',
+          label: 'A',
+          text: 'Urgent password reset email.',
+          isCorrect: true,
+          feedbackText: 'This was the suspicious option.',
+        },
+      ],
     },
-    json: () => Promise.resolve(body),
-    text: () => Promise.resolve(JSON.stringify(body)),
-  } as unknown as Response);
+  ],
+} as const;
+
+function createDeferred<T>() {
+  let resolve: (value: T) => void;
+  let reject: (reason?: unknown) => void;
+
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+
+  return {
+    promise,
+    resolve: resolve!,
+    reject: reject!,
+  };
 }
 
-describe('quizApi', () => {
+function renderResultsPage() {
+  return render(
+    <MemoryRouter initialEntries={[`/quiz-attempts/${attemptId}/results`]}>
+      <Routes>
+        <Route path="/quiz-attempts/:attemptId/results" element={<ResultsPage />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+}
+
+describe('ResultsPage', () => {
   beforeEach(() => {
-    vi.restoreAllMocks();
-    installLocalStorageMock();
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
-    vi.unstubAllGlobals();
+    cleanup();
   });
 
-  it('fetches quiz content through the campaign item quiz endpoint', async () => {
-    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      await mockJsonResponse({
-        id: '55555555-5555-4555-8555-555555555551',
-        campaignItemId,
-        campaignAssignmentId: '22222222-2222-4222-8222-222222222222',
-        title: 'Phishing basics quiz',
-        description: 'Check your phishing awareness.',
-        passThresholdPercentage: 70,
-        difficultyLevel: 'BEGINNER',
-        status: 'AVAILABLE',
-        questions: [
-          {
-            id: 'question-1',
-            text: 'Which email is suspicious?',
-            options: [
-              {
-                id: 'option-1',
-                label: 'A',
-                text: 'Urgent password reset email.',
-              },
-            ],
-          },
-        ],
-      }),
-    );
+  it('shows a loading state before quiz results resolve', async () => {
+    const deferred = createDeferred<typeof resultFixture>();
 
-    const quiz = await getQuiz(campaignItemId);
+    mockedGetQuizResult.mockReturnValueOnce(deferred.promise);
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining(`/trainee/campaign-items/${campaignItemId}/quiz`),
-      expect.objectContaining({
-        method: 'GET',
-      }),
-    );
+    renderResultsPage();
 
-    expect(quiz.title).toBe('Phishing basics quiz');
-    expect(quiz.questions[0].options[0].text).toBe('Urgent password reset email.');
+    expect(screen.getByRole('heading', { level: 2, name: /loading results/i })).toBeInTheDocument();
+    expect(screen.getByText(/your quiz result feedback is being loaded/i)).toBeInTheDocument();
+
+    deferred.resolve(resultFixture);
+
+    expect(await screen.findByRole('heading', { level: 1, name: /passed/i })).toBeInTheDocument();
   });
 
-  it('sends bearer token when a token already exists', async () => {
-    installLocalStorageMock('demo-token');
+  it('renders the learner score, feedback, and navigation back to the quiz', async () => {
+    mockedGetQuizResult.mockResolvedValue(resultFixture);
 
-    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      await mockJsonResponse({
-        id: '55555555-5555-4555-8555-555555555551',
-        campaignItemId,
-        title: 'Phishing basics quiz',
-        questions: [],
-      }),
-    );
+    renderResultsPage();
 
-    await getQuiz(campaignItemId);
-
-    expect(fetchMock).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.objectContaining({
-        headers: expect.objectContaining({
-          Authorization: 'Bearer demo-token',
-        }),
-      }),
+    expect(await screen.findByText('84%')).toBeInTheDocument();
+    expect(screen.getByText(resultFixture.summary)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: /answer feedback/i })).toBeInTheDocument();
+    expect(screen.getByText('Selected correct option')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /back to quiz/i })).toHaveAttribute(
+      'href',
+      `/quizzes/${campaignItemId}`,
     );
   });
 
-  it('rejects quiz fetch responses that expose correctness before submission', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      await mockJsonResponse({
-        id: '55555555-5555-4555-8555-555555555551',
-        campaignItemId,
-        title: 'Leaky quiz',
-        questions: [
-          {
-            id: 'question-1',
-            text: 'Which option is correct?',
-            options: [
-              {
-                id: 'option-1',
-                label: 'A',
-                text: 'This should not expose correctness.',
-                isCorrect: true,
-              },
-            ],
-          },
-        ],
-      }),
-    );
+  it('shows an error state and retries loading when requested', async () => {
+    const user = userEvent.setup();
 
-    await expect(getQuiz(campaignItemId)).rejects.toThrow(/exposed "isCorrect" before submission/i);
-  });
+    mockedGetQuizResult.mockRejectedValueOnce(new Error('Results are temporarily unavailable.'));
+    mockedGetQuizResult.mockResolvedValueOnce(resultFixture);
 
-  it('rejects quiz fetch responses that expose feedback before submission', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      await mockJsonResponse({
-        id: '55555555-5555-4555-8555-555555555551',
-        campaignItemId,
-        title: 'Leaky quiz',
-        questions: [
-          {
-            id: 'question-1',
-            text: 'Which option is correct?',
-            options: [
-              {
-                id: 'option-1',
-                label: 'A',
-                text: 'This should not expose feedback.',
-                feedbackText: 'This feedback should only appear after submission.',
-              },
-            ],
-          },
-        ],
-      }),
-    );
+    renderResultsPage();
 
-    await expect(getQuiz(campaignItemId)).rejects.toThrow(
-      /exposed "feedbackText" before submission/i,
-    );
+    expect(
+      await screen.findByRole('heading', { level: 2, name: /unable to load results/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Results are temporarily unavailable.')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /try again/i }));
+
+    await waitFor(() => {
+      expect(mockedGetQuizResult).toHaveBeenCalledTimes(2);
+    });
+
+    expect(await screen.findByText('84%')).toBeInTheDocument();
   });
 });
