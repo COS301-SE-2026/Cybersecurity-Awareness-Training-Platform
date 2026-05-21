@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 import type {
   GetTraineeCampaignDetailResponseDto,
+  TraineeCampaignComponentItemSummaryDto,
   TraineeCampaignSummaryDto,
 } from '@insightful-phish/shared';
 
@@ -42,6 +43,20 @@ function isCampaignItemDisabled(availabilityStatus: string, isOpenable: boolean)
   return availabilityStatus !== 'AVAILABLE' || !isOpenable;
 }
 
+function getCampaignItemFrontendPath(
+  item: Pick<
+    TraineeCampaignComponentItemSummaryDto,
+    'campaignItemId' | 'componentType' | 'activityApiPath'
+  >,
+) {
+  switch (item.componentType) {
+    case 'QUIZ':
+      return `/quizzes/${item.campaignItemId}`;
+    default:
+      return item.activityApiPath;
+  }
+}
+
 function renderCampaignItems(
   items: GetTraineeCampaignDetailResponseDto['items'],
   navigate: ReturnType<typeof useNavigate>,
@@ -74,7 +89,7 @@ function renderCampaignItems(
           disabled={disabled}
           showLockIcon={disabled}
           iconType="learn"
-          onClick={disabled ? undefined : () => navigate(item.activityApiPath)}
+          onClick={disabled ? undefined : () => navigate(getCampaignItemFrontendPath(item))}
         />
       );
     }
@@ -88,7 +103,7 @@ function renderCampaignItems(
           disabled={disabled}
           showLockIcon={disabled}
           iconType="quiz"
-          onClick={disabled ? undefined : () => navigate(item.activityApiPath)}
+          onClick={disabled ? undefined : () => navigate(getCampaignItemFrontendPath(item))}
         />
       );
     }
@@ -102,7 +117,7 @@ function renderCampaignItems(
           disabled={disabled}
           showLockIcon={disabled}
           iconType="simulation"
-          onClick={disabled ? undefined : () => navigate(item.activityApiPath)}
+          onClick={disabled ? undefined : () => navigate(getCampaignItemFrontendPath(item))}
         />
       );
     }
