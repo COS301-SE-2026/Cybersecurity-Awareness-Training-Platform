@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc",
+    "build": "tsc && node ./scripts/copy-training-content.mjs",
     "start": "node dist/src/server.js",
     "lint": "echo \"No lint configured for backend yet\"",
     "typecheck": "tsc --noEmit",

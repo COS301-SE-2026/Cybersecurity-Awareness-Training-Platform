@@ -268,7 +268,7 @@ export const DEMO_SEED_PASSWORD_SECURITY_TRAINING_DOCUMENT = {
   id: DEMO_SEED_IDS.trainingDocuments.passwordSecurity,
   createdByUserId: DEMO_SEED_IDS.users.admin,
   title: 'Password Security Basics',
-  contentType: TrainingContentType.HTML,
+  contentType: TrainingContentType.MARKDOWN,
   contentRef: 'demo://training/password-security-basics',
   contentSummary:
     'How to use unique passwords, passphrases, password managers, MFA, and breach response habits.',
@@ -522,7 +522,7 @@ export const DEMO_SEED_TRAINING_DOCUMENTS = [
     id: DEMO_SEED_IDS.trainingDocuments.warningSigns,
     createdByUserId: DEMO_SEED_IDS.users.admin,
     title: 'Phishing Email Warning Signs',
-    contentType: TrainingContentType.HTML,
+    contentType: TrainingContentType.MARKDOWN,
     contentRef: 'demo://training/phishing-warning-signs',
     contentSummary:
       'How to spot spoofed senders, urgent language, suspicious links, and risky attachments.',
@@ -534,7 +534,7 @@ export const DEMO_SEED_TRAINING_DOCUMENTS = [
     id: DEMO_SEED_IDS.trainingDocuments.safeLinkHandling,
     createdByUserId: DEMO_SEED_IDS.users.admin,
     title: 'Safe Credential and Link Handling',
-    contentType: TrainingContentType.HTML,
+    contentType: TrainingContentType.MARKDOWN,
     contentRef: 'demo://training/safe-link-handling',
     contentSummary:
       'Practical steps for checking links, protecting credentials, and verifying sign-in prompts.',

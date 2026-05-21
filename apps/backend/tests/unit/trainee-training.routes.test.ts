@@ -23,8 +23,23 @@ const prismaMock = vi.hoisted(() => ({
   },
 }));
 
+const contentResolverMock = vi.hoisted(() => ({
+  resolveContent: vi.fn(),
+  TrainingContentResolveError: class TrainingContentResolveError extends Error {
+    constructor(message = 'Training content could not be loaded') {
+      super(message);
+      this.name = 'TrainingContentResolveError';
+    }
+  },
+}));
+
 vi.mock('../../src/lib/prisma.js', () => ({
   prisma: prismaMock,
+}));
+
+vi.mock('../../src/services/content-resolver.service.js', () => ({
+  resolveContent: contentResolverMock.resolveContent,
+  TrainingContentResolveError: contentResolverMock.TrainingContentResolveError,
 }));
 
 const user = {
@@ -108,6 +123,7 @@ describe('Trainee training document routes', () => {
     clearTraineeTrainingRateLimitStore();
     mockAuthenticatedUser();
     mockTrainingAccess();
+    contentResolverMock.resolveContent.mockResolvedValue('## Demo training content');
   });
 
   it('gets a training document resolved through the campaign item', async () => {
@@ -116,6 +132,10 @@ describe('Trainee training document routes', () => {
       .set('Authorization', authHeader());
 
     expect(response.status).toBe(200);
+    expect(contentResolverMock.resolveContent).toHaveBeenCalledWith(
+      'MARKDOWN',
+      'training/training-doc-1',
+    );
     expect(prismaMock.campaignItem.findUnique).toHaveBeenCalledWith({
       where: {
         id: campaignItemId,
@@ -137,6 +157,7 @@ describe('Trainee training document routes', () => {
         title: 'Identifying Phishing Emails',
         contentType: 'MARKDOWN',
         contentRef: 'training/training-doc-1',
+        content: '## Demo training content',
         contentSummary: 'Common phishing indicators and safe response steps.',
         estimatedReadTimeMinutes: 8,
         difficultyLevel: 'BEGINNER',
@@ -149,6 +170,33 @@ describe('Trainee training document routes', () => {
         isRequired: true,
         availabilityStatus: 'AVAILABLE',
       },
+    });
+  });
+
+  it('returns null content when the reference is not supported', async () => {
+    contentResolverMock.resolveContent.mockResolvedValueOnce(null);
+
+    const response = await request(createApp())
+      .get(trainingDocumentPath())
+      .set('Authorization', authHeader());
+
+    expect(response.status).toBe(200);
+    expect(response.body.trainingDocument.content).toBeNull();
+  });
+
+  it('returns a controlled error when training content cannot be loaded', async () => {
+    contentResolverMock.resolveContent.mockRejectedValueOnce(
+      new contentResolverMock.TrainingContentResolveError(),
+    );
+
+    const response = await request(createApp())
+      .get(trainingDocumentPath())
+      .set('Authorization', authHeader());
+
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({
+      error: 'TRAINING_CONTENT_UNAVAILABLE',
+      message: 'Training content could not be loaded',
     });
   });
 
