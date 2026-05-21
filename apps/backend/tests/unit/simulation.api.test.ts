@@ -7,7 +7,7 @@ const prismaMock = vi.hoisted(() => ({
   traineeProfile: { findUnique: vi.fn() },
   campaignItem: { findUnique: vi.fn() },
   simulatedEmail: { findUnique: vi.fn() },
-  interactionEvent: { create: vi.fn() },
+  interactionEvent: { create: vi.fn(), findFirst: vi.fn(), findMany: vi.fn() },
   emailClassificationResponse: { create: vi.fn(), findFirst: vi.fn() },
 }));
 
@@ -32,6 +32,8 @@ describe('Simulation API', () => {
     vi.clearAllMocks();
     prismaMock.user.findUnique.mockResolvedValue({ id: 'user-123', authStatus: 'ACTIVE' });
     prismaMock.traineeProfile.findUnique.mockResolvedValue(traineeProfile);
+    prismaMock.interactionEvent.findFirst.mockResolvedValue(null);
+    prismaMock.interactionEvent.findMany.mockResolvedValue([]);
   });
 
   const createMockEmail = (assigned = true) => ({
@@ -96,6 +98,48 @@ describe('Simulation API', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.emails[0].subject).toBe('Security Alert');
+      expect(response.body.emails[0].isOpened).toBe(false);
+      expect(prismaMock.interactionEvent.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            traineeProfileId: 'trainee-123',
+            campaignAssignmentId: '44444444-4444-4444-4444-444444444444',
+            campaignItemId: '22222222-2222-2222-2222-222222222222',
+            eventType: 'SIMULATED_EMAIL_OPENED',
+            targetType: 'SIMULATED_EMAIL',
+            simulatedEmailId: {
+              in: ['11111111-1111-1111-1111-111111111111'],
+            },
+          }),
+        }),
+      );
+    });
+
+    it('returns isOpened true when the current trainee has opened the email', async () => {
+      const campaignItem = {
+        id: '22222222-2222-2222-2222-222222222222',
+        itemType: 'COMPONENT',
+        componentType: 'SIMULATED_INBOX',
+        availabilityStatus: 'AVAILABLE',
+        simulation: {
+          safetyStatus: 'APPROVED',
+          simulatedInbox: { status: 'ACTIVE', emails: [createMockEmail()] },
+        },
+        campaign: { assignments: [{ id: '44444444-4444-4444-4444-444444444444' }] },
+      };
+      prismaMock.campaignItem.findUnique.mockResolvedValue(campaignItem);
+      prismaMock.interactionEvent.findMany.mockResolvedValue([
+        {
+          simulatedEmailId: '11111111-1111-1111-1111-111111111111',
+        },
+      ]);
+
+      const response = await request(app)
+        .get('/trainee/campaign-items/22222222-2222-2222-2222-222222222222/simulated-inbox')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.emails[0].isOpened).toBe(true);
     });
 
     it('returns 404 if campaign item is unavailable or invalid type', async () => {
@@ -183,6 +227,41 @@ describe('Simulation API', () => {
           }),
         }),
       );
+    });
+
+    it('does not create duplicate simulated email opened events for the same trainee context', async () => {
+      prismaMock.simulatedEmail.findUnique.mockResolvedValue(createMockEmail());
+      prismaMock.interactionEvent.findFirst.mockResolvedValue({ id: 'existing-open-event' });
+
+      const response = await request(app)
+        .post(
+          '/trainee/campaign-items/22222222-2222-2222-2222-222222222222/simulated-emails/11111111-1111-1111-1111-111111111111/interactions',
+        )
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          eventType: 'SIMULATED_EMAIL_OPENED',
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({
+        success: true,
+        eventType: 'SIMULATED_EMAIL_OPENED',
+      });
+      expect(prismaMock.interactionEvent.findFirst).toHaveBeenCalledWith({
+        where: {
+          traineeProfileId: 'trainee-123',
+          campaignAssignmentId: '44444444-4444-4444-4444-444444444444',
+          campaignItemId: '22222222-2222-2222-2222-222222222222',
+          eventType: 'SIMULATED_EMAIL_OPENED',
+          targetType: 'SIMULATED_EMAIL',
+          targetId: '11111111-1111-1111-1111-111111111111',
+          simulatedEmailId: '11111111-1111-1111-1111-111111111111',
+        },
+        select: {
+          id: true,
+        },
+      });
+      expect(prismaMock.interactionEvent.create).not.toHaveBeenCalled();
     });
 
     it('rejects payload with extra/ignored context fields', async () => {
