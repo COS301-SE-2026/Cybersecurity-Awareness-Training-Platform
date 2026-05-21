@@ -113,6 +113,7 @@ Future platform direction includes organisation admin campaign builders, trainee
 6. **Design Specification**: [docs/demo1/DESIGN.md](docs/demo1/DESIGN.md)
 7. **Diagrams**: [docs/demo1/diagrams/README.md](docs/demo1/diagrams/README.md)
 8. **Wireframes**: [docs/demo1/wireframes/README.md](docs/demo1/wireframes/README.md)
+9. **Demo 1 Video**: [YouTube](https://youtu.be/2N3udVKsnH0)
 
 ---
 
