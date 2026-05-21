@@ -64,16 +64,40 @@ Future platform direction includes organisation admin campaign builders, trainee
 
 ## <img src="https://img.icons8.com/?size=100&id=VbgGe1XzgPAK&format=png&color=000000" width="24"> Badges
 
-[![CI](https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/actions/workflows/ci.yml)
-[![Policy](https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/actions/workflows/policy.yml/badge.svg?branch=dev)](https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/actions/workflows/policy.yml)
-[![codecov](https://codecov.io/gh/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/branch/dev/graph/badge.svg)](https://codecov.io/gh/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform)
-[![GitHub issues](https://img.shields.io/github/issues/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform)](https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/issues)
-[![GitHub closed issues](https://img.shields.io/github/issues-closed/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform)](https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/issues?q=is%3Aissue%20is%3Aclosed)
-[![Requirements](https://img.shields.io/badge/requirements-SRS%20documented-blue)](docs/demo1/SRS.md)
-[![Demo 1 Docs](https://img.shields.io/badge/Demo%201-docs%20available-blue)](docs/demo1/SRS.md)
-![Monorepo](https://img.shields.io/badge/monorepo-pnpm%20workspaces-blue)
-![Branching](https://img.shields.io/badge/branching-feature%20branches%20%2B%20dev-blue)
-[![Last commit](https://img.shields.io/github/last-commit/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform)](https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/commits/main/)
+<p align="left">
+  <a href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/actions/workflows/ci.yml">
+    <img src="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/actions/workflows/ci.yml/badge.svg?branch=dev" alt="Continuous Integration" />
+  </a>
+  <a href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/actions/workflows/policy.yml">
+    <img src="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/actions/workflows/policy.yml/badge.svg?branch=dev" alt="Policy Checks" />
+  </a>
+  <a href="https://codecov.io/gh/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform">
+    <img src="https://codecov.io/gh/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/branch/dev/graph/badge.svg" alt="Codecov coverage" />
+  </a>
+</p>
+
+<p align="left">
+  <a href="docs/demo1/SRS.md">
+    <img src="https://img.shields.io/badge/requirements-SRS%20documented-blue?style=for-the-badge" alt="Requirements: SRS documented" />
+  </a>
+  <a href="docs/demo1/SRS.md">
+    <img src="https://img.shields.io/badge/Demo%201-docs%20available-blue?style=for-the-badge" alt="Demo 1 docs available" />
+  </a>
+  <img src="https://img.shields.io/badge/monorepo-pnpm%20workspaces-blue?style=for-the-badge" alt="Monorepo: pnpm workspaces" />
+  <img src="https://img.shields.io/badge/branching-feature%20branches%20%2B%20dev-blue?style=for-the-badge" alt="Branching: feature branches plus dev" />
+</p>
+
+<p align="left">
+  <a href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/issues">
+    <img src="https://img.shields.io/github/issues/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge&color=brightgreen" alt="GitHub issues" />
+  </a>
+  <a href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/issues?q=is%3Aissue%20is%3Aclosed">
+    <img src="https://img.shields.io/github/issues-closed/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge&color=brightgreen" alt="GitHub closed issues" />
+  </a>
+  <a href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/commits/main/">
+    <img src="https://img.shields.io/github/last-commit/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge&color=yellow" alt="Last commit" />
+  </a>
+</p>
 
 ## <img src="https://img.icons8.com/?size=100&id=1BYH0ZFsjeIy&format=png&color=000000" width="24"> Important Project Links
 
