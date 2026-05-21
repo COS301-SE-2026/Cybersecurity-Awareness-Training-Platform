@@ -1,0 +1,27 @@
+apps/backend/src/content/training/password-security-basics.md
+  h_1fff265ad32c51 29
+apps/backend/src/content/training/phishing-warning-signs.md
+  s_146efc178adaf9::t_a4f0b989093464 7-13
+  h_1fff265ad32c51 30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.11",
+  "base_commit_sha": "c481aa66d47038924302d2c09340d24f670456ba",
+  "prompts": {},
+  "humans": {
+    "h_1fff265ad32c51": {
+      "author": "FJNel <u24594475@tuks.co.za>"
+    }
+  },
+  "sessions": {
+    "s_146efc178adaf9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e4aff-8353-7972-9bba-6484ca24d56d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
