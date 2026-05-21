@@ -478,8 +478,8 @@ QA placeholders should be linked to the relevant SRS sections once implementatio
 
 Suggested mapping:
 
-| Area                                  | SRS Reference                             | QA Placeholder Range                     |
-| ------------------------------------- | ----------------------------------------- | ---------------------------------------- |
+| Area                                  | SRS Reference                            | QA Placeholder Range                     |
+| ------------------------------------- | ---------------------------------------- | ---------------------------------------- |
 | UC-01: View Emails in Simulated Inbox | [SRS.md](./SRS.md) UC-01 section         | `QA-UC01-01` to `QA-UC01-05`             |
 | UC-02: View Training Document         | [SRS.md](./SRS.md) UC-02 section         | `QA-UC02-01` to `QA-UC02-05`             |
 | UC-03: Complete Quiz Flow             | [SRS.md](./SRS.md) UC-03 section         | `QA-UC03-01` to `QA-UC03-05`             |

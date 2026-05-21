@@ -345,13 +345,13 @@ PLEASE NOTE: These contracts are subject to change throughout the course of impl
 
 ### Traceability References
 
-| Traceability ID | Linked Item                                                                                         |
-| --------------- | --------------------------------------------------------------------------------------------------- |
-| TRACE-UC01-01   | UC-01 to FR-UC01-01, API-UC01-01, DE-UC01-02, [DESIGN.md](./DESIGN.md) Simulated Inbox section      |
+| Traceability ID | Linked Item                                                                                           |
+| --------------- | ----------------------------------------------------------------------------------------------------- |
+| TRACE-UC01-01   | UC-01 to FR-UC01-01, API-UC01-01, DE-UC01-02, [DESIGN.md](./DESIGN.md) Simulated Inbox section        |
 | TRACE-UC01-02   | UC-01 to FR-UC01-02, API-UC01-02, DE-UC01-03, [DESIGN.md](./DESIGN.md) Simulated Email Detail section |
-| TRACE-UC01-03   | UC-01 to FR-UC01-04, API-UC01-03, DE-UC01-04                                                        |
-| TRACE-UC01-04   | UC-01 to FR-UC01-05, DE-UC01-05, [DESIGN.md](./DESIGN.md) Phishing Feedback Page section            |
-| TRACE-UC01-05   | UC-01 to FR-UC01-08 and Demo 1 simulation safety boundary                                           |
+| TRACE-UC01-03   | UC-01 to FR-UC01-04, API-UC01-03, DE-UC01-04                                                          |
+| TRACE-UC01-04   | UC-01 to FR-UC01-05, DE-UC01-05, [DESIGN.md](./DESIGN.md) Phishing Feedback Page section              |
+| TRACE-UC01-05   | UC-01 to FR-UC01-08 and Demo 1 simulation safety boundary                                             |
 
 ## UC-02: View Training Document
 
@@ -491,13 +491,13 @@ PLEASE NOTE: These contracts are subject to change throughout the course of impl
 
 ### Traceability References
 
-| Traceability ID | Linked Item                                                                                         |
-| --------------- | --------------------------------------------------------------------------------------------------- |
-| TRACE-UC02-01   | UC-02 to FR-UC02-01, API-UC02-01, DE-UC02-02, [DESIGN.md](./DESIGN.md) Training Module List section |
+| Traceability ID | Linked Item                                                                                           |
+| --------------- | ----------------------------------------------------------------------------------------------------- |
+| TRACE-UC02-01   | UC-02 to FR-UC02-01, API-UC02-01, DE-UC02-02, [DESIGN.md](./DESIGN.md) Training Module List section   |
 | TRACE-UC02-02   | UC-02 to FR-UC02-02, API-UC02-02, DE-UC02-02, [DESIGN.md](./DESIGN.md) Training Material Page section |
-| TRACE-UC02-03   | UC-02 to FR-UC02-04, API-UC02-03, DE-UC02-04                                                        |
-| TRACE-UC02-04   | UC-02 to FR-UC02-07, DE-UC02-05, [DESIGN.md](./DESIGN.md) Training Material to Quiz Flow section    |
-| TRACE-UC02-05   | UC-02 to FR-UC02-08                                                                                 |
+| TRACE-UC02-03   | UC-02 to FR-UC02-04, API-UC02-03, DE-UC02-04                                                          |
+| TRACE-UC02-04   | UC-02 to FR-UC02-07, DE-UC02-05, [DESIGN.md](./DESIGN.md) Training Material to Quiz Flow section      |
+| TRACE-UC02-05   | UC-02 to FR-UC02-08                                                                                   |
 
 ## UC-03: Complete Quiz Flow
 
@@ -649,12 +649,12 @@ PLEASE NOTE: These contracts are subject to change throughout the course of impl
 
 ### Traceability References
 
-| Traceability ID | Linked Item                                                                                                                        |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| TRACE-UC03-01   | UC-03 to FR-UC03-01, FR-UC03-02, API-UC03-01, DE-UC03-02, DE-UC03-03, [DESIGN.md](./DESIGN.md) Quiz Page section                   |
-| TRACE-UC03-02   | UC-03 to FR-UC03-03, API-UC03-02, DE-UC03-04, [DESIGN.md](./DESIGN.md) Quiz Page section                                           |
-| TRACE-UC03-03   | UC-03 to FR-UC03-04, FR-UC03-05, DE-UC03-05, [DESIGN.md](./DESIGN.md) Quiz Page section                                            |
-| TRACE-UC03-04   | UC-03 to FR-UC03-06, FR-UC03-09, API-UC03-03, DE-UC03-04, [DESIGN.md](./DESIGN.md) Quiz Submission State section                   |
+| Traceability ID | Linked Item                                                                                                                          |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| TRACE-UC03-01   | UC-03 to FR-UC03-01, FR-UC03-02, API-UC03-01, DE-UC03-02, DE-UC03-03, [DESIGN.md](./DESIGN.md) Quiz Page section                     |
+| TRACE-UC03-02   | UC-03 to FR-UC03-03, API-UC03-02, DE-UC03-04, [DESIGN.md](./DESIGN.md) Quiz Page section                                             |
+| TRACE-UC03-03   | UC-03 to FR-UC03-04, FR-UC03-05, DE-UC03-05, [DESIGN.md](./DESIGN.md) Quiz Page section                                              |
+| TRACE-UC03-04   | UC-03 to FR-UC03-06, FR-UC03-09, API-UC03-03, DE-UC03-04, [DESIGN.md](./DESIGN.md) Quiz Submission State section                     |
 | TRACE-UC03-05   | UC-03 to FR-UC03-07, FR-UC03-08, FR-UC03-10, API-UC03-04, DE-UC03-06, DE-UC03-07, [DESIGN.md](./DESIGN.md) Quiz Results Page section |
 
 ## Validation, Error-State, and Feedback Requirements
