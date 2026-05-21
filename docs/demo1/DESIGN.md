@@ -608,7 +608,7 @@ Rules:
 - If results cannot be loaded, show a safe error message and provide a retry or back-navigation option
 - Keep feedback educational, not punitive
 
-### Phishing Feedback Display
+### Simulated Phishing Feedback Display
 
 Phishing feedback is high-level contextual support for Demo 1 and should not be treated as a separate core use case.
 
