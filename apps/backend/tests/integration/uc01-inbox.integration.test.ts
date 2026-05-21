@@ -164,6 +164,46 @@ describe('UC-01 Simulated Inbox Integration Tests', () => {
     expect(openedEventCount).toBe(1);
   });
 
+  it('does not create duplicate opened events under concurrent requests', async () => {
+    const fixture = await setupInboxFixture();
+
+    const responses = await Promise.all(
+      Array.from({ length: 10 }, () =>
+        request(createApp())
+          .post(
+            `/trainee/campaign-items/${fixture.campaignItem.id}/simulated-emails/${fixture.email.id}/interactions`,
+          )
+          .set('Authorization', `Bearer ${fixture.token}`)
+          .send({
+            eventType: 'SIMULATED_EMAIL_OPENED',
+          }),
+      ),
+    );
+
+    expect(responses.every((response) => response.status === 200)).toBe(true);
+
+    const openedEventCount = await prisma.interactionEvent.count({
+      where: {
+        traineeProfileId: fixture.traineeProfile.id,
+        campaignAssignmentId: fixture.assignment.id,
+        campaignItemId: fixture.campaignItem.id,
+        eventType: 'SIMULATED_EMAIL_OPENED',
+        targetType: 'SIMULATED_EMAIL',
+        targetId: fixture.email.id,
+        simulatedEmailId: fixture.email.id,
+      },
+    });
+
+    expect(openedEventCount).toBe(1);
+
+    const openedResponse = await request(createApp())
+      .get(`/trainee/campaign-items/${fixture.campaignItem.id}/simulated-inbox`)
+      .set('Authorization', `Bearer ${fixture.token}`);
+
+    expect(openedResponse.status).toBe(200);
+    expect(openedResponse.body.emails[0].isOpened).toBe(true);
+  });
+
   it("does not use another trainee's opened event for the current trainee", async () => {
     const fixture = await setupInboxFixture();
     const { user: otherUser, traineeProfile: otherTraineeProfile } = await createTrainee();
