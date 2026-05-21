@@ -95,11 +95,12 @@ UC-01 covers viewing and opening controlled simulated emails in a campaign-provi
 - **Purpose**: Retrieves the simulated inbox attached to a trainee-accessible campaign item
 - **Status**: Demo 1 required
 - **Access**: Campaign-item scoped: The backend resolves trainee access through campaign assignment
-- **Response summary**: Inbox metadata and simulated email summaries
-- **Important fields**: Email summaries include `id`, sender details, `subject`, optional `preview`, `receivedAt`, `hasAttachment`, and `isOpened`
+- **Response summary**: An `emails` array of simulated email summaries
+- **Important fields**: Each summary includes `id`, `campaignAssignmentId`, `campaignItemId`, `inboxId`, `senderLabel`, `senderAddress`, `subject`, optional `preview`, `receivedAt`, `difficultyLevel`, and `isOpened`
 - **Frontend use**: Renders the inbox list and unread/opened styling
 
 > `isOpened` is derived from backend `SIMULATED_EMAIL_OPENED` interaction events for the same trainee/campaign assignment/campaign item/email context.
+> The inbox summary does not expose expected classification or correct red flags before the intended feedback flow.
 
 ### `GET /trainee/campaign-items/:campaignItemId/simulated-emails/:emailId`
 
@@ -168,10 +169,11 @@ UC-03 covers quiz retrieval, attempt creation, answer submission, and result ret
 
 ### `POST /trainee/campaign-items/:campaignItemId/quiz/attempts`
 
-- **Purpose**: Creates a quiz attempt for the quiz placed at the campaign item
+- **Purpose**: Starts a quiz attempt for the quiz placed at the campaign item, or returns the existing latest `IN_PROGRESS` attempt for the trainee if one already exists
 - **Status**: Demo 1 required
 - **Request**: No body required; trainee, campaign assignment, campaign item, and quiz context are resolved server-side
 - **Success response**: Attempt ID, status, campaign assignment/item context, and start time
+- **Idempotency**: The frontend should not assume every call creates a fresh attempt. This start-or-reuse behaviour is intentional so page load and retry flows can call the endpoint safely.
 
 ### `POST /quiz-attempts/:attemptId/submit`
 
