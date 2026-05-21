@@ -1,7 +1,8 @@
 import request from 'supertest';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../../src/app.js';
 import { prisma } from '../../src/lib/prisma.js';
+import { clearAuthRateLimitStore } from '../../src/middleware/authRateLimit.js';
 import {
   createTrainee,
   createCampaign,
@@ -21,6 +22,10 @@ import {
 } from '../../src/generated/prisma/enums.js';
 
 describe('UC-01 Simulated Inbox Integration Tests', () => {
+  beforeEach(() => {
+    clearAuthRateLimitStore();
+  });
+
   async function setupInboxFixture() {
     const { user, traineeProfile } = await createTrainee();
 
@@ -65,6 +70,8 @@ describe('UC-01 Simulated Inbox Integration Tests', () => {
         password: ['pass', 'word'].join(''),
       });
 
+    expect(loginResponse.status).toBe(200);
+    expect(loginResponse.body.token).toBeDefined();
     const token = loginResponse.body.token;
 
     return {
@@ -173,6 +180,8 @@ describe('UC-01 Simulated Inbox Integration Tests', () => {
         password: ['pass', 'word'].join(''),
       });
 
+    expect(otherLoginResponse.status).toBe(200);
+    expect(otherLoginResponse.body.token).toBeDefined();
     const otherToken = otherLoginResponse.body.token;
 
     const otherOpenResponse = await request(createApp())
