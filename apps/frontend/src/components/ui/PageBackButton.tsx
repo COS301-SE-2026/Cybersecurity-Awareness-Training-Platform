@@ -1,5 +1,5 @@
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
-import type { CSSProperties } from 'react';
+import type { CSSProperties, KeyboardEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 type PageBackButtonProps = {
@@ -9,9 +9,25 @@ type PageBackButtonProps = {
 function PageBackButton({ marginBottom = '-1.2rem' }: PageBackButtonProps) {
   const navigate = useNavigate();
 
+  const handleBack = () => {
+    navigate(-1);
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== 'Enter' && event.key !== ' ') {
+      return;
+    }
+
+    event.preventDefault();
+    handleBack();
+  };
+
   return (
     <div
-      onClick={() => navigate(-1)}
+      role="button"
+      tabIndex={0}
+      onClick={handleBack}
+      onKeyDown={handleKeyDown}
       style={{
         display: 'flex',
         alignItems: 'center',
