@@ -1,45 +1,64 @@
-name: CI
+# Continuous Integration Workflow
+# This workflow runs on pull requests and pushes to main and dev branches.
+# It includes formatting, linting, typechecking, testing, and building.
+
+name: Continuous Integration
 
 on:
   pull_request:
     branches:
       - main
+      - dev
     types:
       - opened
       - reopened
       - synchronize
       - ready_for_review
+  push:
+    branches:
+      - main
+      - dev
   workflow_dispatch:
 
 concurrency:
-  group: ci-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build-test:
-    name: Build and test
+  format:
+    name: Formatting Check
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     timeout-minutes: 5
 
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: insightful_phish
-          POSTGRES_PASSWORD: insightful_phish
-          POSTGRES_DB: insightful_phish_dev
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U insightful_phish -d insightful_phish_dev"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run formatting check
+        run: pnpm format:check
+
+  lint:
+    name: Linting
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
     env:
-      NODE_ENV: test
-      DATABASE_URL: postgresql://insightful_phish:insightful_phish@localhost:5432/insightful_phish_dev?schema=public
-      FRONTEND_ORIGIN: http://localhost:5173
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/insightful_phish_test?schema=public
 
     steps:
       - name: Checkout repository
@@ -58,16 +77,215 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma client
-        run: pnpm --filter @insightful-phish/backend prisma:generate
+        run: pnpm --filter @insightful-phish/backend exec prisma generate
 
-      - name: Apply database migrations
-        run: pnpm --filter @insightful-phish/backend prisma:migrate:deploy
+      - name: Run linting (backend)
+        run: pnpm lint:backend
 
-      - name: Typecheck
-        run: pnpm typecheck
+      - name: Run linting (frontend)
+        run: pnpm lint:frontend
 
-      - name: Test
-        run: pnpm test
+      - name: Run linting (shared)
+        run: pnpm lint:shared
 
-      - name: Build
-        run: pnpm build
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/insightful_phish_test?schema=public
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @insightful-phish/backend exec prisma generate
+
+      - name: Run typecheck (backend)
+        run: pnpm typecheck:backend
+
+      - name: Run typecheck (frontend)
+        run: pnpm typecheck:frontend
+
+      - name: Run typecheck (shared)
+        run: pnpm typecheck:shared
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/insightful_phish_test
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @insightful-phish/backend exec prisma generate
+
+      - name: Run backend unit tests
+        run: pnpm test:coverage:backend
+
+      - name: Run frontend unit tests
+        run: pnpm test:coverage:frontend
+
+      - name: Run shared unit tests
+        run: pnpm test:coverage:shared
+
+      - name: Verify backend coverage
+        run: ls -R apps/backend/coverage/
+
+      - name: Verify frontend coverage
+        run: ls -R apps/frontend/coverage/
+
+      - name: Verify shared coverage
+        run: ls -R packages/shared/coverage/
+
+      - name: Upload backend coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-backend
+          path: apps/backend/coverage/
+
+      - name: Upload frontend coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-frontend
+          path: apps/frontend/coverage/
+
+      - name: Upload shared coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-shared
+          path: packages/shared/coverage/
+
+      - name: Upload coverage to Codecov
+        # Pinned to a full commit SHA to satisfy supply-chain/security scanning.
+        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238
+        if: always()
+        with:
+          files: ./apps/backend/coverage/lcov.info,./apps/frontend/coverage/lcov.info,./packages/shared/coverage/lcov.info
+          flags: backend,frontend,shared
+          disable_search: true
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: insightful_phish_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/insightful_phish_test?schema=public
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/insightful_phish_test?schema=public
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @insightful-phish/backend exec prisma generate
+
+      - name: Run migrations
+        run: pnpm --filter @insightful-phish/backend exec prisma migrate deploy
+
+      - name: Run backend integration tests
+        run: pnpm --filter @insightful-phish/backend test:integration
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/insightful_phish_test?schema=public
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @insightful-phish/backend exec prisma generate
+
+      - name: Build (shared)
+        run: pnpm build:shared
+
+      - name: Build (backend)
+        run: pnpm build:backend
+
+      - name: Build (frontend)
+        run: pnpm build:frontend

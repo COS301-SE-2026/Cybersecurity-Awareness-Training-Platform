@@ -1,9 +1,14 @@
 import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
-import { APP_NAME } from '@insightful-phish/shared';
+import swaggerUi from 'swagger-ui-express';
 import { env } from './config/env.js';
-import { prisma } from './lib/prisma.js';
+import { swaggerSpec } from './config/swagger.js';
+import { healthRoutes } from './routes/health.routes.js';
+import { authRouter } from './routes/auth.routes.js';
+import { traineeRouter } from './routes/trainee.routes.js';
+import { traineeTrainingRouter } from './routes/trainee-training.routes.js';
+import { traineeQuizRouter, quizAttemptRouter } from './routes/quiz.routes.js';
 
 export function createApp() {
   const app = express();
@@ -14,30 +19,26 @@ export function createApp() {
     cors({
       origin: env.FRONTEND_ORIGIN,
       credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization'],
     }),
   );
 
   app.use(express.json());
 
-  app.get('/health', async (_req, res) => {
-    try {
-      await prisma.$queryRaw`SELECT 1`;
+  // Swagger Documentation
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-      return res.json({
-        app: APP_NAME,
-        api: 'working',
-        database: 'connected',
-        timestamp: new Date().toISOString(),
-      });
-    } catch {
-      return res.status(500).json({
-        app: APP_NAME,
-        api: 'working',
-        database: 'not connected',
-        timestamp: new Date().toISOString(),
-      });
-    }
-  });
+  app.use(healthRoutes);
+  app.use(authRouter);
+  app.use('/trainee', traineeRouter);
+  app.use(traineeTrainingRouter);
+
+  // Preliminary Demo 1 API Route Placeholders (To be implemented)
+  // app.use('/auth', authRoutes);
+  app.use('/trainee/campaign-items', traineeQuizRouter);
+  app.use('/quiz-attempts', quizAttemptRouter);
+  // app.use('/campaigns', campaignRoutes); // supporting admin/campaign context
 
   return app;
 }

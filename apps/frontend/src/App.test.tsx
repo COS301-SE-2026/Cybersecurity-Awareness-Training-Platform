@@ -17,6 +17,8 @@ vi.stubGlobal(
 
 describe('App', () => {
   it('renders the Insightful Phish status page', async () => {
+    window.history.pushState({}, '', '/status');
+
     render(<App />);
 
     expect(await screen.findByText('Hello from Insightful Phish!')).toBeTruthy();
