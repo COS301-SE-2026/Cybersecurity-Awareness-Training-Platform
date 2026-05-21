@@ -1,7 +1,6 @@
 import AppLayout from '../components/layout/AppLayout';
 
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 
 import InboxEmailRow from '../components/ui/InboxEmailRow';
 
@@ -9,7 +8,9 @@ import { useEffect, useState } from 'react';
 
 import { useNavigate, useParams } from 'react-router-dom';
 import type { SimulatedEmailSummaryDto } from '@insightful-phish/shared';
+import PageBackButton from '../components/ui/PageBackButton';
 import { useAuth } from '../context/useAuth';
+import { formatEmailTime } from '../lib/email.utils';
 import { getSimulatedInbox } from '../services/campaigns.service';
 
 function InboxPage() {
@@ -79,14 +80,7 @@ function InboxPage() {
   };
 
   const filteredEmails = emails.filter((email) => {
-    const formattedDate = new Date(email.receivedAt).toLocaleString('en-GB', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
+    const formattedDate = formatEmailTime(email.receivedAt, 'inbox');
 
     const searchableContent = [email.senderLabel, email.subject, email.preview ?? '', formattedDate]
       .join(' ')
@@ -111,37 +105,7 @@ function InboxPage() {
       >
         {/* HEADING */}
 
-        <div
-          onClick={() => navigate(-1)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.1rem',
-            width: 'fit-content',
-            cursor: 'pointer',
-            marginBottom: '-1.2rem',
-            color: '#b882ff',
-            transition: '0.18s ease',
-            userSelect: 'none',
-          }}
-        >
-          <ChevronLeftIcon
-            style={{
-              fontSize: '2.2rem',
-            }}
-          />
-
-          <span
-            style={{
-              fontFamily: 'Jost',
-              fontSize: '1rem',
-              fontWeight: 500,
-              letterSpacing: '0.12rem',
-            }}
-          >
-            BACK
-          </span>
-        </div>
+        <PageBackButton />
 
         <h1
           style={{
@@ -257,14 +221,7 @@ function InboxPage() {
                 sender={email.senderLabel}
                 subject={email.subject}
                 preview={email.preview ?? ''}
-                time={new Date(email.receivedAt).toLocaleString('en-GB', {
-                  day: 'numeric',
-                  month: 'short',
-                  year: 'numeric',
-                  hour: 'numeric',
-                  minute: '2-digit',
-                  hour12: true,
-                })}
+                time={formatEmailTime(email.receivedAt, 'inbox')}
                 unread={!openedEmailIds.has(email.id)}
                 onClick={() => handleOpenEmail(email.id)}
               />

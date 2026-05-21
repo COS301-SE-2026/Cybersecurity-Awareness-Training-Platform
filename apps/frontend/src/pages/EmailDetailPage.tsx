@@ -1,14 +1,21 @@
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import type { GetSimulatedEmailResponseDto } from '@insightful-phish/shared';
 import AppLayout from '../components/layout/AppLayout';
+import PageBackButton from '../components/ui/PageBackButton';
 import { useAuth } from '../context/useAuth';
+import { formatEmailTime, toTitleCase } from '../lib/email.utils';
 import { getSimulatedEmail, recordSimulatedEmailInteraction } from '../services/campaigns.service';
 
-function EmailDetailPage() {
-  const navigate = useNavigate();
+const emailMetaLabelStyle = {
+  color: '#CE9AFF',
+  fontFamily: 'Jost',
+  fontSize: '1.2rem',
+  fontWeight: 500,
+  letterSpacing: '0.08rem',
+};
 
+function EmailDetailPage() {
   const { campaignItemId, emailId } = useParams<{
     campaignItemId: string;
     emailId: string;
@@ -59,36 +66,6 @@ function EmailDetailPage() {
     void recordEmailOpened();
   }, [campaignItemId, emailId, token, email]);
 
-  function formatEmailTime(dateString: string): string {
-    const parsedDate = new Date(dateString);
-
-    if (Number.isNaN(parsedDate.getTime())) {
-      return dateString;
-    }
-
-    const day = parsedDate.getDate().toString().padStart(2, '0');
-
-    const month = parsedDate.toLocaleString('en-GB', {
-      month: 'short',
-    });
-
-    const year = parsedDate.getFullYear();
-
-    const time = parsedDate.toLocaleString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true,
-    });
-
-    return `${day} ${month} ${year}, ${time}`;
-  }
-
-  function toTitleCase(text: string): string {
-    return text.replace(/\w\S*/g, (word) => {
-      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-    });
-  }
-
   if (loading) {
     return (
       <AppLayout>
@@ -137,37 +114,7 @@ function EmailDetailPage() {
           userSelect: 'none',
         }}
       >
-        <div
-          onClick={() => navigate(-1)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.1rem',
-            width: 'fit-content',
-            cursor: 'pointer',
-            marginBottom: '-1rem',
-            color: '#b882ff',
-            transition: '0.18s ease',
-            userSelect: 'none',
-          }}
-        >
-          <ChevronLeftIcon
-            style={{
-              fontSize: '2.2rem',
-            }}
-          />
-
-          <span
-            style={{
-              fontFamily: 'Jost',
-              fontSize: '1rem',
-              fontWeight: 500,
-              letterSpacing: '0.12rem',
-            }}
-          >
-            BACK
-          </span>
-        </div>
+        <PageBackButton marginBottom="-1rem" />
 
         <h1
           style={{
@@ -195,17 +142,7 @@ function EmailDetailPage() {
           }}
         >
           <div style={{ flex: 1 }}>
-            <div
-              style={{
-                color: '#CE9AFF',
-                fontFamily: 'Jost',
-                fontSize: '1.2rem',
-                fontWeight: 500,
-                letterSpacing: '0.08rem',
-              }}
-            >
-              From
-            </div>
+            <div style={emailMetaLabelStyle}>From</div>
 
             <div
               style={{
@@ -231,17 +168,7 @@ function EmailDetailPage() {
               {email.senderAddress}
             </div>
 
-            <div
-              style={{
-                color: '#CE9AFF',
-                fontFamily: 'Jost',
-                fontSize: '1.2rem',
-                fontWeight: 500,
-                letterSpacing: '0.08rem',
-              }}
-            >
-              Subject
-            </div>
+            <div style={emailMetaLabelStyle}>Subject</div>
 
             <div
               style={{
@@ -262,17 +189,7 @@ function EmailDetailPage() {
               textAlign: 'right',
             }}
           >
-            <div
-              style={{
-                color: '#CE9AFF',
-                fontFamily: 'Jost',
-                fontSize: '1.2rem',
-                fontWeight: 500,
-                letterSpacing: '0.08rem',
-              }}
-            >
-              Received
-            </div>
+            <div style={emailMetaLabelStyle}>Received</div>
 
             <div
               style={{
@@ -288,17 +205,7 @@ function EmailDetailPage() {
         </div>
 
         <div>
-          <div
-            style={{
-              color: '#CE9AFF',
-              fontFamily: 'Jost',
-              fontSize: '1.2rem',
-              fontWeight: 500,
-              letterSpacing: '0.08rem',
-            }}
-          >
-            Body
-          </div>
+          <div style={emailMetaLabelStyle}>Body</div>
 
           <div
             className="email-body"
