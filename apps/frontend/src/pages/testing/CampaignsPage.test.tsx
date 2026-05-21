@@ -91,7 +91,7 @@ describe('CampaignsPage', () => {
         {
           campaignId: '11111111-1111-4111-8111-111111111111',
           name: 'Quarterly Awareness',
-          campaignType: 'SEQUENTIAL',
+          campaignType: 'PREMADE_GENERAL',
           difficultyLevel: 'BEGINNER',
           status: 'ACTIVE',
           progressStatus: 'IN_PROGRESS',
@@ -102,7 +102,7 @@ describe('CampaignsPage', () => {
     mockedGetTraineeCampaign.mockResolvedValue({
       campaignId: '11111111-1111-4111-8111-111111111111',
       name: 'Quarterly Awareness',
-      campaignType: 'SEQUENTIAL',
+      campaignType: 'PREMADE_GENERAL',
       difficultyLevel: 'BEGINNER',
       status: 'ACTIVE',
       progressStatus: 'IN_PROGRESS',
