@@ -1,0 +1,24 @@
+docs/demo1/diagrams/README.md
+  s_4de9747108065e::t_d298f2ccc18178 11,46,48,54-55,57-60,62-69,71,74,76,80,94,98,102,106
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.11",
+  "base_commit_sha": "41438c0fac4a532ede0ace5b6627e18b3a4b6791",
+  "prompts": {},
+  "humans": {
+    "h_1fff265ad32c51": {
+      "author": "FJNel <u24594475@tuks.co.za>"
+    }
+  },
+  "sessions": {
+    "s_4de9747108065e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e474b-4c60-79f2-9e2c-45b84818d54b",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
