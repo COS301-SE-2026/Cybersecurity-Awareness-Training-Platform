@@ -1,0 +1,25 @@
+docs/demo1/architecture.md
+  h_1fff265ad32c51 5,161-162
+  s_146efc178adaf9::t_1283fa1134defa 33,53,57,89,91,109,120,132,141,160,163-165,167-175
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.11",
+  "base_commit_sha": "6207ca382c65348976bf214ba73a63d9218e5dbc",
+  "prompts": {},
+  "humans": {
+    "h_1fff265ad32c51": {
+      "author": "FJNel <u24594475@tuks.co.za>"
+    }
+  },
+  "sessions": {
+    "s_146efc178adaf9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e4aff-8353-7972-9bba-6484ca24d56d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
