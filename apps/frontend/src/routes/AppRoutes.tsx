@@ -27,10 +27,6 @@ function AppRoutes() {
           element={<EmailDetailPage />}
         />
 
-        {/* <Route path="/training/modules" element={<TrainingModulesPage />} /> */}
-
-        {/* <Route path="/training/modules/:trainingId" element={<TrainingDocumentPage />} /> */}
-
         <Route path="/quizzes/:quizId" element={<QuizPage />} />
         <Route path="/quiz-attempts/:attemptId/results" element={<ResultsPage />} />
         <Route path="/campaigns" element={<CampaignsPage />} />
