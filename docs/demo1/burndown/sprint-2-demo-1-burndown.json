@@ -98,8 +98,8 @@
       "number": 91,
       "title": "feat: [integration] Implement automated smoke test for Demo 1 path",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-05-21"
     },
     {
       "number": 90,
@@ -337,7 +337,7 @@
     },
     {
       "date": "2026-05-21",
-      "remaining": 6,
+      "remaining": 4,
       "ideal": 0.0
     }
   ]
