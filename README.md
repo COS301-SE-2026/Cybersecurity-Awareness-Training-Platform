@@ -56,51 +56,45 @@ By focusing on human behaviour, the most common source of security breaches, the
 
 Future platform direction includes organisation admin campaign builders, trainee/user management, reporting dashboards, real email delivery to actual inboxes, AI-assisted content generation, and advanced simulations such as fake login pages, richer link/attachment interactions, calls, or password-checker activities. Real email delivery must be opt-in and ethically constrained. AI-assisted generation remains future-facing and would require controlled schemas, prepared context, and review; training a custom model is undecided and is not promised.
 
-> _Demo 1_ **runs locally** unless explicitly configured otherwise. Deployment to _Southern Cross_ infrastructure is a later target.
+> _Demo 1_ **runs locally**. Deployment to _Southern Cross_ infrastructure is a later target.
 
 ---
 
-# <img src="https://img.icons8.com/?size=100&id=UDtE3CKjacrI&format=png&color=000000" width="32"> Project Dashboard
-
 ## <img src="https://img.icons8.com/?size=100&id=VbgGe1XzgPAK&format=png&color=000000" width="24"> Badges
 
-> [!NOTE]
-> Static badges in this README are project-status indicators for presentation. For merge decisions, use the current GitHub Actions checks and repository test output.
-
 <p align="left">
-  <img src="https://img.shields.io/badge/Tests-Passing-brightgreen?style=for-the-badge&logo=jest&logoColor=white" />
-  <img src="https://img.shields.io/badge/Coverage-85%25-green?style=for-the-badge&logo=codecov&logoColor=white" />
-  <img src="https://img.shields.io/badge/Build-Passing-brightgreen?style=for-the-badge&logo=githubactions&logoColor=white" />
-  <img src="https://img.shields.io/badge/Linting-Clean-blue?style=for-the-badge&logo=eslint&logoColor=white" />
-  <img src="https://img.shields.io/badge/CI/CD-Automated-blue?style=for-the-badge&logo=githubactions&logoColor=white" />
-</p>
-
-<p align="left">
-  <img src="https://img.shields.io/badge/Status-Active-success?style=for-the-badge" />
-  <img src="https://img.shields.io/badge/Maintained-Yes-brightgreen?style=for-the-badge" />
-  <a href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/commits/main/">
-    <img src="https://img.shields.io/github/last-commit/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge&color=yellow" />
+  <a href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/actions/workflows/ci.yml">
+    <img src="https://img.shields.io/github/actions/workflow/status/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/ci.yml?branch=dev&label=CI&style=for-the-badge&logo=github" alt="Continuous Integration" />
+  </a>
+  <a href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/actions/workflows/policy.yml">
+    <img src="https://img.shields.io/github/actions/workflow/status/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/policy.yml?branch=dev&label=Policy&style=for-the-badge&logo=github" alt="Policy Checks" />
+  </a>
+  <a href="https://codecov.io/gh/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform">
+    <img src="https://img.shields.io/codecov/c/github/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/dev?style=for-the-badge&logo=codecov&label=Coverage" alt="Codecov coverage" />
   </a>
 </p>
 
 <p align="left">
-
-  <img src="https://img.shields.io/github/issues/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge&color=brightgreen" />
-
-  <img src="https://img.shields.io/github/issues-closed/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge&color=brightgreen" />
-
+  <a href="docs/demo1/SRS.md">
+    <img src="https://img.shields.io/badge/Requirements-SRS%20Documented-blue?style=for-the-badge" alt="Requirements: SRS documented" />
+  </a>
+  <a href="docs/demo1/SRS.md">
+    <img src="https://img.shields.io/badge/Demo%201-Docs%20Available-blue?style=for-the-badge" alt="Demo 1 docs available" />
+  </a>
+  <img src="https://img.shields.io/badge/Monorepo-pnpm%20Workspaces-blue?style=for-the-badge" alt="Monorepo: pnpm workspaces" />
+  <img src="https://img.shields.io/badge/Branching-Feature%20Branches%20%2B%20Dev-blue?style=for-the-badge" alt="Branching: feature branches plus dev" />
 </p>
 
 <p align="left">
-
-  <img src="https://img.shields.io/github/contributors/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge" />
-
-  <img src="https://img.shields.io/github/stars/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge" />
-
-</p>
-
-<p align="left">
-  <img src="https://img.shields.io/badge/Fuel-Cheesecake-000000?style=for-the-badge" />
+  <a href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/issues">
+    <img src="https://img.shields.io/github/issues/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge&color=brightgreen" alt="GitHub issues" />
+  </a>
+  <a href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/issues?q=is%3Aissue%20is%3Aclosed">
+    <img src="https://img.shields.io/github/issues-closed/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge&color=brightgreen" alt="GitHub closed issues" />
+  </a>
+  <a href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/commits/dev/">
+    <img src="https://img.shields.io/github/last-commit/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/dev?style=for-the-badge&color=yellow" alt="Last commit" />
+  </a>
 </p>
 
 ## <img src="https://img.icons8.com/?size=100&id=1BYH0ZFsjeIy&format=png&color=000000" width="24"> Important Project Links
@@ -122,13 +116,31 @@ Future platform direction includes organisation admin campaign builders, trainee
 
 ---
 
+# <img src="https://img.icons8.com/?size=100&id=FYI6LfcQUyOR&format=png&color=000000" width="32"> Repository Structure
+
+This repository is organised as a pnpm workspace monorepo:
+
+- `apps/frontend`: React, Vite, and TypeScript trainee-facing frontend
+- `apps/backend`: Express, TypeScript, Prisma, and PostgreSQL backend
+- `packages/shared`: Shared TypeScript types and validation contracts
+
+---
+
+# <img src="https://img.icons8.com/?size=100&id=AIR2LTmnKJFl&format=png&color=000000" width="32"> Branching Strategy
+
+The project uses a lightweight feature-branch workflow with `dev` as the integration branch and `main` as the stable branch. Developers create short-lived `feature/*`, `fix/*`, `chore/*`, or `docs/*` branches from `dev`, open pull requests back into `dev`, and promote stable milestone work from `dev` to `main`.
+
+---
+
 # <img src="https://img.icons8.com/?size=100&id=hSm5FhlnhnlL&format=png&color=000000" width="32"> Technology Stack
 
 <p align="center">
     <a href="https://skillicons.dev">
-        <img src="https://skillicons.dev/icons?i=ts,react,vite,nodejs,express,postgres,prisma,docker,githubactions,pnpm,vitest,html,css&perline=8" alt="Tech stack icons" />
+        <img src="https://skillicons.dev/icons?i=ts,react,vite,nodejs,express,postgres,prisma,docker,github,git,pnpm,vitest,html,css&perline=7" alt="Tech stack icons" />
     </a>
 </p>
+
+<div align="center">
 
 | <img src="https://img.icons8.com/?size=100&id=WtGfO5jMSugE&format=png&color=000000" width="20"> **Area** | <img src="https://img.icons8.com/?size=100&id=zcevikcPgMsD&format=png&color=000000" width="20"> **Tools** |
 | -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
@@ -140,6 +152,8 @@ Future platform direction includes organisation admin campaign builders, trainee
 | CI/CD                                                                                                    | GitHub Actions                                                                                            |
 | Package Management                                                                                       | pnpm workspaces                                                                                           |
 | Version Control                                                                                          | Git, GitHub                                                                                               |
+
+</div>
 
 ---
 
