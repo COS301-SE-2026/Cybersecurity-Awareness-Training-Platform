@@ -1,0 +1,27 @@
+.github/workflows/ci.yml
+  s_146efc178adaf9::t_e424f14fa7f725 2,17-20,196-197
+  s_146efc178adaf9::t_98438f1ae68533 202
+.github/workflows/policy.yml
+  s_146efc178adaf9::t_0587b6947a5595 14-18,39-53
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.11",
+  "base_commit_sha": "4cfd7b5125fbe94c34a6398f215e3d37c54e8656",
+  "prompts": {},
+  "humans": {
+    "h_1fff265ad32c51": {
+      "author": "FJNel <u24594475@tuks.co.za>"
+    }
+  },
+  "sessions": {
+    "s_146efc178adaf9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e4aff-8353-7972-9bba-6484ca24d56d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
