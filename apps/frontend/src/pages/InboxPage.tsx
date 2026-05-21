@@ -24,19 +24,6 @@ function InboxPage() {
   const { token } = useAuth();
 
   const [emails, setEmails] = useState<SimulatedEmailSummaryDto[]>([]);
-  const [openedEmailIds, setOpenedEmailIds] = useState<Set<string>>(() => {
-    if (!campaignItemId) {
-      return new Set();
-    }
-
-    const storedOpenedEmails = localStorage.getItem(`opened-simulated-emails-${campaignItemId}`);
-
-    if (!storedOpenedEmails) {
-      return new Set();
-    }
-
-    return new Set(JSON.parse(storedOpenedEmails) as string[]);
-  });
 
   const [loading, setLoading] = useState(true);
 
@@ -64,17 +51,6 @@ function InboxPage() {
     if (!campaignItemId) {
       return;
     }
-
-    const updatedOpenedEmails = new Set(openedEmailIds);
-
-    updatedOpenedEmails.add(emailId);
-
-    setOpenedEmailIds(updatedOpenedEmails);
-
-    localStorage.setItem(
-      `opened-simulated-emails-${campaignItemId}`,
-      JSON.stringify(Array.from(updatedOpenedEmails)),
-    );
 
     navigate(`/trainee/campaign-items/${campaignItemId}/simulated-emails/${emailId}`);
   };
@@ -222,7 +198,7 @@ function InboxPage() {
                 subject={email.subject}
                 preview={email.preview ?? ''}
                 time={formatEmailTime(email.receivedAt, 'inbox')}
-                unread={!openedEmailIds.has(email.id)}
+                unread={!email.isOpened}
                 onClick={() => handleOpenEmail(email.id)}
               />
             ))
