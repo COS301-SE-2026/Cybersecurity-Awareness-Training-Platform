@@ -26,10 +26,13 @@ function InboxPage() {
   const [emails, setEmails] = useState<SimulatedEmailSummaryDto[]>([]);
 
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     async function loadInbox() {
       if (!campaignItemId || !token) {
+        setError(true);
+        setLoading(false);
         return;
       }
 
@@ -39,6 +42,7 @@ function InboxPage() {
         setEmails(data.emails);
       } catch (error) {
         console.error('FAILED TO LOAD SIMULATED INBOX', error);
+        setError(true);
       } finally {
         setLoading(false);
       }
@@ -178,6 +182,17 @@ function InboxPage() {
               }}
             >
               LOADING INBOX...
+            </div>
+          ) : error ? (
+            <div
+              style={{
+                color: '#ff9a9a',
+                fontFamily: 'Overpass',
+                fontSize: '1.1rem',
+                padding: '1rem',
+              }}
+            >
+              FAILED TO LOAD INBOX
             </div>
           ) : filteredEmails.length === 0 ? (
             <div

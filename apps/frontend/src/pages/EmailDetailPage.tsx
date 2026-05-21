@@ -6,6 +6,7 @@ import PageBackButton from '../components/ui/PageBackButton';
 import { useAuth } from '../context/useAuth';
 import { formatEmailTime, toTitleCase } from '../lib/email.utils';
 import { getSimulatedEmail, recordSimulatedEmailInteraction } from '../services/campaigns.service';
+import DOMPurify from 'dompurify';
 
 const emailMetaLabelStyle = {
   color: '#CE9AFF',
@@ -24,6 +25,8 @@ function EmailDetailPage() {
   const { token } = useAuth();
   const [email, setEmail] = useState<GetSimulatedEmailResponseDto | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const sanitizedBodyHtml = email ? DOMPurify.sanitize(email.bodyHtml) : '';
 
   useEffect(() => {
     async function loadEmail() {
@@ -217,7 +220,7 @@ function EmailDetailPage() {
               lineHeight: 1.7,
               maxWidth: '1100px',
             }}
-            dangerouslySetInnerHTML={{ __html: email.bodyHtml }}
+            dangerouslySetInnerHTML={{ __html: sanitizedBodyHtml }}
           />
 
           <style>

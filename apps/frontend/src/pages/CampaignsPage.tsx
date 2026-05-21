@@ -84,7 +84,7 @@ function renderCampaignItems(
         return null;
       }
 
-      const disabled = item.availabilityStatus !== 'AVAILABLE';
+      const disabled = item.availabilityStatus !== 'AVAILABLE' || !item.isOpenable;
 
       return (
         <TrainingActionRow
@@ -106,7 +106,7 @@ function renderCampaignItems(
         return null;
       }
 
-      const disabled = item.availabilityStatus !== 'AVAILABLE';
+      const disabled = item.availabilityStatus !== 'AVAILABLE' || !item.isOpenable;
 
       return (
         <TrainingActionRow
@@ -128,7 +128,7 @@ function renderCampaignItems(
         return null;
       }
 
-      const disabled = item.availabilityStatus !== 'AVAILABLE';
+      const disabled = item.availabilityStatus !== 'AVAILABLE' || !item.isOpenable;
 
       return (
         <TrainingActionRow
