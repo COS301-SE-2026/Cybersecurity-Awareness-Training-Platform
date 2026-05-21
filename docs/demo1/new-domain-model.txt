@@ -5,18 +5,6 @@ inherits from means UML generalisation with the hollow triangle pointing to the 
 
 Note: Inheritance in this domain model is conceptual UML inheritance. It does not imply that Prisma must implement table inheritance directly. The Prisma implementation may use profiles, role tables, enums, explicit relations, or join tables where that is cleaner.
 
-Demo 1 scope note:
-- This model supports a base/incremental Demo 1 SRS, not a final full-year SRS.
-- Campaign is the main assignment and ordering container. Campaigns may belong to an organisation or may represent default Insightful Phish content.
-- A campaign contains ordered campaign items/components. In current implementation references, the conceptual CampaignComponent placement may be represented as a CampaignItem with component fields.
-- Demo 1 campaign components are limited to SIMULATED_INBOX, TRAINING_DOCUMENT, and QUIZ.
-- Future campaign components may include richer simulations, fake login pages, simulated calls, smart password checker activities, attachment/link exercises, and other cybersecurity awareness activities.
-- Simulated emails live under a simulated inbox campaign component. They may be safe, suspicious, phishing, or scam-like controlled training content.
-- Demo 1 only requires viewing/opening simulated emails. Email classification, simulated links, attachments, fake login pages, and richer interaction tracking are future or optional scope.
-- Interaction tracking must remain safe and must not store real credentials or sensitive submitted values.
-- Demo 1 quiz questions are simple single-choice questions. Multiple-choice, combo/select answers, fill-in-the-blank, free text, richer marking rules, and AI-assisted marking/generation are future-facing capabilities.
-- Real email delivery and AI-assisted generation are future-facing. They should not be treated as Demo 1 implementation requirements.
-
 HEALTHCHECK
 - id (String)
 - message (String)

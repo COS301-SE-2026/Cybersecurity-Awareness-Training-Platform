@@ -128,86 +128,10 @@ Before each integration test, the setup calls `resetTestDatabase()`, which curre
 
 The truncate helper:
 
-- discovers application tables in the `public` schema;
-- excludes `_prisma_migrations`;
-- quotes table names safely;
-- runs `TRUNCATE TABLE ... RESTART IDENTITY CASCADE`;
-- uses `CASCADE` so related rows are cleaned without maintaining a fragile delete order.
+- Discovers application tables in the `public` schema
+- Excludes `_prisma_migrations`
+- Quotes table names safely
+- Runs `TRUNCATE TABLE ... RESTART IDENTITY CASCADE`
+- Uses `CASCADE` so related rows are cleaned without maintaining a fragile delete order
 
 After all integration tests finish, `disconnectTestPrisma()` calls `prisma.$disconnect()`.
-
-## CI Compatibility
-
-CI database-backed integration tests need a PostgreSQL service.
-
-The CI database should be named `insightful_phish_test` or another clearly test-only name containing `test`, because the cleanup guard rejects database names without `test`.
-
-Before running integration tests, CI should:
-
-- install dependencies;
-- run `pnpm --filter @insightful-phish/backend prisma:generate`;
-- set `DATABASE_URL` or `TEST_DATABASE_URL` to the CI test database;
-- run `pnpm --filter @insightful-phish/backend exec prisma migrate deploy`;
-- run `pnpm --filter @insightful-phish/backend test:integration`.
-
-CI database provisioning is fully configured in the [.github/workflows/ci.yml](../../.github/workflows/ci.yml) workflow using a PostgreSQL service container.
-
-## Troubleshooting
-
-### Safety Guard Rejects The Database
-
-Check that `TEST_DATABASE_URL` points to a database whose name contains `test`, for example `insightful_phish_test`.
-
-Also check that integration tests are setting `NODE_ENV=test`. The integration setup does this automatically, but direct helper usage still requires the same guard.
-
-If the guard refuses to clean `insightful_phish_dev`, it is working correctly. Set `TEST_DATABASE_URL` with syntax that matches your terminal before running integration tests.
-
-Command Prompt:
-
-```cmd
-set "TEST_DATABASE_URL=postgresql://insightful_phish:insightful_phish@localhost:5432/insightful_phish_test"
-pnpm --filter @insightful-phish/backend test:integration
-```
-
-PowerShell:
-
-```powershell
-$env:TEST_DATABASE_URL="postgresql://insightful_phish:insightful_phish@localhost:5432/insightful_phish_test"
-pnpm --filter @insightful-phish/backend test:integration
-```
-
-### Test Database Does Not Exist
-
-Create it locally:
-
-```powershell
-docker compose exec postgres createdb -U insightful_phish insightful_phish_test
-```
-
-### Migrations Are Not Applied
-
-Apply committed migrations to the test database:
-
-PowerShell:
-
-```powershell
-$env:TEST_DATABASE_URL="postgresql://insightful_phish:insightful_phish@localhost:5432/insightful_phish_test"
-$env:DATABASE_URL=$env:TEST_DATABASE_URL
-pnpm --filter @insightful-phish/backend exec prisma migrate deploy
-```
-
-Command Prompt:
-
-```cmd
-set "TEST_DATABASE_URL=postgresql://insightful_phish:insightful_phish@localhost:5432/insightful_phish_test"
-set "DATABASE_URL=%TEST_DATABASE_URL%"
-pnpm --filter @insightful-phish/backend exec prisma migrate deploy
-```
-
-### Windows Prisma Generate EPERM
-
-On Windows, `prisma:generate` may fail if a generated file is locked by another process. Close running dev servers, test watchers, or editors holding generated Prisma files, then rerun:
-
-```powershell
-pnpm --filter @insightful-phish/backend prisma:generate
-```
