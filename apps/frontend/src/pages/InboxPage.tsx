@@ -23,21 +23,21 @@ function InboxPage() {
   const { token } = useAuth();
 
   const [emails, setEmails] = useState<SimulatedEmailSummaryDto[]>([]);
-  const [openedEmailIds, setOpenedEmailIds] = useState<Set<string>>(new Set());
-
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
+  const [openedEmailIds, setOpenedEmailIds] = useState<Set<string>>(() => {
     if (!campaignItemId) {
-      return;
+      return new Set();
     }
 
     const storedOpenedEmails = localStorage.getItem(`opened-simulated-emails-${campaignItemId}`);
 
-    if (storedOpenedEmails) {
-      setOpenedEmailIds(new Set(JSON.parse(storedOpenedEmails) as string[]));
+    if (!storedOpenedEmails) {
+      return new Set();
     }
-  }, [campaignItemId]);
+
+    return new Set(JSON.parse(storedOpenedEmails) as string[]);
+  });
+
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadInbox() {
