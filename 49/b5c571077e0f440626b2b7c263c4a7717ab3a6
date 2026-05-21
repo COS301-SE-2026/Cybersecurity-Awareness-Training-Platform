@@ -1,0 +1,505 @@
+packages/shared/src/auth.ts
+  s_1a35a5917e528a::t_5f8ba1fad0c9eb 36-37
+  s_329ac6344433de::t_111ab7b9a57738 35,43,51
+  s_1a35a5917e528a::t_54ab5cbcd4923b 6,12-14,34,38-40,44-45,47,49-50,52-58
+  s_88b4d709219027::t_1fb314a3e8cdf4 7-9,15-19,21,24-33,42
+  s_1a35a5917e528a::t_ee8ea8b76750f3 1-5,46,48
+  h_1fff265ad32c51 59-69
+  s_88b4d709219027::t_d1f48c02659f81 10-11,20,22-23,41
+apps/backend/tests/unit/user.mapper.test.ts
+  s_88b4d709219027::t_d1f48c02659f81 12,24
+  s_1a35a5917e528a::t_9da5a101145b53 1-5,7-11,13-14,18-23,25-30
+  s_1a35a5917e528a::t_0766857f01df23 6,15-17
+apps/backend/src/content/training/phishing-warning-signs.md
+  h_1fff265ad32c51 30
+  s_146efc178adaf9::t_a4f0b989093464 7-13
+packages/shared/src/common.ts
+  s_1a35a5917e528a::t_54ab5cbcd4923b 1-15
+packages/shared/src/validation/campaigns.schemas.ts
+  s_88b4d709219027::t_c393cede82ef83 1,26-28
+  s_fe371699497113::t_41be83702d46a8 25
+  s_fe371699497113::t_811ccda32ea9d1 2-24,76-167
+.github/workflows/ci.yml
+  s_146efc178adaf9::t_ddba0a964c8238 195,198-201,203-206
+  s_146efc178adaf9::t_98438f1ae68533 202
+  s_146efc178adaf9::t_e424f14fa7f725 2,17-20,196-197
+  h_1fff265ad32c51 5,29,31-32,35-53,56,59,64,80,130-155,256-261,264-276,278-282
+  s_146efc178adaf9::t_aa25127c2d21c5 171-193
+  s_c690f98408dc16::t_d00ca4f8010a34 60-61,262-263
+packages/shared/src/entities.ts
+  s_42e4813ef39065::t_47ea01b18e8bbb 361
+  s_1a35a5917e528a::t_5f8ba1fad0c9eb 87-88
+  s_329ac6344433de::t_111ab7b9a57738 80,82,86,92-93,97,100-101,124-126,129-130,134-135,137-138,142,145-146,150-151,161-162,166-167,174-177,181-182,185-186,190-191,206-207,211-212,222-223,227,236-237,241,248-249,253-254,262-263,267-268,274-275,279,281-282,285-288,292-294,300-301,312-313,317-318,322,383-384,395,401-402,404-408,410
+  s_88b4d709219027::t_0c19db17c6fd7b 2,4-12,19,21,25,27-35,37-42,44,46,48,50,52-57,59,63-69,71,73,75,98,105,108-111,113,115-123,127-128,133,136,141,144,149,152-160,168,172,189,192-196,198-205,210,214-221,228,232-234,242,244,246,257,259-261,272-273,283,295-299,304-310,321,323-360,362-373,375-380,382,387-393,397-398,409
+  s_1a35a5917e528a::t_8f5e78b28bee8a 1,3,13-16,18,20,22,24,26,36,43,45,47,60,62,70,78-79,81,83-85,89-91,94-95,102-103,131-132,139-140,143,147-148,163-165,169-171,173,178-179,187-188,197,208-209,224-226,229-231,235,238-240,243,245,247,250-252,255-256,258,264-266,269-271,276-278,284,289-291,302-303,311,314-316,319-320,381,385-386,394,399-400,403,411
+  s_42e4813ef39065::t_d4ff5d0efd028d 49,51,58,61,72,74,76,180,183-184
+  s_88b4d709219027::t_d1f48c02659f81 17,23,96,99,104,106-107,112,114,213,280,374,396
+apps/backend/prisma/migrations/20260512120000_user_first_last_name/migration.sql
+  s_1a35a5917e528a::t_5f8ba1fad0c9eb 1-17
+docs/demo1/API.md
+  s_146efc178adaf9::t_8cf4e92775a6f2 1,7,9,13,17,19,21-29,33-36,41-45,49-53,57,59,61-65,67,69-73,75,77-85,87,89,91-96,100,105,107-108,110-111,113-119,121-127,129,131,135-140,142,146-149,153-160,164-168,173-175,180-186,188-192,196-198,201-222
+  s_146efc178adaf9::t_1283fa1134defa 226-247
+  s_88b4d709219027::t_4da331d4db1075 120,169
+  h_1fff265ad32c51 5,37,97,102,109,224
+  s_146efc178adaf9::t_24c6f827c266f1 11,15
+  s_88b4d709219027::t_9028bd668d01e9 47,106,112,150,152,193-195
+  s_146efc178adaf9::t_3b7200bd3942d2 200
+  s_88b4d709219027::t_d1f48c02659f81 55,133,144,151,162
+  s_146efc178adaf9::t_8bcd4fe7c20f6f 98-99,103,172,176
+apps/backend/src/routes/trainee.routes.ts
+  s_30727a4aa35864::t_b30468fbac1009 29-161
+apps/backend/src/routes/auth.routes.ts
+  s_30727a4aa35864::t_a6f7eb4d45b338 14-28,38-52,62-73
+  s_fd6806a2f02b4c::t_eb6d9f3e370d81 77
+  h_1fff265ad32c51 2,6-9
+  s_fd6806a2f02b4c::t_824efb58d46840 4,32,56
+  s_fd6806a2f02b4c::t_21789312711b19 1,3,5
+GITHUB_RULES.md
+  s_4de9747108065e::t_719592ff85d220 169
+packages/shared/src/validation/index.ts
+  s_88b4d709219027::t_c393cede82ef83 3
+  s_1a35a5917e528a::t_ee8ea8b76750f3 1-2,4-6
+packages/shared/src/api-contracts.ts
+  s_1a35a5917e528a::t_54ab5cbcd4923b 1-2,4-6
+  s_1a35a5917e528a::t_8f5e78b28bee8a 7
+  s_1a35a5917e528a::t_ee8ea8b76750f3 8
+  s_88b4d709219027::t_c393cede82ef83 3
+README.md
+  s_146efc178adaf9::t_08fe9520286424 120-128,130-131
+  s_146efc178adaf9::t_bf9cace1e85e83 143-156
+  s_8de403d86845e1::t_a3984beda1f8a9 26-50,56-58
+  s_146efc178adaf9::t_a4f0b989093464 55
+  s_146efc178adaf9::t_fe43815dee99cc 66,68-69,71-72,78,80-81,83,89-94,97
+  h_1fff265ad32c51 67,70,73,79,82,84-85,95-96,119,129,139
+  s_8de403d86845e1::t_ee24618e4936ac 108-115
+apps/backend/src/controllers/auth.controller.ts
+  s_fd6806a2f02b4c::t_21789312711b19 2-7,12,24-51
+  h_1fff265ad32c51 1,8-11,13-23
+apps/backend/tests/unit/swagger.spec.test.ts
+  s_30727a4aa35864::t_eae4cde6f29481 316-320
+  s_30727a4aa35864::t_b1f50ce26e5725 17-111,181-243,265-315,321-323
+  s_30727a4aa35864::t_91cc8b8436b601 16,112-120,244-247
+docs/demo1/SRS.md
+  s_8de403d86845e1::t_a3984beda1f8a9 62-73
+  s_21c2f108012d7b::t_9dd176fc8849f3 114,141,186
+  s_146efc178adaf9::t_1283fa1134defa 3,5,7,9,11,13,15-17,19,21-23,25,27-38,40,42,44-48,50,52,54-56,58,60,75,77-80,82,84,86,88,90,92,94,96,98,100,102-103,105,107-109,111,113,115-116,118,120-125,127,129-133,135,137,139,143,145,147,149-150,152,154-156,158,160-162,164,166-171,173,175-178,180,182,184,188,190,192,194-195,197,199-201,203,205-209,211,213-220,222,224-228,230,232,234-380,382,384-386,388,390-442
+  s_88b4d709219027::t_f7eeafd56f2c76 381,383,387,389
+apps/backend/src/routes/health.routes.ts
+  s_1a35a5917e528a::t_6c97c1d8f6ed8c 1-9,11,14-15,17,19-20
+  s_30727a4aa35864::t_65c67d1bdb3a74 10,12,16,18
+apps/backend/src/app.ts
+  h_1fff265ad32c51 8,33
+  s_fd6806a2f02b4c::t_824efb58d46840 22-23
+  s_1a35a5917e528a::t_6c97c1d8f6ed8c 7,32
+  s_88b4d709219027::t_9bd8574e1b8883 38-41
+apps/backend/src/repositories/user.repository.ts
+  s_88b4d709219027::t_0fa7c0a2acba08 1-10,12-22,24,26,29-45
+  s_88b4d709219027::t_d1f48c02659f81 11,23,25,27-28
+packages/shared/package.json
+  s_1a35a5917e528a::t_ee8ea8b76750f3 15-16
+  s_1a35a5917e528a::t_041ff380a12e2e 12-13,19-20
+.github/workflows/policy.yml
+  s_fd6806a2f02b4c::t_18f0f773643931 74
+  s_146efc178adaf9::t_0587b6947a5595 14-18,39-53
+  h_1fff265ad32c51 22
+apps/backend/src/services/simulation.service.ts
+  s_d90e5e55609ee4::t_8334ea2413851c 1-17,234-266
+  s_4de9747108065e::t_cd13ba0b8d3d79 233,277-278,283-284
+  s_4de9747108065e::t_a3b2523c22992e 92-94
+  s_4de9747108065e::t_e701a5187d1cd1 78-91,95-120
+  s_d90e5e55609ee4::t_1bc048ce2b7741 18-19,267-276,279-282
+apps/backend/src/middleware/requireAuth.ts
+  s_fd6806a2f02b4c::t_e6e35f816a3097 1-53
+docs/demo1/diagrams/use-case-overview-demo1.drawio
+  s_21c2f108012d7b::t_e64e1b8b314616 10,88,151,211
+  s_21c2f108012d7b::t_13be2ad45d4262 16-83,91-139,154,209,214
+  s_21c2f108012d7b::t_fc0722a7a3836e 160
+apps/backend/src/services/password.service.ts
+  s_fd6806a2f02b4c::t_bc6803ae78cf3c 1,9-21,25,50,54
+  h_1fff265ad32c51 2,4,8,22-23,26-27,35-37,39,42-43,45,48-49,55-64
+  s_fd6806a2f02b4c::t_d8cef823a44402 3,5-7,24,28-34,38,40-41,44,46-47,51-53,65
+docs/demo1/testing.md
+  s_4de9747108065e::t_85edc83bd5b4cd 356,511,545-546,551-562
+  s_146efc178adaf9::t_d7393a24f37a82 151,260,318,321-322,324-325,364,409
+  s_21c2f108012d7b::t_ba40cbd5a3f88e 13-14,17-18,21-22,25-29,113,172,220,226,291,336
+  s_146efc178adaf9::t_a4f0b989093464 433-436,446-450,460-466,476-483,486-493
+  s_21c2f108012d7b::t_7afb037a5c11e8 381
+  s_88b4d709219027::t_9a59d7e8cee4d6 522-535
+  s_146efc178adaf9::t_f64449d963d368 136-150,152-154,193-209,249-259,261-269,307-317,319-320,323,362-363,397-408,410-413
+  s_21c2f108012d7b::t_d8fecfb1a29b66 438,456,468
+  s_21c2f108012d7b::t_fff7fa0855102c 116-121,124-129,174-179,182-187,228-234,237-244,289-290,292-303,380,393
+  s_8de403d86845e1::t_a3984beda1f8a9 540
+  s_146efc178adaf9::t_1283fa1134defa 598,601-613
+  s_4de9747108065e::t_7b69d5b5f0454d 9,109,168,222,283
+  s_21c2f108012d7b::t_30c4e39e2cad31 338-355,357-361,365-372,590-592
+  h_1fff265ad32c51 599-600
+apps/backend/src/services/auth-token.service.ts
+  s_fd6806a2f02b4c::t_305b40944aa2ba 26-28,61,69,72
+  h_1fff265ad32c51 1-25,29-60,62-68,70-71
+apps/backend/src/types/express.d.ts
+  s_fd6806a2f02b4c::t_e6e35f816a3097 1-14
+packages/shared/src/validation/auth.schemas.test.ts
+  s_fe371699497113::t_49fc0731d35645 5-12,67-73,87,92,98,110-112,121-130,163,169-175
+  s_fe371699497113::t_f54dbfbd8f65b9 107-108,131-132
+  s_4f1d79239641ac::t_e208061bea14fa 13-40,42-43,47-48,77,82-86,88-91,93-97,99-106,109,113-114,119-120,134-135,138-139,145-146,148-149,158,164-168,179
+  s_88b4d709219027::t_d1f48c02659f81 51,152
+  s_87873101aa3ce8::t_ed76fc9ccc289b 52,153-157,159-160
+  s_1a35a5917e528a::t_041ff380a12e2e 1-4,41,49-50,53-66,74-75,144,150-151,182-183
+  s_87873101aa3ce8::t_6a54fb321f9e6a 76,78-81,133,140-143,161-162,178,180-181
+  s_4f1d79239641ac::t_e26f3d28f1f13f 44-46,115-118,136-137,147
+apps/backend/SEEDING.md
+  s_146efc178adaf9::t_3b7200bd3942d2 9-56
+  h_1fff265ad32c51 75,98,110,120,147
+docs/demo1/architecture.md
+  s_4de9747108065e::t_19a6d239ea5f15 15,147-148,151-152,155-156,158-159
+  h_1fff265ad32c51 5,161-162
+  s_8de403d86845e1::t_a3984beda1f8a9 19-26,140
+  s_146efc178adaf9::t_1283fa1134defa 33-34,37-39,42-44,47-49,52-66,68,70-74,76,78-82,84,86,88-91,93,95,97,99,101,103,105,107,109,111,113,115,117,119-121,123,125-132,141,160,163-175
+apps/backend/src/services/auth.service.ts
+  s_88b4d709219027::t_d1f48c02659f81 38
+  s_fd6806a2f02b4c::t_f1a8d95f1370a9 78
+  s_fd6806a2f02b4c::t_e4acdd419b2808 1-7,9-11,20-26,30,36,47-77,79-84
+  h_1fff265ad32c51 8,12-19,27-29,31-35,37,39-46
+apps/backend/src/config/env.ts
+  h_1fff265ad32c51 11
+  s_fd6806a2f02b4c::t_305b40944aa2ba 12
+  s_fd6806a2f02b4c::t_824efb58d46840 13-14
+docs/demo1/diagrams/README.md
+  s_4de9747108065e::t_d298f2ccc18178 11,46-48,52-71,74-76,80-81,84-85,88-89,94-95,98-99,102-103,105-106
+  s_8de403d86845e1::t_a3984beda1f8a9 42-44
+scripts/generate-burndown.py
+  s_21c2f108012d7b::t_4f8effffa40029 48,163,599
+  s_21c2f108012d7b::t_a3571cb56b440f 580,587
+  s_21c2f108012d7b::t_7061ac2b2aa8d6 325-385
+  s_21c2f108012d7b::t_e8ca98e5d5d590 162,542-579,581-586,588-590,622
+  s_21c2f108012d7b::t_ff72418020e045 460-478
+packages/shared/src/validation/common.schemas.ts
+  s_fe371699497113::t_8b3754fd069fb8 3-10,13-14,16-34
+  s_1a35a5917e528a::t_ee8ea8b76750f3 1-2,35-36,39-41,45-50
+  s_fe371699497113::t_e8aafb99e5c805 37-38,42-44
+  s_fe371699497113::t_3e459b96f742de 11-12,15
+apps/backend/src/services/health.service.ts
+  s_1a35a5917e528a::t_6c97c1d8f6ed8c 1-38
+SETUP.md
+  s_4de9747108065e::t_2a69e9d250994c 186,460,462,466,517,614,616
+  s_4de9747108065e::t_76109be2673e5c 224,407,431,454-456,496,505-507,686
+  s_4de9747108065e::t_d5bec8181e7d40 492
+  s_30727a4aa35864::t_aca8323ba8516b 197-206,208-223,393-401,403-406,486,489,493-494,519-536,618,624-626,628,630-642,696,733,819,828,849,855-856,858
+  s_30727a4aa35864::t_293e92b0f7f16f 402
+  s_56b97fc00624e8::t_768e0679f69be6 196
+  s_30727a4aa35864::t_72a6b2953e3cba 207
+  s_30727a4aa35864::t_967131e6674705 513
+apps/backend/src/routes/quiz.routes.ts
+  s_30727a4aa35864::t_2aa68015639adf 23-156
+packages/shared/src/campaigns.ts
+  s_88b4d709219027::t_d1f48c02659f81 17-19,22-23,26-27,162-163,172
+  s_88b4d709219027::t_c393cede82ef83 1-16,20-21,24-25,28-151,164-169,173-175
+apps/backend/src/routes/trainee-training.routes.ts
+  s_30727a4aa35864::t_e8081eae5bda21 23-111
+docs/demo1/traceability.md
+  s_146efc178adaf9::t_1df41ef71f1544 1,5,9-21,31-39
+  s_146efc178adaf9::t_8bcd4fe7c20f6f 25-29
+  h_1fff265ad32c51 40-41
+  s_4de9747108065e::t_47a55c3673b2aa 7
+  s_146efc178adaf9::t_1283fa1134defa 42-57
+docs/demo1/DESIGN.md
+  s_146efc178adaf9::t_84550174710a5d 1,5,7,9-11,13,19-25,29,41,43,45-46,48,50,52-126,141,145-146,151-153,157-161,165-168,174-179,183,188,190,194-198,202-205,209,223-224,230-231,236-238,240,245-246,248,259-261,265,269,271,275-277,281-285,289-292,296,300-301,304,308,310,314-315,319-324,328-330,336-339,341,345-346,350-352,357-358,360-362,366-369,380-381,385,389,394-396,400-403,405-406,410-413,419,424,435-436,440-442,446-448,452-454,463,757,759,761
+  s_146efc178adaf9::t_e1d5a5f0685b51 31-39
+  s_4de9747108065e::t_25a75373156c14 677
+  s_146efc178adaf9::t_e94e11f63c4490 15
+  s_146efc178adaf9::t_3b7200bd3942d2 505-509,558-559,592-593,595,625-628,707-711
+  s_146efc178adaf9::t_1283fa1134defa 763,765-773
+  s_146efc178adaf9::t_0f9e1e2531ac79 128-137,143,149,155,163,170,181,186,192,200,207,213-221,225,228,232-234,239,241-243,247,250-255,267,273,279,287,294,306,312,317,326,332,343,348,354,364,371-374,387,390-392,398,408,415,425,433,438,444,450,456,464
+  s_146efc178adaf9::t_c688f7991ed1bb 147,172-173,210-212,226,256-258,270,297-299,309,334-335,356,359,375-379,404,417-418,420-423,458-462,466,468-470,474-490,493-503,517-520,534-543,546-557,567-578,581-590,594,597,599-609,617-621,636-640,648-653,656-665,668-675,679,683-691,693,695,697-705,713-729,733-738,741-745,753-755
+  s_146efc178adaf9::t_6833b2b92eb3e8 17
+  s_146efc178adaf9::t_59d195f6314b4a 611
+  s_21c2f108012d7b::t_9dd176fc8849f3 513,530,681,751
+  s_21c2f108012d7b::t_05ffc4713a5394 644
+  h_1fff265ad32c51 184,189,431
+sonar-project.properties
+  s_329ac6344433de::t_cb060997caf166 5-6
+  s_329ac6344433de::t_a4a7b6e5295d3e 3-4
+packages/shared/src/training.ts
+  s_88b4d709219027::t_5bbe204dfe6b52 47
+  s_88b4d709219027::t_bb58a4dc2c34cf 5,8,11-14,28-31,48,53-54,59-67
+  s_329ac6344433de::t_a4a7b6e5295d3e 2
+  s_1a35a5917e528a::t_ee8ea8b76750f3 1,3-4,6,42-44,55
+  s_88b4d709219027::t_85f97959e6d1d5 10
+  s_329ac6344433de::t_111ab7b9a57738 23
+  s_1a35a5917e528a::t_54ab5cbcd4923b 7,15-21,24,32-41,45,51-52,56-58
+packages/shared/src/validation/quizzes.schemas.ts
+  s_1a35a5917e528a::t_ee8ea8b76750f3 1,3-24,39
+  s_fe371699497113::t_fef7b3d5b25120 2,28-36,42
+apps/backend/src/mappers/quiz.mapper.ts
+  s_1a35a5917e528a::t_bd4ab6a051cac8 1-11,13-18,20-26,28,31-38,40-45,49-51,53-59,61,64-65,67-68
+  s_88b4d709219027::t_bc8d435ca2c7b0 12,19,27,29-30,39,46-48,52,60,62-63,66
+packages/shared/src/validation/campaigns.schemas.test.ts
+  s_88b4d709219027::t_c393cede82ef83 1,11-12,80-84,87-89,197
+  s_88b4d709219027::t_d1f48c02659f81 77-78,85-86
+  s_fe371699497113::t_fb5b5f6360b83c 50-76,120-139
+  s_fe371699497113::t_5883810f33b8f9 7
+packages/shared/src/validation/simulations.schemas.test.ts
+  s_fe371699497113::t_2610557485a869 76-80,111,113-115,117-141,143-145
+  s_fe371699497113::t_90ddafef80121b 110,112,116
+  s_fe371699497113::t_1892150d6b3919 142
+  s_1a35a5917e528a::t_041ff380a12e2e 1,8-58,60-64,66-68,156
+  s_42e4813ef39065::t_d61fb758e9cc95 59,65
+  s_88b4d709219027::t_d826aaa3cc831a 2-7,69,92-98
+docs/demo1/wireframes/README.md
+  s_8de403d86845e1::t_a3984beda1f8a9 9-10,51
+  s_4de9747108065e::t_5093b929d96e95 11,13,53,55
+  s_21c2f108012d7b::t_ed301349127576 21
+packages/shared/src/simulations.ts
+  s_329ac6344433de::t_111ab7b9a57738 63,93
+  s_4de9747108065e::t_f0e69e3c484251 73
+  s_88b4d709219027::t_f72ead68d69ab9 3,15-27,29-31,36-51,53-56,64-66,68,70-72,84-89,94-96,100,102-105,118-120
+  s_329ac6344433de::t_a4a7b6e5295d3e 2
+  s_1a35a5917e528a::t_54ab5cbcd4923b 12-14,28,32-35,52,57,61-62,67,69,74-79,83,90-92,97-99,101,106-109,113,117
+  s_88b4d709219027::t_5bbe204dfe6b52 5-6,8,58-60,121-133
+  s_1a35a5917e528a::t_ee8ea8b76750f3 1,4,7,9-11,80-82,110-112,114-116
+packages/shared/vitest.config.ts
+  s_146efc178adaf9::t_4469bc15c0388d 1-11
+apps/backend/src/repositories/health.repository.ts
+  s_1a35a5917e528a::t_6c97c1d8f6ed8c 1-5
+apps/backend/TESTING.md
+  s_4de9747108065e::t_302f39323842e0 23-125
+  s_146efc178adaf9::t_3b7200bd3942d2 131-135
+apps/backend/prisma/migrations/20260515110000_rename_learner_to_trainee/migration.sql
+  s_88b4d709219027::t_5123f71d55af48 1-49
+docs/demo1/new-domain-model.txt
+  s_88b4d709219027::t_d1f48c02659f81 19,25,91,138,240,319
+  s_88b4d709219027::t_ddb5954cd8e14d 24,27-70,133,148,270,337
+  s_88b4d709219027::t_f705d3e1103a4e 171
+packages/shared/src/validation/quizzes.schemas.test.ts
+  s_1a35a5917e528a::t_041ff380a12e2e 1-64,68-73,155-161
+  s_fe371699497113::t_1892150d6b3919 111
+  s_fe371699497113::t_79eeabff228e49 65-67,93-110,112-136
+apps/backend/src/config/swagger.ts
+  s_30727a4aa35864::t_f051dc78349938 123-124
+  s_30727a4aa35864::t_f1cfab80aa5995 1640-1777
+  s_4de9747108065e::t_8690c0683e63ee 1084-1127
+packages/shared/src/quizzes.ts
+  s_1a35a5917e528a::t_ee8ea8b76750f3 1,4-11,17,47,59-61,63,65,72
+  s_329ac6344433de::t_a4a7b6e5295d3e 2
+  s_1a35a5917e528a::t_54ab5cbcd4923b 12,14,16,18-19,21-22,24-26,31-35,39,41,44-46,48-49,55,57-58,62,64,66-67,69-71,73,78,88-90,95-97,99
+  s_329ac6344433de::t_111ab7b9a57738 20,27,36,50,68,91
+  s_88b4d709219027::t_d1f48c02659f81 51
+  s_88b4d709219027::t_762c89be3246ee 3,13,15,23,28-30,37-38,40,42-43,52-54,56,74-77,79-87,92-94,98
+apps/backend/tests/unit/auth.routes.test.ts
+  h_1fff265ad32c51 1-3,8,10,13-16,18-19,21,24-26,28-35,37-39,43-46,58,60-66,68,70-71,73-74,82,86-87,99,106
+  s_fd6806a2f02b4c::t_41413fe65139ea 9,11-12,17,20,22,27,36,40-42,47-52,54-57,59,69,72,75-81,83-85,88-94,96-98,100-105,107-110,285
+  s_88b4d709219027::t_d1f48c02659f81 53,67,95,121,143,163,186,207,261
+  s_fd6806a2f02b4c::t_8992a96f6b7e0e 6-7,111-120,122-142,144-162,164-185,187-206,208-230
+  s_fd6806a2f02b4c::t_f29e700bb83fb5 4-5,23,232-260,262-283
+apps/backend/src/middleware/authRateLimit.ts
+  s_fd6806a2f02b4c::t_3e4567f07d5357 6-8,10-16
+  s_fd6806a2f02b4c::t_824efb58d46840 2-3
+  s_fd6806a2f02b4c::t_f29e700bb83fb5 1,4-5,9,17-20
+packages/shared/src/validation/training.schemas.ts
+  s_1a35a5917e528a::t_ee8ea8b76750f3 1-3,5-11,13
+  s_88b4d709219027::t_85f97959e6d1d5 4
+  s_88b4d709219027::t_3c7944eb378291 12
+apps/backend/src/mappers/user.mapper.ts
+  s_1a35a5917e528a::t_bd4ab6a051cac8 1-23
+apps/backend/tests/unit/simulation.api.test.ts
+  s_4de9747108065e::t_fcb447fcd8b0e2 45,111-152
+  s_d90e5e55609ee4::t_d53f01d10b472f 5-21,46,240,245,261-263,277-310
+  s_4de9747108065e::t_75ce1d4ea45084 44,243-244,246-260,264-276,311
+.sonarcloud.properties
+  s_329ac6344433de::t_e57706a5e52ad1 1-5
+packages/shared/src/validation/common.schemas.test.ts
+  s_fe371699497113::t_1892150d6b3919 16
+  s_fe371699497113::t_b7897ca885bca1 15,17
+.github/workflows/burndown.yml
+  s_21c2f108012d7b::t_4f1f11715c8dda 66-82
+  h_1fff265ad32c51 4-6,8,13,15-16,32-34
+packages/shared/src/validation/training.schemas.test.ts
+  s_fe371699497113::t_32bd8e0a4d42dd 42,44
+  s_42e4813ef39065::t_d61fb758e9cc95 21
+  s_88b4d709219027::t_55e2dfbee7a29c 11
+  s_1a35a5917e528a::t_041ff380a12e2e 1-10,12-13,23-34,55
+  s_fe371699497113::t_1892150d6b3919 43
+scripts/check-env-files.sh
+  s_fd6806a2f02b4c::t_18f0f773643931 34-38,66
+apps/backend/src/content/training/password-security-basics.md
+  h_1fff265ad32c51 29
+apps/backend/src/controllers/health.controller.ts
+  s_1a35a5917e528a::t_6c97c1d8f6ed8c 1-8
+package.json
+  s_329ac6344433de::t_6b731b8e129f51 57
+  s_329ac6344433de::t_a9eee8318adc3b 51-52,54-55,58-59
+  s_329ac6344433de::t_801cfb580f4a37 53,56
+apps/backend/.env.example
+  h_1fff265ad32c51 8-9,13
+  s_fd6806a2f02b4c::t_824efb58d46840 11-12
+  s_fd6806a2f02b4c::t_305b40944aa2ba 10
+docs/demo1/brand/README.md
+  s_146efc178adaf9::t_c2f7e50458fc2d 1-14
+apps/backend/prisma/schema.prisma
+  s_88b4d709219027::t_172f5279158840 12,24-35,39-232,260-261,280,283-284,289,291-296,298-304,316-328,338-363,381-447,466,470,472-504,511-540,554-556,565,574,582-663,682-689,691,700-706,712,725,727-734,736,741-748,750-763,765-773,775-784
+  s_88b4d709219027::t_d1f48c02659f81 13-23,38,251,262,265,269-270,276-279,281-282,285-288,290,297,334,450,462,469,471,562,571,579,708,719,726,749,764,774
+  s_88b4d709219027::t_ec1db7d5fd7b1a 242-250,252-259,263-264,266-268,271-274,306-312,329-333,335-337,364-380,448-449,451-461,463-465,506-510,544-553,664-681,690,692-699,707,709-711,713-718,720-724,735,737-740
+apps/backend/tests/unit/password.service.test.ts
+  h_1fff265ad32c51 1-35
+packages/shared/src/validation/simulations.schemas.ts
+  s_88b4d709219027::t_5bbe204dfe6b52 23,27-34
+  s_fe371699497113::t_5d0a01db841081 2,37-44
+  s_fe371699497113::t_2d65fb3933cb74 4-9
+  s_1a35a5917e528a::t_ee8ea8b76750f3 1,3,10-17,24-26
+packages/shared/src/validation/auth.schemas.ts
+  s_87873101aa3ce8::t_ed76fc9ccc289b 30,35,37-39
+  s_87873101aa3ce8::t_5b29ffaf00d951 27-28,43-44,46-47,56-57
+  s_fe371699497113::t_f54dbfbd8f65b9 40
+  s_fe371699497113::t_a2e30859e62981 2-25,29,31-34,36,41-42,48-55
+  s_1a35a5917e528a::t_ee8ea8b76750f3 1,26,45
+apps/backend/tests/integration/uc01-inbox.integration.test.ts
+  s_4de9747108065e::t_8815094781c8ea 2-74,223-224
+  s_d90e5e55609ee4::t_2d717da251d1bd 167-206
+  s_4de9747108065e::t_ae2166d3138fc3 103-135,207-222,225-243
+  s_4de9747108065e::t_09a18cee49e43b 136-166
+apps/backend/tests/unit/quiz.mapper.test.ts
+  s_1a35a5917e528a::t_9da5a101145b53 1-5,7-8,10,13-16,19-24,26-31,33-39,42-47,49-53,57-60,62,65-67,71-76,78-82,86-91,93-97,99-106
+  s_1a35a5917e528a::t_b8077ca73048d0 17,40,54
+  s_1a35a5917e528a::t_0766857f01df23 6,55-56
+  s_88b4d709219027::t_95bd1aa70baf95 9,11-12,18,25,32,41,48,61,63-64,68-70,77,83-85,92,98
+apps/backend/tests/unit/auth.service.test.ts
+  s_fd6806a2f02b4c::t_41413fe65139ea 1,9-11,14-17,23-28,31-35,37-38,40-44,46-58,60-70,72-94,96-97
+  s_fd6806a2f02b4c::t_aadcd8d2e98acc 2-8,12,18-22,29-30,98-110,112-137,139-194,196-208,210-220
+  s_88b4d709219027::t_d1f48c02659f81 13,36,39,45,59,71,95,111,138,195,209
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.11",
+  "base_commit_sha": "49b5c571077e0f440626b2b7c263c4a7717ab3a6",
+  "prompts": {},
+  "sessions": {
+    "s_146efc178adaf9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e4aff-8353-7972-9bba-6484ca24d56d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    },
+    "s_1a35a5917e528a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e18a9-fd0b-7922-82ec-7ea2877a1dbb",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    },
+    "s_21c2f108012d7b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e0e76-b56f-74f0-a17b-63a0f2d5720b",
+        "model": "gpt-5.5"
+      },
+      "human_author": null
+    },
+    "s_30727a4aa35864": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e3b43-d96b-7a60-998d-2a5ecd189741",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    },
+    "s_329ac6344433de": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e1b55-2a0b-7991-86db-0fcef35b2c3d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    },
+    "s_42e4813ef39065": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e22fc-ff23-71f3-aeff-1bd4ef76e948",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    },
+    "s_4de9747108065e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e474b-4c60-79f2-9e2c-45b84818d54b",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    },
+    "s_4f1d79239641ac": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e4215-bbb4-7a01-9ec3-429b31914a8d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    },
+    "s_56b97fc00624e8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e3c80-2fe7-79c0-bbd8-7f7275b1493b",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    },
+    "s_87873101aa3ce8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e409f-698e-7da2-b78f-5b111b55638c",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    },
+    "s_88b4d709219027": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e229d-52e4-7171-b7e1-f23ef2e19beb",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    },
+    "s_8de403d86845e1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e3a31-0279-7042-be4e-cfa19eecfc56",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    },
+    "s_c690f98408dc16": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e0d3a-468e-7cc0-b554-b0c7f7564893",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    },
+    "s_d90e5e55609ee4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e4a36-2d88-7e72-9b65-f85fbfda00bb",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    },
+    "s_fd6806a2f02b4c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e1d1a-30bb-7da0-bc7a-891a28c9dad5",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    },
+    "s_fe371699497113": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e4131-a1c7-79c2-a181-aa9ecde333a4",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
