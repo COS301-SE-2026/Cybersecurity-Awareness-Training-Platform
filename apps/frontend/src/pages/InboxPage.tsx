@@ -14,6 +14,7 @@ import { getSimulatedInbox } from '../services/campaigns.service';
 
 function InboxPage() {
   const [hovered, setHovered] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const navigate = useNavigate();
 
@@ -76,6 +77,23 @@ function InboxPage() {
 
     navigate(`/trainee/campaign-items/${campaignItemId}/simulated-emails/${emailId}`);
   };
+
+  const filteredEmails = emails.filter((email) => {
+    const formattedDate = new Date(email.receivedAt).toLocaleString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+
+    const searchableContent = [email.senderLabel, email.subject, email.preview ?? '', formattedDate]
+      .join(' ')
+      .toLowerCase();
+
+    return searchableContent.includes(searchQuery.toLowerCase());
+  });
 
   return (
     <AppLayout>
@@ -156,6 +174,8 @@ function InboxPage() {
           <input
             type="text"
             placeholder="Search"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
             style={{
               flex: 1,
               height: '100%',
@@ -219,8 +239,19 @@ function InboxPage() {
             >
               LOADING INBOX...
             </div>
+          ) : filteredEmails.length === 0 ? (
+            <div
+              style={{
+                color: '#CE9AFF',
+                fontFamily: 'Overpass',
+                fontSize: '1.1rem',
+                padding: '1rem',
+              }}
+            >
+              NO EMAILS MATCH YOUR SEARCH
+            </div>
           ) : (
-            emails.map((email) => (
+            filteredEmails.map((email) => (
               <InboxEmailRow
                 key={email.id}
                 sender={email.senderLabel}
