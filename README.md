@@ -56,35 +56,33 @@ By focusing on human behaviour, the most common source of security breaches, the
 
 Future platform direction includes organisation admin campaign builders, trainee/user management, reporting dashboards, real email delivery to actual inboxes, AI-assisted content generation, and advanced simulations such as fake login pages, richer link/attachment interactions, calls, or password-checker activities. Real email delivery must be opt-in and ethically constrained. AI-assisted generation remains future-facing and would require controlled schemas, prepared context, and review; training a custom model is undecided and is not promised.
 
-> _Demo 1_ **runs locally** unless explicitly configured otherwise. Deployment to _Southern Cross_ infrastructure is a later target.
+> _Demo 1_ **runs locally**. Deployment to _Southern Cross_ infrastructure is a later target.
 
 ---
-
-# <img src="https://img.icons8.com/?size=100&id=UDtE3CKjacrI&format=png&color=000000" width="32"> Project Dashboard
 
 ## <img src="https://img.icons8.com/?size=100&id=VbgGe1XzgPAK&format=png&color=000000" width="24"> Badges
 
 <p align="left">
   <a href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/actions/workflows/ci.yml">
-    <img src="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/actions/workflows/ci.yml/badge.svg?branch=dev" alt="Continuous Integration" />
+    <img src="https://img.shields.io/github/actions/workflow/status/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/ci.yml?branch=dev&label=CI&style=for-the-badge&logo=github" alt="Continuous Integration" />
   </a>
   <a href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/actions/workflows/policy.yml">
-    <img src="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/actions/workflows/policy.yml/badge.svg?branch=dev" alt="Policy Checks" />
+    <img src="https://img.shields.io/github/actions/workflow/status/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/policy.yml?branch=dev&label=Policy&style=for-the-badge&logo=github" alt="Policy Checks" />
   </a>
   <a href="https://codecov.io/gh/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform">
-    <img src="https://codecov.io/gh/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/branch/dev/graph/badge.svg" alt="Codecov coverage" />
+    <img src="https://img.shields.io/codecov/c/github/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/dev?style=for-the-badge&logo=codecov&label=Coverage" alt="Codecov coverage" />
   </a>
 </p>
 
 <p align="left">
   <a href="docs/demo1/SRS.md">
-    <img src="https://img.shields.io/badge/requirements-SRS%20documented-blue?style=for-the-badge" alt="Requirements: SRS documented" />
+    <img src="https://img.shields.io/badge/Requirements-SRS%20Documented-blue?style=for-the-badge" alt="Requirements: SRS documented" />
   </a>
   <a href="docs/demo1/SRS.md">
-    <img src="https://img.shields.io/badge/Demo%201-docs%20available-blue?style=for-the-badge" alt="Demo 1 docs available" />
+    <img src="https://img.shields.io/badge/Demo%201-Docs%20Available-blue?style=for-the-badge" alt="Demo 1 docs available" />
   </a>
-  <img src="https://img.shields.io/badge/monorepo-pnpm%20workspaces-blue?style=for-the-badge" alt="Monorepo: pnpm workspaces" />
-  <img src="https://img.shields.io/badge/branching-feature%20branches%20%2B%20dev-blue?style=for-the-badge" alt="Branching: feature branches plus dev" />
+  <img src="https://img.shields.io/badge/Monorepo-pnpm%20Workspaces-blue?style=for-the-badge" alt="Monorepo: pnpm workspaces" />
+  <img src="https://img.shields.io/badge/Branching-Feature%20Branches%20%2B%20Dev-blue?style=for-the-badge" alt="Branching: feature branches plus dev" />
 </p>
 
 <p align="left">
@@ -94,8 +92,8 @@ Future platform direction includes organisation admin campaign builders, trainee
   <a href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/issues?q=is%3Aissue%20is%3Aclosed">
     <img src="https://img.shields.io/github/issues-closed/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge&color=brightgreen" alt="GitHub closed issues" />
   </a>
-  <a href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/commits/main/">
-    <img src="https://img.shields.io/github/last-commit/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge&color=yellow" alt="Last commit" />
+  <a href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/commits/dev/">
+    <img src="https://img.shields.io/github/last-commit/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/dev?style=for-the-badge&color=yellow" alt="Last commit" />
   </a>
 </p>
 
@@ -118,7 +116,7 @@ Future platform direction includes organisation admin campaign builders, trainee
 
 ---
 
-# <img src="https://img.icons8.com/?size=100&id=VduEQ1KfPNHT&format=png&color=000000" width="32"> Repository Structure
+# <img src="https://img.icons8.com/?size=100&id=FYI6LfcQUyOR&format=png&color=000000" width="32"> Repository Structure
 
 This repository is organised as a pnpm workspace monorepo:
 
@@ -128,7 +126,7 @@ This repository is organised as a pnpm workspace monorepo:
 
 ---
 
-# <img src="https://img.icons8.com/?size=100&id=5HcV1GvJsMQF&format=png&color=000000" width="32"> Branching Strategy
+# <img src="https://img.icons8.com/?size=100&id=AIR2LTmnKJFl&format=png&color=000000" width="32"> Branching Strategy
 
 The project uses a lightweight feature-branch workflow with `dev` as the integration branch and `main` as the stable branch. Developers create short-lived `feature/*`, `fix/*`, `chore/*`, or `docs/*` branches from `dev`, open pull requests back into `dev`, and promote stable milestone work from `dev` to `main`.
 
@@ -138,7 +136,7 @@ The project uses a lightweight feature-branch workflow with `dev` as the integra
 
 <p align="center">
     <a href="https://skillicons.dev">
-        <img src="https://skillicons.dev/icons?i=ts,react,vite,nodejs,express,postgres,prisma,docker,githubactions,pnpm,vitest,html,css&perline=8" alt="Tech stack icons" />
+        <img src="https://skillicons.dev/icons?i=ts,react,vite,nodejs,express,postgres,prisma,docker,github,git,pnpm,vitest,html,css&perline=7" alt="Tech stack icons" />
     </a>
 </p>
 
