@@ -6,6 +6,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ResultsPage from '../ResultsPage';
 import { getQuizResult } from '../../lib/quizApi';
+import type { QuizResult } from '../../lib/quizApi';
 
 vi.mock('../../components/layout/AppLayout', () => ({
   default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
@@ -19,7 +20,7 @@ const mockedGetQuizResult = vi.mocked(getQuizResult);
 const attemptId = 'attempt-123';
 const campaignItemId = '33333333-3333-4333-8333-333333333334';
 
-const resultFixture = {
+const resultFixture: QuizResult = {
   attemptId,
   quizId: 'quiz-1',
   campaignAssignmentId: 'assignment-1',
@@ -44,7 +45,7 @@ const resultFixture = {
       ],
     },
   ],
-} as const;
+};
 
 function createDeferred<T>() {
   let resolve: (value: T) => void;
@@ -102,7 +103,9 @@ describe('ResultsPage', () => {
     renderResultsPage();
 
     expect(await screen.findByText('84%')).toBeInTheDocument();
-    expect(screen.getByText(resultFixture.summary)).toBeInTheDocument();
+    expect(
+      screen.getByText('Great job identifying the suspicious message and unsafe link.'),
+    ).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: /answer feedback/i })).toBeInTheDocument();
     expect(screen.getByText('Selected correct option')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /back to quiz/i })).toHaveAttribute(

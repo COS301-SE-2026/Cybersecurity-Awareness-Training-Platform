@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { GetSimulatedInboxResponseDto } from '@insightful-phish/shared';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import InboxPage from '../InboxPage';
@@ -42,7 +43,7 @@ vi.mock('../../services/campaigns.service', () => ({
 
 const mockedGetSimulatedInbox = vi.mocked(getSimulatedInbox);
 
-const inboxFixture = {
+const inboxFixture: GetSimulatedInboxResponseDto = {
   emails: [
     {
       id: 'email-1',
@@ -67,7 +68,7 @@ const inboxFixture = {
       isOpened: true,
     },
   ],
-} as const;
+};
 
 function createDeferred<T>() {
   let resolve: (value: T) => void;
