@@ -6,7 +6,7 @@ This document collects the Sprint 1 Demo 1 QA/testing plan for the three core us
 
 The purpose of this plan is to align implementation work with what must be demonstrated and verified during Demo 1. It supports later automated testing, manual demo readiness, and traceability between the SRS, design, API contracts, and future test coverage.
 
-## Testing Scope (Zoë)
+## Testing Scope
 
 ### UC-01: View Emails in Simulated Inbox
 
@@ -32,7 +32,7 @@ Covers visual consistency for the Demo 1 screens, including brand colours, typog
 
 Covers common validation behaviour for login, registration, quiz submission, and other Demo 1 forms.
 
-## UC-01 Test Planning: Simulated Inbox (Zoë)
+## UC-01 Test Planning: Simulated Inbox
 
 ### Success Scenarios
 
@@ -91,7 +91,7 @@ Before Demo 1, manually verify that:
 - Loading, empty, and error states do not break the demo.
 - The screen wording makes it clear that the inbox is simulated.
 
-## UC-02 Test Planning: Training Document View (Zoë)
+## UC-02 Test Planning: Training Document View
 
 ### Success Scenarios
 
@@ -145,7 +145,7 @@ Before Demo 1, manually verify that:
 - The flow does not imply advanced adaptive learning, reporting, or gamified progression.
 - The training document supports the Demo 1 trainee journey without expanding scope.
 
-## UC-03 Test Planning: Quiz Flow (Zoë)
+## UC-03 Test Planning: Quiz Flow
 
 ### Success Scenarios
 
@@ -206,7 +206,7 @@ Before Demo 1, manually verify that:
 - The quiz can be completed reliably during the demo.
 - The quiz flow does not imply advanced reporting, adaptive learning, or gamification.
 
-## Base Feature Test Planning (Zoë)
+## Base Feature Test Planning
 
 ### Login/Register
 
@@ -279,7 +279,7 @@ Before Demo 1, manually verify that:
 #### Suggested Test Levels
 
 - Frontend visual/component checks for shared UI styling.
-- Manual review against `DESIGN.md` brand and component guidance.
+- Manual review against [DESIGN.md](./DESIGN.md) brand and component guidance.
 
 #### Suggested Automated Test Coverage
 
@@ -434,7 +434,7 @@ Test coverage is tracked to ensure critical demo paths and logic are verified.
 
 ## Technical Requirements and Constraints Reference
 
-The following constraints from `architecture.md` directly affect what QA must verify for Demo 1. They are listed here to ensure testing planning remains aligned with the agreed architectural boundaries.
+The following constraints from [architecture.md](./architecture.md) directly affect what QA must verify for Demo 1. They are listed here to ensure testing planning remains aligned with the agreed architectural boundaries.
 
 ### Simulated Inbox Safety
 
@@ -468,7 +468,7 @@ The following constraints from `architecture.md` directly affect what QA must ve
 - QA must confirm that trainee campaign-access endpoints may exist for content delivery, but admin campaign management endpoints, admin campaign builder screens, and reporting dashboards are not presented as Demo 1 requirements.
 
 > [!NOTE]
-> Full technical requirements and constraint definitions are in `architecture.md` under the **Quality Requirements** and **System Constraints and Standards** sections. This section references those constraints for QA alignment only and does not duplicate them.
+> Full technical requirements and constraint definitions are in [architecture.md](./architecture.md) under the **Quality Requirements** and **System Constraints and Standards** sections. This section references those constraints for QA alignment only and does not duplicate them.
 
 ## Traceability References
 
@@ -480,12 +480,12 @@ Suggested mapping:
 
 | Area                                  | SRS Reference                             | QA Placeholder Range                     |
 | ------------------------------------- | ----------------------------------------- | ---------------------------------------- |
-| UC-01: View Emails in Simulated Inbox | `docs/demo1/SRS.md` UC-01 section         | `QA-UC01-01` to `QA-UC01-05`             |
-| UC-02: View Training Document         | `docs/demo1/SRS.md` UC-02 section         | `QA-UC02-01` to `QA-UC02-05`             |
-| UC-03: Complete Quiz Flow             | `docs/demo1/SRS.md` UC-03 section         | `QA-UC03-01` to `QA-UC03-05`             |
-| Login/Register                        | `docs/demo1/SRS.md` base features section | `QA-AUTH-01` to `QA-AUTH-05`             |
-| Basic Themes                          | `docs/demo1/SRS.md` base features section | `QA-THEME-01` to `QA-THEME-03`           |
-| General Form Validation               | `docs/demo1/SRS.md` base features section | `QA-VALIDATION-01` to `QA-VALIDATION-05` |
+| UC-01: View Emails in Simulated Inbox | [SRS.md](./SRS.md) UC-01 section         | `QA-UC01-01` to `QA-UC01-05`             |
+| UC-02: View Training Document         | [SRS.md](./SRS.md) UC-02 section         | `QA-UC02-01` to `QA-UC02-05`             |
+| UC-03: Complete Quiz Flow             | [SRS.md](./SRS.md) UC-03 section         | `QA-UC03-01` to `QA-UC03-05`             |
+| Login/Register                        | [SRS.md](./SRS.md) base features section | `QA-AUTH-01` to `QA-AUTH-05`             |
+| Basic Themes                          | [SRS.md](./SRS.md) base features section | `QA-THEME-01` to `QA-THEME-03`           |
+| General Form Validation               | [SRS.md](./SRS.md) base features section | `QA-VALIDATION-01` to `QA-VALIDATION-05` |
 
 ### Traceability Rows
 

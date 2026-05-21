@@ -166,7 +166,7 @@ Rules:
 
 Examples:
 
-- Use `docs: update setup instructions` for changes to files such as `README.md`, `GITHUB RULES.md`, or files in `docs/`.
+- Use `docs: update setup instructions` for changes to files such as [README.md](README.md), [GITHUB_RULES.md](GITHUB_RULES.md), or files in [docs/](docs/).
 - Use `feat: add health endpoint`, `fix: correct database connection check`, or `chore: update tooling` for code, configuration, scripts, workflows, or package changes.
 
 This separation helps keep the Git history clear and helps prevent code-related work from being ignored or misclassified by Hyperperform.
