@@ -20,13 +20,13 @@ Integration tests use `TEST_DATABASE_URL` and copy it into `DATABASE_URL` during
 TEST_DATABASE_URL="postgresql://insightful_phish:insightful_phish@localhost:5432/insightful_phish_test"
 ```
 
-During integration tests, `NODE_ENV` is set to `test` by `tests/setup.integration.ts` before the Prisma test helper is imported.
+During integration tests, `NODE_ENV` is set to `test` by [tests/setup.integration.ts](tests/setup.integration.ts) before the Prisma test helper is imported.
 
 Do not point `DATABASE_URL` at the test database for normal development. Keep `DATABASE_URL` for development and `TEST_DATABASE_URL` for integration tests.
 
 ## Safety Model
 
-The cleanup helper in `tests/helpers/database.ts` refuses to run unless all safety checks pass:
+The cleanup helper in [tests/helpers/database.ts](tests/helpers/database.ts) refuses to run unless all safety checks pass:
 
 - `NODE_ENV` must be `test`.
 - `DATABASE_URL` must exist and be parseable.
@@ -122,7 +122,7 @@ Integration test files run serially because they share one test database that is
 
 ## How Cleanup Works
 
-Integration test setup is configured in `vitest.integration.config.ts` and `tests/setup.integration.ts`.
+Integration test setup is configured in [vitest.integration.config.ts](vitest.integration.config.ts) and [tests/setup.integration.ts](tests/setup.integration.ts).
 
 Before each integration test, the setup calls `resetTestDatabase()`, which currently delegates to `truncateTestDatabase()`.
 
@@ -150,7 +150,7 @@ Before running integration tests, CI should:
 - run `pnpm --filter @insightful-phish/backend exec prisma migrate deploy`;
 - run `pnpm --filter @insightful-phish/backend test:integration`.
 
-CI database provisioning is fully configured in the `.github/workflows/ci.yml` workflow using a PostgreSQL service container.
+CI database provisioning is fully configured in the [.github/workflows/ci.yml](../../.github/workflows/ci.yml) workflow using a PostgreSQL service container.
 
 ## Troubleshooting
 

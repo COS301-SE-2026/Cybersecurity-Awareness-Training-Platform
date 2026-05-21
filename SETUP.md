@@ -183,7 +183,7 @@ apps/frontend
 packages/shared
 ```
 
-The root `package.json` contains shared scripts such as:
+The root [package.json](package.json) contains shared scripts such as:
 
 ```bash
 pnpm typecheck
@@ -221,11 +221,7 @@ In another terminal, start the frontend:
 pnpm --filter @insightful-phish/frontend dev
 ```
 
-For Windows PowerShell and Command Prompt examples for `DEMO_SEED_PASSWORD`, see:
-
-```txt
-apps/backend/SEEDING.md
-```
+For Windows PowerShell and Command Prompt examples for `DEMO_SEED_PASSWORD`, see [apps/backend/SEEDING.md](apps/backend/SEEDING.md).
 
 ## 5. Local Git checks with Husky
 
@@ -408,7 +404,7 @@ pnpm --filter @insightful-phish/backend prisma:migrate:deploy
 DEMO_SEED_PASSWORD="your-local-demo-password" pnpm --filter @insightful-phish/backend seed:demo1
 ```
 
-See `apps/backend/SEEDING.md` for seed safety notes, idempotency details, and Windows-specific environment variable examples.
+See [apps/backend/SEEDING.md](apps/backend/SEEDING.md) for seed safety notes, idempotency details, and Windows-specific environment variable examples.
 
 ## 8. Create backend environment file
 
@@ -455,21 +451,19 @@ The project uses Prisma 7.
 
 Important Prisma files:
 
-```txt
-apps/backend/prisma.config.ts
-apps/backend/prisma/schema.prisma
-apps/backend/prisma/migrations/
-```
+- [apps/backend/prisma.config.ts](apps/backend/prisma.config.ts)
+- [apps/backend/prisma/schema.prisma](apps/backend/prisma/schema.prisma)
+- [apps/backend/prisma/migrations/](apps/backend/prisma/migrations/)
 
 ### Prisma config
 
-`prisma.config.ts` tells Prisma where the schema is, where migrations are stored, and which database URL to use.
+[apps/backend/prisma.config.ts](apps/backend/prisma.config.ts) tells Prisma where the schema is, where migrations are stored, and which database URL to use.
 
-In Prisma 7, the database URL is configured in `prisma.config.ts`, not directly in `schema.prisma`.
+In Prisma 7, the database URL is configured in [apps/backend/prisma.config.ts](apps/backend/prisma.config.ts), not directly in [apps/backend/prisma/schema.prisma](apps/backend/prisma/schema.prisma).
 
 ### Prisma schema
 
-`schema.prisma` defines the current backend database schema. The committed migrations include the Demo 1 modular campaign model, including campaign assignments, campaign items, reusable training documents, quizzes, simulations, simulated inboxes, simulated emails, and related interaction/result records.
+[apps/backend/prisma/schema.prisma](apps/backend/prisma/schema.prisma) defines the current backend database schema. The committed migrations include the Demo 1 modular campaign model, including campaign assignments, campaign items, reusable training documents, quizzes, simulations, simulated inboxes, simulated emails, and related interaction/result records.
 
 ### Generate Prisma Client
 
@@ -495,11 +489,11 @@ For normal local setup from a clean checkout, apply the committed migrations:
 pnpm --filter @insightful-phish/backend prisma:migrate:deploy
 ```
 
-This applies the version-controlled migration history under `apps/backend/prisma/migrations/` to your local database.
+This applies the version-controlled migration history under [apps/backend/prisma/migrations/](apps/backend/prisma/migrations/) to your local database.
 
 Use `pnpm --filter @insightful-phish/backend prisma:migrate --name <migration-name>` only when you are intentionally changing the Prisma schema and creating a new development migration. Do not use it as the normal clean-checkout setup command.
 
-Prisma migration files under `apps/backend/prisma/migrations/` should be committed. They are the version-controlled database schema history.
+Prisma migration files under [apps/backend/prisma/migrations/](apps/backend/prisma/migrations/) should be committed. They are the version-controlled database schema history.
 
 Do not commit:
 
@@ -510,11 +504,7 @@ apps/backend/src/generated/prisma
 
 ### Demo 1 seed data
 
-For repeatable local Demo 1 users, campaign content, quizzes, and simulated inbox data, use the backend seed guide:
-
-```txt
-apps/backend/SEEDING.md
-```
+For repeatable local Demo 1 users, campaign content, quizzes, and simulated inbox data, use the backend seed guide: [apps/backend/SEEDING.md](apps/backend/SEEDING.md).
 
 The short version:
 
@@ -524,7 +514,7 @@ pnpm --filter @insightful-phish/backend prisma:generate
 pnpm --filter @insightful-phish/backend prisma:migrate:deploy
 ```
 
-Set `DEMO_SEED_PASSWORD` before running `pnpm --filter @insightful-phish/backend seed:demo1`. See `apps/backend/SEEDING.md` for PowerShell and Command Prompt examples.
+Set `DEMO_SEED_PASSWORD` before running `pnpm --filter @insightful-phish/backend seed:demo1`. See [apps/backend/SEEDING.md](apps/backend/SEEDING.md) for PowerShell and Command Prompt examples.
 
 The Demo 1 seed creates demo-only accounts:
 
@@ -621,9 +611,9 @@ http://localhost:5173
 
 Open that URL in your browser.
 
-Verify the app loads and points at the local backend URL from `apps/frontend/.env`.
+Verify the app loads and points at the local backend URL from [apps/frontend/.env](apps/frontend/.env).
 
-Where the current frontend supports it, log in with the seeded Demo 1 trainee credentials from `apps/backend/SEEDING.md` and verify the populated trainee can reach seeded campaign-based content.
+Where the current frontend supports it, log in with the seeded Demo 1 trainee credentials from [apps/backend/SEEDING.md](apps/backend/SEEDING.md) and verify the populated trainee can reach seeded campaign-based content.
 
 The backend health endpoint remains available at:
 
@@ -693,11 +683,7 @@ pnpm --filter @insightful-phish/backend test
 pnpm --filter @insightful-phish/backend build
 ```
 
-For backend integration tests that use the dedicated test database, see:
-
-```txt
-apps/backend/TESTING.md
-```
+For backend integration tests that use the dedicated test database, see [apps/backend/TESTING.md](apps/backend/TESTING.md).
 
 ### Run frontend-only checks
 

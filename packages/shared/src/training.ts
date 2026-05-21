@@ -24,6 +24,7 @@ export interface TrainingDocumentContentDto {
   title: string;
   contentType: TrainingContentTypeDto;
   contentRef: string;
+  content: string | null;
   contentSummary?: string | null;
   estimatedReadTimeMinutes?: number | null;
   difficultyLevel: DifficultyLevelDto;
