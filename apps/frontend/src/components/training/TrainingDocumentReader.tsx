@@ -1,9 +1,11 @@
+import { TrainingMarkdownContent } from './TrainingMarkdownContent';
+
 type TrainingDocumentReaderProps = {
   title: string;
   contentType?: string | null;
   contentRef?: string | null;
   resolvedContent: string;
-  resolvedFormat: 'html' | 'text';
+  resolvedFormat: 'html' | 'markdown' | 'text';
 };
 
 function renderSafeDemoHtml(html: string) {
@@ -57,7 +59,11 @@ function TrainingDocumentReader({
         </div>
       </header>
 
-      {resolvedFormat === 'html' ? (
+      {resolvedFormat === 'markdown' ? (
+        <div style={contentBodyStyle}>
+          <TrainingMarkdownContent content={resolvedContent} />
+        </div>
+      ) : resolvedFormat === 'html' ? (
         <div
           style={contentBodyStyle}
           dangerouslySetInnerHTML={renderSafeDemoHtml(resolvedContent)}

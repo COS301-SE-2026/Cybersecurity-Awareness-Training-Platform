@@ -35,6 +35,20 @@ function findCampaignItemProgressStatus(
   return null;
 }
 
+function resolveTrainingDocumentContent(documentResponse: GetTrainingDocumentResponseDto | null) {
+  const trainingDocument = documentResponse?.trainingDocument;
+  const backendContent = trainingDocument?.content;
+
+  if (trainingDocument && backendContent && backendContent.trim()) {
+    return {
+      body: backendContent,
+      format: trainingDocument.contentType === 'MARKDOWN' ? 'markdown' : 'text',
+    } as const;
+  }
+
+  return resolveDemoTrainingContent(trainingDocument?.contentRef);
+}
+
 export default function TrainingDocumentPage() {
   const { campaignItemId } = useParams<{ campaignItemId: string }>();
   const missingCampaignItemId = !campaignItemId;
@@ -150,7 +164,7 @@ export default function TrainingDocumentPage() {
   }, [campaignItemId, documentResponse]);
 
   const resolvedContent = useMemo(
-    () => resolveDemoTrainingContent(documentResponse?.trainingDocument.contentRef),
+    () => resolveTrainingDocumentContent(documentResponse),
     [documentResponse],
   );
   const pageErrorMessage = missingCampaignItemId ? 'Campaign item ID is missing.' : errorMessage;

@@ -22,6 +22,15 @@ const CAMPAIGN_ITEM_ID = '33333333-3333-4333-8333-333333333333';
 const CAMPAIGN_ID = 'campaign-001';
 const CAMPAIGN_ASSIGNMENT_ID = 'assignment-001';
 const ASSIGNED_AT = '2026-05-20T08:00:00.000Z';
+const BACKEND_MARKDOWN_CONTENT = `# Backend phishing content
+
+Backend markdown should take priority over the demo fallback.
+
+## Verify before you act
+
+- Slow down before you click.
+- Confirm the sender and destination.
+`;
 
 function createAssignmentSummary() {
   return {
@@ -103,6 +112,7 @@ function createTrainingDocumentResponse(
       title: 'Phishing warning signs',
       contentType: 'HTML',
       contentRef: 'demo://training/phishing-warning-signs',
+      content: null,
       contentSummary: 'Learn how to spot suspicious messages.',
       difficultyLevel: 'BEGINNER',
       status: 'AVAILABLE',
@@ -163,7 +173,7 @@ describe('TrainingDocumentPage', () => {
     );
   }
 
-  it('fetches and displays a campaign item training document', async () => {
+  it('falls back to seeded content when backend content is null', async () => {
     renderTrainingDocumentPage();
 
     expect(
@@ -176,6 +186,37 @@ describe('TrainingDocumentPage', () => {
     await waitFor(() => {
       expect(viewedMock).toHaveBeenCalledWith(CAMPAIGN_ITEM_ID);
     });
+  });
+
+  it('prefers backend-provided markdown content over the demo fallback', async () => {
+    getTrainingMock.mockResolvedValueOnce(
+      createTrainingDocumentResponse({
+        trainingDocument: {
+          id: 'training-doc-001',
+          title: 'Phishing warning signs',
+          contentType: 'MARKDOWN',
+          contentRef: 'demo://training/phishing-warning-signs',
+          content: BACKEND_MARKDOWN_CONTENT,
+          contentSummary: 'Learn how to spot suspicious messages.',
+          difficultyLevel: 'BEGINNER',
+          status: 'AVAILABLE',
+        },
+      }),
+    );
+
+    renderTrainingDocumentPage();
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Phishing warning signs' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Backend markdown should take priority/i)).toBeInTheDocument();
+    expect(screen.getByText(/Slow down before you click/i)).toBeInTheDocument();
+    expect(
+      screen.queryByText(/Phishing messages often try to pressure you/i),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/Reference: demo:\/\/training\/phishing-warning-signs/i),
+    ).toBeInTheDocument();
   });
 
   it('records completion when the learner marks the document complete', async () => {
@@ -232,6 +273,7 @@ describe('TrainingDocumentPage', () => {
           title: 'Password Security Basics',
           contentType: 'HTML',
           contentRef: 'demo://training/password-security-basics',
+          content: null,
           contentSummary: 'Review core password safety habits.',
           difficultyLevel: 'BEGINNER',
           status: 'AVAILABLE',
