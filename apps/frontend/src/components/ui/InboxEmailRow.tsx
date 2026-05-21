@@ -1,4 +1,5 @@
 import AccountCircleOutlinedIcon from '@mui/icons-material/AccountCircleOutlined';
+import type { KeyboardEvent } from 'react';
 
 type InboxEmailRowProps = {
   sender: string;
@@ -6,11 +7,32 @@ type InboxEmailRowProps = {
   preview: string;
   time: string;
   unread?: boolean;
+  onClick?: () => void;
 };
 
-function InboxEmailRow({ sender, subject, preview, time, unread = false }: InboxEmailRowProps) {
+function InboxEmailRow({
+  sender,
+  subject,
+  preview,
+  time,
+  unread = false,
+  onClick,
+}: InboxEmailRowProps) {
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== 'Enter' && event.key !== ' ') {
+      return;
+    }
+
+    event.preventDefault();
+    onClick?.();
+  };
+
   return (
     <div
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={handleKeyDown}
       style={{
         height: '62px',
         display: 'flex',
@@ -78,6 +100,7 @@ function InboxEmailRow({ sender, subject, preview, time, unread = false }: Inbox
           textOverflow: 'ellipsis',
           flexShrink: 0,
           letterSpacing: '0.08rem',
+          paddingRight: '1rem',
         }}
       >
         {sender}
@@ -90,15 +113,18 @@ function InboxEmailRow({ sender, subject, preview, time, unread = false }: Inbox
           width: '380px',
           color: unread ? 'white' : '#E2D8F1',
           fontFamily: 'Overpass',
-          fontSize: '1.1rem',
+          fontSize: '1.2rem',
           fontWeight: unread ? 500 : 400,
           whiteSpace: 'nowrap',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           flexShrink: 0,
+          paddingRight: '1rem',
         }}
       >
-        {subject}
+        {subject.replace(/\w\S*/g, (word) => {
+          return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+        })}
       </div>
 
       {/* PREVIEW */}
@@ -113,7 +139,7 @@ function InboxEmailRow({ sender, subject, preview, time, unread = false }: Inbox
           whiteSpace: 'nowrap',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
-          paddingRight: '1.2rem',
+          paddingRight: '4rem',
         }}
       >
         {preview}
@@ -125,7 +151,7 @@ function InboxEmailRow({ sender, subject, preview, time, unread = false }: Inbox
         style={{
           color: unread ? '#F2D7FF' : '#C3AFD9',
           fontFamily: 'Overpass',
-          fontSize: '1.1rem',
+          fontSize: '1rem',
           fontWeight: unread ? 600 : 400,
           whiteSpace: 'nowrap',
           flexShrink: 0,

@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { prisma } from '../lib/prisma.js';
 import type {
   GetSimulatedInboxResponseDto,
@@ -9,6 +10,12 @@ import type {
   RecordSimulatedEmailInteractionRequestDto,
   ClassifySimulatedEmailRequestDto,
 } from '@insightful-phish/shared';
+
+function advisoryLockKey(parts: string[]): [number, number] {
+  const hash = createHash('sha256').update(parts.join('\0')).digest();
+
+  return [hash.readInt32BE(0), hash.readInt32BE(4)];
+}
 
 export class SimulationService {
   async getTraineeProfile(userId: string) {
@@ -68,9 +75,38 @@ export class SimulationService {
     }
 
     const campaignAssignmentId = campaignItem.campaign.assignments[0].id;
+    const emails = campaignItem.simulation.simulatedInbox.emails;
+    const emailIds = emails.map((email) => email.id);
+    const openedEmailIds =
+      emailIds.length === 0
+        ? new Set<string>()
+        : new Set(
+            (
+              await prisma.interactionEvent.findMany({
+                where: {
+                  traineeProfileId,
+                  campaignAssignmentId,
+                  campaignItemId,
+                  eventType: 'SIMULATED_EMAIL_OPENED',
+                  targetType: 'SIMULATED_EMAIL',
+                  targetId: {
+                    in: emailIds,
+                  },
+                  simulatedEmailId: {
+                    in: emailIds,
+                  },
+                },
+                select: {
+                  simulatedEmailId: true,
+                },
+              })
+            )
+              .map((event) => event.simulatedEmailId)
+              .filter((id): id is string => Boolean(id)),
+          );
 
     return {
-      emails: campaignItem.simulation.simulatedInbox.emails.map((email: any) => ({
+      emails: emails.map((email: any) => ({
         id: email.id,
         campaignAssignmentId,
         campaignItemId,
@@ -81,6 +117,7 @@ export class SimulationService {
         preview: email.preview,
         receivedAt: email.receivedAt.toISOString(),
         difficultyLevel: email.difficultyLevel as any,
+        isOpened: openedEmailIds.has(email.id),
       })),
     };
   }
@@ -192,6 +229,58 @@ export class SimulationService {
 
     const assignmentId = matchedItem.campaign.assignments[0].id;
     const itemId = matchedItem.id;
+
+    if (input.eventType === 'SIMULATED_EMAIL_OPENED') {
+      const [lockKeyA, lockKeyB] = advisoryLockKey([
+        'SIMULATED_EMAIL_OPENED',
+        traineeProfileId,
+        assignmentId,
+        itemId,
+        email.id,
+      ]);
+
+      await prisma.$transaction(async (tx: any) => {
+        // A partial unique index would be ideal, but this PR intentionally avoids migrations.
+        // This transaction-scoped PostgreSQL advisory lock serializes only this opened-event identity.
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(${lockKeyA}, ${lockKeyB})`;
+
+        const existingOpenEvent = await tx.interactionEvent.findFirst({
+          where: {
+            traineeProfileId,
+            campaignAssignmentId: assignmentId,
+            campaignItemId: itemId,
+            eventType: 'SIMULATED_EMAIL_OPENED',
+            targetType: 'SIMULATED_EMAIL',
+            targetId: email.id,
+            simulatedEmailId: email.id,
+          },
+          select: {
+            id: true,
+          },
+        });
+
+        if (existingOpenEvent) {
+          return;
+        }
+
+        await tx.interactionEvent.create({
+          data: {
+            traineeProfileId,
+            campaignAssignmentId: assignmentId,
+            campaignItemId: itemId,
+            eventType: input.eventType as any,
+            targetType: 'SIMULATED_EMAIL',
+            targetId: email.id,
+            simulatedEmailId: email.id,
+          },
+        });
+      });
+
+      return {
+        success: true,
+        eventType: input.eventType as SimulatedEmailInteractionEventTypeDto,
+      };
+    }
 
     await prisma.interactionEvent.create({
       data: {

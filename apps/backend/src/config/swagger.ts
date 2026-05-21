@@ -1081,6 +1081,7 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             'subject',
             'receivedAt',
             'difficultyLevel',
+            'isOpened',
           ],
           properties: {
             id: {
@@ -1119,6 +1120,11 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             },
             difficultyLevel: {
               $ref: '#/components/schemas/DifficultyLevel',
+            },
+            isOpened: {
+              type: 'boolean',
+              description: 'Whether the current trainee has opened this simulated email.',
+              example: false,
             },
           },
         },

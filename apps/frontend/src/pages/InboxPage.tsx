@@ -4,10 +4,71 @@ import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 
 import InboxEmailRow from '../components/ui/InboxEmailRow';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+
+import { useNavigate, useParams } from 'react-router-dom';
+import type { SimulatedEmailSummaryDto } from '@insightful-phish/shared';
+import PageBackButton from '../components/ui/PageBackButton';
+import { useAuth } from '../context/useAuth';
+import { formatEmailTime } from '../lib/email.utils';
+import { getSimulatedInbox } from '../services/campaigns.service';
 
 function InboxPage() {
   const [hovered, setHovered] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const navigate = useNavigate();
+
+  const { campaignItemId } = useParams<{ campaignItemId: string }>();
+
+  const { token } = useAuth();
+
+  const [emails, setEmails] = useState<SimulatedEmailSummaryDto[]>([]);
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    async function loadInbox() {
+      if (!campaignItemId || !token) {
+        setError(true);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const data = await getSimulatedInbox(campaignItemId, token);
+
+        setEmails(data.emails);
+      } catch (error) {
+        console.error('FAILED TO LOAD SIMULATED INBOX', error);
+        setError(true);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    void loadInbox();
+  }, [campaignItemId, token]);
+
+  const handleOpenEmail = (emailId: string) => {
+    if (!campaignItemId) {
+      return;
+    }
+
+    navigate(`/trainee/campaign-items/${campaignItemId}/simulated-emails/${emailId}`);
+  };
+
+  const filteredEmails = emails.filter((email) => {
+    const formattedDate = formatEmailTime(email.receivedAt, 'inbox');
+
+    const searchableContent = [email.senderLabel, email.subject, email.preview ?? '', formattedDate]
+      .join(' ')
+      .toLowerCase();
+
+    return searchableContent.includes(searchQuery.toLowerCase());
+  });
+
   return (
     <AppLayout>
       <div
@@ -23,6 +84,8 @@ function InboxPage() {
         }}
       >
         {/* HEADING */}
+
+        <PageBackButton />
 
         <h1
           style={{
@@ -55,6 +118,8 @@ function InboxPage() {
           <input
             type="text"
             placeholder="Search"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
             style={{
               flex: 1,
               height: '100%',
@@ -107,56 +172,52 @@ function InboxPage() {
             paddingRight: '0.3rem',
           }}
         >
-          <InboxEmailRow
-            sender="Virgin Active"
-            subject="We’re Moving Updates to the App"
-            preview="Gym updates can now be found from within the Virgin Active app..."
-            time="Today 12:33 PM"
-            unread
-          />
-
-          <InboxEmailRow
-            sender="Virgin Active"
-            subject="We’re Moving Updates to the App"
-            preview="Gym updates can now be found from within the Virgin Active app..."
-            time="Today 12:33 PM"
-          />
-
-          <InboxEmailRow
-            sender="Discovery Health"
-            subject="Important Policy Reminder"
-            preview="Please review the attached policy update before next month..."
-            time="Today 11:02 AM"
-          />
-
-          <InboxEmailRow
-            sender="Steam"
-            subject="Your Account Security Notice"
-            preview="A login attempt was detected from a new location..."
-            time="Yesterday 9:14 PM"
-          />
-
-          <InboxEmailRow
-            sender="FNB"
-            subject="Verify Your Banking Details"
-            preview="Your banking profile requires verification to avoid interruption..."
-            time="Yesterday 6:48 PM"
-            unread
-          />
-
-          <InboxEmailRow
-            sender="Takealot"
-            subject="Order Delivery Update"
-            preview="Your parcel has been delayed due to weather conditions..."
-            time="Yesterday 2:12 PM"
-          />
-
-          <InboxEmailRow
-            sender="LinkedIn"
-            subject="Connor, you appeared in 12 searches"
-            preview="See who’s viewing your profile this week..."
-            time="Monday 8:22 AM"
-          />
+          {loading ? (
+            <div
+              style={{
+                color: 'white',
+                fontFamily: 'Overpass',
+                fontSize: '1.2rem',
+                padding: '1rem',
+              }}
+            >
+              LOADING INBOX...
+            </div>
+          ) : error ? (
+            <div
+              style={{
+                color: '#ff9a9a',
+                fontFamily: 'Overpass',
+                fontSize: '1.1rem',
+                padding: '1rem',
+              }}
+            >
+              FAILED TO LOAD INBOX
+            </div>
+          ) : filteredEmails.length === 0 ? (
+            <div
+              style={{
+                color: '#CE9AFF',
+                fontFamily: 'Overpass',
+                fontSize: '1.1rem',
+                padding: '1rem',
+              }}
+            >
+              NO EMAILS MATCH YOUR SEARCH
+            </div>
+          ) : (
+            filteredEmails.map((email) => (
+              <InboxEmailRow
+                key={email.id}
+                sender={email.senderLabel}
+                subject={email.subject}
+                preview={email.preview ?? ''}
+                time={formatEmailTime(email.receivedAt, 'inbox')}
+                unread={!email.isOpened}
+                onClick={() => handleOpenEmail(email.id)}
+              />
+            ))
+          )}
         </div>
       </div>
     </AppLayout>
