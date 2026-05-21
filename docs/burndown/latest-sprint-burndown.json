@@ -93,8 +93,8 @@
       "number": 92,
       "title": "docs: Create Demo 1 slideshow presentation",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-05-21"
     },
     {
       "number": 91,
@@ -156,15 +156,15 @@
       "number": 83,
       "title": "feat: [integration] Complete UC-01 vertical slice",
       "points": 3,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-05-21"
     },
     {
       "number": 82,
       "title": "feat: [frontend] Implement UC-01 simulated inbox UI",
       "points": 3,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-05-21"
     },
     {
       "number": 81,
@@ -339,7 +339,7 @@
     },
     {
       "date": "2026-05-21",
-      "remaining": 16,
+      "remaining": 8,
       "ideal": 0.0
     }
   ]
