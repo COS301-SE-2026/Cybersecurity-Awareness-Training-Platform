@@ -280,7 +280,7 @@ describe('demo seed helpers', () => {
       id: DEMO_SEED_IDS.trainingDocuments.passwordSecurity,
       createdByUserId: DEMO_SEED_IDS.users.admin,
       title: 'Password Security Basics',
-      contentType: 'HTML',
+      contentType: 'MARKDOWN',
       contentRef: 'demo://training/password-security-basics',
       difficultyLevel: 'BEGINNER',
       status: 'AVAILABLE',

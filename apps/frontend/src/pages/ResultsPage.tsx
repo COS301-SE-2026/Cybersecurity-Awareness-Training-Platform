@@ -4,41 +4,44 @@ import { Link, useParams } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout';
 import { TrainingAsyncContent } from '../components/training/TrainingAsyncContent';
 import { trainingStateActionStyle } from '../components/training/trainingStateStyles';
-import { getQuizResult, quizRoutes, type GetQuizResultResponseDto } from '../lib/quizApi';
+import { getQuizResult } from '../lib/quizApi';
+import type { QuizResult } from '../lib/quizApi';
 
-export default function ResultsPage() {
+export function ResultsPage() {
   const { attemptId } = useParams<{ attemptId: string }>();
 
-  const [result, setResult] = useState<GetQuizResultResponseDto | null>(null);
+  const [result, setResult] = useState<QuizResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
-    let isMounted = true;
+    let isActive = true;
 
     async function loadResult() {
       if (!attemptId) {
-        setErrorMessage('Quiz attempt identifier is missing.');
+        setError('No quiz attempt was provided.');
         setIsLoading(false);
         return;
       }
 
       try {
         setIsLoading(true);
-        setErrorMessage(null);
+        setError(null);
 
-        const resultResponse = await getQuizResult(attemptId);
+        const loadedResult = await getQuizResult(attemptId);
 
-        if (isMounted) {
-          setResult(resultResponse);
+        if (isActive) {
+          setResult(loadedResult);
         }
-      } catch (error) {
-        if (isMounted) {
-          setErrorMessage(error instanceof Error ? error.message : 'Unable to load quiz results.');
+      } catch (loadError) {
+        if (isActive) {
+          setError(
+            loadError instanceof Error ? loadError.message : 'The quiz result could not be loaded.',
+          );
         }
       } finally {
-        if (isMounted) {
+        if (isActive) {
           setIsLoading(false);
         }
       }
@@ -47,12 +50,16 @@ export default function ResultsPage() {
     void loadResult();
 
     return () => {
-      isMounted = false;
+      isActive = false;
     };
   }, [attemptId, reloadToken]);
 
   const orderedAnswers = useMemo(() => result?.answers ?? [], [result]);
   const hasResult = result !== null;
+  const backToQuizPath = result?.campaignItemId
+    ? `/quizzes/${result.campaignItemId}`
+    : '/campaigns';
+  const backToQuizLabel = result?.campaignItemId ? 'Back to quiz' : 'Back to campaigns';
 
   return (
     <AppLayout
@@ -65,7 +72,7 @@ export default function ResultsPage() {
         isLoading={isLoading}
         loadingTitle="Loading results"
         loadingMessage="Your quiz result feedback is being loaded."
-        errorMessage={errorMessage}
+        errorMessage={error}
         errorTitle="Unable to load results"
         errorAction={
           <button
@@ -96,32 +103,32 @@ export default function ResultsPage() {
               <p style={metaStyle}>Attempt: {result.attemptId}</p>
             </section>
 
-            <section style={feedbackSectionStyle}>
-              <h2 style={sectionTitleStyle}>Answer Feedback</h2>
+            <section style={feedbackSectionStyle} aria-labelledby="answer-feedback-heading">
+              <h2 id="answer-feedback-heading" style={sectionTitleStyle}>
+                Answer Feedback
+              </h2>
 
               {orderedAnswers.length === 0 ? (
                 <div style={emptyFeedbackStyle}>No answer-level feedback was returned.</div>
               ) : (
                 <div style={answerListStyle}>
-                  {orderedAnswers.map((answer, answerIndex) => (
+                  {orderedAnswers.map((answer, index) => (
                     <article key={answer.questionId} style={answerCardStyle}>
                       <div style={answerHeaderStyle}>
-                        <h3 style={answerTitleStyle}>Question {answerIndex + 1}</h3>
+                        <h3 style={answerTitleStyle}>Question {index + 1}</h3>
 
-                        {typeof answer.isCorrect === 'boolean' ? (
-                          <span
-                            style={{
-                              ...statusPillStyle,
-                              borderColor: answer.isCorrect ? '#00E6A8' : '#FF6B8A',
-                              color: answer.isCorrect ? '#00E6A8' : '#FF9FB3',
-                            }}
-                          >
-                            {answer.isCorrect ? 'Correct' : 'Needs Review'}
-                          </span>
-                        ) : null}
+                        <span
+                          style={{
+                            ...statusPillStyle,
+                            borderColor: answer.isCorrect ? '#00E6A8' : '#FF6B8A',
+                            color: answer.isCorrect ? '#00E6A8' : '#FF9FB3',
+                          }}
+                        >
+                          {answer.isCorrect ? 'Correct' : 'Needs Review'}
+                        </span>
                       </div>
 
-                      {typeof answer.awardedPoints === 'number' ? (
+                      {answer.awardedPoints !== null && answer.awardedPoints !== undefined ? (
                         <p style={metaStyle}>Awarded points: {answer.awardedPoints}</p>
                       ) : null}
 
@@ -161,8 +168,8 @@ export default function ResultsPage() {
             </section>
 
             <div style={actionRowStyle}>
-              <Link to={quizRoutes.quiz(result.quizId)} style={secondaryLinkStyle}>
-                Back to quiz
+              <Link to={backToQuizPath} style={secondaryLinkStyle}>
+                {backToQuizLabel}
               </Link>
             </div>
           </div>
@@ -171,6 +178,8 @@ export default function ResultsPage() {
     </AppLayout>
   );
 }
+
+export default ResultsPage;
 
 const pageShellStyle = {
   width: 'min(980px, 100%)',

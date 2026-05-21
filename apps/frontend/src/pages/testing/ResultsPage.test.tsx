@@ -1,88 +1,154 @@
-import '@testing-library/jest-dom/vitest';
-import type { ReactNode } from 'react';
-import { cleanup, render, screen } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import * as quizApi from '../../lib/quizApi';
-import ResultsPage from '../ResultsPage';
+import { getQuiz } from '../../lib/quizApi';
 
-vi.mock('../../components/layout/AppLayout', () => ({
-  default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-}));
+const campaignItemId = '33333333-3333-4333-8333-333333333334';
 
-const resultFixture: quizApi.GetQuizResultResponseDto = {
-  attemptId: 'attempt-phishing-basics-quiz',
-  quizId: 'phishing-basics-quiz',
-  campaignAssignmentId: 'campaign-assignment-demo',
-  campaignItemId: 'campaign-item-phishing-basics-quiz',
-  scorePercentage: 80,
-  passed: true,
-  summary: 'Good work. You recognised the phishing indicator.',
-  answers: [
-    {
-      questionId: 'question-sender',
-      isCorrect: true,
-      awardedPoints: 1,
-      feedbackShown: 'Sender address mismatches are suspicious.',
-      selectedOptions: [
-        {
-          optionId: 'option-sender-a',
-          label: 'A',
-          text: 'A strange sender address',
-          isCorrect: true,
-          feedbackText: 'Correct. Sender address mismatches are a common phishing warning sign.',
-        },
-      ],
-    },
-  ],
-};
-
-function renderResultsPage() {
-  return render(
-    <MemoryRouter initialEntries={['/quiz-attempts/attempt-phishing-basics-quiz/results']}>
-      <Routes>
-        <Route path="/quiz-attempts/:attemptId/results" element={<ResultsPage />} />
-      </Routes>
-    </MemoryRouter>,
-  );
+function installLocalStorageMock(authToken: string | null = null) {
+  vi.stubGlobal('localStorage', {
+    getItem: vi.fn((key: string) => (key === 'authToken' ? authToken : null)),
+    setItem: vi.fn(),
+    removeItem: vi.fn(),
+    clear: vi.fn(),
+  });
 }
 
-describe('ResultsPage', () => {
+function mockJsonResponse(body: unknown, ok = true, status = 200) {
+  return Promise.resolve({
+    ok,
+    status,
+    headers: {
+      get: () => 'application/json',
+    },
+    json: () => Promise.resolve(body),
+    text: () => Promise.resolve(JSON.stringify(body)),
+  } as unknown as Response);
+}
+
+describe('quizApi', () => {
   beforeEach(() => {
-    vi.spyOn(quizApi, 'getQuizResult').mockResolvedValue(resultFixture);
+    vi.restoreAllMocks();
+    installLocalStorageMock();
   });
 
   afterEach(() => {
-    cleanup();
-    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
-  it('fetches results using the attempt id from the route', async () => {
-    renderResultsPage();
+  it('fetches quiz content through the campaign item quiz endpoint', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      await mockJsonResponse({
+        id: '55555555-5555-4555-8555-555555555551',
+        campaignItemId,
+        campaignAssignmentId: '22222222-2222-4222-8222-222222222222',
+        title: 'Phishing basics quiz',
+        description: 'Check your phishing awareness.',
+        passThresholdPercentage: 70,
+        difficultyLevel: 'BEGINNER',
+        status: 'AVAILABLE',
+        questions: [
+          {
+            id: 'question-1',
+            text: 'Which email is suspicious?',
+            options: [
+              {
+                id: 'option-1',
+                label: 'A',
+                text: 'Urgent password reset email.',
+              },
+            ],
+          },
+        ],
+      }),
+    );
 
-    expect(await screen.findByText('Passed')).toBeInTheDocument();
+    const quiz = await getQuiz(campaignItemId);
 
-    expect(quizApi.getQuizResult).toHaveBeenCalledWith('attempt-phishing-basics-quiz');
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining(`/trainee/campaign-items/${campaignItemId}/quiz`),
+      expect.objectContaining({
+        method: 'GET',
+      }),
+    );
+
+    expect(quiz.title).toBe('Phishing basics quiz');
+    expect(quiz.questions[0].options[0].text).toBe('Urgent password reset email.');
   });
 
-  it('renders the backend-shaped score and pass status', async () => {
-    renderResultsPage();
+  it('sends bearer token when a token already exists', async () => {
+    installLocalStorageMock('demo-token');
 
-    expect(await screen.findByText('Passed')).toBeInTheDocument();
-    expect(screen.getByText('80%')).toBeInTheDocument();
-    expect(
-      screen.getByText('Good work. You recognised the phishing indicator.'),
-    ).toBeInTheDocument();
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      await mockJsonResponse({
+        id: '55555555-5555-4555-8555-555555555551',
+        campaignItemId,
+        title: 'Phishing basics quiz',
+        questions: [],
+      }),
+    );
+
+    await getQuiz(campaignItemId);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: 'Bearer demo-token',
+        }),
+      }),
+    );
   });
 
-  it('renders answer-level feedback after submission', async () => {
-    renderResultsPage();
+  it('rejects quiz fetch responses that expose correctness before submission', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      await mockJsonResponse({
+        id: '55555555-5555-4555-8555-555555555551',
+        campaignItemId,
+        title: 'Leaky quiz',
+        questions: [
+          {
+            id: 'question-1',
+            text: 'Which option is correct?',
+            options: [
+              {
+                id: 'option-1',
+                label: 'A',
+                text: 'This should not expose correctness.',
+                isCorrect: true,
+              },
+            ],
+          },
+        ],
+      }),
+    );
 
-    expect(await screen.findByText('A strange sender address')).toBeInTheDocument();
-    expect(screen.getByText('Selected correct option')).toBeInTheDocument();
-    expect(screen.getByText('Sender address mismatches are suspicious.')).toBeInTheDocument();
-    expect(
-      screen.getByText('Correct. Sender address mismatches are a common phishing warning sign.'),
-    ).toBeInTheDocument();
+    await expect(getQuiz(campaignItemId)).rejects.toThrow(/exposed "isCorrect" before submission/i);
+  });
+
+  it('rejects quiz fetch responses that expose feedback before submission', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      await mockJsonResponse({
+        id: '55555555-5555-4555-8555-555555555551',
+        campaignItemId,
+        title: 'Leaky quiz',
+        questions: [
+          {
+            id: 'question-1',
+            text: 'Which option is correct?',
+            options: [
+              {
+                id: 'option-1',
+                label: 'A',
+                text: 'This should not expose feedback.',
+                feedbackText: 'This feedback should only appear after submission.',
+              },
+            ],
+          },
+        ],
+      }),
+    );
+
+    await expect(getQuiz(campaignItemId)).rejects.toThrow(
+      /exposed "feedbackText" before submission/i,
+    );
   });
 });

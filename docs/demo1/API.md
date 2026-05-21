@@ -394,7 +394,8 @@ Training completion records interaction data, but this issue does not add sequen
     "id": "train-001",
     "title": "Identifying Phishing Emails",
     "contentType": "MARKDOWN",
-    "contentRef": "training/train-001",
+    "contentRef": "demo://training/phishing-warning-signs",
+    "content": "# Phishing Warning Signs\n\nPhishing emails try to create urgency. Watch for mismatched domains and unexpected attachments.",
     "contentSummary": "Common phishing indicators and safe response steps.",
     "estimatedReadTimeMinutes": 8,
     "difficultyLevel": "BEGINNER",
@@ -410,6 +411,38 @@ Training completion records interaction data, but this issue does not add sequen
 }
 ```
 
+When the training document reference is not supported by the backend allowlist, the response still succeeds and returns `content: null`:
+
+```json
+{
+  "campaignItemId": "item-002",
+  "campaignAssignmentId": "assignment-001",
+  "trainingDocument": {
+    "id": "train-002",
+    "title": "External Training Resource",
+    "contentType": "URL",
+    "contentRef": "https://training.example.com/phishing",
+    "content": null,
+    "contentSummary": "External phishing training resource.",
+    "estimatedReadTimeMinutes": 5,
+    "difficultyLevel": "BEGINNER",
+    "status": "AVAILABLE"
+  },
+  "campaignItem": {
+    "title": "External Training Resource",
+    "description": "Open the external guide.",
+    "position": 2,
+    "isRequired": false,
+    "availabilityStatus": "AVAILABLE"
+  }
+}
+```
+
+Content field behavior:
+
+- When the `contentRef` matches an allowlisted Demo 1 ref, the backend returns the resolved markdown string.
+- When the `contentRef` is not allowlisted, `content` is `null` to indicate there is no backend-readable content.
+
 The backend resolves access through the campaign item placement:
 
 `Trainee -> CampaignAssignment -> Campaign -> CampaignItem -> TrainingDocumentComponent -> TrainingDocument`
@@ -417,6 +450,15 @@ The backend resolves access through the campaign item placement:
 In the current Prisma implementation, the conceptual `TrainingDocumentComponent` is represented by a `CampaignItem` with `itemType = COMPONENT`, `componentType = TRAINING_DOCUMENT`, and `trainingDocumentId`.
 
 Training documents are reusable content records. They are not owned by learning paths or training modules, and this endpoint does not require a linked quiz. Missing, unavailable, non-training, or unauthorised campaign items should return a safe `404` so the API does not leak content existence. The endpoint may return `429` if the trainee training route rate limit is exceeded.
+
+Expected status codes and error responses:
+
+- `200 OK`: Training document response with `content` resolved or `null`.
+- `400 Bad Request`: Invalid campaign item UUID format.
+- `401 Unauthorized`: Missing or invalid authentication.
+- `404 Not Found`: The training document is missing, unavailable, or not accessible for the trainee.
+- `429 Too Many Requests`: Training route rate limit exceeded.
+- `500 Internal Server Error`: `TRAINING_CONTENT_UNAVAILABLE` when demo content fails to resolve, or an unexpected error.
 
 ### `POST /trainee/campaign-items/:campaignItemId/training-document/viewed`
 

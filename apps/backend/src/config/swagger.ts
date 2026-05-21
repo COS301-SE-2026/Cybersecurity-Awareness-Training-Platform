@@ -272,6 +272,11 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           'TRAINING_DOCUMENT_NOT_FOUND',
           'Training document was not found',
         ),
+        TrainingContentUnavailableErrorResponse: errorResponseSchema(
+          'ApiErrorResponse',
+          'TRAINING_CONTENT_UNAVAILABLE',
+          'Training content could not be loaded',
+        ),
         TrainingRateLimitErrorResponse: errorResponseSchema(
           'RateLimitErrorResponse',
           'TRAINING_RATE_LIMITED',
@@ -928,7 +933,15 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         },
         TrainingDocument: {
           type: 'object',
-          required: ['id', 'title', 'contentType', 'contentRef', 'difficultyLevel', 'status'],
+          required: [
+            'id',
+            'title',
+            'contentType',
+            'contentRef',
+            'content',
+            'difficultyLevel',
+            'status',
+          ],
           properties: {
             id: {
               ...uuidString('33333333-3333-4333-8333-333333333333'),
@@ -943,6 +956,11 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             contentRef: {
               type: 'string',
               example: 'training/training-doc-1',
+            },
+            content: {
+              type: 'string',
+              nullable: true,
+              example: '## Phishing warning signs\n- Verify sender domains\n- Avoid urgent threats',
             },
             contentSummary: {
               ...nullableString('Common phishing indicators and safe response steps.'),
@@ -1714,6 +1732,10 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         TrainingDocumentNotFound: responseComponent(
           'Training document is missing, unavailable, or not accessible to the trainee.',
           'TrainingDocumentNotFoundErrorResponse',
+        ),
+        TrainingContentUnavailable: responseComponent(
+          'Training document content could not be loaded.',
+          'TrainingContentUnavailableErrorResponse',
         ),
         TrainingRateLimited: responseComponent(
           'Too many trainee training requests.',
