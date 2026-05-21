@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 import type {
   GetTraineeCampaignDetailResponseDto,
+  TraineeCampaignComponentItemSummaryDto,
   TraineeCampaignSummaryDto,
 } from '@insightful-phish/shared';
 
@@ -11,7 +12,8 @@ import CampaignAccordion from '../components/ui/CampaignAccordion';
 import TrainingActionRow from '../components/ui/TrainingActionRow';
 import TrainingPartAccordion from '../components/ui/TrainingPartAccordion';
 
-import { getTraineeCampaignDetail, getTraineeCampaigns } from '../lib/campaignsApi';
+import { useAuth } from '../context/useAuth';
+import { getTraineeCampaign, getTraineeCampaigns } from '../services/campaigns.service';
 
 const ACCENT_COLORS = ['#00FFA6', '#FF00D4', '#00D1FF', '#FF9F1C'];
 
@@ -37,22 +39,21 @@ function toTitleCase(value: string): string {
   });
 }
 
-function getCampaignItemRoute(
-  item: GetTraineeCampaignDetailResponseDto['items'][number],
-): string | null {
-  if (item.itemType !== 'COMPONENT' || !item.isOpenable || !item.activityApiPath) {
-    return null;
-  }
+function isCampaignItemDisabled(availabilityStatus: string, isOpenable: boolean): boolean {
+  return availabilityStatus !== 'AVAILABLE' || !isOpenable;
+}
 
+function getCampaignItemFrontendPath(
+  item: Pick<
+    TraineeCampaignComponentItemSummaryDto,
+    'campaignItemId' | 'componentType' | 'activityApiPath'
+  >,
+) {
   switch (item.componentType) {
-    case 'TRAINING_DOCUMENT':
-      return item.activityApiPath.endsWith('/training-document')
-        ? `/training/${item.campaignItemId}`
-        : null;
     case 'QUIZ':
-      return item.activityApiPath.endsWith('/quiz') ? `/quizzes/${item.campaignItemId}` : null;
+      return `/quizzes/${item.campaignItemId}`;
     default:
-      return null;
+      return item.activityApiPath;
   }
 }
 
@@ -73,15 +74,13 @@ function renderCampaignItems(
       );
     }
 
+    if (item.itemType !== 'COMPONENT') {
+      return null;
+    }
+
+    const disabled = isCampaignItemDisabled(item.availabilityStatus, item.isOpenable);
+
     if (item.componentType === 'TRAINING_DOCUMENT') {
-      const actionRoute = getCampaignItemRoute(item);
-
-      if (!actionRoute) {
-        return null;
-      }
-
-      const disabled = item.availabilityStatus !== 'AVAILABLE';
-
       return (
         <TrainingActionRow
           key={item.campaignItemId}
@@ -90,20 +89,12 @@ function renderCampaignItems(
           disabled={disabled}
           showLockIcon={disabled}
           iconType="learn"
-          onClick={disabled ? undefined : () => navigate(actionRoute)}
+          onClick={disabled ? undefined : () => navigate(getCampaignItemFrontendPath(item))}
         />
       );
     }
 
     if (item.componentType === 'QUIZ') {
-      const actionRoute = getCampaignItemRoute(item);
-
-      if (!actionRoute) {
-        return null;
-      }
-
-      const disabled = item.availabilityStatus !== 'AVAILABLE';
-
       return (
         <TrainingActionRow
           key={item.campaignItemId}
@@ -112,21 +103,21 @@ function renderCampaignItems(
           disabled={disabled}
           showLockIcon={disabled}
           iconType="quiz"
-          onClick={disabled ? undefined : () => navigate(actionRoute)}
+          onClick={disabled ? undefined : () => navigate(getCampaignItemFrontendPath(item))}
         />
       );
     }
 
     if (item.componentType === 'SIMULATED_INBOX') {
-      // Keep the seeded campaign item visible without changing inbox routing in this UC-02 PR.
       return (
         <TrainingActionRow
           key={item.campaignItemId}
           label={`Simulation: ${toTitleCase(item.title)}`}
           status={formatCampaignStatus(item.progressStatus)}
-          disabled
-          showLockIcon
+          disabled={disabled}
+          showLockIcon={disabled}
           iconType="simulation"
+          onClick={disabled ? undefined : () => navigate(getCampaignItemFrontendPath(item))}
         />
       );
     }
@@ -138,19 +129,34 @@ function renderCampaignItems(
 function CampaignsPage() {
   const navigate = useNavigate();
 
+  const { token } = useAuth();
+
   const [campaigns, setCampaigns] = useState<TraineeCampaignSummaryDto[]>([]);
+
   const [openCampaigns, setOpenCampaigns] = useState<Record<string, boolean>>({});
+
   const [campaignDetails, setCampaignDetails] = useState<
     Record<string, GetTraineeCampaignDetailResponseDto>
   >({});
+
   const [loadingCampaignDetails, setLoadingCampaignDetails] = useState<Record<string, boolean>>({});
+
   const [loading, setLoading] = useState(true);
+
   const [error, setError] = useState('');
 
   useEffect(() => {
     async function loadCampaigns() {
+      if (!token) {
+        setError('NOT AUTHENTICATED');
+
+        setLoading(false);
+
+        return;
+      }
+
       try {
-        const data = await getTraineeCampaigns();
+        const data = await getTraineeCampaigns(token);
 
         setCampaigns(data.campaigns);
       } catch {
@@ -161,7 +167,7 @@ function CampaignsPage() {
     }
 
     void loadCampaigns();
-  }, []);
+  }, [token]);
 
   async function toggleCampaign(campaignId: string) {
     const isCurrentlyOpen = Boolean(openCampaigns[campaignId]);
@@ -171,7 +177,7 @@ function CampaignsPage() {
       [campaignId]: !previous[campaignId],
     }));
 
-    if (isCurrentlyOpen || campaignDetails[campaignId]) {
+    if (isCurrentlyOpen || campaignDetails[campaignId] || !token) {
       return;
     }
 
@@ -181,7 +187,7 @@ function CampaignsPage() {
         [campaignId]: true,
       }));
 
-      const detail = await getTraineeCampaignDetail(campaignId);
+      const detail = await getTraineeCampaign(campaignId, token);
 
       setCampaignDetails((previous) => ({
         ...previous,
