@@ -4,13 +4,13 @@ Phishing emails try to trick you into clicking a link, opening a file, or sharin
 
 ## Common Red Flags
 
-- Unexpected urgency or threats ("act now" or "account will be closed").
-- Requests for passwords, MFA codes, or personal details.
-- Sender address does not match the company or looks misspelled.
-- Links that do not match the displayed text when you hover.
-- Attachments you were not expecting, especially ZIP or macro files.
-- Generic greetings like "Dear user" instead of your name.
-- Unusual payment requests, gift cards, or wire transfers.
+- Unexpected urgency or threats ("act now" or "account will be closed")
+- Requests for passwords, MFA codes, or personal details
+- Sender address does not match the company or looks misspelled
+- Links that do not match the displayed text when you hover
+- Attachments you were not expecting, especially ZIP or macro files
+- Generic greetings like "Dear user" instead of your name
+- Unusual payment requests, gift cards, or wire transfers
 
 ## Quick Verification Steps
 
@@ -27,4 +27,4 @@ Phishing emails try to trick you into clicking a link, opening a file, or sharin
 - Do not share MFA codes or passwords.
 - When in doubt, ask for a second opinion.
 
-Remember: attackers rely on speed and confusion. A short pause can prevent a serious incident.
+Remember: Attackers rely on speed and confusion. A short pause can prevent a serious incident.
