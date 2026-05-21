@@ -4,6 +4,7 @@ import {
   recordTrainingInteraction,
   TrainingDocumentAccessNotFoundError,
 } from '../services/trainee-training.service.js';
+import { TrainingContentResolveError } from '../services/content-resolver.service.js';
 
 function requireAuthenticatedUserId(req: Request, res: Response) {
   if (!req.auth) {
@@ -22,6 +23,13 @@ function handleTrainingError(error: unknown, res: Response) {
     return res.status(404).json({
       error: 'TRAINING_DOCUMENT_NOT_FOUND',
       message: 'Training document was not found',
+    });
+  }
+
+  if (error instanceof TrainingContentResolveError) {
+    return res.status(500).json({
+      error: 'TRAINING_CONTENT_UNAVAILABLE',
+      message: 'Training content could not be loaded',
     });
   }
 
