@@ -95,6 +95,28 @@ describe('CampaignsPage', () => {
       progressStatus: 'IN_PROGRESS',
       items: [
         {
+          campaignItemId: '33333333-3333-4333-8333-333333333333',
+          campaignId: '11111111-1111-4111-8111-111111111111',
+          itemType: 'COMPONENT',
+          title: 'Read phishing warning signs',
+          position: 0,
+          isRequired: true,
+          availabilityStatus: 'AVAILABLE',
+          isOpenable: true,
+          progressStatus: 'NOT_STARTED',
+          componentType: 'TRAINING_DOCUMENT',
+          activityApiPath:
+            '/trainee/campaign-items/33333333-3333-4333-8333-333333333333/training-document',
+          trainingDocument: {
+            id: '44444444-4444-4444-8444-444444444441',
+            title: 'Phishing warning signs',
+            contentSummary: 'Learn how to spot suspicious messages.',
+            estimatedReadTimeMinutes: 4,
+            difficultyLevel: 'BEGINNER',
+            status: 'AVAILABLE',
+          },
+        },
+        {
           campaignItemId: '33333333-3333-4333-8333-333333333334',
           campaignId: '11111111-1111-4111-8111-111111111111',
           itemType: 'COMPONENT',
@@ -114,12 +136,48 @@ describe('CampaignsPage', () => {
             status: 'PUBLISHED',
           },
         },
+        {
+          campaignItemId: '33333333-3333-4333-8333-333333333335',
+          campaignId: '11111111-1111-4111-8111-111111111111',
+          itemType: 'COMPONENT',
+          title: 'Classify simulated emails',
+          position: 2,
+          isRequired: true,
+          availabilityStatus: 'AVAILABLE',
+          isOpenable: true,
+          progressStatus: 'NOT_STARTED',
+          componentType: 'SIMULATED_INBOX',
+          activityApiPath:
+            '/trainee/campaign-items/33333333-3333-4333-8333-333333333335/simulated-inbox',
+          simulation: {
+            id: '66666666-6666-4666-8666-666666666661',
+            title: 'Inbox simulation',
+            description: 'Review the seeded simulated inbox activity.',
+            difficultyLevel: 'BEGINNER',
+          },
+        },
       ],
     });
   });
 
   afterEach(() => {
     cleanup();
+  });
+
+  it('routes training document campaign items to the frontend training page', async () => {
+    render(<CampaignsPage />);
+
+    const campaignToggle = await screen.findByRole('button', { name: /quarterly awareness/i });
+    fireEvent.click(campaignToggle);
+
+    const trainingRow = await screen.findByRole('button', {
+      name: /learn: "read phishing warning signs"/i,
+    });
+    fireEvent.click(trainingRow);
+
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalledWith('/training/33333333-3333-4333-8333-333333333333');
+    });
   });
 
   it('routes quiz campaign items to the frontend quiz page', async () => {
@@ -138,5 +196,22 @@ describe('CampaignsPage', () => {
       );
       expect(navigateMock).toHaveBeenCalledWith('/quizzes/33333333-3333-4333-8333-333333333334');
     });
+  });
+
+  it('does not add a plain inbox route for simulated inbox campaign items', async () => {
+    render(<CampaignsPage />);
+
+    const campaignToggle = await screen.findByRole('button', { name: /quarterly awareness/i });
+    fireEvent.click(campaignToggle);
+
+    const simulationRow = await screen.findByRole('button', {
+      name: /simulation: classify simulated emails/i,
+    });
+
+    expect(simulationRow).toBeDisabled();
+
+    fireEvent.click(simulationRow);
+
+    expect(navigateMock).not.toHaveBeenCalledWith('/simulation/inbox');
   });
 });

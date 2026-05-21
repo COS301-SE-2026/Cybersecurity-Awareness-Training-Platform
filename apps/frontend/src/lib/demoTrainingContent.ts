@@ -65,14 +65,14 @@ export function resolveDemoTrainingContent(
   if (!contentRef) {
     return {
       format: 'text',
-      body: 'No training content reference was provided.',
+      body: 'Training content is not available for this document.',
     };
   }
 
   return (
     DEMO_TRAINING_CONTENT[contentRef] ?? {
       format: 'text',
-      body: `Training content is not available for reference: ${contentRef}`,
+      body: 'Training content is not available for this document.',
     }
   );
 }

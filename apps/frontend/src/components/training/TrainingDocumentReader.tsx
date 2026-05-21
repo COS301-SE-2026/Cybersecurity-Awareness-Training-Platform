@@ -3,7 +3,6 @@ import { TrainingMarkdownContent } from './TrainingMarkdownContent';
 type TrainingDocumentReaderProps = {
   title: string;
   contentType?: string | null;
-  contentRef?: string | null;
   resolvedContent: string;
   resolvedFormat: 'html' | 'markdown' | 'text';
 };
@@ -15,7 +14,6 @@ function renderSafeDemoHtml(html: string) {
 function TrainingDocumentReader({
   title,
   contentType,
-  contentRef,
   resolvedContent,
   resolvedFormat,
 }: TrainingDocumentReaderProps) {
@@ -55,7 +53,6 @@ function TrainingDocumentReader({
           }}
         >
           {contentType ? <span style={metaPillStyle}>Type: {contentType}</span> : null}
-          {contentRef ? <span style={metaPillStyle}>Reference: {contentRef}</span> : null}
         </div>
       </header>
 

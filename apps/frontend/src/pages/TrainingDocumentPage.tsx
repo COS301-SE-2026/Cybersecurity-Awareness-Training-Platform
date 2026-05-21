@@ -259,7 +259,6 @@ export default function TrainingDocumentPage() {
             <TrainingDocumentReader
               title={documentResponse.trainingDocument.title}
               contentType={documentResponse.trainingDocument.contentType}
-              contentRef={documentResponse.trainingDocument.contentRef}
               resolvedContent={resolvedContent.body}
               resolvedFormat={resolvedContent.format}
             />

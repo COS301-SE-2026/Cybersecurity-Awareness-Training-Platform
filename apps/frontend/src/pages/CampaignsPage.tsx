@@ -51,8 +51,6 @@ function getCampaignItemRoute(
         : null;
     case 'QUIZ':
       return item.activityApiPath.endsWith('/quiz') ? `/quizzes/${item.campaignItemId}` : null;
-    case 'SIMULATED_INBOX':
-      return item.activityApiPath.endsWith('/simulated-inbox') ? '/simulation/inbox' : null;
     default:
       return null;
   }
@@ -75,15 +73,15 @@ function renderCampaignItems(
       );
     }
 
-    const actionRoute = getCampaignItemRoute(item);
-
-    if (!actionRoute) {
-      return null;
-    }
-
-    const disabled = item.availabilityStatus !== 'AVAILABLE';
-
     if (item.componentType === 'TRAINING_DOCUMENT') {
+      const actionRoute = getCampaignItemRoute(item);
+
+      if (!actionRoute) {
+        return null;
+      }
+
+      const disabled = item.availabilityStatus !== 'AVAILABLE';
+
       return (
         <TrainingActionRow
           key={item.campaignItemId}
@@ -98,6 +96,14 @@ function renderCampaignItems(
     }
 
     if (item.componentType === 'QUIZ') {
+      const actionRoute = getCampaignItemRoute(item);
+
+      if (!actionRoute) {
+        return null;
+      }
+
+      const disabled = item.availabilityStatus !== 'AVAILABLE';
+
       return (
         <TrainingActionRow
           key={item.campaignItemId}
@@ -112,15 +118,15 @@ function renderCampaignItems(
     }
 
     if (item.componentType === 'SIMULATED_INBOX') {
+      // Keep the seeded campaign item visible without changing inbox routing in this UC-02 PR.
       return (
         <TrainingActionRow
           key={item.campaignItemId}
           label={`Simulation: ${toTitleCase(item.title)}`}
           status={formatCampaignStatus(item.progressStatus)}
-          disabled={disabled}
-          showLockIcon={disabled}
+          disabled
+          showLockIcon
           iconType="simulation"
-          onClick={disabled ? undefined : () => navigate(actionRoute)}
         />
       );
     }

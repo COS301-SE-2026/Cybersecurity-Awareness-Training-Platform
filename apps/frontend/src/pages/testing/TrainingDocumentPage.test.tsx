@@ -214,9 +214,7 @@ describe('TrainingDocumentPage', () => {
     expect(
       screen.queryByText(/Phishing messages often try to pressure you/i),
     ).not.toBeInTheDocument();
-    expect(
-      screen.getByText(/Reference: demo:\/\/training\/phishing-warning-signs/i),
-    ).toBeInTheDocument();
+    expect(screen.queryByText(/Reference:/i)).not.toBeInTheDocument();
   });
 
   it('records completion when the learner marks the document complete', async () => {
