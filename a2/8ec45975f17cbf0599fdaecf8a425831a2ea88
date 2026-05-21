@@ -1,0 +1,24 @@
+apps/backend/tests/integration/uc01-inbox.integration.test.ts
+  s_d90e5e55609ee4::t_2d717da251d1bd 167-206
+apps/backend/tests/unit/simulation.api.test.ts
+  s_d90e5e55609ee4::t_d53f01d10b472f 5-21,46,240,245,261-263,277-310
+apps/backend/src/services/simulation.service.ts
+  s_d90e5e55609ee4::t_1bc048ce2b7741 18-19,267-276,279-282
+  s_d90e5e55609ee4::t_8334ea2413851c 1,14-17,234-266
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.11",
+  "base_commit_sha": "a28ec45975f17cbf0599fdaecf8a425831a2ea88",
+  "prompts": {},
+  "sessions": {
+    "s_d90e5e55609ee4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e4a36-2d88-7e72-9b65-f85fbfda00bb",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
