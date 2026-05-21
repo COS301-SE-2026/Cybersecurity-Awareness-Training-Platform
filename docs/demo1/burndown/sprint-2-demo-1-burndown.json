@@ -7,8 +7,8 @@
       "number": 146,
       "title": "fix: simulated-inbox-opened-state",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-05-21"
     },
     {
       "number": 138,
@@ -337,7 +337,7 @@
     },
     {
       "date": "2026-05-21",
-      "remaining": 18,
+      "remaining": 16,
       "ideal": 0.0
     }
   ]
