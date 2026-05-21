@@ -114,15 +114,15 @@
       "number": 89,
       "title": "docs: Finalise brand guidelines",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-05-21"
     },
     {
       "number": 88,
       "title": "feat: [integration] Coordinate final Demo 1 learner journey verification",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-05-21"
     },
     {
       "number": 87,
@@ -339,7 +339,7 @@
     },
     {
       "date": "2026-05-21",
-      "remaining": 4,
+      "remaining": 0,
       "ideal": 0.0
     }
   ]
