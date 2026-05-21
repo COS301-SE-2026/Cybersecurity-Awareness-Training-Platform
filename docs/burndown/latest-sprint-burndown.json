@@ -107,8 +107,8 @@
       "number": 90,
       "title": "docs: Create Demo 1 manual QA checklist",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-05-21"
     },
     {
       "number": 89,
@@ -339,7 +339,7 @@
     },
     {
       "date": "2026-05-21",
-      "remaining": 8,
+      "remaining": 6,
       "ideal": 0.0
     }
   ]
