@@ -11,6 +11,11 @@ name: Policy
       - synchronize
       - reopened
       - ready_for_review
+  push:
+    branches:
+      - dev
+      - main
+  workflow_dispatch:
 
 jobs:
   env-files:
@@ -31,10 +36,21 @@ jobs:
         run: |
           set -euo pipefail
 
-          base_sha="${{ github.event.pull_request.base.sha }}"
-          head_sha="${{ github.event.pull_request.head.sha }}"
-
-          changed_files="$(git diff --name-only --diff-filter=ACMR "$base_sha" "$head_sha" || true)"
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base_sha="${{ github.event.pull_request.base.sha }}"
+            head_sha="${{ github.event.pull_request.head.sha }}"
+            changed_files="$(git diff --name-only --diff-filter=ACMR "$base_sha" "$head_sha" || true)"
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            base_sha="${{ github.event.before }}"
+            head_sha="${{ github.sha }}"
+            if [ "$base_sha" = "0000000000000000000000000000000000000000" ]; then
+              changed_files="$(git diff-tree --no-commit-id --name-only -r "$head_sha" || true)"
+            else
+              changed_files="$(git diff --name-only --diff-filter=ACMR "$base_sha" "$head_sha" || true)"
+            fi
+          else
+            changed_files="$(git diff-tree --no-commit-id --name-only -r HEAD || true)"
+          fi
 
           if [ -z "$changed_files" ]; then
             echo "No changed files to check."
