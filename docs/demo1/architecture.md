@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document describes the architectural structure, quality concerns, and design decisions for Demo 1 of the Cybersecurity Awareness Training Platform. It focuses on the system's components, their responsibilities, and how they interact to support the core training use cases. It provides a technology-neutral foundation for implementing UC-01, UC-02, and UC-03.
+This document describes the preliminary architectural structure, quality concerns, and design decisions for Demo 1 of Insightful Phish. It focuses on the system's components, their responsibilities, and how they interact to support the core training use cases.
 
 ## Architecture Scope
 
@@ -14,7 +14,7 @@ The architecture is designed to support the following core use cases for Demo 1:
 
 Architecture guidance in this document is preliminary and scoped to Demo 1 implementation. It should be read alongside [SRS.md](./SRS.md), [API.md](./API.md), and [traceability.md](./traceability.md).
 
-### Organisation Admin/Campaign Control Plane (Preliminary Context)
+### Organisation Admin/Campaign Control Plane (Context)
 
 The Admin Control Plane is a preliminary, mostly future-facing orchestration layer that supports trainee-facing activities. It outlines the conceptual management of configurations for simulations and training modules without requiring full admin campaign management for Demo 1.
 
@@ -30,7 +30,7 @@ For Demo 1, campaigns act as the assignment and ordering container for trainee a
 
 - **Identity Verification**: The system must verify account identity before allowing access to simulation or training data.
 - **Simulation Boundaries**: All simulated phishing content must remain strictly internal. No communication with real external mail or messaging systems is permitted.
-- **Data Integrity**: All user-provided data, particularly quiz answers, must be validated and sanitized to prevent injection or manipulation.
+- **Data Integrity**: All user-provided data must be validated and sanitised to prevent injection or manipulation.
 
 ### Reliability
 
@@ -50,11 +50,11 @@ For Demo 1, campaigns act as the assignment and ordering container for trainee a
 ### Scalability
 
 - **Event-Based Tracking**: Interaction events (opens, clicks) are stored in a unified, append-only structure to support growth in users and activity.
-- **Data Optimization**: Persistence structures should be optimized to maintain fast read times for trainee dashboards and assignments.
+- **Data Optimisation**: Persistence structures should be optimised to maintain fast read times for trainee dashboards and assignments.
 
 ## Architectural Approach
 
-The platform utilizes a **3-tier client-server architecture**. This structure provides a clear separation between presentation, logic, and data storage.
+The platform utilises a **3-tier client-server architecture**. This structure provides a clear separation between presentation, logic, and data storage.
 
 ### 1. Client Tier
 
@@ -86,9 +86,9 @@ The platform utilizes a **3-tier client-server architecture**. This structure pr
 The 3-tier client-server architecture is selected for Demo 1 for the following reasons:
 
 - **Scope Alignment**: It provides a robust yet simple structure suitable for the three core use cases without the complexity of distributed architecture styles.
-- **Repository Structure**: The project organization (separate applications for the client and server) directly aligns with this tiered approach.
+- **Repository Structure**: The project organisation (separate applications for the client and server) directly aligns with this tiered approach.
 - **Maintainability**: The internal layering of the Application Tier ensures that business logic is isolated from both transport-level concerns and storage-specific details.
-- **Simulation Safety**: A centralized Application Tier allows for strict enforcement of simulation boundaries and interaction tracking.
+- **Simulation Safety**: A centralised Application Tier allows for strict enforcement of simulation boundaries and interaction tracking.
 
 ## Architectural Principles
 
@@ -106,7 +106,7 @@ Business logic is isolated from specific storage implementations. This decouplin
 
 ### Contract Consistency
 
-A centralized set of data definitions ensures that the Client and Application Tiers stay aligned on request and response formats. This prevents drift between system components and ensures reliable communication across the tier boundary.
+A centralised set of data definitions ensures that the Client and Application Tiers stay aligned on request and response formats. This prevents drift between system components and ensures reliable communication across the tier boundary.
 
 ### Immutable Interaction Auditing
 
@@ -117,7 +117,7 @@ A unified pattern is used to track trainee activity. Instead of simple status fl
 ### Client Application Standards
 
 - The Client Tier must provide a continuous, unified flow for the trainee across inbox, training, and quiz screens.
-- Interaction with the Application Tier must follow a standardized communication protocol to maintain a responsive user experience.
+- Interaction with the Application Tier must follow a standardised communication protocol to maintain a responsive user experience.
 - Must consume data using shared definitions to ensure consistency with the Application Tier.
 
 ### Application API Standards
@@ -129,7 +129,7 @@ A unified pattern is used to track trainee activity. Instead of simple status fl
 ### Data Persistence Standards
 
 - All storage access must go through the defined Data-Access Layer.
-- Seed data must be provided to populate the environment for the three core use cases.
+- Seed data must be provided to populate the environment for the three core use cases (Demo 1)
 - Sensitive information, such as passwords, must be securely hashed before storage.
 
 ### Simulation Safety Standards
@@ -138,7 +138,7 @@ A unified pattern is used to track trainee activity. Instead of simple status fl
 - All simulated links must route back to internal feedback handlers.
 - No actual credentials or sensitive personal data may be captured or stored during simulations.
 - Real email delivery to actual inboxes is future scope only. If introduced later, it must be opt-in, ethically constrained, and reviewed against organisation context.
-- AI-assisted generation is future scope only. If introduced later, generated quizzes, simulated emails, and training transformations should use controlled schemas, prepared context, and review workflows rather than unrestricted model output.
+- AI-assisted generation is future scope only. Once implemented, generated quizzes, simulated emails, and training transformations should use controlled schemas, prepared context, and review workflows rather than unrestricted model output.
 
 ## Cross-References
 
@@ -157,3 +157,19 @@ See [testing.md](./testing.md) for QA strategies and verification plans.
 ### Traceability
 
 See [traceability.md](./traceability.md) for tracking requirements through the architecture.
+
+---
+
+## Appendix A: Document Change History
+
+| Version | Date       | Author(s)         | Sections / Area Updated                   | Summary of Change                                                      |
+| ------- | ---------- | ----------------- | ----------------------------------------- | ---------------------------------------------------------------------- |
+| 0.1.0   | 2026-04-27 | Johan Nel         | Initial document                          | Created the initial Demo 1 architecture document.                      |
+| 0.1.1   | 2026-04-30 | Rudolph Lamprecht | Campaign/admin context                    | Added early campaign/admin architecture context.                       |
+| 0.1.2   | 2026-05-08 | Rudolph Lamprecht | API tier; architecture links              | Linked architecture to API contracts and expanded technical structure. |
+| 0.1.3   | 2026-05-08 | Rudolph Lamprecht | Architectural approach; modularity        | Drafted Demo 1 architecture approach and modularity design patterns.   |
+| 0.1.4   | 2026-05-09 | Rudolph Lamprecht | Quality requirements; constraints         | Expanded technical requirements and constraints for Demo 1.            |
+| 0.1.5   | 2026-05-10 | Johan Nel         | Terminology                               | Updated terminology from learner/employee to trainee.                  |
+| 0.1.6   | 2026-05-12 | Rudolph Lamprecht | Architecture principles; client standards | Refined architecture principles and client/application standards.      |
+| 0.1.7   | 2026-05-19 | Johan Nel         | Scope/context                             | Updated architecture wording to match Demo 1 scope updates.            |
+| 0.1.8   | 2026-05-21 | Johan Nel         | Headings; links                           | Cleaned headings and document links.                                   |
