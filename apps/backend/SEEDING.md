@@ -6,37 +6,16 @@ This guide explains how to create the local Demo 1 seed data for backend and fro
 
 The Demo 1 seed creates repeatable local data for:
 
-- login testing
-- populated trainee flows
-- empty-state trainee flows
-- inbox and email detail views
-- training material views
-- quiz and result paths
-- password-security campaign views
-- classification feedback and red flag feedback
+- Login testing
+- Populated trainee flows
+- Empty-state trainee flows
+- Inbox and email detail views
+- Training material views
+- Quiz and result paths
+- Password-security campaign views
+- Classification feedback and red flag feedback
 
 The seed is designed for local Demo 1 development only.
-
-## Domain Model Alignment
-
-The seed data uses the modular campaign schema:
-
-- `Campaign` has ordered `CampaignItem` records.
-- `TrainingDocument`, `Quiz`, and `Simulation` are reusable content.
-- `CampaignItem` records point to reusable content through the current schema fields.
-- `SimulatedInbox` belongs to `Simulation`, not `User`.
-- `SimulatedEmail` belongs to `SimulatedInbox`.
-- Email red flags are linked to simulated emails.
-- Viewed, completed, classification, and feedback flows should use `InteractionEvent`, `QuizAttempt`, `EmailClassificationResponse`, and related response models as the product flow evolves.
-
-The Demo 1 seed does not use or seed these old structures:
-
-- `LearningPath`
-- `TrainingModule`
-- `TrainingProgress`
-- `OrganisationMembership`
-- `GeneralLearningAccess`
-- user-owned inboxes
 
 ## Demo-Only Credentials
 
@@ -52,29 +31,29 @@ Set the local demo password with `DEMO_SEED_PASSWORD` before running the seed. T
 
 The seed script hashes the password before storing it. It does not print password hashes.
 
-Do not commit `DEMO_SEED_PASSWORD` in `.env` unless the project explicitly allows local ignored `.env` usage. Prefer setting it only in the current shell when running the seed.
+Do not commit `DEMO_SEED_PASSWORD` in `.env`. Prefer setting it only in the current shell when running the seed.
 
 ## Seeded Data
 
 The Demo 1 seed creates:
 
-- a populated trainee user and profile
-- an empty-state trainee user and profile
-- a demo admin user and admin profile
-- two Demo 1 campaigns assigned to the populated trainee:
-  - phishing awareness campaign
-  - password security campaign
-- no campaign assignment for the empty-state trainee
-- ordered campaign items for training, quiz, and simulated inbox components
-- reusable training documents
-- reusable quizzes
-- quiz questions
-- answer options with answer-level feedback
-- one reusable simulation
-- one simulated inbox linked to the simulation
-- a mix of phishing, suspicious, and safe simulated emails
-- expected email classifications
-- red flags for phishing and suspicious emails
+- A populated trainee user and profile
+- An empty-state trainee user and profile
+- A demo admin user and admin profile
+- Two Demo 1 campaigns assigned to the populated trainee:
+  - Phishing awareness campaign
+  - Password security campaign
+- No campaign assignment for the empty-state trainee
+- Ordered campaign items for training, quiz, and simulated inbox components
+- Reusable training documents
+- Reusable quizzes
+- Quiz questions
+- Answer options with answer-level feedback
+- One reusable simulation
+- One simulated inbox linked to the simulation
+- A mix of phishing, suspicious, and safe simulated emails
+- Expected email classifications
+- Red flags for phishing and suspicious emails
 
 ## Seeded Campaigns
 
@@ -91,9 +70,9 @@ The password security campaign demonstrates a simple sequential path:
 1. password-security training document
 2. password-security quiz
 
-The password-security training item is seeded as `AVAILABLE`, so it is openable immediately under the current backend rules.
+The password-security training item is seeded as `AVAILABLE`, so it is openable immediately.
 
-The password-security quiz item is seeded as `LOCKED`. This locked state is static seed behavior. There is no dynamic unlock engine in this issue, and completing the password-security training document does not unlock later campaign items.
+The password-security quiz item is seeded as `LOCKED`. This locked state is static seed behaviour. There is no dynamic unlock engine in this issue, and completing the password-security training document does not unlock later campaign items. This is intended for Demo 1.
 
 Training completion records an `InteractionEvent`, but the current Demo 1 seed does not include prerequisite or sequential unlock logic.
 
@@ -114,9 +93,9 @@ Runtime markdown body loading is out of scope for this seed. The seed uses metad
 
 ## Commands
 
-Run commands from the repository root unless noted otherwise.
+Run commands from the repository root.
 
-### Start the local database
+### 1. Start the local database
 
 ```bash
 docker compose up -d
@@ -128,7 +107,7 @@ Check that PostgreSQL is running:
 docker compose ps
 ```
 
-### Run migrations if needed
+### 2. Run migrations if needed
 
 If the local database is new or behind the current schema, apply committed migrations:
 
@@ -138,7 +117,7 @@ pnpm --filter @insightful-phish/backend prisma:migrate:deploy
 
 Do not use `prisma migrate reset` for normal Demo 1 seeding.
 
-### Run the Demo 1 seed
+### 3. Run the Demo 1 seed
 
 Set `DEMO_SEED_PASSWORD` in the same terminal session before running the seed.
 
@@ -165,7 +144,7 @@ pnpm --filter @insightful-phish/backend seed:demo1
 
 The command prints a summary of the demo users and seeded content. It reports that `DEMO_SEED_PASSWORD` was used as the password source, but it does not print password hashes.
 
-### Rerun the Demo 1 seed
+### 4. Rerun the Demo 1 seed
 
 Run the same command again:
 

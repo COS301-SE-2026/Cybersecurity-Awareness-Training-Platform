@@ -52,7 +52,7 @@ By focusing on human behaviour, the most common source of security breaches, the
 
 - Login, logout, and register
 - Form (login and register) and payload validation
-- Basic theme, navigation (sidebar), and trainee-facing feedback states (e.g., training material or quizzes started, not stated, etc.).
+- Basic theme, navigation (sidebar), and trainee-facing feedback states (e.g., training material or quizzes started, not stated, etc.)
 
 Future platform direction includes organisation admin campaign builders, trainee/user management, reporting dashboards, real email delivery to actual inboxes, AI-assisted content generation, and advanced simulations such as fake login pages, richer link/attachment interactions, calls, or password-checker activities. Real email delivery must be opt-in and ethically constrained. AI-assisted generation remains future-facing and would require controlled schemas, prepared context, and review; training a custom model is undecided and is not promised.
 

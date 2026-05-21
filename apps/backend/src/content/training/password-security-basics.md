@@ -26,4 +26,4 @@ Strong password habits protect your accounts, even when attackers have partial i
 - Update other accounts that reused the same password.
 - Review account activity and report it.
 
-Password security is not about memorizing complex strings. It is about using unique, long credentials and good tools.
+Password security is not about memorising complex strings. It is about using unique, long credentials and good tools.
