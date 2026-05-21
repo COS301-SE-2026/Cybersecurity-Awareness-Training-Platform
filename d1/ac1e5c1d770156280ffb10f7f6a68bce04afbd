@@ -1,0 +1,21 @@
+docs/demo1/API.md
+  s_146efc178adaf9::t_8bcd4fe7c20f6f 98-99,103,172,176
+docs/demo1/traceability.md
+  s_146efc178adaf9::t_8bcd4fe7c20f6f 25-29
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.11",
+  "base_commit_sha": "d1ac1e5c1d770156280ffb10f7f6a68bce04afbd",
+  "prompts": {},
+  "sessions": {
+    "s_146efc178adaf9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e4aff-8353-7972-9bba-6484ca24d56d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
