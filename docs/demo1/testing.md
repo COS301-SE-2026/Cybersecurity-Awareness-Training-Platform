@@ -32,6 +32,80 @@ Covers visual consistency for the Demo 1 screens, including brand colours, typog
 
 Covers common validation behaviour for login, registration, quiz submission, and other Demo 1 forms.
 
+## Demo 1 Manual QA Checklist
+
+Use this as the short pre-demo smoke test for the seeded trainee campaign flow.
+
+Route note: trainee entry is `/login`, successful login redirects to `/campaigns`, and the integrated trainee flow uses `/campaigns`, `/training/:campaignItemId`, `/quizzes/:quizId`, `/quiz-attempts/:attemptId/results`, `/trainee/campaign-items/:campaignItemId/simulated-inbox`, and `/trainee/campaign-items/:campaignItemId/simulated-emails/:emailId`.
+
+1. Clean setup/reset/reseed
+   - Start the local database with `docker compose up -d`.
+   - If the schema is behind, run `pnpm --filter @insightful-phish/backend prisma:migrate:deploy`.
+   - Reseed Demo 1 with `DEMO_SEED_PASSWORD="your-local-demo-password" pnpm --filter @insightful-phish/backend seed:demo1`.
+   - Confirm the seed summary includes `demo.populated.trainee@example.com` and `demo.empty.trainee@example.com`.
+
+2. Seeded trainee login
+   - Sign in at `/login` as `demo.populated.trainee@example.com` using `DEMO_SEED_PASSWORD`.
+   - Confirm the app redirects to `/campaigns`.
+   - Repeat once with `demo.empty.trainee@example.com` to confirm the empty-state account can still authenticate and also lands on `/campaigns`.
+
+3. Campaign assignment/access
+   - In `/campaigns`, confirm the populated trainee sees only the assigned Demo 1 campaigns: `Demo 1 Phishing Awareness` and `Demo 1 Password Security`.
+   - Confirm the active but unassigned `Demo 1 Advanced Phishing Defenses` campaign is not shown to the trainee.
+   - Confirm the empty-state trainee sees no assigned campaigns and no content leaked from another trainee.
+   - Confirm restricted or unassigned direct-link access fails gracefully instead of opening another trainee's campaign item.
+
+4. Campaign item ordering
+   - Open `Demo 1 Phishing Awareness` and confirm the seeded order is `Read phishing warning signs`, `Practice activities`, then within that group `Complete the warning signs check` and `Classify simulated emails`, followed by `Complete the safe link handling check`.
+   - Open `Demo 1 Password Security` and confirm the order is `Read password security basics` followed by `Complete the password security check`.
+   - Confirm `Complete the password security check` is still visible but `LOCKED`.
+
+5. Training flow
+   - From `/campaigns`, open an available training item and confirm the route is `/training/:campaignItemId`.
+   - Confirm the title, summary/body, and readable content load, and that `← Back to campaigns` and `Continue` both return to `/campaigns`.
+   - Use `Mark as completed` once and confirm the success state appears.
+   - If backend markdown content is present, confirm headings, lists, and paragraphs render cleanly.
+   - If backend content is missing, confirm the seeded fallback content still renders.
+
+6. Quiz flow
+   - From `/campaigns`, open an available quiz and confirm the route is `/quizzes/:quizId`, with the selected campaign item ID used as the route value.
+   - Confirm questions load without exposing correct answers or feedback before submission.
+   - Try one incomplete submission and confirm a readable validation message appears.
+   - Submit one full attempt and confirm redirect to `/quiz-attempts/:attemptId/results`.
+
+7. Quiz results/feedback
+   - Confirm the results page shows pass/fail state, score, summary text, and answer-level feedback.
+   - Use `Back to quiz` and confirm it returns to `/quizzes/:quizId`.
+   - Confirm `Complete the password security check` remains unavailable while seeded as `LOCKED`.
+
+8. Simulation inbox/email/classification
+   - From `/campaigns`, open `Classify simulated emails` and confirm the route is `/trainee/campaign-items/:campaignItemId/simulated-inbox`.
+   - Verify the inbox wording clearly states the content is simulated and the seeded messages load.
+   - Open an email detail view and confirm the route is `/trainee/campaign-items/:campaignItemId/simulated-emails/:emailId`, with usable sender, subject, body/preview, and back navigation to the inbox.
+   - If this build exposes classification controls, submit at least one classification and confirm the feedback is understandable. If not, note that classification submission is not exposed in the current frontend build.
+
+9. Fallback and failure handling
+   - Verify missing seed data or no assignments are handled cleanly by using the empty-state trainee.
+   - Confirm campaign, training, quiz, result, inbox, and email-detail load failures show a readable error or retry state instead of a blank page.
+   - Confirm unavailable items stay visibly unavailable and cannot be opened silently.
+
+10. Sensitive interaction data
+
+- During quiz and simulated email interactions, confirm no plain-text password or other sensitive credential value is echoed back to the trainee, logged in the UI, or intentionally persisted in visible request payloads if such an input is exercised.
+
+11. Browser/device rehearsal
+
+- Rehearse once in the target demo desktop browser.
+- Recheck `/login`, `/campaigns`, one training route, one quiz route, one quiz results route, and one simulated inbox/email route on a narrow mobile-sized viewport.
+- Record any overflow, clipped labels, or unreadable content before the demo.
+
+12. Pass/fail notes
+    - Date/build/tester:
+    - Passed:
+    - Failed:
+    - Follow-up owners:
+    - Route mismatches observed:
+
 ## UC-01 Test Planning: Simulated Inbox
 
 ### Success Scenarios
