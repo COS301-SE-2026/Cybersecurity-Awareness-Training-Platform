@@ -140,6 +140,8 @@ The project uses a lightweight feature-branch workflow with `dev` as the integra
     </a>
 </p>
 
+<div align="center">
+
 | <img src="https://img.icons8.com/?size=100&id=WtGfO5jMSugE&format=png&color=000000" width="20"> **Area** | <img src="https://img.icons8.com/?size=100&id=zcevikcPgMsD&format=png&color=000000" width="20"> **Tools** |
 | -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
 | Frontend                                                                                                 | React, Vite, TypeScript, HTML, CSS                                                                        |
@@ -150,6 +152,8 @@ The project uses a lightweight feature-branch workflow with `dev` as the integra
 | CI/CD                                                                                                    | GitHub Actions                                                                                            |
 | Package Management                                                                                       | pnpm workspaces                                                                                           |
 | Version Control                                                                                          | Git, GitHub                                                                                               |
+
+</div>
 
 ---
 
