@@ -125,8 +125,8 @@ describe('CampaignsPage', () => {
   it('routes quiz campaign items to the frontend quiz page', async () => {
     render(<CampaignsPage />);
 
-      const campaignToggle = await screen.findByRole('button', { name: /quarterly awareness/i });
-      fireEvent.click(campaignToggle);
+    const campaignToggle = await screen.findByRole('button', { name: /quarterly awareness/i });
+    fireEvent.click(campaignToggle);
 
     const quizRow = await screen.findByRole('button', { name: /quiz: "phishing basics quiz"/i });
     fireEvent.click(quizRow);
