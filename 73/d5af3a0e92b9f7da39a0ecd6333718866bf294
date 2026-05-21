@@ -1,0 +1,31 @@
+apps/backend/src/config/swagger.ts
+  s_4de9747108065e::t_8690c0683e63ee 1084,1124-1127
+apps/backend/src/services/simulation.service.ts
+  s_4de9747108065e::t_e701a5187d1cd1 71-84,88-99,102,113
+  s_4de9747108065e::t_a3b2523c22992e 85-87
+  s_4de9747108065e::t_cd13ba0b8d3d79 226-249
+apps/backend/tests/unit/simulation.api.test.ts
+  s_4de9747108065e::t_75ce1d4ea45084 10,35,232-264
+  s_4de9747108065e::t_fcb447fcd8b0e2 36,101-142
+packages/shared/src/simulations.ts
+  s_4de9747108065e::t_f0e69e3c484251 73
+apps/backend/tests/integration/uc01-inbox.integration.test.ts
+  s_4de9747108065e::t_ae2166d3138fc3 96,100-128,160-194
+  s_4de9747108065e::t_09a18cee49e43b 129-159
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.11",
+  "base_commit_sha": "73d5af3a0e92b9f7da39a0ecd6333718866bf294",
+  "prompts": {},
+  "sessions": {
+    "s_4de9747108065e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e474b-4c60-79f2-9e2c-45b84818d54b",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
