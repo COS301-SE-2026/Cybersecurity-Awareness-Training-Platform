@@ -626,13 +626,16 @@ Before submission, trainee-facing quiz fetch endpoints must not expose `AnswerOp
       "subject": "Urgent Password Reset",
       "preview": "Please confirm your account details...",
       "receivedAt": "2026-05-01T10:00:00Z",
-      "difficultyLevel": "BEGINNER"
+      "difficultyLevel": "BEGINNER",
+      "isOpened": false
     }
   ]
 }
 ```
 
 This endpoint returns campaign-provided simulation content. It does not expose a permanent user-owned inbox.
+
+`isOpened` is derived from `SIMULATED_EMAIL_OPENED` interaction events for the current trainee, campaign assignment, campaign item, and simulated email. The frontend can use this field for read/unread styling.
 
 ### `GET /trainee/campaign-items/:campaignItemId/simulated-emails/:emailId`
 
@@ -668,6 +671,7 @@ Trainee-facing responses must not reveal `expectedClassification` or correct red
   - `eventType` (string enum, required)
 - **Expected Response Data**:
   - `201 Created` or `200 OK`: `{ "success": true, "eventType": "SIMULATED_EMAIL_OPENED" }`
+- **Duplicate opened events**: Reposting `SIMULATED_EMAIL_OPENED` for the same trainee, campaign assignment, campaign item, and simulated email is idempotent and must not create another opened event.
 
 ### Future/optional simulated-email interactions
 
