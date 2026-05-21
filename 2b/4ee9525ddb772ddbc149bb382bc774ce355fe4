@@ -1,0 +1,24 @@
+README.md
+  s_146efc178adaf9::t_08fe9520286424 67-76,97-109
+.github/workflows/ci.yml
+  s_146efc178adaf9::t_ddba0a964c8238 191-200
+  s_146efc178adaf9::t_aa25127c2d21c5 167-169,184-189
+packages/shared/vitest.config.ts
+  s_146efc178adaf9::t_4469bc15c0388d 1-11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.11",
+  "base_commit_sha": "2b4ee9525ddb772ddbc149bb382bc774ce355fe4",
+  "prompts": {},
+  "sessions": {
+    "s_146efc178adaf9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e4aff-8353-7972-9bba-6484ca24d56d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
