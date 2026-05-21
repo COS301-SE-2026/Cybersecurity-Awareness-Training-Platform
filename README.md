@@ -64,44 +64,16 @@ Future platform direction includes organisation admin campaign builders, trainee
 
 ## <img src="https://img.icons8.com/?size=100&id=VbgGe1XzgPAK&format=png&color=000000" width="24"> Badges
 
-> [!NOTE]
-> Static badges in this README are project-status indicators for presentation. For merge decisions, use the current GitHub Actions checks and repository test output.
-
-<p align="left">
-  <img src="https://img.shields.io/badge/Tests-Passing-brightgreen?style=for-the-badge&logo=jest&logoColor=white" />
-  <img src="https://img.shields.io/badge/Coverage-85%25-green?style=for-the-badge&logo=codecov&logoColor=white" />
-  <img src="https://img.shields.io/badge/Build-Passing-brightgreen?style=for-the-badge&logo=githubactions&logoColor=white" />
-  <img src="https://img.shields.io/badge/Linting-Clean-blue?style=for-the-badge&logo=eslint&logoColor=white" />
-  <img src="https://img.shields.io/badge/CI/CD-Automated-blue?style=for-the-badge&logo=githubactions&logoColor=white" />
-</p>
-
-<p align="left">
-  <img src="https://img.shields.io/badge/Status-Active-success?style=for-the-badge" />
-  <img src="https://img.shields.io/badge/Maintained-Yes-brightgreen?style=for-the-badge" />
-  <a href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/commits/main/">
-    <img src="https://img.shields.io/github/last-commit/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge&color=yellow" />
-  </a>
-</p>
-
-<p align="left">
-
-  <img src="https://img.shields.io/github/issues/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge&color=brightgreen" />
-
-  <img src="https://img.shields.io/github/issues-closed/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge&color=brightgreen" />
-
-</p>
-
-<p align="left">
-
-  <img src="https://img.shields.io/github/contributors/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge" />
-
-  <img src="https://img.shields.io/github/stars/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge" />
-
-</p>
-
-<p align="left">
-  <img src="https://img.shields.io/badge/Fuel-Cheesecake-000000?style=for-the-badge" />
-</p>
+[![CI](https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/actions/workflows/ci.yml)
+[![Policy](https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/actions/workflows/policy.yml/badge.svg?branch=dev)](https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/actions/workflows/policy.yml)
+[![codecov](https://codecov.io/gh/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/branch/dev/graph/badge.svg)](https://codecov.io/gh/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform)
+[![GitHub issues](https://img.shields.io/github/issues/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform)](https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/issues)
+[![GitHub closed issues](https://img.shields.io/github/issues-closed/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform)](https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/issues?q=is%3Aissue%20is%3Aclosed)
+[![Requirements](https://img.shields.io/badge/requirements-SRS%20documented-blue)](docs/demo1/SRS.md)
+[![Demo 1 Docs](https://img.shields.io/badge/Demo%201-docs%20available-blue)](docs/demo1/SRS.md)
+![Monorepo](https://img.shields.io/badge/monorepo-pnpm%20workspaces-blue)
+![Branching](https://img.shields.io/badge/branching-feature%20branches%20%2B%20dev-blue)
+[![Last commit](https://img.shields.io/github/last-commit/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform)](https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/commits/main/)
 
 ## <img src="https://img.icons8.com/?size=100&id=1BYH0ZFsjeIy&format=png&color=000000" width="24"> Important Project Links
 
@@ -119,6 +91,22 @@ Future platform direction includes organisation admin campaign builders, trainee
 6. **Design Specification**: [docs/demo1/DESIGN.md](docs/demo1/DESIGN.md)
 7. **Diagrams**: [docs/demo1/diagrams/README.md](docs/demo1/diagrams/README.md)
 8. **Wireframes**: [docs/demo1/wireframes/README.md](docs/demo1/wireframes/README.md)
+
+---
+
+# <img src="https://img.icons8.com/?size=100&id=VduEQ1KfPNHT&format=png&color=000000" width="32"> Repository Structure
+
+This repository is organised as a pnpm workspace monorepo:
+
+- `apps/frontend`: React, Vite, and TypeScript trainee-facing frontend
+- `apps/backend`: Express, TypeScript, Prisma, and PostgreSQL backend
+- `packages/shared`: Shared TypeScript types and validation contracts
+
+---
+
+# <img src="https://img.icons8.com/?size=100&id=5HcV1GvJsMQF&format=png&color=000000" width="32"> Branching Strategy
+
+The project uses a lightweight feature-branch workflow with `dev` as the integration branch and `main` as the stable branch. Developers create short-lived `feature/*`, `fix/*`, `chore/*`, or `docs/*` branches from `dev`, open pull requests back into `dev`, and promote stable milestone work from `dev` to `main`.
 
 ---
 
