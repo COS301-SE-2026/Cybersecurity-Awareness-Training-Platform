@@ -108,7 +108,7 @@ Basic themes are a supporting design feature for Demo 1. They cover the shared v
 For Demo 1, basic theme work should:
 
 - support visual consistency across Login/Register, the trainee dashboard, simulated inbox, training document, quiz, and feedback screens;
-- follow the brand and style guidance in `docs/demo1/DESIGN.md`;
+- follow the brand and style guidance in [DESIGN.md](./DESIGN.md);
 - remain a base feature, not a separate Demo 1 use case;
 - avoid introducing production theming systems, runtime theme switching, or unrelated brand work unless separately scoped.
 
@@ -131,7 +131,7 @@ Reusable validation rules for Demo 1 should follow these principles:
 
 These rules apply as supporting guidance for UC-02 and UC-03, and as base-feature support for login/register and other simple Demo 1 forms.
 
-## Document Structure and Integration (Johan)
+## Document Structure and Integration
 
 ### Introduction
 
@@ -160,22 +160,22 @@ The **System** supports authentication, content retrieval, validation, tracking 
 ### Dependencies
 
 - First drafts of the UC-01, UC-02, and UC-03 SRS feature slices.
-- Preliminary API contracts in `docs/demo1/API.md`.
-- Domain model references and diagrams in `docs/demo1/diagrams/`.
-- Architecture and technical guidance in `docs/demo1/architecture.md`.
-- Design and wireframe notes in `docs/demo1/DESIGN.md` and `docs/demo1/wireframes/`.
-- QA and traceability planning in `docs/demo1/testing.md` and `docs/demo1/traceability.md`.
+- Preliminary API contracts in [API.md](./API.md).
+- Domain model references and diagrams in [diagrams/](./diagrams/).
+- Architecture and technical guidance in [architecture.md](./architecture.md).
+- Design and wireframe notes in [DESIGN.md](./DESIGN.md) and [wireframes/](./wireframes/).
+- QA and traceability planning in [testing.md](./testing.md) and [traceability.md](./traceability.md).
 
 ### Cross-Reference Structure
 
 Primary supporting documents:
 
-- `docs/demo1/API.md` for preliminary API contracts.
-- `docs/demo1/architecture.md` for preliminary architecture and technical requirements.
-- `docs/demo1/DESIGN.md` for design scope, wireframe direction, feedback states, and accessibility rules.
-- `docs/demo1/testing.md` for QA planning and future test references.
-- `docs/demo1/traceability.md` for integration placeholders and review traceability.
-- `docs/demo1/diagrams/` for draft diagram sources and exports.
+- [API.md](./API.md) for preliminary API contracts.
+- [architecture.md](./architecture.md) for preliminary architecture and technical requirements.
+- [DESIGN.md](./DESIGN.md) for design scope, wireframe direction, feedback states, and accessibility rules.
+- [testing.md](./testing.md) for QA planning and future test references.
+- [traceability.md](./traceability.md) for integration placeholders and review traceability.
+- [diagrams/](./diagrams/) for draft diagram sources and exports.
 
 ### Terminology Alignment Rules
 
@@ -345,13 +345,13 @@ PLEASE NOTE: These contracts are subject to change throughout the course of impl
 
 ### Traceability References
 
-| Traceability ID | Linked Item                                                                                         |
-| --------------- | --------------------------------------------------------------------------------------------------- |
-| TRACE-UC01-01   | UC-01 to FR-UC01-01, API-UC01-01, DE-UC01-02, `docs/demo1/DESIGN.md` Simulated Inbox section        |
-| TRACE-UC01-02   | UC-01 to FR-UC01-02, API-UC01-02, DE-UC01-03, `docs/demo1/DESIGN.md` Simulated Email Detail section |
-| TRACE-UC01-03   | UC-01 to FR-UC01-04, API-UC01-03, DE-UC01-04                                                        |
-| TRACE-UC01-04   | UC-01 to FR-UC01-05, DE-UC01-05, `docs/demo1/DESIGN.md` Phishing Feedback Page section              |
-| TRACE-UC01-05   | UC-01 to FR-UC01-08 and Demo 1 simulation safety boundary                                           |
+| Traceability ID | Linked Item                                                                                           |
+| --------------- | ----------------------------------------------------------------------------------------------------- |
+| TRACE-UC01-01   | UC-01 to FR-UC01-01, API-UC01-01, DE-UC01-02, [DESIGN.md](./DESIGN.md) Simulated Inbox section        |
+| TRACE-UC01-02   | UC-01 to FR-UC01-02, API-UC01-02, DE-UC01-03, [DESIGN.md](./DESIGN.md) Simulated Email Detail section |
+| TRACE-UC01-03   | UC-01 to FR-UC01-04, API-UC01-03, DE-UC01-04                                                          |
+| TRACE-UC01-04   | UC-01 to FR-UC01-05, DE-UC01-05, [DESIGN.md](./DESIGN.md) Phishing Feedback Page section              |
+| TRACE-UC01-05   | UC-01 to FR-UC01-08 and Demo 1 simulation safety boundary                                             |
 
 ## UC-02: View Training Document
 
@@ -491,13 +491,13 @@ PLEASE NOTE: These contracts are subject to change throughout the course of impl
 
 ### Traceability References
 
-| Traceability ID | Linked Item                                                                                         |
-| --------------- | --------------------------------------------------------------------------------------------------- |
-| TRACE-UC02-01   | UC-02 to FR-UC02-01, API-UC02-01, DE-UC02-02, `docs/demo1/DESIGN.md` Training Module List section   |
-| TRACE-UC02-02   | UC-02 to FR-UC02-02, API-UC02-02, DE-UC02-02, `docs/demo1/DESIGN.md` Training Material Page section |
-| TRACE-UC02-03   | UC-02 to FR-UC02-04, API-UC02-03, DE-UC02-04                                                        |
-| TRACE-UC02-04   | UC-02 to FR-UC02-07, DE-UC02-05, `docs/demo1/DESIGN.md` Training Material to Quiz Flow section      |
-| TRACE-UC02-05   | UC-02 to FR-UC02-08                                                                                 |
+| Traceability ID | Linked Item                                                                                           |
+| --------------- | ----------------------------------------------------------------------------------------------------- |
+| TRACE-UC02-01   | UC-02 to FR-UC02-01, API-UC02-01, DE-UC02-02, [DESIGN.md](./DESIGN.md) Training Module List section   |
+| TRACE-UC02-02   | UC-02 to FR-UC02-02, API-UC02-02, DE-UC02-02, [DESIGN.md](./DESIGN.md) Training Material Page section |
+| TRACE-UC02-03   | UC-02 to FR-UC02-04, API-UC02-03, DE-UC02-04                                                          |
+| TRACE-UC02-04   | UC-02 to FR-UC02-07, DE-UC02-05, [DESIGN.md](./DESIGN.md) Training Material to Quiz Flow section      |
+| TRACE-UC02-05   | UC-02 to FR-UC02-08                                                                                   |
 
 ## UC-03: Complete Quiz Flow
 
@@ -649,15 +649,15 @@ PLEASE NOTE: These contracts are subject to change throughout the course of impl
 
 ### Traceability References
 
-| Traceability ID | Linked Item                                                                                                                        |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| TRACE-UC03-01   | UC-03 to FR-UC03-01, FR-UC03-02, API-UC03-01, DE-UC03-02, DE-UC03-03, `docs/demo1/DESIGN.md` Quiz Page section                     |
-| TRACE-UC03-02   | UC-03 to FR-UC03-03, API-UC03-02, DE-UC03-04, `docs/demo1/DESIGN.md` Quiz Page section                                             |
-| TRACE-UC03-03   | UC-03 to FR-UC03-04, FR-UC03-05, DE-UC03-05, `docs/demo1/DESIGN.md` Quiz Page section                                              |
-| TRACE-UC03-04   | UC-03 to FR-UC03-06, FR-UC03-09, API-UC03-03, DE-UC03-04, `docs/demo1/DESIGN.md` Quiz Submission State section                     |
-| TRACE-UC03-05   | UC-03 to FR-UC03-07, FR-UC03-08, FR-UC03-10, API-UC03-04, DE-UC03-06, DE-UC03-07, `docs/demo1/DESIGN.md` Quiz Results Page section |
+| Traceability ID | Linked Item                                                                                                                          |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| TRACE-UC03-01   | UC-03 to FR-UC03-01, FR-UC03-02, API-UC03-01, DE-UC03-02, DE-UC03-03, [DESIGN.md](./DESIGN.md) Quiz Page section                     |
+| TRACE-UC03-02   | UC-03 to FR-UC03-03, API-UC03-02, DE-UC03-04, [DESIGN.md](./DESIGN.md) Quiz Page section                                             |
+| TRACE-UC03-03   | UC-03 to FR-UC03-04, FR-UC03-05, DE-UC03-05, [DESIGN.md](./DESIGN.md) Quiz Page section                                              |
+| TRACE-UC03-04   | UC-03 to FR-UC03-06, FR-UC03-09, API-UC03-03, DE-UC03-04, [DESIGN.md](./DESIGN.md) Quiz Submission State section                     |
+| TRACE-UC03-05   | UC-03 to FR-UC03-07, FR-UC03-08, FR-UC03-10, API-UC03-04, DE-UC03-06, DE-UC03-07, [DESIGN.md](./DESIGN.md) Quiz Results Page section |
 
-## Validation, Error-State, and Feedback Requirements (Zoë)
+## Validation, Error-State, and Feedback Requirements
 
 This section defines supporting validation, error-state, and feedback requirements for Demo 1 trainee-facing flows. These requirements support UC-02, UC-03, and base form behaviour, but they are not a separate Demo 1 core use case.
 
@@ -879,7 +879,7 @@ These API references are preliminary planning references and may change during i
 | TRACE-TRK-05    | Demo 1 reporting support to RPT-DEMO1-01 through RPT-DEMO1-06, DE-TRK-07, DE-TRK-08                                  |
 | TRACE-TRK-06    | Demo 1 safety boundary to TRK-DEMO1-06, RPT-DEMO1-05, FR-UC01-09, and the no-sensitive-credential-storage constraint |
 
-## Organisation Admin and Campaign Supporting Context (Rudolph)
+## Organisation Admin and Campaign Supporting Context
 
 > [!NOTE]
 > The following User Stories and Functional Requirements are provided as **supporting context** and **future-facing placeholders** only. They describe the administrative setup required to enable the trainee-facing use cases (UC-01, UC-02, and UC-03) and are not part of the core Demo 1 implementation scope.
@@ -1189,16 +1189,16 @@ The purpose of the model is to align Demo 1 terminology across the SRS, API plan
 
 ### API Contracts
 
-See `docs/demo1/API.md` for preliminary API contracts and payloads supporting these use cases.
+See [API.md](./API.md) for preliminary API contracts and payloads supporting these use cases.
 
 ### Architecture and Technical Requirements
 
-See `docs/demo1/architecture.md` for the overarching architectural approach, quality requirements, design patterns, and constraints guiding Demo 1 implementation.
+See [architecture.md](./architecture.md) for the overarching architectural approach, quality requirements, design patterns, and constraints guiding Demo 1 implementation.
 
 ### Design and Wireframes
 
-See `docs/demo1/DESIGN.md` for UI guidelines, interaction states, and accessibility standards.
+See [DESIGN.md](./DESIGN.md) for UI guidelines, interaction states, and accessibility standards.
 
 ### Testing and Traceability
 
-See `docs/demo1/testing.md` and `docs/demo1/traceability.md` for QA strategies and testing scope boundaries.
+See [testing.md](./testing.md) and [traceability.md](./traceability.md) for QA strategies and testing scope boundaries.
