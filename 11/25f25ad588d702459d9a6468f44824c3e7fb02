@@ -1,0 +1,19 @@
+README.md
+  s_146efc178adaf9::t_bf9cace1e85e83 143-144,156
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.11",
+  "base_commit_sha": "1125f25ad588d702459d9a6468f44824c3e7fb02",
+  "prompts": {},
+  "sessions": {
+    "s_146efc178adaf9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e4aff-8353-7972-9bba-6484ca24d56d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
