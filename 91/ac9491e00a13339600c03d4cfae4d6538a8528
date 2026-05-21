@@ -1,0 +1,26 @@
+apps/backend/tests/integration/uc01-inbox.integration.test.ts
+  s_4de9747108065e::t_8815094781c8ea 2,5,25-28,73-74,183-184
+apps/backend/.env.example
+  h_1fff265ad32c51 13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.11",
+  "base_commit_sha": "91ac9491e00a13339600c03d4cfae4d6538a8528",
+  "prompts": {},
+  "humans": {
+    "h_1fff265ad32c51": {
+      "author": "FJNel <u24594475@tuks.co.za>"
+    }
+  },
+  "sessions": {
+    "s_4de9747108065e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e474b-4c60-79f2-9e2c-45b84818d54b",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
