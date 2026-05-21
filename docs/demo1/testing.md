@@ -133,25 +133,25 @@ Route note: trainee entry is `/login`, successful login redirects to `/campaigns
 
 ### Suggested Automated Test Level
 
-- Frontend tests for inbox rendering, states, and trainee interaction.
-- Backend integration tests for simulated inbox and email detail endpoints.
-- End-to-end tests for the complete inbox-to-detail demo path.
-- Manual verification for demo readiness, readability, and seeded data quality.
+- Frontend tests for inbox rendering, states, and trainee interaction
+- Backend integration tests for simulated inbox and email detail endpoints
+- End-to-end tests for the complete inbox-to-detail demo path
+- Manual verification for demo readiness, readability, and seeded data quality
 
 ### Suggested Automated Test Coverage
 
 Future automated tests should cover:
 
-- Rendering the simulated inbox with seeded email data.
-- Rendering the inbox empty state.
-- Rendering the inbox loading state.
-- Rendering the inbox error state.
-- Opening an email detail view from the inbox list.
-- Displaying the correct selected email detail content.
-- Returning from email detail to inbox.
-- Handling a missing or invalid email ID.
-- Rejecting unauthenticated access where required.
-- Confirming that simulated inbox behaviour does not depend on real email delivery.
+- Rendering the simulated inbox with seeded email data
+- Rendering the inbox empty state
+- Rendering the inbox loading state
+- Rendering the inbox error state
+- Opening an email detail view from the inbox list
+- Displaying the correct selected email detail content
+- Returning from email detail to inbox
+- Handling a missing or invalid email ID
+- Rejecting unauthenticated access where required
+- Confirming that simulated inbox behaviour does not depend on real email delivery
 
 ### Manual Demo Verification Notes
 
@@ -190,23 +190,23 @@ Before Demo 1, manually verify that:
 
 ### Suggested Automated Test Level
 
-- Frontend tests for training list/document rendering and screen states.
-- Backend integration tests for training content endpoints.
-- End-to-end tests for opening and reading a training document.
-- Manual verification for content readability and demo flow alignment.
+- Frontend tests for training list/document rendering and screen states
+- Backend integration tests for training content endpoints
+- End-to-end tests for opening and reading a training document
+- Manual verification for content readability and demo flow alignment
 
 ### Suggested Automated Test Coverage
 
 Future automated tests should cover:
 
-- Rendering available training material.
-- Opening a selected training document.
-- Displaying the correct training document title and content.
-- Rendering loading, empty, and error states.
-- Handling an invalid or missing training document ID.
-- Rejecting unauthenticated access where required.
-- Verifying navigation from training material to quiz entry point where applicable.
-- Confirming that the training document flow does not require adaptive learning or gamification.
+- Rendering available training material
+- Opening a selected training document
+- Displaying the correct training document title and content
+- Rendering loading, empty, and error states
+- Handling an invalid or missing training document ID
+- Rejecting unauthenticated access where required
+- Verifying navigation from training material to quiz entry point where applicable
+- Confirming that the training document flow does not require adaptive learning or gamification
 
 ### Manual Demo Verification Notes
 
@@ -246,27 +246,27 @@ Before Demo 1, manually verify that:
 
 ### Suggested Automated Test Level
 
-- Unit tests for quiz validation and scoring helpers where applicable.
-- Frontend tests for question rendering, answer selection, validation, submission state, and result state.
-- Backend integration tests for quiz retrieval and submission endpoints.
-- End-to-end tests for the complete training-to-quiz-to-results flow.
-- Manual verification for demo readiness and understandable quiz feedback.
+- Unit tests for quiz validation and scoring helpers where applicable
+- Frontend tests for question rendering, answer selection, validation, submission state, and result state
+- Backend integration tests for quiz retrieval and submission endpoints
+- End-to-end tests for the complete training-to-quiz-to-results flow
+- Manual verification for demo readiness and understandable quiz feedback
 
 ### Suggested Automated Test Coverage
 
 Future automated tests should cover:
 
-- Rendering quiz questions and answer options.
-- Selecting and changing answers.
-- Preventing submission when required questions are unanswered.
-- Submitting valid quiz answers.
-- Showing submission/loading state.
-- Showing quiz results or completion feedback.
-- Handling quiz load failure.
-- Handling quiz submission failure.
-- Rejecting invalid submission payloads.
-- Rejecting unauthenticated access where required.
-- Confirming the quiz flow stays within Demo 1 scope.
+- Rendering quiz questions and answer options
+- Selecting and changing answers
+- Preventing submission when required questions are unanswered
+- Submitting valid quiz answers
+- Showing submission/loading state
+- Showing quiz results or completion feedback
+- Handling quiz load failure
+- Handling quiz submission failure
+- Rejecting invalid submission payloads
+- Rejecting unauthenticated access where required
+- Confirming the quiz flow stays within Demo 1 scope
 
 ### Manual Demo Verification Notes
 
@@ -304,25 +304,25 @@ Before Demo 1, manually verify that:
 
 #### Suggested Test Levels
 
-- Unit tests for validation helpers where applicable.
-- Frontend tests for login/register forms and validation states.
-- Backend integration tests for authentication endpoints.
-- End-to-end tests for login and protected-page access.
+- Unit tests for validation helpers where applicable
+- Frontend tests for login/register forms and validation states
+- Backend integration tests for authentication endpoints
+- End-to-end tests for login and protected-page access
 
 #### Suggested Automated Test Coverage
 
 Future automated tests should cover:
 
-- Rendering login form.
-- Rendering registration form where applicable.
-- Validating required login/register fields.
-- Displaying field-level validation messages.
-- Displaying backend authentication errors.
-- Successful login using seeded demo credentials.
-- Successful registration where applicable.
-- Rejecting invalid login/register requests.
-- Redirecting authenticated trainees to the Demo 1 trainee area.
-- Blocking or redirecting unauthenticated trainees from protected Demo 1 screens.
+- Rendering login form
+- Rendering registration form where applicable
+- Validating required login/register fields
+- Displaying field-level validation messages
+- Displaying backend authentication errors
+- Successful login using seeded demo credentials
+- Successful registration where applicable
+- Rejecting invalid login/register requests
+- Redirecting authenticated trainees to the Demo 1 trainee area
+- Blocking or redirecting unauthenticated trainees from protected Demo 1 screens
 
 #### Manual Demo Verification Notes
 
@@ -359,9 +359,9 @@ Before Demo 1, manually verify that:
 
 Future automated tests should cover:
 
-- Rendering shared buttons, fields, cards, and feedback states with expected class names or design tokens where available.
-- Confirming visible text remains readable against the selected background colours.
-- Checking that core Demo 1 screens use the shared component styling consistently.
+- Rendering shared buttons, fields, cards, and feedback states with expected class names or design tokens where available
+- Confirming visible text remains readable against the selected background colours
+- Checking that core Demo 1 screens use the shared component styling consistently
 
 #### Manual Demo Verification Notes
 
@@ -394,23 +394,23 @@ Before Demo 1, manually verify that:
 
 #### Suggested Test Levels
 
-- Unit tests for reusable validation helpers.
-- Frontend tests for validation messages and invalid form states.
-- Backend integration tests for server-side request validation.
-- End-to-end coverage through login/register and quiz submission flows.
+- Unit tests for reusable validation helpers
+- Frontend tests for validation messages and invalid form states
+- Backend integration tests for server-side request validation
+- End-to-end coverage through login/register and quiz submission flows
 
 #### Suggested Automated Test Coverage
 
 Future automated tests should cover:
 
-- Required field validation.
-- Invalid format validation.
-- Password confirmation validation where applicable.
-- Quiz required-answer validation.
-- Clearing validation messages after correction.
-- Preventing invalid form submission.
-- Displaying backend validation errors.
-- Disabling or safely handling repeated submissions while loading.
+- Required field validation
+- Invalid format validation
+- Password confirmation validation where applicable
+- Quiz required-answer validation
+- Clearing validation messages after correction
+- Preventing invalid form submission
+- Displaying backend validation errors
+- Disabling or safely handling repeated submissions while loading
 
 #### Manual Demo Verification Notes
 
@@ -430,10 +430,10 @@ Unit tests should be used for isolated logic that can be verified without the fu
 
 Examples:
 
-- Form validation helpers.
-- Quiz answer validation.
-- Quiz scoring helpers where applicable.
-- Request/response mapping helpers where applicable.
+- Form validation helpers
+- Quiz answer validation
+- Quiz scoring helpers where applicable
+- Request/response mapping helpers where applicable
 
 Unit tests should stay focused and should not duplicate full trainee flows.
 
@@ -443,11 +443,11 @@ Integration tests should verify that connected parts of the system work together
 
 Examples:
 
-- Backend route and service interaction.
-- API request validation.
-- API response shape checks.
-- Authentication checks on protected routes.
-- Data retrieval for simulated inbox, training material, and quiz content.
+- Backend route and service interaction
+- API request validation
+- API response shape checks
+- Authentication checks on protected routes
+- Data retrieval for simulated inbox, training material, and quiz content
 
 Integration tests should be used where simple unit tests cannot verify the behaviour properly.
 
@@ -457,13 +457,13 @@ Frontend tests should verify that UI screens render correctly and respond to tra
 
 Examples:
 
-- Login/register form rendering.
-- Simulated inbox list rendering.
-- Simulated email detail rendering.
-- Training document rendering.
-- Quiz question rendering.
-- Form validation messages.
-- Loading, empty, error, and submission states.
+- Login/register form rendering
+- Simulated inbox list rendering
+- Simulated email detail rendering
+- Training document rendering
+- Quiz question rendering
+- Form validation messages
+- Loading, empty, error, and submission states
 
 Frontend tests should support confidence that the trainee-visible Demo 1 flow behaves correctly.
 
@@ -473,11 +473,11 @@ Backend tests should verify API behaviour, validation, authentication requiremen
 
 Examples:
 
-- Authentication endpoints.
-- Simulated inbox endpoints.
-- Training content endpoints.
-- Quiz retrieval and submission endpoints.
-- Common validation and error response behaviour.
+- Authentication endpoints
+- Simulated inbox endpoints
+- Training content endpoints
+- Quiz retrieval and submission endpoints
+- Common validation and error response behaviour
 
 Backend tests should ensure that frontend demo flows receive predictable data and errors.
 
@@ -487,10 +487,10 @@ End-to-end tests should cover only the most important Demo 1 paths.
 
 Suggested future E2E paths:
 
-- Login and access Demo 1 trainee area.
-- Open simulated inbox and view simulated email detail.
-- Open training material and continue toward quiz.
-- Complete quiz and view result/completion feedback.
+- Login and access Demo 1 trainee area
+- Open simulated inbox and view simulated email detail
+- Open training material and continue toward quiz
+- Complete quiz and view result/completion feedback
 
 E2E tests should be limited to high-value demo paths and should not become detailed implementation tickets.
 
@@ -595,3 +595,19 @@ The following rows are placeholders for later integration with actual automated 
 | `QA-VALIDATION-03` | General Form Validation | Quiz required-answer validation                    | `apps/frontend/tests/uc03-quiz-flow`             |
 | `QA-VALIDATION-04` | General Form Validation | Backend validation error display                   | `apps/backend/tests/base-form-validation`        |
 | `QA-VALIDATION-05` | General Form Validation | Repeated submission handling                       | `apps/frontend/tests/base-form-validation`       |
+
+---
+
+## Appendix A: Document Change History
+
+| Version | Date       | Author(s)         | Sections / Area Updated              | Summary of Change                                                       |
+| ------- | ---------- | ----------------- | ------------------------------------ | ----------------------------------------------------------------------- |
+| 0.1.0   | 2026-04-27 | Johan Nel         | Initial document                     | Created the initial Demo 1 testing plan.                                |
+| 0.1.1   | 2026-05-03 | Zoë Joubert       | QA/testing plan                      | Added the full Demo 1 QA and testing plan.                              |
+| 0.1.2   | 2026-05-07 | Johan Nel         | Testing structure                    | Aligned testing document with SRS and traceability structure.           |
+| 0.1.3   | 2026-05-09 | Rudolph Lamprecht | Technical constraints; test coverage | Expanded testing references for technical requirements and constraints. |
+| 0.1.4   | 2026-05-10 | Johan Nel         | Terminology; test coverage           | Updated terminology and improved alignment with SRS/traceability.       |
+| 0.1.5   | 2026-05-12 | Rudolph Lamprecht | Test coverage documentation          | Updated test coverage documentation.                                    |
+| 0.1.6   | 2026-05-16 | Johan Nel         | Terminology                          | Updated testing terminology for trainee/domain-model alignment.         |
+| 0.1.7   | 2026-05-19 | Johan Nel         | Traceability references              | Aligned testing references with other Demo 1 docs.                      |
+| 0.1.8   | 2026-05-21 | Johan Nel         | Headings; formatting                 | Cleaned headings/formatting as part of final documentation pass.        |

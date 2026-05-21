@@ -161,11 +161,11 @@ The rules apply mainly to:
 
 The UI should help trainees understand:
 
-- what is required;
-- what is happening;
-- what succeeded;
-- what failed;
-- what they can do next.
+- What is required
+- What is happening
+- What succeeded
+- What failed
+- What they can do next
 
 ### Field-Level Validation Messages
 
@@ -200,11 +200,11 @@ Rules:
 
 Appropriate uses include:
 
-- training document load failure;
-- quiz submission failure;
-- quiz results load failure;
-- unavailable assigned content;
-- authentication failure on login/register base screens.
+- Training document load failure
+- Quiz submission failure
+- Quiz results load failure
+- Unavailable assigned content
+- Authentication failure on login/register base screens
 
 ### Success Messages
 
@@ -252,9 +252,9 @@ Rules:
 
 Applicable Demo 1 examples:
 
-- no assigned training documents;
-- no simulated inbox items;
-- no available quiz content.
+- No assigned training documents
+- No simulated inbox items
+- No available quiz content
 
 ### Loading and Submitting States
 
@@ -287,9 +287,9 @@ Rules:
 
 Applicable Demo 1 examples:
 
-- quiz submit button while submission is processing;
-- login/register submit button while authentication is processing;
-- unavailable quiz action when no quiz is assigned.
+- Quiz submit button while submission is processing
+- Login/register submit button while authentication is processing
+- Unavailable quiz action when no quiz is assigned
 
 ### Quiz Feedback Display
 
@@ -323,10 +323,10 @@ Rules:
 
 Example guidance areas:
 
-- suspicious sender details;
-- urgent or threatening wording;
-- unexpected links or attachments;
-- mismatch between sender identity and message content.
+- Suspicious sender details
+- Urgent or threatening wording
+- Unexpected links or attachments
+- Mismatch between sender identity and message content
 
 ### Accessible Message Presentation
 
@@ -410,9 +410,9 @@ The dashboard should provide clear visibility into assigned training modules and
 
 The trainee should be able to:
 
-- identify available training quickly;
-- continue existing learning progress where available;
-- navigate into assigned training modules with minimal navigation depth.
+- Identify available training quickly
+- Continue existing learning progress where available
+- Navigate into assigned training modules with minimal navigation depth
 
 Training modules should represent broader cybersecurity learning categories, such as “Phishing Awareness" or “Password Security".
 
@@ -420,9 +420,9 @@ Selecting a training module should take the trainee to a list of related trainin
 
 For example, a phishing-awareness module may contain learning material such as:
 
-- identifying phishing emails;
-- spotting fake login pages;
-- SMS phishing awareness.
+- Identifying phishing emails
+- Spotting fake login pages
+- SMS phishing awareness
 
 Selecting a training item should open the relevant training-material page, where the trainee can read the content and continue to related quiz content where applicable.
 
@@ -434,19 +434,19 @@ The Demo 1 _trainee experience_ should avoid presenting the platform as an unstr
 
 The _trainee dashboard_ should provide basic onboarding and orientation guidance to help first-time trainees understand:
 
-- the purpose of the platform;
-- the types of cybersecurity topics available;
-- how training modules are structured;
-- how to begin assigned or recommended learning activities;
-- how training material connects to quizzes or simulations.
+- The purpose of the platform
+- The types of cybersecurity topics available
+- How training modules are structured
+- How to begin assigned or recommended learning activities
+- How training material connects to quizzes or simulations
 
 Examples of supported learning areas may include:
 
-- phishing awareness;
-- password security;
-- suspicious links and attachments;
-- social-engineering awareness;
-- safe credential and payment practices.
+- Phishing awareness
+- Password security
+- Suspicious links and attachments
+- Social-engineering awareness
+- Safe credential and payment practices
 
 > For Demo 1, onboarding guidance should remain basic and informational rather than adaptive or highly personalised.
 
@@ -454,9 +454,9 @@ Future enhancements may expand onboarding into personalised learning paths, trai
 
 The trainee should understand:
 
-- what the platform offers;
-- where to begin;
-- and what actions to take next after authentication (login).
+- What the platform offers
+- Where to begin
+- What actions to take next after authentication (login)
 
 ### Training Module List to Training Material
 
@@ -466,19 +466,19 @@ Training modules should represent broader cybersecurity learning categories, suc
 
 Each module item may display:
 
-- module title;
-- short summary or description;
-- completion or learning progress status;
-- availability state;
-- navigation action to open the related training material.
+- Module title
+- Short summary or description
+- Completion or learning progress status
+- Availability state
+- Navigation action to open the related training material
 
 Selecting a training module should open the associated training-material list for that topic.
 
 The training-material list may contain individual learning items such as:
 
-- identifying phishing emails;
-- spotting fake login pages;
-- SMS phishing awareness.
+- Identifying phishing emails
+- Spotting fake login pages
+- SMS phishing awareness
 
 Selecting a training item should open the corresponding training-material page.
 
@@ -494,10 +494,10 @@ The training material page supports the trainee flow for `UC-02` by presenting a
 
 The trainee should be able to:
 
-- read assigned training content;
-- understand the relationship between the training material and the associated quiz;
-- navigate to the associated quiz flow when available;
-- return safely to the module list or dashboard.
+- Read assigned training content
+- Understand the relationship between the training material and the associated quiz
+- Navigate to the associated quiz flow when available
+- Return safely to the module list or dashboard
 
 If a linked quiz exists, the training material page should present the quiz action as a clear next step within the learning flow.
 
@@ -511,9 +511,9 @@ Training-related screens should provide consistent and predictable return naviga
 
 The trainee should be able to return to:
 
-- the trainee dashboard;
-- the training module list;
-- previously viewed training content where applicable.
+- The trainee dashboard
+- The training module list
+- Previously viewed training content where applicable
 
 Navigation actions should remain visible and understandable across supported screen sizes.
 
@@ -529,17 +529,17 @@ Loading states should communicate when training content, module information, or 
 
 Empty states should explain when:
 
-- no training modules are assigned;
-- no training content is available;
-- no related quiz content exists.
+- No training modules are assigned
+- No training content is available
+- No related quiz content exists
 
 Locked or unavailable states should clearly distinguish inaccessible content from available content and should explain the limitation where appropriate.
 
 Error states should:
 
-- avoid exposing technical implementation details;
-- provide safe retry or return-navigation behaviour;
-- preserve trainee orientation where possible.
+- Avoid exposing technical implementation details
+- Provide safe retry or return-navigation behaviour
+- Preserve trainee orientation where possible
 
 Training flows should avoid blank, broken, or dead-end screens during loading or failure conditions.
 
@@ -549,19 +549,83 @@ Demo 1 trainee flows should remain usable across desktop, tablet, and mobile lay
 
 Training-related screens should prioritise:
 
-- readable training content;
-- visible primary navigation actions;
-- touch-friendly interaction areas;
-- clear back-navigation behaviour;
-- accessible quiz-entry actions.
+- Readable training content
+- Visible primary navigation actions
+- Touch-friendly interaction areas
+- Clear back-navigation behaviour
+- Accessible quiz-entry actions
 
 Training content should adapt responsively without requiring horizontal scrolling during normal reading behaviour.
 
 Primary trainee actions should remain accessible on smaller screens without excessive navigation complexity.
 
-## Wireframe References
+## Wireframes and Screen Mockups
 
-### [wireframes/](./wireframes/)
+The following wireframes show the intended Demo 1 trainee-facing flow. They are design artefacts used to guide implementation and may differ slightly from the final implemented UI.
+
+Wireframe exports are maintained in [wireframes/](./wireframes/). The editable Figma source is linked from [wireframes/README.md](./wireframes/README.md).
+
+### Register Page
+
+![Register page wireframe](./wireframes/Register.png)
+
+The register page supports the base access flow. It shows the expected account-creation fields and the visual direction for form layout and validation placement.
+
+### Login Page
+
+![Login page wireframe](./wireframes/Login.png)
+
+The login page provides the entry point into the Demo 1 trainee flow. It should keep credential entry simple and provide clear error feedback when authentication fails.
+
+### Campaign / Activity Overview
+
+![Campaign activity overview wireframe](./wireframes/TrainingModuleList.png)
+
+This first-pass overview frame shows how available trainee activities can be listed before opening training or quiz content. The current campaign-based implementation may label this screen differently, but the layout intent is a clear, scannable activity list.
+
+### Simulated Inbox
+
+![Simulated inbox wireframe](./wireframes/SimulatedInbox.png)
+
+The simulated inbox supports UC-01 by presenting campaign-provided simulated email summaries in a familiar inbox-style layout. The screen should remain clearly simulated and must not imply access to a real mailbox.
+
+### Simulated Email Detail
+
+![Simulated email detail wireframe](./wireframes/SimulatedEmailDetail.png)
+
+The email detail screen lets the trainee inspect one simulated email. Sender details, subject, body content, and back navigation should remain easy to find.
+
+### Training Document Page
+
+![Training document page wireframe](./wireframes/TrainingMaterialPage.png)
+
+The training document page supports UC-02 by presenting assigned training content in a focused reading layout. It also provides a clear path onward where related quiz content is available.
+
+### Quiz Page
+
+![Quiz page wireframe](./wireframes/QuizPage.png)
+
+The quiz page supports UC-03 by presenting questions and answer choices clearly. Validation and submission controls should make it obvious what the trainee must complete before submitting.
+
+### Quiz Submission State
+
+![Quiz submission state wireframe](./wireframes/QuizSubmission.png)
+
+The quiz submission state shows how the interface should communicate that answers are being processed. It should prevent duplicate submissions and avoid leaving the trainee on a blank or uncertain page.
+
+### Quiz Results Page
+
+No separate quiz results image export is currently available in the repository. Result-screen behaviour is still documented in the Quiz Results Page section above and should be exported when the next design pass produces a stable frame.
+
+### Missing Wireframe Exports
+
+The current repository exports do not include separate images for:
+
+- Campaigns page / trainee campaign list
+- Campaign detail or campaign item tree
+- Quiz results page
+
+These screens should be exported from the editable design source when available so the static design document fully covers the implemented Demo 1 campaign journey.
 
 ## Cross-References
 
@@ -570,3 +634,17 @@ Primary trainee actions should remain accessible on smaller screens without exce
 ### API
 
 ### Testing
+
+---
+
+## Appendix A: Document Change History
+
+| Version | Date       | Author(s)   | Sections / Area Updated                    | Summary of Change                                                    |
+| ------- | ---------- | ----------- | ------------------------------------------ | -------------------------------------------------------------------- |
+| 0.1.0   | 2026-04-27 | Johan Nel   | Initial design scope                       | Created/expanded initial Demo 1 design specification.                |
+| 0.1.1   | 2026-05-03 | Zoë Joubert | Feedback UI; validation; phishing feedback | Added UI feedback, validation, and phishing feedback scope guidance. |
+| 0.1.2   | 2026-05-07 | Johan Nel   | Design structure; cross-references         | Aligned design document structure with other Demo 1 docs.            |
+| 0.1.3   | 2026-05-09 | Connor Bell | Trainee navigation; training screens       | Added navigation and training-screen behaviour documentation.        |
+| 0.1.4   | 2026-05-10 | Johan Nel   | Terminology                                | Updated learner/employee wording to trainee.                         |
+| 0.1.5   | 2026-05-10 | Zoë Joubert | UI feedback rules                          | Added Demo 1 feedback and accessibility UI rules.                    |
+| 0.1.6   | 2026-05-21 | Johan Nel   | Headings; links                            | Cleaned headings and links during domain-model documentation update. |
