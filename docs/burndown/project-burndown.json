@@ -286,8 +286,8 @@
           "number": 93,
           "title": "docs: Create Demo 1 script and seeded demo path",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-05-21"
         },
         {
           "number": 92,
@@ -611,7 +611,7 @@
     },
     {
       "date": "2026-05-21",
-      "remaining": 22,
+      "remaining": 20,
       "ideal": 0.0
     }
   ]
