@@ -40,7 +40,7 @@ function toTitleCase(value: string): string {
 function getCampaignItemRoute(
   item: GetTraineeCampaignDetailResponseDto['items'][number],
 ): string | null {
-  if (item.itemType !== 'COMPONENT' || !item.isOpenable || !item.activityApiPath) {
+  if (item.itemType !== 'COMPONENT' || !item.activityApiPath) {
     return null;
   }
 
@@ -51,6 +51,10 @@ function getCampaignItemRoute(
         : null;
     case 'QUIZ':
       return item.activityApiPath.endsWith('/quiz') ? `/quizzes/${item.campaignItemId}` : null;
+    case 'SIMULATED_INBOX':
+      return item.activityApiPath.endsWith('/simulated-inbox')
+        ? `/trainee/campaign-items/${item.campaignItemId}/simulated-inbox`
+        : null;
     default:
       return null;
   }
@@ -80,7 +84,7 @@ function renderCampaignItems(
         return null;
       }
 
-      const disabled = item.availabilityStatus !== 'AVAILABLE';
+      const disabled = item.availabilityStatus !== 'AVAILABLE' || !item.isOpenable;
 
       return (
         <TrainingActionRow
@@ -102,7 +106,7 @@ function renderCampaignItems(
         return null;
       }
 
-      const disabled = item.availabilityStatus !== 'AVAILABLE';
+      const disabled = item.availabilityStatus !== 'AVAILABLE' || !item.isOpenable;
 
       return (
         <TrainingActionRow
@@ -118,15 +122,23 @@ function renderCampaignItems(
     }
 
     if (item.componentType === 'SIMULATED_INBOX') {
-      // Keep the seeded campaign item visible without changing inbox routing in this UC-02 PR.
+      const actionRoute = getCampaignItemRoute(item);
+
+      if (!actionRoute) {
+        return null;
+      }
+
+      const disabled = item.availabilityStatus !== 'AVAILABLE' || !item.isOpenable;
+
       return (
         <TrainingActionRow
           key={item.campaignItemId}
           label={`Simulation: ${toTitleCase(item.title)}`}
           status={formatCampaignStatus(item.progressStatus)}
-          disabled
-          showLockIcon
+          disabled={disabled}
+          showLockIcon={disabled}
           iconType="simulation"
+          onClick={disabled ? undefined : () => navigate(actionRoute)}
         />
       );
     }

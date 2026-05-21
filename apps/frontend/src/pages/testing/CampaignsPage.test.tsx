@@ -1,7 +1,8 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ReactNode } from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import CampaignsPage from '../CampaignsPage';
 import { getTraineeCampaignDetail, getTraineeCampaigns } from '../../lib/campaignsApi';
 
@@ -167,12 +168,16 @@ describe('CampaignsPage', () => {
   it('routes training document campaign items to the frontend training page', async () => {
     render(<CampaignsPage />);
 
-    const campaignToggle = await screen.findByRole('button', { name: /quarterly awareness/i });
+    const campaignToggle = await screen.findByRole('button', {
+      name: /quarterly awareness/i,
+    });
+
     fireEvent.click(campaignToggle);
 
     const trainingRow = await screen.findByRole('button', {
       name: /learn: "read phishing warning signs"/i,
     });
+
     fireEvent.click(trainingRow);
 
     await waitFor(() => {
@@ -183,35 +188,50 @@ describe('CampaignsPage', () => {
   it('routes quiz campaign items to the frontend quiz page', async () => {
     render(<CampaignsPage />);
 
-    const campaignToggle = await screen.findByRole('button', { name: /quarterly awareness/i });
+    const campaignToggle = await screen.findByRole('button', {
+      name: /quarterly awareness/i,
+    });
+
     fireEvent.click(campaignToggle);
 
-    const quizRow = await screen.findByRole('button', { name: /quiz: "phishing basics quiz"/i });
+    const quizRow = await screen.findByRole('button', {
+      name: /quiz: "phishing basics quiz"/i,
+    });
+
     fireEvent.click(quizRow);
 
     await waitFor(() => {
       expect(mockedGetTraineeCampaigns).toHaveBeenCalled();
+
       expect(mockedGetTraineeCampaignDetail).toHaveBeenCalledWith(
         '11111111-1111-4111-8111-111111111111',
       );
+
       expect(navigateMock).toHaveBeenCalledWith('/quizzes/33333333-3333-4333-8333-333333333334');
     });
   });
 
-  it('does not add a plain inbox route for simulated inbox campaign items', async () => {
+  it('routes simulated inbox campaign items to the trainee simulated inbox page', async () => {
     render(<CampaignsPage />);
 
-    const campaignToggle = await screen.findByRole('button', { name: /quarterly awareness/i });
+    const campaignToggle = await screen.findByRole('button', {
+      name: /quarterly awareness/i,
+    });
+
     fireEvent.click(campaignToggle);
 
     const simulationRow = await screen.findByRole('button', {
       name: /simulation: classify simulated emails/i,
     });
 
-    expect(simulationRow).toBeDisabled();
+    expect(simulationRow).not.toBeDisabled();
 
     fireEvent.click(simulationRow);
 
-    expect(navigateMock).not.toHaveBeenCalledWith('/simulation/inbox');
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalledWith(
+        '/trainee/campaign-items/33333333-3333-4333-8333-333333333335/simulated-inbox',
+      );
+    });
   });
 });
