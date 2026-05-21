@@ -1,0 +1,19 @@
+docs/demo1/DESIGN.md
+  s_146efc178adaf9::t_59d195f6314b4a 611
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.11",
+  "base_commit_sha": "98160e42e3a893fb4e2fef344358854919991791",
+  "prompts": {},
+  "sessions": {
+    "s_146efc178adaf9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e4aff-8353-7972-9bba-6484ca24d56d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
