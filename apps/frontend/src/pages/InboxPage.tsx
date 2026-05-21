@@ -22,8 +22,21 @@ function InboxPage() {
   const { token } = useAuth();
 
   const [emails, setEmails] = useState<SimulatedEmailSummaryDto[]>([]);
+  const [openedEmailIds, setOpenedEmailIds] = useState<Set<string>>(new Set());
 
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!campaignItemId) {
+      return;
+    }
+
+    const storedOpenedEmails = localStorage.getItem(`opened-simulated-emails-${campaignItemId}`);
+
+    if (storedOpenedEmails) {
+      setOpenedEmailIds(new Set(JSON.parse(storedOpenedEmails) as string[]));
+    }
+  }, [campaignItemId]);
 
   useEffect(() => {
     async function loadInbox() {
@@ -44,6 +57,25 @@ function InboxPage() {
 
     void loadInbox();
   }, [campaignItemId, token]);
+
+  const handleOpenEmail = (emailId: string) => {
+    if (!campaignItemId) {
+      return;
+    }
+
+    const updatedOpenedEmails = new Set(openedEmailIds);
+
+    updatedOpenedEmails.add(emailId);
+
+    setOpenedEmailIds(updatedOpenedEmails);
+
+    localStorage.setItem(
+      `opened-simulated-emails-${campaignItemId}`,
+      JSON.stringify(Array.from(updatedOpenedEmails)),
+    );
+
+    navigate(`/trainee/campaign-items/${campaignItemId}/simulated-emails/${emailId}`);
+  };
 
   return (
     <AppLayout>
@@ -194,11 +226,16 @@ function InboxPage() {
                 sender={email.senderLabel}
                 subject={email.subject}
                 preview={email.preview ?? ''}
-                time={new Date(email.receivedAt).toLocaleString()}
-                unread
-                onClick={() =>
-                  navigate(`/trainee/campaign-items/${campaignItemId}/simulated-emails/${email.id}`)
-                }
+                time={new Date(email.receivedAt).toLocaleString('en-GB', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                  hour: 'numeric',
+                  minute: '2-digit',
+                  hour12: true,
+                })}
+                unread={!openedEmailIds.has(email.id)}
+                onClick={() => handleOpenEmail(email.id)}
               />
             ))
           )}

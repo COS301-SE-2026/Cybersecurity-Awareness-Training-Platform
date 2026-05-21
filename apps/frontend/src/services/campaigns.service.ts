@@ -3,6 +3,8 @@ import type {
   GetSimulatedInboxResponseDto,
   GetTraineeCampaignDetailResponseDto,
   GetTraineeCampaignsResponseDto,
+  RecordSimulatedEmailInteractionResponseDto,
+  SimulatedEmailInteractionEventTypeDto,
 } from '@insightful-phish/shared';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -82,6 +84,35 @@ export async function getTraineeCampaign(
 
   if (!response.ok) {
     throw new Error('FAILED TO FETCH CAMPAIGN');
+  }
+
+  return data;
+}
+
+export async function recordSimulatedEmailInteraction(
+  campaignItemId: string,
+  emailId: string,
+  eventType: SimulatedEmailInteractionEventTypeDto,
+  token: string,
+): Promise<RecordSimulatedEmailInteractionResponseDto> {
+  const response = await fetch(
+    `${API_BASE_URL}/trainee/campaign-items/${campaignItemId}/simulated-emails/${emailId}/interactions`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        eventType,
+      }),
+    },
+  );
+
+  const data = (await response.json()) as RecordSimulatedEmailInteractionResponseDto;
+
+  if (!response.ok) {
+    throw new Error('FAILED TO RECORD SIMULATED EMAIL INTERACTION');
   }
 
   return data;

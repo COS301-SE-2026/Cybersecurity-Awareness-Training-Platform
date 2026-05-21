@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import type { GetSimulatedEmailResponseDto } from '@insightful-phish/shared';
 import AppLayout from '../components/layout/AppLayout';
 import { useAuth } from '../context/useAuth';
-import { getSimulatedEmail } from '../services/campaigns.service';
+import { getSimulatedEmail, recordSimulatedEmailInteraction } from '../services/campaigns.service';
 
 function EmailDetailPage() {
   const navigate = useNavigate();
@@ -37,6 +37,27 @@ function EmailDetailPage() {
 
     void loadEmail();
   }, [campaignItemId, emailId, token]);
+
+  useEffect(() => {
+    async function recordEmailOpened() {
+      if (!campaignItemId || !emailId || !token || !email) {
+        return;
+      }
+
+      try {
+        await recordSimulatedEmailInteraction(
+          campaignItemId,
+          emailId,
+          'SIMULATED_EMAIL_OPENED',
+          token,
+        );
+      } catch (error) {
+        console.error('FAILED TO RECORD EMAIL OPEN EVENT', error);
+      }
+    }
+
+    void recordEmailOpened();
+  }, [campaignItemId, emailId, token, email]);
 
   function formatEmailTime(dateString: string): string {
     const parsedDate = new Date(dateString);
