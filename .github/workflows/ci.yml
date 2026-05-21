@@ -1,5 +1,5 @@
 # Continuous Integration Workflow
-# This workflow runs on pull requests to main and dev branches.
+# This workflow runs on pull requests and pushes to main and dev branches.
 # It includes formatting, linting, typechecking, testing, and building.
 
 name: Continuous Integration
@@ -14,6 +14,10 @@ on:
       - reopened
       - synchronize
       - ready_for_review
+  push:
+    branches:
+      - main
+      - dev
   workflow_dispatch:
 
 concurrency:
@@ -164,6 +168,9 @@ jobs:
       - name: Verify frontend coverage
         run: ls -R apps/frontend/coverage/
 
+      - name: Verify shared coverage
+        run: ls -R packages/shared/coverage/
+
       - name: Upload backend coverage report
         uses: actions/upload-artifact@v4
         if: always()
@@ -177,6 +184,25 @@ jobs:
         with:
           name: coverage-frontend
           path: apps/frontend/coverage/
+
+      - name: Upload shared coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-shared
+          path: packages/shared/coverage/
+
+      - name: Upload coverage to Codecov
+        # Pinned to a full commit SHA to satisfy supply-chain/security scanning.
+        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238
+        if: always()
+        with:
+          files: ./apps/backend/coverage/lcov.info,./apps/frontend/coverage/lcov.info,./packages/shared/coverage/lcov.info
+          flags: backend,frontend,shared
+          disable_search: true
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   integration-tests:
     name: Integration Tests
