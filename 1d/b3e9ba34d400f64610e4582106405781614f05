@@ -1,0 +1,19 @@
+docs/demo1/API.md
+  s_4de9747108065e::t_7e98b6a6aee2ee 629-630,638-639,674
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.11",
+  "base_commit_sha": "1db3e9ba34d400f64610e4582106405781614f05",
+  "prompts": {},
+  "sessions": {
+    "s_4de9747108065e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e474b-4c60-79f2-9e2c-45b84818d54b",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
