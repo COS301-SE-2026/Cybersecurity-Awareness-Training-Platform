@@ -1,0 +1,14 @@
+README.md
+  h_1fff265ad32c51 67,70,73,79,82,84-85,95-96,119,129,139
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.11",
+  "base_commit_sha": "3f4653a6117614a363f2d904b7f4cb52c54bca1c",
+  "prompts": {},
+  "humans": {
+    "h_1fff265ad32c51": {
+      "author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
