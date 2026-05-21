@@ -70,6 +70,7 @@ export interface SimulatedEmailSummaryDto {
   preview?: string | null;
   receivedAt: string;
   difficultyLevel: DifficultyLevelDto;
+  isOpened: boolean;
 }
 
 export interface GetSimulatedInboxResponseDto {
