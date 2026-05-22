@@ -1,0 +1,89 @@
+name: Policy
+
+'on':
+  pull_request:
+    branches:
+      - dev
+      - main
+    types:
+      - opened
+      - edited
+      - synchronize
+      - reopened
+      - ready_for_review
+  push:
+    branches:
+      - dev
+      - main
+  workflow_dispatch:
+
+jobs:
+  env-files:
+    name: Check for ENV files
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout PR history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check env files
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base_sha="${{ github.event.pull_request.base.sha }}"
+            head_sha="${{ github.event.pull_request.head.sha }}"
+            changed_files="$(git diff --name-only --diff-filter=ACMR "$base_sha" "$head_sha" || true)"
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            base_sha="${{ github.event.before }}"
+            head_sha="${{ github.sha }}"
+            if [ "$base_sha" = "0000000000000000000000000000000000000000" ]; then
+              changed_files="$(git diff-tree --no-commit-id --name-only -r "$head_sha" || true)"
+            else
+              changed_files="$(git diff --name-only --diff-filter=ACMR "$base_sha" "$head_sha" || true)"
+            fi
+          else
+            changed_files="$(git diff-tree --no-commit-id --name-only -r HEAD || true)"
+          fi
+
+          if [ -z "$changed_files" ]; then
+            echo "No changed files to check."
+            exit 0
+          fi
+
+          blocked_files=()
+
+          while IFS= read -r file; do
+            basename="$(basename "$file")"
+
+            if [ "$basename" = ".env.example" ]; then
+              continue
+            fi
+
+            if [ "$basename" = "env" ] || [ "$basename" = ".env" ]; then
+              blocked_files+=("$file")
+              continue
+            fi
+
+            if [[ "$basename" =~ ^\.env\..+ ]] || [[ "$basename" =~ ^env\.(local|production|prod|development|dev|test|staging)$ ]]; then
+              blocked_files+=("$file")
+              continue
+            fi
+          done <<< "$changed_files"
+
+          if [ "${#blocked_files[@]}" -gt 0 ]; then
+            echo "Environment file policy failed."
+            echo "The following environment files must not be committed:"
+            printf '  - %s\n' "${blocked_files[@]}"
+            echo ""
+            echo "Only .env.example may be committed."
+            exit 1
+          fi
+
+          echo "Environment file policy passed."

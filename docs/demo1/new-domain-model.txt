@@ -1,0 +1,337 @@
+Domain model description
+<>-- means filled diamond / composition
+--- means normal association
+inherits from means UML generalisation with the hollow triangle pointing to the parent class
+
+Note: Inheritance in this domain model is conceptual UML inheritance. It does not imply that Prisma must implement table inheritance directly. The Prisma implementation may use profiles, role tables, enums, explicit relations, or join tables where that is cleaner.
+
+HEALTHCHECK
+- id (String)
+- message (String)
+- createdAt (DateTime)
+
+USER
+- id (String)
+- firstName (String)
+- lastName (String)
+- email (String)
+- passwordHash (String)
+- userType (enum: IP_ADMIN, ORGANISATION_ADMIN, ORGANISATION_TRAINEE, GENERAL_TRAINEE)
+- authStatus (enum: PENDING, ACTIVE, DISABLED)
+- createdAt (DateTime)
+- updatedAt (DateTime)
+
+TRAINEE
+- traineeStatus (enum: ACTIVE, INACTIVE)
+
+GENERALTRAINEE
+- accessSource (enum: SELF_SIGNUP, INVITE, SEED, ADMIN_CREATED)
+
+ORGANISATIONTRAINEE
+- employeeLabel (String?)
+- joinedAt (DateTime)
+- organisationUserStatus (enum: ACTIVE, INACTIVE)
+
+ORGANISATIONADMIN
+- adminStatus (enum: ACTIVE, INACTIVE)
+- joinedAt (DateTime)
+
+IPADMIN
+- adminStatus (enum: ACTIVE, INACTIVE)
+
+ORGANISATION
+- id (String)
+- name (String)
+- status (enum: ACTIVE, INACTIVE, ARCHIVED)
+- createdAt (DateTime)
+- updatedAt (DateTime)
+
+ORGANISATIONCONTEXT
+- id (String)
+- organisationId (String)
+- uploadedByUserId (String?)
+- contextType (enum: LOGO, BRAND_GUIDELINES, SECURITY_POLICY, STAFF_STRUCTURE, INTERNAL_TERMINOLOGY, APPROVED_DOMAINS, EMAIL_SIGNATURE_FORMAT, OTHER)
+- name (String)
+- description (String?)
+- contentSummary (String?)
+- contentRef (String?)
+- metadata (Json?)
+- processingStatus (enum: UPLOADED, PROCESSING, READY, NEEDS_REVIEW, ARCHIVED)
+- aiUsable (Boolean)
+- createdAt (DateTime)
+- updatedAt (DateTime)
+
+TRAINEE inherits from USER
+GENERALTRAINEE inherits from TRAINEE
+ORGANISATIONTRAINEE inherits from TRAINEE
+ORGANISATIONADMIN inherits from USER
+IPADMIN inherits from USER
+
+ORGANISATION 1 --- 0..* ORGANISATIONTRAINEE
+ORGANISATION 1 --- 1..* ORGANISATIONADMIN
+ORGANISATION 1 <>-- 0..* ORGANISATIONCONTEXT
+
+CAMPAIGN
+- id (String)
+- organisationId (String?)
+- createdByUserId (String?)
+- name (String)
+- description (String?)
+- campaignType (enum: PREMADE_GENERAL, ORGANISATION_CUSTOM)
+- difficultyLevel (enum: BEGINNER, INTERMEDIATE, ADVANCED, ADAPTIVE)
+- status (enum: DRAFT, ACTIVE, PAUSED, COMPLETED, ARCHIVED)
+- startDate (DateTime?)
+- endDate (DateTime?)
+- createdAt (DateTime)
+- updatedAt (DateTime)
+
+CAMPAIGNASSIGNMENT
+- id (String)
+- campaignId (String)
+- traineeId (String)
+- assignedByUserId (String?)
+- assignedAt (DateTime)
+- dueDate (DateTime?)
+- startedAt (DateTime?)
+- completedAt (DateTime?)
+- assignmentStatus (enum: AVAILABLE, ASSIGNED, IN_PROGRESS, COMPLETED, CANCELLED, EXPIRED)
+- accessType (enum: ASSIGNED, SELF_SELECTED)
+- createdAt (DateTime)
+- updatedAt (DateTime)
+
+CAMPAIGNITEM
+- id (String)
+- campaignId (String)
+- title (String)
+- description (String?)
+- position (Int)
+- isRequired (Boolean)
+- availabilityStatus (enum: AVAILABLE, LOCKED, UNAVAILABLE, ARCHIVED)
+- createdAt (DateTime)
+- updatedAt (DateTime)
+
+CAMPAIGNCOMPONENT
+- id (String)
+- componentType (enum: TRAINING_DOCUMENT, QUIZ, SIMULATED_INBOX)
+- difficultyLevel (enum: BEGINNER, INTERMEDIATE, ADVANCED, ADAPTIVE)
+
+CAMPAIGNCOMPONENTGROUP
+- id (String)
+- groupType (enum: SECTION, MODULE, REVISION_SET, ASSESSMENT_SET, SIMULATION_SET)
+- completionRule (enum: COMPLETE_ALL, COMPLETE_ANY, COMPLETE_REQUIRED_ONLY)
+
+CAMPAIGNCOMPONENT inherits from CAMPAIGNITEM
+CAMPAIGNCOMPONENTGROUP inherits from CAMPAIGNITEM
+
+CAMPAIGNCOMPONENTGROUP 1 <>-- 1..* CAMPAIGNCOMPONENT
+CAMPAIGNCOMPONENTGROUP does not contain other CAMPAIGNCOMPONENTGROUP records; only one grouping level is supported.
+CAMPAIGN 1 <>-- 0..* CAMPAIGNITEM
+ORGANISATION 0..1 --- 0..* CAMPAIGN
+ORGANISATIONADMIN 1 --- 0..* CAMPAIGN
+IPADMIN 1 --- 0..* CAMPAIGN
+CAMPAIGN 0..* --- 0..* CAMPAIGN (requires completion of)
+TRAINEE 1 --- 0..* CAMPAIGNASSIGNMENT
+CAMPAIGN 1 --- 0..* CAMPAIGNASSIGNMENT
+
+INTERACTIONEVENT
+- id (String)
+- traineeId (String)
+- campaignAssignmentId (String?)
+- campaignComponentId (String?)
+- eventType (enum: CAMPAIGN_STARTED, CAMPAIGN_ITEM_STARTED, CAMPAIGN_ITEM_COMPLETED, TRAINING_VIEWED, TRAINING_COMPLETED, QUIZ_STARTED, QUIZ_ANSWER_SUBMITTED, QUIZ_COMPLETED, SIMULATED_EMAIL_OPENED, SIMULATED_EMAIL_LINK_CLICKED, SIMULATED_EMAIL_CLASSIFIED, CREDENTIAL_SUBMISSION_ATTEMPTED)
+- targetType (enum: CAMPAIGN, CAMPAIGN_ITEM, CAMPAIGN_COMPONENT, TRAINING_DOCUMENT, QUIZ, QUIZ_ATTEMPT, QUIZ_QUESTION, SIMULATED_EMAIL)
+- targetId (String)
+- occurredAt (DateTime)
+- metadata (Json?)
+- createdAt (DateTime)
+
+TRAINEE 1 --- 0..* INTERACTIONEVENT
+CAMPAIGNCOMPONENT 1 --- 0..* INTERACTIONEVENT
+
+TRAININGDOCUMENTCOMPONENT
+- id (String)
+- trainingDocumentId (String)
+
+QUIZCOMPONENT
+- id (String)
+- quizId (String)
+
+SIMULATIONCOMPONENT
+- id (String)
+- simulationId (String)
+
+TRAININGDOCUMENTCOMPONENT inherits from CAMPAIGNCOMPONENT 
+QUIZCOMPONENT inherits from CAMPAIGNCOMPONENT
+SIMULATIONCOMPONENT inherits from CAMPAIGNCOMPONENT
+
+TRAININGDOCUMENT
+- id (String)
+- createdByUserId (String?)
+- title (String)
+- contentType (enum: PDF, MARKDOWN, HTML, URL, INTERACTIVE)
+- contentRef (String)
+- contentSummary (String?)
+- estimatedReadTimeMinutes (Int?)
+- difficultyLevel (enum: BEGINNER, INTERMEDIATE, ADVANCED, ADAPTIVE)
+- status (enum: DRAFT, AVAILABLE, UNAVAILABLE, ARCHIVED)
+- createdAt (DateTime)
+- updatedAt (DateTime)
+
+TRAININGDOCUMENTCOMPONENT 1 --- 1 TRAININGDOCUMENT
+
+QUIZ
+- id (String)
+- createdByUserId (String?)
+- title (String)
+- description (String?)
+- passThresholdPercentage (Int)
+- difficultyLevel (enum: BEGINNER, INTERMEDIATE, ADVANCED, ADAPTIVE)
+- status (enum: DRAFT, PUBLISHED, ARCHIVED)
+- createdAt (DateTime)
+- updatedAt (DateTime)
+
+QUIZQUESTION
+- id (String)
+- quizId (String)
+- prompt (String)
+- questionType (enum: SINGLE_CHOICE, MULTIPLE_CHOICE)
+- position (Int)
+- points (Int)
+- createdAt (DateTime)
+- updatedAt (DateTime)
+
+CHOICEQUESTION
+- id (String)
+- shuffleOptions (Boolean)
+
+SINGLECHOICEQUESTION
+- id (String)
+
+MULTICHOICEQUESTION
+- id (String)
+- minSelections (Int?)
+- maxSelections (Int?)
+
+ANSWEROPTION
+- id (String)
+- questionId (String)
+- label (String)
+- text (String)
+- isCorrect (Boolean)
+- position (Int)
+- feedbackText (String?)
+- createdAt (DateTime)
+- updatedAt (DateTime)
+
+ATTEMPTANSWER
+- id (String)
+- attemptId (String)
+- questionId (String)
+- responseSummary (String?)
+- typedResponse (String?)
+- isCorrect (Boolean?)
+- awardedPoints (Int?)
+- feedbackShown (String?)
+- createdAt (DateTime)
+- updatedAt (DateTime)
+
+QUIZATTEMPT
+- id (String)
+- traineeId (String)
+- quizId (String)
+- campaignAssignmentId (String?)
+- campaignComponentId (String?)
+- status (enum: IN_PROGRESS, SUBMITTED)
+- startedAt (DateTime)
+- submittedAt (DateTime?)
+- createdAt (DateTime)
+- updatedAt (DateTime)
+
+QUIZRESULT
+- id (String)
+- attemptId (String)
+- scorePercentage (Int)
+- passed (Boolean)
+- summary (String?)
+- createdAt (DateTime)
+- updatedAt (DateTime)
+
+QUIZCOMPONENT 1 --- 1 QUIZ
+QUIZ 1 --- 0..* QUIZATTEMPT
+QUIZ 1 <>-- 1..* QUIZQUESTION
+CHOICEQUESTION inherits from QUIZQUESTION
+SINGLECHOICEQUESTION inherits from CHOICEQUESTION
+MULTICHOICEQUESTION inherits from CHOICEQUESTION
+CHOICEQUESTION 1 <>-- 2..* ANSWEROPTION
+QUIZQUESTION 1 --- 0..* ATTEMPTANSWER
+ATTEMPTANSWER 0..* --- 0..* ANSWEROPTION
+QUIZATTEMPT 1 <>-- 0..1 QUIZRESULT
+QUIZATTEMPT 1 <>-- 0..* ATTEMPTANSWER
+TRAINEE 1 --- 0..* QUIZATTEMPT
+
+SIMULATION
+- id (String)
+- createdByUserId (String?)
+- simulationType (enum: SIMULATED_INBOX)
+- title (String)
+- description (String?)
+- objective (String?)
+- safetyStatus (enum: DRAFT, APPROVED, BLOCKED)
+- difficultyLevel (enum: BEGINNER, INTERMEDIATE, ADVANCED, ADAPTIVE)
+- createdAt (DateTime)
+- updatedAt (DateTime)
+
+SIMULATEDINBOX
+- id (String)
+- title (String)
+- description (String?)
+- status (enum: ACTIVE, ARCHIVED)
+- createdAt (DateTime)
+- updatedAt (DateTime)
+
+SIMULATEDEMAIL
+- id (String)
+- inboxId (String)
+- senderLabel (String)
+- senderAddress (String)
+- subject (String)
+- preview (String?)
+- bodyHtml (String)
+- simulatedLinkTarget (String?)
+- hasAttachment (Boolean)
+- receivedAt (DateTime)
+- expectedClassification (enum: SAFE, SUSPICIOUS, PHISHING)
+- difficultyLevel (enum: BEGINNER, INTERMEDIATE, ADVANCED, ADAPTIVE)
+- createdAt (DateTime)
+- updatedAt (DateTime)
+
+EMAILREDFLAG
+- id (String)
+- redFlagType (enum: SENDER, LINK, LANGUAGE, ATTACHMENT, REQUEST, DOMAIN, OTHER)
+- label (String)
+- description (String?)
+- severity (enum: LOW, MEDIUM, HIGH)
+- createdAt (DateTime)
+- updatedAt (DateTime)
+
+EMAILCLASSIFICATIONRESPONSE
+- id (String)
+- traineeId (String)
+- simulatedEmailId (String)
+- selectedClassification (enum: SAFE, SUSPICIOUS, PHISHING)
+- campaignAssignmentId (String?)
+- campaignComponentId (String?)
+- reasonSummary (String?)
+- freeTextReason (String?)
+- isCorrect (Boolean)
+- submittedAt (DateTime)
+- createdAt (DateTime)
+- updatedAt (DateTime)
+
+SIMULATIONCOMPONENT 1 --- 1 SIMULATION
+SIMULATEDINBOX inherits from SIMULATION
+SIMULATEDINBOX 1 <>-- 1..* SIMULATEDEMAIL
+SIMULATEDEMAIL 1 --- 0..* EMAILCLASSIFICATIONRESPONSE
+SIMULATEDEMAIL 1 --- 0..* EMAILREDFLAG
+EMAILREDFLAG 0..* --- 0..* EMAILCLASSIFICATIONRESPONSE
+TRAINEE 1 --- 0..* EMAILCLASSIFICATIONRESPONSE

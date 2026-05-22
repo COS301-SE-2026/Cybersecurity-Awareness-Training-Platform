@@ -1,2 +1,22 @@
+#!/usr/bin/env sh
+
+if [ -z "${BASH_VERSION:-}" ]; then
+  if command -v bash >/dev/null 2>&1; then
+    exec bash "$0" "$@"
+  fi
+
+  echo "Husky commit-msg requires bash. Install Git Bash, WSL, or bash on PATH."
+  exit 127
+fi
+
+set -euo pipefail
+
+COMMIT_SUBJECT="$(head -n 1 "$1")"
+
+if [[ "$COMMIT_SUBJECT" == Merge* ]]; then
+  ./scripts/check-env-files.sh
+  exit 0
+fi
+
 ./scripts/check-commit-message.sh "$1"
 pnpm exec commitlint --edit "$1"

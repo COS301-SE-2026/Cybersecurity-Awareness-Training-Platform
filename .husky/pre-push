@@ -1,1 +1,15 @@
+#!/usr/bin/env sh
+
+if [ -z "${BASH_VERSION:-}" ]; then
+  if command -v bash >/dev/null 2>&1; then
+    exec bash "$0" "$@"
+  fi
+
+  echo "Husky pre-push requires bash. Install Git Bash, WSL, or bash on PATH."
+  exit 127
+fi
+
+set -euo pipefail
+
+./scripts/check-protected-branch.sh push
 ./scripts/check-branch-name.sh

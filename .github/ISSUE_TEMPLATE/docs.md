@@ -1,54 +1,51 @@
 ---
 name: Documentation
 about: Request documentation work or updates
-title: "docs: short-description"
+title: 'docs: short-description'
 labels: type:docs
-assignees: ""
+assignees: ''
 ---
 
 ## Summary
-Briefly describe what documentation needs to be added, updated, clarified, or removed.
 
-## Why this matters
-Explain why this documentation work is needed.
-Examples: missing guidance, outdated content, unclear setup steps, inaccurate diagrams, poor onboarding, missing technical detail.
+What documentation should change?
 
-## Area affected
-Which part of the project is affected?
-Examples: SRS, README, setup docs, API docs, architecture docs, diagrams, developer workflow, deployment docs.
+**Suggested branch name:**
+
+**Story Points:** <value here>
+
+<!-- Use 1, 2, 3, or 5. -->
+
+## Reason
+
+Why is this needed?
 
 ## Scope
-Describe what should be covered or changed.
-Be clear about what is included in this documentation task.
 
-## Out of scope
-List anything that should not be changed as part of this issue.
+Included:
 
-## Files / areas likely affected
-List the files, folders, diagrams, or sections likely involved.
-Examples:
-- `README.md`
-- `docs/...`
-- `.github/...`
-- architecture diagrams
-- API contract sections
+Out of scope:
 
-## Source of truth / references
-List any source material that should be followed.
-Examples:
-- implemented code
-- approved designs
-- meeting notes
-- client feedback
-- existing issue/PR links
+## Files / Areas to Touch
 
-## Acceptance criteria
+-
+
+## References
+
+Source material, links, code, designs, or notes to follow:
+
+## Tasks
+
+- [ ]
+
+## Deadlines
+
+First usable draft:
+
+Final review-ready update:
+
+## Acceptance Criteria
+
 - [ ] The required documentation is added, updated, or removed as needed
-- [ ] Content is accurate and aligned with the current system or agreed design
-- [ ] Relevant files/sections/diagrams were updated as needed
 - [ ] Links, examples, and references were checked
-- [ ] Formatting and structure were reviewed
-- [ ] No unrelated documentation changes are included
-
-## Additional notes
-Anything else the team should know.
+- [ ] Formatting is reviewed

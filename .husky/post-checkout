@@ -1,1 +1,14 @@
+#!/usr/bin/env sh
+
+if [ -z "${BASH_VERSION:-}" ]; then
+  if command -v bash >/dev/null 2>&1; then
+    exec bash "$0" "$@"
+  fi
+
+  echo "Husky post-checkout requires bash. Install Git Bash, WSL, or bash on PATH."
+  exit 127
+fi
+
+set -euo pipefail
+
 ./scripts/check-branch-name.sh --warn-only
