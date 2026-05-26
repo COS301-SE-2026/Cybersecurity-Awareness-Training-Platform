@@ -1,0 +1,24 @@
+GITHUB_RULES.md
+  s_7164e75beb4aea::t_06828ec1e53864 159,163-168,172-174,176
+SETUP.md
+  s_7164e75beb4aea::t_69ef44473becdc 296,300-305,316,318,784,786,795
+scripts/check-commit-message.sh
+  s_7164e75beb4aea::t_28dca417f4b509 66
+  s_7164e75beb4aea::t_6a41f203dea77c 52-65,67-85
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.1",
+  "base_commit_sha": "ea5093274937b65e952513d5bb0d82168ffbd575",
+  "prompts": {},
+  "sessions": {
+    "s_7164e75beb4aea": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e5f14-99b3-7741-940a-bea8cce17fea",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
