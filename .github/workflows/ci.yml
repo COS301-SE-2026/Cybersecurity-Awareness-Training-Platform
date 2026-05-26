@@ -202,7 +202,6 @@ jobs:
           path: packages/shared/coverage/
 
       - name: Upload backend coverage to Codecov
-        # Pinned to a full commit SHA to satisfy supply-chain/security scanning.
         uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238
         if: ${{ !cancelled() }}
         with:
@@ -216,7 +215,6 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Upload frontend coverage to Codecov
-        # Pinned to a full commit SHA to satisfy supply-chain/security scanning.
         uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238
         if: ${{ !cancelled() }}
         with:
@@ -230,7 +228,6 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Upload shared coverage to Codecov
-        # Pinned to a full commit SHA to satisfy supply-chain/security scanning.
         uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238
         if: ${{ !cancelled() }}
         with:
@@ -244,7 +241,7 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Upload backend test results to Codecov
-        uses: codecov/test-results-action@v1
+        uses: codecov/test-results-action@0fa95f0e1eeaafde2c782583b36b28ad0d8c77d3
         if: ${{ !cancelled() }}
         with:
           files: ./apps/backend/test-results.junit.xml
@@ -253,7 +250,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload frontend test results to Codecov
-        uses: codecov/test-results-action@v1
+        uses: codecov/test-results-action@0fa95f0e1eeaafde2c782583b36b28ad0d8c77d3
         if: ${{ !cancelled() }}
         with:
           files: ./apps/frontend/test-results.junit.xml
@@ -262,7 +259,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload shared test results to Codecov
-        uses: codecov/test-results-action@v1
+        uses: codecov/test-results-action@0fa95f0e1eeaafde2c782583b36b28ad0d8c77d3
         if: ${{ !cancelled() }}
         with:
           files: ./packages/shared/test-results.junit.xml
