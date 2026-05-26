@@ -4,26 +4,30 @@
 <rect width="100%" height="100%" fill="#090054"/>
 <text x="70" y="32" font-family="Jost, Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#EEDEFF">Project Burndown</text>
 <line x1="65" y1="355.0" x2="870" y2="355.0" stroke="#3A3A3A"/><text x="58" y="359.0" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="end" fill="#EEDEFF">0</text>
-<line x1="65" y1="317.5" x2="870" y2="317.5" stroke="#3A3A3A"/><text x="58" y="321.5" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="end" fill="#EEDEFF">25</text>
-<line x1="65" y1="280.0" x2="870" y2="280.0" stroke="#3A3A3A"/><text x="58" y="284.0" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="end" fill="#EEDEFF">50</text>
-<line x1="65" y1="242.5" x2="870" y2="242.5" stroke="#3A3A3A"/><text x="58" y="246.5" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="end" fill="#EEDEFF">75</text>
-<line x1="65" y1="205.0" x2="870" y2="205.0" stroke="#3A3A3A"/><text x="58" y="209.0" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="end" fill="#EEDEFF">100</text>
-<line x1="65" y1="167.5" x2="870" y2="167.5" stroke="#3A3A3A"/><text x="58" y="171.5" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="end" fill="#EEDEFF">125</text>
-<line x1="65" y1="130.0" x2="870" y2="130.0" stroke="#3A3A3A"/><text x="58" y="134.0" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="end" fill="#EEDEFF">150</text>
-<line x1="65" y1="92.5" x2="870" y2="92.5" stroke="#3A3A3A"/><text x="58" y="96.5" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="end" fill="#EEDEFF">175</text>
-<line x1="65" y1="55.0" x2="870" y2="55.0" stroke="#3A3A3A"/><text x="58" y="59.0" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="end" fill="#EEDEFF">200</text>
+<line x1="65" y1="327.7" x2="870" y2="327.7" stroke="#3A3A3A"/><text x="58" y="331.7" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="end" fill="#EEDEFF">25</text>
+<line x1="65" y1="300.5" x2="870" y2="300.5" stroke="#3A3A3A"/><text x="58" y="304.5" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="end" fill="#EEDEFF">50</text>
+<line x1="65" y1="273.2" x2="870" y2="273.2" stroke="#3A3A3A"/><text x="58" y="277.2" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="end" fill="#EEDEFF">75</text>
+<line x1="65" y1="245.9" x2="870" y2="245.9" stroke="#3A3A3A"/><text x="58" y="249.9" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="end" fill="#EEDEFF">100</text>
+<line x1="65" y1="218.6" x2="870" y2="218.6" stroke="#3A3A3A"/><text x="58" y="222.6" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="end" fill="#EEDEFF">125</text>
+<line x1="65" y1="191.4" x2="870" y2="191.4" stroke="#3A3A3A"/><text x="58" y="195.4" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="end" fill="#EEDEFF">150</text>
+<line x1="65" y1="164.1" x2="870" y2="164.1" stroke="#3A3A3A"/><text x="58" y="168.1" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="end" fill="#EEDEFF">175</text>
+<line x1="65" y1="136.8" x2="870" y2="136.8" stroke="#3A3A3A"/><text x="58" y="140.8" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="end" fill="#EEDEFF">200</text>
+<line x1="65" y1="109.5" x2="870" y2="109.5" stroke="#3A3A3A"/><text x="58" y="113.5" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="end" fill="#EEDEFF">225</text>
+<line x1="65" y1="82.3" x2="870" y2="82.3" stroke="#3A3A3A"/><text x="58" y="86.3" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="end" fill="#EEDEFF">250</text>
+<line x1="65" y1="55.0" x2="870" y2="55.0" stroke="#3A3A3A"/><text x="58" y="59.0" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="end" fill="#EEDEFF">275</text>
 <line x1="70.0" y1="355" x2="70.0" y2="360" stroke="#EEDEFF"/><text x="70.0" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#EEDEFF">27 Apr</text>
-<line x1="236.7" y1="355" x2="236.7" y2="360" stroke="#EEDEFF"/><text x="236.7" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#EEDEFF">2 May</text>
-<line x1="403.3" y1="355" x2="403.3" y2="360" stroke="#EEDEFF"/><text x="403.3" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#EEDEFF">7 May</text>
-<line x1="570.0" y1="355" x2="570.0" y2="360" stroke="#EEDEFF"/><text x="570.0" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#EEDEFF">12 May</text>
-<line x1="736.7" y1="355" x2="736.7" y2="360" stroke="#EEDEFF"/><text x="736.7" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#EEDEFF">17 May</text>
-<line x1="870.0" y1="355" x2="870.0" y2="360" stroke="#EEDEFF"/><text x="870.0" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#EEDEFF">21 May</text>
+<line x1="207.9" y1="355" x2="207.9" y2="360" stroke="#EEDEFF"/><text x="207.9" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#EEDEFF">2 May</text>
+<line x1="345.9" y1="355" x2="345.9" y2="360" stroke="#EEDEFF"/><text x="345.9" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#EEDEFF">7 May</text>
+<line x1="483.8" y1="355" x2="483.8" y2="360" stroke="#EEDEFF"/><text x="483.8" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#EEDEFF">12 May</text>
+<line x1="621.7" y1="355" x2="621.7" y2="360" stroke="#EEDEFF"/><text x="621.7" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#EEDEFF">17 May</text>
+<line x1="759.7" y1="355" x2="759.7" y2="360" stroke="#EEDEFF"/><text x="759.7" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#EEDEFF">22 May</text>
+<line x1="870.0" y1="355" x2="870.0" y2="360" stroke="#EEDEFF"/><text x="870.0" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#EEDEFF">26 May</text>
 <line x1="70" y1="55" x2="70" y2="355" stroke="#EEDEFF"/>
 <line x1="70" y1="355" x2="870" y2="355" stroke="#EEDEFF"/>
 <text x="18" y="205.0" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="13" text-anchor="middle" transform="rotate(-90 18 205.0)" fill="#EEDEFF">Story Points Remaining</text>
 <text x="470.0" y="408" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="13" text-anchor="middle" fill="#EEDEFF">Sprint Timeline</text>
-<polyline points="70.0,61.0 103.3,73.3 136.7,85.5 170.0,97.8 203.3,110.0 236.7,122.2 270.0,134.5 303.3,146.8 336.7,159.0 370.0,171.2 403.3,183.5 436.7,195.7 470.0,208.0 503.3,220.3 536.7,232.5 570.0,244.8 603.3,257.0 636.7,269.2 670.0,281.5 703.3,293.8 736.7,306.0 770.0,318.2 803.3,330.5 836.7,342.7 870.0,355.0" fill="none" stroke="#B37DFF" stroke-width="3" stroke-dasharray="8 6"/>
-<polyline points="70.0,61.0 103.3,65.5 136.7,65.5 170.0,82.0 203.3,89.5 236.7,89.5 270.0,98.5 303.3,98.5 336.7,100.0 370.0,100.0 403.3,104.5 436.7,125.5 470.0,149.5 503.3,191.5 536.7,205.0 570.0,223.0 603.3,230.5 636.7,230.5 670.0,232.0 703.3,239.5 736.7,247.0 770.0,278.5 803.3,302.5 836.7,319.0 870.0,355.0" fill="none" stroke="#D6B3FF" stroke-width="4"/>
+<polyline points="70.0,56.1 97.6,62.2 125.2,68.3 152.8,74.4 180.3,80.5 207.9,86.6 235.5,92.7 263.1,98.8 290.7,104.9 318.3,111.0 345.9,117.1 373.4,123.2 401.0,129.3 428.6,135.4 456.2,141.5 483.8,147.6 511.4,153.7 539.0,159.8 566.6,165.9 594.1,172.0 621.7,178.1 649.3,184.2 676.9,190.3 704.5,196.4 732.1,202.5 759.7,208.6 787.2,214.7 814.8,220.8 842.4,226.9 870.0,233.0" fill="none" stroke="#B37DFF" stroke-width="3" stroke-dasharray="8 6"/>
+<polyline points="70.0,56.1 97.6,59.4 125.2,59.4 152.8,71.4 180.3,76.8 207.9,76.8 235.5,83.4 263.1,83.4 290.7,84.5 318.3,84.5 345.9,87.7 373.4,103.0 401.0,120.5 428.6,151.0 456.2,160.8 483.8,173.9 511.4,179.4 539.0,179.4 566.6,180.5 594.1,185.9 621.7,191.4 649.3,214.3 676.9,231.7 704.5,243.7 732.1,269.9 759.7,269.9 787.2,269.9 814.8,269.9 842.4,269.9 870.0,269.9" fill="none" stroke="#D6B3FF" stroke-width="4"/>
 <line x1="610" y1="75" x2="645" y2="75" stroke="#D6B3FF" stroke-width="4"/>
 <text x="655" y="80" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="13" fill="#EEDEFF">Remaining work</text>
 <line x1="610" y1="97" x2="645" y2="97" stroke="#B37DFF" stroke-width="3" stroke-dasharray="8 6"/>

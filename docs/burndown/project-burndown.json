@@ -493,133 +493,391 @@
           "closed_date": "2026-05-11"
         }
       ]
+    },
+    {
+      "sprint_no": 3,
+      "demo_no": 2,
+      "milestone": "Sprint 3 (Demo 2)",
+      "start": "2026-05-26",
+      "end": "2026-06-15",
+      "issues": [
+        {
+          "number": 185,
+          "title": "docs: review database migration test database and seeding strategy",
+          "points": 3,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 184,
+          "title": "chore: clean trainee terminology and small frontend test warnings",
+          "points": 1,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 183,
+          "title": "docs: document future organisation auth and security architecture",
+          "points": 3,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 182,
+          "title": "chore: add non-blocking CI Docker image build check",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 181,
+          "title": "docs: add local Docker setup guide",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 180,
+          "title": "chore: add local Docker Compose app stack",
+          "points": 3,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 179,
+          "title": "chore: add frontend Dockerfile and dockerignore",
+          "points": 3,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 178,
+          "title": "chore: add backend Dockerfile and dockerignore",
+          "points": 3,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 177,
+          "title": "chore: improve Codecov reporting visibility",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 176,
+          "title": "chore: remove Vercel deployment configuration",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 175,
+          "title": "chore: improve SonarQube setup and reporting configuration",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 174,
+          "title": "chore: update PR checklist review guardrails",
+          "points": 1,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 173,
+          "title": "chore: fix repository script Sonar findings",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 172,
+          "title": "chore: fix backend shared and test Sonar cleanup findings",
+          "points": 3,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 171,
+          "title": "chore: add backend and shared ESLint foundation",
+          "points": 3,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 170,
+          "title": "fix: add safe HTML rendering foundation for simulated content",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 169,
+          "title": "chore: require explicit production auth token secret",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 168,
+          "title": "chore: clean backend error validation and rate-limit foundations",
+          "points": 3,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 167,
+          "title": "feat: add campaign accent colour support",
+          "points": 3,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 166,
+          "title": "docs: define campaign colour palette and contrast rules",
+          "points": 1,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 165,
+          "title": "chore: add non-blocking Lighthouse CI check",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 164,
+          "title": "chore: add Playwright smoke and axe accessibility foundation",
+          "points": 3,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 163,
+          "title": "chore: add frontend test setup and render helpers",
+          "points": 3,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 162,
+          "title": "chore: fix low-risk frontend Sonar and React quality issues",
+          "points": 3,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 161,
+          "title": "fix: replace non-native interactive frontend elements",
+          "points": 3,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 160,
+          "title": "chore: add route builders and clean stale frontend routes",
+          "points": 3,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 159,
+          "title": "chore: consolidate frontend API clients and base URL handling",
+          "points": 3,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 158,
+          "title": "chore: extract shared frontend CSS patterns from repeated page styles",
+          "points": 3,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 157,
+          "title": "chore: add minimal frontend UI primitives",
+          "points": 3,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 156,
+          "title": "docs: document Sprint 3 frontend styling policy",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 155,
+          "title": "chore: clean deprecated static frontend assets and app metadata",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 154,
+          "title": "chore: prepare repository for Sprint 3",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        }
+      ]
     }
   ],
   "series": [
     {
       "date": "2026-04-27",
-      "remaining": 196,
-      "ideal": 196.0
+      "remaining": 274,
+      "ideal": 274.0
     },
     {
       "date": "2026-04-28",
-      "remaining": 193,
-      "ideal": 187.83
+      "remaining": 271,
+      "ideal": 268.41
     },
     {
       "date": "2026-04-29",
-      "remaining": 193,
-      "ideal": 179.67
+      "remaining": 271,
+      "ideal": 262.82
     },
     {
       "date": "2026-04-30",
-      "remaining": 182,
-      "ideal": 171.5
+      "remaining": 260,
+      "ideal": 257.22
     },
     {
       "date": "2026-05-01",
-      "remaining": 177,
-      "ideal": 163.33
+      "remaining": 255,
+      "ideal": 251.63
     },
     {
       "date": "2026-05-02",
-      "remaining": 177,
-      "ideal": 155.17
+      "remaining": 255,
+      "ideal": 246.04
     },
     {
       "date": "2026-05-03",
-      "remaining": 171,
-      "ideal": 147.0
+      "remaining": 249,
+      "ideal": 240.45
     },
     {
       "date": "2026-05-04",
-      "remaining": 171,
-      "ideal": 138.83
+      "remaining": 249,
+      "ideal": 234.86
     },
     {
       "date": "2026-05-05",
-      "remaining": 170,
-      "ideal": 130.67
+      "remaining": 248,
+      "ideal": 229.27
     },
     {
       "date": "2026-05-06",
-      "remaining": 170,
-      "ideal": 122.5
+      "remaining": 248,
+      "ideal": 223.67
     },
     {
       "date": "2026-05-07",
-      "remaining": 167,
-      "ideal": 114.33
+      "remaining": 245,
+      "ideal": 218.08
     },
     {
       "date": "2026-05-08",
-      "remaining": 153,
-      "ideal": 106.17
+      "remaining": 231,
+      "ideal": 212.49
     },
     {
       "date": "2026-05-09",
-      "remaining": 137,
-      "ideal": 98.0
+      "remaining": 215,
+      "ideal": 206.9
     },
     {
       "date": "2026-05-10",
-      "remaining": 109,
-      "ideal": 89.83
+      "remaining": 187,
+      "ideal": 201.31
     },
     {
       "date": "2026-05-11",
-      "remaining": 100,
-      "ideal": 81.67
+      "remaining": 178,
+      "ideal": 195.71
     },
     {
       "date": "2026-05-12",
-      "remaining": 88,
-      "ideal": 73.5
+      "remaining": 166,
+      "ideal": 190.12
     },
     {
       "date": "2026-05-13",
-      "remaining": 83,
-      "ideal": 65.33
+      "remaining": 161,
+      "ideal": 184.53
     },
     {
       "date": "2026-05-14",
-      "remaining": 83,
-      "ideal": 57.17
+      "remaining": 161,
+      "ideal": 178.94
     },
     {
       "date": "2026-05-15",
-      "remaining": 82,
-      "ideal": 49.0
+      "remaining": 160,
+      "ideal": 173.35
     },
     {
       "date": "2026-05-16",
-      "remaining": 77,
-      "ideal": 40.83
+      "remaining": 155,
+      "ideal": 167.76
     },
     {
       "date": "2026-05-17",
-      "remaining": 72,
-      "ideal": 32.67
+      "remaining": 150,
+      "ideal": 162.16
     },
     {
       "date": "2026-05-18",
-      "remaining": 51,
-      "ideal": 24.5
+      "remaining": 129,
+      "ideal": 156.57
     },
     {
       "date": "2026-05-19",
-      "remaining": 35,
-      "ideal": 16.33
+      "remaining": 113,
+      "ideal": 150.98
     },
     {
       "date": "2026-05-20",
-      "remaining": 24,
-      "ideal": 8.17
+      "remaining": 102,
+      "ideal": 145.39
     },
     {
       "date": "2026-05-21",
-      "remaining": 0,
-      "ideal": 0.0
+      "remaining": 78,
+      "ideal": 139.8
+    },
+    {
+      "date": "2026-05-22",
+      "remaining": 78,
+      "ideal": 134.2
+    },
+    {
+      "date": "2026-05-23",
+      "remaining": 78,
+      "ideal": 128.61
+    },
+    {
+      "date": "2026-05-24",
+      "remaining": 78,
+      "ideal": 123.02
+    },
+    {
+      "date": "2026-05-25",
+      "remaining": 78,
+      "ideal": 117.43
+    },
+    {
+      "date": "2026-05-26",
+      "remaining": 78,
+      "ideal": 111.84
     }
   ]
 }
