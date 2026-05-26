@@ -13,6 +13,7 @@
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:coverage": "vitest run tests/unit --coverage",
+    "test:coverage:ci": "vitest run tests/unit --coverage --reporter=default --reporter=junit --outputFile=test-results.junit.xml",
     "seed:demo1": "tsx prisma/seed.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",

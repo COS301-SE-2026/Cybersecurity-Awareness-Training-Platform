@@ -668,7 +668,17 @@ This runs tests in all workspace packages.
 pnpm test:coverage
 ```
 
-This runs tests and generates coverage reports for all workspace packages. Reports are generated in `apps/backend/coverage/` and `apps/frontend/coverage/`.
+This runs tests and generates coverage reports for all workspace packages. Reports are generated in `apps/backend/coverage/`, `apps/frontend/coverage/`, and `packages/shared/coverage/`.
+
+CI uploads coverage to Codecov as separate `backend`, `frontend`, and `shared` flags. CI also writes Vitest JUnit reports for Codecov Test Analytics:
+
+- `apps/backend/test-results.junit.xml`
+- `apps/frontend/test-results.junit.xml`
+- `packages/shared/test-results.junit.xml`
+
+The frontend Vite build includes Codecov bundle analysis for the `insightful-phish-frontend` bundle only when `CODECOV_TOKEN` is present. Local builds still work without this environment variable.
+
+The GitHub repository must define `CODECOV_TOKEN` as an Actions secret. Never commit real Codecov tokens, `.env` files, or local secret files.
 
 ### Build everything
 
