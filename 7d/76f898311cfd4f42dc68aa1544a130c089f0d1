@@ -1,0 +1,21 @@
+.github/workflows/burndown.yml
+  s_bd6358f004912a::t_8c5f5db3ee009a 33
+scripts/generate-burndown.py
+  s_bd6358f004912a::t_8c5f5db3ee009a 107
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.1",
+  "base_commit_sha": "7d76f898311cfd4f42dc68aa1544a130c089f0d1",
+  "prompts": {},
+  "sessions": {
+    "s_bd6358f004912a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e642c-24da-7e02-88d9-2a48140fddb4",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
