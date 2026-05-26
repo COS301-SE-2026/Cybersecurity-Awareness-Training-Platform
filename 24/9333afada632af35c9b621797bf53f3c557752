@@ -1,0 +1,25 @@
+.github/workflows/policy.yml
+  s_7164e75beb4aea::t_1fbd5ccde1678b 90-99,101-143
+  s_7164e75beb4aea::t_c69c6e8e85b882 30,100
+.husky/pre-commit
+  s_7164e75beb4aea::t_dfdd9aacbb03f5 21
+scripts/check-staged-file-policy.sh
+  s_7164e75beb4aea::t_5236d0e638fa82 4,6,10,13-14,18,20-22,24-25,28
+  s_7164e75beb4aea::t_c13f360997983d 16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.1",
+  "base_commit_sha": "249333afada632af35c9b621797bf53f3c557752",
+  "prompts": {},
+  "sessions": {
+    "s_7164e75beb4aea": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e5f14-99b3-7741-940a-bea8cce17fea",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
