@@ -1,0 +1,57 @@
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 5%
+        informational: true
+      backend:
+        flags:
+          - backend
+        target: auto
+        threshold: 5%
+        informational: true
+      frontend:
+        flags:
+          - frontend
+        target: auto
+        threshold: 5%
+        informational: true
+      shared:
+        flags:
+          - shared
+        target: auto
+        threshold: 5%
+        informational: true
+    patch:
+      default:
+        target: auto
+        threshold: 5%
+        informational: true
+
+flag_management:
+  default_rules:
+    carryforward: false
+    statuses:
+      - type: project
+        target: auto
+        threshold: 5%
+        informational: true
+  individual_flags:
+    - name: backend
+      paths:
+        - apps/backend/
+      carryforward: false
+    - name: frontend
+      paths:
+        - apps/frontend/
+      carryforward: false
+    - name: shared
+      paths:
+        - packages/shared/
+      carryforward: false
+
+comment:
+  layout: 'diff, flags, files'
+  behavior: default
+  require_changes: false

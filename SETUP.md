@@ -293,13 +293,16 @@ feat(auth): add login
 
 ## 6. Documentation and code commit policy
 
-To help with contribution tracking, documentation and code/config changes should be committed separately.
+To help with contribution tracking, unrelated documentation and code/config changes should usually be committed separately. Related documentation may stay with the code or configuration change it explains.
 
 Rules:
 
-- If a commit includes Markdown files (`.md`), the commit type must be `docs`.
-- If a commit includes Markdown files, it should not include code or configuration changes.
-- Code/config commits should not include Markdown documentation changes.
+- Documentation-only commits should use the `docs` type.
+- If a commit includes development work, use `feat`, `fix`, or `chore` rather than `docs`.
+- `docs` commits should only include documentation and documentation assets.
+- `docs` commits must not include obvious source, config, tooling, or workflow files from `apps/`, `packages/`, `scripts/`, or `.github/workflows/`.
+- `feat`, `fix`, and `chore` commits may include related Markdown, screenshots, images, static assets, or setup notes.
+- `docs/demo1/` is frozen after the Demo 1 baseline. New or changed Demo 2 documentation belongs under `docs/demo2/`.
 
 Examples:
 
@@ -310,9 +313,9 @@ feat: add campaign creation endpoint
 fix: correct database connection check
 ```
 
-If your commit is blocked because you staged docs and code together, split the changes into two commits.
+If your commit is blocked because a `docs:` message includes development files, change the commit type to `feat:`, `fix:`, or `chore:` as appropriate.
 
-**Important:** Sync/Push to origin directly after committing: Do not create two commits locally (one for code and one for docs) and then push both together, as Hyperperform will track this as one commit with both code and docs changes. Instead, commit and push the first commit, then commit and push the second commit.
+Hyperperform may ignore documentation/configuration-only commits. Do not hide development work behind a `docs:` commit.
 
 ## 7. Start PostgreSQL with Docker
 
@@ -665,7 +668,17 @@ This runs tests in all workspace packages.
 pnpm test:coverage
 ```
 
-This runs tests and generates coverage reports for all workspace packages. Reports are generated in `apps/backend/coverage/` and `apps/frontend/coverage/`.
+This runs tests and generates coverage reports for all workspace packages. Reports are generated in `apps/backend/coverage/`, `apps/frontend/coverage/`, and `packages/shared/coverage/`.
+
+CI uploads coverage to Codecov as separate `backend`, `frontend`, and `shared` flags. CI also writes Vitest JUnit reports for Codecov Test Analytics:
+
+- `apps/backend/test-results.junit.xml`
+- `apps/frontend/test-results.junit.xml`
+- `packages/shared/test-results.junit.xml`
+
+The frontend Vite build includes Codecov bundle analysis for the `insightful-phish-frontend` bundle only when `CODECOV_TOKEN` is present. Local builds still work without this environment variable.
+
+The GitHub repository must define `CODECOV_TOKEN` as an Actions secret. Never commit real Codecov tokens, `.env` files, or local secret files.
 
 ### Build everything
 
@@ -778,9 +791,9 @@ If `apps/backend/src/generated/prisma` appears, make sure `.gitignore` includes:
 apps/backend/src/generated/prisma
 ```
 
-### Commit blocked because docs and code are mixed
+### Commit blocked because a docs commit includes development files
 
-Split the commit.
+Use the correct development commit type.
 
 Example:
 
@@ -789,7 +802,7 @@ docs: update setup instructions
 chore: update backend tooling
 ```
 
-Do not commit `.md` files together with code/config files. Remember to push the first commit before creating the second commit, to ensure Hyperperform tracks them as separate commits.
+Markdown may be committed with code/config changes when it supports the same work. However, a `docs:` commit must not include source, config, tooling, or workflow files. Use `feat:`, `fix:`, or `chore:` when development files are included.
 
 ### Commit message rejected
 

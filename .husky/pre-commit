@@ -18,6 +18,7 @@ if git rev-parse -q --verify MERGE_HEAD >/dev/null && \
   [[ "$(head -n 1 "$MERGE_MSG_FILE")" == Merge* ]]; then
   ./scripts/check-protected-branch.sh commit
   ./scripts/check-env-files.sh
+  ./scripts/check-staged-file-policy.sh
   exit 0
 fi
 

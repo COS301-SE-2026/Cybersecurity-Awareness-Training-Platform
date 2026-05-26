@@ -26,6 +26,9 @@
     "test:coverage:backend": "pnpm --filter @insightful-phish/backend test:coverage",
     "test:coverage:frontend": "pnpm --filter @insightful-phish/frontend test:coverage",
     "test:coverage:shared": "pnpm --filter @insightful-phish/shared test:coverage",
+    "test:coverage:ci:backend": "pnpm --filter @insightful-phish/backend test:coverage:ci",
+    "test:coverage:ci:frontend": "pnpm --filter @insightful-phish/frontend test:coverage:ci",
+    "test:coverage:ci:shared": "pnpm --filter @insightful-phish/shared test:coverage:ci",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "husky"

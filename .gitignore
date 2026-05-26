@@ -5,6 +5,7 @@ coverage
 .playwright
 playwright-report
 test-results
+*.junit.xml
 
 .DS_Store
 

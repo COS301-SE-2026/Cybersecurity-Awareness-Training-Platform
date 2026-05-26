@@ -156,20 +156,24 @@ Husky and commitlint are set up to enforce this format on commit messages, so if
 
 ## Documentation and code commits
 
-Keep documentation-only changes separate from code and configuration changes.
+Prefer separating unrelated documentation changes from code and configuration changes, but do not split useful supporting docs away from the code they explain.
 
 Rules:
 
-- If a commit includes Markdown documentation files (`.md`), the commit message type must be `docs`.
-- If a commit includes Markdown documentation files, it should not include code or configuration changes.
-- If a commit includes code or configuration changes, it should not include Markdown documentation changes.
+- Documentation-only commits should use the `docs` type.
+- Related documentation may be committed with code, configuration, screenshots, images, or static assets when it supports the same change.
+- If a commit includes development work, use `feat`, `fix`, or `chore` rather than `docs`.
+- `docs` commits should only include documentation and documentation assets.
+- `docs` commits must not include obvious source, config, tooling, or workflow files from `apps/`, `packages/`, `scripts/`, or `.github/workflows/`.
+- `docs/demo1/` is frozen after the Demo 1 baseline. New or changed Demo 2 documentation belongs under `docs/demo2/`.
 
 Examples:
 
-- Use `docs: update setup instructions` for changes to files such as [README.md](README.md), [GITHUB_RULES.md](GITHUB_RULES.md), or files in [docs/](docs/).
-- Use `feat: add health endpoint`, `fix: correct database connection check`, or `chore: update tooling` for code, configuration, scripts, workflows, or package changes.
+- Use `docs: update setup instructions` for documentation-only changes to files such as [README.md](README.md), [GITHUB_RULES.md](GITHUB_RULES.md), or files in [docs/](docs/).
+- Use `feat: add health endpoint`, `fix: correct database connection check`, or `chore: update tooling` when code, configuration, scripts, workflows, or package changes are included.
+- It is acceptable for a `feat`, `fix`, or `chore` commit to include related Markdown or screenshots.
 
-This separation helps keep the Git history clear and helps prevent code-related work from being ignored or misclassified by Hyperperform.
+Hyperperform may ignore documentation/configuration-only commits. Do not hide development work behind `docs:` commits.
 
 ## Final note
 
