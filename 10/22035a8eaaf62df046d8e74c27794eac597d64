@@ -1,0 +1,37 @@
+SETUP.md
+  s_bd6358f004912a::t_c2c3045f05deda 671
+  s_bd6358f004912a::t_27b9930347dc13 673-681
+apps/frontend/package.json
+  s_bd6358f004912a::t_7a40a8cf1ab2c8 13-14,29
+apps/backend/package.json
+  s_bd6358f004912a::t_7a40a8cf1ab2c8 16
+.gitignore
+  s_bd6358f004912a::t_db818216066403 8,22
+packages/shared/package.json
+  s_bd6358f004912a::t_7a40a8cf1ab2c8 13-14
+package.json
+  s_bd6358f004912a::t_7a40a8cf1ab2c8 29-31
+codecov.yml
+  s_bd6358f004912a::t_3d880ceac30cc4 1-57
+apps/frontend/vite.config.ts
+  s_bd6358f004912a::t_e7da5165b44381 1,5-6,8-13,15-16
+  s_bd6358f004912a::t_281b2d449e51d0 14
+.github/workflows/ci.yml
+  s_bd6358f004912a::t_4c9273269916d3 157-159,162-164,167-169,172,176,180,204,207-221,223-225,228,232-281,366-367
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.1",
+  "base_commit_sha": "1022035a8eaaf62df046d8e74c27794eac597d64",
+  "prompts": {},
+  "sessions": {
+    "s_bd6358f004912a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e642c-24da-7e02-88d9-2a48140fddb4",
+        "model": "gpt-5.5"
+      },
+      "human_author": "FJNel <u24594475@tuks.co.za>"
+    }
+  }
+}
