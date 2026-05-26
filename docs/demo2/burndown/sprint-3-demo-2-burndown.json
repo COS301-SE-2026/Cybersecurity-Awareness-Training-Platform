@@ -224,14 +224,14 @@
       "number": 154,
       "title": "chore: prepare repository for Sprint 3",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-05-26"
     }
   ],
   "series": [
     {
       "date": "2026-05-26",
-      "remaining": 78,
+      "remaining": 76,
       "ideal": 78.0
     }
   ]
