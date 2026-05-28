@@ -36,6 +36,7 @@ export default defineConfig([
           checksVoidReturn: false,
         },
       ],
+      '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unnecessary-type-assertion': 'warn',
       '@typescript-eslint/no-unused-vars': [
         'error',

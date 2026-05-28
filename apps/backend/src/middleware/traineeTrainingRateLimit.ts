@@ -15,5 +15,5 @@ export const traineeTrainingRateLimit = rateLimit({
 });
 
 export function clearTraineeTrainingRateLimitStore() {
-  traineeTrainingRateLimitStore.resetAll();
+  void traineeTrainingRateLimitStore.resetAll();
 }

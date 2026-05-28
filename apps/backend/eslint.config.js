@@ -13,11 +13,11 @@ export default defineConfig([
   ]),
   {
     files: ['**/*.ts'],
-    extends: [js.config.recommended, tseslint.configs.recommended],
+    extends: [js.configs.recommended, tseslint.configs.recommended],
     languageOptions: {
       parserOptions: {
         project: './tsconfig.eslint.json',
-        tsconfigRootdir: import.meta.dirname,
+        tsconfigRootDir: import.meta.dirname,
       },
       globals: {
         ...globals.node,
@@ -42,6 +42,7 @@ export default defineConfig([
           checksVoidReturn: false,
         },
       ],
+      '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unnecessary-type-assertion': 'warn',
       '@typescript-eslint/no-unused-vars': [
         'error',

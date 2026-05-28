@@ -16,5 +16,5 @@ export const authRateLimit = rateLimit({
 });
 
 export function clearAuthRateLimitStore() {
-  authRateLimitStore.resetAll();
+  void authRateLimitStore.resetAll();
 }
