@@ -10,7 +10,7 @@
     "build:backend": "pnpm --filter @insightful-phish/backend build",
     "build:frontend": "pnpm --filter @insightful-phish/frontend build",
     "build:shared": "pnpm --filter @insightful-phish/shared build",
-    "lint": "pnpm -r lint",
+    "lint": "pnpm lint:backend && pnpm lint:frontend && pnpm lint:shared",
     "lint:backend": "pnpm --filter @insightful-phish/backend lint",
     "lint:frontend": "pnpm --filter @insightful-phish/frontend lint",
     "lint:shared": "pnpm --filter @insightful-phish/shared lint",
