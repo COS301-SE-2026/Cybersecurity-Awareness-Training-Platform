@@ -2,6 +2,7 @@
   "name": "insightful-phish",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "description": "Insightful Phish is a cybersecurity awareness training platform for phishing simulation, training, interaction tracking, and reporting.",
   "packageManager": "pnpm@10.33.2",
   "scripts": {
@@ -36,10 +37,15 @@
   "devDependencies": {
     "@commitlint/cli": "^20.1.0",
     "@commitlint/config-conventional": "^20.0.0",
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.2.1",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.5.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.6",
     "prettier": "^3.6.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.59.0"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx,cjs,mjs,json,jsonc,md,yml,yaml,css}": [
