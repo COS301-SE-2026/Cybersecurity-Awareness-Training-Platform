@@ -107,8 +107,8 @@
       "number": 171,
       "title": "chore: add backend and shared ESLint foundation",
       "points": 3,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-05-29"
     },
     {
       "number": 170,
@@ -248,7 +248,7 @@
     },
     {
       "date": "2026-05-29",
-      "remaining": 76,
+      "remaining": 73,
       "ideal": 66.3
     }
   ]
