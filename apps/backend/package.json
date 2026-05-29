@@ -7,7 +7,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc && node ./scripts/copy-training-content.mjs",
     "start": "node dist/src/server.js",
-    "lint": "echo \"No lint configured for backend yet\"",
+    "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run tests/unit",
     "test:unit": "vitest run tests/unit",
@@ -43,10 +43,14 @@
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
     "@vitest/coverage-v8": "^4.1.5",
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.2.1",
+    "globals": "17.5.0",
     "prisma": "7.0.0",
     "supertest": "^7.0.0",
     "tsx": "^4.19.2",
     "typescript": "^5.9.3",
+    "typescript-eslint": "8.58.0",
     "vitest": "^4.1.5"
   }
 }

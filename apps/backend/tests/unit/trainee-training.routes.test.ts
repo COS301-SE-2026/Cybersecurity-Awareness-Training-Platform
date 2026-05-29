@@ -422,10 +422,8 @@ describe('Trainee training document routes', () => {
     ['POST viewed', 'post', viewedPath('not-a-uuid')],
     ['POST completed', 'post', completedPath('not-a-uuid')],
   ] as const)('returns 400 for malformed campaign item ids on %s', async (_name, method, path) => {
-    const response = await request(createApp())
-      [method](path)
-      .set('Authorization', authHeader())
-      .send();
+    const agent = request(createApp());
+    const response = await agent[method](path).set('Authorization', authHeader()).send();
 
     expect(response.status).toBe(400);
     expect(response.body).toHaveProperty('error', 'VALIDATION_ERROR');

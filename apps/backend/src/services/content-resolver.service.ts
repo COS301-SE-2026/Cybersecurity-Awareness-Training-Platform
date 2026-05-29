@@ -40,7 +40,7 @@ export async function resolveContent(
 
   try {
     return await readFile(contentUrl, 'utf8');
-  } catch (error) {
+  } catch (_error) {
     throw new TrainingContentResolveError();
   }
 }
