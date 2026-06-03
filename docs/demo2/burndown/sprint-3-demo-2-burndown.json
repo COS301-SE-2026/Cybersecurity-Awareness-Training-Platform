@@ -161,8 +161,8 @@
       "number": 163,
       "title": "chore: add frontend test setup and render helpers",
       "points": 3,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-06-03"
     },
     {
       "number": 162,
@@ -271,7 +271,7 @@
     },
     {
       "date": "2026-06-03",
-      "remaining": 73,
+      "remaining": 70,
       "ideal": 46.8
     }
   ]
