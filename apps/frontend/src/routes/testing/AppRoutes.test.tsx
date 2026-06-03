@@ -1,9 +1,9 @@
-import '@testing-library/jest-dom/vitest';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
-import { MemoryRouter, useLocation } from 'react-router-dom';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { useLocation } from 'react-router-dom';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { renderWithRouter } from '../../testing/render';
 
 vi.mock('../../App', () => ({
   StatusPage: () => <h1>Status Page</h1>,
@@ -81,7 +81,6 @@ vi.mock('../../lib/campaignsApi', () => ({
 }));
 
 import AppRoutes from '../AppRoutes';
-import { AuthContext } from '../../context/auth-context';
 import { getTraineeCampaignDetail, getTraineeCampaigns } from '../../lib/campaignsApi';
 
 const mockedGetTraineeCampaigns = vi.mocked(getTraineeCampaigns);
@@ -105,9 +104,14 @@ function renderAppRoutes({
   initialEntry: string;
   isAuthenticated?: boolean;
 }) {
-  return render(
-    <AuthContext.Provider
-      value={{
+  return renderWithRouter(
+    <>
+      <LocationDisplay />
+      <AppRoutes />
+    </>,
+    {
+      initialEntry,
+      auth: {
         isAuthenticated,
         token: isAuthenticated ? 'demo-token' : null,
         user: isAuthenticated
@@ -117,15 +121,8 @@ function renderAppRoutes({
               email: 'trainee@example.com',
             }
           : null,
-        login: vi.fn(),
-        logout: vi.fn(),
-      }}
-    >
-      <MemoryRouter initialEntries={[initialEntry]}>
-        <LocationDisplay />
-        <AppRoutes />
-      </MemoryRouter>
-    </AuthContext.Provider>,
+      },
+    },
   );
 }
 
@@ -155,10 +152,6 @@ describe('AppRoutes', () => {
       progressStatus: 'IN_PROGRESS',
       items: [],
     });
-  });
-
-  afterEach(() => {
-    cleanup();
   });
 
   it('renders the login screen at /login', async () => {
