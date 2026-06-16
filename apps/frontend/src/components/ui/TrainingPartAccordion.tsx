@@ -22,20 +22,27 @@ function TrainingPartAccordion({
   return (
     <div
       style={{
-        backgroundColor: 'rgba(49, 0, 90, 0.55)',
+        backgroundColor: 'rgba(49, 0, 90, 0.54)',
       }}
     >
       {/* HEADER */}
 
-      <div
+      <button
         onClick={disabled ? undefined : () => setOpen(!open)}
+        disabled={disabled}
+        type="button"
         style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          padding: '1.2rem 1.6rem',
+          padding: '1.2rem 1.5rem',
           cursor: disabled ? 'not-allowed' : 'pointer',
           opacity: disabled ? 0.65 : 1,
+          background: 'none',
+          border: 'none',
+          width: '100%',
+          textAlign: 'left',
+          boxSizing: 'border-box',
         }}
       >
         <div
@@ -92,9 +99,9 @@ function TrainingPartAccordion({
             />
           )}
         </div>
-      </div>
+      </button>
 
-      {/* CONTENT */}
+      {/* C0NTENT */}
 
       <div
         style={{

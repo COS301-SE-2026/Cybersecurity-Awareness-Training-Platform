@@ -27,7 +27,7 @@ function Sidebar() {
         boxSizing: 'border-box',
       }}
     >
-      {/* HAMBURGER */}
+      {/* HAMBUrGER */}
 
       <button
         onClick={() => setDrawerOpen(!drawerOpen)}
@@ -37,8 +37,8 @@ function Sidebar() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: drawerOpen ? 'flex-start' : 'center',
-          paddingLeft: drawerOpen ? '1.55rem' : '0',
-          marginLeft: '0.2rem',
+          paddingLeft: drawerOpen ? '1.56rem' : '0',
+          marginLeft: '0.21rem',
           background: 'none',
           border: 'none',
           color: 'white',
@@ -54,35 +54,42 @@ function Sidebar() {
         />
       </button>
 
-      {/* NAV ITEMS */}
+      {/* NAV ItEMS */}
 
       {navItems.map((item) => (
-        <div
+        <button
           key={item.label}
           onClick={() => navigate(item.path)}
+          type="button"
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: drawerOpen ? 'flex-start' : 'center',
-            gap: '1.3rem',
+            gap: '1.38rem',
             height: '56px',
-            paddingLeft: drawerOpen ? '1.55rem' : '0',
-            marginBottom: '1.15rem',
+            paddingLeft: drawerOpen ? '1.56rem' : '0',
+            paddingRight: '0',
+            paddingTop: '0',
+            paddingBottom: '0',
+            marginBottom: '1.16rem',
             cursor: 'pointer',
             whiteSpace: 'nowrap',
             color: 'white',
-            transition: '0.2s ease',
+            transition: '0.22s ease',
             boxSizing: 'border-box',
+            background: 'none',
+            border: 'none',
+            width: '100%',
           }}
         >
-          {/* ICON */}
+          {/* IC0N */}
 
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              minWidth: '34px',
+              minWidth: '35px',
             }}
           >
             {item.icon.type && (
@@ -102,15 +109,16 @@ function Sidebar() {
                 fontFamily: 'Jost',
                 fontSize: '1.6rem',
                 fontWeight: 400,
-                letterSpacing: '0.01em',
+                letterSpacing: '0.012em',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
+                textAlign: 'left',
               }}
             >
               {item.label}
             </span>
           )}
-        </div>
+        </button>
       ))}
     </aside>
   );
