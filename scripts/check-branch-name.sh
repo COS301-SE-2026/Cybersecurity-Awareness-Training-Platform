@@ -3,7 +3,7 @@ set -e
 
 WARN_ONLY=false
 
-if [ "${1:-}" = "--warn-only" ]; then
+if [[ "${1:-}" = "--warn-only" ]]; then
   WARN_ONLY=true
 fi
 
@@ -28,12 +28,12 @@ ALLOWED_DEVELOPERS=(
 )
 
 # Allow detached HEAD, which can happen in CI or special Git states.
-if [ "$BRANCH_NAME" = "HEAD" ]; then
+if [[ "$BRANCH_NAME" = "HEAD" ]]; then
   exit 0
 fi
 
 for BRANCH in "${ALLOWED_BRANCHES[@]}"; do
-  if [ "$BRANCH_NAME" = "$BRANCH" ]; then
+  if [[ "$BRANCH_NAME" = "$BRANCH" ]]; then
     exit 0
   fi
 done
@@ -73,7 +73,7 @@ if ! echo "$BRANCH_NAME" | grep -Eiq "$BRANCH_REGEX"; then
   printf '  - %s\n' "${ALLOWED_BRANCHES[@]}"
   echo ""
 
-  if [ "$WARN_ONLY" = true ]; then
+  if [[ "$WARN_ONLY" = true ]]; then
     echo "This is a warning only because the check ran after switching branches."
     echo "Please rename the branch before committing or pushing."
     echo ""

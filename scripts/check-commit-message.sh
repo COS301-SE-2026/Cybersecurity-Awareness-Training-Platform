@@ -6,7 +6,7 @@ COMMIT_SUBJECT="$(head -n 1 "$COMMIT_MSG_FILE")"
 
 CO_AUTHOR_LINE="$(grep -i "^Co-authored-by:" "$COMMIT_MSG_FILE" | head -n 1)"
 
-if [ -n "$CO_AUTHOR_LINE" ]; then
+if [[ -n "$CO_AUTHOR_LINE" ]]; then
   echo "Commit message check failed: Contains Co-authored-by trailer."
   echo "Co-authored-by trailers are not allowed in this project."
   echo ""
