@@ -119,8 +119,8 @@
       "number": 169,
       "title": "chore: require explicit production auth token secret",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-06-16"
     },
     {
       "number": 168,
@@ -336,7 +336,7 @@
     },
     {
       "date": "2026-06-16",
-      "remaining": 68,
+      "remaining": 66,
       "ideal": 3.55
     }
   ]
