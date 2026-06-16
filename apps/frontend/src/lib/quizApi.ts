@@ -24,8 +24,11 @@ class QuizApiError extends Error {
 }
 
 function getExistingAuthToken(): string | null {
+  if (typeof globalThis.localStorage === 'undefined') {
+    return null;
+  }
   for (const key of TOKEN_STORAGE_KEYS) {
-    const token = localStorage.getItem(key);
+    const token = globalThis.localStorage.getItem(key);
 
     if (token) {
       return token;
@@ -58,9 +61,9 @@ async function quizApiRequest<T>(path: string, options: QuizApiRequestOptions = 
   if (!response.ok) {
     const message =
       typeof payload === 'object' &&
-      payload !== null &&
-      'message' in payload &&
-      typeof payload.message === 'string'
+        payload !== null &&
+        'message' in payload &&
+        typeof payload.message === 'string'
         ? payload.message
         : `Quiz request failed with status ${response.status}`;
 
