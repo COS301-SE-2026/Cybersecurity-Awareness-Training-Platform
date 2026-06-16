@@ -2,10 +2,10 @@ import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { createApp } from '../../src/app.js';
 import { prisma } from '../../src/lib/prisma.js';
-import { createTrainee } from '../helpers/factories.js';
 import { verifyPassword } from '../../src/services/password.service.js';
+import { loginTestUser, testUserPassword } from '../helpers/auth.js';
+import { createTrainee } from '../helpers/factories.js';
 
-const testUserPassword = ['pass', 'word'].join('');
 const secureRegisterPassword = ['Secure', 'Password', '123!'].join('');
 
 describe('Auth Integration Tests', () => {
@@ -90,10 +90,7 @@ describe('Auth Integration Tests', () => {
       },
     });
 
-    const loginResponse = await request(createApp()).post('/auth/login').send({
-      email,
-      password: testUserPassword,
-    });
+    const loginResponse = await loginTestUser(email);
 
     const token = loginResponse.body.token;
 
