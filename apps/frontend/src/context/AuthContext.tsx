@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 
 import type { ReactNode } from 'react';
 import { AuthContext } from './auth-context';
@@ -9,11 +9,11 @@ type AuthProviderProps = {
 };
 
 function getStorage() {
-  if (typeof window === 'undefined') {
+  if (typeof globalThis.localStorage === 'undefined') {
     return null;
   }
 
-  return typeof window.localStorage?.getItem === 'function' ? window.localStorage : null;
+  return typeof globalThis.localStorage.getItem === 'function' ? globalThis.localStorage : null;
 }
 
 function clearStoredAuth() {
@@ -79,7 +79,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const [isAuthenticated, setIsAuthenticated] = useState(storedAuth.isAuthenticated);
 
-  const login = (newToken: string, newUser: AuthUser) => {
+  const login = useCallback((newToken: string, newUser: AuthUser) => {
     getStorage()?.setItem('token', newToken);
     getStorage()?.setItem('user', JSON.stringify(newUser));
 
@@ -87,9 +87,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setUser(newUser);
 
     setIsAuthenticated(true);
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     getStorage()?.removeItem('token');
     getStorage()?.removeItem('user');
 
@@ -97,19 +97,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setUser(null);
 
     setIsAuthenticated(false);
-  };
+  }, []);
 
-  return (
-    <AuthContext.Provider
-      value={{
-        isAuthenticated,
-        token,
-        user,
-        login,
-        logout,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo(
+    () => ({
+      isAuthenticated,
+      token,
+      user,
+      login,
+      logout,
+    }),
+    [isAuthenticated, token, user, login, logout],
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
