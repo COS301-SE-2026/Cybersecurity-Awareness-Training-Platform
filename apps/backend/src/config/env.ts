@@ -10,7 +10,7 @@ const EnvSchema = z.object({
   PORT: z.coerce.number().default(4000),
   DATABASE_URL: z.string().min(1),
   FRONTEND_ORIGIN: z.string().default('http://localhost:5173'),
-  AUTH_TOKEN_SECRET: z.string().default(DEMO_AUTH_TOKEN_SECRET),
+  AUTH_TOKEN_SECRET: z.string().min(32).default(DEMO_AUTH_TOKEN_SECRET),
   AUTH_TOKEN_EXPIRES_IN_SECONDS: z.coerce.number().default(60 * 60 * 8),
   AUTH_RATE_LIMIT_WINDOW_MS: z.coerce.number().default(60 * 1000),
   AUTH_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().default(5),
@@ -19,7 +19,7 @@ const EnvSchema = z.object({
     return;
   }
 
-if (value.AUTH_TOKEN_SECRET === DEMO_AUTH_TOKEN_SECRET) {
+  if (value.AUTH_TOKEN_SECRET === DEMO_AUTH_TOKEN_SECRET) {
     context.addIssue({
       code: z.ZodIssueCode.custom,
       message: 'AUTH_TOKEN_SECRET must be changed before deploying to production',
@@ -31,4 +31,4 @@ export function parseEnv(input: NodeJS.ProcessEnv) {
   return EnvSchema.parse(input);
 }
 
-export const env = EnvSchema.parse(process.env);
+export const env = parseEnv(process.env);
