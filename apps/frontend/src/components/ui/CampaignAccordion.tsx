@@ -42,14 +42,20 @@ function CampaignAccordion({
       />
       {/* HEADER */}
 
-      <div
+      <button
         onClick={onToggle}
+        type="button"
         style={{
           cursor: 'pointer',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           padding: '1.6rem 1.8rem',
+          background: 'none',
+          border: 'none',
+          width: '100%',
+          textAlign: 'left',
+          boxSizing: 'border-box',
         }}
       >
         <div>
@@ -57,7 +63,7 @@ function CampaignAccordion({
             style={{
               color: 'white',
               fontFamily: 'Overpass',
-              fontSize: '1.5rem',
+              fontSize: '1.6rem',
               fontWeight: 400,
               marginBottom: '0.2rem',
               letterSpacing: '0.08rem',
@@ -70,7 +76,7 @@ function CampaignAccordion({
             style={{
               color: accentColor,
               fontFamily: 'Jost',
-              fontSize: '2.8rem',
+              fontSize: '2.82rem',
               fontWeight: 500,
               lineHeight: 1,
               letterSpacing: '0.08rem',
@@ -98,7 +104,7 @@ function CampaignAccordion({
               justifyContent: 'center',
               fontFamily: 'Jost',
               fontWeight: 500,
-              fontSize: '1.1rem',
+              fontSize: '1.12rem',
               letterSpacing: '0.1em',
               boxSizing: 'border-box',
             }}
@@ -122,16 +128,16 @@ function CampaignAccordion({
             />
           )}
         </div>
-      </div>
+      </button>
 
-      {/* CONTENT */}
+      {/* C0NTENT */}
 
       <div
         style={{
           display: 'grid',
           gridTemplateRows: isOpen ? '1fr' : '0fr',
           opacity: isOpen ? 1 : 0,
-          transition: 'grid-template-rows 0.35s ease, opacity 0.25s ease',
+          transition: 'grid-template-rows 0.36s ease, opacity 0.25s ease',
         }}
       >
         <div
