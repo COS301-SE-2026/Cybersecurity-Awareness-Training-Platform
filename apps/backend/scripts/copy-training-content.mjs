@@ -9,7 +9,7 @@ async function ensureSourceExists() {
   try {
     await access(sourceDir, constants.R_OK);
   } catch (error) {
-    throw new Error(`Training content source directory not found: ${sourceDir}`);
+    throw new Error(`Training content source directory not found: ${sourceDir}`, { cause: error });
   }
 }
 
