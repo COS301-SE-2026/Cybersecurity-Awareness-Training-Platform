@@ -2,7 +2,7 @@ import type { CSSProperties } from 'react';
 import type { TrainingDocumentStatus } from '../../lib/trainingApi';
 
 interface TrainingStatusBadgeProps {
-  status: TrainingDocumentStatus;
+  readonly status: TrainingDocumentStatus;
 }
 
 const statusLabels: Record<TrainingDocumentStatus, string> = {
