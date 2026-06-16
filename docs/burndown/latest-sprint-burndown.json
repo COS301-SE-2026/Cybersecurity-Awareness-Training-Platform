@@ -93,8 +93,8 @@
       "number": 173,
       "title": "chore: fix repository script Sonar findings",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-06-16"
     },
     {
       "number": 172,
@@ -338,7 +338,7 @@
     },
     {
       "date": "2026-06-16",
-      "remaining": 51,
+      "remaining": 49,
       "ideal": 3.55
     }
   ]
