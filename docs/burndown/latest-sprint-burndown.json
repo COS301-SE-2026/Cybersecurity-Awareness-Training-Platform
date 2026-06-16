@@ -100,8 +100,8 @@
       "number": 172,
       "title": "chore: fix backend shared and test Sonar cleanup findings",
       "points": 3,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-06-16"
     },
     {
       "number": 171,
@@ -338,7 +338,7 @@
     },
     {
       "date": "2026-06-16",
-      "remaining": 66,
+      "remaining": 63,
       "ideal": 3.55
     }
   ]
