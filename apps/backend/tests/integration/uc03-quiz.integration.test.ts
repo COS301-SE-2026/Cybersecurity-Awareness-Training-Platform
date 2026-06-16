@@ -1,4 +1,5 @@
 import request from 'supertest';
+import { loginTestUser } from '../helpers/auth.js';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { clearAuthRateLimitStore } from '../../src/middleware/authRateLimit.js';
 import { createApp } from '../../src/app.js';
@@ -74,12 +75,7 @@ describe('UC-03 Quiz Integration Tests', () => {
     });
 
     // Login to get token
-    const loginResponse = await request(createApp())
-      .post('/auth/login')
-      .send({
-        email: user.email,
-        password: ['pass', 'word'].join(''),
-      });
+    const loginResponse = await loginTestUser(user.email);
 
     const token = loginResponse.body.token;
 

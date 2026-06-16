@@ -1,4 +1,5 @@
 import request from 'supertest';
+import { loginTestUser } from '../helpers/auth.js';
 import { readFile } from 'node:fs/promises';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../../src/app.js';
@@ -68,12 +69,7 @@ describe('UC-02 Training Document Integration Tests', () => {
       traineeProfileId: traineeProfile.id,
     });
 
-    const loginResponse = await request(createApp())
-      .post('/auth/login')
-      .send({
-        email: user.email,
-        password: ['pass', 'word'].join(''),
-      });
+    const loginResponse = await loginTestUser(user.email);
 
     token = loginResponse.body.token;
     campaignItemId = campaignItem.id;

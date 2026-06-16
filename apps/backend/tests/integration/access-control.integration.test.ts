@@ -1,4 +1,5 @@
 import request from 'supertest';
+import { loginTestUser } from '../helpers/auth.js';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../../src/app.js';
 import { clearAuthRateLimitStore } from '../../src/middleware/authRateLimit.js';
@@ -111,20 +112,10 @@ describe('Access Control and Negative Integration Tests', () => {
     });
 
     // 8. Log in both trainees to retrieve JWT tokens
-    const loginA = await request(createApp())
-      .post('/auth/login')
-      .send({
-        email: traineeA.user.email,
-        password: ['pass', 'word'].join(''),
-      });
+    const loginA = await loginTestUser(traineeA.user.email);
     const tokenA = loginA.body.token;
 
-    const loginB = await request(createApp())
-      .post('/auth/login')
-      .send({
-        email: traineeB.user.email,
-        password: ['pass', 'word'].join(''),
-      });
+    const loginB = await loginTestUser(traineeB.user.email);
     const tokenB = loginB.body.token;
 
     return {
