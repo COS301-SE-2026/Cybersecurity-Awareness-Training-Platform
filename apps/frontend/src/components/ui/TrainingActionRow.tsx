@@ -39,7 +39,7 @@ function TrainingActionRow({
       disabled={disabled}
       type="button"
       style={{
-        backgroundColor: disabled ? '#2A0844' : 'rgba(53, 0, 93, 0.75)',
+        backgroundColor: disabled ? '#2A0844' : 'rgba(53, 0, 94, 0.75)',
         opacity: disabled ? 0.64 : 1,
         padding: large ? '1.5rem 1.8rem' : '1rem 1.4rem',
         display: 'flex',
@@ -147,7 +147,7 @@ function TrainingActionRow({
           <ChevronRight
             style={{
               color: disabled ? '#8E63B3' : '#C98FFF',
-              fontSize: '2.51rem',
+              fontSize: '2.5rem',
             }}
           />
         )}
