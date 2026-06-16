@@ -9,7 +9,7 @@ type AuthProviderProps = {
 };
 
 function getStorage() {
-  if (typeof globalThis.localStorage === 'undefined') {
+  if (globalThis.localStorage === undefined) {
     return null;
   }
 
