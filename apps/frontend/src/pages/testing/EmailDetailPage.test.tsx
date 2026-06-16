@@ -64,8 +64,8 @@ const emailFixture = {
 } as const;
 
 function createDeferred<T>() {
-  let resolve: (value: T) => void;
-  let reject: (reason?: unknown) => void;
+  let resolve: (value: T) => void = () => { };
+  let reject: (reason?: unknown) => void = () => { };
 
   const promise = new Promise<T>((promiseResolve, promiseReject) => {
     resolve = promiseResolve;
@@ -74,8 +74,8 @@ function createDeferred<T>() {
 
   return {
     promise,
-    resolve: resolve!,
-    reject: reject!,
+    resolve,
+    reject,
   };
 }
 
@@ -83,7 +83,7 @@ describe('EmailDetailPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     authToken = 'demo-token';
-    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => { });
 
     mockedRecordSimulatedEmailInteraction.mockResolvedValue({
       success: true,

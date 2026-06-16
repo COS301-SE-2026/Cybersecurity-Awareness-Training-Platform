@@ -47,17 +47,13 @@ const resultFixture: QuizResult = {
 };
 
 function createDeferred<T>() {
-  let resolve: ((value: T) => void) | undefined;
-  let reject: ((reason?: unknown) => void) | undefined;
+  let resolve: (value: T) => void = () => { };
+  let reject: (reason?: unknown) => void = () => { };
 
   const promise = new Promise<T>((promiseResolve, promiseReject) => {
     resolve = promiseResolve;
     reject = promiseReject;
   });
-
-  if (!resolve || !reject) {
-    throw new Error('Deferred promise handlers were not initialised');
-  }
 
   return {
     promise,

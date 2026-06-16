@@ -13,7 +13,7 @@ function installLocalStorageMock(authToken: string | null = null) {
 }
 
 function mockJsonResponse(body: unknown, ok = true, status = 200) {
-  return Promise.resolve({
+  return {
     ok,
     status,
     headers: {
@@ -21,7 +21,7 @@ function mockJsonResponse(body: unknown, ok = true, status = 200) {
     },
     json: () => Promise.resolve(body),
     text: () => Promise.resolve(JSON.stringify(body)),
-  } as unknown as Response);
+  } as unknown as Response;
 }
 
 describe('quizApi', () => {
@@ -36,7 +36,7 @@ describe('quizApi', () => {
 
   it('fetches quiz content through the campaign item quiz endpoint', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      await mockJsonResponse({
+      mockJsonResponse({
         id: '55555555-5555-4555-8555-555555555551',
         campaignItemId,
         campaignAssignmentId: '22222222-2222-4222-8222-222222222222',
@@ -78,7 +78,7 @@ describe('quizApi', () => {
     installLocalStorageMock('demo-token');
 
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      await mockJsonResponse({
+      mockJsonResponse({
         id: '55555555-5555-4555-8555-555555555551',
         campaignItemId,
         title: 'Phishing basics quiz',
@@ -100,7 +100,7 @@ describe('quizApi', () => {
 
   it('rejects quiz fetch responses that expose correctness before submission', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      await mockJsonResponse({
+      mockJsonResponse({
         id: '55555555-5555-4555-8555-555555555551',
         campaignItemId,
         title: 'Leaky quiz',
@@ -126,7 +126,7 @@ describe('quizApi', () => {
 
   it('rejects quiz fetch responses that expose feedback before submission', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      await mockJsonResponse({
+      mockJsonResponse({
         id: '55555555-5555-4555-8555-555555555551',
         campaignItemId,
         title: 'Leaky quiz',
