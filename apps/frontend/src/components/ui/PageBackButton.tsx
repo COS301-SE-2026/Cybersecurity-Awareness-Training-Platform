@@ -20,7 +20,7 @@ function PageBackButton({ marginBottom = '-1.2rem' }: PageBackButtonProps) {
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '0.1rem',
+        gap: '0.12rem',
         width: 'fit-content',
         cursor: 'pointer',
         marginBottom,
