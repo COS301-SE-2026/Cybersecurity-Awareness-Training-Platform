@@ -1,15 +1,15 @@
 type ButtonProps = {
-  text: string;
-  onClick?: () => void;
-  backgroundColor?: string;
-  hoverColor?: string;
-  textColor?: string;
-  borderColor?: string;
-  opacity?: number;
-  width?: string;
-  height?: string;
-  fontSize?: string;
-  marginTop?: string;
+  readonly text: string;
+  readonly onClick?: () => void;
+  readonly backgroundColor?: string;
+  readonly hoverColor?: string;
+  readonly textColor?: string;
+  readonly borderColor?: string;
+  readonly opacity?: number;
+  readonly width?: string;
+  readonly height?: string;
+  readonly fontSize?: string;
+  readonly marginTop?: string;
 };
 
 function Button({

@@ -3,7 +3,7 @@ import type { CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 type PageBackButtonProps = {
-  marginBottom?: CSSProperties['marginBottom'];
+  readonly marginBottom?: CSSProperties['marginBottom'];
 };
 
 function PageBackButton({ marginBottom = '-1.2rem' }: PageBackButtonProps) {

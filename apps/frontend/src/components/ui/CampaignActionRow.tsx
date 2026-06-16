@@ -1,11 +1,11 @@
 import { KeyboardArrowRight, LockOutlined } from '@mui/icons-material';
 
 type CampaignActionRowProps = {
-  title: string;
-  status: string;
-  disabled?: boolean;
-  showLockIcon?: boolean;
-  onClick?: () => void;
+  readonly title: string;
+  readonly status: string;
+  readonly disabled?: boolean;
+  readonly showLockIcon?: boolean;
+  readonly onClick?: () => void;
 };
 
 function CampaignActionRow({
