@@ -199,7 +199,7 @@ Use this compact path when starting from a clean checkout for local Demo 1 rehea
 
 From the repo root:
 
-```bash
+````bash
 pnpm install
 cp apps/backend/.env.example apps/backend/.env
 cp apps/frontend/.env.example apps/frontend/.env
@@ -207,13 +207,13 @@ docker compose up -d
 pnpm --filter @insightful-phish/backend prisma:generate
 pnpm --filter @insightful-phish/backend prisma:migrate:deploy
 DEMO_SEED_PASSWORD="your-local-demo-password" pnpm --filter @insightful-phish/backend seed:demo1
-```
+pnpm --filter @insightful-phish/backend dev
 
 Then start the backend:
 
 ```bash
 pnpm --filter @insightful-phish/backend dev
-```
+````
 
 In another terminal, start the frontend:
 
