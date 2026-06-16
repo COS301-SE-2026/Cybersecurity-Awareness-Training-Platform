@@ -42,9 +42,12 @@ RUN rm /etc/nginx/conf.d/default.conf && \
 	'	}' \
 	'}' \
 	> /etc/nginx/conf.d/default.conf && \
-	chown -R nginx:nginx /usr/share/nginx/html /var/cache/nginx /var/run /var/log/nginx /etc/nginx/conf.d
+	chown -R nginx:nginx /var/cache/nginx /var/run /var/log/nginx
 
-COPY --from=builder --chown=nginx:nginx /workspace/apps/frontend/dist/ /usr/share/nginx/html/
+COPY --from=builder /workspace/apps/frontend/dist/ /usr/share/nginx/html/
+
+RUN chmod -R a-w /usr/share/nginx/html && \
+	chmod -R a+rX /usr/share/nginx/html
 
 USER nginx
 
