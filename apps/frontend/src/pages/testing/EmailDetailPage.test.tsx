@@ -69,7 +69,7 @@ describe('EmailDetailPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     authToken = 'demo-token';
-    vi.spyOn(console, 'error').mockImplementation(() => { });
+    vi.spyOn(console, 'error').mockImplementation(() => {});
 
     mockedRecordSimulatedEmailInteraction.mockResolvedValue({
       success: true,

@@ -13,7 +13,7 @@ export function CollapsiblePanel({
   children,
   padding = '1rem',
   gap = '1rem',
-  duration = '0.34s',
+  duration = '0.35s',
 }: CollapsiblePanelProps) {
   return (
     <div

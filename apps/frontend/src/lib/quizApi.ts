@@ -61,9 +61,9 @@ async function quizApiRequest<T>(path: string, options: QuizApiRequestOptions = 
   if (!response.ok) {
     const message =
       typeof payload === 'object' &&
-        payload !== null &&
-        'message' in payload &&
-        typeof payload.message === 'string'
+      payload !== null &&
+      'message' in payload &&
+      typeof payload.message === 'string'
         ? payload.message
         : `Quiz request failed with status ${response.status}`;
 

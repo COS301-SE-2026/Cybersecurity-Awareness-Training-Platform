@@ -19,10 +19,10 @@ export function createAuthContextValue(overrides: Partial<AuthContextType> = {})
     token: isAuthenticated ? 'test-token' : null,
     user: isAuthenticated
       ? {
-        firstName: 'Test',
-        lastName: 'User',
-        email: 'test@example.com',
-      }
+          firstName: 'Test',
+          lastName: 'User',
+          email: 'test@example.com',
+        }
       : null,
     login: vi.fn(),
     logout: vi.fn(),
@@ -59,8 +59,8 @@ export type Deferred<T> = {
 };
 
 export function createDeferred<T>(): Deferred<T> {
-  let resolve: (value: T) => void = () => { };
-  let reject: (reason?: unknown) => void = () => { };
+  let resolve: (value: T) => void = () => {};
+  let reject: (reason?: unknown) => void = () => {};
 
   const promise = new Promise<T>((promiseResolve, promiseReject) => {
     resolve = promiseResolve;
