@@ -706,13 +706,28 @@ pnpm --filter @insightful-phish/frontend test
 pnpm --filter @insightful-phish/frontend build
 ```
 
+### Run frontend browser smoke tests
+
+Frontend browser smoke tests live in 'apps/frontend/tests/e2e'.
+
+Current Sprint 3 scope is intentionally small:
+
+- '/login' smoke coverage
+- '/status' smoke coverage with mocked health data
+- one axe accessibility check on '/login'
+
+Before running the browser tests for the first time, install the Chromium browser used by Playwright:
+
+````bash
+pnpm --filter @insightful-phish/frontend test:e2e:install
+
 ## 14. GitHub Actions CI
 
 The project has a CI workflow in:
 
 ```txt
 .github/workflows/ci.yml
-```
+````
 
 The workflow runs only on pull requests targeting `main`, and can also be started manually from GitHub.
 
