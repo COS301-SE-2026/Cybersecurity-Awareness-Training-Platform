@@ -34,17 +34,23 @@ function TrainingActionRow({
   const labelTitle = labelParts.slice(1).join(': ');
 
   return (
-    <div
+    <button
       onClick={disabled ? undefined : onClick}
+      disabled={disabled}
+      type="button"
       style={{
         backgroundColor: disabled ? '#2A0844' : 'rgba(53, 0, 94, 0.75)',
-        opacity: disabled ? 0.65 : 1,
+        opacity: disabled ? 0.64 : 1,
         padding: large ? '1.5rem 1.8rem' : '1rem 1.4rem',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
         cursor: disabled ? 'not-allowed' : 'pointer',
         transition: '0.2s ease',
+        border: 'none',
+        width: '100%',
+        textAlign: 'left',
+        boxSizing: 'border-box',
       }}
     >
       <div
@@ -82,7 +88,7 @@ function TrainingActionRow({
           style={{
             color: disabled ? '#9A7AB8' : 'white',
             fontFamily: 'Overpass',
-            fontSize: large ? '1.8rem' : '1.4rem',
+            fontSize: large ? '1.5rem' : '1.4rem',
             letterSpacing: '0.08rem',
             flex: 1,
             minWidth: 0,
@@ -146,7 +152,7 @@ function TrainingActionRow({
           />
         )}
       </div>
-    </div>
+    </button>
   );
 }
 

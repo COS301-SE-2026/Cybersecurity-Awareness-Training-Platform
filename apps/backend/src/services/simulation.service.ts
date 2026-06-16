@@ -329,7 +329,7 @@ export class SimulationService {
     }
 
     // Validate red flags
-    if (input.selectedRedFlagIds && input.selectedRedFlagIds.length > 0) {
+    if (input.selectedRedFlagIds?.length) {
       const validRedFlagIds = new Set(email.redFlags.map((rf: any) => rf.id));
       const invalidFlags = input.selectedRedFlagIds.filter((id) => !validRedFlagIds.has(id));
       if (invalidFlags.length > 0) {

@@ -17,6 +17,25 @@ The Demo 1 seed creates repeatable local data for:
 
 The seed is designed for local Demo 1 development only.
 
+## Seed Responsobilities
+
+Local dev seed data is for repeatable dev workflows only. It should make the app usable after migrations without pretending to be production data.
+
+The current seed command creates demo 1 data through [prisma/seed.ts](prisma/seed.ts) and [prisma/seed-data](prisma/seed-data). It only serves for demo purposes not in a real world context yet.
+
+The demo seed data should stay deterministic and obviously be safe to rerun. It should use stable demo id's and known demo emails so it can update demo owned records without duplicating records.
+
+Integration tests should prefer factories and test setup over demo seed assumptions. Dont require 'seed:demo1' before running the integration tests.
+
+Sprint 4+ organisation/admin seed data should be added. Organisation seeds should distinguish between:
+
+- demo orgs for a local walkthrough
+- local admin accounts needed for dev
+- test records created by factories
+- any future persistent org data
+
+Do not seed real customer, org, invitation, domain, assignment, or reporting data through the demo seed.
+
 ## Demo-Only Credentials
 
 These credentials are for local Demo 1 development only and must not be used in production.
@@ -173,12 +192,23 @@ DATABASE_URL="postgresql://insightful_phish:insightful_phish@localhost:5432/insi
 
 The seed script does not truncate tables, drop the database, or wipe all users. It targets stable demo identifiers and known demo emails so unrelated data is left alone.
 
+## Safe Reset, Migrate, and Seed Commands
+
+For a normal local dev db, apply committed migrations and run the demo seed only when the demo data is needed:
+
+````powershell
+docker compose up -d
+pnpm --filter @insightful-phish/backend prisma:generate
+pnpm --filter @insightful-phish/backend prisma:migrate:deploy
+$env:DEMO_SEED_PASSWORD = "your-local-demo-password"
+pnpm --filter @insightful-phish/backend seed:demo1
+
 ## Viewing Seeded Data
 
 Use Prisma Studio to browse the local database in a web UI:
 
 ```bash
 pnpm --filter @insightful-phish/backend prisma:studio
-```
+````
 
 If the browser does not open automatically, use the local URL printed by the command.
