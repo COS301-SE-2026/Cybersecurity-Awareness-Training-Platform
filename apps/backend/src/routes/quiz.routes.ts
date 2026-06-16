@@ -2,7 +2,8 @@ import { Router } from 'express';
 import { getQuiz, startAttempt, submitAttempt, getResult } from '../controllers/quiz.controller.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { authRateLimit } from '../middleware/authRateLimit.js';
-import { validateBody, validateParams } from '../middleware/validateRequest.js';
+import { validateParams } from '../middleware/validateParams.js';
+import { validateBody } from '../middleware/validateRequest.js';
 import {
   getQuizRequestParamsSchema,
   startQuizAttemptRequestParamsSchema,
