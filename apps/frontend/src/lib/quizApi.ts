@@ -24,8 +24,11 @@ class QuizApiError extends Error {
 }
 
 function getExistingAuthToken(): string | null {
+  if (globalThis.localStorage === undefined) {
+    return null;
+  }
   for (const key of TOKEN_STORAGE_KEYS) {
-    const token = localStorage.getItem(key);
+    const token = globalThis.localStorage.getItem(key);
 
     if (token) {
       return token;

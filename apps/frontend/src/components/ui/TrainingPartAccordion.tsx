@@ -1,13 +1,13 @@
 import { useState } from 'react';
-
 import { KeyboardArrowDown, KeyboardArrowUp, LockOutlined } from '@mui/icons-material';
+import { CollapsiblePanel } from './CollapsiblePanel';
 
 type TrainingPartAccordionProps = {
-  title: string;
-  status: string;
-  children: React.ReactNode;
-  defaultOpen?: boolean;
-  disabled?: boolean;
+  readonly title: string;
+  readonly status: string;
+  readonly children: React.ReactNode;
+  readonly defaultOpen?: boolean;
+  readonly disabled?: boolean;
 };
 
 function TrainingPartAccordion({
@@ -18,6 +18,39 @@ function TrainingPartAccordion({
   disabled = false,
 }: TrainingPartAccordionProps) {
   const [open, setOpen] = useState(defaultOpen);
+
+  const renderIcon = () => {
+    if (disabled) {
+      return (
+        <LockOutlined
+          style={{
+            color: '#8E63B3',
+            fontSize: '2rem',
+          }}
+        />
+      );
+    }
+
+    if (open) {
+      return (
+        <KeyboardArrowUp
+          style={{
+            color: '#C98FFF',
+            fontSize: '2.4rem',
+          }}
+        />
+      );
+    }
+
+    return (
+      <KeyboardArrowDown
+        style={{
+          color: '#C98FFF',
+          fontSize: '2.4rem',
+        }}
+      />
+    );
+  };
 
   return (
     <div
@@ -76,58 +109,15 @@ function TrainingPartAccordion({
             {status}
           </div>
 
-          {disabled ? (
-            <LockOutlined
-              style={{
-                color: '#8E63B3',
-                fontSize: '2rem',
-              }}
-            />
-          ) : open ? (
-            <KeyboardArrowUp
-              style={{
-                color: '#C98FFF',
-                fontSize: '2.4rem',
-              }}
-            />
-          ) : (
-            <KeyboardArrowDown
-              style={{
-                color: '#C98FFF',
-                fontSize: '2.4rem',
-              }}
-            />
-          )}
+          {renderIcon()}
         </div>
       </button>
 
-      {/* C0NTENT */}
+      {/* CONTENT */}
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateRows: open ? '1fr' : '0fr',
-          opacity: open ? 1 : 0,
-          transition: 'grid-template-rows 0.35s ease, opacity 0.25s ease',
-        }}
-      >
-        <div
-          style={{
-            overflow: 'hidden',
-          }}
-        >
-          <div
-            style={{
-              padding: '0 1.6rem 1.4rem 1.6rem',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.8rem',
-            }}
-          >
-            {children}
-          </div>
-        </div>
-      </div>
+      <CollapsiblePanel isOpen={open} padding="0 1.6rem 1.4rem 1.6rem" gap="0.8rem">
+        {children}
+      </CollapsiblePanel>
     </div>
   );
 }

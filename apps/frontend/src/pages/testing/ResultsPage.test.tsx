@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ResultsPage from '../ResultsPage';
 import { getQuizResult } from '../../lib/quizApi';
 import type { QuizResult } from '../../lib/quizApi';
-import { renderWithRouter } from '../../testing/render';
+import { renderWithRouter, createDeferred } from '../../testing/render';
 
 vi.mock('../../components/layout/AppLayout', () => ({
   default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
@@ -45,26 +45,6 @@ const resultFixture: QuizResult = {
     },
   ],
 };
-
-function createDeferred<T>() {
-  let resolve: ((value: T) => void) | undefined;
-  let reject: ((reason?: unknown) => void) | undefined;
-
-  const promise = new Promise<T>((promiseResolve, promiseReject) => {
-    resolve = promiseResolve;
-    reject = promiseReject;
-  });
-
-  if (!resolve || !reject) {
-    throw new Error('Deferred promise handlers were not initialised');
-  }
-
-  return {
-    promise,
-    resolve,
-    reject,
-  };
-}
 
 function renderResultsPage() {
   return renderWithRouter(<ResultsPage />, {
