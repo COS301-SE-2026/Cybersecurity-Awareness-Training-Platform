@@ -49,8 +49,8 @@
       "number": 179,
       "title": "chore: add frontend Dockerfile and dockerignore",
       "points": 3,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-06-16"
     },
     {
       "number": 178,
@@ -336,7 +336,7 @@
     },
     {
       "date": "2026-06-16",
-      "remaining": 57,
+      "remaining": 54,
       "ideal": 3.55
     }
   ]
