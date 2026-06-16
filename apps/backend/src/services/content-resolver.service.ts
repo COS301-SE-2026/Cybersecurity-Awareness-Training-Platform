@@ -1,8 +1,8 @@
 import { readFile } from 'node:fs/promises';
 
 export class TrainingContentResolveError extends Error {
-  constructor(message = 'Training content could not be loaded') {
-    super(message);
+  constructor(message = 'Training content could not be loaded', options?: ErrorOptions) {
+    super(message, options);
     this.name = 'TrainingContentResolveError';
   }
 }
@@ -40,7 +40,7 @@ export async function resolveContent(
 
   try {
     return await readFile(contentUrl, 'utf8');
-  } catch (_error) {
-    throw new TrainingContentResolveError();
+  } catch (error) {
+    throw new TrainingContentResolveError(undefined, { cause: error });
   }
 }
