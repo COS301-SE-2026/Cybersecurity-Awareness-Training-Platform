@@ -7,13 +7,13 @@ import {
 } from '@mui/icons-material';
 
 type TrainingActionRowProps = {
-  label: string;
-  status: string;
-  disabled?: boolean;
-  showLockIcon?: boolean;
-  large?: boolean;
-  iconType?: 'learn' | 'quiz' | 'simulation';
-  onClick?: () => void;
+  readonly label: string;
+  readonly status: string;
+  readonly disabled?: boolean;
+  readonly showLockIcon?: boolean;
+  readonly large?: boolean;
+  readonly iconType?: 'learn' | 'quiz' | 'simulation';
+  readonly onClick?: () => void;
 };
 
 function TrainingActionRow({
@@ -25,7 +25,7 @@ function TrainingActionRow({
   iconType,
   onClick,
 }: TrainingActionRowProps) {
-  const cleanedLabel = label.replace(/"/g, '');
+  const cleanedLabel = label.replaceAll('"', '');
 
   const labelParts = cleanedLabel.split(': ');
 
@@ -88,7 +88,7 @@ function TrainingActionRow({
           style={{
             color: disabled ? '#9A7AB8' : 'white',
             fontFamily: 'Overpass',
-            fontSize: large ? '1.5rem' : '1.4rem',
+            fontSize: large ? '1.8rem' : '1.4rem',
             letterSpacing: '0.08rem',
             flex: 1,
             minWidth: 0,

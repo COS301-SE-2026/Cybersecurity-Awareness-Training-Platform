@@ -1,12 +1,12 @@
 import AccountCircleOutlinedIcon from '@mui/icons-material/AccountCircleOutlined';
 
 type InboxEmailRowProps = {
-  sender: string;
-  subject: string;
-  preview: string;
-  time: string;
-  unread?: boolean;
-  onClick?: () => void;
+  readonly sender: string;
+  readonly subject: string;
+  readonly preview: string;
+  readonly time: string;
+  readonly unread?: boolean;
+  readonly onClick?: () => void;
 };
 
 function InboxEmailRow({
