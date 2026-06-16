@@ -1,13 +1,14 @@
 import { KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material';
+import { CollapsiblePanel } from './CollapsiblePanel';
 
 type CampaignAccordionProps = {
-  title: string;
-  subtitle: string;
-  status: string;
-  accentColor: string;
-  children?: React.ReactNode;
-  isOpen: boolean;
-  onToggle: () => void;
+  readonly title: string;
+  readonly subtitle: string;
+  readonly status: string;
+  readonly accentColor: string;
+  readonly children?: React.ReactNode;
+  readonly isOpen: boolean;
+  readonly onToggle: () => void;
 };
 
 function CampaignAccordion({
@@ -130,33 +131,11 @@ function CampaignAccordion({
         </div>
       </button>
 
-      {/* C0NTENT */}
+      {/* CONTENT */}
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateRows: isOpen ? '1fr' : '0fr',
-          opacity: isOpen ? 1 : 0,
-          transition: 'grid-template-rows 0.36s ease, opacity 0.25s ease',
-        }}
-      >
-        <div
-          style={{
-            overflow: 'hidden',
-          }}
-        >
-          <div
-            style={{
-              padding: '1rem',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '1rem',
-            }}
-          >
-            {children}
-          </div>
-        </div>
-      </div>
+      <CollapsiblePanel isOpen={isOpen} padding="1rem" gap="1rem" duration="0.36s">
+        {children}
+      </CollapsiblePanel>
     </div>
   );
 }
