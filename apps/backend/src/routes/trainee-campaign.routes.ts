@@ -5,7 +5,7 @@ import {
   listTraineeCampaigns,
 } from '../controllers/trainee-campaign.controller.js';
 import { requireAuth } from '../middleware/requireAuth.js';
-import { validateParams } from '../middleware/validateRequest.js';
+import { validateParams } from '../middleware/validateParams.js';
 
 export const traineeCampaignRouter = Router();
 

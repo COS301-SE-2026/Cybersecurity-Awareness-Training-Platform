@@ -6,6 +6,14 @@ Database-backed Vitest and Supertest tests use a dedicated PostgreSQL test datab
 
 Unit tests remain separate from integration tests. Integration tests are the only tests wired to the database cleanup setup.
 
+## Test Data Strategy
+
+Integration tests use a dedicated PostgreSQL test database. They should create the records that they need through the test setup and factories.
+
+Do not make the integration tests depend on Demo 1 seed data. Demo seed data is only for local demo walkthroughs, while integration tests need isolated records that are the reset between the tests.
+
+Unit tests may import demo seed constants or helpers only when testing the seef config and summary behaviour. This does not mean that the integration db should be preloaded with demo data.
+
 ## Required Environment Variables
 
 Normal backend development uses `DATABASE_URL` and should point to the development database:
@@ -135,3 +143,17 @@ The truncate helper:
 - Uses `CASCADE` so related rows are cleaned without maintaining a fragile delete order
 
 After all integration tests finish, `disconnectTestPrisma()` calls `prisma.$disconnect()`.
+
+## Safe Test Database Commands
+
+Please use a dedicated test db whose name contains 'test':
+
+```powershell
+docker compose up -d
+docker compose exec postgres createdb -U insightful_phish insightful_phish_test
+$env:TEST_DATABASE_URL = "postgresql://insightful_phish:insightful_phish@localhost:5432/insightful_phish_test"
+$env:DATABASE_URL = $env:TEST_DATABASE_URL
+pnpm --filter @insightful-phish/backend prisma:generate
+pnpm --filter @insightful-phish/backend exec prisma migrate deploy
+pnpm --filter @insightful-phish/backend test:integration
+```

@@ -1,4 +1,5 @@
 import request from 'supertest';
+import { loginTestUser } from '../helpers/auth.js';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../../src/app.js';
 import { prisma } from '../../src/lib/prisma.js';
@@ -63,12 +64,7 @@ describe('UC-01 Simulated Inbox Integration Tests', () => {
     });
 
     // Login to get token
-    const loginResponse = await request(createApp())
-      .post('/auth/login')
-      .send({
-        email: user.email,
-        password: ['pass', 'word'].join(''),
-      });
+    const loginResponse = await loginTestUser(user.email);
 
     expect(loginResponse.status).toBe(200);
     expect(loginResponse.body.token).toBeDefined();
@@ -213,12 +209,7 @@ describe('UC-01 Simulated Inbox Integration Tests', () => {
       traineeProfileId: otherTraineeProfile.id,
     });
 
-    const otherLoginResponse = await request(createApp())
-      .post('/auth/login')
-      .send({
-        email: otherUser.email,
-        password: ['pass', 'word'].join(''),
-      });
+    const otherLoginResponse = await loginTestUser(otherUser.email);
 
     expect(otherLoginResponse.status).toBe(200);
     expect(otherLoginResponse.body.token).toBeDefined();
