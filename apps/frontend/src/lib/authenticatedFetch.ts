@@ -1,10 +1,13 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000';
 
 function getAuthToken(): string | null {
+  if (typeof globalThis.localStorage === 'undefined') {
+    return null;
+  }
   return (
-    localStorage.getItem('authToken') ??
-    localStorage.getItem('accessToken') ??
-    localStorage.getItem('token')
+    globalThis.localStorage.getItem('authToken') ??
+    globalThis.localStorage.getItem('accessToken') ??
+    globalThis.localStorage.getItem('token')
   );
 }
 
