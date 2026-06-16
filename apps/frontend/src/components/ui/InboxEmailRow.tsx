@@ -1,5 +1,4 @@
 import AccountCircleOutlinedIcon from '@mui/icons-material/AccountCircleOutlined';
-import type { KeyboardEvent } from 'react';
 
 type InboxEmailRowProps = {
   sender: string;
@@ -18,21 +17,10 @@ function InboxEmailRow({
   unread = false,
   onClick,
 }: InboxEmailRowProps) {
-  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key !== 'Enter' && event.key !== ' ') {
-      return;
-    }
-
-    event.preventDefault();
-    onClick?.();
-  };
-
   return (
-    <div
-      role="button"
-      tabIndex={0}
+    <button
       onClick={onClick}
-      onKeyDown={handleKeyDown}
+      type="button"
       style={{
         height: '62px',
         display: 'flex',
@@ -47,6 +35,9 @@ function InboxEmailRow({
         transition: '0.18s ease',
         position: 'relative',
         overflow: 'visible',
+        width: '100%',
+        textAlign: 'left',
+        background: 'none',
       }}
     >
       {unread && (
@@ -159,7 +150,7 @@ function InboxEmailRow({
       >
         {time}
       </div>
-    </div>
+    </button>
   );
 }
 
