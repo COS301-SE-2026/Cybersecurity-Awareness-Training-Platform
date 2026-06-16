@@ -1,6 +1,6 @@
 import { useState } from 'react';
-
 import { KeyboardArrowDown, KeyboardArrowUp, LockOutlined } from '@mui/icons-material';
+import { CollapsiblePanel } from './CollapsiblePanel';
 
 type TrainingPartAccordionProps = {
   readonly title: string;
@@ -36,7 +36,7 @@ function TrainingPartAccordion({
         <KeyboardArrowUp
           style={{
             color: '#C98FFF',
-            fontSize: '2.41rem',
+            fontSize: '2.4rem',
           }}
         />
       );
@@ -46,7 +46,7 @@ function TrainingPartAccordion({
       <KeyboardArrowDown
         style={{
           color: '#C98FFF',
-          fontSize: '2.41rem',
+          fontSize: '2.4rem',
         }}
       />
     );
@@ -115,31 +115,9 @@ function TrainingPartAccordion({
 
       {/* CONTENT */}
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateRows: open ? '1fr' : '0fr',
-          opacity: open ? 1 : 0,
-          transition: 'grid-template-rows 0.35s ease, opacity 0.25s ease',
-        }}
-      >
-        <div
-          style={{
-            overflow: 'hidden',
-          }}
-        >
-          <div
-            style={{
-              padding: '0 1.6rem 1.4rem 1.6rem',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.8rem',
-            }}
-          >
-            {children}
-          </div>
-        </div>
-      </div>
+      <CollapsiblePanel isOpen={open} padding="0 1.6rem 1.4rem 1.6rem" gap="0.8rem">
+        {children}
+      </CollapsiblePanel>
     </div>
   );
 }

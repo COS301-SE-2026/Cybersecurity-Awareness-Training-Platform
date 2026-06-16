@@ -1,76 +1,57 @@
-import { useState } from 'react';
+import { KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material';
+import { CollapsiblePanel } from './CollapsiblePanel';
 
-import { KeyboardArrowDown, KeyboardArrowUp, LockOutlined } from '@mui/icons-material';
-
-type TrainingPartAccordionProps = {
+type CampaignAccordionProps = {
   readonly title: string;
+  readonly subtitle: string;
   readonly status: string;
-  readonly children: React.ReactNode;
-  readonly defaultOpen?: boolean;
-  readonly disabled?: boolean;
+  readonly accentColor: string;
+  readonly children?: React.ReactNode;
+  readonly isOpen: boolean;
+  readonly onToggle: () => void;
 };
 
-function TrainingPartAccordion({
+function CampaignAccordion({
   title,
+  subtitle,
   status,
+  accentColor,
   children,
-  defaultOpen = false,
-  disabled = false,
-}: TrainingPartAccordionProps) {
-  const [open, setOpen] = useState(defaultOpen);
-
-  const renderIcon = () => {
-    if (disabled) {
-      return (
-        <LockOutlined
-          style={{
-            color: '#8E63B3',
-            fontSize: '2rem',
-          }}
-        />
-      );
-    }
-
-    if (open) {
-      return (
-        <KeyboardArrowUp
-          style={{
-            color: '#C98FFF',
-            fontSize: '2.4rem',
-          }}
-        />
-      );
-    }
-
-    return (
-      <KeyboardArrowDown
-        style={{
-          color: '#C98FFF',
-          fontSize: '2.4rem',
-        }}
-      />
-    );
-  };
-
+  isOpen,
+  onToggle,
+}: CampaignAccordionProps) {
   return (
     <div
       style={{
-        backgroundColor: 'rgba(49, 0, 90, 0.55)',
+        border: `4px solid ${accentColor}33`,
+        backgroundColor: `${accentColor}13`,
+        position: 'relative',
+        overflow: 'visible',
       }}
     >
+      <div
+        style={{
+          position: 'absolute',
+          left: '-6px',
+          top: '-4px',
+          width: '12px',
+          height: 'calc(100% + 8px)',
+          backgroundColor: accentColor,
+          zIndex: 50,
+          pointerEvents: 'none',
+        }}
+      />
       {/* HEADER */}
 
       <button
-        onClick={disabled ? undefined : () => setOpen(!open)}
-        disabled={disabled}
+        onClick={onToggle}
         type="button"
         style={{
+          cursor: 'pointer',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          padding: '1.2rem 1.6rem',
-          cursor: disabled ? 'not-allowed' : 'pointer',
-          opacity: disabled ? 0.65 : 1,
+          padding: '1.6rem 1.8rem',
           background: 'none',
           border: 'none',
           width: '100%',
@@ -78,70 +59,85 @@ function TrainingPartAccordion({
           boxSizing: 'border-box',
         }}
       >
-        <div
-          style={{
-            color: 'white',
-            fontFamily: 'Jost',
-            fontSize: '1.8rem',
-            letterSpacing: '0.08rem',
-            fontWeight: 400,
-          }}
-        >
-          {title}
+        <div>
+          <div
+            style={{
+              color: 'white',
+              fontFamily: 'Overpass',
+              fontSize: '1.6rem',
+              fontWeight: 400,
+              marginBottom: '0.2rem',
+              letterSpacing: '0.08rem',
+            }}
+          >
+            {title}
+          </div>
+
+          <div
+            style={{
+              color: accentColor,
+              fontFamily: 'Jost',
+              fontSize: '2.8rem',
+              fontWeight: 500,
+              lineHeight: 1,
+              letterSpacing: '0.08rem',
+            }}
+          >
+            {subtitle}
+          </div>
         </div>
 
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '1.5rem',
+            gap: '2rem',
           }}
         >
           <div
             style={{
-              color: '#C98FFF',
+              backgroundColor: `${accentColor}22`,
+              color: accentColor,
+              width: '180px',
+              height: '56px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               fontFamily: 'Jost',
-              fontSize: '1.1rem',
-              letterSpacing: '0.08rem',
               fontWeight: 500,
+              fontSize: '1.12rem',
+              letterSpacing: '0.1em',
+              boxSizing: 'border-box',
             }}
           >
             {status}
           </div>
 
-          {renderIcon()}
+          {isOpen ? (
+            <KeyboardArrowUp
+              style={{
+                color: 'white',
+                fontSize: '3rem',
+              }}
+            />
+          ) : (
+            <KeyboardArrowDown
+              style={{
+                color: 'white',
+                fontSize: '3rem',
+              }}
+            />
+          )}
         </div>
       </button>
 
       {/* CONTENT */}
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateRows: open ? '1fr' : '0fr',
-          opacity: open ? 1 : 0,
-          transition: 'grid-template-rows 0.35s ease, opacity 0.25s ease',
-        }}
-      >
-        <div
-          style={{
-            overflow: 'hidden',
-          }}
-        >
-          <div
-            style={{
-              padding: '0 1.6rem 1.4rem 1.6rem',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.8rem',
-            }}
-          >
-            {children}
-          </div>
-        </div>
-      </div>
+      <CollapsiblePanel isOpen={isOpen} padding="1rem" gap="1rem" duration="0.36s">
+        {children}
+      </CollapsiblePanel>
     </div>
   );
 }
 
-export default TrainingPartAccordion;
+export default CampaignAccordion;
