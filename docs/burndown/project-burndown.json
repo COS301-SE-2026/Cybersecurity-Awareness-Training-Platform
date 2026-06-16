@@ -666,8 +666,8 @@
           "number": 162,
           "title": "chore: fix low-risk frontend Sonar and React quality issues",
           "points": 3,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-06-16"
         },
         {
           "number": 161,
@@ -981,7 +981,7 @@
     },
     {
       "date": "2026-06-16",
-      "remaining": 54,
+      "remaining": 51,
       "ideal": 5.37
     }
   ]
