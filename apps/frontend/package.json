@@ -5,11 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:e2e": "vite --host 127.0.0.1 --port 4173 --strictPort",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:e2e": "playwright test",
+    "test:e2e:install": "playwright install chromium",
     "test:coverage": "vitest run --coverage",
     "test:coverage:ci": "vitest run --coverage --reporter=default --reporter=junit --outputFile=test-results.junit.xml"
   },
@@ -26,8 +29,10 @@
     "react-router-dom": "^7.15.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.3",
     "@codecov/vite-plugin": "^2.0.1",
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.61.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
