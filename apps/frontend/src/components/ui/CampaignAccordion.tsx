@@ -77,7 +77,7 @@ function CampaignAccordion({
             style={{
               color: accentColor,
               fontFamily: 'Jost',
-              fontSize: '2.8rem',
+              fontSize: '2.82rem',
               fontWeight: 500,
               lineHeight: 1,
               letterSpacing: '0.08rem',
