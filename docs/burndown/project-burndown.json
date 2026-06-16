@@ -505,8 +505,8 @@
           "number": 185,
           "title": "docs: review database migration test database and seeding strategy",
           "points": 3,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-06-16"
         },
         {
           "number": 184,
@@ -981,7 +981,7 @@
     },
     {
       "date": "2026-06-16",
-      "remaining": 60,
+      "remaining": 57,
       "ideal": 5.37
     }
   ]
