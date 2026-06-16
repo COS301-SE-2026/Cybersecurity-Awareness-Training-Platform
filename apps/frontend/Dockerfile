@@ -29,9 +29,10 @@ RUN pnpm --filter @insightful-phish/frontend build
 FROM nginx:1.27-alpine AS runtime
 
 RUN rm /etc/nginx/conf.d/default.conf && \
+	sed -i 's|pid .*nginx.pid;|pid /tmp/nginx.pid;|' /etc/nginx/nginx.conf && \
 	printf '%s\n' \
 	'server {' \
-	'	listen 80;' \
+	'	listen 8080;' \
 	'	server_name _;' \
 	'	root /usr/share/nginx/html;' \
 	'	index index.html;' \
@@ -40,10 +41,13 @@ RUN rm /etc/nginx/conf.d/default.conf && \
 	'	try_files $uri $uri/ /index.html;' \
 	'	}' \
 	'}' \
-	> /etc/nginx/conf.d/default.conf
+	> /etc/nginx/conf.d/default.conf && \
+	chown -R nginx:nginx /usr/share/nginx/html /var/cache/nginx /var/run /var/log/nginx /etc/nginx/conf.d
 
-COPY --from=builder /workspace/apps/frontend/dist/ /usr/share/nginx/html/
+COPY --from=builder --chown=nginx:nginx /workspace/apps/frontend/dist/ /usr/share/nginx/html/
 
-EXPOSE 80
+USER nginx
+
+EXPOSE 8080
 
 CMD ["nginx", "-g", "daemon off;"]
