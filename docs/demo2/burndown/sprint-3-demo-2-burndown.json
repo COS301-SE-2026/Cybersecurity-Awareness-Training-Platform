@@ -77,8 +77,8 @@
       "number": 175,
       "title": "chore: improve SonarQube setup and reporting configuration",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-06-16"
     },
     {
       "number": 174,
@@ -336,7 +336,7 @@
     },
     {
       "date": "2026-06-16",
-      "remaining": 70,
+      "remaining": 68,
       "ideal": 3.55
     }
   ]
