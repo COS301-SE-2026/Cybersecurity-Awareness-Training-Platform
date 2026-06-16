@@ -9,6 +9,7 @@ During **Sprint 3**, these audits run in an informational, non-blocking mode.
 ## Targeted Routes
 
 The audit scans the following static/public routes:
+
 - **Status Page:** `http://127.0.0.1:4173/status` (Health indicators for backend/frontend connectivity)
 - **Login Page:** `http://127.0.0.1:4173/login` (Authentication portal)
 - **Registration Page:** `http://127.0.0.1:4173/register` (Trainee registration)
@@ -22,12 +23,12 @@ The audit scans the following static/public routes:
 
 Configuration details are specified in [apps/frontend/lighthouserc.json](file:///Users/zaza/Downloads/Cybersecurity-Awareness-Training-Platform-chore-lighthouse-quality-check-rudolph/apps/frontend/lighthouserc.json). The starter expectations are:
 
-| Category | Target Score | Action on Failure | Rationale / Notes |
-|---|---|---|---|
-| **Accessibility (a11y)** | **0.90** (90%) | Warning (Exits 0) | Core focus. Evaluates high-contrast colors, aria-labels, semantic layout structure, and focus visibility. |
-| **Best Practices** | **0.80** (80%) | Warning (Exits 0) | Ensures modern coding standards, security headers, and clean APIs. |
-| **SEO** | **0.80** (80%) | Warning (Exits 0) | Checks crawlability, meta title tag availability, structure, etc. |
-| **Performance** | *Disabled* (`off`) | None | Performance testing on headless CI virtualization is inherently unstable. Disabled here to prevent flaky builds. |
+| Category                 | Target Score       | Action on Failure | Rationale / Notes                                                                                                |
+| ------------------------ | ------------------ | ----------------- | ---------------------------------------------------------------------------------------------------------------- |
+| **Accessibility (a11y)** | **0.90** (90%)     | Warning (Exits 0) | Core focus. Evaluates high-contrast colors, aria-labels, semantic layout structure, and focus visibility.        |
+| **Best Practices**       | **0.80** (80%)     | Warning (Exits 0) | Ensures modern coding standards, security headers, and clean APIs.                                               |
+| **SEO**                  | **0.80** (80%)     | Warning (Exits 0) | Checks crawlability, meta title tag availability, structure, etc.                                                |
+| **Performance**          | _Disabled_ (`off`) | None              | Performance testing on headless CI virtualization is inherently unstable. Disabled here to prevent flaky builds. |
 
 ---
 
@@ -48,16 +49,18 @@ When the CI workflow finishes, audit reports are preserved as a GitHub Action ar
 To prevent accessibility regressions, the Lighthouse checks can be configured to block pull request merges in future sprints.
 
 ### Step 1: Enforce CLI Failure Exit Codes
+
 By default, the workflow ignores failures. If we want LHCI to exit with a non-zero exit code when thresholds are missed, we modify `.github/workflows/lighthouse.yml` to set:
 
 ```yaml
-      - name: Run Lighthouse CI
-        run: pnpm --filter @insightful-phish/frontend lighthouse
-        # Remove or set to false:
-        # continue-on-error: false
+- name: Run Lighthouse CI
+  run: pnpm --filter @insightful-phish/frontend lighthouse
+  # Remove or set to false:
+  # continue-on-error: false
 ```
 
 ### Step 2: Configure Branch Protection Rules
+
 1. In the GitHub Repository settings, navigate to **Branches**.
 2. Click **Edit** next to the `main` or `dev` branch protection rule.
 3. Check **Require status checks to pass before merging**.
@@ -71,9 +74,11 @@ By default, the workflow ignores failures. If we want LHCI to exit with a non-ze
 Developers are encouraged to run Lighthouse checks locally to audit pages before pushing code.
 
 ### Prerequisites
+
 Make sure Google Chrome (or Chromium) is installed on your local machine.
 
 ### Execution Steps
+
 1. Build the packages (since Lighthouse runs against compiled static files):
    ```bash
    pnpm build
