@@ -7,13 +7,13 @@ import {
 } from '@mui/icons-material';
 
 type TrainingActionRowProps = {
-  label: string;
-  status: string;
-  disabled?: boolean;
-  showLockIcon?: boolean;
-  large?: boolean;
-  iconType?: 'learn' | 'quiz' | 'simulation';
-  onClick?: () => void;
+  readonly label: string;
+  readonly status: string;
+  readonly disabled?: boolean;
+  readonly showLockIcon?: boolean;
+  readonly large?: boolean;
+  readonly iconType?: 'learn' | 'quiz' | 'simulation';
+  readonly onClick?: () => void;
 };
 
 function TrainingActionRow({
@@ -25,7 +25,7 @@ function TrainingActionRow({
   iconType,
   onClick,
 }: TrainingActionRowProps) {
-  const cleanedLabel = label.replace(/"/g, '');
+  const cleanedLabel = label.replaceAll('"', '');
 
   const labelParts = cleanedLabel.split(': ');
 
@@ -39,7 +39,7 @@ function TrainingActionRow({
       disabled={disabled}
       type="button"
       style={{
-        backgroundColor: disabled ? '#2A0844' : 'rgba(53, 0, 94, 0.75)',
+        backgroundColor: disabled ? '#2A0844' : 'rgba(53, 0, 93, 0.75)',
         opacity: disabled ? 0.64 : 1,
         padding: large ? '1.5rem 1.8rem' : '1rem 1.4rem',
         display: 'flex',
@@ -88,7 +88,7 @@ function TrainingActionRow({
           style={{
             color: disabled ? '#9A7AB8' : 'white',
             fontFamily: 'Overpass',
-            fontSize: large ? '1.5rem' : '1.4rem',
+            fontSize: large ? '1.8rem' : '1.4rem',
             letterSpacing: '0.08rem',
             flex: 1,
             minWidth: 0,
@@ -147,7 +147,7 @@ function TrainingActionRow({
           <ChevronRight
             style={{
               color: disabled ? '#8E63B3' : '#C98FFF',
-              fontSize: '2.5rem',
+              fontSize: '2.51rem',
             }}
           />
         )}

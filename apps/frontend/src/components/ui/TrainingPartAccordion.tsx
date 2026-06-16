@@ -3,11 +3,11 @@ import { useState } from 'react';
 import { KeyboardArrowDown, KeyboardArrowUp, LockOutlined } from '@mui/icons-material';
 
 type TrainingPartAccordionProps = {
-  title: string;
-  status: string;
-  children: React.ReactNode;
-  defaultOpen?: boolean;
-  disabled?: boolean;
+  readonly title: string;
+  readonly status: string;
+  readonly children: React.ReactNode;
+  readonly defaultOpen?: boolean;
+  readonly disabled?: boolean;
 };
 
 function TrainingPartAccordion({
@@ -19,10 +19,43 @@ function TrainingPartAccordion({
 }: TrainingPartAccordionProps) {
   const [open, setOpen] = useState(defaultOpen);
 
+  const renderIcon = () => {
+    if (disabled) {
+      return (
+        <LockOutlined
+          style={{
+            color: '#8E63B3',
+            fontSize: '2rem',
+          }}
+        />
+      );
+    }
+
+    if (open) {
+      return (
+        <KeyboardArrowUp
+          style={{
+            color: '#C98FFF',
+            fontSize: '2.41rem',
+          }}
+        />
+      );
+    }
+
+    return (
+      <KeyboardArrowDown
+        style={{
+          color: '#C98FFF',
+          fontSize: '2.41rem',
+        }}
+      />
+    );
+  };
+
   return (
     <div
       style={{
-        backgroundColor: 'rgba(49, 0, 90, 0.54)',
+        backgroundColor: 'rgba(49, 0, 90, 0.55)',
       }}
     >
       {/* HEADER */}
@@ -35,7 +68,7 @@ function TrainingPartAccordion({
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          padding: '1.2rem 1.5rem',
+          padding: '1.2rem 1.6rem',
           cursor: disabled ? 'not-allowed' : 'pointer',
           opacity: disabled ? 0.65 : 1,
           background: 'none',
@@ -76,32 +109,11 @@ function TrainingPartAccordion({
             {status}
           </div>
 
-          {disabled ? (
-            <LockOutlined
-              style={{
-                color: '#8E63B3',
-                fontSize: '2rem',
-              }}
-            />
-          ) : open ? (
-            <KeyboardArrowUp
-              style={{
-                color: '#C98FFF',
-                fontSize: '2.4rem',
-              }}
-            />
-          ) : (
-            <KeyboardArrowDown
-              style={{
-                color: '#C98FFF',
-                fontSize: '2.4rem',
-              }}
-            />
-          )}
+          {renderIcon()}
         </div>
       </button>
 
-      {/* C0NTENT */}
+      {/* CONTENT */}
 
       <div
         style={{
