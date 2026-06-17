@@ -368,13 +368,13 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
 
       - name: Build Backend Image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@ca0529f6ba16d29519154f21051515272a243e3e # v6.10.0
         with:
           context: .
           file: apps/backend/Dockerfile
@@ -383,7 +383,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build Frontend Image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@ca0529f6ba16d29519154f21051515272a243e3e # v6.10.0
         with:
           context: .
           file: apps/frontend/Dockerfile
