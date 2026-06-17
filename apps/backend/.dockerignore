@@ -1,0 +1,21 @@
+# Exclude local build and temporary directories
+node_modules
+**/node_modules
+dist
+**/dist
+build
+**/build
+coverage
+**/coverage
+.env
+.env.*
+.git
+.github
+.vscode
+playwright-report
+test-results
+*.junit.xml
+
+# Exclude generated Prisma client to avoid local overrides in the container
+apps/backend/src/generated/prisma
+**/src/generated/prisma
