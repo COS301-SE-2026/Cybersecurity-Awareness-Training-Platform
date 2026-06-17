@@ -20,7 +20,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'pnpm dev:e2e',
+    command: 'pnpm build && pnpm preview:e2e',
     url: baseURL,
     reuseExistingServer: !process.env.CI,
   },
