@@ -19,7 +19,7 @@ COPY packages/shared packages/shared
 COPY apps/backend apps/backend
 
 # Generate Prisma client locally inside the container (no DB connection required)
-RUN DATABASE_URL="placeholder" pnpm --filter @insightful-phish/backend prisma:generate
+RUN DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder" pnpm --filter @insightful-phish/backend prisma:generate
 
 # Build the shared and backend packages (compiles TS and runs training content copy script)
 RUN pnpm build:shared && pnpm build:backend
