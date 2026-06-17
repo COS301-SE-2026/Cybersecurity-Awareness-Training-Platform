@@ -1,31 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../../lib/apiClient';
 import { getQuiz } from '../../lib/quizApi';
+import {
+  createJsonResponse,
+  installLocalStorageMock,
+  setupHttpTest,
+  teardownHttpTest,
+} from '../../lib/testing/httpTestUtils';
 
 const campaignItemId = '33333333-3333-4333-8333-333333333334';
 const fetchMock = vi.fn();
-
-function installLocalStorageMock(values: Record<string, string | null> = {}) {
-  vi.stubGlobal('localStorage', {
-    getItem: vi.fn((key: string) => values[key] ?? null),
-    setItem: vi.fn(),
-    removeItem: vi.fn(),
-    clear: vi.fn(),
-  });
-}
-
-function createJsonResponse(body: unknown, init: ResponseInit = {}) {
-  const headers = new Headers(init.headers);
-
-  if (!headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/json');
-  }
-
-  return new Response(JSON.stringify(body), {
-    ...init,
-    headers,
-  });
-}
 
 function createQuizPayload() {
   return {
@@ -55,14 +39,11 @@ function createQuizPayload() {
 
 describe('quizApi', () => {
   beforeEach(() => {
-    fetchMock.mockReset();
-    vi.stubGlobal('fetch', fetchMock);
-    installLocalStorageMock();
+    setupHttpTest(fetchMock);
   });
 
   afterEach(() => {
-    vi.unstubAllGlobals();
-    vi.unstubAllEnvs();
+    teardownHttpTest();
   });
 
   it('defaults quiz requests to http://localhost:4000', async () => {
