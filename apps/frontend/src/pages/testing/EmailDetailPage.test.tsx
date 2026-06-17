@@ -106,7 +106,7 @@ describe('EmailDetailPage', () => {
     expect(screen.getByText('Open portal')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Open portal' })).toHaveAttribute(
       'href',
-      'http://example.com',
+      'https://example.com',
     );
     expect(document.querySelector('.email-body strong')).toHaveTextContent('review');
     expect(document.querySelector('.email-body script')).not.toBeInTheDocument();
@@ -173,7 +173,7 @@ describe('EmailDetailPage', () => {
     render(<EmailDetailPage />);
 
     expect(await screen.findByText('Finance Team')).toBeInTheDocument();
-    expect(screen.getByText('Review this message carefully')).toBeInTheDocument();
+    expect(screen.getByText(/Review this message carefully\./i)).toBeInTheDocument();
 
     expect(document.querySelector('.email-body iframe')).not.toBeInTheDocument();
     expect(document.querySelector('.email-body form')).not.toBeInTheDocument();

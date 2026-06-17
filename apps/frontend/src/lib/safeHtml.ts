@@ -28,5 +28,6 @@ export function sanitizeSafeHtml(html: string): string {
     FORBID_ATTR: [...SAFE_HTML_FORBIDDEN_ATTRS],
     ALLOW_DATA_ATTR: false,
     ALLOW_UNKNOWN_PROTOCOLS: false,
+    KEEP_CONTENT: false,
   });
 }
