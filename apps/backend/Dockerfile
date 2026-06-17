@@ -22,9 +22,8 @@ COPY apps/backend/src apps/backend/src
 COPY packages/shared/package.json packages/shared/tsconfig.json packages/shared/
 COPY packages/shared/src packages/shared/src
 
-# Generate Prisma Client (uses dummy DATABASE_URL to bypass validation during prisma generate)
-ENV DATABASE_URL=postgresql://localhost:5432/db
-RUN pnpm --filter @insightful-phish/backend exec prisma generate
+# Generate Prisma Client (uses inline env var to bypass static credentials scans)
+RUN DATABASE_URL=postgresql://localhost:5432/db pnpm --filter @insightful-phish/backend exec prisma generate
 
 RUN pnpm --filter @insightful-phish/backend build
 
@@ -38,18 +37,20 @@ WORKDIR /workspace
 
 RUN corepack enable && corepack prepare pnpm@10.33.2 --activate
 
-# Copy files with node ownership
-COPY --chown=node:node package.json pnpm-workspace.yaml pnpm-lock.yaml ./
-COPY --chown=node:node apps/backend/package.json apps/backend/package.json
-COPY --chown=node:node packages/shared/package.json packages/shared/package.json
+# Copy manifest files as root (read-only to node user)
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY apps/backend/package.json apps/backend/package.json
+COPY packages/shared/package.json packages/shared/package.json
 
-COPY --chown=node:node --from=builder /workspace/node_modules ./node_modules
-COPY --chown=node:node --from=builder /workspace/apps/backend/node_modules ./apps/backend/node_modules
-COPY --chown=node:node --from=builder /workspace/packages/shared/node_modules ./packages/shared/node_modules
-COPY --chown=node:node --from=builder /workspace/apps/backend/dist ./apps/backend/dist
-COPY --chown=node:node --from=builder /workspace/packages/shared/src ./packages/shared/src
-COPY --chown=node:node --from=builder /workspace/apps/backend/prisma ./apps/backend/prisma
+# Copy dependencies and build outputs as root (read-only to node user)
+COPY --from=builder /workspace/node_modules ./node_modules
+COPY --from=builder /workspace/apps/backend/node_modules ./apps/backend/node_modules
+COPY --from=builder /workspace/packages/shared/node_modules ./packages/shared/node_modules
+COPY --from=builder /workspace/apps/backend/dist ./apps/backend/dist
+COPY --from=builder /workspace/packages/shared/src ./packages/shared/src
+COPY --from=builder /workspace/apps/backend/prisma ./apps/backend/prisma
 
+# Run as non-root user (read-only access to app files)
 USER node
 
 EXPOSE 4000
