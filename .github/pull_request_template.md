@@ -17,15 +17,20 @@ Closes #
 
 What did you run or verify?
 
+Include manual verification where relevant.
+
 ## Review Notes
 
 Anything specific reviewers should focus on?
+
+Include assumptions, environment changes, accessibility consideration, and/or deploayment impacts if applicable.
 
 <!-- See who to request for review at the bottom of the PR template -->
 
 ## Checklist
 
 - [ ] I tested the change locally
+- [ ] Accessibility impact was considered if applicable
 - [ ] No unrelated changes are included
 - [ ] Relevant tests were added or updated if applicable
 - [ ] Documentation was updated if needed
