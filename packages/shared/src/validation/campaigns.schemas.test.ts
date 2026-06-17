@@ -74,6 +74,50 @@ describe('campaign validation schemas', () => {
     }
   });
 
+  it('accepts valid nullable campaign accent colours and rejects invalid values', () => {
+    const validResult = getTraineeCampaignsResponseSchema.safeParse({
+      campaigns: [
+        {
+          campaignId,
+          name: 'Security Basics',
+          description: null,
+          accentColor: '#2563EB',
+          campaignType: 'PREMADE_GENERAL',
+          difficultyLevel: 'BEGINNER',
+          status: 'ACTIVE',
+          accessType: 'ASSIGNED',
+          progressStatus: 'IN_PROGRESS',
+        },
+        {
+          campaignId: '44444444-4444-4444-8444-444444444444',
+          name: 'Fallback Campaign',
+          description: null,
+          accentColor: null,
+          campaignType: 'PREMADE_GENERAL',
+          difficultyLevel: 'BEGINNER',
+          status: 'ACTIVE',
+        },
+      ],
+    });
+
+    expect(validResult.success).toBe(true);
+
+    const invalidResult = getTraineeCampaignsResponseSchema.safeParse({
+      campaigns: [
+        {
+          campaignId,
+          name: 'Security Basics',
+          accentColor: 'blue',
+          campaignType: 'PREMADE_GENERAL',
+          difficultyLevel: 'BEGINNER',
+          status: 'ACTIVE',
+        },
+      ],
+    });
+
+    expect(invalidResult.success).toBe(false);
+  });
+
   it('accepts trainee campaign item route params', () => {
     const result = traineeCampaignItemRequestParamsSchema.safeParse({
       campaignItemId,

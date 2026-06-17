@@ -103,6 +103,7 @@ function toCampaignSummary(
     campaignId: assignment.campaign.id,
     name: assignment.campaign.name,
     description: assignment.campaign.description,
+    accentColor: assignment.campaign.accentColor,
     campaignType: assignment.campaign.campaignType,
     difficultyLevel: assignment.campaign.difficultyLevel,
     status: assignment.campaign.status,

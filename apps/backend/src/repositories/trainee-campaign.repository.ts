@@ -77,6 +77,7 @@ const campaignSummarySelect = {
   id: true,
   name: true,
   description: true,
+  accentColor: true,
   campaignType: true,
   difficultyLevel: true,
   status: true,
