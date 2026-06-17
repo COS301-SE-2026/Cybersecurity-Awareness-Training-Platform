@@ -366,6 +366,7 @@ model Campaign {
   createdByUserId      String?
   name                 String
   description          String?
+  accentColor		   String?
   campaignType         CampaignType
   difficultyLevel      DifficultyLevel        @default(BEGINNER)
   status               CampaignStatus         @default(DRAFT)
