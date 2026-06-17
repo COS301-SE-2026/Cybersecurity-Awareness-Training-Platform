@@ -135,15 +135,15 @@
       "number": 167,
       "title": "feat: add campaign accent colour support",
       "points": 3,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-06-17"
     },
     {
       "number": 166,
       "title": "docs: define campaign colour palette and contrast rules",
       "points": 1,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-06-17"
     },
     {
       "number": 165,
@@ -184,8 +184,8 @@
       "number": 160,
       "title": "chore: add route builders and clean stale frontend routes",
       "points": 3,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-06-17"
     },
     {
       "number": 159,
@@ -198,29 +198,29 @@
       "number": 158,
       "title": "chore: extract shared frontend CSS patterns from repeated page styles",
       "points": 3,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-06-17"
     },
     {
       "number": 157,
       "title": "chore: add minimal frontend UI primitives",
       "points": 3,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-06-17"
     },
     {
       "number": 156,
       "title": "docs: document Sprint 3 frontend styling policy",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-06-17"
     },
     {
       "number": 155,
       "title": "chore: clean deprecated static frontend assets and app metadata",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-06-17"
     },
     {
       "number": 154,
@@ -343,7 +343,7 @@
     },
     {
       "date": "2026-06-17",
-      "remaining": 44,
+      "remaining": 27,
       "ideal": 0.0
     }
   ]
