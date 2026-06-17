@@ -229,7 +229,7 @@ export const DEMO_SEED_CAMPAIGN_B = {
   name: 'Demo 1 Advanced Phishing Defenses',
   description:
     'Active demo campaign for advanced email verification, headers, and protocol analysis.',
-  accentColor: '#00FFA6',
+  accentColor: '#FF00D4',
   campaignType: CampaignType.PREMADE_GENERAL,
   difficultyLevel: DifficultyLevel.ADVANCED,
   status: CampaignStatus.ACTIVE,
