@@ -1,0 +1,41 @@
+# Dependencies
+node_modules
+**/node_modules
+
+# Build outputs
+dist
+**/dist
+build
+**/build
+coverage
+**/coverage
+test-results
+
+# Local/dev files
+.env
+.env.*
+!.env.example
+.DS_Store
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+
+# Git and editor files
+.git
+.gitignore
+.github
+.vscode
+.idea
+
+# Docker files not needed in context
+Dockerfile
+docker-compose*.yml
+
+# Tests and docs not needed for backend image build
+**/*.test.*
+**/*.spec.*
+apps/backend/tests
+apps/backend/src/**/*.test.*
+apps/backend/src/**/*.spec.*
+docs
