@@ -343,14 +343,32 @@ async function createDemoProfiles(tx: DemoSeedTransaction): Promise<void> {
 
 async function createDemoCampaign(tx: DemoSeedTransaction): Promise<void> {
   await tx.campaign.create({
-    data: DEMO_SEED_CAMPAIGN,
+    data: buildCampaignCreateData(DEMO_SEED_CAMPAIGN),
   });
   await tx.campaign.create({
-    data: DEMO_SEED_CAMPAIGN_B,
+    data: buildCampaignCreateData(DEMO_SEED_CAMPAIGN_B),
   });
   await tx.campaign.create({
-    data: DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN,
+    data: buildCampaignCreateData(DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN),
   });
+}
+
+function buildCampaignCreateData(
+  campaign:
+    | typeof DEMO_SEED_CAMPAIGN
+    | typeof DEMO_SEED_CAMPAIGN_B
+    | typeof DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN,
+) {
+  const { createdByUserId, ...campaignData } = campaign;
+
+  return {
+    ...campaignData,
+    createdBy: {
+      connect: {
+        id: createdByUserId,
+      },
+    },
+  };
 }
 
 async function createDemoContent(tx: DemoSeedTransaction): Promise<void> {
