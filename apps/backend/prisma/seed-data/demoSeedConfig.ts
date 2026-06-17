@@ -217,6 +217,7 @@ export const DEMO_SEED_CAMPAIGN = {
   name: 'Demo 1 Phishing Awareness',
   description:
     'Repeatable demo campaign for phishing awareness, safe link handling, and inbox classification.',
+  accentColor: '#00FFA6',
   campaignType: CampaignType.PREMADE_GENERAL,
   difficultyLevel: DifficultyLevel.BEGINNER,
   status: CampaignStatus.ACTIVE,
@@ -228,6 +229,7 @@ export const DEMO_SEED_CAMPAIGN_B = {
   name: 'Demo 1 Advanced Phishing Defenses',
   description:
     'Active demo campaign for advanced email verification, headers, and protocol analysis.',
+  accentColor: '#FF00D4',
   campaignType: CampaignType.PREMADE_GENERAL,
   difficultyLevel: DifficultyLevel.ADVANCED,
   status: CampaignStatus.ACTIVE,
@@ -239,6 +241,7 @@ export const DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN = {
   name: 'Demo 1 Password Security',
   description:
     'Sequential demo campaign for password manager habits, unique passwords, and breach response.',
+  accentColor: '#00D1FF',
   campaignType: CampaignType.PREMADE_GENERAL,
   difficultyLevel: DifficultyLevel.BEGINNER,
   status: CampaignStatus.ACTIVE,

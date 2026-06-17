@@ -614,6 +614,10 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             description: {
               ...nullableString('Build safe email habits.'),
             },
+            accentColor: {
+              ...nullableString('#00FFA6'),
+              pattern: '^#[0-9A-Fa-f]{6}$',
+            },
             campaignType: {
               $ref: '#/components/schemas/CampaignType',
             },

@@ -1,0 +1,71 @@
+# Lighthouse CI workflow for accessibility and basic frontend quality checks.
+# This workflow is non-blocking (continue-on-error: true) during Sprint 3.
+
+name: Lighthouse CI
+
+on:
+  pull_request:
+    branches:
+      - main
+      - dev
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+  push:
+    branches:
+      - main
+      - dev
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lighthouse:
+    name: Lighthouse Audit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/insightful_phish_test?schema=public
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client (Backend schema dependency check)
+        run: pnpm --filter @insightful-phish/backend exec prisma generate
+
+      - name: Build (shared)
+        run: pnpm build:shared
+
+      - name: Build (frontend)
+        run: pnpm build:frontend
+
+      - name: Run Lighthouse CI
+        run: pnpm --filter @insightful-phish/frontend lighthouse
+        continue-on-error: true # Non-blocking quality check for Sprint 3
+
+      - name: Upload Lighthouse Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lighthouse-reports
+          path: apps/frontend/.lighthouseci/
+          retention-days: 14
