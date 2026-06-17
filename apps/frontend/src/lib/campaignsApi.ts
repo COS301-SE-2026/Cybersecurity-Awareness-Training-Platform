@@ -2,16 +2,14 @@ import type {
   GetTraineeCampaignDetailResponseDto,
   GetTraineeCampaignsResponseDto,
 } from '@insightful-phish/shared';
-import { authenticatedFetch } from './authenticatedFetch';
+import { apiClient } from './apiClient';
 
 export async function getTraineeCampaigns(): Promise<GetTraineeCampaignsResponseDto> {
-  return authenticatedFetch<GetTraineeCampaignsResponseDto>('/trainee/campaigns');
+  return apiClient.get<GetTraineeCampaignsResponseDto>('/trainee/campaigns');
 }
 
 export async function getTraineeCampaignDetail(
   campaignId: string,
 ): Promise<GetTraineeCampaignDetailResponseDto> {
-  return authenticatedFetch<GetTraineeCampaignDetailResponseDto>(
-    `/trainee/campaigns/${campaignId}`,
-  );
+  return apiClient.get<GetTraineeCampaignDetailResponseDto>(`/trainee/campaigns/${campaignId}`);
 }

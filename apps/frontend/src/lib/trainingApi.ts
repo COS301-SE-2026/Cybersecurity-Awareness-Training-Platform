@@ -1,5 +1,5 @@
 import type { GetTrainingDocumentResponseDto } from '@insightful-phish/shared';
-import { authenticatedFetch } from './authenticatedFetch';
+import { apiClient } from './apiClient';
 
 export type TrainingDocumentStatus = 'NOT_STARTED' | 'STARTED' | 'VIEWED' | 'COMPLETED';
 
@@ -19,27 +19,21 @@ export const trainingRoutes = {
 export async function getCampaignItemTrainingDocument(
   campaignItemId: string,
 ): Promise<GetTrainingDocumentResponseDto> {
-  return authenticatedFetch<GetTrainingDocumentResponseDto>(
+  return apiClient.get<GetTrainingDocumentResponseDto>(
     `/trainee/campaign-items/${campaignItemId}/training-document`,
   );
 }
 
 export async function recordTrainingDocumentViewed(campaignItemId: string): Promise<void> {
-  await authenticatedFetch<void>(
+  await apiClient.post<void, Record<string, never>>(
     `/trainee/campaign-items/${campaignItemId}/training-document/viewed`,
-    {
-      method: 'POST',
-      body: JSON.stringify({}),
-    },
+    {},
   );
 }
 
 export async function recordTrainingDocumentCompleted(campaignItemId: string): Promise<void> {
-  await authenticatedFetch<void>(
+  await apiClient.post<void, Record<string, never>>(
     `/trainee/campaign-items/${campaignItemId}/training-document/completed`,
-    {
-      method: 'POST',
-      body: JSON.stringify({}),
-    },
+    {},
   );
 }
