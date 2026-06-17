@@ -21,7 +21,7 @@ The audit scans the following static/public routes:
 
 ## Quality Thresholds
 
-Configuration details are specified in [apps/frontend/lighthouserc.json](file:///Users/zaza/Downloads/Cybersecurity-Awareness-Training-Platform-chore-lighthouse-quality-check-rudolph/apps/frontend/lighthouserc.json). The starter expectations are:
+Configuration details are specified in [apps/frontend/lighthouserc.json](../../apps/frontend/lighthouserc.json). The starter expectations are:
 
 | Category                 | Target Score       | Action on Failure | Rationale / Notes                                                                                                |
 | ------------------------ | ------------------ | ----------------- | ---------------------------------------------------------------------------------------------------------------- |
