@@ -148,4 +148,27 @@ describe('InboxPage', () => {
     expect(await screen.findByText('FAILED TO LOAD INBOX')).toBeInTheDocument();
     expect(mockedGetSimulatedInbox).not.toHaveBeenCalled();
   });
+
+  it('leeps inbox previews as plain text when preview contains HTML-like content', async () => {
+    mockedGetSimulatedInbox.mockResolvedValue({
+      emails: [
+        {
+          ...inboxFixture.emails[0],
+          preview:
+            '<strong>Verify now</strong><script>window.hacked = true;</script><a href = "javascript:aler(1)">link</a>',
+        },
+      ],
+    });
+
+    render(<InboxPage />);
+
+    const row = await screen.findByRole('button', { name: /finance team/i });
+
+    expect(row.textContent).toContain(
+      '<strong>Verify now</strong><script>window.hacked = true;</script><a href="javascript:alert(1)">link</a>',
+    );
+    expect(row.querySelector('strong')).not.toBeInTheDocument();
+    expect(row.querySelector('script')).not.toBeInTheDocument();
+    expect(row.querySelector('a')).not.toBeInTheDocument();
+  });
 });
