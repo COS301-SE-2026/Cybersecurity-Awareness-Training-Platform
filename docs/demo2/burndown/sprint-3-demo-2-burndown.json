@@ -147,8 +147,8 @@
       "number": 165,
       "title": "chore: add non-blocking Lighthouse CI check",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-06-17"
     },
     {
       "number": 164,
@@ -341,7 +341,7 @@
     },
     {
       "date": "2026-06-17",
-      "remaining": 24,
+      "remaining": 22,
       "ideal": 0.0
     }
   ]
