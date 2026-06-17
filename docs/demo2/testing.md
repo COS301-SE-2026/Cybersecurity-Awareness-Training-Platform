@@ -506,6 +506,16 @@ Test coverage is tracked to ensure critical demo paths and logic are verified.
 > [!NOTE]
 > During the Demo 1 sprint, coverage thresholds are not strictly enforced to avoid blocking implementation work. Coverage is used as a quality signal rather than a hard gate.
 
+### Automated Accessibility and Quality Audits
+
+Lighthouse CI is integrated into the CI environment to run automated audits on public and static routes, focusing on accessibility, best practices, and SEO.
+
+- **Config File**: [lighthouserc.json](../../apps/frontend/lighthouserc.json)
+- **Local Command**: `pnpm --filter @insightful-phish/frontend lighthouse`
+- **CI Workflow**: `.github/workflows/lighthouse.yml` (Informational/non-blocking for Sprint 3)
+
+For details on configuration, interpreting reports, and how to transition Lighthouse audits into blocking checks, refer to [LIGHTHOUSE.md](./LIGHTHOUSE.md).
+
 ## Technical Requirements and Constraints Reference
 
 The following constraints from [architecture.md](./architecture.md) directly affect what QA must verify for Demo 1. They are listed here to ensure testing planning remains aligned with the agreed architectural boundaries.
