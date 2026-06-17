@@ -104,6 +104,7 @@ export interface TraineeCampaignSummaryDto {
   campaignId: string;
   name: string;
   description?: string | null;
+  accentColor?: string | null;
   campaignType: CampaignTypeDto;
   difficultyLevel: DifficultyLevelDto;
   status: CampaignStatusDto;

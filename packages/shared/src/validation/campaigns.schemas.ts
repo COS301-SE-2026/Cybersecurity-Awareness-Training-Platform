@@ -30,6 +30,10 @@ const campaignStatusSchema = z.enum(['DRAFT', 'ACTIVE', 'PAUSED', 'COMPLETED', '
 
 const difficultyLevelSchema = z.enum(['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ADAPTIVE']);
 
+const hexColorSchema = z
+  .string()
+  .regex(/^#[0-9A-Fa-f]{6}$/, 'Accent colour must be a six digit HEX colour.');
+
 const assignmentStatusSchema = z.enum([
   'AVAILABLE',
   'ASSIGNED',
@@ -115,6 +119,7 @@ export const traineeCampaignSummarySchema = z
     campaignId: idParamSchema,
     name: campaignNameSchema,
     description: descriptionSchema.nullish(),
+    accentColor: hexColorSchema.nullish(),
     campaignType: campaignTypeSchema,
     difficultyLevel: difficultyLevelSchema,
     status: campaignStatusSchema,
