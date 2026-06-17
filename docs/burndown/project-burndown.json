@@ -561,8 +561,8 @@
           "number": 177,
           "title": "chore: improve Codecov reporting visibility",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-06-17"
         },
         {
           "number": 176,
@@ -582,8 +582,8 @@
           "number": 174,
           "title": "chore: update PR checklist review guardrails",
           "points": 1,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-06-17"
         },
         {
           "number": 173,
@@ -986,7 +986,7 @@
     },
     {
       "date": "2026-06-17",
-      "remaining": 49,
+      "remaining": 46,
       "ideal": 0.0
     }
   ]
