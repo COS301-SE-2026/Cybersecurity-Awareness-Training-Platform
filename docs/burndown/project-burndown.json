@@ -519,8 +519,8 @@
           "number": 183,
           "title": "docs: document future organisation auth and security architecture",
           "points": 3,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-06-17"
         },
         {
           "number": 182,
@@ -554,8 +554,8 @@
           "number": 178,
           "title": "chore: add backend Dockerfile and dockerignore",
           "points": 3,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-06-17"
         },
         {
           "number": 177,
@@ -680,8 +680,8 @@
           "number": 160,
           "title": "chore: add route builders and clean stale frontend routes",
           "points": 3,
-          "state": "closed",
-          "closed_date": "2026-06-17"
+          "state": "open",
+          "closed_date": null
         },
         {
           "number": 159,
@@ -715,8 +715,8 @@
           "number": 155,
           "title": "chore: clean deprecated static frontend assets and app metadata",
           "points": 2,
-          "state": "closed",
-          "closed_date": "2026-06-17"
+          "state": "open",
+          "closed_date": null
         },
         {
           "number": 154,
@@ -986,7 +986,7 @@
     },
     {
       "date": "2026-06-17",
-      "remaining": 22,
+      "remaining": 21,
       "ideal": 0.0
     }
   ]
