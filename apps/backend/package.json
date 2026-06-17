@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc && node ./scripts/copy-training-content.mjs",
-    "start": "node dist/src/server.js",
+    "start": "tsx dist/src/server.js",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run tests/unit",
