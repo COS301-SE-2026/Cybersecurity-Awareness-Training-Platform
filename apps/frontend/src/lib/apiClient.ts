@@ -67,10 +67,20 @@ function resolveAuthToken(authToken?: string | null): string | null {
   return authToken;
 }
 
-function resolveBaseUrl(): string {
-  const configureBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+function trimTrailingSlashes(value: string): string {
+  let end = value.length;
 
-  return (configureBaseUrl || DEFAULT_API_BASE_URL).replace(/\/+$/, '');
+  while (end > 0 && value[end - 1] === '/') {
+    end -= 1;
+  }
+
+  return value.slice(0, end);
+}
+
+function resolveBaseUrl(): string {
+  const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+
+  return trimTrailingSlashes(configuredBaseUrl || DEFAULT_API_BASE_URL);
 }
 
 function normalizePath(path: string): string {
