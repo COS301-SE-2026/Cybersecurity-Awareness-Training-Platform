@@ -9,6 +9,7 @@ import { authRouter } from './routes/auth.routes.js';
 import { traineeRouter } from './routes/trainee.routes.js';
 import { traineeTrainingRouter } from './routes/trainee-training.routes.js';
 import { traineeQuizRouter, quizAttemptRouter } from './routes/quiz.routes.js';
+import { errorHandler } from './middleware/errorHandler.js';
 
 export function createApp() {
   const app = express();
@@ -29,16 +30,16 @@ export function createApp() {
   // Swagger Documentation
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
+  // Mount API Routers
   app.use(healthRoutes);
   app.use(authRouter);
   app.use('/trainee', traineeRouter);
   app.use(traineeTrainingRouter);
-
-  // Preliminary Demo 1 API Route Placeholders (To be implemented)
-  // app.use('/auth', authRoutes);
   app.use('/trainee/campaign-items', traineeQuizRouter);
   app.use('/quiz-attempts', quizAttemptRouter);
-  // app.use('/campaigns', campaignRoutes); // supporting admin/campaign context
+
+  // Centralized fallback error handler (must be registered last)
+  app.use(errorHandler);
 
   return app;
 }

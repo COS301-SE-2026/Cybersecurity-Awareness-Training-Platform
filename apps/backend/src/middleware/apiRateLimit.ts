@@ -1,8 +1,11 @@
-import rateLimit from 'express-rate-limit';
+import rateLimit, { MemoryStore } from 'express-rate-limit';
+
+const apiRateLimitStore = new MemoryStore();
 
 export const apiRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   limit: 100, // Limit each IP to 100 requests per `window` (here, per 15 minutes)
+  store: apiRateLimitStore,
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
   message: {
@@ -10,3 +13,7 @@ export const apiRateLimit = rateLimit({
     message: 'Too many requests from this IP, please try again after 15 minutes',
   },
 });
+
+export function clearApiRateLimitStore() {
+  void apiRateLimitStore.resetAll();
+}
