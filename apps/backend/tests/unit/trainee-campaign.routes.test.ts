@@ -87,6 +87,7 @@ function baseAssignment() {
       id: campaignId,
       name: 'Phishing Fundamentals',
       description: 'Build safe email habits.',
+      accentColor: '#2563EB',
       campaignType: 'PREMADE_GENERAL',
       difficultyLevel: 'BEGINNER',
       status: 'ACTIVE',
@@ -111,6 +112,7 @@ function passwordSecuritySummaryAssignment() {
       id: DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN.id,
       name: DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN.name,
       description: DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN.description,
+      accentColor: DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN.accentColor,
       campaignType: DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN.campaignType,
       difficultyLevel: DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN.difficultyLevel,
       status: DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN.status,
@@ -335,6 +337,7 @@ describe('Trainee campaign discovery routes', () => {
     expect(response.body.campaigns[0]).toMatchObject({
       campaignId,
       name: 'Phishing Fundamentals',
+      accentColor: '#2563EB',
       itemCount: 4,
       availableItemCount: 3,
       assignment: {
