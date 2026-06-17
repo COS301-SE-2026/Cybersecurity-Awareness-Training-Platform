@@ -38,17 +38,19 @@ WORKDIR /workspace
 
 RUN corepack enable && corepack prepare pnpm@10.33.2 --activate
 
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
-COPY apps/backend/package.json apps/backend/package.json
-COPY packages/shared/package.json packages/shared/package.json
+# Copy files with node ownership
+COPY --chown=node:node package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY --chown=node:node apps/backend/package.json apps/backend/package.json
+COPY --chown=node:node packages/shared/package.json packages/shared/package.json
 
-# Copy dependencies and build outputs
-COPY --from=builder /workspace/node_modules ./node_modules
-COPY --from=builder /workspace/apps/backend/node_modules ./apps/backend/node_modules
-COPY --from=builder /workspace/packages/shared/node_modules ./packages/shared/node_modules
-COPY --from=builder /workspace/apps/backend/dist ./apps/backend/dist
-COPY --from=builder /workspace/packages/shared/src ./packages/shared/src
-COPY --from=builder /workspace/apps/backend/prisma ./apps/backend/prisma
+COPY --chown=node:node --from=builder /workspace/node_modules ./node_modules
+COPY --chown=node:node --from=builder /workspace/apps/backend/node_modules ./apps/backend/node_modules
+COPY --chown=node:node --from=builder /workspace/packages/shared/node_modules ./packages/shared/node_modules
+COPY --chown=node:node --from=builder /workspace/apps/backend/dist ./apps/backend/dist
+COPY --chown=node:node --from=builder /workspace/packages/shared/src ./packages/shared/src
+COPY --chown=node:node --from=builder /workspace/apps/backend/prisma ./apps/backend/prisma
+
+USER node
 
 EXPOSE 4000
 
