@@ -156,8 +156,8 @@
       "number": 164,
       "title": "chore: add Playwright smoke and axe accessibility foundation",
       "points": 3,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-06-17"
     },
     {
       "number": 163,
@@ -343,7 +343,7 @@
     },
     {
       "date": "2026-06-17",
-      "remaining": 27,
+      "remaining": 24,
       "ideal": 0.0
     }
   ]
