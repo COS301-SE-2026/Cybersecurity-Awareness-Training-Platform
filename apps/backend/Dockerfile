@@ -19,7 +19,7 @@ COPY packages/shared packages/shared
 COPY apps/backend apps/backend
 
 # Generate Prisma client locally inside the container (no DB connection required)
-RUN DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" pnpm --filter @insightful-phish/backend prisma:generate
+RUN DATABASE_URL="placeholder" pnpm --filter @insightful-phish/backend prisma:generate
 
 # Build the shared and backend packages (compiles TS and runs training content copy script)
 RUN pnpm build:shared && pnpm build:backend
@@ -32,7 +32,7 @@ RUN npm install -g pnpm@10.33.2
 WORKDIR /app
 
 # Copy the build outputs and node_modules from builder
-COPY --from=builder /app /app
+COPY --from=builder --chown=node:node /app /app
 
 # Change context to the backend app
 WORKDIR /app/apps/backend
@@ -42,6 +42,9 @@ EXPOSE 4000
 
 ENV PORT=4000
 ENV NODE_ENV=development
+
+# Switch to non-root user for security
+USER node
 
 # Runtime command
 CMD ["pnpm", "start"]
