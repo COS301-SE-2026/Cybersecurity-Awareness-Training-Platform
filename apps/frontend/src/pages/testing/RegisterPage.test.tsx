@@ -105,11 +105,13 @@ describe('RegisterPage', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: /register/i }));
 
-    const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
+    const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit;
 
     expect(fetchMock.mock.calls[0]?.[0]).toContain('/auth/register');
     expect(requestInit?.method).toBe('POST');
-    expect(JSON.parse(String(requestInit?.body))).toEqual({
+    expect(requestInit?.body).toBeTypeOf('string');
+
+    expect(JSON.parse(requestInit.body as string)).toEqual({
       firstName: 'Jane',
       lastName: 'Doe',
       email: 'trainee@example.com',

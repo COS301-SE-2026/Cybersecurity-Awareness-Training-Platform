@@ -217,7 +217,7 @@ describe('TrainingDocumentPage', () => {
     expect(screen.queryByText(/Reference:/i)).not.toBeInTheDocument();
   });
 
-  it('records completion when the learner marks the document complete', async () => {
+  it('records completion when the trainee marks the document complete', async () => {
     const user = userEvent.setup();
 
     renderTrainingDocumentPage();
