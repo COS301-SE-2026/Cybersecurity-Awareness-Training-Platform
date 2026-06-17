@@ -74,7 +74,7 @@ function resolveBaseUrl(): string {
 }
 
 function normalizePath(path: string): string {
-  return path.startsWith('/') ? path : '/${path}';
+  return path.startsWith('/') ? path : `/${path}`;
 }
 
 function isJsonContentType(contentType: string | null): boolean {
@@ -177,8 +177,8 @@ async function request<TResponse>(
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  if (preparedBody.isJsonBody && !headers.has('Content-type')) {
-    headers.set('Content-Type', 'applicaton/json');
+  if (preparedBody.isJsonBody && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
   }
 
   const response = await fetch(url, {
