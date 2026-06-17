@@ -32,7 +32,7 @@ RUN npm install -g pnpm@10.33.2
 WORKDIR /app
 
 # Copy the build outputs and node_modules from builder
-COPY --from=builder --chown=node:node /app /app
+COPY --from=builder /app /app
 
 # Change context to the backend app
 WORKDIR /app/apps/backend
