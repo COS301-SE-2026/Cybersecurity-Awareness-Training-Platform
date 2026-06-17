@@ -6,6 +6,13 @@
   "end": "2026-06-17",
   "issues": [
     {
+      "number": 207,
+      "title": "fix: seed campaign creator relation after Prisma schema update",
+      "points": 1,
+      "state": "open",
+      "closed_date": null
+    },
+    {
       "number": 185,
       "title": "docs: review database migration test database and seeding strategy",
       "points": 3,
@@ -30,8 +37,8 @@
       "number": 182,
       "title": "chore: add non-blocking CI Docker image build check",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-06-17"
     },
     {
       "number": 181,
@@ -233,117 +240,117 @@
   "series": [
     {
       "date": "2026-05-26",
-      "remaining": 76,
-      "ideal": 78.0
+      "remaining": 77,
+      "ideal": 79.0
     },
     {
       "date": "2026-05-27",
-      "remaining": 76,
-      "ideal": 74.45
+      "remaining": 77,
+      "ideal": 75.41
     },
     {
       "date": "2026-05-28",
-      "remaining": 76,
-      "ideal": 70.91
+      "remaining": 77,
+      "ideal": 71.82
     },
     {
       "date": "2026-05-29",
-      "remaining": 73,
-      "ideal": 67.36
+      "remaining": 74,
+      "ideal": 68.23
     },
     {
       "date": "2026-05-30",
-      "remaining": 73,
-      "ideal": 63.82
+      "remaining": 74,
+      "ideal": 64.64
     },
     {
       "date": "2026-05-31",
-      "remaining": 73,
-      "ideal": 60.27
+      "remaining": 74,
+      "ideal": 61.05
     },
     {
       "date": "2026-06-01",
-      "remaining": 73,
-      "ideal": 56.73
+      "remaining": 74,
+      "ideal": 57.45
     },
     {
       "date": "2026-06-02",
-      "remaining": 73,
-      "ideal": 53.18
+      "remaining": 74,
+      "ideal": 53.86
     },
     {
       "date": "2026-06-03",
-      "remaining": 70,
-      "ideal": 49.64
+      "remaining": 71,
+      "ideal": 50.27
     },
     {
       "date": "2026-06-04",
-      "remaining": 70,
-      "ideal": 46.09
+      "remaining": 71,
+      "ideal": 46.68
     },
     {
       "date": "2026-06-05",
-      "remaining": 70,
-      "ideal": 42.55
+      "remaining": 71,
+      "ideal": 43.09
     },
     {
       "date": "2026-06-06",
-      "remaining": 70,
-      "ideal": 39.0
+      "remaining": 71,
+      "ideal": 39.5
     },
     {
       "date": "2026-06-07",
-      "remaining": 70,
-      "ideal": 35.45
+      "remaining": 71,
+      "ideal": 35.91
     },
     {
       "date": "2026-06-08",
-      "remaining": 70,
-      "ideal": 31.91
+      "remaining": 71,
+      "ideal": 32.32
     },
     {
       "date": "2026-06-09",
-      "remaining": 70,
-      "ideal": 28.36
+      "remaining": 71,
+      "ideal": 28.73
     },
     {
       "date": "2026-06-10",
-      "remaining": 70,
-      "ideal": 24.82
+      "remaining": 71,
+      "ideal": 25.14
     },
     {
       "date": "2026-06-11",
-      "remaining": 70,
-      "ideal": 21.27
+      "remaining": 71,
+      "ideal": 21.55
     },
     {
       "date": "2026-06-12",
-      "remaining": 70,
-      "ideal": 17.73
+      "remaining": 71,
+      "ideal": 17.95
     },
     {
       "date": "2026-06-13",
-      "remaining": 70,
-      "ideal": 14.18
+      "remaining": 71,
+      "ideal": 14.36
     },
     {
       "date": "2026-06-14",
-      "remaining": 70,
-      "ideal": 10.64
+      "remaining": 71,
+      "ideal": 10.77
     },
     {
       "date": "2026-06-15",
-      "remaining": 70,
-      "ideal": 7.09
+      "remaining": 71,
+      "ideal": 7.18
     },
     {
       "date": "2026-06-16",
-      "remaining": 49,
-      "ideal": 3.55
+      "remaining": 50,
+      "ideal": 3.59
     },
     {
       "date": "2026-06-17",
-      "remaining": 21,
+      "remaining": 20,
       "ideal": 0.0
     }
   ]
