@@ -13,7 +13,11 @@ import TrainingPartAccordion from '../components/ui/TrainingPartAccordion';
 
 import { getTraineeCampaignDetail, getTraineeCampaigns } from '../lib/campaignsApi';
 
-const ACCENT_COLORS = ['#00FFA6', '#FF00D4', '#00D1FF', '#FF9F1C'];
+const FALLBACK_ACCENT_COLORS = ['#00FFA6', '#FF00D4', '#00D1FF', '#FF9F1C'];
+
+function getCampaignAccentColor(campaign: TraineeCampaignSummaryDto, index: number): string {
+  return campaign.accentColor ?? FALLBACK_ACCENT_COLORS[index % FALLBACK_ACCENT_COLORS.length];
+}
 
 function formatCampaignStatus(status?: string | null): string {
   switch (status) {
@@ -268,7 +272,7 @@ function CampaignsPage() {
               title={`Campaign ${index + 1}`}
               subtitle={campaign.name}
               status={formatCampaignStatus(campaign.progressStatus)}
-              accentColor={ACCENT_COLORS[index % ACCENT_COLORS.length]}
+              accentColor={getCampaignAccentColor(campaign, index)}
               isOpen={Boolean(openCampaigns[campaign.campaignId])}
               onToggle={() => void toggleCampaign(campaign.campaignId)}
             >

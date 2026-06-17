@@ -706,6 +706,32 @@ pnpm --filter @insightful-phish/frontend test
 pnpm --filter @insightful-phish/frontend build
 ```
 
+### Run frontend browser smoke tests
+
+Frontend browser smoke tests live in `apps/frontend/tests/e2e`.
+
+Current Sprint 3 scope is intentionally small:
+
+- `/login` smoke coverage
+- `/status` smoke coverage with mocked health data
+- one axe accessibility check on `/login`
+
+Before running the browser tests for the first time, install the Chromium browser used by Playwright:
+
+```bash
+pnpm --filter @insightful-phish/frontend test:e2e:install
+```
+
+From the repo root, run the frontend browser smoke tests with:
+
+```bash
+pnpm test:e2e:frontend
+```
+
+These checks are local-only and non-blocking for Sprint 3.
+
+They are useful smoke coverage for the current frontend routes, but they are not full Demo 1 end-to-end coverage and not full accessibility certification.
+
 ## 14. GitHub Actions CI
 
 The project has a CI workflow in:

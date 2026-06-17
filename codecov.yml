@@ -55,3 +55,24 @@ comment:
   layout: 'diff, flags, files'
   behavior: default
   require_changes: false
+
+component_management:
+  default_rules:
+    statuses:
+      - type: project
+        target: auto
+        threshold: 5%
+        informational: true
+  individual_components:
+    - component_id: backend
+      name: Backend
+      paths:
+        - apps/backend/**
+    - component_id: frontend
+      name: Frontend
+      paths:
+        - apps/frontend/**
+    - component_id: shared
+      name: Shared
+      paths:
+        - packages/shared/**

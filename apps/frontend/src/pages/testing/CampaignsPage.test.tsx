@@ -24,16 +24,18 @@ vi.mock('../../components/layout/AppLayout', () => ({
 vi.mock('../../components/ui/CampaignAccordion', () => ({
   default: ({
     subtitle,
+    accentColor,
     children,
     isOpen,
     onToggle,
   }: {
     subtitle: string;
+    accentColor: string;
     children?: ReactNode;
     isOpen: boolean;
     onToggle: () => void;
   }) => (
-    <section>
+    <section data-testid={`campaign-${subtitle}`} data-accent-color={accentColor}>
       <button type="button" onClick={onToggle}>
         {subtitle}
       </button>
@@ -79,6 +81,7 @@ describe('CampaignsPage', () => {
         {
           campaignId: '11111111-1111-4111-8111-111111111111',
           name: 'Quarterly Awareness',
+          accentColor: '#2563EB',
           campaignType: 'PREMADE_GENERAL',
           difficultyLevel: 'BEGINNER',
           status: 'ACTIVE',
@@ -163,6 +166,33 @@ describe('CampaignsPage', () => {
 
   afterEach(() => {
     cleanup();
+  });
+
+  it('uses campaign accent colour from the API when present', async () => {
+    render(<CampaignsPage />);
+    const campaign = await screen.findByTestId('campaign-Quarterly Awareness');
+    expect(campaign).toHaveAttribute('data-accent-color', '#2563EB');
+  });
+
+  it('falls back to the local accent colour palette when the API omits accent colour', async () => {
+    mockedGetTraineeCampaigns.mockResolvedValue({
+      campaigns: [
+        {
+          campaignId: '11111111-1111-4111-8111-111111111111',
+          name: 'Quarterly Awareness',
+          campaignType: 'PREMADE_GENERAL',
+          difficultyLevel: 'BEGINNER',
+          status: 'ACTIVE',
+          progressStatus: 'IN_PROGRESS',
+        },
+      ],
+    });
+
+    render(<CampaignsPage />);
+
+    const campaign = await screen.findByTestId('campaign-Quarterly Awareness');
+
+    expect(campaign).toHaveAttribute('data-accent-color', '#00FFA6');
   });
 
   it('routes training document campaign items to the frontend training page', async () => {
