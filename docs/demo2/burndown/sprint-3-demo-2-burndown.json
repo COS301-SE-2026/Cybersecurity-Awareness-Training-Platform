@@ -70,8 +70,8 @@
       "number": 176,
       "title": "chore: remove Vercel deployment configuration",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-06-17"
     },
     {
       "number": 175,
@@ -341,7 +341,7 @@
     },
     {
       "date": "2026-06-17",
-      "remaining": 46,
+      "remaining": 44,
       "ideal": 0.0
     }
   ]

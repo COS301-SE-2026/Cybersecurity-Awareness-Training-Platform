@@ -19,7 +19,7 @@
 <text x="18" y="205.0" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="13" text-anchor="middle" transform="rotate(-90 18 205.0)" fill="#EEDEFF">Story Points Remaining</text>
 <text x="470.0" y="408" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="13" text-anchor="middle" fill="#EEDEFF">Sprint Timeline</text>
 <polyline points="70.0,121.0 106.4,131.6 142.7,142.3 179.1,152.9 215.5,163.5 251.8,174.2 288.2,184.8 324.5,195.5 360.9,206.1 397.3,216.7 433.6,227.4 470.0,238.0 506.4,248.6 542.7,259.3 579.1,269.9 615.5,280.5 651.8,291.2 688.2,301.8 724.5,312.5 760.9,323.1 797.3,333.7 833.6,344.4 870.0,355.0" fill="none" stroke="#B37DFF" stroke-width="3" stroke-dasharray="8 6"/>
-<polyline points="70.0,127.0 106.4,127.0 142.7,127.0 179.1,136.0 215.5,136.0 251.8,136.0 288.2,136.0 324.5,136.0 360.9,145.0 397.3,145.0 433.6,145.0 470.0,145.0 506.4,145.0 542.7,145.0 579.1,145.0 615.5,145.0 651.8,145.0 688.2,145.0 724.5,145.0 760.9,145.0 797.3,145.0 833.6,208.0 870.0,217.0" fill="none" stroke="#D6B3FF" stroke-width="4"/>
+<polyline points="70.0,127.0 106.4,127.0 142.7,127.0 179.1,136.0 215.5,136.0 251.8,136.0 288.2,136.0 324.5,136.0 360.9,145.0 397.3,145.0 433.6,145.0 470.0,145.0 506.4,145.0 542.7,145.0 579.1,145.0 615.5,145.0 651.8,145.0 688.2,145.0 724.5,145.0 760.9,145.0 797.3,145.0 833.6,208.0 870.0,223.0" fill="none" stroke="#D6B3FF" stroke-width="4"/>
 <line x1="610" y1="75" x2="645" y2="75" stroke="#D6B3FF" stroke-width="4"/>
 <text x="655" y="80" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="13" fill="#EEDEFF">Remaining work</text>
 <line x1="610" y1="97" x2="645" y2="97" stroke="#B37DFF" stroke-width="3" stroke-dasharray="8 6"/>
