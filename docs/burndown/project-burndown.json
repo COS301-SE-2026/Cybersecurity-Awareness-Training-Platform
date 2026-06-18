@@ -547,8 +547,8 @@
           "number": 180,
           "title": "chore: add local Docker Compose app stack",
           "points": 3,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-06-18"
         },
         {
           "number": 179,
