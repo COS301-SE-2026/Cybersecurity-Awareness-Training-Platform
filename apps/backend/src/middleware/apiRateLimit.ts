@@ -14,6 +14,6 @@ export const apiRateLimit = rateLimit({
   },
 });
 
-export function clearApiRateLimitStore() {
-  void apiRateLimitStore.resetAll();
+export async function clearApiRateLimitStore() {
+  await apiRateLimitStore.resetAll();
 }

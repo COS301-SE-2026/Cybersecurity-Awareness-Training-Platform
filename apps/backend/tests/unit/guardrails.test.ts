@@ -48,21 +48,21 @@ describe('Backend Guardrails & Consistency Middleware', () => {
   });
 
   describe('Central Fallback Error Handler', () => {
-    it('should catch errors and return JSON ApiErrorResponse', async () => {
+    it('should catch errors and return JSON ApiErrorResponse for client-side errors with raw message', async () => {
       const app = express();
       app.get('/error', (req, res, next) => {
-        const err: any = new Error('Database connection failed');
-        err.status = 503;
-        err.error = 'SERVICE_UNAVAILABLE';
+        const err: any = new Error('Validation failed');
+        err.status = 400;
+        err.error = 'VALIDATION_ERROR';
         next(err);
       });
       app.use(errorHandler);
 
       const response = await request(app).get('/error');
-      expect(response.status).toBe(503);
+      expect(response.status).toBe(400);
       expect(response.body).toEqual({
-        error: 'SERVICE_UNAVAILABLE',
-        message: 'Database connection failed',
+        error: 'VALIDATION_ERROR',
+        message: 'Validation failed',
       });
     });
 
@@ -80,7 +80,7 @@ describe('Backend Guardrails & Consistency Middleware', () => {
       expect(response.status).toBe(500);
       expect(response.body).toEqual({
         error: 'INTERNAL_SERVER_ERROR',
-        message: 'Unexpected crash',
+        message: 'An unexpected error occurred',
       });
 
       expect(consoleErrorSpy).toHaveBeenCalled();
@@ -94,7 +94,7 @@ describe('Backend Guardrails & Consistency Middleware', () => {
       app.use(apiRateLimit);
       app.get('/test', (req, res) => res.send('ok'));
 
-      clearApiRateLimitStore();
+      await clearApiRateLimitStore();
 
       // Make 100 requests (which is the limit)
       for (let i = 0; i < 100; i++) {
@@ -111,7 +111,7 @@ describe('Backend Guardrails & Consistency Middleware', () => {
       });
 
       // Clear/reset store
-      clearApiRateLimitStore();
+      await clearApiRateLimitStore();
 
       // Request should succeed again
       const resAfterReset = await request(app).get('/test');

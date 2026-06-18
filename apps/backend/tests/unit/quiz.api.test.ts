@@ -145,9 +145,9 @@ function mockBoundedMultipleChoiceQuizAttempt(min: number, max: number, status =
 describe('Quiz API Routes', () => {
   const token = generateAuthToken('trainee-user-id').token;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
-    clearApiRateLimitStore();
+    await clearApiRateLimitStore();
 
     mockPrisma.user.findUnique.mockResolvedValue({
       id: 'trainee-user-id',

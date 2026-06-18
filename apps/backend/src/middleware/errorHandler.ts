@@ -14,7 +14,11 @@ export function errorHandler(
 
   const status = err.status || err.statusCode || 500;
   const errorKey = err.error || 'INTERNAL_SERVER_ERROR';
-  const message = err.message || 'An unexpected error occurred';
+
+  const isInternalError = status >= 500;
+  const message = isInternalError
+    ? 'An unexpected error occurred'
+    : err.message || 'An unexpected error occurred';
 
   // Log unexpected internal errors (500s) for observability
   if (status >= 500) {
