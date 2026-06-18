@@ -70,7 +70,26 @@ services:
       - backend_node_modules:/workspace/apps/backend/node_modules
       - frontend_node_modules:/workspace/apps/frontend/node_modules
       - shared_node_modules:/workspace/packages/shared/node_modules
+    ports:
+      - '5555:5555'
     command: sh
+
+  test-db-setup:
+    image: postgres:16-alpine
+    profiles:
+      - tools
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your local .env file or shell.}
+      POSTGRES_USER: ${POSTGRES_USER:-insightful_phish}
+      TEST_DATABASE_NAME: insightful_phish_test
+    command:
+      - sh
+      - -c
+      - |
+        psql -h postgres -U "$$POSTGRES_USER" -d postgres -tc "SELECT 1 FROM pg_database WHERE datname = '$$TEST_DATABASE_NAME'" | grep -q 1 || createdb -h postgres -U "$$POSTGRES_USER" "$$TEST_DATABASE_NAME"
 
 volumes:
   insightful_phish_postgres_data:

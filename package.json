@@ -37,7 +37,9 @@
     "docker:up:detached": "docker compose up --build -d",
     "docker:down": "docker compose down",
     "docker:reset": "docker compose down -v",
+    "docker:ps": "docker compose ps",
     "docker:tools:install": "docker compose --profile tools run --rm workspace pnpm install --frozen-lockfile",
+    "docker:start": "pnpm docker:tools:install && pnpm docker:up",
     "docker:shell": "docker compose --profile tools run --rm workspace sh",
     "docker:logs": "docker compose logs --tail=50",
     "docker:logs:backend": "docker compose logs backend --tail=50",
@@ -68,7 +70,11 @@
     "docker:format:check": "docker compose --profile tools run --rm workspace pnpm format:check",
     "docker:prisma:generate": "docker compose --profile tools run --rm workspace pnpm --filter @insightful-phish/backend prisma:generate",
     "docker:prisma:migrate": "docker compose --profile tools run --rm workspace pnpm --filter @insightful-phish/backend prisma:migrate:deploy",
+    "docker:prisma:studio": "docker compose --profile tools run --rm --service-ports workspace pnpm --filter @insightful-phish/backend prisma:studio --port 5555",
     "docker:seed:demo1": "docker compose --profile tools run --rm workspace pnpm --filter @insightful-phish/backend seed:demo1",
+    "docker:db:create:test": "docker compose --profile tools run --rm test-db-setup",
+    "docker:db:migrate:test": "docker compose --profile tools run --rm workspace sh -c 'DATABASE_URL=\"$TEST_DATABASE_URL\" pnpm --filter @insightful-phish/backend prisma:migrate:deploy'",
+    "docker:test:integration:backend": "pnpm docker:db:create:test && pnpm docker:db:migrate:test && docker compose --profile tools run --rm workspace pnpm --filter @insightful-phish/backend test:integration",
     "prepare": "husky"
   },
   "devDependencies": {
