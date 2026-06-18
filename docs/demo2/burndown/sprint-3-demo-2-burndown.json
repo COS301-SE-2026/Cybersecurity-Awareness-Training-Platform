@@ -133,8 +133,8 @@
       "number": 168,
       "title": "chore: clean backend error validation and rate-limit foundations",
       "points": 3,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-06-18"
     },
     {
       "number": 167,
