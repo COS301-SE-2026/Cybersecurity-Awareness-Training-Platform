@@ -2,7 +2,7 @@ import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../../src/app.js';
 import { generateAuthToken } from '../../src/services/auth-token.service.js';
-import { clearAuthRateLimitStore } from '../../src/middleware/authRateLimit.js';
+import { clearApiRateLimitStore } from '../../src/middleware/apiRateLimit.js';
 
 const mockPrisma = vi.hoisted(() => {
   const mockTx = {
@@ -145,9 +145,9 @@ function mockBoundedMultipleChoiceQuizAttempt(min: number, max: number, status =
 describe('Quiz API Routes', () => {
   const token = generateAuthToken('trainee-user-id').token;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
-    clearAuthRateLimitStore();
+    await clearApiRateLimitStore();
 
     mockPrisma.user.findUnique.mockResolvedValue({
       id: 'trainee-user-id',

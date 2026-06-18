@@ -1,15 +1,12 @@
 import { TrainingMarkdownContent } from './TrainingMarkdownContent';
+import { sanitizeSafeHtml } from '../../lib/safeHtml';
 
-type TrainingDocumentReaderProps = {
+type TrainingDocumentReaderProps = Readonly<{
   title: string;
   contentType?: string | null;
   resolvedContent: string;
   resolvedFormat: 'html' | 'markdown' | 'text';
-};
-
-function renderSafeDemoHtml(html: string) {
-  return { __html: html };
-}
+}>;
 
 function TrainingDocumentReader({
   title,
@@ -17,6 +14,24 @@ function TrainingDocumentReader({
   resolvedContent,
   resolvedFormat,
 }: TrainingDocumentReaderProps) {
+  function renderContent() {
+    if (resolvedFormat === 'markdown') {
+      return (
+        <div style={contentBodyStyle}>
+          <TrainingMarkdownContent content={resolvedContent} />
+        </div>
+      );
+    }
+
+    if (resolvedFormat === 'html') {
+      const sanitizedHtml = sanitizeSafeHtml(resolvedContent);
+
+      return <div style={contentBodyStyle} dangerouslySetInnerHTML={{ __html: sanitizedHtml }} />;
+    }
+
+    return <div style={{ ...contentBodyStyle, whiteSpace: 'pre-wrap' }}>{resolvedContent}</div>;
+  }
+
   return (
     <article
       style={{
@@ -56,18 +71,7 @@ function TrainingDocumentReader({
         </div>
       </header>
 
-      {resolvedFormat === 'markdown' ? (
-        <div style={contentBodyStyle}>
-          <TrainingMarkdownContent content={resolvedContent} />
-        </div>
-      ) : resolvedFormat === 'html' ? (
-        <div
-          style={contentBodyStyle}
-          dangerouslySetInnerHTML={renderSafeDemoHtml(resolvedContent)}
-        />
-      ) : (
-        <div style={{ ...contentBodyStyle, whiteSpace: 'pre-wrap' }}>{resolvedContent}</div>
-      )}
+      {renderContent()}
     </article>
   );
 }

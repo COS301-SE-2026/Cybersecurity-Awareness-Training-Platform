@@ -96,7 +96,7 @@ describe('EmailDetailPage', () => {
     expect(await screen.findByText('Finance Team')).toBeInTheDocument();
   });
 
-  it('renders the email details, sanitizes the body, and records the open event', async () => {
+  it('renders the email details, keeps safe formatting, sanitizes the body, and records the open event', async () => {
     mockedGetSimulatedEmail.mockResolvedValue(emailFixture);
 
     render(<EmailDetailPage />);
@@ -104,6 +104,11 @@ describe('EmailDetailPage', () => {
     expect(await screen.findByText('Finance Team')).toBeInTheDocument();
     expect(screen.getByText('Payroll Access Locked')).toBeInTheDocument();
     expect(screen.getByText('Open portal')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Open portal' })).toHaveAttribute(
+      'href',
+      'https://example.com',
+    );
+    expect(document.querySelector('.email-body strong')).toHaveTextContent('review');
     expect(document.querySelector('.email-body script')).not.toBeInTheDocument();
 
     await waitFor(() => {
@@ -129,4 +134,59 @@ describe('EmailDetailPage', () => {
     expect(await screen.findByText('FAILED TO LOAD EMAIL')).toBeInTheDocument();
     expect(mockedRecordSimulatedEmailInteraction).not.toHaveBeenCalled();
   });
+
+  it('strips event-handler attributes and neutralizes javascript links', async () => {
+    mockedGetSimulatedEmail.mockResolvedValue(
+      createEmailFixture(
+        '<p><a href="https://example.com" onclick="alert(1)">Safe link</a></p>' +
+          '<p><a href="javascript:alert(1)" onerror="alert(1)">Unsafe link</a></p>',
+      ),
+    );
+
+    render(<EmailDetailPage />);
+
+    expect(await screen.findByText('Finance Team')).toBeInTheDocument();
+
+    const safeLink = screen.getByRole('link', { name: 'Safe link' });
+    expect(safeLink).toHaveAttribute('href', 'https://example.com');
+    expect(safeLink).not.toHaveAttribute('onclick');
+
+    const unsafelink = screen.getByText('Unsafe link').closest('a');
+    expect(unsafelink).not.toHaveAttribute('onerror');
+    expect(unsafelink?.getAttribute('href') ?? '').not.toMatch(/^javascript:/i);
+  });
+
+  it('removes iframe and credential-capture form controls from the email body', async () => {
+    mockedGetSimulatedEmail.mockResolvedValue(
+      createEmailFixture(
+        '<p>Review this message carefully.</p>' +
+          '<iframe src ="https://evil.example"></iframe>' +
+          '<form action="https://evil.example">' +
+          '<input name ="username" />' +
+          '<input name ="password" type="password" />' +
+          '<textarea>secret</textarea>' +
+          '<select><option>one</option></select>' +
+          '</form>',
+      ),
+    );
+
+    render(<EmailDetailPage />);
+
+    expect(await screen.findByText('Finance Team')).toBeInTheDocument();
+    expect(screen.getByText(/Review this message carefully\./i)).toBeInTheDocument();
+
+    expect(document.querySelector('.email-body iframe')).not.toBeInTheDocument();
+    expect(document.querySelector('.email-body form')).not.toBeInTheDocument();
+    expect(document.querySelector('.email-body input')).not.toBeInTheDocument();
+    expect(document.querySelector('.email-body textarea')).not.toBeInTheDocument();
+    expect(document.querySelector('.email-body select')).not.toBeInTheDocument();
+    expect(document.querySelector('.email-body button')).not.toBeInTheDocument();
+  });
 });
+
+function createEmailFixture(bodyHtml: string) {
+  return {
+    ...emailFixture,
+    bodyHtml,
+  };
+}
