@@ -5,12 +5,13 @@ import flowbiteReact from 'flowbite-react/plugin/vite';
 import { configDefaults, defineConfig } from 'vitest/config';
 
 const codecovToken = process.env.CODECOV_TOKEN;
+const isVitest = process.env.VITEST === 'true';
 
 export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    flowbiteReact(),
+    ...(isVitest ? [] : [flowbiteReact()]),
     codecovVitePlugin({
       enableBundleAnalysis: codecovToken !== undefined,
       bundleName: 'insightful-phish-frontend',
