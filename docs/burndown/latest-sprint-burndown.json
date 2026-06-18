@@ -9,8 +9,8 @@
       "number": 207,
       "title": "fix: seed campaign creator relation after Prisma schema update",
       "points": 1,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-06-18"
     },
     {
       "number": 185,
