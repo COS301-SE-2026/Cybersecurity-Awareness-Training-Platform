@@ -10,7 +10,7 @@ vi.mock('../../components/layout/AppLayout', () => ({
 }));
 
 describe('TrainingModulesPage', () => {
-  it('redirects learners to campaigns for training access', () => {
+  it('redirects trainees to campaigns for training access', () => {
     render(
       <MemoryRouter initialEntries={['/training/modules']}>
         <TrainingModulesPage />
