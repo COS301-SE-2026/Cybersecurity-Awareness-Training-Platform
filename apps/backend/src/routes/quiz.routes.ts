@@ -1,9 +1,9 @@
 import { Router } from 'express';
 import { getQuiz, startAttempt, submitAttempt, getResult } from '../controllers/quiz.controller.js';
 import { requireAuth } from '../middleware/requireAuth.js';
-import { authRateLimit } from '../middleware/authRateLimit.js';
-import { validateParams } from '../middleware/validateParams.js';
-import { validateBody } from '../middleware/validateRequest.js';
+import { apiRateLimit } from '../middleware/apiRateLimit.js';
+import { validateParams, validateBody } from '../middleware/validateRequest.js';
+import { asyncHandler } from '../middleware/asyncHandler.js';
 import {
   getQuizRequestParamsSchema,
   startQuizAttemptRequestParamsSchema,
@@ -40,16 +40,16 @@ export const quizAttemptRouter = Router();
  *       404:
  *         $ref: '#/components/responses/QuizNotFound'
  *       429:
- *         $ref: '#/components/responses/AuthRateLimited'
+ *         $ref: '#/components/responses/TooManyRequests'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
 traineeQuizRouter.get(
   '/:campaignItemId/quiz',
-  authRateLimit,
+  apiRateLimit,
   requireAuth,
   validateParams(getQuizRequestParamsSchema),
-  getQuiz,
+  asyncHandler(getQuiz),
 );
 
 /**
@@ -77,17 +77,17 @@ traineeQuizRouter.get(
  *       404:
  *         $ref: '#/components/responses/QuizNotFound'
  *       429:
- *         $ref: '#/components/responses/AuthRateLimited'
+ *         $ref: '#/components/responses/TooManyRequests'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
 traineeQuizRouter.post(
   '/:campaignItemId/quiz/attempts',
-  authRateLimit,
+  apiRateLimit,
   requireAuth,
   validateParams(startQuizAttemptRequestParamsSchema),
   validateBody(startQuizAttemptRequestSchema),
-  startAttempt,
+  asyncHandler(startAttempt),
 );
 
 // Routes for /quiz-attempts/:attemptId
@@ -118,17 +118,17 @@ traineeQuizRouter.post(
  *       409:
  *         $ref: '#/components/responses/QuizAttemptAlreadySubmitted'
  *       429:
- *         $ref: '#/components/responses/AuthRateLimited'
+ *         $ref: '#/components/responses/TooManyRequests'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
 quizAttemptRouter.post(
   '/:attemptId/submit',
-  authRateLimit,
+  apiRateLimit,
   requireAuth,
   validateParams(submitQuizAttemptRequestParamsSchema),
   validateBody(submitQuizAttemptRequestSchema),
-  submitAttempt,
+  asyncHandler(submitAttempt),
 );
 
 /**
@@ -154,14 +154,14 @@ quizAttemptRouter.post(
  *       404:
  *         $ref: '#/components/responses/QuizNotFound'
  *       429:
- *         $ref: '#/components/responses/AuthRateLimited'
+ *         $ref: '#/components/responses/TooManyRequests'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
 quizAttemptRouter.get(
   '/:attemptId/results',
-  authRateLimit,
+  apiRateLimit,
   requireAuth,
   validateParams(getQuizResultRequestParamsSchema),
-  getResult,
+  asyncHandler(getResult),
 );
