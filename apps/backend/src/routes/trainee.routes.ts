@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { SimulationController } from '../controllers/simulation.controller.js';
 import { requireAuth } from '../middleware/requireAuth.js';
-import { validateBody } from '../middleware/validateRequest.js';
-import { validateParams } from '../middleware/validateParams.js';
+import { validateBody, validateParams } from '../middleware/validateRequest.js';
+import { asyncHandler } from '../middleware/asyncHandler.js';
 import { traineeCampaignRouter } from './trainee-campaign.routes.js';
 import {
   classifySimulatedEmailRequestSchema,
@@ -54,7 +54,7 @@ router.get(
   '/campaign-items/:campaignItemId/simulated-inbox',
   requireAuth,
   validateParams(getSimulatedInboxRequestParamsSchema),
-  simulationController.getSimulatedInbox,
+  asyncHandler(simulationController.getSimulatedInbox),
 );
 
 // Simulated Email Details
@@ -90,7 +90,7 @@ router.get(
   '/campaign-items/:campaignItemId/simulated-emails/:emailId',
   requireAuth,
   validateParams(getSimulatedEmailRequestParamsSchema),
-  simulationController.getSimulatedEmail,
+  asyncHandler(simulationController.getSimulatedEmail),
 );
 
 // Simulated Email Interactions
@@ -129,7 +129,7 @@ router.post(
   requireAuth,
   validateParams(recordSimulatedEmailInteractionRequestParamsSchema),
   validateBody(recordSimulatedEmailInteractionRequestSchema),
-  simulationController.recordInteraction,
+  asyncHandler(simulationController.recordInteraction),
 );
 
 // Simulated Email Classification
@@ -170,7 +170,7 @@ router.post(
   requireAuth,
   validateParams(classifySimulatedEmailRequestParamsSchema),
   validateBody(classifySimulatedEmailRequestSchema),
-  simulationController.classifyEmail,
+  asyncHandler(simulationController.classifyEmail),
 );
 
 export { router as traineeRouter };

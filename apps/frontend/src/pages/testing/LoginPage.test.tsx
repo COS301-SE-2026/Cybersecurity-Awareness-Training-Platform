@@ -57,7 +57,7 @@ describe('LoginPage', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('logs the learner in and routes to campaigns after a successful login', async () => {
+  it('logs the trainee in and routes to campaigns after a successful login', async () => {
     const user = userEvent.setup();
 
     fetchMock.mockResolvedValue({
@@ -88,14 +88,16 @@ describe('LoginPage', () => {
       expect(navigateMock).toHaveBeenCalledWith('/campaigns');
     });
 
-    const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
+    const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit;
 
     expect(fetchMock.mock.calls[0]?.[0]).toContain('/auth/login');
     expect(requestInit?.method).toBe('POST');
     expect(requestInit?.headers).toEqual({
       'Content-Type': 'application/json',
     });
-    expect(JSON.parse(String(requestInit?.body))).toEqual({
+    expect(requestInit?.body).toBeTypeOf('string');
+
+    expect(JSON.parse(requestInit.body as string)).toEqual({
       email: 'trainee@example.com',
       password: 'legacy-password',
     });
