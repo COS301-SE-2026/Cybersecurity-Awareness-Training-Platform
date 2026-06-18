@@ -1,5 +1,7 @@
 import { codecovVitePlugin } from '@codecov/vite-plugin';
+import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
+import flowbiteReact from 'flowbite-react/plugin/vite';
 import { configDefaults, defineConfig } from 'vitest/config';
 
 const codecovToken = process.env.CODECOV_TOKEN;
@@ -7,6 +9,8 @@ const codecovToken = process.env.CODECOV_TOKEN;
 export default defineConfig({
   plugins: [
     react(),
+    tailwindcss(),
+    flowbiteReact(),
     codecovVitePlugin({
       enableBundleAnalysis: codecovToken !== undefined,
       bundleName: 'insightful-phish-frontend',
