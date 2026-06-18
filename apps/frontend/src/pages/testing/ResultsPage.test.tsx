@@ -73,7 +73,7 @@ describe('ResultsPage', () => {
     expect(await screen.findByRole('heading', { level: 1, name: /passed/i })).toBeInTheDocument();
   });
 
-  it('renders the learner score, feedback, and navigation back to the quiz', async () => {
+  it('renders the trainee score, feedback, and navigation back to the quiz', async () => {
     mockedGetQuizResult.mockResolvedValue(resultFixture);
 
     renderResultsPage();
