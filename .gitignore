@@ -20,3 +20,5 @@ env.*
 
 .bkp
 .dtmp
+
+.pnpm-store/
