@@ -11,7 +11,7 @@ Insightful Phish is a `pnpm workspace` monorepo with:
 - Prisma 7 for database schema management
 - Husky, lint-staged, and commitlint for local Git quality checks
 
-Insightful Phish local development is Docker-first: Docker Compose runs the PostgreSQL database, the backend and the frontend. Root `pnpm docker:*` script provide short commands for docker setup, checks, logs, migration and seeding.
+Insightful Phish local development is Docker-first: Docker Compose runs the PostgreSQL database, the backend and the frontend. Root `pnpm docker:*` scripts provide short commands for docker setup, checks, logs, migration and seeding.
 
 ## 1. Required tools
 
@@ -231,7 +231,7 @@ Important Prisma files:
 For normal Docker startup, you do not need to run Prisma setup manually:
 
 - The backend Docker image runs Prisma Client generation during image build
-- The backend Container runs migrations automatically before starting the API
+- The backend container runs migrations automatically before starting the API
 
 > You only need to use manual Prisma commands when troubleshooting, resetting local data, or checking the tooling container.
 
@@ -243,13 +243,13 @@ Generate the Prisma Client manually:
 pnpm docker:prisma:generate
 ```
 
-Apply commited migrations manually:
+Apply committed migrations manually:
 
 ```bash
 pnpm docker:prisma:migrate
 ```
 
-The generated Prisma Client is written to `apps/backend/src/generated/prisma`. This folder is ignored by Git and shouldn't be comitted.
+The generated Prisma Client is written to `apps/backend/src/generated/prisma`. This folder is ignored by Git and shouldn't be committed.
 
 ### Demo 1 Seed Data
 
@@ -351,12 +351,12 @@ apps/frontend/coverage/
 packages/shared/coverage
 ```
 
-CI uploads coverage to Codecov as separate `backend`, `frontend`, and `shared` flags. Local coverage runs do not require a `CODECOV_TOKEN`: This token is only stored in the Github repository.
+CI uploads coverage to Codecov as separate `backend`, `frontend`, and `shared` flags. Local coverage runs do not require a `CODECOV_TOKEN`: This token is only stored in the GitHub repository.
 
 ### Run package-specific checks
 
 ```bash
-pnpm docker:typcheck:backend
+pnpm docker:typecheck:backend
 pnpm docker:test:backend
 pnpm docker:build:backend
 ```
@@ -375,13 +375,13 @@ pnpm docker:test:integration:backend
 
 This command creates the test database (if it is missing), applies committed migration to it, and runs the backend integration tests.
 
-It does drop or reset the test database. The ingeration test setup safely handles each table before each test.
+It does not drop or reset the test database. The integration test setup safely handles each table before each test.
 
 ### Run frontend e2e tests
 
 Frontend browser smoke tests live in `apps/frontend/tests/e2e`.
 
-The current is intentionally small and has not been updated to work with Docker yet.
+The current e2e test suite are intentionally small and has not been updated to work with Docker yet.
 
 - `/login` smoke coverage
 - `/status` smoke coverage with mocked health data

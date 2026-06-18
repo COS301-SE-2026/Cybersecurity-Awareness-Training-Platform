@@ -50,7 +50,7 @@ pnpm docker:tools:install
 
 ### Run backend unit tests
 
-Backend unit tests to not require the integration test database.
+Backend unit tests do not require the integration test database.
 
 From the repo root you can just run
 
@@ -72,7 +72,7 @@ This command:
 
 1. Starts or reuses the local Postgres service
 2. Creates the `insightful_phish_test` if it doesn't already exist
-3. Applies comitted Prisma migrations to the test database
+3. Applies committed Prisma migrations to the test database
 4. Runs backend integration tests with `TEST_DATABASE_URL`.
 
 The setup command is idempotent. It does not drop, reset, or truncate the database.
