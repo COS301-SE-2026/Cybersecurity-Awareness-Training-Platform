@@ -121,8 +121,8 @@
       "number": 170,
       "title": "fix: add safe HTML rendering foundation for simulated content",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-06-18"
     },
     {
       "number": 169,
