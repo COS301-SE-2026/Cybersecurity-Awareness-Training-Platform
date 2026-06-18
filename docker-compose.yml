@@ -48,5 +48,34 @@ services:
     ports:
       - '${FRONTEND_PORT:-5173}:8080'
 
+  workspace:
+    build:
+      context: .
+      dockerfile: Dockerfile.workspace
+    working_dir: /workspace
+    profiles:
+      - tools
+    depends_on: 
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://${POSTGRES_USER:-insightful_phish}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your local .env file or shell.}@postgres:5432/${POSTGRES_DB:-insightful_phish_dev}
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:4000}
+      TEST_DATABASE_URL: postgresql://${POSTGRES_USER:-insightful_phish}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your local .env file or shell.}@postgres:5432/insightful_phish_test
+    volumes:
+      - .:/workspace
+      - workspace_node_modules:/workspace/node_modules
+      - backend_node_modules:/workspace/apps/backend/node_modules
+      - frontend_node_modules:/workspace/apps/frontend/node_modules
+      - shared_node_modules:/workspace/packages/shared/node_modules
+    command: sh
+
 volumes:
   insightful_phish_postgres_data:
+  workspace_node_modules:
+  backend_node_modules:
+  frontend_node_modules:
+  shared_node_modules:
+
+
