@@ -361,63 +361,27 @@ pnpm docker:test:backend
 pnpm docker:build:backend
 ```
 
-### Test everything
+> Similar package-specific commands exist for frontend and shared packages.
+
+### Run backend integration tests
+
+Backend integration tests use a dedicated local test database named `insightful_phish_test`.
+
+Run them through Docker:
 
 ```bash
-pnpm test
+pnpm docker:test:integration:backend
 ```
 
-This runs tests in all workspace packages.
+This command creates the test database (if it is missing), applies committed migration to it, and runs the backend integration tests.
 
-### Run test coverage
+It does drop or reset the test database. The ingeration test setup safely handles each table before each test.
 
-```bash
-pnpm test:coverage
-```
-
-This runs tests and generates coverage reports for all workspace packages. Reports are generated in `apps/backend/coverage/`, `apps/frontend/coverage/`, and `packages/shared/coverage/`.
-
-CI uploads coverage to Codecov as separate `backend`, `frontend`, and `shared` flags. CI also writes Vitest JUnit reports for Codecov Test Analytics:
-
-- `apps/backend/test-results.junit.xml`
-- `apps/frontend/test-results.junit.xml`
-- `packages/shared/test-results.junit.xml`
-
-The frontend Vite build includes Codecov bundle analysis for the `insightful-phish-frontend` bundle only when `CODECOV_TOKEN` is present. Local builds still work without this environment variable.
-
-The GitHub repository must define `CODECOV_TOKEN` as an Actions secret. Never commit real Codecov tokens, `.env` files, or local secret files.
-
-### Build everything
-
-```bash
-pnpm build
-```
-
-This checks that all packages can build successfully.
-
-### Run backend-only checks
-
-```bash
-pnpm --filter @insightful-phish/backend typecheck
-pnpm --filter @insightful-phish/backend test
-pnpm --filter @insightful-phish/backend build
-```
-
-For backend integration tests that use the dedicated test database, see [apps/backend/TESTING.md](apps/backend/TESTING.md).
-
-### Run frontend-only checks
-
-```bash
-pnpm --filter @insightful-phish/frontend typecheck
-pnpm --filter @insightful-phish/frontend test
-pnpm --filter @insightful-phish/frontend build
-```
-
-### Run frontend browser smoke tests
+### Run frontend e2e tests
 
 Frontend browser smoke tests live in `apps/frontend/tests/e2e`.
 
-Current Sprint 3 scope is intentionally small:
+The current is intentionally small and has not been updated to work with Docker yet.
 
 - `/login` smoke coverage
 - `/status` smoke coverage with mocked health data
@@ -435,6 +399,4 @@ From the repo root, run the frontend browser smoke tests with:
 pnpm test:e2e:frontend
 ```
 
-These checks are local-only and non-blocking for Sprint 3.
-
-They are useful smoke coverage for the current frontend routes, but they are not full Demo 1 end-to-end coverage and not full accessibility certification.
+These checks are local-only. Docker setup will happen at a later stage.
