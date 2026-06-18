@@ -65,7 +65,6 @@
     "docker:test:coverage:backend": "docker compose --profile tools run --rm workspace pnpm test:coverage:backend",
     "docker:test:coverage:frontend": "docker compose --profile tools run --rm workspace pnpm test:coverage:frontend",
     "docker:test:coverage:shared": "docker compose --profile tools run --rm workspace pnpm test:coverage:shared",
-    "docker:test:e2e:frontend": "docker compose --profile tools run --rm workspace pnpm test:e2e:frontend",
     "docker:format": "docker compose --profile tools run --rm workspace pnpm format",
     "docker:format:check": "docker compose --profile tools run --rm workspace pnpm format:check",
     "docker:prisma:generate": "docker compose --profile tools run --rm workspace pnpm --filter @insightful-phish/backend prisma:generate",
