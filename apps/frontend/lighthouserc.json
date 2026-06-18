@@ -1,13 +1,10 @@
 {
   "ci": {
     "collect": {
-      "numberOfRuns": 3,
-      "startServerCommand": "pnpm preview --port 4173 --host 127.0.0.1",
-      "url": [
-        "http://127.0.0.1:4173/status",
-        "http://127.0.0.1:4173/login",
-        "http://127.0.0.1:4173/register"
-      ],
+      "numberOfRuns": 1,
+      "startServerCommand": "pnpm preview:e2e",
+      "startServerReadyPattern": "Local:",
+      "url": ["http://127.0.0.1:4173/login", "http://127.0.0.1:4173/register"],
       "settings": {
         "chromeFlags": "--no-sandbox --headless --disable-gpu"
       }
@@ -36,8 +33,7 @@
       }
     },
     "upload": {
-      "target": "filesystem",
-      "outputDir": "./.lighthouseci"
+      "target": "temporary-public-storage"
     }
   }
 }

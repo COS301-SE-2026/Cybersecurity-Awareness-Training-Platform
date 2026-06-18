@@ -22,3 +22,5 @@ env.*
 .dtmp
 
 .pnpm-store/
+
+apps/frontend/.lighthouseci/
