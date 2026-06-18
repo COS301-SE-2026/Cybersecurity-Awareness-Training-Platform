@@ -3,7 +3,8 @@
     "collect": {
       "numberOfRuns": 1,
       "startServerCommand": "pnpm preview:e2e",
-      "startServerReadyPattern": "Local:",
+      "startServerReadyPattern": "http://127.0.0.1:4173/",
+      "startServerReadyTimeout": 30000,
       "url": ["http://127.0.0.1:4173/login", "http://127.0.0.1:4173/register"],
       "settings": {
         "chromeFlags": "--no-sandbox --headless --disable-gpu"
