@@ -694,8 +694,8 @@
           "number": 159,
           "title": "chore: consolidate frontend API clients and base URL handling",
           "points": 3,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-06-18"
         },
         {
           "number": 158,
