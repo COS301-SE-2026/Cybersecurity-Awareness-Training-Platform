@@ -70,7 +70,7 @@ docker compose version
 docker info
 ```
 
-Docker is used to run PostgreSQL locally without requiring each developer to install PostgreSQL directly on their machine.
+Docker Compose runs the local app stack, including PostgreSQL, backend, and frontend, without requiring each developer to install those services directly.
 
 If `docker info` fails, open Docker Desktop and wait until Docker is running.
 
@@ -87,11 +87,11 @@ The GitHub CLI is optional, but recommended. If installed and authenticated, the
 Clone the repository from GitHub:
 
 ```bash
-git clone https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform.git
-cd Cybersecurity-Awareness-Training-Platform
+git clone https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform.git InsightfulPhish
+cd InsightfulPhish
 ```
 
-If your local folder has been renamed to `Insightful Phish`, that is fine. The folder name does not affect the project as long as you are inside the repo root.
+The folder name does not affect the project as long as you are inside the repo root.
 
 Check that you are in the repo root:
 
@@ -157,165 +157,57 @@ GitHub → Settings → Access → Emails
 
 If you use GitHub private email protection, use your GitHub noreply email instead.
 
-## 4. Install dependencies
+## 4. Start the local app stack
 
-From the repo root, run:
+The recommended local setup uses Docker Compose to run PostgreSQL, the backend and the frontend together.
 
-```bash
-pnpm install
-```
-
-This installs dependencies for all workspace packages.
-
-The repo uses pnpm workspaces, defined in `pnpm-workspace.yaml`:
-
-```yaml
-packages:
-  - 'apps/*'
-  - 'packages/*'
-```
-
-This means pnpm treats these folders as separate workspace packages:
-
-```txt
-apps/backend
-apps/frontend
-packages/shared
-```
-
-The root [package.json](package.json) contains shared scripts such as:
+From the repo root, create your local Compose environment file:
 
 ```bash
-pnpm typecheck
-pnpm test
-pnpm build
+cp .env.example .env
 ```
 
-These run across all workspace packages.
+Edit the created `.env` if needed. `POSTGRES_PASSWORD` is required and must be a local-only value.
 
-### Quick fresh checkout path
-
-Use this compact path when starting from a clean checkout for local Demo 1 rehearsal.
-
-From the repo root:
-
-````bash
-pnpm install
-cp apps/backend/.env.example apps/backend/.env
-cp apps/frontend/.env.example apps/frontend/.env
-docker compose up -d
-pnpm --filter @insightful-phish/backend prisma:generate
-pnpm --filter @insightful-phish/backend prisma:migrate:deploy
-DEMO_SEED_PASSWORD="your-local-demo-password" pnpm --filter @insightful-phish/backend seed:demo1
-pnpm --filter @insightful-phish/backend dev
-
-Then start the backend:
+Start the full stack using:
 
 ```bash
-pnpm --filter @insightful-phish/backend dev
-````
+docker compose up --build
+```
 
-In another terminal, start the frontend:
+Or run it in the background:
 
 ```bash
-pnpm --filter @insightful-phish/frontend dev
+docker compose up --build -d
 ```
 
-For Windows PowerShell and Command Prompt examples for `DEMO_SEED_PASSWORD`, see [apps/backend/SEEDING.md](apps/backend/SEEDING.md).
+The local services are available at:
 
-## 5. Local Git checks with Husky
+- Frontend: [http://localhost:5173](http://localhost:5173)
+- Backend: [http://localhost:4000](http://localhost:4000)
+- Postgres: localhost:5432
 
-The project uses Husky to run local checks before commits.
-
-Husky hooks are in:
-
-```txt
-.husky/pre-commit
-.husky/commit-msg
-```
-
-### Pre-commit hook
-
-Before a commit is created, Husky runs:
+You can check the service status and logs using the commands below:
 
 ```bash
-./scripts/check-git-identity.sh
-./scripts/check-staged-file-policy.sh
-pnpm exec lint-staged
+docker compose ps
+docker compose logs backend --tail=50
+docker compose logs frontend --tail=50
 ```
 
-This does three things:
-
-1. checks that your local Git identity is set correctly;
-2. prevents mixing Markdown documentation files with code/config changes in one commit;
-3. runs Prettier on staged files through lint-staged.
-
-### Commit message hook
-
-Before Git accepts your commit message, Husky runs:
+To stop the stack while keeping the local database data, run:
 
 ```bash
-./scripts/check-commit-message.sh "$1"
-pnpm exec commitlint --edit "$1"
+docker compose down
 ```
 
-This checks that commit messages follow the required format:
+To stop the stack and delete the local database data, run:
 
-```txt
-<type>: <description>
+```bash
+docker compose down -v
 ```
 
-Allowed types:
-
-```txt
-feat
-fix
-docs
-chore
-```
-
-Examples:
-
-```txt
-feat: add user authentication
-fix: correct database health check
-docs: update setup instructions
-chore: add backend health check
-```
-
-Scopes are not allowed. For example, this is not allowed:
-
-```txt
-feat(auth): add login
-```
-
-`Co-authored-by:` trailers are also not allowed.
-
-## 6. Documentation and code commit policy
-
-To help with contribution tracking, unrelated documentation and code/config changes should usually be committed separately. Related documentation may stay with the code or configuration change it explains.
-
-Rules:
-
-- Documentation-only commits should use the `docs` type.
-- If a commit includes development work, use `feat`, `fix`, or `chore` rather than `docs`.
-- `docs` commits should only include documentation and documentation assets.
-- `docs` commits must not include obvious source, config, tooling, or workflow files from `apps/`, `packages/`, `scripts/`, or `.github/workflows/`.
-- `feat`, `fix`, and `chore` commits may include related Markdown, screenshots, images, static assets, or setup notes.
-- `docs/demo1/` is frozen after the Demo 1 baseline. New or changed Demo 2 documentation belongs under `docs/demo2/`.
-
-Examples:
-
-```txt
-docs: update setup instructions
-chore: add ci workflow
-feat: add campaign creation endpoint
-fix: correct database connection check
-```
-
-If your commit is blocked because a `docs:` message includes development files, change the commit type to `feat:`, `fix:`, or `chore:` as appropriate.
-
-Hyperperform may ignore documentation/configuration-only commits. Do not hide development work behind a `docs:` commit.
+> Note: `docker compose down -v` deletes the local PostgreSQL volume
 
 ## 7. Start PostgreSQL with Docker
 
