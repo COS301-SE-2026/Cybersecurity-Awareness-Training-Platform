@@ -356,8 +356,14 @@ Database: insightful_phish_dev
 The backend connects with this URL:
 
 ```env
-DATABASE_URL="postgresql://insightful_phish:insightful_phish@localhost:5432/insightful_phish_dev"
+DATABASE_URL="postgresql://insightful_phish:change-me-local-postgres-password@localhost:5432/insightful_phish_dev"
 ```
+
+### Local Docker Compose password and version notes
+
+The local Compose stack reads `POSTGRES_PASSWORD` from the root `.env` file or from the current shell. The password is intentionally not hard-coded in `docker-compose.yml`; copy [.env.example](.env.example) to `.env` for local Docker Compose and replace the placeholder with a local-only value.
+
+The local Compose database currently uses `postgres:16-alpine`. CI integration tests currently use `postgres:15`. Keep this difference in mind when debugging database-specific behaviour. Do not change CI for local Compose work unless a separate issue requires it.
 
 ### Useful Docker commands
 
@@ -431,7 +437,7 @@ The example file contains:
 NODE_ENV=development
 PORT=4000
 
-DATABASE_URL="postgresql://insightful_phish:insightful_phish@localhost:5432/insightful_phish_dev"
+DATABASE_URL="postgresql://insightful_phish:change-me-local-postgres-password@localhost:5432/insightful_phish_dev"
 
 FRONTEND_ORIGIN="http://localhost:5173"
 ```

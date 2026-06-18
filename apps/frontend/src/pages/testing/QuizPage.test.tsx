@@ -167,7 +167,7 @@ describe('QuizPage', () => {
     expect(mockedSubmitQuizAttempt).not.toHaveBeenCalled();
   });
 
-  it('allows learners to select answers and updates progress text', async () => {
+  it('allows trainees to select answers and updates progress text', async () => {
     const user = userEvent.setup();
 
     renderQuizPage();

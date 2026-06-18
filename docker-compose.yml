@@ -4,13 +4,49 @@ services:
     container_name: insightful-phish-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: insightful_phish
-      POSTGRES_PASSWORD: insightful_phish
-      POSTGRES_DB: insightful_phish_dev
+      POSTGRES_USER: ${POSTGRES_USER:-insightful_phish}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your local .env file or shell.}
+      POSTGRES_DB: ${POSTGRES_DB:-insightful_phish_dev}
     ports:
-      - '5432:5432'
+      - '${POSTGRES_PORT:-5432}:5432'
     volumes:
       - insightful_phish_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    container_name: insightful-phish-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: 4000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-insightful_phish}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your local .env file or shell.}@postgres:5432/${POSTGRES_DB:-insightful_phish_dev}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:5173}
+    ports:
+      - '${BACKEND_PORT:-4000}:4000'
+    command: sh -c "pnpm prisma:migrate:deploy && pnpm start"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:4000}
+    container_name: insightful-phish-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - '${FRONTEND_PORT:-5173}:8080'
 
 volumes:
   insightful_phish_postgres_data:

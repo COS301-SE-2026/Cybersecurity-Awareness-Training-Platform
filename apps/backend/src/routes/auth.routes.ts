@@ -4,6 +4,7 @@ import { getMe, login, register } from '../controllers/auth.controller.js';
 import { authRateLimit } from '../middleware/authRateLimit.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { validateBody } from '../middleware/validateRequest.js';
+import { asyncHandler } from '../middleware/asyncHandler.js';
 
 export const authRouter = Router();
 
@@ -29,7 +30,12 @@ export const authRouter = Router();
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-authRouter.post('/auth/register', authRateLimit, validateBody(authRegisterRequestSchema), register);
+authRouter.post(
+  '/auth/register',
+  authRateLimit,
+  validateBody(authRegisterRequestSchema),
+  asyncHandler(register),
+);
 
 /**
  * @openapi
@@ -53,7 +59,12 @@ authRouter.post('/auth/register', authRateLimit, validateBody(authRegisterReques
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-authRouter.post('/auth/login', authRateLimit, validateBody(authLoginRequestSchema), login);
+authRouter.post(
+  '/auth/login',
+  authRateLimit,
+  validateBody(authLoginRequestSchema),
+  asyncHandler(login),
+);
 
 /**
  * @openapi
@@ -74,4 +85,4 @@ authRouter.post('/auth/login', authRateLimit, validateBody(authLoginRequestSchem
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-authRouter.get('/auth/me', authRateLimit, requireAuth, getMe);
+authRouter.get('/auth/me', authRateLimit, requireAuth, asyncHandler(getMe));

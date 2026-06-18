@@ -32,6 +32,13 @@ Backend markdown should take priority over the demo fallback.
 - Confirm the sender and destination.
 `;
 
+type DemoTrainingContentOverride = {
+  body: string;
+  format: 'html' | 'text';
+};
+
+let demoTrainingContentOverride: DemoTrainingContentOverride | null = null;
+
 function createAssignmentSummary() {
   return {
     assignmentId: CAMPAIGN_ASSIGNMENT_ID,
@@ -143,6 +150,19 @@ vi.mock('../../lib/campaignsApi', () => ({
   getTraineeCampaignDetail: (...args: unknown[]) => getCampaignDetailMock(...args),
 }));
 
+vi.mock('../../lib/demoTrainingContent', async () => {
+  const actual = await vi.importActual<typeof import('../../lib/demoTrainingContent')>(
+    '../../lib/demoTrainingContent',
+  );
+
+  return {
+    ...actual,
+    resolveDemoTrainingContent: (contentRef: string | null | undefined) => {
+      return demoTrainingContentOverride ?? actual.resolveDemoTrainingContent(contentRef);
+    },
+  };
+});
+
 describe('TrainingDocumentPage', () => {
   afterEach(() => {
     cleanup();
@@ -161,6 +181,8 @@ describe('TrainingDocumentPage', () => {
     completedMock.mockResolvedValue(undefined);
     getCampaignsMock.mockResolvedValue(createCampaignsResponse());
     getCampaignDetailMock.mockResolvedValue(createCampaignDetailResponse());
+
+    demoTrainingContentOverride = null;
   });
 
   function renderTrainingDocumentPage() {
@@ -217,7 +239,7 @@ describe('TrainingDocumentPage', () => {
     expect(screen.queryByText(/Reference:/i)).not.toBeInTheDocument();
   });
 
-  it('records completion when the learner marks the document complete', async () => {
+  it('records completion when the trainee marks the document complete', async () => {
     const user = userEvent.setup();
 
     renderTrainingDocumentPage();
@@ -295,5 +317,41 @@ describe('TrainingDocumentPage', () => {
       screen.getByText(/Strong password habits reduce the impact of phishing/i),
     ).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /quiz/i })).not.toBeInTheDocument();
+  });
+
+  it('sanitizes seeded HTML content before rendering the html branch', async () => {
+    demoTrainingContentOverride = {
+      format: 'html',
+      body:
+        '<h2>Unsafe demo HTML</h2>' +
+        '<p><strong>Safe formatting</strong> stays visible.</p>' +
+        '<p><a href="https://example.com">Safe link</a></p>' +
+        '<script>window.hacked = true;</script>' +
+        '<a href="javascript:alert(1)" onclick="alert(1)">Unsafe link</a>' +
+        '<iframe src="https://evil.example"></iframe>' +
+        '<form><input name="password" /><textarea>secret</textarea><select><option>one</option></select><button type="submit">Submit</button></form>',
+    };
+
+    renderTrainingDocumentPage();
+
+    expect(await screen.findByText('Unsafe demo HTML')).toBeInTheDocument();
+    expect(screen.getByText('Safe formatting')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Safe link' })).toHaveAttribute(
+      'href',
+      'https://example.com',
+    );
+
+    const article = screen.getByText('Unsafe demo HTML').closest('article');
+    expect(article?.querySelector('script')).not.toBeInTheDocument();
+    expect(article?.querySelector('iframe')).not.toBeInTheDocument();
+    expect(article?.querySelector('form')).not.toBeInTheDocument();
+    expect(article?.querySelector('input')).not.toBeInTheDocument();
+    expect(article?.querySelector('textarea')).not.toBeInTheDocument();
+    expect(article?.querySelector('select')).not.toBeInTheDocument();
+    expect(article?.querySelector('button')).not.toBeInTheDocument();
+
+    const unsafeLink = screen.getByText('Unsafe link').closest('a');
+    expect(unsafeLink).not.toHaveAttribute('onclick');
+    expect(unsafeLink?.getAttribute('href') ?? '').not.toMatch(/^javascript:/i);
   });
 });

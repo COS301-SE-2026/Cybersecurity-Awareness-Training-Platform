@@ -6,7 +6,7 @@ import PageBackButton from '../components/ui/PageBackButton';
 import { useAuth } from '../context/useAuth';
 import { formatEmailTime, toTitleCase } from '../lib/email.utils';
 import { getSimulatedEmail, recordSimulatedEmailInteraction } from '../services/campaigns.service';
-import DOMPurify from 'dompurify';
+import { sanitizeSafeHtml } from '../lib/safeHtml';
 
 const emailMetaLabelStyle = {
   color: '#CE9AFF',
@@ -26,7 +26,7 @@ function EmailDetailPage() {
   const [email, setEmail] = useState<GetSimulatedEmailResponseDto | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const sanitizedBodyHtml = email ? DOMPurify.sanitize(email.bodyHtml) : '';
+  const sanitizedBodyHtml = email ? sanitizeSafeHtml(email.bodyHtml) : '';
 
   useEffect(() => {
     async function loadEmail() {
