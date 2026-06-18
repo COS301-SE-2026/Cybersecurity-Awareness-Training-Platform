@@ -296,4 +296,19 @@ describe('AppRoutes', () => {
       await screen.findByRole('heading', { level: 1, name: /training document page/i }),
     ).toBeInTheDocument();
   });
+
+  // unknown route redirects to '/login'
+  it('redirects unknown routes to /login', async () => {
+    renderAppRoutes({
+      initialEntry: '/not-a-real-route',
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('location-path')).toHaveTextContent('/login');
+    });
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: /welcome back/i }),
+    ).toBeInTheDocument();
+  });
 });
