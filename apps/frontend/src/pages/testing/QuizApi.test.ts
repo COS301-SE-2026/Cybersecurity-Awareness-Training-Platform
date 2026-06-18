@@ -1,84 +1,86 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ApiError } from '../../lib/apiClient';
 import { getQuiz } from '../../lib/quizApi';
+import {
+  createJsonResponse,
+  installLocalStorageMock,
+  setupHttpTest,
+  teardownHttpTest,
+} from '../../lib/testing/httpTestUtils';
 
 const campaignItemId = '33333333-3333-4333-8333-333333333334';
+const fetchMock = vi.fn();
 
-function installLocalStorageMock(authToken: string | null = null) {
-  vi.stubGlobal('localStorage', {
-    getItem: vi.fn((key: string) => (key === 'authToken' ? authToken : null)),
-    setItem: vi.fn(),
-    removeItem: vi.fn(),
-    clear: vi.fn(),
-  });
-}
-
-function mockJsonResponse(body: unknown, ok = true, status = 200) {
+function createQuizPayload() {
   return {
-    ok,
-    status,
-    headers: {
-      get: () => 'application/json',
-    },
-    json: () => Promise.resolve(body),
-    text: () => Promise.resolve(JSON.stringify(body)),
-  } as unknown as Response;
+    id: '55555555-5555-4555-8555-555555555551',
+    campaignItemId,
+    campaignAssignmentId: '22222222-2222-4222-8222-222222222222',
+    title: 'Phishing basics quiz',
+    description: 'Check your phishing awareness.',
+    passThresholdPercentage: 70,
+    difficultyLevel: 'BEGINNER',
+    status: 'AVAILABLE',
+    questions: [
+      {
+        id: 'question-1',
+        text: 'Which email is suspicious?',
+        options: [
+          {
+            id: 'option-1',
+            label: 'A',
+            text: 'Urgent password reset email.',
+          },
+        ],
+      },
+    ],
+  };
 }
 
 describe('quizApi', () => {
   beforeEach(() => {
-    vi.restoreAllMocks();
-    installLocalStorageMock();
+    setupHttpTest(fetchMock);
   });
 
   afterEach(() => {
-    vi.unstubAllGlobals();
+    teardownHttpTest();
   });
 
-  it('fetches quiz content through the campaign item quiz endpoint', async () => {
-    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      mockJsonResponse({
-        id: '55555555-5555-4555-8555-555555555551',
-        campaignItemId,
-        campaignAssignmentId: '22222222-2222-4222-8222-222222222222',
-        title: 'Phishing basics quiz',
-        description: 'Check your phishing awareness.',
-        passThresholdPercentage: 70,
-        difficultyLevel: 'BEGINNER',
-        status: 'AVAILABLE',
-        questions: [
-          {
-            id: 'question-1',
-            text: 'Which email is suspicious?',
-            options: [
-              {
-                id: 'option-1',
-                label: 'A',
-                text: 'Urgent password reset email.',
-              },
-            ],
-          },
-        ],
-      }),
-    );
+  it('defaults quiz requests to http://localhost:4000', async () => {
+    fetchMock.mockResolvedValue(createJsonResponse(createQuizPayload()));
 
     const quiz = await getQuiz(campaignItemId);
 
     expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining(`/trainee/campaign-items/${campaignItemId}/quiz`),
+      `http://localhost:4000/trainee/campaign-items/${campaignItemId}/quiz`,
       expect.objectContaining({
         method: 'GET',
       }),
     );
-
     expect(quiz.title).toBe('Phishing basics quiz');
     expect(quiz.questions[0].options[0].text).toBe('Urgent password reset email.');
   });
 
-  it('sends bearer token when a token already exists', async () => {
-    installLocalStorageMock('demo-token');
+  it('respects VITE_API_BASE_URL when it is set', async () => {
+    vi.stubEnv('VITE_API_BASE_URL', 'http://api.example.test///');
+    fetchMock.mockResolvedValue(createJsonResponse(createQuizPayload()));
 
-    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      mockJsonResponse({
+    await getQuiz(campaignItemId);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `http://api.example.test/trainee/campaign-items/${campaignItemId}/quiz`,
+      expect.objectContaining({
+        method: 'GET',
+      }),
+    );
+  });
+
+  it('sends bearer token when a token already exists', async () => {
+    installLocalStorageMock({
+      token: 'demo-token',
+    });
+    fetchMock.mockResolvedValue(
+      createJsonResponse({
         id: '55555555-5555-4555-8555-555555555551',
         campaignItemId,
         title: 'Phishing basics quiz',
@@ -88,19 +90,42 @@ describe('quizApi', () => {
 
     await getQuiz(campaignItemId);
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.objectContaining({
-        headers: expect.objectContaining({
-          Authorization: 'Bearer demo-token',
-        }),
-      }),
+    const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
+
+    expect(new Headers(requestInit?.headers).get('authorization')).toBe('Bearer demo-token');
+  });
+
+  it('throws ApiError with parsed response details for non-ok responses', async () => {
+    fetchMock.mockResolvedValue(
+      createJsonResponse(
+        {
+          error: 'Forbidden',
+          message: 'Quiz is not available yet.',
+        },
+        {
+          status: 403,
+          statusText: 'Forbidden',
+        },
+      ),
     );
+
+    const error = await getQuiz(campaignItemId).catch((error_: unknown) => error_);
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error).toMatchObject({
+      status: 403,
+      statusText: 'Forbidden',
+      message: 'Quiz is not available yet.',
+      body: {
+        error: 'Forbidden',
+        message: 'Quiz is not available yet.',
+      },
+    });
   });
 
   it('rejects quiz fetch responses that expose correctness before submission', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      mockJsonResponse({
+    fetchMock.mockResolvedValue(
+      createJsonResponse({
         id: '55555555-5555-4555-8555-555555555551',
         campaignItemId,
         title: 'Leaky quiz',
@@ -125,8 +150,8 @@ describe('quizApi', () => {
   });
 
   it('rejects quiz fetch responses that expose feedback before submission', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      mockJsonResponse({
+    fetchMock.mockResolvedValue(
+      createJsonResponse({
         id: '55555555-5555-4555-8555-555555555551',
         campaignItemId,
         title: 'Leaky quiz',
