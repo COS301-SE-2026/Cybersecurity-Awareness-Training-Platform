@@ -4,20 +4,28 @@ import App from './App';
 
 vi.stubGlobal(
   'fetch',
-  vi.fn(async () => ({
-    ok: true,
-    json: async () => ({
-      app: 'Insightful Phish',
-      api: 'working',
-      database: 'connected',
-      timestamp: '2026-04-26T00:00:00.000Z',
-    }),
-  })),
+  vi.fn(
+    async () =>
+      new Response(
+        JSON.stringify({
+          app: 'Insightful Phish',
+          api: 'working',
+          database: 'connected',
+          timestamp: '2026-04-26T00:00:00.000Z',
+        }),
+        {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        },
+      ),
+  ),
 );
 
 describe('App', () => {
   it('renders the Insightful Phish status page', async () => {
-    window.history.pushState({}, '', '/status');
+    globalThis.history.pushState({}, '', '/status');
 
     render(<App />);
 
