@@ -17,7 +17,7 @@ The Demo 1 seed creates repeatable local data for:
 
 The seed is designed for local Demo 1 development only.
 
-## Seed Responsobilities
+## Seed Responsibilities
 
 Local dev seed data is for repeatable dev workflows only. It should make the app usable after migrations without pretending to be production data.
 
@@ -114,62 +114,52 @@ Runtime markdown body loading is out of scope for this seed. The seed uses metad
 
 Run commands from the repository root.
 
-### 1. Start the local database
+### 1. Start the local Docker app stack
 
 ```bash
-docker compose up -d
+pnpm docker:up:detached
 ```
 
 Check that PostgreSQL is running:
 
 ```bash
-docker compose ps
+pnpm docker:ps
 ```
 
-### 2. Run migrations if needed
+### 2. Install workspace dependencies
+
+Before running Docker workspace commands for the first time, you need to install dependencies into Docker-managed volumes:
+
+```bash
+pnpm docker:tools:install
+```
+
+### 3. Apply committed migrations
 
 If the local database is new or behind the current schema, apply committed migrations:
 
 ```bash
-pnpm --filter @insightful-phish/backend prisma:migrate:deploy
+pnpm docker:prisma:migrate
 ```
 
 Do not use `prisma migrate reset` for normal Demo 1 seeding.
 
-### 3. Run the Demo 1 seed
+### 4. Run the Demo 1 seed
 
-Set `DEMO_SEED_PASSWORD` in the same terminal session before running the seed.
-
-Windows PowerShell:
-
-```powershell
-$env:DEMO_SEED_PASSWORD = "your-local-demo-password"
-pnpm --filter @insightful-phish/backend seed:demo1
-```
-
-Windows Command Prompt:
-
-```bat
-set "DEMO_SEED_PASSWORD=your-local-demo-password"
-pnpm --filter @insightful-phish/backend seed:demo1
-```
-
-Other shells:
+Set `DEMO_SEED_PASSWORD` in the same terminal session before running the seed, or in your `.env` file. The seed command reads the password from `DEMO_SEED_PASSWORD` and uses it for all seeded demo users.
 
 ```bash
-DEMO_SEED_PASSWORD="your-local-demo-password" \
-pnpm --filter @insightful-phish/backend seed:demo1
+pnpm docker:seed:demo1
 ```
 
 The command prints a summary of the demo users and seeded content. It reports that `DEMO_SEED_PASSWORD` was used as the password source, but it does not print password hashes.
 
-### 4. Rerun the Demo 1 seed
+### 5. Rerun the Demo 1 seed
 
 Run the same command again:
 
-```powershell
-$env:DEMO_SEED_PASSWORD = "your-local-demo-password"
-pnpm --filter @insightful-phish/backend seed:demo1
+```bash
+pnpm docker:seed:demo1
 ```
 
 The seed uses stable demo identifiers and known demo emails. It deletes and recreates only demo-owned records, so repeated runs should leave one consistent Demo 1 dataset without duplicate users, campaign items, quizzes, emails, or red flags.
@@ -196,19 +186,19 @@ The seed script does not truncate tables, drop the database, or wipe all users. 
 
 For a normal local dev db, apply committed migrations and run the demo seed only when the demo data is needed:
 
-````powershell
-docker compose up -d
-pnpm --filter @insightful-phish/backend prisma:generate
-pnpm --filter @insightful-phish/backend prisma:migrate:deploy
-$env:DEMO_SEED_PASSWORD = "your-local-demo-password"
-pnpm --filter @insightful-phish/backend seed:demo1
+```bash
+pnpm docker:up:detached
+pnpm docker:prisma:generate
+pnpm docker:prisma:migrate
+pnpm docker:seed:demo1
+```
 
 ## Viewing Seeded Data
 
 Use Prisma Studio to browse the local database in a web UI:
 
 ```bash
-pnpm --filter @insightful-phish/backend prisma:studio
-````
+pnpm docker:prisma:studio
+```
 
 If the browser does not open automatically, use the local URL printed by the command.

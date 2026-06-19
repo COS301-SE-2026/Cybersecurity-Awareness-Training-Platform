@@ -2,31 +2,25 @@
 
 ## Purpose
 
-Database-backed Vitest and Supertest tests use a dedicated PostgreSQL test database. This keeps integration tests repeatable without manual cleanup and prevents test data from leaking between runs.
+Backend tests are split into unit tests and integration tests.
 
-Unit tests remain separate from integration tests. Integration tests are the only tests wired to the database cleanup setup.
+Unit tests do not require a real database. Integration tests use a dedicated PostgreSQL test database so database-backed behaviour can be tested without touching local development data.
 
 ## Test Data Strategy
 
-Integration tests use a dedicated PostgreSQL test database. They should create the records that they need through the test setup and factories.
+Integration tests use a dedicated PostgreSQL test database named `insightful_phish_test`.
 
-Do not make the integration tests depend on Demo 1 seed data. Demo seed data is only for local demo walkthroughs, while integration tests need isolated records that are the reset between the tests.
+Integration tests should create the records they need through test setup and factories. They shouldn't depend on Demo 1 seed data. Integration tests need isolated records that can be reset between tests.
 
-Unit tests may import demo seed constants or helpers only when testing the seef config and summary behaviour. This does not mean that the integration db should be preloaded with demo data.
+Unit tests may import demo seed constants or helpers only when testing seed config and summary behaviour. This doesn't mean that the integration test database should be preloaded with demo data.
 
 ## Required Environment Variables
 
-Normal backend development uses `DATABASE_URL` and should point to the development database:
+For Docker local development, the backend test environment is provided by the `docker-compose.yml` file.
 
-```env
-DATABASE_URL="postgresql://insightful_phish:insightful_phish@localhost:5432/insightful_phish_dev"
-```
+The Docker workspace service sets the required environment variables.
 
-Integration tests use `TEST_DATABASE_URL` and copy it into `DATABASE_URL` during the integration test setup:
-
-```env
-TEST_DATABASE_URL="postgresql://insightful_phish:insightful_phish@localhost:5432/insightful_phish_test"
-```
+Integration tests copy the `TEST_DATABASE_URL` into the `DATABASE_URL` during setup so that Prisma connects to the dedicated test database.
 
 During integration tests, `NODE_ENV` is set to `test` by [tests/setup.integration.ts](tests/setup.integration.ts) before the Prisma test helper is imported.
 
@@ -46,87 +40,44 @@ The cleanup helper in [tests/helpers/database.ts](tests/helpers/database.ts) ref
 
 These guards are designed to make accidental cleanup of development data fail closed.
 
-## Local Setup
+## Local Docker Setup
 
-Start local PostgreSQL:
+Before running integration tests through Docker for the first time, install workspace dependencies into the Docker-managed volumes:
 
-```powershell
-docker compose up -d
+```bash
+pnpm docker:tools:install
 ```
 
-Create the local test database if it does not already exist:
+### Run backend unit tests
 
-```powershell
-docker compose exec postgres createdb -U insightful_phish insightful_phish_test
+Backend unit tests do not require the integration test database.
+
+From the repo root you can just run
+
+```bash
+pnpm docker:test:backend
 ```
 
-If the database already exists, `createdb` may report that it exists. In that case, continue.
+### Run backend integration tests
 
-Apply migrations to the test database.
+Backend integration tests use the dedicated Docker test database: `insightful_phish_test`.
 
-PowerShell:
+From the repo root run:
 
-```powershell
-$env:TEST_DATABASE_URL="postgresql://insightful_phish:insightful_phish@localhost:5432/insightful_phish_test"
-$env:DATABASE_URL=$env:TEST_DATABASE_URL
-pnpm --filter @insightful-phish/backend prisma:generate
-pnpm --filter @insightful-phish/backend exec prisma migrate deploy
+```bash
+pnpm docker:test:integration:backend
 ```
 
-Command Prompt:
+This command:
 
-```cmd
-set "TEST_DATABASE_URL=postgresql://insightful_phish:insightful_phish@localhost:5432/insightful_phish_test"
-set "DATABASE_URL=%TEST_DATABASE_URL%"
-pnpm --filter @insightful-phish/backend prisma:generate
-pnpm --filter @insightful-phish/backend exec prisma migrate deploy
-```
+1. Starts or reuses the local Postgres service
+2. Creates the `insightful_phish_test` if it doesn't already exist
+3. Applies committed Prisma migrations to the test database
+4. Runs backend integration tests with `TEST_DATABASE_URL`.
 
-Run unit tests:
+The setup command is idempotent. It does not drop, reset, or truncate the database.
 
-```powershell
-pnpm --filter @insightful-phish/backend test:unit
-```
-
-Run integration tests.
-
-PowerShell:
-
-```powershell
-$env:TEST_DATABASE_URL="postgresql://insightful_phish:insightful_phish@localhost:5432/insightful_phish_test"
-pnpm --filter @insightful-phish/backend test:integration
-```
-
-Command Prompt:
-
-```cmd
-set "TEST_DATABASE_URL=postgresql://insightful_phish:insightful_phish@localhost:5432/insightful_phish_test"
-pnpm --filter @insightful-phish/backend test:integration
-```
-
-## Running Tests
-
-Run backend unit tests only:
-
-```powershell
-pnpm --filter @insightful-phish/backend test:unit
-```
-
-Run backend integration tests only:
-
-```powershell
-pnpm --filter @insightful-phish/backend test:integration
-```
-
-Run the default backend test command:
-
-```powershell
-pnpm --filter @insightful-phish/backend test
-```
-
-The default backend `test` script currently runs unit tests only. Run `test:integration` explicitly when the local test database is available.
-
-Integration test files run serially because they share one test database that is cleaned before each test.
+Table cleanup is handled by the integration test setup before each test.
 
 ## How Cleanup Works
 
@@ -143,17 +94,3 @@ The truncate helper:
 - Uses `CASCADE` so related rows are cleaned without maintaining a fragile delete order
 
 After all integration tests finish, `disconnectTestPrisma()` calls `prisma.$disconnect()`.
-
-## Safe Test Database Commands
-
-Please use a dedicated test db whose name contains 'test':
-
-```powershell
-docker compose up -d
-docker compose exec postgres createdb -U insightful_phish insightful_phish_test
-$env:TEST_DATABASE_URL = "postgresql://insightful_phish:insightful_phish@localhost:5432/insightful_phish_test"
-$env:DATABASE_URL = $env:TEST_DATABASE_URL
-pnpm --filter @insightful-phish/backend prisma:generate
-pnpm --filter @insightful-phish/backend exec prisma migrate deploy
-pnpm --filter @insightful-phish/backend test:integration
-```

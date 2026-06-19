@@ -24,3 +24,4 @@ npm-debug.Log*
 pnpm-debug.log*
 yarn-debug.log*
 
+.pnpm-store

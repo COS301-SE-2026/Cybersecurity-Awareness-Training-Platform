@@ -30,10 +30,21 @@ function printDemoSeedSummary(summary: DemoSeedSummary): void {
   );
 }
 
+function isExpectedSeedConfigError(error: unknown): error is Error {
+  return (
+    error instanceof TypeError && error.message.includes('before running the Demo 1 seed command')
+  );
+}
+
 try {
   await seedDemo1();
 } catch (error: unknown) {
-  console.error(error);
+  if (isExpectedSeedConfigError(error)) {
+    console.error('Demo 1 seed failed: ' + error.message);
+  } else {
+    console.error(error);
+  }
+
   process.exitCode = 1;
 } finally {
   await prisma.$disconnect();

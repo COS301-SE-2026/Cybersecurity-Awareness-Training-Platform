@@ -29,9 +29,11 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      statuses: write
     timeout-minutes: 15
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/insightful_phish_test?schema=public
+      LHCI_GITHUB_TOKEN: ${{ github.token }}
 
     steps:
       - name: Checkout repository
@@ -60,12 +62,5 @@ jobs:
 
       - name: Run Lighthouse CI
         run: pnpm --filter @insightful-phish/frontend lighthouse
+        timeout-minutes: 5
         continue-on-error: true # Non-blocking quality check for Sprint 3
-
-      - name: Upload Lighthouse Reports
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: lighthouse-reports
-          path: apps/frontend/.lighthouseci/
-          retention-days: 14

@@ -20,3 +20,7 @@ env.*
 
 .bkp
 .dtmp
+
+.pnpm-store/
+
+apps/frontend/.lighthouseci/
