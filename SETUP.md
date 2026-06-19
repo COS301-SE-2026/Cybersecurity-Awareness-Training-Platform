@@ -169,7 +169,16 @@ From the repo root, create your local Compose environment file:
 cp .env.example .env
 ```
 
-Edit the created `.env` if needed. `POSTGRES_PASSWORD` is required. `DEMO_SEED_PASSWORD` is required for the Docker workspace tooling and Demo 1 seed command. For Docker-first local setup, you do not need to create `apps/backend/.env` or `apps/frontend/.env`. The Docker Compose stack reads all the local values from the root `.env` file.
+Edit the created `.env` if needed. `POSTGRES_PASSWORD` is required. For Docker-first local setup, you do not need to create `apps/backend/.env` or `apps/frontend/.env`. The Docker Compose stack reads all the local values from the root `.env` file.
+
+On Linux systems, set your `LOCAL_UID` and `LOCAL_GID` in the `.env` so files created by Docker workspace commands are owned by your host user. MacOD and Windows Docker Desktop users can usually leave these values alone.
+
+You can set these using:
+
+```bash
+LOCAL_UID=$(id -u)
+LOCAL_GID=$(id -g)
+```
 
 First, install workspace dependencies into Docker-managed volumes:
 
@@ -267,7 +276,18 @@ Then run the seeding command:
 pnpm docker:seed:demo1
 ```
 
-The seed reads the `DEMO_SEED_PASSWORD` from the root `.env` file.
+The seed reads the `DEMO_SEED_PASSWORD` from the root `.env` file. The `DEMO_SEED_PASSWORD` is only required for:
+
+```bash
+pnpm docker:seed:demo1
+```
+
+This means that you can either set `DEMO_SEED_PASSWORD` in your `.env` file, or set it in the same terminal session before running the seed command:
+
+```bash
+export DEMO_SEED_PASSWORD="your-local-demo-password"
+pnpm docker:seed:demo1
+```
 
 The Demo 1 seed creates these demo-only accounts:
 
