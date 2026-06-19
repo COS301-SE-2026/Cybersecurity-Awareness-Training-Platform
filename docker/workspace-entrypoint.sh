@@ -9,6 +9,8 @@ case "$LOCAL_UID:$LOCAL_GID" in
 		echo "LOCAL_UID and LOCAL_GID must be numeric." >&2
 		exit 1
 		;;
+	*)
+		;;
 esac
 
 WORKSPACE_USER="workspace"
@@ -55,7 +57,7 @@ chown -R "$LOCAL_UID:$LOCAL_GID" \
 export HOME="$WORKSPACE_HOME"
 export PNPM_HOME
 export PNPM_STORE_DIR
-export npm_config_store_dir="$PNPM_STORE_DIR"
+export PNPM_CONFIG_STORE_DIR="$PNPM_STORE_DIR"
 export PATH="$PNPM_HOME:$PATH"
 
 exec su-exec "$LOCAL_UID:$LOCAL_GID" "$@"
