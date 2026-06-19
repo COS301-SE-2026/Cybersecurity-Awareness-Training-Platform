@@ -189,8 +189,8 @@
       "number": 160,
       "title": "chore: add route builders and clean stale frontend routes",
       "points": 3,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-06-18"
     },
     {
       "number": 159,
@@ -224,8 +224,8 @@
       "number": 155,
       "title": "chore: clean deprecated static frontend assets and app metadata",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-06-18"
     },
     {
       "number": 154,
