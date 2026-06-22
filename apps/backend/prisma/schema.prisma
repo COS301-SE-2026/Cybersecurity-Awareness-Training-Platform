@@ -233,53 +233,53 @@ enum InteractionTargetType {
 }
 
 enum AuditActorType {
-	IP_ADMIN
-	ORGANISATION_ADMIN
-	ORGANISATION_TRAINEE
-	GENERAL_TRAINEE
-	SYSTEM
+  IP_ADMIN
+  ORGANISATION_ADMIN
+  ORGANISATION_TRAINEE
+  GENERAL_TRAINEE
+  SYSTEM
 }
 
 enum AuditTargetType {
-	USER
-	ORGANISATION 
-	ORGANISATION_REGISTRATION_REQUEST 
-	INVITATION
-	ORGANISATION_ADMIN_PERMISSION
-	ORGANISATION_SECURITY_SETTINGS
-	PLATFORM_ADMIN_ROLE
-	AUTH_SESSION
-	CAMPAIGN
-	OTHER
+  USER
+  ORGANISATION
+  ORGANISATION_REGISTRATION_REQUEST
+  INVITATION
+  ORGANISATION_ADMIN_PERMISSION
+  ORGANISATION_SECURITY_SETTINGS
+  PLATFORM_ADMIN_ROLE
+  AUTH_SESSION
+  CAMPAIGN
+  OTHER
 }
 
 enum AuditActionType {
-	CREATED 
-	UPDATED 
-	DISABLED 
-	ENABLED 
-	APPROVED 
-	REJECTED 
-	CONTACTED
-	INVITED
-	RESENT 
-	REVOKED 
-	ACCEPTED 
-	COMPLETED 
-	PROMOTED 
-	DEMOTED 
-	PERMISSIONS_CHANGED 
-	SETTINGS_CHANGED 
-	SUSPENDED
-	REACTIVATED 
-	LOGIN
-	LOGOUT
-	TOKEN_REUSE_DETECTED
+  CREATED
+  UPDATED
+  DISABLED
+  ENABLED
+  APPROVED
+  REJECTED
+  CONTACTED
+  INVITED
+  RESENT
+  REVOKED
+  ACCEPTED
+  COMPLETED
+  PROMOTED
+  DEMOTED
+  PERMISSIONS_CHANGED
+  SETTINGS_CHANGED
+  SUSPENDED
+  REACTIVATED
+  LOGIN
+  LOGOUT
+  TOKEN_REUSE_DETECTED
 }
 
 enum AuditOutcome {
-	SUCCESS
-	FAILURE
+  SUCCESS
+  FAILURE
 }
 
 model HealthCheck {
@@ -307,6 +307,7 @@ model User {
   createdTrainingDocuments     TrainingDocument[]        @relation("TrainingDocumentCreatedBy")
   createdQuizzes               Quiz[]                    @relation("QuizCreatedBy")
   createdSimulations           Simulation[]              @relation("SimulationCreatedBy")
+  auditLogEntries              AuditLogEntry[]           @relation("AuditLogEntryActor")
 }
 
 model TraineeProfile {
@@ -385,6 +386,7 @@ model Organisation {
   adminProfiles   OrganisationAdminProfile[]
   contexts        OrganisationContext[]
   campaigns       Campaign[]
+  auditLogEntries AuditLogEntry[]
 }
 
 model OrganisationContext {
@@ -416,7 +418,7 @@ model Campaign {
   createdByUserId      String?
   name                 String
   description          String?
-  accentColor		   String?
+  accentColor          String?
   campaignType         CampaignType
   difficultyLevel      DifficultyLevel        @default(BEGINNER)
   status               CampaignStatus         @default(DRAFT)
@@ -834,4 +836,34 @@ model InteractionEvent {
   @@index([quizQuestionId])
   @@index([emailClassificationResponseId])
   @@index([occurredAt])
+}
+
+model AuditLogEntry {
+  id             String          @id @default(uuid())
+  actorUserId    String?
+  actorType      AuditActorType
+  organisationId String?
+  targetType     AuditTargetType
+  targetId       String?
+  actionType     AuditActionType
+  outcome        AuditOutcome
+  oldValues      Json?
+  newValues      Json?
+  metadata       Json?
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime        @default(now())
+
+  actorUser    User?         @relation("AuditLogEntryActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  organisation Organisation? @relation(fields: [organisationId], references: [id], onDelete: SetNull)
+
+  @@index([actorUserId])
+  @@index([organisationId])
+  @@index([actorType])
+  @@index([targetType, targetId])
+  @@index([actionType])
+  @@index([outcome])
+  @@index([createdAt])
+  @@index([organisationId, createdAt])
+  @@index([actorUserId, createdAt])
 }
