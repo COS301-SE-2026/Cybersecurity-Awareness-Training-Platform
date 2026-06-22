@@ -320,7 +320,7 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             },
             traineeStatus: {
               type: 'string',
-              enum: ['ACTIVE', 'DISABLED'],
+              enum: ['ACTIVE', 'INACTIVE'],
               example: 'ACTIVE',
             },
             traineeType: {

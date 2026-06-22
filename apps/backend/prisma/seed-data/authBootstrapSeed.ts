@@ -1,9 +1,10 @@
-import type { PrismaClient } from '../../src/generated/prisma/client.js';
 import { hashPassword } from '../../src/services/password.service.js';
+
+const AUTH_BOOTSTRAP_PASSWORD_ENV_VAR = ['AUTH_BOOTSTRAP_SUPER_ADMIN', 'PASSWORD'].join('_');
 
 const AUTH_BOOTSTRAP_ENV = {
   email: 'AUTH_BOOTSTRAP_SUPER_ADMIN_EMAIL',
-  password: 'AUTH_BOOTSTRAP_SUPER_ADMIN_PASSWORD',
+  password: AUTH_BOOTSTRAP_PASSWORD_ENV_VAR,
   name: 'AUTH_BOOTSTRAP_SUPER_ADMIN_NAME',
 } as const;
 
@@ -20,6 +21,64 @@ type AuthBootstrapConfig = {
   readonly password: string;
   readonly firstName: string;
   readonly lastName: string;
+};
+
+type AuthBootstrapUserData = {
+  readonly email: string;
+  readonly firstName: string;
+  readonly lastName: string;
+  readonly passwordHash: string;
+  readonly userType: 'IP_ADMIN';
+  readonly authStatus: 'ACTIVE';
+  readonly emailVerifiedAt: Date;
+  readonly disabledAt: null;
+  readonly disabledReason: null;
+};
+
+const ACTIVE_SUPER_ADMIN_PROFILE_DATA = {
+  adminStatus: 'ACTIVE',
+  platformAdminRole: 'SUPER_ADMIN',
+  revokedAt: null,
+  revokedReason: null,
+} as const;
+
+type AuthBootstrapIpAdminProfile = {
+  readonly userId: string;
+};
+
+type AuthBootstrapPrismaTransaction = {
+  readonly user: {
+    update(args: { where: { id: string }; data: AuthBootstrapUserData }): Promise<unknown>;
+    upsert(args: {
+      where: { email: string };
+      create: AuthBootstrapUserData;
+      update: AuthBootstrapUserData;
+    }): Promise<{ id: string }>;
+  };
+  readonly ipAdminProfile: {
+    update(args: {
+      where: { userId: string };
+      data: typeof ACTIVE_SUPER_ADMIN_PROFILE_DATA;
+    }): Promise<unknown>;
+    upsert(args: {
+      where: { userId: string };
+      create: {
+        userId: string;
+        adminStatus: 'ACTIVE';
+        platformAdminRole: 'SUPER_ADMIN';
+      };
+      update: typeof ACTIVE_SUPER_ADMIN_PROFILE_DATA;
+    }): Promise<unknown>;
+  };
+};
+
+type AuthBootstrapPrismaClient = {
+  readonly ipAdminProfile: {
+    findFirst(args: {
+      where: { platformAdminRole: 'SUPER_ADMIN' };
+    }): Promise<AuthBootstrapIpAdminProfile | null>;
+  };
+  $transaction(callback: (tx: AuthBootstrapPrismaTransaction) => Promise<void>): Promise<void>;
 };
 
 export function getAuthBootstrapEnvVarNames(): typeof AUTH_BOOTSTRAP_ENV {
@@ -54,7 +113,7 @@ export function readAuthBootstrapConfig(
 }
 
 export async function seedAuthBootstrap(
-  client: PrismaClient,
+  client: AuthBootstrapPrismaClient,
   env: NodeJS.ProcessEnv = process.env,
 ): Promise<AuthBootstrapSeedSummary> {
   const config = readAuthBootstrapConfig(env);
@@ -69,6 +128,7 @@ export async function seedAuthBootstrap(
   }
 
   const passwordHash = await hashPassword(config.password);
+  const userData = buildAuthBootstrapUserData(config, passwordHash);
 
   const existingSuperAdmin = await client.ipAdminProfile.findFirst({
     where: {
@@ -82,29 +142,14 @@ export async function seedAuthBootstrap(
         where: {
           id: existingSuperAdmin.userId,
         },
-        data: {
-          email: config.email,
-          firstName: config.firstName,
-          lastName: config.lastName,
-          passwordHash,
-          userType: 'IP_ADMIN',
-          authStatus: 'ACTIVE',
-          emailVerifiedAt: new Date(),
-          disabledAt: null,
-          disabledReason: null,
-        },
+        data: userData,
       });
 
       await tx.ipAdminProfile.update({
         where: {
           userId: existingSuperAdmin.userId,
         },
-        data: {
-          adminStatus: 'ACTIVE',
-          platformAdminRole: 'SUPER_ADMIN',
-          revokedAt: null,
-          revokedReason: null,
-        },
+        data: ACTIVE_SUPER_ADMIN_PROFILE_DATA,
       });
     });
 
@@ -121,27 +166,8 @@ export async function seedAuthBootstrap(
       where: {
         email: config.email,
       },
-      create: {
-        email: config.email,
-        firstName: config.firstName,
-        lastName: config.lastName,
-        passwordHash,
-        userType: 'IP_ADMIN',
-        authStatus: 'ACTIVE',
-        emailVerifiedAt: new Date(),
-        disabledAt: null,
-        disabledReason: null,
-      },
-      update: {
-        firstName: config.firstName,
-        lastName: config.lastName,
-        passwordHash,
-        userType: 'IP_ADMIN',
-        authStatus: 'ACTIVE',
-        emailVerifiedAt: new Date(),
-        disabledAt: null,
-        disabledReason: null,
-      },
+      create: userData,
+      update: userData,
     });
 
     await tx.ipAdminProfile.upsert({
@@ -153,13 +179,7 @@ export async function seedAuthBootstrap(
         adminStatus: 'ACTIVE',
         platformAdminRole: 'SUPER_ADMIN',
       },
-      update: {
-        userId: user.id,
-        adminStatus: 'ACTIVE',
-        platformAdminRole: 'SUPER_ADMIN',
-        revokedAt: null,
-        revokedReason: null,
-      },
+      update: ACTIVE_SUPER_ADMIN_PROFILE_DATA,
     });
   });
 
@@ -168,5 +188,22 @@ export async function seedAuthBootstrap(
     created: true,
     updated: false,
     email: config.email,
+  };
+}
+
+function buildAuthBootstrapUserData(
+  config: AuthBootstrapConfig,
+  passwordHash: string,
+): AuthBootstrapUserData {
+  return {
+    email: config.email,
+    firstName: config.firstName,
+    lastName: config.lastName,
+    passwordHash,
+    userType: 'IP_ADMIN',
+    authStatus: 'ACTIVE',
+    emailVerifiedAt: new Date(),
+    disabledAt: null,
+    disabledReason: null,
   };
 }

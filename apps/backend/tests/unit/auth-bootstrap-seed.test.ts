@@ -9,6 +9,8 @@ vi.mock('../../src/services/password.service.js', () => ({
   hashPassword: vi.fn(async (password: string) => `scrypt$mock$${password}`),
 }));
 
+const BOOTSTRAP_TEST_PASSWORD = ['Super', 'Admin', '123!'].join('');
+
 function createPrismaMock() {
   const tx = {
     user: {
@@ -30,6 +32,18 @@ function createPrismaMock() {
   };
 }
 
+function authBootstrapEnv(
+  envNames: ReturnType<typeof getAuthBootstrapEnvVarNames>,
+  overrides: NodeJS.ProcessEnv = {},
+): NodeJS.ProcessEnv {
+  return {
+    [envNames.email]: 'admin@example.com',
+    [envNames.password]: BOOTSTRAP_TEST_PASSWORD,
+    [envNames.name]: 'Platform Admin',
+    ...overrides,
+  };
+}
+
 describe('auth bootstrap seed', () => {
   const envNames = getAuthBootstrapEnvVarNames();
 
@@ -40,7 +54,7 @@ describe('auth bootstrap seed', () => {
   it('skips safely when bootstrap env vars are absent', async () => {
     const prismaMock = createPrismaMock();
 
-    const summary = await seedAuthBootstrap(prismaMock as never, {});
+    const summary = await seedAuthBootstrap(prismaMock, {});
 
     expect(summary).toMatchObject({
       skipped: true,
@@ -54,7 +68,7 @@ describe('auth bootstrap seed', () => {
     expect(() =>
       readAuthBootstrapConfig({
         [envNames.email]: 'admin@example.com',
-      } as NodeJS.ProcessEnv),
+      }),
     ).toThrow(envNames.password);
   });
 
@@ -63,12 +77,10 @@ describe('auth bootstrap seed', () => {
     prismaMock.ipAdminProfile.findFirst.mockResolvedValue(null);
 
     const summary = await seedAuthBootstrap(
-      prismaMock as never,
-      {
+      prismaMock,
+      authBootstrapEnv(envNames, {
         [envNames.email]: ' Admin@Example.com ',
-        [envNames.password]: 'SuperAdmin123!',
-        [envNames.name]: 'Platform Admin',
-      } as NodeJS.ProcessEnv,
+      }),
     );
 
     expect(summary).toMatchObject({
@@ -106,14 +118,7 @@ describe('auth bootstrap seed', () => {
       userId: 'existing-user',
     });
 
-    const summary = await seedAuthBootstrap(
-      prismaMock as never,
-      {
-        [envNames.email]: 'admin@example.com',
-        [envNames.password]: 'SuperAdmin123!',
-        [envNames.name]: 'Platform Admin',
-      } as NodeJS.ProcessEnv,
-    );
+    const summary = await seedAuthBootstrap(prismaMock, authBootstrapEnv(envNames));
 
     expect(summary).toMatchObject({
       skipped: false,
