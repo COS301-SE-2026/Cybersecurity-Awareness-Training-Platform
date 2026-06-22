@@ -1,47 +1,55 @@
 function LandingNavbar() {
   return (
     <header className="fixed w-full z-20 top-0 start-0">
-      <nav className="bg-neutral-primary">
+      <nav className="bg-white-purple">
         <div className="flex flex-wrap justify-between items-center mx-auto max-w-screen-xl p-4">
           <a href="/" className="flex items-center space-x-3 rtl:space-x-reverse">
-            <img src="/Phish Logo Light.png" className="h-10" alt="Insightful Phish Logo" />
-            <span className="self-center text-xl text-heading font-semibold whitespace-nowrap">
-              Insightful Phish.
+            <img src="/Phish Logo Light.png" className="h-14" alt="Insightful Phish Logo" />
+            <span className="flex items-center gap-2 mt-2">
+              <span className="font-overpass self-center text-[1.94rem] text-pink text-heading font-medium whitespace-nowrap tracking-wide">
+                Insightful
+              </span>
+              <span className="font-overpass self-center text-[1.94rem] text-pink text-heading font-black whitespace-nowrap tracking-wide">
+                Phish.
+              </span>
             </span>
           </a>
 
-          <div className="flex items-center space-x-6 rtl:space-x-reverse">
-            <a
-              href="/login"
-              className="font-overpass text-md font-medium text-fg-brand hover:underline"
+          <div className="flex items-center space-x-6 rtl:space-x-reverse mt-1">
+            <button
+              type="button"
+              className="font-jost tracking-wider text-xl text-white font-regular bg-purple leading-5 px-4 py-2.5 focus:outline-none"
             >
+              Get Started
+            </button>
+            <a href="/login" className="font-jost text-xl font-medium tracking-wider text-pink">
               Login
             </a>
           </div>
         </div>
       </nav>
-      <nav className="bg-neutral-secondary-soft border-y border-default border-default">
+      <nav className="bg-faint-purple">
         <div className="max-w-screen-xl px-4 py-3 mx-auto">
           <div className="flex items-center">
-            <ul className="flex flex-row font-medium mt-0 space-x-8 rtl:space-x-reverse text-sm">
+            <ul className="flex flex-row font-medium font-jost mt-0 space-x-8 rtl:space-x-reverse text-[1.4rem] tracking-wider">
               <li>
-                <a href="/" className="text-heading hover:underline" aria-current="page">
+                <a href="/" className="text-heading text-purple" aria-current="page">
                   Home
                 </a>
               </li>
               <li>
-                <a href="/" className="text-heading hover:underline">
-                  Company
+                <a href="/" className="text-heading text-purple">
+                  About
                 </a>
               </li>
               <li>
-                <a href="/" className="text-heading hover:underline">
-                  Team
-                </a>
-              </li>
-              <li>
-                <a href="/" className="text-heading hover:underline">
+                <a href="/" className="text-heading text-purple">
                   Features
+                </a>
+              </li>
+              <li>
+                <a href="/" className="text-heading text-purple">
+                  Team
                 </a>
               </li>
             </ul>
