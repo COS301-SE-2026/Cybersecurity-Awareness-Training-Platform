@@ -3,6 +3,9 @@
 @import 'tailwindcss';
 @import 'flowbite-react/plugin/tailwindcss';
 @source '../.flowbite-react/class-list.json';
+@import 'flowbite/src/themes/default';
+@plugin "flowbite/plugin";
+@source "../node_modules/flowbite";
 
 html,
 body,
@@ -18,3 +21,5 @@ body,
 * {
   box-sizing: border-box;
 }
+
+/* INSIGHTFUL PHISH THEME */
