@@ -40,7 +40,7 @@ export function readAuthBootstrapConfig(
   const missing = Object.values(AUTH_BOOTSTRAP_ENV).filter((key) => !env[key]?.trim());
 
   if (missing.length > 0) {
-    throw new TypeError(`Missing auth bootstrap enviroment variables: ${missing.join(', ')}`);
+    throw new TypeError(`Missing auth bootstrap environment variables: ${missing.join(', ')}`);
   }
 
   const [firstName, ...lastNameParts] = name!.split(/\s+/);
