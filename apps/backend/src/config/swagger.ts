@@ -292,7 +292,10 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           ['IP_ADMIN', 'ORGANISATION_ADMIN', 'ORGANISATION_TRAINEE', 'GENERAL_TRAINEE'],
           'GENERAL_TRAINEE',
         ),
-        AuthStatus: enumString(['PENDING', 'ACTIVE', 'DISABLED'], 'ACTIVE'),
+        AuthStatus: enumString(
+          ['PENDING_EMAIL_VERIFICATION', 'PENDING_INVITE_SETUP', 'ACTIVE', 'DISABLED'],
+          'ACTIVE',
+        ),
         PublicOrganisation: {
           type: 'object',
           required: ['id', 'name'],
@@ -317,7 +320,7 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             },
             traineeStatus: {
               type: 'string',
-              enum: ['ACTIVE', 'INACTIVE'],
+              enum: ['ACTIVE', 'DISABLED'],
               example: 'ACTIVE',
             },
             traineeType: {
@@ -345,7 +348,7 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             },
             adminStatus: {
               type: 'string',
-              enum: ['ACTIVE', 'INACTIVE'],
+              enum: ['ACTIVE', 'DISABLED'],
               example: 'ACTIVE',
             },
             adminType: {

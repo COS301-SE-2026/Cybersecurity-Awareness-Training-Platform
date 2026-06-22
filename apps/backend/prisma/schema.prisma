@@ -15,7 +15,8 @@ enum UserType {
 }
 
 enum AuthStatus {
-  PENDING
+  PENDING_EMAIL_VERIFICATION
+  PENDING_INVITE_SETUP
   ACTIVE
   DISABLED
 }
@@ -32,8 +33,88 @@ enum OrganisationUserStatus {
 
 enum AdminStatus {
   ACTIVE
-  INACTIVE
+  DISABLED
 }
+
+
+
+enum PlatformAdminRole{
+	SUPER_ADMIN
+	NORMAL_ADMIN
+}
+
+enum AuthSessionRevokedReason {
+	LOGOUT
+	LOGOUT_ALL
+	PASSWORD_RESET
+	PASSWORD_CHANGE
+	EMAIL_CHANGE
+	ADMIN_DISABLED
+	ORGANISATION_SUSPENDED
+	TOKEN_REUSE_DETECTED
+	EXPIRED
+	OTHER
+}
+
+enum RefreshTokenRevokedReason {
+	ROTATED
+	LOGOUT
+	LOGOUT_ALL
+	PASSWORD_RESET
+	PASSWORD_CHANGE
+	EMAIL_CHANGE
+	TOKEN_REUSE_DETECTED
+	EXPIRED
+	OTHER
+}
+
+enum ActionTokenPurpose {
+	EMAIL_VERIFICATION
+	PASSWORD_RESET
+	EMAIL_CHANGE_VERIFICATION
+	INITIAL_ORGANISATION_ADMIN_SETUP
+	ORGANISATION_TRAINEE_INVITE
+	ORGANISATION_ADMIN_PROMOTION
+	PLATFORM_ADMIN_INVITE
+	PLATFORM_ADMIN_UPGRADE_CONFIRMATION
+}
+
+
+enum EmailDeliveryType {
+	EMAIL_VERIFICATION
+	PASSWORD_RESET
+	PASSWORD_CHANGED
+	EMAIL_CHANGE_CONFIRMATION
+	EMAIL_CHANGE_WARNING
+	ORGANISATION_REQUEST_RECEIVED
+	ORGANISATION_REQUEST_APPROVED
+	ORGANISATION_REQUEST_REJECTED
+	INITIAL_ORGANISATION_ADMIN_SETUP
+	ORGANISATION_TRAINEE_INVITE
+	ORGANISATION_ADMIN_PROMOTION_INVITE
+	PLATFORM_ADMIN_INVITE
+	PLATFORM_ADMIN_UPGRADE_CONFIRMATION
+	ROLE_CHANGED_NOTIFICATION
+}
+
+enum EmailRelatedEntityType {
+	USER
+	INVITATION
+	ACTIONTOKEN
+	ORGANISATION_REGISTRATION_REQUEST
+	EMAIL_CHANGE_REQUEST
+	ORGANISATION
+	OTHER
+}
+
+enum EmailDeliveryStatus {
+	PENDING
+	SENT
+	FAILED
+}
+
+
+
 
 enum GeneralTraineeAccessSource {
   SELF_SIGNUP
@@ -257,6 +338,13 @@ model User {
   createdTrainingDocuments     TrainingDocument[]        @relation("TrainingDocumentCreatedBy")
   createdQuizzes               Quiz[]                    @relation("QuizCreatedBy")
   createdSimulations           Simulation[]              @relation("SimulationCreatedBy")
+  emailVerifiedAt			   DateTime?
+  lastLoginAt				   DateTime?
+  disabledAt				   DateTime?
+  disabledReason     	   	   String?
+  authSessions 				   AuthSession[]
+  actionTokens           	   ActionToken[]
+  emailDeliveryLogs 		   EmailDeliveryLog[]
 }
 
 model TraineeProfile {
@@ -317,13 +405,126 @@ model OrganisationAdminProfile {
 }
 
 model IpAdminProfile {
-  id          String      @id @default(uuid())
-  userId      String      @unique
-  adminStatus AdminStatus @default(ACTIVE)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String            @id @default(uuid())
+  userId            String            @unique
+  adminStatus       AdminStatus       @default(ACTIVE)
+  platformAdminRole PlatformAdminRole @default(NORMAL_ADMIN)
+  joinedAt          DateTime          @default(now())
+  revokedAt         DateTime?
+  revokedReason     String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([adminStatus])
+  @@index([platformAdminRole])
+  @@index([revokedAt])
 }
+
+
+model AuthSession {
+	id			   		String 			  	@id @default(uuid())
+	userId	       		String
+	rememberMe     		Boolean			  	@default(false)
+	createdAt	   		DateTime			@default(now())
+	lastActiveAt  		DateTime           	@default(now())
+	expiresAt      		DateTime
+	idleTimeoutMinutes	Int?
+	revokedAt			DateTime?
+	revokedReason		AuthSessionRevokedReason?
+	userAgent			String?
+	ipAddress			String?
+	deviceSummary		String?
+	locationSummary		String?
+	updatedAt			DateTime			@updatedAt
+	user				User				@relation(fields: [userId], references: [id], onDelete: Cascade)
+	refreshTokens		RefreshToken[]
+
+
+	@@index([userId])
+	@@index([expiresAt])
+	@@index([lastActiveAt])
+	@@index([revokedAt])
+}
+
+model RefreshToken {
+  id                String                      @id @default(uuid())
+  authSessionId     String
+  tokenHash         String                      @unique
+  issuedAt          DateTime                    @default(now())
+  expiresAt         DateTime
+  usedAt            DateTime?
+  revokedAt         DateTime?
+  revokedReason     RefreshTokenRevokedReason?
+  replacedByTokenId String?                     @unique
+  createdAt         DateTime                    @default(now())
+  updatedAt         DateTime                    @updatedAt
+  authSession       AuthSession                 @relation(fields: [authSessionId], references: [id], onDelete: Cascade)
+  replacedByToken   RefreshToken?               @relation("RefreshTokenReplacement", fields: [replacedByTokenId], references: [id], onDelete: SetNull)
+  replacedTokens    RefreshToken[]              @relation("RefreshTokenReplacement")
+
+  @@index([authSessionId])
+  @@index([expiresAt])
+  @@index([usedAt])
+  @@index([revokedAt])
+}
+
+model ActionToken {
+  id                                String             @id @default(uuid())
+  tokenHash                         String             @unique
+  purpose                           ActionTokenPurpose
+  userId                            String?
+  invitationId                      String?
+  emailChangeRequestId              String?
+  organisationRegistrationRequestId String?
+  targetEmail                       String?
+  expiresAt                         DateTime
+  usedAt                            DateTime?
+  revokedAt                         DateTime?
+  revokedReason                     String?
+  createdAt                         DateTime           @default(now())
+  updatedAt                         DateTime           @updatedAt
+  user                              User?              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emailDeliveryLogs 				EmailDeliveryLog[]
+
+  @@index([userId])
+  @@index([purpose])
+  @@index([invitationId])
+  @@index([emailChangeRequestId])
+  @@index([organisationRegistrationRequestId])
+  @@index([targetEmail])
+  @@index([expiresAt])
+  @@index([usedAt])
+  @@index([revokedAt])
+}
+
+model EmailDeliveryLog {
+  id                String                 @id @default(uuid())
+  recipientEmail    String
+  emailType         EmailDeliveryType
+  relatedEntityType EmailRelatedEntityType
+  relatedEntityId   String?
+  userId            String?
+  actionTokenId     String?
+  deliveryStatus    EmailDeliveryStatus    @default(PENDING)
+  providerMessageId String?
+  sentAt            DateTime?
+  failedAt          DateTime?
+  failureReason     String?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  user              User?                  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  actionToken       ActionToken?           @relation(fields: [actionTokenId], references: [id], onDelete: SetNull)
+
+  @@index([recipientEmail])
+  @@index([emailType])
+  @@index([relatedEntityType, relatedEntityId])
+  @@index([userId])
+  @@index([actionTokenId])
+  @@index([deliveryStatus])
+  @@index([createdAt])
+}
+
 
 model Organisation {
   id              String                       @id @default(uuid())

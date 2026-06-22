@@ -10,7 +10,11 @@ export type UserTypeDto =
   | 'ORGANISATION_TRAINEE'
   | 'GENERAL_TRAINEE';
 
-export type AuthStatusDto = 'PENDING' | 'ACTIVE' | 'DISABLED';
+export type AuthStatusDto =
+  | 'PENDING_EMAIL_VERIFICATION'
+  | 'PENDING_INVITE_SETUP'
+  | 'ACTIVE'
+  | 'DISABLED';
 
 export interface PublicOrganisationDto {
   id: string;
@@ -26,7 +30,7 @@ export interface PublicTraineeProfileDto {
 
 export interface PublicAdminProfileDto {
   id: string;
-  adminStatus: 'ACTIVE' | 'INACTIVE';
+  adminStatus: 'ACTIVE' | 'DISABLED';
   adminType: 'ORGANISATION' | 'IP';
   organisation?: PublicOrganisationDto | null;
 }
