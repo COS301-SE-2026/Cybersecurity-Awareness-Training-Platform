@@ -23,3 +23,60 @@ body,
 }
 
 /* INSIGHTFUL PHISH THEME */
+:root {
+  /* Fonts */
+  --jost: 'Jost', sans-serif;
+  --overpass: 'Overpass', sans-serif;
+
+  /* Colours */
+  --ip-deep-purple: rgb(9, 0, 84);
+  --ip-purple: rgb(49, 0, 228);
+  --ip-dark-pink: rgb(47, 3, 96);
+  --ip-pink: rgb(132, 0, 255);
+  --ip-white-purple: rgb(245, 248, 255);
+  --ip-faint-purple: rgb(235, 237, 255);
+}
+
+/* Utility Classes */
+/* Fonts */
+.font-jost {
+  font-family: var(--jost);
+}
+
+.font-overpass {
+  font-family: var(--overpass);
+}
+
+/* Text Colours */
+.text-deep-purple {
+  color: var(--ip-deep-purple);
+}
+
+.text-dark-pink {
+  color: var(--ip-dark-pink);
+}
+
+.text-pink {
+  color: var(--ip-pink);
+}
+
+.text-purple {
+  color: var(--ip-purple);
+}
+
+/* Background Colours */
+.bg-white-purple {
+  background-color: var(--ip-white-purple);
+}
+
+.bg-faint-purple {
+  background-color: var(--ip-faint-purple);
+}
+
+.bg-purple {
+  background-color: var(--ip-purple);
+}
+
+.bg-pink {
+  background-color: var(--ip-pink);
+}
