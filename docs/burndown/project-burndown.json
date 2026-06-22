@@ -733,268 +733,834 @@
           "closed_date": "2026-05-26"
         }
       ]
+    },
+    {
+      "sprint_no": 4,
+      "demo_no": 2,
+      "milestone": "Sprint 4 (Demo 2)",
+      "start": "2026-06-19",
+      "end": "2026-07-03",
+      "issues": [
+        {
+          "number": 292,
+          "title": "feat: integrate account settings and session management",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 291,
+          "title": "test: add backend account and security settings API integration coverage",
+          "points": 3,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 290,
+          "title": "feat: implement backend account settings and user session endpoints",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 289,
+          "title": "feat: build frontend account settings and security preferences",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 288,
+          "title": "feat: integrate organisation security settings flow",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 287,
+          "title": "feat: implement backend organisation security settings endpoints",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 286,
+          "title": "feat: build frontend organisation security settings",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 285,
+          "title": "docs: define SRS use case UC-11 configure organisation security settings",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 284,
+          "title": "feat: phase 5 organisation security settings foundation migration",
+          "points": 3,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 283,
+          "title": "feat: integrate minimal Sprint 4 dashboards and role redirects",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 282,
+          "title": "feat: build frontend minimal Sprint 4 dashboards",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 281,
+          "title": "feat: integrate platform admin management flow",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 280,
+          "title": "test: add backend admin and permission API integration coverage",
+          "points": 3,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 279,
+          "title": "feat: implement backend platform admin management endpoints",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 278,
+          "title": "feat: build frontend platform admin management",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 277,
+          "title": "docs: define SRS use case UC-10 manage insightful phish platform admins",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 276,
+          "title": "feat: integrate organisation admin management flow",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 275,
+          "title": "feat: implement backend organisation admin permissions endpoints",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 274,
+          "title": "feat: build frontend organisation admin management",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 273,
+          "title": "docs: define SRS use case UC-09 manage organisation admins and permissions",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 272,
+          "title": "feat: phase 4 organisation admin permissions foundation migration",
+          "points": 5,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 271,
+          "title": "feat: integrate organisation trainee management flow",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 270,
+          "title": "test: add backend invitation and employee API integration coverage",
+          "points": 3,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 269,
+          "title": "feat: implement backend organisation trainee management endpoints",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 268,
+          "title": "feat: build frontend organisation trainee management",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 267,
+          "title": "docs: define SRS use case UC-08 manage organisation employees",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 266,
+          "title": "feat: integrate accept invite and role change flows",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 265,
+          "title": "feat: implement backend invitation acceptance and role change endpoints",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 264,
+          "title": "feat: build frontend accept invite and role change page",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 263,
+          "title": "docs: define SRS use case UC-07 accept organisation invitation",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 262,
+          "title": "feat: phase 3 organisation membership and employee invite foundation migration",
+          "points": 3,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 261,
+          "title": "docs: define SRS use case UC-06 complete first organisation admin setup",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 260,
+          "title": "feat: integrate organisation details page",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 259,
+          "title": "feat: integrate platform organisation management flow",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 258,
+          "title": "test: add backend organisation onboarding API integration coverage",
+          "points": 3,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 257,
+          "title": "feat: implement backend organisation details endpoint",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 256,
+          "title": "feat: build frontend organisation details page",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 255,
+          "title": "feat: implement backend organisation review and approval endpoints",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 254,
+          "title": "feat: build frontend platform organisation management",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 253,
+          "title": "docs: define SRS use case UC-05 review and manage organisation registrations",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 252,
+          "title": "feat: integrate organisation registration request flow",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 251,
+          "title": "feat: implement backend organisation registration request endpoint",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 250,
+          "title": "feat: build frontend organisation registration request page",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 249,
+          "title": "docs: define SRS use case UC-04 request organisation registration",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 248,
+          "title": "feat: phase 2 organisation onboarding foundation migration",
+          "points": 5,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 247,
+          "title": "feat: integrate Sprint 4 email delivery support",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 246,
+          "title": "feat: integrate token-link error handling",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 245,
+          "title": "feat: implement backend token-link error responses",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 244,
+          "title": "feat: build frontend token-link error handling",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 243,
+          "title": "feat: integrate reset password flow",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 242,
+          "title": "feat: implement backend reset password endpoint",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 241,
+          "title": "feat: build frontend reset password page",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 240,
+          "title": "feat: integrate forgot password flow",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 239,
+          "title": "feat: implement backend forgot password endpoint",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 238,
+          "title": "feat: build frontend forgot password page",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 237,
+          "title": "feat: integrate registration and setup flows",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 236,
+          "title": "feat: integrate email verification flow",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 235,
+          "title": "feat: implement backend email verification and resend endpoints",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 234,
+          "title": "feat: build frontend email verification page",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 233,
+          "title": "feat: implement backend registration and invite setup endpoints",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 232,
+          "title": "feat: implement backend Sprint 4 email templates and delivery logging",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 231,
+          "title": "feat: build frontend individual registration and setup page",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 230,
+          "title": "feat: integrate login page with auth endpoints",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 229,
+          "title": "test: add backend auth API integration coverage",
+          "points": 3,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 228,
+          "title": "feat: implement backend login, logout, and refresh endpoints",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 227,
+          "title": "feat: build frontend login page",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 226,
+          "title": "feat: integrate Sprint 4 auth client and protected route behaviour",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 225,
+          "title": "feat: build public landing page",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 224,
+          "title": "feat: build frontend shared Sprint 4 authentication shell and components",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 223,
+          "title": "docs: create interactive web brand style guidelines",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 222,
+          "title": "feat: implement backend Sprint 4 authentication infrastructure",
+          "points": 3,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 221,
+          "title": "docs: design Sprint 4 email bodies",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 220,
+          "title": "feat: set up MailPit for Sprint 4 SMTP development",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 219,
+          "title": "feat: phase 6 audit logging foundation migration",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 218,
+          "title": "feat: phase 1 core authentication foundation migration",
+          "points": 5,
+          "state": "open",
+          "closed_date": null
+        },
+        {
+          "number": 217,
+          "title": "docs: update Sprint 4 domain model documentation",
+          "points": 2,
+          "state": "closed",
+          "closed_date": "2026-06-22"
+        }
+      ]
     }
   ],
   "series": [
     {
       "date": "2026-04-27",
-      "remaining": 275,
-      "ideal": 275.0
+      "remaining": 444,
+      "ideal": 444.0
     },
     {
       "date": "2026-04-28",
-      "remaining": 272,
-      "ideal": 269.61
+      "remaining": 441,
+      "ideal": 437.37
     },
     {
       "date": "2026-04-29",
-      "remaining": 272,
-      "ideal": 264.22
+      "remaining": 441,
+      "ideal": 430.75
     },
     {
       "date": "2026-04-30",
-      "remaining": 261,
-      "ideal": 258.82
+      "remaining": 430,
+      "ideal": 424.12
     },
     {
       "date": "2026-05-01",
-      "remaining": 256,
-      "ideal": 253.43
+      "remaining": 425,
+      "ideal": 417.49
     },
     {
       "date": "2026-05-02",
-      "remaining": 256,
-      "ideal": 248.04
+      "remaining": 425,
+      "ideal": 410.87
     },
     {
       "date": "2026-05-03",
-      "remaining": 250,
-      "ideal": 242.65
+      "remaining": 419,
+      "ideal": 404.24
     },
     {
       "date": "2026-05-04",
-      "remaining": 250,
-      "ideal": 237.25
+      "remaining": 419,
+      "ideal": 397.61
     },
     {
       "date": "2026-05-05",
-      "remaining": 249,
-      "ideal": 231.86
+      "remaining": 418,
+      "ideal": 390.99
     },
     {
       "date": "2026-05-06",
-      "remaining": 249,
-      "ideal": 226.47
+      "remaining": 418,
+      "ideal": 384.36
     },
     {
       "date": "2026-05-07",
-      "remaining": 246,
-      "ideal": 221.08
+      "remaining": 415,
+      "ideal": 377.73
     },
     {
       "date": "2026-05-08",
-      "remaining": 232,
-      "ideal": 215.69
+      "remaining": 401,
+      "ideal": 371.1
     },
     {
       "date": "2026-05-09",
-      "remaining": 216,
-      "ideal": 210.29
+      "remaining": 385,
+      "ideal": 364.48
     },
     {
       "date": "2026-05-10",
-      "remaining": 188,
-      "ideal": 204.9
+      "remaining": 357,
+      "ideal": 357.85
     },
     {
       "date": "2026-05-11",
-      "remaining": 179,
-      "ideal": 199.51
+      "remaining": 348,
+      "ideal": 351.22
     },
     {
       "date": "2026-05-12",
-      "remaining": 167,
-      "ideal": 194.12
+      "remaining": 336,
+      "ideal": 344.6
     },
     {
       "date": "2026-05-13",
-      "remaining": 162,
-      "ideal": 188.73
+      "remaining": 331,
+      "ideal": 337.97
     },
     {
       "date": "2026-05-14",
-      "remaining": 162,
-      "ideal": 183.33
+      "remaining": 331,
+      "ideal": 331.34
     },
     {
       "date": "2026-05-15",
-      "remaining": 161,
-      "ideal": 177.94
+      "remaining": 330,
+      "ideal": 324.72
     },
     {
       "date": "2026-05-16",
-      "remaining": 156,
-      "ideal": 172.55
+      "remaining": 325,
+      "ideal": 318.09
     },
     {
       "date": "2026-05-17",
-      "remaining": 151,
-      "ideal": 167.16
+      "remaining": 320,
+      "ideal": 311.46
     },
     {
       "date": "2026-05-18",
-      "remaining": 130,
-      "ideal": 161.76
+      "remaining": 299,
+      "ideal": 304.84
     },
     {
       "date": "2026-05-19",
-      "remaining": 114,
-      "ideal": 156.37
+      "remaining": 283,
+      "ideal": 298.21
     },
     {
       "date": "2026-05-20",
-      "remaining": 103,
-      "ideal": 150.98
+      "remaining": 272,
+      "ideal": 291.58
     },
     {
       "date": "2026-05-21",
-      "remaining": 79,
-      "ideal": 145.59
+      "remaining": 248,
+      "ideal": 284.96
     },
     {
       "date": "2026-05-22",
-      "remaining": 79,
-      "ideal": 140.2
+      "remaining": 248,
+      "ideal": 278.33
     },
     {
       "date": "2026-05-23",
-      "remaining": 79,
-      "ideal": 134.8
+      "remaining": 248,
+      "ideal": 271.7
     },
     {
       "date": "2026-05-24",
-      "remaining": 79,
-      "ideal": 129.41
+      "remaining": 248,
+      "ideal": 265.07
     },
     {
       "date": "2026-05-25",
-      "remaining": 79,
-      "ideal": 124.02
+      "remaining": 248,
+      "ideal": 258.45
     },
     {
       "date": "2026-05-26",
-      "remaining": 77,
-      "ideal": 118.63
+      "remaining": 246,
+      "ideal": 251.82
     },
     {
       "date": "2026-05-27",
-      "remaining": 77,
-      "ideal": 113.24
+      "remaining": 246,
+      "ideal": 245.19
     },
     {
       "date": "2026-05-28",
-      "remaining": 77,
-      "ideal": 107.84
+      "remaining": 246,
+      "ideal": 238.57
     },
     {
       "date": "2026-05-29",
-      "remaining": 74,
-      "ideal": 102.45
+      "remaining": 243,
+      "ideal": 231.94
     },
     {
       "date": "2026-05-30",
-      "remaining": 74,
-      "ideal": 97.06
+      "remaining": 243,
+      "ideal": 225.31
     },
     {
       "date": "2026-05-31",
-      "remaining": 74,
-      "ideal": 91.67
+      "remaining": 243,
+      "ideal": 218.69
     },
     {
       "date": "2026-06-01",
-      "remaining": 74,
-      "ideal": 86.27
+      "remaining": 243,
+      "ideal": 212.06
     },
     {
       "date": "2026-06-02",
-      "remaining": 74,
-      "ideal": 80.88
+      "remaining": 243,
+      "ideal": 205.43
     },
     {
       "date": "2026-06-03",
-      "remaining": 71,
-      "ideal": 75.49
+      "remaining": 240,
+      "ideal": 198.81
     },
     {
       "date": "2026-06-04",
-      "remaining": 71,
-      "ideal": 70.1
+      "remaining": 240,
+      "ideal": 192.18
     },
     {
       "date": "2026-06-05",
-      "remaining": 71,
-      "ideal": 64.71
+      "remaining": 240,
+      "ideal": 185.55
     },
     {
       "date": "2026-06-06",
-      "remaining": 71,
-      "ideal": 59.31
+      "remaining": 240,
+      "ideal": 178.93
     },
     {
       "date": "2026-06-07",
-      "remaining": 71,
-      "ideal": 53.92
+      "remaining": 240,
+      "ideal": 172.3
     },
     {
       "date": "2026-06-08",
-      "remaining": 71,
-      "ideal": 48.53
+      "remaining": 240,
+      "ideal": 165.67
     },
     {
       "date": "2026-06-09",
-      "remaining": 71,
-      "ideal": 43.14
+      "remaining": 240,
+      "ideal": 159.04
     },
     {
       "date": "2026-06-10",
-      "remaining": 71,
-      "ideal": 37.75
+      "remaining": 240,
+      "ideal": 152.42
     },
     {
       "date": "2026-06-11",
-      "remaining": 71,
-      "ideal": 32.35
+      "remaining": 240,
+      "ideal": 145.79
     },
     {
       "date": "2026-06-12",
-      "remaining": 71,
-      "ideal": 26.96
+      "remaining": 240,
+      "ideal": 139.16
     },
     {
       "date": "2026-06-13",
-      "remaining": 71,
-      "ideal": 21.57
+      "remaining": 240,
+      "ideal": 132.54
     },
     {
       "date": "2026-06-14",
-      "remaining": 71,
-      "ideal": 16.18
+      "remaining": 240,
+      "ideal": 125.91
     },
     {
       "date": "2026-06-15",
-      "remaining": 71,
-      "ideal": 10.78
+      "remaining": 240,
+      "ideal": 119.28
     },
     {
       "date": "2026-06-16",
-      "remaining": 50,
-      "ideal": 5.39
+      "remaining": 219,
+      "ideal": 112.66
     },
     {
       "date": "2026-06-17",
-      "remaining": 20,
-      "ideal": 0.0
+      "remaining": 189,
+      "ideal": 106.03
+    },
+    {
+      "date": "2026-06-18",
+      "remaining": 171,
+      "ideal": 99.4
+    },
+    {
+      "date": "2026-06-19",
+      "remaining": 169,
+      "ideal": 92.78
+    },
+    {
+      "date": "2026-06-20",
+      "remaining": 169,
+      "ideal": 86.15
+    },
+    {
+      "date": "2026-06-21",
+      "remaining": 169,
+      "ideal": 79.52
+    },
+    {
+      "date": "2026-06-22",
+      "remaining": 167,
+      "ideal": 72.9
     }
   ]
 }

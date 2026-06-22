@@ -1,6 +1,6 @@
 # Burndown Check Report
 
-Last run: 2026-06-22 12:47:05 SAST
+Last run: 2026-06-22 12:48:22 SAST
 
 - #207 fix: seed campaign creator relation after Prisma schema update closed 1 day after Sprint 3 (Demo 2) ended.
 - #184 chore: clean trainee terminology and small frontend test warnings closed 1 day after Sprint 3 (Demo 2) ended.
@@ -11,5 +11,3 @@ Last run: 2026-06-22 12:47:05 SAST
 - #160 chore: add route builders and clean stale frontend routes closed 1 day after Sprint 3 (Demo 2) ended.
 - #159 chore: consolidate frontend API clients and base URL handling closed 1 day after Sprint 3 (Demo 2) ended.
 - #155 chore: clean deprecated static frontend assets and app metadata closed 1 day after Sprint 3 (Demo 2) ended.
-- Sprint 4 (Demo 2) has an invalid `Start:` date `19-06-2026`. Expected YYYY-MM-DD.
-- No sprint is active on 2026-06-22 in SAST. Keeping latest started sprint `Sprint 3 (Demo 2)` as the latest sprint burndown.
