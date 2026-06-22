@@ -1,18 +1,10 @@
-//tests
-//success audit entry with actor, organisation, target, action and medata,
-//test that default outcome is success
-//test failure with the fail function
-//allow actoruserid to be null if the actor type is the system
-//allow org id to be null
-//store the old values, new values, metadata, ip address and useragent
-//uses the passed transaction client
-
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   recordAuditFailure,
   recordAuditLog,
   sanitiseValues,
 } from '../../src/services/audit-log.service.js';
+import type { Prisma } from '../../src/generated/prisma/client.js';
 
 const prismaMock = vi.hoisted(() => ({
   auditLogEntry: {
@@ -125,38 +117,38 @@ describe('recordAuditLog', () => {
     });
   });
 
-  it('rejects SYSTEM audit entries that have an actorUserId', async () => {
-    await expect(
+  it('rejects SYSTEM audit entries that have an actorUserId', () => {
+    expect(() =>
       recordAuditLog({
         ...baseAuditInput,
         actorType: 'SYSTEM',
         actorUserId: 'user01',
       }),
-    ).rejects.toThrow('SYSTEM audit entries must now have an actorUserId');
+    ).toThrow('SYSTEM audit entries must now have an actorUserId');
 
     expect(prismaMock.auditLogEntry.create).not.toHaveBeenCalled();
   });
 
-  it('rejects non-SYSTEM audit entries that do not have an actorUserId', async () => {
-    await expect(
+  it('rejects non-SYSTEM audit entries that do not have an actorUserId', () => {
+    expect(() =>
       recordAuditLog({
         ...baseAuditInput,
         actorType: 'IP_ADMIN',
         actorUserId: undefined,
       }),
-    ).rejects.toThrow('Audit entries not made by the SYSTEM actor must have an actorUserId');
+    ).toThrow('Audit entries not made by the SYSTEM actor must have an actorUserId');
 
     expect(prismaMock.auditLogEntry.create).not.toHaveBeenCalled();
   });
 
-  it('rejects audit entries that do not have a targetId unless the targetType is OTHER', async () => {
-    await expect(
+  it('rejects audit entries that do not have a targetId unless the targetType is OTHER', () => {
+    expect(() =>
       recordAuditLog({
         ...baseAuditInput,
         targetType: 'USER',
         targetId: undefined,
       }),
-    ).rejects.toThrow('Audit entries must have a tagetId unless the targetType is OTHER');
+    ).toThrow('Audit entries must have a tagetId unless the targetType is OTHER');
 
     expect(prismaMock.auditLogEntry.create).not.toHaveBeenCalled();
   });
@@ -229,7 +221,10 @@ describe('recordAuditLog', () => {
       },
     };
 
-    await recordAuditLog(baseAuditInput, transactionClientMock as any);
+    await recordAuditLog(
+      baseAuditInput,
+      transactionClientMock as unknown as Prisma.TransactionClient,
+    );
 
     expect(transactionClientMock.auditLogEntry.create).toHaveBeenCalledTimes(1);
     expect(transactionClientMock.auditLogEntry.create).toHaveBeenCalledWith({
