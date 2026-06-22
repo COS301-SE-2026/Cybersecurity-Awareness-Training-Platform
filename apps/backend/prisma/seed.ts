@@ -1,10 +1,22 @@
 import { prisma } from '../src/lib/prisma.js';
 import { seedDemoCore, type DemoSeedSummary } from './seed-data/demoSeedCore.js';
 import { getDemoSeedAuthEnvVarName } from './seed-data/demoSeedHelpers.js';
+import { seedAuthBootstrap, type AuthBootstrapSeedSummary } from './seed-data/authBootstrapSeed.js';
 
 async function seedDemo1(): Promise<void> {
   const summary = await seedDemoCore(prisma);
   printDemoSeedSummary(summary);
+}
+
+function printAuthBootstrapSeedSummary(summary: AuthBootstrapSeedSummary): void {
+  if (summary.skipped) {
+    console.log(`Auth bootstrap skipped: ${summary.reason}`);
+    return;
+  }
+
+  const action = summary.created ? 'created' : 'updated';
+  console.log(`Auth bootstrap ${action} SUPER_ADMIN user: ${summary.email}`);
+  console.log(`No password hashes printed.`);
 }
 
 function printDemoSeedSummary(summary: DemoSeedSummary): void {
@@ -37,6 +49,9 @@ function isExpectedSeedConfigError(error: unknown): error is Error {
 }
 
 try {
+  const authBootstrapSummary = await seedAuthBootstrap(prisma);
+  printAuthBootstrapSeedSummary(authBootstrapSummary);
+
   await seedDemo1();
 } catch (error: unknown) {
   if (isExpectedSeedConfigError(error)) {

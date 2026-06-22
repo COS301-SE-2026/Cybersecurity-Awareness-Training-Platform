@@ -66,6 +66,9 @@ services:
       DEMO_SEED_PASSWORD: ${DEMO_SEED_PASSWORD:-}
       VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:4000}
       TEST_DATABASE_URL: postgresql://${POSTGRES_USER:-insightful_phish}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your local .env file or shell.}@postgres:5432/insightful_phish_test
+      AUTH_BOOTSTRAP_SUPER_ADMIN_EMAIL: ${AUTH_BOOTSTRAP_SUPER_ADMIN_EMAIL:-}
+      AUTH_BOOTSTRAP_SUPER_ADMIN_PASSWORD: ${AUTH_BOOTSTRAP_SUPER_ADMIN_PASSWORD:-}
+      AUTH_BOOTSTRAP_SUPER_ADMIN_NAME: ${AUTH_BOOTSTRAP_SUPER_ADMIN_NAME:-}
     volumes:
       - .:/workspace
       - workspace_node_modules:/workspace/node_modules
