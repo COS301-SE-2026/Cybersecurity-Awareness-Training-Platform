@@ -61,7 +61,7 @@ describe('sendEmail', () => {
     });
   });
 
-  it('creates a pending email log and updates it to sent when SMPT succeeds', async () => {
+  it('creates a pending email log and updates it to sent when SMTP succeeds', async () => {
     const { sendEmail } = await import('../../src/services/email.service.js');
 
     const result = await sendEmail(baseInput);
@@ -70,8 +70,8 @@ describe('sendEmail', () => {
       data: {
         recipientEmail: 'developer@example.com',
         emailType: 'EMAIL_VERIFICATION',
-        relatedEntityType: 'ACTIONTOKEN',
-        relatedEntityId: 'actiontoken01',
+        fallbackRelatedEntityType: 'ACTIONTOKEN',
+        fallbackRelatedEntityId: 'actiontoken01',
         userId: 'user01',
         actionTokenId: 'actiontoken01',
         deliveryStatus: 'PENDING',
@@ -108,7 +108,7 @@ describe('sendEmail', () => {
     });
   });
 
-  it('updates the mail log to failed when SMPT fails', async () => {
+  it('updates the mail log to failed when SMTP fails', async () => {
     const { sendEmail } = await import('../../src/services/email.service.js');
     sendMailMock.mockRejectedValue(new Error('SMTP not working'));
     const result = await sendEmail(baseInput);
@@ -118,7 +118,7 @@ describe('sendEmail', () => {
       data: {
         deliveryStatus: 'FAILED',
         failedAt: expect.any(Date),
-        failureReason: 'SMTP nor working',
+        failureReason: 'SMTP not working',
       },
     });
 
@@ -144,8 +144,8 @@ describe('sendEmail', () => {
       data: {
         recipientEmail: 'developer@example.com',
         emailType: 'PASSWORD_RESET',
-        relatedEntityType: 'OTHER',
-        relatedEntityId: null,
+        fallbackRelatedEntityType: 'OTHER',
+        fallbackRelatedEntityId: null,
         actionTokenId: null,
         userId: null,
         deliveryStatus: 'PENDING',

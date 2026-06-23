@@ -39,8 +39,8 @@ export async function sendEmail(
     data: {
       recipientEmail: input.to,
       emailType: input.emailType,
-      relatedEntityType: input.relatedEntityType,
-      relatedEntityId: input.relatedEntityId ?? null,
+      fallbackRelatedEntityType: input.relatedEntityType,
+      fallbackRelatedEntityId: input.relatedEntityId ?? null,
       userId: input.userId ?? null,
       actionTokenId: input.actionTokenId ?? null,
       deliveryStatus: 'PENDING',
