@@ -11,16 +11,24 @@ function LandingPage() {
       <LandingNavbar />
       <div className="pt-32">
         {/* HERO SECTION */}
-        <HeroSection />
+        <section id="home">
+          <HeroSection />
+        </section>
 
         {/* ABOUT & FAQ SECTION */}
-        <AboutSection />
+        <section id="about">
+          <AboutSection />
+        </section>
 
         {/* FEATURES SECTION  */}
-        <FeatureSection />
+        <section id="features">
+          <FeatureSection />
+        </section>
 
         {/* TEAM SECTION */}
-        <TeamSection />
+        <section id="team">
+          <TeamSection />
+        </section>
       </div>
     </main>
   );

@@ -33,22 +33,22 @@ function LandingNavbar() {
           <div className="flex items-center">
             <ul className="flex flex-row font-medium font-jost mt-0 space-x-8 rtl:space-x-reverse text-[1.4rem] tracking-wider">
               <li>
-                <a href="/" className="text-heading text-purple" aria-current="page">
+                <a href="#home" className="text-heading text-purple" aria-current="page">
                   Home
                 </a>
               </li>
               <li>
-                <a href="/" className="text-heading text-purple">
-                  About
+                <a href="#about" className="text-heading text-purple">
+                  About & FAQs
                 </a>
               </li>
               <li>
-                <a href="/" className="text-heading text-purple">
+                <a href="#features" className="text-heading text-purple">
                   Features
                 </a>
               </li>
               <li>
-                <a href="/" className="text-heading text-purple">
+                <a href="#team" className="text-heading text-purple">
                   Team
                 </a>
               </li>

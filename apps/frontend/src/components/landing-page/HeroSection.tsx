@@ -25,7 +25,7 @@ function HeroSection() {
 
         <div className="flex flex-col mb-8 lg:mb-16 space-y-4 sm:flex-row ">
           <a
-            href="/"
+            href="#about"
             className="font-jost tracking-wider text-xl inline-flex justify-center items-center py-3 px-5 font-regular text-center text-white bg-pink"
           >
             Learn More

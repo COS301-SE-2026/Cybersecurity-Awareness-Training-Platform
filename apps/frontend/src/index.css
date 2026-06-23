@@ -15,6 +15,14 @@ body,
   overscroll-behavior: none;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
+section {
+  scroll-margin-top: 120px;
+}
+
 * {
   box-sizing: border-box;
 }
