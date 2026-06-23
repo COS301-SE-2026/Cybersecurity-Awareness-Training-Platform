@@ -1,6 +1,5 @@
 import { prisma } from '../src/lib/prisma.js';
 import { seedDemoCore, type DemoSeedSummary } from './seed-data/demoSeedCore.js';
-import { getDemoSeedAuthEnvVarName } from './seed-data/demoSeedHelpers.js';
 import { seedAuthBootstrap, type AuthBootstrapSeedSummary } from './seed-data/authBootstrapSeed.js';
 
 async function seedDemo1(): Promise<void> {
@@ -16,7 +15,7 @@ function printAuthBootstrapSeedSummary(summary: AuthBootstrapSeedSummary): void 
 
   const action = summary.created ? 'created' : 'updated';
   console.log(`Auth bootstrap ${action} SUPER_ADMIN user: ${summary.email}`);
-  console.log(`No password hashes printed.`);
+  console.log('Sensitive credential values are not printed.');
 }
 
 function printDemoSeedSummary(summary: DemoSeedSummary): void {
@@ -27,8 +26,8 @@ function printDemoSeedSummary(summary: DemoSeedSummary): void {
     console.log(`- ${user.label}: ${user.email} (${user.role})`);
   }
 
-  console.log(`Demo-only password source: ${getDemoSeedAuthEnvVarName()}`);
-  console.log('No password hashes printed.');
+  console.log('Demo-only credential source environment variable was used.');
+  console.log('Sensitive credential values are not printed.');
   console.log('Seeded assigned campaigns:');
   for (const campaign of summary.assignedCampaigns) {
     const lockedItemNote =
@@ -55,9 +54,9 @@ try {
   await seedDemo1();
 } catch (error: unknown) {
   if (isExpectedSeedConfigError(error)) {
-    console.error('Demo 1 seed failed: ' + error.message);
+    console.error('Demo 1 seed failed because a required local seed credential is missing.');
   } else {
-    console.error(error);
+    console.error('Seed failed before completion.');
   }
 
   process.exitCode = 1;
