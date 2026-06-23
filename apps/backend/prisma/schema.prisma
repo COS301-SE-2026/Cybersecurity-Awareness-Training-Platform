@@ -251,6 +251,9 @@ enum AuditTargetType {
   AUTH_SESSION
   CAMPAIGN
   OTHER
+  TOKEN
+  ACTION_TOKEN
+  REFRESH_TOKEN
 }
 
 enum AuditActionType {
