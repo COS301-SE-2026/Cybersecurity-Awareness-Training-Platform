@@ -19,7 +19,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
-    "mailpit:smoke": "tsx scripts/send-mailpit-smoke-test.ts"
+    "mailpit:smoke": "tsx scripts/send-mailpit-smoke-email.ts"
   },
   "dependencies": {
     "@insightful-phish/shared": "workspace:*",

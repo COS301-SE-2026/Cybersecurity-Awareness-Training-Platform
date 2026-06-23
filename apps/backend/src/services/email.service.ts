@@ -45,18 +45,24 @@ export async function sendEmail(
     },
   });
 
-  const transporter = nodemailer.createTransport({
+  const transportOptions = {
     host: env.SMTP_HOST,
     port: env.SMTP_PORT,
     secure: env.SMTP_SECURE,
-    auth:
-      env.SMTP_USER && env.SMTP_PASSWORD
-        ? { user: env.SMTP_USER, password: env.SMTP_PASSWORD }
-        : undefined,
-  });
+    ...(env.SMTP_USER && env.SMTP_PASSWORD
+      ? {
+          auth: {
+            user: env.SMTP_USER,
+            pass: env.SMTP_PASSWORD,
+          },
+        }
+      : {}),
+  };
+
+  const transporter = nodemailer.createTransport(transportOptions);
 
   try {
-    const result = await transporter.sendEmail({
+    const result = await transporter.sendMail({
       from: `"${env.SMTP_FROM_NAME}" <${env.SMTP_FROM_ADDRESS}>`,
       to: input.to,
       subject: input.subject,
@@ -79,7 +85,7 @@ export async function sendEmail(
       deliveryLogId: deliveryLog.id,
     };
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unkown SMTP error';
+    const message = error instanceof Error ? error.message : 'Unknown SMTP error';
 
     await client.emailDeliveryLog.update({
       where: { id: deliveryLog.id },
