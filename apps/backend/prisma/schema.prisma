@@ -415,13 +415,6 @@ model User {
   actionTokens                 ActionToken[]
   emailDeliveryLogs            EmailDeliveryLog[]
   auditLogEntries              AuditLogEntry[]           @relation("AuditLogEntryActor")
-  emailVerifiedAt			   DateTime?
-  lastLoginAt				   DateTime?
-  disabledAt				   DateTime?
-  disabledReason     	   	   String?
-  authSessions 				   AuthSession[]
-  actionTokens           	   ActionToken[]
-  emailDeliveryLogs 		   EmailDeliveryLog[]
 }
 
 model TraineeProfile {
@@ -629,6 +622,7 @@ model Organisation {
   registrationRequests OrganisationRegistrationRequest[]
   invitations          Invitation[]
   emailDeliveryLogs    EmailDeliveryLog[]
+  auditLogEntries      AuditLogEntry[]
 }
 
 model OrganisationRegistrationRequest {
@@ -698,16 +692,6 @@ model Invitation {
   @@index([status])
   @@index([purpose])
   @@index([expiresAt])
-  id              String                       @id @default(uuid())
-  name            String                       @unique
-  status          OrganisationStatus           @default(ACTIVE)
-  createdAt       DateTime                     @default(now())
-  updatedAt       DateTime                     @updatedAt
-  traineeProfiles OrganisationTraineeProfile[]
-  adminProfiles   OrganisationAdminProfile[]
-  contexts        OrganisationContext[]
-  campaigns       Campaign[]
-  auditLogEntries AuditLogEntry[]
 }
 
 model OrganisationContext {
