@@ -315,8 +315,8 @@
       "number": 248,
       "title": "feat: phase 2 organisation onboarding foundation migration",
       "points": 5,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-06-23"
     },
     {
       "number": 247,
@@ -559,7 +559,7 @@
     },
     {
       "date": "2026-06-23",
-      "remaining": 160,
+      "remaining": 155,
       "ideal": 120.71
     }
   ]
