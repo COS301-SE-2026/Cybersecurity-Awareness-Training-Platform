@@ -74,7 +74,8 @@
     "docker:db:create:test": "docker compose --profile tools run --rm test-db-setup",
     "docker:db:migrate:test": "docker compose --profile tools run --rm workspace sh -c 'DATABASE_URL=\"$TEST_DATABASE_URL\" pnpm --filter @insightful-phish/backend prisma:migrate:deploy'",
     "docker:test:integration:backend": "pnpm docker:db:create:test && pnpm docker:db:migrate:test && docker compose --profile tools run --rm workspace pnpm --filter @insightful-phish/backend test:integration",
-    "prepare": "husky"
+    "prepare": "husky",
+    "mailpit:smoke": "tsc scripts/send-mailpit-smoke-email.ts"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.1.0",
