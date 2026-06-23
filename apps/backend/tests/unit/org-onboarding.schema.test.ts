@@ -61,15 +61,22 @@ describe('organisation onboarding Prisma schema', () => {
     const organisation = schemaBlock('model', 'Organisation');
 
     expectValues(request, [
-      'reviewedByIpAdminId',
+      'contactedByIpAdminId',
+      'approvedByIpAdminId',
+      'rejectedByIpAdminId',
       'approvedOrganisationId',
-      'reviewedBy',
+      'contactedBy',
+      'approvedBy',
+      'rejectedBy',
       'approvedOrganisation',
       'contactedAt',
-      'decidedAt',
+      'approvedAt',
+      'rejectedAt',
       'rejectionReason',
     ]);
-    expect(ipAdmin).toContain('reviewedOrganisationRegistrationRequests');
+    expect(ipAdmin).toContain('contactedOrganisationRegistrationRequests');
+    expect(ipAdmin).toContain('approvedOrganisationRegistrationRequests');
+    expect(ipAdmin).toContain('rejectedOrganisationRegistrationRequests');
     expect(organisation).toContain('registrationRequests');
   });
 
@@ -85,6 +92,7 @@ describe('organisation onboarding Prisma schema', () => {
     ]);
     expectValues(invitation, [
       'organisationId',
+      'organisationRegistrationRequestId',
       'recipientEmail',
       'recipientFirstName',
       'recipientLastName',
@@ -92,6 +100,7 @@ describe('organisation onboarding Prisma schema', () => {
       'acceptedAt',
       'revokedAt',
       'revokedReason',
+      'organisationRegistrationRequest',
       'actionTokens',
     ]);
   });
@@ -102,6 +111,7 @@ describe('organisation onboarding Prisma schema', () => {
 
     expect(organisation).toContain('invitations');
     expect(invitation).toContain('organisation');
+    expect(invitation).toContain('organisationRegistrationRequest');
     expect(invitation).toContain('@relation(fields: [organisationId], references: [id]');
   });
 
@@ -128,6 +138,8 @@ describe('organisation onboarding Prisma schema', () => {
       'organisationId',
       'organisationRegistrationRequestId',
       'invitationId',
+      'fallbackRelatedEntityType',
+      'fallbackRelatedEntityId',
       'organisation',
       'organisationRegistrationRequest',
       'invitation',
@@ -141,12 +153,15 @@ describe('organisation onboarding Prisma schema', () => {
 
     expectValues(request, [
       '@@index([status])',
-      '@@index([reviewedByIpAdminId])',
+      '@@index([contactedByIpAdminId])',
+      '@@index([approvedByIpAdminId])',
+      '@@index([rejectedByIpAdminId])',
       '@@index([representativeEmail])',
       '@@index([approvedOrganisationId])',
     ]);
     expectValues(invitation, [
       '@@index([organisationId])',
+      '@@index([organisationRegistrationRequestId])',
       '@@index([recipientEmail])',
       '@@index([status])',
       '@@index([expiresAt])',
