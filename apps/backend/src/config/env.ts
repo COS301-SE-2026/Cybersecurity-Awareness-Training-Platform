@@ -21,6 +21,7 @@ const EnvSchema = z.object({
   SMTP_PORT: z.coerce.number().default(1025),
   SMTP_SECURE: smtpSecureSchema,
   SMTP_FROM_ADDRESS: z.string().email().default('noreply@insightful-phish.local'),
+  SMTP_FROM_NAME: z.string().default('Insightful Phish'),
   SMTP_USER: optionalNonEmptyString,
   SMTP_PASSWORD: optionalNonEmptyString,
 }).superRefine((value, context) => {

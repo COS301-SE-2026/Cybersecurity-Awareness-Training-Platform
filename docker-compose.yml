@@ -32,10 +32,10 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-insightful_phish}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your local .env file or shell.}@postgres:5432/${POSTGRES_DB:-insightful_phish_dev}
       FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:5173}
       SMTP_HOST: ${SMTP_HOST:-mailpit}
-      SMTP_PORT: ${SMTP_PORT:-8025}
-      SMTP_SECURE: $'{SMTP_SECURE:-false}'
-      SMTP_FROM_ADDRESS: $'{SMTP_FROM_ADDRESS:-noreply@insightful-phish.local}'
-      SMTP_FROM_NAME: ${'SMTP_FROM_NAME:-Insightful Phish'}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_FROM_ADDRESS: ${SMTP_FROM_ADDRESS:-noreply@insightful-phish.local}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Insightful Phish}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
     ports:
@@ -77,10 +77,10 @@ services:
       AUTH_BOOTSTRAP_SUPER_ADMIN_PASSWORD: ${AUTH_BOOTSTRAP_SUPER_ADMIN_PASSWORD:-}
       AUTH_BOOTSTRAP_SUPER_ADMIN_NAME: ${AUTH_BOOTSTRAP_SUPER_ADMIN_NAME:-}
       SMTP_HOST: ${SMTP_HOST:-mailpit}
-      SMTP_PORT: ${SMTP_PORT:-8025}
-      SMTP_SECURE: $'{SMTP_SECURE:-false}'
-      SMTP_FROM_ADDRESS: $'{SMTP_FROM_ADDRESS:-noreply@insightful-phish.local}'
-      SMTP_FROM_NAME: ${'SMTP_FROM_NAME:-Insightful Phish'}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_FROM_ADDRESS: ${SMTP_FROM_ADDRESS:-noreply@insightful-phish.local}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Insightful Phish}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
     volumes:
