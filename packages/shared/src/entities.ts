@@ -18,7 +18,7 @@ export type TraineeStatusDto = 'ACTIVE' | 'INACTIVE';
 
 export type OrganisationUserStatusDto = 'ACTIVE' | 'INACTIVE';
 
-export type AdminStatusDto = 'ACTIVE' | 'INACTIVE';
+export type AdminStatusDto = 'ACTIVE' | 'DISABLED';
 
 export type GeneralTraineeAccessSourceDto = 'SELF_SIGNUP' | 'INVITE' | 'SEED' | 'ADMIN_CREATED';
 
