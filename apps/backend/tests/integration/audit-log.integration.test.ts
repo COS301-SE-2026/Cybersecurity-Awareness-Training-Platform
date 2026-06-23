@@ -49,10 +49,7 @@ describe('Audit log integration tests', () => {
   });
 
   it('creates a success audit log entry without organisation scope', async () => {
-    const organisation = await createOrganisation();
-    const trainee = await createTrainee({
-      organisationProfile: { organisationId: organisation.id },
-    });
+    const trainee = await createTrainee();
 
     const auditEntry = await recordAuditLog({
       actorUserId: trainee.user.id,
@@ -199,6 +196,38 @@ describe('Audit log integration tests', () => {
       reason: 'profile_update',
       secretNote: '[REDACTED]',
     });
+    expect(persistedEntry!.createdAt).toBeInstanceOf(Date);
+  });
+
+  it('writes token target types to the audit log', async () => {
+    const trainee = await createTrainee();
+
+    const auditEntry = await recordAuditLog({
+      actorUserId: trainee.user.id,
+      actorType: 'GENERAL_TRAINEE',
+      targetType: 'REFRESH_TOKEN',
+      targetId: 'token123',
+      actionType: 'TOKEN_REUSE_DETECTED',
+      metadata: { reason: 'token_reuse_detected' },
+      outcome: 'FAILURE',
+    });
+
+    const persistedEntry = await prisma.auditLogEntry.findUnique({ where: { id: auditEntry.id } });
+
+    expect(persistedEntry).not.toBeNull();
+    expect(persistedEntry).toMatchObject({
+      actorUserId: trainee.user.id,
+      actorType: 'GENERAL_TRAINEE',
+      organisationId: null,
+      targetType: 'REFRESH_TOKEN',
+      targetId: 'token123',
+      actionType: 'TOKEN_REUSE_DETECTED',
+      outcome: 'FAILURE',
+      metadata: { reason: 'token_reuse_detected' },
+      ipAddress: null,
+      userAgent: null,
+    });
+    expect(persistedEntry!.metadata).toEqual({ reason: 'token_reuse_detected' });
     expect(persistedEntry!.createdAt).toBeInstanceOf(Date);
   });
 });

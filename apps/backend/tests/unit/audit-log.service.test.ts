@@ -124,21 +124,31 @@ describe('recordAuditLog', () => {
         actorType: 'SYSTEM',
         actorUserId: 'user01',
       }),
-    ).toThrow('SYSTEM audit entries must now have an actorUserId');
+    ).toThrow('SYSTEM audit entries must not have an actorUserId');
 
     expect(prismaMock.auditLogEntry.create).not.toHaveBeenCalled();
   });
 
-  it('rejects non-SYSTEM audit entries that do not have an actorUserId', () => {
-    expect(() =>
-      recordAuditLog({
-        ...baseAuditInput,
-        actorType: 'IP_ADMIN',
-        actorUserId: undefined,
-      }),
-    ).toThrow('Audit entries not made by the SYSTEM actor must have an actorUserId');
+  it('allows non-SYSTEM audit entries without an actorUserId for partial identity flows', async () => {
+    await recordAuditLog({
+      ...baseAuditInput,
+      actorUserId: undefined,
+      actorType: 'IP_ADMIN',
+      targetType: 'OTHER',
+      targetId: undefined,
+      actionType: 'LOGIN',
+    });
 
-    expect(prismaMock.auditLogEntry.create).not.toHaveBeenCalled();
+    expect(prismaMock.auditLogEntry.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        actorUserId: null,
+        actorType: 'IP_ADMIN',
+        targetType: 'OTHER',
+        targetId: null,
+        actionType: 'LOGIN',
+        outcome: 'SUCCESS',
+      }),
+    });
   });
 
   it('rejects audit entries that do not have a targetId unless the targetType is OTHER', () => {
@@ -148,7 +158,7 @@ describe('recordAuditLog', () => {
         targetType: 'USER',
         targetId: undefined,
       }),
-    ).toThrow('Audit entries must have a tagetId unless the targetType is OTHER');
+    ).toThrow('Audit entries must have a targetId unless the targetType is OTHER');
 
     expect(prismaMock.auditLogEntry.create).not.toHaveBeenCalled();
   });
@@ -246,6 +256,44 @@ describe('recordAuditLog', () => {
 
     expect(prismaMock.auditLogEntry.create).not.toHaveBeenCalled();
   });
+
+  it.each([
+    ['USER', 'targetuser01'],
+    ['ORGANISATION', 'org01'],
+    ['ORGANISATION_REGISTRATION_REQUEST', 'regreq01'],
+    ['INVITATION', 'invitation01'],
+    ['ORGANISATION_ADMIN_PERMISSION', 'permission01'],
+    ['ORGANISATION_SECURITY_SETTINGS', 'settings01'],
+    ['PLATFORM_ADMIN_ROLE', 'role01'],
+    ['AUTH_SESSION', 'session01'],
+    ['TOKEN', 'token01'],
+    ['ACTION_TOKEN', 'actiontoken01'],
+    ['REFRESH_TOKEN', 'refreshtoken01'],
+    ['CAMPAIGN', 'campaign01'],
+    ['OTHER', null],
+  ] as const)('creates audit entries for %s with targetId %s', async (targetType, targetId) => {
+    await recordAuditLog({
+      ...baseAuditInput,
+      actorUserId: 'user01',
+      actorType: 'IP_ADMIN',
+      targetType,
+      targetId: targetId ?? undefined,
+      actionType: 'UPDATED',
+    });
+
+    expect(prismaMock.auditLogEntry.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        targetType,
+        targetId: targetId ?? null,
+        outcome: 'SUCCESS',
+        actorUserId: 'user01',
+        actorType: 'IP_ADMIN',
+        actionType: 'UPDATED',
+      }),
+    });
+
+    prismaMock.auditLogEntry.create.mockClear();
+  });
 });
 
 describe('sanitiseValues', () => {
@@ -273,6 +321,46 @@ describe('sanitiseValues', () => {
         safe: 'value',
       },
       array: [{ refreshToken: '[REDACTED]', safe: 'value' }, { safe: 'value' }],
+    });
+  });
+
+  it('redacts common credential keys case-insensitively', () => {
+    expect(
+      sanitiseValues({
+        Password: 'secret123',
+        password: 'secret456',
+        currentPassword: 'secret789',
+        newPassword: 'secret000',
+        confirmPassword: 'secret111',
+        Token: 'secret-token',
+        token: 'secret-token2',
+        accessToken: 'secret-access-token',
+        refreshToken: 'secret-refresh-token',
+        resetToken: 'secret-reset-token',
+        verificationToken: 'secret-verification-token',
+        actionToken: 'secret-action-token',
+        secret: 'secret',
+        nested: {
+          ACCESS_TOKEN: 'secret-access-token',
+        },
+      }),
+    ).toEqual({
+      Password: '[REDACTED]',
+      password: '[REDACTED]',
+      currentPassword: '[REDACTED]',
+      newPassword: '[REDACTED]',
+      confirmPassword: '[REDACTED]',
+      Token: '[REDACTED]',
+      token: '[REDACTED]',
+      accessToken: '[REDACTED]',
+      refreshToken: '[REDACTED]',
+      resetToken: '[REDACTED]',
+      verificationToken: '[REDACTED]',
+      actionToken: '[REDACTED]',
+      secret: '[REDACTED]',
+      nested: {
+        ACCESS_TOKEN: '[REDACTED]',
+      },
     });
   });
 });

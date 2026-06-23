@@ -29,13 +29,10 @@ export type RecordAuditLogInput = {
 
 export function recordAuditLog(input: RecordAuditLogInput, client: AuditPrismaClient = prisma) {
   if (input.actorType === 'SYSTEM' && input.actorUserId) {
-    throw new Error('SYSTEM audit entries must now have an actorUserId');
-  } //if
-  if (input.actorType !== 'SYSTEM' && !input.actorUserId) {
-    throw new Error('Audit entries not made by the SYSTEM actor must have an actorUserId');
+    throw new Error('SYSTEM audit entries must not have an actorUserId');
   } //if
   if (!input.targetId && input.targetType !== 'OTHER') {
-    throw new Error('Audit entries must have a tagetId unless the targetType is OTHER');
+    throw new Error('Audit entries must have a targetId unless the targetType is OTHER');
   } //if
 
   return client.auditLogEntry.create({
@@ -62,12 +59,6 @@ export function recordAuditFailure(
 ) {
   return recordAuditLog({ ...input, outcome: 'FAILURE' }, client);
 }
-
-//Call this function:
-// await prisma.$transaction(async (tx) => {
-//   //write and do actual action
-//   await recordAutditLog( { ... }, tx);
-// });
 
 export function sanitiseValues(
   input: Prisma.InputJsonValue | null | undefined,
