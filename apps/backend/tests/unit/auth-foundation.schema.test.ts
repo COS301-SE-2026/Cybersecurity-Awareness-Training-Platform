@@ -52,8 +52,10 @@ describe('auth foundation Prisma schema', () => {
   it('defines email delivery logging using domain model names', () => {
     expect(schema).toContain('model EmailDeliveryLog');
     expect(schema).toContain('emailType');
-    expect(schema).toContain('relatedEntityType');
-    expect(schema).toContain('relatedEntityId');
+    expect(schema).toContain('fallbackRelatedEntityType');
+    expect(schema).toContain('fallbackRelatedEntityId');
+    expect(schema).toContain('@map("relatedEntityType")');
+    expect(schema).toContain('@map("relatedEntityId")');
     expect(schema).toContain('sentAt');
     expect(schema).toContain('failedAt');
     expect(schema).toContain('failureReason');
