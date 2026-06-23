@@ -520,8 +520,8 @@
       "number": 219,
       "title": "feat: phase 6 audit logging foundation migration",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-06-23"
     },
     {
       "number": 218,
@@ -561,7 +561,7 @@
     },
     {
       "date": "2026-06-23",
-      "remaining": 162,
+      "remaining": 160,
       "ideal": 120.71
     }
   ]
