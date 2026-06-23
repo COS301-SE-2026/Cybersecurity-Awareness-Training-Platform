@@ -124,10 +124,34 @@ enum GeneralTraineeAccessSource {
 }
 
 enum OrganisationStatus {
+  PENDING_ONBOARDING
   ACTIVE
   INACTIVE
+  SUSPENDED
+  DISABLED
   ARCHIVED
 }
+
+enum OrganisationRegistrationRequestStatus {
+	PENDING_REVIEW
+	CONTACTED
+	APPROVED
+	REJECTED
+	CANCELLED
+}
+
+enum InvitationPurpose {
+	INITIAL_ORGANISATION_ADMIN_SETUP
+}
+
+enum InvitationStatus {
+	PENDING
+	ACCEPTED
+	EXPIRED
+	REVOKED
+}
+
+
 
 enum OrganisationContextType {
   LOGO
@@ -415,6 +439,7 @@ model IpAdminProfile {
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
   user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviewedOrganisationRegistrationRequests	OrganisationRegistrationRequest[]	@relation("OrganisationRegistrationRequestReviewer")
 
   @@index([adminStatus])
   @@index([platformAdminRole])
@@ -486,6 +511,8 @@ model ActionToken {
   updatedAt                         DateTime           @updatedAt
   user                              User?              @relation(fields: [userId], references: [id], onDelete: Cascade)
   emailDeliveryLogs 				EmailDeliveryLog[]
+  invitation						Invitation?		   @relation(fields: [invitationId], references: [id], onDelete: SetNull)
+  organisationRegistrationRequest	OrganisationRegistrationRequest?	@relation(fields: [organisationRegistrationRequestId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([purpose])
@@ -506,6 +533,9 @@ model EmailDeliveryLog {
   relatedEntityId   String?
   userId            String?
   actionTokenId     String?
+  organisationId	String?
+  organisationRegistrationRequestId	String?
+  invitationId		String?
   deliveryStatus    EmailDeliveryStatus    @default(PENDING)
   providerMessageId String?
   sentAt            DateTime?
@@ -515,6 +545,9 @@ model EmailDeliveryLog {
   updatedAt         DateTime               @updatedAt
   user              User?                  @relation(fields: [userId], references: [id], onDelete: SetNull)
   actionToken       ActionToken?           @relation(fields: [actionTokenId], references: [id], onDelete: SetNull)
+  organisation		Organisation?		   @relation(fields: [organisationId], references: [id], onDelete: SetNull)
+  organisationRegistrationRequest	OrganisationRegistrationRequest? 	@relation(fields: [organisationRegistrationRequestId], references: [id], onDelete: SetNull)
+  invitation		Invitation?			   @relation(fields: [invitationId], references: [id], onDelete: SetNull)
 
   @@index([recipientEmail])
   @@index([emailType])
@@ -523,6 +556,9 @@ model EmailDeliveryLog {
   @@index([actionTokenId])
   @@index([deliveryStatus])
   @@index([createdAt])
+  @@index([organisationId])
+  @@index([organisationRegistrationRequestId])
+  @@index([invitationId])
 }
 
 
@@ -536,7 +572,69 @@ model Organisation {
   adminProfiles   OrganisationAdminProfile[]
   contexts        OrganisationContext[]
   campaigns       Campaign[]
+  registrationRequests	OrganisationRegistrationRequest[]
+  invitations	  Invitation[]
+  emailDeliveryLogs	EmailDeliveryLog[]
 }
+
+model OrganisationRegistrationRequest {
+	id							String					@id @default(uuid())
+	submittedOrganisationName	String
+	submittedWebsite			String?
+	submittedIndustry			String?
+	submittedEmployeeCount		Int?
+	submittedPrimaryDomain		String?
+	representativeFirstName		String
+	representativeLastName		String
+	representativeEmail			String
+	representativePhone			String?
+	status						OrganisationRegistrationRequestStatus	@default(PENDING_REVIEW)
+	reviewedByIpAdminId			String?
+	approvedOrganisationId		String?
+	contactedAt					DateTime?
+	decidedAt					DateTime?
+	rejectionReason				String?
+	createdAt					DateTime				@default(now())
+	updatedAt					DateTime				@updatedAt
+	reviewedBy					IpAdminProfile?			@relation("OrganisationRegistrationRequestReviewer", fields: [reviewedByIpAdminId], references: [id], onDelete: SetNull)
+	approvedOrganisation		Organisation?			@relation(fields: [approvedOrganisationId], references: [id], onDelete: SetNull)
+	actionTokens				ActionToken[]
+	emailDeliveryLogs			EmailDeliveryLog[]
+
+	@@index([status])
+	@@index([reviewedByIpAdminId])
+	@@index([representativeEmail])
+	@@index([approvedOrganisationId])
+	@@index([contactedAt])
+	@@index([decidedAt])
+}
+
+model Invitation{
+	id							String					@id @default(uuid())
+	organisationId				String
+	recipientEmail				String
+	recipientFirstName			String?
+	recipientLastName			String?
+	purpose						InvitationPurpose		@default(INITIAL_ORGANISATION_ADMIN_SETUP)
+	status						InvitationStatus		@default(PENDING)
+	expiresAt					DateTime
+	acceptedAt					DateTime?
+	revokedAt					DateTime?
+	revokedReason				String?
+	createdAt					DateTime				@default(now())
+	updatedAt					DateTime				@updatedAt
+	organisation				Organisation			@relation(fields: [organisationId], references: [id], onDelete: Cascade)
+	actionTokens 				ActionToken[]
+	emailDeliveryLogs			EmailDeliveryLog[]
+
+	@@index([organisationId])
+	@@index([recipientEmail])
+	@@index([status])
+	@@index([purpose])
+	@@index([expiresAt])
+}
+
+
 
 model OrganisationContext {
   id               String                              @id @default(uuid())
