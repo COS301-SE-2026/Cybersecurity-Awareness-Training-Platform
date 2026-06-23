@@ -19,10 +19,10 @@ const actionToken = await prisma.actionToken.create({
 
 const result = await sendEmail({
   to: recipientEmail,
-  subject: 'Insightful Phish Mailpit Smoke Test',
+  subject: 'Insightful Phish MailPit Smoke Test',
   text: `Verify your email using this link: ${verificationUrl}`,
   html: [
-    `<p>Verify your email using this link: ${verificationUrl}</p>`,
+    `<p>Verify your email using this link:</p>`,
     `<p><a href="${verificationUrl}">${verificationUrl}</a></p>`,
     '<p>This message was generated using a script. </p>',
   ].join('\n'),

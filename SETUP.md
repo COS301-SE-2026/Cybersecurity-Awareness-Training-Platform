@@ -202,7 +202,10 @@ The local services are available at:
 
 - Frontend: [http://localhost:5173](http://localhost:5173)
 - Backend: [http://localhost:4000](http://localhost:4000)
-- Postgres: localhost:5432
+- Postgres: `localhost:5432`
+- Mailpit UI: [http://localhost:8025](http://localhost:8025)
+- Mailpit SMTP from Docker services: `mailpit:1025`
+- Mailpit SMTP from host machine: `localhost:1025`
 
 You can check the service status and logs using the commands below:
 
