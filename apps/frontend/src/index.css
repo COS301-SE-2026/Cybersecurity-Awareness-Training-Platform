@@ -3,10 +3,7 @@
 @import url('https://fonts.googleapis.com/icon?family=Material+Icons+Sharp');
 @import 'tailwindcss';
 @import 'flowbite-react/plugin/tailwindcss';
-@source '../.flowbite-react/class-list.json';
 @import 'flowbite/src/themes/default';
-@plugin "flowbite/plugin";
-@source "../node_modules/flowbite";
 
 html,
 body,
