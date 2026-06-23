@@ -7,7 +7,9 @@ import type {
 } from '../generated/prisma/client.js';
 import { prisma } from '../lib/prisma.js';
 
-type EmailPrismaClient = Pick<PrismaClient, 'emailDeliveryLog'>;
+type EmailPrismaClient = {
+  emailDeliveryLog: Pick<PrismaClient['emailDeliveryLog'], 'create' | 'update'>;
+};
 
 export interface SendEmailInput {
   to: string;

@@ -147,6 +147,7 @@ describe('sendEmail', () => {
         relatedEntityType: 'OTHER',
         relatedEntityId: null,
         actionTokenId: null,
+        userId: null,
         deliveryStatus: 'PENDING',
       },
     });
