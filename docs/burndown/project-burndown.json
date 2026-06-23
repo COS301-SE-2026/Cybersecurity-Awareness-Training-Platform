@@ -1263,8 +1263,8 @@
           "number": 218,
           "title": "feat: phase 1 core authentication foundation migration",
           "points": 5,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-06-23"
         },
         {
           "number": 217,
@@ -1564,7 +1564,7 @@
     },
     {
       "date": "2026-06-23",
-      "remaining": 167,
+      "remaining": 162,
       "ideal": 66.27
     }
   ]
