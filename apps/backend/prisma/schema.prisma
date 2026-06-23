@@ -329,6 +329,59 @@ enum InteractionTargetType {
   EMAIL_CLASSIFICATION_RESPONSE
 }
 
+enum AuditActorType {
+  IP_ADMIN
+  ORGANISATION_ADMIN
+  ORGANISATION_TRAINEE
+  GENERAL_TRAINEE
+  SYSTEM
+}
+
+enum AuditTargetType {
+  USER
+  ORGANISATION
+  ORGANISATION_REGISTRATION_REQUEST
+  INVITATION
+  ORGANISATION_ADMIN_PERMISSION
+  ORGANISATION_SECURITY_SETTINGS
+  PLATFORM_ADMIN_ROLE
+  AUTH_SESSION
+  CAMPAIGN
+  OTHER
+  TOKEN
+  ACTION_TOKEN
+  REFRESH_TOKEN
+}
+
+enum AuditActionType {
+  CREATED
+  UPDATED
+  DISABLED
+  ENABLED
+  APPROVED
+  REJECTED
+  CONTACTED
+  INVITED
+  RESENT
+  REVOKED
+  ACCEPTED
+  COMPLETED
+  PROMOTED
+  DEMOTED
+  PERMISSIONS_CHANGED
+  SETTINGS_CHANGED
+  SUSPENDED
+  REACTIVATED
+  LOGIN
+  LOGOUT
+  TOKEN_REUSE_DETECTED
+}
+
+enum AuditOutcome {
+  SUCCESS
+  FAILURE
+}
+
 model HealthCheck {
   id        String   @id @default(uuid())
   message   String
@@ -361,6 +414,14 @@ model User {
   authSessions                 AuthSession[]
   actionTokens                 ActionToken[]
   emailDeliveryLogs            EmailDeliveryLog[]
+  auditLogEntries              AuditLogEntry[]           @relation("AuditLogEntryActor")
+  emailVerifiedAt			   DateTime?
+  lastLoginAt				   DateTime?
+  disabledAt				   DateTime?
+  disabledReason     	   	   String?
+  authSessions 				   AuthSession[]
+  actionTokens           	   ActionToken[]
+  emailDeliveryLogs 		   EmailDeliveryLog[]
 }
 
 model TraineeProfile {
@@ -637,6 +698,16 @@ model Invitation {
   @@index([status])
   @@index([purpose])
   @@index([expiresAt])
+  id              String                       @id @default(uuid())
+  name            String                       @unique
+  status          OrganisationStatus           @default(ACTIVE)
+  createdAt       DateTime                     @default(now())
+  updatedAt       DateTime                     @updatedAt
+  traineeProfiles OrganisationTraineeProfile[]
+  adminProfiles   OrganisationAdminProfile[]
+  contexts        OrganisationContext[]
+  campaigns       Campaign[]
+  auditLogEntries AuditLogEntry[]
 }
 
 model OrganisationContext {
@@ -1086,4 +1157,34 @@ model InteractionEvent {
   @@index([quizQuestionId])
   @@index([emailClassificationResponseId])
   @@index([occurredAt])
+}
+
+model AuditLogEntry {
+  id             String          @id @default(uuid())
+  actorUserId    String?
+  actorType      AuditActorType
+  organisationId String?
+  targetType     AuditTargetType
+  targetId       String?
+  actionType     AuditActionType
+  outcome        AuditOutcome
+  oldValues      Json?
+  newValues      Json?
+  metadata       Json?
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime        @default(now())
+
+  actorUser    User?         @relation("AuditLogEntryActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  organisation Organisation? @relation(fields: [organisationId], references: [id], onDelete: SetNull)
+
+  @@index([actorUserId])
+  @@index([organisationId])
+  @@index([actorType])
+  @@index([targetType, targetId])
+  @@index([actionType])
+  @@index([outcome])
+  @@index([createdAt])
+  @@index([organisationId, createdAt])
+  @@index([actorUserId, createdAt])
 }
