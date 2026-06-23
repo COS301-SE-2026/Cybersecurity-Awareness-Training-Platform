@@ -8,6 +8,9 @@ const AUTH_BOOTSTRAP_ENV = {
   name: 'AUTH_BOOTSTRAP_SUPER_ADMIN_NAME',
 } as const;
 
+const AUTH_BOOTSTRAP_EXAMPLE_EMAIL = 'admin@example.com';
+const AUTH_BOOTSTRAP_EXAMPLE_NAME = 'Platform Admin';
+
 export type AuthBootstrapSeedSummary = {
   readonly skipped: boolean;
   readonly created: boolean;
@@ -91,12 +94,17 @@ export function readAuthBootstrapConfig(
   const email = env[AUTH_BOOTSTRAP_ENV.email]?.trim().toLowerCase();
   const password = env[AUTH_BOOTSTRAP_ENV.password]?.trim();
   const name = env[AUTH_BOOTSTRAP_ENV.name]?.trim();
+  const values = { email, password, name };
 
-  if (!email && !password && !name) {
+  if (isAuthBootstrapPlaceholderConfig(values)) {
     return null;
   }
 
-  const missing = Object.values(AUTH_BOOTSTRAP_ENV).filter((key) => !env[key]?.trim());
+  const missing = [
+    !isMeaningfulAuthBootstrapEmail(email) ? AUTH_BOOTSTRAP_ENV.email : null,
+    !password ? AUTH_BOOTSTRAP_ENV.password : null,
+    !isMeaningfulAuthBootstrapName(name) ? AUTH_BOOTSTRAP_ENV.name : null,
+  ].filter((key): key is string => key !== null);
 
   if (missing.length > 0) {
     throw new TypeError(`Missing auth bootstrap environment variables: ${missing.join(', ')}`);
@@ -206,4 +214,24 @@ function buildAuthBootstrapUserData(
     disabledAt: null,
     disabledReason: null,
   };
+}
+
+function isAuthBootstrapPlaceholderConfig(values: {
+  readonly email: string | undefined;
+  readonly password: string | undefined;
+  readonly name: string | undefined;
+}): boolean {
+  return (
+    !isMeaningfulAuthBootstrapEmail(values.email) &&
+    !values.password &&
+    !isMeaningfulAuthBootstrapName(values.name)
+  );
+}
+
+function isMeaningfulAuthBootstrapEmail(email: string | undefined): email is string {
+  return Boolean(email && email !== AUTH_BOOTSTRAP_EXAMPLE_EMAIL);
+}
+
+function isMeaningfulAuthBootstrapName(name: string | undefined): name is string {
+  return Boolean(name && name !== AUTH_BOOTSTRAP_EXAMPLE_NAME);
 }

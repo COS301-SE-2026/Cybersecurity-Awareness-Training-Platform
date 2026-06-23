@@ -37,9 +37,9 @@ function authBootstrapEnv(
   overrides: NodeJS.ProcessEnv = {},
 ): NodeJS.ProcessEnv {
   return {
-    [envNames.email]: 'admin@example.com',
+    [envNames.email]: 'security-owner@example.test',
     [envNames.password]: BOOTSTRAP_TEST_PASSWORD,
-    [envNames.name]: 'Platform Admin',
+    [envNames.name]: 'Security Owner',
     ...overrides,
   };
 }
@@ -64,10 +64,28 @@ describe('auth bootstrap seed', () => {
     expect(prismaMock.$transaction).not.toHaveBeenCalled();
   });
 
+  it('skips safely when bootstrap env vars match the root env example placeholders', async () => {
+    const prismaMock = createPrismaMock();
+
+    const summary = await seedAuthBootstrap(prismaMock, {
+      [envNames.email]: 'admin@example.com',
+      [envNames.password]: '',
+      [envNames.name]: 'Platform Admin',
+    });
+
+    expect(summary).toMatchObject({
+      skipped: true,
+      created: false,
+      updated: false,
+    });
+    expect(prismaMock.$transaction).not.toHaveBeenCalled();
+  });
+
   it('throws clearly when bootstrap env config is partial', () => {
     expect(() =>
       readAuthBootstrapConfig({
-        [envNames.email]: 'admin@example.com',
+        [envNames.email]: 'security-owner@example.test',
+        [envNames.name]: 'Security Owner',
       }),
     ).toThrow(envNames.password);
   });
@@ -79,7 +97,7 @@ describe('auth bootstrap seed', () => {
     const summary = await seedAuthBootstrap(
       prismaMock,
       authBootstrapEnv(envNames, {
-        [envNames.email]: ' Admin@Example.com ',
+        [envNames.email]: ' Owner@Example.test ',
       }),
     );
 
@@ -87,13 +105,13 @@ describe('auth bootstrap seed', () => {
       skipped: false,
       created: true,
       updated: false,
-      email: 'admin@example.com',
+      email: 'owner@example.test',
     });
 
     expect(prismaMock.__tx.user.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
-          email: 'admin@example.com',
+          email: 'owner@example.test',
         },
       }),
     );
@@ -124,7 +142,7 @@ describe('auth bootstrap seed', () => {
       skipped: false,
       created: false,
       updated: true,
-      email: 'admin@example.com',
+      email: 'security-owner@example.test',
     });
 
     expect(prismaMock.__tx.user.update).toHaveBeenCalledWith(
