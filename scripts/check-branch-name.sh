@@ -39,7 +39,7 @@ for BRANCH in "${ALLOWED_BRANCHES[@]}"; do
 done
 
 DEVELOPER_PATTERN="$(IFS='|'; echo "${ALLOWED_DEVELOPERS[*]}")"
-BRANCH_REGEX="^(feature|docs|fix|chore)/[a-z0-9]+(-[a-z0-9]+)*/(${DEVELOPER_PATTERN})$"
+BRANCH_REGEX="^(feature|feat|docs|fix|chore)/[a-z0-9]+(-[a-z0-9]+)*/(${DEVELOPER_PATTERN})$"
 
 if ! echo "$BRANCH_NAME" | grep -Eiq "$BRANCH_REGEX"; then
   echo ""
@@ -53,6 +53,7 @@ if ! echo "$BRANCH_NAME" | grep -Eiq "$BRANCH_REGEX"; then
   echo ""
   echo "Allowed types:"
   echo "  feature - feature work"
+  echo "  feat    - feature work (alternative)"
   echo "  docs    - documentation changes"
   echo "  fix     - bug fixes"
   echo "  chore   - maintenance, setup, tooling, or cleanup work"
