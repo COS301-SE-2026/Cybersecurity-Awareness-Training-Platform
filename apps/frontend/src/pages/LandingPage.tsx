@@ -1,6 +1,7 @@
 import LandingNavbar from '../components/layout/LandingNavbar';
 import HeroSection from '../components/landing-page/HeroSection';
 import AboutSection from '../components/landing-page/AboutSection';
+import FeatureSection from '../components/landing-page/FeatureSection';
 import TeamSection from '../components/landing-page/TeamSection';
 
 function LandingPage() {
@@ -14,6 +15,9 @@ function LandingPage() {
 
         {/* ABOUT & FAQ SECTION */}
         <AboutSection />
+
+        {/* FEATURES SECTION  */}
+        <FeatureSection />
 
         {/* TEAM SECTION */}
         <TeamSection />

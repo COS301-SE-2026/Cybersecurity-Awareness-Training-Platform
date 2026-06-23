@@ -23,7 +23,7 @@ function AboutSection() {
 
       {/* FAQ SECTION */}
       <div className="py-6 px-4 mx-auto max-w-screen-xl">
-        <h2 className="font-jost mb-8 text-6xl font-semibold tracking-regular text-purple">
+        <h2 className="font-jost mb-6 text-6xl font-semibold tracking-regular text-purple">
           Frequently Asked Questions
         </h2>
         <div className="grid pt-8 text-left md:gap-16 md:grid-cols-2">
@@ -41,7 +41,7 @@ function AboutSection() {
                 </span>
                 <span> What is Insightful Phish </span>
               </h3>
-              <p className="text-dark-pink font-overpass font-regular tracking-wide font-justify text-lg text-justify">
+              <p className="text-dark-pink font-overpass font-regular tracking-wide text-left text-lg text-justify">
                 A cybersecurity awareness and training platform that helps individuals and
                 organisations recognise phishing attacks, develop safer online habits, and improve
                 their overall security awareness through interactive learning experiences.
@@ -60,7 +60,7 @@ function AboutSection() {
                 </span>
                 <span> How does the training work? </span>
               </h3>
-              <p className="text-dark-pink font-overpass font-regular tracking-wide font-justify text-lg text-justify">
+              <p className="text-dark-pink font-overpass font-regular tracking-wide text-left text-lg text-justify">
                 The platform combines realistic phishing simulations, training material, and
                 assessments to help learners identify threats, understand common attack techniques,
                 and respond safely to suspicious activity.
@@ -83,7 +83,7 @@ function AboutSection() {
                 </span>
                 <span> Who can use Insightful Phish? </span>
               </h3>
-              <p className="text-dark-pink font-overpass font-regular tracking-wide font-justify text-lg text-justify">
+              <p className="text-dark-pink font-overpass font-regular tracking-wide text-left text-lg text-justify">
                 It is designed for both individuals and organisations. Whether you're improving your
                 own cybersecurity knowledge or training an entire workforce, the platform provides
                 practical learning tools to build stronger security habits.
@@ -102,7 +102,7 @@ function AboutSection() {
                 </span>
                 <span> Why is cybersecurity awareness important? </span>
               </h3>
-              <p className="text-dark-pink font-overpass font-regular tracking-wide font-justify text-lg text-justify">
+              <p className="text-dark-pink font-overpass font-regular tracking-wide text-left text-lg text-justify">
                 Many security breaches occur because of human error rather than technical failures.
                 By learning how to recognise phishing attempts and other common threats, individuals
                 and organisations can significantly reduce their risk of cyberattacks.
