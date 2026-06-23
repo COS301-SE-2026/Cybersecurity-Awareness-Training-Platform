@@ -36,85 +36,79 @@ enum AdminStatus {
   DISABLED
 }
 
-
-
-enum PlatformAdminRole{
-	SUPER_ADMIN
-	NORMAL_ADMIN
+enum PlatformAdminRole {
+  SUPER_ADMIN
+  NORMAL_ADMIN
 }
 
 enum AuthSessionRevokedReason {
-	LOGOUT
-	LOGOUT_ALL
-	PASSWORD_RESET
-	PASSWORD_CHANGE
-	EMAIL_CHANGE
-	ADMIN_DISABLED
-	ORGANISATION_SUSPENDED
-	TOKEN_REUSE_DETECTED
-	EXPIRED
-	OTHER
+  LOGOUT
+  LOGOUT_ALL
+  PASSWORD_RESET
+  PASSWORD_CHANGE
+  EMAIL_CHANGE
+  ADMIN_DISABLED
+  ORGANISATION_SUSPENDED
+  TOKEN_REUSE_DETECTED
+  EXPIRED
+  OTHER
 }
 
 enum RefreshTokenRevokedReason {
-	ROTATED
-	LOGOUT
-	LOGOUT_ALL
-	PASSWORD_RESET
-	PASSWORD_CHANGE
-	EMAIL_CHANGE
-	TOKEN_REUSE_DETECTED
-	EXPIRED
-	OTHER
+  ROTATED
+  LOGOUT
+  LOGOUT_ALL
+  PASSWORD_RESET
+  PASSWORD_CHANGE
+  EMAIL_CHANGE
+  TOKEN_REUSE_DETECTED
+  EXPIRED
+  OTHER
 }
 
 enum ActionTokenPurpose {
-	EMAIL_VERIFICATION
-	PASSWORD_RESET
-	EMAIL_CHANGE_VERIFICATION
-	INITIAL_ORGANISATION_ADMIN_SETUP
-	ORGANISATION_TRAINEE_INVITE
-	ORGANISATION_ADMIN_PROMOTION
-	PLATFORM_ADMIN_INVITE
-	PLATFORM_ADMIN_UPGRADE_CONFIRMATION
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+  EMAIL_CHANGE_VERIFICATION
+  INITIAL_ORGANISATION_ADMIN_SETUP
+  ORGANISATION_TRAINEE_INVITE
+  ORGANISATION_ADMIN_PROMOTION
+  PLATFORM_ADMIN_INVITE
+  PLATFORM_ADMIN_UPGRADE_CONFIRMATION
 }
 
-
 enum EmailDeliveryType {
-	EMAIL_VERIFICATION
-	PASSWORD_RESET
-	PASSWORD_CHANGED
-	EMAIL_CHANGE_CONFIRMATION
-	EMAIL_CHANGE_WARNING
-	ORGANISATION_REQUEST_RECEIVED
-	ORGANISATION_REQUEST_APPROVED
-	ORGANISATION_REQUEST_REJECTED
-	INITIAL_ORGANISATION_ADMIN_SETUP
-	ORGANISATION_TRAINEE_INVITE
-	ORGANISATION_ADMIN_PROMOTION_INVITE
-	PLATFORM_ADMIN_INVITE
-	PLATFORM_ADMIN_UPGRADE_CONFIRMATION
-	ROLE_CHANGED_NOTIFICATION
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+  PASSWORD_CHANGED
+  EMAIL_CHANGE_CONFIRMATION
+  EMAIL_CHANGE_WARNING
+  ORGANISATION_REQUEST_RECEIVED
+  ORGANISATION_REQUEST_APPROVED
+  ORGANISATION_REQUEST_REJECTED
+  INITIAL_ORGANISATION_ADMIN_SETUP
+  ORGANISATION_TRAINEE_INVITE
+  ORGANISATION_ADMIN_PROMOTION_INVITE
+  PLATFORM_ADMIN_INVITE
+  PLATFORM_ADMIN_UPGRADE_CONFIRMATION
+  ROLE_CHANGED_NOTIFICATION
 }
 
 enum EmailRelatedEntityType {
-	USER
-	INVITATION
-	ACTIONTOKEN
-	ORGANISATION_REGISTRATION_REQUEST
-	EMAIL_CHANGE_REQUEST
-	ORGANISATION
-	OTHER
+  USER
+  INVITATION
+  ACTIONTOKEN
+  ORGANISATION_REGISTRATION_REQUEST
+  EMAIL_CHANGE_REQUEST
+  ORGANISATION
+  OTHER
 }
 
 enum EmailDeliveryStatus {
-	PENDING
-	SENT
-	FAILED
+  PENDING
+  SENT
+  FAILED
 }
-
-
-
 
 enum GeneralTraineeAccessSource {
   SELF_SIGNUP
@@ -124,9 +118,31 @@ enum GeneralTraineeAccessSource {
 }
 
 enum OrganisationStatus {
+  PENDING_ONBOARDING
   ACTIVE
   INACTIVE
+  SUSPENDED
+  DISABLED
   ARCHIVED
+}
+
+enum OrganisationRegistrationRequestStatus {
+  PENDING_REVIEW
+  CONTACTED
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum InvitationPurpose {
+  INITIAL_ORGANISATION_ADMIN_SETUP
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
 }
 
 enum OrganisationContextType {
@@ -391,14 +407,14 @@ model User {
   createdTrainingDocuments     TrainingDocument[]        @relation("TrainingDocumentCreatedBy")
   createdQuizzes               Quiz[]                    @relation("QuizCreatedBy")
   createdSimulations           Simulation[]              @relation("SimulationCreatedBy")
+  emailVerifiedAt              DateTime?
+  lastLoginAt                  DateTime?
+  disabledAt                   DateTime?
+  disabledReason               String?
+  authSessions                 AuthSession[]
+  actionTokens                 ActionToken[]
+  emailDeliveryLogs            EmailDeliveryLog[]
   auditLogEntries              AuditLogEntry[]           @relation("AuditLogEntryActor")
-  emailVerifiedAt			   DateTime?
-  lastLoginAt				   DateTime?
-  disabledAt				   DateTime?
-  disabledReason     	   	   String?
-  authSessions 				   AuthSession[]
-  actionTokens           	   ActionToken[]
-  emailDeliveryLogs 		   EmailDeliveryLog[]
 }
 
 model TraineeProfile {
@@ -459,63 +475,64 @@ model OrganisationAdminProfile {
 }
 
 model IpAdminProfile {
-  id                String            @id @default(uuid())
-  userId            String            @unique
-  adminStatus       AdminStatus       @default(ACTIVE)
-  platformAdminRole PlatformAdminRole @default(NORMAL_ADMIN)
-  joinedAt          DateTime          @default(now())
-  revokedAt         DateTime?
-  revokedReason     String?
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
-  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                                        String                            @id @default(uuid())
+  userId                                    String                            @unique
+  adminStatus                               AdminStatus                       @default(ACTIVE)
+  platformAdminRole                         PlatformAdminRole                 @default(NORMAL_ADMIN)
+  joinedAt                                  DateTime                          @default(now())
+  revokedAt                                 DateTime?
+  revokedReason                             String?
+  createdAt                                 DateTime                          @default(now())
+  updatedAt                                 DateTime                          @updatedAt
+  user                                      User                              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contactedOrganisationRegistrationRequests OrganisationRegistrationRequest[] @relation("OrganisationRegistrationRequestContactedBy")
+  approvedOrganisationRegistrationRequests  OrganisationRegistrationRequest[] @relation("OrganisationRegistrationRequestApprovedBy")
+  rejectedOrganisationRegistrationRequests  OrganisationRegistrationRequest[] @relation("OrganisationRegistrationRequestRejectedBy")
 
   @@index([adminStatus])
   @@index([platformAdminRole])
   @@index([revokedAt])
 }
 
-
 model AuthSession {
-	id			   		String 			  	@id @default(uuid())
-	userId	       		String
-	rememberMe     		Boolean			  	@default(false)
-	createdAt	   		DateTime			@default(now())
-	lastActiveAt  		DateTime           	@default(now())
-	expiresAt      		DateTime
-	idleTimeoutMinutes	Int?
-	revokedAt			DateTime?
-	revokedReason		AuthSessionRevokedReason?
-	userAgent			String?
-	ipAddress			String?
-	deviceSummary		String?
-	locationSummary		String?
-	updatedAt			DateTime			@updatedAt
-	user				User				@relation(fields: [userId], references: [id], onDelete: Cascade)
-	refreshTokens		RefreshToken[]
+  id                 String                    @id @default(uuid())
+  userId             String
+  rememberMe         Boolean                   @default(false)
+  createdAt          DateTime                  @default(now())
+  lastActiveAt       DateTime                  @default(now())
+  expiresAt          DateTime
+  idleTimeoutMinutes Int?
+  revokedAt          DateTime?
+  revokedReason      AuthSessionRevokedReason?
+  userAgent          String?
+  ipAddress          String?
+  deviceSummary      String?
+  locationSummary    String?
+  updatedAt          DateTime                  @updatedAt
+  user               User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshTokens      RefreshToken[]
 
-
-	@@index([userId])
-	@@index([expiresAt])
-	@@index([lastActiveAt])
-	@@index([revokedAt])
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([lastActiveAt])
+  @@index([revokedAt])
 }
 
 model RefreshToken {
-  id                String                      @id @default(uuid())
+  id                String                     @id @default(uuid())
   authSessionId     String
-  tokenHash         String                      @unique
-  issuedAt          DateTime                    @default(now())
+  tokenHash         String                     @unique
+  issuedAt          DateTime                   @default(now())
   expiresAt         DateTime
   usedAt            DateTime?
   revokedAt         DateTime?
   revokedReason     RefreshTokenRevokedReason?
-  replacedByTokenId String?                     @unique
-  createdAt         DateTime                    @default(now())
-  updatedAt         DateTime                    @updatedAt
-  authSession       AuthSession                 @relation(fields: [authSessionId], references: [id], onDelete: Cascade)
-  replacedByToken   RefreshToken?               @relation("RefreshTokenReplacement", fields: [replacedByTokenId], references: [id], onDelete: SetNull)
-  replacedTokens    RefreshToken[]              @relation("RefreshTokenReplacement")
+  replacedByTokenId String?                    @unique
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
+  authSession       AuthSession                @relation(fields: [authSessionId], references: [id], onDelete: Cascade)
+  replacedByToken   RefreshToken?              @relation("RefreshTokenReplacement", fields: [replacedByTokenId], references: [id], onDelete: SetNull)
+  replacedTokens    RefreshToken[]             @relation("RefreshTokenReplacement")
 
   @@index([authSessionId])
   @@index([expiresAt])
@@ -524,8 +541,8 @@ model RefreshToken {
 }
 
 model ActionToken {
-  id                                String             @id @default(uuid())
-  tokenHash                         String             @unique
+  id                                String                           @id @default(uuid())
+  tokenHash                         String                           @unique
   purpose                           ActionTokenPurpose
   userId                            String?
   invitationId                      String?
@@ -536,10 +553,12 @@ model ActionToken {
   usedAt                            DateTime?
   revokedAt                         DateTime?
   revokedReason                     String?
-  createdAt                         DateTime           @default(now())
-  updatedAt                         DateTime           @updatedAt
-  user                              User?              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  emailDeliveryLogs 				EmailDeliveryLog[]
+  createdAt                         DateTime                         @default(now())
+  updatedAt                         DateTime                         @updatedAt
+  user                              User?                            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emailDeliveryLogs                 EmailDeliveryLog[]
+  invitation                        Invitation?                      @relation(fields: [invitationId], references: [id], onDelete: SetNull)
+  organisationRegistrationRequest   OrganisationRegistrationRequest? @relation(fields: [organisationRegistrationRequestId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([purpose])
@@ -553,44 +572,126 @@ model ActionToken {
 }
 
 model EmailDeliveryLog {
-  id                String                 @id @default(uuid())
-  recipientEmail    String
-  emailType         EmailDeliveryType
-  relatedEntityType EmailRelatedEntityType
-  relatedEntityId   String?
-  userId            String?
-  actionTokenId     String?
-  deliveryStatus    EmailDeliveryStatus    @default(PENDING)
-  providerMessageId String?
-  sentAt            DateTime?
-  failedAt          DateTime?
-  failureReason     String?
-  createdAt         DateTime               @default(now())
-  updatedAt         DateTime               @updatedAt
-  user              User?                  @relation(fields: [userId], references: [id], onDelete: SetNull)
-  actionToken       ActionToken?           @relation(fields: [actionTokenId], references: [id], onDelete: SetNull)
+  id                                String                           @id @default(uuid())
+  recipientEmail                    String
+  emailType                         EmailDeliveryType
+  /// Typed foreign keys are authoritative when a typed relation exists.
+  /// Fallback related-entity fields are only for entities without a typed FK, legacy references, or OTHER cases.
+  fallbackRelatedEntityType         EmailRelatedEntityType?          @map("relatedEntityType")
+  fallbackRelatedEntityId           String?                          @map("relatedEntityId")
+  userId                            String?
+  actionTokenId                     String?
+  organisationId                    String?
+  organisationRegistrationRequestId String?
+  invitationId                      String?
+  deliveryStatus                    EmailDeliveryStatus              @default(PENDING)
+  providerMessageId                 String?
+  sentAt                            DateTime?
+  failedAt                          DateTime?
+  failureReason                     String?
+  createdAt                         DateTime                         @default(now())
+  updatedAt                         DateTime                         @updatedAt
+  user                              User?                            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  actionToken                       ActionToken?                     @relation(fields: [actionTokenId], references: [id], onDelete: SetNull)
+  organisation                      Organisation?                    @relation(fields: [organisationId], references: [id], onDelete: SetNull)
+  organisationRegistrationRequest   OrganisationRegistrationRequest? @relation(fields: [organisationRegistrationRequestId], references: [id], onDelete: SetNull)
+  invitation                        Invitation?                      @relation(fields: [invitationId], references: [id], onDelete: SetNull)
 
   @@index([recipientEmail])
   @@index([emailType])
-  @@index([relatedEntityType, relatedEntityId])
+  @@index([fallbackRelatedEntityType, fallbackRelatedEntityId], map: "EmailDeliveryLog_relatedEntityType_relatedEntityId_idx")
   @@index([userId])
   @@index([actionTokenId])
   @@index([deliveryStatus])
   @@index([createdAt])
+  @@index([organisationId])
+  @@index([organisationRegistrationRequestId])
+  @@index([invitationId])
 }
 
-
 model Organisation {
-  id              String                       @id @default(uuid())
-  name            String                       @unique
-  status          OrganisationStatus           @default(ACTIVE)
-  createdAt       DateTime                     @default(now())
-  updatedAt       DateTime                     @updatedAt
-  traineeProfiles OrganisationTraineeProfile[]
-  adminProfiles   OrganisationAdminProfile[]
-  contexts        OrganisationContext[]
-  campaigns       Campaign[]
-  auditLogEntries AuditLogEntry[]
+  id                   String                            @id @default(uuid())
+  name                 String                            @unique
+  status               OrganisationStatus                @default(ACTIVE)
+  createdAt            DateTime                          @default(now())
+  updatedAt            DateTime                          @updatedAt
+  traineeProfiles      OrganisationTraineeProfile[]
+  adminProfiles        OrganisationAdminProfile[]
+  contexts             OrganisationContext[]
+  campaigns            Campaign[]
+  registrationRequests OrganisationRegistrationRequest[]
+  invitations          Invitation[]
+  emailDeliveryLogs    EmailDeliveryLog[]
+  auditLogEntries      AuditLogEntry[]
+}
+
+model OrganisationRegistrationRequest {
+  id                        String                                @id @default(uuid())
+  submittedOrganisationName String
+  submittedWebsite          String?
+  submittedIndustry         String?
+  submittedEmployeeCount    Int?
+  submittedPrimaryDomain    String?
+  representativeFirstName   String
+  representativeLastName    String
+  representativeEmail       String
+  representativePhone       String?
+  status                    OrganisationRegistrationRequestStatus @default(PENDING_REVIEW)
+  contactedByIpAdminId      String?
+  approvedByIpAdminId       String?
+  rejectedByIpAdminId       String?
+  approvedOrganisationId    String?
+  contactedAt               DateTime?
+  approvedAt                DateTime?
+  rejectedAt                DateTime?
+  rejectionReason           String?
+  createdAt                 DateTime                              @default(now())
+  updatedAt                 DateTime                              @updatedAt
+  contactedBy               IpAdminProfile?                       @relation("OrganisationRegistrationRequestContactedBy", fields: [contactedByIpAdminId], references: [id], onDelete: SetNull)
+  approvedBy                IpAdminProfile?                       @relation("OrganisationRegistrationRequestApprovedBy", fields: [approvedByIpAdminId], references: [id], onDelete: SetNull)
+  rejectedBy                IpAdminProfile?                       @relation("OrganisationRegistrationRequestRejectedBy", fields: [rejectedByIpAdminId], references: [id], onDelete: SetNull)
+  approvedOrganisation      Organisation?                         @relation(fields: [approvedOrganisationId], references: [id], onDelete: SetNull)
+  initialAdminInvitations   Invitation[]
+  actionTokens              ActionToken[]
+  emailDeliveryLogs         EmailDeliveryLog[]
+
+  @@index([status])
+  @@index([contactedByIpAdminId])
+  @@index([approvedByIpAdminId])
+  @@index([rejectedByIpAdminId])
+  @@index([representativeEmail])
+  @@index([approvedOrganisationId])
+  @@index([contactedAt])
+  @@index([approvedAt])
+  @@index([rejectedAt])
+}
+
+model Invitation {
+  id                                String                           @id @default(uuid())
+  organisationId                    String
+  organisationRegistrationRequestId String?
+  recipientEmail                    String
+  recipientFirstName                String?
+  recipientLastName                 String?
+  purpose                           InvitationPurpose                @default(INITIAL_ORGANISATION_ADMIN_SETUP)
+  status                            InvitationStatus                 @default(PENDING)
+  expiresAt                         DateTime
+  acceptedAt                        DateTime?
+  revokedAt                         DateTime?
+  revokedReason                     String?
+  createdAt                         DateTime                         @default(now())
+  updatedAt                         DateTime                         @updatedAt
+  organisation                      Organisation                     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  organisationRegistrationRequest   OrganisationRegistrationRequest? @relation(fields: [organisationRegistrationRequestId], references: [id], onDelete: SetNull)
+  actionTokens                      ActionToken[]
+  emailDeliveryLogs                 EmailDeliveryLog[]
+
+  @@index([organisationId])
+  @@index([organisationRegistrationRequestId])
+  @@index([recipientEmail])
+  @@index([status])
+  @@index([purpose])
+  @@index([expiresAt])
 }
 
 model OrganisationContext {

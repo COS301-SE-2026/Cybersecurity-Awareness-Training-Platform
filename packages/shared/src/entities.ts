@@ -22,7 +22,13 @@ export type AdminStatusDto = 'ACTIVE' | 'DISABLED';
 
 export type GeneralTraineeAccessSourceDto = 'SELF_SIGNUP' | 'INVITE' | 'SEED' | 'ADMIN_CREATED';
 
-export type OrganisationStatusDto = 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';
+export type OrganisationStatusDto =
+  | 'PENDING_ONBOARDING'
+  | 'ACTIVE'
+  | 'INACTIVE'
+  | 'SUSPENDED'
+  | 'DISABLED'
+  | 'ARCHIVED';
 
 export type OrganisationContextTypeDto =
   | 'LOGO'
