@@ -1,0 +1,99 @@
+import nodemailer from 'nodemailer';
+import { env } from '../config/env.js';
+import type {
+  EmailDeliveryType,
+  EmailRelatedEntityType,
+  PrismaClient,
+} from '../generated/prisma/client.js';
+import { prisma } from '../lib/prisma.js';
+
+type EmailPrismaClient = Pick<PrismaClient, 'emailDeliveryLog'>;
+
+export interface SendEmailInput {
+  to: string;
+  subject: string;
+  text: string;
+  html?: string;
+  emailType: EmailDeliveryType;
+  relatedEntityType: EmailRelatedEntityType;
+  relatedEntityId?: string | null;
+  userId?: string | null;
+  actionTokenId?: string | null;
+}
+
+export type SendEmailOutput =
+  | { ok: true; messageId?: string; deliveryLogId: string }
+  | {
+      ok: false;
+      error: string;
+      deliveryLogId: string;
+    };
+
+export async function sendEmail(
+  input: SendEmailInput,
+  client: EmailPrismaClient = prisma,
+): Promise<SendEmailOutput> {
+  const deliveryLog = await client.emailDeliveryLog.create({
+    data: {
+      recipientEmail: input.to,
+      emailType: input.emailType,
+      relatedEntityType: input.relatedEntityType,
+      relatedEntityId: input.relatedEntityId ?? null,
+      userId: input.userId ?? null,
+      actionTokenId: input.actionTokenId ?? null,
+      deliveryStatus: 'PENDING',
+    },
+  });
+
+  const transporter = nodemailer.createTransport({
+    host: env.SMTP_HOST,
+    port: env.SMTP_PORT,
+    secure: env.SMTP_SECURE,
+    auth:
+      env.SMTP_USER && env.SMTP_PASSWORD
+        ? { user: env.SMTP_USER, password: env.SMTP_PASSWORD }
+        : undefined,
+  });
+
+  try {
+    const result = await transporter.sendEmail({
+      from: `"${env.SMTP_FROM_NAME}" <${env.SMTP_FROM_ADDRESS}>`,
+      to: input.to,
+      subject: input.subject,
+      text: input.text,
+      html: input.html,
+    });
+
+    await client.emailDeliveryLog.update({
+      where: { id: deliveryLog.id },
+      data: {
+        deliveryStatus: 'SENT',
+        providerMessageId: result.messageId,
+        sentAt: new Date(),
+      },
+    });
+
+    return {
+      ok: true,
+      messageId: result.messageId,
+      deliveryLogId: deliveryLog.id,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unkown SMTP error';
+
+    await client.emailDeliveryLog.update({
+      where: { id: deliveryLog.id },
+      data: {
+        deliveryStatus: 'FAILED',
+        failedAt: new Date(),
+        failureReason: message,
+      },
+    });
+
+    return {
+      ok: false,
+      error: message,
+      deliveryLogId: deliveryLog.id,
+    };
+  }
+}
