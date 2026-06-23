@@ -18,7 +18,7 @@ function LandingNavbar() {
           <div className="flex items-center space-x-6 rtl:space-x-reverse mt-1">
             <button
               type="button"
-              className="cursor-pointer font-jost tracking-wider text-xl text-white font-regular bg-purple leading-5 px-4 py-2.5 focus:outline-none"
+              className="cursor-pointer font-jost tracking-wider text-xl text-white font-regular bg-main-purple leading-5 px-4 py-2.5 focus:outline-none"
             >
               Get Started
             </button>

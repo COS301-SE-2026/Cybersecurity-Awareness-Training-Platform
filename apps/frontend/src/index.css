@@ -79,6 +79,10 @@ body,
   background-color: var(--ip-bg-purple);
 }
 
+.bg-main-purple {
+  background-color: var(--ip-purple);
+}
+
 .bg-light-purple {
   background-color: var(--ip-light-bg-purple);
 }
