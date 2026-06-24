@@ -511,8 +511,8 @@
       "number": 220,
       "title": "feat: set up MailPit for Sprint 4 SMTP development",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-06-24"
     },
     {
       "number": 219,
@@ -564,7 +564,7 @@
     },
     {
       "date": "2026-06-24",
-      "remaining": 155,
+      "remaining": 153,
       "ideal": 108.64
     }
   ]
