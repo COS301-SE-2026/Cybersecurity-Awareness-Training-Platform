@@ -309,4 +309,16 @@ describe('AppRoutes', () => {
 
     expect(await screen.findByText(/DON'T TAKE THE BAIT/i)).toBeInTheDocument();
   });
+
+  // unauthenticated users redirected to '/'
+  it('redirects unauthenticated users to the landing page', async () => {
+    renderAppRoutes({
+      initialEntry: '/campaigns',
+      isAuthenticated: false,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('location-path')).toHaveTextContent('/');
+    });
+  });
 });
