@@ -124,7 +124,7 @@ describe('action-token service', () => {
     ).resolves.toEqual({ state: 'REVOKED', token });
   }); //it
 
-  it('returns USED when the token has been revoked', async () => {
+  it('returns USED when the token has been consumed', async () => {
     const token = {
       id: 'actiontoken01',
       purpose: 'EMAIL_VERIFICATION',
@@ -172,7 +172,7 @@ describe('action-token service', () => {
   }); //it
 
   it('revokes a token with a reason', async () => {
-    repositoryMock.markActionTokenUsed.mockResolvedValue({
+    repositoryMock.revokeActionToken.mockResolvedValue({
       id: 'actiontoken01',
       revokedReason: 'newtokengenerated',
     });

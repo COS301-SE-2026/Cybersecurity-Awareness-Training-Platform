@@ -1,6 +1,7 @@
 import type { Prisma, PrismaClient } from '../generated/prisma/client.js';
 import type { RefreshTokenRevokedReason } from '../generated/prisma/enums.js';
 import { prisma } from '../lib/prisma.js';
+import { randomUUID } from 'node:crypto';
 
 type RefreshTokenClient = PrismaClient | Prisma.TransactionClient;
 
@@ -85,37 +86,35 @@ export function rotateRefreshTokenRecord(input: {
 }) {
   //transaction ensures atomic operation
   return prisma.$transaction(async (tx) => {
-    const previousToken = await tx.refreshToken.findUnique({
-      where: { id: input.previousTokenId },
+    const nextTokenId = randomUUID();
+    const now = new Date();
+    const claimedPreviousToken = await tx.refreshToken.updateMany({
+      where: {
+        id: input.previousTokenId,
+        authSessionId: input.authSessionId,
+        usedAt: null,
+        revokedAt: null,
+        replacedByTokenId: null,
+      },
+      data: {
+        usedAt: now,
+        revokedAt: now,
+        revokedReason: 'ROTATED',
+        replacedByTokenId: nextTokenId,
+      },
     });
 
-    if (
-      !previousToken ||
-      previousToken.usedAt ||
-      previousToken.revokedAt ||
-      previousToken.replacedByTokenId
-    ) {
+    if (claimedPreviousToken.count !== 1) {
       return null;
     }
 
-    const nextToken = await tx.refreshToken.create({
+    return tx.refreshToken.create({
       data: {
+        id: nextTokenId,
         authSessionId: input.authSessionId,
         tokenHash: input.nextTokenHash,
         expiresAt: input.nextExpiresAt,
       },
     });
-
-    await tx.refreshToken.update({
-      data: {
-        usedAt: new Date(),
-        revokedAt: new Date(),
-        revokedReason: 'ROTATED',
-        replacedByTokenId: nextToken.id,
-      },
-      where: { id: input.previousTokenId },
-    });
-
-    return nextToken;
   });
 }

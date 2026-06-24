@@ -12,13 +12,14 @@ export function recordRefreshTokenReuseDetected(input: {
   metadata?: AuthAuditRequestMetadata;
 }) {
   return recordAuditFailure({
-    actorUserId: input.userId ?? null,
+    actorUserId: null,
     actorType: 'SYSTEM',
     targetType: 'REFRESH_TOKEN',
     targetId: input.refreshTokenId,
     actionType: 'TOKEN_REUSE_DETECTED',
     metadata: {
       authSessionId: input.authSessionId,
+      userId: input.userId ?? null,
     },
     ipAddress: input.metadata?.ipAddress ?? null,
     userAgent: input.metadata?.userAgent ?? null,
