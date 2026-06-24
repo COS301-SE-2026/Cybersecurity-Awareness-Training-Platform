@@ -25,4 +25,19 @@ describe('LandingPage', () => {
     expect(screen.getByText(/Interactive Training/i)).toBeInTheDocument();
     expect(screen.getByText(/Knowledge Quizzes/i)).toBeInTheDocument();
   });
+
+  // Test 4: Team Section Exists
+  it('renders the team section', () => {
+    render(<LandingPage />);
+    expect(screen.getByRole('heading', { name: /Team/i })).toBeInTheDocument();
+  });
+
+  // Test 5: Navbar Navigation Links Exists
+  it('renders the navbar links', () => {
+    render(<LandingPage />);
+    expect(screen.getByText(/Home/i)).toBeInTheDocument();
+    expect(screen.getByText(/About & FAQs/i)).toBeInTheDocument();
+    expect(screen.getByText(/Features/i)).toBeInTheDocument();
+    expect(screen.getByText(/Team/i)).toBeInTheDocument();
+  });
 }); //describe
