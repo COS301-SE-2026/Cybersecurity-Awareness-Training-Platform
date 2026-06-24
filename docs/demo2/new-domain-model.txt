@@ -17,32 +17,55 @@ USER
 - email (String)
 - passwordHash (String)
 - userType (enum: IP_ADMIN, ORGANISATION_ADMIN, ORGANISATION_TRAINEE, GENERAL_TRAINEE)
-- authStatus (enum: PENDING, ACTIVE, DISABLED)
+- authStatus (enum: PENDING_EMAIL_VERIFICATION, PENDING_INVITE_SETUP, ACTIVE, DISABLED)
+- emailVerifiedAt (DateTime?)
+- lastLoginAt (DateTime?)
+- disabledAt (DateTime?)
+- disabledReason (String?)
 - createdAt (DateTime)
 - updatedAt (DateTime)
 
 TRAINEE
-- traineeStatus (enum: ACTIVE, INACTIVE)
 
 GENERALTRAINEE
-- accessSource (enum: SELF_SIGNUP, INVITE, SEED, ADMIN_CREATED)
+- accessSource (enum: SELF_SIGNUP, INVITE, SEED, ADMIN_CREATED, ROLE_CHANGE)
 
 ORGANISATIONTRAINEE
-- employeeLabel (String?)
+- organisationRoleLabel (String?)
 - joinedAt (DateTime)
-- organisationUserStatus (enum: ACTIVE, INACTIVE)
+- organisationUserStatus (enum: ACTIVE, DISABLED)
+- createdFromInvitationId (String?)
+- disabledAt (DateTime?)
+- disabledReason (String?)
 
 ORGANISATIONADMIN
-- adminStatus (enum: ACTIVE, INACTIVE)
+- adminStatus (enum: ACTIVE, DISABLED)
 - joinedAt (DateTime)
+- disabledAt (DateTime?)
+- disabledReason (String?)
+- isInitialAdmin (Boolean)
+- createdFromInvitationId (String?)
 
 IPADMIN
-- adminStatus (enum: ACTIVE, INACTIVE)
+- adminStatus (enum: ACTIVE, DISABLED)
+- platformAdminRole (enum: SUPER_ADMIN, NORMAL_ADMIN)
+- joinedAt (DateTime)
+- revokedAt (DateTime?)
+- revokedReason (String?)
+
+TRAINEE inherits from USER
+GENERALTRAINEE inherits from TRAINEE
+ORGANISATIONTRAINEE inherits from TRAINEE
+ORGANISATIONADMIN inherits from USER
+IPADMIN inherits from USER
 
 ORGANISATION
 - id (String)
 - name (String)
-- status (enum: ACTIVE, INACTIVE, ARCHIVED)
+- description (String?)
+- size (Int?)
+- websiteUrl (String?)
+- status (enum: ONBOARDING, ACTIVE, SUSPENDED, DISABLED)
 - createdAt (DateTime)
 - updatedAt (DateTime)
 
@@ -61,15 +84,238 @@ ORGANISATIONCONTEXT
 - createdAt (DateTime)
 - updatedAt (DateTime)
 
-TRAINEE inherits from USER
-GENERALTRAINEE inherits from TRAINEE
-ORGANISATIONTRAINEE inherits from TRAINEE
-ORGANISATIONADMIN inherits from USER
-IPADMIN inherits from USER
-
 ORGANISATION 1 --- 0..* ORGANISATIONTRAINEE
-ORGANISATION 1 --- 1..* ORGANISATIONADMIN
+ORGANISATION 1 --- 0..* ORGANISATIONADMIN
 ORGANISATION 1 <>-- 0..* ORGANISATIONCONTEXT
+
+ORGANISATIONREGISTRATIONREQUEST
+- id (String)
+- organisationName (String)
+- organisationDescription (String?)
+- organisationSize (Int?)
+- organisationWebsiteUrl (String?)
+- representativeFirstName (String)
+- representativeLastName (String)
+- representativeEmail (String)
+- status (enum: PENDING, CONTACTED, REJECTED, APPROVED_WAITING_SETUP, ACTIVE)
+- rejectionReason (String?)
+- approvedAt (DateTime?)
+- approvedByUserId (String?)
+- rejectedAt (DateTime?)
+- rejectedByUserId (String?)
+- contactedAt (DateTime?)
+- contactedByUserId (String?)
+- organisationId (String?)
+- createdAt (DateTime)
+- updatedAt (DateTime)
+
+ORGANISATIONREGISTRATIONREQUEST 0..1 --- 0..1 ORGANISATION
+IPADMIN 0..1 --- 0..* ORGANISATIONREGISTRATIONREQUEST (approved/rejected/contacted by)
+
+INVITATION
+- id (String)
+- invitationType (enum: INITIAL_ORGANISATION_ADMIN, ORGANISATION_TRAINEE, ORGANISATION_ADMIN_PROMOTION, PLATFORM_ADMIN, PLATFORM_ADMIN_UPGRADE)
+- organisationId (String?)
+- invitedByUserId (String?)
+- targetUserId (String?)
+- targetEmail (String)
+- targetFirstName (String?)
+- targetLastName (String?)
+- status (enum: PENDING, SENT, FAILED_TO_SEND, ACCEPTED, COMPLETED, EXPIRED, REVOKED, REJECTED)
+- expiresAt (DateTime?)
+- emailSentAt (DateTime?)
+- acceptedAt (DateTime?)
+- completedAt (DateTime?)
+- rejectedAt (DateTime?)
+- revokedAt (DateTime?)
+- revokedByUserId (String?)
+- failureReason (String?)
+- createdAt (DateTime)
+- updatedAt (DateTime)
+
+Invitation validation by type:
+- `INITIAL_ORGANISATION_ADMIN`, `ORGANISATION_TRAINEE`, and `ORGANISATION_ADMIN_PROMOTION` require `organisationId`.
+- `ORGANISATION_ADMIN_PROMOTION` requires `targetUserId` to refer to an active organisation trainee in the same organisation.
+- `PLATFORM_ADMIN` and `PLATFORM_ADMIN_UPGRADE` must not be scoped to an organisation.
+
+INVITATIONPERMISSIONGRANT
+- id (String)
+- invitationId (String)
+- permissionId (String)
+- grantedByUserId (String?)
+
+ORGANISATIONPERMISSION
+- id (String)
+- permissionKey (enum: VIEW_ORGANISATION_ADMINS, INVITE_ORGANISATION_ADMINS, REMOVE_ORGANISATION_ADMINS, CHANGE_ORGANISATION_ADMIN_PERMISSIONS, VIEW_ORGANISATION_TRAINEES, INVITE_ORGANISATION_TRAINEES, REMOVE_ORGANISATION_TRAINEES, CHANGE_ORGANISATION_SECURITY_SETTINGS)
+- displayName (String)
+- description (String?)
+- permissionCategory (enum: ORGANISATION_ADMINS, ORGANISATION_TRAINEES, SECURITY, CONTENT, CAMPAIGNS, CONTEXT)
+- accessLevel (enum: READ, WRITE, ACTION)
+- impliesPermissionId (String?)
+- createdAt (DateTime)
+- updatedAt (DateTime)
+
+ORGANISATIONADMINPERMISSION
+- id (String)
+- organisationAdminId (String)
+- permissionId (String)
+- grantedByUserId (String?)
+- grantedAt (DateTime)
+- revokedAt (DateTime?)
+- revokedByUserId (String?)
+- createdAt (DateTime)
+- updatedAt (DateTime)
+
+INVITATION 1 <>-- 0..* ACTIONTOKEN
+INVITATION 1 <>-- 0..* INVITATIONPERMISSIONGRANT
+USER 0..1 --- 0..* INVITATION (target user)
+USER 0..1 --- 0..* INVITATION (invited by)
+ORGANISATION 0..1 --- 0..* INVITATION
+ORGANISATIONTRAINEE 0..1 --- 0..* INVITATION (target of organisation admin promotion)
+
+ORGANISATIONADMIN 1 <>-- 0..* ORGANISATIONADMINPERMISSION
+ORGANISATIONPERMISSION 1 --- 0..* ORGANISATIONADMINPERMISSION
+ORGANISATIONADMIN 0..1 --- 0..* ORGANISATIONADMINPERMISSION (granted by)
+ORGANISATIONPERMISSION 0..1 --- 0..* ORGANISATIONPERMISSION (implies)
+INVITATIONPERMISSIONGRANT 0..* --- 1 ORGANISATIONPERMISSION
+
+ORGANISATIONSECURITYSETTINGS
+- id (String)
+- organisationId (String)
+- enforceRememberMePolicy (Boolean)
+- allowRememberMe (Boolean)
+- maxRememberedSessionHours (Int?)
+- enforceRegularSessionLength (Boolean)
+- regularSessionLengthHours (Int?)
+- enforceIdleTimeout (Boolean)
+- idleTimeoutMinutes (Int?)
+- requireReauthenticationForSensitiveActions (Boolean)
+- allowTraineeEmailChange (Boolean)
+- updatedByUserId (String?)
+- updatedAt (DateTime)
+- createdAt (DateTime)
+
+USERSECURITYPREFERENCES
+- id (String)
+- userId (String)
+- preferredRegularSessionLengthHours (Int?)
+- preferredRememberMeSessionLengthHours (Int?)
+- preferredIdleTimeoutMinutes (Int?)
+- createdAt (DateTime)
+- updatedAt (DateTime)
+
+AUTHSESSION
+- id (String)
+- userId (String)
+- rememberMe (Boolean)
+- createdAt (DateTime)
+- lastActiveAt (DateTime)
+- expiresAt (DateTime)
+- idleTimeoutMinutes (Int?)
+- revokedAt (DateTime?)
+- revokedReason (enum: LOGOUT, LOGOUT_ALL, PASSWORD_RESET, PASSWORD_CHANGE, EMAIL_CHANGE, ADMIN_DISABLED, ORGANISATION_SUSPENDED, TOKEN_REUSE_DETECTED, EXPIRED, OTHER)
+- userAgent (String?)
+- ipAddress (String?)
+- deviceSummary (String?)
+- locationSummary (String?)
+- updatedAt (DateTime)
+
+REFRESHTOKEN
+- id (String)
+- authSessionId (String)
+- tokenHash (String)
+- issuedAt (DateTime)
+- expiresAt (DateTime)
+- usedAt (DateTime?)
+- revokedAt (DateTime?)
+- revokedReason (enum: ROTATED, LOGOUT, LOGOUT_ALL, PASSWORD_RESET, PASSWORD_CHANGE, EMAIL_CHANGE, TOKEN_REUSE_DETECTED, EXPIRED, OTHER)
+- replacedByTokenId (String?)
+- createdAt (DateTime)
+- updatedAt (DateTime)
+
+ACTIONTOKEN
+- id (String)
+- tokenHash (String)
+- purpose (enum: EMAIL_VERIFICATION, PASSWORD_RESET, EMAIL_CHANGE_VERIFICATION, INITIAL_ORGANISATION_ADMIN_SETUP, ORGANISATION_TRAINEE_INVITE, ORGANISATION_ADMIN_PROMOTION, PLATFORM_ADMIN_INVITE, PLATFORM_ADMIN_UPGRADE_CONFIRMATION)
+- userId (String?)
+- invitationId (String?)
+- emailChangeRequestId (String?)
+- organisationRegistrationRequestId (String?)
+- targetEmail (String?)
+- expiresAt (DateTime)
+- usedAt (DateTime?)
+- revokedAt (DateTime?)
+- revokedReason (String?)
+- createdAt (DateTime)
+- updatedAt (DateTime)
+
+EMAILCHANGEREQUEST
+- id (String)
+- userId (String)
+- oldEmail (String)
+- newEmail (String)
+- status (enum: PENDING, VERIFIED, EXPIRED, CANCELLED, REJECTED)
+- requestedAt (DateTime)
+- verifiedAt (DateTime?)
+- cancelledAt (DateTime?)
+- expiresAt (DateTime)
+- createdAt (DateTime)
+- updatedAt (DateTime)
+
+ORGANISATION 1 <>-- 1 ORGANISATIONSECURITYSETTINGS
+ORGANISATIONADMIN 0..1 --- 0..* ORGANISATIONSECURITYSETTINGS (updated by)
+
+USER 1 <>-- 0..1 USERSECURITYPREFERENCES
+USER 1 <>-- 0..* AUTHSESSION
+AUTHSESSION 1 <>-- 1..* REFRESHTOKEN
+REFRESHTOKEN 0..1 --- 0..1 REFRESHTOKEN (replaced by)
+
+USER 0..1 --- 0..* ACTIONTOKEN
+EMAILCHANGEREQUEST 1 <>-- 0..* ACTIONTOKEN
+ORGANISATIONREGISTRATIONREQUEST 0..1 --- 0..* ACTIONTOKEN
+
+USER 1 <>-- 0..* EMAILCHANGEREQUEST
+
+AUDITLOGENTRY
+- id (String)
+- actorUserId (String?)
+- actorType (enum: IP_ADMIN, ORGANISATION_ADMIN, ORGANISATION_TRAINEE, GENERAL_TRAINEE, SYSTEM)
+- organisationId (String?)
+- targetType (enum: USER, ORGANISATION, ORGANISATION_REGISTRATION_REQUEST, INVITATION, ORGANISATION_ADMIN_PERMISSION, ORGANISATION_SECURITY_SETTINGS, PLATFORM_ADMIN_ROLE, AUTH_SESSION, CAMPAIGN, OTHER, TOKEN, ACTION_TOKEN, REFRESH_TOKEN)
+- targetId (String?)
+- actionType (enum: CREATED, UPDATED, DISABLED, ENABLED, APPROVED, REJECTED, CONTACTED, INVITED, RESENT, REVOKED, ACCEPTED, COMPLETED, PROMOTED, DEMOTED, PERMISSIONS_CHANGED, SETTINGS_CHANGED, SUSPENDED, REACTIVATED, LOGIN, LOGOUT, TOKEN_REUSE_DETECTED)
+- outcome (enum: SUCCESS, FAILURE)
+- oldValues (Json?)
+- newValues (Json?)
+- metadata (Json?)
+- ipAddress (String?)
+- userAgent (String?)
+- createdAt (DateTime)
+
+EMAILDELIVERYLOG
+- id (String)
+- recipientEmail (String)
+- emailType (enum: EMAIL_VERIFICATION, PASSWORD_RESET, PASSWORD_CHANGED, EMAIL_CHANGE_CONFIRMATION, EMAIL_CHANGE_WARNING, ORGANISATION_REQUEST_RECEIVED, ORGANISATION_REQUEST_APPROVED, ORGANISATION_REQUEST_REJECTED, INITIAL_ORGANISATION_ADMIN_SETUP, ORGANISATION_TRAINEE_INVITE, ORGANISATION_ADMIN_PROMOTION_INVITE, PLATFORM_ADMIN_INVITE, PLATFORM_ADMIN_UPGRADE_CONFIRMATION, ROLE_CHANGED_NOTIFICATION)
+- relatedEntityType (enum: USER, INVITATION, ACTIONTOKEN, ORGANISATION_REGISTRATION_REQUEST, EMAIL_CHANGE_REQUEST, ORGANISATION, OTHER)
+- relatedEntityId (String?)
+- deliveryStatus (enum: PENDING, SENT, FAILED)
+- providerMessageId (String?)
+- sentAt (DateTime?)
+- failedAt (DateTime?)
+- failureReason (String?)
+- createdAt (DateTime)
+- updatedAt (DateTime)
+
+USER 0..1 --- 0..* AUDITLOGENTRY (actor)
+ORGANISATION 0..1 --- 0..* AUDITLOGENTRY
+AUDITLOGENTRY 0..* --- 0..1 USER (target, when targetType = USER)
+AUDITLOGENTRY 0..* --- 0..1 ORGANISATION (target, when targetType = ORGANISATION)
+
+EMAILDELIVERYLOG 0..* --- 0..1 USER
+EMAILDELIVERYLOG 0..* --- 0..1 INVITATION
+EMAILDELIVERYLOG 0..* --- 0..1 ACTIONTOKEN
+EMAILDELIVERYLOG 0..* --- 0..1 ORGANISATIONREGISTRATIONREQUEST
+EMAILDELIVERYLOG 0..* --- 0..1 EMAILCHANGEREQUEST
 
 CAMPAIGN
 - id (String)
@@ -80,6 +326,7 @@ CAMPAIGN
 - campaignType (enum: PREMADE_GENERAL, ORGANISATION_CUSTOM)
 - difficultyLevel (enum: BEGINNER, INTERMEDIATE, ADVANCED, ADAPTIVE)
 - status (enum: DRAFT, ACTIVE, PAUSED, COMPLETED, ARCHIVED)
+- publishedAt (DateTime?)
 - startDate (DateTime?)
 - endDate (DateTime?)
 - createdAt (DateTime)
@@ -152,18 +399,6 @@ TRAININGDOCUMENTCOMPONENT
 - id (String)
 - trainingDocumentId (String)
 
-QUIZCOMPONENT
-- id (String)
-- quizId (String)
-
-SIMULATIONCOMPONENT
-- id (String)
-- simulationId (String)
-
-TRAININGDOCUMENTCOMPONENT inherits from CAMPAIGNCOMPONENT 
-QUIZCOMPONENT inherits from CAMPAIGNCOMPONENT
-SIMULATIONCOMPONENT inherits from CAMPAIGNCOMPONENT
-
 TRAININGDOCUMENT
 - id (String)
 - createdByUserId (String?)
@@ -177,7 +412,12 @@ TRAININGDOCUMENT
 - createdAt (DateTime)
 - updatedAt (DateTime)
 
+TRAININGDOCUMENTCOMPONENT inherits from CAMPAIGNCOMPONENT 
 TRAININGDOCUMENTCOMPONENT 1 --- 1 TRAININGDOCUMENT
+
+QUIZCOMPONENT
+- id (String)
+- quizId (String)
 
 QUIZ
 - id (String)
@@ -256,6 +496,7 @@ QUIZRESULT
 - createdAt (DateTime)
 - updatedAt (DateTime)
 
+QUIZCOMPONENT inherits from CAMPAIGNCOMPONENT
 QUIZCOMPONENT 1 --- 1 QUIZ
 QUIZ 1 --- 0..* QUIZATTEMPT
 QUIZ 1 <>-- 1..* QUIZQUESTION
@@ -268,6 +509,10 @@ ATTEMPTANSWER 0..* --- 0..* ANSWEROPTION
 QUIZATTEMPT 1 <>-- 0..1 QUIZRESULT
 QUIZATTEMPT 1 <>-- 0..* ATTEMPTANSWER
 TRAINEE 1 --- 0..* QUIZATTEMPT
+
+SIMULATIONCOMPONENT
+- id (String)
+- simulationId (String)
 
 SIMULATION
 - id (String)
@@ -328,6 +573,7 @@ EMAILCLASSIFICATIONRESPONSE
 - createdAt (DateTime)
 - updatedAt (DateTime)
 
+SIMULATIONCOMPONENT inherits from CAMPAIGNCOMPONENT
 SIMULATIONCOMPONENT 1 --- 1 SIMULATION
 SIMULATEDINBOX inherits from SIMULATION
 SIMULATEDINBOX 1 <>-- 1..* SIMULATEDEMAIL
