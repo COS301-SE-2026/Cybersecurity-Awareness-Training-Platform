@@ -21,9 +21,9 @@ describe('LandingPage', () => {
   // Test 3: Features Section Exists
   it('renders the features section', () => {
     render(<LandingPage />);
-    expect(screen.getByText(/Phishing Simulations/i)).toBeInTheDocument();
-    expect(screen.getByText(/Interactive Training/i)).toBeInTheDocument();
-    expect(screen.getByText(/Knowledge Quizzes/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Phishing Simulations/i })).toBeInTheDocument;
+    expect(screen.getByRole('heading', { name: /Interactive Training/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Knowledge Quizzes/i })).toBeInTheDocument();
   });
 
   // Test 4: Team Section Exists
@@ -35,10 +35,10 @@ describe('LandingPage', () => {
   // Test 5: Navbar Navigation Links Exists
   it('renders the navbar links', () => {
     render(<LandingPage />);
-    expect(screen.getByText(/Home/i)).toBeInTheDocument();
-    expect(screen.getByText(/About & FAQs/i)).toBeInTheDocument();
-    expect(screen.getByText(/Features/i)).toBeInTheDocument();
-    expect(screen.getByText(/Team/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Home/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /About & FAQs/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Features/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Team/i })).toBeInTheDocument();
   });
 
   // Accessibility Test (Test 6): Login Link is Keyboard Accessible

@@ -297,18 +297,16 @@ describe('AppRoutes', () => {
     ).toBeInTheDocument();
   });
 
-  // unknown route redirects to '/login'
-  it('redirects unknown routes to /login', async () => {
+  // unknown route redirects to '/'
+  it('redirects unknown routes to /', async () => {
     renderAppRoutes({
       initialEntry: '/not-a-real-route',
     });
 
     await waitFor(() => {
-      expect(screen.getByTestId('location-path')).toHaveTextContent('/login');
+      expect(screen.getByTestId('location-path')).toHaveTextContent('/');
     });
 
-    expect(
-      await screen.findByRole('heading', { level: 1, name: /welcome back/i }),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/DON'T TAKE THE BAIT/i)).toBeInTheDocument();
   });
 });
