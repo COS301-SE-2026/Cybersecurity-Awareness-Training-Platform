@@ -99,7 +99,7 @@ export async function validateRefreshToken(input: {
 
 export async function rotateRefreshToken(input: {
   rawToken: string;
-  nextEcpiresAt: Date;
+  nextExpiresAt: Date;
   now?: Date;
 }): Promise<RotatedRefreshTokenResult> {
   const valid = await validateRefreshToken({ rawToken: input.rawToken, now: input.now });
@@ -114,7 +114,7 @@ export async function rotateRefreshToken(input: {
   const nextToken = await createRefreshToken({
     authSessionId: previousToken.authSessionId,
     tokenHash,
-    expiresAt: input.nextEcpiresAt,
+    expiresAt: input.nextExpiresAt,
   });
 
   await markRefreshTokenUsedAndRotated({
@@ -125,7 +125,7 @@ export async function rotateRefreshToken(input: {
   return { state: 'ROTATED', rawToken, token: nextToken, previousTokenId: previousToken.id };
 }
 
-export async function revokeRefreshTokensForSessions(input: {
+export async function revokeRefreshTokensForSession(input: {
   authSessionId: string;
   reason: RefreshTokenRevokedReason;
 }) {
@@ -136,7 +136,7 @@ export async function revokeRefreshTokensForSessions(input: {
 }
 
 export async function handleRefreshTokenReuse(authSessionId: string, tokenId: string) {
-  await revokeRefreshTokensForSessions({
+  await revokeRefreshTokensForSession({
     authSessionId,
     reason: 'TOKEN_REUSE_DETECTED',
   });
@@ -147,4 +147,14 @@ export async function handleRefreshTokenReuse(authSessionId: string, tokenId: st
   });
 
   return { authSessionId, tokenId };
+}
+
+export async function revokeRefreshTokenById(input: {
+  tokenId: string;
+  reason: RefreshTokenRevokedReason;
+}) {
+  return revokeRefreshToken({
+    id: input.tokenId,
+    revokedReason: input.reason,
+  });
 }
