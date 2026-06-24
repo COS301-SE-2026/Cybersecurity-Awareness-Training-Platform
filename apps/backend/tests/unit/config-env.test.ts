@@ -82,4 +82,25 @@ describe('parseEnv', () => {
       }),
     ).toThrow(/DATABASE_URL/);
   });
+
+  it('uses default SMTP config values that work with MailPit', () => {
+    const env = parseEnv(baseEnv);
+    expect(env.SMTP_HOST).toBe('localhost');
+    expect(env.SMTP_PORT).toBe(1025);
+    expect(env.SMTP_SECURE).toBe(false);
+    expect(env.SMTP_FROM_ADDRESS).toBe('noreply@insightful-phish.local');
+    expect(env.SMTP_FROM_NAME).toBe('Insightful Phish');
+    expect(env.SMTP_USER).toBeUndefined();
+    expect(env.SMTP_PASSWORD).toBeUndefined();
+  });
+
+  it('parses SMTP string values correctly', () => {
+    expect(parseEnv({ ...baseEnv, SMTP_SECURE: 'true' }).SMTP_SECURE).toBe(true);
+    expect(parseEnv({ ...baseEnv, SMTP_SECURE: 'false' }).SMTP_SECURE).toBe(false);
+  });
+
+  it('normalises empty SMTP values to be undefined', () => {
+    expect(parseEnv({ ...baseEnv, SMTP_USER: '' }).SMTP_USER).toBeUndefined();
+    expect(parseEnv({ ...baseEnv, SMTP_PASSWORD: '' }).SMTP_PASSWORD).toBeUndefined();
+  });
 });
