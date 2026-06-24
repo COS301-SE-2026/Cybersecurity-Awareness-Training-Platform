@@ -42,8 +42,6 @@ const baseInput = {
   text: 'Cool plain text body',
   html: '<p> AAA HTML Body</p>',
   emailType: 'EMAIL_VERIFICATION' as const,
-  relatedEntityType: 'ACTIONTOKEN' as const,
-  relatedEntityId: 'actiontoken01',
   actionTokenId: 'actiontoken01',
   userId: 'user01',
 };
@@ -70,10 +68,13 @@ describe('sendEmail', () => {
       data: {
         recipientEmail: 'developer@example.com',
         emailType: 'EMAIL_VERIFICATION',
-        fallbackRelatedEntityType: 'ACTIONTOKEN',
-        fallbackRelatedEntityId: 'actiontoken01',
+        fallbackRelatedEntityType: null,
+        fallbackRelatedEntityId: null,
         userId: 'user01',
         actionTokenId: 'actiontoken01',
+        organisationId: null,
+        organisationRegistrationRequestId: null,
+        invitationId: null,
         deliveryStatus: 'PENDING',
       },
     });
@@ -148,6 +149,9 @@ describe('sendEmail', () => {
         fallbackRelatedEntityId: null,
         actionTokenId: null,
         userId: null,
+        organisationId: null,
+        organisationRegistrationRequestId: null,
+        invitationId: null,
         deliveryStatus: 'PENDING',
       },
     });
@@ -173,5 +177,38 @@ describe('sendEmail', () => {
       messageId: 'smtpmessage01',
       deliveryLogId: 'emaillogfromtx',
     });
+  });
+
+  it('does not write fallback relation fields when a typed relation is provided', async () => {
+    const { sendEmail } = await import('../../src/services/email.service.js');
+
+    await sendEmail({
+      ...baseInput,
+      relatedEntityType: 'ACTIONTOKEN',
+      relatedEntityId: 'actiontoken01',
+    });
+
+    expect(emailDeliveryLogMock.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        actionTokenId: 'actiontoken01',
+        fallbackRelatedEntityType: null,
+        fallbackRelatedEntityId: null,
+      }),
+    });
+  });
+
+  it('rejects fallback only email logs if there is no relatedEntityType', async () => {
+    const { sendEmail } = await import('../../src/services/email.service.js');
+
+    await expect(
+      sendEmail({
+        to: 'developer@example.com',
+        subject: 'Testing Email 123!',
+        text: 'Cool plain text body',
+        emailType: 'PASSWORD_RESET',
+      }),
+    ).rejects.toThrow('Email logs without a typed relation must provide relatedEntityType');
+
+    expect(emailDeliveryLogMock.create).not.toHaveBeenCalled();
   });
 });

@@ -17,10 +17,17 @@ export interface SendEmailInput {
   text: string;
   html?: string;
   emailType: EmailDeliveryType;
-  relatedEntityType: EmailRelatedEntityType;
+
+  //fallback
+  relatedEntityType?: EmailRelatedEntityType;
   relatedEntityId?: string | null;
+
+  //typed
   userId?: string | null;
   actionTokenId?: string | null;
+  organisationId?: string | null;
+  organisationRegistrationRequestId?: string | null;
+  invitationId?: string | null;
 }
 
 export type SendEmailOutput =
@@ -35,15 +42,30 @@ export async function sendEmail(
   input: SendEmailInput,
   client: EmailPrismaClient = prisma,
 ): Promise<SendEmailOutput> {
+  const hasTypedRelationship = Boolean(
+    input.userId ||
+    input.actionTokenId ||
+    input.organisationId ||
+    input.organisationRegistrationRequestId ||
+    input.invitationId,
+  );
+
+  if (!hasTypedRelationship && !input.relatedEntityType) {
+    throw new Error('Email logs without a typed relation must provide relatedEntityType');
+  }
+
   const deliveryLog = await client.emailDeliveryLog.create({
     data: {
       recipientEmail: input.to,
       emailType: input.emailType,
-      fallbackRelatedEntityType: input.relatedEntityType,
-      fallbackRelatedEntityId: input.relatedEntityId ?? null,
+      fallbackRelatedEntityType: hasTypedRelationship ? null : input.relatedEntityType,
+      fallbackRelatedEntityId: hasTypedRelationship ? null : (input.relatedEntityId ?? null),
       userId: input.userId ?? null,
       actionTokenId: input.actionTokenId ?? null,
       deliveryStatus: 'PENDING',
+      organisationId: input.organisationId ?? null,
+      organisationRegistrationRequestId: input.organisationRegistrationRequestId ?? null,
+      invitationId: input.invitationId ?? null,
     },
   });
 

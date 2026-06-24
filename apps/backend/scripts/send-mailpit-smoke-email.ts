@@ -27,8 +27,6 @@ const result = await sendEmail({
     '<p>This message was generated using a script. </p>',
   ].join('\n'),
   emailType: 'EMAIL_VERIFICATION',
-  relatedEntityType: 'ACTIONTOKEN',
-  relatedEntityId: actionToken.id,
   actionTokenId: actionToken.id,
 });
 
