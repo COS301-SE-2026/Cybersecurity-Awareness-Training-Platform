@@ -2,12 +2,12 @@ import type { RefreshTokenRevokedReason } from '../generated/prisma/enums.js';
 import {
   createRefreshToken,
   findRefreshTokenByHash,
-  markRefreshTokenUsedAndRotated,
   revokeRefreshToken,
   revokeSessionRefreshTokens,
+  rotateRefreshTokenRecord,
   type CreateRefreshTokenInput,
 } from '../repositories/refresh-token.repository.js';
-import { revokeSessionById } from './auth-session.service.js';
+import { revokeSessionById, validateAuthSession } from './auth-session.service.js';
 import { generateOpaqueToken, hashOpaqueToken } from './token-hash.service.js';
 
 export type RefreshTokenState =
@@ -77,16 +77,29 @@ export async function validateRefreshToken(input: {
     };
   }
 
-  if (token.authSession.revokedAt) {
+  const sessionValidation = await validateAuthSession({
+    sessionId: token.authSessionId,
+    now,
+    touch: false,
+  });
+
+  if (sessionValidation.state === 'REVOKED') {
     return {
       state: 'SESSION_REVOKED',
       token,
     };
   }
 
-  if (token.authSession.expiresAt.getTime() <= now.getTime()) {
+  if (sessionValidation.state === 'EXPIRED' || sessionValidation.state === 'IDLE_TIMEOUT') {
     return {
       state: 'SESSION_EXPIRED',
+      token,
+    };
+  }
+
+  if (sessionValidation.state === 'MISSING') {
+    return {
+      state: 'SESSION_REVOKED',
       token,
     };
   }
@@ -111,16 +124,17 @@ export async function rotateRefreshToken(input: {
   const rawToken = generateOpaqueToken();
   const tokenHash = hashOpaqueToken(rawToken);
 
-  const nextToken = await createRefreshToken({
+  const nextToken = await rotateRefreshTokenRecord({
+    previousTokenId: previousToken.id,
     authSessionId: previousToken.authSessionId,
-    tokenHash,
-    expiresAt: input.nextExpiresAt,
+    nextTokenHash: tokenHash,
+    nextExpiresAt: input.nextExpiresAt,
   });
 
-  await markRefreshTokenUsedAndRotated({
-    id: previousToken.id,
-    replacedByTokenId: nextToken.id,
-  });
+  if (!nextToken) {
+    await handleRefreshTokenReuse(previousToken.authSessionId, previousToken.id);
+    return { state: 'REUSE_DETECTED', token: previousToken };
+  }
 
   return { state: 'ROTATED', rawToken, token: nextToken, previousTokenId: previousToken.id };
 }

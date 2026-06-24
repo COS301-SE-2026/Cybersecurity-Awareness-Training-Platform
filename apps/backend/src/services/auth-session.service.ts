@@ -80,11 +80,11 @@ export async function revokeSessionById(input: {
 export async function revokeSessionsForUser(input: {
   userId: string;
   reason: AuthSessionRevokedReason;
-  exceptSessionid?: string | null;
+  exceptSessionId?: string | null;
 }) {
   return revokeUserAuthSessions({
     userId: input.userId,
     revokedReason: input.reason,
-    exceptSessionId: input.exceptSessionid ?? null,
+    exceptSessionId: input.exceptSessionId ?? null,
   });
 }

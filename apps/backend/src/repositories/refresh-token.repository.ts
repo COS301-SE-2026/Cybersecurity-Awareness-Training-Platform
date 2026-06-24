@@ -76,3 +76,46 @@ export function revokeSessionRefreshTokens(
     },
   });
 }
+
+export function rotateRefreshTokenRecord(input: {
+  previousTokenId: string;
+  authSessionId: string;
+  nextTokenHash: string;
+  nextExpiresAt: Date;
+}) {
+  //transaction ensures atomic operation
+  return prisma.$transaction(async (tx) => {
+    const previousToken = await tx.refreshToken.findUnique({
+      where: { id: input.previousTokenId },
+    });
+
+    if (
+      !previousToken ||
+      previousToken.usedAt ||
+      previousToken.revokedAt ||
+      previousToken.replacedByTokenId
+    ) {
+      return null;
+    }
+
+    const nextToken = await tx.refreshToken.create({
+      data: {
+        authSessionId: input.authSessionId,
+        tokenHash: input.nextTokenHash,
+        expiresAt: input.nextExpiresAt,
+      },
+    });
+
+    await tx.refreshToken.update({
+      data: {
+        usedAt: new Date(),
+        revokedAt: new Date(),
+        revokedReason: 'ROTATED',
+        replacedByTokenId: nextToken.id,
+      },
+      where: { id: input.previousTokenId },
+    });
+
+    return nextToken;
+  });
+}

@@ -44,7 +44,7 @@ export type GuardOrganisationTraineeProfile = {
 };
 
 export type GuardOrganisationAdminProfile = {
-  adminStatus: 'ACTIVE' | 'INACTIVE';
+  adminStatus: 'ACTIVE' | 'DISABLED';
   organisation?: GuardOrganisation | null;
 };
 
