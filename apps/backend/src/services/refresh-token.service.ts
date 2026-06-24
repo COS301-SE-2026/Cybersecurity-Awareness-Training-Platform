@@ -9,6 +9,7 @@ import {
 } from '../repositories/refresh-token.repository.js';
 import { revokeSessionById, validateAuthSession } from './auth-session.service.js';
 import { generateOpaqueToken, hashOpaqueToken } from './token-hash.service.js';
+import { recordRefreshTokenReuseDetected } from './auth-audit.service.js';
 
 export type RefreshTokenState =
   | 'VALID'
@@ -62,7 +63,9 @@ export async function validateRefreshToken(input: {
   const now = input.now ?? new Date();
 
   if (token.usedAt || token.replacedByTokenId) {
-    await handleRefreshTokenReuse(token.authSessionId, token.id);
+    await handleRefreshTokenReuse(token.authSessionId, token.id, {
+      userId: token.authSession.userId,
+    });
     return { state: 'REUSE_DETECTED', token };
   }
 
@@ -149,7 +152,11 @@ export async function revokeRefreshTokensForSession(input: {
   });
 }
 
-export async function handleRefreshTokenReuse(authSessionId: string, tokenId: string) {
+export async function handleRefreshTokenReuse(
+  authSessionId: string,
+  tokenId: string,
+  input: { userId?: string | null; ipAddress?: string | null; userAgent?: string | null } = {},
+) {
   await revokeRefreshTokensForSession({
     authSessionId,
     reason: 'TOKEN_REUSE_DETECTED',
@@ -158,6 +165,13 @@ export async function handleRefreshTokenReuse(authSessionId: string, tokenId: st
   await revokeSessionById({
     sessionId: authSessionId,
     reason: 'TOKEN_REUSE_DETECTED',
+  });
+
+  await recordRefreshTokenReuseDetected({
+    userId: input.userId ?? null,
+    authSessionId,
+    refreshTokenId: tokenId,
+    metadata: { ipAddress: input.ipAddress ?? null, userAgent: input.userAgent ?? null },
   });
 
   return { authSessionId, tokenId };
