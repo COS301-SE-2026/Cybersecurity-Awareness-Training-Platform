@@ -17,4 +17,12 @@ describe('LandingPage', () => {
     render(<LandingPage />);
     expect(screen.getByRole('link', { name: /login/i })).toBeInTheDocument();
   });
-});
+
+  // Test 3: Features Section Exists
+  it('renders the features section', () => {
+    render(<LandingPage />);
+    expect(screen.getByText(/Phishing Simulations/i)).toBeInTheDocument();
+    expect(screen.getByText(/Interactive Training/i)).toBeInTheDocument();
+    expect(screen.getByText(/Knowledge Quizzes/i)).toBeInTheDocument();
+  });
+}); //describe
