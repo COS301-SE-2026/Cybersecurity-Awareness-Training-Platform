@@ -21,7 +21,7 @@ describe('LandingPage', () => {
   // Test 3: Features Section Exists
   it('renders the features section', () => {
     render(<LandingPage />);
-    expect(screen.getByRole('heading', { name: /Phishing Simulations/i })).toBeInTheDocument;
+    expect(screen.getByRole('heading', { name: /Phishing Simulations/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /Interactive Training/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /Knowledge Quizzes/i })).toBeInTheDocument();
   });
