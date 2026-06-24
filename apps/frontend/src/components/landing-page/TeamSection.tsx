@@ -24,7 +24,7 @@ function TeamSection() {
             </h3>
 
             {/* ROLE */}
-            <p className="font-jost font-regular text-xl">Team Lead</p>
+            <p className="font-jost font-regular text-dark-pink text-xl">Team Lead</p>
 
             {/* LINKEDIN and GITHUB */}
             <ul className="flex justify-center mt-2 space-x-2">
@@ -62,7 +62,7 @@ function TeamSection() {
             </h3>
 
             {/* ROLE */}
-            <p className="font-jost font-regular text-xl">Frontend</p>
+            <p className="font-jost text-dark-pink font-regular text-xl">Frontend</p>
 
             {/* LINKEDIN and GITHUB */}
             <ul className="flex justify-center mt-2 space-x-2">
@@ -100,7 +100,7 @@ function TeamSection() {
             </h3>
 
             {/* ROLE */}
-            <p className="font-jost font-regular text-xl">Full--Stack</p>
+            <p className="font-jost text-dark-pink font-regular text-xl">Full--Stack</p>
 
             {/* LINKEDIN and GITHUB */}
             <ul className="flex justify-center mt-2 space-x-2">
@@ -138,7 +138,7 @@ function TeamSection() {
             </h3>
 
             {/* ROLE */}
-            <p className="font-jost font-regular text-xl">Integration & QA</p>
+            <p className="font-jost text-dark-pink font-regular text-xl">Integration & QA</p>
 
             {/* LINKEDIN and GITHUB */}
             <ul className="flex justify-center mt-2 space-x-2">
@@ -176,7 +176,7 @@ function TeamSection() {
             </h3>
 
             {/* ROLE */}
-            <p className="font-jost font-regular text-xl">Backend</p>
+            <p className="font-jost text-dark-pink font-regular text-xl">Backend</p>
 
             {/* LINKEDIN and GITHUB */}
             <ul className="flex justify-center mt-2 space-x-2">
