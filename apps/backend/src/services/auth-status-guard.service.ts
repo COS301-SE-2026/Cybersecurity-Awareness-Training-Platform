@@ -157,7 +157,7 @@ function statusCodeForFailure(code: AuthGuardFailureCode): 401 | 403 | 409 {
     code === 'ORGANISATION_ARCHIVED' ||
     code === 'ORGANISATION_NOT_ACTIVE'
   ) {
-    return 409;
+    return 403;
   }
   return 403;
 }
@@ -230,4 +230,86 @@ export function ensureUserCanAuthenticate(subject: GuardAuthSubject): AuthGuardR
   }
 
   return failure('USER_NOT_ACTIVE');
+}
+
+export type RoleGuardFailureCode =
+  | 'PLATFORM_ADMIN_REQUIRED'
+  | 'ORGANISATION_ADMIN_REQUIRED'
+  | 'ORGANISATION_MEMBER_REQUIRED'
+  | 'SAME_ORGANISATION_REQUIRED';
+
+export type RoleGuardResult =
+  | { allowed: true }
+  | { allowed: false; code: RoleGuardFailureCode; statusCode: 403; message: string };
+
+function roleFailure(code: RoleGuardFailureCode): RoleGuardResult {
+  return {
+    allowed: false,
+    code,
+    statusCode: 403,
+    message: roleFailureMessage(code),
+  };
+}
+function roleFailureMessage(code: RoleGuardFailureCode): string {
+  switch (code) {
+    case 'PLATFORM_ADMIN_REQUIRED':
+      return 'Platform admin access is required';
+    case 'ORGANISATION_ADMIN_REQUIRED':
+      return 'Organisation admin access is required';
+    case 'ORGANISATION_MEMBER_REQUIRED':
+      return 'Organisation membership is required';
+    case 'SAME_ORGANISATION_REQUIRED':
+    default:
+      return 'Access is limited to the same organisation';
+  }
+}
+
+export function ensurePlatformAdmin(subject: GuardAuthSubject): RoleGuardResult {
+  if (subject.user?.userType === 'IP_ADMIN' && subject.ipAdminProfile?.adminStatus === 'ACTIVE') {
+    return { allowed: true };
+  }
+  return roleFailure('PLATFORM_ADMIN_REQUIRED');
+}
+
+export function ensureOrganisationAdmin(subject: GuardAuthSubject): RoleGuardResult {
+  if (
+    subject.user?.userType === 'ORGANISATION_ADMIN' &&
+    subject.organisationAdminProfile?.adminStatus === 'ACTIVE'
+  ) {
+    return { allowed: true };
+  }
+  return roleFailure('ORGANISATION_ADMIN_REQUIRED');
+}
+
+export function ensureOrganisationMember(subject: GuardAuthSubject): RoleGuardResult {
+  if (
+    subject.user?.userType === 'ORGANISATION_ADMIN' &&
+    subject.organisationAdminProfile?.adminStatus === 'ACTIVE' &&
+    subject.organisationAdminProfile?.organisation
+  ) {
+    return { allowed: true };
+  }
+
+  if (
+    subject.user?.userType === 'ORGANISATION_TRAINEE' &&
+    subject.organisationTraineeProfile?.organisation
+  ) {
+    return { allowed: true };
+  }
+
+  return roleFailure('ORGANISATION_MEMBER_REQUIRED');
+}
+
+export function ensureSameOrganisation(
+  subject: GuardAuthSubject,
+  organisationId: string,
+): RoleGuardResult {
+  if (
+    (subject.organisationAdminProfile?.organisation?.id ??
+      subject.organisationTraineeProfile?.organisation?.id ??
+      null) === organisationId
+  ) {
+    return { allowed: true };
+  }
+  return roleFailure('SAME_ORGANISATION_REQUIRED');
 }
