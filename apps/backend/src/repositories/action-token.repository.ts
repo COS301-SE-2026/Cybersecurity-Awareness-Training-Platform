@@ -1,5 +1,4 @@
-import type { Prisma, PrismaClient } from '../generated/prisma/client.js';
-import type { ActionTokenPurpose } from '../generated/prisma/client.js';
+import type { Prisma, PrismaClient, ActionTokenPurpose } from '../generated/prisma/client.js';
 import { prisma } from '../lib/prisma.js';
 
 type ActionTokenClient = PrismaClient | Prisma.TransactionClient;

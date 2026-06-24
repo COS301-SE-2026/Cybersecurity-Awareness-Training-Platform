@@ -81,7 +81,7 @@ export function ensureActiveUser(user: GuardUser | null | undefined): AuthGuardR
 export function ensureActiveTraineeProfile(
   traineeProfile: GuardTraineeProfile | null | undefined,
 ): AuthGuardResult {
-  if (!traineeProfile || traineeProfile.traineeStatus !== 'ACTIVE') {
+  if (traineeProfile?.traineeStatus !== 'ACTIVE') {
     return failure('TRAINEE_PROFILE_INACTIVE');
   }
   return { allowed: true };
@@ -90,7 +90,7 @@ export function ensureActiveTraineeProfile(
 export function ensureActiveOrganisationUser(
   organisationProfile: GuardOrganisationTraineeProfile | null | undefined,
 ): AuthGuardResult {
-  if (!organisationProfile || organisationProfile.organisationUserStatus !== 'ACTIVE') {
+  if (organisationProfile?.organisationUserStatus !== 'ACTIVE') {
     return failure('ORGANISATION_USER_INACTIVE');
   }
   return { allowed: true };
@@ -99,7 +99,7 @@ export function ensureActiveOrganisationUser(
 export function ensureActiveOrganisationAdmin(
   organisationAdminProfile: GuardOrganisationAdminProfile | null | undefined,
 ): AuthGuardResult {
-  if (!organisationAdminProfile || organisationAdminProfile.adminStatus !== 'ACTIVE') {
+  if (organisationAdminProfile?.adminStatus !== 'ACTIVE') {
     return failure('ADMIN_DISABLED');
   }
   return { allowed: true };
@@ -108,7 +108,7 @@ export function ensureActiveOrganisationAdmin(
 export function ensureActiveIpAdmin(
   ipAdminProfile: GuardIpAdminProfile | null | undefined,
 ): AuthGuardResult {
-  if (!ipAdminProfile || ipAdminProfile.adminStatus !== 'ACTIVE') {
+  if (ipAdminProfile?.adminStatus !== 'ACTIVE') {
     return failure('IP_ADMIN_DISABLED');
   }
   return { allowed: true };

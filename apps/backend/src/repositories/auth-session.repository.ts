@@ -1,5 +1,4 @@
-import type { Prisma, PrismaClient } from '../generated/prisma/client.js';
-import type { AuthSessionRevokedReason } from '../generated/prisma/client.js';
+import type { Prisma, PrismaClient, AuthSessionRevokedReason } from '../generated/prisma/client.js';
 import { prisma } from '../lib/prisma.js';
 
 type AuthSessionClient = PrismaClient | Prisma.TransactionClient;

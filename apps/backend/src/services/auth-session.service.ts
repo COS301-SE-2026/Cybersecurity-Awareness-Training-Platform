@@ -17,14 +17,14 @@ export type ValidateAuthSessionResult =
   | { state: 'ACTIVE'; session: AuthSessionModel }
   | { state: Exclude<AuthSessionState, 'ACTIVE'>; session?: AuthSessionModel };
 
-export function calculateSessionExpiresAr(input: {
+export function calculateSessionExpiresAt(input: {
   now?: Date;
   rememberMe: boolean;
   regularSessionSeconds: number;
   rememberedSessionSeconds: number;
 }) {
   const now = input.now ?? new Date();
-  const seconds = input.rememberMe ? input.regularSessionSeconds : input.regularSessionSeconds;
+  const seconds = input.rememberMe ? input.rememberedSessionSeconds : input.regularSessionSeconds;
   return new Date(now.getTime() + seconds * 1000);
 }
 
@@ -77,7 +77,7 @@ export async function revokeSessionById(input: {
   });
 }
 
-export async function revokesessionsForUser(input: {
+export async function revokeSessionsForUser(input: {
   userId: string;
   reason: AuthSessionRevokedReason;
   exceptSessionid?: string | null;
