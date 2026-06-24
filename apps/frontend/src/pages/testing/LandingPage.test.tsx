@@ -40,4 +40,12 @@ describe('LandingPage', () => {
     expect(screen.getByText(/Features/i)).toBeInTheDocument();
     expect(screen.getByText(/Team/i)).toBeInTheDocument();
   });
+
+  // Accessibility Test (Test 6): Login Link is Keyboard Accessible
+  it('login link is keyboard accessible', () => {
+    render(<LandingPage />);
+    const Login_Link = screen.getByRole('link', { name: /login/i });
+    Login_Link.focus();
+    expect(Login_Link).toHaveFocus();
+  });
 }); //describe
