@@ -7,11 +7,11 @@ import {
 
 export async function getSetupContext(req: Request, res: Response) {
   try {
-    const response = await getSetupTokenContext(req.params.token);
+    const response = await getSetupTokenContext(setupTokenParam(req));
     return res.status(200).json(response);
   } catch (error) {
     if (error instanceof SetupFlowError) {
-      return res.status(error.statusCode).json()({
+      return res.status(error.statusCode).json({
         error: error.error,
         message: error.message,
       });
@@ -22,7 +22,7 @@ export async function getSetupContext(req: Request, res: Response) {
 
 export async function completeSetup(req: Request, res: Response) {
   try {
-    const response = await completeSetupWithToken(req.params.token, req.body);
+    const response = await completeSetupWithToken(setupTokenParam(req), req.body);
     return res.status(201).json(response);
   } catch (error) {
     if (error instanceof SetupFlowError) {
@@ -33,4 +33,14 @@ export async function completeSetup(req: Request, res: Response) {
     }
     throw error;
   }
+}
+
+function setupTokenParam(req: Request): string {
+  const token = req.params.token;
+
+  if (typeof token === 'string') {
+    return token;
+  }
+
+  throw new SetupFlowError(401, 'SETUP_TOKEN_INVALID', 'Setup link is invalid');
 }

@@ -10,26 +10,26 @@ export const setupRouter = Router();
 /**
  * @openapi
  * /setup/token/{token}/context:
- *  get:
- *    tags: [setup]
- *    summary: Get setup-token context
- *    description: returns safe setup context for a public setup token without consuming
- *    security: []
- *    parameters:
- *      - $ref: '#/components/parameters/SetupTokenPathParam'
- *    resonses:
- *      200:
- *        $ref: '#/components/responses/SetupTokenContextOk'
- *      400:
- *        $ref: '#/components/responses/BadRequest'
- *      401:
- *        $ref: '#/components/responses/Unauthorised'
- *      409:
- *        $ref: '#/components/responses/Conflict'
- *      429:
- *        $ref: '#/components/responses/AuthRateLimit'
- *      500:
- *        $ref: '#/components/responses/InternalServerError'
+ *   get:
+ *     tags: [Setup]
+ *     summary: Get setup-token context
+ *     description: Returns safe setup context for a public setup token without consuming it.
+ *     security: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/SetupTokenPathParam'
+ *     responses:
+ *       200:
+ *         $ref: '#/components/responses/SetupTokenContextOk'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ *       429:
+ *         $ref: '#/components/responses/AuthRateLimited'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 
 setupRouter.get(
@@ -42,26 +42,28 @@ setupRouter.get(
 /**
  * @openapi
  * /setup/token/{token}/complete:
- *  post:
- *    tags: [setup]
- *    summary: Complete token driven account setup
- *    description: Complete invite account creation and consume the setup token only after the transaction succeeds.
- *    security: []
- *    parameters:
- *      - $ref: '#/components/parameters/SetupTokenPathParam'
- *    resonses:
- *      200:
- *        $ref: '#/components/responses/SetupCompleteCreated'
- *      400:
- *        $ref: '#/components/responses/BadRequest'
- *      401:
- *        $ref: '#/components/responses/Unauthorised'
- *      409:
- *        $ref: '#/components/responses/Conflict'
- *      429:
- *        $ref: '#/components/responses/AuthRateLimit'
- *      500:
- *        $ref: '#/components/responses/InternalServerError'
+ *   post:
+ *     tags: [Setup]
+ *     summary: Complete token-driven account setup
+ *     description: Completes invite/setup-token account creation and consumes the setup token only after the setup transaction succeeds.
+ *     security: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/SetupTokenPathParam'
+ *     requestBody:
+ *       $ref: '#/components/requestBodies/SetupComplete'
+ *     responses:
+ *       201:
+ *         $ref: '#/components/responses/SetupCompleteCreated'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ *       429:
+ *         $ref: '#/components/responses/AuthRateLimited'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 
 setupRouter.post(
