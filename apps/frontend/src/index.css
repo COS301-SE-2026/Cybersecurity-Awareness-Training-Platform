@@ -37,6 +37,7 @@ section {
   --ip-deep-purple: rgb(13, 0, 134);
   --ip-light-bg-purple: rgb(215, 219, 255);
   --ip-purple: rgb(49, 0, 228);
+  --ip-hover-purple: rgb(109, 69, 255);
   --ip-dark-pink: rgb(70, 0, 151);
   --ip-pink: rgb(132, 0, 255);
   --ip-white-purple: rgb(245, 248, 255);
@@ -86,6 +87,10 @@ section {
 
 .bg-main-purple {
   background-color: var(--ip-purple);
+}
+
+.bg-hover-purple {
+  background-color: var(--ip-hover-purple);
 }
 
 .bg-light-purple {

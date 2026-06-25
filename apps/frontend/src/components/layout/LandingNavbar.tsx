@@ -1,4 +1,8 @@
+import { useState } from 'react';
+import GetStartedModal from '../landing-page/GetStartedModal';
+
 function LandingNavbar() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
   return (
     <header className="fixed w-full z-20 top-0 start-0">
       <nav className="bg-white-purple">
@@ -18,6 +22,7 @@ function LandingNavbar() {
           <div className="flex items-center space-x-6 rtl:space-x-reverse mt-1">
             <button
               type="button"
+              onClick={() => setIsModalOpen(true)}
               className="cursor-pointer font-jost tracking-wider text-xl text-white font-regular bg-main-purple leading-5 px-4 py-2.5 focus:outline-none"
             >
               Get Started
@@ -56,6 +61,9 @@ function LandingNavbar() {
           </div>
         </div>
       </nav>
+
+      {/* Render Modal */}
+      <GetStartedModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </header>
   );
 }
