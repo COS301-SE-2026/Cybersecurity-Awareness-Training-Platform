@@ -9,6 +9,7 @@ import QuizPage from '../pages/QuizPage';
 import ResultsPage from '../pages/ResultsPage';
 import ProtectedRoute from './ProtectedRoute';
 import CampaignsPage from '../pages/CampaignsPage';
+import LandingPage from '../pages/LandingPage';
 
 function AppRoutes() {
   return (
@@ -37,7 +38,8 @@ function AppRoutes() {
         <Route path="/campaigns" element={<CampaignsPage />} />
       </Route>
 
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      <Route path="/" element={<LandingPage />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
