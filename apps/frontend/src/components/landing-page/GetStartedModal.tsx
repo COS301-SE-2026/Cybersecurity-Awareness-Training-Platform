@@ -1,10 +1,28 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
 type GetStartedModalProps = Readonly<{
   isOpen: boolean;
   onClose: () => void;
 }>;
 
 function GetStartedModal({ isOpen, onClose }: GetStartedModalProps) {
+  const navigate = useNavigate();
+  const [accountType, setAccountType] = useState<'individual' | 'organisation'>('individual');
+
+  function handleContinueToRegistration() {
+    if (accountType === 'individual') {
+      navigate('/register');
+    } else {
+      // CHANGE LATER FOR ORGANISATION
+      // Yes, this WILL BE CHANGED LATER when I create the Organisation Registration Request page...
+      // DO NOT REQUEST THIS AS A CHANGE FOR THE PULL REQUEST. It will be addressed later.
+      navigate('/');
+    }
+  }
+
   if (!isOpen) return null;
+
   return (
     <div
       id="select-modal"
@@ -42,15 +60,16 @@ function GetStartedModal({ isOpen, onClose }: GetStartedModalProps) {
               <li>
                 <input
                   type="radio"
-                  id="job-1"
-                  name="job"
-                  value="job-1"
-                  className="hidden peer"
+                  id="individual"
+                  name="accountType"
+                  checked={accountType === 'individual'}
+                  onChange={() => setAccountType('individual')}
+                  className="sr-only peer"
                   required
                 />
                 <label
-                  htmlFor="job-1"
-                  className="inline-flex items-center w-full p-5 text-body bg-neutral-primary-soft border-1 border-default cursor-pointer peer-checked:hover:bg-brand-softer peer-checked:border-brand-subtle peer-checked:bg-brand-softer hover:bg-neutral-secondary-medium peer-checked:text-fg-brand-strong"
+                  htmlFor="individual"
+                  className="inline-flex items-center w-full p-5 text-body bg-neutral-primary-soft border-1 border-default cursor-pointer peer-checked:hover:bg-brand-softer peer-checked:border-brand-subtle peer-checked:bg-brand-softer hover:bg-neutral-secondary-medium peer-checked:text-fg-brand-strong peer-focus-visible:ring-2 peer-focus-visible:ring-blue-500 peer-focus-visible:ring-offset-2"
                 >
                   <div className="flex items-center justify-center w-9 h-9 bg-ip-purple text-fg-brand-strong">
                     <span className="material-icons-sharp text-deep-purple">account_box</span>
@@ -70,15 +89,16 @@ function GetStartedModal({ isOpen, onClose }: GetStartedModalProps) {
               <li>
                 <input
                   type="radio"
-                  id="job-2"
-                  name="job"
-                  value="job-2"
-                  className="hidden peer"
+                  id="organisation"
+                  name="accountType"
+                  checked={accountType === 'organisation'}
+                  onChange={() => setAccountType('organisation')}
+                  className="sr-only peer"
                   required
                 />
                 <label
-                  htmlFor="job-2"
-                  className="inline-flex items-center w-full p-5 text-body bg-neutral-primary-soft border-1 border-default cursor-pointer peer-checked:hover:bg-brand-softer peer-checked:border-brand-subtle peer-checked:bg-brand-softer hover:bg-neutral-secondary-medium peer-checked:text-fg-brand-strong"
+                  htmlFor="organisation"
+                  className="inline-flex items-center w-full p-5 text-body bg-neutral-primary-soft border-1 border-default cursor-pointer peer-checked:hover:bg-brand-softer peer-checked:border-brand-subtle peer-checked:bg-brand-softer hover:bg-neutral-secondary-medium peer-checked:text-fg-brand-strong peer-focus-visible:ring-2 peer-focus-visible:ring-blue-500 peer-focus-visible:ring-offset-2"
                 >
                   <div className="flex items-center justify-center w-9 h-9 bg-ip-purple text-fg-brand-strong">
                     <span className="material-icons-sharp text-deep-purple">business</span>
@@ -96,6 +116,7 @@ function GetStartedModal({ isOpen, onClose }: GetStartedModalProps) {
             </ul>
             <button
               type="submit"
+              onClick={handleContinueToRegistration}
               className="cursor-pointer w-full inline-flex items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm px-4 py-2.5 focus:outline-none"
             >
               <span> Continue to Registration </span>
