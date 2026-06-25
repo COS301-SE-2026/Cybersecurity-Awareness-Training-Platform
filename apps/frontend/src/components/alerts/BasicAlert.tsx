@@ -1,12 +1,12 @@
 import { AlertVariants, type AlertVariant } from './alertVariants';
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 
 type BasicAlertProps = {
   variant: AlertVariant;
   children: React.ReactNode;
 };
 
-function BasicAlert({ variant, children, onClose }: BasicAlertProps) {
+function BasicAlert({ variant, children }: BasicAlertProps) {
   const style = AlertVariants[variant];
   const [visible, setVisible] = useState(true);
 
