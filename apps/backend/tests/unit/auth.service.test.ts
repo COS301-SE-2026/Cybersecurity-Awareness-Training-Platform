@@ -18,11 +18,23 @@ const passwordServiceMock = vi.hoisted(() => ({
   verifyPassword: vi.fn(),
 }));
 
+const actionTokenServiceMock = vi.hoisted(() => ({
+  issueActionToken: vi.fn(),
+}));
+
+const authEmailHookServiceMock = vi.hoisted(() => ({
+  requestAuthEmailSend: vi.fn(),
+}));
+
 const authTokenServiceMock = vi.hoisted(() => ({
   generateAuthToken: vi.fn(),
 }));
 
 vi.mock('../../src/repositories/user.repository.js', () => userRepositoryMock);
+
+vi.mock('../../src/services/action-token.service.js', () => actionTokenServiceMock);
+
+vi.mock('../../src/services/auth-email-hook.service.js', () => authEmailHookServiceMock);
 
 vi.mock('../../src/services/password.service.js', () => passwordServiceMock);
 
@@ -43,15 +55,21 @@ describe('registerUser', () => {
       email: 'johan@example.com',
       passwordHash: 'hashed-password',
       userType: 'GENERAL_TRAINEE',
-      authStatus: 'ACTIVE',
+      authStatus: 'PENDING_EMAIL_VERIFICATION',
       createdAt: new Date('2026-05-12T06:00:00.000Z'),
     });
+    actionTokenServiceMock.issueActionToken.mockResolvedValue({
+      rawToken: 'raw-action-token',
+      token: { id: 'action-token-1' },
+    });
+    authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue({ queued: false });
 
     const response = await registerUser({
       email: 'johan@example.com',
       firstName: 'Johan',
       lastName: 'Nel',
       password: 'mySecurePassword123!',
+      confirmPassword: 'mySecurePassword123!',
     });
 
     expect(userRepositoryMock.findUserByEmail).toHaveBeenCalledWith('johan@example.com');
@@ -62,6 +80,21 @@ describe('registerUser', () => {
       lastName: 'Nel',
       passwordHash: 'hashed-password',
     });
+    expect(actionTokenServiceMock.issueActionToken).toHaveBeenCalledWith({
+      purpose: 'EMAIL_VERIFICATION',
+      userId: 'user-1',
+      targetEmail: 'johan@example.com',
+      expiresAt: expect.any(Date),
+    });
+    expect(authEmailHookServiceMock.requestAuthEmailSend).toHaveBeenCalledWith({
+      emailType: 'EMAIL_VERIFICATION',
+      recipientEmail: 'johan@example.com',
+      userId: 'user-1',
+      actionTokenId: 'action-token-1',
+      templateData: {
+        actionToken: 'raw-action-token',
+      },
+    });
     expect(response).toEqual({
       user: {
         id: 'user-1',
@@ -69,9 +102,10 @@ describe('registerUser', () => {
         lastName: 'Nel',
         email: 'johan@example.com',
         userType: 'GENERAL_TRAINEE',
-        authStatus: 'ACTIVE',
+        authStatus: 'PENDING_EMAIL_VERIFICATION',
         createdAt: '2026-05-12T06:00:00.000Z',
       },
+      verificationEmailQueued: false,
     });
     expect(response.user).not.toHaveProperty('passwordHash');
   });
@@ -88,11 +122,14 @@ describe('registerUser', () => {
         firstName: 'Johan',
         lastName: 'Nel',
         password: 'mySecurePassword123!',
+        confirmPassword: 'mySecurePassword123!',
       }),
     ).rejects.toBeInstanceOf(AuthConflictError);
 
     expect(passwordServiceMock.hashPassword).not.toHaveBeenCalled();
     expect(userRepositoryMock.createGeneralTraineeUser).not.toHaveBeenCalled();
+    expect(actionTokenServiceMock.issueActionToken).not.toHaveBeenCalled();
+    expect(authEmailHookServiceMock.requestAuthEmailSend).not.toHaveBeenCalled();
   });
 });
 

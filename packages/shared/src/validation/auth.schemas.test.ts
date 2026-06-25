@@ -14,6 +14,7 @@ describe('auth validation schemas', () => {
     overrides: Partial<{
       email: string;
       password: string;
+      confirmPassword: string;
       firstName: string;
       lastName: string;
       role: string;
@@ -21,6 +22,7 @@ describe('auth validation schemas', () => {
   ) => ({
     email: 'trainee@example.com',
     password: 'StrongerPass1!',
+    confirmPassword: 'StrongerPass1!',
     firstName: 'Jane',
     lastName: 'Doe',
     ...overrides,
@@ -50,6 +52,7 @@ describe('auth validation schemas', () => {
     expect(result).toEqual({
       email: 'trainee@example.com',
       password: 'StrongerPass1!',
+      confirmPassword: 'StrongerPass1!',
       firstName: 'Jane',
       lastName: 'Doe',
     });
@@ -59,6 +62,7 @@ describe('auth validation schemas', () => {
     const result = authRegisterRequestSchema.safeParse({
       email: 'not-an-email',
       password: 'short',
+      confirmPassword: 'different-password',
       firstName: '',
       lastName: ' ',
     });
@@ -77,6 +81,15 @@ describe('auth validation schemas', () => {
     const result = authRegisterRequestSchema.safeParse(validRegisterInput({ role: 'IP_ADMIN' }));
 
     expect(result.success).toBe(false);
+  });
+
+  it('rejects register input when password confirmation does not match', () => {
+    const result = authRegisterRequestSchema.safeParse(
+      validRegisterInput({ confirmPassword: 'DifferentPass1!' }),
+    );
+
+    expect(result.success).toBe(false);
+    expect(issueMessagesFor(result)).toContain('Password confirmation must match password.');
   });
 
   it.each([

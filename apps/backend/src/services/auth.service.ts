@@ -7,8 +7,12 @@ import type {
 } from '@insightful-phish/shared';
 import { toPublicUserDto } from '../mappers/user.mapper.js';
 import * as UserRepository from '../repositories/user.repository.js';
+import { issueActionToken } from './action-token.service.js';
+import { requestAuthEmailSend } from './auth-email-hook.service.js';
 import { generateAuthToken } from './auth-token.service.js';
 import * as PasswordService from './password.service.js';
+
+const EMAIL_VERIFICATION_TOKEN_TTL_HOURS = 24;
 
 export class AuthConflictError extends Error {
   constructor(message = 'A user with the provided email already exists') {
@@ -42,7 +46,27 @@ export async function registerUser(
     passwordHash,
   });
 
-  return { user: toPublicUserDto(newUser) };
+  const verification = await issueActionToken({
+    purpose: 'EMAIL_VERIFICATION',
+    userId: newUser.id,
+    targetEmail: newUser.email,
+    expiresAt: new Date(Date.now() + EMAIL_VERIFICATION_TOKEN_TTL_HOURS * 60 * 60 * 1000),
+  });
+
+  const emailResult = await requestAuthEmailSend({
+    emailType: 'EMAIL_VERIFICATION',
+    recipientEmail: newUser.email,
+    userId: newUser.id,
+    actionTokenId: verification.token.id,
+    templateData: {
+      actionToken: verification.rawToken,
+    },
+  });
+
+  return {
+    user: toPublicUserDto(newUser),
+    verificationEmailQueued: emailResult.queued,
+  };
 }
 
 export async function loginUser(input: AuthLoginRequestDto): Promise<AuthLoginResponseDto> {

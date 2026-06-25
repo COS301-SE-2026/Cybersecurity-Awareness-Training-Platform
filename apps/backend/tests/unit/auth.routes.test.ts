@@ -13,9 +13,21 @@ const prismaMock = vi.hoisted(() => ({
   },
 }));
 
+const actionTokenServiceMock = vi.hoisted(() => ({
+  issueActionToken: vi.fn(),
+}));
+
+const authEmailHookServiceMock = vi.hoisted(() => ({
+  requestAuthEmailSend: vi.fn(),
+}));
+
 vi.mock('../../src/lib/prisma.js', () => ({
   prisma: prismaMock,
 }));
+
+vi.mock('../../src/services/action-token.service.js', () => actionTokenServiceMock);
+
+vi.mock('../../src/services/auth-email-hook.service.js', () => authEmailHookServiceMock);
 
 describe('Auth routes', () => {
   beforeEach(() => {
@@ -35,12 +47,18 @@ describe('Auth routes', () => {
       authStatus: data.authStatus,
       createdAt: new Date('2026-05-12T06:00:00.000Z'),
     }));
+    actionTokenServiceMock.issueActionToken.mockResolvedValue({
+      rawToken: 'raw-action-token',
+      token: { id: 'action-token-1' },
+    });
+    authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue({ queued: false });
 
     const response = await request(createApp()).post('/auth/register').send({
       email: '  Johan@exampleemail.com  ',
       firstName: ' Johan ',
       lastName: ' Nel ',
       password: 'mySecurePassword123!',
+      confirmPassword: 'mySecurePassword123!',
     });
 
     expect(response.status).toBe(201);
@@ -51,7 +69,7 @@ describe('Auth routes', () => {
         lastName: 'Nel',
         passwordHash: expect.stringMatching(/^scrypt\$/),
         userType: 'GENERAL_TRAINEE',
-        authStatus: 'ACTIVE',
+        authStatus: 'PENDING_EMAIL_VERIFICATION',
       }),
     });
 
@@ -65,9 +83,10 @@ describe('Auth routes', () => {
         lastName: 'Nel',
         email: 'johan@exampleemail.com',
         userType: 'GENERAL_TRAINEE',
-        authStatus: 'ACTIVE',
+        authStatus: 'PENDING_EMAIL_VERIFICATION',
         createdAt: '2026-05-12T06:00:00.000Z',
       },
+      verificationEmailQueued: false,
     });
     expect(response.body.user).not.toHaveProperty('passwordHash');
   });
@@ -78,6 +97,7 @@ describe('Auth routes', () => {
       firstName: '',
       lastName: '',
       password: 'short',
+      confirmPassword: 'short',
     });
 
     expect(response.status).toBe(400);
@@ -102,6 +122,7 @@ describe('Auth routes', () => {
       firstName: 'Johan',
       lastName: 'Nel',
       password: 'mySecurePassword123!',
+      confirmPassword: 'mySecurePassword123!',
     });
 
     expect(response.status).toBe(409);
@@ -272,6 +293,7 @@ describe('Auth routes', () => {
         firstName: 'Johan',
         lastName: 'Nel',
         password: 'mySecurePassword123!',
+        confirmPassword: 'mySecurePassword123!',
       });
     }
 
