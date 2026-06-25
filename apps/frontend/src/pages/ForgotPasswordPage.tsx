@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 function ForgotPasswordPage() {
   return (
     <section className="bg-light-purple dark:bg-gray-900">
@@ -32,7 +34,7 @@ function ForgotPasswordPage() {
             <div>
               <label
                 htmlFor="email"
-                className=" block mb-2 font-jost tracking-wide text-xl font-medium text-gray-900 text-dark-pink"
+                className=" block mb-2 font-jost tracking-wide text-xl font-medium text-pink"
               >
                 Email Address
               </label>
@@ -53,6 +55,14 @@ function ForgotPasswordPage() {
             >
               <span> Send Password Reset Link </span>
             </button>
+
+            <Link
+              to="/login"
+              className="-mt-4 inline-flex items-center gap-2 font-jost text-xl font-regular tracking-wide text-purple hover:text-purple cursor-pointer transition-colours"
+            >
+              <span className="material-icons-sharp">arrow_back</span>
+              <span> Back to Login</span>
+            </Link>
           </form>
         </div>
       </div>
