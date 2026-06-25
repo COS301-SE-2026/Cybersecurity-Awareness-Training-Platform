@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom';
-
+import BasicAlert from '../components/alerts/BasicAlert';
 function ForgotPasswordPage() {
   return (
     <section className="bg-light-purple dark:bg-gray-900">
       <div className="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0">
         {/* LOGO  */}
+        <BasicAlert variant="danger">Please ente.</BasicAlert>
         <div className="mb-4 flex items-center space-x-3 rtl:space-x-reverse">
           <img src="/Phish Logo Light.png" className="h-14" alt="Insightful Phish Logo" />
           <span className="flex items-center gap-2 mt-2">
