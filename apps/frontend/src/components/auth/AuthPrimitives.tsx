@@ -30,6 +30,7 @@ type AuthFormFieldProps = {
   labelStyle?: CSSProperties;
   inputStyle?: CSSProperties;
   autoComplete?: string;
+  rightLabel?: ReactNode;
 };
 
 type AuthActionLinkProps = {
@@ -129,6 +130,7 @@ export function AuthFormField({
   labelStyle,
   inputStyle,
   autoComplete,
+  rightLabel,
 }: AuthFormFieldProps) {
   const inputId = useId();
 
@@ -139,15 +141,26 @@ export function AuthFormField({
         ...wrapperStyle,
       }}
     >
-      <label
-        htmlFor={inputId}
+      <div
         style={{
-          ...authFieldLabelStyle,
-          ...labelStyle,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '0.4rem',
         }}
       >
-        {label}
-      </label>
+        <label
+          htmlFor={inputId}
+          style={{
+            ...authFieldLabelStyle,
+            ...labelStyle,
+            marginBottom: 0,
+          }}
+        >
+          {label}
+        </label>
+        {rightLabel}
+      </div>
 
       <input
         id={inputId}
