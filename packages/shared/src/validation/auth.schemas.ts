@@ -36,18 +36,25 @@ const passwordSchema = z
   .regex(/\d/, 'Password must contain at least one number')
   .regex(/[^\sA-Za-z0-9]/, 'Password must contain at least one special character');
 
-function withPasswordConfirmation<T extends z.ZodRawShape>(schema: z.ZodObject<T>) {
+function withPasswordConfirmation<T extends z.ZodRawShape>(
+  schema: z.ZodObject<T>,
+  options: { requireConfirmation: boolean } = { requireConfirmation: true },
+) {
+  const confirmPasswordSchema = z.string({
+    required_error: 'Please confirm your password.',
+    invalid_type_error: 'Please confirm your password.',
+  });
+
   return schema
     .extend({
       password: passwordSchema,
-      confirmPassword: z.string({
-        required_error: 'Please confirm your password.',
-        invalid_type_error: 'Please confirm your password.',
-      }),
+      confirmPassword: options.requireConfirmation
+        ? confirmPasswordSchema
+        : confirmPasswordSchema.optional(),
     })
     .strict()
     .superRefine((value, context) => {
-      if (value.password !== value.confirmPassword) {
+      if (value.confirmPassword !== undefined && value.password !== value.confirmPassword) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['confirmPassword'],
@@ -63,6 +70,7 @@ export const authRegisterRequestSchema = withPasswordConfirmation(
     firstName: firstNameSchema,
     lastName: lastNameSchema,
   }),
+  { requireConfirmation: false },
 );
 
 export const setupTokenParamsSchema = z

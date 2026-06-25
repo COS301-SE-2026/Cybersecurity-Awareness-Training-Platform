@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { authLoginRequestSchema, authRegisterRequestSchema } from './auth.schemas.js';
+import {
+  authLoginRequestSchema,
+  authRegisterRequestSchema,
+  setupCompleteRequestSchema,
+} from './auth.schemas.js';
 
 describe('auth validation schemas', () => {
   const issueMessagesFor = (result: ReturnType<typeof authRegisterRequestSchema.safeParse>) => {
@@ -58,6 +62,22 @@ describe('auth validation schemas', () => {
     });
   });
 
+  it('allows register input without password confirmation for legacy clients', () => {
+    const result = authRegisterRequestSchema.parse({
+      email: '  TRAINEE@EXAMPLE.COM  ',
+      password: 'StrongerPass1!',
+      firstName: ' Jane ',
+      lastName: ' Doe ',
+    });
+
+    expect(result).toEqual({
+      email: 'trainee@example.com',
+      password: 'StrongerPass1!',
+      firstName: 'Jane',
+      lastName: 'Doe',
+    });
+  });
+
   it('rejects invalid register input', () => {
     const result = authRegisterRequestSchema.safeParse({
       email: 'not-an-email',
@@ -90,6 +110,17 @@ describe('auth validation schemas', () => {
 
     expect(result.success).toBe(false);
     expect(issueMessagesFor(result)).toContain('Password confirmation must match password.');
+  });
+
+  it('requires password confirmation for setup completion input', () => {
+    const result = setupCompleteRequestSchema.safeParse({
+      password: 'StrongerPass1!',
+      firstName: 'Jane',
+      lastName: 'Doe',
+    });
+
+    expect(result.success).toBe(false);
+    expect(issueMessagesFor(result)).toContain('Please confirm your password.');
   });
 
   it.each([
