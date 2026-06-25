@@ -1,6 +1,7 @@
 import swaggerJsdoc from 'swagger-jsdoc';
 import { APP_NAME } from '@insightful-phish/shared';
 import { env } from './env.js';
+import { boolean } from 'zod/v4';
 
 type OpenApiSchema = Record<string, unknown>;
 
@@ -138,6 +139,10 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
       {
         name: 'Auth',
         description: 'Authentication and current user endpoints.',
+      },
+      {
+        name: 'Setup',
+        description: 'Public token-driven setup endpoints.',
       },
       {
         name: 'Trainee Simulation',
@@ -424,7 +429,8 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         },
         AuthRegisterRequest: {
           type: 'object',
-          required: ['email', 'password', 'firstName', 'lastName'],
+          required: ['email', 'password', 'confirmPassword', 'firstName', 'lastName'],
+          additionalProperties: false,
           properties: {
             email: {
               type: 'string',
@@ -435,8 +441,14 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             password: {
               type: 'string',
               format: 'password',
-              minLength: 8,
-              example: 'correct-horse-battery-staple',
+              minLength: 12,
+              example: 'ExampleLocalPassword1!',
+            },
+            confirmPassword: {
+              type: 'string',
+              format: 'password',
+              minLength: 12,
+              example: 'ExampleLocalPassword1!',
             },
             firstName: {
               type: 'string',
@@ -472,10 +484,14 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         },
         AuthRegisterResponse: {
           type: 'object',
-          required: ['user'],
+          required: ['user', 'verificationEmailQueued'],
           properties: {
             user: {
               $ref: '#/components/schemas/PublicUser',
+            },
+            verificationEmailQueued: {
+              type: 'boolean',
+              example: false,
             },
           },
         },
