@@ -1158,8 +1158,8 @@
           "number": 233,
           "title": "feat: implement backend registration and invite setup endpoints",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-06-25"
         },
         {
           "number": 232,
@@ -1574,7 +1574,7 @@
     },
     {
       "date": "2026-06-25",
-      "remaining": 151,
+      "remaining": 149,
       "ideal": 53.01
     }
   ]
