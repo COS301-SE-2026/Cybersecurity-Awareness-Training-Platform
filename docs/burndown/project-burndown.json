@@ -1214,8 +1214,8 @@
           "number": 225,
           "title": "feat: build public landing page",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-06-25"
         },
         {
           "number": 224,
@@ -1574,7 +1574,7 @@
     },
     {
       "date": "2026-06-25",
-      "remaining": 153,
+      "remaining": 151,
       "ideal": 53.01
     }
   ]
