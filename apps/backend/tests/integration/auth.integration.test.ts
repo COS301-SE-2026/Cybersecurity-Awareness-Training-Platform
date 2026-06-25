@@ -15,6 +15,7 @@ describe('Auth Integration Tests', () => {
       firstName: 'Register',
       lastName: 'Test',
       password: secureRegisterPassword,
+      confirmPassword: secureRegisterPassword,
     };
 
     const response = await request(createApp()).post('/auth/register').send(payload);
@@ -25,7 +26,8 @@ describe('Auth Integration Tests', () => {
     expect(response.body.user.firstName).toBe('Register');
     expect(response.body.user.lastName).toBe('Test');
     expect(response.body.user.userType).toBe('GENERAL_TRAINEE');
-    expect(response.body.user.authStatus).toBe('ACTIVE');
+    expect(response.body.user.authStatus).toBe('PENDING_EMAIL_VERIFICATION');
+    expect(response.body.verificationEmailQueued).toBe(false);
     expect(response.body.user.passwordHash).toBeUndefined();
 
     // Verify database record creation
@@ -41,20 +43,50 @@ describe('Auth Integration Tests', () => {
     });
 
     expect(dbUser).not.toBeNull();
-    expect(dbUser!.firstName).toBe('Register');
-    expect(dbUser!.lastName).toBe('Test');
-    expect(dbUser!.userType).toBe('GENERAL_TRAINEE');
-    expect(dbUser!.authStatus).toBe('ACTIVE');
+    if (!dbUser) {
+      throw new Error('Expected registered user to be persisted');
+    }
+
+    expect(dbUser.firstName).toBe('Register');
+    expect(dbUser.lastName).toBe('Test');
+    expect(dbUser.userType).toBe('GENERAL_TRAINEE');
+    expect(dbUser.authStatus).toBe('PENDING_EMAIL_VERIFICATION');
 
     // Verify password is encrypted
-    const isPasswordValid = await verifyPassword(payload.password, dbUser!.passwordHash);
+    const isPasswordValid = await verifyPassword(payload.password, dbUser.passwordHash);
     expect(isPasswordValid).toBe(true);
 
     // Verify trainee profile is created
-    expect(dbUser!.traineeProfile).not.toBeNull();
-    expect(dbUser!.traineeProfile!.traineeStatus).toBe('ACTIVE');
-    expect(dbUser!.traineeProfile!.generalTraineeProfile).not.toBeNull();
-    expect(dbUser!.traineeProfile!.generalTraineeProfile!.accessSource).toBe('SELF_SIGNUP');
+    expect(dbUser.traineeProfile).not.toBeNull();
+    if (!dbUser.traineeProfile) {
+      throw new Error('Expected registered user to have a trainee profile');
+    }
+
+    expect(dbUser.traineeProfile.traineeStatus).toBe('ACTIVE');
+    expect(dbUser.traineeProfile.generalTraineeProfile).not.toBeNull();
+    if (!dbUser.traineeProfile.generalTraineeProfile) {
+      throw new Error('Expected registered user to have a general trainee profile');
+    }
+
+    expect(dbUser.traineeProfile.generalTraineeProfile.accessSource).toBe('SELF_SIGNUP');
+
+    const verificationToken = await prisma.actionToken.findFirst({
+      where: {
+        userId: dbUser.id,
+        targetEmail: 'new-trainee@example.com',
+        purpose: 'EMAIL_VERIFICATION',
+      },
+    });
+
+    expect(verificationToken).not.toBeNull();
+    if (!verificationToken) {
+      throw new Error('Expected registration to create an email verification token');
+    }
+
+    expect(verificationToken.tokenHash).toBeDefined();
+    expect(verificationToken.tokenHash).not.toBe(secureRegisterPassword);
+    expect(verificationToken.usedAt).toBeNull();
+    expect(verificationToken.revokedAt).toBeNull();
   });
 
   it('authenticates a registered user and returns a token', async () => {
