@@ -32,13 +32,17 @@ export type ValidateActionTokenResult =
 
 export async function issueActionToken(
   input: IssueActionTokenInput,
+  client?: Prisma.TransactionClient,
 ): Promise<IssueActionTokenResult> {
   const rawToken = generateOpaqueToken();
   const tokenHash = hashOpaqueToken(rawToken);
-  const token = await createActionToken({
+  const tokenInput = {
     ...input,
     tokenHash,
-  });
+  };
+  const token = client
+    ? await createActionToken(tokenInput, client)
+    : await createActionToken(tokenInput);
 
   return { rawToken, token };
 }

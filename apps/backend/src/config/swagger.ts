@@ -428,7 +428,7 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         },
         AuthRegisterRequest: {
           type: 'object',
-          required: ['email', 'password', 'confirmPassword', 'firstName', 'lastName'],
+          required: ['email', 'password', 'firstName', 'lastName'],
           additionalProperties: false,
           properties: {
             email: {
@@ -438,12 +438,6 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
               example: 'johan@example.com',
             },
             password: {
-              type: 'string',
-              format: 'password',
-              minLength: 12,
-              example: 'ExampleLocalPassword1!',
-            },
-            confirmPassword: {
               type: 'string',
               format: 'password',
               minLength: 12,

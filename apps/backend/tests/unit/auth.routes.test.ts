@@ -7,6 +7,7 @@ import { generateAuthToken } from '../../src/services/auth-token.service.js';
 import { hashPassword } from '../../src/services/password.service.js';
 
 const prismaMock = vi.hoisted(() => ({
+  $transaction: vi.fn(),
   user: {
     findUnique: vi.fn(),
     create: vi.fn(),
@@ -33,6 +34,7 @@ describe('Auth routes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     clearAuthRateLimitStore();
+    prismaMock.$transaction.mockImplementation((action) => action(prismaMock));
   });
 
   it('registers a valid user with a hashed password and safe response structure', async () => {
@@ -58,7 +60,6 @@ describe('Auth routes', () => {
       firstName: ' Johan ',
       lastName: ' Nel ',
       password: 'mySecurePassword123!',
-      confirmPassword: 'mySecurePassword123!',
     });
 
     expect(response.status).toBe(201);
@@ -97,7 +98,6 @@ describe('Auth routes', () => {
       firstName: '',
       lastName: '',
       password: 'short',
-      confirmPassword: 'short',
     });
 
     expect(response.status).toBe(400);
@@ -122,7 +122,6 @@ describe('Auth routes', () => {
       firstName: 'Johan',
       lastName: 'Nel',
       password: 'mySecurePassword123!',
-      confirmPassword: 'mySecurePassword123!',
     });
 
     expect(response.status).toBe(409);
@@ -293,7 +292,6 @@ describe('Auth routes', () => {
         firstName: 'Johan',
         lastName: 'Nel',
         password: 'mySecurePassword123!',
-        confirmPassword: 'mySecurePassword123!',
       });
     }
 

@@ -5,6 +5,7 @@ import type {
   AuthRegisterRequestDto,
   AuthRegisterResponseDto,
 } from '@insightful-phish/shared';
+import { prisma } from '../lib/prisma.js';
 import { toPublicUserDto } from '../mappers/user.mapper.js';
 import * as UserRepository from '../repositories/user.repository.js';
 import { issueActionToken } from './action-token.service.js';
@@ -39,18 +40,31 @@ export async function registerUser(
 
   const passwordHash = await PasswordService.hashPassword(input.password);
 
-  const newUser = await UserRepository.createGeneralTraineeUser({
-    email: input.email,
-    firstName: input.firstName,
-    lastName: input.lastName,
-    passwordHash,
-  });
+  const { newUser, verification } = await prisma.$transaction(async (tx) => {
+    const createdUser = await UserRepository.createGeneralTraineeUser(
+      {
+        email: input.email,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        passwordHash,
+      },
+      tx,
+    );
 
-  const verification = await issueActionToken({
-    purpose: 'EMAIL_VERIFICATION',
-    userId: newUser.id,
-    targetEmail: newUser.email,
-    expiresAt: new Date(Date.now() + EMAIL_VERIFICATION_TOKEN_TTL_HOURS * 60 * 60 * 1000),
+    const verificationToken = await issueActionToken(
+      {
+        purpose: 'EMAIL_VERIFICATION',
+        userId: createdUser.id,
+        targetEmail: createdUser.email,
+        expiresAt: new Date(Date.now() + EMAIL_VERIFICATION_TOKEN_TTL_HOURS * 60 * 60 * 1000),
+      },
+      tx,
+    );
+
+    return {
+      newUser: createdUser,
+      verification: verificationToken,
+    };
   });
 
   const emailResult = await requestAuthEmailSend({

@@ -15,7 +15,6 @@ describe('Auth Integration Tests', () => {
       firstName: 'Register',
       lastName: 'Test',
       password: secureRegisterPassword,
-      confirmPassword: secureRegisterPassword,
     };
 
     const response = await request(createApp()).post('/auth/register').send(payload);

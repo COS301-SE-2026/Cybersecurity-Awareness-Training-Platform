@@ -30,6 +30,10 @@ const authTokenServiceMock = vi.hoisted(() => ({
   generateAuthToken: vi.fn(),
 }));
 
+const prismaMock = vi.hoisted(() => ({
+  $transaction: vi.fn(),
+}));
+
 vi.mock('../../src/repositories/user.repository.js', () => userRepositoryMock);
 
 vi.mock('../../src/services/action-token.service.js', () => actionTokenServiceMock);
@@ -40,9 +44,14 @@ vi.mock('../../src/services/password.service.js', () => passwordServiceMock);
 
 vi.mock('../../src/services/auth-token.service.js', () => authTokenServiceMock);
 
+vi.mock('../../src/lib/prisma.js', () => ({
+  prisma: prismaMock,
+}));
+
 describe('registerUser', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    prismaMock.$transaction.mockImplementation((action) => action('transaction-client'));
   });
 
   it('hashes the password, creates a trainee user, and returns a safe public user', async () => {
@@ -69,23 +78,28 @@ describe('registerUser', () => {
       firstName: 'Johan',
       lastName: 'Nel',
       password: 'mySecurePassword123!',
-      confirmPassword: 'mySecurePassword123!',
     });
 
     expect(userRepositoryMock.findUserByEmail).toHaveBeenCalledWith('johan@example.com');
     expect(passwordServiceMock.hashPassword).toHaveBeenCalledWith('mySecurePassword123!');
-    expect(userRepositoryMock.createGeneralTraineeUser).toHaveBeenCalledWith({
-      email: 'johan@example.com',
-      firstName: 'Johan',
-      lastName: 'Nel',
-      passwordHash: 'hashed-password',
-    });
-    expect(actionTokenServiceMock.issueActionToken).toHaveBeenCalledWith({
-      purpose: 'EMAIL_VERIFICATION',
-      userId: 'user-1',
-      targetEmail: 'johan@example.com',
-      expiresAt: expect.any(Date),
-    });
+    expect(userRepositoryMock.createGeneralTraineeUser).toHaveBeenCalledWith(
+      {
+        email: 'johan@example.com',
+        firstName: 'Johan',
+        lastName: 'Nel',
+        passwordHash: 'hashed-password',
+      },
+      'transaction-client',
+    );
+    expect(actionTokenServiceMock.issueActionToken).toHaveBeenCalledWith(
+      {
+        purpose: 'EMAIL_VERIFICATION',
+        userId: 'user-1',
+        targetEmail: 'johan@example.com',
+        expiresAt: expect.any(Date),
+      },
+      'transaction-client',
+    );
     expect(authEmailHookServiceMock.requestAuthEmailSend).toHaveBeenCalledWith({
       emailType: 'EMAIL_VERIFICATION',
       recipientEmail: 'johan@example.com',
@@ -122,13 +136,49 @@ describe('registerUser', () => {
         firstName: 'Johan',
         lastName: 'Nel',
         password: 'mySecurePassword123!',
-        confirmPassword: 'mySecurePassword123!',
       }),
     ).rejects.toBeInstanceOf(AuthConflictError);
 
+    expect(prismaMock.$transaction).not.toHaveBeenCalled();
     expect(passwordServiceMock.hashPassword).not.toHaveBeenCalled();
     expect(userRepositoryMock.createGeneralTraineeUser).not.toHaveBeenCalled();
     expect(actionTokenServiceMock.issueActionToken).not.toHaveBeenCalled();
+    expect(authEmailHookServiceMock.requestAuthEmailSend).not.toHaveBeenCalled();
+  });
+
+  it('does not send verification email when token creation fails inside registration transaction', async () => {
+    userRepositoryMock.findUserByEmail.mockResolvedValue(null);
+    passwordServiceMock.hashPassword.mockResolvedValue('hashed-password');
+    userRepositoryMock.createGeneralTraineeUser.mockResolvedValue({
+      id: 'user-1',
+      firstName: 'Johan',
+      lastName: 'Nel',
+      email: 'johan@example.com',
+      passwordHash: 'hashed-password',
+      userType: 'GENERAL_TRAINEE',
+      authStatus: 'PENDING_EMAIL_VERIFICATION',
+      createdAt: new Date('2026-05-12T06:00:00.000Z'),
+    });
+    actionTokenServiceMock.issueActionToken.mockRejectedValue(new Error('token creation failed'));
+
+    await expect(
+      registerUser({
+        email: 'johan@example.com',
+        firstName: 'Johan',
+        lastName: 'Nel',
+        password: 'mySecurePassword123!',
+      }),
+    ).rejects.toThrow('token creation failed');
+
+    expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
+    expect(userRepositoryMock.createGeneralTraineeUser).toHaveBeenCalledWith(
+      expect.any(Object),
+      'transaction-client',
+    );
+    expect(actionTokenServiceMock.issueActionToken).toHaveBeenCalledWith(
+      expect.any(Object),
+      'transaction-client',
+    );
     expect(authEmailHookServiceMock.requestAuthEmailSend).not.toHaveBeenCalled();
   });
 });

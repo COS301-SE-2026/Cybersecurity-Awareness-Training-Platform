@@ -30,7 +30,6 @@ describe('auth validation schemas', () => {
     overrides: Partial<{
       email: string;
       password: string;
-      confirmPassword: string;
       firstName: string;
       lastName: string;
       role: string;
@@ -38,7 +37,6 @@ describe('auth validation schemas', () => {
   ) => ({
     email: 'trainee@example.com',
     password: 'StrongerPass1!',
-    confirmPassword: 'StrongerPass1!',
     firstName: 'Jane',
     lastName: 'Doe',
     ...overrides,
@@ -68,29 +66,31 @@ describe('auth validation schemas', () => {
     expect(result).toEqual({
       email: 'trainee@example.com',
       password: 'StrongerPass1!',
-      confirmPassword: 'StrongerPass1!',
       firstName: 'Jane',
       lastName: 'Doe',
     });
   });
 
-  it('rejects register input without password confirmation', () => {
-    const result = authRegisterRequestSchema.safeParse({
+  it('allows register input without password confirmation', () => {
+    const result = authRegisterRequestSchema.parse({
       email: '  TRAINEE@EXAMPLE.COM  ',
       password: 'StrongerPass1!',
       firstName: ' Jane ',
       lastName: ' Doe ',
     });
 
-    expect(result.success).toBe(false);
-    expect(registerIssueMessagesFor(result)).toContain('Please confirm your password.');
+    expect(result).toEqual({
+      email: 'trainee@example.com',
+      password: 'StrongerPass1!',
+      firstName: 'Jane',
+      lastName: 'Doe',
+    });
   });
 
   it('rejects invalid register input', () => {
     const result = authRegisterRequestSchema.safeParse({
       email: 'not-an-email',
       password: 'short',
-      confirmPassword: 'different-password',
       firstName: '',
       lastName: ' ',
     });
@@ -111,15 +111,13 @@ describe('auth validation schemas', () => {
     expect(result.success).toBe(false);
   });
 
-  it('rejects register input when password confirmation does not match', () => {
-    const result = authRegisterRequestSchema.safeParse(
-      validRegisterInput({ confirmPassword: 'DifferentPass1!' }),
-    );
+  it('rejects register payloads with password confirmation', () => {
+    const result = authRegisterRequestSchema.safeParse({
+      ...validRegisterInput(),
+      confirmPassword: 'StrongerPass1!',
+    });
 
     expect(result.success).toBe(false);
-    expect(registerIssueMessagesFor(result)).toContain(
-      'Password confirmation must match password.',
-    );
   });
 
   it('requires password confirmation for setup completion input', () => {

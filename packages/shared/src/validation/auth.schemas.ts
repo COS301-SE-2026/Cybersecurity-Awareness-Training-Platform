@@ -57,13 +57,14 @@ function withPasswordConfirmation<T extends z.ZodRawShape>(schema: z.ZodObject<T
     });
 }
 
-export const authRegisterRequestSchema = withPasswordConfirmation(
-  z.object({
+export const authRegisterRequestSchema = z
+  .object({
     email: emailSchema,
     firstName: firstNameSchema,
     lastName: lastNameSchema,
-  }),
-);
+    password: passwordSchema,
+  })
+  .strict();
 
 export const setupTokenParamsSchema = z
   .object({
