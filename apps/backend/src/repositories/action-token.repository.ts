@@ -38,11 +38,17 @@ export function findActionTokenByHash(tokenHash: string, client: ActionTokenClie
   });
 }
 
-export function markActionTokenUsed(id: string, client: ActionTokenClient = prisma) {
-  return client.actionToken.update({
+export async function markActionTokenUsed(id: string, client: ActionTokenClient = prisma) {
+  const result = await client.actionToken.updateMany({
+    where: {
+      id,
+      usedAt: null,
+      revokedAt: null,
+    },
     data: { usedAt: new Date() },
-    where: { id },
   });
+
+  return result.count === 1;
 }
 
 export function revokeActionToken(
@@ -52,5 +58,28 @@ export function revokeActionToken(
   return client.actionToken.update({
     where: { id: input.id },
     data: { revokedAt: new Date(), revokedReason: input.revokedReason },
+  });
+}
+
+export function withClaimedActionToken<T>(
+  input: { tokenId: string },
+  action: (tx: Prisma.TransactionClient) => Promise<T>,
+) {
+  return prisma.$transaction(async (tx) => {
+    const claim = await tx.actionToken.updateMany({
+      where: { id: input.tokenId, usedAt: null, revokedAt: null },
+      data: { usedAt: new Date() },
+    });
+
+    if (claim.count !== 1) {
+      return {
+        claimed: false as const,
+        result: null,
+      };
+    }
+
+    const result = await action(tx);
+
+    return { claimed: true as const, result };
   });
 }

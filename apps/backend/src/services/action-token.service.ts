@@ -6,8 +6,10 @@ import {
   markActionTokenUsed,
   revokeActionToken,
   type CreateActionTokenInput,
+  withClaimedActionToken,
 } from '../repositories/action-token.repository.js';
 import { generateOpaqueToken, hashOpaqueToken } from './token-hash.service.js';
+import type { Prisma } from '../generated/prisma/client.js';
 
 export type ActionTokenState =
   | 'VALID'
@@ -77,11 +79,29 @@ export async function validateActionToken(input: {
   };
 }
 
-//Only call after intended action succeeds
-export async function consumeActionToken(input: { tokenId: string }) {
-  return markActionTokenUsed(input.tokenId);
+// Only call after intended action succeeds.
+export type ConsumeActionTokenResult =
+  | { consumed: true }
+  | { consumed: false; state: 'USED_OR_REVOKED' };
+
+export async function consumeActionToken(input: {
+  tokenId: string;
+}): Promise<ConsumeActionTokenResult> {
+  const consumed = await markActionTokenUsed(input.tokenId);
+
+  if (!consumed) {
+    return { consumed: false, state: 'USED_OR_REVOKED' };
+  }
+
+  return { consumed: true };
 }
 
 export async function revokeActionTokenById(input: { tokenId: string; reason: string }) {
   return revokeActionToken({ id: input.tokenId, revokedReason: input.reason });
+}
+export function runWithConsumedActionToken<T>(
+  input: { tokenId: string },
+  action: (tx: Prisma.TransactionClient) => Promise<T>,
+) {
+  return withClaimedActionToken(input, action);
 }
