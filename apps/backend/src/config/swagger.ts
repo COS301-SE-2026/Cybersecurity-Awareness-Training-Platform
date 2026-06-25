@@ -140,6 +140,10 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         description: 'Authentication and current user endpoints.',
       },
       {
+        name: 'Setup',
+        description: 'Public token-driven setup endpoints.',
+      },
+      {
         name: 'Trainee Simulation',
         description: 'Trainee simulated phishing email workflows.',
       },
@@ -425,6 +429,7 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         AuthRegisterRequest: {
           type: 'object',
           required: ['email', 'password', 'firstName', 'lastName'],
+          additionalProperties: false,
           properties: {
             email: {
               type: 'string',
@@ -435,8 +440,8 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             password: {
               type: 'string',
               format: 'password',
-              minLength: 8,
-              example: 'correct-horse-battery-staple',
+              minLength: 12,
+              example: 'ExampleLocalPassword1!',
             },
             firstName: {
               type: 'string',
@@ -472,10 +477,14 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         },
         AuthRegisterResponse: {
           type: 'object',
-          required: ['user'],
+          required: ['user', 'verificationEmailQueued'],
           properties: {
             user: {
               $ref: '#/components/schemas/PublicUser',
+            },
+            verificationEmailQueued: {
+              type: 'boolean',
+              example: false,
             },
           },
         },
@@ -508,6 +517,83 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           properties: {
             user: {
               $ref: '#/components/schemas/PublicUser',
+            },
+          },
+        },
+        SetupTokenState: enumString(['VALID', 'INVALID', 'EXPIRED', 'USED', 'REVOKED'], 'VALID'),
+        SetupTokenContextResponse: {
+          type: 'object',
+          required: ['token'],
+          properties: {
+            token: {
+              type: 'object',
+              required: ['state'],
+              properties: {
+                state: {
+                  $ref: '#/components/schemas/SetupTokenState',
+                },
+                purpose: {
+                  type: 'string',
+                  nullable: true,
+                  enum: [
+                    'INITIAL_ORGANISATION_ADMIN_SETUP',
+                    'ORGANISATION_TRAINEE_INVITE',
+                    'PLATFORM_ADMIN_INVITE',
+                  ],
+                  example: 'ORGANISATION_TRAINEE_INVITE',
+                },
+              },
+            },
+            targetEmail: {
+              type: 'string',
+              format: 'email',
+              example: 'learner@example.com',
+            },
+            organisationName: {
+              type: 'string',
+              example: 'Example Organisation',
+            },
+          },
+        },
+        SetupCompleteRequest: {
+          type: 'object',
+          required: ['firstName', 'lastName', 'password', 'confirmPassword'],
+          additionalProperties: false,
+          properties: {
+            firstName: {
+              type: 'string',
+              minLength: 1,
+              example: 'Adriano',
+            },
+            lastName: {
+              type: 'string',
+              minLength: 1,
+              example: 'Jorge',
+            },
+            password: {
+              type: 'string',
+              format: 'password',
+              minLength: 12,
+              example: 'ExampleLocalPassword1!',
+            },
+            confirmPassword: {
+              type: 'string',
+              format: 'password',
+              minLength: 12,
+              example: 'ExampleLocalPassword1!',
+            },
+          },
+        },
+        SetupCompleteResponse: {
+          type: 'object',
+          required: ['user', 'confirmationEmailQueued'],
+          properties: {
+            user: {
+              $ref: '#/components/schemas/PublicUser',
+            },
+            confirmationEmailQueued: {
+              type: 'boolean',
+              example: false,
             },
           },
         },
@@ -1643,6 +1729,19 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           },
           example: '22222222-2222-2222-2222-222222222222',
         },
+        SetupTokenPathParam: {
+          name: 'token',
+          in: 'path',
+          required: true,
+          description: 'Opaque setup/action token from the setup link.',
+          schema: {
+            type: 'string',
+            minLength: 32,
+            maxLength: 512,
+            pattern: '^[A-Za-z0-9_-]+$',
+          },
+          example: 'exampleSetupTokenValueWithAtLeast32Chars',
+        },
       },
       requestBodies: {
         AuthRegister: {
@@ -1669,6 +1768,10 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           required: true,
           ...jsonContent(schemaRef('SubmitQuizAttemptRequest')),
         },
+        SetupComplete: {
+          required: true,
+          ...jsonContent(schemaRef('SetupCompleteRequest')),
+        },
       },
       responses: {
         HealthOk: responseComponent('API and database are reachable.', 'HealthStatus'),
@@ -1693,6 +1796,14 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         AuthRateLimited: responseComponent(
           'Too many authentication requests.',
           'AuthRateLimitErrorResponse',
+        ),
+        SetupTokenContextOk: responseComponent(
+          'Safe setup-token context. The token is not consumed.',
+          'SetupTokenContextResponse',
+        ),
+        SetupCompleteCreated: responseComponent(
+          'Setup completed successfully.',
+          'SetupCompleteResponse',
         ),
         TraineeCampaignsOk: responseComponent(
           'Campaigns accessible to the authenticated active trainee.',

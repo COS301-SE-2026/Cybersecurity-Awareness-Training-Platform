@@ -7,20 +7,34 @@ import { generateAuthToken } from '../../src/services/auth-token.service.js';
 import { hashPassword } from '../../src/services/password.service.js';
 
 const prismaMock = vi.hoisted(() => ({
+  $transaction: vi.fn(),
   user: {
     findUnique: vi.fn(),
     create: vi.fn(),
   },
 }));
 
+const actionTokenServiceMock = vi.hoisted(() => ({
+  issueActionToken: vi.fn(),
+}));
+
+const authEmailHookServiceMock = vi.hoisted(() => ({
+  requestAuthEmailSend: vi.fn(),
+}));
+
 vi.mock('../../src/lib/prisma.js', () => ({
   prisma: prismaMock,
 }));
+
+vi.mock('../../src/services/action-token.service.js', () => actionTokenServiceMock);
+
+vi.mock('../../src/services/auth-email-hook.service.js', () => authEmailHookServiceMock);
 
 describe('Auth routes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     clearAuthRateLimitStore();
+    prismaMock.$transaction.mockImplementation((action) => action(prismaMock));
   });
 
   it('registers a valid user with a hashed password and safe response structure', async () => {
@@ -35,6 +49,11 @@ describe('Auth routes', () => {
       authStatus: data.authStatus,
       createdAt: new Date('2026-05-12T06:00:00.000Z'),
     }));
+    actionTokenServiceMock.issueActionToken.mockResolvedValue({
+      rawToken: 'raw-action-token',
+      token: { id: 'action-token-1' },
+    });
+    authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue({ queued: false });
 
     const response = await request(createApp()).post('/auth/register').send({
       email: '  Johan@exampleemail.com  ',
@@ -51,7 +70,7 @@ describe('Auth routes', () => {
         lastName: 'Nel',
         passwordHash: expect.stringMatching(/^scrypt\$/),
         userType: 'GENERAL_TRAINEE',
-        authStatus: 'ACTIVE',
+        authStatus: 'PENDING_EMAIL_VERIFICATION',
       }),
     });
 
@@ -65,9 +84,10 @@ describe('Auth routes', () => {
         lastName: 'Nel',
         email: 'johan@exampleemail.com',
         userType: 'GENERAL_TRAINEE',
-        authStatus: 'ACTIVE',
+        authStatus: 'PENDING_EMAIL_VERIFICATION',
         createdAt: '2026-05-12T06:00:00.000Z',
       },
+      verificationEmailQueued: false,
     });
     expect(response.body.user).not.toHaveProperty('passwordHash');
   });

@@ -31,6 +31,10 @@ const expectedSchemas = [
   'AuthLoginResponse',
   'AuthMeResponse',
   'AuthRateLimitErrorResponse',
+  'SetupTokenState',
+  'SetupTokenContextResponse',
+  'SetupCompleteRequest',
+  'SetupCompleteResponse',
   'UserType',
   'AuthStatus',
   'TrainingDocument',
@@ -107,6 +111,7 @@ const expectedParameters = [
   'CampaignItemIdPathParam',
   'EmailIdPathParam',
   'AttemptIdPathParam',
+  'SetupTokenPathParam',
 ] as const;
 
 const expectedRequestBodies = [
@@ -116,6 +121,7 @@ const expectedRequestBodies = [
   'RecordSimulatedEmailInteraction',
   'ClassifySimulatedEmail',
   'SubmitQuizAttempt',
+  'SetupComplete',
 ] as const;
 
 const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
@@ -123,6 +129,8 @@ const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
   ['post', '/auth/register', ['201', '400', '409', '429', '500']],
   ['post', '/auth/login', ['200', '400', '401', '429', '500']],
   ['get', '/auth/me', ['200', '401', '429', '500']],
+  ['get', '/setup/token/{token}/context', ['200', '400', '401', '409', '429', '500']],
+  ['post', '/setup/token/{token}/complete', ['201', '400', '401', '409', '429', '500']],
   ['get', '/trainee/campaigns', ['200', '401', '429', '500']],
   ['get', '/trainee/campaigns/{campaignId}', ['200', '400', '401', '404', '429', '500']],
   [
@@ -240,7 +248,9 @@ describe('swaggerSpec', () => {
 
   it.each(expectedParameters)('includes reusable UUID parameter %s', (parameterName) => {
     expect(spec.components?.parameters).toHaveProperty(parameterName);
-    expect(JSON.stringify(spec.components?.parameters?.[parameterName])).toContain('"uuid"');
+    if (parameterName !== 'SetupTokenPathParam') {
+      expect(JSON.stringify(spec.components?.parameters?.[parameterName])).toContain('"uuid"');
+    }
   });
 
   it.each(expectedRequestBodies)('includes reusable request body %s', (requestBodyName) => {
@@ -262,12 +272,32 @@ describe('swaggerSpec', () => {
     expectBearerAuth('/trainee/campaigns/{campaignId}', 'get');
   });
 
+  it('documents setup endpoints as public token-authorized flows', () => {
+    expectPathExists('/setup/token/{token}/context', 'get');
+    expectPathExists('/setup/token/{token}/complete', 'post');
+
+    expect(JSON.stringify(getPath('/setup/token/{token}/context', 'get'))).toContain(
+      '"security":[]',
+    );
+    expect(JSON.stringify(getPath('/setup/token/{token}/complete', 'post'))).toContain(
+      '"security":[]',
+    );
+  });
+
   it.each(inactiveRouteDocs)('does not document inactive route %s', (path) => {
     expect(spec.paths).not.toHaveProperty(path);
   });
 
   it('keeps public user schemas free of password hashes', () => {
     expectSchemaNotToContain('PublicUser', ['passwordHash']);
+  });
+
+  it('keeps setup context free of token hashes and passwords', () => {
+    expectSchemaNotToContain('SetupTokenContextResponse', [
+      'tokenHash',
+      'password',
+      'passwordHash',
+    ]);
   });
 
   it('keeps simulated email detail free of pre-classification answers', () => {
