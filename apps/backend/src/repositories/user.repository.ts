@@ -40,7 +40,7 @@ export function createGeneralTraineeUser(input: {
       lastName: input.lastName,
       passwordHash: input.passwordHash,
       userType: 'GENERAL_TRAINEE',
-      authStatus: 'ACTIVE',
+      authStatus: 'PENDING_EMAIL_VERIFICATION',
       traineeProfile: {
         create: {
           traineeStatus: 'ACTIVE',
