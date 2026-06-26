@@ -106,7 +106,11 @@ describe('auth-status guard service', () => {
 
   it.each([
     ['missing trainee profile', { user, traineeProfile: null }, 'TRAINEE_PROFILE_INACTIVE'],
-    ['inactive trainee profile', { user, traineeStatus: 'INACTIVE' }, 'TRAINEE_PROFILE_INACTIVE'],
+    [
+      'inactive trainee profile',
+      { user, traineeProfile: { traineeStatus: 'INACTIVE' } },
+      'TRAINEE_PROFILE_INACTIVE',
+    ],
     [
       'inactive organisation trainee profile',
       {

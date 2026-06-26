@@ -217,9 +217,7 @@ describe('action-token service', () => {
 
   it('delegates runWithConsumedActionToken to the repository helper', async () => {
     const action = vi.fn();
-    repositoryMock.withClaimedActionToken = vi
-      .fn()
-      .mockResolvedValue({ claimed: true, result: 111 });
+    repositoryMock.withClaimedActionToken.mockResolvedValue({ claimed: true, result: 111 });
     const { runWithConsumedActionToken } =
       await import('../../src/services/action-token.service.js');
     await runWithConsumedActionToken({ tokenId: 'actiontoken01' }, action);
