@@ -189,7 +189,7 @@ describe('action-token service', () => {
   });
 
   it('returns consumed false when the token claim is stail', async () => {
-    repositoryMock.markActionTokenUsed.mockRejectedValue(false);
+    repositoryMock.markActionTokenUsed.mockResolvedValue(false);
     await expect(consumeActionToken({ tokenId: 'actiontoken01' })).resolves.toEqual({
       consumed: false,
       state: 'USED_OR_REVOKED',
@@ -198,7 +198,7 @@ describe('action-token service', () => {
 
   it('passes a transaction client when issuing inside a transaction', async () => {
     const tx = { actionToken: { create: vi.fn() } };
-    repositoryMock.createActionToken.mockRejectedValue({ id: 'actiontoken01' });
+    repositoryMock.createActionToken.mockResolvedValue({ id: 'actiontoken01' });
     await issueActionToken(
       { purpose: 'EMAIL_VERIFICATION', userId: 'user01', expiresAt: new Date('2026-06-26') },
       tx as unknown as Prisma.TransactionClient,
@@ -219,7 +219,7 @@ describe('action-token service', () => {
     const action = vi.fn();
     repositoryMock.withClaimedActionToken = vi
       .fn()
-      .mockRejectedValue({ claimed: true, result: 111 });
+      .mockResolvedValue({ claimed: true, result: 111 });
     const { runWithConsumedActionToken } =
       await import('../../src/services/action-token.service.js');
     await runWithConsumedActionToken({ tokenId: 'actiontoken01' }, action);

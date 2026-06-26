@@ -15,22 +15,24 @@ import {
   revokeActionToken,
   withClaimedActionToken,
 } from '../../src/repositories/action-token.repository.js';
+import type { CreateActionTokenInput } from '../../src/repositories/action-token.repository.js';
 
 describe('action-token repository', () => {
   beforeEach(() => vi.clearAllMocks());
 
   it('creates an action token with nulled defaul relations', async () => {
-    await createActionToken({
+    const input: CreateActionTokenInput = {
       tokenHash: 'tokenhash01',
       purpose: 'EMAIL_VERIFICATION',
       expiresAt: new Date('2026-06-24'),
-    } as any);
+    };
+    await createActionToken(input);
     expect(prismaMock.actionToken.create).toHaveBeenCalledWith({
       data: {
         tokenHash: 'tokenhash01',
         purpose: 'EMAIL_VERIFICATION',
         expiresAt: new Date('2026-06-24'),
-        usedId: null,
+        userId: null,
         invitationId: null,
         emailChangeRequestId: null,
         organisationRegistrationRequestId: null,
@@ -58,8 +60,8 @@ describe('action-token repository', () => {
     expect(prismaMock.actionToken.update).toHaveBeenCalledWith({
       where: {
         id: 'actiontoken01',
-        data: { revokedAt: expect.any(Date), revokedReason: 'superseded' },
       },
+      data: { revokedAt: expect.any(Date), revokedReason: 'superseded' },
     });
   });
 
@@ -72,5 +74,16 @@ describe('action-token repository', () => {
       result: null,
     });
     expect(action).not.toHaveBeenCalled();
+  });
+
+  it('runs the action with tc when the transaction claim is successfuly', async () => {
+    const tx = { actionToken: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) } };
+    prismaMock.$transaction.mockImplementation((fn) => fn(tx));
+    const action = vi.fn().mockResolvedValue('done');
+    await expect(withClaimedActionToken({ tokenId: 'actiontoken01' }, action)).resolves.toEqual({
+      claimed: true,
+      result: 'done',
+    });
+    expect(action).toHaveBeenCalledWith(tx);
   });
 }); //describe
