@@ -19,6 +19,8 @@ const conflictingOrganisationStatuses: OrganisationStatus[] = ['PENDING_ONBOARDI
 export type CreateOrganisationRegistrationRequestRecordInput = {
   submittedOrganisationName: string;
   submittedWebsite: string;
+  submittedIndustry: string;
+  submittedEmployeeCount: number;
   submittedPrimaryDomain: string;
   representativeFirstName: string;
   representativeLastName: string;
@@ -78,7 +80,10 @@ export function findActiveRequestByRepresentativeEmail(
       status: {
         in: activeRequestStatuses,
       },
-      representativeEmail,
+      representativeEmail: {
+        equals: representativeEmail,
+        mode: 'insensitive',
+      },
     },
   });
 }
@@ -108,6 +113,8 @@ export function createOrganisationRegistrationRequest(
     data: {
       submittedOrganisationName: input.submittedOrganisationName,
       submittedWebsite: input.submittedWebsite,
+      submittedIndustry: input.submittedIndustry,
+      submittedEmployeeCount: input.submittedEmployeeCount,
       submittedPrimaryDomain: input.submittedPrimaryDomain,
       representativeFirstName: input.representativeFirstName,
       representativeLastName: input.representativeLastName,

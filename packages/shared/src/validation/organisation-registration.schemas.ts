@@ -14,6 +14,23 @@ const representativeEmailSchema = z
   .email('Please enter a valid representative email address.')
   .toLowerCase();
 
+const websiteUrlSchema = z
+  .string({
+    required_error: 'Please enter an organisation website URL.',
+    invalid_type_error: 'Please enter a valid organisation website URL.',
+  })
+  .trim()
+  .url('Please enter a valid organisation website URL.')
+  .max(2048, 'Organisation website URL must be at most 2048 characters.')
+  .refine((value) => {
+    try {
+      const protocol = new URL(value).protocol;
+      return protocol === 'http:' || protocol === 'https:';
+    } catch {
+      return false;
+    }
+  }, 'Organisation website URL must use http or https.');
+
 export const createOrganisationRegistrationRequestSchema = z
   .object({
     organisationName: requiredTrimmedStringSchema({
@@ -30,14 +47,7 @@ export const createOrganisationRegistrationRequestSchema = z
       required_error: 'Please select an organisation size.',
       invalid_type_error: 'Please select a valid organisation size.',
     }),
-    organisationWebsiteUrl: z
-      .string({
-        required_error: 'Please enter an organisation website URL.',
-        invalid_type_error: 'Please enter a valid organisation website URL.',
-      })
-      .trim()
-      .url('Please enter a valid organisation website URL.')
-      .max(2048, 'Organisation website URL must be at most 2048 characters.'),
+    organisationWebsiteUrl: websiteUrlSchema,
     representativeFirstName: requiredTrimmedStringSchema({
       requiredMessage: 'Please enter a representative first name.',
       maxLength: 100,

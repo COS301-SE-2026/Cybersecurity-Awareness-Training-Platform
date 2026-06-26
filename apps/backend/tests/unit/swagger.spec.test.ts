@@ -325,10 +325,10 @@ describe('swaggerSpec', () => {
     ]);
   });
 
-  it('documents current organisation request persistence limits', () => {
+  it('documents organisation request web URL restrictions', () => {
     const schema = JSON.stringify(spec.components?.schemas?.CreateOrganisationRegistrationRequest);
 
-    expect(schema).toContain('not persisted');
+    expect(schema).toContain('Must use http or https.');
   });
 
   it('keeps simulated email detail free of pre-classification answers', () => {

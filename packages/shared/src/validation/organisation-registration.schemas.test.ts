@@ -46,6 +46,32 @@ describe('organisation registration request validation', () => {
     expect(result.success).toBe(false);
   });
 
+  it.each(['http://example-consulting.test', 'https://example-consulting.test'])(
+    'accepts web URL scheme %s',
+    (organisationWebsiteUrl) => {
+      const result = createOrganisationRegistrationRequestSchema.safeParse({
+        ...validPayload,
+        organisationWebsiteUrl,
+      });
+
+      expect(result.success).toBe(true);
+    },
+  );
+
+  it.each([
+    'mailto:admin@example.test',
+    'ftp://example.test',
+    'file:///tmp/example',
+    'data:text/plain,test',
+  ])('rejects non-web URL scheme %s', (organisationWebsiteUrl) => {
+    const result = createOrganisationRegistrationRequestSchema.safeParse({
+      ...validPayload,
+      organisationWebsiteUrl,
+    });
+
+    expect(result.success).toBe(false);
+  });
+
   it('rejects invalid organisation sizes', () => {
     const result = createOrganisationRegistrationRequestSchema.safeParse({
       ...validPayload,

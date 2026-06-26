@@ -81,14 +81,14 @@ describe('createOrganisationRegistrationRequest', () => {
 
     expect(repositoryMock.findOrganisationByName).toHaveBeenCalledWith('Example Consulting');
     expect(repositoryMock.findActiveRequestByWebsiteOrDomain).toHaveBeenCalledWith({
-      organisationName: 'Example Consulting',
       website: 'https://www.example-consulting.test/contact',
       primaryDomain: 'example-consulting.test',
-      representativeEmail: 'adriano@example.test',
     });
     expect(repositoryMock.createOrganisationRegistrationRequest).toHaveBeenCalledWith({
       submittedOrganisationName: 'Example Consulting',
       submittedWebsite: 'https://www.example-consulting.test/contact',
+      submittedIndustry: 'A fake consulting organisation for tests.',
+      submittedEmployeeCount: 50,
       submittedPrimaryDomain: 'example-consulting.test',
       representativeFirstName: 'Adriano',
       representativeLastName: 'Jorge',
@@ -98,6 +98,36 @@ describe('createOrganisationRegistrationRequest', () => {
       requestId: 'request-1',
       status: 'PENDING_REVIEW',
       confirmationEmailQueued: true,
+    });
+  });
+
+  it('normalises website domains before duplicate checks and persistence', async () => {
+    await createOrganisationRegistrationRequest({
+      ...validInput(),
+      organisationWebsiteUrl: 'https://Example-Consulting.test/',
+    });
+
+    expect(repositoryMock.findActiveRequestByWebsiteOrDomain).toHaveBeenCalledWith({
+      website: 'https://example-consulting.test',
+      primaryDomain: 'example-consulting.test',
+    });
+    expect(repositoryMock.createOrganisationRegistrationRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        submittedWebsite: 'https://example-consulting.test',
+        submittedPrimaryDomain: 'example-consulting.test',
+      }),
+    );
+  });
+
+  it('uses the primary domain to catch protocol variants during duplicate checks', async () => {
+    await createOrganisationRegistrationRequest({
+      ...validInput(),
+      organisationWebsiteUrl: 'http://example-consulting.test',
+    });
+
+    expect(repositoryMock.findActiveRequestByWebsiteOrDomain).toHaveBeenCalledWith({
+      website: 'http://example-consulting.test',
+      primaryDomain: 'example-consulting.test',
     });
   });
 
@@ -201,9 +231,24 @@ describe('createOrganisationRegistrationRequest', () => {
 
     await expect(createOrganisationRegistrationRequest(validInput())).rejects.toMatchObject({
       statusCode: 409,
-      error: 'ORGANISATION_REQUEST_REPRESENTATIVE_CONFLICT',
-      message: 'The organisation registration request conflicts with existing account records.',
+      error: 'ORGANISATION_REQUEST_CONFLICT',
+      message: 'The organisation registration request conflicts with existing records.',
     });
     expect(repositoryMock.createOrganisationRegistrationRequest).not.toHaveBeenCalled();
+  });
+
+  it('checks mixed-case representative email duplicates through repository lookup', async () => {
+    repositoryMock.findActiveRequestByRepresentativeEmail.mockResolvedValue({
+      id: 'request-2',
+      representativeEmail: 'Adriano@Example.test',
+    });
+
+    await expect(createOrganisationRegistrationRequest(validInput())).rejects.toMatchObject({
+      statusCode: 409,
+      error: 'ORGANISATION_REQUEST_CONFLICT',
+    });
+    expect(repositoryMock.findActiveRequestByRepresentativeEmail).toHaveBeenCalledWith(
+      'adriano@example.test',
+    );
   });
 });

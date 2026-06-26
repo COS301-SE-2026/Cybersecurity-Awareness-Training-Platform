@@ -625,18 +625,17 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
               type: 'string',
               minLength: 1,
               maxLength: 2000,
-              description:
-                'Accepted by the API but not persisted until the onboarding schema provides a dedicated column.',
+              description: 'Stored using the current onboarding request description field.',
               example: 'Small consulting company that wants phishing awareness training.',
             },
             organisationSize: {
               allOf: [schemaRef('OrganisationSize')],
-              description:
-                'Accepted by the API but not persisted until the onboarding schema provides a dedicated column.',
+              description: 'Stored using the current onboarding request employee-count field.',
             },
             organisationWebsiteUrl: {
               type: 'string',
               format: 'uri',
+              description: 'Must use http or https.',
               maxLength: 2048,
               example: 'https://example-consulting.test',
             },
@@ -682,7 +681,7 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         OrganisationRegistrationRequestConflictErrorResponse: errorResponseSchema(
           'ApiErrorResponse',
           'ORGANISATION_REQUEST_CONFLICT',
-          'The organisation registration request conflicts with an existing request or organisation.',
+          'The organisation registration request conflicts with existing records.',
         ),
         DifficultyLevel: enumString(
           ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ADAPTIVE'],
@@ -1901,7 +1900,7 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           'OrganisationRegistrationRequestCreatedResponse',
         ),
         OrganisationRegistrationRequestConflict: responseComponent(
-          'The submitted organisation or representative conflicts with existing records.',
+          'The submitted request conflicts with existing records.',
           'OrganisationRegistrationRequestConflictErrorResponse',
         ),
         TraineeCampaignsOk: responseComponent(

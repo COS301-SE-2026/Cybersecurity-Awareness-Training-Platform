@@ -74,12 +74,25 @@ describe('organisation registration request routes', () => {
     expect(serviceMock.createOrganisationRegistrationRequest).not.toHaveBeenCalled();
   });
 
+  it('returns 422 for non-web website URL schemes', async () => {
+    const response = await request(createApp())
+      .post('/organisation-registration-requests')
+      .send({
+        ...validPayload(),
+        organisationWebsiteUrl: 'mailto:admin@example.test',
+      });
+
+    expect(response.status).toBe(422);
+    expect(response.body).toHaveProperty('error', 'VALIDATION_ERROR');
+    expect(serviceMock.createOrganisationRegistrationRequest).not.toHaveBeenCalled();
+  });
+
   it('maps duplicate conflicts to 409 with safe wording', async () => {
     serviceMock.createOrganisationRegistrationRequest.mockRejectedValue(
       new serviceMock.OrganisationRegistrationRequestError(
         409,
         'ORGANISATION_REQUEST_CONFLICT',
-        'The organisation registration request conflicts with an existing request or organisation.',
+        'The organisation registration request conflicts with existing records.',
       ),
     );
 
@@ -90,8 +103,7 @@ describe('organisation registration request routes', () => {
     expect(response.status).toBe(409);
     expect(response.body).toEqual({
       error: 'ORGANISATION_REQUEST_CONFLICT',
-      message:
-        'The organisation registration request conflicts with an existing request or organisation.',
+      message: 'The organisation registration request conflicts with existing records.',
     });
   });
 });

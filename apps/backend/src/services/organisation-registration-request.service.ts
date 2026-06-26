@@ -7,6 +7,13 @@ import * as UserRepository from '../repositories/user.repository.js';
 import { recordAuditLog } from './audit-log.service.js';
 import { requestAuthEmailSend } from './auth-email-hook.service.js';
 
+const organisationSizeEmployeeCounts = {
+  SMALL: 50,
+  MEDIUM: 250,
+  LARGE: 1000,
+  ENTERPRISE: 1001,
+} as const satisfies Record<CreateOrganisationRegistrationRequestDto['organisationSize'], number>;
+
 export class OrganisationRegistrationRequestError extends Error {
   constructor(
     public readonly statusCode: 409,
@@ -35,6 +42,8 @@ export async function createOrganisationRegistrationRequest(
   const request = await OrganisationRequestRepository.createOrganisationRegistrationRequest({
     submittedOrganisationName: input.organisationName,
     submittedWebsite: normalisedWebsite,
+    submittedIndustry: input.organisationDescription,
+    submittedEmployeeCount: organisationSizeEmployeeCounts[input.organisationSize],
     submittedPrimaryDomain: primaryDomain,
     representativeFirstName: input.representativeFirstName,
     representativeLastName: input.representativeLastName,
@@ -76,8 +85,10 @@ async function assertNoDuplicateOrganisationRequest(input: {
     throw duplicateRequestError();
   }
 
-  const duplicateWebsite =
-    await OrganisationRequestRepository.findActiveRequestByWebsiteOrDomain(input);
+  const duplicateWebsite = await OrganisationRequestRepository.findActiveRequestByWebsiteOrDomain({
+    website: input.website,
+    primaryDomain: input.primaryDomain,
+  });
   if (duplicateWebsite) {
     throw duplicateRequestError();
   }
@@ -95,11 +106,7 @@ async function assertNoRepresentativeRoleConflict(representativeEmail: string) {
   const subject = await UserRepository.findAuthSubjectByEmail(representativeEmail);
 
   if (subject.user) {
-    throw new OrganisationRegistrationRequestError(
-      409,
-      'ORGANISATION_REQUEST_REPRESENTATIVE_CONFLICT',
-      'The organisation registration request conflicts with existing account records.',
-    );
+    throw duplicateRequestError();
   }
 }
 
@@ -107,7 +114,7 @@ function duplicateRequestError() {
   return new OrganisationRegistrationRequestError(
     409,
     'ORGANISATION_REQUEST_CONFLICT',
-    'The organisation registration request conflicts with an existing request or organisation.',
+    'The organisation registration request conflicts with existing records.',
   );
 }
 
