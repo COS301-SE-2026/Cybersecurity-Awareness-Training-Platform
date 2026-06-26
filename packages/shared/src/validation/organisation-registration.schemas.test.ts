@@ -58,7 +58,7 @@ describe('organisation registration request validation', () => {
   it('rejects unexpected fields', () => {
     const result = createOrganisationRegistrationRequestSchema.safeParse({
       ...validPayload,
-      password: 'NotAllowed123!',
+      unexpectedField: 'not allowed',
     });
 
     expect(result.success).toBe(false);
