@@ -56,7 +56,7 @@ describe('auth-session serivce', () => {
     ['EXPIRED', session({ expiresAt: now })],
     [
       'IDLE_TIMEOUT',
-      session({ idleTimeoutMinites: 5, lastActiveAt: new Date('2026-06-26T10:00:00.000Z') }),
+      session({ idleTimeoutMinutes: 5, lastActiveAt: new Date('2026-06-26T09:55:00.000Z') }),
     ],
   ] as const)('return %s for invalid sessions', async (state, value) => {
     repoMock.findAuthSessionById.mockResolvedValue(value);
@@ -90,7 +90,7 @@ describe('auth-session serivce', () => {
     await revokeSessionById({ sessionId: 'session01', reason: logoutReason });
     expect(repoMock.revokeAuthSession).toHaveBeenCalledWith({
       id: 'session01',
-      revokedReason: 'USER_LOGOUT',
+      revokedReason: 'LOGOUT',
     });
     await revokeSessionsForUser({
       userId: 'user01',
@@ -99,7 +99,7 @@ describe('auth-session serivce', () => {
     });
     expect(repoMock.revokeUserAuthSessions).toHaveBeenCalledWith({
       userId: 'user01',
-      revokedReason: 'PASSWORD_CHANGED',
+      revokedReason: 'PASSWORD_CHANGE',
       exceptSessionId: 'session02',
     });
   });
