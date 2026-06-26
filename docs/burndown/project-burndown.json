@@ -1032,8 +1032,8 @@
           "number": 251,
           "title": "feat: implement backend organisation registration request endpoint",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-06-26"
         },
         {
           "number": 250,
@@ -1579,7 +1579,7 @@
     },
     {
       "date": "2026-06-26",
-      "remaining": 149,
+      "remaining": 147,
       "ideal": 46.39
     }
   ]
