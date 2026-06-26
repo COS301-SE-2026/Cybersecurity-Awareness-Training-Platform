@@ -133,7 +133,7 @@ describe('refresh-token service', () => {
     await expect(rotateRefreshToken({ rawToken: 'rawtoken', nextExpiresAt, now })).resolves.toEqual(
       {
         state: 'ROTATED',
-        rawNextToken: 'rawnexttoken',
+        rawToken: 'rawnexttoken',
         token: nextToken,
         previousTokenId: 'refreshtoken01',
       },

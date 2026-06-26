@@ -103,4 +103,64 @@ describe('auth-status guard service', () => {
       code: 'PLATFORM_ADMIN_REQUIRED',
     });
   });
+
+  it.each([
+    ['missing trainee profile', { user, traineeProfile: null }, 'TRAINEE_PROFILE_INACTIVE'],
+    ['inactive trainee profile', { user, traineeStatus: 'INACTIVE' }, 'TRAINEE_PROFILE_INACTIVE'],
+    [
+      'inactive organisation trainee profile',
+      {
+        user: { ...user, userType: 'ORGANISATION_TRAINEE' },
+        traineeProfile: { traineeStatus: 'ACTIVE' },
+        organisationTraineeProfile: {
+          organisationUserStatus: 'INACTIVE',
+          organisation: defaultOrg,
+        },
+      },
+      'ORGANISATION_USER_INACTIVE',
+    ],
+    [
+      'missing organisation admin profile',
+      { user: { ...user, userType: 'ORGANISATION_ADMIN' }, organisationAdminProfile: null },
+      'ADMIN_DISABLED',
+    ],
+    [
+      'disabled organisation admin profile',
+      {
+        user: { ...user, userType: 'ORGANISATION_ADMIN' },
+        organisationAdminProfile: { adminStatus: 'DISABLED', organisation: defaultOrg },
+      },
+      'ADMIN_DISABLED',
+    ],
+    [
+      'missing IP admin profile',
+      { user: { ...user, userType: 'IP_ADMIN' }, ipAdminProfile: null },
+      'IP_ADMIN_DISABLED',
+    ],
+    [
+      'disabled IP admin profile',
+      { user: { ...user, userType: 'IP_ADMIN' }, ipAdminProfile: { adminStatus: 'DISABLED' } },
+      'IP_ADMIN_DISABLED',
+    ],
+  ] as const)('rejects authentication for %s', (_caseName, subject, code) => {
+    expect(ensureUserCanAuthenticate(subject)).toMatchObject({ allowed: false, code });
+  });
+
+  it('rejects role gaurd mismatches', () => {
+    expect(
+      ensureOrganisationAdmin({ user, traineeProfile: { traineeStatus: 'ACTIVE' } }),
+    ).toMatchObject({ allowed: false, code: 'ORGANISATION_ADMIN_REQUIRED' });
+    expect(
+      ensureOrganisationMember({ user, traineeProfile: { traineeStatus: 'ACTIVE' } }),
+    ).toMatchObject({ allowed: false, code: 'ORGANISATION_MEMBER_REQUIRED' });
+    expect(
+      ensureSameOrganisation(
+        {
+          user: { ...user, userType: 'ORGANISATION_ADMIN' },
+          organisationAdminProfile: { adminStatus: 'ACTIVE', organisation: defaultOrg },
+        },
+        'differentorgid',
+      ),
+    ).toMatchObject({ allowed: false, code: 'SAME_ORGANISATION_REQUIRED' });
+  });
 }); //describe
