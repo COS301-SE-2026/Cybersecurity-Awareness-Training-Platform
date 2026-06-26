@@ -1,0 +1,66 @@
+import { describe, expect, it } from 'vitest';
+import { createOrganisationRegistrationRequestSchema } from './organisation-registration.schemas.js';
+
+const validPayload = {
+  organisationName: 'Example Consulting',
+  organisationDescription: 'A fake consulting organisation for tests.',
+  organisationSize: 'SMALL',
+  organisationWebsiteUrl: 'https://example-consulting.test',
+  representativeFirstName: 'Adriano',
+  representativeLastName: 'Jorge',
+  representativeEmail: 'Adriano@Example.test',
+};
+
+describe('organisation registration request validation', () => {
+  it('accepts and normalises a valid request', () => {
+    const result = createOrganisationRegistrationRequestSchema.safeParse(validPayload);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.representativeEmail).toBe('adriano@example.test');
+    }
+  });
+
+  it('trims representative and organisation names', () => {
+    const result = createOrganisationRegistrationRequestSchema.safeParse({
+      ...validPayload,
+      organisationName: ' Example Consulting ',
+      representativeFirstName: ' Adriano ',
+      representativeLastName: ' Jorge ',
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.organisationName).toBe('Example Consulting');
+      expect(result.data.representativeFirstName).toBe('Adriano');
+      expect(result.data.representativeLastName).toBe('Jorge');
+    }
+  });
+
+  it('rejects invalid website URLs', () => {
+    const result = createOrganisationRegistrationRequestSchema.safeParse({
+      ...validPayload,
+      organisationWebsiteUrl: 'not-a-url',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects invalid organisation sizes', () => {
+    const result = createOrganisationRegistrationRequestSchema.safeParse({
+      ...validPayload,
+      organisationSize: 'UNKNOWN',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects unexpected fields', () => {
+    const result = createOrganisationRegistrationRequestSchema.safeParse({
+      ...validPayload,
+      password: 'NotAllowed123!',
+    });
+
+    expect(result.success).toBe(false);
+  });
+});
