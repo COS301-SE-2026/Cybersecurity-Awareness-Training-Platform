@@ -114,6 +114,38 @@ describe('refresh-token service', () => {
     });
   });
 
+  it('rotates a valid refresh token and correctly returns a new raw token', async () => {
+    const previousToken = refresh();
+    const nextExpiresAt = new Date('2026-06-27T10:00:00.000Z');
+    const nextToken = {
+      id: 'refreshtoken02',
+      authSessionId: 'session01',
+      tokenHash: 'hash:rawnexttoken',
+      expiresAt: nextExpiresAt,
+    };
+    repoMock.findRefreshTokenByHash.mockResolvedValue(previousToken);
+    sessionMock.validateAuthSession.mockResolvedValue({
+      state: 'ACTIVE',
+      session: { id: 'session01' },
+    });
+    repoMock.rotateRefreshTokenRecord.mockResolvedValue(nextToken);
+
+    await expect(rotateRefreshToken({ rawToken: 'rawtoken', nextExpiresAt, now })).resolves.toEqual(
+      {
+        state: 'ROTATED',
+        rawNextToken: 'rawnexttoken',
+        token: nextToken,
+        previousTokenId: 'refreshtoken01',
+      },
+    );
+    expect(repoMock.rotateRefreshTokenRecord).toHaveBeenCalledWith({
+      previousTokenId: 'refreshtoken01',
+      authSessionId: 'session01',
+      nextTokenHash: 'hash:rawnexttoken',
+      nextExpiresAt,
+    });
+  });
+
   it('trats failed rotation claims as token reuse', async () => {
     repoMock.findRefreshTokenByHash.mockResolvedValue(refresh());
     repoMock.rotateRefreshTokenRecord.mockResolvedValue(null);

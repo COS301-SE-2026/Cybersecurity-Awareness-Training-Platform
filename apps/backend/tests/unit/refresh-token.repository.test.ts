@@ -102,6 +102,6 @@ describe('refresh-token repository', () => {
         nextExpiresAt: new Date('2026-06-27'),
       }),
     ).resolves.toBeNull();
+    expect(tx.refreshToken.create).not.toHaveBeenCalled();
   });
-  expect(tx.refreshToken.create).not.toHaveBeenCalled();
 }); //describe
