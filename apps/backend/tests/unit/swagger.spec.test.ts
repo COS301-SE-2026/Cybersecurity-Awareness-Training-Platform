@@ -35,7 +35,6 @@ const expectedSchemas = [
   'SetupTokenContextResponse',
   'SetupCompleteRequest',
   'SetupCompleteResponse',
-  'OrganisationSize',
   'CreateOrganisationRegistrationRequest',
   'OrganisationRegistrationRequestCreatedResponse',
   'OrganisationRegistrationRequestConflictErrorResponse',

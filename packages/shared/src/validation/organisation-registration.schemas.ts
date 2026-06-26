@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { requiredTrimmedStringSchema } from './common.schemas.js';
 
-export const organisationSizeValues = ['SMALL', 'MEDIUM', 'LARGE', 'ENTERPRISE'] as const;
+const MAX_ORGANISATION_SIZE = 100_000;
 
 const representativeEmailSchema = z
   .string({
@@ -43,10 +43,14 @@ export const createOrganisationRegistrationRequestSchema = z
       maxLength: 2000,
       maxMessage: 'Organisation description must be at most 2000 characters.',
     }),
-    organisationSize: z.enum(organisationSizeValues, {
-      required_error: 'Please select an organisation size.',
-      invalid_type_error: 'Please select a valid organisation size.',
-    }),
+    organisationSize: z
+      .number({
+        required_error: 'Please enter an approximate organisation size.',
+        invalid_type_error: 'Organisation size must be a number.',
+      })
+      .int('Organisation size must be a whole number.')
+      .min(1, 'Organisation size must be at least 1.')
+      .max(MAX_ORGANISATION_SIZE, `Organisation size must be at most ${MAX_ORGANISATION_SIZE}.`),
     organisationWebsiteUrl: websiteUrlSchema,
     representativeFirstName: requiredTrimmedStringSchema({
       requiredMessage: 'Please enter a representative first name.',

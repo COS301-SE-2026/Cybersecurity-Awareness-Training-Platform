@@ -7,13 +7,6 @@ import * as UserRepository from '../repositories/user.repository.js';
 import { recordAuditLog } from './audit-log.service.js';
 import { requestAuthEmailSend } from './auth-email-hook.service.js';
 
-const organisationSizeEmployeeCounts = {
-  SMALL: 50,
-  MEDIUM: 250,
-  LARGE: 1000,
-  ENTERPRISE: 1001,
-} as const satisfies Record<CreateOrganisationRegistrationRequestDto['organisationSize'], number>;
-
 export class OrganisationRegistrationRequestError extends Error {
   constructor(
     public readonly statusCode: 409,
@@ -42,8 +35,8 @@ export async function createOrganisationRegistrationRequest(
   const request = await OrganisationRequestRepository.createOrganisationRegistrationRequest({
     submittedOrganisationName: input.organisationName,
     submittedWebsite: normalisedWebsite,
-    submittedIndustry: input.organisationDescription,
-    submittedEmployeeCount: organisationSizeEmployeeCounts[input.organisationSize],
+    submittedOrganisationDescription: input.organisationDescription,
+    submittedOrganisationSize: input.organisationSize,
     submittedPrimaryDomain: primaryDomain,
     representativeFirstName: input.representativeFirstName,
     representativeLastName: input.representativeLastName,

@@ -37,7 +37,7 @@ function validInput(): CreateOrganisationRegistrationRequestDto {
   return {
     organisationName: 'Example Consulting',
     organisationDescription: 'A fake consulting organisation for tests.',
-    organisationSize: 'SMALL',
+    organisationSize: 75,
     organisationWebsiteUrl: 'https://www.example-consulting.test/contact?ref=test',
     representativeFirstName: 'Adriano',
     representativeLastName: 'Jorge',
@@ -87,8 +87,8 @@ describe('createOrganisationRegistrationRequest', () => {
     expect(repositoryMock.createOrganisationRegistrationRequest).toHaveBeenCalledWith({
       submittedOrganisationName: 'Example Consulting',
       submittedWebsite: 'https://www.example-consulting.test/contact',
-      submittedIndustry: 'A fake consulting organisation for tests.',
-      submittedEmployeeCount: 50,
+      submittedOrganisationDescription: 'A fake consulting organisation for tests.',
+      submittedOrganisationSize: 75,
       submittedPrimaryDomain: 'example-consulting.test',
       representativeFirstName: 'Adriano',
       representativeLastName: 'Jorge',

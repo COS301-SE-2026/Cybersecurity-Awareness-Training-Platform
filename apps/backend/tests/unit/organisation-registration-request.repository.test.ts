@@ -70,8 +70,8 @@ describe('organisation registration request repository', () => {
     await createOrganisationRegistrationRequest({
       submittedOrganisationName: 'Example Consulting',
       submittedWebsite: 'https://example.test',
-      submittedIndustry: 'Security awareness consulting team.',
-      submittedEmployeeCount: 50,
+      submittedOrganisationDescription: 'Security awareness consulting team.',
+      submittedOrganisationSize: 75,
       submittedPrimaryDomain: 'example.test',
       representativeFirstName: 'Adriano',
       representativeLastName: 'Jorge',
@@ -82,8 +82,8 @@ describe('organisation registration request repository', () => {
       data: {
         submittedOrganisationName: 'Example Consulting',
         submittedWebsite: 'https://example.test',
-        submittedIndustry: 'Security awareness consulting team.',
-        submittedEmployeeCount: 50,
+        submittedOrganisationDescription: 'Security awareness consulting team.',
+        submittedOrganisationSize: 75,
         submittedPrimaryDomain: 'example.test',
         representativeFirstName: 'Adriano',
         representativeLastName: 'Jorge',

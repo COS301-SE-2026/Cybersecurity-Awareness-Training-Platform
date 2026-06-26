@@ -601,7 +601,6 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             },
           },
         },
-        OrganisationSize: enumString(['SMALL', 'MEDIUM', 'LARGE', 'ENTERPRISE'], 'SMALL'),
         CreateOrganisationRegistrationRequest: {
           type: 'object',
           required: [
@@ -629,8 +628,11 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
               example: 'Small consulting company that wants phishing awareness training.',
             },
             organisationSize: {
-              allOf: [schemaRef('OrganisationSize')],
-              description: 'Stored using the current onboarding request employee-count field.',
+              type: 'integer',
+              minimum: 1,
+              maximum: 100000,
+              description: 'Approximate number of trainees or users in the organisation.',
+              example: 75,
             },
             organisationWebsiteUrl: {
               type: 'string',

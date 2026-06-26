@@ -4,7 +4,7 @@ import { createOrganisationRegistrationRequestSchema } from './organisation-regi
 const validPayload = {
   organisationName: 'Example Consulting',
   organisationDescription: 'A fake consulting organisation for tests.',
-  organisationSize: 'SMALL',
+  organisationSize: 75,
   organisationWebsiteUrl: 'https://example-consulting.test',
   representativeFirstName: 'Adriano',
   representativeLastName: 'Jorge',
@@ -75,11 +75,32 @@ describe('organisation registration request validation', () => {
   it('rejects invalid organisation sizes', () => {
     const result = createOrganisationRegistrationRequestSchema.safeParse({
       ...validPayload,
-      organisationSize: 'UNKNOWN',
+      organisationSize: 0,
     });
 
     expect(result.success).toBe(false);
   });
+
+  it.each([1, 250, 100000])('accepts valid numeric organisation size %s', (organisationSize) => {
+    const result = createOrganisationRegistrationRequestSchema.safeParse({
+      ...validPayload,
+      organisationSize,
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it.each([-1, 0, 1.5, 100001, 'SMALL'])(
+    'rejects invalid numeric organisation size %s',
+    (organisationSize) => {
+      const result = createOrganisationRegistrationRequestSchema.safeParse({
+        ...validPayload,
+        organisationSize,
+      });
+
+      expect(result.success).toBe(false);
+    },
+  );
 
   it('rejects unexpected fields', () => {
     const result = createOrganisationRegistrationRequestSchema.safeParse({

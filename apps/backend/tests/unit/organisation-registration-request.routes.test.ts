@@ -27,7 +27,7 @@ function validPayload() {
   return {
     organisationName: 'Example Consulting',
     organisationDescription: 'A fake consulting organisation for tests.',
-    organisationSize: 'SMALL',
+    organisationSize: 75,
     organisationWebsiteUrl: 'https://example-consulting.test',
     representativeFirstName: 'Adriano',
     representativeLastName: 'Jorge',
