@@ -2,12 +2,16 @@ import type { NextFunction, Request, Response } from 'express';
 import type { ZodSchema } from 'zod';
 import { ZodError } from 'zod';
 
-export function validateBody<T>(schema: ZodSchema<T>) {
+type ValidationOptions = {
+  statusCode?: 400 | 422;
+};
+
+export function validateBody<T>(schema: ZodSchema<T>, options: ValidationOptions = {}) {
   return (req: Request, res: Response, next: NextFunction) => {
     const result = schema.safeParse(req.body);
 
     if (!result.success) {
-      return res.status(400).json({
+      return res.status(options.statusCode ?? 400).json({
         error: 'VALIDATION_ERROR',
         message: 'Invalid request payload',
         details: result.error.issues.map((issue) => ({

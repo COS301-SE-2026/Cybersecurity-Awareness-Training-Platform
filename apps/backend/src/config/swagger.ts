@@ -144,6 +144,10 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         description: 'Public token-driven setup endpoints.',
       },
       {
+        name: 'Organisation Registration Requests',
+        description: 'Public organisation onboarding request submission.',
+      },
+      {
         name: 'Trainee Simulation',
         description: 'Trainee simulated phishing email workflows.',
       },
@@ -597,6 +601,90 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             },
           },
         },
+        CreateOrganisationRegistrationRequest: {
+          type: 'object',
+          required: [
+            'organisationName',
+            'organisationDescription',
+            'organisationSize',
+            'organisationWebsiteUrl',
+            'representativeFirstName',
+            'representativeLastName',
+            'representativeEmail',
+          ],
+          additionalProperties: false,
+          properties: {
+            organisationName: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 200,
+              example: 'Example Consulting',
+            },
+            organisationDescription: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 2000,
+              description: 'Stored using the current onboarding request description field.',
+              example: 'Small consulting company that wants phishing awareness training.',
+            },
+            organisationSize: {
+              type: 'integer',
+              minimum: 1,
+              maximum: 100000,
+              description: 'Approximate number of trainees or users in the organisation.',
+              example: 75,
+            },
+            organisationWebsiteUrl: {
+              type: 'string',
+              format: 'uri',
+              description: 'Must use http or https.',
+              maxLength: 2048,
+              example: 'https://example-consulting.test',
+            },
+            representativeFirstName: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 100,
+              example: 'Adriano',
+            },
+            representativeLastName: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 100,
+              example: 'Jorge',
+            },
+            representativeEmail: {
+              type: 'string',
+              format: 'email',
+              maxLength: 254,
+              example: 'adriano@example.test',
+            },
+          },
+        },
+        OrganisationRegistrationRequestCreatedResponse: {
+          type: 'object',
+          required: ['requestId', 'status', 'confirmationEmailQueued'],
+          properties: {
+            requestId: {
+              type: 'string',
+              example: 'registration-request-123',
+            },
+            status: {
+              type: 'string',
+              enum: ['PENDING_REVIEW'],
+              example: 'PENDING_REVIEW',
+            },
+            confirmationEmailQueued: {
+              type: 'boolean',
+              example: true,
+            },
+          },
+        },
+        OrganisationRegistrationRequestConflictErrorResponse: errorResponseSchema(
+          'ApiErrorResponse',
+          'ORGANISATION_REQUEST_CONFLICT',
+          'The organisation registration request conflicts with existing records.',
+        ),
         DifficultyLevel: enumString(
           ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ADAPTIVE'],
           'BEGINNER',
@@ -1772,6 +1860,10 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           required: true,
           ...jsonContent(schemaRef('SetupCompleteRequest')),
         },
+        CreateOrganisationRegistrationRequest: {
+          required: true,
+          ...jsonContent(schemaRef('CreateOrganisationRegistrationRequest')),
+        },
       },
       responses: {
         HealthOk: responseComponent('API and database are reachable.', 'HealthStatus'),
@@ -1804,6 +1896,14 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         SetupCompleteCreated: responseComponent(
           'Setup completed successfully.',
           'SetupCompleteResponse',
+        ),
+        OrganisationRegistrationRequestCreated: responseComponent(
+          'Organisation registration request submitted for review.',
+          'OrganisationRegistrationRequestCreatedResponse',
+        ),
+        OrganisationRegistrationRequestConflict: responseComponent(
+          'The submitted request conflicts with existing records.',
+          'OrganisationRegistrationRequestConflictErrorResponse',
         ),
         TraineeCampaignsOk: responseComponent(
           'Campaigns accessible to the authenticated active trainee.',
@@ -1895,6 +1995,10 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         ),
         BadRequest: responseComponent(
           'The request payload or parameters are invalid.',
+          'ValidationErrorResponse',
+        ),
+        UnprocessableEntity: responseComponent(
+          'The request payload is syntactically valid JSON but fails validation.',
           'ValidationErrorResponse',
         ),
         Unauthorized: responseComponent(

@@ -629,8 +629,8 @@ model OrganisationRegistrationRequest {
   id                        String                                @id @default(uuid())
   submittedOrganisationName String
   submittedWebsite          String?
-  submittedIndustry         String?
-  submittedEmployeeCount    Int?
+  submittedOrganisationDescription String?
+  submittedOrganisationSize        Int?
   submittedPrimaryDomain    String?
   representativeFirstName   String
   representativeLastName    String

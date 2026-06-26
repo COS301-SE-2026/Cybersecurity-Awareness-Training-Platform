@@ -38,6 +38,7 @@ vi.mock('../../src/services/password.service.js', () => passwordServiceMock);
 const tx = { transaction: true };
 const rawSetupValue = ['raw', 'setup', 'value'].join('-');
 const strongTestPassword = ['Stronger', 'Pass', '1!'].join('');
+const setupInvitationExpiryMs = 24 * 60 * 60 * 1000;
 
 const activeOrganisation = {
   id: 'org-1',
@@ -85,7 +86,7 @@ function setupToken(overrides = {}) {
       recipientEmail: 'trainee@example.com',
       organisationId: 'org-1',
       status: 'PENDING',
-      expiresAt: new Date('2026-06-26T08:00:00.000Z'),
+      expiresAt: new Date(Date.now() + setupInvitationExpiryMs),
       organisation: activeOrganisation,
       organisationRegistrationRequest: null,
     },
@@ -218,6 +219,9 @@ describe('setup service', () => {
     });
 
     expect(actionTokenServiceMock.runWithConsumedActionToken).not.toHaveBeenCalled();
+    expect(setupRepositoryMock.markInvitationAccepted).not.toHaveBeenCalled();
+    expect(setupRepositoryMock.createOrganisationTraineeUser).not.toHaveBeenCalled();
+    expect(setupRepositoryMock.activateOrganisationTraineeUser).not.toHaveBeenCalled();
     expect(authEmailHookServiceMock.requestAuthEmailSend).not.toHaveBeenCalled();
   });
 
