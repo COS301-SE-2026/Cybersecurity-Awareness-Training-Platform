@@ -11,6 +11,7 @@ import { traineeTrainingRouter } from './routes/trainee-training.routes.js';
 import { traineeQuizRouter, quizAttemptRouter } from './routes/quiz.routes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { setupRouter } from './routes/setup.routes.js';
+import { organisationRegistrationRequestRouter } from './routes/organisation-registration-request.routes.js';
 
 export function createApp() {
   const app = express();
@@ -35,6 +36,7 @@ export function createApp() {
   app.use(healthRoutes);
   app.use(authRouter);
   app.use(setupRouter);
+  app.use(organisationRegistrationRequestRouter);
   app.use('/trainee', traineeRouter);
   app.use(traineeTrainingRouter);
   app.use('/trainee/campaign-items', traineeQuizRouter);
