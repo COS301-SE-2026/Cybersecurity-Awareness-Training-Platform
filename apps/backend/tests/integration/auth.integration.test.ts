@@ -322,6 +322,7 @@ describe('Auth Integration Tests', () => {
 
       const response = await request(createApp()).post(`/setup/token/${rawToken}/complete`).send({
         password: 'newSecurePassword123!',
+        confirmPassword: 'newSecurePassword123!',
         firstName: 'Fully',
         lastName: 'Setup',
       });
@@ -362,6 +363,7 @@ describe('Auth Integration Tests', () => {
       // Complete first time
       const res1 = await request(createApp()).post(`/setup/token/${rawToken}/complete`).send({
         password: 'newSecurePassword123!',
+        confirmPassword: 'newSecurePassword123!',
         firstName: 'First',
         lastName: 'Last',
       });
@@ -370,6 +372,7 @@ describe('Auth Integration Tests', () => {
       // Attempt second time
       const res2 = await request(createApp()).post(`/setup/token/${rawToken}/complete`).send({
         password: 'anotherPassword123!',
+        confirmPassword: 'anotherPassword123!',
         firstName: 'First',
         lastName: 'Last',
       });
