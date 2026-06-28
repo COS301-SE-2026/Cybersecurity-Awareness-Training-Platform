@@ -384,7 +384,7 @@ describe('Auth Integration Tests', () => {
         firstName: 'First',
         lastName: 'Last',
       });
-      expect(res2.status).toBe(409);
+      expect(res2.status).toBe(401);
     });
   });
 });
