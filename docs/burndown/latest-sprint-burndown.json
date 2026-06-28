@@ -499,8 +499,8 @@
       "number": 222,
       "title": "feat: implement backend Sprint 4 authentication infrastructure",
       "points": 3,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-06-28"
     },
     {
       "number": 221,
@@ -586,7 +586,7 @@
     },
     {
       "date": "2026-06-28",
-      "remaining": 147,
+      "remaining": 144,
       "ideal": 60.36
     }
   ]
