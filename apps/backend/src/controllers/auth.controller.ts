@@ -57,7 +57,12 @@ export async function login(req: Request, res: Response) {
       expires: sessionExpiresAt,
     });
 
-    return res.status(200).json(response);
+    return res.status(200).json({
+      ...response,
+      token: response.accessToken,
+      tokenType: 'Bearer',
+      expiresAt: sessionExpiresAt.toISOString(),
+    });
   } catch (error) {
     if (error instanceof AuthUnauthorizedError) {
       return res.status(401).json({
@@ -92,6 +97,8 @@ export async function getMe(req: Request, res: Response) {
     return res.status(200).json({
       ...result,
       accessToken,
+      token: accessToken,
+      tokenType: 'Bearer',
     });
   } catch (error) {
     if (error instanceof AuthStatusGuardError) {
@@ -151,7 +158,12 @@ export async function refresh(req: Request, res: Response) {
       expires: sessionExpiresAt,
     });
 
-    return res.status(200).json(response);
+    return res.status(200).json({
+      ...response,
+      token: response.accessToken,
+      tokenType: 'Bearer',
+      expiresAt: sessionExpiresAt.toISOString(),
+    });
   } catch (error) {
     res.clearCookie('refreshToken', {
       httpOnly: true,
@@ -185,12 +197,8 @@ export async function refresh(req: Request, res: Response) {
 }
 
 export async function resendVerification(req: Request, res: Response) {
-  try {
-    await resendVerificationEmail(req.body.email);
-    return res.status(200).json({
-      message: 'If the email is registered and unverified, a verification link has been sent.',
-    });
-  } catch (error) {
-    throw error;
-  }
+  await resendVerificationEmail(req.body.email);
+  return res.status(200).json({
+    message: 'If the email is registered and unverified, a verification link has been sent.',
+  });
 }

@@ -100,6 +100,9 @@ export interface AuthContextResponseDto {
   context: AuthContextDto;
   permissions: string[];
   redirectTo: string;
+  token?: string;
+  tokenType?: string;
+  expiresAt?: string;
 }
 
 export interface AuthSuccessResponseDto {

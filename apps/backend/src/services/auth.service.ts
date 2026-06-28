@@ -152,12 +152,13 @@ export async function loginUser(
   }
 
   let subject: GuardAuthSubject;
-  let hasFindAuthSubject = false;
-  try {
-    hasFindAuthSubject = typeof UserRepository.findAuthSubjectByUserId === 'function';
-  } catch {
-    hasFindAuthSubject = false;
-  }
+  const hasFindAuthSubject = (() => {
+    try {
+      return typeof UserRepository.findAuthSubjectByUserId === 'function';
+    } catch {
+      return false;
+    }
+  })();
 
   if (hasFindAuthSubject) {
     subject = await UserRepository.findAuthSubjectByUserId(user.id);
@@ -231,12 +232,13 @@ export async function loginUser(
     },
   });
 
-  let hasFindUserWithAuthSubject = false;
-  try {
-    hasFindUserWithAuthSubject = typeof UserRepository.findUserWithAuthSubjectById === 'function';
-  } catch {
-    hasFindUserWithAuthSubject = false;
-  }
+  const hasFindUserWithAuthSubject = (() => {
+    try {
+      return typeof UserRepository.findUserWithAuthSubjectById === 'function';
+    } catch {
+      return false;
+    }
+  })();
 
   const userWithAuthSubject = hasFindUserWithAuthSubject
     ? await UserRepository.findUserWithAuthSubjectById(user.id)
@@ -266,12 +268,13 @@ export async function getCurrentUser(userId: string): Promise<AuthMeResponseDto>
   }
 
   let subject: GuardAuthSubject;
-  let hasFindAuthSubject = false;
-  try {
-    hasFindAuthSubject = typeof UserRepository.findAuthSubjectByUserId === 'function';
-  } catch {
-    hasFindAuthSubject = false;
-  }
+  const hasFindAuthSubject = (() => {
+    try {
+      return typeof UserRepository.findAuthSubjectByUserId === 'function';
+    } catch {
+      return false;
+    }
+  })();
 
   if (hasFindAuthSubject) {
     subject = await UserRepository.findAuthSubjectByUserId(userId);
@@ -316,12 +319,13 @@ export async function getCurrentUser(userId: string): Promise<AuthMeResponseDto>
     throw new AuthStatusGuardError(userResult.code, userResult.statusCode, userResult.message);
   }
 
-  let hasFindUserWithAuthSubject = false;
-  try {
-    hasFindUserWithAuthSubject = typeof UserRepository.findUserWithAuthSubjectById === 'function';
-  } catch {
-    hasFindUserWithAuthSubject = false;
-  }
+  const hasFindUserWithAuthSubject = (() => {
+    try {
+      return typeof UserRepository.findUserWithAuthSubjectById === 'function';
+    } catch {
+      return false;
+    }
+  })();
 
   const fullUser = hasFindUserWithAuthSubject
     ? await UserRepository.findUserWithAuthSubjectById(userId)
@@ -362,8 +366,8 @@ export async function getCurrentUser(userId: string): Promise<AuthMeResponseDto>
 
 export async function refreshUserToken(
   rawToken: string,
-  ipAddress?: string | null,
-  userAgent?: string | null,
+  _ipAddress?: string | null,
+  _userAgent?: string | null,
 ): Promise<{ response: AuthContextResponseDto; rawRefreshToken: string; sessionExpiresAt: Date }> {
   if (!rawToken) {
     throw new AuthRefreshTokenInvalidError('Refresh token is required');
