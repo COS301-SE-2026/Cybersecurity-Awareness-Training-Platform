@@ -3,7 +3,7 @@
   "demo_no": 2,
   "milestone": "Sprint 4 (Demo 2)",
   "start": "2026-06-19",
-  "end": "2026-07-03",
+  "end": "2026-07-08",
   "issues": [
     {
       "number": 292,
@@ -547,47 +547,47 @@
     {
       "date": "2026-06-20",
       "remaining": 169,
-      "ideal": 156.93
+      "ideal": 160.11
     },
     {
       "date": "2026-06-21",
       "remaining": 169,
-      "ideal": 144.86
+      "ideal": 151.21
     },
     {
       "date": "2026-06-22",
       "remaining": 167,
-      "ideal": 132.79
+      "ideal": 142.32
     },
     {
       "date": "2026-06-23",
       "remaining": 155,
-      "ideal": 120.71
+      "ideal": 133.42
     },
     {
       "date": "2026-06-24",
       "remaining": 153,
-      "ideal": 108.64
+      "ideal": 124.53
     },
     {
       "date": "2026-06-25",
       "remaining": 149,
-      "ideal": 96.57
+      "ideal": 115.63
     },
     {
       "date": "2026-06-26",
       "remaining": 147,
-      "ideal": 84.5
+      "ideal": 106.74
     },
     {
       "date": "2026-06-27",
       "remaining": 147,
-      "ideal": 72.43
+      "ideal": 97.84
     },
     {
       "date": "2026-06-28",
       "remaining": 144,
-      "ideal": 60.36
+      "ideal": 88.95
     }
   ]
 }
