@@ -116,7 +116,7 @@ export const platformAdminUpgradeConfirmationTemplateDataSchema = z
 export const roleChangedNotificationTemplateDataSchema = z
   .object({
     firstName: displayNameSchema,
-    organisationName: organisationNameSchema,
+    organisationName: organisationNameSchema.optional(),
     roleName: requiredTrimmedStringSchema({
       requiredMessage: 'Role name is required.',
       maxLength: 100,

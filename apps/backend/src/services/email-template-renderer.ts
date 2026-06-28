@@ -38,15 +38,26 @@ function simpleEmail(input: {
   subject: string;
   heading: string;
   lines: string[];
-  action?: { label: string; url: string };
+  action?: { label: string; url: string; expiresAt?: Date };
 }): RenderedEmail {
-  const text = input.action
-    ? [...input.lines, `${input.action.label}: ${input.action.url}`].join('\n\n')
-    : input.lines.join('\n\n');
+  const actionTextLines = input.action
+    ? [
+        `${input.action.label}: ${input.action.url}`,
+        ...(input.action.expiresAt ? [expiryLines(input.action.expiresAt)] : []),
+      ]
+    : [];
+  const textParts = [input.heading, ...input.lines, ...actionTextLines];
+  const text = textParts.join('\n\n');
+
   const htmlLines = input.lines.map((line) => `<p>${escapeHtml(line)}</p>`).join('');
 
   const actionHtml = input.action
-    ? `<p><a href="${escapeHtml(input.action.url)}">${escapeHtml(input.action.label)}</a></p>`
+    ? [
+        `<p><a href="${escapeHtml(input.action.url)}">${escapeHtml(input.action.label)}</a></p>`,
+        ...(input.action.expiresAt
+          ? [`<p>${escapeHtml(expiryLines(input.action.expiresAt))}</p>`]
+          : []),
+      ].join('')
     : '';
 
   return {
@@ -83,9 +94,8 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
           `Hi ${data.firstName},`,
           `Welcome to Insightful Phish.`,
           'Before you can start using your account, please verify your email address.',
-          expiryLines(data.actionTokenExpiresAt),
         ],
-        action: { label: 'Verify email', url },
+        action: { label: 'Verify email', url, expiresAt: data.actionTokenExpiresAt },
       });
     } //email_verification
 
@@ -99,9 +109,8 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
           `Hi ${data.firstName},`,
           `We received a request to reset your Insightful Phish password.`,
           `If you did not request a password reset, you can safely ignore this email. Your password will remain unchanged.`,
-          expiryLines(data.actionTokenExpiresAt),
         ],
-        action: { label: 'Reset password', url },
+        action: { label: 'Reset password', url, expiresAt: data.actionTokenExpiresAt },
       });
     } //password reset
 
@@ -127,11 +136,10 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
         heading: 'Confirm your email change',
         lines: [
           `Hi ${data.firstName},`,
-          ` We received a request to change your Insightful Phish email address.`,
+          `We received a request to change your Insightful Phish email address.`,
           `Your account email will change from ${data.oldEmail} to ${data.newEmail}.`,
-          expiryLines(data.actionTokenExpiresAt),
         ],
-        action: { label: 'Confirm email change', url },
+        action: { label: 'Confirm email change', url, expiresAt: data.actionTokenExpiresAt },
       });
     } //email change confirmation
 
@@ -156,7 +164,7 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
         heading: 'Request received',
         lines: [
           `Thank you for requesting to register ${data.organisationName} with Insightful Phish.`,
-          `    Your organisation registration request has been received.`,
+          `Your organisation registration request has been received.`,
           'Our team will review your request and notify you once we have an update.',
           `You will be able to complete your account setup once your request has been approved.`,
         ],
@@ -199,9 +207,12 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
           `Hi ${data.firstName},`,
           `Good news! Your request to register ${data.organisationName} for Insightful Phish has been approved.`,
           `The next step is to create the first organisation administrator account.`,
-          expiryLines(data.actionTokenExpiresAt),
         ],
-        action: { label: 'Set up administrator account', url },
+        action: {
+          label: 'Set up administrator account',
+          url,
+          expiresAt: data.actionTokenExpiresAt,
+        },
       });
     } //organisation reqeust approved
 
@@ -221,13 +232,11 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
         );
       }
 
-      lines.push(expiryLines(data.actionTokenExpiresAt));
-
       return simpleEmail({
-        subject: `You/'re invited to join ${data.organisationName}`,
+        subject: `You're invited to join ${data.organisationName}`,
         heading: 'Organisation invitation',
         lines,
-        action: { label: 'Accept invitation', url },
+        action: { label: 'Accept invitation', url, expiresAt: data.actionTokenExpiresAt },
       });
     } //organisation trainee invite
 
@@ -235,16 +244,15 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
       const data = organisationAdminPromotionInviteTemplateDataSchema.parse(templateData);
       const url = actionUrl('/accept-invite', data.actionToken);
       return simpleEmail({
-        subject: `You/'re invited to become an organisation administrator`,
+        subject: `You're invited to become an organisation administrator`,
         heading: 'Administrator invitation',
         lines: [
           `Hi ${data.firstName},`,
           `You have been invited to become an organisation administrator for ${data.organisationName}.`,
           `Organisation administrators can manage trainees, campaigns and organisation settings.`,
           `Accepting this invitation will replace your trainee access with administrator access.`,
-          expiryLines(data.actionTokenExpiresAt),
         ],
-        action: { label: 'Accept administrator invite', url },
+        action: { label: 'Accept administrator invite', url, expiresAt: data.actionTokenExpiresAt },
       });
     } //organisation admin invite
 
@@ -258,9 +266,12 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
           `Hi ${data.firstName},`,
           `You have been invited to join Insightful Phish as a platform administrator.`,
           `Platform administrators manage organisations and content available to individual trainees, and oversee the platform.`,
-          expiryLines(data.actionTokenExpiresAt),
         ],
-        action: { label: 'Create administrator account', url },
+        action: {
+          label: 'Create administrator account',
+          url,
+          expiresAt: data.actionTokenExpiresAt,
+        },
       });
     } //platform admin invite
 
@@ -275,9 +286,8 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
           `You have been invited to upgrade your existing account to a platform administrator account.`,
           `Accepting this upgrade will replace your current trainee account with platform administrator access.`,
           `If you do not wish to become a platform administrator, simply ignore this email.`,
-          expiryLines(data.actionTokenExpiresAt),
         ],
-        action: { label: 'Confirm upgrade', url },
+        action: { label: 'Confirm upgrade', url, expiresAt: data.actionTokenExpiresAt },
       });
     } //platform admin invite
 
