@@ -169,11 +169,11 @@ function assertSetupRecordIsUsable(setupToken: SetupActionToken) {
     throw new SetupFlowError(409, 'SETUP_INVITATION_MISSING', 'Setup invitation is not available');
   }
 
-  if (invitation.status !== 'PENDING') {
+  if (invitation.status !== 'PENDING' && invitation.status !== 'SENT') {
     throw new SetupFlowError(
       409,
-      'SETUP_INVITATION_NOT_PENDING',
-      'Setup invitation is not pending',
+      'SETUP_INVITATION_NOT_ACCEPTABLE',
+      'Setup invitation is not available for completion',
     );
   }
 

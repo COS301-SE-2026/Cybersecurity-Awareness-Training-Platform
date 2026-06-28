@@ -196,8 +196,8 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
           greeting(undefined),
           `Unfortunately, your request to register ${data.organisationName} for Insightful Phish was not approved.`,
           `Reason: `,
-          data.rejectionReason ? `Reason: ${data.rejectionReason}` : 'No reason provided.',
-          '    If you believe this is incorrect or require additional information, please contact support.',
+          data.rejectionReason ? `${data.rejectionReason}` : 'No reason provided.',
+          'If you believe this is incorrect or require additional information, please contact support.',
         ],
       });
     } //organisation request denied
