@@ -158,7 +158,7 @@ describe('setup service', () => {
     expect(setupRepositoryMock.findSetupActionTokenById).not.toHaveBeenCalled();
   });
 
-  it('hashes the password, creates the invited trainee, accepts the invite, and sends the email hook', async () => {
+  it('hashes the password, creates the invited trainee, accepts the invite', async () => {
     const response = await completeSetupWithToken(rawSetupValue, completeSetupInput);
 
     expect(passwordServiceMock.hashPassword).toHaveBeenCalledWith(strongTestPassword);
@@ -177,17 +177,9 @@ describe('setup service', () => {
       tx,
     );
     expect(setupRepositoryMock.markInvitationAccepted).toHaveBeenCalledWith('invitation-1', tx);
-    expect(authEmailHookServiceMock.requestAuthEmailSend).toHaveBeenCalledWith({
-      emailType: 'ORGANISATION_TRAINEE_INVITE',
-      recipientEmail: 'trainee@example.com',
-      userId: 'user-1',
-      actionTokenId: 'action-token-1',
-      organisationId: 'org-1',
-      invitationId: 'invitation-1',
-    });
+    expect(authEmailHookServiceMock.requestAuthEmailSend).not.toHaveBeenCalled();
     expect(response).toEqual({
       user: publicUserResponse,
-      confirmationEmailQueued: false,
     });
   });
 

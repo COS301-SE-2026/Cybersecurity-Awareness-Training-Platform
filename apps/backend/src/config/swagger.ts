@@ -590,14 +590,10 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         },
         SetupCompleteResponse: {
           type: 'object',
-          required: ['user', 'confirmationEmailQueued'],
+          required: ['user'],
           properties: {
             user: {
               $ref: '#/components/schemas/PublicUser',
-            },
-            confirmationEmailQueued: {
-              type: 'boolean',
-              example: false,
             },
           },
         },
