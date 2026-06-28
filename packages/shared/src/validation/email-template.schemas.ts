@@ -27,12 +27,24 @@ const rawActionTokenSchema = z
   .max(512, 'Action token is invalid.')
   .regex(/^[A-Za-z0-9_-]+$/);
 const emailAddressSchema = z.string().trim().email().max(254).toLowerCase();
+const actionTokenExpiresAtSchema = z.coerce.date({
+  required_error: 'Action token expiry is required.',
+  invalid_type_error: 'Action token expiry is required',
+});
 
 export const emailVerificationTemplateDataSchema = z
-  .object({ firstName: displayNameSchema, actionToken: rawActionTokenSchema })
+  .object({
+    firstName: displayNameSchema,
+    actionToken: rawActionTokenSchema,
+    actionTokenExpiresAt: actionTokenExpiresAtSchema,
+  })
   .strict();
 export const passwordResetTemplateDataSchema = z
-  .object({ firstName: displayNameSchema, actionToken: rawActionTokenSchema })
+  .object({
+    firstName: displayNameSchema,
+    actionToken: rawActionTokenSchema,
+    actionTokenExpiresAt: actionTokenExpiresAtSchema,
+  })
   .strict();
 export const passwordChangedTemplateDataSchema = z
   .object({ firstName: displayNameSchema })
@@ -43,6 +55,7 @@ export const emailChangeConfirmationTemplateDataSchema = z
     oldEmail: emailAddressSchema,
     newEmail: emailAddressSchema,
     actionToken: rawActionTokenSchema,
+    actionTokenExpiresAt: actionTokenExpiresAtSchema,
   })
   .strict();
 export const emailChangeWarningTemplateDataSchema = z
@@ -66,6 +79,7 @@ export const initialOrganisationAdminSetupTemplateDataSchema = z
     firstName: displayNameSchema,
     organisationName: organisationNameSchema,
     actionToken: rawActionTokenSchema,
+    actionTokenExpiresAt: actionTokenExpiresAtSchema,
   })
   .strict();
 export const organisationTraineeInviteTemplateDataSchema = z
@@ -73,6 +87,8 @@ export const organisationTraineeInviteTemplateDataSchema = z
     firstName: displayNameSchema,
     organisationName: organisationNameSchema,
     actionToken: rawActionTokenSchema,
+    actionTokenExpiresAt: actionTokenExpiresAtSchema,
+    requiresAccountConflictResolution: z.boolean().optional().default(false),
   })
   .strict();
 export const organisationAdminPromotionInviteTemplateDataSchema = z
@@ -80,13 +96,22 @@ export const organisationAdminPromotionInviteTemplateDataSchema = z
     firstName: displayNameSchema,
     organisationName: organisationNameSchema,
     actionToken: rawActionTokenSchema,
+    actionTokenExpiresAt: actionTokenExpiresAtSchema,
   })
   .strict();
 export const platformAdminInviteTemplateDataSchema = z
-  .object({ firstName: displayNameSchema, actionToken: rawActionTokenSchema })
+  .object({
+    firstName: displayNameSchema,
+    actionToken: rawActionTokenSchema,
+    actionTokenExpiresAt: actionTokenExpiresAtSchema,
+  })
   .strict();
 export const platformAdminUpgradeConfirmationTemplateDataSchema = z
-  .object({ firstName: displayNameSchema })
+  .object({
+    firstName: displayNameSchema,
+    actionToken: rawActionTokenSchema,
+    actionTokenExpiresAt: actionTokenExpiresAtSchema,
+  })
   .strict();
 export const roleChangedNotificationTemplateDataSchema = z
   .object({
