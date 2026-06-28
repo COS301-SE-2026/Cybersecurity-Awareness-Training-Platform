@@ -1,15 +1,20 @@
 import request from 'supertest';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../../src/app.js';
 import { prisma } from '../../src/lib/prisma.js';
 import { verifyPassword } from '../../src/services/password.service.js';
 import { loginTestUser, testUserPassword } from '../helpers/auth.js';
 import { createTrainee, createOrganisation } from '../helpers/factories.js';
 import { issueActionToken } from '../../src/services/action-token.service.js';
+import { clearAuthRateLimitStore } from '../../src/middleware/authRateLimit.js';
 
 const secureRegisterPassword = ['Secure', 'Password', '123!'].join('');
 
 describe('Auth Integration Tests', () => {
+  beforeEach(() => {
+    clearAuthRateLimitStore();
+  });
+
   it('registers a valid trainee user resulting in new database records', async () => {
     const payload = {
       email: 'new-trainee@example.com',
