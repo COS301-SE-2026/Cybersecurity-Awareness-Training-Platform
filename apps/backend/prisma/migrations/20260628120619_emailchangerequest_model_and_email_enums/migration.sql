@@ -1,5 +1,20 @@
+/*
+  Warnings:
+
+  - The values [ORGANISATION_REQUEST_APPROVED,PLATFORM_ADMIN_UPGRADE_CONFIRMATION] on the enum `EmailDeliveryType` will be removed. If these variants are still used in the database, this will fail.
+
+*/
 -- CreateEnum
 CREATE TYPE "EmailChangeRequestStatus" AS ENUM ('PENDING', 'CONFIRMED', 'EXPIRED', 'CANCELED');
+
+-- AlterEnum
+BEGIN;
+CREATE TYPE "EmailDeliveryType_new" AS ENUM ('EMAIL_VERIFICATION', 'PASSWORD_RESET', 'PASSWORD_CHANGED', 'EMAIL_CHANGE_CONFIRMATION', 'EMAIL_CHANGE_WARNING', 'ORGANISATION_REQUEST_RECEIVED', 'ORGANISATION_REQUEST_REJECTED', 'INITIAL_ORGANISATION_ADMIN_SETUP', 'ORGANISATION_TRAINEE_INVITE', 'ORGANISATION_ADMIN_PROMOTION_INVITE', 'PLATFORM_ADMIN_INVITE', 'ROLE_CHANGED_NOTIFICATION');
+ALTER TABLE "EmailDeliveryLog" ALTER COLUMN "emailType" TYPE "EmailDeliveryType_new" USING ("emailType"::text::"EmailDeliveryType_new");
+ALTER TYPE "EmailDeliveryType" RENAME TO "EmailDeliveryType_old";
+ALTER TYPE "EmailDeliveryType_new" RENAME TO "EmailDeliveryType";
+DROP TYPE "public"."EmailDeliveryType_old";
+COMMIT;
 
 -- AlterEnum
 -- This migration adds more than one value to an enum.

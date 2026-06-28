@@ -1,5 +1,13 @@
 import { z } from 'zod';
-import { requiredTrimmedStringSchema } from './common.schemas';
+import { requiredTrimmedStringSchema } from './common.schemas.js';
+export type TokenTemplateData = { firstName: string; actionToken: string };
+export type EmailChangeConfirmationTemplateData = {
+  firstName: string;
+  oldEmail: string;
+  newEmail: string;
+  actionToken: string;
+};
+
 const displayNameSchema = requiredTrimmedStringSchema({
   requiredMessage: 'Display name is required.',
   maxLength: 100,
@@ -20,7 +28,7 @@ const rawActionTokenSchema = z
   .regex(/^[A-Za-z0-9_-]+$/);
 const emailAddressSchema = z.string().trim().email().max(254).toLowerCase();
 
-export const emailVerficiationTemplateDataSchema = z
+export const emailVerificationTemplateDataSchema = z
   .object({ firstName: displayNameSchema, actionToken: rawActionTokenSchema })
   .strict();
 export const passwordResetTemplateDataSchema = z
@@ -29,7 +37,15 @@ export const passwordResetTemplateDataSchema = z
 export const passwordChangedTemplateDataSchema = z
   .object({ firstName: displayNameSchema })
   .strict();
-export const emailChangedConfirmationTemplateDataSchema = z
+export const emailChangeConfirmationTemplateDataSchema = z
+  .object({
+    firstName: displayNameSchema,
+    oldEmail: emailAddressSchema,
+    newEmail: emailAddressSchema,
+    actionToken: rawActionTokenSchema,
+  })
+  .strict();
+export const emailChangeWarningTemplateDataSchema = z
   .object({
     firstName: displayNameSchema,
     oldEmail: emailAddressSchema,
@@ -39,15 +55,11 @@ export const emailChangedConfirmationTemplateDataSchema = z
 export const organisationRequestReceivedTemplateDataSchema = z
   .object({ organisationName: organisationNameSchema })
   .strict();
-export const organisationRequestApprovedTemplateDataSchema = z
-  .object({ organisationName: organisationNameSchema, actionToken: rawActionTokenSchema })
-  .strict();
 export const organisationRequestRejectedTemplateDataSchema = z
   .object({
     organisationName: organisationNameSchema,
     rejectionReason: z.string().trim().max(1000).optional(),
   })
-  .strict()
   .strict();
 export const initialOrganisationAdminSetupTemplateDataSchema = z
   .object({
