@@ -129,6 +129,34 @@ export class AuthRefreshTokenInvalidError extends Error {
   }
 }
 
+function fillMockProfilesForTesting(subject: GuardAuthSubject): void {
+  if (process.env.NODE_ENV === 'test') {
+    if (subject.user?.userType === 'GENERAL_TRAINEE' && !subject.traineeProfile) {
+      subject.traineeProfile = { traineeStatus: 'ACTIVE' };
+    }
+    if (subject.user?.userType === 'ORGANISATION_TRAINEE') {
+      if (!subject.traineeProfile) {
+        subject.traineeProfile = { traineeStatus: 'ACTIVE' };
+      }
+      if (!subject.organisationTraineeProfile) {
+        subject.organisationTraineeProfile = {
+          organisationUserStatus: 'ACTIVE',
+          organisation: { id: 'mock-org', status: 'ACTIVE' },
+        };
+      }
+    }
+    if (subject.user?.userType === 'ORGANISATION_ADMIN' && !subject.organisationAdminProfile) {
+      subject.organisationAdminProfile = {
+        adminStatus: 'ACTIVE',
+        organisation: { id: 'mock-org', status: 'ACTIVE' },
+      };
+    }
+    if (subject.user?.userType === 'IP_ADMIN' && !subject.ipAdminProfile) {
+      subject.ipAdminProfile = { adminStatus: 'ACTIVE' };
+    }
+  }
+}
+
 const PLATFORM_SESSION_POLICY = {
   regularSessionSeconds: 900,
   rememberedSessionSeconds: 604800,
@@ -162,31 +190,7 @@ export async function loginUser(
 
   if (hasFindAuthSubject) {
     subject = await UserRepository.findAuthSubjectByUserId(user.id);
-    if (process.env.NODE_ENV === 'test') {
-      if (subject.user?.userType === 'GENERAL_TRAINEE' && !subject.traineeProfile) {
-        subject.traineeProfile = { traineeStatus: 'ACTIVE' };
-      }
-      if (subject.user?.userType === 'ORGANISATION_TRAINEE') {
-        if (!subject.traineeProfile) {
-          subject.traineeProfile = { traineeStatus: 'ACTIVE' };
-        }
-        if (!subject.organisationTraineeProfile) {
-          subject.organisationTraineeProfile = {
-            organisationUserStatus: 'ACTIVE',
-            organisation: { id: 'mock-org', status: 'ACTIVE' },
-          };
-        }
-      }
-      if (subject.user?.userType === 'ORGANISATION_ADMIN' && !subject.organisationAdminProfile) {
-        subject.organisationAdminProfile = {
-          adminStatus: 'ACTIVE',
-          organisation: { id: 'mock-org', status: 'ACTIVE' },
-        };
-      }
-      if (subject.user?.userType === 'IP_ADMIN' && !subject.ipAdminProfile) {
-        subject.ipAdminProfile = { adminStatus: 'ACTIVE' };
-      }
-    }
+    fillMockProfilesForTesting(subject);
   } else {
     subject = {
       user: {
@@ -278,31 +282,7 @@ export async function getCurrentUser(userId: string): Promise<AuthMeResponseDto>
 
   if (hasFindAuthSubject) {
     subject = await UserRepository.findAuthSubjectByUserId(userId);
-    if (process.env.NODE_ENV === 'test') {
-      if (subject.user?.userType === 'GENERAL_TRAINEE' && !subject.traineeProfile) {
-        subject.traineeProfile = { traineeStatus: 'ACTIVE' };
-      }
-      if (subject.user?.userType === 'ORGANISATION_TRAINEE') {
-        if (!subject.traineeProfile) {
-          subject.traineeProfile = { traineeStatus: 'ACTIVE' };
-        }
-        if (!subject.organisationTraineeProfile) {
-          subject.organisationTraineeProfile = {
-            organisationUserStatus: 'ACTIVE',
-            organisation: { id: 'mock-org', status: 'ACTIVE' },
-          };
-        }
-      }
-      if (subject.user?.userType === 'ORGANISATION_ADMIN' && !subject.organisationAdminProfile) {
-        subject.organisationAdminProfile = {
-          adminStatus: 'ACTIVE',
-          organisation: { id: 'mock-org', status: 'ACTIVE' },
-        };
-      }
-      if (subject.user?.userType === 'IP_ADMIN' && !subject.ipAdminProfile) {
-        subject.ipAdminProfile = { adminStatus: 'ACTIVE' };
-      }
-    }
+    fillMockProfilesForTesting(subject);
   } else {
     subject = {
       user: {
@@ -384,31 +364,7 @@ export async function refreshUserToken(
   const token = valid.token;
 
   const subject = await UserRepository.findAuthSubjectByUserId(token.authSession.userId);
-  if (process.env.NODE_ENV === 'test') {
-    if (subject.user?.userType === 'GENERAL_TRAINEE' && !subject.traineeProfile) {
-      subject.traineeProfile = { traineeStatus: 'ACTIVE' };
-    }
-    if (subject.user?.userType === 'ORGANISATION_TRAINEE') {
-      if (!subject.traineeProfile) {
-        subject.traineeProfile = { traineeStatus: 'ACTIVE' };
-      }
-      if (!subject.organisationTraineeProfile) {
-        subject.organisationTraineeProfile = {
-          organisationUserStatus: 'ACTIVE',
-          organisation: { id: 'mock-org', status: 'ACTIVE' },
-        };
-      }
-    }
-    if (subject.user?.userType === 'ORGANISATION_ADMIN' && !subject.organisationAdminProfile) {
-      subject.organisationAdminProfile = {
-        adminStatus: 'ACTIVE',
-        organisation: { id: 'mock-org', status: 'ACTIVE' },
-      };
-    }
-    if (subject.user?.userType === 'IP_ADMIN' && !subject.ipAdminProfile) {
-      subject.ipAdminProfile = { adminStatus: 'ACTIVE' };
-    }
-  }
+  fillMockProfilesForTesting(subject);
   const guardResult = ensureUserCanAuthenticate(subject);
   if (!guardResult.allowed) {
     let sessionReason: AuthSessionRevokedReason = 'OTHER';
