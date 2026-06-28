@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi, afterEach } from 'vitest';
 import {
   completeSetupWithToken,
   getSetupTokenContext,
@@ -98,6 +98,8 @@ function setupToken(overrides = {}) {
 
 describe('setup service', () => {
   beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-25'));
     vi.clearAllMocks();
 
     actionTokenServiceMock.validateActionToken.mockResolvedValue({
@@ -118,6 +120,10 @@ describe('setup service', () => {
 
     passwordServiceMock.hashPassword.mockResolvedValue('hashed-password');
     authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue({ queued: false });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('returns safe setup context without consuming the action token', async () => {
