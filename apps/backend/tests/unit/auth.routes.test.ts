@@ -204,6 +204,9 @@ describe('Auth routes', () => {
       }),
       permissions: ['GENERAL_TRAINEE'],
       redirectTo: '/trainee/campaigns',
+      token: expect.any(String),
+      tokenType: 'Bearer',
+      expiresAt: expect.any(String),
     });
     expect(response.body.user).not.toHaveProperty('passwordHash');
   });
@@ -272,6 +275,8 @@ describe('Auth routes', () => {
       }),
       permissions: ['GENERAL_TRAINEE'],
       redirectTo: '/trainee/campaigns',
+      token: expect.any(String),
+      tokenType: 'Bearer',
     });
     expect(response.body.user).not.toHaveProperty('passwordHash');
   });
@@ -467,6 +472,9 @@ describe('Auth routes', () => {
         }),
         permissions: ['GENERAL_TRAINEE'],
         redirectTo: '/trainee/campaigns',
+        token: expect.any(String),
+        tokenType: 'Bearer',
+        expiresAt: expect.any(String),
       });
       expect(response.headers['set-cookie'][0]).toContain('refreshToken=');
     });
