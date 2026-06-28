@@ -1,129 +1,116 @@
-import nodemailer from 'nodemailer';
-import { env } from '../config/env.js';
 import type {
   EmailDeliveryType,
   EmailRelatedEntityType,
   PrismaClient,
 } from '../generated/prisma/client.js';
 import { prisma } from '../lib/prisma.js';
+import { renderEmail } from './email-template-renderer.js';
+import { sendViaSMTP } from './smtp-mailer.js';
 
 type EmailPrismaClient = {
   emailDeliveryLog: Pick<PrismaClient['emailDeliveryLog'], 'create' | 'update'>;
+  invitation: Pick<PrismaClient['invitation'], 'update'>;
 };
-
-export interface SendEmailInput {
-  to: string;
-  subject: string;
-  text: string;
-  html?: string;
-  emailType: EmailDeliveryType;
-
-  //fallback
-  relatedEntityType?: EmailRelatedEntityType;
-  relatedEntityId?: string | null;
-
-  //typed
+export type SendEmailRelatedEntity = {
+  fallbackType?: EmailRelatedEntityType;
+  fallbackId?: string | null;
   userId?: string | null;
   actionTokenId?: string | null;
   organisationId?: string | null;
   organisationRegistrationRequestId?: string | null;
   invitationId?: string | null;
+};
+export interface SendEmailInput {
+  emailType: EmailDeliveryType;
+  recipientEmail: string;
+  relatedEntity: SendEmailRelatedEntity;
+  templateData?: unknown;
 }
-
 export type SendEmailOutput =
   | { ok: true; messageId?: string; deliveryLogId: string }
-  | {
-      ok: false;
-      error: string;
-      deliveryLogId: string;
-    };
+  | { ok: false; error: string; deliveryLogId?: string };
+
+function isInvitationEmail(emailType: EmailDeliveryType) {
+  return (
+    emailType === 'INITIAL_ORGANISATION_ADMIN_SETUP' ||
+    emailType === 'ORGANISATION_TRAINEE_INVITE' ||
+    emailType === 'ORGANISATION_ADMIN_PROMOTION_INVITE' ||
+    emailType === 'PLATFORM_ADMIN_INVITE'
+  );
+}
+
+async function markInvitationSentIfRelevant(input: SendEmailInput, client: EmailPrismaClient) {
+  if (!input.relatedEntity.invitationId || !isInvitationEmail(input.emailType)) {
+    return;
+  }
+  await client.invitation.update({
+    data: { status: 'SENT' },
+    where: { id: input.relatedEntity.invitationId },
+  });
+}
+async function markInvitationFailedIfRelevant(input: SendEmailInput, client: EmailPrismaClient) {
+  if (!input.relatedEntity.invitationId || !isInvitationEmail(input.emailType)) {
+    return;
+  }
+  await client.invitation.update({
+    data: { status: 'FAILED_TO_SEND' },
+    where: { id: input.relatedEntity.invitationId },
+  });
+}
 
 export async function sendEmail(
   input: SendEmailInput,
   client: EmailPrismaClient = prisma,
 ): Promise<SendEmailOutput> {
-  const hasTypedRelationship = Boolean(
-    input.userId ||
-    input.actionTokenId ||
-    input.organisationId ||
-    input.organisationRegistrationRequestId ||
-    input.invitationId,
+  const renderedEmail = renderEmail(input.emailType, input.templateData);
+  const hasTypedRelation = Boolean(
+    input.relatedEntity.userId ||
+    input.relatedEntity.actionTokenId ||
+    input.relatedEntity.organisationId ||
+    input.relatedEntity.organisationRegistrationRequestId ||
+    input.relatedEntity.invitationId,
   );
 
-  if (!hasTypedRelationship && !input.relatedEntityType) {
-    throw new Error('Email logs without a typed relation must provide relatedEntityType');
+  if (!hasTypedRelation && !input.relatedEntity.fallbackType) {
+    throw new Error('Emails without a typed relation must provide a fallbackType');
   }
 
   const deliveryLog = await client.emailDeliveryLog.create({
     data: {
-      recipientEmail: input.to,
+      recipientEmail: input.recipientEmail,
       emailType: input.emailType,
-      fallbackRelatedEntityType: hasTypedRelationship ? null : input.relatedEntityType,
-      fallbackRelatedEntityId: hasTypedRelationship ? null : (input.relatedEntityId ?? null),
-      userId: input.userId ?? null,
-      actionTokenId: input.actionTokenId ?? null,
+      fallbackRelatedEntityType: hasTypedRelation ? null : input.relatedEntity.fallbackType,
+      fallbackRelatedEntityId: hasTypedRelation ? null : (input.relatedEntity.fallbackId ?? null),
+      userId: input.relatedEntity.userId ?? null,
+      actionTokenId: input.relatedEntity.actionTokenId ?? null,
+      organisationId: input.relatedEntity.organisationId ?? null,
+      organisationRegistrationRequestId:
+        input.relatedEntity.organisationRegistrationRequestId ?? null,
+      invitationId: input.relatedEntity.invitationId ?? null,
       deliveryStatus: 'PENDING',
-      organisationId: input.organisationId ?? null,
-      organisationRegistrationRequestId: input.organisationRegistrationRequestId ?? null,
-      invitationId: input.invitationId ?? null,
     },
   });
 
-  const transportOptions = {
-    host: env.SMTP_HOST,
-    port: env.SMTP_PORT,
-    secure: env.SMTP_SECURE,
-    ...(env.SMTP_USER && env.SMTP_PASSWORD
-      ? {
-          auth: {
-            user: env.SMTP_USER,
-            pass: env.SMTP_PASSWORD,
-          },
-        }
-      : {}),
-  };
-
-  const transporter = nodemailer.createTransport(transportOptions);
-
   try {
-    const result = await transporter.sendMail({
-      from: `"${env.SMTP_FROM_NAME}" <${env.SMTP_FROM_ADDRESS}>`,
-      to: input.to,
-      subject: input.subject,
-      text: input.text,
-      html: input.html,
-    });
-
+    const providerResult = await sendViaSMTP({ to: input.recipientEmail, ...renderedEmail });
     await client.emailDeliveryLog.update({
-      where: { id: deliveryLog.id },
       data: {
         deliveryStatus: 'SENT',
-        providerMessageId: result.messageId,
+        providerMessageId: providerResult.messageId,
         sentAt: new Date(),
       },
-    });
-
-    return {
-      ok: true,
-      messageId: result.messageId,
-      deliveryLogId: deliveryLog.id,
-    };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown SMTP error';
-
-    await client.emailDeliveryLog.update({
       where: { id: deliveryLog.id },
-      data: {
-        deliveryStatus: 'FAILED',
-        failedAt: new Date(),
-        failureReason: message,
-      },
     });
+    await markInvitationSentIfRelevant(input, client);
 
-    return {
-      ok: false,
-      error: message,
-      deliveryLogId: deliveryLog.id,
-    };
+    return { ok: true, messageId: providerResult.messageId, deliveryLogId: deliveryLog.id };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unkown SMTP error';
+    await client.emailDeliveryLog.update({
+      data: { deliveryStatus: 'FAILED', failedAt: new Date(), failureReason: message },
+      where: { id: deliveryLog.id },
+    });
+    await markInvitationFailedIfRelevant(input, client);
+    return { ok: false, error: message, deliveryLogId: deliveryLog.id };
   }
 }
