@@ -111,7 +111,7 @@ export interface AuthSuccessResponseDto {
   message?: string;
 }
 
-export interface AuthMeResponseDto extends AuthContextResponseDto {}
+export type AuthMeResponseDto = AuthContextResponseDto;
 
 export interface AuthLoginResponseDto extends AuthContextResponseDto {
   accessToken: string;
