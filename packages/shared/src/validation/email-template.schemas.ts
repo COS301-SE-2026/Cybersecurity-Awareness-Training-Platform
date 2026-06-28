@@ -31,6 +31,10 @@ const actionTokenExpiresAtSchema = z.coerce.date({
   required_error: 'Action token expiry is required.',
   invalid_type_error: 'Action token expiry is required',
 });
+const optionalDisplayNameSchema = z.preprocess(
+  (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+  displayNameSchema.optional(),
+);
 
 export const emailVerificationTemplateDataSchema = z
   .object({
@@ -84,7 +88,7 @@ export const initialOrganisationAdminSetupTemplateDataSchema = z
   .strict();
 export const organisationTraineeInviteTemplateDataSchema = z
   .object({
-    firstName: displayNameSchema,
+    firstName: optionalDisplayNameSchema,
     organisationName: organisationNameSchema,
     actionToken: rawActionTokenSchema,
     actionTokenExpiresAt: actionTokenExpiresAtSchema,
@@ -101,7 +105,7 @@ export const organisationAdminPromotionInviteTemplateDataSchema = z
   .strict();
 export const platformAdminInviteTemplateDataSchema = z
   .object({
-    firstName: displayNameSchema,
+    firstName: optionalDisplayNameSchema,
     actionToken: rawActionTokenSchema,
     actionTokenExpiresAt: actionTokenExpiresAtSchema,
   })

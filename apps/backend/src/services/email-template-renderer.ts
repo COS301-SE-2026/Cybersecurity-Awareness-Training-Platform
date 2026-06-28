@@ -34,6 +34,9 @@ function escapeHtml(value: string) {
     return entities[character];
   });
 }
+function greeting(firstName?: string) {
+  return firstName ? `Hi ${firstName},` : `Hi,`;
+}
 function simpleEmail(input: {
   subject: string;
   heading: string;
@@ -91,7 +94,7 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
         subject: 'Verify your email address',
         heading: 'Verify your email',
         lines: [
-          `Hi ${data.firstName},`,
+          greeting(data.firstName),
           `Welcome to Insightful Phish.`,
           'Before you can start using your account, please verify your email address.',
         ],
@@ -106,7 +109,7 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
         subject: 'Reset your password',
         heading: 'Reset your password',
         lines: [
-          `Hi ${data.firstName},`,
+          greeting(data.firstName),
           `We received a request to reset your Insightful Phish password.`,
           `If you did not request a password reset, you can safely ignore this email. Your password will remain unchanged.`,
         ],
@@ -120,7 +123,7 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
         subject: 'Your password was changed',
         heading: 'Password changed',
         lines: [
-          `Hi ${data.firstName},`,
+          greeting(data.firstName),
           `Your Insightful Phish password was changed successfully`,
           'If you made this change, no further action is required.',
           `If you did not change your password, please contact support immediately.`,
@@ -135,7 +138,7 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
         subject: 'Confirm your new email address',
         heading: 'Confirm your email change',
         lines: [
-          `Hi ${data.firstName},`,
+          greeting(data.firstName),
           `We received a request to change your Insightful Phish email address.`,
           `Your account email will change from ${data.oldEmail} to ${data.newEmail}.`,
         ],
@@ -149,7 +152,7 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
         subject: 'Email change requested',
         heading: 'Email change requested',
         lines: [
-          `Hi ${data.firstName},`,
+          greeting(data.firstName),
           `A request was made to change your Insightful Phish email address from ${data.oldEmail} to ${data.newEmail}.`,
           `The new email address must still be confirmed before the change takes effect.`,
           `If you did not request this change, please contact support immediately.`,
@@ -163,6 +166,7 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
         subject: "We've received your organisation registration request",
         heading: 'Request received',
         lines: [
+          greeting(undefined),
           `Thank you for requesting to register ${data.organisationName} with Insightful Phish.`,
           `Your organisation registration request has been received.`,
           'Our team will review your request and notify you once we have an update.',
@@ -189,6 +193,7 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
         subject: 'Your organisation registration request was not approved',
         heading: 'Request not approved',
         lines: [
+          greeting(undefined),
           `Unfortunately, your request to register ${data.organisationName} for Insightful Phish was not approved.`,
           `Reason: `,
           data.rejectionReason ? `Reason: ${data.rejectionReason}` : 'No reason provided.',
@@ -204,7 +209,7 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
         subject: `Your organisation has been approved`,
         heading: 'Organisation approved',
         lines: [
-          `Hi ${data.firstName},`,
+          greeting(data.firstName),
           `Good news! Your request to register ${data.organisationName} for Insightful Phish has been approved.`,
           `The next step is to create the first organisation administrator account.`,
         ],
@@ -220,7 +225,7 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
       const data = organisationTraineeInviteTemplateDataSchema.parse(templateData);
       const url = actionUrl('/register', data.actionToken);
       const lines = [
-        `Hi ${data.firstName},`,
+        greeting(data.firstName),
         `You have been invited to join ${data.organisationName} on Insightful Phish.`,
       ];
 
@@ -247,7 +252,7 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
         subject: `You're invited to become an organisation administrator`,
         heading: 'Administrator invitation',
         lines: [
-          `Hi ${data.firstName},`,
+          greeting(data.firstName),
           `You have been invited to become an organisation administrator for ${data.organisationName}.`,
           `Organisation administrators can manage trainees, campaigns and organisation settings.`,
           `Accepting this invitation will replace your trainee access with administrator access.`,
@@ -263,7 +268,7 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
         subject: `You're invited to join the Insightful Phish team`,
         heading: 'Platform administrator invitation',
         lines: [
-          `Hi ${data.firstName},`,
+          greeting(data.firstName),
           `You have been invited to join Insightful Phish as a platform administrator.`,
           `Platform administrators manage organisations and content available to individual trainees, and oversee the platform.`,
         ],
@@ -282,7 +287,7 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
         subject: `Confirm your platform administrator upgrade`,
         heading: 'Confirm administrator upgrade',
         lines: [
-          `Hi ${data.firstName},`,
+          greeting(data.firstName),
           `You have been invited to upgrade your existing account to a platform administrator account.`,
           `Accepting this upgrade will replace your current trainee account with platform administrator access.`,
           `If you do not wish to become a platform administrator, simply ignore this email.`,
@@ -297,7 +302,7 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
         subject: 'Your role has changed',
         heading: 'Role updated',
         lines: [
-          `Hi ${data.firstName},`,
+          greeting(data.firstName),
           data.organisationName
             ? `Your role in ${data.organisationName} has been updated to ${data.roleName}.`
             : `Your Insightful Phish role has been updated to ${data.roleName}.`,
