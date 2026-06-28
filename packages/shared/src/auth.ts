@@ -75,19 +75,41 @@ export type AuthRegisterRequestDto = z.infer<typeof authRegisterRequestSchema>;
 
 export type AuthLoginRequestDto = z.infer<typeof authLoginRequestSchema>;
 
+export interface AuthContextUserDto {
+  id: string;
+  userType: UserTypeDto;
+  authStatus: AuthStatusDto;
+}
+
+export interface AuthOrganisationContextDto {
+  id: string;
+  status: string;
+}
+
+export interface AuthContextDto {
+  user: AuthContextUserDto;
+  role: UserTypeDto;
+  organisation: AuthOrganisationContextDto | null;
+  permissions: string[];
+  redirectTo: string;
+}
+
+export interface AuthContextResponseDto {
+  accessToken?: string;
+  user: PublicUserDto;
+  context: AuthContextDto;
+  permissions: string[];
+  redirectTo: string;
+}
+
 export interface AuthSuccessResponseDto {
   userId: string;
   token: string;
   message?: string;
 }
 
-export interface AuthMeResponseDto {
-  user: PublicUserDto;
-}
+export interface AuthMeResponseDto extends AuthContextResponseDto {}
 
-export interface AuthLoginResponseDto {
-  user: PublicUserDto;
-  token: string;
-  tokenType: 'Bearer';
-  expiresAt: string;
+export interface AuthLoginResponseDto extends AuthContextResponseDto {
+  accessToken: string;
 }

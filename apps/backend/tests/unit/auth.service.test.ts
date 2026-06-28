@@ -32,6 +32,33 @@ const authTokenServiceMock = vi.hoisted(() => ({
 
 const prismaMock = vi.hoisted(() => ({
   $transaction: vi.fn(),
+  authSession: {
+    create: vi.fn().mockImplementation(async (args) => ({
+      id: 'session-123',
+      userId: args.data.userId,
+      rememberMe: args.data.rememberMe,
+      expiresAt: args.data.expiresAt,
+      idleTimeoutMinutes: args.data.idleTimeoutMinutes,
+      createdAt: new Date(),
+      lastActiveAt: new Date(),
+      revokedAt: null,
+      revokedReason: null,
+    })),
+  },
+  refreshToken: {
+    create: vi.fn().mockImplementation(async (args) => ({
+      id: 'token-123',
+      authSessionId: args.data.authSessionId,
+      expiresAt: args.data.expiresAt,
+      createdAt: new Date(),
+      usedAt: null,
+      revokedAt: null,
+      revokedReason: null,
+    })),
+  },
+  auditLogEntry: {
+    create: vi.fn().mockResolvedValue({ id: 'audit-123' }),
+  },
 }));
 
 vi.mock('../../src/repositories/user.repository.js', () => userRepositoryMock);
@@ -217,20 +244,28 @@ describe('loginUser', () => {
     );
     expect(authTokenServiceMock.generateAuthToken).toHaveBeenCalledWith('user-1');
     expect(response).toEqual({
-      user: {
-        id: 'user-1',
-        firstName: 'Johan',
-        lastName: 'Nel',
-        email: 'johan@example.com',
-        userType: 'GENERAL_TRAINEE',
-        authStatus: 'ACTIVE',
-        createdAt: '2026-05-12T06:00:00.000Z',
+      response: {
+        accessToken: 'demo-token',
+        user: {
+          id: 'user-1',
+          firstName: 'Johan',
+          lastName: 'Nel',
+          email: 'johan@example.com',
+          userType: 'GENERAL_TRAINEE',
+          authStatus: 'ACTIVE',
+          createdAt: '2026-05-12T06:00:00.000Z',
+        },
+        context: expect.objectContaining({
+          role: 'GENERAL_TRAINEE',
+          permissions: ['GENERAL_TRAINEE'],
+        }),
+        permissions: ['GENERAL_TRAINEE'],
+        redirectTo: '/trainee/campaigns',
       },
-      token: 'demo-token',
-      tokenType: 'Bearer',
-      expiresAt: '2026-05-12T14:00:00.000Z',
+      rawRefreshToken: expect.any(String),
+      sessionExpiresAt: expect.any(Date),
     });
-    expect(response.user).not.toHaveProperty('passwordHash');
+    expect(response.response.user).not.toHaveProperty('passwordHash');
   });
 
   it('throws an auth unauthorized error when the email is not registered', async () => {
@@ -297,6 +332,12 @@ describe('getCurrentUser', () => {
         authStatus: 'ACTIVE',
         createdAt: '2026-05-12T06:00:00.000Z',
       },
+      context: expect.objectContaining({
+        role: 'GENERAL_TRAINEE',
+        permissions: ['GENERAL_TRAINEE'],
+      }),
+      permissions: ['GENERAL_TRAINEE'],
+      redirectTo: '/trainee/campaigns',
     });
     expect(response.user).not.toHaveProperty('passwordHash');
   });

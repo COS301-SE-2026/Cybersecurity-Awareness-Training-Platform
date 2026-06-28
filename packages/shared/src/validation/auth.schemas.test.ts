@@ -227,9 +227,13 @@ describe('auth validation schemas', () => {
     }
   });
 
-  it('rejects login payloads with unexpected fields', () => {
+  it('accepts login payloads with rememberMe', () => {
     const result = authLoginRequestSchema.safeParse(validLoginInput({ rememberMe: true }));
+    expect(result.success).toBe(true);
+  });
 
+  it('rejects login payloads with other unexpected fields', () => {
+    const result = authLoginRequestSchema.safeParse(validLoginInput({ role: 'IP_ADMIN' } as any));
     expect(result.success).toBe(false);
   });
 });
