@@ -306,16 +306,20 @@ describe('Auth Integration Tests', () => {
 
     it('completes account setup and consumes the token', async () => {
       const email = 'setup-complete-test@example.com';
-      const trainee = await createTrainee({
-        user: {
+      const user = await prisma.user.create({
+        data: {
           email,
+          firstName: 'Platform',
+          lastName: 'Admin',
+          passwordHash: 'dummyHash',
+          userType: 'IP_ADMIN',
           authStatus: 'PENDING_INVITE_SETUP',
         },
       });
 
       const { rawToken } = await issueActionToken({
         purpose: 'PLATFORM_ADMIN_INVITE',
-        userId: trainee.user.id,
+        userId: user.id,
         targetEmail: email,
         expiresAt: new Date(Date.now() + 3600 * 1000),
       });
@@ -339,23 +343,27 @@ describe('Auth Integration Tests', () => {
 
       // Verify token is marked as used
       const tokenRecord = await prisma.actionToken.findFirst({
-        where: { userId: trainee.user.id, purpose: 'PLATFORM_ADMIN_INVITE' },
+        where: { userId: user.id, purpose: 'PLATFORM_ADMIN_INVITE' },
       });
       expect(tokenRecord?.usedAt).not.toBeNull();
     });
 
     it('returns conflict if setup token is already used', async () => {
       const email = 'setup-used-test@example.com';
-      const trainee = await createTrainee({
-        user: {
+      const user = await prisma.user.create({
+        data: {
           email,
+          firstName: 'Platform',
+          lastName: 'Admin',
+          passwordHash: 'dummyHash',
+          userType: 'IP_ADMIN',
           authStatus: 'PENDING_INVITE_SETUP',
         },
       });
 
       const { rawToken } = await issueActionToken({
         purpose: 'PLATFORM_ADMIN_INVITE',
-        userId: trainee.user.id,
+        userId: user.id,
         targetEmail: email,
         expiresAt: new Date(Date.now() + 3600 * 1000),
       });
