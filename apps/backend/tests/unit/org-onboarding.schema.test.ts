@@ -45,8 +45,8 @@ describe('organisation onboarding Prisma schema', () => {
     expectValues(schemaBlock('model', 'OrganisationRegistrationRequest'), [
       'submittedOrganisationName',
       'submittedWebsite',
-      'submittedIndustry',
-      'submittedEmployeeCount',
+      'submittedOrganisationDescription',
+      'submittedOrganisationSize',
       'submittedPrimaryDomain',
       'representativeFirstName',
       'representativeLastName',

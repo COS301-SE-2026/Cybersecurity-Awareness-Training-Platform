@@ -11,12 +11,15 @@ const repositoryMock = vi.hoisted(() => ({
   findActionTokenByHash: vi.fn(),
   markActionTokenUsed: vi.fn(),
   revokeActionToken: vi.fn(),
+  withClaimedActionToken: vi.fn(),
 }));
 
 const tokenHashServiceMock = vi.hoisted(() => ({
   generateOpaqueToken: vi.fn(),
   hashOpaqueToken: vi.fn(),
 }));
+
+import type { Prisma } from '../../src/generated/prisma/client.js';
 
 vi.mock('../../src/repositories/action-token.repository.js', () => repositoryMock);
 vi.mock('../../src/services/token-hash.service.js', () => tokenHashServiceMock);
@@ -183,5 +186,44 @@ describe('action-token service', () => {
       id: 'actiontoken01',
       revokedReason: 'newtokengenerated',
     });
+  });
+
+  it('returns consumed false when the token claim is stail', async () => {
+    repositoryMock.markActionTokenUsed.mockResolvedValue(false);
+    await expect(consumeActionToken({ tokenId: 'actiontoken01' })).resolves.toEqual({
+      consumed: false,
+      state: 'USED_OR_REVOKED',
+    });
+  });
+
+  it('passes a transaction client when issuing inside a transaction', async () => {
+    const tx = { actionToken: { create: vi.fn() } };
+    repositoryMock.createActionToken.mockResolvedValue({ id: 'actiontoken01' });
+    await issueActionToken(
+      { purpose: 'EMAIL_VERIFICATION', userId: 'user01', expiresAt: new Date('2026-06-26') },
+      tx as unknown as Prisma.TransactionClient,
+    );
+
+    expect(repositoryMock.createActionToken).toHaveBeenCalledWith(
+      {
+        purpose: 'EMAIL_VERIFICATION',
+        userId: 'user01',
+        expiresAt: new Date('2026-06-26'),
+        tokenHash: 'hash:rawactiontoken',
+      },
+      tx,
+    );
+  });
+
+  it('delegates runWithConsumedActionToken to the repository helper', async () => {
+    const action = vi.fn();
+    repositoryMock.withClaimedActionToken.mockResolvedValue({ claimed: true, result: 111 });
+    const { runWithConsumedActionToken } =
+      await import('../../src/services/action-token.service.js');
+    await runWithConsumedActionToken({ tokenId: 'actiontoken01' }, action);
+    expect(repositoryMock.withClaimedActionToken).toHaveBeenCalledWith(
+      { tokenId: 'actiontoken01' },
+      action,
+    );
   });
 }); //describe

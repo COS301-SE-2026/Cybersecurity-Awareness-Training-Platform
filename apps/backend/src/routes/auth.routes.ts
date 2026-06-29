@@ -14,7 +14,7 @@ export const authRouter = Router();
  *   post:
  *     tags: [Auth]
  *     summary: Register a trainee account
- *     description: Creates a general trainee user account and returns the public user DTO.
+ *     description: Creates a general trainee account in pending email-verification state and sends a verification email through the email hook.
  *     security: []
  *     requestBody:
  *       $ref: '#/components/requestBodies/AuthRegister'

@@ -5,10 +5,15 @@ import type {
   AuthRegisterRequestDto,
   AuthRegisterResponseDto,
 } from '@insightful-phish/shared';
+import { prisma } from '../lib/prisma.js';
 import { toPublicUserDto } from '../mappers/user.mapper.js';
 import * as UserRepository from '../repositories/user.repository.js';
+import { issueActionToken } from './action-token.service.js';
+import { requestAuthEmailSend } from './auth-email-hook.service.js';
 import { generateAuthToken } from './auth-token.service.js';
 import * as PasswordService from './password.service.js';
+
+const EMAIL_VERIFICATION_TOKEN_TTL_HOURS = 24;
 
 export class AuthConflictError extends Error {
   constructor(message = 'A user with the provided email already exists') {
@@ -35,14 +40,47 @@ export async function registerUser(
 
   const passwordHash = await PasswordService.hashPassword(input.password);
 
-  const newUser = await UserRepository.createGeneralTraineeUser({
-    email: input.email,
-    firstName: input.firstName,
-    lastName: input.lastName,
-    passwordHash,
+  const { newUser, verification } = await prisma.$transaction(async (tx) => {
+    const createdUser = await UserRepository.createGeneralTraineeUser(
+      {
+        email: input.email,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        passwordHash,
+      },
+      tx,
+    );
+
+    const verificationToken = await issueActionToken(
+      {
+        purpose: 'EMAIL_VERIFICATION',
+        userId: createdUser.id,
+        targetEmail: createdUser.email,
+        expiresAt: new Date(Date.now() + EMAIL_VERIFICATION_TOKEN_TTL_HOURS * 60 * 60 * 1000),
+      },
+      tx,
+    );
+
+    return {
+      newUser: createdUser,
+      verification: verificationToken,
+    };
   });
 
-  return { user: toPublicUserDto(newUser) };
+  const emailResult = await requestAuthEmailSend({
+    emailType: 'EMAIL_VERIFICATION',
+    recipientEmail: newUser.email,
+    userId: newUser.id,
+    actionTokenId: verification.token.id,
+    templateData: {
+      actionToken: verification.rawToken,
+    },
+  });
+
+  return {
+    user: toPublicUserDto(newUser),
+    verificationEmailQueued: emailResult.queued,
+  };
 }
 
 export async function loginUser(input: AuthLoginRequestDto): Promise<AuthLoginResponseDto> {

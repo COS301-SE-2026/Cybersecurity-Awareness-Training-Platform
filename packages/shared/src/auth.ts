@@ -2,7 +2,31 @@ import type { z } from 'zod';
 import type {
   authLoginRequestSchema,
   authRegisterRequestSchema,
+  setupCompleteRequestSchema,
+  setupTokenParamsSchema,
 } from './validation/auth.schemas.js';
+
+export type SetupTokenParamsDto = z.infer<typeof setupTokenParamsSchema>;
+export type SetupCompleteRequestDto = z.infer<typeof setupCompleteRequestSchema>;
+
+export interface AuthRegisterResponseDto {
+  user: PublicUserDto;
+  verificationEmailQueued: boolean;
+}
+
+export interface SetupTokenContextResponseDto {
+  token: {
+    state: 'VALID' | 'INVALID' | 'EXPIRED' | 'USED' | 'REVOKED';
+    purpose?: string;
+  };
+  targetEmail?: string;
+  organisationName?: string;
+}
+
+export interface SetupCompleteResponseDto {
+  user: PublicUserDto;
+  confirmationEmailQueued: boolean;
+}
 
 export type UserTypeDto =
   | 'IP_ADMIN'
@@ -58,10 +82,6 @@ export interface AuthSuccessResponseDto {
 }
 
 export interface AuthMeResponseDto {
-  user: PublicUserDto;
-}
-
-export interface AuthRegisterResponseDto {
   user: PublicUserDto;
 }
 

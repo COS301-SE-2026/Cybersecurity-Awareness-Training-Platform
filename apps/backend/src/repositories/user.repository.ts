@@ -1,5 +1,8 @@
+import type { Prisma, PrismaClient } from '../generated/prisma/client.js';
 import { prisma } from '../lib/prisma.js';
 import type { GuardAuthSubject } from '../services/auth-status-guard.service.js';
+
+type UserClient = PrismaClient | Prisma.TransactionClient;
 
 const authSubjectInclude = {
   traineeProfile: {
@@ -27,20 +30,23 @@ export function findUserByEmail(email: string) {
   });
 }
 
-export function createGeneralTraineeUser(input: {
-  email: string;
-  firstName: string;
-  lastName: string;
-  passwordHash: string;
-}) {
-  return prisma.user.create({
+export function createGeneralTraineeUser(
+  input: {
+    email: string;
+    firstName: string;
+    lastName: string;
+    passwordHash: string;
+  },
+  client: UserClient = prisma,
+) {
+  return client.user.create({
     data: {
       email: input.email,
       firstName: input.firstName,
       lastName: input.lastName,
       passwordHash: input.passwordHash,
       userType: 'GENERAL_TRAINEE',
-      authStatus: 'ACTIVE',
+      authStatus: 'PENDING_EMAIL_VERIFICATION',
       traineeProfile: {
         create: {
           traineeStatus: 'ACTIVE',
@@ -93,8 +99,7 @@ export function toGuardAuthSubject(user: UserWithAuthSubject | null): GuardAuthS
       : null,
     organisationTraineeProfile: user.traineeProfile?.organisationTraineeProfile
       ? {
-          organisationUserStatus:
-            user.traineeProfile.organisationTraineeProfile.organisationUserStatus,
+          membershipStatus: user.traineeProfile.organisationTraineeProfile.membershipStatus,
           organisation: {
             id: user.traineeProfile.organisationTraineeProfile.organisation.id,
             status: user.traineeProfile.organisationTraineeProfile.organisation.status,
