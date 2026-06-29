@@ -47,7 +47,7 @@ describe('auth-status guard service', () => {
       ensureUserCanAuthenticate({
         user: { ...user, userType: 'ORGANISATION_TRAINEE' },
         traineeProfile: { traineeStatus: 'ACTIVE' },
-        organisationTraineeProfile: { organisationUserStatus: 'ACTIVE', organisation: defaultOrg },
+        organisationTraineeProfile: { membershipStatus: 'ACTIVE', organisation: defaultOrg },
       }),
     ).toEqual({ allowed: true });
 
@@ -84,7 +84,7 @@ describe('auth-status guard service', () => {
     expect(
       ensureOrganisationMember({
         user: { ...user, userType: 'ORGANISATION_TRAINEE' },
-        organisationTraineeProfile: { organisationUserStatus: 'ACTIVE', organisation: defaultOrg },
+        organisationTraineeProfile: { membershipStatus: 'ACTIVE', organisation: defaultOrg },
       }),
     ).toEqual({ allowed: true });
 
@@ -117,7 +117,7 @@ describe('auth-status guard service', () => {
         user: { ...user, userType: 'ORGANISATION_TRAINEE' },
         traineeProfile: { traineeStatus: 'ACTIVE' },
         organisationTraineeProfile: {
-          organisationUserStatus: 'INACTIVE',
+          membershipStatus: 'INACTIVE',
           organisation: defaultOrg,
         },
       },

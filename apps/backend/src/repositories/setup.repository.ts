@@ -100,7 +100,7 @@ export function createOrganisationTraineeUser(
           organisationTraineeProfile: {
             create: {
               organisationId: input.organisationId,
-              organisationUserStatus: 'ACTIVE',
+              membershipStatus: 'ACTIVE',
             },
           },
         },
@@ -212,11 +212,11 @@ export async function activateOrganisationTraineeUser(
     create: {
       traineeProfileId: traineeProfile.id,
       organisationId: input.organisationId,
-      organisationUserStatus: 'ACTIVE',
+      membershipStatus: 'ACTIVE',
     },
     update: {
       organisationId: input.organisationId,
-      organisationUserStatus: 'ACTIVE',
+      membershipStatus: 'ACTIVE',
     },
   });
 

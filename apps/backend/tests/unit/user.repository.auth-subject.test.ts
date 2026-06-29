@@ -71,7 +71,7 @@ describe('user repository auth subject helpers', () => {
       traineeProfile: {
         traineeStatus: 'ACTIVE',
         organisationTraineeProfile: {
-          organisationUserStatus: 'ACTIVE',
+          membershipStatus: 'ACTIVE',
           organisation: {
             id: 'org01',
             status: 'ACTIVE',
@@ -88,7 +88,7 @@ describe('user repository auth subject helpers', () => {
       },
       traineeProfile: { traineeStatus: 'ACTIVE' },
       organisationTraineeProfile: {
-        organisationUserStatus: 'ACTIVE',
+        membershipStatus: 'ACTIVE',
         organisation: {
           id: 'org01',
           status: 'ACTIVE',

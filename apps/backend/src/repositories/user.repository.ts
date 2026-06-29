@@ -99,8 +99,7 @@ export function toGuardAuthSubject(user: UserWithAuthSubject | null): GuardAuthS
       : null,
     organisationTraineeProfile: user.traineeProfile?.organisationTraineeProfile
       ? {
-          organisationUserStatus:
-            user.traineeProfile.organisationTraineeProfile.organisationUserStatus,
+          membershipStatus: user.traineeProfile.organisationTraineeProfile.membershipStatus,
           organisation: {
             id: user.traineeProfile.organisationTraineeProfile.organisation.id,
             status: user.traineeProfile.organisationTraineeProfile.organisation.status,
