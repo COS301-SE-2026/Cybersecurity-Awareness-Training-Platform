@@ -136,13 +136,18 @@ enum OrganisationRegistrationRequestStatus {
 
 enum InvitationPurpose {
   INITIAL_ORGANISATION_ADMIN_SETUP
+  ORGANISATION_TRAINEE_INVITE
 }
 
 enum InvitationStatus {
   PENDING
+  SENT
+  FAILED_TO_SEND
   ACCEPTED
+  COMPLETED
   EXPIRED
   REVOKED
+  REJECTED
 }
 
 enum OrganisationContextType {
@@ -414,6 +419,7 @@ model User {
   authSessions                 AuthSession[]
   actionTokens                 ActionToken[]
   emailDeliveryLogs            EmailDeliveryLog[]
+  targetedInvitations          Invitation[]               @relation("InvitationTargetUser")
   auditLogEntries              AuditLogEntry[]           @relation("AuditLogEntryActor")
 }
 
@@ -444,18 +450,20 @@ model GeneralTraineeProfile {
 }
 
 model OrganisationTraineeProfile {
-  id               String                 @id @default(uuid())
-  traineeProfileId String                 @unique
-  organisationId   String
-  employeeLabel    String?
-  joinedAt         DateTime               @default(now())
-  membershipStatus OrganisationUserStatus @default(ACTIVE)
-  disabledAt       DateTime?
-  disabledReason   String?
-  createdAt        DateTime               @default(now())
-  updatedAt        DateTime               @updatedAt
-  traineeProfile   TraineeProfile         @relation(fields: [traineeProfileId], references: [id], onDelete: Cascade)
-  organisation     Organisation           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  id                      String                 @id @default(uuid())
+  traineeProfileId        String                 @unique
+  organisationId          String
+  employeeLabel           String?
+  joinedAt                DateTime               @default(now())
+  membershipStatus        OrganisationUserStatus @default(ACTIVE)
+  createdFromInvitationId String?                @unique
+  disabledAt              DateTime?
+  disabledReason          String?
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @updatedAt
+  traineeProfile          TraineeProfile         @relation(fields: [traineeProfileId], references: [id], onDelete: Cascade)
+  organisation            Organisation           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  createdFromInvitation   Invitation?            @relation("InvitationAcceptedOrganisationTrainee", fields: [createdFromInvitationId], references: [id], onDelete: SetNull)
 
   @@index([organisationId])
   @@index([membershipStatus])
@@ -673,6 +681,7 @@ model Invitation {
   id                                String                           @id @default(uuid())
   organisationId                    String
   organisationRegistrationRequestId String?
+  targetUserId                      String?
   recipientEmail                    String
   recipientFirstName                String?
   recipientLastName                 String?
@@ -686,11 +695,14 @@ model Invitation {
   updatedAt                         DateTime                         @updatedAt
   organisation                      Organisation                     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   organisationRegistrationRequest   OrganisationRegistrationRequest? @relation(fields: [organisationRegistrationRequestId], references: [id], onDelete: SetNull)
+  targetUser                        User?                            @relation("InvitationTargetUser", fields: [targetUserId], references: [id], onDelete: SetNull)
+  acceptedOrganisationTraineeProfile OrganisationTraineeProfile?      @relation("InvitationAcceptedOrganisationTrainee")
   actionTokens                      ActionToken[]
   emailDeliveryLogs                 EmailDeliveryLog[]
 
   @@index([organisationId])
   @@index([organisationRegistrationRequestId])
+  @@index([targetUserId])
   @@index([recipientEmail])
   @@index([status])
   @@index([purpose])
