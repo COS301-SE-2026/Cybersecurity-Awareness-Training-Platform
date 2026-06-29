@@ -43,7 +43,10 @@ vi.mock('../../src/services/content-resolver.service.js', () => ({
 }));
 
 vi.mock('../../src/services/auth-session.service.js', () => ({
-  validateAuthSession: vi.fn().mockResolvedValue({ state: 'ACTIVE', session: {} }),
+  validateAuthSession: vi.fn().mockImplementation(async (args: { sessionId: string }) => ({
+    state: 'ACTIVE',
+    session: { id: args.sessionId, userId: 'user-1' },
+  })),
 }));
 
 const user = {
@@ -103,7 +106,7 @@ const campaignItem = {
   trainingDocument,
 };
 
-const authHeader = () => `Bearer ${generateAuthToken(user.id).token}`;
+const authHeader = () => `Bearer ${generateAuthToken(user.id, 'session-123').token}`;
 const trainingDocumentPath = (id = campaignItemId) =>
   `/trainee/campaign-items/${id}/training-document`;
 const viewedPath = (id = campaignItemId) =>

@@ -130,7 +130,12 @@ const PLATFORM_SESSION_POLICY = {
 
 export async function loginUser(
   input: AuthLoginRequestDto & { ipAddress?: string | null; userAgent?: string | null },
-): Promise<{ response: AuthLoginResponseDto; rawRefreshToken: string; sessionExpiresAt: Date }> {
+): Promise<{
+  response: AuthLoginResponseDto;
+  accessTokenExpiresAt: string;
+  rawRefreshToken: string;
+  sessionExpiresAt: Date;
+}> {
   const user = await UserRepository.findUserByEmail(input.email.trim().toLowerCase());
 
   if (!user) {
@@ -181,7 +186,8 @@ export async function loginUser(
   const userWithAuthSubject = await UserRepository.findUserWithAuthSubjectById(user.id);
   const publicUser = toPublicUserDto(userWithAuthSubject || user);
   const authContext = buildAuthContext(subject);
-  const accessToken = generateAuthToken(user.id, session.id).token;
+  const tokenResult = generateAuthToken(user.id, session.id);
+  const accessToken = tokenResult.token;
 
   return {
     response: {
@@ -191,6 +197,7 @@ export async function loginUser(
       permissions: authContext.permissions,
       redirectTo: authContext.redirectTo,
     },
+    accessTokenExpiresAt: tokenResult.expiresAt,
     rawRefreshToken: refreshResult.rawToken,
     sessionExpiresAt: session.expiresAt,
   };
@@ -225,7 +232,12 @@ export async function refreshUserToken(
   rawToken: string,
   ipAddress?: string | null,
   userAgent?: string | null,
-): Promise<{ response: AuthContextResponseDto; rawRefreshToken: string; sessionExpiresAt: Date }> {
+): Promise<{
+  response: AuthContextResponseDto;
+  accessTokenExpiresAt: string;
+  rawRefreshToken: string;
+  sessionExpiresAt: Date;
+}> {
   if (!rawToken) {
     throw new AuthRefreshTokenInvalidError('Refresh token is required');
   }
@@ -275,7 +287,8 @@ export async function refreshUserToken(
     throw new AuthRefreshTokenInvalidError();
   }
 
-  const accessToken = generateAuthToken(token.authSession.userId, token.authSessionId).token;
+  const tokenResult = generateAuthToken(token.authSession.userId, token.authSessionId);
+  const accessToken = tokenResult.token;
   const publicUser = toPublicUserDto(token.authSession.user);
   const authContext = buildAuthContext(subject);
 
@@ -287,6 +300,7 @@ export async function refreshUserToken(
       permissions: authContext.permissions,
       redirectTo: authContext.redirectTo,
     },
+    accessTokenExpiresAt: tokenResult.expiresAt,
     rawRefreshToken: rotationResult.rawToken,
     sessionExpiresAt: token.authSession.expiresAt,
   };

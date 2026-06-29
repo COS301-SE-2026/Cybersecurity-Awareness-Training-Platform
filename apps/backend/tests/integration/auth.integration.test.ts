@@ -1,4 +1,6 @@
-import { randomUUID } from 'node:crypto';
+import { randomUUID, createHmac } from 'node:crypto';
+import { env } from '../../src/config/env.js';
+import { generateAuthToken } from '../../src/services/auth-token.service.js';
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../../src/app.js';
@@ -647,6 +649,54 @@ describe('Auth Integration Tests', () => {
         .set('Authorization', `Bearer ${token4}`);
       expect(res4.status).toBe(403);
       expect(res4.body.error).toBe('IP_ADMIN_DISABLED');
+    });
+  });
+
+  describe('Strict Token Session Binding Integration Check', () => {
+    it('rejects access tokens without authSessionId, with invalid session ID, or with mismatched userId', async () => {
+      // 1. Token without session ID
+      const rawPayload = Buffer.from(
+        JSON.stringify({
+          userId: 'some-user-id',
+          expiresAt: new Date(Date.now() + 60000).toISOString(),
+        }),
+      ).toString('base64url');
+      const signature = createHmac('sha256', env.AUTH_TOKEN_SECRET)
+        .update(rawPayload)
+        .digest('base64url');
+      const tokenWithoutSession = `${rawPayload}.${signature}`;
+
+      const res1 = await request(createApp())
+        .get('/auth/me')
+        .set('Authorization', `Bearer ${tokenWithoutSession}`);
+      expect(res1.status).toBe(401);
+      expect(res1.body.error).toBe('AUTH_INVALID');
+
+      // 2. Token with non-existent session ID
+      const tokenWithInvalidSession = generateAuthToken('some-user-id', randomUUID()).token;
+      const res2 = await request(createApp())
+        .get('/auth/me')
+        .set('Authorization', `Bearer ${tokenWithInvalidSession}`);
+      expect(res2.status).toBe(401);
+      expect(res2.body.error).toBe('AUTH_INVALID');
+
+      // 3. Token with mismatched userId
+      const trainee = await createTrainee();
+      const loginRes = await loginTestUser(trainee.user.email);
+      const session = await prisma.authSession.findFirst({
+        where: { userId: trainee.user.id },
+        orderBy: { createdAt: 'desc' },
+      });
+      expect(session).not.toBeNull();
+
+      // Create a token for a DIFFERENT user but signed with THIS valid session ID
+      const mismatchedToken = generateAuthToken('different-user-id', session!.id).token;
+
+      const res3 = await request(createApp())
+        .get('/auth/me')
+        .set('Authorization', `Bearer ${mismatchedToken}`);
+      expect(res3.status).toBe(401);
+      expect(res3.body.error).toBe('AUTH_INVALID');
     });
   });
 });

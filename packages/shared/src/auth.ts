@@ -103,6 +103,7 @@ export interface AuthContextResponseDto {
   token?: string;
   tokenType?: string;
   expiresAt?: string;
+  sessionExpiresAt?: string;
 }
 
 export interface AuthSuccessResponseDto {

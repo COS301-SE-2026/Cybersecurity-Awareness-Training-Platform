@@ -1,3 +1,4 @@
+import { createHmac } from 'node:crypto';
 import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../../src/app.js';
@@ -208,6 +209,7 @@ describe('Auth routes', () => {
       token: expect.any(String),
       tokenType: 'Bearer',
       expiresAt: expect.any(String),
+      sessionExpiresAt: expect.any(String),
     });
     expect(response.body.user).not.toHaveProperty('passwordHash');
   });
@@ -307,6 +309,57 @@ describe('Auth routes', () => {
     expect(response.status).toBe(401);
     expect(response.body).toHaveProperty('error', 'AUTH_INVALID');
     expect(prismaMock.user.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('returns 401 when the token does not contain a session ID', async () => {
+    const rawPayload = Buffer.from(
+      JSON.stringify({
+        userId: 'id-123',
+        expiresAt: new Date(Date.now() + 60000).toISOString(),
+      }),
+    ).toString('base64url');
+    const signature = createHmac('sha256', env.AUTH_TOKEN_SECRET)
+      .update(rawPayload)
+      .digest('base64url');
+    const tokenWithoutSession = `${rawPayload}.${signature}`;
+
+    const response = await request(createApp())
+      .get('/auth/me')
+      .set('Authorization', `Bearer ${tokenWithoutSession}`);
+
+    expect(response.status).toBe(401);
+    expect(response.body).toHaveProperty('error', 'AUTH_INVALID');
+  });
+
+  it('returns 401 when the token contains a non-existent or invalid session ID', async () => {
+    const token = generateAuthToken('id-123', 'invalid-session-id').token;
+    prismaMock.authSession.findUnique.mockResolvedValue(null);
+
+    const response = await request(createApp())
+      .get('/auth/me')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(401);
+    expect(response.body).toHaveProperty('error', 'AUTH_INVALID');
+  });
+
+  it('returns 401 when the token userId does not match the session userId', async () => {
+    const token = generateAuthToken('id-123', 'session-123').token;
+    prismaMock.authSession.findUnique.mockResolvedValue({
+      id: 'session-123',
+      userId: 'different-user-id',
+      expiresAt: new Date(Date.now() + 60000),
+      lastActiveAt: new Date(),
+      revokedAt: null,
+      idleTimeoutMinutes: 30,
+    });
+
+    const response = await request(createApp())
+      .get('/auth/me')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(401);
+    expect(response.body).toHaveProperty('error', 'AUTH_INVALID');
   });
 
   it('returns 429 when login requests exceed the auth rate limit', async () => {
@@ -495,6 +548,7 @@ describe('Auth routes', () => {
         token: expect.any(String),
         tokenType: 'Bearer',
         expiresAt: expect.any(String),
+        sessionExpiresAt: expect.any(String),
       });
       expect(response.headers['set-cookie'][0]).toContain('refreshToken=');
     });

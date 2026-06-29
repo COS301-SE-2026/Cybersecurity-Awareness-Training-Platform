@@ -44,7 +44,7 @@ export async function register(req: Request, res: Response) {
 
 export async function login(req: Request, res: Response) {
   try {
-    const { response, rawRefreshToken, sessionExpiresAt } = await loginUser({
+    const { response, accessTokenExpiresAt, rawRefreshToken, sessionExpiresAt } = await loginUser({
       ...req.body,
       ipAddress: req.ip,
       userAgent: req.headers['user-agent'],
@@ -61,7 +61,8 @@ export async function login(req: Request, res: Response) {
       ...response,
       token: response.accessToken,
       tokenType: 'Bearer',
-      expiresAt: sessionExpiresAt.toISOString(),
+      expiresAt: accessTokenExpiresAt,
+      sessionExpiresAt: sessionExpiresAt.toISOString(),
     });
   } catch (error) {
     if (error instanceof AuthUnauthorizedError) {
@@ -138,11 +139,8 @@ export async function refresh(req: Request, res: Response) {
   }
 
   try {
-    const { response, rawRefreshToken, sessionExpiresAt } = await refreshUserToken(
-      refreshToken,
-      req.ip,
-      req.headers['user-agent'],
-    );
+    const { response, accessTokenExpiresAt, rawRefreshToken, sessionExpiresAt } =
+      await refreshUserToken(refreshToken, req.ip, req.headers['user-agent']);
 
     res.cookie('refreshToken', rawRefreshToken, {
       httpOnly: true,
@@ -155,7 +153,8 @@ export async function refresh(req: Request, res: Response) {
       ...response,
       token: response.accessToken,
       tokenType: 'Bearer',
-      expiresAt: sessionExpiresAt.toISOString(),
+      expiresAt: accessTokenExpiresAt,
+      sessionExpiresAt: sessionExpiresAt.toISOString(),
     });
   } catch (error) {
     res.clearCookie('refreshToken', {

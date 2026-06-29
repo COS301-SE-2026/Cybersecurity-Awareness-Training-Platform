@@ -26,7 +26,10 @@ vi.mock('../../src/lib/prisma.js', () => ({
 }));
 
 vi.mock('../../src/services/auth-session.service.js', () => ({
-  validateAuthSession: vi.fn().mockResolvedValue({ state: 'ACTIVE', session: {} }),
+  validateAuthSession: vi.fn().mockImplementation(async (args: { sessionId: string }) => ({
+    state: 'ACTIVE',
+    session: { id: args.sessionId, userId: 'trainee-user-id' },
+  })),
 }));
 
 const campaignItemId = '11111111-1111-1111-1111-111111111111';
@@ -147,7 +150,7 @@ function mockBoundedMultipleChoiceQuizAttempt(min: number, max: number, status =
 }
 
 describe('Quiz API Routes', () => {
-  const token = generateAuthToken('trainee-user-id').token;
+  const token = generateAuthToken('trainee-user-id', 'session-123').token;
 
   beforeEach(async () => {
     vi.clearAllMocks();

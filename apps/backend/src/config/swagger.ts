@@ -586,6 +586,28 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
               type: 'string',
               example: '/trainee/campaigns',
             },
+            token: {
+              type: 'string',
+              description: 'Alias of accessToken for compatibility.',
+              example:
+                'eyJ1c2VySWQiOiJ1c2VyLTEyMyIsImV4cGlyZXNBdCI6IjIwMjYtMDUtMTJUMjA6NDQ6NTQuMDAwWiJ9.signature',
+            },
+            tokenType: {
+              type: 'string',
+              description: 'Token type schema.',
+              example: 'Bearer',
+            },
+            expiresAt: {
+              type: 'string',
+              description: 'ISO-8601 string representation of access token expiration date-time.',
+              example: '2026-05-12T20:44:54.000Z',
+            },
+            sessionExpiresAt: {
+              type: 'string',
+              description:
+                'ISO-8601 string representation of the associated session absolute expiration date-time.',
+              example: '2026-05-12T20:44:54.000Z',
+            },
           },
         },
         AuthMeResponse: {
