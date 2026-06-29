@@ -26,6 +26,24 @@ export function recordRefreshTokenReuseDetected(input: {
   });
 }
 
+export function recordUserLogin(input: {
+  userId: string;
+  actorType: 'IP_ADMIN' | 'ORGANISATION_ADMIN' | 'ORGANISATION_TRAINEE' | 'GENERAL_TRAINEE';
+  authSessionId: string;
+  metadata?: AuthAuditRequestMetadata;
+}) {
+  return recordAuditLog({
+    actorUserId: input.userId,
+    actorType: input.actorType,
+    targetType: 'AUTH_SESSION',
+    targetId: input.authSessionId,
+    actionType: 'LOGIN',
+    outcome: 'SUCCESS',
+    ipAddress: input.metadata?.ipAddress ?? null,
+    userAgent: input.metadata?.userAgent ?? null,
+  });
+}
+
 export function recordAuthSessionRevoked(input: {
   actorUserId?: string | null;
   actorType:

@@ -3,6 +3,7 @@ import { env } from '../config/env.js';
 
 interface AuthTokenPayload {
   userId: string;
+  authSessionId: string;
   expiresAt: string;
 }
 
@@ -23,9 +24,11 @@ function signToken(payload: string) {
   return createHmac('sha256', env.AUTH_TOKEN_SECRET).update(payload).digest('base64url');
 }
 
-export function generateAuthToken(userId: string): AuthTokenResult {
+export function generateAuthToken(userId: string, authSessionId: string): AuthTokenResult {
   const expiresAt = new Date(Date.now() + env.AUTH_TOKEN_EXPIRES_IN_SECONDS * 1000).toISOString();
-  const payload = encodeBase64Url(JSON.stringify({ userId, expiresAt } satisfies AuthTokenPayload));
+  const payload = encodeBase64Url(
+    JSON.stringify({ userId, authSessionId, expiresAt } satisfies AuthTokenPayload),
+  );
   const signature = signToken(payload);
   const token = `${payload}.${signature}`;
 
@@ -54,7 +57,7 @@ export function verifyAuthToken(token: string): AuthTokenPayload | null {
   try {
     const decodedPayload = JSON.parse(decodeBase64Url(payload)) as Partial<AuthTokenPayload>;
 
-    if (!decodedPayload.userId || !decodedPayload.expiresAt) {
+    if (!decodedPayload.userId || !decodedPayload.authSessionId || !decodedPayload.expiresAt) {
       return null;
     }
 
@@ -64,6 +67,7 @@ export function verifyAuthToken(token: string): AuthTokenPayload | null {
 
     return {
       userId: decodedPayload.userId,
+      authSessionId: decodedPayload.authSessionId,
       expiresAt: decodedPayload.expiresAt,
     };
   } catch {

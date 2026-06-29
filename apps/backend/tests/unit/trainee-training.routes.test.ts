@@ -42,6 +42,13 @@ vi.mock('../../src/services/content-resolver.service.js', () => ({
   TrainingContentResolveError: contentResolverMock.TrainingContentResolveError,
 }));
 
+vi.mock('../../src/services/auth-session.service.js', () => ({
+  validateAuthSession: vi.fn().mockImplementation(async (args: { sessionId: string }) => ({
+    state: 'ACTIVE',
+    session: { id: args.sessionId, userId: 'user-1' },
+  })),
+}));
+
 const user = {
   id: 'user-1',
   firstName: 'Ava',
@@ -51,6 +58,7 @@ const user = {
   userType: 'GENERAL_TRAINEE',
   authStatus: 'ACTIVE',
   createdAt: new Date('2026-05-16T08:00:00.000Z'),
+  traineeProfile: { traineeStatus: 'ACTIVE' },
 };
 
 const campaignItemId = '11111111-1111-4111-8111-111111111111';
@@ -98,7 +106,7 @@ const campaignItem = {
   trainingDocument,
 };
 
-const authHeader = () => `Bearer ${generateAuthToken(user.id).token}`;
+const authHeader = () => `Bearer ${generateAuthToken(user.id, 'session-123').token}`;
 const trainingDocumentPath = (id = campaignItemId) =>
   `/trainee/campaign-items/${id}/training-document`;
 const viewedPath = (id = campaignItemId) =>
