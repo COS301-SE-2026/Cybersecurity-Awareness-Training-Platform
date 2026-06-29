@@ -16,17 +16,6 @@ ALTER TYPE "EmailDeliveryType_new" RENAME TO "EmailDeliveryType";
 DROP TYPE "public"."EmailDeliveryType_old";
 COMMIT;
 
--- AlterEnum
--- This migration adds more than one value to an enum.
--- With PostgreSQL versions 11 and earlier, this is not possible
--- in a single migration. This can be worked around by creating
--- multiple migrations, each migration adding only one value to
--- the enum.
-
-
-ALTER TYPE "InvitationStatus" ADD VALUE 'SENT';
-ALTER TYPE "InvitationStatus" ADD VALUE 'FAILED_TO_SEND';
-
 -- CreateTable
 CREATE TABLE "EmailChangeRequest" (
     "id" TEXT NOT NULL,
@@ -54,8 +43,14 @@ CREATE INDEX "EmailChangeRequest_status_idx" ON "EmailChangeRequest"("status");
 -- CreateIndex
 CREATE INDEX "EmailChangeRequest_expiresAt_idx" ON "EmailChangeRequest"("expiresAt");
 
+-- RenameForeignKey
+ALTER TABLE "OrganisationTraineeProfile" RENAME CONSTRAINT "OrganisationTraineeProfile_createdFromInvitationId_fkey" TO "OrganisationTraineeProfile_createdFromInvitationId_organis_fkey";
+
 -- AddForeignKey
 ALTER TABLE "ActionToken" ADD CONSTRAINT "ActionToken_emailChangeRequestId_fkey" FOREIGN KEY ("emailChangeRequestId") REFERENCES "EmailChangeRequest"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "EmailChangeRequest" ADD CONSTRAINT "EmailChangeRequest_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- RenameIndex
+ALTER INDEX "OrganisationTraineeProfile_createdFromInvitationId_organisation" RENAME TO "OrganisationTraineeProfile_createdFromInvitationId_organisa_key";

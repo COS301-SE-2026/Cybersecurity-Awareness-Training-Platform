@@ -150,7 +150,7 @@ enum InvitationStatus {
 }
 
 enum EmailChangeRequestStatus {
-	PENDING
+  PENDING
   CONFIRMED
   EXPIRED
   CANCELED
