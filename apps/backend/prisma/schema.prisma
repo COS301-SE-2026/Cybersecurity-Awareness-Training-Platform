@@ -136,13 +136,18 @@ enum OrganisationRegistrationRequestStatus {
 
 enum InvitationPurpose {
   INITIAL_ORGANISATION_ADMIN_SETUP
+  ORGANISATION_TRAINEE_INVITE
 }
 
 enum InvitationStatus {
   PENDING
+  SENT
+  FAILED_TO_SEND
   ACCEPTED
+  COMPLETED
   EXPIRED
   REVOKED
+  REJECTED
 }
 
 enum OrganisationContextType {
@@ -414,6 +419,7 @@ model User {
   authSessions                 AuthSession[]
   actionTokens                 ActionToken[]
   emailDeliveryLogs            EmailDeliveryLog[]
+  targetedInvitations          Invitation[]              @relation("InvitationTargetUser")
   auditLogEntries              AuditLogEntry[]           @relation("AuditLogEntryActor")
 }
 
@@ -444,19 +450,25 @@ model GeneralTraineeProfile {
 }
 
 model OrganisationTraineeProfile {
-  id                     String                 @id @default(uuid())
-  traineeProfileId       String                 @unique
-  organisationId         String
-  employeeLabel          String?
-  joinedAt               DateTime               @default(now())
-  organisationUserStatus OrganisationUserStatus @default(ACTIVE)
-  createdAt              DateTime               @default(now())
-  updatedAt              DateTime               @updatedAt
-  traineeProfile         TraineeProfile         @relation(fields: [traineeProfileId], references: [id], onDelete: Cascade)
-  organisation           Organisation           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  id                      String                 @id @default(uuid())
+  traineeProfileId        String                 @unique
+  organisationId          String
+  employeeLabel           String?
+  joinedAt                DateTime               @default(now())
+  membershipStatus        OrganisationUserStatus @default(ACTIVE)
+  createdFromInvitationId String?
+  disabledAt              DateTime?
+  disabledReason          String?
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @updatedAt
+  traineeProfile          TraineeProfile         @relation(fields: [traineeProfileId], references: [id], onDelete: Cascade)
+  organisation            Organisation           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  createdFromInvitation   Invitation?            @relation("InvitationAcceptedOrganisationTrainee", fields: [createdFromInvitationId, organisationId], references: [id, organisationId], onDelete: Restrict)
 
+  @@unique([createdFromInvitationId, organisationId])
   @@index([organisationId])
-  @@index([organisationUserStatus])
+  @@index([membershipStatus])
+  @@index([disabledAt])
 }
 
 model OrganisationAdminProfile {
@@ -556,8 +568,8 @@ model ActionToken {
   createdAt                         DateTime                         @default(now())
   updatedAt                         DateTime                         @updatedAt
   user                              User?                            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  emailDeliveryLogs                 EmailDeliveryLog[]
-  invitation                        Invitation?                      @relation(fields: [invitationId], references: [id], onDelete: SetNull)
+  emailDeliveryLogs                 EmailDeliveryLog[]               @relation("ActionTokenEmailDeliveryLogs")
+  invitation                        Invitation?                      @relation("InvitationActionTokens", fields: [invitationId], references: [id], onDelete: SetNull)
   organisationRegistrationRequest   OrganisationRegistrationRequest? @relation(fields: [organisationRegistrationRequestId], references: [id], onDelete: SetNull)
 
   @@index([userId])
@@ -592,10 +604,10 @@ model EmailDeliveryLog {
   createdAt                         DateTime                         @default(now())
   updatedAt                         DateTime                         @updatedAt
   user                              User?                            @relation(fields: [userId], references: [id], onDelete: SetNull)
-  actionToken                       ActionToken?                     @relation(fields: [actionTokenId], references: [id], onDelete: SetNull)
+  actionToken                       ActionToken?                     @relation("ActionTokenEmailDeliveryLogs", fields: [actionTokenId], references: [id], onDelete: SetNull)
   organisation                      Organisation?                    @relation(fields: [organisationId], references: [id], onDelete: SetNull)
   organisationRegistrationRequest   OrganisationRegistrationRequest? @relation(fields: [organisationRegistrationRequestId], references: [id], onDelete: SetNull)
-  invitation                        Invitation?                      @relation(fields: [invitationId], references: [id], onDelete: SetNull)
+  invitation                        Invitation?                      @relation("InvitationEmailDeliveryLogs", fields: [invitationId], references: [id], onDelete: SetNull)
 
   @@index([recipientEmail])
   @@index([emailType])
@@ -626,34 +638,34 @@ model Organisation {
 }
 
 model OrganisationRegistrationRequest {
-  id                        String                                @id @default(uuid())
-  submittedOrganisationName String
-  submittedWebsite          String?
+  id                               String                                @id @default(uuid())
+  submittedOrganisationName        String
+  submittedWebsite                 String?
   submittedOrganisationDescription String?
   submittedOrganisationSize        Int?
-  submittedPrimaryDomain    String?
-  representativeFirstName   String
-  representativeLastName    String
-  representativeEmail       String
-  representativePhone       String?
-  status                    OrganisationRegistrationRequestStatus @default(PENDING_REVIEW)
-  contactedByIpAdminId      String?
-  approvedByIpAdminId       String?
-  rejectedByIpAdminId       String?
-  approvedOrganisationId    String?
-  contactedAt               DateTime?
-  approvedAt                DateTime?
-  rejectedAt                DateTime?
-  rejectionReason           String?
-  createdAt                 DateTime                              @default(now())
-  updatedAt                 DateTime                              @updatedAt
-  contactedBy               IpAdminProfile?                       @relation("OrganisationRegistrationRequestContactedBy", fields: [contactedByIpAdminId], references: [id], onDelete: SetNull)
-  approvedBy                IpAdminProfile?                       @relation("OrganisationRegistrationRequestApprovedBy", fields: [approvedByIpAdminId], references: [id], onDelete: SetNull)
-  rejectedBy                IpAdminProfile?                       @relation("OrganisationRegistrationRequestRejectedBy", fields: [rejectedByIpAdminId], references: [id], onDelete: SetNull)
-  approvedOrganisation      Organisation?                         @relation(fields: [approvedOrganisationId], references: [id], onDelete: SetNull)
-  initialAdminInvitations   Invitation[]
-  actionTokens              ActionToken[]
-  emailDeliveryLogs         EmailDeliveryLog[]
+  submittedPrimaryDomain           String?
+  representativeFirstName          String
+  representativeLastName           String
+  representativeEmail              String
+  representativePhone              String?
+  status                           OrganisationRegistrationRequestStatus @default(PENDING_REVIEW)
+  contactedByIpAdminId             String?
+  approvedByIpAdminId              String?
+  rejectedByIpAdminId              String?
+  approvedOrganisationId           String?
+  contactedAt                      DateTime?
+  approvedAt                       DateTime?
+  rejectedAt                       DateTime?
+  rejectionReason                  String?
+  createdAt                        DateTime                              @default(now())
+  updatedAt                        DateTime                              @updatedAt
+  contactedBy                      IpAdminProfile?                       @relation("OrganisationRegistrationRequestContactedBy", fields: [contactedByIpAdminId], references: [id], onDelete: SetNull)
+  approvedBy                       IpAdminProfile?                       @relation("OrganisationRegistrationRequestApprovedBy", fields: [approvedByIpAdminId], references: [id], onDelete: SetNull)
+  rejectedBy                       IpAdminProfile?                       @relation("OrganisationRegistrationRequestRejectedBy", fields: [rejectedByIpAdminId], references: [id], onDelete: SetNull)
+  approvedOrganisation             Organisation?                         @relation(fields: [approvedOrganisationId], references: [id], onDelete: SetNull)
+  initialAdminInvitations          Invitation[]
+  actionTokens                     ActionToken[]
+  emailDeliveryLogs                EmailDeliveryLog[]
 
   @@index([status])
   @@index([contactedByIpAdminId])
@@ -667,27 +679,32 @@ model OrganisationRegistrationRequest {
 }
 
 model Invitation {
-  id                                String                           @id @default(uuid())
-  organisationId                    String
-  organisationRegistrationRequestId String?
-  recipientEmail                    String
-  recipientFirstName                String?
-  recipientLastName                 String?
-  purpose                           InvitationPurpose                @default(INITIAL_ORGANISATION_ADMIN_SETUP)
-  status                            InvitationStatus                 @default(PENDING)
-  expiresAt                         DateTime
-  acceptedAt                        DateTime?
-  revokedAt                         DateTime?
-  revokedReason                     String?
-  createdAt                         DateTime                         @default(now())
-  updatedAt                         DateTime                         @updatedAt
-  organisation                      Organisation                     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  organisationRegistrationRequest   OrganisationRegistrationRequest? @relation(fields: [organisationRegistrationRequestId], references: [id], onDelete: SetNull)
-  actionTokens                      ActionToken[]
-  emailDeliveryLogs                 EmailDeliveryLog[]
+  id                                 String                           @id @default(uuid())
+  organisationId                     String
+  organisationRegistrationRequestId  String?
+  targetUserId                       String?
+  recipientEmail                     String
+  recipientFirstName                 String?
+  recipientLastName                  String?
+  purpose                            InvitationPurpose                @default(INITIAL_ORGANISATION_ADMIN_SETUP)
+  status                             InvitationStatus                 @default(PENDING)
+  expiresAt                          DateTime
+  acceptedAt                         DateTime?
+  revokedAt                          DateTime?
+  revokedReason                      String?
+  createdAt                          DateTime                         @default(now())
+  updatedAt                          DateTime                         @updatedAt
+  organisation                       Organisation                     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  organisationRegistrationRequest    OrganisationRegistrationRequest? @relation(fields: [organisationRegistrationRequestId], references: [id], onDelete: SetNull)
+  targetUser                         User?                            @relation("InvitationTargetUser", fields: [targetUserId], references: [id], onDelete: SetNull)
+  acceptedOrganisationTraineeProfile OrganisationTraineeProfile?      @relation("InvitationAcceptedOrganisationTrainee")
+  actionTokens                       ActionToken[]                    @relation("InvitationActionTokens")
+  emailDeliveryLogs                  EmailDeliveryLog[]               @relation("InvitationEmailDeliveryLogs")
 
+  @@unique([id, organisationId])
   @@index([organisationId])
   @@index([organisationRegistrationRequestId])
+  @@index([targetUserId])
   @@index([recipientEmail])
   @@index([status])
   @@index([purpose])

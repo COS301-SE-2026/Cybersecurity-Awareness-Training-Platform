@@ -39,7 +39,7 @@ export type GuardOrganisation = {
 export type GuardTraineeProfile = { traineeStatus: 'ACTIVE' | 'INACTIVE' };
 
 export type GuardOrganisationTraineeProfile = {
-  organisationUserStatus: 'ACTIVE' | 'INACTIVE';
+  membershipStatus: 'ACTIVE' | 'INACTIVE';
   organisation?: GuardOrganisation | null;
 };
 
@@ -90,7 +90,7 @@ export function ensureActiveTraineeProfile(
 export function ensureActiveOrganisationUser(
   organisationProfile: GuardOrganisationTraineeProfile | null | undefined,
 ): AuthGuardResult {
-  if (organisationProfile?.organisationUserStatus !== 'ACTIVE') {
+  if (organisationProfile?.membershipStatus !== 'ACTIVE') {
     return failure('ORGANISATION_USER_INACTIVE');
   }
   return { allowed: true };
