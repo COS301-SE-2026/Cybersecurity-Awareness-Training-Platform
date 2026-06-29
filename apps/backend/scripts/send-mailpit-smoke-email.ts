@@ -1,5 +1,4 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { env } from '../src/config/env.js';
 import { prisma } from '../src/lib/prisma.js';
 import { sendEmail } from '../src/services/email.service.js';
 
