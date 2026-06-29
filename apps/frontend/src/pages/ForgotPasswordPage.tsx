@@ -11,6 +11,7 @@ function ForgotPasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    setShowSuccess('');
     event.preventDefault();
     setAlertMessage('');
     const validationResult = authForgotPasswordRequestSchema.safeParse({
@@ -32,7 +33,7 @@ function ForgotPasswordPage() {
       setIsLoading(false);
       setShowSuccess(true);
       setSuccessMessage(
-        'If An Account Exists For This Email Address, Password Instructions Have Been Sent',
+        'If An Account Exists For This Email Address, Password Reset Instructions Have Been Sent',
       );
     }, 2000);
   }
