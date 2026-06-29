@@ -55,3 +55,9 @@ export const authLoginRequestSchema = z
       .max(128, 'Password must be at most 128 characters long.'),
   })
   .strict();
+
+export const authForgotPasswordRequestSchema = z
+  .object({
+    email: emailSchema,
+  })
+  .strict();

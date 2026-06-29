@@ -1,11 +1,35 @@
 import { Link } from 'react-router-dom';
 import BasicAlert from '../components/alerts/BasicAlert';
+import { authForgotPasswordRequestSchema } from '@insightful-phish/shared';
+import { useState } from 'react';
+
 function ForgotPasswordPage() {
+  const [email, setEmail] = useState('');
+  const [alertMessage, setAlertMessage] = useState('');
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setAlertMessage('');
+    const validationResult = authForgotPasswordRequestSchema.safeParse({
+      email,
+    });
+    if (!validationResult.success) {
+      const message = validationResult.error.issues[0].message;
+      setAlertMessage(
+        message
+          .replace(/\.$/, '')
+          .replace(/\w\S*/g, (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()),
+      );
+      return;
+    }
+
+    console.log('Validation Passed');
+  }
   return (
     <section className="bg-light-purple dark:bg-gray-900">
       <div className="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0">
         {/* LOGO  */}
-        <BasicAlert variant="danger">Please ente.</BasicAlert>
+        {alertMessage && <BasicAlert variant="danger">{alertMessage}</BasicAlert>}
         <div className="mb-4 flex items-center space-x-3 rtl:space-x-reverse">
           <img src="/Phish Logo Light.png" className="h-14" alt="Insightful Phish Logo" />
           <span className="flex items-center gap-2 mt-2">
@@ -30,7 +54,7 @@ function ForgotPasswordPage() {
             your password.
           </p>
 
-          <form className="mt-4 space-y-4 lg:mt-5 md:space-y-5" action="#">
+          <form className="mt-4 space-y-4 lg:mt-5 md:space-y-5" onSubmit={handleSubmit} noValidate>
             {/* EMAIL INPUT */}
             <div>
               <label
@@ -43,9 +67,10 @@ function ForgotPasswordPage() {
                 type="email"
                 name="email"
                 id="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
                 className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                 placeholder="Enter your Email Address"
-                required
               />
             </div>
 
