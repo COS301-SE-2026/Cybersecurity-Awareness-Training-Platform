@@ -16,7 +16,9 @@ import type {
 
 export type TraineeStatusDto = 'ACTIVE' | 'INACTIVE';
 
-export type OrganisationUserStatusDto = 'ACTIVE' | 'INACTIVE';
+export type OrganisationTraineeMembershipStatusDto = 'ACTIVE' | 'INACTIVE';
+
+export type OrganisationUserStatusDto = OrganisationTraineeMembershipStatusDto;
 
 export type AdminStatusDto = 'ACTIVE' | 'DISABLED';
 
@@ -121,7 +123,10 @@ export interface OrganisationTraineeProfileDto {
   organisationId: string;
   employeeLabel?: string | null;
   joinedAt: string;
-  organisationUserStatus: OrganisationUserStatusDto;
+  membershipStatus: OrganisationTraineeMembershipStatusDto;
+  createdFromInvitationId?: string | null;
+  disabledAt?: string | null;
+  disabledReason?: string | null;
   createdAt: string;
   updatedAt: string;
 }
