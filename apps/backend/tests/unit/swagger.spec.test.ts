@@ -390,4 +390,18 @@ describe('swaggerSpec', () => {
     expect(resultSchema).toContain('isCorrect');
     expect(resultSchema).toContain('feedbackText');
   });
+
+  it('enforces that token fields are returned on login/refresh schemas but not on /auth/me schema', () => {
+    const loginSchema = spec.components?.schemas?.AuthLoginResponse as any;
+    const meSchema = spec.components?.schemas?.AuthMeResponse as any;
+
+    expect(loginSchema).toBeDefined();
+    expect(loginSchema.properties).toHaveProperty('accessToken');
+
+    expect(meSchema).toBeDefined();
+    expect(meSchema.properties).not.toHaveProperty('accessToken');
+    expect(meSchema.properties).not.toHaveProperty('token');
+    expect(meSchema.properties).not.toHaveProperty('tokenType');
+    expect(meSchema.properties).not.toHaveProperty('expiresAt');
+  });
 });

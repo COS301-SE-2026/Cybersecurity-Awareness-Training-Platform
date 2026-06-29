@@ -592,12 +592,6 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           type: 'object',
           required: ['user', 'context', 'permissions', 'redirectTo'],
           properties: {
-            accessToken: {
-              type: 'string',
-              description: 'The current access token used for authentication (if returned).',
-              example:
-                'eyJ1c2VySWQiOiJ1c2VyLTEyMyIsImV4cGlyZXNBdCI6IjIwMjYtMDUtMTJUMjA6NDQ6NTQuMDAwWiJ9.signature',
-            },
             user: {
               $ref: '#/components/schemas/PublicUser',
             },
@@ -1991,7 +1985,19 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           'Account registered successfully.',
           'AuthRegisterResponse',
         ),
-        AuthLoginOk: responseComponent('Login successful.', 'AuthLoginResponse'),
+        AuthLoginOk: {
+          description: 'Login successful. Returns access token, user context, and sets httpOnly refresh token cookie.',
+          headers: {
+            'Set-Cookie': {
+              schema: {
+                type: 'string',
+                example: 'refreshToken=abcde12345; Path=/; HttpOnly; Secure; SameSite=Lax',
+              },
+              description: 'Contains the rotating refresh token in an HTTP-only cookie.',
+            },
+          },
+          ...jsonContent(schemaRef('AuthLoginResponse')),
+        },
         AuthMeOk: responseComponent('Current authenticated user.', 'AuthMeResponse'),
         AuthEmailExists: responseComponent(
           'A user with the provided email already exists.',

@@ -8,7 +8,6 @@ import type {
 } from '@insightful-phish/shared';
 import type {
   AuthSessionRevokedReason,
-  RefreshTokenRevokedReason,
 } from '../generated/prisma/enums.js';
 import { prisma } from '../lib/prisma.js';
 import { toPublicUserDto } from '../mappers/user.mapper.js';
@@ -19,9 +18,6 @@ import { generateAuthToken } from './auth-token.service.js';
 import * as PasswordService from './password.service.js';
 import {
   ensureUserCanAuthenticate,
-  ensureActiveUser,
-  ensureActiveOrganisation,
-  type GuardAuthSubject,
 } from './auth-status-guard.service.js';
 import { resolveSessionPolicy } from './session-policy.service.js';
 import { issueAuthSession, revokeSessionById, touchSession } from './auth-session.service.js';
@@ -129,34 +125,6 @@ export class AuthRefreshTokenInvalidError extends Error {
   }
 }
 
-function fillMockProfilesForTesting(subject: GuardAuthSubject): void {
-  if (process.env.NODE_ENV === 'test') {
-    if (subject.user?.userType === 'GENERAL_TRAINEE' && !subject.traineeProfile) {
-      subject.traineeProfile = { traineeStatus: 'ACTIVE' };
-    }
-    if (subject.user?.userType === 'ORGANISATION_TRAINEE') {
-      if (!subject.traineeProfile) {
-        subject.traineeProfile = { traineeStatus: 'ACTIVE' };
-      }
-      if (!subject.organisationTraineeProfile) {
-        subject.organisationTraineeProfile = {
-          organisationUserStatus: 'ACTIVE',
-          organisation: { id: 'mock-org', status: 'ACTIVE' },
-        };
-      }
-    }
-    if (subject.user?.userType === 'ORGANISATION_ADMIN' && !subject.organisationAdminProfile) {
-      subject.organisationAdminProfile = {
-        adminStatus: 'ACTIVE',
-        organisation: { id: 'mock-org', status: 'ACTIVE' },
-      };
-    }
-    if (subject.user?.userType === 'IP_ADMIN' && !subject.ipAdminProfile) {
-      subject.ipAdminProfile = { adminStatus: 'ACTIVE' };
-    }
-  }
-}
-
 const PLATFORM_SESSION_POLICY = {
   regularSessionSeconds: 900,
   rememberedSessionSeconds: 604800,
@@ -179,29 +147,7 @@ export async function loginUser(
     throw new AuthUnauthorizedError();
   }
 
-  let subject: GuardAuthSubject;
-  const hasFindAuthSubject = (() => {
-    try {
-      return typeof UserRepository.findAuthSubjectByUserId === 'function';
-    } catch {
-      return false;
-    }
-  })();
-
-  if (hasFindAuthSubject) {
-    subject = await UserRepository.findAuthSubjectByUserId(user.id);
-    fillMockProfilesForTesting(subject);
-  } else {
-    subject = {
-      user: {
-        id: user.id,
-        userType: user.userType || 'GENERAL_TRAINEE',
-        authStatus: user.authStatus || 'ACTIVE',
-      },
-      traineeProfile: { traineeStatus: 'ACTIVE' },
-    };
-  }
-
+  const subject = await UserRepository.findAuthSubjectByUserId(user.id);
   const guardResult = ensureUserCanAuthenticate(subject);
   if (!guardResult.allowed) {
     throw new AuthStatusGuardError(guardResult.code, guardResult.statusCode, guardResult.message);
@@ -236,20 +182,10 @@ export async function loginUser(
     },
   });
 
-  const hasFindUserWithAuthSubject = (() => {
-    try {
-      return typeof UserRepository.findUserWithAuthSubjectById === 'function';
-    } catch {
-      return false;
-    }
-  })();
-
-  const userWithAuthSubject = hasFindUserWithAuthSubject
-    ? await UserRepository.findUserWithAuthSubjectById(user.id)
-    : null;
+  const userWithAuthSubject = await UserRepository.findUserWithAuthSubjectById(user.id);
   const publicUser = toPublicUserDto(userWithAuthSubject || user);
   const authContext = buildAuthContext(subject);
-  const accessToken = generateAuthToken(user.id).token;
+  const accessToken = generateAuthToken(user.id, session.id).token;
 
   return {
     response: {
@@ -265,75 +201,20 @@ export async function loginUser(
 }
 
 export async function getCurrentUser(userId: string): Promise<AuthMeResponseDto> {
-  const user = await UserRepository.findUserById(userId);
+  const userWithAuthSubject = await UserRepository.findUserWithAuthSubjectById(userId);
 
-  if (!user) {
+  if (!userWithAuthSubject) {
     throw new AuthUnauthorizedError('User account was not found');
   }
 
-  let subject: GuardAuthSubject;
-  const hasFindAuthSubject = (() => {
-    try {
-      return typeof UserRepository.findAuthSubjectByUserId === 'function';
-    } catch {
-      return false;
-    }
-  })();
+  const subject = UserRepository.toGuardAuthSubject(userWithAuthSubject);
 
-  if (hasFindAuthSubject) {
-    subject = await UserRepository.findAuthSubjectByUserId(userId);
-    fillMockProfilesForTesting(subject);
-  } else {
-    subject = {
-      user: {
-        id: user.id,
-        userType: user.userType || 'GENERAL_TRAINEE',
-        authStatus: user.authStatus || 'ACTIVE',
-      },
-      traineeProfile: { traineeStatus: 'ACTIVE' },
-    };
+  const guardResult = ensureUserCanAuthenticate(subject);
+  if (!guardResult.allowed) {
+    throw new AuthStatusGuardError(guardResult.code, guardResult.statusCode, guardResult.message);
   }
 
-  const userResult = ensureActiveUser(subject.user);
-  if (!userResult.allowed) {
-    throw new AuthStatusGuardError(userResult.code, userResult.statusCode, userResult.message);
-  }
-
-  const hasFindUserWithAuthSubject = (() => {
-    try {
-      return typeof UserRepository.findUserWithAuthSubjectById === 'function';
-    } catch {
-      return false;
-    }
-  })();
-
-  const fullUser = hasFindUserWithAuthSubject
-    ? await UserRepository.findUserWithAuthSubjectById(userId)
-    : null;
-
-  if (fullUser) {
-    if (
-      fullUser.userType === 'ORGANISATION_TRAINEE' &&
-      fullUser.traineeProfile?.organisationTraineeProfile?.organisation
-    ) {
-      const orgResult = ensureActiveOrganisation(
-        fullUser.traineeProfile.organisationTraineeProfile.organisation,
-      );
-      if (!orgResult.allowed) {
-        throw new AuthStatusGuardError(orgResult.code, orgResult.statusCode, orgResult.message);
-      }
-    } else if (
-      fullUser.userType === 'ORGANISATION_ADMIN' &&
-      fullUser.organisationAdminProfile?.organisation
-    ) {
-      const orgResult = ensureActiveOrganisation(fullUser.organisationAdminProfile.organisation);
-      if (!orgResult.allowed) {
-        throw new AuthStatusGuardError(orgResult.code, orgResult.statusCode, orgResult.message);
-      }
-    }
-  }
-
-  const publicUser = toPublicUserDto(fullUser || user);
+  const publicUser = toPublicUserDto(userWithAuthSubject);
   const authContext = buildAuthContext(subject);
 
   return {
@@ -346,14 +227,14 @@ export async function getCurrentUser(userId: string): Promise<AuthMeResponseDto>
 
 export async function refreshUserToken(
   rawToken: string,
-  _ipAddress?: string | null,
-  _userAgent?: string | null,
+  ipAddress?: string | null,
+  userAgent?: string | null,
 ): Promise<{ response: AuthContextResponseDto; rawRefreshToken: string; sessionExpiresAt: Date }> {
   if (!rawToken) {
     throw new AuthRefreshTokenInvalidError('Refresh token is required');
   }
 
-  const valid = await validateRefreshToken({ rawToken });
+  const valid = await validateRefreshToken({ rawToken, ipAddress, userAgent });
   if (valid.state === 'REUSE_DETECTED') {
     throw new AuthRefreshTokenReuseError();
   }
@@ -364,24 +245,20 @@ export async function refreshUserToken(
   const token = valid.token;
 
   const subject = await UserRepository.findAuthSubjectByUserId(token.authSession.userId);
-  fillMockProfilesForTesting(subject);
   const guardResult = ensureUserCanAuthenticate(subject);
   if (!guardResult.allowed) {
     let sessionReason: AuthSessionRevokedReason = 'OTHER';
-    let tokenReason: RefreshTokenRevokedReason = 'OTHER';
 
     if (guardResult.code === 'USER_DISABLED') {
       sessionReason = 'ADMIN_DISABLED';
-      tokenReason = 'OTHER';
     } else if (guardResult.code === 'ORGANISATION_SUSPENDED') {
       sessionReason = 'ORGANISATION_SUSPENDED';
-      tokenReason = 'OTHER';
     }
 
     await revokeSessionById({ sessionId: token.authSessionId, reason: sessionReason });
     await revokeRefreshTokensForSession({
       authSessionId: token.authSessionId,
-      reason: tokenReason,
+      reason: 'OTHER',
     });
     throw new AuthStatusGuardError(guardResult.code, guardResult.statusCode, guardResult.message);
   }
@@ -391,6 +268,8 @@ export async function refreshUserToken(
   const rotationResult = await rotateRefreshToken({
     rawToken,
     nextExpiresAt: token.authSession.expiresAt,
+    ipAddress,
+    userAgent,
   });
 
   if (rotationResult.state === 'REUSE_DETECTED') {
@@ -400,7 +279,7 @@ export async function refreshUserToken(
     throw new AuthRefreshTokenInvalidError();
   }
 
-  const accessToken = generateAuthToken(token.authSession.userId).token;
+  const accessToken = generateAuthToken(token.authSession.userId, token.authSessionId).token;
   const publicUser = toPublicUserDto(token.authSession.user);
   const authContext = buildAuthContext(subject);
 
@@ -446,7 +325,7 @@ export async function resendVerificationEmail(email: string): Promise<void> {
   const normalizedEmail = email.trim().toLowerCase();
   const user = await UserRepository.findUserByEmail(normalizedEmail);
 
-  if (!user || user.authStatus !== 'PENDING_EMAIL_VERIFICATION') {
+  if (user?.authStatus !== 'PENDING_EMAIL_VERIFICATION') {
     return;
   }
 

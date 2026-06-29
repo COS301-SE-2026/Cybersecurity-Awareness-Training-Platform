@@ -33,9 +33,16 @@ export function createAuthSession(
 }
 
 export function findAuthSessionById(id: string, client: AuthSessionClient = prisma) {
-  return client.authSession.findUnique({
-    where: { id },
-  });
+  try {
+    if (!client || !client.authSession || typeof client.authSession.findUnique !== 'function') {
+      return null;
+    }
+    return client.authSession.findUnique({
+      where: { id },
+    });
+  } catch {
+    return null;
+  }
 }
 export function touchAuthSession(id: string, client: AuthSessionClient = prisma) {
   return client.authSession.update({

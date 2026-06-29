@@ -118,9 +118,22 @@ authRouter.get('/auth/me', authRateLimit, requireAuth, asyncHandler(getMe));
  *     summary: Log out the current session
  *     description: Revokes the current session and clears the refresh token cookie.
  *     security: []
+ *     parameters:
+ *       - in: cookie
+ *         name: refreshToken
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Refresh token cookie to clear.
  *     responses:
  *       200:
  *         description: Successfully logged out.
+ *         headers:
+ *           Set-Cookie:
+ *             schema:
+ *               type: string
+ *               example: refreshToken=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0
+ *             description: Clears the refreshToken cookie.
  *         content:
  *           application/json:
  *             schema:
@@ -142,6 +155,13 @@ authRouter.post('/auth/logout', authRateLimit, asyncHandler(logout));
  *     summary: Rotate the refresh token and get a new access token
  *     description: Validates and rotates the refresh token from the cookie, returns a new access token and user context.
  *     security: []
+ *     parameters:
+ *       - in: cookie
+ *         name: refreshToken
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Hashed rotating refresh token cookie.
  *     responses:
  *       200:
  *         $ref: '#/components/responses/AuthLoginOk'

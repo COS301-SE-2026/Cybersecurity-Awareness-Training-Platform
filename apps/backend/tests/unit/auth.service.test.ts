@@ -11,6 +11,24 @@ const userRepositoryMock = vi.hoisted(() => ({
   findUserByEmail: vi.fn(),
   findUserById: vi.fn(),
   createGeneralTraineeUser: vi.fn(),
+  findAuthSubjectByUserId: vi.fn(),
+  findUserWithAuthSubjectById: vi.fn(),
+  toGuardAuthSubject: vi.fn().mockImplementation((user) => {
+    if (!user) return { user: null };
+    return {
+      user: {
+        id: user.id,
+        userType: user.userType,
+        authStatus: user.authStatus,
+        emailVerifiedAt: user.emailVerifiedAt,
+        disabledAt: user.disabledAt,
+      },
+      traineeProfile: user.traineeProfile ?? null,
+      organisationTraineeProfile: user.organisationTraineeProfile ?? null,
+      organisationAdminProfile: user.organisationAdminProfile ?? null,
+      ipAdminProfile: user.ipAdminProfile ?? null,
+    };
+  }),
 }));
 
 const passwordServiceMock = vi.hoisted(() => ({
@@ -226,6 +244,25 @@ describe('loginUser', () => {
       authStatus: 'ACTIVE',
       createdAt: new Date('2026-05-12T06:00:00.000Z'),
     });
+    userRepositoryMock.findAuthSubjectByUserId.mockResolvedValue({
+      user: {
+        id: 'user-1',
+        userType: 'GENERAL_TRAINEE',
+        authStatus: 'ACTIVE',
+      },
+      traineeProfile: { traineeStatus: 'ACTIVE' },
+    });
+    userRepositoryMock.findUserWithAuthSubjectById.mockResolvedValue({
+      id: 'user-1',
+      firstName: 'Johan',
+      lastName: 'Nel',
+      email: 'johan@example.com',
+      passwordHash: 'hashed-password',
+      userType: 'GENERAL_TRAINEE',
+      authStatus: 'ACTIVE',
+      createdAt: new Date('2026-05-12T06:00:00.000Z'),
+      traineeProfile: { traineeStatus: 'ACTIVE' },
+    });
     passwordServiceMock.verifyPassword.mockResolvedValue(true);
     authTokenServiceMock.generateAuthToken.mockReturnValue({
       token: 'demo-token',
@@ -242,7 +279,7 @@ describe('loginUser', () => {
       'mySecurePassword123!',
       'hashed-password',
     );
-    expect(authTokenServiceMock.generateAuthToken).toHaveBeenCalledWith('user-1');
+    expect(authTokenServiceMock.generateAuthToken).toHaveBeenCalledWith('user-1', expect.any(String));
     expect(response).toEqual({
       response: {
         accessToken: 'demo-token',
@@ -308,7 +345,7 @@ describe('getCurrentUser', () => {
   });
 
   it('returns the current authenticated user without exposing the password hash', async () => {
-    userRepositoryMock.findUserById.mockResolvedValue({
+    userRepositoryMock.findUserWithAuthSubjectById.mockResolvedValue({
       id: 'user-1',
       firstName: 'Johan',
       lastName: 'Nel',
@@ -317,11 +354,12 @@ describe('getCurrentUser', () => {
       userType: 'GENERAL_TRAINEE',
       authStatus: 'ACTIVE',
       createdAt: new Date('2026-05-12T06:00:00.000Z'),
+      traineeProfile: { traineeStatus: 'ACTIVE' },
     });
 
     const response = await getCurrentUser('user-1');
 
-    expect(userRepositoryMock.findUserById).toHaveBeenCalledWith('user-1');
+    expect(userRepositoryMock.findUserWithAuthSubjectById).toHaveBeenCalledWith('user-1');
     expect(response).toEqual({
       user: {
         id: 'user-1',
@@ -343,7 +381,7 @@ describe('getCurrentUser', () => {
   });
 
   it('throws an auth unauthorized error when the user cannot be found', async () => {
-    userRepositoryMock.findUserById.mockResolvedValue(null);
+    userRepositoryMock.findUserWithAuthSubjectById.mockResolvedValue(null);
 
     await expect(getCurrentUser('missing-user')).rejects.toBeInstanceOf(AuthUnauthorizedError);
   });

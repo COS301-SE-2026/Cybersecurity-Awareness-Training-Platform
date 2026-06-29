@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import { getCurrentUser, AuthStatusGuardError } from '../services/auth.service.js';
 import { verifyAuthToken } from '../services/auth-token.service.js';
+import { validateAuthSession } from '../services/auth-session.service.js';
 
 function extractBearerToken(authorizationHeader: string | undefined) {
   if (!authorizationHeader) {
@@ -36,6 +37,15 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
   }
 
   try {
+    const sessionResult = await validateAuthSession({ sessionId: payload.authSessionId });
+
+    if (sessionResult.state !== 'ACTIVE') {
+      return res.status(401).json({
+        error: 'AUTH_INVALID',
+        message: 'Invalid authentication credentials',
+      });
+    }
+
     const currentUser = await getCurrentUser(payload.userId);
 
     req.auth = {

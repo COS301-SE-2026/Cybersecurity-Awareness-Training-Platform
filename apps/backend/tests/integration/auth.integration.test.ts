@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../../src/app.js';
@@ -385,6 +386,263 @@ describe('Auth Integration Tests', () => {
         lastName: 'Last',
       });
       expect(res2.status).toBe(401);
+    });
+  });
+
+  describe('Logout and Session Revocation DB Check', () => {
+    it('properly revokes both the session and the corresponding refresh token in the database, and blocks old access token', async () => {
+      const email = 'logout-db-check@example.com';
+      await createTrainee({ user: { email } });
+
+      const loginRes = await loginTestUser(email);
+      const cookies = loginRes.headers['set-cookie'];
+      const accessToken = loginRes.body.accessToken;
+
+      // Access protected endpoint successfully before logout
+      const meBefore = await request(createApp())
+        .get('/auth/me')
+        .set('Authorization', `Bearer ${accessToken}`);
+      expect(meBefore.status).toBe(200);
+
+      // Perform logout
+      const logoutRes = await request(createApp()).post('/auth/logout').set('Cookie', cookies);
+      expect(logoutRes.status).toBe(200);
+
+      // Verify DB session is revoked
+      const session = await prisma.authSession.findFirst({
+        where: { userId: loginRes.body.user.id },
+        orderBy: { createdAt: 'desc' },
+      });
+      expect(session).not.toBeNull();
+      expect(session?.revokedAt).not.toBeNull();
+      expect(session?.revokedReason).toBe('LOGOUT');
+
+      // Verify DB refresh token is revoked
+      const refreshToken = await prisma.refreshToken.findFirst({
+        where: { authSessionId: session?.id },
+        orderBy: { createdAt: 'desc' },
+      });
+      expect(refreshToken).not.toBeNull();
+      expect(refreshToken?.revokedAt).not.toBeNull();
+      expect(refreshToken?.revokedReason).toBe('LOGOUT');
+
+      // Verify access token is now blocked
+      const meAfter = await request(createApp())
+        .get('/auth/me')
+        .set('Authorization', `Bearer ${accessToken}`);
+      expect(meAfter.status).toBe(401);
+      expect(meAfter.body.error).toBe('AUTH_INVALID');
+    });
+  });
+
+  describe('Refresh Token Rotation DB Check', () => {
+    it('verifies that old refresh token is marked as used, replacedByTokenId is set, new refresh token is hashed, and old raw token cannot be reused', async () => {
+      const email = 'refresh-db-check@example.com';
+      await createTrainee({ user: { email } });
+
+      const loginRes = await loginTestUser(email);
+      const cookies = loginRes.headers['set-cookie'];
+
+      // Perform refresh rotation
+      const refreshRes = await request(createApp()).post('/auth/refresh').set('Cookie', cookies);
+      expect(refreshRes.status).toBe(200);
+
+      const newCookies = refreshRes.headers['set-cookie'];
+
+      // Extract session
+      const session = await prisma.authSession.findFirst({
+        where: { userId: loginRes.body.user.id },
+        orderBy: { createdAt: 'desc' },
+      });
+      expect(session).not.toBeNull();
+
+      // Retrieve tokens in database
+      const tokens = await prisma.refreshToken.findMany({
+        where: { authSessionId: session?.id },
+        orderBy: { createdAt: 'asc' },
+      });
+      expect(tokens.length).toBe(2);
+
+      const oldTokenRecord = tokens[0];
+      const newTokenRecord = tokens[1];
+
+      // Verify old token is marked as used
+      expect(oldTokenRecord.usedAt).not.toBeNull();
+      expect(oldTokenRecord.replacedByTokenId).toBe(newTokenRecord.id);
+
+      // Verify new token is stored exclusively as hash (not matching raw token)
+      expect(newTokenRecord.tokenHash).toBeDefined();
+      // Ensure raw token is not the same as hash
+      const rawNewToken = newCookies[0].split(';')[0].split('=')[1];
+      expect(newTokenRecord.tokenHash).not.toBe(rawNewToken);
+
+      // Verify that reusing the old raw refresh token is impossible
+      const reuseRes = await request(createApp()).post('/auth/refresh').set('Cookie', cookies);
+      expect(reuseRes.status).toBe(401);
+      expect(reuseRes.body.error).toBe('TOKEN_REUSE_DETECTED');
+    });
+  });
+
+  describe('Refresh Token Reuse Detection DB & Audit Log Check', () => {
+    it('genuinely revokes all refresh tokens and session in DB, records audit log with IP/UA, and returns 401', async () => {
+      const email = 'reuse-audit@example.com';
+      await createTrainee({ user: { email } });
+
+      const loginRes = await loginTestUser(email);
+      const cookies = loginRes.headers['set-cookie'];
+
+      // Rotate once
+      await request(createApp()).post('/auth/refresh').set('Cookie', cookies);
+
+      // Trigger reuse
+      const reuseRes = await request(createApp())
+        .post('/auth/refresh')
+        .set('Cookie', cookies)
+        .set('User-Agent', 'TestUA')
+        .set('X-Forwarded-For', '1.2.3.4');
+
+      expect(reuseRes.status).toBe(401);
+      expect(reuseRes.body.error).toBe('TOKEN_REUSE_DETECTED');
+
+      // Verify session and token revocation in DB
+      const session = await prisma.authSession.findFirst({
+        where: { userId: loginRes.body.user.id },
+        orderBy: { createdAt: 'desc' },
+      });
+      expect(session?.revokedAt).not.toBeNull();
+      expect(session?.revokedReason).toBe('TOKEN_REUSE_DETECTED');
+
+      const allTokens = await prisma.refreshToken.findMany({
+        where: { authSessionId: session?.id },
+      });
+      for (const t of allTokens) {
+        expect(t.revokedAt).not.toBeNull();
+        expect(t.revokedReason).toBe('TOKEN_REUSE_DETECTED');
+      }
+
+      // Verify TOKEN_REUSE_DETECTED audit log exists
+      const auditLog = await prisma.auditLogEntry.findFirst({
+        where: {
+          actionType: 'TOKEN_REUSE_DETECTED',
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+      expect(auditLog).not.toBeNull();
+      expect(auditLog?.outcome).toBe('FAILURE');
+      expect(auditLog?.userAgent).toContain('TestUA');
+    });
+  });
+
+  describe('Protected Access After Status Changes', () => {
+    it('successfully rejects disabled user, inactive trainee, inactive trainee membership, disabled org admin, disabled platform admin, and suspended org', async () => {
+      // 1. Inactive Trainee
+      const trainee = await createTrainee({
+        user: { email: 'inactive-trainee-check@example.com' },
+      });
+      const login1 = await loginTestUser(trainee.user.email);
+      const token1 = login1.body.accessToken;
+
+      // Update trainee profile to INACTIVE
+      await prisma.traineeProfile.update({
+        where: { id: trainee.traineeProfile.id },
+        data: { traineeStatus: 'INACTIVE' },
+      });
+
+      const res1 = await request(createApp())
+        .get('/auth/me')
+        .set('Authorization', `Bearer ${token1}`);
+      expect(res1.status).toBe(403);
+      expect(res1.body.error).toBe('TRAINEE_PROFILE_INACTIVE');
+
+      // 2. Inactive Trainee Membership (OrganisationTraineeProfile)
+      const org = await createOrganisation();
+      const orgTrainee = await createTrainee({
+        user: { email: 'inactive-mem-check@example.com' },
+        organisationProfile: {
+          organisationId: org.id,
+        },
+      });
+      const login2 = await loginTestUser(orgTrainee.user.email);
+      const token2 = login2.body.accessToken;
+
+      // Update organisation trainee user status to INACTIVE
+      await prisma.organisationTraineeProfile.update({
+        where: { id: orgTrainee.organisationTraineeProfile!.id },
+        data: { organisationUserStatus: 'INACTIVE' },
+      });
+
+      const res2 = await request(createApp())
+        .get('/auth/me')
+        .set('Authorization', `Bearer ${token2}`);
+      expect(res2.status).toBe(403);
+      expect(res2.body.error).toBe('ORGANISATION_USER_INACTIVE');
+
+      // 3. Disabled Org Admin Profile
+      const adminUser = await prisma.user.create({
+        data: {
+          email: 'disabled-admin@example.com',
+          firstName: 'Org',
+          lastName: 'Admin',
+          passwordHash: trainee.user.passwordHash,
+          userType: 'ORGANISATION_ADMIN',
+          authStatus: 'ACTIVE',
+        },
+      });
+      const adminProfile = await prisma.organisationAdminProfile.create({
+        data: {
+          id: randomUUID(),
+          userId: adminUser.id,
+          organisationId: org.id,
+          adminStatus: 'ACTIVE',
+        },
+      });
+      const login3 = await loginTestUser(adminUser.email);
+      const token3 = login3.body.accessToken;
+
+      // Disable admin profile
+      await prisma.organisationAdminProfile.update({
+        where: { id: adminProfile.id },
+        data: { adminStatus: 'DISABLED' },
+      });
+
+      const res3 = await request(createApp())
+        .get('/auth/me')
+        .set('Authorization', `Bearer ${token3}`);
+      expect(res3.status).toBe(403);
+      expect(res3.body.error).toBe('ADMIN_DISABLED');
+
+      // 4. Disabled Platform/IP Admin Profile
+      const ipUser = await prisma.user.create({
+        data: {
+          email: 'disabled-ip@example.com',
+          firstName: 'Platform',
+          lastName: 'Admin',
+          passwordHash: trainee.user.passwordHash,
+          userType: 'IP_ADMIN',
+          authStatus: 'ACTIVE',
+        },
+      });
+      const ipProfile = await prisma.ipAdminProfile.create({
+        data: {
+          id: randomUUID(),
+          userId: ipUser.id,
+          adminStatus: 'ACTIVE',
+        },
+      });
+      const login4 = await loginTestUser(ipUser.email);
+      const token4 = login4.body.accessToken;
+
+      // Disable platform admin profile
+      await prisma.ipAdminProfile.update({
+        where: { id: ipProfile.id },
+        data: { adminStatus: 'DISABLED' },
+      });
+
+      const res4 = await request(createApp())
+        .get('/auth/me')
+        .set('Authorization', `Bearer ${token4}`);
+      expect(res4.status).toBe(403);
+      expect(res4.body.error).toBe('IP_ADMIN_DISABLED');
     });
   });
 });

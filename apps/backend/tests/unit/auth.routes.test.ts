@@ -174,6 +174,7 @@ describe('Auth routes', () => {
       userType: 'GENERAL_TRAINEE',
       authStatus: 'ACTIVE',
       createdAt: new Date('2026-05-12T06:00:00.000Z'),
+      traineeProfile: { traineeStatus: 'ACTIVE' },
     });
 
     const response = await request(createApp()).post('/auth/login').send({
@@ -223,6 +224,7 @@ describe('Auth routes', () => {
       userType: 'GENERAL_TRAINEE',
       authStatus: 'ACTIVE',
       createdAt: new Date('2026-05-12T06:00:00.000Z'),
+      traineeProfile: { traineeStatus: 'ACTIVE' },
     });
 
     const response = await request(createApp()).post('/auth/login').send({
@@ -235,7 +237,16 @@ describe('Auth routes', () => {
   });
 
   it('returns the current authenticated user without exposing the password hash', async () => {
-    const token = generateAuthToken('id-123').token;
+    const token = generateAuthToken('id-123', 'session-123').token;
+
+    prismaMock.authSession.findUnique.mockResolvedValue({
+      id: 'session-123',
+      userId: 'id-123',
+      expiresAt: new Date(Date.now() + 60000),
+      lastActiveAt: new Date(),
+      revokedAt: null,
+      idleTimeoutMinutes: 30,
+    });
 
     prismaMock.user.findUnique.mockResolvedValue({
       id: 'id-123',
@@ -246,6 +257,7 @@ describe('Auth routes', () => {
       userType: 'GENERAL_TRAINEE',
       authStatus: 'ACTIVE',
       createdAt: new Date('2026-05-12T06:00:00.000Z'),
+      traineeProfile: { traineeStatus: 'ACTIVE' },
     });
 
     const response = await request(createApp())
@@ -257,9 +269,9 @@ describe('Auth routes', () => {
       where: {
         id: 'id-123',
       },
+      include: expect.any(Object),
     });
     expect(response.body).toEqual({
-      accessToken: expect.any(String),
       user: {
         id: 'id-123',
         firstName: 'Johan',
@@ -275,8 +287,6 @@ describe('Auth routes', () => {
       }),
       permissions: ['GENERAL_TRAINEE'],
       redirectTo: '/trainee/campaigns',
-      token: expect.any(String),
-      tokenType: 'Bearer',
     });
     expect(response.body.user).not.toHaveProperty('passwordHash');
   });
@@ -447,6 +457,16 @@ describe('Auth routes', () => {
         lastActiveAt: new Date(),
         revokedAt: null,
         idleTimeoutMinutes: 30,
+      });
+      prismaMock.user.findUnique.mockResolvedValue({
+        id: 'user-123',
+        email: 'johan@example.com',
+        firstName: 'Johan',
+        lastName: 'Nel',
+        userType: 'GENERAL_TRAINEE',
+        authStatus: 'ACTIVE',
+        createdAt: new Date(),
+        traineeProfile: { traineeStatus: 'ACTIVE' },
       });
       prismaMock.refreshToken.updateMany.mockResolvedValue({ count: 1 });
 

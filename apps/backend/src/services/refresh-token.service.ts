@@ -53,6 +53,8 @@ export async function issueRefreshToken(
 export async function validateRefreshToken(input: {
   rawToken: string;
   now?: Date;
+  ipAddress?: string | null;
+  userAgent?: string | null;
 }): Promise<ValidateRefreshTokenResult> {
   const tokenHash = hashOpaqueToken(input.rawToken);
   const token = await findRefreshTokenByHash(tokenHash);
@@ -65,6 +67,8 @@ export async function validateRefreshToken(input: {
   if (token.usedAt || token.replacedByTokenId) {
     await handleRefreshTokenReuse(token.authSessionId, token.id, {
       userId: token.authSession.userId,
+      ipAddress: input.ipAddress,
+      userAgent: input.userAgent,
     });
     return { state: 'REUSE_DETECTED', token };
   }
@@ -117,8 +121,15 @@ export async function rotateRefreshToken(input: {
   rawToken: string;
   nextExpiresAt: Date;
   now?: Date;
+  ipAddress?: string | null;
+  userAgent?: string | null;
 }): Promise<RotatedRefreshTokenResult> {
-  const valid = await validateRefreshToken({ rawToken: input.rawToken, now: input.now });
+  const valid = await validateRefreshToken({
+    rawToken: input.rawToken,
+    now: input.now,
+    ipAddress: input.ipAddress,
+    userAgent: input.userAgent,
+  });
   if (valid.state !== 'VALID') {
     return valid;
   }
@@ -135,7 +146,11 @@ export async function rotateRefreshToken(input: {
   });
 
   if (!nextToken) {
-    await handleRefreshTokenReuse(previousToken.authSessionId, previousToken.id);
+    await handleRefreshTokenReuse(previousToken.authSessionId, previousToken.id, {
+      userId: previousToken.authSession.userId,
+      ipAddress: input.ipAddress,
+      userAgent: input.userAgent,
+    });
     return { state: 'REUSE_DETECTED', token: previousToken };
   }
 

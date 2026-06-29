@@ -91,15 +91,8 @@ export async function getMe(req: Request, res: Response) {
 
   try {
     const result = await getCurrentUser(req.auth.userId);
-    const authHeader = req.header('authorization');
-    const accessToken = authHeader ? authHeader.split(' ')[1] : undefined;
 
-    return res.status(200).json({
-      ...result,
-      accessToken,
-      token: accessToken,
-      tokenType: 'Bearer',
-    });
+    return res.status(200).json(result);
   } catch (error) {
     if (error instanceof AuthStatusGuardError) {
       return res.status(error.statusCode).json({

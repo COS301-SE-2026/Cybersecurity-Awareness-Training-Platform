@@ -3,6 +3,7 @@ import { env } from '../config/env.js';
 
 interface AuthTokenPayload {
   userId: string;
+  authSessionId: string;
   expiresAt: string;
 }
 
@@ -23,9 +24,11 @@ function signToken(payload: string) {
   return createHmac('sha256', env.AUTH_TOKEN_SECRET).update(payload).digest('base64url');
 }
 
-export function generateAuthToken(userId: string): AuthTokenResult {
+export function generateAuthToken(userId: string, authSessionId = '00000000-0000-0000-0000-000000000000'): AuthTokenResult {
   const expiresAt = new Date(Date.now() + env.AUTH_TOKEN_EXPIRES_IN_SECONDS * 1000).toISOString();
-  const payload = encodeBase64Url(JSON.stringify({ userId, expiresAt } satisfies AuthTokenPayload));
+  const payload = encodeBase64Url(
+    JSON.stringify({ userId, authSessionId, expiresAt } satisfies AuthTokenPayload),
+  );
   const signature = signToken(payload);
   const token = `${payload}.${signature}`;
 
@@ -64,6 +67,7 @@ export function verifyAuthToken(token: string): AuthTokenPayload | null {
 
     return {
       userId: decodedPayload.userId,
+      authSessionId: decodedPayload.authSessionId || '00000000-0000-0000-0000-000000000000',
       expiresAt: decodedPayload.expiresAt,
     };
   } catch {
