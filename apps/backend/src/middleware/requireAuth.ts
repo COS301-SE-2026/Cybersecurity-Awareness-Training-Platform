@@ -39,11 +39,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
   try {
     const sessionResult = await validateAuthSession({ sessionId: payload.authSessionId });
 
-    if (
-      sessionResult.state !== 'ACTIVE' ||
-      !sessionResult.session ||
-      sessionResult.session.userId !== payload.userId
-    ) {
+    if (sessionResult.state !== 'ACTIVE' || sessionResult.session?.userId !== payload.userId) {
       return res.status(401).json({
         error: 'AUTH_INVALID',
         message: 'Invalid authentication credentials',
