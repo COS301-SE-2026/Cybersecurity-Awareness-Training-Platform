@@ -567,8 +567,8 @@ model ActionToken {
   createdAt                         DateTime                         @default(now())
   updatedAt                         DateTime                         @updatedAt
   user                              User?                            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  emailDeliveryLogs                 EmailDeliveryLog[]
-  invitation                        Invitation?                      @relation(fields: [invitationId], references: [id], onDelete: SetNull)
+  emailDeliveryLogs                 EmailDeliveryLog[]               @relation("ActionTokenEmailDeliveryLogs")
+  invitation                        Invitation?                      @relation("InvitationActionTokens", fields: [invitationId], references: [id], onDelete: SetNull)
   organisationRegistrationRequest   OrganisationRegistrationRequest? @relation(fields: [organisationRegistrationRequestId], references: [id], onDelete: SetNull)
 
   @@index([userId])
@@ -603,10 +603,10 @@ model EmailDeliveryLog {
   createdAt                         DateTime                         @default(now())
   updatedAt                         DateTime                         @updatedAt
   user                              User?                            @relation(fields: [userId], references: [id], onDelete: SetNull)
-  actionToken                       ActionToken?                     @relation(fields: [actionTokenId], references: [id], onDelete: SetNull)
+  actionToken                       ActionToken?                     @relation("ActionTokenEmailDeliveryLogs", fields: [actionTokenId], references: [id], onDelete: SetNull)
   organisation                      Organisation?                    @relation(fields: [organisationId], references: [id], onDelete: SetNull)
   organisationRegistrationRequest   OrganisationRegistrationRequest? @relation(fields: [organisationRegistrationRequestId], references: [id], onDelete: SetNull)
-  invitation                        Invitation?                      @relation(fields: [invitationId], references: [id], onDelete: SetNull)
+  invitation                        Invitation?                      @relation("InvitationEmailDeliveryLogs", fields: [invitationId], references: [id], onDelete: SetNull)
 
   @@index([recipientEmail])
   @@index([emailType])
@@ -696,9 +696,9 @@ model Invitation {
   organisation                      Organisation                     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   organisationRegistrationRequest   OrganisationRegistrationRequest? @relation(fields: [organisationRegistrationRequestId], references: [id], onDelete: SetNull)
   targetUser                        User?                            @relation("InvitationTargetUser", fields: [targetUserId], references: [id], onDelete: SetNull)
-  acceptedOrganisationTraineeProfile OrganisationTraineeProfile?      @relation("InvitationAcceptedOrganisationTrainee")
-  actionTokens                      ActionToken[]
-  emailDeliveryLogs                 EmailDeliveryLog[]
+  acceptedOrganisationTraineeProfile OrganisationTraineeProfile?     @relation("InvitationAcceptedOrganisationTrainee")
+  actionTokens                      ActionToken[]                    @relation("InvitationActionTokens")
+  emailDeliveryLogs                 EmailDeliveryLog[]               @relation("InvitationEmailDeliveryLogs")
 
   @@index([organisationId])
   @@index([organisationRegistrationRequestId])
