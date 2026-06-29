@@ -461,7 +461,7 @@ describe('Auth Integration Tests', () => {
         where: { authSessionId: session?.id },
         orderBy: { createdAt: 'asc' },
       });
-      expect(tokens.length).toBe(2);
+      expect(tokens).toHaveLength(2);
 
       const oldTokenRecord = tokens[0];
       const newTokenRecord = tokens[1];

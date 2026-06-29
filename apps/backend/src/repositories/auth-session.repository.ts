@@ -34,7 +34,7 @@ export function createAuthSession(
 
 export function findAuthSessionById(id: string, client: AuthSessionClient = prisma) {
   try {
-    if (!client || !client.authSession || typeof client.authSession.findUnique !== 'function') {
+    if (typeof client?.authSession?.findUnique !== 'function') {
       return null;
     }
     return client.authSession.findUnique({
