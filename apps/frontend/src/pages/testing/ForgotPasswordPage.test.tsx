@@ -52,4 +52,38 @@ describe('ForgotPasswordPage', () => {
 
     expect(screen.getByText(/Please Enter A Valid Email Address/i)).toBeInTheDocument();
   });
+
+  // Test 4: Loading State
+  it('shows the loading state after submitting a valid email', async () => {
+    render(
+      <MemoryRouter>
+        <ForgotPasswordPage />
+      </MemoryRouter>,
+    );
+
+    // Enter/Type Valid Email
+    await userEvent.type(
+      screen.getByPlaceholderText(/Enter your Email Address/i),
+      'adrianorobertodacostajorge@adrianorobertodacostajorge.co.za',
+    );
+
+    // Click Send Password Reset Link Button
+    await userEvent.click(screen.getByRole('button', { name: /Send Password Reset Link/i }));
+
+    expect(screen.getByRole('button', { name: /Sending Password Reset Link.../i })).toBeDisabled();
+  });
+
+  // Test 5: Accessibility Test
+  // Back to Login Link is Keyboard Accessible
+  it('back to login link is keyboard accessible', () => {
+    render(
+      <MemoryRouter>
+        <ForgotPasswordPage />
+      </MemoryRouter>,
+    );
+
+    const BACK_TO_LOGIN_LINK = screen.getByRole('link', { name: /Back to Login/i });
+    BACK_TO_LOGIN_LINK.focus();
+    expect(BACK_TO_LOGIN_LINK).toHaveFocus();
+  });
 }); // describe
