@@ -11,7 +11,7 @@ function ForgotPasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    setShowSuccess('');
+    setSuccessMessage('');
     event.preventDefault();
     setAlertMessage('');
     const validationResult = authForgotPasswordRequestSchema.safeParse({
