@@ -4,9 +4,10 @@ import { useState } from 'react';
 type BasicAlertProps = {
   variant: AlertVariant;
   children: React.ReactNode;
+  onClose?: () => void;
 };
 
-function BasicAlert({ variant, children }: BasicAlertProps) {
+function BasicAlert({ variant, children, onClose }: BasicAlertProps) {
   const style = AlertVariants[variant];
   const [visible, setVisible] = useState(true);
 
@@ -26,7 +27,7 @@ function BasicAlert({ variant, children }: BasicAlertProps) {
         <button
           type="button"
           aria-label="Close"
-          onClick={() => setVisible(false)}
+          onClick={() => onClose?.()}
           className={`ms-auto -mx-1.5 -my-1.5 p-1.5 inline-flex items-center justify-center h-8 w-8 shrink-0 focus:ring-2 ${style.button}`}
         >
           <span className="material-icons-sharp">close</span>

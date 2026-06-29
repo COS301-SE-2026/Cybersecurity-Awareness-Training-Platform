@@ -21,9 +21,10 @@ function ForgotPasswordPage() {
   }, [cooldown]);
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    setSuccessMessage('');
     event.preventDefault();
     setAlertMessage('');
+    setSuccessMessage('');
+
     const validationResult = authForgotPasswordRequestSchema.safeParse({
       email,
     });
@@ -52,8 +53,16 @@ function ForgotPasswordPage() {
     <section className="bg-light-purple dark:bg-gray-900">
       <div className="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0">
         {/* LOGO  */}
-        {alertMessage && <BasicAlert variant="danger">{alertMessage}</BasicAlert>}
-        {successMessage && <BasicAlert variant="success">{successMessage}</BasicAlert>}
+        {alertMessage && (
+          <BasicAlert variant="danger" onClose={() => setAlertMessage('')}>
+            {alertMessage}
+          </BasicAlert>
+        )}
+        {successMessage && (
+          <BasicAlert variant="success" onClose={() => setSuccessMessage('')}>
+            {successMessage}
+          </BasicAlert>
+        )}
 
         <div className="mb-4 flex items-center space-x-3 rtl:space-x-reverse">
           <img src="/Phish Logo Light.png" className="h-14" alt="Insightful Phish Logo" />
