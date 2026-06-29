@@ -167,7 +167,7 @@ describe('Quiz API Routes', () => {
       traineeProfile: {
         traineeStatus: 'ACTIVE',
         organisationTraineeProfile: {
-          organisationUserStatus: 'ACTIVE',
+          membershipStatus: 'ACTIVE',
           organisation: {
             id: 'mock-org',
             status: 'ACTIVE',

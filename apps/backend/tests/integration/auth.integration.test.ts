@@ -572,7 +572,7 @@ describe('Auth Integration Tests', () => {
       // Update organisation trainee user status to INACTIVE
       await prisma.organisationTraineeProfile.update({
         where: { id: orgTrainee.organisationTraineeProfile!.id },
-        data: { organisationUserStatus: 'INACTIVE' },
+        data: { membershipStatus: 'INACTIVE' },
       });
 
       const res2 = await request(createApp())
