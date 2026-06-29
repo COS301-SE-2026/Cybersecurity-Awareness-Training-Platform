@@ -682,7 +682,7 @@ describe('Auth Integration Tests', () => {
 
       // 3. Token with mismatched userId
       const trainee = await createTrainee();
-      const loginRes = await loginTestUser(trainee.user.email);
+      await loginTestUser(trainee.user.email);
       const session = await prisma.authSession.findFirst({
         where: { userId: trainee.user.id },
         orderBy: { createdAt: 'desc' },
