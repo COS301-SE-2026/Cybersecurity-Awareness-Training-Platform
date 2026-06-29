@@ -1986,7 +1986,8 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           'AuthRegisterResponse',
         ),
         AuthLoginOk: {
-          description: 'Login successful. Returns access token, user context, and sets httpOnly refresh token cookie.',
+          description:
+            'Login successful. Returns access token, user context, and sets httpOnly refresh token cookie.',
           headers: {
             'Set-Cookie': {
               schema: {

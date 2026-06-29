@@ -24,7 +24,10 @@ function signToken(payload: string) {
   return createHmac('sha256', env.AUTH_TOKEN_SECRET).update(payload).digest('base64url');
 }
 
-export function generateAuthToken(userId: string, authSessionId = '00000000-0000-0000-0000-000000000000'): AuthTokenResult {
+export function generateAuthToken(
+  userId: string,
+  authSessionId = '00000000-0000-0000-0000-000000000000',
+): AuthTokenResult {
   const expiresAt = new Date(Date.now() + env.AUTH_TOKEN_EXPIRES_IN_SECONDS * 1000).toISOString();
   const payload = encodeBase64Url(
     JSON.stringify({ userId, authSessionId, expiresAt } satisfies AuthTokenPayload),

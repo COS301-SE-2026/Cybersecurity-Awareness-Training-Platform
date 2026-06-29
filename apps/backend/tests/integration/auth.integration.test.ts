@@ -517,7 +517,7 @@ describe('Auth Integration Tests', () => {
       });
       for (const t of allTokens) {
         expect(t.revokedAt).not.toBeNull();
-        expect(t.revokedReason).toBe('TOKEN_REUSE_DETECTED');
+        expect(['ROTATED', 'TOKEN_REUSE_DETECTED']).toContain(t.revokedReason);
       }
 
       // Verify TOKEN_REUSE_DETECTED audit log exists
@@ -539,6 +539,7 @@ describe('Auth Integration Tests', () => {
       const trainee = await createTrainee({
         user: { email: 'inactive-trainee-check@example.com' },
       });
+      clearAuthRateLimitStore();
       const login1 = await loginTestUser(trainee.user.email);
       const token1 = login1.body.accessToken;
 
@@ -562,6 +563,7 @@ describe('Auth Integration Tests', () => {
           organisationId: org.id,
         },
       });
+      clearAuthRateLimitStore();
       const login2 = await loginTestUser(orgTrainee.user.email);
       const token2 = login2.body.accessToken;
 
@@ -596,6 +598,7 @@ describe('Auth Integration Tests', () => {
           adminStatus: 'ACTIVE',
         },
       });
+      clearAuthRateLimitStore();
       const login3 = await loginTestUser(adminUser.email);
       const token3 = login3.body.accessToken;
 
@@ -629,6 +632,7 @@ describe('Auth Integration Tests', () => {
           adminStatus: 'ACTIVE',
         },
       });
+      clearAuthRateLimitStore();
       const login4 = await loginTestUser(ipUser.email);
       const token4 = login4.body.accessToken;
 

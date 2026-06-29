@@ -279,7 +279,10 @@ describe('loginUser', () => {
       'mySecurePassword123!',
       'hashed-password',
     );
-    expect(authTokenServiceMock.generateAuthToken).toHaveBeenCalledWith('user-1', expect.any(String));
+    expect(authTokenServiceMock.generateAuthToken).toHaveBeenCalledWith(
+      'user-1',
+      expect.any(String),
+    );
     expect(response).toEqual({
       response: {
         accessToken: 'demo-token',

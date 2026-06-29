@@ -6,9 +6,7 @@ import type {
   AuthRegisterResponseDto,
   AuthContextResponseDto,
 } from '@insightful-phish/shared';
-import type {
-  AuthSessionRevokedReason,
-} from '../generated/prisma/enums.js';
+import type { AuthSessionRevokedReason } from '../generated/prisma/enums.js';
 import { prisma } from '../lib/prisma.js';
 import { toPublicUserDto } from '../mappers/user.mapper.js';
 import * as UserRepository from '../repositories/user.repository.js';
@@ -16,9 +14,7 @@ import { issueActionToken } from './action-token.service.js';
 import { requestAuthEmailSend } from './auth-email-hook.service.js';
 import { generateAuthToken } from './auth-token.service.js';
 import * as PasswordService from './password.service.js';
-import {
-  ensureUserCanAuthenticate,
-} from './auth-status-guard.service.js';
+import { ensureUserCanAuthenticate } from './auth-status-guard.service.js';
 import { resolveSessionPolicy } from './session-policy.service.js';
 import { issueAuthSession, revokeSessionById, touchSession } from './auth-session.service.js';
 import {
