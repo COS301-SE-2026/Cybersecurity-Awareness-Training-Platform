@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
+const { sendEmail } = await import('../../src/services/email.service.js');
 const sendMailMock = vi.hoisted(() => vi.fn());
 
 const nodemailerMock = vi.hoisted(() => ({
@@ -30,10 +30,12 @@ const emailDeliveryLogMock = vi.hoisted(() => ({
   create: vi.fn(),
   update: vi.fn(),
 }));
+const invitationMock = vi.hoisted(() => ({ update: vi.fn() }));
 
 vi.mock('../../src/lib/prisma.js', () => ({
   prisma: {
     emailDeliveryLog: emailDeliveryLogMock,
+    invitation: invitationMock,
   },
 }));
 
@@ -63,8 +65,6 @@ describe('sendEmail', () => {
   });
 
   it('creates a pending email log and updates it to sent when SMTP succeeds', async () => {
-    const { sendEmail } = await import('../../src/services/email.service.js');
-
     const result = await sendEmail(baseInput);
 
     expect(emailDeliveryLogMock.create).toHaveBeenCalledWith({
@@ -123,7 +123,6 @@ describe('sendEmail', () => {
   });
 
   it('updates the mail log to failed when SMTP fails', async () => {
-    const { sendEmail } = await import('../../src/services/email.service.js');
     sendMailMock.mockRejectedValue(new Error('SMTP not working'));
     const result = await sendEmail(baseInput);
 
@@ -144,8 +143,6 @@ describe('sendEmail', () => {
   });
 
   it('uses nullable defaults for optional relation fields', async () => {
-    const { sendEmail } = await import('../../src/services/email.service.js');
-
     await sendEmail({
       emailType: 'PASSWORD_RESET',
       recipientEmail: 'developer@example.com',
@@ -174,8 +171,6 @@ describe('sendEmail', () => {
   });
 
   it('uses a provided prisma client if one is passed', async () => {
-    const { sendEmail } = await import('../../src/services/email.service.js');
-
     const transactionClient = {
       emailDeliveryLog: {
         create: vi.fn().mockResolvedValue({ id: 'emaillogfromtx' }),
@@ -197,8 +192,6 @@ describe('sendEmail', () => {
   });
 
   it('does not write fallback relation fields when a typed relation is provided', async () => {
-    const { sendEmail } = await import('../../src/services/email.service.js');
-
     await sendEmail({
       ...baseInput,
       relatedEntity: {
@@ -218,8 +211,6 @@ describe('sendEmail', () => {
   });
 
   it('rejects fallback only email logs if there is no relatedEntityType', async () => {
-    const { sendEmail } = await import('../../src/services/email.service.js');
-
     await expect(
       sendEmail({
         emailType: 'PASSWORD_RESET',
@@ -235,4 +226,74 @@ describe('sendEmail', () => {
 
     expect(emailDeliveryLogMock.create).not.toHaveBeenCalled();
   });
-});
+
+  it('updates invitation status sent when an invitation email send is scucessful', async () => {
+    await sendEmail({
+      emailType: 'ORGANISATION_TRAINEE_INVITE',
+      recipientEmail: 'johan@example.com',
+      relatedEntity: {
+        invitationId: 'invitation01',
+        organisationId: 'organisation01',
+        actionTokenId: 'actiontoken01',
+      },
+      templateData: {
+        organisationName: 'Test Org',
+        actionToken: 'rawactiontokenqwertyuiopasdfghjklzxcvbnm',
+        actionTokenExpiresAt: new Date(Date.now() + 60 * 60 * 1000),
+      },
+    });
+
+    expect(invitationMock.update).toHaveBeenCalledWith({
+      where: { id: 'invitation01' },
+      data: { status: 'SENT' },
+    });
+  });
+
+  it('updates invitation status to failed when an invitation send fails', async () => {
+    sendMailMock.mockRejectedValue(new Error('SMTP not working'));
+    await sendEmail({
+      emailType: 'ORGANISATION_TRAINEE_INVITE',
+      recipientEmail: 'johan@example.com',
+      relatedEntity: {
+        invitationId: 'invitation01',
+        organisationId: 'organisation01',
+        actionTokenId: 'actiontoken01',
+      },
+      templateData: {
+        organisationName: 'Test Org',
+        actionToken: 'rawactiontokenqwertyuiopasdfghjklzxcvbnm',
+        actionTokenExpiresAt: new Date(Date.now() + 60 * 60 * 1000),
+      },
+    });
+    expect(invitationMock.update).toHaveBeenCalledWith({
+      where: { id: 'invitation01' },
+      data: { status: 'FAILED_TO_SEND' },
+    });
+  });
+
+  it('does not update invitation status for noninvites', async () => {
+    await sendEmail({
+      emailType: 'ROLE_CHANGED_NOTIFICATION',
+      recipientEmail: 'johan@example.com',
+      relatedEntity: { invitationId: 'invitation01', userId: 'user01' },
+      templateData: { firstName: 'Johan', roleName: 'platform admin' },
+    });
+    expect(invitationMock.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects missing template variables before creating delivery log', async () => {
+    await expect(
+      sendEmail({
+        emailType: 'EMAIL_VERIFICATION',
+        recipientEmail: 'johan@example.com',
+        relatedEntity: { userId: 'user01', actionTokenId: 'token01' },
+        templateData: {
+          firstName: 'Johan',
+          actionToken: 'rawactiontokenqwertyuiopasdfghjklzxcvbnm',
+        },
+      }),
+    ).rejects.toThrow();
+    expect(emailDeliveryLogMock.create).not.toHaveBeenCalled();
+    expect(sendMailMock).not.toHaveBeenCalled();
+  });
+}); //describe
