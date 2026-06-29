@@ -31,6 +31,7 @@ type AuthFormFieldProps = {
   inputStyle?: CSSProperties;
   autoComplete?: string;
   rightLabel?: ReactNode;
+  disabled?: boolean;
 };
 
 type AuthActionLinkProps = {
@@ -131,6 +132,7 @@ export function AuthFormField({
   inputStyle,
   autoComplete,
   rightLabel,
+  disabled,
 }: AuthFormFieldProps) {
   const inputId = useId();
 
@@ -168,8 +170,11 @@ export function AuthFormField({
         value={value}
         onChange={onChange}
         autoComplete={autoComplete}
+        disabled={disabled}
         style={{
           ...authFieldInputStyle,
+          opacity: disabled ? 0.6 : 1,
+          cursor: disabled ? 'not-allowed' : 'text',
           ...inputStyle,
         }}
       />

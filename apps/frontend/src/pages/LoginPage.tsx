@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
+import { Spinner } from 'flowbite-react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   AuthActionLink,
@@ -9,8 +10,9 @@ import {
 } from '../components/auth/AuthPrimitives';
 import { authFormStyle, authPrimaryButtonStyle } from '../components/auth/authStyles';
 import { useAuth } from '../context/useAuth';
-
+import BasicAlert from '../components/alerts/BasicAlert';
 import { authLoginRequestSchema } from '@insightful-phish/shared';
+import { KeyboardReturnOutlined } from '@mui/icons-material';
 
 function LoginPage() {
   const navigate = useNavigate();
@@ -21,18 +23,19 @@ function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const [emailError, setEmailError] = useState('');
-  const [passwordError, setPasswordError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const [loginMessage, setLoginMessage] = useState('');
+  const [alertMessage, setAlertMessage] = useState('');
+  function formatAlertMessage(message: string) {
+    return message
+      .replace(/\.$/, '')
+      .replace(/\w\S*/g, (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
+  }
 
   async function handleLogin(event: FormEvent) {
     event.preventDefault();
-
-    setEmailError('');
-    setPasswordError('');
-    setLoginMessage('');
-
+    setAlertMessage('');
+    setIsLoading(true);
     const validationResult = authLoginRequestSchema.safeParse({
       email,
       password,
@@ -41,18 +44,14 @@ function LoginPage() {
     if (!validationResult.success) {
       const issue = validationResult.error.issues[0];
 
-      if (issue?.path.includes('email')) {
-        setEmailError(issue.message);
-      } else if (issue?.path.includes('password')) {
-        setPasswordError(issue.message);
+      if (issue?.path.includes('email') || issue?.path.includes('password')) {
+        setAlertMessage(formatAlertMessage(issue.message));
       }
-
+      setIsLoading(false);
       return;
     }
 
     try {
-      setLoginMessage('LOGGING IN...');
-
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
@@ -64,14 +63,27 @@ function LoginPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        if (response.status === 401) {
-          setLoginMessage('INVALID EMAIL OR PASSWORD');
+        setIsLoading(false);
 
+        if (response.status === 401) {
+          setAlertMessage('Invalid Email Address Or Password');
           return;
         }
 
-        setLoginMessage(data.message || 'LOGIN FAILED');
+        if (response.status === 403) {
+          // FIX THIS TO BE MORE SPECIFIC BASED OFF OF THE DATA CODES FROM BACKEND
+          // It will be FIXED during IMPLEMENTATION (NOT AS OF YET/RIGHT NOW [29 June 2026])
+          // It should be OKAY for now...
+          //   For example,
+          //   if (data.code === 'EMAIL_NOT_VERIFIED') {
+          //        setAlertMessage('Email Not Verified');
+          //   }
 
+          setAlertMessage(formatAlertMessage(data.message) || 'Access Denied');
+          return;
+        }
+
+        setAlertMessage(formatAlertMessage(data.message) || 'Login Failed');
         return;
       }
 
@@ -83,7 +95,8 @@ function LoginPage() {
 
       navigate('/campaigns');
     } catch {
-      setLoginMessage('UNABLE TO CONNECT TO SERVER');
+      setIsLoading(false);
+      setAlertMessage('Unable To Connect To Server');
     }
   }
 
@@ -111,15 +124,21 @@ function LoginPage() {
               />
             }
             dividerStyle={{ marginBottom: '2rem' }}
-            message={emailError || passwordError || loginMessage}
             messageStyle={{ marginBottom: '1rem' }}
           />
+
+          {alertMessage && (
+            <BasicAlert variant="danger" onClose={() => setAlertMessage('')}>
+              {alertMessage}
+            </BasicAlert>
+          )}
 
           <form onSubmit={handleLogin} noValidate style={authFormStyle}>
             <AuthFormField
               label="Email Address"
               type="email"
               value={email}
+              disabled={isLoading}
               onChange={(event) => setEmail(event.target.value)}
               autoComplete="email"
               wrapperStyle={{ marginBottom: '1.5rem' }}
@@ -128,6 +147,7 @@ function LoginPage() {
 
             <AuthFormField
               label="Password"
+              disabled={isLoading}
               rightLabel={
                 <Link
                   to="/forgot-password"
@@ -154,18 +174,44 @@ function LoginPage() {
 
             <button
               type="submit"
+              disabled={isLoading}
               style={{
                 ...authPrimaryButtonStyle,
                 width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.75rem',
                 height: '56px',
                 fontSize: '1.7rem',
                 marginBottom: '1rem',
-                cursor: 'pointer',
+                cursor: isLoading ? 'not-allowed' : 'pointer',
+                opacity: isLoading ? 0.6 : 1,
               }}
             >
-              LOGIN
+              {isLoading && <Spinner size="sm" color="white" />}
+              <span>{isLoading ? 'Logging In...' : 'Log In'}</span>
             </button>
 
+            {/* REMEMBER ME CHECKBOX */}
+            {/* INTEGRATION: Please handle Organisation Policy for Remember Me checkbox */}
+            <div className="flex items-center mb-2">
+              <input
+                id="default-checkbox"
+                type="checkbox"
+                value=""
+                disabled={isLoading}
+                className="accent-[#8400ff] w-5 h-5 border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
+              />
+              <label
+                htmlFor="default-checkbox"
+                className="select-none ms-2 text-[1.4rem] font-jost text-[#b37dff] tracking-wide font-regular"
+              >
+                Remember Me
+              </label>
+            </div>
+
+            {/* FIX THIS SO THAT IT OPENS THE TYPE SELECTION MODAL (Get Started Modal)  */}
             <AuthActionLink
               to="/register"
               prefix="NEW?"
