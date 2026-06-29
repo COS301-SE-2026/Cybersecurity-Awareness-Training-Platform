@@ -1,14 +1,24 @@
 import { Link } from 'react-router-dom';
 import BasicAlert from '../components/alerts/BasicAlert';
 import { authForgotPasswordRequestSchema } from '@insightful-phish/shared';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
-  const [showSuccess, setShowSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+
+    const timer = setTimeout(() => {
+      setCooldown((current) => current - 1);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [cooldown]);
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     setSuccessMessage('');
@@ -31,12 +41,13 @@ function ForgotPasswordPage() {
 
     setTimeout(() => {
       setIsLoading(false);
-      setShowSuccess(true);
       setSuccessMessage(
         'If An Account Exists For This Email Address, Password Reset Instructions Have Been Sent',
       );
+      setCooldown(30);
     }, 2000);
   }
+
   return (
     <section className="bg-light-purple dark:bg-gray-900">
       <div className="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0">
@@ -88,11 +99,11 @@ function ForgotPasswordPage() {
               />
             </div>
 
-            {/* RESET PASSWORD BUTTON */}
+            {/* SEND FORGOT PASSWORD RESET LINK BUTTON */}
             <button
               type="submit"
-              disabled={isLoading}
-              className="cursor-pointer w-full inline-flex items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm px-4 py-2.5 focus:outline-none"
+              disabled={isLoading || cooldown > 0}
+              className="cursor-pointer w-full inline-flex items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm px-4 py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {isLoading && (
                 <svg
@@ -112,7 +123,13 @@ function ForgotPasswordPage() {
                 </svg>
               )}
               <span>
-                {isLoading ? 'Sending Password Reset Link...' : 'Send Password Reset Link'}
+                {isLoading
+                  ? `Sending Password Reset Link...`
+                  : cooldown > 0
+                    ? `Resend Password Reset Link (${cooldown})`
+                    : successMessage
+                      ? `Resend Password Reset Link`
+                      : `Send Password Reset Link`}
               </span>
             </button>
 
