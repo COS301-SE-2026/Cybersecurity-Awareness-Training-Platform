@@ -31,6 +31,9 @@ describe('organisation membership Prisma schema', () => {
       'disabledAt',
       'disabledReason',
       'createdFromInvitation',
+      'fields: [createdFromInvitationId, organisationId]',
+      'references: [id, organisationId]',
+      '@@unique([createdFromInvitationId, organisationId])',
       '@@index([membershipStatus])',
       '@@index([disabledAt])',
     ]);
@@ -63,6 +66,7 @@ describe('organisation membership Prisma schema', () => {
       'targetUser',
       'acceptedOrganisationTraineeProfile',
       '@@index([targetUserId])',
+      '@@unique([id, organisationId])',
     ]);
     expect(user).toContain('targetedInvitations');
   });

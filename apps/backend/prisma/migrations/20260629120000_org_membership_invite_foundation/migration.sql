@@ -22,8 +22,11 @@ ALTER TABLE "OrganisationTraineeProfile"
 ALTER TABLE "Invitation"
   ADD COLUMN "targetUserId" TEXT;
 
-CREATE UNIQUE INDEX "OrganisationTraineeProfile_createdFromInvitationId_key"
-  ON "OrganisationTraineeProfile"("createdFromInvitationId");
+CREATE UNIQUE INDEX "OrganisationTraineeProfile_createdFromInvitationId_organisationId_key"
+  ON "OrganisationTraineeProfile"("createdFromInvitationId", "organisationId");
+
+CREATE UNIQUE INDEX "Invitation_id_organisationId_key"
+  ON "Invitation"("id", "organisationId");
 
 CREATE INDEX "OrganisationTraineeProfile_disabledAt_idx"
   ON "OrganisationTraineeProfile"("disabledAt");
@@ -33,8 +36,8 @@ CREATE INDEX "Invitation_targetUserId_idx"
 
 ALTER TABLE "OrganisationTraineeProfile"
   ADD CONSTRAINT "OrganisationTraineeProfile_createdFromInvitationId_fkey"
-  FOREIGN KEY ("createdFromInvitationId") REFERENCES "Invitation"("id")
-  ON DELETE SET NULL ON UPDATE CASCADE;
+  FOREIGN KEY ("createdFromInvitationId", "organisationId") REFERENCES "Invitation"("id", "organisationId")
+  ON DELETE RESTRICT ON UPDATE CASCADE;
 
 ALTER TABLE "Invitation"
   ADD CONSTRAINT "Invitation_targetUserId_fkey"
