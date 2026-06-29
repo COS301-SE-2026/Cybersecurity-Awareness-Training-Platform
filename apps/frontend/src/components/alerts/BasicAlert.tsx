@@ -1,5 +1,4 @@
 import { AlertVariants, type AlertVariant } from './alertVariants';
-import { useState } from 'react';
 
 type BasicAlertProps = {
   variant: AlertVariant;
@@ -9,11 +8,7 @@ type BasicAlertProps = {
 
 function BasicAlert({ variant, children, onClose }: BasicAlertProps) {
   const style = AlertVariants[variant];
-  const [visible, setVisible] = useState(true);
 
-  if (!visible) {
-    return null;
-  }
   return (
     <div className="fixed top-4 right-4 z-50 w-full max-w-md">
       <div
