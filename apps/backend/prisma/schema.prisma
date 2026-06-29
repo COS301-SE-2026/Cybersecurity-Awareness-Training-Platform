@@ -444,19 +444,22 @@ model GeneralTraineeProfile {
 }
 
 model OrganisationTraineeProfile {
-  id                     String                 @id @default(uuid())
-  traineeProfileId       String                 @unique
-  organisationId         String
-  employeeLabel          String?
-  joinedAt               DateTime               @default(now())
-  organisationUserStatus OrganisationUserStatus @default(ACTIVE)
-  createdAt              DateTime               @default(now())
-  updatedAt              DateTime               @updatedAt
-  traineeProfile         TraineeProfile         @relation(fields: [traineeProfileId], references: [id], onDelete: Cascade)
-  organisation           Organisation           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  id               String                 @id @default(uuid())
+  traineeProfileId String                 @unique
+  organisationId   String
+  employeeLabel    String?
+  joinedAt         DateTime               @default(now())
+  membershipStatus OrganisationUserStatus @default(ACTIVE)
+  disabledAt       DateTime?
+  disabledReason   String?
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+  traineeProfile   TraineeProfile         @relation(fields: [traineeProfileId], references: [id], onDelete: Cascade)
+  organisation     Organisation           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
 
   @@index([organisationId])
-  @@index([organisationUserStatus])
+  @@index([membershipStatus])
+  @@index([disabledAt])
 }
 
 model OrganisationAdminProfile {
