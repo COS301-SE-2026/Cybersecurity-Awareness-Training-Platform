@@ -217,8 +217,8 @@
       "number": 262,
       "title": "feat: phase 3 organisation membership and employee invite foundation migration",
       "points": 3,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-06-29"
     },
     {
       "number": 261,
@@ -589,7 +589,7 @@
     },
     {
       "date": "2026-06-29",
-      "remaining": 144,
+      "remaining": 141,
       "ideal": 80.05
     }
   ]
