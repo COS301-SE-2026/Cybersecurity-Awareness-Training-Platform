@@ -11,9 +11,6 @@ import {
   DifficultyLevel,
   CampaignStatus,
   CampaignItemType,
-  CampaignComponentType,
-  CampaignGroupType,
-  CompletionRule,
   CampaignItemAvailabilityStatus,
   AssignmentStatus,
   CampaignAccessType,
@@ -27,6 +24,11 @@ import {
   EmailRedFlagType,
   RedFlagSeverity,
   QuestionType,
+} from '../../src/generated/prisma/enums.js';
+import type {
+  CampaignComponentType,
+  CampaignGroupType,
+  CompletionRule,
 } from '../../src/generated/prisma/enums.js';
 
 // Pre-hashed scrypt password hash for speed (corresponds to "password")
@@ -83,7 +85,7 @@ export async function createTrainee(
       organisationId: string;
       employeeLabel?: string;
       joinedAt?: Date;
-      organisationUserStatus?: OrganisationUserStatus;
+      membershipStatus?: OrganisationUserStatus;
     };
   } = {},
 ) {
@@ -122,8 +124,8 @@ export async function createTrainee(
         organisationId: overrides.organisationProfile.organisationId,
         employeeLabel: overrides.organisationProfile.employeeLabel ?? null,
         joinedAt: overrides.organisationProfile.joinedAt ?? new Date(),
-        organisationUserStatus:
-          overrides.organisationProfile.organisationUserStatus ?? OrganisationUserStatus.ACTIVE,
+        membershipStatus:
+          overrides.organisationProfile.membershipStatus ?? OrganisationUserStatus.ACTIVE,
       },
     });
 
