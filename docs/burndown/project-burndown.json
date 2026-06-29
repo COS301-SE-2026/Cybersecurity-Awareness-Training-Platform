@@ -1186,15 +1186,15 @@
           "number": 229,
           "title": "test: add backend auth API integration coverage",
           "points": 3,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-06-29"
         },
         {
           "number": 228,
           "title": "feat: implement backend login, logout, and refresh endpoints",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-06-29"
         },
         {
           "number": 227,
@@ -1594,7 +1594,7 @@
     },
     {
       "date": "2026-06-29",
-      "remaining": 141,
+      "remaining": 136,
       "ideal": 55.5
     }
   ]
