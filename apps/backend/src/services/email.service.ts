@@ -34,8 +34,7 @@ function isInvitationEmail(emailType: EmailDeliveryType) {
   return (
     emailType === 'INITIAL_ORGANISATION_ADMIN_SETUP' ||
     emailType === 'ORGANISATION_TRAINEE_INVITE' ||
-    emailType === 'ORGANISATION_ADMIN_PROMOTION_INVITE' ||
-    emailType === 'PLATFORM_ADMIN_INVITE'
+    emailType === 'ORGANISATION_ADMIN_PROMOTION_INVITE'
   );
 }
 
@@ -105,7 +104,7 @@ export async function sendEmail(
 
     return { ok: true, messageId: providerResult.messageId, deliveryLogId: deliveryLog.id };
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unkown SMTP error';
+    const message = error instanceof Error ? error.message : 'Unknown SMTP error';
     await client.emailDeliveryLog.update({
       data: { deliveryStatus: 'FAILED', failedAt: new Date(), failureReason: message },
       where: { id: deliveryLog.id },

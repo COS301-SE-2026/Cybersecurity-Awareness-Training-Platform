@@ -166,7 +166,7 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
         subject: "We've received your organisation registration request",
         heading: 'Request received',
         lines: [
-          greeting(undefined),
+          greeting(),
           `Thank you for requesting to register ${data.organisationName} with Insightful Phish.`,
           `Your organisation registration request has been received.`,
           'Our team will review your request and notify you once we have an update.',
@@ -193,7 +193,7 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
         subject: 'Your organisation registration request was not approved',
         heading: 'Request not approved',
         lines: [
-          greeting(undefined),
+          greeting(),
           `Unfortunately, your request to register ${data.organisationName} for Insightful Phish was not approved.`,
           `Reason: `,
           data.rejectionReason ? `${data.rejectionReason}` : 'No reason provided.',

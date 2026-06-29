@@ -41,7 +41,7 @@ describe('renderEmail', () => {
       actionTokenExpiresAt: expiresAt,
     });
     expect(email.text).toContain('Hi,');
-    expect(email.text).not.toContain('Hu undefined');
+    expect(email.text).not.toContain('Hi undefined');
   });
 
   it('requires a first name for existing user role upgrades', async () => {

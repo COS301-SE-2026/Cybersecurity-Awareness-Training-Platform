@@ -183,6 +183,38 @@ describe('setup service', () => {
     });
   });
 
+  it('allows setup completion when the invitation email has already been sent', async () => {
+    setupRepositoryMock.findSetupActionTokenById.mockResolvedValue(
+      setupToken({ invitation: { ...setupToken().invitation, status: 'SENT' } }),
+    );
+    const response = await completeSetupWithToken(rawSetupValue, completeSetupInput);
+    expect(setupRepositoryMock.createOrganisationTraineeUser).toHaveBeenCalledWith(
+      expect.objectContaining({
+        email: 'trainee@example.com',
+        firstName: 'Johan',
+        lastName: 'Nel',
+        organisationId: 'org-1',
+      }),
+      tx,
+    );
+    expect(setupRepositoryMock.markInvitationAccepted).toHaveBeenCalledWith('invitation-1', tx);
+    expect(response).toEqual({ user: publicUserResponse });
+  });
+
+  it.each(['FAILED_TO_SEND', 'ACCEPTED', 'EXPIRED', 'REVOKED'])(
+    'rejects setup completion when the invite status is %s',
+    async (status) => {
+      setupRepositoryMock.findSetupActionTokenById.mockResolvedValue(
+        setupToken({ invitation: { ...setupToken().invitation, status } }),
+      );
+      await expect(completeSetupWithToken(rawSetupValue, completeSetupInput)).rejects.toMatchObject(
+        { statusCode: 409, error: 'SETUP_INVITATION_NOT_ACCEPTABLE' },
+      );
+      expect(actionTokenServiceMock.runWithConsumedActionToken).not.toHaveBeenCalled();
+      expect(setupRepositoryMock.markInvitationAccepted).not.toHaveBeenCalled();
+    },
+  );
+
   it('rejects used setup tokens before hashing the password or consuming the token', async () => {
     actionTokenServiceMock.validateActionToken.mockResolvedValue({
       state: 'USED',
