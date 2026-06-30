@@ -100,7 +100,6 @@ export function rotateRefreshTokenRecord(input: {
         usedAt: now,
         revokedAt: now,
         revokedReason: 'ROTATED',
-        replacedByTokenId: nextTokenId,
       },
     });
 
@@ -108,7 +107,7 @@ export function rotateRefreshTokenRecord(input: {
       return null;
     }
 
-    return tx.refreshToken.create({
+    const newToken = await tx.refreshToken.create({
       data: {
         id: nextTokenId,
         authSessionId: input.authSessionId,
@@ -116,5 +115,12 @@ export function rotateRefreshTokenRecord(input: {
         expiresAt: input.nextExpiresAt,
       },
     });
+
+    await tx.refreshToken.update({
+      where: { id: input.previousTokenId },
+      data: { replacedByTokenId: nextTokenId },
+    });
+
+    return newToken;
   });
 }

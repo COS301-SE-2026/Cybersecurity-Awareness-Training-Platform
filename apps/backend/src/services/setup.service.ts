@@ -18,7 +18,6 @@ import {
   type SetupUserType,
 } from '../repositories/setup.repository.js';
 import { runWithConsumedActionToken, validateActionToken } from './action-token.service.js';
-import { requestAuthEmailSend, type AuthEmailType } from './auth-email-hook.service.js';
 import { ensureActiveOrganisation } from './auth-status-guard.service.js';
 import { hashPassword } from './password.service.js';
 
@@ -136,18 +135,8 @@ export async function completeSetupWithToken(
     throw new SetupFlowError(409, 'SETUP_TOKEN_STALE', 'Setup link has already been used');
   }
 
-  const emailResult = await requestAuthEmailSend({
-    emailType: confirmationEmailTypeForPurpose(setupToken.purpose),
-    recipientEmail: targetEmail,
-    userId: claimed.result.id,
-    actionTokenId: setupToken.id,
-    organisationId: setupToken.invitation?.organisationId ?? null,
-    invitationId: setupToken.invitationId,
-  });
-
   return {
     user: toPublicUserDto(claimed.result),
-    confirmationEmailQueued: emailResult.queued,
   };
 }
 
@@ -180,11 +169,11 @@ function assertSetupRecordIsUsable(setupToken: SetupActionToken) {
     throw new SetupFlowError(409, 'SETUP_INVITATION_MISSING', 'Setup invitation is not available');
   }
 
-  if (invitation.status !== 'PENDING') {
+  if (invitation.status !== 'PENDING' && invitation.status !== 'SENT') {
     throw new SetupFlowError(
       409,
-      'SETUP_INVITATION_NOT_PENDING',
-      'Setup invitation is not pending',
+      'SETUP_INVITATION_NOT_ACCEPTABLE',
+      'Setup invitation is not available for completion',
     );
   }
 
@@ -232,22 +221,6 @@ function tokenStateError(state: 'INVALID' | 'EXPIRED' | 'USED' | 'REVOKED') {
   };
 
   return new SetupFlowError(401, `SETUP_TOKEN_${state}`, messages[state]);
-}
-
-function confirmationEmailTypeForPurpose(purpose: ActionTokenPurpose): AuthEmailType {
-  if (purpose === 'INITIAL_ORGANISATION_ADMIN_SETUP') {
-    return 'INITIAL_ORGANISATION_ADMIN_SETUP';
-  }
-
-  if (purpose === 'ORGANISATION_TRAINEE_INVITE') {
-    return 'ORGANISATION_TRAINEE_INVITE';
-  }
-
-  if (purpose === 'PLATFORM_ADMIN_INVITE') {
-    return 'PLATFORM_ADMIN_INVITE';
-  }
-
-  return 'PASSWORD_CHANGED';
 }
 
 async function createSetupUser(input: {
