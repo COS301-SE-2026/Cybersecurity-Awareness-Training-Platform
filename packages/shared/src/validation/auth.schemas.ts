@@ -102,3 +102,9 @@ export const authResendVerificationRequestSchema = z
     email: emailSchema,
   })
   .strict();
+
+export const authForgotPasswordRequestSchema = z
+  .object({
+    email: emailSchema,
+  })
+  .strict();

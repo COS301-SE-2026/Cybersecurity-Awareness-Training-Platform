@@ -157,6 +157,7 @@ describe('AppRoutes', () => {
   it('renders the login screen at /login', async () => {
     renderAppRoutes({
       initialEntry: '/login',
+      isAuthenticated: false,
     });
 
     expect(
@@ -319,6 +320,17 @@ describe('AppRoutes', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('location-path')).toHaveTextContent('/');
+    });
+  });
+
+  it('redirects authenticated users away from the login page', async () => {
+    renderAppRoutes({
+      initialEntry: '/login',
+      isAuthenticated: true,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('location-path')).toHaveTextContent('/campaigns');
     });
   });
 });
