@@ -362,6 +362,8 @@ export async function resendVerificationEmail(email: string): Promise<void> {
     actionTokenId: verification.token.id,
     templateData: {
       actionToken: verification.rawToken,
+      firstName: user.firstName,
+      actionTokenExpiresAt: verification.token.expiresAt,
     },
   });
 }
