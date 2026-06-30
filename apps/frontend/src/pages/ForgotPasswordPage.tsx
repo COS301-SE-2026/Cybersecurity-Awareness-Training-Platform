@@ -9,6 +9,7 @@ function ForgotPasswordPage() {
   const [successMessage, setSuccessMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -46,16 +47,19 @@ function ForgotPasswordPage() {
         'If An Account Exists For This Email Address, Password Reset Instructions Have Been Sent',
       );
       setCooldown(30);
+      setHasSubmitted(true);
     }, 2000);
   }
 
-  let BUTTON_TEXT = 'Send Password Reset Link';
+  let buttonText = 'Send Password Reset Link';
+  let countdownText = '';
   if (isLoading) {
-    BUTTON_TEXT = 'Sending Password Reset Link...';
+    buttonText = 'Sending Password Reset Link...';
   } else if (cooldown > 0) {
-    BUTTON_TEXT = `Resend Password Reset Link (${cooldown})`;
-  } else if (successMessage) {
-    BUTTON_TEXT = 'Resend Password Reset Link';
+    buttonText = 'Resend Password Reset Link ';
+    countdownText = `(${cooldown})`;
+  } else if (hasSubmitted) {
+    buttonText = 'Resend Password Reset Link';
   }
 
   return (
@@ -109,6 +113,7 @@ function ForgotPasswordPage() {
               <input
                 type="email"
                 name="email"
+                disabled={isLoading}
                 id="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
@@ -140,7 +145,13 @@ function ForgotPasswordPage() {
                   />
                 </svg>
               )}
-              <span>{BUTTON_TEXT}</span>
+              <span>
+                {buttonText}
+
+                {countdownText && (
+                  <span className="inline-block w-10 text-center">{countdownText}</span>
+                )}
+              </span>
             </button>
 
             <Link
