@@ -134,6 +134,13 @@ enum OrganisationRegistrationRequestStatus {
   CANCELLED
 }
 
+enum OrganisationPermissionKey {
+  VIEW_ORGANISATION_ADMINS
+  INVITE_ORGANISATION_ADMINS
+  REMOVE_ORGANISATION_ADMINS
+  CHANGE_ORGANISATION_ADMIN_PERMISSIONS
+}
+
 enum InvitationPurpose {
   INITIAL_ORGANISATION_ADMIN_SETUP
   ORGANISATION_TRAINEE_INVITE
@@ -486,6 +493,8 @@ model OrganisationAdminProfile {
   user                    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   organisation            Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   createdFromInvitation   Invitation?  @relation("InvitationAcceptedOrganisationAdmin", fields: [createdFromInvitationId, organisationId], references: [id, organisationId], onDelete: Restrict)
+  permissionGrants        OrganisationAdminPermission[] @relation("OrganisationAdminPermissionAdmin")
+  grantedPermissionGrants OrganisationAdminPermission[] @relation("OrganisationAdminPermissionGrantedBy")
 
   @@unique([id, organisationId])
   @@unique([createdFromInvitationId, organisationId])
@@ -644,6 +653,47 @@ model Organisation {
   invitations          Invitation[]
   emailDeliveryLogs    EmailDeliveryLog[]
   auditLogEntries      AuditLogEntry[]
+  permissions          OrganisationPermission[]
+  adminPermissionGrants OrganisationAdminPermission[]
+}
+
+model OrganisationPermission {
+  id                       String                         @id @default(uuid())
+  organisationId           String
+  key                      OrganisationPermissionKey
+  displayName              String
+  description              String?
+  isCritical               Boolean                        @default(false)
+  createdAt                DateTime                       @default(now())
+  updatedAt                DateTime                       @updatedAt
+  organisation             Organisation                   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  adminPermissionGrants    OrganisationAdminPermission[]
+
+  @@unique([organisationId, key])
+  @@unique([id, organisationId])
+  @@index([organisationId])
+  @@index([key])
+  @@index([isCritical])
+  @@index([organisationId, isCritical])
+}
+
+model OrganisationAdminPermission {
+  id                           String                    @id @default(uuid())
+  organisationId               String
+  organisationAdminId          String
+  organisationPermissionId     String
+  grantedAt                    DateTime                  @default(now())
+  grantedByOrganisationAdminId String?
+  organisation                 Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  organisationAdmin            OrganisationAdminProfile  @relation("OrganisationAdminPermissionAdmin", fields: [organisationAdminId, organisationId], references: [id, organisationId], onDelete: Cascade)
+  organisationPermission       OrganisationPermission    @relation(fields: [organisationPermissionId, organisationId], references: [id, organisationId], onDelete: Cascade)
+  grantedByOrganisationAdmin   OrganisationAdminProfile? @relation("OrganisationAdminPermissionGrantedBy", fields: [grantedByOrganisationAdminId, organisationId], references: [id, organisationId], onDelete: Restrict)
+
+  @@unique([organisationAdminId, organisationPermissionId])
+  @@index([organisationId])
+  @@index([organisationAdminId])
+  @@index([organisationPermissionId])
+  @@index([organisationId, organisationPermissionId])
 }
 
 model OrganisationRegistrationRequest {
