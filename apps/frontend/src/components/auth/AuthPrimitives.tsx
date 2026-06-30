@@ -42,6 +42,7 @@ type AuthActionLinkProps = {
   rowStyle?: CSSProperties;
   iconStyle?: CSSProperties;
   emphasisStyle?: CSSProperties;
+  onClick?: React.MouseEventHandler<HTMLAnchorElement>;
 };
 
 export function AuthPageFrame({
@@ -190,10 +191,12 @@ export function AuthActionLink({
   rowStyle,
   iconStyle,
   emphasisStyle,
+  onClick,
 }: AuthActionLinkProps) {
   return (
     <Link
       to={to}
+      onClick={onClick}
       style={{
         ...authActionLinkStyle,
         ...outerStyle,
