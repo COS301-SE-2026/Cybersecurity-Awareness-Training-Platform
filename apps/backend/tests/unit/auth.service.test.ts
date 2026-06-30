@@ -166,7 +166,9 @@ describe('registerUser', () => {
       userId: 'user-1',
       actionTokenId: 'action-token-1',
       templateData: {
+        firstName: 'Johan',
         actionToken: 'raw-action-token',
+        actionTokenExpiresAt: expect.any(Date),
       },
     });
     expect(response).toEqual({

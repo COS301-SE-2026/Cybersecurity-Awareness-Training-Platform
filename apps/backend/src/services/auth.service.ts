@@ -91,7 +91,9 @@ export async function registerUser(
     userId: newUser.id,
     actionTokenId: verification.token.id,
     templateData: {
+      firstName: newUser.firstName,
       actionToken: verification.rawToken,
+      actionTokenExpiresAt: verification.token.expiresAt,
     },
   });
 
@@ -395,7 +397,9 @@ export async function resendVerificationEmail(email: string): Promise<void> {
     userId: user.id,
     actionTokenId: verification.token.id,
     templateData: {
+      firstName: user.firstName,
       actionToken: verification.rawToken,
+      actionTokenExpiresAt: verification.token.expiresAt,
     },
   });
 }
@@ -543,6 +547,13 @@ export async function verifyEmailChange(rawToken: string): Promise<VerifyEmailCh
     recipientEmail: targetEmail,
     userId: user.id,
     actionTokenId: token.id,
+    templateData: {
+      firstName: user.firstName,
+      oldEmail,
+      newEmail: targetEmail,
+      actionToken: rawToken,
+      actionTokenExpiresAt: token.expiresAt,
+    },
   });
 
   await requestAuthEmailSend({
@@ -551,6 +562,8 @@ export async function verifyEmailChange(rawToken: string): Promise<VerifyEmailCh
     userId: user.id,
     actionTokenId: token.id,
     templateData: {
+      firstName: user.firstName,
+      oldEmail,
       newEmail: targetEmail,
     },
   });
