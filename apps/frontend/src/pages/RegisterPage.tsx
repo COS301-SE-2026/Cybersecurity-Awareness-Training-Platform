@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
+import BasicAlert from '../components/alerts/BasicAlert';
+import { Popover } from 'flowbite-react';
+
 import {
   AuthActionLink,
   AuthFormField,
@@ -13,6 +16,14 @@ import {
   authPrimaryButtonStyle,
 } from '../components/auth/authStyles';
 import { authRegisterRequestSchema } from '@insightful-phish/shared';
+
+function formatAlertMessage(message: string) {
+  // makes everything title case and removes the . from the end of the message
+  return message
+    .replace(/\.$/, '')
+    .replace(/\w\S*/g, (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
+}
+
 function RegisterPage() {
   const navigate = useNavigate();
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -22,12 +33,13 @@ function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [message, setMessage] = useState('');
+
+  const [alertMessage, setAlertMessage] = useState('');
+  const [alertType, setAlertType] = useState<'success' | 'danger'>('danger');
 
   async function handleRegister(event: FormEvent) {
     event.preventDefault();
-
-    setMessage('');
+    setAlertMessage('');
 
     const validationResult = authRegisterRequestSchema.safeParse({
       firstName,
@@ -37,14 +49,16 @@ function RegisterPage() {
     });
 
     if (!validationResult.success) {
-      setMessage(validationResult.error.issues[0]?.message || 'INVALID INPUT');
-
+      setAlertType('danger');
+      setAlertMessage(
+        formatAlertMessage(validationResult.error.issues[0]?.message) || 'Invalid Input',
+      );
       return;
     }
 
     if (password !== confirmPassword) {
-      setMessage('PASSWORDS DO NOT MATCH');
-
+      setAlertType('danger');
+      setAlertMessage('Passwords Do Not Match');
       return;
     }
 
@@ -61,25 +75,60 @@ function RegisterPage() {
 
       if (!response.ok) {
         if (response.status === 409) {
-          setMessage('AN ACCOUNT WITH THIS EMAIL ALREADY EXISTS');
-
+          setAlertType('danger');
+          setAlertMessage('An Account With This Email Address Already Exists');
           return;
         }
 
-        setMessage(data.message || 'REGISTRATION FAILED');
+        setAlertType('danger');
+        setAlertMessage(formatAlertMessage(data.message) || 'Registration Failed');
 
         return;
       }
 
-      setMessage('REGISTRATION SUCCESSFUL. REDIRECTING TO LOGIN...');
+      // THIS WILL PROBABLY CHANGE (EMAIL VERIFICATION)......
+      setAlertType('success');
+      setAlertMessage('Registration Successfull. Redirecting To Login');
 
       setTimeout(() => {
         navigate('/login');
       }, 1500);
     } catch {
-      setMessage('UNABLE TO CONNECT TO SERVER');
+      setAlertType('danger');
+      setAlertMessage('Unable To Connect To The Server');
     }
   }
+
+  const passwordPolicyPopover = (
+    <div className="w-100 bg-faint-purple shadow-lg">
+      <div className="bg-gray-100 bg-light-purple px-3 py-2">
+        <h3 className="font-semibold font-jost text-[1.4rem] text-purple tracking-wider">
+          Password Requirements
+        </h3>
+      </div>
+
+      <div className="px-3 py-2">
+        <p className="text-sm font-overpass font-medium text-[1.05rem] text-dark-pink">
+          ● At Least 12 Characters
+        </p>
+        <p className="text-sm font-overpass font-medium text-[1.05rem] text-dark-pink">
+          ● At Most 128 Characters
+        </p>
+        <p className="text-sm font-overpass font-medium text-[1.05rem] text-dark-pink">
+          ● At Least ONE Uppercase Letter (A–Z)
+        </p>
+        <p className="text-sm font-overpass font-medium text-[1.05rem] text-dark-pink">
+          ● At Least ONE Lowercase Letter (a–z)
+        </p>
+        <p className="text-sm font-overpass font-medium text-[1.05rem] text-dark-pink">
+          ● At Least ONE Number (0–9)
+        </p>
+        <p className="text-sm font-overpass font-medium text-[1.05rem] text-dark-pink">
+          ● At Least ONE Special Character (e.g. ! @ # $ %)
+        </p>
+      </div>
+    </div>
+  );
 
   return (
     <AuthPageFrame
@@ -90,18 +139,23 @@ function RegisterPage() {
         <>
           <AuthPageIntro
             title="Welcome"
-            dividerStyle={{ marginBottom: '3rem' }} // Set to 0.9 later
-            /*afterDivider={
+            dividerStyle={{ marginBottom: '0.9rem' }}
+            afterDivider={
               <AuthActionLink
+                // THIS NEEDS TO GO TO THE ORGANISATION REGISTRATION REQUEST
                 to="/register"
                 prefix="ORGANISATION?"
                 emphasis="Register as an Organisation"
                 outerStyle={{ marginBottom: '1.5rem' }}
               />
-            }*/
-            message={message}
-            messageStyle={{ marginBottom: '1.5rem' }}
+            }
           />
+
+          {alertMessage && (
+            <BasicAlert variant={alertType} onClose={() => setAlertMessage('')}>
+              {alertMessage}
+            </BasicAlert>
+          )}
 
           <form onSubmit={handleRegister} noValidate style={authFormStyle}>
             <div
@@ -148,6 +202,23 @@ function RegisterPage() {
                 label="Password"
                 type="password"
                 value={password}
+                rightLabel={
+                  <Popover
+                    content={passwordPolicyPopover}
+                    arrow={false}
+                    theme={{
+                      base: 'rounded-none bg-transparent border-0 shadow-xl absolute z-20 inline-block w-max max-w-[100vw] outline-none',
+                      content: 'relative',
+                    }}
+                  >
+                    <span
+                      className="material-icons-outlined cursor-pointer text-light-pink"
+                      style={{ fontSize: '2rem' }}
+                    >
+                      info
+                    </span>
+                  </Popover>
+                }
                 onChange={(event) => setPassword(event.target.value)}
                 autoComplete="new-password"
                 wrapperStyle={{ flex: 1 }}
@@ -180,10 +251,10 @@ function RegisterPage() {
                   cursor: 'pointer',
                 }}
               >
-                REGISTER
+                Register
               </button>
 
-              <AuthActionLink to="/login" prefix="ALREADY REGISTERED?" emphasis="Login" />
+              <AuthActionLink to="/login" prefix="ALREADY REGISTERED?" emphasis="Log In" />
             </div>
           </form>
         </>
