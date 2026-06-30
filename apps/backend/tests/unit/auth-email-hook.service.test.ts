@@ -12,9 +12,9 @@ describe('requestAuthEmailSend', () => {
     vi.clearAllMocks();
   });
 
-  it('keeps unsupported auth email types on the existing non-implemented path', async () => {
+  it('maps missing template data failures to a safe result hook', async () => {
     const result = await requestAuthEmailSend({
-      emailType: 'PASSWORD_RESET',
+      emailType: 'EMAIL_VERIFICATION',
       recipientEmail: 'learner@example.test',
       userId: 'user-1',
       actionTokenId: 'action-token-1',
@@ -22,9 +22,22 @@ describe('requestAuthEmailSend', () => {
 
     expect(result).toEqual({
       queued: false,
-      reason: 'EMAIL_SERVICE_NOT_IMPLEMENTED',
+      reason: 'EMAIL_SEND_FAILED',
     });
-    expect(sendEmailMock).not.toHaveBeenCalled();
+    expect(sendEmailMock).toHaveBeenCalledWith({
+      emailType: 'EMAIL_VERIFICATION',
+      recipientEmail: 'learner@example.test',
+      relatedEntity: {
+        userId: 'user-1',
+        actionTokenId: 'action-token-1',
+        organisationId: null,
+        invitationId: null,
+        organisationRegistrationRequestId: null,
+        fallbackType: undefined,
+        fallbackId: null,
+      },
+      templateData: undefined,
+    });
   });
 
   it('sends organisation request received email through the central email service', async () => {
@@ -44,18 +57,20 @@ describe('requestAuthEmailSend', () => {
     });
 
     expect(sendEmailMock).toHaveBeenCalledWith({
-      to: 'representative@example.test',
-      subject: 'We received your organisation registration request',
-      text: [
-        'We received the registration request for Example Consulting.',
-        'The Insightful Phish team will review it before any organisation or account is created.',
-      ].join('\n\n'),
-      html: [
-        '<p>We received the registration request for Example Consulting.</p>',
-        '<p>The Insightful Phish team will review it before any organisation or account is created.</p>',
-      ].join(''),
       emailType: 'ORGANISATION_REQUEST_RECEIVED',
-      organisationRegistrationRequestId: 'request-1',
+      recipientEmail: 'representative@example.test',
+      relatedEntity: {
+        userId: null,
+        actionTokenId: null,
+        organisationId: null,
+        invitationId: null,
+        organisationRegistrationRequestId: 'request-1',
+        fallbackType: undefined,
+        fallbackId: null,
+      },
+      templateData: {
+        organisationName: 'Example Consulting',
+      },
     });
     expect(result).toEqual({
       queued: true,
@@ -63,7 +78,7 @@ describe('requestAuthEmailSend', () => {
     });
   });
 
-  it('escapes organisation names in HTML email content', async () => {
+  it('passes template data throurh to the central email service', async () => {
     sendEmailMock.mockResolvedValue({
       ok: true,
       deliveryLogId: 'email-log-1',
@@ -80,7 +95,9 @@ describe('requestAuthEmailSend', () => {
 
     expect(sendEmailMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        html: expect.stringContaining('&lt;Example &amp; Sons&gt;'),
+        templateData: {
+          organisationName: '<Example & Sons>',
+        },
       }),
     );
   });

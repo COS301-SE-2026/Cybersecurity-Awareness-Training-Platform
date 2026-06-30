@@ -82,7 +82,6 @@ describe('Setup routes', () => {
   it('completes setup with a valid token and payload', async () => {
     setupServiceMock.completeSetupWithToken.mockResolvedValue({
       user: validPublicUser,
-      confirmationEmailQueued: false,
     });
 
     const response = await request(createApp()).post(setupCompletePath).send({

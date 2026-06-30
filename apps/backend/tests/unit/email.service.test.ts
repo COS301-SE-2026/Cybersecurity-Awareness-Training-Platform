@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
+const { sendEmail } = await import('../../src/services/email.service.js');
 const sendMailMock = vi.hoisted(() => vi.fn());
 
 const nodemailerMock = vi.hoisted(() => ({
@@ -22,6 +22,7 @@ vi.mock('../../src/config/env.js', () => ({
     SMTP_USER: undefined,
     SMTP_PASSWORD: undefined,
     DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/insightful_phish_test',
+    FRONTEND_ORIGIN: 'http://frontend.com',
   },
 }));
 
@@ -29,21 +30,25 @@ const emailDeliveryLogMock = vi.hoisted(() => ({
   create: vi.fn(),
   update: vi.fn(),
 }));
+const invitationMock = vi.hoisted(() => ({ update: vi.fn() }));
 
 vi.mock('../../src/lib/prisma.js', () => ({
   prisma: {
     emailDeliveryLog: emailDeliveryLogMock,
+    invitation: invitationMock,
   },
 }));
 
+const tokenExpiry = new Date(Date.now() + 2 * 60 * 60 * 1000);
 const baseInput = {
-  to: 'developer@example.com',
-  subject: 'Testing Email 123!',
-  text: 'Cool plain text body',
-  html: '<p> AAA HTML Body</p>',
   emailType: 'EMAIL_VERIFICATION' as const,
-  actionTokenId: 'actiontoken01',
-  userId: 'user01',
+  recipientEmail: 'developer@example.com',
+  relatedEntity: { actionTokenId: 'actiontoken01', userId: 'user01' },
+  templateData: {
+    firstName: 'Johan',
+    actionToken: 'rawactiontokenqwertyuiopasdfghjklzxcvbnm',
+    actionTokenExpiresAt: tokenExpiry,
+  },
 };
 
 describe('sendEmail', () => {
@@ -60,8 +65,6 @@ describe('sendEmail', () => {
   });
 
   it('creates a pending email log and updates it to sent when SMTP succeeds', async () => {
-    const { sendEmail } = await import('../../src/services/email.service.js');
-
     const result = await sendEmail(baseInput);
 
     expect(emailDeliveryLogMock.create).toHaveBeenCalledWith({
@@ -88,10 +91,20 @@ describe('sendEmail', () => {
     expect(sendMailMock).toHaveBeenCalledWith({
       to: 'developer@example.com',
       from: '"Insightful Phish" <noreply@insightful-phish.local>',
-      subject: 'Testing Email 123!',
-      text: 'Cool plain text body',
-      html: '<p> AAA HTML Body</p>',
+      subject: 'Verify your email address',
+      text: expect.stringContaining(
+        'Verify email: http://frontend.com/verify-email?token=rawactiontokenqwertyuiopasdfghjklzxcvbnm',
+      ),
+      html: expect.stringContaining(
+        '<a href="http://frontend.com/verify-email?token=rawactiontokenqwertyuiopasdfghjklzxcvbnm">Verify email</a>',
+      ),
     });
+    expect(sendMailMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: expect.stringContaining('This link expires in'),
+        html: expect.stringContaining('This link expires in'),
+      }),
+    );
 
     expect(emailDeliveryLogMock.update).toHaveBeenCalledWith({
       where: { id: 'emaillog01' },
@@ -110,7 +123,6 @@ describe('sendEmail', () => {
   });
 
   it('updates the mail log to failed when SMTP fails', async () => {
-    const { sendEmail } = await import('../../src/services/email.service.js');
     sendMailMock.mockRejectedValue(new Error('SMTP not working'));
     const result = await sendEmail(baseInput);
 
@@ -131,14 +143,15 @@ describe('sendEmail', () => {
   });
 
   it('uses nullable defaults for optional relation fields', async () => {
-    const { sendEmail } = await import('../../src/services/email.service.js');
-
     await sendEmail({
-      to: 'developer@example.com',
-      subject: 'Testing Email 123!',
-      text: 'Cool plain text body',
       emailType: 'PASSWORD_RESET',
-      relatedEntityType: 'OTHER',
+      recipientEmail: 'developer@example.com',
+      relatedEntity: { fallbackType: 'OTHER' },
+      templateData: {
+        firstName: 'Developer',
+        actionToken: 'rawactiontokenqwertyuiopasdfghjklzxcvbnm',
+        actionTokenExpiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000),
+      },
     });
 
     expect(emailDeliveryLogMock.create).toHaveBeenCalledWith({
@@ -158,13 +171,12 @@ describe('sendEmail', () => {
   });
 
   it('uses a provided prisma client if one is passed', async () => {
-    const { sendEmail } = await import('../../src/services/email.service.js');
-
     const transactionClient = {
       emailDeliveryLog: {
         create: vi.fn().mockResolvedValue({ id: 'emaillogfromtx' }),
         update: vi.fn().mockResolvedValue({ id: 'emaillogfromtx' }),
       },
+      invitation: { update: vi.fn() },
     };
 
     const result = await sendEmail(baseInput, transactionClient);
@@ -180,12 +192,13 @@ describe('sendEmail', () => {
   });
 
   it('does not write fallback relation fields when a typed relation is provided', async () => {
-    const { sendEmail } = await import('../../src/services/email.service.js');
-
     await sendEmail({
       ...baseInput,
-      relatedEntityType: 'ACTIONTOKEN',
-      relatedEntityId: 'actiontoken01',
+      relatedEntity: {
+        ...baseInput.relatedEntity,
+        fallbackType: 'ACTIONTOKEN',
+        fallbackId: 'actiontoken01',
+      },
     });
 
     expect(emailDeliveryLogMock.create).toHaveBeenCalledWith({
@@ -198,17 +211,89 @@ describe('sendEmail', () => {
   });
 
   it('rejects fallback only email logs if there is no relatedEntityType', async () => {
-    const { sendEmail } = await import('../../src/services/email.service.js');
-
     await expect(
       sendEmail({
-        to: 'developer@example.com',
-        subject: 'Testing Email 123!',
-        text: 'Cool plain text body',
         emailType: 'PASSWORD_RESET',
+        recipientEmail: 'developer@example.com',
+        relatedEntity: {},
+        templateData: {
+          firstName: 'Developer',
+          actionToken: 'rawactiontokenqwertyuiopasdfghjklzxcvbnm',
+          actionTokenExpiresAt: new Date(Date.now() + 60 * 60 * 1000),
+        },
       }),
-    ).rejects.toThrow('Email logs without a typed relation must provide relatedEntityType');
+    ).rejects.toThrow('Emails without a typed relation must provide a fallbackType');
 
     expect(emailDeliveryLogMock.create).not.toHaveBeenCalled();
   });
-});
+
+  it('updates invitation status sent when an invitation email send is scucessful', async () => {
+    await sendEmail({
+      emailType: 'ORGANISATION_TRAINEE_INVITE',
+      recipientEmail: 'johan@example.com',
+      relatedEntity: {
+        invitationId: 'invitation01',
+        organisationId: 'organisation01',
+        actionTokenId: 'actiontoken01',
+      },
+      templateData: {
+        organisationName: 'Test Org',
+        actionToken: 'rawactiontokenqwertyuiopasdfghjklzxcvbnm',
+        actionTokenExpiresAt: new Date(Date.now() + 60 * 60 * 1000),
+      },
+    });
+
+    expect(invitationMock.update).toHaveBeenCalledWith({
+      where: { id: 'invitation01' },
+      data: { status: 'SENT' },
+    });
+  });
+
+  it('updates invitation status to failed when an invitation send fails', async () => {
+    sendMailMock.mockRejectedValue(new Error('SMTP not working'));
+    await sendEmail({
+      emailType: 'ORGANISATION_TRAINEE_INVITE',
+      recipientEmail: 'johan@example.com',
+      relatedEntity: {
+        invitationId: 'invitation01',
+        organisationId: 'organisation01',
+        actionTokenId: 'actiontoken01',
+      },
+      templateData: {
+        organisationName: 'Test Org',
+        actionToken: 'rawactiontokenqwertyuiopasdfghjklzxcvbnm',
+        actionTokenExpiresAt: new Date(Date.now() + 60 * 60 * 1000),
+      },
+    });
+    expect(invitationMock.update).toHaveBeenCalledWith({
+      where: { id: 'invitation01' },
+      data: { status: 'FAILED_TO_SEND' },
+    });
+  });
+
+  it('does not update invitation status for noninvites', async () => {
+    await sendEmail({
+      emailType: 'ROLE_CHANGED_NOTIFICATION',
+      recipientEmail: 'johan@example.com',
+      relatedEntity: { invitationId: 'invitation01', userId: 'user01' },
+      templateData: { firstName: 'Johan', roleName: 'platform admin' },
+    });
+    expect(invitationMock.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects missing template variables before creating delivery log', async () => {
+    await expect(
+      sendEmail({
+        emailType: 'EMAIL_VERIFICATION',
+        recipientEmail: 'johan@example.com',
+        relatedEntity: { userId: 'user01', actionTokenId: 'token01' },
+        templateData: {
+          firstName: 'Johan',
+          actionToken: 'rawactiontokenqwertyuiopasdfghjklzxcvbnm',
+        },
+      }),
+    ).rejects.toThrow();
+    expect(emailDeliveryLogMock.create).not.toHaveBeenCalled();
+    expect(sendMailMock).not.toHaveBeenCalled();
+  });
+}); //describe

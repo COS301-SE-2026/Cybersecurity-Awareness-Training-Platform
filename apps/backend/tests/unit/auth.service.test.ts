@@ -127,9 +127,10 @@ describe('registerUser', () => {
       authStatus: 'PENDING_EMAIL_VERIFICATION',
       createdAt: new Date('2026-05-12T06:00:00.000Z'),
     });
+    const verificationExpiresAt = new Date('2026-05-15T06:00:00.000Z');
     actionTokenServiceMock.issueActionToken.mockResolvedValue({
       rawToken: 'raw-action-token',
-      token: { id: 'action-token-1' },
+      token: { id: 'action-token-1', expiresAt: verificationExpiresAt },
     });
     authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue({ queued: false });
 
@@ -168,7 +169,7 @@ describe('registerUser', () => {
       templateData: {
         firstName: 'Johan',
         actionToken: 'raw-action-token',
-        actionTokenExpiresAt: expect.any(Date),
+        actionTokenExpiresAt: verificationExpiresAt,
       },
     });
     expect(response).toEqual({
