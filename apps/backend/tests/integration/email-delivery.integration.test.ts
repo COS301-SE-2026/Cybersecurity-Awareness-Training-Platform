@@ -153,9 +153,9 @@ describe('email delivery integration', () => {
     expect(sendMailMock).toHaveBeenCalledWith(
       expect.objectContaining({
         to: 'orgrequest@example.com',
-        subject: 'We received your organisation registration request',
-        text: expect.stringContaining('Testing Organisation'),
-        html: expect.stringContaining('Testing Organisation'),
+        subject: "We've received your organisation registration request",
+        text: expect.stringContaining('Test Org'),
+        html: expect.stringContaining('Test Org'),
       }),
     );
   });
