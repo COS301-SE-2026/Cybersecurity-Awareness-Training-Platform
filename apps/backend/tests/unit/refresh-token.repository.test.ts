@@ -15,7 +15,7 @@ import {
   revokeSessionRefreshTokens,
   rotateRefreshTokenRecord,
 } from '../../src/repositories/refresh-token.repository.js';
-const tx = { refreshToken: { create: vi.fn(), updateMany: vi.fn() } };
+const tx = { refreshToken: { create: vi.fn(), updateMany: vi.fn(), update: vi.fn() } };
 
 describe('refresh-token repository', () => {
   beforeEach(() => {
@@ -80,7 +80,6 @@ describe('refresh-token repository', () => {
         usedAt: expect.any(Date),
         revokedAt: expect.any(Date),
         revokedReason: 'ROTATED',
-        replacedByTokenId: expect.any(String),
       },
     });
     expect(tx.refreshToken.create).toHaveBeenCalledWith({
@@ -90,6 +89,10 @@ describe('refresh-token repository', () => {
         tokenHash: 'tokenhash02',
         expiresAt: new Date('2026-06-27'),
       },
+    });
+    expect(tx.refreshToken.update).toHaveBeenCalledWith({
+      where: { id: 'refreshtoken01' },
+      data: { replacedByTokenId: expect.any(String) },
     });
   });
   it('return null and doesnt create a new token when the transaction claim fails', async () => {

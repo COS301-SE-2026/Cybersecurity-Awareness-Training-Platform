@@ -477,6 +477,10 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
               minLength: 1,
               example: 'correct-horse-battery-staple',
             },
+            rememberMe: {
+              type: 'boolean',
+              example: true,
+            },
           },
         },
         AuthRegisterResponse: {
@@ -492,35 +496,163 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             },
           },
         },
+        AuthContextUser: {
+          type: 'object',
+          required: ['id', 'userType', 'authStatus'],
+          properties: {
+            id: {
+              type: 'string',
+              format: 'uuid',
+              example: 'user-123',
+            },
+            userType: {
+              $ref: '#/components/schemas/UserType',
+            },
+            authStatus: {
+              $ref: '#/components/schemas/AuthStatus',
+            },
+          },
+        },
+        AuthOrganisationContext: {
+          type: 'object',
+          required: ['id', 'status'],
+          properties: {
+            id: {
+              type: 'string',
+              format: 'uuid',
+              example: 'org-123',
+            },
+            status: {
+              type: 'string',
+              example: 'ACTIVE',
+            },
+          },
+        },
+        AuthContext: {
+          type: 'object',
+          required: ['user', 'role', 'organisation', 'permissions', 'redirectTo'],
+          properties: {
+            user: {
+              $ref: '#/components/schemas/AuthContextUser',
+            },
+            role: {
+              $ref: '#/components/schemas/UserType',
+            },
+            organisation: {
+              nullable: true,
+              allOf: [
+                {
+                  $ref: '#/components/schemas/AuthOrganisationContext',
+                },
+              ],
+            },
+            permissions: {
+              type: 'array',
+              items: {
+                type: 'string',
+              },
+              example: ['GENERAL_TRAINEE'],
+            },
+            redirectTo: {
+              type: 'string',
+              example: '/trainee/campaigns',
+            },
+          },
+        },
         AuthLoginResponse: {
           type: 'object',
-          required: ['user', 'token', 'tokenType', 'expiresAt'],
+          required: ['accessToken', 'user', 'context', 'permissions', 'redirectTo'],
           properties: {
+            accessToken: {
+              type: 'string',
+              description: 'Bearer access token for authenticated requests.',
+              example:
+                'eyJ1c2VySWQiOiJ1c2VyLTEyMyIsImV4cGlyZXNBdCI6IjIwMjYtMDUtMTJUMjA6NDQ6NTQuMDAwWiJ9.signature',
+            },
             user: {
               $ref: '#/components/schemas/PublicUser',
             },
+            context: {
+              $ref: '#/components/schemas/AuthContext',
+            },
+            permissions: {
+              type: 'array',
+              items: {
+                type: 'string',
+              },
+              example: ['GENERAL_TRAINEE'],
+            },
+            redirectTo: {
+              type: 'string',
+              example: '/trainee/campaigns',
+            },
             token: {
               type: 'string',
-              description: 'Bearer token for authenticated requests.',
+              description: 'Alias of accessToken for compatibility.',
               example:
                 'eyJ1c2VySWQiOiJ1c2VyLTEyMyIsImV4cGlyZXNBdCI6IjIwMjYtMDUtMTJUMjA6NDQ6NTQuMDAwWiJ9.signature',
             },
             tokenType: {
               type: 'string',
-              enum: ['Bearer'],
+              description: 'Token type schema.',
               example: 'Bearer',
             },
             expiresAt: {
-              ...dateTimeString('2026-05-12T20:44:54.000Z'),
+              type: 'string',
+              description: 'ISO-8601 string representation of access token expiration date-time.',
+              example: '2026-05-12T20:44:54.000Z',
+            },
+            sessionExpiresAt: {
+              type: 'string',
+              description:
+                'ISO-8601 string representation of the associated session absolute expiration date-time.',
+              example: '2026-05-12T20:44:54.000Z',
             },
           },
         },
         AuthMeResponse: {
           type: 'object',
-          required: ['user'],
+          required: ['user', 'context', 'permissions', 'redirectTo'],
           properties: {
             user: {
               $ref: '#/components/schemas/PublicUser',
+            },
+            context: {
+              $ref: '#/components/schemas/AuthContext',
+            },
+            permissions: {
+              type: 'array',
+              items: {
+                type: 'string',
+              },
+              example: ['GENERAL_TRAINEE'],
+            },
+            redirectTo: {
+              type: 'string',
+              example: '/trainee/campaigns',
+            },
+          },
+        },
+        AuthResendVerificationRequest: {
+          type: 'object',
+          required: ['email'],
+          additionalProperties: false,
+          properties: {
+            email: {
+              type: 'string',
+              format: 'email',
+              example: 'johan@example.com',
+            },
+          },
+        },
+        AuthResendVerificationResponse: {
+          type: 'object',
+          required: ['message'],
+          properties: {
+            message: {
+              type: 'string',
+              example:
+                'If the email is registered and unverified, a verification link has been sent.',
             },
           },
         },
@@ -590,14 +722,10 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         },
         SetupCompleteResponse: {
           type: 'object',
-          required: ['user', 'confirmationEmailQueued'],
+          required: ['user'],
           properties: {
             user: {
               $ref: '#/components/schemas/PublicUser',
-            },
-            confirmationEmailQueued: {
-              type: 'boolean',
-              example: false,
             },
           },
         },
@@ -1875,7 +2003,20 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           'Account registered successfully.',
           'AuthRegisterResponse',
         ),
-        AuthLoginOk: responseComponent('Login successful.', 'AuthLoginResponse'),
+        AuthLoginOk: {
+          description:
+            'Login successful. Returns access token, user context, and sets httpOnly refresh token cookie.',
+          headers: {
+            'Set-Cookie': {
+              schema: {
+                type: 'string',
+                example: 'refreshToken=abcde12345; Path=/; HttpOnly; Secure; SameSite=Lax',
+              },
+              description: 'Contains the rotating refresh token in an HTTP-only cookie.',
+            },
+          },
+          ...jsonContent(schemaRef('AuthLoginResponse')),
+        },
         AuthMeOk: responseComponent('Current authenticated user.', 'AuthMeResponse'),
         AuthEmailExists: responseComponent(
           'A user with the provided email already exists.',

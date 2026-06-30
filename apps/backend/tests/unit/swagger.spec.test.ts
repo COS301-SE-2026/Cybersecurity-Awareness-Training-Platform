@@ -28,8 +28,13 @@ const expectedSchemas = [
   'AuthRegisterRequest',
   'AuthLoginRequest',
   'AuthRegisterResponse',
+  'AuthContextUser',
+  'AuthOrganisationContext',
+  'AuthContext',
   'AuthLoginResponse',
   'AuthMeResponse',
+  'AuthResendVerificationRequest',
+  'AuthResendVerificationResponse',
   'AuthRateLimitErrorResponse',
   'SetupTokenState',
   'SetupTokenContextResponse',
@@ -132,8 +137,11 @@ const expectedRequestBodies = [
 const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
   ['get', '/health', ['200', '500']],
   ['post', '/auth/register', ['201', '400', '409', '429', '500']],
-  ['post', '/auth/login', ['200', '400', '401', '429', '500']],
-  ['get', '/auth/me', ['200', '401', '429', '500']],
+  ['post', '/auth/login', ['200', '400', '401', '403', '429', '500']],
+  ['get', '/auth/me', ['200', '401', '403', '429', '500']],
+  ['post', '/auth/logout', ['200', '500']],
+  ['post', '/auth/refresh', ['200', '401', '403', '429', '500']],
+  ['post', '/auth/resend-verification', ['200', '400', '429', '500']],
   ['get', '/setup/token/{token}/context', ['200', '400', '401', '409', '429', '500']],
   ['post', '/setup/token/{token}/complete', ['201', '400', '401', '409', '429', '500']],
   ['post', '/organisation-registration-requests', ['201', '409', '422', '429', '500']],
@@ -381,5 +389,19 @@ describe('swaggerSpec', () => {
 
     expect(resultSchema).toContain('isCorrect');
     expect(resultSchema).toContain('feedbackText');
+  });
+
+  it('enforces that token fields are returned on login/refresh schemas but not on /auth/me schema', () => {
+    const loginSchema = spec.components?.schemas?.AuthLoginResponse as any;
+    const meSchema = spec.components?.schemas?.AuthMeResponse as any;
+
+    expect(loginSchema).toBeDefined();
+    expect(loginSchema.properties).toHaveProperty('accessToken');
+
+    expect(meSchema).toBeDefined();
+    expect(meSchema.properties).not.toHaveProperty('accessToken');
+    expect(meSchema.properties).not.toHaveProperty('token');
+    expect(meSchema.properties).not.toHaveProperty('tokenType');
+    expect(meSchema.properties).not.toHaveProperty('expiresAt');
   });
 });
