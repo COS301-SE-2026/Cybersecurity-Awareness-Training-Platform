@@ -11,10 +11,7 @@ import type { AuthSessionRevokedReason } from '../generated/prisma/enums.js';
 import { prisma } from '../lib/prisma.js';
 import { toPublicUserDto } from '../mappers/user.mapper.js';
 import * as UserRepository from '../repositories/user.repository.js';
-import {
-  issueActionToken,
-  validateActionToken,
-} from './action-token.service.js';
+import { issueActionToken, validateActionToken } from './action-token.service.js';
 import { requestAuthEmailSend } from './auth-email-hook.service.js';
 import { generateAuthToken } from './auth-token.service.js';
 import * as PasswordService from './password.service.js';
@@ -527,19 +524,22 @@ export async function verifyEmailChange(rawToken: string): Promise<VerifyEmailCh
       data: { revokedAt: now, revokedReason: 'EMAIL_CHANGE' },
     });
 
-    await recordAuditLog({
-      actorUserId: user.id,
-      actorType: user.userType,
-      targetType: 'USER',
-      targetId: user.id,
-      actionType: 'SETTINGS_CHANGED',
-      outcome: 'SUCCESS',
-      metadata: {
-        changeType: 'EMAIL_CHANGE',
-        oldEmail,
-        newEmail: targetEmail,
+    await recordAuditLog(
+      {
+        actorUserId: user.id,
+        actorType: user.userType,
+        targetType: 'USER',
+        targetId: user.id,
+        actionType: 'SETTINGS_CHANGED',
+        outcome: 'SUCCESS',
+        metadata: {
+          changeType: 'EMAIL_CHANGE',
+          oldEmail,
+          newEmail: targetEmail,
+        },
       },
-    }, tx);
+      tx,
+    );
   });
 
   await requestAuthEmailSend({

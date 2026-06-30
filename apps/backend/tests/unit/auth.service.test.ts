@@ -494,7 +494,9 @@ describe('resendVerificationEmail', () => {
     await expect(resendVerificationEmail('user@example.com')).resolves.toBeUndefined();
 
     // Second request immediately should throw 429
-    await expect(resendVerificationEmail('user@example.com')).rejects.toBeInstanceOf(AuthResendCooldownError);
+    await expect(resendVerificationEmail('user@example.com')).rejects.toBeInstanceOf(
+      AuthResendCooldownError,
+    );
   });
 
   it('is enumeration-safe: sets cooldown even if email does not exist', async () => {
@@ -504,7 +506,9 @@ describe('resendVerificationEmail', () => {
     await expect(resendVerificationEmail('nonexistent@example.com')).resolves.toBeUndefined();
 
     // Second request immediately should throw 429
-    await expect(resendVerificationEmail('nonexistent@example.com')).rejects.toBeInstanceOf(AuthResendCooldownError);
+    await expect(resendVerificationEmail('nonexistent@example.com')).rejects.toBeInstanceOf(
+      AuthResendCooldownError,
+    );
   });
 });
 
@@ -555,7 +559,9 @@ describe('verifyEmailChange', () => {
       email: 'taken@example.com',
     });
 
-    await expect(verifyEmailChange('some-change-token')).rejects.toBeInstanceOf(EmailChangeConflictError);
+    await expect(verifyEmailChange('some-change-token')).rejects.toBeInstanceOf(
+      EmailChangeConflictError,
+    );
     expect(prismaMock.user.update).not.toHaveBeenCalled();
   });
 });

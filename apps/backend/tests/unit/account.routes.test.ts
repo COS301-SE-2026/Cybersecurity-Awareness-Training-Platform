@@ -51,7 +51,12 @@ describe('Account routes', () => {
       });
       prismaMock.user.findUnique.mockImplementation(async ({ where }) => {
         if (where.id === 'user-1') {
-          return { id: 'user-1', email: 'old@example.com', authStatus: 'ACTIVE', userType: 'GENERAL_TRAINEE' };
+          return {
+            id: 'user-1',
+            email: 'old@example.com',
+            authStatus: 'ACTIVE',
+            userType: 'GENERAL_TRAINEE',
+          };
         }
         return null;
       });
@@ -75,7 +80,12 @@ describe('Account routes', () => {
       });
       prismaMock.user.findUnique.mockImplementation(async ({ where }) => {
         if (where.id === 'user-1') {
-          return { id: 'user-1', email: 'old@example.com', authStatus: 'ACTIVE', userType: 'GENERAL_TRAINEE' };
+          return {
+            id: 'user-1',
+            email: 'old@example.com',
+            authStatus: 'ACTIVE',
+            userType: 'GENERAL_TRAINEE',
+          };
         }
         if (where.email === 'taken@example.com') {
           return { id: 'another-user', email: 'taken@example.com' };

@@ -11,7 +11,9 @@ import type {
 export type SetupTokenParamsDto = z.infer<typeof setupTokenParamsSchema>;
 export type SetupCompleteRequestDto = z.infer<typeof setupCompleteRequestSchema>;
 export type AuthVerifyEmailRequestDto = z.infer<typeof authVerifyEmailRequestSchema>;
-export type AccountVerifyEmailChangeRequestDto = z.infer<typeof accountVerifyEmailChangeRequestSchema>;
+export type AccountVerifyEmailChangeRequestDto = z.infer<
+  typeof accountVerifyEmailChangeRequestSchema
+>;
 
 export interface AuthVerifyEmailResponseDto {
   state: 'VALID' | 'INVALID' | 'EXPIRED' | 'USED' | 'REVOKED';

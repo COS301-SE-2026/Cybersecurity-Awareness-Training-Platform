@@ -1,8 +1,5 @@
 import type { Request, Response } from 'express';
-import {
-  verifyEmailChange,
-  EmailChangeConflictError,
-} from '../services/auth.service.js';
+import { verifyEmailChange, EmailChangeConflictError } from '../services/auth.service.js';
 
 export async function verifyChange(req: Request, res: Response) {
   try {
