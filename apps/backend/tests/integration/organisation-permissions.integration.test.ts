@@ -253,7 +253,7 @@ async function grantedPermissionKeysForAdmin(input: {
     ORDER BY permission."key"
   `;
 
-  return rows.map((row) => row.permission_key);
+  return rows.map((row) => row.permission_key).sort();
 }
 
 describe('organisation admin permission Prisma relations', () => {
