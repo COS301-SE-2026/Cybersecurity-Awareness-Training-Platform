@@ -1123,8 +1123,8 @@
           "number": 238,
           "title": "feat: build frontend forgot password page",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-06-30"
         },
         {
           "number": 237,
@@ -1200,8 +1200,8 @@
           "number": 227,
           "title": "feat: build frontend login page",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-06-30"
         },
         {
           "number": 226,
@@ -1599,7 +1599,7 @@
     },
     {
       "date": "2026-06-30",
-      "remaining": 134,
+      "remaining": 130,
       "ideal": 49.33
     }
   ]
