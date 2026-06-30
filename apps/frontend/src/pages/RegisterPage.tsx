@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BasicAlert from '../components/alerts/BasicAlert';
 import { Popover } from 'flowbite-react';
+import EmailVerificationModal from '../components/layout/modals/EmailVerificationModal';
 
 import {
   AuthActionLink,
@@ -36,6 +37,7 @@ function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
   const [alertType, setAlertType] = useState<'success' | 'danger'>('danger');
+  const [showEmailVerificationModal, setShowEmailVerificationModal] = useState(false);
 
   async function handleRegister(event: FormEvent) {
     event.preventDefault();
@@ -88,13 +90,7 @@ function RegisterPage() {
         return;
       }
 
-      // THIS WILL PROBABLY CHANGE (EMAIL VERIFICATION)......
-      setAlertType('success');
-      setAlertMessage('Registration Successfull. Redirecting To Login');
-
-      setTimeout(() => {
-        navigate('/login');
-      }, 1500);
+      setShowEmailVerificationModal(true);
     } catch {
       setAlertType('danger');
       setAlertMessage('Unable To Connect To The Server');
@@ -161,6 +157,13 @@ function RegisterPage() {
             </BasicAlert>
           )}
 
+          <EmailVerificationModal
+            isOpen={showEmailVerificationModal}
+            email={email}
+            accountDescription="Individual Trainee"
+            onResend={() => {}}
+          />
+
           <form onSubmit={handleRegister} noValidate style={authFormStyle}>
             <div
               style={{
@@ -216,7 +219,7 @@ function RegisterPage() {
                     arrow={false}
                     theme={{
                       base: 'rounded-none bg-transparent border-0 shadow-xl absolute z-20 inline-block w-max max-w-[100vw] outline-none',
-                      content: 'relative',
+                      content: 'relative overflow-hidden rounded-none',
                     }}
                   >
                     <span
