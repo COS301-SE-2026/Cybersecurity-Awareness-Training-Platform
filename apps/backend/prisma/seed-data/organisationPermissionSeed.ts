@@ -25,6 +25,12 @@ const ORGANISATION_ADMIN_PERMISSION_SEEDS = [
     description: 'Grant or revoke organisation admin permissions.',
     isCritical: true,
   },
+  {
+    key: 'CHANGE_ORGANISATION_SECURITY_SETTINGS',
+    displayName: 'Change organisation security settings',
+    description: 'Change organisation security policy and related settings.',
+    isCritical: true,
+  },
 ] as const;
 
 export type OrganisationPermissionSeedSummary = {
@@ -145,7 +151,7 @@ async function seedInitialAdminPermissionGrants(
     for (const permission of permissions) {
       const grantId = buildOrganisationAdminPermissionId(admin.id, permission.id);
 
-      await client.$executeRaw`
+      const insertedGrantCount = await client.$executeRaw`
         INSERT INTO "OrganisationAdminPermission" (
           "id",
           "organisationId",
@@ -161,7 +167,7 @@ async function seedInitialAdminPermissionGrants(
         ON CONFLICT ("organisationAdminId", "organisationPermissionId")
         DO NOTHING
       `;
-      grantCount += 1;
+      grantCount += insertedGrantCount;
     }
   }
 

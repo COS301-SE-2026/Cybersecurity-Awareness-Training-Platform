@@ -6,7 +6,8 @@ CREATE TYPE "OrganisationPermissionKey" AS ENUM (
   'VIEW_ORGANISATION_ADMINS',
   'INVITE_ORGANISATION_ADMINS',
   'REMOVE_ORGANISATION_ADMINS',
-  'CHANGE_ORGANISATION_ADMIN_PERMISSIONS'
+  'CHANGE_ORGANISATION_ADMIN_PERMISSIONS',
+  'CHANGE_ORGANISATION_SECURITY_SETTINGS'
 );
 
 -- Preserve existing organisation admin rows while adding lifecycle metadata.
@@ -15,6 +16,22 @@ ALTER TABLE "OrganisationAdminProfile"
   ADD COLUMN "createdFromInvitationId" TEXT,
   ADD COLUMN "disabledAt" TIMESTAMP(3),
   ADD COLUMN "disabledReason" TEXT;
+
+WITH ranked_active_admins AS (
+  SELECT
+    "id",
+    ROW_NUMBER() OVER (
+      PARTITION BY "organisationId"
+      ORDER BY "joinedAt" ASC, "createdAt" ASC, "id" ASC
+    ) AS "rowNumber"
+  FROM "OrganisationAdminProfile"
+  WHERE "adminStatus" = 'ACTIVE'
+)
+UPDATE "OrganisationAdminProfile" admin
+SET "isInitialAdmin" = true
+FROM ranked_active_admins ranked
+WHERE admin."id" = ranked."id"
+  AND ranked."rowNumber" = 1;
 
 CREATE TABLE "OrganisationPermission" (
   "id" TEXT NOT NULL,
@@ -58,6 +75,10 @@ CREATE UNIQUE INDEX "OrganisationAdminProfile_createdFromInvitationId_organisati
 
 CREATE INDEX "OrganisationAdminProfile_isInitialAdmin_idx"
   ON "OrganisationAdminProfile"("isInitialAdmin");
+
+CREATE UNIQUE INDEX "OrganisationAdminProfile_one_initial_admin_per_org"
+  ON "OrganisationAdminProfile"("organisationId")
+  WHERE "isInitialAdmin" = true;
 
 CREATE INDEX "OrganisationAdminProfile_disabledAt_idx"
   ON "OrganisationAdminProfile"("disabledAt");

@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
+import { seedOrganisationAdminPermissions } from '../../prisma/seed-data/organisationPermissionSeed.js';
 import { prisma } from '../../src/lib/prisma.js';
 
 const NOW = new Date('2026-06-30T08:00:00.000Z');
@@ -10,7 +11,8 @@ type PermissionKey =
   | 'VIEW_ORGANISATION_ADMINS'
   | 'INVITE_ORGANISATION_ADMINS'
   | 'REMOVE_ORGANISATION_ADMINS'
-  | 'CHANGE_ORGANISATION_ADMIN_PERMISSIONS';
+  | 'CHANGE_ORGANISATION_ADMIN_PERMISSIONS'
+  | 'CHANGE_ORGANISATION_SECURITY_SETTINGS';
 
 function testId(prefix: string): string {
   return `${prefix}-${randomUUID()}`;
@@ -236,7 +238,92 @@ async function countActiveAdminsWithPermission(input: {
   return Number(rows[0]?.admin_count ?? 0);
 }
 
+async function grantedPermissionKeysForAdmin(input: {
+  readonly organisationId: string;
+  readonly adminId: string;
+}): Promise<string[]> {
+  const rows = await prisma.$queryRaw<Array<{ permission_key: string }>>`
+    SELECT permission."key"::text AS permission_key
+    FROM "OrganisationAdminPermission" grant_record
+    INNER JOIN "OrganisationPermission" permission
+      ON permission."id" = grant_record."organisationPermissionId"
+      AND permission."organisationId" = grant_record."organisationId"
+    WHERE grant_record."organisationId" = ${input.organisationId}
+      AND grant_record."organisationAdminId" = ${input.adminId}
+    ORDER BY permission."key"
+  `;
+
+  return rows.map((row) => row.permission_key);
+}
+
 describe('organisation admin permission Prisma relations', () => {
+  it('rejects multiple initial admins in the same organisation', async () => {
+    const organisationId = await createOrganisation('Single Initial Admin');
+
+    await createOrganisationAdmin({
+      organisationId,
+      emailPrefix: 'initial-admin-a',
+      isInitialAdmin: true,
+    });
+
+    await expect(
+      createOrganisationAdmin({
+        organisationId,
+        emailPrefix: 'initial-admin-b',
+        isInitialAdmin: true,
+      }),
+    ).rejects.toThrow();
+  });
+
+  it('allows multiple non-initial admins in the same organisation', async () => {
+    const organisationId = await createOrganisation('Multiple Non Initial Admins');
+
+    await expect(
+      createOrganisationAdmin({
+        organisationId,
+        emailPrefix: 'non-initial-admin-a',
+      }),
+    ).resolves.toEqual(expect.stringContaining('org-admin-'));
+
+    await expect(
+      createOrganisationAdmin({
+        organisationId,
+        emailPrefix: 'non-initial-admin-b',
+      }),
+    ).resolves.toEqual(expect.stringContaining('org-admin-'));
+  });
+
+  it('seeds full default permissions for the initial organisation admin only', async () => {
+    const organisationId = await createOrganisation('Initial Admin Seed Grants');
+    const initialAdminId = await createOrganisationAdmin({
+      organisationId,
+      emailPrefix: 'seed-initial-admin',
+      isInitialAdmin: true,
+    });
+
+    await createOrganisationAdmin({
+      organisationId,
+      emailPrefix: 'seed-promoted-admin',
+    });
+
+    const summary = await seedOrganisationAdminPermissions(prisma);
+
+    expect(summary.organisationCount).toBeGreaterThanOrEqual(1);
+    expect(summary.permissionCount).toBeGreaterThanOrEqual(5);
+    expect(
+      await grantedPermissionKeysForAdmin({ organisationId, adminId: initialAdminId }),
+    ).toEqual([
+      'CHANGE_ORGANISATION_ADMIN_PERMISSIONS',
+      'CHANGE_ORGANISATION_SECURITY_SETTINGS',
+      'INVITE_ORGANISATION_ADMINS',
+      'REMOVE_ORGANISATION_ADMINS',
+      'VIEW_ORGANISATION_ADMINS',
+    ]);
+
+    const repeatedSummary = await seedOrganisationAdminPermissions(prisma);
+    expect(repeatedSummary.initialAdminGrantCount).toBe(0);
+  });
+
   it('stores organisation-scoped permission records and explicit admin grants', async () => {
     const organisationId = await createOrganisation('Permission Grants');
     const adminId = await createOrganisationAdmin({

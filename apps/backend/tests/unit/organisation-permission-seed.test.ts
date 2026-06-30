@@ -14,9 +14,11 @@ function createSeedClient(input: {
   readonly organisations: ReadonlyArray<{ readonly id: string }>;
   readonly initialAdmins: ReadonlyArray<{ readonly id: string }>;
   readonly permissions: ReadonlyArray<{ readonly id: string }>;
+  readonly adminGrantInsertCounts?: readonly number[];
 }) {
   const queryCalls: RawCall[] = [];
   const executeCalls: RawCall[] = [];
+  const adminGrantInsertCounts = [...(input.adminGrantInsertCounts ?? [])];
 
   return {
     client: {
@@ -42,10 +44,16 @@ function createSeedClient(input: {
         throw new Error(`Unexpected seed query: ${sql}`);
       },
       async $executeRaw(strings: TemplateStringsArray, ...values: readonly unknown[]) {
+        const sql = normaliseSql(strings);
         executeCalls.push({
-          sql: normaliseSql(strings),
+          sql,
           values,
         });
+
+        if (sql.includes('INSERT INTO "OrganisationAdminPermission"')) {
+          return adminGrantInsertCounts.shift() ?? 1;
+        }
+
         return 1;
       },
     },
@@ -64,6 +72,7 @@ describe('organisation admin permission seed', () => {
         { id: 'permission-invite' },
         { id: 'permission-remove' },
         { id: 'permission-change' },
+        { id: 'permission-security-settings' },
       ],
     });
 
@@ -71,8 +80,8 @@ describe('organisation admin permission seed', () => {
 
     expect(summary).toEqual({
       organisationCount: 1,
-      permissionCount: 4,
-      initialAdminGrantCount: 4,
+      permissionCount: 5,
+      initialAdminGrantCount: 5,
     });
 
     const serializedExecuteValues = JSON.stringify(
@@ -83,6 +92,7 @@ describe('organisation admin permission seed', () => {
     expect(serializedExecuteValues).toContain('INVITE_ORGANISATION_ADMINS');
     expect(serializedExecuteValues).toContain('REMOVE_ORGANISATION_ADMINS');
     expect(serializedExecuteValues).toContain('CHANGE_ORGANISATION_ADMIN_PERMISSIONS');
+    expect(serializedExecuteValues).toContain('CHANGE_ORGANISATION_SECURITY_SETTINGS');
     expect(serializedExecuteValues).not.toContain('password');
     expect(serializedExecuteValues).not.toContain('token');
 
@@ -90,12 +100,12 @@ describe('organisation admin permission seed', () => {
       seedClient.executeCalls.filter((call) =>
         call.sql.includes('INSERT INTO "OrganisationPermission"'),
       ),
-    ).toHaveLength(4);
+    ).toHaveLength(5);
     expect(
       seedClient.executeCalls.filter((call) =>
         call.sql.includes('INSERT INTO "OrganisationAdminPermission"'),
       ),
-    ).toHaveLength(4);
+    ).toHaveLength(5);
   });
 
   it('does not create grants when an organisation has no initial admins', async () => {
@@ -109,7 +119,7 @@ describe('organisation admin permission seed', () => {
 
     expect(summary).toEqual({
       organisationCount: 1,
-      permissionCount: 4,
+      permissionCount: 5,
       initialAdminGrantCount: 0,
     });
     expect(
@@ -117,5 +127,28 @@ describe('organisation admin permission seed', () => {
         call.sql.includes('INSERT INTO "OrganisationAdminPermission"'),
       ),
     ).toBe(false);
+  });
+
+  it('reports actual inserted initial-admin grants instead of attempted grants', async () => {
+    const seedClient = createSeedClient({
+      organisations: [{ id: 'org-1' }],
+      initialAdmins: [{ id: 'admin-1' }],
+      permissions: [
+        { id: 'permission-view' },
+        { id: 'permission-invite' },
+        { id: 'permission-remove' },
+        { id: 'permission-change' },
+        { id: 'permission-security-settings' },
+      ],
+      adminGrantInsertCounts: [1, 0, 1, 0, 1],
+    });
+
+    const summary = await seedOrganisationAdminPermissions(seedClient.client);
+
+    expect(summary).toEqual({
+      organisationCount: 1,
+      permissionCount: 5,
+      initialAdminGrantCount: 3,
+    });
   });
 });

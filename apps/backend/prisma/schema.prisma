@@ -138,6 +138,7 @@ enum OrganisationPermissionKey {
   INVITE_ORGANISATION_ADMINS
   REMOVE_ORGANISATION_ADMINS
   CHANGE_ORGANISATION_ADMIN_PERMISSIONS
+  CHANGE_ORGANISATION_SECURITY_SETTINGS
 }
 
 enum InvitationPurpose {
@@ -487,20 +488,20 @@ model OrganisationTraineeProfile {
 }
 
 model OrganisationAdminProfile {
-  id                      String       @id @default(uuid())
-  userId                  String       @unique
+  id                      String                        @id @default(uuid())
+  userId                  String                        @unique
   organisationId          String
-  adminStatus             AdminStatus  @default(ACTIVE)
-  joinedAt                DateTime     @default(now())
-  isInitialAdmin          Boolean      @default(false)
+  adminStatus             AdminStatus                   @default(ACTIVE)
+  joinedAt                DateTime                      @default(now())
+  isInitialAdmin          Boolean                       @default(false)
   createdFromInvitationId String?
   disabledAt              DateTime?
   disabledReason          String?
-  createdAt               DateTime     @default(now())
-  updatedAt               DateTime     @updatedAt
-  user                    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organisation            Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  createdFromInvitation   Invitation?  @relation("InvitationAcceptedOrganisationAdmin", fields: [createdFromInvitationId, organisationId], references: [id, organisationId], onDelete: Restrict)
+  createdAt               DateTime                      @default(now())
+  updatedAt               DateTime                      @updatedAt
+  user                    User                          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organisation            Organisation                  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  createdFromInvitation   Invitation?                   @relation("InvitationAcceptedOrganisationAdmin", fields: [createdFromInvitationId, organisationId], references: [id, organisationId], onDelete: Restrict)
   permissionGrants        OrganisationAdminPermission[] @relation("OrganisationAdminPermissionAdmin")
   grantedPermissionGrants OrganisationAdminPermission[] @relation("OrganisationAdminPermissionGrantedBy")
 
@@ -597,7 +598,7 @@ model ActionToken {
   emailDeliveryLogs                 EmailDeliveryLog[]               @relation("ActionTokenEmailDeliveryLogs")
   invitation                        Invitation?                      @relation("InvitationActionTokens", fields: [invitationId], references: [id], onDelete: SetNull)
   organisationRegistrationRequest   OrganisationRegistrationRequest? @relation(fields: [organisationRegistrationRequestId], references: [id], onDelete: SetNull)
-  emailChangeRequest                EmailChangeRequest? @relation(fields:[emailChangeRequestId], references: [id], onDelete: SetNull)
+  emailChangeRequest                EmailChangeRequest?              @relation(fields: [emailChangeRequestId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([purpose])
@@ -649,35 +650,35 @@ model EmailDeliveryLog {
 }
 
 model Organisation {
-  id                   String                            @id @default(uuid())
-  name                 String                            @unique
-  status               OrganisationStatus                @default(ACTIVE)
-  createdAt            DateTime                          @default(now())
-  updatedAt            DateTime                          @updatedAt
-  traineeProfiles      OrganisationTraineeProfile[]
-  adminProfiles        OrganisationAdminProfile[]
-  contexts             OrganisationContext[]
-  campaigns            Campaign[]
-  registrationRequests OrganisationRegistrationRequest[]
-  invitations          Invitation[]
-  emailDeliveryLogs    EmailDeliveryLog[]
-  auditLogEntries      AuditLogEntry[]
-  permissions          OrganisationPermission[]
-  adminPermissionGrants OrganisationAdminPermission[]
+  id                         String                            @id @default(uuid())
+  name                       String                            @unique
+  status                     OrganisationStatus                @default(ACTIVE)
+  createdAt                  DateTime                          @default(now())
+  updatedAt                  DateTime                          @updatedAt
+  traineeProfiles            OrganisationTraineeProfile[]
+  adminProfiles              OrganisationAdminProfile[]
+  contexts                   OrganisationContext[]
+  campaigns                  Campaign[]
+  registrationRequests       OrganisationRegistrationRequest[]
+  invitations                Invitation[]
+  emailDeliveryLogs          EmailDeliveryLog[]
+  auditLogEntries            AuditLogEntry[]
+  permissions                OrganisationPermission[]
+  adminPermissionGrants      OrganisationAdminPermission[]
   invitationPermissionGrants InvitationPermissionGrant[]
 }
 
 model OrganisationPermission {
-  id                       String                         @id @default(uuid())
-  organisationId           String
-  key                      OrganisationPermissionKey
-  displayName              String
-  description              String?
-  isCritical               Boolean                        @default(false)
-  createdAt                DateTime                       @default(now())
-  updatedAt                DateTime                       @updatedAt
-  organisation             Organisation                   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  adminPermissionGrants    OrganisationAdminPermission[]
+  id                         String                        @id @default(uuid())
+  organisationId             String
+  key                        OrganisationPermissionKey
+  displayName                String
+  description                String?
+  isCritical                 Boolean                       @default(false)
+  createdAt                  DateTime                      @default(now())
+  updatedAt                  DateTime                      @updatedAt
+  organisation               Organisation                  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  adminPermissionGrants      OrganisationAdminPermission[]
   invitationPermissionGrants InvitationPermissionGrant[]
 
   @@unique([organisationId, key])
@@ -1280,17 +1281,17 @@ model AuditLogEntry {
 }
 
 model EmailChangeRequest {
-  id                String                    @id @default(uuid())
-  userId            String
-  currentEmail      String
-  RequestedEmail    String
-  status            EmailChangeRequestStatus  @default(PENDING)
-  confirmedAt       DateTime?
-  expiresAt         DateTime  
-  createdAt         DateTime                  @default(now())
-  updatedAt         DateTime                  @updatedAt
-  user              User                      @relation(fields:[userId], references: [id], onDelete: Cascade)
-  actionTokens      ActionToken[]
+  id             String                   @id @default(uuid())
+  userId         String
+  currentEmail   String
+  RequestedEmail String
+  status         EmailChangeRequestStatus @default(PENDING)
+  confirmedAt    DateTime?
+  expiresAt      DateTime
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+  user           User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  actionTokens   ActionToken[]
 
   @@index([userId])
   @@index([RequestedEmail])

@@ -3,6 +3,13 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const schema = readFileSync(resolve(process.cwd(), 'prisma/schema.prisma'), 'utf8');
+const migration = readFileSync(
+  resolve(
+    process.cwd(),
+    'prisma/migrations/20260630120000_org_admin_permissions_foundation/migration.sql',
+  ),
+  'utf8',
+);
 
 function schemaBlock(kind: 'enum' | 'model', name: string): string {
   const match = schema.match(new RegExp(`${kind} ${name}\\s*\\{([\\s\\S]*?)\\n\\}`));
@@ -49,10 +56,11 @@ describe('organisation admin permission Prisma schema', () => {
       'INVITE_ORGANISATION_ADMINS',
       'REMOVE_ORGANISATION_ADMINS',
       'CHANGE_ORGANISATION_ADMIN_PERMISSIONS',
+      'CHANGE_ORGANISATION_SECURITY_SETTINGS',
     ]);
 
     expectValues(schemaBlock('model', 'OrganisationPermission'), [
-      'key                      OrganisationPermissionKey',
+      'key                        OrganisationPermissionKey',
       'isCritical',
       '@@unique([organisationId, key])',
       '@@unique([id, organisationId])',
@@ -98,5 +106,14 @@ describe('organisation admin permission Prisma schema', () => {
   it('keeps audit support generic for organisation admin permission targets', () => {
     expect(schemaBlock('enum', 'AuditTargetType')).toContain('ORGANISATION_ADMIN_PERMISSION');
     expect(schemaBlock('model', 'AuditLogEntry')).toContain('targetId');
+  });
+
+  it('backfills and enforces one initial organisation admin per organisation', () => {
+    expect(migration).toContain('ROW_NUMBER() OVER');
+    expect(migration).toContain('PARTITION BY "organisationId"');
+    expect(migration).toContain(
+      'CREATE UNIQUE INDEX "OrganisationAdminProfile_one_initial_admin_per_org"',
+    );
+    expect(migration).toContain('WHERE "isInitialAdmin" = true');
   });
 });
