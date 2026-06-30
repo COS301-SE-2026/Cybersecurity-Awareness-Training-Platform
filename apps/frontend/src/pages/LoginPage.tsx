@@ -14,6 +14,27 @@ import BasicAlert from '../components/alerts/BasicAlert';
 import { authLoginRequestSchema } from '@insightful-phish/shared';
 import GetStartedModal from '../components/landing-page/GetStartedModal';
 
+function formatAlertMessage(message: string) {
+  // makes everything title case and removes the . from the end of the message
+  return message
+    .replace(/\.$/, '')
+    .replace(/\w\S*/g, (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
+}
+
+function getRedirectPath() {
+  // Route Users Based on ROLE
+
+  // LATER ON: We can do something like this (FOR EXAMPLE):
+  // function getRedirectPath(role: UserRole) {
+  //   case 'ADMIN':
+  //     return '/admin';
+  //   case 'EMPLOYEE':
+  //     return '/campaigns';
+  // }
+  // For now, leave it as '/campaigns'
+  return '/campaigns';
+}
+
 function LoginPage() {
   const navigate = useNavigate();
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -28,27 +49,6 @@ function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   const [alertMessage, setAlertMessage] = useState('');
-
-  function formatAlertMessage(message: string) {
-    // makes everything title case and removes the . from the end of the message
-    return message
-      .replace(/\.$/, '')
-      .replace(/\w\S*/g, (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
-  }
-
-  function getRedirectPath() {
-    // TODO: Route Users Based on ROLE
-
-    // LATER ON: We can do something like this (FOR EXAMPLE):
-    // function getRedirectPath(role: UserRole) {
-    //   case 'ADMIN':
-    //     return '/admin';
-    //   case 'EMPLOYEE':
-    //     return '/campaigns';
-    // }
-    // For now, leave it as '/campaigns'
-    return '/campaigns';
-  }
 
   useEffect(() => {
     if (isAuthenticated) {

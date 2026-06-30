@@ -49,6 +49,15 @@ function ForgotPasswordPage() {
     }, 2000);
   }
 
+  let BUTTON_TEXT = 'Send Password Reset Link';
+  if (isLoading) {
+    BUTTON_TEXT = 'Sending Password Reset Link...';
+  } else if (cooldown > 0) {
+    BUTTON_TEXT = `Resend Password Reset Link (${cooldown})`;
+  } else if (successMessage) {
+    BUTTON_TEXT = 'Resend Password Reset Link';
+  }
+
   return (
     <section className="bg-light-purple dark:bg-gray-900">
       <div className="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0">
@@ -131,15 +140,7 @@ function ForgotPasswordPage() {
                   />
                 </svg>
               )}
-              <span>
-                {isLoading
-                  ? `Sending Password Reset Link...`
-                  : cooldown > 0
-                    ? `Resend Password Reset Link (${cooldown})`
-                    : successMessage
-                      ? `Resend Password Reset Link`
-                      : `Send Password Reset Link`}
-              </span>
+              <span>{BUTTON_TEXT}</span>
             </button>
 
             <Link

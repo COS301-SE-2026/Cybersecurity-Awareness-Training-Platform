@@ -2,16 +2,16 @@ import type { ChangeEventHandler, CSSProperties, ReactNode } from 'react';
 import { useId } from 'react';
 import { Link } from 'react-router-dom';
 
-type AuthPageFrameProps = {
+type AuthPageFrameProps = Readonly<{
   leftWidth: string;
   rightWidth: string;
   leftChildren: ReactNode;
   rightChildren: ReactNode;
   leftPanelStyle?: CSSProperties;
   rightPanelStyle?: CSSProperties;
-};
+}>;
 
-type AuthPageIntroProps = {
+type AuthPageIntroProps = Readonly<{
   title: string;
   logo?: ReactNode;
   afterDivider?: ReactNode;
@@ -19,9 +19,9 @@ type AuthPageIntroProps = {
   titleStyle?: CSSProperties;
   dividerStyle?: CSSProperties;
   messageStyle?: CSSProperties;
-};
+}>;
 
-type AuthFormFieldProps = {
+type AuthFormFieldProps = Readonly<{
   label: string;
   type: 'email' | 'password' | 'text';
   value: string;
@@ -32,9 +32,9 @@ type AuthFormFieldProps = {
   autoComplete?: string;
   rightLabel?: ReactNode;
   disabled?: boolean;
-};
+}>;
 
-type AuthActionLinkProps = {
+type AuthActionLinkProps = Readonly<{
   to: string;
   prefix: string;
   emphasis: string;
@@ -43,7 +43,7 @@ type AuthActionLinkProps = {
   iconStyle?: CSSProperties;
   emphasisStyle?: CSSProperties;
   onClick?: React.MouseEventHandler<HTMLAnchorElement>;
-};
+}>;
 
 export function AuthPageFrame({
   leftWidth,

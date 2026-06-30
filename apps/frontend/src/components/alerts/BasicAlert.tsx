@@ -1,10 +1,10 @@
 import { AlertVariants, type AlertVariant } from './alertVariants';
 
-type BasicAlertProps = {
+type BasicAlertProps = Readonly<{
   variant: AlertVariant;
   children: React.ReactNode;
   onClose?: () => void;
-};
+}>;
 
 function BasicAlert({ variant, children, onClose }: BasicAlertProps) {
   const style = AlertVariants[variant];
