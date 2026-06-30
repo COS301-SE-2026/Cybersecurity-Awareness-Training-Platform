@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   AuthActionLink,
   AuthFormField,
@@ -128,22 +128,6 @@ function LoginPage() {
 
             <AuthFormField
               label="Password"
-              rightLabel={
-                <Link
-                  to="/forgot-password"
-                  style={{
-                    color: '#cca7ff',
-                    fontFamily: 'Jost',
-                    fontWeight: 400,
-                    letterSpacing: '0.05em',
-                    fontSize: '1.4rem',
-                    textDecoration: 'none',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Forgot Password?
-                </Link>
-              }
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
