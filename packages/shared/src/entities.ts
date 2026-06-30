@@ -20,6 +20,13 @@ export type OrganisationTraineeMembershipStatusDto = 'ACTIVE' | 'INACTIVE';
 
 export type AdminStatusDto = 'ACTIVE' | 'DISABLED';
 
+export type OrganisationPermissionKeyDto =
+  | 'VIEW_ORGANISATION_ADMINS'
+  | 'INVITE_ORGANISATION_ADMINS'
+  | 'REMOVE_ORGANISATION_ADMINS'
+  | 'CHANGE_ORGANISATION_ADMIN_PERMISSIONS'
+  | 'CHANGE_ORGANISATION_SECURITY_SETTINGS';
+
 export type GeneralTraineeAccessSourceDto = 'SELF_SIGNUP' | 'INVITE' | 'SEED' | 'ADMIN_CREATED';
 
 export type OrganisationStatusDto =
@@ -135,8 +142,40 @@ export interface OrganisationAdminProfileDto {
   organisationId: string;
   adminStatus: AdminStatusDto;
   joinedAt: string;
+  isInitialAdmin: boolean;
+  createdFromInvitationId?: string | null;
+  disabledAt?: string | null;
+  disabledReason?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface OrganisationPermissionDto {
+  id: string;
+  organisationId: string;
+  key: OrganisationPermissionKeyDto;
+  displayName: string;
+  description?: string | null;
+  isCritical: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OrganisationAdminPermissionDto {
+  id: string;
+  organisationId: string;
+  organisationAdminId: string;
+  organisationPermissionId: string;
+  grantedAt: string;
+  grantedByOrganisationAdminId?: string | null;
+}
+
+export interface InvitationPermissionGrantDto {
+  id: string;
+  organisationId: string;
+  invitationId: string;
+  organisationPermissionId: string;
+  createdAt: string;
 }
 
 export interface IpAdminProfileDto {
