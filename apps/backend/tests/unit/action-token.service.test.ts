@@ -344,5 +344,121 @@ describe('action-token service', () => {
         'Resend cooldown active. Please try again later.',
       );
     });
+
+    it('returns canResend: false for USED password reset tokens', async () => {
+      prismaMock.actionToken.findUnique.mockResolvedValue({
+        id: 'token-123',
+        purpose: 'PASSWORD_RESET',
+        expiresAt: new Date(Date.now() + 3600000),
+        usedAt: new Date(),
+        revokedAt: null,
+        user: { authStatus: 'ACTIVE', email: 'test@example.com' },
+      });
+
+      const res = await getTokenContext('some-token');
+      expect(res.tokenState).toBe('USED');
+      expect(res.canResend).toBe(false);
+    });
+
+    it('returns canResend: false for REVOKED password reset tokens', async () => {
+      prismaMock.actionToken.findUnique.mockResolvedValue({
+        id: 'token-123',
+        purpose: 'PASSWORD_RESET',
+        expiresAt: new Date(Date.now() + 3600000),
+        usedAt: null,
+        revokedAt: new Date(),
+        user: { authStatus: 'ACTIVE', email: 'test@example.com' },
+      });
+
+      const res = await getTokenContext('some-token');
+      expect(res.tokenState).toBe('REVOKED');
+      expect(res.canResend).toBe(false);
+    });
+
+    it('throws TokenResendError and does not resend if token is USED', async () => {
+      prismaMock.actionToken.findUnique.mockResolvedValue({
+        id: 'token-123',
+        purpose: 'PASSWORD_RESET',
+        expiresAt: new Date(Date.now() + 3600000),
+        usedAt: new Date(),
+        revokedAt: null,
+        user: { authStatus: 'ACTIVE', email: 'test@example.com' },
+      });
+
+      await expect(resendActionToken('some-token')).rejects.toThrowError(
+        'Token cannot be resent safely',
+      );
+
+      expect(prismaMock.actionToken.updateMany).not.toHaveBeenCalled();
+      expect(repositoryMock.createActionToken).not.toHaveBeenCalled();
+      expect(authEmailHookServiceMock.requestAuthEmailSend).not.toHaveBeenCalled();
+    });
+
+    it('throws TokenResendError and does not resend if token is REVOKED', async () => {
+      prismaMock.actionToken.findUnique.mockResolvedValue({
+        id: 'token-123',
+        purpose: 'PASSWORD_RESET',
+        expiresAt: new Date(Date.now() + 3600000),
+        usedAt: null,
+        revokedAt: new Date(),
+        user: { authStatus: 'ACTIVE', email: 'test@example.com' },
+      });
+
+      await expect(resendActionToken('some-token')).rejects.toThrowError(
+        'Token cannot be resent safely',
+      );
+
+      expect(prismaMock.actionToken.updateMany).not.toHaveBeenCalled();
+      expect(repositoryMock.createActionToken).not.toHaveBeenCalled();
+      expect(authEmailHookServiceMock.requestAuthEmailSend).not.toHaveBeenCalled();
+    });
+
+    it('throws TokenResendError if the token becomes invalid inside the transaction (stale check)', async () => {
+      prismaMock.actionToken.findUnique
+        .mockResolvedValueOnce({
+          id: 'token-123',
+          purpose: 'PASSWORD_RESET',
+          expiresAt: new Date(Date.now() + 3600000),
+          usedAt: null,
+          revokedAt: null,
+          user: {
+            id: 'user-123',
+            authStatus: 'ACTIVE',
+            email: 'test@example.com',
+            firstName: 'John',
+          },
+        })
+        .mockResolvedValueOnce({
+          id: 'token-123',
+          purpose: 'PASSWORD_RESET',
+          expiresAt: new Date(Date.now() + 3600000),
+          usedAt: null,
+          revokedAt: null,
+          user: {
+            id: 'user-123',
+            authStatus: 'ACTIVE',
+            email: 'test@example.com',
+            firstName: 'John',
+          },
+        });
+
+      prismaMock.actionToken.findUnique.mockResolvedValueOnce({
+        id: 'token-123',
+        purpose: 'PASSWORD_RESET',
+        expiresAt: new Date(Date.now() + 3600000),
+        usedAt: new Date(),
+        revokedAt: null,
+      });
+
+      prismaMock.emailDeliveryLog.findFirst.mockResolvedValue(null);
+
+      await expect(resendActionToken('some-token')).rejects.toThrowError(
+        'Token cannot be resent safely',
+      );
+
+      expect(prismaMock.actionToken.updateMany).not.toHaveBeenCalled();
+      expect(repositoryMock.createActionToken).not.toHaveBeenCalled();
+      expect(authEmailHookServiceMock.requestAuthEmailSend).not.toHaveBeenCalled();
+    });
   });
 }); //describe

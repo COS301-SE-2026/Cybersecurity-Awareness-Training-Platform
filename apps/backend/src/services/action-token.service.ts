@@ -143,11 +143,97 @@ function mapPurposeToEmailType(purpose: ActionTokenPurpose): EmailDeliveryType |
   }
 }
 
-function determineTokenState(token: ActionTokenModel, now = new Date()): ActionTokenState {
+type ActionTokenWithRelations = Prisma.ActionTokenGetPayload<{
+  include: {
+    user: true;
+    emailChangeRequest: true;
+    invitation: {
+      include: {
+        organisation: true;
+      };
+    };
+  };
+}>;
+
+function determineTokenState(
+  token: ActionTokenModel | ActionTokenWithRelations,
+  now = new Date(),
+): ActionTokenState {
   if (token.revokedAt) return 'REVOKED';
   if (token.usedAt) return 'USED';
   if (token.expiresAt.getTime() <= now.getTime()) return 'EXPIRED';
   return 'VALID';
+}
+
+function checkResendEligibility(token: ActionTokenWithRelations, state: ActionTokenState): boolean {
+  if (state !== 'VALID' && state !== 'EXPIRED') {
+    return false;
+  }
+
+  const flow = token.purpose;
+
+  if (flow === 'PASSWORD_RESET') {
+    return token.user ? token.user.authStatus !== 'DISABLED' : false;
+  }
+  if (flow === 'EMAIL_VERIFICATION') {
+    return token.user ? token.user.authStatus === 'PENDING_EMAIL_VERIFICATION' : false;
+  }
+  if (flow === 'EMAIL_CHANGE_VERIFICATION') {
+    return token.emailChangeRequest ? token.emailChangeRequest.status === 'PENDING' : false;
+  }
+  if (
+    flow === 'INITIAL_ORGANISATION_ADMIN_SETUP' ||
+    flow === 'ORGANISATION_TRAINEE_INVITE' ||
+    flow === 'ORGANISATION_ADMIN_PROMOTION' ||
+    flow === 'PLATFORM_ADMIN_INVITE' ||
+    flow === 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION'
+  ) {
+    return token.invitation
+      ? token.invitation.status !== 'ACCEPTED' &&
+          token.invitation.status !== 'REVOKED' &&
+          token.invitation.status !== 'COMPLETED'
+      : false;
+  }
+
+  return false;
+}
+
+function getRecipientEmail(token: ActionTokenWithRelations): string | null {
+  return (
+    token.targetEmail ??
+    token.user?.email ??
+    token.invitation?.recipientEmail ??
+    token.emailChangeRequest?.RequestedEmail ??
+    null
+  );
+}
+
+async function computeResendCooldown(
+  recipientEmail: string | null,
+  emailType: EmailDeliveryType | null,
+  now: Date,
+): Promise<number> {
+  if (!recipientEmail || !emailType) {
+    return 0;
+  }
+
+  const lastLog = await prisma.emailDeliveryLog.findFirst({
+    where: {
+      recipientEmail,
+      emailType,
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  });
+
+  if (!lastLog) {
+    return 0;
+  }
+
+  const cooldownMs = 60000;
+  const elapsed = now.getTime() - lastLog.createdAt.getTime();
+  return elapsed < cooldownMs ? Math.max(0, Math.ceil((cooldownMs - elapsed) / 1000)) : 0;
 }
 
 export async function getTokenContext(rawToken: string): Promise<TokenContextResponse> {
@@ -177,67 +263,17 @@ export async function getTokenContext(rawToken: string): Promise<TokenContextRes
 
   const now = new Date();
   const state = determineTokenState(token, now);
-
-  // Determine resend eligibility
-  let canResend = false;
-  const flow = token.purpose;
-
-  if (flow === 'PASSWORD_RESET') {
-    canResend = token.user ? token.user.authStatus !== 'DISABLED' : false;
-  } else if (flow === 'EMAIL_VERIFICATION') {
-    canResend = token.user ? token.user.authStatus === 'PENDING_EMAIL_VERIFICATION' : false;
-  } else if (flow === 'EMAIL_CHANGE_VERIFICATION') {
-    canResend = token.emailChangeRequest ? token.emailChangeRequest.status === 'PENDING' : false;
-  } else if (
-    flow === 'INITIAL_ORGANISATION_ADMIN_SETUP' ||
-    flow === 'ORGANISATION_TRAINEE_INVITE' ||
-    flow === 'ORGANISATION_ADMIN_PROMOTION' ||
-    flow === 'PLATFORM_ADMIN_INVITE' ||
-    flow === 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION'
-  ) {
-    canResend = token.invitation
-      ? token.invitation.status !== 'ACCEPTED' &&
-        token.invitation.status !== 'REVOKED' &&
-        token.invitation.status !== 'COMPLETED'
-      : false;
-  }
-
-  // Compute cooldown
-  let resendCooldownSeconds = 0;
-  const recipientEmail =
-    token.targetEmail ??
-    token.user?.email ??
-    token.invitation?.recipientEmail ??
-    token.emailChangeRequest?.RequestedEmail ??
-    null;
-
-  const emailType = mapPurposeToEmailType(flow);
-
-  if (recipientEmail && emailType) {
-    const lastLog = await prisma.emailDeliveryLog.findFirst({
-      where: {
-        recipientEmail,
-        emailType,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
-
-    if (lastLog) {
-      const cooldownMs = 60000;
-      const elapsed = now.getTime() - lastLog.createdAt.getTime();
-      resendCooldownSeconds =
-        elapsed < cooldownMs ? Math.max(0, Math.ceil((cooldownMs - elapsed) / 1000)) : 0;
-    }
-  }
+  const canResend = checkResendEligibility(token, state);
+  const recipientEmail = getRecipientEmail(token);
+  const emailType = mapPurposeToEmailType(token.purpose);
+  const resendCooldownSeconds = await computeResendCooldown(recipientEmail, emailType, now);
 
   return {
     tokenState: state,
     canResend,
     resendCooldownSeconds,
     messageCode: `TOKEN_${state}`,
-    flow,
+    flow: token.purpose,
   };
 }
 
@@ -300,7 +336,24 @@ export async function resendActionToken(rawToken: string): Promise<void> {
     throw new TokenResendError(400, 'TOKEN_RESEND_INELIGIBLE', 'Token cannot be resent safely');
   }
 
+  // Re-check token state immediately before the transaction
+  const preTxState = determineTokenState(originalToken);
+  if (preTxState !== 'VALID' && preTxState !== 'EXPIRED') {
+    throw new TokenResendError(400, 'TOKEN_RESEND_INELIGIBLE', 'Token cannot be resent safely');
+  }
+
   const newToken = await prisma.$transaction(async (tx) => {
+    const currentToken = await tx.actionToken.findUnique({
+      where: { id: originalToken.id },
+    });
+    if (!currentToken) {
+      throw new TokenResendError(400, 'TOKEN_RESEND_INELIGIBLE', 'Token cannot be resent safely');
+    }
+    const txState = determineTokenState(currentToken);
+    if (txState !== 'VALID' && txState !== 'EXPIRED') {
+      throw new TokenResendError(400, 'TOKEN_RESEND_INELIGIBLE', 'Token cannot be resent safely');
+    }
+
     await tx.actionToken.updateMany({
       where: {
         purpose: originalToken.purpose,
