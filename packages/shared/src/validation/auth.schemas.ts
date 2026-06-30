@@ -126,8 +126,5 @@ export const accountVerifyEmailChangeRequestSchema = z
       .min(32, 'Token is invalid.')
       .max(512, 'Token is invalid.')
       .regex(/^[A-Za-z0-9_-]+$/, 'Token is invalid.'),
-export const authForgotPasswordRequestSchema = z
-  .object({
-    email: emailSchema,
   })
   .strict();
