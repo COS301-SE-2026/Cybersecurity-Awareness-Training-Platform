@@ -98,7 +98,6 @@ function RegisterPage() {
     } catch {
       setAlertType('danger');
       setAlertMessage('Unable To Connect To The Server');
-      setIsLoading(false);
     } finally {
       setIsLoading(false);
     }
@@ -259,7 +258,8 @@ function RegisterPage() {
                   width: '48%',
                   height: '60px',
                   fontSize: '1.7rem',
-                  cursor: 'pointer',
+                  cursor: isLoading ? 'not-allowed' : 'pointer',
+                  opacity: isLoading ? 0.6 : 1,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
