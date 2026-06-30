@@ -33,7 +33,7 @@ function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-
+  const [isLoading, setIsLoading] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
   const [alertType, setAlertType] = useState<'success' | 'danger'>('danger');
 
@@ -61,6 +61,8 @@ function RegisterPage() {
       setAlertMessage('Passwords Do Not Match');
       return;
     }
+
+    setIsLoading(true);
 
     try {
       const response = await fetch(`${API_BASE_URL}/auth/register`, {
@@ -96,6 +98,9 @@ function RegisterPage() {
     } catch {
       setAlertType('danger');
       setAlertMessage('Unable To Connect To The Server');
+      setIsLoading(false);
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -138,14 +143,14 @@ function RegisterPage() {
       leftChildren={
         <>
           <AuthPageIntro
-            title="Welcome"
+            title="Get Started"
             dividerStyle={{ marginBottom: '0.9rem' }}
             afterDivider={
               <AuthActionLink
                 // THIS NEEDS TO GO TO THE ORGANISATION REGISTRATION REQUEST
                 to="/register"
                 prefix="ORGANISATION?"
-                emphasis="Register as an Organisation"
+                emphasis="Get Started as an Organisation"
                 outerStyle={{ marginBottom: '1.5rem' }}
               />
             }
@@ -167,6 +172,7 @@ function RegisterPage() {
               <AuthFormField
                 label="First Name(s)"
                 type="text"
+                disabled={isLoading}
                 value={firstName}
                 onChange={(event) => setFirstName(event.target.value)}
                 autoComplete="given-name"
@@ -177,6 +183,7 @@ function RegisterPage() {
                 label="Last Name"
                 type="text"
                 value={lastName}
+                disabled={isLoading}
                 onChange={(event) => setLastName(event.target.value)}
                 autoComplete="family-name"
                 wrapperStyle={{ flex: 1 }}
@@ -187,6 +194,7 @@ function RegisterPage() {
               label="Email Address"
               type="email"
               value={email}
+              disabled={isLoading}
               onChange={(event) => setEmail(event.target.value)}
               autoComplete="email"
               wrapperStyle={{ marginBottom: '1.8rem' }}
@@ -202,6 +210,7 @@ function RegisterPage() {
                 label="Password"
                 type="password"
                 value={password}
+                disabled={isLoading}
                 rightLabel={
                   <Popover
                     content={passwordPolicyPopover}
@@ -228,6 +237,7 @@ function RegisterPage() {
                 label="Confirm Password"
                 type="password"
                 value={confirmPassword}
+                disabled={isLoading}
                 onChange={(event) => setConfirmPassword(event.target.value)}
                 autoComplete="new-password"
                 wrapperStyle={{ flex: 1 }}
@@ -243,15 +253,37 @@ function RegisterPage() {
             >
               <button
                 type="submit"
+                disabled={isLoading}
                 style={{
                   ...authPrimaryButtonStyle,
                   width: '48%',
                   height: '60px',
                   fontSize: '1.7rem',
                   cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}
               >
-                Register
+                {isLoading && (
+                  <svg
+                    aria-hidden="true"
+                    className="mr-3 h-6 w-6 animate-spin fill-white text-white/30"
+                    viewBox="0 0 100 101"
+                    fill="none"
+                  >
+                    <path
+                      d="M100 50.6C100 78.2 77.6 100.6 50 100.6C22.4 100.6 0 78.2 0 50.6C0 23 22.4 0.6 50 0.6C77.6 0.6 100 23 100 50.6Z"
+                      fill="currentColor"
+                    />
+                    <path
+                      d="M93.97 39.04C96.39 38.4 97.86 35.91 97.01 33.55C95.29 28.82 92.87 24.37 89.82 20.35C85.84 15.12 80.88 10.72 75.21 7.41C69.54 4.1 63.27 1.94 56.77 1.05C51.77 0.37 46.7 0.45 41.73 1.28C39.26 1.69 37.81 4.2 38.45 6.62C39.08 9.04 41.57 10.47 44.05 10.11C47.85 9.56 51.72 9.53 55.54 10.23C60.86 11 65.99 12.78 70.63 15.47C75.27 18.16 79.33 21.7 82.58 25.84C84.91 28.81 86.8 32.13 88.18 35.68C89.08 38.01 91.54 39.68 93.97 39.04Z"
+                      fill="currentFill"
+                    />
+                  </svg>
+                )}
+
+                {isLoading ? 'Creating Account...' : 'Register'}
               </button>
 
               <AuthActionLink to="/login" prefix="ALREADY REGISTERED?" emphasis="Log In" />
