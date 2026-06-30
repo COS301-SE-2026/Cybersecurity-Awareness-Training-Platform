@@ -87,6 +87,8 @@ export async function registerUser(
     actionTokenId: verification.token.id,
     templateData: {
       actionToken: verification.rawToken,
+      firstName: newUser.firstName,
+      actionTokenExpiresAt: verification.token.expiresAt,
     },
   });
 
