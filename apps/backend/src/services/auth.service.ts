@@ -474,7 +474,7 @@ export async function verifyEmailChange(rawToken: string): Promise<VerifyEmailCh
   }
 
   const token = validation.token;
-  if (!token.userId || !token.targetEmail) {
+  if (!token.userId || !token.targetEmail || !token.emailChangeRequestId) {
     return { state: 'INVALID' };
   }
 
@@ -496,7 +496,47 @@ export async function verifyEmailChange(rawToken: string): Promise<VerifyEmailCh
 
   const oldEmail = user.email;
 
-  await prisma.$transaction(async (tx) => {
+  const resultState = await prisma.$transaction(async (tx) => {
+    // 1. Load the EmailChangeRequest
+    const changeRequest = await tx.emailChangeRequest.findUnique({
+      where: { id: token.emailChangeRequestId! },
+    });
+
+    if (!changeRequest) {
+      return 'INVALID';
+    }
+
+    // 2. Validate request properties
+    if (
+      changeRequest.userId !== token.userId ||
+      changeRequest.RequestedEmail !== token.targetEmail
+    ) {
+      return 'INVALID';
+    }
+
+    // 3. Check expiration
+    if (changeRequest.expiresAt.getTime() <= Date.now() || changeRequest.status === 'EXPIRED') {
+      if (changeRequest.status === 'PENDING') {
+        await tx.emailChangeRequest.update({
+          where: { id: changeRequest.id },
+          data: { status: 'EXPIRED' },
+        });
+      }
+      return 'EXPIRED';
+    }
+
+    // 4. Check status
+    if (changeRequest.status !== 'PENDING') {
+      if (changeRequest.status === 'CONFIRMED') {
+        return 'USED';
+      }
+      if (changeRequest.status === 'CANCELED') {
+        return 'REVOKED';
+      }
+      return 'INVALID';
+    }
+
+    // 5. Consume action token
     const consumed = await tx.actionToken.updateMany({
       where: { id: token.id, usedAt: null, revokedAt: null },
       data: { usedAt: new Date() },
@@ -506,6 +546,7 @@ export async function verifyEmailChange(rawToken: string): Promise<VerifyEmailCh
       throw new Error('TOKEN_ALREADY_USED');
     }
 
+    // 6. Update user email
     await tx.user.update({
       where: { id: user.id },
       data: {
@@ -513,6 +554,16 @@ export async function verifyEmailChange(rawToken: string): Promise<VerifyEmailCh
       },
     });
 
+    // 7. Update EmailChangeRequest status
+    await tx.emailChangeRequest.update({
+      where: { id: changeRequest.id },
+      data: {
+        status: 'CONFIRMED',
+        confirmedAt: new Date(),
+      },
+    });
+
+    // 8. Revoke all active sessions and refresh tokens
     const now = new Date();
     await tx.authSession.updateMany({
       where: { userId: user.id, revokedAt: null },
@@ -524,6 +575,7 @@ export async function verifyEmailChange(rawToken: string): Promise<VerifyEmailCh
       data: { revokedAt: now, revokedReason: 'EMAIL_CHANGE' },
     });
 
+    // 9. Write Security Audit Log
     await recordAuditLog(
       {
         actorUserId: user.id,
@@ -540,33 +592,9 @@ export async function verifyEmailChange(rawToken: string): Promise<VerifyEmailCh
       },
       tx,
     );
+
+    return 'VALID';
   });
 
-  await requestAuthEmailSend({
-    emailType: 'EMAIL_CHANGE_CONFIRMATION',
-    recipientEmail: targetEmail,
-    userId: user.id,
-    actionTokenId: token.id,
-    templateData: {
-      firstName: user.firstName,
-      oldEmail,
-      newEmail: targetEmail,
-      actionToken: rawToken,
-      actionTokenExpiresAt: token.expiresAt,
-    },
-  });
-
-  await requestAuthEmailSend({
-    emailType: 'EMAIL_CHANGE_WARNING',
-    recipientEmail: oldEmail,
-    userId: user.id,
-    actionTokenId: token.id,
-    templateData: {
-      firstName: user.firstName,
-      oldEmail,
-      newEmail: targetEmail,
-    },
-  });
-
-  return { state: 'VALID' };
+  return { state: resultState };
 }

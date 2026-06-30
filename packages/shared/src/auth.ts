@@ -15,13 +15,15 @@ export type AccountVerifyEmailChangeRequestDto = z.infer<
   typeof accountVerifyEmailChangeRequestSchema
 >;
 
+export type ActionTokenStateDto = 'VALID' | 'INVALID' | 'EXPIRED' | 'USED' | 'REVOKED';
+
 export interface AuthVerifyEmailResponseDto {
-  state: 'VALID' | 'INVALID' | 'EXPIRED' | 'USED' | 'REVOKED';
+  state: ActionTokenStateDto;
   user?: PublicUserDto;
 }
 
 export interface AccountVerifyEmailChangeResponseDto {
-  state: 'VALID' | 'INVALID' | 'EXPIRED' | 'USED' | 'REVOKED';
+  state: ActionTokenStateDto;
 }
 
 export interface AuthRegisterResponseDto {
@@ -31,7 +33,7 @@ export interface AuthRegisterResponseDto {
 
 export interface SetupTokenContextResponseDto {
   token: {
-    state: 'VALID' | 'INVALID' | 'EXPIRED' | 'USED' | 'REVOKED';
+    state: ActionTokenStateDto;
     purpose?: string;
   };
   targetEmail?: string;
