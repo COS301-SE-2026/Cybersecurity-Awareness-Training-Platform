@@ -11,6 +11,8 @@ import {
   refreshUserToken,
   logoutUser,
   resendVerificationEmail,
+  verifyEmail,
+  AuthResendCooldownError,
 } from '../services/auth.service.js';
 
 function getCookie(req: Request, name: string): string | null {
@@ -189,8 +191,23 @@ export async function refresh(req: Request, res: Response) {
 }
 
 export async function resendVerification(req: Request, res: Response) {
-  await resendVerificationEmail(req.body.email);
-  return res.status(200).json({
-    message: 'If the email is registered and unverified, a verification link has been sent.',
-  });
+  try {
+    await resendVerificationEmail(req.body.email);
+    return res.status(200).json({
+      message: 'If the email is registered and unverified, a verification link has been sent.',
+    });
+  } catch (error) {
+    if (error instanceof AuthResendCooldownError) {
+      return res.status(429).json({
+        error: 'AUTH_RATE_LIMITED',
+        message: error.message,
+      });
+    }
+    throw error;
+  }
+}
+
+export async function verify(req: Request, res: Response) {
+  const result = await verifyEmail(req.body.token);
+  return res.status(200).json(result);
 }

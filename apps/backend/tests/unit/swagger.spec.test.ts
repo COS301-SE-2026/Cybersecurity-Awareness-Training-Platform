@@ -35,6 +35,10 @@ const expectedSchemas = [
   'AuthMeResponse',
   'AuthResendVerificationRequest',
   'AuthResendVerificationResponse',
+  'AuthVerifyEmailRequest',
+  'AuthVerifyEmailResponse',
+  'AccountVerifyEmailChangeRequest',
+  'AccountVerifyEmailChangeResponse',
   'AuthRateLimitErrorResponse',
   'SetupTokenState',
   'SetupTokenContextResponse',
@@ -132,6 +136,8 @@ const expectedRequestBodies = [
   'SubmitQuizAttempt',
   'SetupComplete',
   'CreateOrganisationRegistrationRequest',
+  'AuthVerifyEmail',
+  'AccountVerifyEmailChange',
 ] as const;
 
 const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
@@ -142,6 +148,8 @@ const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
   ['post', '/auth/logout', ['200', '500']],
   ['post', '/auth/refresh', ['200', '401', '403', '429', '500']],
   ['post', '/auth/resend-verification', ['200', '400', '429', '500']],
+  ['post', '/auth/verify-email', ['200', '400', '429', '500']],
+  ['post', '/account/verify-email-change', ['200', '400', '409', '429', '500']],
   ['get', '/setup/token/{token}/context', ['200', '400', '401', '409', '429', '500']],
   ['post', '/setup/token/{token}/complete', ['201', '400', '401', '409', '429', '500']],
   ['post', '/organisation-registration-requests', ['201', '409', '422', '429', '500']],

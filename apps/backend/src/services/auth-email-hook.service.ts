@@ -1,4 +1,5 @@
-import { sendEmail } from './email.service.js';
+import { env } from '../config/env.js';
+import { sendEmail, type SendEmailInput } from './email.service.js';
 
 export type AuthEmailType =
   | 'EMAIL_VERIFICATION'
@@ -35,7 +36,14 @@ export type AuthEmailHookResult =
 export async function requestAuthEmailSend(
   input: AuthEmailHookInput,
 ): Promise<AuthEmailHookResult> {
-  if (input.emailType !== 'ORGANISATION_REQUEST_RECEIVED') {
+  const supportedTypes: AuthEmailType[] = [
+    'ORGANISATION_REQUEST_RECEIVED',
+    'EMAIL_VERIFICATION',
+    'EMAIL_CHANGE_CONFIRMATION',
+    'EMAIL_CHANGE_WARNING',
+  ];
+
+  if (!supportedTypes.includes(input.emailType)) {
     return {
       queued: false,
       reason: 'EMAIL_SERVICE_NOT_IMPLEMENTED',
@@ -43,21 +51,68 @@ export async function requestAuthEmailSend(
   }
 
   try {
-    const organisationName = organisationNameFromTemplateData(input.templateData);
-    const result = await sendEmail({
-      to: input.recipientEmail,
-      subject: 'We received your organisation registration request',
-      text: [
+    let subject = '';
+    let text = '';
+    let html = '';
+
+    if (input.emailType === 'ORGANISATION_REQUEST_RECEIVED') {
+      const organisationName = organisationNameFromTemplateData(input.templateData);
+      subject = 'We received your organisation registration request';
+      text = [
         `We received the registration request for ${organisationName}.`,
         'The Insightful Phish team will review it before any organisation or account is created.',
-      ].join('\n\n'),
-      html: [
+      ].join('\n\n');
+      html = [
         `<p>We received the registration request for ${escapeHtml(organisationName)}.</p>`,
         '<p>The Insightful Phish team will review it before any organisation or account is created.</p>',
-      ].join(''),
-      emailType: 'ORGANISATION_REQUEST_RECEIVED',
+      ].join('');
+    } else if (input.emailType === 'EMAIL_VERIFICATION') {
+      const actionToken = input.templateData?.actionToken;
+      const verificationUrl = `${env.FRONTEND_ORIGIN}/auth/verify-email?token=${actionToken}`;
+      subject = 'Verify your email address';
+      text = [
+        'Please verify your email address by clicking the following link:',
+        verificationUrl,
+        'This link will expire in 24 hours.',
+      ].join('\n\n');
+      html = [
+        '<p>Please verify your email address by clicking the link below:</p>',
+        `<p><a href="${verificationUrl}">${verificationUrl}</a></p>`,
+        '<p>This link will expire in 24 hours.</p>',
+      ].join('');
+    } else if (input.emailType === 'EMAIL_CHANGE_CONFIRMATION') {
+      subject = 'Your email has been updated';
+      text = 'Your Insightful Phish account email has been successfully updated.';
+      html = '<p>Your Insightful Phish account email has been successfully updated.</p>';
+    } else if (input.emailType === 'EMAIL_CHANGE_WARNING') {
+      const newEmail = (input.templateData?.newEmail as string) || 'a new email address';
+      subject = 'Security Alert: Email address changed';
+      text = [
+        `The email address for your Insightful Phish account was recently changed to ${newEmail}.`,
+        'If you did not make this change, please contact support immediately.',
+      ].join('\n\n');
+      html = [
+        `<p>The email address for your Insightful Phish account was recently changed to <strong>${escapeHtml(newEmail)}</strong>.</p>`,
+        '<p>If you did not make this change, please contact support immediately.</p>',
+      ].join('');
+    }
+
+    const sendEmailInput: SendEmailInput = {
+      to: input.recipientEmail,
+      subject,
+      text,
+      html,
+      emailType: input.emailType,
       organisationRegistrationRequestId: input.organisationRegistrationRequestId ?? null,
-    });
+    };
+    if (input.userId !== undefined) {
+      sendEmailInput.userId = input.userId;
+    }
+    if (input.actionTokenId !== undefined) {
+      sendEmailInput.actionTokenId = input.actionTokenId;
+    }
+
+    const result = await sendEmail(sendEmailInput);
 
     if (!result.ok) {
       return {

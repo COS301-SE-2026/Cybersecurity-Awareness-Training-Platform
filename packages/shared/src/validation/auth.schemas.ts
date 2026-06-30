@@ -102,3 +102,30 @@ export const authResendVerificationRequestSchema = z
     email: emailSchema,
   })
   .strict();
+
+export const authVerifyEmailRequestSchema = z
+  .object({
+    token: z
+      .string({
+        required_error: 'Token is required.',
+        invalid_type_error: 'Token must be a string.',
+      })
+      .min(32, 'Token is invalid.')
+      .max(512, 'Token is invalid.')
+      .regex(/^[A-Za-z0-9_-]+$/, 'Token is invalid.'),
+  })
+  .strict();
+
+export const accountVerifyEmailChangeRequestSchema = z
+  .object({
+    token: z
+      .string({
+        required_error: 'Token is required.',
+        invalid_type_error: 'Token must be a string.',
+      })
+      .min(32, 'Token is invalid.')
+      .max(512, 'Token is invalid.')
+      .regex(/^[A-Za-z0-9_-]+$/, 'Token is invalid.'),
+  })
+  .strict();
+

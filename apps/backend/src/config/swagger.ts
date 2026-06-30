@@ -656,6 +656,49 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             },
           },
         },
+        AuthVerifyEmailRequest: {
+          type: 'object',
+          required: ['token'],
+          additionalProperties: false,
+          properties: {
+            token: {
+              type: 'string',
+              minLength: 32,
+              maxLength: 512,
+              pattern: '^[A-Za-z0-9_-]+$',
+              example: 'exampleVerificationTokenValueWithAtLeast32Chars',
+            },
+          },
+        },
+        AuthVerifyEmailResponse: {
+          type: 'object',
+          required: ['state'],
+          properties: {
+            state: enumString(['VALID', 'INVALID', 'EXPIRED', 'USED', 'REVOKED'], 'VALID'),
+            user: schemaRef('PublicUser'),
+          },
+        },
+        AccountVerifyEmailChangeRequest: {
+          type: 'object',
+          required: ['token'],
+          additionalProperties: false,
+          properties: {
+            token: {
+              type: 'string',
+              minLength: 32,
+              maxLength: 512,
+              pattern: '^[A-Za-z0-9_-]+$',
+              example: 'exampleEmailChangeTokenValueWithAtLeast32Chars',
+            },
+          },
+        },
+        AccountVerifyEmailChangeResponse: {
+          type: 'object',
+          required: ['state'],
+          properties: {
+            state: enumString(['VALID', 'INVALID', 'EXPIRED', 'USED', 'REVOKED'], 'VALID'),
+          },
+        },
         SetupTokenState: enumString(['VALID', 'INVALID', 'EXPIRED', 'USED', 'REVOKED'], 'VALID'),
         SetupTokenContextResponse: {
           type: 'object',
@@ -1971,6 +2014,14 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         AuthLogin: {
           required: true,
           ...jsonContent(schemaRef('AuthLoginRequest')),
+        },
+        AuthVerifyEmail: {
+          required: true,
+          ...jsonContent(schemaRef('AuthVerifyEmailRequest')),
+        },
+        AccountVerifyEmailChange: {
+          required: true,
+          ...jsonContent(schemaRef('AccountVerifyEmailChangeRequest')),
         },
         EmptyJson: {
           required: false,

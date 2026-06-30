@@ -14,7 +14,7 @@ describe('requestAuthEmailSend', () => {
 
   it('keeps unsupported auth email types on the existing non-implemented path', async () => {
     const result = await requestAuthEmailSend({
-      emailType: 'EMAIL_VERIFICATION',
+      emailType: 'PASSWORD_RESET',
       recipientEmail: 'learner@example.test',
       userId: 'user-1',
       actionTokenId: 'action-token-1',

@@ -5,7 +5,7 @@ describe('auth-email hook service', () => {
   it('returns the not implemented result', async () => {
     await expect(
       requestAuthEmailSend({
-        emailType: 'EMAIL_CHANGE_CONFIRMATION',
+        emailType: 'PASSWORD_RESET',
         recipientEmail: 'johannel@example.com',
       }),
     ).resolves.toEqual({ queued: false, reason: 'EMAIL_SERVICE_NOT_IMPLEMENTED' });
