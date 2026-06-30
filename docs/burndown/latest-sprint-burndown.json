@@ -149,8 +149,8 @@
       "number": 272,
       "title": "feat: phase 4 organisation admin permissions foundation migration",
       "points": 5,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-06-30"
     },
     {
       "number": 271,
@@ -596,7 +596,7 @@
     },
     {
       "date": "2026-06-30",
-      "remaining": 130,
+      "remaining": 125,
       "ideal": 71.16
     }
   ]
