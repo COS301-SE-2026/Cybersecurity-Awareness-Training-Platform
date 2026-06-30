@@ -472,18 +472,27 @@ model OrganisationTraineeProfile {
 }
 
 model OrganisationAdminProfile {
-  id             String       @id @default(uuid())
-  userId         String       @unique
-  organisationId String
-  adminStatus    AdminStatus  @default(ACTIVE)
-  joinedAt       DateTime     @default(now())
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  id                      String       @id @default(uuid())
+  userId                  String       @unique
+  organisationId          String
+  adminStatus             AdminStatus  @default(ACTIVE)
+  joinedAt                DateTime     @default(now())
+  isInitialAdmin          Boolean      @default(false)
+  createdFromInvitationId String?
+  disabledAt              DateTime?
+  disabledReason          String?
+  createdAt               DateTime     @default(now())
+  updatedAt               DateTime     @updatedAt
+  user                    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organisation            Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  createdFromInvitation   Invitation?  @relation("InvitationAcceptedOrganisationAdmin", fields: [createdFromInvitationId, organisationId], references: [id, organisationId], onDelete: Restrict)
 
+  @@unique([id, organisationId])
+  @@unique([createdFromInvitationId, organisationId])
   @@index([organisationId])
   @@index([adminStatus])
+  @@index([isInitialAdmin])
+  @@index([disabledAt])
 }
 
 model IpAdminProfile {
@@ -698,6 +707,7 @@ model Invitation {
   organisationRegistrationRequest    OrganisationRegistrationRequest? @relation(fields: [organisationRegistrationRequestId], references: [id], onDelete: SetNull)
   targetUser                         User?                            @relation("InvitationTargetUser", fields: [targetUserId], references: [id], onDelete: SetNull)
   acceptedOrganisationTraineeProfile OrganisationTraineeProfile?      @relation("InvitationAcceptedOrganisationTrainee")
+  acceptedOrganisationAdminProfile   OrganisationAdminProfile?        @relation("InvitationAcceptedOrganisationAdmin")
   actionTokens                       ActionToken[]                    @relation("InvitationActionTokens")
   emailDeliveryLogs                  EmailDeliveryLog[]               @relation("InvitationEmailDeliveryLogs")
 
