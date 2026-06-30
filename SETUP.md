@@ -209,7 +209,7 @@ The local services are available at:
 
 ### Inspect local emails with Mailpit
 
-Emails are captured locally using Mailpit. After trigerring something that sends and email, you can inspect the email in the Mailpit UI at [http://localhost:8025](http://localhost:8025).
+Emails are captured locally using Mailpit. After triggering something that sends an email, you can inspect the email in the Mailpit UI at [http://localhost:8025](http://localhost:8025).
 
 To use the smoke-test script to see if the Mailpit service is running, you can run: `pnpm docker:mailpit:smoke`
 
