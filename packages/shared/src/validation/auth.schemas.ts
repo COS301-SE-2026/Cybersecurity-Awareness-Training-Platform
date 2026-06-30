@@ -93,5 +93,12 @@ export const authLoginRequestSchema = z
       })
       .min(1, 'Please enter your password.')
       .max(128, 'Password must be at most 128 characters long.'),
+    rememberMe: z.boolean().optional(),
+  })
+  .strict();
+
+export const authResendVerificationRequestSchema = z
+  .object({
+    email: emailSchema,
   })
   .strict();

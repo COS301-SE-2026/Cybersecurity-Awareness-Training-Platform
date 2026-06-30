@@ -37,6 +37,13 @@ vi.mock('../../src/lib/prisma.js', () => ({
   prisma: prismaMock,
 }));
 
+vi.mock('../../src/services/auth-session.service.js', () => ({
+  validateAuthSession: vi.fn().mockImplementation(async (args: { sessionId: string }) => ({
+    state: 'ACTIVE',
+    session: { id: args.sessionId, userId: '11111111-1111-4111-8111-111111111111' },
+  })),
+}));
+
 const userId = '11111111-1111-4111-8111-111111111111';
 const traineeProfileId = '22222222-2222-4222-8222-222222222222';
 const otherCampaignId = '33333333-3333-4333-8333-333333333333';
@@ -60,9 +67,12 @@ const user = {
   authStatus: 'ACTIVE',
   createdAt: new Date('2026-05-16T08:00:00.000Z'),
   updatedAt: new Date('2026-05-16T08:00:00.000Z'),
+  traineeProfile: {
+    traineeStatus: 'ACTIVE',
+  },
 };
 
-const authHeader = () => `Bearer ${generateAuthToken(userId).token}`;
+const authHeader = () => `Bearer ${generateAuthToken(userId, 'session-123').token}`;
 
 function campaignSummaryItems() {
   return [
