@@ -25,6 +25,13 @@ vi.mock('../../src/lib/prisma.js', () => ({
   prisma: mockPrisma,
 }));
 
+vi.mock('../../src/services/auth-session.service.js', () => ({
+  validateAuthSession: vi.fn().mockImplementation(async (args: { sessionId: string }) => ({
+    state: 'ACTIVE',
+    session: { id: args.sessionId, userId: 'trainee-user-id' },
+  })),
+}));
+
 const campaignItemId = '11111111-1111-1111-1111-111111111111';
 const attemptId = '22222222-2222-2222-2222-222222222222';
 const questionId = '33333333-3333-3333-3333-333333333333';
@@ -143,7 +150,7 @@ function mockBoundedMultipleChoiceQuizAttempt(min: number, max: number, status =
 }
 
 describe('Quiz API Routes', () => {
-  const token = generateAuthToken('trainee-user-id').token;
+  const token = generateAuthToken('trainee-user-id', 'session-123').token;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -157,6 +164,16 @@ describe('Quiz API Routes', () => {
       userType: 'ORGANISATION_TRAINEE',
       authStatus: 'ACTIVE',
       createdAt: new Date(),
+      traineeProfile: {
+        traineeStatus: 'ACTIVE',
+        organisationTraineeProfile: {
+          membershipStatus: 'ACTIVE',
+          organisation: {
+            id: 'mock-org',
+            status: 'ACTIVE',
+          },
+        },
+      },
     });
 
     mockPrisma.traineeProfile.findUnique.mockResolvedValue({

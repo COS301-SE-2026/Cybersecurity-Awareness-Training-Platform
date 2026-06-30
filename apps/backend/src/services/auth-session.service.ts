@@ -88,3 +88,7 @@ export async function revokeSessionsForUser(input: {
     exceptSessionId: input.exceptSessionId ?? null,
   });
 }
+
+export async function touchSession(id: string) {
+  return touchAuthSession(id);
+}
