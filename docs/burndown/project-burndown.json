@@ -1165,8 +1165,8 @@
           "number": 232,
           "title": "feat: implement backend Sprint 4 email templates and delivery logging",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-06-30"
         },
         {
           "number": 231,
@@ -1599,7 +1599,7 @@
     },
     {
       "date": "2026-06-30",
-      "remaining": 136,
+      "remaining": 134,
       "ideal": 49.33
     }
   ]
