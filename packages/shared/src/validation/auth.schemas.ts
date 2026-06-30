@@ -143,5 +143,3 @@ export const tokenParamsSchema = z
       .regex(/^[A-Za-z0-9_-]+$/, 'Token is invalid.'),
   })
   .strict();
-
-

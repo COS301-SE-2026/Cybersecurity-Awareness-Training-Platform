@@ -343,9 +343,7 @@ export async function resendActionToken(rawToken: string): Promise<void> {
     templateData: {
       actionToken: newToken.rawToken,
       firstName:
-        originalToken.user?.firstName ??
-        originalToken.invitation?.recipientFirstName ??
-        'Trainee',
+        originalToken.user?.firstName ?? originalToken.invitation?.recipientFirstName ?? 'Trainee',
       actionTokenExpiresAt: newToken.token.expiresAt,
       oldEmail: originalToken.emailChangeRequest?.currentEmail,
       newEmail: originalToken.emailChangeRequest?.RequestedEmail,

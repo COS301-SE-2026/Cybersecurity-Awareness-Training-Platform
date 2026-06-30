@@ -193,9 +193,7 @@ describe('Forgot Password and Reset Password API', () => {
       prismaMock.authSession.updateMany.mockResolvedValue({ count: 1 });
       prismaMock.refreshToken.updateMany.mockResolvedValue({ count: 1 });
 
-      const response = await request(createApp())
-        .post('/auth/reset-password')
-        .send(validPayload);
+      const response = await request(createApp()).post('/auth/reset-password').send(validPayload);
 
       expect(response.status).toBe(200);
       expect(response.body).toEqual({ success: true });
@@ -227,9 +225,7 @@ describe('Forgot Password and Reset Password API', () => {
         token: { id: 'token-123' },
       });
 
-      const response = await request(createApp())
-        .post('/auth/reset-password')
-        .send(validPayload);
+      const response = await request(createApp()).post('/auth/reset-password').send(validPayload);
 
       expect(response.status).toBe(401);
       expect(response.body).toHaveProperty('error', 'RESET_TOKEN_EXPIRED');
@@ -241,9 +237,7 @@ describe('Forgot Password and Reset Password API', () => {
         token: { id: 'token-123' },
       });
 
-      const response = await request(createApp())
-        .post('/auth/reset-password')
-        .send(validPayload);
+      const response = await request(createApp()).post('/auth/reset-password').send(validPayload);
 
       expect(response.status).toBe(409);
       expect(response.body).toHaveProperty('error', 'RESET_TOKEN_USED');
@@ -263,9 +257,7 @@ describe('Forgot Password and Reset Password API', () => {
         authStatus: 'DISABLED',
       });
 
-      const response = await request(createApp())
-        .post('/auth/reset-password')
-        .send(validPayload);
+      const response = await request(createApp()).post('/auth/reset-password').send(validPayload);
 
       expect(response.status).toBe(403);
       expect(response.body).toHaveProperty('error', 'USER_DISABLED');
@@ -294,8 +286,9 @@ describe('Forgot Password and Reset Password API', () => {
         flow: 'PASSWORD_RESET',
       });
 
-      const response = await request(createApp())
-        .get('/auth/tokens/exampleResetTokenValueWithAtLeast32Chars/context');
+      const response = await request(createApp()).get(
+        '/auth/tokens/exampleResetTokenValueWithAtLeast32Chars/context',
+      );
 
       expect(response.status).toBe(200);
       expect(response.body).toEqual({
@@ -321,8 +314,9 @@ describe('Forgot Password and Reset Password API', () => {
     it('resends token successfully', async () => {
       actionTokenServiceMock.resendActionToken.mockResolvedValue(undefined);
 
-      const response = await request(createApp())
-        .post('/auth/tokens/exampleResetTokenValueWithAtLeast32Chars/resend');
+      const response = await request(createApp()).post(
+        '/auth/tokens/exampleResetTokenValueWithAtLeast32Chars/resend',
+      );
 
       expect(response.status).toBe(200);
       expect(response.body).toEqual({ success: true });
@@ -341,8 +335,9 @@ describe('Forgot Password and Reset Password API', () => {
         ),
       );
 
-      const response = await request(createApp())
-        .post('/auth/tokens/exampleResetTokenValueWithAtLeast32Chars/resend');
+      const response = await request(createApp()).post(
+        '/auth/tokens/exampleResetTokenValueWithAtLeast32Chars/resend',
+      );
 
       expect(response.status).toBe(429);
       expect(response.body).toEqual({
@@ -361,8 +356,9 @@ describe('Forgot Password and Reset Password API', () => {
         ),
       );
 
-      const response = await request(createApp())
-        .post('/auth/tokens/exampleResetTokenValueWithAtLeast32Chars/resend');
+      const response = await request(createApp()).post(
+        '/auth/tokens/exampleResetTokenValueWithAtLeast32Chars/resend',
+      );
 
       expect(response.status).toBe(400);
       expect(response.body).toEqual({

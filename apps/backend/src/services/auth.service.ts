@@ -446,7 +446,11 @@ export async function resetUserPassword(
       throw new AuthResetPasswordError(401, 'RESET_TOKEN_EXPIRED', 'Reset token has expired');
     }
     if (state === 'USED') {
-      throw new AuthResetPasswordError(409, 'RESET_TOKEN_USED', 'Reset token has already been used');
+      throw new AuthResetPasswordError(
+        409,
+        'RESET_TOKEN_USED',
+        'Reset token has already been used',
+      );
     }
     if (state === 'REVOKED') {
       throw new AuthResetPasswordError(401, 'RESET_TOKEN_REVOKED', 'Reset token has been revoked');
@@ -473,7 +477,11 @@ export async function resetUserPassword(
     });
 
     if (claim.count !== 1) {
-      throw new AuthResetPasswordError(409, 'RESET_TOKEN_USED', 'Reset token has already been used');
+      throw new AuthResetPasswordError(
+        409,
+        'RESET_TOKEN_USED',
+        'Reset token has already been used',
+      );
     }
 
     await tx.user.update({

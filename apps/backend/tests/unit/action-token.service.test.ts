@@ -302,7 +302,12 @@ describe('action-token service', () => {
         expiresAt: new Date(Date.now() - 3600000), // expired
         usedAt: null,
         revokedAt: null,
-        user: { id: 'user-123', authStatus: 'ACTIVE', email: 'test@example.com', firstName: 'John' },
+        user: {
+          id: 'user-123',
+          authStatus: 'ACTIVE',
+          email: 'test@example.com',
+          firstName: 'John',
+        },
       });
       prismaMock.emailDeliveryLog.findFirst.mockResolvedValue(null);
       repositoryMock.createActionToken.mockResolvedValue({
