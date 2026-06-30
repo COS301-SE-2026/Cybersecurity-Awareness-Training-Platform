@@ -1,4 +1,6 @@
-import type { ActionTokenPurpose } from '../generated/prisma/enums.js';
+import type { ActionTokenPurpose, EmailDeliveryType } from '../generated/prisma/enums.js';
+import { prisma } from '../lib/prisma.js';
+import { requestAuthEmailSend } from './auth-email-hook.service.js';
 import type { ActionTokenModel } from '../generated/prisma/models/ActionToken.js';
 import {
   createActionToken,
@@ -108,4 +110,246 @@ export function runWithConsumedActionToken<T>(
   action: (tx: Prisma.TransactionClient) => Promise<T>,
 ) {
   return withClaimedActionToken(input, action);
+}
+
+export type TokenContextResponse = {
+  tokenState: ActionTokenState;
+  canResend: boolean;
+  resendCooldownSeconds: number;
+  messageCode: string;
+  flow: ActionTokenPurpose | 'UNKNOWN';
+};
+
+function mapPurposeToEmailType(purpose: ActionTokenPurpose): EmailDeliveryType | null {
+  switch (purpose) {
+    case 'EMAIL_VERIFICATION':
+      return 'EMAIL_VERIFICATION';
+    case 'PASSWORD_RESET':
+      return 'PASSWORD_RESET';
+    case 'EMAIL_CHANGE_VERIFICATION':
+      return 'EMAIL_CHANGE_CONFIRMATION';
+    case 'INITIAL_ORGANISATION_ADMIN_SETUP':
+      return 'INITIAL_ORGANISATION_ADMIN_SETUP';
+    case 'ORGANISATION_TRAINEE_INVITE':
+      return 'ORGANISATION_TRAINEE_INVITE';
+    case 'ORGANISATION_ADMIN_PROMOTION':
+      return 'ORGANISATION_ADMIN_PROMOTION_INVITE';
+    case 'PLATFORM_ADMIN_INVITE':
+      return 'PLATFORM_ADMIN_INVITE';
+    case 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION':
+      return 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION';
+    default:
+      return null;
+  }
+}
+
+function determineTokenState(token: ActionTokenModel, now = new Date()): ActionTokenState {
+  if (token.revokedAt) return 'REVOKED';
+  if (token.usedAt) return 'USED';
+  if (token.expiresAt.getTime() <= now.getTime()) return 'EXPIRED';
+  return 'VALID';
+}
+
+export async function getTokenContext(rawToken: string): Promise<TokenContextResponse> {
+  const tokenHash = hashOpaqueToken(rawToken);
+  const token = await prisma.actionToken.findUnique({
+    where: { tokenHash },
+    include: {
+      user: true,
+      emailChangeRequest: true,
+      invitation: {
+        include: {
+          organisation: true,
+        },
+      },
+    },
+  });
+
+  if (!token) {
+    return {
+      tokenState: 'INVALID',
+      canResend: false,
+      resendCooldownSeconds: 0,
+      messageCode: 'TOKEN_INVALID',
+      flow: 'UNKNOWN',
+    };
+  }
+
+  const now = new Date();
+  const state = determineTokenState(token, now);
+
+  // Determine resend eligibility
+  let canResend = false;
+  const flow = token.purpose;
+
+  if (flow === 'PASSWORD_RESET') {
+    canResend = token.user ? token.user.authStatus !== 'DISABLED' : false;
+  } else if (flow === 'EMAIL_VERIFICATION') {
+    canResend = token.user ? token.user.authStatus === 'PENDING_EMAIL_VERIFICATION' : false;
+  } else if (flow === 'EMAIL_CHANGE_VERIFICATION') {
+    canResend = token.emailChangeRequest ? token.emailChangeRequest.status === 'PENDING' : false;
+  } else if (
+    flow === 'INITIAL_ORGANISATION_ADMIN_SETUP' ||
+    flow === 'ORGANISATION_TRAINEE_INVITE' ||
+    flow === 'ORGANISATION_ADMIN_PROMOTION' ||
+    flow === 'PLATFORM_ADMIN_INVITE' ||
+    flow === 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION'
+  ) {
+    canResend = token.invitation
+      ? token.invitation.status !== 'ACCEPTED' &&
+        token.invitation.status !== 'REVOKED' &&
+        token.invitation.status !== 'COMPLETED'
+      : false;
+  }
+
+  // Compute cooldown
+  let resendCooldownSeconds = 0;
+  const recipientEmail =
+    token.targetEmail ??
+    token.user?.email ??
+    token.invitation?.recipientEmail ??
+    token.emailChangeRequest?.RequestedEmail ??
+    null;
+
+  const emailType = mapPurposeToEmailType(flow);
+
+  if (recipientEmail && emailType) {
+    const lastLog = await prisma.emailDeliveryLog.findFirst({
+      where: {
+        recipientEmail,
+        emailType,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    if (lastLog) {
+      const cooldownMs = 60000;
+      const elapsed = now.getTime() - lastLog.createdAt.getTime();
+      resendCooldownSeconds =
+        elapsed < cooldownMs ? Math.max(0, Math.ceil((cooldownMs - elapsed) / 1000)) : 0;
+    }
+  }
+
+  return {
+    tokenState: state,
+    canResend,
+    resendCooldownSeconds,
+    messageCode: `TOKEN_${state}`,
+    flow,
+  };
+}
+
+export class TokenResendError extends Error {
+  constructor(
+    public readonly statusCode: number,
+    public readonly code: string,
+    message: string,
+    public readonly cooldownSeconds?: number,
+  ) {
+    super(message);
+    this.name = 'TokenResendError';
+  }
+}
+
+export async function resendActionToken(rawToken: string): Promise<void> {
+  const context = await getTokenContext(rawToken);
+
+  if (!context.canResend || context.flow === 'UNKNOWN') {
+    throw new TokenResendError(400, 'TOKEN_RESEND_INELIGIBLE', 'Token cannot be resent safely');
+  }
+
+  if (context.resendCooldownSeconds > 0) {
+    throw new TokenResendError(
+      429,
+      'RESEND_COOLDOWN_ACTIVE',
+      'Resend cooldown active. Please try again later.',
+      context.resendCooldownSeconds,
+    );
+  }
+
+  const tokenHash = hashOpaqueToken(rawToken);
+  const originalToken = await prisma.actionToken.findUnique({
+    where: { tokenHash },
+    include: {
+      user: true,
+      emailChangeRequest: true,
+      invitation: {
+        include: {
+          organisation: true,
+        },
+      },
+    },
+  });
+
+  if (!originalToken) {
+    throw new TokenResendError(400, 'TOKEN_RESEND_INELIGIBLE', 'Token cannot be resent safely');
+  }
+
+  const recipientEmail =
+    originalToken.targetEmail ??
+    originalToken.user?.email ??
+    originalToken.invitation?.recipientEmail ??
+    originalToken.emailChangeRequest?.RequestedEmail ??
+    null;
+
+  const emailType = mapPurposeToEmailType(originalToken.purpose);
+
+  if (!recipientEmail || !emailType) {
+    throw new TokenResendError(400, 'TOKEN_RESEND_INELIGIBLE', 'Token cannot be resent safely');
+  }
+
+  const newToken = await prisma.$transaction(async (tx) => {
+    await tx.actionToken.updateMany({
+      where: {
+        purpose: originalToken.purpose,
+        userId: originalToken.userId ?? null,
+        invitationId: originalToken.invitationId ?? null,
+        emailChangeRequestId: originalToken.emailChangeRequestId ?? null,
+        targetEmail: originalToken.targetEmail ?? null,
+        revokedAt: null,
+        usedAt: null,
+      },
+      data: {
+        revokedAt: new Date(),
+        revokedReason: 'REPLACED',
+      },
+    });
+
+    const issued = await issueActionToken(
+      {
+        purpose: originalToken.purpose,
+        userId: originalToken.userId,
+        invitationId: originalToken.invitationId,
+        emailChangeRequestId: originalToken.emailChangeRequestId,
+        targetEmail: originalToken.targetEmail,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      },
+      tx,
+    );
+
+    return issued;
+  });
+
+  await requestAuthEmailSend({
+    emailType,
+    recipientEmail,
+    userId: originalToken.userId,
+    actionTokenId: newToken.token.id,
+    invitationId: originalToken.invitationId,
+    relatedEntityType: originalToken.emailChangeRequestId ? 'EMAIL_CHANGE_REQUEST' : undefined,
+    relatedEntityId: originalToken.emailChangeRequestId,
+    templateData: {
+      actionToken: newToken.rawToken,
+      firstName:
+        originalToken.user?.firstName ??
+        originalToken.invitation?.recipientFirstName ??
+        'Trainee',
+      actionTokenExpiresAt: newToken.token.expiresAt,
+      oldEmail: originalToken.emailChangeRequest?.currentEmail,
+      newEmail: originalToken.emailChangeRequest?.RequestedEmail,
+      organisationName: originalToken.invitation?.organisation.name,
+    },
+  });
 }

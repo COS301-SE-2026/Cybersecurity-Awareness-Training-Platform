@@ -4,6 +4,8 @@ import {
   issueActionToken,
   revokeActionTokenById,
   validateActionToken,
+  getTokenContext,
+  resendActionToken,
 } from '../../src/services/action-token.service.js';
 
 const repositoryMock = vi.hoisted(() => ({
@@ -19,10 +21,29 @@ const tokenHashServiceMock = vi.hoisted(() => ({
   hashOpaqueToken: vi.fn(),
 }));
 
+const authEmailHookServiceMock = vi.hoisted(() => ({
+  requestAuthEmailSend: vi.fn(),
+}));
+
+const prismaMock = vi.hoisted(() => ({
+  $transaction: vi.fn(),
+  actionToken: {
+    findUnique: vi.fn(),
+    updateMany: vi.fn(),
+  },
+  emailDeliveryLog: {
+    findFirst: vi.fn(),
+  },
+}));
+
 import type { Prisma } from '../../src/generated/prisma/client.js';
 
 vi.mock('../../src/repositories/action-token.repository.js', () => repositoryMock);
 vi.mock('../../src/services/token-hash.service.js', () => tokenHashServiceMock);
+vi.mock('../../src/services/auth-email-hook.service.js', () => authEmailHookServiceMock);
+vi.mock('../../src/lib/prisma.js', () => ({
+  prisma: prismaMock,
+}));
 
 describe('action-token service', () => {
   beforeEach(() => {
@@ -225,5 +246,98 @@ describe('action-token service', () => {
       { tokenId: 'actiontoken01' },
       action,
     );
+  });
+
+  describe('getTokenContext and resendActionToken', () => {
+    beforeEach(() => {
+      prismaMock.$transaction.mockImplementation((action) => action(prismaMock));
+    });
+
+    it('returns INVALID for missing token', async () => {
+      prismaMock.actionToken.findUnique.mockResolvedValue(null);
+      const res = await getTokenContext('some-missing-token');
+      expect(res.tokenState).toBe('INVALID');
+      expect(res.canResend).toBe(false);
+    });
+
+    it('returns VALID context and computes resend capability for active password reset token', async () => {
+      prismaMock.actionToken.findUnique.mockResolvedValue({
+        id: 'token-123',
+        purpose: 'PASSWORD_RESET',
+        expiresAt: new Date(Date.now() + 3600000),
+        usedAt: null,
+        revokedAt: null,
+        user: { authStatus: 'ACTIVE', email: 'test@example.com' },
+      });
+      prismaMock.emailDeliveryLog.findFirst.mockResolvedValue(null);
+
+      const res = await getTokenContext('some-token');
+      expect(res.tokenState).toBe('VALID');
+      expect(res.canResend).toBe(true);
+      expect(res.resendCooldownSeconds).toBe(0);
+    });
+
+    it('computes cooldown remaining if email was recently sent', async () => {
+      prismaMock.actionToken.findUnique.mockResolvedValue({
+        id: 'token-123',
+        purpose: 'PASSWORD_RESET',
+        expiresAt: new Date(Date.now() + 3600000),
+        usedAt: null,
+        revokedAt: null,
+        user: { authStatus: 'ACTIVE', email: 'test@example.com' },
+      });
+      prismaMock.emailDeliveryLog.findFirst.mockResolvedValue({
+        createdAt: new Date(Date.now() - 20000), // 20s ago
+      });
+
+      const res = await getTokenContext('some-token');
+      expect(res.resendCooldownSeconds).toBeGreaterThan(30);
+      expect(res.resendCooldownSeconds).toBeLessThanOrEqual(40);
+    });
+
+    it('resends token successfully if eligible and not on cooldown', async () => {
+      prismaMock.actionToken.findUnique.mockResolvedValue({
+        id: 'token-123',
+        purpose: 'PASSWORD_RESET',
+        expiresAt: new Date(Date.now() - 3600000), // expired
+        usedAt: null,
+        revokedAt: null,
+        user: { id: 'user-123', authStatus: 'ACTIVE', email: 'test@example.com', firstName: 'John' },
+      });
+      prismaMock.emailDeliveryLog.findFirst.mockResolvedValue(null);
+      repositoryMock.createActionToken.mockResolvedValue({
+        id: 'token-456',
+        expiresAt: new Date(Date.now() + 3600000),
+      });
+
+      await resendActionToken('some-token');
+
+      expect(prismaMock.actionToken.updateMany).toHaveBeenCalled();
+      expect(repositoryMock.createActionToken).toHaveBeenCalled();
+      expect(authEmailHookServiceMock.requestAuthEmailSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          emailType: 'PASSWORD_RESET',
+          recipientEmail: 'test@example.com',
+        }),
+      );
+    });
+
+    it('throws TokenResendError if resend cooldown is active', async () => {
+      prismaMock.actionToken.findUnique.mockResolvedValue({
+        id: 'token-123',
+        purpose: 'PASSWORD_RESET',
+        expiresAt: new Date(Date.now() - 3600000),
+        usedAt: null,
+        revokedAt: null,
+        user: { authStatus: 'ACTIVE', email: 'test@example.com' },
+      });
+      prismaMock.emailDeliveryLog.findFirst.mockResolvedValue({
+        createdAt: new Date(Date.now() - 20000),
+      });
+
+      await expect(resendActionToken('some-token')).rejects.toThrowError(
+        'Resend cooldown active. Please try again later.',
+      );
+    });
   });
 }); //describe
