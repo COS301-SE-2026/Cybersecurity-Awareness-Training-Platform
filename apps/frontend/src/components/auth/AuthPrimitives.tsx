@@ -2,16 +2,16 @@ import type { ChangeEventHandler, CSSProperties, ReactNode } from 'react';
 import { useId } from 'react';
 import { Link } from 'react-router-dom';
 
-type AuthPageFrameProps = {
+type AuthPageFrameProps = Readonly<{
   leftWidth: string;
   rightWidth: string;
   leftChildren: ReactNode;
   rightChildren: ReactNode;
   leftPanelStyle?: CSSProperties;
   rightPanelStyle?: CSSProperties;
-};
+}>;
 
-type AuthPageIntroProps = {
+type AuthPageIntroProps = Readonly<{
   title: string;
   logo?: ReactNode;
   afterDivider?: ReactNode;
@@ -19,9 +19,9 @@ type AuthPageIntroProps = {
   titleStyle?: CSSProperties;
   dividerStyle?: CSSProperties;
   messageStyle?: CSSProperties;
-};
+}>;
 
-type AuthFormFieldProps = {
+type AuthFormFieldProps = Readonly<{
   label: string;
   type: 'email' | 'password' | 'text';
   value: string;
@@ -31,9 +31,10 @@ type AuthFormFieldProps = {
   inputStyle?: CSSProperties;
   autoComplete?: string;
   rightLabel?: ReactNode;
-};
+  disabled?: boolean;
+}>;
 
-type AuthActionLinkProps = {
+type AuthActionLinkProps = Readonly<{
   to: string;
   prefix: string;
   emphasis: string;
@@ -41,7 +42,8 @@ type AuthActionLinkProps = {
   rowStyle?: CSSProperties;
   iconStyle?: CSSProperties;
   emphasisStyle?: CSSProperties;
-};
+  onClick?: React.MouseEventHandler<HTMLAnchorElement>;
+}>;
 
 export function AuthPageFrame({
   leftWidth,
@@ -131,6 +133,7 @@ export function AuthFormField({
   inputStyle,
   autoComplete,
   rightLabel,
+  disabled,
 }: AuthFormFieldProps) {
   const inputId = useId();
 
@@ -168,8 +171,11 @@ export function AuthFormField({
         value={value}
         onChange={onChange}
         autoComplete={autoComplete}
+        disabled={disabled}
         style={{
           ...authFieldInputStyle,
+          opacity: disabled ? 0.6 : 1,
+          cursor: disabled ? 'not-allowed' : 'text',
           ...inputStyle,
         }}
       />
@@ -185,10 +191,12 @@ export function AuthActionLink({
   rowStyle,
   iconStyle,
   emphasisStyle,
+  onClick,
 }: AuthActionLinkProps) {
   return (
     <Link
       to={to}
+      onClick={onClick}
       style={{
         ...authActionLinkStyle,
         ...outerStyle,

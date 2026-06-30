@@ -51,9 +51,9 @@ describe('LoginPage', () => {
 
     await user.type(screen.getByLabelText(/email address/i), 'not-an-email');
     await user.type(screen.getByLabelText(/^password$/i), 'legacy-password');
-    await user.click(screen.getByRole('button', { name: /login/i }));
+    await user.click(screen.getByRole('button', { name: /Log In/i }));
 
-    expect(screen.getByText('Please enter a valid email address.')).toBeInTheDocument();
+    expect(screen.getByText('Please Enter A Valid Email Address')).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -76,7 +76,7 @@ describe('LoginPage', () => {
 
     await user.type(screen.getByLabelText(/email address/i), '  TRAINEE@example.com  ');
     await user.type(screen.getByLabelText(/^password$/i), 'legacy-password');
-    await user.click(screen.getByRole('button', { name: /login/i }));
+    await user.click(screen.getByRole('button', { name: /Log In/i }));
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -118,9 +118,9 @@ describe('LoginPage', () => {
 
     await user.type(screen.getByLabelText(/email address/i), 'trainee@example.com');
     await user.type(screen.getByLabelText(/^password$/i), 'wrong-password');
-    await user.click(screen.getByRole('button', { name: /login/i }));
+    await user.click(screen.getByRole('button', { name: /Log In/i }));
 
-    expect(await screen.findByText('INVALID EMAIL OR PASSWORD')).toBeInTheDocument();
+    expect(await screen.findByText('Invalid Email Address Or Password')).toBeInTheDocument();
     expect(loginMock).not.toHaveBeenCalled();
     expect(navigateMock).not.toHaveBeenCalled();
   });
