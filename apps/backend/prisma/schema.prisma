@@ -144,6 +144,7 @@ enum OrganisationPermissionKey {
 enum InvitationPurpose {
   INITIAL_ORGANISATION_ADMIN_SETUP
   ORGANISATION_TRAINEE_INVITE
+  ORGANISATION_ADMIN_PROMOTION
 }
 
 enum InvitationStatus {
@@ -655,6 +656,7 @@ model Organisation {
   auditLogEntries      AuditLogEntry[]
   permissions          OrganisationPermission[]
   adminPermissionGrants OrganisationAdminPermission[]
+  invitationPermissionGrants InvitationPermissionGrant[]
 }
 
 model OrganisationPermission {
@@ -668,6 +670,7 @@ model OrganisationPermission {
   updatedAt                DateTime                       @updatedAt
   organisation             Organisation                   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   adminPermissionGrants    OrganisationAdminPermission[]
+  invitationPermissionGrants InvitationPermissionGrant[]
 
   @@unique([organisationId, key])
   @@unique([id, organisationId])
@@ -692,6 +695,23 @@ model OrganisationAdminPermission {
   @@unique([organisationAdminId, organisationPermissionId])
   @@index([organisationId])
   @@index([organisationAdminId])
+  @@index([organisationPermissionId])
+  @@index([organisationId, organisationPermissionId])
+}
+
+model InvitationPermissionGrant {
+  id                       String                 @id @default(uuid())
+  organisationId           String
+  invitationId             String
+  organisationPermissionId String
+  createdAt                DateTime               @default(now())
+  organisation             Organisation           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  invitation               Invitation             @relation(fields: [invitationId, organisationId], references: [id, organisationId], onDelete: Cascade)
+  organisationPermission   OrganisationPermission @relation(fields: [organisationPermissionId, organisationId], references: [id, organisationId], onDelete: Cascade)
+
+  @@unique([invitationId, organisationPermissionId])
+  @@index([organisationId])
+  @@index([invitationId])
   @@index([organisationPermissionId])
   @@index([organisationId, organisationPermissionId])
 }
@@ -760,6 +780,7 @@ model Invitation {
   acceptedOrganisationAdminProfile   OrganisationAdminProfile?        @relation("InvitationAcceptedOrganisationAdmin")
   actionTokens                       ActionToken[]                    @relation("InvitationActionTokens")
   emailDeliveryLogs                  EmailDeliveryLog[]               @relation("InvitationEmailDeliveryLogs")
+  permissionGrants                   InvitationPermissionGrant[]
 
   @@unique([id, organisationId])
   @@index([organisationId])
