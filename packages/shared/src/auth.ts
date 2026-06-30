@@ -25,7 +25,6 @@ export interface SetupTokenContextResponseDto {
 
 export interface SetupCompleteResponseDto {
   user: PublicUserDto;
-  confirmationEmailQueued: boolean;
 }
 
 export type UserTypeDto =
