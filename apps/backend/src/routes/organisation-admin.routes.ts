@@ -13,6 +13,10 @@ import {
   updateOrganisationAdminPermissions,
 } from '../controllers/organisation-admin.controller.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
+import {
+  organisationAdminMutationRateLimit,
+  organisationAdminReadRateLimit,
+} from '../middleware/organisationAdminRateLimit.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { validateBody, validateParams } from '../middleware/validateRequest.js';
 
@@ -38,12 +42,15 @@ export const organisationAdminRouter = Router();
  *         $ref: '#/components/responses/Unauthorized'
  *       403:
  *         $ref: '#/components/responses/Forbidden'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
 organisationAdminRouter.get(
   '/organisations/:organisationId/admins',
   requireAuth,
+  organisationAdminReadRateLimit,
   validateParams(organisationIdParamsSchema),
   asyncHandler(listOrganisationAdmins),
 );
@@ -74,12 +81,15 @@ organisationAdminRouter.get(
  *         $ref: '#/components/responses/Conflict'
  *       422:
  *         $ref: '#/components/responses/UnprocessableEntity'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
 organisationAdminRouter.post(
   '/organisations/:organisationId/admin-promotions',
   requireAuth,
+  organisationAdminMutationRateLimit,
   validateParams(organisationIdParamsSchema),
   validateBody(organisationAdminPromotionRequestSchema, { statusCode: 422 }),
   asyncHandler(promoteOrganisationAdmin),
@@ -114,12 +124,15 @@ organisationAdminRouter.post(
  *         $ref: '#/components/responses/Conflict'
  *       422:
  *         $ref: '#/components/responses/UnprocessableEntity'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
 organisationAdminRouter.patch(
   '/organisations/:organisationId/admins/:adminId/permissions',
   requireAuth,
+  organisationAdminMutationRateLimit,
   validateParams(organisationAdminIdParamsSchema),
   validateBody(organisationAdminPermissionUpdateRequestSchema, { statusCode: 422 }),
   asyncHandler(updateOrganisationAdminPermissions),
@@ -154,12 +167,15 @@ organisationAdminRouter.patch(
  *         $ref: '#/components/responses/Conflict'
  *       422:
  *         $ref: '#/components/responses/UnprocessableEntity'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
 organisationAdminRouter.post(
   '/organisations/:organisationId/admins/:adminId/remove',
   requireAuth,
+  organisationAdminMutationRateLimit,
   validateParams(organisationAdminIdParamsSchema),
   validateBody(organisationAdminRemoveRequestSchema, { statusCode: 422 }),
   asyncHandler(removeOrganisationAdmin),

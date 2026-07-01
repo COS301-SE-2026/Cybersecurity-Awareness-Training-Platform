@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from 'express';
 import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../../src/app.js';
+import { clearOrganisationAdminRateLimitStores } from '../../src/middleware/organisationAdminRateLimit.js';
 
 const actorUserId = '33333333-3333-4333-8333-333333333333';
 const organisationId = '11111111-1111-4111-8111-111111111111';
@@ -59,6 +60,7 @@ function promotionPayload() {
 describe('organisation admin routes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearOrganisationAdminRateLimitStores();
   });
 
   it('lists organisation admins for the authenticated actor and organisation', async () => {
@@ -185,5 +187,55 @@ describe('organisation admin routes', () => {
     expect(response.status).toBe(400);
     expect(response.body).toHaveProperty('error', 'VALIDATION_ERROR');
     expect(serviceMock.getOrganisationAdmins).not.toHaveBeenCalled();
+  });
+
+  it('rate limits organisation admin list requests before service work', async () => {
+    serviceMock.getOrganisationAdmins.mockResolvedValue({
+      admins: [],
+      availablePermissions: [],
+      actorPermissions: ['VIEW_ORGANISATION_ADMINS'],
+    });
+
+    const app = createApp();
+    let response: request.Response | undefined;
+
+    for (let index = 0; index <= 100; index += 1) {
+      response = await request(app).get(`/organisations/${organisationId}/admins`);
+    }
+
+    expect(response?.status).toBe(429);
+    expect(response?.body).toEqual({
+      error: 'ORGANISATION_ADMIN_RATE_LIMITED',
+      message: 'Too many organisation admin requests. Please try again later.',
+    });
+    expect(response?.headers).toHaveProperty('retry-after');
+    expect(serviceMock.getOrganisationAdmins).toHaveBeenCalledTimes(100);
+  });
+
+  it('rate limits organisation admin mutation requests before service work', async () => {
+    serviceMock.removeAdmin.mockResolvedValue({
+      adminId,
+      status: 'DISABLED',
+    });
+
+    const app = createApp();
+    let response: request.Response | undefined;
+
+    for (let index = 0; index <= 20; index += 1) {
+      response = await request(app)
+        .post(`/organisations/${organisationId}/admins/${adminId}/remove`)
+        .send({
+          password: removeConfirmationSecret,
+          confirmation: 'REMOVE',
+        });
+    }
+
+    expect(response?.status).toBe(429);
+    expect(response?.body).toEqual({
+      error: 'ORGANISATION_ADMIN_RATE_LIMITED',
+      message: 'Too many organisation admin requests. Please try again later.',
+    });
+    expect(response?.headers).toHaveProperty('retry-after');
+    expect(serviceMock.removeAdmin).toHaveBeenCalledTimes(20);
   });
 });

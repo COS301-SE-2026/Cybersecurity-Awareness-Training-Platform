@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { swaggerSpec } from '../../src/config/swagger.js';
 
-type HttpMethod = 'get' | 'post';
+type HttpMethod = 'get' | 'patch' | 'post';
 
 interface SwaggerOperationShape {
   responses?: Record<string, unknown>;
@@ -156,6 +156,22 @@ const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
   ['get', '/setup/token/{token}/context', ['200', '400', '401', '409', '429', '500']],
   ['post', '/setup/token/{token}/complete', ['201', '400', '401', '409', '429', '500']],
   ['post', '/organisation-registration-requests', ['201', '409', '422', '429', '500']],
+  ['get', '/organisations/{organisationId}/admins', ['200', '400', '401', '403', '429', '500']],
+  [
+    'post',
+    '/organisations/{organisationId}/admin-promotions',
+    ['201', '400', '401', '403', '409', '422', '429', '500'],
+  ],
+  [
+    'patch',
+    '/organisations/{organisationId}/admins/{adminId}/permissions',
+    ['200', '400', '401', '403', '404', '409', '422', '429', '500'],
+  ],
+  [
+    'post',
+    '/organisations/{organisationId}/admins/{adminId}/remove',
+    ['200', '400', '401', '403', '404', '409', '422', '429', '500'],
+  ],
   ['get', '/trainee/campaigns', ['200', '401', '429', '500']],
   ['get', '/trainee/campaigns/{campaignId}', ['200', '400', '401', '404', '429', '500']],
   [

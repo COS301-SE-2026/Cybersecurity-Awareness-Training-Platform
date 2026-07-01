@@ -254,6 +254,51 @@ describe('organisation admin service', () => {
     });
   });
 
+  it('marks promotion invitations failed when the central email service does not queue', async () => {
+    repositoryMock.findActorOrganisationAdmin.mockResolvedValue(
+      actorAdmin(['INVITE_ORGANISATION_ADMINS']),
+    );
+    repositoryMock.findOrganisationPermissionsByKeys.mockResolvedValue([
+      organisationPermission('permission-view', 'VIEW_ORGANISATION_ADMINS'),
+    ]);
+    repositoryMock.findActiveOrganisationTraineeByEmail.mockResolvedValue({
+      id: 'target-user-1',
+      email: 'trainee@example.test',
+      firstName: 'Tara',
+      lastName: 'Trainee',
+    });
+    repositoryMock.findOrganisationAdminByUserId.mockResolvedValue(null);
+    repositoryMock.findPendingOrganisationAdminPromotionInvitation.mockResolvedValue(null);
+    repositoryMock.createOrganisationAdminPromotionInvitation.mockResolvedValue({
+      id: 'invitation-1',
+      expiresAt: new Date('2026-07-08T08:00:00.000Z'),
+    });
+    repositoryMock.createInvitationPermissionGrants.mockResolvedValue({ count: 1 });
+    emailHookMock.requestAuthEmailSend.mockResolvedValue({
+      queued: false,
+      reason: 'EMAIL_SEND_FAILED',
+    });
+
+    await expect(
+      createAdminPromotion(actorUserId, organisationId, {
+        traineeEmail: 'trainee@example.test',
+        permissionKeys: ['VIEW_ORGANISATION_ADMINS'],
+      }),
+    ).resolves.toMatchObject({
+      status: 'FAILED_TO_SEND',
+      emailQueued: false,
+    });
+    expect(repositoryMock.updatePromotionInvitationStatus).toHaveBeenCalledWith({
+      invitationId: 'invitation-1',
+      status: 'FAILED_TO_SEND',
+    });
+    expect(auditLogMock.recordAuditLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        outcome: 'FAILURE',
+      }),
+    );
+  });
+
   it('does not promote users outside the same active organisation trainee scope', async () => {
     repositoryMock.findActorOrganisationAdmin.mockResolvedValue(
       actorAdmin(['INVITE_ORGANISATION_ADMINS']),
@@ -274,6 +319,26 @@ describe('organisation admin service', () => {
     });
     expect(repositoryMock.createOrganisationAdminPromotionInvitation).not.toHaveBeenCalled();
     expect(emailHookMock.requestAuthEmailSend).not.toHaveBeenCalled();
+  });
+
+  it('requires the actor to hold the permission needed for each workflow', async () => {
+    repositoryMock.findActorOrganisationAdmin.mockResolvedValue(actorAdmin([]));
+
+    await expect(getOrganisationAdmins(actorUserId, organisationId)).rejects.toMatchObject({
+      statusCode: 403,
+      error: 'ORG_ADMIN_PERMISSION_REQUIRED',
+    });
+    await expect(
+      createAdminPromotion(actorUserId, organisationId, {
+        traineeEmail: 'trainee@example.test',
+        permissionKeys: ['VIEW_ORGANISATION_ADMINS'],
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 403,
+      error: 'ORG_ADMIN_PERMISSION_REQUIRED',
+    });
+    expect(repositoryMock.listOrganisationAdminsWithPermissions).not.toHaveBeenCalled();
+    expect(repositoryMock.findActiveOrganisationTraineeByEmail).not.toHaveBeenCalled();
   });
 
   it('replaces admin permissions when critical safeguards remain satisfied', async () => {
