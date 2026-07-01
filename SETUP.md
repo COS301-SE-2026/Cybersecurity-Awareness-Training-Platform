@@ -207,6 +207,14 @@ The local services are available at:
 - Mailpit SMTP from Docker services: `mailpit:1025`
 - Mailpit SMTP from host machine: `localhost:1025`
 
+### Inspect local emails with Mailpit
+
+Emails are captured locally using Mailpit. After triggering something that sends an email, you can inspect the email in the Mailpit UI at [http://localhost:8025](http://localhost:8025).
+
+To use the smoke-test script to see if the Mailpit service is running, you can run: `pnpm docker:mailpit:smoke`
+
+### Check service status and logs
+
 You can check the service status and logs using the commands below:
 
 ```bash
