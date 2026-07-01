@@ -6,6 +6,13 @@
   "end": "2026-07-08",
   "issues": [
     {
+      "number": 313,
+      "title": "fix: add resend verification cooldown response handling",
+      "points": 1,
+      "state": "open",
+      "closed_date": null
+    },
+    {
       "number": 292,
       "title": "feat: integrate account settings and session management",
       "points": 2,
@@ -541,63 +548,68 @@
   "series": [
     {
       "date": "2026-06-19",
-      "remaining": 169,
-      "ideal": 169.0
+      "remaining": 170,
+      "ideal": 170.0
     },
     {
       "date": "2026-06-20",
-      "remaining": 169,
-      "ideal": 160.11
+      "remaining": 170,
+      "ideal": 161.05
     },
     {
       "date": "2026-06-21",
-      "remaining": 169,
-      "ideal": 151.21
+      "remaining": 170,
+      "ideal": 152.11
     },
     {
       "date": "2026-06-22",
-      "remaining": 167,
-      "ideal": 142.32
+      "remaining": 168,
+      "ideal": 143.16
     },
     {
       "date": "2026-06-23",
-      "remaining": 155,
-      "ideal": 133.42
+      "remaining": 156,
+      "ideal": 134.21
     },
     {
       "date": "2026-06-24",
-      "remaining": 153,
-      "ideal": 124.53
+      "remaining": 154,
+      "ideal": 125.26
     },
     {
       "date": "2026-06-25",
-      "remaining": 149,
-      "ideal": 115.63
+      "remaining": 150,
+      "ideal": 116.32
     },
     {
       "date": "2026-06-26",
-      "remaining": 147,
-      "ideal": 106.74
+      "remaining": 148,
+      "ideal": 107.37
     },
     {
       "date": "2026-06-27",
-      "remaining": 147,
-      "ideal": 97.84
+      "remaining": 148,
+      "ideal": 98.42
     },
     {
       "date": "2026-06-28",
-      "remaining": 144,
-      "ideal": 88.95
+      "remaining": 145,
+      "ideal": 89.47
     },
     {
       "date": "2026-06-29",
-      "remaining": 136,
-      "ideal": 80.05
+      "remaining": 137,
+      "ideal": 80.53
     },
     {
       "date": "2026-06-30",
-      "remaining": 125,
-      "ideal": 71.16
+      "remaining": 126,
+      "ideal": 71.58
+    },
+    {
+      "date": "2026-07-01",
+      "remaining": 126,
+      "ideal": 62.63
     }
   ]
 }
