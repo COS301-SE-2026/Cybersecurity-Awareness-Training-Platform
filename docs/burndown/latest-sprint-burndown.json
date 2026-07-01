@@ -457,8 +457,8 @@
       "number": 231,
       "title": "feat: build frontend individual registration and setup page",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-07-01"
     },
     {
       "number": 230,
@@ -622,7 +622,7 @@
     },
     {
       "date": "2026-07-01",
-      "remaining": 118,
+      "remaining": 116,
       "ideal": 64.11
     }
   ]
