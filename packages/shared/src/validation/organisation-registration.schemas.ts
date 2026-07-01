@@ -31,15 +31,21 @@ const websiteUrlSchema = z
     }
   }, 'Organisation website URL must use http or https.');
 
-const optionalOrganisationDescriptionSchema = z
-  .string({ invalid_type_error: 'Please enter a valid organisation description.' })
-  .trim()
-  .max(2000, 'Organisation description must be at most 2000 characters.')
-  .optional()
-  .or(z.literal('').transform(() => undefined));
-const optionalWebsiteUrlSchema = websiteUrlSchema
-  .optional()
-  .or(z.literal('').transform(() => undefined));
+const optionalTrimmedString = (value: unknown) => {
+  if (typeof value !== 'string') {
+    return value;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+};
+const optionalOrganisationDescriptionSchema = z.preprocess(
+  optionalTrimmedString,
+  z
+    .string({ invalid_type_error: 'Please enter a valid organisation description.' })
+    .max(2000, 'Organisation description must be at most 2000 characters.')
+    .optional(),
+);
+const optionalWebsiteUrlSchema = z.preprocess(optionalTrimmedString, websiteUrlSchema.optional());
 
 export const createOrganisationRegistrationRequestSchema = z
   .object({
