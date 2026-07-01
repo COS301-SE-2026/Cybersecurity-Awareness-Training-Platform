@@ -30,12 +30,20 @@ export interface AuthRegisterResponseDto {
   message: string;
 }
 
+export type SetupTokenPurposeDto =
+  | 'INITIAL_ORGANISATION_ADMIN_SETUP'
+  | 'ORGANISATION_TRAINEE_INVITE'
+  | 'PLATFORM_ADMIN_INVITE';
+export type SetupTokenRoleDto = 'ORGANISATION_TRAINEE' | 'ORGANISATION_ADMIN' | 'IP_ADMIN';
 export interface SetupTokenContextResponseDto {
   token: {
     state: ActionTokenStateDto;
     purpose?: string;
   };
   targetEmail?: string;
+  targetFirstName?: string | null;
+  targetLastName?: string | null;
+  role?: SetupTokenRoleDto;
   organisationName?: string;
 }
 

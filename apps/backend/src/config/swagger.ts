@@ -812,6 +812,21 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
               format: 'email',
               example: 'learner@example.com',
             },
+            targetFirstName: {
+              type: 'string',
+              nullable: true,
+              example: 'Jane',
+            },
+            targetLastName: {
+              type: 'string',
+              nullable: true,
+              example: 'Doe',
+            },
+            role: {
+              type: 'string',
+              enum: ['ORGANISATION_TRAINEE', 'ORGANISATION_ADMIN', 'IP_ADMIN'],
+              example: 'ORGANISATION_TRAINEE',
+            },
             organisationName: {
               type: 'string',
               example: 'Example Organisation',

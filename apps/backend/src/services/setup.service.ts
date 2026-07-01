@@ -67,6 +67,9 @@ export async function getSetupTokenContext(
       purpose: setupToken.purpose,
     },
     targetEmail: setupTargetEmail(setupToken) ?? undefined,
+    targetFirstName: setupToken.invitation?.recipientFirstName ?? setupToken.user?.firstName,
+    targetLastName: setupToken.invitation?.recipientLastName ?? setupToken.user?.lastName,
+    role: setupUserTypeForPurpose(setupToken.purpose),
     organisationName: setupToken.invitation?.organisation.name,
   };
 }
