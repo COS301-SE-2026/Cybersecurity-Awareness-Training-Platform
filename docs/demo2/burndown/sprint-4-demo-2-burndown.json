@@ -4,11 +4,18 @@
   "end": "2026-07-08",
   "issues": [
     {
-      "number": 314,
-      "title": "chore: lint only changed files in PRs to dev",
+      "number": 317,
+      "title": "fix: make individual registration enumeration-safe",
       "points": 2,
       "state": "open",
       "closed_date": null
+    },
+    {
+      "number": 314,
+      "title": "chore: lint only changed files in PRs to dev",
+      "points": 2,
+      "state": "closed",
+      "closed_date": "2026-07-01"
     },
     {
       "number": 313,
@@ -553,68 +560,68 @@
   "series": [
     {
       "date": "2026-06-19",
-      "remaining": 172,
-      "ideal": 172.0
+      "remaining": 174,
+      "ideal": 174.0
     },
     {
       "date": "2026-06-20",
-      "remaining": 172,
-      "ideal": 162.95
+      "remaining": 174,
+      "ideal": 164.84
     },
     {
       "date": "2026-06-21",
-      "remaining": 172,
-      "ideal": 153.89
+      "remaining": 174,
+      "ideal": 155.68
     },
     {
       "date": "2026-06-22",
-      "remaining": 170,
-      "ideal": 144.84
+      "remaining": 172,
+      "ideal": 146.53
     },
     {
       "date": "2026-06-23",
-      "remaining": 158,
-      "ideal": 135.79
+      "remaining": 160,
+      "ideal": 137.37
     },
     {
       "date": "2026-06-24",
-      "remaining": 156,
-      "ideal": 126.74
+      "remaining": 158,
+      "ideal": 128.21
     },
     {
       "date": "2026-06-25",
-      "remaining": 152,
-      "ideal": 117.68
+      "remaining": 154,
+      "ideal": 119.05
     },
     {
       "date": "2026-06-26",
-      "remaining": 150,
-      "ideal": 108.63
+      "remaining": 152,
+      "ideal": 109.89
     },
     {
       "date": "2026-06-27",
-      "remaining": 150,
-      "ideal": 99.58
+      "remaining": 152,
+      "ideal": 100.74
     },
     {
       "date": "2026-06-28",
-      "remaining": 147,
-      "ideal": 90.53
+      "remaining": 149,
+      "ideal": 91.58
     },
     {
       "date": "2026-06-29",
-      "remaining": 139,
-      "ideal": 81.47
+      "remaining": 141,
+      "ideal": 82.42
     },
     {
       "date": "2026-06-30",
-      "remaining": 128,
-      "ideal": 72.42
+      "remaining": 130,
+      "ideal": 73.26
     },
     {
       "date": "2026-07-01",
       "remaining": 120,
-      "ideal": 63.37
+      "ideal": 64.11
     }
   ]
 }
