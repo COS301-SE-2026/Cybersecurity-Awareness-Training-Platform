@@ -6,12 +6,17 @@ import { env } from '../../src/config/env.js';
 import { clearAuthRateLimitStore } from '../../src/middleware/authRateLimit.js';
 import { generateAuthToken } from '../../src/services/auth-token.service.js';
 import { hashPassword } from '../../src/services/password.service.js';
+import { clearResendCooldowns } from '../../src/services/auth.service.js';
 
 const prismaMock = vi.hoisted(() => ({
   $transaction: vi.fn(),
   user: {
     findUnique: vi.fn(),
     create: vi.fn(),
+    update: vi.fn(),
+  },
+  actionToken: {
+    updateMany: vi.fn().mockResolvedValue({ count: 1 }),
   },
   authSession: {
     findUnique: vi.fn(),
@@ -50,6 +55,7 @@ const prismaMock = vi.hoisted(() => ({
 
 const actionTokenServiceMock = vi.hoisted(() => ({
   issueActionToken: vi.fn(),
+  validateActionToken: vi.fn(),
 }));
 
 const authEmailHookServiceMock = vi.hoisted(() => ({
@@ -68,6 +74,7 @@ describe('Auth routes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     clearAuthRateLimitStore();
+    clearResendCooldowns();
     prismaMock.$transaction.mockImplementation((action) => action(prismaMock));
   });
 
@@ -645,6 +652,84 @@ describe('Auth routes', () => {
         }),
         expect.any(Object),
       );
+    });
+
+    it('returns 429 Too Many Requests when requesting resend verification during cooldown', async () => {
+      prismaMock.user.findUnique.mockResolvedValue({
+        id: 'user-pending',
+        email: 'pending@example.com',
+        firstName: 'Pending',
+        lastName: 'User',
+        authStatus: 'PENDING_EMAIL_VERIFICATION',
+      });
+      actionTokenServiceMock.issueActionToken.mockResolvedValue({
+        rawToken: 'raw-resend-token',
+        token: { id: 'token-resend-id' },
+      });
+      authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue({ queued: true });
+
+      // First request succeeds
+      const res1 = await request(createApp())
+        .post('/auth/resend-verification')
+        .send({ email: 'pending@example.com' });
+      expect(res1.status).toBe(200);
+
+      // Second request fails with 429
+      const res2 = await request(createApp())
+        .post('/auth/resend-verification')
+        .send({ email: 'pending@example.com' });
+      expect(res2.status).toBe(429);
+      expect(res2.body.error).toBe('AUTH_RATE_LIMITED');
+    });
+  });
+
+  describe('POST /auth/verify-email', () => {
+    it('verifies registration email token and returns VALID state', async () => {
+      actionTokenServiceMock.validateActionToken.mockResolvedValue({
+        state: 'VALID',
+        token: { id: 'token-123', userId: 'user-1' },
+      });
+      prismaMock.user.findUnique.mockResolvedValue({
+        id: 'user-1',
+        email: 'user@example.com',
+        authStatus: 'PENDING_EMAIL_VERIFICATION',
+      });
+      prismaMock.actionToken.updateMany.mockResolvedValue({ count: 1 });
+      prismaMock.user.update.mockResolvedValue({
+        id: 'user-1',
+        email: 'user@example.com',
+        authStatus: 'ACTIVE',
+        createdAt: new Date(),
+      });
+
+      const response = await request(createApp())
+        .post('/auth/verify-email')
+        .send({ token: 'validVerificationTokenWithAtLeast32Chars' });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({
+        state: 'VALID',
+        user: expect.objectContaining({
+          id: 'user-1',
+          email: 'user@example.com',
+          authStatus: 'ACTIVE',
+        }),
+      });
+    });
+
+    it('returns token state response on validation failure', async () => {
+      actionTokenServiceMock.validateActionToken.mockResolvedValue({
+        state: 'EXPIRED',
+      });
+
+      const response = await request(createApp())
+        .post('/auth/verify-email')
+        .send({ token: 'expiredVerificationTokenWithAtLeast32Chars' });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({
+        state: 'EXPIRED',
+      });
     });
   });
 });
