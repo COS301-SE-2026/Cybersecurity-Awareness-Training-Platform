@@ -147,4 +147,19 @@ describe('RegisterPage', () => {
 
     expect(await screen.findByText('Registration Failed')).toBeInTheDocument();
   });
+
+  it('shows an error when the server cannot be reached', async () => {
+    const user = userEvent.setup();
+    fetchMock.mockRejectedValue(new Error('Network Error'));
+
+    renderRegisterPage();
+    await user.type(screen.getByLabelText(/^password$/i), 'ThisIsA$Gang$StrongPassword!42069!');
+    await user.type(
+      screen.getByLabelText(/confirm password/i),
+      'ThisIsA$Gang$StrongPassword!42069!',
+    );
+    await user.click(screen.getByRole('button', { name: /Register/i }));
+
+    expect(await screen.findByText('Unable To Connect To The Server')).toBeInTheDocument();
+  });
 }); //describe
