@@ -35,6 +35,10 @@ const expectedSchemas = [
   'AuthMeResponse',
   'AuthResendVerificationRequest',
   'AuthResendVerificationResponse',
+  'AuthVerifyEmailRequest',
+  'AuthVerifyEmailResponse',
+  'AccountVerifyEmailChangeRequest',
+  'AccountVerifyEmailChangeResponse',
   'AuthForgotPasswordRequest',
   'AuthForgotPasswordResponse',
   'AuthResetPasswordRequest',
@@ -137,6 +141,8 @@ const expectedRequestBodies = [
   'SubmitQuizAttempt',
   'SetupComplete',
   'CreateOrganisationRegistrationRequest',
+  'AuthVerifyEmail',
+  'AccountVerifyEmailChange',
   'AuthForgotPassword',
   'AuthResetPassword',
 ] as const;
@@ -149,8 +155,10 @@ const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
   ['post', '/auth/logout', ['200', '500']],
   ['post', '/auth/refresh', ['200', '401', '403', '429', '500']],
   ['post', '/auth/resend-verification', ['200', '400', '429', '500']],
+  ['post', '/auth/verify-email', ['200', '400', '429', '500']],
+  ['post', '/account/verify-email-change', ['200', '400', '409', '429', '500']],
   ['post', '/auth/forgot-password', ['200', '400', '429', '500']],
-  ['post', '/auth/reset-password', ['200', '400', '401', '403', '409', '429', '500']],
+  ['post', '/auth/reset-password', ['200', '400', '401', '403', '409', '422', '429', '500']],
   ['get', '/auth/tokens/{token}/context', ['200', '400', '429', '500']],
   ['post', '/auth/tokens/{token}/resend', ['200', '400', '429', '500']],
   ['get', '/setup/token/{token}/context', ['200', '400', '401', '409', '429', '500']],
@@ -419,16 +427,20 @@ describe('swaggerSpec', () => {
   });
 
   it('enforces that token fields are returned on login/refresh schemas but not on /auth/me schema', () => {
-    const loginSchema = spec.components?.schemas?.AuthLoginResponse as any;
-    const meSchema = spec.components?.schemas?.AuthMeResponse as any;
+    const loginSchema = spec.components?.schemas?.AuthLoginResponse as
+      | { properties?: Record<string, unknown> }
+      | undefined;
+    const meSchema = spec.components?.schemas?.AuthMeResponse as
+      | { properties?: Record<string, unknown> }
+      | undefined;
 
     expect(loginSchema).toBeDefined();
-    expect(loginSchema.properties).toHaveProperty('accessToken');
+    expect(loginSchema?.properties).toHaveProperty('accessToken');
 
     expect(meSchema).toBeDefined();
-    expect(meSchema.properties).not.toHaveProperty('accessToken');
-    expect(meSchema.properties).not.toHaveProperty('token');
-    expect(meSchema.properties).not.toHaveProperty('tokenType');
-    expect(meSchema.properties).not.toHaveProperty('expiresAt');
+    expect(meSchema?.properties).not.toHaveProperty('accessToken');
+    expect(meSchema?.properties).not.toHaveProperty('token');
+    expect(meSchema?.properties).not.toHaveProperty('tokenType');
+    expect(meSchema?.properties).not.toHaveProperty('expiresAt');
   });
 });
