@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
 import BasicAlert from '../components/alerts/BasicAlert';
 import { Popover } from 'flowbite-react';
 import EmailVerificationModal from '../components/layout/modals/EmailVerificationModal';
@@ -26,7 +25,6 @@ function formatAlertMessage(message: string) {
 }
 
 function RegisterPage() {
-  const navigate = useNavigate();
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
   const [firstName, setFirstName] = useState('');

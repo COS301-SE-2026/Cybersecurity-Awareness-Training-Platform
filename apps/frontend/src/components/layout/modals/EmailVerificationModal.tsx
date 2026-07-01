@@ -16,7 +16,6 @@ function EmailVerificationModal({
 }: EmailVerificationModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [cooldown, setCooldown] = useState(0);
-  const [hasResent, setHasResent] = useState(false);
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -31,12 +30,9 @@ function EmailVerificationModal({
   function handleResend() {
     setIsLoading(true);
 
-    // Later, this will become await onResend();
-    // Later, replace setTimeout() with API call...
     setTimeout(() => {
       setIsLoading(false);
       setCooldown(30);
-      setHasResent(true);
       onResend();
     }, 2000);
   }

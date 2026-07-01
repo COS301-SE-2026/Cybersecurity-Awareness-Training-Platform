@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
-import { Spinner } from 'flowbite-react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   AuthActionLink,
