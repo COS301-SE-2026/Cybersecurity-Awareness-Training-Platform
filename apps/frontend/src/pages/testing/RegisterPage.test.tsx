@@ -163,4 +163,74 @@ describe('RegisterPage', () => {
 
     expect(await screen.findByText('Unable To Connect To The Server')).toBeInTheDocument();
   });
+
+  it('shows a loading state while the registration request is in progress', async () => {
+    const user = userEvent.setup();
+
+    let resolveFetch!: (value: unknown) => void;
+
+    fetchMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveFetch = resolve;
+        }),
+    );
+
+    renderRegisterPage();
+    await fillRegistrationForm(user);
+    await user.type(screen.getByLabelText(/^password$/i), 'ThisIsA$Gang$StrongPassword!42069!');
+    await user.type(
+      screen.getByLabelText(/confirm password/i),
+      'ThisIsA$Gang$StrongPassword!42069!',
+    );
+    await user.click(screen.getByRole('button', { name: /Register/i }));
+
+    expect(screen.getByRole('button', { name: /Creating Account.../i })).toBeDisabled();
+
+    resolveFetch({
+      ok: true,
+      json: async () => ({
+        user: { id: 'user-1' },
+      }),
+    });
+
+    await screen.findByRole('heading', { name: /Check your Email Inbox/i });
+  });
+
+  it('disables the form fields while the registration request is in progress', async () => {
+    const user = userEvent.setup();
+
+    let resolveFetch!: (value: unknown) => void;
+
+    fetchMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveFetch = resolve;
+        }),
+    );
+
+    renderRegisterPage();
+    await fillRegistrationForm(user);
+    await user.type(screen.getByLabelText(/^password$/i), 'ThisIsA$Gang$StrongPassword!42069!');
+    await user.type(
+      screen.getByLabelText(/confirm password/i),
+      'ThisIsA$Gang$StrongPassword!42069!',
+    );
+    await user.click(screen.getByRole('button', { name: /Register/i }));
+
+    expect(screen.getByLabelText(/first name\(s\)/i)).toBeDisabled();
+    expect(screen.getByLabelText(/last name/i)).toBeDisabled();
+    expect(screen.getByLabelText(/email address/i)).toBeDisabled();
+    expect(screen.getByLabelText(/^password$/i)).toBeDisabled();
+    expect(screen.getByLabelText(/confirm password/i)).toBeDisabled();
+
+    resolveFetch({
+      ok: true,
+      json: async () => ({
+        user: { id: 'user-1' },
+      }),
+    });
+
+    await screen.findByRole('heading', { name: /Check your Email Inbox/i });
+  });
 }); //describe
