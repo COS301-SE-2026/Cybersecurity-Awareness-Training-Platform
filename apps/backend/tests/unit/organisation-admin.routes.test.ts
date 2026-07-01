@@ -221,7 +221,7 @@ describe('organisation admin routes', () => {
     const app = createApp();
     let response: request.Response | undefined;
 
-    for (let index = 0; index <= 20; index += 1) {
+    for (let index = 0; index <= 10; index += 1) {
       response = await request(app)
         .post(`/organisations/${organisationId}/admins/${adminId}/remove`)
         .send({
@@ -236,6 +236,6 @@ describe('organisation admin routes', () => {
       message: 'Too many organisation admin requests. Please try again later.',
     });
     expect(response?.headers).toHaveProperty('retry-after');
-    expect(serviceMock.removeAdmin).toHaveBeenCalledTimes(20);
+    expect(serviceMock.removeAdmin).toHaveBeenCalledTimes(10);
   });
 });

@@ -14,8 +14,9 @@ import {
 } from '../controllers/organisation-admin.controller.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import {
-  organisationAdminMutationRateLimit,
-  organisationAdminReadRateLimit,
+  organisationAdminMutationRateLimiter,
+  organisationAdminReadRateLimiter,
+  organisationAdminSensitiveActionRateLimiter,
 } from '../middleware/organisationAdminRateLimit.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { validateBody, validateParams } from '../middleware/validateRequest.js';
@@ -50,7 +51,7 @@ export const organisationAdminRouter = Router();
 organisationAdminRouter.get(
   '/organisations/:organisationId/admins',
   requireAuth,
-  organisationAdminReadRateLimit,
+  organisationAdminReadRateLimiter,
   validateParams(organisationIdParamsSchema),
   asyncHandler(listOrganisationAdmins),
 );
@@ -89,7 +90,7 @@ organisationAdminRouter.get(
 organisationAdminRouter.post(
   '/organisations/:organisationId/admin-promotions',
   requireAuth,
-  organisationAdminMutationRateLimit,
+  organisationAdminMutationRateLimiter,
   validateParams(organisationIdParamsSchema),
   validateBody(organisationAdminPromotionRequestSchema, { statusCode: 422 }),
   asyncHandler(promoteOrganisationAdmin),
@@ -132,7 +133,7 @@ organisationAdminRouter.post(
 organisationAdminRouter.patch(
   '/organisations/:organisationId/admins/:adminId/permissions',
   requireAuth,
-  organisationAdminMutationRateLimit,
+  organisationAdminMutationRateLimiter,
   validateParams(organisationAdminIdParamsSchema),
   validateBody(organisationAdminPermissionUpdateRequestSchema, { statusCode: 422 }),
   asyncHandler(updateOrganisationAdminPermissions),
@@ -175,7 +176,7 @@ organisationAdminRouter.patch(
 organisationAdminRouter.post(
   '/organisations/:organisationId/admins/:adminId/remove',
   requireAuth,
-  organisationAdminMutationRateLimit,
+  organisationAdminSensitiveActionRateLimiter,
   validateParams(organisationAdminIdParamsSchema),
   validateBody(organisationAdminRemoveRequestSchema, { statusCode: 422 }),
   asyncHandler(removeOrganisationAdmin),
