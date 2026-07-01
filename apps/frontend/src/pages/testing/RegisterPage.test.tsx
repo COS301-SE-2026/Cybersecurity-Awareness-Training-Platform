@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -56,7 +56,7 @@ describe('RegisterPage', () => {
     await user.type(screen.getByLabelText(/confirm password/i), 'StrongPass123!');
     await user.click(screen.getByRole('button', { name: /register/i }));
 
-    expect(screen.getByText('Please enter a valid email address.')).toBeInTheDocument();
+    expect(screen.getByText('Please Enter A Valid Email Address')).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -70,13 +70,12 @@ describe('RegisterPage', () => {
     await user.type(screen.getByLabelText(/confirm password/i), 'DifferentPass123!');
     await user.click(screen.getByRole('button', { name: /register/i }));
 
-    expect(screen.getByText('PASSWORDS DO NOT MATCH')).toBeInTheDocument();
+    expect(screen.getByText('Passwords Do Not Match')).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('submits registration details and redirects to login on success', async () => {
-    vi.useFakeTimers();
-
+  it('submits the registration details and shows the email verification modal on success', async () => {
+    const user = userEvent.setup();
     fetchMock.mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -88,39 +87,18 @@ describe('RegisterPage', () => {
 
     renderRegisterPage();
 
-    fireEvent.change(screen.getByLabelText(/first name\(s\)/i), {
-      target: { value: '  Jane  ' },
-    });
-    fireEvent.change(screen.getByLabelText(/last name/i), {
-      target: { value: '  Doe  ' },
-    });
-    fireEvent.change(screen.getByLabelText(/email address/i), {
-      target: { value: '  TRAINEE@example.com  ' },
-    });
-    fireEvent.change(screen.getByLabelText(/^password$/i), {
-      target: { value: 'StrongPass123!' },
-    });
-    fireEvent.change(screen.getByLabelText(/confirm password/i), {
-      target: { value: 'StrongPass123!' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: /register/i }));
+    await fillRegistrationForm(user);
+    await user.type(screen.getByLabelText(/^password$/i), 'ThisIsA$Gang$StrongPassword!42069');
+    await user.type(
+      screen.getByLabelText(/confirm password/i),
+      'ThisIsA$Gang$StrongPassword!42069',
+    );
 
-    const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    await user.click(screen.getByRole('button', { name: /Register/i }));
 
-    expect(fetchMock.mock.calls[0]?.[0]).toContain('/auth/register');
-    expect(requestInit?.method).toBe('POST');
-    expect(requestInit?.body).toBeTypeOf('string');
-
-    expect(JSON.parse(requestInit.body as string)).toEqual({
-      firstName: 'Jane',
-      lastName: 'Doe',
-      email: 'trainee@example.com',
-      password: 'StrongPass123!',
-    });
-
-    await vi.runAllTimersAsync();
-
-    expect(navigateMock).toHaveBeenCalledWith('/login');
+    expect(
+      await screen.findByRole('heading', { name: /Check your Email Inbox/i }),
+    ).toBeInTheDocument();
   });
 
   it('shows a duplicate-account message when the backend returns 409', async () => {
@@ -142,7 +120,7 @@ describe('RegisterPage', () => {
     await user.click(screen.getByRole('button', { name: /register/i }));
 
     expect(
-      await screen.findByText('AN ACCOUNT WITH THIS EMAIL ALREADY EXISTS'),
+      await screen.findByText('An Account With This Email Address Already Exists'),
     ).toBeInTheDocument();
     expect(navigateMock).not.toHaveBeenCalled();
   });

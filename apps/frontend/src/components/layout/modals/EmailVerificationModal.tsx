@@ -51,7 +51,7 @@ function EmailVerificationModal({
     <div
       id="select-modal"
       tabIndex={-1}
-      aria-hidden="true"
+      aria-hidden={!isOpen}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xl"
     >
       <div className="relative p-4 w-full max-w-md">
