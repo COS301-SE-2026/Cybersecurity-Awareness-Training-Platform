@@ -12,6 +12,8 @@ import {
   refreshUserToken,
   logoutUser,
   resendVerificationEmail,
+  verifyEmail,
+  AuthResendCooldownError,
   requestPasswordReset,
   resetUserPassword,
 } from '../services/auth.service.js';
@@ -197,10 +199,25 @@ export async function refresh(req: Request, res: Response) {
 }
 
 export async function resendVerification(req: Request, res: Response) {
-  await resendVerificationEmail(req.body.email);
-  return res.status(200).json({
-    message: 'If the email is registered and unverified, a verification link has been sent.',
-  });
+  try {
+    await resendVerificationEmail(req.body.email);
+    return res.status(200).json({
+      message: 'If the email is registered and unverified, a verification link has been sent.',
+    });
+  } catch (error) {
+    if (error instanceof AuthResendCooldownError) {
+      return res.status(429).json({
+        error: 'AUTH_RATE_LIMITED',
+        message: error.message,
+      });
+    }
+    throw error;
+  }
+}
+
+export async function verify(req: Request, res: Response) {
+  const result = await verifyEmail(req.body.token);
+  return res.status(200).json(result);
 }
 
 export async function forgotPassword(req: Request, res: Response) {
@@ -231,13 +248,26 @@ export async function resetPassword(req: Request, res: Response) {
 }
 
 export async function validateTokenContext(req: Request, res: Response) {
-  const result = await getTokenContext(req.params.token as string);
+  const token = req.params.token;
+  if (Array.isArray(token)) {
+    return res
+      .status(400)
+      .json({ error: 'VALIDATION_ERROR', message: 'Invalid request parameters' });
+  }
+  const result = await getTokenContext(token);
   return res.status(200).json(result);
 }
 
 export async function resendTokenLink(req: Request, res: Response) {
+  const token = req.params.token;
+  if (Array.isArray(token)) {
+    return res
+      .status(400)
+      .json({ error: 'VALIDATION_ERROR', message: 'Invalid request parameters' });
+  }
+
   try {
-    await resendActionToken(req.params.token as string);
+    await resendActionToken(token);
     return res.status(200).json({ success: true });
   } catch (error) {
     if (error instanceof TokenResendError) {

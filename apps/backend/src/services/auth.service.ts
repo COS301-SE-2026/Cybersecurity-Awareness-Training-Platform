@@ -5,6 +5,7 @@ import type {
   AuthRegisterRequestDto,
   AuthRegisterResponseDto,
   AuthContextResponseDto,
+  PublicUserDto,
 } from '@insightful-phish/shared';
 import type { AuthSessionRevokedReason } from '../generated/prisma/enums.js';
 import { prisma } from '../lib/prisma.js';
@@ -98,8 +99,8 @@ export async function registerUser(
     userId: newUser.id,
     actionTokenId: verification.token.id,
     templateData: {
-      actionToken: verification.rawToken,
       firstName: newUser.firstName,
+      actionToken: verification.rawToken,
       actionTokenExpiresAt: verification.token.expiresAt,
     },
   });
@@ -345,8 +346,39 @@ export async function logoutUser(
   }
 }
 
+export class AuthResendCooldownError extends Error {
+  constructor(message = 'Please wait before requesting another verification email.') {
+    super(message);
+    this.name = 'AuthResendCooldownError';
+  }
+}
+
+export class EmailChangeConflictError extends Error {
+  constructor(message = 'The email is already in use by another account.') {
+    super(message);
+    this.name = 'EmailChangeConflictError';
+  }
+}
+
+const resendCooldowns = new Map<string, number>();
+const RESEND_COOLDOWN_MS = 60 * 1000;
+
+export function clearResendCooldowns() {
+  resendCooldowns.clear();
+}
+
 export async function resendVerificationEmail(email: string): Promise<void> {
   const normalizedEmail = email.trim().toLowerCase();
+  const now = Date.now();
+  const lastRequest = resendCooldowns.get(normalizedEmail);
+
+  if (lastRequest && now - lastRequest < RESEND_COOLDOWN_MS) {
+    throw new AuthResendCooldownError();
+  }
+
+  // Update map timestamp for enumeration safety even if user doesn't exist
+  resendCooldowns.set(normalizedEmail, now);
+
   const user = await UserRepository.findUserByEmail(normalizedEmail);
 
   if (user?.authStatus !== 'PENDING_EMAIL_VERIFICATION') {
@@ -373,9 +405,207 @@ export async function resendVerificationEmail(email: string): Promise<void> {
     userId: user.id,
     actionTokenId: verification.token.id,
     templateData: {
+      firstName: user.firstName,
       actionToken: verification.rawToken,
+      actionTokenExpiresAt: verification.token.expiresAt,
     },
   });
+}
+
+export type VerifyEmailResult = {
+  state: 'VALID' | 'INVALID' | 'EXPIRED' | 'USED' | 'REVOKED';
+  user?: PublicUserDto;
+};
+
+export async function verifyEmail(rawToken: string): Promise<VerifyEmailResult> {
+  const validation = await validateActionToken({
+    rawToken,
+    expectedPurpose: 'EMAIL_VERIFICATION',
+  });
+
+  if (validation.state !== 'VALID' || !validation.token) {
+    return {
+      state: validation.state === 'WRONG_PURPOSE' ? 'INVALID' : validation.state,
+    };
+  }
+
+  const token = validation.token;
+  if (!token.userId) {
+    return { state: 'INVALID' };
+  }
+
+  const user = await UserRepository.findUserById(token.userId);
+  if (!user) {
+    return { state: 'INVALID' };
+  }
+
+  if (user.authStatus === 'DISABLED') {
+    return { state: 'REVOKED' };
+  }
+
+  const updatedUser = await prisma.$transaction(async (tx) => {
+    const consumed = await tx.actionToken.updateMany({
+      where: { id: token.id, usedAt: null, revokedAt: null },
+      data: { usedAt: new Date() },
+    });
+
+    if (consumed.count !== 1) {
+      throw new Error('TOKEN_ALREADY_USED');
+    }
+
+    return tx.user.update({
+      where: { id: user.id },
+      data: {
+        emailVerifiedAt: new Date(),
+        authStatus: 'ACTIVE',
+      },
+    });
+  });
+
+  return {
+    state: 'VALID',
+    user: toPublicUserDto(updatedUser),
+  };
+}
+
+export type VerifyEmailChangeResult = {
+  state: 'VALID' | 'INVALID' | 'EXPIRED' | 'USED' | 'REVOKED';
+};
+
+export async function verifyEmailChange(rawToken: string): Promise<VerifyEmailChangeResult> {
+  const validation = await validateActionToken({
+    rawToken,
+    expectedPurpose: 'EMAIL_CHANGE_VERIFICATION',
+  });
+
+  if (validation.state !== 'VALID' || !validation.token) {
+    return {
+      state: validation.state === 'WRONG_PURPOSE' ? 'INVALID' : validation.state,
+    };
+  }
+
+  const token = validation.token;
+  if (!token.userId || !token.targetEmail || !token.emailChangeRequestId) {
+    return { state: 'INVALID' };
+  }
+
+  const user = await UserRepository.findUserById(token.userId);
+  if (!user) {
+    return { state: 'INVALID' };
+  }
+
+  if (user.authStatus === 'DISABLED') {
+    return { state: 'REVOKED' };
+  }
+
+  const targetEmail = token.targetEmail.trim().toLowerCase();
+
+  const existingUser = await UserRepository.findUserByEmail(targetEmail);
+  if (existingUser && existingUser.id !== user.id) {
+    throw new EmailChangeConflictError();
+  }
+
+  const oldEmail = user.email;
+
+  const resultState = await prisma.$transaction(async (tx) => {
+    // 1. Load the EmailChangeRequest
+    const changeRequest = await tx.emailChangeRequest.findUnique({
+      where: { id: token.emailChangeRequestId! },
+    });
+
+    if (!changeRequest) {
+      return 'INVALID';
+    }
+
+    // 2. Validate request properties
+    if (
+      changeRequest.userId !== token.userId ||
+      changeRequest.RequestedEmail.trim().toLowerCase() !== targetEmail
+    ) {
+      return 'INVALID';
+    }
+
+    // 3. Check expiration
+    if (changeRequest.expiresAt.getTime() <= Date.now() || changeRequest.status === 'EXPIRED') {
+      if (changeRequest.status === 'PENDING') {
+        await tx.emailChangeRequest.update({
+          where: { id: changeRequest.id },
+          data: { status: 'EXPIRED' },
+        });
+      }
+      return 'EXPIRED';
+    }
+
+    // 4. Check status
+    if (changeRequest.status !== 'PENDING') {
+      if (changeRequest.status === 'CONFIRMED') {
+        return 'USED';
+      }
+      if (changeRequest.status === 'CANCELED') {
+        return 'REVOKED';
+      }
+      return 'INVALID';
+    }
+
+    // 5. Consume action token
+    const consumed = await tx.actionToken.updateMany({
+      where: { id: token.id, usedAt: null, revokedAt: null },
+      data: { usedAt: new Date() },
+    });
+
+    if (consumed.count !== 1) {
+      throw new Error('TOKEN_ALREADY_USED');
+    }
+
+    // 6. Update user email
+    await tx.user.update({
+      where: { id: user.id },
+      data: {
+        email: targetEmail,
+      },
+    });
+
+    // 7. Update EmailChangeRequest status
+    await tx.emailChangeRequest.update({
+      where: { id: changeRequest.id },
+      data: {
+        status: 'CONFIRMED',
+        confirmedAt: new Date(),
+      },
+    });
+
+    // 8. Revoke all active sessions and refresh tokens
+    const now = new Date();
+    await tx.authSession.updateMany({
+      where: { userId: user.id, revokedAt: null },
+      data: { revokedAt: now, revokedReason: 'EMAIL_CHANGE' },
+    });
+
+    await tx.refreshToken.updateMany({
+      where: { authSession: { userId: user.id }, revokedAt: null },
+      data: { revokedAt: now, revokedReason: 'EMAIL_CHANGE' },
+    });
+
+    // 9. Write Security Audit Log
+    await recordAuditLog(
+      {
+        actorUserId: user.id,
+        actorType: user.userType,
+        targetType: 'USER',
+        targetId: user.id,
+        actionType: 'SETTINGS_CHANGED',
+        outcome: 'SUCCESS',
+        metadata: {
+          changeType: 'EMAIL_CHANGE',
+          oldEmail,
+          newEmail: targetEmail,
+        },
+      },
+      tx,
+    );
+    return 'VALID';
+  });
+  return { state: resultState };
 }
 
 export async function requestPasswordReset(email: string): Promise<void> {
@@ -409,7 +639,6 @@ export async function requestPasswordReset(email: string): Promise<void> {
       },
       tx,
     );
-
     return { verification: resetToken };
   });
 
