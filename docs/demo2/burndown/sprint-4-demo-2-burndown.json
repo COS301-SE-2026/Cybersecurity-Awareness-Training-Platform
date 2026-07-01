@@ -343,8 +343,8 @@
       "number": 245,
       "title": "feat: implement backend token-link error responses",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-07-01"
     },
     {
       "number": 244,
@@ -364,8 +364,8 @@
       "number": 242,
       "title": "feat: implement backend reset password endpoint",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-07-01"
     },
     {
       "number": 241,
@@ -385,8 +385,8 @@
       "number": 239,
       "title": "feat: implement backend forgot password endpoint",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-07-01"
     },
     {
       "number": 238,
@@ -606,7 +606,7 @@
     },
     {
       "date": "2026-07-01",
-      "remaining": 126,
+      "remaining": 120,
       "ideal": 62.63
     }
   ]
