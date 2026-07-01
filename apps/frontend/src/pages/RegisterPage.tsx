@@ -3,7 +3,6 @@ import type { FormEvent } from 'react';
 import BasicAlert from '../components/alerts/BasicAlert';
 import { Popover } from 'flowbite-react';
 import EmailVerificationModal from '../components/layout/modals/EmailVerificationModal';
-import SuccessfulRegistrationModal from '../components/layout/modals/SuccessfulRegistrationModal';
 
 import {
   AuthActionLink,
