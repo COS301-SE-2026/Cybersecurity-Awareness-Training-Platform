@@ -24,8 +24,22 @@ export const organisationAdminRouter = Router();
  *   get:
  *     tags: [Organisation Admins]
  *     summary: List organisation admins and permissions
+ *     description: Returns organisation admins, available organisation admin permissions, and the authenticated admin's permission keys.
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/OrganisationIdPathParam'
+ *     responses:
+ *       200:
+ *         $ref: '#/components/responses/OrganisationAdminsOk'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 organisationAdminRouter.get(
   '/organisations/:organisationId/admins',
@@ -40,8 +54,28 @@ organisationAdminRouter.get(
  *   post:
  *     tags: [Organisation Admins]
  *     summary: Promote an active organisation trainee to organisation admin
+ *     description: Creates an organisation-admin promotion invitation for an active trainee in the same organisation and sends it through the central email service.
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/OrganisationIdPathParam'
+ *     requestBody:
+ *       $ref: '#/components/requestBodies/OrganisationAdminPromotion'
+ *     responses:
+ *       201:
+ *         $ref: '#/components/responses/OrganisationAdminPromotionCreated'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ *       422:
+ *         $ref: '#/components/responses/UnprocessableEntity'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 organisationAdminRouter.post(
   '/organisations/:organisationId/admin-promotions',
@@ -57,8 +91,31 @@ organisationAdminRouter.post(
  *   patch:
  *     tags: [Organisation Admins]
  *     summary: Update organisation admin permissions
+ *     description: Replaces one organisation admin's organisation-scoped permission grants while preserving critical-admin safeguards.
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/OrganisationIdPathParam'
+ *       - $ref: '#/components/parameters/OrganisationAdminIdPathParam'
+ *     requestBody:
+ *       $ref: '#/components/requestBodies/OrganisationAdminPermissionUpdate'
+ *     responses:
+ *       200:
+ *         $ref: '#/components/responses/OrganisationAdminPermissionsUpdated'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ *       422:
+ *         $ref: '#/components/responses/UnprocessableEntity'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 organisationAdminRouter.patch(
   '/organisations/:organisationId/admins/:adminId/permissions',
@@ -74,8 +131,31 @@ organisationAdminRouter.patch(
  *   post:
  *     tags: [Organisation Admins]
  *     summary: Remove organisation admin privileges
+ *     description: Disables an organisation admin in the same organisation after password confirmation and critical-admin safeguard checks.
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/OrganisationIdPathParam'
+ *       - $ref: '#/components/parameters/OrganisationAdminIdPathParam'
+ *     requestBody:
+ *       $ref: '#/components/requestBodies/OrganisationAdminRemove'
+ *     responses:
+ *       200:
+ *         $ref: '#/components/responses/OrganisationAdminRemoved'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ *       422:
+ *         $ref: '#/components/responses/UnprocessableEntity'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 organisationAdminRouter.post(
   '/organisations/:organisationId/admins/:adminId/remove',
