@@ -159,12 +159,12 @@ function RegisterPage() {
           />
 
           {/* SUCCESSFUL REGISTRATION MODAL */}
-          <SuccessfulRegistrationModal
+          {/* <SuccessfulRegistrationModal
             isOpen={showSuccessfulRegistrationModal}
             firstName="Name" // First Name Goes Here
             accountDescription="Organisation Trainee" // This can be Individual Trainee or Organisation Trainee...
             organisation="My Organisation (Pty) Ltd" // SPECIFY '' (organisation={''}) IF YOU DO NOT WANT TO SHOW ORGANISATION INFORMATION
-          />
+          /> */}
 
           <form onSubmit={handleRegister} noValidate style={authFormStyle}>
             <div
