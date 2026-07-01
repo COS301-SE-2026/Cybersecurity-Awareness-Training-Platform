@@ -171,7 +171,7 @@ describe('AppRoutes', () => {
     });
 
     expect(
-      await screen.findByRole('heading', { level: 1, name: /^welcome$/i }),
+      await screen.findByRole('heading', { level: 1, name: /^Get Started$/i }),
     ).toBeInTheDocument();
   });
 

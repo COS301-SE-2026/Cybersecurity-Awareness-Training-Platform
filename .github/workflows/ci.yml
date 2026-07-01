@@ -63,6 +63,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Enable Corepack
         run: corepack enable
@@ -79,7 +81,52 @@ jobs:
       - name: Generate Prisma client
         run: pnpm --filter @insightful-phish/backend exec prisma generate
 
-      - name: Run linting
+      - name: Run linting on changed files
+        if: ${{ github.event_name == 'pull_request' && github.base_ref == 'dev' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          base_sha="${{ github.event.pull_request.base.sha }}"
+          head_sha="${{ github.event.pull_request.head.sha }}"
+          backend_files=()
+          frontend_files=()
+          shared_files=()
+
+          while IFS= read -r -d '' file; do
+            case "$file" in
+              apps/backend/src/generated/*|apps/backend/prisma/generated/*|apps/backend/generated/*)
+                ;;
+              apps/backend/*.ts|apps/backend/src/*.ts|apps/backend/src/**/*.ts|apps/backend/tests/*.ts|apps/backend/tests/**/*.ts|apps/backend/prisma/*.ts|apps/backend/scripts/*.ts)
+                backend_files+=("${file#apps/backend/}")
+                ;;
+              apps/frontend/*.ts|apps/frontend/*.tsx|apps/frontend/src/*.ts|apps/frontend/src/*.tsx|apps/frontend/src/**/*.ts|apps/frontend/src/**/*.tsx|apps/frontend/tests/*.ts|apps/frontend/tests/*.tsx|apps/frontend/tests/**/*.ts|apps/frontend/tests/**/*.tsx)
+                frontend_files+=("${file#apps/frontend/}")
+                ;;
+              packages/shared/*.ts|packages/shared/src/*.ts|packages/shared/src/**/*.ts)
+                shared_files+=("${file#packages/shared/}")
+                ;;
+            esac
+          done < <(git diff --name-only -z --diff-filter=ACMR "$base_sha" "$head_sha")
+
+          if [[ "${#backend_files[@]}" -eq 0 && "${#frontend_files[@]}" -eq 0 && "${#shared_files[@]}" -eq 0 ]]; then
+            echo "No lintable files changed."
+            exit 0
+          fi
+
+          if [[ "${#backend_files[@]}" -gt 0 ]]; then
+            pnpm --dir apps/backend exec eslint --max-warnings=0 "${backend_files[@]}"
+          fi
+
+          if [[ "${#frontend_files[@]}" -gt 0 ]]; then
+            pnpm --dir apps/frontend exec eslint --max-warnings=0 "${frontend_files[@]}"
+          fi
+
+          if [[ "${#shared_files[@]}" -gt 0 ]]; then
+            pnpm --dir packages/shared exec eslint --max-warnings=0 "${shared_files[@]}"
+          fi
+
+      - name: Run full linting
+        if: ${{ github.event_name != 'pull_request' || github.base_ref != 'dev' }}
         run: pnpm lint
 
   typecheck:
@@ -119,8 +166,8 @@ jobs:
       - name: Run typecheck (shared)
         run: pnpm typecheck:shared
 
-  unit-tests:
-    name: Unit Tests
+  unit-tests-backend:
+    name: Unit Tests (Backend)
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -148,31 +195,7 @@ jobs:
         run: pnpm --filter @insightful-phish/backend exec prisma generate
 
       - name: Run backend unit tests
-        id: backend_unit_tests
         run: pnpm test:coverage:ci:backend
-        continue-on-error: true
-
-      - name: Run frontend unit tests
-        id: frontend_unit_tests
-        run: pnpm test:coverage:ci:frontend
-        continue-on-error: true
-
-      - name: Run shared unit tests
-        id: shared_unit_tests
-        run: pnpm test:coverage:ci:shared
-        continue-on-error: true
-
-      - name: Verify backend coverage
-        if: ${{ steps.backend_unit_tests.outcome == 'success' }}
-        run: ls -R apps/backend/coverage/
-
-      - name: Verify frontend coverage
-        if: ${{ steps.frontend_unit_tests.outcome == 'success' }}
-        run: ls -R apps/frontend/coverage/
-
-      - name: Verify shared coverage
-        if: ${{ steps.shared_unit_tests.outcome == 'success' }}
-        run: ls -R packages/shared/coverage/
 
       - name: Upload backend coverage report
         uses: actions/upload-artifact@v4
@@ -181,20 +204,6 @@ jobs:
           name: coverage-backend
           path: apps/backend/coverage/
 
-      - name: Upload frontend coverage report
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: coverage-frontend
-          path: apps/frontend/coverage/
-
-      - name: Upload shared coverage report
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: coverage-shared
-          path: packages/shared/coverage/
-
       - name: Upload backend coverage to Codecov
         uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238
         if: ${{ !cancelled() }}
@@ -202,32 +211,6 @@ jobs:
           files: ./apps/backend/coverage/lcov.info
           flags: backend
           name: backend-coverage
-          disable_search: true
-          fail_ci_if_error: false
-        continue-on-error: true
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-
-      - name: Upload frontend coverage to Codecov
-        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238
-        if: ${{ !cancelled() }}
-        with:
-          files: ./apps/frontend/coverage/lcov.info
-          flags: frontend
-          name: frontend-coverage
-          disable_search: true
-          fail_ci_if_error: false
-        continue-on-error: true
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-
-      - name: Upload shared coverage to Codecov
-        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238
-        if: ${{ !cancelled() }}
-        with:
-          files: ./packages/shared/coverage/lcov.info
-          flags: shared
-          name: shared-coverage
           disable_search: true
           fail_ci_if_error: false
         continue-on-error: true
@@ -243,6 +226,52 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
         continue-on-error: true
 
+  unit-tests-frontend:
+    name: Unit Tests (Frontend)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run frontend unit tests
+        run: pnpm test:coverage:ci:frontend
+
+      - name: Upload frontend coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-frontend
+          path: apps/frontend/coverage/
+
+      - name: Upload frontend coverage to Codecov
+        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238
+        if: ${{ !cancelled() }}
+        with:
+          files: ./apps/frontend/coverage/lcov.info
+          flags: frontend
+          name: frontend-coverage
+          disable_search: true
+          fail_ci_if_error: false
+        continue-on-error: true
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
       - name: Upload frontend test results to Codecov
         uses: codecov/test-results-action@0fa95f0e1eeaafde2c782583b36b28ad0d8c77d3
         if: ${{ !cancelled() }}
@@ -252,6 +281,52 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
         continue-on-error: true
 
+  unit-tests-shared:
+    name: Unit Tests (Shared)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run shared unit tests
+        run: pnpm test:coverage:ci:shared
+
+      - name: Upload shared coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-shared
+          path: packages/shared/coverage/
+
+      - name: Upload shared coverage to Codecov
+        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238
+        if: ${{ !cancelled() }}
+        with:
+          files: ./packages/shared/coverage/lcov.info
+          flags: shared
+          name: shared-coverage
+          disable_search: true
+          fail_ci_if_error: false
+        continue-on-error: true
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
       - name: Upload shared test results to Codecov
         uses: codecov/test-results-action@0fa95f0e1eeaafde2c782583b36b28ad0d8c77d3
         if: ${{ !cancelled() }}
@@ -260,15 +335,6 @@ jobs:
           flags: shared
           token: ${{ secrets.CODECOV_TOKEN }}
         continue-on-error: true
-
-      - name: Fail if unit tests failed
-        if: >-
-          ${{
-            steps.backend_unit_tests.outcome == 'failure' ||
-            steps.frontend_unit_tests.outcome == 'failure' ||
-            steps.shared_unit_tests.outcome == 'failure'
-          }}
-        run: exit 1
 
   integration-tests:
     name: Integration Tests
