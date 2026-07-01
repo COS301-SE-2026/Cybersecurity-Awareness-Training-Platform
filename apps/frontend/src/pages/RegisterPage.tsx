@@ -16,7 +16,6 @@ import { authRegisterRequestSchema } from '@insightful-phish/shared';
 function RegisterPage() {
   const navigate = useNavigate();
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -34,16 +33,11 @@ function RegisterPage() {
       lastName,
       email,
       password,
+      confirmPassword,
     });
 
     if (!validationResult.success) {
       setMessage(validationResult.error.issues[0]?.message || 'INVALID INPUT');
-
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setMessage('PASSWORDS DO NOT MATCH');
 
       return;
     }

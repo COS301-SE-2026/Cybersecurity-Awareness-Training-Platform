@@ -9,7 +9,7 @@ import {
   ensureUserCanAuthenticate,
 } from '../../src/services/auth-status-guard.service.js';
 const user = { id: 'user01', userType: 'GENERAL_TRAINEE' as const, authStatus: 'ACTIVE' as const };
-const defaultOrg = { id: 'org01', status: 'ACTIVE' as const };
+const defaultOrg = { id: 'org01', name: 'Acme Security', status: 'ACTIVE' as const };
 
 describe('auth-status guard service', () => {
   it.each([
@@ -32,7 +32,7 @@ describe('auth-status guard service', () => {
     ['ARCHIVED', 'ORGANISATION_ARCHIVED'],
     ['INACTIVE', 'ORGANISATION_NOT_ACTIVE'],
   ] as const)('rejects organisation status %s', (status, code) => {
-    expect(ensureActiveOrganisation({ id: 'org01', status })).toMatchObject({
+    expect(ensureActiveOrganisation({ id: 'org01', status, name: 'Acme Security' })).toMatchObject({
       allowed: false,
       code,
     });

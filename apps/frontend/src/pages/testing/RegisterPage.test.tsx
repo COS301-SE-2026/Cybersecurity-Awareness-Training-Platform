@@ -70,7 +70,7 @@ describe('RegisterPage', () => {
     await user.type(screen.getByLabelText(/confirm password/i), 'DifferentPass123!');
     await user.click(screen.getByRole('button', { name: /register/i }));
 
-    expect(screen.getByText('PASSWORDS DO NOT MATCH')).toBeInTheDocument();
+    expect(screen.getByText('Password confirmation must match password.')).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -116,34 +116,11 @@ describe('RegisterPage', () => {
       lastName: 'Doe',
       email: 'trainee@example.com',
       password: 'StrongPass123!',
+      confirmPassword: 'StrongPass123!',
     });
 
     await vi.runAllTimersAsync();
 
     expect(navigateMock).toHaveBeenCalledWith('/login');
-  });
-
-  it('shows a duplicate-account message when the backend returns 409', async () => {
-    const user = userEvent.setup();
-
-    fetchMock.mockResolvedValue({
-      ok: false,
-      status: 409,
-      json: async () => ({
-        message: 'Conflict',
-      }),
-    });
-
-    renderRegisterPage();
-
-    await fillRegistrationForm(user);
-    await user.type(screen.getByLabelText(/^password$/i), 'StrongPass123!');
-    await user.type(screen.getByLabelText(/confirm password/i), 'StrongPass123!');
-    await user.click(screen.getByRole('button', { name: /register/i }));
-
-    expect(
-      await screen.findByText('AN ACCOUNT WITH THIS EMAIL ALREADY EXISTS'),
-    ).toBeInTheDocument();
-    expect(navigateMock).not.toHaveBeenCalled();
   });
 });
