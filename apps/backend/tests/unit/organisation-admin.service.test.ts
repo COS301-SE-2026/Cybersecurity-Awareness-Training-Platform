@@ -21,6 +21,7 @@ const repositoryMock = vi.hoisted(() => ({
   listOrganisationAdminsWithPermissions: vi.fn(),
   listOrganisationPermissions: vi.fn(),
   replaceOrganisationAdminPermissionGrants: vi.fn(),
+  restoreOrganisationTraineeUserTypeIfActiveMember: vi.fn(),
   runOrganisationAdminTransaction: vi.fn(),
   updatePromotionInvitationStatus: vi.fn(),
 }));
@@ -397,6 +398,23 @@ describe('organisation admin service', () => {
       statusCode: 409,
       error: 'ORG_ADMIN_CRITICAL_PERMISSION_REQUIRED',
     });
+    expect(auditLogMock.recordAuditLog).toHaveBeenCalledWith({
+      actorUserId,
+      actorType: 'ORGANISATION_ADMIN',
+      organisationId,
+      targetType: 'ORGANISATION_ADMIN_PERMISSION',
+      targetId: targetAdminId,
+      actionType: 'PERMISSIONS_CHANGED',
+      outcome: 'FAILURE',
+      metadata: {
+        reason: 'LAST_CRITICAL_ADMIN_PERMISSION_CHANGE',
+        targetAdminId,
+        affectedPermissionKeys: [
+          'INVITE_ORGANISATION_ADMINS',
+          'CHANGE_ORGANISATION_ADMIN_PERMISSIONS',
+        ],
+      },
+    });
     expect(repositoryMock.replaceOrganisationAdminPermissionGrants).not.toHaveBeenCalled();
   });
 
@@ -430,6 +448,13 @@ describe('organisation admin service', () => {
       },
       tx,
     );
+    expect(repositoryMock.restoreOrganisationTraineeUserTypeIfActiveMember).toHaveBeenCalledWith(
+      {
+        organisationId,
+        userId: 'target-user-1',
+      },
+      tx,
+    );
     expect(sessionMock.revokeSessionsForUser).toHaveBeenCalledWith({
       userId: 'target-user-1',
       reason: 'ADMIN_DISABLED',
@@ -456,6 +481,55 @@ describe('organisation admin service', () => {
       error: 'ORG_ADMIN_PASSWORD_INVALID',
     });
     expect(repositoryMock.findOrganisationAdminById).not.toHaveBeenCalled();
+    expect(repositoryMock.disableOrganisationAdmin).not.toHaveBeenCalled();
+    expect(auditLogMock.recordAuditLog).toHaveBeenCalledWith({
+      actorUserId,
+      actorType: 'ORGANISATION_ADMIN',
+      organisationId,
+      targetType: 'OTHER',
+      actionType: 'DEMOTED',
+      outcome: 'FAILURE',
+      metadata: {
+        reason: 'INCORRECT_PASSWORD',
+        targetAdminId,
+      },
+    });
+    expect(sessionMock.revokeSessionsForUser).not.toHaveBeenCalled();
+  });
+
+  it('audits blocked removal of the final critical admin', async () => {
+    repositoryMock.findActorOrganisationAdmin.mockResolvedValue(
+      actorAdmin(['REMOVE_ORGANISATION_ADMINS']),
+    );
+    repositoryMock.findOrganisationAdminById.mockResolvedValue(targetAdmin());
+    repositoryMock.countActiveOrganisationAdminsWithPermission.mockResolvedValue(0);
+
+    await expect(
+      removeAdmin(actorUserId, organisationId, targetAdminId, {
+        password: removeConfirmationSecret,
+        confirmation: 'REMOVE',
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      error: 'ORG_ADMIN_CRITICAL_PERMISSION_REQUIRED',
+    });
+    expect(auditLogMock.recordAuditLog).toHaveBeenCalledWith({
+      actorUserId,
+      actorType: 'ORGANISATION_ADMIN',
+      organisationId,
+      targetType: 'USER',
+      targetId: 'target-user-1',
+      actionType: 'DEMOTED',
+      outcome: 'FAILURE',
+      metadata: {
+        reason: 'LAST_CRITICAL_ADMIN_REMOVAL',
+        targetAdminId,
+        affectedPermissionKeys: [
+          'INVITE_ORGANISATION_ADMINS',
+          'CHANGE_ORGANISATION_ADMIN_PERMISSIONS',
+        ],
+      },
+    });
     expect(repositoryMock.disableOrganisationAdmin).not.toHaveBeenCalled();
     expect(sessionMock.revokeSessionsForUser).not.toHaveBeenCalled();
   });

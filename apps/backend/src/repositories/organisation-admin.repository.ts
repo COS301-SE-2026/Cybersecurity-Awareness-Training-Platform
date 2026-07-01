@@ -305,6 +305,28 @@ export function deleteOrganisationAdminPermissionGrants(
   });
 }
 
+export function restoreOrganisationTraineeUserTypeIfActiveMember(
+  input: { organisationId: string; userId: string },
+  client: OrganisationAdminClient = prisma,
+) {
+  return client.user.updateMany({
+    where: {
+      id: input.userId,
+      userType: 'ORGANISATION_ADMIN',
+      traineeProfile: {
+        traineeStatus: 'ACTIVE',
+        organisationTraineeProfile: {
+          organisationId: input.organisationId,
+          membershipStatus: 'ACTIVE',
+        },
+      },
+    },
+    data: {
+      userType: 'ORGANISATION_TRAINEE',
+    },
+  });
+}
+
 export function runOrganisationAdminTransaction<T>(
   action: (tx: Prisma.TransactionClient) => Promise<T>,
 ) {

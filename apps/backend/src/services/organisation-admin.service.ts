@@ -25,6 +25,7 @@ import {
   listOrganisationAdminsWithPermissions,
   listOrganisationPermissions,
   replaceOrganisationAdminPermissionGrants,
+  restoreOrganisationTraineeUserTypeIfActiveMember,
   runOrganisationAdminTransaction,
   updatePromotionInvitationStatus,
 } from '../repositories/organisation-admin.repository.js';
@@ -255,11 +256,28 @@ export async function changeAdminPermissions(
     );
   }
 
-  await assertCriticalAdminSafeguard({
+  const affectedPermissionKeys = await criticalAdminSafeguardViolations({
     organisationId,
     targetAdminId: adminId,
     proposedPermissionKeys: permissionKeys,
   });
+  if (affectedPermissionKeys.length > 0) {
+    await recordAuditLog({
+      actorUserId,
+      actorType: 'ORGANISATION_ADMIN',
+      organisationId,
+      targetType: 'ORGANISATION_ADMIN_PERMISSION',
+      targetId: adminId,
+      actionType: 'PERMISSIONS_CHANGED',
+      outcome: 'FAILURE',
+      metadata: {
+        reason: 'LAST_CRITICAL_ADMIN_PERMISSION_CHANGE',
+        targetAdminId: adminId,
+        affectedPermissionKeys,
+      },
+    });
+    throwCriticalAdminSafeguardError();
+  }
 
   await runOrganisationAdminTransaction(async (tx) =>
     replaceOrganisationAdminPermissionGrants(
@@ -309,6 +327,18 @@ export async function removeAdmin(
 
   const passwordMatches = await verifyPassword(input.password, actor.user.passwordHash);
   if (!passwordMatches) {
+    await recordAuditLog({
+      actorUserId,
+      actorType: 'ORGANISATION_ADMIN',
+      organisationId,
+      targetType: 'OTHER',
+      actionType: 'DEMOTED',
+      outcome: 'FAILURE',
+      metadata: {
+        reason: 'INCORRECT_PASSWORD',
+        targetAdminId: adminId,
+      },
+    });
     throw new OrganisationAdminServiceError(
       403,
       'ORG_ADMIN_PASSWORD_INVALID',
@@ -326,11 +356,28 @@ export async function removeAdmin(
     );
   }
 
-  await assertCriticalAdminSafeguard({
+  const affectedPermissionKeys = await criticalAdminSafeguardViolations({
     organisationId,
     targetAdminId: adminId,
     removing: true,
   });
+  if (affectedPermissionKeys.length > 0) {
+    await recordAuditLog({
+      actorUserId,
+      actorType: 'ORGANISATION_ADMIN',
+      organisationId,
+      targetType: 'USER',
+      targetId: targetAdmin.userId,
+      actionType: 'DEMOTED',
+      outcome: 'FAILURE',
+      metadata: {
+        reason: 'LAST_CRITICAL_ADMIN_REMOVAL',
+        targetAdminId: adminId,
+        affectedPermissionKeys,
+      },
+    });
+    throwCriticalAdminSafeguardError();
+  }
 
   await runOrganisationAdminTransaction(async (tx) => {
     await disableOrganisationAdmin(
@@ -346,6 +393,14 @@ export async function removeAdmin(
       {
         organisationId,
         organisationAdminId: adminId,
+      },
+      tx,
+    );
+
+    await restoreOrganisationTraineeUserTypeIfActiveMember(
+      {
+        organisationId,
+        userId: targetAdmin.userId,
       },
       tx,
     );
@@ -481,12 +536,14 @@ async function requireOrganisationPermissions(
   return permissions;
 }
 
-async function assertCriticalAdminSafeguard(input: {
+async function criticalAdminSafeguardViolations(input: {
   organisationId: string;
   targetAdminId: string;
   proposedPermissionKeys?: readonly OrganisationPermissionKeyValue[];
   removing?: boolean;
 }) {
+  const affectedPermissionKeys: OrganisationPermissionKeyValue[] = [];
+
   for (const permissionKey of CRITICAL_ADMIN_PERMISSION_KEYS) {
     const otherAdminCount = await countActiveOrganisationAdminsWithPermission({
       organisationId: input.organisationId,
@@ -497,11 +554,17 @@ async function assertCriticalAdminSafeguard(input: {
       !input.removing && input.proposedPermissionKeys?.includes(permissionKey);
 
     if (otherAdminCount === 0 && !targetKeepsPermission) {
-      throw new OrganisationAdminServiceError(
-        409,
-        'ORG_ADMIN_CRITICAL_PERMISSION_REQUIRED',
-        'Organisation must retain an active admin with critical admin-management permissions',
-      );
+      affectedPermissionKeys.push(permissionKey);
     }
   }
+
+  return affectedPermissionKeys;
+}
+
+function throwCriticalAdminSafeguardError(): never {
+  throw new OrganisationAdminServiceError(
+    409,
+    'ORG_ADMIN_CRITICAL_PERMISSION_REQUIRED',
+    'Organisation must retain an active admin with critical admin-management permissions',
+  );
 }
