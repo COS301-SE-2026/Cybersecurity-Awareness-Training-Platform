@@ -153,6 +153,7 @@ describe('RegisterPage', () => {
     fetchMock.mockRejectedValue(new Error('Network Error'));
 
     renderRegisterPage();
+    await fillRegistrationForm(user);
     await user.type(screen.getByLabelText(/^password$/i), 'ThisIsA$Gang$StrongPassword!42069!');
     await user.type(
       screen.getByLabelText(/confirm password/i),
