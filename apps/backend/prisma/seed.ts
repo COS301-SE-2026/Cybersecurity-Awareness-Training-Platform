@@ -1,6 +1,10 @@
 import { prisma } from '../src/lib/prisma.js';
 import { seedDemoCore, type DemoSeedSummary } from './seed-data/demoSeedCore.js';
 import { seedAuthBootstrap, type AuthBootstrapSeedSummary } from './seed-data/authBootstrapSeed.js';
+import {
+  seedOrganisationAdminPermissions,
+  type OrganisationPermissionSeedSummary,
+} from './seed-data/organisationPermissionSeed.js';
 
 async function seedDemo1(): Promise<void> {
   const summary = await seedDemoCore(prisma);
@@ -16,6 +20,12 @@ function printAuthBootstrapSeedSummary(summary: AuthBootstrapSeedSummary): void 
   const action = summary.created ? 'created' : 'updated';
   console.log(`Auth bootstrap ${action} SUPER_ADMIN user: ${summary.email}`);
   console.log('Sensitive credential values are not printed.');
+}
+
+function printOrganisationPermissionSeedSummary(summary: OrganisationPermissionSeedSummary): void {
+  console.log(
+    `Organisation admin permissions seeded for ${summary.organisationCount} organisations: ${summary.permissionCount} permission records, ${summary.initialAdminGrantCount} initial-admin grants.`,
+  );
 }
 
 function printDemoSeedSummary(summary: DemoSeedSummary): void {
@@ -50,6 +60,9 @@ function isExpectedSeedConfigError(error: unknown): error is Error {
 try {
   const authBootstrapSummary = await seedAuthBootstrap(prisma);
   printAuthBootstrapSeedSummary(authBootstrapSummary);
+
+  const organisationPermissionSummary = await seedOrganisationAdminPermissions(prisma);
+  printOrganisationPermissionSeedSummary(organisationPermissionSummary);
 
   await seedDemo1();
 } catch (error: unknown) {

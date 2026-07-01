@@ -103,8 +103,69 @@ export const authResendVerificationRequestSchema = z
   })
   .strict();
 
+export const authVerifyEmailRequestSchema = z
+  .object({
+    token: z
+      .string({
+        required_error: 'Token is required.',
+        invalid_type_error: 'Token must be a string.',
+      })
+      .min(32, 'Token is invalid.')
+      .max(512, 'Token is invalid.')
+      .regex(/^[A-Za-z0-9_-]+$/, 'Token is invalid.'),
+  })
+  .strict();
+
+export const accountVerifyEmailChangeRequestSchema = z
+  .object({
+    token: z
+      .string({
+        required_error: 'Token is required.',
+        invalid_type_error: 'Token must be a string.',
+      })
+      .min(32, 'Token is invalid.')
+      .max(512, 'Token is invalid.')
+      .regex(/^[A-Za-z0-9_-]+$/, 'Token is invalid.'),
+  })
+  .strict();
+
 export const authForgotPasswordRequestSchema = z
   .object({
     email: emailSchema,
+  })
+  .strict();
+
+export const authResetPasswordRequestSchema = z
+  .object({
+    token: z
+      .string({
+        required_error: 'Token is required.',
+        invalid_type_error: 'Token must be a string.',
+      })
+      .min(1, 'Token is required.'),
+    newPassword: passwordSchema,
+    confirmNewPassword: z.string({
+      required_error: 'Please confirm your password.',
+      invalid_type_error: 'Please confirm your password.',
+    }),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.newPassword !== value.confirmNewPassword) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['confirmNewPassword'],
+        message: 'Password confirmation must match password.',
+      });
+    }
+  });
+
+export const tokenParamsSchema = z
+  .object({
+    token: z
+      .string()
+      .min(32, 'Token is invalid.')
+      .max(512, 'Token is invalid.')
+      .regex(/^[A-Za-z0-9_-]+$/, 'Token is invalid.'),
   })
   .strict();

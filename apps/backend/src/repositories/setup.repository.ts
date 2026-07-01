@@ -53,6 +53,8 @@ export function createOrganisationAdminUser(
     lastName: string;
     passwordHash: string;
     organisationId: string;
+    isInitialAdmin?: boolean;
+    createdFromInvitationId?: string | null;
   },
   client: SetupClient,
 ) {
@@ -69,6 +71,8 @@ export function createOrganisationAdminUser(
         create: {
           organisationId: input.organisationId,
           adminStatus: 'ACTIVE',
+          isInitialAdmin: input.isInitialAdmin ?? false,
+          createdFromInvitationId: input.createdFromInvitationId ?? null,
         },
       },
     },
@@ -82,6 +86,8 @@ export function createOrganisationTraineeUser(
     lastName: string;
     passwordHash: string;
     organisationId: string;
+    isInitialAdmin?: boolean;
+    createdFromInvitationId?: string | null;
   },
   client: SetupClient,
 ) {
@@ -143,6 +149,8 @@ export async function activateOrganisationAdminUser(
     lastName: string;
     passwordHash: string;
     organisationId: string;
+    isInitialAdmin?: boolean;
+    createdFromInvitationId?: string | null;
   },
   client: SetupClient,
 ) {
@@ -164,10 +172,14 @@ export async function activateOrganisationAdminUser(
       userId: input.userId,
       organisationId: input.organisationId,
       adminStatus: 'ACTIVE',
+      isInitialAdmin: input.isInitialAdmin ?? false,
+      createdFromInvitationId: input.createdFromInvitationId ?? null,
     },
     update: {
       organisationId: input.organisationId,
       adminStatus: 'ACTIVE',
+      isInitialAdmin: input.isInitialAdmin ?? false,
+      createdFromInvitationId: input.createdFromInvitationId ?? null,
     },
   });
 
