@@ -37,7 +37,7 @@ function RegisterPage() {
   const [alertMessage, setAlertMessage] = useState('');
   const [alertType, setAlertType] = useState<'success' | 'danger'>('danger');
   const [showEmailVerificationModal, setShowEmailVerificationModal] = useState(false);
-  const [showSuccessfulRegistrationModal, setShowSuccessfulRegistrationModal] = useState(false);
+  // const [showSuccessfulRegistrationModal, setShowSuccessfulRegistrationModal] = useState(false);
 
   async function handleRegister(event: FormEvent) {
     event.preventDefault();

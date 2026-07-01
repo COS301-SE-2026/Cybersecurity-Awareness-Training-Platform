@@ -1,6 +1,4 @@
 import { Link } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import { Popover } from 'flowbite-react';
 type SuccessfulRegistrationModalProps = Readonly<{
   isOpen: boolean;
   firstName: string;
