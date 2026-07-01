@@ -5,6 +5,12 @@ import {
   getCurrentUser,
   loginUser,
   registerUser,
+  verifyEmail,
+  verifyEmailChange,
+  resendVerificationEmail,
+  clearResendCooldowns,
+  AuthResendCooldownError,
+  EmailChangeConflictError,
 } from '../../src/services/auth.service.js';
 
 const userRepositoryMock = vi.hoisted(() => ({
@@ -38,6 +44,7 @@ const passwordServiceMock = vi.hoisted(() => ({
 
 const actionTokenServiceMock = vi.hoisted(() => ({
   issueActionToken: vi.fn(),
+  validateActionToken: vi.fn(),
 }));
 
 const authEmailHookServiceMock = vi.hoisted(() => ({
@@ -50,6 +57,16 @@ const authTokenServiceMock = vi.hoisted(() => ({
 
 const prismaMock = vi.hoisted(() => ({
   $transaction: vi.fn(),
+  user: {
+    update: vi.fn(),
+  },
+  actionToken: {
+    updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+  },
+  emailChangeRequest: {
+    findUnique: vi.fn(),
+    update: vi.fn(),
+  },
   authSession: {
     create: vi.fn().mockImplementation(async (args) => ({
       id: 'session-123',
@@ -62,6 +79,7 @@ const prismaMock = vi.hoisted(() => ({
       revokedAt: null,
       revokedReason: null,
     })),
+    updateMany: vi.fn().mockResolvedValue({ count: 1 }),
   },
   refreshToken: {
     create: vi.fn().mockImplementation(async (args) => ({
@@ -73,6 +91,7 @@ const prismaMock = vi.hoisted(() => ({
       revokedAt: null,
       revokedReason: null,
     })),
+    updateMany: vi.fn().mockResolvedValue({ count: 1 }),
   },
   auditLogEntry: {
     create: vi.fn().mockResolvedValue({ id: 'audit-123' }),
@@ -152,9 +171,9 @@ describe('registerUser', () => {
       userId: 'user-1',
       actionTokenId: 'action-token-1',
       templateData: {
+        firstName: 'Johan',
         actionToken: 'raw-action-token',
         actionTokenExpiresAt: verificationExpiresAt,
-        firstName: 'Johan',
       },
     });
     expect(response).toEqual({
@@ -391,5 +410,306 @@ describe('getCurrentUser', () => {
     userRepositoryMock.findUserWithAuthSubjectById.mockResolvedValue(null);
 
     await expect(getCurrentUser('missing-user')).rejects.toBeInstanceOf(AuthUnauthorizedError);
+  });
+});
+
+describe('verifyEmail', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    prismaMock.$transaction.mockImplementation((action) => action(prismaMock));
+  });
+
+  it('verifies a pending user when token is valid', async () => {
+    actionTokenServiceMock.validateActionToken.mockResolvedValue({
+      state: 'VALID',
+      token: { id: 'token-123', userId: 'user-1' },
+    });
+    userRepositoryMock.findUserById.mockResolvedValue({
+      id: 'user-1',
+      email: 'user@example.com',
+      authStatus: 'PENDING_EMAIL_VERIFICATION',
+    });
+    prismaMock.user.update.mockResolvedValue({
+      id: 'user-1',
+      email: 'user@example.com',
+      authStatus: 'ACTIVE',
+      emailVerifiedAt: new Date(),
+      createdAt: new Date(),
+    });
+
+    const result = await verifyEmail('some-valid-token');
+
+    expect(result.state).toBe('VALID');
+    expect(result.user).toBeDefined();
+    expect(result.user?.authStatus).toBe('ACTIVE');
+    expect(prismaMock.actionToken.updateMany).toHaveBeenCalled();
+    expect(prismaMock.user.update).toHaveBeenCalled();
+  });
+
+  it('returns status response for invalid token', async () => {
+    actionTokenServiceMock.validateActionToken.mockResolvedValue({
+      state: 'EXPIRED',
+    });
+
+    const result = await verifyEmail('expired-token');
+
+    expect(result.state).toBe('EXPIRED');
+    expect(prismaMock.user.update).not.toHaveBeenCalled();
+  });
+
+  it('returns state REVOKED if user is disabled', async () => {
+    actionTokenServiceMock.validateActionToken.mockResolvedValue({
+      state: 'VALID',
+      token: { id: 'token-123', userId: 'user-1' },
+    });
+    userRepositoryMock.findUserById.mockResolvedValue({
+      id: 'user-1',
+      email: 'user@example.com',
+      authStatus: 'DISABLED',
+    });
+
+    const result = await verifyEmail('valid-token-but-disabled-user');
+
+    expect(result.state).toBe('REVOKED');
+    expect(prismaMock.user.update).not.toHaveBeenCalled();
+  });
+});
+
+describe('resendVerificationEmail', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    clearResendCooldowns();
+    prismaMock.$transaction.mockImplementation((action) => action(prismaMock));
+  });
+
+  it('respects a 60-second cooldown per email', async () => {
+    userRepositoryMock.findUserByEmail.mockResolvedValue({
+      id: 'user-1',
+      email: 'user@example.com',
+      authStatus: 'PENDING_EMAIL_VERIFICATION',
+    });
+    actionTokenServiceMock.issueActionToken.mockResolvedValue({
+      rawToken: 'raw',
+      token: { id: 't' },
+    });
+    authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue({ queued: true });
+
+    // First request should succeed
+    await expect(resendVerificationEmail('user@example.com')).resolves.toBeUndefined();
+
+    // Second request immediately should throw 429
+    await expect(resendVerificationEmail('user@example.com')).rejects.toBeInstanceOf(
+      AuthResendCooldownError,
+    );
+  });
+
+  it('is enumeration-safe: sets cooldown even if email does not exist', async () => {
+    userRepositoryMock.findUserByEmail.mockResolvedValue(null);
+
+    // First request should succeed (but do nothing under the hood)
+    await expect(resendVerificationEmail('nonexistent@example.com')).resolves.toBeUndefined();
+
+    // Second request immediately should throw 429
+    await expect(resendVerificationEmail('nonexistent@example.com')).rejects.toBeInstanceOf(
+      AuthResendCooldownError,
+    );
+  });
+});
+
+describe('verifyEmailChange', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    prismaMock.$transaction.mockImplementation((action) => action(prismaMock));
+  });
+
+  it('completes email change successfully on pending request', async () => {
+    actionTokenServiceMock.validateActionToken.mockResolvedValue({
+      state: 'VALID',
+      token: {
+        id: 'token-change-123',
+        userId: 'user-1',
+        targetEmail: 'new@example.com',
+        emailChangeRequestId: 'request-123',
+      },
+    });
+    userRepositoryMock.findUserById.mockResolvedValue({
+      id: 'user-1',
+      email: 'old@example.com',
+      authStatus: 'ACTIVE',
+      userType: 'GENERAL_TRAINEE',
+    });
+    userRepositoryMock.findUserByEmail.mockResolvedValue(null);
+
+    prismaMock.emailChangeRequest.findUnique.mockResolvedValue({
+      id: 'request-123',
+      userId: 'user-1',
+      RequestedEmail: 'new@example.com',
+      status: 'PENDING',
+      expiresAt: new Date(Date.now() + 100000),
+    });
+
+    const result = await verifyEmailChange('some-change-token');
+
+    expect(result.state).toBe('VALID');
+    expect(prismaMock.user.update).toHaveBeenCalledWith({
+      where: { id: 'user-1' },
+      data: { email: 'new@example.com' },
+    });
+    expect(prismaMock.emailChangeRequest.update).toHaveBeenCalledWith({
+      where: { id: 'request-123' },
+      data: {
+        status: 'CONFIRMED',
+        confirmedAt: expect.any(Date),
+      },
+    });
+    expect(prismaMock.authSession.updateMany).toHaveBeenCalled();
+    expect(prismaMock.refreshToken.updateMany).toHaveBeenCalled();
+  });
+
+  it('returns EXPIRED when the email change request has expired', async () => {
+    actionTokenServiceMock.validateActionToken.mockResolvedValue({
+      state: 'VALID',
+      token: {
+        id: 'token-change-123',
+        userId: 'user-1',
+        targetEmail: 'new@example.com',
+        emailChangeRequestId: 'request-123',
+      },
+    });
+    userRepositoryMock.findUserById.mockResolvedValue({
+      id: 'user-1',
+      email: 'old@example.com',
+      authStatus: 'ACTIVE',
+      userType: 'GENERAL_TRAINEE',
+    });
+
+    // Request is expired in the past
+    prismaMock.emailChangeRequest.findUnique.mockResolvedValue({
+      id: 'request-123',
+      userId: 'user-1',
+      RequestedEmail: 'new@example.com',
+      status: 'PENDING',
+      expiresAt: new Date(Date.now() - 10000),
+    });
+
+    const result = await verifyEmailChange('some-change-token');
+
+    expect(result.state).toBe('EXPIRED');
+    expect(prismaMock.emailChangeRequest.update).toHaveBeenCalledWith({
+      where: { id: 'request-123' },
+      data: { status: 'EXPIRED' },
+    });
+    expect(prismaMock.user.update).not.toHaveBeenCalled();
+  });
+
+  it('returns USED or REVOKED if the request status is already CONFIRMED or CANCELED', async () => {
+    actionTokenServiceMock.validateActionToken.mockResolvedValue({
+      state: 'VALID',
+      token: {
+        id: 'token-change-123',
+        userId: 'user-1',
+        targetEmail: 'new@example.com',
+        emailChangeRequestId: 'request-123',
+      },
+    });
+    userRepositoryMock.findUserById.mockResolvedValue({
+      id: 'user-1',
+      email: 'old@example.com',
+      authStatus: 'ACTIVE',
+      userType: 'GENERAL_TRAINEE',
+    });
+
+    // 1. Confirmed case
+    prismaMock.emailChangeRequest.findUnique.mockResolvedValue({
+      id: 'request-123',
+      userId: 'user-1',
+      RequestedEmail: 'new@example.com',
+      status: 'CONFIRMED',
+      expiresAt: new Date(Date.now() + 100000),
+    });
+
+    const resUsed = await verifyEmailChange('some-change-token');
+    expect(resUsed.state).toBe('USED');
+
+    // 2. Canceled case
+    prismaMock.emailChangeRequest.findUnique.mockResolvedValue({
+      id: 'request-123',
+      userId: 'user-1',
+      RequestedEmail: 'new@example.com',
+      status: 'CANCELED',
+      expiresAt: new Date(Date.now() + 100000),
+    });
+
+    const resRevoked = await verifyEmailChange('some-change-token');
+    expect(resRevoked.state).toBe('REVOKED');
+  });
+
+  it('returns INVALID if user or target email does not match the token parameters', async () => {
+    actionTokenServiceMock.validateActionToken.mockResolvedValue({
+      state: 'VALID',
+      token: {
+        id: 'token-change-123',
+        userId: 'user-1',
+        targetEmail: 'new@example.com',
+        emailChangeRequestId: 'request-123',
+      },
+    });
+    userRepositoryMock.findUserById.mockResolvedValue({
+      id: 'user-1',
+      email: 'old@example.com',
+      authStatus: 'ACTIVE',
+      userType: 'GENERAL_TRAINEE',
+    });
+
+    // User ID mismatch
+    prismaMock.emailChangeRequest.findUnique.mockResolvedValue({
+      id: 'request-123',
+      userId: 'different-user',
+      RequestedEmail: 'new@example.com',
+      status: 'PENDING',
+      expiresAt: new Date(Date.now() + 100000),
+    });
+
+    const resInvalidUser = await verifyEmailChange('some-change-token');
+    expect(resInvalidUser.state).toBe('INVALID');
+
+    // Email mismatch
+    prismaMock.emailChangeRequest.findUnique.mockResolvedValue({
+      id: 'request-123',
+      userId: 'user-1',
+      RequestedEmail: 'different@example.com',
+      status: 'PENDING',
+      expiresAt: new Date(Date.now() + 100000),
+    });
+
+    const resInvalidEmail = await verifyEmailChange('some-change-token');
+    expect(resInvalidEmail.state).toBe('INVALID');
+  });
+
+  it('throws 409 conflict if new email is already taken', async () => {
+    actionTokenServiceMock.validateActionToken.mockResolvedValue({
+      state: 'VALID',
+      token: {
+        id: 'token-change-123',
+        userId: 'user-1',
+        targetEmail: 'taken@example.com',
+        emailChangeRequestId: 'request-123',
+      },
+    });
+    userRepositoryMock.findUserById.mockResolvedValue({
+      id: 'user-1',
+      email: 'old@example.com',
+      authStatus: 'ACTIVE',
+      userType: 'GENERAL_TRAINEE',
+    });
+    userRepositoryMock.findUserByEmail.mockResolvedValue({
+      id: 'another-user',
+      email: 'taken@example.com',
+    });
+
+    await expect(verifyEmailChange('some-change-token')).rejects.toBeInstanceOf(
+      EmailChangeConflictError,
+    );
+    expect(prismaMock.user.update).not.toHaveBeenCalled();
   });
 });

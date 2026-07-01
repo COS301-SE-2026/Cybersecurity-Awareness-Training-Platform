@@ -2,6 +2,7 @@ import {
   authLoginRequestSchema,
   authRegisterRequestSchema,
   authResendVerificationRequestSchema,
+  authVerifyEmailRequestSchema,
   authForgotPasswordRequestSchema,
   authResetPasswordRequestSchema,
   tokenParamsSchema,
@@ -14,6 +15,7 @@ import {
   logout,
   refresh,
   resendVerification,
+  verify,
   forgotPassword,
   resetPassword,
   validateTokenContext,
@@ -224,6 +226,37 @@ authRouter.post(
   authRateLimit,
   validateBody(authResendVerificationRequestSchema),
   asyncHandler(resendVerification),
+);
+
+/**
+ * @openapi
+ * /auth/verify-email:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Verify registration email token
+ *     description: Verifies the email verification token, marks it used, and activates the user account if successful.
+ *     security: []
+ *     requestBody:
+ *       $ref: '#/components/requestBodies/AuthVerifyEmail'
+ *     responses:
+ *       200:
+ *         description: Verification attempt completed. Returns token verification state and user context if valid.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AuthVerifyEmailResponse'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       429:
+ *         $ref: '#/components/responses/AuthRateLimited'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+authRouter.post(
+  '/auth/verify-email',
+  authRateLimit,
+  validateBody(authVerifyEmailRequestSchema),
+  asyncHandler(verify),
 );
 
 /**

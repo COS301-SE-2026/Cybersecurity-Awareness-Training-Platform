@@ -4,10 +4,27 @@ import type {
   authRegisterRequestSchema,
   setupCompleteRequestSchema,
   setupTokenParamsSchema,
+  authVerifyEmailRequestSchema,
+  accountVerifyEmailChangeRequestSchema,
 } from './validation/auth.schemas.js';
 
 export type SetupTokenParamsDto = z.infer<typeof setupTokenParamsSchema>;
 export type SetupCompleteRequestDto = z.infer<typeof setupCompleteRequestSchema>;
+export type AuthVerifyEmailRequestDto = z.infer<typeof authVerifyEmailRequestSchema>;
+export type AccountVerifyEmailChangeRequestDto = z.infer<
+  typeof accountVerifyEmailChangeRequestSchema
+>;
+
+export type ActionTokenStateDto = 'VALID' | 'INVALID' | 'EXPIRED' | 'USED' | 'REVOKED';
+
+export interface AuthVerifyEmailResponseDto {
+  state: ActionTokenStateDto;
+  user?: PublicUserDto;
+}
+
+export interface AccountVerifyEmailChangeResponseDto {
+  state: ActionTokenStateDto;
+}
 
 export interface AuthRegisterResponseDto {
   user: PublicUserDto;
@@ -16,7 +33,7 @@ export interface AuthRegisterResponseDto {
 
 export interface SetupTokenContextResponseDto {
   token: {
-    state: 'VALID' | 'INVALID' | 'EXPIRED' | 'USED' | 'REVOKED';
+    state: ActionTokenStateDto;
     purpose?: string;
   };
   targetEmail?: string;
