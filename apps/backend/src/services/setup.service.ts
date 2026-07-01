@@ -104,6 +104,7 @@ export async function completeSetupWithToken(
 
     const role = setupUserTypeForPurpose(freshToken.purpose);
     const organisationId = freshToken.invitation?.organisationId ?? null;
+    const setupInvitationId = freshToken.invitationId ?? null;
     const existingUser = await findSetupUserByEmail(targetEmail, tx);
     const userInput = {
       email: targetEmail,
@@ -119,10 +120,23 @@ export async function completeSetupWithToken(
           currentAuthStatus: existingUser.authStatus,
           role,
           organisationId,
-          userInput,
+          setupPurpose: freshToken.purpose,
+          setupInvitationId,
+          userInput: {
+            firstName: input.firstName,
+            lastName: input.lastName,
+            passwordHash,
+          },
           tx,
         })
-      : await createSetupUser({ role, organisationId, userInput, tx });
+      : await createSetupUser({
+          role,
+          organisationId,
+          setupPurpose: freshToken.purpose,
+          setupInvitationId,
+          userInput,
+          tx,
+        });
 
     if (freshToken.invitationId) {
       await markInvitationAccepted(freshToken.invitationId, tx);
@@ -226,6 +240,8 @@ function tokenStateError(state: 'INVALID' | 'EXPIRED' | 'USED' | 'REVOKED') {
 async function createSetupUser(input: {
   role: SetupUserType;
   organisationId: string | null;
+  setupPurpose: ActionTokenPurpose;
+  setupInvitationId: string | null;
   userInput: {
     email: string;
     firstName: string;
@@ -244,7 +260,11 @@ async function createSetupUser(input: {
 
   if (input.role === 'ORGANISATION_ADMIN') {
     return createOrganisationAdminUser(
-      { ...input.userInput, organisationId: input.organisationId },
+      {
+        ...input.userInput,
+        organisationId: input.organisationId,
+        ...organisationAdminSetupMetadata(input.setupPurpose, input.setupInvitationId),
+      },
       input.tx,
     );
   }
@@ -261,6 +281,8 @@ async function activateExistingSetupUser(input: {
   currentAuthStatus: string;
   role: SetupUserType;
   organisationId: string | null;
+  setupPurpose: ActionTokenPurpose;
+  setupInvitationId: string | null;
   userInput: {
     firstName: string;
     lastName: string;
@@ -286,7 +308,12 @@ async function activateExistingSetupUser(input: {
 
   if (input.role === 'ORGANISATION_ADMIN') {
     return activateOrganisationAdminUser(
-      { userId: input.userId, organisationId: input.organisationId, ...input.userInput },
+      {
+        userId: input.userId,
+        organisationId: input.organisationId,
+        ...input.userInput,
+        ...organisationAdminSetupMetadata(input.setupPurpose, input.setupInvitationId),
+      },
       input.tx,
     );
   }
@@ -295,4 +322,21 @@ async function activateExistingSetupUser(input: {
     { userId: input.userId, organisationId: input.organisationId, ...input.userInput },
     input.tx,
   );
+}
+
+function organisationAdminSetupMetadata(
+  setupPurpose: ActionTokenPurpose,
+  setupInvitationId: string | null,
+) {
+  if (setupPurpose !== 'INITIAL_ORGANISATION_ADMIN_SETUP') {
+    return {
+      isInitialAdmin: false,
+      createdFromInvitationId: null,
+    };
+  }
+
+  return {
+    isInitialAdmin: true,
+    createdFromInvitationId: setupInvitationId,
+  };
 }

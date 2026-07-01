@@ -35,7 +35,12 @@ const expectedSchemas = [
   'AuthMeResponse',
   'AuthResendVerificationRequest',
   'AuthResendVerificationResponse',
+  'AuthForgotPasswordRequest',
+  'AuthForgotPasswordResponse',
+  'AuthResetPasswordRequest',
+  'AuthResetPasswordResponse',
   'AuthRateLimitErrorResponse',
+  'TokenContextResponse',
   'SetupTokenState',
   'SetupTokenContextResponse',
   'SetupCompleteRequest',
@@ -132,6 +137,8 @@ const expectedRequestBodies = [
   'SubmitQuizAttempt',
   'SetupComplete',
   'CreateOrganisationRegistrationRequest',
+  'AuthForgotPassword',
+  'AuthResetPassword',
 ] as const;
 
 const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
@@ -142,6 +149,10 @@ const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
   ['post', '/auth/logout', ['200', '500']],
   ['post', '/auth/refresh', ['200', '401', '403', '429', '500']],
   ['post', '/auth/resend-verification', ['200', '400', '429', '500']],
+  ['post', '/auth/forgot-password', ['200', '400', '429', '500']],
+  ['post', '/auth/reset-password', ['200', '400', '401', '403', '409', '429', '500']],
+  ['get', '/auth/tokens/{token}/context', ['200', '400', '429', '500']],
+  ['post', '/auth/tokens/{token}/resend', ['200', '400', '429', '500']],
   ['get', '/setup/token/{token}/context', ['200', '400', '401', '409', '429', '500']],
   ['post', '/setup/token/{token}/complete', ['201', '400', '401', '409', '429', '500']],
   ['post', '/organisation-registration-requests', ['201', '409', '422', '429', '500']],

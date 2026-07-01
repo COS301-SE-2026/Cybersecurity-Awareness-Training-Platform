@@ -10,7 +10,8 @@ import type { AuthSessionRevokedReason } from '../generated/prisma/enums.js';
 import { prisma } from '../lib/prisma.js';
 import { toPublicUserDto } from '../mappers/user.mapper.js';
 import * as UserRepository from '../repositories/user.repository.js';
-import { issueActionToken } from './action-token.service.js';
+import { issueActionToken, validateActionToken } from './action-token.service.js';
+import { recordAuditLog } from './audit-log.service.js';
 import { requestAuthEmailSend } from './auth-email-hook.service.js';
 import { generateAuthToken } from './auth-token.service.js';
 import * as PasswordService from './password.service.js';
@@ -32,6 +33,17 @@ export class AuthConflictError extends Error {
   constructor(message = 'A user with the provided email already exists') {
     super(message);
     this.name = 'AuthConflictError';
+  }
+}
+
+export class AuthResetPasswordError extends Error {
+  constructor(
+    public readonly statusCode: number,
+    public readonly code: string,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'AuthResetPasswordError';
   }
 }
 
@@ -364,6 +376,158 @@ export async function resendVerificationEmail(email: string): Promise<void> {
       actionToken: verification.rawToken,
       firstName: user.firstName,
       actionTokenExpiresAt: verification.token.expiresAt,
+    },
+  });
+}
+
+export async function requestPasswordReset(email: string): Promise<void> {
+  const normalizedEmail = email.trim().toLowerCase();
+  const user = await UserRepository.findUserByEmail(normalizedEmail);
+
+  if (!user || user.authStatus === 'DISABLED' || user.authStatus === 'PENDING_INVITE_SETUP') {
+    return;
+  }
+
+  const { verification } = await prisma.$transaction(async (tx) => {
+    await tx.actionToken.updateMany({
+      where: {
+        userId: user.id,
+        purpose: 'PASSWORD_RESET',
+        revokedAt: null,
+        usedAt: null,
+      },
+      data: {
+        revokedAt: new Date(),
+        revokedReason: 'REPLACED',
+      },
+    });
+
+    const resetToken = await issueActionToken(
+      {
+        purpose: 'PASSWORD_RESET',
+        userId: user.id,
+        targetEmail: user.email,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      },
+      tx,
+    );
+
+    return { verification: resetToken };
+  });
+
+  await requestAuthEmailSend({
+    emailType: 'PASSWORD_RESET',
+    recipientEmail: user.email,
+    userId: user.id,
+    actionTokenId: verification.token.id,
+    templateData: {
+      actionToken: verification.rawToken,
+      firstName: user.firstName,
+      actionTokenExpiresAt: verification.token.expiresAt,
+    },
+  });
+}
+
+export async function resetUserPassword(
+  rawToken: string,
+  passwordInput: string,
+  ipAddress?: string | null,
+  userAgent?: string | null,
+): Promise<void> {
+  const validationResult = await validateActionToken({
+    rawToken,
+    expectedPurpose: 'PASSWORD_RESET',
+  });
+
+  if (validationResult.state !== 'VALID' || !validationResult.token) {
+    const state = validationResult.state;
+    if (state === 'INVALID') {
+      throw new AuthResetPasswordError(401, 'RESET_TOKEN_INVALID', 'Reset token is invalid');
+    }
+    if (state === 'EXPIRED') {
+      throw new AuthResetPasswordError(401, 'RESET_TOKEN_EXPIRED', 'Reset token has expired');
+    }
+    if (state === 'USED') {
+      throw new AuthResetPasswordError(
+        409,
+        'RESET_TOKEN_USED',
+        'Reset token has already been used',
+      );
+    }
+    if (state === 'REVOKED') {
+      throw new AuthResetPasswordError(401, 'RESET_TOKEN_REVOKED', 'Reset token has been revoked');
+    }
+    throw new AuthResetPasswordError(401, 'RESET_TOKEN_INVALID', 'Reset token is invalid');
+  }
+
+  const token = validationResult.token;
+  if (!token.userId) {
+    throw new AuthResetPasswordError(401, 'RESET_TOKEN_INVALID', 'Reset token is invalid');
+  }
+
+  const user = await UserRepository.findUserById(token.userId);
+  if (!user || user.authStatus === 'DISABLED') {
+    throw new AuthResetPasswordError(403, 'USER_DISABLED', 'User account is disabled');
+  }
+
+  const passwordHash = await PasswordService.hashPassword(passwordInput);
+
+  await prisma.$transaction(async (tx) => {
+    const claim = await tx.actionToken.updateMany({
+      where: { id: token.id, usedAt: null, revokedAt: null },
+      data: { usedAt: new Date() },
+    });
+
+    if (claim.count !== 1) {
+      throw new AuthResetPasswordError(
+        409,
+        'RESET_TOKEN_USED',
+        'Reset token has already been used',
+      );
+    }
+
+    await tx.user.update({
+      where: { id: user.id },
+      data: { passwordHash },
+    });
+
+    await tx.authSession.updateMany({
+      where: { userId: user.id, revokedAt: null },
+      data: { revokedAt: new Date(), revokedReason: 'PASSWORD_RESET' },
+    });
+
+    await tx.refreshToken.updateMany({
+      where: {
+        authSession: {
+          userId: user.id,
+        },
+        revokedAt: null,
+      },
+      data: {
+        revokedAt: new Date(),
+        revokedReason: 'PASSWORD_RESET',
+      },
+    });
+  });
+
+  await recordAuditLog({
+    actorUserId: user.id,
+    actorType: user.userType,
+    targetType: 'USER',
+    targetId: user.id,
+    actionType: 'UPDATED',
+    outcome: 'SUCCESS',
+    metadata: { reason: 'PASSWORD_RESET' },
+    ipAddress,
+    userAgent,
+  });
+
+  await requestAuthEmailSend({
+    emailType: 'PASSWORD_CHANGED',
+    recipientEmail: user.email,
+    userId: user.id,
+    templateData: {
+      firstName: user.firstName,
     },
   });
 }

@@ -56,6 +56,16 @@ const publicUser = {
   createdAt: new Date('2026-06-25T08:00:00.000Z'),
 };
 
+const publicAdminUser = {
+  id: 'admin-user-1',
+  firstName: 'Amina',
+  lastName: 'Khan',
+  email: 'admin@example.com',
+  userType: 'ORGANISATION_ADMIN',
+  authStatus: 'ACTIVE',
+  createdAt: new Date('2026-06-25T08:00:00.000Z'),
+};
+
 const completeSetupInput = {
   firstName: 'Johan',
   lastName: 'Nel',
@@ -69,6 +79,16 @@ const publicUserResponse = {
   lastName: 'Nel',
   email: 'trainee@example.com',
   userType: 'ORGANISATION_TRAINEE',
+  authStatus: 'ACTIVE',
+  createdAt: '2026-06-25T08:00:00.000Z',
+};
+
+const publicAdminUserResponse = {
+  id: 'admin-user-1',
+  firstName: 'Amina',
+  lastName: 'Khan',
+  email: 'admin@example.com',
+  userType: 'ORGANISATION_ADMIN',
   authStatus: 'ACTIVE',
   createdAt: '2026-06-25T08:00:00.000Z',
 };
@@ -199,6 +219,75 @@ describe('setup service', () => {
     );
     expect(setupRepositoryMock.markInvitationAccepted).toHaveBeenCalledWith('invitation-1', tx);
     expect(response).toEqual({ user: publicUserResponse });
+  });
+
+  it('marks the initial organisation admin and links the setup invitation', async () => {
+    setupRepositoryMock.findSetupActionTokenById.mockResolvedValue(
+      setupToken({
+        purpose: 'INITIAL_ORGANISATION_ADMIN_SETUP',
+        targetEmail: 'admin@example.com',
+        invitationId: 'initial-admin-invitation-1',
+        invitation: {
+          ...setupToken().invitation,
+          id: 'initial-admin-invitation-1',
+          recipientEmail: 'admin@example.com',
+        },
+      }),
+    );
+    setupRepositoryMock.createOrganisationAdminUser.mockResolvedValue(publicAdminUser);
+
+    const response = await completeSetupWithToken(rawSetupValue, completeSetupInput);
+
+    expect(setupRepositoryMock.createOrganisationAdminUser).toHaveBeenCalledWith(
+      {
+        email: 'admin@example.com',
+        firstName: 'Johan',
+        lastName: 'Nel',
+        passwordHash: 'hashed-password',
+        organisationId: 'org-1',
+        isInitialAdmin: true,
+        createdFromInvitationId: 'initial-admin-invitation-1',
+      },
+      tx,
+    );
+    expect(response).toEqual({ user: publicAdminUserResponse });
+  });
+
+  it('marks an existing user as the initial organisation admin during initial setup', async () => {
+    setupRepositoryMock.findSetupActionTokenById.mockResolvedValue(
+      setupToken({
+        purpose: 'INITIAL_ORGANISATION_ADMIN_SETUP',
+        targetEmail: 'admin@example.com',
+        invitationId: 'initial-admin-invitation-1',
+        invitation: {
+          ...setupToken().invitation,
+          id: 'initial-admin-invitation-1',
+          recipientEmail: 'admin@example.com',
+        },
+      }),
+    );
+    setupRepositoryMock.findSetupUserByEmail.mockResolvedValue({
+      id: 'admin-user-1',
+      userType: 'ORGANISATION_ADMIN',
+      authStatus: 'INVITED',
+    });
+    setupRepositoryMock.activateOrganisationAdminUser.mockResolvedValue(publicAdminUser);
+
+    const response = await completeSetupWithToken(rawSetupValue, completeSetupInput);
+
+    expect(setupRepositoryMock.activateOrganisationAdminUser).toHaveBeenCalledWith(
+      {
+        userId: 'admin-user-1',
+        firstName: 'Johan',
+        lastName: 'Nel',
+        passwordHash: 'hashed-password',
+        organisationId: 'org-1',
+        isInitialAdmin: true,
+        createdFromInvitationId: 'initial-admin-invitation-1',
+      },
+      tx,
+    );
+    expect(response).toEqual({ user: publicAdminUserResponse });
   });
 
   it.each(['FAILED_TO_SEND', 'ACCEPTED', 'EXPIRED', 'REVOKED'])(
