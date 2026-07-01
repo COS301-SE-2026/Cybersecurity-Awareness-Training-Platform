@@ -1081,8 +1081,8 @@
           "number": 247,
           "title": "feat: integrate Sprint 4 email delivery support",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-07-01"
         },
         {
           "number": 246,
@@ -1625,7 +1625,7 @@
     },
     {
       "date": "2026-07-01",
-      "remaining": 120,
+      "remaining": 118,
       "ideal": 43.65
     }
   ]
