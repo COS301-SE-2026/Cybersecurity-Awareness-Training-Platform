@@ -76,15 +76,8 @@ function RegisterPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        if (response.status === 409) {
-          setAlertType('danger');
-          setAlertMessage('An Account With This Email Address Already Exists');
-          return;
-        }
-
         setAlertType('danger');
         setAlertMessage(formatAlertMessage(data.message) || 'Registration Failed');
-
         return;
       }
 
