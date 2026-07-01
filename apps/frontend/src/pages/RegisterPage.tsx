@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import BasicAlert from '../components/alerts/BasicAlert';
 import { Popover } from 'flowbite-react';
 import EmailVerificationModal from '../components/layout/modals/EmailVerificationModal';
+import SuccessfulRegistrationModal from '../components/layout/modals/SuccessfulRegistrationModal';
 
 import {
   AuthActionLink,
@@ -36,11 +37,12 @@ function RegisterPage() {
   const [alertMessage, setAlertMessage] = useState('');
   const [alertType, setAlertType] = useState<'success' | 'danger'>('danger');
   const [showEmailVerificationModal, setShowEmailVerificationModal] = useState(false);
+  const [showSuccessfulRegistrationModal, setShowSuccessfulRegistrationModal] = useState(false);
 
   async function handleRegister(event: FormEvent) {
     event.preventDefault();
     setAlertMessage('');
-
+    // setShowSuccessfulRegistrationModal(true); // SHOW THE SUCCESSFULL REGISTRATION MODAL
     const validationResult = authRegisterRequestSchema.safeParse({
       firstName,
       lastName,
@@ -148,11 +150,20 @@ function RegisterPage() {
             </BasicAlert>
           )}
 
+          {/* EMAIL VERIFICATION MODAL  */}
           <EmailVerificationModal
             isOpen={showEmailVerificationModal}
             email={email}
             accountDescription="Individual Trainee"
             onResend={() => {}}
+          />
+
+          {/* SUCCESSFUL REGISTRATION MODAL */}
+          <SuccessfulRegistrationModal
+            isOpen={showSuccessfulRegistrationModal}
+            firstName="Name" // First Name Goes Here
+            accountDescription="Organisation Trainee" // This can be Individual Trainee or Organisation Trainee...
+            organisation="My Organisation (Pty) Ltd" // SPECIFY '' (organisation={''}) IF YOU DO NOT WANT TO SHOW ORGANISATION INFORMATION
           />
 
           <form onSubmit={handleRegister} noValidate style={authFormStyle}>
