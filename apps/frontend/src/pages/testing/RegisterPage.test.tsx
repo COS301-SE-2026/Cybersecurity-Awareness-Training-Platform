@@ -124,4 +124,27 @@ describe('RegisterPage', () => {
     ).toBeInTheDocument();
     expect(navigateMock).not.toHaveBeenCalled();
   });
-});
+
+  it('shows the backend error message when registration fails', async () => {
+    const user = userEvent.setup();
+
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 500,
+      json: async () => ({
+        message: 'Registration Failed',
+      }),
+    });
+    renderRegisterPage();
+    await fillRegistrationForm(user);
+
+    await user.type(screen.getByLabelText(/^password$/i), 'ThisIsA$Gang$StrongPassword!42069!');
+    await user.type(
+      screen.getByLabelText(/confirm password/i),
+      'ThisIsA$Gang$StrongPassword!42069!',
+    );
+    await user.click(screen.getByRole('button', { name: /Register/i }));
+
+    expect(await screen.findByText('Registration Failed')).toBeInTheDocument();
+  });
+}); //describe
