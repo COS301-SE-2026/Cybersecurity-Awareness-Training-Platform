@@ -407,7 +407,6 @@ export async function resendVerificationEmail(email: string): Promise<void> {
     templateData: {
       firstName: user.firstName,
       actionToken: verification.rawToken,
-      firstName: user.firstName,
       actionTokenExpiresAt: verification.token.expiresAt,
     },
   });
