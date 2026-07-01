@@ -716,4 +716,49 @@ describe('Auth Integration Tests', () => {
         "If this email can be registered, we'll send you an email verification link. Please check your inbox.",
     });
   });
+
+  it('reissues verification for a pending unverified account with an expired verification token', async () => {
+    const email = 'pending-expired-register@example.com';
+
+    const { user } = await createTrainee({
+      user: {
+        email,
+        authStatus: 'PENDING_EMAIL_VERIFICATION',
+        emailVerifiedAt: null,
+      },
+    });
+
+    await issueActionToken({
+      purpose: 'EMAIL_VERIFICATION',
+      userId: user.id,
+      targetEmail: email,
+      expiresAt: new Date(Date.now() - 60 * 1000),
+    });
+
+    const response = await request(createApp()).post('/auth/register').send({
+      email,
+      firstName: 'Pending',
+      lastName: 'Expired',
+      password: secureRegisterPassword,
+    });
+
+    expect(response.status).toBe(201);
+    expect(response.body).toEqual({
+      message:
+        "If this email can be registered, we'll send you an email verification link. Please check your inbox.",
+    });
+
+    const activeTokens = await prisma.actionToken.findMany({
+      where: {
+        userId: user.id,
+        targetEmail: email,
+        purpose: 'EMAIL_VERIFICATION',
+        usedAt: null,
+        revokedAt: null,
+      },
+    });
+
+    expect(activeTokens).toHaveLength(1);
+    expect(activeTokens[0].expiresAt.getTime()).toBeGreaterThan(Date.now());
+  });
 });
