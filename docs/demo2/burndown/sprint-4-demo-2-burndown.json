@@ -4,6 +4,13 @@
   "end": "2026-07-08",
   "issues": [
     {
+      "number": 314,
+      "title": "chore: lint only changed files in PRs to dev",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
       "number": 313,
       "title": "fix: add resend verification cooldown response handling",
       "points": 1,
@@ -413,8 +420,8 @@
       "number": 235,
       "title": "feat: implement backend email verification and resend endpoints",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-07-01"
     },
     {
       "number": 234,
@@ -546,68 +553,68 @@
   "series": [
     {
       "date": "2026-06-19",
-      "remaining": 170,
-      "ideal": 170.0
+      "remaining": 172,
+      "ideal": 172.0
     },
     {
       "date": "2026-06-20",
-      "remaining": 170,
-      "ideal": 161.05
+      "remaining": 172,
+      "ideal": 162.95
     },
     {
       "date": "2026-06-21",
-      "remaining": 170,
-      "ideal": 152.11
+      "remaining": 172,
+      "ideal": 153.89
     },
     {
       "date": "2026-06-22",
-      "remaining": 168,
-      "ideal": 143.16
+      "remaining": 170,
+      "ideal": 144.84
     },
     {
       "date": "2026-06-23",
-      "remaining": 156,
-      "ideal": 134.21
+      "remaining": 158,
+      "ideal": 135.79
     },
     {
       "date": "2026-06-24",
-      "remaining": 154,
-      "ideal": 125.26
+      "remaining": 156,
+      "ideal": 126.74
     },
     {
       "date": "2026-06-25",
-      "remaining": 150,
-      "ideal": 116.32
+      "remaining": 152,
+      "ideal": 117.68
     },
     {
       "date": "2026-06-26",
-      "remaining": 148,
-      "ideal": 107.37
+      "remaining": 150,
+      "ideal": 108.63
     },
     {
       "date": "2026-06-27",
-      "remaining": 148,
-      "ideal": 98.42
+      "remaining": 150,
+      "ideal": 99.58
     },
     {
       "date": "2026-06-28",
-      "remaining": 145,
-      "ideal": 89.47
+      "remaining": 147,
+      "ideal": 90.53
     },
     {
       "date": "2026-06-29",
-      "remaining": 137,
-      "ideal": 80.53
+      "remaining": 139,
+      "ideal": 81.47
     },
     {
       "date": "2026-06-30",
-      "remaining": 126,
-      "ideal": 71.58
+      "remaining": 128,
+      "ideal": 72.42
     },
     {
       "date": "2026-07-01",
       "remaining": 120,
-      "ideal": 62.63
+      "ideal": 63.37
     }
   ]
 }
