@@ -656,7 +656,7 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             },
           },
         },
-        AuthVerifyEmailRequest: {
+         AuthVerifyEmailRequest: {
           type: 'object',
           required: ['token'],
           additionalProperties: false,
@@ -697,6 +697,97 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           required: ['state'],
           properties: {
             state: enumString(['VALID', 'INVALID', 'EXPIRED', 'USED', 'REVOKED'], 'VALID'),
+          },
+        },
+        AuthForgotPasswordRequest: {
+          type: 'object',
+          required: ['email'],
+          additionalProperties: false,
+          properties: {
+            email: {
+              type: 'string',
+              format: 'email',
+              example: 'johan@example.com',
+            },
+          },
+        },
+        AuthForgotPasswordResponse: {
+          type: 'object',
+          required: ['message'],
+          properties: {
+            message: {
+              type: 'string',
+              example: 'If the email is registered, a password reset link has been sent.',
+            },
+          },
+        },
+        AuthResetPasswordRequest: {
+          type: 'object',
+          required: ['token', 'newPassword', 'confirmNewPassword'],
+          additionalProperties: false,
+          properties: {
+            token: {
+              type: 'string',
+              example: 'exampleResetTokenValueWithAtLeast32Chars',
+            },
+            newPassword: {
+              type: 'string',
+              format: 'password',
+              minLength: 12,
+              example: 'ExampleLocalPassword1!',
+            },
+            confirmNewPassword: {
+              type: 'string',
+              example: 'ExampleLocalPassword1!',
+            },
+          },
+        },
+        AuthResetPasswordResponse: {
+          type: 'object',
+          required: ['success'],
+          properties: {
+            success: {
+              type: 'boolean',
+              example: true,
+            },
+          },
+        },
+        TokenContextResponse: {
+          type: 'object',
+          required: ['tokenState', 'canResend', 'resendCooldownSeconds', 'messageCode', 'flow'],
+          properties: {
+            tokenState: {
+              type: 'string',
+              enum: ['VALID', 'INVALID', 'EXPIRED', 'USED', 'REVOKED'],
+              example: 'VALID',
+            },
+            canResend: {
+              type: 'boolean',
+              example: true,
+            },
+            resendCooldownSeconds: {
+              type: 'integer',
+              example: 0,
+            },
+            messageCode: {
+              type: 'string',
+              example: 'TOKEN_VALID',
+            },
+            flow: {
+              type: 'string',
+              enum: [
+                'EMAIL_VERIFICATION',
+                'PASSWORD_RESET',
+                'EMAIL_CHANGE_VERIFICATION',
+                'INITIAL_ORGANISATION_ADMIN_SETUP',
+                'ORGANISATION_TRAINEE_INVITE',
+                'ORGANISATION_ADMIN_PROMOTION',
+                'PLATFORM_ADMIN_INVITE',
+                'PLATFORM_ADMIN_UPGRADE_CONFIRMATION',
+                'UNKNOWN',
+              ],
+              example: 'PASSWORD_RESET',
+            },
           },
         },
         SetupTokenState: enumString(['VALID', 'INVALID', 'EXPIRED', 'USED', 'REVOKED'], 'VALID'),
@@ -2018,6 +2109,14 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         AccountVerifyEmailChange: {
           required: true,
           ...jsonContent(schemaRef('AccountVerifyEmailChangeRequest')),
+        },
+        AuthForgotPassword: {
+          required: true,
+          ...jsonContent(schemaRef('AuthForgotPasswordRequest')),
+        },
+        AuthResetPassword: {
+          required: true,
+          ...jsonContent(schemaRef('AuthResetPasswordRequest')),
         },
         EmptyJson: {
           required: false,

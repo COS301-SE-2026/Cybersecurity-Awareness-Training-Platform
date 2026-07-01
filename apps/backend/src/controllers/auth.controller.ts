@@ -5,6 +5,7 @@ import {
   AuthStatusGuardError,
   AuthRefreshTokenReuseError,
   AuthRefreshTokenInvalidError,
+  AuthResetPasswordError,
   loginUser,
   registerUser,
   getCurrentUser,
@@ -13,7 +14,14 @@ import {
   resendVerificationEmail,
   verifyEmail,
   AuthResendCooldownError,
+  requestPasswordReset,
+  resetUserPassword,
 } from '../services/auth.service.js';
+import {
+  getTokenContext,
+  resendActionToken,
+  TokenResendError,
+} from '../services/action-token.service.js';
 
 function getCookie(req: Request, name: string): string | null {
   const cookieHeader = req.headers.cookie;
@@ -210,4 +218,67 @@ export async function resendVerification(req: Request, res: Response) {
 export async function verify(req: Request, res: Response) {
   const result = await verifyEmail(req.body.token);
   return res.status(200).json(result);
+}
+
+export async function forgotPassword(req: Request, res: Response) {
+  await requestPasswordReset(req.body.email);
+  return res.status(200).json({
+    message: 'If the email is registered, a password reset link has been sent.',
+  });
+}
+
+export async function resetPassword(req: Request, res: Response) {
+  try {
+    await resetUserPassword(
+      req.body.token,
+      req.body.newPassword,
+      req.ip,
+      req.headers['user-agent'],
+    );
+    return res.status(200).json({ success: true });
+  } catch (error) {
+    if (error instanceof AuthResetPasswordError) {
+      return res.status(error.statusCode).json({
+        error: error.code,
+        message: error.message,
+      });
+    }
+    throw error;
+  }
+}
+
+export async function validateTokenContext(req: Request, res: Response) {
+  const token = req.params.token;
+  if(Array.isArray(token)){
+    return res.status(400).json({error:'VALIDATION_ERROR', message:'Invalid request parameters'});
+  }
+  const result = await getTokenContext(token);
+  return res.status(200).json(result);
+}
+
+export async function resendTokenLink(req: Request, res: Response) {
+  const token = req.params.token;
+  if(Array.isArray(token)){
+    return res.status(400).json({error:'VALIDATION_ERROR', message:'Invalid request parameters'});
+  }
+
+  try {
+    await resendActionToken(token);
+    return res.status(200).json({ success: true });
+  } catch (error) {
+    if (error instanceof TokenResendError) {
+      if (error.statusCode === 429) {
+        return res.status(429).json({
+          error: error.code,
+          message: error.message,
+          cooldownSeconds: error.cooldownSeconds,
+        });
+      }
+      return res.status(error.statusCode).json({
+        error: error.code,
+        message: error.message,
+      });
+    }
+    throw error;
+  }
 }
