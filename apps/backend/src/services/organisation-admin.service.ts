@@ -22,10 +22,10 @@ import {
   findOrganisationAdminByUserId,
   findOrganisationPermissionsByKeys,
   findPendingOrganisationAdminPromotionInvitation,
+  ensureActiveOrganisationTraineeProfileForUser,
   listOrganisationAdminsWithPermissions,
   listOrganisationPermissions,
   replaceOrganisationAdminPermissionGrants,
-  restoreOrganisationTraineeUserTypeIfActiveMember,
   runOrganisationAdminTransaction,
   updatePromotionInvitationStatus,
 } from '../repositories/organisation-admin.repository.js';
@@ -397,7 +397,7 @@ export async function removeAdmin(
       tx,
     );
 
-    await restoreOrganisationTraineeUserTypeIfActiveMember(
+    await ensureActiveOrganisationTraineeProfileForUser(
       {
         organisationId,
         userId: targetAdmin.userId,

@@ -18,10 +18,10 @@ const repositoryMock = vi.hoisted(() => ({
   findOrganisationAdminByUserId: vi.fn(),
   findOrganisationPermissionsByKeys: vi.fn(),
   findPendingOrganisationAdminPromotionInvitation: vi.fn(),
+  ensureActiveOrganisationTraineeProfileForUser: vi.fn(),
   listOrganisationAdminsWithPermissions: vi.fn(),
   listOrganisationPermissions: vi.fn(),
   replaceOrganisationAdminPermissionGrants: vi.fn(),
-  restoreOrganisationTraineeUserTypeIfActiveMember: vi.fn(),
   runOrganisationAdminTransaction: vi.fn(),
   updatePromotionInvitationStatus: vi.fn(),
 }));
@@ -110,6 +110,10 @@ function organisationPermission(id: string, key: string, isCritical = false) {
     description: null,
     isCritical,
   };
+}
+
+function firstCallOrder(mock: { mock: { invocationCallOrder: number[] } }) {
+  return mock.mock.invocationCallOrder[0] ?? Number.POSITIVE_INFINITY;
 }
 
 describe('organisation admin service', () => {
@@ -418,7 +422,7 @@ describe('organisation admin service', () => {
     expect(repositoryMock.replaceOrganisationAdminPermissionGrants).not.toHaveBeenCalled();
   });
 
-  it('removes admins after password confirmation and revokes their sessions', async () => {
+  it('removes admins and ensures they remain active organisation trainees', async () => {
     repositoryMock.findActorOrganisationAdmin.mockResolvedValue(
       actorAdmin(['REMOVE_ORGANISATION_ADMINS']),
     );
@@ -448,7 +452,7 @@ describe('organisation admin service', () => {
       },
       tx,
     );
-    expect(repositoryMock.restoreOrganisationTraineeUserTypeIfActiveMember).toHaveBeenCalledWith(
+    expect(repositoryMock.ensureActiveOrganisationTraineeProfileForUser).toHaveBeenCalledWith(
       {
         organisationId,
         userId: 'target-user-1',
@@ -463,6 +467,37 @@ describe('organisation admin service', () => {
       adminId: targetAdminId,
       status: 'DISABLED',
     });
+  });
+
+  it('ensures an initial admin without a trainee profile is demoted to organisation trainee', async () => {
+    repositoryMock.findActorOrganisationAdmin.mockResolvedValue(
+      actorAdmin(['REMOVE_ORGANISATION_ADMINS']),
+    );
+    repositoryMock.findOrganisationAdminById.mockResolvedValue(
+      targetAdmin(['INVITE_ORGANISATION_ADMINS', 'CHANGE_ORGANISATION_ADMIN_PERMISSIONS']),
+    );
+
+    await removeAdmin(actorUserId, organisationId, targetAdminId, {
+      password: removeConfirmationSecret,
+      confirmation: 'REMOVE',
+    });
+
+    expect(repositoryMock.ensureActiveOrganisationTraineeProfileForUser).toHaveBeenCalledWith(
+      {
+        organisationId,
+        userId: 'target-user-1',
+      },
+      tx,
+    );
+    const ensureTraineeCallOrder = firstCallOrder(
+      repositoryMock.ensureActiveOrganisationTraineeProfileForUser,
+    );
+    expect(firstCallOrder(repositoryMock.disableOrganisationAdmin)).toBeLessThan(
+      ensureTraineeCallOrder,
+    );
+    expect(firstCallOrder(repositoryMock.deleteOrganisationAdminPermissionGrants)).toBeLessThan(
+      ensureTraineeCallOrder,
+    );
   });
 
   it('rejects admin removal when password confirmation fails', async () => {

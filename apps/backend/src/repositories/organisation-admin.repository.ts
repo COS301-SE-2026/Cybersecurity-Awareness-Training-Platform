@@ -305,21 +305,45 @@ export function deleteOrganisationAdminPermissionGrants(
   });
 }
 
-export function restoreOrganisationTraineeUserTypeIfActiveMember(
+export async function ensureActiveOrganisationTraineeProfileForUser(
   input: { organisationId: string; userId: string },
   client: OrganisationAdminClient = prisma,
 ) {
-  return client.user.updateMany({
+  const traineeProfile = await client.traineeProfile.upsert({
+    where: {
+      userId: input.userId,
+    },
+    create: {
+      userId: input.userId,
+      traineeStatus: 'ACTIVE',
+    },
+    update: {
+      traineeStatus: 'ACTIVE',
+    },
+  });
+
+  await client.organisationTraineeProfile.upsert({
+    where: {
+      traineeProfileId: traineeProfile.id,
+    },
+    create: {
+      traineeProfileId: traineeProfile.id,
+      organisationId: input.organisationId,
+      membershipStatus: 'ACTIVE',
+      createdFromInvitationId: null,
+    },
+    update: {
+      organisationId: input.organisationId,
+      membershipStatus: 'ACTIVE',
+      createdFromInvitationId: null,
+      disabledAt: null,
+      disabledReason: null,
+    },
+  });
+
+  return client.user.update({
     where: {
       id: input.userId,
-      userType: 'ORGANISATION_ADMIN',
-      traineeProfile: {
-        traineeStatus: 'ACTIVE',
-        organisationTraineeProfile: {
-          organisationId: input.organisationId,
-          membershipStatus: 'ACTIVE',
-        },
-      },
     },
     data: {
       userType: 'ORGANISATION_TRAINEE',
