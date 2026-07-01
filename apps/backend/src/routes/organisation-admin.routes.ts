@@ -6,6 +6,7 @@ import {
   organisationIdParamsSchema,
 } from '@insightful-phish/shared';
 import { Router } from 'express';
+import rateLimit, { MemoryStore } from 'express-rate-limit';
 import {
   listOrganisationAdmins,
   promoteOrganisationAdmin,
@@ -13,15 +14,52 @@ import {
   updateOrganisationAdminPermissions,
 } from '../controllers/organisation-admin.controller.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
-import {
-  organisationAdminMutationRateLimiter,
-  organisationAdminReadRateLimiter,
-  organisationAdminSensitiveActionRateLimiter,
-} from '../middleware/organisationAdminRateLimit.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { validateBody, validateParams } from '../middleware/validateRequest.js';
 
 export const organisationAdminRouter = Router();
+
+const organisationAdminReadRateLimitStore = new MemoryStore();
+const organisationAdminMutationRateLimitStore = new MemoryStore();
+const organisationAdminSensitiveActionRateLimitStore = new MemoryStore();
+
+const organisationAdminRateLimitMessage = {
+  error: 'ORGANISATION_ADMIN_RATE_LIMITED',
+  message: 'Too many organisation admin requests. Please try again later.',
+};
+
+export const organisationAdminReadRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 100,
+  store: organisationAdminReadRateLimitStore,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: organisationAdminRateLimitMessage,
+});
+
+export const organisationAdminMutationRateLimit = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  limit: 20,
+  store: organisationAdminMutationRateLimitStore,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: organisationAdminRateLimitMessage,
+});
+
+export const organisationAdminSensitiveActionRateLimit = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  limit: 10,
+  store: organisationAdminSensitiveActionRateLimitStore,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: organisationAdminRateLimitMessage,
+});
+
+export function clearOrganisationAdminRateLimitStores() {
+  void organisationAdminReadRateLimitStore.resetAll();
+  void organisationAdminMutationRateLimitStore.resetAll();
+  void organisationAdminSensitiveActionRateLimitStore.resetAll();
+}
 
 /**
  * @openapi
@@ -50,8 +88,8 @@ export const organisationAdminRouter = Router();
  */
 organisationAdminRouter.get(
   '/organisations/:organisationId/admins',
+  organisationAdminReadRateLimit,
   requireAuth,
-  organisationAdminReadRateLimiter,
   validateParams(organisationIdParamsSchema),
   asyncHandler(listOrganisationAdmins),
 );
@@ -89,8 +127,8 @@ organisationAdminRouter.get(
  */
 organisationAdminRouter.post(
   '/organisations/:organisationId/admin-promotions',
+  organisationAdminMutationRateLimit,
   requireAuth,
-  organisationAdminMutationRateLimiter,
   validateParams(organisationIdParamsSchema),
   validateBody(organisationAdminPromotionRequestSchema, { statusCode: 422 }),
   asyncHandler(promoteOrganisationAdmin),
@@ -132,8 +170,8 @@ organisationAdminRouter.post(
  */
 organisationAdminRouter.patch(
   '/organisations/:organisationId/admins/:adminId/permissions',
+  organisationAdminMutationRateLimit,
   requireAuth,
-  organisationAdminMutationRateLimiter,
   validateParams(organisationAdminIdParamsSchema),
   validateBody(organisationAdminPermissionUpdateRequestSchema, { statusCode: 422 }),
   asyncHandler(updateOrganisationAdminPermissions),
@@ -175,8 +213,8 @@ organisationAdminRouter.patch(
  */
 organisationAdminRouter.post(
   '/organisations/:organisationId/admins/:adminId/remove',
+  organisationAdminSensitiveActionRateLimit,
   requireAuth,
-  organisationAdminSensitiveActionRateLimiter,
   validateParams(organisationAdminIdParamsSchema),
   validateBody(organisationAdminRemoveRequestSchema, { statusCode: 422 }),
   asyncHandler(removeOrganisationAdmin),
