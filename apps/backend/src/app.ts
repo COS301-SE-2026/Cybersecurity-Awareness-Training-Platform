@@ -6,6 +6,7 @@ import { env } from './config/env.js';
 import { swaggerSpec } from './config/swagger.js';
 import { healthRoutes } from './routes/health.routes.js';
 import { authRouter } from './routes/auth.routes.js';
+import { accountRouter } from './routes/account.routes.js';
 import { traineeRouter } from './routes/trainee.routes.js';
 import { traineeTrainingRouter } from './routes/trainee-training.routes.js';
 import { traineeQuizRouter, quizAttemptRouter } from './routes/quiz.routes.js';
@@ -36,6 +37,7 @@ export function createApp() {
   // Mount API Routers
   app.use(healthRoutes);
   app.use(authRouter);
+  app.use(accountRouter);
   app.use(setupRouter);
   app.use(organisationRegistrationRequestRouter);
   app.use(organisationAdminRouter);
