@@ -6,6 +6,9 @@ import type {
 import { OrganisationPermissionKey } from '../generated/prisma/enums.js';
 import type { OrganisationPermissionKey as OrganisationPermissionKeyValue } from '../generated/prisma/enums.js';
 import { issueActionToken } from './action-token.service.js';
+import { recordAuditLog } from './audit-log.service.js';
+import { requestAuthEmailSend } from './auth-email-hook.service.js';
+import { revokeSessionsForUser } from './auth-session.service.js';
 import { verifyPassword } from './password.service.js';
 import {
   countActiveOrganisationAdminsWithPermission,
@@ -23,6 +26,7 @@ import {
   listOrganisationPermissions,
   replaceOrganisationAdminPermissionGrants,
   runOrganisationAdminTransaction,
+  updatePromotionInvitationStatus,
 } from '../repositories/organisation-admin.repository.js';
 
 const ORGANISATION_ADMIN_PROMOTION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -176,16 +180,56 @@ export async function createAdminPromotion(
 
     return {
       invitation,
+      rawActionToken: actionToken.rawToken,
       actionToken: actionToken.token,
     };
+  });
+
+  const emailResult = await requestAuthEmailSend({
+    emailType: 'ORGANISATION_ADMIN_PROMOTION_INVITE',
+    recipientEmail: targetUser.email,
+    userId: targetUser.id,
+    organisationId,
+    invitationId: promotion.invitation.id,
+    actionTokenId: promotion.actionToken.id,
+    templateData: {
+      firstName: targetUser.firstName,
+      organisationName: actor.organisation.name,
+      actionToken: promotion.rawActionToken,
+      actionTokenExpiresAt: promotion.actionToken.expiresAt,
+    },
+  });
+
+  const invitationStatus = emailResult.queued ? 'SENT' : 'FAILED_TO_SEND';
+  if (!emailResult.queued) {
+    await updatePromotionInvitationStatus({
+      invitationId: promotion.invitation.id,
+      status: invitationStatus,
+    });
+  }
+
+  await recordAuditLog({
+    actorUserId,
+    actorType: 'ORGANISATION_ADMIN',
+    organisationId,
+    targetType: 'INVITATION',
+    targetId: promotion.invitation.id,
+    actionType: 'INVITED',
+    outcome: emailResult.queued ? 'SUCCESS' : 'FAILURE',
+    metadata: {
+      targetUserId: targetUser.id,
+      permissionKeys,
+      emailQueued: emailResult.queued,
+    },
   });
 
   return {
     invitationId: promotion.invitation.id,
     actionTokenId: promotion.actionToken.id,
-    status: promotion.invitation.status,
+    status: invitationStatus,
     expiresAt: promotion.invitation.expiresAt.toISOString(),
     permissionKeys,
+    emailQueued: emailResult.queued,
   };
 }
 
@@ -228,6 +272,24 @@ export async function changeAdminPermissions(
       tx,
     ),
   );
+
+  await recordAuditLog({
+    actorUserId,
+    actorType: 'ORGANISATION_ADMIN',
+    organisationId,
+    targetType: 'ORGANISATION_ADMIN_PERMISSION',
+    targetId: adminId,
+    actionType: 'PERMISSIONS_CHANGED',
+    outcome: 'SUCCESS',
+    oldValues: {
+      permissionKeys: targetAdmin.permissionGrants
+        .map((grant) => grant.organisationPermission.key)
+        .sort(),
+    },
+    newValues: {
+      permissionKeys: [...permissionKeys].sort(),
+    },
+  });
 
   return {
     adminId,
@@ -287,6 +349,24 @@ export async function removeAdmin(
       },
       tx,
     );
+  });
+
+  await revokeSessionsForUser({
+    userId: targetAdmin.userId,
+    reason: 'ADMIN_DISABLED',
+  });
+
+  await recordAuditLog({
+    actorUserId,
+    actorType: 'ORGANISATION_ADMIN',
+    organisationId,
+    targetType: 'USER',
+    targetId: targetAdmin.userId,
+    actionType: 'DEMOTED',
+    outcome: 'SUCCESS',
+    metadata: {
+      organisationAdminId: adminId,
+    },
   });
 
   return {
