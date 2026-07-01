@@ -249,8 +249,10 @@ export async function resetPassword(req: Request, res: Response) {
 
 export async function validateTokenContext(req: Request, res: Response) {
   const token = req.params.token;
-  if(Array.isArray(token)){
-    return res.status(400).json({error:'VALIDATION_ERROR', message:'Invalid request parameters'});
+  if (Array.isArray(token)) {
+    return res
+      .status(400)
+      .json({ error: 'VALIDATION_ERROR', message: 'Invalid request parameters' });
   }
   const result = await getTokenContext(token);
   return res.status(200).json(result);
@@ -258,8 +260,10 @@ export async function validateTokenContext(req: Request, res: Response) {
 
 export async function resendTokenLink(req: Request, res: Response) {
   const token = req.params.token;
-  if(Array.isArray(token)){
-    return res.status(400).json({error:'VALIDATION_ERROR', message:'Invalid request parameters'});
+  if (Array.isArray(token)) {
+    return res
+      .status(400)
+      .json({ error: 'VALIDATION_ERROR', message: 'Invalid request parameters' });
   }
 
   try {

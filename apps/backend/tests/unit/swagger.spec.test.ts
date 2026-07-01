@@ -411,8 +411,12 @@ describe('swaggerSpec', () => {
   });
 
   it('enforces that token fields are returned on login/refresh schemas but not on /auth/me schema', () => {
-    const loginSchema = spec.components?.schemas?.AuthLoginResponse as | {properties?: Record<string, unknown>} | undefined;
-    const meSchema = spec.components?.schemas?.AuthMeResponse as | {properties?: Record<string, unknown>} | undefined;
+    const loginSchema = spec.components?.schemas?.AuthLoginResponse as
+      | { properties?: Record<string, unknown> }
+      | undefined;
+    const meSchema = spec.components?.schemas?.AuthMeResponse as
+      | { properties?: Record<string, unknown> }
+      | undefined;
 
     expect(loginSchema).toBeDefined();
     expect(loginSchema?.properties).toHaveProperty('accessToken');

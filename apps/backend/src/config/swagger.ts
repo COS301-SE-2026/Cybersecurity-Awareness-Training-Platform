@@ -656,7 +656,7 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             },
           },
         },
-         AuthVerifyEmailRequest: {
+        AuthVerifyEmailRequest: {
           type: 'object',
           required: ['token'],
           additionalProperties: false,
