@@ -427,7 +427,7 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         },
         AuthRegisterRequest: {
           type: 'object',
-          required: ['email', 'password', 'firstName', 'lastName'],
+          required: ['email', 'password', 'confirmPassword', 'firstName', 'lastName'],
           additionalProperties: false,
           properties: {
             email: {
@@ -437,6 +437,12 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
               example: 'johan@example.com',
             },
             password: {
+              type: 'string',
+              format: 'password',
+              minLength: 12,
+              example: 'ExampleLocalPassword1!',
+            },
+            confirmPassword: {
               type: 'string',
               format: 'password',
               minLength: 12,
@@ -508,7 +514,7 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         },
         AuthOrganisationContext: {
           type: 'object',
-          required: ['id', 'status'],
+          required: ['id', 'status', 'name'],
           properties: {
             id: {
               type: 'string',
@@ -519,11 +525,22 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
               type: 'string',
               example: 'ACTIVE',
             },
+            name: {
+              type: 'string',
+              example: 'Example Organisation',
+            },
           },
         },
         AuthContext: {
           type: 'object',
-          required: ['user', 'role', 'organisation', 'permissions', 'redirectTo'],
+          required: [
+            'user',
+            'role',
+            'organisation',
+            'platformAdminRole',
+            'permissions',
+            'redirectTo',
+          ],
           properties: {
             user: {
               $ref: '#/components/schemas/AuthContextUser',
@@ -538,6 +555,12 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
                   $ref: '#/components/schemas/AuthOrganisationContext',
                 },
               ],
+            },
+            platformAdminRole: {
+              type: 'string',
+              nullable: true,
+              enum: ['SUPER_ADMIN', 'NORMAL_ADMIN'],
+              example: 'NORMAL_ADMIN',
             },
             permissions: {
               type: 'array',
@@ -875,9 +898,7 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           type: 'object',
           required: [
             'organisationName',
-            'organisationDescription',
             'organisationSize',
-            'organisationWebsiteUrl',
             'representativeFirstName',
             'representativeLastName',
             'representativeEmail',
@@ -892,7 +913,6 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             },
             organisationDescription: {
               type: 'string',
-              minLength: 1,
               maxLength: 2000,
               description: 'Stored using the current onboarding request description field.',
               example: 'Small consulting company that wants phishing awareness training.',
@@ -907,7 +927,7 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             organisationWebsiteUrl: {
               type: 'string',
               format: 'uri',
-              description: 'Must use http or https.',
+              description: 'Optional. Must use http or https when provided.',
               maxLength: 2048,
               example: 'https://example-consulting.test',
             },

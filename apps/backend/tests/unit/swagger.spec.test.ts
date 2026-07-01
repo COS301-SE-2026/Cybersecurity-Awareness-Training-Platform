@@ -354,7 +354,7 @@ describe('swaggerSpec', () => {
   it('documents organisation request web URL restrictions', () => {
     const schema = JSON.stringify(spec.components?.schemas?.CreateOrganisationRegistrationRequest);
 
-    expect(schema).toContain('Must use http or https.');
+    expect(schema).toContain('Optional. Must use http or https when provided.');
   });
 
   it('keeps simulated email detail free of pre-classification answers', () => {

@@ -31,6 +31,16 @@ const websiteUrlSchema = z
     }
   }, 'Organisation website URL must use http or https.');
 
+const optionalOrganisationDescriptionSchema = z
+  .string({ invalid_type_error: 'Please enter a valid organisation description.' })
+  .trim()
+  .max(2000, 'Organisation description must be at most 2000 characters.')
+  .optional()
+  .or(z.literal('').transform(() => undefined));
+const optionalWebsiteUrlSchema = websiteUrlSchema
+  .optional()
+  .or(z.literal('').transform(() => undefined));
+
 export const createOrganisationRegistrationRequestSchema = z
   .object({
     organisationName: requiredTrimmedStringSchema({
@@ -38,11 +48,7 @@ export const createOrganisationRegistrationRequestSchema = z
       maxLength: 200,
       maxMessage: 'Organisation name must be at most 200 characters.',
     }),
-    organisationDescription: requiredTrimmedStringSchema({
-      requiredMessage: 'Please enter an organisation description.',
-      maxLength: 2000,
-      maxMessage: 'Organisation description must be at most 2000 characters.',
-    }),
+    organisationDescription: optionalOrganisationDescriptionSchema,
     organisationSize: z
       .number({
         required_error: 'Please enter an approximate organisation size.',
@@ -51,7 +57,7 @@ export const createOrganisationRegistrationRequestSchema = z
       .int('Organisation size must be a whole number.')
       .min(1, 'Organisation size must be at least 1.')
       .max(MAX_ORGANISATION_SIZE, `Organisation size must be at most ${MAX_ORGANISATION_SIZE}.`),
-    organisationWebsiteUrl: websiteUrlSchema,
+    organisationWebsiteUrl: optionalWebsiteUrlSchema,
     representativeFirstName: requiredTrimmedStringSchema({
       requiredMessage: 'Please enter a representative first name.',
       maxLength: 100,

@@ -148,6 +148,7 @@ describe('registerUser', () => {
       firstName: 'Johan',
       lastName: 'Nel',
       password: 'mySecurePassword123!',
+      confirmPassword: 'mySecurePassword123!',
     });
 
     expect(userRepositoryMock.findUserByEmail).toHaveBeenCalledWith('johan@example.com');
@@ -199,6 +200,7 @@ describe('registerUser', () => {
         firstName: 'Johan',
         lastName: 'Nel',
         password: 'mySecurePassword123!',
+        confirmPassword: 'mySecurePassword123!',
       }),
     ).resolves.toEqual({
       message:
@@ -232,6 +234,7 @@ describe('registerUser', () => {
         firstName: 'Johan',
         lastName: 'Nel',
         password: 'mySecurePassword123!',
+        confirmPassword: 'mySecurePassword123!',
       }),
     ).rejects.toThrow('token creation failed');
 
@@ -271,6 +274,7 @@ describe('registerUser', () => {
       firstName: 'Pending',
       lastName: 'User',
       password: 'mySecurePassword123!',
+      confirmPassword: 'mySecurePassword123!',
     });
     expect(response).toEqual({
       message:
@@ -320,6 +324,7 @@ describe('registerUser', () => {
       firstName: 'Pending',
       lastName: 'User',
       password: 'mySecurePassword123!',
+      confirmPassword: 'mySecurePassword123!',
     });
     expect(response).toEqual({
       message:
@@ -379,6 +384,7 @@ describe('registerUser', () => {
       firstName: 'Pending',
       lastName: 'User',
       password: 'mySecurePassword123!',
+      confirmPassword: 'mySecurePassword123!',
     });
 
     expect(response).toEqual({

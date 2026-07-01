@@ -24,6 +24,7 @@ describe('Auth Integration Tests', () => {
       firstName: 'Register',
       lastName: 'Test',
       password: secureRegisterPassword,
+      confirmPassword: secureRegisterPassword,
     };
 
     const response = await request(createApp()).post('/auth/register').send(payload);
@@ -711,6 +712,7 @@ describe('Auth Integration Tests', () => {
       firstName: 'Existing',
       lastName: 'User',
       password: secureRegisterPassword,
+      confirmPassword: secureRegisterPassword,
     });
 
     expect(response.status).toBe(201);
@@ -743,6 +745,7 @@ describe('Auth Integration Tests', () => {
       firstName: 'Pending',
       lastName: 'Expired',
       password: secureRegisterPassword,
+      confirmPassword: secureRegisterPassword,
     });
 
     expect(response.status).toBe(201);

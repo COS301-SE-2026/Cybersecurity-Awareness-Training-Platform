@@ -101,6 +101,7 @@ describe('Auth routes', () => {
       firstName: ' Johan ',
       lastName: ' Nel ',
       password: 'mySecurePassword123!',
+      confirmPassword: 'mySecurePassword123!',
     });
 
     expect(response.status).toBe(201);
@@ -154,6 +155,7 @@ describe('Auth routes', () => {
       firstName: 'Johan',
       lastName: 'Nel',
       password: 'mySecurePassword123!',
+      confirmPassword: 'mySecurePassword123!',
     });
 
     expect(response.status).toBe(201);
@@ -405,6 +407,7 @@ describe('Auth routes', () => {
         firstName: 'Johan',
         lastName: 'Nel',
         password: 'mySecurePassword123!',
+        confirmPassword: 'mySecurePassword123!',
       });
     }
 

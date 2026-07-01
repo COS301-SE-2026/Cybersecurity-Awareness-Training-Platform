@@ -57,6 +57,8 @@ export type UserTypeDto =
   | 'ORGANISATION_TRAINEE'
   | 'GENERAL_TRAINEE';
 
+export type PlatformAdminRoleDto = 'SUPER_ADMIN' | 'NORMAL_ADMIN';
+
 export type AuthStatusDto =
   | 'PENDING_EMAIL_VERIFICATION'
   | 'PENDING_INVITE_SETUP'
@@ -106,6 +108,7 @@ export interface AuthContextUserDto {
 
 export interface AuthOrganisationContextDto {
   id: string;
+  name: string;
   status: string;
 }
 
@@ -113,6 +116,7 @@ export interface AuthContextDto {
   user: AuthContextUserDto;
   role: UserTypeDto;
   organisation: AuthOrganisationContextDto | null;
+  platformAdminRole: PlatformAdminRoleDto | null;
   permissions: string[];
   redirectTo: string;
 }

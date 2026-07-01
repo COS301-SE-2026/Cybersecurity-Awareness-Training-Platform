@@ -30,17 +30,21 @@ describe('auth validation schemas', () => {
     overrides: Partial<{
       email: string;
       password: string;
+      confirmPassword: string;
       firstName: string;
       lastName: string;
       role: string;
     }> = {},
-  ) => ({
-    email: 'trainee@example.com',
-    password: 'StrongerPass1!',
-    firstName: 'Jane',
-    lastName: 'Doe',
-    ...overrides,
-  });
+  ) => {
+    const input = {
+      email: 'trainee@example.com',
+      password: 'StrongerPass1!',
+      firstName: 'Jane',
+      lastName: 'Doe',
+      ...overrides,
+    };
+    return { ...input, confirmPassword: overrides.confirmPassword ?? input.password };
+  };
 
   const validLoginInput = (
     overrides: Partial<{
@@ -68,23 +72,20 @@ describe('auth validation schemas', () => {
       password: 'StrongerPass1!',
       firstName: 'Jane',
       lastName: 'Doe',
+      confirmPassword: 'StrongerPass1!',
     });
   });
 
-  it('allows register input without password confirmation', () => {
-    const result = authRegisterRequestSchema.parse({
+  it('requires register password confurmation', () => {
+    const result = authRegisterRequestSchema.safeParse({
       email: '  TRAINEE@EXAMPLE.COM  ',
       password: 'StrongerPass1!',
       firstName: ' Jane ',
       lastName: ' Doe ',
     });
 
-    expect(result).toEqual({
-      email: 'trainee@example.com',
-      password: 'StrongerPass1!',
-      firstName: 'Jane',
-      lastName: 'Doe',
-    });
+    expect(result.success).toBe(false);
+    expect(registerIssueMessagesFor(result)).toContain('Please confirm your password.');
   });
 
   it('rejects invalid register input', () => {
@@ -111,13 +112,16 @@ describe('auth validation schemas', () => {
     expect(result.success).toBe(false);
   });
 
-  it('rejects register payloads with password confirmation', () => {
+  it('rejects register payloads with mismatched password confirmation', () => {
     const result = authRegisterRequestSchema.safeParse({
       ...validRegisterInput(),
-      confirmPassword: 'StrongerPass1!',
+      confirmPassword: 'DifferentPass1!',
     });
 
     expect(result.success).toBe(false);
+    expect(registerIssueMessagesFor(result)).toContain(
+      'Password confirmation must match password.',
+    );
   });
 
   it('requires password confirmation for setup completion input', () => {
@@ -233,7 +237,7 @@ describe('auth validation schemas', () => {
   });
 
   it('rejects login payloads with other unexpected fields', () => {
-    const result = authLoginRequestSchema.safeParse(validLoginInput({ role: 'IP_ADMIN' } as any));
+    const result = authLoginRequestSchema.safeParse({ ...validLoginInput(), role: 'IP_ADMIN' });
     expect(result.success).toBe(false);
   });
 });
