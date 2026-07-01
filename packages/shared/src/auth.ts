@@ -27,8 +27,7 @@ export interface AccountVerifyEmailChangeResponseDto {
 }
 
 export interface AuthRegisterResponseDto {
-  user: PublicUserDto;
-  verificationEmailQueued: boolean;
+  message: string;
 }
 
 export interface SetupTokenContextResponseDto {

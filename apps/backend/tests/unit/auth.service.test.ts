@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  AuthConflictError,
   AuthUnauthorizedError,
   getCurrentUser,
   loginUser,
@@ -177,21 +176,12 @@ describe('registerUser', () => {
       },
     });
     expect(response).toEqual({
-      user: {
-        id: 'user-1',
-        firstName: 'Johan',
-        lastName: 'Nel',
-        email: 'johan@example.com',
-        userType: 'GENERAL_TRAINEE',
-        authStatus: 'PENDING_EMAIL_VERIFICATION',
-        createdAt: '2026-05-12T06:00:00.000Z',
-      },
-      verificationEmailQueued: false,
+      message:
+        "If this email can be registered, we'll send you an email verification link. Please check your inbox.",
     });
-    expect(response.user).not.toHaveProperty('passwordHash');
   });
 
-  it('throws an auth conflict error when the email is already registered', async () => {
+  it('returns a generic success when the email is already registered', async () => {
     userRepositoryMock.findUserByEmail.mockResolvedValue({
       id: 'existing-user',
       email: 'johan@example.com',
@@ -204,10 +194,12 @@ describe('registerUser', () => {
         lastName: 'Nel',
         password: 'mySecurePassword123!',
       }),
-    ).rejects.toBeInstanceOf(AuthConflictError);
+    ).resolves.toEqual({
+      message:
+        "If this email can be registered, we'll send you an email verification link. Please check your inbox.",
+    });
 
     expect(prismaMock.$transaction).not.toHaveBeenCalled();
-    expect(passwordServiceMock.hashPassword).not.toHaveBeenCalled();
     expect(userRepositoryMock.createGeneralTraineeUser).not.toHaveBeenCalled();
     expect(actionTokenServiceMock.issueActionToken).not.toHaveBeenCalled();
     expect(authEmailHookServiceMock.requestAuthEmailSend).not.toHaveBeenCalled();

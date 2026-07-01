@@ -260,11 +260,6 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             'Too many requests from this IP, please try again after 15 minutes',
           ),
         },
-        AuthEmailExistsErrorResponse: errorResponseSchema(
-          'ApiErrorResponse',
-          'AUTH_EMAIL_EXISTS',
-          'A user with the provided email already exists',
-        ),
         AuthInvalidErrorResponse: errorResponseSchema(
           'ApiErrorResponse',
           'AUTH_INVALID',
@@ -485,14 +480,12 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         },
         AuthRegisterResponse: {
           type: 'object',
-          required: ['user', 'verificationEmailQueued'],
+          required: ['message'],
           properties: {
-            user: {
-              $ref: '#/components/schemas/PublicUser',
-            },
-            verificationEmailQueued: {
-              type: 'boolean',
-              example: false,
+            message: {
+              type: 'string',
+              example:
+                "If this email can be registered, we'll send you an email verification link. Please check your inbox.",
             },
           },
         },
@@ -2171,10 +2164,6 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         AuthEmailExists: responseComponent(
           'A user with the provided email already exists.',
           'AuthEmailExistsErrorResponse',
-        ),
-        AuthInvalid: responseComponent(
-          'Email, password, or account status is invalid.',
-          'AuthInvalidErrorResponse',
         ),
         AuthRateLimited: responseComponent(
           'Too many authentication requests.',

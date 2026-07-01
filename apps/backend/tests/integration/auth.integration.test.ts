@@ -29,14 +29,10 @@ describe('Auth Integration Tests', () => {
     const response = await request(createApp()).post('/auth/register').send(payload);
 
     expect(response.status).toBe(201);
-    expect(response.body.user).toBeDefined();
-    expect(response.body.user.email).toBe('new-trainee@example.com');
-    expect(response.body.user.firstName).toBe('Register');
-    expect(response.body.user.lastName).toBe('Test');
-    expect(response.body.user.userType).toBe('GENERAL_TRAINEE');
-    expect(response.body.user.authStatus).toBe('PENDING_EMAIL_VERIFICATION');
-    expect(response.body.verificationEmailQueued).toBe(false);
-    expect(response.body.user.passwordHash).toBeUndefined();
+    expect(response.body).toEqual({
+      message:
+        "If this email can be registered, we'll send you an email verification link. Please check your inbox.",
+    });
 
     // Verify database record creation
     const dbUser = await prisma.user.findUnique({
@@ -697,6 +693,27 @@ describe('Auth Integration Tests', () => {
         .set('Authorization', `Bearer ${mismatchedToken}`);
       expect(res3.status).toBe(401);
       expect(res3.body.error).toBe('AUTH_INVALID');
+    });
+  });
+
+  it('returns generic success for an existing registered email', async () => {
+    await createTrainee({
+      user: {
+        email: 'existing-register@example.com',
+      },
+    });
+
+    const response = await request(createApp()).post('/auth/register').send({
+      email: 'existing-register@example.com',
+      firstName: 'Existing',
+      lastName: 'User',
+      password: secureRegisterPassword,
+    });
+
+    expect(response.status).toBe(201);
+    expect(response.body).toEqual({
+      message:
+        "If this email can be registered, we'll send you an email verification link. Please check your inbox.",
     });
   });
 });

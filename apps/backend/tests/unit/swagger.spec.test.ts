@@ -149,7 +149,7 @@ const expectedRequestBodies = [
 
 const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
   ['get', '/health', ['200', '500']],
-  ['post', '/auth/register', ['201', '400', '409', '429', '500']],
+  ['post', '/auth/register', ['201', '400', '429', '500']],
   ['post', '/auth/login', ['200', '400', '401', '403', '429', '500']],
   ['get', '/auth/me', ['200', '401', '403', '429', '500']],
   ['post', '/auth/logout', ['200', '500']],

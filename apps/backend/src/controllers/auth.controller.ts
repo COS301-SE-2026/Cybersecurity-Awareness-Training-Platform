@@ -1,6 +1,5 @@
 import type { Request, Response } from 'express';
 import {
-  AuthConflictError,
   AuthUnauthorizedError,
   AuthStatusGuardError,
   AuthRefreshTokenReuseError,
@@ -37,19 +36,8 @@ function getCookie(req: Request, name: string): string | null {
 }
 
 export async function register(req: Request, res: Response) {
-  try {
-    const response = await registerUser(req.body);
-    return res.status(201).json(response);
-  } catch (error) {
-    if (error instanceof AuthConflictError) {
-      return res.status(409).json({
-        error: 'AUTH_EMAIL_EXISTS',
-        message: error.message,
-      });
-    }
-
-    throw error;
-  }
+  const response = await registerUser(req.body);
+  return res.status(201).json(response);
 }
 
 export async function login(req: Request, res: Response) {

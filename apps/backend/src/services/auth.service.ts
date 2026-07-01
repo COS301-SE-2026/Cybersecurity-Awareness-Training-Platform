@@ -29,7 +29,8 @@ import { recordUserLogin, recordAuthSessionRevoked } from './auth-audit.service.
 import { buildAuthContext } from './auth-context.service.js';
 
 const EMAIL_VERIFICATION_TOKEN_TTL_HOURS = 24;
-
+const REGISTER_GENERIC_MESSAGE =
+  "If this email can be registered, we'll send you an email verification link. Please check your inbox.";
 export class AuthConflictError extends Error {
   constructor(message = 'A user with the provided email already exists') {
     super(message);
@@ -59,56 +60,119 @@ export async function registerUser(
   input: AuthRegisterRequestDto,
 ): Promise<AuthRegisterResponseDto> {
   const existingUser = await UserRepository.findUserByEmail(input.email);
-
-  if (existingUser) {
-    throw new AuthConflictError();
-  }
-
   const passwordHash = await PasswordService.hashPassword(input.password);
 
-  const { newUser, verification } = await prisma.$transaction(async (tx) => {
-    const createdUser = await UserRepository.createGeneralTraineeUser(
-      {
-        email: input.email,
-        firstName: input.firstName,
-        lastName: input.lastName,
-        passwordHash,
+  if (!existingUser) {
+    const { newUser, verification } = await prisma.$transaction(async (tx) => {
+      const createdUser = await UserRepository.createGeneralTraineeUser(
+        {
+          email: input.email,
+          firstName: input.firstName,
+          lastName: input.lastName,
+          passwordHash,
+        },
+        tx,
+      );
+      const verificationToken = await issueActionToken(
+        {
+          purpose: 'EMAIL_VERIFICATION',
+          userId: createdUser.id,
+          targetEmail: createdUser.email,
+          expiresAt: new Date(Date.now() + EMAIL_VERIFICATION_TOKEN_TTL_HOURS * 60 * 60 * 1000),
+        },
+        tx,
+      );
+      return {
+        newUser: createdUser,
+        verification: verificationToken,
+      };
+    });
+
+    await requestAuthEmailSend({
+      emailType: 'EMAIL_VERIFICATION',
+      recipientEmail: newUser.email,
+      userId: newUser.id,
+      actionTokenId: verification.token.id,
+      templateData: {
+        firstName: newUser.firstName,
+        actionToken: verification.rawToken,
+        actionTokenExpiresAt: verification.token.expiresAt,
       },
-      tx,
+    });
+
+    return { message: REGISTER_GENERIC_MESSAGE };
+  } //if
+
+  if (existingUser.authStatus === 'PENDING_EMAIL_VERIFICATION') {
+    await maybeSendReplacementVerificationEmail(existingUser);
+  }
+
+  return { message: REGISTER_GENERIC_MESSAGE };
+}
+async function maybeSendReplacementVerificationEmail(user: {
+  id: string;
+  email: string;
+  firstName: string;
+  authStatus: string;
+}) {
+  const latestToken = await prisma.actionToken.findFirst({
+    where: {
+      userId: user.id,
+      targetEmail: user.email,
+      purpose: 'EMAIL_VERIFICATION',
+      usedAt: null,
+      revokedAt: null,
+    },
+    include: { emailDeliveryLogs: true },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  const shouldReissue =
+    !latestToken ||
+    latestToken.expiresAt.getTime() <= Date.now() ||
+    !latestToken.emailDeliveryLogs.some(
+      (log) => log.emailType === 'EMAIL_VERIFICATION' && log.deliveryStatus === 'SENT',
     );
+  if (!shouldReissue) {
+    return;
+  }
+
+  const { verification } = await prisma.$transaction(async (tx) => {
+    await tx.actionToken.updateMany({
+      where: {
+        userId: user.id,
+        targetEmail: user.email,
+        purpose: 'EMAIL_VERIFICATION',
+        usedAt: null,
+        revokedAt: null,
+      },
+      data: { revokedAt: new Date(), revokedReason: 'REGISTRATION_VERIFICATION_REISSUED' },
+    });
 
     const verificationToken = await issueActionToken(
       {
         purpose: 'EMAIL_VERIFICATION',
-        userId: createdUser.id,
-        targetEmail: createdUser.email,
+        userId: user.id,
+        targetEmail: user.email,
         expiresAt: new Date(Date.now() + EMAIL_VERIFICATION_TOKEN_TTL_HOURS * 60 * 60 * 1000),
       },
       tx,
     );
 
-    return {
-      newUser: createdUser,
-      verification: verificationToken,
-    };
+    return { verification: verificationToken };
   });
 
-  const emailResult = await requestAuthEmailSend({
+  await requestAuthEmailSend({
     emailType: 'EMAIL_VERIFICATION',
-    recipientEmail: newUser.email,
-    userId: newUser.id,
+    recipientEmail: user.email,
+    userId: user.id,
     actionTokenId: verification.token.id,
     templateData: {
-      firstName: newUser.firstName,
+      firstName: user.firstName,
       actionToken: verification.rawToken,
       actionTokenExpiresAt: verification.token.expiresAt,
     },
   });
-
-  return {
-    user: toPublicUserDto(newUser),
-    verificationEmailQueued: emailResult.queued,
-  };
 }
 
 export class AuthStatusGuardError extends Error {

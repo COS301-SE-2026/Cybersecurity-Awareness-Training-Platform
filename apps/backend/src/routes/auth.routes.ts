@@ -43,8 +43,6 @@ export const authRouter = Router();
  *         $ref: '#/components/responses/AuthRegisterCreated'
  *       400:
  *         $ref: '#/components/responses/BadRequest'
- *       409:
- *         $ref: '#/components/responses/AuthEmailExists'
  *       429:
  *         $ref: '#/components/responses/AuthRateLimited'
  *       500:
