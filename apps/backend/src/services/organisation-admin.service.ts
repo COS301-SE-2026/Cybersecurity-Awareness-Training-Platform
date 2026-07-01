@@ -88,7 +88,7 @@ export async function getOrganisationAdmins(actorUserId: string, organisationId:
       description: permission.description,
       isCritical: permission.isCritical,
     })),
-    actorPermissions: actorPermissionKeys.sort(),
+    actorPermissions: actorPermissionKeys.sort(comparePermissionKeys),
   };
 }
 
@@ -284,10 +284,10 @@ export async function changeAdminPermissions(
     oldValues: {
       permissionKeys: targetAdmin.permissionGrants
         .map((grant) => grant.organisationPermission.key)
-        .sort(),
+        .sort(comparePermissionKeys),
     },
     newValues: {
-      permissionKeys: [...permissionKeys].sort(),
+      permissionKeys: [...permissionKeys].sort(comparePermissionKeys),
     },
   });
 
@@ -455,6 +455,13 @@ function normalisePermissionKeys(permissionKeys: readonly string[]) {
   }
 
   return uniqueKeys as OrganisationPermissionKeyValue[];
+}
+
+function comparePermissionKeys(
+  left: OrganisationPermissionKeyValue,
+  right: OrganisationPermissionKeyValue,
+) {
+  return left.localeCompare(right);
 }
 
 async function requireOrganisationPermissions(
