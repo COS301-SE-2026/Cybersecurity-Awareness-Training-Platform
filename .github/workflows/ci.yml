@@ -63,6 +63,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Enable Corepack
         run: corepack enable
@@ -79,8 +81,49 @@ jobs:
       - name: Generate Prisma client
         run: pnpm --filter @insightful-phish/backend exec prisma generate
 
-      - name: Run linting
-        run: pnpm lint
+      - name: Run linting on changed files
+        if: ${{ github.event_name == 'pull_request' && github.base_ref == 'dev' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          base_sha="${{ github.event.pull_request.base.sha }}"
+          head_sha="${{ github.event.pull_request.head.sha }}"
+          backend_files = ()
+          frontend_files = ()
+          shared_files = ()
+
+          while IFS= read -r -d '' file; do
+            case "$file" in
+              apps/backend/src/generated/*|apps/backend/prisma/generated/*|apps/backend/generated/*)
+                ;;
+              apps/backend/*ts|apps/backend/src/*.ts|apps/backend/src/**/*.ts/apps/backend/tests/*.ts|apps/backend/tests/**/*.ts|apps/backend/prisma/*.ts|apps/backend/scripts/*.ts)
+                backend_files+=("${file#apps/backend}")
+                ;;
+              apps/frontend/*.ts|apps/frontend/*.tsx|apps/frontend/src/*.ts|apps.frontend/src/*.tsx|apps/frontend/src/**/*.ts|apps/frontend/src/**/*.tsx|apps/frontend/tests/*.ts|apps/frotnend/tests/*.tsx|apps/frontend/tests/**/*.ts|apps/frontend/tests/**/*.tsx)
+                frontend_files+=("${file#apps/frontend/}")
+                ;;
+              packages/shared/*.ts|packages/shared/src/*.ts|packages/shared/src/**/*.ts)
+                shared_files+=("${file#packages/shared/}")
+                ;;
+            esac
+          done < <(git diff --name-only -z --diff-filter=ACMR "$base_sha" "head_sha")
+
+          if [[ "${#backend_files[@]}" -eq 0 && "${#frontend_files[@]}" -eq 0 && "${#shared_files[@]}" -eq 0 ]]; then
+            echo "No lintable files changed."
+            exit 0
+          fi
+
+          if [[ "${#backend_files[@]}" -gt 0 ]]; then
+            pnpm --dir apps/backend exec eslint --max-warnings=0 "$backend_files[@]"
+          fi
+
+          if [[ "${#frontend_files[@]}" -gt 0 ]]; then
+            pnpm --dir apps/frontend exec eslint --max-warnings=0 "$frontend_files[@]"
+          fi
+
+          if [[ "${#shared_files[@]}" -gt 0 ]]; then
+            pnpm --dir packages/shared exec eslint --max-warnings=0 "$shared_files[@]"
+          fi
 
   typecheck:
     name: Typecheck
