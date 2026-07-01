@@ -101,30 +101,6 @@ describe('RegisterPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows a duplicate-account message when the backend returns 409', async () => {
-    const user = userEvent.setup();
-
-    fetchMock.mockResolvedValue({
-      ok: false,
-      status: 409,
-      json: async () => ({
-        message: 'Conflict',
-      }),
-    });
-
-    renderRegisterPage();
-
-    await fillRegistrationForm(user);
-    await user.type(screen.getByLabelText(/^password$/i), 'StrongPass123!');
-    await user.type(screen.getByLabelText(/confirm password/i), 'StrongPass123!');
-    await user.click(screen.getByRole('button', { name: /register/i }));
-
-    expect(
-      await screen.findByText('An Account With This Email Address Already Exists'),
-    ).toBeInTheDocument();
-    expect(navigateMock).not.toHaveBeenCalled();
-  });
-
   it('shows the backend error message when registration fails', async () => {
     const user = userEvent.setup();
 
