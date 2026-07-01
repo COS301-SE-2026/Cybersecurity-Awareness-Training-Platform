@@ -1,17 +1,22 @@
 import { createContext } from 'react';
+import type {
+  AuthContextDto,
+  AuthContextResponseDto,
+  PublicUserDto,
+} from '@insightful-phish/shared';
 
-export type AuthUser = {
-  firstName: string;
-  lastName: string;
-  email: string;
-};
+export type AuthUser = PublicUserDto;
 
 export type AuthContextType = {
   isAuthenticated: boolean;
+  isAuthLoading: boolean;
   token: string | null;
   user: AuthUser | null;
-  login: (token: string, user: AuthUser) => void;
-  logout: () => void;
+  authContext: AuthContextDto | null;
+  permissions: string[];
+  redirectTo: string | null;
+  login: (authResponse: AuthContextResponseDto) => void;
+  logout: () => Promise<void>;
 };
 
 export const AuthContext = createContext<AuthContextType | null>(null);

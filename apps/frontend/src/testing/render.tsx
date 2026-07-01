@@ -16,16 +16,38 @@ export function createAuthContextValue(overrides: Partial<AuthContextType> = {})
 
   return {
     isAuthenticated,
+    isAuthLoading: overrides.isAuthLoading ?? false,
     token: isAuthenticated ? 'test-token' : null,
     user: isAuthenticated
       ? {
+          id: 'test-user-id',
           firstName: 'Test',
           lastName: 'User',
           email: 'test@example.com',
+          userType: 'GENERAL_TRAINEE',
+          authStatus: 'ACTIVE',
+          traineeProfile: null,
+          adminProfile: null,
+          createdAt: '2026-01-01T00:00:00.000Z',
         }
       : null,
+    authContext: isAuthenticated
+      ? {
+          user: {
+            id: 'test-user-id',
+            userType: 'GENERAL_TRAINEE',
+            authStatus: 'ACTIVE',
+          },
+          role: 'GENERAL_TRAINEE',
+          organisation: null,
+          permissions: ['GENERAL_TRAINEE'],
+          redirectTo: '/trainee/campaigns',
+        }
+      : null,
+    permissions: isAuthenticated ? ['GENERAL_TRAINEE'] : [],
+    redirectTo: isAuthenticated ? '/trainee/campaigns' : null,
     login: vi.fn(),
-    logout: vi.fn(),
+    logout: vi.fn(async () => {}),
     ...overrides,
   };
 }
