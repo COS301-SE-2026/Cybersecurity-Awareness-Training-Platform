@@ -284,6 +284,9 @@ describe('Auth Integration Tests', () => {
       expect(response.body.token.state).toBe('VALID');
       expect(response.body.token.purpose).toBe('PLATFORM_ADMIN_INVITE');
       expect(response.body.targetEmail).toBe(email);
+      expect(response.body.targetFirstName).toBe('Test');
+      expect(response.body.targetLastName).toBe('Trainee');
+      expect(response.body.role).toBe('IP_ADMIN');
     });
 
     it('returns EXPIRED for an expired setup token', async () => {

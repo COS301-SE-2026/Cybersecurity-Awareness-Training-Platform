@@ -105,6 +105,8 @@ function setupToken(overrides = {}) {
       id: 'invitation-1',
       recipientEmail: 'trainee@example.com',
       organisationId: 'org-1',
+      recipientFirstName: 'Johan',
+      recipientLastName: 'Nel',
       status: 'PENDING',
       expiresAt: new Date(Date.now() + setupInvitationExpiryMs),
       organisation: activeOrganisation,
@@ -162,6 +164,9 @@ describe('setup service', () => {
       },
       targetEmail: 'trainee@example.com',
       organisationName: 'Acme Security',
+      targetFirstName: 'Johan',
+      role: 'ORGANISATION_TRAINEE',
+      targetLastName: 'Nel',
     });
   });
 

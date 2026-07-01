@@ -38,7 +38,7 @@ export type SetupTokenRoleDto = 'ORGANISATION_TRAINEE' | 'ORGANISATION_ADMIN' | 
 export interface SetupTokenContextResponseDto {
   token: {
     state: ActionTokenStateDto;
-    purpose?: string;
+    purpose?: SetupTokenPurposeDto;
   };
   targetEmail?: string;
   targetFirstName?: string | null;
