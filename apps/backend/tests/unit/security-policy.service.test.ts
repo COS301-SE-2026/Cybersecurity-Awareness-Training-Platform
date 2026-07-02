@@ -38,6 +38,16 @@ const platform = {
   allowEmailChange: true,
 };
 
+const activeOrganisationStatus = 'ACTIVE';
+
+function createGuardOrganisation(): { id: string; name: string; status: 'ACTIVE' } {
+  return {
+    id: 'org-1',
+    name: 'Test Organisation',
+    status: activeOrganisationStatus,
+  };
+}
+
 function organisationTraineeSubject(): GuardAuthSubject {
   return {
     user: {
@@ -47,10 +57,7 @@ function organisationTraineeSubject(): GuardAuthSubject {
     },
     organisationTraineeProfile: {
       membershipStatus: 'ACTIVE',
-      organisation: {
-        id: 'org-1',
-        status: 'ACTIVE',
-      },
+      organisation: createGuardOrganisation(),
     },
   };
 }
@@ -64,10 +71,7 @@ function organisationAdminSubject(): GuardAuthSubject {
     },
     organisationAdminProfile: {
       adminStatus: 'ACTIVE',
-      organisation: {
-        id: 'org-1',
-        status: 'ACTIVE',
-      },
+      organisation: createGuardOrganisation(),
     },
   };
 }
