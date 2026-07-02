@@ -39,6 +39,19 @@ function renderLoginPage() {
   );
 }
 
+function createLoginApiError(status: number, errorCode: string) {
+  return new ApiError(errorCode, {
+    status,
+    statusText: 'Error',
+    method: 'POST',
+    url: 'http://localhost:4000/auth/login',
+    body: {
+      error: errorCode,
+      message: errorCode,
+    },
+  });
+}
+
 const successfulAuthResponse = {
   accessToken: 'demo-token',
   token: 'demo-token',
@@ -66,6 +79,8 @@ const successfulAuthResponse = {
   },
   permissions: ['GENERAL_TRAINEE'],
   redirectTo: '/trainee/campaigns',
+  expiresAt: '2026-01-01T01:00:00.000Z',
+  sessionExpiresAt: '2026-01-08T00:00:00.000Z',
 };
 
 describe('LoginPage', () => {
@@ -155,8 +170,141 @@ describe('LoginPage', () => {
     await user.type(screen.getByLabelText(/^password$/i), 'wrong-password');
     await user.click(screen.getByRole('button', { name: /Log In/i }));
 
-    expect(await screen.findByText('Invalid Email Address Or Password')).toBeInTheDocument();
+    expect(await screen.findByText('Invalid email address or password.')).toBeInTheDocument();
     expect(loginMock).not.toHaveBeenCalled();
     expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  it('shows an email verification message when the backend requires verification', async () => {
+    const user = userEvent.setup();
+
+    loginUserMock.mockRejectedValue(createLoginApiError(403, 'USER_EMAIL_NOT_VERIFIED'));
+
+    renderLoginPage();
+
+    await user.type(screen.getByLabelText(/email address/i), 'trainee@example.com');
+    await user.type(screen.getByLabelText(/^password$/i), 'legacy-password');
+    await user.click(screen.getByRole('button', { name: /Log In/i }));
+
+    expect(
+      await screen.findByText('Email address must be verified before signing in.'),
+    ).toBeInTheDocument();
+    expect(loginMock).not.toHaveBeenCalled();
+  });
+
+  it('shows a disabled account message when the backend returns USER_DISABLED', async () => {
+    const user = userEvent.setup();
+
+    loginUserMock.mockRejectedValue(createLoginApiError(403, 'USER_DISABLED'));
+
+    renderLoginPage();
+
+    await user.type(screen.getByLabelText(/email address/i), 'trainee@example.com');
+    await user.type(screen.getByLabelText(/^password$/i), 'legacy-password');
+    await user.click(screen.getByRole('button', { name: /Log In/i }));
+
+    expect(
+      await screen.findByText('This account is disabled. Please contact support.'),
+    ).toBeInTheDocument();
+    expect(loginMock).not.toHaveBeenCalled();
+  });
+
+  it('shows an organisation status message when the backend returns ORGANISATION_SUSPENDED', async () => {
+    const user = userEvent.setup();
+
+    loginUserMock.mockRejectedValue(createLoginApiError(403, 'ORGANISATION_SUSPENDED'));
+
+    renderLoginPage();
+
+    await user.type(screen.getByLabelText(/email address/i), 'trainee@example.com');
+    await user.type(screen.getByLabelText(/^password$/i), 'legacy-password');
+    await user.click(screen.getByRole('button', { name: /Log In/i }));
+
+    expect(
+      await screen.findByText(
+        'Your organisation account is not active. Please contact your organisation administrator.',
+      ),
+    ).toBeInTheDocument();
+    expect(loginMock).not.toHaveBeenCalled();
+  });
+
+  it('shows a validation-style message when the backend returns VALIDATION_ERROR', async () => {
+    const user = userEvent.setup();
+
+    loginUserMock.mockRejectedValue(createLoginApiError(400, 'VALIDATION_ERROR'));
+
+    renderLoginPage();
+
+    await user.type(screen.getByLabelText(/email address/i), 'trainee@example.com');
+    await user.type(screen.getByLabelText(/^password$/i), 'legacy-password');
+    await user.click(screen.getByRole('button', { name: /Log In/i }));
+
+    expect(await screen.findByText('Please check your login details.')).toBeInTheDocument();
+    expect(loginMock).not.toHaveBeenCalled();
+  });
+
+  it('shows a validation-style message when the backend returns 422', async () => {
+    const user = userEvent.setup();
+
+    loginUserMock.mockRejectedValue(createLoginApiError(422, 'VALIDATION_ERROR'));
+
+    renderLoginPage();
+
+    await user.type(screen.getByLabelText(/email address/i), 'trainee@example.com');
+    await user.type(screen.getByLabelText(/^password$/i), 'legacy-password');
+    await user.click(screen.getByRole('button', { name: /Log In/i }));
+
+    expect(await screen.findByText('Please check your login details.')).toBeInTheDocument();
+    expect(loginMock).not.toHaveBeenCalled();
+  });
+
+  it('shows a rate-limit message when the backend returns AUTH_RATE_LIMITED', async () => {
+    const user = userEvent.setup();
+
+    loginUserMock.mockRejectedValue(createLoginApiError(429, 'AUTH_RATE_LIMITED'));
+
+    renderLoginPage();
+
+    await user.type(screen.getByLabelText(/email address/i), 'trainee@example.com');
+    await user.type(screen.getByLabelText(/^password$/i), 'legacy-password');
+    await user.click(screen.getByRole('button', { name: /Log In/i }));
+
+    expect(
+      await screen.findByText('Too many login attempts. Please try again later.'),
+    ).toBeInTheDocument();
+    expect(loginMock).not.toHaveBeenCalled();
+  });
+
+  it('shows a safe generic message when the backend returns 404', async () => {
+    const user = userEvent.setup();
+
+    loginUserMock.mockRejectedValue(createLoginApiError(404, 'AUTH_NOT_FOUND'));
+
+    renderLoginPage();
+
+    await user.type(screen.getByLabelText(/email address/i), 'trainee@example.com');
+    await user.type(screen.getByLabelText(/^password$/i), 'legacy-password');
+    await user.click(screen.getByRole('button', { name: /Log In/i }));
+
+    expect(await screen.findByText('Unable to sign in. Please try again.')).toBeInTheDocument();
+    expect(screen.queryByText(/email not found/i)).not.toBeInTheDocument();
+    expect(loginMock).not.toHaveBeenCalled();
+  });
+
+  it('shows a safe conflict message when the backend returns 409', async () => {
+    const user = userEvent.setup();
+
+    loginUserMock.mockRejectedValue(createLoginApiError(409, 'AUTH_CONFLICT'));
+
+    renderLoginPage();
+
+    await user.type(screen.getByLabelText(/email address/i), 'trainee@example.com');
+    await user.type(screen.getByLabelText(/^password$/i), 'legacy-password');
+    await user.click(screen.getByRole('button', { name: /Log In/i }));
+
+    expect(
+      await screen.findByText('We could not complete sign in right now. Please try again.'),
+    ).toBeInTheDocument();
+    expect(loginMock).not.toHaveBeenCalled();
   });
 });

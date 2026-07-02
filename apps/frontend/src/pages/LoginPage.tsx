@@ -30,22 +30,71 @@ function normalizeRedirectPath(redirectTo?: string | null) {
   return ROUTES.CAMPAIGNS;
 }
 
-function getLoginErrorMessage(error: unknown) {
-  if (error instanceof ApiError) {
-    if (error.status === 401) {
-      return 'Invalid Email Address Or Password';
-    }
+function getApiErrorCode(error: ApiError): string | null {
+  const body = error.body;
 
-    if (error.status === 403) {
-      return 'Access Denied';
-    }
+  if (body && typeof body === 'object' && 'error' in body) {
+    const errorCode = (body as { error?: unknown }).error;
 
-    if (error.status === 429) {
-      return 'Too Many Login Attempts. Please Try Again Later';
+    if (typeof errorCode === 'string') {
+      return errorCode;
     }
   }
 
-  return 'Unable To Connect To Server';
+  return null;
+}
+
+function getLoginErrorMessage(error: unknown) {
+  if (!(error instanceof ApiError)) {
+    return 'Unable to connect to server.';
+  }
+
+  const errorCode = getApiErrorCode(error);
+
+  if (
+    error.status === 401 ||
+    errorCode === 'AUTH_INVALID' ||
+    errorCode === 'AUTH_REQUIRED' ||
+    errorCode === 'TOKEN_REUSE_DETECTED'
+  ) {
+    return 'Invalid email address or password.';
+  }
+
+  if (errorCode === 'USER_EMAIL_NOT_VERIFIED') {
+    return 'Email address must be verified before signing in.';
+  }
+
+  if (
+    errorCode === 'USER_DISABLED' ||
+    errorCode === 'ADMIN_DISABLED' ||
+    errorCode === 'IP_ADMIN_DISABLED'
+  ) {
+    return 'This account is disabled. Please contact support.';
+  }
+
+  if (
+    errorCode === 'ORGANISATION_SUSPENDED' ||
+    errorCode === 'ORGANISATION_PENDING_ONBOARDING' ||
+    errorCode === 'ORGANISATION_DISABLED' ||
+    errorCode === 'ORGANISATION_ARCHIVED' ||
+    errorCode === 'ORGANISATION_NOT_ACTIVE'
+  ) {
+    return 'Your organisation account is not active. Please contact your organisation administrator.';
+  }
+
+  if (error.status === 400 || error.status === 422 || errorCode === 'VALIDATION_ERROR') {
+    return 'Please check your login details.';
+  }
+
+  if (error.status === 429 || errorCode === 'AUTH_RATE_LIMITED') {
+    return 'Too many login attempts. Please try again later.';
+  }
+
+  if (error.status === 409) {
+    return 'We could not complete sign in right now. Please try again.';
+  }
+
+  return 'Unable to sign in. Please try again.';
 }
 
 function LoginPage() {
