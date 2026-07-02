@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom';
 import BasicAlert from '../components/alerts/BasicAlert';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { authResetPasswordRequestSchema } from '@insightful-phish/shared';
+import SuccessfulPasswordResetModal from '../components/layout/modals/SuccessfulPasswordResetModal';
 
 function formatAlertMessage(message: string) {
   // makes everything title case and removes the . from the end of the message
@@ -13,12 +14,13 @@ function formatAlertMessage(message: string) {
 function ResetPasswordPage() {
   const [alertMessage, setAlertMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-
+  const [showSuccessfulPasswordResetModal, setShowSuccessfulPasswordResetModal] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setAlertMessage('');
 
     const validationResult = authResetPasswordRequestSchema.safeParse({
       token: 'temporary-reset-token-for-frontend-validation-only',
@@ -32,10 +34,24 @@ function ResetPasswordPage() {
       );
       return;
     }
+
+    setIsLoading(true);
+    setTimeout(() => {
+      setIsLoading(false);
+      setShowSuccessfulPasswordResetModal(true);
+    }, 2000);
+  }
+
+  let buttonText = 'Reset Password';
+  if (isLoading) {
+    buttonText = 'Resetting Password...';
   }
 
   return (
     <section className="bg-light-purple dark:bg-gray-900">
+      {/* SUCCESSFUL PASSWORD RESET INDICATION MODAL */}
+      <SuccessfulPasswordResetModal isOpen={showSuccessfulPasswordResetModal} />
+
       <div className="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0">
         {/* LOGO  */}
         {alertMessage && (
@@ -64,25 +80,25 @@ function ResetPasswordPage() {
 
           {/* SUB-HEADING */}
           <p className="font-regular tracking-wide text-[1.1rem] font-justify font-jost mt-1 text-dark-pink">
-            Fix this wording...
+            Enter and confirm your new password to complete the password reset process.
           </p>
 
           <form className="mt-4 space-y-4 lg:mt-5 md:space-y-5" onSubmit={handleSubmit} noValidate>
             {/* PASSWORD INPUT */}
             <div>
               <label
-                htmlFor="password"
+                htmlFor="new-password"
                 className=" block mb-2 font-jost tracking-wide text-xl font-medium text-pink"
               >
                 New Password
               </label>
               <input
                 type="password"
-                name="password"
+                name="newPassword"
                 disabled={isLoading}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                id="password"
+                id="new-password"
                 className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                 placeholder="Enter a New Password"
               />
@@ -91,18 +107,18 @@ function ResetPasswordPage() {
             {/* CONFIRM PASSWORD INPUT */}
             <div>
               <label
-                htmlFor="password"
+                htmlFor="confirm-new-password"
                 className=" block mb-2 font-jost tracking-wide text-xl font-medium text-pink"
               >
                 Confirm New Password
               </label>
               <input
                 type="password"
-                name="password"
+                name="confirmNewPassword"
                 value={confirmNewPassword}
                 onChange={(e) => setConfirmNewPassword(e.target.value)}
                 disabled={isLoading}
-                id="password"
+                id="confirm-new-passwors"
                 className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                 placeholder="Re-Enter New Password"
               />
@@ -131,7 +147,7 @@ function ResetPasswordPage() {
                   />
                 </svg>
               )}
-              <span>Reset your Password</span>
+              <span>{buttonText}</span>
             </button>
 
             {/* BACK TO LOGIN */}

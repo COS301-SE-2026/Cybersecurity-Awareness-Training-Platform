@@ -25,8 +25,8 @@ function SuccessfulRegistrationModal({
         <div className="relative bg-white-purple border border-default shadow-md p-4 md:p-6">
           <div className="flex items-center justify-between border-b border-default pb-4 md:pb-5">
             {/* HEADING */}
-            <h3 className="font-jost text-3xl text-purple tracking-wider font-medium text-heading">
-              Success
+            <h3 className="font-jost text-3xl text-emerald-600 tracking-wider font-medium">
+              Registration Successful
             </h3>
           </div>
           <div className="pt-4 md:pt-6">
