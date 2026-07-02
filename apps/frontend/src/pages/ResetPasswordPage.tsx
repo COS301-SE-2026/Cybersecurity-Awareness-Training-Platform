@@ -3,6 +3,7 @@ import BasicAlert from '../components/alerts/BasicAlert';
 import { useState } from 'react';
 import { authResetPasswordRequestSchema } from '@insightful-phish/shared';
 import SuccessfulPasswordResetModal from '../components/layout/modals/SuccessfulPasswordResetModal';
+import { Popover } from 'flowbite-react';
 
 function formatAlertMessage(message: string) {
   // makes everything title case and removes the . from the end of the message
@@ -47,6 +48,37 @@ function ResetPasswordPage() {
     buttonText = 'Resetting Password...';
   }
 
+  const passwordPolicyPopover = (
+    <div className="w-100 bg-faint-purple shadow-lg">
+      <div className="bg-gray-100 bg-purple px-3 py-2">
+        <h3 className="font-semibold font-jost text-[1.4rem] text-white tracking-wider">
+          Password Requirements
+        </h3>
+      </div>
+
+      <div className="px-3 py-2">
+        <p className="text-sm font-overpass font-medium text-[1.05rem] text-dark-pink">
+          ● At Least 12 Characters
+        </p>
+        <p className="text-sm font-overpass font-medium text-[1.05rem] text-dark-pink">
+          ● At Most 128 Characters
+        </p>
+        <p className="text-sm font-overpass font-medium text-[1.05rem] text-dark-pink">
+          ● At Least ONE Uppercase Letter (A–Z)
+        </p>
+        <p className="text-sm font-overpass font-medium text-[1.05rem] text-dark-pink">
+          ● At Least ONE Lowercase Letter (a–z)
+        </p>
+        <p className="text-sm font-overpass font-medium text-[1.05rem] text-dark-pink">
+          ● At Least ONE Number (0–9)
+        </p>
+        <p className="text-sm font-overpass font-medium text-[1.05rem] text-dark-pink">
+          ● At Least ONE Special Character (e.g. ! @ # $ %)
+        </p>
+      </div>
+    </div>
+  );
+
   return (
     <section className="bg-light-purple dark:bg-gray-900">
       {/* SUCCESSFUL PASSWORD RESET INDICATION MODAL */}
@@ -86,12 +118,30 @@ function ResetPasswordPage() {
           <form className="mt-4 space-y-4 lg:mt-5 md:space-y-5" onSubmit={handleSubmit} noValidate>
             {/* PASSWORD INPUT */}
             <div>
-              <label
-                htmlFor="new-password"
-                className=" block mb-2 font-jost tracking-wide text-xl font-medium text-pink"
-              >
-                New Password
-              </label>
+              <div className="flex items-center justify-between">
+                <label
+                  htmlFor="new-password"
+                  className=" block mb-2 font-jost tracking-wide text-xl font-medium text-pink"
+                >
+                  New Password
+                </label>
+
+                <Popover
+                  content={passwordPolicyPopover}
+                  arrow={false}
+                  theme={{
+                    base: 'rounded-none bg-transparent border-0 shadow-xl absolute z-20 inline-block w-max max-w-[100vw] outline-none',
+                    content: 'relative overflow-hidden rounded-none',
+                  }}
+                >
+                  <span
+                    className="material-icons-outlined mb-2 cursor-pointer text-pink"
+                    style={{ fontSize: '1.6rem' }}
+                  >
+                    info
+                  </span>
+                </Popover>
+              </div>
               <input
                 type="password"
                 name="newPassword"
