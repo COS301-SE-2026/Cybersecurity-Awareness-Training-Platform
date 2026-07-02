@@ -153,49 +153,61 @@ export function AuthProvider({ children }: AuthProviderProps) {
     !storedAuth.isAuthenticated || isAccessTokenExpired(storedAuth.expiresAt),
   );
 
-  const login = useCallback((authResponse: AuthContextResponseDto) => {
-    const newToken = getAuthResponseToken(authResponse);
+  const login = useCallback(
+    (authResponse: AuthContextResponseDto) => {
+      const newToken = getAuthResponseToken(authResponse);
 
-    if (!newToken) {
-      clearStoredAuth();
-      setToken(null);
-      setUser(null);
-      setAuthContext(null);
-      setPermissions([]);
-      setRedirectTo(null);
-      setExpiresAt(null);
-      setSessionExpiresAt(null);
-      setIsAuthenticated(false);
-      return;
-    }
+      if (!newToken) {
+        clearStoredAuth();
+        setToken(null);
+        setUser(null);
+        setAuthContext(null);
+        setPermissions([]);
+        setRedirectTo(null);
+        setExpiresAt(null);
+        setSessionExpiresAt(null);
+        setIsAuthenticated(false);
+        return;
+      }
 
-    getStorage()?.setItem('token', newToken);
-    getStorage()?.setItem('user', JSON.stringify(authResponse.user));
-    getStorage()?.setItem('authContext', JSON.stringify(authResponse.context));
-    getStorage()?.setItem('permissions', JSON.stringify(authResponse.permissions));
-    getStorage()?.setItem('redirectTo', authResponse.redirectTo);
+      getStorage()?.setItem('token', newToken);
+      getStorage()?.setItem('user', JSON.stringify(authResponse.user));
+      getStorage()?.setItem('authContext', JSON.stringify(authResponse.context));
+      getStorage()?.setItem('permissions', JSON.stringify(authResponse.permissions));
+      getStorage()?.setItem('redirectTo', authResponse.redirectTo);
 
-    if (authResponse.expiresAt) {
-      getStorage()?.setItem('expiresAt', authResponse.expiresAt);
-    } else {
-      getStorage()?.removeItem('expiresAt');
-    }
+      if (authResponse.expiresAt) {
+        getStorage()?.setItem('expiresAt', authResponse.expiresAt);
+      } else {
+        getStorage()?.removeItem('expiresAt');
+      }
 
-    if (authResponse.sessionExpiresAt) {
-      getStorage()?.setItem('sessionExpiresAt', authResponse.sessionExpiresAt);
-    } else {
-      getStorage()?.removeItem('sessionExpiresAt');
-    }
+      if (authResponse.sessionExpiresAt) {
+        getStorage()?.setItem('sessionExpiresAt', authResponse.sessionExpiresAt);
+      } else {
+        getStorage()?.removeItem('sessionExpiresAt');
+      }
 
-    setToken(newToken);
-    setUser(authResponse.user);
-    setAuthContext(authResponse.context);
-    setPermissions(authResponse.permissions);
-    setRedirectTo(authResponse.redirectTo);
-    setExpiresAt(authResponse.expiresAt ?? null);
-    setSessionExpiresAt(authResponse.sessionExpiresAt ?? null);
-    setIsAuthenticated(true);
-  }, []);
+      setToken(newToken);
+      setUser(authResponse.user);
+      setAuthContext(authResponse.context);
+      setPermissions(authResponse.permissions);
+      setRedirectTo(authResponse.redirectTo);
+      setExpiresAt(authResponse.expiresAt ?? null);
+      setSessionExpiresAt(authResponse.sessionExpiresAt ?? null);
+      setIsAuthenticated(true);
+    },
+    [
+      setAuthContext,
+      setExpiresAt,
+      setIsAuthenticated,
+      setPermissions,
+      setRedirectTo,
+      setSessionExpiresAt,
+      setToken,
+      setUser,
+    ],
+  );
 
   const logout = useCallback(async () => {
     try {
@@ -216,7 +228,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   useEffect(() => {
     if (storedAuth.isAuthenticated && !isAccessTokenExpired(storedAuth.expiresAt)) {
-      setIsAuthLoading(false);
       return;
     }
 
