@@ -421,6 +421,7 @@ model User {
   traineeProfile               TraineeProfile?
   organisationAdminProfile     OrganisationAdminProfile?
   ipAdminProfile               IpAdminProfile?
+  securityPreferences          UserSecurityPreferences?
   uploadedOrganisationContexts OrganisationContext[]     @relation("OrganisationContextUploadedBy")
   createdCampaigns             Campaign[]                @relation("CampaignCreatedBy")
   assignedCampaignAssignments  CampaignAssignment[]      @relation("CampaignAssignmentAssignedBy")
@@ -488,22 +489,23 @@ model OrganisationTraineeProfile {
 }
 
 model OrganisationAdminProfile {
-  id                      String                        @id @default(uuid())
-  userId                  String                        @unique
+  id                      String                         @id @default(uuid())
+  userId                  String                         @unique
   organisationId          String
-  adminStatus             AdminStatus                   @default(ACTIVE)
-  joinedAt                DateTime                      @default(now())
-  isInitialAdmin          Boolean                       @default(false)
+  adminStatus             AdminStatus                    @default(ACTIVE)
+  joinedAt                DateTime                       @default(now())
+  isInitialAdmin          Boolean                        @default(false)
   createdFromInvitationId String?
   disabledAt              DateTime?
   disabledReason          String?
-  createdAt               DateTime                      @default(now())
-  updatedAt               DateTime                      @updatedAt
-  user                    User                          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organisation            Organisation                  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  createdFromInvitation   Invitation?                   @relation("InvitationAcceptedOrganisationAdmin", fields: [createdFromInvitationId, organisationId], references: [id, organisationId], onDelete: Restrict)
-  permissionGrants        OrganisationAdminPermission[] @relation("OrganisationAdminPermissionAdmin")
-  grantedPermissionGrants OrganisationAdminPermission[] @relation("OrganisationAdminPermissionGrantedBy")
+  createdAt               DateTime                       @default(now())
+  updatedAt               DateTime                       @updatedAt
+  user                    User                           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organisation            Organisation                   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  createdFromInvitation   Invitation?                    @relation("InvitationAcceptedOrganisationAdmin", fields: [createdFromInvitationId, organisationId], references: [id, organisationId], onDelete: Restrict)
+  permissionGrants        OrganisationAdminPermission[]  @relation("OrganisationAdminPermissionAdmin")
+  grantedPermissionGrants OrganisationAdminPermission[]  @relation("OrganisationAdminPermissionGrantedBy")
+  updatedSecuritySettings OrganisationSecuritySettings[] @relation("OrganisationSecuritySettingsUpdatedBy")
 
   @@unique([id, organisationId])
   @@unique([createdFromInvitationId, organisationId])
@@ -555,6 +557,17 @@ model AuthSession {
   @@index([expiresAt])
   @@index([lastActiveAt])
   @@index([revokedAt])
+}
+
+model UserSecurityPreferences {
+  id                                    String   @id @default(uuid())
+  userId                                String   @unique
+  preferredRegularSessionLengthHours    Int?
+  preferredRememberMeSessionLengthHours Int?
+  preferredIdleTimeoutMinutes           Int?
+  createdAt                             DateTime @default(now())
+  updatedAt                             DateTime @updatedAt
+  user                                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model RefreshToken {
@@ -666,6 +679,28 @@ model Organisation {
   permissions                OrganisationPermission[]
   adminPermissionGrants      OrganisationAdminPermission[]
   invitationPermissionGrants InvitationPermissionGrant[]
+  securitySettings           OrganisationSecuritySettings?
+}
+
+model OrganisationSecuritySettings {
+  id                                         String                    @id @default(uuid())
+  organisationId                             String                    @unique
+  enforceRememberMePolicy                    Boolean                   @default(true)
+  allowRememberMe                            Boolean                   @default(true)
+  maxRememberedSessionHours                  Int?                      @default(168)
+  enforceRegularSessionLength                Boolean                   @default(true)
+  regularSessionLengthHours                  Int?                      @default(8)
+  enforceIdleTimeout                         Boolean                   @default(false)
+  idleTimeoutMinutes                         Int?
+  requireReauthenticationForSensitiveActions Boolean                   @default(true)
+  allowTraineeEmailChange                    Boolean                   @default(true)
+  updatedByOrganisationAdminId               String?
+  createdAt                                  DateTime                  @default(now())
+  updatedAt                                  DateTime                  @updatedAt
+  organisation                               Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  updatedByOrganisationAdmin                 OrganisationAdminProfile? @relation("OrganisationSecuritySettingsUpdatedBy", fields: [updatedByOrganisationAdminId], references: [id], onDelete: SetNull)
+
+  @@index([updatedByOrganisationAdminId])
 }
 
 model OrganisationPermission {

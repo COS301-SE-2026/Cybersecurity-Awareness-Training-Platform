@@ -194,6 +194,33 @@ export interface OrganisationDto {
   updatedAt: string;
 }
 
+export interface OrganisationSecuritySettingsDto {
+  id: string;
+  organisationId: string;
+  enforceRememberMePolicy: boolean;
+  allowRememberMe: boolean;
+  maxRememberedSessionHours?: number | null;
+  enforceRegularSessionLength: boolean;
+  regularSessionLengthHours?: number | null;
+  enforceIdleTimeout: boolean;
+  idleTimeoutMinutes?: number | null;
+  requireReauthenticationForSensitiveActions: boolean;
+  allowTraineeEmailChange: boolean;
+  updatedByOrganisationAdminId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UserSecurityPreferencesDto {
+  id: string;
+  userId: string;
+  preferredRegularSessionLengthHours?: number | null;
+  preferredRememberMeSessionLengthHours?: number | null;
+  preferredIdleTimeoutMinutes?: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface OrganisationContextDto {
   id: string;
   organisationId: string;
