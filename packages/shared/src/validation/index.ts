@@ -6,3 +6,4 @@ export * from './training.schemas.js';
 export * from './quizzes.schemas.js';
 export * from './organisation-registration.schemas.js';
 export * from './email-template.schemas.js';
+export * from './organisation-admin.schemas.js';
