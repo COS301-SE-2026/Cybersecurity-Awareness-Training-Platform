@@ -38,40 +38,65 @@ const platform = {
   allowEmailChange: true,
 };
 
-const activeOrganisationStatus = 'ACTIVE';
+type GuardOrganisationFixture = {
+  id: string;
+  name: string;
+  status: 'PENDING_ONBOARDING' | 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'DISABLED' | 'ARCHIVED';
+};
 
-function createGuardOrganisation(): { id: string; name: string; status: 'ACTIVE' } {
+function createGuardOrganisation(
+  overrides: Partial<GuardOrganisationFixture> = {},
+): GuardOrganisationFixture {
   return {
     id: 'org-1',
     name: 'Test Organisation',
-    status: activeOrganisationStatus,
+    status: 'ACTIVE',
+    ...overrides,
   };
 }
 
-function organisationTraineeSubject(): GuardAuthSubject {
+function organisationTraineeSubject(
+  overrides: {
+    userAuthStatus?: 'PENDING_EMAIL_VERIFICATION' | 'PENDING_INVITE_SETUP' | 'ACTIVE' | 'DISABLED';
+    traineeStatus?: 'ACTIVE' | 'INACTIVE';
+    membershipStatus?: 'ACTIVE' | 'INACTIVE';
+    organisation?: GuardOrganisationFixture | null;
+  } = {},
+): GuardAuthSubject {
   return {
     user: {
       id: 'user-1',
       userType: 'ORGANISATION_TRAINEE',
-      authStatus: 'ACTIVE',
+      authStatus: overrides.userAuthStatus ?? 'ACTIVE',
+    },
+    traineeProfile: {
+      traineeStatus: overrides.traineeStatus ?? 'ACTIVE',
     },
     organisationTraineeProfile: {
-      membershipStatus: 'ACTIVE',
-      organisation: createGuardOrganisation(),
+      membershipStatus: overrides.membershipStatus ?? 'ACTIVE',
+      organisation:
+        overrides.organisation === undefined ? createGuardOrganisation() : overrides.organisation,
     },
   };
 }
 
-function organisationAdminSubject(): GuardAuthSubject {
+function organisationAdminSubject(
+  overrides: {
+    userAuthStatus?: 'PENDING_EMAIL_VERIFICATION' | 'PENDING_INVITE_SETUP' | 'ACTIVE' | 'DISABLED';
+    adminStatus?: 'ACTIVE' | 'DISABLED';
+    organisation?: GuardOrganisationFixture | null;
+  } = {},
+): GuardAuthSubject {
   return {
     user: {
       id: 'admin-user-1',
       userType: 'ORGANISATION_ADMIN',
-      authStatus: 'ACTIVE',
+      authStatus: overrides.userAuthStatus ?? 'ACTIVE',
     },
     organisationAdminProfile: {
-      adminStatus: 'ACTIVE',
-      organisation: createGuardOrganisation(),
+      adminStatus: overrides.adminStatus ?? 'ACTIVE',
+      organisation:
+        overrides.organisation === undefined ? createGuardOrganisation() : overrides.organisation,
     },
   };
 }
@@ -186,12 +211,57 @@ describe('security policy service', () => {
     });
   });
 
-  it('identifies only organisation users as organisation-scoped for policy', () => {
+  it('does not load organisation settings for inactive organisation contexts', async () => {
+    await expect(
+      resolveEffectiveSecurityPolicy({
+        subject: organisationAdminSubject({
+          organisation: createGuardOrganisation({ status: 'SUSPENDED' }),
+        }),
+        rememberMeRequested: false,
+        platform,
+      }),
+    ).resolves.toMatchObject({
+      organisationId: null,
+      regularSessionSeconds: 900,
+      idleTimeoutMinutes: 30,
+      sources: {
+        regularSession: 'PLATFORM_DEFAULT',
+        idleTimeout: 'PLATFORM_DEFAULT',
+      },
+    });
+    expect(securitySettingsRepositoryMock.findOrganisationSecuritySettings).not.toHaveBeenCalled();
+    expect(
+      securitySettingsRepositoryMock.ensureDefaultOrganisationSecuritySettings,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('identifies only active organisation users in active organisations as organisation-scoped', () => {
     expect(organisationIdForSecurityPolicy(organisationTraineeSubject())).toBe('org-1');
     expect(organisationIdForSecurityPolicy(organisationAdminSubject())).toBe('org-1');
     expect(
+      organisationIdForSecurityPolicy(organisationAdminSubject({ adminStatus: 'DISABLED' })),
+    ).toBeNull();
+    expect(
+      organisationIdForSecurityPolicy(organisationTraineeSubject({ membershipStatus: 'INACTIVE' })),
+    ).toBeNull();
+    expect(
+      organisationIdForSecurityPolicy(organisationTraineeSubject({ traineeStatus: 'INACTIVE' })),
+    ).toBeNull();
+    expect(
+      organisationIdForSecurityPolicy(
+        organisationAdminSubject({
+          organisation: createGuardOrganisation({ status: 'SUSPENDED' }),
+        }),
+      ),
+    ).toBeNull();
+    expect(
       organisationIdForSecurityPolicy({
         user: { id: 'platform-1', userType: 'IP_ADMIN', authStatus: 'ACTIVE' },
+      }),
+    ).toBeNull();
+    expect(
+      organisationIdForSecurityPolicy({
+        user: { id: 'general-1', userType: 'GENERAL_TRAINEE', authStatus: 'ACTIVE' },
       }),
     ).toBeNull();
   });

@@ -95,11 +95,24 @@ function toUserSessionPreference(
 }
 
 export function organisationIdForSecurityPolicy(subject: GuardAuthSubject): string | null {
-  if (subject.user?.userType === 'ORGANISATION_ADMIN') {
+  if (subject.user?.authStatus !== 'ACTIVE') {
+    return null;
+  }
+
+  if (
+    subject.user.userType === 'ORGANISATION_ADMIN' &&
+    subject.organisationAdminProfile?.adminStatus === 'ACTIVE' &&
+    subject.organisationAdminProfile.organisation?.status === 'ACTIVE'
+  ) {
     return subject.organisationAdminProfile?.organisation?.id ?? null;
   }
 
-  if (subject.user?.userType === 'ORGANISATION_TRAINEE') {
+  if (
+    subject.user.userType === 'ORGANISATION_TRAINEE' &&
+    subject.traineeProfile?.traineeStatus === 'ACTIVE' &&
+    subject.organisationTraineeProfile?.membershipStatus === 'ACTIVE' &&
+    subject.organisationTraineeProfile.organisation?.status === 'ACTIVE'
+  ) {
     return subject.organisationTraineeProfile?.organisation?.id ?? null;
   }
 

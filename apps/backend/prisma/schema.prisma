@@ -698,7 +698,7 @@ model OrganisationSecuritySettings {
   createdAt                                  DateTime                  @default(now())
   updatedAt                                  DateTime                  @updatedAt
   organisation                               Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  updatedByOrganisationAdmin                 OrganisationAdminProfile? @relation("OrganisationSecuritySettingsUpdatedBy", fields: [updatedByOrganisationAdminId], references: [id], onDelete: SetNull)
+  updatedByOrganisationAdmin                 OrganisationAdminProfile? @relation("OrganisationSecuritySettingsUpdatedBy", fields: [updatedByOrganisationAdminId, organisationId], references: [id, organisationId], onDelete: Restrict)
 
   @@index([updatedByOrganisationAdminId])
 }

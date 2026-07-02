@@ -77,10 +77,20 @@ describe('security settings repository', () => {
       ),
       'utf8',
     );
+    const updaterScopeMigration = readFileSync(
+      resolve(
+        process.cwd(),
+        'prisma/migrations/20260702123000_scope_security_settings_updater/migration.sql',
+      ),
+      'utf8',
+    );
 
     expect(schema).toContain('model OrganisationSecuritySettings');
     expect(schema).toContain(
       'organisationId                             String                    @unique',
+    );
+    expect(schema).toContain(
+      'fields: [updatedByOrganisationAdminId, organisationId], references: [id, organisationId]',
     );
     expect(schema).toContain('model UserSecurityPreferences');
     expect(schema).toContain('userId                                String   @unique');
@@ -91,6 +101,16 @@ describe('security settings repository', () => {
     expect(migration).toContain('INSERT INTO "OrganisationSecuritySettings"');
     expect(migration).toContain('FROM "Organisation" o');
     expect(migration).toContain('WHERE NOT EXISTS');
+    expect(updaterScopeMigration).toContain('SET "updatedByOrganisationAdminId" = NULL');
+    expect(updaterScopeMigration).toContain(
+      'admin_profile."organisationId" = settings."organisationId"',
+    );
+    expect(updaterScopeMigration).toContain(
+      'FOREIGN KEY ("updatedByOrganisationAdminId", "organisationId")',
+    );
+    expect(updaterScopeMigration).toContain(
+      'REFERENCES "OrganisationAdminProfile"("id", "organisationId")',
+    );
   });
 
   it('builds deterministic settings ids and inserts safe defaults idempotently', async () => {
