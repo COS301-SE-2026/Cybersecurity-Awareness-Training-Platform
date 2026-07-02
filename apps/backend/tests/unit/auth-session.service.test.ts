@@ -5,6 +5,7 @@ const repoMock = vi.hoisted(() => ({
   revokeAuthSession: vi.fn(),
   revokeUserAuthSessions: vi.fn(),
   touchAuthSession: vi.fn(),
+  updateAuthSessionPolicy: vi.fn(),
 }));
 vi.mock('../../src/repositories/auth-session.repository.js', () => repoMock);
 import {
@@ -12,6 +13,7 @@ import {
   issueAuthSession,
   revokeSessionById,
   revokeSessionsForUser,
+  updateSessionPolicy,
   validateAuthSession,
 } from '../../src/services/auth-session.service.js';
 const now = new Date('2026-06-26T10:00:00.000Z');
@@ -101,6 +103,22 @@ describe('auth-session serivce', () => {
       userId: 'user01',
       revokedReason: 'PASSWORD_CHANGE',
       exceptSessionId: 'session02',
+    });
+  });
+
+  it('delegates policy updates to the repository', async () => {
+    const expiresAt = new Date('2026-06-26T10:30:00.000Z');
+
+    await updateSessionPolicy({
+      sessionId: 'session01',
+      expiresAt,
+      idleTimeoutMinutes: 5,
+    });
+
+    expect(repoMock.updateAuthSessionPolicy).toHaveBeenCalledWith({
+      id: 'session01',
+      expiresAt,
+      idleTimeoutMinutes: 5,
     });
   });
 }); //describe
