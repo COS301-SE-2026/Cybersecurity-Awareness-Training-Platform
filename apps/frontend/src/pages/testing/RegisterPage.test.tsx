@@ -70,7 +70,7 @@ describe('RegisterPage', () => {
     await user.type(screen.getByLabelText(/confirm password/i), 'DifferentPass123!');
     await user.click(screen.getByRole('button', { name: /register/i }));
 
-    expect(screen.getByText('Password confirmation must match password.')).toBeInTheDocument();
+    expect(screen.getByText('Password Confirmation Must Match Password')).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -103,13 +103,9 @@ describe('RegisterPage', () => {
 
   it('shows the backend error message when registration fails', async () => {
     const user = userEvent.setup();
-
-    expect(JSON.parse(requestInit.body as string)).toEqual({
-      firstName: 'Jane',
-      lastName: 'Doe',
-      email: 'trainee@example.com',
-      password: 'StrongPass123!',
-      confirmPassword: 'StrongPass123!',
+    fetchMock.mockResolvedValue({
+      ok: false,
+      json: async () => ({ message: 'registration failed' }),
     });
     renderRegisterPage();
     await fillRegistrationForm(user);

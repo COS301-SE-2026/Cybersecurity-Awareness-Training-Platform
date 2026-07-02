@@ -58,6 +58,7 @@ function RegisterPage() {
     }
 
     try {
+      setIsLoading(true);
       const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
         headers: {
