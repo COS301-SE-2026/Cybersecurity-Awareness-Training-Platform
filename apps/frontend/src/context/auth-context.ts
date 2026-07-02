@@ -15,6 +15,8 @@ export type AuthContextType = {
   authContext: AuthContextDto | null;
   permissions: string[];
   redirectTo: string | null;
+  expiresAt: string | null;
+  sessionExpiresAt: string | null;
   login: (authResponse: AuthContextResponseDto) => void;
   logout: () => Promise<void>;
 };

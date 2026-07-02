@@ -23,6 +23,8 @@ function clearStoredAuth() {
   getStorage()?.removeItem('authContext');
   getStorage()?.removeItem('permissions');
   getStorage()?.removeItem('redirectTo');
+  getStorage()?.removeItem('expiresAt');
+  getStorage()?.removeItem('sessionExpiresAt');
 }
 
 function getStoredAuth(): {
@@ -31,6 +33,8 @@ function getStoredAuth(): {
   authContext: AuthContextDto | null;
   permissions: string[];
   redirectTo: string | null;
+  expiresAt: string | null;
+  sessionExpiresAt: string | null;
   isAuthenticated: boolean;
 } {
   const storage = getStorage();
@@ -40,6 +44,8 @@ function getStoredAuth(): {
   const storedAuthContext = storage?.getItem('authContext');
   const storedPermissions = storage?.getItem('permissions');
   const storedRedirectTo = storage?.getItem('redirectTo') ?? null;
+  const storedExpiresAt = storage?.getItem('expiresAt') ?? null;
+  const storedSessionExpiresAt = storage?.getItem('sessionExpiresAt') ?? null;
 
   if (!storedToken) {
     storage?.removeItem('user');
@@ -50,6 +56,8 @@ function getStoredAuth(): {
       authContext: null,
       permissions: [],
       redirectTo: null,
+      expiresAt: null,
+      sessionExpiresAt: null,
       isAuthenticated: false,
     };
   }
@@ -63,6 +71,8 @@ function getStoredAuth(): {
       authContext: null,
       permissions: [],
       redirectTo: null,
+      expiresAt: null,
+      sessionExpiresAt: null,
       isAuthenticated: false,
     };
   }
@@ -80,6 +90,8 @@ function getStoredAuth(): {
       authContext: parsedAuthContext,
       permissions: parsedPermissions,
       redirectTo: storedRedirectTo,
+      expiresAt: storedExpiresAt,
+      sessionExpiresAt: storedSessionExpiresAt,
       isAuthenticated: true,
     };
   } catch {
@@ -91,14 +103,31 @@ function getStoredAuth(): {
       authContext: null,
       permissions: [],
       redirectTo: null,
+      expiresAt: null,
+      sessionExpiresAt: null,
       isAuthenticated: false,
     };
   }
 }
 
-function getAuthResposeToken(authResponse: AuthContextResponseDto): string | null {
+function getAuthResponseToken(authResponse: AuthContextResponseDto): string | null {
   return authResponse.accessToken ?? authResponse.token ?? null;
 }
+
+function isAccessTokenExpired(expiresAt?: string | null): boolean {
+  if (!expiresAt) {
+    return true;
+  }
+
+  const expiresAtTime = Date.parse(expiresAt);
+
+  if (Number.isNaN(expiresAtTime)) {
+    return true;
+  }
+
+  return expiresAtTime <= Date.now() + 30_000;
+}
+
 export function AuthProvider({ children }: AuthProviderProps) {
   const storedAuth = getStoredAuth();
 
@@ -112,12 +141,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const [redirectTo, setRedirectTo] = useState<string | null>(storedAuth.redirectTo);
 
+  const [expiresAt, setExpiresAt] = useState<string | null>(storedAuth.expiresAt);
+
+  const [sessionExpiresAt, setSessionExpiresAt] = useState<string | null>(
+    storedAuth.sessionExpiresAt,
+  );
+
   const [isAuthenticated, setIsAuthenticated] = useState(storedAuth.isAuthenticated);
 
-  const [isAuthLoading, setIsAuthLoading] = useState(!storedAuth.isAuthenticated);
+  const [isAuthLoading, setIsAuthLoading] = useState(
+    !storedAuth.isAuthenticated || isAccessTokenExpired(storedAuth.expiresAt),
+  );
 
   const login = useCallback((authResponse: AuthContextResponseDto) => {
-    const newToken = getAuthResposeToken(authResponse);
+    const newToken = getAuthResponseToken(authResponse);
 
     if (!newToken) {
       clearStoredAuth();
@@ -126,6 +163,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setAuthContext(null);
       setPermissions([]);
       setRedirectTo(null);
+      setExpiresAt(null);
+      setSessionExpiresAt(null);
       setIsAuthenticated(false);
       return;
     }
@@ -136,11 +175,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
     getStorage()?.setItem('permissions', JSON.stringify(authResponse.permissions));
     getStorage()?.setItem('redirectTo', authResponse.redirectTo);
 
+    if (authResponse.expiresAt) {
+      getStorage()?.setItem('expiresAt', authResponse.expiresAt);
+    } else {
+      getStorage()?.removeItem('expiresAt');
+    }
+
+    if (authResponse.sessionExpiresAt) {
+      getStorage()?.setItem('sessionExpiresAt', authResponse.sessionExpiresAt);
+    } else {
+      getStorage()?.removeItem('sessionExpiresAt');
+    }
+
     setToken(newToken);
     setUser(authResponse.user);
     setAuthContext(authResponse.context);
     setPermissions(authResponse.permissions);
     setRedirectTo(authResponse.redirectTo);
+    setExpiresAt(authResponse.expiresAt ?? null);
+    setSessionExpiresAt(authResponse.sessionExpiresAt ?? null);
     setIsAuthenticated(true);
   }, []);
 
@@ -155,12 +208,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setAuthContext(null);
       setPermissions([]);
       setRedirectTo(null);
+      setExpiresAt(null);
+      setSessionExpiresAt(null);
       setIsAuthenticated(false);
     }
   }, []);
 
   useEffect(() => {
-    if (storedAuth.isAuthenticated) {
+    if (storedAuth.isAuthenticated && !isAccessTokenExpired(storedAuth.expiresAt)) {
       setIsAuthLoading(false);
       return;
     }
@@ -182,6 +237,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setAuthContext(null);
           setPermissions([]);
           setRedirectTo(null);
+          setExpiresAt(null);
+          setSessionExpiresAt(null);
           setIsAuthenticated(false);
         }
       } finally {
@@ -196,7 +253,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return () => {
       isMounted = false;
     };
-  }, [login, storedAuth.isAuthenticated]);
+  }, [login, storedAuth.expiresAt, storedAuth.isAuthenticated]);
 
   const value = useMemo(
     () => ({
@@ -207,6 +264,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       authContext,
       permissions,
       redirectTo,
+      expiresAt,
+      sessionExpiresAt,
       login,
       logout,
     }),
@@ -218,6 +277,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       authContext,
       permissions,
       redirectTo,
+      expiresAt,
+      sessionExpiresAt,
       login,
       logout,
     ],
