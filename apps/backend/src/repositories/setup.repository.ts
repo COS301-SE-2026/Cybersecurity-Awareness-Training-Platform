@@ -1,5 +1,6 @@
 import type { Prisma, PrismaClient } from '../generated/prisma/client.js';
 import { prisma } from '../lib/prisma.js';
+import { ensureDefaultOrganisationSecuritySettings } from './security-settings.repository.js';
 
 type SetupClient = PrismaClient | Prisma.TransactionClient;
 
@@ -46,7 +47,7 @@ export function findSetupUserByEmail(email: string, client: SetupClient = prisma
   });
 }
 
-export function createOrganisationAdminUser(
+export async function createOrganisationAdminUser(
   input: {
     email: string;
     firstName: string;
@@ -58,6 +59,8 @@ export function createOrganisationAdminUser(
   },
   client: SetupClient,
 ) {
+  await ensureDefaultOrganisationSecuritySettings({ organisationId: input.organisationId }, client);
+
   return client.user.create({
     data: {
       email: input.email,
@@ -79,7 +82,7 @@ export function createOrganisationAdminUser(
   });
 }
 
-export function createOrganisationTraineeUser(
+export async function createOrganisationTraineeUser(
   input: {
     email: string;
     firstName: string;
@@ -91,6 +94,8 @@ export function createOrganisationTraineeUser(
   },
   client: SetupClient,
 ) {
+  await ensureDefaultOrganisationSecuritySettings({ organisationId: input.organisationId }, client);
+
   return client.user.create({
     data: {
       email: input.email,
@@ -154,6 +159,8 @@ export async function activateOrganisationAdminUser(
   },
   client: SetupClient,
 ) {
+  await ensureDefaultOrganisationSecuritySettings({ organisationId: input.organisationId }, client);
+
   await client.user.update({
     where: { id: input.userId },
     data: {
@@ -196,6 +203,8 @@ export async function activateOrganisationTraineeUser(
   },
   client: SetupClient,
 ) {
+  await ensureDefaultOrganisationSecuritySettings({ organisationId: input.organisationId }, client);
+
   await client.user.update({
     where: { id: input.userId },
     data: {
