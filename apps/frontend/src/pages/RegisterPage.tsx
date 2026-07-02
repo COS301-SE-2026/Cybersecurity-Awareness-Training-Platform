@@ -26,7 +26,6 @@ function formatAlertMessage(message: string) {
 
 function RegisterPage() {
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -47,6 +46,7 @@ function RegisterPage() {
       lastName,
       email,
       password,
+      confirmPassword,
     });
 
     if (!validationResult.success) {
@@ -57,15 +57,8 @@ function RegisterPage() {
       return;
     }
 
-    if (password !== confirmPassword) {
-      setAlertType('danger');
-      setAlertMessage('Passwords Do Not Match');
-      return;
-    }
-
-    setIsLoading(true);
-
     try {
+      setIsLoading(true);
       const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
         headers: {

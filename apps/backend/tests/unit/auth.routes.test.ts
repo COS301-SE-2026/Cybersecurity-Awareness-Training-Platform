@@ -101,6 +101,7 @@ describe('Auth routes', () => {
       firstName: ' Johan ',
       lastName: ' Nel ',
       password: 'mySecurePassword123!',
+      confirmPassword: 'mySecurePassword123!',
     });
 
     expect(response.status).toBe(201);
@@ -119,18 +120,9 @@ describe('Auth routes', () => {
     expect(createdData.passwordHash).not.toBe('mySecurePassword123!');
 
     expect(response.body).toEqual({
-      user: {
-        id: 'id-123',
-        firstName: 'Johan',
-        lastName: 'Nel',
-        email: 'johan@exampleemail.com',
-        userType: 'GENERAL_TRAINEE',
-        authStatus: 'PENDING_EMAIL_VERIFICATION',
-        createdAt: '2026-05-12T06:00:00.000Z',
-      },
-      verificationEmailQueued: false,
+      message:
+        "If this email can be registered, we'll send you an email verification link. Please check your inbox.",
     });
-    expect(response.body.user).not.toHaveProperty('passwordHash');
   });
 
   it('returns 400 for invalid register payload', async () => {
@@ -146,7 +138,7 @@ describe('Auth routes', () => {
     expect(prismaMock.user.create).not.toHaveBeenCalled();
   });
 
-  it('returns 409 when trying to register with an existing email', async () => {
+  it('returns generic success when trying to register with an existing email', async () => {
     prismaMock.user.findUnique.mockResolvedValue({
       id: 'existing-user-id',
       email: 'johan@example.com',
@@ -163,10 +155,14 @@ describe('Auth routes', () => {
       firstName: 'Johan',
       lastName: 'Nel',
       password: 'mySecurePassword123!',
+      confirmPassword: 'mySecurePassword123!',
     });
 
-    expect(response.status).toBe(409);
-    expect(response.body).toHaveProperty('error', 'AUTH_EMAIL_EXISTS');
+    expect(response.status).toBe(201);
+    expect(response.body).toEqual({
+      message:
+        "If this email can be registered, we'll send you an email verification link. Please check your inbox.",
+    });
     expect(prismaMock.user.create).not.toHaveBeenCalled();
   });
 
@@ -411,6 +407,7 @@ describe('Auth routes', () => {
         firstName: 'Johan',
         lastName: 'Nel',
         password: 'mySecurePassword123!',
+        confirmPassword: 'mySecurePassword123!',
       });
     }
 

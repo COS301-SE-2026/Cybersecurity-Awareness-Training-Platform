@@ -34,7 +34,7 @@ export const authRouter = Router();
  *   post:
  *     tags: [Auth]
  *     summary: Register a trainee account
- *     description: Creates a general trainee account in pending email-verification state and sends a verification email through the email hook.
+ *     description: Accepts a public general trainee registration request, and always returns a generic check-email response to avoid account enumeration.
  *     security: []
  *     requestBody:
  *       $ref: '#/components/requestBodies/AuthRegister'
@@ -43,8 +43,6 @@ export const authRouter = Router();
  *         $ref: '#/components/responses/AuthRegisterCreated'
  *       400:
  *         $ref: '#/components/responses/BadRequest'
- *       409:
- *         $ref: '#/components/responses/AuthEmailExists'
  *       429:
  *         $ref: '#/components/responses/AuthRateLimited'
  *       500:

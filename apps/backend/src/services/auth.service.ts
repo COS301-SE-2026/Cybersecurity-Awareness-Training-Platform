@@ -8,10 +8,15 @@ import type {
   PublicUserDto,
 } from '@insightful-phish/shared';
 import type { AuthSessionRevokedReason } from '../generated/prisma/enums.js';
+import type { Prisma } from '../generated/prisma/client.js';
 import { prisma } from '../lib/prisma.js';
 import { toPublicUserDto } from '../mappers/user.mapper.js';
 import * as UserRepository from '../repositories/user.repository.js';
-import { issueActionToken, validateActionToken } from './action-token.service.js';
+import {
+  issueActionToken,
+  validateActionToken,
+  type IssueActionTokenResult,
+} from './action-token.service.js';
 import { recordAuditLog } from './audit-log.service.js';
 import { requestAuthEmailSend } from './auth-email-hook.service.js';
 import { generateAuthToken } from './auth-token.service.js';
@@ -38,12 +43,51 @@ import {
 } from './security-policy.service.js';
 
 const EMAIL_VERIFICATION_TOKEN_TTL_HOURS = 24;
-
+const REGISTER_GENERIC_MESSAGE =
+  "If this email can be registered, we'll send you an email verification link. Please check your inbox.";
 export class AuthConflictError extends Error {
   constructor(message = 'A user with the provided email already exists') {
     super(message);
     this.name = 'AuthConflictError';
   }
+}
+type EmailVerificationUser = {
+  id: string;
+  email: string;
+  firstName: string;
+};
+function getEmailVerificationExpiresAt() {
+  return new Date(Date.now() + EMAIL_VERIFICATION_TOKEN_TTL_HOURS * 60 * 60 * 1000);
+}
+function issueEmailVerificationToken(
+  user: EmailVerificationUser,
+  client?: Prisma.TransactionClient,
+) {
+  return issueActionToken(
+    {
+      purpose: 'EMAIL_VERIFICATION',
+      userId: user.id,
+      targetEmail: user.email,
+      expiresAt: getEmailVerificationExpiresAt(),
+    },
+    client,
+  );
+}
+async function sendEmailVerification(
+  user: EmailVerificationUser,
+  verification: IssueActionTokenResult,
+) {
+  await requestAuthEmailSend({
+    emailType: 'EMAIL_VERIFICATION',
+    recipientEmail: user.email,
+    userId: user.id,
+    actionTokenId: verification.token.id,
+    templateData: {
+      firstName: user.firstName,
+      actionToken: verification.rawToken,
+      actionTokenExpiresAt: verification.token.expiresAt,
+    },
+  });
 }
 
 export class AuthResetPasswordError extends Error {
@@ -68,56 +112,83 @@ export async function registerUser(
   input: AuthRegisterRequestDto,
 ): Promise<AuthRegisterResponseDto> {
   const existingUser = await UserRepository.findUserByEmail(input.email);
-
-  if (existingUser) {
-    throw new AuthConflictError();
-  }
-
   const passwordHash = await PasswordService.hashPassword(input.password);
 
-  const { newUser, verification } = await prisma.$transaction(async (tx) => {
-    const createdUser = await UserRepository.createGeneralTraineeUser(
-      {
-        email: input.email,
-        firstName: input.firstName,
-        lastName: input.lastName,
-        passwordHash,
-      },
-      tx,
-    );
+  if (!existingUser) {
+    const { newUser, verification } = await prisma.$transaction(async (tx) => {
+      const createdUser = await UserRepository.createGeneralTraineeUser(
+        {
+          email: input.email,
+          firstName: input.firstName,
+          lastName: input.lastName,
+          passwordHash,
+        },
+        tx,
+      );
+      const verificationToken = await issueEmailVerificationToken(createdUser, tx);
+      return {
+        newUser: createdUser,
+        verification: verificationToken,
+      };
+    });
 
-    const verificationToken = await issueActionToken(
-      {
-        purpose: 'EMAIL_VERIFICATION',
-        userId: createdUser.id,
-        targetEmail: createdUser.email,
-        expiresAt: new Date(Date.now() + EMAIL_VERIFICATION_TOKEN_TTL_HOURS * 60 * 60 * 1000),
-      },
-      tx,
-    );
+    await sendEmailVerification(newUser, verification);
 
-    return {
-      newUser: createdUser,
-      verification: verificationToken,
-    };
-  });
+    return { message: REGISTER_GENERIC_MESSAGE };
+  } //if
 
-  const emailResult = await requestAuthEmailSend({
-    emailType: 'EMAIL_VERIFICATION',
-    recipientEmail: newUser.email,
-    userId: newUser.id,
-    actionTokenId: verification.token.id,
-    templateData: {
-      firstName: newUser.firstName,
-      actionToken: verification.rawToken,
-      actionTokenExpiresAt: verification.token.expiresAt,
+  if (existingUser.authStatus === 'PENDING_EMAIL_VERIFICATION') {
+    await maybeSendReplacementVerificationEmail(existingUser);
+  }
+
+  return { message: REGISTER_GENERIC_MESSAGE };
+}
+async function maybeSendReplacementVerificationEmail(user: {
+  id: string;
+  email: string;
+  firstName: string;
+  authStatus: string;
+}) {
+  const latestToken = await prisma.actionToken.findFirst({
+    where: {
+      userId: user.id,
+      targetEmail: user.email,
+      purpose: 'EMAIL_VERIFICATION',
+      usedAt: null,
+      revokedAt: null,
     },
+    include: { emailDeliveryLogs: true },
+    orderBy: { createdAt: 'desc' },
   });
 
-  return {
-    user: toPublicUserDto(newUser),
-    verificationEmailQueued: emailResult.queued,
-  };
+  const shouldReissue =
+    !latestToken ||
+    latestToken.expiresAt.getTime() <= Date.now() ||
+    !latestToken.emailDeliveryLogs.some(
+      (log) => log.emailType === 'EMAIL_VERIFICATION' && log.deliveryStatus === 'SENT',
+    );
+  if (!shouldReissue) {
+    return;
+  }
+
+  const { verification } = await prisma.$transaction(async (tx) => {
+    await tx.actionToken.updateMany({
+      where: {
+        userId: user.id,
+        targetEmail: user.email,
+        purpose: 'EMAIL_VERIFICATION',
+        usedAt: null,
+        revokedAt: null,
+      },
+      data: { revokedAt: new Date(), revokedReason: 'REGISTRATION_VERIFICATION_REISSUED' },
+    });
+
+    const verificationToken = await issueEmailVerificationToken(user, tx);
+
+    return { verification: verificationToken };
+  });
+
+  await sendEmailVerification(user, verification);
 }
 
 export class AuthStatusGuardError extends Error {
@@ -483,31 +554,9 @@ export async function resendVerificationEmail(email: string): Promise<void> {
     return;
   }
 
-  const { verification } = await prisma.$transaction(async (tx) => {
-    const verificationToken = await issueActionToken(
-      {
-        purpose: 'EMAIL_VERIFICATION',
-        userId: user.id,
-        targetEmail: user.email,
-        expiresAt: new Date(Date.now() + EMAIL_VERIFICATION_TOKEN_TTL_HOURS * 60 * 60 * 1000),
-      },
-      tx,
-    );
+  const verification = await prisma.$transaction((tx) => issueEmailVerificationToken(user, tx));
 
-    return { verification: verificationToken };
-  });
-
-  await requestAuthEmailSend({
-    emailType: 'EMAIL_VERIFICATION',
-    recipientEmail: user.email,
-    userId: user.id,
-    actionTokenId: verification.token.id,
-    templateData: {
-      firstName: user.firstName,
-      actionToken: verification.rawToken,
-      actionTokenExpiresAt: verification.token.expiresAt,
-    },
-  });
+  await sendEmailVerification(user, verification);
 }
 
 export type VerifyEmailResult = {

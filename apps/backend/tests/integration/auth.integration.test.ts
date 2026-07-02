@@ -24,19 +24,16 @@ describe('Auth Integration Tests', () => {
       firstName: 'Register',
       lastName: 'Test',
       password: secureRegisterPassword,
+      confirmPassword: secureRegisterPassword,
     };
 
     const response = await request(createApp()).post('/auth/register').send(payload);
 
     expect(response.status).toBe(201);
-    expect(response.body.user).toBeDefined();
-    expect(response.body.user.email).toBe('new-trainee@example.com');
-    expect(response.body.user.firstName).toBe('Register');
-    expect(response.body.user.lastName).toBe('Test');
-    expect(response.body.user.userType).toBe('GENERAL_TRAINEE');
-    expect(response.body.user.authStatus).toBe('PENDING_EMAIL_VERIFICATION');
-    expect(response.body.verificationEmailQueued).toEqual(expect.any(Boolean));
-    expect(response.body.user.passwordHash).toBeUndefined();
+    expect(response.body).toEqual({
+      message:
+        "If this email can be registered, we'll send you an email verification link. Please check your inbox.",
+    });
 
     // Verify database record creation
     const dbUser = await prisma.user.findUnique({
@@ -288,6 +285,9 @@ describe('Auth Integration Tests', () => {
       expect(response.body.token.state).toBe('VALID');
       expect(response.body.token.purpose).toBe('PLATFORM_ADMIN_INVITE');
       expect(response.body.targetEmail).toBe(email);
+      expect(response.body.targetFirstName).toBe('Test');
+      expect(response.body.targetLastName).toBe('Trainee');
+      expect(response.body.role).toBe('IP_ADMIN');
     });
 
     it('returns EXPIRED for an expired setup token', async () => {
@@ -698,5 +698,73 @@ describe('Auth Integration Tests', () => {
       expect(res3.status).toBe(401);
       expect(res3.body.error).toBe('AUTH_INVALID');
     });
+  });
+
+  it('returns generic success for an existing registered email', async () => {
+    await createTrainee({
+      user: {
+        email: 'existing-register@example.com',
+      },
+    });
+
+    const response = await request(createApp()).post('/auth/register').send({
+      email: 'existing-register@example.com',
+      firstName: 'Existing',
+      lastName: 'User',
+      password: secureRegisterPassword,
+      confirmPassword: secureRegisterPassword,
+    });
+
+    expect(response.status).toBe(201);
+    expect(response.body).toEqual({
+      message:
+        "If this email can be registered, we'll send you an email verification link. Please check your inbox.",
+    });
+  });
+
+  it('reissues verification for a pending unverified account with an expired verification token', async () => {
+    const email = 'pending-expired-register@example.com';
+
+    const { user } = await createTrainee({
+      user: {
+        email,
+        authStatus: 'PENDING_EMAIL_VERIFICATION',
+        emailVerifiedAt: null,
+      },
+    });
+
+    await issueActionToken({
+      purpose: 'EMAIL_VERIFICATION',
+      userId: user.id,
+      targetEmail: email,
+      expiresAt: new Date(Date.now() - 60 * 1000),
+    });
+
+    const response = await request(createApp()).post('/auth/register').send({
+      email,
+      firstName: 'Pending',
+      lastName: 'Expired',
+      password: secureRegisterPassword,
+      confirmPassword: secureRegisterPassword,
+    });
+
+    expect(response.status).toBe(201);
+    expect(response.body).toEqual({
+      message:
+        "If this email can be registered, we'll send you an email verification link. Please check your inbox.",
+    });
+
+    const activeTokens = await prisma.actionToken.findMany({
+      where: {
+        userId: user.id,
+        targetEmail: email,
+        purpose: 'EMAIL_VERIFICATION',
+        usedAt: null,
+        revokedAt: null,
+      },
+    });
+
+    expect(activeTokens).toHaveLength(1);
+    expect(activeTokens[0].expiresAt.getTime()).toBeGreaterThan(Date.now());
   });
 });

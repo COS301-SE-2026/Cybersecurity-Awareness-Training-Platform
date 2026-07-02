@@ -62,6 +62,9 @@ describe('Setup routes', () => {
       },
       targetEmail: 'trainee@example.com',
       organisationName: 'Acme Security',
+      targetFirstName: 'Johan',
+      targetLastName: 'Nel',
+      role: 'ORGANISATION_TRAINEE',
     });
 
     const response = await request(createApp()).get(setupContextPath);
@@ -76,6 +79,9 @@ describe('Setup routes', () => {
       },
       targetEmail: 'trainee@example.com',
       organisationName: 'Acme Security',
+      targetFirstName: 'Johan',
+      targetLastName: 'Nel',
+      role: 'ORGANISATION_TRAINEE',
     });
   });
 

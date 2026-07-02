@@ -103,6 +103,7 @@ export function toGuardAuthSubject(user: UserWithAuthSubject | null): GuardAuthS
           organisation: {
             id: user.traineeProfile.organisationTraineeProfile.organisation.id,
             status: user.traineeProfile.organisationTraineeProfile.organisation.status,
+            name: user.traineeProfile.organisationTraineeProfile.organisation.name,
           },
         }
       : null,
@@ -112,12 +113,14 @@ export function toGuardAuthSubject(user: UserWithAuthSubject | null): GuardAuthS
           organisation: {
             id: user.organisationAdminProfile.organisation.id,
             status: user.organisationAdminProfile.organisation.status,
+            name: user.organisationAdminProfile.organisation.name,
           },
         }
       : null,
     ipAdminProfile: user.ipAdminProfile
       ? {
           adminStatus: user.ipAdminProfile.adminStatus,
+          platformAdminRole: user.ipAdminProfile.platformAdminRole,
         }
       : null,
   };

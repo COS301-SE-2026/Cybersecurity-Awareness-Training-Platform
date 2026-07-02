@@ -149,7 +149,7 @@ const expectedRequestBodies = [
 
 const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
   ['get', '/health', ['200', '500']],
-  ['post', '/auth/register', ['201', '400', '409', '429', '500']],
+  ['post', '/auth/register', ['201', '400', '429', '500']],
   ['post', '/auth/login', ['200', '400', '401', '403', '429', '500']],
   ['get', '/auth/me', ['200', '401', '403', '429', '500']],
   ['post', '/auth/logout', ['200', '500']],
@@ -370,7 +370,7 @@ describe('swaggerSpec', () => {
   it('documents organisation request web URL restrictions', () => {
     const schema = JSON.stringify(spec.components?.schemas?.CreateOrganisationRegistrationRequest);
 
-    expect(schema).toContain('Must use http or https.');
+    expect(schema).toContain('Optional. Must use http or https when provided.');
   });
 
   it('keeps simulated email detail free of pre-classification answers', () => {

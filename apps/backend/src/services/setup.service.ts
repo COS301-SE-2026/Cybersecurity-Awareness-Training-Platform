@@ -29,6 +29,10 @@ const SETUP_TOKEN_PURPOSES = [
 
 type SetupTransaction = Parameters<Parameters<typeof runWithConsumedActionToken>[1]>[0];
 type SetupActionToken = NonNullable<Awaited<ReturnType<typeof findSetupActionTokenById>>>;
+type SetupTokenPurpose = (typeof SETUP_TOKEN_PURPOSES)[number];
+function isSetupTokenPurpose(purpose: ActionTokenPurpose): purpose is SetupTokenPurpose {
+  return SETUP_TOKEN_PURPOSES.includes(purpose as SetupTokenPurpose);
+}
 
 export class SetupFlowError extends Error {
   constructor(
@@ -67,6 +71,9 @@ export async function getSetupTokenContext(
       purpose: setupToken.purpose,
     },
     targetEmail: setupTargetEmail(setupToken) ?? undefined,
+    targetFirstName: setupToken.invitation?.recipientFirstName ?? setupToken.user?.firstName,
+    targetLastName: setupToken.invitation?.recipientLastName ?? setupToken.user?.lastName,
+    role: setupUserTypeForPurpose(setupToken.purpose),
     organisationName: setupToken.invitation?.organisation.name,
   };
 }
@@ -173,7 +180,12 @@ async function validateSetupToken(rawToken: string) {
   return { state: lastState };
 }
 
-function assertSetupRecordIsUsable(setupToken: SetupActionToken) {
+function assertSetupRecordIsUsable(
+  setupToken: SetupActionToken,
+): asserts setupToken is SetupActionToken & { purpose: SetupTokenPurpose } {
+  if (!isSetupTokenPurpose(setupToken.purpose)) {
+    throw new SetupFlowError(409, 'SETUP_TOKEN_PURPOSE_UNSUPPORTED', 'Setup link is not supported');
+  }
   const invitation = setupToken.invitation;
   if (!invitation) {
     if (setupToken.purpose === 'PLATFORM_ADMIN_INVITE') {
@@ -210,7 +222,7 @@ function setupTargetEmail(setupToken: SetupActionToken) {
   );
 }
 
-function setupUserTypeForPurpose(purpose: ActionTokenPurpose): SetupUserType {
+function setupUserTypeForPurpose(purpose: SetupTokenPurpose): SetupUserType {
   if (purpose === 'INITIAL_ORGANISATION_ADMIN_SETUP') {
     return 'ORGANISATION_ADMIN';
   }
