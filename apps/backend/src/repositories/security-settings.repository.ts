@@ -20,6 +20,26 @@ export type OrganisationSecuritySettingsSeedSummary = {
   readonly createdSettingsCount: number;
 };
 
+export type OrganisationSecuritySettingsRecord = {
+  readonly organisationId: string;
+  readonly enforceRememberMePolicy: boolean;
+  readonly allowRememberMe: boolean;
+  readonly maxRememberedSessionHours: number | null;
+  readonly enforceRegularSessionLength: boolean;
+  readonly regularSessionLengthHours: number | null;
+  readonly enforceIdleTimeout: boolean;
+  readonly idleTimeoutMinutes: number | null;
+  readonly requireReauthenticationForSensitiveActions: boolean;
+  readonly allowTraineeEmailChange: boolean;
+};
+
+export type UserSecurityPreferencesRecord = {
+  readonly userId: string;
+  readonly preferredRegularSessionLengthHours: number | null;
+  readonly preferredRememberMeSessionLengthHours: number | null;
+  readonly preferredIdleTimeoutMinutes: number | null;
+};
+
 type OrganisationCountRow = {
   readonly count: bigint;
 };
@@ -80,6 +100,56 @@ export async function ensureDefaultOrganisationSecuritySettings(
     ON CONFLICT ("organisationId")
     DO NOTHING
   `;
+}
+
+export async function findOrganisationSecuritySettings(
+  input: { organisationId: string },
+  client: SecuritySettingsClient = prisma,
+): Promise<OrganisationSecuritySettingsRecord | null> {
+  if (!supportsQueryRaw(client)) {
+    return null;
+  }
+
+  const rows = await client.$queryRaw<OrganisationSecuritySettingsRecord[]>`
+    SELECT
+      "organisationId",
+      "enforceRememberMePolicy",
+      "allowRememberMe",
+      "maxRememberedSessionHours",
+      "enforceRegularSessionLength",
+      "regularSessionLengthHours",
+      "enforceIdleTimeout",
+      "idleTimeoutMinutes",
+      "requireReauthenticationForSensitiveActions",
+      "allowTraineeEmailChange"
+    FROM "OrganisationSecuritySettings"
+    WHERE "organisationId" = ${input.organisationId}
+    LIMIT 1
+  `;
+
+  return rows[0] ?? null;
+}
+
+export async function findUserSecurityPreferences(
+  input: { userId: string },
+  client: SecuritySettingsClient = prisma,
+): Promise<UserSecurityPreferencesRecord | null> {
+  if (!supportsQueryRaw(client)) {
+    return null;
+  }
+
+  const rows = await client.$queryRaw<UserSecurityPreferencesRecord[]>`
+    SELECT
+      "userId",
+      "preferredRegularSessionLengthHours",
+      "preferredRememberMeSessionLengthHours",
+      "preferredIdleTimeoutMinutes"
+    FROM "UserSecurityPreferences"
+    WHERE "userId" = ${input.userId}
+    LIMIT 1
+  `;
+
+  return rows[0] ?? null;
 }
 
 export async function ensureDefaultOrganisationSecuritySettingsForAllOrganisations(
