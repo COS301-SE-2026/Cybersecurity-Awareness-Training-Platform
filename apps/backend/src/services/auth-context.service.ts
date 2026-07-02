@@ -21,6 +21,7 @@ export type AuthContextUser = {
 export type AuthOrganisationContext = {
   id: string;
   status: GuardOrganisation['status'];
+  name: string;
 };
 
 export type AuthContext = {
@@ -29,6 +30,7 @@ export type AuthContext = {
   organisation: AuthOrganisationContext | null;
   permissions: string[];
   redirectTo: AuthRedirectTarget;
+  platformAdminRole: 'SUPER_ADMIN' | 'NORMAL_ADMIN' | null;
 };
 
 export function buildAuthContext(subject: GuardAuthSubject): AuthContext {
@@ -46,6 +48,7 @@ export function buildAuthContext(subject: GuardAuthSubject): AuthContext {
     organisation: resolveOrganisationContext(subject),
     permissions: resolvePermissions(subject),
     redirectTo: resolveRedirectTarget(subject.user),
+    platformAdminRole: subject.ipAdminProfile?.platformAdminRole ?? null,
   };
 }
 
@@ -62,6 +65,7 @@ function resolveOrganisationContext(subject: GuardAuthSubject): AuthOrganisation
   return {
     id: organisation.id,
     status: organisation.status,
+    name: organisation.name,
   };
 }
 

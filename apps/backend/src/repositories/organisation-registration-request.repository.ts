@@ -18,10 +18,10 @@ const conflictingOrganisationStatuses: OrganisationStatus[] = ['PENDING_ONBOARDI
 
 export type CreateOrganisationRegistrationRequestRecordInput = {
   submittedOrganisationName: string;
-  submittedWebsite: string;
-  submittedOrganisationDescription: string;
+  submittedWebsite: string | null;
+  submittedOrganisationDescription: string | null;
   submittedOrganisationSize: number;
-  submittedPrimaryDomain: string;
+  submittedPrimaryDomain: string | null;
   representativeFirstName: string;
   representativeLastName: string;
   representativeEmail: string;

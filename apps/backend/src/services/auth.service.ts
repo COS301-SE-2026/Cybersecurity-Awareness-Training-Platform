@@ -8,17 +8,27 @@ import type {
   PublicUserDto,
 } from '@insightful-phish/shared';
 import type { AuthSessionRevokedReason } from '../generated/prisma/enums.js';
+import type { Prisma } from '../generated/prisma/client.js';
 import { prisma } from '../lib/prisma.js';
 import { toPublicUserDto } from '../mappers/user.mapper.js';
 import * as UserRepository from '../repositories/user.repository.js';
-import { issueActionToken, validateActionToken } from './action-token.service.js';
+import {
+  issueActionToken,
+  validateActionToken,
+  type IssueActionTokenResult,
+} from './action-token.service.js';
 import { recordAuditLog } from './audit-log.service.js';
 import { requestAuthEmailSend } from './auth-email-hook.service.js';
 import { generateAuthToken } from './auth-token.service.js';
 import * as PasswordService from './password.service.js';
 import { ensureUserCanAuthenticate } from './auth-status-guard.service.js';
-import { resolveSessionPolicy } from './session-policy.service.js';
-import { issueAuthSession, revokeSessionById, touchSession } from './auth-session.service.js';
+import {
+  calculateSessionExpiresAt,
+  issueAuthSession,
+  revokeSessionById,
+  touchSession,
+  updateSessionPolicy,
+} from './auth-session.service.js';
 import {
   issueRefreshToken,
   rotateRefreshToken,
@@ -27,14 +37,57 @@ import {
 } from './refresh-token.service.js';
 import { recordUserLogin, recordAuthSessionRevoked } from './auth-audit.service.js';
 import { buildAuthContext } from './auth-context.service.js';
+import {
+  resolveEffectiveSecurityPolicy,
+  type EffectiveSecurityPolicy,
+} from './security-policy.service.js';
 
 const EMAIL_VERIFICATION_TOKEN_TTL_HOURS = 24;
-
+const REGISTER_GENERIC_MESSAGE =
+  "If this email can be registered, we'll send you an email verification link. Please check your inbox.";
 export class AuthConflictError extends Error {
   constructor(message = 'A user with the provided email already exists') {
     super(message);
     this.name = 'AuthConflictError';
   }
+}
+type EmailVerificationUser = {
+  id: string;
+  email: string;
+  firstName: string;
+};
+function getEmailVerificationExpiresAt() {
+  return new Date(Date.now() + EMAIL_VERIFICATION_TOKEN_TTL_HOURS * 60 * 60 * 1000);
+}
+function issueEmailVerificationToken(
+  user: EmailVerificationUser,
+  client?: Prisma.TransactionClient,
+) {
+  return issueActionToken(
+    {
+      purpose: 'EMAIL_VERIFICATION',
+      userId: user.id,
+      targetEmail: user.email,
+      expiresAt: getEmailVerificationExpiresAt(),
+    },
+    client,
+  );
+}
+async function sendEmailVerification(
+  user: EmailVerificationUser,
+  verification: IssueActionTokenResult,
+) {
+  await requestAuthEmailSend({
+    emailType: 'EMAIL_VERIFICATION',
+    recipientEmail: user.email,
+    userId: user.id,
+    actionTokenId: verification.token.id,
+    templateData: {
+      firstName: user.firstName,
+      actionToken: verification.rawToken,
+      actionTokenExpiresAt: verification.token.expiresAt,
+    },
+  });
 }
 
 export class AuthResetPasswordError extends Error {
@@ -59,56 +112,83 @@ export async function registerUser(
   input: AuthRegisterRequestDto,
 ): Promise<AuthRegisterResponseDto> {
   const existingUser = await UserRepository.findUserByEmail(input.email);
-
-  if (existingUser) {
-    throw new AuthConflictError();
-  }
-
   const passwordHash = await PasswordService.hashPassword(input.password);
 
-  const { newUser, verification } = await prisma.$transaction(async (tx) => {
-    const createdUser = await UserRepository.createGeneralTraineeUser(
-      {
-        email: input.email,
-        firstName: input.firstName,
-        lastName: input.lastName,
-        passwordHash,
-      },
-      tx,
-    );
+  if (!existingUser) {
+    const { newUser, verification } = await prisma.$transaction(async (tx) => {
+      const createdUser = await UserRepository.createGeneralTraineeUser(
+        {
+          email: input.email,
+          firstName: input.firstName,
+          lastName: input.lastName,
+          passwordHash,
+        },
+        tx,
+      );
+      const verificationToken = await issueEmailVerificationToken(createdUser, tx);
+      return {
+        newUser: createdUser,
+        verification: verificationToken,
+      };
+    });
 
-    const verificationToken = await issueActionToken(
-      {
-        purpose: 'EMAIL_VERIFICATION',
-        userId: createdUser.id,
-        targetEmail: createdUser.email,
-        expiresAt: new Date(Date.now() + EMAIL_VERIFICATION_TOKEN_TTL_HOURS * 60 * 60 * 1000),
-      },
-      tx,
-    );
+    await sendEmailVerification(newUser, verification);
 
-    return {
-      newUser: createdUser,
-      verification: verificationToken,
-    };
-  });
+    return { message: REGISTER_GENERIC_MESSAGE };
+  } //if
 
-  const emailResult = await requestAuthEmailSend({
-    emailType: 'EMAIL_VERIFICATION',
-    recipientEmail: newUser.email,
-    userId: newUser.id,
-    actionTokenId: verification.token.id,
-    templateData: {
-      firstName: newUser.firstName,
-      actionToken: verification.rawToken,
-      actionTokenExpiresAt: verification.token.expiresAt,
+  if (existingUser.authStatus === 'PENDING_EMAIL_VERIFICATION') {
+    await maybeSendReplacementVerificationEmail(existingUser);
+  }
+
+  return { message: REGISTER_GENERIC_MESSAGE };
+}
+async function maybeSendReplacementVerificationEmail(user: {
+  id: string;
+  email: string;
+  firstName: string;
+  authStatus: string;
+}) {
+  const latestToken = await prisma.actionToken.findFirst({
+    where: {
+      userId: user.id,
+      targetEmail: user.email,
+      purpose: 'EMAIL_VERIFICATION',
+      usedAt: null,
+      revokedAt: null,
     },
+    include: { emailDeliveryLogs: true },
+    orderBy: { createdAt: 'desc' },
   });
 
-  return {
-    user: toPublicUserDto(newUser),
-    verificationEmailQueued: emailResult.queued,
-  };
+  const shouldReissue =
+    !latestToken ||
+    latestToken.expiresAt.getTime() <= Date.now() ||
+    !latestToken.emailDeliveryLogs.some(
+      (log) => log.emailType === 'EMAIL_VERIFICATION' && log.deliveryStatus === 'SENT',
+    );
+  if (!shouldReissue) {
+    return;
+  }
+
+  const { verification } = await prisma.$transaction(async (tx) => {
+    await tx.actionToken.updateMany({
+      where: {
+        userId: user.id,
+        targetEmail: user.email,
+        purpose: 'EMAIL_VERIFICATION',
+        usedAt: null,
+        revokedAt: null,
+      },
+      data: { revokedAt: new Date(), revokedReason: 'REGISTRATION_VERIFICATION_REISSUED' },
+    });
+
+    const verificationToken = await issueEmailVerificationToken(user, tx);
+
+    return { verification: verificationToken };
+  });
+
+  await sendEmailVerification(user, verification);
 }
 
 export class AuthStatusGuardError extends Error {
@@ -136,13 +216,6 @@ export class AuthRefreshTokenInvalidError extends Error {
   }
 }
 
-const PLATFORM_SESSION_POLICY = {
-  regularSessionSeconds: 900,
-  rememberedSessionSeconds: 604800,
-  idleTimeoutMinutes: 30,
-  allowRememberMe: true,
-};
-
 export async function loginUser(
   input: AuthLoginRequestDto & { ipAddress?: string | null; userAgent?: string | null },
 ): Promise<{
@@ -169,15 +242,20 @@ export async function loginUser(
     throw new AuthStatusGuardError(guardResult.code, guardResult.statusCode, guardResult.message);
   }
 
-  const policy = resolveSessionPolicy({
+  const policy = await resolveEffectiveSecurityPolicy({
+    subject,
     rememberMeRequested: !!input.rememberMe,
-    platform: PLATFORM_SESSION_POLICY,
+  });
+  const sessionExpiresAt = calculateSessionExpiresAt({
+    rememberMe: policy.rememberMeApplied,
+    regularSessionSeconds: policy.regularSessionSeconds,
+    rememberedSessionSeconds: policy.rememberedSessionSeconds,
   });
 
   const session = await issueAuthSession({
     userId: user.id,
     rememberMe: policy.rememberMeApplied,
-    expiresAt: new Date(Date.now() + policy.effectiveSessionSeconds * 1000),
+    expiresAt: sessionExpiresAt,
     idleTimeoutMinutes: policy.idleTimeoutMinutes,
     userAgent: input.userAgent ?? null,
     ipAddress: input.ipAddress ?? null,
@@ -216,6 +294,49 @@ export async function loginUser(
     rawRefreshToken: refreshResult.rawToken,
     sessionExpiresAt: session.expiresAt,
   };
+}
+
+function earlierDate(first: Date, second: Date): Date {
+  return first.getTime() <= second.getTime() ? first : second;
+}
+
+function sessionExpiresAtForPolicy(input: {
+  createdAt: Date;
+  rememberMe: boolean;
+  policy: EffectiveSecurityPolicy;
+}): Date {
+  return calculateSessionExpiresAt({
+    now: input.createdAt,
+    rememberMe: input.rememberMe,
+    regularSessionSeconds: input.policy.regularSessionSeconds,
+    rememberedSessionSeconds: input.policy.rememberedSessionSeconds,
+  });
+}
+
+function isIdleExpired(input: {
+  lastActiveAt: Date;
+  idleTimeoutMinutes: number | null;
+  now: Date;
+}): boolean {
+  if (input.idleTimeoutMinutes === null) {
+    return false;
+  }
+
+  return input.lastActiveAt.getTime() + input.idleTimeoutMinutes * 60 * 1000 <= input.now.getTime();
+}
+
+async function revokeSessionForPolicyFailure(input: {
+  sessionId: string;
+  sessionReason: AuthSessionRevokedReason;
+}) {
+  await revokeSessionById({
+    sessionId: input.sessionId,
+    reason: input.sessionReason,
+  });
+  await revokeRefreshTokensForSession({
+    authSessionId: input.sessionId,
+    reason: input.sessionReason === 'EXPIRED' ? 'EXPIRED' : 'OTHER',
+  });
 }
 
 export async function getCurrentUser(userId: string): Promise<AuthMeResponseDto> {
@@ -286,11 +407,59 @@ export async function refreshUserToken(
     throw new AuthStatusGuardError(guardResult.code, guardResult.statusCode, guardResult.message);
   }
 
+  const policy = await resolveEffectiveSecurityPolicy({
+    subject,
+    rememberMeRequested: token.authSession.rememberMe,
+  });
+  const now = new Date();
+
+  if (token.authSession.rememberMe && !policy.rememberMeAllowed) {
+    await revokeSessionForPolicyFailure({
+      sessionId: token.authSessionId,
+      sessionReason: 'OTHER',
+    });
+    throw new AuthRefreshTokenInvalidError();
+  }
+
+  const policyExpiresAt = sessionExpiresAtForPolicy({
+    createdAt: token.authSession.createdAt,
+    rememberMe: token.authSession.rememberMe,
+    policy,
+  });
+
+  if (policyExpiresAt.getTime() <= now.getTime()) {
+    await revokeSessionForPolicyFailure({
+      sessionId: token.authSessionId,
+      sessionReason: 'EXPIRED',
+    });
+    throw new AuthRefreshTokenInvalidError();
+  }
+
+  if (
+    isIdleExpired({
+      lastActiveAt: token.authSession.lastActiveAt,
+      idleTimeoutMinutes: policy.idleTimeoutMinutes,
+      now,
+    })
+  ) {
+    await revokeSessionForPolicyFailure({
+      sessionId: token.authSessionId,
+      sessionReason: 'EXPIRED',
+    });
+    throw new AuthRefreshTokenInvalidError();
+  }
+
+  const nextSessionExpiresAt = earlierDate(token.authSession.expiresAt, policyExpiresAt);
+  await updateSessionPolicy({
+    sessionId: token.authSessionId,
+    expiresAt: nextSessionExpiresAt,
+    idleTimeoutMinutes: policy.idleTimeoutMinutes,
+  });
   await touchSession(token.authSessionId);
 
   const rotationResult = await rotateRefreshToken({
     rawToken,
-    nextExpiresAt: token.authSession.expiresAt,
+    nextExpiresAt: nextSessionExpiresAt,
     ipAddress,
     userAgent,
   });
@@ -317,7 +486,7 @@ export async function refreshUserToken(
     },
     accessTokenExpiresAt: tokenResult.expiresAt,
     rawRefreshToken: rotationResult.rawToken,
-    sessionExpiresAt: token.authSession.expiresAt,
+    sessionExpiresAt: nextSessionExpiresAt,
   };
 }
 
@@ -385,31 +554,9 @@ export async function resendVerificationEmail(email: string): Promise<void> {
     return;
   }
 
-  const { verification } = await prisma.$transaction(async (tx) => {
-    const verificationToken = await issueActionToken(
-      {
-        purpose: 'EMAIL_VERIFICATION',
-        userId: user.id,
-        targetEmail: user.email,
-        expiresAt: new Date(Date.now() + EMAIL_VERIFICATION_TOKEN_TTL_HOURS * 60 * 60 * 1000),
-      },
-      tx,
-    );
+  const verification = await prisma.$transaction((tx) => issueEmailVerificationToken(user, tx));
 
-    return { verification: verificationToken };
-  });
-
-  await requestAuthEmailSend({
-    emailType: 'EMAIL_VERIFICATION',
-    recipientEmail: user.email,
-    userId: user.id,
-    actionTokenId: verification.token.id,
-    templateData: {
-      firstName: user.firstName,
-      actionToken: verification.rawToken,
-      actionTokenExpiresAt: verification.token.expiresAt,
-    },
-  });
+  await sendEmailVerification(user, verification);
 }
 
 export type VerifyEmailResult = {

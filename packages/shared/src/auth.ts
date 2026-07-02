@@ -27,16 +27,23 @@ export interface AccountVerifyEmailChangeResponseDto {
 }
 
 export interface AuthRegisterResponseDto {
-  user: PublicUserDto;
-  verificationEmailQueued: boolean;
+  message: string;
 }
 
+export type SetupTokenPurposeDto =
+  | 'INITIAL_ORGANISATION_ADMIN_SETUP'
+  | 'ORGANISATION_TRAINEE_INVITE'
+  | 'PLATFORM_ADMIN_INVITE';
+export type SetupTokenRoleDto = 'ORGANISATION_TRAINEE' | 'ORGANISATION_ADMIN' | 'IP_ADMIN';
 export interface SetupTokenContextResponseDto {
   token: {
     state: ActionTokenStateDto;
-    purpose?: string;
+    purpose?: SetupTokenPurposeDto;
   };
   targetEmail?: string;
+  targetFirstName?: string | null;
+  targetLastName?: string | null;
+  role?: SetupTokenRoleDto;
   organisationName?: string;
 }
 
@@ -49,6 +56,8 @@ export type UserTypeDto =
   | 'ORGANISATION_ADMIN'
   | 'ORGANISATION_TRAINEE'
   | 'GENERAL_TRAINEE';
+
+export type PlatformAdminRoleDto = 'SUPER_ADMIN' | 'NORMAL_ADMIN';
 
 export type AuthStatusDto =
   | 'PENDING_EMAIL_VERIFICATION'
@@ -99,6 +108,7 @@ export interface AuthContextUserDto {
 
 export interface AuthOrganisationContextDto {
   id: string;
+  name: string;
   status: string;
 }
 
@@ -106,6 +116,7 @@ export interface AuthContextDto {
   user: AuthContextUserDto;
   role: UserTypeDto;
   organisation: AuthOrganisationContextDto | null;
+  platformAdminRole: PlatformAdminRoleDto | null;
   permissions: string[];
   redirectTo: string;
 }

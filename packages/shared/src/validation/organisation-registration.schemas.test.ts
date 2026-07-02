@@ -110,4 +110,45 @@ describe('organisation registration request validation', () => {
 
     expect(result.success).toBe(false);
   });
+
+  it.each([
+    ['ommited', undefined],
+    ['empty string', ''],
+    ['only spaces string', '    '],
+  ])(
+    'treats optional organisation description %s as not provided',
+    (_caseName, organisationDescription) => {
+      const paylod = { ...validPayload };
+      if (organisationDescription === undefined) {
+        delete (paylod as Partial<typeof validPayload>).organisationDescription;
+      } else {
+        paylod.organisationDescription = organisationDescription;
+      }
+      const result = createOrganisationRegistrationRequestSchema.safeParse(paylod);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.organisationDescription).toBeUndefined();
+      }
+    },
+  );
+  it.each([
+    ['ommited', undefined],
+    ['empty string', ''],
+    ['only spaces string', '    '],
+  ])(
+    'treats optional organisation organisation url %s as not provided',
+    (_caseName, organisationDescription) => {
+      const paylod = { ...validPayload };
+      if (organisationDescription === undefined) {
+        delete (paylod as Partial<typeof validPayload>).organisationWebsiteUrl;
+      } else {
+        paylod.organisationWebsiteUrl = organisationDescription;
+      }
+      const result = createOrganisationRegistrationRequestSchema.safeParse(paylod);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.organisationWebsiteUrl).toBeUndefined();
+      }
+    },
+  );
 });

@@ -51,6 +51,19 @@ export function touchAuthSession(id: string, client: AuthSessionClient = prisma)
   });
 }
 
+export function updateAuthSessionPolicy(
+  input: { id: string; expiresAt: Date; idleTimeoutMinutes?: number | null },
+  client: AuthSessionClient = prisma,
+) {
+  return client.authSession.update({
+    data: {
+      expiresAt: input.expiresAt,
+      idleTimeoutMinutes: input.idleTimeoutMinutes ?? null,
+    },
+    where: { id: input.id },
+  });
+}
+
 export function revokeAuthSession(
   input: { id: string; revokedReason: AuthSessionRevokedReason },
   client: AuthSessionClient = prisma,

@@ -148,6 +148,10 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         description: 'Public organisation onboarding request submission.',
       },
       {
+        name: 'Organisation Admins',
+        description: 'Organisation admin management and permission workflows.',
+      },
+      {
         name: 'Trainee Simulation',
         description: 'Trainee simulated phishing email workflows.',
       },
@@ -260,11 +264,6 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             'Too many requests from this IP, please try again after 15 minutes',
           ),
         },
-        AuthEmailExistsErrorResponse: errorResponseSchema(
-          'ApiErrorResponse',
-          'AUTH_EMAIL_EXISTS',
-          'A user with the provided email already exists',
-        ),
         AuthInvalidErrorResponse: errorResponseSchema(
           'ApiErrorResponse',
           'AUTH_INVALID',
@@ -432,7 +431,7 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         },
         AuthRegisterRequest: {
           type: 'object',
-          required: ['email', 'password', 'firstName', 'lastName'],
+          required: ['email', 'password', 'confirmPassword', 'firstName', 'lastName'],
           additionalProperties: false,
           properties: {
             email: {
@@ -442,6 +441,12 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
               example: 'johan@example.com',
             },
             password: {
+              type: 'string',
+              format: 'password',
+              minLength: 12,
+              example: 'ExampleLocalPassword1!',
+            },
+            confirmPassword: {
               type: 'string',
               format: 'password',
               minLength: 12,
@@ -485,14 +490,12 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         },
         AuthRegisterResponse: {
           type: 'object',
-          required: ['user', 'verificationEmailQueued'],
+          required: ['message'],
           properties: {
-            user: {
-              $ref: '#/components/schemas/PublicUser',
-            },
-            verificationEmailQueued: {
-              type: 'boolean',
-              example: false,
+            message: {
+              type: 'string',
+              example:
+                "If this email can be registered, we'll send you an email verification link. Please check your inbox.",
             },
           },
         },
@@ -515,7 +518,7 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         },
         AuthOrganisationContext: {
           type: 'object',
-          required: ['id', 'status'],
+          required: ['id', 'status', 'name'],
           properties: {
             id: {
               type: 'string',
@@ -526,11 +529,22 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
               type: 'string',
               example: 'ACTIVE',
             },
+            name: {
+              type: 'string',
+              example: 'Example Organisation',
+            },
           },
         },
         AuthContext: {
           type: 'object',
-          required: ['user', 'role', 'organisation', 'permissions', 'redirectTo'],
+          required: [
+            'user',
+            'role',
+            'organisation',
+            'platformAdminRole',
+            'permissions',
+            'redirectTo',
+          ],
           properties: {
             user: {
               $ref: '#/components/schemas/AuthContextUser',
@@ -545,6 +559,12 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
                   $ref: '#/components/schemas/AuthOrganisationContext',
                 },
               ],
+            },
+            platformAdminRole: {
+              type: 'string',
+              nullable: true,
+              enum: ['SUPER_ADMIN', 'NORMAL_ADMIN'],
+              example: 'NORMAL_ADMIN',
             },
             permissions: {
               type: 'array',
@@ -819,6 +839,21 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
               format: 'email',
               example: 'learner@example.com',
             },
+            targetFirstName: {
+              type: 'string',
+              nullable: true,
+              example: 'Jane',
+            },
+            targetLastName: {
+              type: 'string',
+              nullable: true,
+              example: 'Doe',
+            },
+            role: {
+              type: 'string',
+              enum: ['ORGANISATION_TRAINEE', 'ORGANISATION_ADMIN', 'IP_ADMIN'],
+              example: 'ORGANISATION_TRAINEE',
+            },
             organisationName: {
               type: 'string',
               example: 'Example Organisation',
@@ -867,9 +902,7 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           type: 'object',
           required: [
             'organisationName',
-            'organisationDescription',
             'organisationSize',
-            'organisationWebsiteUrl',
             'representativeFirstName',
             'representativeLastName',
             'representativeEmail',
@@ -884,7 +917,6 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             },
             organisationDescription: {
               type: 'string',
-              minLength: 1,
               maxLength: 2000,
               description: 'Stored using the current onboarding request description field.',
               example: 'Small consulting company that wants phishing awareness training.',
@@ -899,7 +931,7 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             organisationWebsiteUrl: {
               type: 'string',
               format: 'uri',
-              description: 'Must use http or https.',
+              description: 'Optional. Must use http or https when provided.',
               maxLength: 2048,
               example: 'https://example-consulting.test',
             },
@@ -947,6 +979,234 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           'ORGANISATION_REQUEST_CONFLICT',
           'The organisation registration request conflicts with existing records.',
         ),
+        OrganisationPermissionKey: enumString(
+          [
+            'VIEW_ORGANISATION_ADMINS',
+            'INVITE_ORGANISATION_ADMINS',
+            'REMOVE_ORGANISATION_ADMINS',
+            'CHANGE_ORGANISATION_ADMIN_PERMISSIONS',
+            'CHANGE_ORGANISATION_SECURITY_SETTINGS',
+          ],
+          'VIEW_ORGANISATION_ADMINS',
+        ),
+        OrganisationAdminPermissionSummary: {
+          type: 'object',
+          required: ['key', 'displayName'],
+          properties: {
+            key: {
+              $ref: '#/components/schemas/OrganisationPermissionKey',
+            },
+            displayName: {
+              type: 'string',
+              example: 'View organisation admins',
+            },
+          },
+        },
+        OrganisationAdminAvailablePermission: {
+          type: 'object',
+          required: ['key', 'displayName', 'isCritical'],
+          properties: {
+            key: {
+              $ref: '#/components/schemas/OrganisationPermissionKey',
+            },
+            displayName: {
+              type: 'string',
+              example: 'Invite organisation admins',
+            },
+            description: {
+              type: 'string',
+              nullable: true,
+              example: 'Invite or promote users to organisation admin access.',
+            },
+            isCritical: {
+              type: 'boolean',
+              example: true,
+            },
+          },
+        },
+        OrganisationAdminSummary: {
+          type: 'object',
+          required: [
+            'id',
+            'userId',
+            'firstName',
+            'lastName',
+            'email',
+            'adminStatus',
+            'isInitialAdmin',
+            'joinedAt',
+            'disabledAt',
+            'permissions',
+          ],
+          properties: {
+            id: {
+              ...uuidString('22222222-2222-4222-8222-222222222222'),
+            },
+            userId: {
+              ...uuidString('11111111-1111-4111-8111-111111111111'),
+            },
+            firstName: {
+              type: 'string',
+              example: 'Johan',
+            },
+            lastName: {
+              type: 'string',
+              example: 'Nel',
+            },
+            email: {
+              type: 'string',
+              format: 'email',
+              example: 'johan@example.com',
+            },
+            adminStatus: enumString(['ACTIVE', 'DISABLED'], 'ACTIVE'),
+            isInitialAdmin: {
+              type: 'boolean',
+              example: true,
+            },
+            joinedAt: {
+              ...dateTimeString('2026-07-01T08:00:00.000Z'),
+            },
+            disabledAt: {
+              ...nullableString('2026-07-02T08:00:00.000Z'),
+            },
+            permissions: {
+              ...arrayOf(schemaRef('OrganisationAdminPermissionSummary')),
+            },
+          },
+        },
+        OrganisationAdminListResponse: {
+          type: 'object',
+          required: ['admins', 'availablePermissions', 'actorPermissions'],
+          properties: {
+            admins: {
+              ...arrayOf(schemaRef('OrganisationAdminSummary')),
+            },
+            availablePermissions: {
+              ...arrayOf(schemaRef('OrganisationAdminAvailablePermission')),
+            },
+            actorPermissions: {
+              type: 'array',
+              items: {
+                $ref: '#/components/schemas/OrganisationPermissionKey',
+              },
+              example: ['VIEW_ORGANISATION_ADMINS', 'INVITE_ORGANISATION_ADMINS'],
+            },
+          },
+        },
+        OrganisationAdminPromotionRequest: {
+          type: 'object',
+          required: ['traineeEmail', 'permissionKeys'],
+          additionalProperties: false,
+          properties: {
+            traineeEmail: {
+              type: 'string',
+              format: 'email',
+              example: 'trainee@example.com',
+            },
+            permissionKeys: {
+              type: 'array',
+              minItems: 1,
+              uniqueItems: true,
+              items: {
+                $ref: '#/components/schemas/OrganisationPermissionKey',
+              },
+              example: ['VIEW_ORGANISATION_ADMINS', 'INVITE_ORGANISATION_ADMINS'],
+            },
+          },
+        },
+        OrganisationAdminPromotionResponse: {
+          type: 'object',
+          required: [
+            'invitationId',
+            'actionTokenId',
+            'status',
+            'expiresAt',
+            'permissionKeys',
+            'emailQueued',
+          ],
+          properties: {
+            invitationId: {
+              ...uuidString('33333333-3333-4333-8333-333333333333'),
+            },
+            actionTokenId: {
+              ...uuidString('44444444-4444-4444-8444-444444444444'),
+            },
+            status: enumString(['SENT', 'FAILED_TO_SEND'], 'SENT'),
+            expiresAt: {
+              ...dateTimeString('2026-07-08T08:00:00.000Z'),
+            },
+            permissionKeys: {
+              type: 'array',
+              items: {
+                $ref: '#/components/schemas/OrganisationPermissionKey',
+              },
+              example: ['VIEW_ORGANISATION_ADMINS', 'INVITE_ORGANISATION_ADMINS'],
+            },
+            emailQueued: {
+              type: 'boolean',
+              example: true,
+            },
+          },
+        },
+        OrganisationAdminPermissionUpdateRequest: {
+          type: 'object',
+          required: ['permissionKeys'],
+          additionalProperties: false,
+          properties: {
+            permissionKeys: {
+              type: 'array',
+              minItems: 1,
+              uniqueItems: true,
+              items: {
+                $ref: '#/components/schemas/OrganisationPermissionKey',
+              },
+              example: ['VIEW_ORGANISATION_ADMINS', 'CHANGE_ORGANISATION_ADMIN_PERMISSIONS'],
+            },
+          },
+        },
+        OrganisationAdminPermissionUpdateResponse: {
+          type: 'object',
+          required: ['adminId', 'permissionKeys'],
+          properties: {
+            adminId: {
+              ...uuidString('22222222-2222-4222-8222-222222222222'),
+            },
+            permissionKeys: {
+              type: 'array',
+              items: {
+                $ref: '#/components/schemas/OrganisationPermissionKey',
+              },
+              example: ['VIEW_ORGANISATION_ADMINS', 'CHANGE_ORGANISATION_ADMIN_PERMISSIONS'],
+            },
+          },
+        },
+        OrganisationAdminRemoveRequest: {
+          type: 'object',
+          required: ['password', 'confirmation'],
+          additionalProperties: false,
+          properties: {
+            password: {
+              type: 'string',
+              format: 'password',
+              minLength: 1,
+            },
+            confirmation: {
+              type: 'string',
+              enum: ['REMOVE'],
+              example: 'REMOVE',
+            },
+          },
+        },
+        OrganisationAdminRemoveResponse: {
+          type: 'object',
+          required: ['adminId', 'status'],
+          properties: {
+            adminId: {
+              ...uuidString('22222222-2222-4222-8222-222222222222'),
+            },
+            status: enumString(['DISABLED'], 'DISABLED'),
+          },
+        },
         DifficultyLevel: enumString(
           ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ADAPTIVE'],
           'BEGINNER',
@@ -2079,6 +2339,28 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           },
           example: '22222222-2222-2222-2222-222222222222',
         },
+        OrganisationIdPathParam: {
+          name: 'organisationId',
+          in: 'path',
+          required: true,
+          description: 'Organisation identifier.',
+          schema: {
+            type: 'string',
+            format: 'uuid',
+          },
+          example: '11111111-1111-4111-8111-111111111111',
+        },
+        OrganisationAdminIdPathParam: {
+          name: 'adminId',
+          in: 'path',
+          required: true,
+          description: 'Organisation admin profile identifier.',
+          schema: {
+            type: 'string',
+            format: 'uuid',
+          },
+          example: '22222222-2222-4222-8222-222222222222',
+        },
         SetupTokenPathParam: {
           name: 'token',
           in: 'path',
@@ -2142,6 +2424,18 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           required: true,
           ...jsonContent(schemaRef('CreateOrganisationRegistrationRequest')),
         },
+        OrganisationAdminPromotion: {
+          required: true,
+          ...jsonContent(schemaRef('OrganisationAdminPromotionRequest')),
+        },
+        OrganisationAdminPermissionUpdate: {
+          required: true,
+          ...jsonContent(schemaRef('OrganisationAdminPermissionUpdateRequest')),
+        },
+        OrganisationAdminRemove: {
+          required: true,
+          ...jsonContent(schemaRef('OrganisationAdminRemoveRequest')),
+        },
       },
       responses: {
         HealthOk: responseComponent('API and database are reachable.', 'HealthStatus'),
@@ -2172,10 +2466,6 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           'A user with the provided email already exists.',
           'AuthEmailExistsErrorResponse',
         ),
-        AuthInvalid: responseComponent(
-          'Email, password, or account status is invalid.',
-          'AuthInvalidErrorResponse',
-        ),
         AuthRateLimited: responseComponent(
           'Too many authentication requests.',
           'AuthRateLimitErrorResponse',
@@ -2195,6 +2485,22 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         OrganisationRegistrationRequestConflict: responseComponent(
           'The submitted request conflicts with existing records.',
           'OrganisationRegistrationRequestConflictErrorResponse',
+        ),
+        OrganisationAdminsOk: responseComponent(
+          'Organisation admins and available permissions.',
+          'OrganisationAdminListResponse',
+        ),
+        OrganisationAdminPromotionCreated: responseComponent(
+          'Organisation admin promotion invitation created.',
+          'OrganisationAdminPromotionResponse',
+        ),
+        OrganisationAdminPermissionsUpdated: responseComponent(
+          'Organisation admin permissions updated.',
+          'OrganisationAdminPermissionUpdateResponse',
+        ),
+        OrganisationAdminRemoved: responseComponent(
+          'Organisation admin privileges removed.',
+          'OrganisationAdminRemoveResponse',
         ),
         TraineeCampaignsOk: responseComponent(
           'Campaigns accessible to the authenticated active trainee.',

@@ -19,7 +19,10 @@ describe('auth-context serivce', () => {
       user: { ...baseUser, userType },
       organisationAdminProfile:
         userType === 'ORGANISATION_ADMIN'
-          ? { adminStatus: 'ACTIVE', organisation: { id: 'org01', status: 'ACTIVE' } }
+          ? {
+              adminStatus: 'ACTIVE',
+              organisation: { id: 'org01', status: 'ACTIVE', name: 'Acme Security' },
+            }
           : null,
     });
     expect(context).toMatchObject({ role: userType, permissions, redirectTo });

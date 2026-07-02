@@ -5,6 +5,10 @@ import {
   seedOrganisationAdminPermissions,
   type OrganisationPermissionSeedSummary,
 } from './seed-data/organisationPermissionSeed.js';
+import {
+  ensureDefaultOrganisationSecuritySettingsForAllOrganisations,
+  type OrganisationSecuritySettingsSeedSummary,
+} from '../src/repositories/security-settings.repository.js';
 
 async function seedDemo1(): Promise<void> {
   const summary = await seedDemoCore(prisma);
@@ -25,6 +29,14 @@ function printAuthBootstrapSeedSummary(summary: AuthBootstrapSeedSummary): void 
 function printOrganisationPermissionSeedSummary(summary: OrganisationPermissionSeedSummary): void {
   console.log(
     `Organisation admin permissions seeded for ${summary.organisationCount} organisations: ${summary.permissionCount} permission records, ${summary.initialAdminGrantCount} initial-admin grants.`,
+  );
+}
+
+function printOrganisationSecuritySettingsSeedSummary(
+  summary: OrganisationSecuritySettingsSeedSummary,
+): void {
+  console.log(
+    `Organisation security settings ensured for ${summary.organisationCount} organisations: ${summary.createdSettingsCount} settings records created.`,
   );
 }
 
@@ -63,6 +75,10 @@ try {
 
   const organisationPermissionSummary = await seedOrganisationAdminPermissions(prisma);
   printOrganisationPermissionSeedSummary(organisationPermissionSummary);
+
+  const organisationSecuritySettingsSummary =
+    await ensureDefaultOrganisationSecuritySettingsForAllOrganisations(prisma);
+  printOrganisationSecuritySettingsSeedSummary(organisationSecuritySettingsSummary);
 
   await seedDemo1();
 } catch (error: unknown) {
