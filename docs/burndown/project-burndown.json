@@ -885,8 +885,8 @@
           "number": 275,
           "title": "feat: implement backend organisation admin permissions endpoints",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-07-02"
         },
         {
           "number": 274,
@@ -1630,7 +1630,7 @@
     },
     {
       "date": "2026-07-02",
-      "remaining": 116,
+      "remaining": 114,
       "ideal": 37.42
     }
   ]
