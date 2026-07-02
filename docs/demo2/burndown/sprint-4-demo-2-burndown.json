@@ -84,8 +84,8 @@
       "number": 284,
       "title": "feat: phase 5 organisation security settings foundation migration",
       "points": 3,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-07-02"
     },
     {
       "number": 283,
@@ -625,7 +625,7 @@
     },
     {
       "date": "2026-07-02",
-      "remaining": 112,
+      "remaining": 109,
       "ideal": 54.95
     }
   ]

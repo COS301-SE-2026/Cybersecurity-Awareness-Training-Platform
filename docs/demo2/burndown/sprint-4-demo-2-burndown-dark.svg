@@ -24,7 +24,7 @@
 <text x="18" y="205.0" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="13" text-anchor="middle" transform="rotate(-90 18 205.0)" fill="#EEDEFF">Story Points Remaining</text>
 <text x="470.0" y="408" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="13" text-anchor="middle" fill="#EEDEFF">Sprint Timeline</text>
 <polyline points="70.0,56.7 131.5,72.4 193.1,88.1 254.6,103.8 316.2,119.5 377.7,135.2 439.2,150.9 500.8,166.6 562.3,182.3 623.8,198.0 685.4,213.7 746.9,229.4 808.5,245.1 870.0,260.8" fill="none" stroke="#B37DFF" stroke-width="3" stroke-dasharray="8 6"/>
-<polyline points="70.0,56.7 131.5,56.7 193.1,56.7 254.6,60.1 316.2,80.7 377.7,84.1 439.2,91.0 500.8,94.4 562.3,94.4 623.8,99.6 685.4,113.3 746.9,132.1 808.5,156.1 870.0,163.0" fill="none" stroke="#D6B3FF" stroke-width="4"/>
+<polyline points="70.0,56.7 131.5,56.7 193.1,56.7 254.6,60.1 316.2,80.7 377.7,84.1 439.2,91.0 500.8,94.4 562.3,94.4 623.8,99.6 685.4,113.3 746.9,132.1 808.5,156.1 870.0,168.1" fill="none" stroke="#D6B3FF" stroke-width="4"/>
 <line x1="610" y1="75" x2="645" y2="75" stroke="#D6B3FF" stroke-width="4"/>
 <text x="655" y="80" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="13" fill="#EEDEFF">Remaining work</text>
 <line x1="610" y1="97" x2="645" y2="97" stroke="#B37DFF" stroke-width="3" stroke-dasharray="8 6"/>
