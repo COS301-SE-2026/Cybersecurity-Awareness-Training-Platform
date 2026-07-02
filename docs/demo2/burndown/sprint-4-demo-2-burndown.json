@@ -7,8 +7,8 @@
       "number": 317,
       "title": "fix: make individual registration enumeration-safe",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-07-02"
     },
     {
       "number": 314,
@@ -625,7 +625,7 @@
     },
     {
       "date": "2026-07-02",
-      "remaining": 114,
+      "remaining": 112,
       "ideal": 54.95
     }
   ]
