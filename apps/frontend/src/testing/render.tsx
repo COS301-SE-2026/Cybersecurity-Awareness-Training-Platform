@@ -40,6 +40,7 @@ export function createAuthContextValue(overrides: Partial<AuthContextType> = {})
           },
           role: 'GENERAL_TRAINEE',
           organisation: null,
+          platformAdminRole: null,
           permissions: ['GENERAL_TRAINEE'],
           redirectTo: '/trainee/campaigns',
         }
