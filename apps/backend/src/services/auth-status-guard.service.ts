@@ -33,6 +33,7 @@ export type GuardUser = {
 
 export type GuardOrganisation = {
   id: string;
+  name: string;
   status: 'PENDING_ONBOARDING' | 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'DISABLED' | 'ARCHIVED';
 };
 
@@ -50,6 +51,7 @@ export type GuardOrganisationAdminProfile = {
 
 export type GuardIpAdminProfile = {
   adminStatus: 'ACTIVE' | 'DISABLED';
+  platformAdminRole?: 'SUPER_ADMIN' | 'NORMAL_ADMIN' | null;
 };
 
 export type GuardAuthSubject = {

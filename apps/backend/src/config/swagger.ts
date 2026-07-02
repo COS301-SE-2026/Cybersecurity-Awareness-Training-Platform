@@ -264,11 +264,6 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             'Too many requests from this IP, please try again after 15 minutes',
           ),
         },
-        AuthEmailExistsErrorResponse: errorResponseSchema(
-          'ApiErrorResponse',
-          'AUTH_EMAIL_EXISTS',
-          'A user with the provided email already exists',
-        ),
         AuthInvalidErrorResponse: errorResponseSchema(
           'ApiErrorResponse',
           'AUTH_INVALID',
@@ -436,7 +431,7 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         },
         AuthRegisterRequest: {
           type: 'object',
-          required: ['email', 'password', 'firstName', 'lastName'],
+          required: ['email', 'password', 'confirmPassword', 'firstName', 'lastName'],
           additionalProperties: false,
           properties: {
             email: {
@@ -446,6 +441,12 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
               example: 'johan@example.com',
             },
             password: {
+              type: 'string',
+              format: 'password',
+              minLength: 12,
+              example: 'ExampleLocalPassword1!',
+            },
+            confirmPassword: {
               type: 'string',
               format: 'password',
               minLength: 12,
@@ -489,14 +490,12 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         },
         AuthRegisterResponse: {
           type: 'object',
-          required: ['user', 'verificationEmailQueued'],
+          required: ['message'],
           properties: {
-            user: {
-              $ref: '#/components/schemas/PublicUser',
-            },
-            verificationEmailQueued: {
-              type: 'boolean',
-              example: false,
+            message: {
+              type: 'string',
+              example:
+                "If this email can be registered, we'll send you an email verification link. Please check your inbox.",
             },
           },
         },
@@ -519,7 +518,7 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         },
         AuthOrganisationContext: {
           type: 'object',
-          required: ['id', 'status'],
+          required: ['id', 'status', 'name'],
           properties: {
             id: {
               type: 'string',
@@ -530,11 +529,22 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
               type: 'string',
               example: 'ACTIVE',
             },
+            name: {
+              type: 'string',
+              example: 'Example Organisation',
+            },
           },
         },
         AuthContext: {
           type: 'object',
-          required: ['user', 'role', 'organisation', 'permissions', 'redirectTo'],
+          required: [
+            'user',
+            'role',
+            'organisation',
+            'platformAdminRole',
+            'permissions',
+            'redirectTo',
+          ],
           properties: {
             user: {
               $ref: '#/components/schemas/AuthContextUser',
@@ -549,6 +559,12 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
                   $ref: '#/components/schemas/AuthOrganisationContext',
                 },
               ],
+            },
+            platformAdminRole: {
+              type: 'string',
+              nullable: true,
+              enum: ['SUPER_ADMIN', 'NORMAL_ADMIN'],
+              example: 'NORMAL_ADMIN',
             },
             permissions: {
               type: 'array',
@@ -823,6 +839,21 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
               format: 'email',
               example: 'learner@example.com',
             },
+            targetFirstName: {
+              type: 'string',
+              nullable: true,
+              example: 'Jane',
+            },
+            targetLastName: {
+              type: 'string',
+              nullable: true,
+              example: 'Doe',
+            },
+            role: {
+              type: 'string',
+              enum: ['ORGANISATION_TRAINEE', 'ORGANISATION_ADMIN', 'IP_ADMIN'],
+              example: 'ORGANISATION_TRAINEE',
+            },
             organisationName: {
               type: 'string',
               example: 'Example Organisation',
@@ -871,9 +902,7 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           type: 'object',
           required: [
             'organisationName',
-            'organisationDescription',
             'organisationSize',
-            'organisationWebsiteUrl',
             'representativeFirstName',
             'representativeLastName',
             'representativeEmail',
@@ -888,7 +917,6 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             },
             organisationDescription: {
               type: 'string',
-              minLength: 1,
               maxLength: 2000,
               description: 'Stored using the current onboarding request description field.',
               example: 'Small consulting company that wants phishing awareness training.',
@@ -903,7 +931,7 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             organisationWebsiteUrl: {
               type: 'string',
               format: 'uri',
-              description: 'Must use http or https.',
+              description: 'Optional. Must use http or https when provided.',
               maxLength: 2048,
               example: 'https://example-consulting.test',
             },
@@ -2437,10 +2465,6 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         AuthEmailExists: responseComponent(
           'A user with the provided email already exists.',
           'AuthEmailExistsErrorResponse',
-        ),
-        AuthInvalid: responseComponent(
-          'Email, password, or account status is invalid.',
-          'AuthInvalidErrorResponse',
         ),
         AuthRateLimited: responseComponent(
           'Too many authentication requests.',

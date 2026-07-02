@@ -21,8 +21,10 @@ export class OrganisationRegistrationRequestError extends Error {
 export async function createOrganisationRegistrationRequest(
   input: CreateOrganisationRegistrationRequestDto,
 ): Promise<OrganisationRegistrationRequestResponseDto> {
-  const normalisedWebsite = normaliseWebsiteUrl(input.organisationWebsiteUrl);
-  const primaryDomain = primaryDomainFromWebsite(normalisedWebsite);
+  const normalisedWebsite = input.organisationWebsiteUrl
+    ? normaliseWebsiteUrl(input.organisationWebsiteUrl)
+    : null;
+  const primaryDomain = normalisedWebsite ? primaryDomainFromWebsite(normalisedWebsite) : null;
 
   await assertNoDuplicateOrganisationRequest({
     organisationName: input.organisationName,
@@ -35,7 +37,7 @@ export async function createOrganisationRegistrationRequest(
   const request = await OrganisationRequestRepository.createOrganisationRegistrationRequest({
     submittedOrganisationName: input.organisationName,
     submittedWebsite: normalisedWebsite,
-    submittedOrganisationDescription: input.organisationDescription,
+    submittedOrganisationDescription: input.organisationDescription ?? null,
     submittedOrganisationSize: input.organisationSize,
     submittedPrimaryDomain: primaryDomain,
     representativeFirstName: input.representativeFirstName,
@@ -60,8 +62,8 @@ export async function createOrganisationRegistrationRequest(
 
 async function assertNoDuplicateOrganisationRequest(input: {
   organisationName: string;
-  website: string;
-  primaryDomain: string;
+  website: string | null;
+  primaryDomain: string | null;
   representativeEmail: string;
 }) {
   const existingOrganisation = await OrganisationRequestRepository.findOrganisationByName(
@@ -78,12 +80,16 @@ async function assertNoDuplicateOrganisationRequest(input: {
     throw duplicateRequestError();
   }
 
-  const duplicateWebsite = await OrganisationRequestRepository.findActiveRequestByWebsiteOrDomain({
-    website: input.website,
-    primaryDomain: input.primaryDomain,
-  });
-  if (duplicateWebsite) {
-    throw duplicateRequestError();
+  if (input.website && input.primaryDomain) {
+    const duplicateWebsite = await OrganisationRequestRepository.findActiveRequestByWebsiteOrDomain(
+      {
+        website: input.website,
+        primaryDomain: input.primaryDomain,
+      },
+    );
+    if (duplicateWebsite) {
+      throw duplicateRequestError();
+    }
   }
 
   const duplicateRepresentative =

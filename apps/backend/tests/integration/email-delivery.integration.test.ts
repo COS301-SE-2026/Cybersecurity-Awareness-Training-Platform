@@ -13,7 +13,7 @@ import { clearAuthRateLimitStore } from '../../src/middleware/authRateLimit.js';
 
 const password = 'SecurePassword@123!';
 function registerPayload(email = 'johan@example.com') {
-  return { email, firstName: 'Johan', lastName: 'Nel', password };
+  return { email, firstName: 'Johan', lastName: 'Nel', password, confirmPassword: password };
 }
 function organisationRequestPayload(email = 'johan@example.com') {
   return {
@@ -40,7 +40,10 @@ describe('email delivery integration', () => {
       .post('/auth/register')
       .send(registerPayload('johanregistersent@example.com'));
     expect(response.status).toBe(201);
-    expect(response.body.verificationEmailQueued).toBe(true);
+    expect(response.body).toEqual({
+      message:
+        "If this email can be registered, we'll send you an email verification link. Please check your inbox.",
+    });
 
     const user = await prisma.user.findUniqueOrThrow({
       where: { email: 'johanregistersent@example.com' },
@@ -74,7 +77,10 @@ describe('email delivery integration', () => {
       .post('/auth/register')
       .send(registerPayload('johanregisterfails@example.com'));
     expect(response.status).toBe(201);
-    expect(response.body.verificationEmailQueued).toBe(false);
+    expect(response.body).toEqual({
+      message:
+        "If this email can be registered, we'll send you an email verification link. Please check your inbox.",
+    });
 
     const user = await prisma.user.findUniqueOrThrow({
       where: { email: 'johanregisterfails@example.com' },
