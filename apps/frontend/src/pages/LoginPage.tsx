@@ -11,6 +11,9 @@ import { authFormStyle, authPrimaryButtonStyle } from '../components/auth/authSt
 import { useAuth } from '../context/useAuth';
 import BasicAlert from '../components/alerts/BasicAlert';
 import { authLoginRequestSchema } from '@insightful-phish/shared';
+import { ApiError } from '../lib/apiClient';
+import { loginUser } from '../services/auth.service';
+import { ROUTES } from '../constants/routes';
 import GetStartedModal from '../components/landing-page/GetStartedModal';
 
 function formatAlertMessage(message: string) {
@@ -20,23 +23,33 @@ function formatAlertMessage(message: string) {
     .replace(/\w\S*/g, (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
 }
 
-function getRedirectPath() {
-  // Route Users Based on ROLE
+function normalizeRedirectPath(redirectTo?: string | null) {
+  if (redirectTo === '/trainee/campaigns' || redirectTo === ROUTES.CAMPAIGNS) {
+    return ROUTES.CAMPAIGNS;
+  }
+  return ROUTES.CAMPAIGNS;
+}
 
-  // LATER ON: We can do something like this (FOR EXAMPLE):
-  // function getRedirectPath(role: UserRole) {
-  //   case 'ADMIN':
-  //     return '/admin';
-  //   case 'EMPLOYEE':
-  //     return '/campaigns';
-  // }
-  // For now, leave it as '/campaigns'
-  return '/campaigns';
+function getLoginErrorMessage(error: unknown) {
+  if (error instanceof ApiError) {
+    if (error.status === 401) {
+      return 'Invalid Email Address Or Password';
+    }
+
+    if (error.status === 403) {
+      return 'Access Denied';
+    }
+
+    if (error.status === 429) {
+      return 'Too Many Login Attempts. Please Try Again Later';
+    }
+  }
+
+  return 'Unable To Connect To Server';
 }
 
 function LoginPage() {
   const navigate = useNavigate();
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
 
@@ -44,6 +57,7 @@ function LoginPage() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
 
@@ -51,7 +65,7 @@ function LoginPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate(getRedirectPath(), { replace: true });
+      navigate(normalizeRedirectPath(), { replace: true });
     }
   }, [isAuthenticated, navigate]);
 
@@ -62,6 +76,7 @@ function LoginPage() {
     const validationResult = authLoginRequestSchema.safeParse({
       email,
       password,
+      rememberMe,
     });
 
     if (!validationResult.success) {
@@ -75,51 +90,14 @@ function LoginPage() {
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(validationResult.data),
-      });
+      const authResponse = await loginUser(validationResult.data);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        setIsLoading(false);
-
-        if (response.status === 401) {
-          setAlertMessage('Invalid Email Address Or Password');
-          return;
-        }
-
-        if (response.status === 403) {
-          // FIX THIS TO BE MORE SPECIFIC BASED OFF OF THE DATA CODES FROM BACKEND
-          // It will be FIXED during IMPLEMENTATION (NOT AS OF YET/RIGHT NOW [29 June 2026])
-          // It should be OKAY for now...
-          //   For example,
-          //   if (data.code === 'EMAIL_NOT_VERIFIED') {
-          //        setAlertMessage('Email Not Verified');
-          //   }
-
-          setAlertMessage(formatAlertMessage(data.message) || 'Access Denied');
-          return;
-        }
-
-        setAlertMessage(formatAlertMessage(data.message) || 'Login Failed');
-        return;
-      }
-
-      login(data.token, {
-        firstName: data.user.firstName,
-        lastName: data.user.lastName,
-        email: data.user.email,
-      });
-
-      navigate(getRedirectPath());
-    } catch {
+      login(authResponse);
+      navigate(normalizeRedirectPath(authResponse.redirectTo));
+    } catch (error) {
+      setAlertMessage(getLoginErrorMessage(error));
+    } finally {
       setIsLoading(false);
-      setAlertMessage('Unable To Connect To Server');
     }
   }
 
@@ -240,8 +218,9 @@ function LoginPage() {
                 <input
                   id="default-checkbox"
                   type="checkbox"
-                  value=""
+                  checked={rememberMe}
                   disabled={isLoading}
+                  onChange={(event) => setRememberMe(event.target.checked)}
                   className="accent-[#8400ff] w-5 h-5 border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
                 />
                 <label
