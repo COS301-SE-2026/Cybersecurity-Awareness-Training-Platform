@@ -91,6 +91,7 @@ function ResetPasswordPage() {
         isOpen={showPasswordResetLinkExpiredModal}
         errorType="Invalid" // See PasswordResetLinkExpiredModal.tsx for LIST...
         onRequestNewLink={() => {
+          setShowPasswordResetLinkExpiredModal(false); // Make Lint Happy (I LOVE LINTING) (remove later).
           // REDIRECT TO FORGOT PASSWORD or TRIGGER REQUEST NEW LINK FLOW...
         }}
       />
