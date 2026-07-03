@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { authResetPasswordRequestSchema } from '@insightful-phish/shared';
 import SuccessfulPasswordResetModal from '../components/layout/modals/SuccessfulPasswordResetModal';
 import { Popover } from 'flowbite-react';
+import PasswordResetLinkExpiredModal from '../components/layout/modals/PasswordResetLinkExpiredModal';
 
 function formatAlertMessage(message: string) {
   // makes everything title case and removes the . from the end of the message
@@ -18,6 +19,7 @@ function ResetPasswordPage() {
   const [showSuccessfulPasswordResetModal, setShowSuccessfulPasswordResetModal] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [showPasswordResetLinkExpiredModal, setShowPasswordResetLinkExpiredModal] = useState(false);
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -83,6 +85,15 @@ function ResetPasswordPage() {
     <section className="bg-light-purple dark:bg-gray-900">
       {/* SUCCESSFUL PASSWORD RESET INDICATION MODAL */}
       <SuccessfulPasswordResetModal isOpen={showSuccessfulPasswordResetModal} />
+
+      {/* PASSWORD RESET LINK EXPIRED MODAL  */}
+      <PasswordResetLinkExpiredModal
+        isOpen={showPasswordResetLinkExpiredModal}
+        errorType="Invalid" // See PasswordResetLinkExpiredModal.tsx for LIST...
+        onRequestNewLink={() => {
+          // REDIRECT TO FORGOT PASSWORD or TRIGGER REQUEST NEW LINK FLOW...
+        }}
+      />
 
       <div className="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0">
         {/* LOGO  */}
@@ -168,7 +179,7 @@ function ResetPasswordPage() {
                 value={confirmNewPassword}
                 onChange={(e) => setConfirmNewPassword(e.target.value)}
                 disabled={isLoading}
-                id="confirm-new-passwors"
+                id="confirm-new-password"
                 className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                 placeholder="Re-Enter New Password"
               />
