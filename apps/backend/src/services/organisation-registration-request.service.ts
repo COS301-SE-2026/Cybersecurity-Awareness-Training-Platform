@@ -554,7 +554,7 @@ export async function getPlatformOrganisationDetail(actorUserId: string, organis
   // Find initial setup invitation and tokens
   const { invitation, latestEmailLog } = await querySetupInvitationAndEmailLog({ organisationId });
 
-  const resendEligibility = getResendEligibility(organisation.status, invitation, latestEmailLog);
+  const resendEligibility = getResendEligibility(organisation.status, invitation);
 
   // Fetch admin profiles with high-level summary only
   const admins = await prisma.organisationAdminProfile.findMany({
@@ -636,7 +636,6 @@ export async function getOrganisationRequestDetails(actorUserId: string, request
   const resendEligibility = getResendEligibility(
     organisation?.status ?? 'PENDING_ONBOARDING',
     invitation,
-    latestEmailLog,
   );
 
   // Fetch unified timeline
@@ -712,7 +711,7 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
     orderBy: { createdAt: 'desc' },
   });
 
-  const eligibility = getResendEligibility(organisation.status, invitation, latestEmailLog);
+  const eligibility = getResendEligibility(organisation.status, invitation);
   if (!eligibility.isEligible) {
     throw new OrganisationRegistrationRequestError(
       409,
@@ -846,7 +845,7 @@ async function buildPlatformTimeline(
     summary: string;
     actor?: string | null;
     status?: string | null;
-    details?: any;
+    details?: unknown;
   }> = [];
 
   for (const log of auditLogs) {
@@ -883,7 +882,7 @@ async function buildPlatformTimeline(
   return timeline;
 }
 
-function getResendEligibility(organisationStatus: string, invitation: any, latestEmailLog: any) {
+function getResendEligibility(organisationStatus: string, invitation: { status: string } | null) {
   if (organisationStatus !== 'PENDING_ONBOARDING') {
     return { isEligible: false, reason: 'ORGANISATION_ALREADY_ACTIVE' };
   }
@@ -1074,7 +1073,31 @@ async function querySetupInvitationAndEmailLog(where: {
   return { invitation, latestEmailLog };
 }
 
-function formatSetupStatus(invitation: any, latestEmailLog: any) {
+interface FormatInvitationInput {
+  id: string;
+  status: string;
+  recipientEmail: string;
+  expiresAt: Date;
+  actionTokens: Array<{
+    id: string;
+    expiresAt: Date;
+    usedAt: Date | null;
+    revokedAt: Date | null;
+  }>;
+}
+
+interface FormatEmailLogInput {
+  id: string;
+  deliveryStatus: string;
+  sentAt: Date | null;
+  failedAt: Date | null;
+  failureReason: string | null;
+}
+
+function formatSetupStatus(
+  invitation: FormatInvitationInput | null,
+  latestEmailLog: FormatEmailLogInput | null,
+) {
   if (!invitation) return null;
   return {
     id: invitation.id,

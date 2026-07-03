@@ -50,7 +50,16 @@ export async function listOrganisationRequests(req: Request, res: Response) {
   if (!actorUserId) return;
 
   try {
-    const result = await listRequestsService(actorUserId, req.query as any);
+    const result = await listRequestsService(
+      actorUserId,
+      req.query as unknown as {
+        page: number;
+        limit: number;
+        sort?: string;
+        status?: 'CANCELLED' | 'APPROVED' | 'PENDING_REVIEW' | 'CONTACTED' | 'REJECTED';
+        search?: string;
+      },
+    );
     return res.status(200).json(result);
   } catch (error) {
     return handleControllerError(error, res);

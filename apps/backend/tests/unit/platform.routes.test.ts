@@ -12,7 +12,7 @@ let mockUserType = 'IP_ADMIN';
 const serviceMock = vi.hoisted(() => {
   class MockOrganisationRegistrationRequestError extends Error {
     constructor(
-      public readonly statusCode: any,
+      public readonly statusCode: number,
       public readonly error: string,
       message: string,
     ) {
@@ -46,7 +46,11 @@ vi.mock('../../src/middleware/requireAuth.js', () => ({
         firstName: 'Patricia',
         lastName: 'Platform',
         email: 'patricia@example.test',
-        userType: mockUserType as any,
+        userType: mockUserType as
+          | 'IP_ADMIN'
+          | 'ORGANISATION_ADMIN'
+          | 'ORGANISATION_TRAINEE'
+          | 'GENERAL_TRAINEE',
         authStatus: 'ACTIVE',
         createdAt: '2026-07-01T08:00:00.000Z',
       },
