@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 
@@ -14,7 +14,7 @@ describe('ResetPasswordPage', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('heading', { name: /Reset your Password/i })).toBeInTheDocument;
+    expect(screen.getByRole('heading', { name: /Reset your Password/i })).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/Enter a New Password/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/Re-Enter New Password/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Reset Password/i })).toBeInTheDocument();
@@ -99,5 +99,42 @@ describe('ResetPasswordPage', () => {
     await userEvent.click(screen.getByRole('button', { name: /Reset Password/i }));
 
     expect(screen.getByRole('button', { name: /Resetting Password.../i })).toBeDisabled();
+  });
+
+  // Test 6: Password Fields Update
+  it('updates both password fields when typing', async () => {
+    render(
+      <MemoryRouter>
+        <ResetPasswordPage />
+      </MemoryRouter>,
+    );
+
+    const NEW_PASSWORD = screen.getByPlaceholderText(/Enter a New Password/i);
+    const CONFIRM_PASSWORD = screen.getByPlaceholderText(/Re-Enter New Password/i);
+
+    await userEvent.type(NEW_PASSWORD, 'Password-1-Test@!Connor-Was-Here!');
+
+    await userEvent.type(CONFIRM_PASSWORD, 'Password-1-Test@!Connor-Was-Here!');
+
+    expect(NEW_PASSWORD).toHaveValue('Password-1-Test@!Connor-Was-Here!');
+    expect(CONFIRM_PASSWORD).toHaveValue('Password-1-Test@!Connor-Was-Here!');
+  });
+
+  // Test 7: Accessibility
+  // Back to Login Link is Keyboard Accessible
+  it('back to login link is keyboard accessible', () => {
+    render(
+      <MemoryRouter>
+        <ResetPasswordPage />
+      </MemoryRouter>,
+    );
+
+    const BACK_TO_LOGIN_LINK = screen.getByRole('link', {
+      name: /Back to Login/i,
+    });
+
+    BACK_TO_LOGIN_LINK.focus();
+
+    expect(BACK_TO_LOGIN_LINK).toHaveFocus();
   });
 });
