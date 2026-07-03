@@ -108,6 +108,13 @@ const expectedSchemas = [
   'QuizResultOption',
   'QuizAttempt',
   'AttemptAnswer',
+  'OrganisationSecuritySettings',
+  'OrganisationSecuritySettingsEffectivePolicy',
+  'OrganisationSecuritySettingsLimits',
+  'OrganisationSecuritySettingsChangesApply',
+  'OrganisationSecuritySettingsCapabilities',
+  'OrganisationSecuritySettingsResponse',
+  'OrganisationSecuritySettingsUpdateRequest',
   'QuestionType',
   'QuizAttemptStatus',
   'QuizStatus',
@@ -145,6 +152,7 @@ const expectedRequestBodies = [
   'AccountVerifyEmailChange',
   'AuthForgotPassword',
   'AuthResetPassword',
+  'OrganisationSecuritySettingsUpdate',
 ] as const;
 
 const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
@@ -178,6 +186,16 @@ const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
   [
     'post',
     '/organisations/{organisationId}/admins/{adminId}/remove',
+    ['200', '400', '401', '403', '404', '409', '422', '429', '500'],
+  ],
+  [
+    'get',
+    '/organisations/{organisationId}/security-settings',
+    ['200', '400', '401', '403', '404', '429', '500'],
+  ],
+  [
+    'patch',
+    '/organisations/{organisationId}/security-settings',
     ['200', '400', '401', '403', '404', '409', '422', '429', '500'],
   ],
   ['get', '/trainee/campaigns', ['200', '401', '429', '500']],
@@ -339,6 +357,24 @@ describe('swaggerSpec', () => {
     expect(JSON.stringify(getPath('/organisation-registration-requests', 'post'))).toContain(
       '"security":[]',
     );
+  });
+
+  it('documents organisation security settings contract details', () => {
+    expectBearerAuth('/organisations/{organisationId}/security-settings', 'get');
+    expectBearerAuth('/organisations/{organisationId}/security-settings', 'patch');
+
+    const responseSchema = JSON.stringify(
+      spec.components?.schemas?.OrganisationSecuritySettingsResponse,
+    );
+    const updateRequest = JSON.stringify(
+      spec.components?.requestBodies?.OrganisationSecuritySettingsUpdate,
+    );
+
+    expect(responseSchema).toContain('settings');
+    expect(responseSchema).toContain('effectivePolicy');
+    expect(responseSchema).toContain('platformLimits');
+    expect(responseSchema).toContain('capabilities');
+    expect(updateRequest).toContain('OrganisationSecuritySettingsUpdateRequest');
   });
 
   it.each(inactiveRouteDocs)('does not document inactive route %s', (path) => {

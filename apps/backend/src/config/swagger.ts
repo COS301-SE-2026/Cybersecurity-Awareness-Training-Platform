@@ -59,6 +59,60 @@ function nullableString(example: string): OpenApiSchema {
   };
 }
 
+function booleanProperty(example: boolean): OpenApiSchema {
+  return {
+    type: 'boolean',
+    example,
+  };
+}
+
+function nullableIntegerRange(input: {
+  minimum: number;
+  maximum: number;
+  example: number;
+}): OpenApiSchema {
+  return {
+    type: 'integer',
+    nullable: true,
+    minimum: input.minimum,
+    maximum: input.maximum,
+    example: input.example,
+  };
+}
+
+function integerOptionsLimit(input: {
+  minimum: number;
+  maximum: number;
+  defaultValue: number;
+  options: number[];
+}): OpenApiSchema {
+  return {
+    type: 'object',
+    required: ['min', 'max', 'default', 'options'],
+    properties: {
+      min: {
+        type: 'integer',
+        example: input.minimum,
+      },
+      max: {
+        type: 'integer',
+        example: input.maximum,
+      },
+      default: {
+        type: 'integer',
+        example: input.defaultValue,
+      },
+      options: {
+        type: 'array',
+        items: {
+          type: 'integer',
+        },
+        example: input.options,
+      },
+    },
+  };
+}
+
 function trueSuccessProperty(): OpenApiSchema {
   return {
     type: 'boolean',
@@ -111,6 +165,41 @@ function responseComponent(description: string, schemaName: string) {
   };
 }
 
+const organisationSecuritySettingsValueRequired = [
+  'enforceRememberMePolicy',
+  'allowRememberMe',
+  'enforceRegularSessionLength',
+  'enforceIdleTimeout',
+  'requireReauthenticationForSensitiveActions',
+  'allowTraineeEmailChange',
+] as const;
+
+function organisationSecuritySettingsValueProperties(): Record<string, OpenApiSchema> {
+  return {
+    enforceRememberMePolicy: booleanProperty(true),
+    allowRememberMe: booleanProperty(true),
+    maxRememberedSessionHours: nullableIntegerRange({
+      minimum: 1,
+      maximum: 720,
+      example: 168,
+    }),
+    enforceRegularSessionLength: booleanProperty(true),
+    regularSessionLengthHours: nullableIntegerRange({
+      minimum: 1,
+      maximum: 24,
+      example: 8,
+    }),
+    enforceIdleTimeout: booleanProperty(true),
+    idleTimeoutMinutes: nullableIntegerRange({
+      minimum: 5,
+      maximum: 480,
+      example: 30,
+    }),
+    requireReauthenticationForSensitiveActions: booleanProperty(true),
+    allowTraineeEmailChange: booleanProperty(false),
+  };
+}
+
 const options: swaggerJsdoc.Options = {
   definition: {
     openapi: '3.0.0',
@@ -150,6 +239,10 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
       {
         name: 'Organisation Admins',
         description: 'Organisation admin management and permission workflows.',
+      },
+      {
+        name: 'Organisation Security Settings',
+        description: 'Organisation-scoped security policy settings for active organisation admins.',
       },
       {
         name: 'Trainee Simulation',
@@ -1206,6 +1299,210 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             },
             status: enumString(['DISABLED'], 'DISABLED'),
           },
+        },
+        OrganisationSecuritySettings: {
+          type: 'object',
+          required: [
+            'id',
+            'organisationId',
+            ...organisationSecuritySettingsValueRequired,
+            'createdAt',
+            'updatedAt',
+          ],
+          properties: {
+            id: {
+              ...uuidString('33333333-3333-4333-8333-333333333333'),
+            },
+            organisationId: {
+              ...uuidString('11111111-1111-4111-8111-111111111111'),
+            },
+            ...organisationSecuritySettingsValueProperties(),
+            updatedByOrganisationAdminId: {
+              ...nullableUuidString('22222222-2222-4222-8222-222222222222'),
+            },
+            createdAt: {
+              ...dateTimeString('2026-07-01T08:00:00.000Z'),
+            },
+            updatedAt: {
+              ...dateTimeString('2026-07-02T08:00:00.000Z'),
+            },
+          },
+        },
+        OrganisationSecuritySettingsEffectivePolicy: {
+          type: 'object',
+          required: [
+            'organisationId',
+            'rememberMeRequested',
+            'rememberMeAllowed',
+            'rememberMeApplied',
+            'regularSessionSeconds',
+            'rememberedSessionSeconds',
+            'effectiveSessionSeconds',
+            'idleTimeoutMinutes',
+            'requireReauthenticationForSensitiveActions',
+            'allowEmailChange',
+          ],
+          properties: {
+            organisationId: {
+              ...nullableUuidString('11111111-1111-4111-8111-111111111111'),
+            },
+            rememberMeRequested: {
+              ...booleanProperty(false),
+            },
+            rememberMeAllowed: {
+              ...booleanProperty(true),
+            },
+            rememberMeApplied: {
+              ...booleanProperty(false),
+            },
+            regularSessionSeconds: {
+              type: 'integer',
+              example: 28800,
+            },
+            rememberedSessionSeconds: {
+              type: 'integer',
+              example: 604800,
+            },
+            effectiveSessionSeconds: {
+              type: 'integer',
+              example: 28800,
+            },
+            idleTimeoutMinutes: {
+              type: 'integer',
+              nullable: true,
+              example: 30,
+            },
+            requireReauthenticationForSensitiveActions: {
+              ...booleanProperty(true),
+            },
+            allowEmailChange: {
+              ...booleanProperty(false),
+            },
+          },
+        },
+        OrganisationSecuritySettingsLimits: {
+          type: 'object',
+          required: ['rememberMe', 'regularSession', 'idleTimeout'],
+          properties: {
+            rememberMe: {
+              type: 'object',
+              required: ['maxRememberedSessionHours'],
+              properties: {
+                maxRememberedSessionHours: integerOptionsLimit({
+                  minimum: 1,
+                  maximum: 720,
+                  defaultValue: 168,
+                  options: [24, 72, 168, 336, 720],
+                }),
+              },
+            },
+            regularSession: {
+              type: 'object',
+              required: ['regularSessionLengthHours'],
+              properties: {
+                regularSessionLengthHours: integerOptionsLimit({
+                  minimum: 1,
+                  maximum: 24,
+                  defaultValue: 8,
+                  options: [4, 8, 12, 24],
+                }),
+              },
+            },
+            idleTimeout: {
+              type: 'object',
+              required: ['idleTimeoutMinutes'],
+              properties: {
+                idleTimeoutMinutes: integerOptionsLimit({
+                  minimum: 5,
+                  maximum: 480,
+                  defaultValue: 30,
+                  options: [15, 30, 60, 120, 240, 480],
+                }),
+              },
+            },
+          },
+        },
+        OrganisationSecuritySettingsChangesApply: {
+          type: 'object',
+          required: [
+            'rememberMePolicy',
+            'regularSessionLength',
+            'idleTimeout',
+            'requireReauthenticationForSensitiveActions',
+            'allowTraineeEmailChange',
+          ],
+          properties: {
+            rememberMePolicy: enumString(['NEXT_REFRESH_OR_LOGIN'], 'NEXT_REFRESH_OR_LOGIN'),
+            regularSessionLength: enumString(['NEXT_REFRESH_OR_LOGIN'], 'NEXT_REFRESH_OR_LOGIN'),
+            idleTimeout: enumString(['NEXT_REFRESH'], 'NEXT_REFRESH'),
+            requireReauthenticationForSensitiveActions: enumString(
+              ['IMMEDIATE_FOR_NEW_ACTIONS'],
+              'IMMEDIATE_FOR_NEW_ACTIONS',
+            ),
+            allowTraineeEmailChange: enumString(
+              ['IMMEDIATE_FOR_NEW_REQUESTS'],
+              'IMMEDIATE_FOR_NEW_REQUESTS',
+            ),
+          },
+        },
+        OrganisationSecuritySettingsCapabilities: {
+          type: 'object',
+          required: ['canView', 'canEdit', 'readOnlyReason', 'changesApply'],
+          properties: {
+            canView: {
+              ...booleanProperty(true),
+            },
+            canEdit: {
+              ...booleanProperty(true),
+            },
+            readOnlyReason: {
+              type: 'string',
+              nullable: true,
+              enum: ['MISSING_PERMISSION', 'ORGANISATION_SUSPENDED', 'ORGANISATION_DISABLED'],
+              example: null,
+            },
+            changesApply: {
+              $ref: '#/components/schemas/OrganisationSecuritySettingsChangesApply',
+            },
+          },
+        },
+        OrganisationSecuritySettingsResponse: {
+          type: 'object',
+          required: [
+            'organisationId',
+            'settings',
+            'effectivePolicy',
+            'platformLimits',
+            'capabilities',
+          ],
+          properties: {
+            organisationId: {
+              ...uuidString('11111111-1111-4111-8111-111111111111'),
+            },
+            settings: {
+              $ref: '#/components/schemas/OrganisationSecuritySettings',
+            },
+            effectivePolicy: {
+              $ref: '#/components/schemas/OrganisationSecuritySettingsEffectivePolicy',
+            },
+            platformLimits: {
+              $ref: '#/components/schemas/OrganisationSecuritySettingsLimits',
+            },
+            capabilities: {
+              $ref: '#/components/schemas/OrganisationSecuritySettingsCapabilities',
+            },
+          },
+        },
+        OrganisationSecuritySettingsUpdateRequest: {
+          type: 'object',
+          required: [
+            ...organisationSecuritySettingsValueRequired,
+            'maxRememberedSessionHours',
+            'regularSessionLengthHours',
+            'idleTimeoutMinutes',
+          ],
+          additionalProperties: false,
+          properties: organisationSecuritySettingsValueProperties(),
         },
         DifficultyLevel: enumString(
           ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ADAPTIVE'],
@@ -2436,6 +2733,10 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           required: true,
           ...jsonContent(schemaRef('OrganisationAdminRemoveRequest')),
         },
+        OrganisationSecuritySettingsUpdate: {
+          required: true,
+          ...jsonContent(schemaRef('OrganisationSecuritySettingsUpdateRequest')),
+        },
       },
       responses: {
         HealthOk: responseComponent('API and database are reachable.', 'HealthStatus'),
@@ -2501,6 +2802,14 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         OrganisationAdminRemoved: responseComponent(
           'Organisation admin privileges removed.',
           'OrganisationAdminRemoveResponse',
+        ),
+        OrganisationSecuritySettingsOk: responseComponent(
+          'Organisation security settings and effective policy.',
+          'OrganisationSecuritySettingsResponse',
+        ),
+        OrganisationSecuritySettingsUpdated: responseComponent(
+          'Organisation security settings updated.',
+          'OrganisationSecuritySettingsResponse',
         ),
         TraineeCampaignsOk: responseComponent(
           'Campaigns accessible to the authenticated active trainee.',

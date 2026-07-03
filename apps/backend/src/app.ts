@@ -14,6 +14,7 @@ import { errorHandler } from './middleware/errorHandler.js';
 import { setupRouter } from './routes/setup.routes.js';
 import { organisationRegistrationRequestRouter } from './routes/organisation-registration-request.routes.js';
 import { organisationAdminRouter } from './routes/organisation-admin.routes.js';
+import { organisationSecuritySettingsRouter } from './routes/organisation-security-settings.routes.js';
 
 export function createApp() {
   const app = express();
@@ -41,6 +42,7 @@ export function createApp() {
   app.use(setupRouter);
   app.use(organisationRegistrationRequestRouter);
   app.use(organisationAdminRouter);
+  app.use(organisationSecuritySettingsRouter);
   app.use('/trainee', traineeRouter);
   app.use(traineeTrainingRouter);
   app.use('/trainee/campaign-items', traineeQuizRouter);
