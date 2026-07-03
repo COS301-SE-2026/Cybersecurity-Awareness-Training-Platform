@@ -166,6 +166,27 @@ export async function resolveEffectiveSecurityPolicy(
   };
 }
 
+export function resolveEffectiveSecurityPolicyFromOrganisationSettings(input: {
+  settings: OrganisationSecuritySettingsRecord;
+  rememberMeRequested?: boolean;
+  platform?: PlatformSecurityPolicy;
+}): EffectiveSecurityPolicy {
+  const platform = input.platform ?? PLATFORM_SECURITY_POLICY;
+  const sessionPolicy = resolveSessionPolicy({
+    rememberMeRequested: input.rememberMeRequested ?? false,
+    platform,
+    organisationPolicy: toOrganisationSessionPolicy(input.settings),
+  });
+
+  return {
+    ...sessionPolicy,
+    organisationId: input.settings.organisationId,
+    requireReauthenticationForSensitiveActions:
+      input.settings.requireReauthenticationForSensitiveActions,
+    allowEmailChange: input.settings.allowTraineeEmailChange,
+  };
+}
+
 export async function canUserChangeOwnEmail(subject: GuardAuthSubject): Promise<boolean> {
   const organisationSettings = await findOrganisationSettingsOrDefault(
     organisationIdForSecurityPolicy(subject),
