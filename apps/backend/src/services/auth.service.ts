@@ -22,8 +22,13 @@ import { requestAuthEmailSend } from './auth-email-hook.service.js';
 import { generateAuthToken } from './auth-token.service.js';
 import * as PasswordService from './password.service.js';
 import { ensureUserCanAuthenticate } from './auth-status-guard.service.js';
-import { resolveSessionPolicy } from './session-policy.service.js';
-import { issueAuthSession, revokeSessionById, touchSession } from './auth-session.service.js';
+import {
+  calculateSessionExpiresAt,
+  issueAuthSession,
+  revokeSessionById,
+  touchSession,
+  updateSessionPolicy,
+} from './auth-session.service.js';
 import {
   issueRefreshToken,
   rotateRefreshToken,
@@ -32,6 +37,10 @@ import {
 } from './refresh-token.service.js';
 import { recordUserLogin, recordAuthSessionRevoked } from './auth-audit.service.js';
 import { buildAuthContext } from './auth-context.service.js';
+import {
+  resolveEffectiveSecurityPolicy,
+  type EffectiveSecurityPolicy,
+} from './security-policy.service.js';
 
 const EMAIL_VERIFICATION_TOKEN_TTL_HOURS = 24;
 const REGISTER_GENERIC_MESSAGE =
@@ -207,13 +216,6 @@ export class AuthRefreshTokenInvalidError extends Error {
   }
 }
 
-const PLATFORM_SESSION_POLICY = {
-  regularSessionSeconds: 900,
-  rememberedSessionSeconds: 604800,
-  idleTimeoutMinutes: 30,
-  allowRememberMe: true,
-};
-
 export async function loginUser(
   input: AuthLoginRequestDto & { ipAddress?: string | null; userAgent?: string | null },
 ): Promise<{
@@ -240,15 +242,20 @@ export async function loginUser(
     throw new AuthStatusGuardError(guardResult.code, guardResult.statusCode, guardResult.message);
   }
 
-  const policy = resolveSessionPolicy({
+  const policy = await resolveEffectiveSecurityPolicy({
+    subject,
     rememberMeRequested: !!input.rememberMe,
-    platform: PLATFORM_SESSION_POLICY,
+  });
+  const sessionExpiresAt = calculateSessionExpiresAt({
+    rememberMe: policy.rememberMeApplied,
+    regularSessionSeconds: policy.regularSessionSeconds,
+    rememberedSessionSeconds: policy.rememberedSessionSeconds,
   });
 
   const session = await issueAuthSession({
     userId: user.id,
     rememberMe: policy.rememberMeApplied,
-    expiresAt: new Date(Date.now() + policy.effectiveSessionSeconds * 1000),
+    expiresAt: sessionExpiresAt,
     idleTimeoutMinutes: policy.idleTimeoutMinutes,
     userAgent: input.userAgent ?? null,
     ipAddress: input.ipAddress ?? null,
@@ -287,6 +294,49 @@ export async function loginUser(
     rawRefreshToken: refreshResult.rawToken,
     sessionExpiresAt: session.expiresAt,
   };
+}
+
+function earlierDate(first: Date, second: Date): Date {
+  return first.getTime() <= second.getTime() ? first : second;
+}
+
+function sessionExpiresAtForPolicy(input: {
+  createdAt: Date;
+  rememberMe: boolean;
+  policy: EffectiveSecurityPolicy;
+}): Date {
+  return calculateSessionExpiresAt({
+    now: input.createdAt,
+    rememberMe: input.rememberMe,
+    regularSessionSeconds: input.policy.regularSessionSeconds,
+    rememberedSessionSeconds: input.policy.rememberedSessionSeconds,
+  });
+}
+
+function isIdleExpired(input: {
+  lastActiveAt: Date;
+  idleTimeoutMinutes: number | null;
+  now: Date;
+}): boolean {
+  if (input.idleTimeoutMinutes === null) {
+    return false;
+  }
+
+  return input.lastActiveAt.getTime() + input.idleTimeoutMinutes * 60 * 1000 <= input.now.getTime();
+}
+
+async function revokeSessionForPolicyFailure(input: {
+  sessionId: string;
+  sessionReason: AuthSessionRevokedReason;
+}) {
+  await revokeSessionById({
+    sessionId: input.sessionId,
+    reason: input.sessionReason,
+  });
+  await revokeRefreshTokensForSession({
+    authSessionId: input.sessionId,
+    reason: input.sessionReason === 'EXPIRED' ? 'EXPIRED' : 'OTHER',
+  });
 }
 
 export async function getCurrentUser(userId: string): Promise<AuthMeResponseDto> {
@@ -357,11 +407,59 @@ export async function refreshUserToken(
     throw new AuthStatusGuardError(guardResult.code, guardResult.statusCode, guardResult.message);
   }
 
+  const policy = await resolveEffectiveSecurityPolicy({
+    subject,
+    rememberMeRequested: token.authSession.rememberMe,
+  });
+  const now = new Date();
+
+  if (token.authSession.rememberMe && !policy.rememberMeAllowed) {
+    await revokeSessionForPolicyFailure({
+      sessionId: token.authSessionId,
+      sessionReason: 'OTHER',
+    });
+    throw new AuthRefreshTokenInvalidError();
+  }
+
+  const policyExpiresAt = sessionExpiresAtForPolicy({
+    createdAt: token.authSession.createdAt,
+    rememberMe: token.authSession.rememberMe,
+    policy,
+  });
+
+  if (policyExpiresAt.getTime() <= now.getTime()) {
+    await revokeSessionForPolicyFailure({
+      sessionId: token.authSessionId,
+      sessionReason: 'EXPIRED',
+    });
+    throw new AuthRefreshTokenInvalidError();
+  }
+
+  if (
+    isIdleExpired({
+      lastActiveAt: token.authSession.lastActiveAt,
+      idleTimeoutMinutes: policy.idleTimeoutMinutes,
+      now,
+    })
+  ) {
+    await revokeSessionForPolicyFailure({
+      sessionId: token.authSessionId,
+      sessionReason: 'EXPIRED',
+    });
+    throw new AuthRefreshTokenInvalidError();
+  }
+
+  const nextSessionExpiresAt = earlierDate(token.authSession.expiresAt, policyExpiresAt);
+  await updateSessionPolicy({
+    sessionId: token.authSessionId,
+    expiresAt: nextSessionExpiresAt,
+    idleTimeoutMinutes: policy.idleTimeoutMinutes,
+  });
   await touchSession(token.authSessionId);
 
   const rotationResult = await rotateRefreshToken({
     rawToken,
-    nextExpiresAt: token.authSession.expiresAt,
+    nextExpiresAt: nextSessionExpiresAt,
     ipAddress,
     userAgent,
   });
@@ -388,7 +486,7 @@ export async function refreshUserToken(
     },
     accessTokenExpiresAt: tokenResult.expiresAt,
     rawRefreshToken: rotationResult.rawToken,
-    sessionExpiresAt: token.authSession.expiresAt,
+    sessionExpiresAt: nextSessionExpiresAt,
   };
 }
 

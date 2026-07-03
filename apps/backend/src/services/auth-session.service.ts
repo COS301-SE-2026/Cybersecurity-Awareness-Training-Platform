@@ -6,6 +6,7 @@ import {
   revokeAuthSession,
   revokeUserAuthSessions,
   touchAuthSession,
+  updateAuthSessionPolicy,
   type CreateAuthSessionInput,
 } from '../repositories/auth-session.repository.js';
 
@@ -91,4 +92,16 @@ export async function revokeSessionsForUser(input: {
 
 export async function touchSession(id: string) {
   return touchAuthSession(id);
+}
+
+export async function updateSessionPolicy(input: {
+  sessionId: string;
+  expiresAt: Date;
+  idleTimeoutMinutes?: number | null;
+}) {
+  return updateAuthSessionPolicy({
+    id: input.sessionId,
+    expiresAt: input.expiresAt,
+    idleTimeoutMinutes: input.idleTimeoutMinutes ?? null,
+  });
 }
