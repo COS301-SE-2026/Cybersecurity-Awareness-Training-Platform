@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { swaggerSpec } from '../../src/config/swagger.js';
 
-type HttpMethod = 'get' | 'patch' | 'post';
+type HttpMethod = 'get' | 'patch' | 'post' | 'delete';
 
 interface SwaggerOperationShape {
   responses?: Record<string, unknown>;
@@ -50,6 +50,12 @@ const expectedSchemas = [
   'SetupCompleteRequest',
   'SetupCompleteResponse',
   'CreateOrganisationRegistrationRequest',
+  'PlatformOrganisationRequest',
+  'PlatformOrganisationRequestsListResponse',
+  'ApproveOrganisationRequest',
+  'RejectOrganisationRequest',
+  'PlatformOrganisationDetail',
+  'PlatformOrganisationRequestDetailsResponse',
   'OrganisationRegistrationRequestCreatedResponse',
   'OrganisationRegistrationRequestConflictErrorResponse',
   'UserType',
@@ -141,6 +147,8 @@ const expectedRequestBodies = [
   'SubmitQuizAttempt',
   'SetupComplete',
   'CreateOrganisationRegistrationRequest',
+  'ApproveOrganisationRequest',
+  'RejectOrganisationRequest',
   'AuthVerifyEmail',
   'AccountVerifyEmailChange',
   'AuthForgotPassword',
@@ -164,6 +172,43 @@ const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
   ['get', '/setup/token/{token}/context', ['200', '400', '401', '409', '429', '500']],
   ['post', '/setup/token/{token}/complete', ['201', '400', '401', '409', '429', '500']],
   ['post', '/organisation-registration-requests', ['201', '409', '422', '429', '500']],
+  ['get', '/platform/organisation-requests', ['200', '401', '403', '429', '500']],
+  [
+    'get',
+    '/platform/organisation-requests/{requestId}',
+    ['200', '401', '403', '404', '429', '500'],
+  ],
+  [
+    'patch',
+    '/platform/organisation-requests/{requestId}/contacted',
+    ['200', '401', '403', '404', '409', '429', '500'],
+  ],
+  [
+    'post',
+    '/platform/organisation-requests/{requestId}/approve',
+    ['200', '400', '401', '403', '404', '409', '422', '429', '500'],
+  ],
+  [
+    'post',
+    '/platform/organisation-requests/{requestId}/reject',
+    ['200', '400', '401', '403', '404', '409', '422', '429', '500'],
+  ],
+  [
+    'delete',
+    '/platform/organisation-requests/{requestId}',
+    ['200', '401', '403', '404', '409', '429', '500'],
+  ],
+  ['get', '/platform/organisations/{organisationId}', ['200', '401', '403', '404', '429', '500']],
+  [
+    'get',
+    '/platform/organisation-requests/{requestId}/details',
+    ['200', '401', '403', '404', '429', '500'],
+  ],
+  [
+    'post',
+    '/platform/organisations/{organisationId}/resend-initial-admin-setup',
+    ['200', '401', '403', '404', '409', '429', '500'],
+  ],
   ['get', '/organisations/{organisationId}/admins', ['200', '400', '401', '403', '429', '500']],
   [
     'post',
