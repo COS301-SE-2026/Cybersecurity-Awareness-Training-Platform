@@ -7,3 +7,4 @@ export * from './quizzes.schemas.js';
 export * from './organisation-registration.schemas.js';
 export * from './email-template.schemas.js';
 export * from './organisation-admin.schemas.js';
+export * from './organisation-security-settings.schemas.js';
