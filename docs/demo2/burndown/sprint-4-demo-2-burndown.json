@@ -4,6 +4,13 @@
   "end": "2026-07-08",
   "issues": [
     {
+      "number": 323,
+      "title": "fix: make login timing safer for unknown emails",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
       "number": 317,
       "title": "fix: make individual registration enumeration-safe",
       "points": 2,
@@ -63,8 +70,8 @@
       "number": 287,
       "title": "feat: implement backend organisation security settings endpoints",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-07-03"
     },
     {
       "number": 286,
@@ -560,78 +567,78 @@
   "series": [
     {
       "date": "2026-06-19",
-      "remaining": 174,
-      "ideal": 174.0
+      "remaining": 176,
+      "ideal": 176.0
     },
     {
       "date": "2026-06-20",
-      "remaining": 174,
-      "ideal": 164.84
+      "remaining": 176,
+      "ideal": 166.74
     },
     {
       "date": "2026-06-21",
-      "remaining": 174,
-      "ideal": 155.68
+      "remaining": 176,
+      "ideal": 157.47
     },
     {
       "date": "2026-06-22",
-      "remaining": 172,
-      "ideal": 146.53
+      "remaining": 174,
+      "ideal": 148.21
     },
     {
       "date": "2026-06-23",
-      "remaining": 160,
-      "ideal": 137.37
+      "remaining": 162,
+      "ideal": 138.95
     },
     {
       "date": "2026-06-24",
-      "remaining": 158,
-      "ideal": 128.21
+      "remaining": 160,
+      "ideal": 129.68
     },
     {
       "date": "2026-06-25",
-      "remaining": 154,
-      "ideal": 119.05
+      "remaining": 156,
+      "ideal": 120.42
     },
     {
       "date": "2026-06-26",
-      "remaining": 152,
-      "ideal": 109.89
+      "remaining": 154,
+      "ideal": 111.16
     },
     {
       "date": "2026-06-27",
-      "remaining": 152,
-      "ideal": 100.74
+      "remaining": 154,
+      "ideal": 101.89
     },
     {
       "date": "2026-06-28",
-      "remaining": 149,
-      "ideal": 91.58
+      "remaining": 151,
+      "ideal": 92.63
     },
     {
       "date": "2026-06-29",
-      "remaining": 141,
-      "ideal": 82.42
+      "remaining": 143,
+      "ideal": 83.37
     },
     {
       "date": "2026-06-30",
-      "remaining": 130,
-      "ideal": 73.26
+      "remaining": 132,
+      "ideal": 74.11
     },
     {
       "date": "2026-07-01",
-      "remaining": 116,
-      "ideal": 64.11
+      "remaining": 118,
+      "ideal": 64.84
     },
     {
       "date": "2026-07-02",
-      "remaining": 109,
-      "ideal": 54.95
+      "remaining": 111,
+      "ideal": 55.58
     },
     {
       "date": "2026-07-03",
       "remaining": 109,
-      "ideal": 45.79
+      "ideal": 46.32
     }
   ]
 }
