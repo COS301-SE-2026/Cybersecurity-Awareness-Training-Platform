@@ -134,9 +134,9 @@ function updatePayload() {
 }
 
 describe('organisation security settings routes', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
-    clearOrganisationSecuritySettingsRateLimitStores();
+    await clearOrganisationSecuritySettingsRateLimitStores();
   });
 
   it('gets organisation security settings for the authenticated actor and organisation', async () => {

@@ -40,9 +40,9 @@ export const organisationSecuritySettingsMutationRateLimit = rateLimit({
   message: organisationSecuritySettingsRateLimitMessage,
 });
 
-export function clearOrganisationSecuritySettingsRateLimitStores() {
-  void organisationSecuritySettingsReadRateLimitStore.resetAll();
-  void organisationSecuritySettingsMutationRateLimitStore.resetAll();
+export async function clearOrganisationSecuritySettingsRateLimitStores() {
+  await organisationSecuritySettingsReadRateLimitStore.resetAll();
+  await organisationSecuritySettingsMutationRateLimitStore.resetAll();
 }
 
 /**
