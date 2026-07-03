@@ -45,6 +45,33 @@ export function clearOrganisationSecuritySettingsRateLimitStores() {
   void organisationSecuritySettingsMutationRateLimitStore.resetAll();
 }
 
+/**
+ * @openapi
+ * /organisations/{organisationId}/security-settings:
+ *   get:
+ *     tags: [Organisation Security Settings]
+ *     summary: Get organisation security settings
+ *     description: Returns organisation-scoped security settings, the effective policy, platform limits, and edit capabilities for the authenticated organisation admin.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/OrganisationIdPathParam'
+ *     responses:
+ *       200:
+ *         $ref: '#/components/responses/OrganisationSecuritySettingsOk'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
 organisationSecuritySettingsRouter.get(
   '/organisations/:organisationId/security-settings',
   organisationSecuritySettingsReadRateLimit,
@@ -53,6 +80,39 @@ organisationSecuritySettingsRouter.get(
   asyncHandler(getOrganisationSecuritySettingsController),
 );
 
+/**
+ * @openapi
+ * /organisations/{organisationId}/security-settings:
+ *   patch:
+ *     tags: [Organisation Security Settings]
+ *     summary: Update organisation security settings
+ *     description: Updates organisation-scoped security settings for an active organisation when the authenticated organisation admin has the required security-settings permission.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/OrganisationIdPathParam'
+ *     requestBody:
+ *       $ref: '#/components/requestBodies/OrganisationSecuritySettingsUpdate'
+ *     responses:
+ *       200:
+ *         $ref: '#/components/responses/OrganisationSecuritySettingsUpdated'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ *       422:
+ *         $ref: '#/components/responses/UnprocessableEntity'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
 organisationSecuritySettingsRouter.patch(
   '/organisations/:organisationId/security-settings',
   organisationSecuritySettingsMutationRateLimit,
