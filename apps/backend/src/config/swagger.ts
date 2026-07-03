@@ -59,6 +59,60 @@ function nullableString(example: string): OpenApiSchema {
   };
 }
 
+function booleanProperty(example: boolean): OpenApiSchema {
+  return {
+    type: 'boolean',
+    example,
+  };
+}
+
+function nullableIntegerRange(input: {
+  minimum: number;
+  maximum: number;
+  example: number;
+}): OpenApiSchema {
+  return {
+    type: 'integer',
+    nullable: true,
+    minimum: input.minimum,
+    maximum: input.maximum,
+    example: input.example,
+  };
+}
+
+function integerOptionsLimit(input: {
+  minimum: number;
+  maximum: number;
+  defaultValue: number;
+  options: number[];
+}): OpenApiSchema {
+  return {
+    type: 'object',
+    required: ['min', 'max', 'default', 'options'],
+    properties: {
+      min: {
+        type: 'integer',
+        example: input.minimum,
+      },
+      max: {
+        type: 'integer',
+        example: input.maximum,
+      },
+      default: {
+        type: 'integer',
+        example: input.defaultValue,
+      },
+      options: {
+        type: 'array',
+        items: {
+          type: 'integer',
+        },
+        example: input.options,
+      },
+    },
+  };
+}
+
 function trueSuccessProperty(): OpenApiSchema {
   return {
     type: 'boolean',
@@ -108,6 +162,41 @@ function responseComponent(description: string, schemaName: string) {
   return {
     description,
     ...jsonContent(schemaRef(schemaName)),
+  };
+}
+
+const organisationSecuritySettingsValueRequired = [
+  'enforceRememberMePolicy',
+  'allowRememberMe',
+  'enforceRegularSessionLength',
+  'enforceIdleTimeout',
+  'requireReauthenticationForSensitiveActions',
+  'allowTraineeEmailChange',
+] as const;
+
+function organisationSecuritySettingsValueProperties(): Record<string, OpenApiSchema> {
+  return {
+    enforceRememberMePolicy: booleanProperty(true),
+    allowRememberMe: booleanProperty(true),
+    maxRememberedSessionHours: nullableIntegerRange({
+      minimum: 1,
+      maximum: 720,
+      example: 168,
+    }),
+    enforceRegularSessionLength: booleanProperty(true),
+    regularSessionLengthHours: nullableIntegerRange({
+      minimum: 1,
+      maximum: 24,
+      example: 8,
+    }),
+    enforceIdleTimeout: booleanProperty(true),
+    idleTimeoutMinutes: nullableIntegerRange({
+      minimum: 5,
+      maximum: 480,
+      example: 30,
+    }),
+    requireReauthenticationForSensitiveActions: booleanProperty(true),
+    allowTraineeEmailChange: booleanProperty(false),
   };
 }
 
@@ -1216,12 +1305,7 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           required: [
             'id',
             'organisationId',
-            'enforceRememberMePolicy',
-            'allowRememberMe',
-            'enforceRegularSessionLength',
-            'enforceIdleTimeout',
-            'requireReauthenticationForSensitiveActions',
-            'allowTraineeEmailChange',
+            ...organisationSecuritySettingsValueRequired,
             'createdAt',
             'updatedAt',
           ],
@@ -1232,51 +1316,7 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             organisationId: {
               ...uuidString('11111111-1111-4111-8111-111111111111'),
             },
-            enforceRememberMePolicy: {
-              type: 'boolean',
-              example: true,
-            },
-            allowRememberMe: {
-              type: 'boolean',
-              example: true,
-            },
-            maxRememberedSessionHours: {
-              type: 'integer',
-              nullable: true,
-              minimum: 1,
-              maximum: 720,
-              example: 168,
-            },
-            enforceRegularSessionLength: {
-              type: 'boolean',
-              example: true,
-            },
-            regularSessionLengthHours: {
-              type: 'integer',
-              nullable: true,
-              minimum: 1,
-              maximum: 24,
-              example: 8,
-            },
-            enforceIdleTimeout: {
-              type: 'boolean',
-              example: true,
-            },
-            idleTimeoutMinutes: {
-              type: 'integer',
-              nullable: true,
-              minimum: 5,
-              maximum: 480,
-              example: 30,
-            },
-            requireReauthenticationForSensitiveActions: {
-              type: 'boolean',
-              example: true,
-            },
-            allowTraineeEmailChange: {
-              type: 'boolean',
-              example: false,
-            },
+            ...organisationSecuritySettingsValueProperties(),
             updatedByOrganisationAdminId: {
               ...nullableUuidString('22222222-2222-4222-8222-222222222222'),
             },
@@ -1307,16 +1347,13 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
               ...nullableUuidString('11111111-1111-4111-8111-111111111111'),
             },
             rememberMeRequested: {
-              type: 'boolean',
-              example: false,
+              ...booleanProperty(false),
             },
             rememberMeAllowed: {
-              type: 'boolean',
-              example: true,
+              ...booleanProperty(true),
             },
             rememberMeApplied: {
-              type: 'boolean',
-              example: false,
+              ...booleanProperty(false),
             },
             regularSessionSeconds: {
               type: 'integer',
@@ -1336,12 +1373,10 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
               example: 30,
             },
             requireReauthenticationForSensitiveActions: {
-              type: 'boolean',
-              example: true,
+              ...booleanProperty(true),
             },
             allowEmailChange: {
-              type: 'boolean',
-              example: false,
+              ...booleanProperty(false),
             },
           },
         },
@@ -1353,93 +1388,36 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
               type: 'object',
               required: ['maxRememberedSessionHours'],
               properties: {
-                maxRememberedSessionHours: {
-                  type: 'object',
-                  required: ['min', 'max', 'default', 'options'],
-                  properties: {
-                    min: {
-                      type: 'integer',
-                      example: 1,
-                    },
-                    max: {
-                      type: 'integer',
-                      example: 720,
-                    },
-                    default: {
-                      type: 'integer',
-                      example: 168,
-                    },
-                    options: {
-                      type: 'array',
-                      items: {
-                        type: 'integer',
-                      },
-                      example: [24, 72, 168, 336, 720],
-                    },
-                  },
-                },
+                maxRememberedSessionHours: integerOptionsLimit({
+                  minimum: 1,
+                  maximum: 720,
+                  defaultValue: 168,
+                  options: [24, 72, 168, 336, 720],
+                }),
               },
             },
             regularSession: {
               type: 'object',
               required: ['regularSessionLengthHours'],
               properties: {
-                regularSessionLengthHours: {
-                  type: 'object',
-                  required: ['min', 'max', 'default', 'options'],
-                  properties: {
-                    min: {
-                      type: 'integer',
-                      example: 1,
-                    },
-                    max: {
-                      type: 'integer',
-                      example: 24,
-                    },
-                    default: {
-                      type: 'integer',
-                      example: 8,
-                    },
-                    options: {
-                      type: 'array',
-                      items: {
-                        type: 'integer',
-                      },
-                      example: [4, 8, 12, 24],
-                    },
-                  },
-                },
+                regularSessionLengthHours: integerOptionsLimit({
+                  minimum: 1,
+                  maximum: 24,
+                  defaultValue: 8,
+                  options: [4, 8, 12, 24],
+                }),
               },
             },
             idleTimeout: {
               type: 'object',
               required: ['idleTimeoutMinutes'],
               properties: {
-                idleTimeoutMinutes: {
-                  type: 'object',
-                  required: ['min', 'max', 'default', 'options'],
-                  properties: {
-                    min: {
-                      type: 'integer',
-                      example: 5,
-                    },
-                    max: {
-                      type: 'integer',
-                      example: 480,
-                    },
-                    default: {
-                      type: 'integer',
-                      example: 30,
-                    },
-                    options: {
-                      type: 'array',
-                      items: {
-                        type: 'integer',
-                      },
-                      example: [15, 30, 60, 120, 240, 480],
-                    },
-                  },
-                },
+                idleTimeoutMinutes: integerOptionsLimit({
+                  minimum: 5,
+                  maximum: 480,
+                  defaultValue: 30,
+                  options: [15, 30, 60, 120, 240, 480],
+                }),
               },
             },
           },
@@ -1472,12 +1450,10 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           required: ['canView', 'canEdit', 'readOnlyReason', 'changesApply'],
           properties: {
             canView: {
-              type: 'boolean',
-              example: true,
+              ...booleanProperty(true),
             },
             canEdit: {
-              type: 'boolean',
-              example: true,
+              ...booleanProperty(true),
             },
             readOnlyReason: {
               type: 'string',
@@ -1520,64 +1496,13 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         OrganisationSecuritySettingsUpdateRequest: {
           type: 'object',
           required: [
-            'enforceRememberMePolicy',
-            'allowRememberMe',
+            ...organisationSecuritySettingsValueRequired,
             'maxRememberedSessionHours',
-            'enforceRegularSessionLength',
             'regularSessionLengthHours',
-            'enforceIdleTimeout',
             'idleTimeoutMinutes',
-            'requireReauthenticationForSensitiveActions',
-            'allowTraineeEmailChange',
           ],
           additionalProperties: false,
-          properties: {
-            enforceRememberMePolicy: {
-              type: 'boolean',
-              example: true,
-            },
-            allowRememberMe: {
-              type: 'boolean',
-              example: true,
-            },
-            maxRememberedSessionHours: {
-              type: 'integer',
-              nullable: true,
-              minimum: 1,
-              maximum: 720,
-              example: 168,
-            },
-            enforceRegularSessionLength: {
-              type: 'boolean',
-              example: true,
-            },
-            regularSessionLengthHours: {
-              type: 'integer',
-              nullable: true,
-              minimum: 1,
-              maximum: 24,
-              example: 8,
-            },
-            enforceIdleTimeout: {
-              type: 'boolean',
-              example: true,
-            },
-            idleTimeoutMinutes: {
-              type: 'integer',
-              nullable: true,
-              minimum: 5,
-              maximum: 480,
-              example: 30,
-            },
-            requireReauthenticationForSensitiveActions: {
-              type: 'boolean',
-              example: true,
-            },
-            allowTraineeEmailChange: {
-              type: 'boolean',
-              example: false,
-            },
-          },
+          properties: organisationSecuritySettingsValueProperties(),
         },
         DifficultyLevel: enumString(
           ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ADAPTIVE'],
