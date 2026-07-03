@@ -12,11 +12,8 @@ import {
   resendInitialAdminSetup,
 } from '../controllers/platform.controller.js';
 import { requireAuth } from '../middleware/requireAuth.js';
-import {
-  validateBody,
-  validateParams,
-  validateQuery,
-} from '../middleware/validateRequest.js';
+import { apiRateLimit } from '../middleware/apiRateLimit.js';
+import { validateBody, validateParams, validateQuery } from '../middleware/validateRequest.js';
 import {
   listOrganisationRequestsQuerySchema,
   approveOrganisationRequestSchema,
@@ -37,8 +34,8 @@ function requirePlatformAdmin(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
-// All platform routes require authentication and platform admin privileges
-platformRouter.use('/platform', requireAuth, requirePlatformAdmin);
+// All platform routes require rate limiting, authentication, and platform admin privileges
+platformRouter.use('/platform', apiRateLimit, requireAuth, requirePlatformAdmin);
 
 /**
  * @openapi

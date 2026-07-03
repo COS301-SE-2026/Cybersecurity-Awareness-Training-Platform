@@ -552,27 +552,7 @@ export async function getPlatformOrganisationDetail(actorUserId: string, organis
   });
 
   // Find initial setup invitation and tokens
-  const invitation = await prisma.invitation.findFirst({
-    where: {
-      organisationId,
-      purpose: 'INITIAL_ORGANISATION_ADMIN_SETUP',
-    },
-    include: {
-      actionTokens: {
-        orderBy: { createdAt: 'desc' },
-      },
-    },
-  });
-
-  const latestEmailLog = invitation
-    ? await prisma.emailDeliveryLog.findFirst({
-        where: {
-          invitationId: invitation.id,
-          emailType: 'INITIAL_ORGANISATION_ADMIN_SETUP',
-        },
-        orderBy: { createdAt: 'desc' },
-      })
-    : null;
+  const { invitation, latestEmailLog } = await querySetupInvitationAndEmailLog({ organisationId });
 
   const resendEligibility = getResendEligibility(organisation.status, invitation, latestEmailLog);
 
@@ -616,31 +596,7 @@ export async function getPlatformOrganisationDetail(actorUserId: string, organis
           submittedPrimaryDomain: registrationRequest.submittedPrimaryDomain,
         }
       : null,
-    setupStatus: invitation
-      ? {
-          id: invitation.id,
-          status: invitation.status,
-          recipientEmail: invitation.recipientEmail,
-          expiresAt: invitation.expiresAt.toISOString(),
-          activeActionToken: invitation.actionTokens[0]
-            ? {
-                id: invitation.actionTokens[0].id,
-                expiresAt: invitation.actionTokens[0].expiresAt.toISOString(),
-                usedAt: invitation.actionTokens[0].usedAt?.toISOString() ?? null,
-                revokedAt: invitation.actionTokens[0].revokedAt?.toISOString() ?? null,
-              }
-            : null,
-          latestEmailDelivery: latestEmailLog
-            ? {
-                id: latestEmailLog.id,
-                deliveryStatus: latestEmailLog.deliveryStatus,
-                sentAt: latestEmailLog.sentAt?.toISOString() ?? null,
-                failedAt: latestEmailLog.failedAt?.toISOString() ?? null,
-                failureReason: latestEmailLog.failureReason,
-              }
-            : null,
-        }
-      : null,
+    setupStatus: formatSetupStatus(invitation, latestEmailLog),
     resendEligibility,
     admins: admins.map((admin) => ({
       id: admin.id,
@@ -669,27 +625,9 @@ export async function getOrganisationRequestDetails(actorUserId: string, request
   }
 
   // Find initial setup invitation and tokens (if request is approved)
-  const invitation = await prisma.invitation.findFirst({
-    where: {
-      organisationRegistrationRequestId: requestId,
-      purpose: 'INITIAL_ORGANISATION_ADMIN_SETUP',
-    },
-    include: {
-      actionTokens: {
-        orderBy: { createdAt: 'desc' },
-      },
-    },
+  const { invitation, latestEmailLog } = await querySetupInvitationAndEmailLog({
+    organisationRegistrationRequestId: requestId,
   });
-
-  const latestEmailLog = invitation
-    ? await prisma.emailDeliveryLog.findFirst({
-        where: {
-          invitationId: invitation.id,
-          emailType: 'INITIAL_ORGANISATION_ADMIN_SETUP',
-        },
-        orderBy: { createdAt: 'desc' },
-      })
-    : null;
 
   const organisation = request.approvedOrganisationId
     ? await prisma.organisation.findUnique({ where: { id: request.approvedOrganisationId } })
@@ -730,31 +668,7 @@ export async function getOrganisationRequestDetails(actorUserId: string, request
     rejectionReason: request.rejectionReason,
     createdAt: request.createdAt.toISOString(),
     updatedAt: request.updatedAt.toISOString(),
-    setupStatus: invitation
-      ? {
-          id: invitation.id,
-          status: invitation.status,
-          recipientEmail: invitation.recipientEmail,
-          expiresAt: invitation.expiresAt.toISOString(),
-          activeActionToken: invitation.actionTokens[0]
-            ? {
-                id: invitation.actionTokens[0].id,
-                expiresAt: invitation.actionTokens[0].expiresAt.toISOString(),
-                usedAt: invitation.actionTokens[0].usedAt?.toISOString() ?? null,
-                revokedAt: invitation.actionTokens[0].revokedAt?.toISOString() ?? null,
-              }
-            : null,
-          latestEmailDelivery: latestEmailLog
-            ? {
-                id: latestEmailLog.id,
-                deliveryStatus: latestEmailLog.deliveryStatus,
-                sentAt: latestEmailLog.sentAt?.toISOString() ?? null,
-                failedAt: latestEmailLog.failedAt?.toISOString() ?? null,
-                failureReason: latestEmailLog.failureReason,
-              }
-            : null,
-        }
-      : null,
+    setupStatus: formatSetupStatus(invitation, latestEmailLog),
     resendEligibility,
     timeline,
   };
@@ -830,7 +744,8 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
         expiresAt: newExpiresAt,
         targetEmail: invitation.recipientEmail,
         invitationId: invitation.id,
-        organisationRegistrationRequestId: invitation.organisationRegistrationRequestId ?? undefined,
+        organisationRegistrationRequestId:
+          invitation.organisationRegistrationRequestId ?? undefined,
       },
       tx,
     );
@@ -894,7 +809,9 @@ async function buildPlatformTimeline(
     where: {
       OR: [
         ...(organisationId ? [{ organisationId }] : []),
-        ...(requestId ? [{ targetType: 'ORGANISATION_REGISTRATION_REQUEST' as const, targetId: requestId }] : []),
+        ...(requestId
+          ? [{ targetType: 'ORGANISATION_REGISTRATION_REQUEST' as const, targetId: requestId }]
+          : []),
         ...(invitationId ? [{ targetType: 'INVITATION' as const, targetId: invitationId }] : []),
       ],
     },
@@ -935,7 +852,8 @@ async function buildPlatformTimeline(
   for (const log of auditLogs) {
     let actorName = 'System';
     if (log.actorUser) {
-      actorName = `${log.actorUser.firstName} ${log.actorUser.lastName}`.trim() || log.actorUser.email;
+      actorName =
+        `${log.actorUser.firstName} ${log.actorUser.lastName}`.trim() || log.actorUser.email;
     }
     timeline.push({
       id: log.id,
@@ -965,11 +883,7 @@ async function buildPlatformTimeline(
   return timeline;
 }
 
-function getResendEligibility(
-  organisationStatus: string,
-  invitation: any,
-  latestEmailLog: any,
-) {
+function getResendEligibility(organisationStatus: string, invitation: any, latestEmailLog: any) {
   if (organisationStatus !== 'PENDING_ONBOARDING') {
     return { isEligible: false, reason: 'ORGANISATION_ALREADY_ACTIVE' };
   }
@@ -1131,3 +1045,58 @@ function primaryDomainFromWebsite(value: string) {
   return hostname.startsWith('www.') ? hostname.slice(4) : hostname;
 }
 
+async function querySetupInvitationAndEmailLog(where: {
+  organisationId?: string;
+  organisationRegistrationRequestId?: string;
+}) {
+  const invitation = await prisma.invitation.findFirst({
+    where: {
+      purpose: 'INITIAL_ORGANISATION_ADMIN_SETUP',
+      ...where,
+    },
+    include: {
+      actionTokens: {
+        orderBy: { createdAt: 'desc' },
+      },
+    },
+  });
+
+  const latestEmailLog = invitation
+    ? await prisma.emailDeliveryLog.findFirst({
+        where: {
+          invitationId: invitation.id,
+          emailType: 'INITIAL_ORGANISATION_ADMIN_SETUP',
+        },
+        orderBy: { createdAt: 'desc' },
+      })
+    : null;
+
+  return { invitation, latestEmailLog };
+}
+
+function formatSetupStatus(invitation: any, latestEmailLog: any) {
+  if (!invitation) return null;
+  return {
+    id: invitation.id,
+    status: invitation.status,
+    recipientEmail: invitation.recipientEmail,
+    expiresAt: invitation.expiresAt.toISOString(),
+    activeActionToken: invitation.actionTokens[0]
+      ? {
+          id: invitation.actionTokens[0].id,
+          expiresAt: invitation.actionTokens[0].expiresAt.toISOString(),
+          usedAt: invitation.actionTokens[0].usedAt?.toISOString() ?? null,
+          revokedAt: invitation.actionTokens[0].revokedAt?.toISOString() ?? null,
+        }
+      : null,
+    latestEmailDelivery: latestEmailLog
+      ? {
+          id: latestEmailLog.id,
+          deliveryStatus: latestEmailLog.deliveryStatus,
+          sentAt: latestEmailLog.sentAt?.toISOString() ?? null,
+          failedAt: latestEmailLog.failedAt?.toISOString() ?? null,
+          failureReason: latestEmailLog.failureReason,
+        }
+      : null,
+  };
+}
