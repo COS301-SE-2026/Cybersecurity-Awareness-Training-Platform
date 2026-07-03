@@ -104,9 +104,7 @@ export const listOrganisationRequestsQuerySchema = z
   })
   .strict();
 
-export type ListOrganisationRequestsQueryDto = z.infer<
-  typeof listOrganisationRequestsQuerySchema
->;
+export type ListOrganisationRequestsQueryDto = z.infer<typeof listOrganisationRequestsQuerySchema>;
 
 export const approveOrganisationRequestSchema = z
   .object({
@@ -148,9 +146,7 @@ export const organisationRequestIdParamsSchema = z
   })
   .strict();
 
-export type OrganisationRequestIdParamsDto = z.infer<
-  typeof organisationRequestIdParamsSchema
->;
+export type OrganisationRequestIdParamsDto = z.infer<typeof organisationRequestIdParamsSchema>;
 
 export const platformOrganisationIdParamsSchema = z
   .object({
@@ -158,7 +154,4 @@ export const platformOrganisationIdParamsSchema = z
   })
   .strict();
 
-export type PlatformOrganisationIdParamsDto = z.infer<
-  typeof platformOrganisationIdParamsSchema
->;
-
+export type PlatformOrganisationIdParamsDto = z.infer<typeof platformOrganisationIdParamsSchema>;

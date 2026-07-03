@@ -71,4 +71,3 @@ export function validateQuery<T>(schema: ZodSchema<T>) {
     return next();
   };
 }
-

@@ -123,7 +123,11 @@ describe('platform organisation registration request service', () => {
       await expect(
         listOrganisationRequests(actorUserId, { page: 1, limit: 10 }),
       ).rejects.toThrowError(
-        new OrganisationRegistrationRequestError(403, 'FORBIDDEN', 'Platform admin access is required'),
+        new OrganisationRegistrationRequestError(
+          403,
+          'FORBIDDEN',
+          'Platform admin access is required',
+        ),
       );
     });
   });

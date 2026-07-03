@@ -109,14 +109,18 @@ describe('platform admin routes', () => {
     it('gets request details successfully', async () => {
       serviceMock.getOrganisationRequest.mockResolvedValue({ id: requestId });
 
-      const response = await request(createApp()).get(`/platform/organisation-requests/${requestId}`);
+      const response = await request(createApp()).get(
+        `/platform/organisation-requests/${requestId}`,
+      );
 
       expect(response.status).toBe(200);
       expect(serviceMock.getOrganisationRequest).toHaveBeenCalledWith(actorUserId, requestId);
     });
 
     it('returns 400 validation error for invalid request ID parameter', async () => {
-      const response = await request(createApp()).get('/platform/organisation-requests/invalid-uuid');
+      const response = await request(createApp()).get(
+        '/platform/organisation-requests/invalid-uuid',
+      );
 
       expect(response.status).toBe(400);
       expect(response.body.error).toBe('VALIDATION_ERROR');
@@ -131,7 +135,9 @@ describe('platform admin routes', () => {
         ),
       );
 
-      const response = await request(createApp()).get(`/platform/organisation-requests/${requestId}`);
+      const response = await request(createApp()).get(
+        `/platform/organisation-requests/${requestId}`,
+      );
 
       expect(response.status).toBe(404);
       expect(response.body.error).toBe('REQUEST_NOT_FOUND');
@@ -190,7 +196,10 @@ describe('platform admin routes', () => {
     const payload = { rejectionReason: 'Invalid domain' };
 
     it('rejects request successfully', async () => {
-      serviceMock.rejectOrganisationRequest.mockResolvedValue({ id: requestId, status: 'REJECTED' });
+      serviceMock.rejectOrganisationRequest.mockResolvedValue({
+        id: requestId,
+        status: 'REJECTED',
+      });
 
       const response = await request(createApp())
         .post(`/platform/organisation-requests/${requestId}/reject`)
@@ -274,7 +283,10 @@ describe('platform admin routes', () => {
       );
 
       expect(response.status).toBe(200);
-      expect(serviceMock.getOrganisationRequestDetails).toHaveBeenCalledWith(actorUserId, requestId);
+      expect(serviceMock.getOrganisationRequestDetails).toHaveBeenCalledWith(
+        actorUserId,
+        requestId,
+      );
     });
   });
 
