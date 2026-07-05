@@ -12,7 +12,7 @@ import { useAuth } from '../context/useAuth';
 import BasicAlert from '../components/alerts/BasicAlert';
 import { authLoginRequestSchema } from '@insightful-phish/shared';
 import { ApiError } from '../lib/apiClient';
-import { loginUser } from '../services/auth.service';
+import { loginUser, resendVerification } from '../services/auth.service';
 import { ROUTES } from '../constants/routes';
 import GetStartedModal from '../components/landing-page/GetStartedModal';
 
@@ -111,6 +111,10 @@ function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   const [alertMessage, setAlertMessage] = useState('');
+  const [canResendVerification, setCanResendVerification] = useState(false);
+  const [isResendingVerification, setIsResendingVerification] = useState(false);
+  const [resendVerificationMessage, setResendVerificationMessage] = useState<string | null>(null);
+  const [resendVerificationError, setResendVerificationError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -121,6 +125,9 @@ function LoginPage() {
   async function handleLogin(event: FormEvent) {
     event.preventDefault();
     setAlertMessage('');
+    setCanResendVerification(false);
+    setResendVerificationMessage(null);
+    setResendVerificationError(null);
     setIsLoading(true);
     const validationResult = authLoginRequestSchema.safeParse({
       email,
@@ -145,8 +152,41 @@ function LoginPage() {
       navigate(normalizeRedirectPath(authResponse.redirectTo));
     } catch (error) {
       setAlertMessage(getLoginErrorMessage(error));
+      setCanResendVerification(
+        error instanceof ApiError && getApiErrorCode(error) === 'USER_EMAIL_NOT_VERIFIED',
+      );
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function handleResendVerification() {
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (!normalizedEmail) {
+      return;
+    }
+
+    setIsResendingVerification(true);
+    setResendVerificationMessage(null);
+    setResendVerificationError(null);
+
+    try {
+      await resendVerification({ email: normalizedEmail });
+
+      setResendVerificationMessage(
+        'If the email is registered and unverified, a verification link has been sent.',
+      );
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 429) {
+        setResendVerificationError('Please wait before requesting another verification email.');
+      } else {
+        setResendVerificationError(
+          'We could not send a verification email right now. Please try again later.',
+        );
+      }
+    } finally {
+      setIsResendingVerification(false);
     }
   }
 
@@ -183,6 +223,42 @@ function LoginPage() {
                 {alertMessage}
               </BasicAlert>
             )}
+
+            {canResendVerification ? (
+              <div style={{ marginBottom: '1rem' }}>
+                <button
+                  type="button"
+                  onClick={handleResendVerification}
+                  disabled={isResendingVerification}
+                  style={{
+                    background: 'transparent',
+                    border: 0,
+                    color: '#cca7ff',
+                    cursor: isResendingVerification ? 'not-allowed' : 'pointer',
+                    fontFamily: 'Jost',
+                    fontSize: '1.2rem',
+                    letterSpacing: '0.04em',
+                    opacity: isResendingVerification ? 0.6 : 1,
+                    padding: 0,
+                    textDecoration: 'underline',
+                  }}
+                >
+                  {isResendingVerification ? 'Sending...' : 'Resend verification email'}
+                </button>
+
+                {resendVerificationMessage ? (
+                  <p style={{ color: '#86efac', fontFamily: 'Overpass', fontSize: '1rem' }}>
+                    {resendVerificationMessage}
+                  </p>
+                ) : null}
+
+                {resendVerificationError ? (
+                  <p style={{ color: '#fca5a5', fontFamily: 'Overpass', fontSize: '1rem' }}>
+                    {resendVerificationError}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
 
             <form onSubmit={handleLogin} noValidate style={authFormStyle}>
               <AuthFormField

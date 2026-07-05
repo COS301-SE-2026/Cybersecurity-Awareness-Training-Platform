@@ -23,6 +23,18 @@ export function logoutSession(): Promise<{ success: boolean }> {
   });
 }
 
+export function resendVerification(payload: {
+  email: string;
+}): Promise<{ message?: string; success?: boolean }> {
+  return apiClient.post<{ message?: string; success?: boolean }, { email: string }>(
+    '/auth/resend-verification',
+    payload,
+    {
+      credentials: 'include',
+    },
+  );
+}
+
 export function getCurrentUser(token: string): Promise<AuthMeResponseDto> {
   return apiClient.get<AuthMeResponseDto>('/auth/me', {
     authToken: token,

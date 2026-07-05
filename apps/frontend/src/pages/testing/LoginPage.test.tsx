@@ -6,10 +6,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import LoginPage from '../LoginPage';
 import { ApiError } from '../../lib/apiClient';
 
-const { navigateMock, loginMock, loginUserMock } = vi.hoisted(() => ({
+const { navigateMock, loginMock, loginUserMock, resendVerificationMock } = vi.hoisted(() => ({
   navigateMock: vi.fn(),
   loginMock: vi.fn(),
   loginUserMock: vi.fn(),
+  resendVerificationMock: vi.fn(),
 }));
 
 vi.mock('react-router-dom', async () => {
@@ -29,6 +30,7 @@ vi.mock('../../context/useAuth', () => ({
 
 vi.mock('../../services/auth.service', () => ({
   loginUser: loginUserMock,
+  resendVerification: resendVerificationMock,
 }));
 
 function renderLoginPage() {
@@ -87,6 +89,7 @@ describe('LoginPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     loginUserMock.mockReset();
+    resendVerificationMock.mockReset();
   });
 
   afterEach(() => {
@@ -306,5 +309,150 @@ describe('LoginPage', () => {
       await screen.findByText('We could not complete sign in right now. Please try again.'),
     ).toBeInTheDocument();
     expect(loginMock).not.toHaveBeenCalled();
+  });
+
+  it('shows the resend verification action when email is not verified', async () => {
+    const user = userEvent.setup();
+
+    loginUserMock.mockRejectedValue(createLoginApiError(403, 'USER_EMAIL_NOT_VERIFIED'));
+
+    renderLoginPage();
+
+    await user.type(screen.getByLabelText(/email address/i), 'trainee@example.com');
+    await user.type(screen.getByLabelText(/^password$/i), 'legacy-password');
+    await user.click(screen.getByRole('button', { name: /Log In/i }));
+
+    expect(
+      await screen.findByText('Email address must be verified before signing in.'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /resend verification email/i })).toBeInTheDocument();
+  });
+
+  it('does not show the resend verification action for invalid credentials', async () => {
+    const user = userEvent.setup();
+
+    loginUserMock.mockRejectedValue(createLoginApiError(401, 'AUTH_INVALID'));
+
+    renderLoginPage();
+
+    await user.type(screen.getByLabelText(/email address/i), 'trainee@example.com');
+    await user.type(screen.getByLabelText(/^password$/i), 'legacy-password');
+    await user.click(screen.getByRole('button', { name: /Log In/i }));
+
+    expect(await screen.findByText('Invalid email address or password.')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /resend verification email/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('resends verification with the normalized login email', async () => {
+    const user = userEvent.setup();
+
+    loginUserMock.mockRejectedValue(createLoginApiError(403, 'USER_EMAIL_NOT_VERIFIED'));
+    resendVerificationMock.mockResolvedValue({ success: true });
+
+    renderLoginPage();
+
+    await user.type(screen.getByLabelText(/email address/i), 'Trainee@example.com');
+    await user.type(screen.getByLabelText(/^password$/i), 'legacy-password');
+    await user.click(screen.getByRole('button', { name: /Log In/i }));
+    await user.click(await screen.findByRole('button', { name: /resend verification email/i }));
+
+    expect(resendVerificationMock).toHaveBeenCalledWith({
+      email: 'trainee@example.com',
+    });
+  });
+
+  it('disables the resend verification action while the request is pending', async () => {
+    const user = userEvent.setup();
+    let resolveResend: (value: { success: boolean }) => void = () => {};
+
+    loginUserMock.mockRejectedValue(createLoginApiError(403, 'USER_EMAIL_NOT_VERIFIED'));
+    resendVerificationMock.mockReturnValue(
+      new Promise((resolve) => {
+        resolveResend = resolve;
+      }),
+    );
+
+    renderLoginPage();
+
+    await user.type(screen.getByLabelText(/email address/i), 'trainee@example.com');
+    await user.type(screen.getByLabelText(/^password$/i), 'legacy-password');
+    await user.click(screen.getByRole('button', { name: /Log In/i }));
+
+    const resendButton = await screen.findByRole('button', {
+      name: /resend verification email/i,
+    });
+
+    await user.click(resendButton);
+
+    expect(resendButton).toBeDisabled();
+    expect(resendButton).toHaveTextContent('Sending...');
+
+    resolveResend({ success: true });
+
+    expect(
+      await screen.findByText(
+        'If the email is registered and unverified, a verification link has been sent.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('shows a safe confirmation after resend verification succeeds', async () => {
+    const user = userEvent.setup();
+
+    loginUserMock.mockRejectedValue(createLoginApiError(403, 'USER_EMAIL_NOT_VERIFIED'));
+    resendVerificationMock.mockResolvedValue({ success: true });
+
+    renderLoginPage();
+
+    await user.type(screen.getByLabelText(/email address/i), 'trainee@example.com');
+    await user.type(screen.getByLabelText(/^password$/i), 'legacy-password');
+    await user.click(screen.getByRole('button', { name: /Log In/i }));
+    await user.click(await screen.findByRole('button', { name: /resend verification email/i }));
+
+    expect(
+      await screen.findByText(
+        'If the email is registered and unverified, a verification link has been sent.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('shows a cooldown message when resend verification is rate limited', async () => {
+    const user = userEvent.setup();
+
+    loginUserMock.mockRejectedValue(createLoginApiError(403, 'USER_EMAIL_NOT_VERIFIED'));
+    resendVerificationMock.mockRejectedValue(createLoginApiError(429, 'AUTH_RATE_LIMITED'));
+
+    renderLoginPage();
+
+    await user.type(screen.getByLabelText(/email address/i), 'trainee@example.com');
+    await user.type(screen.getByLabelText(/^password$/i), 'legacy-password');
+    await user.click(screen.getByRole('button', { name: /Log In/i }));
+    await user.click(await screen.findByRole('button', { name: /resend verification email/i }));
+
+    expect(
+      await screen.findByText('Please wait before requesting another verification email.'),
+    ).toBeInTheDocument();
+  });
+
+  it('shows a generic safe message when resend verifcation fails', async () => {
+    const user = userEvent.setup();
+
+    loginUserMock.mockRejectedValue(createLoginApiError(403, 'USER_EMAIL_NOT_VERIFIED'));
+    resendVerificationMock.mockRejectedValue(new Error('Network failure'));
+
+    renderLoginPage();
+
+    await user.type(screen.getByLabelText(/email address/i), 'trainee@example.com');
+    await user.type(screen.getByLabelText(/^password$/i), 'legacy-password');
+    await user.click(screen.getByRole('button', { name: /Log In/i }));
+    await user.click(await screen.findByRole('button', { name: /resend verification email/i }));
+
+    expect(
+      await screen.findByText(
+        'We could not send a verification email right now. Please try again later.',
+      ),
+    ).toBeInTheDocument();
   });
 });
