@@ -191,6 +191,28 @@ UC-03 covers quiz retrieval, attempt creation, answer submission, and result ret
 - **Response summary**: Score, pass/fail status, attempt summary, selected answers, correctness, and educational feedback
 - **Notes**: Results are calculated server-side; the frontend displays returned result data rather than calculating the score itself
 
+## Later-Demo Organisation Admin Contracts
+
+The following contracts support Demo 2 organisation-admin planning and are cross-referenced from the SRS. Full implementation-level schemas, request examples, and status codes remain in Swagger/OpenAPI and the related implementation issues.
+
+### UC-09: Organisation Admin Management
+
+- **Purpose**: Supports viewing organisation admins, promoting active organisation trainees to admins, changing organisation admin permissions, and removing organisation admin privileges.
+- **Status**: Future/later-demo
+- **Planned API support**: Organisation admin list, promotion, permission update, and removal endpoints.
+- **Access**: Requires an authenticated active organisation admin in the same organisation, with the required admin-management permission for the selected action.
+- **Notes**: Backend behaviour must preserve organisation scope, critical-admin safeguards, email-service invitation delivery, and audit logging.
+- **Traceability**: `#273`, `#272`, `#274`, `#275`, `#276`, `#280`
+
+### UC-11: Organisation Security Settings
+
+- **Purpose**: Supports viewing and updating organisation-level security settings for remember-me policy, session length, idle timeout, sensitive-action reauthentication, and trainee email-change policy.
+- **Status**: Future/later-demo
+- **Planned API support**: Organisation security settings view/update endpoints and authentication/session policy enforcement.
+- **Access**: Requires an authenticated active organisation admin in the same organisation; updates require `Change organisation-level security settings`.
+- **Notes**: Backend behaviour must enforce platform limits, reject conflicting settings, audit old/new values, and explain when saved settings apply to sessions.
+- **Traceability**: `#285`, `#284`, `#286`, `#287`, `#288`, `#291`
+
 ## Cross-Use-Case Tracking and Reporting Support
 
 Interaction events support lightweight tracking across Demo 1 flows. The frontend should use the specific use-case endpoints above instead of posting arbitrary tracking events.
@@ -245,3 +267,4 @@ Future reporting summaries and risk indicators may be derived from interaction e
 | 0.1.15  | 2026-05-20 | Adriano Jorge                    | Seeded campaign notes                 | Added Demo 1 password-security seed documentation.                                   |
 | 0.1.16  | 2026-05-21 | Rudolph Lamprecht                | Training content resolution           | Documented training-content resolution and markdown content delivery.                |
 | 0.1.17  | 2026-05-21 | Johan Nel                        | UC-01 simulated inbox/email API       | Updated API docs for readable emails/opened-state support.                           |
+| 0.1.18  | 2026-07-06 | Adriano Jorge                    | UC-09 and UC-11 API references        | Added later-demo organisation admin and security settings API planning references.   |
