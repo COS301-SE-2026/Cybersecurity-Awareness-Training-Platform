@@ -74,7 +74,7 @@ describe('RepresentativeInformationForm', () => {
   });
 
   // Test 5: Submit button Called
-  it('calls onBack when Back to Step 1 is clicked', async () => {
+  it('calls onSubmit when Complete Registration Request is clicked', async () => {
     const user = userEvent.setup();
     const onSubmit = vi.fn();
 
