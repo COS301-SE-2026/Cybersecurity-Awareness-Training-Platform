@@ -9,14 +9,14 @@ function OrganisationRegistrationRequestPage() {
   const [orgName, setOrgName] = useState('');
   const [orgDescrip, setOrgDescrip] = useState('');
   const [orgWeb, setOrgWeb] = useState('');
-  const [orgSize, setOrgSize] = useState('');
+  const [orgSize, setOrgSize] = useState<number | ''>('');
 
   const [alertMessage, setAlertMessage] = useState('');
   const [alertType, setAlertType] = useState<'success' | 'danger'>('danger');
 
   const [orgInfoValid, setOrgInfoValid] = useState(false);
 
-  function validationOrgInfo() {
+  function validateOrgInfo() {
     setAlertMessage('');
 
     if (!orgName.trim()) {
@@ -28,11 +28,20 @@ function OrganisationRegistrationRequestPage() {
       return false;
     }
 
-    if (!orgSize.trim()) {
+    if (orgSize === '') {
       // NO ORGANISATION SIZE
       // Org Size is REQUIRED
       setAlertType('danger');
       setAlertMessage('Please Provide An Organisation Size');
+      setOrgInfoValid(false);
+      return false;
+    }
+
+    if (orgSize < 1) {
+      // INVALID ORGANISATION SIZE
+      // Org Size is REQUIRED (must be valid too)
+      setAlertType('danger');
+      setAlertMessage('Please Provide A Valid Organisation Size');
       setOrgInfoValid(false);
       return false;
     }
@@ -91,7 +100,10 @@ function OrganisationRegistrationRequestPage() {
           <ul className="hidden text-sm font-medium text-center text-body sm:flex -space-x-px">
             <li className="w-full focus-within:z-10">
               <button
-                onClick={() => setCurrentStep(1)}
+                onClick={() => {
+                  setCurrentStep(1);
+                  setOrgInfoValid(false);
+                }}
                 className={`font-jost inline-block w-full bg-neutral-primary-soft border border-default hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)] focus:ring-4 focus:ring-neutral-secondary-strong font-light text-[1.2rem] tracking-wide leading-5 px-5 py-3 focus:outline-none ${
                   currentStep === 1
                     ? 'bg-faint-purple text-[var(--ip-purple)] font-medium'
@@ -103,12 +115,18 @@ function OrganisationRegistrationRequestPage() {
             </li>
             <li className="w-full focus-within:z-10">
               <button
-                onClick={() => setCurrentStep(2)}
+                disabled={!orgInfoValid}
+                onClick={() => {
+                  if (orgInfoValid === true) {
+                    setCurrentStep(2);
+                  }
+                }}
                 className={`font-jost inline-block w-full bg-neutral-primary-soft border border-default hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)] focus:ring-4 focus:ring-neutral-secondary-strong font-light text-[1.2rem] tracking-wide leading-5 px-5 py-3 focus:outline-none ${
                   currentStep === 2
                     ? 'bg-faint-purple text-[var(--ip-purple)] font-medium'
                     : 'bg-neutral-primary-soft text-body hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)]'
-                }`}
+                }
+                  ${orgInfoValid ? 'cursor-pointer' : 'cursor-not-allowed'}`}
               >
                 2. Representative Information
               </button>
@@ -116,7 +134,23 @@ function OrganisationRegistrationRequestPage() {
           </ul>
 
           <div className="w-full p-6 bg-white md:mt-0 bg-neutral-primary-soft border-default border-x border-b sm:max-w-4xl sm:p-8">
-            {currentStep === 1 && <OrganisationInformationForm />}
+            {currentStep === 1 && (
+              <OrganisationInformationForm
+                orgName={orgName}
+                setOrgName={setOrgName}
+                orgDescrip={orgDescrip}
+                setOrgDescrip={setOrgDescrip}
+                orgWeb={orgWeb}
+                setOrgWeb={setOrgWeb}
+                orgSize={orgSize}
+                setOrgSize={setOrgSize}
+                onNext={() => {
+                  if (validateOrgInfo()) {
+                    setCurrentStep(2);
+                  }
+                }}
+              />
+            )}
             {currentStep === 2 && <RepresentativeInformationForm />}
           </div>
         </div>
