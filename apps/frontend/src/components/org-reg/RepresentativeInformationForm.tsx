@@ -71,10 +71,27 @@ function RepresentativeInformationForm() {
             placeholder="Enter the Representative's Email Address"
           />
         </div>
+
+        <div className="self-end pl-2">
+          <div className="flex items-start gap-2 text-gray-500">
+            <span className="material-symbols-sharp">info</span>
+
+            <div>
+              <h4 className="font-jost text-md tracking-wider font-light text-gray-500">
+                Organisation Administrator
+              </h4>
+
+              <p className="mt-1 font-overpass text-xs tracking-wide text-gray-500">
+                This representative will be registered as your organisation's first{' '}
+                <em>Organisation Administrator</em> if this registration request is approved.
+              </p>
+            </div>
+          </div>
+        </div>
       </form>
 
       <div className="mt-8 flex items-center justify-between">
-        {/* BACK TO LOGIN LINK */}
+        {/* BACK TO STEP 1 */}
         <button className="-mt-4 inline-flex items-center gap-2 font-jost text-xl font-regular tracking-wide text-purple hover:text-purple cursor-pointer transition-colours">
           <span className="material-icons-sharp">arrow_back</span>
           <span> Back to Step 1</span>
