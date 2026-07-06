@@ -1354,62 +1354,31 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           },
         },
         PlatformOrganisationRequestDetailsResponse: {
-          type: 'object',
-          required: [
-            'id',
-            'submittedOrganisationName',
-            'representativeFirstName',
-            'representativeLastName',
-            'representativeEmail',
-            'status',
-            'createdAt',
-            'updatedAt',
-            'setupStatus',
-            'resendEligibility',
-            'timeline',
-          ],
-          properties: {
-            id: uuidString('9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
-            submittedOrganisationName: { type: 'string', example: 'Example Consulting' },
-            submittedWebsite: nullableString('https://example.com'),
-            submittedOrganisationDescription: nullableString('A small consulting company'),
-            submittedOrganisationSize: { type: 'integer', nullable: true, example: 75 },
-            submittedPrimaryDomain: nullableString('example.com'),
-            representativeFirstName: { type: 'string', example: 'Adriano' },
-            representativeLastName: { type: 'string', example: 'Jorge' },
-            representativeEmail: {
-              type: 'string',
-              format: 'email',
-              example: 'adriano@example.com',
-            },
-            representativePhone: nullableString('+1234567890'),
-            status: enumString(
-              ['PENDING_REVIEW', 'CONTACTED', 'APPROVED', 'REJECTED', 'CANCELLED'],
-              'PENDING_REVIEW',
-            ),
-            contactedByIpAdminId: nullableUuidString('c3fdeb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
-            approvedByIpAdminId: nullableUuidString('d4fdeb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
-            rejectedByIpAdminId: nullableUuidString('e5fdeb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
-            approvedOrganisationId: nullableUuidString('f6fdeb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
-            contactedAt: { ...dateTimeString('2026-05-16T09:00:00.000Z'), nullable: true },
-            approvedAt: { ...dateTimeString('2026-05-16T09:00:00.000Z'), nullable: true },
-            rejectedAt: { ...dateTimeString('2026-05-16T09:00:00.000Z'), nullable: true },
-            rejectionReason: nullableString('Invalid details'),
-            createdAt: dateTimeString('2026-05-16T09:00:00.000Z'),
-            updatedAt: dateTimeString('2026-05-16T09:00:00.000Z'),
-            setupStatus: {
-              $ref: '#/components/schemas/OrganisationInitialSetupStatus',
-            },
-            resendEligibility: {
-              $ref: '#/components/schemas/OrganisationResendEligibility',
-            },
-            timeline: {
-              type: 'array',
-              items: {
-                $ref: '#/components/schemas/PlatformTimelineEntry',
+          allOf: [
+            { $ref: '#/components/schemas/PlatformOrganisationRequest' },
+            {
+              type: 'object',
+              required: [
+                'setupStatus',
+                'resendEligibility',
+                'timeline',
+              ],
+              properties: {
+                setupStatus: {
+                  $ref: '#/components/schemas/OrganisationInitialSetupStatus',
+                },
+                resendEligibility: {
+                  $ref: '#/components/schemas/OrganisationResendEligibility',
+                },
+                timeline: {
+                  type: 'array',
+                  items: {
+                    $ref: '#/components/schemas/PlatformTimelineEntry',
+                  },
+                },
               },
             },
-          },
+          ],
         },
         OrganisationPermissionKey: enumString(
           [

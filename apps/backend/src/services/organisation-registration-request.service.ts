@@ -151,6 +151,56 @@ export async function listOrganisationRequests(
   };
 }
 
+interface RegistrationRequestBase {
+  id: string;
+  submittedOrganisationName: string;
+  submittedWebsite: string | null;
+  submittedOrganisationDescription: string | null;
+  submittedOrganisationSize: number | null;
+  submittedPrimaryDomain: string | null;
+  representativeFirstName: string;
+  representativeLastName: string;
+  representativeEmail: string;
+  representativePhone: string | null;
+  status: string;
+  contactedByIpAdminId: string | null;
+  approvedByIpAdminId: string | null;
+  rejectedByIpAdminId: string | null;
+  approvedOrganisationId: string | null;
+  contactedAt: Date | null;
+  approvedAt: Date | null;
+  rejectedAt: Date | null;
+  rejectionReason: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const formatRegistrationRequestBase = (req: RegistrationRequestBase) => {
+  return {
+    id: req.id,
+    submittedOrganisationName: req.submittedOrganisationName,
+    submittedWebsite: req.submittedWebsite,
+    submittedOrganisationDescription: req.submittedOrganisationDescription,
+    submittedOrganisationSize: req.submittedOrganisationSize,
+    submittedPrimaryDomain: req.submittedPrimaryDomain,
+    representativeFirstName: req.representativeFirstName,
+    representativeLastName: req.representativeLastName,
+    representativeEmail: req.representativeEmail,
+    representativePhone: req.representativePhone,
+    status: req.status,
+    contactedByIpAdminId: req.contactedByIpAdminId,
+    approvedByIpAdminId: req.approvedByIpAdminId,
+    rejectedByIpAdminId: req.rejectedByIpAdminId,
+    approvedOrganisationId: req.approvedOrganisationId,
+    contactedAt: req.contactedAt?.toISOString() ?? null,
+    approvedAt: req.approvedAt?.toISOString() ?? null,
+    rejectedAt: req.rejectedAt?.toISOString() ?? null,
+    rejectionReason: req.rejectionReason,
+    createdAt: req.createdAt.toISOString(),
+    updatedAt: req.updatedAt.toISOString(),
+  };
+};
+
 export async function getOrganisationRequest(actorUserId: string, requestId: string) {
   await requirePlatformAdminUser(actorUserId);
 
@@ -205,12 +255,7 @@ export async function getOrganisationRequest(actorUserId: string, requestId: str
   };
 
   return {
-    ...request,
-    createdAt: request.createdAt.toISOString(),
-    updatedAt: request.updatedAt.toISOString(),
-    contactedAt: request.contactedAt?.toISOString() ?? null,
-    approvedAt: request.approvedAt?.toISOString() ?? null,
-    rejectedAt: request.rejectedAt?.toISOString() ?? null,
+    ...formatRegistrationRequestBase(request),
     contactedBy: mapAdminUser(request.contactedBy),
     approvedBy: mapAdminUser(request.approvedBy),
     rejectedBy: mapAdminUser(request.rejectedBy),
@@ -692,27 +737,7 @@ export async function getOrganisationRequestDetails(actorUserId: string, request
   );
 
   return {
-    id: request.id,
-    submittedOrganisationName: request.submittedOrganisationName,
-    submittedWebsite: request.submittedWebsite,
-    submittedOrganisationDescription: request.submittedOrganisationDescription,
-    submittedOrganisationSize: request.submittedOrganisationSize,
-    submittedPrimaryDomain: request.submittedPrimaryDomain,
-    representativeFirstName: request.representativeFirstName,
-    representativeLastName: request.representativeLastName,
-    representativeEmail: request.representativeEmail,
-    representativePhone: request.representativePhone,
-    status: request.status,
-    contactedByIpAdminId: request.contactedByIpAdminId,
-    approvedByIpAdminId: request.approvedByIpAdminId,
-    rejectedByIpAdminId: request.rejectedByIpAdminId,
-    approvedOrganisationId: request.approvedOrganisationId,
-    contactedAt: request.contactedAt?.toISOString() ?? null,
-    approvedAt: request.approvedAt?.toISOString() ?? null,
-    rejectedAt: request.rejectedAt?.toISOString() ?? null,
-    rejectionReason: request.rejectionReason,
-    createdAt: request.createdAt.toISOString(),
-    updatedAt: request.updatedAt.toISOString(),
+    ...formatRegistrationRequestBase(request),
     setupStatus: formatSetupStatus(invitation, latestEmailLog),
     resendEligibility,
     timeline,

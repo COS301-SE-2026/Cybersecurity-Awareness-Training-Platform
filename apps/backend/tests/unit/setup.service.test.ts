@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi, afterEach } from 'vitest';
+import type { PrismaClient } from '../../src/generated/prisma/client.js';
 import {
   completeSetupWithToken,
   getSetupTokenContext,
@@ -334,7 +335,7 @@ describe('setup service', () => {
     actionTokenServiceMock.runWithConsumedActionToken.mockImplementation(
       async (_input, action) => ({
         claimed: true,
-        result: await action(customTx as any),
+        result: await action(customTx as unknown as PrismaClient),
       }),
     );
 
