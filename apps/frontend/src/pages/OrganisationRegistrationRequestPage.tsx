@@ -58,10 +58,16 @@ function OrganisationRegistrationRequestPage() {
       return false;
     }
 
-    if (orgWeb.trim()) {
+    const url = orgWeb.trim();
+    if (url) {
       // INVALID URL
       try {
-        new URL(orgWeb);
+        const normalURL =
+          url.startsWith('https://') || url.startsWith('http://') ? url : `https://${url}`;
+        const parsedURL = new URL(normalURL);
+        if (!parsedURL.hostname.includes('.')) {
+          throw new Error('Invalid URL');
+        }
       } catch {
         setAlertType('danger');
         setAlertMessage('Please Provide A Valid Website URL');
@@ -166,7 +172,7 @@ function OrganisationRegistrationRequestPage() {
                     ? 'bg-faint-purple text-[var(--ip-purple)] font-medium'
                     : 'bg-neutral-primary-soft text-body hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)]'
                 }
-                  ${orgInfoValid ? 'cursor-pointer' : 'cursor-not-allowed'}`}
+                  ${orgInfoValid ? 'cursor-pointer' : 'opacity-50 hover:text-body hover:bg-white cursor-not-allowed'}`}
               >
                 2. Representative Information
               </button>
