@@ -1,10 +1,57 @@
 import { useState } from 'react';
 import OrganisationInformationForm from '../components/org-reg/OrganisationInformationForm';
 import RepresentativeInformationForm from '../components/org-reg/RepresentativeInformationForm';
+import BasicAlert from '../components/alerts/BasicAlert';
 
 function OrganisationRegistrationRequestPage() {
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
 
+  const [orgName, setOrgName] = useState('');
+  const [orgDescrip, setOrgDescrip] = useState('');
+  const [orgWeb, setOrgWeb] = useState('');
+  const [orgSize, setOrgSize] = useState('');
+
+  const [alertMessage, setAlertMessage] = useState('');
+  const [alertType, setAlertType] = useState<'success' | 'danger'>('danger');
+
+  const [orgInfoValid, setOrgInfoValid] = useState(false);
+
+  function validationOrgInfo() {
+    setAlertMessage('');
+
+    if (!orgName.trim()) {
+      // NO ORGANISATION NAME
+      // Org Name is REQUIRED
+      setAlertType('danger');
+      setAlertMessage('Please Enter An Organisation Name');
+      setOrgInfoValid(false);
+      return false;
+    }
+
+    if (!orgSize.trim()) {
+      // NO ORGANISATION SIZE
+      // Org Size is REQUIRED
+      setAlertType('danger');
+      setAlertMessage('Please Provide An Organisation Size');
+      setOrgInfoValid(false);
+      return false;
+    }
+
+    if (orgWeb.trim()) {
+      // INVALID URL
+      try {
+        new URL(orgWeb);
+      } catch {
+        setAlertType('danger');
+        setAlertMessage('Please Provide A Valid Website URL');
+        setOrgInfoValid(false);
+        return false;
+      }
+    }
+
+    setOrgInfoValid(true);
+    return true;
+  }
   return (
     <section className="bg-light-purple dark:bg-gray-900">
       <div className="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0">
@@ -32,6 +79,13 @@ function OrganisationRegistrationRequestPage() {
             reviewed by an <em> Insightful Phish</em> platform administrator before access is
             granted.
           </p>
+
+          {/* BASIC ALERT */}
+          {alertMessage && (
+            <BasicAlert variant={alertType} onClose={() => setAlertMessage('')}>
+              {alertMessage}
+            </BasicAlert>
+          )}
 
           {/* TAB BUTTONS */}
           <ul className="hidden text-sm font-medium text-center text-body sm:flex -space-x-px">
