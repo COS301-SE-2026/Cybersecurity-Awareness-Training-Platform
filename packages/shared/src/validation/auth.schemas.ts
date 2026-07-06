@@ -29,6 +29,7 @@ const passwordSchema = z
     required_error: 'Please enter a password.',
     invalid_type_error: 'Please enter a password.',
   })
+  .min(1, 'Please enter a password.')
   .min(12, 'Password must be at least 12 characters long')
   .max(128, 'Password must be at most 128 characters long')
   .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
