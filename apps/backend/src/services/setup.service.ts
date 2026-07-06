@@ -89,7 +89,7 @@ async function seedInitialAdminPermissionsAndActivateOrg(
       } | null;
     } | null;
   },
-  tx: any,
+  tx: SetupTransaction,
 ) {
   if (freshToken.purpose !== 'INITIAL_ORGANISATION_ADMIN_SETUP') {
     return;
