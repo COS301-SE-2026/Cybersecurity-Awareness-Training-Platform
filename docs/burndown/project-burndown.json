@@ -1130,8 +1130,8 @@
           "number": 241,
           "title": "feat: build frontend reset password page",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-07-06"
         },
         {
           "number": 240,
@@ -1657,7 +1657,7 @@
     },
     {
       "date": "2026-07-06",
-      "remaining": 109,
+      "remaining": 107,
       "ideal": 12.53
     }
   ]
