@@ -1358,11 +1358,7 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             { $ref: '#/components/schemas/PlatformOrganisationRequest' },
             {
               type: 'object',
-              required: [
-                'setupStatus',
-                'resendEligibility',
-                'timeline',
-              ],
+              required: ['setupStatus', 'resendEligibility', 'timeline'],
               properties: {
                 setupStatus: {
                   $ref: '#/components/schemas/OrganisationInitialSetupStatus',

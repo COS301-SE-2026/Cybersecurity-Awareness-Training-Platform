@@ -330,12 +330,12 @@ describe('setup service', () => {
       organisationAdminProfile: { findFirst: adminProfileFindFirstMock },
       organisationPermission: { findMany: organisationPermissionFindManyMock },
       organisationAdminPermission: { createMany: organisationAdminPermissionCreateManyMock },
-    };
+    } as unknown as PrismaClient;
 
     actionTokenServiceMock.runWithConsumedActionToken.mockImplementation(
       async (_input, action) => ({
         claimed: true,
-        result: await action(customTx as unknown as PrismaClient),
+        result: await action(customTx),
       }),
     );
 
