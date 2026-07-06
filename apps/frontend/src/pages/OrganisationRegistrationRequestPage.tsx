@@ -23,7 +23,7 @@ function OrganisationRegistrationRequestPage() {
         <div className="w-full p-6 bg-white-purple shadow dark:border md:mt-0 sm:max-w-4xl sm:p-8">
           {/* HEADING */}
           <h3 className="font-jost text-3xl text-purple tracking-wider font-medium text-heading">
-            Register your Organisation
+            Request to Register an Organisation
           </h3>
 
           {/* SUB-HEADING */}
