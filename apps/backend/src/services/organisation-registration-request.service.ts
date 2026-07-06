@@ -103,7 +103,21 @@ export async function listOrganisationRequests(
   if (sort) {
     const [field, order] = sort.split(':');
     if (field && (order === 'asc' || order === 'desc')) {
-      orderBy = { [field as any]: order as any };
+      const allowedFields: Record<
+        string,
+        keyof Prisma.OrganisationRegistrationRequestOrderByWithRelationInput
+      > = {
+        organisationName: 'submittedOrganisationName',
+        submittedOrganisationName: 'submittedOrganisationName',
+        representativeEmail: 'representativeEmail',
+        status: 'status',
+        createdAt: 'createdAt',
+        updatedAt: 'updatedAt',
+      };
+      const prismaField = allowedFields[field];
+      if (prismaField) {
+        orderBy = { [prismaField]: order };
+      }
     }
   }
 
@@ -169,7 +183,16 @@ export async function getOrganisationRequest(actorUserId: string, requestId: str
     );
   }
 
-  const mapAdminUser = (profile: any) => {
+  interface AdminProfileWithUser {
+    id: string;
+    user: {
+      firstName: string;
+      lastName: string;
+      email: string;
+    };
+  }
+
+  const mapAdminUser = (profile: AdminProfileWithUser | null) => {
     if (!profile) return null;
     return {
       id: profile.id,
@@ -373,6 +396,28 @@ export async function approveOrganisationRequest(
   }
 
   const result = await prisma.$transaction(async (tx) => {
+    const txRequest = await tx.organisationRegistrationRequest.findUnique({
+      where: { id: requestId },
+    });
+    if (!txRequest) {
+      throw new OrganisationRegistrationRequestError(
+        404,
+        'REQUEST_NOT_FOUND',
+        'Organisation registration request not found',
+      );
+    }
+    if (
+      txRequest.status === 'APPROVED' ||
+      txRequest.status === 'REJECTED' ||
+      txRequest.status === 'CANCELLED'
+    ) {
+      throw new OrganisationRegistrationRequestError(
+        409,
+        'REQUEST_ALREADY_RESOLVED',
+        'Request is already approved, rejected, or cancelled',
+      );
+    }
+
     const organisation = await tx.organisation.create({
       data: {
         name: orgName,
@@ -554,7 +599,7 @@ export async function getPlatformOrganisationDetail(actorUserId: string, organis
   // Find initial setup invitation and tokens
   const { invitation, latestEmailLog } = await querySetupInvitationAndEmailLog({ organisationId });
 
-  const resendEligibility = getResendEligibility(organisation.status, invitation);
+  const resendEligibility = getResendEligibility(organisation.status, invitation, latestEmailLog);
 
   // Fetch admin profiles with high-level summary only
   const admins = await prisma.organisationAdminProfile.findMany({
@@ -636,6 +681,7 @@ export async function getOrganisationRequestDetails(actorUserId: string, request
   const resendEligibility = getResendEligibility(
     organisation?.status ?? 'PENDING_ONBOARDING',
     invitation,
+    latestEmailLog,
   );
 
   // Fetch unified timeline
@@ -693,6 +739,11 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
       organisationId,
       purpose: 'INITIAL_ORGANISATION_ADMIN_SETUP',
     },
+    include: {
+      actionTokens: {
+        orderBy: { createdAt: 'desc' },
+      },
+    },
   });
 
   if (!invitation) {
@@ -711,7 +762,7 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
     orderBy: { createdAt: 'desc' },
   });
 
-  const eligibility = getResendEligibility(organisation.status, invitation);
+  const eligibility = getResendEligibility(organisation.status, invitation, latestEmailLog);
   if (!eligibility.isEligible) {
     throw new OrganisationRegistrationRequestError(
       409,
@@ -882,17 +933,42 @@ async function buildPlatformTimeline(
   return timeline;
 }
 
-function getResendEligibility(organisationStatus: string, invitation: { status: string } | null) {
+function getResendEligibility(
+  organisationStatus: string,
+  invitation: FormatInvitationInput | null,
+  latestEmailLog: FormatEmailLogInput | null,
+  now: Date = new Date(),
+) {
   if (organisationStatus !== 'PENDING_ONBOARDING') {
-    return { isEligible: false, reason: 'ORGANISATION_ALREADY_ACTIVE' };
+    return { isEligible: false, reason: 'ORGANISATION_NOT_ONBOARDING' };
   }
   if (!invitation) {
-    return { isEligible: false, reason: 'NO_INITIAL_SETUP_INVITATION' };
+    return { isEligible: false, reason: 'INVITATION_NOT_ELIGIBLE' };
   }
   if (invitation.status === 'ACCEPTED' || invitation.status === 'COMPLETED') {
     return { isEligible: false, reason: 'SETUP_ALREADY_COMPLETED' };
   }
-  return { isEligible: true };
+  if (invitation.status === 'REVOKED' || invitation.status === 'REJECTED') {
+    return { isEligible: false, reason: 'INVITATION_NOT_ELIGIBLE' };
+  }
+  if (new Date(invitation.expiresAt).getTime() <= now.getTime()) {
+    return { isEligible: true, reason: 'SETUP_TOKEN_EXPIRED' };
+  }
+
+  const tokens = invitation.actionTokens || [];
+  const activeToken = tokens.find(
+    (t) => !t.usedAt && !t.revokedAt && new Date(t.expiresAt).getTime() > now.getTime(),
+  );
+
+  if (!activeToken) {
+    return { isEligible: true, reason: null };
+  }
+
+  if (latestEmailLog?.deliveryStatus === 'FAILED') {
+    return { isEligible: true, reason: 'SETUP_EMAIL_FAILED' };
+  }
+
+  return { isEligible: false, reason: 'ACTIVE_SETUP_TOKEN_EXISTS' };
 }
 
 export async function createOrganisationRegistrationRequest(

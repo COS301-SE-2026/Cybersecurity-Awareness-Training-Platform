@@ -14,6 +14,7 @@ import {
 import { requireAuth } from '../middleware/requireAuth.js';
 import { apiRateLimit } from '../middleware/apiRateLimit.js';
 import { validateBody, validateParams, validateQuery } from '../middleware/validateRequest.js';
+import { asyncHandler } from '../middleware/asyncHandler.js';
 import {
   listOrganisationRequestsQuerySchema,
   approveOrganisationRequestSchema,
@@ -98,7 +99,7 @@ platformRouter.use('/platform', apiRateLimit, requireAuth, requirePlatformAdmin)
 platformRouter.get(
   '/platform/organisation-requests',
   validateQuery(listOrganisationRequestsQuerySchema),
-  listOrganisationRequests,
+  asyncHandler(listOrganisationRequests),
 );
 
 /**
@@ -139,7 +140,7 @@ platformRouter.get(
 platformRouter.get(
   '/platform/organisation-requests/:requestId',
   validateParams(organisationRequestIdParamsSchema),
-  getOrganisationRequest,
+  asyncHandler(getOrganisationRequest),
 );
 
 /**
@@ -182,7 +183,7 @@ platformRouter.get(
 platformRouter.patch(
   '/platform/organisation-requests/:requestId/contacted',
   validateParams(organisationRequestIdParamsSchema),
-  markRequestContacted,
+  asyncHandler(markRequestContacted),
 );
 
 /**
@@ -253,7 +254,7 @@ platformRouter.post(
   '/platform/organisation-requests/:requestId/approve',
   validateParams(organisationRequestIdParamsSchema),
   validateBody(approveOrganisationRequestSchema, { statusCode: 422 }),
-  approveOrganisationRequest,
+  asyncHandler(approveOrganisationRequest),
 );
 
 /**
@@ -307,7 +308,7 @@ platformRouter.post(
   '/platform/organisation-requests/:requestId/reject',
   validateParams(organisationRequestIdParamsSchema),
   validateBody(rejectOrganisationRequestSchema, { statusCode: 422 }),
-  rejectOrganisationRequest,
+  asyncHandler(rejectOrganisationRequest),
 );
 
 /**
@@ -350,7 +351,7 @@ platformRouter.post(
 platformRouter.delete(
   '/platform/organisation-requests/:requestId',
   validateParams(organisationRequestIdParamsSchema),
-  deleteOrganisationRequest,
+  asyncHandler(deleteOrganisationRequest),
 );
 
 /**
@@ -391,7 +392,7 @@ platformRouter.delete(
 platformRouter.get(
   '/platform/organisations/:organisationId',
   validateParams(platformOrganisationIdParamsSchema),
-  getPlatformOrganisationDetail,
+  asyncHandler(getPlatformOrganisationDetail),
 );
 
 /**
@@ -432,7 +433,7 @@ platformRouter.get(
 platformRouter.get(
   '/platform/organisation-requests/:requestId/details',
   validateParams(organisationRequestIdParamsSchema),
-  getOrganisationRequestDetails,
+  asyncHandler(getOrganisationRequestDetails),
 );
 
 /**
@@ -482,5 +483,5 @@ platformRouter.get(
 platformRouter.post(
   '/platform/organisations/:organisationId/resend-initial-admin-setup',
   validateParams(platformOrganisationIdParamsSchema),
-  resendInitialAdminSetup,
+  asyncHandler(resendInitialAdminSetup),
 );
