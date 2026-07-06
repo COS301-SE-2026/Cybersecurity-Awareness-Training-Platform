@@ -2,6 +2,14 @@ import { useState } from 'react';
 import OrganisationInformationForm from '../components/org-reg/OrganisationInformationForm';
 import RepresentativeInformationForm from '../components/org-reg/RepresentativeInformationForm';
 import BasicAlert from '../components/alerts/BasicAlert';
+import { firstNameSchema, lastNameSchema, emailSchema } from '@insightful-phish/shared';
+
+function formatAlertMessage(message: string) {
+  // makes everything title case and removes the . from the end of the message
+  return message
+    .replace(/\.$/, '')
+    .replace(/\w\S*/g, (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
+}
 
 function OrganisationRegistrationRequestPage() {
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
@@ -15,6 +23,10 @@ function OrganisationRegistrationRequestPage() {
   const [alertType, setAlertType] = useState<'success' | 'danger'>('danger');
 
   const [orgInfoValid, setOrgInfoValid] = useState(false);
+
+  const [repFName, setRepFName] = useState('');
+  const [repLName, setRepLName] = useState('');
+  const [repEmail, setRepEmail] = useState('');
 
   function validateOrgInfo() {
     setAlertMessage('');
@@ -61,6 +73,34 @@ function OrganisationRegistrationRequestPage() {
     setOrgInfoValid(true);
     return true;
   }
+
+  function validateRepInfo() {
+    setAlertMessage('');
+
+    const fNameResult = firstNameSchema.safeParse(repFName);
+    if (!fNameResult.success) {
+      setAlertType('danger');
+      setAlertMessage(formatAlertMessage(fNameResult.error.issues[0]?.message ?? 'Invalid Input'));
+      return false;
+    }
+
+    const lNameResult = lastNameSchema.safeParse(repLName);
+    if (!lNameResult.success) {
+      setAlertType('danger');
+      setAlertMessage(formatAlertMessage(lNameResult.error.issues[0]?.message ?? 'Invalid Input'));
+      return false;
+    }
+
+    const emailResult = emailSchema.safeParse(repEmail);
+    if (!emailResult.success) {
+      setAlertType('danger');
+      setAlertMessage(formatAlertMessage(emailResult.error.issues[0]?.message ?? 'Invalid Input'));
+      return false;
+    }
+
+    return true;
+  }
+
   return (
     <section className="bg-light-purple dark:bg-gray-900">
       <div className="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0">
@@ -151,7 +191,25 @@ function OrganisationRegistrationRequestPage() {
                 }}
               />
             )}
-            {currentStep === 2 && <RepresentativeInformationForm />}
+            {currentStep === 2 && (
+              <RepresentativeInformationForm
+                repFName={repFName}
+                setRepFName={setRepFName}
+                repLName={repLName}
+                setRepLName={setRepLName}
+                repEmail={repEmail}
+                setRepEmail={setRepEmail}
+                onBack={() => {
+                  setCurrentStep(1);
+                  setOrgInfoValid(false);
+                }}
+                onSubmit={() => {
+                  if (validateRepInfo()) {
+                    console.log('SUCCESS');
+                  }
+                }}
+              />
+            )}
           </div>
         </div>
       </div>
