@@ -116,9 +116,13 @@ function renderAppRoutes({
         token: isAuthenticated ? 'demo-token' : null,
         user: isAuthenticated
           ? {
+              id: 'user-1',
               firstName: 'Jane',
               lastName: 'Doe',
               email: 'trainee@example.com',
+              userType: 'GENERAL_TRAINEE',
+              authStatus: 'ACTIVE',
+              createdAt: '2026-01-01T00:00:00.000Z',
             }
           : null,
       },

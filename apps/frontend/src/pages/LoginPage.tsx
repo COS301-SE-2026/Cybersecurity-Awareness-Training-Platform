@@ -11,6 +11,9 @@ import { authFormStyle, authPrimaryButtonStyle } from '../components/auth/authSt
 import { useAuth } from '../context/useAuth';
 import BasicAlert from '../components/alerts/BasicAlert';
 import { authLoginRequestSchema } from '@insightful-phish/shared';
+import { ApiError } from '../lib/apiClient';
+import { loginUser, resendVerification } from '../services/auth.service';
+import { ROUTES } from '../constants/routes';
 import GetStartedModal from '../components/landing-page/GetStartedModal';
 
 function formatAlertMessage(message: string) {
@@ -20,23 +23,82 @@ function formatAlertMessage(message: string) {
     .replace(/\w\S*/g, (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
 }
 
-function getRedirectPath() {
-  // Route Users Based on ROLE
+function normalizeRedirectPath(redirectTo?: string | null) {
+  if (redirectTo === '/trainee/campaigns' || redirectTo === ROUTES.CAMPAIGNS) {
+    return ROUTES.CAMPAIGNS;
+  }
+  return ROUTES.CAMPAIGNS;
+}
 
-  // LATER ON: We can do something like this (FOR EXAMPLE):
-  // function getRedirectPath(role: UserRole) {
-  //   case 'ADMIN':
-  //     return '/admin';
-  //   case 'EMPLOYEE':
-  //     return '/campaigns';
-  // }
-  // For now, leave it as '/campaigns'
-  return '/campaigns';
+function getApiErrorCode(error: ApiError): string | null {
+  const body = error.body;
+
+  if (body && typeof body === 'object' && 'error' in body) {
+    const errorCode = (body as { error?: unknown }).error;
+
+    if (typeof errorCode === 'string') {
+      return errorCode;
+    }
+  }
+
+  return null;
+}
+
+function getLoginErrorMessage(error: unknown) {
+  if (!(error instanceof ApiError)) {
+    return 'Unable to connect to server.';
+  }
+
+  const errorCode = getApiErrorCode(error);
+
+  if (
+    error.status === 401 ||
+    errorCode === 'AUTH_INVALID' ||
+    errorCode === 'AUTH_REQUIRED' ||
+    errorCode === 'TOKEN_REUSE_DETECTED'
+  ) {
+    return 'Invalid email address or password.';
+  }
+
+  if (errorCode === 'USER_EMAIL_NOT_VERIFIED') {
+    return 'Email address must be verified before signing in.';
+  }
+
+  if (
+    errorCode === 'USER_DISABLED' ||
+    errorCode === 'ADMIN_DISABLED' ||
+    errorCode === 'IP_ADMIN_DISABLED'
+  ) {
+    return 'This account is disabled. Please contact support.';
+  }
+
+  if (
+    errorCode === 'ORGANISATION_SUSPENDED' ||
+    errorCode === 'ORGANISATION_PENDING_ONBOARDING' ||
+    errorCode === 'ORGANISATION_DISABLED' ||
+    errorCode === 'ORGANISATION_ARCHIVED' ||
+    errorCode === 'ORGANISATION_NOT_ACTIVE'
+  ) {
+    return 'Your organisation account is not active. Please contact your organisation administrator.';
+  }
+
+  if (error.status === 400 || error.status === 422 || errorCode === 'VALIDATION_ERROR') {
+    return 'Please check your login details.';
+  }
+
+  if (error.status === 429 || errorCode === 'AUTH_RATE_LIMITED') {
+    return 'Too many login attempts. Please try again later.';
+  }
+
+  if (error.status === 409) {
+    return 'We could not complete sign in right now. Please try again.';
+  }
+
+  return 'Unable to sign in. Please try again.';
 }
 
 function LoginPage() {
   const navigate = useNavigate();
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
 
@@ -44,24 +106,35 @@ function LoginPage() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
 
   const [alertMessage, setAlertMessage] = useState('');
+  const [canResendVerification, setCanResendVerification] = useState(false);
+  const [isResendingVerification, setIsResendingVerification] = useState(false);
+  const [resendVerificationMessage, setResendVerificationMessage] = useState<string | null>(null);
+  const [resendVerificationError, setResendVerificationError] = useState<string | null>(null);
+  const [resendVerificationEmail, setResendVerificationEmail] = useState<string | null>(null);
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate(getRedirectPath(), { replace: true });
+      navigate(normalizeRedirectPath(), { replace: true });
     }
   }, [isAuthenticated, navigate]);
 
   async function handleLogin(event: FormEvent) {
     event.preventDefault();
     setAlertMessage('');
+    setCanResendVerification(false);
+    setResendVerificationMessage(null);
+    setResendVerificationError(null);
+    setResendVerificationEmail(null);
     setIsLoading(true);
     const validationResult = authLoginRequestSchema.safeParse({
       email,
       password,
+      rememberMe,
     });
 
     if (!validationResult.success) {
@@ -75,51 +148,49 @@ function LoginPage() {
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(validationResult.data),
-      });
+      const authResponse = await loginUser(validationResult.data);
 
-      const data = await response.json();
+      setResendVerificationEmail(null);
+      login(authResponse);
+      navigate(normalizeRedirectPath(authResponse.redirectTo));
+    } catch (error) {
+      setAlertMessage(getLoginErrorMessage(error));
 
-      if (!response.ok) {
-        setIsLoading(false);
+      const isEmailNotVerified =
+        error instanceof ApiError && getApiErrorCode(error) === 'USER_EMAIL_NOT_VERIFIED';
 
-        if (response.status === 401) {
-          setAlertMessage('Invalid Email Address Or Password');
-          return;
-        }
-
-        if (response.status === 403) {
-          // FIX THIS TO BE MORE SPECIFIC BASED OFF OF THE DATA CODES FROM BACKEND
-          // It will be FIXED during IMPLEMENTATION (NOT AS OF YET/RIGHT NOW [29 June 2026])
-          // It should be OKAY for now...
-          //   For example,
-          //   if (data.code === 'EMAIL_NOT_VERIFIED') {
-          //        setAlertMessage('Email Not Verified');
-          //   }
-
-          setAlertMessage(formatAlertMessage(data.message) || 'Access Denied');
-          return;
-        }
-
-        setAlertMessage(formatAlertMessage(data.message) || 'Login Failed');
-        return;
-      }
-
-      login(data.token, {
-        firstName: data.user.firstName,
-        lastName: data.user.lastName,
-        email: data.user.email,
-      });
-
-      navigate(getRedirectPath());
-    } catch {
+      setCanResendVerification(isEmailNotVerified);
+      setResendVerificationEmail(isEmailNotVerified ? validationResult.data.email : null);
+    } finally {
       setIsLoading(false);
-      setAlertMessage('Unable To Connect To Server');
+    }
+  }
+
+  async function handleResendVerification() {
+    if (!resendVerificationEmail) {
+      return;
+    }
+
+    setIsResendingVerification(true);
+    setResendVerificationMessage(null);
+    setResendVerificationError(null);
+
+    try {
+      await resendVerification({ email: resendVerificationEmail });
+
+      setResendVerificationMessage(
+        'If the email is registered and unverified, a verification link has been sent.',
+      );
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 429) {
+        setResendVerificationError('Please wait before requesting another verification email.');
+      } else {
+        setResendVerificationError(
+          'We could not send a verification email right now. Please try again later.',
+        );
+      }
+    } finally {
+      setIsResendingVerification(false);
     }
   }
 
@@ -156,6 +227,42 @@ function LoginPage() {
                 {alertMessage}
               </BasicAlert>
             )}
+
+            {canResendVerification && resendVerificationEmail ? (
+              <div style={{ marginBottom: '1rem' }}>
+                <button
+                  type="button"
+                  onClick={handleResendVerification}
+                  disabled={isResendingVerification}
+                  style={{
+                    background: 'transparent',
+                    border: 0,
+                    color: '#cca7ff',
+                    cursor: isResendingVerification ? 'not-allowed' : 'pointer',
+                    fontFamily: 'Jost',
+                    fontSize: '1.2rem',
+                    letterSpacing: '0.04em',
+                    opacity: isResendingVerification ? 0.6 : 1,
+                    padding: 0,
+                    textDecoration: 'underline',
+                  }}
+                >
+                  {isResendingVerification ? 'Sending...' : 'Resend verification email'}
+                </button>
+
+                {resendVerificationMessage ? (
+                  <p style={{ color: '#86efac', fontFamily: 'Overpass', fontSize: '1rem' }}>
+                    {resendVerificationMessage}
+                  </p>
+                ) : null}
+
+                {resendVerificationError ? (
+                  <p style={{ color: '#fca5a5', fontFamily: 'Overpass', fontSize: '1rem' }}>
+                    {resendVerificationError}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
 
             <form onSubmit={handleLogin} noValidate style={authFormStyle}>
               <AuthFormField
@@ -240,8 +347,9 @@ function LoginPage() {
                 <input
                   id="default-checkbox"
                   type="checkbox"
-                  value=""
+                  checked={rememberMe}
                   disabled={isLoading}
+                  onChange={(event) => setRememberMe(event.target.checked)}
                   className="accent-[#8400ff] w-5 h-5 border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
                 />
                 <label
