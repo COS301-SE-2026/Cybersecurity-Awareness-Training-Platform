@@ -3,6 +3,7 @@ import OrganisationInformationForm from '../components/org-reg/OrganisationInfor
 import RepresentativeInformationForm from '../components/org-reg/RepresentativeInformationForm';
 import BasicAlert from '../components/alerts/BasicAlert';
 import { firstNameSchema, lastNameSchema, emailSchema } from '@insightful-phish/shared';
+import SuccessfulRegistrationModal from '../components/layout/modals/SuccessfulRegistrationModal';
 
 function formatAlertMessage(message: string) {
   // makes everything title case and removes the . from the end of the message
@@ -27,6 +28,8 @@ function OrganisationRegistrationRequestPage() {
   const [repFName, setRepFName] = useState('');
   const [repLName, setRepLName] = useState('');
   const [repEmail, setRepEmail] = useState('');
+
+  const [showSuccessfulRegModal, setShowSuccessfulRegModal] = useState(false);
 
   function validateOrgInfo() {
     setAlertMessage('');
@@ -142,6 +145,14 @@ function OrganisationRegistrationRequestPage() {
             </BasicAlert>
           )}
 
+          {/* SUCCESSFUL MODAL  */}
+          <SuccessfulRegistrationModal
+            isOpen={showSuccessfulRegModal}
+            firstName={repFName}
+            accountDescription="Organisation Administrator"
+            organisation={orgName}
+          />
+
           {/* TAB BUTTONS */}
           <ul className="hidden text-sm font-medium text-center text-body sm:flex -space-x-px">
             <li className="w-full focus-within:z-10">
@@ -211,7 +222,7 @@ function OrganisationRegistrationRequestPage() {
                 }}
                 onSubmit={() => {
                   if (validateRepInfo()) {
-                    console.log('SUCCESS');
+                    setShowSuccessfulRegModal(true);
                   }
                 }}
               />
