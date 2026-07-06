@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import BackToLoginButton from '../../BackToLoginButton';
 type SuccessfulRegistrationModalProps = Readonly<{
   isOpen: boolean;
   firstName: string;
@@ -62,13 +62,8 @@ function SuccessfulRegistrationModal({
               Click <em>"Back to Log In"</em> to access your new account.
             </p>
 
-            <Link
-              to="/login"
-              className="mt-3 -ml-1 inline-flex items-center gap-2 font-jost text-xl font-regular tracking-wide text-purple hover:text-purple cursor-pointer transition-colours"
-            >
-              <span className="material-icons-sharp">arrow_back</span>
-              <span className="tracking-wider"> Back to Login</span>
-            </Link>
+            {/* BACK TO LOGIN LINK */}
+            <BackToLoginButton />
           </div>
         </div>
       </div>
