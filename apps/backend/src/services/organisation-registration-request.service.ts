@@ -63,7 +63,7 @@ async function requirePlatformAdminUser(userId: string) {
     where: { id: userId },
     include: { ipAdminProfile: true },
   });
-  if (!user || user.userType !== 'IP_ADMIN' || user.ipAdminProfile?.adminStatus !== 'ACTIVE') {
+  if (user?.userType !== 'IP_ADMIN' || user?.ipAdminProfile?.adminStatus !== 'ACTIVE') {
     throw new OrganisationRegistrationRequestError(
       403,
       'FORBIDDEN',
@@ -981,11 +981,11 @@ function getResendEligibility(
   }
 
   const tokens = invitation.actionTokens || [];
-  const activeToken = tokens.find(
+  const hasActiveToken = tokens.some(
     (t) => !t.usedAt && !t.revokedAt && new Date(t.expiresAt).getTime() > now.getTime(),
   );
 
-  if (!activeToken) {
+  if (!hasActiveToken) {
     return { isEligible: true, reason: null };
   }
 

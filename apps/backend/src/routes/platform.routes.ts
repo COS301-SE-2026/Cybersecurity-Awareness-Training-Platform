@@ -26,7 +26,7 @@ import {
 export const platformRouter = Router();
 
 function requirePlatformAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.auth || req.auth.user.userType !== 'IP_ADMIN') {
+  if (req.auth?.user.userType !== 'IP_ADMIN') {
     return res.status(403).json({
       error: 'FORBIDDEN',
       message: 'Platform admin access is required',

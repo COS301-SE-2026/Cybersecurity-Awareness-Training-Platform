@@ -94,11 +94,11 @@ export const listOrganisationRequestsQuerySchema = z
     search: z.string().trim().optional(),
     sort: z.string().trim().optional(),
     page: z.preprocess(
-      (val) => (val ? parseInt(val as string, 10) : undefined),
+      (val) => (val ? Number.parseInt(val as string, 10) : undefined),
       z.number().int().min(1).optional().default(1),
     ),
     limit: z.preprocess(
-      (val) => (val ? parseInt(val as string, 10) : undefined),
+      (val) => (val ? Number.parseInt(val as string, 10) : undefined),
       z.number().int().min(1).max(100).optional().default(10),
     ),
   })
