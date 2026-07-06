@@ -471,8 +471,8 @@
       "number": 230,
       "title": "feat: integrate login page with auth endpoints",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-07-06"
     },
     {
       "number": 229,
@@ -654,7 +654,7 @@
     },
     {
       "date": "2026-07-06",
-      "remaining": 103,
+      "remaining": 101,
       "ideal": 18.53
     }
   ]
