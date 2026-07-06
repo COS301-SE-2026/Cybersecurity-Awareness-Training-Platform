@@ -8,7 +8,7 @@ test('renders the login page', async ({ page }) => {
   await expect(page.getByAltText('Insightful Phish Logo')).toBeVisible();
   await expect(page.getByLabel('Email Address')).toBeVisible();
   await expect(page.getByLabel('Password')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'LOGIN' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /log in/i })).toBeVisible();
 });
 
 test('renders the status page with a mocked health response', async ({ page }) => {

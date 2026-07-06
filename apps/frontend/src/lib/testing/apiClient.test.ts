@@ -67,6 +67,22 @@ describe('apiClient', () => {
     expect(requestInit?.body).toBe(JSON.stringify({ eventType: 'SIMULATED_EMAIL_OPENED' }));
   });
 
+  it('passes credentials through to fetch when requested', async () => {
+    fetchMock.mockResolvedValue(createJsonResponse({ ok: true }));
+
+    await apiClient.post(
+      '/auth/login',
+      { email: 'trainee@example.com' },
+      {
+        credentials: 'include',
+      },
+    );
+
+    const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
+
+    expect(requestInit?.credentials).toBe('include');
+  });
+
   it('returns undefined for 204 responses and empty bodies', async () => {
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
 
