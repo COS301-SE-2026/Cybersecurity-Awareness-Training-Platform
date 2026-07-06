@@ -115,6 +115,7 @@ function LoginPage() {
   const [isResendingVerification, setIsResendingVerification] = useState(false);
   const [resendVerificationMessage, setResendVerificationMessage] = useState<string | null>(null);
   const [resendVerificationError, setResendVerificationError] = useState<string | null>(null);
+  const [resendVerificationEmail, setResendVerificationEmail] = useState<string | null>(null);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -128,6 +129,7 @@ function LoginPage() {
     setCanResendVerification(false);
     setResendVerificationMessage(null);
     setResendVerificationError(null);
+    setResendVerificationEmail(null);
     setIsLoading(true);
     const validationResult = authLoginRequestSchema.safeParse({
       email,
@@ -148,22 +150,24 @@ function LoginPage() {
     try {
       const authResponse = await loginUser(validationResult.data);
 
+      setResendVerificationEmail(null);
       login(authResponse);
       navigate(normalizeRedirectPath(authResponse.redirectTo));
     } catch (error) {
       setAlertMessage(getLoginErrorMessage(error));
-      setCanResendVerification(
-        error instanceof ApiError && getApiErrorCode(error) === 'USER_EMAIL_NOT_VERIFIED',
-      );
+
+      const isEmailNotVerified =
+        error instanceof ApiError && getApiErrorCode(error) === 'USER_EMAIL_NOT_VERIFIED';
+
+      setCanResendVerification(isEmailNotVerified);
+      setResendVerificationEmail(isEmailNotVerified ? validationResult.data.email : null);
     } finally {
       setIsLoading(false);
     }
   }
 
   async function handleResendVerification() {
-    const normalizedEmail = email.trim().toLowerCase();
-
-    if (!normalizedEmail) {
+    if (!resendVerificationEmail) {
       return;
     }
 
@@ -172,7 +176,7 @@ function LoginPage() {
     setResendVerificationError(null);
 
     try {
-      await resendVerification({ email: normalizedEmail });
+      await resendVerification({ email: resendVerificationEmail });
 
       setResendVerificationMessage(
         'If the email is registered and unverified, a verification link has been sent.',
@@ -224,7 +228,7 @@ function LoginPage() {
               </BasicAlert>
             )}
 
-            {canResendVerification ? (
+            {canResendVerification && resendVerificationEmail ? (
               <div style={{ marginBottom: '1rem' }}>
                 <button
                   type="button"

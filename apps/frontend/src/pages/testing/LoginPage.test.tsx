@@ -345,7 +345,7 @@ describe('LoginPage', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('resends verification with the normalized login email', async () => {
+  it('resends verification with the normalized failed-login email even if the input changes', async () => {
     const user = userEvent.setup();
 
     loginUserMock.mockRejectedValue(createLoginApiError(403, 'USER_EMAIL_NOT_VERIFIED'));
@@ -353,14 +353,50 @@ describe('LoginPage', () => {
 
     renderLoginPage();
 
-    await user.type(screen.getByLabelText(/email address/i), 'Trainee@example.com');
+    const emailInput = screen.getByLabelText(/email address/i);
+
+    await user.type(emailInput, '  Trainee@Example.COM  ');
     await user.type(screen.getByLabelText(/^password$/i), 'legacy-password');
     await user.click(screen.getByRole('button', { name: /Log In/i }));
-    await user.click(await screen.findByRole('button', { name: /resend verification email/i }));
+
+    await screen.findByRole('button', { name: /resend verification email/i });
+
+    await user.clear(emailInput);
+    await user.type(emailInput, 'changed@example.com');
+    await user.click(screen.getByRole('button', { name: /resend verification email/i }));
 
     expect(resendVerificationMock).toHaveBeenCalledWith({
       email: 'trainee@example.com',
     });
+    expect(resendVerificationMock).not.toHaveBeenCalledWith({
+      email: 'changed@example.com',
+    });
+  });
+
+  it('clears the resend verification action on a new non-verification login failure', async () => {
+    const user = userEvent.setup();
+
+    loginUserMock
+      .mockRejectedValueOnce(createLoginApiError(403, 'USER_EMAIL_NOT_VERIFIED'))
+      .mockRejectedValueOnce(createLoginApiError(401, 'AUTH_INVALID'));
+
+    renderLoginPage();
+
+    await user.type(screen.getByLabelText(/email address/i), 'trainee@example.com');
+    await user.type(screen.getByLabelText(/^password$/i), 'legacy-password');
+    await user.click(screen.getByRole('button', { name: /Log In/i }));
+
+    expect(
+      await screen.findByRole('button', { name: /resend verification email/i }),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /Log In/i }));
+
+    expect(await screen.findByText('Invalid email address or password.')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /resend verification email/i }),
+    ).not.toBeInTheDocument();
+    expect(resendVerificationMock).not.toHaveBeenCalled();
   });
 
   it('disables the resend verification action while the request is pending', async () => {
