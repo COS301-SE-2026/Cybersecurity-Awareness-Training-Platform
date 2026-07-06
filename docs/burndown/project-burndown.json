@@ -822,8 +822,8 @@
           "number": 285,
           "title": "docs: define SRS use case UC-11 configure organisation security settings",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-07-06"
         },
         {
           "number": 284,
@@ -906,8 +906,8 @@
           "number": 273,
           "title": "docs: define SRS use case UC-09 manage organisation admins and permissions",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-07-06"
         },
         {
           "number": 272,
@@ -1657,7 +1657,7 @@
     },
     {
       "date": "2026-07-06",
-      "remaining": 107,
+      "remaining": 103,
       "ideal": 12.53
     }
   ]
