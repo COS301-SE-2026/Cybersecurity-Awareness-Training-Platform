@@ -92,7 +92,14 @@ export const listOrganisationRequestsQuerySchema = z
   .object({
     status: z.enum(['PENDING_REVIEW', 'CONTACTED', 'APPROVED', 'REJECTED', 'CANCELLED']).optional(),
     search: z.string().trim().optional(),
-    sort: z.string().trim().optional(),
+    sort: z
+      .string()
+      .trim()
+      .regex(
+        /^(organisationName|submittedOrganisationName|representativeEmail|status|createdAt|updatedAt):(asc|desc)$/,
+        'Invalid sort format or field. Allowed fields: organisationName, submittedOrganisationName, representativeEmail, status, createdAt, updatedAt. Allowed directions: asc, desc.',
+      )
+      .optional(),
     page: z.preprocess(
       (val) => (val ? Number.parseInt(val as string, 10) : undefined),
       z.number().int().min(1).optional().default(1),

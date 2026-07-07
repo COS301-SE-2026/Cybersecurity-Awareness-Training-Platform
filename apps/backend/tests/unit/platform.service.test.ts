@@ -21,6 +21,7 @@ const prismaMock = vi.hoisted(() => ({
     findMany: vi.fn(),
     count: vi.fn(),
     update: vi.fn(),
+    updateMany: vi.fn(),
     delete: vi.fn(),
     findFirst: vi.fn(),
   },
@@ -147,6 +148,8 @@ describe('platform organisation registration request service', () => {
           contactedAt: null,
           approvedAt: null,
           rejectedAt: null,
+          approvedOrganisation: null,
+          initialAdminInvitations: [],
         },
       ]);
       prismaMock.organisationRegistrationRequest.count.mockResolvedValue(1);
@@ -203,25 +206,29 @@ describe('platform organisation registration request service', () => {
 
   describe('markRequestContacted', () => {
     it('updates request status and records audit log', async () => {
+      prismaMock.organisationRegistrationRequest.updateMany.mockResolvedValue({ count: 1 });
       prismaMock.organisationRegistrationRequest.findUnique.mockResolvedValue({
-        id: requestId,
-        status: 'PENDING_REVIEW',
-      });
-      prismaMock.organisationRegistrationRequest.update.mockResolvedValue({
         id: requestId,
         status: 'CONTACTED',
         createdAt: new Date(),
         updatedAt: new Date(),
+        contactedAt: new Date(),
+        approvedAt: null,
+        rejectedAt: null,
+        contactedBy: null,
+        approvedBy: null,
+        rejectedBy: null,
       });
 
       const response = await markRequestContacted(actorUserId, requestId);
 
       expect(response.status).toBe('CONTACTED');
-      expect(prismaMock.organisationRegistrationRequest.update).toHaveBeenCalled();
+      expect(prismaMock.organisationRegistrationRequest.updateMany).toHaveBeenCalled();
       expect(auditLogMock.recordAuditLog).toHaveBeenCalled();
     });
 
     it('throws 409 Conflict if request is already resolved', async () => {
+      prismaMock.organisationRegistrationRequest.updateMany.mockResolvedValue({ count: 0 });
       prismaMock.organisationRegistrationRequest.findUnique.mockResolvedValue({
         id: requestId,
         status: 'APPROVED',
@@ -231,7 +238,7 @@ describe('platform organisation registration request service', () => {
         new OrganisationRegistrationRequestError(
           409,
           'REQUEST_ALREADY_RESOLVED',
-          'Request is already approved, rejected, or cancelled',
+          'Request has already been processed or status has changed',
         ),
       );
     });
@@ -239,17 +246,20 @@ describe('platform organisation registration request service', () => {
 
   describe('rejectOrganisationRequest', () => {
     it('marks request rejected, records audit, and sends email', async () => {
+      prismaMock.organisationRegistrationRequest.updateMany.mockResolvedValue({ count: 1 });
       prismaMock.organisationRegistrationRequest.findUnique.mockResolvedValue({
-        id: requestId,
-        status: 'PENDING_REVIEW',
-        representativeEmail: 'john@acme.com',
-        submittedOrganisationName: 'Acme',
-      });
-      prismaMock.organisationRegistrationRequest.update.mockResolvedValue({
         id: requestId,
         status: 'REJECTED',
         createdAt: new Date(),
         updatedAt: new Date(),
+        contactedAt: null,
+        approvedAt: null,
+        rejectedAt: new Date(),
+        contactedBy: null,
+        approvedBy: null,
+        rejectedBy: null,
+        representativeEmail: 'john@acme.com',
+        submittedOrganisationName: 'Acme',
       });
       emailHookMock.requestAuthEmailSend.mockResolvedValue({ queued: true });
 
@@ -296,6 +306,7 @@ describe('platform organisation registration request service', () => {
         representativeEmail: 'john@acme.com',
         submittedOrganisationName: 'Acme',
       });
+      prismaMock.organisationRegistrationRequest.updateMany.mockResolvedValue({ count: 1 });
 
       prismaMock.organisation.create.mockResolvedValue({ id: organisationId, name: 'Acme' });
       prismaMock.invitation.create.mockResolvedValue({
@@ -312,6 +323,16 @@ describe('platform organisation registration request service', () => {
         status: 'APPROVED',
         createdAt: new Date(),
         updatedAt: new Date(),
+        contactedAt: null,
+        approvedAt: new Date(),
+        rejectedAt: null,
+        contactedBy: null,
+        approvedBy: null,
+        rejectedBy: null,
+        representativeFirstName: 'John',
+        representativeLastName: 'Doe',
+        representativeEmail: 'john@acme.com',
+        submittedOrganisationName: 'Acme',
       });
       emailHookMock.requestAuthEmailSend.mockResolvedValue({ queued: true });
 
@@ -379,6 +400,27 @@ describe('platform organisation registration request service', () => {
           409,
           'REPRESENTATIVE_CONFLICT',
           'A user with this email address already exists',
+        ),
+      );
+    });
+
+    it('throws 409 Conflict if state changes concurrently during transaction', async () => {
+      prismaMock.organisationRegistrationRequest.findUnique.mockResolvedValue({
+        id: requestId,
+        status: 'PENDING_REVIEW',
+        submittedOrganisationName: 'Acme',
+      });
+      prismaMock.organisationRegistrationRequest.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        approveOrganisationRequest(actorUserId, requestId, {
+          initialAdminEmail: 'john@acme.com',
+        }),
+      ).rejects.toThrowError(
+        new OrganisationRegistrationRequestError(
+          409,
+          'REQUEST_ALREADY_RESOLVED',
+          'Request has already been processed or status has changed',
         ),
       );
     });

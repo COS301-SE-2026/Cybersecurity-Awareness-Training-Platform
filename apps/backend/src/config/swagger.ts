@@ -1083,6 +1083,7 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             'status',
             'createdAt',
             'updatedAt',
+            'derivedStatus',
           ],
           properties: {
             id: uuidString('9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
@@ -1113,6 +1114,38 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             rejectionReason: nullableString('Invalid details'),
             createdAt: dateTimeString('2026-05-16T09:00:00.000Z'),
             updatedAt: dateTimeString('2026-05-16T09:00:00.000Z'),
+            organisationStatus: {
+              type: 'string',
+              nullable: true,
+              enum: [
+                'PENDING_ONBOARDING',
+                'ACTIVE',
+                'INACTIVE',
+                'SUSPENDED',
+                'DISABLED',
+                'ARCHIVED',
+              ],
+              example: 'PENDING_ONBOARDING',
+            },
+            setupStatus: {
+              type: 'string',
+              nullable: true,
+              enum: [
+                'PENDING',
+                'SENT',
+                'FAILED_TO_SEND',
+                'ACCEPTED',
+                'COMPLETED',
+                'EXPIRED',
+                'REVOKED',
+                'REJECTED',
+              ],
+              example: 'SENT',
+            },
+            derivedStatus: {
+              type: 'string',
+              example: 'APPROVED_PENDING_SETUP',
+            },
             contactedBy: {
               type: 'object',
               nullable: true,

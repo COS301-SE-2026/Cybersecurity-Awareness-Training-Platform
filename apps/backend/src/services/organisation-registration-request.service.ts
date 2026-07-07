@@ -129,19 +129,69 @@ export async function listOrganisationRequests(
       orderBy,
       skip,
       take: limit,
+      include: {
+        approvedOrganisation: {
+          select: {
+            status: true,
+          },
+        },
+        initialAdminInvitations: {
+          where: {
+            purpose: 'INITIAL_ORGANISATION_ADMIN_SETUP',
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+          take: 1,
+          select: {
+            status: true,
+          },
+        },
+      },
     }),
     prisma.organisationRegistrationRequest.count({ where }),
   ]);
 
+  const getDerivedStatus = (
+    requestStatus: string,
+    orgStatus: string | null,
+    inviteStatus: string | null,
+  ): string => {
+    if (requestStatus !== 'APPROVED') {
+      return requestStatus;
+    }
+    if (!orgStatus) {
+      return 'APPROVED';
+    }
+    if (orgStatus === 'PENDING_ONBOARDING') {
+      if (!inviteStatus) {
+        return 'APPROVED_PENDING_SETUP';
+      }
+      if (inviteStatus === 'ACCEPTED' || inviteStatus === 'COMPLETED') {
+        return 'ONBOARDING';
+      }
+      if (inviteStatus === 'FAILED_TO_SEND') {
+        return 'SETUP_EMAIL_FAILED';
+      }
+      if (inviteStatus === 'EXPIRED') {
+        return 'SETUP_TOKEN_EXPIRED';
+      }
+      return 'PENDING_ONBOARDING';
+    }
+    return orgStatus;
+  };
+
   return {
-    requests: requests.map((req) => ({
-      ...req,
-      createdAt: req.createdAt.toISOString(),
-      updatedAt: req.updatedAt.toISOString(),
-      contactedAt: req.contactedAt?.toISOString() ?? null,
-      approvedAt: req.approvedAt?.toISOString() ?? null,
-      rejectedAt: req.rejectedAt?.toISOString() ?? null,
-    })),
+    requests: requests.map((req) => {
+      const orgStatus = req.approvedOrganisation?.status ?? null;
+      const inviteStatus = req.initialAdminInvitations[0]?.status ?? null;
+      return {
+        ...formatRegistrationRequestBase(req),
+        organisationStatus: orgStatus,
+        setupStatus: inviteStatus,
+        derivedStatus: getDerivedStatus(req.status, orgStatus, inviteStatus),
+      };
+    }),
     pagination: {
       page,
       limit,
@@ -265,38 +315,52 @@ export async function getOrganisationRequest(actorUserId: string, requestId: str
 export async function markRequestContacted(actorUserId: string, requestId: string) {
   const ipAdminProfile = await requirePlatformAdminUser(actorUserId);
 
-  const request = await prisma.organisationRegistrationRequest.findUnique({
-    where: { id: requestId },
-  });
-
-  if (!request) {
-    throw new OrganisationRegistrationRequestError(
-      404,
-      'REQUEST_NOT_FOUND',
-      'Organisation registration request not found',
-    );
-  }
-
-  if (
-    request.status === 'APPROVED' ||
-    request.status === 'REJECTED' ||
-    request.status === 'CANCELLED'
-  ) {
-    throw new OrganisationRegistrationRequestError(
-      409,
-      'REQUEST_ALREADY_RESOLVED',
-      'Request is already approved, rejected, or cancelled',
-    );
-  }
-
-  const updatedRequest = await prisma.organisationRegistrationRequest.update({
-    where: { id: requestId },
+  const updateResult = await prisma.organisationRegistrationRequest.updateMany({
+    where: {
+      id: requestId,
+      status: 'PENDING_REVIEW',
+    },
     data: {
       status: 'CONTACTED',
       contactedByIpAdminId: ipAdminProfile.id,
       contactedAt: new Date(),
     },
   });
+
+  if (updateResult.count === 0) {
+    const exists = await prisma.organisationRegistrationRequest.findUnique({
+      where: { id: requestId },
+    });
+    if (!exists) {
+      throw new OrganisationRegistrationRequestError(
+        404,
+        'REQUEST_NOT_FOUND',
+        'Organisation registration request not found',
+      );
+    }
+    throw new OrganisationRegistrationRequestError(
+      409,
+      'REQUEST_ALREADY_RESOLVED',
+      'Request has already been processed or status has changed',
+    );
+  }
+
+  const updatedRequest = await prisma.organisationRegistrationRequest.findUnique({
+    where: { id: requestId },
+    include: {
+      contactedBy: { include: { user: true } },
+      approvedBy: { include: { user: true } },
+      rejectedBy: { include: { user: true } },
+    },
+  });
+
+  if (!updatedRequest) {
+    throw new OrganisationRegistrationRequestError(
+      404,
+      'REQUEST_NOT_FOUND',
+      'Organisation registration request not found',
+    );
+  }
 
   await recordAuditLog({
     actorUserId,
@@ -324,32 +388,11 @@ export async function rejectOrganisationRequest(
 ) {
   const ipAdminProfile = await requirePlatformAdminUser(actorUserId);
 
-  const request = await prisma.organisationRegistrationRequest.findUnique({
-    where: { id: requestId },
-  });
-
-  if (!request) {
-    throw new OrganisationRegistrationRequestError(
-      404,
-      'REQUEST_NOT_FOUND',
-      'Organisation registration request not found',
-    );
-  }
-
-  if (
-    request.status === 'APPROVED' ||
-    request.status === 'REJECTED' ||
-    request.status === 'CANCELLED'
-  ) {
-    throw new OrganisationRegistrationRequestError(
-      409,
-      'REQUEST_ALREADY_RESOLVED',
-      'Request is already approved, rejected, or cancelled',
-    );
-  }
-
-  const updatedRequest = await prisma.organisationRegistrationRequest.update({
-    where: { id: requestId },
+  const updateResult = await prisma.organisationRegistrationRequest.updateMany({
+    where: {
+      id: requestId,
+      status: { in: ['PENDING_REVIEW', 'CONTACTED'] },
+    },
     data: {
       status: 'REJECTED',
       rejectedByIpAdminId: ipAdminProfile.id,
@@ -357,6 +400,41 @@ export async function rejectOrganisationRequest(
       rejectionReason: input.rejectionReason,
     },
   });
+
+  if (updateResult.count === 0) {
+    const exists = await prisma.organisationRegistrationRequest.findUnique({
+      where: { id: requestId },
+    });
+    if (!exists) {
+      throw new OrganisationRegistrationRequestError(
+        404,
+        'REQUEST_NOT_FOUND',
+        'Organisation registration request not found',
+      );
+    }
+    throw new OrganisationRegistrationRequestError(
+      409,
+      'REQUEST_ALREADY_RESOLVED',
+      'Request has already been processed or status has changed',
+    );
+  }
+
+  const updatedRequest = await prisma.organisationRegistrationRequest.findUnique({
+    where: { id: requestId },
+    include: {
+      contactedBy: { include: { user: true } },
+      approvedBy: { include: { user: true } },
+      rejectedBy: { include: { user: true } },
+    },
+  });
+
+  if (!updatedRequest) {
+    throw new OrganisationRegistrationRequestError(
+      404,
+      'REQUEST_NOT_FOUND',
+      'Organisation registration request not found',
+    );
+  }
 
   await recordAuditLog({
     actorUserId,
@@ -370,10 +448,10 @@ export async function rejectOrganisationRequest(
 
   const emailResult = await requestAuthEmailSend({
     emailType: 'ORGANISATION_REQUEST_REJECTED',
-    recipientEmail: request.representativeEmail,
+    recipientEmail: updatedRequest.representativeEmail,
     organisationRegistrationRequestId: requestId,
     templateData: {
-      organisationName: request.submittedOrganisationName,
+      organisationName: updatedRequest.submittedOrganisationName,
       rejectionReason: input.rejectionReason,
     },
   });
@@ -441,25 +519,33 @@ export async function approveOrganisationRequest(
   }
 
   const result = await prisma.$transaction(async (tx) => {
-    const txRequest = await tx.organisationRegistrationRequest.findUnique({
-      where: { id: requestId },
+    const updateResult = await tx.organisationRegistrationRequest.updateMany({
+      where: {
+        id: requestId,
+        status: { in: ['PENDING_REVIEW', 'CONTACTED'] },
+      },
+      data: {
+        status: 'APPROVED',
+        approvedByIpAdminId: ipAdminProfile.id,
+        approvedAt: new Date(),
+      },
     });
-    if (!txRequest) {
-      throw new OrganisationRegistrationRequestError(
-        404,
-        'REQUEST_NOT_FOUND',
-        'Organisation registration request not found',
-      );
-    }
-    if (
-      txRequest.status === 'APPROVED' ||
-      txRequest.status === 'REJECTED' ||
-      txRequest.status === 'CANCELLED'
-    ) {
+
+    if (updateResult.count === 0) {
+      const exists = await tx.organisationRegistrationRequest.findUnique({
+        where: { id: requestId },
+      });
+      if (!exists) {
+        throw new OrganisationRegistrationRequestError(
+          404,
+          'REQUEST_NOT_FOUND',
+          'Organisation registration request not found',
+        );
+      }
       throw new OrganisationRegistrationRequestError(
         409,
         'REQUEST_ALREADY_RESOLVED',
-        'Request is already approved, rejected, or cancelled',
+        'Request has already been processed or status has changed',
       );
     }
 
@@ -512,9 +598,6 @@ export async function approveOrganisationRequest(
     const updatedRequest = await tx.organisationRegistrationRequest.update({
       where: { id: requestId },
       data: {
-        status: 'APPROVED',
-        approvedByIpAdminId: ipAdminProfile.id,
-        approvedAt: new Date(),
         approvedOrganisationId: organisation.id,
       },
     });
