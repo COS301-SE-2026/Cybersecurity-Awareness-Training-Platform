@@ -7,8 +7,11 @@ function PersonalSettingsPage() {
       </h3>
 
       {/* SUB-HEADING */}
-      <p className="font-regular tracking-wider text-[1.1rem] font-justify font-jost mt-1 text-gray-500 mb-4">
-        Sub-heading....
+      <p className="font-regular tracking-wider text-[1.1rem] font-justify font-jost text-gray-500">
+        Manage your personal information.
+      </p>
+      <p className="font-regular tracking-wider text-[1.1rem] font-justify font-jost -mt-1 text-gray-500 mb-6">
+        Update your first and last name.
       </p>
 
       <form className="mt-4 grid grid-cols-2 gap-6" noValidate>

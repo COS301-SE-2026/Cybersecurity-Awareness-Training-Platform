@@ -7,7 +7,7 @@ function AccountSettingsPage() {
       </h3>
 
       {/* SUB-HEADING */}
-      <p className="font-regular tracking-wider text-[1.1rem] font-justify font-jost mt-1 text-gray-500">
+      <p className="font-regular tracking-wider text-[1.1rem] font-justify font-jost text-gray-500">
         Manage the settings associated with your account.
       </p>
       <p className="font-regular tracking-wider text-[1.1rem] font-justify font-jost -mt-1 text-gray-500 mb-6">

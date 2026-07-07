@@ -1,6 +1,7 @@
 import AppLayout from '../components/layout/AppLayout';
 import PersonalSettingsPage from '../components/account-management/PersonalSettingsPage';
 import AccountSettingsPage from '../components/account-management/AccountSettingsPage';
+import SessionSettingsPage from '../components/account-management/SessionSettingsPage';
 
 function AccountManagementPage() {
   return (
@@ -57,7 +58,8 @@ function AccountManagementPage() {
         {/* CONTENT BOX */}
         <div className="w-full p-6 bg-white md:mt-0 bg-neutral-primary-soft border-default border-x border-b">
           {/* <PersonalSettingsPage /> */}
-          <AccountSettingsPage />
+          {/* <AccountSettingsPage /> */}
+          <SessionSettingsPage />
         </div>
       </div>
     </AppLayout>
