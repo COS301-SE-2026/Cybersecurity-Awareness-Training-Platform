@@ -15,7 +15,7 @@ function SessionSettingsPage() {
 
       {/* Sessions HEADING */}
       <h3 className="font-jost text-[1.3rem] text-purple tracking-wider font-medium mb-2">
-        Sessions (4)
+        Active Sessions (4)
         {/* THIS SHOULD INDICATE THE TOTAL NUMBER OF SESSIONS */}
       </h3>
 
@@ -67,7 +67,7 @@ function SessionSettingsPage() {
               <td className="px-6 py-4">Monday, 16 June 2026, 11:30 PM</td>
               <td className="px-6 py-4">
                 <button className="cursor-pointer font-medium text-red-600 hover:underline">
-                  Revoke Access
+                  Log Out Session
                 </button>
               </td>
             </tr>
@@ -81,7 +81,7 @@ function SessionSettingsPage() {
               <td className="px-6 py-4">Friday, 13 June 2026, 08:15 AM</td>
               <td className="px-6 py-4">
                 <button className="cursor-pointer font-medium text-red-600 hover:underline">
-                  Revoke Access
+                  Log Out Session
                 </button>
               </td>
             </tr>
@@ -91,7 +91,7 @@ function SessionSettingsPage() {
 
       {/* PAGINATION */}
       {/* Max 2  */}
-      <nav className="mt-2  ">
+      {/* <nav className="mt-2  ">
         <ul className="flex -space-x-px">
           <li>
             <button className="flex items-center justify-center font-jost tracking-wider text-md font-medium text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-dark-pink px-3 h-9 focus:outline-none">
@@ -114,7 +114,7 @@ function SessionSettingsPage() {
             </button>
           </li>
         </ul>
-      </nav>
+      </nav> */}
 
       {/* HEADING */}
       <h3 className="font-jost text-[1.3rem] text-purple tracking-wider font-medium mt-6 -mb-3">
