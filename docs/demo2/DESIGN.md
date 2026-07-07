@@ -758,16 +758,27 @@ Training content should adapt responsively without requiring horizontal scrollin
 
 Demo 1 design is limited to the local trainee-facing prototype and supporting authentication screens. Organisation admin campaign builders, reporting dashboards, real email delivery, AI-assisted generation, fake login pages, attachments, and richer simulation interactions remain future-facing unless explicitly scoped in later documentation.
 
+### Later-Demo Organisation Admin Design References
+
+UC-09 and UC-11 are documented in the Demo 2 SRS as organisation-admin business processes. They are not part of the Demo 1 trainee wireframe set, but later frontend work should use the following page-level design direction:
+
+- UC-09 should provide an organisation admin management page where an authorised organisation admin can scan admins, review permissions, promote eligible trainees, update permissions, remove admin privileges, and understand read-only or blocked states.
+- UC-09 screens should distinguish viewing permissions from changing permissions, show confirmation/error states for sensitive admin-management actions, and avoid implying that platform-admin permissions and organisation-admin permissions are interchangeable.
+- UC-11 should provide an organisation security settings page where an authorised organisation admin can review current policy, platform limits, editability/read-only reasons, validation feedback, and when saved changes apply.
+- UC-11 screens should make dependent controls clear, such as remember-me duration only being relevant when remember-me policy is enforced and allowed.
+- Both use cases should preserve the existing feedback, validation, accessibility, loading, success, warning, and error-state rules in this design document.
+
 The wireframes are design artefacts used to guide implementation. They should be read together with [SRS.md](./SRS.md), [API.md](./API.md), [architecture.md](./architecture.md), [testing.md](./testing.md), and [traceability.md](./traceability.md), but this document does not duplicate those contracts.
 
 ## Appendix A: Document Change History
 
-| Version | Date       | Author(s)   | Sections / Area Updated                    | Summary of Change                                                    |
-| ------- | ---------- | ----------- | ------------------------------------------ | -------------------------------------------------------------------- |
-| 0.1.0   | 2026-04-27 | Johan Nel   | Initial design scope                       | Created/expanded initial Demo 1 design specification.                |
-| 0.1.1   | 2026-05-03 | Zoë Joubert | Feedback UI; validation; phishing feedback | Added UI feedback, validation, and phishing feedback scope guidance. |
-| 0.1.2   | 2026-05-07 | Johan Nel   | Design structure; cross-references         | Aligned design document structure with other Demo 1 docs.            |
-| 0.1.3   | 2026-05-09 | Connor Bell | Trainee navigation; training screens       | Added navigation and training-screen behaviour documentation.        |
-| 0.1.4   | 2026-05-10 | Johan Nel   | Terminology                                | Updated learner/employee wording to trainee.                         |
-| 0.1.5   | 2026-05-10 | Zoë Joubert | UI feedback rules                          | Added Demo 1 feedback and accessibility UI rules.                    |
-| 0.1.6   | 2026-05-21 | Johan Nel   | Headings; links                            | Cleaned headings and links during domain-model documentation update. |
+| Version | Date       | Author(s)     | Sections / Area Updated                    | Summary of Change                                                     |
+| ------- | ---------- | ------------- | ------------------------------------------ | --------------------------------------------------------------------- |
+| 0.1.0   | 2026-04-27 | Johan Nel     | Initial design scope                       | Created/expanded initial Demo 1 design specification.                 |
+| 0.1.1   | 2026-05-03 | Zoë Joubert   | Feedback UI; validation; phishing feedback | Added UI feedback, validation, and phishing feedback scope guidance.  |
+| 0.1.2   | 2026-05-07 | Johan Nel     | Design structure; cross-references         | Aligned design document structure with other Demo 1 docs.             |
+| 0.1.3   | 2026-05-09 | Connor Bell   | Trainee navigation; training screens       | Added navigation and training-screen behaviour documentation.         |
+| 0.1.4   | 2026-05-10 | Johan Nel     | Terminology                                | Updated learner/employee wording to trainee.                          |
+| 0.1.5   | 2026-05-10 | Zoë Joubert   | UI feedback rules                          | Added Demo 1 feedback and accessibility UI rules.                     |
+| 0.1.6   | 2026-05-21 | Johan Nel     | Headings; links                            | Cleaned headings and links during domain-model documentation update.  |
+| 0.1.7   | 2026-07-06 | Adriano Jorge | UC-09 and UC-11 design references          | Added later-demo organisation admin and security settings references. |

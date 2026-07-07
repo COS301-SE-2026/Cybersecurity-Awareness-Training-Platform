@@ -11,6 +11,8 @@ import ProtectedRoute from './ProtectedRoute';
 import CampaignsPage from '../pages/CampaignsPage';
 import LandingPage from '../pages/LandingPage';
 import ForgotPasswordPage from '../pages/ForgotPasswordPage';
+import ResetPasswordPage from '../pages/ResetPasswordPage';
+import OrganisationRegistrationRequestPage from '../pages/OrganisationRegistrationRequestPage';
 
 function AppRoutes() {
   return (
@@ -40,7 +42,11 @@ function AppRoutes() {
       </Route>
 
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route
+        path="/organisation-registration-request"
+        element={<OrganisationRegistrationRequestPage />}
+      />
       <Route path="/" element={<LandingPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

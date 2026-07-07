@@ -227,6 +227,180 @@ UC-03 allows a trainee to open assigned quiz content, answer supported questions
 - Submission fails: Preserve answers where possible and allow retry.
 - Results fail to load: Keep the attempt submitted and provide a retry or navigation option.
 
+### 3.5 UC-09: Manage Organisation Admins and Permissions
+
+#### User Story
+
+As an organisation admin with admin-management permissions, I want to view and manage organisation admins and their permissions so that my organisation can maintain controlled, traceable, and safe administrator access.
+
+#### Purpose
+
+This use case allows an organisation admin to view the organisation's admins, review assigned permissions, promote an active organisation trainee to an organisation admin, update another admin's permissions, and remove organisation admin privileges where permitted. The use case ensures that all admin-management actions stay within the actor's organisation, respect permission-based access control, preserve critical-admin safeguards, and record meaningful changes for audit purposes.
+
+#### Scope
+
+- **TUCBW**: An organisation admin manages organisation admins and permissions on the organisation admin management page.
+- **TUCEW**: The organisation admin acknowledges that admin invitation, promotion, permission viewing, or permission change work has completed successfully.
+
+#### Actors
+
+- Primary actor: Organisation admin with admin-management permissions
+- Supporting actor: Email service
+- System actor: Audit log
+
+#### Preconditions
+
+- The organisation admin is authenticated.
+- The organisation admin has an active organisation admin profile.
+- The organisation admin belongs to the organisation being managed.
+- The organisation exists and is not in a state that blocks the selected admin-management action.
+- The organisation admin has the required permission for the selected action.
+
+#### Postconditions
+
+- The organisation admin list and permission state are displayed or updated according to the selected action.
+- If a trainee is promoted, a pending organisation admin promotion invitation is created for an active trainee in the same organisation.
+- If permissions are changed, the target admin's active permission set is updated.
+- If admin privileges are removed, the target user is left in a valid non-admin organisation access state where applicable.
+- The organisation is not left without an admin who can manage admin permissions or invite/manage users.
+- Successful admin-management changes are recorded in the audit log.
+- Failed validation, permission, or safeguard checks leave the previous admin and permission state unchanged.
+
+#### Main Flow
+
+1. The organisation admin navigates to the organisation admin management page.
+2. The system retrieves and displays the organisation admins, their statuses, and their assigned permissions.
+3. The organisation admin reviews the current admin list and chooses one of the available management actions:
+   - Option A: View admin permissions
+     a. The organisation admin selects an admin from the list.
+     b. The system displays the selected admin's assigned permissions.
+     c. The organisation admin returns to the admin list or chooses another management action.
+   - Option B: Promote organisation trainee to admin
+     a. The organisation admin selects the promote-admin action.
+     b. The organisation admin enters or selects the active trainee to promote.
+     c. The organisation admin selects the permissions that should apply after promotion.
+     d. The system verifies that the trainee belongs to the same organisation and is eligible for promotion.
+     e. The system creates a pending promotion invitation and queues the promotion email.
+     f. The system records the promotion invitation action in the audit log.
+     g. The system displays a confirmation that the promotion invitation has been created or sent.
+   - Option C: Change organisation admin permissions
+     a. The organisation admin selects an existing organisation admin.
+     b. The organisation admin updates the selected admin's permissions.
+     c. The system validates the permission selection and checks critical-admin safeguards.
+     d. The system saves the updated permission set.
+     e. The system records the old and new permission state in the audit log.
+     f. The system displays the updated permission state.
+   - Option D: Remove organisation admin privileges
+     a. The organisation admin selects an existing organisation admin to remove.
+     b. The system asks for confirmation and any required password or typed confirmation.
+     c. The system verifies the confirmation and checks critical-admin safeguards.
+     d. The system removes the target user's organisation admin privileges.
+     e. The system records the removal in the audit log.
+     f. The system displays a confirmation that the admin privileges were removed.
+4. The organisation admin acknowledges the outcome and returns to the organisation admin management page.
+
+#### Exceptions
+
+- **Unauthenticated User**: The user is not signed in. The system redirects the user to login or returns an unauthorised response.
+- **Inactive Organisation Admin**: The actor is not an active organisation admin. The system denies access to organisation admin management.
+- **Cross-Organisation Access Attempt**: The actor attempts to manage admins for another organisation. The system denies access and does not expose the other organisation's admin data.
+- **Missing Permission**: The actor lacks the permission required for the selected action. The system blocks the action and leaves the current admin state unchanged.
+- **Invalid Promotion Target**: The selected trainee is not active, does not belong to the organisation, or is already an organisation admin. The system rejects the promotion request.
+- **Duplicate Pending Promotion**: A pending promotion invitation already exists for the selected trainee. The system prevents a duplicate invitation and shows the current pending state.
+- **Invalid Permission Selection**: The submitted permission set contains an invalid or unsupported permission. The system rejects the update and identifies the invalid selection.
+- **Critical Admin Safeguard Violation**: The requested change would leave the organisation without an admin who can change admin permissions or invite/manage users. The system blocks the change and preserves the previous permission state.
+- **Suspended Organisation**: The organisation is suspended. The system shows only the permitted read-only state or blocks state-changing work according to product policy.
+- **Email Delivery Failure**: The promotion invitation is created but the email cannot be sent. The system records the delivery failure and shows that follow-up or resend may be required.
+- **Audit Logging Failure**: The system cannot record the required audit entry. The system follows the platform's audit-failure policy and does not silently hide sensitive admin-management changes.
+
+#### Traceability
+
+- SRS documentation issue: #273
+- Foundation/migration issue: #272
+- Frontend issue: #274
+- Backend endpoint issue: #275
+- Integration issue: #276
+- Backend integration-test issue: #280
+
+### 3.6 UC-11: Configure Organisation Security Settings
+
+#### User Story
+
+As an organisation admin with security-settings permission, I want to configure organisation-level security settings so that my organisation can control session behaviour and sensitive account policies for organisation users.
+
+#### Purpose
+
+This use case allows an authorised organisation admin to view and update organisation-level security settings, including remember-me policy, regular session length, idle timeout, sensitive-action reauthentication, and trainee email-change policy. The use case ensures that the submitted settings stay within platform limits, conflicting combinations are rejected, changes are audit logged, and the saved policy is applied by authentication and session services according to defined enforcement timing.
+
+#### Scope
+
+- **TUCBW**: An organisation admin configures organisation-level security settings on the organisation security settings page.
+- **TUCEW**: The organisation admin acknowledges that the organisation security settings have been saved successfully.
+
+#### Actors
+
+- Primary actor: Organisation admin with security-settings permission
+- System actor: Authentication/session service
+- System actor: Audit log
+
+#### Preconditions
+
+- The organisation admin is authenticated.
+- The organisation admin has an active organisation admin profile.
+- The organisation admin belongs to the organisation being configured.
+- The organisation admin has the `Change organisation-level security settings` permission.
+- The organisation exists and is in a state that allows security settings to be viewed or updated.
+
+#### Postconditions
+
+- Valid organisation security settings are saved for the organisation.
+- Invalid settings are rejected and previous settings remain active.
+- The old and new settings are recorded in the audit log.
+- The saved policy is available for login, refresh, and session creation enforcement.
+- The organisation admin is informed when the change applies to current sessions, future sessions, or the next refresh/login.
+
+#### Main Flow
+
+1. The organisation admin navigates to the organisation security settings page.
+2. The system retrieves and displays the organisation's current security settings.
+3. The system displays the platform limits and indicates whether the current actor may edit the settings.
+4. The organisation admin reviews the current settings and changes one or more configurable options:
+   - remember-me policy;
+   - maximum remembered session length;
+   - regular session length;
+   - idle timeout;
+   - sensitive-action reauthentication;
+   - trainee email-change policy.
+5. The organisation admin submits the updated settings.
+6. The system verifies that the actor is an active organisation admin in the same organisation.
+7. The system verifies that the actor has permission to change organisation-level security settings.
+8. The system validates the submitted values against platform limits and setting-combination rules.
+9. The system saves the updated settings.
+10. The system records the old and new settings in the audit log.
+11. The system displays the saved settings and explains when the changes take effect.
+12. The organisation admin acknowledges the successful save.
+
+#### Exceptions
+
+- **Unauthenticated User**: The user is not signed in. The system redirects the user to login or returns an unauthorised response.
+- **Inactive Organisation Admin**: The actor is not an active organisation admin. The system denies access to the security settings page.
+- **Cross-Organisation Access Attempt**: The actor attempts to configure settings for another organisation. The system denies access and does not expose the organisation's settings.
+- **Missing Security-Settings Permission**: The actor can view only the permitted read-only state, or update attempts are rejected with a permission error.
+- **Suspended Organisation**: The organisation is suspended. The system shows read-only settings or blocks updates according to product policy.
+- **Value Outside Platform Limits**: A submitted value exceeds the allowed minimum or maximum. The system rejects the save and shows field-level validation feedback.
+- **Conflicting Settings**: The submitted combination is invalid, such as enforcing a policy without a valid required value. The system rejects the save and keeps the previous settings active.
+- **Existing Sessions Still Active**: The settings are saved, but some active sessions only apply the new policy on refresh, next login, or new session creation. The system explains this timing to the admin.
+- **Audit Logging Failure**: The system cannot record the required audit entry. The system follows the platform's audit-failure policy and does not silently hide sensitive settings changes.
+
+#### Traceability
+
+- SRS documentation issue: #285
+- Foundation/migration issue: #284
+- Frontend issue: #286
+- Backend endpoint issue: #287
+- Integration issue: #288
+- Backend account/security settings integration-test issue: #291
+
 ## 4. Functional Requirements
 
 ### 4.1 Base Features

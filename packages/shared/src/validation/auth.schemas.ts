@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { requiredTrimmedStringSchema } from './common.schemas.js';
 
-const emailSchema = z
+export const emailSchema = z
   .string({
     required_error: 'Please enter an email address.',
     invalid_type_error: 'Please enter a valid email address.',
@@ -12,13 +12,13 @@ const emailSchema = z
   .email('Please enter a valid email address.')
   .toLowerCase();
 
-const firstNameSchema = requiredTrimmedStringSchema({
+export const firstNameSchema = requiredTrimmedStringSchema({
   requiredMessage: 'Please enter a first name.',
   maxLength: 100,
   maxMessage: 'First name must be at most 100 characters.',
 });
 
-const lastNameSchema = requiredTrimmedStringSchema({
+export const lastNameSchema = requiredTrimmedStringSchema({
   requiredMessage: 'Please enter a last name.',
   maxLength: 100,
   maxMessage: 'Last name must be at most 100 characters.',
@@ -29,6 +29,7 @@ const passwordSchema = z
     required_error: 'Please enter a password.',
     invalid_type_error: 'Please enter a password.',
   })
+  .min(1, 'Please enter a password.')
   .min(12, 'Password must be at least 12 characters long')
   .max(128, 'Password must be at most 128 characters long')
   .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
