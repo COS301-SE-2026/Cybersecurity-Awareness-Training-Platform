@@ -60,25 +60,11 @@
       "closed_date": null
     },
     {
-      "number": 288,
-      "title": "feat: integrate organisation security settings flow",
-      "points": 2,
-      "state": "open",
-      "closed_date": null
-    },
-    {
       "number": 287,
       "title": "feat: implement backend organisation security settings endpoints",
       "points": 2,
       "state": "closed",
       "closed_date": "2026-07-03"
-    },
-    {
-      "number": 286,
-      "title": "feat: build frontend organisation security settings",
-      "points": 2,
-      "state": "open",
-      "closed_date": null
     },
     {
       "number": 285,
@@ -109,60 +95,11 @@
       "closed_date": null
     },
     {
-      "number": 281,
-      "title": "feat: integrate platform admin management flow",
-      "points": 2,
-      "state": "open",
-      "closed_date": null
-    },
-    {
-      "number": 280,
-      "title": "test: add backend admin and permission API integration coverage",
-      "points": 3,
-      "state": "open",
-      "closed_date": null
-    },
-    {
-      "number": 279,
-      "title": "feat: implement backend platform admin management endpoints",
-      "points": 2,
-      "state": "open",
-      "closed_date": null
-    },
-    {
-      "number": 278,
-      "title": "feat: build frontend platform admin management",
-      "points": 2,
-      "state": "open",
-      "closed_date": null
-    },
-    {
-      "number": 277,
-      "title": "docs: define SRS use case UC-10 manage insightful phish platform admins",
-      "points": 2,
-      "state": "open",
-      "closed_date": null
-    },
-    {
-      "number": 276,
-      "title": "feat: integrate organisation admin management flow",
-      "points": 2,
-      "state": "open",
-      "closed_date": null
-    },
-    {
       "number": 275,
       "title": "feat: implement backend organisation admin permissions endpoints",
       "points": 2,
       "state": "closed",
       "closed_date": "2026-07-02"
-    },
-    {
-      "number": 274,
-      "title": "feat: build frontend organisation admin management",
-      "points": 2,
-      "state": "open",
-      "closed_date": null
     },
     {
       "number": 273,
@@ -177,41 +114,6 @@
       "points": 5,
       "state": "closed",
       "closed_date": "2026-06-30"
-    },
-    {
-      "number": 271,
-      "title": "feat: integrate organisation trainee management flow",
-      "points": 2,
-      "state": "open",
-      "closed_date": null
-    },
-    {
-      "number": 270,
-      "title": "test: add backend invitation and employee API integration coverage",
-      "points": 3,
-      "state": "open",
-      "closed_date": null
-    },
-    {
-      "number": 269,
-      "title": "feat: implement backend organisation trainee management endpoints",
-      "points": 2,
-      "state": "open",
-      "closed_date": null
-    },
-    {
-      "number": 268,
-      "title": "feat: build frontend organisation trainee management",
-      "points": 2,
-      "state": "open",
-      "closed_date": null
-    },
-    {
-      "number": 267,
-      "title": "docs: define SRS use case UC-08 manage organisation employees",
-      "points": 2,
-      "state": "open",
-      "closed_date": null
     },
     {
       "number": 266,
@@ -256,60 +158,11 @@
       "closed_date": null
     },
     {
-      "number": 260,
-      "title": "feat: integrate organisation details page",
-      "points": 2,
-      "state": "open",
-      "closed_date": null
-    },
-    {
-      "number": 259,
-      "title": "feat: integrate platform organisation management flow",
-      "points": 2,
-      "state": "open",
-      "closed_date": null
-    },
-    {
-      "number": 258,
-      "title": "test: add backend organisation onboarding API integration coverage",
-      "points": 3,
-      "state": "open",
-      "closed_date": null
-    },
-    {
-      "number": 257,
-      "title": "feat: implement backend organisation details endpoint",
-      "points": 2,
-      "state": "open",
-      "closed_date": null
-    },
-    {
-      "number": 256,
-      "title": "feat: build frontend organisation details page",
-      "points": 2,
-      "state": "open",
-      "closed_date": null
-    },
-    {
       "number": 255,
       "title": "feat: implement backend organisation review and approval endpoints",
       "points": 2,
       "state": "closed",
       "closed_date": "2026-07-08"
-    },
-    {
-      "number": 254,
-      "title": "feat: build frontend platform organisation management",
-      "points": 2,
-      "state": "open",
-      "closed_date": null
-    },
-    {
-      "number": 253,
-      "title": "docs: define SRS use case UC-05 review and manage organisation registrations",
-      "points": 2,
-      "state": "open",
-      "closed_date": null
     },
     {
       "number": 252,
@@ -515,13 +368,6 @@
       "closed_date": null
     },
     {
-      "number": 223,
-      "title": "docs: create interactive web brand style guidelines",
-      "points": 2,
-      "state": "open",
-      "closed_date": null
-    },
-    {
       "number": 222,
       "title": "feat: implement backend Sprint 4 authentication infrastructure",
       "points": 3,
@@ -567,102 +413,102 @@
   "series": [
     {
       "date": "2026-06-19",
-      "remaining": 176,
-      "ideal": 176.0
+      "remaining": 129,
+      "ideal": 129.0
     },
     {
       "date": "2026-06-20",
-      "remaining": 176,
-      "ideal": 166.74
+      "remaining": 129,
+      "ideal": 122.21
     },
     {
       "date": "2026-06-21",
-      "remaining": 176,
-      "ideal": 157.47
+      "remaining": 129,
+      "ideal": 115.42
     },
     {
       "date": "2026-06-22",
-      "remaining": 174,
-      "ideal": 148.21
+      "remaining": 127,
+      "ideal": 108.63
     },
     {
       "date": "2026-06-23",
-      "remaining": 162,
-      "ideal": 138.95
+      "remaining": 115,
+      "ideal": 101.84
     },
     {
       "date": "2026-06-24",
-      "remaining": 160,
-      "ideal": 129.68
+      "remaining": 113,
+      "ideal": 95.05
     },
     {
       "date": "2026-06-25",
-      "remaining": 156,
-      "ideal": 120.42
+      "remaining": 109,
+      "ideal": 88.26
     },
     {
       "date": "2026-06-26",
-      "remaining": 154,
-      "ideal": 111.16
+      "remaining": 107,
+      "ideal": 81.47
     },
     {
       "date": "2026-06-27",
-      "remaining": 154,
-      "ideal": 101.89
+      "remaining": 107,
+      "ideal": 74.68
     },
     {
       "date": "2026-06-28",
-      "remaining": 151,
-      "ideal": 92.63
+      "remaining": 104,
+      "ideal": 67.89
     },
     {
       "date": "2026-06-29",
-      "remaining": 143,
-      "ideal": 83.37
+      "remaining": 96,
+      "ideal": 61.11
     },
     {
       "date": "2026-06-30",
-      "remaining": 132,
-      "ideal": 74.11
+      "remaining": 85,
+      "ideal": 54.32
     },
     {
       "date": "2026-07-01",
-      "remaining": 118,
-      "ideal": 64.84
+      "remaining": 71,
+      "ideal": 47.53
     },
     {
       "date": "2026-07-02",
-      "remaining": 111,
-      "ideal": 55.58
+      "remaining": 64,
+      "ideal": 40.74
     },
     {
       "date": "2026-07-03",
-      "remaining": 109,
-      "ideal": 46.32
+      "remaining": 62,
+      "ideal": 33.95
     },
     {
       "date": "2026-07-04",
-      "remaining": 109,
-      "ideal": 37.05
+      "remaining": 62,
+      "ideal": 27.16
     },
     {
       "date": "2026-07-05",
-      "remaining": 109,
-      "ideal": 27.79
+      "remaining": 62,
+      "ideal": 20.37
     },
     {
       "date": "2026-07-06",
-      "remaining": 99,
-      "ideal": 18.53
+      "remaining": 52,
+      "ideal": 13.58
     },
     {
       "date": "2026-07-07",
-      "remaining": 97,
-      "ideal": 9.26
+      "remaining": 50,
+      "ideal": 6.79
     },
     {
       "date": "2026-07-08",
-      "remaining": 95,
+      "remaining": 48,
       "ideal": 0.0
     }
   ]

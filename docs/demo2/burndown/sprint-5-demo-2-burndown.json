@@ -1,0 +1,168 @@
+{
+  "milestone": "Sprint 5 (Demo 2)",
+  "start": "2026-07-13",
+  "end": "2026-07-19",
+  "issues": [
+    {
+      "number": 288,
+      "title": "feat: integrate organisation security settings flow",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 286,
+      "title": "feat: build frontend organisation security settings",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 281,
+      "title": "feat: integrate platform admin management flow",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 280,
+      "title": "test: add backend admin and permission API integration coverage",
+      "points": 3,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 279,
+      "title": "feat: implement backend platform admin management endpoints",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 278,
+      "title": "feat: build frontend platform admin management",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 277,
+      "title": "docs: define SRS use case UC-10 manage insightful phish platform admins",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 276,
+      "title": "feat: integrate organisation admin management flow",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 274,
+      "title": "feat: build frontend organisation admin management",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 271,
+      "title": "feat: integrate organisation trainee management flow",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 270,
+      "title": "test: add backend invitation and employee API integration coverage",
+      "points": 3,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 269,
+      "title": "feat: implement backend organisation trainee management endpoints",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 268,
+      "title": "feat: build frontend organisation trainee management",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 267,
+      "title": "docs: define SRS use case UC-08 manage organisation employees",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 260,
+      "title": "feat: integrate organisation details page",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 259,
+      "title": "feat: integrate platform organisation management flow",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 258,
+      "title": "test: add backend organisation onboarding API integration coverage",
+      "points": 3,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 257,
+      "title": "feat: implement backend organisation details endpoint",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 256,
+      "title": "feat: build frontend organisation details page",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 254,
+      "title": "feat: build frontend platform organisation management",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 253,
+      "title": "docs: define SRS use case UC-05 review and manage organisation registrations",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 223,
+      "title": "docs: create interactive web brand style guidelines",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    }
+  ],
+  "series": [
+    {
+      "date": "2026-07-13",
+      "remaining": 47,
+      "ideal": 47.0
+    }
+  ]
+}
