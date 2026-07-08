@@ -102,7 +102,7 @@ function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProps) {
               associated with your account.
             </p>
 
-            <p className="font-overpass text-left text-regular text-[1rem] tracking-wider text-gray-500 mb-4">
+            <p className="font-overpass text-left text-regular text-[1rem] tracking-wider text-gray-500 mb-1">
               <em>
                 If you cannot remember your current password, please go to the{' '}
                 <a href="/login">
@@ -113,6 +113,10 @@ function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProps) {
                   <strong>"Forgot Password"</strong>.
                 </a>
               </em>
+            </p>
+
+            <p className="font-overpass text-left text-regular text-[1rem] tracking-wider text-gray-400 mb-4">
+              Upon successfully changing your password, all active sessions will be logged out.
             </p>
 
             {/* CURRENT PASSWORD */}
