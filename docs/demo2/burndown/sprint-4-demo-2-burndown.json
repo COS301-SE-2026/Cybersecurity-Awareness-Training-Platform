@@ -56,8 +56,8 @@
       "number": 289,
       "title": "feat: build frontend account settings and security preferences",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-07-08"
     },
     {
       "number": 287,
@@ -508,7 +508,7 @@
     },
     {
       "date": "2026-07-08",
-      "remaining": 48,
+      "remaining": 46,
       "ideal": 22.43
     }
   ]
