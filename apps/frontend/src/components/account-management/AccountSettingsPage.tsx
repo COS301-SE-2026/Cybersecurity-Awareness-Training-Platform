@@ -1,10 +1,29 @@
+import ChangeEmailModal from './ChangeEmailModal';
+import ChangePasswordModal from './ChangePasswordModal';
+import { useState } from 'react';
+
 function AccountSettingsPage() {
+  const [showChangeEmailModal, setShowChangeEmailModal] = useState(false);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+
   return (
     <div className="-mt-2 -ml-2">
       {/* HEADING */}
       <h3 className="font-jost text-2xl text-dark-pink tracking-wider font-medium">
         Account Settings
       </h3>
+
+      {/* Change Email Address Modal */}
+      <ChangeEmailModal
+        isOpen={showChangeEmailModal}
+        onClose={() => setShowChangeEmailModal(false)}
+      ></ChangeEmailModal>
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        isOpen={showChangePasswordModal}
+        onClose={() => setShowChangePasswordModal(false)}
+      ></ChangePasswordModal>
 
       {/* SUB-HEADING */}
       <p className="font-regular tracking-wider text-[1.1rem] font-justify font-jost text-gray-500">
@@ -38,6 +57,7 @@ function AccountSettingsPage() {
 
             <button
               type="button"
+              onClick={() => setShowChangeEmailModal(true)}
               className="w-150 cursor-pointer inline-flex items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-red-700 box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm py-3 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <span className="material-symbols-sharp mr-4 ">edit</span>
@@ -69,6 +89,7 @@ function AccountSettingsPage() {
 
             <button
               type="button"
+              onClick={() => setShowChangePasswordModal(true)}
               className="w-150 cursor-pointer inline-flex items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-main-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm px-4 py-3 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <span className="material-symbols-sharp mr-4">edit</span>

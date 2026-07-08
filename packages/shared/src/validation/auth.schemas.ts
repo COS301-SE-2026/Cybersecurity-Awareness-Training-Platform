@@ -24,7 +24,7 @@ export const lastNameSchema = requiredTrimmedStringSchema({
   maxMessage: 'Last name must be at most 100 characters.',
 });
 
-const passwordSchema = z
+export const passwordSchema = z
   .string({
     required_error: 'Please enter a password.',
     invalid_type_error: 'Please enter a password.',
