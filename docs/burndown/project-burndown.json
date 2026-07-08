@@ -1032,8 +1032,8 @@
           "number": 255,
           "title": "feat: implement backend organisation review and approval endpoints",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-07-08"
         },
         {
           "number": 254,
@@ -1667,7 +1667,7 @@
     },
     {
       "date": "2026-07-08",
-      "remaining": 97,
+      "remaining": 95,
       "ideal": 0.0
     }
   ]
