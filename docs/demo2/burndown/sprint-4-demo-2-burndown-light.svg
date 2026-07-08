@@ -13,21 +13,22 @@
 <line x1="65" y1="92.5" x2="870" y2="92.5" stroke="#EEDEFF"/><text x="58" y="96.5" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="end" fill="#3A3A3A">175</text>
 <line x1="65" y1="55.0" x2="870" y2="55.0" stroke="#EEDEFF"/><text x="58" y="59.0" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="end" fill="#3A3A3A">200</text>
 <line x1="70.0" y1="355" x2="70.0" y2="360" stroke="#3A3A3A"/><text x="70.0" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#3A3A3A">19 Jun</text>
-<line x1="158.9" y1="355" x2="158.9" y2="360" stroke="#3A3A3A"/><text x="158.9" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#3A3A3A">21 Jun</text>
-<line x1="247.8" y1="355" x2="247.8" y2="360" stroke="#3A3A3A"/><text x="247.8" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#3A3A3A">23 Jun</text>
-<line x1="336.7" y1="355" x2="336.7" y2="360" stroke="#3A3A3A"/><text x="336.7" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#3A3A3A">25 Jun</text>
-<line x1="425.6" y1="355" x2="425.6" y2="360" stroke="#3A3A3A"/><text x="425.6" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#3A3A3A">27 Jun</text>
-<line x1="514.4" y1="355" x2="514.4" y2="360" stroke="#3A3A3A"/><text x="514.4" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#3A3A3A">29 Jun</text>
-<line x1="603.3" y1="355" x2="603.3" y2="360" stroke="#3A3A3A"/><text x="603.3" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#3A3A3A">1 Jul</text>
-<line x1="692.2" y1="355" x2="692.2" y2="360" stroke="#3A3A3A"/><text x="692.2" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#3A3A3A">3 Jul</text>
-<line x1="781.1" y1="355" x2="781.1" y2="360" stroke="#3A3A3A"/><text x="781.1" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#3A3A3A">5 Jul</text>
-<line x1="870.0" y1="355" x2="870.0" y2="360" stroke="#3A3A3A"/><text x="870.0" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#3A3A3A">7 Jul</text>
+<line x1="154.2" y1="355" x2="154.2" y2="360" stroke="#3A3A3A"/><text x="154.2" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#3A3A3A">21 Jun</text>
+<line x1="238.4" y1="355" x2="238.4" y2="360" stroke="#3A3A3A"/><text x="238.4" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#3A3A3A">23 Jun</text>
+<line x1="322.6" y1="355" x2="322.6" y2="360" stroke="#3A3A3A"/><text x="322.6" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#3A3A3A">25 Jun</text>
+<line x1="406.8" y1="355" x2="406.8" y2="360" stroke="#3A3A3A"/><text x="406.8" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#3A3A3A">27 Jun</text>
+<line x1="491.1" y1="355" x2="491.1" y2="360" stroke="#3A3A3A"/><text x="491.1" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#3A3A3A">29 Jun</text>
+<line x1="575.3" y1="355" x2="575.3" y2="360" stroke="#3A3A3A"/><text x="575.3" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#3A3A3A">1 Jul</text>
+<line x1="659.5" y1="355" x2="659.5" y2="360" stroke="#3A3A3A"/><text x="659.5" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#3A3A3A">3 Jul</text>
+<line x1="743.7" y1="355" x2="743.7" y2="360" stroke="#3A3A3A"/><text x="743.7" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#3A3A3A">5 Jul</text>
+<line x1="827.9" y1="355" x2="827.9" y2="360" stroke="#3A3A3A"/><text x="827.9" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#3A3A3A">7 Jul</text>
+<line x1="870.0" y1="355" x2="870.0" y2="360" stroke="#3A3A3A"/><text x="870.0" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#3A3A3A">8 Jul</text>
 <line x1="70" y1="55" x2="70" y2="355" stroke="#3A3A3A"/>
 <line x1="70" y1="355" x2="870" y2="355" stroke="#3A3A3A"/>
 <text x="18" y="205.0" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="13" text-anchor="middle" transform="rotate(-90 18 205.0)" fill="#3A3A3A">Story Points Remaining</text>
 <text x="470.0" y="408" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="13" text-anchor="middle" fill="#3A3A3A">Sprint Timeline</text>
-<polyline points="70.0,91.0 114.4,104.9 158.9,118.8 203.3,132.7 247.8,146.6 292.2,160.5 336.7,174.4 381.1,188.3 425.6,202.2 470.0,216.1 514.4,229.9 558.9,243.8 603.3,257.7 647.8,271.6 692.2,285.5 736.7,299.4 781.1,313.3 825.6,327.2 870.0,341.1" fill="none" stroke="#B37DFF" stroke-width="3" stroke-dasharray="8 6"/>
-<polyline points="70.0,91.0 114.4,91.0 158.9,91.0 203.3,94.0 247.8,112.0 292.2,115.0 336.7,121.0 381.1,124.0 425.6,124.0 470.0,128.5 514.4,140.5 558.9,157.0 603.3,178.0 647.8,188.5 692.2,191.5 736.7,191.5 781.1,191.5 825.6,206.5 870.0,206.5" fill="none" stroke="#8400FF" stroke-width="4"/>
+<polyline points="70.0,91.0 112.1,104.9 154.2,118.8 196.3,132.7 238.4,146.6 280.5,160.5 322.6,174.4 364.7,188.3 406.8,202.2 448.9,216.1 491.1,229.9 533.2,243.8 575.3,257.7 617.4,271.6 659.5,285.5 701.6,299.4 743.7,313.3 785.8,327.2 827.9,341.1 870.0,355.0" fill="none" stroke="#B37DFF" stroke-width="3" stroke-dasharray="8 6"/>
+<polyline points="70.0,91.0 112.1,91.0 154.2,91.0 196.3,94.0 238.4,112.0 280.5,115.0 322.6,121.0 364.7,124.0 406.8,124.0 448.9,128.5 491.1,140.5 533.2,157.0 575.3,178.0 617.4,188.5 659.5,191.5 701.6,191.5 743.7,191.5 785.8,206.5 827.9,209.5 870.0,209.5" fill="none" stroke="#8400FF" stroke-width="4"/>
 <line x1="610" y1="75" x2="645" y2="75" stroke="#8400FF" stroke-width="4"/>
 <text x="655" y="80" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="13" fill="#3A3A3A">Remaining work</text>
 <line x1="610" y1="97" x2="645" y2="97" stroke="#B37DFF" stroke-width="3" stroke-dasharray="8 6"/>
