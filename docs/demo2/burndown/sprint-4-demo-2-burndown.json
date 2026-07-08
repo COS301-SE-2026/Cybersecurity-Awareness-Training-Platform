@@ -1,7 +1,7 @@
 {
   "milestone": "Sprint 4 (Demo 2)",
   "start": "2026-06-19",
-  "end": "2026-07-08",
+  "end": "2026-07-12",
   "issues": [
     {
       "number": 323,
@@ -419,97 +419,97 @@
     {
       "date": "2026-06-20",
       "remaining": 129,
-      "ideal": 122.21
+      "ideal": 123.39
     },
     {
       "date": "2026-06-21",
       "remaining": 129,
-      "ideal": 115.42
+      "ideal": 117.78
     },
     {
       "date": "2026-06-22",
       "remaining": 127,
-      "ideal": 108.63
+      "ideal": 112.17
     },
     {
       "date": "2026-06-23",
       "remaining": 115,
-      "ideal": 101.84
+      "ideal": 106.57
     },
     {
       "date": "2026-06-24",
       "remaining": 113,
-      "ideal": 95.05
+      "ideal": 100.96
     },
     {
       "date": "2026-06-25",
       "remaining": 109,
-      "ideal": 88.26
+      "ideal": 95.35
     },
     {
       "date": "2026-06-26",
       "remaining": 107,
-      "ideal": 81.47
+      "ideal": 89.74
     },
     {
       "date": "2026-06-27",
       "remaining": 107,
-      "ideal": 74.68
+      "ideal": 84.13
     },
     {
       "date": "2026-06-28",
       "remaining": 104,
-      "ideal": 67.89
+      "ideal": 78.52
     },
     {
       "date": "2026-06-29",
       "remaining": 96,
-      "ideal": 61.11
+      "ideal": 72.91
     },
     {
       "date": "2026-06-30",
       "remaining": 85,
-      "ideal": 54.32
+      "ideal": 67.3
     },
     {
       "date": "2026-07-01",
       "remaining": 71,
-      "ideal": 47.53
+      "ideal": 61.7
     },
     {
       "date": "2026-07-02",
       "remaining": 64,
-      "ideal": 40.74
+      "ideal": 56.09
     },
     {
       "date": "2026-07-03",
       "remaining": 62,
-      "ideal": 33.95
+      "ideal": 50.48
     },
     {
       "date": "2026-07-04",
       "remaining": 62,
-      "ideal": 27.16
+      "ideal": 44.87
     },
     {
       "date": "2026-07-05",
       "remaining": 62,
-      "ideal": 20.37
+      "ideal": 39.26
     },
     {
       "date": "2026-07-06",
       "remaining": 52,
-      "ideal": 13.58
+      "ideal": 33.65
     },
     {
       "date": "2026-07-07",
       "remaining": 50,
-      "ideal": 6.79
+      "ideal": 28.04
     },
     {
       "date": "2026-07-08",
       "remaining": 48,
-      "ideal": 0.0
+      "ideal": 22.43
     }
   ]
 }
