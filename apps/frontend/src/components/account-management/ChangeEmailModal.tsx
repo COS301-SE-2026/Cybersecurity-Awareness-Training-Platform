@@ -85,9 +85,19 @@ function ChangeEmailModal({ isOpen, onClose }: ChangeEmailModalProps) {
 
           <div className="pt-4 pb-2">
             {/* SUB-HEADING */}
-            <p className="font-overpass text-left text-regular text-[1.1rem] tracking-wider text-dark-pink mb-4">
+            <p className="font-overpass text-left text-regular text-[1.1rem] tracking-wider text-dark-pink mb-1">
               Provide a new email address and enter your password to change the email address
               associated with your account.
+            </p>
+
+            <p className="font-overpass text-left text-regular text-[0.8rem] tracking-wider text-gray-400">
+              You will need to verify your new email address before it can be used to sign in to
+              your account. A verification link will be sent to your new email address.
+            </p>
+
+            <p className="font-overpass text-left text-regular text-[0.8rem] tracking-wider text-gray-400 mb-4">
+              Upon successfully changing your email address, you will be logged out of all active
+              sessions.
             </p>
 
             {/* NEW EMAIL INPUT */}

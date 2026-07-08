@@ -115,7 +115,7 @@ function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProps) {
               </em>
             </p>
 
-            <p className="font-overpass text-left text-regular text-[1rem] tracking-wider text-gray-400 mb-4">
+            <p className="font-overpass text-left text-regular text-[0.8rem] tracking-wider text-gray-400 mb-4">
               Upon successfully changing your password, all active sessions will be logged out.
             </p>
 
