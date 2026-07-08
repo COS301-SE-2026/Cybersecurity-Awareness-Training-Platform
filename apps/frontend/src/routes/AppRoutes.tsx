@@ -13,6 +13,7 @@ import LandingPage from '../pages/LandingPage';
 import ForgotPasswordPage from '../pages/ForgotPasswordPage';
 import ResetPasswordPage from '../pages/ResetPasswordPage';
 import OrganisationRegistrationRequestPage from '../pages/OrganisationRegistrationRequestPage';
+import AccountManagementPage from '../pages/AccountManagementPage';
 
 function AppRoutes() {
   return (
@@ -47,6 +48,10 @@ function AppRoutes() {
         path="/organisation-registration-request"
         element={<OrganisationRegistrationRequestPage />}
       />
+
+      {/* Account Settings Route -- WILL PROBABLY NEED TO BE PROTECTED ROUTE */}
+      <Route path="/account-management" element={<AccountManagementPage />}></Route>
+
       <Route path="/" element={<LandingPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

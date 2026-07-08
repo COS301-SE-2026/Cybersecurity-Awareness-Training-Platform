@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/useAuth';
 
-import { ExpandLess, ExpandMore, Logout, PersonOutlined } from '@mui/icons-material';
+import { ExpandLess, ExpandMore, Logout, Settings, PersonOutlined } from '@mui/icons-material';
 
 function Navbar() {
   const [profileOpen, setProfileOpen] = useState(false);
@@ -97,19 +97,27 @@ function Navbar() {
               overflow: 'hidden',
             }}
           >
-            {/* SETTINGS 
-            <div
+            {/* SETTINGS  */}
+            <button
+              type="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  navigate('/account-management');
+                }
+              }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.7rem',
                 padding: '1rem',
-                borderBottom: '2px solid #32006b',
                 fontFamily: 'Overpass',
+                fontWeight: '600',
                 fontSize: '1.1rem',
                 color: 'white',
                 cursor: 'pointer',
                 transition: '0.2s ease',
+                textAlign: 'left',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.backgroundColor = '#2b0056';
@@ -117,14 +125,17 @@ function Navbar() {
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = '#1F0047';
               }}
+              onClick={() => {
+                navigate('/account-management');
+              }}
             >
               <Settings
                 style={{
                   fontSize: '1.4rem',
                 }}
               />
-              Account Settings
-            </div> */}
+              Account Management
+            </button>
 
             {/* LOGOUT */}
 
