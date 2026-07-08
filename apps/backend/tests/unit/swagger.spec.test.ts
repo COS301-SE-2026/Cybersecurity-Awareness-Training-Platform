@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { swaggerSpec } from '../../src/config/swagger.js';
 
-type HttpMethod = 'get' | 'patch' | 'post';
+type HttpMethod = 'get' | 'patch' | 'post' | 'delete';
 
 interface SwaggerOperationShape {
   responses?: Record<string, unknown>;
+  requestBody?: Record<string, unknown>;
 }
 
 interface SwaggerSpecShape {
@@ -50,6 +51,15 @@ const expectedSchemas = [
   'SetupCompleteRequest',
   'SetupCompleteResponse',
   'CreateOrganisationRegistrationRequest',
+  'PlatformOrganisationRequest',
+  'PlatformOrganisationRequestsListResponse',
+  'ApproveOrganisationRequest',
+  'RejectOrganisationRequest',
+  'PlatformOrganisationDetail',
+  'PlatformOrganisationRequestDetailsResponse',
+  'OrganisationInitialSetupStatus',
+  'OrganisationResendEligibility',
+  'PlatformTimelineEntry',
   'OrganisationRegistrationRequestCreatedResponse',
   'OrganisationRegistrationRequestConflictErrorResponse',
   'UserType',
@@ -148,6 +158,8 @@ const expectedRequestBodies = [
   'SubmitQuizAttempt',
   'SetupComplete',
   'CreateOrganisationRegistrationRequest',
+  'ApproveOrganisationRequest',
+  'RejectOrganisationRequest',
   'AuthVerifyEmail',
   'AccountVerifyEmailChange',
   'AuthForgotPassword',
@@ -172,6 +184,43 @@ const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
   ['get', '/setup/token/{token}/context', ['200', '400', '401', '409', '429', '500']],
   ['post', '/setup/token/{token}/complete', ['201', '400', '401', '409', '429', '500']],
   ['post', '/organisation-registration-requests', ['201', '409', '422', '429', '500']],
+  ['get', '/platform/organisation-requests', ['200', '400', '401', '403', '429', '500']],
+  [
+    'get',
+    '/platform/organisation-requests/{requestId}',
+    ['200', '401', '403', '404', '429', '500'],
+  ],
+  [
+    'patch',
+    '/platform/organisation-requests/{requestId}/contacted',
+    ['200', '401', '403', '404', '409', '429', '500'],
+  ],
+  [
+    'post',
+    '/platform/organisation-requests/{requestId}/approve',
+    ['200', '400', '401', '403', '404', '409', '422', '429', '500'],
+  ],
+  [
+    'post',
+    '/platform/organisation-requests/{requestId}/reject',
+    ['200', '400', '401', '403', '404', '409', '422', '429', '500'],
+  ],
+  [
+    'delete',
+    '/platform/organisation-requests/{requestId}',
+    ['200', '401', '403', '404', '409', '429', '500'],
+  ],
+  ['get', '/platform/organisations/{organisationId}', ['200', '401', '403', '404', '429', '500']],
+  [
+    'get',
+    '/platform/organisation-requests/{requestId}/details',
+    ['200', '401', '403', '404', '429', '500'],
+  ],
+  [
+    'post',
+    '/platform/organisations/{organisationId}/resend-initial-admin-setup',
+    ['200', '401', '403', '404', '409', '429', '500'],
+  ],
   ['get', '/organisations/{organisationId}/admins', ['200', '400', '401', '403', '429', '500']],
   [
     'post',
@@ -478,5 +527,23 @@ describe('swaggerSpec', () => {
     expect(meSchema?.properties).not.toHaveProperty('token');
     expect(meSchema?.properties).not.toHaveProperty('tokenType');
     expect(meSchema?.properties).not.toHaveProperty('expiresAt');
+  });
+
+  it('documents approve and reject requests with proper request body refs', () => {
+    const approveDoc = getPath('/platform/organisation-requests/{requestId}/approve', 'post');
+    expect(approveDoc).toBeDefined();
+    expect(approveDoc?.requestBody).toBeDefined();
+    expect(approveDoc?.requestBody).toHaveProperty(
+      '$ref',
+      '#/components/requestBodies/ApproveOrganisationRequest',
+    );
+
+    const rejectDoc = getPath('/platform/organisation-requests/{requestId}/reject', 'post');
+    expect(rejectDoc).toBeDefined();
+    expect(rejectDoc?.requestBody).toBeDefined();
+    expect(rejectDoc?.requestBody).toHaveProperty(
+      '$ref',
+      '#/components/requestBodies/RejectOrganisationRequest',
+    );
   });
 });
