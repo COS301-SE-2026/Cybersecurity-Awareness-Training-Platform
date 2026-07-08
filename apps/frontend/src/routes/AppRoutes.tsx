@@ -11,6 +11,7 @@ import ProtectedRoute from './ProtectedRoute';
 import CampaignsPage from '../pages/CampaignsPage';
 import LandingPage from '../pages/LandingPage';
 import ForgotPasswordPage from '../pages/ForgotPasswordPage';
+import ResetPasswordPage from '../pages/ResetPasswordPage';
 import OrganisationRegistrationRequestPage from '../pages/OrganisationRegistrationRequestPage';
 import AccountManagementPage from '../pages/AccountManagementPage';
 import SetupPage from '../pages/SetupPage';
