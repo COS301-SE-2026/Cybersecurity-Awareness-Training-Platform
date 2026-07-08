@@ -38,8 +38,8 @@ function validateSetupForm(input: {
     confirmPassword: input.confirmPassword,
   };
 
-  if (!data.firstName) return { success: false as const, message: 'PLease Enter A First Name ' };
-  if (!data.lastName) return { success: false as const, message: 'PLease Enter A Last Name ' };
+  if (!data.firstName) return { success: false as const, message: 'Please Enter A First Name ' };
+  if (!data.lastName) return { success: false as const, message: 'Please Enter A Last Name ' };
   if (!data.email) return { success: false as const, message: invalidTokenMessage };
   if (
     data.password.length < 12 ||
@@ -52,10 +52,10 @@ function validateSetupForm(input: {
     return { success: false as const, message: passwordPolicyMessage };
   }
   if (!data.confirmPassword) {
-    return { success: false as const, message: 'Please Confrim Your Password' };
+    return { success: false as const, message: 'Please Confirm Your Password' };
   }
   if (data.password !== data.confirmPassword) {
-    return { success: false as const, message: 'Password Conrimation Must Match Password' };
+    return { success: false as const, message: 'Password Confirmation Must Match Password' };
   }
 
   return { success: true as const, data };
@@ -154,7 +154,7 @@ function SetupPage() {
         if (!isMounted) return;
         setAlertMessage(getSetupErrorMessage(error));
       } finally {
-        if (!isMounted) setIsLoadingContext(false);
+        if (isMounted) setIsLoadingContext(false);
       }
     }
 
@@ -197,7 +197,7 @@ function SetupPage() {
       setIsSubmitting(true);
       await completeSetupWithToken(token, payload);
       setAlertType('success');
-      setAlertMessage('Setup complete. you can now log in.');
+      setAlertMessage('Setup complete. You can now log in.');
       setIsComplete(true);
     } catch (error) {
       setAlertType('danger');

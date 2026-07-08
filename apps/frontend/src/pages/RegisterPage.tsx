@@ -21,7 +21,7 @@ import { registerUser, resendVerification } from '../services/auth.service';
 const duplicateEmailMessage =
   'An account may already exist for this email. Please log in or request a new verification email.';
 const pendingVerificationMessage =
-  'Please chack your email to verify your account. You can request a new verification email below.';
+  'Please check your email to verify your account. You can request a new verification email below.';
 const passwordPolicyMesssage = 'Please choose a password that meets the password requirements.';
 const rateLimitMessage = 'Too many attempts. Please wait a moment and try again.';
 const genericErrorMessage = 'Something went wrong. Please try again.';
@@ -41,10 +41,10 @@ function validateFrontendRegistrationForm(input: {
     confirmPassword: input.confirmPassword,
   };
 
-  if (!payload.firstName) return { success: false as const, message: 'PLease Enter A First Name' };
+  if (!payload.firstName) return { success: false as const, message: 'Please Enter A First Name' };
   if (!payload.lastName) return { success: false as const, message: 'Please Enter A Last Name' };
   if (!payload.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) {
-    return { success: false as const, message: 'PLease Enter A Valid Email Address' };
+    return { success: false as const, message: 'Please Enter A Valid Email Address' };
   }
   if (
     payload.password.length < 12 ||
@@ -57,10 +57,10 @@ function validateFrontendRegistrationForm(input: {
     return { success: false as const, message: passwordPolicyMesssage };
   }
   if (!payload.confirmPassword) {
-    return { success: false as const, message: 'Please Confrim Your Password' };
+    return { success: false as const, message: 'Please Confirm Your Password' };
   }
   if (payload.password !== payload.confirmPassword) {
-    return { success: false as const, message: 'Password Conrimation Must Match Password' };
+    return { success: false as const, message: 'Password Confirmation Must Match Password' };
   }
 
   return { success: true as const, data: payload };
