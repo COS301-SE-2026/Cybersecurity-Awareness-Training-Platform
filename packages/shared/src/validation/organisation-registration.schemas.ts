@@ -87,3 +87,78 @@ export type OrganisationRegistrationRequestResponseDto = {
   status: 'PENDING_REVIEW';
   confirmationEmailQueued: boolean;
 };
+
+export const listOrganisationRequestsQuerySchema = z
+  .object({
+    status: z.enum(['PENDING_REVIEW', 'CONTACTED', 'APPROVED', 'REJECTED', 'CANCELLED']).optional(),
+    search: z.string().trim().optional(),
+    sort: z
+      .string()
+      .trim()
+      .regex(
+        /^(organisationName|submittedOrganisationName|representativeEmail|status|createdAt|updatedAt):(asc|desc)$/,
+        'Invalid sort format or field. Allowed fields: organisationName, submittedOrganisationName, representativeEmail, status, createdAt, updatedAt. Allowed directions: asc, desc.',
+      )
+      .optional(),
+    page: z.preprocess(
+      (val) => (val ? Number.parseInt(val as string, 10) : undefined),
+      z.number().int().min(1).optional().default(1),
+    ),
+    limit: z.preprocess(
+      (val) => (val ? Number.parseInt(val as string, 10) : undefined),
+      z.number().int().min(1).max(100).optional().default(10),
+    ),
+  })
+  .strict();
+
+export type ListOrganisationRequestsQueryDto = z.infer<typeof listOrganisationRequestsQuerySchema>;
+
+export const approveOrganisationRequestSchema = z
+  .object({
+    organisationName: z
+      .string()
+      .trim()
+      .min(1, 'Organisation name cannot be empty.')
+      .max(200, 'Organisation name must be at most 200 characters.')
+      .optional(),
+    initialAdminEmail: z
+      .string({
+        required_error: 'Initial admin email confirmation is required.',
+      })
+      .trim()
+      .email('Please enter a valid email address.')
+      .toLowerCase(),
+  })
+  .strict();
+
+export type ApproveOrganisationRequestDto = z.infer<typeof approveOrganisationRequestSchema>;
+
+export const rejectOrganisationRequestSchema = z
+  .object({
+    rejectionReason: z
+      .string({
+        required_error: 'Please enter a rejection reason.',
+      })
+      .trim()
+      .min(1, 'Please enter a rejection reason.')
+      .max(1000, 'Rejection reason must be at most 1000 characters.'),
+  })
+  .strict();
+
+export type RejectOrganisationRequestDto = z.infer<typeof rejectOrganisationRequestSchema>;
+
+export const organisationRequestIdParamsSchema = z
+  .object({
+    requestId: z.string().uuid('Request ID must be a valid UUID'),
+  })
+  .strict();
+
+export type OrganisationRequestIdParamsDto = z.infer<typeof organisationRequestIdParamsSchema>;
+
+export const platformOrganisationIdParamsSchema = z
+  .object({
+    organisationId: z.string().uuid('Organisation ID must be a valid UUID'),
+  })
+  .strict();
+
+export type PlatformOrganisationIdParamsDto = z.infer<typeof platformOrganisationIdParamsSchema>;

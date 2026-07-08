@@ -191,8 +191,7 @@ function RegisterPage() {
             dividerStyle={{ marginBottom: '0.9rem' }}
             afterDivider={
               <AuthActionLink
-                // THIS NEEDS TO GO TO THE ORGANISATION REGISTRATION REQUEST
-                to="/register"
+                to="/organisation-registration-request"
                 prefix="ORGANISATION?"
                 emphasis="Get Started as an Organisation"
                 outerStyle={{ marginBottom: '1.5rem' }}

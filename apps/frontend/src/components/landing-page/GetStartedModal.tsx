@@ -14,10 +14,7 @@ function GetStartedModal({ isOpen, onClose }: GetStartedModalProps) {
     if (accountType === 'individual') {
       navigate('/register');
     } else {
-      // CHANGE LATER FOR ORGANISATION
-      // Yes, this WILL BE CHANGED LATER when I create the Organisation Registration Request page...
-      // DO NOT REQUEST THIS AS A CHANGE FOR THE PULL REQUEST. It will be addressed later.
-      navigate('/');
+      navigate('/organisation-registration-request');
     }
   }
 
