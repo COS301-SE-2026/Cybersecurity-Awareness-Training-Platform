@@ -98,7 +98,14 @@ function Navbar() {
             }}
           >
             {/* SETTINGS  */}
-            <div
+            <button
+              type="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  navigate('/account-management');
+                }
+              }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -110,6 +117,7 @@ function Navbar() {
                 color: 'white',
                 cursor: 'pointer',
                 transition: '0.2s ease',
+                textAlign: 'left',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.backgroundColor = '#2b0056';
@@ -127,7 +135,7 @@ function Navbar() {
                 }}
               />
               Account Management
-            </div>
+            </button>
 
             {/* LOGOUT */}
 
