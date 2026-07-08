@@ -101,8 +101,12 @@ describe('RegisterPage', () => {
       lastName: 'Doe',
       email: 'trainee@example.com',
       password: 'ThisIsA$StrongPassword!301301!',
+      confirmPassword: 'ThisIsA$StrongPassword!301301!',
     });
-    expect(registerUserMock.mock.calls[0][0]).not.toHaveProperty('confirmPassword');
+    expect(registerUserMock.mock.calls[0][0]).toHaveProperty(
+      'confirmPassword',
+      'ThisIsA$StrongPassword!301301!',
+    );
     expect(
       await screen.findByRole('heading', { name: /Check your Email Inbox/i }),
     ).toBeInTheDocument();

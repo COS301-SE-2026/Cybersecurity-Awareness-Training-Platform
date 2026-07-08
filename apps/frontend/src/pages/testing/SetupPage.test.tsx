@@ -82,7 +82,7 @@ describe('SetupPage', () => {
     expect(completeSetupWithToken).not.toHaveBeenCalled();
   });
 
-  it('completes setup without sending email or confirmPassword', async () => {
+  it('completes setup without sending email and with confirmPassword', async () => {
     const user = userEvent.setup();
 
     renderSetupPage();
@@ -100,9 +100,13 @@ describe('SetupPage', () => {
       firstName: 'Janet',
       lastName: 'Doe',
       password: strongPassword,
+      confirmPassword: strongPassword,
     });
     expect(completeSetupWithTokenMock.mock.calls[0][1]).not.toHaveProperty('email');
-    expect(completeSetupWithTokenMock.mock.calls[0][1]).not.toHaveProperty('confirmPassword');
+    expect(completeSetupWithTokenMock.mock.calls[0][1]).toHaveProperty(
+      'confirmPassword',
+      strongPassword,
+    );
     expect(await screen.findByText('Setup complete. You can now log in.')).toBeInTheDocument();
   });
 
