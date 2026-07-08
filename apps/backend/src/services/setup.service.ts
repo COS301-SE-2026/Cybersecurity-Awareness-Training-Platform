@@ -78,6 +78,65 @@ export async function getSetupTokenContext(
   };
 }
 
+async function seedInitialAdminPermissionsAndActivateOrg(
+  user: { id: string },
+  freshToken: {
+    purpose: string;
+    invitation?: {
+      organisation?: {
+        id: string;
+        status: string;
+      } | null;
+    } | null;
+  },
+  tx: SetupTransaction,
+) {
+  if (freshToken.purpose !== 'INITIAL_ORGANISATION_ADMIN_SETUP') {
+    return;
+  }
+  const org = freshToken.invitation?.organisation;
+  if (!org) {
+    return;
+  }
+
+  if (org.status === 'PENDING_ONBOARDING' && 'organisation' in tx) {
+    await tx.organisation.update({
+      where: { id: org.id },
+      data: { status: 'ACTIVE' },
+    });
+  }
+
+  if (!('organisationAdminProfile' in tx)) {
+    return;
+  }
+
+  const adminProfile = await tx.organisationAdminProfile.findFirst({
+    where: { userId: user.id, organisationId: org.id },
+  });
+
+  if (!adminProfile) {
+    return;
+  }
+
+  if ('organisationPermission' in tx && 'organisationAdminPermission' in tx) {
+    const orgPermissions = await tx.organisationPermission.findMany({
+      where: { organisationId: org.id },
+    });
+
+    const grantsData = orgPermissions.map((permission: { id: string }) => ({
+      id: `org-admin-grant-${adminProfile.id}-${permission.id}`,
+      organisationId: org.id,
+      organisationAdminId: adminProfile.id,
+      organisationPermissionId: permission.id,
+    }));
+
+    await tx.organisationAdminPermission.createMany({
+      data: grantsData,
+      skipDuplicates: true,
+    });
+  }
+}
+
 export async function completeSetupWithToken(
   rawToken: string,
   input: SetupCompleteRequestDto,
@@ -149,6 +208,8 @@ export async function completeSetupWithToken(
       await markInvitationAccepted(freshToken.invitationId, tx);
     }
 
+    await seedInitialAdminPermissionsAndActivateOrg(user, freshToken, tx);
+
     return user;
   });
 
@@ -209,7 +270,12 @@ function assertSetupRecordIsUsable(
 
   const organisationResult = ensureActiveOrganisation(invitation.organisation);
   if (!organisationResult.allowed) {
-    throw new SetupFlowError(409, organisationResult.code, organisationResult.message);
+    const isInitialSetup = setupToken.purpose === 'INITIAL_ORGANISATION_ADMIN_SETUP';
+    const isPendingOnboarding = invitation.organisation.status === 'PENDING_ONBOARDING';
+
+    if (!(isInitialSetup && isPendingOnboarding)) {
+      throw new SetupFlowError(409, organisationResult.code, organisationResult.message);
+    }
   }
 }
 

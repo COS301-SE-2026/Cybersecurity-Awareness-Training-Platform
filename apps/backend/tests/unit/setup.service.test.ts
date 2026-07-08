@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi, afterEach } from 'vitest';
+import type { PrismaClient } from '../../src/generated/prisma/client.js';
 import {
   completeSetupWithToken,
   getSetupTokenContext,
@@ -293,6 +294,74 @@ describe('setup service', () => {
       tx,
     );
     expect(response).toEqual({ user: publicAdminUserResponse });
+  });
+
+  it('activates the organisation and seeds default permissions for the initial organisation admin if organisation status is PENDING_ONBOARDING', async () => {
+    setupRepositoryMock.findSetupActionTokenById.mockResolvedValue(
+      setupToken({
+        purpose: 'INITIAL_ORGANISATION_ADMIN_SETUP',
+        targetEmail: 'admin@example.com',
+        invitationId: 'initial-admin-invitation-1',
+        invitation: {
+          ...setupToken().invitation,
+          id: 'initial-admin-invitation-1',
+          recipientEmail: 'admin@example.com',
+          organisation: {
+            id: 'org-1',
+            name: 'Acme Security',
+            status: 'PENDING_ONBOARDING',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        },
+      }),
+    );
+    setupRepositoryMock.createOrganisationAdminUser.mockResolvedValue(publicAdminUser);
+
+    const organisationUpdateMock = vi.fn();
+    const adminProfileFindFirstMock = vi.fn().mockResolvedValue({ id: 'admin-profile-1' });
+    const organisationPermissionFindManyMock = vi
+      .fn()
+      .mockResolvedValue([{ id: 'perm-1', key: 'VIEW_ORGANISATION_ADMINS' }]);
+    const organisationAdminPermissionCreateManyMock = vi.fn();
+
+    const customTx = {
+      organisation: { update: organisationUpdateMock },
+      organisationAdminProfile: { findFirst: adminProfileFindFirstMock },
+      organisationPermission: { findMany: organisationPermissionFindManyMock },
+      organisationAdminPermission: { createMany: organisationAdminPermissionCreateManyMock },
+    } as unknown as PrismaClient;
+
+    actionTokenServiceMock.runWithConsumedActionToken.mockImplementation(
+      async (_input, action) => ({
+        claimed: true,
+        result: await action(customTx),
+      }),
+    );
+
+    await completeSetupWithToken(rawSetupValue, completeSetupInput);
+
+    expect(organisationUpdateMock).toHaveBeenCalledWith({
+      where: { id: 'org-1' },
+      data: { status: 'ACTIVE' },
+    });
+    expect(adminProfileFindFirstMock).toHaveBeenCalledWith({
+      where: { userId: publicAdminUser.id, organisationId: 'org-1' },
+    });
+    expect(organisationPermissionFindManyMock).toHaveBeenCalledWith({
+      where: { organisationId: 'org-1' },
+    });
+    expect(organisationAdminPermissionCreateManyMock).toHaveBeenCalledWith({
+      data: [
+        {
+          id: 'org-admin-grant-admin-profile-1-perm-1',
+          organisationId: 'org-1',
+          organisationAdminId: 'admin-profile-1',
+          organisationPermissionId: 'perm-1',
+        },
+      ],
+      skipDuplicates: true,
+    });
   });
 
   it.each(['FAILED_TO_SEND', 'ACCEPTED', 'EXPIRED', 'REVOKED'])(
