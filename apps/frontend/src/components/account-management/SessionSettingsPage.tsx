@@ -1,4 +1,4 @@
-import { Dropdown, DropdownItem, Select } from 'flowbite-react';
+import { Dropdown, DropdownItem } from 'flowbite-react';
 
 function SessionSettingsPage() {
   return (
@@ -13,11 +13,20 @@ function SessionSettingsPage() {
         View and manage your recent sessions and configure how sessions on your account behave.
       </p>
 
-      {/* Sessions HEADING */}
-      <h3 className="font-jost text-[1.3rem] text-purple tracking-wider font-medium mb-2">
-        Active Sessions (4)
-        {/* THIS SHOULD INDICATE THE TOTAL NUMBER OF SESSIONS */}
-      </h3>
+      <div className="flex items-center justify-between">
+        {/* Sessions HEADING */}
+        <h3 className="font-jost text-[1.3rem] text-purple tracking-wider font-medium mb-2">
+          Active Sessions (4)
+          {/* THIS SHOULD INDICATE THE TOTAL NUMBER OF SESSIONS */}
+        </h3>
+
+        <button
+          type="button"
+          className="cursor-pointer font-overpass text-[1rem] font-medium text-red-600 hover:underline"
+        >
+          Log Out All Sessions
+        </button>
+      </div>
 
       {/* SESSIONS TABLE */}
       <div className="relative overflow-x-auto bg-neutral-primary-soft border border-default">
@@ -117,80 +126,92 @@ function SessionSettingsPage() {
       </nav> */}
 
       {/* HEADING */}
-      <h3 className="font-jost text-[1.3rem] text-purple tracking-wider font-medium mt-6 -mb-3">
+      <h3 className="font-jost text-[1.3rem] text-purple tracking-wider font-medium mt-12  -mb-3">
         Session Preferences
       </h3>
 
-      {/* DROPDOWNS  */}
-      <div className="mt-4 grid grid-cols-3 max-w-4xl gap-6">
-        {/* DROPDOWN 1: Regular Session Length Dropdown */}
-        <div>
-          {/* Label */}
-          <label
-            htmlFor="regular-session-duration"
-            className=" block mb-2 font-jost tracking-wide text-[1.2rem] font-regular text-pink"
-          >
-            Regular Session Duration
-          </label>
+      <div className="flex items-end justify-between">
+        {/* DROPDOWNS  */}
+        <div className="mt-4 grid grid-cols-3 flex-1 max-w-4xl gap-6">
+          {/* DROPDOWN 1: Regular Session Length Dropdown */}
+          <div>
+            {/* Label */}
+            <label
+              htmlFor="regular-session-duration"
+              className=" block mb-2 font-jost tracking-wide text-[1.2rem] font-regular text-dark-pink"
+            >
+              Regular Session Duration
+            </label>
 
-          <Dropdown label="30 Days" className="rounded-none font-overpass text-[1rem]">
-            <DropdownItem className="font-overpass text-[1rem]">1 Day</DropdownItem>
-            <DropdownItem className="font-overpass text-[1rem]">7 Days</DropdownItem>
-            <DropdownItem className="font-overpass text-[1rem]">14 Days</DropdownItem>
-            <DropdownItem className="font-overpass text-[1rem]">30 Days</DropdownItem>
-          </Dropdown>
+            <Dropdown
+              label="30 Days"
+              className="border border-gray-200 bg-gray-100 hover:bg-gray-100 text-body rounded-none font-overpass text-[1rem]"
+            >
+              <DropdownItem className="font-overpass text-[1rem]">1 Day</DropdownItem>
+              <DropdownItem className="font-overpass text-[1rem]">7 Days</DropdownItem>
+              <DropdownItem className="font-overpass text-[1rem]">14 Days</DropdownItem>
+              <DropdownItem className="font-overpass text-[1rem]">30 Days</DropdownItem>
+            </Dropdown>
+          </div>
+
+          {/* DROPDOWN 2: Remember Me Duration */}
+          <div>
+            {/* Label */}
+            <label
+              htmlFor="remember-me-duration"
+              className=" block mb-2 font-jost tracking-wide text-[1.2rem] font-regular text-dark-pink"
+            >
+              "Remember Me" Duration
+            </label>
+
+            <Dropdown
+              label="Always"
+              className="border border-gray-200 bg-gray-100 hover:bg-gray-100 text-body rounded-none font-overpass text-[1rem]"
+            >
+              <DropdownItem className="font-overpass text-[1rem]">Never</DropdownItem>
+              <DropdownItem className="font-overpass text-[1rem]">1 Day</DropdownItem>
+              <DropdownItem className="font-overpass text-[1rem]">7 Days</DropdownItem>
+              <DropdownItem className="font-overpass text-[1rem]">14 Days</DropdownItem>
+              <DropdownItem className="font-overpass text-[1rem]">30 Days</DropdownItem>
+              <DropdownItem className="font-overpass text-[1rem]">Always</DropdownItem>
+            </Dropdown>
+          </div>
+
+          {/* DROPDOWN 3: Idle Timeout */}
+          <div>
+            {/* Label */}
+            <label
+              htmlFor="idle-timeout-duration"
+              className=" block mb-2 font-jost tracking-wide text-[1.2rem] font-regular text-dark-pink"
+            >
+              Idle Timeout Duration
+            </label>
+
+            <Dropdown
+              label="5 Minutes"
+              className="border border-gray-200 bg-gray-100 hover:bg-gray-100 text-body rounded-none font-overpass text-[1rem]"
+            >
+              <DropdownItem className="font-overpass text-[1rem]">5 Minutes</DropdownItem>
+              <DropdownItem className="font-overpass text-[1rem]">15 Minutes</DropdownItem>
+              <DropdownItem className="font-overpass text-[1rem]">30 Minutes</DropdownItem>
+              <DropdownItem className="font-overpass text-[1rem]">1 Hour</DropdownItem>
+              <DropdownItem className="font-overpass text-[1rem]">2 Hours</DropdownItem>
+              <DropdownItem className="font-overpass text-[1rem]">Never</DropdownItem>
+            </Dropdown>
+          </div>
         </div>
 
-        {/* DROPDOWN 2: Remember Me Duration */}
-        <div>
-          {/* Label */}
-          <label
-            htmlFor="remember-me-duration"
-            className=" block mb-2 font-jost tracking-wide text-[1.2rem] font-regular text-pink"
+        <div className="mt-8 flex items-center justify-between">
+          {/* Update Session Settings Button */}
+          <button
+            type="button"
+            className="cursor-pointer px-6 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm px-4 py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            "Remember Me" Duration
-          </label>
-
-          <Dropdown label="Always" className="rounded-none font-overpass text-[1rem]">
-            <DropdownItem className="font-overpass text-[1rem]">Never</DropdownItem>
-            <DropdownItem className="font-overpass text-[1rem]">1 Day</DropdownItem>
-            <DropdownItem className="font-overpass text-[1rem]">7 Days</DropdownItem>
-            <DropdownItem className="font-overpass text-[1rem]">14 Days</DropdownItem>
-            <DropdownItem className="font-overpass text-[1rem]">30 Days</DropdownItem>
-            <DropdownItem className="font-overpass text-[1rem]">Always</DropdownItem>
-          </Dropdown>
-        </div>
-
-        {/* DROPDOWN 3: Idle Timeout */}
-        <div>
-          {/* Label */}
-          <label
-            htmlFor="idle-timeout-duration"
-            className=" block mb-2 font-jost tracking-wide text-[1.2rem] font-regular text-pink"
-          >
-            Idle Timeout Duration
-          </label>
-
-          <Dropdown label="5 Minutes" className="rounded-none font-overpass text-[1rem]">
-            <DropdownItem className="font-overpass text-[1rem]">5 Minutes</DropdownItem>
-            <DropdownItem className="font-overpass text-[1rem]">15 Minutes</DropdownItem>
-            <DropdownItem className="font-overpass text-[1rem]">30 Minutes</DropdownItem>
-            <DropdownItem className="font-overpass text-[1rem]">1 Hour</DropdownItem>
-            <DropdownItem className="font-overpass text-[1rem]">2 Hours</DropdownItem>
-            <DropdownItem className="font-overpass text-[1rem]">Never</DropdownItem>
-          </Dropdown>
+            <span className="material-icons-sharp">save</span>
+            <span> Update Session Settings </span>
+          </button>
         </div>
       </div>
-
-      {/* <div className="mt-2 flex items-center justify-between">
-        <button
-          type="button"
-          className="cursor-pointer px-6 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-red-600 hover:bg-red-700 box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm px-4 py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
-        >
-          <span className="material-symbols-sharp">delete</span>
-          <span> Delete Account </span>
-        </button>
-      </div> */}
     </div>
   );
 }
