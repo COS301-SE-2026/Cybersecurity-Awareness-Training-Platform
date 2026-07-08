@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { Prisma } from '../../src/generated/prisma/client.js';
 import {
   listOrganisationRequests,
   getOrganisationRequest,
@@ -164,7 +165,59 @@ describe('platform organisation registration request service', () => {
 
       expect(response.requests).toHaveLength(1);
       expect(response.pagination).toEqual({ page: 1, limit: 10, total: 1, totalPages: 1 });
+      expect(response.requests[0]).toHaveProperty('setupStatus', null);
+      expect(response.requests[0]).toHaveProperty('resendEligibility');
       expect(prismaMock.organisationRegistrationRequest.findMany).toHaveBeenCalled();
+    });
+
+    it('correctly derives expired setup status when token/invitation has expired by time', async () => {
+      const pastDate = new Date(Date.now() - 3600 * 1000); // 1 hour ago
+      prismaMock.organisationRegistrationRequest.findMany.mockResolvedValue([
+        {
+          id: requestId,
+          submittedOrganisationName: 'Acme',
+          representativeFirstName: 'John',
+          representativeLastName: 'Doe',
+          representativeEmail: 'john@acme.com',
+          status: 'APPROVED',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          contactedAt: null,
+          approvedAt: new Date(),
+          rejectedAt: null,
+          approvedOrganisation: {
+            status: 'PENDING_ONBOARDING',
+          },
+          initialAdminInvitations: [
+            {
+              id: 'inv-1',
+              status: 'PENDING',
+              recipientEmail: 'john@acme.com',
+              expiresAt: pastDate,
+              actionTokens: [
+                {
+                  id: 'tok-1',
+                  expiresAt: pastDate,
+                  usedAt: null,
+                  revokedAt: null,
+                },
+              ],
+              emailDeliveryLogs: [],
+            },
+          ],
+        },
+      ]);
+      prismaMock.organisationRegistrationRequest.count.mockResolvedValue(1);
+
+      const response = await listOrganisationRequests(actorUserId, {
+        page: 1,
+        limit: 10,
+      });
+
+      expect(response.requests[0].derivedStatus).toBe('SETUP_TOKEN_EXPIRED');
+      expect(response.requests[0].setupStatus?.status).toBe('PENDING');
+      expect(response.requests[0].resendEligibility.isEligible).toBe(true);
+      expect(response.requests[0].resendEligibility.reason).toBe('SETUP_TOKEN_EXPIRED');
     });
   });
 
@@ -421,6 +474,58 @@ describe('platform organisation registration request service', () => {
           409,
           'REQUEST_ALREADY_RESOLVED',
           'Request has already been processed or status has changed',
+        ),
+      );
+    });
+
+    it('maps Prisma unique conflict for organisation name to stable 409 ORGANISATION_ALREADY_EXISTS', async () => {
+      prismaMock.organisationRegistrationRequest.findUnique.mockResolvedValue({
+        id: requestId,
+        status: 'PENDING_REVIEW',
+        submittedOrganisationName: 'Acme',
+      });
+      const error = new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+        code: 'P2002',
+        clientVersion: '7.0.0',
+        meta: { target: ['name'] },
+      });
+      prismaMock.$transaction.mockRejectedValueOnce(error);
+
+      await expect(
+        approveOrganisationRequest(actorUserId, requestId, {
+          initialAdminEmail: 'john@acme.com',
+        }),
+      ).rejects.toThrowError(
+        new OrganisationRegistrationRequestError(
+          409,
+          'ORGANISATION_ALREADY_EXISTS',
+          'An organisation with this name already exists',
+        ),
+      );
+    });
+
+    it('maps Prisma unique conflict for user email to stable 409 REPRESENTATIVE_CONFLICT', async () => {
+      prismaMock.organisationRegistrationRequest.findUnique.mockResolvedValue({
+        id: requestId,
+        status: 'PENDING_REVIEW',
+        submittedOrganisationName: 'Acme',
+      });
+      const error = new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+        code: 'P2002',
+        clientVersion: '7.0.0',
+        meta: { target: ['email'] },
+      });
+      prismaMock.$transaction.mockRejectedValueOnce(error);
+
+      await expect(
+        approveOrganisationRequest(actorUserId, requestId, {
+          initialAdminEmail: 'john@acme.com',
+        }),
+      ).rejects.toThrowError(
+        new OrganisationRegistrationRequestError(
+          409,
+          'REPRESENTATIVE_CONFLICT',
+          'A user with this email address already exists',
         ),
       );
     });

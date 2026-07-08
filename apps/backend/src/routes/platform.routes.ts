@@ -64,7 +64,7 @@ platformRouter.use('/platform', apiRateLimit, requireAuth, requirePlatformAdmin)
  *         schema:
  *           type: string
  *           example: createdAt:desc
- *         description: Sort field and direction
+ *         description: Sort field and direction. Allowed fields are organisationName, submittedOrganisationName, representativeEmail, status, createdAt, updatedAt. Allowed directions are asc, desc. Format is field:direction.
  *       - in: query
  *         name: page
  *         schema:
@@ -87,6 +87,8 @@ platformRouter.use('/platform', apiRateLimit, requireAuth, requirePlatformAdmin)
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/PlatformOrganisationRequestsListResponse'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  *       403:
@@ -204,11 +206,7 @@ platformRouter.patch(
  *           format: uuid
  *         description: The registration request ID
  *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/requestBodies/ApproveOrganisationRequest'
+ *       $ref: '#/components/requestBodies/ApproveOrganisationRequest'
  *     responses:
  *       200:
  *         description: Request approved, organisation and invitation initialized
@@ -275,11 +273,7 @@ platformRouter.post(
  *           format: uuid
  *         description: The registration request ID
  *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/requestBodies/RejectOrganisationRequest'
+ *       $ref: '#/components/requestBodies/RejectOrganisationRequest'
  *     responses:
  *       200:
  *         description: Request successfully rejected

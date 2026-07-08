@@ -5,6 +5,7 @@ type HttpMethod = 'get' | 'patch' | 'post' | 'delete';
 
 interface SwaggerOperationShape {
   responses?: Record<string, unknown>;
+  requestBody?: Record<string, unknown>;
 }
 
 interface SwaggerSpecShape {
@@ -183,7 +184,7 @@ const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
   ['get', '/setup/token/{token}/context', ['200', '400', '401', '409', '429', '500']],
   ['post', '/setup/token/{token}/complete', ['201', '400', '401', '409', '429', '500']],
   ['post', '/organisation-registration-requests', ['201', '409', '422', '429', '500']],
-  ['get', '/platform/organisation-requests', ['200', '401', '403', '429', '500']],
+  ['get', '/platform/organisation-requests', ['200', '400', '401', '403', '429', '500']],
   [
     'get',
     '/platform/organisation-requests/{requestId}',
@@ -526,5 +527,23 @@ describe('swaggerSpec', () => {
     expect(meSchema?.properties).not.toHaveProperty('token');
     expect(meSchema?.properties).not.toHaveProperty('tokenType');
     expect(meSchema?.properties).not.toHaveProperty('expiresAt');
+  });
+
+  it('documents approve and reject requests with proper request body refs', () => {
+    const approveDoc = getPath('/platform/organisation-requests/{requestId}/approve', 'post');
+    expect(approveDoc).toBeDefined();
+    expect(approveDoc?.requestBody).toBeDefined();
+    expect(approveDoc?.requestBody).toHaveProperty(
+      '$ref',
+      '#/components/requestBodies/ApproveOrganisationRequest',
+    );
+
+    const rejectDoc = getPath('/platform/organisation-requests/{requestId}/reject', 'post');
+    expect(rejectDoc).toBeDefined();
+    expect(rejectDoc?.requestBody).toBeDefined();
+    expect(rejectDoc?.requestBody).toHaveProperty(
+      '$ref',
+      '#/components/requestBodies/RejectOrganisationRequest',
+    );
   });
 });

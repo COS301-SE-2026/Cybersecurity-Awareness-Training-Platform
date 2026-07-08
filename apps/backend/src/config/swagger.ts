@@ -1128,19 +1128,12 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
               example: 'PENDING_ONBOARDING',
             },
             setupStatus: {
-              type: 'string',
               nullable: true,
-              enum: [
-                'PENDING',
-                'SENT',
-                'FAILED_TO_SEND',
-                'ACCEPTED',
-                'COMPLETED',
-                'EXPIRED',
-                'REVOKED',
-                'REJECTED',
-              ],
-              example: 'SENT',
+              $ref: '#/components/schemas/OrganisationInitialSetupStatus',
+            },
+            resendEligibility: {
+              nullable: true,
+              $ref: '#/components/schemas/OrganisationResendEligibility',
             },
             derivedStatus: {
               type: 'string',

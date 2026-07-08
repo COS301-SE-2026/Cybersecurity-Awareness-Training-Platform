@@ -10,7 +10,7 @@ import * as UserRepository from '../repositories/user.repository.js';
 import { recordAuditLog } from './audit-log.service.js';
 import { requestAuthEmailSend } from './auth-email-hook.service.js';
 import { prisma } from '../lib/prisma.js';
-import type { Prisma } from '../generated/prisma/client.js';
+import { Prisma } from '../generated/prisma/client.js';
 import { issueActionToken } from './action-token.service.js';
 import { ensureDefaultOrganisationSecuritySettings } from '../repositories/security-settings.repository.js';
 
@@ -143,8 +143,35 @@ export async function listOrganisationRequests(
             createdAt: 'desc',
           },
           take: 1,
-          select: {
-            status: true,
+          include: {
+            actionTokens: {
+              orderBy: {
+                createdAt: 'desc',
+              },
+              take: 1,
+              select: {
+                id: true,
+                expiresAt: true,
+                usedAt: true,
+                revokedAt: true,
+              },
+            },
+            emailDeliveryLogs: {
+              where: {
+                emailType: 'INITIAL_ORGANISATION_ADMIN_SETUP',
+              },
+              orderBy: {
+                createdAt: 'desc',
+              },
+              take: 1,
+              select: {
+                id: true,
+                deliveryStatus: true,
+                sentAt: true,
+                failedAt: true,
+                failureReason: true,
+              },
+            },
           },
         },
       },
@@ -155,7 +182,9 @@ export async function listOrganisationRequests(
   const getDerivedStatus = (
     requestStatus: string,
     orgStatus: string | null,
-    inviteStatus: string | null,
+    invitation: FormatInvitationInput | null,
+    latestEmailLog: FormatEmailLogInput | null,
+    now: Date = new Date(),
   ): string => {
     if (requestStatus !== 'APPROVED') {
       return requestStatus;
@@ -164,18 +193,34 @@ export async function listOrganisationRequests(
       return 'APPROVED';
     }
     if (orgStatus === 'PENDING_ONBOARDING') {
-      if (!inviteStatus) {
+      if (!invitation) {
         return 'APPROVED_PENDING_SETUP';
       }
-      if (inviteStatus === 'ACCEPTED' || inviteStatus === 'COMPLETED') {
+      if (invitation.status === 'ACCEPTED' || invitation.status === 'COMPLETED') {
         return 'ONBOARDING';
       }
-      if (inviteStatus === 'FAILED_TO_SEND') {
+      if (invitation.status === 'FAILED_TO_SEND') {
         return 'SETUP_EMAIL_FAILED';
       }
-      if (inviteStatus === 'EXPIRED') {
+      if (invitation.status === 'EXPIRED') {
         return 'SETUP_TOKEN_EXPIRED';
       }
+      if (new Date(invitation.expiresAt).getTime() <= now.getTime()) {
+        return 'SETUP_TOKEN_EXPIRED';
+      }
+
+      const tokens = invitation.actionTokens || [];
+      const hasActiveToken = tokens.some(
+        (t) => !t.usedAt && !t.revokedAt && new Date(t.expiresAt).getTime() > now.getTime(),
+      );
+      if (!hasActiveToken) {
+        return 'SETUP_TOKEN_EXPIRED';
+      }
+
+      if (latestEmailLog?.deliveryStatus === 'FAILED') {
+        return 'SETUP_EMAIL_FAILED';
+      }
+
       return 'PENDING_ONBOARDING';
     }
     return orgStatus;
@@ -184,12 +229,18 @@ export async function listOrganisationRequests(
   return {
     requests: requests.map((req) => {
       const orgStatus = req.approvedOrganisation?.status ?? null;
-      const inviteStatus = req.initialAdminInvitations[0]?.status ?? null;
+      const invitation = req.initialAdminInvitations[0] ?? null;
+      const latestEmailLog = invitation?.emailDeliveryLogs[0] ?? null;
       return {
         ...formatRegistrationRequestBase(req),
         organisationStatus: orgStatus,
-        setupStatus: inviteStatus,
-        derivedStatus: getDerivedStatus(req.status, orgStatus, inviteStatus),
+        setupStatus: formatSetupStatus(invitation, latestEmailLog),
+        resendEligibility: getResendEligibility(
+          orgStatus ?? 'PENDING_ONBOARDING',
+          invitation,
+          latestEmailLog,
+        ),
+        derivedStatus: getDerivedStatus(req.status, orgStatus, invitation, latestEmailLog),
       };
     }),
     pagination: {
@@ -518,123 +569,159 @@ export async function approveOrganisationRequest(
     );
   }
 
-  const result = await prisma.$transaction(async (tx) => {
-    const updateResult = await tx.organisationRegistrationRequest.updateMany({
-      where: {
-        id: requestId,
-        status: { in: ['PENDING_REVIEW', 'CONTACTED'] },
-      },
-      data: {
-        status: 'APPROVED',
-        approvedByIpAdminId: ipAdminProfile.id,
-        approvedAt: new Date(),
-      },
-    });
-
-    if (updateResult.count === 0) {
-      const exists = await tx.organisationRegistrationRequest.findUnique({
-        where: { id: requestId },
+  let result;
+  try {
+    result = await prisma.$transaction(async (tx) => {
+      const updateResult = await tx.organisationRegistrationRequest.updateMany({
+        where: {
+          id: requestId,
+          status: { in: ['PENDING_REVIEW', 'CONTACTED'] },
+        },
+        data: {
+          status: 'APPROVED',
+          approvedByIpAdminId: ipAdminProfile.id,
+          approvedAt: new Date(),
+        },
       });
-      if (!exists) {
+
+      if (updateResult.count === 0) {
+        const exists = await tx.organisationRegistrationRequest.findUnique({
+          where: { id: requestId },
+        });
+        if (!exists) {
+          throw new OrganisationRegistrationRequestError(
+            404,
+            'REQUEST_NOT_FOUND',
+            'Organisation registration request not found',
+          );
+        }
         throw new OrganisationRegistrationRequestError(
-          404,
-          'REQUEST_NOT_FOUND',
-          'Organisation registration request not found',
+          409,
+          'REQUEST_ALREADY_RESOLVED',
+          'Request has already been processed or status has changed',
         );
       }
-      throw new OrganisationRegistrationRequestError(
-        409,
-        'REQUEST_ALREADY_RESOLVED',
-        'Request has already been processed or status has changed',
+
+      const organisation = await tx.organisation.create({
+        data: {
+          name: orgName,
+          status: 'PENDING_ONBOARDING',
+        },
+      });
+
+      const permissionData = ORGANISATION_ADMIN_PERMISSION_SEEDS.map((perm) => ({
+        id: ['organisation-permission', organisation.id, perm.key].join('-'),
+        organisationId: organisation.id,
+        key: perm.key,
+        displayName: perm.displayName,
+        description: perm.description,
+        isCritical: perm.isCritical,
+      }));
+      await tx.organisationPermission.createMany({
+        data: permissionData,
+      });
+
+      await ensureDefaultOrganisationSecuritySettings({ organisationId: organisation.id }, tx);
+
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+      const invitation = await tx.invitation.create({
+        data: {
+          organisationId: organisation.id,
+          organisationRegistrationRequestId: requestId,
+          recipientEmail: input.initialAdminEmail,
+          recipientFirstName: freshRequest.representativeFirstName,
+          recipientLastName: freshRequest.representativeLastName,
+          purpose: 'INITIAL_ORGANISATION_ADMIN_SETUP',
+          status: 'PENDING',
+          expiresAt,
+        },
+      });
+
+      const actionTokenResult = await issueActionToken(
+        {
+          purpose: 'INITIAL_ORGANISATION_ADMIN_SETUP',
+          expiresAt,
+          targetEmail: input.initialAdminEmail,
+          invitationId: invitation.id,
+          organisationRegistrationRequestId: requestId,
+        },
+        tx,
       );
+
+      const updatedRequest = await tx.organisationRegistrationRequest.update({
+        where: { id: requestId },
+        data: {
+          approvedOrganisationId: organisation.id,
+        },
+      });
+
+      await recordAuditLog(
+        {
+          actorUserId,
+          actorType: 'IP_ADMIN',
+          targetType: 'ORGANISATION_REGISTRATION_REQUEST',
+          targetId: requestId,
+          actionType: 'APPROVED',
+          outcome: 'SUCCESS',
+          organisationId: organisation.id,
+        },
+        tx,
+      );
+
+      await recordAuditLog(
+        {
+          actorUserId,
+          actorType: 'IP_ADMIN',
+          targetType: 'ORGANISATION',
+          targetId: organisation.id,
+          actionType: 'CREATED',
+          outcome: 'SUCCESS',
+          organisationId: organisation.id,
+        },
+        tx,
+      );
+
+      return {
+        updatedRequest,
+        organisation,
+        invitation,
+        actionToken: actionTokenResult,
+      };
+    });
+  } catch (error: unknown) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      const target = error.meta?.target;
+      const targetList = Array.isArray(target)
+        ? target
+        : typeof target === 'string'
+          ? [target]
+          : [];
+      const errorMessage = error.message || '';
+      if (
+        targetList.includes('name') ||
+        errorMessage.includes('name') ||
+        errorMessage.includes('Organisation_name_key')
+      ) {
+        throw new OrganisationRegistrationRequestError(
+          409,
+          'ORGANISATION_ALREADY_EXISTS',
+          'An organisation with this name already exists',
+        );
+      }
+      if (
+        targetList.includes('email') ||
+        errorMessage.includes('email') ||
+        errorMessage.includes('User_email_key')
+      ) {
+        throw new OrganisationRegistrationRequestError(
+          409,
+          'REPRESENTATIVE_CONFLICT',
+          'A user with this email address already exists',
+        );
+      }
     }
-
-    const organisation = await tx.organisation.create({
-      data: {
-        name: orgName,
-        status: 'PENDING_ONBOARDING',
-      },
-    });
-
-    const permissionData = ORGANISATION_ADMIN_PERMISSION_SEEDS.map((perm) => ({
-      id: ['organisation-permission', organisation.id, perm.key].join('-'),
-      organisationId: organisation.id,
-      key: perm.key,
-      displayName: perm.displayName,
-      description: perm.description,
-      isCritical: perm.isCritical,
-    }));
-    await tx.organisationPermission.createMany({
-      data: permissionData,
-    });
-
-    await ensureDefaultOrganisationSecuritySettings({ organisationId: organisation.id }, tx);
-
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-    const invitation = await tx.invitation.create({
-      data: {
-        organisationId: organisation.id,
-        organisationRegistrationRequestId: requestId,
-        recipientEmail: input.initialAdminEmail,
-        recipientFirstName: freshRequest.representativeFirstName,
-        recipientLastName: freshRequest.representativeLastName,
-        purpose: 'INITIAL_ORGANISATION_ADMIN_SETUP',
-        status: 'PENDING',
-        expiresAt,
-      },
-    });
-
-    const actionTokenResult = await issueActionToken(
-      {
-        purpose: 'INITIAL_ORGANISATION_ADMIN_SETUP',
-        expiresAt,
-        targetEmail: input.initialAdminEmail,
-        invitationId: invitation.id,
-        organisationRegistrationRequestId: requestId,
-      },
-      tx,
-    );
-
-    const updatedRequest = await tx.organisationRegistrationRequest.update({
-      where: { id: requestId },
-      data: {
-        approvedOrganisationId: organisation.id,
-      },
-    });
-
-    await recordAuditLog(
-      {
-        actorUserId,
-        actorType: 'IP_ADMIN',
-        targetType: 'ORGANISATION_REGISTRATION_REQUEST',
-        targetId: requestId,
-        actionType: 'APPROVED',
-        outcome: 'SUCCESS',
-        organisationId: organisation.id,
-      },
-      tx,
-    );
-
-    await recordAuditLog(
-      {
-        actorUserId,
-        actorType: 'IP_ADMIN',
-        targetType: 'ORGANISATION',
-        targetId: organisation.id,
-        actionType: 'CREATED',
-        outcome: 'SUCCESS',
-        organisationId: organisation.id,
-      },
-      tx,
-    );
-
-    return {
-      updatedRequest,
-      organisation,
-      invitation,
-      actionToken: actionTokenResult,
-    };
-  });
+    throw error;
+  }
 
   const emailResult = await requestAuthEmailSend({
     emailType: 'INITIAL_ORGANISATION_ADMIN_SETUP',
