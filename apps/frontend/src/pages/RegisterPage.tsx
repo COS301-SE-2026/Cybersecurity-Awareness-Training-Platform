@@ -106,8 +106,7 @@ function RegisterPage() {
       return;
     }
 
-    const { confirmPassword: _confirmPassword, ...payload } = validationResult.data;
-    void _confirmPassword;
+    const payload = validationResult.data;
 
     try {
       setIsLoading(true);

@@ -13,12 +13,14 @@ export type RegisterUserPayload = {
   lastName: string;
   email: string;
   password: string;
+  confirmPassword: string;
 };
 
 export type CompleteSetupPayload = {
   firstName: string;
   lastName: string;
   password: string;
+  confirmPassword: string;
 };
 
 export function loginUser(payload: AuthLoginRequestDto): Promise<AuthLoginResponseDto> {

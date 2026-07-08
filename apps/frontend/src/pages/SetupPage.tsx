@@ -189,9 +189,12 @@ function SetupPage() {
       return;
     }
 
-    const { confirmPassword: _confirmPassword, email: _email, ...payload } = validationResult.data;
-    void _confirmPassword;
-    void _email;
+    const payload = {
+      firstName: validationResult.data.firstName,
+      lastName: validationResult.data.lastName,
+      password: validationResult.data.password,
+      confirmPassword: validationResult.data.confirmPassword,
+    };
 
     try {
       setIsSubmitting(true);
