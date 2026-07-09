@@ -52,8 +52,10 @@ function AcceptInviteResultModal({
               <p className="font-overpass text-left text-regular text-[1.1rem] tracking-wider text-purple mb-8">
                 This <span className="font-semibold">invitation</span> is{' '}
                 <strong>no longer valid</strong> because it has either <em>expired</em>,{' '}
-                <em>is invalid</em>, <em>has already been used</em>, or it <em>has been revoked</em>
-                .
+                <span>
+                  <em>is invalid</em>, <em>has already been used</em>, or it{' '}
+                  <em>has been revoked</em>.
+                </span>
               </p>
             )}
 
