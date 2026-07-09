@@ -2,8 +2,15 @@ import { useState } from 'react';
 import OrganisationInformationForm from '../components/org-reg/OrganisationInformationForm';
 import RepresentativeInformationForm from '../components/org-reg/RepresentativeInformationForm';
 import BasicAlert from '../components/alerts/BasicAlert';
-import { firstNameSchema, lastNameSchema, emailSchema } from '@insightful-phish/shared';
+import {
+  firstNameSchema,
+  lastNameSchema,
+  emailSchema,
+  type CreateOrganisationRegistrationRequestDto,
+} from '@insightful-phish/shared';
 import SuccessfulRegistrationModal from '../components/layout/modals/SuccessfulRegistrationModal';
+import { ApiError } from '../lib/apiClient';
+import { submitOrganisationRegistrationRequest } from '../services/organisation-registration-request.service';
 
 function formatAlertMessage(message: string) {
   // makes everything title case and removes the . from the end of the message
@@ -22,6 +29,8 @@ function OrganisationRegistrationRequestPage() {
 
   const [alertMessage, setAlertMessage] = useState('');
   const [alertType, setAlertType] = useState<'success' | 'danger'>('danger');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [confirmationEmailQueued, setConfirmationEmailQueued] = useState<boolean | null>(null);
 
   const [orgInfoValid, setOrgInfoValid] = useState(false);
 
@@ -65,10 +74,8 @@ function OrganisationRegistrationRequestPage() {
     if (url) {
       // INVALID URL
       try {
-        const normalURL =
-          url.startsWith('https://') || url.startsWith('http://') ? url : `https://${url}`;
-        const parsedURL = new URL(normalURL);
-        if (!parsedURL.hostname.includes('.')) {
+        const parsedURL = new URL(url);
+        if (parsedURL.protocol !== 'http:' && parsedURL.protocol !== 'https:') {
           throw new Error('Invalid URL');
         }
       } catch {
@@ -108,6 +115,74 @@ function OrganisationRegistrationRequestPage() {
     }
 
     return true;
+  }
+
+  type SubmitErrorBody = {
+    error?: string;
+    details?: Array<{ field: string; message: string }>;
+  };
+
+  function buildRequestPayload(): CreateOrganisationRegistrationRequestDto {
+    const organisationDescription = orgDescrip.trim();
+    const organisationWebsiteUrl = orgWeb.trim();
+
+    return {
+      organisationName: orgName.trim(),
+      organisationSize: Number(orgSize),
+      representativeFirstName: repFName.trim(),
+      representativeLastName: repLName.trim(),
+      representativeEmail: repEmail.trim().toLowerCase(),
+      ...(organisationDescription ? { organisationDescription } : {}),
+      ...(organisationWebsiteUrl ? { organisationWebsiteUrl } : {}),
+    };
+  }
+
+  function getSafeSubmitErrorMessage(error: unknown) {
+    if (!(error instanceof ApiError)) {
+      return 'We could not submit the request right now. Please try again later.';
+    }
+
+    const body = error.body as SubmitErrorBody | undefined;
+
+    if (error.status === 409 && body?.error === 'ORGANISATION_REQUEST_CONFLICT') {
+      return 'A registration request already exists or conflicts with existing records. Please check the details or contact support.';
+    }
+
+    if (error.status === 422 && body?.error === 'VALIDATION_ERROR') {
+      return body.details?.[0]?.message ?? 'Please check the request details and try again.';
+    }
+
+    if (error.status === 429 && body?.error === 'TOO_MANY_REQUESTS') {
+      return 'Too many requests. Please wait and try again later.';
+    }
+
+    return 'We could not submit the request right now. Please try again later.';
+  }
+
+  async function handleSubmitRegistrationRequest() {
+    setAlertMessage('');
+
+    if (!validateOrgInfo()) {
+      setCurrentStep(1);
+      return;
+    }
+
+    if (!validateRepInfo()) {
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const response = await submitOrganisationRegistrationRequest(buildRequestPayload());
+      setConfirmationEmailQueued(response.confirmationEmailQueued);
+      setShowSuccessfulRegModal(true);
+    } catch (error) {
+      setAlertType('danger');
+      setAlertMessage(getSafeSubmitErrorMessage(error));
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -151,6 +226,7 @@ function OrganisationRegistrationRequestPage() {
             firstName={repFName}
             accountDescription="Organisation Administrator"
             organisation={orgName}
+            confirmationEmailQueued={confirmationEmailQueued}
           />
 
           {/* TAB BUTTONS */}
@@ -220,11 +296,8 @@ function OrganisationRegistrationRequestPage() {
                   setCurrentStep(1);
                   setOrgInfoValid(false);
                 }}
-                onSubmit={() => {
-                  if (validateRepInfo()) {
-                    setShowSuccessfulRegModal(true);
-                  }
-                }}
+                onSubmit={handleSubmitRegistrationRequest}
+                isSubmitting={isSubmitting}
               />
             )}
           </div>
