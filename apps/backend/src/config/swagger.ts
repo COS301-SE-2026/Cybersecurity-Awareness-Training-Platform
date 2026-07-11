@@ -973,6 +973,44 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             },
           },
         },
+        InvitationTokenContextResponse: {
+          type: 'object',
+          required: ['token', 'invitation'],
+          properties: {
+            token: {
+              type: 'object',
+              required: ['state', 'purpose'],
+              properties: {
+                state: {
+                  type: 'string',
+                  enum: ['VALID', 'INVALID', 'EXPIRED', 'USED', 'REVOKED'],
+                  example: 'VALID',
+                },
+                purpose: {
+                  type: 'string',
+                  nullable: true,
+                  enum: ['ORGANISATION_ADMIN_PROMOTION'],
+                  example: 'ORGANISATION_ADMIN_PROMOTION',
+                },
+              },
+            },
+            invitation: {
+              type: 'object',
+              nullable: true,
+              required: ['type', 'targetEmail', 'organisationName', 'grantedRole'],
+              properties: {
+                type: { type: 'string', enum: ['ORGANISATION_ADMIN_PROMOTION'] },
+                targetEmail: {
+                  type: 'string',
+                  format: 'email',
+                  example: 'trainee@example.com',
+                },
+                organisationName: { type: 'string', example: 'Example Organisation' },
+                grantedRole: { type: 'string', enum: ['ORGANISATION_ADMIN'] },
+              },
+            },
+          },
+        },
         SetupCompleteRequest: {
           type: 'object',
           required: ['firstName', 'lastName', 'password', 'confirmPassword'],
