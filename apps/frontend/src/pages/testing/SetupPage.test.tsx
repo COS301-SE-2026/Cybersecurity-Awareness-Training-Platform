@@ -114,10 +114,6 @@ describe('SetupPage', () => {
     [401, 'This setup link is invalid. Please request a new invitation.'],
     [403, 'This organisation is not currently accepting setup requests. Please contact support.'],
     [404, 'This setup link is invalid. Please request a new invitation.'],
-    [
-      409,
-      'This invitation cannot be completed because the account already has a conflicting role.',
-    ],
     [422, 'Please choose a password that meets the password requirements.'],
     [429, 'Too many attempts. Please wait a moment and try again.'],
   ])('shows a safe setup error for status %s', async (status, message) => {
@@ -133,6 +129,92 @@ describe('SetupPage', () => {
     renderSetupPage();
 
     expect(await screen.findByText(message)).toBeInTheDocument();
+  });
+
+  it.each([
+    [
+      'SETUP_ROLE_CONFLICT',
+      'This invitation cannot be completed because the account already has a conflicting role.',
+    ],
+    ['SETUP_INVITATION_EXPIRED', 'This setup link has expired. Please request a new invitation.'],
+    ['SETUP_TOKEN_STALE', 'This setup link is no longer valid. Please request a new invitation.'],
+    [
+      'ORGANISATION_SUSPENDED',
+      'This organisation is not currently accepting setup requests. Please contact support.',
+    ],
+  ])('shows a safe setup error for code %s', async (errorCode, message) => {
+    getSetupTokenContextMock.mockRejectedValue(
+      new ApiError('Setup failed', {
+        status: 409,
+        statusText: 'Conflict',
+        method: 'GET',
+        url: 'setup/toke/context',
+        body: {
+          error: errorCode,
+          message: 'Backend message',
+        },
+      }),
+    );
+
+    renderSetupPage();
+
+    expect(await screen.findByText(message)).toBeInTheDocument();
+  });
+
+  it('does not show the role-conflict message for stale setup tokens', async () => {
+    getSetupTokenContextMock.mockRejectedValue(
+      new ApiError('Setup failed', {
+        status: 409,
+        statusText: 'Conflict',
+        method: 'GET',
+        url: 'setup/toke/context',
+        body: {
+          error: 'SETUP_TOKEN_STALE',
+          message: 'Backend message',
+        },
+      }),
+    );
+
+    renderSetupPage();
+
+    expect(
+      await screen.findByText(
+        'This setup link is no longer valid. Please request a new invitation.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        'This invitation cannot be completed because the account already has a conflicting role.',
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not show the role-conflict message for unknown setup tokens', async () => {
+    getSetupTokenContextMock.mockRejectedValue(
+      new ApiError('Setup failed', {
+        status: 409,
+        statusText: 'Conflict',
+        method: 'GET',
+        url: 'setup/toke/context',
+        body: {
+          error: 'SETUP_UNKNOWN_CONFLICT',
+          message: 'Backend message',
+        },
+      }),
+    );
+
+    renderSetupPage();
+
+    expect(
+      await screen.findByText(
+        'This setup cannot be completed. Please request a new invitation or contact support.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        'This invitation cannot be completed because the account already has a conflicting role.',
+      ),
+    ).not.toBeInTheDocument();
   });
 
   it('shows a safe generic setup message for network failures', async () => {
