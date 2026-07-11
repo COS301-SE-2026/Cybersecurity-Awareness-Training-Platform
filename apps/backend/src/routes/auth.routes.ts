@@ -215,7 +215,7 @@ authRouter.post('/auth/refresh', authRateLimit, asyncHandler(refresh));
  *       400:
  *         $ref: '#/components/responses/BadRequest'
  *       429:
- *         $ref: '#/components/responses/AuthRateLimited'
+ *         $ref: '#/components/responses/ResendCooldownActive'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */

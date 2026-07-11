@@ -769,6 +769,26 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             },
           },
         },
+        ResendCooldownErrorResponse: {
+          type: 'object',
+          required: ['error', 'message', 'cooldownSeconds'],
+          properties: {
+            error: {
+              type: 'string',
+              enum: ['RESEND_COOLDOWN_ACTIVE'],
+              example: 'RESEND_COOLDOWN_ACTIVE',
+            },
+            message: {
+              type: 'string',
+              example: 'Resend cooldown active. Please try again later.',
+            },
+            cooldownSeconds: {
+              type: 'integer',
+              minimum: 1,
+              example: 60,
+            },
+          },
+        },
         AuthVerifyEmailRequest: {
           type: 'object',
           required: ['token'],

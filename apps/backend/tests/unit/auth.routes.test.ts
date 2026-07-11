@@ -7,6 +7,7 @@ import { clearAuthRateLimitStore } from '../../src/middleware/authRateLimit.js';
 import { generateAuthToken } from '../../src/services/auth-token.service.js';
 import { hashPassword } from '../../src/services/password.service.js';
 import { clearResendCooldowns } from '../../src/services/auth.service.js';
+import { RESEND_COOLDOWN_SECONDS } from '../../src/services/auth.service.js';
 
 const prismaMock = vi.hoisted(() => ({
   $transaction: vi.fn(),
@@ -676,7 +677,13 @@ describe('Auth routes', () => {
         .post('/auth/resend-verification')
         .send({ email: 'pending@example.com' });
       expect(res2.status).toBe(429);
-      expect(res2.body.error).toBe('AUTH_RATE_LIMITED');
+      expect(res2.body).toEqual({
+        error: 'RESEND_COOLDOWN_ACTIVE',
+        message: 'Resend cooldown active. Please try again later.',
+        cooldownSeconds: expect.any(Number),
+      });
+      expect(res2.body.cooldownSeconds).toBeGreaterThanOrEqual(1);
+      expect(res2.body.cooldownSeconds).toBeLessThanOrEqual(RESEND_COOLDOWN_SECONDS);
     });
   });
 

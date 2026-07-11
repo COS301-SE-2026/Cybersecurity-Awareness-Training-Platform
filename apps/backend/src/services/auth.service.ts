@@ -532,7 +532,8 @@ export class EmailChangeConflictError extends Error {
 }
 
 const resendCooldowns = new Map<string, number>();
-const RESEND_COOLDOWN_MS = 60 * 1000;
+export const RESEND_COOLDOWN_SECONDS = 60;
+const RESEND_COOLDOWN_MS = RESEND_COOLDOWN_SECONDS * 1000;
 
 export function clearResendCooldowns() {
   resendCooldowns.clear();

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   AuthUnauthorizedError,
   getCurrentUser,
@@ -8,8 +8,8 @@ import {
   verifyEmailChange,
   resendVerificationEmail,
   clearResendCooldowns,
-  AuthResendCooldownError,
   EmailChangeConflictError,
+  RESEND_COOLDOWN_SECONDS,
 } from '../../src/services/auth.service.js';
 
 const userRepositoryMock = vi.hoisted(() => ({
@@ -644,9 +644,15 @@ describe('verifyEmail', () => {
 
 describe('resendVerificationEmail', () => {
   beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-11T10:00:00.000Z'));
+
     vi.clearAllMocks();
     clearResendCooldowns();
     prismaMock.$transaction.mockImplementation((action) => action(prismaMock));
+  });
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('respects a 60-second cooldown per email', async () => {
@@ -654,20 +660,26 @@ describe('resendVerificationEmail', () => {
       id: 'user-1',
       email: 'user@example.com',
       authStatus: 'PENDING_EMAIL_VERIFICATION',
+      firstName: 'Test',
     });
     actionTokenServiceMock.issueActionToken.mockResolvedValue({
       rawToken: 'raw',
-      token: { id: 't' },
+      token: { id: 'token01', expiresAt: new Date('2026-07-12T10:00:00.000Z') },
     });
-    authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue({ queued: true });
+    authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue({
+      queued: true,
+      deliveryLogId: 'delivery-log-1',
+    });
 
     // First request should succeed
     await expect(resendVerificationEmail('user@example.com')).resolves.toBeUndefined();
 
     // Second request immediately should throw 429
-    await expect(resendVerificationEmail('user@example.com')).rejects.toBeInstanceOf(
-      AuthResendCooldownError,
-    );
+    await expect(resendVerificationEmail('user@example.com')).rejects.toMatchObject({
+      name: 'AuthResendCooldownError',
+      cooldownSeconds: RESEND_COOLDOWN_SECONDS,
+    });
+    expect(passwordServiceMock.verifyPassword).not.toHaveBeenCalled();
   });
 
   it('is enumeration-safe: sets cooldown even if email does not exist', async () => {
@@ -677,9 +689,20 @@ describe('resendVerificationEmail', () => {
     await expect(resendVerificationEmail('nonexistent@example.com')).resolves.toBeUndefined();
 
     // Second request immediately should throw 429
-    await expect(resendVerificationEmail('nonexistent@example.com')).rejects.toBeInstanceOf(
-      AuthResendCooldownError,
-    );
+    await expect(resendVerificationEmail('nonexistent@example.com')).rejects.toMatchObject({
+      name: 'AuthResendCooldownError',
+      cooldownSeconds: RESEND_COOLDOWN_SECONDS,
+    });
+
+    expect(userRepositoryMock.findUserByEmail).toHaveBeenCalled();
+  });
+
+  it('normalises emails before applying the cooldown', async () => {
+    userRepositoryMock.findUserByEmail.mockResolvedValue(null);
+    await resendVerificationEmail(' johan@example.com  ');
+    await expect(resendVerificationEmail('johan@example.com')).rejects.toMatchObject({
+      cooldownSeconds: RESEND_COOLDOWN_SECONDS,
+    });
   });
 });
 
