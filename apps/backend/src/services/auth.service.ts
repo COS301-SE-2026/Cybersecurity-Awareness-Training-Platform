@@ -515,7 +515,10 @@ export async function logoutUser(
 }
 
 export class AuthResendCooldownError extends Error {
-  constructor(message = 'Please wait before requesting another verification email.') {
+  constructor(
+    public readonly cooldownSeconds: number,
+    message = 'Resend cooldown active. Please try again later.',
+  ) {
     super(message);
     this.name = 'AuthResendCooldownError';
   }
@@ -541,7 +544,9 @@ export async function resendVerificationEmail(email: string): Promise<void> {
   const lastRequest = resendCooldowns.get(normalizedEmail);
 
   if (lastRequest && now - lastRequest < RESEND_COOLDOWN_MS) {
-    throw new AuthResendCooldownError();
+    const elapsedMs = now - lastRequest;
+    const cooldownSeconds = Math.max(1, Math.ceil((RESEND_COOLDOWN_MS - elapsedMs) / 1000));
+    throw new AuthResendCooldownError(cooldownSeconds);
   }
 
   // Update map timestamp for enumeration safety even if user doesn't exist

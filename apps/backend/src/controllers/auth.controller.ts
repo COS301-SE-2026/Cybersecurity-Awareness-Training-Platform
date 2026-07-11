@@ -195,8 +195,9 @@ export async function resendVerification(req: Request, res: Response) {
   } catch (error) {
     if (error instanceof AuthResendCooldownError) {
       return res.status(429).json({
-        error: 'AUTH_RATE_LIMITED',
+        error: 'RESEND_COOLDOWN_ACTIVE',
         message: error.message,
+        cooldownSeconds: error.cooldownSeconds,
       });
     }
     throw error;

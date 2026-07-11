@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { hashPassword, verifyPassword } from '../../src/services/password.service.js';
+import {
+  DUMMY_PASSWORD_HASH,
+  hashPassword,
+  verifyPassword,
+} from '../../src/services/password.service.js';
 
 describe('password.service', () => {
   it('hashes passwords without storing it as plain text', async () => {
@@ -32,4 +36,10 @@ describe('password.service', () => {
     const result = await verifyPassword('anyPassword', malformedHash);
     expect(result).toBe(false);
   });
-});
+
+  it('accepts the dummy hash as a valid scrypt hash', async () => {
+    await expect(
+      verifyPassword('not-the-correct-password-hash', DUMMY_PASSWORD_HASH),
+    ).resolves.toBe(false);
+  });
+}); //describe

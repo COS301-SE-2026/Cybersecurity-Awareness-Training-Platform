@@ -37,6 +37,7 @@ const userRepositoryMock = vi.hoisted(() => ({
 }));
 
 const passwordServiceMock = vi.hoisted(() => ({
+  DUMMY_PASSWORD_HASH: 'test-dummy-password-hash',
   hashPassword: vi.fn(),
   verifyPassword: vi.fn(),
 }));
@@ -500,7 +501,10 @@ describe('loginUser', () => {
       }),
     ).rejects.toBeInstanceOf(AuthUnauthorizedError);
 
-    expect(passwordServiceMock.verifyPassword).not.toHaveBeenCalled();
+    expect(passwordServiceMock.verifyPassword).toHaveBeenCalledWith(
+      'mySecurePassword123!',
+      passwordServiceMock.DUMMY_PASSWORD_HASH,
+    );
     expect(authTokenServiceMock.generateAuthToken).not.toHaveBeenCalled();
   });
 
@@ -521,6 +525,10 @@ describe('loginUser', () => {
     ).rejects.toBeInstanceOf(AuthUnauthorizedError);
 
     expect(authTokenServiceMock.generateAuthToken).not.toHaveBeenCalled();
+    expect(passwordServiceMock.verifyPassword).toHaveBeenCalledWith(
+      'wrongPassword',
+      'hashed-password',
+    );
   });
 });
 
