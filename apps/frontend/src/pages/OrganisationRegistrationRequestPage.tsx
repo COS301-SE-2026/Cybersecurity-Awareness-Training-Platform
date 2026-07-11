@@ -72,7 +72,13 @@ function OrganisationRegistrationRequestPage() {
 
     const url = orgWeb.trim();
     if (url) {
-      // INVALID URL
+      if (url.length > 2048) {
+        setAlertType('danger');
+        setAlertMessage('Please Provide A Valid Website URL');
+        setOrgInfoValid(false);
+        return false;
+      }
+
       try {
         const parsedURL = new URL(url);
         if (parsedURL.protocol !== 'http:' && parsedURL.protocol !== 'https:') {

@@ -218,6 +218,22 @@ describe('OrganisationRegistrationRequestPage', () => {
     });
   });
 
+  it('rejects website URLs longer than the backend maximum before submit', async () => {
+    const user = userEvent.setup();
+    const tooLongWebsiteUrl = `https://example.com/${'a'.repeat(2049)}`;
+
+    renderOrganisationRegistrationRequestPage();
+
+    await user.type(screen.getByLabelText(/Organisation Name/i), 'CBELL Plumbing');
+    await user.type(screen.getByLabelText(/Organisation Size/i), '25');
+    await user.click(screen.getByLabelText(/Organisation URL/i));
+    await user.paste(tooLongWebsiteUrl);
+    await user.click(screen.getByRole('button', { name: /Next/i }));
+
+    expect(screen.getByText('Please Provide A Valid Website URL')).toBeInTheDocument();
+    expect(submitOrganisationRegistrationRequestMock).not.toHaveBeenCalled();
+  });
+
   it('omits empty optional description and website values from the payload', async () => {
     const user = userEvent.setup();
 
