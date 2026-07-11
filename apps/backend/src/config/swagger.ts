@@ -3167,6 +3167,10 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           'Too many authentication requests.',
           'AuthRateLimitErrorResponse',
         ),
+        ResendCooldownActive: responseComponent(
+          'Verficiation resend cooldown is active.',
+          'ResendCooldownErrorResponse',
+        ),
         SetupTokenContextOk: responseComponent(
           'Safe setup-token context. The token is not consumed.',
           'SetupTokenContextResponse',

@@ -5,7 +5,7 @@ type InviteTokenState = 'VALID' | 'INVALID' | 'EXPIRED' | 'USED' | 'REVOKED';
 export type InvitationTokenContextResponse = {
   token: { state: InviteTokenState; purpose: 'ORGANISATION_ADMIN_PROMOTION' | null };
   invitation: {
-    type: 'ORGANISATION)ADMIN_PROMOTION';
+    type: 'ORGANISATION_ADMIN_PROMOTION';
     targetEmail: string;
     organisationName: string;
     grantedRole: 'ORGANISATION_ADMIN';
@@ -14,7 +14,7 @@ export type InvitationTokenContextResponse = {
 type InvitationContextToken = NonNullable<
   Awaited<ReturnType<typeof findInvitationContextTokenByHash>>
 >;
-function nonActionalbeContext(
+function nonActionableContext(
   state: Exclude<InviteTokenState, 'VALID'>,
 ): InvitationTokenContextResponse {
   return { token: { state, purpose: null }, invitation: null };
@@ -39,9 +39,10 @@ function isUsablePromotionTarget(token: InvitationContextToken): boolean {
   if (token.userId !== user.id || invitation.targetUserId !== user.id) return false;
 
   const tokenEmail = normaliseEmail(token.targetEmail);
-  const inviteemail = normaliseEmail(invitation.recipientEmail);
+  const invitationEmail = normaliseEmail(invitation.recipientEmail);
   const userEmail = normaliseEmail(user.email);
-  if (!tokenEmail || tokenEmail !== inviteemail || tokenEmail !== userEmail) return false;
+  if (!tokenEmail || tokenEmail !== invitationEmail || tokenEmail !== userEmail) return false;
+  if (user.userType !== 'ORGANISATION_TRAINEE' || user.authStatus !== 'ACTIVE') return false;
   if (user.traineeProfile?.traineeStatus !== 'ACTIVE') return false;
   const member = user.traineeProfile.organisationTraineeProfile;
   if (
@@ -59,18 +60,18 @@ function isUsablePromotionTarget(token: InvitationContextToken): boolean {
   return true;
 }
 
-function getOrgamisationAdminPromotionContext(
+function getOrganisationAdminPromotionContext(
   token: InvitationContextToken,
 ): InvitationTokenContextResponse {
   if (!isUsablePromotionTarget(token)) {
-    return nonActionalbeContext('REVOKED');
+    return nonActionableContext('REVOKED');
   }
   const invite = token.invitation!;
   const user = token.user!;
   return {
     token: { state: 'VALID', purpose: 'ORGANISATION_ADMIN_PROMOTION' },
     invitation: {
-      type: 'ORGANISATION)ADMIN_PROMOTION',
+      type: 'ORGANISATION_ADMIN_PROMOTION',
       targetEmail: user.email,
       organisationName: invite.organisation.name,
       grantedRole: 'ORGANISATION_ADMIN',
@@ -81,9 +82,9 @@ export async function getInvitationTokenContext(
   rawToken: string,
 ): Promise<InvitationTokenContextResponse> {
   const token = await findInvitationContextTokenByHash(hashOpaqueToken(rawToken));
-  if (!token) return nonActionalbeContext('INVALID');
-  if (token.purpose !== 'ORGANISATION_ADMIN_PROMOTION') return nonActionalbeContext('INVALID');
+  if (!token) return nonActionableContext('INVALID');
+  if (token.purpose !== 'ORGANISATION_ADMIN_PROMOTION') return nonActionableContext('INVALID');
   const baseState = getBaseTokenState(token);
-  if (baseState !== 'VALID') return nonActionalbeContext(baseState);
-  return getOrgamisationAdminPromotionContext(token);
+  if (baseState !== 'VALID') return nonActionableContext(baseState);
+  return getOrganisationAdminPromotionContext(token);
 }

@@ -141,6 +141,7 @@ const expectedResponses = [
   'UnprocessableEntity',
   'TooManyRequests',
   'InternalServerError',
+  'ResendCooldownActive',
 ] as const;
 
 const expectedParameters = [

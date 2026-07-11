@@ -36,7 +36,7 @@ import { authRateLimit } from '../middleware/authRateLimit.js';
  *       429:
  *         $ref: '#/components/responses/AuthRateLimited'
  *       500:
- *         $ref: '#/components/responses/InternvalServerError'
+ *         $ref: '#/components/responses/InternalServerError'
  */
 invitationContextRouter.get(
   '/invitations/token/:token/context',
