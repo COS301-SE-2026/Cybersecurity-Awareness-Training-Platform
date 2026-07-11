@@ -6,6 +6,8 @@ const SCRYPT_PARAMS = {
   r: 8,
   p: 1,
 };
+export const DUMMY_PASSWORD_HASH =
+  'scrypt$16384$8$1$000102030405060708090a0b0c0d0e0f$3d2178dc4556bb251e11de58e92d3b7de285bacc40a5c6ceaa7a10985f7c929f4e2052371c6c4532bd16f344556d6ecbf1232ef20286f68db39d64c1b6dc9cb6';
 
 function deriveKey(password: string, salt: string, keyLength: number, options: ScryptOptions) {
   return new Promise<Buffer>((resolve, reject) => {

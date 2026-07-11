@@ -225,13 +225,12 @@ export async function loginUser(
   sessionExpiresAt: Date;
 }> {
   const user = await UserRepository.findUserByEmail(input.email.trim().toLowerCase());
+  const passwordHash = user?.passwordHash ?? PasswordService.DUMMY_PASSWORD_HASH;
+  const passwordMatches = await PasswordService.verifyPassword(input.password, passwordHash);
 
   if (!user) {
     throw new AuthUnauthorizedError();
   }
-
-  const passwordMatches = await PasswordService.verifyPassword(input.password, user.passwordHash);
-
   if (!passwordMatches) {
     throw new AuthUnauthorizedError();
   }
