@@ -197,7 +197,7 @@ authRouter.post('/auth/refresh', authRateLimit, asyncHandler(refresh));
  *   post:
  *     tags: [Auth]
  *     summary: Resend verification email
- *     description: Resends the verification email for a user in pending email-verification state. Always returns 200 OK to avoid account enumeration.
+ *     description: Reqeusts a verification email resend for an eligible account. The first request returns an enumeration safe generic response, and repeated attempts during cooldown returns a 429 response with remining cooldown.
  *     security: []
  *     requestBody:
  *       required: true

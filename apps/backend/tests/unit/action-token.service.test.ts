@@ -6,6 +6,7 @@ import {
   validateActionToken,
   getTokenContext,
   resendActionToken,
+  clearTokenResendAttemptCooldowns,
 } from '../../src/services/action-token.service.js';
 
 const repositoryMock = vi.hoisted(() => ({
@@ -50,6 +51,7 @@ describe('action-token service', () => {
     vi.clearAllMocks();
     tokenHashServiceMock.generateOpaqueToken.mockReturnValue('rawactiontoken');
     tokenHashServiceMock.hashOpaqueToken.mockImplementation((token: string) => `hash:${token}`);
+    clearTokenResendAttemptCooldowns();
   });
 
   it('issues an opaque action token and only stores the hash', async () => {
@@ -277,7 +279,7 @@ describe('action-token service', () => {
       expect(res.resendCooldownSeconds).toBe(0);
     });
 
-    it('computes cooldown remaining if email was recently sent', async () => {
+    it('computes cooldown after a recent email was attempted to be delivered', async () => {
       prismaMock.actionToken.findUnique.mockResolvedValue({
         id: 'token-123',
         purpose: 'PASSWORD_RESET',

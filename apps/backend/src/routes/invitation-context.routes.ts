@@ -12,7 +12,7 @@ import { authRateLimit } from '../middleware/authRateLimit.js';
  *   get:
  *     tags: [Invitations]
  *     summary: Get invitation token context
- *     description: Returns non-consuming context for a supported invitation token
+ *     description: Returns safe, non-consuming context for a supported invitation token. Unsupported invitation-token purposes return an invalid, non-actionalable context.
  *     security: []
  *     parameters:
  *       - in: path

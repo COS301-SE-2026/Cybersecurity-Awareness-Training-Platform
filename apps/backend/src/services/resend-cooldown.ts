@@ -1,5 +1,5 @@
 export const RESEND_COOLDOWN_SECONDS = 60;
-export const RESEND_COOLDOWN_MS = RESEND_COOLDOWN_SECONDS * 1000;
+const RESEND_COOLDOWN_MS = RESEND_COOLDOWN_SECONDS * 1000;
 export function calculateResendCooldownSeconds(
   lastEventAt: Date | number,
   now = Date.now(),

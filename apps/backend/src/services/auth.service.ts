@@ -534,6 +534,29 @@ export class EmailChangeConflictError extends Error {
 }
 
 const resendRequestCooldowns = new Map<string, number>();
+const MAX_RESEND_COOLDOWN_ENTRIES = 10_000;
+function recordVerificationResendAttempt(key: string, now: number) {
+  if (
+    !resendRequestCooldowns.has(key) &&
+    resendRequestCooldowns.size >= MAX_RESEND_COOLDOWN_ENTRIES
+  ) {
+    for (const [storedKey, timestamp] of resendRequestCooldowns) {
+      if (calculateResendCooldownSeconds(timestamp, now) === 0) {
+        resendRequestCooldowns.delete(storedKey);
+      }
+    }
+
+    while (resendRequestCooldowns.size >= MAX_RESEND_COOLDOWN_ENTRIES) {
+      const oldest = resendRequestCooldowns.keys().next().value;
+      if (typeof oldest !== 'string') {
+        break;
+      }
+      resendRequestCooldowns.delete(oldest);
+    }
+
+    resendRequestCooldowns.set(key, now);
+  }
+}
 
 export function clearResendCooldowns() {
   resendRequestCooldowns.clear();
@@ -549,7 +572,7 @@ export async function resendVerificationEmail(email: string): Promise<void> {
     if (cooldownSeconds > 0) throw new AuthResendCooldownError(cooldownSeconds);
   }
 
-  resendRequestCooldowns.set(normalizedEmail, now);
+  recordVerificationResendAttempt(normalizedEmail, now);
 
   const user = await UserRepository.findUserByEmail(normalizedEmail);
 

@@ -607,7 +607,7 @@ describe('Auth routes', () => {
   });
 
   describe('POST /auth/resend-verification', () => {
-    it('always returns 200 OK and avoids account enumeration', async () => {
+    it('returns 200 response for the first unkown email request', async () => {
       prismaMock.user.findUnique.mockResolvedValue(null);
 
       const response = await request(createApp())
