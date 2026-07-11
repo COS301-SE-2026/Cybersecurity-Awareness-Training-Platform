@@ -128,6 +128,7 @@ const expectedSchemas = [
   'QuestionType',
   'QuizAttemptStatus',
   'QuizStatus',
+  'ResendCooldownErrorResponse',
 ] as const;
 
 const expectedResponses = [
