@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { FormEvent } from 'react';
+import type { FormEvent, ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import type { SetupTokenContextResponseDto } from '@insightful-phish/shared';
 import BasicAlert from '../components/alerts/BasicAlert';
@@ -14,11 +14,16 @@ import { completeSetupWithToken, getSetupTokenContext } from '../services/auth.s
 
 const invalidTokenMessage = 'This setup link is invalid. Please request a new invitation.';
 const expiredTokenMessage = 'This setup link has expired. Please request a new invitation.';
+const staleTokenMessage = 'This setup link is no longer valid. Please request a new invitation.';
 const usedTokenMessage = 'This setup link has already been used. Please log in instead.';
+const invitationNotAcceptableMessage =
+  'This invitation can no longer be used. Please request a new invitation.';
 const suspendedOrganisationMessage =
   'This organisation is not currently accepting setup requests. Please contact support.';
 const roleConflictMessage =
   'This invitation cannot be completed because the account already has a conflicting role.';
+const setupCannotBeCompletedMessage =
+  'This setup cannot be completed. Please request a new invitation or contact support.';
 const passwordPolicyMessage = 'Please choose a password that meets the password requirements.';
 const rateLimitMessage = 'Too many attempts. Please wait a moment and try again.';
 const genericErrorMessage = 'Something went wrong. Please try again.';
@@ -74,20 +79,44 @@ function getSetupErrorCode(error: ApiError): string | null {
 function getSetupErrorMessage(error: unknown) {
   if (!(error instanceof ApiError)) return genericErrorMessage;
 
-  const errorCode = getSetupErrorCode(error);
+  const codedMessage = getSetupErrorMessageForCode(getSetupErrorCode(error));
+  if (codedMessage) return codedMessage;
 
-  if (errorCode === 'SETUP_TOKEN_EXPIRED') return expiredTokenMessage;
-  if (errorCode === 'SETUP_TOKEN_USED') return usedTokenMessage;
-  if (errorCode === 'SETUP_ROLE_CONFLICT') return roleConflictMessage;
-  if (errorCode?.startsWith('ORGANISATION')) return suspendedOrganisationMessage;
   if (error.status === 401) return invalidTokenMessage;
   if (error.status === 403) return suspendedOrganisationMessage;
   if (error.status === 404) return invalidTokenMessage;
-  if (error.status === 409) return roleConflictMessage;
+  if (error.status === 409) return setupCannotBeCompletedMessage;
   if (error.status === 422) return passwordPolicyMessage;
   if (error.status === 429) return rateLimitMessage;
 
   return genericErrorMessage;
+}
+
+function getSetupErrorMessageForCode(errorCode: string | null) {
+  if (!errorCode) return null;
+  if (errorCode.startsWith('ORGANISATION')) return suspendedOrganisationMessage;
+
+  switch (errorCode) {
+    case 'SETUP_ROLE_CONFLICT':
+      return roleConflictMessage;
+    case 'SETUP_INVITATION_EXPIRED':
+    case 'SETUP_TOKEN_EXPIRED':
+      return expiredTokenMessage;
+    case 'SETUP_TOKEN_STALE':
+      return staleTokenMessage;
+    case 'SETUP_INVITATION_NOT_ACCEPTABLE':
+      return invitationNotAcceptableMessage;
+    case 'SETUP_INVITATION_MISSING':
+    case 'SETUP_TARGET_EMAIL_MISSING':
+    case 'SETUP_TOKEN_PURPOSE_UNSUPPORTED':
+      return invalidTokenMessage;
+    case 'SETUP_ORGANISATION_MISSING':
+      return suspendedOrganisationMessage;
+    case 'SETUP_TOKEN_USED':
+      return usedTokenMessage;
+    default:
+      return null;
+  }
 }
 
 function tokenStateMessafe(state?: string) {
@@ -210,6 +239,89 @@ function SetupPage() {
     }
   }
 
+  let setupContent: ReactNode = null;
+
+  if (isLoadingContext) {
+    setupContent = <p style={{ color: 'white', fontFamily: 'Overpass' }}>Loading setup link...</p>;
+  } else if (isComplete) {
+    setupContent = (
+      <Link to="/login" style={{ color: '#cca7ff', fontFamily: 'Jost', fontSize: '1.3rem' }}>
+        Go to login
+      </Link>
+    );
+  } else if (context?.token.state === 'VALID') {
+    setupContent = (
+      <form onSubmit={handleCompleteSetup} noValidate style={authFormStyle}>
+        <div style={{ ...authFieldRowStyle, marginBottom: '1.8rem' }}>
+          <AuthFormField
+            label="First Name(s)"
+            type="text"
+            disabled={isBusy}
+            value={firstName}
+            onChange={(event) => setFirstName(event.target.value)}
+            autoComplete="given-name"
+            wrapperStyle={{ flex: 1 }}
+          />
+          <AuthFormField
+            label="Last Name"
+            type="text"
+            value={lastName}
+            disabled={isBusy}
+            onChange={(event) => setLastName(event.target.value)}
+            autoComplete="family-name"
+            wrapperStyle={{ flex: 1 }}
+          />
+        </div>
+
+        <AuthFormField
+          label="Email Address"
+          type="email"
+          value={email}
+          disabled
+          onChange={() => {}}
+          autoComplete="email"
+          wrapperStyle={{ marginBottom: '1.8rem' }}
+        />
+
+        <div style={{ ...authFieldRowStyle, marginBottom: '2.5rem' }}>
+          <AuthFormField
+            label="Password"
+            type="password"
+            value={password}
+            disabled={isBusy}
+            onChange={(event) => setPassword(event.target.value)}
+            autoComplete="new-password"
+            wrapperStyle={{ flex: 1 }}
+          />
+          <AuthFormField
+            label="Confirm Password"
+            type="password"
+            value={confirmPassword}
+            disabled={isBusy}
+            onChange={(event) => setConfirmPassword(event.target.value)}
+            autoComplete="new-password"
+            wrapperStyle={{ flex: 1 }}
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={isBusy}
+          style={{
+            ...authPrimaryButtonStyle,
+            width: '48%',
+            height: '60px',
+            fontSize: '1.7rem',
+            cursor: isBusy ? 'not-allowed' : 'pointer',
+            opacity: isBusy ? 0.6 : 1,
+          }}
+        >
+          {isSubmitting ? 'Completing Setup...' : 'Complete Setup'}
+        </button>
+      </form>
+    );
+  }
+
   return (
     <AuthPageFrame
       leftWidth="78%"
@@ -230,82 +342,7 @@ function SetupPage() {
             </BasicAlert>
           )}
 
-          {isLoadingContext ? (
-            <p style={{ color: 'white', fontFamily: 'Overpass' }}>Loading setup link...</p>
-          ) : isComplete ? (
-            <Link to="/login" style={{ color: '#cca7ff', fontFamily: 'Jost', fontSize: '1.3rem' }}>
-              Go to login
-            </Link>
-          ) : context?.token.state === 'VALID' ? (
-            <form onSubmit={handleCompleteSetup} noValidate style={authFormStyle}>
-              <div style={{ ...authFieldRowStyle, marginBottom: '1.8rem' }}>
-                <AuthFormField
-                  label="First Name(s)"
-                  type="text"
-                  disabled={isBusy}
-                  value={firstName}
-                  onChange={(event) => setFirstName(event.target.value)}
-                  autoComplete="given-name"
-                  wrapperStyle={{ flex: 1 }}
-                />
-                <AuthFormField
-                  label="Last Name"
-                  type="text"
-                  value={lastName}
-                  disabled={isBusy}
-                  onChange={(event) => setLastName(event.target.value)}
-                  autoComplete="family-name"
-                  wrapperStyle={{ flex: 1 }}
-                />
-              </div>
-
-              <AuthFormField
-                label="Email Address"
-                type="email"
-                value={email}
-                disabled
-                onChange={() => {}}
-                autoComplete="email"
-                wrapperStyle={{ marginBottom: '1.8rem' }}
-              />
-
-              <div style={{ ...authFieldRowStyle, marginBottom: '2.5rem' }}>
-                <AuthFormField
-                  label="Password"
-                  type="password"
-                  value={password}
-                  disabled={isBusy}
-                  onChange={(event) => setPassword(event.target.value)}
-                  autoComplete="new-password"
-                  wrapperStyle={{ flex: 1 }}
-                />
-                <AuthFormField
-                  label="Confirm Password"
-                  type="password"
-                  value={confirmPassword}
-                  disabled={isBusy}
-                  onChange={(event) => setConfirmPassword(event.target.value)}
-                  autoComplete="new-password"
-                  wrapperStyle={{ flex: 1 }}
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={isBusy}
-                style={{
-                  ...authPrimaryButtonStyle,
-                  width: '48%',
-                  height: '60px',
-                  fontSize: '1.7rem',
-                  cursor: isBusy ? 'not-allowed' : 'pointer',
-                  opacity: isBusy ? 0.6 : 1,
-                }}
-              >
-                {isSubmitting ? 'Completing Setup...' : 'Complete Setup'}
-              </button>
-            </form>
-          ) : null}
+          {setupContent}
         </>
       }
       rightChildren={

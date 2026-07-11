@@ -43,7 +43,7 @@ function validateFrontendRegistrationForm(input: {
 
   if (!payload.firstName) return { success: false as const, message: 'Please Enter A First Name' };
   if (!payload.lastName) return { success: false as const, message: 'Please Enter A Last Name' };
-  if (!payload.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) {
+  if (!payload.email || !payload.email.includes('@') || !payload.email.includes('.')) {
     return { success: false as const, message: 'Please Enter A Valid Email Address' };
   }
   if (
