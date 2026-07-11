@@ -41,6 +41,8 @@ import {
   resolveEffectiveSecurityPolicy,
   type EffectiveSecurityPolicy,
 } from './security-policy.service.js';
+import { calculateResendCooldownSeconds, RESEND_COOLDOWN_SECONDS } from './resend-cooldown.js';
+export { RESEND_COOLDOWN_SECONDS };
 
 const EMAIL_VERIFICATION_TOKEN_TTL_HOURS = 24;
 const REGISTER_GENERIC_MESSAGE =
@@ -531,27 +533,23 @@ export class EmailChangeConflictError extends Error {
   }
 }
 
-const resendCooldowns = new Map<string, number>();
-export const RESEND_COOLDOWN_SECONDS = 60;
-const RESEND_COOLDOWN_MS = RESEND_COOLDOWN_SECONDS * 1000;
+const resendRequestCooldowns = new Map<string, number>();
 
 export function clearResendCooldowns() {
-  resendCooldowns.clear();
+  resendRequestCooldowns.clear();
 }
 
 export async function resendVerificationEmail(email: string): Promise<void> {
   const normalizedEmail = email.trim().toLowerCase();
   const now = Date.now();
-  const lastRequest = resendCooldowns.get(normalizedEmail);
+  const lastRequest = resendRequestCooldowns.get(normalizedEmail);
 
-  if (lastRequest && now - lastRequest < RESEND_COOLDOWN_MS) {
-    const elapsedMs = now - lastRequest;
-    const cooldownSeconds = Math.max(1, Math.ceil((RESEND_COOLDOWN_MS - elapsedMs) / 1000));
-    throw new AuthResendCooldownError(cooldownSeconds);
+  if (lastRequest !== undefined) {
+    const cooldownSeconds = calculateResendCooldownSeconds(lastRequest, now);
+    if (cooldownSeconds > 0) throw new AuthResendCooldownError(cooldownSeconds);
   }
 
-  // Update map timestamp for enumeration safety even if user doesn't exist
-  resendCooldowns.set(normalizedEmail, now);
+  resendRequestCooldowns.set(normalizedEmail, now);
 
   const user = await UserRepository.findUserByEmail(normalizedEmail);
 

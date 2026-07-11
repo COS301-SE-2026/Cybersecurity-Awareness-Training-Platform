@@ -12,6 +12,9 @@ import {
 } from '../repositories/action-token.repository.js';
 import { generateOpaqueToken, hashOpaqueToken } from './token-hash.service.js';
 import type { Prisma } from '../generated/prisma/client.js';
+import { calculateResendCooldownSeconds } from './resend-cooldown.js';
+const MAX_TOKEN_RESEND_ENTRIES = 10_000;
+const tokenResendAttemptCooldowns = new Map<string, number>();
 
 export type ActionTokenState =
   | 'VALID'
@@ -231,9 +234,7 @@ async function computeResendCooldown(
     return 0;
   }
 
-  const cooldownMs = 60000;
-  const elapsed = now.getTime() - lastLog.createdAt.getTime();
-  return elapsed < cooldownMs ? Math.max(0, Math.ceil((cooldownMs - elapsed) / 1000)) : 0;
+  return calculateResendCooldownSeconds(lastLog.createdAt, now.getTime());
 }
 
 export async function getTokenContext(rawToken: string): Promise<TokenContextResponse> {
@@ -342,35 +343,24 @@ export async function resendActionToken(rawToken: string): Promise<void> {
     throw new TokenResendError(400, 'TOKEN_RESEND_INELIGIBLE', 'Token cannot be resent safely');
   }
 
-  const newToken = await prisma.$transaction(async (tx) => {
-    const currentToken = await tx.actionToken.findUnique({
-      where: { id: originalToken.id },
-    });
-    if (!currentToken) {
-      throw new TokenResendError(400, 'TOKEN_RESEND_INELIGIBLE', 'Token cannot be resent safely');
+  const resendAttemptKey = `${emailType}:${recipientEmail.trim().toLowerCase()}`;
+  const now = Date.now();
+  const lastAttempt = tokenResendAttemptCooldowns.get(resendAttemptKey);
+  if (lastAttempt !== undefined) {
+    const cooldownSeconds = calculateResendCooldownSeconds(lastAttempt, now);
+    if (cooldownSeconds > 0) {
+      throw new TokenResendError(
+        429,
+        'RESEND_COOLDOWN_ACTIVE',
+        'Resend cooldown active. Please try again later.',
+        cooldownSeconds,
+      );
     }
-    const txState = determineTokenState(currentToken);
-    if (txState !== 'VALID' && txState !== 'EXPIRED') {
-      throw new TokenResendError(400, 'TOKEN_RESEND_INELIGIBLE', 'Token cannot be resent safely');
-    }
+  }
+  recordTokenResendAttempt(resendAttemptKey, now);
 
-    await tx.actionToken.updateMany({
-      where: {
-        purpose: originalToken.purpose,
-        userId: originalToken.userId ?? null,
-        invitationId: originalToken.invitationId ?? null,
-        emailChangeRequestId: originalToken.emailChangeRequestId ?? null,
-        targetEmail: originalToken.targetEmail ?? null,
-        revokedAt: null,
-        usedAt: null,
-      },
-      data: {
-        revokedAt: new Date(),
-        revokedReason: 'REPLACED',
-      },
-    });
-
-    const issued = await issueActionToken(
+  const newToken = await prisma.$transaction((tx) =>
+    issueActionToken(
       {
         purpose: originalToken.purpose,
         userId: originalToken.userId,
@@ -380,12 +370,10 @@ export async function resendActionToken(rawToken: string): Promise<void> {
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
       },
       tx,
-    );
+    ),
+  );
 
-    return issued;
-  });
-
-  await requestAuthEmailSend({
+  const emailResult = requestAuthEmailSend({
     emailType,
     recipientEmail,
     userId: originalToken.userId,
@@ -403,4 +391,73 @@ export async function resendActionToken(rawToken: string): Promise<void> {
       organisationName: originalToken.invitation?.organisation.name,
     },
   });
+
+  if (!(await emailResult).queued) {
+    await prisma.actionToken.updateMany({
+      where: {
+        id: newToken.token.id,
+        usedAt: null,
+        revokedAt: null,
+      },
+      data: {
+        revokedAt: new Date(),
+        revokedReason: 'EMAIL_DELIVERY_FAILED',
+      },
+    });
+
+    throw new TokenResendError(
+      500,
+      'TOKEN_RESEND_DELIVERY_FAILED',
+      'Unable to resend the link. Please try again later.',
+    );
+  }
+
+  const replacement = await prisma.actionToken.updateMany({
+    where: {
+      id: originalToken.id,
+      usedAt: null,
+      revokedAt: null,
+    },
+    data: { revokedAt: new Date(), revokedReason: 'REPLACED' },
+  });
+
+  if (replacement.count !== 1) {
+    await prisma.actionToken.updateMany({
+      where: {
+        id: originalToken.id,
+        usedAt: null,
+        revokedAt: null,
+      },
+      data: { revokedAt: new Date(), revokedReason: 'CONCURRENT_REPLACEMENT' },
+    });
+
+    throw new TokenResendError(400, 'TOKEN_RESNED_INELIGIBLE', 'Token cannot be resent safely');
+  }
+}
+
+function recordTokenResendAttempt(key: string, now: number) {
+  if (
+    !tokenResendAttemptCooldowns.has(key) &&
+    tokenResendAttemptCooldowns.size >= MAX_TOKEN_RESEND_ENTRIES
+  ) {
+    for (const [storedKey, timestamp] of tokenResendAttemptCooldowns) {
+      if (calculateResendCooldownSeconds(timestamp, now) === 0) {
+        tokenResendAttemptCooldowns.delete(storedKey);
+      }
+    }
+
+    while (tokenResendAttemptCooldowns.size >= MAX_TOKEN_RESEND_ENTRIES) {
+      const oldest = tokenResendAttemptCooldowns.keys().next().value;
+      if (typeof oldest !== 'string') {
+        break;
+      }
+      tokenResendAttemptCooldowns.delete(oldest);
+    }
+
+    tokenResendAttemptCooldowns.set(key, now);
+  }
+}
+
+export function clearTokenResendAttemptCooldowns() {
+  tokenResendAttemptCooldowns.clear(); //for unit tests
 }
