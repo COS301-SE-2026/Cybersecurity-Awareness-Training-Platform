@@ -4,6 +4,13 @@
   "end": "2026-07-12",
   "issues": [
     {
+      "number": 331,
+      "title": "feat: add accept-invite token context endpoint",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
       "number": 323,
       "title": "fix: make login timing safer for unknown emails",
       "points": 2,
@@ -413,118 +420,123 @@
   "series": [
     {
       "date": "2026-06-19",
-      "remaining": 129,
-      "ideal": 129.0
+      "remaining": 131,
+      "ideal": 131.0
     },
     {
       "date": "2026-06-20",
-      "remaining": 129,
-      "ideal": 123.39
+      "remaining": 131,
+      "ideal": 125.3
     },
     {
       "date": "2026-06-21",
-      "remaining": 129,
-      "ideal": 117.78
+      "remaining": 131,
+      "ideal": 119.61
     },
     {
       "date": "2026-06-22",
-      "remaining": 127,
-      "ideal": 112.17
+      "remaining": 129,
+      "ideal": 113.91
     },
     {
       "date": "2026-06-23",
-      "remaining": 115,
-      "ideal": 106.57
+      "remaining": 117,
+      "ideal": 108.22
     },
     {
       "date": "2026-06-24",
-      "remaining": 113,
-      "ideal": 100.96
+      "remaining": 115,
+      "ideal": 102.52
     },
     {
       "date": "2026-06-25",
-      "remaining": 109,
-      "ideal": 95.35
+      "remaining": 111,
+      "ideal": 96.83
     },
     {
       "date": "2026-06-26",
-      "remaining": 107,
-      "ideal": 89.74
+      "remaining": 109,
+      "ideal": 91.13
     },
     {
       "date": "2026-06-27",
-      "remaining": 107,
-      "ideal": 84.13
+      "remaining": 109,
+      "ideal": 85.43
     },
     {
       "date": "2026-06-28",
-      "remaining": 104,
-      "ideal": 78.52
+      "remaining": 106,
+      "ideal": 79.74
     },
     {
       "date": "2026-06-29",
-      "remaining": 96,
-      "ideal": 72.91
+      "remaining": 98,
+      "ideal": 74.04
     },
     {
       "date": "2026-06-30",
-      "remaining": 85,
-      "ideal": 67.3
+      "remaining": 87,
+      "ideal": 68.35
     },
     {
       "date": "2026-07-01",
-      "remaining": 71,
-      "ideal": 61.7
+      "remaining": 73,
+      "ideal": 62.65
     },
     {
       "date": "2026-07-02",
-      "remaining": 64,
-      "ideal": 56.09
+      "remaining": 66,
+      "ideal": 56.96
     },
     {
       "date": "2026-07-03",
-      "remaining": 62,
-      "ideal": 50.48
+      "remaining": 64,
+      "ideal": 51.26
     },
     {
       "date": "2026-07-04",
-      "remaining": 62,
-      "ideal": 44.87
+      "remaining": 64,
+      "ideal": 45.57
     },
     {
       "date": "2026-07-05",
-      "remaining": 62,
-      "ideal": 39.26
+      "remaining": 64,
+      "ideal": 39.87
     },
     {
       "date": "2026-07-06",
-      "remaining": 52,
-      "ideal": 33.65
+      "remaining": 54,
+      "ideal": 34.17
     },
     {
       "date": "2026-07-07",
-      "remaining": 50,
-      "ideal": 28.04
+      "remaining": 52,
+      "ideal": 28.48
     },
     {
       "date": "2026-07-08",
-      "remaining": 46,
-      "ideal": 22.43
+      "remaining": 48,
+      "ideal": 22.78
     },
     {
       "date": "2026-07-09",
-      "remaining": 46,
-      "ideal": 16.83
+      "remaining": 48,
+      "ideal": 17.09
     },
     {
       "date": "2026-07-10",
-      "remaining": 46,
-      "ideal": 11.22
+      "remaining": 48,
+      "ideal": 11.39
     },
     {
       "date": "2026-07-11",
-      "remaining": 46,
-      "ideal": 5.61
+      "remaining": 48,
+      "ideal": 5.7
+    },
+    {
+      "date": "2026-07-12",
+      "remaining": 48,
+      "ideal": 0.0
     }
   ]
 }
