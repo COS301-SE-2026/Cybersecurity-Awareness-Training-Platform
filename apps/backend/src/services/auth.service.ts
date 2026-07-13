@@ -41,8 +41,8 @@ import {
   resolveEffectiveSecurityPolicy,
   type EffectiveSecurityPolicy,
 } from './security-policy.service.js';
-import { calculateResendCooldownSeconds, RESEND_COOLDOWN_SECONDS } from './resend-cooldown.js';
-export { RESEND_COOLDOWN_SECONDS };
+import { calculateResendCooldownSeconds } from './resend-cooldown.js';
+export { RESEND_COOLDOWN_SECONDS } from './resend-cooldown.js';
 
 const EMAIL_VERIFICATION_TOKEN_TTL_HOURS = 24;
 const REGISTER_GENERIC_MESSAGE =
@@ -227,7 +227,7 @@ export async function loginUser(
   sessionExpiresAt: Date;
 }> {
   const user = await UserRepository.findUserByEmail(input.email.trim().toLowerCase());
-  const passwordHash = user?.passwordHash ?? PasswordService.DUMMY_PASSWORD_HASH;
+  const passwordHash = user?.passwordHash ?? PasswordService.UNKNOWN_SCRYPT_HASH;
   const passwordMatches = await PasswordService.verifyPassword(input.password, passwordHash);
 
   if (!user) {

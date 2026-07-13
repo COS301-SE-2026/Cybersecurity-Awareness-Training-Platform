@@ -37,7 +37,7 @@ const userRepositoryMock = vi.hoisted(() => ({
 }));
 
 const passwordServiceMock = vi.hoisted(() => ({
-  DUMMY_PASSWORD_HASH: 'test-dummy-password-hash',
+  UNKNOWN_SCRYPT_HASH: 'test-dummy-password-hash',
   hashPassword: vi.fn(),
   verifyPassword: vi.fn(),
 }));
@@ -503,7 +503,7 @@ describe('loginUser', () => {
 
     expect(passwordServiceMock.verifyPassword).toHaveBeenCalledWith(
       'mySecurePassword123!',
-      passwordServiceMock.DUMMY_PASSWORD_HASH,
+      passwordServiceMock.UNKNOWN_SCRYPT_HASH,
     );
     expect(authTokenServiceMock.generateAuthToken).not.toHaveBeenCalled();
   });

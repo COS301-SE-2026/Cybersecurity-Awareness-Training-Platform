@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  DUMMY_PASSWORD_HASH,
+  UNKNOWN_SCRYPT_HASH,
   hashPassword,
   verifyPassword,
 } from '../../src/services/password.service.js';
@@ -39,7 +39,7 @@ describe('password.service', () => {
 
   it('accepts the dummy hash as a valid scrypt hash', async () => {
     await expect(
-      verifyPassword('not-the-correct-password-hash', DUMMY_PASSWORD_HASH),
+      verifyPassword('not-the-correct-password-hash', UNKNOWN_SCRYPT_HASH),
     ).resolves.toBe(false);
   });
 }); //describe
