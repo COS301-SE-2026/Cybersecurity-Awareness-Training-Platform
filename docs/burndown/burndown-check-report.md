@@ -1,6 +1,6 @@
 # Burndown Check Report
 
-Last run: 2026-07-13 01:59:57 SAST
+Last run: 2026-07-13 10:38:26 SAST
 
 - #207 fix: seed campaign creator relation after Prisma schema update closed 1 day after Sprint 3 (Demo 2) ended.
 - #184 chore: clean trainee terminology and small frontend test warnings closed 1 day after Sprint 3 (Demo 2) ended.
@@ -11,3 +11,4 @@ Last run: 2026-07-13 01:59:57 SAST
 - #160 chore: add route builders and clean stale frontend routes closed 1 day after Sprint 3 (Demo 2) ended.
 - #159 chore: consolidate frontend API clients and base URL handling closed 1 day after Sprint 3 (Demo 2) ended.
 - #155 chore: clean deprecated static frontend assets and app metadata closed 1 day after Sprint 3 (Demo 2) ended.
+- #264 feat: build frontend accept invite and role change page closed 1 day after Sprint 4 (Demo 2) ended.
