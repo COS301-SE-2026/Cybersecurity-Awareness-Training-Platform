@@ -20,6 +20,19 @@ const organisationStepSchema = createOrganisationRegistrationRequestSchema.pick(
   organisationWebsiteUrl: true,
 });
 
+const ORGANISATION_STEP_VALIDATION_FIELDS = new Set([
+  'organisationName',
+  'organisationDescription',
+  'organisationSize',
+  'organisationWebsiteUrl',
+]);
+
+const REPRESENTATIVE_STEP_VALIDATION_FIELDS = new Set([
+  'representativeFirstName',
+  'representativeLastName',
+  'representativeEmail',
+]);
+
 function formatAlertMessage(message: string) {
   // makes everything title case and removes the . from the end of the message
   return message
@@ -143,6 +156,20 @@ function OrganisationRegistrationRequestPage() {
     return 'We could not submit the request right now. Please try again later.';
   }
 
+  function getBackendValidationField(error: unknown) {
+    if (!(error instanceof ApiError)) {
+      return undefined;
+    }
+
+    const body = error.body as SubmitErrorBody | undefined;
+
+    if (error.status !== 422 || body?.error !== 'VALIDATION_ERROR') {
+      return undefined;
+    }
+
+    return body.details?.[0]?.field;
+  }
+
   async function handleSubmitRegistrationRequest() {
     setAlertMessage('');
 
@@ -162,6 +189,17 @@ function OrganisationRegistrationRequestPage() {
       setConfirmationEmailQueued(response.confirmationEmailQueued);
       setShowSuccessfulRegModal(true);
     } catch (error) {
+      const validationField = getBackendValidationField(error);
+
+      if (validationField && ORGANISATION_STEP_VALIDATION_FIELDS.has(validationField)) {
+        setCurrentStep(1);
+        setOrgInfoValid(false);
+      }
+
+      if (validationField && REPRESENTATIVE_STEP_VALIDATION_FIELDS.has(validationField)) {
+        setCurrentStep(2);
+      }
+
       setAlertType('danger');
       setAlertMessage(getSafeSubmitErrorMessage(error));
     } finally {

@@ -347,6 +347,42 @@ describe('OrganisationRegistrationRequestPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('moves back to organisation information when backend validation rejects an organisation field', async () => {
+    const user = userEvent.setup();
+
+    submitOrganisationRegistrationRequestMock.mockRejectedValue(
+      createOrganisationRequestApiError(422, 'VALIDATION_ERROR', {
+        error: 'VALIDATION_ERROR',
+        details: [{ field: 'organisationName', message: 'Organisation name is already in use.' }],
+      }),
+    );
+
+    renderOrganisationRegistrationRequestPage();
+
+    await submitValidOrganisationRequest(user);
+
+    expect(await screen.findByText('Organisation name is already in use.')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Step 1 of 2/i })).toBeInTheDocument();
+  });
+
+  it('keeps the representative step visible when backend validation rejects a representative field', async () => {
+    const user = userEvent.setup();
+
+    submitOrganisationRegistrationRequestMock.mockRejectedValue(
+      createOrganisationRequestApiError(422, 'VALIDATION_ERROR', {
+        error: 'VALIDATION_ERROR',
+        details: [{ field: 'representativeEmail', message: 'Representative email is invalid.' }],
+      }),
+    );
+
+    renderOrganisationRegistrationRequestPage();
+
+    await submitValidOrganisationRequest(user);
+
+    expect(await screen.findByText('Representative email is invalid.')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Step 2 of 2/i })).toBeInTheDocument();
+  });
+
   it('shows delayed confirmation email copy when confirmation email is not queued', async () => {
     const user = userEvent.setup();
 
