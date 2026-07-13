@@ -373,7 +373,7 @@ export async function resendActionToken(rawToken: string): Promise<void> {
     ),
   );
 
-  const emailResult = requestAuthEmailSend({
+  const emailResult = await requestAuthEmailSend({
     emailType,
     recipientEmail,
     userId: originalToken.userId,
@@ -392,7 +392,7 @@ export async function resendActionToken(rawToken: string): Promise<void> {
     },
   });
 
-  if (!(await emailResult).queued) {
+  if (!emailResult.queued) {
     await prisma.actionToken.updateMany({
       where: {
         id: newToken.token.id,
@@ -424,14 +424,14 @@ export async function resendActionToken(rawToken: string): Promise<void> {
   if (replacement.count !== 1) {
     await prisma.actionToken.updateMany({
       where: {
-        id: originalToken.id,
+        id: newToken.token.id,
         usedAt: null,
         revokedAt: null,
       },
       data: { revokedAt: new Date(), revokedReason: 'CONCURRENT_REPLACEMENT' },
     });
 
-    throw new TokenResendError(400, 'TOKEN_RESNED_INELIGIBLE', 'Token cannot be resent safely');
+    throw new TokenResendError(400, 'TOKEN_RESEND_INELIGIBLE', 'Token cannot be resent safely');
   }
 }
 
@@ -453,9 +453,8 @@ function recordTokenResendAttempt(key: string, now: number) {
       }
       tokenResendAttemptCooldowns.delete(oldest);
     }
-
-    tokenResendAttemptCooldowns.set(key, now);
   }
+  tokenResendAttemptCooldowns.set(key, now);
 }
 
 export function clearTokenResendAttemptCooldowns() {

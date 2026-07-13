@@ -553,9 +553,8 @@ function recordVerificationResendAttempt(key: string, now: number) {
       }
       resendRequestCooldowns.delete(oldest);
     }
-
-    resendRequestCooldowns.set(key, now);
   }
+  resendRequestCooldowns.set(key, now);
 }
 
 export function clearResendCooldowns() {

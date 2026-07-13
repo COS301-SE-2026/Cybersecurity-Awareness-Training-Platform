@@ -52,6 +52,10 @@ describe('action-token service', () => {
     tokenHashServiceMock.generateOpaqueToken.mockReturnValue('rawactiontoken');
     tokenHashServiceMock.hashOpaqueToken.mockImplementation((token: string) => `hash:${token}`);
     clearTokenResendAttemptCooldowns();
+    authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue({
+      queued: true,
+      deliveryLogId: 'delivery-log-1',
+    });
   });
 
   it('issues an opaque action token and only stores the hash', async () => {
@@ -316,6 +320,7 @@ describe('action-token service', () => {
         id: 'token-456',
         expiresAt: new Date(Date.now() + 3600000),
       });
+      prismaMock.actionToken.updateMany.mockResolvedValue({ count: 1 });
 
       await resendActionToken('some-token');
 
@@ -444,23 +449,47 @@ describe('action-token service', () => {
           },
         });
 
-      prismaMock.actionToken.findUnique.mockResolvedValueOnce({
-        id: 'token-123',
-        purpose: 'PASSWORD_RESET',
+      prismaMock.emailDeliveryLog.findFirst.mockResolvedValue(null);
+      repositoryMock.createActionToken.mockResolvedValue({
+        id: 'token-456',
         expiresAt: new Date(Date.now() + 3600000),
-        usedAt: new Date(),
-        revokedAt: null,
       });
 
-      prismaMock.emailDeliveryLog.findFirst.mockResolvedValue(null);
+      prismaMock.actionToken.updateMany
+        .mockResolvedValueOnce({ count: 0 })
+        .mockResolvedValueOnce({ count: 1 });
 
-      await expect(resendActionToken('some-token')).rejects.toThrowError(
-        'Token cannot be resent safely',
-      );
+      await expect(resendActionToken('some-token')).rejects.toMatchObject({
+        name: 'TokenResendError',
+        statusCode: 400,
+        code: 'TOKEN_RESEND_INELIGIBLE',
+        message: 'Token cannot be resent safely',
+      });
 
-      expect(prismaMock.actionToken.updateMany).not.toHaveBeenCalled();
-      expect(repositoryMock.createActionToken).not.toHaveBeenCalled();
-      expect(authEmailHookServiceMock.requestAuthEmailSend).not.toHaveBeenCalled();
+      expect(repositoryMock.createActionToken).toHaveBeenCalled();
+      expect(authEmailHookServiceMock.requestAuthEmailSend).toHaveBeenCalled();
+      expect(prismaMock.actionToken.updateMany).toHaveBeenNthCalledWith(1, {
+        where: {
+          id: 'token-123',
+          usedAt: null,
+          revokedAt: null,
+        },
+        data: {
+          revokedAt: expect.any(Date),
+          revokedReason: 'REPLACED',
+        },
+      });
+      expect(prismaMock.actionToken.updateMany).toHaveBeenNthCalledWith(2, {
+        where: {
+          id: 'token-456',
+          usedAt: null,
+          revokedAt: null,
+        },
+        data: {
+          revokedAt: expect.any(Date),
+          revokedReason: 'CONCURRENT_REPLACEMENT',
+        },
+      });
     });
   });
-}); //describe
+});
