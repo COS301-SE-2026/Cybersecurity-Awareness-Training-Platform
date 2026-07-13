@@ -36,6 +36,7 @@ const serviceMock = vi.hoisted(() => {
 });
 
 vi.mock('../../src/services/organisation-registration-request.service.js', () => serviceMock);
+vi.mock('../../src/services/platformOrganisation.service.js', () => serviceMock);
 
 vi.mock('../../src/middleware/requireAuth.js', () => ({
   requireAuth(req: Request, _res: Response, next: NextFunction) {

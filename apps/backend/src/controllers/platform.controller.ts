@@ -6,9 +6,6 @@ import {
   approveOrganisationRequest as approveRequestService,
   rejectOrganisationRequest as rejectRequestService,
   deleteOrganisationRequest as deleteRequestService,
-  getPlatformOrganisationDetail as getOrganisationDetailService,
-  getOrganisationRequestDetails as getRequestDetailsService,
-  resendInitialAdminSetup as resendSetupService,
   OrganisationRegistrationRequestError,
 } from '../services/organisation-registration-request.service.js';
 
@@ -128,45 +125,6 @@ export async function deleteOrganisationRequest(req: Request, res: Response) {
 
   try {
     const result = await deleteRequestService(actorUserId, requiredParam(req, 'requestId'));
-    return res.status(200).json(result);
-  } catch (error) {
-    return handleControllerError(error, res);
-  }
-}
-
-export async function getPlatformOrganisationDetail(req: Request, res: Response) {
-  const actorUserId = requireActorUserId(req, res);
-  if (!actorUserId) return;
-
-  try {
-    const result = await getOrganisationDetailService(
-      actorUserId,
-      requiredParam(req, 'organisationId'),
-    );
-    return res.status(200).json(result);
-  } catch (error) {
-    return handleControllerError(error, res);
-  }
-}
-
-export async function getOrganisationRequestDetails(req: Request, res: Response) {
-  const actorUserId = requireActorUserId(req, res);
-  if (!actorUserId) return;
-
-  try {
-    const result = await getRequestDetailsService(actorUserId, requiredParam(req, 'requestId'));
-    return res.status(200).json(result);
-  } catch (error) {
-    return handleControllerError(error, res);
-  }
-}
-
-export async function resendInitialAdminSetup(req: Request, res: Response) {
-  const actorUserId = requireActorUserId(req, res);
-  if (!actorUserId) return;
-
-  try {
-    const result = await resendSetupService(actorUserId, requiredParam(req, 'organisationId'));
     return res.status(200).json(result);
   } catch (error) {
     return handleControllerError(error, res);

@@ -1,4 +1,4 @@
-import type { NextFunction, Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { Router } from 'express';
 import {
   listOrganisationRequests,
@@ -7,11 +7,14 @@ import {
   approveOrganisationRequest,
   rejectOrganisationRequest,
   deleteOrganisationRequest,
+} from '../controllers/platform.controller.js';
+import {
   getPlatformOrganisationDetail,
   getOrganisationRequestDetails,
   resendInitialAdminSetup,
-} from '../controllers/platform.controller.js';
+} from '../controllers/platformOrganisation.controller.js';
 import { requireAuth } from '../middleware/requireAuth.js';
+import { requirePlatformAdmin } from '../middleware/requirePlatformAdmin.js';
 import { apiRateLimit } from '../middleware/apiRateLimit.js';
 import { validateBody, validateParams, validateQuery } from '../middleware/validateRequest.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
@@ -21,19 +24,12 @@ import {
   rejectOrganisationRequestSchema,
   organisationRequestIdParamsSchema,
   platformOrganisationIdParamsSchema,
+  getPlatformOrganisationParamsSchema,
+  resendInitialAdminSetupParamsSchema,
+  getOrganisationRequestDetailsParamsSchema,
 } from '@insightful-phish/shared';
 
 export const platformRouter = Router();
-
-function requirePlatformAdmin(req: Request, res: Response, next: NextFunction) {
-  if (req.auth?.user.userType !== 'IP_ADMIN') {
-    return res.status(403).json({
-      error: 'FORBIDDEN',
-      message: 'Platform admin access is required',
-    });
-  }
-  next();
-}
 
 // All platform routes require rate limiting, authentication, and platform admin privileges
 platformRouter.use('/platform', apiRateLimit, requireAuth, requirePlatformAdmin);
@@ -385,7 +381,7 @@ platformRouter.delete(
  */
 platformRouter.get(
   '/platform/organisations/:organisationId',
-  validateParams(platformOrganisationIdParamsSchema),
+  validateParams(getPlatformOrganisationParamsSchema),
   asyncHandler(getPlatformOrganisationDetail),
 );
 
@@ -426,7 +422,7 @@ platformRouter.get(
  */
 platformRouter.get(
   '/platform/organisation-requests/:requestId/details',
-  validateParams(organisationRequestIdParamsSchema),
+  validateParams(getOrganisationRequestDetailsParamsSchema),
   asyncHandler(getOrganisationRequestDetails),
 );
 
@@ -476,6 +472,6 @@ platformRouter.get(
  */
 platformRouter.post(
   '/platform/organisations/:organisationId/resend-initial-admin-setup',
-  validateParams(platformOrganisationIdParamsSchema),
+  validateParams(resendInitialAdminSetupParamsSchema),
   asyncHandler(resendInitialAdminSetup),
 );

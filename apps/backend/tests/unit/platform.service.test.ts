@@ -7,11 +7,13 @@ import {
   rejectOrganisationRequest,
   approveOrganisationRequest,
   deleteOrganisationRequest,
+  OrganisationRegistrationRequestError,
+} from '../../src/services/organisation-registration-request.service.js';
+import {
   getPlatformOrganisationDetail,
   getOrganisationRequestDetails,
   resendInitialAdminSetup,
-  OrganisationRegistrationRequestError,
-} from '../../src/services/organisation-registration-request.service.js';
+} from '../../src/services/platformOrganisation.service.js';
 
 const prismaMock = vi.hoisted(() => ({
   user: {
