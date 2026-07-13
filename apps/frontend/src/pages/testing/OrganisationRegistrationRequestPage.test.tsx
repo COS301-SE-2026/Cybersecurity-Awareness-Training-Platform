@@ -230,7 +230,68 @@ describe('OrganisationRegistrationRequestPage', () => {
     await user.paste(tooLongWebsiteUrl);
     await user.click(screen.getByRole('button', { name: /Next/i }));
 
-    expect(screen.getByText('Please Provide A Valid Website URL')).toBeInTheDocument();
+    expect(
+      screen.getByText('Organisation Website Url Must Be At Most 2048 Characters'),
+    ).toBeInTheDocument();
+    expect(submitOrganisationRegistrationRequestMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects organisation names longer than the backend maximum before submit', async () => {
+    const user = userEvent.setup();
+
+    renderOrganisationRegistrationRequestPage();
+
+    await user.click(screen.getByLabelText(/Organisation Name/i));
+    await user.paste('A'.repeat(201));
+    await user.type(screen.getByLabelText(/Organisation Size/i), '25');
+    await user.click(screen.getByRole('button', { name: /Next/i }));
+
+    expect(
+      screen.getByText('Organisation Name Must Be At Most 200 Characters'),
+    ).toBeInTheDocument();
+    expect(submitOrganisationRegistrationRequestMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects organisation descriptions longer than the backend maximum before submit', async () => {
+    const user = userEvent.setup();
+
+    renderOrganisationRegistrationRequestPage();
+
+    await user.type(screen.getByLabelText(/Organisation Name/i), 'CBELL Plumbing');
+    await user.type(screen.getByLabelText(/Organisation Size/i), '25');
+    await user.click(screen.getByLabelText(/Organisation Description/i));
+    await user.paste('A'.repeat(2001));
+    await user.click(screen.getByRole('button', { name: /Next/i }));
+
+    expect(
+      screen.getByText('Organisation Description Must Be At Most 2000 Characters'),
+    ).toBeInTheDocument();
+    expect(submitOrganisationRegistrationRequestMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects non-integer organisation sizes before submit', async () => {
+    const user = userEvent.setup();
+
+    renderOrganisationRegistrationRequestPage();
+
+    await user.type(screen.getByLabelText(/Organisation Name/i), 'CBELL Plumbing');
+    await user.type(screen.getByLabelText(/Organisation Size/i), '25.5');
+    await user.click(screen.getByRole('button', { name: /Next/i }));
+
+    expect(screen.getByText('Organisation Size Must Be A Whole Number')).toBeInTheDocument();
+    expect(submitOrganisationRegistrationRequestMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects organisation sizes over the shared maximum before submit', async () => {
+    const user = userEvent.setup();
+
+    renderOrganisationRegistrationRequestPage();
+
+    await user.type(screen.getByLabelText(/Organisation Name/i), 'CBELL Plumbing');
+    await user.type(screen.getByLabelText(/Organisation Size/i), '100001');
+    await user.click(screen.getByRole('button', { name: /Next/i }));
+
+    expect(screen.getByText('Organisation Size Must Be At Most 100000')).toBeInTheDocument();
     expect(submitOrganisationRegistrationRequestMock).not.toHaveBeenCalled();
   });
 

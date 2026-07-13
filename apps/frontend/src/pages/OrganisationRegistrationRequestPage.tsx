@@ -6,11 +6,19 @@ import {
   firstNameSchema,
   lastNameSchema,
   emailSchema,
+  createOrganisationRegistrationRequestSchema,
   type CreateOrganisationRegistrationRequestDto,
 } from '@insightful-phish/shared';
 import SuccessfulRegistrationModal from '../components/layout/modals/SuccessfulRegistrationModal';
 import { ApiError } from '../lib/apiClient';
 import { submitOrganisationRegistrationRequest } from '../services/organisation-registration-request.service';
+
+const organisationStepSchema = createOrganisationRegistrationRequestSchema.pick({
+  organisationName: true,
+  organisationDescription: true,
+  organisationSize: true,
+  organisationWebsiteUrl: true,
+});
 
 function formatAlertMessage(message: string) {
   // makes everything title case and removes the . from the end of the message
@@ -43,53 +51,23 @@ function OrganisationRegistrationRequestPage() {
   function validateOrgInfo() {
     setAlertMessage('');
 
-    if (!orgName.trim()) {
-      // NO ORGANISATION NAME
-      // Org Name is REQUIRED
+    const organisationDescription = orgDescrip.trim();
+    const organisationWebsiteUrl = orgWeb.trim();
+
+    const validationResult = organisationStepSchema.safeParse({
+      organisationName: orgName.trim(),
+      organisationSize: orgSize === '' ? undefined : Number(orgSize),
+      ...(organisationDescription ? { organisationDescription } : {}),
+      ...(organisationWebsiteUrl ? { organisationWebsiteUrl } : {}),
+    });
+
+    if (!validationResult.success) {
       setAlertType('danger');
-      setAlertMessage('Please Enter An Organisation Name');
+      setAlertMessage(
+        formatAlertMessage(validationResult.error.issues[0]?.message ?? 'Invalid Input'),
+      );
       setOrgInfoValid(false);
       return false;
-    }
-
-    if (orgSize === '') {
-      // NO ORGANISATION SIZE
-      // Org Size is REQUIRED
-      setAlertType('danger');
-      setAlertMessage('Please Provide An Organisation Size');
-      setOrgInfoValid(false);
-      return false;
-    }
-
-    if (orgSize < 1) {
-      // INVALID ORGANISATION SIZE
-      // Org Size is REQUIRED (must be valid too)
-      setAlertType('danger');
-      setAlertMessage('Please Provide A Valid Organisation Size');
-      setOrgInfoValid(false);
-      return false;
-    }
-
-    const url = orgWeb.trim();
-    if (url) {
-      if (url.length > 2048) {
-        setAlertType('danger');
-        setAlertMessage('Please Provide A Valid Website URL');
-        setOrgInfoValid(false);
-        return false;
-      }
-
-      try {
-        const parsedURL = new URL(url);
-        if (parsedURL.protocol !== 'http:' && parsedURL.protocol !== 'https:') {
-          throw new Error('Invalid URL');
-        }
-      } catch {
-        setAlertType('danger');
-        setAlertMessage('Please Provide A Valid Website URL');
-        setOrgInfoValid(false);
-        return false;
-      }
     }
 
     setOrgInfoValid(true);
