@@ -3,31 +3,27 @@ import * as OrganisationRepository from '../repositories/organisation.repository
 import { recordAuditLog } from './audit-log.service.js';
 import { requestAuthEmailSend } from './auth-email-hook.service.js';
 import { issueActionToken } from './action-token.service.js';
+import {
+  OrganisationRegistrationRequestError,
+  requirePlatformAdminUser,
+  formatRegistrationRequestBase,
+  type RegistrationRequestBase,
+  type FormatInvitationInput,
+  type FormatEmailLogInput,
+  formatSetupStatus,
+  getResendEligibility,
+} from './organisation-registration-request.service.js';
 
-export class OrganisationRegistrationRequestError extends Error {
-  constructor(
-    public readonly statusCode: 403 | 404 | 409 | 422,
-    public readonly error: string,
-    message: string,
-  ) {
-    super(message);
-    this.name = 'OrganisationRegistrationRequestError';
-  }
-}
-
-async function requirePlatformAdminUser(userId: string) {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    include: { ipAdminProfile: true },
-  });
-  if (!user || user.userType !== 'IP_ADMIN' || user.ipAdminProfile?.adminStatus !== 'ACTIVE') {
-    throw new OrganisationRegistrationRequestError(
-      403,
-      'IP_ADMIN_DISABLED',
-      'Platform admin profile is disabled or not found',
-    );
-  }
-}
+export {
+  OrganisationRegistrationRequestError,
+  requirePlatformAdminUser,
+  formatRegistrationRequestBase,
+  type RegistrationRequestBase,
+  type FormatInvitationInput,
+  type FormatEmailLogInput,
+  formatSetupStatus,
+  getResendEligibility,
+};
 
 export async function getPlatformOrganisationDetail(actorUserId: string, organisationId: string) {
   await requirePlatformAdminUser(actorUserId);
@@ -61,10 +57,26 @@ export async function getPlatformOrganisationDetail(actorUserId: string, organis
     invitation?.id ?? null,
   );
 
+  let detailType:
+    | 'request-only'
+    | 'onboarding organisation'
+    | 'active organisation'
+    | 'suspended organisation'
+    | 'disabled organisation' = 'disabled organisation';
+
+  if (organisation.status === 'PENDING_ONBOARDING') {
+    detailType = 'onboarding organisation';
+  } else if (organisation.status === 'ACTIVE') {
+    detailType = 'active organisation';
+  } else if (organisation.status === 'SUSPENDED') {
+    detailType = 'suspended organisation';
+  }
+
   return {
     id: organisation.id,
     name: organisation.name,
     status: organisation.status,
+    detailType,
     createdAt: organisation.createdAt.toISOString(),
     updatedAt: organisation.updatedAt.toISOString(),
     _count: organisation._count,
@@ -86,6 +98,9 @@ export async function getPlatformOrganisationDetail(actorUserId: string, organis
       firstName: admin.user?.firstName ?? '',
       lastName: admin.user?.lastName ?? '',
       email: admin.user?.email ?? '',
+      isInitialAdmin:
+        admin.user?.email === invitation?.recipientEmail ||
+        admin.user?.email === registrationRequest?.representativeEmail,
     })),
     timeline,
   };
@@ -126,8 +141,28 @@ export async function getOrganisationRequestDetails(actorUserId: string, request
     invitation?.id ?? null,
   );
 
+  let detailType:
+    | 'request-only'
+    | 'onboarding organisation'
+    | 'active organisation'
+    | 'suspended organisation'
+    | 'disabled organisation' = 'request-only';
+
+  if (organisation) {
+    if (organisation.status === 'PENDING_ONBOARDING') {
+      detailType = 'onboarding organisation';
+    } else if (organisation.status === 'ACTIVE') {
+      detailType = 'active organisation';
+    } else if (organisation.status === 'SUSPENDED') {
+      detailType = 'suspended organisation';
+    } else {
+      detailType = 'disabled organisation';
+    }
+  }
+
   return {
     ...formatRegistrationRequestBase(request),
+    detailType,
     setupStatus: formatSetupStatus(invitation, latestEmailLog),
     resendEligibility,
     timeline,
@@ -243,9 +278,17 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
     },
   });
 
+  const updatedInvitation = await OrganisationRepository.findSetupInvitationAndEmailLog({
+    organisationId,
+  });
+  const updatedEmailLog = updatedInvitation
+    ? await OrganisationRepository.findLatestEmailLogForInvitation(updatedInvitation.id)
+    : null;
+
   return {
     success: true,
     emailQueued: emailResult.queued,
+    setupStatus: formatSetupStatus(updatedInvitation, updatedEmailLog),
   };
 }
 
@@ -278,9 +321,10 @@ async function buildPlatformTimeline(
     timestamp: string;
     action: string;
     summary: string;
-    actor?: string | null;
+    actor: string | null;
     status?: string | null;
-    details?: unknown;
+    outcome: string | null;
+    metadata?: Record<string, unknown> | null;
   }> = [];
 
   for (const log of auditLogs) {
@@ -297,7 +341,8 @@ async function buildPlatformTimeline(
       summary: `Action ${log.actionType} performed by ${actorName}`,
       actor: actorName,
       status: log.outcome,
-      details: log.metadata ?? undefined,
+      outcome: log.outcome,
+      metadata: (log.metadata as Record<string, unknown>) ?? null,
     });
   }
 
@@ -308,153 +353,13 @@ async function buildPlatformTimeline(
       timestamp: log.createdAt.toISOString(),
       action: log.emailType,
       summary: `Email of type ${log.emailType} to ${log.recipientEmail}`,
+      actor: 'System',
       status: log.deliveryStatus,
-      details: log.failureReason ? { failureReason: log.failureReason } : undefined,
+      outcome: log.deliveryStatus,
+      metadata: log.failureReason ? { failureReason: log.failureReason } : null,
     });
   }
 
   timeline.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   return timeline;
-}
-
-interface FormatInvitationInput {
-  id: string;
-  status: string;
-  recipientEmail: string;
-  expiresAt: Date;
-  actionTokens: Array<{
-    id: string;
-    expiresAt: Date;
-    usedAt: Date | null;
-    revokedAt: Date | null;
-  }>;
-}
-
-interface FormatEmailLogInput {
-  id: string;
-  deliveryStatus: string;
-  sentAt: Date | null;
-  failedAt: Date | null;
-  failureReason: string | null;
-}
-
-function formatSetupStatus(
-  invitation: FormatInvitationInput | null,
-  latestEmailLog: FormatEmailLogInput | null,
-) {
-  if (!invitation) return null;
-  return {
-    id: invitation.id,
-    status: invitation.status,
-    recipientEmail: invitation.recipientEmail,
-    expiresAt: invitation.expiresAt.toISOString(),
-    activeActionToken: invitation.actionTokens[0]
-      ? {
-          id: invitation.actionTokens[0].id,
-          expiresAt: invitation.actionTokens[0].expiresAt.toISOString(),
-          usedAt: invitation.actionTokens[0].usedAt?.toISOString() ?? null,
-          revokedAt: invitation.actionTokens[0].revokedAt?.toISOString() ?? null,
-        }
-      : null,
-    latestEmailDelivery: latestEmailLog
-      ? {
-          id: latestEmailLog.id,
-          deliveryStatus: latestEmailLog.deliveryStatus,
-          sentAt: latestEmailLog.sentAt?.toISOString() ?? null,
-          failedAt: latestEmailLog.failedAt?.toISOString() ?? null,
-          failureReason: latestEmailLog.failureReason,
-        }
-      : null,
-  };
-}
-
-interface RegistrationRequestBase {
-  id: string;
-  submittedOrganisationName: string;
-  submittedWebsite: string | null;
-  submittedOrganisationDescription: string | null;
-  submittedOrganisationSize: number | null;
-  submittedPrimaryDomain: string | null;
-  representativeFirstName: string;
-  representativeLastName: string;
-  representativeEmail: string;
-  representativePhone: string | null;
-  status: string;
-  contactedByIpAdminId: string | null;
-  approvedByIpAdminId: string | null;
-  rejectedByIpAdminId: string | null;
-  approvedOrganisationId: string | null;
-  contactedAt: Date | null;
-  approvedAt: Date | null;
-  rejectedAt: Date | null;
-  rejectionReason: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-const formatRegistrationRequestBase = (req: RegistrationRequestBase) => {
-  return {
-    id: req.id,
-    submittedOrganisationName: req.submittedOrganisationName,
-    submittedWebsite: req.submittedWebsite,
-    submittedOrganisationDescription: req.submittedOrganisationDescription,
-    submittedOrganisationSize: req.submittedOrganisationSize,
-    submittedPrimaryDomain: req.submittedPrimaryDomain,
-    representativeFirstName: req.representativeFirstName,
-    representativeLastName: req.representativeLastName,
-    representativeEmail: req.representativeEmail,
-    representativePhone: req.representativePhone,
-    status: req.status,
-    contactedByIpAdminId: req.contactedByIpAdminId,
-    approvedByIpAdminId: req.approvedByIpAdminId,
-    rejectedByIpAdminId: req.rejectedByIpAdminId,
-    approvedOrganisationId: req.approvedOrganisationId,
-    contactedAt: req.contactedAt?.toISOString() ?? null,
-    approvedAt: req.approvedAt?.toISOString() ?? null,
-    rejectedAt: req.rejectedAt?.toISOString() ?? null,
-    rejectionReason: req.rejectionReason,
-    createdAt: req.createdAt.toISOString(),
-    updatedAt: req.updatedAt.toISOString(),
-  };
-};
-
-function getResendEligibility(
-  organisationStatus: string,
-  invitation: FormatInvitationInput | null,
-  latestEmailLog: FormatEmailLogInput | null,
-  now: Date = new Date(),
-) {
-  if (organisationStatus !== 'PENDING_ONBOARDING') {
-    return { isEligible: false, reason: 'ORGANISATION_NOT_ONBOARDING' };
-  }
-  if (!invitation) {
-    return { isEligible: false, reason: 'INVITATION_NOT_ELIGIBLE' };
-  }
-  if (invitation.status === 'ACCEPTED' || invitation.status === 'COMPLETED') {
-    return { isEligible: false, reason: 'SETUP_ALREADY_COMPLETED' };
-  }
-  if (invitation.status === 'REVOKED' || invitation.status === 'REJECTED') {
-    return { isEligible: false, reason: 'INVITATION_NOT_ELIGIBLE' };
-  }
-  if (new Date(invitation.expiresAt).getTime() <= now.getTime()) {
-    return { isEligible: true, reason: 'SETUP_TOKEN_EXPIRED' };
-  }
-
-  const tokens = invitation.actionTokens || [];
-  const hasActiveToken = tokens.some(
-    (t) => !t.usedAt && !t.revokedAt && new Date(t.expiresAt).getTime() > now.getTime(),
-  );
-
-  if (!hasActiveToken) {
-    return { isEligible: true, reason: null };
-  }
-
-  if (latestEmailLog?.deliveryStatus === 'FAILED') {
-    return { isEligible: true, reason: 'SETUP_EMAIL_FAILED' };
-  }
-
-  return {
-    isEligible: false,
-    reason: 'ACTIVE_SETUP_TOKEN_EXISTS',
-  };
 }

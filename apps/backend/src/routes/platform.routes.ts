@@ -1,4 +1,3 @@
-import type { Request, Response } from 'express';
 import { Router } from 'express';
 import {
   listOrganisationRequests,
@@ -23,7 +22,6 @@ import {
   approveOrganisationRequestSchema,
   rejectOrganisationRequestSchema,
   organisationRequestIdParamsSchema,
-  platformOrganisationIdParamsSchema,
   getPlatformOrganisationParamsSchema,
   resendInitialAdminSetupParamsSchema,
   getOrganisationRequestDetailsParamsSchema,
@@ -457,6 +455,8 @@ platformRouter.get(
  *                 emailQueued:
  *                   type: boolean
  *                   example: true
+ *                 setupStatus:
+ *                   $ref: '#/components/schemas/OrganisationInitialSetupStatus'
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  *       403:

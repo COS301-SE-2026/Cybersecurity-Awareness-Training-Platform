@@ -19,6 +19,13 @@ export const platformOrganisationRequestDetailsResponseSchema = z
   .object({
     id: z.string().uuid(),
     submittedOrganisationName: z.string(),
+    detailType: z.enum([
+      'request-only',
+      'onboarding organisation',
+      'active organisation',
+      'suspended organisation',
+      'disabled organisation',
+    ]),
     submittedWebsite: z.string().nullable(),
     submittedOrganisationDescription: z.string().nullable(),
     submittedOrganisationSize: z.number().nullable(),

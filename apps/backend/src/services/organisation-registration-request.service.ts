@@ -58,7 +58,7 @@ export class OrganisationRegistrationRequestError extends Error {
   }
 }
 
-async function requirePlatformAdminUser(userId: string) {
+export async function requirePlatformAdminUser(userId: string) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: { ipAdminProfile: true },
@@ -252,7 +252,7 @@ export async function listOrganisationRequests(
   };
 }
 
-interface RegistrationRequestBase {
+export interface RegistrationRequestBase {
   id: string;
   submittedOrganisationName: string;
   submittedWebsite: string | null;
@@ -276,7 +276,7 @@ interface RegistrationRequestBase {
   updatedAt: Date;
 }
 
-const formatRegistrationRequestBase = (req: RegistrationRequestBase) => {
+export const formatRegistrationRequestBase = (req: RegistrationRequestBase) => {
   return {
     id: req.id,
     submittedOrganisationName: req.submittedOrganisationName,
@@ -932,36 +932,7 @@ function primaryDomainFromWebsite(value: string) {
   return hostname.startsWith('www.') ? hostname.slice(4) : hostname;
 }
 
-async function querySetupInvitationAndEmailLog(where: {
-  organisationId?: string;
-  organisationRegistrationRequestId?: string;
-}) {
-  const invitation = await prisma.invitation.findFirst({
-    where: {
-      purpose: 'INITIAL_ORGANISATION_ADMIN_SETUP',
-      ...where,
-    },
-    include: {
-      actionTokens: {
-        orderBy: { createdAt: 'desc' },
-      },
-    },
-  });
-
-  const latestEmailLog = invitation
-    ? await prisma.emailDeliveryLog.findFirst({
-        where: {
-          invitationId: invitation.id,
-          emailType: 'INITIAL_ORGANISATION_ADMIN_SETUP',
-        },
-        orderBy: { createdAt: 'desc' },
-      })
-    : null;
-
-  return { invitation, latestEmailLog };
-}
-
-interface FormatInvitationInput {
+export interface FormatInvitationInput {
   id: string;
   status: string;
   recipientEmail: string;
@@ -974,7 +945,7 @@ interface FormatInvitationInput {
   }>;
 }
 
-interface FormatEmailLogInput {
+export interface FormatEmailLogInput {
   id: string;
   deliveryStatus: string;
   sentAt: Date | null;
@@ -982,7 +953,7 @@ interface FormatEmailLogInput {
   failureReason: string | null;
 }
 
-function formatSetupStatus(
+export function formatSetupStatus(
   invitation: FormatInvitationInput | null,
   latestEmailLog: FormatEmailLogInput | null,
 ) {
@@ -1012,7 +983,7 @@ function formatSetupStatus(
   };
 }
 
-function getResendEligibility(
+export function getResendEligibility(
   organisationStatus: string,
   invitation: FormatInvitationInput | null,
   latestEmailLog: FormatEmailLogInput | null,

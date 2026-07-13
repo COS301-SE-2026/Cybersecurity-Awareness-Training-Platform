@@ -52,7 +52,7 @@ describe('organisation validation schemas', () => {
 
   describe('Response & Support Schemas', () => {
     it('validates resendInitialAdminSetupResponseSchema', () => {
-      const valid = { success: true, emailQueued: false };
+      const valid = { success: true, emailQueued: false, setupStatus: null };
       expect(resendInitialAdminSetupResponseSchema.parse(valid)).toEqual(valid);
       expect(() => resendInitialAdminSetupResponseSchema.parse({ success: true })).toThrow();
     });
@@ -74,7 +74,8 @@ describe('organisation validation schemas', () => {
         summary: 'Action APPROVED performed by Patricia Platform',
         actor: 'Patricia Platform',
         status: 'SUCCESS',
-        details: { foo: 'bar' },
+        outcome: 'SUCCESS',
+        metadata: { foo: 'bar' },
       };
 
       const validEmailDelivery = {
@@ -83,7 +84,10 @@ describe('organisation validation schemas', () => {
         timestamp: '2026-07-01T08:00:00.000Z',
         action: 'INITIAL_ORGANISATION_ADMIN_SETUP',
         summary: 'Email of type INITIAL_ORGANISATION_ADMIN_SETUP to test@example.com',
+        actor: 'System',
         status: 'SENT',
+        outcome: 'SENT',
+        metadata: null,
       };
 
       expect(timelineEventSchema.parse(validAuditLog)).toEqual(validAuditLog);
@@ -123,6 +127,7 @@ describe('organisation validation schemas', () => {
         firstName: 'John',
         lastName: 'Doe',
         email: 'john@example.com',
+        isInitialAdmin: false,
       };
 
       expect(organisationAdminSummarySchema.parse(validAdmin)).toEqual(validAdmin);
@@ -134,6 +139,7 @@ describe('organisation validation schemas', () => {
         id: validUuid,
         name: 'Target Org',
         status: 'ACTIVE',
+        detailType: 'active organisation',
         createdAt: '2026-07-01T08:00:00.000Z',
         updatedAt: '2026-07-01T08:00:00.000Z',
         _count: {
@@ -161,6 +167,7 @@ describe('organisation validation schemas', () => {
       const validRequestDetail = {
         id: validUuid,
         submittedOrganisationName: 'Example Org',
+        detailType: 'request-only',
         submittedWebsite: null,
         submittedOrganisationDescription: null,
         submittedOrganisationSize: 50,

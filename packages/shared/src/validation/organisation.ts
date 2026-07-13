@@ -20,6 +20,7 @@ export const resendInitialAdminSetupResponseSchema = z
   .object({
     success: z.boolean(),
     emailQueued: z.boolean(),
+    setupStatus: z.lazy(() => initialAdminSetupStatusSchema),
   })
   .strict();
 
@@ -43,9 +44,10 @@ export const timelineEventSchema = z
     timestamp: z.string(),
     action: z.string(),
     summary: z.string(),
-    actor: z.string().nullable().optional(),
+    actor: z.string().nullable(),
     status: z.string().nullable().optional(),
-    details: z.unknown().optional(),
+    outcome: z.string().nullable(),
+    metadata: z.record(z.any()).nullable().optional(),
   })
   .strict();
 
@@ -89,6 +91,7 @@ export const organisationAdminSummarySchema = z
     firstName: z.string(),
     lastName: z.string(),
     email: z.string().email(),
+    isInitialAdmin: z.boolean(),
   })
   .strict();
 
@@ -99,6 +102,13 @@ export const platformOrganisationDetailSchema = z
     id: z.string().uuid(),
     name: z.string(),
     status: z.string(),
+    detailType: z.enum([
+      'request-only',
+      'onboarding organisation',
+      'active organisation',
+      'suspended organisation',
+      'disabled organisation',
+    ]),
     createdAt: z.string(),
     updatedAt: z.string(),
     _count: z
