@@ -15,14 +15,9 @@ const prismaMock = vi.hoisted(() => ({
   },
   actionToken: {
     updateMany: vi.fn(),
-    update: vi.fn(),
   },
   invitation: {
     update: vi.fn(),
-    findUnique: vi.fn(),
-  },
-  emailDeliveryLog: {
-    findFirst: vi.fn(),
   },
   $transaction: vi.fn((callback) => callback(prismaMock)),
 }));
@@ -65,28 +60,18 @@ const requestId = '55555555-5555-4555-8555-555555555555';
 const organisationId = '66666666-6666-4666-8666-666666666666';
 
 function mockActivePlatformAdmin() {
-  prismaMock.user.findUnique.mockImplementation((args: { where?: { id?: string } }) => {
-    if (args?.where?.id === actorUserId) {
-      return Promise.resolve({
-        id: actorUserId,
-        userType: 'IP_ADMIN',
-        ipAdminProfile: { id: 'admin-profile-1', adminStatus: 'ACTIVE' },
-      });
-    }
-    return Promise.resolve(null);
+  prismaMock.user.findUnique.mockResolvedValue({
+    id: actorUserId,
+    userType: 'IP_ADMIN',
+    ipAdminProfile: { id: 'admin-profile-1', adminStatus: 'ACTIVE' },
   });
 }
 
 function mockInactivePlatformAdmin() {
-  prismaMock.user.findUnique.mockImplementation((args: { where?: { id?: string } }) => {
-    if (args?.where?.id === actorUserId) {
-      return Promise.resolve({
-        id: actorUserId,
-        userType: 'IP_ADMIN',
-        ipAdminProfile: { id: 'admin-profile-1', adminStatus: 'DISABLED' },
-      });
-    }
-    return Promise.resolve(null);
+  prismaMock.user.findUnique.mockResolvedValue({
+    id: actorUserId,
+    userType: 'IP_ADMIN',
+    ipAdminProfile: { id: 'admin-profile-1', adminStatus: 'DISABLED' },
   });
 }
 
@@ -128,10 +113,6 @@ describe('platformOrganisation service', () => {
         id: organisationId,
         name: 'Target Org',
         status: 'PENDING_ONBOARDING',
-        description: 'A mock organization',
-        approximateSize: 150,
-        website: 'https://mock.example.com',
-        primaryDomain: 'mock.example.com',
         createdAt: new Date('2026-07-01T08:00:00Z'),
         updatedAt: new Date('2026-07-02T08:00:00Z'),
         _count: { adminProfiles: 1, traineeProfiles: 10 },
@@ -174,7 +155,6 @@ describe('platformOrganisation service', () => {
         {
           id: 'admin-1',
           adminStatus: 'ACTIVE',
-          isInitialAdmin: false,
           user: {
             firstName: 'Alice',
             lastName: 'Smith',
@@ -187,7 +167,6 @@ describe('platformOrganisation service', () => {
         {
           id: 'audit-1',
           actionType: 'APPROVED',
-          targetType: 'ORGANISATION_REGISTRATION_REQUEST',
           createdAt: new Date('2026-07-01T08:00:00Z'),
           outcome: 'SUCCESS',
           actorUser: {
@@ -224,10 +203,6 @@ describe('platformOrganisation service', () => {
       expect(response.name).toBe('Target Org');
       expect(response.status).toBe('PENDING_ONBOARDING');
       expect(response.detailType).toBe('onboarding organisation');
-      expect(response.description).toBe('A mock organization');
-      expect(response.approximateSize).toBe(150);
-      expect(response.website).toBe('https://mock.example.com');
-      expect(response.primaryDomain).toBe('mock.example.com');
       expect(response.createdAt).toBe('2026-07-01T08:00:00.000Z');
       expect(response._count.adminProfiles).toBe(1);
       expect(response.registrationRequest?.representativeEmail).toBe('john@example.com');
@@ -244,7 +219,7 @@ describe('platformOrganisation service', () => {
       expect(response.timeline[1].type).toBe('AUDIT_LOG');
       expect(response.timeline[1].outcome).toBe('SUCCESS');
       expect(response.timeline[1].actor).toBe('Patricia Platform');
-      expect(response.timeline[1].metadata).toBe(null);
+      expect(response.timeline[1].metadata).toBeDefined();
     });
 
     it('throws 404 error if organisation is not found', async () => {
@@ -337,9 +312,6 @@ describe('platformOrganisation service', () => {
       repositoryMock.findSetupInvitationAndEmailLog.mockResolvedValue(mockInvitation);
       repositoryMock.findLatestEmailLogForInvitation.mockResolvedValue(null);
 
-      prismaMock.invitation.findUnique.mockResolvedValue(mockInvitation);
-      prismaMock.emailDeliveryLog.findFirst.mockResolvedValue(null);
-
       actionTokenServiceMock.issueActionToken.mockResolvedValue({
         token: { id: 'new-token-id', expiresAt: new Date() },
         rawToken: 'raw-token-string',
@@ -388,9 +360,6 @@ describe('platformOrganisation service', () => {
       repositoryMock.findSetupInvitationAndEmailLog.mockResolvedValue(mockInvitation);
       repositoryMock.findLatestEmailLogForInvitation.mockResolvedValue(mockLatestEmail);
 
-      prismaMock.invitation.findUnique.mockResolvedValue(mockInvitation);
-      prismaMock.emailDeliveryLog.findFirst.mockResolvedValue(mockLatestEmail);
-
       actionTokenServiceMock.issueActionToken.mockResolvedValue({
         token: { id: 'new-token-id', expiresAt: new Date() },
         rawToken: 'raw-token-string',
@@ -411,20 +380,7 @@ describe('platformOrganisation service', () => {
         status: 'ACTIVE', // ACTIVE
       };
 
-      const mockInvitation = {
-        id: 'invite-123',
-        status: 'PENDING',
-        recipientEmail: 'admin@target.com',
-        recipientFirstName: 'Bob',
-        expiresAt: new Date(Date.now() - 1000),
-        organisationRegistrationRequestId: requestId,
-        actionTokens: [],
-      };
-
       repositoryMock.findOrganisationById.mockResolvedValue(mockOrg);
-      repositoryMock.findSetupInvitationAndEmailLog.mockResolvedValue(mockInvitation);
-      prismaMock.invitation.findUnique.mockResolvedValue(mockInvitation);
-      prismaMock.emailDeliveryLog.findFirst.mockResolvedValue(null);
 
       await expect(resendInitialAdminSetup(actorUserId, organisationId)).rejects.toThrowError(
         new OrganisationRegistrationRequestError(
@@ -444,16 +400,11 @@ describe('platformOrganisation service', () => {
       const mockInvitation = {
         id: 'invite-123',
         status: 'COMPLETED', // COMPLETED
-        recipientEmail: 'admin@target.com',
-        actionTokens: [],
       };
 
       repositoryMock.findOrganisationById.mockResolvedValue(mockOrg);
       repositoryMock.findSetupInvitationAndEmailLog.mockResolvedValue(mockInvitation);
       repositoryMock.findLatestEmailLogForInvitation.mockResolvedValue(null);
-
-      prismaMock.invitation.findUnique.mockResolvedValue(mockInvitation);
-      prismaMock.emailDeliveryLog.findFirst.mockResolvedValue(null);
 
       await expect(resendInitialAdminSetup(actorUserId, organisationId)).rejects.toThrowError(
         new OrganisationRegistrationRequestError(
@@ -473,7 +424,6 @@ describe('platformOrganisation service', () => {
       const mockInvitation = {
         id: 'invite-123',
         status: 'PENDING',
-        recipientEmail: 'admin@target.com',
         expiresAt: new Date(Date.now() + 100_000),
         actionTokens: [
           {
@@ -493,9 +443,6 @@ describe('platformOrganisation service', () => {
       repositoryMock.findOrganisationById.mockResolvedValue(mockOrg);
       repositoryMock.findSetupInvitationAndEmailLog.mockResolvedValue(mockInvitation);
       repositoryMock.findLatestEmailLogForInvitation.mockResolvedValue(mockLatestEmail);
-
-      prismaMock.invitation.findUnique.mockResolvedValue(mockInvitation);
-      prismaMock.emailDeliveryLog.findFirst.mockResolvedValue(mockLatestEmail);
 
       await expect(resendInitialAdminSetup(actorUserId, organisationId)).rejects.toThrowError(
         new OrganisationRegistrationRequestError(

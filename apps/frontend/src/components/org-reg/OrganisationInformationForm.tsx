@@ -109,15 +109,15 @@ function OrganisationInformationForm({
         {/* Organisation URL*/}
         <div>
           <label
-            htmlFor="organisation-website-url"
+            htmlFor="organisation-name"
             className=" block mb-2 font-jost tracking-wide text-xl font-medium text-pink"
           >
             Organisation URL
           </label>
           <input
             type="text"
-            name="organisation-website-url"
-            id="organisation-website-url"
+            name="organisation-name"
+            id="organisation-name"
             value={orgWeb}
             onChange={(e) => setOrgWeb(e.target.value)}
             className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"

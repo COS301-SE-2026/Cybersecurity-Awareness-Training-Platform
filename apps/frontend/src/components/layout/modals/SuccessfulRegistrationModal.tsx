@@ -6,7 +6,6 @@ type SuccessfulRegistrationModalProps = Readonly<{
   firstName: string;
   accountDescription: string;
   organisation: string;
-  confirmationEmailQueued?: boolean | null;
 }>;
 
 function SuccessfulRegistrationModal({
@@ -14,7 +13,6 @@ function SuccessfulRegistrationModal({
   firstName,
   accountDescription,
   organisation,
-  confirmationEmailQueued,
 }: SuccessfulRegistrationModalProps) {
   if (!isOpen) return null;
 
@@ -90,10 +88,8 @@ function SuccessfulRegistrationModal({
             {organisation && (
               <p className="font-jost text-left font-regular text-[1.1rem] tracking-wider text-purple mb-6">
                 Your request will be reviewed by an <em>Insightful Phish</em> platform
-                administrator.
-                {confirmationEmailQueued === false
-                  ? ' Confirmation email delivery may be delayed, but your request was received.'
-                  : ' If approved, you will receive an email with instructions to set up your Organisation Administrator account.'}
+                administrator. If approved, you will receive an email with instructions to setup
+                your <em>Organisation Administrator</em> account.
               </p>
             )}
 

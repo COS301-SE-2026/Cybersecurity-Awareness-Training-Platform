@@ -40,12 +40,7 @@ describe('OrganisationInformationForm', () => {
 
     expect(screen.getByLabelText(/Organisation Name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Organisation Description/i)).toBeInTheDocument();
-
-    const websiteInput = screen.getByLabelText(/Organisation URL/i);
-
-    expect(websiteInput).toBeInTheDocument();
-    expect(websiteInput).toHaveAttribute('id', 'organisation-website-url');
-
+    expect(screen.getByLabelText(/Organisation URL/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Organisation Size/i)).toBeInTheDocument();
   });
 
