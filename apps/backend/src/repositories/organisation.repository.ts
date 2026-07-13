@@ -53,6 +53,7 @@ export function findOrganisationAdmins(
     select: {
       id: true,
       adminStatus: true,
+      isInitialAdmin: true,
       user: {
         select: {
           firstName: true,
@@ -97,6 +98,18 @@ export function findSetupInvitationAndEmailLog(
   whereClause: Prisma.InvitationWhereInput,
   client: OrganisationClient = prisma,
 ) {
+  if (typeof whereClause.organisationId === 'string') {
+    return client.invitation.findUnique({
+      where: {
+        initialAdminOrganisationId: whereClause.organisationId,
+      },
+      include: {
+        actionTokens: {
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+    });
+  }
   return client.invitation.findFirst({
     where: {
       purpose: 'INITIAL_ORGANISATION_ADMIN_SETUP',

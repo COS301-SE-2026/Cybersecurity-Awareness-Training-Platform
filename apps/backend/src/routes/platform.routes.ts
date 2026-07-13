@@ -366,6 +366,8 @@ platformRouter.delete(
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/PlatformOrganisationDetail'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  *       403:
@@ -407,6 +409,8 @@ platformRouter.get(
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/PlatformOrganisationRequestDetailsResponse'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  *       403:
@@ -457,6 +461,8 @@ platformRouter.get(
  *                   example: true
  *                 setupStatus:
  *                   $ref: '#/components/schemas/OrganisationInitialSetupStatus'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  *       403:

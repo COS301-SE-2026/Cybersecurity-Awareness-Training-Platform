@@ -77,6 +77,10 @@ export async function getPlatformOrganisationDetail(actorUserId: string, organis
     name: organisation.name,
     status: organisation.status,
     detailType,
+    description: organisation.description,
+    approximateSize: organisation.approximateSize,
+    website: organisation.website,
+    primaryDomain: organisation.primaryDomain,
     createdAt: organisation.createdAt.toISOString(),
     updatedAt: organisation.updatedAt.toISOString(),
     _count: organisation._count,
@@ -98,9 +102,7 @@ export async function getPlatformOrganisationDetail(actorUserId: string, organis
       firstName: admin.user?.firstName ?? '',
       lastName: admin.user?.lastName ?? '',
       email: admin.user?.email ?? '',
-      isInitialAdmin:
-        admin.user?.email === invitation?.recipientEmail ||
-        admin.user?.email === registrationRequest?.representativeEmail,
+      isInitialAdmin: admin.isInitialAdmin,
     })),
     timeline,
   };
@@ -192,26 +194,91 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
     );
   }
 
-  const latestEmailLog = await OrganisationRepository.findLatestEmailLogForInvitation(
-    invitation.id,
-  );
+  // Early setup compatibility checks
+  const existingUser = await prisma.user.findUnique({
+    where: { email: invitation.recipientEmail },
+    include: {
+      organisationAdminProfile: true,
+      traineeProfile: {
+        include: {
+          organisationTraineeProfile: true,
+        },
+      },
+    },
+  });
 
-  const eligibility = getResendEligibility(organisation.status, invitation, latestEmailLog);
-  if (!eligibility.isEligible) {
-    throw new OrganisationRegistrationRequestError(
-      409,
-      'RESEND_NOT_ELIGIBLE',
-      `Setup email is not eligible for resending: ${eligibility.reason}`,
-    );
+  if (existingUser) {
+    if (existingUser.authStatus === 'DISABLED' || existingUser.userType !== 'ORGANISATION_ADMIN') {
+      throw new OrganisationRegistrationRequestError(
+        409,
+        'SETUP_ROLE_CONFLICT',
+        'Target account is disabled or has a conflicting role',
+      );
+    }
+    if (
+      existingUser.organisationAdminProfile &&
+      existingUser.organisationAdminProfile.organisationId !== organisationId
+    ) {
+      throw new OrganisationRegistrationRequestError(
+        409,
+        'SETUP_ROLE_CONFLICT',
+        'Target account is already registered with another organisation',
+      );
+    }
+    if (
+      existingUser.traineeProfile?.organisationTraineeProfile &&
+      existingUser.traineeProfile.organisationTraineeProfile.organisationId !== organisationId
+    ) {
+      throw new OrganisationRegistrationRequestError(
+        409,
+        'SETUP_ROLE_CONFLICT',
+        'Target account is already registered with another organisation',
+      );
+    }
   }
 
   const newExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
   const result = await prisma.$transaction(async (tx) => {
+    // Fetch invitation inside the transaction to atomically claim eligibility
+    const invitationTx = await tx.invitation.findUnique({
+      where: { initialAdminOrganisationId: organisationId },
+      include: {
+        actionTokens: {
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+    });
+
+    if (!invitationTx) {
+      throw new OrganisationRegistrationRequestError(
+        404,
+        'SETUP_INVITATION_NOT_FOUND',
+        'Initial admin setup invitation not found',
+      );
+    }
+
+    const latestEmailLogTx = await tx.emailDeliveryLog.findFirst({
+      where: {
+        invitationId: invitationTx.id,
+        emailType: 'INITIAL_ORGANISATION_ADMIN_SETUP',
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const eligibilityTx = getResendEligibility(organisation.status, invitationTx, latestEmailLogTx);
+    if (!eligibilityTx.isEligible) {
+      throw new OrganisationRegistrationRequestError(
+        409,
+        'RESEND_NOT_ELIGIBLE',
+        `Setup email is not eligible for resending: ${eligibilityTx.reason}`,
+      );
+    }
+
     // Revoke any existing active action tokens for this invitation
     await tx.actionToken.updateMany({
       where: {
-        invitationId: invitation.id,
+        invitationId: invitationTx.id,
         usedAt: null,
         revokedAt: null,
       },
@@ -226,17 +293,17 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
       {
         purpose: 'INITIAL_ORGANISATION_ADMIN_SETUP',
         expiresAt: newExpiresAt,
-        targetEmail: invitation.recipientEmail,
-        invitationId: invitation.id,
+        targetEmail: invitationTx.recipientEmail,
+        invitationId: invitationTx.id,
         organisationRegistrationRequestId:
-          invitation.organisationRegistrationRequestId ?? undefined,
+          invitationTx.organisationRegistrationRequestId ?? undefined,
       },
       tx,
     );
 
     // Update invitation
     await tx.invitation.update({
-      where: { id: invitation.id },
+      where: { id: invitationTx.id },
       data: {
         status: 'PENDING',
         expiresAt: newExpiresAt,
@@ -249,7 +316,7 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
         actorUserId,
         actorType: 'IP_ADMIN',
         targetType: 'INVITATION',
-        targetId: invitation.id,
+        targetId: invitationTx.id,
         actionType: 'RESENT',
         outcome: 'SUCCESS',
         organisationId: organisation.id,
@@ -259,24 +326,48 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
 
     return {
       actionToken: actionTokenResult,
+      invitationTx,
     };
   });
 
   // Send the setup email outside of the transaction block
   const emailResult = await requestAuthEmailSend({
     emailType: 'INITIAL_ORGANISATION_ADMIN_SETUP',
-    recipientEmail: invitation.recipientEmail,
+    recipientEmail: result.invitationTx.recipientEmail,
     organisationId: organisation.id,
-    invitationId: invitation.id,
+    invitationId: result.invitationTx.id,
     actionTokenId: result.actionToken.token.id,
-    organisationRegistrationRequestId: invitation.organisationRegistrationRequestId ?? undefined,
+    organisationRegistrationRequestId:
+      result.invitationTx.organisationRegistrationRequestId ?? undefined,
     templateData: {
-      firstName: invitation.recipientFirstName ?? '',
+      firstName: result.invitationTx.recipientFirstName ?? '',
       organisationName: organisation.name,
       actionToken: result.actionToken.rawToken,
       actionTokenExpiresAt: result.actionToken.token.expiresAt,
     },
   });
+
+  // If the email sending failed/was not queued, revoke the action token to leave a recoverable state
+  if (!emailResult.queued) {
+    await prisma.actionToken.update({
+      where: { id: result.actionToken.token.id },
+      data: {
+        revokedAt: new Date(),
+        revokedReason: 'EMAIL_SEND_FAILED',
+      },
+    });
+
+    await recordAuditLog({
+      actorUserId,
+      actorType: 'IP_ADMIN',
+      targetType: 'INVITATION',
+      targetId: result.invitationTx.id,
+      actionType: 'RESENT',
+      outcome: 'FAILURE',
+      organisationId: organisation.id,
+      metadata: { error: 'Email delivery failed or was not queued' },
+    });
+  }
 
   const updatedInvitation = await OrganisationRepository.findSetupInvitationAndEmailLog({
     organisationId,
@@ -327,7 +418,26 @@ async function buildPlatformTimeline(
     metadata?: Record<string, unknown> | null;
   }> = [];
 
-  for (const log of auditLogs) {
+  const allowedAuditTargets = ['ORGANISATION_REGISTRATION_REQUEST', 'ORGANISATION', 'INVITATION'];
+  const allowedAuditActions = [
+    'CREATED',
+    'CONTACTED',
+    'APPROVED',
+    'REJECTED',
+    'RESENT',
+    'ACCEPTED',
+    'COMPLETED',
+    'SUSPENDED',
+    'REACTIVATED',
+  ];
+
+  const filteredAudits = auditLogs.filter((log) => {
+    if (!allowedAuditTargets.includes(log.targetType)) return false;
+    if (!allowedAuditActions.includes(log.actionType)) return false;
+    return true;
+  });
+
+  for (const log of filteredAudits) {
     let actorName = 'System';
     if (log.actorUser) {
       actorName =
@@ -342,11 +452,16 @@ async function buildPlatformTimeline(
       actor: actorName,
       status: log.outcome,
       outcome: log.outcome,
-      metadata: (log.metadata as Record<string, unknown>) ?? null,
+      metadata: null, // Strip out raw audit metadata
     });
   }
 
-  for (const log of emailLogs) {
+  const filteredEmails = emailLogs.filter((log) => {
+    // Only show the setup email to initial admin
+    return log.emailType === 'INITIAL_ORGANISATION_ADMIN_SETUP';
+  });
+
+  for (const log of filteredEmails) {
     timeline.push({
       id: log.id,
       type: 'EMAIL_DELIVERY',
@@ -356,7 +471,7 @@ async function buildPlatformTimeline(
       actor: 'System',
       status: log.deliveryStatus,
       outcome: log.deliveryStatus,
-      metadata: log.failureReason ? { failureReason: log.failureReason } : null,
+      metadata: null, // Strip out provider failure text
     });
   }
 
