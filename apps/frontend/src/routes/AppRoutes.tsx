@@ -15,6 +15,7 @@ import ResetPasswordPage from '../pages/ResetPasswordPage';
 import OrganisationRegistrationRequestPage from '../pages/OrganisationRegistrationRequestPage';
 import AccountManagementPage from '../pages/AccountManagementPage';
 import SetupPage from '../pages/SetupPage';
+import AcceptInvitePage from '../pages/AcceptInvitePage';
 
 function AppRoutes() {
   return (
@@ -53,6 +54,9 @@ function AppRoutes() {
 
       {/* Account Settings Route -- WILL PROBABLY NEED TO BE PROTECTED ROUTE */}
       <Route path="/account-management" element={<AccountManagementPage />}></Route>
+
+      {/* ACCEPT INVITE ROUTE */}
+      <Route path="/accept-invite" element={<AcceptInvitePage />}></Route>
 
       <Route path="/" element={<LandingPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
