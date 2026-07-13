@@ -1,544 +1,170 @@
 {
-  "sprint_no": 4,
+  "sprint_no": 5,
   "demo_no": 2,
-  "milestone": "Sprint 4 (Demo 2)",
-  "start": "2026-06-19",
-  "end": "2026-07-12",
+  "milestone": "Sprint 5 (Demo 2)",
+  "start": "2026-07-13",
+  "end": "2026-07-19",
   "issues": [
     {
-      "number": 331,
-      "title": "feat: add accept-invite token context endpoint",
+      "number": 288,
+      "title": "feat: integrate organisation security settings flow",
       "points": 2,
       "state": "open",
       "closed_date": null
     },
     {
-      "number": 323,
-      "title": "fix: make login timing safer for unknown emails",
+      "number": 286,
+      "title": "feat: build frontend organisation security settings",
       "points": 2,
       "state": "open",
       "closed_date": null
     },
     {
-      "number": 317,
-      "title": "fix: make individual registration enumeration-safe",
-      "points": 2,
-      "state": "closed",
-      "closed_date": "2026-07-02"
-    },
-    {
-      "number": 314,
-      "title": "chore: lint only changed files in PRs to dev",
-      "points": 2,
-      "state": "closed",
-      "closed_date": "2026-07-01"
-    },
-    {
-      "number": 313,
-      "title": "fix: add resend verification cooldown response handling",
-      "points": 1,
-      "state": "open",
-      "closed_date": null
-    },
-    {
-      "number": 292,
-      "title": "feat: integrate account settings and session management",
+      "number": 281,
+      "title": "feat: integrate platform admin management flow",
       "points": 2,
       "state": "open",
       "closed_date": null
     },
     {
-      "number": 291,
-      "title": "test: add backend account and security settings API integration coverage",
+      "number": 280,
+      "title": "test: add backend admin and permission API integration coverage",
       "points": 3,
       "state": "open",
       "closed_date": null
     },
     {
-      "number": 290,
-      "title": "feat: implement backend account settings and user session endpoints",
+      "number": 279,
+      "title": "feat: implement backend platform admin management endpoints",
       "points": 2,
       "state": "open",
       "closed_date": null
     },
     {
-      "number": 289,
-      "title": "feat: build frontend account settings and security preferences",
+      "number": 278,
+      "title": "feat: build frontend platform admin management",
       "points": 2,
-      "state": "closed",
-      "closed_date": "2026-07-08"
+      "state": "open",
+      "closed_date": null
     },
     {
-      "number": 287,
-      "title": "feat: implement backend organisation security settings endpoints",
+      "number": 277,
+      "title": "docs: define SRS use case UC-10 manage insightful phish platform admins",
       "points": 2,
-      "state": "closed",
-      "closed_date": "2026-07-03"
+      "state": "open",
+      "closed_date": null
     },
     {
-      "number": 285,
-      "title": "docs: define SRS use case UC-11 configure organisation security settings",
+      "number": 276,
+      "title": "feat: integrate organisation admin management flow",
       "points": 2,
-      "state": "closed",
-      "closed_date": "2026-07-06"
+      "state": "open",
+      "closed_date": null
     },
     {
-      "number": 284,
-      "title": "feat: phase 5 organisation security settings foundation migration",
+      "number": 274,
+      "title": "feat: build frontend organisation admin management",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 271,
+      "title": "feat: integrate organisation trainee management flow",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 270,
+      "title": "test: add backend invitation and employee API integration coverage",
       "points": 3,
-      "state": "closed",
-      "closed_date": "2026-07-02"
+      "state": "open",
+      "closed_date": null
     },
     {
-      "number": 283,
-      "title": "feat: integrate minimal Sprint 4 dashboards and role redirects",
+      "number": 269,
+      "title": "feat: implement backend organisation trainee management endpoints",
       "points": 2,
       "state": "open",
       "closed_date": null
     },
     {
-      "number": 282,
-      "title": "feat: build frontend minimal Sprint 4 dashboards",
+      "number": 268,
+      "title": "feat: build frontend organisation trainee management",
       "points": 2,
       "state": "open",
       "closed_date": null
     },
     {
-      "number": 275,
-      "title": "feat: implement backend organisation admin permissions endpoints",
-      "points": 2,
-      "state": "closed",
-      "closed_date": "2026-07-02"
-    },
-    {
-      "number": 273,
-      "title": "docs: define SRS use case UC-09 manage organisation admins and permissions",
-      "points": 2,
-      "state": "closed",
-      "closed_date": "2026-07-06"
-    },
-    {
-      "number": 272,
-      "title": "feat: phase 4 organisation admin permissions foundation migration",
-      "points": 5,
-      "state": "closed",
-      "closed_date": "2026-06-30"
-    },
-    {
-      "number": 266,
-      "title": "feat: integrate accept invite and role change flows",
+      "number": 267,
+      "title": "docs: define SRS use case UC-08 manage organisation employees",
       "points": 2,
       "state": "open",
       "closed_date": null
     },
     {
-      "number": 265,
-      "title": "feat: implement backend invitation acceptance and role change endpoints",
+      "number": 260,
+      "title": "feat: integrate organisation details page",
       "points": 2,
       "state": "open",
       "closed_date": null
     },
     {
-      "number": 264,
-      "title": "feat: build frontend accept invite and role change page",
+      "number": 259,
+      "title": "feat: integrate platform organisation management flow",
       "points": 2,
       "state": "open",
       "closed_date": null
     },
     {
-      "number": 263,
-      "title": "docs: define SRS use case UC-07 accept organisation invitation",
-      "points": 2,
-      "state": "open",
-      "closed_date": null
-    },
-    {
-      "number": 262,
-      "title": "feat: phase 3 organisation membership and employee invite foundation migration",
+      "number": 258,
+      "title": "test: add backend organisation onboarding API integration coverage",
       "points": 3,
-      "state": "closed",
-      "closed_date": "2026-06-29"
+      "state": "open",
+      "closed_date": null
     },
     {
-      "number": 261,
-      "title": "docs: define SRS use case UC-06 complete first organisation admin setup",
+      "number": 257,
+      "title": "feat: implement backend organisation details endpoint",
       "points": 2,
       "state": "open",
       "closed_date": null
     },
     {
-      "number": 255,
-      "title": "feat: implement backend organisation review and approval endpoints",
-      "points": 2,
-      "state": "closed",
-      "closed_date": "2026-07-08"
-    },
-    {
-      "number": 252,
-      "title": "feat: integrate organisation registration request flow",
+      "number": 256,
+      "title": "feat: build frontend organisation details page",
       "points": 2,
       "state": "open",
       "closed_date": null
     },
     {
-      "number": 251,
-      "title": "feat: implement backend organisation registration request endpoint",
-      "points": 2,
-      "state": "closed",
-      "closed_date": "2026-06-26"
-    },
-    {
-      "number": 250,
-      "title": "feat: build frontend organisation registration request page",
-      "points": 2,
-      "state": "closed",
-      "closed_date": "2026-07-06"
-    },
-    {
-      "number": 249,
-      "title": "docs: define SRS use case UC-04 request organisation registration",
+      "number": 254,
+      "title": "feat: build frontend platform organisation management",
       "points": 2,
       "state": "open",
       "closed_date": null
     },
     {
-      "number": 248,
-      "title": "feat: phase 2 organisation onboarding foundation migration",
-      "points": 5,
-      "state": "closed",
-      "closed_date": "2026-06-23"
-    },
-    {
-      "number": 247,
-      "title": "feat: integrate Sprint 4 email delivery support",
-      "points": 2,
-      "state": "closed",
-      "closed_date": "2026-07-01"
-    },
-    {
-      "number": 246,
-      "title": "feat: integrate token-link error handling",
+      "number": 253,
+      "title": "docs: define SRS use case UC-05 review and manage organisation registrations",
       "points": 2,
       "state": "open",
       "closed_date": null
     },
     {
-      "number": 245,
-      "title": "feat: implement backend token-link error responses",
-      "points": 2,
-      "state": "closed",
-      "closed_date": "2026-07-01"
-    },
-    {
-      "number": 244,
-      "title": "feat: build frontend token-link error handling",
+      "number": 223,
+      "title": "docs: create interactive web brand style guidelines",
       "points": 2,
       "state": "open",
       "closed_date": null
-    },
-    {
-      "number": 243,
-      "title": "feat: integrate reset password flow",
-      "points": 2,
-      "state": "open",
-      "closed_date": null
-    },
-    {
-      "number": 242,
-      "title": "feat: implement backend reset password endpoint",
-      "points": 2,
-      "state": "closed",
-      "closed_date": "2026-07-01"
-    },
-    {
-      "number": 241,
-      "title": "feat: build frontend reset password page",
-      "points": 2,
-      "state": "closed",
-      "closed_date": "2026-07-06"
-    },
-    {
-      "number": 240,
-      "title": "feat: integrate forgot password flow",
-      "points": 2,
-      "state": "open",
-      "closed_date": null
-    },
-    {
-      "number": 239,
-      "title": "feat: implement backend forgot password endpoint",
-      "points": 2,
-      "state": "closed",
-      "closed_date": "2026-07-01"
-    },
-    {
-      "number": 238,
-      "title": "feat: build frontend forgot password page",
-      "points": 2,
-      "state": "closed",
-      "closed_date": "2026-06-30"
-    },
-    {
-      "number": 237,
-      "title": "feat: integrate registration and setup flows",
-      "points": 2,
-      "state": "open",
-      "closed_date": null
-    },
-    {
-      "number": 236,
-      "title": "feat: integrate email verification flow",
-      "points": 2,
-      "state": "open",
-      "closed_date": null
-    },
-    {
-      "number": 235,
-      "title": "feat: implement backend email verification and resend endpoints",
-      "points": 2,
-      "state": "closed",
-      "closed_date": "2026-07-01"
-    },
-    {
-      "number": 234,
-      "title": "feat: build frontend email verification page",
-      "points": 2,
-      "state": "closed",
-      "closed_date": "2026-07-07"
-    },
-    {
-      "number": 233,
-      "title": "feat: implement backend registration and invite setup endpoints",
-      "points": 2,
-      "state": "closed",
-      "closed_date": "2026-06-25"
-    },
-    {
-      "number": 232,
-      "title": "feat: implement backend Sprint 4 email templates and delivery logging",
-      "points": 2,
-      "state": "closed",
-      "closed_date": "2026-06-30"
-    },
-    {
-      "number": 231,
-      "title": "feat: build frontend individual registration and setup page",
-      "points": 2,
-      "state": "closed",
-      "closed_date": "2026-07-01"
-    },
-    {
-      "number": 230,
-      "title": "feat: integrate login page with auth endpoints",
-      "points": 2,
-      "state": "closed",
-      "closed_date": "2026-07-06"
-    },
-    {
-      "number": 229,
-      "title": "test: add backend auth API integration coverage",
-      "points": 3,
-      "state": "closed",
-      "closed_date": "2026-06-29"
-    },
-    {
-      "number": 228,
-      "title": "feat: implement backend login, logout, and refresh endpoints",
-      "points": 2,
-      "state": "closed",
-      "closed_date": "2026-06-29"
-    },
-    {
-      "number": 227,
-      "title": "feat: build frontend login page",
-      "points": 2,
-      "state": "closed",
-      "closed_date": "2026-06-30"
-    },
-    {
-      "number": 226,
-      "title": "feat: integrate Sprint 4 auth client and protected route behaviour",
-      "points": 2,
-      "state": "open",
-      "closed_date": null
-    },
-    {
-      "number": 225,
-      "title": "feat: build public landing page",
-      "points": 2,
-      "state": "closed",
-      "closed_date": "2026-06-25"
-    },
-    {
-      "number": 224,
-      "title": "feat: build frontend shared Sprint 4 authentication shell and components",
-      "points": 2,
-      "state": "open",
-      "closed_date": null
-    },
-    {
-      "number": 222,
-      "title": "feat: implement backend Sprint 4 authentication infrastructure",
-      "points": 3,
-      "state": "closed",
-      "closed_date": "2026-06-28"
-    },
-    {
-      "number": 221,
-      "title": "docs: design Sprint 4 email bodies",
-      "points": 2,
-      "state": "open",
-      "closed_date": null
-    },
-    {
-      "number": 220,
-      "title": "feat: set up MailPit for Sprint 4 SMTP development",
-      "points": 2,
-      "state": "closed",
-      "closed_date": "2026-06-24"
-    },
-    {
-      "number": 219,
-      "title": "feat: phase 6 audit logging foundation migration",
-      "points": 2,
-      "state": "closed",
-      "closed_date": "2026-06-23"
-    },
-    {
-      "number": 218,
-      "title": "feat: phase 1 core authentication foundation migration",
-      "points": 5,
-      "state": "closed",
-      "closed_date": "2026-06-23"
-    },
-    {
-      "number": 217,
-      "title": "docs: update Sprint 4 domain model documentation",
-      "points": 2,
-      "state": "closed",
-      "closed_date": "2026-06-22"
     }
   ],
   "series": [
     {
-      "date": "2026-06-19",
-      "remaining": 131,
-      "ideal": 131.0
-    },
-    {
-      "date": "2026-06-20",
-      "remaining": 131,
-      "ideal": 125.3
-    },
-    {
-      "date": "2026-06-21",
-      "remaining": 131,
-      "ideal": 119.61
-    },
-    {
-      "date": "2026-06-22",
-      "remaining": 129,
-      "ideal": 113.91
-    },
-    {
-      "date": "2026-06-23",
-      "remaining": 117,
-      "ideal": 108.22
-    },
-    {
-      "date": "2026-06-24",
-      "remaining": 115,
-      "ideal": 102.52
-    },
-    {
-      "date": "2026-06-25",
-      "remaining": 111,
-      "ideal": 96.83
-    },
-    {
-      "date": "2026-06-26",
-      "remaining": 109,
-      "ideal": 91.13
-    },
-    {
-      "date": "2026-06-27",
-      "remaining": 109,
-      "ideal": 85.43
-    },
-    {
-      "date": "2026-06-28",
-      "remaining": 106,
-      "ideal": 79.74
-    },
-    {
-      "date": "2026-06-29",
-      "remaining": 98,
-      "ideal": 74.04
-    },
-    {
-      "date": "2026-06-30",
-      "remaining": 87,
-      "ideal": 68.35
-    },
-    {
-      "date": "2026-07-01",
-      "remaining": 73,
-      "ideal": 62.65
-    },
-    {
-      "date": "2026-07-02",
-      "remaining": 66,
-      "ideal": 56.96
-    },
-    {
-      "date": "2026-07-03",
-      "remaining": 64,
-      "ideal": 51.26
-    },
-    {
-      "date": "2026-07-04",
-      "remaining": 64,
-      "ideal": 45.57
-    },
-    {
-      "date": "2026-07-05",
-      "remaining": 64,
-      "ideal": 39.87
-    },
-    {
-      "date": "2026-07-06",
-      "remaining": 54,
-      "ideal": 34.17
-    },
-    {
-      "date": "2026-07-07",
-      "remaining": 52,
-      "ideal": 28.48
-    },
-    {
-      "date": "2026-07-08",
-      "remaining": 48,
-      "ideal": 22.78
-    },
-    {
-      "date": "2026-07-09",
-      "remaining": 48,
-      "ideal": 17.09
-    },
-    {
-      "date": "2026-07-10",
-      "remaining": 48,
-      "ideal": 11.39
-    },
-    {
-      "date": "2026-07-11",
-      "remaining": 48,
-      "ideal": 5.7
-    },
-    {
-      "date": "2026-07-12",
-      "remaining": 48,
-      "ideal": 0.0
+      "date": "2026-07-13",
+      "remaining": 47,
+      "ideal": 47.0
     }
   ]
 }
