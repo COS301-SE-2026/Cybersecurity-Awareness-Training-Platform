@@ -1250,15 +1250,16 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             ),
             recipientEmail: { type: 'string', format: 'email', example: 'admin@example.com' },
             expiresAt: dateTimeString('2026-05-23T09:00:00.000Z'),
-            activeActionToken: {
+            latestActionToken: {
               type: 'object',
               nullable: true,
-              required: ['id', 'expiresAt'],
+              required: ['id', 'expiresAt', 'status'],
               properties: {
                 id: uuidString('tok-1234-abcd'),
                 expiresAt: dateTimeString('2026-05-23T09:00:00.000Z'),
                 usedAt: { ...dateTimeString('2026-05-16T10:00:00.000Z'), nullable: true },
                 revokedAt: { ...dateTimeString('2026-05-16T10:00:00.000Z'), nullable: true },
+                status: enumString(['AVAILABLE', 'USED', 'REVOKED', 'EXPIRED'], 'AVAILABLE'),
               },
             },
             latestEmailDelivery: {
@@ -1331,6 +1332,10 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
               ],
               'onboarding organisation',
             ),
+            description: nullableString('A consulting company'),
+            approximateSize: { type: 'integer', nullable: true, example: 150 },
+            website: nullableString('https://example.com'),
+            primaryDomain: nullableString('example.com'),
             createdAt: dateTimeString('2026-05-16T09:00:00.000Z'),
             updatedAt: dateTimeString('2026-05-16T09:00:00.000Z'),
             _count: {

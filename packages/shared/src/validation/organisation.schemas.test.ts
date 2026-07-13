@@ -101,11 +101,12 @@ describe('organisation validation schemas', () => {
         status: 'PENDING',
         recipientEmail: 'recipient@example.com',
         expiresAt: '2026-07-08T08:00:00.000Z',
-        activeActionToken: {
+        latestActionToken: {
           id: validUuid,
           expiresAt: '2026-07-08T08:00:00.000Z',
           usedAt: null,
           revokedAt: null,
+          status: 'AVAILABLE',
         },
         latestEmailDelivery: {
           id: validUuid,
@@ -140,6 +141,10 @@ describe('organisation validation schemas', () => {
         name: 'Target Org',
         status: 'ACTIVE',
         detailType: 'active organisation',
+        description: 'A mock organization',
+        approximateSize: 150,
+        website: 'https://example.com',
+        primaryDomain: 'example.com',
         createdAt: '2026-07-01T08:00:00.000Z',
         updatedAt: '2026-07-01T08:00:00.000Z',
         _count: {

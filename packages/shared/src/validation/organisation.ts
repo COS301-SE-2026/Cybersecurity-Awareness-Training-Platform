@@ -59,12 +59,13 @@ export const initialAdminSetupStatusSchema = z
     status: z.string(),
     recipientEmail: z.string().email(),
     expiresAt: z.string(),
-    activeActionToken: z
+    latestActionToken: z
       .object({
         id: z.string().uuid(),
         expiresAt: z.string(),
         usedAt: z.string().nullable(),
         revokedAt: z.string().nullable(),
+        status: z.enum(['AVAILABLE', 'USED', 'REVOKED', 'EXPIRED']),
       })
       .strict()
       .nullable(),
@@ -109,6 +110,10 @@ export const platformOrganisationDetailSchema = z
       'suspended organisation',
       'disabled organisation',
     ]),
+    description: z.string().nullable(),
+    approximateSize: z.number().nullable(),
+    website: z.string().nullable(),
+    primaryDomain: z.string().nullable(),
     createdAt: z.string(),
     updatedAt: z.string(),
     _count: z

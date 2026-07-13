@@ -75,6 +75,10 @@ vi.mock('../../pages/ResultsPage', () => ({
   default: () => <h1>Quiz Results</h1>,
 }));
 
+vi.mock('../../pages/SetupPage', () => ({
+  default: () => <h1>Complete Setup</h1>,
+}));
+
 vi.mock('../../lib/campaignsApi', () => ({
   getTraineeCampaigns: vi.fn(),
   getTraineeCampaignDetail: vi.fn(),
@@ -176,6 +180,17 @@ describe('AppRoutes', () => {
 
     expect(
       await screen.findByRole('heading', { level: 1, name: /^Get Started$/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('renders the setup screen at /setup/token/:token', async () => {
+    renderAppRoutes({
+      initialEntry: '/setup/token/exampleSetupTokenValueWithAtLeast32Chars',
+      isAuthenticated: false,
+    });
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: /complete setup/i }),
     ).toBeInTheDocument();
   });
 
