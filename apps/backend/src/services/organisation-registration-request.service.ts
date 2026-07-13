@@ -606,6 +606,10 @@ export async function approveOrganisationRequest(
         data: {
           name: orgName,
           status: 'PENDING_ONBOARDING',
+          description: freshRequest.submittedOrganisationDescription,
+          approximateSize: freshRequest.submittedOrganisationSize,
+          website: freshRequest.submittedWebsite,
+          primaryDomain: freshRequest.submittedPrimaryDomain,
         },
       });
 
@@ -627,6 +631,7 @@ export async function approveOrganisationRequest(
       const invitation = await tx.invitation.create({
         data: {
           organisationId: organisation.id,
+          initialAdminOrganisationId: organisation.id,
           organisationRegistrationRequestId: requestId,
           recipientEmail: input.initialAdminEmail,
           recipientFirstName: freshRequest.representativeFirstName,
@@ -958,19 +963,33 @@ export function formatSetupStatus(
   latestEmailLog: FormatEmailLogInput | null,
 ) {
   if (!invitation) return null;
+  const latestToken = invitation.actionTokens[0];
+  let latestActionToken = null;
+  if (latestToken) {
+    let status: 'AVAILABLE' | 'USED' | 'REVOKED' | 'EXPIRED' = 'AVAILABLE';
+    if (latestToken.usedAt) {
+      status = 'USED';
+    } else if (latestToken.revokedAt) {
+      status = 'REVOKED';
+    } else if (new Date(latestToken.expiresAt).getTime() <= Date.now()) {
+      status = 'EXPIRED';
+    }
+
+    latestActionToken = {
+      id: latestToken.id,
+      expiresAt: latestToken.expiresAt.toISOString(),
+      usedAt: latestToken.usedAt?.toISOString() ?? null,
+      revokedAt: latestToken.revokedAt?.toISOString() ?? null,
+      status,
+    };
+  }
+
   return {
     id: invitation.id,
     status: invitation.status,
     recipientEmail: invitation.recipientEmail,
     expiresAt: invitation.expiresAt.toISOString(),
-    activeActionToken: invitation.actionTokens[0]
-      ? {
-          id: invitation.actionTokens[0].id,
-          expiresAt: invitation.actionTokens[0].expiresAt.toISOString(),
-          usedAt: invitation.actionTokens[0].usedAt?.toISOString() ?? null,
-          revokedAt: invitation.actionTokens[0].revokedAt?.toISOString() ?? null,
-        }
-      : null,
+    latestActionToken,
     latestEmailDelivery: latestEmailLog
       ? {
           id: latestEmailLog.id,

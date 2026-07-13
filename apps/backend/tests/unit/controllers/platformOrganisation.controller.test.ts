@@ -184,7 +184,7 @@ describe('platformOrganisation controller and routes', () => {
           status: 'PENDING',
           recipientEmail: 'admin@acme.com',
           expiresAt: '2026-07-20T08:00:00Z',
-          activeActionToken: null,
+          latestActionToken: null,
           latestEmailDelivery: null,
         },
       });
@@ -202,7 +202,7 @@ describe('platformOrganisation controller and routes', () => {
           status: 'PENDING',
           recipientEmail: 'admin@acme.com',
           expiresAt: '2026-07-20T08:00:00Z',
-          activeActionToken: null,
+          latestActionToken: null,
           latestEmailDelivery: null,
         },
       });

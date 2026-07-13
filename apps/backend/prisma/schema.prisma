@@ -666,6 +666,10 @@ model Organisation {
   id                         String                            @id @default(uuid())
   name                       String                            @unique
   status                     OrganisationStatus                @default(ACTIVE)
+  description                String?
+  approximateSize            Int?
+  website                    String?
+  primaryDomain              String?
   createdAt                  DateTime                          @default(now())
   updatedAt                  DateTime                          @updatedAt
   traineeProfiles            OrganisationTraineeProfile[]
@@ -674,6 +678,7 @@ model Organisation {
   campaigns                  Campaign[]
   registrationRequests       OrganisationRegistrationRequest[]
   invitations                Invitation[]
+  initialAdminInvitation     Invitation?                       @relation("OrganisationInitialAdminInvitation")
   emailDeliveryLogs          EmailDeliveryLog[]
   auditLogEntries            AuditLogEntry[]
   permissions                OrganisationPermission[]
@@ -804,6 +809,7 @@ model OrganisationRegistrationRequest {
 model Invitation {
   id                                 String                           @id @default(uuid())
   organisationId                     String
+  initialAdminOrganisationId         String?                          @unique
   organisationRegistrationRequestId  String?
   targetUserId                       String?
   recipientEmail                     String
@@ -818,6 +824,7 @@ model Invitation {
   createdAt                          DateTime                         @default(now())
   updatedAt                          DateTime                         @updatedAt
   organisation                       Organisation                     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  initialAdminOrganisation           Organisation?                    @relation("OrganisationInitialAdminInvitation", fields: [initialAdminOrganisationId], references: [id], onDelete: Cascade)
   organisationRegistrationRequest    OrganisationRegistrationRequest? @relation(fields: [organisationRegistrationRequestId], references: [id], onDelete: SetNull)
   targetUser                         User?                            @relation("InvitationTargetUser", fields: [targetUserId], references: [id], onDelete: SetNull)
   acceptedOrganisationTraineeProfile OrganisationTraineeProfile?      @relation("InvitationAcceptedOrganisationTrainee")

@@ -15,23 +15,74 @@ import {
   authFormStyle,
   authPrimaryButtonStyle,
 } from '../components/auth/authStyles';
-import { authRegisterRequestSchema } from '@insightful-phish/shared';
+import { ApiError } from '../lib/apiClient';
+import { registerUser, resendVerification } from '../services/auth.service';
 
-function formatAlertMessage(message: string) {
-  // makes everything title case and removes the . from the end of the message
-  return message
-    .replace(/\.$/, '')
-    .replace(/\w\S*/g, (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
+const duplicateEmailMessage =
+  'An account may already exist for this email. Please log in or request a new verification email.';
+const pendingVerificationMessage =
+  'Please check your email to verify your account. You can request a new verification email below.';
+const passwordPolicyMesssage = 'Please choose a password that meets the password requirements.';
+const rateLimitMessage = 'Too many attempts. Please wait a moment and try again.';
+const genericErrorMessage = 'Something went wrong. Please try again.';
+
+function validateFrontendRegistrationForm(input: {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+}) {
+  const payload = {
+    firstName: input.firstName.trim(),
+    lastName: input.lastName.trim(),
+    email: input.email.trim().toLowerCase(),
+    password: input.password,
+    confirmPassword: input.confirmPassword,
+  };
+
+  if (!payload.firstName) return { success: false as const, message: 'Please Enter A First Name' };
+  if (!payload.lastName) return { success: false as const, message: 'Please Enter A Last Name' };
+  if (!payload.email || !payload.email.includes('@') || !payload.email.includes('.')) {
+    return { success: false as const, message: 'Please Enter A Valid Email Address' };
+  }
+  if (
+    payload.password.length < 12 ||
+    payload.password.length > 128 ||
+    !/[a-z]/.test(payload.password) ||
+    !/[A-Z]/.test(payload.password) ||
+    !/\d/.test(payload.password) ||
+    !/[^\sA-Za-z0-9]/.test(payload.password)
+  ) {
+    return { success: false as const, message: passwordPolicyMesssage };
+  }
+  if (!payload.confirmPassword) {
+    return { success: false as const, message: 'Please Confirm Your Password' };
+  }
+  if (payload.password !== payload.confirmPassword) {
+    return { success: false as const, message: 'Password Confirmation Must Match Password' };
+  }
+
+  return { success: true as const, data: payload };
+}
+
+function getRegistrationErrorMessage(error: unknown) {
+  if (!(error instanceof ApiError)) return genericErrorMessage;
+  if (error.status === 409) return duplicateEmailMessage;
+  if (error.status === 422) return passwordPolicyMesssage;
+  if (error.status === 429) return rateLimitMessage;
+  return genericErrorMessage;
 }
 
 function RegisterPage() {
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isResendingVerification, setIsResendingVerification] = useState(false);
+  const [registeredEmailForVerification, setRegisteredEmailForVerification] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
   const [alertType, setAlertType] = useState<'success' | 'danger'>('danger');
   const [showEmailVerificationModal, setShowEmailVerificationModal] = useState(false);
@@ -41,7 +92,7 @@ function RegisterPage() {
     event.preventDefault();
     setAlertMessage('');
     // setShowSuccessfulRegistrationModal(true); // SHOW THE SUCCESSFULL REGISTRATION MODAL
-    const validationResult = authRegisterRequestSchema.safeParse({
+    const validationResult = validateFrontendRegistrationForm({
       firstName,
       lastName,
       email,
@@ -51,36 +102,49 @@ function RegisterPage() {
 
     if (!validationResult.success) {
       setAlertType('danger');
-      setAlertMessage(
-        formatAlertMessage(validationResult.error.issues[0]?.message) || 'Invalid Input',
-      );
+      setAlertMessage(validationResult.message);
       return;
     }
 
+    const payload = validationResult.data;
+
     try {
       setIsLoading(true);
-      const response = await fetch(`${API_BASE_URL}/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(validationResult.data),
-      });
 
-      const data = await response.json();
+      await registerUser(payload);
 
-      if (!response.ok) {
-        setAlertType('danger');
-        setAlertMessage(formatAlertMessage(data.message) || 'Registration Failed');
-        return;
-      }
-
+      setRegisteredEmailForVerification(payload.email);
+      setAlertType('success');
+      setAlertMessage(pendingVerificationMessage);
       setShowEmailVerificationModal(true);
-    } catch {
+    } catch (error) {
       setAlertType('danger');
-      setAlertMessage('Unable To Connect To The Server');
+      setAlertMessage(getRegistrationErrorMessage(error));
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function handleResendVerification() {
+    if (!registeredEmailForVerification || isResendingVerification) {
+      return;
+    }
+
+    setIsResendingVerification(true);
+    setAlertMessage('');
+
+    try {
+      await resendVerification({ email: registeredEmailForVerification });
+
+      setAlertType('success');
+      setAlertMessage(pendingVerificationMessage);
+    } catch (error) {
+      setAlertType('danger');
+      setAlertMessage(
+        error instanceof ApiError && error.status === 429 ? rateLimitMessage : genericErrorMessage,
+      );
+    } finally {
+      setIsResendingVerification(false);
     }
   }
 
@@ -144,9 +208,9 @@ function RegisterPage() {
           {/* EMAIL VERIFICATION MODAL  */}
           <EmailVerificationModal
             isOpen={showEmailVerificationModal}
-            email={email}
+            email={registeredEmailForVerification}
             accountDescription="Individual Trainee"
-            onResend={() => {}}
+            onResend={handleResendVerification}
           />
 
           {/* SUCCESSFUL REGISTRATION MODAL */}
