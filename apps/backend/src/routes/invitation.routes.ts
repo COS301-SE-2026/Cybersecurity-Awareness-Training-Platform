@@ -10,6 +10,7 @@ import {
   rejectInvitation,
 } from '../controllers/invitation.controller.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
+import { authRateLimit } from '../middleware/authRateLimit.js';
 import { extractInvitationAuth } from '../middleware/extractInvitationAuth.js';
 import { validateBody, validateParams } from '../middleware/validateRequest.js';
 
@@ -43,6 +44,7 @@ export const invitationRouter = Router();
  */
 invitationRouter.get(
   '/invitations/token/:token/context',
+  authRateLimit,
   extractInvitationAuth,
   validateParams(invitationTokenParamsSchema),
   asyncHandler(getInvitationContext),
@@ -78,6 +80,7 @@ invitationRouter.get(
  */
 invitationRouter.post(
   '/invitations/token/:token/accept',
+  authRateLimit,
   extractInvitationAuth,
   validateParams(invitationTokenParamsSchema),
   validateBody(invitationAcceptRequestSchema),
@@ -114,6 +117,7 @@ invitationRouter.post(
  */
 invitationRouter.post(
   '/invitations/token/:token/reject',
+  authRateLimit,
   extractInvitationAuth,
   validateParams(invitationTokenParamsSchema),
   validateBody(invitationRejectRequestSchema),

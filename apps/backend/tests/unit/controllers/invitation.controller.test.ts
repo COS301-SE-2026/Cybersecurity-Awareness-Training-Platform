@@ -7,6 +7,7 @@ import {
   getInvitationContext,
   rejectInvitation,
 } from '../../../src/controllers/invitation.controller.js';
+import { clearAuthRateLimitStore } from '../../../src/middleware/authRateLimit.js';
 
 const { invitationServiceMock, authTokenServiceMock, authSessionServiceMock, authServiceMock } =
   vi.hoisted(() => {
@@ -55,6 +56,7 @@ describe('invitation controller and routes', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    clearAuthRateLimitStore();
   });
 
   describe('Controller Unit Tests (Direct Handler Calls)', () => {
