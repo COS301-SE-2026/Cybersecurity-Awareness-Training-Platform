@@ -126,8 +126,8 @@
       "number": 257,
       "title": "feat: implement backend organisation details endpoint",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-07-14"
     },
     {
       "number": 256,
@@ -166,7 +166,7 @@
     },
     {
       "date": "2026-07-14",
-      "remaining": 47,
+      "remaining": 45,
       "ideal": 39.17
     }
   ]
