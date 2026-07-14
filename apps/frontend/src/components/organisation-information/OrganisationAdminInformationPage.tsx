@@ -26,7 +26,7 @@ function OrganisationAdminInformationPage() {
       </p>
 
       {/* Admin Table */}
-      <div className="relative overflow-x-auto bg-neutral-primary-soft border border-default">
+      <div className="relative overflow-x-auto bg-neutral-primary-soft border border-default mt-7">
         <table className="w-full text-sm text-left rtl:text-right text-body">
           <thead className="bg-faint-purple border-b border-default">
             <tr>

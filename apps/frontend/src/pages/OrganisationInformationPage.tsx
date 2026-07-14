@@ -3,9 +3,10 @@ import BasicOrganisationInformationPage from '../components/organisation-informa
 import RepresentativeInformationPage from '../components/organisation-information/RepresentativeInformationPage';
 import { useState } from 'react';
 import OrganisationAdminInformationPage from '../components/organisation-information/OrganisationAdminInformationPage';
+import OrganisationTimelinePage from '../components/organisation-information/OrganisationTimelinePage';
 
 function AccountManagementPage() {
-  const [currentTab, setCurrentTab] = useState<1 | 2 | 3>(1);
+  const [currentTab, setCurrentTab] = useState<1 | 2 | 3 | 4>(1);
 
   return (
     <AppLayout
@@ -50,7 +51,7 @@ function AccountManagementPage() {
                   : 'bg-neutral-primary-soft text-body hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)]'
               }`}
             >
-              Basic Organisation Information
+              Basic Information
             </button>
           </li>
           <li className="w-full focus-within:z-10">
@@ -62,7 +63,7 @@ function AccountManagementPage() {
                   : 'bg-neutral-primary-soft text-body hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)]'
               }`}
             >
-              Organisation Representative Information
+              Representative Information
             </button>
           </li>
           <li className="w-full focus-within:z-10">
@@ -74,7 +75,19 @@ function AccountManagementPage() {
                   : 'bg-neutral-primary-soft text-body hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)]'
               }`}
             >
-              Organisation Administrators
+              Administrators
+            </button>
+          </li>
+          <li className="w-full focus-within:z-10">
+            <button
+              onClick={() => setCurrentTab(4)}
+              className={`font-jost inline-block w-full bg-neutral-primary-soft border border-default hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)] focus:ring-4 focus:ring-neutral-secondary-strong font-light text-[1.2rem] tracking-wide leading-5 px-5 py-3 focus:outline-none ${
+                currentTab === 4
+                  ? 'bg-faint-purple text-[var(--ip-purple)] font-medium'
+                  : 'bg-neutral-primary-soft text-body hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)]'
+              }`}
+            >
+              Timeline
             </button>
           </li>
         </ul>
@@ -86,6 +99,8 @@ function AccountManagementPage() {
           {currentTab === 2 && <RepresentativeInformationPage />}
 
           {currentTab === 3 && <OrganisationAdminInformationPage />}
+
+          {currentTab === 4 && <OrganisationTimelinePage />}
         </div>
       </div>
     </AppLayout>
