@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import type { ActionTokenPurpose, UserType } from '../../src/generated/prisma/enums.js';
+import type { ActionTokenPurpose, UserType } from '../../../src/generated/prisma/enums.js';
 
 export const mockFutureDate = new Date(Date.now() + 86400000);
 export const mockPastDate = new Date(Date.now() - 86400000);
