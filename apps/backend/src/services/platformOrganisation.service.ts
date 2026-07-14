@@ -7,9 +7,6 @@ import {
   OrganisationRegistrationRequestError,
   requirePlatformAdminUser,
   formatRegistrationRequestBase,
-  type RegistrationRequestBase,
-  type FormatInvitationInput,
-  type FormatEmailLogInput,
   formatSetupStatus,
   getResendEligibility,
 } from './organisation-registration-request.service.js';
@@ -21,7 +18,11 @@ export {
   formatSetupStatus,
   getResendEligibility,
 };
-export type { RegistrationRequestBase, FormatInvitationInput, FormatEmailLogInput };
+export type {
+  RegistrationRequestBase,
+  FormatInvitationInput,
+  FormatEmailLogInput,
+} from './organisation-registration-request.service.js';
 
 export async function getPlatformOrganisationDetail(actorUserId: string, organisationId: string) {
   await requirePlatformAdminUser(actorUserId);
