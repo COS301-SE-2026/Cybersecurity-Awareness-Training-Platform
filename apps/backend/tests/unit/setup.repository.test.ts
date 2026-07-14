@@ -22,6 +22,8 @@ function createActivationClient() {
       findUniqueOrThrow: vi.fn().mockResolvedValue({ id: 'user-1' }),
     },
     organisationAdminProfile: {
+      // Return null: no pre-existing profile, so the cross-org conflict guard passes.
+      findUnique: vi.fn().mockResolvedValue(null),
       upsert: vi.fn().mockResolvedValue({ id: 'admin-1' }),
     },
   };
