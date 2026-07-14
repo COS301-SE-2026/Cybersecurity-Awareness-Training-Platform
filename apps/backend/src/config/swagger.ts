@@ -1278,25 +1278,36 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         },
         OrganisationResendEligibility: {
           type: 'object',
-          required: ['isEligible'],
+          required: ['isEligible', 'reason'],
           properties: {
             isEligible: { type: 'boolean', example: true },
-            reason: nullableString('ORGANISATION_ALREADY_ACTIVE'),
+            // reason is always present -- null when eligible, a typed code string when not.
+            reason: nullableString('ORGANISATION_NOT_ONBOARDING'),
           },
         },
         PlatformTimelineEntry: {
           type: 'object',
-          required: ['id', 'type', 'timestamp', 'action', 'summary', 'actor', 'outcome'],
+          required: [
+            'id',
+            'type',
+            'timestamp',
+            'action',
+            'summary',
+            'actor',
+            'outcome',
+            'metadata',
+          ],
           properties: {
             id: uuidString('log-5678-efgh'),
             type: enumString(['AUDIT_LOG', 'EMAIL_DELIVERY'], 'AUDIT_LOG'),
             timestamp: dateTimeString('2026-05-16T09:00:00.000Z'),
             action: { type: 'string', example: 'APPROVED' },
-            summary: { type: 'string', example: 'Action APPROVED performed by Patricia Platform' },
+            summary: { type: 'string', example: 'APPROVED on ORGANISATION_REGISTRATION_REQUEST' },
             actor: nullableString('Patricia Platform'),
-            status: nullableString('SUCCESS'),
+            // 'status' field removed -- runtime no longer returns it (was a stale duplicate of outcome).
             outcome: nullableString('SUCCESS'),
-            metadata: { type: 'object', nullable: true },
+            // metadata is always null -- raw audit data is never exposed in timeline responses.
+            metadata: { type: 'string', nullable: true, example: null },
           },
         },
         PlatformOrganisationDetail: {
@@ -1306,6 +1317,10 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             'name',
             'status',
             'detailType',
+            'description',
+            'approximateSize',
+            'website',
+            'primaryDomain',
             'createdAt',
             'updatedAt',
             '_count',
@@ -1324,7 +1339,6 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             ),
             detailType: enumString(
               [
-                'request-only',
                 'onboarding organisation',
                 'active organisation',
                 'suspended organisation',
@@ -1381,7 +1395,8 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
                 required: ['id', 'adminStatus', 'firstName', 'lastName', 'email', 'isInitialAdmin'],
                 properties: {
                   id: uuidString('adm-1234-abcd'),
-                  adminStatus: enumString(['PENDING', 'ACTIVE', 'DISABLED'], 'ACTIVE'),
+                  // ACTIVE | DISABLED -- PENDING is an invitation status, not an admin profile status.
+                  adminStatus: enumString(['ACTIVE', 'DISABLED'], 'ACTIVE'),
                   firstName: { type: 'string', example: 'Jane' },
                   lastName: { type: 'string', example: 'Doe' },
                   email: { type: 'string', format: 'email', example: 'jane@example.com' },

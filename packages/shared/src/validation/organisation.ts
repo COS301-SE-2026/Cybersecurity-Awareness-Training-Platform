@@ -57,6 +57,7 @@ export const emailDeliveryStatusSchema = z.enum(['PENDING', 'SENT', 'FAILED']);
 /** Invitation status values. */
 export const invitationStatusSchema = z.enum([
   'PENDING',
+  'SENT',
   'ACCEPTED',
   'COMPLETED',
   'EXPIRED',

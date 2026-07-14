@@ -558,6 +558,18 @@ export async function approveOrganisationRequest(
     );
   }
 
+  // Enforce that the designated initial admin email matches the submitted representative email.
+  // Allowing a different address would create an invitation inconsistent with the registration
+  // request, immediately breaking the resend consistency check and setup-completion target
+  // validation.
+  if (input.initialAdminEmail !== freshRequest.representativeEmail) {
+    throw new OrganisationRegistrationRequestError(
+      409,
+      'SETUP_EMAIL_MISMATCH',
+      'Initial admin email must match the registration request representative email',
+    );
+  }
+
   const existingUser = await prisma.user.findUnique({
     where: { email: input.initialAdminEmail },
   });

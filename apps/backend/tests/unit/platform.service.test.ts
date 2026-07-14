@@ -407,6 +407,7 @@ describe('platform organisation registration request service', () => {
         id: requestId,
         status: 'PENDING_REVIEW',
         submittedOrganisationName: 'Acme',
+        representativeEmail: 'john@acme.com',
       });
       repositoryMock.findOrganisationByName.mockResolvedValue({ id: 'org-1' });
 
@@ -428,6 +429,7 @@ describe('platform organisation registration request service', () => {
         id: requestId,
         status: 'PENDING_REVIEW',
         submittedOrganisationName: 'Acme',
+        representativeEmail: 'john@acme.com',
       });
       // Mock existing user conflict
       prismaMock.user.findUnique.mockImplementation(async (args) => {
@@ -459,6 +461,7 @@ describe('platform organisation registration request service', () => {
         id: requestId,
         status: 'PENDING_REVIEW',
         submittedOrganisationName: 'Acme',
+        representativeEmail: 'john@acme.com',
       });
       prismaMock.organisationRegistrationRequest.updateMany.mockResolvedValue({ count: 0 });
 
@@ -480,6 +483,7 @@ describe('platform organisation registration request service', () => {
         id: requestId,
         status: 'PENDING_REVIEW',
         submittedOrganisationName: 'Acme',
+        representativeEmail: 'john@acme.com',
       });
       const error = new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
         code: 'P2002',
@@ -506,6 +510,7 @@ describe('platform organisation registration request service', () => {
         id: requestId,
         status: 'PENDING_REVIEW',
         submittedOrganisationName: 'Acme',
+        representativeEmail: 'john@acme.com',
       });
       const error = new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
         code: 'P2002',

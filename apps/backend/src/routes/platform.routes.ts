@@ -452,6 +452,7 @@ platformRouter.get(
  *           application/json:
  *             schema:
  *               type: object
+ *               required: [success, emailQueued, setupStatus]
  *               properties:
  *                 success:
  *                   type: boolean

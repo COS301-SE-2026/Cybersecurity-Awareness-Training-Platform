@@ -15,6 +15,7 @@ import {
   findSetupActionTokenById,
   findSetupUserByEmail,
   markInvitationAccepted,
+  SetupRepositoryConflictError,
   type SetupUserType,
 } from '../repositories/setup.repository.js';
 import { runWithConsumedActionToken, validateActionToken } from './action-token.service.js';
@@ -167,6 +168,10 @@ export async function completeSetupWithToken(
     }
 
     assertSetupRecordIsUsable(freshToken);
+
+    // Full target-consistency check: the action-token target, invitation recipient,
+    // and registration-request representative must all agree before we consume anything.
+    assertSetupTargetConsistency(freshToken, targetEmail);
 
     const role = setupUserTypeForPurpose(freshToken.purpose);
     const organisationId = freshToken.invitation?.organisationId ?? null;
@@ -385,15 +390,22 @@ async function activateExistingSetupUser(input: {
   }
 
   if (input.role === 'ORGANISATION_ADMIN') {
-    return activateOrganisationAdminUser(
-      {
-        userId: input.userId,
-        organisationId: input.organisationId,
-        ...input.userInput,
-        ...organisationAdminSetupMetadata(input.setupPurpose, input.setupInvitationId),
-      },
-      input.tx,
-    );
+    try {
+      return await activateOrganisationAdminUser(
+        {
+          userId: input.userId,
+          organisationId: input.organisationId,
+          ...input.userInput,
+          ...organisationAdminSetupMetadata(input.setupPurpose, input.setupInvitationId),
+        },
+        input.tx,
+      );
+    } catch (err) {
+      if (err instanceof SetupRepositoryConflictError) {
+        throw new SetupFlowError(409, err.error, err.message);
+      }
+      throw err;
+    }
   }
 
   return activateOrganisationTraineeUser(
@@ -417,4 +429,37 @@ function organisationAdminSetupMetadata(
     isInitialAdmin: true,
     createdFromInvitationId: setupInvitationId,
   };
+}
+
+/**
+ * Verifies that the action-token target email, invitation recipient email, and
+ * (where applicable) registration-request representative email all agree.
+ *
+ * This is the final authority check before any user/profile state is consumed.
+ * The resend flow checks some of these earlier, but setup completion must re-validate
+ * to guard against edge cases where the invitation was created with inconsistent data.
+ */
+function assertSetupTargetConsistency(freshToken: SetupActionToken, targetEmail: string): void {
+  const invitation = freshToken.invitation;
+  if (!invitation) {
+    // Platform-admin invites have no invitation; consistency is enforced elsewhere.
+    return;
+  }
+
+  if (invitation.recipientEmail !== targetEmail) {
+    throw new SetupFlowError(
+      409,
+      'SETUP_TARGET_MISMATCH',
+      'Setup token target email does not match the invitation recipient',
+    );
+  }
+
+  const repEmail = invitation.organisationRegistrationRequest?.representativeEmail;
+  if (repEmail && repEmail !== invitation.recipientEmail) {
+    throw new SetupFlowError(
+      409,
+      'SETUP_TARGET_MISMATCH',
+      'Registration request representative email does not match the invitation recipient',
+    );
+  }
 }

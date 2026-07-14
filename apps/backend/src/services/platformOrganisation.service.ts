@@ -322,9 +322,14 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
 
   // Send the setup email OUTSIDE the transaction so a DB write failure on delivery log
   // does not incorrectly surface as a provider send failure.
-  // providerAccepted = true means the email hook returned queued:true; the link is in transit.
-  // providerAccepted = false means either a render/pre-send error or the hook returned queued:false;
-  // the link was never dispatched, so revoking the token is safe.
+  //
+  // requestAuthEmailSend returns a discriminated union:
+  //   { queued: true,  deliveryLogId }                              -- provider accepted the send
+  //   { queued: false, reason: 'EMAIL_SEND_FAILED', deliveryLogId? } -- SMTP failed or threw
+  //
+  // queued:false is ONLY set when sendViaSMTP threw or returned an error -- there is no path
+  // in the email hook where a provider-accepted message returns queued:false. Revoking the
+  // token when queued:false is therefore safe and unambiguous.
   let providerAccepted: boolean;
 
   try {
@@ -343,11 +348,12 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
       },
     });
 
-    // At this point the hook has returned -- provider accepted or queued the send.
-    providerAccepted = emailResult.queued;
+    // Explicitly check the queued discriminant -- not just the boolean shape -- so that
+    // the contract is visible and any future union branch will require explicit handling.
+    providerAccepted = emailResult.queued === true;
   } catch {
-    // Pre-send or render failure -- provider was never reached.
-    // Safe to revoke the token since the link was never dispatched.
+    // requestAuthEmailSend itself catches SMTP errors internally; this outer catch handles
+    // unexpected render/hook failures before the SMTP call was even attempted.
     providerAccepted = false;
   }
 
