@@ -128,6 +128,14 @@ const expectedSchemas = [
   'QuestionType',
   'QuizAttemptStatus',
   'QuizStatus',
+  'InvitationStatus',
+  'InvitationType',
+  'InvitationRoleGranted',
+  'InvitationContextResponse',
+  'InvitationAcceptRequest',
+  'InvitationAcceptResponse',
+  'InvitationRejectRequest',
+  'InvitationRejectResponse',
 ] as const;
 
 const expectedResponses = [
@@ -139,6 +147,9 @@ const expectedResponses = [
   'UnprocessableEntity',
   'TooManyRequests',
   'InternalServerError',
+  'InvitationContextOk',
+  'InvitationAcceptOk',
+  'InvitationRejectOk',
 ] as const;
 
 const expectedParameters = [
@@ -147,6 +158,7 @@ const expectedParameters = [
   'EmailIdPathParam',
   'AttemptIdPathParam',
   'SetupTokenPathParam',
+  'InvitationTokenPathParam',
 ] as const;
 
 const expectedRequestBodies = [
@@ -165,6 +177,8 @@ const expectedRequestBodies = [
   'AuthForgotPassword',
   'AuthResetPassword',
   'OrganisationSecuritySettingsUpdate',
+  'InvitationAccept',
+  'InvitationReject',
 ] as const;
 
 const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
@@ -183,6 +197,9 @@ const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
   ['post', '/auth/tokens/{token}/resend', ['200', '400', '429', '500']],
   ['get', '/setup/token/{token}/context', ['200', '400', '401', '409', '429', '500']],
   ['post', '/setup/token/{token}/complete', ['201', '400', '401', '409', '429', '500']],
+  ['get', '/invitations/token/{token}/context', ['200', '400', '401', '403', '409', '429', '500']],
+  ['post', '/invitations/token/{token}/accept', ['200', '400', '401', '403', '409', '429', '500']],
+  ['post', '/invitations/token/{token}/reject', ['200', '400', '401', '403', '409', '429', '500']],
   ['post', '/organisation-registration-requests', ['201', '409', '422', '429', '500']],
   ['get', '/platform/organisation-requests', ['200', '400', '401', '403', '429', '500']],
   [
@@ -364,7 +381,7 @@ describe('swaggerSpec', () => {
 
   it.each(expectedParameters)('includes reusable UUID parameter %s', (parameterName) => {
     expect(spec.components?.parameters).toHaveProperty(parameterName);
-    if (parameterName !== 'SetupTokenPathParam') {
+    if (parameterName !== 'SetupTokenPathParam' && parameterName !== 'InvitationTokenPathParam') {
       expect(JSON.stringify(spec.components?.parameters?.[parameterName])).toContain('"uuid"');
     }
   });
@@ -396,6 +413,22 @@ describe('swaggerSpec', () => {
       '"security":[]',
     );
     expect(JSON.stringify(getPath('/setup/token/{token}/complete', 'post'))).toContain(
+      '"security":[]',
+    );
+  });
+
+  it('documents invitation endpoints as public or token-authorized flows with full error shapes', () => {
+    expectPathExists('/invitations/token/{token}/context', 'get');
+    expectPathExists('/invitations/token/{token}/accept', 'post');
+    expectPathExists('/invitations/token/{token}/reject', 'post');
+
+    expect(JSON.stringify(getPath('/invitations/token/{token}/context', 'get'))).toContain(
+      '"security":[]',
+    );
+    expect(JSON.stringify(getPath('/invitations/token/{token}/accept', 'post'))).toContain(
+      '"security":[]',
+    );
+    expect(JSON.stringify(getPath('/invitations/token/{token}/reject', 'post'))).toContain(
       '"security":[]',
     );
   });

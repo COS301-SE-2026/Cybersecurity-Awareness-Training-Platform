@@ -16,6 +16,7 @@ import { organisationRegistrationRequestRouter } from './routes/organisation-reg
 import { organisationAdminRouter } from './routes/organisation-admin.routes.js';
 import { platformRouter } from './routes/platform.routes.js';
 import { organisationSecuritySettingsRouter } from './routes/organisation-security-settings.routes.js';
+import { invitationRouter } from './routes/invitation.routes.js';
 
 export function createApp() {
   const app = express();
@@ -41,6 +42,7 @@ export function createApp() {
   app.use(authRouter);
   app.use(accountRouter);
   app.use(setupRouter);
+  app.use(invitationRouter);
   app.use(organisationRegistrationRequestRouter);
   app.use(organisationAdminRouter);
   app.use(platformRouter);

@@ -991,6 +991,140 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             },
           },
         },
+        InvitationStatus: enumString(
+          [
+            'PENDING',
+            'ACCEPTED',
+            'REJECTED',
+            'EXPIRED',
+            'REVOKED',
+            'USED',
+            'SENT',
+            'FAILED_TO_SEND',
+          ],
+          'PENDING',
+        ),
+        InvitationType: enumString(
+          [
+            'ORGANISATION_TRAINEE',
+            'ORGANISATION_ADMIN_PROMOTION',
+            'PLATFORM_ADMIN',
+            'INITIAL_ORGANISATION_ADMIN_SETUP',
+          ],
+          'ORGANISATION_TRAINEE',
+        ),
+        InvitationRoleGranted: enumString(
+          ['ORGANISATION_TRAINEE', 'ORGANISATION_ADMIN', 'PLATFORM_ADMIN'],
+          'ORGANISATION_TRAINEE',
+        ),
+        InvitationContextResponse: {
+          type: 'object',
+          required: [
+            'invitationType',
+            'targetEmail',
+            'roleGranted',
+            'accountExists',
+            'requiresLogin',
+            'requiresSetup',
+            'status',
+            'expiresAt',
+          ],
+          properties: {
+            invitationType: {
+              $ref: '#/components/schemas/InvitationType',
+            },
+            targetEmail: {
+              type: 'string',
+              format: 'email',
+              example: 'trainee@example.com',
+            },
+            organisationId: {
+              type: 'string',
+              format: 'uuid',
+              nullable: true,
+              example: '11111111-1111-4111-8111-111111111111',
+            },
+            organisationName: {
+              type: 'string',
+              nullable: true,
+              example: 'Acme Corp',
+            },
+            roleGranted: {
+              $ref: '#/components/schemas/InvitationRoleGranted',
+            },
+            accountExists: {
+              type: 'boolean',
+              example: true,
+            },
+            requiresLogin: {
+              type: 'boolean',
+              example: true,
+            },
+            requiresSetup: {
+              type: 'boolean',
+              example: false,
+            },
+            status: {
+              $ref: '#/components/schemas/InvitationStatus',
+            },
+            expiresAt: {
+              type: 'string',
+              format: 'date-time',
+              example: '2026-07-15T12:00:00.000Z',
+            },
+          },
+        },
+        InvitationAcceptRequest: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            confirmRoleChange: {
+              type: 'boolean',
+              description:
+                'Must be true when accepting an invitation that promotes an Organisation Trainee to Organisation Admin.',
+              example: true,
+            },
+          },
+        },
+        InvitationAcceptResponse: {
+          type: 'object',
+          required: ['success', 'message'],
+          properties: {
+            success: {
+              type: 'boolean',
+              example: true,
+            },
+            message: {
+              type: 'string',
+              example: 'Invitation accepted successfully.',
+            },
+          },
+        },
+        InvitationRejectRequest: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            rejectionReason: {
+              type: 'string',
+              maxLength: 500,
+              example: 'No longer with the company.',
+            },
+          },
+        },
+        InvitationRejectResponse: {
+          type: 'object',
+          required: ['success', 'message'],
+          properties: {
+            success: {
+              type: 'boolean',
+              example: true,
+            },
+            message: {
+              type: 'string',
+              example: 'Invitation rejected successfully.',
+            },
+          },
+        },
         CreateOrganisationRegistrationRequest: {
           type: 'object',
           required: [
@@ -3044,6 +3178,20 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           },
           example: 'exampleSetupTokenValueWithAtLeast32Chars',
         },
+        InvitationTokenPathParam: {
+          name: 'token',
+          in: 'path',
+          required: true,
+          description:
+            'Opaque invitation token or action token identifier from the invitation link.',
+          schema: {
+            type: 'string',
+            minLength: 32,
+            maxLength: 512,
+            pattern: '^[A-Za-z0-9_-]+$',
+          },
+          example: 'exampleInvitationTokenValueWithAtLeast32Chars',
+        },
       },
       requestBodies: {
         AuthRegister: {
@@ -3118,6 +3266,14 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           required: true,
           ...jsonContent(schemaRef('OrganisationSecuritySettingsUpdateRequest')),
         },
+        InvitationAccept: {
+          required: true,
+          ...jsonContent(schemaRef('InvitationAcceptRequest')),
+        },
+        InvitationReject: {
+          required: true,
+          ...jsonContent(schemaRef('InvitationRejectRequest')),
+        },
       },
       responses: {
         HealthOk: responseComponent('API and database are reachable.', 'HealthStatus'),
@@ -3159,6 +3315,18 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         SetupCompleteCreated: responseComponent(
           'Setup completed successfully.',
           'SetupCompleteResponse',
+        ),
+        InvitationContextOk: responseComponent(
+          'Safe invitation token context. The token is not consumed.',
+          'InvitationContextResponse',
+        ),
+        InvitationAcceptOk: responseComponent(
+          'Invitation accepted successfully.',
+          'InvitationAcceptResponse',
+        ),
+        InvitationRejectOk: responseComponent(
+          'Invitation rejected successfully.',
+          'InvitationRejectResponse',
         ),
         OrganisationRegistrationRequestCreated: responseComponent(
           'Organisation registration request submitted for review.',
