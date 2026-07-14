@@ -3,6 +3,26 @@ import { prisma } from '../lib/prisma.js';
 
 type OrganisationClient = PrismaClient | Prisma.TransactionClient;
 
+// Allowlisted audit action types for the onboarding timeline
+const TIMELINE_AUDIT_ACTIONS = [
+  'CREATED',
+  'CONTACTED',
+  'APPROVED',
+  'REJECTED',
+  'RESENT',
+  'ACCEPTED',
+  'COMPLETED',
+  'SUSPENDED',
+  'REACTIVATED',
+] as const;
+
+// Allowlisted audit target types for the onboarding timeline
+const TIMELINE_AUDIT_TARGETS = [
+  'ORGANISATION_REGISTRATION_REQUEST',
+  'ORGANISATION',
+  'INVITATION',
+] as const;
+
 export function findOrganisationById(organisationId: string, client: OrganisationClient = prisma) {
   return client.organisation.findUnique({
     where: { id: organisationId },
@@ -65,59 +85,27 @@ export function findOrganisationAdmins(
   });
 }
 
-export function findAuditLogsForTimeline(
-  whereClause: Prisma.AuditLogEntryWhereInput,
-  client: OrganisationClient = prisma,
-) {
-  return client.auditLogEntry.findMany({
-    where: whereClause,
-    include: {
-      actorUser: {
-        select: {
-          firstName: true,
-          lastName: true,
-          email: true,
-        },
-      },
-    },
-    orderBy: { createdAt: 'desc' },
-  });
-}
-
-export function findEmailLogsForTimeline(
-  whereClause: Prisma.EmailDeliveryLogWhereInput,
-  client: OrganisationClient = prisma,
-) {
-  return client.emailDeliveryLog.findMany({
-    where: whereClause,
-    orderBy: { createdAt: 'desc' },
-  });
-}
-
+/**
+ * Finds the authoritative INITIAL_ORGANISATION_ADMIN_SETUP invitation for an organisation
+ * or registration request. Queries are scoped by purpose to enforce the partial unique index.
+ */
 export function findSetupInvitationAndEmailLog(
-  whereClause: Prisma.InvitationWhereInput,
+  input: { organisationId: string } | { organisationRegistrationRequestId: string },
   client: OrganisationClient = prisma,
 ) {
-  if (typeof whereClause.organisationId === 'string') {
-    return client.invitation.findUnique({
-      where: {
-        initialAdminOrganisationId: whereClause.organisationId,
-      },
-      include: {
-        actionTokens: {
-          orderBy: { createdAt: 'desc' },
-        },
-      },
-    });
-  }
+  const where: Prisma.InvitationWhereInput =
+    'organisationId' in input
+      ? { organisationId: input.organisationId, purpose: 'INITIAL_ORGANISATION_ADMIN_SETUP' }
+      : {
+          organisationRegistrationRequestId: input.organisationRegistrationRequestId,
+          purpose: 'INITIAL_ORGANISATION_ADMIN_SETUP',
+        };
+
   return client.invitation.findFirst({
-    where: {
-      purpose: 'INITIAL_ORGANISATION_ADMIN_SETUP',
-      ...whereClause,
-    },
+    where,
     include: {
       actionTokens: {
-        orderBy: { createdAt: 'desc' },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       },
     },
   });
@@ -132,6 +120,84 @@ export function findLatestEmailLogForInvitation(
       invitationId,
       emailType: 'INITIAL_ORGANISATION_ADMIN_SETUP',
     },
-    orderBy: { createdAt: 'desc' },
+    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+  });
+}
+
+/**
+ * Finds audit logs for the onboarding timeline. Filters to allowed target types and action types
+ * directly in the database query -- no in-memory filtering needed.
+ */
+export function findAuditLogsForTimeline(
+  input: {
+    organisationId: string | null;
+    requestId: string | null;
+    invitationId: string | null;
+  },
+  client: OrganisationClient = prisma,
+) {
+  const orClauses: Prisma.AuditLogEntryWhereInput[] = [];
+
+  if (input.organisationId) {
+    orClauses.push({
+      organisationId: input.organisationId,
+      targetType: { in: [...TIMELINE_AUDIT_TARGETS] },
+      actionType: { in: [...TIMELINE_AUDIT_ACTIONS] },
+    });
+  }
+  if (input.requestId) {
+    orClauses.push({
+      targetType: 'ORGANISATION_REGISTRATION_REQUEST',
+      targetId: input.requestId,
+      actionType: { in: [...TIMELINE_AUDIT_ACTIONS] },
+    });
+  }
+  if (input.invitationId) {
+    orClauses.push({
+      targetType: 'INVITATION',
+      targetId: input.invitationId,
+      actionType: { in: [...TIMELINE_AUDIT_ACTIONS] },
+    });
+  }
+
+  if (orClauses.length === 0) {
+    return Promise.resolve([]);
+  }
+
+  return client.auditLogEntry.findMany({
+    where: { OR: orClauses },
+    include: {
+      actorUser: {
+        select: {
+          firstName: true,
+          lastName: true,
+          // email intentionally excluded from the timeline
+        },
+      },
+    },
+    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    take: 50,
+  });
+}
+
+/**
+ * Finds email delivery logs for the onboarding timeline. Scoped to the authoritative
+ * INITIAL_ORGANISATION_ADMIN_SETUP invitation only.
+ */
+export function findEmailLogsForTimeline(
+  invitationId: string | null,
+  client: OrganisationClient = prisma,
+) {
+  if (!invitationId) {
+    return Promise.resolve([]);
+  }
+
+  return client.emailDeliveryLog.findMany({
+    where: {
+      invitationId,
+      emailType: 'INITIAL_ORGANISATION_ADMIN_SETUP',
+    },
+    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    take: 50,
   });
 }

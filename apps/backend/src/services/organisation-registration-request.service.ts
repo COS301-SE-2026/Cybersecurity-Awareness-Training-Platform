@@ -631,7 +631,6 @@ export async function approveOrganisationRequest(
       const invitation = await tx.invitation.create({
         data: {
           organisationId: organisation.id,
-          initialAdminOrganisationId: organisation.id,
           organisationRegistrationRequestId: requestId,
           recipientEmail: input.initialAdminEmail,
           recipientFirstName: freshRequest.representativeFirstName,
@@ -679,6 +678,20 @@ export async function approveOrganisationRequest(
           actorType: 'IP_ADMIN',
           targetType: 'ORGANISATION',
           targetId: organisation.id,
+          actionType: 'CREATED',
+          outcome: 'SUCCESS',
+          organisationId: organisation.id,
+        },
+        tx,
+      );
+
+      // Record the initial-admin invitation creation so it appears in the onboarding timeline.
+      await recordAuditLog(
+        {
+          actorUserId,
+          actorType: 'IP_ADMIN',
+          targetType: 'INVITATION',
+          targetId: invitation.id,
           actionType: 'CREATED',
           outcome: 'SUCCESS',
           organisationId: organisation.id,

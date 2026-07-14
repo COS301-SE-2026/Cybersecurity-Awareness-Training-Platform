@@ -63,6 +63,10 @@ describe('organisation validation schemas', () => {
       expect(resendEligibilitySchema.parse(validEligible)).toEqual(validEligible);
       expect(resendEligibilitySchema.parse(validIneligible)).toEqual(validIneligible);
       expect(() => resendEligibilitySchema.parse({ isEligible: true })).toThrow();
+      // Unknown reason codes should be rejected
+      expect(() =>
+        resendEligibilitySchema.parse({ isEligible: false, reason: 'UNKNOWN_CODE' }),
+      ).toThrow();
     });
 
     it('validates timelineEventSchema', () => {
@@ -71,11 +75,10 @@ describe('organisation validation schemas', () => {
         type: 'AUDIT_LOG',
         timestamp: '2026-07-01T08:00:00.000Z',
         action: 'APPROVED',
-        summary: 'Action APPROVED performed by Patricia Platform',
+        summary: 'APPROVED on ORGANISATION_REGISTRATION_REQUEST',
         actor: 'Patricia Platform',
-        status: 'SUCCESS',
         outcome: 'SUCCESS',
-        metadata: { foo: 'bar' },
+        metadata: null,
       };
 
       const validEmailDelivery = {
@@ -83,9 +86,8 @@ describe('organisation validation schemas', () => {
         type: 'EMAIL_DELIVERY',
         timestamp: '2026-07-01T08:00:00.000Z',
         action: 'INITIAL_ORGANISATION_ADMIN_SETUP',
-        summary: 'Email of type INITIAL_ORGANISATION_ADMIN_SETUP to test@example.com',
+        summary: 'Setup email sent',
         actor: 'System',
-        status: 'SENT',
         outcome: 'SENT',
         metadata: null,
       };
@@ -93,6 +95,10 @@ describe('organisation validation schemas', () => {
       expect(timelineEventSchema.parse(validAuditLog)).toEqual(validAuditLog);
       expect(timelineEventSchema.parse(validEmailDelivery)).toEqual(validEmailDelivery);
       expect(() => timelineEventSchema.parse({ id: validUuid, type: 'INVALID' })).toThrow();
+      // metadata must be null -- records are not allowed
+      expect(() =>
+        timelineEventSchema.parse({ ...validAuditLog, metadata: { foo: 'bar' } }),
+      ).toThrow();
     });
 
     it('validates initialAdminSetupStatusSchema', () => {

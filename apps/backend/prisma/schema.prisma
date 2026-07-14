@@ -678,7 +678,6 @@ model Organisation {
   campaigns                  Campaign[]
   registrationRequests       OrganisationRegistrationRequest[]
   invitations                Invitation[]
-  initialAdminInvitation     Invitation?                       @relation("OrganisationInitialAdminInvitation")
   emailDeliveryLogs          EmailDeliveryLog[]
   auditLogEntries            AuditLogEntry[]
   permissions                OrganisationPermission[]
@@ -809,7 +808,6 @@ model OrganisationRegistrationRequest {
 model Invitation {
   id                                 String                           @id @default(uuid())
   organisationId                     String
-  initialAdminOrganisationId         String?                          @unique
   organisationRegistrationRequestId  String?
   targetUserId                       String?
   recipientEmail                     String
@@ -824,7 +822,6 @@ model Invitation {
   createdAt                          DateTime                         @default(now())
   updatedAt                          DateTime                         @updatedAt
   organisation                       Organisation                     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  initialAdminOrganisation           Organisation?                    @relation("OrganisationInitialAdminInvitation", fields: [initialAdminOrganisationId], references: [id], onDelete: Cascade)
   organisationRegistrationRequest    OrganisationRegistrationRequest? @relation(fields: [organisationRegistrationRequestId], references: [id], onDelete: SetNull)
   targetUser                         User?                            @relation("InvitationTargetUser", fields: [targetUserId], references: [id], onDelete: SetNull)
   acceptedOrganisationTraineeProfile OrganisationTraineeProfile?      @relation("InvitationAcceptedOrganisationTrainee")
@@ -835,6 +832,7 @@ model Invitation {
 
   @@unique([id, organisationId])
   @@index([organisationId])
+  @@index([organisationId, purpose])
   @@index([organisationRegistrationRequestId])
   @@index([targetUserId])
   @@index([recipientEmail])

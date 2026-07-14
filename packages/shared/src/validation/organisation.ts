@@ -28,26 +28,76 @@ export type ResendInitialAdminSetupResponseDto = z.infer<
   typeof resendInitialAdminSetupResponseSchema
 >;
 
+/** Reason codes reported when a resend is ineligible. null means eligible with no caveat. */
+export const resendEligibilityReasonSchema = z.enum([
+  'ORGANISATION_NOT_ONBOARDING',
+  'INVITATION_NOT_ELIGIBLE',
+  'SETUP_ALREADY_COMPLETED',
+  'ACTIVE_SETUP_TOKEN_EXISTS',
+  'SETUP_TOKEN_EXPIRED',
+  'SETUP_EMAIL_FAILED',
+  'CONCURRENT_RESEND_IN_PROGRESS',
+]);
+
 export const resendEligibilitySchema = z
   .object({
     isEligible: z.boolean(),
-    reason: z.string().nullable(),
+    reason: resendEligibilityReasonSchema.nullable(),
   })
   .strict();
 
 export type ResendEligibilityDto = z.infer<typeof resendEligibilitySchema>;
 
+/** Lifecycle status of a single action token. Precedence: USED > REVOKED > EXPIRED > AVAILABLE. */
+export const actionTokenStatusSchema = z.enum(['AVAILABLE', 'USED', 'REVOKED', 'EXPIRED']);
+
+/** Delivery status values returned by the email delivery subsystem. */
+export const emailDeliveryStatusSchema = z.enum(['PENDING', 'SENT', 'FAILED']);
+
+/** Invitation status values. */
+export const invitationStatusSchema = z.enum([
+  'PENDING',
+  'ACCEPTED',
+  'COMPLETED',
+  'EXPIRED',
+  'REVOKED',
+  'REJECTED',
+  'FAILED_TO_SEND',
+]);
+
+/** Admin account status values. */
+export const adminStatusSchema = z.enum(['ACTIVE', 'DISABLED']);
+
+/** Timeline event types. */
+export const timelineEventTypeSchema = z.enum(['AUDIT_LOG', 'EMAIL_DELIVERY']);
+
+/**
+ * Audit action types that appear in onboarding timelines.
+ * This is the stable allowlist -- the service filters to these values.
+ */
+export const timelineAuditActionSchema = z.enum([
+  'CREATED',
+  'CONTACTED',
+  'APPROVED',
+  'REJECTED',
+  'RESENT',
+  'ACCEPTED',
+  'COMPLETED',
+  'SUSPENDED',
+  'REACTIVATED',
+]);
+
 export const timelineEventSchema = z
   .object({
     id: z.string().uuid(),
-    type: z.enum(['AUDIT_LOG', 'EMAIL_DELIVERY']),
-    timestamp: z.string(),
+    type: timelineEventTypeSchema,
+    timestamp: z.string().datetime(),
     action: z.string(),
     summary: z.string(),
     actor: z.string().nullable(),
-    status: z.string().nullable().optional(),
     outcome: z.string().nullable(),
-    metadata: z.record(z.any()).nullable().optional(),
+    // metadata is always null in timeline responses -- raw audit data is never exposed.
+    metadata: z.null(),
   })
   .strict();
 
@@ -56,25 +106,28 @@ export type TimelineEventDto = z.infer<typeof timelineEventSchema>;
 export const initialAdminSetupStatusSchema = z
   .object({
     id: z.string().uuid(),
-    status: z.string(),
+    status: invitationStatusSchema,
     recipientEmail: z.string().email(),
-    expiresAt: z.string(),
+    expiresAt: z.string().datetime(),
     latestActionToken: z
       .object({
         id: z.string().uuid(),
-        expiresAt: z.string(),
-        usedAt: z.string().nullable(),
-        revokedAt: z.string().nullable(),
-        status: z.enum(['AVAILABLE', 'USED', 'REVOKED', 'EXPIRED']),
+        expiresAt: z.string().datetime(),
+        usedAt: z.string().datetime().nullable(),
+        revokedAt: z.string().datetime().nullable(),
+        // Precedence: USED > REVOKED > EXPIRED > AVAILABLE
+        status: actionTokenStatusSchema,
       })
       .strict()
       .nullable(),
     latestEmailDelivery: z
       .object({
         id: z.string().uuid(),
-        deliveryStatus: z.string(),
-        sentAt: z.string().nullable(),
-        failedAt: z.string().nullable(),
+        deliveryStatus: emailDeliveryStatusSchema,
+        sentAt: z.string().datetime().nullable(),
+        failedAt: z.string().datetime().nullable(),
+        // failureReason intentionally kept as nullable string -- it's an opaque internal code,
+        // not displayed raw to end users.
         failureReason: z.string().nullable(),
       })
       .strict()
@@ -88,7 +141,7 @@ export type InitialAdminSetupStatusDto = z.infer<typeof initialAdminSetupStatusS
 export const organisationAdminSummarySchema = z
   .object({
     id: z.string().uuid(),
-    adminStatus: z.string(),
+    adminStatus: adminStatusSchema,
     firstName: z.string(),
     lastName: z.string(),
     email: z.string().email(),
@@ -98,28 +151,41 @@ export const organisationAdminSummarySchema = z
 
 export type OrganisationAdminSummaryDto = z.infer<typeof organisationAdminSummarySchema>;
 
+/**
+ * Organisation status values. PENDING_ONBOARDING is the initial state after approval.
+ * request-only is not a valid state for an organisation detail -- only for request detail.
+ */
+export const organisationStatusSchema = z.enum([
+  'PENDING_ONBOARDING',
+  'ACTIVE',
+  'INACTIVE',
+  'SUSPENDED',
+  'DISABLED',
+  'ARCHIVED',
+]);
+
 export const platformOrganisationDetailSchema = z
   .object({
     id: z.string().uuid(),
     name: z.string(),
-    status: z.string(),
+    status: organisationStatusSchema,
+    // request-only is excluded -- organisations always have a status, never request-only.
     detailType: z.enum([
-      'request-only',
       'onboarding organisation',
       'active organisation',
       'suspended organisation',
       'disabled organisation',
     ]),
     description: z.string().nullable(),
-    approximateSize: z.number().nullable(),
+    approximateSize: z.number().int().nullable(),
     website: z.string().nullable(),
     primaryDomain: z.string().nullable(),
-    createdAt: z.string(),
-    updatedAt: z.string(),
+    createdAt: z.string().datetime(),
+    updatedAt: z.string().datetime(),
     _count: z
       .object({
-        adminProfiles: z.number(),
-        traineeProfiles: z.number(),
+        adminProfiles: z.number().int().nonnegative(),
+        traineeProfiles: z.number().int().nonnegative(),
       })
       .strict(),
     registrationRequest: z

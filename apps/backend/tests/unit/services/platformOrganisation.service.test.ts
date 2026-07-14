@@ -18,13 +18,12 @@ const prismaMock = vi.hoisted(() => ({
     update: vi.fn(),
   },
   invitation: {
-    update: vi.fn(),
-    findUnique: vi.fn(),
+    updateMany: vi.fn().mockResolvedValue({ count: 1 }),
   },
   emailDeliveryLog: {
     findFirst: vi.fn(),
   },
-  $transaction: vi.fn((callback) => callback(prismaMock)),
+  $transaction: vi.fn((callback: (tx: typeof prismaMock) => unknown) => callback(prismaMock)),
 }));
 
 const repositoryMock = vi.hoisted(() => ({
@@ -190,12 +189,11 @@ describe('platformOrganisation service', () => {
           targetType: 'ORGANISATION_REGISTRATION_REQUEST',
           createdAt: new Date('2026-07-01T08:00:00Z'),
           outcome: 'SUCCESS',
+          // email intentionally absent -- excluded in repository select
           actorUser: {
             firstName: 'Patricia',
             lastName: 'Platform',
-            email: 'patricia@example.test',
           },
-          metadata: { ip: '127.0.0.1' },
         },
       ];
 
@@ -203,7 +201,6 @@ describe('platformOrganisation service', () => {
         {
           id: 'email-log-123',
           emailType: 'INITIAL_ORGANISATION_ADMIN_SETUP',
-          recipientEmail: 'admin@target.com',
           deliveryStatus: 'SENT',
           createdAt: new Date('2026-07-01T08:30:00Z'),
           failureReason: null,
@@ -334,10 +331,12 @@ describe('platformOrganisation service', () => {
       };
 
       repositoryMock.findOrganisationById.mockResolvedValue(mockOrg);
+      repositoryMock.findRegistrationRequestByOrganisationId.mockResolvedValue(null);
       repositoryMock.findSetupInvitationAndEmailLog.mockResolvedValue(mockInvitation);
       repositoryMock.findLatestEmailLogForInvitation.mockResolvedValue(null);
 
-      prismaMock.invitation.findUnique.mockResolvedValue(mockInvitation);
+      // Inside the transaction: atomic claim succeeds, no competing delivery log
+      prismaMock.invitation.updateMany.mockResolvedValue({ count: 1 });
       prismaMock.emailDeliveryLog.findFirst.mockResolvedValue(null);
 
       actionTokenServiceMock.issueActionToken.mockResolvedValue({
@@ -351,6 +350,7 @@ describe('platformOrganisation service', () => {
       expect(response.success).toBe(true);
       expect(response.emailQueued).toBe(true);
       expect(response.setupStatus).toBeDefined();
+      expect(prismaMock.invitation.updateMany).toHaveBeenCalled();
       expect(actionTokenServiceMock.issueActionToken).toHaveBeenCalled();
       expect(emailHookMock.requestAuthEmailSend).toHaveBeenCalled();
     });
@@ -385,10 +385,12 @@ describe('platformOrganisation service', () => {
       };
 
       repositoryMock.findOrganisationById.mockResolvedValue(mockOrg);
+      repositoryMock.findRegistrationRequestByOrganisationId.mockResolvedValue(null);
       repositoryMock.findSetupInvitationAndEmailLog.mockResolvedValue(mockInvitation);
       repositoryMock.findLatestEmailLogForInvitation.mockResolvedValue(mockLatestEmail);
 
-      prismaMock.invitation.findUnique.mockResolvedValue(mockInvitation);
+      // Inside the transaction: atomic claim succeeds, failed delivery log re-read
+      prismaMock.invitation.updateMany.mockResolvedValue({ count: 1 });
       prismaMock.emailDeliveryLog.findFirst.mockResolvedValue(mockLatestEmail);
 
       actionTokenServiceMock.issueActionToken.mockResolvedValue({
@@ -423,8 +425,6 @@ describe('platformOrganisation service', () => {
 
       repositoryMock.findOrganisationById.mockResolvedValue(mockOrg);
       repositoryMock.findSetupInvitationAndEmailLog.mockResolvedValue(mockInvitation);
-      prismaMock.invitation.findUnique.mockResolvedValue(mockInvitation);
-      prismaMock.emailDeliveryLog.findFirst.mockResolvedValue(null);
 
       await expect(resendInitialAdminSetup(actorUserId, organisationId)).rejects.toThrowError(
         new OrganisationRegistrationRequestError(
@@ -449,10 +449,11 @@ describe('platformOrganisation service', () => {
       };
 
       repositoryMock.findOrganisationById.mockResolvedValue(mockOrg);
+      repositoryMock.findRegistrationRequestByOrganisationId.mockResolvedValue(null);
       repositoryMock.findSetupInvitationAndEmailLog.mockResolvedValue(mockInvitation);
       repositoryMock.findLatestEmailLogForInvitation.mockResolvedValue(null);
 
-      prismaMock.invitation.findUnique.mockResolvedValue(mockInvitation);
+      // COMPLETED invitation: eligible check fires before the atomic claim
       prismaMock.emailDeliveryLog.findFirst.mockResolvedValue(null);
 
       await expect(resendInitialAdminSetup(actorUserId, organisationId)).rejects.toThrowError(
@@ -491,10 +492,11 @@ describe('platformOrganisation service', () => {
       };
 
       repositoryMock.findOrganisationById.mockResolvedValue(mockOrg);
+      repositoryMock.findRegistrationRequestByOrganisationId.mockResolvedValue(null);
       repositoryMock.findSetupInvitationAndEmailLog.mockResolvedValue(mockInvitation);
       repositoryMock.findLatestEmailLogForInvitation.mockResolvedValue(mockLatestEmail);
 
-      prismaMock.invitation.findUnique.mockResolvedValue(mockInvitation);
+      // Active token + SENT email: eligible check fires before the atomic claim
       prismaMock.emailDeliveryLog.findFirst.mockResolvedValue(mockLatestEmail);
 
       await expect(resendInitialAdminSetup(actorUserId, organisationId)).rejects.toThrowError(
