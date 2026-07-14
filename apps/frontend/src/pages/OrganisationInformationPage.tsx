@@ -1,8 +1,4 @@
 import AppLayout from '../components/layout/AppLayout';
-import PersonalSettingsPage from '../components/account-management/PersonalSettingsPage';
-import AccountSettingsPage from '../components/account-management/AccountSettingsPage';
-import SessionSettingsPage from '../components/account-management/SessionSettingsPage';
-
 import BasicOrganisationInformationPage from '../components/organisation-information/BasicOrganisationInformationPage';
 import RepresentativeInformationPage from '../components/organisation-information/RepresentativeInformationPage';
 import { useState } from 'react';

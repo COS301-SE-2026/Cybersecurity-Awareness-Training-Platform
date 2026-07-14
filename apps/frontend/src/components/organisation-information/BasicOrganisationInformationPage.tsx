@@ -8,7 +8,7 @@ function BasicOrganisationInformationPage() {
 
       {/* SUB-HEADING */}
       <p className="font-regular tracking-wider text-[1.1rem] font-justify font-jost text-gray-500 mb-6">
-        Sub-heading...
+        View the organisation's registered information and current status.
       </p>
 
       <div className="flex flex-col flex-1 w-full grid grid-cols-3 gap-6">

@@ -8,7 +8,7 @@ function RepresentativeInformationPage() {
 
       {/* SUB-HEADING */}
       <p className="font-regular tracking-wider text-[1.1rem] font-justify font-jost text-gray-500 mb-6">
-        Sub-heading...
+        View the nominated organisation representative and initial administrator setup status.
       </p>
 
       <div className="flex flex-col flex-1 max-w-[57.05rem] w-full grid grid-cols-2 gap-6">
