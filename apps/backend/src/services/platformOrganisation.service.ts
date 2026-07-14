@@ -18,12 +18,10 @@ export {
   OrganisationRegistrationRequestError,
   requirePlatformAdminUser,
   formatRegistrationRequestBase,
-  type RegistrationRequestBase,
-  type FormatInvitationInput,
-  type FormatEmailLogInput,
   formatSetupStatus,
   getResendEligibility,
 };
+export type { RegistrationRequestBase, FormatInvitationInput, FormatEmailLogInput };
 
 export async function getPlatformOrganisationDetail(actorUserId: string, organisationId: string) {
   await requirePlatformAdminUser(actorUserId);
@@ -228,35 +226,7 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
     },
   });
 
-  if (existingUser) {
-    if (existingUser.authStatus === 'DISABLED' || existingUser.userType !== 'ORGANISATION_ADMIN') {
-      throw new OrganisationRegistrationRequestError(
-        409,
-        'SETUP_ROLE_CONFLICT',
-        'Target account is disabled or has a conflicting role',
-      );
-    }
-    if (
-      existingUser.organisationAdminProfile &&
-      existingUser.organisationAdminProfile.organisationId !== organisationId
-    ) {
-      throw new OrganisationRegistrationRequestError(
-        409,
-        'SETUP_ROLE_CONFLICT',
-        'Target account is already registered with another organisation',
-      );
-    }
-    if (
-      existingUser.traineeProfile?.organisationTraineeProfile &&
-      existingUser.traineeProfile.organisationTraineeProfile.organisationId !== organisationId
-    ) {
-      throw new OrganisationRegistrationRequestError(
-        409,
-        'SETUP_ROLE_CONFLICT',
-        'Target account is already registered with another organisation',
-      );
-    }
-  }
+  assertNoSetupRoleConflict(existingUser, organisationId);
 
   const newExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
@@ -483,8 +453,59 @@ async function buildPlatformTimeline(
     const timeDiff = new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
     if (timeDiff !== 0) return timeDiff;
     // Secondary sort by id DESC for determinism when timestamps are equal
-    return b.id > a.id ? 1 : b.id < a.id ? -1 : 0;
+    if (b.id > a.id) return 1;
+    if (b.id < a.id) return -1;
+    return 0;
   });
 
   return timeline;
+}
+
+/**
+ * Asserts that an existing user account does not conflict with the setup invitation.
+ * Throws SETUP_ROLE_CONFLICT if the account is disabled, has the wrong role,
+ * or is already bound to a different organisation.
+ */
+function assertNoSetupRoleConflict(
+  existingUser: {
+    authStatus: string;
+    userType: string;
+    organisationAdminProfile: { organisationId: string } | null;
+    traineeProfile: {
+      organisationTraineeProfile: { organisationId: string } | null;
+    } | null;
+  } | null,
+  organisationId: string,
+) {
+  if (!existingUser) return;
+
+  if (existingUser.authStatus === 'DISABLED' || existingUser.userType !== 'ORGANISATION_ADMIN') {
+    throw new OrganisationRegistrationRequestError(
+      409,
+      'SETUP_ROLE_CONFLICT',
+      'Target account is disabled or has a conflicting role',
+    );
+  }
+
+  if (
+    existingUser.organisationAdminProfile &&
+    existingUser.organisationAdminProfile.organisationId !== organisationId
+  ) {
+    throw new OrganisationRegistrationRequestError(
+      409,
+      'SETUP_ROLE_CONFLICT',
+      'Target account is already registered with another organisation',
+    );
+  }
+
+  if (
+    existingUser.traineeProfile?.organisationTraineeProfile &&
+    existingUser.traineeProfile.organisationTraineeProfile.organisationId !== organisationId
+  ) {
+    throw new OrganisationRegistrationRequestError(
+      409,
+      'SETUP_ROLE_CONFLICT',
+      'Target account is already registered with another organisation',
+    );
+  }
 }

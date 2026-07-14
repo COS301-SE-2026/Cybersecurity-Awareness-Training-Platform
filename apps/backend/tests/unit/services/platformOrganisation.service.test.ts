@@ -241,7 +241,7 @@ describe('platformOrganisation service', () => {
       expect(response.timeline[1].type).toBe('AUDIT_LOG');
       expect(response.timeline[1].outcome).toBe('SUCCESS');
       expect(response.timeline[1].actor).toBe('Patricia Platform');
-      expect(response.timeline[1].metadata).toBe(null);
+      expect(response.timeline[1].metadata).toBeNull();
     });
 
     it('throws 404 error if organisation is not found', async () => {
