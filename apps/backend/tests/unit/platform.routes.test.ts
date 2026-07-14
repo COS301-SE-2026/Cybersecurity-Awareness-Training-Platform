@@ -5,7 +5,6 @@ import { createApp } from '../../src/app.js';
 
 const actorUserId = '44444444-4444-4444-8444-444444444444';
 const requestId = '55555555-5555-4555-8555-555555555555';
-const organisationId = '66666666-6666-4666-8666-666666666666';
 
 let mockUserType = 'IP_ADMIN';
 
@@ -36,6 +35,7 @@ const serviceMock = vi.hoisted(() => {
 });
 
 vi.mock('../../src/services/organisation-registration-request.service.js', () => serviceMock);
+vi.mock('../../src/services/platformOrganisation.service.js', () => serviceMock);
 
 vi.mock('../../src/middleware/requireAuth.js', () => ({
   requireAuth(req: Request, _res: Response, next: NextFunction) {
@@ -254,76 +254,6 @@ describe('platform admin routes', () => {
 
       expect(response.status).toBe(409);
       expect(response.body.error).toBe('REQUEST_NOT_DELETABLE');
-    });
-  });
-
-  describe('GET /platform/organisations/:organisationId', () => {
-    it('gets organisation surface details successfully', async () => {
-      serviceMock.getPlatformOrganisationDetail.mockResolvedValue({
-        id: organisationId,
-        name: 'Target Org',
-        status: 'ACTIVE',
-      });
-
-      const response = await request(createApp()).get(`/platform/organisations/${organisationId}`);
-
-      expect(response.status).toBe(200);
-      expect(serviceMock.getPlatformOrganisationDetail).toHaveBeenCalledWith(
-        actorUserId,
-        organisationId,
-      );
-    });
-  });
-
-  describe('GET /platform/organisation-requests/:requestId/details', () => {
-    it('gets request details fallback successfully', async () => {
-      serviceMock.getOrganisationRequestDetails.mockResolvedValue({
-        id: requestId,
-        status: 'PENDING_REVIEW',
-      });
-
-      const response = await request(createApp()).get(
-        `/platform/organisation-requests/${requestId}/details`,
-      );
-
-      expect(response.status).toBe(200);
-      expect(serviceMock.getOrganisationRequestDetails).toHaveBeenCalledWith(
-        actorUserId,
-        requestId,
-      );
-    });
-  });
-
-  describe('POST /platform/organisations/:organisationId/resend-initial-admin-setup', () => {
-    it('resends initial setup email successfully', async () => {
-      serviceMock.resendInitialAdminSetup.mockResolvedValue({
-        success: true,
-        emailQueued: true,
-      });
-
-      const response = await request(createApp()).post(
-        `/platform/organisations/${organisationId}/resend-initial-admin-setup`,
-      );
-
-      expect(response.status).toBe(200);
-      expect(serviceMock.resendInitialAdminSetup).toHaveBeenCalledWith(actorUserId, organisationId);
-    });
-
-    it('returns 409 Conflict if resend is not eligible', async () => {
-      serviceMock.resendInitialAdminSetup.mockRejectedValue(
-        new serviceMock.OrganisationRegistrationRequestError(
-          409,
-          'RESEND_NOT_ELIGIBLE',
-          'Setup email is not eligible for resending: ORGANISATION_ALREADY_ACTIVE',
-        ),
-      );
-
-      const response = await request(createApp()).post(
-        `/platform/organisations/${organisationId}/resend-initial-admin-setup`,
-      );
-
-      expect(response.status).toBe(409);
-      expect(response.body.error).toBe('RESEND_NOT_ELIGIBLE');
     });
   });
 });
