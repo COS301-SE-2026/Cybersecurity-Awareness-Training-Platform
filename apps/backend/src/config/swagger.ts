@@ -1834,7 +1834,12 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           },
         },
         TraineeListResponse: {
-          ...arrayOf(schemaRef('TraineeListItem')),
+          type: 'object',
+          required: ['trainees', 'pendingInvitations'],
+          properties: {
+            trainees: arrayOf(schemaRef('TraineeListItem')),
+            pendingInvitations: arrayOf(schemaRef('TraineeListItem')),
+          },
         },
         CreateTraineeInvitationRequest: {
           type: 'object',
@@ -1864,6 +1869,17 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             message: {
               type: 'string',
               example: 'Invitation sent successfully.',
+            },
+            invitation: {
+              type: 'object',
+              required: ['id', 'email', 'status'],
+              properties: {
+                id: uuidString('66666666-6666-4666-8666-666666666666'),
+                email: { type: 'string', format: 'email', example: 'new.trainee@example.com' },
+                firstName: { type: 'string', example: 'Sam' },
+                lastName: { type: 'string', example: 'New' },
+                status: { type: 'string', example: 'SENT' },
+              },
             },
           },
         },
@@ -1933,6 +1949,8 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
               type: 'string',
               example: 'Trainee account disabled successfully.',
             },
+            traineeId: uuidString('44444444-4444-4444-8444-444444444444'),
+            status: enumString(['DISABLED'], 'DISABLED'),
           },
         },
         OrganisationSecuritySettings: {

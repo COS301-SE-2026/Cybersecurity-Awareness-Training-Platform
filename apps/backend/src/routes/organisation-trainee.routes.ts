@@ -97,7 +97,7 @@ organisationTraineeRouter.get(
 
 /**
  * @openapi
- * /organisations/{organisationId}/trainees/invitations:
+ * /organisations/{organisationId}/trainee-invitations:
  *   post:
  *     tags: [Organisation Trainees]
  *     summary: Send a trainee invitation
@@ -137,7 +137,7 @@ organisationTraineeRouter.post(
 
 /**
  * @openapi
- * /organisations/{organisationId}/trainees/invitations/{invitationId}/resend:
+ * /organisations/{organisationId}/trainee-invitations/{invitationId}/resend:
  *   post:
  *     tags: [Organisation Trainees]
  *     summary: Resend a trainee invitation link
@@ -175,7 +175,7 @@ organisationTraineeRouter.post(
 
 /**
  * @openapi
- * /organisations/{organisationId}/trainees/invitations/{invitationId}/revoke:
+ * /organisations/{organisationId}/trainee-invitations/{invitationId}/revoke:
  *   post:
  *     tags: [Organisation Trainees]
  *     summary: Revoke a pending trainee invitation

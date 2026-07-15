@@ -152,7 +152,7 @@ describe('Organisation Trainee API Integration Tests', () => {
       sendMailMock.mockClear();
 
       const response = await request(app)
-        .post(`/invitations/${invId}/resend`)
+        .post(`/organisations/${fixture.organisation.id}/trainee-invitations/${invId}/resend`)
         .set('Authorization', `Bearer ${fixture.token}`);
 
       expect(response.status).toBe(200);
@@ -199,7 +199,7 @@ describe('Organisation Trainee API Integration Tests', () => {
       const invId = inviteRes.body.invitation.id;
 
       const response = await request(app)
-        .post(`/invitations/${invId}/revoke`)
+        .post(`/organisations/${fixture.organisation.id}/trainee-invitations/${invId}/revoke`)
         .set('Authorization', `Bearer ${fixture.token}`);
 
       expect(response.status).toBe(200);

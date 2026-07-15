@@ -19,14 +19,8 @@ describe('Invitation Acceptance Integration Tests', () => {
 
       expect(res.status).toBe(200);
       expect(res.body).toEqual({
-        invitationType: 'ORGANISATION_TRAINEE',
-        targetEmail: fixture.user.email,
-        organisationId: fixture.organisation.id,
-        organisationName: fixture.organisation.name,
-        roleGranted: 'ORGANISATION_TRAINEE',
-        accountExists: true,
-        requiresLogin: true,
-        requiresSetup: false,
+        requiredAction: 'LOGIN_REQUIRED',
+        rejectAllowed: true,
         status: 'PENDING',
         expiresAt: fixture.actionToken.expiresAt.toISOString(),
       });

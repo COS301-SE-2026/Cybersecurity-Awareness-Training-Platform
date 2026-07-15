@@ -7,6 +7,7 @@ import {
   organisationTraineeParamsSchema,
   organisationTraineesParamsSchema,
   traineeListItemSchema,
+  traineeListResponseSchema,
 } from './organisation-trainee.js';
 
 describe('organisationTraineesParamsSchema', () => {
@@ -89,10 +90,11 @@ describe('createTraineeInvitationRequestSchema', () => {
 });
 
 describe('disableTraineeRequestSchema', () => {
-  it('accepts password and true confirmation', () => {
+  it('accepts password and true confirmation with optional disabledReason', () => {
     const input = {
       password: 'securePassword123!',
       confirmation: true as const,
+      disabledReason: 'Employee departed',
     };
     expect(disableTraineeRequestSchema.parse(input)).toEqual(input);
   });
@@ -127,10 +129,20 @@ describe('traineeListItemSchema', () => {
 });
 
 describe('Response Schemas', () => {
+  it('traineeListResponseSchema validates structured trainees and pendingInvitations arrays', () => {
+    const valid = {
+      trainees: [{ email: 'active@example.com', status: 'ACTIVE' as const }],
+      pendingInvitations: [{ email: 'pending@example.com', status: 'INVITE_PENDING' as const }],
+    };
+    expect(traineeListResponseSchema.safeParse(valid).success).toBe(true);
+  });
+
   it('disableTraineeResponseSchema enforces strict structure', () => {
     const valid = {
       success: true as const,
       message: 'Trainee account has been disabled.',
+      traineeId: '11111111-1111-4111-8111-111111111111',
+      status: 'DISABLED' as const,
     };
     expect(disableTraineeResponseSchema.safeParse(valid).success).toBe(true);
     expect(disableTraineeResponseSchema.safeParse({ ...valid, extra: true }).success).toBe(false);

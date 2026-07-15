@@ -66,6 +66,11 @@ export const disableTraineeRequestSchema = z
         message: 'Confirmation must be explicitly set to true to disable this trainee account.',
       }),
     }),
+    disabledReason: z
+      .string()
+      .trim()
+      .max(500, 'Disabled reason must be at most 500 characters.')
+      .nullish(),
   })
   .strict();
 
@@ -92,7 +97,12 @@ export const traineeListItemSchema = z
 
 export type TraineeListItemDto = z.infer<typeof traineeListItemSchema>;
 
-export const traineeListResponseSchema = z.array(traineeListItemSchema);
+export const traineeListResponseSchema = z
+  .object({
+    trainees: z.array(traineeListItemSchema),
+    pendingInvitations: z.array(traineeListItemSchema),
+  })
+  .strict();
 
 export type TraineeListResponseDto = z.infer<typeof traineeListResponseSchema>;
 
@@ -100,6 +110,8 @@ export const disableTraineeResponseSchema = z
   .object({
     success: z.literal(true),
     message: z.string().trim().min(1),
+    traineeId: z.string().uuid().optional(),
+    status: z.literal('DISABLED').optional(),
   })
   .strict();
 
@@ -109,6 +121,15 @@ export const createTraineeInvitationResponseSchema = z
   .object({
     success: z.literal(true),
     message: z.string().trim().min(1),
+    invitation: z
+      .object({
+        id: z.string().uuid(),
+        email: z.string().email(),
+        firstName: z.string().nullable().optional(),
+        lastName: z.string().nullable().optional(),
+        status: z.string(),
+      })
+      .optional(),
   })
   .strict();
 

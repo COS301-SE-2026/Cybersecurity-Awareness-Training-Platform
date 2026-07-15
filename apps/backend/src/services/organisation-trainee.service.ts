@@ -105,7 +105,10 @@ export async function listOrganisationTrainees(
     });
   }
 
-  return [...trainees, ...pendingInvitations];
+  return {
+    trainees,
+    pendingInvitations,
+  };
 }
 
 export async function createOrganisationTraineeInvitation(
@@ -232,6 +235,13 @@ export async function createOrganisationTraineeInvitation(
     return {
       success: true,
       message: 'Invitation sent successfully.',
+      invitation: {
+        id: invitation.id,
+        email: invitation.recipientEmail,
+        firstName: invitation.recipientFirstName ?? undefined,
+        lastName: invitation.recipientLastName ?? undefined,
+        status: 'SENT',
+      },
     };
   });
 }
@@ -527,7 +537,8 @@ export async function disableOrganisationTrainee(
   }
 
   return prisma.$transaction(async (tx) => {
-    await disableOrganisationTraineeProfile(orgTrainee.id, null, tx);
+    const reason = input?.disabledReason ?? 'Disabled by organisation admin';
+    await disableOrganisationTraineeProfile(orgTrainee.id, reason, tx);
 
     await revokeUserAuthSessions(
       {
@@ -549,7 +560,7 @@ export async function disableOrganisationTrainee(
         metadata: {
           organisationTraineeProfileId: orgTrainee.id,
           traineeProfileId: orgTrainee.traineeProfileId,
-          disabledReason: 'Disabled by organisation admin',
+          disabledReason: reason,
         },
       },
       tx,
@@ -575,6 +586,8 @@ export async function disableOrganisationTrainee(
     return {
       success: true,
       message: 'Trainee account disabled successfully.',
+      traineeId: orgTrainee.id,
+      status: 'DISABLED',
     };
   });
 }

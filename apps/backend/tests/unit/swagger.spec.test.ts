@@ -284,17 +284,17 @@ const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
   ['get', '/organisations/{organisationId}/trainees', ['200', '400', '401', '403', '429', '500']],
   [
     'post',
-    '/organisations/{organisationId}/trainees/invitations',
+    '/organisations/{organisationId}/trainee-invitations',
     ['201', '400', '401', '403', '409', '422', '429', '500'],
   ],
   [
     'post',
-    '/organisations/{organisationId}/trainees/invitations/{invitationId}/resend',
+    '/organisations/{organisationId}/trainee-invitations/{invitationId}/resend',
     ['200', '400', '401', '403', '404', '409', '429', '500'],
   ],
   [
     'post',
-    '/organisations/{organisationId}/trainees/invitations/{invitationId}/revoke',
+    '/organisations/{organisationId}/trainee-invitations/{invitationId}/revoke',
     ['200', '400', '401', '403', '404', '409', '429', '500'],
   ],
   [
@@ -499,13 +499,13 @@ describe('swaggerSpec', () => {
 
   it('documents organisation trainee routes with bearer auth and schemas', () => {
     expectBearerAuth('/organisations/{organisationId}/trainees', 'get');
-    expectBearerAuth('/organisations/{organisationId}/trainees/invitations', 'post');
+    expectBearerAuth('/organisations/{organisationId}/trainee-invitations', 'post');
     expectBearerAuth(
-      '/organisations/{organisationId}/trainees/invitations/{invitationId}/resend',
+      '/organisations/{organisationId}/trainee-invitations/{invitationId}/resend',
       'post',
     );
     expectBearerAuth(
-      '/organisations/{organisationId}/trainees/invitations/{invitationId}/revoke',
+      '/organisations/{organisationId}/trainee-invitations/{invitationId}/revoke',
       'post',
     );
     expectBearerAuth('/organisations/{organisationId}/trainees/{traineeId}/disable', 'patch');
