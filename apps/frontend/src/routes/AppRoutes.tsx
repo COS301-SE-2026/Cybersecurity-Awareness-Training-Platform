@@ -13,12 +13,16 @@ import LandingPage from '../pages/LandingPage';
 import ForgotPasswordPage from '../pages/ForgotPasswordPage';
 import ResetPasswordPage from '../pages/ResetPasswordPage';
 import OrganisationRegistrationRequestPage from '../pages/OrganisationRegistrationRequestPage';
+import AccountManagementPage from '../pages/AccountManagementPage';
+import SetupPage from '../pages/SetupPage';
+import AcceptInvitePage from '../pages/AcceptInvitePage';
 
 function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/setup/token/:token" element={<SetupPage />} />
       <Route path="/status" element={<StatusPage />} />
       <Route element={<ProtectedRoute />}>
         <Route
@@ -47,6 +51,13 @@ function AppRoutes() {
         path="/organisation-registration-request"
         element={<OrganisationRegistrationRequestPage />}
       />
+
+      {/* Account Settings Route -- WILL PROBABLY NEED TO BE PROTECTED ROUTE */}
+      <Route path="/account-management" element={<AccountManagementPage />}></Route>
+
+      {/* ACCEPT INVITE ROUTE */}
+      <Route path="/accept-invite" element={<AcceptInvitePage />}></Route>
+
       <Route path="/" element={<LandingPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

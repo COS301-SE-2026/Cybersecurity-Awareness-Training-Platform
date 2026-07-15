@@ -1072,6 +1072,379 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           'ORGANISATION_REQUEST_CONFLICT',
           'The organisation registration request conflicts with existing records.',
         ),
+        PlatformOrganisationRequest: {
+          type: 'object',
+          required: [
+            'id',
+            'submittedOrganisationName',
+            'representativeFirstName',
+            'representativeLastName',
+            'representativeEmail',
+            'status',
+            'createdAt',
+            'updatedAt',
+            'derivedStatus',
+          ],
+          properties: {
+            id: uuidString('9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+            submittedOrganisationName: { type: 'string', example: 'Example Consulting' },
+            submittedWebsite: nullableString('https://example.com'),
+            submittedOrganisationDescription: nullableString('A small consulting company'),
+            submittedOrganisationSize: { type: 'integer', nullable: true, example: 75 },
+            submittedPrimaryDomain: nullableString('example.com'),
+            representativeFirstName: { type: 'string', example: 'Adriano' },
+            representativeLastName: { type: 'string', example: 'Jorge' },
+            representativeEmail: {
+              type: 'string',
+              format: 'email',
+              example: 'adriano@example.com',
+            },
+            representativePhone: nullableString('+1234567890'),
+            status: enumString(
+              ['PENDING_REVIEW', 'CONTACTED', 'APPROVED', 'REJECTED', 'CANCELLED'],
+              'PENDING_REVIEW',
+            ),
+            contactedByIpAdminId: nullableUuidString('c3fdeb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+            approvedByIpAdminId: nullableUuidString('d4fdeb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+            rejectedByIpAdminId: nullableUuidString('e5fdeb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+            approvedOrganisationId: nullableUuidString('f6fdeb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+            contactedAt: { ...dateTimeString('2026-05-16T09:00:00.000Z'), nullable: true },
+            approvedAt: { ...dateTimeString('2026-05-16T09:00:00.000Z'), nullable: true },
+            rejectedAt: { ...dateTimeString('2026-05-16T09:00:00.000Z'), nullable: true },
+            rejectionReason: nullableString('Invalid details'),
+            createdAt: dateTimeString('2026-05-16T09:00:00.000Z'),
+            updatedAt: dateTimeString('2026-05-16T09:00:00.000Z'),
+            organisationStatus: {
+              type: 'string',
+              nullable: true,
+              enum: [
+                'PENDING_ONBOARDING',
+                'ACTIVE',
+                'INACTIVE',
+                'SUSPENDED',
+                'DISABLED',
+                'ARCHIVED',
+              ],
+              example: 'PENDING_ONBOARDING',
+            },
+            setupStatus: {
+              nullable: true,
+              $ref: '#/components/schemas/OrganisationInitialSetupStatus',
+            },
+            resendEligibility: {
+              nullable: true,
+              $ref: '#/components/schemas/OrganisationResendEligibility',
+            },
+            derivedStatus: {
+              type: 'string',
+              example: 'APPROVED_PENDING_SETUP',
+            },
+            contactedBy: {
+              type: 'object',
+              nullable: true,
+              properties: {
+                id: uuidString('c3fdeb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+                user: {
+                  type: 'object',
+                  properties: {
+                    firstName: { type: 'string', example: 'Jane' },
+                    lastName: { type: 'string', example: 'Doe' },
+                    email: { type: 'string', format: 'email', example: 'jane@example.com' },
+                  },
+                },
+              },
+            },
+            approvedBy: {
+              type: 'object',
+              nullable: true,
+              properties: {
+                id: uuidString('d4fdeb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+                user: {
+                  type: 'object',
+                  properties: {
+                    firstName: { type: 'string', example: 'Jane' },
+                    lastName: { type: 'string', example: 'Doe' },
+                    email: { type: 'string', format: 'email', example: 'jane@example.com' },
+                  },
+                },
+              },
+            },
+            rejectedBy: {
+              type: 'object',
+              nullable: true,
+              properties: {
+                id: uuidString('e5fdeb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+                user: {
+                  type: 'object',
+                  properties: {
+                    firstName: { type: 'string', example: 'Jane' },
+                    lastName: { type: 'string', example: 'Doe' },
+                    email: { type: 'string', format: 'email', example: 'jane@example.com' },
+                  },
+                },
+              },
+            },
+          },
+        },
+        PlatformOrganisationRequestsListResponse: {
+          type: 'object',
+          required: ['requests', 'pagination'],
+          properties: {
+            requests: {
+              type: 'array',
+              items: {
+                $ref: '#/components/schemas/PlatformOrganisationRequest',
+              },
+            },
+            pagination: {
+              type: 'object',
+              required: ['page', 'limit', 'total', 'totalPages'],
+              properties: {
+                page: { type: 'integer', example: 1 },
+                limit: { type: 'integer', example: 10 },
+                total: { type: 'integer', example: 50 },
+                totalPages: { type: 'integer', example: 5 },
+              },
+            },
+          },
+        },
+        ApproveOrganisationRequest: {
+          type: 'object',
+          required: ['initialAdminEmail'],
+          additionalProperties: false,
+          properties: {
+            organisationName: { type: 'string', maxLength: 200, example: 'Example Consulting' },
+            initialAdminEmail: { type: 'string', format: 'email', example: 'admin@example.com' },
+          },
+        },
+        RejectOrganisationRequest: {
+          type: 'object',
+          required: ['rejectionReason'],
+          additionalProperties: false,
+          properties: {
+            rejectionReason: {
+              type: 'string',
+              maxLength: 1000,
+              example: 'The domain representative is invalid.',
+            },
+          },
+        },
+        OrganisationInitialSetupStatus: {
+          type: 'object',
+          nullable: true,
+          required: ['id', 'status', 'recipientEmail', 'expiresAt'],
+          properties: {
+            id: uuidString('inv-1234-abcd'),
+            status: enumString(
+              [
+                'PENDING',
+                'SENT',
+                'FAILED_TO_SEND',
+                'ACCEPTED',
+                'COMPLETED',
+                'EXPIRED',
+                'REVOKED',
+                'REJECTED',
+              ],
+              'PENDING',
+            ),
+            recipientEmail: { type: 'string', format: 'email', example: 'admin@example.com' },
+            expiresAt: dateTimeString('2026-05-23T09:00:00.000Z'),
+            latestActionToken: {
+              type: 'object',
+              nullable: true,
+              required: ['id', 'expiresAt', 'status'],
+              properties: {
+                id: uuidString('tok-1234-abcd'),
+                expiresAt: dateTimeString('2026-05-23T09:00:00.000Z'),
+                usedAt: { ...dateTimeString('2026-05-16T10:00:00.000Z'), nullable: true },
+                revokedAt: { ...dateTimeString('2026-05-16T10:00:00.000Z'), nullable: true },
+                status: enumString(['AVAILABLE', 'USED', 'REVOKED', 'EXPIRED'], 'AVAILABLE'),
+              },
+            },
+            latestEmailDelivery: {
+              type: 'object',
+              nullable: true,
+              required: ['id', 'deliveryStatus'],
+              properties: {
+                id: uuidString('log-1234-abcd'),
+                deliveryStatus: enumString(['PENDING', 'SENT', 'FAILED'], 'SENT'),
+                sentAt: { ...dateTimeString('2026-05-16T09:00:00.000Z'), nullable: true },
+                failedAt: { ...dateTimeString('2026-05-16T09:00:00.000Z'), nullable: true },
+                failureReason: nullableString('SMTP connection timeout'),
+              },
+            },
+          },
+        },
+        OrganisationResendEligibility: {
+          type: 'object',
+          required: ['isEligible', 'reason'],
+          properties: {
+            isEligible: { type: 'boolean', example: true },
+            // reason is always present -- null when eligible, a typed code string when not.
+            reason: nullableString('ORGANISATION_NOT_ONBOARDING'),
+          },
+        },
+        PlatformTimelineEntry: {
+          type: 'object',
+          required: [
+            'id',
+            'type',
+            'timestamp',
+            'action',
+            'summary',
+            'actor',
+            'outcome',
+            'metadata',
+          ],
+          properties: {
+            id: uuidString('log-5678-efgh'),
+            type: enumString(['AUDIT_LOG', 'EMAIL_DELIVERY'], 'AUDIT_LOG'),
+            timestamp: dateTimeString('2026-05-16T09:00:00.000Z'),
+            action: { type: 'string', example: 'APPROVED' },
+            summary: { type: 'string', example: 'APPROVED on ORGANISATION_REGISTRATION_REQUEST' },
+            actor: nullableString('Patricia Platform'),
+            // 'status' field removed -- runtime no longer returns it (was a stale duplicate of outcome).
+            outcome: nullableString('SUCCESS'),
+            // metadata is always null -- raw audit data is never exposed in timeline responses.
+            metadata: { type: 'string', nullable: true, example: null },
+          },
+        },
+        PlatformOrganisationDetail: {
+          type: 'object',
+          required: [
+            'id',
+            'name',
+            'status',
+            'detailType',
+            'description',
+            'approximateSize',
+            'website',
+            'primaryDomain',
+            'createdAt',
+            'updatedAt',
+            '_count',
+            'registrationRequest',
+            'setupStatus',
+            'resendEligibility',
+            'admins',
+            'timeline',
+          ],
+          properties: {
+            id: uuidString('f6fdeb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+            name: { type: 'string', example: 'Example Consulting' },
+            status: enumString(
+              ['PENDING_ONBOARDING', 'ACTIVE', 'INACTIVE', 'SUSPENDED', 'DISABLED', 'ARCHIVED'],
+              'PENDING_ONBOARDING',
+            ),
+            detailType: enumString(
+              [
+                'onboarding organisation',
+                'active organisation',
+                'suspended organisation',
+                'disabled organisation',
+              ],
+              'onboarding organisation',
+            ),
+            description: nullableString('A consulting company'),
+            approximateSize: { type: 'integer', nullable: true, example: 150 },
+            website: nullableString('https://example.com'),
+            primaryDomain: nullableString('example.com'),
+            createdAt: dateTimeString('2026-05-16T09:00:00.000Z'),
+            updatedAt: dateTimeString('2026-05-16T09:00:00.000Z'),
+            _count: {
+              type: 'object',
+              required: ['adminProfiles', 'traineeProfiles'],
+              properties: {
+                adminProfiles: { type: 'integer', example: 1 },
+                traineeProfiles: { type: 'integer', example: 15 },
+              },
+            },
+            registrationRequest: {
+              type: 'object',
+              nullable: true,
+              required: [
+                'id',
+                'representativeFirstName',
+                'representativeLastName',
+                'representativeEmail',
+              ],
+              properties: {
+                id: uuidString('9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+                representativeFirstName: { type: 'string', example: 'Adriano' },
+                representativeLastName: { type: 'string', example: 'Jorge' },
+                representativeEmail: {
+                  type: 'string',
+                  format: 'email',
+                  example: 'adriano@example.com',
+                },
+                submittedWebsite: nullableString('https://example.com'),
+                submittedPrimaryDomain: nullableString('example.com'),
+              },
+            },
+            setupStatus: {
+              $ref: '#/components/schemas/OrganisationInitialSetupStatus',
+            },
+            resendEligibility: {
+              $ref: '#/components/schemas/OrganisationResendEligibility',
+            },
+            admins: {
+              type: 'array',
+              items: {
+                type: 'object',
+                required: ['id', 'adminStatus', 'firstName', 'lastName', 'email', 'isInitialAdmin'],
+                properties: {
+                  id: uuidString('adm-1234-abcd'),
+                  // ACTIVE | DISABLED -- PENDING is an invitation status, not an admin profile status.
+                  adminStatus: enumString(['ACTIVE', 'DISABLED'], 'ACTIVE'),
+                  firstName: { type: 'string', example: 'Jane' },
+                  lastName: { type: 'string', example: 'Doe' },
+                  email: { type: 'string', format: 'email', example: 'jane@example.com' },
+                  isInitialAdmin: booleanProperty(false),
+                },
+              },
+            },
+            timeline: {
+              type: 'array',
+              items: {
+                $ref: '#/components/schemas/PlatformTimelineEntry',
+              },
+            },
+          },
+        },
+        PlatformOrganisationRequestDetailsResponse: {
+          allOf: [
+            { $ref: '#/components/schemas/PlatformOrganisationRequest' },
+            {
+              type: 'object',
+              required: ['detailType', 'setupStatus', 'resendEligibility', 'timeline'],
+              properties: {
+                detailType: enumString(
+                  [
+                    'request-only',
+                    'onboarding organisation',
+                    'active organisation',
+                    'suspended organisation',
+                    'disabled organisation',
+                  ],
+                  'request-only',
+                ),
+                setupStatus: {
+                  $ref: '#/components/schemas/OrganisationInitialSetupStatus',
+                },
+                resendEligibility: {
+                  $ref: '#/components/schemas/OrganisationResendEligibility',
+                },
+                timeline: {
+                  type: 'array',
+                  items: {
+                    $ref: '#/components/schemas/PlatformTimelineEntry',
+                  },
+                },
+              },
+            },
+          ],
+        },
         OrganisationPermissionKey: enumString(
           [
             'VIEW_ORGANISATION_ADMINS',
@@ -2732,6 +3105,14 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         OrganisationAdminRemove: {
           required: true,
           ...jsonContent(schemaRef('OrganisationAdminRemoveRequest')),
+        },
+        ApproveOrganisationRequest: {
+          required: true,
+          ...jsonContent(schemaRef('ApproveOrganisationRequest')),
+        },
+        RejectOrganisationRequest: {
+          required: true,
+          ...jsonContent(schemaRef('RejectOrganisationRequest')),
         },
         OrganisationSecuritySettingsUpdate: {
           required: true,

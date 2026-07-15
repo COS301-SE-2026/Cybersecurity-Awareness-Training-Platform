@@ -14,6 +14,7 @@ const defaultProps = {
   setRepEmail: vi.fn(),
   onBack: vi.fn(),
   onSubmit: vi.fn(),
+  isSubmitting: false,
 };
 
 describe('RepresentativeInformationForm', () => {
