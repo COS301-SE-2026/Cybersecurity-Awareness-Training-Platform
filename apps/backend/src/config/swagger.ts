@@ -1206,6 +1206,11 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           'ORGANISATION_REQUEST_CONFLICT',
           'The organisation registration request conflicts with existing records.',
         ),
+        TraineeInvitationConflictErrorResponse: errorResponseSchema(
+          'ApiErrorResponse',
+          'CANNOT_INVITE_USER',
+          'The user cannot be invited to the organisation as a trainee at this time.',
+        ),
         PlatformOrganisationRequest: {
           type: 'object',
           required: [
@@ -1586,6 +1591,9 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             'REMOVE_ORGANISATION_ADMINS',
             'CHANGE_ORGANISATION_ADMIN_PERMISSIONS',
             'CHANGE_ORGANISATION_SECURITY_SETTINGS',
+            'VIEW_ORGANISATION_TRAINEES',
+            'INVITE_ORGANISATION_TRAINEES',
+            'REMOVE_ORGANISATION_TRAINEES',
           ],
           'VIEW_ORGANISATION_ADMINS',
         ),
@@ -1805,6 +1813,126 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
               ...uuidString('22222222-2222-4222-8222-222222222222'),
             },
             status: enumString(['DISABLED'], 'DISABLED'),
+          },
+        },
+        TraineeListItem: {
+          type: 'object',
+          required: ['email', 'status'],
+          properties: {
+            email: {
+              type: 'string',
+              format: 'email',
+              example: 'trainee@example.com',
+            },
+            firstName: {
+              ...nullableString('Alex'),
+            },
+            lastName: {
+              ...nullableString('Trainee'),
+            },
+            status: enumString(['ACTIVE', 'DISABLED', 'INVITE_PENDING', 'INVITE_FAILED'], 'ACTIVE'),
+          },
+        },
+        TraineeListResponse: {
+          ...arrayOf(schemaRef('TraineeListItem')),
+        },
+        CreateTraineeInvitationRequest: {
+          type: 'object',
+          required: ['email'],
+          additionalProperties: false,
+          properties: {
+            email: {
+              type: 'string',
+              format: 'email',
+              example: 'new.trainee@example.com',
+            },
+            firstName: {
+              type: 'string',
+              example: 'Sam',
+            },
+            lastName: {
+              type: 'string',
+              example: 'New',
+            },
+          },
+        },
+        CreateTraineeInvitationResponse: {
+          type: 'object',
+          required: ['success', 'message'],
+          properties: {
+            success: booleanProperty(true),
+            message: {
+              type: 'string',
+              example: 'Invitation sent successfully.',
+            },
+          },
+        },
+        InvitationResendResponse: {
+          type: 'object',
+          required: ['success', 'message', 'invitationId', 'status', 'resentAt'],
+          properties: {
+            success: booleanProperty(true),
+            message: {
+              type: 'string',
+              example: 'Invitation resent successfully.',
+            },
+            invitationId: {
+              ...uuidString('33333333-3333-4333-8333-333333333333'),
+            },
+            status: enumString(['PENDING', 'SENT', 'FAILED_TO_SEND'], 'SENT'),
+            resentAt: {
+              ...dateTimeString('2026-07-15T08:30:00.000Z'),
+            },
+          },
+        },
+        InvitationRevokeResponse: {
+          type: 'object',
+          required: ['success', 'message', 'invitationId', 'status', 'revokedAt'],
+          properties: {
+            success: booleanProperty(true),
+            message: {
+              type: 'string',
+              example: 'Invitation revoked successfully.',
+            },
+            invitationId: {
+              ...uuidString('33333333-3333-4333-8333-333333333333'),
+            },
+            status: enumString(['REVOKED'], 'REVOKED'),
+            revokedAt: {
+              ...dateTimeString('2026-07-15T08:30:00.000Z'),
+            },
+          },
+        },
+        DisableTraineeRequest: {
+          type: 'object',
+          required: ['password', 'confirmation'],
+          additionalProperties: false,
+          properties: {
+            password: {
+              type: 'string',
+              format: 'password',
+              minLength: 1,
+            },
+            confirmation: {
+              type: 'boolean',
+              enum: [true],
+              example: true,
+            },
+            disabledReason: {
+              type: 'string',
+              example: 'Policy violation or leaving organization',
+            },
+          },
+        },
+        DisableTraineeResponse: {
+          type: 'object',
+          required: ['success', 'message'],
+          properties: {
+            success: booleanProperty(true),
+            message: {
+              type: 'string',
+              example: 'Trainee account disabled successfully.',
+            },
           },
         },
         OrganisationSecuritySettings: {
@@ -3165,6 +3293,28 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           },
           example: '22222222-2222-4222-8222-222222222222',
         },
+        TraineeIdPathParam: {
+          name: 'traineeId',
+          in: 'path',
+          required: true,
+          description: 'Organisation trainee profile identifier.',
+          schema: {
+            type: 'string',
+            format: 'uuid',
+          },
+          example: '55555555-5555-4555-8555-555555555555',
+        },
+        InvitationIdPathParam: {
+          name: 'invitationId',
+          in: 'path',
+          required: true,
+          description: 'Invitation identifier.',
+          schema: {
+            type: 'string',
+            format: 'uuid',
+          },
+          example: '33333333-3333-4333-8333-333333333333',
+        },
         SetupTokenPathParam: {
           name: 'token',
           in: 'path',
@@ -3274,6 +3424,14 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           required: true,
           ...jsonContent(schemaRef('InvitationRejectRequest')),
         },
+        CreateTraineeInvitation: {
+          required: true,
+          ...jsonContent(schemaRef('CreateTraineeInvitationRequest')),
+        },
+        DisableTrainee: {
+          required: true,
+          ...jsonContent(schemaRef('DisableTraineeRequest')),
+        },
       },
       responses: {
         HealthOk: responseComponent('API and database are reachable.', 'HealthStatus'),
@@ -3328,6 +3486,26 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           'Invitation rejected successfully.',
           'InvitationRejectResponse',
         ),
+        OrganisationTraineesOk: responseComponent(
+          'Organisation trainees and pending invitations.',
+          'TraineesAndInvitationsResponse',
+        ),
+        OrganisationTraineeInvitationCreated: responseComponent(
+          'Trainee invitation sent successfully.',
+          'CreateTraineeInvitationResponse',
+        ),
+        OrganisationTraineeInvitationResent: responseComponent(
+          'Trainee invitation resent successfully.',
+          'InvitationResendResponse',
+        ),
+        OrganisationTraineeInvitationRevoked: responseComponent(
+          'Trainee invitation revoked successfully.',
+          'InvitationRevokeResponse',
+        ),
+        OrganisationTraineeDisabled: responseComponent(
+          'Trainee account disabled successfully.',
+          'DisableTraineeResponse',
+        ),
         OrganisationRegistrationRequestCreated: responseComponent(
           'Organisation registration request submitted for review.',
           'OrganisationRegistrationRequestCreatedResponse',
@@ -3335,6 +3513,10 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         OrganisationRegistrationRequestConflict: responseComponent(
           'The submitted request conflicts with existing records.',
           'OrganisationRegistrationRequestConflictErrorResponse',
+        ),
+        TraineeInvitationConflict: responseComponent(
+          'Cannot invite user to the organisation.',
+          'TraineeInvitationConflictErrorResponse',
         ),
         OrganisationAdminsOk: responseComponent(
           'Organisation admins and available permissions.',
