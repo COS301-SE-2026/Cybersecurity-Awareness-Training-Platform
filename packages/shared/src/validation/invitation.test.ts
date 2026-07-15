@@ -2,9 +2,13 @@ import { describe, expect, it } from 'vitest';
 import {
   invitationAcceptRequestSchema,
   invitationAcceptResponseSchema,
+  invitationActionResponseSchema,
   invitationContextResponseSchema,
+  invitationIdParamsSchema,
   invitationRejectRequestSchema,
   invitationRejectResponseSchema,
+  invitationResendResponseSchema,
+  invitationRevokeResponseSchema,
   invitationTokenParamsSchema,
 } from './invitation.js';
 
@@ -99,84 +103,48 @@ describe('invitationRejectRequestSchema', () => {
 
 describe('invitationContextResponseSchema', () => {
   const baseValidResponse = {
+    requiredAction: 'CONFIRM_ROLE_CHANGE' as const,
+    rejectAllowed: true,
+    status: 'PENDING' as const,
+    expiresAt: '2026-12-31T23:59:59.000Z',
     invitationType: 'ORGANISATION_TRAINEE' as const,
-    targetEmail: 'trainee@example.com',
     organisationId: '11111111-1111-4111-8111-111111111111',
     organisationName: 'Insightful Phish Org',
     roleGranted: 'ORGANISATION_TRAINEE' as const,
-    accountExists: true,
-    requiresLogin: true,
-    requiresSetup: false,
-    status: 'PENDING' as const,
-    expiresAt: '2026-12-31T23:59:59.000Z',
+    permissions: ['VIEW_ORGANISATION_TRAINEES'],
   };
 
-  it('accepts a valid context response object', () => {
+  it('accepts a valid context response object for CONFIRM_ROLE_CHANGE', () => {
     expect(invitationContextResponseSchema.parse(baseValidResponse)).toEqual(baseValidResponse);
   });
 
-  it('enforces matrix check: when accountExists is false, requiresSetup must be true', () => {
-    const invalidMatrix = {
+  it('enforces that organisation details must be present for CONFIRM_ROLE_CHANGE if organisation-scoped', () => {
+    const invalid = {
       ...baseValidResponse,
-      accountExists: false,
-      requiresSetup: false,
-    };
-    const result = invitationContextResponseSchema.safeParse(invalidMatrix);
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues[0]?.message).toBe(
-        'When accountExists is false, requiresSetup must be true.',
-      );
-    }
-
-    const validMatrix = {
-      ...baseValidResponse,
-      accountExists: false,
-      requiresSetup: true,
-    };
-    expect(invitationContextResponseSchema.parse(validMatrix)).toEqual(validMatrix);
-  });
-
-  it('enforces that organisationId and organisationName must be present when invitationType is organisation-scoped', () => {
-    const missingOrgDetails = {
-      ...baseValidResponse,
-      invitationType: 'ORGANISATION_ADMIN' as const,
       organisationId: undefined,
       organisationName: undefined,
     };
-    const result = invitationContextResponseSchema.safeParse(missingOrgDetails);
+    const result = invitationContextResponseSchema.safeParse(invalid);
     expect(result.success).toBe(false);
     if (!result.success) {
       const messages = result.error.issues.map((i) => i.message);
       expect(messages).toContain(
-        'organisationId must be present if invitationType is organisation-scoped.',
+        'organisationId must be present for CONFIRM_ROLE_CHANGE if invitationType is organisation-scoped.',
       );
       expect(messages).toContain(
-        'organisationName must be present if invitationType is organisation-scoped.',
+        'organisationName must be present for CONFIRM_ROLE_CHANGE if invitationType is organisation-scoped.',
       );
     }
   });
 
-  it('allows optional organisationId and organisationName for non organisation-scoped invitations', () => {
-    const platformAdminResponse = {
-      ...baseValidResponse,
-      invitationType: 'PLATFORM_ADMIN' as const,
-      roleGranted: 'PLATFORM_ADMIN' as const,
-      organisationId: undefined,
-      organisationName: undefined,
+  it('accepts valid privacy-minimized response for CONTINUE_SETUP', () => {
+    const validSetupResponse = {
+      requiredAction: 'CONTINUE_SETUP' as const,
+      rejectAllowed: false,
+      status: 'PENDING' as const,
+      expiresAt: '2026-12-31T23:59:59.000Z',
     };
-    expect(invitationContextResponseSchema.parse(platformAdminResponse)).toEqual(
-      platformAdminResponse,
-    );
-  });
-
-  it('rejects invalid email formats', () => {
-    const invalidEmail = {
-      ...baseValidResponse,
-      targetEmail: 'not-an-email',
-    };
-    const result = invitationContextResponseSchema.safeParse(invalidEmail);
-    expect(result.success).toBe(false);
+    expect(invitationContextResponseSchema.parse(validSetupResponse)).toEqual(validSetupResponse);
   });
 });
 
@@ -203,5 +171,62 @@ describe('invitationAcceptResponseSchema and invitationRejectResponseSchema', ()
       success: true,
       message: 'Invitation rejected successfully.',
     });
+  });
+});
+
+describe('invitationIdParamsSchema', () => {
+  it('accepts valid invitationId UUID', () => {
+    const valid = { invitationId: '11111111-1111-4111-8111-111111111111' };
+    expect(invitationIdParamsSchema.parse(valid)).toEqual(valid);
+  });
+
+  it('rejects invalid UUID or extra fields in strict mode', () => {
+    expect(invitationIdParamsSchema.safeParse({ invitationId: 'not-uuid' }).success).toBe(false);
+    expect(
+      invitationIdParamsSchema.safeParse({
+        invitationId: '11111111-1111-4111-8111-111111111111',
+        extra: 'field',
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe('invitation resend and revoke response schemas', () => {
+  it('validates invitationActionResponseSchema strictly', () => {
+    const valid = {
+      success: true as const,
+      message: 'Action completed',
+      invitationId: '11111111-1111-4111-8111-111111111111',
+      status: 'REVOKED' as const,
+    };
+    expect(invitationActionResponseSchema.parse(valid)).toEqual(valid);
+  });
+
+  it('validates invitationResendResponseSchema strictly without token leakage', () => {
+    const valid = {
+      success: true as const,
+      message: 'Resent invitation link',
+      invitationId: '11111111-1111-4111-8111-111111111111',
+      status: 'SENT' as const,
+      resentAt: '2026-07-15T08:00:00.000Z',
+    };
+    expect(invitationResendResponseSchema.parse(valid)).toEqual(valid);
+    expect(
+      invitationResendResponseSchema.safeParse({
+        ...valid,
+        rawToken: 'secret_token_123',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('validates invitationRevokeResponseSchema strictly', () => {
+    const valid = {
+      success: true as const,
+      message: 'Invitation revoked',
+      invitationId: '11111111-1111-4111-8111-111111111111',
+      status: 'REVOKED' as const,
+      revokedAt: '2026-07-15T08:00:00.000Z',
+    };
+    expect(invitationRevokeResponseSchema.parse(valid)).toEqual(valid);
   });
 });

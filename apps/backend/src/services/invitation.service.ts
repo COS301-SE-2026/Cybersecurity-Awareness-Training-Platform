@@ -265,19 +265,47 @@ export async function getInvitationTokenContext(
     'ORGANISATION_ADMIN_PROMOTION',
   ].includes(invitationType);
 
+  let requiredAction:
+    | 'CONTINUE_SETUP'
+    | 'LOGIN_REQUIRED'
+    | 'SWITCH_ACCOUNT'
+    | 'CONFIRM_ROLE_CHANGE'
+    | 'TOKEN_UNAVAILABLE';
+
+  const isTokenAvailable = resolved.status === 'PENDING' || resolved.status === 'SENT';
+
+  if (!isTokenAvailable) {
+    requiredAction = 'TOKEN_UNAVAILABLE';
+  } else if (!authEmail) {
+    requiredAction = accountExists ? 'LOGIN_REQUIRED' : 'CONTINUE_SETUP';
+  } else if (authEmail !== resolved.targetEmail) {
+    requiredAction = 'SWITCH_ACCOUNT';
+  } else {
+    requiredAction = 'CONFIRM_ROLE_CHANGE';
+  }
+
+  const rejectAllowed = isTokenAvailable && invitationType !== 'PLATFORM_ADMIN';
+
+  if (requiredAction === 'CONFIRM_ROLE_CHANGE') {
+    return {
+      requiredAction,
+      status: resolved.status,
+      expiresAt: resolved.token.expiresAt.toISOString(),
+      rejectAllowed,
+      invitationType,
+      roleGranted: invitationRole,
+      organisationId: isOrgScoped ? (resolved.invitation.organisationId ?? undefined) : undefined,
+      organisationName: isOrgScoped
+        ? (resolved.invitation.organisation?.name ?? 'Unknown Organisation')
+        : undefined,
+    };
+  }
+
   return {
-    invitationType,
-    targetEmail: resolved.targetEmail,
-    organisationId: isOrgScoped ? resolved.invitation.organisationId : undefined,
-    organisationName: isOrgScoped
-      ? (resolved.invitation.organisation?.name ?? 'Unknown Organisation')
-      : undefined,
-    roleGranted: invitationRole,
-    accountExists,
-    requiresLogin: accountExists,
-    requiresSetup: !accountExists,
+    requiredAction,
     status: resolved.status,
     expiresAt: resolved.token.expiresAt.toISOString(),
+    rejectAllowed,
   };
 }
 

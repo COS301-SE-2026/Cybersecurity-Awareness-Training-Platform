@@ -105,64 +105,59 @@ export const invitationContextStatusSchema = z.enum([
 
 export type InvitationContextStatusDto = z.infer<typeof invitationContextStatusSchema>;
 
-/**
- * Detailed response schema for `GET /invitations/token/:token/context`.
- * Enforces all structural and business matrix validation rules:
- * - When `accountExists` is false, `requiresSetup` must be true.
- * - When `invitationType` is organisation-scoped, `organisationId` and `organisationName` must be present.
- */
+export const invitationRequiredActionSchema = z.enum([
+  'CONTINUE_SETUP',
+  'LOGIN_REQUIRED',
+  'SWITCH_ACCOUNT',
+  'CONFIRM_ROLE_CHANGE',
+  'ROLE_CONFLICT',
+  'INVITATION_UNAVAILABLE',
+  'TOKEN_UNAVAILABLE',
+]);
+
+export type InvitationRequiredActionDto = z.infer<typeof invitationRequiredActionSchema>;
+
 export const invitationContextResponseSchema = z
   .object({
-    invitationType: invitationTypeSchema,
-    targetEmail: z
-      .string({
-        required_error: 'Target email is required.',
-        invalid_type_error: 'Target email must be a string.',
-      })
-      .trim()
-      .min(1, 'Target email is required.')
-      .max(254, 'Email address must be at most 254 characters.')
-      .email('Invalid email format.')
-      .toLowerCase(),
+    requiredAction: invitationRequiredActionSchema,
+    rejectAllowed: z.boolean(),
+    status: invitationContextStatusSchema,
+    expiresAt: z
+      .string()
+      .datetime({ message: 'expiresAt must be a valid ISO 8601 Date string' })
+      .optional(),
+    invitationType: invitationTypeSchema.optional(),
     organisationId: z.string().uuid('Organisation ID must be a valid UUID').optional(),
     organisationName: z.string().trim().min(1, 'Organisation name is required').optional(),
-    roleGranted: invitationRoleGrantedSchema,
-    accountExists: z.boolean(),
-    requiresLogin: z.boolean(),
-    requiresSetup: z.boolean(),
-    status: invitationContextStatusSchema,
-    expiresAt: z.string().datetime({ message: 'expiresAt must be a valid ISO 8601 Date string' }),
+    roleGranted: invitationRoleGrantedSchema.optional(),
+    permissions: z.array(z.string()).optional(),
   })
   .strict()
   .superRefine((data, ctx) => {
-    if (!data.accountExists && !data.requiresSetup) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['requiresSetup'],
-        message: 'When accountExists is false, requiresSetup must be true.',
-      });
-    }
+    if (data.requiredAction === 'CONFIRM_ROLE_CHANGE') {
+      const isOrgScoped =
+        data.invitationType === 'ORGANISATION_ADMIN' ||
+        data.invitationType === 'ORGANISATION_TRAINEE' ||
+        data.invitationType === 'INITIAL_ORGANISATION_ADMIN_SETUP' ||
+        data.invitationType === 'ORGANISATION_ADMIN_PROMOTION';
 
-    const isOrgScoped =
-      data.invitationType === 'ORGANISATION_ADMIN' ||
-      data.invitationType === 'ORGANISATION_TRAINEE' ||
-      data.invitationType === 'INITIAL_ORGANISATION_ADMIN_SETUP' ||
-      data.invitationType === 'ORGANISATION_ADMIN_PROMOTION';
-
-    if (isOrgScoped) {
-      if (!data.organisationId) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['organisationId'],
-          message: 'organisationId must be present if invitationType is organisation-scoped.',
-        });
-      }
-      if (!data.organisationName) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['organisationName'],
-          message: 'organisationName must be present if invitationType is organisation-scoped.',
-        });
+      if (isOrgScoped) {
+        if (!data.organisationId) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['organisationId'],
+            message:
+              'organisationId must be present for CONFIRM_ROLE_CHANGE if invitationType is organisation-scoped.',
+          });
+        }
+        if (!data.organisationName) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['organisationName'],
+            message:
+              'organisationName must be present for CONFIRM_ROLE_CHANGE if invitationType is organisation-scoped.',
+          });
+        }
       }
     }
   });
@@ -195,3 +190,65 @@ export const invitationRejectResponseSchema = z
   .strict();
 
 export type InvitationRejectResponseDto = z.infer<typeof invitationRejectResponseSchema>;
+
+/**
+ * Strict URL parameter schema for actions targeting an existing invitation by its database ID (`:invitationId`).
+ * Applicable to `POST /invitations/:invitationId/resend` and `POST /invitations/:invitationId/revoke`.
+ */
+export const invitationIdParamsSchema = z
+  .object({
+    invitationId: z
+      .string({
+        required_error: 'Invitation ID is required.',
+        invalid_type_error: 'Invitation ID must be a string.',
+      })
+      .uuid('Invitation ID must be a valid UUID.'),
+  })
+  .strict();
+
+export type InvitationIdParamsDto = z.infer<typeof invitationIdParamsSchema>;
+
+/**
+ * Standardized success response schema for invitation actions (resend, revoke).
+ * Enforces strict structure without leaking any raw tokens or internal sensitive state.
+ */
+export const invitationActionResponseSchema = z
+  .object({
+    success: z.literal(true),
+    message: z.string().trim().min(1),
+    invitationId: z.string().uuid(),
+    status: z.enum(['PENDING', 'SENT', 'REVOKED', 'EXPIRED', 'FAILED_TO_SEND']),
+  })
+  .strict();
+
+export type InvitationActionResponseDto = z.infer<typeof invitationActionResponseSchema>;
+
+/**
+ * Standardized success response schema specifically for `POST /invitations/:invitationId/resend`.
+ */
+export const invitationResendResponseSchema = z
+  .object({
+    success: z.literal(true),
+    message: z.string().trim().min(1),
+    invitationId: z.string().uuid(),
+    status: z.enum(['PENDING', 'SENT', 'FAILED_TO_SEND']),
+    resentAt: z.string().datetime(),
+  })
+  .strict();
+
+export type InvitationResendResponseDto = z.infer<typeof invitationResendResponseSchema>;
+
+/**
+ * Standardized success response schema specifically for `POST /invitations/:invitationId/revoke`.
+ */
+export const invitationRevokeResponseSchema = z
+  .object({
+    success: z.literal(true),
+    message: z.string().trim().min(1),
+    invitationId: z.string().uuid(),
+    status: z.literal('REVOKED'),
+    revokedAt: z.string().datetime(),
+  })
+  .strict();
+
+export type InvitationRevokeResponseDto = z.infer<typeof invitationRevokeResponseSchema>;

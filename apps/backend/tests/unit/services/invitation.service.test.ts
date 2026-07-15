@@ -63,16 +63,10 @@ describe('InvitationService (Detailed Boundary & Concurrency Tests)', () => {
 
       const res = await getInvitationTokenContext('raw-token');
       expect(res).toEqual({
-        invitationType: 'ORGANISATION_TRAINEE',
-        targetEmail: 'trainee@example.com',
-        organisationId: 'org-1',
-        organisationName: 'Acme Corp',
-        roleGranted: 'ORGANISATION_TRAINEE',
-        accountExists: true,
-        requiresLogin: true,
-        requiresSetup: false,
+        requiredAction: 'LOGIN_REQUIRED',
         status: 'PENDING',
         expiresAt: mockValidToken.expiresAt.toISOString(),
+        rejectAllowed: true,
       });
     });
 

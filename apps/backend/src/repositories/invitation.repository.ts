@@ -40,6 +40,16 @@ export function findInvitationTokenByHash(tokenHash: string, client: InvitationC
   });
 }
 
+export function findInvitationById(id: string, client: InvitationClient = prisma) {
+  return client.invitation.findUnique({
+    where: { id },
+    include: {
+      organisation: true,
+      permissionGrants: true,
+    },
+  });
+}
+
 export function findUserByEmailWithProfiles(email: string, client: InvitationClient = prisma) {
   return client.user.findUnique({
     where: { email },
