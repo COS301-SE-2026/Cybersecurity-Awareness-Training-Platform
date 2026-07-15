@@ -252,6 +252,64 @@ function assertRoleConflictMatrix(
   }
 }
 
+function determineRequiredAction(
+  isTokenAvailable: boolean,
+  authEmail: string | undefined,
+  isTargetUserMatch: boolean,
+  purpose: ActionTokenPurpose,
+  accountExists: boolean,
+):
+  | 'CONTINUE_SETUP'
+  | 'LOGIN_REQUIRED'
+  | 'SWITCH_ACCOUNT'
+  | 'CONFIRM_ROLE_CHANGE'
+  | 'TOKEN_UNAVAILABLE' {
+  if (!isTokenAvailable) {
+    return 'TOKEN_UNAVAILABLE';
+  }
+  if (authEmail && !isTargetUserMatch) {
+    return 'SWITCH_ACCOUNT';
+  }
+  if (
+    purpose === 'INITIAL_ORGANISATION_ADMIN_SETUP' ||
+    purpose === 'PLATFORM_ADMIN_INVITE' ||
+    !accountExists
+  ) {
+    return 'CONTINUE_SETUP';
+  }
+  if (!authEmail) {
+    return 'LOGIN_REQUIRED';
+  }
+  return 'CONFIRM_ROLE_CHANGE';
+}
+
+function buildConfirmRoleChangeResponse(
+  resolved: Awaited<ReturnType<typeof resolveTokenAndInvitation>>,
+  rejectAllowed: boolean,
+  invitationType: InvitationTypeDto,
+  roleGranted: InvitationRoleGrantedDto,
+  isOrgScoped: boolean,
+): InvitationContextResponseDto {
+  return {
+    requiredAction: 'CONFIRM_ROLE_CHANGE',
+    status: resolved.status,
+    expiresAt: resolved.token.expiresAt.toISOString(),
+    rejectAllowed,
+    invitationType,
+    roleGranted,
+    organisationId: isOrgScoped ? (resolved.invitation.organisationId ?? undefined) : undefined,
+    organisationName: isOrgScoped
+      ? (resolved.invitation.organisation?.name ?? 'Unknown Organisation')
+      : undefined,
+    permissions:
+      roleGranted === 'ORGANISATION_ADMIN' && resolved.invitation.permissionGrants
+        ? resolved.invitation.permissionGrants.map(
+            (g: { organisationPermissionId: string }) => g.organisationPermissionId,
+          )
+        : undefined,
+  };
+}
+
 export async function getInvitationTokenContext(
   rawToken: string,
   authContext?: string | { userId?: string; email?: string },
@@ -277,34 +335,20 @@ export async function getInvitationTokenContext(
   const rejectAllowed = isTokenAvailable && invitationType !== 'PLATFORM_ADMIN';
 
   const targetUserId = resolved.token.userId ?? resolved.token.user?.id ?? existingUser?.id;
-  const isTargetUserMatch =
-    normAuth && normAuth.email
-      ? (!targetUserId || !normAuth.userId || normAuth.userId === targetUserId) &&
-        normAuth.email.trim().toLowerCase() === resolved.targetEmail.trim().toLowerCase()
-      : false;
+  const authEmail = normAuth?.email;
+  const isTargetUserMatch = Boolean(
+    authEmail &&
+    (!targetUserId || !normAuth?.userId || normAuth.userId === targetUserId) &&
+    authEmail.trim().toLowerCase() === resolved.targetEmail.trim().toLowerCase(),
+  );
 
-  let requiredAction:
-    | 'CONTINUE_SETUP'
-    | 'LOGIN_REQUIRED'
-    | 'SWITCH_ACCOUNT'
-    | 'CONFIRM_ROLE_CHANGE'
-    | 'TOKEN_UNAVAILABLE';
-
-  if (!isTokenAvailable) {
-    requiredAction = 'TOKEN_UNAVAILABLE';
-  } else if (normAuth && normAuth.email && !isTargetUserMatch) {
-    requiredAction = 'SWITCH_ACCOUNT';
-  } else if (
-    resolved.token.purpose === 'INITIAL_ORGANISATION_ADMIN_SETUP' ||
-    resolved.token.purpose === 'PLATFORM_ADMIN_INVITE' ||
-    !accountExists
-  ) {
-    requiredAction = 'CONTINUE_SETUP';
-  } else if (!normAuth || !normAuth.email) {
-    requiredAction = 'LOGIN_REQUIRED';
-  } else {
-    requiredAction = 'CONFIRM_ROLE_CHANGE';
-  }
+  const requiredAction = determineRequiredAction(
+    isTokenAvailable,
+    authEmail,
+    isTargetUserMatch,
+    resolved.token.purpose,
+    accountExists,
+  );
 
   if (requiredAction !== 'CONFIRM_ROLE_CHANGE') {
     return {
@@ -315,24 +359,13 @@ export async function getInvitationTokenContext(
     };
   }
 
-  return {
-    requiredAction,
-    status: resolved.status,
-    expiresAt: resolved.token.expiresAt.toISOString(),
+  return buildConfirmRoleChangeResponse(
+    resolved,
     rejectAllowed,
     invitationType,
-    roleGranted: invitationRole,
-    organisationId: isOrgScoped ? (resolved.invitation.organisationId ?? undefined) : undefined,
-    organisationName: isOrgScoped
-      ? (resolved.invitation.organisation?.name ?? 'Unknown Organisation')
-      : undefined,
-    permissions:
-      invitationRole === 'ORGANISATION_ADMIN' && resolved.invitation.permissionGrants
-        ? resolved.invitation.permissionGrants.map(
-            (g: { organisationPermissionId: string }) => g.organisationPermissionId,
-          )
-        : undefined,
-  };
+    invitationRole,
+    isOrgScoped,
+  );
 }
 
 export async function acceptInvitationWithToken(
@@ -349,7 +382,7 @@ export async function acceptInvitationWithToken(
   const resolved = await resolveTokenAndInvitation(rawToken, now);
   assertActiveTokenForMutation(resolved);
 
-  if (!normAuth || !normAuth.email) {
+  if (!normAuth?.email) {
     throw new InvitationFlowError(401, 'AUTH_REQUIRED', 'Authentication credentials are required.');
   }
 
@@ -562,6 +595,19 @@ export async function acceptInvitationWithToken(
   }
 }
 
+function resolveRejectActorType(
+  normAuth: { userId?: string; email?: string } | undefined,
+  existingUser: { userType: UserType } | null,
+): AuditActorType | 'SYSTEM' {
+  if (!normAuth) {
+    return 'SYSTEM';
+  }
+  if (existingUser) {
+    return userTypeToAuditActorType(existingUser.userType);
+  }
+  return 'GENERAL_TRAINEE';
+}
+
 export async function rejectInvitationWithToken(
   rawToken: string,
   input: InvitationRejectRequestDto,
@@ -588,7 +634,7 @@ export async function rejectInvitationWithToken(
   const existingUser = await findUserByEmailWithProfiles(resolved.targetEmail);
   const targetUserId = resolved.token.userId ?? resolved.token.user?.id ?? existingUser?.id;
 
-  if (normAuth && normAuth.email) {
+  if (normAuth?.email) {
     if (
       (normAuth.userId && targetUserId && normAuth.userId !== targetUserId) ||
       normAuth.email.trim().toLowerCase() !== resolved.targetEmail.trim().toLowerCase()
@@ -625,11 +671,7 @@ export async function rejectInvitationWithToken(
       await claimInvitationReject(resolved.invitation.id, tx);
       await claimInvitationToken(resolved.token.id, tx);
 
-      const actorType = normAuth
-        ? existingUser
-          ? userTypeToAuditActorType(existingUser.userType)
-          : 'GENERAL_TRAINEE'
-        : 'SYSTEM';
+      const actorType = resolveRejectActorType(normAuth, existingUser);
       const actorUserId =
         actorType === 'SYSTEM' ? null : (normAuth?.userId ?? existingUser?.id ?? null);
 
