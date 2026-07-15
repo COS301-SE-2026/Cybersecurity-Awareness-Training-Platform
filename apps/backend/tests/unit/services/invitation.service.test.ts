@@ -5,7 +5,11 @@ import {
   rejectInvitationWithToken,
   InvitationFlowError,
 } from '../../../src/services/invitation.service.js';
-import { buildMockInvitationToken, buildMockUser } from '../helpers/invitation.fixtures.js';
+import {
+  buildMockInvitationToken,
+  buildMockUser,
+  createInvitationRepoMock,
+} from '../helpers/invitation.fixtures.js';
 
 const { invitationRepoMock, auditLogServiceMock, tokenHashServiceMock } = vi.hoisted(() => {
   class InvitationRepositoryConflictError extends Error {
@@ -77,6 +81,7 @@ describe('InvitationService (Detailed Boundary & Concurrency Tests)', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    createInvitationRepoMock();
   });
 
   describe('getInvitationTokenContext', () => {
@@ -315,6 +320,252 @@ describe('InvitationService (Detailed Boundary & Concurrency Tests)', () => {
         }),
         mockTx,
       );
+    });
+
+    it('throws AUTH_USER_MISMATCH when logged in with a different account during reject', async () => {
+      invitationRepoMock.findInvitationTokenByHash.mockResolvedValue(mockValidToken);
+      invitationRepoMock.findUserByEmailWithProfiles.mockResolvedValue(mockExistingTraineeUser);
+
+      await expect(
+        rejectInvitationWithToken(
+          'raw-token',
+          {},
+          { userId: 'diff-user', email: 'other@example.com' },
+        ),
+      ).rejects.toThrow(InvitationFlowError);
+    });
+
+    it('records correct audit actor type for SYSTEM, GENERAL_TRAINEE, and IP_ADMIN on reject', async () => {
+      invitationRepoMock.findInvitationTokenByHash.mockResolvedValue(mockValidToken);
+
+      // SYSTEM (unauthenticated)
+      invitationRepoMock.findUserByEmailWithProfiles.mockResolvedValue(null);
+      await rejectInvitationWithToken('raw-token', {});
+      expect(auditLogServiceMock.recordAuditLog).toHaveBeenCalledWith(
+        expect.objectContaining({ actorType: 'SYSTEM', actorUserId: null }),
+        mockTx,
+      );
+
+      // GENERAL_TRAINEE
+      invitationRepoMock.findUserByEmailWithProfiles.mockResolvedValue(null);
+      await rejectInvitationWithToken(
+        'raw-token',
+        {},
+        { userId: 'u-gen', email: 'trainee@example.com' },
+      );
+      expect(auditLogServiceMock.recordAuditLog).toHaveBeenCalledWith(
+        expect.objectContaining({ actorType: 'GENERAL_TRAINEE', actorUserId: 'u-gen' }),
+        mockTx,
+      );
+
+      // IP_ADMIN
+      invitationRepoMock.findUserByEmailWithProfiles.mockResolvedValue(
+        buildMockUser({ id: 'ip-1', userType: 'IP_ADMIN' }),
+      );
+      await rejectInvitationWithToken(
+        'raw-token',
+        {},
+        { userId: 'ip-1', email: 'trainee@example.com' },
+      );
+      expect(auditLogServiceMock.recordAuditLog).toHaveBeenCalledWith(
+        expect.objectContaining({ actorType: 'IP_ADMIN', actorUserId: 'ip-1' }),
+        mockTx,
+      );
+    });
+
+    it('throws INVITATION_EXPIRED inside transaction if token is used or revoked or invitation not PENDING', async () => {
+      invitationRepoMock.findInvitationTokenByHash.mockResolvedValueOnce(mockValidToken);
+      invitationRepoMock.findUserByEmailWithProfiles.mockResolvedValueOnce(mockExistingTraineeUser);
+
+      // Override mockTx actionToken to return revoked token
+      mockTx.actionToken.findUnique.mockResolvedValueOnce({
+        ...mockValidToken,
+        revokedAt: new Date(),
+      });
+
+      await expect(rejectInvitationWithToken('raw-token', {})).rejects.toThrow(InvitationFlowError);
+    });
+  });
+
+  describe('Purpose mapping and token context branches', () => {
+    it('handles INITIAL_ORGANISATION_ADMIN_SETUP purpose and returns CONTINUE_SETUP', async () => {
+      const token = buildMockInvitationToken({
+        purpose: 'INITIAL_ORGANISATION_ADMIN_SETUP',
+        invitation: { ...buildMockInvitationToken().invitation, organisationId: null },
+      });
+      invitationRepoMock.findInvitationTokenByHash.mockResolvedValue(token);
+      invitationRepoMock.findUserByEmailWithProfiles.mockResolvedValue(null);
+
+      const res = await getInvitationTokenContext('raw-token');
+      expect(res.requiredAction).toBe('CONTINUE_SETUP');
+    });
+
+    it('handles PLATFORM_ADMIN_INVITE purpose and returns CONTINUE_SETUP', async () => {
+      const token = buildMockInvitationToken({ purpose: 'PLATFORM_ADMIN_INVITE' });
+      invitationRepoMock.findInvitationTokenByHash.mockResolvedValue(token);
+      invitationRepoMock.findUserByEmailWithProfiles.mockResolvedValue(null);
+
+      const res = await getInvitationTokenContext('raw-token');
+      expect(res.requiredAction).toBe('CONTINUE_SETUP');
+      expect(res.rejectAllowed).toBe(false);
+    });
+
+    it('handles ORGANISATION_ADMIN_PROMOTION and PLATFORM_ADMIN_UPGRADE_CONFIRMATION purposes', async () => {
+      const tokenOrgAdmin = buildMockInvitationToken({
+        purpose: 'ORGANISATION_ADMIN_PROMOTION',
+        invitation: {
+          ...buildMockInvitationToken().invitation,
+          permissionGrants: [{ organisationPermissionId: 'p-1' }],
+        },
+      });
+      invitationRepoMock.findInvitationTokenByHash.mockResolvedValueOnce(tokenOrgAdmin);
+      invitationRepoMock.findUserByEmailWithProfiles.mockResolvedValueOnce(mockExistingTraineeUser);
+
+      const res1 = await getInvitationTokenContext('raw-token', {
+        userId: 'user-1',
+        email: 'trainee@example.com',
+      });
+      expect(res1.requiredAction).toBe('CONFIRM_ROLE_CHANGE');
+      if (res1.requiredAction === 'CONFIRM_ROLE_CHANGE') {
+        expect(res1.permissions).toEqual(['p-1']);
+      }
+
+      const tokenPlatAdmin = buildMockInvitationToken({
+        purpose: 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION',
+      });
+      invitationRepoMock.findInvitationTokenByHash.mockResolvedValueOnce(tokenPlatAdmin);
+      invitationRepoMock.findUserByEmailWithProfiles.mockResolvedValueOnce(mockExistingTraineeUser);
+
+      const res2 = await getInvitationTokenContext('raw-token', {
+        userId: 'user-1',
+        email: 'trainee@example.com',
+      });
+      expect(res2.requiredAction).toBe('CONFIRM_ROLE_CHANGE');
+    });
+
+    it('throws when purpose is unknown or not an invitation purpose', async () => {
+      invitationRepoMock.findInvitationTokenByHash.mockResolvedValueOnce(
+        buildMockInvitationToken({ purpose: 'UNKNOWN_PURPOSE' }),
+      );
+      await expect(getInvitationTokenContext('raw-token')).rejects.toThrow(InvitationFlowError);
+
+      invitationRepoMock.findInvitationTokenByHash.mockResolvedValueOnce(
+        buildMockInvitationToken({ purpose: 'PASSWORD_RESET' }),
+      );
+      await expect(getInvitationTokenContext('raw-token')).rejects.toThrow(InvitationFlowError);
+    });
+
+    it('throws when invitation property on token is null', async () => {
+      invitationRepoMock.findInvitationTokenByHash.mockResolvedValueOnce(
+        buildMockInvitationToken({ invitation: null }),
+      );
+      await expect(getInvitationTokenContext('raw-token')).rejects.toThrow(InvitationFlowError);
+    });
+
+    it('returns SWITCH_ACCOUNT when authContext email matches but userId mismatches', async () => {
+      invitationRepoMock.findInvitationTokenByHash.mockResolvedValueOnce(mockValidToken);
+      invitationRepoMock.findUserByEmailWithProfiles.mockResolvedValueOnce(mockExistingTraineeUser);
+
+      const res = await getInvitationTokenContext('raw-token', {
+        userId: 'mismatch-id',
+        email: 'trainee@example.com',
+      });
+      expect(res.requiredAction).toBe('SWITCH_ACCOUNT');
+    });
+  });
+
+  describe('acceptInvitationWithToken error branches and audit actors', () => {
+    it('throws AUTH_REQUIRED when normAuth is not provided', async () => {
+      invitationRepoMock.findInvitationTokenByHash.mockResolvedValueOnce(mockValidToken);
+      await expect(
+        acceptInvitationWithToken('raw-token', { confirmRoleChange: true }),
+      ).rejects.toThrow(InvitationFlowError);
+    });
+
+    it('throws AUTH_USER_MISMATCH when logged in user does not match target', async () => {
+      invitationRepoMock.findInvitationTokenByHash.mockResolvedValueOnce(mockValidToken);
+      invitationRepoMock.findUserByEmailWithProfiles.mockResolvedValueOnce(mockExistingTraineeUser);
+
+      await expect(
+        acceptInvitationWithToken(
+          'raw-token',
+          { confirmRoleChange: true },
+          { userId: 'user-1', email: 'wrong@example.com' },
+        ),
+      ).rejects.toThrow(InvitationFlowError);
+    });
+
+    it('throws SETUP_REQUIRED when target user is not found during mutation', async () => {
+      invitationRepoMock.findInvitationTokenByHash.mockResolvedValueOnce(mockValidToken);
+      invitationRepoMock.findUserByEmailWithProfiles.mockResolvedValueOnce(null);
+
+      await expect(
+        acceptInvitationWithToken(
+          'raw-token',
+          { confirmRoleChange: true },
+          { userId: 'user-1', email: 'trainee@example.com' },
+        ),
+      ).rejects.toThrow(InvitationFlowError);
+    });
+
+    it('handles PLATFORM_ADMIN acceptance returning REAUTHENTICATE session outcome', async () => {
+      const platAdminToken = buildMockInvitationToken({
+        purpose: 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION',
+      });
+      invitationRepoMock.findInvitationTokenByHash.mockResolvedValue(platAdminToken);
+      invitationRepoMock.findUserByEmailWithProfiles.mockResolvedValue(
+        buildMockUser({ userType: 'ORGANISATION_ADMIN' }),
+      );
+
+      invitationRepoMock.updateUserRoleAndProfilesFromInvitation.mockResolvedValueOnce({
+        roleUpdate: { userType: 'PLATFORM_ADMIN' },
+      });
+
+      const res = await acceptInvitationWithToken(
+        'raw-token',
+        { confirmRoleChange: true },
+        { userId: 'user-1', email: 'trainee@example.com' },
+      );
+      expect(res.sessionOutcome).toBe('REAUTHENTICATE');
+    });
+
+    it('re-throws InvitationRepositoryConflictError as InvitationFlowError 409', async () => {
+      invitationRepoMock.findInvitationTokenByHash.mockResolvedValue(mockValidToken);
+      invitationRepoMock.findUserByEmailWithProfiles.mockResolvedValue(mockExistingTraineeUser);
+
+      invitationRepoMock.updateUserRoleAndProfilesFromInvitation.mockRejectedValueOnce(
+        new invitationRepoMock.InvitationRepositoryConflictError('CONFLICT', 'Repo conflict'),
+      );
+
+      await expect(
+        acceptInvitationWithToken(
+          'raw-token',
+          { confirmRoleChange: true },
+          { userId: 'user-1', email: 'trainee@example.com' },
+        ),
+      ).rejects.toThrow(InvitationFlowError);
+    });
+
+    it('re-throws non-conflict errors directly', async () => {
+      invitationRepoMock.findInvitationTokenByHash.mockResolvedValue(mockValidToken);
+      invitationRepoMock.findUserByEmailWithProfiles.mockResolvedValue(mockExistingTraineeUser);
+      mockTx.user.findUnique.mockResolvedValue({
+        ...mockExistingTraineeUser,
+        authStatus: 'ACTIVE',
+      });
+
+      const genericError = new Error('Database connection lost');
+      invitationRepoMock.updateUserRoleAndProfilesFromInvitation.mockRejectedValueOnce(
+        genericError,
+      );
+
+      await expect(
+        acceptInvitationWithToken(
+          'raw-token',
+          { confirmRoleChange: true },
+          { userId: 'user-1', email: 'trainee@example.com' },
+        ),
+      ).rejects.toThrow(genericError);
     });
   });
 });

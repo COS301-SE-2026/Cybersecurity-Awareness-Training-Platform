@@ -422,5 +422,37 @@ describe('Simulation API', () => {
 
       expect(response.status).toBe(403);
     });
+
+    it('returns 400 when simulation service throws Error with message VALIDATION_ERROR', async () => {
+      const { simulationService } = await import('../../src/services/simulation.service.js');
+      vi.spyOn(simulationService, 'getSimulatedInbox').mockRejectedValueOnce(
+        new Error('VALIDATION_ERROR'),
+      );
+
+      const response = await request(app)
+        .get('/trainee/campaign-items/22222222-2222-2222-2222-222222222222/simulated-inbox')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({
+        error: 'VALIDATION_ERROR',
+      });
+    });
+
+    it('returns 500 when simulation service throws an unknown error', async () => {
+      const { simulationService } = await import('../../src/services/simulation.service.js');
+      vi.spyOn(simulationService, 'getSimulatedInbox').mockRejectedValueOnce(
+        new Error('Unexpected internal database error'),
+      );
+
+      const response = await request(app)
+        .get('/trainee/campaign-items/22222222-2222-2222-2222-222222222222/simulated-inbox')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(response.status).toBe(500);
+      expect(response.body).toEqual({
+        error: 'Unexpected internal database error',
+      });
+    });
   });
 });

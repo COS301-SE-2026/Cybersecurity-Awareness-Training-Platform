@@ -159,6 +159,102 @@ describe('invitation controller and routes', () => {
         message: 'Invitation rejected successfully.',
       });
     });
+
+    it('returns 400 when token param is missing or empty string', async () => {
+      const reqEmpty = { params: { token: '   ' } } as unknown as Request;
+      const res = mockResponse();
+
+      await getInvitationContext(reqEmpty, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: 'TOKEN_INVALID',
+        message: 'Invitation token parameter is required.',
+      });
+    });
+
+    it('re-throws non-InvitationFlowError directly in getInvitationContext', async () => {
+      const req = { params: { token: validToken } } as unknown as Request;
+      const res = mockResponse();
+      const genericErr = new Error('Random failure');
+      invitationServiceMock.getInvitationTokenContext.mockRejectedValueOnce(genericErr);
+
+      await expect(getInvitationContext(req, res)).rejects.toThrow(genericErr);
+    });
+
+    it('catches InvitationFlowError in acceptInvitation and returns formatted json status', async () => {
+      const req = {
+        params: { token: validToken },
+        body: {},
+        ip: '10.0.0.1',
+        socket: {},
+        header: vi.fn(),
+      } as unknown as Request;
+      const res = mockResponse();
+      const flowErr = new invitationServiceMock.InvitationFlowError(
+        403,
+        'AUTH_MISMATCH',
+        'Not allowed',
+      );
+      invitationServiceMock.acceptInvitationWithToken.mockRejectedValueOnce(flowErr);
+
+      await acceptInvitation(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith({ error: 'AUTH_MISMATCH', message: 'Not allowed' });
+    });
+
+    it('re-throws non-InvitationFlowError directly in acceptInvitation', async () => {
+      const req = {
+        params: { token: validToken },
+        body: {},
+        ip: '10.0.0.1',
+        socket: {},
+        header: vi.fn(),
+      } as unknown as Request;
+      const res = mockResponse();
+      const genericErr = new Error('Random failure');
+      invitationServiceMock.acceptInvitationWithToken.mockRejectedValueOnce(genericErr);
+
+      await expect(acceptInvitation(req, res)).rejects.toThrow(genericErr);
+    });
+
+    it('catches InvitationFlowError in rejectInvitation and returns formatted json status', async () => {
+      const req = {
+        params: { token: validToken },
+        body: {},
+        ip: '10.0.0.1',
+        socket: {},
+        header: vi.fn(),
+      } as unknown as Request;
+      const res = mockResponse();
+      const flowErr = new invitationServiceMock.InvitationFlowError(
+        409,
+        'EXPIRED',
+        'Token expired',
+      );
+      invitationServiceMock.rejectInvitationWithToken.mockRejectedValueOnce(flowErr);
+
+      await rejectInvitation(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(409);
+      expect(res.json).toHaveBeenCalledWith({ error: 'EXPIRED', message: 'Token expired' });
+    });
+
+    it('re-throws non-InvitationFlowError directly in rejectInvitation', async () => {
+      const req = {
+        params: { token: validToken },
+        body: {},
+        ip: '10.0.0.1',
+        socket: {},
+        header: vi.fn(),
+      } as unknown as Request;
+      const res = mockResponse();
+      const genericErr = new Error('Random failure');
+      invitationServiceMock.rejectInvitationWithToken.mockRejectedValueOnce(genericErr);
+
+      await expect(rejectInvitation(req, res)).rejects.toThrow(genericErr);
+    });
   });
 
   describe('Route & Middleware Integration Tests (Supertest)', () => {
