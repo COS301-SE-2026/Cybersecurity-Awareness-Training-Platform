@@ -1,12 +1,169 @@
-# Demo 1 Software Requirements Specification
+# Insightful Phish Software Requirements Specification
 
 ## 1. Introduction
 
-This document defines the Demo 1 Software Requirements Specification for Insightful Phish, a cybersecurity awareness training platform. Demo 1 is an early prototype increment and is not a complete final SRS for the full or final product.
+### 1.1 Purpose
 
-Insightful Phish is intended to become a modular training platform for individual trainees, organisation-linked trainees, organisation admins, and Insightful Phish admins. The long-term direction includes campaign-based training, reusable campaign components, simulated inboxes and emails, training documents, quizzes, reports, dashboards, ethically constrained real-email simulations, AI-assisted content generation, and richer simulations. Demo 1 only implements a controlled trainee-facing subset of features.
+This document defines the Software Requirements Specification for Insightful Phish, a web-based cybersecurity awareness and training platform that helps organisations and individuals identify and respond to threats through realistic phishing simulations, interactive training, quizzes, and user risk insights.
 
-Campaigns are the main assignment and ordering container. For Demo 1, campaign content is limited to a simulated inbox, a training document, and a quiz. The conceptual `CampaignComponent` is represented in current implementation and supporting documents as a `CampaignItem` where applicable.
+### 1.2 Intended Audience
+
+This document is intended for Insightful Phish developers, our client (Southern Cross Solutions), and other stakeholders including the COS301 lecturers.
+
+### 1.3 Product Scope
+
+Insightful Phish is a modular cybersecurity awareness training platform intended for individual trainees, organisation-linked trainees, organisation administrators, and Insightful Phish platform administrators. The product provides role- and permission-based access control so that each user type can access only the features, workflows, and data appropriate to their responsibilities. This includes separating individual trainee activity from organisation-scoped activity, restricting organisation administration to authorised organisation administrators, and reserving platform-level administration for Insightful Phish administrators.
+
+The product direction is centred on campaign-based cybersecurity awareness training. Campaigns act as the main assignment and ordering container for training experiences. A campaign may contain multiple campaign items in a defined order, allowing trainees to progress through structured cybersecurity awareness activities. Campaign content includes simulated inboxes and emails, training documents, and quizzes. In the current implementation and supporting documentation, they are represented as campaign items. Campaign items may also be grouped to support more complex campaign flows.
+
+The long-term product scope includes organisation onboarding, organisation-scoped trainee management, campaign management, reporting dashboards, reusable campaign components, AI-assisted content generation, and richer cybersecurity simulations. These simulations may include simulated inbox experiences, phishing-style messages, training content, quizzes, and ethically constrained real-email simulation workflows that allow organisations to assess trainee responses in a controlled and authorised environment. The platform is intended to remain modular, secure, and extensible so that future training formats, reporting capabilities, simulation types, and organisation-level administration features can be added without changing the overall product direction.
+
+### 1.4 Definitions, Acronyms, and Abbreviations
+
+| Term                               | Definition                                                                                                                                   |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Trainee**                        | A user who completes cybersecurity awareness training through campaigns.                                                                     |
+| **Organisation trainee**           | A trainee who is linked to an organisation and may be assigned campaigns by an organisation admin.                                           |
+| **Organisation administrator**     | A user with administrative permissions for an organisation, able to manage organisation-specific campaigns, content, and organisation users. |
+| **Insightful Phish administrator** | A platform-level administrator with permissions to manage the entire Insightful Phish platform.                                              |
+| **Platform administrator**         | An Insightful Phish administrator. (see Insightful Phish admin)                                                                              |
+
+<!-- Put acronyms in `` and keep abbreviations as above -->
+
+| Abbreviation / Acronym | Definition                                                                                                                                                |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`RBAC`**             | Role-Based Access Control: A system for restricting access to resources based on user roles and permissions.                                              |
+| **`TUCBW`**            | This use case begins with: Defines the initial state and preconditions for the use case.                                                                  |
+| **`TUCEW`**            | This use case ends with: Specifies the final state and postconditions for the use case.                                                                   |
+| **`SRS`**              | Software Requirements Specification: A document that describes the software system to be developed, including functional and non-functional requirements. |
+
+### 1.5 References
+
+//TODO Add references
+
+### 1.6 Document Overview
+
+This document is divided into the following sections:
+
+- [Section 1: Introduction](#1-introduction): Provides an overview of the document, including its purpose, intended audience, product scope, definitions, acronyms, and references.
+- [Section 2: Overall Description](#2-overall-description): Describes the product perspective, product functions, and user classes and characteristics.
+
+//TODO: Add more sections here
+
+## 2. Overall Description
+
+### 2.1 Product Perspective
+
+The Insightful Phish platform is a web-based browser accessed application that provides cybersecurity awareness training through campaigns. It is designed to be secure and modular, allowing for future expansion of features, content types, and reporting capabilities. The platform is intended to be used by individual trainees, organisation-linked trainees, organisation administrators, and Insightful Phish platform administrators. The product is designed to be accessed through modern web browsers and is intended to provide a consistent user experience across different devices and screen sizes for trainees. Administration and management features are primarily intended for desktop or larger-screen devices, where more complex workflows can be effectively managed.
+
+### 2.2 Product Functions
+
+The Insightful Phish platform provides the following core functions:
+
+- Individual Trainee registration and authentication
+- Organisation Trainee invitation, account setup, and authentication
+- Organisation Administrator invitation and role upgrade, account setup, and authentication
+- Organisation Administrator management of organisation trainees, campaigns, and content
+- Campaign creation, assignment, and management by organisation admins to organisation trainees
+- Self-enrolment in campaigns by individual trainees
+- Campaign participation by trainees, including simulated inboxes, training documents, and quizzes
+- Reporting and analytics for organisation admins to monitor organisation trainee progress, campaign completion, and risk assessment
+- Insightful Phish platform administrator management of organisations, organisation admins, and platform-level settings
+
+### 2.3 User Classes and Characteristics
+
+| User class                     | Goals                                                                                                       | Expected skill                                                                                     | Authority / Sensitivity                                                  | Usability Considerations                                                                                       |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| **Individual Trainee**         | Complete self-enrolled campaigns, learn to recognise and respond to cyber threats                           | Basic computer literacy, familiarity with web browsers                                             | Own profile and personal data                                            | Plain language, clear instructions, mobile responsive design, accessible content, clear flows                  |
+| **Organisation Trainee**       | Complete assigned campaigns, learn to recognise and respond to cyber threats                                | Basic computer literacy, familiarity with web browsers                                             | Own profile and personal data, Organisation-controlled settings and data | Plain language, clear instructions, mobile responsive design, accessible content, clear flows                  |
+| **Organisation Administrator** | Manage organisation trainees, campaigns, and content; monitor trainee progress and risk                     | Intermediate computer literacy, familiarity with web applications and administrative workflows     | Organisation-level data, trainee data, campaign content                  | Clear administrative workflows, role-based access control, audit logging, responsive design for larger screens |
+| **Platform Administrator**     | Manage organisations, organisation admins, and platform-level settings; monitor platform usage and security | Advanced computer literacy, familiarity with web applications and complex administrative workflows | Platform-level data, organisation data, trainee data, campaign content   | Clear administrative workflows, role-based access control, audit logging, responsive design for larger screens |
+
+### 2.4 Operating Environment
+
+Insightful Phish is a web-based application that is designed to run on modern web browsers. The platform's operating environment is split between the client-side (front-end) and server-side (back-end) components. The client-side is accessed through web browsers on desktop and mobile devices, and this is where users interact with the platform and where local data storage and caching occur. The server-side is hosted on the client's provided server infrastructure, where the platform's back-end services, databases, and APIs are deployed. The server-side is responsible for processing requests, managing data storage, enforcing security policies, and providing the necessary functionality to support the client-side application.
+
+### 2.5 Design and Implementation Constraints
+
+The Insightful Phish platform is subject to the following design and implementation constraints:
+
+| Constraint ID | Constraint Description                                                                                                                                                                                  |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`CON-01`**  | The system shall comply with all applicable privacy laws and data-protection obligations for personal data handling                                                                                     |
+| **`CON-02`**  | The system shall be designed to prevent unauthorised access to sensitive data, including trainee personal information and organisation data                                                             |
+| **`CON-03`**  | The system shall be designed to ensure that privileged actions are restricted by explicit role and permission checks                                                                                    |
+| **`CON-04`**  | The system shall be designed to prevent accidental or malicious data loss, including through audit logging and change tracking                                                                          |
+| **`CON-05`**  | The system shall run on the client's provided server hosting infrastructure and be deployable through Docker containers                                                                                 |
+| **`CON-06`**  | The system shall be designed to be modular and extensible, allowing for future expansion of features, content types, and reporting capabilities without requiring major architectural changes           |
+| **`CON-07`**  | Documentation shall remain version-controlled and separately identifiable from earlier demo documentation versions, with clear versioning and change history to support traceability and accountability |
+
+### 2.6 Assumptions and Dependencies
+
+InsightfulPhish aims to be as self-contained and independent as possible, but the following assumptions and dependencies are relevant to the current implementation and future development:
+
+- The system assumes that users have access to modern web browsers and a stable internet connection for accessing the platform.
+- The system assumes that users have access to email for receiving invitations, notifications, and other communications from the platform. Without email access, users will not be able to create an account, and thus will not be able to access the platform.
+- The system assumes that Insightful Phish administrators will manage organisation registration requests. This means that Insightful Phish administrators will have the ability to approve or reject organisation registration requests, and will be responsible for ensuring that only legitimate organisations are granted access to the platform.
+- The system assumes that organisation administrators will manage their own organisation's trainees, campaigns, and content. This means that organisation administrators will have the ability to add and remove trainees, create and manage campaigns, and upload and manage training content for their organisation. Insightful Phish administrators will not be responsible for managing organisations, trainees, campaigns, or content.
+- The system assumes that the platform will be deployed on the client's provided server hosting infrastructure, and that the client will provide the necessary resources and support for maintaining the platform's availability, performance, and security.
+
+### 2.7 System Boundaries
+
+Insightful Phish tries to be as self-contained as possible, but the following system boundaries are relevant to the current implementation and future development:
+
+- **Email delivery**: Insightful Phish owned emails will be sent by an SMTP server hosted on the client's provided server infrastructure. The system will not send emails from external email providers or third-party services for these types of emails. Once supported, Campaign owned real email delivery will be opt-in and ethically constrained, and will require explicit organisation context, domain, and SMTP configuration. This means that organisations that want their own domain and SMTP configuration for sending real emails will need to provide the necessary information and configuration to the platform.
+- **AI-assisted content generation**: Insightful Phish may eventually support AI-assisted content generation for quizzes, emails, and training content. How AI-assisted content generation is implemented is currently under investigation and will be determined in future. For now the focus is first on getting the core platform functionality implemented and tested, and then exploring how AI-assisted content generation can be integrated into the platform in a secure and ethical manner.
+
+### 2.8 Current Product Status
+
+Insightful Phish is currently in development, with the first demo (Demo 1) focusing on core trainee-facing use cases, including viewing simulated emails, accessing training documents, and completing quizzes. Demo 2 features focus on authentication and access control, which includes secure individual trainee registration, organisation registration and approval, organisation admin setup, and organisation trainee invitation and acceptance. Demo 2 also includes the first organisation admin management features, including managing organisation trainees, organisation security settings, and organisation admin permissions. Future demos will expand on campaign creation, assignment, and management, as well as reporting and analytics for organisation admins and Insightful Phish administrators.
+
+## 3. User Stories
+
+### 3.1 User Story Format
+
+Insightful Phish is used by multiple user types, each with different goals and responsibilities. User stories are written in the following format:
+
+```
+As a [type of user]
+I want to [perform some action]
+So that [benefit or value is achieved]
+```
+
+A user story is not the same as a use case. A user story describes a user's goal or need, while a use case describes the steps and interactions required to achieve that goal or need. User stories are written from the perspective of the user. In the table below, the following fields are used to describe each user story:
+
+- **User story ID**: A unique identifier for the user story.
+- **User story**: A description of the user's goal or need, written in the user story format above.
+- **Business value**: A description of the benefit or value that the user story provides to the user or the organisation.
+- **Acceptance criteria**: A list of conditions that must be met for the user story to be considered complete and successful. Acceptance criteria are written in a clear and testable format, and should be specific enough to allow for verification of the user story's implementation.
+- **Related to:** IDs of related user stories, use cases, or requirements that are relevant to the user story. This field helps to establish traceability and context for the user story within the overall system.
+
+### 3.2 Trainee User Stories
+
+| User Story ID    | User Story                                                                                                                                        | Business Value                                                                                                                                   | Acceptance Criteria                                                                                                                                                                                                                         | Related to |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| **`US-AUTH-01`** | As a general trainee, I want to register for an account so that I can access the platform and complete pre-made cybersecurity training campaigns. | Allows general trainees to create an account and access the platform, enabling them to participate in pre-made cybersecurity training campaigns. | The trainee can access the registration page. The trainee can enter required information (e.g., name, email, password). The system validates the input and creates a new account. The trainee receives a confirmation email and can log in. | ...        |
+
+- As a trainee, I want to view assigned simulated emails in a controlled inbox so that I can practise recognising suspicious messages safely.
+- As a trainee, I want to view assigned training content so that I can learn how to recognise and respond to cyber threats.
+- As a trainee, I want to complete an assigned quiz and view results so that I can check my understanding of the training material.
+
+### 2.2 Supporting and Future User Stories
+
+The following stories provide future platform context only:
+
+- As an organisation admin, I want to add trainees to my organisation so that organisation employees can be onboarded into cybersecurity awareness training.
+- Organisation admins may eventually add trainees manually, send onboarding emails, or configure an approved email domain so that sign-ups from that domain can be linked to the organisation.
+- As an organisation admin, I want to create, edit, and delete campaigns for my organisation.
+- As an organisation admin, I want to build campaigns from reusable components such as training documents, quizzes, and simulated inboxes.
+- As an organisation admin, I want to drag and drop campaign components into an ordered campaign flow.
+- As an organisation admin, I want to create and edit quizzes, including future support for multiple question types.
+- As an organisation admin, I want to upload, create, edit, and organise training documents.
+- As an organisation admin, I want to review trainee progress, campaign completion, quiz results, risky behaviour, and organisation-level risk on dashboards.
+- As a trainee, I want to participate in assigned campaigns containing training documents, quizzes, and simulated inboxes.
+- As a trainee not linked to an organisation, I want to access default Insightful Phish campaigns and optionally opt into extra features later.
+- As the platform, I may eventually send opt-in real simulated emails to real inboxes, using safe and ethical constraints and organisation context where appropriate.
+- As the platform, I may eventually use AI-assisted generation for quizzes, emails, training transformations, and company-context-aware content.
 
 ### 1.1 Demo 1 Scope
 
@@ -51,27 +208,6 @@ Real email delivery, credential capture, punitive monitoring, adaptive learning,
 
 ### 2.1 Demo 1 Trainee-Facing User Stories
 
-- As a trainee, I want to view assigned simulated emails in a controlled inbox so that I can practise recognising suspicious messages safely.
-- As a trainee, I want to view assigned training content so that I can learn how to recognise and respond to cyber threats.
-- As a trainee, I want to complete an assigned quiz and view results so that I can check my understanding of the training material.
-
-### 2.2 Supporting and Future User Stories
-
-The following stories provide future platform context only:
-
-- As an organisation admin, I want to add trainees to my organisation so that organisation employees can be onboarded into cybersecurity awareness training.
-- Organisation admins may eventually add trainees manually, send onboarding emails, or configure an approved email domain so that sign-ups from that domain can be linked to the organisation.
-- As an organisation admin, I want to create, edit, and delete campaigns for my organisation.
-- As an organisation admin, I want to build campaigns from reusable components such as training documents, quizzes, and simulated inboxes.
-- As an organisation admin, I want to drag and drop campaign components into an ordered campaign flow.
-- As an organisation admin, I want to create and edit quizzes, including future support for multiple question types.
-- As an organisation admin, I want to upload, create, edit, and organise training documents.
-- As an organisation admin, I want to review trainee progress, campaign completion, quiz results, risky behaviour, and organisation-level risk on dashboards.
-- As a trainee, I want to participate in assigned campaigns containing training documents, quizzes, and simulated inboxes.
-- As a trainee not linked to an organisation, I want to access default Insightful Phish campaigns and optionally opt into extra features later.
-- As the platform, I may eventually send opt-in real simulated emails to real inboxes, using safe and ethical constraints and organisation context where appropriate.
-- As the platform, I may eventually use AI-assisted generation for quizzes, emails, training transformations, and company-context-aware content.
-
 ### 2.3 User Characteristics and Actors
 
 - **Trainee:** The primary Demo 1 actor. A trainee accesses assigned campaigns which contain simulated inbox(es) with simulated emails, training content, and quizzes.
@@ -84,6 +220,53 @@ The following stories provide future platform context only:
 A core overview of the Demo 1 use cases can be seen in this diagram:
 
 [UC-Overview Diagram](./diagrams/demo1-use-cases-overview.svg)
+
+### 3.1 Status Model
+
+Use cases and requirements in this SRS use the following status values:
+| Status | Meaning |
+| ------ | ------- |
+| Implemented | The use case or requirements exists in the current implementation |
+| In Progress | The use case or requirements is currently being implemented |
+| Planned | The use case or requirements is planned for a future demo |
+
+### 3.2 Product Use Case Summary
+
+Below are the use case IDs, their names and their current status.
+| Use Case ID | Use Case Name | Status |
+| ----------- | ------------- | ------ |
+| UC-01 | View Emails in Simulated Inbox | Implemented |
+| UC-02 | View Training Document | Implemented |
+| UC-03 | Complete Quiz Flow and View Results | Implemented |
+| UC-04 | Request Organisation Registration | In Progress |
+| UC-05 | Review/Approve Organisation Registration Request | In Progress |
+| UC-06 | Complete First Organisation Admin Setup | In Progress |
+| UC-07 | Accept Organisation Trainee Invitation | In Progress |
+| UC-08 | Manage Organisation Employees | In Progress |
+| UC-09 | Manage Organisation Admins and Permissions | In Progress |
+| UC-10 | Manage Insightful Phish Admins | In Progress |
+| UC-11 | Configure Organisation Security Settings | In Progress |
+| UC-12 | Manage (Personal) Account & Security Settings | In Progress |
+| UC-13 | Assign Campaigns to Organisation Trainees | Planned |
+| UC-14 | Browse Campaigns for General Trainees | Planned |
+| UC-15 | Self-enrol in Campaigns for General Trainees | Planned |
+| UC-16 | Create and Manage Campaigns for General Trainees | Planned |
+| UC-17 | Create and Manage Campaigns for Organisation Trainees | Planned |
+| UC-18 | Build Campaigns from Reusable Components | Planned |
+| UC-19 | Create and Manage Training Documents | Planned |
+| UC-20 | Create and Manage Quizzes | Planned |
+| UC-21 | Create and Manage Simulated Inboxes and Emails | Planned |
+| UC-22 | Create and Manage Ethical Real-Email Simulation Campaign Items | Planned |
+| UC-23 | Send Ethical real-emails using organisation context, domain and SMTP configuration | Planned |
+| UC-24 | Classify Simulated Emails and Provide Feedback | Planned |
+| UC-25 | Interact with Simulated Links and Attachments and Track Interactions | Planned |
+| UC-26 | Simulated Link and Attachment Behaviour (Pages, Forms, and Safe Credential Capture) | Planned |
+| UC-27 | View Campaign Progress, Completion, Score and other trainee-facing information (Trainee) | Planned |
+| UC-28 | View Organisation-level Campaign and Trainee Progress and Completion (Organisation Admin) | Planned |
+| UC-29 | View Organisation-level Risk and Trainee Risk Scoring (Organisation Admin) | Planned |
+| UC-30 | Manage Organisation Context | Planned |
+| UC-31 | Generate Campaign Content with AI Assistance | Planned |
+| UC-32 | Review and Approve AI-generated Campaign Content | Planned |
 
 ### 3.1 UC-01: View Emails in Simulated Inbox
 
