@@ -5,6 +5,10 @@ ALTER TYPE "OrganisationPermissionKey" ADD VALUE IF NOT EXISTS 'REMOVE_ORGANISAT
 
 ALTER TYPE "OrganisationUserStatus" ADD VALUE IF NOT EXISTS 'DISABLED';
 
+COMMIT;
+
+BEGIN;
+
 -- Create OrganisationPermission records for all existing organisations for the new trainee permissions
 INSERT INTO "OrganisationPermission" ("id", "organisationId", "key", "displayName", "description", "isCritical", "updatedAt")
 SELECT 
@@ -55,4 +59,6 @@ WHERE a."adminStatus" = 'ACTIVE'
   AND a."isInitialAdmin" = true
   AND p."key" IN ('VIEW_ORGANISATION_TRAINEES', 'INVITE_ORGANISATION_TRAINEES', 'REMOVE_ORGANISATION_TRAINEES')
 ON CONFLICT ("organisationAdminId", "organisationPermissionId") DO NOTHING;
+
+COMMIT;
 
