@@ -136,6 +136,14 @@ const expectedSchemas = [
   'InvitationAcceptResponse',
   'InvitationRejectRequest',
   'InvitationRejectResponse',
+  'TraineeListItem',
+  'TraineeListResponse',
+  'CreateTraineeInvitationRequest',
+  'CreateTraineeInvitationResponse',
+  'InvitationResendResponse',
+  'InvitationRevokeResponse',
+  'DisableTraineeRequest',
+  'DisableTraineeResponse',
 ] as const;
 
 const expectedResponses = [
@@ -150,6 +158,11 @@ const expectedResponses = [
   'InvitationContextOk',
   'InvitationAcceptOk',
   'InvitationRejectOk',
+  'OrganisationTraineesOk',
+  'OrganisationTraineeInvitationCreated',
+  'OrganisationTraineeInvitationResent',
+  'OrganisationTraineeInvitationRevoked',
+  'OrganisationTraineeDisabled',
 ] as const;
 
 const expectedParameters = [
@@ -159,6 +172,8 @@ const expectedParameters = [
   'AttemptIdPathParam',
   'SetupTokenPathParam',
   'InvitationTokenPathParam',
+  'TraineeIdPathParam',
+  'InvitationIdPathParam',
 ] as const;
 
 const expectedRequestBodies = [
@@ -179,6 +194,8 @@ const expectedRequestBodies = [
   'OrganisationSecuritySettingsUpdate',
   'InvitationAccept',
   'InvitationReject',
+  'CreateTraineeInvitation',
+  'DisableTrainee',
 ] as const;
 
 const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
@@ -262,6 +279,27 @@ const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
   [
     'patch',
     '/organisations/{organisationId}/security-settings',
+    ['200', '400', '401', '403', '404', '409', '422', '429', '500'],
+  ],
+  ['get', '/organisations/{organisationId}/trainees', ['200', '400', '401', '403', '429', '500']],
+  [
+    'post',
+    '/organisations/{organisationId}/trainees/invitations',
+    ['201', '400', '401', '403', '409', '422', '429', '500'],
+  ],
+  [
+    'post',
+    '/organisations/{organisationId}/trainees/invitations/{invitationId}/resend',
+    ['200', '400', '401', '403', '404', '409', '429', '500'],
+  ],
+  [
+    'post',
+    '/organisations/{organisationId}/trainees/invitations/{invitationId}/revoke',
+    ['200', '400', '401', '403', '404', '409', '429', '500'],
+  ],
+  [
+    'patch',
+    '/organisations/{organisationId}/trainees/{traineeId}/disable',
     ['200', '400', '401', '403', '404', '409', '422', '429', '500'],
   ],
   ['get', '/trainee/campaigns', ['200', '401', '429', '500']],
@@ -457,6 +495,20 @@ describe('swaggerSpec', () => {
     expect(responseSchema).toContain('platformLimits');
     expect(responseSchema).toContain('capabilities');
     expect(updateRequest).toContain('OrganisationSecuritySettingsUpdateRequest');
+  });
+
+  it('documents organisation trainee routes with bearer auth and schemas', () => {
+    expectBearerAuth('/organisations/{organisationId}/trainees', 'get');
+    expectBearerAuth('/organisations/{organisationId}/trainees/invitations', 'post');
+    expectBearerAuth(
+      '/organisations/{organisationId}/trainees/invitations/{invitationId}/resend',
+      'post',
+    );
+    expectBearerAuth(
+      '/organisations/{organisationId}/trainees/invitations/{invitationId}/revoke',
+      'post',
+    );
+    expectBearerAuth('/organisations/{organisationId}/trainees/{traineeId}/disable', 'patch');
   });
 
   it.each(inactiveRouteDocs)('does not document inactive route %s', (path) => {

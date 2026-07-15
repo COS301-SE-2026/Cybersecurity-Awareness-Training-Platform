@@ -31,6 +31,24 @@ const ORGANISATION_ADMIN_PERMISSION_SEEDS = [
     description: 'Change organisation security policy and related settings.',
     isCritical: true,
   },
+  {
+    key: 'VIEW_ORGANISATION_TRAINEES',
+    displayName: 'View organisation trainees',
+    description: 'View organisation trainees and pending invitations.',
+    isCritical: false,
+  },
+  {
+    key: 'INVITE_ORGANISATION_TRAINEES',
+    displayName: 'Invite organisation trainees',
+    description: 'Invite new trainees or manage pending trainee invitations.',
+    isCritical: false,
+  },
+  {
+    key: 'REMOVE_ORGANISATION_TRAINEES',
+    displayName: 'Remove organisation trainees',
+    description: 'Disable or remove organisation trainee access.',
+    isCritical: false,
+  },
 ] as const;
 
 export type OrganisationPermissionSeedSummary = {

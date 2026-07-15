@@ -430,7 +430,7 @@ export async function removeAdmin(
   };
 }
 
-async function requireActorAdmin(actorUserId: string, organisationId: string) {
+export async function requireActorAdmin(actorUserId: string, organisationId: string) {
   const actor = await findActorOrganisationAdmin({ userId: actorUserId, organisationId });
 
   if (!actor) {
@@ -466,7 +466,7 @@ async function requireTargetAdmin(organisationId: string, adminId: string) {
   return targetAdmin;
 }
 
-function assertOrganisationAllowsMutation(status: string) {
+export function assertOrganisationAllowsMutation(status: string) {
   if (status === 'ACTIVE') {
     return;
   }
@@ -478,11 +478,13 @@ function assertOrganisationAllowsMutation(status: string) {
   );
 }
 
-function permissionKeysForAdmin(admin: Awaited<ReturnType<typeof findActorOrganisationAdmin>>) {
+export function permissionKeysForAdmin(
+  admin: Awaited<ReturnType<typeof findActorOrganisationAdmin>>,
+) {
   return (admin?.permissionGrants ?? []).map((grant) => grant.organisationPermission.key);
 }
 
-function requirePermission(
+export function requirePermission(
   actorPermissionKeys: readonly OrganisationPermissionKeyValue[],
   requiredPermissionKey: OrganisationPermissionKeyValue,
 ) {
