@@ -151,11 +151,9 @@ export async function createOrganisationTraineeInvitation(
     );
   }
 
-  const isPlatformAdmin = existingUser && existingUser.userType === 'IP_ADMIN';
-  const belongsToAnotherOrg =
-    existingUser &&
-    existingUser.traineeProfile?.organisationTraineeProfile &&
-    existingUser.traineeProfile.organisationTraineeProfile.organisationId !== organisationId;
+  const isPlatformAdmin = existingUser?.userType === 'IP_ADMIN';
+  const orgId = existingUser?.traineeProfile?.organisationTraineeProfile?.organisationId;
+  const belongsToAnotherOrg = orgId !== undefined && orgId !== organisationId;
 
   if (isPlatformAdmin || belongsToAnotherOrg) {
     throw new OrganisationTraineeServiceError(
@@ -260,9 +258,8 @@ export async function resendTraineeInvitation(
 
   const invitation = await findInvitationById(invitationId);
   if (
-    !invitation ||
-    invitation.purpose !== 'ORGANISATION_TRAINEE_INVITE' ||
-    invitation.organisationId !== organisationId
+    invitation?.purpose !== 'ORGANISATION_TRAINEE_INVITE' ||
+    invitation?.organisationId !== organisationId
   ) {
     throw new OrganisationTraineeServiceError(
       404,
@@ -289,12 +286,9 @@ export async function resendTraineeInvitation(
 
   const existingUser = await findUserByEmailWithProfiles(invitation.recipientEmail);
 
-  const isPlatformAdmin = existingUser && existingUser.userType === 'IP_ADMIN';
-  const belongsToAnotherOrg =
-    existingUser &&
-    existingUser.traineeProfile?.organisationTraineeProfile &&
-    existingUser.traineeProfile.organisationTraineeProfile.organisationId !==
-      invitation.organisationId;
+  const isPlatformAdmin = existingUser?.userType === 'IP_ADMIN';
+  const orgId = existingUser?.traineeProfile?.organisationTraineeProfile?.organisationId;
+  const belongsToAnotherOrg = orgId !== undefined && orgId !== invitation.organisationId;
 
   if (isPlatformAdmin || belongsToAnotherOrg) {
     throw new OrganisationTraineeServiceError(
@@ -411,9 +405,8 @@ export async function revokeTraineeInvitation(
 
   const invitation = await findInvitationById(invitationId);
   if (
-    !invitation ||
-    invitation.purpose !== 'ORGANISATION_TRAINEE_INVITE' ||
-    invitation.organisationId !== organisationId
+    invitation?.purpose !== 'ORGANISATION_TRAINEE_INVITE' ||
+    invitation?.organisationId !== organisationId
   ) {
     throw new OrganisationTraineeServiceError(
       404,

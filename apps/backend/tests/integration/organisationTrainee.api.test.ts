@@ -22,7 +22,7 @@ describe('Organisation Trainee API Integration Tests', () => {
     vi.clearAllMocks();
     clearAuthRateLimitStore();
     await clearApiRateLimitStore();
-    clearOrganisationTraineeRateLimitStores();
+    await clearOrganisationTraineeRateLimitStores();
     sendMailMock.mockResolvedValue({ messageId: 'smtpmessage01' });
 
     app = createApp();
