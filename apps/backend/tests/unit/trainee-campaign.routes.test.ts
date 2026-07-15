@@ -452,7 +452,9 @@ describe('Trainee campaign discovery routes', () => {
         currentCampaignItemId: DEMO_SEED_IDS.campaignItems.passwordSecurityTrainingDocument,
       },
     });
-    expect(response.body.items.map((item: any) => item.campaignItemId)).toEqual([
+    expect(
+      response.body.items.map((item: { campaignItemId: string }) => item.campaignItemId),
+    ).toEqual([
       DEMO_SEED_IDS.campaignItems.passwordSecurityTrainingDocument,
       DEMO_SEED_IDS.campaignItems.passwordSecurityQuiz,
     ]);
@@ -525,14 +527,14 @@ describe('Trainee campaign discovery routes', () => {
       .set('Authorization', authHeader());
 
     expect(response.status).toBe(200);
-    expect(response.body.items.map((item: any) => item.campaignItemId)).toEqual([
-      groupItemId,
-      simulationItemId,
-    ]);
-    expect(response.body.items[0].children.map((item: any) => item.campaignItemId)).toEqual([
-      trainingItemId,
-      quizItemId,
-    ]);
+    expect(
+      response.body.items.map((item: { campaignItemId: string }) => item.campaignItemId),
+    ).toEqual([groupItemId, simulationItemId]);
+    expect(
+      response.body.items[0].children.map(
+        (item: { campaignItemId: string }) => item.campaignItemId,
+      ),
+    ).toEqual([trainingItemId, quizItemId]);
     expect(response.body.items[0].children[0]).toHaveProperty('parentGroupId', groupItemId);
   });
 

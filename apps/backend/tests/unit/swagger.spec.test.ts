@@ -464,7 +464,7 @@ describe('swaggerSpec', () => {
       '"security":[]',
     );
     expect(JSON.stringify(getPath('/invitations/token/{token}/accept', 'post'))).toContain(
-      '"security":[]',
+      '"security":[{"bearerAuth":[]}]',
     );
     expect(JSON.stringify(getPath('/invitations/token/{token}/reject', 'post'))).toContain(
       '"security":[]',
@@ -630,5 +630,32 @@ describe('swaggerSpec', () => {
       '$ref',
       '#/components/requestBodies/RejectOrganisationRequest',
     );
+  });
+
+  it('verifies property parity for InvitationContextResponse, InvitationAcceptResponse, and TraineeListItem schemas', () => {
+    const contextSchema = spec.components?.schemas?.InvitationContextResponse as
+      | { properties?: Record<string, unknown> }
+      | undefined;
+    expect(contextSchema?.properties).toHaveProperty('requiredAction');
+    expect(contextSchema?.properties).toHaveProperty('rejectAllowed');
+    expect(contextSchema?.properties).toHaveProperty('status');
+    expect(contextSchema?.properties).toHaveProperty('permissions');
+
+    const acceptSchema = spec.components?.schemas?.InvitationAcceptResponse as
+      | { properties?: Record<string, unknown> }
+      | undefined;
+    expect(acceptSchema?.properties).toHaveProperty('roleGranted');
+    expect(acceptSchema?.properties).toHaveProperty('organisationId');
+    expect(acceptSchema?.properties).toHaveProperty('sessionOutcome');
+
+    const traineeSchema = spec.components?.schemas?.TraineeListItem as
+      | { properties?: Record<string, unknown> }
+      | undefined;
+    expect(traineeSchema?.properties).toHaveProperty('id');
+    expect(traineeSchema?.properties).toHaveProperty('traineeProfileId');
+    expect(traineeSchema?.properties).toHaveProperty('userId');
+    expect(traineeSchema?.properties).toHaveProperty('invitationId');
+    expect(traineeSchema?.properties).toHaveProperty('createdAt');
+    expect(traineeSchema?.properties).toHaveProperty('eligibility');
   });
 });

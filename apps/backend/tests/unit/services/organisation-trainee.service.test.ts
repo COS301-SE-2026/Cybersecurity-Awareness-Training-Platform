@@ -82,6 +82,10 @@ const txMock = {
 vi.mock('../../../src/lib/prisma.js', () => ({
   prisma: {
     $transaction: vi.fn(async (cb: (tx: typeof txMock) => unknown) => cb(txMock)),
+    invitation: {
+      findUnique: vi.fn().mockResolvedValue({ status: 'SENT' }),
+      update: vi.fn(),
+    },
   },
 }));
 
@@ -193,7 +197,6 @@ describe('OrganisationTraineeService', () => {
           emailType: 'ORGANISATION_TRAINEE_INVITE',
           recipientEmail: 'trainee@example.com',
         }),
-        txMock,
       );
     });
 
@@ -459,7 +462,6 @@ describe('OrganisationTraineeService', () => {
           emailType: 'ROLE_CHANGED_NOTIFICATION',
           recipientEmail: trainee.traineeProfile.user.email,
         }),
-        txMock,
       );
     });
 

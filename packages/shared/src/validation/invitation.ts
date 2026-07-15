@@ -174,6 +174,7 @@ export const invitationAcceptResponseSchema = z
     redirectTo: z.string().trim().min(1).optional(),
     roleGranted: invitationRoleGrantedSchema.optional(),
     organisationId: z.string().uuid().optional(),
+    sessionOutcome: z.enum(['REFRESH_AUTH_CONTEXT', 'REAUTHENTICATE']).optional(),
   })
   .strict();
 

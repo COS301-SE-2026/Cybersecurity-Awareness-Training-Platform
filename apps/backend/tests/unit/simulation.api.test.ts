@@ -1,3 +1,4 @@
+import type { Request, Response, NextFunction } from 'express';
 import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../../src/app.js';
@@ -23,9 +24,9 @@ const prismaMock = vi.hoisted(() => {
 vi.mock('../../src/lib/prisma.js', () => ({ prisma: prismaMock }));
 
 vi.mock('../../src/middleware/requireAuth.js', () => ({
-  requireAuth: (req: any, res: any, next: any) => {
+  requireAuth: (req: Request, res: Response, next: NextFunction) => {
     if (req.headers.authorization === 'Bearer mock-token') {
-      req.auth = { userId: 'user-123' };
+      req.auth = { userId: 'user-123' } as unknown as Request['auth'];
       next();
     } else {
       res.status(401).json({ error: 'AUTH_REQUIRED' });

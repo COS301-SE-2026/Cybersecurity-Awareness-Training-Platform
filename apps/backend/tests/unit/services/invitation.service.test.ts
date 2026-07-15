@@ -41,7 +41,30 @@ vi.mock('../../../src/repositories/invitation.repository.js', () => invitationRe
 vi.mock('../../../src/services/audit-log.service.js', () => auditLogServiceMock);
 vi.mock('../../../src/services/token-hash.service.js', () => tokenHashServiceMock);
 
-const mockTx = { transaction: true };
+const mockTx = {
+  transaction: true,
+  actionToken: {
+    findUnique: vi.fn().mockImplementation(async () => {
+      const token = await invitationRepoMock.findInvitationTokenByHash();
+      return token ? { ...token, revokedAt: null, usedAt: null } : null;
+    }),
+  },
+  invitation: {
+    findUnique: vi.fn().mockImplementation(async () => {
+      const token = await invitationRepoMock.findInvitationTokenByHash();
+      return token?.invitation ? { ...token.invitation, status: 'PENDING' } : null;
+    }),
+  },
+  user: {
+    findUnique: vi.fn().mockImplementation(async () => {
+      const user = await invitationRepoMock.findUserByEmailWithProfiles();
+      return user ? { ...user, authStatus: 'ACTIVE' } : null;
+    }),
+  },
+  authSession: {
+    updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+  },
+};
 vi.mock('../../../src/lib/prisma.js', () => ({
   prisma: {
     $transaction: vi.fn(async (cb: (tx: unknown) => unknown) => cb(mockTx)),
@@ -80,12 +103,16 @@ describe('InvitationService (Detailed Boundary & Concurrency Tests)', () => {
       expect(res.status).toBe('EXPIRED');
     });
 
-    it('throws 403 AUTH_USER_MISMATCH when logged in email does not match target email', async () => {
+    it('returns privacy-safe SWITCH_ACCOUNT context when logged in email does not match target email', async () => {
       invitationRepoMock.findInvitationTokenByHash.mockResolvedValue(mockValidToken);
 
-      await expect(
-        getInvitationTokenContext('raw-token', 'other@example.com'),
-      ).rejects.toThrowError(InvitationFlowError);
+      const res = await getInvitationTokenContext('raw-token', 'other@example.com');
+      expect(res).toEqual({
+        requiredAction: 'SWITCH_ACCOUNT',
+        status: 'PENDING',
+        expiresAt: mockValidToken.expiresAt.toISOString(),
+        rejectAllowed: true,
+      });
     });
 
     it('throws 409 ORGANISATION_SUSPENDED when organisation is suspended', async () => {
@@ -120,7 +147,7 @@ describe('InvitationService (Detailed Boundary & Concurrency Tests)', () => {
       const res = await acceptInvitationWithToken(
         'raw-token',
         {},
-        undefined,
+        'trainee@example.com',
         undefined,
         undefined,
         now,
@@ -138,7 +165,14 @@ describe('InvitationService (Detailed Boundary & Concurrency Tests)', () => {
       invitationRepoMock.findUserByEmailWithProfiles.mockResolvedValue(mockExistingTraineeUser);
 
       await expect(
-        acceptInvitationWithToken('raw-token', {}, undefined, undefined, undefined, now),
+        acceptInvitationWithToken(
+          'raw-token',
+          {},
+          'trainee@example.com',
+          undefined,
+          undefined,
+          now,
+        ),
       ).rejects.toThrow(
         expect.objectContaining({
           statusCode: 409,
@@ -159,7 +193,9 @@ describe('InvitationService (Detailed Boundary & Concurrency Tests)', () => {
         ),
       );
 
-      await expect(acceptInvitationWithToken('raw-token', {})).rejects.toThrow(
+      await expect(
+        acceptInvitationWithToken('raw-token', {}, 'trainee@example.com'),
+      ).rejects.toThrow(
         expect.objectContaining({
           statusCode: 409,
           errorKey: 'INVITATION_ALREADY_ACCEPTED_OR_RESOLVED',
@@ -173,7 +209,9 @@ describe('InvitationService (Detailed Boundary & Concurrency Tests)', () => {
       const platformAdminUser = buildMockUser({ userType: 'IP_ADMIN' });
       invitationRepoMock.findUserByEmailWithProfiles.mockResolvedValue(platformAdminUser);
 
-      await expect(acceptInvitationWithToken('raw-token', {})).rejects.toThrow(
+      await expect(
+        acceptInvitationWithToken('raw-token', {}, 'trainee@example.com'),
+      ).rejects.toThrow(
         expect.objectContaining({
           statusCode: 409,
           errorKey: 'ROLE_CONFLICT',
@@ -241,7 +279,11 @@ describe('InvitationService (Detailed Boundary & Concurrency Tests)', () => {
         adminProfileId: 'admin-1',
       });
 
-      const res = await acceptInvitationWithToken('raw-token', { confirmRoleChange: true });
+      const res = await acceptInvitationWithToken(
+        'raw-token',
+        { confirmRoleChange: true },
+        'trainee@example.com',
+      );
       expect(res.success).toBe(true);
 
       expect(invitationRepoMock.insertInvitationPermissionGrantsToAdmin).toHaveBeenCalledWith(

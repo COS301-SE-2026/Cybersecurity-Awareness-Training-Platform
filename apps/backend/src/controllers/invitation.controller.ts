@@ -17,8 +17,10 @@ function extractTokenParam(req: Request): string {
 export async function getInvitationContext(req: Request, res: Response) {
   try {
     const token = extractTokenParam(req);
-    const authEmail = req.auth?.user.email;
-    const response = await getInvitationTokenContext(token, authEmail);
+    const authContext = req.auth
+      ? { userId: req.auth.userId, email: req.auth.user.email }
+      : undefined;
+    const response = await getInvitationTokenContext(token, authContext);
     return res.status(200).json(response);
   } catch (error) {
     if (error instanceof InvitationFlowError) {
@@ -34,13 +36,15 @@ export async function getInvitationContext(req: Request, res: Response) {
 export async function acceptInvitation(req: Request, res: Response) {
   try {
     const token = extractTokenParam(req);
-    const authEmail = req.auth?.user.email;
+    const authContext = req.auth
+      ? { userId: req.auth.userId, email: req.auth.user.email }
+      : undefined;
     const ipAddress = req.ip || req.socket.remoteAddress;
     const userAgent = req.header('user-agent');
     const response = await acceptInvitationWithToken(
       token,
       req.body,
-      authEmail,
+      authContext,
       ipAddress,
       userAgent,
     );
@@ -59,13 +63,15 @@ export async function acceptInvitation(req: Request, res: Response) {
 export async function rejectInvitation(req: Request, res: Response) {
   try {
     const token = extractTokenParam(req);
-    const authEmail = req.auth?.user.email;
+    const authContext = req.auth
+      ? { userId: req.auth.userId, email: req.auth.user.email }
+      : undefined;
     const ipAddress = req.ip || req.socket.remoteAddress;
     const userAgent = req.header('user-agent');
     const response = await rejectInvitationWithToken(
       token,
       req.body,
-      authEmail,
+      authContext,
       ipAddress,
       userAgent,
     );

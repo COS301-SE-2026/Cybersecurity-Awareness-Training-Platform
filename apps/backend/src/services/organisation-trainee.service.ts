@@ -81,10 +81,23 @@ export async function listOrganisationTrainees(
     }
 
     return {
+      id: trainee.id,
+      traineeProfileId: trainee.traineeProfileId,
+      userId: trainee.traineeProfile.userId,
       email: trainee.traineeProfile.user.email,
       firstName: trainee.traineeProfile.user.firstName ?? undefined,
       lastName: trainee.traineeProfile.user.lastName ?? undefined,
       status,
+      createdAt: trainee.createdAt.toISOString(),
+      joinedAt: trainee.createdAt.toISOString(),
+      disabledAt: trainee.disabledAt ? trainee.disabledAt.toISOString() : null,
+      disabledReason: trainee.disabledReason ?? null,
+      eligibility: {
+        canResend: false,
+        canRevoke: false,
+        canDisable: status === 'ACTIVE',
+        canPromote: status === 'ACTIVE',
+      },
     };
   });
 
@@ -98,10 +111,21 @@ export async function listOrganisationTrainees(
     }
 
     pendingInvitations.push({
+      id: inv.id,
+      invitationId: inv.id,
       email: inv.recipientEmail,
       firstName: inv.recipientFirstName ?? undefined,
       lastName: inv.recipientLastName ?? undefined,
       status,
+      createdAt: inv.createdAt.toISOString(),
+      invitedAt: inv.createdAt.toISOString(),
+      expiresAt: inv.expiresAt ? inv.expiresAt.toISOString() : null,
+      eligibility: {
+        canResend: status === 'INVITE_PENDING' || status === 'INVITE_FAILED',
+        canRevoke: status === 'INVITE_PENDING' || status === 'INVITE_FAILED',
+        canDisable: false,
+        canPromote: false,
+      },
     });
   }
 
@@ -169,7 +193,26 @@ export async function createOrganisationTraineeInvitation(
     existingUser.userType !== 'GENERAL_TRAINEE',
   );
 
-  return prisma.$transaction(async (tx) => {
+  const txResult = await prisma.$transaction(async (tx) => {
+    const [txTrainee, txInvite] = await Promise.all([
+      findOrganisationTraineeByEmail(organisationId, normalisedEmail, tx),
+      findPendingTraineeInvitationByEmail(organisationId, normalisedEmail, tx),
+    ]);
+    if (txTrainee && txTrainee.membershipStatus !== 'DISABLED' && !txTrainee.disabledAt) {
+      throw new OrganisationTraineeServiceError(
+        409,
+        'CANNOT_INVITE_USER',
+        'User is already a trainee in this organisation.',
+      );
+    }
+    if (txInvite) {
+      throw new OrganisationTraineeServiceError(
+        409,
+        'CANNOT_INVITE_USER',
+        'A pending invitation already exists for this email address.',
+      );
+    }
+
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     const invitation = await tx.invitation.create({
       data: {
@@ -210,38 +253,41 @@ export async function createOrganisationTraineeInvitation(
       tx,
     );
 
-    await sendEmail(
-      {
-        emailType: 'ORGANISATION_TRAINEE_INVITE',
-        recipientEmail: normalisedEmail,
-        relatedEntity: {
-          organisationId,
-          invitationId: invitation.id,
-          actionTokenId: actionToken.id,
-        },
-        templateData: {
-          firstName: input.firstName,
-          organisationName: actor.organisation.name,
-          actionToken: rawToken,
-          actionTokenExpiresAt: expiresAt,
-          requiresAccountConflictResolution,
-        },
-      },
-      tx,
-    );
-
-    return {
-      success: true,
-      message: 'Invitation sent successfully.',
-      invitation: {
-        id: invitation.id,
-        email: invitation.recipientEmail,
-        firstName: invitation.recipientFirstName ?? undefined,
-        lastName: invitation.recipientLastName ?? undefined,
-        status: 'SENT',
-      },
-    };
+    return { invitation, actionToken, rawToken, expiresAt };
   });
+
+  await sendEmail({
+    emailType: 'ORGANISATION_TRAINEE_INVITE',
+    recipientEmail: normalisedEmail,
+    relatedEntity: {
+      organisationId,
+      invitationId: txResult.invitation.id,
+      actionTokenId: txResult.actionToken.id,
+    },
+    templateData: {
+      firstName: input.firstName,
+      organisationName: actor.organisation.name,
+      actionToken: txResult.rawToken,
+      actionTokenExpiresAt: txResult.expiresAt,
+      requiresAccountConflictResolution,
+    },
+  });
+
+  const finalInvite = await prisma.invitation.findUnique({
+    where: { id: txResult.invitation.id },
+  });
+
+  return {
+    success: true,
+    message: 'Invitation sent successfully.',
+    invitation: {
+      id: txResult.invitation.id,
+      email: txResult.invitation.recipientEmail,
+      firstName: txResult.invitation.recipientFirstName ?? undefined,
+      lastName: txResult.invitation.recipientLastName ?? undefined,
+      status: finalInvite?.status === 'FAILED_TO_SEND' ? 'FAILED_TO_SEND' : 'SENT',
+    },
+  };
 }
 
 export async function resendTraineeInvitation(
@@ -304,7 +350,16 @@ export async function resendTraineeInvitation(
     existingUser.userType !== 'GENERAL_TRAINEE',
   );
 
-  return prisma.$transaction(async (tx) => {
+  const txResult = await prisma.$transaction(async (tx) => {
+    const txInv = await findInvitationById(invitation.id, tx);
+    if (!txInv || (txInv.status !== 'PENDING' && txInv.status !== 'FAILED_TO_SEND')) {
+      throw new OrganisationTraineeServiceError(
+        409,
+        'INVITATION_NOT_RESENDABLE',
+        'Invitation is no longer in a resendable state.',
+      );
+    }
+
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
     await tx.actionToken.updateMany({
@@ -352,43 +407,42 @@ export async function resendTraineeInvitation(
       tx,
     );
 
-    await sendEmail(
-      {
-        emailType: 'ORGANISATION_TRAINEE_INVITE',
-        recipientEmail: invitation.recipientEmail,
-        relatedEntity: {
-          organisationId: invitation.organisationId,
-          invitationId: invitation.id,
-          actionTokenId: actionToken.id,
-        },
-        templateData: {
-          firstName: invitation.recipientFirstName ?? undefined,
-          organisationName: actor.organisation.name,
-          actionToken: rawToken,
-          actionTokenExpiresAt: expiresAt,
-          requiresAccountConflictResolution,
-        },
-      },
-      tx,
-    );
-
-    const updatedInvitation = await tx.invitation.findUnique({
-      where: { id: invitation.id },
-    });
-
-    let status: 'PENDING' | 'SENT' | 'FAILED_TO_SEND' = 'SENT';
-    if (updatedInvitation?.status === 'PENDING' || updatedInvitation?.status === 'FAILED_TO_SEND') {
-      status = updatedInvitation.status;
-    }
-
-    return {
-      success: true,
-      message: 'Invitation resent successfully.',
-      invitationId: invitation.id,
-      status,
-      resentAt: new Date().toISOString(),
-    };
+    return { actionToken, rawToken, expiresAt };
   });
+
+  await sendEmail({
+    emailType: 'ORGANISATION_TRAINEE_INVITE',
+    recipientEmail: invitation.recipientEmail,
+    relatedEntity: {
+      organisationId: invitation.organisationId,
+      invitationId: invitation.id,
+      actionTokenId: txResult.actionToken.id,
+    },
+    templateData: {
+      firstName: invitation.recipientFirstName ?? undefined,
+      organisationName: actor.organisation.name,
+      actionToken: txResult.rawToken,
+      actionTokenExpiresAt: txResult.expiresAt,
+      requiresAccountConflictResolution,
+    },
+  });
+
+  const updatedInvitation = await prisma.invitation.findUnique({
+    where: { id: invitation.id },
+  });
+
+  let status: 'PENDING' | 'SENT' | 'FAILED_TO_SEND' = 'SENT';
+  if (updatedInvitation?.status === 'PENDING' || updatedInvitation?.status === 'FAILED_TO_SEND') {
+    status = updatedInvitation.status;
+  }
+
+  return {
+    success: true,
+    message: 'Invitation resent successfully.',
+    invitationId: invitation.id,
+    status,
+    resentAt: new Date().toISOString(),
+  };
 }
 
 export async function revokeTraineeInvitation(
@@ -434,6 +488,24 @@ export async function revokeTraineeInvitation(
   }
 
   return prisma.$transaction(async (tx) => {
+    const txInv = await findInvitationById(invitation.id, tx);
+    if (!txInv || txInv.status === 'ACCEPTED') {
+      throw new OrganisationTraineeServiceError(
+        409,
+        'INVITATION_ALREADY_ACCEPTED',
+        'Cannot revoke an invitation that has already been accepted.',
+      );
+    }
+    if (txInv.status === 'REVOKED') {
+      return {
+        success: true,
+        message: 'Invitation has already been revoked.',
+        invitationId: txInv.id,
+        status: 'REVOKED' as const,
+        revokedAt: txInv.updatedAt.toISOString(),
+      };
+    }
+
     await tx.invitation.update({
       where: { id: invitation.id },
       data: {
@@ -512,30 +584,29 @@ export async function disableOrganisationTrainee(
     );
   }
 
-  const orgTrainee = await findOrganisationTraineeById(organisationId, traineeId);
-  if (!orgTrainee) {
-    throw new OrganisationTraineeServiceError(
-      404,
-      'TRAINEE_NOT_FOUND',
-      'Organisation trainee profile not found.',
-    );
-  }
+  const txResult = await prisma.$transaction(async (tx) => {
+    const txTrainee = await findOrganisationTraineeById(organisationId, traineeId, tx);
+    if (!txTrainee) {
+      throw new OrganisationTraineeServiceError(
+        404,
+        'TRAINEE_NOT_FOUND',
+        'Organisation trainee profile not found.',
+      );
+    }
+    if (txTrainee.membershipStatus === 'DISABLED' || txTrainee.disabledAt) {
+      throw new OrganisationTraineeServiceError(
+        409,
+        'TRAINEE_ALREADY_DISABLED',
+        'Trainee profile is already disabled.',
+      );
+    }
 
-  if (orgTrainee.membershipStatus === 'DISABLED' || orgTrainee.disabledAt) {
-    throw new OrganisationTraineeServiceError(
-      409,
-      'TRAINEE_ALREADY_DISABLED',
-      'Trainee profile is already disabled.',
-    );
-  }
-
-  return prisma.$transaction(async (tx) => {
     const reason = input?.disabledReason ?? 'Disabled by organisation admin';
-    await disableOrganisationTraineeProfile(orgTrainee.id, reason, tx);
+    await disableOrganisationTraineeProfile(txTrainee.id, reason, tx);
 
     await revokeUserAuthSessions(
       {
-        userId: orgTrainee.traineeProfile.userId,
+        userId: txTrainee.traineeProfile.userId,
         revokedReason: 'ADMIN_DISABLED',
       },
       tx,
@@ -547,40 +618,39 @@ export async function disableOrganisationTrainee(
         actorType: 'ORGANISATION_ADMIN',
         organisationId,
         targetType: 'USER',
-        targetId: orgTrainee.traineeProfile.userId,
+        targetId: txTrainee.traineeProfile.userId,
         actionType: 'DISABLED',
         outcome: 'SUCCESS',
         metadata: {
-          organisationTraineeProfileId: orgTrainee.id,
-          traineeProfileId: orgTrainee.traineeProfileId,
+          organisationTraineeProfileId: txTrainee.id,
+          traineeProfileId: txTrainee.traineeProfileId,
           disabledReason: reason,
         },
       },
       tx,
     );
 
-    await sendEmail(
-      {
-        emailType: 'ROLE_CHANGED_NOTIFICATION',
-        recipientEmail: orgTrainee.traineeProfile.user.email,
-        relatedEntity: {
-          userId: orgTrainee.traineeProfile.userId,
-          organisationId,
-        },
-        templateData: {
-          firstName: orgTrainee.traineeProfile.user.firstName || 'Trainee',
-          organisationName: actor.organisation.name,
-          roleName: 'Disabled',
-        },
-      },
-      tx,
-    );
-
-    return {
-      success: true,
-      message: 'Trainee account disabled successfully.',
-      traineeId: orgTrainee.id,
-      status: 'DISABLED',
-    };
+    return { txTrainee, reason };
   });
+
+  await sendEmail({
+    emailType: 'ROLE_CHANGED_NOTIFICATION',
+    recipientEmail: txResult.txTrainee.traineeProfile.user.email,
+    relatedEntity: {
+      userId: txResult.txTrainee.traineeProfile.userId,
+      organisationId,
+    },
+    templateData: {
+      firstName: txResult.txTrainee.traineeProfile.user.firstName || 'Trainee',
+      organisationName: actor.organisation.name,
+      roleName: 'Disabled',
+    },
+  });
+
+  return {
+    success: true,
+    message: 'Trainee account disabled successfully.',
+    traineeId: txResult.txTrainee.id,
+    status: 'DISABLED',
+  };
 }

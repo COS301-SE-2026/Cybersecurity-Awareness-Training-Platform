@@ -83,10 +83,10 @@ describe('invitation controller and routes', () => {
 
       await getInvitationContext(req, res);
 
-      expect(invitationServiceMock.getInvitationTokenContext).toHaveBeenCalledWith(
-        validToken,
-        'trainee@example.com',
-      );
+      expect(invitationServiceMock.getInvitationTokenContext).toHaveBeenCalledWith(validToken, {
+        userId: undefined,
+        email: 'trainee@example.com',
+      });
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({ invitationType: 'ORGANISATION_TRAINEE' }),
@@ -117,7 +117,7 @@ describe('invitation controller and routes', () => {
       expect(invitationServiceMock.acceptInvitationWithToken).toHaveBeenCalledWith(
         validToken,
         { confirmRoleChange: true },
-        'trainee@example.com',
+        { userId: undefined, email: 'trainee@example.com' },
         '10.0.0.1',
         'Unit-Test-Agent',
       );
@@ -204,19 +204,7 @@ describe('invitation controller and routes', () => {
     });
 
     describe('POST /invitations/token/:token/accept', () => {
-      it('returns 200 on successful acceptance', async () => {
-        invitationServiceMock.acceptInvitationWithToken.mockResolvedValue({
-          success: true,
-          message: 'Invitation accepted successfully.',
-        });
-
-        const res = await request(app).post(acceptPath).send({ confirmRoleChange: true });
-
-        expect(res.status).toBe(200);
-        expect(res.body.success).toBe(true);
-      });
-
-      it('extracts logged in user when Bearer token is provided', async () => {
+      beforeEach(() => {
         authTokenServiceMock.verifyAuthToken.mockReturnValue({
           userId: 'user-1',
           authSessionId: 'session-1',
@@ -228,6 +216,24 @@ describe('invitation controller and routes', () => {
         authServiceMock.getCurrentUser.mockResolvedValue({
           user: { id: 'user-1', email: 'trainee@example.com' },
         });
+      });
+
+      it('returns 200 on successful acceptance', async () => {
+        invitationServiceMock.acceptInvitationWithToken.mockResolvedValue({
+          success: true,
+          message: 'Invitation accepted successfully.',
+        });
+
+        const res = await request(app)
+          .post(acceptPath)
+          .set('Authorization', 'Bearer valid-jwt-token')
+          .send({ confirmRoleChange: true });
+
+        expect(res.status).toBe(200);
+        expect(res.body.success).toBe(true);
+      });
+
+      it('extracts logged in user when Bearer token is provided', async () => {
         invitationServiceMock.acceptInvitationWithToken.mockResolvedValue({
           success: true,
           message: 'Accepted',
@@ -238,14 +244,17 @@ describe('invitation controller and routes', () => {
         expect(invitationServiceMock.acceptInvitationWithToken).toHaveBeenCalledWith(
           validToken,
           expect.any(Object),
-          'trainee@example.com',
+          { userId: 'user-1', email: 'trainee@example.com' },
           expect.stringContaining('127.0.0.1'),
           undefined,
         );
       });
 
       it('returns 400 when accept body has extra unexpected keys due to strict validation', async () => {
-        const res = await request(app).post(acceptPath).send({ unexpectedKey: 'hacked' });
+        const res = await request(app)
+          .post(acceptPath)
+          .set('Authorization', 'Bearer valid-jwt-token')
+          .send({ unexpectedKey: 'hacked' });
 
         expect(res.status).toBe(400);
         expect(res.body.error).toBe('VALIDATION_ERROR');

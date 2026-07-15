@@ -12,6 +12,7 @@ import {
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import { authRateLimit } from '../middleware/authRateLimit.js';
 import { extractInvitationAuth } from '../middleware/extractInvitationAuth.js';
+import { requireAuth } from '../middleware/requireAuth.js';
 import { validateBody, validateParams } from '../middleware/validateRequest.js';
 
 export const invitationRouter = Router();
@@ -57,7 +58,8 @@ invitationRouter.get(
  *     tags: [Invitations]
  *     summary: Accept an invitation and assign role
  *     description: Atomically accepts an invitation link inside a database transaction, updates user profile and role grants, and records an audit log. Blocks invalid role transitions via Role Conflict Matrix.
- *     security: []
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - $ref: '#/components/parameters/InvitationTokenPathParam'
  *     requestBody:
@@ -81,7 +83,7 @@ invitationRouter.get(
 invitationRouter.post(
   '/invitations/token/:token/accept',
   authRateLimit,
-  extractInvitationAuth,
+  requireAuth,
   validateParams(invitationTokenParamsSchema),
   validateBody(invitationAcceptRequestSchema),
   asyncHandler(acceptInvitation),

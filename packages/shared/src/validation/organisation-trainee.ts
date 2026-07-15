@@ -88,10 +88,29 @@ export const traineeStatusSchema = z.enum([
 
 export const traineeListItemSchema = z
   .object({
+    id: z.string().uuid().optional(),
+    traineeProfileId: z.string().uuid().optional(),
+    userId: z.string().uuid().optional(),
+    invitationId: z.string().uuid().optional(),
     email: z.string().email(),
     firstName: z.string().nullable().optional(),
     lastName: z.string().nullable().optional(),
-    status: traineeStatusSchema,
+    status: z.union([traineeStatusSchema, z.string()]),
+    createdAt: z.string().datetime().optional(),
+    joinedAt: z.string().datetime().nullable().optional(),
+    invitedAt: z.string().datetime().nullable().optional(),
+    disabledAt: z.string().datetime().nullable().optional(),
+    disabledReason: z.string().nullable().optional(),
+    expiresAt: z.string().datetime().nullable().optional(),
+    emailDeliveryStatus: z.string().optional(),
+    eligibility: z
+      .object({
+        canResend: z.boolean().optional(),
+        canRevoke: z.boolean().optional(),
+        canDisable: z.boolean().optional(),
+        canPromote: z.boolean().optional(),
+      })
+      .optional(),
   })
   .strict();
 
@@ -128,6 +147,16 @@ export const createTraineeInvitationResponseSchema = z
         firstName: z.string().nullable().optional(),
         lastName: z.string().nullable().optional(),
         status: z.string(),
+        createdAt: z.string().datetime().optional(),
+        expiresAt: z.string().datetime().optional(),
+        eligibility: z
+          .object({
+            canResend: z.boolean().optional(),
+            canRevoke: z.boolean().optional(),
+            canDisable: z.boolean().optional(),
+            canPromote: z.boolean().optional(),
+          })
+          .optional(),
       })
       .optional(),
   })

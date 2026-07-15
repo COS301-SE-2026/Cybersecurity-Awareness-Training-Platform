@@ -603,6 +603,7 @@ export async function createInvitationTestFixture(
     userType?: UserType;
     recipientEmail?: string;
     rawToken?: string;
+    purpose?: InvitationPurpose | ActionTokenPurpose;
   } = {},
 ) {
   const organisation = await createOrganisation({
@@ -618,10 +619,12 @@ export async function createInvitationTestFixture(
     },
   });
 
+  const purpose = overrides.purpose ?? InvitationPurpose.ORGANISATION_TRAINEE_INVITE;
+
   const invitation = await createInvitation({
     organisationId: organisation.id,
     recipientEmail,
-    purpose: InvitationPurpose.ORGANISATION_TRAINEE_INVITE,
+    purpose: purpose as InvitationPurpose,
     status: overrides.invitationStatus ?? InvitationStatus.PENDING,
     expiresAt: overrides.actionTokenExpired
       ? new Date(Date.now() - 24 * 60 * 60 * 1000)
@@ -630,7 +633,7 @@ export async function createInvitationTestFixture(
 
   const actionToken = await createInvitationActionToken({
     invitationId: invitation.id,
-    purpose: ActionTokenPurpose.ORGANISATION_TRAINEE_INVITE,
+    purpose,
     targetEmail: recipientEmail,
     expiresAt: overrides.actionTokenExpired
       ? new Date(Date.now() - 24 * 60 * 60 * 1000)

@@ -23,6 +23,23 @@ import {
   InvitationRepositoryConflictError,
 } from '../repositories/invitation.repository.js';
 
+type TxClient = {
+  actionToken: typeof prisma.actionToken;
+  invitation: typeof prisma.invitation;
+  user: typeof prisma.user;
+  authSession: typeof prisma.authSession;
+};
+
+function getTxClient(tx: Prisma.TransactionClient): TxClient {
+  const t = tx as unknown as Partial<TxClient>;
+  return {
+    actionToken: t.actionToken ?? prisma.actionToken,
+    invitation: t.invitation ?? prisma.invitation,
+    user: t.user ?? prisma.user,
+    authSession: t.authSession ?? prisma.authSession,
+  };
+}
+
 export const INVITATION_ACCEPTANCE_PURPOSES = [
   'INITIAL_ORGANISATION_ADMIN_SETUP',
   'ORGANISATION_TRAINEE_INVITE',
@@ -185,16 +202,6 @@ function assertActiveTokenForMutation(
   }
 }
 
-function assertLoggedInUserMismatch(reqAuthEmail: string | undefined, targetEmail: string) {
-  if (reqAuthEmail && reqAuthEmail.trim().toLowerCase() !== targetEmail.trim().toLowerCase()) {
-    throw new InvitationFlowError(
-      403,
-      'AUTH_USER_MISMATCH',
-      `You are currently logged in as ${reqAuthEmail}. Please log out to accept or interact with the invitation for ${targetEmail}.`,
-    );
-  }
-}
-
 function assertRoleConflictMatrix(
   existingUser: NonNullable<Awaited<ReturnType<typeof findUserByEmailWithProfiles>>>,
   invitationRole: InvitationRoleGrantedDto,
@@ -247,12 +254,13 @@ function assertRoleConflictMatrix(
 
 export async function getInvitationTokenContext(
   rawToken: string,
-  authEmail?: string,
+  authContext?: string | { userId?: string; email?: string },
   now = new Date(),
 ): Promise<InvitationContextResponseDto> {
-  const resolved = await resolveTokenAndInvitation(rawToken, now);
-  assertLoggedInUserMismatch(authEmail, resolved.targetEmail);
+  const normAuth =
+    typeof authContext === 'string' ? { userId: undefined, email: authContext } : authContext;
 
+  const resolved = await resolveTokenAndInvitation(rawToken, now);
   const existingUser = await findUserByEmailWithProfiles(resolved.targetEmail);
   const accountExists = Boolean(existingUser);
   const invitationRole = mapPurposeToRoleGranted(resolved.token.purpose);
@@ -265,6 +273,16 @@ export async function getInvitationTokenContext(
     'ORGANISATION_ADMIN_PROMOTION',
   ].includes(invitationType);
 
+  const isTokenAvailable = resolved.status === 'PENDING' || resolved.status === 'SENT';
+  const rejectAllowed = isTokenAvailable && invitationType !== 'PLATFORM_ADMIN';
+
+  const targetUserId = resolved.token.userId ?? resolved.token.user?.id ?? existingUser?.id;
+  const isTargetUserMatch =
+    normAuth && normAuth.email
+      ? (!targetUserId || !normAuth.userId || normAuth.userId === targetUserId) &&
+        normAuth.email.trim().toLowerCase() === resolved.targetEmail.trim().toLowerCase()
+      : false;
+
   let requiredAction:
     | 'CONTINUE_SETUP'
     | 'LOGIN_REQUIRED'
@@ -272,32 +290,28 @@ export async function getInvitationTokenContext(
     | 'CONFIRM_ROLE_CHANGE'
     | 'TOKEN_UNAVAILABLE';
 
-  const isTokenAvailable = resolved.status === 'PENDING' || resolved.status === 'SENT';
-
   if (!isTokenAvailable) {
     requiredAction = 'TOKEN_UNAVAILABLE';
-  } else if (!authEmail) {
-    requiredAction = accountExists ? 'LOGIN_REQUIRED' : 'CONTINUE_SETUP';
-  } else if (authEmail !== resolved.targetEmail) {
+  } else if (normAuth && normAuth.email && !isTargetUserMatch) {
     requiredAction = 'SWITCH_ACCOUNT';
+  } else if (
+    resolved.token.purpose === 'INITIAL_ORGANISATION_ADMIN_SETUP' ||
+    resolved.token.purpose === 'PLATFORM_ADMIN_INVITE' ||
+    !accountExists
+  ) {
+    requiredAction = 'CONTINUE_SETUP';
+  } else if (!normAuth || !normAuth.email) {
+    requiredAction = 'LOGIN_REQUIRED';
   } else {
     requiredAction = 'CONFIRM_ROLE_CHANGE';
   }
 
-  const rejectAllowed = isTokenAvailable && invitationType !== 'PLATFORM_ADMIN';
-
-  if (requiredAction === 'CONFIRM_ROLE_CHANGE') {
+  if (requiredAction !== 'CONFIRM_ROLE_CHANGE') {
     return {
       requiredAction,
       status: resolved.status,
       expiresAt: resolved.token.expiresAt.toISOString(),
       rejectAllowed,
-      invitationType,
-      roleGranted: invitationRole,
-      organisationId: isOrgScoped ? (resolved.invitation.organisationId ?? undefined) : undefined,
-      organisationName: isOrgScoped
-        ? (resolved.invitation.organisation?.name ?? 'Unknown Organisation')
-        : undefined,
     };
   }
 
@@ -306,23 +320,40 @@ export async function getInvitationTokenContext(
     status: resolved.status,
     expiresAt: resolved.token.expiresAt.toISOString(),
     rejectAllowed,
+    invitationType,
+    roleGranted: invitationRole,
+    organisationId: isOrgScoped ? (resolved.invitation.organisationId ?? undefined) : undefined,
+    organisationName: isOrgScoped
+      ? (resolved.invitation.organisation?.name ?? 'Unknown Organisation')
+      : undefined,
+    permissions:
+      invitationRole === 'ORGANISATION_ADMIN' && resolved.invitation.permissionGrants
+        ? resolved.invitation.permissionGrants.map(
+            (g: { organisationPermissionId: string }) => g.organisationPermissionId,
+          )
+        : undefined,
   };
 }
 
 export async function acceptInvitationWithToken(
   rawToken: string,
   input: InvitationAcceptRequestDto,
-  authEmail?: string,
+  authContext?: string | { userId?: string; email?: string },
   ipAddress?: string | null,
   userAgent?: string | null,
   now = new Date(),
 ): Promise<InvitationAcceptResponseDto> {
+  const normAuth =
+    typeof authContext === 'string' ? { userId: undefined, email: authContext } : authContext;
+
   const resolved = await resolveTokenAndInvitation(rawToken, now);
   assertActiveTokenForMutation(resolved);
-  assertLoggedInUserMismatch(authEmail, resolved.targetEmail);
+
+  if (!normAuth || !normAuth.email) {
+    throw new InvitationFlowError(401, 'AUTH_REQUIRED', 'Authentication credentials are required.');
+  }
 
   const existingUser = await findUserByEmailWithProfiles(resolved.targetEmail);
-  const invitationRole = mapPurposeToRoleGranted(resolved.token.purpose);
 
   if (!existingUser) {
     throw new InvitationFlowError(
@@ -332,47 +363,153 @@ export async function acceptInvitationWithToken(
     );
   }
 
+  const targetUserId = resolved.token.userId ?? resolved.token.user?.id ?? existingUser.id;
+  if (
+    (normAuth.userId && targetUserId && normAuth.userId !== targetUserId) ||
+    normAuth.email.trim().toLowerCase() !== resolved.targetEmail.trim().toLowerCase()
+  ) {
+    throw new InvitationFlowError(
+      403,
+      'AUTH_USER_MISMATCH',
+      'You are currently logged in with a different account than the invitation target. Please log in as the invited user to accept.',
+    );
+  }
+
+  if (
+    resolved.token.purpose === 'INITIAL_ORGANISATION_ADMIN_SETUP' ||
+    resolved.token.purpose === 'PLATFORM_ADMIN_INVITE'
+  ) {
+    throw new InvitationFlowError(
+      409,
+      'SETUP_REQUIRED',
+      'This invitation requires account setup or must be completed via the setup flow.',
+    );
+  }
+
+  const invitationRole = mapPurposeToRoleGranted(resolved.token.purpose);
   assertRoleConflictMatrix(existingUser, invitationRole, input.confirmRoleChange);
 
   try {
-    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      await claimInvitationAccept(resolved.invitation.id, tx);
-      await claimInvitationToken(resolved.token.id, tx);
+    const txResult = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const {
+        actionToken: tokenClient,
+        invitation: invClient,
+        user: userClient,
+        authSession: authSessionClient,
+      } = getTxClient(tx);
+
+      const tokenTx = await tokenClient.findUnique({ where: { id: resolved.token.id } });
+      const invTx = await invClient.findUnique({
+        where: { id: resolved.invitation.id },
+        include: { organisation: true, permissionGrants: true },
+      });
+      const userTx = await userClient.findUnique({
+        where: { id: existingUser.id },
+        include: {
+          traineeProfile: { include: { organisationTraineeProfile: true } },
+          organisationAdminProfile: true,
+          ipAdminProfile: true,
+        },
+      });
+
+      if (
+        !tokenTx ||
+        tokenTx.revokedAt ||
+        tokenTx.usedAt ||
+        tokenTx.expiresAt.getTime() <= now.getTime()
+      ) {
+        throw new InvitationFlowError(
+          409,
+          'INVITATION_EXPIRED',
+          'Invitation action token is no longer active.',
+        );
+      }
+      if (!invTx || (invTx.status !== 'PENDING' && invTx.status !== 'SENT')) {
+        throw new InvitationFlowError(
+          409,
+          'INVITATION_ACCEPTED',
+          'Invitation is no longer pending or valid.',
+        );
+      }
+      if (invTx.organisation?.status === 'SUSPENDED' || invTx.organisation?.status === 'DISABLED') {
+        throw new InvitationFlowError(
+          409,
+          'ORGANISATION_SUSPENDED',
+          'Organisation is currently suspended or inactive.',
+        );
+      }
+      if (
+        !userTx ||
+        userTx.authStatus === 'DISABLED' ||
+        userTx.traineeProfile?.organisationTraineeProfile?.membershipStatus === 'DISABLED' ||
+        userTx.organisationAdminProfile?.adminStatus === 'DISABLED' ||
+        userTx.ipAdminProfile?.adminStatus === 'DISABLED'
+      ) {
+        throw new InvitationFlowError(409, 'ACCOUNT_DISABLED', 'Account or profile is disabled.');
+      }
+
+      const existingOrgId =
+        userTx.traineeProfile?.organisationTraineeProfile?.organisationId ??
+        userTx.organisationAdminProfile?.organisationId;
+      if (invTx.organisationId && existingOrgId && existingOrgId !== invTx.organisationId) {
+        throw new InvitationFlowError(
+          409,
+          'CROSS_ORGANISATION_CONFLICT',
+          'Account already belongs to another organisation.',
+        );
+      }
+
+      await claimInvitationAccept(invTx.id, tx);
+      await claimInvitationToken(tokenTx.id, tx);
 
       const roleUpdate = await updateUserRoleAndProfilesFromInvitation(
         {
-          userId: existingUser.id,
+          userId: userTx.id,
           newRole: invitationRole,
-          organisationId: resolved.invitation.organisationId,
-          invitationId: resolved.invitation.id,
+          organisationId: invTx.organisationId,
+          invitationId: invTx.id,
         },
         tx,
       );
 
-      const isPromotion = existingUser.userType !== roleUpdate.userType;
+      const isPromotion = userTx.userType !== roleUpdate.userType;
 
-      if (invitationRole === 'ORGANISATION_ADMIN' && roleUpdate.adminProfileId) {
+      if (
+        invitationRole === 'ORGANISATION_ADMIN' &&
+        roleUpdate.adminProfileId &&
+        invTx.permissionGrants
+      ) {
         await insertInvitationPermissionGrantsToAdmin(
-          resolved.invitation.organisationId,
+          invTx.organisationId,
           roleUpdate.adminProfileId,
-          resolved.invitation.permissionGrants,
+          invTx.permissionGrants,
           tx,
         );
       }
 
+      if (invitationRole === 'PLATFORM_ADMIN') {
+        await authSessionClient.updateMany({
+          where: { userId: userTx.id, revokedAt: null },
+          data: {
+            revokedAt: now,
+            revokedReason: 'OTHER',
+          },
+        });
+      }
+
       await recordAuditLog(
         {
-          actorUserId: existingUser.id,
+          actorUserId: userTx.id,
           actorType: userTypeToAuditActorType(roleUpdate.userType),
-          organisationId: resolved.invitation.organisationId ?? null,
+          organisationId: invTx.organisationId ?? null,
           targetType: 'INVITATION',
-          targetId: resolved.invitation.id,
+          targetId: invTx.id,
           actionType: 'ACCEPTED',
           outcome: 'SUCCESS',
-          oldValues: { userType: existingUser.userType },
+          oldValues: { userType: userTx.userType },
           newValues: { userType: roleUpdate.userType, role: invitationRole },
           metadata: {
-            actionTokenId: resolved.token.id,
+            actionTokenId: tokenTx.id,
             isPromotion,
             confirmRoleChange: input.confirmRoleChange ?? false,
           },
@@ -385,27 +522,37 @@ export async function acceptInvitationWithToken(
       if (isPromotion && invitationRole === 'ORGANISATION_ADMIN') {
         await recordAuditLog(
           {
-            actorUserId: existingUser.id,
+            actorUserId: userTx.id,
             actorType: userTypeToAuditActorType(roleUpdate.userType),
-            organisationId: resolved.invitation.organisationId ?? null,
+            organisationId: invTx.organisationId ?? null,
             targetType: 'USER',
-            targetId: existingUser.id,
+            targetId: userTx.id,
             actionType: 'PROMOTED',
             outcome: 'SUCCESS',
-            oldValues: { userType: existingUser.userType },
+            oldValues: { userType: userTx.userType },
             newValues: { userType: roleUpdate.userType },
-            metadata: { invitationId: resolved.invitation.id },
+            metadata: { invitationId: invTx.id },
             ipAddress: ipAddress ?? null,
             userAgent: userAgent ?? null,
           },
           tx,
         );
       }
+
+      return {
+        sessionOutcome:
+          invitationRole === 'PLATFORM_ADMIN'
+            ? ('REAUTHENTICATE' as const)
+            : ('REFRESH_AUTH_CONTEXT' as const),
+      };
     });
 
     return {
       success: true,
       message: 'Invitation accepted successfully.',
+      roleGranted: invitationRole,
+      organisationId: resolved.invitation.organisationId ?? undefined,
+      sessionOutcome: txResult.sessionOutcome,
     };
   } catch (error) {
     if (error instanceof InvitationRepositoryConflictError) {
@@ -418,26 +565,78 @@ export async function acceptInvitationWithToken(
 export async function rejectInvitationWithToken(
   rawToken: string,
   input: InvitationRejectRequestDto,
-  authEmail?: string,
+  authContext?: string | { userId?: string; email?: string },
   ipAddress?: string | null,
   userAgent?: string | null,
   now = new Date(),
 ): Promise<InvitationRejectResponseDto> {
+  const normAuth =
+    typeof authContext === 'string' ? { userId: undefined, email: authContext } : authContext;
+
   const resolved = await resolveTokenAndInvitation(rawToken, now);
   assertActiveTokenForMutation(resolved);
-  assertLoggedInUserMismatch(authEmail, resolved.targetEmail);
+
+  const invitationType = mapPurposeToInvitationType(resolved.token.purpose);
+  if (invitationType === 'PLATFORM_ADMIN') {
+    throw new InvitationFlowError(
+      409,
+      'INVITATION_NOT_REJECTABLE',
+      'Platform administrator invitations cannot be rejected via this link.',
+    );
+  }
 
   const existingUser = await findUserByEmailWithProfiles(resolved.targetEmail);
+  const targetUserId = resolved.token.userId ?? resolved.token.user?.id ?? existingUser?.id;
+
+  if (normAuth && normAuth.email) {
+    if (
+      (normAuth.userId && targetUserId && normAuth.userId !== targetUserId) ||
+      normAuth.email.trim().toLowerCase() !== resolved.targetEmail.trim().toLowerCase()
+    ) {
+      throw new InvitationFlowError(
+        403,
+        'AUTH_USER_MISMATCH',
+        'You are currently logged in with a different account than the invitation target.',
+      );
+    }
+  }
 
   try {
     await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const { actionToken: tokenClient, invitation: invClient } = getTxClient(tx);
+
+      const tokenTx = await tokenClient.findUnique({ where: { id: resolved.token.id } });
+      const invTx = await invClient.findUnique({ where: { id: resolved.invitation.id } });
+      if (
+        !tokenTx ||
+        tokenTx.revokedAt ||
+        tokenTx.usedAt ||
+        tokenTx.expiresAt.getTime() <= now.getTime() ||
+        !invTx ||
+        (invTx.status !== 'PENDING' && invTx.status !== 'SENT')
+      ) {
+        throw new InvitationFlowError(
+          409,
+          'INVITATION_EXPIRED',
+          'Invitation action token is no longer active.',
+        );
+      }
+
       await claimInvitationReject(resolved.invitation.id, tx);
       await claimInvitationToken(resolved.token.id, tx);
 
+      const actorType = normAuth
+        ? existingUser
+          ? userTypeToAuditActorType(existingUser.userType)
+          : 'GENERAL_TRAINEE'
+        : 'SYSTEM';
+      const actorUserId =
+        actorType === 'SYSTEM' ? null : (normAuth?.userId ?? existingUser?.id ?? null);
+
       await recordAuditLog(
         {
-          actorUserId: existingUser?.id ?? null,
-          actorType: existingUser ? userTypeToAuditActorType(existingUser.userType) : 'SYSTEM',
+          actorUserId,
+          actorType,
           organisationId: resolved.invitation.organisationId ?? null,
           targetType: 'INVITATION',
           targetId: resolved.invitation.id,
@@ -446,6 +645,7 @@ export async function rejectInvitationWithToken(
           metadata: {
             actionTokenId: resolved.token.id,
             rejectionReason: input.rejectionReason ?? null,
+            isUnauthenticated: !normAuth,
           },
           ipAddress: ipAddress ?? null,
           userAgent: userAgent ?? null,

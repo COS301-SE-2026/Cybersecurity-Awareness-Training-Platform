@@ -1019,50 +1019,23 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         ),
         InvitationContextResponse: {
           type: 'object',
-          required: [
-            'invitationType',
-            'targetEmail',
-            'roleGranted',
-            'accountExists',
-            'requiresLogin',
-            'requiresSetup',
-            'status',
-            'expiresAt',
-          ],
+          required: ['requiredAction', 'rejectAllowed', 'status'],
           properties: {
-            invitationType: {
-              $ref: '#/components/schemas/InvitationType',
-            },
-            targetEmail: {
-              type: 'string',
-              format: 'email',
-              example: 'trainee@example.com',
-            },
-            organisationId: {
-              type: 'string',
-              format: 'uuid',
-              nullable: true,
-              example: '11111111-1111-4111-8111-111111111111',
-            },
-            organisationName: {
-              type: 'string',
-              nullable: true,
-              example: 'Acme Corp',
-            },
-            roleGranted: {
-              $ref: '#/components/schemas/InvitationRoleGranted',
-            },
-            accountExists: {
+            requiredAction: enumString(
+              [
+                'CONTINUE_SETUP',
+                'LOGIN_REQUIRED',
+                'SWITCH_ACCOUNT',
+                'CONFIRM_ROLE_CHANGE',
+                'ROLE_CONFLICT',
+                'INVITATION_UNAVAILABLE',
+                'TOKEN_UNAVAILABLE',
+              ],
+              'LOGIN_REQUIRED',
+            ),
+            rejectAllowed: {
               type: 'boolean',
               example: true,
-            },
-            requiresLogin: {
-              type: 'boolean',
-              example: true,
-            },
-            requiresSetup: {
-              type: 'boolean',
-              example: false,
             },
             status: {
               $ref: '#/components/schemas/InvitationStatus',
@@ -1072,6 +1045,25 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
               format: 'date-time',
               example: '2026-07-15T12:00:00.000Z',
             },
+            invitationType: {
+              $ref: '#/components/schemas/InvitationType',
+            },
+            organisationId: {
+              type: 'string',
+              format: 'uuid',
+              example: '11111111-1111-4111-8111-111111111111',
+            },
+            organisationName: {
+              type: 'string',
+              example: 'Acme Corp',
+            },
+            roleGranted: {
+              $ref: '#/components/schemas/InvitationRoleGranted',
+            },
+            permissions: arrayOf({
+              type: 'string',
+              example: 'VIEW_ORGANISATION_TRAINEES',
+            }),
           },
         },
         InvitationAcceptRequest: {
@@ -1088,7 +1080,7 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         },
         InvitationAcceptResponse: {
           type: 'object',
-          required: ['success', 'message'],
+          required: ['success'],
           properties: {
             success: {
               type: 'boolean',
@@ -1098,6 +1090,22 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
               type: 'string',
               example: 'Invitation accepted successfully.',
             },
+            redirectTo: {
+              type: 'string',
+              example: '/trainee/campaigns',
+            },
+            roleGranted: {
+              $ref: '#/components/schemas/InvitationRoleGranted',
+            },
+            organisationId: {
+              type: 'string',
+              format: 'uuid',
+              example: '11111111-1111-4111-8111-111111111111',
+            },
+            sessionOutcome: enumString(
+              ['REFRESH_AUTH_CONTEXT', 'REAUTHENTICATE'],
+              'REFRESH_AUTH_CONTEXT',
+            ),
           },
         },
         InvitationRejectRequest: {
@@ -1819,6 +1827,26 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           type: 'object',
           required: ['email', 'status'],
           properties: {
+            id: {
+              type: 'string',
+              format: 'uuid',
+              example: '11111111-1111-4111-8111-111111111111',
+            },
+            traineeProfileId: {
+              type: 'string',
+              format: 'uuid',
+              example: '22222222-2222-4222-8222-222222222222',
+            },
+            userId: {
+              type: 'string',
+              format: 'uuid',
+              example: '33333333-3333-4333-8333-333333333333',
+            },
+            invitationId: {
+              type: 'string',
+              format: 'uuid',
+              example: '44444444-4444-4444-8444-444444444444',
+            },
             email: {
               type: 'string',
               format: 'email',
@@ -1831,6 +1859,39 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
               ...nullableString('Trainee'),
             },
             status: enumString(['ACTIVE', 'DISABLED', 'INVITE_PENDING', 'INVITE_FAILED'], 'ACTIVE'),
+            createdAt: {
+              type: 'string',
+              format: 'date-time',
+              example: '2026-07-15T12:00:00.000Z',
+            },
+            joinedAt: {
+              ...nullableString('2026-07-15T12:00:00.000Z'),
+            },
+            invitedAt: {
+              ...nullableString('2026-07-15T12:00:00.000Z'),
+            },
+            disabledAt: {
+              ...nullableString('2026-07-20T12:00:00.000Z'),
+            },
+            disabledReason: {
+              ...nullableString('No longer with organisation.'),
+            },
+            expiresAt: {
+              ...nullableString('2026-07-22T12:00:00.000Z'),
+            },
+            emailDeliveryStatus: {
+              type: 'string',
+              example: 'DELIVERED',
+            },
+            eligibility: {
+              type: 'object',
+              properties: {
+                canResend: booleanProperty(false),
+                canRevoke: booleanProperty(false),
+                canDisable: booleanProperty(true),
+                canPromote: booleanProperty(true),
+              },
+            },
           },
         },
         TraineeListResponse: {
@@ -3506,7 +3567,7 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         ),
         OrganisationTraineesOk: responseComponent(
           'Organisation trainees and pending invitations.',
-          'TraineesAndInvitationsResponse',
+          'TraineeListResponse',
         ),
         OrganisationTraineeInvitationCreated: responseComponent(
           'Trainee invitation sent successfully.',

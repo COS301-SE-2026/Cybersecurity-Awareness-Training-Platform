@@ -5,7 +5,7 @@ export class SimulationController {
   private handleTraineeRequest = async (
     req: Request,
     res: Response,
-    handler: (traineeProfileId: string) => Promise<any>,
+    handler: (traineeProfileId: string) => Promise<unknown>,
   ) => {
     const userId = req.auth?.userId;
     if (!userId) return res.status(401).json({ error: 'UNAUTHORIZED' });
@@ -16,18 +16,19 @@ export class SimulationController {
 
       const response = await handler(traineeProfile.id);
       return res.json(response);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'INTERNAL_SERVER_ERROR';
       const status =
-        error.message === 'NOT_FOUND'
+        msg === 'NOT_FOUND'
           ? 404
-          : error.message === 'FORBIDDEN'
+          : msg === 'FORBIDDEN'
             ? 403
-            : error.message === 'ALREADY_CLASSIFIED'
+            : msg === 'ALREADY_CLASSIFIED'
               ? 409
-              : error.message === 'VALIDATION_ERROR'
+              : msg === 'VALIDATION_ERROR'
                 ? 400
                 : 500;
-      return res.status(status).json({ error: error.message });
+      return res.status(status).json({ error: msg });
     }
   };
 
