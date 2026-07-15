@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import {
   findOrganisationTrainees,
@@ -32,7 +31,7 @@ describe('organisation-trainee.repository unit tests', () => {
   it('findOrganisationTrainees calls findMany with organisationId and order', async () => {
     vi.mocked(prisma.organisationTraineeProfile.findMany).mockResolvedValue([
       { id: 'tr-1' },
-    ] as any);
+    ] as never);
     const res = await findOrganisationTrainees('org-1');
     expect(prisma.organisationTraineeProfile.findMany).toHaveBeenCalledWith({
       where: { organisationId: 'org-1' },
@@ -43,7 +42,7 @@ describe('organisation-trainee.repository unit tests', () => {
   });
 
   it('findOrganisationTraineeInvitations calls findMany with purpose filter', async () => {
-    vi.mocked(prisma.invitation.findMany).mockResolvedValue([{ id: 'inv-1' }] as any);
+    vi.mocked(prisma.invitation.findMany).mockResolvedValue([{ id: 'inv-1' }] as never);
     const res = await findOrganisationTraineeInvitations('org-1');
     expect(prisma.invitation.findMany).toHaveBeenCalledWith({
       where: { organisationId: 'org-1', purpose: 'ORGANISATION_TRAINEE_INVITE' },
@@ -53,7 +52,9 @@ describe('organisation-trainee.repository unit tests', () => {
   });
 
   it('findOrganisationTraineeByEmail normalises email and finds trainee', async () => {
-    vi.mocked(prisma.organisationTraineeProfile.findFirst).mockResolvedValue({ id: 'tr-1' } as any);
+    vi.mocked(prisma.organisationTraineeProfile.findFirst).mockResolvedValue({
+      id: 'tr-1',
+    } as never);
     const res = await findOrganisationTraineeByEmail('org-1', '  Test@Example.COM  ');
     expect(prisma.organisationTraineeProfile.findFirst).toHaveBeenCalledWith({
       where: {
@@ -66,7 +67,7 @@ describe('organisation-trainee.repository unit tests', () => {
   });
 
   it('findPendingTraineeInvitationByEmail normalises email and checks pending status', async () => {
-    vi.mocked(prisma.invitation.findFirst).mockResolvedValue({ id: 'inv-1' } as any);
+    vi.mocked(prisma.invitation.findFirst).mockResolvedValue({ id: 'inv-1' } as never);
     const res = await findPendingTraineeInvitationByEmail('org-1', '  User@Example.COM  ');
     expect(prisma.invitation.findFirst).toHaveBeenCalledWith({
       where: {
@@ -80,7 +81,9 @@ describe('organisation-trainee.repository unit tests', () => {
   });
 
   it('findOrganisationTraineeById calls findFirst matching OR conditions', async () => {
-    vi.mocked(prisma.organisationTraineeProfile.findFirst).mockResolvedValue({ id: 'tr-1' } as any);
+    vi.mocked(prisma.organisationTraineeProfile.findFirst).mockResolvedValue({
+      id: 'tr-1',
+    } as never);
     const res = await findOrganisationTraineeById('org-1', 'trainee-x');
     expect(prisma.organisationTraineeProfile.findFirst).toHaveBeenCalledWith({
       where: {
@@ -100,7 +103,7 @@ describe('organisation-trainee.repository unit tests', () => {
     vi.mocked(prisma.organisationTraineeProfile.update).mockResolvedValue({
       id: 'tr-1',
       membershipStatus: 'DISABLED',
-    } as any);
+    } as never);
     const res = await disableOrganisationTraineeProfile('tr-1');
     expect(prisma.organisationTraineeProfile.update).toHaveBeenCalledWith({
       where: { id: 'tr-1' },
@@ -117,7 +120,7 @@ describe('organisation-trainee.repository unit tests', () => {
     vi.mocked(prisma.organisationTraineeProfile.update).mockResolvedValue({
       id: 'tr-1',
       membershipStatus: 'DISABLED',
-    } as any);
+    } as never);
     await disableOrganisationTraineeProfile('tr-1', 'Employee departed');
     expect(prisma.organisationTraineeProfile.update).toHaveBeenCalledWith({
       where: { id: 'tr-1' },

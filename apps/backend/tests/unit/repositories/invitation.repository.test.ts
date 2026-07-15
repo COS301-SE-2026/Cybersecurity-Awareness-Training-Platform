@@ -1,5 +1,6 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, expect, it, vi, beforeEach } from 'vitest';
+import type { Prisma } from '../../../src/generated/prisma/client.js';
+import type { InvitationRoleGrantedDto } from '@insightful-phish/shared';
 import {
   findInvitationTokenByHash,
   findInvitationById,
@@ -57,7 +58,7 @@ describe('invitation.repository unit tests', () => {
 
   describe('finders', () => {
     it('findInvitationTokenByHash calls findUnique with include tree', async () => {
-      vi.mocked(prisma.actionToken.findUnique).mockResolvedValue({ id: 'token-1' } as any);
+      vi.mocked(prisma.actionToken.findUnique).mockResolvedValue({ id: 'token-1' } as never);
       const res = await findInvitationTokenByHash('hash123');
       expect(prisma.actionToken.findUnique).toHaveBeenCalledWith(
         expect.objectContaining({ where: { tokenHash: 'hash123' } }),
@@ -66,7 +67,7 @@ describe('invitation.repository unit tests', () => {
     });
 
     it('findInvitationById calls findUnique with include tree', async () => {
-      vi.mocked(prisma.invitation.findUnique).mockResolvedValue({ id: 'inv-1' } as any);
+      vi.mocked(prisma.invitation.findUnique).mockResolvedValue({ id: 'inv-1' } as never);
       const res = await findInvitationById('inv-1');
       expect(prisma.invitation.findUnique).toHaveBeenCalledWith(
         expect.objectContaining({ where: { id: 'inv-1' } }),
@@ -75,7 +76,7 @@ describe('invitation.repository unit tests', () => {
     });
 
     it('findUserByEmailWithProfiles calls findUnique with profiles include', async () => {
-      vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 'user-1' } as any);
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 'user-1' } as never);
       const res = await findUserByEmailWithProfiles('test@example.com');
       expect(prisma.user.findUnique).toHaveBeenCalledWith(
         expect.objectContaining({ where: { email: 'test@example.com' } }),
@@ -88,7 +89,7 @@ describe('invitation.repository unit tests', () => {
     it('claimInvitationAccept updates pending invitation to ACCEPTED', async () => {
       const txMock = {
         invitation: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
-      } as any;
+      } as unknown as Prisma.TransactionClient;
       await expect(claimInvitationAccept('inv-1', txMock)).resolves.toBeUndefined();
       expect(txMock.invitation.updateMany).toHaveBeenCalledWith({
         where: { id: 'inv-1', status: { in: ['PENDING', 'SENT', 'FAILED_TO_SEND'] } },
@@ -99,7 +100,7 @@ describe('invitation.repository unit tests', () => {
     it('claimInvitationAccept throws conflict error if count is not 1', async () => {
       const txMock = {
         invitation: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
-      } as any;
+      } as unknown as Prisma.TransactionClient;
       await expect(claimInvitationAccept('inv-1', txMock)).rejects.toThrow(
         InvitationRepositoryConflictError,
       );
@@ -108,7 +109,7 @@ describe('invitation.repository unit tests', () => {
     it('claimInvitationReject updates pending invitation to REJECTED', async () => {
       const txMock = {
         invitation: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
-      } as any;
+      } as unknown as Prisma.TransactionClient;
       await expect(claimInvitationReject('inv-1', txMock)).resolves.toBeUndefined();
       expect(txMock.invitation.updateMany).toHaveBeenCalledWith({
         where: { id: 'inv-1', status: { in: ['PENDING', 'SENT', 'FAILED_TO_SEND'] } },
@@ -119,7 +120,7 @@ describe('invitation.repository unit tests', () => {
     it('claimInvitationReject throws conflict error if count is not 1', async () => {
       const txMock = {
         invitation: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
-      } as any;
+      } as unknown as Prisma.TransactionClient;
       await expect(claimInvitationReject('inv-1', txMock)).rejects.toThrow(
         InvitationRepositoryConflictError,
       );
@@ -128,7 +129,7 @@ describe('invitation.repository unit tests', () => {
     it('claimInvitationToken marks token as used', async () => {
       const txMock = {
         actionToken: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
-      } as any;
+      } as unknown as Prisma.TransactionClient;
       await expect(claimInvitationToken('tok-1', txMock)).resolves.toBeUndefined();
       expect(txMock.actionToken.updateMany).toHaveBeenCalledWith({
         where: { id: 'tok-1', usedAt: null, revokedAt: null },
@@ -139,7 +140,7 @@ describe('invitation.repository unit tests', () => {
     it('claimInvitationToken throws conflict error if count is not 1', async () => {
       const txMock = {
         actionToken: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
-      } as any;
+      } as unknown as Prisma.TransactionClient;
       await expect(claimInvitationToken('tok-1', txMock)).rejects.toThrow(
         InvitationRepositoryConflictError,
       );
@@ -148,13 +149,17 @@ describe('invitation.repository unit tests', () => {
 
   describe('insertInvitationPermissionGrantsToAdmin', () => {
     it('does nothing when grants array is empty', async () => {
-      const txMock = { organisationAdminPermission: { createMany: vi.fn() } } as any;
+      const txMock = {
+        organisationAdminPermission: { createMany: vi.fn() },
+      } as unknown as Prisma.TransactionClient;
       await insertInvitationPermissionGrantsToAdmin('org-1', 'adm-1', [], txMock);
       expect(txMock.organisationAdminPermission.createMany).not.toHaveBeenCalled();
     });
 
     it('creates grants when array has items', async () => {
-      const txMock = { organisationAdminPermission: { createMany: vi.fn() } } as any;
+      const txMock = {
+        organisationAdminPermission: { createMany: vi.fn() },
+      } as unknown as Prisma.TransactionClient;
       await insertInvitationPermissionGrantsToAdmin(
         'org-1',
         'adm-1',
@@ -180,7 +185,7 @@ describe('invitation.repository unit tests', () => {
         user: { update: vi.fn().mockResolvedValue({}) },
         organisationAdminProfile: { upsert: vi.fn().mockResolvedValue({ id: 'profile-adm-1' }) },
         invitation: { update: vi.fn().mockResolvedValue({}) },
-      } as any;
+      } as unknown as Prisma.TransactionClient;
 
       const res = await updateUserRoleAndProfilesFromInvitation(
         {
@@ -199,7 +204,7 @@ describe('invitation.repository unit tests', () => {
     });
 
     it('throws error when assigning ORGANISATION_ADMIN without organisationId', async () => {
-      const txMock = {} as any;
+      const txMock = {} as unknown as Prisma.TransactionClient;
       await expect(
         updateUserRoleAndProfilesFromInvitation(
           { userId: 'usr-1', newRole: 'ORGANISATION_ADMIN', organisationId: null },
@@ -216,7 +221,7 @@ describe('invitation.repository unit tests', () => {
           upsert: vi.fn().mockResolvedValue({ traineeProfileId: 'tr-profile-1' }),
         },
         invitation: { update: vi.fn().mockResolvedValue({}) },
-      } as any;
+      } as unknown as Prisma.TransactionClient;
 
       const res = await updateUserRoleAndProfilesFromInvitation(
         {
@@ -236,7 +241,7 @@ describe('invitation.repository unit tests', () => {
     });
 
     it('throws error when assigning ORGANISATION_TRAINEE without organisationId', async () => {
-      const txMock = {} as any;
+      const txMock = {} as unknown as Prisma.TransactionClient;
       await expect(
         updateUserRoleAndProfilesFromInvitation(
           { userId: 'usr-1', newRole: 'ORGANISATION_TRAINEE', organisationId: null },
@@ -249,7 +254,7 @@ describe('invitation.repository unit tests', () => {
       const txMock = {
         user: { update: vi.fn().mockResolvedValue({}) },
         ipAdminProfile: { upsert: vi.fn().mockResolvedValue({ id: 'ip-prof-1' }) },
-      } as any;
+      } as unknown as Prisma.TransactionClient;
 
       const res = await updateUserRoleAndProfilesFromInvitation(
         { userId: 'usr-1', newRole: 'IP_ADMIN' },
@@ -261,10 +266,10 @@ describe('invitation.repository unit tests', () => {
     });
 
     it('throws error for unsupported role assignment', async () => {
-      const txMock = {} as any;
+      const txMock = {} as unknown as Prisma.TransactionClient;
       await expect(
         updateUserRoleAndProfilesFromInvitation(
-          { userId: 'usr-1', newRole: 'INVALID_ROLE' as any },
+          { userId: 'usr-1', newRole: 'INVALID_ROLE' as unknown as InvitationRoleGrantedDto },
           txMock,
         ),
       ).rejects.toThrow('Unsupported role assignment: INVALID_ROLE');
