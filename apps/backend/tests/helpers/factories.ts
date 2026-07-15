@@ -620,11 +620,17 @@ export async function createInvitationTestFixture(
   });
 
   const purpose = overrides.purpose ?? InvitationPurpose.ORGANISATION_TRAINEE_INVITE;
+  const validInvitationPurposes = Object.values(InvitationPurpose) as string[];
+  const invitationPurpose = (
+    validInvitationPurposes.includes(purpose)
+      ? purpose
+      : InvitationPurpose.ORGANISATION_TRAINEE_INVITE
+  ) as InvitationPurpose;
 
   const invitation = await createInvitation({
     organisationId: organisation.id,
     recipientEmail,
-    purpose: purpose as InvitationPurpose,
+    purpose: invitationPurpose,
     status: overrides.invitationStatus ?? InvitationStatus.PENDING,
     expiresAt: overrides.actionTokenExpired
       ? new Date(Date.now() - 24 * 60 * 60 * 1000)

@@ -358,7 +358,7 @@ export async function getQuizResult(
       questionId: answer.questionId,
       isCorrect: answer.isCorrect,
       awardedPoints: answer.awardedPoints,
-      feedbackShown: answer.feedbackShown ? 'true' : 'false',
+      feedbackShown: answer.feedbackShown ?? null,
       selectedOptions: answer.selectedOptions.map((sel: (typeof answer.selectedOptions)[0]) => ({
         optionId: sel.answerOption.id,
         label: sel.answerOption.label,

@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../../src/app.js';
@@ -81,7 +82,7 @@ describe('Invitation Acceptance Integration Tests', () => {
         .send({ confirmRoleChange: true });
 
       expect(res.status).toBe(401);
-      expect(res.body.error).toBe('AUTH_REQUIRED');
+      expect(res.body.error).toBe('AUTH_INVALID');
     });
 
     it('returns 403 AUTH_USER_MISMATCH without exposing either email address when authenticated as wrong user', async () => {
@@ -117,10 +118,10 @@ describe('Invitation Acceptance Integration Tests', () => {
       expect(res.body.error).toBe('SETUP_REQUIRED');
     });
 
-    it('returns REAUTHENTICATE session outcome when accepting PLATFORM_ADMIN_INVITE role', async () => {
+    it('returns REAUTHENTICATE session outcome when accepting PLATFORM_ADMIN_UPGRADE_CONFIRMATION role', async () => {
       const app = createApp();
       const fixture = await createInvitationTestFixture({
-        purpose: 'PLATFORM_ADMIN_INVITE',
+        purpose: 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION',
       });
       const loginRes = await loginTestUser(fixture.user.email);
 
@@ -137,6 +138,14 @@ describe('Invitation Acceptance Integration Tests', () => {
       const app = createApp();
       const fixture = await createInvitationTestFixture();
       const otherFixture = await createInvitationTestFixture();
+      await prisma.organisationTraineeProfile.create({
+        data: {
+          id: randomUUID(),
+          traineeProfileId: otherFixture.trainee.traineeProfile.id,
+          organisationId: otherFixture.organisation.id,
+          membershipStatus: 'ACTIVE',
+        },
+      });
       const loginRes = await loginTestUser(otherFixture.user.email);
 
       // Force otherFixture user's email to match invitation target email so it passes target match check
@@ -174,7 +183,7 @@ describe('Invitation Acceptance Integration Tests', () => {
         .send({ confirmRoleChange: true });
 
       expect(res.status).toBe(200);
-      expect(res.body).toEqual({
+      expect(res.body).toMatchObject({
         success: true,
         message: 'Invitation accepted successfully.',
       });

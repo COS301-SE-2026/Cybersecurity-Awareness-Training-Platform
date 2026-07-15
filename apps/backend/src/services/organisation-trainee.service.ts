@@ -352,7 +352,10 @@ export async function resendTraineeInvitation(
 
   const txResult = await prisma.$transaction(async (tx) => {
     const txInv = await findInvitationById(invitation.id, tx);
-    if (!txInv || (txInv.status !== 'PENDING' && txInv.status !== 'FAILED_TO_SEND')) {
+    if (
+      !txInv ||
+      (txInv.status !== 'PENDING' && txInv.status !== 'SENT' && txInv.status !== 'FAILED_TO_SEND')
+    ) {
       throw new OrganisationTraineeServiceError(
         409,
         'INVITATION_NOT_RESENDABLE',
