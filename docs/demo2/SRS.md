@@ -238,7 +238,7 @@ A core overview of the currently implemented use cases can be seen in this diagr
 
 [UC-Overview Diagram](./diagrams/demo1-use-cases-overview.svg)
 
-### 3.1 Status Model
+### 4.1 Status Model
 
 Use cases and requirements in this SRS use the following status values:
 | Status | Meaning |
@@ -247,121 +247,234 @@ Use cases and requirements in this SRS use the following status values:
 | **In Progress** | The use case or requirements is currently being implemented |
 | **Planned** | The use case or requirements is planned for future implementation |
 
-### 3.2 Product Use Case Summary
+### 4.2 Product Use Case Summary
 
-Below are the use case IDs, their names and their current status.
+Below are the use case IDs, their names and their current implementation status.
 | Use Case ID | Use Case Name | Status |
 | ----------- | ------------- | ------ |
-| UC-01 | View Emails in Simulated Inbox | Implemented |
-| UC-02 | View Training Document | Implemented |
-| UC-03 | Complete Quiz Flow and View Results | Implemented |
-| UC-04 | Request Organisation Registration | In Progress |
-| UC-05 | Review/Approve Organisation Registration Request | In Progress |
-| UC-06 | Complete First Organisation Admin Setup | In Progress |
-| UC-07 | Accept Organisation Trainee Invitation | In Progress |
-| UC-08 | Manage Organisation Employees | In Progress |
-| UC-09 | Manage Organisation Admins and Permissions | In Progress |
-| UC-10 | Manage Insightful Phish Admins | In Progress |
-| UC-11 | Configure Organisation Security Settings | In Progress |
-| UC-12 | Manage (Personal) Account & Security Settings | In Progress |
-| UC-13 | Assign Campaigns to Organisation Trainees | Planned |
-| UC-14 | Browse Campaigns for Individual Trainees | Planned |
-| UC-15 | Self-enrol in Campaigns for Individual Trainees | Planned |
-| UC-16 | Create and Manage Campaigns for Individual Trainees | Planned |
-| UC-17 | Create and Manage Campaigns for Organisation Trainees | Planned |
-| UC-18 | Build Campaigns from Reusable Components | Planned |
-| UC-19 | Create and Manage Training Documents | Planned |
-| UC-20 | Create and Manage Quizzes | Planned |
-| UC-21 | Create and Manage Simulated Inboxes and Emails | Planned |
-| UC-22 | Create and Manage Ethical Real-Email Simulation Campaign Items | Planned |
-| UC-23 | Send Ethical real-emails using organisation context, domain and SMTP configuration | Planned |
-| UC-24 | Classify Simulated Emails and Provide Feedback | Planned |
-| UC-25 | Interact with Simulated Links and Attachments and Track Interactions | Planned |
-| UC-26 | Simulated Link and Attachment Behaviour (Pages, Forms, and Safe Credential Capture) | Planned |
-| UC-27 | View Campaign Progress, Completion, Score and other trainee-facing information (Trainee) | Planned |
-| UC-28 | View Organisation-level Campaign and Trainee Progress and Completion (Organisation Admin) | Planned |
-| UC-29 | View Organisation-level Risk and Trainee Risk Scoring (Organisation Admin) | Planned |
-| UC-30 | Manage Organisation Context | Planned |
-| UC-31 | Generate Campaign Content with AI Assistance | Planned |
-| UC-32 | Review and Approve AI-generated Campaign Content | Planned |
+| **`UC-01`** | View Emails in Simulated Inbox | Implemented |
+| **`UC-02`** | View Training Document | Implemented |
+| **`UC-03`** | Complete Quiz Flow and View Results | Implemented |
+| **`UC-04`** | Request Organisation Registration | In Progress |
+| **`UC-05`** | Review/Approve Organisation Registration Request | In Progress |
+| **`UC-06`** | Complete First Organisation Admin Setup | In Progress |
+| **`UC-07`** | Accept Organisation Trainee Invitation | In Progress |
+| **`UC-08`** | Manage Organisation Employees | In Progress |
+| **`UC-09`** | Manage Organisation Admins and Permissions | In Progress |
+| **`UC-10`** | Manage Insightful Phish Admins | In Progress |
+| **`UC-11`** | Configure Organisation Security Settings | In Progress |
+| **`UC-12`** | Manage (Personal) Account & Security Settings | In Progress |
+| **`UC-13`** | Manage Organisation Lifecycle and Access | Planned |
+| **`UC-14`** | Manage Organisation Employee Tags | Planned |
+| **`UC-15`** | Create and Manage Premade Campaigns | Planned |
+| **`UC-16`** | Create and Manage Organisation Campaigns | Planned |
+| **`UC-17`** | Build and Structure Campaigns from Reusable Components | Planned |
+| **`UC-18`** | Create and Manage Training Documents | Planned |
+| **`UC-19`** | Create and Manage Quizzes | Planned |
+| **`UC-20`** | Create and Manage Simulated Inboxes and Emails | Planned |
+| **`UC-21`** | Publish and Unpublish Premade Campaigns | Planned |
+| **`UC-22`** | Browse Published Premade Campaigns | Planned |
+| **`UC-23`** | Self-enrol in Premade Campaigns | Planned |
+| **`UC-24`** | Manage Individual Campaign Enrolments, Progress and Resets | Planned |
+| **`UC-25`** | Assign Campaigns to Organisation Trainees | Planned |
+| **`UC-26`** | Reset Organisation Campaign Progress | Planned
+| **`UC-27`** | View Trainee Campaign Progress and Results | Planned |
+| **`UC-28`** | Classify Simulated Emails and Provide Feedback | Planned | Planned |
+| **`UC-29`** | Interact with Simulated Links and Attachments and Track Interactions | Planned |
+| **`UC-30`** | View Organisation Training Progress, Performance and Risk Scoring | Planned |
+| **`UC-31`** | Configure and Launch Ethical Real-Email Simulation Campaigns | Planned |
+| **`UC-32`** | Generate and Review Campaign Content with AI Assistance | Planned |
+| **`UC-33`** | View Platform Usage and Security Overview | Planned |
 
-### 3.1 UC-01: View Emails in Simulated Inbox
+### 4.3 Actor Summary
+
+Below are all the actors used by the use cases specified in this SRS:
+| Actor | Role | Primary Goal |
+| ----- | ---- | ------------ |
+| | |
+
+### 4.4 Use Cases
+
+#### **`UC01`**: View Emails in Simulated Inbox
+
+**Status:** Implemented
+**Expected Completion:** Demo 1
 
 [UC-01 use case diagram](./diagrams/demo1-use-cases-uc01-simulated-inbox.svg)
 
-#### User Story
+##### User Story
 
-As a trainee, I want to view my simulated emails in a controlled inbox rather than my own mailbox so that I can recognise potentially suspicious messages in a safe training environment.
+**Overall UC story:** As a trainee, I want to access an assigned simulated-inbox campaign item and safely view its simulated emails, so that I can practise recognising suspicious messages while following the intended training sequence.
+_This is a combination of `US-TR-03` and `US-TR-02`._
 
-#### Purpose
+##### Business Goal
 
-UC-01 allows a trainee to view a list of assigned simulated emails, open an email detail view, and review the content in the email. It does not access a real mailbox, send real email, capture credentials, or require email classification in Demo 1.
+The trainee gains practical exposure to realistic suspicious messages disguised among normal simulated messages, and can practise recognising them in a safe environement without accessing a real mailbox or sending real email. The trainee can also practise safe email reading habits, such as not clicking links or opening attachments in suspicious messages.
 
-#### Actors
+##### Scope
 
-- Primary actor: Trainee
-- Supporting actor: System
+- **TUCBW**: A trainee opening an available simulated inbox campaign item from an assigned campaign and viewing its simulated emails.
+- **TUCEW**: The trainee viewing a selected simulated email or returning to the campaign.
 
-#### Preconditions
+##### Actors
 
-- The trainee is authenticated.
-- The trainee has access to a campaign item containing a simulated inbox.
-- Simulated emails exist as controlled platform content.
+- **Primary actor:** Trainee (Individual Trainee or Organisation Trainee)
+- **Supporting actors:** System
+- **External systems::** None (This Use Case does not access real email or external systems.)
 
-#### Postconditions
+##### Preconditions
+
+- The trainee is authenticated and has an active traine profile.
+- The trainee has an active assignment for the relevant campaign.
+- Any required preceding campaign items have been completed.
+- The simulated inbox and selected email are active and belong to the accessible campaign item.
+
+##### Trigger
+
+The trainee selects an available simulated inbox campaign item from the campaign view.
+
+##### Postconditions
 
 - The trainee can view assigned simulated email summaries.
-- The trainee can open a selected simulated email and view its details.
-- The system may record that the simulated email was opened.
-- If no email is assigned or the email cannot be loaded, the trainee receives a safe empty or error state.
+- The trainee can view the details of an accessible simulated email, including sender information, subject, received date, and body content.
+- An email-open interaction is recorded indempotently, without blocking the trainee from reading the email.
+- No real email inbox is accessed, and no real email is sent or received.
+- On failure, campaign content, assignment state and existing progress are preserved, and the trainee receives a safe empty or error state.
 
-#### Main Flow
+##### Main Success Scenario
 
-1. The trainee navigates to the simulated inbox.
-2. The system displays simulated email summaries assigned through the campaign item.
-3. The trainee selects an email.
-4. The system displays sender information, subject, received date, and body content.
-5. The system records a lightweight open email interaction.
-6. The trainee reads the email and may return to the inbox.
+1. The trainee selects an available campaign item which is a simulated inbox.
+2. The system verifies authentication, assignment access, prerequisites, item availability and simulation state.
+3. The system displays the controlled simulated inbox and its email summaries.
+4. The trainee selects an email.
+5. The system verifies that the email belongs to the accessible simulated inbox.
+6. The system displays the email sender, subject, received date, body and safe link or attachment representations.
+7. The system records a lightweight open interaction.
+8. The trainee reads the email and returns to the inbox or campaign view.
 
-#### Exceptions
+##### Alternate Flows
 
-- No simulated emails are assigned: Show an empty state.
-- Simulated email not found or not assigned: Show a safe error state and return path.
-- Inbox or email loading fails: Show a retry or navigation option.
-- Interaction tracking fails: Do not block email reading where the content loaded successfully.
-- Any attempted real external email access: Exclude or block the behaviour for Demo 1.
+###### A1: Empty Simulated Inbox
 
-### 3.2 UC-02: View Training Document
+1. The inbox is valid but contains no available emails.
+2. The system displays a safe empty state and allows the trainee to return to the campaign view.
+3. The trainee returns to the campaign view.
+
+###### A2: Previusly Opened Email
+
+1. The trainee selects an email that has already been opened.
+2. The system displays the email normally.
+3. The open-event processing remains idemponent and does not create duplicate open interactions.
+
+##### Error / Exception Flows
+
+###### E1: Inaccessible Campaign Item or Email
+
+1. The campaign item, inbox or email is unavailable, unassigned or outside the trainee's access scope.
+2. The system returns a safe forbidden or not found response.
+3. No foreign campaign or trainee information is exposed.
+4. The trainee can return to an accessible campaign item or the campaign view.
+
+###### E2: Interaction Tracking Failure
+
+1. The email content loads, but the open interaction cannot be recorded due to a system error.
+2. The system allows the trainee to continue reading the email normally.
+3. The tracking failure is logged without creating false progress.
+4. The trainee continues normally.
+
+##### Business Rules
+
+- `UC-01` covers viewing and opening simulated emails only.
+- Classifying emails and getting educational feedback is covered in `UC-28`.
+- Simulated link, attachment and form behaviour is covered in `UC-29`.
+- Correct classifications and red flag explanations shouldn't be disclosed by normal inbox-list or email-viewing behaviour to avoid spoiling the educational experience.
+- Only controleld platform content my be rendered.
+
+##### RBAC and Access Control
+
+- An authenticated active trainee role is required.
+- Access is derived from the trainee-s active campaign assignment.
+- Campaign, item, inbox and email relationships are validated server-side.
+- An organisation administrator cannot use `UC-01` to access another trainee's campaign as that trainee.
+- Platform administrators do not receive implicit trainee campaign access.
+
+##### Data and Domain Model
+
+- `User` and `TraineeProfile`: Identity performing the training.
+- `Campaign`, `CampaignAssignment` and `CampaignItem`: The campaign assignment and activity context.
+- `Simulation`, `SimulatedInbox` and `SimulatedEmail`: The controlled training content being accessed.
+- `InteractionEvent`: Records that the trainee opened the email. There is only a single open interaction per email per trainee, and it is recorded idempotently.
+- The simulated email must belong to the inbox associated with the campaign item, and the campaign item must belong to the assigned campaign.
+
+##### API Contract References
+
+- `GET /trainee/campaign-items/:campaignItemId/simulated-inbox`: Retrieve the simulated inbox and its email summaries for the campaign item.
+- `GET /trainee/campaign-items/:campaignItemId/simulated-emails/:emailId`: Retrieve one accessible email from the simulated inbox for the campaign item.
+- `POST /trainee/campaign-items/:campaignItemId/simulated-emails/:emailId/interactions`: Record an email-open interaction for the trainee and the selected email.
+- Bearer authentication and active-assignment checks are required.
+- Expected errors include safe `401`, `403`, `404`, validation, and server-error responses.
+- The interaction endpoint can create an idempotent tracking side effect.
+
+##### Design / Wireframe References
+
+- `DESIGN.md`: Campaign Page, Simulated Inbox, and Simulated Email Detail
+- `SimulatedInbox.png`: Inbox List Wireframe
+- `SimulatedEmailDetail.png`: Email Detail Wireframe
+- Loading, empty, inaccessible and retry states should exist.
+- Email content and navigation should have a clear structure and offer keyboard navigation and screen-reader accessibility.
+
+##### Verification / Acceptance Criteria
+
+- Given an assigned available simulated inbox campaign item, when the trainee selects it, then the system displays the controlled simulated inbox and its email summaries.
+- Given an email belonging to that inbox, when the trainee selects it, then the system displays the email sender, subject, received date, body and safe link or attachment representations.
+- Given an email outside the assignment, when it is requested, then access is denied without discloding its content.
+- Given a repeated email-open interaction, when the interaction is recorded, then the system does not create duplicate open interactions.
+- Given an interaction-tracking failure, when the email content loaded successfully, then the trainee can continue reading the email normally.
+
+##### Traceability
+
+| Artefact         | Reference                                                                                                                                            |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| User stories     | `US-TR-03` (Controlled simulated inbox). `US-TR-02` (Campaign ordering and prerequisites)                                                            |
+| SRS requirements | `FR-UC01-01` to `FR-UC01-08` (Inbox viewing, safe content, errors and boundaries).`FR-TRK-01` to `FR-TRK-04` (Interaction tracking)                  |
+| API contracts    | `API.md` (Simulated Inbox API endpoints)                                                                                                             |
+| Design           | `DESIGN.md` (Campaigns Page, Simulated Inbox, and Simulated Email Detail)                                                                            |
+| Domain model     | `CampaignAssignment`, `CampaignItem`, `Simulation`, `SimulatedInbox`, `SimulatedEmail`, `InteractionEvent`                                           |
+| Tests            | `QA-UC01-01` (Inbox success). `QA-UC01-02` (UI states). `QA-UC01-03` (Email detail). `QA-UC01-04` (Invalid email). `QA-UC01-05` (Authenticated flow) |
+
+#### **`UC02`**: View Training Document
+
+**Status:** Implemented
+**Expected Completion:** Demo 1
 
 [UC-02 use case diagram](./diagrams/demo1-use-cases-uc02-training-document.svg)
 
-#### User Story
+##### User Story
 
 As a trainee, I want to view training documents assigned to me so that I can learn how to recognise and respond to cyber threats in a controlled educational environment.
 
-#### Purpose
+##### Purpose
 
 UC-02 allows a trainee to open and read assigned training content. It does not include training content authoring, uploading, campaign management, or quiz completion.
 
-#### Actors
+##### Actors
 
 - Primary actor: Trainee
 - Supporting actor: System
 
-#### Preconditions
+##### Preconditions
 
 - The trainee is authenticated.
 - The trainee has access to a campaign item containing a training document.
 - Training content exists as controlled educational content.
 
-#### Postconditions
+##### Postconditions
 
 - The trainee can open and read the assigned training document.
 - The system may record that the training document was viewed or completed.
 - If content is missing or unavailable, the trainee receives a safe empty or error state.
 
-#### Main Flow
+##### Main Flow
 
 1. The trainee navigates to an assigned training item.
 2. The system retrieves the training document for the campaign item.
@@ -370,37 +483,37 @@ UC-02 allows a trainee to open and read assigned training content. It does not i
 5. The trainee reads the content.
 6. The trainee may return to the campaign view or proceed to a related quiz.
 
-#### Exceptions
+##### Exceptions
 
 - No training document is assigned: Show an empty or unavailable state.
 - Training document not found or no longer assigned: Show a safe error state.
 - Training content loading fails: Show a retry or navigation option.
 - Progress tracking fails: Do not block reading where content loaded successfully.
 
-### 3.3 UC-03: Complete Quiz Flow and View Results
+#### UC-03: Complete Quiz Flow and View Results
 
 [UC-03 use case diagram](./diagrams/demo1-use-cases-uc03-quiz-flow.svg)
 
-#### User Story
+##### User Story
 
 As a trainee, I want to complete a quiz after my training session so that I can verify my understanding of the material and receive feedback on my security knowledge.
 
-#### Purpose
+##### Purpose
 
 UC-03 allows a trainee to open assigned quiz content, answer supported questions, submit a quiz attempt, and view results or feedback. Demo 1 supports simple single-choice quiz questions. Quiz authoring, adaptive learning, AI-assisted generation, and full reporting dashboards are outside Demo 1 scope.
 
-#### Actors
+##### Actors
 
 - Primary actor: Trainee
 - Supporting actor: System
 
-#### Preconditions
+##### Preconditions
 
 - The trainee is authenticated.
 - The trainee has access to a campaign item containing a quiz.
 - Quiz questions and answer options exist as controlled content.
 
-#### Postconditions
+##### Postconditions
 
 - The system creates or uses a quiz attempt for the trainee.
 - The trainee can answer and submit the quiz.
@@ -408,7 +521,7 @@ UC-03 allows a trainee to open assigned quiz content, answer supported questions
 - The submitted attempt becomes read-only.
 - The trainee can view a result summary and educational feedback where available.
 
-#### Main Flow
+##### Main Flow
 
 1. The trainee navigates to an assigned quiz.
 2. The system loads the quiz content.
@@ -419,7 +532,7 @@ UC-03 allows a trainee to open assigned quiz content, answer supported questions
 7. The system calculates or retrieves the result.
 8. The system displays results and educational feedback.
 
-#### Exceptions
+##### Exceptions
 
 - Quiz not available or not assigned: Show a safe error state and return path.
 - Quiz start fails: Show a retry or return option.
@@ -427,28 +540,28 @@ UC-03 allows a trainee to open assigned quiz content, answer supported questions
 - Submission fails: Preserve answers where possible and allow retry.
 - Results fail to load: Keep the attempt submitted and provide a retry or navigation option.
 
-### 3.5 UC-09: Manage Organisation Admins and Permissions
+#### UC-09: Manage Organisation Admins and Permissions
 
-#### User Story
+##### User Story
 
 As an organisation admin with admin-management permissions, I want to view and manage organisation admins and their permissions so that my organisation can maintain controlled, traceable, and safe administrator access.
 
-#### Purpose
+##### Purpose
 
 This use case allows an organisation admin to view the organisation's admins, review assigned permissions, promote an active organisation trainee to an organisation admin, update another admin's permissions, and remove organisation admin privileges where permitted. The use case ensures that all admin-management actions stay within the actor's organisation, respect permission-based access control, preserve critical-admin safeguards, and record meaningful changes for audit purposes.
 
-#### Scope
+##### Scope
 
 - **TUCBW**: An organisation admin manages organisation admins and permissions on the organisation admin management page.
 - **TUCEW**: The organisation admin acknowledges that admin invitation, promotion, permission viewing, or permission change work has completed successfully.
 
-#### Actors
+##### Actors
 
 - Primary actor: Organisation admin with admin-management permissions
 - Supporting actor: Email service
 - System actor: Audit log
 
-#### Preconditions
+##### Preconditions
 
 - The organisation admin is authenticated.
 - The organisation admin has an active organisation admin profile.
@@ -456,7 +569,7 @@ This use case allows an organisation admin to view the organisation's admins, re
 - The organisation exists and is not in a state that blocks the selected admin-management action.
 - The organisation admin has the required permission for the selected action.
 
-#### Postconditions
+##### Postconditions
 
 - The organisation admin list and permission state are displayed or updated according to the selected action.
 - If a trainee is promoted, a pending organisation admin promotion invitation is created for an active trainee in the same organisation.
@@ -466,7 +579,7 @@ This use case allows an organisation admin to view the organisation's admins, re
 - Successful admin-management changes are recorded in the audit log.
 - Failed validation, permission, or safeguard checks leave the previous admin and permission state unchanged.
 
-#### Main Flow
+##### Main Flow
 
 1. The organisation admin navigates to the organisation admin management page.
 2. The system retrieves and displays the organisation admins, their statuses, and their assigned permissions.
@@ -499,7 +612,7 @@ This use case allows an organisation admin to view the organisation's admins, re
      f. The system displays a confirmation that the admin privileges were removed.
 4. The organisation admin acknowledges the outcome and returns to the organisation admin management page.
 
-#### Exceptions
+##### Exceptions
 
 - **Unauthenticated User**: The user is not signed in. The system redirects the user to login or returns an unauthorised response.
 - **Inactive Organisation Admin**: The actor is not an active organisation admin. The system denies access to organisation admin management.
@@ -513,7 +626,7 @@ This use case allows an organisation admin to view the organisation's admins, re
 - **Email Delivery Failure**: The promotion invitation is created but the email cannot be sent. The system records the delivery failure and shows that follow-up or resend may be required.
 - **Audit Logging Failure**: The system cannot record the required audit entry. The system follows the platform's audit-failure policy and does not silently hide sensitive admin-management changes.
 
-#### Traceability
+##### Traceability
 
 - SRS documentation issue: #273
 - Foundation/migration issue: #272
@@ -522,28 +635,28 @@ This use case allows an organisation admin to view the organisation's admins, re
 - Integration issue: #276
 - Backend integration-test issue: #280
 
-### 3.6 UC-11: Configure Organisation Security Settings
+#### UC-11: Configure Organisation Security Settings
 
-#### User Story
+##### User Story
 
 As an organisation admin with security-settings permission, I want to configure organisation-level security settings so that my organisation can control session behaviour and sensitive account policies for organisation users.
 
-#### Purpose
+##### Purpose
 
 This use case allows an authorised organisation admin to view and update organisation-level security settings, including remember-me policy, regular session length, idle timeout, sensitive-action reauthentication, and trainee email-change policy. The use case ensures that the submitted settings stay within platform limits, conflicting combinations are rejected, changes are audit logged, and the saved policy is applied by authentication and session services according to defined enforcement timing.
 
-#### Scope
+##### Scope
 
 - **TUCBW**: An organisation admin configures organisation-level security settings on the organisation security settings page.
 - **TUCEW**: The organisation admin acknowledges that the organisation security settings have been saved successfully.
 
-#### Actors
+##### Actors
 
 - Primary actor: Organisation admin with security-settings permission
 - System actor: Authentication/session service
 - System actor: Audit log
 
-#### Preconditions
+##### Preconditions
 
 - The organisation admin is authenticated.
 - The organisation admin has an active organisation admin profile.
@@ -551,7 +664,7 @@ This use case allows an authorised organisation admin to view and update organis
 - The organisation admin has the `Change organisation-level security settings` permission.
 - The organisation exists and is in a state that allows security settings to be viewed or updated.
 
-#### Postconditions
+##### Postconditions
 
 - Valid organisation security settings are saved for the organisation.
 - Invalid settings are rejected and previous settings remain active.
@@ -559,7 +672,7 @@ This use case allows an authorised organisation admin to view and update organis
 - The saved policy is available for login, refresh, and session creation enforcement.
 - The organisation admin is informed when the change applies to current sessions, future sessions, or the next refresh/login.
 
-#### Main Flow
+##### Main Flow
 
 1. The organisation admin navigates to the organisation security settings page.
 2. The system retrieves and displays the organisation's current security settings.
@@ -580,7 +693,7 @@ This use case allows an authorised organisation admin to view and update organis
 11. The system displays the saved settings and explains when the changes take effect.
 12. The organisation admin acknowledges the successful save.
 
-#### Exceptions
+##### Exceptions
 
 - **Unauthenticated User**: The user is not signed in. The system redirects the user to login or returns an unauthorised response.
 - **Inactive Organisation Admin**: The actor is not an active organisation admin. The system denies access to the security settings page.
@@ -592,7 +705,7 @@ This use case allows an authorised organisation admin to view and update organis
 - **Existing Sessions Still Active**: The settings are saved, but some active sessions only apply the new policy on refresh, next login, or new session creation. The system explains this timing to the admin.
 - **Audit Logging Failure**: The system cannot record the required audit entry. The system follows the platform's audit-failure policy and does not silently hide sensitive settings changes.
 
-#### Traceability
+##### Traceability
 
 - SRS documentation issue: #285
 - Foundation/migration issue: #284
@@ -615,7 +728,7 @@ This use case allows an authorised organisation admin to view and update organis
 
 ### 4.2 UC-01 Functional Requirements
 
-#### View Emails in Simulated Inbox
+##### View Emails in Simulated Inbox
 
 | ID         | Requirement                                                                                             |
 | ---------- | ------------------------------------------------------------------------------------------------------- |
