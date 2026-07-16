@@ -94,7 +94,12 @@ describe('Auth routes', () => {
       rawToken: 'raw-action-token',
       token: { id: 'action-token-1' },
     });
-    authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue({ queued: false });
+    authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue({
+      status: 'NOT_ACCEPTED',
+      acceptedByProvider: false,
+      queued: false,
+      reason: 'EMAIL_SEND_FAILED',
+    });
 
     const response = await request(createApp()).post('/auth/register').send({
       email: '  Johan@exampleemail.com  ',
@@ -632,7 +637,12 @@ describe('Auth routes', () => {
         rawToken: 'raw-resend-token',
         token: { id: 'token-resend-id' },
       });
-      authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue({ queued: true });
+      authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue({
+        status: 'ACCEPTED',
+        acceptedByProvider: true,
+        queued: true,
+        deliveryLogId: 'email-log-1',
+      });
 
       const response = await request(createApp())
         .post('/auth/resend-verification')
@@ -663,7 +673,12 @@ describe('Auth routes', () => {
         rawToken: 'raw-resend-token',
         token: { id: 'token-resend-id' },
       });
-      authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue({ queued: true });
+      authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue({
+        status: 'ACCEPTED',
+        acceptedByProvider: true,
+        queued: true,
+        deliveryLogId: 'email-log-1',
+      });
 
       // First request succeeds
       const res1 = await request(createApp())

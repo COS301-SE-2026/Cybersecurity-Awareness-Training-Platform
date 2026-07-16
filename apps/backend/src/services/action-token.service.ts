@@ -385,7 +385,7 @@ export async function resendActionToken(rawToken: string): Promise<void> {
     return issued;
   });
 
-  await requestAuthEmailSend({
+  const emailOutcome = await requestAuthEmailSend({
     emailType,
     recipientEmail,
     userId: originalToken.userId,
@@ -403,4 +403,18 @@ export async function resendActionToken(rawToken: string): Promise<void> {
       organisationName: originalToken.invitation?.organisation.name,
     },
   });
+
+  if (emailOutcome.status === 'NOT_ACCEPTED') {
+    await prisma.actionToken.updateMany({
+      where: {
+        id: newToken.token.id,
+        usedAt: null,
+        revokedAt: null,
+      },
+      data: {
+        revokedAt: new Date(),
+        revokedReason: 'EMAIL_SEND_FAILED',
+      },
+    });
+  }
 }

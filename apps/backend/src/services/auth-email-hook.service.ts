@@ -46,56 +46,47 @@ export const shouldRevokeTokenForAuthEmailResult = (result: AuthEmailHookResult)
 export async function requestAuthEmailSend(
   input: AuthEmailHookInput,
 ): Promise<AuthEmailHookResult> {
-  try {
-    const result = await sendEmail({
-      emailType: input.emailType,
-      recipientEmail: input.recipientEmail,
-      relatedEntity: {
-        userId: input.userId ?? null,
-        actionTokenId: input.actionTokenId ?? null,
-        organisationId: input.organisationId ?? null,
-        invitationId: input.invitationId ?? null,
-        organisationRegistrationRequestId: input.organisationRegistrationRequestId ?? null,
-        fallbackType: input.relatedEntityType,
-        fallbackId: input.relatedEntityId ?? null,
-      },
-      templateData: input.templateData,
-    });
+  const result = await sendEmail({
+    emailType: input.emailType,
+    recipientEmail: input.recipientEmail,
+    relatedEntity: {
+      userId: input.userId ?? null,
+      actionTokenId: input.actionTokenId ?? null,
+      organisationId: input.organisationId ?? null,
+      invitationId: input.invitationId ?? null,
+      organisationRegistrationRequestId: input.organisationRegistrationRequestId ?? null,
+      fallbackType: input.relatedEntityType,
+      fallbackId: input.relatedEntityId ?? null,
+    },
+    templateData: input.templateData,
+  });
 
-    switch (result.status) {
-      case 'NOT_ACCEPTED':
-        return {
-          status: 'NOT_ACCEPTED',
-          acceptedByProvider: false,
-          queued: false,
-          reason: 'EMAIL_SEND_FAILED',
-          deliveryLogId: result.deliveryLogId,
-        };
-      case 'ACCEPTED_PERSISTENCE_FAILED':
-        return {
-          status: 'ACCEPTED_PERSISTENCE_FAILED',
-          acceptedByProvider: true,
-          queued: true,
-          deliveryLogId: result.deliveryLogId,
-          providerMessageId: result.providerMessageId,
-          reason: 'EMAIL_PERSISTENCE_FAILED',
-          persistenceFailureReason: result.persistenceFailureReason,
-        };
-      case 'ACCEPTED':
-        return {
-          status: 'ACCEPTED',
-          acceptedByProvider: true,
-          queued: true,
-          deliveryLogId: result.deliveryLogId,
-          providerMessageId: result.providerMessageId,
-        };
-    }
-  } catch {
-    return {
-      status: 'NOT_ACCEPTED',
-      acceptedByProvider: false,
-      queued: false,
-      reason: 'EMAIL_SEND_FAILED',
-    };
+  switch (result.status) {
+    case 'NOT_ACCEPTED':
+      return {
+        status: 'NOT_ACCEPTED',
+        acceptedByProvider: false,
+        queued: false,
+        reason: 'EMAIL_SEND_FAILED',
+        deliveryLogId: result.deliveryLogId,
+      };
+    case 'ACCEPTED_PERSISTENCE_FAILED':
+      return {
+        status: 'ACCEPTED_PERSISTENCE_FAILED',
+        acceptedByProvider: true,
+        queued: true,
+        deliveryLogId: result.deliveryLogId,
+        providerMessageId: result.providerMessageId,
+        reason: 'EMAIL_PERSISTENCE_FAILED',
+        persistenceFailureReason: result.persistenceFailureReason,
+      };
+    case 'ACCEPTED':
+      return {
+        status: 'ACCEPTED',
+        acceptedByProvider: true,
+        queued: true,
+        deliveryLogId: result.deliveryLogId,
+        providerMessageId: result.providerMessageId,
+      };
   }
 }

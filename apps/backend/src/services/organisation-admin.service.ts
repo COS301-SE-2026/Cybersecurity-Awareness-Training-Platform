@@ -201,13 +201,23 @@ export async function createAdminPromotion(
     },
   });
 
-  const invitationStatus = emailResult.status === 'NOT_ACCEPTED' ? 'FAILED_TO_SEND' : 'SENT';
+  const invitationStatus =
+    emailResult.status === 'NOT_ACCEPTED'
+      ? 'FAILED_TO_SEND'
+      : emailResult.status === 'ACCEPTED_PERSISTENCE_FAILED'
+        ? 'PENDING'
+        : 'SENT';
   if (emailResult.status === 'NOT_ACCEPTED') {
     await updatePromotionInvitationStatus({
       invitationId: promotion.invitation.id,
       status: invitationStatus,
     });
   }
+
+  const emailPersistenceMetadata =
+    emailResult.status === 'ACCEPTED_PERSISTENCE_FAILED'
+      ? { emailPersistenceFailureReason: emailResult.persistenceFailureReason }
+      : {};
 
   await recordAuditLog({
     actorUserId,
@@ -216,11 +226,13 @@ export async function createAdminPromotion(
     targetType: 'INVITATION',
     targetId: promotion.invitation.id,
     actionType: 'INVITED',
-    outcome: emailResult.queued ? 'SUCCESS' : 'FAILURE',
+    outcome: emailResult.status === 'ACCEPTED' ? 'SUCCESS' : 'FAILURE',
     metadata: {
       targetUserId: targetUser.id,
       permissionKeys,
       emailQueued: emailResult.queued,
+      emailOutcomeStatus: emailResult.status,
+      ...emailPersistenceMetadata,
     },
   });
 

@@ -465,6 +465,47 @@ describe('platformOrganisation service', () => {
       );
     });
 
+    it('does not revoke the replacement setup token when the email hook outcome is unknown', async () => {
+      const mockOrg = {
+        id: organisationId,
+        name: 'Target Org',
+        status: 'PENDING_ONBOARDING',
+      };
+
+      const mockInvitation = {
+        id: 'invite-123',
+        status: 'PENDING',
+        recipientEmail: 'admin@target.com',
+        recipientFirstName: 'Bob',
+        expiresAt: new Date(Date.now() - 1000),
+        organisationRegistrationRequestId: requestId,
+        actionTokens: [],
+      };
+
+      repositoryMock.findOrganisationById.mockResolvedValue(mockOrg);
+      repositoryMock.findRegistrationRequestByOrganisationId.mockResolvedValue(null);
+      repositoryMock.findSetupInvitationAndEmailLog.mockResolvedValue(mockInvitation);
+      repositoryMock.findLatestEmailLogForInvitation.mockResolvedValue(null);
+      prismaMock.invitation.updateMany.mockResolvedValue({ count: 1 });
+      prismaMock.emailDeliveryLog.findFirst.mockResolvedValue(null);
+      actionTokenServiceMock.issueActionToken.mockResolvedValue({
+        token: { id: 'new-token-id', expiresAt: new Date() },
+        rawToken: 'raw-token-string',
+      });
+      emailHookMock.requestAuthEmailSend.mockRejectedValue(new Error('unexpected hook failure'));
+
+      const response = await resendInitialAdminSetup(actorUserId, organisationId);
+
+      expect(response.success).toBe(true);
+      expect(response.emailQueued).toBe(false);
+      expect(prismaMock.actionToken.update).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'new-token-id' },
+          data: expect.objectContaining({ revokedReason: 'EMAIL_SEND_FAILED' }),
+        }),
+      );
+    });
+
     it('throws 409 Conflict if organisation is already active', async () => {
       const mockOrg = {
         id: organisationId,

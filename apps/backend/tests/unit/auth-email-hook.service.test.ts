@@ -29,6 +29,11 @@ describe('requestAuthEmailSend', () => {
   });
 
   it('maps missing template data failures to a safe result hook', async () => {
+    sendEmailMock.mockResolvedValue({
+      ...notAcceptedEmailResult,
+      deliveryLogId: undefined,
+    });
+
     const result = await requestAuthEmailSend({
       emailType: 'EMAIL_VERIFICATION',
       recipientEmail: 'learner@example.test',
@@ -161,7 +166,7 @@ describe('requestAuthEmailSend', () => {
     });
   });
 
-  it('keeps hook failures non-throwing', async () => {
+  it('does not convert unexpected email service exceptions into NOT_ACCEPTED', async () => {
     sendEmailMock.mockRejectedValue(new Error('email service unavailable'));
 
     await expect(
@@ -170,11 +175,6 @@ describe('requestAuthEmailSend', () => {
         recipientEmail: 'representative@example.test',
         organisationRegistrationRequestId: 'request-1',
       }),
-    ).resolves.toEqual({
-      status: 'NOT_ACCEPTED',
-      acceptedByProvider: false,
-      queued: false,
-      reason: 'EMAIL_SEND_FAILED',
-    });
+    ).rejects.toThrow('email service unavailable');
   });
 });

@@ -338,6 +338,40 @@ describe('sendEmail', () => {
     });
   });
 
+  it('still attempts invitation persistence when the sent delivery log update fails', async () => {
+    emailDeliveryLogMock.update.mockRejectedValueOnce(new Error('database unavailable'));
+
+    const result = await sendEmail({
+      emailType: 'ORGANISATION_ADMIN_PROMOTION_INVITE',
+      recipientEmail: 'admin@example.com',
+      relatedEntity: {
+        invitationId: 'invitation01',
+        organisationId: 'organisation01',
+        actionTokenId: 'actiontoken01',
+      },
+      templateData: {
+        firstName: 'Tara',
+        organisationName: 'Test Org',
+        actionToken: 'rawactiontokenqwertyuiopasdfghjklzxcvbnm',
+        actionTokenExpiresAt: new Date(Date.now() + 60 * 60 * 1000),
+      },
+    });
+
+    expect(emailDeliveryLogMock.update).toHaveBeenCalledWith(sentLogUpdate);
+    expect(invitationMock.update).toHaveBeenCalledWith({
+      data: { status: 'SENT' },
+      where: { id: 'invitation01' },
+    });
+    expect(result).toEqual({
+      status: 'ACCEPTED_PERSISTENCE_FAILED',
+      acceptedByProvider: true,
+      queued: true,
+      deliveryLogId: 'emaillog01',
+      providerMessageId: 'smtpmessage01',
+      persistenceFailureReason: 'database unavailable',
+    });
+  });
+
   it('keeps the sent log when invitation persistence fails after SMTP acceptance', async () => {
     invitationMock.update.mockRejectedValueOnce(new Error('invitation update failed'));
 

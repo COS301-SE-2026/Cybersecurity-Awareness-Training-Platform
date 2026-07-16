@@ -916,7 +916,7 @@ async function requestRequestReceivedEmail(input: {
   requestId: string;
   organisationName: string;
   representativeEmail: string;
-}) {
+}): Promise<{ queued: boolean }> {
   try {
     return await requestAuthEmailSend({
       emailType: 'ORGANISATION_REQUEST_RECEIVED',
@@ -927,12 +927,7 @@ async function requestRequestReceivedEmail(input: {
       },
     });
   } catch {
-    return {
-      status: 'NOT_ACCEPTED' as const,
-      acceptedByProvider: false as const,
-      queued: false as const,
-      reason: 'EMAIL_SEND_FAILED' as const,
-    };
+    return { queued: false };
   }
 }
 

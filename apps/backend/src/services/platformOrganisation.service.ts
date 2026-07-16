@@ -327,9 +327,10 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
   // does not incorrectly surface as a provider send failure.
   //
   // requestAuthEmailSend distinguishes provider rejection from provider acceptance followed by
-  // persistence failure. Do not revoke a token for ACCEPTED_PERSISTENCE_FAILED because the
-  // provider may already have delivered the setup link.
-  let providerAccepted: boolean;
+  // persistence failure. Do not revoke a token for ACCEPTED_PERSISTENCE_FAILED or an unexpected
+  // hook failure because the provider acceptance state is not a definite rejection.
+  let shouldRevokeIssuedToken: boolean;
+  let emailQueued: boolean;
 
   try {
     const emailResult = await requestAuthEmailSend({
@@ -347,16 +348,14 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
       },
     });
 
-    providerAccepted = !shouldRevokeTokenForAuthEmailResult(emailResult);
+    shouldRevokeIssuedToken = shouldRevokeTokenForAuthEmailResult(emailResult);
+    emailQueued = emailResult.queued;
   } catch {
-    // requestAuthEmailSend itself catches SMTP errors internally; this outer catch handles
-    // unexpected render/hook failures before the SMTP call was even attempted.
-    providerAccepted = false;
+    shouldRevokeIssuedToken = false;
+    emailQueued = false;
   }
 
-  const emailQueued = providerAccepted;
-
-  if (!providerAccepted) {
+  if (shouldRevokeIssuedToken) {
     // Only revoke the token when we know for certain the email was NOT accepted for delivery.
     // This prevents invalidating a link already in the recipient's inbox due to a DB
     // persistence failure that happened AFTER the provider accepted the message.

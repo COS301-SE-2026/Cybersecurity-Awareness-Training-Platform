@@ -311,6 +311,57 @@ describe('organisation admin service', () => {
     );
   });
 
+  it('does not claim promotion invitations are sent when accepted email persistence fails', async () => {
+    repositoryMock.findActorOrganisationAdmin.mockResolvedValue(
+      actorAdmin(['INVITE_ORGANISATION_ADMINS']),
+    );
+    repositoryMock.findOrganisationPermissionsByKeys.mockResolvedValue([
+      organisationPermission('permission-view', 'VIEW_ORGANISATION_ADMINS'),
+    ]);
+    repositoryMock.findActiveOrganisationTraineeByEmail.mockResolvedValue({
+      id: 'target-user-1',
+      email: 'trainee@example.test',
+      firstName: 'Tara',
+      lastName: 'Trainee',
+    });
+    repositoryMock.findOrganisationAdminByUserId.mockResolvedValue(null);
+    repositoryMock.findPendingOrganisationAdminPromotionInvitation.mockResolvedValue(null);
+    repositoryMock.createOrganisationAdminPromotionInvitation.mockResolvedValue({
+      id: 'invitation-1',
+      expiresAt: new Date('2026-07-08T08:00:00.000Z'),
+    });
+    repositoryMock.createInvitationPermissionGrants.mockResolvedValue({ count: 1 });
+    emailHookMock.requestAuthEmailSend.mockResolvedValue({
+      status: 'ACCEPTED_PERSISTENCE_FAILED',
+      acceptedByProvider: true,
+      queued: true,
+      deliveryLogId: 'email-log-1',
+      providerMessageId: 'provider-message-1',
+      reason: 'EMAIL_PERSISTENCE_FAILED',
+      persistenceFailureReason: 'invitation update failed',
+    });
+
+    const result = await createAdminPromotion(actorUserId, organisationId, {
+      traineeEmail: 'trainee@example.test',
+      permissionKeys: ['VIEW_ORGANISATION_ADMINS'],
+    });
+
+    expect(result).toMatchObject({
+      status: 'PENDING',
+      emailQueued: true,
+    });
+    expect(repositoryMock.updatePromotionInvitationStatus).not.toHaveBeenCalled();
+    expect(auditLogMock.recordAuditLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        outcome: 'FAILURE',
+        metadata: expect.objectContaining({
+          emailOutcomeStatus: 'ACCEPTED_PERSISTENCE_FAILED',
+          emailPersistenceFailureReason: 'invitation update failed',
+        }),
+      }),
+    );
+  });
+
   it('does not promote users outside the same active organisation trainee scope', async () => {
     repositoryMock.findActorOrganisationAdmin.mockResolvedValue(
       actorAdmin(['INVITE_ORGANISATION_ADMINS']),

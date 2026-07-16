@@ -142,7 +142,12 @@ describe('setup service', () => {
     setupRepositoryMock.markInvitationAccepted.mockResolvedValue({ id: 'invitation-1' });
 
     passwordServiceMock.hashPassword.mockResolvedValue('hashed-password');
-    authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue({ queued: false });
+    authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue({
+      status: 'NOT_ACCEPTED',
+      acceptedByProvider: false,
+      queued: false,
+      reason: 'EMAIL_SEND_FAILED',
+    });
   });
 
   afterEach(() => {

@@ -161,12 +161,20 @@ async function maybeSendReplacementVerificationEmail(user: {
     orderBy: { createdAt: 'desc' },
   });
 
+  const verificationDeliveryLogs =
+    latestToken?.emailDeliveryLogs.filter((log) => log.emailType === 'EMAIL_VERIFICATION') ?? [];
+  const hasAnyDeliveryAttempt = verificationDeliveryLogs.length > 0;
+  const hasSentDelivery = verificationDeliveryLogs.some((log) => log.deliveryStatus === 'SENT');
+  const hasPendingDelivery = verificationDeliveryLogs.some(
+    (log) => log.deliveryStatus === 'PENDING',
+  );
+  const hasFailedDelivery = verificationDeliveryLogs.some((log) => log.deliveryStatus === 'FAILED');
+  const tokenExpired = !latestToken || latestToken.expiresAt.getTime() <= Date.now();
+
   const shouldReissue =
-    !latestToken ||
-    latestToken.expiresAt.getTime() <= Date.now() ||
-    !latestToken.emailDeliveryLogs.some(
-      (log) => log.emailType === 'EMAIL_VERIFICATION' && log.deliveryStatus === 'SENT',
-    );
+    tokenExpired ||
+    !hasAnyDeliveryAttempt ||
+    (hasFailedDelivery && !hasSentDelivery && !hasPendingDelivery);
   if (!shouldReissue) {
     return;
   }

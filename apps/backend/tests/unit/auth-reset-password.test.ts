@@ -94,6 +94,8 @@ describe('Forgot Password and Reset Password API', () => {
       });
 
       authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue({
+        status: 'ACCEPTED',
+        acceptedByProvider: true,
         queued: true,
         deliveryLogId: 'log-123',
       });

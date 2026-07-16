@@ -17,6 +17,9 @@ const toSafeEmailFailureReason = (error: unknown, fallback: string): string => {
   return fallback;
 };
 
+const joinSafeEmailFailureReasons = (failureReasons: string[]): string =>
+  failureReasons.join('; ').slice(0, MAX_EMAIL_FAILURE_REASON_LENGTH);
+
 type EmailPrismaClient = {
   emailDeliveryLog: Pick<PrismaClient['emailDeliveryLog'], 'create' | 'update'>;
   invitation: Pick<PrismaClient['invitation'], 'update'>;
@@ -213,14 +216,27 @@ export async function sendEmail(
     };
   }
 
+  const persistenceFailures: string[] = [];
+
   try {
     await markDeliveryLogSent({
       client,
       deliveryLogId: pendingDeliveryLogId,
       providerMessageId,
     });
-    await markInvitationSentIfRelevant(input, client);
+  } catch (error) {
+    persistenceFailures.push(toSafeEmailFailureReason(error, 'Delivery log SENT update failed.'));
+  }
 
+  try {
+    await markInvitationSentIfRelevant(input, client);
+  } catch (error) {
+    persistenceFailures.push(
+      toSafeEmailFailureReason(error, 'Invitation send-state update failed.'),
+    );
+  }
+
+  if (persistenceFailures.length === 0) {
     return {
       status: 'ACCEPTED',
       acceptedByProvider: true,
@@ -228,17 +244,14 @@ export async function sendEmail(
       deliveryLogId: pendingDeliveryLogId,
       providerMessageId,
     };
-  } catch (error) {
-    return {
-      status: 'ACCEPTED_PERSISTENCE_FAILED',
-      acceptedByProvider: true,
-      queued: true,
-      deliveryLogId: pendingDeliveryLogId,
-      providerMessageId,
-      persistenceFailureReason: toSafeEmailFailureReason(
-        error,
-        'Email provider accepted the message, but post-send persistence failed.',
-      ),
-    };
   }
+
+  return {
+    status: 'ACCEPTED_PERSISTENCE_FAILED',
+    acceptedByProvider: true,
+    queued: true,
+    deliveryLogId: pendingDeliveryLogId,
+    providerMessageId,
+    persistenceFailureReason: joinSafeEmailFailureReasons(persistenceFailures),
+  };
 }
