@@ -48,6 +48,12 @@ function OrganisationAdminInformationPage() {
               >
                 Administrator Status
               </th>
+              <th
+                scope="col"
+                className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
+              >
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody className="font-overpass font-regular text-[1rem] tracking-wide">
@@ -62,6 +68,17 @@ function OrganisationAdminInformationPage() {
                   Active
                 </span>
               </td>
+              <td className="px-6 py-4">
+                <button className="cursor-pointer font-medium text-red-600 hover:underline mr-6">
+                  Remove
+                </button>
+                <button className="cursor-pointer font-medium text-fg-brand hover:underline mr-6">
+                  Edit
+                </button>
+                <button className="cursor-pointer font-medium text-fg-brand hover:underline">
+                  Re-Send Invite
+                </button>
+              </td>
             </tr>
             {/* Admin 2 */}
             <tr className="odd:bg-neutral-primary font-overpass even:bg-neutral-secondary-soft">
@@ -73,6 +90,17 @@ function OrganisationAdminInformationPage() {
                 <span className="inline-flex justify-center items-center w-30 px-6 py-1 pt-[0.4rem] ring-1 ring-inset ring-warning-subtle text-fg-warning text-sm font-medium bg-warning-soft">
                   Pending
                 </span>
+              </td>
+              <td className="px-6 py-4">
+                <button className="cursor-pointer font-medium text-red-600 hover:underline mr-6">
+                  Remove
+                </button>
+                <button className="cursor-pointer font-medium text-fg-brand hover:underline mr-6">
+                  Edit
+                </button>
+                <button className="cursor-pointer font-medium text-fg-brand hover:underline">
+                  Re-Send Invite
+                </button>
               </td>
             </tr>
           </tbody>
