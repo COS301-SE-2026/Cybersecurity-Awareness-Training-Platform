@@ -7,6 +7,16 @@ import { prisma } from '../lib/prisma.js';
 import { renderEmail } from './email-template-renderer.js';
 import { sendViaSMTP } from './smtp-mailer.js';
 
+const MAX_EMAIL_FAILURE_REASON_LENGTH = 500;
+
+const toSafeEmailFailureReason = (error: unknown, fallback: string): string => {
+  if (error instanceof Error && error.message.trim().length > 0) {
+    return error.message.slice(0, MAX_EMAIL_FAILURE_REASON_LENGTH);
+  }
+
+  return fallback;
+};
+
 type EmailPrismaClient = {
   emailDeliveryLog: Pick<PrismaClient['emailDeliveryLog'], 'create' | 'update'>;
   invitation: Pick<PrismaClient['invitation'], 'update'>;
@@ -53,10 +63,6 @@ export type EmailSendOutcome =
 export const shouldRevokeTokenForEmailOutcome = (outcome: EmailSendOutcome): boolean =>
   outcome.status === 'NOT_ACCEPTED';
 
-export type SendEmailOutput =
-  | { ok: true; messageId?: string; deliveryLogId: string }
-  | { ok: false; error: string; deliveryLogId?: string };
-
 function isInvitationEmail(emailType: EmailDeliveryType) {
   return (
     emailType === 'INITIAL_ORGANISATION_ADMIN_SETUP' ||
@@ -87,56 +93,124 @@ async function markInvitationFailedIfRelevant(input: SendEmailInput, client: Ema
 export async function sendEmail(
   input: SendEmailInput,
   client: EmailPrismaClient = prisma,
-): Promise<SendEmailOutput> {
-  const renderedEmail = renderEmail(input.emailType, input.templateData);
-  const hasTypedRelation = Boolean(
-    input.relatedEntity.userId ||
-    input.relatedEntity.actionTokenId ||
-    input.relatedEntity.organisationId ||
-    input.relatedEntity.organisationRegistrationRequestId ||
-    input.relatedEntity.invitationId,
-  );
-
-  if (!hasTypedRelation && !input.relatedEntity.fallbackType) {
-    throw new Error('Emails without a typed relation must provide a fallbackType');
-  }
-
-  const deliveryLog = await client.emailDeliveryLog.create({
-    data: {
-      recipientEmail: input.recipientEmail,
-      emailType: input.emailType,
-      fallbackRelatedEntityType: hasTypedRelation ? null : input.relatedEntity.fallbackType,
-      fallbackRelatedEntityId: hasTypedRelation ? null : (input.relatedEntity.fallbackId ?? null),
-      userId: input.relatedEntity.userId ?? null,
-      actionTokenId: input.relatedEntity.actionTokenId ?? null,
-      organisationId: input.relatedEntity.organisationId ?? null,
-      organisationRegistrationRequestId:
-        input.relatedEntity.organisationRegistrationRequestId ?? null,
-      invitationId: input.relatedEntity.invitationId ?? null,
-      deliveryStatus: 'PENDING',
-    },
-  });
+): Promise<EmailSendOutcome> {
+  let deliveryLogId: string | undefined;
+  let renderedEmail: ReturnType<typeof renderEmail> | undefined;
 
   try {
-    const providerResult = await sendViaSMTP({ to: input.recipientEmail, ...renderedEmail });
+    renderedEmail = renderEmail(input.emailType, input.templateData);
+    const hasTypedRelation = Boolean(
+      input.relatedEntity.userId ||
+      input.relatedEntity.actionTokenId ||
+      input.relatedEntity.organisationId ||
+      input.relatedEntity.organisationRegistrationRequestId ||
+      input.relatedEntity.invitationId,
+    );
+
+    if (!hasTypedRelation && !input.relatedEntity.fallbackType) {
+      throw new Error('Emails without a typed relation must provide a fallbackType');
+    }
+
+    const deliveryLog = await client.emailDeliveryLog.create({
+      data: {
+        recipientEmail: input.recipientEmail,
+        emailType: input.emailType,
+        fallbackRelatedEntityType: hasTypedRelation ? null : input.relatedEntity.fallbackType,
+        fallbackRelatedEntityId: hasTypedRelation ? null : (input.relatedEntity.fallbackId ?? null),
+        userId: input.relatedEntity.userId ?? null,
+        actionTokenId: input.relatedEntity.actionTokenId ?? null,
+        organisationId: input.relatedEntity.organisationId ?? null,
+        organisationRegistrationRequestId:
+          input.relatedEntity.organisationRegistrationRequestId ?? null,
+        invitationId: input.relatedEntity.invitationId ?? null,
+        deliveryStatus: 'PENDING',
+      },
+    });
+    deliveryLogId = deliveryLog.id;
+  } catch (error) {
+    return {
+      status: 'NOT_ACCEPTED',
+      acceptedByProvider: false,
+      queued: false,
+      deliveryLogId,
+      failureReason: toSafeEmailFailureReason(
+        error,
+        'Email could not be prepared before provider acceptance.',
+      ),
+    };
+  }
+
+  if (!deliveryLogId || !renderedEmail) {
+    return {
+      status: 'NOT_ACCEPTED',
+      acceptedByProvider: false,
+      queued: false,
+      deliveryLogId,
+      failureReason: 'Email could not be prepared before provider acceptance.',
+    };
+  }
+
+  const pendingDeliveryLogId = deliveryLogId;
+  const preparedEmail = renderedEmail;
+  let providerMessageId: string | undefined;
+
+  try {
+    const providerResult = await sendViaSMTP({ to: input.recipientEmail, ...preparedEmail });
+    providerMessageId = providerResult.providerMessageId;
+  } catch (error) {
+    const failureReason = toSafeEmailFailureReason(
+      error,
+      'SMTP provider did not accept the email.',
+    );
+
+    try {
+      await client.emailDeliveryLog.update({
+        data: { deliveryStatus: 'FAILED', failedAt: new Date(), failureReason },
+        where: { id: pendingDeliveryLogId },
+      });
+      await markInvitationFailedIfRelevant(input, client);
+    } catch {
+      // Keep the provider rejection outcome even if failure-state persistence fails.
+    }
+
+    return {
+      status: 'NOT_ACCEPTED',
+      acceptedByProvider: false,
+      queued: false,
+      deliveryLogId: pendingDeliveryLogId,
+      failureReason,
+    };
+  }
+
+  try {
     await client.emailDeliveryLog.update({
       data: {
         deliveryStatus: 'SENT',
-        providerMessageId: providerResult.messageId,
+        providerMessageId,
         sentAt: new Date(),
       },
-      where: { id: deliveryLog.id },
+      where: { id: pendingDeliveryLogId },
     });
     await markInvitationSentIfRelevant(input, client);
 
-    return { ok: true, messageId: providerResult.messageId, deliveryLogId: deliveryLog.id };
+    return {
+      status: 'ACCEPTED',
+      acceptedByProvider: true,
+      queued: true,
+      deliveryLogId: pendingDeliveryLogId,
+      providerMessageId,
+    };
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown SMTP error';
-    await client.emailDeliveryLog.update({
-      data: { deliveryStatus: 'FAILED', failedAt: new Date(), failureReason: message },
-      where: { id: deliveryLog.id },
-    });
-    await markInvitationFailedIfRelevant(input, client);
-    return { ok: false, error: message, deliveryLogId: deliveryLog.id };
+    return {
+      status: 'ACCEPTED_PERSISTENCE_FAILED',
+      acceptedByProvider: true,
+      queued: true,
+      deliveryLogId: pendingDeliveryLogId,
+      providerMessageId,
+      persistenceFailureReason: toSafeEmailFailureReason(
+        error,
+        'Email provider accepted the message, but post-send persistence failed.',
+      ),
+    };
   }
 }
