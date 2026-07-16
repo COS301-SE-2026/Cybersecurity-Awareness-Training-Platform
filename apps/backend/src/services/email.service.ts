@@ -26,6 +26,33 @@ export interface SendEmailInput {
   relatedEntity: SendEmailRelatedEntity;
   templateData?: unknown;
 }
+export type EmailSendOutcome =
+  | {
+      status: 'ACCEPTED';
+      acceptedByProvider: true;
+      queued: true;
+      deliveryLogId: string;
+      providerMessageId?: string;
+    }
+  | {
+      status: 'NOT_ACCEPTED';
+      acceptedByProvider: false;
+      queued: false;
+      deliveryLogId?: string;
+      failureReason: string;
+    }
+  | {
+      status: 'ACCEPTED_PERSISTENCE_FAILED';
+      acceptedByProvider: true;
+      queued: true;
+      deliveryLogId?: string;
+      providerMessageId?: string;
+      persistenceFailureReason: string;
+    };
+
+export const shouldRevokeTokenForEmailOutcome = (outcome: EmailSendOutcome): boolean =>
+  outcome.status === 'NOT_ACCEPTED';
+
 export type SendEmailOutput =
   | { ok: true; messageId?: string; deliveryLogId: string }
   | { ok: false; error: string; deliveryLogId?: string };
