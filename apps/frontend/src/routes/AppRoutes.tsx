@@ -16,12 +16,16 @@ import OrganisationRegistrationRequestPage from '../pages/OrganisationRegistrati
 import AccountManagementPage from '../pages/AccountManagementPage';
 import SetupPage from '../pages/SetupPage';
 import AcceptInvitePage from '../pages/AcceptInvitePage';
+import VerifyEmailPage from '../pages/VerifyEmailPage';
+import ConfirmEmailChangePage from '../pages/ConfirmEmailChangePage';
 
 function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/verify-email" element={<VerifyEmailPage />} />
+      <Route path="/confirm-email-change" element={<ConfirmEmailChangePage />} />
       <Route path="/setup/token/:token" element={<SetupPage />} />
       <Route path="/status" element={<StatusPage />} />
       <Route element={<ProtectedRoute />}>
