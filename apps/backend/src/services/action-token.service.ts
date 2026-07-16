@@ -1,5 +1,7 @@
 import type { ActionTokenPurpose, EmailDeliveryType } from '../generated/prisma/enums.js';
+import { ACTIVE_INVITATION_STATUSES } from './invitation-state-policy.js';
 import { prisma } from '../lib/prisma.js';
+
 import { requestAuthEmailSend } from './auth-email-hook.service.js';
 import type { ActionTokenModel } from '../generated/prisma/models/ActionToken.js';
 import {
@@ -349,13 +351,14 @@ export async function resendActionToken(rawToken: string): Promise<void> {
       const claimedInv = await tx.invitation.updateMany({
         where: {
           id: originalToken.invitationId,
-          status: { in: ['PENDING', 'SENT', 'FAILED_TO_SEND'] },
+          status: { in: ACTIVE_INVITATION_STATUSES },
         },
         data: {
           status: 'PENDING',
           expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
         },
       });
+
       if (claimedInv.count === 0) {
         throw new TokenResendError(
           409,

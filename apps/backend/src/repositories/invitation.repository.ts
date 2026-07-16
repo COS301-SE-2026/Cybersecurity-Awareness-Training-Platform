@@ -1,5 +1,6 @@
 import type { Prisma, PrismaClient } from '../generated/prisma/client.js';
 import type { InvitationRoleGrantedDto } from '@insightful-phish/shared';
+import { ACTIVE_INVITATION_STATUSES } from '../services/invitation-state-policy.js';
 import { prisma } from '../lib/prisma.js';
 import { ensureDefaultOrganisationSecuritySettings } from './security-settings.repository.js';
 
@@ -14,6 +15,7 @@ export class InvitationRepositoryConflictError extends Error {
     this.name = 'InvitationRepositoryConflictError';
   }
 }
+
 
 export function findInvitationTokenByHash(tokenHash: string, client: InvitationClient = prisma) {
   return client.actionToken.findUnique({
@@ -72,7 +74,7 @@ export async function claimInvitationAccept(
   const result = await client.invitation.updateMany({
     where: {
       id: invitationId,
-      status: { in: ['PENDING', 'SENT', 'FAILED_TO_SEND'] },
+      status: { in: ACTIVE_INVITATION_STATUSES },
     },
     data: {
       status: 'ACCEPTED',
@@ -95,7 +97,7 @@ export async function claimInvitationReject(
   const result = await client.invitation.updateMany({
     where: {
       id: invitationId,
-      status: { in: ['PENDING', 'SENT', 'FAILED_TO_SEND'] },
+      status: { in: ACTIVE_INVITATION_STATUSES },
     },
     data: {
       status: 'REJECTED',
@@ -109,6 +111,7 @@ export async function claimInvitationReject(
     );
   }
 }
+
 
 export async function claimInvitationToken(
   actionTokenId: string,
@@ -273,6 +276,20 @@ export async function updateUserRoleAndProfilesFromInvitation(
   }
 
   if (input.newRole === 'IP_ADMIN' || input.newRole === 'PLATFORM_ADMIN') {
+    const existingTargetUser = await client.user.findUnique({
+      where: { id: input.userId },
+      include: { organisationAdminProfile: true },
+    });
+    if (
+      existingTargetUser?.userType === 'ORGANISATION_ADMIN' ||
+      existingTargetUser?.organisationAdminProfile?.adminStatus === 'ACTIVE'
+    ) {
+      throw new InvitationRepositoryConflictError(
+        'ROLE_TRANSITION_CONFLICT',
+        'An active organisation administrator cannot directly accept a platform administrator upgrade.',
+      );
+    }
+
     await client.user.update({
       where: { id: input.userId },
       data: {
@@ -297,6 +314,7 @@ export async function updateUserRoleAndProfilesFromInvitation(
 
     return { userType: 'IP_ADMIN' as const };
   }
+
 
   throw new Error(`Unsupported role assignment: ${input.newRole}`);
 }

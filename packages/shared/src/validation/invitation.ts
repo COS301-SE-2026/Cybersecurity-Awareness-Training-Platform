@@ -234,8 +234,10 @@ export const invitationResendResponseSchema = z
     invitationId: z.string().uuid(),
     status: z.enum(['PENDING', 'SENT', 'FAILED_TO_SEND']),
     resentAt: z.string().datetime(),
+    invitation: z.record(z.unknown()).optional(),
   })
   .strict();
+
 
 export type InvitationResendResponseDto = z.infer<typeof invitationResendResponseSchema>;
 
