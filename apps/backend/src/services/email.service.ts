@@ -60,7 +60,7 @@ async function markInvitationSentIfRelevant(input: SendEmailInput, client: Email
     data: { status: 'SENT' },
     where: {
       id: input.relatedEntity.invitationId,
-      status: { in: ACTIVE_INVITATION_STATUSES },
+      status: { in: [...ACTIVE_INVITATION_STATUSES] },
       ...(invitationStateVersion ? { updatedAt: invitationStateVersion } : {}),
     },
   });
@@ -84,12 +84,11 @@ async function markInvitationFailedIfRelevant(input: SendEmailInput, client: Ema
     data: { status: 'FAILED_TO_SEND' },
     where: {
       id: input.relatedEntity.invitationId,
-      status: { in: ACTIVE_INVITATION_STATUSES },
+      status: { in: [...ACTIVE_INVITATION_STATUSES] },
       ...(invitationStateVersion ? { updatedAt: invitationStateVersion } : {}),
     },
   });
 }
-
 
 export async function sendEmail(
   input: SendEmailInput,
@@ -98,10 +97,10 @@ export async function sendEmail(
   const renderedEmail = renderEmail(input.emailType, input.templateData);
   const hasTypedRelation = Boolean(
     input.relatedEntity.userId ||
-      input.relatedEntity.actionTokenId ||
-      input.relatedEntity.organisationId ||
-      input.relatedEntity.organisationRegistrationRequestId ||
-      input.relatedEntity.invitationId,
+    input.relatedEntity.actionTokenId ||
+    input.relatedEntity.organisationId ||
+    input.relatedEntity.organisationRegistrationRequestId ||
+    input.relatedEntity.invitationId,
   );
 
   if (!hasTypedRelation && !input.relatedEntity.fallbackType) {
@@ -146,7 +145,12 @@ export async function sendEmail(
       };
     }
 
-    return { ok: true, messageId: providerResult.messageId, deliveryLogId: deliveryLog.id, deliveryStatus: 'SENT' as const };
+    return {
+      ok: true,
+      messageId: providerResult.messageId,
+      deliveryLogId: deliveryLog.id,
+      deliveryStatus: 'SENT' as const,
+    };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown SMTP error';
     try {
@@ -158,7 +162,11 @@ export async function sendEmail(
     } catch (logError) {
       console.error('Failed to log email delivery failure:', logError);
     }
-    return { ok: false, error: message, deliveryLogId: deliveryLog.id, deliveryStatus: 'FAILED' as const };
+    return {
+      ok: false,
+      error: message,
+      deliveryLogId: deliveryLog.id,
+      deliveryStatus: 'FAILED' as const,
+    };
   }
 }
-

@@ -238,7 +238,6 @@ export const invitationResendResponseSchema = z
   })
   .strict();
 
-
 export type InvitationResendResponseDto = z.infer<typeof invitationResendResponseSchema>;
 
 /**

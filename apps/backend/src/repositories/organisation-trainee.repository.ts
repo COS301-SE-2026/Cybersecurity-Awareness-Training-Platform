@@ -2,7 +2,6 @@ import type { Prisma, PrismaClient } from '../generated/prisma/client.js';
 import { ACTIVE_INVITATION_STATUSES } from '../services/invitation-state-policy.js';
 import { prisma } from '../lib/prisma.js';
 
-
 export type OrganisationTraineeClient = PrismaClient | Prisma.TransactionClient;
 
 export function findOrganisationTrainees(
@@ -84,12 +83,11 @@ export function findPendingTraineeInvitationByEmail(
       purpose: 'ORGANISATION_TRAINEE_INVITE',
       recipientEmail: normalisedEmail,
       status: {
-        in: ACTIVE_INVITATION_STATUSES,
+        in: [...ACTIVE_INVITATION_STATUSES],
       },
     },
   });
 }
-
 
 export function findOrganisationTraineeById(
   organisationId: string,

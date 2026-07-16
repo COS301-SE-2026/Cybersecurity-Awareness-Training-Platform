@@ -339,7 +339,6 @@ describe('Response Schemas', () => {
     expect(traineeListResponseSchema.safeParse(valid).success).toBe(true);
   });
 
-
   it('disableTraineeResponseSchema enforces strict structure', () => {
     const valid = {
       success: true as const,

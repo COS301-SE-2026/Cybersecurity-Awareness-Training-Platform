@@ -180,7 +180,11 @@ describe('sendEmail', () => {
         create: vi.fn().mockResolvedValue({ id: 'emaillogfromtx' }),
         update: vi.fn().mockResolvedValue({ id: 'emaillogfromtx' }),
       },
-      invitation: { update: vi.fn() },
+      invitation: {
+        update: vi.fn(),
+        updateMany: vi.fn(),
+        findUnique: vi.fn(),
+      },
       actionToken: { findUnique: vi.fn().mockResolvedValue(null) },
     };
 

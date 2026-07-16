@@ -22,8 +22,7 @@ import {
   updateUserRoleAndProfilesFromInvitation,
   InvitationRepositoryConflictError,
 } from '../repositories/invitation.repository.js';
-import { ACTIVE_INVITATION_STATUSES, isActiveInvitationStatus } from './invitation-state-policy.js';
-
+import { isActiveInvitationStatus } from './invitation-state-policy.js';
 
 type TxClient = {
   actionToken: typeof prisma.actionToken;
@@ -175,10 +174,13 @@ async function resolveTokenAndInvitation(rawToken: string, now = new Date()) {
     status = 'REJECTED';
   } else if (token.expiresAt.getTime() <= now.getTime() || invitation?.status === 'EXPIRED') {
     status = 'EXPIRED';
-  } else if (invitation?.status && isActiveInvitationStatus(invitation.status)) {
-    status = invitation.status as any;
+  } else if (
+    invitation?.status === 'PENDING' ||
+    invitation?.status === 'SENT' ||
+    invitation?.status === 'FAILED_TO_SEND'
+  ) {
+    status = invitation.status;
   }
-
 
   return { token, invitation, targetEmail, status };
 }
@@ -362,7 +364,6 @@ export async function getInvitationTokenContext(
   const isTokenAvailable = isActiveInvitationStatus(resolved.status);
   const rejectAllowed = isTokenAvailable && invitationType !== 'PLATFORM_ADMIN';
 
-
   const targetUserId = resolved.token.userId ?? resolved.token.user?.id ?? existingUser?.id;
   const authEmail = normAuth?.email;
   const isTargetUserMatch = Boolean(
@@ -545,7 +546,6 @@ export async function acceptInvitationWithToken(
       }
 
       if (invTx) {
-
         await claimInvitationAccept(invTx.id, tx);
       }
       await claimInvitationToken(tokenTx.id, tx);
@@ -717,7 +717,6 @@ export async function rejectInvitationWithToken(
         tokenTx.expiresAt.getTime() <= now.getTime() ||
         (resolved.invitation && (!invTx || !isActiveInvitationStatus(invTx.status)))
       ) {
-
         throw new InvitationFlowError(
           409,
           'INVITATION_EXPIRED',

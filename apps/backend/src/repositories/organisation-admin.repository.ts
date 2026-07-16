@@ -168,13 +168,12 @@ export function findPendingOrganisationAdminPromotionInvitation(
       targetUserId: input.targetUserId,
       purpose: 'ORGANISATION_ADMIN_PROMOTION',
       status: {
-        in: ACTIVE_INVITATION_STATUSES,
+        in: [...ACTIVE_INVITATION_STATUSES],
       },
       revokedAt: null,
     },
   });
 }
-
 
 export function createOrganisationAdminPromotionInvitation(
   input: CreatePromotionInvitationInput,

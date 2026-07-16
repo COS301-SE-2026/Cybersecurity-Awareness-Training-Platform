@@ -553,7 +553,9 @@ describe('swaggerSpec', () => {
 
   it('documents trainee list and invitation responses using the same row component', () => {
     const listResponse = JSON.stringify(spec.components?.schemas?.TraineeListResponse);
-    const createResponse = JSON.stringify(spec.components?.schemas?.CreateTraineeInvitationResponse);
+    const createResponse = JSON.stringify(
+      spec.components?.schemas?.CreateTraineeInvitationResponse,
+    );
     const resendResponse = JSON.stringify(spec.components?.schemas?.InvitationResendResponse);
 
     expect(listResponse).toContain('invitations');

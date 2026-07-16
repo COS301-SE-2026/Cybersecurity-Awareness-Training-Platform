@@ -1,6 +1,15 @@
 export const ACTIVE_INVITATION_STATUSES = ['PENDING', 'SENT', 'FAILED_TO_SEND'] as const;
-export const TERMINAL_INVITATION_STATUSES = ['ACCEPTED', 'COMPLETED', 'EXPIRED', 'REVOKED', 'REJECTED'] as const;
-export const ALL_INVITATION_STATUSES = [...ACTIVE_INVITATION_STATUSES, ...TERMINAL_INVITATION_STATUSES] as const;
+export const TERMINAL_INVITATION_STATUSES = [
+  'ACCEPTED',
+  'COMPLETED',
+  'EXPIRED',
+  'REVOKED',
+  'REJECTED',
+] as const;
+export const ALL_INVITATION_STATUSES = [
+  ...ACTIVE_INVITATION_STATUSES,
+  ...TERMINAL_INVITATION_STATUSES,
+] as const;
 
 export const INVITATION_MANAGEMENT_STATUSES = [
   'INVITE_PENDING',
@@ -77,8 +86,12 @@ export function deriveInvitationLifecycleState(
     revokedAt?: Date | string | null;
   },
   now = new Date(),
-): string {
-  if (invitation.acceptedAt || invitation.status === 'ACCEPTED' || invitation.status === 'COMPLETED') {
+): InvitationStatusType {
+  if (
+    invitation.acceptedAt ||
+    invitation.status === 'ACCEPTED' ||
+    invitation.status === 'COMPLETED'
+  ) {
     return invitation.status === 'COMPLETED' ? 'COMPLETED' : 'ACCEPTED';
   }
   if (invitation.revokedAt || invitation.status === 'REVOKED') {
@@ -91,7 +104,10 @@ export function deriveInvitationLifecycleState(
     return 'EXPIRED';
   }
   if (invitation.expiresAt) {
-    const exp = typeof invitation.expiresAt === 'string' ? new Date(invitation.expiresAt) : invitation.expiresAt;
+    const exp =
+      typeof invitation.expiresAt === 'string'
+        ? new Date(invitation.expiresAt)
+        : invitation.expiresAt;
     if (exp.getTime() <= now.getTime()) {
       return 'EXPIRED';
     }

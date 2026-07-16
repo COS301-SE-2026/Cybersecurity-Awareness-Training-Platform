@@ -351,7 +351,7 @@ export async function resendActionToken(rawToken: string): Promise<void> {
       const claimedInv = await tx.invitation.updateMany({
         where: {
           id: originalToken.invitationId,
-          status: { in: ACTIVE_INVITATION_STATUSES },
+          status: { in: [...ACTIVE_INVITATION_STATUSES] },
         },
         data: {
           status: 'PENDING',

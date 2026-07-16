@@ -140,9 +140,9 @@ describe('OrganisationTraineeService', () => {
       expect(result.trainees[0]?.status).toBe('ACTIVE');
       expect(result.trainees[1]?.status).toBe('DISABLED');
 
-      expect(result.pendingInvitations).toHaveLength(2);
+      expect(result.pendingInvitations ?? []).toHaveLength(2);
       expect(result.invitations).toHaveLength(2);
-      expect(result.pendingInvitations[0]?.status).toBe('INVITE_PENDING');
+      expect((result.pendingInvitations ?? [])[0]?.status).toBe('INVITE_PENDING');
     });
 
     it('throws PermissionError (403) when actor lacks VIEW_ORGANISATION_TRAINEES permission', async () => {

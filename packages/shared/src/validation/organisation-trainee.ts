@@ -155,7 +155,6 @@ export const activeTraineeRowSchema = z
     invitationExpiresAt: z.null(),
     emailDeliveryStatus: invitationDeliveryStateSchema,
     deliveryState: invitationDeliveryStateSchema,
-    invitationLifecycleState: z.null(),
     requiredAction: z.literal('NONE'),
     requiredActions: z.array(z.literal('NONE')),
     eligibility: eligibilitySchema,
@@ -210,7 +209,6 @@ export const traineeListResponseSchema = z
 
 export type TraineeListResponseDto = z.infer<typeof traineeListResponseSchema>;
 
-
 export const disableTraineeResponseSchema = z
   .object({
     success: z.literal(true),
@@ -229,8 +227,6 @@ export const createTraineeInvitationResponseSchema = z
     invitation: invitationTraineeRowSchema,
   })
   .strict();
-
-
 
 export type CreateTraineeInvitationResponseDto = z.infer<
   typeof createTraineeInvitationResponseSchema
