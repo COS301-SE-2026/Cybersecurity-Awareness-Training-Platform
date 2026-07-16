@@ -6,6 +6,48 @@
   "end": "2026-07-19",
   "issues": [
     {
+      "number": 342,
+      "title": "feat: migrate current transactional emails to branded templates",
+      "points": 3,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 341,
+      "title": "feat: add reusable branded transactional email renderer",
+      "points": 5,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 340,
+      "title": "fix: align platform organisation lifecycle contracts",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 339,
+      "title": "fix: record complete organisation onboarding timeline milestones",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 338,
+      "title": "fix: recover initial admin setup tokens after definite approval email failure",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 337,
+      "title": "fix: distinguish SMTP acceptance from email persistence failures",
+      "points": 3,
+      "state": "open",
+      "closed_date": null
+    },
+    {
       "number": 288,
       "title": "feat: integrate organisation security settings flow",
       "points": 2,
@@ -163,18 +205,23 @@
   "series": [
     {
       "date": "2026-07-13",
-      "remaining": 47,
-      "ideal": 47.0
+      "remaining": 64,
+      "ideal": 64.0
     },
     {
       "date": "2026-07-14",
-      "remaining": 45,
-      "ideal": 39.17
+      "remaining": 62,
+      "ideal": 53.33
     },
     {
       "date": "2026-07-15",
-      "remaining": 45,
-      "ideal": 31.33
+      "remaining": 62,
+      "ideal": 42.67
+    },
+    {
+      "date": "2026-07-16",
+      "remaining": 62,
+      "ideal": 32.0
     }
   ]
 }
