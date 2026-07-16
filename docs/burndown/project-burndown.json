@@ -1349,8 +1349,8 @@
           "number": 253,
           "title": "docs: define SRS use case UC-05 review and manage organisation registrations",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-07-16"
         },
         {
           "number": 223,
@@ -1765,7 +1765,7 @@
     },
     {
       "date": "2026-07-16",
-      "remaining": 102,
+      "remaining": 100,
       "ideal": 16.99
     }
   ]
