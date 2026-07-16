@@ -252,7 +252,10 @@ describe('invitation.repository unit tests', () => {
 
     it('assigns IP_ADMIN or PLATFORM_ADMIN role and upserts IP admin profile', async () => {
       const txMock = {
-        user: { update: vi.fn().mockResolvedValue({}) },
+        user: {
+          findUnique: vi.fn().mockResolvedValue({ id: 'usr-1', userType: 'GENERAL_TRAINEE' }),
+          update: vi.fn().mockResolvedValue({}),
+        },
         ipAdminProfile: { upsert: vi.fn().mockResolvedValue({ id: 'ip-prof-1' }) },
       } as unknown as Prisma.TransactionClient;
 

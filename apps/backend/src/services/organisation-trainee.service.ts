@@ -32,6 +32,13 @@ import {
   findUserByEmailWithProfiles,
 } from '../repositories/invitation.repository.js';
 import { revokeUserAuthSessions } from '../repositories/auth-session.repository.js';
+import {
+  ACTIVE_INVITATION_STATUSES,
+  deriveInvitationLifecycleState,
+  getInvitationActionPolicy,
+  isActiveInvitationStatus,
+} from './invitation-state-policy.js';
+
 
 export class OrganisationTraineeServiceError extends Error {
   constructor(
@@ -59,6 +66,168 @@ function assertTraineeMutationAllowed(status: string) {
   );
 }
 
+type TraineeListInvitation = Awaited<ReturnType<typeof findOrganisationTraineeInvitations>>[number];
+
+function buildEligibility(input: {
+  canResend: boolean;
+  canRevoke: boolean;
+  canDisable: boolean;
+  canPromote: boolean;
+  resendCooldownSeconds: number;
+  resendDisabledReason: string | null;
+  revokeDisabledReason: string | null;
+  disableDisabledReason: string | null;
+  promoteDisabledReason: string | null;
+  resendDisabledReasonCode: string | null;
+  revokeDisabledReasonCode: string | null;
+  disableDisabledReasonCode: string | null;
+  promoteDisabledReasonCode: string | null;
+}) {
+  return input;
+}
+
+function buildActiveTraineeRow(trainee: Awaited<ReturnType<typeof findOrganisationTrainees>>[number]) {
+  return {
+    id: trainee.id,
+    rowType: 'ACTIVE_TRAINEE' as const,
+    type: 'ACTIVE_TRAINEE' as const,
+    traineeProfileId: trainee.traineeProfileId,
+    userId: trainee.traineeProfile.userId,
+    invitationId: null,
+    invitationStatus: null,
+    invitationLifecycleState: null,
+    email: trainee.traineeProfile.user.email,
+    firstName: trainee.traineeProfile.user.firstName ?? null,
+    lastName: trainee.traineeProfile.user.lastName ?? null,
+    status:
+      trainee.disabledAt || trainee.membershipStatus === 'DISABLED' ? 'DISABLED' : 'ACTIVE',
+    createdAt: trainee.createdAt.toISOString(),
+    joinedAt: trainee.createdAt.toISOString(),
+    invitedAt: null,
+    disabledAt: trainee.disabledAt ? trainee.disabledAt.toISOString() : null,
+    disabledReason: trainee.disabledReason ?? null,
+    expiresAt: null,
+    invitationExpiresAt: null,
+    emailDeliveryStatus: 'PENDING' as const,
+    deliveryState: 'PENDING' as const,
+    requiredAction: 'NONE' as const,
+    requiredActions: ['NONE'] as const,
+    eligibility: buildEligibility({
+      canResend: false,
+      canRevoke: false,
+      canDisable: trainee.disabledAt == null && trainee.membershipStatus !== 'DISABLED',
+      canPromote: trainee.disabledAt == null && trainee.membershipStatus !== 'DISABLED',
+      resendCooldownSeconds: 0,
+      resendDisabledReason: 'Resend is only available for invitations.',
+      revokeDisabledReason: 'Revoke is only available for invitations.',
+      disableDisabledReason:
+        trainee.disabledAt == null && trainee.membershipStatus !== 'DISABLED'
+          ? null
+          : 'Trainee profile is already disabled.',
+      promoteDisabledReason:
+        trainee.disabledAt == null && trainee.membershipStatus !== 'DISABLED'
+          ? null
+          : 'Only active trainees can be promoted.',
+      resendDisabledReasonCode: 'NOT_APPLICABLE',
+      revokeDisabledReasonCode: 'NOT_APPLICABLE',
+      disableDisabledReasonCode:
+        trainee.disabledAt == null && trainee.membershipStatus !== 'DISABLED'
+          ? null
+          : 'NOT_APPLICABLE',
+      promoteDisabledReasonCode:
+        trainee.disabledAt == null && trainee.membershipStatus !== 'DISABLED'
+          ? null
+          : 'NOT_APPLICABLE',
+    }),
+  };
+}
+
+function buildInvitationRow(invitation: TraineeListInvitation, now: Date) {
+  const latestLog =
+    'emailDeliveryLogs' in invitation &&
+    Array.isArray(invitation.emailDeliveryLogs) &&
+    invitation.emailDeliveryLogs[0]
+      ? invitation.emailDeliveryLogs[0]
+      : undefined;
+  const lifecycleState = deriveInvitationLifecycleState(invitation, now);
+  const managementPolicy = getInvitationActionPolicy(invitation, now);
+  const deliveryState =
+    latestLog?.deliveryStatus === 'SENT'
+      ? 'SENT'
+      : latestLog?.deliveryStatus === 'FAILED'
+        ? 'FAILED'
+        : invitation.status === 'FAILED_TO_SEND'
+          ? 'FAILED'
+          : 'PENDING';
+  const cooldownBase = latestLog?.createdAt ? new Date(latestLog.createdAt).getTime() : null;
+  let resendCooldownSeconds = 0;
+
+  if (cooldownBase) {
+    const elapsed = now.getTime() - cooldownBase;
+    if (elapsed < 60000) {
+      resendCooldownSeconds = Math.max(0, Math.ceil((60000 - elapsed) / 1000));
+    }
+  }
+
+  const canResend = managementPolicy.canResend && resendCooldownSeconds === 0;
+  const canRevoke = managementPolicy.canRevoke;
+
+  return {
+    id: invitation.id,
+    rowType: 'INVITATION' as const,
+    type: 'INVITATION' as const,
+    traineeProfileId: null,
+    userId: null,
+    invitationId: invitation.id,
+    invitationStatus: lifecycleState,
+    invitationLifecycleState: lifecycleState,
+    email: invitation.recipientEmail,
+    firstName: invitation.recipientFirstName ?? null,
+    lastName: invitation.recipientLastName ?? null,
+    status: managementPolicy.managementStatus,
+    createdAt: invitation.createdAt.toISOString(),
+    joinedAt: null,
+    invitedAt: invitation.createdAt.toISOString(),
+    disabledAt: null,
+    disabledReason: null,
+    expiresAt: invitation.expiresAt ? invitation.expiresAt.toISOString() : null,
+    invitationExpiresAt: invitation.expiresAt ? invitation.expiresAt.toISOString() : null,
+    emailDeliveryStatus: deliveryState,
+    deliveryState,
+    requiredAction: 'CONTINUE_SETUP' as const,
+    requiredActions: ['CONTINUE_SETUP'] as const,
+    eligibility: buildEligibility({
+      canResend,
+      canRevoke,
+      canDisable: false,
+      canPromote: false,
+      resendCooldownSeconds,
+      resendDisabledReason:
+        !canResend && managementPolicy.resendDisabledReasonCode === 'COOLDOWN_ACTIVE'
+          ? 'Resend cooldown is currently active.'
+          : !canResend
+            ? 'Invitation is no longer active.'
+            : resendCooldownSeconds > 0
+              ? 'Resend cooldown is currently active.'
+              : null,
+      revokeDisabledReason: !canRevoke ? 'Invitation is no longer active.' : null,
+      disableDisabledReason: 'Cannot disable a pending invitation.',
+      promoteDisabledReason: 'Only active trainees can be promoted.',
+      resendDisabledReasonCode:
+        !canResend && managementPolicy.resendDisabledReasonCode === 'COOLDOWN_ACTIVE'
+          ? 'COOLDOWN_ACTIVE'
+          : !canResend
+            ? managementPolicy.resendDisabledReasonCode ?? 'INVITATION_NOT_ACTIVE'
+            : null,
+      revokeDisabledReasonCode: !canRevoke
+        ? managementPolicy.revokeDisabledReasonCode ?? 'INVITATION_NOT_ACTIVE'
+        : null,
+      disableDisabledReasonCode: 'NOT_APPLICABLE',
+      promoteDisabledReasonCode: 'NOT_APPLICABLE',
+    }),
+  };
+}
+
 export async function listOrganisationTrainees(
   actorUserId: string,
   organisationId: string,
@@ -75,100 +244,19 @@ export async function listOrganisationTrainees(
   ]);
 
   const now = new Date();
-  const trainees: TraineeListItemDto[] = traineeProfiles.map((trainee) => {
-    let status: TraineeListItemDto['status'] = 'ACTIVE';
-    if (trainee.disabledAt || trainee.membershipStatus === 'DISABLED') {
-      status = 'DISABLED';
-    }
+  const trainees: TraineeListItemDto[] = traineeProfiles.map((trainee) =>
+    buildActiveTraineeRow(trainee),
+  );
 
-    return {
-      id: trainee.id,
-      rowType: 'ACTIVE_TRAINEE',
-      type: 'ACTIVE_TRAINEE',
-      traineeProfileId: trainee.traineeProfileId,
-      userId: trainee.traineeProfile.userId,
-      invitationStatus: null,
-      email: trainee.traineeProfile.user.email,
-      firstName: trainee.traineeProfile.user.firstName ?? undefined,
-      lastName: trainee.traineeProfile.user.lastName ?? undefined,
-      status,
-      createdAt: trainee.createdAt.toISOString(),
-      joinedAt: trainee.createdAt.toISOString(),
-      disabledAt: trainee.disabledAt ? trainee.disabledAt.toISOString() : null,
-      disabledReason: trainee.disabledReason ?? null,
-      expiresAt: null,
-      invitationExpiresAt: null,
-      emailDeliveryStatus: 'DELIVERED',
-      deliveryState: 'DELIVERED',
-      requiredAction: 'NONE',
-      requiredActions: ['NONE'],
-      eligibility: {
-        canResend: false,
-        canRevoke: false,
-        canDisable: status === 'ACTIVE',
-        canPromote: status === 'ACTIVE',
-        resendCooldownSeconds: 0,
-      },
-    };
-  });
+  const invitationRows: TraineeListItemDto[] = invitations.map((invitation) =>
+    buildInvitationRow(invitation as TraineeListInvitation, now),
+  );
 
-  const pendingInvitations: TraineeListItemDto[] = [];
-  for (const inv of invitations) {
-    let status: TraineeListItemDto['status'] = 'INVITE_PENDING';
-    const lastLog =
-      'emailDeliveryLogs' in inv && Array.isArray(inv.emailDeliveryLogs) && inv.emailDeliveryLogs[0]
-        ? inv.emailDeliveryLogs[0]
-        : undefined;
-    const deliveryStatus =
-      lastLog?.deliveryStatus ?? (inv.status === 'FAILED_TO_SEND' ? 'FAILED' : 'PENDING');
-    if (inv.status === 'FAILED_TO_SEND' || deliveryStatus === 'FAILED') {
-      status = 'INVITE_FAILED';
-    } else if (inv.status !== 'PENDING' && inv.status !== 'SENT') {
-      continue;
-    }
-
-    let resendCooldownSeconds = 0;
-    if (lastLog?.createdAt) {
-      const elapsed = now.getTime() - new Date(lastLog.createdAt).getTime();
-      if (elapsed < 60000) {
-        resendCooldownSeconds = Math.max(0, Math.ceil((60000 - elapsed) / 1000));
-      }
-    }
-
-    const canResend = status === 'INVITE_PENDING' || status === 'INVITE_FAILED';
-    const canRevoke = status === 'INVITE_PENDING' || status === 'INVITE_FAILED';
-
-    pendingInvitations.push({
-      id: inv.id,
-      rowType: 'INVITATION',
-      type: 'INVITATION',
-      invitationId: inv.id,
-      invitationStatus: inv.status,
-      email: inv.recipientEmail,
-      firstName: inv.recipientFirstName ?? undefined,
-      lastName: inv.recipientLastName ?? undefined,
-      status,
-      createdAt: inv.createdAt.toISOString(),
-      invitedAt: inv.createdAt.toISOString(),
-      expiresAt: inv.expiresAt ? inv.expiresAt.toISOString() : null,
-      invitationExpiresAt: inv.expiresAt ? inv.expiresAt.toISOString() : null,
-      emailDeliveryStatus: deliveryStatus,
-      deliveryState: deliveryStatus,
-      requiredAction: 'CONTINUE_SETUP',
-      requiredActions: ['CONTINUE_SETUP'],
-      eligibility: {
-        canResend,
-        canRevoke,
-        canDisable: false,
-        canPromote: false,
-        resendCooldownSeconds,
-      },
-    });
-  }
 
   return {
     trainees,
-    pendingInvitations,
+    invitations: invitationRows,
+    pendingInvitations: invitationRows,
   };
 }
 
@@ -296,7 +384,7 @@ export async function createOrganisationTraineeInvitation(
     return { invitation, actionToken, rawToken, expiresAt };
   });
 
-  await sendEmail({
+  const emailResult = await sendEmail({
     emailType: 'ORGANISATION_TRAINEE_INVITE',
     recipientEmail: normalisedEmail,
     relatedEntity: {
@@ -317,18 +405,64 @@ export async function createOrganisationTraineeInvitation(
     where: { id: txResult.invitation.id },
   });
 
+  const invitationLifecycleState = deriveInvitationLifecycleState(
+    finalInvite ?? { status: 'PENDING', expiresAt: txResult.expiresAt },
+  );
+  const canResend = invitationLifecycleState === 'PENDING' || invitationLifecycleState === 'SENT' || invitationLifecycleState === 'FAILED_TO_SEND';
+  const canRevoke = canResend;
+  const deliveryState = emailResult?.deliveryStatus ?? (emailResult?.ok ? 'SENT' : 'FAILED');
+  const isDeliveryUnknown = deliveryState === 'UNKNOWN';
+
   return {
     success: true,
-    message: 'Invitation sent successfully.',
+    message: isDeliveryUnknown
+      ? 'Invitation created and queued, but email delivery outcome is unknown because persistence failed after provider acceptance.'
+      : emailResult?.ok
+        ? 'Invitation sent successfully.'
+        : 'Invitation created, but email delivery failed to send.',
     invitation: {
       id: txResult.invitation.id,
+      rowType: 'INVITATION',
+      type: 'INVITATION',
+      traineeProfileId: null,
+      userId: null,
+      invitationId: txResult.invitation.id,
+      invitationStatus: invitationLifecycleState,
+      invitationLifecycleState,
       email: txResult.invitation.recipientEmail,
-      firstName: txResult.invitation.recipientFirstName ?? undefined,
-      lastName: txResult.invitation.recipientLastName ?? undefined,
-      status: finalInvite?.status === 'FAILED_TO_SEND' ? 'FAILED_TO_SEND' : 'SENT',
+      firstName: txResult.invitation.recipientFirstName ?? null,
+      lastName: txResult.invitation.recipientLastName ?? null,
+      status: emailResult?.ok ? 'INVITE_PENDING' : 'INVITE_FAILED',
+      createdAt: txResult.invitation.createdAt.toISOString(),
+      joinedAt: null,
+      invitedAt: txResult.invitation.createdAt.toISOString(),
+      disabledAt: null,
+      disabledReason: null,
+      expiresAt: (finalInvite?.expiresAt ?? txResult.expiresAt).toISOString(),
+      invitationExpiresAt: (finalInvite?.expiresAt ?? txResult.expiresAt).toISOString(),
+      emailDeliveryStatus: deliveryState,
+      deliveryState,
+      requiredAction: 'CONTINUE_SETUP',
+      requiredActions: ['CONTINUE_SETUP'],
+      eligibility: buildEligibility({
+        canResend: false,
+        canRevoke,
+        canDisable: false,
+        canPromote: false,
+        resendCooldownSeconds: 60,
+        resendDisabledReason: 'Resend cooldown is currently active.',
+        revokeDisabledReason: !canRevoke ? 'Invitation is no longer active.' : null,
+        disableDisabledReason: 'Cannot disable a pending invitation.',
+        promoteDisabledReason: 'Only active trainees can be promoted.',
+        resendDisabledReasonCode: 'COOLDOWN_ACTIVE',
+        revokeDisabledReasonCode: !canRevoke ? 'INVITATION_NOT_ACTIVE' : null,
+        disableDisabledReasonCode: 'NOT_APPLICABLE',
+        promoteDisabledReasonCode: 'NOT_APPLICABLE',
+      }),
     },
   };
 }
+
 
 export async function resendTraineeInvitation(
   actorUserId: string,
@@ -353,6 +487,9 @@ export async function resendTraineeInvitation(
       'Trainee invitation not found.',
     );
   }
+
+  const observedUpdatedAt = invitation.updatedAt;
+
 
   if (invitation.status === 'ACCEPTED') {
     throw new OrganisationTraineeServiceError(
@@ -392,14 +529,17 @@ export async function resendTraineeInvitation(
 
   const txResult = await prisma.$transaction(async (tx) => {
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const claimedAt = new Date();
     const claimedInv = await tx.invitation.updateMany({
       where: {
         id: invitation.id,
-        status: { in: ['PENDING', 'SENT', 'FAILED_TO_SEND'] },
+        status: { in: ACTIVE_INVITATION_STATUSES },
+        updatedAt: observedUpdatedAt,
       },
       data: {
         status: 'PENDING',
         expiresAt,
+        updatedAt: claimedAt,
       },
     });
 
@@ -407,9 +547,10 @@ export async function resendTraineeInvitation(
       throw new OrganisationTraineeServiceError(
         409,
         'INVITATION_NOT_RESENDABLE',
-        'Invitation is no longer in a resendable state.',
+        'Invitation was modified concurrently or is no longer in a resendable state.',
       );
     }
+
 
     await tx.actionToken.updateMany({
       where: {
@@ -448,16 +589,17 @@ export async function resendTraineeInvitation(
       tx,
     );
 
-    return { actionToken, rawToken, expiresAt };
+    return { actionToken, rawToken, expiresAt, claimedAt };
   });
 
-  await sendEmail({
+  const emailResult = await sendEmail({
     emailType: 'ORGANISATION_TRAINEE_INVITE',
     recipientEmail: invitation.recipientEmail,
     relatedEntity: {
       organisationId: invitation.organisationId,
       invitationId: invitation.id,
       actionTokenId: txResult.actionToken.id,
+      invitationStateVersion: txResult.claimedAt.toISOString(),
     },
     templateData: {
       firstName: invitation.recipientFirstName ?? undefined,
@@ -472,19 +614,67 @@ export async function resendTraineeInvitation(
     where: { id: invitation.id },
   });
 
-  let status: 'PENDING' | 'SENT' | 'FAILED_TO_SEND' = 'SENT';
-  if (updatedInvitation?.status === 'PENDING' || updatedInvitation?.status === 'FAILED_TO_SEND') {
-    status = updatedInvitation.status;
-  }
+  const invitationLifecycleState = deriveInvitationLifecycleState(
+    updatedInvitation ?? { status: 'PENDING', expiresAt: txResult.expiresAt },
+  );
+  const deliveryState = emailResult?.deliveryStatus ?? (emailResult?.ok ? 'SENT' : 'FAILED');
+  const isDeliveryUnknown = deliveryState === 'UNKNOWN';
+  const canResend = invitationLifecycleState === 'PENDING' || invitationLifecycleState === 'SENT' || invitationLifecycleState === 'FAILED_TO_SEND';
+  const canRevoke = canResend;
 
   return {
     success: true,
-    message: 'Invitation resent successfully.',
+    message: isDeliveryUnknown
+      ? 'Invitation was resent and the action token rotated, but email delivery outcome is unknown because persistence failed after provider acceptance.'
+      : emailResult?.ok
+        ? 'Invitation resent successfully.'
+        : 'Invitation action token rotated successfully, but email delivery failed to send.',
     invitationId: invitation.id,
-    status,
+    status: invitationLifecycleState,
     resentAt: new Date().toISOString(),
+    invitation: {
+      id: invitation.id,
+      rowType: 'INVITATION',
+      type: 'INVITATION',
+      traineeProfileId: null,
+      userId: null,
+      invitationId: invitation.id,
+      invitationStatus: invitationLifecycleState,
+      invitationLifecycleState,
+      email: invitation.recipientEmail,
+      firstName: invitation.recipientFirstName ?? null,
+      lastName: invitation.recipientLastName ?? null,
+      status: emailResult?.ok ? 'INVITE_PENDING' : 'INVITE_FAILED',
+      createdAt: invitation.createdAt.toISOString(),
+      joinedAt: null,
+      invitedAt: invitation.createdAt.toISOString(),
+      disabledAt: null,
+      disabledReason: null,
+      expiresAt: (updatedInvitation?.expiresAt ?? txResult.expiresAt).toISOString(),
+      invitationExpiresAt: (updatedInvitation?.expiresAt ?? txResult.expiresAt).toISOString(),
+      emailDeliveryStatus: deliveryState,
+      deliveryState,
+      requiredAction: 'CONTINUE_SETUP',
+      requiredActions: ['CONTINUE_SETUP'],
+      eligibility: buildEligibility({
+        canResend: false,
+        canRevoke,
+        canDisable: false,
+        canPromote: false,
+        resendCooldownSeconds: 60,
+        resendDisabledReason: 'Resend cooldown is currently active.',
+        revokeDisabledReason: !canRevoke ? 'Invitation is no longer active.' : null,
+        disableDisabledReason: 'Cannot disable a pending invitation.',
+        promoteDisabledReason: 'Only active trainees can be promoted.',
+        resendDisabledReasonCode: 'COOLDOWN_ACTIVE',
+        revokeDisabledReasonCode: !canRevoke ? 'INVITATION_NOT_ACTIVE' : null,
+        disableDisabledReasonCode: 'NOT_APPLICABLE',
+        promoteDisabledReasonCode: 'NOT_APPLICABLE',
+      }),
+    },
   };
 }
+
 
 export async function revokeTraineeInvitation(
   actorUserId: string,
@@ -532,12 +722,13 @@ export async function revokeTraineeInvitation(
     const claimedInv = await tx.invitation.updateMany({
       where: {
         id: invitation.id,
-        status: { in: ['PENDING', 'SENT', 'FAILED_TO_SEND'] },
+        status: { in: ACTIVE_INVITATION_STATUSES },
       },
       data: {
         status: 'REVOKED',
       },
     });
+
 
     if (claimedInv.count === 0) {
       const txInv = await findInvitationById(invitation.id, tx);

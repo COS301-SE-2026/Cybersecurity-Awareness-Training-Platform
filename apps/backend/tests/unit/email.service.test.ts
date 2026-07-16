@@ -30,12 +30,14 @@ const emailDeliveryLogMock = vi.hoisted(() => ({
   create: vi.fn(),
   update: vi.fn(),
 }));
-const invitationMock = vi.hoisted(() => ({ update: vi.fn() }));
+const invitationMock = vi.hoisted(() => ({ updateMany: vi.fn() }));
+const actionTokenMock = vi.hoisted(() => ({ findUnique: vi.fn().mockResolvedValue(null) }));
 
 vi.mock('../../src/lib/prisma.js', () => ({
   prisma: {
     emailDeliveryLog: emailDeliveryLogMock,
     invitation: invitationMock,
+    actionToken: actionTokenMock,
   },
 }));
 
@@ -119,6 +121,7 @@ describe('sendEmail', () => {
       ok: true,
       messageId: 'smtpmessage01',
       deliveryLogId: 'emaillog01',
+      deliveryStatus: 'SENT',
     });
   });
 
@@ -139,6 +142,7 @@ describe('sendEmail', () => {
       ok: false,
       error: 'SMTP not working',
       deliveryLogId: 'emaillog01',
+      deliveryStatus: 'FAILED',
     });
   });
 
@@ -177,6 +181,7 @@ describe('sendEmail', () => {
         update: vi.fn().mockResolvedValue({ id: 'emaillogfromtx' }),
       },
       invitation: { update: vi.fn() },
+      actionToken: { findUnique: vi.fn().mockResolvedValue(null) },
     };
 
     const result = await sendEmail(baseInput, transactionClient);
@@ -188,6 +193,7 @@ describe('sendEmail', () => {
       ok: true,
       messageId: 'smtpmessage01',
       deliveryLogId: 'emaillogfromtx',
+      deliveryStatus: 'SENT',
     });
   });
 
@@ -243,8 +249,11 @@ describe('sendEmail', () => {
       },
     });
 
-    expect(invitationMock.update).toHaveBeenCalledWith({
-      where: { id: 'invitation01' },
+    expect(invitationMock.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'invitation01',
+        status: { in: ['PENDING', 'SENT', 'FAILED_TO_SEND'] },
+      },
       data: { status: 'SENT' },
     });
   });
@@ -265,8 +274,11 @@ describe('sendEmail', () => {
         actionTokenExpiresAt: new Date(Date.now() + 60 * 60 * 1000),
       },
     });
-    expect(invitationMock.update).toHaveBeenCalledWith({
-      where: { id: 'invitation01' },
+    expect(invitationMock.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'invitation01',
+        status: { in: ['PENDING', 'SENT', 'FAILED_TO_SEND'] },
+      },
       data: { status: 'FAILED_TO_SEND' },
     });
   });
@@ -278,7 +290,7 @@ describe('sendEmail', () => {
       relatedEntity: { invitationId: 'invitation01', userId: 'user01' },
       templateData: { firstName: 'Johan', roleName: 'platform admin' },
     });
-    expect(invitationMock.update).not.toHaveBeenCalled();
+    expect(invitationMock.updateMany).not.toHaveBeenCalled();
   });
 
   it('rejects missing template variables before creating delivery log', async () => {

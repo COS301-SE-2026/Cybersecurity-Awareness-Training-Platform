@@ -22,6 +22,8 @@ import {
   updateUserRoleAndProfilesFromInvitation,
   InvitationRepositoryConflictError,
 } from '../repositories/invitation.repository.js';
+import { ACTIVE_INVITATION_STATUSES, isActiveInvitationStatus } from './invitation-state-policy.js';
+
 
 type TxClient = {
   actionToken: typeof prisma.actionToken;
@@ -173,9 +175,10 @@ async function resolveTokenAndInvitation(rawToken: string, now = new Date()) {
     status = 'REJECTED';
   } else if (token.expiresAt.getTime() <= now.getTime() || invitation?.status === 'EXPIRED') {
     status = 'EXPIRED';
-  } else if (invitation?.status === 'SENT' || invitation?.status === 'PENDING') {
-    status = invitation.status;
+  } else if (invitation?.status && isActiveInvitationStatus(invitation.status)) {
+    status = invitation.status as any;
   }
+
 
   return { token, invitation, targetEmail, status };
 }
@@ -264,6 +267,14 @@ function assertRoleConflictMatrix(
       );
     }
   }
+
+  if (currentUserType === 'ORGANISATION_ADMIN' && invitationRole === 'PLATFORM_ADMIN') {
+    throw new InvitationFlowError(
+      409,
+      'ROLE_TRANSITION_CONFLICT',
+      'An active organisation administrator cannot directly accept a platform administrator upgrade.',
+    );
+  }
 }
 
 function determineRequiredAction(
@@ -348,8 +359,9 @@ export async function getInvitationTokenContext(
     'ORGANISATION_ADMIN_PROMOTION',
   ].includes(invitationType);
 
-  const isTokenAvailable = resolved.status === 'PENDING' || resolved.status === 'SENT';
+  const isTokenAvailable = isActiveInvitationStatus(resolved.status);
   const rejectAllowed = isTokenAvailable && invitationType !== 'PLATFORM_ADMIN';
+
 
   const targetUserId = resolved.token.userId ?? resolved.token.user?.id ?? existingUser?.id;
   const authEmail = normAuth?.email;
@@ -474,13 +486,14 @@ export async function acceptInvitationWithToken(
         );
       }
       if (resolved.invitation) {
-        if (!invTx || (invTx.status !== 'PENDING' && invTx.status !== 'SENT')) {
+        if (!invTx || !isActiveInvitationStatus(invTx.status)) {
           throw new InvitationFlowError(
             409,
             'INVITATION_ACCEPTED',
             'Invitation is no longer pending or valid.',
           );
         }
+
         if (
           invTx.organisation?.status === 'SUSPENDED' ||
           invTx.organisation?.status === 'DISABLED'
@@ -518,7 +531,21 @@ export async function acceptInvitationWithToken(
         );
       }
 
+      if (invitationRole === 'PLATFORM_ADMIN' || invitationRole === 'IP_ADMIN') {
+        if (
+          userTx.userType === 'ORGANISATION_ADMIN' ||
+          userTx.organisationAdminProfile?.adminStatus === 'ACTIVE'
+        ) {
+          throw new InvitationFlowError(
+            409,
+            'ROLE_TRANSITION_CONFLICT',
+            'An active organisation administrator cannot directly accept a platform administrator upgrade.',
+          );
+        }
+      }
+
       if (invTx) {
+
         await claimInvitationAccept(invTx.id, tx);
       }
       await claimInvitationToken(tokenTx.id, tx);
@@ -688,8 +715,9 @@ export async function rejectInvitationWithToken(
         tokenTx.revokedAt ||
         tokenTx.usedAt ||
         tokenTx.expiresAt.getTime() <= now.getTime() ||
-        (resolved.invitation && (!invTx || (invTx.status !== 'PENDING' && invTx.status !== 'SENT')))
+        (resolved.invitation && (!invTx || !isActiveInvitationStatus(invTx.status)))
       ) {
+
         throw new InvitationFlowError(
           409,
           'INVITATION_EXPIRED',

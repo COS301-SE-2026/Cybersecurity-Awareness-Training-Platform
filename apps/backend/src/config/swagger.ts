@@ -1825,12 +1825,22 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         },
         TraineeListItem: {
           type: 'object',
-          required: ['email', 'status'],
+          required: ['id', 'rowType', 'type', 'email', 'status', 'eligibility'],
           properties: {
             id: {
               type: 'string',
               format: 'uuid',
               example: '11111111-1111-4111-8111-111111111111',
+            },
+            rowType: {
+              type: 'string',
+              enum: ['ACTIVE_TRAINEE', 'INVITATION'],
+              example: 'INVITATION',
+            },
+            type: {
+              type: 'string',
+              enum: ['ACTIVE_TRAINEE', 'INVITATION'],
+              example: 'INVITATION',
             },
             traineeProfileId: {
               type: 'string',
@@ -1847,6 +1857,17 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
               format: 'uuid',
               example: '44444444-4444-4444-8444-444444444444',
             },
+            invitationStatus: {
+              type: 'string',
+              enum: ['PENDING', 'SENT', 'FAILED_TO_SEND', 'ACCEPTED', 'COMPLETED', 'EXPIRED', 'REVOKED', 'REJECTED'],
+              example: 'PENDING',
+            },
+            invitationLifecycleState: {
+              type: 'string',
+              enum: ['PENDING', 'SENT', 'FAILED_TO_SEND', 'ACCEPTED', 'COMPLETED', 'EXPIRED', 'REVOKED', 'REJECTED'],
+              nullable: true,
+              example: 'PENDING',
+            },
             email: {
               type: 'string',
               format: 'email',
@@ -1858,7 +1879,20 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             lastName: {
               ...nullableString('Trainee'),
             },
-            status: enumString(['ACTIVE', 'DISABLED', 'INVITE_PENDING', 'INVITE_FAILED'], 'ACTIVE'),
+            status: enumString(
+              [
+                'ACTIVE',
+                'DISABLED',
+                'INVITE_PENDING',
+                'INVITE_FAILED',
+                'INVITE_EXPIRED',
+                'INVITE_REJECTED',
+                'INVITE_REVOKED',
+                'INVITE_ACCEPTED',
+                'INVITE_COMPLETED',
+              ],
+              'ACTIVE',
+            ),
             createdAt: {
               type: 'string',
               format: 'date-time',
@@ -1881,24 +1915,100 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             },
             emailDeliveryStatus: {
               type: 'string',
-              example: 'DELIVERED',
+              enum: ['PENDING', 'SENT', 'FAILED', 'UNKNOWN'],
+              example: 'SENT',
+            },
+            deliveryState: {
+              type: 'string',
+              enum: ['PENDING', 'SENT', 'FAILED', 'UNKNOWN'],
+              example: 'SENT',
+            },
+            requiredAction: {
+              type: 'string',
+              enum: ['NONE', 'CONTINUE_SETUP'],
+              example: 'CONTINUE_SETUP',
+            },
+            requiredActions: {
+              type: 'array',
+              items: {
+                type: 'string',
+                enum: ['NONE', 'CONTINUE_SETUP'],
+              },
+              example: ['CONTINUE_SETUP'],
             },
             eligibility: {
               type: 'object',
+              required: [
+                'canResend',
+                'canRevoke',
+                'canDisable',
+                'canPromote',
+                'resendCooldownSeconds',
+              ],
               properties: {
                 canResend: booleanProperty(false),
                 canRevoke: booleanProperty(false),
                 canDisable: booleanProperty(true),
                 canPromote: booleanProperty(true),
+                resendCooldownSeconds: { type: 'number', example: 0 },
+                resendDisabledReason: nullableString('Resend is only available for invitations.'),
+                resendDisabledReasonCode: {
+                  type: 'string',
+                  nullable: true,
+                  enum: [
+                    'COOLDOWN_ACTIVE',
+                    'INVITATION_NOT_ACTIVE',
+                    'INVITATION_REVOKED',
+                    'INVITATION_ACCEPTED',
+                    'INVITATION_REJECTED',
+                    'INVITATION_EXPIRED',
+                    'INVITATION_COMPLETED',
+                    'INVITATION_NOT_RESENDABLE',
+                    'NOT_APPLICABLE',
+                  ],
+                  example: 'NOT_APPLICABLE',
+                },
+                revokeDisabledReason: nullableString('Revoke is only available for invitations.'),
+                revokeDisabledReasonCode: {
+                  type: 'string',
+                  nullable: true,
+                  enum: [
+                    'COOLDOWN_ACTIVE',
+                    'INVITATION_NOT_ACTIVE',
+                    'INVITATION_REVOKED',
+                    'INVITATION_ACCEPTED',
+                    'INVITATION_REJECTED',
+                    'INVITATION_EXPIRED',
+                    'INVITATION_COMPLETED',
+                    'INVITATION_NOT_RESENDABLE',
+                    'NOT_APPLICABLE',
+                  ],
+                  example: 'NOT_APPLICABLE',
+                },
+                disableDisabledReason: nullableString('Cannot disable a pending invitation.'),
+                disableDisabledReasonCode: {
+                  type: 'string',
+                  nullable: true,
+                  enum: ['COOLDOWN_ACTIVE', 'INVITATION_NOT_ACTIVE', 'NOT_APPLICABLE'],
+                  example: 'NOT_APPLICABLE',
+                },
+                promoteDisabledReason: nullableString('Only active trainees can be promoted.'),
+                promoteDisabledReasonCode: {
+                  type: 'string',
+                  nullable: true,
+                  enum: ['COOLDOWN_ACTIVE', 'INVITATION_NOT_ACTIVE', 'NOT_APPLICABLE'],
+                  example: 'NOT_APPLICABLE',
+                },
               },
             },
           },
         },
         TraineeListResponse: {
           type: 'object',
-          required: ['trainees', 'pendingInvitations'],
+          required: ['trainees', 'invitations'],
           properties: {
             trainees: arrayOf(schemaRef('TraineeListItem')),
+            invitations: arrayOf(schemaRef('TraineeListItem')),
             pendingInvitations: arrayOf(schemaRef('TraineeListItem')),
           },
         },
@@ -1924,7 +2034,7 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         },
         CreateTraineeInvitationResponse: {
           type: 'object',
-          required: ['success', 'message'],
+          required: ['success', 'message', 'invitation'],
           properties: {
             success: booleanProperty(true),
             message: {
@@ -1932,21 +2042,13 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
               example: 'Invitation sent successfully.',
             },
             invitation: {
-              type: 'object',
-              required: ['id', 'email', 'status'],
-              properties: {
-                id: uuidString('66666666-6666-4666-8666-666666666666'),
-                email: { type: 'string', format: 'email', example: 'new.trainee@example.com' },
-                firstName: { type: 'string', example: 'Sam' },
-                lastName: { type: 'string', example: 'New' },
-                status: { type: 'string', example: 'SENT' },
-              },
+              $ref: '#/components/schemas/TraineeListItem',
             },
           },
         },
         InvitationResendResponse: {
           type: 'object',
-          required: ['success', 'message', 'invitationId', 'status', 'resentAt'],
+          required: ['success', 'message', 'invitationId', 'status', 'resentAt', 'invitation'],
           properties: {
             success: booleanProperty(true),
             message: {
@@ -1956,9 +2058,15 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             invitationId: {
               ...uuidString('33333333-3333-4333-8333-333333333333'),
             },
-            status: enumString(['PENDING', 'SENT', 'FAILED_TO_SEND'], 'SENT'),
+            status: enumString(
+              ['PENDING', 'SENT', 'FAILED_TO_SEND', 'ACCEPTED', 'COMPLETED', 'EXPIRED', 'REVOKED', 'REJECTED'],
+              'SENT',
+            ),
             resentAt: {
               ...dateTimeString('2026-07-15T08:30:00.000Z'),
+            },
+            invitation: {
+              $ref: '#/components/schemas/TraineeListItem',
             },
           },
         },

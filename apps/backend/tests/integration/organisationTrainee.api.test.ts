@@ -13,6 +13,7 @@ import { clearAuthRateLimitStore } from '../../src/middleware/authRateLimit.js';
 import { clearOrganisationTraineeRateLimitStores } from '../../src/routes/organisation-trainee.routes.js';
 import { loginOrganisationAdmin, testUserPassword } from '../helpers/auth.js';
 import { createOrganisation, createTrainee } from '../helpers/factories.js';
+import { traineeListResponseSchema } from '@insightful-phish/shared';
 
 describe('Organisation Trainee API Integration Tests', () => {
   let app: ReturnType<typeof createApp>;
@@ -43,16 +44,19 @@ describe('Organisation Trainee API Integration Tests', () => {
         .send(payload);
 
       expect(response.status).toBe(201);
-      expect(response.body).toEqual({
-        success: true,
-        message: 'Invitation sent successfully.',
-        invitation: expect.objectContaining({
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toBe('Invitation sent successfully.');
+      expect(response.body.invitation).toEqual(
+        expect.objectContaining({
           email: 'invitee.test@example.com',
           firstName: 'Invitee',
           lastName: 'Person',
-          status: 'SENT',
+          rowType: 'INVITATION',
+          status: 'INVITE_PENDING',
+          invitationStatus: 'SENT',
+          deliveryState: 'SENT',
         }),
-      });
+      );
 
       const invitation = await prisma.invitation.findFirstOrThrow({
         where: {
@@ -120,16 +124,64 @@ describe('Organisation Trainee API Integration Tests', () => {
         .set('Authorization', `Bearer ${fixture.token}`);
 
       expect(response.status).toBe(200);
+      expect(traineeListResponseSchema.parse(response.body)).toMatchObject({
+        trainees: expect.any(Array),
+        invitations: expect.any(Array),
+      });
       expect(response.body.trainees).toContainEqual(
         expect.objectContaining({
           email: 'active.trainee@example.com',
           status: 'ACTIVE',
         }),
       );
-      expect(response.body.pendingInvitations).toContainEqual(
+      expect(response.body.invitations).toContainEqual(
         expect.objectContaining({
           email: 'pending.trainee@example.com',
         }),
+      );
+    });
+
+    it('includes terminal invitation lifecycle rows in the management list', async () => {
+      const accepted = await request(app)
+        .post(`/organisations/${fixture.organisation.id}/trainee-invitations`)
+        .set('Authorization', `Bearer ${fixture.token}`)
+        .send({ email: 'accepted.trainee@example.com' });
+      const rejected = await request(app)
+        .post(`/organisations/${fixture.organisation.id}/trainee-invitations`)
+        .set('Authorization', `Bearer ${fixture.token}`)
+        .send({ email: 'rejected.trainee@example.com' });
+      const revoked = await request(app)
+        .post(`/organisations/${fixture.organisation.id}/trainee-invitations`)
+        .set('Authorization', `Bearer ${fixture.token}`)
+        .send({ email: 'revoked.trainee@example.com' });
+
+      await prisma.invitation.update({ where: { id: accepted.body.invitation.id }, data: { status: 'ACCEPTED', acceptedAt: new Date() } });
+      await prisma.invitation.update({ where: { id: rejected.body.invitation.id }, data: { status: 'REJECTED' } });
+      await prisma.invitation.update({ where: { id: revoked.body.invitation.id }, data: { status: 'REVOKED', revokedAt: new Date() } });
+      await prisma.invitation.update({
+        where: { id: accepted.body.invitation.id },
+        data: {
+          emailDeliveryLogs: {
+            create: {
+              recipientEmail: 'accepted.trainee@example.com',
+              emailType: 'ORGANISATION_TRAINEE_INVITE',
+              deliveryStatus: 'SENT',
+            },
+          },
+        },
+      });
+
+      const response = await request(app)
+        .get(`/organisations/${fixture.organisation.id}/trainees`)
+        .set('Authorization', `Bearer ${fixture.token}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.invitations).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ email: 'accepted.trainee@example.com', invitationStatus: 'ACCEPTED' }),
+          expect.objectContaining({ email: 'rejected.trainee@example.com', invitationStatus: 'REJECTED' }),
+          expect.objectContaining({ email: 'revoked.trainee@example.com', invitationStatus: 'REVOKED' }),
+        ]),
       );
     });
   });
@@ -222,6 +274,108 @@ describe('Organisation Trainee API Integration Tests', () => {
       });
       expect(auditLog.targetId).toBe(invId);
       expect(auditLog.outcome).toBe('SUCCESS');
+    });
+
+    it('allows exactly one of two concurrent resend requests to claim the invitation version', async () => {
+      const inviteRes = await request(app)
+        .post(`/organisations/${fixture.organisation.id}/trainee-invitations`)
+        .set('Authorization', `Bearer ${fixture.token}`)
+        .send({ email: 'concurrent.resend@example.com' });
+
+      const invId = inviteRes.body.invitation.id;
+      sendMailMock.mockClear();
+
+      const [res1, res2] = await Promise.all([
+        request(app)
+          .post(`/organisations/${fixture.organisation.id}/trainee-invitations/${invId}/resend`)
+          .set('Authorization', `Bearer ${fixture.token}`),
+        request(app)
+          .post(`/organisations/${fixture.organisation.id}/trainee-invitations/${invId}/resend`)
+          .set('Authorization', `Bearer ${fixture.token}`),
+      ]);
+
+      expect([res1.status, res2.status].sort()).toEqual([200, 409]);
+
+      const tokens = await prisma.actionToken.findMany({
+        where: { invitationId: invId },
+        orderBy: { createdAt: 'asc' },
+      });
+      expect(tokens).toHaveLength(2);
+      expect(tokens[0]?.revokedAt).not.toBeNull();
+      expect(tokens[1]?.revokedAt).toBeNull();
+    });
+
+    it('keeps a revoked invitation revoked even when a stale resend email result resolves later', async () => {
+      const inviteRes = await request(app)
+        .post(`/organisations/${fixture.organisation.id}/trainee-invitations`)
+        .set('Authorization', `Bearer ${fixture.token}`)
+        .send({ email: 'race.revoke@example.com' });
+
+      const invId = inviteRes.body.invitation.id;
+
+      let resolveSend: (value: { messageId: string }) => void;
+      const sendGate = new Promise<{ messageId: string }>((resolve) => {
+        resolveSend = resolve;
+      });
+      sendMailMock.mockReturnValueOnce(sendGate as never);
+
+      const resendPromise = request(app)
+        .post(`/organisations/${fixture.organisation.id}/trainee-invitations/${invId}/resend`)
+        .set('Authorization', `Bearer ${fixture.token}`);
+
+      await new Promise<void>((resolve) => {
+        const timer = setInterval(() => {
+          if (sendMailMock.mock.calls.length > 0) {
+            clearInterval(timer);
+            resolve();
+          }
+        }, 5);
+      });
+
+      const revokeResponse = await request(app)
+        .post(`/organisations/${fixture.organisation.id}/trainee-invitations/${invId}/revoke`)
+        .set('Authorization', `Bearer ${fixture.token}`);
+      expect(revokeResponse.status).toBe(200);
+
+      resolveSend({ messageId: 'smtpmessage-revoked' });
+      const resendResponse = await resendPromise;
+      expect([200, 409]).toContain(resendResponse.status);
+
+      const invitation = await prisma.invitation.findUniqueOrThrow({ where: { id: invId } });
+      expect(invitation.status).toBe('REVOKED');
+    });
+
+    it('returns a truthful failed-delivery response when SMTP rejects the invitation email', async () => {
+      sendMailMock.mockReset();
+      sendMailMock.mockRejectedValue(new Error('SMTP rejected the message'));
+
+      const response = await request(app)
+        .post(`/organisations/${fixture.organisation.id}/trainee-invitations`)
+        .set('Authorization', `Bearer ${fixture.token}`)
+        .send({ email: 'smtp.fail@example.com' });
+
+      expect(response.status).toBe(201);
+      expect(response.body.success).toBe(true);
+      expect(response.body.invitation.deliveryState).toBe('FAILED');
+      expect(response.body.invitation.invitationLifecycleState).toBe('FAILED_TO_SEND');
+    });
+
+    it('returns an unknown delivery outcome when provider success is followed by delivery-log persistence failure', async () => {
+      const updateSpy = vi.spyOn(prisma.emailDeliveryLog, 'update').mockRejectedValueOnce(
+        new Error('delivery log write failed'),
+      );
+
+      const response = await request(app)
+        .post(`/organisations/${fixture.organisation.id}/trainee-invitations`)
+        .set('Authorization', `Bearer ${fixture.token}`)
+        .send({ email: 'unknown.delivery@example.com' });
+
+      updateSpy.mockRestore();
+
+      expect(response.status).toBe(201);
+      expect(response.body.success).toBe(true);
+      expect(response.body.invitation.deliveryState).toBe('UNKNOWN');
+      expect(response.body.invitation.invitationLifecycleState).toBe('PENDING');
     });
   });
 

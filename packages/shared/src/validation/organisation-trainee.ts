@@ -1,4 +1,8 @@
 import { z } from 'zod';
+import {
+  INVITATION_ACTION_UNAVAILABLE_REASON_CODES,
+  INVITATION_MANAGEMENT_STATUSES,
+} from '../invitation-state-policy.js';
 
 export const organisationTraineesParamsSchema = z
   .object({
@@ -81,76 +85,116 @@ export const traineeStatusSchema = z.enum([
   'DISABLED',
   'INVITE_PENDING',
   'INVITE_FAILED',
+  'INVITE_EXPIRED',
+  'INVITE_REJECTED',
+  'INVITE_REVOKED',
+  'INVITE_ACCEPTED',
+  'INVITE_COMPLETED',
+  'ACCEPTED',
+  'REVOKED',
+  'EXPIRED',
+  'REJECTED',
+  'COMPLETED',
 ]);
 
-// Do not export TraineeStatusDto here to avoid conflict with entities.ts
-// Or use a different name if needed, but for now we just omit it since it's conflicting.
+export const invitationLifecycleStateSchema = z.enum([
+  'PENDING',
+  'SENT',
+  'FAILED_TO_SEND',
+  'ACCEPTED',
+  'COMPLETED',
+  'EXPIRED',
+  'REVOKED',
+  'REJECTED',
+]);
 
-const eligibilitySchema = z.object({
+export const invitationManagementStatusSchema = z.enum(INVITATION_MANAGEMENT_STATUSES);
+
+export const invitationDeliveryStateSchema = z.enum(['PENDING', 'SENT', 'FAILED', 'UNKNOWN']);
+
+export const invitationEligibilityReasonCodeSchema = z.enum(
+  INVITATION_ACTION_UNAVAILABLE_REASON_CODES,
+);
+
+export const eligibilitySchema = z.object({
   canResend: z.boolean(),
   canRevoke: z.boolean(),
   canDisable: z.boolean(),
   canPromote: z.boolean(),
   resendCooldownSeconds: z.number(),
+  resendDisabledReason: z.string().nullable().optional(),
+  resendDisabledReasonCode: invitationEligibilityReasonCodeSchema.nullable().optional(),
+  revokeDisabledReason: z.string().nullable().optional(),
+  revokeDisabledReasonCode: invitationEligibilityReasonCodeSchema.nullable().optional(),
+  disableDisabledReason: z.string().nullable().optional(),
+  disableDisabledReasonCode: invitationEligibilityReasonCodeSchema.nullable().optional(),
+  promoteDisabledReason: z.string().nullable().optional(),
+  promoteDisabledReasonCode: invitationEligibilityReasonCodeSchema.nullable().optional(),
 });
 
 export const activeTraineeRowSchema = z
   .object({
-    id: z.string().uuid().optional(),
-    rowType: z.literal('ACTIVE_TRAINEE').optional(),
-    type: z.literal('ACTIVE_TRAINEE').optional(),
-    traineeProfileId: z.string().uuid().optional(),
-    userId: z.string().uuid().optional(),
-    invitationId: z.string().uuid().optional(),
-    invitationStatus: z.string().nullable().optional(),
+    id: z.string().uuid(),
+    rowType: z.literal('ACTIVE_TRAINEE'),
+    type: z.literal('ACTIVE_TRAINEE'),
+    traineeProfileId: z.string().uuid(),
+    userId: z.string().uuid(),
+    invitationId: z.null(),
+    invitationStatus: z.null(),
+    invitationLifecycleState: z.null(),
     email: z.string().email(),
-    firstName: z.string().nullable().optional(),
-    lastName: z.string().nullable().optional(),
+    firstName: z.string().nullable(),
+    lastName: z.string().nullable(),
     status: z.union([traineeStatusSchema, z.string()]),
-    createdAt: z.string().datetime().optional(),
-    joinedAt: z.string().datetime().nullable().optional(),
-    invitedAt: z.string().datetime().nullable().optional(),
-    disabledAt: z.string().datetime().nullable().optional(),
-    disabledReason: z.string().nullable().optional(),
-    expiresAt: z.string().datetime().nullable().optional(),
-    invitationExpiresAt: z.string().datetime().nullable().optional(),
-    emailDeliveryStatus: z.string().nullable().optional(),
-    deliveryState: z.string().nullable().optional(),
-    requiredAction: z.string().nullable().optional(),
-    requiredActions: z.array(z.string()).optional(),
-    eligibility: eligibilitySchema.optional(),
+    createdAt: z.string().datetime(),
+    joinedAt: z.string().datetime().nullable(),
+    invitedAt: z.null(),
+    disabledAt: z.string().datetime().nullable(),
+    disabledReason: z.string().nullable(),
+    expiresAt: z.null(),
+    invitationExpiresAt: z.null(),
+    emailDeliveryStatus: invitationDeliveryStateSchema,
+    deliveryState: invitationDeliveryStateSchema,
+    invitationLifecycleState: z.null(),
+    requiredAction: z.literal('NONE'),
+    requiredActions: z.array(z.literal('NONE')),
+    eligibility: eligibilitySchema,
   })
   .strict();
 
 export const invitationTraineeRowSchema = z
   .object({
-    id: z.string().uuid().optional(),
+    id: z.string().uuid(),
     rowType: z.literal('INVITATION'),
-    type: z.literal('INVITATION').optional(),
-    traineeProfileId: z.string().uuid().optional(),
-    userId: z.string().uuid().optional(),
-    invitationId: z.string().uuid().optional(),
-    invitationStatus: z.string().nullable().optional(),
+    type: z.literal('INVITATION'),
+    traineeProfileId: z.null(),
+    userId: z.null(),
+    invitationId: z.string().uuid(),
+    invitationStatus: invitationLifecycleStateSchema,
     email: z.string().email(),
-    firstName: z.string().nullable().optional(),
-    lastName: z.string().nullable().optional(),
+    firstName: z.string().nullable(),
+    lastName: z.string().nullable(),
     status: z.union([traineeStatusSchema, z.string()]),
-    createdAt: z.string().datetime().optional(),
-    joinedAt: z.string().datetime().nullable().optional(),
-    invitedAt: z.string().datetime().nullable().optional(),
-    disabledAt: z.string().datetime().nullable().optional(),
-    disabledReason: z.string().nullable().optional(),
-    expiresAt: z.string().datetime().nullable().optional(),
-    invitationExpiresAt: z.string().datetime().nullable().optional(),
-    emailDeliveryStatus: z.string().nullable().optional(),
-    deliveryState: z.string().nullable().optional(),
-    requiredAction: z.string().nullable().optional(),
-    requiredActions: z.array(z.string()).optional(),
-    eligibility: eligibilitySchema.optional(),
+    createdAt: z.string().datetime(),
+    joinedAt: z.null(),
+    invitedAt: z.string().datetime(),
+    disabledAt: z.null(),
+    disabledReason: z.null(),
+    expiresAt: z.string().datetime(),
+    invitationExpiresAt: z.string().datetime(),
+    emailDeliveryStatus: invitationDeliveryStateSchema,
+    deliveryState: invitationDeliveryStateSchema,
+    invitationLifecycleState: invitationLifecycleStateSchema,
+    requiredAction: z.literal('CONTINUE_SETUP'),
+    requiredActions: z.array(z.literal('CONTINUE_SETUP')),
+    eligibility: eligibilitySchema,
   })
   .strict();
 
-export const traineeListItemSchema = z.union([activeTraineeRowSchema, invitationTraineeRowSchema]);
+export const traineeListItemSchema = z.discriminatedUnion('rowType', [
+  activeTraineeRowSchema,
+  invitationTraineeRowSchema,
+]);
 
 export type TraineeListItemDto =
   | z.infer<typeof activeTraineeRowSchema>
@@ -159,11 +203,13 @@ export type TraineeListItemDto =
 export const traineeListResponseSchema = z
   .object({
     trainees: z.array(traineeListItemSchema),
-    pendingInvitations: z.array(traineeListItemSchema),
+    invitations: z.array(traineeListItemSchema),
+    pendingInvitations: z.array(traineeListItemSchema).optional(),
   })
   .strict();
 
 export type TraineeListResponseDto = z.infer<typeof traineeListResponseSchema>;
+
 
 export const disableTraineeResponseSchema = z
   .object({
@@ -180,27 +226,11 @@ export const createTraineeInvitationResponseSchema = z
   .object({
     success: z.literal(true),
     message: z.string().trim().min(1),
-    invitation: z
-      .object({
-        id: z.string().uuid(),
-        email: z.string().email(),
-        firstName: z.string().nullable().optional(),
-        lastName: z.string().nullable().optional(),
-        status: z.string(),
-        createdAt: z.string().datetime().optional(),
-        expiresAt: z.string().datetime().optional(),
-        eligibility: z
-          .object({
-            canResend: z.boolean().optional(),
-            canRevoke: z.boolean().optional(),
-            canDisable: z.boolean().optional(),
-            canPromote: z.boolean().optional(),
-          })
-          .optional(),
-      })
-      .optional(),
+    invitation: invitationTraineeRowSchema,
   })
   .strict();
+
+
 
 export type CreateTraineeInvitationResponseDto = z.infer<
   typeof createTraineeInvitationResponseSchema

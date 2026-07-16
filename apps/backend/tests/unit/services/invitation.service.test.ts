@@ -535,7 +535,7 @@ describe('InvitationService (Detailed Boundary & Concurrency Tests)', () => {
       });
       invitationRepoMock.findInvitationTokenByHash.mockResolvedValue(platAdminToken);
       invitationRepoMock.findUserByEmailWithProfiles.mockResolvedValue(
-        buildMockUser({ userType: 'ORGANISATION_ADMIN' }),
+        buildMockUser({ userType: 'GENERAL_TRAINEE' }),
       );
 
       invitationRepoMock.updateUserRoleAndProfilesFromInvitation.mockResolvedValueOnce({

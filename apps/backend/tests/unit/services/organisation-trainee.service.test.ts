@@ -95,6 +95,11 @@ vi.mock('../../../src/lib/prisma.js', () => ({
 describe('OrganisationTraineeService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    emailMock.sendEmail.mockResolvedValue({
+      ok: true,
+      deliveryStatus: 'SENT',
+      deliveryLogId: 'delivery-log-1',
+    });
     orgAdminRepoMock.findActorOrganisationAdmin.mockResolvedValue(
       buildMockActorAdmin([
         OrganisationPermissionKey.VIEW_ORGANISATION_TRAINEES,
@@ -135,7 +140,8 @@ describe('OrganisationTraineeService', () => {
       expect(result.trainees[0]?.status).toBe('ACTIVE');
       expect(result.trainees[1]?.status).toBe('DISABLED');
 
-      expect(result.pendingInvitations).toHaveLength(1);
+      expect(result.pendingInvitations).toHaveLength(2);
+      expect(result.invitations).toHaveLength(2);
       expect(result.pendingInvitations[0]?.status).toBe('INVITE_PENDING');
     });
 

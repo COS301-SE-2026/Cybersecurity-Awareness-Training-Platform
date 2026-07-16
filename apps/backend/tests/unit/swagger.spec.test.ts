@@ -511,6 +511,57 @@ describe('swaggerSpec', () => {
     expectBearerAuth('/organisations/{organisationId}/trainees/{traineeId}/disable', 'patch');
   });
 
+  it('documents the discriminated trainee row variants with their required lifecycle fields', () => {
+    const traineeListItem = spec.components?.schemas?.TraineeListItem as {
+      required?: string[];
+      properties?: Record<string, { enum?: string[]; nullable?: boolean; type?: string }>;
+    };
+
+    expect(traineeListItem).toBeDefined();
+    expect(traineeListItem.required).toEqual(
+      expect.arrayContaining(['id', 'rowType', 'type', 'email', 'status', 'eligibility']),
+    );
+    expect(traineeListItem.properties?.rowType?.enum).toEqual(['ACTIVE_TRAINEE', 'INVITATION']);
+    expect(traineeListItem.properties?.invitationStatus?.enum).toEqual([
+      'PENDING',
+      'SENT',
+      'FAILED_TO_SEND',
+      'ACCEPTED',
+      'COMPLETED',
+      'EXPIRED',
+      'REVOKED',
+      'REJECTED',
+    ]);
+    expect(traineeListItem.properties?.status?.enum).toEqual([
+      'ACTIVE',
+      'DISABLED',
+      'INVITE_PENDING',
+      'INVITE_FAILED',
+      'INVITE_EXPIRED',
+      'INVITE_REJECTED',
+      'INVITE_REVOKED',
+      'INVITE_ACCEPTED',
+      'INVITE_COMPLETED',
+    ]);
+    expect(traineeListItem.properties?.emailDeliveryStatus?.enum).toEqual([
+      'PENDING',
+      'SENT',
+      'FAILED',
+      'UNKNOWN',
+    ]);
+  });
+
+  it('documents trainee list and invitation responses using the same row component', () => {
+    const listResponse = JSON.stringify(spec.components?.schemas?.TraineeListResponse);
+    const createResponse = JSON.stringify(spec.components?.schemas?.CreateTraineeInvitationResponse);
+    const resendResponse = JSON.stringify(spec.components?.schemas?.InvitationResendResponse);
+
+    expect(listResponse).toContain('invitations');
+    expect(listResponse).toContain('TraineeListItem');
+    expect(createResponse).toContain('TraineeListItem');
+    expect(resendResponse).toContain('TraineeListItem');
+  });
+
   it.each(inactiveRouteDocs)('does not document inactive route %s', (path) => {
     expect(spec.paths).not.toHaveProperty(path);
   });

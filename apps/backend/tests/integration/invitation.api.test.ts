@@ -190,6 +190,31 @@ describe('Invitation Acceptance Integration Tests', () => {
       });
     });
 
+    it('rejects an active organisation administrator attempting to accept a platform-admin upgrade', async () => {
+      const app = createApp();
+      const fixture = await createInvitationTestFixture({
+        purpose: 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION',
+        userType: 'ORGANISATION_ADMIN',
+      });
+      await prisma.organisationAdminProfile.create({
+        data: {
+          userId: fixture.user.id,
+          organisationId: fixture.organisation.id,
+          adminStatus: 'ACTIVE',
+          isInitialAdmin: false,
+        },
+      });
+      const loginRes = await loginTestUser(fixture.user.email);
+
+      const res = await request(app)
+        .post(`/invitations/token/${fixture.rawToken}/accept`)
+        .set('Authorization', `Bearer ${loginRes.body.token}`)
+        .send({ confirmRoleChange: true });
+
+      expect(res.status).toBe(409);
+      expect(res.body.error).toBe('ROLE_TRANSITION_CONFLICT');
+    });
+
     it('proves atomic concurrency guarantees by racing two concurrent accept requests via Promise.all, ensuring exactly one succeeds and one returns 409 Conflict', async () => {
       const app = createApp();
       const fixture = await createInvitationTestFixture({
