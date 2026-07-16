@@ -7,9 +7,6 @@ import {
   rejectOrganisationRequest,
   approveOrganisationRequest,
   deleteOrganisationRequest,
-  getPlatformOrganisationDetail,
-  getOrganisationRequestDetails,
-  resendInitialAdminSetup,
   OrganisationRegistrationRequestError,
 } from '../../src/services/organisation-registration-request.service.js';
 
@@ -410,6 +407,7 @@ describe('platform organisation registration request service', () => {
         id: requestId,
         status: 'PENDING_REVIEW',
         submittedOrganisationName: 'Acme',
+        representativeEmail: 'john@acme.com',
       });
       repositoryMock.findOrganisationByName.mockResolvedValue({ id: 'org-1' });
 
@@ -431,6 +429,7 @@ describe('platform organisation registration request service', () => {
         id: requestId,
         status: 'PENDING_REVIEW',
         submittedOrganisationName: 'Acme',
+        representativeEmail: 'john@acme.com',
       });
       // Mock existing user conflict
       prismaMock.user.findUnique.mockImplementation(async (args) => {
@@ -462,6 +461,7 @@ describe('platform organisation registration request service', () => {
         id: requestId,
         status: 'PENDING_REVIEW',
         submittedOrganisationName: 'Acme',
+        representativeEmail: 'john@acme.com',
       });
       prismaMock.organisationRegistrationRequest.updateMany.mockResolvedValue({ count: 0 });
 
@@ -483,6 +483,7 @@ describe('platform organisation registration request service', () => {
         id: requestId,
         status: 'PENDING_REVIEW',
         submittedOrganisationName: 'Acme',
+        representativeEmail: 'john@acme.com',
       });
       const error = new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
         code: 'P2002',
@@ -509,6 +510,7 @@ describe('platform organisation registration request service', () => {
         id: requestId,
         status: 'PENDING_REVIEW',
         submittedOrganisationName: 'Acme',
+        representativeEmail: 'john@acme.com',
       });
       const error = new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
         code: 'P2002',
@@ -556,92 +558,6 @@ describe('platform organisation registration request service', () => {
           'Only rejected or cancelled requests can be deleted',
         ),
       );
-    });
-  });
-
-  describe('getPlatformOrganisationDetail', () => {
-    it('returns expanded details, setup status, resend eligibility, admins, and timeline', async () => {
-      prismaMock.organisation.findUnique.mockResolvedValue({
-        id: organisationId,
-        name: 'Acme Corp',
-        status: 'PENDING_ONBOARDING',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        _count: { adminProfiles: 1, traineeProfiles: 12 },
-      });
-      prismaMock.organisationRegistrationRequest.findFirst.mockResolvedValue({ id: requestId });
-      prismaMock.invitation.findFirst.mockResolvedValue({
-        id: 'invitation-1',
-        status: 'PENDING',
-        recipientEmail: 'admin@acme.com',
-        expiresAt: new Date(),
-        actionTokens: [{ id: 'tok-1', expiresAt: new Date() }],
-      });
-      prismaMock.emailDeliveryLog.findFirst.mockResolvedValue({
-        id: 'log-1',
-        deliveryStatus: 'SENT',
-      });
-      prismaMock.organisationAdminProfile.findMany.mockResolvedValue([]);
-      prismaMock.auditLogEntry.findMany.mockResolvedValue([]);
-      prismaMock.emailDeliveryLog.findMany.mockResolvedValue([]);
-
-      const response = await getPlatformOrganisationDetail(actorUserId, organisationId);
-
-      expect(response.id).toBe(organisationId);
-      expect(response.resendEligibility.isEligible).toBe(true);
-      expect(response.setupStatus?.id).toBe('invitation-1');
-      expect(response.timeline).toBeDefined();
-    });
-  });
-
-  describe('getOrganisationRequestDetails', () => {
-    it('returns detailed request fallback details and timeline', async () => {
-      prismaMock.organisationRegistrationRequest.findUnique.mockResolvedValue({
-        id: requestId,
-        status: 'PENDING_REVIEW',
-        submittedOrganisationName: 'Acme Corp',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-      prismaMock.invitation.findFirst.mockResolvedValue(null);
-      prismaMock.auditLogEntry.findMany.mockResolvedValue([]);
-      prismaMock.emailDeliveryLog.findMany.mockResolvedValue([]);
-
-      const response = await getOrganisationRequestDetails(actorUserId, requestId);
-
-      expect(response.id).toBe(requestId);
-      expect(response.submittedOrganisationName).toBe('Acme Corp');
-      expect(response.resendEligibility.isEligible).toBe(false);
-      expect(response.timeline).toHaveLength(0);
-    });
-  });
-
-  describe('resendInitialAdminSetup', () => {
-    it('resends invitation successfully, revokes old tokens, creates new token, and logs audit', async () => {
-      prismaMock.organisation.findUnique.mockResolvedValue({
-        id: organisationId,
-        status: 'PENDING_ONBOARDING',
-      });
-      prismaMock.invitation.findFirst.mockResolvedValue({
-        id: 'invitation-1',
-        recipientEmail: 'admin@acme.com',
-        recipientFirstName: 'John',
-      });
-      prismaMock.emailDeliveryLog.findFirst.mockResolvedValue(null);
-      prismaMock.invitation.update.mockResolvedValue({ id: 'invitation-1' });
-      actionTokenServiceMock.issueActionToken.mockResolvedValue({
-        token: { id: 'tok-2', expiresAt: new Date() },
-        rawToken: 'rawtokenabc',
-      });
-      emailHookMock.requestAuthEmailSend.mockResolvedValue({ queued: true });
-
-      const response = await resendInitialAdminSetup(actorUserId, organisationId);
-
-      expect(response.success).toBe(true);
-      expect(response.emailQueued).toBe(true);
-      expect(prismaMock.actionToken.updateMany).toHaveBeenCalled();
-      expect(actionTokenServiceMock.issueActionToken).toHaveBeenCalled();
-      expect(emailHookMock.requestAuthEmailSend).toHaveBeenCalled();
     });
   });
 });

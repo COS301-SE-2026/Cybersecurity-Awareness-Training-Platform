@@ -1250,15 +1250,16 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             ),
             recipientEmail: { type: 'string', format: 'email', example: 'admin@example.com' },
             expiresAt: dateTimeString('2026-05-23T09:00:00.000Z'),
-            activeActionToken: {
+            latestActionToken: {
               type: 'object',
               nullable: true,
-              required: ['id', 'expiresAt'],
+              required: ['id', 'expiresAt', 'status'],
               properties: {
                 id: uuidString('tok-1234-abcd'),
                 expiresAt: dateTimeString('2026-05-23T09:00:00.000Z'),
                 usedAt: { ...dateTimeString('2026-05-16T10:00:00.000Z'), nullable: true },
                 revokedAt: { ...dateTimeString('2026-05-16T10:00:00.000Z'), nullable: true },
+                status: enumString(['AVAILABLE', 'USED', 'REVOKED', 'EXPIRED'], 'AVAILABLE'),
               },
             },
             latestEmailDelivery: {
@@ -1277,24 +1278,36 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         },
         OrganisationResendEligibility: {
           type: 'object',
-          required: ['isEligible'],
+          required: ['isEligible', 'reason'],
           properties: {
             isEligible: { type: 'boolean', example: true },
-            reason: nullableString('ORGANISATION_ALREADY_ACTIVE'),
+            // reason is always present -- null when eligible, a typed code string when not.
+            reason: nullableString('ORGANISATION_NOT_ONBOARDING'),
           },
         },
         PlatformTimelineEntry: {
           type: 'object',
-          required: ['id', 'type', 'timestamp', 'action', 'summary'],
+          required: [
+            'id',
+            'type',
+            'timestamp',
+            'action',
+            'summary',
+            'actor',
+            'outcome',
+            'metadata',
+          ],
           properties: {
             id: uuidString('log-5678-efgh'),
             type: enumString(['AUDIT_LOG', 'EMAIL_DELIVERY'], 'AUDIT_LOG'),
             timestamp: dateTimeString('2026-05-16T09:00:00.000Z'),
             action: { type: 'string', example: 'APPROVED' },
-            summary: { type: 'string', example: 'Action APPROVED performed by Patricia Platform' },
+            summary: { type: 'string', example: 'APPROVED on ORGANISATION_REGISTRATION_REQUEST' },
             actor: nullableString('Patricia Platform'),
-            status: nullableString('SUCCESS'),
-            details: { type: 'object', nullable: true },
+            // 'status' field removed -- runtime no longer returns it (was a stale duplicate of outcome).
+            outcome: nullableString('SUCCESS'),
+            // metadata is always null -- raw audit data is never exposed in timeline responses.
+            metadata: { type: 'string', nullable: true, example: null },
           },
         },
         PlatformOrganisationDetail: {
@@ -1303,6 +1316,11 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             'id',
             'name',
             'status',
+            'detailType',
+            'description',
+            'approximateSize',
+            'website',
+            'primaryDomain',
             'createdAt',
             'updatedAt',
             '_count',
@@ -1319,6 +1337,19 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
               ['PENDING_ONBOARDING', 'ACTIVE', 'INACTIVE', 'SUSPENDED', 'DISABLED', 'ARCHIVED'],
               'PENDING_ONBOARDING',
             ),
+            detailType: enumString(
+              [
+                'onboarding organisation',
+                'active organisation',
+                'suspended organisation',
+                'disabled organisation',
+              ],
+              'onboarding organisation',
+            ),
+            description: nullableString('A consulting company'),
+            approximateSize: { type: 'integer', nullable: true, example: 150 },
+            website: nullableString('https://example.com'),
+            primaryDomain: nullableString('example.com'),
             createdAt: dateTimeString('2026-05-16T09:00:00.000Z'),
             updatedAt: dateTimeString('2026-05-16T09:00:00.000Z'),
             _count: {
@@ -1361,13 +1392,15 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
               type: 'array',
               items: {
                 type: 'object',
-                required: ['id', 'adminStatus', 'firstName', 'lastName', 'email'],
+                required: ['id', 'adminStatus', 'firstName', 'lastName', 'email', 'isInitialAdmin'],
                 properties: {
                   id: uuidString('adm-1234-abcd'),
-                  adminStatus: enumString(['PENDING', 'ACTIVE', 'DISABLED'], 'ACTIVE'),
+                  // ACTIVE | DISABLED -- PENDING is an invitation status, not an admin profile status.
+                  adminStatus: enumString(['ACTIVE', 'DISABLED'], 'ACTIVE'),
                   firstName: { type: 'string', example: 'Jane' },
                   lastName: { type: 'string', example: 'Doe' },
                   email: { type: 'string', format: 'email', example: 'jane@example.com' },
+                  isInitialAdmin: booleanProperty(false),
                 },
               },
             },
@@ -1384,8 +1417,18 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             { $ref: '#/components/schemas/PlatformOrganisationRequest' },
             {
               type: 'object',
-              required: ['setupStatus', 'resendEligibility', 'timeline'],
+              required: ['detailType', 'setupStatus', 'resendEligibility', 'timeline'],
               properties: {
+                detailType: enumString(
+                  [
+                    'request-only',
+                    'onboarding organisation',
+                    'active organisation',
+                    'suspended organisation',
+                    'disabled organisation',
+                  ],
+                  'request-only',
+                ),
                 setupStatus: {
                   $ref: '#/components/schemas/OrganisationInitialSetupStatus',
                 },
