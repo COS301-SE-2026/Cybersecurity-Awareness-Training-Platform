@@ -74,6 +74,7 @@ export async function listOrganisationTrainees(
     findOrganisationTraineeInvitations(organisationId),
   ]);
 
+  const now = new Date();
   const trainees: TraineeListItemDto[] = traineeProfiles.map((trainee) => {
     let status: TraineeListItemDto['status'] = 'ACTIVE';
     if (trainee.disabledAt || trainee.membershipStatus === 'DISABLED') {
@@ -82,8 +83,11 @@ export async function listOrganisationTrainees(
 
     return {
       id: trainee.id,
+      rowType: 'ACTIVE_TRAINEE',
+      type: 'ACTIVE_TRAINEE',
       traineeProfileId: trainee.traineeProfileId,
       userId: trainee.traineeProfile.userId,
+      invitationStatus: null,
       email: trainee.traineeProfile.user.email,
       firstName: trainee.traineeProfile.user.firstName ?? undefined,
       lastName: trainee.traineeProfile.user.lastName ?? undefined,
@@ -92,11 +96,18 @@ export async function listOrganisationTrainees(
       joinedAt: trainee.createdAt.toISOString(),
       disabledAt: trainee.disabledAt ? trainee.disabledAt.toISOString() : null,
       disabledReason: trainee.disabledReason ?? null,
+      expiresAt: null,
+      invitationExpiresAt: null,
+      emailDeliveryStatus: 'DELIVERED',
+      deliveryState: 'DELIVERED',
+      requiredAction: 'NONE',
+      requiredActions: ['NONE'],
       eligibility: {
         canResend: false,
         canRevoke: false,
         canDisable: status === 'ACTIVE',
         canPromote: status === 'ACTIVE',
+        resendCooldownSeconds: 0,
       },
     };
   });
@@ -104,15 +115,35 @@ export async function listOrganisationTrainees(
   const pendingInvitations: TraineeListItemDto[] = [];
   for (const inv of invitations) {
     let status: TraineeListItemDto['status'] = 'INVITE_PENDING';
-    if (inv.status === 'FAILED_TO_SEND') {
+    const lastLog =
+      'emailDeliveryLogs' in inv && Array.isArray(inv.emailDeliveryLogs) && inv.emailDeliveryLogs[0]
+        ? inv.emailDeliveryLogs[0]
+        : undefined;
+    const deliveryStatus =
+      lastLog?.deliveryStatus ?? (inv.status === 'FAILED_TO_SEND' ? 'FAILED' : 'PENDING');
+    if (inv.status === 'FAILED_TO_SEND' || deliveryStatus === 'FAILED') {
       status = 'INVITE_FAILED';
     } else if (inv.status !== 'PENDING' && inv.status !== 'SENT') {
       continue;
     }
 
+    let resendCooldownSeconds = 0;
+    if (lastLog?.createdAt) {
+      const elapsed = now.getTime() - new Date(lastLog.createdAt).getTime();
+      if (elapsed < 60000) {
+        resendCooldownSeconds = Math.max(0, Math.ceil((60000 - elapsed) / 1000));
+      }
+    }
+
+    const canResend = status === 'INVITE_PENDING' || status === 'INVITE_FAILED';
+    const canRevoke = status === 'INVITE_PENDING' || status === 'INVITE_FAILED';
+
     pendingInvitations.push({
       id: inv.id,
+      rowType: 'INVITATION',
+      type: 'INVITATION',
       invitationId: inv.id,
+      invitationStatus: inv.status,
       email: inv.recipientEmail,
       firstName: inv.recipientFirstName ?? undefined,
       lastName: inv.recipientLastName ?? undefined,
@@ -120,11 +151,17 @@ export async function listOrganisationTrainees(
       createdAt: inv.createdAt.toISOString(),
       invitedAt: inv.createdAt.toISOString(),
       expiresAt: inv.expiresAt ? inv.expiresAt.toISOString() : null,
+      invitationExpiresAt: inv.expiresAt ? inv.expiresAt.toISOString() : null,
+      emailDeliveryStatus: deliveryStatus,
+      deliveryState: deliveryStatus,
+      requiredAction: 'CONTINUE_SETUP',
+      requiredActions: ['CONTINUE_SETUP'],
       eligibility: {
-        canResend: status === 'INVITE_PENDING' || status === 'INVITE_FAILED',
-        canRevoke: status === 'INVITE_PENDING' || status === 'INVITE_FAILED',
+        canResend,
+        canRevoke,
         canDisable: false,
         canPromote: false,
+        resendCooldownSeconds,
       },
     });
   }
@@ -194,6 +231,9 @@ export async function createOrganisationTraineeInvitation(
   );
 
   const txResult = await prisma.$transaction(async (tx) => {
+    if (typeof tx.$executeRaw === 'function') {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${organisationId + ':' + normalisedEmail}))`;
+    }
     const [txTrainee, txInvite] = await Promise.all([
       findOrganisationTraineeByEmail(organisationId, normalisedEmail, tx),
       findPendingTraineeInvitationByEmail(organisationId, normalisedEmail, tx),
@@ -351,19 +391,25 @@ export async function resendTraineeInvitation(
   );
 
   const txResult = await prisma.$transaction(async (tx) => {
-    const txInv = await findInvitationById(invitation.id, tx);
-    if (
-      !txInv ||
-      (txInv.status !== 'PENDING' && txInv.status !== 'SENT' && txInv.status !== 'FAILED_TO_SEND')
-    ) {
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const claimedInv = await tx.invitation.updateMany({
+      where: {
+        id: invitation.id,
+        status: { in: ['PENDING', 'SENT', 'FAILED_TO_SEND'] },
+      },
+      data: {
+        status: 'PENDING',
+        expiresAt,
+      },
+    });
+
+    if (claimedInv.count === 0) {
       throw new OrganisationTraineeServiceError(
         409,
         'INVITATION_NOT_RESENDABLE',
         'Invitation is no longer in a resendable state.',
       );
     }
-
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
     await tx.actionToken.updateMany({
       where: {
@@ -384,14 +430,6 @@ export async function resendTraineeInvitation(
         purpose: 'ORGANISATION_TRAINEE_INVITE',
         invitationId: invitation.id,
         expiresAt,
-      },
-    });
-
-    await tx.invitation.update({
-      where: { id: invitation.id },
-      data: {
-        expiresAt,
-        status: 'PENDING',
       },
     });
 
@@ -491,30 +529,33 @@ export async function revokeTraineeInvitation(
   }
 
   return prisma.$transaction(async (tx) => {
-    const txInv = await findInvitationById(invitation.id, tx);
-    if (!txInv || txInv.status === 'ACCEPTED') {
-      throw new OrganisationTraineeServiceError(
-        409,
-        'INVITATION_ALREADY_ACCEPTED',
-        'Cannot revoke an invitation that has already been accepted.',
-      );
-    }
-    if (txInv.status === 'REVOKED') {
-      return {
-        success: true,
-        message: 'Invitation has already been revoked.',
-        invitationId: txInv.id,
-        status: 'REVOKED' as const,
-        revokedAt: txInv.updatedAt.toISOString(),
-      };
-    }
-
-    await tx.invitation.update({
-      where: { id: invitation.id },
+    const claimedInv = await tx.invitation.updateMany({
+      where: {
+        id: invitation.id,
+        status: { in: ['PENDING', 'SENT', 'FAILED_TO_SEND'] },
+      },
       data: {
         status: 'REVOKED',
       },
     });
+
+    if (claimedInv.count === 0) {
+      const txInv = await findInvitationById(invitation.id, tx);
+      if (txInv && txInv.status === 'REVOKED') {
+        return {
+          success: true,
+          message: 'Invitation has already been revoked.',
+          invitationId: txInv.id,
+          status: 'REVOKED' as const,
+          revokedAt: txInv.updatedAt.toISOString(),
+        };
+      }
+      throw new OrganisationTraineeServiceError(
+        409,
+        'INVITATION_ALREADY_ACCEPTED',
+        'Cannot revoke an invitation that has already been accepted or mutated concurrently.',
+      );
+    }
 
     await tx.actionToken.updateMany({
       where: {

@@ -33,6 +33,12 @@ export function findOrganisationTraineeInvitations(
       organisationId,
       purpose: 'ORGANISATION_TRAINEE_INVITE',
     },
+    include: {
+      emailDeliveryLogs: {
+        orderBy: { createdAt: 'desc' },
+        take: 1,
+      },
+    },
     orderBy: {
       createdAt: 'desc',
     },

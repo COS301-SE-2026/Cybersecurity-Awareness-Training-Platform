@@ -68,14 +68,16 @@ vi.mock('../../../src/services/email.service.js', () => emailMock);
 vi.mock('../../../src/services/password.service.js', () => passwordMock);
 
 const txMock = {
+  $queryRaw: vi.fn().mockResolvedValue([{}]),
   invitation: {
     create: vi.fn(),
     update: vi.fn(),
+    updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     findUnique: vi.fn(),
   },
   actionToken: {
     create: vi.fn(),
-    updateMany: vi.fn(),
+    updateMany: vi.fn().mockResolvedValue({ count: 1 }),
   },
 };
 
@@ -85,6 +87,7 @@ vi.mock('../../../src/lib/prisma.js', () => ({
     invitation: {
       findUnique: vi.fn().mockResolvedValue({ status: 'SENT' }),
       update: vi.fn(),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
   },
 }));
@@ -305,7 +308,7 @@ describe('OrganisationTraineeService', () => {
           where: { invitationId: mockInvitationId, revokedAt: null, usedAt: null },
         }),
       );
-      expect(txMock.invitation.update).toHaveBeenCalled();
+      expect(txMock.invitation.updateMany).toHaveBeenCalled();
       expect(auditLogMock.recordAuditLog).toHaveBeenCalledWith(
         expect.objectContaining({ actionType: 'RESENT' }),
         txMock,
@@ -369,17 +372,15 @@ describe('OrganisationTraineeService', () => {
 
   describe('revokeTraineeInvitation', () => {
     it('marks invitation and tokens as revoked and records audit log', async () => {
-      invitationRepoMock.findInvitationById.mockResolvedValue(
-        buildMockInvitation({ status: 'PENDING' }),
-      );
+      invitationRepoMock.findInvitationById.mockResolvedValue(buildMockInvitation());
 
       const result = await revokeTraineeInvitation(mockActorUserId, mockOrgId, mockInvitationId);
 
       expect(result.success).toBe(true);
       expect(result.status).toBe('REVOKED');
-      expect(txMock.invitation.update).toHaveBeenCalledWith(
+      expect(txMock.invitation.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { id: mockInvitationId },
+          where: expect.objectContaining({ id: mockInvitationId }),
           data: { status: 'REVOKED' },
         }),
       );

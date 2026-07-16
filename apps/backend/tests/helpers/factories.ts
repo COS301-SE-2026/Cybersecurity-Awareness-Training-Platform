@@ -555,7 +555,7 @@ export async function createInvitation(
 export async function createInvitationActionToken(
   overrides: {
     id?: string;
-    invitationId?: string;
+    invitationId?: string | null;
     purpose?: ActionTokenPurpose;
     targetEmail?: string;
     expiresAt?: Date;
@@ -565,7 +565,8 @@ export async function createInvitationActionToken(
   } = {},
 ) {
   const id = overrides.id ?? randomUUID();
-  const invitationId = overrides.invitationId ?? (await createInvitation()).id;
+  const invitationId =
+    overrides.invitationId !== undefined ? overrides.invitationId : (await createInvitation()).id;
   const rawToken = overrides.rawToken ?? generateOpaqueToken(32);
   const tokenHash = hashOpaqueToken(rawToken);
   const purpose = overrides.purpose ?? ActionTokenPurpose.ORGANISATION_TRAINEE_INVITE;
@@ -620,6 +621,9 @@ export async function createInvitationTestFixture(
   });
 
   const purpose = overrides.purpose ?? InvitationPurpose.ORGANISATION_TRAINEE_INVITE;
+  const isActionTokenOnlyPurpose =
+    purpose === 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION' || purpose === 'PLATFORM_ADMIN_INVITE';
+
   const validInvitationPurposes = Object.values(InvitationPurpose) as string[];
   const invitationPurpose = (
     validInvitationPurposes.includes(purpose)
@@ -627,18 +631,20 @@ export async function createInvitationTestFixture(
       : InvitationPurpose.ORGANISATION_TRAINEE_INVITE
   ) as InvitationPurpose;
 
-  const invitation = await createInvitation({
-    organisationId: organisation.id,
-    recipientEmail,
-    purpose: invitationPurpose,
-    status: overrides.invitationStatus ?? InvitationStatus.PENDING,
-    expiresAt: overrides.actionTokenExpired
-      ? new Date(Date.now() - 24 * 60 * 60 * 1000)
-      : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-  });
+  const invitation = isActionTokenOnlyPurpose
+    ? null
+    : await createInvitation({
+        organisationId: organisation.id,
+        recipientEmail,
+        purpose: invitationPurpose,
+        status: overrides.invitationStatus ?? InvitationStatus.PENDING,
+        expiresAt: overrides.actionTokenExpired
+          ? new Date(Date.now() - 24 * 60 * 60 * 1000)
+          : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      });
 
   const actionToken = await createInvitationActionToken({
-    invitationId: invitation.id,
+    invitationId: invitation?.id ?? null,
     purpose,
     targetEmail: recipientEmail,
     expiresAt: overrides.actionTokenExpired

@@ -21,7 +21,7 @@ describe('Invitation Acceptance Integration Tests', () => {
 
       expect(res.status).toBe(200);
       expect(res.body).toEqual({
-        requiredAction: 'LOGIN_REQUIRED',
+        requiredAction: 'CONTINUE_SETUP',
         rejectAllowed: true,
         status: 'PENDING',
         expiresAt: fixture.actionToken.expiresAt.toISOString(),
@@ -33,18 +33,73 @@ describe('Invitation Acceptance Integration Tests', () => {
       const res = await request(app).get('/invitations/token/invalid-short-token/context');
 
       expect(res.status).toBe(400);
-      expect(res.body.error).toBeDefined();
+      expect(res.body.error).toBe('VALIDATION_ERROR');
+    });
+
+    it('returns 401 AUTH_INVALID when invalid or malformed bearer token is supplied on GET /context without silently falling back to anonymous', async () => {
+      const app = createApp();
+      const fixture = await createInvitationTestFixture();
+
+      const res = await request(app)
+        .get(`/invitations/token/${fixture.rawToken}/context`)
+        .set('Authorization', 'Bearer invalid.jwt.token');
+
+      expect(res.status).toBe(401);
+      expect(res.body.error).toBe('AUTH_INVALID');
+    });
+
+    it('returns 200 OK context with LOGIN_REQUIRED when checking action-token-only platform-admin upgrade path anonymously', async () => {
+      const app = createApp();
+      const fixture = await createInvitationTestFixture({
+        purpose: 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION',
+      });
+
+      expect(fixture.invitation).toBeNull();
+
+      const res = await request(app).get(`/invitations/token/${fixture.rawToken}/context`);
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
+        requiredAction: 'LOGIN_REQUIRED',
+        rejectAllowed: false,
+        status: 'PENDING',
+        expiresAt: fixture.actionToken.expiresAt.toISOString(),
+      });
+    });
+
+    it('returns 200 OK context with CONFIRM_ROLE_CHANGE when checking action-token-only platform-admin upgrade path authenticated', async () => {
+      const app = createApp();
+      const fixture = await createInvitationTestFixture({
+        purpose: 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION',
+      });
+      const loginRes = await loginTestUser(fixture.user.email);
+
+      expect(fixture.invitation).toBeNull();
+
+      const res = await request(app)
+        .get(`/invitations/token/${fixture.rawToken}/context`)
+        .set('Authorization', `Bearer ${loginRes.body.token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
+        requiredAction: 'CONFIRM_ROLE_CHANGE',
+        rejectAllowed: false,
+        status: 'PENDING',
+        expiresAt: fixture.actionToken.expiresAt.toISOString(),
+        invitationType: 'PLATFORM_ADMIN',
+        roleGranted: 'PLATFORM_ADMIN',
+      });
     });
 
     it('returns privacy-safe 200 context with requiredAction: SWITCH_ACCOUNT when logged in as a different user', async () => {
       const app = createApp();
       const fixture = await createInvitationTestFixture();
       const otherFixture = await createInvitationTestFixture();
-      const loginRes = await loginTestUser(otherFixture.user.email);
+      const otherLoginRes = await loginTestUser(otherFixture.user.email);
 
       const res = await request(app)
         .get(`/invitations/token/${fixture.rawToken}/context`)
-        .set('Authorization', `Bearer ${loginRes.body.token}`);
+        .set('Authorization', `Bearer ${otherLoginRes.body.token}`);
 
       expect(res.status).toBe(200);
       expect(res.body).toEqual({
@@ -53,9 +108,6 @@ describe('Invitation Acceptance Integration Tests', () => {
         status: 'PENDING',
         expiresAt: fixture.actionToken.expiresAt.toISOString(),
       });
-      expect(res.body.invitationType).toBeUndefined();
-      expect(res.body.roleGranted).toBeUndefined();
-      expect(res.body.permissions).toBeUndefined();
     });
   });
 
@@ -64,9 +116,7 @@ describe('Invitation Acceptance Integration Tests', () => {
       const app = createApp();
       const fixture = await createInvitationTestFixture();
 
-      const res = await request(app)
-        .post(`/invitations/token/${fixture.rawToken}/accept`)
-        .send({ confirmRoleChange: true });
+      const res = await request(app).post(`/invitations/token/${fixture.rawToken}/accept`);
 
       expect(res.status).toBe(401);
       expect(res.body.error).toBe('AUTH_REQUIRED');
@@ -78,8 +128,7 @@ describe('Invitation Acceptance Integration Tests', () => {
 
       const res = await request(app)
         .post(`/invitations/token/${fixture.rawToken}/accept`)
-        .set('Authorization', 'Bearer invalid.fake.token')
-        .send({ confirmRoleChange: true });
+        .set('Authorization', 'Bearer invalid.jwt.token');
 
       expect(res.status).toBe(401);
       expect(res.body.error).toBe('AUTH_INVALID');
@@ -87,43 +136,46 @@ describe('Invitation Acceptance Integration Tests', () => {
 
     it('returns 403 AUTH_USER_MISMATCH without exposing either email address when authenticated as wrong user', async () => {
       const app = createApp();
-      const fixture = await createInvitationTestFixture();
+      const fixture = await createInvitationTestFixture({
+        purpose: 'ORGANISATION_ADMIN_PROMOTION',
+      });
       const otherFixture = await createInvitationTestFixture();
-      const loginRes = await loginTestUser(otherFixture.user.email);
+      const otherLoginRes = await loginTestUser(otherFixture.user.email);
 
       const res = await request(app)
         .post(`/invitations/token/${fixture.rawToken}/accept`)
-        .set('Authorization', `Bearer ${loginRes.body.token}`)
+        .set('Authorization', `Bearer ${otherLoginRes.body.token}`)
         .send({ confirmRoleChange: true });
 
       expect(res.status).toBe(403);
       expect(res.body.error).toBe('AUTH_USER_MISMATCH');
-      expect(res.body.message).not.toContain(fixture.user.email);
-      expect(res.body.message).not.toContain(otherFixture.user.email);
+      expect(JSON.stringify(res.body)).not.toContain(fixture.invitation.recipientEmail);
+      expect(JSON.stringify(res.body)).not.toContain(otherFixture.user.email);
     });
 
     it('returns 409 SETUP_REQUIRED when attempting to generically accept a setup-owned purpose', async () => {
       const app = createApp();
       const fixture = await createInvitationTestFixture({
-        purpose: 'INITIAL_ORGANISATION_ADMIN_SETUP',
+        purpose: 'ORGANISATION_TRAINEE_INVITE',
       });
       const loginRes = await loginTestUser(fixture.user.email);
 
       const res = await request(app)
         .post(`/invitations/token/${fixture.rawToken}/accept`)
-        .set('Authorization', `Bearer ${loginRes.body.token}`)
-        .send({ confirmRoleChange: true });
+        .set('Authorization', `Bearer ${loginRes.body.token}`);
 
       expect(res.status).toBe(409);
       expect(res.body.error).toBe('SETUP_REQUIRED');
     });
 
-    it('returns REAUTHENTICATE session outcome when accepting PLATFORM_ADMIN_UPGRADE_CONFIRMATION role', async () => {
+    it('returns REAUTHENTICATE session outcome when accepting PLATFORM_ADMIN_UPGRADE_CONFIRMATION role without an associated invitation record', async () => {
       const app = createApp();
       const fixture = await createInvitationTestFixture({
         purpose: 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION',
       });
       const loginRes = await loginTestUser(fixture.user.email);
+
+      expect(fixture.invitation).toBeNull();
 
       const res = await request(app)
         .post(`/invitations/token/${fixture.rawToken}/accept`)
@@ -131,12 +183,40 @@ describe('Invitation Acceptance Integration Tests', () => {
         .send({ confirmRoleChange: true });
 
       expect(res.status).toBe(200);
-      expect(res.body.sessionOutcome).toBe('REAUTHENTICATE');
+      expect(res.body).toMatchObject({
+        success: true,
+        message: 'Invitation accepted successfully.',
+        sessionOutcome: 'REAUTHENTICATE',
+      });
+    });
+
+    it('proves atomic concurrency guarantees by racing two concurrent accept requests via Promise.all, ensuring exactly one succeeds and one returns 409 Conflict', async () => {
+      const app = createApp();
+      const fixture = await createInvitationTestFixture({
+        purpose: 'ORGANISATION_ADMIN_PROMOTION',
+      });
+      const loginRes = await loginTestUser(fixture.user.email);
+
+      const [res1, res2] = await Promise.all([
+        request(app)
+          .post(`/invitations/token/${fixture.rawToken}/accept`)
+          .set('Authorization', `Bearer ${loginRes.body.token}`)
+          .send({ confirmRoleChange: true }),
+        request(app)
+          .post(`/invitations/token/${fixture.rawToken}/accept`)
+          .set('Authorization', `Bearer ${loginRes.body.token}`)
+          .send({ confirmRoleChange: true }),
+      ]);
+
+      const statuses = [res1.status, res2.status].sort();
+      expect(statuses).toEqual([200, 409]);
     });
 
     it('returns 409 CROSS_ORGANISATION_CONFLICT when user belongs to a different organisation', async () => {
       const app = createApp();
-      const fixture = await createInvitationTestFixture();
+      const fixture = await createInvitationTestFixture({
+        purpose: 'ORGANISATION_ADMIN_PROMOTION',
+      });
       const otherFixture = await createInvitationTestFixture();
       await prisma.organisationTraineeProfile.create({
         data: {
@@ -174,7 +254,9 @@ describe('Invitation Acceptance Integration Tests', () => {
 
     it('returns 200 OK and atomically updates database state when accepting a valid invitation', async () => {
       const app = createApp();
-      const fixture = await createInvitationTestFixture();
+      const fixture = await createInvitationTestFixture({
+        purpose: 'ORGANISATION_ADMIN_PROMOTION',
+      });
       const loginRes = await loginTestUser(fixture.user.email);
 
       const res = await request(app)
@@ -203,19 +285,12 @@ describe('Invitation Acceptance Integration Tests', () => {
       const dbUser = await prisma.user.findUnique({
         where: { id: fixture.user.id },
         include: {
-          traineeProfile: {
-            include: {
-              organisationTraineeProfile: true,
-            },
-          },
+          organisationAdminProfile: true,
         },
       });
-      expect(dbUser?.userType).toBe('ORGANISATION_TRAINEE');
+      expect(dbUser?.userType).toBe('ORGANISATION_ADMIN');
       expect(dbUser?.authStatus).toBe('ACTIVE');
-      expect(dbUser?.traineeProfile?.organisationTraineeProfile?.organisationId).toBe(
-        fixture.organisation.id,
-      );
-      expect(dbUser?.traineeProfile?.organisationTraineeProfile?.membershipStatus).toBe('ACTIVE');
+      expect(dbUser?.organisationAdminProfile?.organisationId).toBe(fixture.organisation.id);
 
       const auditLogs = await prisma.auditLogEntry.findMany({
         where: {
@@ -331,6 +406,36 @@ describe('Invitation Acceptance Integration Tests', () => {
 
       expect(res.status).toBe(400);
       expect(res.body.error).toBeDefined();
+    });
+
+    it('returns 401 AUTH_INVALID when invalid or malformed bearer token is supplied on POST /reject without silently falling back to anonymous', async () => {
+      const app = createApp();
+      const fixture = await createInvitationTestFixture();
+
+      const res = await request(app)
+        .post(`/invitations/token/${fixture.rawToken}/reject`)
+        .set('Authorization', 'Bearer invalid.jwt.token')
+        .send({ rejectionReason: 'Testing invalid token' });
+
+      expect(res.status).toBe(401);
+      expect(res.body.error).toBe('AUTH_INVALID');
+    });
+
+    it('proves atomic concurrency guarantees by racing two concurrent reject requests via Promise.all, ensuring exactly one succeeds and one returns 409 Conflict', async () => {
+      const app = createApp();
+      const fixture = await createInvitationTestFixture();
+
+      const [res1, res2] = await Promise.all([
+        request(app)
+          .post(`/invitations/token/${fixture.rawToken}/reject`)
+          .send({ rejectionReason: 'Reason 1' }),
+        request(app)
+          .post(`/invitations/token/${fixture.rawToken}/reject`)
+          .send({ rejectionReason: 'Reason 2' }),
+      ]);
+
+      const statuses = [res1.status, res2.status].sort();
+      expect(statuses).toEqual([200, 409]);
     });
   });
 });

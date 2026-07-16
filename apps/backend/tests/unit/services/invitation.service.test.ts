@@ -91,9 +91,23 @@ describe('InvitationService (Detailed Boundary & Concurrency Tests)', () => {
 
       const res = await getInvitationTokenContext('raw-token');
       expect(res).toEqual({
-        requiredAction: 'LOGIN_REQUIRED',
+        requiredAction: 'CONTINUE_SETUP',
         status: 'PENDING',
         expiresAt: mockValidToken.expiresAt.toISOString(),
+        rejectAllowed: true,
+      });
+    });
+
+    it('returns LOGIN_REQUIRED when unauthenticated for non-setup purposes like promotion', async () => {
+      const promoToken = buildMockInvitationToken({ purpose: 'ORGANISATION_ADMIN_PROMOTION' });
+      invitationRepoMock.findInvitationTokenByHash.mockResolvedValue(promoToken);
+      invitationRepoMock.findUserByEmailWithProfiles.mockResolvedValue(mockExistingTraineeUser);
+
+      const res = await getInvitationTokenContext('raw-token');
+      expect(res).toEqual({
+        requiredAction: 'LOGIN_REQUIRED',
+        status: 'PENDING',
+        expiresAt: promoToken.expiresAt.toISOString(),
         rejectAllowed: true,
       });
     });
@@ -137,16 +151,22 @@ describe('InvitationService (Detailed Boundary & Concurrency Tests)', () => {
   });
 
   describe('Boundary & Edge Cases (acceptInvitationWithToken)', () => {
+    const mockPromoToken = buildMockInvitationToken({
+      purpose: 'ORGANISATION_ADMIN_PROMOTION',
+    });
+    const mockExistingAdminUser = buildMockUser({ userType: 'ORGANISATION_ADMIN' });
+
     it('Boundary test: succeeds when token expires in exactly 1 millisecond', async () => {
       const now = new Date('2026-07-14T12:00:00.000Z');
       const tokenExpiresIn1Ms = buildMockInvitationToken({
+        purpose: 'ORGANISATION_ADMIN_PROMOTION',
         expiresAt: new Date('2026-07-14T12:00:00.001Z'),
       });
       invitationRepoMock.findInvitationTokenByHash.mockResolvedValue(tokenExpiresIn1Ms);
-      invitationRepoMock.findUserByEmailWithProfiles.mockResolvedValue(mockExistingTraineeUser);
+      invitationRepoMock.findUserByEmailWithProfiles.mockResolvedValue(mockExistingAdminUser);
       invitationRepoMock.updateUserRoleAndProfilesFromInvitation.mockResolvedValue({
-        userType: 'ORGANISATION_TRAINEE',
-        traineeProfileId: 'tp-1',
+        userType: 'ORGANISATION_ADMIN',
+        adminProfileId: 'admin-1',
       });
 
       const res = await acceptInvitationWithToken(
@@ -164,10 +184,11 @@ describe('InvitationService (Detailed Boundary & Concurrency Tests)', () => {
     it('Boundary test: fails with 409 Conflict when token expired exactly 1 millisecond ago', async () => {
       const now = new Date('2026-07-14T12:00:00.000Z');
       const tokenExpired1MsAgo = buildMockInvitationToken({
+        purpose: 'ORGANISATION_ADMIN_PROMOTION',
         expiresAt: new Date('2026-07-14T11:59:59.999Z'),
       });
       invitationRepoMock.findInvitationTokenByHash.mockResolvedValue(tokenExpired1MsAgo);
-      invitationRepoMock.findUserByEmailWithProfiles.mockResolvedValue(mockExistingTraineeUser);
+      invitationRepoMock.findUserByEmailWithProfiles.mockResolvedValue(mockExistingAdminUser);
 
       await expect(
         acceptInvitationWithToken(
@@ -187,8 +208,8 @@ describe('InvitationService (Detailed Boundary & Concurrency Tests)', () => {
     });
 
     it('Concurrency test: throws 409 Conflict when double submission occurs on claimInvitationAccept', async () => {
-      invitationRepoMock.findInvitationTokenByHash.mockResolvedValue(mockValidToken);
-      invitationRepoMock.findUserByEmailWithProfiles.mockResolvedValue(mockExistingTraineeUser);
+      invitationRepoMock.findInvitationTokenByHash.mockResolvedValue(mockPromoToken);
+      invitationRepoMock.findUserByEmailWithProfiles.mockResolvedValue(mockExistingAdminUser);
 
       // Simulate double submission throwing conflict on second attempt or inside transaction
       invitationRepoMock.claimInvitationAccept.mockRejectedValueOnce(
@@ -226,11 +247,11 @@ describe('InvitationService (Detailed Boundary & Concurrency Tests)', () => {
     });
 
     it('Audit test: verifies exact AUDITLOGENTRY payload received by Prisma transaction mock on acceptance', async () => {
-      invitationRepoMock.findInvitationTokenByHash.mockResolvedValue(mockValidToken);
-      invitationRepoMock.findUserByEmailWithProfiles.mockResolvedValue(mockExistingTraineeUser);
+      invitationRepoMock.findInvitationTokenByHash.mockResolvedValue(mockPromoToken);
+      invitationRepoMock.findUserByEmailWithProfiles.mockResolvedValue(mockExistingAdminUser);
       invitationRepoMock.updateUserRoleAndProfilesFromInvitation.mockResolvedValue({
-        userType: 'ORGANISATION_TRAINEE',
-        traineeProfileId: 'tp-1',
+        userType: 'ORGANISATION_ADMIN',
+        adminProfileId: 'admin-1',
       });
 
       await acceptInvitationWithToken(
@@ -243,19 +264,19 @@ describe('InvitationService (Detailed Boundary & Concurrency Tests)', () => {
 
       expect(auditLogServiceMock.recordAuditLog).toHaveBeenCalledWith(
         {
-          actorUserId: mockExistingTraineeUser.id,
-          actorType: 'ORGANISATION_TRAINEE',
+          actorUserId: mockExistingAdminUser.id,
+          actorType: 'ORGANISATION_ADMIN',
           organisationId: 'org-1',
           targetType: 'INVITATION',
           targetId: 'inv-1',
           actionType: 'ACCEPTED',
           outcome: 'SUCCESS',
           oldValues: {
-            userType: 'ORGANISATION_TRAINEE',
+            userType: 'ORGANISATION_ADMIN',
           },
           newValues: {
-            userType: 'ORGANISATION_TRAINEE',
-            role: 'ORGANISATION_TRAINEE',
+            userType: 'ORGANISATION_ADMIN',
+            role: 'ORGANISATION_ADMIN',
           },
           metadata: {
             actionTokenId: 'token-1',
@@ -529,9 +550,29 @@ describe('InvitationService (Detailed Boundary & Concurrency Tests)', () => {
       expect(res.sessionOutcome).toBe('REAUTHENTICATE');
     });
 
-    it('re-throws InvitationRepositoryConflictError as InvitationFlowError 409', async () => {
+    it('throws SETUP_REQUIRED when purpose is ORGANISATION_TRAINEE_INVITE', async () => {
       invitationRepoMock.findInvitationTokenByHash.mockResolvedValue(mockValidToken);
       invitationRepoMock.findUserByEmailWithProfiles.mockResolvedValue(mockExistingTraineeUser);
+
+      await expect(
+        acceptInvitationWithToken(
+          'raw-token',
+          {},
+          { userId: 'user-1', email: 'trainee@example.com' },
+        ),
+      ).rejects.toThrow(
+        expect.objectContaining({
+          statusCode: 409,
+          errorKey: 'SETUP_REQUIRED',
+        }),
+      );
+    });
+
+    it('re-throws InvitationRepositoryConflictError as InvitationFlowError 409', async () => {
+      const promoToken = buildMockInvitationToken({ purpose: 'ORGANISATION_ADMIN_PROMOTION' });
+      const adminUser = buildMockUser({ userType: 'ORGANISATION_ADMIN' });
+      invitationRepoMock.findInvitationTokenByHash.mockResolvedValue(promoToken);
+      invitationRepoMock.findUserByEmailWithProfiles.mockResolvedValue(adminUser);
 
       invitationRepoMock.updateUserRoleAndProfilesFromInvitation.mockRejectedValueOnce(
         new invitationRepoMock.InvitationRepositoryConflictError('CONFLICT', 'Repo conflict'),
@@ -547,10 +588,12 @@ describe('InvitationService (Detailed Boundary & Concurrency Tests)', () => {
     });
 
     it('re-throws non-conflict errors directly', async () => {
-      invitationRepoMock.findInvitationTokenByHash.mockResolvedValue(mockValidToken);
-      invitationRepoMock.findUserByEmailWithProfiles.mockResolvedValue(mockExistingTraineeUser);
+      const promoToken = buildMockInvitationToken({ purpose: 'ORGANISATION_ADMIN_PROMOTION' });
+      const adminUser = buildMockUser({ userType: 'ORGANISATION_ADMIN' });
+      invitationRepoMock.findInvitationTokenByHash.mockResolvedValue(promoToken);
+      invitationRepoMock.findUserByEmailWithProfiles.mockResolvedValue(adminUser);
       mockTx.user.findUnique.mockResolvedValue({
-        ...mockExistingTraineeUser,
+        ...adminUser,
         authStatus: 'ACTIVE',
       });
 

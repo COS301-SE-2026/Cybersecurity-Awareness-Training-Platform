@@ -29,7 +29,10 @@ const prismaMock = vi.hoisted(() => ({
   $transaction: vi.fn(),
   actionToken: {
     findUnique: vi.fn(),
-    updateMany: vi.fn(),
+    updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+  },
+  invitation: {
+    updateMany: vi.fn().mockResolvedValue({ count: 1 }),
   },
   emailDeliveryLog: {
     findFirst: vi.fn(),
@@ -440,23 +443,29 @@ describe('action-token service', () => {
             email: 'test@example.com',
             firstName: 'John',
           },
+        })
+        .mockResolvedValueOnce({
+          id: 'token-123',
+          purpose: 'PASSWORD_RESET',
+          expiresAt: new Date(Date.now() + 3600000),
+          usedAt: new Date(),
+          revokedAt: null,
+          user: {
+            id: 'user-123',
+            authStatus: 'ACTIVE',
+            email: 'test@example.com',
+            firstName: 'John',
+          },
         });
 
-      prismaMock.actionToken.findUnique.mockResolvedValueOnce({
-        id: 'token-123',
-        purpose: 'PASSWORD_RESET',
-        expiresAt: new Date(Date.now() + 3600000),
-        usedAt: new Date(),
-        revokedAt: null,
-      });
-
+      prismaMock.actionToken.updateMany.mockResolvedValueOnce({ count: 0 });
       prismaMock.emailDeliveryLog.findFirst.mockResolvedValue(null);
 
       await expect(resendActionToken('some-token')).rejects.toThrowError(
-        'Token cannot be resent safely',
+        'Token has already been used or replaced concurrently.',
       );
 
-      expect(prismaMock.actionToken.updateMany).not.toHaveBeenCalled();
+      expect(prismaMock.actionToken.updateMany).toHaveBeenCalled();
       expect(repositoryMock.createActionToken).not.toHaveBeenCalled();
       expect(authEmailHookServiceMock.requestAuthEmailSend).not.toHaveBeenCalled();
     });

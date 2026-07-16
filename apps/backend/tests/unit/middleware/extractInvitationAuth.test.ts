@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { extractInvitationAuth } from '../../../src/middleware/extractInvitationAuth.js';
+import { AuthStatusGuardError } from '../../../src/services/auth.service.js';
 
 const { authServiceMock, authTokenServiceMock, authSessionServiceMock } = vi.hoisted(() => ({
   authServiceMock: {
@@ -14,7 +15,19 @@ const { authServiceMock, authTokenServiceMock, authSessionServiceMock } = vi.hoi
   },
 }));
 
-vi.mock('../../../src/services/auth.service.js', () => authServiceMock);
+vi.mock('../../../src/services/auth.service.js', () => ({
+  ...authServiceMock,
+  AuthStatusGuardError: class extends Error {
+    constructor(
+      public code: string,
+      public statusCode: number,
+      message: string,
+    ) {
+      super(message);
+      this.name = 'AuthStatusGuardError';
+    }
+  },
+}));
 vi.mock('../../../src/services/auth-token.service.js', () => authTokenServiceMock);
 vi.mock('../../../src/services/auth-session.service.js', () => authSessionServiceMock);
 
@@ -29,7 +42,10 @@ describe('extractInvitationAuth middleware', () => {
       header: vi.fn(),
       auth: undefined,
     };
-    mockRes = {};
+    mockRes = {
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn().mockReturnThis(),
+    };
     mockNext = vi.fn();
   });
 
@@ -40,32 +56,42 @@ describe('extractInvitationAuth middleware', () => {
 
     expect(mockReq.auth).toBeUndefined();
     expect(mockNext).toHaveBeenCalledTimes(1);
+    expect(mockRes.status).not.toHaveBeenCalled();
   });
 
-  it('proceeds with req.auth undefined when scheme is not Bearer or token is empty', async () => {
+  it('returns 401 AUTH_INVALID when scheme is not Bearer or token is empty', async () => {
     (mockReq.header as unknown as ReturnType<typeof vi.fn>).mockReturnValue('Basic abc123');
 
     await extractInvitationAuth(mockReq as Request, mockRes as Response, mockNext);
-    expect(mockReq.auth).toBeUndefined();
-    expect(mockNext).toHaveBeenCalledTimes(1);
+    expect(mockRes.status).toHaveBeenCalledWith(401);
+    expect(mockRes.json).toHaveBeenCalledWith({
+      error: 'AUTH_INVALID',
+      message: 'Invalid authentication credentials',
+    });
+    expect(mockNext).not.toHaveBeenCalled();
 
+    vi.clearAllMocks();
     (mockReq.header as unknown as ReturnType<typeof vi.fn>).mockReturnValue('Bearer ');
     await extractInvitationAuth(mockReq as Request, mockRes as Response, mockNext);
-    expect(mockReq.auth).toBeUndefined();
-    expect(mockNext).toHaveBeenCalledTimes(2);
+    expect(mockRes.status).toHaveBeenCalledWith(401);
+    expect(mockNext).not.toHaveBeenCalled();
   });
 
-  it('proceeds with req.auth undefined when token verification returns null', async () => {
+  it('returns 401 AUTH_INVALID when token verification returns null', async () => {
     (mockReq.header as unknown as ReturnType<typeof vi.fn>).mockReturnValue('Bearer invalid-token');
     authTokenServiceMock.verifyAuthToken.mockReturnValue(null);
 
     await extractInvitationAuth(mockReq as Request, mockRes as Response, mockNext);
 
-    expect(mockReq.auth).toBeUndefined();
-    expect(mockNext).toHaveBeenCalledTimes(1);
+    expect(mockRes.status).toHaveBeenCalledWith(401);
+    expect(mockRes.json).toHaveBeenCalledWith({
+      error: 'AUTH_INVALID',
+      message: 'Invalid authentication credentials',
+    });
+    expect(mockNext).not.toHaveBeenCalled();
   });
 
-  it('proceeds with req.auth undefined when auth session is not active or userId mismatches', async () => {
+  it('returns 401 AUTH_INVALID when auth session is not active or userId mismatches', async () => {
     (mockReq.header as unknown as ReturnType<typeof vi.fn>).mockReturnValue('Bearer valid-token');
     authTokenServiceMock.verifyAuthToken.mockReturnValue({
       authSessionId: 'sess-1',
@@ -78,20 +104,21 @@ describe('extractInvitationAuth middleware', () => {
     });
 
     await extractInvitationAuth(mockReq as Request, mockRes as Response, mockNext);
-    expect(mockReq.auth).toBeUndefined();
-    expect(mockNext).toHaveBeenCalledTimes(1);
+    expect(mockRes.status).toHaveBeenCalledWith(401);
+    expect(mockNext).not.toHaveBeenCalled();
 
+    vi.clearAllMocks();
     authSessionServiceMock.validateAuthSession.mockResolvedValueOnce({
       state: 'ACTIVE',
       session: { userId: 'diff-user' },
     });
 
     await extractInvitationAuth(mockReq as Request, mockRes as Response, mockNext);
-    expect(mockReq.auth).toBeUndefined();
-    expect(mockNext).toHaveBeenCalledTimes(2);
+    expect(mockRes.status).toHaveBeenCalledWith(401);
+    expect(mockNext).not.toHaveBeenCalled();
   });
 
-  it('proceeds with req.auth undefined when validateAuthSession or getCurrentUser throws', async () => {
+  it('returns 401 or AuthStatusGuardError status when validateAuthSession or getCurrentUser throws', async () => {
     (mockReq.header as unknown as ReturnType<typeof vi.fn>).mockReturnValue('Bearer valid-token');
     authTokenServiceMock.verifyAuthToken.mockReturnValue({
       authSessionId: 'sess-1',
@@ -101,8 +128,25 @@ describe('extractInvitationAuth middleware', () => {
     authSessionServiceMock.validateAuthSession.mockRejectedValueOnce(new Error('DB failure'));
 
     await extractInvitationAuth(mockReq as Request, mockRes as Response, mockNext);
-    expect(mockReq.auth).toBeUndefined();
-    expect(mockNext).toHaveBeenCalledTimes(1);
+    expect(mockRes.status).toHaveBeenCalledWith(401);
+    expect(mockNext).not.toHaveBeenCalled();
+
+    vi.clearAllMocks();
+    authSessionServiceMock.validateAuthSession.mockResolvedValueOnce({
+      state: 'ACTIVE',
+      session: { userId: 'user-1' },
+    });
+    authServiceMock.getCurrentUser.mockRejectedValueOnce(
+      new AuthStatusGuardError('ACCOUNT_DISABLED', 403, 'User account is disabled'),
+    );
+
+    await extractInvitationAuth(mockReq as Request, mockRes as Response, mockNext);
+    expect(mockRes.status).toHaveBeenCalledWith(403);
+    expect(mockRes.json).toHaveBeenCalledWith({
+      error: 'ACCOUNT_DISABLED',
+      message: 'User account is disabled',
+    });
+    expect(mockNext).not.toHaveBeenCalled();
   });
 
   it('attaches req.auth and calls next when token and session are active and valid', async () => {

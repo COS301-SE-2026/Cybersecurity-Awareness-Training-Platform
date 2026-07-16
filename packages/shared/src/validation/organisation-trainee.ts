@@ -86,12 +86,23 @@ export const traineeStatusSchema = z.enum([
 // Do not export TraineeStatusDto here to avoid conflict with entities.ts
 // Or use a different name if needed, but for now we just omit it since it's conflicting.
 
-export const traineeListItemSchema = z
+const eligibilitySchema = z.object({
+  canResend: z.boolean(),
+  canRevoke: z.boolean(),
+  canDisable: z.boolean(),
+  canPromote: z.boolean(),
+  resendCooldownSeconds: z.number(),
+});
+
+export const activeTraineeRowSchema = z
   .object({
     id: z.string().uuid().optional(),
+    rowType: z.literal('ACTIVE_TRAINEE').optional(),
+    type: z.literal('ACTIVE_TRAINEE').optional(),
     traineeProfileId: z.string().uuid().optional(),
     userId: z.string().uuid().optional(),
     invitationId: z.string().uuid().optional(),
+    invitationStatus: z.string().nullable().optional(),
     email: z.string().email(),
     firstName: z.string().nullable().optional(),
     lastName: z.string().nullable().optional(),
@@ -102,19 +113,48 @@ export const traineeListItemSchema = z
     disabledAt: z.string().datetime().nullable().optional(),
     disabledReason: z.string().nullable().optional(),
     expiresAt: z.string().datetime().nullable().optional(),
-    emailDeliveryStatus: z.string().optional(),
-    eligibility: z
-      .object({
-        canResend: z.boolean().optional(),
-        canRevoke: z.boolean().optional(),
-        canDisable: z.boolean().optional(),
-        canPromote: z.boolean().optional(),
-      })
-      .optional(),
+    invitationExpiresAt: z.string().datetime().nullable().optional(),
+    emailDeliveryStatus: z.string().nullable().optional(),
+    deliveryState: z.string().nullable().optional(),
+    requiredAction: z.string().nullable().optional(),
+    requiredActions: z.array(z.string()).optional(),
+    eligibility: eligibilitySchema.optional(),
   })
   .strict();
 
-export type TraineeListItemDto = z.infer<typeof traineeListItemSchema>;
+export const invitationTraineeRowSchema = z
+  .object({
+    id: z.string().uuid().optional(),
+    rowType: z.literal('INVITATION'),
+    type: z.literal('INVITATION').optional(),
+    traineeProfileId: z.string().uuid().optional(),
+    userId: z.string().uuid().optional(),
+    invitationId: z.string().uuid().optional(),
+    invitationStatus: z.string().nullable().optional(),
+    email: z.string().email(),
+    firstName: z.string().nullable().optional(),
+    lastName: z.string().nullable().optional(),
+    status: z.union([traineeStatusSchema, z.string()]),
+    createdAt: z.string().datetime().optional(),
+    joinedAt: z.string().datetime().nullable().optional(),
+    invitedAt: z.string().datetime().nullable().optional(),
+    disabledAt: z.string().datetime().nullable().optional(),
+    disabledReason: z.string().nullable().optional(),
+    expiresAt: z.string().datetime().nullable().optional(),
+    invitationExpiresAt: z.string().datetime().nullable().optional(),
+    emailDeliveryStatus: z.string().nullable().optional(),
+    deliveryState: z.string().nullable().optional(),
+    requiredAction: z.string().nullable().optional(),
+    requiredActions: z.array(z.string()).optional(),
+    eligibility: eligibilitySchema.optional(),
+  })
+  .strict();
+
+export const traineeListItemSchema = z.union([activeTraineeRowSchema, invitationTraineeRowSchema]);
+
+export type TraineeListItemDto =
+  | z.infer<typeof activeTraineeRowSchema>
+  | z.infer<typeof invitationTraineeRowSchema>;
 
 export const traineeListResponseSchema = z
   .object({

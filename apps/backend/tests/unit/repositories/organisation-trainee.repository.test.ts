@@ -46,6 +46,12 @@ describe('organisation-trainee.repository unit tests', () => {
     const res = await findOrganisationTraineeInvitations('org-1');
     expect(prisma.invitation.findMany).toHaveBeenCalledWith({
       where: { organisationId: 'org-1', purpose: 'ORGANISATION_TRAINEE_INVITE' },
+      include: {
+        emailDeliveryLogs: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+      },
       orderBy: { createdAt: 'desc' },
     });
     expect(res).toEqual([{ id: 'inv-1' }]);

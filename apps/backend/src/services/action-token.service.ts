@@ -181,12 +181,14 @@ function checkResendEligibility(token: ActionTokenWithRelations, state: ActionTo
   if (flow === 'EMAIL_CHANGE_VERIFICATION') {
     return token.emailChangeRequest ? token.emailChangeRequest.status === 'PENDING' : false;
   }
+  if (flow === 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION') {
+    return token.user ? token.user.authStatus !== 'DISABLED' : true;
+  }
   if (
     flow === 'INITIAL_ORGANISATION_ADMIN_SETUP' ||
     flow === 'ORGANISATION_TRAINEE_INVITE' ||
     flow === 'ORGANISATION_ADMIN_PROMOTION' ||
-    flow === 'PLATFORM_ADMIN_INVITE' ||
-    flow === 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION'
+    flow === 'PLATFORM_ADMIN_INVITE'
   ) {
     return token.invitation
       ? token.invitation.status !== 'ACCEPTED' &&
@@ -343,14 +345,48 @@ export async function resendActionToken(rawToken: string): Promise<void> {
   }
 
   const newToken = await prisma.$transaction(async (tx) => {
-    const currentToken = await tx.actionToken.findUnique({
-      where: { id: originalToken.id },
-    });
-    if (!currentToken) {
-      throw new TokenResendError(400, 'TOKEN_RESEND_INELIGIBLE', 'Token cannot be resent safely');
+    if (originalToken.invitationId) {
+      const claimedInv = await tx.invitation.updateMany({
+        where: {
+          id: originalToken.invitationId,
+          status: { in: ['PENDING', 'SENT', 'FAILED_TO_SEND'] },
+        },
+        data: {
+          status: 'PENDING',
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        },
+      });
+      if (claimedInv.count === 0) {
+        throw new TokenResendError(
+          409,
+          'TOKEN_RESEND_INELIGIBLE',
+          'Associated invitation is no longer active.',
+        );
+      }
     }
-    const txState = determineTokenState(currentToken);
-    if (txState !== 'VALID' && txState !== 'EXPIRED') {
+
+    const claimedToken = await tx.actionToken.updateMany({
+      where: {
+        id: originalToken.id,
+        usedAt: null,
+        revokedAt: null,
+      },
+      data: {
+        revokedAt: new Date(),
+        revokedReason: 'REPLACED',
+      },
+    });
+    if (claimedToken.count === 0) {
+      const currentToken = await tx.actionToken.findUnique({
+        where: { id: originalToken.id },
+      });
+      if (!currentToken || currentToken.usedAt || currentToken.revokedAt) {
+        throw new TokenResendError(
+          409,
+          'TOKEN_RESEND_INELIGIBLE',
+          'Token has already been used or replaced concurrently.',
+        );
+      }
       throw new TokenResendError(400, 'TOKEN_RESEND_INELIGIBLE', 'Token cannot be resent safely');
     }
 
@@ -400,7 +436,7 @@ export async function resendActionToken(rawToken: string): Promise<void> {
       actionTokenExpiresAt: newToken.token.expiresAt,
       oldEmail: originalToken.emailChangeRequest?.currentEmail,
       newEmail: originalToken.emailChangeRequest?.RequestedEmail,
-      organisationName: originalToken.invitation?.organisation.name,
+      organisationName: originalToken.invitation?.organisation?.name ?? 'Platform Admin',
     },
   });
 }
