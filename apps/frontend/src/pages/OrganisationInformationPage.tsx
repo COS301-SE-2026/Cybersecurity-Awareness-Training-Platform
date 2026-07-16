@@ -5,7 +5,7 @@ import { useState } from 'react';
 import OrganisationAdminInformationPage from '../components/organisation-information/OrganisationAdminInformationPage';
 import OrganisationTimelinePage from '../components/organisation-information/OrganisationTimelinePage';
 
-function AccountManagementPage() {
+function OrganisationInformationPage() {
   const [currentTab, setCurrentTab] = useState<1 | 2 | 3 | 4>(1);
 
   return (
@@ -107,4 +107,4 @@ function AccountManagementPage() {
   );
 }
 
-export default AccountManagementPage;
+export default OrganisationInformationPage;
