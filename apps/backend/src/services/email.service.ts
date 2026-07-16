@@ -90,6 +90,36 @@ async function markInvitationFailedIfRelevant(input: SendEmailInput, client: Ema
   });
 }
 
+async function markDeliveryLogSent(input: {
+  client: EmailPrismaClient;
+  deliveryLogId: string;
+  providerMessageId?: string;
+}) {
+  await input.client.emailDeliveryLog.update({
+    data: {
+      deliveryStatus: 'SENT',
+      providerMessageId: input.providerMessageId,
+      sentAt: new Date(),
+    },
+    where: { id: input.deliveryLogId },
+  });
+}
+
+async function markDeliveryLogFailed(input: {
+  client: EmailPrismaClient;
+  deliveryLogId: string;
+  failureReason: string;
+}) {
+  await input.client.emailDeliveryLog.update({
+    data: {
+      deliveryStatus: 'FAILED',
+      failedAt: new Date(),
+      failureReason: input.failureReason,
+    },
+    where: { id: input.deliveryLogId },
+  });
+}
+
 export async function sendEmail(
   input: SendEmailInput,
   client: EmailPrismaClient = prisma,
@@ -164,9 +194,10 @@ export async function sendEmail(
     );
 
     try {
-      await client.emailDeliveryLog.update({
-        data: { deliveryStatus: 'FAILED', failedAt: new Date(), failureReason },
-        where: { id: pendingDeliveryLogId },
+      await markDeliveryLogFailed({
+        client,
+        deliveryLogId: pendingDeliveryLogId,
+        failureReason,
       });
       await markInvitationFailedIfRelevant(input, client);
     } catch {
@@ -183,13 +214,10 @@ export async function sendEmail(
   }
 
   try {
-    await client.emailDeliveryLog.update({
-      data: {
-        deliveryStatus: 'SENT',
-        providerMessageId,
-        sentAt: new Date(),
-      },
-      where: { id: pendingDeliveryLogId },
+    await markDeliveryLogSent({
+      client,
+      deliveryLogId: pendingDeliveryLogId,
+      providerMessageId,
     });
     await markInvitationSentIfRelevant(input, client);
 
