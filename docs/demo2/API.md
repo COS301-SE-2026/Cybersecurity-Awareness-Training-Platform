@@ -191,6 +191,20 @@ UC-03 covers quiz retrieval, attempt creation, answer submission, and result ret
 - **Response summary**: Score, pass/fail status, attempt summary, selected answers, correctness, and educational feedback
 - **Notes**: Results are calculated server-side; the frontend displays returned result data rather than calculating the score itself
 
+## Later-Demo Invitation Acceptance Contracts
+
+The following contracts support Demo 2 invitation acceptance planning and are cross-referenced from the SRS. Full implementation-level schemas, request examples, and status codes remain in Swagger/OpenAPI and the related implementation issues.
+
+### UC-07: Accept Organisation Invitation
+
+- **Purpose**: Supports viewing safe invitation context and completing token-driven acceptance for initial organisation admin setup, organisation employee invites, and organisation admin promotion invites.
+- **Status**: Future/later-demo
+- **Planned API support**: Public token context and completion endpoints for token-based invitation acceptance; organisation-admin promotion invite creation remains in the organisation-admin management flow.
+- **Current route terminology**: The backend setup flow currently exposes `/setup/token/:token/context` and `/setup/token/:token/complete` for invite/setup-token completion, while promotion invitations are created through organisation-admin routes and tokenised invite delivery.
+- **Access**: The public invitation page is token-based and rate-limited. Acceptance succeeds only when the token is valid, the invitation purpose is supported, and the current or created account matches the invitation target identity.
+- **Notes**: Backend behaviour must preserve organisation scope, single-use token consumption, hashed-token storage, invitation expiry/revocation handling, wrong-user protection, central email-service delivery, and safe error states for expired, revoked, already-used, or unsupported invitations.
+- **Traceability**: `#263`, `#262`, `#264`, `#265`, `#266`, `#270`
+
 ## Later-Demo Organisation Admin Contracts
 
 The following contracts support Demo 2 organisation-admin planning and are cross-referenced from the SRS. Full implementation-level schemas, request examples, and status codes remain in Swagger/OpenAPI and the related implementation issues.
@@ -241,6 +255,7 @@ Future reporting summaries and risk indicators may be derived from interaction e
 - `contentRef` is opaque and must not be resolved by the frontend
 - Interaction metadata must not store credentials or sensitive submitted values
 - Rate limiting may return `429 Too Many Requests`
+- Invitation context and completion routes are public token endpoints and should not require bearer auth, but they remain rate-limited and must not expose hashed token values or internal invitation state details.
 - Error responses should remain trainee-safe and must not expose stack traces or internal implementation details
 
 ---
@@ -258,6 +273,7 @@ Future reporting summaries and risk indicators may be derived from interaction e
 | 0.1.6   | 2026-05-10 | Johan Nel                        | Terminology                           | Updated learner/employee terminology to trainee and aligned cross-document language. |
 | 0.1.7   | 2026-05-11 | Adriano Jorge                    | Persistence/domain-backed contracts   | Updated API docs to reflect Prisma/domain schema work.                               |
 | 0.1.8   | 2026-05-12 | Johan Nel                        | Auth/user DTOs                        | Updated API docs for split first-name/last-name user fields.                         |
+| 0.1.19  | 2026-07-16 | Rudolph Lamprecht                | UC-07 invitation acceptance           | Added later-demo invitation acceptance API planning references.                      |
 | 0.1.9   | 2026-05-16 | Johan Nel                        | Campaign-item contracts; domain model | Updated API contracts to match the revised modular campaign-item domain model.       |
 | 0.1.10  | 2026-05-17 | Adriano Jorge                    | UC-02 training document API           | Documented campaign-item training-document API routes.                               |
 | 0.1.11  | 2026-05-17 | Rudolph Lamprecht                | UC-01 simulated inbox/email API       | Updated simulated inbox/email routes to campaign-item scoped API standard.           |
