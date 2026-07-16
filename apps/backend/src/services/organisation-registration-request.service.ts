@@ -928,7 +928,9 @@ async function requestRequestReceivedEmail(input: {
     });
   } catch {
     return {
-      queued: false,
+      status: 'NOT_ACCEPTED' as const,
+      acceptedByProvider: false as const,
+      queued: false as const,
       reason: 'EMAIL_SEND_FAILED' as const,
     };
   }

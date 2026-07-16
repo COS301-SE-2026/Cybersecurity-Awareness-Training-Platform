@@ -201,8 +201,8 @@ export async function createAdminPromotion(
     },
   });
 
-  const invitationStatus = emailResult.queued ? 'SENT' : 'FAILED_TO_SEND';
-  if (!emailResult.queued) {
+  const invitationStatus = emailResult.status === 'NOT_ACCEPTED' ? 'FAILED_TO_SEND' : 'SENT';
+  if (emailResult.status === 'NOT_ACCEPTED') {
     await updatePromotionInvitationStatus({
       invitationId: promotion.invitation.id,
       status: invitationStatus,

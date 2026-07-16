@@ -1,5 +1,6 @@
 import { sendEmail } from './email.service.js';
 import type { EmailDeliveryType } from '../generated/prisma/client.js';
+
 export type AuthEmailType = EmailDeliveryType;
 export type AuthEmailHookInput = {
   emailType: AuthEmailType;
@@ -15,12 +16,32 @@ export type AuthEmailHookInput = {
 };
 
 export type AuthEmailHookResult =
-  | { queued: true; deliveryLogId: string }
   | {
+      status: 'ACCEPTED';
+      acceptedByProvider: true;
+      queued: true;
+      deliveryLogId: string;
+      providerMessageId?: string;
+    }
+  | {
+      status: 'NOT_ACCEPTED';
+      acceptedByProvider: false;
       queued: false;
       reason: 'EMAIL_SEND_FAILED';
       deliveryLogId?: string;
+    }
+  | {
+      status: 'ACCEPTED_PERSISTENCE_FAILED';
+      acceptedByProvider: true;
+      queued: true;
+      deliveryLogId?: string;
+      providerMessageId?: string;
+      reason: 'EMAIL_PERSISTENCE_FAILED';
+      persistenceFailureReason: string;
     };
+
+export const shouldRevokeTokenForAuthEmailResult = (result: AuthEmailHookResult): boolean =>
+  result.status === 'NOT_ACCEPTED';
 
 export async function requestAuthEmailSend(
   input: AuthEmailHookInput,
@@ -41,15 +62,40 @@ export async function requestAuthEmailSend(
       templateData: input.templateData,
     });
 
-    if (!result.ok) {
-      return { queued: false, reason: 'EMAIL_SEND_FAILED', deliveryLogId: result.deliveryLogId };
+    switch (result.status) {
+      case 'NOT_ACCEPTED':
+        return {
+          status: 'NOT_ACCEPTED',
+          acceptedByProvider: false,
+          queued: false,
+          reason: 'EMAIL_SEND_FAILED',
+          deliveryLogId: result.deliveryLogId,
+        };
+      case 'ACCEPTED_PERSISTENCE_FAILED':
+        return {
+          status: 'ACCEPTED_PERSISTENCE_FAILED',
+          acceptedByProvider: true,
+          queued: true,
+          deliveryLogId: result.deliveryLogId,
+          providerMessageId: result.providerMessageId,
+          reason: 'EMAIL_PERSISTENCE_FAILED',
+          persistenceFailureReason: result.persistenceFailureReason,
+        };
+      case 'ACCEPTED':
+        return {
+          status: 'ACCEPTED',
+          acceptedByProvider: true,
+          queued: true,
+          deliveryLogId: result.deliveryLogId,
+          providerMessageId: result.providerMessageId,
+        };
     }
-
-    return {
-      queued: true,
-      deliveryLogId: result.deliveryLogId,
-    };
   } catch {
-    return { queued: false, reason: 'EMAIL_SEND_FAILED' };
+    return {
+      status: 'NOT_ACCEPTED',
+      acceptedByProvider: false,
+      queued: false,
+      reason: 'EMAIL_SEND_FAILED',
+    };
   }
 }

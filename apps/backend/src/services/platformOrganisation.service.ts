@@ -1,7 +1,10 @@
 import { prisma } from '../lib/prisma.js';
 import * as OrganisationRepository from '../repositories/organisation.repository.js';
 import { recordAuditLog } from './audit-log.service.js';
-import { requestAuthEmailSend } from './auth-email-hook.service.js';
+import {
+  requestAuthEmailSend,
+  shouldRevokeTokenForAuthEmailResult,
+} from './auth-email-hook.service.js';
 import { issueActionToken } from './action-token.service.js';
 import {
   OrganisationRegistrationRequestError,
@@ -323,13 +326,9 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
   // Send the setup email OUTSIDE the transaction so a DB write failure on delivery log
   // does not incorrectly surface as a provider send failure.
   //
-  // requestAuthEmailSend returns a discriminated union:
-  //   { queued: true,  deliveryLogId }                              -- provider accepted the send
-  //   { queued: false, reason: 'EMAIL_SEND_FAILED', deliveryLogId? } -- SMTP failed or threw
-  //
-  // queued:false is ONLY set when sendViaSMTP threw or returned an error -- there is no path
-  // in the email hook where a provider-accepted message returns queued:false. Revoking the
-  // token when queued:false is therefore safe and unambiguous.
+  // requestAuthEmailSend distinguishes provider rejection from provider acceptance followed by
+  // persistence failure. Do not revoke a token for ACCEPTED_PERSISTENCE_FAILED because the
+  // provider may already have delivered the setup link.
   let providerAccepted: boolean;
 
   try {
@@ -348,9 +347,7 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
       },
     });
 
-    // Explicitly check the queued discriminant -- not just the boolean shape -- so that
-    // the contract is visible and any future union branch will require explicit handling.
-    providerAccepted = emailResult.queued === true;
+    providerAccepted = !shouldRevokeTokenForAuthEmailResult(emailResult);
   } catch {
     // requestAuthEmailSend itself catches SMTP errors internally; this outer catch handles
     // unexpected render/hook failures before the SMTP call was even attempted.
