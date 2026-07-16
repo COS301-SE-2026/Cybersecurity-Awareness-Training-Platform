@@ -6,7 +6,6 @@ export type SmtpMailInput = { to: string; subject: string; text: string; html?: 
 export type SmtpAcceptedResult = {
   acceptedByProvider: true;
   providerMessageId?: string;
-  messageId?: string;
 };
 
 export async function sendViaSMTP(input: SmtpMailInput): Promise<SmtpAcceptedResult> {
@@ -30,6 +29,5 @@ export async function sendViaSMTP(input: SmtpMailInput): Promise<SmtpAcceptedRes
   return {
     acceptedByProvider: true,
     providerMessageId: result.messageId,
-    messageId: result.messageId,
   };
 }

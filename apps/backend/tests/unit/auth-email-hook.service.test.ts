@@ -7,6 +7,22 @@ vi.mock('../../src/services/email.service.js', () => ({
   sendEmail: sendEmailMock,
 }));
 
+const acceptedEmailResult = {
+  status: 'ACCEPTED' as const,
+  acceptedByProvider: true as const,
+  queued: true as const,
+  deliveryLogId: 'email-log-1',
+  providerMessageId: 'message-1',
+};
+
+const notAcceptedEmailResult = {
+  status: 'NOT_ACCEPTED' as const,
+  acceptedByProvider: false as const,
+  queued: false as const,
+  failureReason: 'SMTP unavailable',
+  deliveryLogId: 'email-log-1',
+};
+
 describe('requestAuthEmailSend', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -21,6 +37,8 @@ describe('requestAuthEmailSend', () => {
     });
 
     expect(result).toEqual({
+      status: 'NOT_ACCEPTED',
+      acceptedByProvider: false,
       queued: false,
       reason: 'EMAIL_SEND_FAILED',
     });
@@ -41,11 +59,7 @@ describe('requestAuthEmailSend', () => {
   });
 
   it('sends organisation request received email through the central email service', async () => {
-    sendEmailMock.mockResolvedValue({
-      ok: true,
-      deliveryLogId: 'email-log-1',
-      messageId: 'message-1',
-    });
+    sendEmailMock.mockResolvedValue(acceptedEmailResult);
 
     const result = await requestAuthEmailSend({
       emailType: 'ORGANISATION_REQUEST_RECEIVED',
@@ -73,16 +87,16 @@ describe('requestAuthEmailSend', () => {
       },
     });
     expect(result).toEqual({
+      status: 'ACCEPTED',
+      acceptedByProvider: true,
       queued: true,
       deliveryLogId: 'email-log-1',
+      providerMessageId: 'message-1',
     });
   });
 
   it('passes template data throurh to the central email service', async () => {
-    sendEmailMock.mockResolvedValue({
-      ok: true,
-      deliveryLogId: 'email-log-1',
-    });
+    sendEmailMock.mockResolvedValue(acceptedEmailResult);
 
     await requestAuthEmailSend({
       emailType: 'ORGANISATION_REQUEST_RECEIVED',
@@ -103,10 +117,31 @@ describe('requestAuthEmailSend', () => {
   });
 
   it('maps central email service send failures to a safe hook result', async () => {
-    sendEmailMock.mockResolvedValue({
-      ok: false,
-      error: 'SMTP unavailable',
+    sendEmailMock.mockResolvedValue(notAcceptedEmailResult);
+
+    const result = await requestAuthEmailSend({
+      emailType: 'ORGANISATION_REQUEST_RECEIVED',
+      recipientEmail: 'representative@example.test',
+      organisationRegistrationRequestId: 'request-1',
+    });
+
+    expect(result).toEqual({
+      status: 'NOT_ACCEPTED',
+      acceptedByProvider: false,
+      queued: false,
+      reason: 'EMAIL_SEND_FAILED',
       deliveryLogId: 'email-log-1',
+    });
+  });
+
+  it('preserves accepted persistence failures as queued results', async () => {
+    sendEmailMock.mockResolvedValue({
+      status: 'ACCEPTED_PERSISTENCE_FAILED',
+      acceptedByProvider: true,
+      queued: true,
+      deliveryLogId: 'email-log-1',
+      providerMessageId: 'message-1',
+      persistenceFailureReason: 'delivery log update failed',
     });
 
     const result = await requestAuthEmailSend({
@@ -116,9 +151,13 @@ describe('requestAuthEmailSend', () => {
     });
 
     expect(result).toEqual({
-      queued: false,
-      reason: 'EMAIL_SEND_FAILED',
+      status: 'ACCEPTED_PERSISTENCE_FAILED',
+      acceptedByProvider: true,
+      queued: true,
       deliveryLogId: 'email-log-1',
+      providerMessageId: 'message-1',
+      reason: 'EMAIL_PERSISTENCE_FAILED',
+      persistenceFailureReason: 'delivery log update failed',
     });
   });
 
@@ -132,6 +171,8 @@ describe('requestAuthEmailSend', () => {
         organisationRegistrationRequestId: 'request-1',
       }),
     ).resolves.toEqual({
+      status: 'NOT_ACCEPTED',
+      acceptedByProvider: false,
       queued: false,
       reason: 'EMAIL_SEND_FAILED',
     });

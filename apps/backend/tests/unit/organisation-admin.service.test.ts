@@ -133,7 +133,12 @@ describe('organisation admin service', () => {
       },
     });
     auditLogMock.recordAuditLog.mockResolvedValue({ id: 'audit-1' });
-    emailHookMock.requestAuthEmailSend.mockResolvedValue({ queued: true });
+    emailHookMock.requestAuthEmailSend.mockResolvedValue({
+      status: 'ACCEPTED',
+      acceptedByProvider: true,
+      queued: true,
+      deliveryLogId: 'email-log-1',
+    });
     passwordMock.verifyPassword.mockResolvedValue(true);
   });
 
@@ -280,6 +285,8 @@ describe('organisation admin service', () => {
     });
     repositoryMock.createInvitationPermissionGrants.mockResolvedValue({ count: 1 });
     emailHookMock.requestAuthEmailSend.mockResolvedValue({
+      status: 'NOT_ACCEPTED',
+      acceptedByProvider: false,
       queued: false,
       reason: 'EMAIL_SEND_FAILED',
     });
