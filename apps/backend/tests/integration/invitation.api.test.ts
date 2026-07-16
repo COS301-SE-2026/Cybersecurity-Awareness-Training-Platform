@@ -149,7 +149,7 @@ describe('Invitation Acceptance Integration Tests', () => {
 
       expect(res.status).toBe(403);
       expect(res.body.error).toBe('AUTH_USER_MISMATCH');
-      expect(JSON.stringify(res.body)).not.toContain(fixture.invitation.recipientEmail);
+      expect(JSON.stringify(res.body)).not.toContain(fixture.invitation!.recipientEmail);
       expect(JSON.stringify(res.body)).not.toContain(otherFixture.user.email);
     });
 
@@ -236,7 +236,7 @@ describe('Invitation Acceptance Integration Tests', () => {
       });
       await prisma.user.update({
         where: { id: otherFixture.user.id },
-        data: { email: fixture.invitation.recipientEmail },
+        data: { email: fixture.invitation!.recipientEmail },
       });
       await prisma.actionToken.update({
         where: { id: fixture.actionToken.id },
@@ -272,7 +272,7 @@ describe('Invitation Acceptance Integration Tests', () => {
 
       // Assert database state changes
       const dbInvitation = await prisma.invitation.findUnique({
-        where: { id: fixture.invitation.id },
+        where: { id: fixture.invitation!.id },
       });
       expect(dbInvitation?.status).toBe('ACCEPTED');
       expect(dbInvitation?.acceptedAt).not.toBeNull();
@@ -294,7 +294,7 @@ describe('Invitation Acceptance Integration Tests', () => {
 
       const auditLogs = await prisma.auditLogEntry.findMany({
         where: {
-          targetId: fixture.invitation.id,
+          targetId: fixture.invitation!.id,
           actionType: 'ACCEPTED',
         },
       });
@@ -381,7 +381,7 @@ describe('Invitation Acceptance Integration Tests', () => {
 
       // Assert database state changes
       const dbInvitation = await prisma.invitation.findUnique({
-        where: { id: fixture.invitation.id },
+        where: { id: fixture.invitation!.id },
       });
       expect(dbInvitation?.status).toBe('REJECTED');
 
@@ -392,7 +392,7 @@ describe('Invitation Acceptance Integration Tests', () => {
 
       const auditLogs = await prisma.auditLogEntry.findMany({
         where: {
-          targetId: fixture.invitation.id,
+          targetId: fixture.invitation!.id,
           actionType: 'REJECTED',
         },
       });
