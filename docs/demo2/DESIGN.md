@@ -775,14 +775,14 @@ The wireframes are design artefacts used to guide implementation. They should be
 
 ## Appendix A: Document Change History
 
-| Version | Date       | Author(s)     | Sections / Area Updated                    | Summary of Change                                                     |
-| ------- | ---------- | ------------- | ------------------------------------------ | --------------------------------------------------------------------- |
-| 0.1.0   | 2026-04-27 | Johan Nel     | Initial design scope                       | Created/expanded initial Demo 1 design specification.                 |
-| 0.1.1   | 2026-05-03 | Zoë Joubert   | Feedback UI; validation; phishing feedback | Added UI feedback, validation, and phishing feedback scope guidance.  |
-| 0.1.2   | 2026-05-07 | Johan Nel     | Design structure; cross-references         | Aligned design document structure with other Demo 1 docs.             |
-| 0.1.3   | 2026-05-09 | Connor Bell   | Trainee navigation; training screens       | Added navigation and training-screen behaviour documentation.         |
-| 0.1.4   | 2026-05-10 | Johan Nel     | Terminology                                | Updated learner/employee wording to trainee.                          |
-| 0.1.5   | 2026-05-10 | Zoë Joubert   | UI feedback rules                          | Added Demo 1 feedback and accessibility UI rules.                     |
-| 0.1.6   | 2026-05-21 | Johan Nel     | Headings; links                            | Cleaned headings and links during domain-model documentation update.  |
-| 0.1.7   | 2026-07-06 | Adriano Jorge | UC-09 and UC-11 design references          | Added later-demo organisation admin and security settings references. |
-| 0.1.8   | 2026-07-16 | Rudolph Lamprecht | UC-05 design references                  | Added later-demo UC-05 registration management design direction and decision-state guidance. |
+| Version | Date       | Author(s)         | Sections / Area Updated                    | Summary of Change                                                                            |
+| ------- | ---------- | ----------------- | ------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| 0.1.0   | 2026-04-27 | Johan Nel         | Initial design scope                       | Created/expanded initial Demo 1 design specification.                                        |
+| 0.1.1   | 2026-05-03 | Zoë Joubert       | Feedback UI; validation; phishing feedback | Added UI feedback, validation, and phishing feedback scope guidance.                         |
+| 0.1.2   | 2026-05-07 | Johan Nel         | Design structure; cross-references         | Aligned design document structure with other Demo 1 docs.                                    |
+| 0.1.3   | 2026-05-09 | Connor Bell       | Trainee navigation; training screens       | Added navigation and training-screen behaviour documentation.                                |
+| 0.1.4   | 2026-05-10 | Johan Nel         | Terminology                                | Updated learner/employee wording to trainee.                                                 |
+| 0.1.5   | 2026-05-10 | Zoë Joubert       | UI feedback rules                          | Added Demo 1 feedback and accessibility UI rules.                                            |
+| 0.1.6   | 2026-05-21 | Johan Nel         | Headings; links                            | Cleaned headings and links during domain-model documentation update.                         |
+| 0.1.7   | 2026-07-06 | Adriano Jorge     | UC-09 and UC-11 design references          | Added later-demo organisation admin and security settings references.                        |
+| 0.1.8   | 2026-07-16 | Rudolph Lamprecht | UC-05 design references                    | Added later-demo UC-05 registration management design direction and decision-state guidance. |

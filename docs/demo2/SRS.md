@@ -554,17 +554,17 @@ This use case allows an authorised organisation admin to view and update organis
 
 #### Review and Manage Organisation Registrations
 
-| ID         | Requirement                                                                                                                                      |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| FR-UC05-01 | The system shall allow only authenticated platform admins to access organisation registration review features.                                  |
-| FR-UC05-02 | The system shall display a platform-admin-only list of organisation registration requests with actionable statuses.                             |
-| FR-UC05-03 | The system shall allow a platform admin to view full details for a selected registration request.                                               |
-| FR-UC05-04 | The system shall allow a platform admin to mark a registration request as contacted when the state transition is valid.                        |
-| FR-UC05-05 | The system shall allow a platform admin to approve a valid registration request and create organisation onboarding state.                       |
-| FR-UC05-06 | The system shall allow a platform admin to reject a valid registration request and persist rejection metadata according to policy.              |
-| FR-UC05-07 | The system shall prevent invalid or duplicate state transitions for contacted, approved, and rejected actions.                                  |
-| FR-UC05-08 | The system shall trigger initial organisation-admin setup invitation flow when approval succeeds.                                               |
-| FR-UC05-09 | The system shall record audit entries for review decisions and decision-related state changes.                                                  |
+| ID         | Requirement                                                                                                                                        |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| FR-UC05-01 | The system shall allow only authenticated platform admins to access organisation registration review features.                                     |
+| FR-UC05-02 | The system shall display a platform-admin-only list of organisation registration requests with actionable statuses.                                |
+| FR-UC05-03 | The system shall allow a platform admin to view full details for a selected registration request.                                                  |
+| FR-UC05-04 | The system shall allow a platform admin to mark a registration request as contacted when the state transition is valid.                            |
+| FR-UC05-05 | The system shall allow a platform admin to approve a valid registration request and create organisation onboarding state.                          |
+| FR-UC05-06 | The system shall allow a platform admin to reject a valid registration request and persist rejection metadata according to policy.                 |
+| FR-UC05-07 | The system shall prevent invalid or duplicate state transitions for contacted, approved, and rejected actions.                                     |
+| FR-UC05-08 | The system shall trigger initial organisation-admin setup invitation flow when approval succeeds.                                                  |
+| FR-UC05-09 | The system shall record audit entries for review decisions and decision-related state changes.                                                     |
 | FR-UC05-10 | The system shall return safe validation, conflict, and not-found feedback without exposing internal implementation details to unauthorised actors. |
 
 ### 4.6 Tracking, Progress, and Reporting Support
@@ -705,23 +705,23 @@ Demo 1 uses the following technology stack:
 
 ## Appendix A: Document Change History
 
-| Version | Date       | Author(s)                | Sections / Area Updated                            | Summary of Change                                                                                    |
-| ------- | ---------- | ------------------------ | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| 0.1.0   | 2026-04-27 | Johan Nel                | Initial document                                   | Created the initial Demo 1 SRS structure.                                                            |
-| 0.1.1   | 2026-04-28 | Adriano Jorge            | UC-01 simulated inbox; traceability references     | Added simulated inbox requirements and related SRS refinements.                                      |
-| 0.1.2   | 2026-04-30 | Rudolph Lamprecht        | Admin/campaign context; architecture/API alignment | Added campaign/admin-related SRS content and aligned with early API/architecture thinking.           |
-| 0.1.3   | 2026-04-30 | Zoë Joubert; Connor Bell | UC-03 quiz flow; traceability                      | Added quiz-flow requirements and corrected related traceability.                                     |
-| 0.1.4   | 2026-04-30 | Connor Bell              | UC-02 training document                            | Added final Demo 1 training-view SRS requirements.                                                   |
-| 0.1.5   | 2026-05-01 | Adriano Jorge            | Domain model alignment                             | Added SRS alignment for the initial domain model.                                                    |
-| 0.1.6   | 2026-05-03 | Zoë Joubert              | Validation; feedback; phishing feedback scope      | Added validation and UI feedback requirements for Demo 1.                                            |
-| 0.1.7   | 2026-05-07 | Johan Nel                | Document structure; cross-references; use cases    | Reworked SRS structure and aligned it with related Demo 1 documents.                                 |
-| 0.1.8   | 2026-05-07 | Johan Nel                | Use-case diagrams                                  | Linked or referenced Demo 1 use-case diagrams from the SRS.                                          |
-| 0.1.9   | 2026-05-08 | Rudolph Lamprecht        | API/architecture cross-reference                   | Added API-contract linkage and architecture-related SRS references.                                  |
-| 0.1.10  | 2026-05-09 | Connor Bell              | Minor SRS amendments                               | Applied minor SRS wording/consistency updates alongside design navigation documentation.             |
-| 0.1.11  | 2026-05-09 | Adriano Jorge            | Tracking; progress requirements                    | Added tracking and progress-related SRS requirements.                                                |
-| 0.1.12  | 2026-05-09 | Adriano Jorge            | Domain/API terminology                             | Aligned SRS terminology with domain and API language.                                                |
-| 0.1.13  | 2026-05-10 | Johan Nel                | Terminology; integration; traceability             | Performed a broad SRS integration pass, including learner/employee to trainee terminology alignment. |
-| 0.1.14  | 2026-05-16 | Johan Nel                | Domain model; campaign-item model; terminology     | Updated SRS to match the revised modular campaign/domain model and trainee terminology.              |
-| 0.1.15  | 2026-05-19 | Johan Nel                | Demo 1 scope; future scope                         | Clarified Demo 1 scope and later-demo planned features.                                              |
-| 0.1.16  | 2026-05-21 | Johan Nel                | Headings; links; formatting                        | Cleaned headings/file links and formatted SRS as part of final domain-model documentation updates.   |
+| Version | Date       | Author(s)                | Sections / Area Updated                            | Summary of Change                                                                                      |
+| ------- | ---------- | ------------------------ | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| 0.1.0   | 2026-04-27 | Johan Nel                | Initial document                                   | Created the initial Demo 1 SRS structure.                                                              |
+| 0.1.1   | 2026-04-28 | Adriano Jorge            | UC-01 simulated inbox; traceability references     | Added simulated inbox requirements and related SRS refinements.                                        |
+| 0.1.2   | 2026-04-30 | Rudolph Lamprecht        | Admin/campaign context; architecture/API alignment | Added campaign/admin-related SRS content and aligned with early API/architecture thinking.             |
+| 0.1.3   | 2026-04-30 | Zoë Joubert; Connor Bell | UC-03 quiz flow; traceability                      | Added quiz-flow requirements and corrected related traceability.                                       |
+| 0.1.4   | 2026-04-30 | Connor Bell              | UC-02 training document                            | Added final Demo 1 training-view SRS requirements.                                                     |
+| 0.1.5   | 2026-05-01 | Adriano Jorge            | Domain model alignment                             | Added SRS alignment for the initial domain model.                                                      |
+| 0.1.6   | 2026-05-03 | Zoë Joubert              | Validation; feedback; phishing feedback scope      | Added validation and UI feedback requirements for Demo 1.                                              |
+| 0.1.7   | 2026-05-07 | Johan Nel                | Document structure; cross-references; use cases    | Reworked SRS structure and aligned it with related Demo 1 documents.                                   |
+| 0.1.8   | 2026-05-07 | Johan Nel                | Use-case diagrams                                  | Linked or referenced Demo 1 use-case diagrams from the SRS.                                            |
+| 0.1.9   | 2026-05-08 | Rudolph Lamprecht        | API/architecture cross-reference                   | Added API-contract linkage and architecture-related SRS references.                                    |
+| 0.1.10  | 2026-05-09 | Connor Bell              | Minor SRS amendments                               | Applied minor SRS wording/consistency updates alongside design navigation documentation.               |
+| 0.1.11  | 2026-05-09 | Adriano Jorge            | Tracking; progress requirements                    | Added tracking and progress-related SRS requirements.                                                  |
+| 0.1.12  | 2026-05-09 | Adriano Jorge            | Domain/API terminology                             | Aligned SRS terminology with domain and API language.                                                  |
+| 0.1.13  | 2026-05-10 | Johan Nel                | Terminology; integration; traceability             | Performed a broad SRS integration pass, including learner/employee to trainee terminology alignment.   |
+| 0.1.14  | 2026-05-16 | Johan Nel                | Domain model; campaign-item model; terminology     | Updated SRS to match the revised modular campaign/domain model and trainee terminology.                |
+| 0.1.15  | 2026-05-19 | Johan Nel                | Demo 1 scope; future scope                         | Clarified Demo 1 scope and later-demo planned features.                                                |
+| 0.1.16  | 2026-05-21 | Johan Nel                | Headings; links; formatting                        | Cleaned headings/file links and formatted SRS as part of final domain-model documentation updates.     |
 | 0.1.17  | 2026-07-16 | Rudolph Lamprecht        | UC-05 use case; UC-05 functional requirements      | Added UC-05 SRS scope, actors, flows, RBAC/business rules, exceptions, and planned issue traceability. |
