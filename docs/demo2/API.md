@@ -195,6 +195,15 @@ UC-03 covers quiz retrieval, attempt creation, answer submission, and result ret
 
 The following contracts support Demo 2 organisation-admin planning and are cross-referenced from the SRS. Full implementation-level schemas, request examples, and status codes remain in Swagger/OpenAPI and the related implementation issues.
 
+### UC-05: Review and Manage Organisation Registrations
+
+- **Purpose**: Supports platform-admin review of organisation registration requests, including detail inspection, contacted state updates, approval onboarding, and rejection handling.
+- **Status**: Future/later-demo
+- **Planned API support**: Platform-admin registration-request list endpoint, registration-request detail endpoint, and state-change endpoints for contacted, approve, and reject actions.
+- **Access**: Requires authenticated active platform-admin role and platform-admin permission scope.
+- **Notes**: Backend behaviour must enforce valid state transitions, organisation-creation safety, setup-invite trigger behaviour, and immutable audit logging for decision actions.
+- **Traceability**: `#253`, `#254`, `#255`, `#256`, `#257`, `#258`, `#259`, `#260`
+
 ### UC-09: Organisation Admin Management
 
 - **Purpose**: Supports viewing organisation admins, promoting active organisation trainees to admins, changing organisation admin permissions, and removing organisation admin privileges.
@@ -268,3 +277,4 @@ Future reporting summaries and risk indicators may be derived from interaction e
 | 0.1.16  | 2026-05-21 | Rudolph Lamprecht                | Training content resolution           | Documented training-content resolution and markdown content delivery.                |
 | 0.1.17  | 2026-05-21 | Johan Nel                        | UC-01 simulated inbox/email API       | Updated API docs for readable emails/opened-state support.                           |
 | 0.1.18  | 2026-07-06 | Adriano Jorge                    | UC-09 and UC-11 API references        | Added later-demo organisation admin and security settings API planning references.   |
+| 0.1.19  | 2026-07-16 | Rudolph Lamprecht                | UC-05 API references                  | Added later-demo UC-05 registration review and state-change API planning references. |

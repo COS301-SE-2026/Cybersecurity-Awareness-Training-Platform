@@ -762,6 +762,9 @@ Demo 1 design is limited to the local trainee-facing prototype and supporting au
 
 UC-09 and UC-11 are documented in the Demo 2 SRS as organisation-admin business processes. They are not part of the Demo 1 trainee wireframe set, but later frontend work should use the following page-level design direction:
 
+- UC-05 should provide a platform organisation registration management page where an authorised platform admin can review registration requests, inspect details, mark contacted, approve, or reject requests.
+- UC-05 screens should make state transitions explicit, prevent accidental destructive decisions, and surface clear confirmation and conflict states for contacted, approved, and rejected outcomes.
+- UC-05 approval and rejection outcomes should communicate onboarding or follow-up status clearly, including setup-invite delivery status and required manual follow-up where delivery fails.
 - UC-09 should provide an organisation admin management page where an authorised organisation admin can scan admins, review permissions, promote eligible trainees, update permissions, remove admin privileges, and understand read-only or blocked states.
 - UC-09 screens should distinguish viewing permissions from changing permissions, show confirmation/error states for sensitive admin-management actions, and avoid implying that platform-admin permissions and organisation-admin permissions are interchangeable.
 - UC-11 should provide an organisation security settings page where an authorised organisation admin can review current policy, platform limits, editability/read-only reasons, validation feedback, and when saved changes apply.
@@ -782,3 +785,4 @@ The wireframes are design artefacts used to guide implementation. They should be
 | 0.1.5   | 2026-05-10 | Zoë Joubert   | UI feedback rules                          | Added Demo 1 feedback and accessibility UI rules.                     |
 | 0.1.6   | 2026-05-21 | Johan Nel     | Headings; links                            | Cleaned headings and links during domain-model documentation update.  |
 | 0.1.7   | 2026-07-06 | Adriano Jorge | UC-09 and UC-11 design references          | Added later-demo organisation admin and security settings references. |
+| 0.1.8   | 2026-07-16 | Rudolph Lamprecht | UC-05 design references                  | Added later-demo UC-05 registration management design direction and decision-state guidance. |
