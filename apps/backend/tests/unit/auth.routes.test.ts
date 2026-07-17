@@ -16,6 +16,7 @@ const prismaMock = vi.hoisted(() => ({
     update: vi.fn(),
   },
   actionToken: {
+    findFirst: vi.fn(),
     updateMany: vi.fn().mockResolvedValue({ count: 1 }),
   },
   authSession: {
@@ -169,6 +170,47 @@ describe('Auth routes', () => {
         "If this email can be registered, we'll send you an email verification link. Please check your inbox.",
     });
     expect(prismaMock.user.create).not.toHaveBeenCalled();
+  });
+
+  it('keeps registration response generic when verification email hook rejects for an eligible account', async () => {
+    prismaMock.user.findUnique.mockResolvedValue({
+      id: 'pending-user-id',
+      email: 'pending@example.com',
+      firstName: 'Pending',
+      lastName: 'User',
+      passwordHash: 'scrypt$existinghash',
+      userType: 'GENERAL_TRAINEE',
+      authStatus: 'PENDING_EMAIL_VERIFICATION',
+      createdAt: new Date('2026-05-12T06:00:00.000Z'),
+    });
+    prismaMock.actionToken.findFirst.mockResolvedValue(null);
+    actionTokenServiceMock.issueActionToken.mockResolvedValue({
+      rawToken: 'raw-action-token',
+      token: { id: 'replacement-token-id', expiresAt: new Date() },
+    });
+    authEmailHookServiceMock.requestAuthEmailSend.mockRejectedValueOnce(
+      new Error('unexpected hook failure'),
+    );
+
+    const response = await request(createApp()).post('/auth/register').send({
+      email: 'pending@example.com',
+      firstName: 'Pending',
+      lastName: 'User',
+      password: 'mySecurePassword123!',
+      confirmPassword: 'mySecurePassword123!',
+    });
+
+    expect(response.status).toBe(201);
+    expect(response.body).toEqual({
+      message:
+        "If this email can be registered, we'll send you an email verification link. Please check your inbox.",
+    });
+    expect(prismaMock.actionToken.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ revokedReason: 'REGISTRATION_VERIFICATION_REISSUED' }),
+      }),
+    );
+    expect(authEmailHookServiceMock.requestAuthEmailSend).toHaveBeenCalled();
   });
 
   it('logs in a valid user with a token and safe response structure', async () => {
@@ -659,6 +701,34 @@ describe('Auth routes', () => {
         }),
         expect.any(Object),
       );
+    });
+
+    it('keeps verification resend response generic when email hook rejects for an eligible account', async () => {
+      prismaMock.user.findUnique.mockResolvedValue({
+        id: 'user-pending',
+        email: 'pending@example.com',
+        firstName: 'Pending',
+        lastName: 'User',
+        authStatus: 'PENDING_EMAIL_VERIFICATION',
+      });
+      actionTokenServiceMock.issueActionToken.mockResolvedValue({
+        rawToken: 'raw-resend-token',
+        token: { id: 'token-resend-id' },
+      });
+      authEmailHookServiceMock.requestAuthEmailSend.mockRejectedValueOnce(
+        new Error('unexpected hook failure'),
+      );
+
+      const response = await request(createApp())
+        .post('/auth/resend-verification')
+        .send({ email: 'pending@example.com' });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({
+        message: 'If the email is registered and unverified, a verification link has been sent.',
+      });
+      expect(actionTokenServiceMock.issueActionToken).toHaveBeenCalled();
+      expect(authEmailHookServiceMock.requestAuthEmailSend).toHaveBeenCalled();
     });
 
     it('returns 429 Too Many Requests when requesting resend verification during cooldown', async () => {

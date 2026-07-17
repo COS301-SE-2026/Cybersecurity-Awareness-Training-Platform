@@ -60,7 +60,13 @@ const acceptedPersistenceFailedAuthEmailResult = {
   deliveryLogId: 'email-log-1',
   providerMessageId: 'provider-message-1',
   reason: 'EMAIL_PERSISTENCE_FAILED' as const,
-  persistenceFailureReason: 'Email provider accepted the message, but persistence failed.',
+  persistenceFailures: [
+    {
+      stage: 'DELIVERY_LOG_SENT' as const,
+      code: 'DELIVERY_LOG_SENT_WRITE_FAILED' as const,
+    },
+  ],
+  persistenceFailureReason: 'DELIVERY_LOG_SENT_WRITE_FAILED',
 };
 
 const notAcceptedAuthEmailResult = {

@@ -146,7 +146,13 @@ describe('requestAuthEmailSend', () => {
       queued: true,
       deliveryLogId: 'email-log-1',
       providerMessageId: 'message-1',
-      persistenceFailureReason: 'delivery log update failed',
+      persistenceFailures: [
+        {
+          stage: 'DELIVERY_LOG_SENT',
+          code: 'DELIVERY_LOG_SENT_WRITE_FAILED',
+        },
+      ],
+      persistenceFailureReason: 'DELIVERY_LOG_SENT_WRITE_FAILED',
     });
 
     const result = await requestAuthEmailSend({
@@ -162,12 +168,18 @@ describe('requestAuthEmailSend', () => {
       deliveryLogId: 'email-log-1',
       providerMessageId: 'message-1',
       reason: 'EMAIL_PERSISTENCE_FAILED',
-      persistenceFailureReason: 'delivery log update failed',
+      persistenceFailures: [
+        {
+          stage: 'DELIVERY_LOG_SENT',
+          code: 'DELIVERY_LOG_SENT_WRITE_FAILED',
+        },
+      ],
+      persistenceFailureReason: 'DELIVERY_LOG_SENT_WRITE_FAILED',
     });
   });
 
   it('does not convert unexpected email service exceptions into NOT_ACCEPTED', async () => {
-    sendEmailMock.mockRejectedValue(new Error('email service unavailable'));
+    sendEmailMock.mockRejectedValueOnce(new Error('email service unavailable'));
 
     await expect(
       requestAuthEmailSend({

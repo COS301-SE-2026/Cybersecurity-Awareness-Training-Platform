@@ -60,6 +60,21 @@ const sentLogUpdate = {
   },
 };
 
+const deliveryLogSentWriteFailure = {
+  stage: 'DELIVERY_LOG_SENT',
+  code: 'DELIVERY_LOG_SENT_WRITE_FAILED',
+};
+
+const invitationSentWriteFailure = {
+  stage: 'INVITATION_SENT',
+  code: 'INVITATION_SENT_WRITE_FAILED',
+};
+
+const deliveryLogFailedWriteFailure = {
+  stage: 'DELIVERY_LOG_FAILED',
+  code: 'DELIVERY_LOG_FAILED_WRITE_FAILED',
+};
+
 describe('sendEmail', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -334,7 +349,8 @@ describe('sendEmail', () => {
       queued: true,
       deliveryLogId: 'emaillog01',
       providerMessageId: 'smtpmessage01',
-      persistenceFailureReason: 'database unavailable',
+      persistenceFailures: [deliveryLogSentWriteFailure],
+      persistenceFailureReason: 'DELIVERY_LOG_SENT_WRITE_FAILED',
     });
   });
 
@@ -368,7 +384,8 @@ describe('sendEmail', () => {
       queued: true,
       deliveryLogId: 'emaillog01',
       providerMessageId: 'smtpmessage01',
-      persistenceFailureReason: 'database unavailable',
+      persistenceFailures: [deliveryLogSentWriteFailure],
+      persistenceFailureReason: 'DELIVERY_LOG_SENT_WRITE_FAILED',
     });
   });
 
@@ -402,7 +419,80 @@ describe('sendEmail', () => {
       queued: true,
       deliveryLogId: 'emaillog01',
       providerMessageId: 'smtpmessage01',
-      persistenceFailureReason: 'invitation update failed',
+      persistenceFailures: [invitationSentWriteFailure],
+      persistenceFailureReason: 'INVITATION_SENT_WRITE_FAILED',
+    });
+  });
+
+  it('reports both accepted-path persistence failures with stable codes', async () => {
+    emailDeliveryLogMock.update.mockRejectedValueOnce(new Error('database unavailable'));
+    invitationMock.update.mockRejectedValueOnce(new Error('invitation update failed'));
+
+    const result = await sendEmail({
+      emailType: 'ORGANISATION_ADMIN_PROMOTION_INVITE',
+      recipientEmail: 'admin@example.com',
+      relatedEntity: {
+        invitationId: 'invitation01',
+        organisationId: 'organisation01',
+        actionTokenId: 'actiontoken01',
+      },
+      templateData: {
+        firstName: 'Tara',
+        organisationName: 'Test Org',
+        actionToken: 'rawactiontokenqwertyuiopasdfghjklzxcvbnm',
+        actionTokenExpiresAt: new Date(Date.now() + 60 * 60 * 1000),
+      },
+    });
+
+    expect(result).toEqual({
+      status: 'ACCEPTED_PERSISTENCE_FAILED',
+      acceptedByProvider: true,
+      queued: true,
+      deliveryLogId: 'emaillog01',
+      providerMessageId: 'smtpmessage01',
+      persistenceFailures: [deliveryLogSentWriteFailure, invitationSentWriteFailure],
+      persistenceFailureReason: 'DELIVERY_LOG_SENT_WRITE_FAILED; INVITATION_SENT_WRITE_FAILED',
+    });
+  });
+
+  it('still attempts invitation failed persistence when delivery-log failed persistence throws', async () => {
+    sendMailMock.mockRejectedValue(new Error('SMTP not working'));
+    emailDeliveryLogMock.update.mockRejectedValueOnce(new Error('database unavailable'));
+
+    const result = await sendEmail({
+      emailType: 'ORGANISATION_TRAINEE_INVITE',
+      recipientEmail: 'johan@example.com',
+      relatedEntity: {
+        invitationId: 'invitation01',
+        organisationId: 'organisation01',
+        actionTokenId: 'actiontoken01',
+      },
+      templateData: {
+        organisationName: 'Test Org',
+        actionToken: 'rawactiontokenqwertyuiopasdfghjklzxcvbnm',
+        actionTokenExpiresAt: new Date(Date.now() + 60 * 60 * 1000),
+      },
+    });
+
+    expect(emailDeliveryLogMock.update).toHaveBeenCalledWith({
+      where: { id: 'emaillog01' },
+      data: {
+        deliveryStatus: 'FAILED',
+        failedAt: expect.any(Date),
+        failureReason: 'SMTP not working',
+      },
+    });
+    expect(invitationMock.update).toHaveBeenCalledWith({
+      where: { id: 'invitation01' },
+      data: { status: 'FAILED_TO_SEND' },
+    });
+    expect(result).toEqual({
+      status: 'NOT_ACCEPTED',
+      acceptedByProvider: false,
+      queued: false,
+      deliveryLogId: 'emaillog01',
+      failureReason: 'SMTP not working',
+      persistenceFailures: [deliveryLogFailedWriteFailure],
     });
   });
 }); //describe

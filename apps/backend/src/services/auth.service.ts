@@ -90,6 +90,17 @@ async function sendEmailVerification(
   });
 }
 
+async function sendEmailVerificationBestEffort(
+  user: EmailVerificationUser,
+  verification: IssueActionTokenResult,
+) {
+  try {
+    await sendEmailVerification(user, verification);
+  } catch {
+    return;
+  }
+}
+
 export class AuthResetPasswordError extends Error {
   constructor(
     public readonly statusCode: number,
@@ -132,7 +143,7 @@ export async function registerUser(
       };
     });
 
-    await sendEmailVerification(newUser, verification);
+    await sendEmailVerificationBestEffort(newUser, verification);
 
     return { message: REGISTER_GENERIC_MESSAGE };
   } //if
@@ -196,7 +207,7 @@ async function maybeSendReplacementVerificationEmail(user: {
     return { verification: verificationToken };
   });
 
-  await sendEmailVerification(user, verification);
+  await sendEmailVerificationBestEffort(user, verification);
 }
 
 export class AuthStatusGuardError extends Error {
@@ -564,7 +575,7 @@ export async function resendVerificationEmail(email: string): Promise<void> {
 
   const verification = await prisma.$transaction((tx) => issueEmailVerificationToken(user, tx));
 
-  await sendEmailVerification(user, verification);
+  await sendEmailVerificationBestEffort(user, verification);
 }
 
 export type VerifyEmailResult = {
@@ -797,17 +808,21 @@ export async function requestPasswordReset(email: string): Promise<void> {
     return { verification: resetToken };
   });
 
-  await requestAuthEmailSend({
-    emailType: 'PASSWORD_RESET',
-    recipientEmail: user.email,
-    userId: user.id,
-    actionTokenId: verification.token.id,
-    templateData: {
-      actionToken: verification.rawToken,
-      firstName: user.firstName,
-      actionTokenExpiresAt: verification.token.expiresAt,
-    },
-  });
+  try {
+    await requestAuthEmailSend({
+      emailType: 'PASSWORD_RESET',
+      recipientEmail: user.email,
+      userId: user.id,
+      actionTokenId: verification.token.id,
+      templateData: {
+        actionToken: verification.rawToken,
+        firstName: user.firstName,
+        actionTokenExpiresAt: verification.token.expiresAt,
+      },
+    });
+  } catch {
+    return;
+  }
 }
 
 export async function resetUserPassword(

@@ -311,7 +311,7 @@ describe('organisation admin service', () => {
     );
   });
 
-  it('does not claim promotion invitations are sent when accepted email persistence fails', async () => {
+  it('reports promotion invitations as sent when only delivery-log accepted persistence fails', async () => {
     repositoryMock.findActorOrganisationAdmin.mockResolvedValue(
       actorAdmin(['INVITE_ORGANISATION_ADMINS']),
     );
@@ -338,7 +338,78 @@ describe('organisation admin service', () => {
       deliveryLogId: 'email-log-1',
       providerMessageId: 'provider-message-1',
       reason: 'EMAIL_PERSISTENCE_FAILED',
-      persistenceFailureReason: 'invitation update failed',
+      persistenceFailures: [
+        {
+          stage: 'DELIVERY_LOG_SENT',
+          code: 'DELIVERY_LOG_SENT_WRITE_FAILED',
+        },
+      ],
+      persistenceFailureReason: 'DELIVERY_LOG_SENT_WRITE_FAILED',
+    });
+
+    const result = await createAdminPromotion(actorUserId, organisationId, {
+      traineeEmail: 'trainee@example.test',
+      permissionKeys: ['VIEW_ORGANISATION_ADMINS'],
+    });
+
+    expect(result).toMatchObject({
+      status: 'SENT',
+      emailQueued: true,
+    });
+    expect(repositoryMock.updatePromotionInvitationStatus).not.toHaveBeenCalled();
+    expect(auditLogMock.recordAuditLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        outcome: 'FAILURE',
+        metadata: expect.objectContaining({
+          emailOutcomeStatus: 'ACCEPTED_PERSISTENCE_FAILED',
+          emailPersistenceFailureCodes: ['DELIVERY_LOG_SENT_WRITE_FAILED'],
+          emailPersistenceFailureStages: ['DELIVERY_LOG_SENT'],
+        }),
+      }),
+    );
+    expect(auditLogMock.recordAuditLog).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          emailPersistenceFailureReason: expect.stringContaining('database unavailable'),
+        }),
+      }),
+    );
+  });
+
+  it('does not claim promotion invitations are sent when invitation accepted persistence fails', async () => {
+    repositoryMock.findActorOrganisationAdmin.mockResolvedValue(
+      actorAdmin(['INVITE_ORGANISATION_ADMINS']),
+    );
+    repositoryMock.findOrganisationPermissionsByKeys.mockResolvedValue([
+      organisationPermission('permission-view', 'VIEW_ORGANISATION_ADMINS'),
+    ]);
+    repositoryMock.findActiveOrganisationTraineeByEmail.mockResolvedValue({
+      id: 'target-user-1',
+      email: 'trainee@example.test',
+      firstName: 'Tara',
+      lastName: 'Trainee',
+    });
+    repositoryMock.findOrganisationAdminByUserId.mockResolvedValue(null);
+    repositoryMock.findPendingOrganisationAdminPromotionInvitation.mockResolvedValue(null);
+    repositoryMock.createOrganisationAdminPromotionInvitation.mockResolvedValue({
+      id: 'invitation-1',
+      expiresAt: new Date('2026-07-08T08:00:00.000Z'),
+    });
+    repositoryMock.createInvitationPermissionGrants.mockResolvedValue({ count: 1 });
+    emailHookMock.requestAuthEmailSend.mockResolvedValue({
+      status: 'ACCEPTED_PERSISTENCE_FAILED',
+      acceptedByProvider: true,
+      queued: true,
+      deliveryLogId: 'email-log-1',
+      providerMessageId: 'provider-message-1',
+      reason: 'EMAIL_PERSISTENCE_FAILED',
+      persistenceFailures: [
+        {
+          stage: 'INVITATION_SENT',
+          code: 'INVITATION_SENT_WRITE_FAILED',
+        },
+      ],
+      persistenceFailureReason: 'INVITATION_SENT_WRITE_FAILED',
     });
 
     const result = await createAdminPromotion(actorUserId, organisationId, {
@@ -350,13 +421,76 @@ describe('organisation admin service', () => {
       status: 'PENDING',
       emailQueued: true,
     });
-    expect(repositoryMock.updatePromotionInvitationStatus).not.toHaveBeenCalled();
     expect(auditLogMock.recordAuditLog).toHaveBeenCalledWith(
       expect.objectContaining({
         outcome: 'FAILURE',
         metadata: expect.objectContaining({
           emailOutcomeStatus: 'ACCEPTED_PERSISTENCE_FAILED',
-          emailPersistenceFailureReason: 'invitation update failed',
+          emailPersistenceFailureCodes: ['INVITATION_SENT_WRITE_FAILED'],
+          emailPersistenceFailureStages: ['INVITATION_SENT'],
+        }),
+      }),
+    );
+  });
+
+  it('reports pending promotion invitations when all accepted persistence writes fail', async () => {
+    repositoryMock.findActorOrganisationAdmin.mockResolvedValue(
+      actorAdmin(['INVITE_ORGANISATION_ADMINS']),
+    );
+    repositoryMock.findOrganisationPermissionsByKeys.mockResolvedValue([
+      organisationPermission('permission-view', 'VIEW_ORGANISATION_ADMINS'),
+    ]);
+    repositoryMock.findActiveOrganisationTraineeByEmail.mockResolvedValue({
+      id: 'target-user-1',
+      email: 'trainee@example.test',
+      firstName: 'Tara',
+      lastName: 'Trainee',
+    });
+    repositoryMock.findOrganisationAdminByUserId.mockResolvedValue(null);
+    repositoryMock.findPendingOrganisationAdminPromotionInvitation.mockResolvedValue(null);
+    repositoryMock.createOrganisationAdminPromotionInvitation.mockResolvedValue({
+      id: 'invitation-1',
+      expiresAt: new Date('2026-07-08T08:00:00.000Z'),
+    });
+    repositoryMock.createInvitationPermissionGrants.mockResolvedValue({ count: 1 });
+    emailHookMock.requestAuthEmailSend.mockResolvedValue({
+      status: 'ACCEPTED_PERSISTENCE_FAILED',
+      acceptedByProvider: true,
+      queued: true,
+      deliveryLogId: 'email-log-1',
+      providerMessageId: 'provider-message-1',
+      reason: 'EMAIL_PERSISTENCE_FAILED',
+      persistenceFailures: [
+        {
+          stage: 'DELIVERY_LOG_SENT',
+          code: 'DELIVERY_LOG_SENT_WRITE_FAILED',
+        },
+        {
+          stage: 'INVITATION_SENT',
+          code: 'INVITATION_SENT_WRITE_FAILED',
+        },
+      ],
+      persistenceFailureReason: 'DELIVERY_LOG_SENT_WRITE_FAILED; INVITATION_SENT_WRITE_FAILED',
+    });
+
+    const result = await createAdminPromotion(actorUserId, organisationId, {
+      traineeEmail: 'trainee@example.test',
+      permissionKeys: ['VIEW_ORGANISATION_ADMINS'],
+    });
+
+    expect(result).toMatchObject({
+      status: 'PENDING',
+      emailQueued: true,
+    });
+    expect(auditLogMock.recordAuditLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        outcome: 'FAILURE',
+        metadata: expect.objectContaining({
+          emailPersistenceFailureCodes: [
+            'DELIVERY_LOG_SENT_WRITE_FAILED',
+            'INVITATION_SENT_WRITE_FAILED',
+          ],
+          emailPersistenceFailureStages: ['DELIVERY_LOG_SENT', 'INVITATION_SENT'],
         }),
       }),
     );

@@ -1,5 +1,6 @@
 import { sendEmail } from './email.service.js';
 import type { EmailDeliveryType } from '../generated/prisma/client.js';
+import type { EmailPersistenceFailure } from './email.service.js';
 
 export type AuthEmailType = EmailDeliveryType;
 export type AuthEmailHookInput = {
@@ -34,9 +35,10 @@ export type AuthEmailHookResult =
       status: 'ACCEPTED_PERSISTENCE_FAILED';
       acceptedByProvider: true;
       queued: true;
-      deliveryLogId?: string;
+      deliveryLogId: string;
       providerMessageId?: string;
       reason: 'EMAIL_PERSISTENCE_FAILED';
+      persistenceFailures: EmailPersistenceFailure[];
       persistenceFailureReason: string;
     };
 
@@ -78,6 +80,7 @@ export async function requestAuthEmailSend(
         deliveryLogId: result.deliveryLogId,
         providerMessageId: result.providerMessageId,
         reason: 'EMAIL_PERSISTENCE_FAILED',
+        persistenceFailures: result.persistenceFailures,
         persistenceFailureReason: result.persistenceFailureReason,
       };
     case 'ACCEPTED':

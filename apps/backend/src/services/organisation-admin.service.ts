@@ -201,10 +201,15 @@ export async function createAdminPromotion(
     },
   });
 
+  const emailPersistenceFailures =
+    emailResult.status === 'ACCEPTED_PERSISTENCE_FAILED' ? emailResult.persistenceFailures : [];
+  const invitationSentPersistenceFailed = emailPersistenceFailures.some(
+    (failure) => failure.stage === 'INVITATION_SENT',
+  );
   const invitationStatus =
     emailResult.status === 'NOT_ACCEPTED'
       ? 'FAILED_TO_SEND'
-      : emailResult.status === 'ACCEPTED_PERSISTENCE_FAILED'
+      : invitationSentPersistenceFailed
         ? 'PENDING'
         : 'SENT';
   if (emailResult.status === 'NOT_ACCEPTED') {
@@ -216,7 +221,10 @@ export async function createAdminPromotion(
 
   const emailPersistenceMetadata =
     emailResult.status === 'ACCEPTED_PERSISTENCE_FAILED'
-      ? { emailPersistenceFailureReason: emailResult.persistenceFailureReason }
+      ? {
+          emailPersistenceFailureCodes: emailPersistenceFailures.map((failure) => failure.code),
+          emailPersistenceFailureStages: emailPersistenceFailures.map((failure) => failure.stage),
+        }
       : {};
 
   await recordAuditLog({

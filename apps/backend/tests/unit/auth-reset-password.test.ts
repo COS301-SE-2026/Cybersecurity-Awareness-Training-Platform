@@ -136,6 +136,40 @@ describe('Forgot Password and Reset Password API', () => {
       expect(authEmailHookServiceMock.requestAuthEmailSend).not.toHaveBeenCalled();
     });
 
+    it('returns the generic response when reset email hook rejects for an eligible user', async () => {
+      userRepositoryMock.findUserByEmail.mockResolvedValue({
+        id: 'user-123',
+        email: 'test@example.com',
+        firstName: 'John',
+        lastName: 'Doe',
+        authStatus: 'ACTIVE',
+        userType: 'GENERAL_TRAINEE',
+      });
+      prismaMock.actionToken.updateMany.mockResolvedValue({ count: 1 });
+      actionTokenServiceMock.issueActionToken.mockResolvedValue({
+        rawToken: 'raw-token-12345678901234567890123456789012',
+        token: {
+          id: 'token-123',
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        },
+      });
+      authEmailHookServiceMock.requestAuthEmailSend.mockRejectedValueOnce(
+        new Error('unexpected hook failure'),
+      );
+
+      const response = await request(createApp())
+        .post('/auth/forgot-password')
+        .send({ email: 'test@example.com' });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty(
+        'message',
+        'If the email is registered, a password reset link has been sent.',
+      );
+      expect(actionTokenServiceMock.issueActionToken).toHaveBeenCalled();
+      expect(authEmailHookServiceMock.requestAuthEmailSend).toHaveBeenCalled();
+    });
+
     it('returns 200 and does NOT send reset email if user is disabled (enumeration safe)', async () => {
       userRepositoryMock.findUserByEmail.mockResolvedValue({
         id: 'user-disabled',

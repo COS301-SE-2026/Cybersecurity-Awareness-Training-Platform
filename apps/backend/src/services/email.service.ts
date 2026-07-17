@@ -17,8 +17,60 @@ const toSafeEmailFailureReason = (error: unknown, fallback: string): string => {
   return fallback;
 };
 
-const joinSafeEmailFailureReasons = (failureReasons: string[]): string =>
-  failureReasons.join('; ').slice(0, MAX_EMAIL_FAILURE_REASON_LENGTH);
+export type EmailPersistenceFailureStage =
+  | 'DELIVERY_LOG_SENT'
+  | 'INVITATION_SENT'
+  | 'DELIVERY_LOG_FAILED'
+  | 'INVITATION_FAILED_TO_SEND';
+
+export type EmailPersistenceFailureCode =
+  | 'DELIVERY_LOG_SENT_WRITE_FAILED'
+  | 'INVITATION_SENT_WRITE_FAILED'
+  | 'DELIVERY_LOG_FAILED_WRITE_FAILED'
+  | 'INVITATION_FAILED_TO_SEND_WRITE_FAILED';
+
+export type EmailPersistenceFailure = {
+  stage: EmailPersistenceFailureStage;
+  code: EmailPersistenceFailureCode;
+};
+
+const deliveryLogSentFailure: EmailPersistenceFailure = {
+  stage: 'DELIVERY_LOG_SENT',
+  code: 'DELIVERY_LOG_SENT_WRITE_FAILED',
+};
+
+const invitationSentFailure: EmailPersistenceFailure = {
+  stage: 'INVITATION_SENT',
+  code: 'INVITATION_SENT_WRITE_FAILED',
+};
+
+const deliveryLogFailedFailure: EmailPersistenceFailure = {
+  stage: 'DELIVERY_LOG_FAILED',
+  code: 'DELIVERY_LOG_FAILED_WRITE_FAILED',
+};
+
+const invitationFailedToSendFailure: EmailPersistenceFailure = {
+  stage: 'INVITATION_FAILED_TO_SEND',
+  code: 'INVITATION_FAILED_TO_SEND_WRITE_FAILED',
+};
+
+const formatPersistenceFailureReason = (failures: EmailPersistenceFailure[]): string =>
+  failures
+    .map((failure) => failure.code)
+    .join('; ')
+    .slice(0, MAX_EMAIL_FAILURE_REASON_LENGTH);
+
+async function attemptEmailPersistence(
+  action: () => Promise<void>,
+  failure: EmailPersistenceFailure,
+): Promise<EmailPersistenceFailure[]> {
+  try {
+    await action();
+    return [];
+  } catch {
+    return [failure];
+  }
+}
 
 type EmailPrismaClient = {
   emailDeliveryLog: Pick<PrismaClient['emailDeliveryLog'], 'create' | 'update'>;
@@ -53,13 +105,15 @@ export type EmailSendOutcome =
       queued: false;
       deliveryLogId?: string;
       failureReason: string;
+      persistenceFailures?: EmailPersistenceFailure[];
     }
   | {
       status: 'ACCEPTED_PERSISTENCE_FAILED';
       acceptedByProvider: true;
       queued: true;
-      deliveryLogId?: string;
+      deliveryLogId: string;
       providerMessageId?: string;
+      persistenceFailures: EmailPersistenceFailure[];
       persistenceFailureReason: string;
     };
 
@@ -196,16 +250,21 @@ export async function sendEmail(
       'SMTP provider did not accept the email.',
     );
 
-    try {
-      await markDeliveryLogFailed({
-        client,
-        deliveryLogId: pendingDeliveryLogId,
-        failureReason,
-      });
-      await markInvitationFailedIfRelevant(input, client);
-    } catch {
-      // Keep the provider rejection outcome even if failure-state persistence fails.
-    }
+    const persistenceFailures = [
+      ...(await attemptEmailPersistence(
+        () =>
+          markDeliveryLogFailed({
+            client,
+            deliveryLogId: pendingDeliveryLogId,
+            failureReason,
+          }),
+        deliveryLogFailedFailure,
+      )),
+      ...(await attemptEmailPersistence(
+        () => markInvitationFailedIfRelevant(input, client),
+        invitationFailedToSendFailure,
+      )),
+    ];
 
     return {
       status: 'NOT_ACCEPTED',
@@ -213,28 +272,25 @@ export async function sendEmail(
       queued: false,
       deliveryLogId: pendingDeliveryLogId,
       failureReason,
+      persistenceFailures: persistenceFailures.length > 0 ? persistenceFailures : undefined,
     };
   }
 
-  const persistenceFailures: string[] = [];
-
-  try {
-    await markDeliveryLogSent({
-      client,
-      deliveryLogId: pendingDeliveryLogId,
-      providerMessageId,
-    });
-  } catch (error) {
-    persistenceFailures.push(toSafeEmailFailureReason(error, 'Delivery log SENT update failed.'));
-  }
-
-  try {
-    await markInvitationSentIfRelevant(input, client);
-  } catch (error) {
-    persistenceFailures.push(
-      toSafeEmailFailureReason(error, 'Invitation send-state update failed.'),
-    );
-  }
+  const persistenceFailures = [
+    ...(await attemptEmailPersistence(
+      () =>
+        markDeliveryLogSent({
+          client,
+          deliveryLogId: pendingDeliveryLogId,
+          providerMessageId,
+        }),
+      deliveryLogSentFailure,
+    )),
+    ...(await attemptEmailPersistence(
+      () => markInvitationSentIfRelevant(input, client),
+      invitationSentFailure,
+    )),
+  ];
 
   if (persistenceFailures.length === 0) {
     return {
@@ -252,6 +308,7 @@ export async function sendEmail(
     queued: true,
     deliveryLogId: pendingDeliveryLogId,
     providerMessageId,
-    persistenceFailureReason: joinSafeEmailFailureReasons(persistenceFailures),
+    persistenceFailures,
+    persistenceFailureReason: formatPersistenceFailureReason(persistenceFailures),
   };
 }
