@@ -30,8 +30,20 @@ export interface SendEmailInput {
   templateData?: unknown;
 }
 export type SendEmailOutput =
-  | { ok: true; messageId?: string; deliveryLogId: string; deliveryStatus: 'SENT' | 'UNKNOWN' }
-  | { ok: false; error: string; deliveryLogId?: string; deliveryStatus: 'FAILED' };
+  | {
+      ok: true;
+      messageId?: string;
+      deliveryLogId: string;
+      deliveryStatus: 'SENT' | 'UNKNOWN';
+      appliedToCurrentInvitationAttempt: boolean;
+    }
+  | {
+      ok: false;
+      error: string;
+      deliveryLogId?: string;
+      deliveryStatus: 'FAILED';
+      appliedToCurrentInvitationAttempt: boolean;
+    };
 
 function isInvitationEmail(emailType: EmailDeliveryType) {
   return (
@@ -43,7 +55,7 @@ function isInvitationEmail(emailType: EmailDeliveryType) {
 
 async function markInvitationSentIfRelevant(input: SendEmailInput, client: EmailPrismaClient) {
   if (!input.relatedEntity.invitationId || !isInvitationEmail(input.emailType)) {
-    return;
+    return true;
   }
   const invitationStateVersion = input.relatedEntity.invitationStateVersion
     ? new Date(input.relatedEntity.invitationStateVersion)
@@ -53,10 +65,10 @@ async function markInvitationSentIfRelevant(input: SendEmailInput, client: Email
       where: { id: input.relatedEntity.actionTokenId },
     });
     if (token && (token.revokedAt || token.usedAt)) {
-      return;
+      return false;
     }
   }
-  await client.invitation.updateMany({
+  const updateResult = await client.invitation.updateMany({
     data: { status: 'SENT' },
     where: {
       id: input.relatedEntity.invitationId,
@@ -64,10 +76,11 @@ async function markInvitationSentIfRelevant(input: SendEmailInput, client: Email
       ...(invitationStateVersion ? { updatedAt: invitationStateVersion } : {}),
     },
   });
+  return updateResult.count > 0;
 }
 async function markInvitationFailedIfRelevant(input: SendEmailInput, client: EmailPrismaClient) {
   if (!input.relatedEntity.invitationId || !isInvitationEmail(input.emailType)) {
-    return;
+    return true;
   }
   const invitationStateVersion = input.relatedEntity.invitationStateVersion
     ? new Date(input.relatedEntity.invitationStateVersion)
@@ -77,10 +90,10 @@ async function markInvitationFailedIfRelevant(input: SendEmailInput, client: Ema
       where: { id: input.relatedEntity.actionTokenId },
     });
     if (token && (token.revokedAt || token.usedAt)) {
-      return;
+      return false;
     }
   }
-  await client.invitation.updateMany({
+  const updateResult = await client.invitation.updateMany({
     data: { status: 'FAILED_TO_SEND' },
     where: {
       id: input.relatedEntity.invitationId,
@@ -88,6 +101,7 @@ async function markInvitationFailedIfRelevant(input: SendEmailInput, client: Ema
       ...(invitationStateVersion ? { updatedAt: invitationStateVersion } : {}),
     },
   });
+  return updateResult.count > 0;
 }
 
 export async function sendEmail(
@@ -126,6 +140,7 @@ export async function sendEmail(
   try {
     const providerResult = await sendViaSMTP({ to: input.recipientEmail, ...renderedEmail });
     try {
+      let invitationApplied = true;
       await client.emailDeliveryLog.update({
         data: {
           deliveryStatus: 'SENT',
@@ -134,7 +149,16 @@ export async function sendEmail(
         },
         where: { id: deliveryLog.id },
       });
-      await markInvitationSentIfRelevant(input, client);
+      invitationApplied = await markInvitationSentIfRelevant(input, client);
+      if (!invitationApplied) {
+        return {
+          ok: true,
+          messageId: providerResult.messageId,
+          deliveryLogId: deliveryLog.id,
+          deliveryStatus: 'UNKNOWN' as const,
+          appliedToCurrentInvitationAttempt: false,
+        };
+      }
     } catch (persistenceError) {
       console.error('Email sent via SMTP but post-send database update failed:', persistenceError);
       return {
@@ -142,6 +166,7 @@ export async function sendEmail(
         messageId: providerResult.messageId,
         deliveryLogId: deliveryLog.id,
         deliveryStatus: 'UNKNOWN' as const,
+        appliedToCurrentInvitationAttempt: false,
       };
     }
 
@@ -150,6 +175,7 @@ export async function sendEmail(
       messageId: providerResult.messageId,
       deliveryLogId: deliveryLog.id,
       deliveryStatus: 'SENT' as const,
+      appliedToCurrentInvitationAttempt: true,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown SMTP error';
@@ -158,7 +184,14 @@ export async function sendEmail(
         data: { deliveryStatus: 'FAILED', failedAt: new Date(), failureReason: message },
         where: { id: deliveryLog.id },
       });
-      await markInvitationFailedIfRelevant(input, client);
+      const invitationApplied = await markInvitationFailedIfRelevant(input, client);
+      return {
+        ok: false,
+        error: message,
+        deliveryLogId: deliveryLog.id,
+        deliveryStatus: 'FAILED' as const,
+        appliedToCurrentInvitationAttempt: invitationApplied,
+      };
     } catch (logError) {
       console.error('Failed to log email delivery failure:', logError);
     }
@@ -167,6 +200,7 @@ export async function sendEmail(
       error: message,
       deliveryLogId: deliveryLog.id,
       deliveryStatus: 'FAILED' as const,
+      appliedToCurrentInvitationAttempt: false,
     };
   }
 }

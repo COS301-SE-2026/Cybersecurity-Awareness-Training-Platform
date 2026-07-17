@@ -284,13 +284,12 @@ export async function createOrganisationTraineeInvitation(
 
   if (
     existingTrainee &&
-    existingTrainee.membershipStatus !== 'DISABLED' &&
-    !existingTrainee.disabledAt
+    (existingTrainee.membershipStatus !== 'ACTIVE' || existingTrainee.disabledAt)
   ) {
     throw new OrganisationTraineeServiceError(
       409,
       'CANNOT_INVITE_USER',
-      'User is already a trainee in this organisation.',
+      'User already has a disabled or inactive trainee membership in this organisation.',
     );
   }
 
@@ -614,6 +613,14 @@ export async function resendTraineeInvitation(
       requiresAccountConflictResolution,
     },
   });
+
+  if (emailResult.ok && !emailResult.appliedToCurrentInvitationAttempt) {
+    throw new OrganisationTraineeServiceError(
+      409,
+      'INVITATION_RESEND_STALE',
+      'Invitation was revoked or superseded while the resend email was being processed.',
+    );
+  }
 
   const updatedInvitation = await prisma.invitation.findUnique({
     where: { id: invitation.id },

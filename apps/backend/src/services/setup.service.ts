@@ -177,6 +177,7 @@ export async function completeSetupWithToken(
     const organisationId = freshToken.invitation?.organisationId ?? null;
     const setupInvitationId = freshToken.invitationId ?? null;
     const existingUser = await findSetupUserByEmail(targetEmail, tx);
+    const existingOrganisationTraineeProfile = existingUser?.traineeProfile?.organisationTraineeProfile ?? null;
     const userInput = {
       email: targetEmail,
       firstName: input.firstName,
@@ -189,6 +190,7 @@ export async function completeSetupWithToken(
           userId: existingUser.id,
           currentUserType: existingUser.userType,
           currentAuthStatus: existingUser.authStatus,
+          existingOrganisationTraineeProfile,
           role,
           organisationId,
           setupPurpose: freshToken.purpose,
@@ -362,6 +364,11 @@ async function activateExistingSetupUser(input: {
   userId: string;
   currentUserType: SetupUserType | 'GENERAL_TRAINEE';
   currentAuthStatus: string;
+  existingOrganisationTraineeProfile?: {
+    organisationId: string;
+    membershipStatus: string;
+    disabledAt: Date | null;
+  } | null;
   role: SetupUserType;
   organisationId: string | null;
   setupPurpose: ActionTokenPurpose;
@@ -379,6 +386,21 @@ async function activateExistingSetupUser(input: {
       'SETUP_ROLE_CONFLICT',
       'Setup conflicts with an existing account',
     );
+  }
+
+  if (input.role === 'ORGANISATION_TRAINEE' && input.existingOrganisationTraineeProfile) {
+    const traineeProfile = input.existingOrganisationTraineeProfile;
+    if (
+      traineeProfile.organisationId !== input.organisationId ||
+      traineeProfile.membershipStatus !== 'ACTIVE' ||
+      traineeProfile.disabledAt
+    ) {
+      throw new SetupFlowError(
+        409,
+        'SETUP_ROLE_CONFLICT',
+        'Setup conflicts with an existing organisation trainee membership',
+      );
+    }
   }
 
   if (input.role === 'IP_ADMIN') {

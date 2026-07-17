@@ -122,6 +122,7 @@ describe('sendEmail', () => {
       messageId: 'smtpmessage01',
       deliveryLogId: 'emaillog01',
       deliveryStatus: 'SENT',
+      appliedToCurrentInvitationAttempt: true,
     });
   });
 
@@ -143,6 +144,7 @@ describe('sendEmail', () => {
       error: 'SMTP not working',
       deliveryLogId: 'emaillog01',
       deliveryStatus: 'FAILED',
+      appliedToCurrentInvitationAttempt: true,
     });
   });
 
@@ -198,6 +200,7 @@ describe('sendEmail', () => {
       messageId: 'smtpmessage01',
       deliveryLogId: 'emaillogfromtx',
       deliveryStatus: 'SENT',
+      appliedToCurrentInvitationAttempt: true,
     });
   });
 

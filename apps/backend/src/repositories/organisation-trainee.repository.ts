@@ -11,6 +11,9 @@ export function findOrganisationTrainees(
   return client.organisationTraineeProfile.findMany({
     where: {
       organisationId,
+      membershipStatus: {
+        in: ['ACTIVE', 'DISABLED'],
+      },
     },
     include: {
       traineeProfile: {

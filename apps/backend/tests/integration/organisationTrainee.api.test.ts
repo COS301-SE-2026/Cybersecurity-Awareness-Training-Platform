@@ -331,36 +331,31 @@ describe('Organisation Trainee API Integration Tests', () => {
 
       const invId = inviteRes.body.invitation.id;
 
-      let resolveSend!: (value: { messageId: string }) => void;
-      const sendGate = new Promise<{ messageId: string }>((resolve) => {
-        resolveSend = resolve;
-      });
-      sendMailMock.mockReturnValueOnce(sendGate);
-
       const resendPromise = request(app)
         .post(`/organisations/${fixture.organisation.id}/trainee-invitations/${invId}/resend`)
         .set('Authorization', `Bearer ${fixture.token}`);
-
-      await new Promise<void>((resolve) => {
-        const timer = setInterval(() => {
-          if (sendMailMock.mock.calls.length > 0) {
-            clearInterval(timer);
-            resolve();
-          }
-        }, 5);
-      });
 
       const revokeResponse = await request(app)
         .post(`/organisations/${fixture.organisation.id}/trainee-invitations/${invId}/revoke`)
         .set('Authorization', `Bearer ${fixture.token}`);
       expect(revokeResponse.status).toBe(200);
 
-      resolveSend({ messageId: 'smtpmessage-revoked' });
       const resendResponse = await resendPromise;
-      expect([200, 409]).toContain(resendResponse.status);
+      expect(resendResponse.status).toBe(409);
+      expect(resendResponse.body).toMatchObject({
+        error: 'INVITATION_REVOKED',
+      });
 
       const invitation = await prisma.invitation.findUniqueOrThrow({ where: { id: invId } });
       expect(invitation.status).toBe('REVOKED');
+
+      const tokens = await prisma.actionToken.findMany({
+        where: { invitationId: invId },
+        orderBy: { createdAt: 'asc' },
+      });
+      expect(tokens.length).toBeGreaterThanOrEqual(1);
+      expect(tokens.every((token) => token.revokedAt !== null)).toBe(true);
+      expect(resendResponse.body.message).not.toContain('successfully');
     });
 
     it('returns a truthful failed-delivery response when SMTP rejects the invitation email', async () => {
@@ -558,6 +553,36 @@ describe('Organisation Trainee API Integration Tests', () => {
         .send({ email: 'platform.admin@example.com' });
 
       expect(response.status).toBe(409);
+    });
+
+    it('returns 409 Conflict when inviting a disabled trainee in the same organisation', async () => {
+      const disabledTrainee = await createTrainee({
+        user: { email: 'disabled.trainee@example.com' },
+        organisationProfile: {
+          organisationId: fixture.organisation.id,
+          membershipStatus: 'DISABLED',
+        },
+      });
+
+      await prisma.organisationTraineeProfile.update({
+        where: { id: disabledTrainee.organisationTraineeProfile!.id },
+        data: {
+          disabledAt: new Date(),
+          disabledReason: 'Previously disabled',
+        },
+      });
+
+      const response = await request(app)
+        .post(`/organisations/${fixture.organisation.id}/trainee-invitations`)
+        .set('Authorization', `Bearer ${fixture.token}`)
+        .send({ email: 'disabled.trainee@example.com' });
+
+      expect(response.status).toBe(409);
+
+      const invitationCount = await prisma.invitation.count({
+        where: { recipientEmail: 'disabled.trainee@example.com' },
+      });
+      expect(invitationCount).toBe(0);
     });
   });
 });

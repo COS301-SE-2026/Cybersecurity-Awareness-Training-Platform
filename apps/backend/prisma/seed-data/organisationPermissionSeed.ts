@@ -1,55 +1,5 @@
 import { prisma } from '../../src/lib/prisma.js';
-
-const ORGANISATION_ADMIN_PERMISSION_SEEDS = [
-  {
-    key: 'VIEW_ORGANISATION_ADMINS',
-    displayName: 'View organisation admins',
-    description: 'View organisation admin users and their permission grants.',
-    isCritical: false,
-  },
-  {
-    key: 'INVITE_ORGANISATION_ADMINS',
-    displayName: 'Invite organisation admins',
-    description: 'Invite or promote users to organisation admin access.',
-    isCritical: true,
-  },
-  {
-    key: 'REMOVE_ORGANISATION_ADMINS',
-    displayName: 'Remove organisation admins',
-    description: 'Disable or remove organisation admin access.',
-    isCritical: false,
-  },
-  {
-    key: 'CHANGE_ORGANISATION_ADMIN_PERMISSIONS',
-    displayName: 'Change organisation admin permissions',
-    description: 'Grant or revoke organisation admin permissions.',
-    isCritical: true,
-  },
-  {
-    key: 'CHANGE_ORGANISATION_SECURITY_SETTINGS',
-    displayName: 'Change organisation security settings',
-    description: 'Change organisation security policy and related settings.',
-    isCritical: true,
-  },
-  {
-    key: 'VIEW_ORGANISATION_TRAINEES',
-    displayName: 'View organisation trainees',
-    description: 'View organisation trainees and pending invitations.',
-    isCritical: false,
-  },
-  {
-    key: 'INVITE_ORGANISATION_TRAINEES',
-    displayName: 'Invite organisation trainees',
-    description: 'Invite new trainees or manage pending trainee invitations.',
-    isCritical: false,
-  },
-  {
-    key: 'REMOVE_ORGANISATION_TRAINEES',
-    displayName: 'Remove organisation trainees',
-    description: 'Disable or remove organisation trainee access.',
-    isCritical: false,
-  },
-] as const;
+import { ORGANISATION_PERMISSION_SEEDS } from '../../src/constants/organisation-permission-seeds.js';
 
 export type OrganisationPermissionSeedSummary = {
   readonly organisationCount: number;
@@ -57,7 +7,7 @@ export type OrganisationPermissionSeedSummary = {
   readonly initialAdminGrantCount: number;
 };
 
-type OrganisationPermissionKey = (typeof ORGANISATION_ADMIN_PERMISSION_SEEDS)[number]['key'];
+type OrganisationPermissionKey = (typeof ORGANISATION_PERMISSION_SEEDS)[number]['key'];
 
 type SeedClient = {
   $queryRaw<T = unknown>(query: TemplateStringsArray, ...values: readonly unknown[]): Promise<T>;
@@ -89,7 +39,7 @@ export async function seedOrganisationAdminPermissions(
   let initialAdminGrantCount = 0;
 
   for (const organisation of organisations) {
-    for (const permission of ORGANISATION_ADMIN_PERMISSION_SEEDS) {
+    for (const permission of ORGANISATION_PERMISSION_SEEDS) {
       await upsertOrganisationPermission(client, organisation.id, permission);
       permissionCount += 1;
     }
@@ -107,7 +57,7 @@ export async function seedOrganisationAdminPermissions(
 async function upsertOrganisationPermission(
   client: SeedClient,
   organisationId: string,
-  permission: (typeof ORGANISATION_ADMIN_PERMISSION_SEEDS)[number],
+  permission: (typeof ORGANISATION_PERMISSION_SEEDS)[number],
 ): Promise<void> {
   const permissionId = buildOrganisationPermissionId(organisationId, permission.key);
 

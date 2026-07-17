@@ -163,9 +163,40 @@ export async function updateUserRoleAndProfilesFromInvitation(
   },
   client: Prisma.TransactionClient,
 ) {
+  const existingUser = await client.user.findUnique({
+    where: { id: input.userId },
+    include: {
+      traineeProfile: {
+        include: {
+          organisationTraineeProfile: true,
+        },
+      },
+      organisationAdminProfile: true,
+      ipAdminProfile: true,
+    },
+  });
+
   if (input.newRole === 'ORGANISATION_ADMIN') {
     if (!input.organisationId) {
       throw new Error('organisationId is required when assigning ORGANISATION_ADMIN role.');
+    }
+
+    if (existingUser?.traineeProfile) {
+      await client.traineeProfile.update({
+        where: { id: existingUser.traineeProfile.id },
+        data: { traineeStatus: 'INACTIVE' },
+      });
+    }
+
+    if (existingUser?.traineeProfile?.organisationTraineeProfile) {
+      await client.organisationTraineeProfile.update({
+        where: { traineeProfileId: existingUser.traineeProfile.id },
+        data: {
+          membershipStatus: 'INACTIVE',
+          disabledAt: new Date(),
+          disabledReason: 'Promoted to organisation admin',
+        },
+      });
     }
 
     await ensureDefaultOrganisationSecuritySettings(
@@ -274,18 +305,31 @@ export async function updateUserRoleAndProfilesFromInvitation(
   }
 
   if (input.newRole === 'IP_ADMIN' || input.newRole === 'PLATFORM_ADMIN') {
-    const existingTargetUser = await client.user.findUnique({
-      where: { id: input.userId },
-      include: { organisationAdminProfile: true },
-    });
     if (
-      existingTargetUser?.userType === 'ORGANISATION_ADMIN' ||
-      existingTargetUser?.organisationAdminProfile?.adminStatus === 'ACTIVE'
+      existingUser?.userType === 'ORGANISATION_ADMIN' ||
+      existingUser?.organisationAdminProfile?.adminStatus === 'ACTIVE'
     ) {
       throw new InvitationRepositoryConflictError(
         'ROLE_TRANSITION_CONFLICT',
         'An active organisation administrator cannot directly accept a platform administrator upgrade.',
       );
+    }
+
+    if (existingUser?.traineeProfile) {
+      await client.traineeProfile.update({
+        where: { id: existingUser.traineeProfile.id },
+        data: { traineeStatus: 'INACTIVE' },
+      });
+      if (existingUser.traineeProfile.organisationTraineeProfile) {
+        await client.organisationTraineeProfile.update({
+          where: { traineeProfileId: existingUser.traineeProfile.id },
+          data: {
+            membershipStatus: 'INACTIVE',
+            disabledAt: new Date(),
+            disabledReason: 'Promoted to platform admin',
+          },
+        });
+      }
     }
 
     await client.user.update({
