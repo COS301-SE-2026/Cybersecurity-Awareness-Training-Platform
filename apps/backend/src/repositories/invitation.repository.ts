@@ -6,6 +6,18 @@ import { ensureDefaultOrganisationSecuritySettings } from './security-settings.r
 
 export type InvitationClient = PrismaClient | Prisma.TransactionClient;
 
+type RoleProfileUser = Prisma.UserGetPayload<{
+  include: {
+    traineeProfile: {
+      include: {
+        organisationTraineeProfile: true;
+      };
+    };
+    organisationAdminProfile: true;
+    ipAdminProfile: true;
+  };
+}>;
+
 export class InvitationRepositoryConflictError extends Error {
   constructor(
     public readonly errorKey: string,
@@ -154,6 +166,214 @@ export async function insertInvitationPermissionGrantsToAdmin(
   });
 }
 
+async function loadUserWithRoleProfiles(userId: string, client: Prisma.TransactionClient) {
+  return client.user.findUnique({
+    where: { id: userId },
+    include: {
+      traineeProfile: {
+        include: {
+          organisationTraineeProfile: true,
+        },
+      },
+      organisationAdminProfile: true,
+      ipAdminProfile: true,
+    },
+  });
+}
+
+async function deactivateExistingTraineeMembership(
+  existingUser: RoleProfileUser | null,
+  client: Prisma.TransactionClient,
+  disabledReason: string,
+) {
+  if (!existingUser?.traineeProfile) {
+    return;
+  }
+
+  await client.traineeProfile.update({
+    where: { id: existingUser.traineeProfile.id },
+    data: { traineeStatus: 'INACTIVE' },
+  });
+
+  if (existingUser.traineeProfile.organisationTraineeProfile) {
+    await client.organisationTraineeProfile.update({
+      where: { traineeProfileId: existingUser.traineeProfile.id },
+      data: {
+        membershipStatus: 'INACTIVE',
+        disabledAt: new Date(),
+        disabledReason,
+      },
+    });
+  }
+}
+
+async function updateUserToOrganisationAdmin(input: {
+  userId: string;
+  organisationId: string;
+  invitationId?: string | null;
+  client: Prisma.TransactionClient;
+}) {
+  const existingUser = await loadUserWithRoleProfiles(input.userId, input.client);
+
+  await deactivateExistingTraineeMembership(
+    existingUser,
+    input.client,
+    'Promoted to organisation admin',
+  );
+
+  await ensureDefaultOrganisationSecuritySettings(
+    { organisationId: input.organisationId },
+    input.client,
+  );
+
+  await input.client.user.update({
+    where: { id: input.userId },
+    data: {
+      userType: 'ORGANISATION_ADMIN',
+      authStatus: 'ACTIVE',
+      emailVerifiedAt: new Date(),
+    },
+  });
+
+  const adminProfile = await input.client.organisationAdminProfile.upsert({
+    where: { userId: input.userId },
+    create: {
+      userId: input.userId,
+      organisationId: input.organisationId,
+      adminStatus: 'ACTIVE',
+      isInitialAdmin: false,
+      createdFromInvitationId: input.invitationId ?? null,
+    },
+    update: {
+      adminStatus: 'ACTIVE',
+      isInitialAdmin: false,
+      createdFromInvitationId: input.invitationId ?? null,
+    },
+  });
+
+  if (input.invitationId) {
+    await input.client.invitation.update({
+      where: { id: input.invitationId },
+      data: {
+        acceptedOrganisationAdminProfile: {
+          connect: { userId: input.userId },
+        },
+      },
+    });
+  }
+
+  return { userType: 'ORGANISATION_ADMIN' as const, adminProfileId: adminProfile.id };
+}
+
+async function updateUserToOrganisationTrainee(input: {
+  userId: string;
+  organisationId: string;
+  invitationId?: string | null;
+  client: Prisma.TransactionClient;
+}) {
+  await ensureDefaultOrganisationSecuritySettings(
+    { organisationId: input.organisationId },
+    input.client,
+  );
+
+  await input.client.user.update({
+    where: { id: input.userId },
+    data: {
+      userType: 'ORGANISATION_TRAINEE',
+      authStatus: 'ACTIVE',
+      emailVerifiedAt: new Date(),
+    },
+  });
+
+  const traineeProfile = await input.client.traineeProfile.upsert({
+    where: { userId: input.userId },
+    create: {
+      userId: input.userId,
+      traineeStatus: 'ACTIVE',
+    },
+    update: {
+      traineeStatus: 'ACTIVE',
+    },
+  });
+
+  const orgTraineeProfile = await input.client.organisationTraineeProfile.upsert({
+    where: { traineeProfileId: traineeProfile.id },
+    create: {
+      traineeProfileId: traineeProfile.id,
+      organisationId: input.organisationId,
+      membershipStatus: 'ACTIVE',
+    },
+    update: {
+      organisationId: input.organisationId,
+      membershipStatus: 'ACTIVE',
+    },
+  });
+
+  if (input.invitationId) {
+    await input.client.invitation.update({
+      where: { id: input.invitationId },
+      data: {
+        acceptedOrganisationTraineeProfile: {
+          connect: { traineeProfileId: traineeProfile.id },
+        },
+      },
+    });
+  }
+
+  return {
+    userType: 'ORGANISATION_TRAINEE' as const,
+    traineeProfileId: traineeProfile.id,
+    orgTraineeProfileId: orgTraineeProfile.traineeProfileId,
+  };
+}
+
+async function updateUserToPlatformAdmin(input: {
+  userId: string;
+  client: Prisma.TransactionClient;
+}) {
+  const existingUser = await loadUserWithRoleProfiles(input.userId, input.client);
+
+  if (
+    existingUser?.userType === 'ORGANISATION_ADMIN' ||
+    existingUser?.organisationAdminProfile?.adminStatus === 'ACTIVE'
+  ) {
+    throw new InvitationRepositoryConflictError(
+      'ROLE_TRANSITION_CONFLICT',
+      'An active organisation administrator cannot directly accept a platform administrator upgrade.',
+    );
+  }
+
+  await deactivateExistingTraineeMembership(
+    existingUser,
+    input.client,
+    'Promoted to platform admin',
+  );
+
+  await input.client.user.update({
+    where: { id: input.userId },
+    data: {
+      userType: 'IP_ADMIN',
+      authStatus: 'ACTIVE',
+      emailVerifiedAt: new Date(),
+    },
+  });
+
+  await input.client.ipAdminProfile.upsert({
+    where: { userId: input.userId },
+    create: {
+      userId: input.userId,
+      adminStatus: 'ACTIVE',
+    },
+    update: {
+      adminStatus: 'ACTIVE',
+      revokedAt: null,
+      revokedReason: null,
+    },
+  });
+
+  return { userType: 'IP_ADMIN' as const };
+}
+
 export async function updateUserRoleAndProfilesFromInvitation(
   input: {
     userId: string;
@@ -163,217 +383,44 @@ export async function updateUserRoleAndProfilesFromInvitation(
   },
   client: Prisma.TransactionClient,
 ) {
-  if (input.newRole !== 'ORGANISATION_ADMIN' && input.newRole !== 'ORGANISATION_TRAINEE') {
-    if (input.newRole !== 'IP_ADMIN' && input.newRole !== 'PLATFORM_ADMIN') {
-      throw new Error(`Unsupported role assignment: ${input.newRole}`);
-    }
+  if (
+    input.newRole !== 'ORGANISATION_ADMIN' &&
+    input.newRole !== 'ORGANISATION_TRAINEE' &&
+    input.newRole !== 'IP_ADMIN' &&
+    input.newRole !== 'PLATFORM_ADMIN'
+  ) {
+    throw new Error(`Unsupported role assignment: ${input.newRole}`);
   }
 
   if (input.newRole === 'ORGANISATION_ADMIN') {
     if (!input.organisationId) {
       throw new Error('organisationId is required when assigning ORGANISATION_ADMIN role.');
     }
-
-    const existingUser = await client.user.findUnique({
-      where: { id: input.userId },
-      include: {
-        traineeProfile: {
-          include: {
-            organisationTraineeProfile: true,
-          },
-        },
-        organisationAdminProfile: true,
-        ipAdminProfile: true,
-      },
-    });
-
-    if (existingUser?.traineeProfile) {
-      await client.traineeProfile.update({
-        where: { id: existingUser.traineeProfile.id },
-        data: { traineeStatus: 'INACTIVE' },
-      });
-    }
-
-    if (existingUser?.traineeProfile?.organisationTraineeProfile) {
-      await client.organisationTraineeProfile.update({
-        where: { traineeProfileId: existingUser.traineeProfile.id },
-        data: {
-          membershipStatus: 'INACTIVE',
-          disabledAt: new Date(),
-          disabledReason: 'Promoted to organisation admin',
-        },
-      });
-    }
-
-    await ensureDefaultOrganisationSecuritySettings(
-      { organisationId: input.organisationId },
+    return updateUserToOrganisationAdmin({
+      userId: input.userId,
+      organisationId: input.organisationId,
+      invitationId: input.invitationId,
       client,
-    );
-
-    await client.user.update({
-      where: { id: input.userId },
-      data: {
-        userType: 'ORGANISATION_ADMIN',
-        authStatus: 'ACTIVE',
-        emailVerifiedAt: new Date(),
-      },
     });
-
-    const adminProfile = await client.organisationAdminProfile.upsert({
-      where: { userId: input.userId },
-      create: {
-        userId: input.userId,
-        organisationId: input.organisationId,
-        adminStatus: 'ACTIVE',
-        isInitialAdmin: false,
-        createdFromInvitationId: input.invitationId ?? null,
-      },
-      update: {
-        adminStatus: 'ACTIVE',
-        isInitialAdmin: false,
-        createdFromInvitationId: input.invitationId ?? null,
-      },
-    });
-
-    if (input.invitationId) {
-      await client.invitation.update({
-        where: { id: input.invitationId },
-        data: {
-          acceptedOrganisationAdminProfile: {
-            connect: { userId: input.userId },
-          },
-        },
-      });
-    }
-
-    return { userType: 'ORGANISATION_ADMIN' as const, adminProfileId: adminProfile.id };
   }
 
   if (input.newRole === 'ORGANISATION_TRAINEE') {
     if (!input.organisationId) {
       throw new Error('organisationId is required when assigning ORGANISATION_TRAINEE role.');
     }
-
-    await ensureDefaultOrganisationSecuritySettings(
-      { organisationId: input.organisationId },
+    return updateUserToOrganisationTrainee({
+      userId: input.userId,
+      organisationId: input.organisationId,
+      invitationId: input.invitationId,
       client,
-    );
-
-    await client.user.update({
-      where: { id: input.userId },
-      data: {
-        userType: 'ORGANISATION_TRAINEE',
-        authStatus: 'ACTIVE',
-        emailVerifiedAt: new Date(),
-      },
     });
-
-    const traineeProfile = await client.traineeProfile.upsert({
-      where: { userId: input.userId },
-      create: {
-        userId: input.userId,
-        traineeStatus: 'ACTIVE',
-      },
-      update: {
-        traineeStatus: 'ACTIVE',
-      },
-    });
-
-    const orgTraineeProfile = await client.organisationTraineeProfile.upsert({
-      where: { traineeProfileId: traineeProfile.id },
-      create: {
-        traineeProfileId: traineeProfile.id,
-        organisationId: input.organisationId,
-        membershipStatus: 'ACTIVE',
-      },
-      update: {
-        organisationId: input.organisationId,
-        membershipStatus: 'ACTIVE',
-      },
-    });
-
-    if (input.invitationId) {
-      await client.invitation.update({
-        where: { id: input.invitationId },
-        data: {
-          acceptedOrganisationTraineeProfile: {
-            connect: { traineeProfileId: traineeProfile.id },
-          },
-        },
-      });
-    }
-
-    return {
-      userType: 'ORGANISATION_TRAINEE' as const,
-      traineeProfileId: traineeProfile.id,
-      orgTraineeProfileId: orgTraineeProfile.traineeProfileId,
-    };
   }
 
   if (input.newRole === 'IP_ADMIN' || input.newRole === 'PLATFORM_ADMIN') {
-    const existingUser = await client.user.findUnique({
-      where: { id: input.userId },
-      include: {
-        traineeProfile: {
-          include: {
-            organisationTraineeProfile: true,
-          },
-        },
-        organisationAdminProfile: true,
-        ipAdminProfile: true,
-      },
+    return updateUserToPlatformAdmin({
+      userId: input.userId,
+      client,
     });
-
-    if (
-      existingUser?.userType === 'ORGANISATION_ADMIN' ||
-      existingUser?.organisationAdminProfile?.adminStatus === 'ACTIVE'
-    ) {
-      throw new InvitationRepositoryConflictError(
-        'ROLE_TRANSITION_CONFLICT',
-        'An active organisation administrator cannot directly accept a platform administrator upgrade.',
-      );
-    }
-
-    if (existingUser?.traineeProfile) {
-      await client.traineeProfile.update({
-        where: { id: existingUser.traineeProfile.id },
-        data: { traineeStatus: 'INACTIVE' },
-      });
-      if (existingUser.traineeProfile.organisationTraineeProfile) {
-        await client.organisationTraineeProfile.update({
-          where: { traineeProfileId: existingUser.traineeProfile.id },
-          data: {
-            membershipStatus: 'INACTIVE',
-            disabledAt: new Date(),
-            disabledReason: 'Promoted to platform admin',
-          },
-        });
-      }
-    }
-
-    await client.user.update({
-      where: { id: input.userId },
-      data: {
-        userType: 'IP_ADMIN',
-        authStatus: 'ACTIVE',
-        emailVerifiedAt: new Date(),
-      },
-    });
-
-    await client.ipAdminProfile.upsert({
-      where: { userId: input.userId },
-      create: {
-        userId: input.userId,
-        adminStatus: 'ACTIVE',
-      },
-      update: {
-        adminStatus: 'ACTIVE',
-        revokedAt: null,
-        revokedReason: null,
-      },
-    });
-
-    return { userType: 'IP_ADMIN' as const };
   }
 
   throw new Error(`Unsupported role assignment: ${input.newRole}`);

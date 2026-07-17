@@ -274,15 +274,13 @@ async function completeInvitationAcceptanceTransaction(input: {
     );
 
     const isPromotion = userTx.userType !== roleUpdate.userType;
+    const adminProfileId =
+      roleUpdate.userType === 'ORGANISATION_ADMIN' ? roleUpdate.adminProfileId : null;
 
-    if (
-      invitationRole === 'ORGANISATION_ADMIN' &&
-      roleUpdate.adminProfileId &&
-      invTx?.permissionGrants
-    ) {
+    if (invitationRole === 'ORGANISATION_ADMIN' && adminProfileId && invTx?.permissionGrants) {
       await insertInvitationPermissionGrantsToAdmin(
         invTx.organisationId,
-        roleUpdate.adminProfileId,
+        adminProfileId,
         invTx.permissionGrants,
         tx,
       );

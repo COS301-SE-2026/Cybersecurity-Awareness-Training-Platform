@@ -514,6 +514,7 @@ export async function createOrganisationTraineeInvitation(
   const invitationLifecycleState = deriveInvitationLifecycleState(
     finalInvite ?? { status: 'PENDING', expiresAt: txResult.expiresAt },
   );
+
   const canResend =
     invitationLifecycleState === 'PENDING' ||
     invitationLifecycleState === 'SENT' ||
@@ -522,16 +523,23 @@ export async function createOrganisationTraineeInvitation(
   const deliveryState: 'PENDING' | 'SENT' | 'FAILED' | 'UNKNOWN' = emailResult.deliveryStatus;
   const isDeliveryUnknown = deliveryState === 'UNKNOWN';
   const emailDelivered = emailResult.ok;
+
+  const invitationStatus = emailDelivered ? 'INVITE_PENDING' : 'INVITE_FAILED';
+
+  let resendMessage = 'Invitation created, but email delivery failed to send.';
+  if (isDeliveryUnknown) {
+    resendMessage =
+      'Invitation was created and queued, but email delivery outcome is unknown because persistence failed after provider acceptance.';
+  } else if (emailDelivered) {
+    resendMessage = 'Invitation sent successfully.';
+  }
+
   const invitationExpiresAt = (finalInvite?.expiresAt ?? txResult.expiresAt).toISOString();
   const createdAt = txResult.invitation.createdAt.toISOString();
 
   return {
     success: true,
-    message: isDeliveryUnknown
-      ? 'Invitation created and queued, but email delivery outcome is unknown because persistence failed after provider acceptance.'
-      : emailDelivered
-        ? 'Invitation sent successfully.'
-        : 'Invitation created, but email delivery failed to send.',
+    message: resendMessage,
     invitation: {
       id: txResult.invitation.id,
       rowType: 'INVITATION',
@@ -544,7 +552,7 @@ export async function createOrganisationTraineeInvitation(
       email: txResult.invitation.recipientEmail,
       firstName: txResult.invitation.recipientFirstName ?? null,
       lastName: txResult.invitation.recipientLastName ?? null,
-      status: emailDelivered ? 'INVITE_PENDING' : 'INVITE_FAILED',
+      status: invitationStatus,
       createdAt,
       joinedAt: null,
       invitedAt: createdAt,
@@ -709,6 +717,17 @@ export async function resendTraineeInvitation(
   const deliveryState: 'PENDING' | 'SENT' | 'FAILED' | 'UNKNOWN' = emailResult.deliveryStatus;
   const isDeliveryUnknown = deliveryState === 'UNKNOWN';
   const emailDelivered = emailResult.ok;
+  const resendMessage = isDeliveryUnknown
+    ? 'Invitation was resent and the action token rotated, but email delivery outcome is unknown because persistence failed after provider acceptance.'
+    : emailDelivered
+      ? 'Invitation resent successfully.'
+      : 'Invitation action token rotated successfully, but email delivery failed to send.';
+  const resendStatus =
+    updatedInvitation?.status === 'SENT'
+      ? 'SENT'
+      : updatedInvitation?.status === 'FAILED_TO_SEND'
+        ? 'FAILED_TO_SEND'
+        : 'PENDING';
   const canResend =
     invitationLifecycleState === 'PENDING' ||
     invitationLifecycleState === 'SENT' ||
@@ -716,21 +735,13 @@ export async function resendTraineeInvitation(
   const canRevoke = canResend;
   const invitationExpiresAt = (updatedInvitation?.expiresAt ?? txResult.expiresAt).toISOString();
   const createdAt = invitation.createdAt.toISOString();
+  const invitationStatus = emailDelivered ? 'INVITE_PENDING' : 'INVITE_FAILED';
 
   return {
     success: true,
-    message: isDeliveryUnknown
-      ? 'Invitation was resent and the action token rotated, but email delivery outcome is unknown because persistence failed after provider acceptance.'
-      : emailDelivered
-        ? 'Invitation resent successfully.'
-        : 'Invitation action token rotated successfully, but email delivery failed to send.',
+    message: resendMessage,
     invitationId: invitation.id,
-    status:
-      updatedInvitation?.status === 'SENT'
-        ? 'SENT'
-        : updatedInvitation?.status === 'FAILED_TO_SEND'
-          ? 'FAILED_TO_SEND'
-          : 'PENDING',
+    status: resendStatus,
     resentAt: new Date().toISOString(),
     invitation: {
       id: invitation.id,
@@ -744,7 +755,7 @@ export async function resendTraineeInvitation(
       email: invitation.recipientEmail,
       firstName: invitation.recipientFirstName ?? null,
       lastName: invitation.recipientLastName ?? null,
-      status: emailDelivered ? 'INVITE_PENDING' : 'INVITE_FAILED',
+      status: invitationStatus,
       createdAt,
       joinedAt: null,
       invitedAt: createdAt,
@@ -830,7 +841,7 @@ export async function revokeTraineeInvitation(
 
     if (claimedInv.count === 0) {
       const txInv = await findInvitationById(invitation.id, tx);
-      if (txInv && txInv.status === 'REVOKED') {
+      if (txInv?.status === 'REVOKED') {
         return {
           success: true,
           message: 'Invitation has already been revoked.',
