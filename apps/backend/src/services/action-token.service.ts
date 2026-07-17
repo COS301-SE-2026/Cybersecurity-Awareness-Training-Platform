@@ -167,39 +167,56 @@ function determineTokenState(
   return 'VALID';
 }
 
+function canResendPasswordReset(token: ActionTokenWithRelations) {
+  return token.user ? token.user.authStatus !== 'DISABLED' : false;
+}
+
+function canResendEmailVerification(token: ActionTokenWithRelations) {
+  return token.user ? token.user.authStatus === 'PENDING_EMAIL_VERIFICATION' : false;
+}
+
+function canResendEmailChangeVerification(token: ActionTokenWithRelations) {
+  return token.emailChangeRequest ? token.emailChangeRequest.status === 'PENDING' : false;
+}
+
+function canResendPlatformAdminUpgradeConfirmation(token: ActionTokenWithRelations) {
+  return token.user ? token.user.authStatus !== 'DISABLED' : true;
+}
+
+function canResendInvitation(token: ActionTokenWithRelations) {
+  return token.invitation
+    ? token.invitation.status !== 'ACCEPTED' &&
+        token.invitation.status !== 'REVOKED' &&
+        token.invitation.status !== 'COMPLETED'
+    : false;
+}
+
+function canResendByPurpose(token: ActionTokenWithRelations) {
+  switch (token.purpose) {
+    case 'PASSWORD_RESET':
+      return canResendPasswordReset(token);
+    case 'EMAIL_VERIFICATION':
+      return canResendEmailVerification(token);
+    case 'EMAIL_CHANGE_VERIFICATION':
+      return canResendEmailChangeVerification(token);
+    case 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION':
+      return canResendPlatformAdminUpgradeConfirmation(token);
+    case 'INITIAL_ORGANISATION_ADMIN_SETUP':
+    case 'ORGANISATION_TRAINEE_INVITE':
+    case 'ORGANISATION_ADMIN_PROMOTION':
+    case 'PLATFORM_ADMIN_INVITE':
+      return canResendInvitation(token);
+    default:
+      return false;
+  }
+}
+
 function checkResendEligibility(token: ActionTokenWithRelations, state: ActionTokenState): boolean {
   if (state !== 'VALID' && state !== 'EXPIRED') {
     return false;
   }
 
-  const flow = token.purpose;
-
-  if (flow === 'PASSWORD_RESET') {
-    return token.user ? token.user.authStatus !== 'DISABLED' : false;
-  }
-  if (flow === 'EMAIL_VERIFICATION') {
-    return token.user ? token.user.authStatus === 'PENDING_EMAIL_VERIFICATION' : false;
-  }
-  if (flow === 'EMAIL_CHANGE_VERIFICATION') {
-    return token.emailChangeRequest ? token.emailChangeRequest.status === 'PENDING' : false;
-  }
-  if (flow === 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION') {
-    return token.user ? token.user.authStatus !== 'DISABLED' : true;
-  }
-  if (
-    flow === 'INITIAL_ORGANISATION_ADMIN_SETUP' ||
-    flow === 'ORGANISATION_TRAINEE_INVITE' ||
-    flow === 'ORGANISATION_ADMIN_PROMOTION' ||
-    flow === 'PLATFORM_ADMIN_INVITE'
-  ) {
-    return token.invitation
-      ? token.invitation.status !== 'ACCEPTED' &&
-          token.invitation.status !== 'REVOKED' &&
-          token.invitation.status !== 'COMPLETED'
-      : false;
-  }
-
-  return false;
+  return canResendByPurpose(token);
 }
 
 function getRecipientEmail(token: ActionTokenWithRelations): string | null {

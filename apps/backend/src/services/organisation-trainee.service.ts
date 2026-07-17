@@ -85,9 +85,168 @@ function buildEligibility(input: {
   return input;
 }
 
+function isOrganisationTraineeActive(trainee: {
+  disabledAt: Date | null;
+  membershipStatus: string;
+}) {
+  return trainee.disabledAt == null && trainee.membershipStatus !== 'DISABLED';
+}
+
+function getTraineeStatus(trainee: { disabledAt: Date | null; membershipStatus: string }) {
+  return isOrganisationTraineeActive(trainee) ? ('ACTIVE' as const) : ('DISABLED' as const);
+}
+
+function getTraineeEligibilityMessage(trainee: {
+  disabledAt: Date | null;
+  membershipStatus: string;
+}) {
+  return isOrganisationTraineeActive(trainee) ? null : 'Trainee profile is already disabled.';
+}
+
+function getTraineeEligibilityCode(trainee: { disabledAt: Date | null; membershipStatus: string }) {
+  return isOrganisationTraineeActive(trainee) ? null : ('NOT_APPLICABLE' as const);
+}
+
+function getInvitationDeliveryState(
+  invitation: TraineeListInvitation,
+  latestLog?: { deliveryStatus: string } | undefined,
+) {
+  if (latestLog?.deliveryStatus === 'SENT') {
+    return 'SENT' as const;
+  }
+  if (latestLog?.deliveryStatus === 'FAILED') {
+    return 'FAILED' as const;
+  }
+  if (invitation.status === 'FAILED_TO_SEND') {
+    return 'FAILED' as const;
+  }
+  return 'PENDING' as const;
+}
+
+function getInvitationResendDisabledReason(
+  canResend: boolean,
+  managementReasonCode: InvitationActionUnavailableReasonCode | null,
+  resendCooldownSeconds: number,
+) {
+  if (canResend) {
+    return null;
+  }
+  if (managementReasonCode === 'COOLDOWN_ACTIVE' || resendCooldownSeconds > 0) {
+    return 'Resend cooldown is currently active.';
+  }
+  return 'Invitation is no longer active.';
+}
+
+function getInvitationResendDisabledReasonCode(
+  canResend: boolean,
+  managementReasonCode: InvitationActionUnavailableReasonCode | null,
+) {
+  if (canResend) {
+    return null;
+  }
+  return managementReasonCode ?? 'INVITATION_NOT_ACTIVE';
+}
+
+function assertInvitationCreateEligibility(input: {
+  organisationId: string;
+  existingTrainee: Awaited<ReturnType<typeof findOrganisationTraineeByEmail>>;
+  existingInvite: Awaited<ReturnType<typeof findPendingTraineeInvitationByEmail>>;
+  existingUser: Awaited<ReturnType<typeof findUserByEmailWithProfiles>>;
+}) {
+  const { organisationId, existingTrainee, existingInvite, existingUser } = input;
+
+  if (existingTrainee && !isOrganisationTraineeActive(existingTrainee)) {
+    throw new OrganisationTraineeServiceError(
+      409,
+      'CANNOT_INVITE_USER',
+      'User already has a disabled or inactive trainee membership in this organisation.',
+    );
+  }
+
+  if (existingInvite) {
+    throw new OrganisationTraineeServiceError(
+      409,
+      'CANNOT_INVITE_USER',
+      'A pending invitation already exists for this email address.',
+    );
+  }
+
+  const isPlatformAdmin = existingUser?.userType === 'IP_ADMIN';
+  const orgId = existingUser?.traineeProfile?.organisationTraineeProfile?.organisationId;
+  const belongsToAnotherOrg = orgId !== undefined && orgId !== organisationId;
+
+  if (isPlatformAdmin || belongsToAnotherOrg) {
+    throw new OrganisationTraineeServiceError(
+      409,
+      'CANNOT_INVITE_USER',
+      'The requested user cannot be invited to this organisation.',
+    );
+  }
+
+  return Boolean(
+    existingUser &&
+    existingUser.userType !== 'ORGANISATION_TRAINEE' &&
+    existingUser.userType !== 'GENERAL_TRAINEE',
+  );
+}
+
+function assertInvitationResendEligibility(input: {
+  invitation: Awaited<ReturnType<typeof findInvitationById>>;
+  organisationId: string;
+  existingUser: Awaited<ReturnType<typeof findUserByEmailWithProfiles>>;
+}) {
+  const { invitation, organisationId, existingUser } = input;
+  if (
+    !invitation ||
+    invitation.purpose !== 'ORGANISATION_TRAINEE_INVITE' ||
+    invitation.organisationId !== organisationId
+  ) {
+    throw new OrganisationTraineeServiceError(
+      404,
+      'INVITATION_NOT_FOUND',
+      'Trainee invitation not found.',
+    );
+  }
+
+  if (invitation.status === 'ACCEPTED') {
+    throw new OrganisationTraineeServiceError(
+      409,
+      'INVITATION_ALREADY_ACCEPTED',
+      'Cannot resend an invitation that has already been accepted.',
+    );
+  }
+
+  if (invitation.status === 'REVOKED') {
+    throw new OrganisationTraineeServiceError(
+      409,
+      'INVITATION_REVOKED',
+      'Cannot resend an invitation that has been revoked.',
+    );
+  }
+
+  const isPlatformAdmin = existingUser?.userType === 'IP_ADMIN';
+  const orgId = existingUser?.traineeProfile?.organisationTraineeProfile?.organisationId;
+  const belongsToAnotherOrg = orgId !== undefined && orgId !== invitation.organisationId;
+
+  if (isPlatformAdmin || belongsToAnotherOrg) {
+    throw new OrganisationTraineeServiceError(
+      409,
+      'CANNOT_INVITE_USER',
+      'The requested user cannot be invited to this organisation.',
+    );
+  }
+
+  return Boolean(
+    existingUser &&
+    existingUser.userType !== 'ORGANISATION_TRAINEE' &&
+    existingUser.userType !== 'GENERAL_TRAINEE',
+  );
+}
+
 function buildActiveTraineeRow(
   trainee: Awaited<ReturnType<typeof findOrganisationTrainees>>[number],
 ): TraineeListItemDto {
+  const active = isOrganisationTraineeActive(trainee);
   return {
     id: trainee.id,
     rowType: 'ACTIVE_TRAINEE' as const,
@@ -100,7 +259,7 @@ function buildActiveTraineeRow(
     email: trainee.traineeProfile.user.email,
     firstName: trainee.traineeProfile.user.firstName ?? null,
     lastName: trainee.traineeProfile.user.lastName ?? null,
-    status: trainee.disabledAt || trainee.membershipStatus === 'DISABLED' ? 'DISABLED' : 'ACTIVE',
+    status: getTraineeStatus(trainee),
     createdAt: trainee.createdAt.toISOString(),
     joinedAt: trainee.createdAt.toISOString(),
     invitedAt: null,
@@ -115,29 +274,17 @@ function buildActiveTraineeRow(
     eligibility: buildEligibility({
       canResend: false,
       canRevoke: false,
-      canDisable: trainee.disabledAt == null && trainee.membershipStatus !== 'DISABLED',
-      canPromote: trainee.disabledAt == null && trainee.membershipStatus !== 'DISABLED',
+      canDisable: active,
+      canPromote: active,
       resendCooldownSeconds: 0,
       resendDisabledReason: 'Resend is only available for invitations.',
       revokeDisabledReason: 'Revoke is only available for invitations.',
-      disableDisabledReason:
-        trainee.disabledAt == null && trainee.membershipStatus !== 'DISABLED'
-          ? null
-          : 'Trainee profile is already disabled.',
-      promoteDisabledReason:
-        trainee.disabledAt == null && trainee.membershipStatus !== 'DISABLED'
-          ? null
-          : 'Only active trainees can be promoted.',
+      disableDisabledReason: getTraineeEligibilityMessage(trainee),
+      promoteDisabledReason: active ? null : 'Only active trainees can be promoted.',
       resendDisabledReasonCode: 'NOT_APPLICABLE',
       revokeDisabledReasonCode: 'NOT_APPLICABLE',
-      disableDisabledReasonCode:
-        trainee.disabledAt == null && trainee.membershipStatus !== 'DISABLED'
-          ? null
-          : 'NOT_APPLICABLE',
-      promoteDisabledReasonCode:
-        trainee.disabledAt == null && trainee.membershipStatus !== 'DISABLED'
-          ? null
-          : 'NOT_APPLICABLE',
+      disableDisabledReasonCode: getTraineeEligibilityCode(trainee),
+      promoteDisabledReasonCode: getTraineeEligibilityCode(trainee),
     }),
   };
 }
@@ -151,14 +298,7 @@ function buildInvitationRow(invitation: TraineeListInvitation, now: Date): Train
       : undefined;
   const lifecycleState = deriveInvitationLifecycleState(invitation, now);
   const managementPolicy = getInvitationActionPolicy(invitation, now);
-  const deliveryState =
-    latestLog?.deliveryStatus === 'SENT'
-      ? 'SENT'
-      : latestLog?.deliveryStatus === 'FAILED'
-        ? 'FAILED'
-        : invitation.status === 'FAILED_TO_SEND'
-          ? 'FAILED'
-          : 'PENDING';
+  const deliveryState = getInvitationDeliveryState(invitation, latestLog);
   const cooldownBase = latestLog?.createdAt ? new Date(latestLog.createdAt).getTime() : null;
   let resendCooldownSeconds = 0;
 
@@ -205,23 +345,18 @@ function buildInvitationRow(invitation: TraineeListInvitation, now: Date): Train
       canDisable: false,
       canPromote: false,
       resendCooldownSeconds,
-      resendDisabledReason:
-        !canResend && managementPolicy.resendDisabledReasonCode === 'COOLDOWN_ACTIVE'
-          ? 'Resend cooldown is currently active.'
-          : !canResend
-            ? 'Invitation is no longer active.'
-            : resendCooldownSeconds > 0
-              ? 'Resend cooldown is currently active.'
-              : null,
+      resendDisabledReason: getInvitationResendDisabledReason(
+        canResend,
+        managementPolicy.resendDisabledReasonCode,
+        resendCooldownSeconds,
+      ),
       revokeDisabledReason: !canRevoke ? 'Invitation is no longer active.' : null,
       disableDisabledReason: 'Cannot disable a pending invitation.',
       promoteDisabledReason: 'Only active trainees can be promoted.',
-      resendDisabledReasonCode:
-        !canResend && managementPolicy.resendDisabledReasonCode === 'COOLDOWN_ACTIVE'
-          ? 'COOLDOWN_ACTIVE'
-          : !canResend
-            ? (managementPolicy.resendDisabledReasonCode ?? 'INVITATION_NOT_ACTIVE')
-            : null,
+      resendDisabledReasonCode: getInvitationResendDisabledReasonCode(
+        canResend,
+        managementPolicy.resendDisabledReasonCode,
+      ),
       revokeDisabledReasonCode: !canRevoke
         ? (managementPolicy.revokeDisabledReasonCode ?? 'INVITATION_NOT_ACTIVE')
         : null,
@@ -282,42 +417,12 @@ export async function createOrganisationTraineeInvitation(
     findUserByEmailWithProfiles(normalisedEmail),
   ]);
 
-  if (
-    existingTrainee &&
-    (existingTrainee.membershipStatus !== 'ACTIVE' || existingTrainee.disabledAt)
-  ) {
-    throw new OrganisationTraineeServiceError(
-      409,
-      'CANNOT_INVITE_USER',
-      'User already has a disabled or inactive trainee membership in this organisation.',
-    );
-  }
-
-  if (existingInvite) {
-    throw new OrganisationTraineeServiceError(
-      409,
-      'CANNOT_INVITE_USER',
-      'A pending invitation already exists for this email address.',
-    );
-  }
-
-  const isPlatformAdmin = existingUser?.userType === 'IP_ADMIN';
-  const orgId = existingUser?.traineeProfile?.organisationTraineeProfile?.organisationId;
-  const belongsToAnotherOrg = orgId !== undefined && orgId !== organisationId;
-
-  if (isPlatformAdmin || belongsToAnotherOrg) {
-    throw new OrganisationTraineeServiceError(
-      409,
-      'CANNOT_INVITE_USER',
-      'The requested user cannot be invited to this organisation.',
-    );
-  }
-
-  const requiresAccountConflictResolution = Boolean(
-    existingUser &&
-    existingUser.userType !== 'ORGANISATION_TRAINEE' &&
-    existingUser.userType !== 'GENERAL_TRAINEE',
-  );
+  const requiresAccountConflictResolution = assertInvitationCreateEligibility({
+    organisationId,
+    existingTrainee,
+    existingInvite,
+    existingUser,
+  });
 
   const txResult = await prisma.$transaction(async (tx) => {
     if (typeof tx.$executeRaw === 'function') {
@@ -484,8 +589,9 @@ export async function resendTraineeInvitation(
 
   const invitation = await findInvitationById(invitationId);
   if (
-    invitation?.purpose !== 'ORGANISATION_TRAINEE_INVITE' ||
-    invitation?.organisationId !== organisationId
+    !invitation ||
+    invitation.purpose !== 'ORGANISATION_TRAINEE_INVITE' ||
+    invitation.organisationId !== organisationId
   ) {
     throw new OrganisationTraineeServiceError(
       404,
@@ -494,43 +600,14 @@ export async function resendTraineeInvitation(
     );
   }
 
-  const observedUpdatedAt = invitation.updatedAt;
-
-  if (invitation.status === 'ACCEPTED') {
-    throw new OrganisationTraineeServiceError(
-      409,
-      'INVITATION_ALREADY_ACCEPTED',
-      'Cannot resend an invitation that has already been accepted.',
-    );
-  }
-
-  if (invitation.status === 'REVOKED') {
-    throw new OrganisationTraineeServiceError(
-      409,
-      'INVITATION_REVOKED',
-      'Cannot resend an invitation that has been revoked.',
-    );
-  }
-
   const existingUser = await findUserByEmailWithProfiles(invitation.recipientEmail);
+  const requiresAccountConflictResolution = assertInvitationResendEligibility({
+    invitation,
+    organisationId,
+    existingUser,
+  });
 
-  const isPlatformAdmin = existingUser?.userType === 'IP_ADMIN';
-  const orgId = existingUser?.traineeProfile?.organisationTraineeProfile?.organisationId;
-  const belongsToAnotherOrg = orgId !== undefined && orgId !== invitation.organisationId;
-
-  if (isPlatformAdmin || belongsToAnotherOrg) {
-    throw new OrganisationTraineeServiceError(
-      409,
-      'CANNOT_INVITE_USER',
-      'The requested user cannot be invited to this organisation.',
-    );
-  }
-
-  const requiresAccountConflictResolution = Boolean(
-    existingUser &&
-    existingUser.userType !== 'ORGANISATION_TRAINEE' &&
-    existingUser.userType !== 'GENERAL_TRAINEE',
-  );
+  const observedUpdatedAt = invitation.updatedAt;
 
   const txResult = await prisma.$transaction(async (tx) => {
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);

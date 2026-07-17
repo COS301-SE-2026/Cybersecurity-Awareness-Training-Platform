@@ -254,19 +254,6 @@ export async function updateUserRoleAndProfilesFromInvitation(
       throw new Error('organisationId is required when assigning ORGANISATION_TRAINEE role.');
     }
 
-    const existingUser = await client.user.findUnique({
-      where: { id: input.userId },
-      include: {
-        traineeProfile: {
-          include: {
-            organisationTraineeProfile: true,
-          },
-        },
-        organisationAdminProfile: true,
-        ipAdminProfile: true,
-      },
-    });
-
     await ensureDefaultOrganisationSecuritySettings(
       { organisationId: input.organisationId },
       client,
