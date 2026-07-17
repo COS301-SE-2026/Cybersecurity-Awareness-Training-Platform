@@ -230,100 +230,6 @@ UC-03 allows a trainee to open assigned quiz content, answer supported questions
 - Submission fails: Preserve answers where possible and allow retry.
 - Results fail to load: Keep the attempt submitted and provide a retry or navigation option.
 
-<<<<<<< HEAD
-### 3.4 UC-05: Review and Manage Organisation Registrations
-
-[UC-05 use case diagram](./diagrams/uc05-org-review-use-case.drawio.svg)
-
-#### User Story
-
-As an Insightful Phish platform admin, I want to review and manage organisation registration requests so that valid organisations can be onboarded safely and invalid requests can be rejected with traceable decisions.
-
-#### Purpose
-
-This use case allows a platform admin to access organisation registration requests, inspect submitted details, mark requests as contacted, approve requests, and reject requests. The use case ensures organisation onboarding actions are role-restricted, auditable, and linked to planned frontend, backend, integration, and test work.
-
-#### Scope
-
-- **TUCBW**: An Insightful Phish platform admin reviews organisation registration requests on the platform organisation management page.
-- **TUCEW**: The platform admin acknowledges that the selected organisation registration request has been contacted, approved, rejected, or reviewed successfully.
-
-#### Actors
-
-- Primary actor: Insightful Phish platform admin
-- Supporting actor: Email service
-- System actor: Audit log
-
-#### Preconditions
-
-- The platform admin is authenticated.
-- The platform admin has an active platform-admin profile.
-- At least one organisation registration request exists or the page supports empty-state review.
-- The selected registration request is available for the requested action.
-- The platform admin has permission to review and manage organisation registrations.
-
-#### Postconditions
-
-- The platform admin sees the latest registration list and request state after the selected action.
-- If marked contacted, the request reflects contacted status and timestamp.
-- If approved, the organisation is created and an initial organisation-admin setup invite is issued.
-- If rejected, the request reflects rejected status and reason metadata where policy requires it.
-- Audit records are created for decision actions and key state transitions.
-- On validation, permission, or state conflicts, no partial or unsafe state is committed.
-
-#### Main Flow
-
-1. The platform admin navigates to the organisation registration management page.
-2. The system retrieves and displays registration requests with status and summary details.
-3. The platform admin selects a registration request.
-4. The system displays full request details.
-5. The platform admin chooses one supported action:
-   - Option A: Mark contacted
-     a. The platform admin marks the request as contacted.
-     b. The system validates the request state and stores contacted status.
-     c. The system records the action in the audit log.
-   - Option B: Approve request
-     a. The platform admin approves the request.
-     b. The system validates approvability and duplicate-organisation constraints.
-     c. The system creates the organisation and prepares initial admin setup invite delivery.
-     d. The system records the approval and onboarding action in the audit log.
-   - Option C: Reject request
-     a. The platform admin rejects the request.
-     b. The system validates rejectability and reason requirements.
-     c. The system stores the rejected state and reason metadata according to policy.
-     d. The system records the rejection in the audit log.
-   - Option D: View details only
-     a. The platform admin reviews request detail without changing state.
-     b. The system shows current request status and prior actions.
-6. The system returns updated request status and feedback for the selected action.
-7. The platform admin acknowledges the outcome.
-
-#### Exceptions
-
-- **Unauthenticated User**: The user is not signed in. The system redirects to login or returns an unauthorised response.
-- **Missing Platform-Admin Role**: The actor is not a platform admin. The system denies access to organisation registration management.
-- **Request Not Found**: The selected request does not exist. The system shows a safe not-found response.
-- **Invalid State Transition**: The selected action is not valid for the current request state. The system rejects the action and keeps current state.
-- **Duplicate Organisation Conflict**: Approval would create a conflicting organisation record. The system rejects the approval and reports conflict safely.
-- **Invite Delivery Failure**: Organisation approval succeeds but invite delivery fails. The system records the delivery failure for follow-up and shows the current onboarding state.
-- **Audit Logging Failure**: The system cannot record the required audit entry. The system applies audit-failure policy and does not silently hide decision actions.
-- **Concurrent Update Conflict**: The request was changed by another admin. The system rejects stale updates and asks for refresh.
-
-#### Business Rules and RBAC Expectations
-
-- Only platform admins may list, view, contact, approve, or reject organisation registration requests.
-- All state-changing actions shall be audit logged with actor, target request, decision type, and timestamp.
-- Approval shall create organisation onboarding state exactly once for a request.
-- Contacted, approved, and rejected transitions shall enforce allowed state transitions and prevent invalid backtracking.
-- Request details and actions shall be visible only inside platform-admin management scope.
-
-#### Traceability
-
-- Use case: UC-05: Review and Manage Organisation Registrations.
-- SRS documentation issue: #253
-- Related implementation, integration, and test issues: #254, #255, #256, #257, #258, #259, #260
-- Reserved Demo 1 use cases remain unchanged: UC-01, UC-02, UC-03.
-=======
 ### 3.4 UC-07: Accept Organisation Invitation
 
 #### User Story
@@ -411,7 +317,6 @@ UC-07 allows an invited user to open a tokenised invitation link, review a safe 
 - Backend endpoint issue: #265
 - Integration issue: #266
 - Backend integration-test issue: #270
->>>>>>> 704a8e814 (issue #263 docs: define SRS)
 
 ### 3.5 UC-09: Manage Organisation Admins and Permissions
 
@@ -643,24 +548,6 @@ This use case allows an authorised organisation admin to view and update organis
 | FR-UC03-08 | The system shall prevent duplicate final submission or further editing of a completed quiz attempt.                                   |
 | FR-UC03-09 | The system shall display safe validation and error states when quiz loading, attempt creation, submission, or result retrieval fails. |
 
-<<<<<<< HEAD
-### 4.5 UC-05 Functional Requirements
-
-#### Review and Manage Organisation Registrations
-
-| ID         | Requirement                                                                                                                                        |
-| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| FR-UC05-01 | The system shall allow only authenticated platform admins to access organisation registration review features.                                     |
-| FR-UC05-02 | The system shall display a platform-admin-only list of organisation registration requests with actionable statuses.                                |
-| FR-UC05-03 | The system shall allow a platform admin to view full details for a selected registration request.                                                  |
-| FR-UC05-04 | The system shall allow a platform admin to mark a registration request as contacted when the state transition is valid.                            |
-| FR-UC05-05 | The system shall allow a platform admin to approve a valid registration request and create organisation onboarding state.                          |
-| FR-UC05-06 | The system shall allow a platform admin to reject a valid registration request and persist rejection metadata according to policy.                 |
-| FR-UC05-07 | The system shall prevent invalid or duplicate state transitions for contacted, approved, and rejected actions.                                     |
-| FR-UC05-08 | The system shall trigger initial organisation-admin setup invitation flow when approval succeeds.                                                  |
-| FR-UC05-09 | The system shall record audit entries for review decisions and decision-related state changes.                                                     |
-| FR-UC05-10 | The system shall return safe validation, conflict, and not-found feedback without exposing internal implementation details to unauthorised actors. |
-=======
 ### 4.5 UC-07 Functional Requirements
 
 #### Accept Organisation Invitation
@@ -676,7 +563,6 @@ This use case allows an authorised organisation admin to view and update organis
 | FR-UC07-07 | The system shall complete the invitation transaction only after the invitation state, identity match, and organisation scope checks succeed.                      |
 | FR-UC07-08 | The system shall mark the invitation token as consumed after successful acceptance and prevent the same token from being used again.                              |
 | FR-UC07-09 | The system shall preserve the previous account and organisation state when invitation acceptance fails.                                                           |
->>>>>>> 704a8e814 (issue #263 docs: define SRS)
 
 ### 4.6 Tracking, Progress, and Reporting Support
 
@@ -818,28 +704,6 @@ Demo 1 uses the following technology stack:
 
 ## Appendix A: Document Change History
 
-<<<<<<< HEAD
-| Version | Date       | Author(s)                | Sections / Area Updated                            | Summary of Change                                                                                      |
-| ------- | ---------- | ------------------------ | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| 0.1.0   | 2026-04-27 | Johan Nel                | Initial document                                   | Created the initial Demo 1 SRS structure.                                                              |
-| 0.1.1   | 2026-04-28 | Adriano Jorge            | UC-01 simulated inbox; traceability references     | Added simulated inbox requirements and related SRS refinements.                                        |
-| 0.1.2   | 2026-04-30 | Rudolph Lamprecht        | Admin/campaign context; architecture/API alignment | Added campaign/admin-related SRS content and aligned with early API/architecture thinking.             |
-| 0.1.3   | 2026-04-30 | Zoë Joubert; Connor Bell | UC-03 quiz flow; traceability                      | Added quiz-flow requirements and corrected related traceability.                                       |
-| 0.1.4   | 2026-04-30 | Connor Bell              | UC-02 training document                            | Added final Demo 1 training-view SRS requirements.                                                     |
-| 0.1.5   | 2026-05-01 | Adriano Jorge            | Domain model alignment                             | Added SRS alignment for the initial domain model.                                                      |
-| 0.1.6   | 2026-05-03 | Zoë Joubert              | Validation; feedback; phishing feedback scope      | Added validation and UI feedback requirements for Demo 1.                                              |
-| 0.1.7   | 2026-05-07 | Johan Nel                | Document structure; cross-references; use cases    | Reworked SRS structure and aligned it with related Demo 1 documents.                                   |
-| 0.1.8   | 2026-05-07 | Johan Nel                | Use-case diagrams                                  | Linked or referenced Demo 1 use-case diagrams from the SRS.                                            |
-| 0.1.9   | 2026-05-08 | Rudolph Lamprecht        | API/architecture cross-reference                   | Added API-contract linkage and architecture-related SRS references.                                    |
-| 0.1.10  | 2026-05-09 | Connor Bell              | Minor SRS amendments                               | Applied minor SRS wording/consistency updates alongside design navigation documentation.               |
-| 0.1.11  | 2026-05-09 | Adriano Jorge            | Tracking; progress requirements                    | Added tracking and progress-related SRS requirements.                                                  |
-| 0.1.12  | 2026-05-09 | Adriano Jorge            | Domain/API terminology                             | Aligned SRS terminology with domain and API language.                                                  |
-| 0.1.13  | 2026-05-10 | Johan Nel                | Terminology; integration; traceability             | Performed a broad SRS integration pass, including learner/employee to trainee terminology alignment.   |
-| 0.1.14  | 2026-05-16 | Johan Nel                | Domain model; campaign-item model; terminology     | Updated SRS to match the revised modular campaign/domain model and trainee terminology.                |
-| 0.1.15  | 2026-05-19 | Johan Nel                | Demo 1 scope; future scope                         | Clarified Demo 1 scope and later-demo planned features.                                                |
-| 0.1.16  | 2026-05-21 | Johan Nel                | Headings; links; formatting                        | Cleaned headings/file links and formatted SRS as part of final domain-model documentation updates.     |
-| 0.1.17  | 2026-07-16 | Rudolph Lamprecht        | UC-05 use case; UC-05 functional requirements      | Added UC-05 SRS scope, actors, flows, RBAC/business rules, exceptions, and planned issue traceability. |
-=======
 | Version | Date       | Author(s)                | Sections / Area Updated                            | Summary of Change                                                                                    |
 | ------- | ---------- | ------------------------ | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | 0.1.0   | 2026-04-27 | Johan Nel                | Initial document                                   | Created the initial Demo 1 SRS structure.                                                            |
@@ -860,4 +724,3 @@ Demo 1 uses the following technology stack:
 | 0.1.15  | 2026-05-19 | Johan Nel                | Demo 1 scope; future scope                         | Clarified Demo 1 scope and later-demo planned features.                                              |
 | 0.1.16  | 2026-05-21 | Johan Nel                | Headings; links; formatting                        | Cleaned headings/file links and formatted SRS as part of final domain-model documentation updates.   |
 | 0.1.17  | 2026-07-16 | Rudolph Lamprecht        | UC-07 invitation acceptance                        | Added Demo 2 UC-07 invitation acceptance requirements and traceability.                              |
->>>>>>> 704a8e814 (issue #263 docs: define SRS)
