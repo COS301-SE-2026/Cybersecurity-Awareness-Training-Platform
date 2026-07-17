@@ -182,7 +182,14 @@ describe('invitation.repository unit tests', () => {
   describe('updateUserRoleAndProfilesFromInvitation', () => {
     it('assigns ORGANISATION_ADMIN role and upserts admin profile', async () => {
       const txMock = {
-        user: { update: vi.fn().mockResolvedValue({}) },
+        user: {
+          findUnique: vi.fn().mockResolvedValue({
+            traineeProfile: null,
+            organisationAdminProfile: null,
+            ipAdminProfile: null,
+          }),
+          update: vi.fn().mockResolvedValue({}),
+        },
         organisationAdminProfile: { upsert: vi.fn().mockResolvedValue({ id: 'profile-adm-1' }) },
         invitation: { update: vi.fn().mockResolvedValue({}) },
       } as unknown as Prisma.TransactionClient;
@@ -215,7 +222,14 @@ describe('invitation.repository unit tests', () => {
 
     it('assigns ORGANISATION_TRAINEE role and upserts trainee profiles', async () => {
       const txMock = {
-        user: { update: vi.fn().mockResolvedValue({}) },
+        user: {
+          findUnique: vi.fn().mockResolvedValue({
+            traineeProfile: null,
+            organisationAdminProfile: null,
+            ipAdminProfile: null,
+          }),
+          update: vi.fn().mockResolvedValue({}),
+        },
         traineeProfile: { upsert: vi.fn().mockResolvedValue({ id: 'tr-profile-1' }) },
         organisationTraineeProfile: {
           upsert: vi.fn().mockResolvedValue({ traineeProfileId: 'tr-profile-1' }),

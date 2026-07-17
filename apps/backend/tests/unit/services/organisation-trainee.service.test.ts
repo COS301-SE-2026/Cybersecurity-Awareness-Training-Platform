@@ -99,6 +99,7 @@ describe('OrganisationTraineeService', () => {
       ok: true,
       deliveryStatus: 'SENT',
       deliveryLogId: 'delivery-log-1',
+      appliedToCurrentInvitationAttempt: true,
     });
     orgAdminRepoMock.findActorOrganisationAdmin.mockResolvedValue(
       buildMockActorAdmin([

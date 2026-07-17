@@ -1,6 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createOrganisationRegistrationRequest, approveOrganisationRequest } from '../../src/services/organisation-registration-request.service.js';
+import {
+  createOrganisationRegistrationRequest,
+  approveOrganisationRequest,
+} from '../../src/services/organisation-registration-request.service.js';
 import { completeSetupWithToken } from '../../src/services/setup.service.js';
 import { acceptInvitationWithToken } from '../../src/services/invitation.service.js';
 import {
@@ -147,8 +150,9 @@ describe('organisation onboarding and role transition integration', () => {
       ]),
     );
 
-    await expect(listOrganisationTrainees(adminUser.id, approved.approvedOrganisation.id)).resolves
-      .toBeDefined();
+    await expect(
+      listOrganisationTrainees(adminUser.id, approved.approvedOrganisation.id),
+    ).resolves.toBeDefined();
     await expect(
       createOrganisationTraineeInvitation(adminUser.id, approved.approvedOrganisation.id, {
         email: generateTestEmail('new-trainee'),
@@ -204,7 +208,7 @@ describe('organisation onboarding and role transition integration', () => {
     });
 
     const persistedMembership = await prisma.organisationTraineeProfile.findUniqueOrThrow({
-      where: { traineeProfileId: trainee.traineeProfile!.id },
+      where: { traineeProfileId: trainee.traineeProfile.id },
     });
     expect(persistedMembership.organisationId).toBe(orgB.id);
   });
@@ -337,7 +341,11 @@ describe('organisation onboarding and role transition integration', () => {
       purpose: 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION',
     });
 
-    await acceptInvitationWithToken(rawToken, {}, { email: trainee.user.email, userId: trainee.user.id });
+    await acceptInvitationWithToken(
+      rawToken,
+      {},
+      { email: trainee.user.email, userId: trainee.user.id },
+    );
 
     const updatedUser = await prisma.user.findUniqueOrThrow({
       where: { id: trainee.user.id },

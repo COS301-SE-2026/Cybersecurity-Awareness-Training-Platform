@@ -163,23 +163,29 @@ export async function updateUserRoleAndProfilesFromInvitation(
   },
   client: Prisma.TransactionClient,
 ) {
-  const existingUser = await client.user.findUnique({
-    where: { id: input.userId },
-    include: {
-      traineeProfile: {
-        include: {
-          organisationTraineeProfile: true,
-        },
-      },
-      organisationAdminProfile: true,
-      ipAdminProfile: true,
-    },
-  });
+  if (input.newRole !== 'ORGANISATION_ADMIN' && input.newRole !== 'ORGANISATION_TRAINEE') {
+    if (input.newRole !== 'IP_ADMIN' && input.newRole !== 'PLATFORM_ADMIN') {
+      throw new Error(`Unsupported role assignment: ${input.newRole}`);
+    }
+  }
 
   if (input.newRole === 'ORGANISATION_ADMIN') {
     if (!input.organisationId) {
       throw new Error('organisationId is required when assigning ORGANISATION_ADMIN role.');
     }
+
+    const existingUser = await client.user.findUnique({
+      where: { id: input.userId },
+      include: {
+        traineeProfile: {
+          include: {
+            organisationTraineeProfile: true,
+          },
+        },
+        organisationAdminProfile: true,
+        ipAdminProfile: true,
+      },
+    });
 
     if (existingUser?.traineeProfile) {
       await client.traineeProfile.update({
@@ -248,6 +254,19 @@ export async function updateUserRoleAndProfilesFromInvitation(
       throw new Error('organisationId is required when assigning ORGANISATION_TRAINEE role.');
     }
 
+    const existingUser = await client.user.findUnique({
+      where: { id: input.userId },
+      include: {
+        traineeProfile: {
+          include: {
+            organisationTraineeProfile: true,
+          },
+        },
+        organisationAdminProfile: true,
+        ipAdminProfile: true,
+      },
+    });
+
     await ensureDefaultOrganisationSecuritySettings(
       { organisationId: input.organisationId },
       client,
@@ -305,6 +324,19 @@ export async function updateUserRoleAndProfilesFromInvitation(
   }
 
   if (input.newRole === 'IP_ADMIN' || input.newRole === 'PLATFORM_ADMIN') {
+    const existingUser = await client.user.findUnique({
+      where: { id: input.userId },
+      include: {
+        traineeProfile: {
+          include: {
+            organisationTraineeProfile: true,
+          },
+        },
+        organisationAdminProfile: true,
+        ipAdminProfile: true,
+      },
+    });
+
     if (
       existingUser?.userType === 'ORGANISATION_ADMIN' ||
       existingUser?.organisationAdminProfile?.adminStatus === 'ACTIVE'

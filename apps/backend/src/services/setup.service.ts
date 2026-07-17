@@ -177,7 +177,8 @@ export async function completeSetupWithToken(
     const organisationId = freshToken.invitation?.organisationId ?? null;
     const setupInvitationId = freshToken.invitationId ?? null;
     const existingUser = await findSetupUserByEmail(targetEmail, tx);
-    const existingOrganisationTraineeProfile = existingUser?.traineeProfile?.organisationTraineeProfile ?? null;
+    const existingOrganisationTraineeProfile =
+      existingUser?.traineeProfile?.organisationTraineeProfile ?? null;
     const userInput = {
       email: targetEmail,
       firstName: input.firstName,

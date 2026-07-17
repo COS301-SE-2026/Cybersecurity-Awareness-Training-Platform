@@ -34,7 +34,12 @@ describe('organisation-trainee.repository unit tests', () => {
     ] as never);
     const res = await findOrganisationTrainees('org-1');
     expect(prisma.organisationTraineeProfile.findMany).toHaveBeenCalledWith({
-      where: { organisationId: 'org-1' },
+      where: {
+        organisationId: 'org-1',
+        membershipStatus: {
+          in: ['ACTIVE', 'DISABLED'],
+        },
+      },
       include: { traineeProfile: { include: { user: true } } },
       orderBy: { createdAt: 'desc' },
     });
