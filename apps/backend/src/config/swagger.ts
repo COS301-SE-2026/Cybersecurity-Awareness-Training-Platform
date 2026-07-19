@@ -1597,7 +1597,7 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             actionTokenId: {
               ...uuidString('44444444-4444-4444-8444-444444444444'),
             },
-            status: enumString(['SENT', 'FAILED_TO_SEND'], 'SENT'),
+            status: enumString(['PENDING', 'SENT', 'FAILED_TO_SEND'], 'SENT'),
             expiresAt: {
               ...dateTimeString('2026-07-08T08:00:00.000Z'),
             },

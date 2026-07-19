@@ -51,6 +51,30 @@ const baseInput = {
   },
 };
 
+const sentLogUpdate = {
+  where: { id: 'emaillog01' },
+  data: {
+    deliveryStatus: 'SENT',
+    providerMessageId: 'smtpmessage01',
+    sentAt: expect.any(Date),
+  },
+};
+
+const deliveryLogSentWriteFailure = {
+  stage: 'DELIVERY_LOG_SENT',
+  code: 'DELIVERY_LOG_SENT_WRITE_FAILED',
+};
+
+const invitationSentWriteFailure = {
+  stage: 'INVITATION_SENT',
+  code: 'INVITATION_SENT_WRITE_FAILED',
+};
+
+const deliveryLogFailedWriteFailure = {
+  stage: 'DELIVERY_LOG_FAILED',
+  code: 'DELIVERY_LOG_FAILED_WRITE_FAILED',
+};
+
 describe('sendEmail', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -106,19 +130,14 @@ describe('sendEmail', () => {
       }),
     );
 
-    expect(emailDeliveryLogMock.update).toHaveBeenCalledWith({
-      where: { id: 'emaillog01' },
-      data: {
-        deliveryStatus: 'SENT',
-        providerMessageId: 'smtpmessage01',
-        sentAt: expect.any(Date),
-      },
-    });
+    expect(emailDeliveryLogMock.update).toHaveBeenCalledWith(sentLogUpdate);
 
     expect(result).toEqual({
-      ok: true,
-      messageId: 'smtpmessage01',
+      status: 'ACCEPTED',
+      acceptedByProvider: true,
+      queued: true,
       deliveryLogId: 'emaillog01',
+      providerMessageId: 'smtpmessage01',
     });
   });
 
@@ -131,14 +150,16 @@ describe('sendEmail', () => {
       data: {
         deliveryStatus: 'FAILED',
         failedAt: expect.any(Date),
-        failureReason: 'SMTP not working',
+        failureReason: 'SMTP_NOT_ACCEPTED',
       },
     });
 
     expect(result).toEqual({
-      ok: false,
-      error: 'SMTP not working',
+      status: 'NOT_ACCEPTED',
+      acceptedByProvider: false,
+      queued: false,
       deliveryLogId: 'emaillog01',
+      failureReason: 'SMTP_NOT_ACCEPTED',
     });
   });
 
@@ -185,9 +206,11 @@ describe('sendEmail', () => {
     expect(transactionClient.emailDeliveryLog.update).toHaveBeenCalledTimes(1);
     expect(emailDeliveryLogMock.create).not.toHaveBeenCalled();
     expect(result).toEqual({
-      ok: true,
-      messageId: 'smtpmessage01',
+      status: 'ACCEPTED',
+      acceptedByProvider: true,
+      queued: true,
       deliveryLogId: 'emaillogfromtx',
+      providerMessageId: 'smtpmessage01',
     });
   });
 
@@ -210,21 +233,42 @@ describe('sendEmail', () => {
     });
   });
 
-  it('rejects fallback only email logs if there is no relatedEntityType', async () => {
-    await expect(
-      sendEmail({
-        emailType: 'PASSWORD_RESET',
-        recipientEmail: 'developer@example.com',
-        relatedEntity: {},
-        templateData: {
-          firstName: 'Developer',
-          actionToken: 'rawactiontokenqwertyuiopasdfghjklzxcvbnm',
-          actionTokenExpiresAt: new Date(Date.now() + 60 * 60 * 1000),
-        },
-      }),
-    ).rejects.toThrow('Emails without a typed relation must provide a fallbackType');
+  it('returns not accepted for fallback-only email logs without a relatedEntityType', async () => {
+    const result = await sendEmail({
+      emailType: 'PASSWORD_RESET',
+      recipientEmail: 'developer@example.com',
+      relatedEntity: {},
+      templateData: {
+        firstName: 'Developer',
+        actionToken: 'rawactiontokenqwertyuiopasdfghjklzxcvbnm',
+        actionTokenExpiresAt: new Date(Date.now() + 60 * 60 * 1000),
+      },
+    });
 
+    expect(result).toEqual({
+      status: 'NOT_ACCEPTED',
+      acceptedByProvider: false,
+      queued: false,
+      deliveryLogId: undefined,
+      failureReason: 'TEMPLATE_RENDER_FAILED',
+    });
     expect(emailDeliveryLogMock.create).not.toHaveBeenCalled();
+  });
+
+  it('returns a stable code when delivery-log creation fails', async () => {
+    emailDeliveryLogMock.create.mockRejectedValueOnce(
+      new Error('duplicate key value violates unique constraint email_delivery_log_pkey'),
+    );
+
+    const result = await sendEmail(baseInput);
+
+    expect(result).toEqual({
+      status: 'NOT_ACCEPTED',
+      acceptedByProvider: false,
+      queued: false,
+      failureReason: 'DELIVERY_LOG_CREATE_FAILED',
+    });
+    expect(sendMailMock).not.toHaveBeenCalled();
   });
 
   it('updates invitation status sent when an invitation email send is scucessful', async () => {
@@ -281,19 +325,190 @@ describe('sendEmail', () => {
     expect(invitationMock.update).not.toHaveBeenCalled();
   });
 
-  it('rejects missing template variables before creating delivery log', async () => {
-    await expect(
-      sendEmail({
-        emailType: 'EMAIL_VERIFICATION',
-        recipientEmail: 'johan@example.com',
-        relatedEntity: { userId: 'user01', actionTokenId: 'token01' },
-        templateData: {
-          firstName: 'Johan',
-          actionToken: 'rawactiontokenqwertyuiopasdfghjklzxcvbnm',
-        },
-      }),
-    ).rejects.toThrow();
+  it('returns not accepted for missing template variables before creating delivery log', async () => {
+    const result = await sendEmail({
+      emailType: 'EMAIL_VERIFICATION',
+      recipientEmail: 'johan@example.com',
+      relatedEntity: { userId: 'user01', actionTokenId: 'token01' },
+      templateData: {
+        firstName: 'Johan',
+        actionToken: 'rawactiontokenqwertyuiopasdfghjklzxcvbnm',
+      },
+    });
+
+    expect(result).toEqual({
+      status: 'NOT_ACCEPTED',
+      acceptedByProvider: false,
+      queued: false,
+      deliveryLogId: undefined,
+      failureReason: 'TEMPLATE_RENDER_FAILED',
+    });
     expect(emailDeliveryLogMock.create).not.toHaveBeenCalled();
     expect(sendMailMock).not.toHaveBeenCalled();
+  });
+
+  it('returns accepted persistence failed when the sent delivery log update fails', async () => {
+    emailDeliveryLogMock.update.mockRejectedValueOnce(new Error('database unavailable'));
+
+    const result = await sendEmail(baseInput);
+
+    expect(sendMailMock).toHaveBeenCalledTimes(1);
+    expect(emailDeliveryLogMock.update).toHaveBeenCalledWith(sentLogUpdate);
+    expect(emailDeliveryLogMock.update).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ deliveryStatus: 'FAILED' }),
+      }),
+    );
+    expect(result).toEqual({
+      status: 'ACCEPTED_PERSISTENCE_FAILED',
+      acceptedByProvider: true,
+      queued: true,
+      deliveryLogId: 'emaillog01',
+      providerMessageId: 'smtpmessage01',
+      persistenceFailures: [deliveryLogSentWriteFailure],
+      persistenceFailureReason: 'DELIVERY_LOG_SENT_WRITE_FAILED',
+    });
+  });
+
+  it('still attempts invitation persistence when the sent delivery log update fails', async () => {
+    emailDeliveryLogMock.update.mockRejectedValueOnce(new Error('database unavailable'));
+
+    const result = await sendEmail({
+      emailType: 'ORGANISATION_ADMIN_PROMOTION_INVITE',
+      recipientEmail: 'admin@example.com',
+      relatedEntity: {
+        invitationId: 'invitation01',
+        organisationId: 'organisation01',
+        actionTokenId: 'actiontoken01',
+      },
+      templateData: {
+        firstName: 'Tara',
+        organisationName: 'Test Org',
+        actionToken: 'rawactiontokenqwertyuiopasdfghjklzxcvbnm',
+        actionTokenExpiresAt: new Date(Date.now() + 60 * 60 * 1000),
+      },
+    });
+
+    expect(emailDeliveryLogMock.update).toHaveBeenCalledWith(sentLogUpdate);
+    expect(invitationMock.update).toHaveBeenCalledWith({
+      data: { status: 'SENT' },
+      where: { id: 'invitation01' },
+    });
+    expect(result).toEqual({
+      status: 'ACCEPTED_PERSISTENCE_FAILED',
+      acceptedByProvider: true,
+      queued: true,
+      deliveryLogId: 'emaillog01',
+      providerMessageId: 'smtpmessage01',
+      persistenceFailures: [deliveryLogSentWriteFailure],
+      persistenceFailureReason: 'DELIVERY_LOG_SENT_WRITE_FAILED',
+    });
+  });
+
+  it('keeps the sent log when invitation persistence fails after SMTP acceptance', async () => {
+    invitationMock.update.mockRejectedValueOnce(new Error('invitation update failed'));
+
+    const result = await sendEmail({
+      emailType: 'ORGANISATION_TRAINEE_INVITE',
+      recipientEmail: 'johan@example.com',
+      relatedEntity: {
+        invitationId: 'invitation01',
+        organisationId: 'organisation01',
+        actionTokenId: 'actiontoken01',
+      },
+      templateData: {
+        organisationName: 'Test Org',
+        actionToken: 'rawactiontokenqwertyuiopasdfghjklzxcvbnm',
+        actionTokenExpiresAt: new Date(Date.now() + 60 * 60 * 1000),
+      },
+    });
+
+    expect(emailDeliveryLogMock.update).toHaveBeenCalledWith(sentLogUpdate);
+    expect(emailDeliveryLogMock.update).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ deliveryStatus: 'FAILED' }),
+      }),
+    );
+    expect(result).toEqual({
+      status: 'ACCEPTED_PERSISTENCE_FAILED',
+      acceptedByProvider: true,
+      queued: true,
+      deliveryLogId: 'emaillog01',
+      providerMessageId: 'smtpmessage01',
+      persistenceFailures: [invitationSentWriteFailure],
+      persistenceFailureReason: 'INVITATION_SENT_WRITE_FAILED',
+    });
+  });
+
+  it('reports both accepted-path persistence failures with stable codes', async () => {
+    emailDeliveryLogMock.update.mockRejectedValueOnce(new Error('database unavailable'));
+    invitationMock.update.mockRejectedValueOnce(new Error('invitation update failed'));
+
+    const result = await sendEmail({
+      emailType: 'ORGANISATION_ADMIN_PROMOTION_INVITE',
+      recipientEmail: 'admin@example.com',
+      relatedEntity: {
+        invitationId: 'invitation01',
+        organisationId: 'organisation01',
+        actionTokenId: 'actiontoken01',
+      },
+      templateData: {
+        firstName: 'Tara',
+        organisationName: 'Test Org',
+        actionToken: 'rawactiontokenqwertyuiopasdfghjklzxcvbnm',
+        actionTokenExpiresAt: new Date(Date.now() + 60 * 60 * 1000),
+      },
+    });
+
+    expect(result).toEqual({
+      status: 'ACCEPTED_PERSISTENCE_FAILED',
+      acceptedByProvider: true,
+      queued: true,
+      deliveryLogId: 'emaillog01',
+      providerMessageId: 'smtpmessage01',
+      persistenceFailures: [deliveryLogSentWriteFailure, invitationSentWriteFailure],
+      persistenceFailureReason: 'DELIVERY_LOG_SENT_WRITE_FAILED; INVITATION_SENT_WRITE_FAILED',
+    });
+  });
+
+  it('still attempts invitation failed persistence when delivery-log failed persistence throws', async () => {
+    sendMailMock.mockRejectedValue(new Error('SMTP not working'));
+    emailDeliveryLogMock.update.mockRejectedValueOnce(new Error('database unavailable'));
+
+    const result = await sendEmail({
+      emailType: 'ORGANISATION_TRAINEE_INVITE',
+      recipientEmail: 'johan@example.com',
+      relatedEntity: {
+        invitationId: 'invitation01',
+        organisationId: 'organisation01',
+        actionTokenId: 'actiontoken01',
+      },
+      templateData: {
+        organisationName: 'Test Org',
+        actionToken: 'rawactiontokenqwertyuiopasdfghjklzxcvbnm',
+        actionTokenExpiresAt: new Date(Date.now() + 60 * 60 * 1000),
+      },
+    });
+
+    expect(emailDeliveryLogMock.update).toHaveBeenCalledWith({
+      where: { id: 'emaillog01' },
+      data: {
+        deliveryStatus: 'FAILED',
+        failedAt: expect.any(Date),
+        failureReason: 'SMTP_NOT_ACCEPTED',
+      },
+    });
+    expect(invitationMock.update).toHaveBeenCalledWith({
+      where: { id: 'invitation01' },
+      data: { status: 'FAILED_TO_SEND' },
+    });
+    expect(result).toEqual({
+      status: 'NOT_ACCEPTED',
+      acceptedByProvider: false,
+      queued: false,
+      deliveryLogId: 'emaillog01',
+      failureReason: 'SMTP_NOT_ACCEPTED',
+      persistenceFailures: [deliveryLogFailedWriteFailure],
+    });
   });
 }); //describe

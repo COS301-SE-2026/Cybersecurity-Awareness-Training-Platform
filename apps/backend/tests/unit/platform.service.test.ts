@@ -311,7 +311,12 @@ describe('platform organisation registration request service', () => {
         representativeEmail: 'john@acme.com',
         submittedOrganisationName: 'Acme',
       });
-      emailHookMock.requestAuthEmailSend.mockResolvedValue({ queued: true });
+      emailHookMock.requestAuthEmailSend.mockResolvedValue({
+        status: 'ACCEPTED',
+        acceptedByProvider: true,
+        queued: true,
+        deliveryLogId: 'email-log-1',
+      });
 
       const response = await rejectOrganisationRequest(actorUserId, requestId, {
         rejectionReason: 'Not eligible',
@@ -384,7 +389,12 @@ describe('platform organisation registration request service', () => {
         representativeEmail: 'john@acme.com',
         submittedOrganisationName: 'Acme',
       });
-      emailHookMock.requestAuthEmailSend.mockResolvedValue({ queued: true });
+      emailHookMock.requestAuthEmailSend.mockResolvedValue({
+        status: 'ACCEPTED',
+        acceptedByProvider: true,
+        queued: true,
+        deliveryLogId: 'email-log-1',
+      });
 
       const response = await approveOrganisationRequest(actorUserId, requestId, {
         organisationName: 'Acme Corp',

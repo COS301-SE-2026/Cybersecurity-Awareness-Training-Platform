@@ -70,6 +70,8 @@ describe('createOrganisationRegistrationRequest', () => {
     mockNoExistingConflicts();
     mockCreatedRequest();
     emailHookMock.requestAuthEmailSend.mockResolvedValue({
+      status: 'ACCEPTED',
+      acceptedByProvider: true,
       queued: true,
       deliveryLogId: 'email-log-1',
     });
@@ -160,6 +162,8 @@ describe('createOrganisationRegistrationRequest', () => {
 
   it('does not fail submission when the email hook reports failure', async () => {
     emailHookMock.requestAuthEmailSend.mockResolvedValue({
+      status: 'NOT_ACCEPTED',
+      acceptedByProvider: false,
       queued: false,
       reason: 'EMAIL_SEND_FAILED',
       deliveryLogId: 'email-log-1',
