@@ -42,8 +42,8 @@
       "number": 337,
       "title": "fix: distinguish SMTP acceptance from email persistence failures",
       "points": 3,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-07-19"
     },
     {
       "number": 288,
@@ -233,7 +233,7 @@
     },
     {
       "date": "2026-07-19",
-      "remaining": 60,
+      "remaining": 57,
       "ideal": 0.0
     }
   ]
