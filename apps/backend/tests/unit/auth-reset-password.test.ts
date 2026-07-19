@@ -255,6 +255,58 @@ describe('Forgot Password and Reset Password API', () => {
       );
     });
 
+    it('returns success when password-changed notification fails after reset is committed', async () => {
+      actionTokenServiceMock.validateActionToken.mockResolvedValue({
+        state: 'VALID',
+        token: {
+          id: 'token-123',
+          userId: 'user-123',
+          purpose: 'PASSWORD_RESET',
+        },
+      });
+      userRepositoryMock.findUserById.mockResolvedValue({
+        id: 'user-123',
+        email: 'test@example.com',
+        firstName: 'John',
+        lastName: 'Doe',
+        authStatus: 'ACTIVE',
+        userType: 'GENERAL_TRAINEE',
+      });
+      passwordServiceMock.hashPassword.mockResolvedValue('scrypt$newhash');
+      prismaMock.actionToken.updateMany.mockResolvedValue({ count: 1 });
+      prismaMock.user.update.mockResolvedValue({});
+      prismaMock.authSession.updateMany.mockResolvedValue({ count: 1 });
+      prismaMock.refreshToken.updateMany.mockResolvedValue({ count: 1 });
+      authEmailHookServiceMock.requestAuthEmailSend.mockRejectedValueOnce(
+        new Error('raw provider failure'),
+      );
+
+      const response = await request(createApp()).post('/auth/reset-password').send(validPayload);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ success: true });
+      expect(prismaMock.auditLogEntry.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            actorType: 'SYSTEM',
+            targetType: 'OTHER',
+            actionType: 'UPDATED',
+            outcome: 'FAILURE',
+            metadata: { eventType: 'PASSWORD_CHANGED_NOTIFICATION_FAILED' },
+          }),
+        }),
+      );
+      expect(prismaMock.auditLogEntry.create).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            metadata: expect.objectContaining({
+              eventType: expect.stringContaining('raw provider failure'),
+            }),
+          }),
+        }),
+      );
+    });
+
     it('returns 401 for an expired token', async () => {
       actionTokenServiceMock.validateActionToken.mockResolvedValue({
         state: 'EXPIRED',

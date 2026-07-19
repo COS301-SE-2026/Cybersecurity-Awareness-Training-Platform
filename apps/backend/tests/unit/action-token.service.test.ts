@@ -25,6 +25,10 @@ const authEmailHookServiceMock = vi.hoisted(() => ({
   requestAuthEmailSend: vi.fn(),
 }));
 
+const notificationFailureEventMock = vi.hoisted(() => ({
+  recordNotificationFailureEvent: vi.fn(),
+}));
+
 const prismaMock = vi.hoisted(() => ({
   $transaction: vi.fn(),
   actionToken: {
@@ -41,6 +45,10 @@ import type { Prisma } from '../../src/generated/prisma/client.js';
 vi.mock('../../src/repositories/action-token.repository.js', () => repositoryMock);
 vi.mock('../../src/services/token-hash.service.js', () => tokenHashServiceMock);
 vi.mock('../../src/services/auth-email-hook.service.js', () => authEmailHookServiceMock);
+vi.mock(
+  '../../src/services/notification-failure-event.service.js',
+  () => notificationFailureEventMock,
+);
 vi.mock('../../src/lib/prisma.js', () => ({
   prisma: prismaMock,
 }));
@@ -427,6 +435,42 @@ describe('action-token service', () => {
           revokedReason: 'EMAIL_SEND_FAILED',
         },
       });
+    });
+
+    it('returns successfully and keeps the replacement token active when resend notification throws', async () => {
+      prismaMock.actionToken.findUnique.mockResolvedValue({
+        id: 'token-123',
+        purpose: 'PASSWORD_RESET',
+        expiresAt: new Date(Date.now() - 3600000),
+        usedAt: null,
+        revokedAt: null,
+        user: {
+          id: 'user-123',
+          authStatus: 'ACTIVE',
+          email: 'test@example.com',
+          firstName: 'John',
+        },
+      });
+      prismaMock.emailDeliveryLog.findFirst.mockResolvedValue(null);
+      repositoryMock.createActionToken.mockResolvedValue({
+        id: 'token-456',
+        expiresAt: new Date(Date.now() + 3600000),
+      });
+      authEmailHookServiceMock.requestAuthEmailSend.mockRejectedValueOnce(
+        new Error('raw provider failure'),
+      );
+
+      await expect(resendActionToken('some-token')).resolves.toBeUndefined();
+
+      expect(prismaMock.actionToken.updateMany).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ id: 'token-456' }),
+          data: expect.objectContaining({ revokedReason: 'EMAIL_SEND_FAILED' }),
+        }),
+      );
+      expect(notificationFailureEventMock.recordNotificationFailureEvent).toHaveBeenCalledWith(
+        'ACTION_TOKEN_RESEND_NOTIFICATION_FAILED',
+      );
     });
 
     it('throws TokenResendError if resend cooldown is active', async () => {

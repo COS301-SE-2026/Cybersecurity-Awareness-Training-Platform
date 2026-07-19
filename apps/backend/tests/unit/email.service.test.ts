@@ -150,7 +150,7 @@ describe('sendEmail', () => {
       data: {
         deliveryStatus: 'FAILED',
         failedAt: expect.any(Date),
-        failureReason: 'SMTP not working',
+        failureReason: 'SMTP_NOT_ACCEPTED',
       },
     });
 
@@ -159,7 +159,7 @@ describe('sendEmail', () => {
       acceptedByProvider: false,
       queued: false,
       deliveryLogId: 'emaillog01',
-      failureReason: 'SMTP not working',
+      failureReason: 'SMTP_NOT_ACCEPTED',
     });
   });
 
@@ -250,9 +250,25 @@ describe('sendEmail', () => {
       acceptedByProvider: false,
       queued: false,
       deliveryLogId: undefined,
-      failureReason: 'Emails without a typed relation must provide a fallbackType',
+      failureReason: 'TEMPLATE_RENDER_FAILED',
     });
     expect(emailDeliveryLogMock.create).not.toHaveBeenCalled();
+  });
+
+  it('returns a stable code when delivery-log creation fails', async () => {
+    emailDeliveryLogMock.create.mockRejectedValueOnce(
+      new Error('duplicate key value violates unique constraint email_delivery_log_pkey'),
+    );
+
+    const result = await sendEmail(baseInput);
+
+    expect(result).toEqual({
+      status: 'NOT_ACCEPTED',
+      acceptedByProvider: false,
+      queued: false,
+      failureReason: 'DELIVERY_LOG_CREATE_FAILED',
+    });
+    expect(sendMailMock).not.toHaveBeenCalled();
   });
 
   it('updates invitation status sent when an invitation email send is scucessful', async () => {
@@ -325,7 +341,7 @@ describe('sendEmail', () => {
       acceptedByProvider: false,
       queued: false,
       deliveryLogId: undefined,
-      failureReason: expect.stringContaining('actionTokenExpiresAt'),
+      failureReason: 'TEMPLATE_RENDER_FAILED',
     });
     expect(emailDeliveryLogMock.create).not.toHaveBeenCalled();
     expect(sendMailMock).not.toHaveBeenCalled();
@@ -479,7 +495,7 @@ describe('sendEmail', () => {
       data: {
         deliveryStatus: 'FAILED',
         failedAt: expect.any(Date),
-        failureReason: 'SMTP not working',
+        failureReason: 'SMTP_NOT_ACCEPTED',
       },
     });
     expect(invitationMock.update).toHaveBeenCalledWith({
@@ -491,7 +507,7 @@ describe('sendEmail', () => {
       acceptedByProvider: false,
       queued: false,
       deliveryLogId: 'emaillog01',
-      failureReason: 'SMTP not working',
+      failureReason: 'SMTP_NOT_ACCEPTED',
       persistenceFailures: [deliveryLogFailedWriteFailure],
     });
   });

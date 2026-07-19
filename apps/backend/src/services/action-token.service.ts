@@ -1,6 +1,7 @@
 import type { ActionTokenPurpose, EmailDeliveryType } from '../generated/prisma/enums.js';
 import { prisma } from '../lib/prisma.js';
 import { requestAuthEmailSend } from './auth-email-hook.service.js';
+import { recordNotificationFailureEvent } from './notification-failure-event.service.js';
 import type { ActionTokenModel } from '../generated/prisma/models/ActionToken.js';
 import {
   createActionToken,
@@ -385,24 +386,32 @@ export async function resendActionToken(rawToken: string): Promise<void> {
     return issued;
   });
 
-  const emailOutcome = await requestAuthEmailSend({
-    emailType,
-    recipientEmail,
-    userId: originalToken.userId,
-    actionTokenId: newToken.token.id,
-    invitationId: originalToken.invitationId,
-    relatedEntityType: originalToken.emailChangeRequestId ? 'EMAIL_CHANGE_REQUEST' : undefined,
-    relatedEntityId: originalToken.emailChangeRequestId,
-    templateData: {
-      actionToken: newToken.rawToken,
-      firstName:
-        originalToken.user?.firstName ?? originalToken.invitation?.recipientFirstName ?? 'Trainee',
-      actionTokenExpiresAt: newToken.token.expiresAt,
-      oldEmail: originalToken.emailChangeRequest?.currentEmail,
-      newEmail: originalToken.emailChangeRequest?.RequestedEmail,
-      organisationName: originalToken.invitation?.organisation.name,
-    },
-  });
+  let emailOutcome: Awaited<ReturnType<typeof requestAuthEmailSend>>;
+  try {
+    emailOutcome = await requestAuthEmailSend({
+      emailType,
+      recipientEmail,
+      userId: originalToken.userId,
+      actionTokenId: newToken.token.id,
+      invitationId: originalToken.invitationId,
+      relatedEntityType: originalToken.emailChangeRequestId ? 'EMAIL_CHANGE_REQUEST' : undefined,
+      relatedEntityId: originalToken.emailChangeRequestId,
+      templateData: {
+        actionToken: newToken.rawToken,
+        firstName:
+          originalToken.user?.firstName ??
+          originalToken.invitation?.recipientFirstName ??
+          'Trainee',
+        actionTokenExpiresAt: newToken.token.expiresAt,
+        oldEmail: originalToken.emailChangeRequest?.currentEmail,
+        newEmail: originalToken.emailChangeRequest?.RequestedEmail,
+        organisationName: originalToken.invitation?.organisation.name,
+      },
+    });
+  } catch {
+    await recordNotificationFailureEvent('ACTION_TOKEN_RESEND_NOTIFICATION_FAILED');
+    return;
+  }
 
   if (emailOutcome.status === 'NOT_ACCEPTED') {
     await prisma.actionToken.updateMany({

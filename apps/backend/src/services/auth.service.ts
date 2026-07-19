@@ -20,6 +20,7 @@ import {
 import { recordAuditLog } from './audit-log.service.js';
 import { requestAuthEmailSend } from './auth-email-hook.service.js';
 import { generateAuthToken } from './auth-token.service.js';
+import { recordNotificationFailureEvent } from './notification-failure-event.service.js';
 import * as PasswordService from './password.service.js';
 import { ensureUserCanAuthenticate } from './auth-status-guard.service.js';
 import {
@@ -97,6 +98,7 @@ async function sendEmailVerificationBestEffort(
   try {
     await sendEmailVerification(user, verification);
   } catch {
+    await recordNotificationFailureEvent('EMAIL_HOOK_UNEXPECTED_FAILURE');
     return;
   }
 }
@@ -821,6 +823,7 @@ export async function requestPasswordReset(email: string): Promise<void> {
       },
     });
   } catch {
+    await recordNotificationFailureEvent('EMAIL_HOOK_UNEXPECTED_FAILURE');
     return;
   }
 }
@@ -919,12 +922,16 @@ export async function resetUserPassword(
     userAgent,
   });
 
-  await requestAuthEmailSend({
-    emailType: 'PASSWORD_CHANGED',
-    recipientEmail: user.email,
-    userId: user.id,
-    templateData: {
-      firstName: user.firstName,
-    },
-  });
+  try {
+    await requestAuthEmailSend({
+      emailType: 'PASSWORD_CHANGED',
+      recipientEmail: user.email,
+      userId: user.id,
+      templateData: {
+        firstName: user.firstName,
+      },
+    });
+  } catch {
+    await recordNotificationFailureEvent('PASSWORD_CHANGED_NOTIFICATION_FAILED');
+  }
 }

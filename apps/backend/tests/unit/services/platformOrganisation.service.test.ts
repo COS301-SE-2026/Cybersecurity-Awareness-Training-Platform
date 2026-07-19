@@ -517,6 +517,13 @@ describe('platformOrganisation service', () => {
           data: expect.objectContaining({ revokedReason: 'EMAIL_SEND_FAILED' }),
         }),
       );
+      expect(auditLogMock.recordAuditLog).toHaveBeenCalledWith({
+        actorType: 'SYSTEM',
+        targetType: 'OTHER',
+        actionType: 'UPDATED',
+        outcome: 'FAILURE',
+        metadata: { eventType: 'EMAIL_HOOK_UNEXPECTED_FAILURE' },
+      });
     });
 
     it('revokes the replacement setup token only when the provider explicitly does not accept it', async () => {

@@ -5,6 +5,7 @@ import {
   requestAuthEmailSend,
   shouldRevokeTokenForAuthEmailResult,
 } from './auth-email-hook.service.js';
+import { recordNotificationFailureEvent } from './notification-failure-event.service.js';
 import { issueActionToken } from './action-token.service.js';
 import {
   OrganisationRegistrationRequestError,
@@ -353,6 +354,7 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
   } catch {
     shouldRevokeIssuedToken = false;
     emailQueued = false;
+    await recordNotificationFailureEvent('EMAIL_HOOK_UNEXPECTED_FAILURE');
   }
 
   if (shouldRevokeIssuedToken) {

@@ -9,56 +9,56 @@ import { sendViaSMTP } from './smtp-mailer.js';
 
 const MAX_EMAIL_FAILURE_REASON_LENGTH = 500;
 
-const toSafeEmailFailureReason = (error: unknown, fallback: string): string => {
-  if (error instanceof Error && error.message.trim().length > 0) {
-    return error.message.slice(0, MAX_EMAIL_FAILURE_REASON_LENGTH);
-  }
+export type EmailPersistenceFailure =
+  | {
+      stage: 'DELIVERY_LOG_SENT';
+      code: 'DELIVERY_LOG_SENT_WRITE_FAILED';
+    }
+  | {
+      stage: 'INVITATION_SENT';
+      code: 'INVITATION_SENT_WRITE_FAILED';
+    }
+  | {
+      stage: 'DELIVERY_LOG_FAILED';
+      code: 'DELIVERY_LOG_FAILED_WRITE_FAILED';
+    }
+  | {
+      stage: 'INVITATION_FAILED_TO_SEND';
+      code: 'INVITATION_FAILED_TO_SEND_WRITE_FAILED';
+    };
 
-  return fallback;
-};
+export type NonEmptyArray<T> = [T, ...T[]];
 
-export type EmailPersistenceFailureStage =
-  | 'DELIVERY_LOG_SENT'
-  | 'INVITATION_SENT'
-  | 'DELIVERY_LOG_FAILED'
-  | 'INVITATION_FAILED_TO_SEND';
-
-export type EmailPersistenceFailureCode =
-  | 'DELIVERY_LOG_SENT_WRITE_FAILED'
-  | 'INVITATION_SENT_WRITE_FAILED'
-  | 'DELIVERY_LOG_FAILED_WRITE_FAILED'
-  | 'INVITATION_FAILED_TO_SEND_WRITE_FAILED';
-
-export type EmailPersistenceFailure = {
-  stage: EmailPersistenceFailureStage;
-  code: EmailPersistenceFailureCode;
-};
-
-const deliveryLogSentFailure: EmailPersistenceFailure = {
+const deliveryLogSentFailure = {
   stage: 'DELIVERY_LOG_SENT',
   code: 'DELIVERY_LOG_SENT_WRITE_FAILED',
-};
+} satisfies EmailPersistenceFailure;
 
-const invitationSentFailure: EmailPersistenceFailure = {
+const invitationSentFailure = {
   stage: 'INVITATION_SENT',
   code: 'INVITATION_SENT_WRITE_FAILED',
-};
+} satisfies EmailPersistenceFailure;
 
-const deliveryLogFailedFailure: EmailPersistenceFailure = {
+const deliveryLogFailedFailure = {
   stage: 'DELIVERY_LOG_FAILED',
   code: 'DELIVERY_LOG_FAILED_WRITE_FAILED',
-};
+} satisfies EmailPersistenceFailure;
 
-const invitationFailedToSendFailure: EmailPersistenceFailure = {
+const invitationFailedToSendFailure = {
   stage: 'INVITATION_FAILED_TO_SEND',
   code: 'INVITATION_FAILED_TO_SEND_WRITE_FAILED',
-};
+} satisfies EmailPersistenceFailure;
 
-const formatPersistenceFailureReason = (failures: EmailPersistenceFailure[]): string =>
+const formatPersistenceFailureReason = (failures: NonEmptyArray<EmailPersistenceFailure>): string =>
   failures
     .map((failure) => failure.code)
     .join('; ')
     .slice(0, MAX_EMAIL_FAILURE_REASON_LENGTH);
+
+const toNonEmptyPersistenceFailures = (
+  failures: EmailPersistenceFailure[],
+): NonEmptyArray<EmailPersistenceFailure> | null =>
+  failures.length === 0 ? null : [failures[0], ...failures.slice(1)];
 
 async function attemptEmailPersistence(
   action: () => Promise<void>,
@@ -113,7 +113,7 @@ export type EmailSendOutcome =
       queued: true;
       deliveryLogId: string;
       providerMessageId?: string;
-      persistenceFailures: EmailPersistenceFailure[];
+      persistenceFailures: NonEmptyArray<EmailPersistenceFailure>;
       persistenceFailureReason: string;
     };
 
@@ -181,8 +181,7 @@ export async function sendEmail(
   input: SendEmailInput,
   client: EmailPrismaClient = prisma,
 ): Promise<EmailSendOutcome> {
-  let deliveryLogId: string | undefined;
-  let renderedEmail: ReturnType<typeof renderEmail> | undefined;
+  let renderedEmail: ReturnType<typeof renderEmail>;
 
   try {
     renderedEmail = renderEmail(input.emailType, input.templateData);
@@ -197,7 +196,24 @@ export async function sendEmail(
     if (!hasTypedRelation && !input.relatedEntity.fallbackType) {
       throw new Error('Emails without a typed relation must provide a fallbackType');
     }
+  } catch {
+    return {
+      status: 'NOT_ACCEPTED',
+      acceptedByProvider: false,
+      queued: false,
+      failureReason: 'TEMPLATE_RENDER_FAILED',
+    };
+  }
 
+  let pendingDeliveryLogId: string;
+  try {
+    const hasTypedRelation = Boolean(
+      input.relatedEntity.userId ||
+      input.relatedEntity.actionTokenId ||
+      input.relatedEntity.organisationId ||
+      input.relatedEntity.organisationRegistrationRequestId ||
+      input.relatedEntity.invitationId,
+    );
     const deliveryLog = await client.emailDeliveryLog.create({
       data: {
         recipientEmail: input.recipientEmail,
@@ -213,50 +229,30 @@ export async function sendEmail(
         deliveryStatus: 'PENDING',
       },
     });
-    deliveryLogId = deliveryLog.id;
-  } catch (error) {
+    pendingDeliveryLogId = deliveryLog.id;
+  } catch {
     return {
       status: 'NOT_ACCEPTED',
       acceptedByProvider: false,
       queued: false,
-      deliveryLogId,
-      failureReason: toSafeEmailFailureReason(
-        error,
-        'Email could not be prepared before provider acceptance.',
-      ),
+      failureReason: 'DELIVERY_LOG_CREATE_FAILED',
     };
   }
 
-  if (!deliveryLogId || !renderedEmail) {
-    return {
-      status: 'NOT_ACCEPTED',
-      acceptedByProvider: false,
-      queued: false,
-      deliveryLogId,
-      failureReason: 'Email could not be prepared before provider acceptance.',
-    };
-  }
-
-  const pendingDeliveryLogId = deliveryLogId;
   const preparedEmail = renderedEmail;
   let providerMessageId: string | undefined;
 
   try {
     const providerResult = await sendViaSMTP({ to: input.recipientEmail, ...preparedEmail });
     providerMessageId = providerResult.providerMessageId;
-  } catch (error) {
-    const failureReason = toSafeEmailFailureReason(
-      error,
-      'SMTP provider did not accept the email.',
-    );
-
+  } catch {
     const persistenceFailures = [
       ...(await attemptEmailPersistence(
         () =>
           markDeliveryLogFailed({
             client,
             deliveryLogId: pendingDeliveryLogId,
-            failureReason,
+            failureReason: 'SMTP_NOT_ACCEPTED',
           }),
         deliveryLogFailedFailure,
       )),
@@ -271,7 +267,7 @@ export async function sendEmail(
       acceptedByProvider: false,
       queued: false,
       deliveryLogId: pendingDeliveryLogId,
-      failureReason,
+      failureReason: 'SMTP_NOT_ACCEPTED',
       persistenceFailures: persistenceFailures.length > 0 ? persistenceFailures : undefined,
     };
   }
@@ -292,7 +288,9 @@ export async function sendEmail(
     )),
   ];
 
-  if (persistenceFailures.length === 0) {
+  const nonEmptyPersistenceFailures = toNonEmptyPersistenceFailures(persistenceFailures);
+
+  if (!nonEmptyPersistenceFailures) {
     return {
       status: 'ACCEPTED',
       acceptedByProvider: true,
@@ -308,7 +306,7 @@ export async function sendEmail(
     queued: true,
     deliveryLogId: pendingDeliveryLogId,
     providerMessageId,
-    persistenceFailures,
-    persistenceFailureReason: formatPersistenceFailureReason(persistenceFailures),
+    persistenceFailures: nonEmptyPersistenceFailures,
+    persistenceFailureReason: formatPersistenceFailureReason(nonEmptyPersistenceFailures),
   };
 }

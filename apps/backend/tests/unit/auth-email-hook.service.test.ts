@@ -19,7 +19,7 @@ const notAcceptedEmailResult = {
   status: 'NOT_ACCEPTED' as const,
   acceptedByProvider: false as const,
   queued: false as const,
-  failureReason: 'SMTP unavailable',
+  failureReason: 'SMTP_NOT_ACCEPTED',
   deliveryLogId: 'email-log-1',
 };
 
