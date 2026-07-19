@@ -1,6 +1,6 @@
 import { sendEmail } from './email.service.js';
 import type { EmailDeliveryType } from '../generated/prisma/client.js';
-import type { EmailPersistenceFailure } from './email.service.js';
+import type { EmailSendOutcome } from './email.service.js';
 
 export type AuthEmailType = EmailDeliveryType;
 export type AuthEmailHookInput = {
@@ -16,14 +16,15 @@ export type AuthEmailHookInput = {
   relatedEntityId?: string | null;
 };
 
+type AcceptedEmailOutcome = Extract<EmailSendOutcome, { status: 'ACCEPTED' }>;
+
+type AcceptedPersistenceFailedEmailOutcome = Extract<
+  EmailSendOutcome,
+  { status: 'ACCEPTED_PERSISTENCE_FAILED' }
+>;
+
 export type AuthEmailHookResult =
-  | {
-      status: 'ACCEPTED';
-      acceptedByProvider: true;
-      queued: true;
-      deliveryLogId: string;
-      providerMessageId?: string;
-    }
+  | AcceptedEmailOutcome
   | {
       status: 'NOT_ACCEPTED';
       acceptedByProvider: false;
@@ -31,16 +32,9 @@ export type AuthEmailHookResult =
       reason: 'EMAIL_SEND_FAILED';
       deliveryLogId?: string;
     }
-  | {
-      status: 'ACCEPTED_PERSISTENCE_FAILED';
-      acceptedByProvider: true;
-      queued: true;
-      deliveryLogId: string;
-      providerMessageId?: string;
+  | (AcceptedPersistenceFailedEmailOutcome & {
       reason: 'EMAIL_PERSISTENCE_FAILED';
-      persistenceFailures: EmailPersistenceFailure[];
-      persistenceFailureReason: string;
-    };
+    });
 
 export const shouldRevokeTokenForAuthEmailResult = (result: AuthEmailHookResult): boolean =>
   result.status === 'NOT_ACCEPTED';
@@ -74,22 +68,10 @@ export async function requestAuthEmailSend(
       };
     case 'ACCEPTED_PERSISTENCE_FAILED':
       return {
-        status: 'ACCEPTED_PERSISTENCE_FAILED',
-        acceptedByProvider: true,
-        queued: true,
-        deliveryLogId: result.deliveryLogId,
-        providerMessageId: result.providerMessageId,
+        ...result,
         reason: 'EMAIL_PERSISTENCE_FAILED',
-        persistenceFailures: result.persistenceFailures,
-        persistenceFailureReason: result.persistenceFailureReason,
       };
     case 'ACCEPTED':
-      return {
-        status: 'ACCEPTED',
-        acceptedByProvider: true,
-        queued: true,
-        deliveryLogId: result.deliveryLogId,
-        providerMessageId: result.providerMessageId,
-      };
+      return result;
   }
 }

@@ -5,7 +5,7 @@ export type SmtpMailInput = { to: string; subject: string; text: string; html?: 
 
 export type SmtpAcceptedResult = {
   acceptedByProvider: true;
-  providerMessageId?: string;
+  providerMessageId: string;
 };
 
 export async function sendViaSMTP(input: SmtpMailInput): Promise<SmtpAcceptedResult> {

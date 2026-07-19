@@ -97,7 +97,7 @@ export type EmailSendOutcome =
       acceptedByProvider: true;
       queued: true;
       deliveryLogId: string;
-      providerMessageId?: string;
+      providerMessageId: string;
     }
   | {
       status: 'NOT_ACCEPTED';
@@ -112,7 +112,7 @@ export type EmailSendOutcome =
       acceptedByProvider: true;
       queued: true;
       deliveryLogId: string;
-      providerMessageId?: string;
+      providerMessageId: string;
       persistenceFailures: NonEmptyArray<EmailPersistenceFailure>;
       persistenceFailureReason: string;
     };
@@ -150,7 +150,7 @@ async function markInvitationFailedIfRelevant(input: SendEmailInput, client: Ema
 async function markDeliveryLogSent(input: {
   client: EmailPrismaClient;
   deliveryLogId: string;
-  providerMessageId?: string;
+  providerMessageId: string;
 }) {
   await input.client.emailDeliveryLog.update({
     data: {
@@ -240,7 +240,7 @@ export async function sendEmail(
   }
 
   const preparedEmail = renderedEmail;
-  let providerMessageId: string | undefined;
+  let providerMessageId: string;
 
   try {
     const providerResult = await sendViaSMTP({ to: input.recipientEmail, ...preparedEmail });

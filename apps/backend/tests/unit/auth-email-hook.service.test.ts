@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { requestAuthEmailSend } from '../../src/services/auth-email-hook.service.js';
+import type { AuthEmailHookResult } from '../../src/services/auth-email-hook.service.js';
 
 const sendEmailMock = vi.hoisted(() => vi.fn());
 
@@ -8,20 +9,43 @@ vi.mock('../../src/services/email.service.js', () => ({
 }));
 
 const acceptedEmailResult = {
-  status: 'ACCEPTED' as const,
-  acceptedByProvider: true as const,
-  queued: true as const,
+  status: 'ACCEPTED',
+  acceptedByProvider: true,
+  queued: true,
   deliveryLogId: 'email-log-1',
   providerMessageId: 'message-1',
-};
+} satisfies AuthEmailHookResult;
 
 const notAcceptedEmailResult = {
-  status: 'NOT_ACCEPTED' as const,
-  acceptedByProvider: false as const,
-  queued: false as const,
+  status: 'NOT_ACCEPTED',
+  acceptedByProvider: false,
+  queued: false,
   failureReason: 'SMTP_NOT_ACCEPTED',
   deliveryLogId: 'email-log-1',
 };
+
+const acceptedEmailResultWithoutProviderMessageId = {
+  status: 'ACCEPTED',
+  acceptedByProvider: true,
+  queued: true,
+  deliveryLogId: 'email-log-1',
+  // @ts-expect-error accepted outcomes must include provider evidence from SMTP.
+} satisfies AuthEmailHookResult;
+
+const acceptedPersistenceFailedResultWithoutFailures = {
+  status: 'ACCEPTED_PERSISTENCE_FAILED',
+  acceptedByProvider: true,
+  queued: true,
+  deliveryLogId: 'email-log-1',
+  providerMessageId: 'message-1',
+  reason: 'EMAIL_PERSISTENCE_FAILED',
+  // @ts-expect-error accepted persistence failures must include at least one failed stage.
+  persistenceFailures: [],
+  persistenceFailureReason: '',
+} satisfies AuthEmailHookResult;
+
+void acceptedEmailResultWithoutProviderMessageId;
+void acceptedPersistenceFailedResultWithoutFailures;
 
 describe('requestAuthEmailSend', () => {
   beforeEach(() => {
