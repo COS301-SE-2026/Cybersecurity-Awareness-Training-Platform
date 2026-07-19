@@ -60,6 +60,7 @@ Real email delivery, credential capture, punitive monitoring, adaptive learning,
 The following stories provide future platform context only:
 
 - As an organisation admin, I want to add trainees to my organisation so that organisation employees can be onboarded into cybersecurity awareness training.
+- As an invited user, I want to accept my organisation invitation so that I can complete setup or role change for the organisation that invited me.
 - Organisation admins may eventually add trainees manually, send onboarding emails, or configure an approved email domain so that sign-ups from that domain can be linked to the organisation.
 - As an organisation admin, I want to create, edit, and delete campaigns for my organisation.
 - As an organisation admin, I want to build campaigns from reusable components such as training documents, quizzes, and simulated inboxes.
@@ -75,7 +76,9 @@ The following stories provide future platform context only:
 ### 2.3 User Characteristics and Actors
 
 - **Trainee:** The primary Demo 1 actor. A trainee accesses assigned campaigns which contain simulated inbox(es) with simulated emails, training content, and quizzes.
+- **Invited user:** The primary UC-07 actor. An invited user opens a tokenised organisation invitation link, reviews the safe invitation context, and completes the accepted role or setup flow.
 - **System:** Supports authentication, content retrieval, validation, interaction tracking, quiz submission, result calculation, and safe feedback states.
+- **Email and token services:** System actors that deliver invitation messages and validate tokenised invitation links.
 - **Organisation admin:** A supporting/future actor who can configure and assign campaigns and content in later demos.
 - **Insightful Phish admin:** A future platform-level administrator, not a core Demo 1 actor.
 
@@ -227,98 +230,93 @@ UC-03 allows a trainee to open assigned quiz content, answer supported questions
 - Submission fails: Preserve answers where possible and allow retry.
 - Results fail to load: Keep the attempt submitted and provide a retry or navigation option.
 
-### 3.4 UC-05: Review and Manage Organisation Registrations
-
-[UC-05 use case diagram](./diagrams/uc05-org-review-use-case.drawio.svg)
+### 3.4 UC-07: Accept Organisation Invitation
 
 #### User Story
 
-As an Insightful Phish platform admin, I want to review and manage organisation registration requests so that valid organisations can be onboarded safely and invalid requests can be rejected with traceable decisions.
+As an invited user, I want to accept my organisation invitation so that I can complete account setup or role change for the organisation that invited me.
 
 #### Purpose
 
-This use case allows a platform admin to access organisation registration requests, inspect submitted details, mark requests as contacted, approve requests, and reject requests. The use case ensures organisation onboarding actions are role-restricted, auditable, and linked to planned frontend, backend, integration, and test work.
+UC-07 allows an invited user to open a tokenised invitation link, review a safe invitation context, and complete the invitation acceptance flow for one of the supported invitation purposes: initial organisation admin setup, organisation employee invite, or organisation admin promotion invite. The use case keeps invitation links token-based, organisation-scoped, and safe to reject when the token is expired, revoked, wrong-user, or already used.
 
 #### Scope
 
-- **TUCBW**: An Insightful Phish platform admin reviews organisation registration requests on the platform organisation management page.
-- **TUCEW**: The platform admin acknowledges that the selected organisation registration request has been contacted, approved, rejected, or reviewed successfully.
+- **TUCBW**: An invited user opens an organisation invitation link on the invitation acceptance page.
+- **TUCEW**: The invited user acknowledges that the invitation has been accepted or completed successfully.
 
 #### Actors
 
-- Primary actor: Insightful Phish platform admin
-- Supporting actor: Email service
-- System actor: Audit log
+- Primary actor: Invited user
+- Supporting actor: Organisation admin or platform admin who issued the invite
+- System actor: Email and token services
+- System actor: Authentication and account services
 
 #### Preconditions
 
-- The platform admin is authenticated.
-- The platform admin has an active platform-admin profile.
-- At least one organisation registration request exists or the page supports empty-state review.
-- The selected registration request is available for the requested action.
-- The platform admin has permission to review and manage organisation registrations.
+- The invited user has received a valid tokenised organisation invitation link.
+- The invitation targets a known email address or account identity.
+- The invitation purpose is supported by the current platform flow.
+- The invitation has not expired or been revoked before the user opens it.
+- The organisation and invitation remain eligible for completion according to platform policy.
 
 #### Postconditions
 
-- The platform admin sees the latest registration list and request state after the selected action.
-- If marked contacted, the request reflects contacted status and timestamp.
-- If approved, the organisation is created and an initial organisation-admin setup invite is issued.
-- If rejected, the request reflects rejected status and reason metadata where policy requires it.
-- Audit records are created for decision actions and key state transitions.
-- On validation, permission, or state conflicts, no partial or unsafe state is committed.
+- The invitation is marked as accepted and can no longer be used again.
+- The invited user gains the role or organisation membership described by the invitation purpose.
+- The user's account and organisation context reflect the accepted invitation.
+- The system records the completion or failure state needed for audit and traceability.
+- If acceptance fails, the previous invitation and account state remain unchanged.
+
+#### RBAC Expectations
+
+- Invitation creation is restricted to the organisation admin or platform admin workflow that owns the invite.
+- Invitation acceptance does not require the invited user to already hold the destination role.
+- The system only completes acceptance when the current or created account matches the invitation target identity.
+- The system preserves organisation scope and does not allow the invited user to accept another organisation's invitation.
+- A tokenised invitation link acts as the authorising context for the public acceptance page, but it does not bypass target-identity validation.
+
+#### Business Rules
+
+- The invitation link carries the raw token, while the database stores only a hashed token reference.
+- The invitation token is single-use and becomes invalid after successful completion.
+- The invitation context distinguishes initial organisation admin setup, organisation employee invites, and organisation admin promotion invites.
+- The system uses a safe context view before completion so that the user can confirm the target email, organisation, and role.
+- The system records completion only after the invitation transaction succeeds.
 
 #### Main Flow
 
-1. The platform admin navigates to the organisation registration management page.
-2. The system retrieves and displays registration requests with status and summary details.
-3. The platform admin selects a registration request.
-4. The system displays full request details.
-5. The platform admin chooses one supported action:
-   - Option A: Mark contacted
-     a. The platform admin marks the request as contacted.
-     b. The system validates the request state and stores contacted status.
-     c. The system records the action in the audit log.
-   - Option B: Approve request
-     a. The platform admin approves the request.
-     b. The system validates approvability and duplicate-organisation constraints.
-     c. The system creates the organisation and prepares initial admin setup invite delivery.
-     d. The system records the approval and onboarding action in the audit log.
-   - Option C: Reject request
-     a. The platform admin rejects the request.
-     b. The system validates rejectability and reason requirements.
-     c. The system stores the rejected state and reason metadata according to policy.
-     d. The system records the rejection in the audit log.
-   - Option D: View details only
-     a. The platform admin reviews request detail without changing state.
-     b. The system shows current request status and prior actions.
-6. The system returns updated request status and feedback for the selected action.
-7. The platform admin acknowledges the outcome.
+1. The invited user opens the organisation invitation link.
+2. The system retrieves a safe invitation context for the token without exposing sensitive internal data.
+3. The system validates the token state, invitation purpose, target identity, and organisation scope.
+4. The system displays the invitation details, including the target email, organisation name, and accepted role or setup context.
+5. The invited user confirms acceptance and continues the flow.
+6. The system validates that the current or created account matches the invitation target identity.
+7. The system completes the supported invitation purpose, creates or updates the linked role or profile, and consumes the token only after the transaction succeeds.
+8. The system records the completion outcome for audit and traceability.
+9. The system shows a success acknowledgement or the next allowed signed-in state.
 
 #### Exceptions
 
-- **Unauthenticated User**: The user is not signed in. The system redirects to login or returns an unauthorised response.
-- **Missing Platform-Admin Role**: The actor is not a platform admin. The system denies access to organisation registration management.
-- **Request Not Found**: The selected request does not exist. The system shows a safe not-found response.
-- **Invalid State Transition**: The selected action is not valid for the current request state. The system rejects the action and keeps current state.
-- **Duplicate Organisation Conflict**: Approval would create a conflicting organisation record. The system rejects the approval and reports conflict safely.
-- **Invite Delivery Failure**: Organisation approval succeeds but invite delivery fails. The system records the delivery failure for follow-up and shows the current onboarding state.
-- **Audit Logging Failure**: The system cannot record the required audit entry. The system applies audit-failure policy and does not silently hide decision actions.
-- **Concurrent Update Conflict**: The request was changed by another admin. The system rejects stale updates and asks for refresh.
-
-#### Business Rules and RBAC Expectations
-
-- Only platform admins may list, view, contact, approve, or reject organisation registration requests.
-- All state-changing actions shall be audit logged with actor, target request, decision type, and timestamp.
-- Approval shall create organisation onboarding state exactly once for a request.
-- Contacted, approved, and rejected transitions shall enforce allowed state transitions and prevent invalid backtracking.
-- Request details and actions shall be visible only inside platform-admin management scope.
+- **Invalid Token**: The token is missing, malformed, or unsupported. The system shows a safe invalid-link state and does not expose privileged data.
+- **Expired Invitation**: The invitation has expired. The system shows a safe expired-link state and does not complete acceptance.
+- **Revoked Invitation**: The invitation has been revoked. The system shows a safe revoked-link state and does not complete acceptance.
+- **Already Used Invitation**: The invitation token has already been consumed. The system shows a safe already-used state and does not complete acceptance.
+- **Wrong User**: The signed-in user or provided account identity does not match the invitation target identity. The system rejects the acceptance and keeps the invitation unused.
+- **Rejected or Declined Invitation**: The invited user declines or otherwise rejects the invitation. The system ends the flow without changing role or membership state.
+- **Unsupported Invitation Purpose**: The token does not map to a supported invitation purpose. The system shows a safe unsupported-link state and does not complete the flow.
+- **Organisation Scope Mismatch**: The invitation does not belong to the expected organisation or the organisation is no longer eligible. The system blocks completion and preserves the previous state.
+- **Account Conflict**: The invitation conflicts with an existing active account role or setup state. The system rejects completion and keeps the previous state unchanged.
+- **Token or Service Failure**: The token or account service cannot complete the lookup or transaction. The system shows a safe retry or return path.
 
 #### Traceability
 
-- Use case: UC-05: Review and Manage Organisation Registrations.
-- SRS documentation issue: #253
-- Related implementation, integration, and test issues: #254, #255, #256, #257, #258, #259, #260
-- Reserved Demo 1 use cases remain unchanged: UC-01, UC-02, UC-03.
+- SRS documentation issue: #263
+- Foundation/migration issue: #262
+- Frontend issue: #264
+- Backend endpoint issue: #265
+- Integration issue: #266
+- Backend integration-test issue: #270
 
 ### 3.5 UC-09: Manage Organisation Admins and Permissions
 
@@ -550,22 +548,21 @@ This use case allows an authorised organisation admin to view and update organis
 | FR-UC03-08 | The system shall prevent duplicate final submission or further editing of a completed quiz attempt.                                   |
 | FR-UC03-09 | The system shall display safe validation and error states when quiz loading, attempt creation, submission, or result retrieval fails. |
 
-### 4.5 UC-05 Functional Requirements
+### 4.5 UC-07 Functional Requirements
 
-#### Review and Manage Organisation Registrations
+#### Accept Organisation Invitation
 
-| ID         | Requirement                                                                                                                                        |
-| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| FR-UC05-01 | The system shall allow only authenticated platform admins to access organisation registration review features.                                     |
-| FR-UC05-02 | The system shall display a platform-admin-only list of organisation registration requests with actionable statuses.                                |
-| FR-UC05-03 | The system shall allow a platform admin to view full details for a selected registration request.                                                  |
-| FR-UC05-04 | The system shall allow a platform admin to mark a registration request as contacted when the state transition is valid.                            |
-| FR-UC05-05 | The system shall allow a platform admin to approve a valid registration request and create organisation onboarding state.                          |
-| FR-UC05-06 | The system shall allow a platform admin to reject a valid registration request and persist rejection metadata according to policy.                 |
-| FR-UC05-07 | The system shall prevent invalid or duplicate state transitions for contacted, approved, and rejected actions.                                     |
-| FR-UC05-08 | The system shall trigger initial organisation-admin setup invitation flow when approval succeeds.                                                  |
-| FR-UC05-09 | The system shall record audit entries for review decisions and decision-related state changes.                                                     |
-| FR-UC05-10 | The system shall return safe validation, conflict, and not-found feedback without exposing internal implementation details to unauthorised actors. |
+| ID         | Requirement                                                                                                                                                       |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| FR-UC07-01 | The system shall allow an invited user to open a tokenised organisation invitation link and view a safe invitation context.                                       |
+| FR-UC07-02 | The system shall validate the invitation token state and invitation purpose before showing the acceptance flow.                                                   |
+| FR-UC07-03 | The system shall display the target email, organisation context, and accepted role or setup context without exposing privileged implementation details.           |
+| FR-UC07-04 | The system shall support accepted invitation flows for initial organisation admin setup, organisation employee invites, and organisation admin promotion invites. |
+| FR-UC07-05 | The system shall reject invitation acceptance when the current or created account does not match the invitation target identity.                                  |
+| FR-UC07-06 | The system shall display safe states for expired, revoked, already-used, invalid, rejected, or unsupported invitation links.                                      |
+| FR-UC07-07 | The system shall complete the invitation transaction only after the invitation state, identity match, and organisation scope checks succeed.                      |
+| FR-UC07-08 | The system shall mark the invitation token as consumed after successful acceptance and prevent the same token from being used again.                              |
+| FR-UC07-09 | The system shall preserve the previous account and organisation state when invitation acceptance fails.                                                           |
 
 ### 4.6 Tracking, Progress, and Reporting Support
 
@@ -597,6 +594,7 @@ At a high level:
 - UC-01 uses campaign-item scoped simulated inbox, simulated email detail, and simulated email interaction endpoints.
 - UC-02 uses campaign-item scoped training document and training progress endpoints.
 - UC-03 uses campaign-item scoped quiz retrieval, quiz attempt creation, attempt submission, and result retrieval endpoints.
+- UC-07 uses public token context and completion endpoints for invitation acceptance, with organisation-admin promotion invite creation handled by the related organisation-admin flow.
 - Campaign discovery and assignment endpoints support access to trainee campaign items.
 
 API routes and payloads remain implementation contracts documented in `API.md` and the backend Swagger/OpenAPI documentation; this SRS keeps only the requirement-level mapping.
@@ -615,6 +613,7 @@ The domain model diagram can be found here: [Demo 1 domain model](./diagrams/dem
 - `OrganisationAdmin` is an organisation-linked administrator for future campaign/content setup.
 - `IPAdmin` is a platform-level administrator for future platform oversight.
 - `Organisation` represents an organisation using the platform. `OrganisationContext` stores future organisation-specific context such as logos, brand guidelines, security policies, approved domains, terminology, and related metadata.
+- `Invitation` and `ActionToken` represent token-driven invite and setup workflows for UC-07 and related admin-management flows. `Invitation` stores recipient, purpose, status, expiry, and organisation context. `ActionToken` stores the hashed token reference while raw tokens remain in invitation URLs only.
 - `Campaign` is the main assignment and ordering container. A campaign may belong to an organisation or may represent default Insightful Phish campaigns.
 - `CampaignAssignment` links a `Campaign` to a `Trainee` and tracks assignment-level availability, progress, due dates, and completion.
 - `CampaignItem` is the ordered campaign structure used to make content available. `CampaignComponent` and `CampaignComponentGroup` specialise campaign items; groups support one grouping level only.
@@ -705,23 +704,23 @@ Demo 1 uses the following technology stack:
 
 ## Appendix A: Document Change History
 
-| Version | Date       | Author(s)                | Sections / Area Updated                            | Summary of Change                                                                                      |
-| ------- | ---------- | ------------------------ | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| 0.1.0   | 2026-04-27 | Johan Nel                | Initial document                                   | Created the initial Demo 1 SRS structure.                                                              |
-| 0.1.1   | 2026-04-28 | Adriano Jorge            | UC-01 simulated inbox; traceability references     | Added simulated inbox requirements and related SRS refinements.                                        |
-| 0.1.2   | 2026-04-30 | Rudolph Lamprecht        | Admin/campaign context; architecture/API alignment | Added campaign/admin-related SRS content and aligned with early API/architecture thinking.             |
-| 0.1.3   | 2026-04-30 | Zoë Joubert; Connor Bell | UC-03 quiz flow; traceability                      | Added quiz-flow requirements and corrected related traceability.                                       |
-| 0.1.4   | 2026-04-30 | Connor Bell              | UC-02 training document                            | Added final Demo 1 training-view SRS requirements.                                                     |
-| 0.1.5   | 2026-05-01 | Adriano Jorge            | Domain model alignment                             | Added SRS alignment for the initial domain model.                                                      |
-| 0.1.6   | 2026-05-03 | Zoë Joubert              | Validation; feedback; phishing feedback scope      | Added validation and UI feedback requirements for Demo 1.                                              |
-| 0.1.7   | 2026-05-07 | Johan Nel                | Document structure; cross-references; use cases    | Reworked SRS structure and aligned it with related Demo 1 documents.                                   |
-| 0.1.8   | 2026-05-07 | Johan Nel                | Use-case diagrams                                  | Linked or referenced Demo 1 use-case diagrams from the SRS.                                            |
-| 0.1.9   | 2026-05-08 | Rudolph Lamprecht        | API/architecture cross-reference                   | Added API-contract linkage and architecture-related SRS references.                                    |
-| 0.1.10  | 2026-05-09 | Connor Bell              | Minor SRS amendments                               | Applied minor SRS wording/consistency updates alongside design navigation documentation.               |
-| 0.1.11  | 2026-05-09 | Adriano Jorge            | Tracking; progress requirements                    | Added tracking and progress-related SRS requirements.                                                  |
-| 0.1.12  | 2026-05-09 | Adriano Jorge            | Domain/API terminology                             | Aligned SRS terminology with domain and API language.                                                  |
-| 0.1.13  | 2026-05-10 | Johan Nel                | Terminology; integration; traceability             | Performed a broad SRS integration pass, including learner/employee to trainee terminology alignment.   |
-| 0.1.14  | 2026-05-16 | Johan Nel                | Domain model; campaign-item model; terminology     | Updated SRS to match the revised modular campaign/domain model and trainee terminology.                |
-| 0.1.15  | 2026-05-19 | Johan Nel                | Demo 1 scope; future scope                         | Clarified Demo 1 scope and later-demo planned features.                                                |
-| 0.1.16  | 2026-05-21 | Johan Nel                | Headings; links; formatting                        | Cleaned headings/file links and formatted SRS as part of final domain-model documentation updates.     |
-| 0.1.17  | 2026-07-16 | Rudolph Lamprecht        | UC-05 use case; UC-05 functional requirements      | Added UC-05 SRS scope, actors, flows, RBAC/business rules, exceptions, and planned issue traceability. |
+| Version | Date       | Author(s)                | Sections / Area Updated                            | Summary of Change                                                                                    |
+| ------- | ---------- | ------------------------ | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| 0.1.0   | 2026-04-27 | Johan Nel                | Initial document                                   | Created the initial Demo 1 SRS structure.                                                            |
+| 0.1.1   | 2026-04-28 | Adriano Jorge            | UC-01 simulated inbox; traceability references     | Added simulated inbox requirements and related SRS refinements.                                      |
+| 0.1.2   | 2026-04-30 | Rudolph Lamprecht        | Admin/campaign context; architecture/API alignment | Added campaign/admin-related SRS content and aligned with early API/architecture thinking.           |
+| 0.1.3   | 2026-04-30 | Zoë Joubert; Connor Bell | UC-03 quiz flow; traceability                      | Added quiz-flow requirements and corrected related traceability.                                     |
+| 0.1.4   | 2026-04-30 | Connor Bell              | UC-02 training document                            | Added final Demo 1 training-view SRS requirements.                                                   |
+| 0.1.5   | 2026-05-01 | Adriano Jorge            | Domain model alignment                             | Added SRS alignment for the initial domain model.                                                    |
+| 0.1.6   | 2026-05-03 | Zoë Joubert              | Validation; feedback; phishing feedback scope      | Added validation and UI feedback requirements for Demo 1.                                            |
+| 0.1.7   | 2026-05-07 | Johan Nel                | Document structure; cross-references; use cases    | Reworked SRS structure and aligned it with related Demo 1 documents.                                 |
+| 0.1.8   | 2026-05-07 | Johan Nel                | Use-case diagrams                                  | Linked or referenced Demo 1 use-case diagrams from the SRS.                                          |
+| 0.1.9   | 2026-05-08 | Rudolph Lamprecht        | API/architecture cross-reference                   | Added API-contract linkage and architecture-related SRS references.                                  |
+| 0.1.10  | 2026-05-09 | Connor Bell              | Minor SRS amendments                               | Applied minor SRS wording/consistency updates alongside design navigation documentation.             |
+| 0.1.11  | 2026-05-09 | Adriano Jorge            | Tracking; progress requirements                    | Added tracking and progress-related SRS requirements.                                                |
+| 0.1.12  | 2026-05-09 | Adriano Jorge            | Domain/API terminology                             | Aligned SRS terminology with domain and API language.                                                |
+| 0.1.13  | 2026-05-10 | Johan Nel                | Terminology; integration; traceability             | Performed a broad SRS integration pass, including learner/employee to trainee terminology alignment. |
+| 0.1.14  | 2026-05-16 | Johan Nel                | Domain model; campaign-item model; terminology     | Updated SRS to match the revised modular campaign/domain model and trainee terminology.              |
+| 0.1.15  | 2026-05-19 | Johan Nel                | Demo 1 scope; future scope                         | Clarified Demo 1 scope and later-demo planned features.                                              |
+| 0.1.16  | 2026-05-21 | Johan Nel                | Headings; links; formatting                        | Cleaned headings/file links and formatted SRS as part of final domain-model documentation updates.   |
+| 0.1.17  | 2026-07-16 | Rudolph Lamprecht        | UC-07 invitation acceptance                        | Added Demo 2 UC-07 invitation acceptance requirements and traceability.                              |
