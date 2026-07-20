@@ -22,6 +22,81 @@ export class PlatformAdminServiceError extends Error {
   }
 }
 
+// Helper to check super admin actor role
+function requireSuperAdmin(actorRole: string) {
+  if (actorRole !== 'SUPER_ADMIN') {
+    throw new PlatformAdminServiceError(403, 'FORBIDDEN', 'Super admin access is required');
+  }
+}
+
+// Helper to issue action token, audit log, and send invitation email
+async function issueAndSendInvitation(params: {
+  actorUserId: string;
+  userId: string;
+  email: string;
+  firstName: string;
+  purpose: 'PLATFORM_ADMIN_INVITE' | 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION';
+  revocationTokenId?: string;
+}) {
+  const expiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24hr expiration
+
+  const { rawToken, token } = await prisma.$transaction(async (tx) => {
+    if (params.revocationTokenId) {
+      await tx.actionToken.update({
+        where: { id: params.revocationTokenId },
+        data: {
+          revokedAt: new Date(),
+          revokedReason: 'RESENT',
+        },
+      });
+    }
+
+    const tokenRes = await issueActionToken(
+      {
+        purpose: params.purpose,
+        userId: params.userId,
+        expiresAt: expiry,
+      },
+      tx,
+    );
+
+    await recordAuditLog(
+      {
+        actorUserId: params.actorUserId,
+        actorType: 'IP_ADMIN',
+        targetType: 'USER',
+        targetId: params.userId,
+        actionType: 'INVITED',
+        outcome: 'SUCCESS',
+        metadata: {
+          actionTokenId: tokenRes.token.id,
+          type: params.purpose,
+          ...(params.revocationTokenId ? { resentFromTokenId: params.revocationTokenId } : {}),
+        },
+      },
+      tx,
+    );
+
+    return { rawToken: tokenRes.rawToken, token: tokenRes.token };
+  });
+
+  await sendEmail({
+    emailType: params.purpose,
+    recipientEmail: params.email,
+    relatedEntity: {
+      userId: params.userId,
+      actionTokenId: token.id,
+    },
+    templateData: {
+      firstName: params.firstName,
+      actionToken: rawToken,
+      actionTokenExpiresAt: expiry,
+    },
+  });
+
+  return { token, rawToken };
+}
+
 // List platform admins and pendng invitations
 export async function listPlatformAdmins(actorUserId: string) {
   const actorProfile = await requirePlatformAdminUser(actorUserId);
@@ -132,9 +207,7 @@ export async function invitePlatformAdmin(
   input: InvitePlatformAdminRequestDto,
 ) {
   const actorProfile = await requirePlatformAdminUser(actorUserId);
-  if (actorProfile.platformAdminRole !== 'SUPER_ADMIN') {
-    throw new PlatformAdminServiceError(403, 'FORBIDDEN', 'Super admin access is required');
-  }
+  requireSuperAdmin(actorProfile.platformAdminRole);
 
   const targetEmail = input.email.trim().toLowerCase();
 
@@ -202,38 +275,12 @@ export async function invitePlatformAdmin(
       );
     }
 
-    const expiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24hr expiration
-    const { rawToken, token } = await issueActionToken({
-      purpose: 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION',
-      userId: existingUser.id,
-      expiresAt: expiry,
-    });
-
-    await sendEmail({
-      emailType: 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION',
-      recipientEmail: targetEmail,
-      relatedEntity: {
-        userId: existingUser.id,
-        actionTokenId: token.id,
-      },
-      templateData: {
-        firstName: existingUser.firstName,
-        actionToken: rawToken,
-        actionTokenExpiresAt: expiry,
-      },
-    });
-
-    await recordAuditLog({
+    await issueAndSendInvitation({
       actorUserId,
-      actorType: 'IP_ADMIN',
-      targetType: 'USER',
-      targetId: existingUser.id,
-      actionType: 'INVITED',
-      outcome: 'SUCCESS',
-      metadata: {
-        actionTokenId: token.id,
-        type: 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION',
-      },
+      userId: existingUser.id,
+      email: targetEmail,
+      firstName: existingUser.firstName ?? '',
+      purpose: 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION',
     });
 
     return {
@@ -244,8 +291,8 @@ export async function invitePlatformAdmin(
   }
 
   // Create pending new-account platform admin invite
-  const result = await prisma.$transaction(async (tx) => {
-    const user = await tx.user.create({
+  const user = await prisma.$transaction(async (tx) => {
+    return tx.user.create({
       data: {
         email: targetEmail,
         firstName: input.firstName ?? '',
@@ -261,50 +308,19 @@ export async function invitePlatformAdmin(
         },
       },
     });
-
-    const expiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
-    const res = await issueActionToken(
-      {
-        purpose: 'PLATFORM_ADMIN_INVITE',
-        userId: user.id,
-        expiresAt: expiry,
-      },
-      tx,
-    );
-
-    return { user, rawToken: res.rawToken, token: res.token, expiry };
   });
 
-  await sendEmail({
-    emailType: 'PLATFORM_ADMIN_INVITE',
-    recipientEmail: targetEmail,
-    relatedEntity: {
-      userId: result.user.id,
-      actionTokenId: result.token.id,
-    },
-    templateData: {
-      firstName: result.user.firstName,
-      actionToken: result.rawToken,
-      actionTokenExpiresAt: result.expiry,
-    },
-  });
-
-  await recordAuditLog({
+  await issueAndSendInvitation({
     actorUserId,
-    actorType: 'IP_ADMIN',
-    targetType: 'USER',
-    targetId: result.user.id,
-    actionType: 'INVITED',
-    outcome: 'SUCCESS',
-    metadata: {
-      actionTokenId: result.token.id,
-      type: 'PLATFORM_ADMIN_INVITE',
-    },
+    userId: user.id,
+    email: targetEmail,
+    firstName: user.firstName ?? '',
+    purpose: 'PLATFORM_ADMIN_INVITE',
   });
 
   return {
     type: 'new-invite' as const,
-    userId: result.user.id,
+    userId: user.id,
     email: targetEmail,
   };
 }
@@ -312,9 +328,7 @@ export async function invitePlatformAdmin(
 // Resend an invtation token after revoking the older one
 export async function resendPlatformAdminInvite(actorUserId: string, inviteTokenId: string) {
   const actorProfile = await requirePlatformAdminUser(actorUserId);
-  if (actorProfile.platformAdminRole !== 'SUPER_ADMIN') {
-    throw new PlatformAdminServiceError(403, 'FORBIDDEN', 'Super admin access is required');
-  }
+  requireSuperAdmin(actorProfile.platformAdminRole);
 
   const oldToken = await prisma.actionToken.findUnique({
     where: { id: inviteTokenId },
@@ -342,52 +356,13 @@ export async function resendPlatformAdminInvite(actorUserId: string, inviteToken
     throw new PlatformAdminServiceError(400, 'BAD_REQUEST', 'No email associated with invitation');
   }
 
-  // Revoke old action token
-  await prisma.actionToken.update({
-    where: { id: oldToken.id },
-    data: { revokedAt: new Date(), revokedReason: 'RESENT' },
-  });
-
-  const expiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
-  const { rawToken, newToken } = await prisma.$transaction(async (tx) => {
-    const res = await issueActionToken(
-      {
-        purpose: oldToken.purpose,
-        userId: oldToken.userId,
-        targetEmail: oldToken.targetEmail,
-        expiresAt: expiry,
-      },
-      tx,
-    );
-    return { rawToken: res.rawToken, newToken: res.token };
-  });
-
-  // Resend relevant email type
-  await sendEmail({
-    emailType: oldToken.purpose,
-    recipientEmail: targetEmail,
-    relatedEntity: {
-      userId: oldToken.userId,
-      actionTokenId: newToken.id,
-    },
-    templateData: {
-      firstName: oldToken.user?.firstName ?? '',
-      actionToken: rawToken,
-      actionTokenExpiresAt: expiry,
-    },
-  });
-
-  await recordAuditLog({
+  await issueAndSendInvitation({
     actorUserId,
-    actorType: 'IP_ADMIN',
-    targetType: 'USER',
-    targetId: oldToken.userId,
-    actionType: 'RESENT',
-    outcome: 'SUCCESS',
-    metadata: {
-      oldTokenId: oldToken.id,
-      newTokenId: newToken.id,
-    },
+    userId: oldToken.userId!,
+    email: targetEmail,
+    firstName: oldToken.user?.firstName ?? '',
+    purpose: oldToken.purpose,
+    revocationTokenId: oldToken.id,
   });
 
   return { success: true, emailQueued: true };
@@ -400,14 +375,10 @@ export async function transferSuperAdmin(actorUserId: string, input: TransferSup
     include: { ipAdminProfile: true },
   });
 
-  if (
-    !actor ||
-    actor.userType !== 'IP_ADMIN' ||
-    actor.ipAdminProfile?.adminStatus !== 'ACTIVE' ||
-    actor.ipAdminProfile.platformAdminRole !== 'SUPER_ADMIN'
-  ) {
-    throw new PlatformAdminServiceError(403, 'FORBIDDEN', 'Super admin access is required');
+  if (!actor || actor.userType !== 'IP_ADMIN' || actor.ipAdminProfile?.adminStatus !== 'ACTIVE') {
+    throw new PlatformAdminServiceError(403, 'FORBIDDEN', 'Platform admin access is required');
   }
+  requireSuperAdmin(actor.ipAdminProfile.platformAdminRole);
 
   const passwordMatches = await verifyPassword(input.password, actor.passwordHash);
   if (!passwordMatches) {
@@ -563,14 +534,10 @@ export async function demotePlatformAdmin(
     include: { ipAdminProfile: true },
   });
 
-  if (
-    !actor ||
-    actor.userType !== 'IP_ADMIN' ||
-    actor.ipAdminProfile?.adminStatus !== 'ACTIVE' ||
-    actor.ipAdminProfile.platformAdminRole !== 'SUPER_ADMIN'
-  ) {
-    throw new PlatformAdminServiceError(403, 'FORBIDDEN', 'Super admin access is required');
+  if (!actor || actor.userType !== 'IP_ADMIN' || actor.ipAdminProfile?.adminStatus !== 'ACTIVE') {
+    throw new PlatformAdminServiceError(403, 'FORBIDDEN', 'Platform admin access is required');
   }
+  requireSuperAdmin(actor.ipAdminProfile.platformAdminRole);
 
   const passwordMatches = await verifyPassword(input.password, actor.passwordHash);
   if (!passwordMatches) {
