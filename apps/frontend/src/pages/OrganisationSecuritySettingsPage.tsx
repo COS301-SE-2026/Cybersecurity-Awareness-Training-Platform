@@ -98,7 +98,7 @@ function OrganisationSecuritySettingsPage() {
                     htmlFor="default-checkbox"
                     className="select-none ml-2 text-[1.1rem] font-jost text-body tracking-wide font-medium"
                   >
-                    Maxiumum Remembered Session Length
+                    Set Maxiumum Remembered Session Length
                   </label>
                 </div>
 
@@ -153,7 +153,7 @@ function OrganisationSecuritySettingsPage() {
                     htmlFor="default-checkbox"
                     className="select-none ml-2 text-[1.1rem] font-jost text-body tracking-wide font-medium"
                   >
-                    Regular Session Length
+                    Set Regular Session Length
                   </label>
                 </div>
 
@@ -208,7 +208,7 @@ function OrganisationSecuritySettingsPage() {
                     htmlFor="default-checkbox"
                     className="select-none ml-2 text-[1.1rem] font-jost text-body tracking-wide font-medium"
                   >
-                    Idle Timeout
+                    Set Idle Timeout
                   </label>
                 </div>
 
