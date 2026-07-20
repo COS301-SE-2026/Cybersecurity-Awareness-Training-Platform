@@ -316,8 +316,11 @@ describe('organisation admin permission Prisma relations', () => {
       'CHANGE_ORGANISATION_ADMIN_PERMISSIONS',
       'CHANGE_ORGANISATION_SECURITY_SETTINGS',
       'INVITE_ORGANISATION_ADMINS',
+      'INVITE_ORGANISATION_TRAINEES',
       'REMOVE_ORGANISATION_ADMINS',
+      'REMOVE_ORGANISATION_TRAINEES',
       'VIEW_ORGANISATION_ADMINS',
+      'VIEW_ORGANISATION_TRAINEES',
     ]);
 
     const repeatedSummary = await seedOrganisationAdminPermissions(prisma);

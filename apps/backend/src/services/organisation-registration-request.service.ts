@@ -15,7 +15,7 @@ import { issueActionToken } from './action-token.service.js';
 import { ensureDefaultOrganisationSecuritySettings } from '../repositories/security-settings.repository.js';
 import { recordNotificationFailureEvent } from './notification-failure-event.service.js';
 
-const ORGANISATION_ADMIN_PERMISSION_SEEDS = [
+const ORGANISATION_ADMIN_PERMISSION = [
   {
     key: 'VIEW_ORGANISATION_ADMINS' as const,
     displayName: 'View organisation admins',
@@ -47,6 +47,7 @@ const ORGANISATION_ADMIN_PERMISSION_SEEDS = [
     isCritical: true,
   },
 ];
+import { ORGANISATION_PERMISSION_SEEDS } from '../constants/organisation-permission-seeds.js';
 
 export class OrganisationRegistrationRequestError extends Error {
   constructor(
@@ -627,7 +628,7 @@ export async function approveOrganisationRequest(
         },
       });
 
-      const permissionData = ORGANISATION_ADMIN_PERMISSION_SEEDS.map((perm) => ({
+      const permissionData = ORGANISATION_PERMISSION_SEEDS.map((perm) => ({
         id: ['organisation-permission', organisation.id, perm.key].join('-'),
         organisationId: organisation.id,
         key: perm.key,

@@ -87,6 +87,7 @@ export async function truncateTestDatabase() {
   assertTestDatabase();
 
   const { prisma } = await import('../../src/lib/prisma.js');
+  await prisma.$connect();
   const tables = await prisma.$queryRaw<{ table_name: string }[]>`
     SELECT table_name
     FROM information_schema.tables

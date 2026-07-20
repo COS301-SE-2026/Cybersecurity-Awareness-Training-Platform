@@ -22,6 +22,9 @@ function actionUrl(path: string, rawToken: string) {
   url.searchParams.set('token', rawToken);
   return url.toString();
 }
+function setupUrl(rawToken: string) {
+  return new URL(`/setup/token/${rawToken}`, env.FRONTEND_ORIGIN).toString();
+}
 function escapeHtml(value: string) {
   return value.replace(/[&<>"']/g, (character) => {
     const entities: Record<string, string> = {
@@ -204,7 +207,7 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
 
     case 'INITIAL_ORGANISATION_ADMIN_SETUP': {
       const data = initialOrganisationAdminSetupTemplateDataSchema.parse(templateData);
-      const url = actionUrl('/register', data.actionToken);
+      const url = setupUrl(data.actionToken);
       return simpleEmail({
         subject: `Your organisation has been approved`,
         heading: 'Organisation approved',
@@ -223,7 +226,7 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
 
     case 'ORGANISATION_TRAINEE_INVITE': {
       const data = organisationTraineeInviteTemplateDataSchema.parse(templateData);
-      const url = actionUrl('/register', data.actionToken);
+      const url = setupUrl(data.actionToken);
       const lines = [
         greeting(data.firstName),
         `You have been invited to join ${data.organisationName} on Insightful Phish.`,
@@ -263,7 +266,7 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
 
     case 'PLATFORM_ADMIN_INVITE': {
       const data = platformAdminInviteTemplateDataSchema.parse(templateData);
-      const url = actionUrl('/register', data.actionToken);
+      const url = setupUrl(data.actionToken);
       return simpleEmail({
         subject: `You're invited to join the Insightful Phish team`,
         heading: 'Platform administrator invitation',

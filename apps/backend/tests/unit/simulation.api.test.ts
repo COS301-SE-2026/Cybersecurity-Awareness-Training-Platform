@@ -1,3 +1,4 @@
+import type { Request, Response, NextFunction } from 'express';
 import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../../src/app.js';
@@ -23,9 +24,9 @@ const prismaMock = vi.hoisted(() => {
 vi.mock('../../src/lib/prisma.js', () => ({ prisma: prismaMock }));
 
 vi.mock('../../src/middleware/requireAuth.js', () => ({
-  requireAuth: (req: any, res: any, next: any) => {
+  requireAuth: (req: Request, res: Response, next: NextFunction) => {
     if (req.headers.authorization === 'Bearer mock-token') {
-      req.auth = { userId: 'user-123' };
+      req.auth = { userId: 'user-123' } as unknown as Request['auth'];
       next();
     } else {
       res.status(401).json({ error: 'AUTH_REQUIRED' });
@@ -420,6 +421,38 @@ describe('Simulation API', () => {
         .send({ selectedClassification: 'SAFE' });
 
       expect(response.status).toBe(403);
+    });
+
+    it('returns 400 when simulation service throws Error with message VALIDATION_ERROR', async () => {
+      const { simulationService } = await import('../../src/services/simulation.service.js');
+      vi.spyOn(simulationService, 'getSimulatedInbox').mockRejectedValueOnce(
+        new Error('VALIDATION_ERROR'),
+      );
+
+      const response = await request(app)
+        .get('/trainee/campaign-items/22222222-2222-2222-2222-222222222222/simulated-inbox')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({
+        error: 'VALIDATION_ERROR',
+      });
+    });
+
+    it('returns 500 when simulation service throws an unknown error', async () => {
+      const { simulationService } = await import('../../src/services/simulation.service.js');
+      vi.spyOn(simulationService, 'getSimulatedInbox').mockRejectedValueOnce(
+        new Error('Unexpected internal database error'),
+      );
+
+      const response = await request(app)
+        .get('/trainee/campaign-items/22222222-2222-2222-2222-222222222222/simulated-inbox')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(response.status).toBe(500);
+      expect(response.body).toEqual({
+        error: 'Unexpected internal database error',
+      });
     });
   });
 });
