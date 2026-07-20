@@ -353,12 +353,46 @@ describe('platformOrganisation service', () => {
           sentAt: null,
           failedAt: new Date(),
           failureReason: 'SMTP_NOT_ACCEPTED',
+          actionTokenId: 'token-123',
         },
       );
 
       expect(eligibility).toEqual({
         isEligible: true,
         reason: 'SETUP_EMAIL_FAILED',
+      });
+    });
+
+    it('does not treat an older failed delivery log as failure evidence for a newer active token', () => {
+      const eligibility = getResendEligibility(
+        'PENDING_ONBOARDING',
+        {
+          id: 'invite-123',
+          status: 'PENDING',
+          recipientEmail: 'admin@target.com',
+          expiresAt: new Date(Date.now() + 100_000),
+          actionTokens: [
+            {
+              id: 'token-new',
+              expiresAt: new Date(Date.now() + 100_000),
+              usedAt: null,
+              revokedAt: null,
+            },
+          ],
+        },
+        {
+          id: 'email-log-old',
+          deliveryStatus: 'FAILED',
+          sentAt: null,
+          failedAt: new Date(),
+          failureReason: 'SMTP_NOT_ACCEPTED',
+          actionTokenId: 'token-old',
+        },
+      );
+
+      expect(eligibility).toEqual({
+        isEligible: false,
+        reason: 'ACTIVE_SETUP_TOKEN_EXISTS',
       });
     });
 
@@ -431,6 +465,7 @@ describe('platformOrganisation service', () => {
       const mockLatestEmail = {
         id: 'email-log-123',
         deliveryStatus: 'FAILED', // failed
+        actionTokenId: 'token-123',
       };
 
       repositoryMock.findOrganisationById.mockResolvedValue(mockOrg);
@@ -485,16 +520,34 @@ describe('platformOrganisation service', () => {
         sentAt: null,
         failedAt: new Date(),
         failureReason: 'SMTP_NOT_ACCEPTED',
+        actionTokenId: 'token-123',
+      };
+      const newTokenExpiresAt = new Date(Date.now() + 200_000);
+      const mockUpdatedInvitation = {
+        ...mockInvitation,
+        status: 'SENT',
+        expiresAt: newTokenExpiresAt,
+        actionTokens: [
+          {
+            id: 'new-token-id',
+            expiresAt: newTokenExpiresAt,
+            usedAt: null,
+            revokedAt: null,
+          },
+        ],
       };
 
       repositoryMock.findOrganisationById.mockResolvedValue(mockOrg);
       repositoryMock.findRegistrationRequestByOrganisationId.mockResolvedValue(null);
-      repositoryMock.findSetupInvitationAndEmailLog.mockResolvedValue(mockInvitation);
+      repositoryMock.findSetupInvitationAndEmailLog
+        .mockResolvedValueOnce(mockInvitation)
+        .mockResolvedValueOnce(mockInvitation)
+        .mockResolvedValueOnce(mockUpdatedInvitation);
       repositoryMock.findLatestEmailLogForInvitation.mockResolvedValue(mockLatestEmail);
       prismaMock.invitation.updateMany.mockResolvedValue({ count: 1 });
       prismaMock.emailDeliveryLog.findFirst.mockResolvedValue(mockLatestEmail);
       actionTokenServiceMock.issueActionToken.mockResolvedValue({
-        token: { id: 'new-token-id', expiresAt: new Date() },
+        token: { id: 'new-token-id', expiresAt: newTokenExpiresAt },
         rawToken: 'raw-token-string',
       });
       emailHookMock.requestAuthEmailSend.mockResolvedValue(acceptedHookResult);
@@ -512,8 +565,8 @@ describe('platformOrganisation service', () => {
       );
       expect(response.setupStatus?.latestActionToken).toEqual(
         expect.objectContaining({
-          id: 'token-123',
-          status: 'REVOKED',
+          id: 'new-token-id',
+          status: 'AVAILABLE',
         }),
       );
       expect(response.setupStatus?.latestEmailDelivery).toEqual(
@@ -788,6 +841,55 @@ describe('platformOrganisation service', () => {
           'Setup email is not eligible for resending: ACTIVE_SETUP_TOKEN_EXISTS',
         ),
       );
+    });
+
+    it('does not revoke a newer active token because an older token delivery failed', async () => {
+      const mockOrg = {
+        id: organisationId,
+        status: 'PENDING_ONBOARDING',
+      };
+
+      const mockInvitation = {
+        id: 'invite-123',
+        status: 'PENDING',
+        recipientEmail: 'admin@target.com',
+        expiresAt: new Date(Date.now() + 100_000),
+        actionTokens: [
+          {
+            id: 'token-new',
+            expiresAt: new Date(Date.now() + 100_000),
+            usedAt: null,
+            revokedAt: null,
+          },
+        ],
+      };
+
+      const mockLatestEmail = {
+        id: 'email-log-old',
+        deliveryStatus: 'FAILED',
+        sentAt: null,
+        failedAt: new Date(),
+        failureReason: 'SMTP_NOT_ACCEPTED',
+        actionTokenId: 'token-old',
+      };
+
+      repositoryMock.findOrganisationById.mockResolvedValue(mockOrg);
+      repositoryMock.findRegistrationRequestByOrganisationId.mockResolvedValue(null);
+      repositoryMock.findSetupInvitationAndEmailLog.mockResolvedValue(mockInvitation);
+      repositoryMock.findLatestEmailLogForInvitation.mockResolvedValue(mockLatestEmail);
+      prismaMock.emailDeliveryLog.findFirst.mockResolvedValue(mockLatestEmail);
+
+      await expect(resendInitialAdminSetup(actorUserId, organisationId)).rejects.toThrowError(
+        new OrganisationRegistrationRequestError(
+          409,
+          'RESEND_NOT_ELIGIBLE',
+          'Setup email is not eligible for resending: ACTIVE_SETUP_TOKEN_EXISTS',
+        ),
+      );
+
+      expect(prismaMock.actionToken.updateMany).not.toHaveBeenCalled();
+      expect(actionTokenServiceMock.issueActionToken).not.toHaveBeenCalled();
+      expect(emailHookMock.requestAuthEmailSend).not.toHaveBeenCalled();
     });
 
     it('keeps pending delivery with an active setup token blocked from resend', async () => {

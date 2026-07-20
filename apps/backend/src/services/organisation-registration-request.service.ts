@@ -11,8 +11,9 @@ import { recordAuditLog } from './audit-log.service.js';
 import { requestAuthEmailSend } from './auth-email-hook.service.js';
 import { prisma } from '../lib/prisma.js';
 import { Prisma } from '../generated/prisma/client.js';
-import { issueActionToken, revokeActionTokenById } from './action-token.service.js';
+import { issueActionToken } from './action-token.service.js';
 import { ensureDefaultOrganisationSecuritySettings } from '../repositories/security-settings.repository.js';
+import { recordNotificationFailureEvent } from './notification-failure-event.service.js';
 
 const ORGANISATION_ADMIN_PERMISSION_SEEDS = [
   {
@@ -170,6 +171,7 @@ export async function listOrganisationRequests(
                 sentAt: true,
                 failedAt: true,
                 failureReason: true,
+                actionTokenId: true,
               },
             },
           },
@@ -769,23 +771,11 @@ export async function approveOrganisationRequest(
   });
 
   if (emailResult.status === 'NOT_ACCEPTED') {
-    await revokeActionTokenById({
-      tokenId: result.actionToken.token.id,
-      reason: 'EMAIL_SEND_FAILED',
-    });
-
-    await recordAuditLog({
+    await recoverInitialSetupEmailSendFailure({
       actorUserId,
-      actorType: 'IP_ADMIN',
-      targetType: 'INVITATION',
-      targetId: result.invitation.id,
-      actionType: 'INVITED',
-      outcome: 'FAILURE',
       organisationId: result.organisation.id,
-      metadata: {
-        emailOutcome: 'NOT_ACCEPTED',
-        reason: 'EMAIL_SEND_FAILED',
-      },
+      invitationId: result.invitation.id,
+      actionTokenId: result.actionToken.token.id,
     });
   }
 
@@ -802,6 +792,94 @@ export async function approveOrganisationRequest(
     },
     setupEmailQueued: emailResult.queued,
   };
+}
+
+async function recoverInitialSetupEmailSendFailure(input: {
+  actorUserId: string;
+  organisationId: string;
+  invitationId: string;
+  actionTokenId: string;
+}) {
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.invitation.updateMany({
+        where: {
+          id: input.invitationId,
+          status: { in: ['PENDING', 'SENT', 'FAILED_TO_SEND'] },
+        },
+        data: {
+          status: 'FAILED_TO_SEND',
+        },
+      });
+
+      const invitation = await tx.invitation.findUnique({
+        where: { id: input.invitationId },
+        select: { status: true },
+      });
+
+      if (!invitation || invitation.status !== 'FAILED_TO_SEND') {
+        throw new OrganisationRegistrationRequestError(
+          409,
+          'SETUP_EMAIL_RECOVERY_FAILED',
+          'Setup email failure recovery could not mark the invitation failed',
+        );
+      }
+
+      await tx.actionToken.updateMany({
+        where: {
+          id: input.actionTokenId,
+          usedAt: null,
+          OR: [{ revokedAt: null }, { revokedReason: 'EMAIL_SEND_FAILED' }],
+        },
+        data: {
+          revokedAt: new Date(),
+          revokedReason: 'EMAIL_SEND_FAILED',
+        },
+      });
+
+      const token = await tx.actionToken.findUnique({
+        where: { id: input.actionTokenId },
+        select: {
+          usedAt: true,
+          revokedAt: true,
+          revokedReason: true,
+        },
+      });
+
+      if (
+        !token ||
+        token.usedAt ||
+        !token.revokedAt ||
+        token.revokedReason !== 'EMAIL_SEND_FAILED'
+      ) {
+        throw new OrganisationRegistrationRequestError(
+          409,
+          'SETUP_EMAIL_RECOVERY_FAILED',
+          'Setup email failure recovery could not revoke the setup token',
+        );
+      }
+
+      await recordAuditLog(
+        {
+          actorUserId: input.actorUserId,
+          actorType: 'IP_ADMIN',
+          targetType: 'INVITATION',
+          targetId: input.invitationId,
+          actionType: 'INVITED',
+          outcome: 'FAILURE',
+          organisationId: input.organisationId,
+          metadata: {
+            emailOutcome: 'NOT_ACCEPTED',
+            reason: 'EMAIL_SEND_FAILED',
+          },
+        },
+        tx,
+      );
+    });
+  } catch (error) {
+    await recordNotificationFailureEvent('SETUP_EMAIL_RECOVERY_FAILED');
+    throw error;
+  }
 }
 
 export async function deleteOrganisationRequest(actorUserId: string, requestId: string) {
@@ -999,6 +1077,7 @@ export interface FormatEmailLogInput {
   sentAt: Date | null;
   failedAt: Date | null;
   failureReason: string | null;
+  actionTokenId?: string | null;
 }
 
 export function formatSetupStatus(
@@ -1063,20 +1142,25 @@ export function getResendEligibility(
   if (invitation.status === 'REVOKED' || invitation.status === 'REJECTED') {
     return { isEligible: false, reason: 'INVITATION_NOT_ELIGIBLE' };
   }
+  if (invitation.status === 'FAILED_TO_SEND') {
+    return { isEligible: true, reason: 'SETUP_EMAIL_FAILED' };
+  }
   if (new Date(invitation.expiresAt).getTime() <= now.getTime()) {
     return { isEligible: true, reason: 'SETUP_TOKEN_EXPIRED' };
   }
 
   const tokens = invitation.actionTokens || [];
-  const hasActiveToken = tokens.some(
+  const activeToken = tokens.find(
     (t) => !t.usedAt && !t.revokedAt && new Date(t.expiresAt).getTime() > now.getTime(),
   );
 
   if (latestEmailLog?.deliveryStatus === 'FAILED') {
-    return { isEligible: true, reason: 'SETUP_EMAIL_FAILED' };
+    if (!activeToken || latestEmailLog.actionTokenId === activeToken.id) {
+      return { isEligible: true, reason: 'SETUP_EMAIL_FAILED' };
+    }
   }
 
-  if (!hasActiveToken) {
+  if (!activeToken) {
     return { isEligible: true, reason: null };
   }
 

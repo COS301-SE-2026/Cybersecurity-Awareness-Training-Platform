@@ -33,9 +33,12 @@ const prismaMock = vi.hoisted(() => ({
   invitation: {
     create: vi.fn(),
     findFirst: vi.fn(),
+    findUnique: vi.fn(),
     update: vi.fn(),
+    updateMany: vi.fn(),
   },
   actionToken: {
+    findUnique: vi.fn(),
     updateMany: vi.fn(),
   },
   emailDeliveryLog: {
@@ -76,6 +79,10 @@ const emailHookMock = vi.hoisted(() => ({
   requestAuthEmailSend: vi.fn(),
 }));
 
+const notificationFailureEventMock = vi.hoisted(() => ({
+  recordNotificationFailureEvent: vi.fn(),
+}));
+
 vi.mock('../../src/lib/prisma.js', () => ({
   prisma: prismaMock,
 }));
@@ -89,6 +96,10 @@ vi.mock('../../src/services/action-token.service.js', () => actionTokenServiceMo
 vi.mock('../../src/repositories/security-settings.repository.js', () => securitySettingsMock);
 vi.mock('../../src/services/audit-log.service.js', () => auditLogMock);
 vi.mock('../../src/services/auth-email-hook.service.js', () => emailHookMock);
+vi.mock(
+  '../../src/services/notification-failure-event.service.js',
+  () => notificationFailureEventMock,
+);
 
 const actorUserId = '44444444-4444-4444-8444-444444444444';
 const requestId = '55555555-5555-4555-8555-555555555555';
@@ -373,6 +384,14 @@ describe('platform organisation registration request service', () => {
         rawToken: 'token123',
         token: { id: 'token-id-1', expiresAt: new Date() },
       });
+      prismaMock.invitation.updateMany.mockResolvedValue({ count: 1 });
+      prismaMock.invitation.findUnique.mockResolvedValue({ status: 'FAILED_TO_SEND' });
+      prismaMock.actionToken.updateMany.mockResolvedValue({ count: 1 });
+      prismaMock.actionToken.findUnique.mockResolvedValue({
+        usedAt: null,
+        revokedAt: new Date(),
+        revokedReason: 'EMAIL_SEND_FAILED',
+      });
       prismaMock.organisationRegistrationRequest.update.mockResolvedValue({
         id: requestId,
         status: 'APPROVED',
@@ -474,9 +493,25 @@ describe('platform organisation registration request service', () => {
       expect(prismaMock.organisation.create).toHaveBeenCalled();
       expect(prismaMock.invitation.create).toHaveBeenCalled();
       expect(actionTokenServiceMock.issueActionToken).toHaveBeenCalled();
-      expect(actionTokenServiceMock.revokeActionTokenById).toHaveBeenCalledWith({
-        tokenId: 'token-id-1',
-        reason: 'EMAIL_SEND_FAILED',
+      expect(prismaMock.invitation.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: 'invitation-1',
+          status: { in: ['PENDING', 'SENT', 'FAILED_TO_SEND'] },
+        },
+        data: {
+          status: 'FAILED_TO_SEND',
+        },
+      });
+      expect(prismaMock.actionToken.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: 'token-id-1',
+          usedAt: null,
+          OR: [{ revokedAt: null }, { revokedReason: 'EMAIL_SEND_FAILED' }],
+        },
+        data: {
+          revokedAt: expect.any(Date),
+          revokedReason: 'EMAIL_SEND_FAILED',
+        },
       });
       expect(auditLogMock.recordAuditLog).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -491,13 +526,48 @@ describe('platform organisation registration request service', () => {
             reason: 'EMAIL_SEND_FAILED',
           },
         }),
+        expect.anything(),
       );
+      expect(notificationFailureEventMock.recordNotificationFailureEvent).not.toHaveBeenCalled();
       expect(auditLogMock.recordAuditLog).not.toHaveBeenCalledWith(
         expect.objectContaining({
           metadata: expect.objectContaining({
             reason: expect.stringContaining('SMTP broke'),
           }),
         }),
+      );
+    });
+
+    it('records a stable event when first setup email failure recovery cannot complete', async () => {
+      mockApprovalPersistence();
+      prismaMock.actionToken.findUnique.mockResolvedValue({
+        usedAt: null,
+        revokedAt: null,
+        revokedReason: null,
+      });
+      emailHookMock.requestAuthEmailSend.mockResolvedValue({
+        status: 'NOT_ACCEPTED',
+        acceptedByProvider: false,
+        queued: false,
+        deliveryLogId: 'email-log-1',
+        reason: 'EMAIL_SEND_FAILED',
+      });
+
+      await expect(
+        approveOrganisationRequest(actorUserId, requestId, {
+          organisationName: 'Acme Corp',
+          initialAdminEmail: 'john@acme.com',
+        }),
+      ).rejects.toThrowError(
+        new OrganisationRegistrationRequestError(
+          409,
+          'SETUP_EMAIL_RECOVERY_FAILED',
+          'Setup email failure recovery could not revoke the setup token',
+        ),
+      );
+
+      expect(notificationFailureEventMock.recordNotificationFailureEvent).toHaveBeenCalledWith(
+        'SETUP_EMAIL_RECOVERY_FAILED',
       );
     });
 
