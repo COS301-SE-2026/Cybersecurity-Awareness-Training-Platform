@@ -40,7 +40,7 @@ export type GuardOrganisation = {
 export type GuardTraineeProfile = { traineeStatus: 'ACTIVE' | 'INACTIVE' };
 
 export type GuardOrganisationTraineeProfile = {
-  membershipStatus: 'ACTIVE' | 'INACTIVE';
+  membershipStatus: 'ACTIVE' | 'INACTIVE' | 'DISABLED';
   organisation?: GuardOrganisation | null;
 };
 

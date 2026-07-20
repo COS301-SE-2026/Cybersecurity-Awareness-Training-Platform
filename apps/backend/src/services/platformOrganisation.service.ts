@@ -239,15 +239,29 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
     // Atomic claim: update the invitation only if it is still in an eligible state.
     // A concurrent resend that already updated the invitation will cause this to match 0 rows,
     // which means we lost the race -- return a stable 409 without revoking the winning token.
+    const invitationTx = await OrganisationRepository.findSetupInvitationAndEmailLog(
+      {
+        organisationId,
+      },
+      tx,
+    );
+    if (!invitationTx) {
+      throw new OrganisationRegistrationRequestError(
+        404,
+        'SETUP_INVITATION_NOT_FOUND',
+        'Initial admin setup invitation not found',
+      );
+    }
+
     const latestEmailLogTx = await tx.emailDeliveryLog.findFirst({
       where: {
-        invitationId: invitation.id,
+        invitationId: invitationTx.id,
         emailType: 'INITIAL_ORGANISATION_ADMIN_SETUP',
       },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
     });
 
-    const eligibilityTx = getResendEligibility(organisation.status, invitation, latestEmailLogTx);
+    const eligibilityTx = getResendEligibility(organisation.status, invitationTx, latestEmailLogTx);
     if (!eligibilityTx.isEligible) {
       throw new OrganisationRegistrationRequestError(
         409,
@@ -260,9 +274,9 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
     // past the value we read outside, the WHERE won't match and count will be 0.
     const claimResult = await tx.invitation.updateMany({
       where: {
-        id: invitation.id,
-        status: invitation.status,
-        updatedAt: invitation.updatedAt,
+        id: invitationTx.id,
+        status: invitationTx.status,
+        updatedAt: invitationTx.updatedAt,
       },
       data: {
         status: 'PENDING',
@@ -282,7 +296,7 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
     // Revoke any existing active action tokens for this invitation
     await tx.actionToken.updateMany({
       where: {
-        invitationId: invitation.id,
+        invitationId: invitationTx.id,
         usedAt: null,
         revokedAt: null,
       },
@@ -297,10 +311,10 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
       {
         purpose: 'INITIAL_ORGANISATION_ADMIN_SETUP',
         expiresAt: newExpiresAt,
-        targetEmail: invitation.recipientEmail,
-        invitationId: invitation.id,
+        targetEmail: invitationTx.recipientEmail,
+        invitationId: invitationTx.id,
         organisationRegistrationRequestId:
-          invitation.organisationRegistrationRequestId ?? undefined,
+          invitationTx.organisationRegistrationRequestId ?? undefined,
       },
       tx,
     );
@@ -311,7 +325,7 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
         actorUserId,
         actorType: 'IP_ADMIN',
         targetType: 'INVITATION',
-        targetId: invitation.id,
+        targetId: invitationTx.id,
         actionType: 'RESENT',
         outcome: 'SUCCESS',
         organisationId: organisation.id,
@@ -321,6 +335,7 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
 
     return {
       actionToken: actionTokenResult,
+      invitation: invitationTx,
     };
   });
 
@@ -336,13 +351,14 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
   try {
     const emailResult = await requestAuthEmailSend({
       emailType: 'INITIAL_ORGANISATION_ADMIN_SETUP',
-      recipientEmail: invitation.recipientEmail,
+      recipientEmail: result.invitation.recipientEmail,
       organisationId: organisation.id,
-      invitationId: invitation.id,
+      invitationId: result.invitation.id,
       actionTokenId: result.actionToken.token.id,
-      organisationRegistrationRequestId: invitation.organisationRegistrationRequestId ?? undefined,
+      organisationRegistrationRequestId:
+        result.invitation.organisationRegistrationRequestId ?? undefined,
       templateData: {
-        firstName: invitation.recipientFirstName ?? '',
+        firstName: result.invitation.recipientFirstName ?? '',
         organisationName: organisation.name,
         actionToken: result.actionToken.rawToken,
         actionTokenExpiresAt: result.actionToken.token.expiresAt,
@@ -373,7 +389,7 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
       actorUserId,
       actorType: 'IP_ADMIN',
       targetType: 'INVITATION',
-      targetId: invitation.id,
+      targetId: result.invitation.id,
       actionType: 'RESENT',
       outcome: 'FAILURE',
       organisationId: organisation.id,

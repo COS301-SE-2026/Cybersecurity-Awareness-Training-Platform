@@ -3,6 +3,7 @@ import type {
   EmailRelatedEntityType,
   PrismaClient,
 } from '../generated/prisma/client.js';
+import { ACTIVE_INVITATION_STATUSES } from './invitation-state-policy.js';
 import { prisma } from '../lib/prisma.js';
 import { renderEmail } from './email-template-renderer.js';
 import { sendViaSMTP } from './smtp-mailer.js';
@@ -74,13 +75,15 @@ async function attemptEmailPersistence(
 
 type EmailPrismaClient = {
   emailDeliveryLog: Pick<PrismaClient['emailDeliveryLog'], 'create' | 'update'>;
-  invitation: Pick<PrismaClient['invitation'], 'update'>;
+  invitation: Pick<PrismaClient['invitation'], 'update' | 'updateMany' | 'findUnique'>;
+  actionToken: Pick<PrismaClient['actionToken'], 'findUnique'>;
 };
 export type SendEmailRelatedEntity = {
   fallbackType?: EmailRelatedEntityType;
   fallbackId?: string | null;
   userId?: string | null;
   actionTokenId?: string | null;
+  invitationStateVersion?: string | null;
   organisationId?: string | null;
   organisationRegistrationRequestId?: string | null;
   invitationId?: string | null;
@@ -130,21 +133,53 @@ function isInvitationEmail(emailType: EmailDeliveryType) {
 
 async function markInvitationSentIfRelevant(input: SendEmailInput, client: EmailPrismaClient) {
   if (!input.relatedEntity.invitationId || !isInvitationEmail(input.emailType)) {
-    return;
+    return true;
   }
-  await client.invitation.update({
+  const invitationStateVersion = input.relatedEntity.invitationStateVersion
+    ? new Date(input.relatedEntity.invitationStateVersion)
+    : null;
+  if (input.relatedEntity.actionTokenId) {
+    const token = await client.actionToken.findUnique({
+      where: { id: input.relatedEntity.actionTokenId },
+    });
+    if (token && (token.revokedAt || token.usedAt)) {
+      return false;
+    }
+  }
+  const updateResult = await client.invitation.updateMany({
     data: { status: 'SENT' },
-    where: { id: input.relatedEntity.invitationId },
+    where: {
+      id: input.relatedEntity.invitationId,
+      status: { in: [...ACTIVE_INVITATION_STATUSES] },
+      ...(invitationStateVersion ? { updatedAt: invitationStateVersion } : {}),
+    },
   });
+  return updateResult.count > 0;
 }
 async function markInvitationFailedIfRelevant(input: SendEmailInput, client: EmailPrismaClient) {
   if (!input.relatedEntity.invitationId || !isInvitationEmail(input.emailType)) {
-    return;
+    return true;
   }
-  await client.invitation.update({
+  const invitationStateVersion = input.relatedEntity.invitationStateVersion
+    ? new Date(input.relatedEntity.invitationStateVersion)
+    : null;
+  if (input.relatedEntity.actionTokenId) {
+    const token = await client.actionToken.findUnique({
+      where: { id: input.relatedEntity.actionTokenId },
+    });
+    if (token && (token.revokedAt || token.usedAt)) {
+      return false;
+    }
+  }
+  const updateResult = await client.invitation.updateMany({
     data: { status: 'FAILED_TO_SEND' },
-    where: { id: input.relatedEntity.invitationId },
+    where: {
+      id: input.relatedEntity.invitationId,
+      status: { in: [...ACTIVE_INVITATION_STATUSES] },
+      ...(invitationStateVersion ? { updatedAt: invitationStateVersion } : {}),
+    },
   });
+  return updateResult.count > 0;
 }
 
 async function markDeliveryLogSent(input: {
@@ -256,10 +291,9 @@ export async function sendEmail(
           }),
         deliveryLogFailedFailure,
       )),
-      ...(await attemptEmailPersistence(
-        () => markInvitationFailedIfRelevant(input, client),
-        invitationFailedToSendFailure,
-      )),
+      ...(await attemptEmailPersistence(async () => {
+        await markInvitationFailedIfRelevant(input, client);
+      }, invitationFailedToSendFailure)),
     ];
 
     return {
@@ -282,10 +316,9 @@ export async function sendEmail(
         }),
       deliveryLogSentFailure,
     )),
-    ...(await attemptEmailPersistence(
-      () => markInvitationSentIfRelevant(input, client),
-      invitationSentFailure,
-    )),
+    ...(await attemptEmailPersistence(async () => {
+      await markInvitationSentIfRelevant(input, client);
+    }, invitationSentFailure)),
   ];
 
   const nonEmptyPersistenceFailures = toNonEmptyPersistenceFailures(persistenceFailures);
