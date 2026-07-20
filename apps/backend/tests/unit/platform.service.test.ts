@@ -228,6 +228,66 @@ describe('platform organisation registration request service', () => {
       expect(response.requests[0].resendEligibility.isEligible).toBe(true);
       expect(response.requests[0].resendEligibility.reason).toBe('SETUP_TOKEN_EXPIRED');
     });
+
+    it('does not derive setup email failed from an older failed log when a newer active token exists', async () => {
+      const futureDate = new Date(Date.now() + 3600 * 1000);
+      prismaMock.organisationRegistrationRequest.findMany.mockResolvedValue([
+        {
+          id: requestId,
+          submittedOrganisationName: 'Acme',
+          representativeFirstName: 'John',
+          representativeLastName: 'Doe',
+          representativeEmail: 'john@acme.com',
+          status: 'APPROVED',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          contactedAt: null,
+          approvedAt: new Date(),
+          rejectedAt: null,
+          approvedOrganisation: {
+            status: 'PENDING_ONBOARDING',
+          },
+          initialAdminInvitations: [
+            {
+              id: 'inv-1',
+              status: 'PENDING',
+              recipientEmail: 'john@acme.com',
+              expiresAt: futureDate,
+              actionTokens: [
+                {
+                  id: 'token-new',
+                  expiresAt: futureDate,
+                  usedAt: null,
+                  revokedAt: null,
+                },
+              ],
+              emailDeliveryLogs: [
+                {
+                  id: 'email-log-old',
+                  deliveryStatus: 'FAILED',
+                  sentAt: null,
+                  failedAt: new Date(),
+                  failureReason: 'SMTP_NOT_ACCEPTED',
+                  actionTokenId: 'token-old',
+                },
+              ],
+            },
+          ],
+        },
+      ]);
+      prismaMock.organisationRegistrationRequest.count.mockResolvedValue(1);
+
+      const response = await listOrganisationRequests(actorUserId, {
+        page: 1,
+        limit: 10,
+      });
+
+      expect(response.requests[0].derivedStatus).toBe('PENDING_ONBOARDING');
+      expect(response.requests[0].resendEligibility).toEqual({
+        isEligible: false,
+        reason: 'ACTIVE_SETUP_TOKEN_EXISTS',
+      });
+    });
   });
 
   describe('getOrganisationRequest', () => {

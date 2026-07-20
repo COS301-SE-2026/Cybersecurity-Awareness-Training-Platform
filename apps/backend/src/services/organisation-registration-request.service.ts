@@ -179,15 +179,12 @@ export async function listOrganisationRequests(
         return 'SETUP_TOKEN_EXPIRED';
       }
 
-      const tokens = invitation.actionTokens || [];
-      const hasActiveToken = tokens.some(
-        (t) => !t.usedAt && !t.revokedAt && new Date(t.expiresAt).getTime() > now.getTime(),
-      );
-      if (!hasActiveToken) {
+      const activeToken = findActiveSetupToken(invitation, now);
+      if (!activeToken) {
         return 'SETUP_TOKEN_EXPIRED';
       }
 
-      if (latestEmailLog?.deliveryStatus === 'FAILED') {
+      if (isFailedDeliveryForCurrentSetupToken(latestEmailLog, activeToken)) {
         return 'SETUP_EMAIL_FAILED';
       }
 
@@ -1048,6 +1045,29 @@ export interface FormatEmailLogInput {
   actionTokenId?: string | null;
 }
 
+type FormatActionTokenInput = FormatInvitationInput['actionTokens'][number];
+
+function findActiveSetupToken(
+  invitation: FormatInvitationInput,
+  now: Date,
+): FormatActionTokenInput | undefined {
+  return invitation.actionTokens.find(
+    (token) =>
+      !token.usedAt && !token.revokedAt && new Date(token.expiresAt).getTime() > now.getTime(),
+  );
+}
+
+function isFailedDeliveryForCurrentSetupToken(
+  latestEmailLog: FormatEmailLogInput | null,
+  activeToken: FormatActionTokenInput | undefined,
+) {
+  if (latestEmailLog?.deliveryStatus !== 'FAILED') {
+    return false;
+  }
+
+  return !activeToken || latestEmailLog.actionTokenId === activeToken.id;
+}
+
 export function formatSetupStatus(
   invitation: FormatInvitationInput | null,
   latestEmailLog: FormatEmailLogInput | null,
@@ -1117,15 +1137,10 @@ export function getResendEligibility(
     return { isEligible: true, reason: 'SETUP_TOKEN_EXPIRED' };
   }
 
-  const tokens = invitation.actionTokens || [];
-  const activeToken = tokens.find(
-    (t) => !t.usedAt && !t.revokedAt && new Date(t.expiresAt).getTime() > now.getTime(),
-  );
+  const activeToken = findActiveSetupToken(invitation, now);
 
-  if (latestEmailLog?.deliveryStatus === 'FAILED') {
-    if (!activeToken || latestEmailLog.actionTokenId === activeToken.id) {
-      return { isEligible: true, reason: 'SETUP_EMAIL_FAILED' };
-    }
+  if (isFailedDeliveryForCurrentSetupToken(latestEmailLog, activeToken)) {
+    return { isEligible: true, reason: 'SETUP_EMAIL_FAILED' };
   }
 
   if (!activeToken) {
