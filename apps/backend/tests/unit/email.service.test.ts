@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ACTIVE_INVITATION_STATUSES } from '../../src/services/invitation-state-policy.js';
 const { sendEmail } = await import('../../src/services/email.service.js');
 const sendMailMock = vi.hoisted(() => vi.fn());
 
@@ -87,6 +88,10 @@ describe('sendEmail', () => {
 
     sendMailMock.mockResolvedValue({
       messageId: 'smtpmessage01',
+    });
+
+    invitationMock.updateMany.mockResolvedValue({
+      count: 1,
     });
   });
 
@@ -403,9 +408,12 @@ describe('sendEmail', () => {
     });
 
     expect(emailDeliveryLogMock.update).toHaveBeenCalledWith(sentLogUpdate);
-    expect(invitationMock.update).toHaveBeenCalledWith({
+    expect(invitationMock.updateMany).toHaveBeenCalledWith({
       data: { status: 'SENT' },
-      where: { id: 'invitation01' },
+      where: {
+        id: 'invitation01',
+        status: { in: [...ACTIVE_INVITATION_STATUSES] },
+      },
     });
     expect(result).toEqual({
       status: 'ACCEPTED_PERSISTENCE_FAILED',
@@ -419,7 +427,7 @@ describe('sendEmail', () => {
   });
 
   it('keeps the sent log when invitation persistence fails after SMTP acceptance', async () => {
-    invitationMock.update.mockRejectedValueOnce(new Error('invitation update failed'));
+    invitationMock.updateMany.mockRejectedValueOnce(new Error('invitation update failed'));
 
     const result = await sendEmail({
       emailType: 'ORGANISATION_TRAINEE_INVITE',
@@ -455,7 +463,7 @@ describe('sendEmail', () => {
 
   it('reports both accepted-path persistence failures with stable codes', async () => {
     emailDeliveryLogMock.update.mockRejectedValueOnce(new Error('database unavailable'));
-    invitationMock.update.mockRejectedValueOnce(new Error('invitation update failed'));
+    invitationMock.updateMany.mockRejectedValueOnce(new Error('invitation update failed'));
 
     const result = await sendEmail({
       emailType: 'ORGANISATION_ADMIN_PROMOTION_INVITE',
@@ -511,8 +519,11 @@ describe('sendEmail', () => {
         failureReason: 'SMTP_NOT_ACCEPTED',
       },
     });
-    expect(invitationMock.update).toHaveBeenCalledWith({
-      where: { id: 'invitation01' },
+    expect(invitationMock.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'invitation01',
+        status: { in: [...ACTIVE_INVITATION_STATUSES] },
+      },
       data: { status: 'FAILED_TO_SEND' },
     });
     expect(result).toEqual({

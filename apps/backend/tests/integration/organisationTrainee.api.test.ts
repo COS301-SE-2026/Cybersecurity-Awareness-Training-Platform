@@ -334,7 +334,7 @@ describe('Organisation Trainee API Integration Tests', () => {
         where: { invitationId: invId },
       });
 
-      let resolveSmtp: any;
+      let resolveSmtp: (value: unknown) => void = () => {};
       const smtpPromise = new Promise((resolve) => {
         resolveSmtp = resolve;
       });
@@ -343,6 +343,9 @@ describe('Organisation Trainee API Integration Tests', () => {
       const resendPromise = request(app)
         .post(`/organisations/${fixture.organisation.id}/trainee-invitations/${invId}/resend`)
         .set('Authorization', `Bearer ${fixture.token}`);
+
+      // Start the request in the background
+      const responsePromise = resendPromise.then((res) => res);
 
       // Wait until the resend transaction commits (second token is created)
       let replacementToken = null;
@@ -357,6 +360,9 @@ describe('Organisation Trainee API Integration Tests', () => {
         await new Promise((r) => setTimeout(r, 50));
       }
       expect(replacementToken).not.toBeNull();
+      if (!replacementToken) {
+        throw new Error('Replacement token not found');
+      }
 
       // Perform concurrent revoke request
       const revokeResponse = await request(app)
@@ -367,7 +373,7 @@ describe('Organisation Trainee API Integration Tests', () => {
       // Now resolve the SMTP send
       resolveSmtp({ messageId: 'smtpmessage01' });
 
-      const resendResponse = await resendPromise;
+      const resendResponse = await responsePromise;
       expect(resendResponse.status).toBe(409);
       expect(resendResponse.body).toMatchObject({
         error: 'INVITATION_REVOKED',
@@ -384,7 +390,7 @@ describe('Organisation Trainee API Integration Tests', () => {
 
       // Verify email delivery log status is updated but state is still REVOKED
       const deliveryLog = await prisma.emailDeliveryLog.findFirst({
-        where: { actionTokenId: replacementToken!.id },
+        where: { actionTokenId: replacementToken.id },
       });
       expect(deliveryLog).toBeDefined();
       expect(deliveryLog?.deliveryStatus).toBe('SENT');
@@ -401,7 +407,7 @@ describe('Organisation Trainee API Integration Tests', () => {
         where: { invitationId: invId },
       });
 
-      let rejectSmtp: any;
+      let rejectSmtp: (reason: Error) => void = () => {};
       const smtpPromise = new Promise((_, reject) => {
         rejectSmtp = reject;
       });
@@ -410,6 +416,9 @@ describe('Organisation Trainee API Integration Tests', () => {
       const resendPromise = request(app)
         .post(`/organisations/${fixture.organisation.id}/trainee-invitations/${invId}/resend`)
         .set('Authorization', `Bearer ${fixture.token}`);
+
+      // Start the request in the background
+      const responsePromise = resendPromise.then((res) => res);
 
       // Wait until the resend transaction commits (second token is created)
       let replacementToken = null;
@@ -424,6 +433,9 @@ describe('Organisation Trainee API Integration Tests', () => {
         await new Promise((r) => setTimeout(r, 50));
       }
       expect(replacementToken).not.toBeNull();
+      if (!replacementToken) {
+        throw new Error('Replacement token not found');
+      }
 
       // Perform concurrent revoke request
       const revokeResponse = await request(app)
@@ -434,7 +446,7 @@ describe('Organisation Trainee API Integration Tests', () => {
       // Now reject SMTP send
       rejectSmtp(new Error('SMTP delivery failed'));
 
-      const resendResponse = await resendPromise;
+      const resendResponse = await responsePromise;
       expect(resendResponse.status).toBe(409);
       expect(resendResponse.body).toMatchObject({
         error: 'INVITATION_REVOKED',
@@ -450,7 +462,7 @@ describe('Organisation Trainee API Integration Tests', () => {
       expect(finalTokens.every((token) => token.revokedAt !== null)).toBe(true);
 
       const deliveryLog = await prisma.emailDeliveryLog.findFirst({
-        where: { actionTokenId: replacementToken!.id },
+        where: { actionTokenId: replacementToken.id },
       });
       expect(deliveryLog).toBeDefined();
       expect(deliveryLog?.deliveryStatus).toBe('FAILED');
@@ -486,7 +498,7 @@ describe('Organisation Trainee API Integration Tests', () => {
       expect(response.status).toBe(201);
       expect(response.body.success).toBe(true);
       expect(response.body.invitation.deliveryState).toBe('UNKNOWN');
-      expect(response.body.invitation.invitationLifecycleState).toBe('PENDING');
+      expect(response.body.invitation.invitationLifecycleState).toBe('SENT');
     });
   });
 

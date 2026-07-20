@@ -292,7 +292,9 @@ export async function sendEmail(
         deliveryLogFailedFailure,
       )),
       ...(await attemptEmailPersistence(
-        () => markInvitationFailedIfRelevant(input, client),
+        async () => {
+          await markInvitationFailedIfRelevant(input, client);
+        },
         invitationFailedToSendFailure,
       )),
     ];
@@ -318,7 +320,9 @@ export async function sendEmail(
       deliveryLogSentFailure,
     )),
     ...(await attemptEmailPersistence(
-      () => markInvitationSentIfRelevant(input, client),
+      async () => {
+        await markInvitationSentIfRelevant(input, client);
+      },
       invitationSentFailure,
     )),
   ];

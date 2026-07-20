@@ -307,7 +307,7 @@ describe('OrganisationTraineeService', () => {
       vi.mocked(prisma.invitation.findUnique).mockResolvedValue({
         ...buildMockInvitation({ id: mockInvitationId, status: 'PENDING' }),
         actionTokens: [{ id: mockActionTokenId, revokedAt: null, usedAt: null }],
-      } as any);
+      } as unknown as never);
 
       const result = await resendTraineeInvitation(mockActorUserId, mockOrgId, mockInvitationId);
 
