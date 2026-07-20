@@ -14,39 +14,6 @@ import { Prisma } from '../generated/prisma/client.js';
 import { issueActionToken } from './action-token.service.js';
 import { ensureDefaultOrganisationSecuritySettings } from '../repositories/security-settings.repository.js';
 import { recordNotificationFailureEvent } from './notification-failure-event.service.js';
-
-const ORGANISATION_ADMIN_PERMISSION = [
-  {
-    key: 'VIEW_ORGANISATION_ADMINS' as const,
-    displayName: 'View organisation admins',
-    description: 'View organisation admin users and their permission grants.',
-    isCritical: false,
-  },
-  {
-    key: 'INVITE_ORGANISATION_ADMINS' as const,
-    displayName: 'Invite organisation admins',
-    description: 'Invite or promote users to organisation admin access.',
-    isCritical: true,
-  },
-  {
-    key: 'REMOVE_ORGANISATION_ADMINS' as const,
-    displayName: 'Remove organisation admins',
-    description: 'Disable or remove organisation admin access.',
-    isCritical: false,
-  },
-  {
-    key: 'CHANGE_ORGANISATION_ADMIN_PERMISSIONS' as const,
-    displayName: 'Change organisation admin permissions',
-    description: 'Grant or revoke organisation admin permissions.',
-    isCritical: true,
-  },
-  {
-    key: 'CHANGE_ORGANISATION_SECURITY_SETTINGS' as const,
-    displayName: 'Change organisation security settings',
-    description: 'Change organisation security policy and related settings.',
-    isCritical: true,
-  },
-];
 import { ORGANISATION_PERMISSION_SEEDS } from '../constants/organisation-permission-seeds.js';
 
 export class OrganisationRegistrationRequestError extends Error {
