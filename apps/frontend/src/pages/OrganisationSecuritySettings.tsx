@@ -82,84 +82,126 @@ function OrganisationSecuritySettings() {
             </div>
 
             {/* Dropdown */}
-            <label
-              htmlFor="default-checkbox"
-              className="select-none ms-2 text-[1.1rem] font-jost text-body tracking-wide font-regular"
-            >
-              Maximum Remembered Session Length
-            </label>
+            <div>
+              <div className="mb-2">
+                <label
+                  htmlFor="default-checkbox"
+                  className="select-none ml-2 text-[1.1rem] font-jost text-body tracking-wide font-medium"
+                >
+                  Maxiumum Remembered Session Length
+                </label>
+              </div>
 
-            <Dropdown
-              label="30 Days"
-              className="ml-2 border border-gray-200 bg-gray-100 hover:bg-gray-100 text-body rounded-none font-overpass text-[1rem]"
-            >
-              <DropdownItem className="font-overpass text-[1rem]">1 Day</DropdownItem>
-              <DropdownItem className="font-overpass text-[1rem]">7 Days</DropdownItem>
-              <DropdownItem className="font-overpass text-[1rem]">14 Days</DropdownItem>
-              <DropdownItem className="font-overpass text-[1rem]">30 Days</DropdownItem>
-            </Dropdown>
+              <Dropdown
+                label="30 Days"
+                className="ml-2 border border-gray-200 bg-gray-100 hover:bg-gray-100 text-body rounded-none font-overpass text-[1rem]"
+              >
+                <DropdownItem className="font-overpass text-[1rem]">1 Day</DropdownItem>
+                <DropdownItem className="font-overpass text-[1rem]">7 Days</DropdownItem>
+                <DropdownItem className="font-overpass text-[1rem]">14 Days</DropdownItem>
+                <DropdownItem className="font-overpass text-[1rem]">30 Days</DropdownItem>
+              </Dropdown>
+            </div>
           </div>
           {/* ========== "Remember Me" Policy ========== */}
 
-          {/* ========== Regular Session Policy ========== */}
+          {/* ========== Regular Session Length ========== */}
           <div>
             {/* Label */}
             <label
               htmlFor="remember-me-policy"
               className=" block mb-1 font-jost tracking-wide text-[1.4rem] font-medium text-dark-pink"
             >
-              "Remember Me" Policy
+              Regular Session Length
             </label>
 
             {/* Enfore Checkbox */}
             <div className="flex items-center mb-2 ml-2">
               <input
-                id="enfore-remember-me"
+                id="enfore-regular-session"
                 type="checkbox"
                 className="accent-[#8400ff] w-5 h-5 border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
               />
               <label
-                htmlFor="enfore-remember-me"
+                htmlFor="enfore-regular-session"
                 className="select-none ms-2 text-[1.1rem] font-jost text-body tracking-wide font-regular"
               >
-                Enfore "Remember Me" Policy
-              </label>
-            </div>
-
-            {/* Allow Checkbox */}
-            <div className="flex items-center mb-2 ml-2">
-              <input
-                id="allow-remember-me"
-                type="checkbox"
-                className="accent-[#8400ff] w-5 h-5 border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
-              />
-              <label
-                htmlFor="allow-remember-me"
-                className="select-none ms-2 text-[1.1rem] font-jost text-body tracking-wide font-regular"
-              >
-                Allow "Remember Me"
+                Enfore Regular Session Length
               </label>
             </div>
 
             {/* Dropdown */}
+            <div>
+              <div className="mb-2">
+                <label
+                  htmlFor="default-checkbox"
+                  className="select-none ml-2 text-[1.1rem] font-jost text-body tracking-wide font-medium"
+                >
+                  Regular Session Length
+                </label>
+              </div>
+
+              <Dropdown
+                label="30 Days"
+                className="ml-2 border border-gray-200 bg-gray-100 hover:bg-gray-100 text-body rounded-none font-overpass text-[1rem]"
+              >
+                <DropdownItem className="font-overpass text-[1rem]">1 Day</DropdownItem>
+                <DropdownItem className="font-overpass text-[1rem]">7 Days</DropdownItem>
+                <DropdownItem className="font-overpass text-[1rem]">14 Days</DropdownItem>
+                <DropdownItem className="font-overpass text-[1rem]">30 Days</DropdownItem>
+              </Dropdown>
+            </div>
+          </div>
+          {/* ========== Regular Session Length ========== */}
+
+          {/* ========== Idle Timeout ========== */}
+          <div>
+            {/* Label */}
             <label
-              htmlFor="default-checkbox"
-              className="select-none ms-2 text-[1.1rem] font-jost text-body tracking-wide font-regular"
+              htmlFor="remember-me-policy"
+              className=" block mb-1 font-jost tracking-wide text-[1.4rem] font-medium text-dark-pink"
             >
-              Maximum Remembered Session Length
+              Idle Timeout
             </label>
 
-            <Dropdown
-              label="30 Days"
-              className="ml-2 border border-gray-200 bg-gray-100 hover:bg-gray-100 text-body rounded-none font-overpass text-[1rem]"
-            >
-              <DropdownItem className="font-overpass text-[1rem]">1 Day</DropdownItem>
-              <DropdownItem className="font-overpass text-[1rem]">7 Days</DropdownItem>
-              <DropdownItem className="font-overpass text-[1rem]">14 Days</DropdownItem>
-              <DropdownItem className="font-overpass text-[1rem]">30 Days</DropdownItem>
-            </Dropdown>
+            {/* Enfore Checkbox */}
+            <div className="flex items-center mb-2 ml-2">
+              <input
+                id="enfore-idle-timeout"
+                type="checkbox"
+                className="accent-[#8400ff] w-5 h-5 border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
+              />
+              <label
+                htmlFor="enfore-idle-timeout"
+                className="select-none ms-2 text-[1.1rem] font-jost text-body tracking-wide font-regular"
+              >
+                Enfore Idle Timeout
+              </label>
+            </div>
+
+            {/* Dropdown */}
+            <div>
+              <div className="mb-2">
+                <label
+                  htmlFor="default-checkbox"
+                  className="select-none ml-2 text-[1.1rem] font-jost text-body tracking-wide font-medium"
+                >
+                  Idle Timeout
+                </label>
+              </div>
+
+              <Dropdown
+                label="30 Days"
+                className="ml-2 border border-gray-200 bg-gray-100 hover:bg-gray-100 text-body rounded-none font-overpass text-[1rem]"
+              >
+                <DropdownItem className="font-overpass text-[1rem]">1 Day</DropdownItem>
+                <DropdownItem className="font-overpass text-[1rem]">7 Days</DropdownItem>
+                <DropdownItem className="font-overpass text-[1rem]">14 Days</DropdownItem>
+                <DropdownItem className="font-overpass text-[1rem]">30 Days</DropdownItem>
+              </Dropdown>
+            </div>
           </div>
-          {/* ========== Regular Session Policy ========== */}
+          {/* ========== Idle Timeout ========== */}
         </div>
       </div>
     </AppLayout>
