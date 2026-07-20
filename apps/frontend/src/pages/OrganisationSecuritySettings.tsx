@@ -52,18 +52,18 @@ function OrganisationSecuritySettings() {
                 "Remember Me" Policy
               </label>
 
-              {/* Enfore Checkbox */}
+              {/* Enforce Checkbox */}
               <div className="flex items-center mb-2 ml-2">
                 <input
-                  id="enfore-remember-me"
+                  id="enforce-remember-me"
                   type="checkbox"
                   className="accent-[#8400ff] w-5 h-5 border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
                 />
                 <label
-                  htmlFor="enfore-remember-me"
+                  htmlFor="enforce-remember-me"
                   className="select-none ms-2 text-[1.1rem] font-jost text-body tracking-wide font-regular"
                 >
-                  Enfore "Remember Me" Policy
+                  Enforce "Remember Me" Policy
                 </label>
               </div>
 
@@ -72,7 +72,11 @@ function OrganisationSecuritySettings() {
                 <input
                   id="allow-remember-me"
                   type="checkbox"
-                  className="accent-[#8400ff] w-5 h-5 border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
+                  // DISABLED BY DEFAULT, THEN WHEN USER CLICKS ENFORCE "REMEMBER ME" POLICY, THEN ENABLED...
+                  // So if they enable enforce "Remember Me" Policy, Allow "Remember Me" is disabled by default...
+                  // When you enable Allow "Remember Me", then you also enable the dropdown below...
+                  disabled={true}
+                  className="accent-[#8400ff] w-5 h-5 border disabled:cursor-not-allowed disabled:opacity-40 border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
                 />
                 <label
                   htmlFor="allow-remember-me"
@@ -95,7 +99,8 @@ function OrganisationSecuritySettings() {
 
                 <Dropdown
                   label="30 Days"
-                  className="ml-2 border border-gray-200 bg-gray-100 hover:bg-gray-100 text-body rounded-none font-overpass text-[1rem]"
+                  disabled={true}
+                  className="ml-2 border border-gray-200 bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 text-body rounded-none font-overpass text-[1rem]"
                 >
                   <DropdownItem className="font-overpass text-[1rem]">1 Day</DropdownItem>
                   <DropdownItem className="font-overpass text-[1rem]">7 Days</DropdownItem>
@@ -116,18 +121,18 @@ function OrganisationSecuritySettings() {
                 Regular Session Length
               </label>
 
-              {/* Enfore Checkbox */}
+              {/* Enforce Checkbox */}
               <div className="flex items-center mb-2 ml-2">
                 <input
-                  id="enfore-regular-session"
+                  id="enforce-regular-session"
                   type="checkbox"
                   className="accent-[#8400ff] w-5 h-5 border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
                 />
                 <label
-                  htmlFor="enfore-regular-session"
+                  htmlFor="enforce-regular-session"
                   className="select-none ms-2 text-[1.1rem] font-jost text-body tracking-wide font-regular"
                 >
-                  Enfore Regular Session Length
+                  Enforce Regular Session Length
                 </label>
               </div>
 
@@ -144,7 +149,8 @@ function OrganisationSecuritySettings() {
 
                 <Dropdown
                   label="30 Days"
-                  className="ml-2 border border-gray-200 bg-gray-100 hover:bg-gray-100 text-body rounded-none font-overpass text-[1rem]"
+                  disabled={true} // ALSO DISABLED UNTIL ENFORCE IS CHECKED
+                  className="ml-2 border border-gray-200 bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 text-body rounded-none font-overpass text-[1rem]"
                 >
                   <DropdownItem className="font-overpass text-[1rem]">1 Day</DropdownItem>
                   <DropdownItem className="font-overpass text-[1rem]">7 Days</DropdownItem>
@@ -165,18 +171,18 @@ function OrganisationSecuritySettings() {
                 Idle Timeout
               </label>
 
-              {/* Enfore Checkbox */}
+              {/* Enforce Checkbox */}
               <div className="flex items-center mb-2 ml-2">
                 <input
-                  id="enfore-idle-timeout"
+                  id="enforce-idle-timeout"
                   type="checkbox"
                   className="accent-[#8400ff] w-5 h-5 border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
                 />
                 <label
-                  htmlFor="enfore-idle-timeout"
+                  htmlFor="enforce-idle-timeout"
                   className="select-none ms-2 text-[1.1rem] font-jost text-body tracking-wide font-regular"
                 >
-                  Enfore Idle Timeout
+                  Enforce Idle Timeout
                 </label>
               </div>
 
@@ -193,7 +199,8 @@ function OrganisationSecuritySettings() {
 
                 <Dropdown
                   label="30 Days"
-                  className="ml-2 border border-gray-200 bg-gray-100 hover:bg-gray-100 text-body rounded-none font-overpass text-[1rem]"
+                  disabled={true} // ALSO DISABLED UNTIL CHECKBOX IS ENFORCED (CHECKED)
+                  className="ml-2 border border-gray-200 bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 text-body rounded-none font-overpass text-[1rem]"
                 >
                   <DropdownItem className="font-overpass text-[1rem]">1 Day</DropdownItem>
                   <DropdownItem className="font-overpass text-[1rem]">7 Days</DropdownItem>
@@ -214,15 +221,15 @@ function OrganisationSecuritySettings() {
                 Trainee Settings
               </label>
 
-              {/* Enfore Checkbox */}
+              {/* Checkbox */}
               <div className="flex items-center mb-2 ml-2">
                 <input
-                  id="enfore-idle-timeout"
+                  id="trainee-checkbox"
                   type="checkbox"
                   className="accent-[#8400ff] w-5 h-5 border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
                 />
                 <label
-                  htmlFor="enfore-idle-timeout"
+                  htmlFor="trainee-checkbox"
                   className="select-none ms-2 text-[1.1rem] font-jost text-body tracking-wide font-regular"
                 >
                   Allow Trainees to Change Email Address
@@ -241,15 +248,15 @@ function OrganisationSecuritySettings() {
                 Sensitive Actions
               </label>
 
-              {/* Enfore Checkbox */}
+              {/* Checkbox */}
               <div className="flex items-center mb-2 ml-2">
                 <input
-                  id="enfore-idle-timeout"
+                  id="re-login-sensitive"
                   type="checkbox"
                   className="accent-[#8400ff] w-5 h-5 border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
                 />
                 <label
-                  htmlFor="enfore-idle-timeout"
+                  htmlFor="re-login-sensitive"
                   className="select-none ms-2 text-[1.1rem] font-jost text-body tracking-wide font-regular"
                 >
                   Require Re-Login for Sensitive Actions
@@ -258,6 +265,7 @@ function OrganisationSecuritySettings() {
             </div>
             {/* ========== Trainee Settings ========== */}
 
+            {/* ========== Notice ========== */}
             <div className="self-end pl-2">
               <div className="flex items-start gap-2 text-gray-500">
                 <span className="material-symbols-sharp">info</span>
@@ -269,10 +277,11 @@ function OrganisationSecuritySettings() {
                 </div>
               </div>
             </div>
+            {/* ========== Notice ========== */}
           </div>
 
           <div className="mt-8 flex items-center justify-between">
-            {/* Update Personal Information Button */}
+            {/* Update Organisation Security Preferences Button */}
             <button
               type="button"
               className="cursor-pointer px-6 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm px-4 py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
