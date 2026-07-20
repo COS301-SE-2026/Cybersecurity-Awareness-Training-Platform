@@ -255,6 +255,23 @@ const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
     '/platform/organisations/{organisationId}/resend-initial-admin-setup',
     ['200', '401', '403', '404', '409', '429', '500'],
   ],
+  ['get', '/platform/admins', ['200', '401', '403', '429', '500']],
+  ['post', '/platform/admin-invitations', ['201', '401', '403', '409', '422', '429', '500']],
+  [
+    'post',
+    '/platform/admin-invitations/{id}/resend',
+    ['200', '401', '403', '404', '409', '429', '500'],
+  ],
+  [
+    'post',
+    '/platform/admins/transfer-super-admin',
+    ['200', '401', '403', '409', '422', '429', '500'],
+  ],
+  [
+    'post',
+    '/platform/admins/{userId}/demote',
+    ['200', '401', '403', '404', '409', '422', '429', '500'],
+  ],
   ['get', '/organisations/{organisationId}/admins', ['200', '400', '401', '403', '429', '500']],
   [
     'post',
