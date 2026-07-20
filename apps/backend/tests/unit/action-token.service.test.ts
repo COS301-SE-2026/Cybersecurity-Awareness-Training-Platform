@@ -25,6 +25,10 @@ const authEmailHookServiceMock = vi.hoisted(() => ({
   requestAuthEmailSend: vi.fn(),
 }));
 
+const notificationFailureEventMock = vi.hoisted(() => ({
+  recordNotificationFailureEvent: vi.fn(),
+}));
+
 const prismaMock = vi.hoisted(() => ({
   $transaction: vi.fn(),
   actionToken: {
@@ -41,9 +45,45 @@ import type { Prisma } from '../../src/generated/prisma/client.js';
 vi.mock('../../src/repositories/action-token.repository.js', () => repositoryMock);
 vi.mock('../../src/services/token-hash.service.js', () => tokenHashServiceMock);
 vi.mock('../../src/services/auth-email-hook.service.js', () => authEmailHookServiceMock);
+vi.mock(
+  '../../src/services/notification-failure-event.service.js',
+  () => notificationFailureEventMock,
+);
 vi.mock('../../src/lib/prisma.js', () => ({
   prisma: prismaMock,
 }));
+
+const acceptedAuthEmailResult = {
+  status: 'ACCEPTED' as const,
+  acceptedByProvider: true as const,
+  queued: true as const,
+  deliveryLogId: 'email-log-1',
+  providerMessageId: 'provider-message-1',
+};
+
+const acceptedPersistenceFailedAuthEmailResult = {
+  status: 'ACCEPTED_PERSISTENCE_FAILED' as const,
+  acceptedByProvider: true as const,
+  queued: true as const,
+  deliveryLogId: 'email-log-1',
+  providerMessageId: 'provider-message-1',
+  reason: 'EMAIL_PERSISTENCE_FAILED' as const,
+  persistenceFailures: [
+    {
+      stage: 'DELIVERY_LOG_SENT' as const,
+      code: 'DELIVERY_LOG_SENT_WRITE_FAILED' as const,
+    },
+  ],
+  persistenceFailureReason: 'DELIVERY_LOG_SENT_WRITE_FAILED',
+};
+
+const notAcceptedAuthEmailResult = {
+  status: 'NOT_ACCEPTED' as const,
+  acceptedByProvider: false as const,
+  queued: false as const,
+  deliveryLogId: 'email-log-1',
+  reason: 'EMAIL_SEND_FAILED' as const,
+};
 
 describe('action-token service', () => {
   beforeEach(() => {
@@ -314,6 +354,7 @@ describe('action-token service', () => {
         id: 'token-456',
         expiresAt: new Date(Date.now() + 3600000),
       });
+      authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue(acceptedAuthEmailResult);
 
       await resendActionToken('some-token');
 
@@ -324,6 +365,111 @@ describe('action-token service', () => {
           emailType: 'PASSWORD_RESET',
           recipientEmail: 'test@example.com',
         }),
+      );
+    });
+
+    it('keeps a replacement token active when resend email persistence fails after acceptance', async () => {
+      prismaMock.actionToken.findUnique.mockResolvedValue({
+        id: 'token-123',
+        purpose: 'PASSWORD_RESET',
+        expiresAt: new Date(Date.now() - 3600000),
+        usedAt: null,
+        revokedAt: null,
+        user: {
+          id: 'user-123',
+          authStatus: 'ACTIVE',
+          email: 'test@example.com',
+          firstName: 'John',
+        },
+      });
+      prismaMock.emailDeliveryLog.findFirst.mockResolvedValue(null);
+      repositoryMock.createActionToken.mockResolvedValue({
+        id: 'token-456',
+        expiresAt: new Date(Date.now() + 3600000),
+      });
+      authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue(
+        acceptedPersistenceFailedAuthEmailResult,
+      );
+
+      await resendActionToken('some-token');
+
+      expect(prismaMock.actionToken.updateMany).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ id: 'token-456' }),
+          data: expect.objectContaining({ revokedReason: 'EMAIL_SEND_FAILED' }),
+        }),
+      );
+    });
+
+    it('revokes the replacement token when resend email is explicitly not accepted', async () => {
+      prismaMock.actionToken.findUnique.mockResolvedValue({
+        id: 'token-123',
+        purpose: 'PASSWORD_RESET',
+        expiresAt: new Date(Date.now() - 3600000),
+        usedAt: null,
+        revokedAt: null,
+        user: {
+          id: 'user-123',
+          authStatus: 'ACTIVE',
+          email: 'test@example.com',
+          firstName: 'John',
+        },
+      });
+      prismaMock.emailDeliveryLog.findFirst.mockResolvedValue(null);
+      repositoryMock.createActionToken.mockResolvedValue({
+        id: 'token-456',
+        expiresAt: new Date(Date.now() + 3600000),
+      });
+      authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue(notAcceptedAuthEmailResult);
+
+      await resendActionToken('some-token');
+
+      expect(prismaMock.actionToken.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: 'token-456',
+          usedAt: null,
+          revokedAt: null,
+        },
+        data: {
+          revokedAt: expect.any(Date),
+          revokedReason: 'EMAIL_SEND_FAILED',
+        },
+      });
+    });
+
+    it('returns successfully and keeps the replacement token active when resend notification throws', async () => {
+      prismaMock.actionToken.findUnique.mockResolvedValue({
+        id: 'token-123',
+        purpose: 'PASSWORD_RESET',
+        expiresAt: new Date(Date.now() - 3600000),
+        usedAt: null,
+        revokedAt: null,
+        user: {
+          id: 'user-123',
+          authStatus: 'ACTIVE',
+          email: 'test@example.com',
+          firstName: 'John',
+        },
+      });
+      prismaMock.emailDeliveryLog.findFirst.mockResolvedValue(null);
+      repositoryMock.createActionToken.mockResolvedValue({
+        id: 'token-456',
+        expiresAt: new Date(Date.now() + 3600000),
+      });
+      authEmailHookServiceMock.requestAuthEmailSend.mockRejectedValueOnce(
+        new Error('raw provider failure'),
+      );
+
+      await expect(resendActionToken('some-token')).resolves.toBeUndefined();
+
+      expect(prismaMock.actionToken.updateMany).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ id: 'token-456' }),
+          data: expect.objectContaining({ revokedReason: 'EMAIL_SEND_FAILED' }),
+        }),
+      );
+      expect(notificationFailureEventMock.recordNotificationFailureEvent).toHaveBeenCalledWith(
+        'ACTION_TOKEN_RESEND_NOTIFICATION_FAILED',
       );
     });
 

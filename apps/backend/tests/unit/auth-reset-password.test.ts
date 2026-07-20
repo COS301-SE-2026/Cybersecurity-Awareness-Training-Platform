@@ -94,6 +94,8 @@ describe('Forgot Password and Reset Password API', () => {
       });
 
       authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue({
+        status: 'ACCEPTED',
+        acceptedByProvider: true,
         queued: true,
         deliveryLogId: 'log-123',
       });
@@ -132,6 +134,40 @@ describe('Forgot Password and Reset Password API', () => {
       );
       expect(actionTokenServiceMock.issueActionToken).not.toHaveBeenCalled();
       expect(authEmailHookServiceMock.requestAuthEmailSend).not.toHaveBeenCalled();
+    });
+
+    it('returns the generic response when reset email hook rejects for an eligible user', async () => {
+      userRepositoryMock.findUserByEmail.mockResolvedValue({
+        id: 'user-123',
+        email: 'test@example.com',
+        firstName: 'John',
+        lastName: 'Doe',
+        authStatus: 'ACTIVE',
+        userType: 'GENERAL_TRAINEE',
+      });
+      prismaMock.actionToken.updateMany.mockResolvedValue({ count: 1 });
+      actionTokenServiceMock.issueActionToken.mockResolvedValue({
+        rawToken: 'raw-token-12345678901234567890123456789012',
+        token: {
+          id: 'token-123',
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        },
+      });
+      authEmailHookServiceMock.requestAuthEmailSend.mockRejectedValueOnce(
+        new Error('unexpected hook failure'),
+      );
+
+      const response = await request(createApp())
+        .post('/auth/forgot-password')
+        .send({ email: 'test@example.com' });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty(
+        'message',
+        'If the email is registered, a password reset link has been sent.',
+      );
+      expect(actionTokenServiceMock.issueActionToken).toHaveBeenCalled();
+      expect(authEmailHookServiceMock.requestAuthEmailSend).toHaveBeenCalled();
     });
 
     it('returns 200 and does NOT send reset email if user is disabled (enumeration safe)', async () => {
@@ -215,6 +251,58 @@ describe('Forgot Password and Reset Password API', () => {
         expect.objectContaining({
           emailType: 'PASSWORD_CHANGED',
           recipientEmail: 'test@example.com',
+        }),
+      );
+    });
+
+    it('returns success when password-changed notification fails after reset is committed', async () => {
+      actionTokenServiceMock.validateActionToken.mockResolvedValue({
+        state: 'VALID',
+        token: {
+          id: 'token-123',
+          userId: 'user-123',
+          purpose: 'PASSWORD_RESET',
+        },
+      });
+      userRepositoryMock.findUserById.mockResolvedValue({
+        id: 'user-123',
+        email: 'test@example.com',
+        firstName: 'John',
+        lastName: 'Doe',
+        authStatus: 'ACTIVE',
+        userType: 'GENERAL_TRAINEE',
+      });
+      passwordServiceMock.hashPassword.mockResolvedValue('scrypt$newhash');
+      prismaMock.actionToken.updateMany.mockResolvedValue({ count: 1 });
+      prismaMock.user.update.mockResolvedValue({});
+      prismaMock.authSession.updateMany.mockResolvedValue({ count: 1 });
+      prismaMock.refreshToken.updateMany.mockResolvedValue({ count: 1 });
+      authEmailHookServiceMock.requestAuthEmailSend.mockRejectedValueOnce(
+        new Error('raw provider failure'),
+      );
+
+      const response = await request(createApp()).post('/auth/reset-password').send(validPayload);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ success: true });
+      expect(prismaMock.auditLogEntry.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            actorType: 'SYSTEM',
+            targetType: 'OTHER',
+            actionType: 'UPDATED',
+            outcome: 'FAILURE',
+            metadata: { eventType: 'PASSWORD_CHANGED_NOTIFICATION_FAILED' },
+          }),
+        }),
+      );
+      expect(prismaMock.auditLogEntry.create).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            metadata: expect.objectContaining({
+              eventType: expect.stringContaining('raw provider failure'),
+            }),
+          }),
         }),
       );
     });
