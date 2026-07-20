@@ -43,7 +43,7 @@ function OrganisationSecuritySettings() {
         <div className="px-6 pb-6">
           <div className="grid grid-cols-3 gap-6">
             {/* ========== "Remember Me" Policy ========== */}
-            <div>
+            <div className="mb-8">
               {/* Label */}
               <label
                 htmlFor="remember-me-policy"
@@ -51,6 +51,11 @@ function OrganisationSecuritySettings() {
               >
                 "Remember Me" Policy
               </label>
+
+              {/* Sub-Heading */}
+              <h3 className="mb-3 tracking-wide max-w-xs text-purple">
+                Control whether users can stay logged in.
+              </h3>
 
               {/* Enforce Checkbox */}
               <div className="flex items-center mb-2 ml-2">
@@ -121,6 +126,11 @@ function OrganisationSecuritySettings() {
                 Regular Session Length
               </label>
 
+              {/* Sub-Heading */}
+              <h3 className="mb-3 tracking-wide max-w-xs text-purple">
+                Set how long a normal logged-in sessions lasts before users must log in again.
+              </h3>
+
               {/* Enforce Checkbox */}
               <div className="flex items-center mb-2 ml-2">
                 <input
@@ -170,6 +180,11 @@ function OrganisationSecuritySettings() {
               >
                 Idle Timeout
               </label>
+
+              {/* Sub-Heading */}
+              <h3 className="mb-3 tracking-wide max-w-2xs text-purple">
+                Automatically log out users after a period of inactivity.
+              </h3>
 
               {/* Enforce Checkbox */}
               <div className="flex items-center mb-2 ml-2">
@@ -221,6 +236,11 @@ function OrganisationSecuritySettings() {
                 Trainee Settings
               </label>
 
+              {/* Sub-Heading */}
+              <h3 className="mb-3 tracking-wide max-w-xs text-purple">
+                Control whether trainees can change their own email address.
+              </h3>
+
               {/* Checkbox */}
               <div className="flex items-center mb-2 ml-2">
                 <input
@@ -239,7 +259,7 @@ function OrganisationSecuritySettings() {
             {/* ========== Trainee Settings ========== */}
 
             {/* ========== Sensitive Actions ========== */}
-            <div>
+            <div className="mb-12">
               {/* Label */}
               <label
                 htmlFor="remember-me-policy"
@@ -247,6 +267,12 @@ function OrganisationSecuritySettings() {
               >
                 Sensitive Actions
               </label>
+
+              {/* Sub-Heading */}
+              <h3 className="mb-3 tracking-wide max-w-xs text-purple">
+                Require users to log in again before performing sensitive account or organisation
+                actions.
+              </h3>
 
               {/* Checkbox */}
               <div className="flex items-center mb-2 ml-2">
@@ -263,24 +289,25 @@ function OrganisationSecuritySettings() {
                 </label>
               </div>
             </div>
-            {/* ========== Trainee Settings ========== */}
+            {/* ========== Sensitive Actions ========== */}
 
-            {/* ========== Notice ========== */}
-            <div className="self-end pl-2">
-              <div className="flex items-start gap-2 text-gray-500">
-                <span className="material-symbols-sharp">info</span>
-                <div>
-                  <p className="mt-1 font-overpass max-w-xs text-[1.1rem] tracking-wide text-gray-500">
-                    Some security changes apply only to new sessions, page refreshes, or the user's
-                    next login.
-                  </p>
-                </div>
-              </div>
-            </div>
             {/* ========== Notice ========== */}
           </div>
 
-          <div className="mt-8 flex items-center justify-between">
+          {/* ========== Notice ========== */}
+          <div className="self-end mb-2">
+            <div className="flex items-start gap-2 text-gray-500">
+              <span className="material-symbols-sharp">info</span>
+              <div>
+                <p className="font-overpass text-[1.1rem] tracking-wide text-gray-500">
+                  Some security changes apply only to new sessions, page refreshes, or the user's
+                  next login.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between">
             {/* Update Organisation Security Preferences Button */}
             <button
               type="button"
