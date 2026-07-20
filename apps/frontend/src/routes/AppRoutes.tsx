@@ -17,6 +17,7 @@ import AccountManagementPage from '../pages/AccountManagementPage';
 import SetupPage from '../pages/SetupPage';
 import AcceptInvitePage from '../pages/AcceptInvitePage';
 import OrganisationInformationPage from '../pages/OrganisationInformationPage';
+import OrganisationSecuritySettings from '../pages/OrganisationSecuritySettings';
 
 function AppRoutes() {
   return (
@@ -63,6 +64,7 @@ function AppRoutes() {
       <Route path="*" element={<Navigate to="/" replace />} />
 
       <Route path="/organisation-information" element={<OrganisationInformationPage />} />
+      <Route path="/organisation-security-settings" element={<OrganisationSecuritySettings />} />
     </Routes>
   );
 }
