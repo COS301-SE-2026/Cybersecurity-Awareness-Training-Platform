@@ -11,7 +11,7 @@ import { recordAuditLog } from './audit-log.service.js';
 import { requestAuthEmailSend } from './auth-email-hook.service.js';
 import { prisma } from '../lib/prisma.js';
 import { Prisma } from '../generated/prisma/client.js';
-import { issueActionToken } from './action-token.service.js';
+import { issueActionToken, revokeActionTokenById } from './action-token.service.js';
 import { ensureDefaultOrganisationSecuritySettings } from '../repositories/security-settings.repository.js';
 
 const ORGANISATION_ADMIN_PERMISSION_SEEDS = [
@@ -767,6 +767,13 @@ export async function approveOrganisationRequest(
       actionTokenExpiresAt: result.actionToken.token.expiresAt,
     },
   });
+
+  if (emailResult.status === 'NOT_ACCEPTED') {
+    await revokeActionTokenById({
+      tokenId: result.actionToken.token.id,
+      reason: 'EMAIL_SEND_FAILED',
+    });
+  }
 
   return {
     ...result.updatedRequest,
