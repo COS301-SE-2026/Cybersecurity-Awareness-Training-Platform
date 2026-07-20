@@ -323,22 +323,49 @@ describe('Organisation Trainee API Integration Tests', () => {
       expect(tokens[1]?.revokedAt).toBeNull();
     });
 
-    it('keeps a revoked invitation revoked even when a stale resend email result resolves later', async () => {
+    it('keeps a revoked invitation revoked even when a stale resend email SMTP succeeds later', async () => {
       const inviteRes = await request(app)
         .post(`/organisations/${fixture.organisation.id}/trainee-invitations`)
         .set('Authorization', `Bearer ${fixture.token}`)
-        .send({ email: 'race.revoke@example.com' });
+        .send({ email: 'race.revoke.success@example.com' });
 
       const invId = inviteRes.body.invitation.id;
+      const initialToken = await prisma.actionToken.findFirstOrThrow({
+        where: { invitationId: invId },
+      });
+
+      let resolveSmtp: any;
+      const smtpPromise = new Promise((resolve) => {
+        resolveSmtp = resolve;
+      });
+      sendMailMock.mockReturnValue(smtpPromise);
 
       const resendPromise = request(app)
         .post(`/organisations/${fixture.organisation.id}/trainee-invitations/${invId}/resend`)
         .set('Authorization', `Bearer ${fixture.token}`);
 
+      // Wait until the resend transaction commits (second token is created)
+      let replacementToken = null;
+      for (let i = 0; i < 100; i++) {
+        const tokens = await prisma.actionToken.findMany({
+          where: { invitationId: invId },
+        });
+        if (tokens.length > 1) {
+          replacementToken = tokens.find((t) => t.id !== initialToken.id);
+          break;
+        }
+        await new Promise((r) => setTimeout(r, 50));
+      }
+      expect(replacementToken).not.toBeNull();
+
+      // Perform concurrent revoke request
       const revokeResponse = await request(app)
         .post(`/organisations/${fixture.organisation.id}/trainee-invitations/${invId}/revoke`)
         .set('Authorization', `Bearer ${fixture.token}`);
       expect(revokeResponse.status).toBe(200);
+
+      // Now resolve the SMTP send
+      resolveSmtp({ messageId: 'smtpmessage01' });
 
       const resendResponse = await resendPromise;
       expect(resendResponse.status).toBe(409);
@@ -346,16 +373,87 @@ describe('Organisation Trainee API Integration Tests', () => {
         error: 'INVITATION_REVOKED',
       });
 
+      // Verify final database state
       const invitation = await prisma.invitation.findUniqueOrThrow({ where: { id: invId } });
       expect(invitation.status).toBe('REVOKED');
 
-      const tokens = await prisma.actionToken.findMany({
+      const finalTokens = await prisma.actionToken.findMany({
         where: { invitationId: invId },
-        orderBy: { createdAt: 'asc' },
       });
-      expect(tokens.length).toBeGreaterThanOrEqual(1);
-      expect(tokens.every((token) => token.revokedAt !== null)).toBe(true);
-      expect(resendResponse.body.message).not.toContain('successfully');
+      expect(finalTokens.every((token) => token.revokedAt !== null)).toBe(true);
+
+      // Verify email delivery log status is updated but state is still REVOKED
+      const deliveryLog = await prisma.emailDeliveryLog.findFirst({
+        where: { actionTokenId: replacementToken!.id },
+      });
+      expect(deliveryLog).toBeDefined();
+      expect(deliveryLog?.deliveryStatus).toBe('SENT');
+    });
+
+    it('keeps a revoked invitation revoked even when a stale resend email SMTP rejects later', async () => {
+      const inviteRes = await request(app)
+        .post(`/organisations/${fixture.organisation.id}/trainee-invitations`)
+        .set('Authorization', `Bearer ${fixture.token}`)
+        .send({ email: 'race.revoke.fail@example.com' });
+
+      const invId = inviteRes.body.invitation.id;
+      const initialToken = await prisma.actionToken.findFirstOrThrow({
+        where: { invitationId: invId },
+      });
+
+      let rejectSmtp: any;
+      const smtpPromise = new Promise((_, reject) => {
+        rejectSmtp = reject;
+      });
+      sendMailMock.mockReturnValue(smtpPromise);
+
+      const resendPromise = request(app)
+        .post(`/organisations/${fixture.organisation.id}/trainee-invitations/${invId}/resend`)
+        .set('Authorization', `Bearer ${fixture.token}`);
+
+      // Wait until the resend transaction commits (second token is created)
+      let replacementToken = null;
+      for (let i = 0; i < 100; i++) {
+        const tokens = await prisma.actionToken.findMany({
+          where: { invitationId: invId },
+        });
+        if (tokens.length > 1) {
+          replacementToken = tokens.find((t) => t.id !== initialToken.id);
+          break;
+        }
+        await new Promise((r) => setTimeout(r, 50));
+      }
+      expect(replacementToken).not.toBeNull();
+
+      // Perform concurrent revoke request
+      const revokeResponse = await request(app)
+        .post(`/organisations/${fixture.organisation.id}/trainee-invitations/${invId}/revoke`)
+        .set('Authorization', `Bearer ${fixture.token}`);
+      expect(revokeResponse.status).toBe(200);
+
+      // Now reject SMTP send
+      rejectSmtp(new Error('SMTP delivery failed'));
+
+      const resendResponse = await resendPromise;
+      expect(resendResponse.status).toBe(409);
+      expect(resendResponse.body).toMatchObject({
+        error: 'INVITATION_REVOKED',
+      });
+
+      // Verify final database state
+      const invitation = await prisma.invitation.findUniqueOrThrow({ where: { id: invId } });
+      expect(invitation.status).toBe('REVOKED');
+
+      const finalTokens = await prisma.actionToken.findMany({
+        where: { invitationId: invId },
+      });
+      expect(finalTokens.every((token) => token.revokedAt !== null)).toBe(true);
+
+      const deliveryLog = await prisma.emailDeliveryLog.findFirst({
+        where: { actionTokenId: replacementToken!.id },
+      });
+      expect(deliveryLog).toBeDefined();
+      expect(deliveryLog?.deliveryStatus).toBe('FAILED');
     });
 
     it('returns a truthful failed-delivery response when SMTP rejects the invitation email', async () => {

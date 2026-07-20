@@ -60,6 +60,7 @@ Real email delivery, credential capture, punitive monitoring, adaptive learning,
 The following stories provide future platform context only:
 
 - As an organisation admin, I want to add trainees to my organisation so that organisation employees can be onboarded into cybersecurity awareness training.
+- As an invited user, I want to accept my organisation invitation so that I can complete setup or role change for the organisation that invited me.
 - Organisation admins may eventually add trainees manually, send onboarding emails, or configure an approved email domain so that sign-ups from that domain can be linked to the organisation.
 - As an organisation admin, I want to create, edit, and delete campaigns for my organisation.
 - As an organisation admin, I want to build campaigns from reusable components such as training documents, quizzes, and simulated inboxes.
@@ -75,7 +76,9 @@ The following stories provide future platform context only:
 ### 2.3 User Characteristics and Actors
 
 - **Trainee:** The primary Demo 1 actor. A trainee accesses assigned campaigns which contain simulated inbox(es) with simulated emails, training content, and quizzes.
+- **Invited user:** The primary UC-07 actor. An invited user opens a tokenised organisation invitation link, reviews the safe invitation context, and completes the accepted role or setup flow.
 - **System:** Supports authentication, content retrieval, validation, interaction tracking, quiz submission, result calculation, and safe feedback states.
+- **Email and token services:** System actors that deliver invitation messages and validate tokenised invitation links.
 - **Organisation admin:** A supporting/future actor who can configure and assign campaigns and content in later demos.
 - **Insightful Phish admin:** A future platform-level administrator, not a core Demo 1 actor.
 
@@ -226,6 +229,94 @@ UC-03 allows a trainee to open assigned quiz content, answer supported questions
 - Submission is incomplete or invalid: Prevent final submission and identify what must be corrected.
 - Submission fails: Preserve answers where possible and allow retry.
 - Results fail to load: Keep the attempt submitted and provide a retry or navigation option.
+
+### 3.4 UC-07: Accept Organisation Invitation
+
+#### User Story
+
+As an invited user, I want to accept my organisation invitation so that I can complete account setup or role change for the organisation that invited me.
+
+#### Purpose
+
+UC-07 allows an invited user to open a tokenised invitation link, review a safe invitation context, and complete the invitation acceptance flow for one of the supported invitation purposes: initial organisation admin setup, organisation employee invite, or organisation admin promotion invite. The use case keeps invitation links token-based, organisation-scoped, and safe to reject when the token is expired, revoked, wrong-user, or already used.
+
+#### Scope
+
+- **TUCBW**: An invited user opens an organisation invitation link on the invitation acceptance page.
+- **TUCEW**: The invited user acknowledges that the invitation has been accepted or completed successfully.
+
+#### Actors
+
+- Primary actor: Invited user
+- Supporting actor: Organisation admin or platform admin who issued the invite
+- System actor: Email and token services
+- System actor: Authentication and account services
+
+#### Preconditions
+
+- The invited user has received a valid tokenised organisation invitation link.
+- The invitation targets a known email address or account identity.
+- The invitation purpose is supported by the current platform flow.
+- The invitation has not expired or been revoked before the user opens it.
+- The organisation and invitation remain eligible for completion according to platform policy.
+
+#### Postconditions
+
+- The invitation is marked as accepted and can no longer be used again.
+- The invited user gains the role or organisation membership described by the invitation purpose.
+- The user's account and organisation context reflect the accepted invitation.
+- The system records the completion or failure state needed for audit and traceability.
+- If acceptance fails, the previous invitation and account state remain unchanged.
+
+#### RBAC Expectations
+
+- Invitation creation is restricted to the organisation admin or platform admin workflow that owns the invite.
+- Invitation acceptance does not require the invited user to already hold the destination role.
+- The system only completes acceptance when the current or created account matches the invitation target identity.
+- The system preserves organisation scope and does not allow the invited user to accept another organisation's invitation.
+- A tokenised invitation link acts as the authorising context for the public acceptance page, but it does not bypass target-identity validation.
+
+#### Business Rules
+
+- The invitation link carries the raw token, while the database stores only a hashed token reference.
+- The invitation token is single-use and becomes invalid after successful completion.
+- The invitation context distinguishes initial organisation admin setup, organisation employee invites, and organisation admin promotion invites.
+- The system uses a safe context view before completion so that the user can confirm the target email, organisation, and role.
+- The system records completion only after the invitation transaction succeeds.
+
+#### Main Flow
+
+1. The invited user opens the organisation invitation link.
+2. The system retrieves a safe invitation context for the token without exposing sensitive internal data.
+3. The system validates the token state, invitation purpose, target identity, and organisation scope.
+4. The system displays the invitation details, including the target email, organisation name, and accepted role or setup context.
+5. The invited user confirms acceptance and continues the flow.
+6. The system validates that the current or created account matches the invitation target identity.
+7. The system completes the supported invitation purpose, creates or updates the linked role or profile, and consumes the token only after the transaction succeeds.
+8. The system records the completion outcome for audit and traceability.
+9. The system shows a success acknowledgement or the next allowed signed-in state.
+
+#### Exceptions
+
+- **Invalid Token**: The token is missing, malformed, or unsupported. The system shows a safe invalid-link state and does not expose privileged data.
+- **Expired Invitation**: The invitation has expired. The system shows a safe expired-link state and does not complete acceptance.
+- **Revoked Invitation**: The invitation has been revoked. The system shows a safe revoked-link state and does not complete acceptance.
+- **Already Used Invitation**: The invitation token has already been consumed. The system shows a safe already-used state and does not complete acceptance.
+- **Wrong User**: The signed-in user or provided account identity does not match the invitation target identity. The system rejects the acceptance and keeps the invitation unused.
+- **Rejected or Declined Invitation**: The invited user declines or otherwise rejects the invitation. The system ends the flow without changing role or membership state.
+- **Unsupported Invitation Purpose**: The token does not map to a supported invitation purpose. The system shows a safe unsupported-link state and does not complete the flow.
+- **Organisation Scope Mismatch**: The invitation does not belong to the expected organisation or the organisation is no longer eligible. The system blocks completion and preserves the previous state.
+- **Account Conflict**: The invitation conflicts with an existing active account role or setup state. The system rejects completion and keeps the previous state unchanged.
+- **Token or Service Failure**: The token or account service cannot complete the lookup or transaction. The system shows a safe retry or return path.
+
+#### Traceability
+
+- SRS documentation issue: #263
+- Foundation/migration issue: #262
+- Frontend issue: #264
+- Backend endpoint issue: #265
+- Integration issue: #266
+- Backend integration-test issue: #270
 
 ### 3.5 UC-09: Manage Organisation Admins and Permissions
 
@@ -457,7 +548,23 @@ This use case allows an authorised organisation admin to view and update organis
 | FR-UC03-08 | The system shall prevent duplicate final submission or further editing of a completed quiz attempt.                                   |
 | FR-UC03-09 | The system shall display safe validation and error states when quiz loading, attempt creation, submission, or result retrieval fails. |
 
-### 4.5 Tracking, Progress, and Reporting Support
+### 4.5 UC-07 Functional Requirements
+
+#### Accept Organisation Invitation
+
+| ID         | Requirement                                                                                                                                                       |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| FR-UC07-01 | The system shall allow an invited user to open a tokenised organisation invitation link and view a safe invitation context.                                       |
+| FR-UC07-02 | The system shall validate the invitation token state and invitation purpose before showing the acceptance flow.                                                   |
+| FR-UC07-03 | The system shall display the target email, organisation context, and accepted role or setup context without exposing privileged implementation details.           |
+| FR-UC07-04 | The system shall support accepted invitation flows for initial organisation admin setup, organisation employee invites, and organisation admin promotion invites. |
+| FR-UC07-05 | The system shall reject invitation acceptance when the current or created account does not match the invitation target identity.                                  |
+| FR-UC07-06 | The system shall display safe states for expired, revoked, already-used, invalid, rejected, or unsupported invitation links.                                      |
+| FR-UC07-07 | The system shall complete the invitation transaction only after the invitation state, identity match, and organisation scope checks succeed.                      |
+| FR-UC07-08 | The system shall mark the invitation token as consumed after successful acceptance and prevent the same token from being used again.                              |
+| FR-UC07-09 | The system shall preserve the previous account and organisation state when invitation acceptance fails.                                                           |
+
+### 4.6 Tracking, Progress, and Reporting Support
 
 | ID        | Requirement                                                                                                                                  |
 | --------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -468,7 +575,7 @@ This use case allows an authorised organisation admin to view and update organis
 | FR-TRK-05 | Quiz attempts, answers, and results shall support the UC-03 submission and result flow.                                                      |
 | FR-TRK-06 | Reporting and risk concepts are future-facing placeholders only and shall not expand Demo 1 into a dashboard or risk-scoring implementation. |
 
-### 4.6 Future/Admin Supporting Context
+### 4.7 Future/Admin Supporting Context
 
 Future organisation admin capabilities may include campaign CRUD, campaign assignment, content authoring, reusable simulation templates, quiz authoring, reporting dashboards, and organisation/user management. These concepts provide context for the campaign-based domain model but are not Demo 1 acceptance criteria.
 
@@ -487,6 +594,7 @@ At a high level:
 - UC-01 uses campaign-item scoped simulated inbox, simulated email detail, and simulated email interaction endpoints.
 - UC-02 uses campaign-item scoped training document and training progress endpoints.
 - UC-03 uses campaign-item scoped quiz retrieval, quiz attempt creation, attempt submission, and result retrieval endpoints.
+- UC-07 uses public token context and completion endpoints for invitation acceptance, with organisation-admin promotion invite creation handled by the related organisation-admin flow.
 - Campaign discovery and assignment endpoints support access to trainee campaign items.
 
 API routes and payloads remain implementation contracts documented in `API.md` and the backend Swagger/OpenAPI documentation; this SRS keeps only the requirement-level mapping.
@@ -505,6 +613,7 @@ The domain model diagram can be found here: [Demo 1 domain model](./diagrams/dem
 - `OrganisationAdmin` is an organisation-linked administrator for future campaign/content setup.
 - `IPAdmin` is a platform-level administrator for future platform oversight.
 - `Organisation` represents an organisation using the platform. `OrganisationContext` stores future organisation-specific context such as logos, brand guidelines, security policies, approved domains, terminology, and related metadata.
+- `Invitation` and `ActionToken` represent token-driven invite and setup workflows for UC-07 and related admin-management flows. `Invitation` stores recipient, purpose, status, expiry, and organisation context. `ActionToken` stores the hashed token reference while raw tokens remain in invitation URLs only.
 - `Campaign` is the main assignment and ordering container. A campaign may belong to an organisation or may represent default Insightful Phish campaigns.
 - `CampaignAssignment` links a `Campaign` to a `Trainee` and tracks assignment-level availability, progress, due dates, and completion.
 - `CampaignItem` is the ordered campaign structure used to make content available. `CampaignComponent` and `CampaignComponentGroup` specialise campaign items; groups support one grouping level only.
@@ -614,3 +723,4 @@ Demo 1 uses the following technology stack:
 | 0.1.14  | 2026-05-16 | Johan Nel                | Domain model; campaign-item model; terminology     | Updated SRS to match the revised modular campaign/domain model and trainee terminology.              |
 | 0.1.15  | 2026-05-19 | Johan Nel                | Demo 1 scope; future scope                         | Clarified Demo 1 scope and later-demo planned features.                                              |
 | 0.1.16  | 2026-05-21 | Johan Nel                | Headings; links; formatting                        | Cleaned headings/file links and formatted SRS as part of final domain-model documentation updates.   |
+| 0.1.17  | 2026-07-16 | Rudolph Lamprecht        | UC-07 invitation acceptance                        | Added Demo 2 UC-07 invitation acceptance requirements and traceability.                              |

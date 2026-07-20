@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { prisma } from '../../../src/lib/prisma.js';
 import { OrganisationPermissionKey } from '../../../src/generated/prisma/enums.js';
 import { OrganisationAdminServiceError } from '../../../src/services/organisation-admin.service.js';
 import {
@@ -96,10 +97,11 @@ describe('OrganisationTraineeService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     emailMock.sendEmail.mockResolvedValue({
-      ok: true,
-      deliveryStatus: 'SENT',
+      status: 'ACCEPTED',
+      acceptedByProvider: true,
+      queued: true,
       deliveryLogId: 'delivery-log-1',
-      appliedToCurrentInvitationAttempt: true,
+      providerMessageId: 'smtp-message-1',
     });
     orgAdminRepoMock.findActorOrganisationAdmin.mockResolvedValue(
       buildMockActorAdmin([
@@ -302,9 +304,10 @@ describe('OrganisationTraineeService', () => {
       invitationRepoMock.findInvitationById.mockResolvedValue(invitation);
       invitationRepoMock.findUserByEmailWithProfiles.mockResolvedValue(null);
       txMock.actionToken.create.mockResolvedValue({ id: mockActionTokenId });
-      txMock.invitation.findUnique.mockResolvedValue(
-        buildMockInvitation({ id: mockInvitationId, status: 'PENDING' }),
-      );
+      vi.mocked(prisma.invitation.findUnique).mockResolvedValue({
+        ...buildMockInvitation({ id: mockInvitationId, status: 'PENDING' }),
+        actionTokens: [{ id: mockActionTokenId, revokedAt: null, usedAt: null }],
+      } as any);
 
       const result = await resendTraineeInvitation(mockActorUserId, mockOrgId, mockInvitationId);
 

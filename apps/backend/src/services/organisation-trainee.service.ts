@@ -520,9 +520,14 @@ export async function createOrganisationTraineeInvitation(
     invitationLifecycleState === 'SENT' ||
     invitationLifecycleState === 'FAILED_TO_SEND';
   const canRevoke = canResend;
-  const deliveryState: 'PENDING' | 'SENT' | 'FAILED' | 'UNKNOWN' = emailResult.deliveryStatus;
+  const emailDelivered = emailResult.status !== 'NOT_ACCEPTED';
+  const deliveryState: 'PENDING' | 'SENT' | 'FAILED' | 'UNKNOWN' =
+    emailResult.status === 'ACCEPTED'
+      ? 'SENT'
+      : emailResult.status === 'ACCEPTED_PERSISTENCE_FAILED'
+        ? 'UNKNOWN'
+        : 'FAILED';
   const isDeliveryUnknown = deliveryState === 'UNKNOWN';
-  const emailDelivered = emailResult.ok;
 
   const invitationStatus = emailDelivered ? 'INVITE_PENDING' : 'INVITE_FAILED';
 
@@ -699,7 +704,48 @@ export async function resendTraineeInvitation(
     },
   });
 
-  if (emailResult.ok && !emailResult.appliedToCurrentInvitationAttempt) {
+  const emailDelivered = emailResult.status !== 'NOT_ACCEPTED';
+  const deliveryState: 'PENDING' | 'SENT' | 'FAILED' | 'UNKNOWN' =
+    emailResult.status === 'ACCEPTED'
+      ? 'SENT'
+      : emailResult.status === 'ACCEPTED_PERSISTENCE_FAILED'
+        ? 'UNKNOWN'
+        : 'FAILED';
+
+  const finalInvitation = await prisma.invitation.findUnique({
+    where: { id: invitation.id },
+    include: {
+      actionTokens: {
+        where: { id: txResult.actionToken.id },
+      },
+    },
+  });
+
+  const finalActionToken = finalInvitation?.actionTokens[0];
+
+  const isStaleOrTerminal =
+    !finalInvitation ||
+    !finalActionToken ||
+    finalActionToken.revokedAt !== null ||
+    finalActionToken.usedAt !== null ||
+    !(ACTIVE_INVITATION_STATUSES as readonly string[]).includes(finalInvitation.status) ||
+    finalInvitation.expiresAt.getTime() <= Date.now();
+
+  if (isStaleOrTerminal) {
+    if (finalInvitation?.status === 'REVOKED') {
+      throw new OrganisationTraineeServiceError(
+        409,
+        'INVITATION_REVOKED',
+        'Cannot resend an invitation that has been revoked.',
+      );
+    }
+    if (finalInvitation?.status === 'ACCEPTED') {
+      throw new OrganisationTraineeServiceError(
+        409,
+        'INVITATION_ALREADY_ACCEPTED',
+        'Cannot resend an invitation that has already been accepted.',
+      );
+    }
     throw new OrganisationTraineeServiceError(
       409,
       'INVITATION_RESEND_STALE',
@@ -707,25 +753,17 @@ export async function resendTraineeInvitation(
     );
   }
 
-  const updatedInvitation = await prisma.invitation.findUnique({
-    where: { id: invitation.id },
-  });
-
-  const invitationLifecycleState = deriveInvitationLifecycleState(
-    updatedInvitation ?? { status: 'PENDING', expiresAt: txResult.expiresAt },
-  );
-  const deliveryState: 'PENDING' | 'SENT' | 'FAILED' | 'UNKNOWN' = emailResult.deliveryStatus;
+  const invitationLifecycleState = deriveInvitationLifecycleState(finalInvitation);
   const isDeliveryUnknown = deliveryState === 'UNKNOWN';
-  const emailDelivered = emailResult.ok;
   const resendMessage = isDeliveryUnknown
     ? 'Invitation was resent and the action token rotated, but email delivery outcome is unknown because persistence failed after provider acceptance.'
     : emailDelivered
       ? 'Invitation resent successfully.'
       : 'Invitation action token rotated successfully, but email delivery failed to send.';
   const resendStatus =
-    updatedInvitation?.status === 'SENT'
+    finalInvitation.status === 'SENT'
       ? 'SENT'
-      : updatedInvitation?.status === 'FAILED_TO_SEND'
+      : finalInvitation.status === 'FAILED_TO_SEND'
         ? 'FAILED_TO_SEND'
         : 'PENDING';
   const canResend =
@@ -733,7 +771,7 @@ export async function resendTraineeInvitation(
     invitationLifecycleState === 'SENT' ||
     invitationLifecycleState === 'FAILED_TO_SEND';
   const canRevoke = canResend;
-  const invitationExpiresAt = (updatedInvitation?.expiresAt ?? txResult.expiresAt).toISOString();
+  const invitationExpiresAt = finalInvitation.expiresAt.toISOString();
   const createdAt = invitation.createdAt.toISOString();
   const invitationStatus = emailDelivered ? 'INVITE_PENDING' : 'INVITE_FAILED';
 
@@ -750,7 +788,7 @@ export async function resendTraineeInvitation(
       traineeProfileId: null,
       userId: null,
       invitationId: invitation.id,
-      invitationStatus: invitationLifecycleState,
+      invitationStatus: finalInvitation.status,
       invitationLifecycleState,
       email: invitation.recipientEmail,
       firstName: invitation.recipientFirstName ?? null,

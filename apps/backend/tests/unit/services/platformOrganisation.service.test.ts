@@ -5,6 +5,7 @@ import {
   resendInitialAdminSetup,
   OrganisationRegistrationRequestError,
 } from '../../../src/services/platformOrganisation.service.js';
+import type * as AuthEmailHookModule from '../../../src/services/auth-email-hook.service.js';
 
 const prismaMock = vi.hoisted(() => ({
   user: {
@@ -56,12 +57,26 @@ vi.mock('../../../src/lib/prisma.js', () => ({
 
 vi.mock('../../../src/repositories/organisation.repository.js', () => repositoryMock);
 vi.mock('../../../src/services/action-token.service.js', () => actionTokenServiceMock);
-vi.mock('../../../src/services/auth-email-hook.service.js', () => emailHookMock);
+vi.mock('../../../src/services/auth-email-hook.service.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof AuthEmailHookModule>();
+
+  return {
+    ...actual,
+    requestAuthEmailSend: emailHookMock.requestAuthEmailSend,
+  };
+});
 vi.mock('../../../src/services/audit-log.service.js', () => auditLogMock);
 
 const actorUserId = '44444444-4444-4444-8444-444444444444';
 const requestId = '55555555-5555-4555-8555-555555555555';
 const organisationId = '66666666-6666-4666-8666-666666666666';
+
+const acceptedHookResult = {
+  status: 'ACCEPTED' as const,
+  acceptedByProvider: true as const,
+  queued: true as const,
+  deliveryLogId: 'email-log-1',
+};
 
 function mockActivePlatformAdmin() {
   prismaMock.user.findUnique.mockImplementation((args: { where?: { id?: string } }) => {
@@ -343,7 +358,7 @@ describe('platformOrganisation service', () => {
         token: { id: 'new-token-id', expiresAt: new Date() },
         rawToken: 'raw-token-string',
       });
-      emailHookMock.requestAuthEmailSend.mockResolvedValue({ queued: true });
+      emailHookMock.requestAuthEmailSend.mockResolvedValue(acceptedHookResult);
 
       const response = await resendInitialAdminSetup(actorUserId, organisationId);
 
@@ -397,13 +412,172 @@ describe('platformOrganisation service', () => {
         token: { id: 'new-token-id', expiresAt: new Date() },
         rawToken: 'raw-token-string',
       });
-      emailHookMock.requestAuthEmailSend.mockResolvedValue({ queued: true });
+      emailHookMock.requestAuthEmailSend.mockResolvedValue(acceptedHookResult);
 
       const response = await resendInitialAdminSetup(actorUserId, organisationId);
 
       expect(response.success).toBe(true);
       expect(response.emailQueued).toBe(true);
       expect(response.setupStatus).toBeDefined();
+    });
+
+    it('does not revoke the replacement setup token when SMTP was accepted but persistence failed', async () => {
+      const mockOrg = {
+        id: organisationId,
+        name: 'Target Org',
+        status: 'PENDING_ONBOARDING',
+      };
+
+      const mockInvitation = {
+        id: 'invite-123',
+        status: 'PENDING',
+        recipientEmail: 'admin@target.com',
+        recipientFirstName: 'Bob',
+        expiresAt: new Date(Date.now() - 1000),
+        organisationRegistrationRequestId: requestId,
+        actionTokens: [],
+      };
+
+      repositoryMock.findOrganisationById.mockResolvedValue(mockOrg);
+      repositoryMock.findRegistrationRequestByOrganisationId.mockResolvedValue(null);
+      repositoryMock.findSetupInvitationAndEmailLog.mockResolvedValue(mockInvitation);
+      repositoryMock.findLatestEmailLogForInvitation.mockResolvedValue(null);
+      prismaMock.invitation.updateMany.mockResolvedValue({ count: 1 });
+      prismaMock.emailDeliveryLog.findFirst.mockResolvedValue(null);
+      actionTokenServiceMock.issueActionToken.mockResolvedValue({
+        token: { id: 'new-token-id', expiresAt: new Date() },
+        rawToken: 'raw-token-string',
+      });
+      emailHookMock.requestAuthEmailSend.mockResolvedValue({
+        status: 'ACCEPTED_PERSISTENCE_FAILED',
+        acceptedByProvider: true,
+        queued: true,
+        deliveryLogId: 'email-log-1',
+        providerMessageId: 'message-1',
+        reason: 'EMAIL_PERSISTENCE_FAILED',
+        persistenceFailures: [
+          {
+            stage: 'INVITATION_SENT',
+            code: 'INVITATION_SENT_WRITE_FAILED',
+          },
+        ],
+        persistenceFailureReason: 'INVITATION_SENT_WRITE_FAILED',
+      });
+
+      const response = await resendInitialAdminSetup(actorUserId, organisationId);
+
+      expect(response.success).toBe(true);
+      expect(response.emailQueued).toBe(true);
+      expect(prismaMock.actionToken.update).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'new-token-id' },
+          data: expect.objectContaining({ revokedReason: 'EMAIL_SEND_FAILED' }),
+        }),
+      );
+    });
+
+    it('does not revoke the replacement setup token when the email hook outcome is unknown', async () => {
+      const mockOrg = {
+        id: organisationId,
+        name: 'Target Org',
+        status: 'PENDING_ONBOARDING',
+      };
+
+      const mockInvitation = {
+        id: 'invite-123',
+        status: 'PENDING',
+        recipientEmail: 'admin@target.com',
+        recipientFirstName: 'Bob',
+        expiresAt: new Date(Date.now() - 1000),
+        organisationRegistrationRequestId: requestId,
+        actionTokens: [],
+      };
+
+      repositoryMock.findOrganisationById.mockResolvedValue(mockOrg);
+      repositoryMock.findRegistrationRequestByOrganisationId.mockResolvedValue(null);
+      repositoryMock.findSetupInvitationAndEmailLog.mockResolvedValue(mockInvitation);
+      repositoryMock.findLatestEmailLogForInvitation.mockResolvedValue(null);
+      prismaMock.invitation.updateMany.mockResolvedValue({ count: 1 });
+      prismaMock.emailDeliveryLog.findFirst.mockResolvedValue(null);
+      actionTokenServiceMock.issueActionToken.mockResolvedValue({
+        token: { id: 'new-token-id', expiresAt: new Date() },
+        rawToken: 'raw-token-string',
+      });
+      emailHookMock.requestAuthEmailSend.mockRejectedValueOnce(
+        new Error('unexpected hook failure'),
+      );
+
+      const response = await resendInitialAdminSetup(actorUserId, organisationId);
+
+      expect(response.success).toBe(true);
+      expect(response.emailQueued).toBe(false);
+      expect(prismaMock.actionToken.update).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'new-token-id' },
+          data: expect.objectContaining({ revokedReason: 'EMAIL_SEND_FAILED' }),
+        }),
+      );
+      expect(auditLogMock.recordAuditLog).toHaveBeenCalledWith({
+        actorType: 'SYSTEM',
+        targetType: 'OTHER',
+        actionType: 'UPDATED',
+        outcome: 'FAILURE',
+        metadata: { eventType: 'EMAIL_HOOK_UNEXPECTED_FAILURE' },
+      });
+    });
+
+    it('revokes the replacement setup token only when the provider explicitly does not accept it', async () => {
+      const mockOrg = {
+        id: organisationId,
+        name: 'Target Org',
+        status: 'PENDING_ONBOARDING',
+      };
+
+      const mockInvitation = {
+        id: 'invite-123',
+        status: 'PENDING',
+        recipientEmail: 'admin@target.com',
+        recipientFirstName: 'Bob',
+        expiresAt: new Date(Date.now() - 1000),
+        organisationRegistrationRequestId: requestId,
+        actionTokens: [],
+      };
+
+      repositoryMock.findOrganisationById.mockResolvedValue(mockOrg);
+      repositoryMock.findRegistrationRequestByOrganisationId.mockResolvedValue(null);
+      repositoryMock.findSetupInvitationAndEmailLog.mockResolvedValue(mockInvitation);
+      repositoryMock.findLatestEmailLogForInvitation.mockResolvedValue(null);
+      prismaMock.invitation.updateMany.mockResolvedValue({ count: 1 });
+      prismaMock.emailDeliveryLog.findFirst.mockResolvedValue(null);
+      actionTokenServiceMock.issueActionToken.mockResolvedValue({
+        token: { id: 'new-token-id', expiresAt: new Date() },
+        rawToken: 'raw-token-string',
+      });
+      emailHookMock.requestAuthEmailSend.mockResolvedValue({
+        status: 'NOT_ACCEPTED',
+        acceptedByProvider: false,
+        queued: false,
+        deliveryLogId: 'email-log-1',
+        reason: 'EMAIL_SEND_FAILED',
+      });
+
+      const response = await resendInitialAdminSetup(actorUserId, organisationId);
+
+      expect(response.success).toBe(true);
+      expect(response.emailQueued).toBe(false);
+      expect(prismaMock.actionToken.update).toHaveBeenCalledWith({
+        where: { id: 'new-token-id' },
+        data: {
+          revokedAt: expect.any(Date),
+          revokedReason: 'EMAIL_SEND_FAILED',
+        },
+      });
+      expect(auditLogMock.recordAuditLog).toHaveBeenCalledWith(
+        expect.objectContaining({
+          outcome: 'FAILURE',
+          metadata: { error: 'Email was not accepted for delivery by the provider' },
+        }),
+      );
     });
 
     it('throws 409 Conflict if organisation is already active', async () => {

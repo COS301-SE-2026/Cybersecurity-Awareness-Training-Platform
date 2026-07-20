@@ -564,6 +564,16 @@ describe('swaggerSpec', () => {
     expect(resendResponse).toContain('TraineeListItem');
   });
 
+  it('documents pending organisation admin promotion responses', () => {
+    const promotionResponse = JSON.stringify(
+      spec.components?.schemas?.OrganisationAdminPromotionResponse,
+    );
+
+    expect(promotionResponse).toContain('PENDING');
+    expect(promotionResponse).toContain('SENT');
+    expect(promotionResponse).toContain('FAILED_TO_SEND');
+  });
+
   it.each(inactiveRouteDocs)('does not document inactive route %s', (path) => {
     expect(spec.paths).not.toHaveProperty(path);
   });
