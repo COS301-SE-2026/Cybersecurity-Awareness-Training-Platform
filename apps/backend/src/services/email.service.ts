@@ -291,12 +291,9 @@ export async function sendEmail(
           }),
         deliveryLogFailedFailure,
       )),
-      ...(await attemptEmailPersistence(
-        async () => {
-          await markInvitationFailedIfRelevant(input, client);
-        },
-        invitationFailedToSendFailure,
-      )),
+      ...(await attemptEmailPersistence(async () => {
+        await markInvitationFailedIfRelevant(input, client);
+      }, invitationFailedToSendFailure)),
     ];
 
     return {
@@ -319,12 +316,9 @@ export async function sendEmail(
         }),
       deliveryLogSentFailure,
     )),
-    ...(await attemptEmailPersistence(
-      async () => {
-        await markInvitationSentIfRelevant(input, client);
-      },
-      invitationSentFailure,
-    )),
+    ...(await attemptEmailPersistence(async () => {
+      await markInvitationSentIfRelevant(input, client);
+    }, invitationSentFailure)),
   ];
 
   const nonEmptyPersistenceFailures = toNonEmptyPersistenceFailures(persistenceFailures);
