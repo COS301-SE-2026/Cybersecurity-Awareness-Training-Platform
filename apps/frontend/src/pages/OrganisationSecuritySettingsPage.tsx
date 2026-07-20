@@ -128,7 +128,7 @@ function OrganisationSecuritySettingsPage() {
 
               {/* Sub-Heading */}
               <h3 className="mb-3 tracking-wide max-w-xs text-purple">
-                Set how long a normal logged-in sessions lasts before users must log in again.
+                Set how long a normal logged-in session lasts before users must log in again.
               </h3>
 
               {/* Enforce Checkbox */}
