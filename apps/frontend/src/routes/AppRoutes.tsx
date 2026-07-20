@@ -16,6 +16,7 @@ import OrganisationRegistrationRequestPage from '../pages/OrganisationRegistrati
 import AccountManagementPage from '../pages/AccountManagementPage';
 import SetupPage from '../pages/SetupPage';
 import AcceptInvitePage from '../pages/AcceptInvitePage';
+import OrganisationInformationPage from '../pages/OrganisationInformationPage';
 
 function AppRoutes() {
   return (
@@ -60,6 +61,8 @@ function AppRoutes() {
 
       <Route path="/" element={<LandingPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
+
+      <Route path="/organisation-information" element={<OrganisationInformationPage />} />
     </Routes>
   );
 }
