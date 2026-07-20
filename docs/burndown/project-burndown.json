@@ -871,8 +871,8 @@
           "number": 265,
           "title": "feat: implement backend invitation acceptance and role change endpoints",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-07-20"
         },
         {
           "number": 264,
@@ -1279,15 +1279,15 @@
           "number": 270,
           "title": "test: add backend invitation and employee API integration coverage",
           "points": 3,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-07-20"
         },
         {
           "number": 269,
           "title": "feat: implement backend organisation trainee management endpoints",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-07-20"
         },
         {
           "number": 268,

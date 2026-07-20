@@ -133,8 +133,8 @@
       "number": 265,
       "title": "feat: implement backend invitation acceptance and role change endpoints",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-07-20"
     },
     {
       "number": 264,
