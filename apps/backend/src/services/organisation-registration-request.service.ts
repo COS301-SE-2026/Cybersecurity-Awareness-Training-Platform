@@ -1072,12 +1072,12 @@ export function getResendEligibility(
     (t) => !t.usedAt && !t.revokedAt && new Date(t.expiresAt).getTime() > now.getTime(),
   );
 
-  if (!hasActiveToken) {
-    return { isEligible: true, reason: null };
-  }
-
   if (latestEmailLog?.deliveryStatus === 'FAILED') {
     return { isEligible: true, reason: 'SETUP_EMAIL_FAILED' };
+  }
+
+  if (!hasActiveToken) {
+    return { isEligible: true, reason: null };
   }
 
   return { isEligible: false, reason: 'ACTIVE_SETUP_TOKEN_EXISTS' };
