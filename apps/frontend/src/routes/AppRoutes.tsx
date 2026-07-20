@@ -64,7 +64,7 @@ function AppRoutes() {
       <Route path="*" element={<Navigate to="/" replace />} />
 
       <Route path="/organisation-information" element={<OrganisationInformationPage />} />
-      <Route path="/organisation-security-settings" element={<OrganisationSecuritySettings />} />
+      <Route path="/organisation-security-preferences" element={<OrganisationSecuritySettings />} />
     </Routes>
   );
 }
