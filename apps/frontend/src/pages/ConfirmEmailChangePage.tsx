@@ -46,8 +46,8 @@ function ConfirmEmailChangePage() {
       resendCooldownSeconds={verification.resendCooldownSeconds}
       resendButtonLabel="Resend email change link"
       resendSendingLabel="Sending email change link..."
-      resendFeedbackMessage={verification.ResendFeedbackMessage}
-      resendFeedbackStatus={verification.ResendFeedbackStatus}
+      resendFeedbackMessage={verification.resendFeedbackMessage}
+      resendFeedbackStatus={verification.resendFeedbackStatus}
       onResend={verification.handleResend}
     />
   );

@@ -49,8 +49,8 @@ function VerifyEmailPage() {
       resendCooldownSeconds={verification.resendCooldownSeconds}
       resendButtonLabel="Resend verification link"
       resendSendingLabel="Sending verification link..."
-      resendFeedbackMessage={verification.ResendFeedbackMessage}
-      resendFeedbackStatus={verification.ResendFeedbackStatus}
+      resendFeedbackMessage={verification.resendFeedbackMessage}
+      resendFeedbackStatus={verification.resendFeedbackStatus}
       onResend={verification.handleResend}
     />
   );

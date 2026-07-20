@@ -80,8 +80,8 @@ export function useTokenVerificationFlow<TResponse extends TokenVerificationResp
   const [canResend, setCanResend] = useState(false);
   const [resendCooldownSeconds, setResendCooldownSeconds] = useState(0);
   const [isResending, setIsResending] = useState(false);
-  const [ResendFeedbackMessage, setResendFeedbackMessage] = useState<string | null>(null);
-  const [ResendFeedbackStatus, setResendFeedbackStatus] = useState<ResendFeedbackStatus>('success');
+  const [resendFeedbackMessage, setResendFeedbackMessage] = useState<string | null>(null);
+  const [resendFeedbackStatus, setResendFeedbackStatus] = useState<ResendFeedbackStatus>('success');
 
   useEffect(() => {
     return () => {
@@ -204,8 +204,8 @@ export function useTokenVerificationFlow<TResponse extends TokenVerificationResp
     canResend,
     resendCooldownSeconds,
     isResending,
-    ResendFeedbackMessage,
-    ResendFeedbackStatus,
+    resendFeedbackMessage,
+    resendFeedbackStatus,
     handleResend,
   };
 }
