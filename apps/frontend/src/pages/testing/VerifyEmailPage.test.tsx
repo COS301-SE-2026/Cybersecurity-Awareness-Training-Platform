@@ -1,3 +1,4 @@
+import { StrictMode } from 'react';
 import '@testing-library/jest-dom/vitest';
 import { ApiError } from '../../lib/apiClient';
 import { cleanup, screen, waitFor } from '@testing-library/react';
@@ -305,6 +306,33 @@ describe('VerifyEmailPage', () => {
       'This verification link has expired. Please request a new verification email.',
     );
     expect(screen.queryByText(verificationToken)).not.toBeInTheDocument();
+  });
+
+  it('updates verification state after the Strict Mode effect cycle', async () => {
+    const verificationRequest = createDeferred<{ state: 'VALID' }>();
+    verifyEmailMock.mockReturnValue(verificationRequest.promise);
+
+    renderWithRouter(
+      <StrictMode>
+        <VerifyEmailPage />
+      </StrictMode>,
+      {
+        initialEntry: `/verify-email?token=${verificationToken}`,
+        routePath: '/verify-email',
+      },
+    );
+
+    expect(screen.getByText('Verifying email address...')).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(verifyEmail).toHaveBeenCalledWith(verificationToken);
+    });
+    expect(verifyEmailMock.mock.calls.length).toBeGreaterThanOrEqual(1);
+    expect(verifyEmailMock.mock.calls.length).toBeLessThanOrEqual(2);
+
+    verificationRequest.resolve({ state: 'VALID' });
+
+    expect(await screen.findByText('Email verified. You can now log in.')).toBeInTheDocument();
   });
 
   it('shows pending state while verifying the email token', async () => {

@@ -84,6 +84,8 @@ export function useTokenVerificationFlow<TResponse extends TokenVerificationResp
   const [resendFeedbackStatus, setResendFeedbackStatus] = useState<ResendFeedbackStatus>('success');
 
   useEffect(() => {
+    isMounted.current = true;
+
     return () => {
       isMounted.current = false;
     };
