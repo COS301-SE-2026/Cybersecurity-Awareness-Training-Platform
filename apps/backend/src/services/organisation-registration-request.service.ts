@@ -773,6 +773,20 @@ export async function approveOrganisationRequest(
       tokenId: result.actionToken.token.id,
       reason: 'EMAIL_SEND_FAILED',
     });
+
+    await recordAuditLog({
+      actorUserId,
+      actorType: 'IP_ADMIN',
+      targetType: 'INVITATION',
+      targetId: result.invitation.id,
+      actionType: 'INVITED',
+      outcome: 'FAILURE',
+      organisationId: result.organisation.id,
+      metadata: {
+        emailOutcome: 'NOT_ACCEPTED',
+        reason: 'EMAIL_SEND_FAILED',
+      },
+    });
   }
 
   return {
