@@ -1,83 +1,57 @@
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import type { ActionTokenStateDto } from '@insightful-phish/shared';
 import TokenVerificationPanel from '../components/auth/TokenVerificationPanel';
-import type { TokenVerificationStatus } from '../components/auth/TokenVerificationPanel';
-import { verifyEmail } from '../services/auth.service';
+import { getTokenContext, resendToken, verifyEmail } from '../services/auth.service';
+import { useTokenVerificationFlow } from '../hooks/useTokenVerificationFlow';
+import type { TokenVerificationMessages } from '../hooks/useTokenVerificationFlow';
 
-const pendingMessage = 'Verifying email address...';
-const successMessage = 'Email verified. You can now log in.';
-const usedMessage = 'This email verification link has already been used. You can log in.';
-const missingTokenMessage =
-  'This verification link is missing a token. Please request a new verification email.';
-const invalidTokenMessage =
-  'This verification link is invalid. Please request a new verification email.';
-const expiredTokenMessage =
-  'This verification link has expired. Please request a new verification email.';
-const revokedTokenMessage =
-  'This verification link is no longer valid. Please request a new verification email.';
-const genericErrorMessage = 'We could not verify your email right now. Please try again later.';
-
-function getVerificationStateMessage(state: ActionTokenStateDto): {
-  status: TokenVerificationStatus;
-  message: string;
-} {
-  if (state === 'VALID') return { status: 'success', message: successMessage };
-  if (state === 'USED') return { status: 'success', message: usedMessage };
-  if (state === 'EXPIRED') return { status: 'error', message: expiredTokenMessage };
-  if (state === 'REVOKED') return { status: 'error', message: revokedTokenMessage };
-
-  return { status: 'error', message: invalidTokenMessage };
-}
+const messages = {
+  pending: 'Verifying email address...',
+  success: 'Email verified. You can now log in.',
+  used: 'This email verification link has already been used. You can log in.',
+  missingToken:
+    'This verification link is missing a token. Please request a new verification email.',
+  invalid: 'This verification link is invalid. Please request a new verification email.',
+  expired: 'This verification link has expired. Please request a new verification email.',
+  revoked: 'This verification link is no longer valid. Please request a new verification email.',
+  generic: 'We could not verify your email right now. Please try again later.',
+  resendSuccess: 'If the email is still eligible, a new verification link has been sent.',
+  resendGeneric: 'We could not send a new verification link right now. Please try again later.',
+  resendIneligible:
+    'This verification link cannot be resent. Please request a new verification email.',
+  resendCooldown: (seconds: number) =>
+    seconds > 0
+      ? `Please wait ${seconds} seconds before requesting another verification link.`
+      : 'Please wait before requesting another verification link.',
+} satisfies TokenVerificationMessages;
 
 function VerifyEmailPage() {
   const [searchParams] = useSearchParams();
-  const [status, setStatus] = useState<TokenVerificationStatus>('pending');
-  const [message, setMessage] = useState(pendingMessage);
+  const token = useMemo(() => searchParams.get('token')?.trim() ?? '', [searchParams]);
 
-  const token = searchParams.get('token')?.trim() ?? '';
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function verifyToken() {
-      if (!token) {
-        setStatus('error');
-        setMessage(missingTokenMessage);
-        return;
-      }
-
-      setStatus('pending');
-      setMessage(pendingMessage);
-
-      try {
-        const result = await verifyEmail(token);
-        if (!isMounted) return;
-
-        const nextState = getVerificationStateMessage(result.state);
-        setStatus(nextState.status);
-        setMessage(nextState.message);
-      } catch {
-        if (!isMounted) return;
-        setStatus('error');
-        setMessage(genericErrorMessage);
-      }
-    }
-
-    void verifyToken();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [token]);
+  const verification = useTokenVerificationFlow({
+    token,
+    messages,
+    verifyToken: verifyEmail,
+    getTokenContext,
+    resendToken,
+  });
 
   return (
     <TokenVerificationPanel
       title="Verify Email"
       introMessage="Checking your email verification link."
-      status={status}
-      message={message}
-      showLoginLink={status === 'success'}
+      status={verification.status}
+      message={verification.message}
+      showLoginLink={verification.status === 'success'}
+      canResend={verification.canResend}
+      isResending={verification.isResending}
+      resendCooldownSeconds={verification.resendCooldownSeconds}
+      resendButtonLabel="Resend verification link"
+      resendSendingLabel="Sending verification link..."
+      resendFeedbackMessage={verification.ResendFeedbackMessage}
+      resendFeedbackStatus={verification.ResendFeedbackStatus}
+      onResend={verification.handleResend}
     />
   );
 }

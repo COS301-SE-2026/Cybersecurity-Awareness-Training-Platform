@@ -1,79 +1,54 @@
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import type { ActionTokenStateDto } from '@insightful-phish/shared';
 import TokenVerificationPanel from '../components/auth/TokenVerificationPanel';
-import type { TokenVerificationStatus } from '../components/auth/TokenVerificationPanel';
-import { verifyEmailChange } from '../services/auth.service';
+import { getTokenContext, resendToken, verifyEmailChange } from '../services/auth.service';
+import { useTokenVerificationFlow } from '../hooks/useTokenVerificationFlow';
+import type { TokenVerificationMessages } from '../hooks/useTokenVerificationFlow';
 
-const pendingMessage = 'Confirming email change...';
-const successMessage = 'Email change confirmed.';
-const usedMessage = 'This email change link has already been used.';
-const missingTokenMessage = 'This email change link is missing a token. Please request a new link.';
-const invalidTokenMessage = 'This email change link is invalid. Please request a new link.';
-const expiredTokenMessage = 'This email change link has expired. Please request a new link.';
-const revokedTokenMessage = 'This email change link is no longer valid. Please request a new link.';
-const genericErrorMessage =
-  'We could not confirm your email change right now. Please try again later.';
-
-function getEmailChangeStateMessage(state: ActionTokenStateDto): {
-  status: TokenVerificationStatus;
-  message: string;
-} {
-  if (state === 'VALID') return { status: 'success', message: successMessage };
-  if (state === 'USED') return { status: 'success', message: usedMessage };
-  if (state === 'EXPIRED') return { status: 'error', message: expiredTokenMessage };
-  if (state === 'REVOKED') return { status: 'error', message: revokedTokenMessage };
-
-  return { status: 'error', message: invalidTokenMessage };
-}
+const messages = {
+  pending: 'Confirming email change...',
+  success: 'Email change confirmed.',
+  used: 'This email change link has already been used.',
+  missingToken: 'This email change link is missing a token. Please request a new link.',
+  invalid: 'This email change link is invalid. Please request a new link.',
+  expired: 'This email change link has expired. Please request a new link.',
+  revoked: 'This email change link is no longer valid. Please request a new link.',
+  generic: 'We could not confirm your email change right now. Please try again later.',
+  resendSuccess: 'If the email change is still eligible, a new confirmation link has been sent.',
+  resendGeneric: 'We could not send a new email change link right now. Please try again later.',
+  resendIneligible: 'This email change link cannot be resent. Please request a new link.',
+  resendCooldown: (seconds: number) =>
+    seconds > 0
+      ? `Please wait ${seconds} seconds before requesting another email change link.`
+      : 'Please wait before requesting another email change link.',
+} satisfies TokenVerificationMessages;
 
 function ConfirmEmailChangePage() {
   const [searchParams] = useSearchParams();
-  const [status, setStatus] = useState<TokenVerificationStatus>('pending');
-  const [message, setMessage] = useState(pendingMessage);
+  const token = useMemo(() => searchParams.get('token')?.trim() ?? '', [searchParams]);
 
-  const token = searchParams.get('token')?.trim() ?? '';
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function verifyToken() {
-      if (!token) {
-        setStatus('error');
-        setMessage(missingTokenMessage);
-        return;
-      }
-
-      setStatus('pending');
-      setMessage(pendingMessage);
-
-      try {
-        const result = await verifyEmailChange(token);
-        if (!isMounted) return;
-
-        const nextState = getEmailChangeStateMessage(result.state);
-        setStatus(nextState.status);
-        setMessage(nextState.message);
-      } catch {
-        if (!isMounted) return;
-        setStatus('error');
-        setMessage(genericErrorMessage);
-      }
-    }
-
-    void verifyToken();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [token]);
+  const verification = useTokenVerificationFlow({
+    token,
+    messages,
+    verifyToken: verifyEmailChange,
+    getTokenContext,
+    resendToken,
+  });
 
   return (
     <TokenVerificationPanel
       title="Confirm Email Change"
       introMessage="Checking your email change confirmation link."
-      status={status}
-      message={message}
+      status={verification.status}
+      message={verification.message}
+      canResend={verification.canResend}
+      isResending={verification.isResending}
+      resendCooldownSeconds={verification.resendCooldownSeconds}
+      resendButtonLabel="Resend email change link"
+      resendSendingLabel="Sending email change link..."
+      resendFeedbackMessage={verification.ResendFeedbackMessage}
+      resendFeedbackStatus={verification.ResendFeedbackStatus}
+      onResend={verification.handleResend}
     />
   );
 }
