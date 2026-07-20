@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ACTIVE_INVITATION_STATUSES } from '../../src/services/invitation-state-policy.js';
 const { sendEmail } = await import('../../src/services/email.service.js');
 const sendMailMock = vi.hoisted(() => vi.fn());
 
@@ -30,12 +31,14 @@ const emailDeliveryLogMock = vi.hoisted(() => ({
   create: vi.fn(),
   update: vi.fn(),
 }));
-const invitationMock = vi.hoisted(() => ({ update: vi.fn() }));
+const invitationMock = vi.hoisted(() => ({ updateMany: vi.fn() }));
+const actionTokenMock = vi.hoisted(() => ({ findUnique: vi.fn().mockResolvedValue(null) }));
 
 vi.mock('../../src/lib/prisma.js', () => ({
   prisma: {
     emailDeliveryLog: emailDeliveryLogMock,
     invitation: invitationMock,
+    actionToken: actionTokenMock,
   },
 }));
 
@@ -85,6 +88,10 @@ describe('sendEmail', () => {
 
     sendMailMock.mockResolvedValue({
       messageId: 'smtpmessage01',
+    });
+
+    invitationMock.updateMany.mockResolvedValue({
+      count: 1,
     });
   });
 
@@ -197,7 +204,12 @@ describe('sendEmail', () => {
         create: vi.fn().mockResolvedValue({ id: 'emaillogfromtx' }),
         update: vi.fn().mockResolvedValue({ id: 'emaillogfromtx' }),
       },
-      invitation: { update: vi.fn() },
+      invitation: {
+        update: vi.fn(),
+        updateMany: vi.fn(),
+        findUnique: vi.fn(),
+      },
+      actionToken: { findUnique: vi.fn().mockResolvedValue(null) },
     };
 
     const result = await sendEmail(baseInput, transactionClient);
@@ -287,8 +299,11 @@ describe('sendEmail', () => {
       },
     });
 
-    expect(invitationMock.update).toHaveBeenCalledWith({
-      where: { id: 'invitation01' },
+    expect(invitationMock.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'invitation01',
+        status: { in: ['PENDING', 'SENT', 'FAILED_TO_SEND'] },
+      },
       data: { status: 'SENT' },
     });
   });
@@ -309,8 +324,11 @@ describe('sendEmail', () => {
         actionTokenExpiresAt: new Date(Date.now() + 60 * 60 * 1000),
       },
     });
-    expect(invitationMock.update).toHaveBeenCalledWith({
-      where: { id: 'invitation01' },
+    expect(invitationMock.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'invitation01',
+        status: { in: ['PENDING', 'SENT', 'FAILED_TO_SEND'] },
+      },
       data: { status: 'FAILED_TO_SEND' },
     });
   });
@@ -322,7 +340,7 @@ describe('sendEmail', () => {
       relatedEntity: { invitationId: 'invitation01', userId: 'user01' },
       templateData: { firstName: 'Johan', roleName: 'platform admin' },
     });
-    expect(invitationMock.update).not.toHaveBeenCalled();
+    expect(invitationMock.updateMany).not.toHaveBeenCalled();
   });
 
   it('returns not accepted for missing template variables before creating delivery log', async () => {
@@ -390,9 +408,12 @@ describe('sendEmail', () => {
     });
 
     expect(emailDeliveryLogMock.update).toHaveBeenCalledWith(sentLogUpdate);
-    expect(invitationMock.update).toHaveBeenCalledWith({
+    expect(invitationMock.updateMany).toHaveBeenCalledWith({
       data: { status: 'SENT' },
-      where: { id: 'invitation01' },
+      where: {
+        id: 'invitation01',
+        status: { in: [...ACTIVE_INVITATION_STATUSES] },
+      },
     });
     expect(result).toEqual({
       status: 'ACCEPTED_PERSISTENCE_FAILED',
@@ -406,7 +427,7 @@ describe('sendEmail', () => {
   });
 
   it('keeps the sent log when invitation persistence fails after SMTP acceptance', async () => {
-    invitationMock.update.mockRejectedValueOnce(new Error('invitation update failed'));
+    invitationMock.updateMany.mockRejectedValueOnce(new Error('invitation update failed'));
 
     const result = await sendEmail({
       emailType: 'ORGANISATION_TRAINEE_INVITE',
@@ -442,7 +463,7 @@ describe('sendEmail', () => {
 
   it('reports both accepted-path persistence failures with stable codes', async () => {
     emailDeliveryLogMock.update.mockRejectedValueOnce(new Error('database unavailable'));
-    invitationMock.update.mockRejectedValueOnce(new Error('invitation update failed'));
+    invitationMock.updateMany.mockRejectedValueOnce(new Error('invitation update failed'));
 
     const result = await sendEmail({
       emailType: 'ORGANISATION_ADMIN_PROMOTION_INVITE',
@@ -498,8 +519,11 @@ describe('sendEmail', () => {
         failureReason: 'SMTP_NOT_ACCEPTED',
       },
     });
-    expect(invitationMock.update).toHaveBeenCalledWith({
-      where: { id: 'invitation01' },
+    expect(invitationMock.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'invitation01',
+        status: { in: [...ACTIVE_INVITATION_STATUSES] },
+      },
       data: { status: 'FAILED_TO_SEND' },
     });
     expect(result).toEqual({

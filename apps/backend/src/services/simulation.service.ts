@@ -6,10 +6,10 @@ import type {
   RecordSimulatedEmailInteractionResponseDto,
   ClassifySimulatedEmailResponseDto,
   SimulatedEmailInteractionEventTypeDto,
-  EmailClassificationDto,
   RecordSimulatedEmailInteractionRequestDto,
   ClassifySimulatedEmailRequestDto,
 } from '@insightful-phish/shared';
+import type { Prisma, AssignmentStatus } from '../generated/prisma/client.js';
 
 function advisoryLockKey(parts: string[]): [number, number] {
   const hash = createHash('sha256').update(parts.join('\0')).digest();
@@ -48,7 +48,12 @@ export class SimulationService {
               where: {
                 traineeProfileId,
                 assignmentStatus: {
-                  in: ['AVAILABLE', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED'] as any,
+                  in: [
+                    'AVAILABLE',
+                    'ASSIGNED',
+                    'IN_PROGRESS',
+                    'COMPLETED',
+                  ] satisfies AssignmentStatus[],
                 },
               },
             },
@@ -106,7 +111,7 @@ export class SimulationService {
           );
 
     return {
-      emails: emails.map((email: any) => ({
+      emails: emails.map((email: (typeof emails)[0]) => ({
         id: email.id,
         campaignAssignmentId,
         campaignItemId,
@@ -114,9 +119,9 @@ export class SimulationService {
         senderLabel: email.senderLabel,
         senderAddress: email.senderAddress,
         subject: email.subject,
-        preview: email.preview,
+        preview: email.preview ?? '',
         receivedAt: email.receivedAt.toISOString(),
-        difficultyLevel: email.difficultyLevel as any,
+        difficultyLevel: email.difficultyLevel,
         isOpened: openedEmailIds.has(email.id),
       })),
     };
@@ -149,7 +154,12 @@ export class SimulationService {
                           where: {
                             traineeProfileId,
                             assignmentStatus: {
-                              in: ['AVAILABLE', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED'] as any,
+                              in: [
+                                'AVAILABLE',
+                                'ASSIGNED',
+                                'IN_PROGRESS',
+                                'COMPLETED',
+                              ] as AssignmentStatus[],
                             },
                           },
                         },
@@ -169,7 +179,7 @@ export class SimulationService {
     }
 
     const matchedItem = email.inbox.simulation.campaignItems.find(
-      (item: any) =>
+      (item: (typeof email.inbox.simulation.campaignItems)[0]) =>
         item.id === campaignItemId &&
         item.campaign.assignments.length > 0 &&
         item.itemType === 'COMPONENT' &&
@@ -211,7 +221,7 @@ export class SimulationService {
       simulatedLinkTarget: email.simulatedLinkTarget,
       hasAttachment: email.hasAttachment,
       receivedAt: email.receivedAt.toISOString(),
-      difficultyLevel: email.difficultyLevel as any,
+      difficultyLevel: email.difficultyLevel,
     };
   }
 
@@ -239,7 +249,7 @@ export class SimulationService {
         email.id,
       ]);
 
-      await prisma.$transaction(async (tx: any) => {
+      await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         // A partial unique index would be ideal, but this PR intentionally avoids migrations.
         // This transaction-scoped PostgreSQL advisory lock serializes only this opened-event identity.
         await tx.$executeRaw`SELECT pg_advisory_xact_lock(${lockKeyA}, ${lockKeyB})`;
@@ -268,7 +278,7 @@ export class SimulationService {
             traineeProfileId,
             campaignAssignmentId: assignmentId,
             campaignItemId: itemId,
-            eventType: input.eventType as any,
+            eventType: input.eventType,
             targetType: 'SIMULATED_EMAIL',
             targetId: email.id,
             simulatedEmailId: email.id,
@@ -287,7 +297,7 @@ export class SimulationService {
         traineeProfileId,
         campaignAssignmentId: assignmentId,
         campaignItemId: itemId,
-        eventType: input.eventType as any,
+        eventType: input.eventType,
         targetType: 'SIMULATED_EMAIL',
         targetId: email.id,
         simulatedEmailId: email.id,
@@ -330,7 +340,7 @@ export class SimulationService {
 
     // Validate red flags
     if (input.selectedRedFlagIds?.length) {
-      const validRedFlagIds = new Set(email.redFlags.map((rf: any) => rf.id));
+      const validRedFlagIds = new Set(email.redFlags.map((rf: { id: string }) => rf.id));
       const invalidFlags = input.selectedRedFlagIds.filter((id) => !validRedFlagIds.has(id));
       if (invalidFlags.length > 0) {
         throw new Error('VALIDATION_ERROR');
@@ -345,7 +355,7 @@ export class SimulationService {
         simulatedEmailId: email.id,
         campaignAssignmentId: assignmentId,
         campaignItemId: itemId,
-        selectedClassification: input.selectedClassification as any,
+        selectedClassification: input.selectedClassification,
         freeTextReason: input.freeTextReason,
         isCorrect,
         selectedRedFlags: {
@@ -373,17 +383,17 @@ export class SimulationService {
     return {
       success: true,
       responseId: classificationResponse.id,
-      selectedClassification: input.selectedClassification as EmailClassificationDto,
+      selectedClassification: input.selectedClassification,
       isCorrect,
       feedback: isCorrect
         ? 'Great job! You correctly identified the email.'
         : 'Not quite. Take a closer look at the red flags.',
-      redFlags: email.redFlags.map((rf: any) => ({
+      redFlags: email.redFlags.map((rf: (typeof email.redFlags)[0]) => ({
         id: rf.id,
-        redFlagType: rf.redFlagType as any,
+        redFlagType: rf.redFlagType,
         label: rf.label,
-        description: rf.description,
-        severity: rf.severity as any,
+        description: rf.description ?? '',
+        severity: rf.severity,
       })),
     };
   }

@@ -73,6 +73,9 @@ describe('organisation admin permission seed', () => {
         { id: 'permission-remove' },
         { id: 'permission-change' },
         { id: 'permission-security-settings' },
+        { id: 'permission-view-trainees' },
+        { id: 'permission-invite-trainees' },
+        { id: 'permission-remove-trainees' },
       ],
     });
 
@@ -80,8 +83,8 @@ describe('organisation admin permission seed', () => {
 
     expect(summary).toEqual({
       organisationCount: 1,
-      permissionCount: 5,
-      initialAdminGrantCount: 5,
+      permissionCount: 8,
+      initialAdminGrantCount: 8,
     });
 
     const serializedExecuteValues = JSON.stringify(
@@ -93,6 +96,9 @@ describe('organisation admin permission seed', () => {
     expect(serializedExecuteValues).toContain('REMOVE_ORGANISATION_ADMINS');
     expect(serializedExecuteValues).toContain('CHANGE_ORGANISATION_ADMIN_PERMISSIONS');
     expect(serializedExecuteValues).toContain('CHANGE_ORGANISATION_SECURITY_SETTINGS');
+    expect(serializedExecuteValues).toContain('VIEW_ORGANISATION_TRAINEES');
+    expect(serializedExecuteValues).toContain('INVITE_ORGANISATION_TRAINEES');
+    expect(serializedExecuteValues).toContain('REMOVE_ORGANISATION_TRAINEES');
     expect(serializedExecuteValues).not.toContain('password');
     expect(serializedExecuteValues).not.toContain('token');
 
@@ -100,12 +106,12 @@ describe('organisation admin permission seed', () => {
       seedClient.executeCalls.filter((call) =>
         call.sql.includes('INSERT INTO "OrganisationPermission"'),
       ),
-    ).toHaveLength(5);
+    ).toHaveLength(8);
     expect(
       seedClient.executeCalls.filter((call) =>
         call.sql.includes('INSERT INTO "OrganisationAdminPermission"'),
       ),
-    ).toHaveLength(5);
+    ).toHaveLength(8);
   });
 
   it('does not create grants when an organisation has no initial admins', async () => {
@@ -119,7 +125,7 @@ describe('organisation admin permission seed', () => {
 
     expect(summary).toEqual({
       organisationCount: 1,
-      permissionCount: 5,
+      permissionCount: 8,
       initialAdminGrantCount: 0,
     });
     expect(
@@ -139,16 +145,19 @@ describe('organisation admin permission seed', () => {
         { id: 'permission-remove' },
         { id: 'permission-change' },
         { id: 'permission-security-settings' },
+        { id: 'permission-view-trainees' },
+        { id: 'permission-invite-trainees' },
+        { id: 'permission-remove-trainees' },
       ],
-      adminGrantInsertCounts: [1, 0, 1, 0, 1],
+      adminGrantInsertCounts: [1, 0, 1, 0, 1, 1, 0, 1],
     });
 
     const summary = await seedOrganisationAdminPermissions(seedClient.client);
 
     expect(summary).toEqual({
       organisationCount: 1,
-      permissionCount: 5,
-      initialAdminGrantCount: 3,
+      permissionCount: 8,
+      initialAdminGrantCount: 5,
     });
   });
 });

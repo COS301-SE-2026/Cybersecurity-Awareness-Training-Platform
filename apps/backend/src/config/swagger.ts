@@ -991,6 +991,148 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             },
           },
         },
+        InvitationStatus: enumString(
+          [
+            'PENDING',
+            'ACCEPTED',
+            'REJECTED',
+            'EXPIRED',
+            'REVOKED',
+            'USED',
+            'SENT',
+            'FAILED_TO_SEND',
+          ],
+          'PENDING',
+        ),
+        InvitationType: enumString(
+          [
+            'ORGANISATION_TRAINEE',
+            'ORGANISATION_ADMIN_PROMOTION',
+            'PLATFORM_ADMIN',
+            'INITIAL_ORGANISATION_ADMIN_SETUP',
+          ],
+          'ORGANISATION_TRAINEE',
+        ),
+        InvitationRoleGranted: enumString(
+          ['ORGANISATION_TRAINEE', 'ORGANISATION_ADMIN', 'PLATFORM_ADMIN'],
+          'ORGANISATION_TRAINEE',
+        ),
+        InvitationContextResponse: {
+          type: 'object',
+          required: ['requiredAction', 'rejectAllowed', 'status'],
+          properties: {
+            requiredAction: enumString(
+              [
+                'CONTINUE_SETUP',
+                'LOGIN_REQUIRED',
+                'SWITCH_ACCOUNT',
+                'CONFIRM_ROLE_CHANGE',
+                'ROLE_CONFLICT',
+                'INVITATION_UNAVAILABLE',
+                'TOKEN_UNAVAILABLE',
+              ],
+              'LOGIN_REQUIRED',
+            ),
+            rejectAllowed: {
+              type: 'boolean',
+              example: true,
+            },
+            status: {
+              $ref: '#/components/schemas/InvitationStatus',
+            },
+            expiresAt: {
+              type: 'string',
+              format: 'date-time',
+              example: '2026-07-15T12:00:00.000Z',
+            },
+            invitationType: {
+              $ref: '#/components/schemas/InvitationType',
+            },
+            organisationId: {
+              type: 'string',
+              format: 'uuid',
+              example: '11111111-1111-4111-8111-111111111111',
+            },
+            organisationName: {
+              type: 'string',
+              example: 'Acme Corp',
+            },
+            roleGranted: {
+              $ref: '#/components/schemas/InvitationRoleGranted',
+            },
+            permissions: arrayOf({
+              type: 'string',
+              example: 'VIEW_ORGANISATION_TRAINEES',
+            }),
+          },
+        },
+        InvitationAcceptRequest: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            confirmRoleChange: {
+              type: 'boolean',
+              description:
+                'Must be true when accepting an invitation that promotes an Organisation Trainee to Organisation Admin.',
+              example: true,
+            },
+          },
+        },
+        InvitationAcceptResponse: {
+          type: 'object',
+          required: ['success'],
+          properties: {
+            success: {
+              type: 'boolean',
+              example: true,
+            },
+            message: {
+              type: 'string',
+              example: 'Invitation accepted successfully.',
+            },
+            redirectTo: {
+              type: 'string',
+              example: '/trainee/campaigns',
+            },
+            roleGranted: {
+              $ref: '#/components/schemas/InvitationRoleGranted',
+            },
+            organisationId: {
+              type: 'string',
+              format: 'uuid',
+              example: '11111111-1111-4111-8111-111111111111',
+            },
+            sessionOutcome: enumString(
+              ['REFRESH_AUTH_CONTEXT', 'REAUTHENTICATE'],
+              'REFRESH_AUTH_CONTEXT',
+            ),
+          },
+        },
+        InvitationRejectRequest: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            rejectionReason: {
+              type: 'string',
+              maxLength: 500,
+              example: 'No longer with the company.',
+            },
+          },
+        },
+        InvitationRejectResponse: {
+          type: 'object',
+          required: ['success', 'message'],
+          properties: {
+            success: {
+              type: 'boolean',
+              example: true,
+            },
+            message: {
+              type: 'string',
+              example: 'Invitation rejected successfully.',
+            },
+          },
+        },
         CreateOrganisationRegistrationRequest: {
           type: 'object',
           required: [
@@ -1071,6 +1213,11 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           'ApiErrorResponse',
           'ORGANISATION_REQUEST_CONFLICT',
           'The organisation registration request conflicts with existing records.',
+        ),
+        TraineeInvitationConflictErrorResponse: errorResponseSchema(
+          'ApiErrorResponse',
+          'CANNOT_INVITE_USER',
+          'The user cannot be invited to the organisation as a trainee at this time.',
         ),
         PlatformOrganisationRequest: {
           type: 'object',
@@ -1452,6 +1599,9 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             'REMOVE_ORGANISATION_ADMINS',
             'CHANGE_ORGANISATION_ADMIN_PERMISSIONS',
             'CHANGE_ORGANISATION_SECURITY_SETTINGS',
+            'VIEW_ORGANISATION_TRAINEES',
+            'INVITE_ORGANISATION_TRAINEES',
+            'REMOVE_ORGANISATION_TRAINEES',
           ],
           'VIEW_ORGANISATION_ADMINS',
         ),
@@ -1670,6 +1820,332 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             adminId: {
               ...uuidString('22222222-2222-4222-8222-222222222222'),
             },
+            status: enumString(['DISABLED'], 'DISABLED'),
+          },
+        },
+        TraineeListItem: {
+          type: 'object',
+          required: ['id', 'rowType', 'type', 'email', 'status', 'eligibility'],
+          properties: {
+            id: {
+              type: 'string',
+              format: 'uuid',
+              example: '11111111-1111-4111-8111-111111111111',
+            },
+            rowType: {
+              type: 'string',
+              enum: ['ACTIVE_TRAINEE', 'INVITATION'],
+              example: 'INVITATION',
+            },
+            type: {
+              type: 'string',
+              enum: ['ACTIVE_TRAINEE', 'INVITATION'],
+              example: 'INVITATION',
+            },
+            traineeProfileId: {
+              type: 'string',
+              format: 'uuid',
+              example: '22222222-2222-4222-8222-222222222222',
+            },
+            userId: {
+              type: 'string',
+              format: 'uuid',
+              example: '33333333-3333-4333-8333-333333333333',
+            },
+            invitationId: {
+              type: 'string',
+              format: 'uuid',
+              example: '44444444-4444-4444-8444-444444444444',
+            },
+            invitationStatus: {
+              type: 'string',
+              enum: [
+                'PENDING',
+                'SENT',
+                'FAILED_TO_SEND',
+                'ACCEPTED',
+                'COMPLETED',
+                'EXPIRED',
+                'REVOKED',
+                'REJECTED',
+              ],
+              example: 'PENDING',
+            },
+            invitationLifecycleState: {
+              type: 'string',
+              enum: [
+                'PENDING',
+                'SENT',
+                'FAILED_TO_SEND',
+                'ACCEPTED',
+                'COMPLETED',
+                'EXPIRED',
+                'REVOKED',
+                'REJECTED',
+              ],
+              nullable: true,
+              example: 'PENDING',
+            },
+            email: {
+              type: 'string',
+              format: 'email',
+              example: 'trainee@example.com',
+            },
+            firstName: {
+              ...nullableString('Alex'),
+            },
+            lastName: {
+              ...nullableString('Trainee'),
+            },
+            status: enumString(
+              [
+                'ACTIVE',
+                'DISABLED',
+                'INVITE_PENDING',
+                'INVITE_FAILED',
+                'INVITE_EXPIRED',
+                'INVITE_REJECTED',
+                'INVITE_REVOKED',
+                'INVITE_ACCEPTED',
+                'INVITE_COMPLETED',
+              ],
+              'ACTIVE',
+            ),
+            createdAt: {
+              type: 'string',
+              format: 'date-time',
+              example: '2026-07-15T12:00:00.000Z',
+            },
+            joinedAt: {
+              ...nullableString('2026-07-15T12:00:00.000Z'),
+            },
+            invitedAt: {
+              ...nullableString('2026-07-15T12:00:00.000Z'),
+            },
+            disabledAt: {
+              ...nullableString('2026-07-20T12:00:00.000Z'),
+            },
+            disabledReason: {
+              ...nullableString('No longer with organisation.'),
+            },
+            expiresAt: {
+              ...nullableString('2026-07-22T12:00:00.000Z'),
+            },
+            emailDeliveryStatus: {
+              type: 'string',
+              enum: ['PENDING', 'SENT', 'FAILED', 'UNKNOWN'],
+              example: 'SENT',
+            },
+            deliveryState: {
+              type: 'string',
+              enum: ['PENDING', 'SENT', 'FAILED', 'UNKNOWN'],
+              example: 'SENT',
+            },
+            requiredAction: {
+              type: 'string',
+              enum: ['NONE', 'CONTINUE_SETUP'],
+              example: 'CONTINUE_SETUP',
+            },
+            requiredActions: {
+              type: 'array',
+              items: {
+                type: 'string',
+                enum: ['NONE', 'CONTINUE_SETUP'],
+              },
+              example: ['CONTINUE_SETUP'],
+            },
+            eligibility: {
+              type: 'object',
+              required: [
+                'canResend',
+                'canRevoke',
+                'canDisable',
+                'canPromote',
+                'resendCooldownSeconds',
+              ],
+              properties: {
+                canResend: booleanProperty(false),
+                canRevoke: booleanProperty(false),
+                canDisable: booleanProperty(true),
+                canPromote: booleanProperty(true),
+                resendCooldownSeconds: { type: 'number', example: 0 },
+                resendDisabledReason: nullableString('Resend is only available for invitations.'),
+                resendDisabledReasonCode: {
+                  type: 'string',
+                  nullable: true,
+                  enum: [
+                    'COOLDOWN_ACTIVE',
+                    'INVITATION_NOT_ACTIVE',
+                    'INVITATION_REVOKED',
+                    'INVITATION_ACCEPTED',
+                    'INVITATION_REJECTED',
+                    'INVITATION_EXPIRED',
+                    'INVITATION_COMPLETED',
+                    'INVITATION_NOT_RESENDABLE',
+                    'NOT_APPLICABLE',
+                  ],
+                  example: 'NOT_APPLICABLE',
+                },
+                revokeDisabledReason: nullableString('Revoke is only available for invitations.'),
+                revokeDisabledReasonCode: {
+                  type: 'string',
+                  nullable: true,
+                  enum: [
+                    'COOLDOWN_ACTIVE',
+                    'INVITATION_NOT_ACTIVE',
+                    'INVITATION_REVOKED',
+                    'INVITATION_ACCEPTED',
+                    'INVITATION_REJECTED',
+                    'INVITATION_EXPIRED',
+                    'INVITATION_COMPLETED',
+                    'INVITATION_NOT_RESENDABLE',
+                    'NOT_APPLICABLE',
+                  ],
+                  example: 'NOT_APPLICABLE',
+                },
+                disableDisabledReason: nullableString('Cannot disable a pending invitation.'),
+                disableDisabledReasonCode: {
+                  type: 'string',
+                  nullable: true,
+                  enum: ['COOLDOWN_ACTIVE', 'INVITATION_NOT_ACTIVE', 'NOT_APPLICABLE'],
+                  example: 'NOT_APPLICABLE',
+                },
+                promoteDisabledReason: nullableString('Only active trainees can be promoted.'),
+                promoteDisabledReasonCode: {
+                  type: 'string',
+                  nullable: true,
+                  enum: ['COOLDOWN_ACTIVE', 'INVITATION_NOT_ACTIVE', 'NOT_APPLICABLE'],
+                  example: 'NOT_APPLICABLE',
+                },
+              },
+            },
+          },
+        },
+        TraineeListResponse: {
+          type: 'object',
+          required: ['trainees', 'invitations'],
+          properties: {
+            trainees: arrayOf(schemaRef('TraineeListItem')),
+            invitations: arrayOf(schemaRef('TraineeListItem')),
+            pendingInvitations: arrayOf(schemaRef('TraineeListItem')),
+          },
+        },
+        CreateTraineeInvitationRequest: {
+          type: 'object',
+          required: ['email'],
+          additionalProperties: false,
+          properties: {
+            email: {
+              type: 'string',
+              format: 'email',
+              example: 'new.trainee@example.com',
+            },
+            firstName: {
+              type: 'string',
+              example: 'Sam',
+            },
+            lastName: {
+              type: 'string',
+              example: 'New',
+            },
+          },
+        },
+        CreateTraineeInvitationResponse: {
+          type: 'object',
+          required: ['success', 'message', 'invitation'],
+          properties: {
+            success: booleanProperty(true),
+            message: {
+              type: 'string',
+              example: 'Invitation sent successfully.',
+            },
+            invitation: {
+              $ref: '#/components/schemas/TraineeListItem',
+            },
+          },
+        },
+        InvitationResendResponse: {
+          type: 'object',
+          required: ['success', 'message', 'invitationId', 'status', 'resentAt', 'invitation'],
+          properties: {
+            success: booleanProperty(true),
+            message: {
+              type: 'string',
+              example: 'Invitation resent successfully.',
+            },
+            invitationId: {
+              ...uuidString('33333333-3333-4333-8333-333333333333'),
+            },
+            status: enumString(
+              [
+                'PENDING',
+                'SENT',
+                'FAILED_TO_SEND',
+                'ACCEPTED',
+                'COMPLETED',
+                'EXPIRED',
+                'REVOKED',
+                'REJECTED',
+              ],
+              'SENT',
+            ),
+            resentAt: {
+              ...dateTimeString('2026-07-15T08:30:00.000Z'),
+            },
+            invitation: {
+              $ref: '#/components/schemas/TraineeListItem',
+            },
+          },
+        },
+        InvitationRevokeResponse: {
+          type: 'object',
+          required: ['success', 'message', 'invitationId', 'status', 'revokedAt'],
+          properties: {
+            success: booleanProperty(true),
+            message: {
+              type: 'string',
+              example: 'Invitation revoked successfully.',
+            },
+            invitationId: {
+              ...uuidString('33333333-3333-4333-8333-333333333333'),
+            },
+            status: enumString(['REVOKED'], 'REVOKED'),
+            revokedAt: {
+              ...dateTimeString('2026-07-15T08:30:00.000Z'),
+            },
+          },
+        },
+        DisableTraineeRequest: {
+          type: 'object',
+          required: ['password', 'confirmation'],
+          additionalProperties: false,
+          properties: {
+            password: {
+              type: 'string',
+              format: 'password',
+              minLength: 1,
+            },
+            confirmation: {
+              type: 'boolean',
+              enum: [true],
+              example: true,
+            },
+            disabledReason: {
+              type: 'string',
+              example: 'Policy violation or leaving organization',
+            },
+          },
+        },
+        DisableTraineeResponse: {
+          type: 'object',
+          required: ['success', 'message'],
+          properties: {
+            success: booleanProperty(true),
+            message: {
+              type: 'string',
+              example: 'Trainee account disabled successfully.',
+            },
+            traineeId: uuidString('44444444-4444-4444-8444-444444444444'),
             status: enumString(['DISABLED'], 'DISABLED'),
           },
         },
@@ -3031,6 +3507,28 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           },
           example: '22222222-2222-4222-8222-222222222222',
         },
+        TraineeIdPathParam: {
+          name: 'traineeId',
+          in: 'path',
+          required: true,
+          description: 'Organisation trainee profile identifier.',
+          schema: {
+            type: 'string',
+            format: 'uuid',
+          },
+          example: '55555555-5555-4555-8555-555555555555',
+        },
+        InvitationIdPathParam: {
+          name: 'invitationId',
+          in: 'path',
+          required: true,
+          description: 'Invitation identifier.',
+          schema: {
+            type: 'string',
+            format: 'uuid',
+          },
+          example: '33333333-3333-4333-8333-333333333333',
+        },
         SetupTokenPathParam: {
           name: 'token',
           in: 'path',
@@ -3043,6 +3541,20 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             pattern: '^[A-Za-z0-9_-]+$',
           },
           example: 'exampleSetupTokenValueWithAtLeast32Chars',
+        },
+        InvitationTokenPathParam: {
+          name: 'token',
+          in: 'path',
+          required: true,
+          description:
+            'Opaque invitation token or action token identifier from the invitation link.',
+          schema: {
+            type: 'string',
+            minLength: 32,
+            maxLength: 512,
+            pattern: '^[A-Za-z0-9_-]+$',
+          },
+          example: 'exampleInvitationTokenValueWithAtLeast32Chars',
         },
       },
       requestBodies: {
@@ -3118,6 +3630,22 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           required: true,
           ...jsonContent(schemaRef('OrganisationSecuritySettingsUpdateRequest')),
         },
+        InvitationAccept: {
+          required: true,
+          ...jsonContent(schemaRef('InvitationAcceptRequest')),
+        },
+        InvitationReject: {
+          required: true,
+          ...jsonContent(schemaRef('InvitationRejectRequest')),
+        },
+        CreateTraineeInvitation: {
+          required: true,
+          ...jsonContent(schemaRef('CreateTraineeInvitationRequest')),
+        },
+        DisableTrainee: {
+          required: true,
+          ...jsonContent(schemaRef('DisableTraineeRequest')),
+        },
       },
       responses: {
         HealthOk: responseComponent('API and database are reachable.', 'HealthStatus'),
@@ -3160,6 +3688,38 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           'Setup completed successfully.',
           'SetupCompleteResponse',
         ),
+        InvitationContextOk: responseComponent(
+          'Safe invitation token context. The token is not consumed.',
+          'InvitationContextResponse',
+        ),
+        InvitationAcceptOk: responseComponent(
+          'Invitation accepted successfully.',
+          'InvitationAcceptResponse',
+        ),
+        InvitationRejectOk: responseComponent(
+          'Invitation rejected successfully.',
+          'InvitationRejectResponse',
+        ),
+        OrganisationTraineesOk: responseComponent(
+          'Organisation trainees and pending invitations.',
+          'TraineeListResponse',
+        ),
+        OrganisationTraineeInvitationCreated: responseComponent(
+          'Trainee invitation sent successfully.',
+          'CreateTraineeInvitationResponse',
+        ),
+        OrganisationTraineeInvitationResent: responseComponent(
+          'Trainee invitation resent successfully.',
+          'InvitationResendResponse',
+        ),
+        OrganisationTraineeInvitationRevoked: responseComponent(
+          'Trainee invitation revoked successfully.',
+          'InvitationRevokeResponse',
+        ),
+        OrganisationTraineeDisabled: responseComponent(
+          'Trainee account disabled successfully.',
+          'DisableTraineeResponse',
+        ),
         OrganisationRegistrationRequestCreated: responseComponent(
           'Organisation registration request submitted for review.',
           'OrganisationRegistrationRequestCreatedResponse',
@@ -3167,6 +3727,10 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         OrganisationRegistrationRequestConflict: responseComponent(
           'The submitted request conflicts with existing records.',
           'OrganisationRegistrationRequestConflictErrorResponse',
+        ),
+        TraineeInvitationConflict: responseComponent(
+          'Cannot invite user to the organisation.',
+          'TraineeInvitationConflictErrorResponse',
         ),
         OrganisationAdminsOk: responseComponent(
           'Organisation admins and available permissions.',
