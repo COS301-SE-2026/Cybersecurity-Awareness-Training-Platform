@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 import { ApiError } from '../../lib/apiClient';
-import { cleanup, screen } from '@testing-library/react';
+import { cleanup, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createDeferred, renderWithRouter } from '../../testing/render';
 import { getTokenContext, resendToken, verifyEmail } from '../../services/auth.service';
@@ -49,7 +49,9 @@ describe('VerifyEmailPage', () => {
   it('verifies the token from the query string anf shows a login link after success', async () => {
     renderVerifyEmailPage();
 
-    expect(verifyEmail).toHaveBeenCalledWith(verificationToken);
+    await waitFor(() => {
+      expect(verifyEmail).toHaveBeenCalledWith(verificationToken);
+    });
     expect(await screen.findByText('Email verified. You can now log in.')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /go to login/i })).toHaveAttribute('href', '/login');
   });
@@ -303,5 +305,58 @@ describe('VerifyEmailPage', () => {
       'This verification link has expired. Please request a new verification email.',
     );
     expect(screen.queryByText(verificationToken)).not.toBeInTheDocument();
+  });
+
+  it('shows pending state while verifying the email token', async () => {
+    const verificationRequest = createDeferred<{ state: 'VALID' }>();
+    verifyEmailMock.mockReturnValue(verificationRequest.promise);
+
+    renderVerifyEmailPage();
+
+    expect(screen.getByText('Verifying email address...')).toBeInTheDocument();
+
+    verificationRequest.resolve({ state: 'VALID' });
+
+    expect(await screen.findByText('Email verified. You can now log in.')).toBeInTheDocument();
+  });
+
+  it('shows a token error for revoked verification links', async () => {
+    verifyEmailMock.mockResolvedValue({ state: 'REVOKED' });
+
+    renderVerifyEmailPage();
+
+    expect(
+      await screen.findByText(
+        'This verification link is no longer valid. Please request a new verification email.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('shows a safe generic error when email verification fails unexpectedly', async () => {
+    verifyEmailMock.mockRejectedValue(new Error('Verification failed'));
+
+    renderVerifyEmailPage();
+
+    expect(
+      await screen.findByText('We could not verify your email right now. Please try again later.'),
+    ).toBeInTheDocument();
+  });
+
+  it('uses the initial backend cooldown to disable resend', async () => {
+    verifyEmailMock.mockResolvedValue({ state: 'EXPIRED' });
+    getTokenContextMock.mockResolvedValue({
+      tokenState: 'EXPIRED',
+      canResend: true,
+      resendCooldownSeconds: 40,
+      messageCode: 'TOKEN_EXPIRED',
+      flow: 'EMAIL_VERIFICATION',
+    });
+
+    renderVerifyEmailPage();
+
+    const resendButton = await screen.findByRole('button', {
+      name: /resend verification link \(40s\)/i,
+    });
+    expect(resendButton).toBeDisabled();
   });
 });
