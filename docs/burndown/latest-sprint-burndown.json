@@ -3,7 +3,7 @@
   "demo_no": 2,
   "milestone": "Sprint 5 (Demo 2)",
   "start": "2026-07-13",
-  "end": "2026-07-19",
+  "end": "2026-07-26",
   "issues": [
     {
       "number": 342,
@@ -37,8 +37,8 @@
       "number": 338,
       "title": "fix: recover initial admin setup tokens after definite approval email failure",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-07-20"
     },
     {
       "number": 337,
@@ -211,32 +211,37 @@
     {
       "date": "2026-07-14",
       "remaining": 62,
-      "ideal": 53.33
+      "ideal": 59.08
     },
     {
       "date": "2026-07-15",
       "remaining": 62,
-      "ideal": 42.67
+      "ideal": 54.15
     },
     {
       "date": "2026-07-16",
       "remaining": 60,
-      "ideal": 32.0
+      "ideal": 49.23
     },
     {
       "date": "2026-07-17",
       "remaining": 60,
-      "ideal": 21.33
+      "ideal": 44.31
     },
     {
       "date": "2026-07-18",
       "remaining": 60,
-      "ideal": 10.67
+      "ideal": 39.38
     },
     {
       "date": "2026-07-19",
       "remaining": 57,
-      "ideal": 0.0
+      "ideal": 34.46
+    },
+    {
+      "date": "2026-07-20",
+      "remaining": 48,
+      "ideal": 29.54
     }
   ]
 }
