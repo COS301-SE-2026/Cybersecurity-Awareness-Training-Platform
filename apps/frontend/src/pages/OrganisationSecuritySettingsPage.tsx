@@ -1,7 +1,7 @@
 import AppLayout from '../components/layout/AppLayout';
 import { Dropdown, DropdownItem } from 'flowbite-react';
 
-function OrganisationSecuritySettings() {
+function OrganisationSecuritySettingsPage() {
   return (
     <AppLayout
       contentStyle={{
@@ -323,4 +323,4 @@ function OrganisationSecuritySettings() {
   );
 }
 
-export default OrganisationSecuritySettings;
+export default OrganisationSecuritySettingsPage;
