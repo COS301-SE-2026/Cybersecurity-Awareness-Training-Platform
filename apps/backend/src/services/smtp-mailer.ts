@@ -3,7 +3,12 @@ import { env } from '../config/env.js';
 
 export type SmtpMailInput = { to: string; subject: string; text: string; html?: string };
 
-export async function sendViaSMTP(input: SmtpMailInput): Promise<{ messageId?: string }> {
+export type SmtpAcceptedResult = {
+  acceptedByProvider: true;
+  providerMessageId: string;
+};
+
+export async function sendViaSMTP(input: SmtpMailInput): Promise<SmtpAcceptedResult> {
   const transporter = nodemailer.createTransport({
     host: env.SMTP_HOST,
     port: env.SMTP_PORT,
@@ -21,5 +26,8 @@ export async function sendViaSMTP(input: SmtpMailInput): Promise<{ messageId?: s
     html: input.html,
   });
 
-  return { messageId: result.messageId };
+  return {
+    acceptedByProvider: true,
+    providerMessageId: result.messageId,
+  };
 }

@@ -85,7 +85,7 @@ describe('renderEmail', () => {
     ],
     [
       'INITIAL_ORGANISATION_ADMIN_SETUP' as const,
-      '/register',
+      `/setup/token/${rawToken}`,
       {
         firstName: 'Johan',
         organisationName: 'Test Org',
@@ -95,7 +95,7 @@ describe('renderEmail', () => {
     ],
     [
       'ORGANISATION_TRAINEE_INVITE' as const,
-      '/register',
+      `/setup/token/${rawToken}`,
       {
         firstName: 'Johan',
         organisationName: 'Test Org',
@@ -115,7 +115,7 @@ describe('renderEmail', () => {
     ],
     [
       'PLATFORM_ADMIN_INVITE' as const,
-      '/register',
+      `/setup/token/${rawToken}`,
       {
         firstName: 'Johan',
         actionToken: rawToken,
@@ -133,8 +133,13 @@ describe('renderEmail', () => {
     ],
   ])('renders %s witht eh correct action path', async (emailType, path, templateData) => {
     const email = renderEmail(emailType, templateData);
-    expect(email.text).toContain(`http://frontend.com${path}?token=${rawToken}`);
-    expect(email.html).toContain(`http://frontend.com${path}?token=${rawToken}`);
+    if (path.startsWith('/setup/token')) {
+      expect(email.text).toContain(`http://frontend.com${path}`);
+      expect(email.html).toContain(`http://frontend.com${path}`);
+    } else {
+      expect(email.text).toContain(`http://frontend.com${path}?token=${rawToken}`);
+      expect(email.html).toContain(`http://frontend.com${path}?token=${rawToken}`);
+    }
   });
 
   it('escapes display vaues in HTML', async () => {

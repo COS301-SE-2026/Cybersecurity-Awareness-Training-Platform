@@ -263,7 +263,6 @@ export async function activateOrganisationTraineeUser(
       membershipStatus: 'ACTIVE',
     },
     update: {
-      organisationId: input.organisationId,
       membershipStatus: 'ACTIVE',
     },
   });
@@ -280,6 +279,35 @@ export async function activatePlatformAdminUser(
   },
   client: SetupClient,
 ) {
+  const existingUser = await client.user.findUnique({
+    where: { id: input.userId },
+    include: {
+      traineeProfile: {
+        include: {
+          organisationTraineeProfile: true,
+        },
+      },
+    },
+  });
+
+  if (existingUser?.traineeProfile) {
+    await client.traineeProfile.update({
+      where: { id: existingUser.traineeProfile.id },
+      data: { traineeStatus: 'INACTIVE' },
+    });
+
+    if (existingUser.traineeProfile.organisationTraineeProfile) {
+      await client.organisationTraineeProfile.update({
+        where: { traineeProfileId: existingUser.traineeProfile.id },
+        data: {
+          membershipStatus: 'INACTIVE',
+          disabledAt: new Date(),
+          disabledReason: 'Promoted to platform admin',
+        },
+      });
+    }
+  }
+
   await client.user.update({
     where: { id: input.userId },
     data: {

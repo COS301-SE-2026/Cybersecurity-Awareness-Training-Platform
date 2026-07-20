@@ -13,39 +13,8 @@ import { prisma } from '../lib/prisma.js';
 import { Prisma } from '../generated/prisma/client.js';
 import { issueActionToken } from './action-token.service.js';
 import { ensureDefaultOrganisationSecuritySettings } from '../repositories/security-settings.repository.js';
-
-const ORGANISATION_ADMIN_PERMISSION_SEEDS = [
-  {
-    key: 'VIEW_ORGANISATION_ADMINS' as const,
-    displayName: 'View organisation admins',
-    description: 'View organisation admin users and their permission grants.',
-    isCritical: false,
-  },
-  {
-    key: 'INVITE_ORGANISATION_ADMINS' as const,
-    displayName: 'Invite organisation admins',
-    description: 'Invite or promote users to organisation admin access.',
-    isCritical: true,
-  },
-  {
-    key: 'REMOVE_ORGANISATION_ADMINS' as const,
-    displayName: 'Remove organisation admins',
-    description: 'Disable or remove organisation admin access.',
-    isCritical: false,
-  },
-  {
-    key: 'CHANGE_ORGANISATION_ADMIN_PERMISSIONS' as const,
-    displayName: 'Change organisation admin permissions',
-    description: 'Grant or revoke organisation admin permissions.',
-    isCritical: true,
-  },
-  {
-    key: 'CHANGE_ORGANISATION_SECURITY_SETTINGS' as const,
-    displayName: 'Change organisation security settings',
-    description: 'Change organisation security policy and related settings.',
-    isCritical: true,
-  },
-];
+import { recordNotificationFailureEvent } from './notification-failure-event.service.js';
+import { ORGANISATION_PERMISSION_SEEDS } from '../constants/organisation-permission-seeds.js';
 
 export class OrganisationRegistrationRequestError extends Error {
   constructor(
@@ -170,6 +139,7 @@ export async function listOrganisationRequests(
                 sentAt: true,
                 failedAt: true,
                 failureReason: true,
+                actionTokenId: true,
               },
             },
           },
@@ -209,15 +179,12 @@ export async function listOrganisationRequests(
         return 'SETUP_TOKEN_EXPIRED';
       }
 
-      const tokens = invitation.actionTokens || [];
-      const hasActiveToken = tokens.some(
-        (t) => !t.usedAt && !t.revokedAt && new Date(t.expiresAt).getTime() > now.getTime(),
-      );
-      if (!hasActiveToken) {
+      const activeToken = findActiveSetupToken(invitation, now);
+      if (!activeToken) {
         return 'SETUP_TOKEN_EXPIRED';
       }
 
-      if (latestEmailLog?.deliveryStatus === 'FAILED') {
+      if (isFailedDeliveryForCurrentSetupToken(latestEmailLog, activeToken)) {
         return 'SETUP_EMAIL_FAILED';
       }
 
@@ -625,7 +592,7 @@ export async function approveOrganisationRequest(
         },
       });
 
-      const permissionData = ORGANISATION_ADMIN_PERMISSION_SEEDS.map((perm) => ({
+      const permissionData = ORGANISATION_PERMISSION_SEEDS.map((perm) => ({
         id: ['organisation-permission', organisation.id, perm.key].join('-'),
         organisationId: organisation.id,
         key: perm.key,
@@ -768,6 +735,15 @@ export async function approveOrganisationRequest(
     },
   });
 
+  if (emailResult.status === 'NOT_ACCEPTED') {
+    await recoverInitialSetupEmailSendFailure({
+      actorUserId,
+      organisationId: result.organisation.id,
+      invitationId: result.invitation.id,
+      actionTokenId: result.actionToken.token.id,
+    });
+  }
+
   return {
     ...result.updatedRequest,
     createdAt: result.updatedRequest.createdAt.toISOString(),
@@ -781,6 +757,94 @@ export async function approveOrganisationRequest(
     },
     setupEmailQueued: emailResult.queued,
   };
+}
+
+async function recoverInitialSetupEmailSendFailure(input: {
+  actorUserId: string;
+  organisationId: string;
+  invitationId: string;
+  actionTokenId: string;
+}) {
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.invitation.updateMany({
+        where: {
+          id: input.invitationId,
+          status: { in: ['PENDING', 'SENT', 'FAILED_TO_SEND'] },
+        },
+        data: {
+          status: 'FAILED_TO_SEND',
+        },
+      });
+
+      const invitation = await tx.invitation.findUnique({
+        where: { id: input.invitationId },
+        select: { status: true },
+      });
+
+      if (!invitation || invitation.status !== 'FAILED_TO_SEND') {
+        throw new OrganisationRegistrationRequestError(
+          409,
+          'SETUP_EMAIL_RECOVERY_FAILED',
+          'Setup email failure recovery could not mark the invitation failed',
+        );
+      }
+
+      await tx.actionToken.updateMany({
+        where: {
+          id: input.actionTokenId,
+          usedAt: null,
+          OR: [{ revokedAt: null }, { revokedReason: 'EMAIL_SEND_FAILED' }],
+        },
+        data: {
+          revokedAt: new Date(),
+          revokedReason: 'EMAIL_SEND_FAILED',
+        },
+      });
+
+      const token = await tx.actionToken.findUnique({
+        where: { id: input.actionTokenId },
+        select: {
+          usedAt: true,
+          revokedAt: true,
+          revokedReason: true,
+        },
+      });
+
+      if (
+        !token ||
+        token.usedAt ||
+        !token.revokedAt ||
+        token.revokedReason !== 'EMAIL_SEND_FAILED'
+      ) {
+        throw new OrganisationRegistrationRequestError(
+          409,
+          'SETUP_EMAIL_RECOVERY_FAILED',
+          'Setup email failure recovery could not revoke the setup token',
+        );
+      }
+
+      await recordAuditLog(
+        {
+          actorUserId: input.actorUserId,
+          actorType: 'IP_ADMIN',
+          targetType: 'INVITATION',
+          targetId: input.invitationId,
+          actionType: 'INVITED',
+          outcome: 'FAILURE',
+          organisationId: input.organisationId,
+          metadata: {
+            emailOutcome: 'NOT_ACCEPTED',
+            reason: 'EMAIL_SEND_FAILED',
+          },
+        },
+        tx,
+      );
+    });
+  } catch (error) {
+    await recordNotificationFailureEvent('SETUP_EMAIL_RECOVERY_FAILED');
+    throw error;
+  }
 }
 
 export async function deleteOrganisationRequest(actorUserId: string, requestId: string) {
@@ -916,7 +980,7 @@ async function requestRequestReceivedEmail(input: {
   requestId: string;
   organisationName: string;
   representativeEmail: string;
-}) {
+}): Promise<{ queued: boolean }> {
   try {
     return await requestAuthEmailSend({
       emailType: 'ORGANISATION_REQUEST_RECEIVED',
@@ -927,10 +991,7 @@ async function requestRequestReceivedEmail(input: {
       },
     });
   } catch {
-    return {
-      queued: false,
-      reason: 'EMAIL_SEND_FAILED' as const,
-    };
+    return { queued: false };
   }
 }
 
@@ -981,6 +1042,30 @@ export interface FormatEmailLogInput {
   sentAt: Date | null;
   failedAt: Date | null;
   failureReason: string | null;
+  actionTokenId?: string | null;
+}
+
+type FormatActionTokenInput = FormatInvitationInput['actionTokens'][number];
+
+function findActiveSetupToken(
+  invitation: FormatInvitationInput,
+  now: Date,
+): FormatActionTokenInput | undefined {
+  return invitation.actionTokens.find(
+    (token) =>
+      !token.usedAt && !token.revokedAt && new Date(token.expiresAt).getTime() > now.getTime(),
+  );
+}
+
+function isFailedDeliveryForCurrentSetupToken(
+  latestEmailLog: FormatEmailLogInput | null,
+  activeToken: FormatActionTokenInput | undefined,
+) {
+  if (latestEmailLog?.deliveryStatus !== 'FAILED') {
+    return false;
+  }
+
+  return !activeToken || latestEmailLog.actionTokenId === activeToken.id;
 }
 
 export function formatSetupStatus(
@@ -1045,21 +1130,21 @@ export function getResendEligibility(
   if (invitation.status === 'REVOKED' || invitation.status === 'REJECTED') {
     return { isEligible: false, reason: 'INVITATION_NOT_ELIGIBLE' };
   }
+  if (invitation.status === 'FAILED_TO_SEND') {
+    return { isEligible: true, reason: 'SETUP_EMAIL_FAILED' };
+  }
   if (new Date(invitation.expiresAt).getTime() <= now.getTime()) {
     return { isEligible: true, reason: 'SETUP_TOKEN_EXPIRED' };
   }
 
-  const tokens = invitation.actionTokens || [];
-  const hasActiveToken = tokens.some(
-    (t) => !t.usedAt && !t.revokedAt && new Date(t.expiresAt).getTime() > now.getTime(),
-  );
+  const activeToken = findActiveSetupToken(invitation, now);
 
-  if (!hasActiveToken) {
-    return { isEligible: true, reason: null };
+  if (isFailedDeliveryForCurrentSetupToken(latestEmailLog, activeToken)) {
+    return { isEligible: true, reason: 'SETUP_EMAIL_FAILED' };
   }
 
-  if (latestEmailLog?.deliveryStatus === 'FAILED') {
-    return { isEligible: true, reason: 'SETUP_EMAIL_FAILED' };
+  if (!activeToken) {
+    return { isEligible: true, reason: null };
   }
 
   return { isEligible: false, reason: 'ACTIVE_SETUP_TOKEN_EXISTS' };
