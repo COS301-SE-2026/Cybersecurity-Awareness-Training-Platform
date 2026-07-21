@@ -22,6 +22,7 @@ export const invitePlatformAdminRequestSchema = z
     email: emailSchema,
     firstName: firstNameSchema.optional(),
     lastName: lastNameSchema.optional(),
+    confirmUpgrade: z.boolean().optional(),
   })
   .strict();
 

@@ -29,7 +29,7 @@ function requireSuperAdmin(actorRole: string) {
   }
 }
 
-// Helper to issue action token, audit log, and send invitation email
+// Helper to issue action token, audit log, and send invitation email with outcome status logic
 async function issueAndSendInvitation(params: {
   actorUserId: string;
   userId: string;
@@ -80,19 +80,53 @@ async function issueAndSendInvitation(params: {
     return { rawToken: tokenRes.rawToken, token: tokenRes.token };
   });
 
-  await sendEmail({
-    emailType: params.purpose,
-    recipientEmail: params.email,
-    relatedEntity: {
-      userId: params.userId,
-      actionTokenId: token.id,
-    },
-    templateData: {
-      firstName: params.firstName,
-      actionToken: rawToken,
-      actionTokenExpiresAt: expiry,
-    },
-  });
+  let outcome;
+  try {
+    outcome = await sendEmail({
+      emailType: params.purpose,
+      recipientEmail: params.email,
+      relatedEntity: {
+        userId: params.userId,
+        actionTokenId: token.id,
+      },
+      templateData: {
+        firstName: params.firstName,
+        actionToken: rawToken,
+        actionTokenExpiresAt: expiry,
+      },
+    });
+  } catch (err) {
+    // Revoke token on write / send error to prevent leaving orphaned tokens
+    await prisma.actionToken
+      .update({
+        where: { id: token.id },
+        data: {
+          revokedAt: new Date(),
+          revokedReason: 'DELIVERY_FAILED',
+        },
+      })
+      .catch(() => {});
+    throw err;
+  }
+
+  if (outcome && outcome.status === 'NOT_ACCEPTED') {
+    // Revoke token on provider rejection
+    await prisma.actionToken
+      .update({
+        where: { id: token.id },
+        data: {
+          revokedAt: new Date(),
+          revokedReason: 'DELIVERY_FAILED',
+        },
+      })
+      .catch(() => {});
+
+    throw new PlatformAdminServiceError(
+      500,
+      'EMAIL_DELIVERY_FAILED',
+      `Email delivery failed: ${outcome.failureReason}`,
+    );
+  }
 
   return { token, rawToken };
 }
@@ -111,9 +145,6 @@ export async function listPlatformAdmins(actorUserId: string) {
       actionTokens: {
         where: {
           purpose: 'PLATFORM_ADMIN_INVITE',
-          usedAt: null,
-          revokedAt: null,
-          expiresAt: { gt: new Date() },
         },
         orderBy: { createdAt: 'desc' },
         take: 1,
@@ -125,9 +156,6 @@ export async function listPlatformAdmins(actorUserId: string) {
   const upgradeTokens = await prisma.actionToken.findMany({
     where: {
       purpose: 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION',
-      usedAt: null,
-      revokedAt: null,
-      expiresAt: { gt: new Date() },
     },
     include: {
       user: {
@@ -136,16 +164,45 @@ export async function listPlatformAdmins(actorUserId: string) {
         },
       },
     },
+    orderBy: { createdAt: 'desc' },
   });
 
   const isActorSuper = actorProfile.platformAdminRole === 'SUPER_ADMIN';
 
   // Map user records to frontend rows
   const mappedAdmins = ipAdmins.map((admin) => {
-    const isPending = admin.authStatus === 'PENDING_INVITE_SETUP';
     const activeToken = admin.actionTokens[0];
     const role = admin.ipAdminProfile?.platformAdminRole ?? 'NORMAL_ADMIN';
     const status = admin.ipAdminProfile?.adminStatus ?? 'ACTIVE';
+
+    let invitationStatus:
+      | 'PENDING'
+      | 'SENT'
+      | 'FAILED_TO_SEND'
+      | 'ACCEPTED'
+      | 'COMPLETED'
+      | 'EXPIRED'
+      | 'REVOKED'
+      | 'REJECTED'
+      | null = null;
+
+    if (admin.authStatus === 'PENDING_INVITE_SETUP') {
+      if (!activeToken) {
+        invitationStatus = 'PENDING';
+      } else if (activeToken.usedAt) {
+        invitationStatus = 'COMPLETED';
+      } else if (activeToken.revokedAt) {
+        if (activeToken.revokedReason === 'DELIVERY_FAILED') {
+          invitationStatus = 'FAILED_TO_SEND';
+        } else {
+          invitationStatus = 'REVOKED';
+        }
+      } else if (activeToken.expiresAt.getTime() <= Date.now()) {
+        invitationStatus = 'EXPIRED';
+      } else {
+        invitationStatus = 'SENT';
+      }
+    }
 
     return {
       id: admin.id,
@@ -155,7 +212,7 @@ export async function listPlatformAdmins(actorUserId: string) {
       platformAdminRole: role,
       adminStatus: status,
       authStatus: admin.authStatus,
-      invitationStatus: isPending ? ('PENDING_INVITE' as const) : null,
+      invitationStatus,
       inviteId: activeToken?.id ?? null,
       allowedActions: {
         canTransferSuperAdmin:
@@ -164,16 +221,56 @@ export async function listPlatformAdmins(actorUserId: string) {
           admin.authStatus === 'ACTIVE' &&
           admin.id !== actorUserId,
         canDemote: isActorSuper && role === 'NORMAL_ADMIN' && admin.id !== actorUserId,
-        canResendInvite: isActorSuper && isPending && !!activeToken,
+        canResendInvite:
+          isActorSuper &&
+          admin.authStatus === 'PENDING_INVITE_SETUP' &&
+          !!activeToken &&
+          !activeToken.usedAt &&
+          !activeToken.revokedAt,
       },
     };
   });
 
+  // Deduplicate upgrade tokens by user ID to list only the latest attempt
+  const uniqueUpgradeTokensMap = new Map<string, (typeof upgradeTokens)[0]>();
+  for (const token of upgradeTokens) {
+    if (token.user && !uniqueUpgradeTokensMap.has(token.userId!)) {
+      uniqueUpgradeTokensMap.set(token.userId!, token);
+    }
+  }
+  const uniqueUpgradeTokens = Array.from(uniqueUpgradeTokensMap.values());
+
   // Map upgrade tokens to pending rows
-  const mappedUpgrades = upgradeTokens
+  const mappedUpgrades = uniqueUpgradeTokens
     .filter((token) => token.user && !mappedAdmins.some((ma) => ma.id === token.user?.id))
     .map((token) => {
       const user = token.user!;
+      let invitationStatus:
+        | 'PENDING'
+        | 'SENT'
+        | 'FAILED_TO_SEND'
+        | 'ACCEPTED'
+        | 'COMPLETED'
+        | 'EXPIRED'
+        | 'REVOKED'
+        | 'REJECTED'
+        | 'PENDING_UPGRADE'
+        | null = null;
+
+      if (token.usedAt) {
+        invitationStatus = 'COMPLETED';
+      } else if (token.revokedAt) {
+        if (token.revokedReason === 'DELIVERY_FAILED') {
+          invitationStatus = 'FAILED_TO_SEND';
+        } else {
+          invitationStatus = 'REVOKED';
+        }
+      } else if (token.expiresAt && token.expiresAt.getTime() <= Date.now()) {
+        invitationStatus = 'EXPIRED';
+      } else {
+        invitationStatus = 'PENDING_UPGRADE';
+      }
+
       return {
         id: user.id,
         firstName: user.firstName,
@@ -182,12 +279,12 @@ export async function listPlatformAdmins(actorUserId: string) {
         platformAdminRole: 'NORMAL_ADMIN' as const,
         adminStatus: 'ACTIVE' as const,
         authStatus: user.authStatus,
-        invitationStatus: 'PENDING_UPGRADE' as const,
+        invitationStatus,
         inviteId: token.id,
         allowedActions: {
           canTransferSuperAdmin: false,
           canDemote: false,
-          canResendInvite: isActorSuper,
+          canResendInvite: isActorSuper && !token.usedAt && !token.revokedAt,
         },
       };
     });
@@ -210,6 +307,22 @@ export async function invitePlatformAdmin(
   requireSuperAdmin(actorProfile.platformAdminRole);
 
   const targetEmail = input.email.trim().toLowerCase();
+
+  // Block platform admin invite if target has a pending organisation invitation
+  const pendingOrgInvite = await prisma.invitation.findFirst({
+    where: {
+      recipientEmail: targetEmail,
+      status: { in: ['PENDING', 'SENT'] },
+    },
+  });
+
+  if (pendingOrgInvite) {
+    throw new PlatformAdminServiceError(
+      409,
+      'ORGANISATION_ADMIN_CONFLICT',
+      'User has a pending organisation invitation and cannot be invited as a platform administrator',
+    );
+  }
 
   // Block pending representatives from onboarding request flow
   const pendingRep = await prisma.organisationRegistrationRequest.findFirst({
@@ -254,6 +367,20 @@ export async function invitePlatformAdmin(
         'ORGANISATION_ADMIN_CONFLICT',
         'An organisation administrator cannot be invited as a platform administrator',
       );
+    }
+
+    // Trainee accounts: require explicit confirmation to upgrade role
+    if (
+      existingUser.userType === 'GENERAL_TRAINEE' ||
+      existingUser.userType === 'ORGANISATION_TRAINEE'
+    ) {
+      if (!input.confirmUpgrade) {
+        throw new PlatformAdminServiceError(
+          409,
+          'UPGRADE_CONFIRMATION_REQUIRED',
+          'User already has a trainee account. Explicit confirmation is required to upgrade this user to a platform administrator.',
+        );
+      }
     }
 
     // Trainee accounts: trigger PLATFORM_ADMIN_UPGRADE_CONFIRMATION flow
@@ -325,31 +452,46 @@ export async function invitePlatformAdmin(
   };
 }
 
-// Resend an invtation token after revoking the older one
+// Resend an invtation token after revoking the older one with attempt-specific protection
 export async function resendPlatformAdminInvite(actorUserId: string, inviteTokenId: string) {
   const actorProfile = await requirePlatformAdminUser(actorUserId);
   requireSuperAdmin(actorProfile.platformAdminRole);
 
-  const oldToken = await prisma.actionToken.findUnique({
-    where: { id: inviteTokenId },
-    include: { user: true },
+  const oldToken = await prisma.$transaction(async (tx) => {
+    // Acquire pessimistic lock on the action token row to serialise concurrent resends
+    await tx.$queryRaw`
+      SELECT id FROM "ActionToken"
+      WHERE id = ${inviteTokenId}
+      FOR UPDATE
+    `;
+
+    const token = await tx.actionToken.findUnique({
+      where: { id: inviteTokenId },
+      include: { user: true },
+    });
+
+    if (
+      !token ||
+      (token.purpose !== 'PLATFORM_ADMIN_INVITE' &&
+        token.purpose !== 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION')
+    ) {
+      throw new PlatformAdminServiceError(
+        404,
+        'INVITATION_NOT_FOUND',
+        'Invitation token not found',
+      );
+    }
+
+    if (token.usedAt || token.revokedAt) {
+      throw new PlatformAdminServiceError(
+        409,
+        'INVITATION_ALREADY_USED',
+        token.usedAt ? 'Invitation has already been used' : 'Invitation has already been revoked',
+      );
+    }
+
+    return token;
   });
-
-  if (
-    !oldToken ||
-    (oldToken.purpose !== 'PLATFORM_ADMIN_INVITE' &&
-      oldToken.purpose !== 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION')
-  ) {
-    throw new PlatformAdminServiceError(404, 'INVITATION_NOT_FOUND', 'Invitation token not found');
-  }
-
-  if (oldToken.usedAt) {
-    throw new PlatformAdminServiceError(
-      409,
-      'INVITATION_ALREADY_USED',
-      'Invitation has already been used',
-    );
-  }
 
   const targetEmail = (oldToken.targetEmail ?? oldToken.user?.email ?? '').trim().toLowerCase();
   if (!targetEmail) {
@@ -361,14 +503,14 @@ export async function resendPlatformAdminInvite(actorUserId: string, inviteToken
     userId: oldToken.userId!,
     email: targetEmail,
     firstName: oldToken.user?.firstName ?? '',
-    purpose: oldToken.purpose,
+    purpose: oldToken.purpose as 'PLATFORM_ADMIN_INVITE' | 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION',
     revocationTokenId: oldToken.id,
   });
 
   return { success: true, emailQueued: true };
 }
 
-// Transfer super admin status transactionaly
+// Transfer super admin status transactionaly with concurrency locks
 export async function transferSuperAdmin(actorUserId: string, input: TransferSuperAdminRequestDto) {
   const actor = await prisma.user.findUnique({
     where: { id: actorUserId },
@@ -410,15 +552,25 @@ export async function transferSuperAdmin(actorUserId: string, input: TransferSup
   }
 
   await prisma.$transaction(async (tx) => {
+    // Acquire pessimistic lock on the modified users to serialise concurrent transfers/demotions
+    await tx.$queryRaw`
+      SELECT id FROM "IpAdminProfile"
+      WHERE "userId" IN (${actorUserId}, ${targetUserId})
+      FOR UPDATE
+    `;
+
     // Re-verify stale state inside txn
     const freshActorProfile = await tx.ipAdminProfile.findUnique({
       where: { userId: actorUserId },
     });
-    if (freshActorProfile?.platformAdminRole !== 'SUPER_ADMIN') {
+    if (
+      freshActorProfile?.platformAdminRole !== 'SUPER_ADMIN' ||
+      freshActorProfile.adminStatus !== 'ACTIVE'
+    ) {
       throw new PlatformAdminServiceError(
         409,
         'STALE_SUPER_ADMIN_TRANSFER',
-        'Stale request: Current actor is no longer super admin',
+        'Stale request: Current actor is no longer active super admin',
       );
     }
 
@@ -489,33 +641,41 @@ export async function transferSuperAdmin(actorUserId: string, input: TransferSup
     );
   });
 
-  // Notify target user
-  await sendEmail({
-    emailType: 'ROLE_CHANGED_NOTIFICATION',
-    recipientEmail: target.email,
-    relatedEntity: { userId: target.id },
-    templateData: {
-      firstName: target.firstName,
-      roleName: 'Super Administrator',
-    },
-  });
+  // Notify target user (best-effort)
+  try {
+    await sendEmail({
+      emailType: 'ROLE_CHANGED_NOTIFICATION',
+      recipientEmail: target.email,
+      relatedEntity: { userId: target.id },
+      templateData: {
+        firstName: target.firstName,
+        roleName: 'Super Administrator',
+      },
+    });
+  } catch (err) {
+    console.error('Best-effort email notification failed for target:', err);
+  }
 
-  // Notify actor user
-  await sendEmail({
-    emailType: 'ROLE_CHANGED_NOTIFICATION',
-    recipientEmail: actor.email,
-    relatedEntity: { userId: actor.id },
-    templateData: {
-      firstName: actor.firstName,
-      roleName: 'Platform Administrator',
-    },
-  });
+  // Notify actor user (best-effort)
+  try {
+    await sendEmail({
+      emailType: 'ROLE_CHANGED_NOTIFICATION',
+      recipientEmail: actor.email,
+      relatedEntity: { userId: actor.id },
+      templateData: {
+        firstName: actor.firstName,
+        roleName: 'Platform Administrator',
+      },
+    });
+  } catch (err) {
+    console.error('Best-effort email notification failed for actor:', err);
+  }
 
   // Return refreshed current user auth context
   return getCurrentUser(actorUserId);
 }
 
-// Demote normal platform admin and invalidate active sesions
+// Demote normal platform admin, transition to GENERAL_TRAINEE role, and revoke sessions
 export async function demotePlatformAdmin(
   actorUserId: string,
   targetUserId: string,
@@ -578,7 +738,44 @@ export async function demotePlatformAdmin(
   }
 
   await prisma.$transaction(async (tx) => {
-    // Set IpAdminProfile to disabled (demoted)
+    // Acquire pessimistic lock on the modified users to serialise concurrent transfers/demotions
+    await tx.$queryRaw`
+      SELECT id FROM "IpAdminProfile"
+      WHERE "userId" IN (${actorUserId}, ${targetUserId})
+      FOR UPDATE
+    `;
+
+    // Re-verify stale state inside txn
+    const freshActorProfile = await tx.ipAdminProfile.findUnique({
+      where: { userId: actorUserId },
+    });
+    if (
+      freshActorProfile?.platformAdminRole !== 'SUPER_ADMIN' ||
+      freshActorProfile.adminStatus !== 'ACTIVE'
+    ) {
+      throw new PlatformAdminServiceError(
+        409,
+        'SELF_DEMOTION_CONFLICT',
+        'Stale request: Current actor is no longer active super admin',
+      );
+    }
+
+    const freshTargetProfile = await tx.ipAdminProfile.findUnique({
+      where: { userId: targetUserId },
+    });
+    if (
+      !freshTargetProfile ||
+      freshTargetProfile.adminStatus !== 'ACTIVE' ||
+      freshTargetProfile.platformAdminRole === 'SUPER_ADMIN'
+    ) {
+      throw new PlatformAdminServiceError(
+        409,
+        'PLATFORM_ADMIN_ALREADY_DEMOTED',
+        'Stale request: Target state has changed',
+      );
+    }
+
+    // Set platform admin profile to disabled
     await tx.ipAdminProfile.update({
       where: { userId: targetUserId },
       data: {
@@ -588,7 +785,51 @@ export async function demotePlatformAdmin(
       },
     });
 
-    // Revoke all auth sessions
+    // Invert userType to GENERAL_TRAINEE
+    await tx.user.update({
+      where: { id: targetUserId },
+      data: {
+        userType: 'GENERAL_TRAINEE',
+      },
+    });
+
+    // Ensure TraineeProfile exists
+    let traineeProfile = await tx.traineeProfile.findUnique({
+      where: { userId: targetUserId },
+    });
+    let traineeProfileId: string = targetUserId;
+    if (!traineeProfile) {
+      const createdTrainee = await tx.traineeProfile.create({
+        data: {
+          userId: targetUserId,
+          traineeStatus: 'ACTIVE',
+        },
+      });
+      if (createdTrainee?.id) {
+        traineeProfileId = createdTrainee.id;
+      }
+    } else {
+      await tx.traineeProfile.update({
+        where: { id: traineeProfile.id },
+        data: { traineeStatus: 'ACTIVE' },
+      });
+      traineeProfileId = traineeProfile.id;
+    }
+
+    // Ensure GeneralTraineeProfile exists
+    const generalTrainee = await tx.generalTraineeProfile.findUnique({
+      where: { traineeProfileId: traineeProfileId },
+    });
+    if (!generalTrainee) {
+      await tx.generalTraineeProfile.create({
+        data: {
+          traineeProfileId: traineeProfileId,
+          accessSource: 'ADMIN_CREATED',
+        },
+      });
+    }
+
+    // Revoke all active auth sessions
     await tx.authSession.updateMany({
       where: { userId: targetUserId, revokedAt: null },
       data: {
@@ -606,7 +847,7 @@ export async function demotePlatformAdmin(
       },
     });
 
-    // Record audit
+    // Record audit log
     await recordAuditLog(
       {
         actorUserId,
@@ -623,16 +864,20 @@ export async function demotePlatformAdmin(
     );
   });
 
-  // Notify target user
-  await sendEmail({
-    emailType: 'ROLE_CHANGED_NOTIFICATION',
-    recipientEmail: target.email,
-    relatedEntity: { userId: target.id },
-    templateData: {
-      firstName: target.firstName,
-      roleName: 'Disabled Platform Administrator',
-    },
-  });
+  // Notify target user (best-effort)
+  try {
+    await sendEmail({
+      emailType: 'ROLE_CHANGED_NOTIFICATION',
+      recipientEmail: target.email,
+      relatedEntity: { userId: target.id },
+      templateData: {
+        firstName: target.firstName,
+        roleName: 'Disabled Platform Administrator',
+      },
+    });
+  } catch (err) {
+    console.error('Best-effort email notification failed for demoted target:', err);
+  }
 
   return {
     userId: target.id,

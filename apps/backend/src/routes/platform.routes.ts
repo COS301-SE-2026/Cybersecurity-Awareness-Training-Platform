@@ -534,6 +534,7 @@ platformRouter.post(
  *                         type: string
  *                       invitationStatus:
  *                         type: string
+ *                         enum: [PENDING, SENT, FAILED_TO_SEND, ACCEPTED, COMPLETED, EXPIRED, REVOKED, REJECTED, PENDING_UPGRADE]
  *                         nullable: true
  *                       inviteId:
  *                         type: string
@@ -591,6 +592,8 @@ platformRouter.get('/platform/admins', asyncHandler(listPlatformAdmins));
  *                 type: string
  *               lastName:
  *                 type: string
+ *               confirmUpgrade:
+ *                 type: boolean
  *     responses:
  *       201:
  *         description: Invitation sent successfully
