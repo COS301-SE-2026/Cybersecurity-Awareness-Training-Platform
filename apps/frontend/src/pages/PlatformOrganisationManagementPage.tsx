@@ -1,6 +1,21 @@
 import AppLayout from '../components/layout/AppLayout';
 import { Dropdown, DropdownItem } from 'flowbite-react';
 
+/*
+
+HEY ZOË (INTEGRATION TEAM), PLEASE USE THESE BADGES FOR ANY BADGES YOU MAY NEED! THANK YOU! 
+Please ask me what you should use if you are unsure... but use what you think is best.
+<span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-brand-subtle text-fg-brand-strong text-sm font-medium bg-brand-softer">BLUE APPROVED AWAITING SETUP/ONBOARDING </span>
+<span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-default text-heading text-sm font-medium bg-neutral-primary-soft">ORG STATUS PENDING</span>
+<span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-default-medium text-heading text-sm font-medium bg-neutral-secondary-medium">GREY CONTACTED</span>
+<span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-danger-subtle text-fg-danger-strong text-sm font-medium bg-danger-soft">RED REJECTED/DISABLED</span>
+<span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-success-subtle text-fg-success-strong text-sm font-medium bg-success-soft">GREEN APPROVED/ACTIVE</span>
+<span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-warning-subtle text-fg-warning text-sm font-medium bg-warning-soft">YELLOW PENDING/SUSPENDED</span>
+
+ADJUST WIDTH AS NECESSARY... 
+
+*/
+
 function PlatformOrganisationManagementPage() {
   return (
     <AppLayout
@@ -41,7 +56,8 @@ function PlatformOrganisationManagementPage() {
         </div>
 
         <div className="px-6 pb-6">
-          <div className="w-full">
+          {/* SEARCH AND FILTER BAR */}
+          <div className="w-full mb-4">
             <div className="relative bg-white-purple border border-gray-200">
               <div className="flex flex-col items-center justify-between p-4 space-y-3 md:flex-row md:space-y-0 md:space-x-4">
                 {/* ==== SEARCH BAR ==== */}
@@ -150,6 +166,200 @@ function PlatformOrganisationManagementPage() {
                 {/* ==== FILTERS ==== */}
               </div>
             </div>
+          </div>
+
+          <h3 className="font-jost text-2xl text-dark-pink tracking-wider font-medium mb-3">
+            Organisations (3)
+          </h3>
+          {/* YOU CAN ADD THE ORG COUNT HERE (IN THE HEADING), IF YOU WANT TO  */}
+
+          {/* TABLE */}
+          <div className="relative overflow-x-auto bg-neutral-primary-soft border border-default">
+            <table className="w-full text-sm text-left rtl:text-right text-body">
+              <thead className="bg-faint-purple border-b border-default">
+                <tr>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
+                  >
+                    Name
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
+                  >
+                    Size
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
+                  >
+                    Website
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
+                  >
+                    Representative
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
+                  >
+                    Request Status
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
+                  >
+                    Organisation Status
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
+                  >
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="font-overpass font-regular text-[1rem] tracking-wide">
+                {/* MOCK ORGANISATION 1 */}
+                <tr className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default">
+                  {/* Organisation Name */}
+                  <td className="px-6 py-4">Big Red Paper Company (Pty) Ltd</td>
+
+                  {/* Organisation Size (Approx. # of Employees) */}
+                  <td className="px-6 py-4">10</td>
+
+                  {/* Website */}
+                  <td className="px-6 py-4 font-google_sans_code">www.bigredpaper.co.za</td>
+
+                  {/* Representative */}
+                  <td className="px-6 py-4">Law Roach</td>
+
+                  {/* Request Status */}
+                  <td className="px-6 py-4">
+                    <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-warning-subtle text-fg-warning text-sm font-medium bg-warning-soft">
+                      Pending
+                    </span>
+                  </td>
+
+                  {/* Organisation Status */}
+                  <td className="px-6 py-4">
+                    <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-warning-subtle text-fg-warning text-sm font-medium bg-warning-soft">
+                      Pending
+                    </span>
+                  </td>
+
+                  {/* Actions */}
+                  <td className="px-6 py-4">
+                    {/* PLEASE NOTE THAT THIS WILL CHANGE DEPENDING ON THE STATE */}
+                    <div className="grid grid-cols-1 gap-1 justify-items-start">
+                      <button className="cursor-pointer font-medium text-purple hover:underline">
+                        <strong>Review</strong> Request
+                      </button>
+
+                      {/* Add more actions here...  */}
+                    </div>
+                  </td>
+                </tr>
+
+                {/* MOCK ORGANISATION 2 */}
+                <tr className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default">
+                  {/* Organisation Name */}
+                  <td className="px-6 py-4">Big Red Paper Company (Pty) Ltd</td>
+
+                  {/* Organisation Size (Approx. # of Employees) */}
+                  <td className="px-6 py-4">10</td>
+
+                  {/* Website */}
+                  <td className="px-6 py-4 font-google_sans_code">www.bigredpaper.co.za</td>
+
+                  {/* Representative */}
+                  <td className="px-6 py-4">Law Roach</td>
+
+                  {/* Request Status */}
+                  <td className="px-6 py-4">
+                    <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-success-subtle text-fg-success-strong text-sm font-medium bg-success-soft">
+                      Approved
+                    </span>
+                  </td>
+
+                  {/* Organisation Status */}
+                  <td className="px-6 py-4">
+                    <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-success-subtle text-fg-success-strong text-sm font-medium bg-success-soft">
+                      Active
+                    </span>
+                  </td>
+
+                  {/* Actions */}
+                  <td className="px-6 py-4">
+                    {/* PLEASE NOTE THAT THIS WILL CHANGE DEPENDING ON THE STATE */}
+                    <div className="grid grid-cols-1 gap-1 justify-items-start">
+                      <a
+                        href="/organisation-information"
+                        className=" cursor-pointer font-medium text-purple hover:underline"
+                      >
+                        {/* THIS GOES TO THE ORGANISATION INFORMATION PAGE */}
+                        <strong>View</strong> Information
+                      </a>
+
+                      <button className="cursor-pointer font-medium text-red-600 hover:underline">
+                        <strong>Disable</strong>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+
+                {/* MOCK ORGANISATION 3 */}
+                {/* Don't forget to remove the border-b from the last item (in this case, Mock Org 3) */}
+                <tr className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-default">
+                  {/* Organisation Name */}
+                  <td className="px-6 py-4">Big Red Paper Company (Pty) Ltd</td>
+
+                  {/* Organisation Size (Approx. # of Employees) */}
+                  <td className="px-6 py-4">10</td>
+
+                  {/* Website */}
+                  <td className="px-6 py-4 font-google_sans_code">www.bigredpaper.co.za</td>
+
+                  {/* Representative */}
+                  <td className="px-6 py-4">Law Roach</td>
+
+                  {/* Request Status */}
+                  <td className="px-6 py-4">
+                    <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-success-subtle text-fg-success-strong text-sm font-medium bg-success-soft">
+                      Approved
+                    </span>
+                  </td>
+
+                  {/* Organisation Status */}
+                  <td className="px-6 py-4">
+                    <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-danger-subtle text-fg-danger-strong text-sm font-medium bg-danger-soft">
+                      Disabled
+                    </span>
+                  </td>
+
+                  {/* Actions */}
+                  <td className="px-6 py-4">
+                    {/* PLEASE NOTE THAT THIS WILL CHANGE DEPENDING ON THE STATE */}
+                    <div className="grid grid-cols-1 gap-1 justify-items-start">
+                      <a
+                        href="/organisation-information"
+                        className=" cursor-pointer font-medium text-purple hover:underline"
+                      >
+                        {/* THIS GOES TO THE ORGANISATION INFORMATION PAGE */}
+                        <strong>View</strong> Information
+                      </a>
+
+                      <button className="cursor-pointer font-medium text-emerald-600 hover:underline">
+                        <strong>Re–Enable</strong>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
