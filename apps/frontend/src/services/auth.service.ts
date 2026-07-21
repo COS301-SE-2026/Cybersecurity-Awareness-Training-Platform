@@ -1,4 +1,6 @@
 import type {
+  AuthForgotPasswordRequestDto,
+  AuthForgotPasswordResponseDto,
   AuthLoginRequestDto,
   AuthLoginResponseDto,
   AuthMeResponseDto,
@@ -45,6 +47,18 @@ export function registerUser(payload: RegisterUserPayload): Promise<AuthRegister
   return apiClient.post<AuthRegisterResponseDto, RegisterUserPayload>('/auth/register', payload, {
     credentials: 'include',
   });
+}
+
+export function requestPasswordReset(
+  payload: AuthForgotPasswordRequestDto,
+): Promise<AuthForgotPasswordResponseDto> {
+  return apiClient.post<AuthForgotPasswordResponseDto, AuthForgotPasswordRequestDto>(
+    '/auth/forgot-password',
+    payload,
+    {
+      credentials: 'include',
+    },
+  );
 }
 
 export function resendVerification(payload: {
