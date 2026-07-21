@@ -1,4 +1,5 @@
 import { prisma } from '../lib/prisma.js';
+import type { Prisma } from '../generated/prisma/client.js';
 import { requirePlatformAdminUser } from './organisation-registration-request.service.js';
 import { issueActionToken } from './action-token.service.js';
 import { sendEmail } from './email.service.js';
@@ -90,7 +91,7 @@ async function verifyActiveSuperAdminActor(actorUserId: string, passwordPlain: s
 
 // Helper to lock target profiles and re-verify actor super admin state inside a transaction
 async function lockAndVerifySuperActor(
-  tx: any,
+  tx: Prisma.TransactionClient,
   actorUserId: string,
   targetUserId: string,
   staleErrorCode: string,
