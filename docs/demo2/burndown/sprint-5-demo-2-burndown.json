@@ -28,8 +28,8 @@
       "number": 339,
       "title": "fix: record complete organisation onboarding timeline milestones",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-07-21"
     },
     {
       "number": 338,
@@ -243,7 +243,7 @@
     },
     {
       "date": "2026-07-21",
-      "remaining": 46,
+      "remaining": 44,
       "ideal": 24.62
     }
   ]
