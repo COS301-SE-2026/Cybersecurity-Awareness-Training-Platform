@@ -23,6 +23,10 @@ const actionTokenServiceMock = vi.hoisted(() => ({
   validateActionToken: vi.fn(),
 }));
 
+const auditLogServiceMock = vi.hoisted(() => ({
+  recordAuditLog: vi.fn(),
+}));
+
 const authEmailHookServiceMock = vi.hoisted(() => ({
   requestAuthEmailSend: vi.fn(),
 }));
@@ -33,6 +37,7 @@ const passwordServiceMock = vi.hoisted(() => ({
 
 vi.mock('../../src/repositories/setup.repository.js', () => setupRepositoryMock);
 vi.mock('../../src/services/action-token.service.js', () => actionTokenServiceMock);
+vi.mock('../../src/services/audit-log.service.js', () => auditLogServiceMock);
 vi.mock('../../src/services/auth-email-hook.service.js', () => authEmailHookServiceMock);
 vi.mock('../../src/services/password.service.js', () => passwordServiceMock);
 
@@ -140,6 +145,7 @@ describe('setup service', () => {
     setupRepositoryMock.findSetupUserByEmail.mockResolvedValue(null);
     setupRepositoryMock.createOrganisationTraineeUser.mockResolvedValue(publicUser);
     setupRepositoryMock.markInvitationAccepted.mockResolvedValue({ id: 'invitation-1' });
+    auditLogServiceMock.recordAuditLog.mockResolvedValue({ id: 'audit-1' });
 
     passwordServiceMock.hashPassword.mockResolvedValue('hashed-password');
     authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue({
@@ -346,10 +352,54 @@ describe('setup service', () => {
 
     await completeSetupWithToken(rawSetupValue, completeSetupInput);
 
+    expect(auditLogServiceMock.recordAuditLog).toHaveBeenCalledWith(
+      {
+        actorUserId: publicAdminUser.id,
+        actorType: 'ORGANISATION_ADMIN',
+        organisationId: 'org-1',
+        targetType: 'INVITATION',
+        targetId: 'initial-admin-invitation-1',
+        actionType: 'COMPLETED',
+        outcome: 'SUCCESS',
+        metadata: {
+          milestone: 'INITIAL_ADMIN_SETUP_COMPLETED',
+        },
+      },
+      customTx,
+    );
     expect(organisationUpdateMock).toHaveBeenCalledWith({
       where: { id: 'org-1' },
       data: { status: 'ACTIVE' },
     });
+    expect(auditLogServiceMock.recordAuditLog).toHaveBeenCalledWith(
+      {
+        actorUserId: publicAdminUser.id,
+        actorType: 'ORGANISATION_ADMIN',
+        organisationId: 'org-1',
+        targetType: 'ORGANISATION',
+        targetId: 'org-1',
+        actionType: 'REACTIVATED',
+        outcome: 'SUCCESS',
+        metadata: {
+          milestone: 'ORGANISATION_ACTIVATED',
+          fromStatus: 'PENDING_ONBOARDING',
+          toStatus: 'ACTIVE',
+        },
+      },
+      customTx,
+    );
+    expect(auditLogServiceMock.recordAuditLog).toHaveBeenCalledTimes(2);
+
+    const auditMetadataText = JSON.stringify(
+      auditLogServiceMock.recordAuditLog.mock.calls.map(([entry]) => entry.metadata ?? {}),
+    );
+    expect(auditMetadataText).not.toContain('@');
+    expect(auditMetadataText).not.toContain(rawSetupValue);
+    expect(auditMetadataText).not.toContain('tokenHash');
+    expect(auditMetadataText).not.toContain('permission');
+    expect(auditLogServiceMock.recordAuditLog.mock.invocationCallOrder[0]).toBeLessThan(
+      organisationUpdateMock.mock.invocationCallOrder[0],
+    );
     expect(adminProfileFindFirstMock).toHaveBeenCalledWith({
       where: { userId: publicAdminUser.id, organisationId: 'org-1' },
     });
@@ -433,5 +483,17 @@ describe('setup service', () => {
     );
 
     expect(authEmailHookServiceMock.requestAuthEmailSend).not.toHaveBeenCalled();
+  });
+
+  it('does not record setup success milestones when the action-token claim is stale', async () => {
+    actionTokenServiceMock.runWithConsumedActionToken.mockResolvedValue({
+      claimed: false,
+    });
+
+    await expect(completeSetupWithToken(rawSetupValue, completeSetupInput)).rejects.toBeInstanceOf(
+      SetupFlowError,
+    );
+
+    expect(auditLogServiceMock.recordAuditLog).not.toHaveBeenCalled();
   });
 });

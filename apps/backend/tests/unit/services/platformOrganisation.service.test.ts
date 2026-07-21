@@ -201,6 +201,28 @@ describe('platformOrganisation service', () => {
 
       const mockAuditLogs = [
         {
+          id: 'audit-3',
+          actionType: 'REACTIVATED',
+          targetType: 'ORGANISATION',
+          createdAt: new Date('2026-07-01T08:45:00Z'),
+          outcome: 'SUCCESS',
+          actorUser: {
+            firstName: 'Bob',
+            lastName: 'Builder',
+          },
+        },
+        {
+          id: 'audit-2',
+          actionType: 'COMPLETED',
+          targetType: 'INVITATION',
+          createdAt: new Date('2026-07-01T08:40:00Z'),
+          outcome: 'SUCCESS',
+          actorUser: {
+            firstName: 'Bob',
+            lastName: 'Builder',
+          },
+        },
+        {
           id: 'audit-1',
           actionType: 'APPROVED',
           targetType: 'ORGANISATION_REGISTRATION_REQUEST',
@@ -251,14 +273,33 @@ describe('platformOrganisation service', () => {
       expect(response.admins).toHaveLength(1);
       expect(response.admins[0].email).toBe('alice@target.com');
       expect(response.admins[0].isInitialAdmin).toBe(false);
-      expect(response.timeline).toHaveLength(2); // 1 audit log + 1 email log
-      expect(response.timeline[0].type).toBe('EMAIL_DELIVERY'); // sorted by desc timestamp
-      expect(response.timeline[0].outcome).toBe('SENT');
-      expect(response.timeline[0].actor).toBe('System');
-      expect(response.timeline[1].type).toBe('AUDIT_LOG');
-      expect(response.timeline[1].outcome).toBe('SUCCESS');
-      expect(response.timeline[1].actor).toBe('Patricia Platform');
-      expect(response.timeline[1].metadata).toBeNull();
+      expect(response.timeline).toHaveLength(4);
+      expect(response.timeline.map((event) => event.action)).toEqual([
+        'REACTIVATED',
+        'COMPLETED',
+        'INITIAL_ORGANISATION_ADMIN_SETUP',
+        'APPROVED',
+      ]);
+      expect(response.timeline[0]).toEqual(
+        expect.objectContaining({
+          type: 'AUDIT_LOG',
+          outcome: 'SUCCESS',
+          actor: 'Bob Builder',
+          metadata: null,
+        }),
+      );
+      expect(response.timeline[1]).toEqual(
+        expect.objectContaining({
+          type: 'AUDIT_LOG',
+          outcome: 'SUCCESS',
+          actor: 'Bob Builder',
+          metadata: null,
+        }),
+      );
+      expect(response.timeline[2].type).toBe('EMAIL_DELIVERY');
+      expect(response.timeline[2].outcome).toBe('SENT');
+      expect(response.timeline[2].actor).toBe('System');
+      expect(response.timeline[3].actor).toBe('Patricia Platform');
     });
 
     it('throws 404 error if organisation is not found', async () => {
