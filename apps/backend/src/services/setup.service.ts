@@ -94,22 +94,24 @@ async function seedInitialAdminPermissionsAndActivateOrg(
   tx: SetupTransaction,
 ) {
   if (freshToken.purpose !== 'INITIAL_ORGANISATION_ADMIN_SETUP') {
-    return;
+    return false;
   }
   const org = freshToken.invitation?.organisation;
   if (!org) {
-    return;
+    return false;
   }
 
+  let organisationActivated = false;
   if (org.status === 'PENDING_ONBOARDING' && 'organisation' in tx) {
     await tx.organisation.update({
       where: { id: org.id },
       data: { status: 'ACTIVE' },
     });
+    organisationActivated = true;
   }
 
   if (!('organisationAdminProfile' in tx)) {
-    return;
+    return organisationActivated;
   }
 
   const adminProfile = await tx.organisationAdminProfile.findFirst({
@@ -117,7 +119,7 @@ async function seedInitialAdminPermissionsAndActivateOrg(
   });
 
   if (!adminProfile) {
-    return;
+    return organisationActivated;
   }
 
   if ('organisationPermission' in tx && 'organisationAdminPermission' in tx) {
@@ -137,6 +139,7 @@ async function seedInitialAdminPermissionsAndActivateOrg(
       skipDuplicates: true,
     });
   }
+  return organisationActivated;
 }
 
 export async function completeSetupWithToken(
@@ -235,7 +238,35 @@ export async function completeSetupWithToken(
       );
     }
 
-    await seedInitialAdminPermissionsAndActivateOrg(user, freshToken, tx);
+    const organisationActivated = await seedInitialAdminPermissionsAndActivateOrg(
+      user,
+      freshToken,
+      tx,
+    );
+
+    if (
+      organisationActivated &&
+      freshToken.purpose === 'INITIAL_ORGANISATION_ADMIN_SETUP' &&
+      freshToken.invitation?.organisation
+    ) {
+      await recordAuditLog(
+        {
+          actorUserId: user.id,
+          actorType: 'ORGANISATION_ADMIN',
+          organisationId: freshToken.invitation.organisation.id,
+          targetType: 'ORGANISATION',
+          targetId: freshToken.invitation.organisation.id,
+          actionType: 'REACTIVATED',
+          outcome: 'SUCCESS',
+          metadata: {
+            milestone: 'ORGANISATION_ACTIVATED',
+            fromStatus: 'PENDING_ONBOARDING',
+            toStatus: 'ACTIVE',
+          },
+        },
+        tx,
+      );
+    }
 
     return user;
   });
