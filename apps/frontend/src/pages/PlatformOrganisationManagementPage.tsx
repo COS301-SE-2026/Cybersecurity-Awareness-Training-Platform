@@ -232,7 +232,16 @@ function PlatformOrganisationManagementPage() {
                   <td className="px-6 py-4">10</td>
 
                   {/* Website */}
-                  <td className="px-6 py-4 font-google_sans_code">www.bigredpaper.co.za</td>
+                  <td className="px-6 py-4">
+                    <a
+                      href="https://bigredpaper.co.za"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-fg-brand hover:underline font-google_sans_code"
+                    >
+                      www.bigredpaper.co.za
+                    </a>
+                  </td>
 
                   {/* Representative */}
                   <td className="px-6 py-4">Law Roach</td>
@@ -273,7 +282,16 @@ function PlatformOrganisationManagementPage() {
                   <td className="px-6 py-4">10</td>
 
                   {/* Website */}
-                  <td className="px-6 py-4 font-google_sans_code">www.bigredpaper.co.za</td>
+                  <td className="px-6 py-4">
+                    <a
+                      href="https://bigredpaper.co.za"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-fg-brand hover:underline font-google_sans_code"
+                    >
+                      www.bigredpaper.co.za
+                    </a>
+                  </td>
 
                   {/* Representative */}
                   <td className="px-6 py-4">Law Roach</td>
@@ -321,7 +339,16 @@ function PlatformOrganisationManagementPage() {
                   <td className="px-6 py-4">10</td>
 
                   {/* Website */}
-                  <td className="px-6 py-4 font-google_sans_code">www.bigredpaper.co.za</td>
+                  <td className="px-6 py-4">
+                    <a
+                      href="https://bigredpaper.co.za"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-fg-brand hover:underline font-google_sans_code"
+                    >
+                      www.bigredpaper.co.za
+                    </a>
+                  </td>
 
                   {/* Representative */}
                   <td className="px-6 py-4">Law Roach</td>
