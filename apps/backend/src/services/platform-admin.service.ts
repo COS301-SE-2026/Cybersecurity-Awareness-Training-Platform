@@ -114,6 +114,124 @@ async function lockAndVerifySuperActor(
   }
 }
 
+interface AdminWithProfileAndTokens {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  authStatus: string;
+  ipAdminProfile: {
+    platformAdminRole: 'SUPER_ADMIN' | 'NORMAL_ADMIN';
+    adminStatus: 'ACTIVE' | 'DISABLED';
+  } | null;
+  actionTokens: Array<{
+    id: string;
+    usedAt: Date | null;
+    revokedAt: Date | null;
+    revokedReason: string | null;
+    expiresAt: Date;
+  }>;
+}
+
+interface UpgradeTokenWithUser {
+  id: string;
+  userId: string | null;
+  usedAt: Date | null;
+  revokedAt: Date | null;
+  revokedReason: string | null;
+  expiresAt: Date;
+  user: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    authStatus: string;
+    ipAdminProfile: {
+      platformAdminRole: 'SUPER_ADMIN' | 'NORMAL_ADMIN';
+      adminStatus: 'ACTIVE' | 'DISABLED';
+    } | null;
+  } | null;
+}
+
+// Helper to map active/invited platform admin record to response DTO row
+function mapAdminToRow(
+  admin: AdminWithProfileAndTokens,
+  isActorSuper: boolean,
+  actorUserId: string,
+) {
+  const activeToken = admin.actionTokens[0];
+  const role = admin.ipAdminProfile?.platformAdminRole ?? 'NORMAL_ADMIN';
+  const status = admin.ipAdminProfile?.adminStatus ?? 'ACTIVE';
+
+  let invitationStatus:
+    | 'PENDING'
+    | 'SENT'
+    | 'FAILED_TO_SEND'
+    | 'ACCEPTED'
+    | 'COMPLETED'
+    | 'EXPIRED'
+    | 'REVOKED'
+    | 'REJECTED'
+    | 'PENDING_UPGRADE'
+    | null = null;
+
+  if (admin.authStatus === 'PENDING_INVITE_SETUP') {
+    invitationStatus = deriveInvitationStatus(activeToken, 'SENT');
+  }
+
+  return {
+    id: admin.id,
+    firstName: admin.firstName,
+    lastName: admin.lastName,
+    email: admin.email,
+    platformAdminRole: role,
+    adminStatus: status,
+    authStatus: admin.authStatus,
+    invitationStatus,
+    inviteId: activeToken?.id ?? null,
+    allowedActions: {
+      canTransferSuperAdmin:
+        isActorSuper &&
+        role === 'NORMAL_ADMIN' &&
+        admin.authStatus === 'ACTIVE' &&
+        admin.id !== actorUserId,
+      canDemote: isActorSuper && role === 'NORMAL_ADMIN' && admin.id !== actorUserId,
+      canResendInvite:
+        isActorSuper &&
+        admin.authStatus === 'PENDING_INVITE_SETUP' &&
+        !!activeToken &&
+        !activeToken.usedAt &&
+        (!activeToken.revokedAt || activeToken.revokedReason === 'DELIVERY_FAILED'),
+    },
+  };
+}
+
+// Helper to map upgrade action token to response DTO row
+function mapUpgradeTokenToRow(token: UpgradeTokenWithUser, isActorSuper: boolean) {
+  const user = token.user!;
+  const invitationStatus = deriveInvitationStatus(token, 'PENDING_UPGRADE');
+
+  return {
+    id: user.id,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    email: user.email,
+    platformAdminRole: 'NORMAL_ADMIN' as const,
+    adminStatus: 'ACTIVE' as const,
+    authStatus: user.authStatus,
+    invitationStatus,
+    inviteId: token.id,
+    allowedActions: {
+      canTransferSuperAdmin: false,
+      canDemote: false,
+      canResendInvite:
+        isActorSuper &&
+        !token.usedAt &&
+        (!token.revokedAt || token.revokedReason === 'DELIVERY_FAILED'),
+    },
+  };
+}
+
 // List platform admins and pendng invitations
 export async function listPlatformAdmins(actorUserId: string) {
   const actorProfile = await requirePlatformAdminUser(actorUserId);
@@ -153,56 +271,10 @@ export async function listPlatformAdmins(actorUserId: string) {
   const isActorSuper = actorProfile.platformAdminRole === 'SUPER_ADMIN';
 
   // Map user records to frontend rows
-  const mappedAdmins = ipAdmins.map((admin) => {
-    const activeToken = admin.actionTokens[0];
-    const role = admin.ipAdminProfile?.platformAdminRole ?? 'NORMAL_ADMIN';
-    const status = admin.ipAdminProfile?.adminStatus ?? 'ACTIVE';
-
-    let invitationStatus:
-      | 'PENDING'
-      | 'SENT'
-      | 'FAILED_TO_SEND'
-      | 'ACCEPTED'
-      | 'COMPLETED'
-      | 'EXPIRED'
-      | 'REVOKED'
-      | 'REJECTED'
-      | 'PENDING_UPGRADE'
-      | null = null;
-
-    if (admin.authStatus === 'PENDING_INVITE_SETUP') {
-      invitationStatus = deriveInvitationStatus(activeToken, 'SENT');
-    }
-
-    return {
-      id: admin.id,
-      firstName: admin.firstName,
-      lastName: admin.lastName,
-      email: admin.email,
-      platformAdminRole: role,
-      adminStatus: status,
-      authStatus: admin.authStatus,
-      invitationStatus,
-      inviteId: activeToken?.id ?? null,
-      allowedActions: {
-        canTransferSuperAdmin:
-          isActorSuper &&
-          role === 'NORMAL_ADMIN' &&
-          admin.authStatus === 'ACTIVE' &&
-          admin.id !== actorUserId,
-        canDemote: isActorSuper && role === 'NORMAL_ADMIN' && admin.id !== actorUserId,
-        canResendInvite:
-          isActorSuper &&
-          admin.authStatus === 'PENDING_INVITE_SETUP' &&
-          !!activeToken &&
-          !activeToken.usedAt &&
-          (!activeToken.revokedAt || activeToken.revokedReason === 'DELIVERY_FAILED'),
-      },
-    };
-  });
+  const mappedAdmins = ipAdmins.map((admin) => mapAdminToRow(admin, isActorSuper, actorUserId));
 
   // Deduplicate upgrade tokens by user ID to list only the latest attempt
-  const uniqueUpgradeTokensMap = new Map<string, (typeof upgradeTokens)[0]>();
+  const uniqueUpgradeTokensMap = new Map<string, UpgradeTokenWithUser>();
   for (const token of upgradeTokens) {
     if (token.user && !uniqueUpgradeTokensMap.has(token.userId!)) {
       uniqueUpgradeTokensMap.set(token.userId!, token);
@@ -213,30 +285,7 @@ export async function listPlatformAdmins(actorUserId: string) {
   // Map upgrade tokens to pending rows
   const mappedUpgrades = uniqueUpgradeTokens
     .filter((token) => token.user && !mappedAdmins.some((ma) => ma.id === token.user?.id))
-    .map((token) => {
-      const user = token.user!;
-      const invitationStatus = deriveInvitationStatus(token, 'PENDING_UPGRADE');
-
-      return {
-        id: user.id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        platformAdminRole: 'NORMAL_ADMIN' as const,
-        adminStatus: 'ACTIVE' as const,
-        authStatus: user.authStatus,
-        invitationStatus,
-        inviteId: token.id,
-        allowedActions: {
-          canTransferSuperAdmin: false,
-          canDemote: false,
-          canResendInvite:
-            isActorSuper &&
-            !token.usedAt &&
-            (!token.revokedAt || token.revokedReason === 'DELIVERY_FAILED'),
-        },
-      };
-    });
+    .map((token) => mapUpgradeTokenToRow(token, isActorSuper));
 
   return {
     admins: [...mappedAdmins, ...mappedUpgrades],
@@ -416,7 +465,7 @@ export async function invitePlatformAdmin(
           actionTokenExpiresAt: expiry,
         },
       });
-      if (outcome && outcome.status === 'NOT_ACCEPTED') {
+      if (outcome?.status === 'NOT_ACCEPTED') {
         emailDeliveryFailed = true;
       }
     } catch (err) {
@@ -507,7 +556,7 @@ export async function invitePlatformAdmin(
         actionTokenExpiresAt: expiry,
       },
     });
-    if (outcome && outcome.status === 'NOT_ACCEPTED') {
+    if (outcome?.status === 'NOT_ACCEPTED') {
       emailDeliveryFailed = true;
     }
   } catch (err) {
@@ -596,7 +645,7 @@ export async function resendPlatformAdminInvite(actorUserId: string, inviteToken
         },
       });
 
-      if (updated && updated.count === 0) {
+      if (updated?.count === 0) {
         throw new PlatformAdminServiceError(
           409,
           'INVITATION_ALREADY_USED',
@@ -679,7 +728,7 @@ export async function resendPlatformAdminInvite(actorUserId: string, inviteToken
         actionTokenExpiresAt: expiry,
       },
     });
-    if (outcome && outcome.status === 'NOT_ACCEPTED') {
+    if (outcome?.status === 'NOT_ACCEPTED') {
       emailDeliveryFailed = true;
     }
   } catch (err) {
@@ -717,7 +766,7 @@ export async function transferSuperAdmin(actorUserId: string, input: TransferSup
     target.userType !== 'IP_ADMIN' ||
     target.authStatus !== 'ACTIVE' ||
     target.ipAdminProfile?.adminStatus !== 'ACTIVE' ||
-    target.ipAdminProfile.platformAdminRole !== 'NORMAL_ADMIN'
+    target.ipAdminProfile?.platformAdminRole !== 'NORMAL_ADMIN'
   ) {
     throw new PlatformAdminServiceError(
       409,
@@ -763,7 +812,7 @@ export async function transferSuperAdmin(actorUserId: string, input: TransferSup
       freshTarget.userType !== 'IP_ADMIN' ||
       freshTarget.authStatus !== 'ACTIVE' ||
       freshTarget.ipAdminProfile?.platformAdminRole !== 'NORMAL_ADMIN' ||
-      freshTarget.ipAdminProfile.adminStatus !== 'ACTIVE'
+      freshTarget.ipAdminProfile?.adminStatus !== 'ACTIVE'
     ) {
       throw new PlatformAdminServiceError(
         409,
@@ -917,9 +966,8 @@ export async function demotePlatformAdmin(
       where: { userId: targetUserId },
     });
     if (
-      !freshTargetProfile ||
-      freshTargetProfile.adminStatus !== 'ACTIVE' ||
-      freshTargetProfile.platformAdminRole === 'SUPER_ADMIN'
+      freshTargetProfile?.adminStatus !== 'ACTIVE' ||
+      freshTargetProfile?.platformAdminRole === 'SUPER_ADMIN'
     ) {
       throw new PlatformAdminServiceError(
         409,
