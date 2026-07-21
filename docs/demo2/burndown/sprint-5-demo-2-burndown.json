@@ -56,8 +56,8 @@
       "number": 286,
       "title": "feat: build frontend organisation security settings",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-07-20"
     },
     {
       "number": 281,
@@ -238,8 +238,13 @@
     },
     {
       "date": "2026-07-20",
-      "remaining": 48,
+      "remaining": 46,
       "ideal": 29.54
+    },
+    {
+      "date": "2026-07-21",
+      "remaining": 46,
+      "ideal": 24.62
     }
   ]
 }
