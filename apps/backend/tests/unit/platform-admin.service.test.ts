@@ -319,9 +319,9 @@ describe('platform admin service tests', () => {
       const result = await resendPlatformAdminInvite(superActorId, actionTokenId);
 
       expect(result.success).toBe(true);
-      expect(prismaMock.actionToken.update).toHaveBeenCalledWith(
+      expect(prismaMock.actionToken.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { id: actionTokenId },
+          where: expect.objectContaining({ id: actionTokenId }),
           data: expect.objectContaining({ revokedReason: 'RESENT' }),
         }),
       );
@@ -362,6 +362,7 @@ describe('platform admin service tests', () => {
             id: superActorId,
             email: 'super@ip.com',
             userType: 'IP_ADMIN',
+            authStatus: 'ACTIVE',
             ipAdminProfile: { platformAdminRole: 'SUPER_ADMIN', adminStatus: 'ACTIVE' },
           };
         }
@@ -370,6 +371,7 @@ describe('platform admin service tests', () => {
             id: targetAdminId,
             email: 'target@ip.com',
             userType: 'IP_ADMIN',
+            authStatus: 'ACTIVE',
             ipAdminProfile: { platformAdminRole: 'NORMAL_ADMIN', adminStatus: 'ACTIVE' },
           };
         }
@@ -603,6 +605,7 @@ describe('platform admin service tests', () => {
           return {
             id: superActorId,
             userType: 'IP_ADMIN',
+            authStatus: 'ACTIVE',
             ipAdminProfile: { platformAdminRole: 'SUPER_ADMIN', adminStatus: 'ACTIVE' },
           };
         }
@@ -610,6 +613,7 @@ describe('platform admin service tests', () => {
           return {
             id: targetAdminId,
             userType: 'IP_ADMIN',
+            authStatus: 'ACTIVE',
             ipAdminProfile: { platformAdminRole: 'NORMAL_ADMIN', adminStatus: 'DISABLED' },
           };
         }

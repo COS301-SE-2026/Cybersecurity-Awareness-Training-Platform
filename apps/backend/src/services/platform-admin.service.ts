@@ -114,108 +114,6 @@ async function lockAndVerifySuperActor(
   }
 }
 
-// Helper to issue action token, audit log, and send invitation email with outcome status logic
-async function issueAndSendInvitation(params: {
-  actorUserId: string;
-  userId: string;
-  email: string;
-  firstName: string;
-  purpose: 'PLATFORM_ADMIN_INVITE' | 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION';
-  revocationTokenId?: string;
-}) {
-  const expiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24hr expiration
-
-  const { rawToken, token } = await prisma.$transaction(async (tx) => {
-    if (params.revocationTokenId) {
-      await tx.actionToken.update({
-        where: { id: params.revocationTokenId },
-        data: {
-          revokedAt: new Date(),
-          revokedReason: 'RESENT',
-        },
-      });
-    }
-
-    const tokenRes = await issueActionToken(
-      {
-        purpose: params.purpose,
-        userId: params.userId,
-        expiresAt: expiry,
-      },
-      tx,
-    );
-
-    await recordAuditLog(
-      {
-        actorUserId: params.actorUserId,
-        actorType: 'IP_ADMIN',
-        targetType: 'USER',
-        targetId: params.userId,
-        actionType: 'INVITED',
-        outcome: 'SUCCESS',
-        metadata: {
-          actionTokenId: tokenRes.token.id,
-          type: params.purpose,
-          ...(params.revocationTokenId ? { resentFromTokenId: params.revocationTokenId } : {}),
-        },
-      },
-      tx,
-    );
-
-    return { rawToken: tokenRes.rawToken, token: tokenRes.token };
-  });
-
-  let outcome;
-  try {
-    outcome = await sendEmail({
-      emailType: params.purpose,
-      recipientEmail: params.email,
-      relatedEntity: {
-        userId: params.userId,
-        actionTokenId: token.id,
-      },
-      templateData: {
-        firstName: params.firstName,
-        actionToken: rawToken,
-        actionTokenExpiresAt: expiry,
-      },
-    });
-  } catch (err) {
-    // Revoke token on write / send error to prevent leaving orphaned tokens
-    await prisma.actionToken
-      .update({
-        where: { id: token.id },
-        data: {
-          revokedAt: new Date(),
-          revokedReason: 'DELIVERY_FAILED',
-        },
-      })
-      .catch(() => {});
-    throw err;
-  }
-
-  if (outcome && outcome.status === 'NOT_ACCEPTED') {
-    // Revoke token on provider rejection
-    await prisma.actionToken
-      .update({
-        where: { id: token.id },
-        data: {
-          revokedAt: new Date(),
-          revokedReason: 'DELIVERY_FAILED',
-        },
-      })
-      .catch(() => {});
-
-    throw new PlatformAdminServiceError(
-      500,
-      'EMAIL_DELIVERY_FAILED',
-      `Email delivery failed: ${outcome.failureReason}`,
-    );
-  }
-
-  return { token, rawToken };
-}
-
 // List platform admins and pendng invitations
 export async function listPlatformAdmins(actorUserId: string) {
   const actorProfile = await requirePlatformAdminUser(actorUserId);
@@ -298,7 +196,7 @@ export async function listPlatformAdmins(actorUserId: string) {
           admin.authStatus === 'PENDING_INVITE_SETUP' &&
           !!activeToken &&
           !activeToken.usedAt &&
-          !activeToken.revokedAt,
+          (!activeToken.revokedAt || activeToken.revokedReason === 'DELIVERY_FAILED'),
       },
     };
   });
@@ -332,7 +230,10 @@ export async function listPlatformAdmins(actorUserId: string) {
         allowedActions: {
           canTransferSuperAdmin: false,
           canDemote: false,
-          canResendInvite: isActorSuper && !token.usedAt && !token.revokedAt,
+          canResendInvite:
+            isActorSuper &&
+            !token.usedAt &&
+            (!token.revokedAt || token.revokedReason === 'DELIVERY_FAILED'),
         },
       };
     });
@@ -417,11 +318,15 @@ export async function invitePlatformAdmin(
       );
     }
 
-    // Trainee accounts: require explicit confirmation to upgrade role
-    if (
-      existingUser.userType === 'GENERAL_TRAINEE' ||
-      existingUser.userType === 'ORGANISATION_TRAINEE'
-    ) {
+    if (existingUser.userType === 'ORGANISATION_TRAINEE') {
+      throw new PlatformAdminServiceError(
+        409,
+        'ROLE_CONFLICT',
+        'Organisation trainees cannot be invited as platform administrators',
+      );
+    }
+
+    if (existingUser.userType === 'GENERAL_TRAINEE') {
       if (!input.confirmUpgrade) {
         throw new PlatformAdminServiceError(
           409,
@@ -450,13 +355,86 @@ export async function invitePlatformAdmin(
       );
     }
 
-    await issueAndSendInvitation({
-      actorUserId,
-      userId: existingUser.id,
-      email: targetEmail,
-      firstName: existingUser.firstName ?? '',
-      purpose: 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION',
+    // Upgrade flow - Atomic token and audit creation
+    const expiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const { token, rawToken } = await prisma.$transaction(async (tx) => {
+      // Invalidate active sibling tokens for the same user and purpose
+      await tx.actionToken.updateMany({
+        where: {
+          userId: existingUser.id,
+          purpose: 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION',
+          usedAt: null,
+          revokedAt: null,
+        },
+        data: {
+          revokedAt: new Date(),
+          revokedReason: 'RESENT',
+        },
+      });
+
+      const tokenRes = await issueActionToken(
+        {
+          purpose: 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION',
+          userId: existingUser.id,
+          expiresAt: expiry,
+        },
+        tx,
+      );
+
+      await recordAuditLog(
+        {
+          actorUserId,
+          actorType: 'IP_ADMIN',
+          targetType: 'USER',
+          targetId: existingUser.id,
+          actionType: 'INVITED',
+          outcome: 'SUCCESS',
+          metadata: {
+            actionTokenId: tokenRes.token.id,
+            type: 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION',
+          },
+        },
+        tx,
+      );
+
+      return { token: tokenRes.token, rawToken: tokenRes.rawToken };
     });
+
+    // Send email post-commit using the raw token value (best-effort / recoverable)
+    let emailDeliveryFailed = false;
+    try {
+      const outcome = await sendEmail({
+        emailType: 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION',
+        recipientEmail: targetEmail,
+        relatedEntity: {
+          userId: existingUser.id,
+          actionTokenId: token.id,
+        },
+        templateData: {
+          firstName: existingUser.firstName ?? '',
+          actionToken: rawToken,
+          actionTokenExpiresAt: expiry,
+        },
+      });
+      if (outcome && outcome.status === 'NOT_ACCEPTED') {
+        emailDeliveryFailed = true;
+      }
+    } catch (err) {
+      console.error('Failed to send upgrade confirmation email:', err);
+      emailDeliveryFailed = true;
+    }
+
+    if (emailDeliveryFailed) {
+      await prisma.actionToken
+        .update({
+          where: { id: token.id },
+          data: {
+            revokedAt: new Date(),
+            revokedReason: 'DELIVERY_FAILED',
+          },
+        })
+        .catch(() => {});
+    }
 
     return {
       type: 'upgrade-confirmation' as const,
@@ -465,9 +443,10 @@ export async function invitePlatformAdmin(
     };
   }
 
-  // Create pending new-account platform admin invite
-  const user = await prisma.$transaction(async (tx) => {
-    return tx.user.create({
+  // Atomic new platform admin account and token creation
+  const expiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  const { user, token, rawToken } = await prisma.$transaction(async (tx) => {
+    const createdUser = await tx.user.create({
       data: {
         email: targetEmail,
         firstName: input.firstName ?? '',
@@ -483,15 +462,70 @@ export async function invitePlatformAdmin(
         },
       },
     });
+
+    const tokenRes = await issueActionToken(
+      {
+        purpose: 'PLATFORM_ADMIN_INVITE',
+        userId: createdUser.id,
+        expiresAt: expiry,
+      },
+      tx,
+    );
+
+    await recordAuditLog(
+      {
+        actorUserId,
+        actorType: 'IP_ADMIN',
+        targetType: 'USER',
+        targetId: createdUser.id,
+        actionType: 'INVITED',
+        outcome: 'SUCCESS',
+        metadata: {
+          actionTokenId: tokenRes.token.id,
+          type: 'PLATFORM_ADMIN_INVITE',
+        },
+      },
+      tx,
+    );
+
+    return { user: createdUser, token: tokenRes.token, rawToken: tokenRes.rawToken };
   });
 
-  await issueAndSendInvitation({
-    actorUserId,
-    userId: user.id,
-    email: targetEmail,
-    firstName: user.firstName ?? '',
-    purpose: 'PLATFORM_ADMIN_INVITE',
-  });
+  // Send email post-commit using the raw token value (best-effort / recoverable)
+  let emailDeliveryFailed = false;
+  try {
+    const outcome = await sendEmail({
+      emailType: 'PLATFORM_ADMIN_INVITE',
+      recipientEmail: targetEmail,
+      relatedEntity: {
+        userId: user.id,
+        actionTokenId: token.id,
+      },
+      templateData: {
+        firstName: user.firstName ?? '',
+        actionToken: rawToken,
+        actionTokenExpiresAt: expiry,
+      },
+    });
+    if (outcome && outcome.status === 'NOT_ACCEPTED') {
+      emailDeliveryFailed = true;
+    }
+  } catch (err) {
+    console.error('Failed to send platform admin invite email:', err);
+    emailDeliveryFailed = true;
+  }
+
+  if (emailDeliveryFailed) {
+    await prisma.actionToken
+      .update({
+        where: { id: token.id },
+        data: {
+          revokedAt: new Date(),
+          revokedReason: 'DELIVERY_FAILED',
+        },
+      })
+      .catch(() => {});
+  }
 
   return {
     type: 'new-invite' as const,
@@ -500,62 +534,172 @@ export async function invitePlatformAdmin(
   };
 }
 
-// Resend an invtation token after revoking the older one with attempt-specific protection
+// Resend an invitation token after revoking the older one with attempt-specific protection
 export async function resendPlatformAdminInvite(actorUserId: string, inviteTokenId: string) {
   const actorProfile = await requirePlatformAdminUser(actorUserId);
   requireSuperAdmin(actorProfile.platformAdminRole);
 
-  const oldToken = await prisma.$transaction(async (tx) => {
-    // Acquire pessimistic lock on the action token row to serialise concurrent resends
-    await tx.$queryRaw`
+  const expiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+  const { tokenRes, targetEmail, targetFirstName, oldTokenPurpose } = await prisma.$transaction(
+    async (tx) => {
+      // Acquire pessimistic lock on the action token row to serialise concurrent resends
+      await tx.$queryRaw`
       SELECT id FROM "ActionToken"
       WHERE id = ${inviteTokenId}
       FOR UPDATE
     `;
 
-    const token = await tx.actionToken.findUnique({
-      where: { id: inviteTokenId },
-      include: { user: true },
+      const oldToken = await tx.actionToken.findUnique({
+        where: { id: inviteTokenId },
+        include: { user: true },
+      });
+
+      if (
+        !oldToken ||
+        (oldToken.purpose !== 'PLATFORM_ADMIN_INVITE' &&
+          oldToken.purpose !== 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION')
+      ) {
+        throw new PlatformAdminServiceError(
+          404,
+          'INVITATION_NOT_FOUND',
+          'Invitation token not found',
+        );
+      }
+
+      if (oldToken.usedAt) {
+        throw new PlatformAdminServiceError(
+          409,
+          'INVITATION_ALREADY_USED',
+          'Invitation has already been used',
+        );
+      }
+
+      if (oldToken.revokedAt && oldToken.revokedReason !== 'DELIVERY_FAILED') {
+        throw new PlatformAdminServiceError(
+          409,
+          'INVITATION_ALREADY_USED',
+          'Invitation has already been revoked',
+        );
+      }
+
+      // Conditionally revoke the old token using updateMany with a predicate
+      const updated = await tx.actionToken.updateMany({
+        where: {
+          id: inviteTokenId,
+          usedAt: null,
+          OR: [{ revokedAt: null }, { revokedReason: 'DELIVERY_FAILED' }],
+        },
+        data: {
+          revokedAt: new Date(),
+          revokedReason: 'RESENT',
+        },
+      });
+
+      if (updated && updated.count === 0) {
+        throw new PlatformAdminServiceError(
+          409,
+          'INVITATION_ALREADY_USED',
+          'Invitation has already been used or revoked',
+        );
+      }
+
+      // Invalidate any applicable active sibling tokens for the same user and purpose
+      await tx.actionToken.updateMany({
+        where: {
+          userId: oldToken.userId,
+          purpose: oldToken.purpose,
+          usedAt: null,
+          revokedAt: null,
+          id: { not: inviteTokenId },
+        },
+        data: {
+          revokedAt: new Date(),
+          revokedReason: 'RESENT',
+        },
+      });
+
+      const email = oldToken.user?.email;
+      if (!email) {
+        throw new PlatformAdminServiceError(
+          400,
+          'BAD_REQUEST',
+          'No email associated with invitation',
+        );
+      }
+
+      const issuedToken = await issueActionToken(
+        {
+          purpose: oldToken.purpose,
+          userId: oldToken.userId!,
+          expiresAt: expiry,
+        },
+        tx,
+      );
+
+      await recordAuditLog(
+        {
+          actorUserId,
+          actorType: 'IP_ADMIN',
+          targetType: 'USER',
+          targetId: oldToken.userId!,
+          actionType: 'INVITED',
+          outcome: 'SUCCESS',
+          metadata: {
+            actionTokenId: issuedToken.token.id,
+            type: oldToken.purpose,
+            resentFromTokenId: oldToken.id,
+          },
+        },
+        tx,
+      );
+
+      return {
+        tokenRes: issuedToken,
+        targetEmail: email,
+        targetFirstName: oldToken.user?.firstName ?? '',
+        oldTokenPurpose: oldToken.purpose,
+      };
+    },
+  );
+
+  // Send email post-commit using the raw token value (best-effort / recoverable)
+  let emailDeliveryFailed = false;
+  try {
+    const outcome = await sendEmail({
+      emailType: oldTokenPurpose,
+      recipientEmail: targetEmail,
+      relatedEntity: {
+        userId: tokenRes.token.userId!,
+        actionTokenId: tokenRes.token.id,
+      },
+      templateData: {
+        firstName: targetFirstName,
+        actionToken: tokenRes.rawToken,
+        actionTokenExpiresAt: expiry,
+      },
     });
-
-    if (
-      !token ||
-      (token.purpose !== 'PLATFORM_ADMIN_INVITE' &&
-        token.purpose !== 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION')
-    ) {
-      throw new PlatformAdminServiceError(
-        404,
-        'INVITATION_NOT_FOUND',
-        'Invitation token not found',
-      );
+    if (outcome && outcome.status === 'NOT_ACCEPTED') {
+      emailDeliveryFailed = true;
     }
-
-    if (token.usedAt || token.revokedAt) {
-      throw new PlatformAdminServiceError(
-        409,
-        'INVITATION_ALREADY_USED',
-        token.usedAt ? 'Invitation has already been used' : 'Invitation has already been revoked',
-      );
-    }
-
-    return token;
-  });
-
-  const targetEmail = (oldToken.targetEmail ?? oldToken.user?.email ?? '').trim().toLowerCase();
-  if (!targetEmail) {
-    throw new PlatformAdminServiceError(400, 'BAD_REQUEST', 'No email associated with invitation');
+  } catch (err) {
+    console.error('Failed to send resend email:', err);
+    emailDeliveryFailed = true;
   }
 
-  await issueAndSendInvitation({
-    actorUserId,
-    userId: oldToken.userId!,
-    email: targetEmail,
-    firstName: oldToken.user?.firstName ?? '',
-    purpose: oldToken.purpose as 'PLATFORM_ADMIN_INVITE' | 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION',
-    revocationTokenId: oldToken.id,
-  });
+  if (emailDeliveryFailed) {
+    await prisma.actionToken
+      .update({
+        where: { id: tokenRes.token.id },
+        data: {
+          revokedAt: new Date(),
+          revokedReason: 'DELIVERY_FAILED',
+        },
+      })
+      .catch(() => {});
+  }
 
-  return { success: true, emailQueued: true };
+  return { success: true, emailQueued: !emailDeliveryFailed };
 }
 
 // Transfer super admin status transactionaly with concurrency locks
@@ -571,6 +715,7 @@ export async function transferSuperAdmin(actorUserId: string, input: TransferSup
   if (
     !target ||
     target.userType !== 'IP_ADMIN' ||
+    target.authStatus !== 'ACTIVE' ||
     target.ipAdminProfile?.adminStatus !== 'ACTIVE' ||
     target.ipAdminProfile.platformAdminRole !== 'NORMAL_ADMIN'
   ) {
@@ -582,20 +727,43 @@ export async function transferSuperAdmin(actorUserId: string, input: TransferSup
   }
 
   await prisma.$transaction(async (tx) => {
-    await lockAndVerifySuperActor(
-      tx,
-      actorUserId,
-      targetUserId,
-      'STALE_SUPER_ADMIN_TRANSFER',
-      'Stale request: Current actor is no longer active super admin',
-    );
+    // Lock both User and IpAdminProfile rows
+    await tx.$queryRaw`
+      SELECT id FROM "User"
+      WHERE id IN (${actorUserId}, ${targetUserId})
+      FOR UPDATE
+    `;
+    await tx.$queryRaw`
+      SELECT id FROM "IpAdminProfile"
+      WHERE "userId" IN (${actorUserId}, ${targetUserId})
+      FOR UPDATE
+    `;
 
-    const freshTargetProfile = await tx.ipAdminProfile.findUnique({
-      where: { userId: targetUserId },
+    // Re-verify stale state inside txn
+    const freshActorProfile = await tx.ipAdminProfile.findUnique({
+      where: { userId: actorUserId },
     });
     if (
-      freshTargetProfile?.platformAdminRole !== 'NORMAL_ADMIN' ||
-      freshTargetProfile.adminStatus !== 'ACTIVE'
+      freshActorProfile?.platformAdminRole !== 'SUPER_ADMIN' ||
+      freshActorProfile.adminStatus !== 'ACTIVE'
+    ) {
+      throw new PlatformAdminServiceError(
+        409,
+        'STALE_SUPER_ADMIN_TRANSFER',
+        'Stale request: Current actor is no longer active super admin',
+      );
+    }
+
+    const freshTarget = await tx.user.findUnique({
+      where: { id: targetUserId },
+      include: { ipAdminProfile: true },
+    });
+    if (
+      !freshTarget ||
+      freshTarget.userType !== 'IP_ADMIN' ||
+      freshTarget.authStatus !== 'ACTIVE' ||
+      freshTarget.ipAdminProfile?.platformAdminRole !== 'NORMAL_ADMIN' ||
+      freshTarget.ipAdminProfile.adminStatus !== 'ACTIVE'
     ) {
       throw new PlatformAdminServiceError(
         409,
