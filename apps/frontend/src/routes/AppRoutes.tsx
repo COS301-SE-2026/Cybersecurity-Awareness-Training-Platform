@@ -18,6 +18,7 @@ import SetupPage from '../pages/SetupPage';
 import AcceptInvitePage from '../pages/AcceptInvitePage';
 import OrganisationInformationPage from '../pages/OrganisationInformationPage';
 import OrganisationSecuritySettingsPage from '../pages/OrganisationSecuritySettingsPage';
+import PlatformOrganisationManagementPage from '../pages/PlatformOrganisationManagementPage';
 
 function AppRoutes() {
   return (
@@ -68,6 +69,8 @@ function AppRoutes() {
         path="/organisation-security-preferences"
         element={<OrganisationSecuritySettingsPage />}
       />
+
+      <Route path="/organisation-management" element={<PlatformOrganisationManagementPage />} />
     </Routes>
   );
 }
