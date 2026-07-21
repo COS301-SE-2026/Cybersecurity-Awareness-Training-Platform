@@ -19,6 +19,7 @@ import {
   type SetupUserType,
 } from '../repositories/setup.repository.js';
 import { runWithConsumedActionToken, validateActionToken } from './action-token.service.js';
+import { recordAuditLog } from './audit-log.service.js';
 import { ensureActiveOrganisation } from './auth-status-guard.service.js';
 import { hashPassword } from './password.service.js';
 
@@ -214,6 +215,24 @@ export async function completeSetupWithToken(
 
     if (freshToken.invitationId) {
       await markInvitationAccepted(freshToken.invitationId, tx);
+    }
+
+    if (freshToken.purpose === 'INITIAL_ORGANISATION_ADMIN_SETUP' && freshToken.invitation) {
+      await recordAuditLog(
+        {
+          actorUserId: user.id,
+          actorType: 'ORGANISATION_ADMIN',
+          organisationId: freshToken.invitation.organisationId,
+          targetType: 'INVITATION',
+          targetId: freshToken.invitation.id,
+          actionType: 'COMPLETED',
+          outcome: 'SUCCESS',
+          metadata: {
+            milestone: 'INITIAL_ADMIN_SETUP_COMPLETED',
+          },
+        },
+        tx,
+      );
     }
 
     await seedInitialAdminPermissionsAndActivateOrg(user, freshToken, tx);
