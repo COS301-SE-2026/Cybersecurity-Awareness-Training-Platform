@@ -1025,8 +1025,8 @@
           "number": 236,
           "title": "feat: integrate email verification flow",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-07-21"
         },
         {
           "number": 235,
@@ -1790,7 +1790,7 @@
     },
     {
       "date": "2026-07-21",
-      "remaining": 80,
+      "remaining": 78,
       "ideal": 26.11
     }
   ]
