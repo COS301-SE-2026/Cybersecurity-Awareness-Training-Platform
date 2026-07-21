@@ -275,8 +275,8 @@ describe('platformOrganisation service', () => {
       expect(response.admins[0].isInitialAdmin).toBe(false);
       expect(response.timeline).toHaveLength(4);
       expect(response.timeline.map((event) => event.action)).toEqual([
-        'COMPLETED',
         'ENABLED',
+        'COMPLETED',
         'INITIAL_ORGANISATION_ADMIN_SETUP',
         'APPROVED',
       ]);

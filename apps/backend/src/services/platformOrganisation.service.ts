@@ -521,7 +521,7 @@ async function buildPlatformTimeline(
   timeline.sort((a, b) => {
     const timeDiff = new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
     if (timeDiff !== 0) return timeDiff;
-    const sequenceDiff = a.timelineSequence - b.timelineSequence;
+    const sequenceDiff = b.timelineSequence - a.timelineSequence;
     if (sequenceDiff !== 0) return sequenceDiff;
     if (b.id > a.id) return 1;
     if (b.id < a.id) return -1;
