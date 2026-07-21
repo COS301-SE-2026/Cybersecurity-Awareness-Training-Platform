@@ -329,7 +329,7 @@ describe('setup service', () => {
     );
     setupRepositoryMock.createOrganisationAdminUser.mockResolvedValue(publicAdminUser);
 
-    const organisationUpdateMock = vi.fn();
+    const organisationUpdateManyMock = vi.fn().mockResolvedValue({ count: 1 });
     const adminProfileFindFirstMock = vi.fn().mockResolvedValue({ id: 'admin-profile-1' });
     const organisationPermissionFindManyMock = vi
       .fn()
@@ -337,7 +337,7 @@ describe('setup service', () => {
     const organisationAdminPermissionCreateManyMock = vi.fn();
 
     const customTx = {
-      organisation: { update: organisationUpdateMock },
+      organisation: { updateMany: organisationUpdateManyMock },
       organisationAdminProfile: { findFirst: adminProfileFindFirstMock },
       organisationPermission: { findMany: organisationPermissionFindManyMock },
       organisationAdminPermission: { createMany: organisationAdminPermissionCreateManyMock },
@@ -367,8 +367,8 @@ describe('setup service', () => {
       },
       customTx,
     );
-    expect(organisationUpdateMock).toHaveBeenCalledWith({
-      where: { id: 'org-1' },
+    expect(organisationUpdateManyMock).toHaveBeenCalledWith({
+      where: { id: 'org-1', status: 'PENDING_ONBOARDING' },
       data: { status: 'ACTIVE' },
     });
     expect(auditLogServiceMock.recordAuditLog).toHaveBeenCalledWith(
@@ -378,7 +378,7 @@ describe('setup service', () => {
         organisationId: 'org-1',
         targetType: 'ORGANISATION',
         targetId: 'org-1',
-        actionType: 'REACTIVATED',
+        actionType: 'ENABLED',
         outcome: 'SUCCESS',
         metadata: {
           milestone: 'ORGANISATION_ACTIVATED',
@@ -398,7 +398,7 @@ describe('setup service', () => {
     expect(auditMetadataText).not.toContain('tokenHash');
     expect(auditMetadataText).not.toContain('permission');
     expect(auditLogServiceMock.recordAuditLog.mock.invocationCallOrder[0]).toBeLessThan(
-      organisationUpdateMock.mock.invocationCallOrder[0],
+      organisationUpdateManyMock.mock.invocationCallOrder[0],
     );
     expect(adminProfileFindFirstMock).toHaveBeenCalledWith({
       where: { userId: publicAdminUser.id, organisationId: 'org-1' },
@@ -417,6 +417,72 @@ describe('setup service', () => {
       ],
       skipDuplicates: true,
     });
+  });
+
+  it('does not record organisation activation when the conditional status update does not match', async () => {
+    setupRepositoryMock.findSetupActionTokenById.mockResolvedValue(
+      setupToken({
+        purpose: 'INITIAL_ORGANISATION_ADMIN_SETUP',
+        targetEmail: 'admin@example.com',
+        invitationId: 'initial-admin-invitation-1',
+        invitation: {
+          ...setupToken().invitation,
+          id: 'initial-admin-invitation-1',
+          recipientEmail: 'admin@example.com',
+          organisation: {
+            id: 'org-1',
+            name: 'Acme Security',
+            status: 'PENDING_ONBOARDING',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        },
+      }),
+    );
+    setupRepositoryMock.createOrganisationAdminUser.mockResolvedValue(publicAdminUser);
+
+    const organisationUpdateManyMock = vi.fn().mockResolvedValue({ count: 0 });
+    const adminProfileFindFirstMock = vi.fn().mockResolvedValue({ id: 'admin-profile-1' });
+    const organisationPermissionFindManyMock = vi.fn().mockResolvedValue([]);
+    const organisationAdminPermissionCreateManyMock = vi.fn();
+
+    const customTx = {
+      organisation: { updateMany: organisationUpdateManyMock },
+      organisationAdminProfile: { findFirst: adminProfileFindFirstMock },
+      organisationPermission: { findMany: organisationPermissionFindManyMock },
+      organisationAdminPermission: { createMany: organisationAdminPermissionCreateManyMock },
+    } as unknown as PrismaClient;
+
+    actionTokenServiceMock.runWithConsumedActionToken.mockImplementation(
+      async (_input, action) => ({
+        claimed: true,
+        result: await action(customTx),
+      }),
+    );
+
+    await completeSetupWithToken(rawSetupValue, completeSetupInput);
+
+    expect(organisationUpdateManyMock).toHaveBeenCalledWith({
+      where: { id: 'org-1', status: 'PENDING_ONBOARDING' },
+      data: { status: 'ACTIVE' },
+    });
+    expect(auditLogServiceMock.recordAuditLog).toHaveBeenCalledTimes(1);
+    expect(auditLogServiceMock.recordAuditLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        targetType: 'INVITATION',
+        targetId: 'initial-admin-invitation-1',
+        actionType: 'COMPLETED',
+      }),
+      customTx,
+    );
+    expect(auditLogServiceMock.recordAuditLog).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        targetType: 'ORGANISATION',
+        targetId: 'org-1',
+        actionType: 'ENABLED',
+      }),
+      expect.anything(),
+    );
   });
 
   it.each(['FAILED_TO_SEND', 'ACCEPTED', 'EXPIRED', 'REVOKED'])(

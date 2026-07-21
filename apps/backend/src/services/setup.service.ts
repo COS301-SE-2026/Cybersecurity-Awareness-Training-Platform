@@ -103,11 +103,11 @@ async function seedInitialAdminPermissionsAndActivateOrg(
 
   let organisationActivated = false;
   if (org.status === 'PENDING_ONBOARDING' && 'organisation' in tx) {
-    await tx.organisation.update({
-      where: { id: org.id },
+    const activationResult = await tx.organisation.updateMany({
+      where: { id: org.id, status: 'PENDING_ONBOARDING' },
       data: { status: 'ACTIVE' },
     });
-    organisationActivated = true;
+    organisationActivated = activationResult.count === 1;
   }
 
   if (!('organisationAdminProfile' in tx)) {
@@ -256,7 +256,7 @@ export async function completeSetupWithToken(
           organisationId: freshToken.invitation.organisation.id,
           targetType: 'ORGANISATION',
           targetId: freshToken.invitation.organisation.id,
-          actionType: 'REACTIVATED',
+          actionType: 'ENABLED',
           outcome: 'SUCCESS',
           metadata: {
             milestone: 'ORGANISATION_ACTIVATED',

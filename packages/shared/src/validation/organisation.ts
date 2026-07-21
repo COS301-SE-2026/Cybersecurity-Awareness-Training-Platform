@@ -84,6 +84,7 @@ export const timelineAuditActionSchema = z.enum([
   'RESENT',
   'ACCEPTED',
   'COMPLETED',
+  'ENABLED',
   'SUSPENDED',
   'REACTIVATED',
 ]);

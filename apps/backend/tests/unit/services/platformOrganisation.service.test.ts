@@ -202,7 +202,7 @@ describe('platformOrganisation service', () => {
       const mockAuditLogs = [
         {
           id: 'audit-3',
-          actionType: 'REACTIVATED',
+          actionType: 'ENABLED',
           targetType: 'ORGANISATION',
           createdAt: new Date('2026-07-01T08:45:00Z'),
           outcome: 'SUCCESS',
@@ -215,7 +215,7 @@ describe('platformOrganisation service', () => {
           id: 'audit-2',
           actionType: 'COMPLETED',
           targetType: 'INVITATION',
-          createdAt: new Date('2026-07-01T08:40:00Z'),
+          createdAt: new Date('2026-07-01T08:45:00Z'),
           outcome: 'SUCCESS',
           actorUser: {
             firstName: 'Bob',
@@ -275,8 +275,8 @@ describe('platformOrganisation service', () => {
       expect(response.admins[0].isInitialAdmin).toBe(false);
       expect(response.timeline).toHaveLength(4);
       expect(response.timeline.map((event) => event.action)).toEqual([
-        'REACTIVATED',
         'COMPLETED',
+        'ENABLED',
         'INITIAL_ORGANISATION_ADMIN_SETUP',
         'APPROVED',
       ]);
