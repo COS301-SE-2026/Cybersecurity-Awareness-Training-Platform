@@ -79,6 +79,14 @@ vi.mock('../../pages/SetupPage', () => ({
   default: () => <h1>Complete Setup</h1>,
 }));
 
+vi.mock('../../pages/VerifyEmailPage', () => ({
+  default: () => <h1>Verify Email</h1>,
+}));
+
+vi.mock('../../pages/ConfirmEmailChangePage', () => ({
+  default: () => <h1>Confirm Email Change</h1>,
+}));
+
 vi.mock('../../lib/campaignsApi', () => ({
   getTraineeCampaigns: vi.fn(),
   getTraineeCampaignDetail: vi.fn(),
@@ -191,6 +199,28 @@ describe('AppRoutes', () => {
 
     expect(
       await screen.findByRole('heading', { level: 1, name: /complete setup/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('renders the verify email screen at /verify-email', async () => {
+    renderAppRoutes({
+      initialEntry: '/verify-email?token=exampleVerificationTokenValueWithAtLeast32Chars',
+      isAuthenticated: false,
+    });
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: /verify email/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('renders the confirm email screen at /confirm-email-change', async () => {
+    renderAppRoutes({
+      initialEntry: '/confirm-email-change?token=exampleEmailChangeTokenValueWithAtLeast32Chars',
+      isAuthenticated: false,
+    });
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: /confirm email change/i }),
     ).toBeInTheDocument();
   });
 
