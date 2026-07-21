@@ -65,6 +65,53 @@ function deriveInvitationStatus(
   }
   return activeStatus;
 }
+// Helper to verify the actor is an active super admin and their password matches
+async function verifyActiveSuperAdminActor(actorUserId: string, passwordPlain: string) {
+  const actor = await prisma.user.findUnique({
+    where: { id: actorUserId },
+    include: { ipAdminProfile: true },
+  });
+
+  if (!actor || actor.userType !== 'IP_ADMIN' || actor.ipAdminProfile?.adminStatus !== 'ACTIVE') {
+    throw new PlatformAdminServiceError(403, 'FORBIDDEN', 'Platform admin access is required');
+  }
+  requireSuperAdmin(actor.ipAdminProfile.platformAdminRole);
+
+  const passwordMatches = await verifyPassword(passwordPlain, actor.passwordHash);
+  if (!passwordMatches) {
+    throw new PlatformAdminServiceError(
+      403,
+      'PLATFORM_ADMIN_PASSWORD_INVALID',
+      'Password confirmation failed',
+    );
+  }
+  return actor;
+}
+
+// Helper to lock target profiles and re-verify actor super admin state inside a transaction
+async function lockAndVerifySuperActor(
+  tx: any,
+  actorUserId: string,
+  targetUserId: string,
+  staleErrorCode: string,
+  staleErrorMessage: string,
+) {
+  await tx.$queryRaw`
+    SELECT id FROM "IpAdminProfile"
+    WHERE "userId" IN (${actorUserId}, ${targetUserId})
+    FOR UPDATE
+  `;
+
+  const freshActorProfile = await tx.ipAdminProfile.findUnique({
+    where: { userId: actorUserId },
+  });
+  if (
+    freshActorProfile?.platformAdminRole !== 'SUPER_ADMIN' ||
+    freshActorProfile.adminStatus !== 'ACTIVE'
+  ) {
+    throw new PlatformAdminServiceError(409, staleErrorCode, staleErrorMessage);
+  }
+}
 
 // Helper to issue action token, audit log, and send invitation email with outcome status logic
 async function issueAndSendInvitation(params: {
@@ -512,25 +559,7 @@ export async function resendPlatformAdminInvite(actorUserId: string, inviteToken
 
 // Transfer super admin status transactionaly with concurrency locks
 export async function transferSuperAdmin(actorUserId: string, input: TransferSuperAdminRequestDto) {
-  const actor = await prisma.user.findUnique({
-    where: { id: actorUserId },
-    include: { ipAdminProfile: true },
-  });
-
-  if (!actor || actor.userType !== 'IP_ADMIN' || actor.ipAdminProfile?.adminStatus !== 'ACTIVE') {
-    throw new PlatformAdminServiceError(403, 'FORBIDDEN', 'Platform admin access is required');
-  }
-  requireSuperAdmin(actor.ipAdminProfile.platformAdminRole);
-
-  const passwordMatches = await verifyPassword(input.password, actor.passwordHash);
-  if (!passwordMatches) {
-    throw new PlatformAdminServiceError(
-      403,
-      'PLATFORM_ADMIN_PASSWORD_INVALID',
-      'Password confirmation failed',
-    );
-  }
-
+  const actor = await verifyActiveSuperAdminActor(actorUserId, input.password);
   const targetUserId = input.targetUserId;
 
   const target = await prisma.user.findUnique({
@@ -552,27 +581,13 @@ export async function transferSuperAdmin(actorUserId: string, input: TransferSup
   }
 
   await prisma.$transaction(async (tx) => {
-    // Acquire pessimistic lock on the modified users to serialise concurrent transfers/demotions
-    await tx.$queryRaw`
-      SELECT id FROM "IpAdminProfile"
-      WHERE "userId" IN (${actorUserId}, ${targetUserId})
-      FOR UPDATE
-    `;
-
-    // Re-verify stale state inside txn
-    const freshActorProfile = await tx.ipAdminProfile.findUnique({
-      where: { userId: actorUserId },
-    });
-    if (
-      freshActorProfile?.platformAdminRole !== 'SUPER_ADMIN' ||
-      freshActorProfile.adminStatus !== 'ACTIVE'
-    ) {
-      throw new PlatformAdminServiceError(
-        409,
-        'STALE_SUPER_ADMIN_TRANSFER',
-        'Stale request: Current actor is no longer active super admin',
-      );
-    }
+    await lockAndVerifySuperActor(
+      tx,
+      actorUserId,
+      targetUserId,
+      'STALE_SUPER_ADMIN_TRANSFER',
+      'Stale request: Current actor is no longer active super admin',
+    );
 
     const freshTargetProfile = await tx.ipAdminProfile.findUnique({
       where: { userId: targetUserId },
@@ -689,24 +704,7 @@ export async function demotePlatformAdmin(
     );
   }
 
-  const actor = await prisma.user.findUnique({
-    where: { id: actorUserId },
-    include: { ipAdminProfile: true },
-  });
-
-  if (!actor || actor.userType !== 'IP_ADMIN' || actor.ipAdminProfile?.adminStatus !== 'ACTIVE') {
-    throw new PlatformAdminServiceError(403, 'FORBIDDEN', 'Platform admin access is required');
-  }
-  requireSuperAdmin(actor.ipAdminProfile.platformAdminRole);
-
-  const passwordMatches = await verifyPassword(input.password, actor.passwordHash);
-  if (!passwordMatches) {
-    throw new PlatformAdminServiceError(
-      403,
-      'PLATFORM_ADMIN_PASSWORD_INVALID',
-      'Password confirmation failed',
-    );
-  }
+  await verifyActiveSuperAdminActor(actorUserId, input.password);
 
   const target = await prisma.user.findUnique({
     where: { id: targetUserId },
@@ -738,27 +736,13 @@ export async function demotePlatformAdmin(
   }
 
   await prisma.$transaction(async (tx) => {
-    // Acquire pessimistic lock on the modified users to serialise concurrent transfers/demotions
-    await tx.$queryRaw`
-      SELECT id FROM "IpAdminProfile"
-      WHERE "userId" IN (${actorUserId}, ${targetUserId})
-      FOR UPDATE
-    `;
-
-    // Re-verify stale state inside txn
-    const freshActorProfile = await tx.ipAdminProfile.findUnique({
-      where: { userId: actorUserId },
-    });
-    if (
-      freshActorProfile?.platformAdminRole !== 'SUPER_ADMIN' ||
-      freshActorProfile.adminStatus !== 'ACTIVE'
-    ) {
-      throw new PlatformAdminServiceError(
-        409,
-        'SELF_DEMOTION_CONFLICT',
-        'Stale request: Current actor is no longer active super admin',
-      );
-    }
+    await lockAndVerifySuperActor(
+      tx,
+      actorUserId,
+      targetUserId,
+      'SELF_DEMOTION_CONFLICT',
+      'Stale request: Current actor is no longer active super admin',
+    );
 
     const freshTargetProfile = await tx.ipAdminProfile.findUnique({
       where: { userId: targetUserId },
