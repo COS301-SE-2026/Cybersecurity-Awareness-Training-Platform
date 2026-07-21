@@ -1,6 +1,7 @@
 import AppLayout from '../components/layout/AppLayout';
 import { Dropdown, DropdownItem } from 'flowbite-react';
-
+import { useState } from 'react';
+import BasicConfirmationModal from '../components/layout/modals/BasicConfirmationModal';
 /*
 
 HEY ZOË (INTEGRATION TEAM), PLEASE USE THESE BADGES FOR ANY BADGES YOU MAY NEED! THANK YOU! 
@@ -17,6 +18,43 @@ ADJUST WIDTH AS NECESSARY...
 */
 
 function PlatformOrganisationManagementPage() {
+  const [showBasicConfirmationModal, setShowBasicConfirmationModal] = useState(false);
+  const [confirmationTitle, setConfirmationTitle] = useState('');
+  const [confirmationMessage, setConfirmationMessage] = useState('');
+  const [confirmationButtonText, setConfirmationButtonText] = useState('');
+  const [confirmationVariant, setConfirmationVariant] = useState<'danger' | 'success' | 'default'>(
+    'default',
+  );
+
+  const openConfirmationModal = () => {
+    setShowBasicConfirmationModal(true);
+  };
+
+  const showDisableOrgModal = () => {
+    setConfirmationButtonText('Disable Organisation');
+    setConfirmationTitle('Disable Organisation');
+    setConfirmationMessage('Are you sure you want to disable this organisation?');
+    setConfirmationVariant('danger');
+    openConfirmationModal();
+  };
+
+  const showEnableOrgModal = () => {
+    setConfirmationButtonText('Re-Enable Organisation');
+    setConfirmationTitle('Re-Enable Organisation');
+    setConfirmationMessage('Are you sure you want to re-enable this organisation?');
+    setConfirmationVariant('success');
+    openConfirmationModal();
+  };
+
+  const closeConfirmationModal = () => {
+    setShowBasicConfirmationModal(false);
+  };
+
+  const handleConfirmation = () => {
+    closeConfirmationModal();
+    // INTEGRATION TO HANDLE LATER
+  };
+
   return (
     <AppLayout
       contentStyle={{
@@ -322,7 +360,10 @@ function PlatformOrganisationManagementPage() {
                         <strong>View</strong> Information
                       </a>
 
-                      <button className="cursor-pointer font-medium text-red-600 hover:underline">
+                      <button
+                        className="cursor-pointer font-medium text-red-600 hover:underline"
+                        onClick={showDisableOrgModal}
+                      >
                         <strong>Disable</strong>
                       </button>
                     </div>
@@ -379,7 +420,10 @@ function PlatformOrganisationManagementPage() {
                         <strong>View</strong> Information
                       </a>
 
-                      <button className="cursor-pointer font-medium text-emerald-600 hover:underline">
+                      <button
+                        className="cursor-pointer font-medium text-emerald-600 hover:underline"
+                        onClick={showEnableOrgModal}
+                      >
                         <strong>Re–Enable</strong>
                       </button>
                     </div>
@@ -390,6 +434,17 @@ function PlatformOrganisationManagementPage() {
           </div>
         </div>
       </div>
+
+      {showBasicConfirmationModal && (
+        <BasicConfirmationModal
+          title={confirmationTitle}
+          message={confirmationMessage}
+          confirmButtonText={confirmationButtonText}
+          confirmButtonVariant={confirmationVariant}
+          onConfirm={handleConfirmation}
+          onCancel={closeConfirmationModal}
+        ></BasicConfirmationModal>
+      )}
     </AppLayout>
   );
 }
