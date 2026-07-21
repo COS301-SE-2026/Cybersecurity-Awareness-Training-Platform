@@ -29,6 +29,43 @@ function requireSuperAdmin(actorRole: string) {
   }
 }
 
+type ActionTokenMin = {
+  usedAt?: Date | null;
+  revokedAt?: Date | null;
+  revokedReason?: string | null;
+  expiresAt?: Date | null;
+};
+
+// Helper to derive invitation lifecycle status from token state
+function deriveInvitationStatus(
+  token: ActionTokenMin | null | undefined,
+  activeStatus: 'SENT' | 'PENDING_UPGRADE' = 'SENT',
+):
+  | 'PENDING'
+  | 'SENT'
+  | 'FAILED_TO_SEND'
+  | 'ACCEPTED'
+  | 'COMPLETED'
+  | 'EXPIRED'
+  | 'REVOKED'
+  | 'REJECTED'
+  | 'PENDING_UPGRADE'
+  | null {
+  if (!token) {
+    return 'PENDING';
+  }
+  if (token.usedAt) {
+    return 'COMPLETED';
+  }
+  if (token.revokedAt) {
+    return token.revokedReason === 'DELIVERY_FAILED' ? 'FAILED_TO_SEND' : 'REVOKED';
+  }
+  if (token.expiresAt && token.expiresAt.getTime() <= Date.now()) {
+    return 'EXPIRED';
+  }
+  return activeStatus;
+}
+
 // Helper to issue action token, audit log, and send invitation email with outcome status logic
 async function issueAndSendInvitation(params: {
   actorUserId: string;
@@ -184,24 +221,11 @@ export async function listPlatformAdmins(actorUserId: string) {
       | 'EXPIRED'
       | 'REVOKED'
       | 'REJECTED'
+      | 'PENDING_UPGRADE'
       | null = null;
 
     if (admin.authStatus === 'PENDING_INVITE_SETUP') {
-      if (!activeToken) {
-        invitationStatus = 'PENDING';
-      } else if (activeToken.usedAt) {
-        invitationStatus = 'COMPLETED';
-      } else if (activeToken.revokedAt) {
-        if (activeToken.revokedReason === 'DELIVERY_FAILED') {
-          invitationStatus = 'FAILED_TO_SEND';
-        } else {
-          invitationStatus = 'REVOKED';
-        }
-      } else if (activeToken.expiresAt.getTime() <= Date.now()) {
-        invitationStatus = 'EXPIRED';
-      } else {
-        invitationStatus = 'SENT';
-      }
+      invitationStatus = deriveInvitationStatus(activeToken, 'SENT');
     }
 
     return {
@@ -245,31 +269,7 @@ export async function listPlatformAdmins(actorUserId: string) {
     .filter((token) => token.user && !mappedAdmins.some((ma) => ma.id === token.user?.id))
     .map((token) => {
       const user = token.user!;
-      let invitationStatus:
-        | 'PENDING'
-        | 'SENT'
-        | 'FAILED_TO_SEND'
-        | 'ACCEPTED'
-        | 'COMPLETED'
-        | 'EXPIRED'
-        | 'REVOKED'
-        | 'REJECTED'
-        | 'PENDING_UPGRADE'
-        | null = null;
-
-      if (token.usedAt) {
-        invitationStatus = 'COMPLETED';
-      } else if (token.revokedAt) {
-        if (token.revokedReason === 'DELIVERY_FAILED') {
-          invitationStatus = 'FAILED_TO_SEND';
-        } else {
-          invitationStatus = 'REVOKED';
-        }
-      } else if (token.expiresAt && token.expiresAt.getTime() <= Date.now()) {
-        invitationStatus = 'EXPIRED';
-      } else {
-        invitationStatus = 'PENDING_UPGRADE';
-      }
+      const invitationStatus = deriveInvitationStatus(token, 'PENDING_UPGRADE');
 
       return {
         id: user.id,
@@ -794,7 +794,7 @@ export async function demotePlatformAdmin(
     });
 
     // Ensure TraineeProfile exists
-    let traineeProfile = await tx.traineeProfile.findUnique({
+    const traineeProfile = await tx.traineeProfile.findUnique({
       where: { userId: targetUserId },
     });
     let traineeProfileId: string = targetUserId;
