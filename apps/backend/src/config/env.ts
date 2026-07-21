@@ -17,6 +17,7 @@ const EnvSchema = z.object({
   AUTH_TOKEN_EXPIRES_IN_SECONDS: z.coerce.number().default(60 * 60 * 8),
   AUTH_RATE_LIMIT_WINDOW_MS: z.coerce.number().default(60 * 1000),
   AUTH_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().default(5),
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).default(0),
   SMTP_HOST: z.string().default('localhost'),
   SMTP_PORT: z.coerce.number().default(1025),
   SMTP_SECURE: smtpSecureSchema,

@@ -29,15 +29,24 @@ jobs:
     timeout-minutes: 5
 
     env:
+      POSTGRES_DB: insightful_phish_ci
+      POSTGRES_USER: insightful_phish
       POSTGRES_PASSWORD: ci-local-postgres-password
       DEMO_SEED_PASSWORD: ci-local-demo-password
+      AUTH_TOKEN_SECRET: ci-auth-token-secret-that-is-very-long-indeed
+      FRONTEND_ORIGIN: https://insightfulphish.co.za
+      VITE_API_BASE_URL: https://api.insightfulphish.co.za
+      SMTP_FROM_ADDRESS: noreply@insightfulphish.co.za
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Validate Docker Compose config
-        run: docker compose --profile tools config
+      - name: Validate local Docker Compose config
+        run: docker compose --profile tools config --quiet
+
+      - name: Validate deployment Docker Compose config
+        run: docker compose --env-file deploy/.env.example -f docker-compose.deploy.yml config --quiet
 
   docker-build-backend:
     name: Docker Build (Backend)
@@ -45,7 +54,7 @@ jobs:
     permissions:
       contents: read
     timeout-minutes: 15
-    continue-on-error: true
+    continue-on-error: false
 
     steps:
       - name: Checkout repository
@@ -69,7 +78,7 @@ jobs:
     permissions:
       contents: read
     timeout-minutes: 15
-    continue-on-error: true
+    continue-on-error: false
 
     steps:
       - name: Checkout repository
@@ -84,6 +93,8 @@ jobs:
           context: .
           file: apps/frontend/Dockerfile
           push: false
+          build-args: |
+            VITE_API_BASE_URL=https://api.insightfulphish.co.za
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,scope=frontend,mode=max
 
