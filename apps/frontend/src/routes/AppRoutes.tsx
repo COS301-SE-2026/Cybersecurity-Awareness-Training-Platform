@@ -19,6 +19,7 @@ import AcceptInvitePage from '../pages/AcceptInvitePage';
 import VerifyEmailPage from '../pages/VerifyEmailPage';
 import ConfirmEmailChangePage from '../pages/ConfirmEmailChangePage';
 import OrganisationInformationPage from '../pages/OrganisationInformationPage';
+import OrganisationSecuritySettingsPage from '../pages/OrganisationSecuritySettingsPage';
 
 function AppRoutes() {
   return (
@@ -66,6 +67,10 @@ function AppRoutes() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/organisation-information" element={<OrganisationInformationPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
+      <Route
+        path="/organisation-security-preferences"
+        element={<OrganisationSecuritySettingsPage />}
+      />
     </Routes>
   );
 }
