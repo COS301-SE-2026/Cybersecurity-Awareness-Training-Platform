@@ -1,15 +1,17 @@
-import type {
-  AccountVerifyEmailChangeRequestDto,
-  AccountVerifyEmailChangeResponseDto,
-  ActionTokenStateDto,
-  AuthLoginRequestDto,
-  AuthLoginResponseDto,
-  AuthMeResponseDto,
-  AuthRegisterResponseDto,
-  AuthVerifyEmailRequestDto,
-  AuthVerifyEmailResponseDto,
-  SetupCompleteResponseDto,
-  SetupTokenContextResponseDto,
+import {
+  type AccountVerifyEmailChangeRequestDto,
+  type AccountVerifyEmailChangeResponseDto,
+  type ActionTokenStateDto,
+  type AuthLoginRequestDto,
+  type AuthLoginResponseDto,
+  type AuthMeResponseDto,
+  type AuthRegisterResponseDto,
+  type AuthResetPasswordRequestDto,
+  type AuthVerifyEmailRequestDto,
+  type AuthVerifyEmailResponseDto,
+  type SetupCompleteResponseDto,
+  type SetupTokenContextResponseDto,
+  type SuccessResponseDto,
 } from '@insightful-phish/shared';
 import { apiClient } from '../lib/apiClient';
 
@@ -73,6 +75,16 @@ export function registerUser(payload: RegisterUserPayload): Promise<AuthRegister
   return apiClient.post<AuthRegisterResponseDto, RegisterUserPayload>('/auth/register', payload, {
     credentials: 'include',
   });
+}
+
+export function resetPassword(payload: AuthResetPasswordRequestDto): Promise<SuccessResponseDto> {
+  return apiClient.post<SuccessResponseDto, AuthResetPasswordRequestDto>(
+    '/auth/reset-password',
+    payload,
+    {
+      credentials: 'include',
+    },
+  );
 }
 
 export function resendVerification(payload: {

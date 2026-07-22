@@ -2,6 +2,7 @@ import type { z } from 'zod';
 import type {
   authLoginRequestSchema,
   authRegisterRequestSchema,
+  authResetPasswordRequestSchema,
   setupCompleteRequestSchema,
   setupTokenParamsSchema,
   authVerifyEmailRequestSchema,
@@ -14,6 +15,7 @@ export type AuthVerifyEmailRequestDto = z.infer<typeof authVerifyEmailRequestSch
 export type AccountVerifyEmailChangeRequestDto = z.infer<
   typeof accountVerifyEmailChangeRequestSchema
 >;
+export type AuthResetPasswordRequestDto = z.infer<typeof authResetPasswordRequestSchema>;
 
 export type ActionTokenStateDto = 'VALID' | 'INVALID' | 'EXPIRED' | 'USED' | 'REVOKED';
 
