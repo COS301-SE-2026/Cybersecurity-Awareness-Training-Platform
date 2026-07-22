@@ -997,8 +997,8 @@
           "number": 240,
           "title": "feat: integrate forgot password flow",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-07-22"
         },
         {
           "number": 239,
@@ -1795,7 +1795,7 @@
     },
     {
       "date": "2026-07-22",
-      "remaining": 78,
+      "remaining": 76,
       "ideal": 20.89
     }
   ]

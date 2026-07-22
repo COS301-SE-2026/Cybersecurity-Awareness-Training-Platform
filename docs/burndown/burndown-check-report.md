@@ -1,6 +1,6 @@
 # Burndown Check Report
 
-Last run: 2026-07-22 20:49:42 SAST
+Last run: 2026-07-22 21:03:05 SAST
 
 - #207 fix: seed campaign creator relation after Prisma schema update closed 1 day after Sprint 3 (Demo 2) ended.
 - #184 chore: clean trainee terminology and small frontend test warnings closed 1 day after Sprint 3 (Demo 2) ended.
@@ -15,6 +15,7 @@ Last run: 2026-07-22 20:49:42 SAST
 - #264 feat: build frontend accept invite and role change page closed 1 day after Sprint 4 (Demo 2) ended.
 - #263 docs: define SRS use case UC-07 accept organisation invitation closed 7 days after Sprint 4 (Demo 2) ended.
 - #252 feat: integrate organisation registration request flow closed 1 day after Sprint 4 (Demo 2) ended.
+- #240 feat: integrate forgot password flow closed 10 days after Sprint 4 (Demo 2) ended.
 - #237 feat: integrate registration and setup flows closed 1 day after Sprint 4 (Demo 2) ended.
 - #236 feat: integrate email verification flow closed 9 days after Sprint 4 (Demo 2) ended.
 - #221 docs: design Sprint 4 email bodies closed 3 days after Sprint 4 (Demo 2) ended.
