@@ -1,5 +1,5 @@
 type BasicConfirmationModalProps = Readonly<{
-  title?: string;
+  title: string;
   message: string;
   confirmButtonText: string;
   onConfirm: () => void;
@@ -15,6 +15,15 @@ function BasicConfirmationModal({
   onCancel,
   confirmButtonVariant,
 }: BasicConfirmationModalProps) {
+  const confirmButtonClasses = {
+    danger:
+      'text-white bg-danger box-border border border-transparent hover:bg-danger-strong focus:ring-4 focus:ring-danger-medium shadow-xs font-regular cursor-pointer tracking-wider leading-5 text-[1.1rem] px-4 py-2.5 focus:outline-none',
+    success:
+      'text-white bg-emerald-500 box-border border border-transparent hover:bg-emerald-600 focus:ring-4 focus:ring-danger-medium shadow-xs font-regular cursor-pointer tracking-wider leading-5 text-[1.1rem] px-4 py-2.5 focus:outline-none',
+    default:
+      'text-white bg-main-purple box-border border border-transparent hover:bg-main-purple focus:ring-4 focus:ring-danger-medium shadow-xs font-regular cursor-pointer tracking-wider leading-5 text-[1.1rem] px-4 py-2.5 focus:outline-none',
+  };
+
   return (
     <div
       id="popup-modal"
@@ -59,7 +68,8 @@ function BasicConfirmationModal({
                 onClick={onConfirm}
                 data-modal-hide="popup-modal"
                 type="button"
-                className="text-white bg-danger box-border border border-transparent hover:bg-danger-strong focus:ring-4 focus:ring-danger-medium shadow-xs font-regular cursor-pointer tracking-wider leading-5 text-[1.1rem] px-4 py-2.5 focus:outline-none"
+                className={confirmButtonClasses[confirmButtonVariant]}
+                // className="text-white bg-danger box-border border border-transparent hover:bg-danger-strong focus:ring-4 focus:ring-danger-medium shadow-xs font-regular cursor-pointer tracking-wider leading-5 text-[1.1rem] px-4 py-2.5 focus:outline-none"
               >
                 {confirmButtonText}
               </button>

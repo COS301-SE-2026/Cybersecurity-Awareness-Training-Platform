@@ -30,6 +30,7 @@ function PlatformOrganisationManagementPage() {
     setShowBasicConfirmationModal(true);
   };
 
+  // DIFFERENT KINDS OF BASIC CONFIRMATION MODALS
   const showDisableOrgModal = () => {
     setConfirmationButtonText('Disable Organisation');
     setConfirmationTitle('Disable Organisation');
@@ -435,6 +436,7 @@ function PlatformOrganisationManagementPage() {
         </div>
       </div>
 
+      {/* BASIC CONFIRMATION MODAL  */}
       {showBasicConfirmationModal && (
         <BasicConfirmationModal
           title={confirmationTitle}
