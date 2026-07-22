@@ -18,6 +18,126 @@ ADJUST WIDTH AS NECESSARY...
 
 */
 
+interface Organisation {
+  id: number;
+  name: string;
+  size: number;
+  website: string;
+  representative: string;
+  requestStatus: 'Pending' | 'Contacted' | 'Rejected' | 'Approved Waiting Setup' | 'Approved';
+  organisationStatus: 'Pending' | 'Onboarding' | 'Active' | 'Suspended' | 'Disabled';
+}
+
+// MOCK DATA
+// REPLACE WITH THE REAL DEAL
+const mockOrganisations: Organisation[] = [
+  {
+    id: 1,
+    name: 'Big Red Paper Company (Pty) Ltd',
+    size: 1,
+    website: 'https://bigredpaper.com',
+    representative: 'Andrew Bernard',
+    requestStatus: 'Pending',
+    organisationStatus: 'Pending',
+  },
+  {
+    id: 2,
+    name: 'Michael Scott Paper Company (Pty) Ltd',
+    size: 3,
+    website: 'https://mgscottpaper.com',
+    representative: 'Michael Scott',
+    requestStatus: 'Approved',
+    organisationStatus: 'Disabled',
+  },
+  {
+    id: 2,
+    name: 'Dunder Mifflin',
+    size: 3,
+    website: 'https://dmpaper.com',
+    representative: 'David Wallace',
+    requestStatus: 'Approved',
+    organisationStatus: 'Active',
+  },
+];
+
+const getRequestStatusBadge = (status: Organisation['requestStatus']) => {
+  switch (status) {
+    case 'Pending':
+      return (
+        <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-default text-heading text-sm font-medium bg-neutral-primary-soft">
+          Pending
+        </span>
+      );
+
+    case 'Contacted':
+      return (
+        <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-default-medium text-heading text-sm font-medium bg-neutral-secondary-medium">
+          Contacted
+        </span>
+      );
+
+    case 'Rejected':
+      return (
+        <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-danger-subtle text-fg-danger-strong text-sm font-medium bg-danger-soft">
+          Rejected
+        </span>
+      );
+
+    case 'Approved Waiting Setup':
+      return (
+        <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-brand-subtle text-fg-brand-strong text-sm font-medium bg-brand-softer">
+          Approved Waiting Setup
+        </span>
+      );
+
+    case 'Approved':
+      return (
+        <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-success-subtle text-fg-success-strong text-sm font-medium bg-success-soft">
+          Approved
+        </span>
+      );
+  }
+};
+
+const getOrganisationStatusBadge = (status: Organisation['organisationStatus']) => {
+  switch (status) {
+    case 'Pending':
+      return (
+        <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-default text-heading text-sm font-medium bg-neutral-primary-soft">
+          Pending
+        </span>
+      );
+
+    case 'Onboarding':
+      return (
+        <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-brand-subtle text-fg-brand-strong text-sm font-medium bg-brand-softer">
+          Onboarding
+        </span>
+      );
+
+    case 'Active':
+      return (
+        <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-success-subtle text-fg-success-strong text-sm font-medium bg-success-soft">
+          Active
+        </span>
+      );
+
+    case 'Disabled':
+      return (
+        <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-default-medium text-heading text-sm font-medium bg-neutral-secondary-medium">
+          Disabled
+        </span>
+      );
+
+    case 'Suspended':
+      return (
+        <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-danger-subtle text-fg-danger-strong text-sm font-medium bg-danger-soft">
+          Suspended
+        </span>
+      );
+  }
+};
+
 function PlatformOrganisationManagementPage() {
   const [showBasicConfirmationModal, setShowBasicConfirmationModal] = useState(false);
   const [confirmationTitle, setConfirmationTitle] = useState('');
@@ -26,6 +146,24 @@ function PlatformOrganisationManagementPage() {
   const [confirmationVariant, setConfirmationVariant] = useState<'danger' | 'success' | 'default'>(
     'default',
   );
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredOrganisations = mockOrganisations.filter((organisation) => {
+    const search = searchTerm.toLowerCase();
+
+    return [
+      organisation.name,
+      organisation.size,
+      organisation.website,
+      organisation.representative,
+      organisation.requestStatus,
+      organisation.organisationStatus,
+    ]
+      .join(' ')
+      .toLowerCase()
+      .includes(searchTerm);
+  });
+
   const [
     showReviewOrganisationRegistrationRequestModal,
     setShowReviewOrganisationRegistrationRequestModal,
@@ -140,6 +278,8 @@ function PlatformOrganisationManagementPage() {
                       <input
                         type="text"
                         id="simple-search"
+                        value={searchTerm}
+                        onChange={(event) => setSearchTerm(event.target.value)}
                         className="font-jost tracking-wide block w-full p-2 pl-10 text-[1.1rem] h-[2.55rem] text-black border border-gray-300 bg-white focus:ring-primary-500 focus:border-primary-500"
                         placeholder="Search Organisations"
                       />
