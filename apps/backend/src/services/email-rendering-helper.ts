@@ -28,6 +28,10 @@ export type BrandedEmailLayoutInput = {
   supportEmailAddress?: string;
 };
 
+export type BrandedEmailRenderOptions = {
+  render?: (input: BrandedEmailLayoutInput) => EmailRenderResult;
+};
+
 export class BrandedEmailInputError extends Error {
   constructor(message: string) {
     super(message);
@@ -47,6 +51,7 @@ export const EMAIL_DESIGN_TOKENS = {
 } as const;
 
 const FONT_STACK = 'Jost, Arial, Helvetica, sans-serif';
+const DEFAULT_SUPPORT_EMAIL_ADDRESS = 'support@insightfulphish.co.za';
 
 export function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (character) => {
@@ -104,6 +109,10 @@ export function buildSupportMailtoHref(
 export function plainTextSupportLine(supportEmailAddress: string): string {
   assertEmailAddress(supportEmailAddress);
   return `You can reach support by emailing ${supportEmailAddress}.`;
+}
+
+function resolveSupportEmailAddress(configured: string | undefined, override?: string): string {
+  return override ?? configured ?? DEFAULT_SUPPORT_EMAIL_ADDRESS;
 }
 
 function renderPreviewText(previewText?: string): string {
@@ -207,7 +216,10 @@ export function renderBrandedEmail(input: BrandedEmailLayoutInput): EmailRenderR
     assertSafeActionUrl(input.cta.url);
   }
 
-  const supportEmailAddress = input.supportEmailAddress ?? env.SUPPORT_EMAIL_ADDRESS;
+  const supportEmailAddress = resolveSupportEmailAddress(
+    env.SUPPORT_EMAIL_ADDRESS,
+    input.supportEmailAddress,
+  );
   if (input.support) {
     assertEmailAddress(supportEmailAddress);
   }
@@ -245,4 +257,19 @@ export function renderBrandedEmail(input: BrandedEmailLayoutInput): EmailRenderR
     text: renderPlainText(input, supportEmailAddress),
     html,
   };
+}
+
+export function renderBrandedEmailOrFallback(
+  input: BrandedEmailLayoutInput,
+  fallback: EmailRenderResult,
+  options: BrandedEmailRenderOptions = {},
+): EmailRenderResult {
+  try {
+    return options.render ? options.render(input) : renderBrandedEmail(input);
+  } catch (error) {
+    if (error instanceof BrandedEmailInputError) {
+      throw error;
+    }
+    return fallback;
+  }
 }
