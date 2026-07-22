@@ -33,7 +33,7 @@ interface Organisation {
 const mockOrganisations: Organisation[] = [
   {
     id: 1,
-    name: 'Big Red Paper Company (Pty) Ltd',
+    name: 'Big Red Paper Company',
     size: 1,
     website: 'https://bigredpaper.com',
     representative: 'Andrew Bernard',
@@ -42,7 +42,7 @@ const mockOrganisations: Organisation[] = [
   },
   {
     id: 2,
-    name: 'Michael Scott Paper Company (Pty) Ltd',
+    name: 'Michael Scott Paper Company',
     size: 3,
     website: 'https://mgscottpaper.com',
     representative: 'Michael Scott',
@@ -50,9 +50,9 @@ const mockOrganisations: Organisation[] = [
     organisationStatus: 'Disabled',
   },
   {
-    id: 2,
-    name: 'Dunder Mifflin',
-    size: 3,
+    id: 3,
+    name: 'Dunder Mifflin Paper Company',
+    size: 10000,
     website: 'https://dmpaper.com',
     representative: 'David Wallace',
     requestStatus: 'Approved',
@@ -64,7 +64,7 @@ const getRequestStatusBadge = (status: Organisation['requestStatus']) => {
   switch (status) {
     case 'Pending':
       return (
-        <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-default text-heading text-sm font-medium bg-neutral-primary-soft">
+        <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-warning-subtle text-fg-warning text-sm font-medium bg-warning-soft">
           Pending
         </span>
       );
@@ -103,7 +103,7 @@ const getOrganisationStatusBadge = (status: Organisation['organisationStatus']) 
   switch (status) {
     case 'Pending':
       return (
-        <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-default text-heading text-sm font-medium bg-neutral-primary-soft">
+        <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-warning-subtle text-fg-warning text-sm font-medium bg-warning-soft">
           Pending
         </span>
       );
@@ -161,7 +161,7 @@ function PlatformOrganisationManagementPage() {
     ]
       .join(' ')
       .toLowerCase()
-      .includes(searchTerm);
+      .includes(search);
   });
 
   const [
@@ -361,7 +361,7 @@ function PlatformOrganisationManagementPage() {
           </div>
 
           <h3 className="font-jost text-2xl text-dark-pink tracking-wider font-medium mb-3">
-            Organisations (3)
+            Organisations ({filteredOrganisations.length})
           </h3>
           {/* YOU CAN ADD THE ORG COUNT HERE (IN THE HEADING), IF YOU WANT TO  */}
 
@@ -416,177 +416,91 @@ function PlatformOrganisationManagementPage() {
               </thead>
               <tbody className="font-overpass font-regular text-[1rem] tracking-wide">
                 {/* MOCK ORGANISATION 1 */}
-                <tr className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default">
-                  {/* Organisation Name */}
-                  <td className="px-6 py-4">Big Red Paper Company (Pty) Ltd</td>
+                {filteredOrganisations.map((organisation) => (
+                  <tr
+                    key={organisation.id}
+                    className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default"
+                  >
+                    {/* Organisation Name */}
+                    <td className="px-6 py-4">{organisation.name}</td>
 
-                  {/* Organisation Size (Approx. # of Employees) */}
-                  <td className="px-6 py-4">10</td>
+                    {/* Organisation Size (Approx. # of Employees) */}
+                    <td className="px-6 py-4">{organisation.size}</td>
 
-                  {/* Website */}
-                  <td className="px-6 py-4">
-                    <a
-                      href="https://bigredpaper.co.za"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-fg-brand hover:underline font-google_sans_code"
-                    >
-                      www.bigredpaper.co.za
-                    </a>
-                  </td>
-
-                  {/* Representative */}
-                  <td className="px-6 py-4">Law Roach</td>
-
-                  {/* Request Status */}
-                  <td className="px-6 py-4">
-                    <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-warning-subtle text-fg-warning text-sm font-medium bg-warning-soft">
-                      Pending
-                    </span>
-                  </td>
-
-                  {/* Organisation Status */}
-                  <td className="px-6 py-4">
-                    <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-warning-subtle text-fg-warning text-sm font-medium bg-warning-soft">
-                      Pending
-                    </span>
-                  </td>
-
-                  {/* Actions */}
-                  <td className="px-6 py-4">
-                    {/* PLEASE NOTE THAT THIS WILL CHANGE DEPENDING ON THE STATE */}
-                    <div className="grid grid-cols-1 gap-1 justify-items-start">
-                      <button
-                        onClick={openReviewOrganisationRegistrationRequestModal}
-                        className="cursor-pointer font-medium text-purple hover:underline"
-                      >
-                        <strong>Review</strong> Request
-                      </button>
-
-                      {/* Add more actions here...  */}
-                    </div>
-                  </td>
-                </tr>
-
-                {/* MOCK ORGANISATION 2 */}
-                <tr className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default">
-                  {/* Organisation Name */}
-                  <td className="px-6 py-4">Big Red Paper Company (Pty) Ltd</td>
-
-                  {/* Organisation Size (Approx. # of Employees) */}
-                  <td className="px-6 py-4">10</td>
-
-                  {/* Website */}
-                  <td className="px-6 py-4">
-                    <a
-                      href="https://bigredpaper.co.za"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-fg-brand hover:underline font-google_sans_code"
-                    >
-                      www.bigredpaper.co.za
-                    </a>
-                  </td>
-
-                  {/* Representative */}
-                  <td className="px-6 py-4">Law Roach</td>
-
-                  {/* Request Status */}
-                  <td className="px-6 py-4">
-                    <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-success-subtle text-fg-success-strong text-sm font-medium bg-success-soft">
-                      Approved
-                    </span>
-                  </td>
-
-                  {/* Organisation Status */}
-                  <td className="px-6 py-4">
-                    <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-success-subtle text-fg-success-strong text-sm font-medium bg-success-soft">
-                      Active
-                    </span>
-                  </td>
-
-                  {/* Actions */}
-                  <td className="px-6 py-4">
-                    {/* PLEASE NOTE THAT THIS WILL CHANGE DEPENDING ON THE STATE */}
-                    <div className="grid grid-cols-1 gap-1 justify-items-start">
+                    {/* Website */}
+                    <td className="px-6 py-4">
                       <a
-                        href="/organisation-information"
-                        className=" cursor-pointer font-medium text-purple hover:underline"
+                        href={organisation.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-fg-brand hover:underline font-google_sans_code"
                       >
-                        {/* THIS GOES TO THE ORGANISATION INFORMATION PAGE */}
-                        <strong>View</strong> Information
+                        {organisation.website}
                       </a>
+                    </td>
 
-                      <button
-                        className="cursor-pointer font-medium text-red-600 hover:underline"
-                        onClick={showDisableOrgModal}
-                      >
-                        <strong>Disable</strong>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+                    {/* Representative */}
+                    <td className="px-6 py-4">{organisation.representative}</td>
 
-                {/* MOCK ORGANISATION 3 */}
-                {/* Don't forget to remove the border-b from the last item (in this case, Mock Org 3) */}
-                <tr className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-default">
-                  {/* Organisation Name */}
-                  <td className="px-6 py-4">Big Red Paper Company (Pty) Ltd</td>
+                    {/* Request Status */}
+                    <td className="px-6 py-4">
+                      {getRequestStatusBadge(organisation.requestStatus)}
+                    </td>
 
-                  {/* Organisation Size (Approx. # of Employees) */}
-                  <td className="px-6 py-4">10</td>
+                    {/* Organisation Status */}
+                    <td className="px-6 py-4">
+                      {getOrganisationStatusBadge(organisation.organisationStatus)}
+                    </td>
 
-                  {/* Website */}
-                  <td className="px-6 py-4">
-                    <a
-                      href="https://bigredpaper.co.za"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-fg-brand hover:underline font-google_sans_code"
-                    >
-                      www.bigredpaper.co.za
-                    </a>
-                  </td>
+                    {/* Actions */}
+                    <td className="px-6 py-4">
+                      {/* PLEASE NOTE THAT THIS WILL CHANGE DEPENDING ON THE STATE */}
+                      <div className="grid grid-cols-1 gap-1 justify-items-start">
+                        <button
+                          onClick={openReviewOrganisationRegistrationRequestModal}
+                          className="cursor-pointer font-medium text-purple hover:underline"
+                        >
+                          <strong>Review</strong> Request
+                        </button>
 
-                  {/* Representative */}
-                  <td className="px-6 py-4">Law Roach</td>
+                        {/* Add more actions here...  */}
+                        <a
+                          href="/organisation-information"
+                          className=" cursor-pointer font-medium text-purple hover:underline"
+                        >
+                          {/* THIS GOES TO THE ORGANISATION INFORMATION PAGE */}
+                          <strong>View</strong> Information
+                        </a>
 
-                  {/* Request Status */}
-                  <td className="px-6 py-4">
-                    <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-success-subtle text-fg-success-strong text-sm font-medium bg-success-soft">
-                      Approved
-                    </span>
-                  </td>
+                        <button
+                          className="cursor-pointer font-medium text-emerald-600 hover:underline"
+                          onClick={showEnableOrgModal}
+                        >
+                          <strong>Re–Enable</strong>
+                        </button>
 
-                  {/* Organisation Status */}
-                  <td className="px-6 py-4">
-                    <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-danger-subtle text-fg-danger-strong text-sm font-medium bg-danger-soft">
-                      Disabled
-                    </span>
-                  </td>
-
-                  {/* Actions */}
-                  <td className="px-6 py-4">
-                    {/* PLEASE NOTE THAT THIS WILL CHANGE DEPENDING ON THE STATE */}
-                    <div className="grid grid-cols-1 gap-1 justify-items-start">
-                      <a
-                        href="/organisation-information"
-                        className=" cursor-pointer font-medium text-purple hover:underline"
-                      >
-                        {/* THIS GOES TO THE ORGANISATION INFORMATION PAGE */}
-                        <strong>View</strong> Information
-                      </a>
-
-                      <button
-                        className="cursor-pointer font-medium text-emerald-600 hover:underline"
-                        onClick={showEnableOrgModal}
-                      >
-                        <strong>Re–Enable</strong>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+                        <button
+                          className="cursor-pointer font-medium text-red-600 hover:underline"
+                          onClick={showDisableOrgModal}
+                        >
+                          <strong>Disable</strong>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
+
+              {filteredOrganisations.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={7}
+                    className="py-8 text-center text-[1.2rem] tracking-wider text-red-500 font-jost"
+                  >
+                    No Organisations Found
+                  </td>
+                </tr>
+              )}
             </table>
           </div>
         </div>
