@@ -22,7 +22,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   format:
@@ -423,3 +423,139 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: pnpm build:frontend
+
+  docker-compose-config:
+    name: Docker Compose Config
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 5
+
+    env:
+      POSTGRES_DB: insightful_phish_ci
+      POSTGRES_USER: insightful_phish
+      POSTGRES_PASSWORD: ci-local-postgres-password
+      DEMO_SEED_PASSWORD: ci-local-demo-password
+      AUTH_TOKEN_SECRET: ci-auth-token-secret-that-is-very-long-indeed
+      FRONTEND_ORIGIN: https://insightfulphish.co.za
+      VITE_API_BASE_URL: https://api.insightfulphish.co.za
+      SMTP_FROM_ADDRESS: noreply@insightfulphish.co.za
+      BACKEND_IMAGE: ghcr.io/example/insightfulphish/backend:ci
+      FRONTEND_IMAGE: ghcr.io/example/insightfulphish/frontend:ci
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Validate local Docker Compose config
+        run: docker compose --profile tools config --quiet
+
+      - name: Validate deployment Docker Compose config
+        run: docker compose --env-file deploy/.env.example -f docker-compose.deploy.yml config --quiet
+
+  docker-build-backend:
+    name: Docker Build & Publish (Backend)
+    needs:
+      - format
+      - lint
+      - typecheck
+      - unit-tests-backend
+      - unit-tests-frontend
+      - unit-tests-shared
+      - integration-tests
+      - build
+      - docker-compose-config
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    timeout-minutes: 15
+    continue-on-error: false
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f95db51fddba0c2d1ec667646a06c2ce06100226 # v3.0.0
+
+      - name: Log into GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # 4.4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Publish Backend Image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: .
+          file: apps/backend/Dockerfile
+          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/dev' }}
+          tags: |
+            ${{ vars.GHCR_IMAGE_PREFIX }}/backend:${{github.sha}}
+            ${{ vars.GHCR_IMAGE_PREFIX }}/backend:dev
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,scope=backend,mode=max
+
+  docker-build-frontend:
+    name: Docker Build & Publish (Frontend)
+    needs:
+      - format
+      - lint
+      - typecheck
+      - unit-tests-backend
+      - unit-tests-frontend
+      - unit-tests-shared
+      - integration-tests
+      - build
+      - docker-compose-config
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    timeout-minutes: 15
+    continue-on-error: false
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f95db51fddba0c2d1ec667646a06c2ce06100226 # v3.0.0
+
+      - name: Log into GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # 4.4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Publish Frontend Image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: .
+          file: apps/frontend/Dockerfile
+          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/dev' }}
+          build-args: |
+            VITE_API_BASE_URL=https://api.insightfulphish.co.za
+                    tags: |
+            ${{ vars.GHCR_IMAGE_PREFIX }}/frontend:${{github.sha}}
+            ${{ vars.GHCR_IMAGE_PREFIX }}/frontend:dev
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,scope=frontend,mode=max
+
+  deploy-development:
+    name: Deploy Development (Temporary)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    needs:
+      - docker-build-backend
+      - docker-build-frontend
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 20
+    concurrency:
+      group: insightfulphish-development
+      cancel-in-progress: false
