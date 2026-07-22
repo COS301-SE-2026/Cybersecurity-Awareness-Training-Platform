@@ -4,6 +4,7 @@ import { z } from 'zod';
 dotenv.config();
 
 const DEMO_AUTH_TOKEN_SECRET = 'this-is-a-demo-auth-secret-token-change-before-production';
+const DEFAULT_SUPPORT_EMAIL_ADDRESS = 'support@insightfulphish.co.za';
 
 const optionalNonEmptyString = z.string().optional().transform((value) => (value && value.trim().length > 0 ? value: undefined));
 const smtpSecureSchema = z.enum(['true','false']).default('false').transform((value) => value === 'true');
@@ -22,6 +23,7 @@ const EnvSchema = z.object({
   SMTP_SECURE: smtpSecureSchema,
   SMTP_FROM_ADDRESS: z.string().email().default('noreply@insightful-phish.local'),
   SMTP_FROM_NAME: z.string().default('Insightful Phish'),
+  SUPPORT_EMAIL_ADDRESS: z.string().email().default(DEFAULT_SUPPORT_EMAIL_ADDRESS),
   SMTP_USER: optionalNonEmptyString,
   SMTP_PASSWORD: optionalNonEmptyString,
 }).superRefine((value, context) => {
