@@ -142,6 +142,11 @@ function ReviewOrganisationRegistrationRequstModal({
                 <span>Decline</span>
               </button>
             </div>
+
+            <button className="mt-2 inline-flex w-full justify-center items-center gap-2 font-jost text-[1.2rem] font-regular tracking-wide text-purple hover:text-purple cursor-pointer transition-colours">
+              <span className="material-symbols-sharp">contact_page</span>
+              <span className="hover:underline">Mark as Contacted</span>
+            </button>
           </div>
         </div>
       </div>
