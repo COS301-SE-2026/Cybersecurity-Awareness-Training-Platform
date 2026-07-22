@@ -494,7 +494,7 @@ jobs:
           file: apps/backend/Dockerfile
           push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/dev' }}
           tags: |
-            ${{ vars.GHCR_IMAGE_PREFIX }}/backend:${{github.sha}}
+            ${{ vars.GHCR_IMAGE_PREFIX }}/backend:${{ github.sha }}
             ${{ vars.GHCR_IMAGE_PREFIX }}/backend:dev
           cache-from: type=gha,scope=backend
           cache-to: type=gha,scope=backend,mode=max
@@ -541,7 +541,7 @@ jobs:
           push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/dev' }}
           build-args: |
             VITE_API_BASE_URL=https://api.insightfulphish.co.za
-                    tags: |
+          tags: |
             ${{ vars.GHCR_IMAGE_PREFIX }}/frontend:${{github.sha}}
             ${{ vars.GHCR_IMAGE_PREFIX }}/frontend:dev
           cache-from: type=gha,scope=frontend
@@ -554,7 +554,8 @@ jobs:
       - docker-build-backend
       - docker-build-frontend
     runs-on: ubuntu-latest
-    environment: production
+    environment:
+      name: development
     timeout-minutes: 20
     concurrency:
       group: insightfulphish-development
