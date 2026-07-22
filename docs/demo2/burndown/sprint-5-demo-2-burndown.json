@@ -4,6 +4,13 @@
   "end": "2026-07-26",
   "issues": [
     {
+      "number": 358,
+      "title": "fix: harden platform-admin invitation concurrency and repository boundaries",
+      "points": 3,
+      "state": "open",
+      "closed_date": null
+    },
+    {
       "number": 342,
       "title": "feat: migrate current transactional emails to branded templates",
       "points": 3,
@@ -77,8 +84,8 @@
       "number": 279,
       "title": "feat: implement backend platform admin management endpoints",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-07-22"
     },
     {
       "number": 278,
@@ -203,53 +210,53 @@
   "series": [
     {
       "date": "2026-07-13",
-      "remaining": 64,
-      "ideal": 64.0
+      "remaining": 67,
+      "ideal": 67.0
     },
     {
       "date": "2026-07-14",
-      "remaining": 62,
-      "ideal": 59.08
+      "remaining": 65,
+      "ideal": 61.85
     },
     {
       "date": "2026-07-15",
-      "remaining": 62,
-      "ideal": 54.15
+      "remaining": 65,
+      "ideal": 56.69
     },
     {
       "date": "2026-07-16",
-      "remaining": 60,
-      "ideal": 49.23
+      "remaining": 63,
+      "ideal": 51.54
     },
     {
       "date": "2026-07-17",
-      "remaining": 60,
-      "ideal": 44.31
+      "remaining": 63,
+      "ideal": 46.38
     },
     {
       "date": "2026-07-18",
-      "remaining": 60,
-      "ideal": 39.38
+      "remaining": 63,
+      "ideal": 41.23
     },
     {
       "date": "2026-07-19",
-      "remaining": 57,
-      "ideal": 34.46
+      "remaining": 60,
+      "ideal": 36.08
     },
     {
       "date": "2026-07-20",
-      "remaining": 46,
-      "ideal": 29.54
+      "remaining": 49,
+      "ideal": 30.92
     },
     {
       "date": "2026-07-21",
-      "remaining": 44,
-      "ideal": 24.62
+      "remaining": 47,
+      "ideal": 25.77
     },
     {
       "date": "2026-07-22",
-      "remaining": 44,
-      "ideal": 19.69
+      "remaining": 45,
+      "ideal": 20.62
     }
   ]
 }
