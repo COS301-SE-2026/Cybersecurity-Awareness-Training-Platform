@@ -494,35 +494,42 @@ function PlatformOrganisationManagementPage() {
                     <td className="px-6 py-4">
                       {/* PLEASE NOTE THAT THIS WILL CHANGE DEPENDING ON THE STATE */}
                       <div className="grid grid-cols-1 gap-1 justify-items-start">
-                        <button
-                          onClick={openReviewOrganisationRegistrationRequestModal}
-                          className="cursor-pointer font-medium text-purple hover:underline"
-                        >
-                          <strong>Review</strong> Request
-                        </button>
+                        {organisation.requestStatus === 'Pending' && (
+                          <button
+                            onClick={openReviewOrganisationRegistrationRequestModal}
+                            className="cursor-pointer font-medium text-purple hover:underline"
+                          >
+                            <strong>Review</strong> Request
+                          </button>
+                        )}
 
-                        {/* Add more actions here...  */}
-                        <a
-                          href="/organisation-information"
-                          className=" cursor-pointer font-medium text-purple hover:underline"
-                        >
-                          {/* THIS GOES TO THE ORGANISATION INFORMATION PAGE */}
-                          <strong>View</strong> Information
-                        </a>
+                        {organisation.requestStatus !== 'Pending' && (
+                          <a
+                            href="/organisation-information"
+                            className=" cursor-pointer font-medium text-purple hover:underline"
+                          >
+                            {/* THIS GOES TO THE ORGANISATION INFORMATION PAGE */}
+                            <strong>View</strong> Information
+                          </a>
+                        )}
 
-                        <button
-                          className="cursor-pointer font-medium text-emerald-600 hover:underline"
-                          onClick={showEnableOrgModal}
-                        >
-                          <strong>Re–Enable</strong>
-                        </button>
+                        {organisation.organisationStatus === 'Disabled' && (
+                          <button
+                            className="cursor-pointer font-medium text-emerald-600 hover:underline"
+                            onClick={showEnableOrgModal}
+                          >
+                            <strong>Re–Enable</strong>
+                          </button>
+                        )}
 
-                        <button
-                          className="cursor-pointer font-medium text-red-600 hover:underline"
-                          onClick={showDisableOrgModal}
-                        >
-                          <strong>Disable</strong>
-                        </button>
+                        {organisation.organisationStatus === 'Active' && (
+                          <button
+                            className="cursor-pointer font-medium text-red-600 hover:underline"
+                            onClick={showDisableOrgModal}
+                          >
+                            <strong>Disable</strong>
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -561,6 +568,7 @@ function PlatformOrganisationManagementPage() {
         <ReviewOrganisationRegistrationRequstModal
           isOpen={showReviewOrganisationRegistrationRequestModal}
           onClose={() => closeReviewOrganisationRegistrationRequestModal()}
+          // YOU WILL NEED TO ADD MORE PROPS SO THAT YOU CAN PASS TO THE MODAL ORG AND REP INFO FROM THE SELECTED OPTION
         ></ReviewOrganisationRegistrationRequstModal>
       )}
     </AppLayout>

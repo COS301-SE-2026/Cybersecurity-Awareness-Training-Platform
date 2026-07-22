@@ -1,6 +1,7 @@
 type ReviewOrganisationRegistrationRequstModalProps = Readonly<{
   isOpen: boolean;
   onClose: () => void;
+  // YOU WILL NEED TO ADD MORE PROPS SO THAT YOU CAN PASS IN THE ORGANISATION AND REPRESENTATIVE INFORMATION
 }>;
 
 function ReviewOrganisationRegistrationRequstModal({
