@@ -3,20 +3,6 @@ import { Dropdown, DropdownItem } from 'flowbite-react';
 import { useState } from 'react';
 import BasicConfirmationModal from '../components/layout/modals/BasicConfirmationModal';
 import ReviewOrganisationRegistrationRequstModal from '../components/layout/modals/ReviewOrganisationRegistrationRequestModal';
-/*
-
-HEY ZOË (INTEGRATION TEAM), PLEASE USE THESE BADGES FOR ANY BADGES YOU MAY NEED! THANK YOU! 
-Please ask me what you should use if you are unsure... but use what you think is best.
-<span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-brand-subtle text-fg-brand-strong text-sm font-medium bg-brand-softer">BLUE APPROVED AWAITING SETUP/ONBOARDING </span>
-<span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-default text-heading text-sm font-medium bg-neutral-primary-soft">ORG STATUS PENDING</span>
-<span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-default-medium text-heading text-sm font-medium bg-neutral-secondary-medium">GREY CONTACTED</span>
-<span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-danger-subtle text-fg-danger-strong text-sm font-medium bg-danger-soft">RED REJECTED/DISABLED</span>
-<span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-success-subtle text-fg-success-strong text-sm font-medium bg-success-soft">GREEN APPROVED/ACTIVE</span>
-<span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-warning-subtle text-fg-warning text-sm font-medium bg-warning-soft">YELLOW PENDING/SUSPENDED</span>
-
-ADJUST WIDTH AS NECESSARY... 
-
-*/
 
 interface Organisation {
   id: number;
@@ -147,11 +133,17 @@ function PlatformOrganisationManagementPage() {
     'default',
   );
   const [searchTerm, setSearchTerm] = useState('');
+  const [requestStatusFilter, setRequestStatusFilter] = useState<
+    'All' | 'Pending' | 'Contacted' | 'Rejected' | 'Approved Waiting Setup' | 'Approved'
+  >('All');
+  const [organisationStatusFilter, setOrganisationStatusFilter] = useState<
+    'All' | 'Pending' | 'Onboarding' | 'Active' | 'Suspended' | 'Disabled'
+  >('All');
 
   const filteredOrganisations = mockOrganisations.filter((organisation) => {
     const search = searchTerm.toLowerCase();
 
-    return [
+    const matchesSearch = [
       organisation.name,
       organisation.size,
       organisation.website,
@@ -162,6 +154,15 @@ function PlatformOrganisationManagementPage() {
       .join(' ')
       .toLowerCase()
       .includes(search);
+
+    const matchesRequestStatus =
+      requestStatusFilter === 'All' || organisation.requestStatus === requestStatusFilter;
+
+    const matchesOrganisationStatus =
+      organisationStatusFilter === 'All' ||
+      organisation.organisationStatus === organisationStatusFilter;
+
+    return matchesSearch && matchesRequestStatus && matchesOrganisationStatus;
   });
 
   const [
@@ -297,28 +298,46 @@ function PlatformOrganisationManagementPage() {
                         label={
                           <span className="flex items-center gap-2">
                             <span className="material-symbols-sharp text-gray-400">filter_alt</span>
-                            <span>Request Status</span>
+                            {requestStatusFilter === 'All' ? 'Request Status' : requestStatusFilter}
                           </span>
                         }
                         className="ml-2 font-jost tracking-wide text-[1.1rem] font-light text-gray-500 border border-gray-300 bg-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white rounded-none"
                       >
-                        <DropdownItem className="font-jost text-gray-600 text-[1.1rem]">
+                        <DropdownItem
+                          onClick={() => setRequestStatusFilter('All')}
+                          className="font-jost text-gray-600 text-[1.1rem]"
+                        >
                           All
                         </DropdownItem>
-                        <DropdownItem className="font-jost text-gray-600 text-[1.1rem]">
+                        <DropdownItem
+                          onClick={() => setRequestStatusFilter('Pending')}
+                          className="font-jost text-gray-600 text-[1.1rem]"
+                        >
                           Pending
                         </DropdownItem>
-                        <DropdownItem className="font-jost text-gray-600 text-[1.1rem]">
+                        <DropdownItem
+                          onClick={() => setRequestStatusFilter('Contacted')}
+                          className="font-jost text-gray-600 text-[1.1rem]"
+                        >
                           Contacted
                         </DropdownItem>
-                        <DropdownItem className="font-jost text-gray-600 text-[1.1rem]">
+                        <DropdownItem
+                          onClick={() => setRequestStatusFilter('Rejected')}
+                          className="font-jost text-gray-600 text-[1.1rem]"
+                        >
                           Rejected
                         </DropdownItem>
-                        <DropdownItem className="font-jost text-gray-600 text-[1.1rem]">
-                          Approval Waiting Setup
+                        <DropdownItem
+                          onClick={() => setRequestStatusFilter('Approved Waiting Setup')}
+                          className="font-jost text-gray-600 text-[1.1rem]"
+                        >
+                          Approved Waiting Setup
                         </DropdownItem>
-                        <DropdownItem className="font-jost text-gray-600 text-[1.1rem]">
-                          Active
+                        <DropdownItem
+                          onClick={() => setRequestStatusFilter('Approved')}
+                          className="font-jost text-gray-600 text-[1.1rem]"
+                        >
+                          Approved
                         </DropdownItem>
                       </Dropdown>
                     </div>
@@ -331,24 +350,43 @@ function PlatformOrganisationManagementPage() {
                         label={
                           <span className="flex items-center gap-2">
                             <span className="material-symbols-sharp text-gray-400">filter_alt</span>
-                            <span>Organisation Status</span>
+                            <span>
+                              {organisationStatusFilter === 'All'
+                                ? 'Organisation Status'
+                                : organisationStatusFilter}
+                            </span>
                           </span>
                         }
                         className="font-jost tracking-wide text-[1.1rem] font-light text-gray-500 border border-gray-300 bg-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white rounded-none"
                       >
-                        <DropdownItem className="font-jost text-gray-600 text-[1.1rem]">
+                        <DropdownItem
+                          onClick={() => setOrganisationStatusFilter('All')}
+                          className="font-jost text-gray-600 text-[1.1rem]"
+                        >
                           All
                         </DropdownItem>
-                        <DropdownItem className="font-jost text-gray-600 text-[1.1rem]">
+                        <DropdownItem
+                          onClick={() => setOrganisationStatusFilter('Onboarding')}
+                          className="font-jost text-gray-600 text-[1.1rem]"
+                        >
                           Onboarding
                         </DropdownItem>
-                        <DropdownItem className="font-jost text-gray-600 text-[1.1rem]">
+                        <DropdownItem
+                          onClick={() => setOrganisationStatusFilter('Active')}
+                          className="font-jost text-gray-600 text-[1.1rem]"
+                        >
                           Active
                         </DropdownItem>
-                        <DropdownItem className="font-jost text-gray-600 text-[1.1rem]">
+                        <DropdownItem
+                          onClick={() => setOrganisationStatusFilter('Suspended')}
+                          className="font-jost text-gray-600 text-[1.1rem]"
+                        >
                           Suspended
                         </DropdownItem>
-                        <DropdownItem className="font-jost text-gray-600 text-[1.1rem]">
+                        <DropdownItem
+                          onClick={() => setOrganisationStatusFilter('Disabled')}
+                          className="font-jost text-gray-600 text-[1.1rem]"
+                        >
                           Disabled
                         </DropdownItem>
                       </Dropdown>
