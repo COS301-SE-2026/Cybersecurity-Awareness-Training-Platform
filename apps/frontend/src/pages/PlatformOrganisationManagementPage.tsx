@@ -2,6 +2,7 @@ import AppLayout from '../components/layout/AppLayout';
 import { Dropdown, DropdownItem } from 'flowbite-react';
 import { useState } from 'react';
 import BasicConfirmationModal from '../components/layout/modals/BasicConfirmationModal';
+import ReviewOrganisationRegistrationRequstModal from '../components/layout/modals/ReviewOrganisationRegistrationRequestModal';
 /*
 
 HEY ZOË (INTEGRATION TEAM), PLEASE USE THESE BADGES FOR ANY BADGES YOU MAY NEED! THANK YOU! 
@@ -25,6 +26,18 @@ function PlatformOrganisationManagementPage() {
   const [confirmationVariant, setConfirmationVariant] = useState<'danger' | 'success' | 'default'>(
     'default',
   );
+  const [
+    showReviewOrganisationRegistrationRequestModal,
+    setShowReviewOrganisationRegistrationRequestModal,
+  ] = useState(false);
+
+  const openReviewOrganisationRegistrationRequestModal = () => {
+    setShowReviewOrganisationRegistrationRequestModal(true);
+  };
+
+  const closeReviewOrganisationRegistrationRequestModal = () => {
+    setShowReviewOrganisationRegistrationRequestModal(false);
+  };
 
   const openConfirmationModal = () => {
     setShowBasicConfirmationModal(true);
@@ -303,7 +316,10 @@ function PlatformOrganisationManagementPage() {
                   <td className="px-6 py-4">
                     {/* PLEASE NOTE THAT THIS WILL CHANGE DEPENDING ON THE STATE */}
                     <div className="grid grid-cols-1 gap-1 justify-items-start">
-                      <button className="cursor-pointer font-medium text-purple hover:underline">
+                      <button
+                        onClick={openReviewOrganisationRegistrationRequestModal}
+                        className="cursor-pointer font-medium text-purple hover:underline"
+                      >
                         <strong>Review</strong> Request
                       </button>
 
@@ -446,6 +462,14 @@ function PlatformOrganisationManagementPage() {
           onConfirm={handleConfirmation}
           onCancel={closeConfirmationModal}
         ></BasicConfirmationModal>
+      )}
+
+      {/* REVIEW ORGANISATION REGISTRATION REQUEST MODAL  */}
+      {showReviewOrganisationRegistrationRequestModal && (
+        <ReviewOrganisationRegistrationRequstModal
+          isOpen={showReviewOrganisationRegistrationRequestModal}
+          onClose={() => closeReviewOrganisationRegistrationRequestModal()}
+        ></ReviewOrganisationRegistrationRequstModal>
       )}
     </AppLayout>
   );
