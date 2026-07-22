@@ -91,6 +91,11 @@ describe('ForgotPasswordPage', () => {
     expect(
       await screen.findByText('If the email is registered, a password reset link has been sent.'),
     ).toBeInTheDocument();
+
+    const emailInput = screen.getByLabelText(/email address/i);
+
+    expect(emailInput).toHaveValue('user@example.com');
+    expect(emailInput).toBeDisabled();
     expect(screen.getByRole('button', { name: /resend password reset link/i })).toBeEnabled();
   });
 
@@ -141,13 +146,14 @@ describe('ForgotPasswordPage', () => {
     await user.type(emailInput, ' User@Example.COM ');
     await user.click(screen.getByRole('button', { name: /send password reset link/i }));
 
-    await screen.findByRole('button', {
+    const resendButton = await screen.findByRole('button', {
       name: /resend password reset link/i,
     });
 
-    await user.clear(emailInput);
-    await user.type(emailInput, 'changed@example.com');
-    await user.click(screen.getByRole('button', { name: /resend password reset link/i }));
+    expect(emailInput).toHaveValue('user@example.com');
+    expect(emailInput).toBeDisabled();
+
+    await user.click(resendButton);
 
     expect(requestPasswordResetMock).toHaveBeenCalledTimes(2);
     expect(requestPasswordResetMock).toHaveBeenNthCalledWith(1, {
@@ -158,7 +164,9 @@ describe('ForgotPasswordPage', () => {
     });
 
     expect(screen.getByRole('button', { name: /resending password reset link/i })).toBeDisabled();
-
+    expect(
+      screen.queryByText('If the email is registered, a password reset link has been sent.'),
+    ).not.toBeInTheDocument();
     resendRequest.resolve(successResponse);
 
     expect(
@@ -264,5 +272,53 @@ describe('ForgotPasswordPage', () => {
     expect(
       screen.queryByText('If the email is registered, a password reset link has been sent.'),
     ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /send password reset link/i })).toBeEnabled();
+    expect(
+      screen.queryByRole('button', { name: /resend password reset link/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('clears stale success when resend fails and keeps the stored email locked', async () => {
+    const user = userEvent.setup();
+
+    requestPasswordResetMock.mockResolvedValueOnce(successResponse).mockRejectedValueOnce(
+      createForgotPasswordApiError(429, {
+        error: 'AUTH_RATE_LIMITED',
+        message: 'Raw backend rate-limit message',
+      }),
+    );
+
+    renderForgotPasswordPage();
+
+    const emailInput = screen.getByLabelText(/email address/i);
+
+    await user.type(emailInput, ' User@Example.COM ');
+    await user.click(screen.getByRole('button', { name: /send password reset link/i }));
+
+    const resendButton = await screen.findByRole('button', {
+      name: /resend password reset link/i,
+    });
+
+    expect(
+      screen.getByText('If the email is registered, a password reset link has been sent.'),
+    ).toBeInTheDocument();
+    expect(emailInput).toHaveValue('user@example.com');
+    expect(emailInput).toBeDisabled();
+
+    await user.click(resendButton);
+    expect(
+      await screen.findByText('Please wait before requesting another password reset link.'),
+    ).toBeInTheDocument();
+    expect(requestPasswordResetMock).toHaveBeenCalledTimes(2);
+    expect(requestPasswordResetMock).toHaveBeenNthCalledWith(2, {
+      email: 'user@example.com',
+    });
+    expect(
+      screen.queryByText('If the email is registered, a password reset link has been sent.'),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Raw backend rate-limit message')).not.toBeInTheDocument();
+    expect(emailInput).toHaveValue('user@example.com');
+    expect(emailInput).toBeDisabled();
+    expect(screen.getByRole('button', { name: /resend password reset link/i })).toBeEnabled();
   });
 }); // describe

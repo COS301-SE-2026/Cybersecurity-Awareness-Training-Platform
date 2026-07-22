@@ -79,26 +79,24 @@ function ForgotPasswordPage() {
 
   const hasSubmitted = submittedEmail !== null;
 
-  async function sendPasswordResetRequest(requestEmail: string, isInitialRequest: boolean) {
-    if (requestInFlightRef.current) return;
+  async function sendPasswordResetRequest(requestEmail: string): Promise<boolean> {
+    if (requestInFlightRef.current) return false;
 
     requestInFlightRef.current = true;
     setIsLoading(true);
     setPageError('');
     setFieldError('');
+    setSuccessMessage('');
 
     try {
       await requestPasswordReset({ email: requestEmail });
-
-      if (isInitialRequest) {
-        setSubmittedEmail(requestEmail);
-      }
-
       setSuccessMessage(GENERIC_SUCCESS_MESSAGE);
+      return true;
     } catch (error) {
       const errorState = mapRequestError(error);
       setFieldError(errorState.fieldError);
       setPageError(errorState.pageError);
+      return false;
     } finally {
       requestInFlightRef.current = false;
       setIsLoading(false);
@@ -114,7 +112,7 @@ function ForgotPasswordPage() {
     setFieldError('');
 
     if (submittedEmail) {
-      await sendPasswordResetRequest(submittedEmail, false);
+      await sendPasswordResetRequest(submittedEmail);
       return;
     }
 
@@ -129,7 +127,13 @@ function ForgotPasswordPage() {
       return;
     }
 
-    await sendPasswordResetRequest(validationResult.data.email, true);
+    const normalizedEmail = validationResult.data.email;
+    const requestSucceeded = await sendPasswordResetRequest(normalizedEmail);
+
+    if (requestSucceeded) {
+      setEmail(normalizedEmail);
+      setSubmittedEmail(normalizedEmail);
+    }
   }
 
   let buttonText = hasSubmitted ? 'Resend Password Reset Link' : 'Send Password Reset Link';
@@ -194,7 +198,7 @@ function ForgotPasswordPage() {
               <input
                 type="email"
                 name="email"
-                disabled={isLoading}
+                disabled={isLoading || hasSubmitted}
                 id="email"
                 value={email}
                 onChange={(event) => {
