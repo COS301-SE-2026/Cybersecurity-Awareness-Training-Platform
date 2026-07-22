@@ -358,11 +358,10 @@ export async function transferSuperAdminTx(params: { actorUserId: string; target
       include: { ipAdminProfile: true },
     });
     if (
-      !freshTarget ||
-      freshTarget.userType !== 'IP_ADMIN' ||
-      freshTarget.authStatus !== 'ACTIVE' ||
-      freshTarget.ipAdminProfile?.platformAdminRole !== 'NORMAL_ADMIN' ||
-      freshTarget.ipAdminProfile?.adminStatus !== 'ACTIVE'
+      freshTarget?.userType !== 'IP_ADMIN' ||
+      freshTarget?.authStatus !== 'ACTIVE' ||
+      freshTarget?.ipAdminProfile?.platformAdminRole !== 'NORMAL_ADMIN' ||
+      freshTarget?.ipAdminProfile?.adminStatus !== 'ACTIVE'
     ) {
       throw new PlatformAdminServiceError(
         409,

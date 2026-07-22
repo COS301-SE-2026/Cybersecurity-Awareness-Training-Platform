@@ -79,7 +79,7 @@ function deriveInvitationStatus(
 async function verifyActiveSuperAdminActor(actorUserId: string, passwordPlain: string) {
   const actor = await findPlatformAdminActor(actorUserId);
 
-  if (!actor || actor.userType !== 'IP_ADMIN' || actor.ipAdminProfile?.adminStatus !== 'ACTIVE') {
+  if (actor?.userType !== 'IP_ADMIN' || actor?.ipAdminProfile?.adminStatus !== 'ACTIVE') {
     throw new PlatformAdminServiceError(403, 'FORBIDDEN', 'Platform admin access is required');
   }
   requireSuperAdmin(actor.ipAdminProfile.platformAdminRole);
@@ -216,7 +216,7 @@ function mapUpgradeTokenToRow(token: UpgradeTokenWithUser, isActorSuper: boolean
 // List platform admins and pending invitations
 export async function listPlatformAdmins(actorUserId: string) {
   const actor = await findPlatformAdminActor(actorUserId);
-  if (!actor || actor.userType !== 'IP_ADMIN' || actor.ipAdminProfile?.adminStatus !== 'ACTIVE') {
+  if (actor?.userType !== 'IP_ADMIN' || actor?.ipAdminProfile?.adminStatus !== 'ACTIVE') {
     throw new PlatformAdminServiceError(403, 'FORBIDDEN', 'Platform admin access is required');
   }
   const actorProfile = actor.ipAdminProfile;
@@ -248,141 +248,110 @@ export async function listPlatformAdmins(actorUserId: string) {
   };
 }
 
-// Send invite to a brand new platform admin account or upgrading trainee
-export async function invitePlatformAdmin(
+// Helper to handle invitation workflow for an existing user account
+async function handleExistingUserInvite(
   actorUserId: string,
+  existingUser: NonNullable<Awaited<ReturnType<typeof findFullUserByEmail>>>,
   input: InvitePlatformAdminRequestDto,
+  targetEmail: string,
 ) {
-  const actor = await findPlatformAdminActor(actorUserId);
-  if (!actor || actor.userType !== 'IP_ADMIN' || actor.ipAdminProfile?.adminStatus !== 'ACTIVE') {
-    throw new PlatformAdminServiceError(403, 'FORBIDDEN', 'Platform admin access is required');
+  if (existingUser.userType === 'IP_ADMIN') {
+    if (existingUser.authStatus === 'PENDING_INVITE_SETUP') {
+      throw new PlatformAdminServiceError(
+        409,
+        'PENDING_PLATFORM_ADMIN_INVITE',
+        'There is already a pending platform admin invite for this email',
+      );
+    }
+    throw new PlatformAdminServiceError(
+      409,
+      'EXISTING_PLATFORM_ADMIN',
+      'User is already a platform administrator',
+    );
   }
-  requireSuperAdmin(actor.ipAdminProfile.platformAdminRole);
 
-  const targetEmail = input.email.trim().toLowerCase();
-
-  // Block platform admin invite if target has a pending organisation invitation
-  const pendingOrgInvite = await findPendingOrgInviteByEmail(targetEmail);
-  if (pendingOrgInvite) {
+  if (existingUser.userType === 'ORGANISATION_ADMIN' || existingUser.organisationAdminProfile) {
     throw new PlatformAdminServiceError(
       409,
       'ORGANISATION_ADMIN_CONFLICT',
-      'User has a pending organisation invitation and cannot be invited as a platform administrator',
+      'An organisation administrator cannot be invited as a platform administrator',
     );
   }
 
-  // Block pending representatives from onboarding request flow
-  const pendingRep = await findPendingRegistrationRequestByEmail(targetEmail);
-  if (pendingRep) {
+  if (
+    existingUser.userType === 'ORGANISATION_TRAINEE' ||
+    existingUser.traineeProfile?.organisationTraineeProfile
+  ) {
     throw new PlatformAdminServiceError(
       409,
-      'PENDING_ORGANISATION_REPRESENTATIVE_CONFLICT',
-      'The email belongs to a pending organisation representative',
+      'ROLE_CONFLICT',
+      'Organisation trainees cannot be invited as platform administrators',
     );
   }
 
-  // Profile-complete target lookup for eligibility check
-  const existingUser = await findFullUserByEmail(targetEmail);
-
-  if (existingUser) {
-    // Profile and Role Eligibility Checks:
-    if (existingUser.userType === 'IP_ADMIN') {
-      if (existingUser.authStatus === 'PENDING_INVITE_SETUP') {
-        throw new PlatformAdminServiceError(
-          409,
-          'PENDING_PLATFORM_ADMIN_INVITE',
-          'There is already a pending platform admin invite for this email',
-        );
-      }
-      throw new PlatformAdminServiceError(
-        409,
-        'EXISTING_PLATFORM_ADMIN',
-        'User is already a platform administrator',
-      );
-    }
-
-    if (existingUser.userType === 'ORGANISATION_ADMIN' || existingUser.organisationAdminProfile) {
-      throw new PlatformAdminServiceError(
-        409,
-        'ORGANISATION_ADMIN_CONFLICT',
-        'An organisation administrator cannot be invited as a platform administrator',
-      );
-    }
-
-    if (
-      existingUser.userType === 'ORGANISATION_TRAINEE' ||
-      existingUser.traineeProfile?.organisationTraineeProfile
-    ) {
-      throw new PlatformAdminServiceError(
-        409,
-        'ROLE_CONFLICT',
-        'Organisation trainees cannot be invited as platform administrators',
-      );
-    }
-
-    // Enforce active account status
-    if (existingUser.authStatus !== 'ACTIVE') {
-      throw new PlatformAdminServiceError(
-        409,
-        'ROLE_CONFLICT',
-        'User account status is not active and cannot be upgraded to platform administrator',
-      );
-    }
-
-    if (existingUser.userType === 'GENERAL_TRAINEE') {
-      if (!input.confirmUpgrade) {
-        throw new PlatformAdminServiceError(
-          409,
-          'UPGRADE_CONFIRMATION_REQUIRED',
-          'User already has a trainee account. Explicit confirmation is required to upgrade this user to a platform administrator.',
-        );
-      }
-    }
-
-    // Upgrade flow - Atomic token, audit creation, and row locking in repository
-    const expiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
-    const { token, rawToken } = await createPlatformAdminUpgradeInviteTx({
-      actorUserId,
-      targetUserId: existingUser.id,
-      expiresAt: expiry,
-    });
-
-    // Send email post-commit using the raw token value (best-effort / recoverable)
-    let emailDeliveryFailed = false;
-    try {
-      const outcome = await sendEmail({
-        emailType: 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION',
-        recipientEmail: targetEmail,
-        relatedEntity: {
-          userId: existingUser.id,
-          actionTokenId: token.id,
-        },
-        templateData: {
-          firstName: existingUser.firstName ?? '',
-          actionToken: rawToken,
-          actionTokenExpiresAt: expiry,
-        },
-      });
-      if (outcome?.status === 'NOT_ACCEPTED') {
-        emailDeliveryFailed = true;
-      }
-    } catch (err) {
-      console.error('Failed to send upgrade confirmation email:', err);
-      emailDeliveryFailed = true;
-    }
-
-    if (emailDeliveryFailed) {
-      await markActionTokenDeliveryFailed(token.id);
-    }
-
-    return {
-      type: 'upgrade-confirmation' as const,
-      userId: existingUser.id,
-      email: targetEmail,
-    };
+  if (existingUser.authStatus !== 'ACTIVE') {
+    throw new PlatformAdminServiceError(
+      409,
+      'ROLE_CONFLICT',
+      'User account status is not active and cannot be upgraded to platform administrator',
+    );
   }
 
-  // Atomic new platform admin account and token creation in repository
+  if (existingUser.userType === 'GENERAL_TRAINEE' && !input.confirmUpgrade) {
+    throw new PlatformAdminServiceError(
+      409,
+      'UPGRADE_CONFIRMATION_REQUIRED',
+      'User already has a trainee account. Explicit confirmation is required to upgrade this user to a platform administrator.',
+    );
+  }
+
+  const expiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  const { token, rawToken } = await createPlatformAdminUpgradeInviteTx({
+    actorUserId,
+    targetUserId: existingUser.id,
+    expiresAt: expiry,
+  });
+
+  let emailDeliveryFailed = false;
+  try {
+    const outcome = await sendEmail({
+      emailType: 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION',
+      recipientEmail: targetEmail,
+      relatedEntity: {
+        userId: existingUser.id,
+        actionTokenId: token.id,
+      },
+      templateData: {
+        firstName: existingUser.firstName ?? '',
+        actionToken: rawToken,
+        actionTokenExpiresAt: expiry,
+      },
+    });
+    if (outcome?.status === 'NOT_ACCEPTED') {
+      emailDeliveryFailed = true;
+    }
+  } catch (err) {
+    console.error('Failed to send upgrade confirmation email:', err);
+    emailDeliveryFailed = true;
+  }
+
+  if (emailDeliveryFailed) {
+    await markActionTokenDeliveryFailed(token.id);
+  }
+
+  return {
+    type: 'upgrade-confirmation' as const,
+    userId: existingUser.id,
+    email: targetEmail,
+  };
+}
+
+// Helper to handle invitation workflow for a brand new user account
+async function handleNewUserInvite(
+  actorUserId: string,
+  targetEmail: string,
+  input: InvitePlatformAdminRequestDto,
+) {
   const expiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
   const { user, token, rawToken } = await createPlatformAdminAccountAndInviteTx({
     actorUserId,
@@ -392,7 +361,6 @@ export async function invitePlatformAdmin(
     expiresAt: expiry,
   });
 
-  // Send email post-commit using the raw token value (best-effort / recoverable)
   let emailDeliveryFailed = false;
   try {
     const outcome = await sendEmail({
@@ -427,10 +395,49 @@ export async function invitePlatformAdmin(
   };
 }
 
+// Send invite to a brand new platform admin account or upgrading trainee
+export async function invitePlatformAdmin(
+  actorUserId: string,
+  input: InvitePlatformAdminRequestDto,
+) {
+  const actor = await findPlatformAdminActor(actorUserId);
+  if (actor?.userType !== 'IP_ADMIN' || actor?.ipAdminProfile?.adminStatus !== 'ACTIVE') {
+    throw new PlatformAdminServiceError(403, 'FORBIDDEN', 'Platform admin access is required');
+  }
+  requireSuperAdmin(actor.ipAdminProfile.platformAdminRole);
+
+  const targetEmail = input.email.trim().toLowerCase();
+
+  const pendingOrgInvite = await findPendingOrgInviteByEmail(targetEmail);
+  if (pendingOrgInvite) {
+    throw new PlatformAdminServiceError(
+      409,
+      'ORGANISATION_ADMIN_CONFLICT',
+      'User has a pending organisation invitation and cannot be invited as a platform administrator',
+    );
+  }
+
+  const pendingRep = await findPendingRegistrationRequestByEmail(targetEmail);
+  if (pendingRep) {
+    throw new PlatformAdminServiceError(
+      409,
+      'PENDING_ORGANISATION_REPRESENTATIVE_CONFLICT',
+      'The email belongs to a pending organisation representative',
+    );
+  }
+
+  const existingUser = await findFullUserByEmail(targetEmail);
+  if (existingUser) {
+    return handleExistingUserInvite(actorUserId, existingUser, input, targetEmail);
+  }
+
+  return handleNewUserInvite(actorUserId, targetEmail, input);
+}
+
 // Resend platform admin invitation or upgrade request
 export async function resendPlatformAdminInvite(actorUserId: string, actionTokenId: string) {
   const actor = await findPlatformAdminActor(actorUserId);
-  if (!actor || actor.userType !== 'IP_ADMIN' || actor.ipAdminProfile?.adminStatus !== 'ACTIVE') {
+  if (actor?.userType !== 'IP_ADMIN' || actor?.ipAdminProfile?.adminStatus !== 'ACTIVE') {
     throw new PlatformAdminServiceError(403, 'FORBIDDEN', 'Platform admin access is required');
   }
   requireSuperAdmin(actor.ipAdminProfile.platformAdminRole);
@@ -481,11 +488,10 @@ export async function transferSuperAdmin(actorUserId: string, input: TransferSup
   const target = await findPlatformAdminActor(targetUserId);
 
   if (
-    !target ||
-    target.userType !== 'IP_ADMIN' ||
-    target.authStatus !== 'ACTIVE' ||
-    target.ipAdminProfile?.adminStatus !== 'ACTIVE' ||
-    target.ipAdminProfile?.platformAdminRole !== 'NORMAL_ADMIN'
+    target?.userType !== 'IP_ADMIN' ||
+    target?.authStatus !== 'ACTIVE' ||
+    target?.ipAdminProfile?.adminStatus !== 'ACTIVE' ||
+    target?.ipAdminProfile?.platformAdminRole !== 'NORMAL_ADMIN'
   ) {
     throw new PlatformAdminServiceError(
       409,
@@ -551,7 +557,7 @@ export async function demotePlatformAdmin(
   await verifyActiveSuperAdminActor(actorUserId, input.password);
 
   const target = await findPlatformAdminActor(targetUserId);
-  if (!target || target.userType !== 'IP_ADMIN' || !target.ipAdminProfile) {
+  if (target?.userType !== 'IP_ADMIN' || !target?.ipAdminProfile) {
     throw new PlatformAdminServiceError(
       404,
       'PLATFORM_ADMIN_NOT_FOUND',
