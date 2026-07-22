@@ -73,7 +73,7 @@ export function buildMockTraineeProfile(overrides: Record<string, unknown> = {})
 
 export function buildMockInvitation(overrides: Record<string, unknown> = {}) {
   const now = new Date('2026-07-15T08:00:00.000Z');
-  const future = new Date('2026-07-22T08:00:00.000Z');
+  const future = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   return {
     id: mockInvitationId,
     organisationId: mockOrgId,
