@@ -118,7 +118,7 @@ describe('platform admin service tests', () => {
           id: superActorId,
           firstName: 'Super',
           lastName: 'Admin',
-          email: 'super@ip.com',
+          email: 'super@ip.co.za',
           userType: 'IP_ADMIN',
           authStatus: 'ACTIVE',
           ipAdminProfile: { platformAdminRole: 'SUPER_ADMIN', adminStatus: 'ACTIVE' },
@@ -128,7 +128,7 @@ describe('platform admin service tests', () => {
           id: 'invited-admin-uuid',
           firstName: 'Invited',
           lastName: 'User',
-          email: 'invited@ip.com',
+          email: 'invited@ip.co.za',
           userType: 'IP_ADMIN',
           authStatus: 'PENDING_INVITE_SETUP',
           ipAdminProfile: { platformAdminRole: 'NORMAL_ADMIN', adminStatus: 'ACTIVE' },
@@ -176,7 +176,7 @@ describe('platform admin service tests', () => {
   describe('invitePlatformAdmin', () => {
     it('throws Forbidden if actor is not super admin', async () => {
       await expect(
-        invitePlatformAdmin(normalActorId, { email: 'new@ip.com' }),
+        invitePlatformAdmin(normalActorId, { email: 'new@ip.co.za' }),
       ).rejects.toThrowError(
         new PlatformAdminServiceError(403, 'FORBIDDEN', 'Super admin access is required'),
       );
@@ -207,7 +207,7 @@ describe('platform admin service tests', () => {
             ipAdminProfile: { platformAdminRole: 'SUPER_ADMIN', adminStatus: 'ACTIVE' },
           };
         }
-        if (where.email === 'existing@ip.com') {
+        if (where.email === 'existing@ip.co.za') {
           return {
             id: targetAdminId,
             userType: 'IP_ADMIN',
@@ -219,7 +219,7 @@ describe('platform admin service tests', () => {
       });
 
       await expect(
-        invitePlatformAdmin(superActorId, { email: 'existing@ip.com' }),
+        invitePlatformAdmin(superActorId, { email: 'existing@ip.co.za' }),
       ).rejects.toThrowError(
         new PlatformAdminServiceError(
           409,
@@ -240,13 +240,13 @@ describe('platform admin service tests', () => {
             ipAdminProfile: { platformAdminRole: 'SUPER_ADMIN', adminStatus: 'ACTIVE' },
           };
         }
-        if (where.email === 'trainee@ip.com') {
+        if (where.email === 'trainee@ip.co.za' || where.id === traineeId) {
           return {
             id: traineeId,
             userType: 'GENERAL_TRAINEE',
             authStatus: 'ACTIVE',
             firstName: 'Bob',
-            email: 'trainee@ip.com',
+            email: 'trainee@ip.co.za',
           };
         }
         return null;
@@ -255,7 +255,7 @@ describe('platform admin service tests', () => {
       prismaMock.actionToken.create.mockResolvedValue({ id: actionTokenId });
 
       const result = await invitePlatformAdmin(superActorId, {
-        email: 'trainee@ip.com',
+        email: 'trainee@ip.co.za',
         confirmUpgrade: true,
       });
 
@@ -263,7 +263,7 @@ describe('platform admin service tests', () => {
       expect(emailMock.sendEmail).toHaveBeenCalledWith(
         expect.objectContaining({
           emailType: 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION',
-          recipientEmail: 'trainee@ip.com',
+          recipientEmail: 'trainee@ip.co.za',
         }),
       );
       expect(auditLogMock.recordAuditLog).toHaveBeenCalled();
@@ -284,13 +284,13 @@ describe('platform admin service tests', () => {
       });
       prismaMock.user.create.mockResolvedValue({
         id: 'new-user-uuid',
-        email: 'new@ip.com',
+        email: 'new@ip.co.za',
         firstName: 'Alice',
       });
       prismaMock.actionToken.create.mockResolvedValue({ id: actionTokenId });
 
       const result = await invitePlatformAdmin(superActorId, {
-        email: 'new@ip.com',
+        email: 'new@ip.co.za',
         firstName: 'Alice',
       });
 
@@ -298,7 +298,7 @@ describe('platform admin service tests', () => {
       expect(emailMock.sendEmail).toHaveBeenCalledWith(
         expect.objectContaining({
           emailType: 'PLATFORM_ADMIN_INVITE',
-          recipientEmail: 'new@ip.com',
+          recipientEmail: 'new@ip.co.za',
         }),
       );
     });
@@ -312,7 +312,7 @@ describe('platform admin service tests', () => {
         purpose: 'PLATFORM_ADMIN_INVITE',
         userId: 'pending-user-uuid',
         usedAt: null,
-        user: { email: 'pending@ip.com', firstName: 'Pending' },
+        user: { email: 'pending@ip.co.za', firstName: 'Pending' },
       });
       prismaMock.actionToken.create.mockResolvedValue({ id: 'new-token-uuid' });
 
@@ -328,7 +328,7 @@ describe('platform admin service tests', () => {
       expect(emailMock.sendEmail).toHaveBeenCalledWith(
         expect.objectContaining({
           emailType: 'PLATFORM_ADMIN_INVITE',
-          recipientEmail: 'pending@ip.com',
+          recipientEmail: 'pending@ip.co.za',
         }),
       );
     });
@@ -360,7 +360,7 @@ describe('platform admin service tests', () => {
         if (where.id === superActorId) {
           return {
             id: superActorId,
-            email: 'super@ip.com',
+            email: 'super@ip.co.za',
             userType: 'IP_ADMIN',
             authStatus: 'ACTIVE',
             ipAdminProfile: { platformAdminRole: 'SUPER_ADMIN', adminStatus: 'ACTIVE' },
@@ -369,7 +369,7 @@ describe('platform admin service tests', () => {
         if (where.id === targetAdminId) {
           return {
             id: targetAdminId,
-            email: 'target@ip.com',
+            email: 'target@ip.co.za',
             userType: 'IP_ADMIN',
             authStatus: 'ACTIVE',
             ipAdminProfile: { platformAdminRole: 'NORMAL_ADMIN', adminStatus: 'ACTIVE' },
@@ -427,7 +427,7 @@ describe('platform admin service tests', () => {
         if (where.id === targetAdminId) {
           return {
             id: targetAdminId,
-            email: 'target@ip.com',
+            email: 'target@ip.co.za',
             userType: 'IP_ADMIN',
             ipAdminProfile: { platformAdminRole: 'NORMAL_ADMIN', adminStatus: 'ACTIVE' },
           };
@@ -452,7 +452,7 @@ describe('platform admin service tests', () => {
       expect(emailMock.sendEmail).toHaveBeenCalledWith(
         expect.objectContaining({
           emailType: 'ROLE_CHANGED_NOTIFICATION',
-          recipientEmail: 'target@ip.com',
+          recipientEmail: 'target@ip.co.za',
         }),
       );
     });
@@ -468,7 +468,7 @@ describe('platform admin service tests', () => {
             ipAdminProfile: { platformAdminRole: 'SUPER_ADMIN', adminStatus: 'ACTIVE' },
           };
         }
-        if (where.email === 'pending@ip.com') {
+        if (where.email === 'pending@ip.co.za') {
           return {
             id: 'pending-admin-uuid',
             userType: 'IP_ADMIN',
@@ -479,7 +479,7 @@ describe('platform admin service tests', () => {
       });
 
       await expect(
-        invitePlatformAdmin(superActorId, { email: 'pending@ip.com' }),
+        invitePlatformAdmin(superActorId, { email: 'pending@ip.co.za' }),
       ).rejects.toThrowError(
         new PlatformAdminServiceError(
           409,
@@ -500,7 +500,7 @@ describe('platform admin service tests', () => {
             ipAdminProfile: { platformAdminRole: 'SUPER_ADMIN', adminStatus: 'ACTIVE' },
           };
         }
-        if (where.email === 'orgadmin@ip.com') {
+        if (where.email === 'orgadmin@ip.co.za') {
           return {
             id: 'org-admin-uuid',
             userType: 'ORGANISATION_ADMIN',
@@ -511,7 +511,7 @@ describe('platform admin service tests', () => {
       });
 
       await expect(
-        invitePlatformAdmin(superActorId, { email: 'orgadmin@ip.com' }),
+        invitePlatformAdmin(superActorId, { email: 'orgadmin@ip.co.za' }),
       ).rejects.toThrowError(
         new PlatformAdminServiceError(
           409,
@@ -532,13 +532,13 @@ describe('platform admin service tests', () => {
             ipAdminProfile: { platformAdminRole: 'SUPER_ADMIN', adminStatus: 'ACTIVE' },
           };
         }
-        if (where.email === 'trainee@ip.com') {
+        if (where.email === 'trainee@ip.co.za' || where.id === traineeId) {
           return {
             id: traineeId,
             userType: 'GENERAL_TRAINEE',
             authStatus: 'ACTIVE',
             firstName: 'Bob',
-            email: 'trainee@ip.com',
+            email: 'trainee@ip.co.za',
           };
         }
         return null;
@@ -546,7 +546,7 @@ describe('platform admin service tests', () => {
       prismaMock.actionToken.findFirst.mockResolvedValue({ id: 'existing-upgrade-token' });
 
       await expect(
-        invitePlatformAdmin(superActorId, { email: 'trainee@ip.com', confirmUpgrade: true }),
+        invitePlatformAdmin(superActorId, { email: 'trainee@ip.co.za', confirmUpgrade: true }),
       ).rejects.toThrowError(
         new PlatformAdminServiceError(
           409,

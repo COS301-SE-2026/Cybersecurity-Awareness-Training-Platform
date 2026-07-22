@@ -20,16 +20,8 @@ import type {
   DemotePlatformAdminRequestDto,
 } from '@insightful-phish/shared';
 
-export class PlatformAdminServiceError extends Error {
-  constructor(
-    public readonly statusCode: number,
-    public readonly error: string,
-    message: string,
-  ) {
-    super(message);
-    this.name = 'PlatformAdminServiceError';
-  }
-}
+import { PlatformAdminServiceError } from '../errors/platform-admin.error.js';
+export { PlatformAdminServiceError };
 
 // Helper to check super admin actor role
 function requireSuperAdmin(actorRole: string) {

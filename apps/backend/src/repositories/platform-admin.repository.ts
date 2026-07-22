@@ -2,7 +2,7 @@ import type { Prisma, PrismaClient } from '../generated/prisma/client.js';
 import { prisma } from '../lib/prisma.js';
 import { issueActionToken } from '../services/action-token.service.js';
 import { recordAuditLog } from '../services/audit-log.service.js';
-import { PlatformAdminServiceError } from '../services/platform-admin.service.js';
+import { PlatformAdminServiceError } from '../errors/platform-admin.error.js';
 
 type PlatformAdminClient = PrismaClient | Prisma.TransactionClient;
 
@@ -149,6 +149,62 @@ export async function createPlatformAdminUpgradeInviteTx(params: {
       WHERE id = ${params.targetUserId}
       FOR UPDATE
     `;
+
+    // Reload complete user and profile state post-lock to re-verify eligibility under committed state
+    const freshTarget = await tx.user.findUnique({
+      where: { id: params.targetUserId },
+      include: {
+        ipAdminProfile: true,
+        organisationAdminProfile: true,
+        traineeProfile: {
+          include: {
+            organisationTraineeProfile: true,
+          },
+        },
+      },
+    });
+
+    if (freshTarget?.userType === 'IP_ADMIN') {
+      if (freshTarget.authStatus === 'PENDING_INVITE_SETUP') {
+        throw new PlatformAdminServiceError(
+          409,
+          'PENDING_PLATFORM_ADMIN_INVITE',
+          'There is already a pending platform admin invite for this email',
+        );
+      }
+      throw new PlatformAdminServiceError(
+        409,
+        'EXISTING_PLATFORM_ADMIN',
+        'User is already a platform administrator',
+      );
+    }
+
+    if (freshTarget?.userType === 'ORGANISATION_ADMIN' || freshTarget?.organisationAdminProfile) {
+      throw new PlatformAdminServiceError(
+        409,
+        'ORGANISATION_ADMIN_CONFLICT',
+        'An organisation administrator cannot be invited as a platform administrator',
+      );
+    }
+
+    if (
+      freshTarget?.userType === 'ORGANISATION_TRAINEE' ||
+      freshTarget?.traineeProfile?.organisationTraineeProfile
+    ) {
+      throw new PlatformAdminServiceError(
+        409,
+        'ROLE_CONFLICT',
+        'Organisation trainees cannot be invited as platform administrators',
+      );
+    }
+
+    if (freshTarget?.authStatus !== 'ACTIVE') {
+      throw new PlatformAdminServiceError(
+        409,
+        'ROLE_CONFLICT',
+        'User account status is not active and cannot be upgraded to platform administrator',
+      );
+    }
 
     // Re-verify inside transaction if an active upgrade token already exists
     const activeUpgrade = await tx.actionToken.findFirst({
