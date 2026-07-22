@@ -94,6 +94,29 @@ describe('parseEnv', () => {
     expect(env.SMTP_PASSWORD).toBeUndefined();
   });
 
+  it('uses the default support email address when one is not configured', () => {
+    const env = parseEnv(baseEnv);
+    expect(env.SUPPORT_EMAIL_ADDRESS).toBe('support@insightfulphish.co.za');
+  });
+
+  it('accepts a custom support email address', () => {
+    const env = parseEnv({
+      ...baseEnv,
+      SUPPORT_EMAIL_ADDRESS: 'helpdesk@example.org',
+    });
+
+    expect(env.SUPPORT_EMAIL_ADDRESS).toBe('helpdesk@example.org');
+  });
+
+  it('rejects an invalid configured support email address', () => {
+    expect(() =>
+      parseEnv({
+        ...baseEnv,
+        SUPPORT_EMAIL_ADDRESS: 'not-an-email-address',
+      }),
+    ).toThrow(/SUPPORT_EMAIL_ADDRESS|Invalid email/);
+  });
+
   it('parses SMTP string values correctly', () => {
     expect(parseEnv({ ...baseEnv, SMTP_SECURE: 'true' }).SMTP_SECURE).toBe(true);
     expect(parseEnv({ ...baseEnv, SMTP_SECURE: 'false' }).SMTP_SECURE).toBe(false);
