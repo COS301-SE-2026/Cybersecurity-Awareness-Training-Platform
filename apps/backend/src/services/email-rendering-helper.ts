@@ -25,17 +25,19 @@ export type BrandedEmailLayoutInput = {
   cta?: BrandedEmailCta;
   expiryText?: string;
   support?: BrandedEmailSupportContext;
-  supportEmailAddress?: string;
-};
-
-export type BrandedEmailRenderOptions = {
-  render?: (input: BrandedEmailLayoutInput) => EmailRenderResult;
 };
 
 export class BrandedEmailInputError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'BrandedEmailInputError';
+  }
+}
+
+export class BrandedEmailAssemblyError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'BrandedEmailAssemblyError';
   }
 }
 
@@ -52,6 +54,9 @@ export const EMAIL_DESIGN_TOKENS = {
 
 const FONT_STACK = 'Jost, Arial, Helvetica, sans-serif';
 const DEFAULT_SUPPORT_EMAIL_ADDRESS = 'support@insightfulphish.co.za';
+const MAILBOX_PATTERN =
+  /^[A-Za-z0-9.!#$%*+\-/^_`{|}~]+@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$/;
+const BRANDED_EMAIL_FALLBACK_WARNING = 'Branded email assembly failed; rendered fallback body.';
 
 export function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (character) => {
@@ -70,9 +75,22 @@ export function escapeAttribute(value: string): string {
   return escapeHtml(value);
 }
 
+function hasHeaderControlCharacter(value: string): boolean {
+  return [...value].some((character) => {
+    const codePoint = character.codePointAt(0) ?? 0;
+    return codePoint <= 31 || codePoint === 127;
+  });
+}
+
 function assertEmailAddress(value: string): void {
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+  if (hasHeaderControlCharacter(value) || !MAILBOX_PATTERN.test(value)) {
     throw new BrandedEmailInputError('Support email address must be valid');
+  }
+}
+
+function assertSafeHeaderValue(value: string): void {
+  if (hasHeaderControlCharacter(value)) {
+    throw new BrandedEmailInputError('Email subject contains disallowed header characters');
   }
 }
 
@@ -111,8 +129,15 @@ export function plainTextSupportLine(supportEmailAddress: string): string {
   return `You can reach support by emailing ${supportEmailAddress}.`;
 }
 
-function resolveSupportEmailAddress(configured: string | undefined, override?: string): string {
-  return override ?? configured ?? DEFAULT_SUPPORT_EMAIL_ADDRESS;
+function resolveSupportEmailAddress(configured: string | undefined): string {
+  return configured ?? DEFAULT_SUPPORT_EMAIL_ADDRESS;
+}
+
+function validateBrandedEmailInput(input: BrandedEmailLayoutInput): void {
+  assertSafeHeaderValue(input.subject);
+  if (input.cta) {
+    assertSafeActionUrl(input.cta.url);
+  }
 }
 
 function renderPreviewText(previewText?: string): string {
@@ -212,14 +237,9 @@ function renderPlainText(input: BrandedEmailLayoutInput, supportEmailAddress: st
 }
 
 export function renderBrandedEmail(input: BrandedEmailLayoutInput): EmailRenderResult {
-  if (input.cta) {
-    assertSafeActionUrl(input.cta.url);
-  }
+  validateBrandedEmailInput(input);
 
-  const supportEmailAddress = resolveSupportEmailAddress(
-    env.SUPPORT_EMAIL_ADDRESS,
-    input.supportEmailAddress,
-  );
+  const supportEmailAddress = resolveSupportEmailAddress(env.SUPPORT_EMAIL_ADDRESS);
   if (input.support) {
     assertEmailAddress(supportEmailAddress);
   }
@@ -262,14 +282,19 @@ export function renderBrandedEmail(input: BrandedEmailLayoutInput): EmailRenderR
 export function renderBrandedEmailOrFallback(
   input: BrandedEmailLayoutInput,
   fallback: EmailRenderResult,
-  options: BrandedEmailRenderOptions = {},
 ): EmailRenderResult {
+  validateBrandedEmailInput(input);
+
   try {
-    return options.render ? options.render(input) : renderBrandedEmail(input);
+    return renderBrandedEmail(input);
   } catch (error) {
-    if (error instanceof BrandedEmailInputError) {
-      throw error;
+    if (error instanceof BrandedEmailAssemblyError) {
+      process.emitWarning(BRANDED_EMAIL_FALLBACK_WARNING, {
+        code: 'BRANDED_EMAIL_FALLBACK_RENDERED',
+      });
+      return fallback;
     }
-    return fallback;
+
+    throw error;
   }
 }

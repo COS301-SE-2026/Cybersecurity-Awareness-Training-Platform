@@ -1,10 +1,16 @@
 import { describe, expect, it, vi } from 'vitest';
-vi.mock('../../src/config/env.js', () => ({ env: { FRONTEND_ORIGIN: 'http://frontend.com' } }));
+vi.mock('../../src/config/env.js', () => ({
+  env: {
+    FRONTEND_ORIGIN: 'http://frontend.com',
+    SUPPORT_EMAIL_ADDRESS: 'support@insightfulphish.co.za',
+  },
+}));
 const rawToken = 'rawtokenqwertyuiopasdfghjklzxcvbnm';
 const tokenHash = 'hashedtokenvaluethatshouldntberenderedatall';
 const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
 const { renderEmail } = await import('../../src/services/email-template-renderer.js');
 const {
+  BrandedEmailAssemblyError,
   BrandedEmailInputError,
   buildSupportMailtoHref,
   renderBrandedEmail,
@@ -220,7 +226,6 @@ describe('branded email rendering helpers', () => {
       subject: 'Help & setup',
       body: 'Line one\nLine two & three',
     },
-    supportEmailAddress: 'helpdesk@example.org',
   } as const;
   const fallback = {
     subject: 'Fallback subject',
@@ -250,10 +255,32 @@ describe('branded email rendering helpers', () => {
     expect(mailtoHref).toContain('mailto:helpdesk@example.org');
     expect(mailtoHref).toContain('subject=Help+%26+setup');
     expect(mailtoHref).toContain('body=Line+one%0ALine+two+%26+three');
-    expect(email.html).toContain('mailto:helpdesk@example.org');
+    expect(email.html).toContain('mailto:support@insightfulphish.co.za');
     expect(email.html).toContain('subject=Help+%26+setup');
     expect(email.text).toContain('Open "setup": https://example.com/setup');
-    expect(email.text).toContain('You can reach support by emailing helpdesk@example.org.');
+    expect(email.text).toContain(
+      'You can reach support by emailing support@insightfulphish.co.za.',
+    );
+  });
+
+  it('rejects mailbox delimiters in support mailto addresses', () => {
+    expect(() =>
+      buildSupportMailtoHref('help?bcc=x@example.org', {
+        subject: 'Support request',
+      }),
+    ).toThrow(BrandedEmailInputError);
+  });
+
+  it('rejects subject header control characters before fallback can apply', () => {
+    expect(() =>
+      renderBrandedEmailOrFallback(
+        {
+          ...brandedInput,
+          subject: 'Preview subject\r\nBcc: injected@example.org',
+        },
+        fallback,
+      ),
+    ).toThrow(BrandedEmailInputError);
   });
 
   it('does not emit browser runtime dependencies or Tailwind utility classes', () => {
@@ -280,14 +307,30 @@ describe('branded email rendering helpers', () => {
     expect(countOccurrences(email.text, token)).toBe(1);
   });
 
-  it('falls back to minimal output when branded assembly fails unexpectedly', () => {
-    const email = renderBrandedEmailOrFallback(brandedInput, fallback, {
-      render: () => {
-        throw new Error('Unexpected renderer failure');
-      },
+  it('falls back only for the explicit recoverable branded assembly failure', () => {
+    const sections = ['Recoverable branded section'];
+    const warningSpy = vi.spyOn(process, 'emitWarning').mockImplementation(() => undefined);
+    vi.spyOn(sections, 'map').mockImplementation(() => {
+      throw new BrandedEmailAssemblyError('Recoverable branded assembly failure');
     });
 
+    const email = renderBrandedEmailOrFallback(
+      {
+        ...brandedInput,
+        sections,
+      },
+      fallback,
+    );
+
     expect(email).toBe(fallback);
+    expect(warningSpy).toHaveBeenCalledWith(
+      'Branded email assembly failed; rendered fallback body.',
+      {
+        code: 'BRANDED_EMAIL_FALLBACK_RENDERED',
+      },
+    );
+
+    warningSpy.mockRestore();
   });
 
   it('does not swallow branded input validation errors', () => {
@@ -303,5 +346,22 @@ describe('branded email rendering helpers', () => {
         fallback,
       ),
     ).toThrow(BrandedEmailInputError);
+  });
+
+  it('does not fallback for ordinary programming errors', () => {
+    const sections = ['Broken branded section'];
+    vi.spyOn(sections, 'map').mockImplementation(() => {
+      throw new TypeError('Unexpected programming defect');
+    });
+
+    expect(() =>
+      renderBrandedEmailOrFallback(
+        {
+          ...brandedInput,
+          sections,
+        },
+        fallback,
+      ),
+    ).toThrow(TypeError);
   });
 });
