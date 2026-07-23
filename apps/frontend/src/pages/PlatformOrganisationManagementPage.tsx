@@ -497,6 +497,7 @@ function PlatformOrganisationManagementPage() {
                         {organisation.requestStatus === 'Pending' && (
                           <button
                             onClick={openReviewOrganisationRegistrationRequestModal}
+                            type="button"
                             className="cursor-pointer font-medium text-purple hover:underline"
                           >
                             <strong>Review</strong> Request
@@ -516,6 +517,7 @@ function PlatformOrganisationManagementPage() {
                         {organisation.organisationStatus === 'Disabled' && (
                           <button
                             className="cursor-pointer font-medium text-emerald-600 hover:underline"
+                            type="button"
                             onClick={showEnableOrgModal}
                           >
                             <strong>Re–Enable</strong>
@@ -525,6 +527,7 @@ function PlatformOrganisationManagementPage() {
                         {organisation.organisationStatus === 'Active' && (
                           <button
                             className="cursor-pointer font-medium text-red-600 hover:underline"
+                            type="button"
                             onClick={showDisableOrgModal}
                           >
                             <strong>Disable</strong>

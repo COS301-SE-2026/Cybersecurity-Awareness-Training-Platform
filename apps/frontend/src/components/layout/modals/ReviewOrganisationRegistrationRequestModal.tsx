@@ -127,7 +127,7 @@ function ReviewOrganisationRegistrationRequstModal({
             <div className="grid grid-cols-2 gap-4">
               {/* APPROVE BUTTON */}
               <button
-                type="submit"
+                type="button"
                 className="cursor-pointer w-full inline-flex items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-emerald-500 hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm px-4 py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 <span className="material-symbols-sharp mr-2">check</span>
@@ -136,7 +136,7 @@ function ReviewOrganisationRegistrationRequstModal({
 
               {/* DECLINE BUTTON */}
               <button
-                type="submit"
+                type="button"
                 className="cursor-pointer w-full inline-flex items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-danger box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm px-4 py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 <span className="material-symbols-sharp mr-2">close</span>
@@ -144,7 +144,10 @@ function ReviewOrganisationRegistrationRequstModal({
               </button>
             </div>
 
-            <button className="mt-2 inline-flex w-full justify-center items-center gap-2 font-jost text-[1.2rem] font-regular tracking-wide text-purple hover:text-purple cursor-pointer transition-colours">
+            <button
+              type="button"
+              className="mt-2 inline-flex w-full justify-center items-center gap-2 font-jost text-[1.2rem] font-regular tracking-wide text-purple hover:text-purple cursor-pointer transition-colours"
+            >
               <span className="material-symbols-sharp">contact_page</span>
               <span className="hover:underline">Mark as Contacted</span>
             </button>
