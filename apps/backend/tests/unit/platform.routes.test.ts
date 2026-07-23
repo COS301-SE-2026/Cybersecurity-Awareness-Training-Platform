@@ -34,8 +34,31 @@ const serviceMock = vi.hoisted(() => {
   };
 });
 
+const platformAdminServiceMock = vi.hoisted(() => {
+  class MockPlatformAdminServiceError extends Error {
+    constructor(
+      public readonly statusCode: number,
+      public readonly error: string,
+      message: string,
+    ) {
+      super(message);
+      this.name = 'PlatformAdminServiceError';
+    }
+  }
+
+  return {
+    PlatformAdminServiceError: MockPlatformAdminServiceError,
+    listPlatformAdmins: vi.fn(),
+    invitePlatformAdmin: vi.fn(),
+    resendPlatformAdminInvite: vi.fn(),
+    transferSuperAdmin: vi.fn(),
+    demotePlatformAdmin: vi.fn(),
+  };
+});
+
 vi.mock('../../src/services/organisation-registration-request.service.js', () => serviceMock);
 vi.mock('../../src/services/platformOrganisation.service.js', () => serviceMock);
+vi.mock('../../src/services/platform-admin.service.js', () => platformAdminServiceMock);
 
 vi.mock('../../src/middleware/requireAuth.js', () => ({
   requireAuth(req: Request, _res: Response, next: NextFunction) {
@@ -254,6 +277,164 @@ describe('platform admin routes', () => {
 
       expect(response.status).toBe(409);
       expect(response.body.error).toBe('REQUEST_NOT_DELETABLE');
+    });
+  });
+
+  // Platform admin API route testng
+  describe('Platform Admins Routes', () => {
+    describe('GET /platform/admins', () => {
+      it('returns list of platform administrators successfully', async () => {
+        platformAdminServiceMock.listPlatformAdmins.mockResolvedValue({
+          admins: [],
+          allowedToInvite: true,
+        });
+
+        const response = await request(createApp()).get('/platform/admins');
+
+        expect(response.status).toBe(200);
+        expect(platformAdminServiceMock.listPlatformAdmins).toHaveBeenCalledWith(actorUserId);
+      });
+    });
+
+    describe('POST /platform/admin-invitations', () => {
+      const payload = { email: 'newadmin@ip.com', firstName: 'Jane', lastName: 'Doe' };
+
+      it('invites platform admin successfully', async () => {
+        platformAdminServiceMock.invitePlatformAdmin.mockResolvedValue({
+          type: 'new-invite',
+          userId: 'user-id-123',
+          email: 'newadmin@ip.com',
+        });
+
+        const response = await request(createApp())
+          .post('/platform/admin-invitations')
+          .send(payload);
+
+        expect(response.status).toBe(201);
+        expect(platformAdminServiceMock.invitePlatformAdmin).toHaveBeenCalledWith(
+          actorUserId,
+          payload,
+        );
+      });
+
+      it('returns 422 for validation error on empty or invalid email', async () => {
+        const response = await request(createApp())
+          .post('/platform/admin-invitations')
+          .send({ email: 'invalid-email' });
+
+        expect(response.status).toBe(422);
+        expect(response.body.error).toBe('VALIDATION_ERROR');
+      });
+    });
+
+    describe('POST /platform/admin-invitations/:id/resend', () => {
+      const inviteId = 'e0000000-e000-e000-e000-e00000000000';
+
+      it('resends invitation successfully', async () => {
+        platformAdminServiceMock.resendPlatformAdminInvite.mockResolvedValue({
+          success: true,
+          emailQueued: true,
+        });
+
+        const response = await request(createApp()).post(
+          `/platform/admin-invitations/${inviteId}/resend`,
+        );
+
+        expect(response.status).toBe(200);
+        expect(platformAdminServiceMock.resendPlatformAdminInvite).toHaveBeenCalledWith(
+          actorUserId,
+          inviteId,
+        );
+      });
+
+      it('returns 400 validation error for invalid invite ID parameter', async () => {
+        const response = await request(createApp()).post(
+          '/platform/admin-invitations/invalid-uuid/resend',
+        );
+
+        expect(response.status).toBe(400);
+        expect(response.body.error).toBe('VALIDATION_ERROR');
+      });
+    });
+
+    describe('POST /platform/admins/transfer-super-admin', () => {
+      const payload = {
+        targetUserId: 'd0000000-d000-d000-d000-d00000000000',
+        password: 'correct-password',
+        confirmation: 'TRANSFER',
+      };
+
+      it('transfers super admin successfully', async () => {
+        platformAdminServiceMock.transferSuperAdmin.mockResolvedValue({ user: {} });
+
+        const response = await request(createApp())
+          .post('/platform/admins/transfer-super-admin')
+          .send(payload);
+
+        expect(response.status).toBe(200);
+        expect(platformAdminServiceMock.transferSuperAdmin).toHaveBeenCalledWith(
+          actorUserId,
+          payload,
+        );
+      });
+
+      it('returns 422 validation error for incorrect confirmation literal', async () => {
+        const response = await request(createApp())
+          .post('/platform/admins/transfer-super-admin')
+          .send({ ...payload, confirmation: 'WRONG' });
+
+        expect(response.status).toBe(422);
+        expect(response.body.error).toBe('VALIDATION_ERROR');
+      });
+    });
+
+    describe('POST /platform/admins/:userId/demote', () => {
+      const targetUserId = 'f0000000-f000-f000-f000-f00000000000';
+      const payload = { password: 'correct-password', confirmation: 'DEMOTE' };
+
+      it('demotes platfrom admin successfully', async () => {
+        platformAdminServiceMock.demotePlatformAdmin.mockResolvedValue({
+          userId: targetUserId,
+          adminStatus: 'DISABLED',
+        });
+
+        const response = await request(createApp())
+          .post(`/platform/admins/${targetUserId}/demote`)
+          .send(payload);
+
+        expect(response.status).toBe(200);
+        expect(platformAdminServiceMock.demotePlatformAdmin).toHaveBeenCalledWith(
+          actorUserId,
+          targetUserId,
+          payload,
+        );
+      });
+
+      it('returns 422 validation error for incorrect confirmation literal', async () => {
+        const response = await request(createApp())
+          .post(`/platform/admins/${targetUserId}/demote`)
+          .send({ ...payload, confirmation: 'WRONG' });
+
+        expect(response.status).toBe(422);
+        expect(response.body.error).toBe('VALIDATION_ERROR');
+      });
+
+      it('returns 409 Conflict if demotion service throws PlatformAdminServiceError', async () => {
+        platformAdminServiceMock.demotePlatformAdmin.mockRejectedValue(
+          new platformAdminServiceMock.PlatformAdminServiceError(
+            409,
+            'SELF_DEMOTION_CONFLICT',
+            'You cannot demote yourself',
+          ),
+        );
+
+        const response = await request(createApp())
+          .post(`/platform/admins/${targetUserId}/demote`)
+          .send(payload);
+
+        expect(response.status).toBe(409);
+        expect(response.body.error).toBe('SELF_DEMOTION_CONFLICT');
+      });
     });
   });
 });

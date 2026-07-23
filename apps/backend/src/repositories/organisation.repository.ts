@@ -3,24 +3,25 @@ import { prisma } from '../lib/prisma.js';
 
 type OrganisationClient = PrismaClient | Prisma.TransactionClient;
 
-// Allowlisted audit action types for the onboarding timeline
-const TIMELINE_AUDIT_ACTIONS = [
+const TIMELINE_REGISTRATION_REQUEST_ACTIONS = [
   'CREATED',
   'CONTACTED',
   'APPROVED',
   'REJECTED',
+] as const;
+
+const TIMELINE_INITIAL_ADMIN_INVITATION_ACTIONS = [
+  'CREATED',
   'RESENT',
   'ACCEPTED',
   'COMPLETED',
-  'SUSPENDED',
-  'REACTIVATED',
 ] as const;
 
-// Allowlisted audit target types for the onboarding timeline
-const TIMELINE_AUDIT_TARGETS = [
-  'ORGANISATION_REGISTRATION_REQUEST',
-  'ORGANISATION',
-  'INVITATION',
+const TIMELINE_ORGANISATION_LIFECYCLE_ACTIONS = [
+  'CREATED',
+  'ENABLED',
+  'SUSPENDED',
+  'REACTIVATED',
 ] as const;
 
 export function findOrganisationById(organisationId: string, client: OrganisationClient = prisma) {
@@ -125,8 +126,8 @@ export function findLatestEmailLogForInvitation(
 }
 
 /**
- * Finds audit logs for the onboarding timeline. Filters to allowed target types and action types
- * directly in the database query -- no in-memory filtering needed.
+ * Finds audit logs for the onboarding timeline. Each clause is scoped to the authoritative
+ * registration request, initial-admin invitation, or organisation lifecycle target.
  */
 export function findAuditLogsForTimeline(
   input: {
@@ -141,22 +142,23 @@ export function findAuditLogsForTimeline(
   if (input.organisationId) {
     orClauses.push({
       organisationId: input.organisationId,
-      targetType: { in: [...TIMELINE_AUDIT_TARGETS] },
-      actionType: { in: [...TIMELINE_AUDIT_ACTIONS] },
+      targetType: 'ORGANISATION',
+      targetId: input.organisationId,
+      actionType: { in: [...TIMELINE_ORGANISATION_LIFECYCLE_ACTIONS] },
     });
   }
   if (input.requestId) {
     orClauses.push({
       targetType: 'ORGANISATION_REGISTRATION_REQUEST',
       targetId: input.requestId,
-      actionType: { in: [...TIMELINE_AUDIT_ACTIONS] },
+      actionType: { in: [...TIMELINE_REGISTRATION_REQUEST_ACTIONS] },
     });
   }
   if (input.invitationId) {
     orClauses.push({
       targetType: 'INVITATION',
       targetId: input.invitationId,
-      actionType: { in: [...TIMELINE_AUDIT_ACTIONS] },
+      actionType: { in: [...TIMELINE_INITIAL_ADMIN_INVITATION_ACTIONS] },
     });
   }
 

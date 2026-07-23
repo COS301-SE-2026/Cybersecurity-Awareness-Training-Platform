@@ -16,6 +16,8 @@ import OrganisationRegistrationRequestPage from '../pages/OrganisationRegistrati
 import AccountManagementPage from '../pages/AccountManagementPage';
 import SetupPage from '../pages/SetupPage';
 import AcceptInvitePage from '../pages/AcceptInvitePage';
+import VerifyEmailPage from '../pages/VerifyEmailPage';
+import ConfirmEmailChangePage from '../pages/ConfirmEmailChangePage';
 import OrganisationInformationPage from '../pages/OrganisationInformationPage';
 import OrganisationSecuritySettingsPage from '../pages/OrganisationSecuritySettingsPage';
 import PlatformOrganisationManagementPage from '../pages/PlatformOrganisationManagementPage';
@@ -25,6 +27,8 @@ function AppRoutes() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/verify-email" element={<VerifyEmailPage />} />
+      <Route path="/confirm-email-change" element={<ConfirmEmailChangePage />} />
       <Route path="/setup/token/:token" element={<SetupPage />} />
       <Route path="/status" element={<StatusPage />} />
       <Route element={<ProtectedRoute />}>
@@ -62,9 +66,8 @@ function AppRoutes() {
       <Route path="/accept-invite" element={<AcceptInvitePage />}></Route>
 
       <Route path="/" element={<LandingPage />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-
       <Route path="/organisation-information" element={<OrganisationInformationPage />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
       <Route
         path="/organisation-security-preferences"
         element={<OrganisationSecuritySettingsPage />}
