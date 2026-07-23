@@ -411,6 +411,61 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
   };
 }
 
+type PlatformTimelineEvent = {
+  id: string;
+  type: 'AUDIT_LOG' | 'EMAIL_DELIVERY';
+  timestamp: string;
+  action: string;
+  summary: string;
+  actor: string | null;
+  outcome: string | null;
+  metadata: null;
+};
+
+type InternalPlatformTimelineEvent = PlatformTimelineEvent & {
+  timelineSequence: number;
+};
+
+function auditTimelineSequence(log: { actionType: string; targetType: string }) {
+  if (log.targetType === 'ORGANISATION_REGISTRATION_REQUEST') {
+    if (log.actionType === 'CREATED') return 10;
+    if (log.actionType === 'CONTACTED') return 20;
+    if (log.actionType === 'APPROVED' || log.actionType === 'REJECTED') return 30;
+  }
+
+  if (log.targetType === 'INVITATION') {
+    if (
+      log.actionType === 'CREATED' ||
+      log.actionType === 'RESENT' ||
+      log.actionType === 'ACCEPTED'
+    ) {
+      return 40;
+    }
+    if (log.actionType === 'COMPLETED') return 50;
+  }
+
+  if (log.targetType === 'ORGANISATION') {
+    if (log.actionType === 'CREATED') return 35;
+    if (log.actionType === 'ENABLED') return 60;
+    if (log.actionType === 'SUSPENDED' || log.actionType === 'REACTIVATED') return 70;
+  }
+
+  return 90;
+}
+
+function publicTimelineEvent(event: InternalPlatformTimelineEvent): PlatformTimelineEvent {
+  return {
+    id: event.id,
+    type: event.type,
+    timestamp: event.timestamp,
+    action: event.action,
+    summary: event.summary,
+    actor: event.actor,
+    outcome: event.outcome,
+    metadata: event.metadata,
+  };
+}
+
 async function buildPlatformTimeline(
   organisationId: string | null,
   requestId: string | null,
@@ -426,16 +481,7 @@ async function buildPlatformTimeline(
   // Email logs scoped to the authoritative initial-admin invitation only.
   const emailLogs = await OrganisationRepository.findEmailLogsForTimeline(invitationId);
 
-  const timeline: Array<{
-    id: string;
-    type: 'AUDIT_LOG' | 'EMAIL_DELIVERY';
-    timestamp: string;
-    action: string;
-    summary: string;
-    actor: string | null;
-    outcome: string | null;
-    metadata: null;
-  }> = [];
+  const timeline: InternalPlatformTimelineEvent[] = [];
 
   for (const log of auditLogs) {
     // Actor name uses firstName + lastName only -- no email fallback to avoid leaking addresses.
@@ -453,6 +499,7 @@ async function buildPlatformTimeline(
       actor: actorName,
       outcome: log.outcome,
       metadata: null,
+      timelineSequence: auditTimelineSequence(log),
     });
   }
 
@@ -467,19 +514,21 @@ async function buildPlatformTimeline(
       actor: 'System',
       outcome: log.deliveryStatus,
       metadata: null,
+      timelineSequence: 40,
     });
   }
 
   timeline.sort((a, b) => {
     const timeDiff = new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
     if (timeDiff !== 0) return timeDiff;
-    // Secondary sort by id DESC for determinism when timestamps are equal
+    const sequenceDiff = b.timelineSequence - a.timelineSequence;
+    if (sequenceDiff !== 0) return sequenceDiff;
     if (b.id > a.id) return 1;
     if (b.id < a.id) return -1;
     return 0;
   });
 
-  return timeline;
+  return timeline.map(publicTimelineEvent);
 }
 
 /**

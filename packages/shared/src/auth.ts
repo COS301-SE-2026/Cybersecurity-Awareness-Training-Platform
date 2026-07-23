@@ -1,5 +1,6 @@
 import type { z } from 'zod';
 import type {
+  authForgotPasswordRequestSchema,
   authLoginRequestSchema,
   authRegisterRequestSchema,
   setupCompleteRequestSchema,
@@ -27,6 +28,10 @@ export interface AccountVerifyEmailChangeResponseDto {
 }
 
 export interface AuthRegisterResponseDto {
+  message: string;
+}
+
+export interface AuthForgotPasswordResponseDto {
   message: string;
 }
 
@@ -99,6 +104,8 @@ export interface PublicUserDto {
 export type AuthRegisterRequestDto = z.infer<typeof authRegisterRequestSchema>;
 
 export type AuthLoginRequestDto = z.infer<typeof authLoginRequestSchema>;
+
+export type AuthForgotPasswordRequestDto = z.infer<typeof authForgotPasswordRequestSchema>;
 
 export interface AuthContextUserDto {
   id: string;

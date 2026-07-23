@@ -1,5 +1,7 @@
 import type { EmailDeliveryType } from '../generated/prisma/enums.js';
 import { env } from '../config/env.js';
+import { escapeHtml, renderBrandedEmailOrFallback } from './email-rendering-helper.js';
+
 import {
   emailVerificationTemplateDataSchema,
   passwordResetTemplateDataSchema,
@@ -25,18 +27,7 @@ function actionUrl(path: string, rawToken: string) {
 function setupUrl(rawToken: string) {
   return new URL(`/setup/token/${rawToken}`, env.FRONTEND_ORIGIN).toString();
 }
-function escapeHtml(value: string) {
-  return value.replace(/[&<>"']/g, (character) => {
-    const entities: Record<string, string> = {
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#39;',
-    };
-    return entities[character];
-  });
-}
+
 function greeting(firstName?: string) {
   return firstName ? `Hi ${firstName},` : `Hi,`;
 }
@@ -208,7 +199,8 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
     case 'INITIAL_ORGANISATION_ADMIN_SETUP': {
       const data = initialOrganisationAdminSetupTemplateDataSchema.parse(templateData);
       const url = setupUrl(data.actionToken);
-      return simpleEmail({
+      const expiryText = expiryLines(data.actionTokenExpiresAt);
+      const fallback = simpleEmail({
         subject: `Your organisation has been approved`,
         heading: 'Organisation approved',
         lines: [
@@ -222,6 +214,30 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
           expiresAt: data.actionTokenExpiresAt,
         },
       });
+
+      return renderBrandedEmailOrFallback(
+        {
+          templateId: 'INITIAL_ORGANISATION_ADMIN_SETUP',
+          subject: fallback.subject,
+          previewText: 'Your organisation has been approved.',
+          title: 'Organisation approved',
+          greeting: greeting(data.firstName),
+          sections: [
+            `Good news! Your request to register ${data.organisationName} for Insightful Phish has been approved.`,
+            'The next step is to create the first organisation administrator account.',
+          ],
+          cta: {
+            label: 'Set up administrator account',
+            url,
+          },
+          expiryText,
+          support: {
+            subject: 'Initial administrator setup help',
+            body: `I need help setting up the first administrator account for ${data.organisationName}.`,
+          },
+        },
+        fallback,
+      );
     } //organisation reqeust approved
 
     case 'ORGANISATION_TRAINEE_INVITE': {

@@ -1,75 +1,154 @@
 import BasicAlert from '../components/alerts/BasicAlert';
 import { authForgotPasswordRequestSchema } from '@insightful-phish/shared';
-import { useState, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import BackToLoginButton from '../components/BackToLoginButton';
 import LoadingSpinnerSVG from '../components/LoadingSpinnerSVG';
+import { ApiError } from '../lib/apiClient';
+import { requestPasswordReset } from '../services/auth.service';
+
+const EMAIL_ERROR_ID = 'forgot-password-email-error';
+const GENERIC_SUCCESS_MESSAGE = 'If the email is registered, a password reset link has been sent.';
+const RATE_LIMIT_MESSAGE = 'Please wait before requesting another password reset link.';
+const GENERIC_ERROR_MESSAGE =
+  'We could not request a password reset link right now. Please try again later.';
+const VALIDATION_FALLBACK_MESSAGE = 'Please enter a valid email address.';
+
+type RequestErrorState = {
+  fieldError: string;
+  pageError: string;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function getApiErrorCode(error: ApiError): string | null {
+  if (!isRecord(error.body)) return null;
+
+  const errorCode = error.body.error;
+  return typeof errorCode === 'string' ? errorCode : null;
+}
+
+function getEmailValidationMessage(body: unknown): string {
+  if (!isRecord(body) || !Array.isArray(body.details)) {
+    return VALIDATION_FALLBACK_MESSAGE;
+  }
+
+  const emailDetail = body.details.find(
+    (detail) =>
+      isRecord(detail) &&
+      detail.field === 'email' &&
+      typeof detail.message === 'string' &&
+      detail.message.trim().length > 0,
+  );
+
+  return isRecord(emailDetail) && typeof emailDetail.message === 'string'
+    ? emailDetail.message
+    : VALIDATION_FALLBACK_MESSAGE;
+}
+
+function mapRequestError(error: unknown): RequestErrorState {
+  if (!(error instanceof ApiError)) {
+    return { fieldError: '', pageError: GENERIC_ERROR_MESSAGE };
+  }
+
+  const errorCode = getApiErrorCode(error);
+
+  if (errorCode === 'VALIDATION_ERROR') {
+    return {
+      fieldError: getEmailValidationMessage(error.body),
+      pageError: '',
+    };
+  }
+
+  if (error.status === 429 || errorCode === 'AUTH_RATE_LIMITED') {
+    return { fieldError: '', pageError: RATE_LIMIT_MESSAGE };
+  }
+
+  return { fieldError: '', pageError: GENERIC_ERROR_MESSAGE };
+}
 
 function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
-  const [alertMessage, setAlertMessage] = useState('');
+  const [fieldError, setFieldError] = useState('');
+  const [pageError, setPageError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [cooldown, setCooldown] = useState(0);
-  const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
+  const requestInFlightRef = useRef(false);
 
-  useEffect(() => {
-    if (cooldown <= 0) return;
+  const hasSubmitted = submittedEmail !== null;
 
-    const timer = setTimeout(() => {
-      setCooldown((current) => current - 1);
-    }, 1000);
+  async function sendPasswordResetRequest(requestEmail: string): Promise<boolean> {
+    if (requestInFlightRef.current) return false;
 
-    return () => clearTimeout(timer);
-  }, [cooldown]);
+    requestInFlightRef.current = true;
+    setIsLoading(true);
+    setPageError('');
+    setFieldError('');
+    setSuccessMessage('');
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    try {
+      await requestPasswordReset({ email: requestEmail });
+      setSuccessMessage(GENERIC_SUCCESS_MESSAGE);
+      return true;
+    } catch (error) {
+      const errorState = mapRequestError(error);
+      setFieldError(errorState.fieldError);
+      setPageError(errorState.pageError);
+      return false;
+    } finally {
+      requestInFlightRef.current = false;
+      setIsLoading(false);
+    }
+  }
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setAlertMessage('');
+
+    if (requestInFlightRef.current) return;
+
+    setPageError('');
+    setFieldError('');
+
+    if (submittedEmail) {
+      await sendPasswordResetRequest(submittedEmail);
+      return;
+    }
+
     setSuccessMessage('');
 
     const validationResult = authForgotPasswordRequestSchema.safeParse({
       email,
     });
+
     if (!validationResult.success) {
-      const message = validationResult.error.issues[0].message;
-      setAlertMessage(
-        message
-          .replace(/\.$/, '')
-          .replace(/\w\S*/g, (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()),
-      );
+      setFieldError(validationResult.error.issues[0]?.message ?? VALIDATION_FALLBACK_MESSAGE);
       return;
     }
 
-    setIsLoading(true);
+    const normalizedEmail = validationResult.data.email;
+    const requestSucceeded = await sendPasswordResetRequest(normalizedEmail);
 
-    setTimeout(() => {
-      setIsLoading(false);
-      setSuccessMessage(
-        'If An Account Exists For This Email Address, Password Reset Instructions Have Been Sent',
-      );
-      setCooldown(30);
-      setHasSubmitted(true);
-    }, 2000);
+    if (requestSucceeded) {
+      setEmail(normalizedEmail);
+      setSubmittedEmail(normalizedEmail);
+    }
   }
 
-  let buttonText = 'Send Password Reset Link';
-  let countdownText = '';
+  let buttonText = hasSubmitted ? 'Resend Password Reset Link' : 'Send Password Reset Link';
+
   if (isLoading) {
-    buttonText = 'Sending Password Reset Link...';
-  } else if (cooldown > 0) {
-    buttonText = 'Resend Password Reset Link ';
-    countdownText = `(${cooldown})`;
-  } else if (hasSubmitted) {
-    buttonText = 'Resend Password Reset Link';
+    buttonText = hasSubmitted ? 'Resending Password Reset Link...' : 'Sending Password Reset Link';
   }
 
   return (
     <section className="bg-light-purple dark:bg-gray-900">
       <div className="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0">
         {/* LOGO  */}
-        {alertMessage && (
-          <BasicAlert variant="danger" onClose={() => setAlertMessage('')}>
-            {alertMessage}
+        {pageError && (
+          <BasicAlert variant="danger" onClose={() => setPageError('')}>
+            {pageError}
           </BasicAlert>
         )}
         {successMessage && (
@@ -102,7 +181,12 @@ function ForgotPasswordPage() {
             your password.
           </p>
 
-          <form className="mt-4 space-y-4 lg:mt-5 md:space-y-5" onSubmit={handleSubmit} noValidate>
+          <form
+            className="mt-4 space-y-4 lg:mt-5 md:space-y-5"
+            onSubmit={handleSubmit}
+            noValidate
+            aria-busy={isLoading}
+          >
             {/* EMAIL INPUT */}
             <div>
               <label
@@ -114,29 +198,39 @@ function ForgotPasswordPage() {
               <input
                 type="email"
                 name="email"
-                disabled={isLoading}
+                disabled={isLoading || hasSubmitted}
                 id="email"
                 value={email}
-                onChange={(event) => setEmail(event.target.value)}
+                onChange={(event) => {
+                  setEmail(event.target.value);
+                  setFieldError('');
+                }}
+                required
+                autoComplete="email"
+                aria-invalid={fieldError ? true : undefined}
+                aria-describedby={fieldError ? EMAIL_ERROR_ID : undefined}
                 className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                 placeholder="Enter your Email Address"
               />
+              {fieldError && (
+                <p
+                  id={EMAIL_ERROR_ID}
+                  role="alert"
+                  className="mt-2 font-overpass text-sm text-red-700"
+                >
+                  {fieldError}
+                </p>
+              )}
             </div>
 
             {/* SEND FORGOT PASSWORD RESET LINK BUTTON */}
             <button
               type="submit"
-              disabled={isLoading || cooldown > 0}
+              disabled={isLoading}
               className="cursor-pointer w-full inline-flex items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm px-4 py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {isLoading && <LoadingSpinnerSVG />}
-              <span>
-                {buttonText}
-
-                {countdownText && (
-                  <span className="inline-block w-10 text-center">{countdownText}</span>
-                )}
-              </span>
+              <span>{buttonText}</span>
             </button>
 
             {/* BACK TO LOGIN LINK */}
