@@ -1,11 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { render, fireEvent, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import PlatformOrganisationManagementPage from '../PlatformOrganisationManagementPage';
+import { MemoryRouter } from 'react-router-dom';
+import { AuthProvider } from '../../context/AuthContext';
 
 describe('PlatformOrganisationManagementPage', () => {
   // Helper Function to Return Rendered Page
   const renderPage = () => {
-    return render(<PlatformOrganisationManagementPage />);
+    return render(
+      <MemoryRouter>
+        <AuthProvider>
+          <PlatformOrganisationManagementPage />
+        </AuthProvider>
+      </MemoryRouter>,
+    );
   };
 
   it('renders the page heading and description', () => {
@@ -25,12 +33,12 @@ describe('PlatformOrganisationManagementPage', () => {
 
   it('renders the request status combobox', () => {
     renderPage();
-    expect(screen.getByText('Request Status')).toBeInTheDocument();
+    expect(screen.getAllByTestId('flowbite-dropdown-target')[0]).toBeInTheDocument();
   });
 
-  it('renders the organisation status combobox', () => {
+  it('renders the two comboboxes', () => {
     renderPage();
-    expect(screen.getByText('Organisation Status')).toBeInTheDocument();
+    expect(screen.getAllByTestId('flowbite-dropdown-target')).toHaveLength(2);
   });
 
   it('renders the organisations table', () => {
@@ -40,12 +48,12 @@ describe('PlatformOrganisationManagementPage', () => {
 
   it('renders all the table headings', () => {
     renderPage();
-    expect(screen.getByText('Name')).toBeInTheDocument();
-    expect(screen.getByText('Size')).toBeInTheDocument();
-    expect(screen.getByText('Website')).toBeInTheDocument();
-    expect(screen.getByText('Representative')).toBeInTheDocument();
-    expect(screen.getByText('Request Status')).toBeInTheDocument();
-    expect(screen.getByText('Organisation Status')).toBeInTheDocument();
-    expect(screen.getByText('Actions')).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Name' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Size' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Website' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Representative' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Request Status' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Organisation Status' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Actions' })).toBeInTheDocument();
   });
 });
