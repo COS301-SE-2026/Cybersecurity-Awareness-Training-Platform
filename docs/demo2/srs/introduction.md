@@ -12,7 +12,7 @@
 
 ---
 
-# 1. Introduction
+# 1. Introduction and Scope
 
 ## 1.1 Purpose
 
