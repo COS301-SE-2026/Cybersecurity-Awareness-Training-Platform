@@ -1,9 +1,41 @@
 import { describe, expect, it, vi } from 'vitest';
-vi.mock('../../src/config/env.js', () => ({ env: { FRONTEND_ORIGIN: 'http://frontend.com' } }));
+vi.mock('../../src/config/env.js', () => ({
+  env: {
+    FRONTEND_ORIGIN: 'http://frontend.com',
+    SUPPORT_EMAIL_ADDRESS: 'support@insightfulphish.co.za',
+  },
+}));
 const rawToken = 'rawtokenqwertyuiopasdfghjklzxcvbnm';
 const tokenHash = 'hashedtokenvaluethatshouldntberenderedatall';
 const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
 const { renderEmail } = await import('../../src/services/email-template-renderer.js');
+const {
+  BrandedEmailInputError,
+  buildSupportMailtoHref,
+  renderBrandedEmail,
+  renderBrandedEmailOrFallback,
+} = await import('../../src/services/email-rendering-helper.js');
+
+function countOccurrences(value: string, needle: string): number {
+  return value.split(needle).length - 1;
+}
+
+function expectNoBrowserRuntimeEmailMarkup(html: string): void {
+  expect(html).not.toContain('<script');
+  expect(html).not.toContain('<form');
+  expect(html).not.toContain('flowbite');
+  expect(html).not.toContain('data-modal');
+  expect(html).not.toMatch(/class="[^"]*(bg-|text-|flex|rounded|shadow|hover:)/);
+}
+
+function renderInitialAdminSetupEmail() {
+  return renderEmail('INITIAL_ORGANISATION_ADMIN_SETUP', {
+    firstName: 'Johan',
+    organisationName: 'Test Org',
+    actionToken: rawToken,
+    actionTokenExpiresAt: expiresAt,
+  });
+}
 
 describe('renderEmail', () => {
   it('renders a token action URL and expiry and doesnt render token hashes', async () => {
@@ -148,4 +180,184 @@ describe('renderEmail', () => {
     });
     expect(email.html).toContain('&lt;Johan &amp; Sons&gt;');
   });
+
+  it('renders a representative branded initial admin setup email', () => {
+    const email = renderInitialAdminSetupEmail();
+
+    expect(email.subject).toBe('Your organisation has been approved');
+    expect(email.html).toContain('#0E0020');
+    expect(email.html).toContain('#3100E4');
+    expect(email.html).toContain('Insightful Phish');
+    expect(email.html).toContain('Organisation approved');
+    expect(email.html).toContain('Set up administrator account');
+    expect(email.html).toContain('href=');
+    expect(email.html).toContain('You can reach support by emailing');
+    expect(email.html).toContain('support@insightfulphish.co.za');
+    expect(email.text).toContain('Set up administrator account');
+    expect(email.text).toContain('support@insightfulphish.co.za');
+    expectNoBrowserRuntimeEmailMarkup(email.html);
+  });
+
+  it('keeps the rendered email contract compatible with SMTP input', () => {
+    const email = renderInitialAdminSetupEmail();
+
+    expect(email).toEqual({
+      subject: expect.any(String),
+      text: expect.any(String),
+      html: expect.any(String),
+    });
+  });
 }); //desribe
+
+describe('branded email rendering helpers', () => {
+  const brandedInput = {
+    templateId: 'PREVIEW_TEMPLATE',
+    subject: 'Preview subject',
+    previewText: 'Preview <text>',
+    title: 'Welcome <Owner>',
+    greeting: 'Hi <Johan>,',
+    sections: ['Clicking this <img src=x onerror=alert(1)> should be harmless.'],
+    cta: {
+      label: 'Open "setup"',
+      url: 'https://example.com/setup?next=" onclick="alert(1)&token=abc123',
+    },
+    expiryText: 'This link expires in <2 hours>.',
+    support: {
+      subject: 'Help & setup',
+      body: 'Line one\nLine two & three',
+    },
+  } as const;
+  const fallback = {
+    subject: 'Fallback subject',
+    text: 'Fallback text',
+    html: '<h1>Fallback</h1>',
+  };
+
+  it('escapes text nodes and attribute values in branded HTML', () => {
+    const email = renderBrandedEmail(brandedInput);
+
+    expect(email.html).toContain('Preview &lt;text&gt;');
+    expect(email.html).toContain('Welcome &lt;Owner&gt;');
+    expect(email.html).toContain('&lt;img src=x onerror=alert(1)&gt;');
+    expect(email.html).toContain('Open &quot;setup&quot;');
+    expect(email.html).toContain(
+      'href="https://example.com/setup?next=&quot; onclick=&quot;alert(1)&amp;token=abc123"',
+    );
+    expect(email.html).not.toContain('<img src=x onerror=alert(1)>');
+    expect(email.html).not.toContain('onclick="alert(1)"');
+    expect(email.html).not.toContain('" onclick="alert(1)"');
+  });
+
+  it('encodes support mailto context and keeps plain text readable', () => {
+    const email = renderBrandedEmail(brandedInput);
+    const mailtoHref = buildSupportMailtoHref('helpdesk@example.org', brandedInput.support);
+
+    expect(mailtoHref).toContain('mailto:helpdesk@example.org');
+    expect(mailtoHref).toContain('subject=Help+%26+setup');
+    expect(mailtoHref).toContain('body=Line+one%0ALine+two+%26+three');
+    expect(email.html).toContain('mailto:support@insightfulphish.co.za');
+    expect(email.html).toContain('subject=Help+%26+setup');
+    expect(email.text).toContain('Open "setup": https://example.com/setup');
+    expect(email.text).toContain(
+      'You can reach support by emailing support@insightfulphish.co.za.',
+    );
+  });
+
+  it('rejects mailbox delimiters in support mailto addresses', () => {
+    expect(() =>
+      buildSupportMailtoHref('help?bcc=x@example.org', {
+        subject: 'Support request',
+      }),
+    ).toThrow(BrandedEmailInputError);
+  });
+
+  it('rejects subject header control characters before fallback can apply', () => {
+    expect(() =>
+      renderBrandedEmailOrFallback(
+        {
+          ...brandedInput,
+          subject: 'Preview subject\r\nBcc: injected@example.org',
+        },
+        fallback,
+      ),
+    ).toThrow(BrandedEmailInputError);
+  });
+
+  it('does not emit browser runtime dependencies or Tailwind utility classes', () => {
+    const email = renderBrandedEmail(brandedInput);
+
+    expectNoBrowserRuntimeEmailMarkup(email.html);
+  });
+
+  it('does not duplicate raw tokens outside intended action URLs', () => {
+    const token = 'actiontokenqwertyuiopasdfghjkl123456';
+    const email = renderBrandedEmail({
+      ...brandedInput,
+      cta: {
+        label: 'Complete setup',
+        url: `https://example.com/setup/token/${token}`,
+      },
+      support: {
+        subject: 'Setup help',
+        body: 'I need help with setup.',
+      },
+    });
+
+    expect(countOccurrences(email.html, token)).toBe(1);
+    expect(countOccurrences(email.text, token)).toBe(1);
+  });
+
+  it('falls back only for the explicit recoverable branded assembly failure', () => {
+    const warningSpy = vi.spyOn(process, 'emitWarning').mockImplementation(() => undefined);
+
+    const email = renderBrandedEmailOrFallback(
+      {
+        ...brandedInput,
+        subject: '   ',
+      },
+      fallback,
+    );
+
+    expect(email).toBe(fallback);
+    expect(warningSpy).toHaveBeenCalledWith(
+      'Branded email assembly failed for PREVIEW_TEMPLATE; rendered fallback body.',
+      {
+        code: 'BRANDED_EMAIL_FALLBACK_RENDERED',
+      },
+    );
+
+    warningSpy.mockRestore();
+  });
+
+  it('does not swallow branded input validation errors', () => {
+    expect(() =>
+      renderBrandedEmailOrFallback(
+        {
+          ...brandedInput,
+          cta: {
+            label: 'Unsafe action',
+            url: 'javascript:alert(1)',
+          },
+        },
+        fallback,
+      ),
+    ).toThrow(BrandedEmailInputError);
+  });
+
+  it('does not fallback for ordinary programming errors', () => {
+    const sections = ['Broken branded section'];
+    vi.spyOn(sections, 'map').mockImplementation(() => {
+      throw new TypeError('Unexpected programming defect');
+    });
+
+    expect(() =>
+      renderBrandedEmailOrFallback(
+        {
+          ...brandedInput,
+          sections,
+        },
+        fallback,
+      ),
+    ).toThrow(TypeError);
+  });
+});
