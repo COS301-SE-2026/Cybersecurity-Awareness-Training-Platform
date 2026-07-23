@@ -791,13 +791,6 @@
           "closed_date": null
         },
         {
-          "number": 290,
-          "title": "feat: implement backend account settings and user session endpoints",
-          "points": 2,
-          "state": "open",
-          "closed_date": null
-        },
-        {
           "number": 289,
           "title": "feat: build frontend account settings and security preferences",
           "points": 2,
@@ -1181,8 +1174,8 @@
           "number": 341,
           "title": "feat: add reusable branded transactional email renderer",
           "points": 5,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-07-23"
         },
         {
           "number": 340,
@@ -1211,6 +1204,13 @@
           "points": 3,
           "state": "closed",
           "closed_date": "2026-07-19"
+        },
+        {
+          "number": 290,
+          "title": "feat: implement backend account settings and user session endpoints",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
         },
         {
           "number": 288,
@@ -1807,7 +1807,7 @@
     },
     {
       "date": "2026-07-23",
-      "remaining": 77,
+      "remaining": 72,
       "ideal": 15.77
     }
   ]

@@ -21,8 +21,8 @@
       "number": 341,
       "title": "feat: add reusable branded transactional email renderer",
       "points": 5,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-07-23"
     },
     {
       "number": 340,
@@ -51,6 +51,13 @@
       "points": 3,
       "state": "closed",
       "closed_date": "2026-07-19"
+    },
+    {
+      "number": 290,
+      "title": "feat: implement backend account settings and user session endpoints",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
     },
     {
       "number": 288,
@@ -210,58 +217,58 @@
   "series": [
     {
       "date": "2026-07-13",
-      "remaining": 67,
-      "ideal": 67.0
+      "remaining": 69,
+      "ideal": 69.0
     },
     {
       "date": "2026-07-14",
-      "remaining": 65,
-      "ideal": 61.85
+      "remaining": 67,
+      "ideal": 63.69
     },
     {
       "date": "2026-07-15",
-      "remaining": 65,
-      "ideal": 56.69
+      "remaining": 67,
+      "ideal": 58.38
     },
     {
       "date": "2026-07-16",
-      "remaining": 63,
-      "ideal": 51.54
+      "remaining": 65,
+      "ideal": 53.08
     },
     {
       "date": "2026-07-17",
-      "remaining": 63,
-      "ideal": 46.38
+      "remaining": 65,
+      "ideal": 47.77
     },
     {
       "date": "2026-07-18",
-      "remaining": 63,
-      "ideal": 41.23
+      "remaining": 65,
+      "ideal": 42.46
     },
     {
       "date": "2026-07-19",
-      "remaining": 60,
-      "ideal": 36.08
+      "remaining": 62,
+      "ideal": 37.15
     },
     {
       "date": "2026-07-20",
-      "remaining": 49,
-      "ideal": 30.92
+      "remaining": 51,
+      "ideal": 31.85
     },
     {
       "date": "2026-07-21",
-      "remaining": 47,
-      "ideal": 25.77
+      "remaining": 49,
+      "ideal": 26.54
     },
     {
       "date": "2026-07-22",
-      "remaining": 45,
-      "ideal": 20.62
+      "remaining": 47,
+      "ideal": 21.23
     },
     {
       "date": "2026-07-23",
-      "remaining": 45,
-      "ideal": 15.46
+      "remaining": 42,
+      "ideal": 15.92
     }
   ]
 }
