@@ -48,7 +48,7 @@ export const resendEligibilitySchema = z
 
 export type ResendEligibilityDto = z.infer<typeof resendEligibilitySchema>;
 
-/** Lifecycle status of a single action token. Precedence: USED > REVOKED > EXPIRED > AVAILABLE. */
+/** Lifecycle status of a single action token. Precedence: REVOKED > USED > EXPIRED > AVAILABLE. */
 export const actionTokenStatusSchema = z.enum(['AVAILABLE', 'USED', 'REVOKED', 'EXPIRED']);
 
 /** Delivery status values returned by the email delivery subsystem. */
@@ -117,7 +117,7 @@ export const initialAdminSetupStatusSchema = z
         expiresAt: z.string().datetime(),
         usedAt: z.string().datetime().nullable(),
         revokedAt: z.string().datetime().nullable(),
-        // Precedence: USED > REVOKED > EXPIRED > AVAILABLE
+        // Precedence: REVOKED > USED > EXPIRED > AVAILABLE
         status: actionTokenStatusSchema,
       })
       .strict()

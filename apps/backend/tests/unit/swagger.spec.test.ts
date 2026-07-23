@@ -738,4 +738,71 @@ describe('swaggerSpec', () => {
     expect(traineeSchema?.properties).toHaveProperty('createdAt');
     expect(traineeSchema?.properties).toHaveProperty('eligibility');
   });
+
+  it('verifies platform organisation lifecycle contracts in OpenAPI components', () => {
+    const resendEligibility = spec.components?.schemas?.OrganisationResendEligibility as {
+      required?: string[];
+      properties?: {
+        reason?: {
+          type?: string;
+          nullable?: boolean;
+          enum?: string[];
+        };
+      };
+    };
+    expect(resendEligibility).toBeDefined();
+    expect(resendEligibility.properties?.reason?.nullable).toBe(true);
+    expect(resendEligibility.properties?.reason?.enum).toEqual([
+      'ORGANISATION_NOT_ONBOARDING',
+      'INVITATION_NOT_ELIGIBLE',
+      'SETUP_ALREADY_COMPLETED',
+      'ACTIVE_SETUP_TOKEN_EXISTS',
+      'SETUP_TOKEN_EXPIRED',
+      'SETUP_EMAIL_FAILED',
+      'CONCURRENT_RESEND_IN_PROGRESS',
+    ]);
+
+    const timelineEntry = spec.components?.schemas?.PlatformTimelineEntry as {
+      required?: string[];
+      properties?: {
+        metadata?: {
+          type?: string;
+          nullable?: boolean;
+          enum?: Array<null | string>;
+        };
+      };
+    };
+    expect(timelineEntry).toBeDefined();
+    expect(timelineEntry.properties?.metadata?.nullable).toBe(true);
+    expect(timelineEntry.properties?.metadata?.enum).toEqual([null]);
+
+    const setupStatus = spec.components?.schemas?.OrganisationInitialSetupStatus as {
+      required?: string[];
+      properties?: {
+        latestActionToken?: {
+          required?: string[];
+        };
+        latestEmailDelivery?: {
+          required?: string[];
+        };
+      };
+    };
+    expect(setupStatus).toBeDefined();
+    expect(setupStatus.required).toEqual(
+      expect.arrayContaining([
+        'id',
+        'status',
+        'recipientEmail',
+        'expiresAt',
+        'latestActionToken',
+        'latestEmailDelivery',
+      ]),
+    );
+    expect(setupStatus.properties?.latestActionToken?.required).toEqual(
+      expect.arrayContaining(['id', 'expiresAt', 'usedAt', 'revokedAt', 'status']),
+    );
+    expect(setupStatus.properties?.latestEmailDelivery?.required).toEqual(
+      expect.arrayContaining(['id', 'deliveryStatus', 'sentAt', 'failedAt', 'failureReason']),
+    );
+  });
 });
