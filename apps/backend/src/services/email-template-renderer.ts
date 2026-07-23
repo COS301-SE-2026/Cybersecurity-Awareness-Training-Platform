@@ -217,6 +217,7 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
 
       return renderBrandedEmailOrFallback(
         {
+          templateId: 'INITIAL_ORGANISATION_ADMIN_SETUP',
           subject: fallback.subject,
           previewText: 'Your organisation has been approved.',
           title: 'Organisation approved',

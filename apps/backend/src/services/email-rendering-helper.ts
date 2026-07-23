@@ -1,4 +1,5 @@
 import { env } from '../config/env.js';
+import { DEFAULT_SUPPORT_EMAIL_ADDRESS, isSupportEmailAddress } from '../config/support-email.js';
 
 export type EmailRenderResult = {
   subject: string;
@@ -17,6 +18,7 @@ export type BrandedEmailSupportContext = {
 };
 
 export type BrandedEmailLayoutInput = {
+  templateId: string;
   subject: string;
   previewText?: string;
   title: string;
@@ -53,10 +55,7 @@ export const EMAIL_DESIGN_TOKENS = {
 } as const;
 
 const FONT_STACK = 'Jost, Arial, Helvetica, sans-serif';
-const DEFAULT_SUPPORT_EMAIL_ADDRESS = 'support@insightfulphish.co.za';
-const MAILBOX_PATTERN =
-  /^[A-Za-z0-9.!#$%*+\-/^_`{|}~]+@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$/;
-const BRANDED_EMAIL_FALLBACK_WARNING = 'Branded email assembly failed; rendered fallback body.';
+const TEMPLATE_ID_PATTERN = /^[A-Z0-9_]+$/;
 
 export function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (character) => {
@@ -83,8 +82,14 @@ function hasHeaderControlCharacter(value: string): boolean {
 }
 
 function assertEmailAddress(value: string): void {
-  if (hasHeaderControlCharacter(value) || !MAILBOX_PATTERN.test(value)) {
+  if (!isSupportEmailAddress(value)) {
     throw new BrandedEmailInputError('Support email address must be valid');
+  }
+}
+
+function assertTemplateId(value: string): void {
+  if (!TEMPLATE_ID_PATTERN.test(value)) {
+    throw new BrandedEmailInputError('Email template identifier must be fixed and safe');
   }
 }
 
@@ -134,10 +139,33 @@ function resolveSupportEmailAddress(configured: string | undefined): string {
 }
 
 function validateBrandedEmailInput(input: BrandedEmailLayoutInput): void {
+  assertTemplateId(input.templateId);
   assertSafeHeaderValue(input.subject);
   if (input.cta) {
     assertSafeActionUrl(input.cta.url);
   }
+}
+
+function assertNonEmptyRenderedField(value: string, fieldName: string): void {
+  if (value.trim().length === 0) {
+    throw new BrandedEmailAssemblyError(`Branded email rendered empty ${fieldName}`);
+  }
+}
+
+function validateBrandedEmailOutput(result: EmailRenderResult): void {
+  assertNonEmptyRenderedField(result.subject, 'subject');
+  assertNonEmptyRenderedField(result.text, 'text');
+  assertNonEmptyRenderedField(result.html, 'html');
+
+  if (!result.html.includes('<!doctype html>') || !result.html.includes('</html>')) {
+    throw new BrandedEmailAssemblyError('Branded email rendered invalid HTML structure');
+  }
+}
+
+function emitFallbackWarning(templateId: string): void {
+  process.emitWarning(`Branded email assembly failed for ${templateId}; rendered fallback body.`, {
+    code: 'BRANDED_EMAIL_FALLBACK_RENDERED',
+  });
 }
 
 function renderPreviewText(previewText?: string): string {
@@ -272,11 +300,14 @@ export function renderBrandedEmail(input: BrandedEmailLayoutInput): EmailRenderR
     '</html>',
   ].join('');
 
-  return {
+  const result = {
     subject: input.subject,
     text: renderPlainText(input, supportEmailAddress),
     html,
   };
+
+  validateBrandedEmailOutput(result);
+  return result;
 }
 
 export function renderBrandedEmailOrFallback(
@@ -289,9 +320,7 @@ export function renderBrandedEmailOrFallback(
     return renderBrandedEmail(input);
   } catch (error) {
     if (error instanceof BrandedEmailAssemblyError) {
-      process.emitWarning(BRANDED_EMAIL_FALLBACK_WARNING, {
-        code: 'BRANDED_EMAIL_FALLBACK_RENDERED',
-      });
+      emitFallbackWarning(input.templateId);
       return fallback;
     }
 

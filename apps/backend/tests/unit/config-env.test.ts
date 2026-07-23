@@ -114,7 +114,16 @@ describe('parseEnv', () => {
         ...baseEnv,
         SUPPORT_EMAIL_ADDRESS: 'not-an-email-address',
       }),
-    ).toThrow(/SUPPORT_EMAIL_ADDRESS|Invalid email/);
+    ).toThrow(/SUPPORT_EMAIL_ADDRESS|Invalid support email address/);
+  });
+
+  it('rejects support email addresses with URI delimiters', () => {
+    expect(() =>
+      parseEnv({
+        ...baseEnv,
+        SUPPORT_EMAIL_ADDRESS: 'help?bcc=x@example.org',
+      }),
+    ).toThrow(/SUPPORT_EMAIL_ADDRESS|Invalid support email address/);
   });
 
   it('parses SMTP string values correctly', () => {

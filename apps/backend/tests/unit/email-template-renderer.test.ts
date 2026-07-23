@@ -10,7 +10,6 @@ const tokenHash = 'hashedtokenvaluethatshouldntberenderedatall';
 const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
 const { renderEmail } = await import('../../src/services/email-template-renderer.js');
 const {
-  BrandedEmailAssemblyError,
   BrandedEmailInputError,
   buildSupportMailtoHref,
   renderBrandedEmail,
@@ -212,6 +211,7 @@ describe('renderEmail', () => {
 
 describe('branded email rendering helpers', () => {
   const brandedInput = {
+    templateId: 'PREVIEW_TEMPLATE',
     subject: 'Preview subject',
     previewText: 'Preview <text>',
     title: 'Welcome <Owner>',
@@ -308,23 +308,19 @@ describe('branded email rendering helpers', () => {
   });
 
   it('falls back only for the explicit recoverable branded assembly failure', () => {
-    const sections = ['Recoverable branded section'];
     const warningSpy = vi.spyOn(process, 'emitWarning').mockImplementation(() => undefined);
-    vi.spyOn(sections, 'map').mockImplementation(() => {
-      throw new BrandedEmailAssemblyError('Recoverable branded assembly failure');
-    });
 
     const email = renderBrandedEmailOrFallback(
       {
         ...brandedInput,
-        sections,
+        subject: '   ',
       },
       fallback,
     );
 
     expect(email).toBe(fallback);
     expect(warningSpy).toHaveBeenCalledWith(
-      'Branded email assembly failed; rendered fallback body.',
+      'Branded email assembly failed for PREVIEW_TEMPLATE; rendered fallback body.',
       {
         code: 'BRANDED_EMAIL_FALLBACK_RENDERED',
       },
