@@ -298,7 +298,20 @@ Below are all the actors used by the use cases specified in this SRS:
 #### **`UC01`**: View Emails in Simulated Inbox
 
 **Status:** Implemented
+**Frequency of Use:** Multiple times per campaign
 **Expected Completion:** Demo 1
+
+##### Related Functional Requirements
+
+###### **`FR-UC01`**: Simulated Inbox and Email Viewing
+
+- `FR-UC01-01`: **View email summaries**: The system shall allow a trainee to view a list of email summaries in an assigned simulated inbox campaign item, including sender, subject, and received date.
+- `FR-UC01-02`: **Open simulated email:** The system shall allow a trainee to open a selected simulated email from a simulated inbox.
+- `FR-UC01-03`: **Display email details:** The system shall display simulated email details in a controlled and safe manner, including sender information, subject, received date, body content, and safe representations of links or attachments.
+- `FR-UC01-04`: **Record email opening:** The system shall record that an accessible simulated email has been opened by the trainee, ensuring that the interaction is idempotent and does not create duplicate records.
+- `FR-UC01-05`: **Display unavailable states:** The system shall display appropriate empty and unavailable states for inaccessible inboxes or emails.
+- `FR-UC01-06`: **Preserve simulation boundary:** The system shall not connect to a trainee's real email inbox or send/receive real emails, ensuring that all interactions remain within the controlled simulation environment. _(Note: Accessing real email or sending real email is covered in `UC-31`.)_
+- `FR-TRK-O3`: **Track email interactions:** The system shall allow readable content to remain accessible even if the email-open interaction cannot be recorded due to a system error.
 
 [UC-01 use case diagram](./diagrams/demo1-use-cases-uc01-simulated-inbox.svg)
 
@@ -423,6 +436,14 @@ The trainee selects an available simulated inbox campaign item from the campaign
 - Loading, empty, inaccessible and retry states should exist.
 - Email content and navigation should have a clear structure and offer keyboard navigation and screen-reader accessibility.
 
+##### Quality Requirements
+
+- `QR-SEC-001` — Safely resolve and render only supported content.
+- `QR-ACC-001` — Provide semantic structure and accessible navigation.
+- `QR-REL-001` — Make viewed and completed events idempotent.
+- `QR-PRV-001` — Avoid unnecessary trainee data in content interactions.
+- `QR-TST-001` — Test content resolution separately from assignment access.
+
 ##### Verification / Acceptance Criteria
 
 - Given an assigned available simulated inbox campaign item, when the trainee selects it, then the system displays the controlled simulated inbox and its email summaries.
@@ -451,94 +472,304 @@ The trainee selects an available simulated inbox campaign item from the campaign
 
 ##### User Story
 
-As a trainee, I want to view training documents assigned to me so that I can learn how to recognise and respond to cyber threats in a controlled educational environment.
+**Overall UC story:** As a trainee, I want to open and read an assigned training document in its intended campaign sequence, so that I can learn how to recognise and respond to cyber threats in a controlled educational environment.
+_This is a combination of `US-TR-06` and `US-TR-02`._
 
-##### Purpose
+##### Business Goal
 
-UC-02 allows a trainee to open and read assigned training content. It does not include training content authoring, uploading, campaign management, or quiz completion.
+The trainee acquires relevant cybersecurity knowledge and skills and can make measureable progress through the assigned training content.
+
+##### Scope
+
+- **TUCBW**: A trainee opening an available training document campaign item from an assigned campaign and reading its content.
+- **TUCEW**: The trainee reading or completing the training document and returning to the campaign view or proceeding to a related activity.
 
 ##### Actors
 
-- Primary actor: Trainee
-- Supporting actor: System
+- **Primary actor:** Trainee (Individual Trainee or Organisation Trainee)
+- **Supporting actor:** System
+- **External systems:** None
 
 ##### Preconditions
 
-- The trainee is authenticated.
-- The trainee has access to a campaign item containing a training document.
-- Training content exists as controlled educational content.
+- The trainee is authenticated and active.
+- The trainee has an active assignment for the relevant campaign.
+- Any required preceding campaign items have been completed.
+- The campaign item is a training document and is available to the trainee.
+
+##### Trigger
+
+The trainee selects an available training document campaign item from the campaign view.
 
 ##### Postconditions
 
-- The trainee can open and read the assigned training document.
-- The system may record that the training document was viewed or completed.
-- If content is missing or unavailable, the trainee receives a safe empty or error state.
+- The trainee has been able to read the training document content.
+- Viewed or completed progress is recorded where the applicable tracking request succeeds.
+- A trainee cannot modify the trainee document.
+- A failure does not corrupt the document or campaign assignment.
 
-##### Main Flow
+##### Main Success Scenario
 
-1. The trainee navigates to an assigned training item.
-2. The system retrieves the training document for the campaign item.
-3. The system displays the training content in a readable format.
-4. The system records basic progress where available.
-5. The trainee reads the content.
-6. The trainee may return to the campaign view or proceed to a related quiz.
+1. The trainee selects an assigned training document campaign item.
+2. The system validates the assignment, prerequisites and item availability.
+3. The system resolves the controlled training document content.
+4. The system displays the document in a structured, readable format with navigation and accessibility support.
+5. The system records that the document was viewed.
+6. The trainee reads the document.
+7. The trainee marks it complete where completion is supported.
+8. The system records completion and presents the appropriate next step in the campaign sequence.
 
-##### Exceptions
+##### Alternate Flows
 
-- No training document is assigned: Show an empty or unavailable state.
-- Training document not found or no longer assigned: Show a safe error state.
-- Training content loading fails: Show a retry or navigation option.
-- Progress tracking fails: Do not block reading where content loaded successfully.
+###### A1: Resume Previously Opened Document
 
-#### UC-03: Complete Quiz Flow and View Results
+1. The trainee selects a training document that was previously opened but not completed.
+2. The system displays the document at the last read position or page, allowing the trainee to continue reading from where they left off.
+3. The trainee continues reading and marks the document complete when finished.
+
+##### Error / Exceptions Flows
+
+###### E1: Document Unavailable
+
+1. The campaign item or training document is missing, inactive, locked, or no longer assigned.
+2. The system shows a safe unavailable state.
+3. Existing progress remains unchanged.
+4. The trainee returns to the campaign.
+
+###### E2: Progress Tracking Failure
+
+1. The document loads, but a viewed or completed event cannot be saved.
+2. The system preserves access to the readable document.
+3. The failed event is logged and may be retried
+4.
+
+##### Business Rules
+
+- Trainees have read-only access to available assigned documents.
+- Training-document authoring and lifecycle management are outside UC-02.
+- Viewed events may be repeatable; completion must be idempotent.
+- Content is resolved through a controlled reference rather than an arbitrary client-supplied path.
+- Quiz completion remains part of UC-03.
+-
+
+##### RBAC and Access Control
+
+- An authenticated active trainee is required.
+- The item must belong to the trainee’s active campaign assignment.
+- Prerequisite and component-state checks are enforced server-side.
+- Administrative content-management permissions do not grant trainee progress on another user’s behalf.
+
+##### Data and Domain Model
+
+- `User`, `TraineeProfile`, `CampaignAssignment`, and `CampaignItem`: The trainee and the campaign assignment context.
+- `TrainingDocumentComponent` and `TrainingDocument`: The controlled training content being accessed.
+- `InteractionEvent` for viewed and completed activity.
+- Viewed and completed events represent distinct progress concepts.
+
+##### API Contract References
+
+- `GET /trainee/campaign-items/:campaignItemId/training-document`: Retrieve assigned content.
+- `POST /trainee/campaign-items/:campaignItemId/training-document/viewed`: Record a view.
+- `POST /trainee/campaign-items/:campaignItemId/training-document/completed`: Record completion.
+- Bearer authentication and assignment checks are required.
+- Side effects are limited to progress or interaction records.
+
+##### Design / Wireframe References
+
+- `DESIGN.md` — Campaigns Page, Training Document, and Activity Overview.
+- `TrainingMaterialPage.png` — training material presentation.
+- Loading, unavailable, completion, retry, and next-activity states are required.
+- Content requires semantic headings, readable typography, and accessible link treatment.
+
+##### Quality Requirements
+
+- `QR-SEC-001` — Safely resolve and render only supported content.
+- `QR-ACC-001` — Provide semantic structure and accessible navigation.
+- `QR-REL-001` — Make viewed and completed events idempotent.
+- `QR-PRV-001` — Avoid unnecessary trainee data in content interactions.
+- `QR-TST-001` — Test content resolution separately from assignment access.
+
+##### Verification / Acceptance Criteria
+
+- Given an assigned available document, when the trainee opens it, then readable content is displayed.
+- Given an inaccessible campaign item, when it is requested, then content is not disclosed.
+- Given a completed document, when completion is submitted again, then duplicate completion is not created.
+- Given a related available quiz, when the document is completed, then the trainee can navigate to it.
+- Given tracking failure, when content loaded successfully, then reading remains available without false progress.
+
+##### Traceability
+
+| Artefact         | Reference                                                                                                                                           |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| User stories     | `US-TR-06` — read campaign training documents; `US-TR-02` — campaign ordering                                                                       |
+| SRS requirements | `FR-UC02-01`–`FR-UC02-06` — document viewing, tracking and boundaries; `FR-TRK-01`–`FR-TRK-04` — safe tracking                                      |
+| API contracts    | `API.md` — Training Document API                                                                                                                    |
+| Design           | `DESIGN.md` — Training Document and Activity Overview                                                                                               |
+| Domain model     | `CampaignAssignment`, `CampaignItem`, `TrainingDocumentComponent`, `TrainingDocument`, `InteractionEvent`                                           |
+| Tests            | `QA-UC02-01` — entry point; `QA-UC02-02` — document view; `QA-UC02-03` — UI states; `QA-UC02-04` — invalid document; `QA-UC02-05` — quiz navigation |
+
+#### **`UC-03`**: Complete Quiz Flow and View Results
+
+**Status:** Implemented
+**Expected Completion:** Demo 1
 
 [UC-03 use case diagram](./diagrams/demo1-use-cases-uc03-quiz-flow.svg)
 
 ##### User Story
 
-As a trainee, I want to complete a quiz after my training session so that I can verify my understanding of the material and receive feedback on my security knowledge.
+**Overall UC story:** As a trainee, I want to complete an assigned campaign quiz in the intended sequence and view my results and educational feedback, so that I can assess my understanding and identify areas for improvement.
+_This is a combination of `US-TR-07` and `US-TR-02`._
 
-##### Purpose
+##### Business Goal
 
-UC-03 allows a trainee to open assigned quiz content, answer supported questions, submit a quiz attempt, and view results or feedback. Demo 1 supports simple single-choice quiz questions. Quiz authoring, adaptive learning, AI-assisted generation, and full reporting dashboards are outside Demo 1 scope.
+The trainee receives a trustworthy assessment of their knowledge and actionable educational feedback.
+
+##### Scope
+
+- **TUCBW**: A trainee opening an available quiz campaign item from an assigned campaign, answering its questions, submitting the attempt, and viewing the results and feedback.
+- **TUCEW**: The trainee completes the quiz attempt and views the results and feedback.
 
 ##### Actors
 
-- Primary actor: Trainee
-- Supporting actor: System
+- **Primary actor:** Trainee (Individual Trainee or Organisation Trainee)
+- **Supporting actor:** System
+- **External systems:** None
 
 ##### Preconditions
 
-- The trainee is authenticated.
-- The trainee has access to a campaign item containing a quiz.
-- Quiz questions and answer options exist as controlled content.
+- The trainee is authenticated and active.
+- The trainee has an active campaign assignment containing the quiz.
+- Required preceding items have been completed.
+- The quiz contains supported questions and answer options.
+- Any existing attempt is in a state compatible with the requested action.
+
+##### Trigger
+
+The trainee selects an available assigned quiz item.
 
 ##### Postconditions
 
-- The system creates or uses a quiz attempt for the trainee.
-- The trainee can answer and submit the quiz.
-- Submitted answers are recorded against the attempt.
-- The submitted attempt becomes read-only.
-- The trainee can view a result summary and educational feedback where available.
+- A quiz attempt exists for the trainee and campaign context.
+- Valid submitted answers and the server-calculated result are stored.
+- The submitted attempt is read-only.
+- Permitted educational feedback is available after submission.
+- A failed submission preserves the previous attempt state and recoverable answers.
 
-##### Main Flow
+##### Main Success Scenario
 
-1. The trainee navigates to an assigned quiz.
-2. The system loads the quiz content.
-3. The trainee starts or opens the quiz attempt.
-4. The system displays questions and answer controls.
-5. The trainee answers required questions and submits the attempt.
-6. The system validates and records the submission.
-7. The system calculates or retrieves the result.
-8. The system displays results and educational feedback.
+1. The trainee opens the assigned quiz.
+2. The system validates assignment access, prerequisites, and quiz availability.
+3. The system returns question content without correctness indicators.
+4. The trainee starts or resumes an in-progress attempt.
+5. The trainee answers the questions and reviews the selections.
+6. The trainee submits the attempt.
+7. The system validates attempt ownership, state, required answers, and option identifiers.
+8. The system stores the answers, calculates the score, and marks the attempt submitted atomically.
+9. The system displays the result and educational feedback.
+10. The trainee acknowledges the result or returns to the campaign.
 
-##### Exceptions
+##### Alternate Flows
 
-- Quiz not available or not assigned: Show a safe error state and return path.
-- Quiz start fails: Show a retry or return option.
-- Submission is incomplete or invalid: Prevent final submission and identify what must be corrected.
-- Submission fails: Preserve answers where possible and allow retry.
-- Results fail to load: Keep the attempt submitted and provide a retry or navigation option.
+###### A1: Resume In-progress Attempt
+
+1. A compatible in-progress attempt already exists.
+2. The system reuses that attempt rather than creating a duplicate.
+3. The trainee continues from the answer stage.
+
+###### A2: Revisit Submitted Result
+
+1. The trainee opens a previously submitted attempt.
+2. The system keeps the attempt read-only.
+3. The stored result and permitted feedback are displayed.
+
+##### Error / Exception Flows
+
+###### E1: Incomplete or Invalid Submission
+
+1. Required answers are missing or an option is invalid.
+2. The system rejects final submission with question-level validation.
+3. The attempt remains in progress.
+4. The trainee corrects the answers and retries.
+
+###### E2: Duplicate or Foreign Submission
+
+1. The attempt is already submitted or belongs to another trainee.
+2. The system rejects the mutation.
+3. Stored answers and results remain unchanged.
+4. No foreign attempt information is exposed.
+
+###### E3: Result Retrieval Failure
+
+1. Submission succeeds, but the result response cannot be loaded.
+2. The submitted state remains authoritative.
+3. The system offers a safe retry.
+4. The attempt is not reopened for editing.
+
+##### Business Rules
+
+- Correct answers and explanatory feedback are not exposed before final submission.
+- Scores are calculated server-side.
+- A compatible current in-progress attempt is reused where applicable.
+- Submitted attempts are immutable.
+- Supported question types and selection limits are validated server-side.
+
+##### RBAC and Access Control
+
+- An authenticated active trainee is required.
+- The attempt must belong to the authenticated trainee and accessible campaign item.
+- Attempt identifiers alone are not proof of access.
+- Administrators cannot submit or alter a trainee attempt through trainee endpoints.
+
+##### Data and Domain Model
+
+- `QuizComponent`, `Quiz`, `QuizQuestion`, and `AnswerOption`: The controlled quiz content being accessed.
+- `QuizAttempt`, `AttemptAnswer`, `AttemptAnswerOption`, and `QuizResult`: The trainee's attempt, submitted answers, and calculated result.
+- `CampaignAssignment`, `CampaignItem`, and `TraineeProfile`: The campaign and trainee information.
+- A result belongs to one submitted attempt: An attempt belongs to one trainee and campaign context.
+
+##### API Contract References
+
+- `GET /trainee/campaign-items/:campaignItemId/quiz`: Retrieve safe quiz content.
+- `POST /trainee/campaign-items/:campaignItemId/quiz/attempts`: Start or reuse an attempt.
+- `POST /quiz-attempts/:attemptId/submit`: Validate and submit answers.
+- `GET /quiz-attempts/:attemptId/results`: Retrieve a submitted result.
+- Pre-submission responses exclude correct-answer information.
+- Submission stores answers, result, final state, and applicable tracking atomically.
+
+##### Design / Wireframe References
+
+- `DESIGN.md` — Quiz Page, Quiz Submission State, and Quiz Feedback and Results.
+- `QuizPage.png` — question and answer interface.
+- `QuizSubmission.png` — submission and result state.
+- Unanswered-question validation, confirmation, retry, and read-only result states are required.
+- Validation summaries and question errors must be accessible.
+
+##### Quality Requirements
+
+- `QR-SEC-001` — Never trust client-calculated correctness or score data.
+- `QR-REL-001` — Protect against duplicate and concurrent submissions.
+- `QR-ACC-001` — Provide accessible validation and feedback.
+- `QR-PRV-001` — Prevent cross-trainee attempt disclosure.
+- `QR-TST-001` — Use deterministic quiz fixtures and scoring rules.
+
+##### Verification / Acceptance Criteria
+
+- Given an assigned quiz, when the trainee opens it, then questions appear without correct-answer information.
+- Given an in-progress attempt, when the trainee starts again, then the attempt is reused.
+- Given missing required answers, when submission is attempted, then the attempt remains in progress.
+- Given valid answers, when submitted, then the attempt becomes read-only and a server-calculated result is available.
+- Given a submitted attempt, when another submission is attempted, then stored answers and score remain unchanged.
+
+##### Traceability
+
+| Artefact         | Reference                                                                                                                     |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| User stories     | `US-TR-07` — complete quizzes and view feedback; `US-TR-02` — campaign ordering                                               |
+| SRS requirements | `FR-UC03-01`–`FR-UC03-09` — complete quiz lifecycle; applicable `FR-TRK-*` — quiz tracking                                    |
+| API contracts    | `API.md` — Quiz API                                                                                                           |
+| Design           | `DESIGN.md` — Quiz Page, Submission, Feedback and Results                                                                     |
+| Domain model     | `Quiz`, `QuizQuestion`, `AnswerOption`, `QuizAttempt`, `AttemptAnswer`, `QuizResult`                                          |
+| Tests            | `QA-UC03-01` — quiz view; `QA-UC03-02` — validation; `QA-UC03-03` — submission; `QA-UC03-04` — errors; `QA-UC03-05` — results |
 
 #### UC-09: Manage Organisation Admins and Permissions
 
@@ -804,7 +1035,7 @@ At a high level:
 
 API routes and payloads remain implementation contracts documented in `API.md` and the backend Swagger/OpenAPI documentation; this SRS keeps only the requirement-level mapping.
 
-## 6. Domain Model Description
+## 6. Domain Model
 
 The Demo 1 domain model provides a conceptual view of the entities required to support the trainee-facing use cases, API planning, traceability, and future database planning. It is not a final database schema and should not be treated as a direct Prisma model or migration design. Diagram sources and exports are maintained under [diagrams/](./diagrams/).
 
