@@ -27,4 +27,4 @@ This is the Insightful Phish Demo 2 documentation. Below you can find each aspec
 - **[Testing Policy](testing-policy.md)**
 - **[User Manual](wiki.com)** <!-- TODO Link to User manual on Wiki -->
 - **[Brand Style Guide](brand.insightfulphish.co.za)** <!-- TODO Link to hosted Brand Style Guide -->
-- \*\*[User Interface Screenshots]()
+- **[User Interface Screenshots](user-interface/README.md)**

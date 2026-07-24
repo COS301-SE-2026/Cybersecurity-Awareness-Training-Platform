@@ -1,6 +1,6 @@
 # Insightful Phish Documentation
 
-This folder contains the documentation for Insightful Phish. The documentation is organised into subfolders according to the demo for which the documentation was created.
+This folder contains the documentation for Insightful Phish. The documentation is organised into subfolders according to the demo for which the documentation was created (or updated).
 
 | Demo   | Documentation                                 |
 | ------ | --------------------------------------------- |
