@@ -19,6 +19,19 @@ export type AccountUserWithPasswordRecord = AccountUserRecord & {
   passwordHash: string;
 };
 
+export type AccountSessionRecord = {
+  id: string;
+  rememberMe: boolean;
+  createdAt: Date;
+  lastActiveAt: Date;
+  expiresAt: Date;
+  idleTimeoutMinutes: number | null;
+  revokedAt: Date | null;
+  revokedReason: string | null;
+  deviceSummary: string | null;
+  locationSummary: string | null;
+};
+
 export type AccountSecurityPreferencesRecord = {
   id: string;
   userId: string;
@@ -55,6 +68,19 @@ const accountUserWithPasswordSelect = {
   passwordHash: true,
 } as const;
 
+const accountSessionSelect = {
+  id: true,
+  rememberMe: true,
+  createdAt: true,
+  lastActiveAt: true,
+  expiresAt: true,
+  idleTimeoutMinutes: true,
+  revokedAt: true,
+  revokedReason: true,
+  deviceSummary: true,
+  locationSummary: true,
+} as const;
+
 export function findAccountUserById(userId: string, client: AccountClient = prisma) {
   return client.user.findUnique({
     where: { id: userId },
@@ -78,6 +104,19 @@ export function updateAccountProfile(
     data: {
       firstName: input.firstName,
       lastName: input.lastName,
+    },
+    select: accountUserSelect,
+  });
+}
+
+export function updateAccountPasswordHash(
+  input: { userId: string; passwordHash: string },
+  client: AccountClient = prisma,
+) {
+  return client.user.update({
+    where: { id: input.userId },
+    data: {
+      passwordHash: input.passwordHash,
     },
     select: accountUserSelect,
   });
@@ -192,6 +231,140 @@ export function upsertAccountSecurityPreferences(
       ...preferenceValues,
     },
     update: preferenceValues,
+  });
+}
+
+export function listAccountSessions(userId: string, now: Date, client: AccountClient = prisma) {
+  return client.authSession.findMany({
+    where: {
+      userId,
+      revokedAt: null,
+      expiresAt: {
+        gt: now,
+      },
+    },
+    select: accountSessionSelect,
+    orderBy: [{ lastActiveAt: 'desc' }, { createdAt: 'desc' }, { id: 'asc' }],
+  });
+}
+
+export function findAccountSessionForUser(
+  input: { userId: string; sessionId: string },
+  client: AccountClient = prisma,
+) {
+  return client.authSession.findFirst({
+    where: {
+      id: input.sessionId,
+      userId: input.userId,
+    },
+    select: accountSessionSelect,
+  });
+}
+
+export function revokeAccountSessionForUser(
+  input: { userId: string; sessionId: string; now: Date },
+  client: AccountClient = prisma,
+) {
+  return client.authSession.updateMany({
+    where: {
+      id: input.sessionId,
+      userId: input.userId,
+      revokedAt: null,
+    },
+    data: {
+      revokedAt: input.now,
+      revokedReason: 'LOGOUT',
+    },
+  });
+}
+
+export function revokeOtherAccountSessions(
+  input: { userId: string; currentSessionId: string; now: Date },
+  client: AccountClient = prisma,
+) {
+  return client.authSession.updateMany({
+    where: {
+      userId: input.userId,
+      id: {
+        not: input.currentSessionId,
+      },
+      revokedAt: null,
+    },
+    data: {
+      revokedAt: input.now,
+      revokedReason: 'LOGOUT_ALL',
+    },
+  });
+}
+
+export function revokeAccountSessionsForPasswordChange(
+  input: { userId: string; now: Date },
+  client: AccountClient = prisma,
+) {
+  return client.authSession.updateMany({
+    where: {
+      userId: input.userId,
+      revokedAt: null,
+    },
+    data: {
+      revokedAt: input.now,
+      revokedReason: 'PASSWORD_CHANGE',
+    },
+  });
+}
+
+export function revokeRefreshTokensForAccountSession(
+  input: { sessionId: string; now: Date; reason: 'LOGOUT' | 'LOGOUT_ALL' | 'PASSWORD_CHANGE' },
+  client: AccountClient = prisma,
+) {
+  return client.refreshToken.updateMany({
+    where: {
+      authSessionId: input.sessionId,
+      revokedAt: null,
+    },
+    data: {
+      revokedAt: input.now,
+      revokedReason: input.reason,
+    },
+  });
+}
+
+export function revokeRefreshTokensForAccountUser(
+  input: { userId: string; now: Date; reason: 'LOGOUT_ALL' | 'PASSWORD_CHANGE' },
+  client: AccountClient = prisma,
+) {
+  return client.refreshToken.updateMany({
+    where: {
+      authSession: {
+        userId: input.userId,
+      },
+      revokedAt: null,
+    },
+    data: {
+      revokedAt: input.now,
+      revokedReason: input.reason,
+    },
+  });
+}
+
+export function revokeRefreshTokensForOtherAccountSessions(
+  input: { userId: string; currentSessionId: string; now: Date },
+  client: AccountClient = prisma,
+) {
+  return client.refreshToken.updateMany({
+    where: {
+      authSession: {
+        userId: input.userId,
+        id: {
+          not: input.currentSessionId,
+        },
+      },
+      revokedAt: null,
+    },
+    data: {
+      revokedAt: input.now,
+      revokedReason: 'LOGOUT_ALL',
+    },
   });
 }
 

@@ -1,20 +1,26 @@
 import {
   accountChangeEmailRequestSchema,
+  accountChangePasswordRequestSchema,
   accountProfileUpdateRequestSchema,
+  accountSessionIdParamsSchema,
   accountSecurityPreferencesRequestSchema,
   accountVerifyEmailChangeRequestSchema,
 } from '@insightful-phish/shared';
 import { Router } from 'express';
 import {
+  changePasswordController,
   getAccountController,
+  listSessionsController,
+  logoutOtherSessionsController,
   requestEmailChangeController,
+  revokeSessionController,
   updateAccountProfileController,
   updateAccountSecurityPreferencesController,
   verifyChange,
 } from '../controllers/account.controller.js';
 import { authRateLimit } from '../middleware/authRateLimit.js';
 import { requireAuth } from '../middleware/requireAuth.js';
-import { validateBody } from '../middleware/validateRequest.js';
+import { validateBody, validateParams } from '../middleware/validateRequest.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
 
 export const accountRouter = Router();
@@ -33,6 +39,28 @@ accountRouter.post(
   requireAuth,
   validateBody(accountChangeEmailRequestSchema, { statusCode: 422 }),
   asyncHandler(requestEmailChangeController),
+);
+
+accountRouter.post(
+  '/account/change-password',
+  requireAuth,
+  validateBody(accountChangePasswordRequestSchema, { statusCode: 422 }),
+  asyncHandler(changePasswordController),
+);
+
+accountRouter.get('/account/sessions', requireAuth, asyncHandler(listSessionsController));
+
+accountRouter.delete(
+  '/account/sessions/:sessionId',
+  requireAuth,
+  validateParams(accountSessionIdParamsSchema),
+  asyncHandler(revokeSessionController),
+);
+
+accountRouter.post(
+  '/account/sessions/logout-others',
+  requireAuth,
+  asyncHandler(logoutOtherSessionsController),
 );
 
 accountRouter.patch(

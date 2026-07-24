@@ -1,10 +1,14 @@
 import type { Request, Response } from 'express';
 import {
+  changeAccountPassword,
   getAccount,
+  listAccountSessionSummaries,
   AccountServiceError,
   patchAccountProfile,
   patchAccountSecurityPreferences,
   requestAccountEmailChange,
+  logoutOtherAccountSessions,
+  revokeAccountSession,
 } from '../services/account.service.js';
 import { verifyEmailChange, EmailChangeConflictError } from '../services/auth.service.js';
 
@@ -18,6 +22,37 @@ function requireAccountUserId(req: Request, res: Response): string | null {
   }
 
   return req.auth.userId;
+}
+
+function requireCurrentSessionId(req: Request, res: Response): string | null {
+  if (!req.auth?.authSessionId) {
+    res.status(401).json({
+      error: 'AUTH_REQUIRED',
+      message: 'Authentication credentials are required',
+    });
+    return null;
+  }
+
+  return req.auth.authSessionId;
+}
+
+function requireSessionParam(req: Request, res: Response): string | null {
+  const sessionId = req.params.sessionId;
+  if (typeof sessionId !== 'string') {
+    res.status(400).json({
+      error: 'VALIDATION_ERROR',
+      message: 'Invalid request parameters',
+      details: [
+        {
+          field: 'sessionId',
+          message: 'Invalid session id.',
+        },
+      ],
+    });
+    return null;
+  }
+
+  return sessionId;
 }
 
 function handleAccountError(error: unknown, res: Response) {
@@ -68,6 +103,65 @@ export async function requestEmailChangeController(req: Request, res: Response) 
 
   try {
     const result = await requestAccountEmailChange(userId, req.body);
+    return res.status(200).json(result);
+  } catch (error) {
+    return handleAccountError(error, res);
+  }
+}
+
+export async function changePasswordController(req: Request, res: Response) {
+  const userId = requireAccountUserId(req, res);
+  if (!userId) {
+    return;
+  }
+
+  try {
+    const result = await changeAccountPassword(userId, req.body);
+    return res.status(200).json(result);
+  } catch (error) {
+    return handleAccountError(error, res);
+  }
+}
+
+export async function listSessionsController(req: Request, res: Response) {
+  const userId = requireAccountUserId(req, res);
+  const currentSessionId = requireCurrentSessionId(req, res);
+  if (!userId || !currentSessionId) {
+    return;
+  }
+
+  try {
+    const result = await listAccountSessionSummaries(userId, currentSessionId);
+    return res.status(200).json(result);
+  } catch (error) {
+    return handleAccountError(error, res);
+  }
+}
+
+export async function revokeSessionController(req: Request, res: Response) {
+  const userId = requireAccountUserId(req, res);
+  const sessionId = requireSessionParam(req, res);
+  if (!userId || !sessionId) {
+    return;
+  }
+
+  try {
+    const result = await revokeAccountSession(userId, sessionId);
+    return res.status(200).json(result);
+  } catch (error) {
+    return handleAccountError(error, res);
+  }
+}
+
+export async function logoutOtherSessionsController(req: Request, res: Response) {
+  const userId = requireAccountUserId(req, res);
+  const currentSessionId = requireCurrentSessionId(req, res);
+  if (!userId || !currentSessionId) {
+    return;
+  }
+
+  try {
+    const result = await logoutOtherAccountSessions(userId, currentSessionId);
     return res.status(200).json(result);
   } catch (error) {
     return handleAccountError(error, res);

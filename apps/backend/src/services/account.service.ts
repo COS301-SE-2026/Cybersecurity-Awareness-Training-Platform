@@ -1,8 +1,10 @@
 import {
   accountChangeEmailRequestSchema,
+  accountChangePasswordRequestSchema,
   accountProfileUpdateRequestSchema,
   accountSecurityPreferencesRequestSchema,
   type AccountChangeEmailRequestDto,
+  type AccountChangePasswordRequestDto,
   type AccountProfileUpdateRequestDto,
   type AccountSecurityPreferencesRequestDto,
 } from '@insightful-phish/shared';
@@ -12,14 +14,24 @@ import {
   cancelEmailChangeRequest,
   cancelPendingEmailChangeRequests,
   createEmailChangeRequest,
+  findAccountSessionForUser,
   findAccountSecurityPreferences,
   findAccountUserByEmail,
   findAccountUserById,
   findAccountUserWithPasswordById,
+  listAccountSessions,
+  revokeAccountSessionForUser,
+  revokeAccountSessionsForPasswordChange,
+  revokeOtherAccountSessions,
   revokePendingEmailChangeTokens,
+  revokeRefreshTokensForAccountSession,
+  revokeRefreshTokensForAccountUser,
+  revokeRefreshTokensForOtherAccountSessions,
   runAccountTransaction,
+  updateAccountPasswordHash,
   updateAccountProfile,
   upsertAccountSecurityPreferences,
+  type AccountSessionRecord,
   type AccountSecurityPreferencesRecord,
   type AccountUserRecord,
 } from '../repositories/account.repository.js';
@@ -36,7 +48,7 @@ import {
 } from './security-policy.service.js';
 import type { GuardAuthSubject } from './auth-status-guard.service.js';
 import { recordNotificationFailureEvent } from './notification-failure-event.service.js';
-import { verifyPassword } from './password.service.js';
+import { hashPassword, verifyPassword } from './password.service.js';
 
 type AccountFieldError = {
   field: string;
@@ -124,6 +136,36 @@ export type AccountResponse = {
 export type AccountChangeEmailResponse = {
   message: string;
   emailQueued: boolean;
+};
+
+export type AccountChangePasswordResponse = {
+  message: string;
+  notificationQueued: boolean;
+  revokedSessionCount: number;
+};
+
+export type AccountSessionResponse = {
+  id: string;
+  rememberMe: boolean;
+  current: boolean;
+  createdAt: string;
+  lastActiveAt: string;
+  expiresAt: string;
+  idleTimeoutMinutes: number | null;
+  deviceSummary: string | null;
+  locationSummary: string | null;
+};
+
+export type AccountSessionsResponse = {
+  sessions: AccountSessionResponse[];
+};
+
+export type AccountSessionRevocationResponse = {
+  revoked: true;
+};
+
+export type AccountLogoutOthersResponse = {
+  revokedSessionCount: number;
 };
 
 const SECURITY_PREFERENCE_BLOCKED_REASON = 'ORGANISATION_POLICY_ENFORCED';
@@ -316,6 +358,15 @@ function parseEmailChange(input: unknown): AccountChangeEmailRequestDto {
   throw validationError(fieldErrorsFromIssues(result.error.issues));
 }
 
+function parsePasswordChange(input: unknown): AccountChangePasswordRequestDto {
+  const result = accountChangePasswordRequestSchema.safeParse(input);
+  if (result.success) {
+    return result.data;
+  }
+
+  throw validationError(fieldErrorsFromIssues(result.error.issues));
+}
+
 function parseSecurityPreferences(input: unknown): AccountSecurityPreferencesRequestDto {
   const result = accountSecurityPreferencesRequestSchema.safeParse(input);
   if (result.success && Object.keys(result.data).length > 0) {
@@ -413,6 +464,52 @@ async function sendEmailChangeWarning(input: {
     });
   } catch {
     await recordNotificationFailureEvent('EMAIL_HOOK_UNEXPECTED_FAILURE');
+  }
+}
+
+function isSessionIdleExpired(session: AccountSessionRecord, now: Date) {
+  return (
+    session.idleTimeoutMinutes !== null &&
+    session.lastActiveAt.getTime() + session.idleTimeoutMinutes * 60 * 1000 <= now.getTime()
+  );
+}
+
+function toSessionResponse(
+  session: AccountSessionRecord,
+  currentSessionId: string,
+): AccountSessionResponse {
+  return {
+    id: session.id,
+    rememberMe: session.rememberMe,
+    current: session.id === currentSessionId,
+    createdAt: session.createdAt.toISOString(),
+    lastActiveAt: session.lastActiveAt.toISOString(),
+    expiresAt: session.expiresAt.toISOString(),
+    idleTimeoutMinutes: session.idleTimeoutMinutes,
+    deviceSummary: session.deviceSummary,
+    locationSummary: session.locationSummary,
+  };
+}
+
+async function sendPasswordChangedNotification(input: {
+  userId: string;
+  email: string;
+  firstName: string;
+}): Promise<boolean> {
+  try {
+    const result = await requestAuthEmailSend({
+      emailType: 'PASSWORD_CHANGED',
+      recipientEmail: input.email,
+      userId: input.userId,
+      templateData: {
+        firstName: input.firstName,
+      },
+    });
+
+    return result.queued;
+  } catch {
+    await recordNotificationFailureEvent('PASSWORD_CHANGED_NOTIFICATION_FAILED');
+    return false;
   }
 }
 
@@ -589,6 +686,177 @@ export async function requestAccountEmailChange(
   return {
     message: EMAIL_CHANGE_GENERIC_MESSAGE,
     emailQueued: emailResult.queued,
+  };
+}
+
+export async function changeAccountPassword(
+  userId: string,
+  input: unknown,
+): Promise<AccountChangePasswordResponse> {
+  const parsedInput = parsePasswordChange(input);
+  const [context, userWithPassword] = await Promise.all([
+    getAccountContext(userId),
+    findAccountUserWithPasswordById(userId),
+  ]);
+
+  if (!userWithPassword) {
+    throw notFoundError();
+  }
+
+  const passwordMatches = await verifyPassword(
+    parsedInput.currentPassword,
+    userWithPassword.passwordHash,
+  );
+  if (!passwordMatches) {
+    throw forbiddenError(
+      'ACCOUNT_CURRENT_PASSWORD_INVALID',
+      'Current password confirmation failed.',
+      [
+        {
+          field: 'currentPassword',
+          message: 'Current password is incorrect.',
+        },
+      ],
+    );
+  }
+
+  const passwordHash = await hashPassword(parsedInput.newPassword);
+  const organisationId = organisationIdForSecurityPolicy(context.subject);
+  const { revokedSessionCount } = await runAccountTransaction(async (tx) => {
+    await updateAccountPasswordHash({ userId, passwordHash }, tx);
+    const now = new Date();
+    const revokedSessions = await revokeAccountSessionsForPasswordChange({ userId, now }, tx);
+    await revokeRefreshTokensForAccountUser({ userId, now, reason: 'PASSWORD_CHANGE' }, tx);
+
+    await recordAuditLog(
+      {
+        actorUserId: userId,
+        actorType: actorTypeForUser(context.user.userType),
+        organisationId,
+        targetType: 'USER',
+        targetId: userId,
+        actionType: 'SETTINGS_CHANGED',
+        newValues: {
+          updatedFields: ['password'],
+        },
+        metadata: {
+          changeType: 'PASSWORD_CHANGE',
+          revokedSessionCount: revokedSessions.count,
+        },
+      },
+      tx,
+    );
+
+    return {
+      revokedSessionCount: revokedSessions.count,
+    };
+  });
+
+  const notificationQueued = await sendPasswordChangedNotification({
+    userId,
+    email: userWithPassword.email,
+    firstName: userWithPassword.firstName,
+  });
+
+  return {
+    message: 'Password changed successfully.',
+    notificationQueued,
+    revokedSessionCount,
+  };
+}
+
+export async function listAccountSessionSummaries(
+  userId: string,
+  currentSessionId: string,
+): Promise<AccountSessionsResponse> {
+  const now = new Date();
+  const sessions = (await listAccountSessions(userId, now))
+    .filter((session) => !isSessionIdleExpired(session, now))
+    .map((session) => toSessionResponse(session, currentSessionId));
+
+  return {
+    sessions,
+  };
+}
+
+export async function revokeAccountSession(
+  userId: string,
+  sessionId: string,
+): Promise<AccountSessionRevocationResponse> {
+  const session = await findAccountSessionForUser({ userId, sessionId });
+  if (!session) {
+    throw notFoundError();
+  }
+  if (session.revokedAt) {
+    throw conflictError('ACCOUNT_SESSION_ALREADY_REVOKED', 'Session has already been revoked.');
+  }
+
+  const context = await getAccountContext(userId);
+  const now = new Date();
+  await runAccountTransaction(async (tx) => {
+    const revokedSession = await revokeAccountSessionForUser({ userId, sessionId, now }, tx);
+    if (revokedSession.count !== 1) {
+      throw conflictError('ACCOUNT_SESSION_ALREADY_REVOKED', 'Session has already been revoked.');
+    }
+
+    await revokeRefreshTokensForAccountSession({ sessionId, now, reason: 'LOGOUT' }, tx);
+    await recordAuditLog(
+      {
+        actorUserId: userId,
+        actorType: actorTypeForUser(context.user.userType),
+        organisationId: organisationIdForSecurityPolicy(context.subject),
+        targetType: 'AUTH_SESSION',
+        targetId: sessionId,
+        actionType: 'REVOKED',
+        metadata: {
+          reason: 'LOGOUT',
+        },
+      },
+      tx,
+    );
+
+    return true;
+  });
+
+  return {
+    revoked: true,
+  };
+}
+
+export async function logoutOtherAccountSessions(
+  userId: string,
+  currentSessionId: string,
+): Promise<AccountLogoutOthersResponse> {
+  const context = await getAccountContext(userId);
+  const { revokedSessionCount } = await runAccountTransaction(async (tx) => {
+    const now = new Date();
+    const revokedSessions = await revokeOtherAccountSessions({ userId, currentSessionId, now }, tx);
+    await revokeRefreshTokensForOtherAccountSessions({ userId, currentSessionId, now }, tx);
+
+    await recordAuditLog(
+      {
+        actorUserId: userId,
+        actorType: actorTypeForUser(context.user.userType),
+        organisationId: organisationIdForSecurityPolicy(context.subject),
+        targetType: 'USER',
+        targetId: userId,
+        actionType: 'REVOKED',
+        metadata: {
+          reason: 'LOGOUT_ALL',
+          currentSessionPreserved: true,
+          revokedSessionCount: revokedSessions.count,
+        },
+      },
+      tx,
+    );
+
+    return {
+      revokedSessionCount: revokedSessions.count,
+    };
+  });
+
+  return {
+    revokedSessionCount,
   };
 }
 
