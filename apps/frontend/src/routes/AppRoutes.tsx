@@ -21,6 +21,7 @@ import ConfirmEmailChangePage from '../pages/ConfirmEmailChangePage';
 import OrganisationInformationPage from '../pages/OrganisationInformationPage';
 import OrganisationSecuritySettingsPage from '../pages/OrganisationSecuritySettingsPage';
 import PlatformOrganisationManagementPage from '../pages/PlatformOrganisationManagementPage';
+import OrganisationTraineesPage from '../pages/ OrganisationTraineesPage';
 
 function AppRoutes() {
   return (
@@ -74,6 +75,7 @@ function AppRoutes() {
       />
 
       <Route path="/organisation-management" element={<PlatformOrganisationManagementPage />} />
+      <Route path="/organisation-trainees" element={<OrganisationTraineesPage />} />
     </Routes>
   );
 }
