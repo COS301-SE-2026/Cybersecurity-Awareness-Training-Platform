@@ -1379,7 +1379,14 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         OrganisationInitialSetupStatus: {
           type: 'object',
           nullable: true,
-          required: ['id', 'status', 'recipientEmail', 'expiresAt'],
+          required: [
+            'id',
+            'status',
+            'recipientEmail',
+            'expiresAt',
+            'latestActionToken',
+            'latestEmailDelivery',
+          ],
           properties: {
             id: uuidString('inv-1234-abcd'),
             status: enumString(
@@ -1400,7 +1407,7 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             latestActionToken: {
               type: 'object',
               nullable: true,
-              required: ['id', 'expiresAt', 'status'],
+              required: ['id', 'expiresAt', 'usedAt', 'revokedAt', 'status'],
               properties: {
                 id: uuidString('tok-1234-abcd'),
                 expiresAt: dateTimeString('2026-05-23T09:00:00.000Z'),
@@ -1412,7 +1419,7 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             latestEmailDelivery: {
               type: 'object',
               nullable: true,
-              required: ['id', 'deliveryStatus'],
+              required: ['id', 'deliveryStatus', 'sentAt', 'failedAt', 'failureReason'],
               properties: {
                 id: uuidString('log-1234-abcd'),
                 deliveryStatus: enumString(['PENDING', 'SENT', 'FAILED'], 'SENT'),
@@ -1429,7 +1436,21 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           properties: {
             isEligible: { type: 'boolean', example: true },
             // reason is always present -- null when eligible, a typed code string when not.
-            reason: nullableString('ORGANISATION_NOT_ONBOARDING'),
+            reason: {
+              type: 'string',
+              nullable: true,
+              enum: [
+                'ORGANISATION_NOT_ONBOARDING',
+                'INVITATION_NOT_ELIGIBLE',
+                'SETUP_ALREADY_COMPLETED',
+                'ACTIVE_SETUP_TOKEN_EXISTS',
+                'SETUP_TOKEN_EXPIRED',
+                'SETUP_EMAIL_FAILED',
+                'CONCURRENT_RESEND_IN_PROGRESS',
+                null,
+              ],
+              example: 'ORGANISATION_NOT_ONBOARDING',
+            },
           },
         },
         PlatformTimelineEntry: {
@@ -1454,7 +1475,7 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             // 'status' field removed -- runtime no longer returns it (was a stale duplicate of outcome).
             outcome: nullableString('SUCCESS'),
             // metadata is always null -- raw audit data is never exposed in timeline responses.
-            metadata: { type: 'string', nullable: true, example: null },
+            metadata: { type: 'string', nullable: true, enum: [null], example: null },
           },
         },
         PlatformOrganisationDetail: {
