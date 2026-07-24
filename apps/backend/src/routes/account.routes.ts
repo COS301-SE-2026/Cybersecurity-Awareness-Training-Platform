@@ -1,11 +1,37 @@
-import { accountVerifyEmailChangeRequestSchema } from '@insightful-phish/shared';
+import {
+  accountProfileUpdateRequestSchema,
+  accountSecurityPreferencesRequestSchema,
+  accountVerifyEmailChangeRequestSchema,
+} from '@insightful-phish/shared';
 import { Router } from 'express';
-import { verifyChange } from '../controllers/account.controller.js';
+import {
+  getAccountController,
+  updateAccountProfileController,
+  updateAccountSecurityPreferencesController,
+  verifyChange,
+} from '../controllers/account.controller.js';
 import { authRateLimit } from '../middleware/authRateLimit.js';
+import { requireAuth } from '../middleware/requireAuth.js';
 import { validateBody } from '../middleware/validateRequest.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
 
 export const accountRouter = Router();
+
+accountRouter.get('/account', requireAuth, asyncHandler(getAccountController));
+
+accountRouter.patch(
+  '/account/profile',
+  requireAuth,
+  validateBody(accountProfileUpdateRequestSchema, { statusCode: 422 }),
+  asyncHandler(updateAccountProfileController),
+);
+
+accountRouter.patch(
+  '/account/security-preferences',
+  requireAuth,
+  validateBody(accountSecurityPreferencesRequestSchema, { statusCode: 422 }),
+  asyncHandler(updateAccountSecurityPreferencesController),
+);
 
 /**
  * @openapi
