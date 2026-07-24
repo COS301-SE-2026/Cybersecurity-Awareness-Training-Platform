@@ -6,8 +6,8 @@ import type {
   setupCompleteRequestSchema,
   setupTokenParamsSchema,
   authVerifyEmailRequestSchema,
-  accountVerifyEmailChangeRequestSchema,
 } from './validation/auth.schemas.js';
+import type { accountVerifyEmailChangeRequestSchema } from './validation/account-settings.schemas.js';
 
 export type SetupTokenParamsDto = z.infer<typeof setupTokenParamsSchema>;
 export type SetupCompleteRequestDto = z.infer<typeof setupCompleteRequestSchema>;
