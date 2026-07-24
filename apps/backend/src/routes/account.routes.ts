@@ -25,8 +25,54 @@ import { asyncHandler } from '../middleware/asyncHandler.js';
 
 export const accountRouter = Router();
 
+/**
+ * @openapi
+ * /account:
+ *   get:
+ *     tags: [Account Settings]
+ *     summary: Get account settings
+ *     description: Returns the authenticated user's profile, security preferences, effective policy, and editable capability flags.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         $ref: '#/components/responses/AccountOk'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
 accountRouter.get('/account', requireAuth, asyncHandler(getAccountController));
 
+/**
+ * @openapi
+ * /account/profile:
+ *   patch:
+ *     tags: [Account Settings]
+ *     summary: Update account profile
+ *     description: Updates the authenticated user's first and last name and records a compact audit event.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       $ref: '#/components/requestBodies/AccountProfileUpdate'
+ *     responses:
+ *       200:
+ *         $ref: '#/components/responses/AccountOk'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       422:
+ *         $ref: '#/components/responses/UnprocessableEntity'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
 accountRouter.patch(
   '/account/profile',
   requireAuth,
@@ -34,6 +80,31 @@ accountRouter.patch(
   asyncHandler(updateAccountProfileController),
 );
 
+/**
+ * @openapi
+ * /account/change-email:
+ *   post:
+ *     tags: [Account Settings]
+ *     summary: Request an account email change
+ *     description: Verifies the current password, checks policy, creates a pending email-change request and verification token, and sends confirmation through the central email service.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       $ref: '#/components/requestBodies/AccountChangeEmail'
+ *     responses:
+ *       200:
+ *         $ref: '#/components/responses/AccountChangeEmailRequested'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ *       422:
+ *         $ref: '#/components/responses/UnprocessableEntity'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
 accountRouter.post(
   '/account/change-email',
   requireAuth,
@@ -41,6 +112,31 @@ accountRouter.post(
   asyncHandler(requestEmailChangeController),
 );
 
+/**
+ * @openapi
+ * /account/change-password:
+ *   post:
+ *     tags: [Account Settings]
+ *     summary: Change account password
+ *     description: Verifies the current password, updates the password hash, revokes active sessions and refresh tokens, sends a password-changed notification, and records an audit event.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       $ref: '#/components/requestBodies/AccountChangePassword'
+ *     responses:
+ *       200:
+ *         $ref: '#/components/responses/AccountPasswordChanged'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       422:
+ *         $ref: '#/components/responses/UnprocessableEntity'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
 accountRouter.post(
   '/account/change-password',
   requireAuth,
@@ -48,8 +144,50 @@ accountRouter.post(
   asyncHandler(changePasswordController),
 );
 
+/**
+ * @openapi
+ * /account/sessions:
+ *   get:
+ *     tags: [Account Settings]
+ *     summary: List active account sessions
+ *     description: Returns safe summaries for the authenticated user's active sessions. Refresh tokens, token hashes, IP addresses, and raw user agents are never returned.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         $ref: '#/components/responses/AccountSessionsOk'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
 accountRouter.get('/account/sessions', requireAuth, asyncHandler(listSessionsController));
 
+/**
+ * @openapi
+ * /account/sessions/{sessionId}:
+ *   delete:
+ *     tags: [Account Settings]
+ *     summary: Revoke an account session
+ *     description: Revokes one active session owned by the authenticated user and revokes its refresh tokens.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/AccountSessionIdPathParam'
+ *     responses:
+ *       200:
+ *         $ref: '#/components/responses/AccountSessionRevoked'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
 accountRouter.delete(
   '/account/sessions/:sessionId',
   requireAuth,
@@ -57,12 +195,54 @@ accountRouter.delete(
   asyncHandler(revokeSessionController),
 );
 
+/**
+ * @openapi
+ * /account/sessions/logout-others:
+ *   post:
+ *     tags: [Account Settings]
+ *     summary: Log out other sessions
+ *     description: Revokes all active sessions for the authenticated user except the current session.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         $ref: '#/components/responses/AccountOtherSessionsLoggedOut'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
 accountRouter.post(
   '/account/sessions/logout-others',
   requireAuth,
   asyncHandler(logoutOtherSessionsController),
 );
 
+/**
+ * @openapi
+ * /account/security-preferences:
+ *   patch:
+ *     tags: [Account Settings]
+ *     summary: Update account security preferences
+ *     description: Updates user session preferences where organisation policy permits them and returns the updated account policy/capability view.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       $ref: '#/components/requestBodies/AccountSecurityPreferences'
+ *     responses:
+ *       200:
+ *         $ref: '#/components/responses/AccountOk'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       422:
+ *         $ref: '#/components/responses/UnprocessableEntity'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
 accountRouter.patch(
   '/account/security-preferences',
   requireAuth,
@@ -76,7 +256,7 @@ accountRouter.patch(
  *   post:
  *     tags: [Auth]
  *     summary: Complete email change verification
- *     description: Verifies the email-change verification token, updates the email address, revokes active sessions/refresh tokens, and notifies the old and new email addresses.
+ *     description: Verifies the email-change verification token, updates the email address, consumes the token, confirms the pending request, and revokes active sessions/refresh tokens.
  *     security: []
  *     requestBody:
  *       $ref: '#/components/requestBodies/AccountVerifyEmailChange'

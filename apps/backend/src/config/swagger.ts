@@ -229,6 +229,10 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         description: 'Authentication and current user endpoints.',
       },
       {
+        name: 'Account Settings',
+        description: 'Authenticated account profile, email, password, sessions, and preferences.',
+      },
+      {
         name: 'Setup',
         description: 'Public token-driven setup endpoints.',
       },
@@ -789,6 +793,381 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           properties: {
             state: enumString(['VALID', 'INVALID', 'EXPIRED', 'USED', 'REVOKED'], 'VALID'),
             user: schemaRef('PublicUser'),
+          },
+        },
+        AccountProfileUpdateRequest: {
+          type: 'object',
+          required: ['firstName', 'lastName'],
+          additionalProperties: false,
+          properties: {
+            firstName: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 80,
+              example: 'Johan',
+            },
+            lastName: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 80,
+              example: 'Botha',
+            },
+          },
+        },
+        AccountChangeEmailRequest: {
+          type: 'object',
+          required: ['newEmail', 'confirmNewEmail', 'password'],
+          additionalProperties: false,
+          properties: {
+            newEmail: {
+              type: 'string',
+              format: 'email',
+              example: 'johan.new@example.com',
+            },
+            confirmNewEmail: {
+              type: 'string',
+              format: 'email',
+              example: 'johan.new@example.com',
+            },
+            password: {
+              type: 'string',
+              format: 'password',
+              minLength: 1,
+              maxLength: 128,
+              example: 'ExampleLocalPassword1!',
+            },
+          },
+        },
+        AccountChangeEmailResponse: {
+          type: 'object',
+          required: ['message', 'emailQueued'],
+          properties: {
+            message: {
+              type: 'string',
+              example:
+                'If this email change can be completed, a confirmation email has been sent to the new address.',
+            },
+            emailQueued: booleanProperty(true),
+          },
+        },
+        AccountChangePasswordRequest: {
+          type: 'object',
+          required: ['currentPassword', 'newPassword', 'confirmNewPassword'],
+          additionalProperties: false,
+          properties: {
+            currentPassword: {
+              type: 'string',
+              format: 'password',
+              minLength: 1,
+              maxLength: 128,
+              example: 'ExampleLocalPassword1!',
+            },
+            newPassword: {
+              type: 'string',
+              format: 'password',
+              minLength: 12,
+              maxLength: 128,
+              example: 'UpdatedLocalPassword1!',
+            },
+            confirmNewPassword: {
+              type: 'string',
+              format: 'password',
+              minLength: 12,
+              maxLength: 128,
+              example: 'UpdatedLocalPassword1!',
+            },
+          },
+        },
+        AccountChangePasswordResponse: {
+          type: 'object',
+          required: ['message', 'notificationQueued', 'revokedSessionCount'],
+          properties: {
+            message: {
+              type: 'string',
+              example: 'Password changed successfully.',
+            },
+            notificationQueued: booleanProperty(true),
+            revokedSessionCount: {
+              type: 'integer',
+              minimum: 0,
+              example: 2,
+            },
+          },
+        },
+        AccountProfile: {
+          type: 'object',
+          required: [
+            'id',
+            'firstName',
+            'lastName',
+            'email',
+            'userType',
+            'authStatus',
+            'emailVerified',
+            'emailVerifiedAt',
+            'createdAt',
+            'updatedAt',
+          ],
+          properties: {
+            id: {
+              type: 'string',
+              example: 'user-123',
+            },
+            firstName: {
+              type: 'string',
+              example: 'Johan',
+            },
+            lastName: {
+              type: 'string',
+              example: 'Botha',
+            },
+            email: {
+              type: 'string',
+              format: 'email',
+              example: 'johan@example.com',
+            },
+            userType: schemaRef('UserType'),
+            authStatus: schemaRef('AuthStatus'),
+            emailVerified: booleanProperty(true),
+            emailVerifiedAt: {
+              nullable: true,
+              allOf: [dateTimeString('2026-05-11T20:44:54.000Z')],
+            },
+            createdAt: dateTimeString('2026-05-11T20:44:54.000Z'),
+            updatedAt: dateTimeString('2026-05-16T09:00:00.000Z'),
+          },
+        },
+        AccountSecurityPreferences: {
+          type: 'object',
+          required: [
+            'id',
+            'preferredRegularSessionLengthHours',
+            'preferredRememberMeSessionLengthHours',
+            'preferredIdleTimeoutMinutes',
+            'updatedAt',
+          ],
+          properties: {
+            id: nullableString('security-preferences-123'),
+            preferredRegularSessionLengthHours: nullableIntegerRange({
+              minimum: 1,
+              maximum: 24,
+              example: 8,
+            }),
+            preferredRememberMeSessionLengthHours: nullableIntegerRange({
+              minimum: 1,
+              maximum: 720,
+              example: 168,
+            }),
+            preferredIdleTimeoutMinutes: nullableIntegerRange({
+              minimum: 5,
+              maximum: 480,
+              example: 30,
+            }),
+            updatedAt: {
+              nullable: true,
+              allOf: [dateTimeString('2026-05-16T09:00:00.000Z')],
+            },
+          },
+        },
+        AccountSecurityPreferencesRequest: {
+          type: 'object',
+          additionalProperties: false,
+          minProperties: 1,
+          properties: {
+            preferredRegularSessionLengthHours: nullableIntegerRange({
+              minimum: 1,
+              maximum: 24,
+              example: 8,
+            }),
+            preferredRememberMeSessionLengthHours: nullableIntegerRange({
+              minimum: 1,
+              maximum: 720,
+              example: 168,
+            }),
+            preferredIdleTimeoutMinutes: nullableIntegerRange({
+              minimum: 5,
+              maximum: 480,
+              example: 30,
+            }),
+          },
+        },
+        AccountPolicy: {
+          type: 'object',
+          required: [
+            'organisationId',
+            'rememberMeRequested',
+            'rememberMeAllowed',
+            'rememberMeApplied',
+            'regularSessionSeconds',
+            'rememberedSessionSeconds',
+            'effectiveSessionSeconds',
+            'idleTimeoutMinutes',
+            'requireReauthenticationForSensitiveActions',
+            'allowEmailChange',
+            'sources',
+          ],
+          properties: {
+            organisationId: nullableString('org-123'),
+            rememberMeRequested: booleanProperty(false),
+            rememberMeAllowed: booleanProperty(true),
+            rememberMeApplied: booleanProperty(false),
+            regularSessionSeconds: {
+              type: 'integer',
+              example: 900,
+            },
+            rememberedSessionSeconds: {
+              type: 'integer',
+              example: 604800,
+            },
+            effectiveSessionSeconds: {
+              type: 'integer',
+              example: 900,
+            },
+            idleTimeoutMinutes: nullableIntegerRange({
+              minimum: 5,
+              maximum: 480,
+              example: 30,
+            }),
+            requireReauthenticationForSensitiveActions: booleanProperty(true),
+            allowEmailChange: booleanProperty(true),
+            sources: {
+              type: 'object',
+              required: ['rememberMe', 'regularSession', 'rememberedSession', 'idleTimeout'],
+              properties: {
+                rememberMe: enumString(
+                  ['PLATFORM_DEFAULT', 'USER_PREFERENCE', 'ORGANISATION_POLICY'],
+                  'PLATFORM_DEFAULT',
+                ),
+                regularSession: enumString(
+                  ['PLATFORM_DEFAULT', 'USER_PREFERENCE', 'ORGANISATION_POLICY'],
+                  'PLATFORM_DEFAULT',
+                ),
+                rememberedSession: enumString(
+                  ['PLATFORM_DEFAULT', 'USER_PREFERENCE', 'ORGANISATION_POLICY'],
+                  'PLATFORM_DEFAULT',
+                ),
+                idleTimeout: enumString(
+                  ['PLATFORM_DEFAULT', 'USER_PREFERENCE', 'ORGANISATION_POLICY'],
+                  'PLATFORM_DEFAULT',
+                ),
+              },
+            },
+          },
+        },
+        AccountCapabilities: {
+          type: 'object',
+          required: [
+            'canEditProfile',
+            'canRequestEmailChange',
+            'canChangePassword',
+            'canEditSecurityPreferences',
+            'securityPreferenceEditable',
+            'blockedReasons',
+          ],
+          properties: {
+            canEditProfile: booleanProperty(true),
+            canRequestEmailChange: booleanProperty(true),
+            canChangePassword: booleanProperty(true),
+            canEditSecurityPreferences: booleanProperty(true),
+            securityPreferenceEditable: {
+              type: 'object',
+              required: [
+                'preferredRegularSessionLengthHours',
+                'preferredRememberMeSessionLengthHours',
+                'preferredIdleTimeoutMinutes',
+              ],
+              properties: {
+                preferredRegularSessionLengthHours: booleanProperty(true),
+                preferredRememberMeSessionLengthHours: booleanProperty(true),
+                preferredIdleTimeoutMinutes: booleanProperty(true),
+              },
+            },
+            blockedReasons: {
+              type: 'object',
+              required: [
+                'emailChange',
+                'securityPreferences',
+                'preferredRegularSessionLengthHours',
+                'preferredRememberMeSessionLengthHours',
+                'preferredIdleTimeoutMinutes',
+              ],
+              properties: {
+                emailChange: nullableString('ORGANISATION_POLICY_BLOCKED'),
+                securityPreferences: nullableString('ORGANISATION_POLICY_ENFORCED'),
+                preferredRegularSessionLengthHours: nullableString('ORGANISATION_POLICY_ENFORCED'),
+                preferredRememberMeSessionLengthHours: nullableString(
+                  'ORGANISATION_POLICY_ENFORCED',
+                ),
+                preferredIdleTimeoutMinutes: nullableString('ORGANISATION_POLICY_ENFORCED'),
+              },
+            },
+          },
+        },
+        AccountResponse: {
+          type: 'object',
+          required: ['profile', 'securityPreferences', 'effectivePolicy', 'capabilities'],
+          properties: {
+            profile: schemaRef('AccountProfile'),
+            securityPreferences: schemaRef('AccountSecurityPreferences'),
+            effectivePolicy: schemaRef('AccountPolicy'),
+            capabilities: schemaRef('AccountCapabilities'),
+          },
+        },
+        AccountSession: {
+          type: 'object',
+          required: [
+            'id',
+            'rememberMe',
+            'current',
+            'createdAt',
+            'lastActiveAt',
+            'expiresAt',
+            'idleTimeoutMinutes',
+            'deviceSummary',
+            'locationSummary',
+          ],
+          properties: {
+            id: {
+              type: 'string',
+              example: 'session-123',
+            },
+            rememberMe: booleanProperty(false),
+            current: booleanProperty(true),
+            createdAt: dateTimeString('2026-05-11T20:44:54.000Z'),
+            lastActiveAt: dateTimeString('2026-05-16T09:00:00.000Z'),
+            expiresAt: dateTimeString('2026-05-16T09:15:00.000Z'),
+            idleTimeoutMinutes: nullableIntegerRange({
+              minimum: 5,
+              maximum: 480,
+              example: 30,
+            }),
+            deviceSummary: nullableString('Chrome on Windows'),
+            locationSummary: nullableString('Johannesburg, ZA'),
+          },
+        },
+        AccountSessionsResponse: {
+          type: 'object',
+          required: ['sessions'],
+          properties: {
+            sessions: arrayOf(schemaRef('AccountSession')),
+          },
+        },
+        AccountSessionRevocationResponse: {
+          type: 'object',
+          required: ['revoked'],
+          properties: {
+            revoked: trueSuccessProperty(),
+          },
+        },
+        AccountLogoutOthersResponse: {
+          type: 'object',
+          required: ['revokedSessionCount'],
+          properties: {
+            revokedSessionCount: {
+              type: 'integer',
+              minimum: 0,
+              example: 2,
+            },
           },
         },
         AccountVerifyEmailChangeRequest: {
@@ -3556,6 +3935,17 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           },
           example: 'exampleInvitationTokenValueWithAtLeast32Chars',
         },
+        AccountSessionIdPathParam: {
+          name: 'sessionId',
+          in: 'path',
+          required: true,
+          description: 'Authenticated account session identifier.',
+          schema: {
+            type: 'string',
+            format: 'uuid',
+          },
+          example: '11111111-1111-4111-8111-111111111111',
+        },
       },
       requestBodies: {
         AuthRegister: {
@@ -3573,6 +3963,22 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         AccountVerifyEmailChange: {
           required: true,
           ...jsonContent(schemaRef('AccountVerifyEmailChangeRequest')),
+        },
+        AccountProfileUpdate: {
+          required: true,
+          ...jsonContent(schemaRef('AccountProfileUpdateRequest')),
+        },
+        AccountChangeEmail: {
+          required: true,
+          ...jsonContent(schemaRef('AccountChangeEmailRequest')),
+        },
+        AccountChangePassword: {
+          required: true,
+          ...jsonContent(schemaRef('AccountChangePasswordRequest')),
+        },
+        AccountSecurityPreferences: {
+          required: true,
+          ...jsonContent(schemaRef('AccountSecurityPreferencesRequest')),
         },
         AuthForgotPassword: {
           required: true,
@@ -3679,6 +4085,24 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         AuthRateLimited: responseComponent(
           'Too many authentication requests.',
           'AuthRateLimitErrorResponse',
+        ),
+        AccountOk: responseComponent('Current account settings.', 'AccountResponse'),
+        AccountChangeEmailRequested: responseComponent(
+          'Email change request accepted for processing.',
+          'AccountChangeEmailResponse',
+        ),
+        AccountPasswordChanged: responseComponent(
+          'Password changed successfully.',
+          'AccountChangePasswordResponse',
+        ),
+        AccountSessionsOk: responseComponent('Active account sessions.', 'AccountSessionsResponse'),
+        AccountSessionRevoked: responseComponent(
+          'Account session revoked.',
+          'AccountSessionRevocationResponse',
+        ),
+        AccountOtherSessionsLoggedOut: responseComponent(
+          'Other account sessions logged out.',
+          'AccountLogoutOthersResponse',
         ),
         SetupTokenContextOk: responseComponent(
           'Safe setup-token context. The token is not consumed.',
