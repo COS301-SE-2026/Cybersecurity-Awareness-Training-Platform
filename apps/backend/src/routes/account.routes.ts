@@ -1,4 +1,5 @@
 import {
+  accountChangeEmailRequestSchema,
   accountProfileUpdateRequestSchema,
   accountSecurityPreferencesRequestSchema,
   accountVerifyEmailChangeRequestSchema,
@@ -6,6 +7,7 @@ import {
 import { Router } from 'express';
 import {
   getAccountController,
+  requestEmailChangeController,
   updateAccountProfileController,
   updateAccountSecurityPreferencesController,
   verifyChange,
@@ -24,6 +26,13 @@ accountRouter.patch(
   requireAuth,
   validateBody(accountProfileUpdateRequestSchema, { statusCode: 422 }),
   asyncHandler(updateAccountProfileController),
+);
+
+accountRouter.post(
+  '/account/change-email',
+  requireAuth,
+  validateBody(accountChangeEmailRequestSchema, { statusCode: 422 }),
+  asyncHandler(requestEmailChangeController),
 );
 
 accountRouter.patch(

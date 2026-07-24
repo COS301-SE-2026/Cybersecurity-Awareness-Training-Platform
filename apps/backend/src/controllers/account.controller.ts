@@ -4,6 +4,7 @@ import {
   AccountServiceError,
   patchAccountProfile,
   patchAccountSecurityPreferences,
+  requestAccountEmailChange,
 } from '../services/account.service.js';
 import { verifyEmailChange, EmailChangeConflictError } from '../services/auth.service.js';
 
@@ -53,6 +54,20 @@ export async function updateAccountProfileController(req: Request, res: Response
 
   try {
     const result = await patchAccountProfile(userId, req.body);
+    return res.status(200).json(result);
+  } catch (error) {
+    return handleAccountError(error, res);
+  }
+}
+
+export async function requestEmailChangeController(req: Request, res: Response) {
+  const userId = requireAccountUserId(req, res);
+  if (!userId) {
+    return;
+  }
+
+  try {
+    const result = await requestAccountEmailChange(userId, req.body);
     return res.status(200).json(result);
   } catch (error) {
     return handleAccountError(error, res);

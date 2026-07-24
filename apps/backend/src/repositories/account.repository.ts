@@ -15,6 +15,10 @@ export type AccountUserRecord = {
   updatedAt: Date;
 };
 
+export type AccountUserWithPasswordRecord = AccountUserRecord & {
+  passwordHash: string;
+};
+
 export type AccountSecurityPreferencesRecord = {
   id: string;
   userId: string;
@@ -46,10 +50,22 @@ const accountUserSelect = {
   updatedAt: true,
 } as const;
 
+const accountUserWithPasswordSelect = {
+  ...accountUserSelect,
+  passwordHash: true,
+} as const;
+
 export function findAccountUserById(userId: string, client: AccountClient = prisma) {
   return client.user.findUnique({
     where: { id: userId },
     select: accountUserSelect,
+  });
+}
+
+export function findAccountUserWithPasswordById(userId: string, client: AccountClient = prisma) {
+  return client.user.findUnique({
+    where: { id: userId },
+    select: accountUserWithPasswordSelect,
   });
 }
 
@@ -64,6 +80,82 @@ export function updateAccountProfile(
       lastName: input.lastName,
     },
     select: accountUserSelect,
+  });
+}
+
+export function findAccountUserByEmail(email: string, client: AccountClient = prisma) {
+  return client.user.findUnique({
+    where: { email },
+    select: accountUserSelect,
+  });
+}
+
+export function cancelPendingEmailChangeRequests(
+  input: { userId: string; now: Date },
+  client: AccountClient = prisma,
+) {
+  return client.emailChangeRequest.updateMany({
+    where: {
+      userId: input.userId,
+      status: 'PENDING',
+    },
+    data: {
+      status: 'CANCELED',
+      updatedAt: input.now,
+    },
+  });
+}
+
+export function revokePendingEmailChangeTokens(
+  input: { userId: string; now: Date; reason: string },
+  client: AccountClient = prisma,
+) {
+  return client.actionToken.updateMany({
+    where: {
+      userId: input.userId,
+      purpose: 'EMAIL_CHANGE_VERIFICATION',
+      usedAt: null,
+      revokedAt: null,
+    },
+    data: {
+      revokedAt: input.now,
+      revokedReason: input.reason,
+    },
+  });
+}
+
+export function createEmailChangeRequest(
+  input: {
+    userId: string;
+    currentEmail: string;
+    requestedEmail: string;
+    expiresAt: Date;
+  },
+  client: AccountClient = prisma,
+) {
+  return client.emailChangeRequest.create({
+    data: {
+      userId: input.userId,
+      currentEmail: input.currentEmail,
+      RequestedEmail: input.requestedEmail,
+      expiresAt: input.expiresAt,
+    },
+  });
+}
+
+export function cancelEmailChangeRequest(
+  input: { requestId: string; now: Date },
+  client: AccountClient = prisma,
+) {
+  return client.emailChangeRequest.updateMany({
+    where: {
+      id: input.requestId,
+      status: 'PENDING',
+    },
+    data: {
+      status: 'CANCELED',
+      updatedAt: input.now,
+    },
   });
 }
 

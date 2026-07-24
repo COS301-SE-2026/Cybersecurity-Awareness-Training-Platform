@@ -1,14 +1,22 @@
 import {
+  accountChangeEmailRequestSchema,
   accountProfileUpdateRequestSchema,
   accountSecurityPreferencesRequestSchema,
+  type AccountChangeEmailRequestDto,
   type AccountProfileUpdateRequestDto,
   type AccountSecurityPreferencesRequestDto,
 } from '@insightful-phish/shared';
 import type { Prisma } from '../generated/prisma/client.js';
 import type { AuditActorType } from '../generated/prisma/enums.js';
 import {
+  cancelEmailChangeRequest,
+  cancelPendingEmailChangeRequests,
+  createEmailChangeRequest,
   findAccountSecurityPreferences,
+  findAccountUserByEmail,
   findAccountUserById,
+  findAccountUserWithPasswordById,
+  revokePendingEmailChangeTokens,
   runAccountTransaction,
   updateAccountProfile,
   upsertAccountSecurityPreferences,
@@ -16,12 +24,19 @@ import {
   type AccountUserRecord,
 } from '../repositories/account.repository.js';
 import { findAuthSubjectByUserId } from '../repositories/user.repository.js';
+import { issueActionToken, revokeActionTokenById } from './action-token.service.js';
 import { recordAuditLog } from './audit-log.service.js';
+import {
+  requestAuthEmailSend,
+  shouldRevokeTokenForAuthEmailResult,
+} from './auth-email-hook.service.js';
 import {
   organisationIdForSecurityPolicy,
   resolveEffectiveSecurityPolicy,
 } from './security-policy.service.js';
 import type { GuardAuthSubject } from './auth-status-guard.service.js';
+import { recordNotificationFailureEvent } from './notification-failure-event.service.js';
+import { verifyPassword } from './password.service.js';
 
 type AccountFieldError = {
   field: string;
@@ -30,7 +45,7 @@ type AccountFieldError = {
 
 export class AccountServiceError extends Error {
   constructor(
-    public readonly statusCode: 403 | 404 | 422,
+    public readonly statusCode: 403 | 404 | 409 | 422,
     public readonly error: string,
     message: string,
     public readonly fieldErrors: AccountFieldError[] = [],
@@ -106,7 +121,15 @@ export type AccountResponse = {
   capabilities: AccountCapabilitiesResponse;
 };
 
+export type AccountChangeEmailResponse = {
+  message: string;
+  emailQueued: boolean;
+};
+
 const SECURITY_PREFERENCE_BLOCKED_REASON = 'ORGANISATION_POLICY_ENFORCED';
+const EMAIL_CHANGE_TOKEN_TTL_HOURS = 24;
+const EMAIL_CHANGE_GENERIC_MESSAGE =
+  'If this email change can be completed, a confirmation email has been sent to the new address.';
 
 function validationError(fieldErrors: AccountFieldError[]) {
   return new AccountServiceError(
@@ -119,6 +142,14 @@ function validationError(fieldErrors: AccountFieldError[]) {
 
 function notFoundError() {
   return new AccountServiceError(404, 'ACCOUNT_NOT_FOUND', 'Account was not found');
+}
+
+function conflictError(error: string, message: string) {
+  return new AccountServiceError(409, error, message);
+}
+
+function forbiddenError(error: string, message: string, fieldErrors: AccountFieldError[] = []) {
+  return new AccountServiceError(403, error, message, fieldErrors);
 }
 
 function fieldErrorsFromIssues(
@@ -276,6 +307,15 @@ function parseProfileUpdate(input: unknown): AccountProfileUpdateRequestDto {
   throw validationError(fieldErrorsFromIssues(result.error.issues));
 }
 
+function parseEmailChange(input: unknown): AccountChangeEmailRequestDto {
+  const result = accountChangeEmailRequestSchema.safeParse(input);
+  if (result.success) {
+    return result.data;
+  }
+
+  throw validationError(fieldErrorsFromIssues(result.error.issues));
+}
+
 function parseSecurityPreferences(input: unknown): AccountSecurityPreferencesRequestDto {
   const result = accountSecurityPreferencesRequestSchema.safeParse(input);
   if (result.success && Object.keys(result.data).length > 0) {
@@ -334,8 +374,222 @@ function preferenceAuditValues(input: AccountSecurityPreferencesRequestDto): Pri
   };
 }
 
+function getEmailChangeExpiresAt() {
+  return new Date(Date.now() + EMAIL_CHANGE_TOKEN_TTL_HOURS * 60 * 60 * 1000);
+}
+
+function emailPersistenceAuditMetadata(
+  emailResult: Awaited<ReturnType<typeof requestAuthEmailSend>>,
+): Prisma.InputJsonObject {
+  if (emailResult.status !== 'ACCEPTED_PERSISTENCE_FAILED') {
+    return {};
+  }
+
+  return {
+    emailPersistenceFailureCodes: emailResult.persistenceFailures.map((failure) => failure.code),
+    emailPersistenceFailureStages: emailResult.persistenceFailures.map((failure) => failure.stage),
+  };
+}
+
+async function sendEmailChangeWarning(input: {
+  userId: string;
+  oldEmail: string;
+  newEmail: string;
+  firstName: string;
+  requestId: string;
+}) {
+  try {
+    await requestAuthEmailSend({
+      emailType: 'EMAIL_CHANGE_WARNING',
+      recipientEmail: input.oldEmail,
+      userId: input.userId,
+      relatedEntityType: 'EMAIL_CHANGE_REQUEST',
+      relatedEntityId: input.requestId,
+      templateData: {
+        firstName: input.firstName,
+        oldEmail: input.oldEmail,
+        newEmail: input.newEmail,
+      },
+    });
+  } catch {
+    await recordNotificationFailureEvent('EMAIL_HOOK_UNEXPECTED_FAILURE');
+  }
+}
+
 export async function getAccount(userId: string): Promise<AccountResponse> {
   return buildAccountResponse(await getAccountContext(userId));
+}
+
+export async function requestAccountEmailChange(
+  userId: string,
+  input: unknown,
+): Promise<AccountChangeEmailResponse> {
+  const parsedInput = parseEmailChange(input);
+  const [context, userWithPassword] = await Promise.all([
+    getAccountContext(userId),
+    findAccountUserWithPasswordById(userId),
+  ]);
+
+  if (!userWithPassword) {
+    throw notFoundError();
+  }
+
+  const accountResponse = buildAccountResponse(context);
+  if (!accountResponse.capabilities.canRequestEmailChange) {
+    throw forbiddenError(
+      'ACCOUNT_EMAIL_CHANGE_POLICY_BLOCKED',
+      'Organisation security policy blocks email changes for this account.',
+      [
+        {
+          field: 'newEmail',
+          message: 'Email changes are managed by organisation security policy.',
+        },
+      ],
+    );
+  }
+
+  const passwordMatches = await verifyPassword(parsedInput.password, userWithPassword.passwordHash);
+  if (!passwordMatches) {
+    throw forbiddenError(
+      'ACCOUNT_CURRENT_PASSWORD_INVALID',
+      'Current password confirmation failed.',
+      [
+        {
+          field: 'password',
+          message: 'Current password is incorrect.',
+        },
+      ],
+    );
+  }
+
+  const requestedEmail = parsedInput.newEmail.trim().toLowerCase();
+  if (requestedEmail === userWithPassword.email.trim().toLowerCase()) {
+    throw validationError([
+      {
+        field: 'newEmail',
+        message: 'New email must be different from the current email.',
+      },
+    ]);
+  }
+
+  const existingUser = await findAccountUserByEmail(requestedEmail);
+  if (existingUser) {
+    throw conflictError('ACCOUNT_EMAIL_EXISTS', 'The requested email address is already in use.');
+  }
+
+  const expiresAt = getEmailChangeExpiresAt();
+  const organisationId = organisationIdForSecurityPolicy(context.subject);
+  const emailChange = await runAccountTransaction(async (tx) => {
+    const now = new Date();
+    await cancelPendingEmailChangeRequests({ userId, now }, tx);
+    await revokePendingEmailChangeTokens(
+      {
+        userId,
+        now,
+        reason: 'EMAIL_CHANGE_REPLACED',
+      },
+      tx,
+    );
+
+    const request = await createEmailChangeRequest(
+      {
+        userId,
+        currentEmail: userWithPassword.email,
+        requestedEmail,
+        expiresAt,
+      },
+      tx,
+    );
+    const actionToken = await issueActionToken(
+      {
+        purpose: 'EMAIL_CHANGE_VERIFICATION',
+        userId,
+        emailChangeRequestId: request.id,
+        targetEmail: requestedEmail,
+        expiresAt,
+      },
+      tx,
+    );
+
+    await recordAuditLog(
+      {
+        actorUserId: userId,
+        actorType: actorTypeForUser(context.user.userType),
+        organisationId,
+        targetType: 'USER',
+        targetId: userId,
+        actionType: 'SETTINGS_CHANGED',
+        newValues: {
+          updatedFields: ['emailChangeRequest'],
+        },
+        metadata: {
+          changeType: 'EMAIL_CHANGE_REQUESTED',
+        },
+      },
+      tx,
+    );
+
+    return {
+      request,
+      actionToken,
+    };
+  });
+
+  const emailResult = await requestAuthEmailSend({
+    emailType: 'EMAIL_CHANGE_CONFIRMATION',
+    recipientEmail: requestedEmail,
+    userId,
+    actionTokenId: emailChange.actionToken.token.id,
+    relatedEntityType: 'EMAIL_CHANGE_REQUEST',
+    relatedEntityId: emailChange.request.id,
+    templateData: {
+      firstName: userWithPassword.firstName,
+      oldEmail: userWithPassword.email,
+      newEmail: requestedEmail,
+      actionToken: emailChange.actionToken.rawToken,
+      actionTokenExpiresAt: emailChange.actionToken.token.expiresAt,
+    },
+  });
+
+  if (shouldRevokeTokenForAuthEmailResult(emailResult)) {
+    const now = new Date();
+    await revokeActionTokenById({
+      tokenId: emailChange.actionToken.token.id,
+      reason: 'EMAIL_SEND_FAILED',
+    });
+    await cancelEmailChangeRequest({ requestId: emailChange.request.id, now });
+  }
+
+  await recordAuditLog({
+    actorUserId: userId,
+    actorType: actorTypeForUser(context.user.userType),
+    organisationId,
+    targetType: 'USER',
+    targetId: userId,
+    actionType: 'SETTINGS_CHANGED',
+    outcome: emailResult.status === 'NOT_ACCEPTED' ? 'FAILURE' : 'SUCCESS',
+    metadata: {
+      changeType: 'EMAIL_CHANGE_CONFIRMATION_DELIVERY',
+      emailQueued: emailResult.queued,
+      emailOutcomeStatus: emailResult.status,
+      ...emailPersistenceAuditMetadata(emailResult),
+    },
+  });
+
+  if (emailResult.status !== 'NOT_ACCEPTED') {
+    await sendEmailChangeWarning({
+      userId,
+      oldEmail: userWithPassword.email,
+      newEmail: requestedEmail,
+      firstName: userWithPassword.firstName,
+      requestId: emailChange.request.id,
+    });
+  }
+
+  return {
+    message: EMAIL_CHANGE_GENERIC_MESSAGE,
+    emailQueued: emailResult.queued,
+  };
 }
 
 export async function patchAccountProfile(
