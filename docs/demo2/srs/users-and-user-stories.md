@@ -141,6 +141,32 @@ The following user stories describe the goals that each user type aims to achiev
 
 **6.17** As an organisation administrator with the appropriate permission, I want AI assistance when drafting simulated emails, training documents and quizzess, with human review required before publication, so that content can be created more efficiently without compromising quality or safety.
 
+### 7. Platform Administration
+
+**7.1** As a platform administrator, I want to review and filter organisation registration requests and mark them as contacted, so that onboarding requests can be managed consistently.
+
+**7.2** As a platform administrator, I want to approve or reject an organisation registration request and invite its initial administrator following approval, so that only reviewed and approved organisations can access the platform.
+
+**7.3** As a platform administrator, I want to track an organisation's onboarding progress and resend an eligible initial-administrator invitation, so that failed or expired email delivery does not leave the organisation's onboarding permantently blocked.
+
+**7.4** As a platform administrator, I want to view organisation details and suspend or reactivate organisation access, so that platform-level access can be governed safely and consistently.
+
+**7.5** As a platform administrator, I want to create and manage premade campaigns and reuseable campaign items, so that individual trainees can access high quality training content and to make it easier for organisation administrators to create their own campaigns.
+
+**7.6** As a platform administrator, I want to publish or unpublish premade campaigns, so that I can control what individual trainees can discover without erasing existing enrolments or progress.
+
+**7.7** As a platform administrator, I want to view aggregated platform usage, organisation-lifecycle and security insights, so that I can operate the platform without unnessarily accessing organisation- or trainee-level data.
+
+**7.8** As a platform administrator, I want to review platform audit and security events, so that privileged actions and suspicious activity can be investigated.
+
+### 8. Platform Super-Administrator
+
+**8.1** As a platform super-administrator, I want to view and invite platform administrators, so that platform management responsibilities can be shared.
+
+**8.2** As a platform super-administrator, I want to revoke or demote platform administrators, so that platform access can be governed safely and consistently.
+
+**8.3** As a platform super-administrator, I want to transfer the super-administrator role to another active platform administrator, so that the platform always has exactly one accountable super-administrator.
+
 ---
 
 The next section of the SRS is: [Functional Requirements](functional-requirements.md)
