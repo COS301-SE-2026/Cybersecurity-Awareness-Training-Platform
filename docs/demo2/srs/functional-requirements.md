@@ -384,8 +384,11 @@ The following functional requirements define the capabilities and observable beh
   - `R10.5.3` The system shall prevent an administrator from disabling themselves through the trainee manangement flow
   - `R10.5.4` The system shall require the administrator role to be removed through the administrator management flow before disabling a trainee who is also an administrator
   - `R10.5.5` The system shall revoke the disabled trainee's organisation related sessions
-  - `R10.6.1` Account reactivitation shall restore organisation access without creating a duplicate organisation membership
-  - `R10.6.2` Account reactiviation shall not automatically restore revoked administrator permissions
+  - `R10.5.6` The system shall notify the trainee of the membership change
+
+- `R10.6` The system shall allow an authorised organisation administrator to reactivate an eligible disabled trainee membership
+  - `R10.6.1` Reactivitation shall restore organisation access without creating a duplicate organisation membership
+  - `R10.6.2` Reactiviation shall not automatically restore revoked administrator permissions
 
 - `R10.7` The system shall audit trainee invitation, resend, revocation, disablement and reactiviation actions
 
@@ -394,7 +397,209 @@ The following functional requirements define the capabilities and observable beh
 > [!Note]
 > The Functional Requirements in `R11` are related to **Use Case 9**, which can be found [here]() <!-- TODO insert appropriate link-->
 
--
+- `R11.1` The system shall allow organisation administrators to view administrators in their organisation
+  - `R11.1.1` The system shall display each administrator's name, email, status and assigned permissions
+  - `R11.1.2` The system shall restrict the list to the authenticated administrator's organisation
+  - `R11.1.3` The system shall not expose administrators or permissions from other organisations
+
+- `R11.2` The system shall allow an authorised organisation administrator to invite an active organisation trainee to become an organisation administrator
+  - `R11.2.1` The system shall require the administrator invitation permission
+  - `R11.2.2` The system shall require the target to be an active organisation trainee in the same organisation
+  - `R11.2.3` The system shall reject an individual trainee, platform administrator, user from another organisation, or exisiting organisation administrator
+  - `R11.2.4` The system shall allow the inviting administrator to select the target administrator's initial permissions
+  - `R11.2.5` The system shall validate permission dependencies before creating the invitation
+  - `R11.2.6` The system shall create an organisation administrator promotion invitation
+  - `R11.2.7` The system shall send a secure role change invitation to the organisation trainee
+  - `R11.2.8` The system shall not change the trainee's role until the invitation is accepted
+
+- `R11.3` The system shall allow an authorised organisation administrator to resend an eligible administrator promotion invitation
+  - `R11.3.1` The system shall prevent duplicate active promotion invitations
+  - `R11.3.2` The system shall apply resend cooldown and rate-limit rules
+
+- `R11.4` The system shall allow an authorised organisation administrator to change an organisation administrator's permissions
+  - `R11.4.1` The system shall require the appropriate permission management permission
+  - `R11.4.2` The system shall verify that the actor and target belong to the same organisation
+  - `R11.4.3` The system shall enforce read and edit permission dependencies
+  - `R11.4.4` Granting an edit permission shall also grant its required read permission
+  - `R11.4.5` The system shall record the old and new permission sets
+  - `R11.4.6` The system shall prevent a permission change that would leave no administrator with the permission to invite organisation administrators
+  - `R11.4.7` The system shall prevent a permission change that would leave no administrator with the permission to manage organisation administrator permissions
+  - `R11.4.8` The system shall prevent an administrator from improperly removing their own final critical permissions
+
+- `R11.5` The system shall allow an authorised organisastion administrator to remove another administrator's administrative privileges
+  - `R11.5.1` The system shall require the appropriate administrator removal permission
+  - `R11.5.2` The system shall require confirmation of the sensitive action
+  - `R11.5.3` The system shall prevent removal when the target is the last administrator holding a required ciritical permission
+  - `R11.5.4` The system shall convert the target to the organisation trainee state
+  - `R11.5.5` The system shall revoke sessions that retain the removed administrative authority
+  - `R11.5.6` The system shall notify the affected user of the role change
+
+- `R11.6` The system shall enforce organisation administrator permissions on the server for every protected management action
+- `R11.7` The system shall audit administrator invitations, role changes, permission changes, removals and failed attempts
+
+## `R12` Manage Insightful Phish Platform Administrators
+
+> [!Note]
+> The Functional Requirements in `R12` are related to **Use Case 10**, which can be found [here]() <!-- TODO insert appropriate link-->
+
+- `R12.1` The system shall allow platform administrators to view the platform administrator list
+  - `R12.1.1` The system shall display each platform administrator's name, email, role and status
+  - `R12.1.2` The system shall distinguish the platform super-administrator from normal platform administrators
+  - `R12.1.3` Normal platform administrators shall have read-only access to platform administrator management information
+
+- `R12.2` The system shall allow only the platform super-administrator to invite a platform administrator
+  - `R12.2.1` The system shall require a valid target email address
+  - `R12.2.2` The system shall allow optional first name and last name information to be supploed
+  - `R12.2.3` The system shall create a setup invitation when the target email does not belong to an existing account
+  - `R12.2.4` The system shall create an explicit upgrade confirmation invitation when the target is an eligible individual trainee
+  - `R12.2.5` The system shall not change an existing trainee's role until the trainee accepts the upgrade
+  - `R12.2.6` The system shall reject the invitation when the target is already a platform administrator
+  - `R12.2.7` The system shall reject or require manual resolution when the target email belongs to an organisation administrator, organisation-linked account, or unresolved organisation representative
+  - `R12.2.8` The system shall send a secure invitation or upgrade confirmation email
+  - `R12.2.9` The system shal allow the super-administrator to resend an eligible pending invitation
+
+- `R12.3` The system shall allow the invited user to accept or reject a platform administrator invitation or upgrade
+  - `R12.3.1` A new user shall be able to complete account setup before receiving platform administrator access
+  - `R12.3.2` An existing eligible user shall be shown the consequences of losing trainee access before confirming the upgrade
+  - `R12.3.3` Rejection shall leave the existing user's role unchanged
+  - `R12.3.4` Acceptance shall update the account role and revoke sessions carrying obsolete authority
+  - `R12.3.5` The system shall send a confirmation notification after the role change
+
+- `R12.4` The system shall allow the platform super-administrator to transfer the super-administrator role
+  - `R12.4.1` The target shall be an active normal platform administrator
+  - `R12.4.2` The system shall require the current super-administrator's password and typed confirmation
+  - `R12.4.3` The system shall promote the selected administrator and demote the current super-administrator atomically
+  - `R12.4.4` The system shall ensure thatexactly one active platform super-administrator exists after the transfer
+  - `R12.4.5` The system shall prevent transfer when no eligible target administrator exists
+  - `R12.4.6` The system shall update the current user's permissions immediately after transfer
+  - `R12.4.7` The system shall notify both affected administrators of the transfer
+
+- `R12.5` The system shall allow the platform super-administrator to demote or revoke a normal platform administrator
+  - `R12.5.1` The system shall require password and typed confirmation for demotion or revocation
+  - `R12.5.2` The system shall prevent the super-administrator from demoting themselves
+  - `R12.5.3` The system shall prevent a normal platform administrator from performing the action
+  - `R12.5.4` The system shall demote the target by returning their account status to what it was before they were invited or upgraded to be a platform administrator
+  - `R12.5.5` The system shall revoke the target's active sessions
+  - `R12.5.6` The system shall notify the target of the access change
+
+- `R12.6` The system shall audit platform administrator invitations, upgrades, role transfers, demotions, revocations and failed attempts
+
+## `R13` Configure Organisation Security Settings
+
+> [!Note]
+> The Functional Requirements in `R13` are related to **Use Case 11**, which can be found [here]() <!-- TODO insert appropriate link-->
+
+- `R13.1` The system shall allow organisation administrators to view their organisation's security settings
+  - `R13.1.1` The system shall restrict the settings to the authenticated administrator's organisation
+  - `R13.1.2` Organisation administrators without the required edit permissions shall receive read-only access
+  - `R13.1.3` The system shall identify the settings that are enforced by the organisation
+  - `R13.1.4` The system shall explain that enforced setting apply to both organisation administrators and organisation trainees
+- `R13.2` The system shall allow an authorised organisation administrator to configure the organisation's remember-me policy
+  - `R13.2.1` The administrator shall be able to enable or disable organisation-wide enforcement of the remember-me policy
+  - `R13.2.2` The administrator shall be able to allow or disallow remembered sessions when enforcement is enabled
+  - `R13.2.3` The administrator shall be able to set the maximum remembered session length within platform limits
+
+- `R13.3` The system shall allow an authorised organisation administrator to configure regular session length
+  - `R13.3.1` The administrator shall be able to enable or disable organisation-wide enforcement of regular session length
+  - `R13.3.2` The administrator shall be able ro select an allowed regular session length withn enforcement is enabled
+
+- `R13.4` The system shall allow an authorised organisation administrator to configure idle-session timeout
+  - `R13.4.1` The administrator shall be able to enable or disable organisation-wide enforcement of idle timeout
+  - `R13.4.2` The administrator shall be able to select an allowed idle-timout value when enforcement is enabled
+
+- `R13.5` The system shall allow an authorised organisation administrator to require re-authentication for sensitive actions
+
+- `R13.6` The system shall allow an authorised organisation administrator to allow or prohibit organisation users from changing their own email addresses
+
+- `R13.7` The system shall validate organisation security settings before saving them
+  - `R13.7.1` The system shall reject values outside platform defined limits
+  - `R13.7.2` The system shall reject conflicting combinations of settings
+  - `R13.7.3` The system shall reject updates by an administrator who lacks the security settings permission
+  - `R13.7.4` The system shall prevent updates against another organisation
+
+- `R13.8` The system shall apply the effective organisation policy when creatong or refreshing sessions
+  - `R13.8.1` Enforced organisation values shall override affected personal preferences
+  - `R13.8.2` Personal preferences shall remain configurable wwhere organisation enforcement is disabled
+  - `R13.8.3` The system shall indicate when a setting change applies only after a session is refreshed or recreated
+  - `R13.8.4` Existing sessions shall not be represented as updated until the applicable policy has been enforced
+- `R13.9` The system shall allow an administrator to discard unsaved setting changes and restore the last saved values
+
+- `R13.10` The system shall audi organisation security setting changes
+  - `R13.10.1` The audit record shall identify the actor, organisation, changed settings, previous values, new values, outcome and timestamp
+
+## `R14` Manage Personal Account and Security Settings
+
+> [!Note]
+> The Functional Requirements in `R14` are related to **Use Case 12**, which can be found [here]() <!-- TODO insert appropriate link-->
+
+- `R14.1` The system shall allow an authenciated user to view their account information
+  - `R14.1.1` The system shall display the user's first name, last name and current email address
+  - `R14.1.2` The system shall display the user's effective account and session settings
+  - `R14.1.3` The system shall indicate which settings the user can edit
+  - `R14.1.4` The system shall identify settings controlled by an organisation policy, if applicable
+
+- `R14.2` The system shall allow an authenticated user to update their personal information
+  - `R14.2.1` The user shall be able to update their first and last name
+  - `R14.2.2` The system shall validate the name fields before saving
+  - `R14.2.3` The system shall preserve the entered values and display an error when an update fails
+
+- `R14.3` The system shall allow an eligible authenticated user to request an email address change
+  - `R14.3.1` The user shall provide a new email address and matching confirmation field
+  - `R14.3.2` The user shall provide their current password to confirm the sensitive action
+  - `R14.3.3` The system shall reject an invalid, unchanged or already used email address
+  - `R14.3.4` The system shall reject the request when an applicable organisation policy prohibits email changes
+  - `R14.3.5` The system shall keep the current email address active until the new email address has been verified
+  - `R14.3.6` The system shall send an email change verification link to the new email address
+  - `R14.3.7` The system shall send a warning notification to the old email address
+  - `R14.3.8` The system shall update the account email only after successful verification
+  - `R14.3.9` The system shall reject final verification if the new email address becomes unavailable before verification completes
+  - `R14.3.10` The system shall revoke existing sessions after the verified email change
+
+- `R14.4` The system shall allow an authenticated user to change their password
+  - `R14.4.1` The user shall provide their current password
+  - `R14.4.2` The user shall provide a new password and matching password confirmation
+  - `R14.4.3` The system shallvalidate the current password
+  - `R14.4.4` The system shall validate the new password against the password policy
+  - `R14.4.5` The system shall update the password only when all validation succeeds
+  - `R14.4.6` The system shall revoke the user's existing sessions after the password change
+  - `R14.4.7` The system shall send a password change notification email
+
+- `R14.5` The system shall allow an authenticated user to view their active sessions
+  - `R14.5.1` The system shall identify the current session
+  - `R14.5.2` The system shall display tge available device or browser description for each session
+  - `R14.5.3` The system shall display the session's last active time
+  - `R14.5.4` The system shall display an approximate location where such information is available
+  - `R14.5.5` The system shall safely display an unkown value when device or location information is unavailable
+
+- `R14.6` The system shall allow an authenticated user to revoke an active session belonging to their account
+  - `R14.6.1` The system shall prevent the user from revoking another user's session
+  - `R14.6.2` The system shall require confirmation before revoking the current session
+  - `R14.6.3` The system shall refresh the session list when a session has been revoked
+
+- `R14.7` The system shall allow an authenticated user to revoke all other active sessions
+  - `R14.7.1` The current session shall remain active
+  - `R14.7.2` Revoked sessions shall be unable to obtain new access credentials
+
+- `R14.8` The system shall allow an eligible user to manage personal session preferences
+  - `R14.8.1` The user shall be able to select a preferred regular session length
+  - `R14.8.2` The user shall be able to select a preferred remembered session length
+  - `R14.8.3` The user shall be able to select a preferred idle timeout value
+  - `R14.8.4` The system shall validate personal preferences against platform limits
+  - `R14.8.5` The system shall disable a preference when an organisation policy overrides it.
+  - `R14.8.6` The system shall display the enforced organisation value and explain why the personal control is unavailable
+  - `R14.8.7` Personal perference changes shall apply to a new and refreshed sessions
+
+- `R14.9` The system shall allow eligible individual trainees to request account deletion or deactiviation
+  - `R14.9.1` The system shall require the user's current password
+  - `R14.9.2` The system shall require explicit typed confirmation
+  - `R14.9.3` The system shall prevent organisation administrators from deleting their account while they retain organisation administrator responsibilities
+  - `R14.9.4` The system shall prevent an organisation user from selft-deleting when organisation policy prohibits it
+  - `R14.9.5` The system shall preserve audit records when an account is deleted or deactivated
+  - `R14.9.6` The system shall revoke all remaining sessions after account deletion or deactivation
+
+- `R14.10` The system shall restrict every account and session operation to the authenticated user's own records
+
+`R14.11` The system shall audit sensitive account, email, password, preference, session and deletion actions
 
 ---
 
