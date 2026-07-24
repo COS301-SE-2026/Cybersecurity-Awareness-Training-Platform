@@ -746,7 +746,7 @@ describe('swaggerSpec', () => {
         reason?: {
           type?: string;
           nullable?: boolean;
-          enum?: string[];
+          enum?: Array<string | null>;
         };
       };
     };
@@ -760,6 +760,7 @@ describe('swaggerSpec', () => {
       'SETUP_TOKEN_EXPIRED',
       'SETUP_EMAIL_FAILED',
       'CONCURRENT_RESEND_IN_PROGRESS',
+      null,
     ]);
 
     const timelineEntry = spec.components?.schemas?.PlatformTimelineEntry as {

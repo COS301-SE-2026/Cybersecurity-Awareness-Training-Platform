@@ -1447,6 +1447,7 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
                 'SETUP_TOKEN_EXPIRED',
                 'SETUP_EMAIL_FAILED',
                 'CONCURRENT_RESEND_IN_PROGRESS',
+                null,
               ],
               example: 'ORGANISATION_NOT_ONBOARDING',
             },

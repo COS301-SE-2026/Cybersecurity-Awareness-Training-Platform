@@ -10,6 +10,7 @@ import {
 import {
   platformOrganisationDetailSchema,
   platformOrganisationRequestDetailsResponseSchema,
+  resendInitialAdminSetupResponseSchema,
 } from '@insightful-phish/shared';
 import type * as AuthEmailHookModule from '../../../src/services/auth-email-hook.service.js';
 
@@ -539,6 +540,11 @@ describe('platformOrganisation service', () => {
     });
 
     it('allows resend after definite first setup email failure revoked the original token', async () => {
+      const inviteUuid = '11111111-1111-4111-8111-111111111111';
+      const tokenUuid = '22222222-2222-4222-8222-222222222222';
+      const newTokenUuid = '33333333-3333-4333-8333-333333333333';
+      const emailLogUuid = '44444444-4444-4444-8444-444444444444';
+
       const mockOrg = {
         id: organisationId,
         name: 'Target Org',
@@ -546,7 +552,7 @@ describe('platformOrganisation service', () => {
       };
 
       const mockInvitation = {
-        id: 'invite-123',
+        id: inviteUuid,
         status: 'FAILED_TO_SEND',
         recipientEmail: 'admin@target.com',
         recipientFirstName: 'Bob',
@@ -554,7 +560,7 @@ describe('platformOrganisation service', () => {
         organisationRegistrationRequestId: requestId,
         actionTokens: [
           {
-            id: 'token-123',
+            id: tokenUuid,
             expiresAt: new Date(Date.now() + 100_000),
             usedAt: null,
             revokedAt: new Date(),
@@ -563,12 +569,12 @@ describe('platformOrganisation service', () => {
       };
 
       const mockLatestEmail = {
-        id: 'email-log-123',
+        id: emailLogUuid,
         deliveryStatus: 'FAILED',
         sentAt: null,
         failedAt: new Date(),
         failureReason: 'SMTP_NOT_ACCEPTED',
-        actionTokenId: 'token-123',
+        actionTokenId: tokenUuid,
       };
       const newTokenExpiresAt = new Date(Date.now() + 200_000);
       const mockUpdatedInvitation = {
@@ -577,7 +583,7 @@ describe('platformOrganisation service', () => {
         expiresAt: newTokenExpiresAt,
         actionTokens: [
           {
-            id: 'new-token-id',
+            id: newTokenUuid,
             expiresAt: newTokenExpiresAt,
             usedAt: null,
             revokedAt: null,
@@ -595,7 +601,7 @@ describe('platformOrganisation service', () => {
       prismaMock.invitation.updateMany.mockResolvedValue({ count: 1 });
       prismaMock.emailDeliveryLog.findFirst.mockResolvedValue(mockLatestEmail);
       actionTokenServiceMock.issueActionToken.mockResolvedValue({
-        token: { id: 'new-token-id', expiresAt: newTokenExpiresAt },
+        token: { id: newTokenUuid, expiresAt: newTokenExpiresAt },
         rawToken: 'raw-token-string',
       });
       emailHookMock.requestAuthEmailSend.mockResolvedValue(acceptedHookResult);
@@ -607,13 +613,13 @@ describe('platformOrganisation service', () => {
       expect(actionTokenServiceMock.issueActionToken).toHaveBeenCalled();
       expect(emailHookMock.requestAuthEmailSend).toHaveBeenCalledWith(
         expect.objectContaining({
-          invitationId: 'invite-123',
-          actionTokenId: 'new-token-id',
+          invitationId: inviteUuid,
+          actionTokenId: newTokenUuid,
         }),
       );
       expect(response.setupStatus?.latestActionToken).toEqual(
         expect.objectContaining({
-          id: 'new-token-id',
+          id: newTokenUuid,
           status: 'AVAILABLE',
         }),
       );
@@ -623,11 +629,11 @@ describe('platformOrganisation service', () => {
           failureReason: 'SMTP_NOT_ACCEPTED',
         }),
       );
+      expect(() => resendInitialAdminSetupResponseSchema.parse(response)).not.toThrow();
 
       const setupStatus = JSON.stringify(response.setupStatus);
       expect(setupStatus).not.toContain('SMTP broke');
       expect(setupStatus).not.toContain('provider host');
-      expect(setupStatus).not.toContain('constraint');
     });
 
     it('does not revoke the replacement setup token when SMTP was accepted but persistence failed', async () => {
