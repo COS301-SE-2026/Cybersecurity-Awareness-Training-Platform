@@ -6,13 +6,13 @@ The contents of our Software Requirements Specification is split into separate f
 
 ### SRS Content
 
-- **[Home](README.md)** &larr; _You are here_
-- [Introduction and Scope](introduction.md)
-- [Users and User Stories](users-and-user-stories.md)
-- [Functional Requirements](functional-requirements.md)
-- [Use Cases](use-cases.md)
-- [Quality Requirements](quality-requirements.md)
-- [Domain Model](domain-model.md)
+- **[0. Home](README.md)** &larr; _You are here_
+- [1. Introduction and Scope](introduction.md)
+- [2. Users and User Stories](users-and-user-stories.md)
+- [3. Functional Requirements](functional-requirements.md)
+- [4. Use Cases](use-cases.md)
+- [5. Quality Requirements](quality-requirements.md)
+- [6. Domain Model](domain-model.md)
 
 If you are looking for the **Software Architectural Specification**, you can find it [here](../sas/README.md).
 

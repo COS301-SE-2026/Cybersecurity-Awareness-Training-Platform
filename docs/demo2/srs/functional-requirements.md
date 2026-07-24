@@ -2,13 +2,24 @@
 
 ### SRS Content
 
-- [Home](README.md)
-- [Introduction and Scope](introduction.md)
-- [Users and User Stories](users-and-user-stories.md)
-- **[Functional Requirements](functional-requirements.md)** &larr; _You are here_
-- [Use Cases](use-cases.md)
-- [Quality Requirements](quality-requirements.md)
-- [Domain Model](domain-model.md)
+- [0. Home](README.md)
+- [1. Introduction and Scope](introduction.md)
+- [2. Users and User Stories](users-and-user-stories.md)
+- **[3. Functional Requirements](#3-functional-requirements)** &larr; _You are here_
+  - [R1 Authentication and Account Access](#r1-authentication-and-account-access)
+  - [R2 Trainee Campaign Access](#r2-trainee-campaign-access)
+  - [R3 View Emails in Simulated Inbox](#r3-view-emails-in-a-simulated-inbox)
+  - [R4 View a Training Document](#r4-view-a-training-document)
+  - [R5 Complete a Quiz and View Results](#r5-complete-a-quiz-and-view-results)
+  - [R6 Request Organisation Registration](#r6-request-organisation-registration)
+  - [R7 Review and Manage Organisation Registrations](#r7-review-and-manage-organisation-registrations)
+  - [R8 Complete Initial Organisation Administrator Setup](#r8-complete-initial-organisation-administrator-setup)
+  - [R9 Accept an Organisation Invitation or Role Change](#r9-accept-an-organisation-invitation-or-role-change)
+  - [R10 Manage Organisation Employees](#r10-manage-organisation-employees)
+  - [R11 Manage Organisation Administrators and Permissions](#r11-manage-organisation-administrators-and-permissions)
+- [4. Use Cases](use-cases.md)
+- [5. Quality Requirements](quality-requirements.md)
+- [6. Domain Model](domain-model.md)
 
 ---
 
@@ -266,6 +277,124 @@ The following functional requirements define the capabilities and observable beh
 
 > [!Note]
 > The Functional Requirements in `R8` are related to **Use Case 6**, which can be found [here]() <!-- TODO insert appropriate link-->
+
+- `R8.1` The system shall allow the invited initial organisation administrator to open a secure setup link
+  - `R8.1.1` The system shall validate the setup token and its invitation, request, organisation, email, purpose, status and expiry
+  - `R8.1.2` The system shall display the organisation and role context associated with the invitation
+  - `R8.1.3` The system shall prevent setup when the organisation is no longer in a compatible onboarding state
+
+- `R8.2` The system shall allow the initial administrator to complete the required account information
+  - `R8.2.1` The system shall use the invited email address as the authorative account email
+  - `R8.2.2` The system shall allow the invited administrator to confirm or complete their first and last name
+  - `R8.2.3` The system shall require a password and matching password confirmation
+  - `R8.2.4` The system shall validate the password against the current password policy
+  - `R8.2.5` The system shall not require separate email verification because possession of the valid setup link verifies that the invited email exists
+
+- `R8.3` The system shall create or activate the initial organisation administrator account after successful setup
+  - `R8.3.1` The system shall associate the orgaminisation administrator with the approved organisation
+  - `R8.3.2` The system shall create the initial organisation administrator profile
+  - `R8.3.3` The system shall grant the initial administrator all current organisation administrator permissions
+  - `R8.3.4` The system shall activate the organisation
+  - `R8.3.5` The system shall updated the associated registration request and invitation to their completed states
+  - `R8.3.6` The system shall mark the setup token as used only after the account, administrator profile, permissions, organisation, request and invitation updates succeed
+  - `R8.3.7` The system shall prevent repeated setup from creating duplicate accounts, profiles or permissions
+
+- `R8.4` The system shall notify the initial administrator after successful setuo
+  - `R8.4.1` The system shall send a setup completed confirmation email
+  - `R8.4.2` The system shall allow the organisation administrator to proceed to login
+  - `R8.4.3` The system shall record the setup completion in the organisation onboarding history and audit log
+
+## `R9` Accept an Organisation Invitation or Role Change
+
+> [!Note]
+> The Functional Requirements in `R9` are related to **Use Case 7**, which can be found [here]() <!-- TODO insert appropriate link-->
+
+- `R9.1` The system shall allow an invited user to open an organisation invitation link
+  - `R9.1.1` The system shall validate the invitation token, invitation type, target email, target user, organisation status, purpose and expiry
+  - `R9.1.2` The system shall display the organisation, invited role and consequences of accepting the invite
+  - `R9.1.3` The system shall identify whether the invitation requires new account setup or confirmation by an existing user
+  - `R9.1.4` The system shall require an existing target user to authenticate before accpeing a role change
+
+- `R9.2` The system shall allow a new invited organisation trainee to complete account setup
+  - `R9.2.1` The system shall use the invited email address as the authoritative email
+  - `R9.2.2` The system shall allow the invited trainee to complete their first name, last name and passowrd
+  - `R9.2.3` The system shall create the user and organisation trainee membership only after successful setup
+  - `R9.2.4` The system shall associate the trainee with the invitation's organisation
+
+- `R9.3` The system shall allow an eligible existing user to accept an organisation role change
+  - `R9.3.1` The system shall require explicit confirmation before changing the user's role or organisation membership
+  - `R9.3.2` The system shall ensure that an organisation administrator promotion targets an active trainee in the same organisation
+  - `R9.3.3` The system shall assign only the permissions recorded in the accepted administrator promotion invitation
+  - `R9.3.4` The system shall reject a role change that conflicts with the user's current platform or organisation role
+  - `R9.3.5` The system shall apply the the account conversion policy to the user's previous trainee access and progress
+    - `R9.3.5.1` The system shall convert the user's existing organisation trainee account into an organisation administrator account only after the user explicitly accepts the promotion invitation
+    - `R9.3.5.2` The system shall replace the user's organisation trainee access with organisation administrator access
+    - `R9.3.5.3` The system shall remove the converted user's access to trainee-only features, selected campaigns and trainee progress
+    - `R9.3.5.4` The system shall inform the user of the effects on their trainee access and progress before they confirm the conversion
+    - `R9.3.5.5` The system shall leave the user's existing trainee role, access and progress unchanged if they invitation is rejected, ingored, expires or not successfully accepted
+    - `R9.3.5.6` The system shall not restore the user's previous campaign selections or progess if the organisation administrator account is converted back into a trainee account
+
+- `R9.4` The system shall allow an invited user to reject an invitation where rejection is supported
+  - `R9.4.1` The system shall mark the invitation as rejected
+  - `R9.4.2` The system shall leave the user's existing role and access unchanged after rejection
+
+- `R9.5` The system shall complete invitation acceptance atomically
+  - `R9.5.1` The system shall update the user, membership, role, permissions, invitation and token consistently
+  - `R9.5.2` The system shall mark the invitation token as used only after acceptance succeeds
+  - `R9.5.3` The system shall prevent an accepted, rejected, expired or revoked invitation from being used again
+
+- `R9.6` The system shall send a confirmation email after successful invitation acceptance or role change
+
+- `R9.7` The system shall record organisation membership and role changes in the audit log
+
+## `R10` Manage Organisation Employees
+
+> [!Note]
+> The Functional Requirements in `R10` are related to **Use Case 8**, which can be found [here]() <!-- TODO insert appropriate link-->
+
+- `R10.1` The system shall allow an organisation administrator to view trainees belonging to their organisation
+  - `R10.1.1` The system shall restrict the list to the organisation administrator's organisation
+  - `R10.1.2` The system shall require the applicable trainee view permission
+  - `R10.1.3` The system shall display each trainee's name, email, role, membership status and invitation status where applicable
+  - `R10.1.4` The system shall diplsay whether a trainee is invited, active, rejected, expired, revoked or disabled
+  - `R10.1.5` The system shall display an appropriate empty state when the organisation has no trainees
+
+- `R10.2` The system shall allow an authorised organisation administrator to invite a trainee
+  - `R10.2.1` The system shall require a valid target email address
+  - `R10.2.2` The system shall allow optional first name and last name information to be supplied
+  - `R10.2.3` The system shall verify that the administrator has permission to invite organisation trainees
+  - `R10.2.4` The system shall reject an invitation when the email belongs to an ineligible platform administrator or another organisation
+  - `R10.2.5` The system shall reject a duplicate invitation for an already active organisation trainee
+  - `R10.2.6` The system shall identify an existing pending invitation and offer the appropriate resend action
+  - `R10.2.7` The system shall create an organisation scoped trainee invitation
+  - `R10.2.8` The system shall send a secure invitation email
+  - `R10.2.9` The system shall record a failed to send state when invitation delivery fails
+- `R10.3` The system shall allow an authorised organisation administrator to resend an eligible trainee invitation
+  - `R10.3.1` The system shall apply resend cooldown and rate limit rules
+  - `R10.3.2` The system shall issue a replacement token where the existing token is no longer valid
+  - `R10.3.3` The system shall update the invitation delivery status
+
+- `R10.4` The system shall allow an authorised organisation administrator to revoke a pending trainee invitation
+  - `R10.4.1` The system shall invalidate active tokens associated with the revoked invitation
+  - `R10.4.2` The system shall prevent a revoked invitation from being accepted
+
+- `R10.5` The system shall allow an authorised organisation administrator to disable an organisation trainee's membership
+  - `R10.5.1` The system shall require confirmation of sensitive action
+  - `R10.5.2` The system shall verify that the target trainee belongs to the administrator's organisation
+  - `R10.5.3` The system shall prevent an administrator from disabling themselves through the trainee manangement flow
+  - `R10.5.4` The system shall require the administrator role to be removed through the administrator management flow before disabling a trainee who is also an administrator
+  - `R10.5.5` The system shall revoke the disabled trainee's organisation related sessions
+  - `R10.6.1` Account reactivitation shall restore organisation access without creating a duplicate organisation membership
+  - `R10.6.2` Account reactiviation shall not automatically restore revoked administrator permissions
+
+- `R10.7` The system shall audit trainee invitation, resend, revocation, disablement and reactiviation actions
+
+## `R11` Manage Organisation Administrators and Permissions
+
+> [!Note]
+> The Functional Requirements in `R11` are related to **Use Case 9**, which can be found [here]() <!-- TODO insert appropriate link-->
+
+-
 
 ---
 

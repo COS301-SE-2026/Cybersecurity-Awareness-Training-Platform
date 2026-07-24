@@ -2,13 +2,28 @@
 
 ### SRS Content
 
-- [Home](README.md)
-- [Introduction and Scope](introduction.md)
-- **[Users and User Stories](users-and-user-stories.md)** &larr; _You are here_
-- [Functional Requirements](functional-requirements.md)
-- [Use Cases](use-cases.md)
-- [Quality Requirements](quality-requirements.md)
-- [Domain Model](domain-model.md)
+- [0. Home](README.md)
+- [1. Introduction and Scope](introduction.md)
+- **[2. Users and User Stories](#2-users-and-user-stories)** &larr; _You are here_
+  - [2.1 Product Perspective](#21-product-perspective)
+  - [2.2 User Classes and Characteristics](#22-user-classes-and-characteristics)
+    - [Individual Trainee](#individual-trainee)
+    - [Organisation Trainee](#organisation-trainee)
+    - [Organisation Administrator](#organisation-administrator)
+    - [Insightful Phish Administrator](#insightful-phish-administrator)
+  - [2.3 User Stories](#23-user-stories)
+    - [Organisation Registration](#1-organisation-registration)
+    - [Authentication and Account Management](#2-authentication-and-account-management)
+    - [Individual Trainee Access](#3-individual-trainee-access)
+    - [Organisation Trainee Membership](#4-organisation-trainee-membership)
+    - [Training Campaign Participation](#5-training-campaign-participation)
+    - [Organisation Administration](#6-organisation-administration)
+    - [Platform Administration](#7-platform-administration)
+    - [Platform Super-Administrator](#8-platform-super-administrator)
+- [3. Functional Requirements](functional-requirements.md)
+- [4. Use Cases](use-cases.md)
+- [5. Quality Requirements](quality-requirements.md)
+- [6. Domain Model](domain-model.md)
 
 ---
 
