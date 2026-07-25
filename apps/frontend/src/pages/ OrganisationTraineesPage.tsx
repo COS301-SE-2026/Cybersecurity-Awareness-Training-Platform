@@ -3,7 +3,6 @@ import { Dropdown, DropdownItem } from 'flowbite-react';
 import { useState } from 'react';
 import BasicConfirmationModal from '../components/layout/modals/BasicConfirmationModal';
 import ReviewOrganisationRegistrationRequstModal from '../components/layout/modals/ReviewOrganisationRegistrationRequestModal';
-import { getRoles } from '@testing-library/react';
 
 interface Trainee {
   id: number;
@@ -21,7 +20,7 @@ const mockTrainees: Trainee[] = [
     fullName: 'Adriano Jorge',
     emailAddress: 'adriano.jorge@tuks.co.za',
     role: 'Trainee',
-    status: 'Invited',
+    status: 'Active',
   },
   {
     id: 2,
@@ -36,6 +35,13 @@ const mockTrainees: Trainee[] = [
     emailAddress: 'johan.nel@tuks.co.za',
     role: 'Trainee',
     status: 'Rejected',
+  },
+  {
+    id: 4,
+    fullName: 'Zoë Joubert',
+    emailAddress: 'zoë.joubert@tuks.co.za',
+    role: 'Trainee',
+    status: 'Disabled',
   },
 ];
 
@@ -104,9 +110,9 @@ function OrganisationTraineesPage() {
   const [inviteStatusFilter, setInviteStatusFilter] = useState<
     'All' | 'Invited' | 'Active' | 'Disabled' | 'Expired' | 'Revoked' | 'Rejected'
   >('All');
-  const [roleFilter, setRoleFilter] = useState<
-    'All' | 'Trainee' | 'Organisation Administrator' | 'Active' | 'Suspended' | 'Disabled'
-  >('All');
+  const [roleFilter, setRoleFilter] = useState<'All' | 'Trainee' | 'Organisation Administrator'>(
+    'All',
+  );
 
   const filteredTrainees = mockTrainees.filter((trainee) => {
     const search = searchTerm.toLowerCase();
@@ -141,18 +147,44 @@ function OrganisationTraineesPage() {
   };
 
   // DIFFERENT KINDS OF BASIC CONFIRMATION MODALS
-  const showDisableOrgModal = () => {
-    setConfirmationButtonText('Disable Organisation');
-    setConfirmationTitle('Disable Organisation');
-    setConfirmationMessage('Are you sure you want to disable this organisation?');
+  const showResendInviteModal = () => {
+    setConfirmationButtonText('Re–Send');
+    setConfirmationTitle('Re–Send Invitation');
+    setConfirmationMessage('Are you sure you want to re–send the invitation?');
+    setConfirmationVariant('default');
+    openConfirmationModal();
+  };
+
+  const showDisableTraineeModal = () => {
+    setConfirmationButtonText('Disable');
+    setConfirmationTitle('Disable Organisation Trainee');
+    setConfirmationMessage('Are you sure you want to disable this organisation trainee?');
     setConfirmationVariant('danger');
     openConfirmationModal();
   };
 
-  const showEnableOrgModal = () => {
-    setConfirmationButtonText('Re-Enable Organisation');
-    setConfirmationTitle('Re-Enable Organisation');
-    setConfirmationMessage('Are you sure you want to re-enable this organisation?');
+  const showRevokeInviteModal = () => {
+    setConfirmationButtonText('Revoke');
+    setConfirmationTitle('Revoke Invitation');
+    setConfirmationMessage('Are you sure you want to revoke the invitation?');
+    setConfirmationVariant('danger');
+    openConfirmationModal();
+  };
+
+  const showPromoteToOrgAdmin = () => {
+    setConfirmationButtonText('Promote');
+    setConfirmationTitle('Promote Trainee to Organisation Administrator');
+    setConfirmationMessage(
+      'Are you sure you want to promote this trainee to organisation administrator?',
+    );
+    setConfirmationVariant('default');
+    openConfirmationModal();
+  };
+
+  const showEnableTraineeModal = () => {
+    setConfirmationButtonText('Enable');
+    setConfirmationTitle('Enable Organisation Trainee');
+    setConfirmationMessage('Are you sure you want to enable this organisation trainee?');
     setConfirmationVariant('success');
     openConfirmationModal();
   };
@@ -256,7 +288,7 @@ function OrganisationTraineesPage() {
                         label={
                           <span className="flex items-center gap-2">
                             <span className="material-symbols-sharp text-gray-400">filter_alt</span>
-                            {inviteStatusFilter === 'All' ? 'Invite Status' : inviteStatusFilter}
+                            {inviteStatusFilter === 'All' ? 'Status' : inviteStatusFilter}
                           </span>
                         }
                         className="ml-2 font-jost tracking-wide text-[1.1rem] font-light text-gray-500 border border-gray-300 bg-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white rounded-none"
@@ -380,13 +412,13 @@ function OrganisationTraineesPage() {
                     scope="col"
                     className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
                   >
-                    Invite Status
+                    Role
                   </th>
                   <th
                     scope="col"
                     className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
                   >
-                    Role
+                    Status
                   </th>
                   <th
                     scope="col"
@@ -419,45 +451,86 @@ function OrganisationTraineesPage() {
                     <td className="px-6 py-4">
                       {/* PLEASE NOTE THAT THIS WILL CHANGE DEPENDING ON THE STATE */}
                       <div className="grid grid-cols-1 gap-1 justify-items-start">
-                        {/* {trainee.status === 'Pending' && (
+                        {trainee.status === 'Invited' && (
                           <button
-                            onClick={openReviewOrganisationRegistrationRequestModal}
-                            type="button"
                             className="cursor-pointer font-medium text-purple hover:underline"
+                            type="button"
+                            onClick={showResendInviteModal}
                           >
-                            <strong>Review</strong> Request
+                            <strong>Re–Send Invitation</strong>
                           </button>
                         )}
 
-                        {organisation.requestStatus !== 'Pending' && (
-                          <a
-                            href="/organisation-information"
-                            className=" cursor-pointer font-medium text-purple hover:underline"
+                        {trainee.status === 'Invited' && (
+                          <button
+                            className="cursor-pointer font-medium text-red-600 hover:underline"
+                            type="button"
+                            onClick={showRevokeInviteModal}
                           >
-
-                        <strong>View</strong> Information
-                      </a>
+                            <strong>Revoke Invitation</strong>
+                          </button>
                         )}
 
-                      {organisation.organisationStatus === 'Disabled' && (
-                        <button
-                          className="cursor-pointer font-medium text-emerald-600 hover:underline"
-                          type="button"
-                          onClick={showEnableOrgModal}
-                        >
-                          <strong>Re–Enable</strong>
-                        </button>
-                      )}
+                        {trainee.status === 'Active' &&
+                          trainee.role !== 'Organisation Administrator' && (
+                            <button
+                              className="cursor-pointer font-medium text-purple hover:underline"
+                              type="button"
+                              onClick={showPromoteToOrgAdmin}
+                            >
+                              <strong>Promote to Organisation Administrator</strong>
+                            </button>
+                          )}
 
-                      {organisation.organisationStatus === 'Active' && (
-                        <button
-                          className="cursor-pointer font-medium text-red-600 hover:underline"
-                          type="button"
-                          onClick={showDisableOrgModal}
-                        >
-                          <strong>Disable</strong>
-                        </button>
-                      )} */}
+                        {trainee.status === 'Active' && (
+                          <button
+                            className="cursor-pointer font-medium text-red-600 hover:underline"
+                            type="button"
+                            onClick={showDisableTraineeModal}
+                          >
+                            <strong>Disable Trainee</strong>
+                          </button>
+                        )}
+
+                        {trainee.status === 'Disabled' && (
+                          <button
+                            className="cursor-pointer font-medium text-emerald-600 hover:underline"
+                            type="button"
+                            onClick={showEnableTraineeModal}
+                          >
+                            <strong>Re–Enable Trainee</strong>
+                          </button>
+                        )}
+
+                        {trainee.status === 'Revoked' && (
+                          <button
+                            className="cursor-pointer font-medium text-purple hover:underline"
+                            type="button"
+                            // onClick={JUST SHOW THE BUILT IN BROWSER CONFIRMATION WHEN A NEW INVITATION IS SENT, NOTHING SPECIAL...}
+                          >
+                            <strong>Send New Invitation</strong>
+                          </button>
+                        )}
+
+                        {trainee.status === 'Rejected' && (
+                          <button
+                            className="cursor-pointer font-medium text-purple hover:underline"
+                            type="button"
+                            // onClick={JUST SHOW THE BUILT IN BROWSER CONFIRMATION WHEN A NEW INVITATION IS SENT, NOTHING SPECIAL...}
+                          >
+                            <strong>Send New Invitation</strong>
+                          </button>
+                        )}
+
+                        {trainee.status === 'Expired' && (
+                          <button
+                            className="cursor-pointer font-medium text-purple hover:underline"
+                            type="button"
+                            onClick={showResendInviteModal}
+                          >
+                            <strong>Re–Send Invitation</strong>
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
