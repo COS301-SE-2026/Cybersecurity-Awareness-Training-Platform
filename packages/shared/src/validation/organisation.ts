@@ -28,7 +28,7 @@ export type ResendInitialAdminSetupResponseDto = z.infer<
   typeof resendInitialAdminSetupResponseSchema
 >;
 
-/** Reason codes reported when a resend is ineligible. null means eligible with no caveat. */
+// Reason codes reported when a resend is ineligible. null means eligible with no caveat.
 export const resendEligibilityReasonSchema = z.enum([
   'ORGANISATION_NOT_ONBOARDING',
   'INVITATION_NOT_ELIGIBLE',
@@ -48,13 +48,13 @@ export const resendEligibilitySchema = z
 
 export type ResendEligibilityDto = z.infer<typeof resendEligibilitySchema>;
 
-/** Lifecycle status of a single action token. Precedence: USED > REVOKED > EXPIRED > AVAILABLE. */
+// Lifecycle status of a single action token. Precedence: REVOKED > USED > EXPIRED > AVAILABLE.
 export const actionTokenStatusSchema = z.enum(['AVAILABLE', 'USED', 'REVOKED', 'EXPIRED']);
 
-/** Delivery status values returned by the email delivery subsystem. */
+// Delivery status values returned by the email delivery subsystem.
 export const emailDeliveryStatusSchema = z.enum(['PENDING', 'SENT', 'FAILED']);
 
-/** Invitation status values. */
+// Invitation status values.
 export const invitationStatusSchema = z.enum([
   'PENDING',
   'SENT',
@@ -66,16 +66,15 @@ export const invitationStatusSchema = z.enum([
   'FAILED_TO_SEND',
 ]);
 
-/** Admin account status values. */
+//Admin account status values.
 export const adminStatusSchema = z.enum(['ACTIVE', 'DISABLED']);
 
-/** Timeline event types. */
+//Timeline event types.
 export const timelineEventTypeSchema = z.enum(['AUDIT_LOG', 'EMAIL_DELIVERY']);
 
-/**
- * Audit action types that appear in onboarding timelines.
- * This is the stable allowlist -- the service filters to these values.
- */
+// Audit action types that apear in onboarding timelines.
+// this is the stable allowlist -- the service filters to these values.
+
 export const timelineAuditActionSchema = z.enum([
   'CREATED',
   'CONTACTED',
@@ -98,7 +97,7 @@ export const timelineEventSchema = z
     summary: z.string(),
     actor: z.string().nullable(),
     outcome: z.string().nullable(),
-    // metadata is always null in timeline responses -- raw audit data is never exposed.
+    // metadata is always null in timeline responses \ raw audit data is never exposed.
     metadata: z.null(),
   })
   .strict();
@@ -117,7 +116,7 @@ export const initialAdminSetupStatusSchema = z
         expiresAt: z.string().datetime(),
         usedAt: z.string().datetime().nullable(),
         revokedAt: z.string().datetime().nullable(),
-        // Precedence: USED > REVOKED > EXPIRED > AVAILABLE
+        // Precedence: REVOKED > USED > EXPIRED > AVAILABLE
         status: actionTokenStatusSchema,
       })
       .strict()
@@ -153,10 +152,8 @@ export const organisationAdminSummarySchema = z
 
 export type OrganisationAdminSummaryDto = z.infer<typeof organisationAdminSummarySchema>;
 
-/**
- * Organisation status values. PENDING_ONBOARDING is the initial state after approval.
- * request-only is not a valid state for an organisation detail -- only for request detail.
- */
+//Organisation status values. PENDING_ONBOARDING is the initial state after approval.
+//request-only is not a valid state for an organisation detail -- only for request detail.
 export const organisationStatusSchema = z.enum([
   'PENDING_ONBOARDING',
   'ACTIVE',
