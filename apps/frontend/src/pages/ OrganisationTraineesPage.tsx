@@ -3,122 +3,90 @@ import { Dropdown, DropdownItem } from 'flowbite-react';
 import { useState } from 'react';
 import BasicConfirmationModal from '../components/layout/modals/BasicConfirmationModal';
 import ReviewOrganisationRegistrationRequstModal from '../components/layout/modals/ReviewOrganisationRegistrationRequestModal';
+import { getRoles } from '@testing-library/react';
 
-interface Organisation {
+interface Trainee {
   id: number;
-  name: string;
-  size: number;
-  website: string;
-  representative: string;
-  requestStatus: 'Pending' | 'Contacted' | 'Rejected' | 'Approved Waiting Setup' | 'Approved';
-  organisationStatus: 'Pending' | 'Onboarding' | 'Active' | 'Suspended' | 'Disabled';
+  fullName: string;
+  emailAddress: string;
+  role: 'Trainee' | 'Organisation Administrator';
+  status: 'Invited' | 'Active' | 'Disabled' | 'Expired' | 'Revoked' | 'Rejected';
 }
 
 // MOCK DATA
 // REPLACE WITH THE REAL DEAL
-const mockOrganisations: Organisation[] = [
+const mockTrainees: Trainee[] = [
   {
     id: 1,
-    name: 'Big Red Paper Company',
-    size: 1,
-    website: 'https://bigredpaper.com',
-    representative: 'Andrew Bernard',
-    requestStatus: 'Pending',
-    organisationStatus: 'Pending',
+    fullName: 'Adriano Jorge',
+    emailAddress: 'adriano.jorge@tuks.co.za',
+    role: 'Trainee',
+    status: 'Invited',
   },
   {
     id: 2,
-    name: 'Michael Scott Paper Company',
-    size: 3,
-    website: 'https://mgscottpaper.com',
-    representative: 'Michael Scott',
-    requestStatus: 'Approved',
-    organisationStatus: 'Disabled',
+    fullName: 'Connor Bell',
+    emailAddress: 'connor.bell@tuks.co.za',
+    role: 'Organisation Administrator',
+    status: 'Active',
   },
   {
     id: 3,
-    name: 'Dunder Mifflin Paper Company',
-    size: 10000,
-    website: 'https://dmpaper.com',
-    representative: 'David Wallace',
-    requestStatus: 'Approved',
-    organisationStatus: 'Active',
+    fullName: 'Johan Nel',
+    emailAddress: 'johan.nel@tuks.co.za',
+    role: 'Trainee',
+    status: 'Rejected',
   },
 ];
 
-const getRequestStatusBadge = (status: Organisation['requestStatus']) => {
+const getStatusBadge = (status: Trainee['status']) => {
+  // status: 'Invited' | 'Active' | 'Disabled' | 'Expired' | 'Revoked' | 'Rejected';
   switch (status) {
-    case 'Pending':
-      return (
-        <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-warning-subtle text-fg-warning text-sm font-medium bg-warning-soft">
-          Pending
-        </span>
-      );
-
-    case 'Contacted':
-      return (
-        <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-default-medium text-heading text-sm font-medium bg-neutral-secondary-medium">
-          Contacted
-        </span>
-      );
-
     case 'Rejected':
       return (
-        <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-danger-subtle text-fg-danger-strong text-sm font-medium bg-danger-soft">
+        // YELLOW
+        <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-warning-subtle text-fg-warning text-sm font-medium bg-warning-soft">
           Rejected
         </span>
       );
 
-    case 'Approved Waiting Setup':
-      return (
-        <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-brand-subtle text-fg-brand-strong text-sm font-medium bg-brand-softer">
-          Approved Waiting Setup
-        </span>
-      );
-
-    case 'Approved':
-      return (
-        <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-success-subtle text-fg-success-strong text-sm font-medium bg-success-soft">
-          Approved
-        </span>
-      );
-  }
-};
-
-const getOrganisationStatusBadge = (status: Organisation['organisationStatus']) => {
-  switch (status) {
-    case 'Pending':
-      return (
-        <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-warning-subtle text-fg-warning text-sm font-medium bg-warning-soft">
-          Pending
-        </span>
-      );
-
-    case 'Onboarding':
-      return (
-        <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-brand-subtle text-fg-brand-strong text-sm font-medium bg-brand-softer">
-          Onboarding
-        </span>
-      );
-
-    case 'Active':
-      return (
-        <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-success-subtle text-fg-success-strong text-sm font-medium bg-success-soft">
-          Active
-        </span>
-      );
-
     case 'Disabled':
+      // GREY
       return (
         <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-default-medium text-heading text-sm font-medium bg-neutral-secondary-medium">
           Disabled
         </span>
       );
 
-    case 'Suspended':
+    case 'Expired':
+      // GREY
+      return (
+        <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-default-medium text-heading text-sm font-medium bg-neutral-secondary-medium">
+          Expired
+        </span>
+      );
+
+    case 'Revoked':
+      // RED
       return (
         <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-danger-subtle text-fg-danger-strong text-sm font-medium bg-danger-soft">
-          Suspended
+          Revoked
+        </span>
+      );
+
+    case 'Invited':
+      // BLUE
+      return (
+        <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-brand-subtle text-fg-brand-strong text-sm font-medium bg-brand-softer">
+          Invited
+        </span>
+      );
+
+    case 'Active':
+      // GREEN
+      return (
+        <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-success-subtle text-fg-success-strong text-sm font-medium bg-success-soft">
+          Active
         </span>
       );
   }
@@ -140,29 +108,19 @@ function OrganisationTraineesPage() {
     'All' | 'Trainee' | 'Organisation Administrator' | 'Active' | 'Suspended' | 'Disabled'
   >('All');
 
-  const filteredOrganisations = mockOrganisations.filter((organisation) => {
+  const filteredTrainees = mockTrainees.filter((trainee) => {
     const search = searchTerm.toLowerCase();
 
-    const matchesSearch = [
-      organisation.name,
-      organisation.size,
-      organisation.website,
-      organisation.representative,
-      organisation.requestStatus,
-      organisation.organisationStatus,
-    ]
+    const matchesSearch = [trainee.fullName, trainee.emailAddress, trainee.role, trainee.status]
       .join(' ')
       .toLowerCase()
       .includes(search);
 
-    // const matchesInviteStatus =
-    //   inviteStatusFilter === 'All' || organisation.requestStatus === inviteStatusFilter;
+    const matchesStatus = inviteStatusFilter === 'All' || trainee.status === inviteStatusFilter;
 
-    // const matchesOrganisationStatus =
-    //   organisationStatusFilter === 'All' ||
-    //   organisation.organisationStatus === organisationStatusFilter;
-    return null;
-    // return matchesSearch && matchesRequestStatus && matchesOrganisationStatus;
+    const matchesRole = roleFilter === 'All' || trainee.role === roleFilter;
+
+    return matchesSearch && matchesStatus && matchesRole;
   });
 
   const [
@@ -398,7 +356,7 @@ function OrganisationTraineesPage() {
           </div>
 
           <h3 className="font-jost text-2xl text-dark-pink tracking-wider font-medium mb-3">
-            Organisations Trainees ({filteredOrganisations.length})
+            Organisations Trainees ({filteredTrainees.length})
           </h3>
 
           {/* TABLE */}
@@ -440,47 +398,28 @@ function OrganisationTraineesPage() {
               </thead>
               <tbody className="font-overpass font-regular text-[1rem] tracking-wide">
                 {/* MOCK ORGANISATION 1 */}
-                {filteredOrganisations.map((organisation) => (
+                {filteredTrainees.map((trainee) => (
                   <tr
-                    key={organisation.id}
+                    key={trainee.id}
                     className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default"
                   >
-                    {/* Organisation Name */}
-                    <td className="px-6 py-4">{organisation.name}</td>
+                    {/* Trainee Full Name */}
+                    <td className="px-6 py-4">{trainee.fullName}</td>
 
-                    {/* Organisation Size (Approx. # of Employees) */}
-                    <td className="px-6 py-4">{organisation.size}</td>
-
-                    {/* Website */}
-                    <td className="px-6 py-4">
-                      <a
-                        href={organisation.website}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-fg-brand hover:underline font-google_sans_code"
-                      >
-                        {organisation.website}
-                      </a>
-                    </td>
+                    {/* Trainee Email Address */}
+                    <td className="px-6 py-4">{trainee.emailAddress}</td>
 
                     {/* Representative */}
-                    <td className="px-6 py-4">{organisation.representative}</td>
+                    <td className="px-6 py-4">{trainee.role}</td>
 
                     {/* Request Status */}
-                    <td className="px-6 py-4">
-                      {getRequestStatusBadge(organisation.requestStatus)}
-                    </td>
-
-                    {/* Organisation Status */}
-                    <td className="px-6 py-4">
-                      {getOrganisationStatusBadge(organisation.organisationStatus)}
-                    </td>
+                    <td className="px-6 py-4">{getStatusBadge(trainee.status)}</td>
 
                     {/* Actions */}
                     <td className="px-6 py-4">
                       {/* PLEASE NOTE THAT THIS WILL CHANGE DEPENDING ON THE STATE */}
                       <div className="grid grid-cols-1 gap-1 justify-items-start">
-                        {organisation.requestStatus === 'Pending' && (
+                        {/* {trainee.status === 'Pending' && (
                           <button
                             onClick={openReviewOrganisationRegistrationRequestModal}
                             type="button"
@@ -495,43 +434,43 @@ function OrganisationTraineesPage() {
                             href="/organisation-information"
                             className=" cursor-pointer font-medium text-purple hover:underline"
                           >
-                            {/* THIS GOES TO THE ORGANISATION INFORMATION PAGE */}
-                            <strong>View</strong> Information
-                          </a>
+
+                        <strong>View</strong> Information
+                      </a>
                         )}
 
-                        {organisation.organisationStatus === 'Disabled' && (
-                          <button
-                            className="cursor-pointer font-medium text-emerald-600 hover:underline"
-                            type="button"
-                            onClick={showEnableOrgModal}
-                          >
-                            <strong>Re–Enable</strong>
-                          </button>
-                        )}
+                      {organisation.organisationStatus === 'Disabled' && (
+                        <button
+                          className="cursor-pointer font-medium text-emerald-600 hover:underline"
+                          type="button"
+                          onClick={showEnableOrgModal}
+                        >
+                          <strong>Re–Enable</strong>
+                        </button>
+                      )}
 
-                        {organisation.organisationStatus === 'Active' && (
-                          <button
-                            className="cursor-pointer font-medium text-red-600 hover:underline"
-                            type="button"
-                            onClick={showDisableOrgModal}
-                          >
-                            <strong>Disable</strong>
-                          </button>
-                        )}
+                      {organisation.organisationStatus === 'Active' && (
+                        <button
+                          className="cursor-pointer font-medium text-red-600 hover:underline"
+                          type="button"
+                          onClick={showDisableOrgModal}
+                        >
+                          <strong>Disable</strong>
+                        </button>
+                      )} */}
                       </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
 
-              {filteredOrganisations.length === 0 && (
+              {filteredTrainees.length === 0 && (
                 <tr>
                   <td
                     colSpan={7}
                     className="py-8 text-center text-[1.2rem] tracking-wider text-red-500 font-jost"
                   >
-                    No Organisations Found
+                    No Organisation Trainees Found
                   </td>
                 </tr>
               )}
