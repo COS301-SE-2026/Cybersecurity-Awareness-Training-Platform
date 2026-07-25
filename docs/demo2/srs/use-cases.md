@@ -7,6 +7,19 @@
 - [2. Users and User Stories](users-and-user-stories.md)
 - [3. Functional Requirements](functional-requirements.md)
 - **[4. Use Cases](#4-use-cases)** &larr; _You are here_
+  - [UC-01 View Emails in a Simulated Inbox](#uc-01-view-emails-in-a-simulated-inbox)
+  - [UC-02 View a Training Document](#uc-02-view-a-training-document)
+  - [UC-03 Complete a Quiz and View Results](#uc-03-complete-a-quiz-and-view-results)
+  - [UC-04 Request Organisation Registration](#uc-04-request-organisation-registration)
+  - [UC-05 Review and Approve an Organisation Registration Request](#uc-05-review-and-approve-an-organisation-registration-request)
+  - [UC-06 Complete First Organisation Administrator Setup](#uc-06-complete-first-organisation-administrator-setup)
+  - [UC-07 Accept an Organisation Trainee Invitation](#uc-07-accept-an-organisation-trainee-invitation)
+  - [UC-08 Manage Organisation Employees](#uc-08-manage-organisation-employees)
+  - [UC-09 Manage Organisation Administrators and Permissions](#uc-09-manage-organisation-administrators-and-permissions)
+  - [UC-10 Manage Insightful Phish Administrators](#uc-10-manage-insightful-phish-administrators)
+  - [UC-11 Configure Organisation Security Settings](#uc-11-configure-organisation-security-settings)
+  - [UC-12 Manage Personal Account and Security Settings](#uc-12-manage-personal-account-and-security-settings)
+  - <!-- Todo add heading links here! -->
 - [5. Quality Requirements](quality-requirements.md)
 - [6. Domain Model](domain-model.md)
 
@@ -27,7 +40,7 @@ The following use cases describe how users interact with the Insightful Phish sy
 ![UC-01: View Emails in a Simulated Inbox]() <!-- TODO insert appropriate link -->
 
 > [!Note]
-> This Use Case (`UC-01`) is related to [User Stories 5.2 and 5.3](), [Functional Requirements **R2**]() and [Functional Requirements **R3**](). <!-- TODO insert appropriate links -->
+> This Use Case (`UC-01`) is related to [User Stories **5.2** and **5.3**](), [Functional Requirements **R2**]() and [Functional Requirements **R3**](). <!-- TODO insert appropriate links -->
 
 <details> <summary><strong>View more details about UC-01</strong></summary>
 
@@ -79,7 +92,7 @@ The following use cases describe how users interact with the Insightful Phish sy
 ![UC-02 View a Training Document]() <!-- TODO insert appropriate link -->
 
 > [!Note]
-> This Use Case (`UC-02`) is related to [User Stories 5.2 and 5.6](), [Functional Requirements **R2**]() and [Functional Requirements **R4**](). <!-- TODO insert appropriate links -->
+> This Use Case (`UC-02`) is related to [User Stories **5.2** and **5.6**](), [Functional Requirements **R2**]() and [Functional Requirements **R4**](). <!-- TODO insert appropriate links -->
 
 <details> <summary><strong>View more details about UC-02</strong></summary>
 
@@ -131,7 +144,7 @@ The following use cases describe how users interact with the Insightful Phish sy
 ![UC-03 Complete a Quiz and View Results]() <!-- TODO insert appropriate link -->
 
 > [!Note]
-> This Use Case (`UC-03`) is related to [User Stories 5.2 and 5.7](), [Functional Requirements **R2**]() and [Functional Requirements **R5**](). <!-- TODO insert appropriate links -->
+> This Use Case (`UC-03`) is related to [User Stories **5.2** and **5.7**](), [Functional Requirements **R2**]() and [Functional Requirements **R5**](). <!-- TODO insert appropriate links -->
 
 <details> <summary><strong>View more details about UC-03</strong></summary>
 
@@ -186,7 +199,7 @@ The following use cases describe how users interact with the Insightful Phish sy
 ![UC-04 Request Organisation Registration]() <!-- TODO insert appropriate link -->
 
 > [!Note]
-> This Use Case (`UC-04`) is related to [User Storie 1.1]() and [Functional Requirements **R6**](). <!-- TODO insert appropriate links -->
+> This Use Case (`UC-04`) is related to [User Story **1.1**]() and [Functional Requirements **R6**](). <!-- TODO insert appropriate links -->
 
 <details> <summary><strong>View more details about UC-04</strong></summary>
 
@@ -241,7 +254,7 @@ The following use cases describe how users interact with the Insightful Phish sy
 ![UC-05 Review and Approve an Organisation Registration Request]() <!-- TODO insert appropriate link -->
 
 > [!Note]
-> This Use Case (`UC-05`) is related to [User Stories 7.1 to 7.3]() and [Functional Requirements **R7**](). <!-- TODO insert appropriate links -->
+> This Use Case (`UC-05`) is related to [User Stories **7.1** to **7.3**]() and [Functional Requirements **R7**](). <!-- TODO insert appropriate links -->
 
 <details> <summary><strong>View more details about UC-05</strong></summary>
 
@@ -299,7 +312,7 @@ The following use cases describe how users interact with the Insightful Phish sy
 ![UC-06 Complete First Organisation Administrator Setup]() <!-- TODO insert appropriate link -->
 
 > [!Note]
-> This Use Case (`UC-06`) is related to [User Storie6.1]() and [Functional Requirements **R8**](). <!-- TODO insert appropriate links -->
+> This Use Case (`UC-06`) is related to [User Story **6.1**]() and [Functional Requirements **R8**](). <!-- TODO insert appropriate links -->
 
 <details> <summary><strong>View more details about UC-06</strong></summary>
 
@@ -355,7 +368,7 @@ The following use cases describe how users interact with the Insightful Phish sy
 ![UC-07 Accept an Organisation Trainee Invitation]() <!-- TODO insert appropriate link -->
 
 > [!Note]
-> This Use Case (`UC-07`) is related to [User Stories 4.1 and 4.3]() and [Functional Requirements **R9**](). <!-- TODO insert appropriate links -->
+> This Use Case (`UC-07`) is related to [User Stories **4.1** and **4.3**]() and [Functional Requirements **R9**](). <!-- TODO insert appropriate links -->
 
 <details> <summary><strong>View more details about UC-07</strong></summary>
 
@@ -412,7 +425,7 @@ The following use cases describe how users interact with the Insightful Phish sy
 ![UC-08 Manage Organisation Employees]() <!-- TODO insert appropriate link -->
 
 > [!Note]
-> This Use Case (`UC-08`) is related to [User Stories 6.2 to 6.4]() and [Functional Requirements **R10**](). <!-- TODO insert appropriate links -->
+> This Use Case (`UC-08`) is related to [User Stories **6.2** to **6.4**]() and [Functional Requirements **R10**](). <!-- TODO insert appropriate links -->
 
 <details> <summary><strong>View more details about UC-08</strong></summary>
 
@@ -470,7 +483,7 @@ The following use cases describe how users interact with the Insightful Phish sy
 ![UC-09 Manage Organisation Administrators and Permissions]() <!-- TODO insert appropriate link -->
 
 > [!Note]
-> This Use Case (`UC-09`) is related to [User Stories 6.5 to 6.7]() and [Functional Requirements **R11**](). <!-- TODO insert appropriate links -->
+> This Use Case (`UC-09`) is related to [User Stories **6.5** to **6.7**]() and [Functional Requirements **R11**](). <!-- TODO insert appropriate links -->
 
 <details> <summary><strong>View more details about UC-09</strong></summary>
 
@@ -529,7 +542,7 @@ The following use cases describe how users interact with the Insightful Phish sy
 ![UC-10 Manage Insightful Phish Administrators]() <!-- TODO insert appropriate link -->
 
 > [!Note]
-> This Use Case (`UC-10`) is related to [User Stories 8.1 to 8.3]() and [Functional Requirements **R12**](). <!-- TODO insert appropriate links -->
+> This Use Case (`UC-10`) is related to [User Stories **8.1** to **8.3**]() and [Functional Requirements **R12**](). <!-- TODO insert appropriate links -->
 
 <details> <summary><strong>View more details about UC-10</strong></summary>
 
@@ -575,3 +588,162 @@ The following use cases describe how users interact with the Insightful Phish sy
 - If confirmation fails, no role change occurs
 
 </details>
+
+## `UC-11` Configure Organisation Security Settings
+
+**TUCBW** A organisation administrator configures organisation level security settings on the organisation security settings page
+
+**TUCEW** The organisation administrator acknowledges that the organisation security settings have been saved successfully
+
+**Use Case Diagram**
+
+![UC-11 Configure Organisation Security Settings]() <!-- TODO insert appropriate link -->
+
+> [!Note]
+> This Use Case (`UC-11`) is related to [User Story **6.8**]() and [Functional Requirements **R13**](). <!-- TODO insert appropriate links -->
+
+<details> <summary><strong>View more details about UC-11</strong></summary>
+
+**Trigger:** An organisation administrator submits changes to the organisation's security settings
+
+**Primary Actor:** Organisation administrator with the security settings permission
+
+**Supporting Actors:** Authentication and session service, Audit log
+
+**Preconditions**
+
+- The organisation administrator is authenticated and active, and belongs to the organisation
+- The administrator has permission to update the settings
+
+**Postconditions**
+
+- Valid settings are saved for the organisation
+- Invalid changes leave the previous setting active
+- The old and new values are recorded in the audit log
+
+**Main Success Scenario**
+
+1. The organisation administrator opens the organisation security settings page
+2. The system displays the saved settings, enforcement state and platform limits
+3. The administrator changes one or more permitted settings
+4. The system validates the values and combinations
+5. The system saves the settings and records the change
+6. The system displays the saved values and explains when they take effect
+
+**Alternative Flows**
+
+- An organisation administrator without edit permissions views the settings in read only mode
+- The organisation administrator discards unsaved changes and restores the saved values
+- The organisation administrator disables organisation enforcement so eligible users can use personal preferences
+
+**Exception Flows**
+
+- If a value exceeds platform limits, the system rejects the change
+- If settings conflict, the system preserves the previous policy
+- If the actor targets another organisation or lacks permissions, the system denies the update
+
+</details>
+
+## `UC-12` Manage Personal Account and Security Settings
+
+**TUCBW** An authenticated user opens their personal account and security settings
+
+**TUCEW** The user acknowledges that the selected accounr or security action has completed successfully
+
+**Use Case Diagram**
+
+![UC-12 Manage Personal Account and Security Settings]() <!-- TODO insert appropriate link -->
+
+> [!Note]
+> This Use Case (`UC-12`) is related to [User Stories **2.4** to **2.6**](), [Functional Requirements **R1**]() and [Functional Requirements **R14**](). <!-- TODO insert appropriate links -->
+
+<details> <summary><strong>View more details about UC-12</strong></summary>
+
+**Trigger:** The authenticated user selects an account or security setting to manage
+
+**Primary Actor:** Authenticated user
+
+**Supporting Actors:** Authentication and session service, Email service
+
+**Preconditions**
+
+- The user is authenticated and active
+- The selected setting belongs to the user
+- Applicable organisation policies permit the requested change
+
+**Postconditions**
+
+- The selected valid account or security change is stored
+- Required notifications are sent
+- Sessions affected by a sensitive change are revoked
+
+**Main Success Scenario**
+
+1. The user opens their account and security settings
+2. The system displays the account information, sessions and effective settings
+3. The user edits permitted personal information or security preferences
+4. The system validates the change against platform and organisation policies
+5. The system saves the valid change
+6. The system displays the updated account or security state
+
+**Alternative Flows**
+
+- The user requests and verifies an email address change
+- The user changes their password after confirming their current password
+- The user views and revokes one or more active sessions
+- The user updates personal session preferences where organisation policy permits it
+
+**Exception Flows**
+
+- If the current password or submitted information is invalid, the system rejects the change
+- If organisation policy controls a setting, the system displays is as read only
+- If email verification fails or the new address becomes unavailable, the current email remains active
+- If the user targets another user's session, the system denies the action
+
+</details>
+
+## `UC-13` Manage Organisation Lifecycle and Access
+
+## `UC-14` Manage Organisation Employee Tags
+
+## `UC-15` Create and Manage Premade Campaigns
+
+## `UC-16` Create and Manage Organisaiton Campaigns
+
+## `UC-17` Build and Structure Campaigns from Reusable Components
+
+## `UC-18` Create and Manage Training Documents
+
+## `UC-19` Create and Manage Quizzes
+
+## `UC-20` Create and Manage Simulated Inboxes and Emails
+
+## `UC-21` Publish and Unpublish Premade Campaigns
+
+## `UC-22` Browse Published Premade Campaigns
+
+## `UC-23` Self-enrol in Premade Campaigns
+
+## `UC-24` Manage Individual Campaign Enrolments, Progress and Resets
+
+## `UC-25` Assign Campaigns to Organisation Trainees
+
+## `UC-26` Reset Organisation Campaign Progress
+
+## `UC-27` View Trainee Campaign Progress and Results
+
+## `UC-28` Classify Simulated Emails and Provide Feedback
+
+## `UC-29` Interact with Simulated Links and Attachments and Track Interactions
+
+## `UC-30` View Organisation Training Progress, Performance and Risk Scoring
+
+## `UC-31` Configure and Launch Ethical Real-Email Simulation Campaigns
+
+## `UC-32` Generate and Review Campaign Content with AI Assistance
+
+## `UC-33` View Platform Usage and Security Overview
+
+---
+
+The next section of the SRS is: [Quality Requirements](quality-requirements.md)
