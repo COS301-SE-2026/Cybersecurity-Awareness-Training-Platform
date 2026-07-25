@@ -56,8 +56,8 @@
       "number": 290,
       "title": "feat: implement backend account settings and user session endpoints",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-07-25"
     },
     {
       "number": 288,
@@ -277,7 +277,7 @@
     },
     {
       "date": "2026-07-25",
-      "remaining": 38,
+      "remaining": 36,
       "ideal": 5.31
     }
   ]
