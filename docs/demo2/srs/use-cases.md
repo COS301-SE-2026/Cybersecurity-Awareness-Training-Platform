@@ -287,3 +287,291 @@ The following use cases describe how users interact with the Insightful Phish sy
 - If notification email delivery fails after a valid state change, the new state remains and the failure is recorded
 
 </details>
+
+## `UC-06` Complete First Organisation Administrator Setup
+
+**TUCBW** The invited initial organisation administrator opens the setup link sent to their email after their organisation has been approved
+
+**TUCEW** The initial organisation administrator acknowledges that their organisation administrator account setup has been completed
+
+**Use Case Diagram**
+
+![UC-06 Complete First Organisation Administrator Setup]() <!-- TODO insert appropriate link -->
+
+> [!Note]
+> This Use Case (`UC-06`) is related to [User Storie6.1]() and [Functional Requirements **R8**](). <!-- TODO insert appropriate links -->
+
+<details> <summary><strong>View more details about UC-06</strong></summary>
+
+**Trigger:** The invited representative opens the organisation initial administrator setup link
+
+**Primary Actor:** Initial Organisation Administrator
+
+**Supporting Actor:** Email service
+
+**Preconditions**
+
+- The setup token and invitation are valid and unsused
+- The organisation is in a compatible onboarding state
+- The invited email does not conflict with another account
+
+**Postconditions**
+
+- The initial organisation administrator account and profile is active
+- The administrator receives the initial permission set
+- The organisation, request and invitation states show that onboarding has been completed
+
+**Main Success Scenario**
+
+1. The invited organisation representative opens the setup link in their email inbox
+2. The system validates the token, invitation, organisation and email context
+3. The system displays the organisation and invited role
+4. The representative completes their name and password information
+5. The system validates the submitted information
+6. The system activates the initial organisation administrator account and grants permissions to this account, and activates the organisation
+7. The system completes the invitation and sends a confirmation email
+
+**Alternative Flows**
+
+- If the user's name information was provided by the invitation, the representative can confirm or update it before completing account setup
+- If an eligible replacement setup link is required, the user can follow the resend process
+
+**Exception Flows**
+
+- If the token is invalid, expired, used or revoked, the system blocks setup
+- If the organisation is no longer eligible for onboarding, the system leaves all states unchaged
+- If setup fails, the system does not create a partial account, permissions or organisation state
+
+</details>
+
+## `UC-07` Accept an Organisation Trainee Invitation
+
+**TUCBW** An invited user opens an organisation invitation link that takes them to the accept invitation page
+
+**TUCEW** The invited user acknowledges that the invitation or role changes has been completed successfully
+
+**Use Case Diagram**
+
+![UC-07 Accept an Organisation Trainee Invitation]() <!-- TODO insert appropriate link -->
+
+> [!Note]
+> This Use Case (`UC-07`) is related to [User Stories 4.1 and 4.3]() and [Functional Requirements **R9**](). <!-- TODO insert appropriate links -->
+
+<details> <summary><strong>View more details about UC-07</strong></summary>
+
+**Trigger:**The invited user opens a secure organisation invitation link
+
+**Primary Actor:** Invited user
+
+**Supporting Actor:** Email service
+
+**Preconditions**
+
+- The setup token and invitation are valid and unsused
+- The organisation can accept the revelant membership or role change
+- The invitation applies to the intended user and email address
+
+**Postconditions**
+
+- A new trainee account and membership is created, or the existing user's accepted role change is applied (depending on type of invitation)
+- The invitation and token are completed consistently
+- The user receives confirmation of the completed change
+
+**Main Success Scenario**
+
+1. The user opens the invitation link
+2. The system validates the token, invitation, organisation and intended recipient
+3. The system displays the organisation, invited role and consequences of acceptance
+4. The user completes and required account setup, or completes authentication
+5. The user explicitly accepts the invitation
+6. The system applies the membership or role change atomically
+7. The system sends confirmation and displays the resulting access state
+
+**Alternative Flows**
+
+- A new organisation trainee completes account setup to accept organisation membership
+- An existing organisation trainee authenticates and accepts a promotion ro be an organisation administrator
+- The invited user rejects or ignores the invitation, leaving their existing access unchanged
+
+**Exception Flows**
+
+- If the token is invalid, expired, used or revoked, the system blocks acceptance
+- If the user or organisation role conflicts with the invitation, the system rejects the change
+- If acceptance fails, the previous role, membership and progress remain unchanged
+
+</details>
+
+## `UC-08` Manage Organisation Employees
+
+**TUCBW** An organisation administrator opens the organisation employee management page
+
+**TUCEW** The organisation administrator acknowledges that the selected employee management action has completed
+
+**Use Case Diagram**
+
+![UC-08 Manage Organisation Employees]() <!-- TODO insert appropriate link -->
+
+> [!Note]
+> This Use Case (`UC-08`) is related to [User Stories 6.2 to 6.4]() and [Functional Requirements **R10**](). <!-- TODO insert appropriate links -->
+
+<details> <summary><strong>View more details about UC-08</strong></summary>
+
+**Trigger:** The organisation administrator selects an employee management actions
+
+**Primary Actor:** Organisation administrator wuth the required employee management permission
+
+**Supporting Actor:** Email service
+
+**Preconditions**
+
+- The administrator is authenticated and active
+- The administrator and target organisation are the same organisatiob
+- The administrator has the permissions required for the selected action
+
+**Postconditions**
+
+- The trainee list, invitation or membership reflects the completed action
+- Requuired sessions are revoked after an account is disabled
+- The action and notification ourcome are recorded
+
+**Main Success Scenario**
+
+1. The organisation administrator opens the employee management page
+2. The system displays the organisation's trainees and invitation statusses
+3. The administrator chooses to invite a trainee
+4. The system validates the email, organisation scope and invitation eligibility
+5. The system creates the invitation and sends a secure invitation link
+6. The system records the action and displays the invitation status
+
+**Alternative Flows**
+
+- The organisation administrator resends an eligible pending invitation
+- The organisation administrator recokes an unaccepted invitation
+- The organisation administrator disabled an active trainee, after confirmation
+- The organisation administrator reactivates an eligible disabled trainee
+
+**Exception Flows**
+
+- If the organisation administrator lacks permission, the system blocks the action
+- If the email belongs to an ineligible or already active user, the system rejects the invitation
+- If the target belongs to another organisation, the system denies access
+- If email delivery fails, the invitation remains recorded with a failed delivery state
+
+</details>
+
+## `UC-09` Manage Organisation Administrators and Permissions
+
+**TUCBW** An organisation administrator manages organisation administrators and permissions on the organisation administrator management page
+
+**TUCEW** The organisation administrator acknowledges that the selected organisation administrator management action has completed successfully
+
+**Use Case Diagram**
+
+![UC-09 Manage Organisation Administrators and Permissions]() <!-- TODO insert appropriate link -->
+
+> [!Note]
+> This Use Case (`UC-09`) is related to [User Stories 6.5 to 6.7]() and [Functional Requirements **R11**](). <!-- TODO insert appropriate links -->
+
+<details> <summary><strong>View more details about UC-09</strong></summary>
+
+**Trigger:** The organisation administrator selects an administrator management action
+
+**Primary Actor:** Organisation administrator with the required administrator management permission
+
+**Supporting Actor:** Email service
+
+**Preconditions**
+
+- The organisation administrator is authenticated and active
+- The administrator and target organisation are the same organisation
+- The organisation permits the selected action
+- The administrator has the permission required for the action
+
+**Postconditions**
+
+- The administrator list, promotion invitation or permission state reflects the completed action
+- Critical administrator capabilities remain assigned
+- The action is recorded in the audit log
+
+**Main Success Scenario**
+
+1. The organisation administrator opens the organisation administrator management page
+2. The system displays the organisation's administrators and permissions
+3. The organisation administrator selects an active trainee for promotion and chooses initial permissions for this trainee
+4. The system validates the target, organisation scope and permission dependencies
+5. The system creates and sends a promotion invitation via email
+6. The system records the action and displays the pending promotion
+
+**Alternative Flows**
+
+- The organisation administrator views another administrator's permissions
+- The organisation administrator changes another organisation administrator's permissions
+- The organisation administrator resends an eligible role upgrade promotion invitation
+- The organisation administrator removes another organisation administrator's privileges after confirmation
+
+**Exception Flows**
+
+- If the organisation administrator lacks permission, the system blocks the action
+- If the target belongs to a different organisation, the system blocks the action
+- If the target is not an eligible active trainee or already has an active promotion the system reject the invitation
+- If a change would remove the final critical administrator capability, the system preserves the previous state
+
+</details>
+
+## `UC-10` Manage Insightful Phish Administrators
+
+**TUCBW** A platform administrator opens the Insightful Phish administrator management page
+
+**TUCEW** The platform administrator acknowledges that the selected platform administrator action has completed
+
+**Use Case Diagram**
+
+![UC-10 Manage Insightful Phish Administrators]() <!-- TODO insert appropriate link -->
+
+> [!Note]
+> This Use Case (`UC-10`) is related to [User Stories 8.1 to 8.3]() and [Functional Requirements **R12**](). <!-- TODO insert appropriate links -->
+
+<details> <summary><strong>View more details about UC-10</strong></summary>
+
+**Trigger:** A platform administrator selects a platfrom administrator management action
+
+**Primary Actor:** Platform administrator (or Platform super-administrator)
+
+**Supporting Actor:** Email service
+
+**Preconditions**
+
+- The platform administrator is authenticated and is an active administrator
+- Mutating actions are performed only by the platform super-administrator
+- The selected target is eligible for the requested action
+
+**Postconditions**
+
+- The platform administrator list or role state reflects the completed action
+- Exactly one active platform super-administrator remains
+- Obsolete privileged sessions are revoked
+
+**Main Success Scenario**
+
+1. The platform administrator opens the platform administrator manangement page
+2. The system displays platform administrators, roles and statuses
+3. The platform super-administrator selects the invite action and enters the target details
+4. The system validates the target and determines whether setup or account conversion is required
+5. The system creates and sends the appropriate invitation
+6. The system records the action and displays the invitation status
+
+**Alternative Flows**
+
+- A nofmral platform administrator views the list without the ability to make changes
+- The platform super-administrator resends an eligible invitation
+- The platform super-administrator transfers the super-administrator role after they entered their password and a typed confirmation
+- The platform super-administrator demotes or revokes a normal platform administrator after confirmation
+
+**Exception Flows**
+
+- If a normal platform administrator attempts a restricted action, the system denies it
+- If the target account has an incompatible role or organisation relationship, the system blocks the invitation
+- If a transfer would not leave exactly one platform super-administrator, the system preserves the existing roles
+- If confirmation fails, no role change occurs
+
+</details>
