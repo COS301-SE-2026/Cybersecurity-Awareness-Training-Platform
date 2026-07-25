@@ -178,6 +178,10 @@ function OrganisationTraineesPage() {
     openConfirmationModal();
   };
 
+  const confirmBasicConfirmation = () => {
+    closeOrganisationTraineePageConfirmationModal();
+  };
+
   const showEnableTraineeModal = () => {
     setConfirmationButtonText('Enable');
     setConfirmationTitle('Enable Organisation Trainee');
@@ -186,13 +190,8 @@ function OrganisationTraineesPage() {
     openConfirmationModal();
   };
 
-  const closeConfirmationModal = () => {
+  const closeOrganisationTraineePageConfirmationModal = () => {
     setShowBasicConfirmationModal(false);
-  };
-
-  const handleConfirmation = () => {
-    closeConfirmationModal();
-    // INTEGRATION TO HANDLE LATER
   };
 
   return (
@@ -207,21 +206,20 @@ function OrganisationTraineesPage() {
         <div
           style={{
             padding: '1.4rem',
-            paddingBottom: '0.8rem',
             boxSizing: 'border-box',
             flexShrink: 0,
+            paddingBottom: '0.8rem',
           }}
         >
           <h1
             style={{
               margin: 0,
               marginBottom: '0.8rem',
-              fontSize: '3.8rem',
               fontWeight: 500,
+              fontSize: '3.8rem',
               lineHeight: 1,
-              // color: 'white',
-              color: 'rgb(132, 25, 255)',
               fontFamily: 'Jost',
+              color: 'rgb(132, 25, 255)',
             }}
           >
             Organisation Trainees
@@ -557,8 +555,8 @@ function OrganisationTraineesPage() {
           message={confirmationMessage}
           confirmButtonText={confirmationButtonText}
           confirmButtonVariant={confirmationVariant}
-          onConfirm={handleConfirmation}
-          onCancel={closeConfirmationModal}
+          onConfirm={confirmBasicConfirmation}
+          onCancel={closeOrganisationTraineePageConfirmationModal}
         ></BasicConfirmationModal>
       )}
 
