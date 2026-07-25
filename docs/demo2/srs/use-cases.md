@@ -6,7 +6,7 @@
 - [1. Introduction and Scope](introduction.md)
 - [2. Users and User Stories](users-and-user-stories.md)
 - [3. Functional Requirements](functional-requirements.md)
-- [4. Use Cases](#4-use-cases) &larr; _You are here_
+- **[4. Use Cases](#4-use-cases)** &larr; _You are here_
 - [5. Quality Requirements](quality-requirements.md)
 - [6. Domain Model](domain-model.md)
 
@@ -29,7 +29,7 @@ The following use cases describe how users interact with the Insightful Phish sy
 > [!Note]
 > This Use Case (`UC-01`) is related to [User Stories 5.2 and 5.3](), [Functional Requirements **R2**]() and [Functional Requirements **R3**](). <!-- TODO insert appropriate links -->
 
-<details> <summary><strong>View more details about UC-01</strong></summary?>
+<details> <summary><strong>View more details about UC-01</strong></summary>
 
 **Trigger:** The trainee selects an available simulated inbox campagin item
 
@@ -81,7 +81,7 @@ The following use cases describe how users interact with the Insightful Phish sy
 > [!Note]
 > This Use Case (`UC-02`) is related to [User Stories 5.2 and 5.6](), [Functional Requirements **R2**]() and [Functional Requirements **R4**](). <!-- TODO insert appropriate links -->
 
-<details> <summary><strong>View more details about UC-02</strong></summary?>
+<details> <summary><strong>View more details about UC-02</strong></summary>
 
 **Trigger:** The trainee opens an available training document campagin item
 
@@ -133,7 +133,7 @@ The following use cases describe how users interact with the Insightful Phish sy
 > [!Note]
 > This Use Case (`UC-03`) is related to [User Stories 5.2 and 5.7](), [Functional Requirements **R2**]() and [Functional Requirements **R5**](). <!-- TODO insert appropriate links -->
 
-<details> <summary><strong>View more details about UC-03</strong></summary?>
+<details> <summary><strong>View more details about UC-03</strong></summary>
 
 **Trigger:** The trainee selects an available quiz campagin item
 
@@ -188,7 +188,7 @@ The following use cases describe how users interact with the Insightful Phish sy
 > [!Note]
 > This Use Case (`UC-04`) is related to [User Storie 1.1]() and [Functional Requirements **R6**](). <!-- TODO insert appropriate links -->
 
-<details> <summary><strong>View more details about UC-04</strong></summary?>
+<details> <summary><strong>View more details about UC-04</strong></summary>
 
 **Trigger:** The organisation representative submits the registration request form
 
@@ -243,7 +243,7 @@ The following use cases describe how users interact with the Insightful Phish sy
 > [!Note]
 > This Use Case (`UC-05`) is related to [User Stories 7.1 to 7.3]() and [Functional Requirements **R7**](). <!-- TODO insert appropriate links -->
 
-<details> <summary><strong>View more details about UC-06</strong></summary?>
+<details> <summary><strong>View more details about UC-05</strong></summary>
 
 **Trigger:** The platform administrator seleects an organisation registration request to review
 
