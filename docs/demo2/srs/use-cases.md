@@ -7,19 +7,34 @@
 - [2. Users and User Stories](users-and-user-stories.md)
 - [3. Functional Requirements](functional-requirements.md)
 - **[4. Use Cases](#4-use-cases)** &larr; _You are here_
-  - [UC-01 View Emails in a Simulated Inbox](#uc-01-view-emails-in-a-simulated-inbox)
-  - [UC-02 View a Training Document](#uc-02-view-a-training-document)
-  - [UC-03 Complete a Quiz and View Results](#uc-03-complete-a-quiz-and-view-results)
-  - [UC-04 Request Organisation Registration](#uc-04-request-organisation-registration)
-  - [UC-05 Review and Approve an Organisation Registration Request](#uc-05-review-and-approve-an-organisation-registration-request)
-  - [UC-06 Complete First Organisation Administrator Setup](#uc-06-complete-first-organisation-administrator-setup)
-  - [UC-07 Accept an Organisation Trainee Invitation](#uc-07-accept-an-organisation-trainee-invitation)
-  - [UC-08 Manage Organisation Employees](#uc-08-manage-organisation-employees)
-  - [UC-09 Manage Organisation Administrators and Permissions](#uc-09-manage-organisation-administrators-and-permissions)
-  - [UC-10 Manage Insightful Phish Administrators](#uc-10-manage-insightful-phish-administrators)
-  - [UC-11 Configure Organisation Security Settings](#uc-11-configure-organisation-security-settings)
-  - [UC-12 Manage Personal Account and Security Settings](#uc-12-manage-personal-account-and-security-settings)
-  - <!-- Todo add heading links here! -->
+  - [4.1 High-Level Use Case Diagrams](#41-high-level-use-case-diagrams)
+    - [Authentication and Account Access]
+    - [Trainee Campaign Participation]
+    - [Organisation Onboarding and Invitations]
+    - [Organisation Membership and Role Administration]
+    - [Platform Administrator Governance]
+    - [Security and Account Management]
+  - [4.2 Authentication and Account Access Use Cases](#42-authentication-and-account-access-use-cases)
+    - [AUTH-01 Register an Individual Account](#auth-01-register-an-individual-account)
+    - [AUTH-02 Verify an Email Address](#auth-02-verify-an-email-address)
+    - [AUTH-03 Log In](#auth-03-log-in)
+    - [AUTH-04 Log Out](#auth-04-log-out)
+    - [AUTH-05 Recover Account Access](#auth-05-recover-account-access)
+    - [AUTH-06 Resend an Account Access Email](#auth-06-resend-an-account-access-email)
+  - [4.3 Core and Planned Product Use Cases](#43-core-and-planned-product-use-cases)
+    - [UC-01 View Emails in a Simulated Inbox](#uc-01-view-emails-in-a-simulated-inbox)
+    - [UC-02 View a Training Document](#uc-02-view-a-training-document)
+    - [UC-03 Complete a Quiz and View Results](#uc-03-complete-a-quiz-and-view-results)
+    - [UC-04 Request Organisation Registration](#uc-04-request-organisation-registration)
+    - [UC-05 Review and Manage Organisation Registrations](#uc-05-review-and-manage-organisation-registrations)
+    - [UC-06 Complete First Organisation Administrator Setup](#uc-06-complete-first-organisation-administrator-setup)
+    - [UC-07 Accept an Organisation Invitation or Role Change](#uc-07-accept-an-organisation-invitation-or-role-change)
+    - [UC-08 Manage Organisation Employees](#uc-08-manage-organisation-employees)
+    - [UC-09 Manage Organisation Administrators and Permissions](#uc-09-manage-organisation-administrators-and-permissions)
+    - [UC-10 Manage Platform Administrators](#uc-10-manage-platform-administrators)
+    - [UC-11 Manage Organisation Security Settings](#uc-11-manage-organisation-security-settings)
+    - [UC-12 Manage Personal Account and Security Settings](#uc-12-manage-personal-account-and-security-settings)
+    - <!-- Todo add heading links here! -->
 - [5. Quality Requirements](quality-requirements.md)
 - [6. Domain Model](domain-model.md)
 
@@ -29,7 +44,72 @@
 
 The following use cases describe how users interact with the Insightful Phish system to achieve specific goals, including the main successful interactions and relevant flows.
 
-## `UC-01` View Emails in a Simulated Inbox
+## 4.1 High-Level Use Case Diagrams
+
+The follwoing high level use case diagrams group closely related use cases by system capability. Each grouped diagram is embedded once in this section, and is then cross-referenced from the written use cases it covers.
+
+> [!note]
+> The Use Case Diagrams below are only for use cases that have been implemented in the system. Unimplemented use cases are not in use case diagrams.
+
+### Authentication and Account Access
+
+![Authentication and Account Access Use Case Diagram](../diagrams/srs/use-cases/authentication-and-account-access.drawio.svg)
+_Figure 4.1: Supporting authentication and account access processes covering [`AUTH-01`](#auth-01-register-an-individual-account) to [`AUTH-06`](#auth-06-resend-an-account-access-email)_
+
+### Trainee Campaign Participation
+
+![Trainee Campaign Access Use Case Diagram](../diagrams/srs/use-cases/trainee-campaign-participation.drawio.svg)
+_Figure 4.2: Implemented trainee campaign participation processes covering [UC-01](#uc-01-view-emails-in-a-simulated-inbox), [UC-02](#uc-02-view-a-training-document) and [UC-03](#uc-03-complete-a-quiz-and-view-results)_
+
+### Organisation Onboarding and Invitations
+
+![Organisation Onboarding and Invitations Use Case Diagram](../diagrams/srs/use-cases/organisation-onboarding-and-invitations.drawio.svg)
+_Figure 4.3: Organisation registration, onboarding, and invitation response processes covering [UC-04](#uc-04-request-organisation-registration), [UC-05](#uc-05-review-and-manage-organisation-registrations), [UC-06](#uc-06-complete-first-organisation-administrator-setup) and [UC-07](#uc-07-accept-an-organisation-invitation-or-role-change)_
+
+### Organisation Membership and Role Administration
+
+![Organisation Membership and Role Administration Use Case Diagram](../diagrams/srs/use-cases/organisation-membership-and-role-administration.drawio.svg)
+_Figure 4.4: Organisation trainee, administrator, and permission management processes covering [UC-08](#uc-08-manage-organisation-trainees) and [UC-09](#uc-09-manage-organisation-administrators-and-permissions)_
+
+### Platform Administrator Governance
+
+![Platform Administrator Governance Use Case Diagram](../diagrams/srs/use-cases/platform-administrator-governance.drawio.svg)
+_Figure 4.5: Platform administrator governance processes covering [UC-10](#uc-10-manage-platform-administrators)_
+
+### Security and Account Management
+
+![Security and Account Management Use Case Diagram](../diagrams/srs/use-cases/security-and-account-management.drawio.svg)
+_Figure 4.6: Organisation security and personal account management processes covering [UC-11](#uc-11-manage-organisation-security-settings) and [UC-12](#uc-12-manage-personal-account-and-security-settings)_
+
+## 4.2 Authentication and Account Access Use Cases
+
+### `AUTH-01` Register an Individual Account
+
+R1.1
+
+### `AUTH-02` Verify an Email Address
+
+R1.1.3 to R1.1.5 and R 1.6
+
+### `AUTH-03` Log In
+
+R1.2
+
+### `AUTH-04` Log Out
+
+R1.3
+
+### `AUTH-05` Recover Account Access
+
+Completing password recovery R1.4 and R1.6
+
+### `AUTH-06` Resend an Account Access Email
+
+Resend features around verification, recovery, setup or invitation email resend R1.5 and R1.6
+
+## 4.3 Core and Planned Product Use Cases
+
+### `UC-01` View Emails in a Simulated Inbox
 
 **TUCBW** A trainee opens an available simulated-inbox campaign item from an assigned campaign
 
@@ -82,7 +162,7 @@ The following use cases describe how users interact with the Insightful Phish sy
 
 </details>
 
-## `UC-02` View a Training Document
+### `UC-02` View a Training Document
 
 **TUCBW** A trainee opens an available training document campaign item from an assigned campaign
 
@@ -134,7 +214,7 @@ The following use cases describe how users interact with the Insightful Phish sy
 
 </details>
 
-## `UC-03` Complete a Quiz and View Results
+### `UC-03` Complete a Quiz and View Results
 
 **TUCBW** A trainee opens an available quiz campaign item from an assigned campaign
 
@@ -189,7 +269,7 @@ The following use cases describe how users interact with the Insightful Phish sy
 
 </details>
 
-## `UC-04` Request Organisation Registration
+### `UC-04` Request Organisation Registration
 
 **TUCBW** An Organisation Representative submits an organisation registration request through the public organisation registration page
 
@@ -244,7 +324,7 @@ The following use cases describe how users interact with the Insightful Phish sy
 
 </details>
 
-## `UC-05` Review and Manage Organisation Registrations
+### `UC-05` Review and Manage Organisation Registrations
 
 **TUCBW** A Platform Administrator opens organisation registration management and selects a registration management action
 
@@ -312,7 +392,7 @@ The following use cases describe how users interact with the Insightful Phish sy
 
 </details>
 
-## `UC-06` Complete First Organisation Administrator Setup
+### `UC-06` Complete First Organisation Administrator Setup
 
 **TUCBW** The invited Initial Organisation Administrator opens the secure setup link received after the organisation is approved
 
@@ -370,7 +450,7 @@ The following use cases describe how users interact with the Insightful Phish sy
 
 </details>
 
-## `UC-07` Accept an Organisation Invitation or Role Change
+### `UC-07` Accept an Organisation Invitation or Role Change
 
 **TUCBW** An invited Organisation User opens a secure invitation or role change link
 
@@ -433,7 +513,7 @@ The following use cases describe how users interact with the Insightful Phish sy
 
 </details>
 
-## `UC-08` Manage Organisation Trainees
+### `UC-08` Manage Organisation Trainees
 
 **TUCBW** An Organisation Administrator opens organisation trainee management page and selects a trainee management action
 
@@ -501,7 +581,7 @@ The following use cases describe how users interact with the Insightful Phish sy
 
 </details>
 
-## `UC-09` Manage Organisation Administrators and Permissions
+### `UC-09` Manage Organisation Administrators and Permissions
 
 **TUCBW** An Organisation Administrator opens organisation administrator management and selects an administrator management action
 
@@ -568,7 +648,7 @@ The following use cases describe how users interact with the Insightful Phish sy
 
 </details>
 
-## `UC-10` Manage Platform Administrators
+### `UC-10` Manage Platform Administrators
 
 **TUCBW** A Platform Administrator, Platform Super-Administrator, or invited user initiates the applicable platform administrator management action
 
@@ -640,7 +720,7 @@ The following use cases describe how users interact with the Insightful Phish sy
 
 </details>
 
-## `UC-11` Manage Organisation Security Settings
+### `UC-11` Manage Organisation Security Settings
 
 **TUCBW** A Organisation Administrator opens the organisation's security settings to view or configure them
 
@@ -700,7 +780,7 @@ The following use cases describe how users interact with the Insightful Phish sy
 
 </details>
 
-## `UC-12` Manage Personal Account and Security Settings
+### `UC-12` Manage Personal Account and Security Settings
 
 **TUCBW** An Authenticated User opens their personal account and security settings
 
@@ -771,47 +851,59 @@ The following use cases describe how users interact with the Insightful Phish sy
 
 </details>
 
-## `UC-13` Manage Organisation Lifecycle and Access
+### `UC-13` Manage Organisation Lifecycle and Access
 
-## `UC-14` Manage Organisation Employee Tags
+Post onboarding lifecycle, visibility, suspension and reactivation
 
-## `UC-15` Create and Manage Premade Campaigns
+### `UC-14` Manage Organisation Trainee Tags
 
-## `UC-16` Create and Manage Organisaiton Campaigns
+### `UC-15` Manage Organisation Context
 
-## `UC-17` Build and Structure Campaigns from Reusable Components
+Branding, terminology, policy, and domain context
 
-## `UC-18` Create and Manage Training Documents
+### `UC-16` Manage Premade Campaigns
 
-## `UC-19` Create and Manage Quizzes
+### `UC-17` Manage Organisation Campaigns
 
-## `UC-20` Create and Manage Simulated Inboxes and Emails
+### `UC-18` Manage Training Documents
 
-## `UC-21` Publish and Unpublish Premade Campaigns
+### `UC-19` Manage Quizzes
 
-## `UC-22` Browse Published Premade Campaigns
+### `UC-20` Manage Simulated Inboxes and Emails
 
-## `UC-23` Self-enrol in Premade Campaigns
+### `UC-21` Generate and Review Draft Training Content with AI Assistance
 
-## `UC-24` Manage Individual Campaign Enrolments, Progress and Resets
+Generated content must remain a draft until it has been reviewed by a human actor
 
-## `UC-25` Assign Campaigns to Organisation Trainees
+### `UC-22` Browse Published Premade Campaigns
 
-## `UC-26` Reset Organisation Campaign Progress
+### `UC-23` Self-enrol in Premade Campaigns
 
-## `UC-27` View Trainee Campaign Progress and Results
+### `UC-24` View Available Training Campaigns
 
-## `UC-28` Classify Simulated Emails and Provide Feedback
+R2
 
-## `UC-29` Interact with Simulated Links and Attachments and Track Interactions
+### `UC-25` Reset a Self-Enrolled Campaign
 
-## `UC-30` View Organisation Training Progress, Performance and Risk Scoring
+### `UC-26` Assign Campaigns to Organisation Trainees
 
-## `UC-31` Configure and Launch Ethical Real-Email Simulation Campaigns
+### `UC-27` Reset Organisation Campaign Progress
 
-## `UC-32` Generate and Review Campaign Content with AI Assistance
+### `UC-28` Classify a Simulated Email
 
-## `UC-33` View Platform Usage and Security Overview
+### `UC-29` Interact with a Simulated Email Threat
+
+### `UC-30` View Personal Campaign Progress and Results
+
+### `UC-31` View Organisation Training Reports
+
+### `UC-32` Review Organisation Audit History
+
+### `UC-33` View Platform Usage and Lifecycle Overview
+
+### `UC-34` Review Platform Audit and Security Events
+
+### `UC-35` Configure and Launch Ethical Real Email Simulation Campaigns
 
 ---
 
