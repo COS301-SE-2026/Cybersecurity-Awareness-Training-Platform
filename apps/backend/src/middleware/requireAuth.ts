@@ -50,6 +50,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
 
     req.auth = {
       userId: payload.userId,
+      authSessionId: payload.authSessionId,
       user: currentUser.user,
     };
 

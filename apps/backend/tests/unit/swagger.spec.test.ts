@@ -38,6 +38,21 @@ const expectedSchemas = [
   'AuthResendVerificationResponse',
   'AuthVerifyEmailRequest',
   'AuthVerifyEmailResponse',
+  'AccountProfileUpdateRequest',
+  'AccountChangeEmailRequest',
+  'AccountChangeEmailResponse',
+  'AccountChangePasswordRequest',
+  'AccountChangePasswordResponse',
+  'AccountProfile',
+  'AccountSecurityPreferences',
+  'AccountSecurityPreferencesRequest',
+  'AccountPolicy',
+  'AccountCapabilities',
+  'AccountResponse',
+  'AccountSession',
+  'AccountSessionsResponse',
+  'AccountSessionRevocationResponse',
+  'AccountLogoutOthersResponse',
   'AccountVerifyEmailChangeRequest',
   'AccountVerifyEmailChangeResponse',
   'AuthForgotPasswordRequest',
@@ -158,6 +173,12 @@ const expectedResponses = [
   'InvitationContextOk',
   'InvitationAcceptOk',
   'InvitationRejectOk',
+  'AccountOk',
+  'AccountChangeEmailRequested',
+  'AccountPasswordChanged',
+  'AccountSessionsOk',
+  'AccountSessionRevoked',
+  'AccountOtherSessionsLoggedOut',
   'OrganisationTraineesOk',
   'OrganisationTraineeInvitationCreated',
   'OrganisationTraineeInvitationResent',
@@ -172,6 +193,7 @@ const expectedParameters = [
   'AttemptIdPathParam',
   'SetupTokenPathParam',
   'InvitationTokenPathParam',
+  'AccountSessionIdPathParam',
   'TraineeIdPathParam',
   'InvitationIdPathParam',
 ] as const;
@@ -189,6 +211,10 @@ const expectedRequestBodies = [
   'RejectOrganisationRequest',
   'AuthVerifyEmail',
   'AccountVerifyEmailChange',
+  'AccountProfileUpdate',
+  'AccountChangeEmail',
+  'AccountChangePassword',
+  'AccountSecurityPreferences',
   'AuthForgotPassword',
   'AuthResetPassword',
   'OrganisationSecuritySettingsUpdate',
@@ -207,6 +233,14 @@ const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
   ['post', '/auth/refresh', ['200', '401', '403', '429', '500']],
   ['post', '/auth/resend-verification', ['200', '400', '429', '500']],
   ['post', '/auth/verify-email', ['200', '400', '429', '500']],
+  ['get', '/account', ['200', '401', '403', '404', '500']],
+  ['patch', '/account/profile', ['200', '401', '403', '404', '422', '500']],
+  ['post', '/account/change-email', ['200', '401', '403', '409', '422', '500']],
+  ['post', '/account/change-password', ['200', '401', '403', '404', '422', '500']],
+  ['get', '/account/sessions', ['200', '401', '500']],
+  ['delete', '/account/sessions/{sessionId}', ['200', '400', '401', '404', '409', '500']],
+  ['post', '/account/sessions/logout-others', ['200', '401', '500']],
+  ['patch', '/account/security-preferences', ['200', '401', '403', '404', '422', '500']],
   ['post', '/account/verify-email-change', ['200', '400', '409', '429', '500']],
   ['post', '/auth/forgot-password', ['200', '400', '429', '500']],
   ['post', '/auth/reset-password', ['200', '400', '401', '403', '409', '422', '429', '500']],
@@ -737,5 +771,73 @@ describe('swaggerSpec', () => {
     expect(traineeSchema?.properties).toHaveProperty('invitationId');
     expect(traineeSchema?.properties).toHaveProperty('createdAt');
     expect(traineeSchema?.properties).toHaveProperty('eligibility');
+  });
+
+  it('verifies platform organisation lifecycle contracts in OpenAPI components', () => {
+    const resendEligibility = spec.components?.schemas?.OrganisationResendEligibility as {
+      required?: string[];
+      properties?: {
+        reason?: {
+          type?: string;
+          nullable?: boolean;
+          enum?: Array<string | null>;
+        };
+      };
+    };
+    expect(resendEligibility).toBeDefined();
+    expect(resendEligibility.properties?.reason?.nullable).toBe(true);
+    expect(resendEligibility.properties?.reason?.enum).toEqual([
+      'ORGANISATION_NOT_ONBOARDING',
+      'INVITATION_NOT_ELIGIBLE',
+      'SETUP_ALREADY_COMPLETED',
+      'ACTIVE_SETUP_TOKEN_EXISTS',
+      'SETUP_TOKEN_EXPIRED',
+      'SETUP_EMAIL_FAILED',
+      'CONCURRENT_RESEND_IN_PROGRESS',
+      null,
+    ]);
+
+    const timelineEntry = spec.components?.schemas?.PlatformTimelineEntry as {
+      required?: string[];
+      properties?: {
+        metadata?: {
+          type?: string;
+          nullable?: boolean;
+          enum?: Array<null | string>;
+        };
+      };
+    };
+    expect(timelineEntry).toBeDefined();
+    expect(timelineEntry.properties?.metadata?.nullable).toBe(true);
+    expect(timelineEntry.properties?.metadata?.enum).toEqual([null]);
+
+    const setupStatus = spec.components?.schemas?.OrganisationInitialSetupStatus as {
+      required?: string[];
+      properties?: {
+        latestActionToken?: {
+          required?: string[];
+        };
+        latestEmailDelivery?: {
+          required?: string[];
+        };
+      };
+    };
+    expect(setupStatus).toBeDefined();
+    expect(setupStatus.required).toEqual(
+      expect.arrayContaining([
+        'id',
+        'status',
+        'recipientEmail',
+        'expiresAt',
+        'latestActionToken',
+        'latestEmailDelivery',
+      ]),
+    );
+    expect(setupStatus.properties?.latestActionToken?.required).toEqual(
+      expect.arrayContaining(['id', 'expiresAt', 'usedAt', 'revokedAt', 'status']),
+    );
+    expect(setupStatus.properties?.latestEmailDelivery?.required).toEqual(
+      expect.arrayContaining(['id', 'deliveryStatus', 'sentAt', 'failedAt', 'failureReason']),
+    );
   });
 });
