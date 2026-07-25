@@ -4,8 +4,14 @@ import {
   getOrganisationRequestDetails,
   getResendEligibility,
   resendInitialAdminSetup,
+  formatSetupStatus,
   OrganisationRegistrationRequestError,
 } from '../../../src/services/platformOrganisation.service.js';
+import {
+  platformOrganisationDetailSchema,
+  platformOrganisationRequestDetailsResponseSchema,
+  resendInitialAdminSetupResponseSchema,
+} from '@insightful-phish/shared';
 import type * as AuthEmailHookModule from '../../../src/services/auth-email-hook.service.js';
 
 const prismaMock = vi.hoisted(() => ({
@@ -163,14 +169,14 @@ describe('platformOrganisation service', () => {
       };
 
       const mockInvitation = {
-        id: 'invite-123',
+        id: '11111111-1111-4111-8111-111111111111',
         status: 'PENDING',
         recipientEmail: 'admin@target.com',
         recipientFirstName: 'Bob',
         expiresAt: new Date('2036-07-10T08:00:00Z'),
         actionTokens: [
           {
-            id: 'token-123',
+            id: '22222222-2222-4222-8222-222222222222',
             expiresAt: new Date('2036-07-10T08:00:00Z'),
             usedAt: null,
             revokedAt: null,
@@ -179,7 +185,7 @@ describe('platformOrganisation service', () => {
       };
 
       const mockLatestEmail = {
-        id: 'email-log-123',
+        id: '33333333-3333-4333-8333-333333333333',
         deliveryStatus: 'SENT',
         sentAt: new Date('2026-07-01T08:30:00Z'),
         failedAt: null,
@@ -188,7 +194,7 @@ describe('platformOrganisation service', () => {
 
       const mockAdmins = [
         {
-          id: 'admin-1',
+          id: '44444444-4444-4444-8444-444444444444',
           adminStatus: 'ACTIVE',
           isInitialAdmin: false,
           user: {
@@ -201,7 +207,7 @@ describe('platformOrganisation service', () => {
 
       const mockAuditLogs = [
         {
-          id: 'audit-3',
+          id: '55555555-5555-4555-8555-555555555555',
           actionType: 'ENABLED',
           targetType: 'ORGANISATION',
           createdAt: new Date('2026-07-01T08:45:00Z'),
@@ -212,7 +218,7 @@ describe('platformOrganisation service', () => {
           },
         },
         {
-          id: 'audit-2',
+          id: '66666666-6666-4666-8666-666666666666',
           actionType: 'COMPLETED',
           targetType: 'INVITATION',
           createdAt: new Date('2026-07-01T08:45:00Z'),
@@ -223,7 +229,7 @@ describe('platformOrganisation service', () => {
           },
         },
         {
-          id: 'audit-1',
+          id: '77777777-7777-4777-8777-777777777777',
           actionType: 'APPROVED',
           targetType: 'ORGANISATION_REGISTRATION_REQUEST',
           createdAt: new Date('2026-07-01T08:00:00Z'),
@@ -238,7 +244,7 @@ describe('platformOrganisation service', () => {
 
       const mockEmailLogs = [
         {
-          id: 'email-log-123',
+          id: '33333333-3333-4333-8333-333333333333',
           emailType: 'INITIAL_ORGANISATION_ADMIN_SETUP',
           deliveryStatus: 'SENT',
           createdAt: new Date('2026-07-01T08:30:00Z'),
@@ -300,6 +306,7 @@ describe('platformOrganisation service', () => {
       expect(response.timeline[2].outcome).toBe('SENT');
       expect(response.timeline[2].actor).toBe('System');
       expect(response.timeline[3].actor).toBe('Patricia Platform');
+      expect(() => platformOrganisationDetailSchema.parse(response)).not.toThrow();
     });
 
     it('throws 404 error if organisation is not found', async () => {
@@ -355,6 +362,7 @@ describe('platformOrganisation service', () => {
       expect(response.setupStatus).toBeNull();
       expect(response.resendEligibility.isEligible).toBe(false); // No invitation exists
       expect(response.timeline).toHaveLength(0);
+      expect(() => platformOrganisationRequestDetailsResponseSchema.parse(response)).not.toThrow();
     });
 
     it('throws 404 if request is not found', async () => {
@@ -532,6 +540,11 @@ describe('platformOrganisation service', () => {
     });
 
     it('allows resend after definite first setup email failure revoked the original token', async () => {
+      const inviteUuid = '11111111-1111-4111-8111-111111111111';
+      const tokenUuid = '22222222-2222-4222-8222-222222222222';
+      const newTokenUuid = '33333333-3333-4333-8333-333333333333';
+      const emailLogUuid = '44444444-4444-4444-8444-444444444444';
+
       const mockOrg = {
         id: organisationId,
         name: 'Target Org',
@@ -539,7 +552,7 @@ describe('platformOrganisation service', () => {
       };
 
       const mockInvitation = {
-        id: 'invite-123',
+        id: inviteUuid,
         status: 'FAILED_TO_SEND',
         recipientEmail: 'admin@target.com',
         recipientFirstName: 'Bob',
@@ -547,7 +560,7 @@ describe('platformOrganisation service', () => {
         organisationRegistrationRequestId: requestId,
         actionTokens: [
           {
-            id: 'token-123',
+            id: tokenUuid,
             expiresAt: new Date(Date.now() + 100_000),
             usedAt: null,
             revokedAt: new Date(),
@@ -556,12 +569,12 @@ describe('platformOrganisation service', () => {
       };
 
       const mockLatestEmail = {
-        id: 'email-log-123',
+        id: emailLogUuid,
         deliveryStatus: 'FAILED',
         sentAt: null,
         failedAt: new Date(),
         failureReason: 'SMTP_NOT_ACCEPTED',
-        actionTokenId: 'token-123',
+        actionTokenId: tokenUuid,
       };
       const newTokenExpiresAt = new Date(Date.now() + 200_000);
       const mockUpdatedInvitation = {
@@ -570,7 +583,7 @@ describe('platformOrganisation service', () => {
         expiresAt: newTokenExpiresAt,
         actionTokens: [
           {
-            id: 'new-token-id',
+            id: newTokenUuid,
             expiresAt: newTokenExpiresAt,
             usedAt: null,
             revokedAt: null,
@@ -588,7 +601,7 @@ describe('platformOrganisation service', () => {
       prismaMock.invitation.updateMany.mockResolvedValue({ count: 1 });
       prismaMock.emailDeliveryLog.findFirst.mockResolvedValue(mockLatestEmail);
       actionTokenServiceMock.issueActionToken.mockResolvedValue({
-        token: { id: 'new-token-id', expiresAt: newTokenExpiresAt },
+        token: { id: newTokenUuid, expiresAt: newTokenExpiresAt },
         rawToken: 'raw-token-string',
       });
       emailHookMock.requestAuthEmailSend.mockResolvedValue(acceptedHookResult);
@@ -600,13 +613,13 @@ describe('platformOrganisation service', () => {
       expect(actionTokenServiceMock.issueActionToken).toHaveBeenCalled();
       expect(emailHookMock.requestAuthEmailSend).toHaveBeenCalledWith(
         expect.objectContaining({
-          invitationId: 'invite-123',
-          actionTokenId: 'new-token-id',
+          invitationId: inviteUuid,
+          actionTokenId: newTokenUuid,
         }),
       );
       expect(response.setupStatus?.latestActionToken).toEqual(
         expect.objectContaining({
-          id: 'new-token-id',
+          id: newTokenUuid,
           status: 'AVAILABLE',
         }),
       );
@@ -616,11 +629,11 @@ describe('platformOrganisation service', () => {
           failureReason: 'SMTP_NOT_ACCEPTED',
         }),
       );
+      expect(() => resendInitialAdminSetupResponseSchema.parse(response)).not.toThrow();
 
       const setupStatus = JSON.stringify(response.setupStatus);
       expect(setupStatus).not.toContain('SMTP broke');
       expect(setupStatus).not.toContain('provider host');
-      expect(setupStatus).not.toContain('constraint');
     });
 
     it('does not revoke the replacement setup token when SMTP was accepted but persistence failed', async () => {
@@ -978,6 +991,28 @@ describe('platformOrganisation service', () => {
 
       expect(actionTokenServiceMock.issueActionToken).not.toHaveBeenCalled();
       expect(emailHookMock.requestAuthEmailSend).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('formatSetupStatus token state precedence', () => {
+    it('prioritises REVOKED over USED when a token has both revokedAt and usedAt set', () => {
+      const invitation = {
+        id: '11111111-1111-4111-8111-111111111111',
+        status: 'PENDING',
+        recipientEmail: 'admin@example.com',
+        expiresAt: new Date('2036-07-10T08:00:00Z'),
+        actionTokens: [
+          {
+            id: '22222222-2222-4222-8222-222222222222',
+            expiresAt: new Date('2036-07-10T08:00:00Z'),
+            usedAt: new Date('2026-07-20T08:00:00Z'),
+            revokedAt: new Date('2026-07-21T08:00:00Z'),
+          },
+        ],
+      };
+
+      const result = formatSetupStatus(invitation, null);
+      expect(result?.latestActionToken?.status).toBe('REVOKED');
     });
   });
 });

@@ -13,3 +13,4 @@ export * from './organisation-request.js';
 export * from './invitation.js';
 export * from './organisation-trainee.js';
 export * from './platform-admin.schemas.js';
+export * from './account-settings.schemas.js';
