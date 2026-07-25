@@ -31,9 +31,9 @@ The following use cases describe how users interact with the Insightful Phish sy
 
 ## `UC-01` View Emails in a Simulated Inbox
 
-**TUCBW** A trainee opens an available simulated-inbox campaign item from an assigned campaign.
+**TUCBW** A trainee opens an available simulated-inbox campaign item from an assigned campaign
 
-**TUCEW** The trainee views a selected simulated email or returns to the campaign
+**TUCEW** The trainee views the selected simulated email safely
 
 **Use Case Diagram**
 
@@ -44,7 +44,7 @@ The following use cases describe how users interact with the Insightful Phish sy
 
 <details> <summary><strong>View more details about UC-01</strong></summary>
 
-**Trigger:** The trainee selects an available simulated inbox campagin item
+**Trigger:** The trainee selects an available simulated inbox campaign item
 
 **Primary Actor:** Trainee
 
@@ -56,7 +56,7 @@ The following use cases describe how users interact with the Insightful Phish sy
 
 **Postconditions**
 
-- The selected simulated email is displayed safely
+- The trainee can read the selected simulated email safely
 - The email open interaction is recorded where tracking succeeds
 - No real mailbox is accessed
 
@@ -64,15 +64,16 @@ The following use cases describe how users interact with the Insightful Phish sy
 
 1. The trainee opens an available simulated inbox campaign item
 2. The system validates the trainee's campaign access and prerequisites
-3. The system displays the simulated email simmaries
+3. The system displays the simulated email summaries
 4. The trainee selects an email
 5. The system displays the controlled email content and records the open interaction
-6. The trainee returns to the inbox or campaign
+6. The trainee reads the selected simulated email
 
 **Alternative Flows**
 
-- If the inbox is empty, the system display an empty state
+- If the inbox is empty, the system displays an empty state
 - If the email has been opened before, the system displays it without creating duplicate progress
+- After viewing an email, the trainee may return to the simulated inbox or campaign
 
 **Exception Flows**
 
@@ -83,9 +84,9 @@ The following use cases describe how users interact with the Insightful Phish sy
 
 ## `UC-02` View a Training Document
 
-**TUCBW** A trainee opens an available training document campaign items from an assigned campaign
+**TUCBW** A trainee opens an available training document campaign item from an assigned campaign
 
-**TUCEW** The trainee reads or completes the training document and returns to the campaign
+**TUCEW** The trainee has read th training document and can continue with the campagin
 
 **Use Case Diagram**
 
@@ -96,7 +97,7 @@ The following use cases describe how users interact with the Insightful Phish sy
 
 <details> <summary><strong>View more details about UC-02</strong></summary>
 
-**Trigger:** The trainee opens an available training document campagin item
+**Trigger:** The trainee opens an available training document campaign item
 
 **Primary Actor:** Trainee
 
@@ -110,7 +111,7 @@ The following use cases describe how users interact with the Insightful Phish sy
 
 - The trainee can read the training document
 - Viewed or completed progress is recorded where tracking succeeds
-- The document remains unmodified
+- The training document remains unmodified
 
 **Main Success Scenario:**
 
@@ -118,8 +119,8 @@ The following use cases describe how users interact with the Insightful Phish sy
 2. The system validates the trainee's campaign access and prerequisites
 3. The system resolves and displays the approved document content
 4. The system records that the document was viewed
-5. The trainee reads and marks the document as complete
-6. The trainee returns to the campaign
+5. The trainee reads the document, and where applicable, marks it as complete
+6. The system displays the resulting progress and allows the trainee to continue with the campaign
 
 **Alternative Flows**
 
@@ -128,7 +129,7 @@ The following use cases describe how users interact with the Insightful Phish sy
 
 **Exception Flows**
 
-- If the document is missing, locked, or inaccessible the system displays an unavailable state
+- If the document is missing, locked, or inaccessible, the system displays an unavailable state
 - If progress tracking fails, the system preserves document access without recording false completion
 
 </details>
@@ -137,7 +138,7 @@ The following use cases describe how users interact with the Insightful Phish sy
 
 **TUCBW** A trainee opens an available quiz campaign item from an assigned campaign
 
-**TUCEW** The trainee submits the quiz and views the results and educational feedback
+**TUCEW** The trainee recieves and views the results and permitted educational feedback for the submitted quiz
 
 **Use Case Diagram**
 
@@ -160,9 +161,9 @@ The following use cases describe how users interact with the Insightful Phish sy
 
 **Postconditions**
 
-- The submitted answers are calculated by the server and the result is stored
+- The submitted answers have been scored and the result has been stored
 - The submitted attempt is read only
-- Permitted results and feedback are available to the trainee
+- The trainee can view the permitted result and educational feedback
 
 **Main Success Scenario**
 
@@ -170,9 +171,9 @@ The following use cases describe how users interact with the Insightful Phish sy
 2. The system validates the trainee's campaign access and prerequisites
 3. The system displays questions without correctness information
 4. The system starts or resumes the trainee's attempt
-5. The trainee andswers the questions and submits the attempt
+5. The trainee answers the questions and submits the attempt
 6. The system validates and scores the answers
-7. The system stores the submittion and displays the result and feedback
+7. The system stores the submission and displays the result and permitted feedback
 8. The trainee returns to the campaign
 
 **Alternative Flows**
@@ -190,9 +191,9 @@ The following use cases describe how users interact with the Insightful Phish sy
 
 ## `UC-04` Request Organisation Registration
 
-**TUCBW** An organisation representative submits an organisation registration request on the public organisation registration page
+**TUCBW** An Organisation Representative submits an organisation registration request through the public organisation registration page
 
-**TUCEW** The organisation representative acknowledges that the request has been submitted for platform review
+**TUCEW** The Organisation Representative receives confirmation that the request has been submitted for platform review
 
 **Use Case Diagram**
 
@@ -205,15 +206,15 @@ The following use cases describe how users interact with the Insightful Phish sy
 
 **Trigger:** The organisation representative submits the registration request form
 
-**Primary Actor:** Organisation representative
+**Primary Actor:** Organisation Representative
 
-**Supporting Actor:** Email service
+**Supporting Actor:** External Email Delivery Provider
 
 **Preconditions**
 
-- The representative can access the public registration page
+- The Organisation Representative can access the public registration page
 - The organisation does not have a conflicting unresovled request
-- The representative's email does not conflict with another account
+- The representative's email does not conflict with an ineligible platform or organisation account
 
 **Postconditions**
 
@@ -225,10 +226,10 @@ The following use cases describe how users interact with the Insightful Phish sy
 
 1. The representative enters the organisation and representative details
 2. The system validates the submitted information
-3. The system check for conflicting accounts and requests
+3. The system check for conflicting accounts and registration requests
 4. The system creates a pending registration request
 5. The system sends a submission confirmation email
-6. The system shows that platform review is required
+6. The system confirms to the representative that the request has been submitted and requires platform review
 
 **Alternative Flows**
 
@@ -243,31 +244,40 @@ The following use cases describe how users interact with the Insightful Phish sy
 
 </details>
 
-## `UC-05` Review and Approve an Organisation Registration Request
+## `UC-05` Review and Manage Organisation Registrations
 
-**TUCBW** A platform administrator opens the organisation registration management page and selects a registration request
+**TUCBW** A Platform Administrator opens organisation registration management and selects a registration management action
 
-**TUCEW** The platform administrator acknowledges that the selected review action has been completed
+**TUCEW** The Platform Administrator sees the resulting request, invitation, or organisation status after the selected action is completed
 
 **Use Case Diagram**
 
-![UC-05 Review and Approve an Organisation Registration Request]() <!-- TODO insert appropriate link -->
+![UC-05 Review and Manage Organisation Registrations]() <!-- TODO insert appropriate link -->
 
 > [!Note]
 > This Use Case (`UC-05`) is related to [User Stories **7.1** to **7.3**]() and [Functional Requirements **R7**](). <!-- TODO insert appropriate links -->
 
 <details> <summary><strong>View more details about UC-05</strong></summary>
 
-**Trigger:** The platform administrator seleects an organisation registration request to review
+**Trigger:** The Platform Administrator selects an organisation registration request or registered organisation to manage
 
-**Primary Actor:** Platform administrator
+**Primary Actor:** Platform Administrator
 
-**Supporting Actor:** Email service
+**Supporting Actor:** External Email Delivery Provider
+
+**Variants**
+
+- View or filter registrations
+- Mark a request as contacted
+- Approve a request
+- Reject a request
+- Resend an initial administrator invitation
+- View approved organisation details
 
 **Preconditions**
 
 - The platform administrator is authenticated and active
-- The selected registration request exist
+- The selected registration request exists
 - The request is eligible for the selected review action
 
 **Postconditions**
@@ -278,20 +288,21 @@ The following use cases describe how users interact with the Insightful Phish sy
 
 **Main Success Scenario**
 
-1. The platform administrator views and selects an organisation registration request
-2. The system displays the submitted organisation and representative details
-3. The platform administrator approves the trquest
-4. The system validates that the request is still eligible
-5. The system cretes the organisation in an onboarding state and create the initial organisation administrator invitation
-6. The system updates the request and sends the secure invitation setup link
-7. The system records the action and displays the resulting status
+1. The Platform Administrator selects an organisation registration request
+2. The system displays the submitted organisation, representative, status and history information
+3. The Platform Administrator selects the approval action
+4. The system validates that the request remains eligible for approval
+5. The Platform Administrator confirms the organisation and initial administrator details
+6. The system creates the organisation in an onboarding state and creates the initial administrator invitation
+7. The system updates the request, sends the secure setup link, and displays the resulting status
 
 **Alternative Flows**
 
-- The administrator marks the request as contacted without approving or rejecting it
-- The administrator rejects the request and provides a rejection reason
-- The administrtor resends an eligible failed or expired setup invitation
-- The administrator searches, filters or views an approved organisation's surface-level details
+- **View or filter registrations:** The Platform Administrator searches, filters, sorts, or views registration requests
+- **Mark as contacted:** The Platform Administrator records that contact has occurred without approving or rejecting the request
+- **Reject registration:** The Platform Administrator supplies a reason and confirms rejection
+- **Resend setup invitation:** The Platform Administrator resends an eligible failed or expired invitation
+- **View approved organisations:** The Platfmorm Administrator views the permitted surface level organisation details
 
 **Exception Flows**
 
@@ -303,9 +314,9 @@ The following use cases describe how users interact with the Insightful Phish sy
 
 ## `UC-06` Complete First Organisation Administrator Setup
 
-**TUCBW** The invited initial organisation administrator opens the setup link sent to their email after their organisation has been approved
+**TUCBW** The invited Initial Organisation Administrator opens the secure setup link received after the organisation is approved
 
-**TUCEW** The initial organisation administrator acknowledges that their organisation administrator account setup has been completed
+**TUCEW** The Initial Organisation Administrator receives confirmation that the account is active and can proceed to log in and administer the organisation
 
 **Use Case Diagram**
 
@@ -316,33 +327,35 @@ The following use cases describe how users interact with the Insightful Phish sy
 
 <details> <summary><strong>View more details about UC-06</strong></summary>
 
-**Trigger:** The invited representative opens the organisation initial administrator setup link
+**Trigger:** The invited Initial Organisation Administrator opens the secure organisation setup link
 
-**Primary Actor:** Initial Organisation Administrator
+**Primary Actor:** Invited Initial Organisation Administrator
 
-**Supporting Actor:** Email service
+**Supporting Actor:** External Email Delivery Provider
 
 **Preconditions**
 
 - The setup token and invitation are valid and unsused
 - The organisation is in a compatible onboarding state
-- The invited email does not conflict with another account
+- The invited email does not conflict with an ineligible existing account
 
 **Postconditions**
 
-- The initial organisation administrator account and profile is active
-- The administrator receives the initial permission set
-- The organisation, request and invitation states show that onboarding has been completed
+- The Initial Organisation Administrator account and profile are active
+- The administrator has received the initial permission set
+- The organisation, registration request, and invitation show that onboarding is complete
+- The administrator can proceed to log in and manage the organisation
 
 **Main Success Scenario**
 
-1. The invited organisation representative opens the setup link in their email inbox
+1. The invited Initial Organisation Administrator opens the secure setup link
 2. The system validates the token, invitation, organisation and email context
 3. The system displays the organisation and invited role
-4. The representative completes their name and password information
+4. The administrator completes or confirms their name and password information
 5. The system validates the submitted information
-6. The system activates the initial organisation administrator account and grants permissions to this account, and activates the organisation
+6. The system activates the administrator account, assigns the initial permissions, and activates the organisation
 7. The system completes the invitation and sends a confirmation email
+8. The system confirms that setup is complete and allows the administrator to proceed to login
 
 **Alternative Flows**
 
@@ -352,41 +365,47 @@ The following use cases describe how users interact with the Insightful Phish sy
 **Exception Flows**
 
 - If the token is invalid, expired, used or revoked, the system blocks setup
-- If the organisation is no longer eligible for onboarding, the system leaves all states unchaged
+- If the organisation is no longer eligible for onboarding, the system leaves all states unchanged
 - If setup fails, the system does not create a partial account, permissions or organisation state
 
 </details>
 
-## `UC-07` Accept an Organisation Trainee Invitation
+## `UC-07` Accept an Organisation Invitation or Role Change
 
-**TUCBW** An invited user opens an organisation invitation link that takes them to the accept invitation page
+**TUCBW** An invited Organisation User opens a secure invitation or role change link
 
-**TUCEW** The invited user acknowledges that the invitation or role changes has been completed successfully
+**TUCEW** The invited Organisation User receives confirmation that the accepted membership or role change has been applied
 
 **Use Case Diagram**
 
-![UC-07 Accept an Organisation Trainee Invitation]() <!-- TODO insert appropriate link -->
+![UC-07 Accept an Organisation Invitation or Role Change]() <!-- TODO insert appropriate link -->
 
 > [!Note]
 > This Use Case (`UC-07`) is related to [User Stories **4.1** and **4.3**]() and [Functional Requirements **R9**](). <!-- TODO insert appropriate links -->
 
 <details> <summary><strong>View more details about UC-07</strong></summary>
 
-**Trigger:**The invited user opens a secure organisation invitation link
+**Trigger:** The invited Organisation User opens a secure organisation invitation link
 
-**Primary Actor:** Invited user
+**Primary Actor:** Invited Organisation User
 
-**Supporting Actor:** Email service
+**Supporting Actor:** External Email Delivery Provider
+
+**Variants**
+
+- Accept a new trainee invitation
+- Accept an administrator promotion invitation
+- Reject a supported invitation
 
 **Preconditions**
 
-- The setup token and invitation are valid and unsused
-- The organisation can accept the revelant membership or role change
+- The invitation token is valid and unused
+- The organisation is eligible to apply the relevant membership or role change
 - The invitation applies to the intended user and email address
 
 **Postconditions**
 
-- A new trainee account and membership is created, or the existing user's accepted role change is applied (depending on type of invitation)
+- A new trainee account and membership have been created, or the existing user's accepted role change has been applied
 - The invitation and token are completed consistently
 - The user receives confirmation of the completed change
 
@@ -395,73 +414,83 @@ The following use cases describe how users interact with the Insightful Phish sy
 1. The user opens the invitation link
 2. The system validates the token, invitation, organisation and intended recipient
 3. The system displays the organisation, invited role and consequences of acceptance
-4. The user completes and required account setup, or completes authentication
+4. The user completes the required account setup or authenticates as the intended user
 5. The user explicitly accepts the invitation
-6. The system applies the membership or role change atomically
+6. The system applies the membership or role change, including the documented account conversion policy where applicable
 7. The system sends confirmation and displays the resulting access state
 
 **Alternative Flows**
 
-- A new organisation trainee completes account setup to accept organisation membership
-- An existing organisation trainee authenticates and accepts a promotion ro be an organisation administrator
-- The invited user rejects or ignores the invitation, leaving their existing access unchanged
+- **New trainee invitation:** A new Organisation Trainee completes account setup and accepts organisation membership
+- **Administrator promotion:** An existing Organisation Trainee authenticates, reviews the effects on trainee access and progress, and accepts the administrator role and permissions
+- **Invitation rejection:** The invited user rejects the invitation and the system confirms that their existing access remains unchanged
 
 **Exception Flows**
 
 - If the token is invalid, expired, used or revoked, the system blocks acceptance
 - If the user or organisation role conflicts with the invitation, the system rejects the change
-- If acceptance fails, the previous role, membership and progress remain unchanged
+- If acceptance fails, the previous role, membership, access, and progress remain unchanged
 
 </details>
 
-## `UC-08` Manage Organisation Employees
+## `UC-08` Manage Organisation Trainees
 
-**TUCBW** An organisation administrator opens the organisation employee management page
+**TUCBW** An Organisation Administrator opens organisation trainee management page and selects a trainee management action
 
-**TUCEW** The organisation administrator acknowledges that the selected employee management action has completed
+**TUCEW** The Organisation Administrator sees the resulting trainee, membership, or invitation status after the selected action is completed
 
 **Use Case Diagram**
 
-![UC-08 Manage Organisation Employees]() <!-- TODO insert appropriate link -->
+![UC-08 Manage Organisation Trainees]() <!-- TODO insert appropriate link -->
 
 > [!Note]
 > This Use Case (`UC-08`) is related to [User Stories **6.2** to **6.4**]() and [Functional Requirements **R10**](). <!-- TODO insert appropriate links -->
 
 <details> <summary><strong>View more details about UC-08</strong></summary>
 
-**Trigger:** The organisation administrator selects an employee management actions
+**Trigger:** The Organisation Administrator selects a trainee management action
 
-**Primary Actor:** Organisation administrator wuth the required employee management permission
+**Primary Actor:** Organisation Administrator
 
-**Supporting Actor:** Email service
+**Supporting Actor:** External Email Delivery Provider
+
+**Variants**
+
+- View trainees
+- Invite a trainee
+- Resend an invitation
+- Revoke an invitation
+- Disable a trainee
+- Reactivate a trainee
 
 **Preconditions**
 
 - The administrator is authenticated and active
-- The administrator and target organisation are the same organisatiob
+- The administrator and target trainee belong to the same organisation
 - The administrator has the permissions required for the selected action
 
 **Postconditions**
 
-- The trainee list, invitation or membership reflects the completed action
-- Requuired sessions are revoked after an account is disabled
-- The action and notification ourcome are recorded
+- The trainee list, invitation, or membership reflects the completed action
+- Requuired sessions are revoked when a trainee is disabled
+- The action and notification outcome are recorded
 
 **Main Success Scenario**
 
-1. The organisation administrator opens the employee management page
-2. The system displays the organisation's trainees and invitation statusses
-3. The administrator chooses to invite a trainee
-4. The system validates the email, organisation scope and invitation eligibility
+1. The Organisation Administrator opens the trainee management page
+2. The system displays the organisation's trainees and invitation statuses
+3. The administrator selects the invite trainee variant
+4. The system validates the email address, organisation scope and invitation eligibility
 5. The system creates the invitation and sends a secure invitation link
-6. The system records the action and displays the invitation status
+6. The system displays the resulting invitation status
 
 **Alternative Flows**
 
-- The organisation administrator resends an eligible pending invitation
-- The organisation administrator recokes an unaccepted invitation
-- The organisation administrator disabled an active trainee, after confirmation
-- The organisation administrator reactivates an eligible disabled trainee
+- **View trainees:** The Organisation Administrator views trainees and their invitation or membership statuses
+- **Resend invitation:** The Organisation Administrator resends an eligible pending invitation
+- **Revoke invitation:** The Organisation Administrator revokes an unaccepted invitation
+- **Disable trainee:** The Organisation Administrator confirms the disablement of an active trainee
+- **Reactivate trainee:** The Organisation Administrator reactivates an eligible disabled trainee
 
 **Exception Flows**
 
@@ -474,9 +503,9 @@ The following use cases describe how users interact with the Insightful Phish sy
 
 ## `UC-09` Manage Organisation Administrators and Permissions
 
-**TUCBW** An organisation administrator manages organisation administrators and permissions on the organisation administrator management page
+**TUCBW** An Organisation Administrator opens organisation administrator management and selects an administrator management action
 
-**TUCEW** The organisation administrator acknowledges that the selected organisation administrator management action has completed successfully
+**TUCEW** The Organisation Administrator sees the resulting administrator, permission, or promotion invitation status
 
 **Use Case Diagram**
 
@@ -487,18 +516,26 @@ The following use cases describe how users interact with the Insightful Phish sy
 
 <details> <summary><strong>View more details about UC-09</strong></summary>
 
-**Trigger:** The organisation administrator selects an administrator management action
+**Trigger:** The Organisation Administrator selects an administrator management action
 
-**Primary Actor:** Organisation administrator with the required administrator management permission
+**Primary Actor:** Organisation Administrator
 
-**Supporting Actor:** Email service
+**Supporting Actors:** External Email Delivery Provider
+
+**Variants**
+
+- View administrators and permissions
+- Invite a trainee for promotion
+- Resend a promotion invitation
+- Change permissions
+- Remove administrative privileges
 
 **Preconditions**
 
 - The organisation administrator is authenticated and active
 - The administrator and target organisation are the same organisation
 - The organisation permits the selected action
-- The administrator has the permission required for the action
+- The administrator has the permission required for the selected action
 
 **Postconditions**
 
@@ -508,77 +545,91 @@ The following use cases describe how users interact with the Insightful Phish sy
 
 **Main Success Scenario**
 
-1. The organisation administrator opens the organisation administrator management page
-2. The system displays the organisation's administrators and permissions
-3. The organisation administrator selects an active trainee for promotion and chooses initial permissions for this trainee
-4. The system validates the target, organisation scope and permission dependencies
-5. The system creates and sends a promotion invitation via email
-6. The system records the action and displays the pending promotion
+1. The Organisation Administrator opens organisation administrator management
+2. The system displays the organisation's administrators and their permissions
+3. The administrator selects the promote trainee variant, an eligible trainee, and the intended permissions
+4. The system validates the target, organisation scope, actor permission, and permission dependencies
+5. The system creates and sends the administrator promotion invitation
+6. The system displays the pending promotion status
 
 **Alternative Flows**
 
-- The organisation administrator views another administrator's permissions
-- The organisation administrator changes another organisation administrator's permissions
-- The organisation administrator resends an eligible role upgrade promotion invitation
-- The organisation administrator removes another organisation administrator's privileges after confirmation
+- **View permissions:** The Organisation Administrator views another administrator's assigned permissions
+- **Change permissions:** The Organisation Administrator changes another administrator's permissions
+- **Resend promotion:** The Organisation Administrator resends an eligible promotion invitation
+- **Remove privileges:** The Organisation Administrator confirms the removal of another administrator's privileges
 
 **Exception Flows**
 
 - If the organisation administrator lacks permission, the system blocks the action
 - If the target belongs to a different organisation, the system blocks the action
-- If the target is not an eligible active trainee or already has an active promotion the system reject the invitation
+- If the target is not an eligible active trainee or already has an active promotion invitation, the system rejects the invitation
 - If a change would remove the final critical administrator capability, the system preserves the previous state
 
 </details>
 
-## `UC-10` Manage Insightful Phish Administrators
+## `UC-10` Manage Platform Administrators
 
-**TUCBW** A platform administrator opens the Insightful Phish administrator management page
+**TUCBW** A Platform Administrator, Platform Super-Administrator, or invited user initiates the applicable platform administrator management action
 
-**TUCEW** The platform administrator acknowledges that the selected platform administrator action has completed
+**TUCEW** The initiating actor sees the resulting administrator, invitation, or role status after the selected action is completed
 
 **Use Case Diagram**
 
-![UC-10 Manage Insightful Phish Administrators]() <!-- TODO insert appropriate link -->
+![UC-10 Manage Platform Administrators]() <!-- TODO insert appropriate link -->
 
 > [!Note]
 > This Use Case (`UC-10`) is related to [User Stories **8.1** to **8.3**]() and [Functional Requirements **R12**](). <!-- TODO insert appropriate links -->
 
 <details> <summary><strong>View more details about UC-10</strong></summary>
 
-**Trigger:** A platform administrator selects a platfrom administrator management action
+**Trigger:** An applicable actor selects ot responds to a platform administrator management action
 
-**Primary Actor:** Platform administrator (or Platform super-administrator)
+**Primary Actors by Variant**
 
-**Supporting Actor:** Email service
+- **Platform Administrator:** View the administrator list
+- **Platform Super-Administrator:** Invite, resend, transfer, demote, or revoke
+- **Invited User:** Accept or reject an administrator invitation or upgrade
+
+**Supporting Actor:** External Email Delivery Provider
+
+**Variants:**
+
+- View platform administrators
+- Invite an administrator
+- Accept or reject an invitation
+- Resend an invitation
+- Transfer the super-administrator role
+- Demote or revoke an administrator
 
 **Preconditions**
 
-- The platform administrator is authenticated and is an active administrator
-- Mutating actions are performed only by the platform super-administrator
+- The initiating actor is authenticated where the selected variant requires authentication
+- Only the Platform Super-Administrator may perform privileged governance actions
 - The selected target is eligible for the requested action
 
 **Postconditions**
 
 - The platform administrator list or role state reflects the completed action
-- Exactly one active platform super-administrator remains
+- Exactly one active Platform Super-Administrator remains after any role transfer action
 - Obsolete privileged sessions are revoked
 
 **Main Success Scenario**
 
-1. The platform administrator opens the platform administrator manangement page
-2. The system displays platform administrators, roles and statuses
-3. The platform super-administrator selects the invite action and enters the target details
-4. The system validates the target and determines whether setup or account conversion is required
+1. The Platform Super-Administrator opens platform administrator management
+2. The system displays the platform administrators, roles, statuses, and pending invitations
+3. The super-administrator selects the invite variant and enters the target details
+4. The system validates the target and determines whether new account setup or account conversion is required
 5. The system creates and sends the appropriate invitation
-6. The system records the action and displays the invitation status
+6. The system displays the resulting invitation status
 
 **Alternative Flows**
 
-- A nofmral platform administrator views the list without the ability to make changes
-- The platform super-administrator resends an eligible invitation
-- The platform super-administrator transfers the super-administrator role after they entered their password and a typed confirmation
-- The platform super-administrator demotes or revokes a normal platform administrator after confirmation
+- **View administrators:** A normal Platform Administrator views the list in read-only mode
+- **Accept or reject invitation:** The invited user reviews the invitation and any account conversion consequences before accepting or rejecting it
+- **Resend invitation:** The Platform Super-Administrator resends an eligible invitation
+- **Transfer super-administrator role:** The Platform Super-Administrator supplies their password and typed confirmation before transferring the role
+- **Demote or revoke administrator:** The Platform Super-Administrator confirms the removal or demotion of a normal Platform Administrator
 
 **Exception Flows**
 
@@ -589,52 +640,57 @@ The following use cases describe how users interact with the Insightful Phish sy
 
 </details>
 
-## `UC-11` Configure Organisation Security Settings
+## `UC-11` Manage Organisation Security Settings
 
-**TUCBW** A organisation administrator configures organisation level security settings on the organisation security settings page
+**TUCBW** A Organisation Administrator opens the organisation's security settings to view or configure them
 
-**TUCEW** The organisation administrator acknowledges that the organisation security settings have been saved successfully
+**TUCEW** The Organisation Administrator sees the effective security settings or confirmation that permitted changes were saved
 
 **Use Case Diagram**
 
-![UC-11 Configure Organisation Security Settings]() <!-- TODO insert appropriate link -->
+![UC-11 Manage Organisation Security Settings]() <!-- TODO insert appropriate link -->
 
 > [!Note]
 > This Use Case (`UC-11`) is related to [User Story **6.8**]() and [Functional Requirements **R13**](). <!-- TODO insert appropriate links -->
 
 <details> <summary><strong>View more details about UC-11</strong></summary>
 
-**Trigger:** An organisation administrator submits changes to the organisation's security settings
+**Trigger:** An Organisation Administrator opens the organisation's security settings or submits permitted changes
 
-**Primary Actor:** Organisation administrator with the security settings permission
+**Primary Actor:** Organisation Administrator
 
-**Supporting Actors:** Authentication and session service, Audit log
+**Variants**
+
+- View effective settings
+- Update permitted settings
+- Discard unsaved changes
 
 **Preconditions**
 
 - The organisation administrator is authenticated and active, and belongs to the organisation
-- The administrator has permission to update the settings
+- The administrator has permission to update settings when using an editing variant
 
 **Postconditions**
 
-- Valid settings are saved for the organisation
-- Invalid changes leave the previous setting active
-- The old and new values are recorded in the audit log
+- The administrator can view the organisation's effective security settings
+- Valid submitted changes are saved and displayed
+- Invalid changes leave the previous settings active
+- Successfuly changes are recorded in the audit log
 
 **Main Success Scenario**
 
-1. The organisation administrator opens the organisation security settings page
-2. The system displays the saved settings, enforcement state and platform limits
+1. The Organisation Administrator opens the organisation security settings
+2. The system displays the saved settings, enforcement, state, and platform limits
 3. The administrator changes one or more permitted settings
-4. The system validates the values and combinations
-5. The system saves the settings and records the change
+4. The system validates the values, combinations, organisation scope, and actor permissions
+5. The system saves and audits the valid changes
 6. The system displays the saved values and explains when they take effect
 
 **Alternative Flows**
 
-- An organisation administrator without edit permissions views the settings in read only mode
-- The organisation administrator discards unsaved changes and restores the saved values
-- The organisation administrator disables organisation enforcement so eligible users can use personal preferences
+- **Read-only viewing:** An Organisation Administrator without editing permissions views the effective settings without changing them
+- **Discard changes:** The Organisation Administrator discards unsaved changes and the system restores the saved values
+- **Disable enforcement:** An authorised Organisation Administrator disables organisation enforcement so eligible users can use personal preferences
 
 **Exception Flows**
 
@@ -646,9 +702,9 @@ The following use cases describe how users interact with the Insightful Phish sy
 
 ## `UC-12` Manage Personal Account and Security Settings
 
-**TUCBW** An authenticated user opens their personal account and security settings
+**TUCBW** An Authenticated User opens their personal account and security settings
 
-**TUCEW** The user acknowledges that the selected accounr or security action has completed successfully
+**TUCEW** The Authenticated User sees the resulting account, security, session, or preferences state after the selected action is completed
 
 **Use Case Diagram**
 
@@ -659,11 +715,21 @@ The following use cases describe how users interact with the Insightful Phish sy
 
 <details> <summary><strong>View more details about UC-12</strong></summary>
 
-**Trigger:** The authenticated user selects an account or security setting to manage
+**Trigger:** The Authenticated User selects a personal account or security management action
 
-**Primary Actor:** Authenticated user
+**Primary Actor:** Authenticated User
 
-**Supporting Actors:** Authentication and session service, Email service
+**Supporting Actors:** External Email Delivery Provider
+
+**Variants**
+
+- View account information
+- Update personal information
+- Change email address
+- Change password
+- View or revoke sessions
+- Manage session preferences
+- Request eligible account deletion or deactivation
 
 **Preconditions**
 
@@ -673,25 +739,27 @@ The following use cases describe how users interact with the Insightful Phish sy
 
 **Postconditions**
 
-- The selected valid account or security change is stored
-- Required notifications are sent
-- Sessions affected by a sensitive change are revoked
+- The selected valid account, security, session or preference change is reflected in the user's account
+- Required external notifications have been requested
+- Sessions affected by a sensitive change have been revoked
+- A completed deletion or deactivation request leaves the account in the applicable final state
 
 **Main Success Scenario**
 
-1. The user opens their account and security settings
-2. The system displays the account information, sessions and effective settings
-3. The user edits permitted personal information or security preferences
-4. The system validates the change against platform and organisation policies
-5. The system saves the valid change
-6. The system displays the updated account or security state
+1. The Authenticated User opens their account and security settings
+2. The system displays the user's account information, active sessions, and effective settings
+3. The user selects and completes a permitted account management action
+4. The system validates the action against the user's credentials and applicable platform and organisation policies
+5. The system applies the valid change and any required session or notification consequences
+6. The system displays the resulting account or security state
 
 **Alternative Flows**
 
-- The user requests and verifies an email address change
-- The user changes their password after confirming their current password
-- The user views and revokes one or more active sessions
-- The user updates personal session preferences where organisation policy permits it
+- **Update personal information:** The user changes their permitted name information
+- **Change email address:** The user requests and verifies a new email address
+- **Change password:** The user confirms their current password and supplies a valid new password
+- **Manage sessions:** The user views and revokes one or more sessions belonging to their account
+- **Delete or deactivate account:** An eligible user supplies their password and typed confirmation before requestion deletion or deactivation
 
 **Exception Flows**
 
@@ -699,6 +767,7 @@ The following use cases describe how users interact with the Insightful Phish sy
 - If organisation policy controls a setting, the system displays is as read only
 - If email verification fails or the new address becomes unavailable, the current email remains active
 - If the user targets another user's session, the system denies the action
+- If the user is ineligible for self service deletion or deactivation, the system rejects the request and leaves the account active
 
 </details>
 
