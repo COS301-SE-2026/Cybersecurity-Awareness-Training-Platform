@@ -777,13 +777,6 @@
           "closed_date": null
         },
         {
-          "number": 292,
-          "title": "feat: integrate account settings and session management",
-          "points": 2,
-          "state": "open",
-          "closed_date": null
-        },
-        {
           "number": 291,
           "title": "test: add backend account and security settings API integration coverage",
           "points": 3,
@@ -1206,6 +1199,13 @@
           "closed_date": "2026-07-19"
         },
         {
+          "number": 292,
+          "title": "feat: integrate account settings and session management",
+          "points": 2,
+          "state": "open",
+          "closed_date": null
+        },
+        {
           "number": 290,
           "title": "feat: implement backend account settings and user session endpoints",
           "points": 2,
@@ -1216,8 +1216,8 @@
           "number": 288,
           "title": "feat: integrate organisation security settings flow",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-07-25"
         },
         {
           "number": 286,
@@ -1817,7 +1817,7 @@
     },
     {
       "date": "2026-07-25",
-      "remaining": 66,
+      "remaining": 64,
       "ideal": 5.26
     }
   ]

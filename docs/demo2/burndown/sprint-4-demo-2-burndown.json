@@ -39,13 +39,6 @@
       "closed_date": null
     },
     {
-      "number": 292,
-      "title": "feat: integrate account settings and session management",
-      "points": 2,
-      "state": "open",
-      "closed_date": null
-    },
-    {
       "number": 291,
       "title": "test: add backend account and security settings API integration coverage",
       "points": 3,
@@ -413,122 +406,122 @@
   "series": [
     {
       "date": "2026-06-19",
-      "remaining": 129,
-      "ideal": 129.0
+      "remaining": 127,
+      "ideal": 127.0
     },
     {
       "date": "2026-06-20",
-      "remaining": 129,
-      "ideal": 123.39
+      "remaining": 127,
+      "ideal": 121.48
     },
     {
       "date": "2026-06-21",
-      "remaining": 129,
-      "ideal": 117.78
+      "remaining": 127,
+      "ideal": 115.96
     },
     {
       "date": "2026-06-22",
-      "remaining": 127,
-      "ideal": 112.17
+      "remaining": 125,
+      "ideal": 110.43
     },
     {
       "date": "2026-06-23",
-      "remaining": 115,
-      "ideal": 106.57
+      "remaining": 113,
+      "ideal": 104.91
     },
     {
       "date": "2026-06-24",
-      "remaining": 113,
-      "ideal": 100.96
+      "remaining": 111,
+      "ideal": 99.39
     },
     {
       "date": "2026-06-25",
-      "remaining": 109,
-      "ideal": 95.35
+      "remaining": 107,
+      "ideal": 93.87
     },
     {
       "date": "2026-06-26",
-      "remaining": 107,
-      "ideal": 89.74
+      "remaining": 105,
+      "ideal": 88.35
     },
     {
       "date": "2026-06-27",
-      "remaining": 107,
-      "ideal": 84.13
+      "remaining": 105,
+      "ideal": 82.83
     },
     {
       "date": "2026-06-28",
-      "remaining": 104,
-      "ideal": 78.52
+      "remaining": 102,
+      "ideal": 77.3
     },
     {
       "date": "2026-06-29",
-      "remaining": 96,
-      "ideal": 72.91
+      "remaining": 94,
+      "ideal": 71.78
     },
     {
       "date": "2026-06-30",
-      "remaining": 85,
-      "ideal": 67.3
+      "remaining": 83,
+      "ideal": 66.26
     },
     {
       "date": "2026-07-01",
-      "remaining": 71,
-      "ideal": 61.7
+      "remaining": 69,
+      "ideal": 60.74
     },
     {
       "date": "2026-07-02",
-      "remaining": 64,
-      "ideal": 56.09
+      "remaining": 62,
+      "ideal": 55.22
     },
     {
       "date": "2026-07-03",
-      "remaining": 62,
-      "ideal": 50.48
+      "remaining": 60,
+      "ideal": 49.7
     },
     {
       "date": "2026-07-04",
-      "remaining": 62,
-      "ideal": 44.87
+      "remaining": 60,
+      "ideal": 44.17
     },
     {
       "date": "2026-07-05",
-      "remaining": 62,
-      "ideal": 39.26
+      "remaining": 60,
+      "ideal": 38.65
     },
     {
       "date": "2026-07-06",
-      "remaining": 52,
-      "ideal": 33.65
+      "remaining": 50,
+      "ideal": 33.13
     },
     {
       "date": "2026-07-07",
-      "remaining": 50,
-      "ideal": 28.04
+      "remaining": 48,
+      "ideal": 27.61
     },
     {
       "date": "2026-07-08",
-      "remaining": 46,
-      "ideal": 22.43
+      "remaining": 44,
+      "ideal": 22.09
     },
     {
       "date": "2026-07-09",
-      "remaining": 46,
-      "ideal": 16.83
+      "remaining": 44,
+      "ideal": 16.57
     },
     {
       "date": "2026-07-10",
-      "remaining": 46,
-      "ideal": 11.22
+      "remaining": 44,
+      "ideal": 11.04
     },
     {
       "date": "2026-07-11",
-      "remaining": 46,
-      "ideal": 5.61
+      "remaining": 44,
+      "ideal": 5.52
     },
     {
       "date": "2026-07-12",
-      "remaining": 46,
+      "remaining": 44,
       "ideal": 0.0
     }
   ]

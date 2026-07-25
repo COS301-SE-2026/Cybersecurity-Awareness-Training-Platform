@@ -55,6 +55,13 @@
       "closed_date": "2026-07-19"
     },
     {
+      "number": 292,
+      "title": "feat: integrate account settings and session management",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
       "number": 290,
       "title": "feat: implement backend account settings and user session endpoints",
       "points": 2,
@@ -65,8 +72,8 @@
       "number": 288,
       "title": "feat: integrate organisation security settings flow",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-07-25"
     },
     {
       "number": 286,
@@ -219,68 +226,68 @@
   "series": [
     {
       "date": "2026-07-13",
-      "remaining": 69,
-      "ideal": 69.0
+      "remaining": 71,
+      "ideal": 71.0
     },
     {
       "date": "2026-07-14",
-      "remaining": 67,
-      "ideal": 63.69
+      "remaining": 69,
+      "ideal": 65.54
     },
     {
       "date": "2026-07-15",
-      "remaining": 67,
-      "ideal": 58.38
+      "remaining": 69,
+      "ideal": 60.08
     },
     {
       "date": "2026-07-16",
-      "remaining": 65,
-      "ideal": 53.08
+      "remaining": 67,
+      "ideal": 54.62
     },
     {
       "date": "2026-07-17",
-      "remaining": 65,
-      "ideal": 47.77
+      "remaining": 67,
+      "ideal": 49.15
     },
     {
       "date": "2026-07-18",
-      "remaining": 65,
-      "ideal": 42.46
+      "remaining": 67,
+      "ideal": 43.69
     },
     {
       "date": "2026-07-19",
-      "remaining": 62,
-      "ideal": 37.15
+      "remaining": 64,
+      "ideal": 38.23
     },
     {
       "date": "2026-07-20",
-      "remaining": 51,
-      "ideal": 31.85
+      "remaining": 53,
+      "ideal": 32.77
     },
     {
       "date": "2026-07-21",
-      "remaining": 49,
-      "ideal": 26.54
+      "remaining": 51,
+      "ideal": 27.31
     },
     {
       "date": "2026-07-22",
-      "remaining": 47,
-      "ideal": 21.23
+      "remaining": 49,
+      "ideal": 21.85
     },
     {
       "date": "2026-07-23",
-      "remaining": 42,
-      "ideal": 15.92
+      "remaining": 44,
+      "ideal": 16.38
     },
     {
       "date": "2026-07-24",
-      "remaining": 38,
-      "ideal": 10.62
+      "remaining": 40,
+      "ideal": 10.92
     },
     {
       "date": "2026-07-25",
       "remaining": 36,
-      "ideal": 5.31
+      "ideal": 5.46
     }
   ]
 }
