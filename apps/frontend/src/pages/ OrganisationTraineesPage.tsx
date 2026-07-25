@@ -2,7 +2,7 @@ import AppLayout from '../components/layout/AppLayout';
 import { Dropdown, DropdownItem } from 'flowbite-react';
 import { useState } from 'react';
 import BasicConfirmationModal from '../components/layout/modals/BasicConfirmationModal';
-import ReviewOrganisationRegistrationRequstModal from '../components/layout/modals/ReviewOrganisationRegistrationRequestModal';
+import InviteTraineeModal from '../components/layout/modals/InviteTraineeModal';
 
 interface Trainee {
   id: number;
@@ -129,17 +129,14 @@ function OrganisationTraineesPage() {
     return matchesSearch && matchesStatus && matchesRole;
   });
 
-  const [
-    showReviewOrganisationRegistrationRequestModal,
-    setShowReviewOrganisationRegistrationRequestModal,
-  ] = useState(false);
+  const [showInviteTraineeModal, setShowInviteTraineeModal] = useState(false);
 
-  const openReviewOrganisationRegistrationRequestModal = () => {
-    setShowReviewOrganisationRegistrationRequestModal(true);
+  const openInviteTraineeModal = () => {
+    setShowInviteTraineeModal(true);
   };
 
-  const closeReviewOrganisationRegistrationRequestModal = () => {
-    setShowReviewOrganisationRegistrationRequestModal(false);
+  const closeInviteTraineeModal = () => {
+    setShowInviteTraineeModal(false);
   };
 
   const openConfirmationModal = () => {
@@ -378,6 +375,7 @@ function OrganisationTraineesPage() {
                 {/* Add (Invite) Trainee Button */}
                 <button
                   type="button"
+                  onClick={openInviteTraineeModal}
                   className="cursor-pointer px-4 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm py-[0.425rem] focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   <span className="material-symbols-sharp">add_2</span>
@@ -388,7 +386,7 @@ function OrganisationTraineesPage() {
           </div>
 
           <h3 className="font-jost text-2xl text-dark-pink tracking-wider font-medium mb-3">
-            Organisations Trainees ({filteredTrainees.length})
+            Organisation Trainees ({filteredTrainees.length})
           </h3>
 
           {/* TABLE */}
@@ -565,12 +563,11 @@ function OrganisationTraineesPage() {
       )}
 
       {/* REVIEW ORGANISATION REGISTRATION REQUEST MODAL  */}
-      {showReviewOrganisationRegistrationRequestModal && (
-        <ReviewOrganisationRegistrationRequstModal
-          isOpen={showReviewOrganisationRegistrationRequestModal}
-          onClose={() => closeReviewOrganisationRegistrationRequestModal()}
-          // YOU WILL NEED TO ADD MORE PROPS SO THAT YOU CAN PASS TO THE MODAL ORG AND REP INFO FROM THE SELECTED OPTION
-        ></ReviewOrganisationRegistrationRequstModal>
+      {showInviteTraineeModal && (
+        <InviteTraineeModal
+          isOpen={showInviteTraineeModal}
+          onClose={() => closeInviteTraineeModal()}
+        ></InviteTraineeModal>
       )}
     </AppLayout>
   );
