@@ -43,10 +43,12 @@ export const accountRouter = Router();
  *         $ref: '#/components/responses/Forbidden'
  *       404:
  *         $ref: '#/components/responses/NotFound'
+ *       429:
+ *         $ref: '#/components/responses/AuthRateLimited'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-accountRouter.get('/account', requireAuth, asyncHandler(getAccountController));
+accountRouter.get('/account', authRateLimit, requireAuth, asyncHandler(getAccountController));
 
 /**
  * @openapi
@@ -70,11 +72,14 @@ accountRouter.get('/account', requireAuth, asyncHandler(getAccountController));
  *         $ref: '#/components/responses/NotFound'
  *       422:
  *         $ref: '#/components/responses/UnprocessableEntity'
+ *       429:
+ *         $ref: '#/components/responses/AuthRateLimited'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
 accountRouter.patch(
   '/account/profile',
+  authRateLimit,
   requireAuth,
   validateBody(accountProfileUpdateRequestSchema, { statusCode: 422 }),
   asyncHandler(updateAccountProfileController),
@@ -102,11 +107,14 @@ accountRouter.patch(
  *         $ref: '#/components/responses/Conflict'
  *       422:
  *         $ref: '#/components/responses/UnprocessableEntity'
+ *       429:
+ *         $ref: '#/components/responses/AuthRateLimited'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
 accountRouter.post(
   '/account/change-email',
+  authRateLimit,
   requireAuth,
   validateBody(accountChangeEmailRequestSchema, { statusCode: 422 }),
   asyncHandler(requestEmailChangeController),
@@ -134,11 +142,14 @@ accountRouter.post(
  *         $ref: '#/components/responses/NotFound'
  *       422:
  *         $ref: '#/components/responses/UnprocessableEntity'
+ *       429:
+ *         $ref: '#/components/responses/AuthRateLimited'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
 accountRouter.post(
   '/account/change-password',
+  authRateLimit,
   requireAuth,
   validateBody(accountChangePasswordRequestSchema, { statusCode: 422 }),
   asyncHandler(changePasswordController),
@@ -158,10 +169,17 @@ accountRouter.post(
  *         $ref: '#/components/responses/AccountSessionsOk'
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
+ *       429:
+ *         $ref: '#/components/responses/AuthRateLimited'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-accountRouter.get('/account/sessions', requireAuth, asyncHandler(listSessionsController));
+accountRouter.get(
+  '/account/sessions',
+  authRateLimit,
+  requireAuth,
+  asyncHandler(listSessionsController),
+);
 
 /**
  * @openapi
@@ -185,11 +203,14 @@ accountRouter.get('/account/sessions', requireAuth, asyncHandler(listSessionsCon
  *         $ref: '#/components/responses/NotFound'
  *       409:
  *         $ref: '#/components/responses/Conflict'
+ *       429:
+ *         $ref: '#/components/responses/AuthRateLimited'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
 accountRouter.delete(
   '/account/sessions/:sessionId',
+  authRateLimit,
   requireAuth,
   validateParams(accountSessionIdParamsSchema),
   asyncHandler(revokeSessionController),
@@ -209,11 +230,14 @@ accountRouter.delete(
  *         $ref: '#/components/responses/AccountOtherSessionsLoggedOut'
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
+ *       429:
+ *         $ref: '#/components/responses/AuthRateLimited'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
 accountRouter.post(
   '/account/sessions/logout-others',
+  authRateLimit,
   requireAuth,
   asyncHandler(logoutOtherSessionsController),
 );
@@ -240,11 +264,14 @@ accountRouter.post(
  *         $ref: '#/components/responses/NotFound'
  *       422:
  *         $ref: '#/components/responses/UnprocessableEntity'
+ *       429:
+ *         $ref: '#/components/responses/AuthRateLimited'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
 accountRouter.patch(
   '/account/security-preferences',
+  authRateLimit,
   requireAuth,
   validateBody(accountSecurityPreferencesRequestSchema, { statusCode: 422 }),
   asyncHandler(updateAccountSecurityPreferencesController),

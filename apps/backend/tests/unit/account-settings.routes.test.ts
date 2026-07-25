@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from 'express';
 import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../../src/app.js';
+import { clearAuthRateLimitStore } from '../../src/middleware/authRateLimit.js';
 
 const actorUserId = '11111111-1111-4111-8111-111111111111';
 const currentSessionId = '22222222-2222-4222-8222-222222222222';
@@ -116,6 +117,7 @@ function accountResponse() {
 describe('account settings routes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearAuthRateLimitStore();
   });
 
   it('returns account settings for the authenticated user', async () => {
