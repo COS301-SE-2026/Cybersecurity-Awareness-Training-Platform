@@ -6,6 +6,11 @@ import {
   approveOrganisationRequest,
   rejectOrganisationRequest,
   deleteOrganisationRequest,
+  listPlatformAdmins,
+  invitePlatformAdmin,
+  resendPlatformAdminInvite,
+  transferSuperAdmin,
+  demotePlatformAdmin,
 } from '../controllers/platform.controller.js';
 import {
   getPlatformOrganisationDetail,
@@ -25,6 +30,11 @@ import {
   getPlatformOrganisationParamsSchema,
   resendInitialAdminSetupParamsSchema,
   getOrganisationRequestDetailsParamsSchema,
+  platformAdminUserIdParamsSchema,
+  platformAdminInviteIdParamsSchema,
+  invitePlatformAdminRequestSchema,
+  transferSuperAdminRequestSchema,
+  demotePlatformAdminRequestSchema,
 } from '@insightful-phish/shared';
 
 export const platformRouter = Router();
@@ -481,4 +491,308 @@ platformRouter.post(
   '/platform/organisations/:organisationId/resend-initial-admin-setup',
   validateParams(resendInitialAdminSetupParamsSchema),
   asyncHandler(resendInitialAdminSetup),
+);
+
+/**
+ * @openapi
+ * /platform/admins:
+ *   get:
+ *     tags: [Platform Admins]
+ *     summary: List platform admins and allowed actions
+ *     description: Returns a list of platform admins including pending invites and upgrade confirmations, with row-level allowed actions.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of platform administrators
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 admins:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         format: uuid
+ *                       firstName:
+ *                         type: string
+ *                       lastName:
+ *                         type: string
+ *                       email:
+ *                         type: string
+ *                       platformAdminRole:
+ *                         type: string
+ *                         enum: [SUPER_ADMIN, NORMAL_ADMIN]
+ *                       adminStatus:
+ *                         type: string
+ *                         enum: [ACTIVE, DISABLED]
+ *                       authStatus:
+ *                         type: string
+ *                       invitationStatus:
+ *                         type: string
+ *                         enum: [PENDING, SENT, FAILED_TO_SEND, ACCEPTED, COMPLETED, EXPIRED, REVOKED, REJECTED, PENDING_UPGRADE]
+ *                         nullable: true
+ *                       inviteId:
+ *                         type: string
+ *                         format: uuid
+ *                         nullable: true
+ *                       allowedActions:
+ *                         type: object
+ *                         properties:
+ *                           canTransferSuperAdmin:
+ *                             type: boolean
+ *                           canDemote:
+ *                             type: boolean
+ *                           canResendInvite:
+ *                             type: boolean
+ *                 allowedToInvite:
+ *                   type: boolean
+ *                 allowedToTransfer:
+ *                   type: boolean
+ *                 allowedToDemote:
+ *                   type: boolean
+ *                 allowedToResendInvites:
+ *                   type: boolean
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+platformRouter.get('/platform/admins', asyncHandler(listPlatformAdmins));
+
+/**
+ * @openapi
+ * /platform/admin-invitations:
+ *   post:
+ *     tags: [Platform Admins]
+ *     summary: Invite a new platform admin or request trainee upgrade
+ *     description: Invites a new platform administrator or requests upgrade of an existing trainee account.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               firstName:
+ *                 type: string
+ *               lastName:
+ *                 type: string
+ *               confirmUpgrade:
+ *                 type: boolean
+ *     responses:
+ *       201:
+ *         description: Invitation sent successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 type:
+ *                   type: string
+ *                   enum: [new-invite, upgrade-confirmation]
+ *                 userId:
+ *                   type: string
+ *                   format: uuid
+ *                 email:
+ *                   type: string
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ *       422:
+ *         $ref: '#/components/responses/UnprocessableEntity'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+platformRouter.post(
+  '/platform/admin-invitations',
+  validateBody(invitePlatformAdminRequestSchema, { statusCode: 422 }),
+  asyncHandler(invitePlatformAdmin),
+);
+
+/**
+ * @openapi
+ * /platform/admin-invitations/{id}/resend:
+ *   post:
+ *     tags: [Platform Admins]
+ *     summary: Resend platform admin invite
+ *     description: Revokes the old invite token and issues a new platform admin invitation or upgrade email.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: The action token ID of the invitation to resend
+ *     responses:
+ *       200:
+ *         description: Invitation resent successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 emailQueued:
+ *                   type: boolean
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+platformRouter.post(
+  '/platform/admin-invitations/:id/resend',
+  validateParams(platformAdminInviteIdParamsSchema),
+  asyncHandler(resendPlatformAdminInvite),
+);
+
+/**
+ * @openapi
+ * /platform/admins/transfer-super-admin:
+ *   post:
+ *     tags: [Platform Admins]
+ *     summary: Transfer super admin role
+ *     description: Swaps the super admin role of the current actor user to the target user.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [targetUserId, password, confirmation]
+ *             properties:
+ *               targetUserId:
+ *                 type: string
+ *                 format: uuid
+ *               password:
+ *                 type: string
+ *               confirmation:
+ *                 type: string
+ *                 enum: [TRANSFER]
+ *     responses:
+ *       200:
+ *         description: Role transfer completed. Returns updated actor user context.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AuthMeResponse'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ *       422:
+ *         $ref: '#/components/responses/UnprocessableEntity'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+platformRouter.post(
+  '/platform/admins/transfer-super-admin',
+  validateBody(transferSuperAdminRequestSchema, { statusCode: 422 }),
+  asyncHandler(transferSuperAdmin),
+);
+
+/**
+ * @openapi
+ * /platform/admins/{userId}/demote:
+ *   post:
+ *     tags: [Platform Admins]
+ *     summary: Demote a normal platform admin
+ *     description: Disables the target normal platform admin, revoking all active sessions.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: The user ID of the platform admin to demote
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [password, confirmation]
+ *             properties:
+ *               password:
+ *                 type: string
+ *               confirmation:
+ *                 type: string
+ *                 enum: [DEMOTE]
+ *     responses:
+ *       200:
+ *         description: Platform admin successfully demoted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 userId:
+ *                   type: string
+ *                   format: uuid
+ *                 email:
+ *                   type: string
+ *                 adminStatus:
+ *                   type: string
+ *                 authStatus:
+ *                   type: string
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ *       422:
+ *         $ref: '#/components/responses/UnprocessableEntity'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+platformRouter.post(
+  '/platform/admins/:userId/demote',
+  validateParams(platformAdminUserIdParamsSchema),
+  validateBody(demotePlatformAdminRequestSchema, { statusCode: 422 }),
+  asyncHandler(demotePlatformAdmin),
 );

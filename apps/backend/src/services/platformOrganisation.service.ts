@@ -1,7 +1,11 @@
 import { prisma } from '../lib/prisma.js';
 import * as OrganisationRepository from '../repositories/organisation.repository.js';
 import { recordAuditLog } from './audit-log.service.js';
-import { requestAuthEmailSend } from './auth-email-hook.service.js';
+import {
+  requestAuthEmailSend,
+  shouldRevokeTokenForAuthEmailResult,
+} from './auth-email-hook.service.js';
+import { recordNotificationFailureEvent } from './notification-failure-event.service.js';
 import { issueActionToken } from './action-token.service.js';
 import {
   OrganisationRegistrationRequestError,
@@ -235,15 +239,29 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
     // Atomic claim: update the invitation only if it is still in an eligible state.
     // A concurrent resend that already updated the invitation will cause this to match 0 rows,
     // which means we lost the race -- return a stable 409 without revoking the winning token.
+    const invitationTx = await OrganisationRepository.findSetupInvitationAndEmailLog(
+      {
+        organisationId,
+      },
+      tx,
+    );
+    if (!invitationTx) {
+      throw new OrganisationRegistrationRequestError(
+        404,
+        'SETUP_INVITATION_NOT_FOUND',
+        'Initial admin setup invitation not found',
+      );
+    }
+
     const latestEmailLogTx = await tx.emailDeliveryLog.findFirst({
       where: {
-        invitationId: invitation.id,
+        invitationId: invitationTx.id,
         emailType: 'INITIAL_ORGANISATION_ADMIN_SETUP',
       },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
     });
 
-    const eligibilityTx = getResendEligibility(organisation.status, invitation, latestEmailLogTx);
+    const eligibilityTx = getResendEligibility(organisation.status, invitationTx, latestEmailLogTx);
     if (!eligibilityTx.isEligible) {
       throw new OrganisationRegistrationRequestError(
         409,
@@ -256,9 +274,9 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
     // past the value we read outside, the WHERE won't match and count will be 0.
     const claimResult = await tx.invitation.updateMany({
       where: {
-        id: invitation.id,
-        status: invitation.status,
-        updatedAt: invitation.updatedAt,
+        id: invitationTx.id,
+        status: invitationTx.status,
+        updatedAt: invitationTx.updatedAt,
       },
       data: {
         status: 'PENDING',
@@ -278,7 +296,7 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
     // Revoke any existing active action tokens for this invitation
     await tx.actionToken.updateMany({
       where: {
-        invitationId: invitation.id,
+        invitationId: invitationTx.id,
         usedAt: null,
         revokedAt: null,
       },
@@ -293,10 +311,10 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
       {
         purpose: 'INITIAL_ORGANISATION_ADMIN_SETUP',
         expiresAt: newExpiresAt,
-        targetEmail: invitation.recipientEmail,
-        invitationId: invitation.id,
+        targetEmail: invitationTx.recipientEmail,
+        invitationId: invitationTx.id,
         organisationRegistrationRequestId:
-          invitation.organisationRegistrationRequestId ?? undefined,
+          invitationTx.organisationRegistrationRequestId ?? undefined,
       },
       tx,
     );
@@ -307,7 +325,7 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
         actorUserId,
         actorType: 'IP_ADMIN',
         targetType: 'INVITATION',
-        targetId: invitation.id,
+        targetId: invitationTx.id,
         actionType: 'RESENT',
         outcome: 'SUCCESS',
         organisationId: organisation.id,
@@ -317,49 +335,45 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
 
     return {
       actionToken: actionTokenResult,
+      invitation: invitationTx,
     };
   });
 
   // Send the setup email OUTSIDE the transaction so a DB write failure on delivery log
   // does not incorrectly surface as a provider send failure.
   //
-  // requestAuthEmailSend returns a discriminated union:
-  //   { queued: true,  deliveryLogId }                              -- provider accepted the send
-  //   { queued: false, reason: 'EMAIL_SEND_FAILED', deliveryLogId? } -- SMTP failed or threw
-  //
-  // queued:false is ONLY set when sendViaSMTP threw or returned an error -- there is no path
-  // in the email hook where a provider-accepted message returns queued:false. Revoking the
-  // token when queued:false is therefore safe and unambiguous.
-  let providerAccepted: boolean;
+  // requestAuthEmailSend distinguishes provider rejection from provider acceptance followed by
+  // persistence failure. Do not revoke a token for ACCEPTED_PERSISTENCE_FAILED or an unexpected
+  // hook failure because the provider acceptance state is not a definite rejection.
+  let shouldRevokeIssuedToken: boolean;
+  let emailQueued: boolean;
 
   try {
     const emailResult = await requestAuthEmailSend({
       emailType: 'INITIAL_ORGANISATION_ADMIN_SETUP',
-      recipientEmail: invitation.recipientEmail,
+      recipientEmail: result.invitation.recipientEmail,
       organisationId: organisation.id,
-      invitationId: invitation.id,
+      invitationId: result.invitation.id,
       actionTokenId: result.actionToken.token.id,
-      organisationRegistrationRequestId: invitation.organisationRegistrationRequestId ?? undefined,
+      organisationRegistrationRequestId:
+        result.invitation.organisationRegistrationRequestId ?? undefined,
       templateData: {
-        firstName: invitation.recipientFirstName ?? '',
+        firstName: result.invitation.recipientFirstName ?? '',
         organisationName: organisation.name,
         actionToken: result.actionToken.rawToken,
         actionTokenExpiresAt: result.actionToken.token.expiresAt,
       },
     });
 
-    // Explicitly check the queued discriminant -- not just the boolean shape -- so that
-    // the contract is visible and any future union branch will require explicit handling.
-    providerAccepted = emailResult.queued === true;
+    shouldRevokeIssuedToken = shouldRevokeTokenForAuthEmailResult(emailResult);
+    emailQueued = emailResult.queued;
   } catch {
-    // requestAuthEmailSend itself catches SMTP errors internally; this outer catch handles
-    // unexpected render/hook failures before the SMTP call was even attempted.
-    providerAccepted = false;
+    shouldRevokeIssuedToken = false;
+    emailQueued = false;
+    await recordNotificationFailureEvent('EMAIL_HOOK_UNEXPECTED_FAILURE');
   }
 
-  const emailQueued = providerAccepted;
-
-  if (!providerAccepted) {
+  if (shouldRevokeIssuedToken) {
     // Only revoke the token when we know for certain the email was NOT accepted for delivery.
     // This prevents invalidating a link already in the recipient's inbox due to a DB
     // persistence failure that happened AFTER the provider accepted the message.
@@ -375,7 +389,7 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
       actorUserId,
       actorType: 'IP_ADMIN',
       targetType: 'INVITATION',
-      targetId: invitation.id,
+      targetId: result.invitation.id,
       actionType: 'RESENT',
       outcome: 'FAILURE',
       organisationId: organisation.id,
@@ -397,6 +411,61 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
   };
 }
 
+type PlatformTimelineEvent = {
+  id: string;
+  type: 'AUDIT_LOG' | 'EMAIL_DELIVERY';
+  timestamp: string;
+  action: string;
+  summary: string;
+  actor: string | null;
+  outcome: string | null;
+  metadata: null;
+};
+
+type InternalPlatformTimelineEvent = PlatformTimelineEvent & {
+  timelineSequence: number;
+};
+
+function auditTimelineSequence(log: { actionType: string; targetType: string }) {
+  if (log.targetType === 'ORGANISATION_REGISTRATION_REQUEST') {
+    if (log.actionType === 'CREATED') return 10;
+    if (log.actionType === 'CONTACTED') return 20;
+    if (log.actionType === 'APPROVED' || log.actionType === 'REJECTED') return 30;
+  }
+
+  if (log.targetType === 'INVITATION') {
+    if (
+      log.actionType === 'CREATED' ||
+      log.actionType === 'RESENT' ||
+      log.actionType === 'ACCEPTED'
+    ) {
+      return 40;
+    }
+    if (log.actionType === 'COMPLETED') return 50;
+  }
+
+  if (log.targetType === 'ORGANISATION') {
+    if (log.actionType === 'CREATED') return 35;
+    if (log.actionType === 'ENABLED') return 60;
+    if (log.actionType === 'SUSPENDED' || log.actionType === 'REACTIVATED') return 70;
+  }
+
+  return 90;
+}
+
+function publicTimelineEvent(event: InternalPlatformTimelineEvent): PlatformTimelineEvent {
+  return {
+    id: event.id,
+    type: event.type,
+    timestamp: event.timestamp,
+    action: event.action,
+    summary: event.summary,
+    actor: event.actor,
+    outcome: event.outcome,
+    metadata: event.metadata,
+  };
+}
+
 async function buildPlatformTimeline(
   organisationId: string | null,
   requestId: string | null,
@@ -412,16 +481,7 @@ async function buildPlatformTimeline(
   // Email logs scoped to the authoritative initial-admin invitation only.
   const emailLogs = await OrganisationRepository.findEmailLogsForTimeline(invitationId);
 
-  const timeline: Array<{
-    id: string;
-    type: 'AUDIT_LOG' | 'EMAIL_DELIVERY';
-    timestamp: string;
-    action: string;
-    summary: string;
-    actor: string | null;
-    outcome: string | null;
-    metadata: null;
-  }> = [];
+  const timeline: InternalPlatformTimelineEvent[] = [];
 
   for (const log of auditLogs) {
     // Actor name uses firstName + lastName only -- no email fallback to avoid leaking addresses.
@@ -439,6 +499,7 @@ async function buildPlatformTimeline(
       actor: actorName,
       outcome: log.outcome,
       metadata: null,
+      timelineSequence: auditTimelineSequence(log),
     });
   }
 
@@ -453,19 +514,21 @@ async function buildPlatformTimeline(
       actor: 'System',
       outcome: log.deliveryStatus,
       metadata: null,
+      timelineSequence: 40,
     });
   }
 
   timeline.sort((a, b) => {
     const timeDiff = new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
     if (timeDiff !== 0) return timeDiff;
-    // Secondary sort by id DESC for determinism when timestamps are equal
+    const sequenceDiff = b.timelineSequence - a.timelineSequence;
+    if (sequenceDiff !== 0) return sequenceDiff;
     if (b.id > a.id) return 1;
     if (b.id < a.id) return -1;
     return 0;
   });
 
-  return timeline;
+  return timeline.map(publicTimelineEvent);
 }
 
 /**

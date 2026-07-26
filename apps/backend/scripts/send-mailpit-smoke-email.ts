@@ -33,12 +33,15 @@ const result = await sendEmail({
 console.log(
   JSON.stringify(
     {
-      ok: result.ok,
+      ok: result.acceptedByProvider,
+      status: result.status,
       recipientEmail,
       actionTokenId: actionToken.id,
       deliveryLogId: result.deliveryLogId,
       mailpitUi: 'http://localhost:8025',
-      ...(result.ok ? { messageId: result.messageId } : { error: result.error }),
+      ...(result.acceptedByProvider
+        ? { messageId: result.providerMessageId }
+        : { error: result.failureReason }),
     },
     null,
     2,
@@ -49,6 +52,6 @@ console.log('Open Mailpit to inspect the email: http://localhost:8025 (should wo
 
 await prisma.$disconnect();
 
-if (!result.ok) {
+if (!result.acceptedByProvider) {
   process.exitCode = 1;
 }

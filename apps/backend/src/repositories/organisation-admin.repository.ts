@@ -4,6 +4,8 @@ import type {
   Prisma,
   PrismaClient,
 } from '../generated/prisma/client.js';
+import { ACTIVE_INVITATION_STATUSES } from '../services/invitation-state-policy.js';
+
 import { prisma } from '../lib/prisma.js';
 
 type OrganisationAdminClient = PrismaClient | Prisma.TransactionClient;
@@ -166,7 +168,7 @@ export function findPendingOrganisationAdminPromotionInvitation(
       targetUserId: input.targetUserId,
       purpose: 'ORGANISATION_ADMIN_PROMOTION',
       status: {
-        in: ['PENDING', 'SENT', 'FAILED_TO_SEND'],
+        in: [...ACTIVE_INVITATION_STATUSES],
       },
       revokedAt: null,
     },

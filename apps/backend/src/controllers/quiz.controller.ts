@@ -38,7 +38,7 @@ function handleError(res: Response, error: unknown) {
 async function withTraineeProfile(
   req: Request,
   res: Response,
-  fn: (traineeProfileId: string) => Promise<any>,
+  fn: (traineeProfileId: string) => Promise<unknown>,
   successStatus = 200,
 ) {
   try {

@@ -51,9 +51,10 @@ describe('Backend Guardrails & Consistency Middleware', () => {
     it('should catch errors and return JSON ApiErrorResponse for client-side errors with raw message', async () => {
       const app = express();
       app.get('/error', (req, res, next) => {
-        const err: any = new Error('Validation failed');
-        err.status = 400;
-        err.error = 'VALIDATION_ERROR';
+        const err = Object.assign(new Error('Validation failed'), {
+          status: 400,
+          error: 'VALIDATION_ERROR',
+        });
         next(err);
       });
       app.use(errorHandler);

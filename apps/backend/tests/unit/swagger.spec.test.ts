@@ -38,6 +38,21 @@ const expectedSchemas = [
   'AuthResendVerificationResponse',
   'AuthVerifyEmailRequest',
   'AuthVerifyEmailResponse',
+  'AccountProfileUpdateRequest',
+  'AccountChangeEmailRequest',
+  'AccountChangeEmailResponse',
+  'AccountChangePasswordRequest',
+  'AccountChangePasswordResponse',
+  'AccountProfile',
+  'AccountSecurityPreferences',
+  'AccountSecurityPreferencesRequest',
+  'AccountPolicy',
+  'AccountCapabilities',
+  'AccountResponse',
+  'AccountSession',
+  'AccountSessionsResponse',
+  'AccountSessionRevocationResponse',
+  'AccountLogoutOthersResponse',
   'AccountVerifyEmailChangeRequest',
   'AccountVerifyEmailChangeResponse',
   'AuthForgotPasswordRequest',
@@ -128,6 +143,22 @@ const expectedSchemas = [
   'QuestionType',
   'QuizAttemptStatus',
   'QuizStatus',
+  'InvitationStatus',
+  'InvitationType',
+  'InvitationRoleGranted',
+  'InvitationContextResponse',
+  'InvitationAcceptRequest',
+  'InvitationAcceptResponse',
+  'InvitationRejectRequest',
+  'InvitationRejectResponse',
+  'TraineeListItem',
+  'TraineeListResponse',
+  'CreateTraineeInvitationRequest',
+  'CreateTraineeInvitationResponse',
+  'InvitationResendResponse',
+  'InvitationRevokeResponse',
+  'DisableTraineeRequest',
+  'DisableTraineeResponse',
 ] as const;
 
 const expectedResponses = [
@@ -139,6 +170,20 @@ const expectedResponses = [
   'UnprocessableEntity',
   'TooManyRequests',
   'InternalServerError',
+  'InvitationContextOk',
+  'InvitationAcceptOk',
+  'InvitationRejectOk',
+  'AccountOk',
+  'AccountChangeEmailRequested',
+  'AccountPasswordChanged',
+  'AccountSessionsOk',
+  'AccountSessionRevoked',
+  'AccountOtherSessionsLoggedOut',
+  'OrganisationTraineesOk',
+  'OrganisationTraineeInvitationCreated',
+  'OrganisationTraineeInvitationResent',
+  'OrganisationTraineeInvitationRevoked',
+  'OrganisationTraineeDisabled',
 ] as const;
 
 const expectedParameters = [
@@ -147,6 +192,10 @@ const expectedParameters = [
   'EmailIdPathParam',
   'AttemptIdPathParam',
   'SetupTokenPathParam',
+  'InvitationTokenPathParam',
+  'AccountSessionIdPathParam',
+  'TraineeIdPathParam',
+  'InvitationIdPathParam',
 ] as const;
 
 const expectedRequestBodies = [
@@ -162,9 +211,17 @@ const expectedRequestBodies = [
   'RejectOrganisationRequest',
   'AuthVerifyEmail',
   'AccountVerifyEmailChange',
+  'AccountProfileUpdate',
+  'AccountChangeEmail',
+  'AccountChangePassword',
+  'AccountSecurityPreferences',
   'AuthForgotPassword',
   'AuthResetPassword',
   'OrganisationSecuritySettingsUpdate',
+  'InvitationAccept',
+  'InvitationReject',
+  'CreateTraineeInvitation',
+  'DisableTrainee',
 ] as const;
 
 const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
@@ -176,6 +233,14 @@ const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
   ['post', '/auth/refresh', ['200', '401', '403', '429', '500']],
   ['post', '/auth/resend-verification', ['200', '400', '429', '500']],
   ['post', '/auth/verify-email', ['200', '400', '429', '500']],
+  ['get', '/account', ['200', '401', '403', '404', '500']],
+  ['patch', '/account/profile', ['200', '401', '403', '404', '422', '500']],
+  ['post', '/account/change-email', ['200', '401', '403', '409', '422', '500']],
+  ['post', '/account/change-password', ['200', '401', '403', '404', '422', '500']],
+  ['get', '/account/sessions', ['200', '401', '500']],
+  ['delete', '/account/sessions/{sessionId}', ['200', '400', '401', '404', '409', '500']],
+  ['post', '/account/sessions/logout-others', ['200', '401', '500']],
+  ['patch', '/account/security-preferences', ['200', '401', '403', '404', '422', '500']],
   ['post', '/account/verify-email-change', ['200', '400', '409', '429', '500']],
   ['post', '/auth/forgot-password', ['200', '400', '429', '500']],
   ['post', '/auth/reset-password', ['200', '400', '401', '403', '409', '422', '429', '500']],
@@ -183,6 +248,9 @@ const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
   ['post', '/auth/tokens/{token}/resend', ['200', '400', '429', '500']],
   ['get', '/setup/token/{token}/context', ['200', '400', '401', '409', '429', '500']],
   ['post', '/setup/token/{token}/complete', ['201', '400', '401', '409', '429', '500']],
+  ['get', '/invitations/token/{token}/context', ['200', '400', '401', '403', '409', '429', '500']],
+  ['post', '/invitations/token/{token}/accept', ['200', '400', '401', '403', '409', '429', '500']],
+  ['post', '/invitations/token/{token}/reject', ['200', '400', '401', '403', '409', '429', '500']],
   ['post', '/organisation-registration-requests', ['201', '409', '422', '429', '500']],
   ['get', '/platform/organisation-requests', ['200', '400', '401', '403', '429', '500']],
   [
@@ -221,6 +289,23 @@ const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
     '/platform/organisations/{organisationId}/resend-initial-admin-setup',
     ['200', '401', '403', '404', '409', '429', '500'],
   ],
+  ['get', '/platform/admins', ['200', '401', '403', '429', '500']],
+  ['post', '/platform/admin-invitations', ['201', '401', '403', '409', '422', '429', '500']],
+  [
+    'post',
+    '/platform/admin-invitations/{id}/resend',
+    ['200', '401', '403', '404', '409', '429', '500'],
+  ],
+  [
+    'post',
+    '/platform/admins/transfer-super-admin',
+    ['200', '401', '403', '409', '422', '429', '500'],
+  ],
+  [
+    'post',
+    '/platform/admins/{userId}/demote',
+    ['200', '401', '403', '404', '409', '422', '429', '500'],
+  ],
   ['get', '/organisations/{organisationId}/admins', ['200', '400', '401', '403', '429', '500']],
   [
     'post',
@@ -245,6 +330,27 @@ const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
   [
     'patch',
     '/organisations/{organisationId}/security-settings',
+    ['200', '400', '401', '403', '404', '409', '422', '429', '500'],
+  ],
+  ['get', '/organisations/{organisationId}/trainees', ['200', '400', '401', '403', '429', '500']],
+  [
+    'post',
+    '/organisations/{organisationId}/trainee-invitations',
+    ['201', '400', '401', '403', '409', '422', '429', '500'],
+  ],
+  [
+    'post',
+    '/organisations/{organisationId}/trainee-invitations/{invitationId}/resend',
+    ['200', '400', '401', '403', '404', '409', '429', '500'],
+  ],
+  [
+    'post',
+    '/organisations/{organisationId}/trainee-invitations/{invitationId}/revoke',
+    ['200', '400', '401', '403', '404', '409', '429', '500'],
+  ],
+  [
+    'patch',
+    '/organisations/{organisationId}/trainees/{traineeId}/disable',
     ['200', '400', '401', '403', '404', '409', '422', '429', '500'],
   ],
   ['get', '/trainee/campaigns', ['200', '401', '429', '500']],
@@ -364,7 +470,7 @@ describe('swaggerSpec', () => {
 
   it.each(expectedParameters)('includes reusable UUID parameter %s', (parameterName) => {
     expect(spec.components?.parameters).toHaveProperty(parameterName);
-    if (parameterName !== 'SetupTokenPathParam') {
+    if (parameterName !== 'SetupTokenPathParam' && parameterName !== 'InvitationTokenPathParam') {
       expect(JSON.stringify(spec.components?.parameters?.[parameterName])).toContain('"uuid"');
     }
   });
@@ -400,6 +506,22 @@ describe('swaggerSpec', () => {
     );
   });
 
+  it('documents invitation endpoints as public or token-authorized flows with full error shapes', () => {
+    expectPathExists('/invitations/token/{token}/context', 'get');
+    expectPathExists('/invitations/token/{token}/accept', 'post');
+    expectPathExists('/invitations/token/{token}/reject', 'post');
+
+    expect(JSON.stringify(getPath('/invitations/token/{token}/context', 'get'))).toContain(
+      '"security":[]',
+    );
+    expect(JSON.stringify(getPath('/invitations/token/{token}/accept', 'post'))).toContain(
+      '"security":[{"bearerAuth":[]}]',
+    );
+    expect(JSON.stringify(getPath('/invitations/token/{token}/reject', 'post'))).toContain(
+      '"security":[]',
+    );
+  });
+
   it('documents organisation registration request submission as public', () => {
     expectPathExists('/organisation-registration-requests', 'post');
 
@@ -424,6 +546,83 @@ describe('swaggerSpec', () => {
     expect(responseSchema).toContain('platformLimits');
     expect(responseSchema).toContain('capabilities');
     expect(updateRequest).toContain('OrganisationSecuritySettingsUpdateRequest');
+  });
+
+  it('documents organisation trainee routes with bearer auth and schemas', () => {
+    expectBearerAuth('/organisations/{organisationId}/trainees', 'get');
+    expectBearerAuth('/organisations/{organisationId}/trainee-invitations', 'post');
+    expectBearerAuth(
+      '/organisations/{organisationId}/trainee-invitations/{invitationId}/resend',
+      'post',
+    );
+    expectBearerAuth(
+      '/organisations/{organisationId}/trainee-invitations/{invitationId}/revoke',
+      'post',
+    );
+    expectBearerAuth('/organisations/{organisationId}/trainees/{traineeId}/disable', 'patch');
+  });
+
+  it('documents the discriminated trainee row variants with their required lifecycle fields', () => {
+    const traineeListItem = spec.components?.schemas?.TraineeListItem as {
+      required?: string[];
+      properties?: Record<string, { enum?: string[]; nullable?: boolean; type?: string }>;
+    };
+
+    expect(traineeListItem).toBeDefined();
+    expect(traineeListItem.required).toEqual(
+      expect.arrayContaining(['id', 'rowType', 'type', 'email', 'status', 'eligibility']),
+    );
+    expect(traineeListItem.properties?.rowType?.enum).toEqual(['ACTIVE_TRAINEE', 'INVITATION']);
+    expect(traineeListItem.properties?.invitationStatus?.enum).toEqual([
+      'PENDING',
+      'SENT',
+      'FAILED_TO_SEND',
+      'ACCEPTED',
+      'COMPLETED',
+      'EXPIRED',
+      'REVOKED',
+      'REJECTED',
+    ]);
+    expect(traineeListItem.properties?.status?.enum).toEqual([
+      'ACTIVE',
+      'DISABLED',
+      'INVITE_PENDING',
+      'INVITE_FAILED',
+      'INVITE_EXPIRED',
+      'INVITE_REJECTED',
+      'INVITE_REVOKED',
+      'INVITE_ACCEPTED',
+      'INVITE_COMPLETED',
+    ]);
+    expect(traineeListItem.properties?.emailDeliveryStatus?.enum).toEqual([
+      'PENDING',
+      'SENT',
+      'FAILED',
+      'UNKNOWN',
+    ]);
+  });
+
+  it('documents trainee list and invitation responses using the same row component', () => {
+    const listResponse = JSON.stringify(spec.components?.schemas?.TraineeListResponse);
+    const createResponse = JSON.stringify(
+      spec.components?.schemas?.CreateTraineeInvitationResponse,
+    );
+    const resendResponse = JSON.stringify(spec.components?.schemas?.InvitationResendResponse);
+
+    expect(listResponse).toContain('invitations');
+    expect(listResponse).toContain('TraineeListItem');
+    expect(createResponse).toContain('TraineeListItem');
+    expect(resendResponse).toContain('TraineeListItem');
+  });
+
+  it('documents pending organisation admin promotion responses', () => {
+    const promotionResponse = JSON.stringify(
+      spec.components?.schemas?.OrganisationAdminPromotionResponse,
+    );
+
+    expect(promotionResponse).toContain('PENDING');
+    expect(promotionResponse).toContain('SENT');
+    expect(promotionResponse).toContain('FAILED_TO_SEND');
   });
 
   it.each(inactiveRouteDocs)('does not document inactive route %s', (path) => {
@@ -544,6 +743,101 @@ describe('swaggerSpec', () => {
     expect(rejectDoc?.requestBody).toHaveProperty(
       '$ref',
       '#/components/requestBodies/RejectOrganisationRequest',
+    );
+  });
+
+  it('verifies property parity for InvitationContextResponse, InvitationAcceptResponse, and TraineeListItem schemas', () => {
+    const contextSchema = spec.components?.schemas?.InvitationContextResponse as
+      | { properties?: Record<string, unknown> }
+      | undefined;
+    expect(contextSchema?.properties).toHaveProperty('requiredAction');
+    expect(contextSchema?.properties).toHaveProperty('rejectAllowed');
+    expect(contextSchema?.properties).toHaveProperty('status');
+    expect(contextSchema?.properties).toHaveProperty('permissions');
+
+    const acceptSchema = spec.components?.schemas?.InvitationAcceptResponse as
+      | { properties?: Record<string, unknown> }
+      | undefined;
+    expect(acceptSchema?.properties).toHaveProperty('roleGranted');
+    expect(acceptSchema?.properties).toHaveProperty('organisationId');
+    expect(acceptSchema?.properties).toHaveProperty('sessionOutcome');
+
+    const traineeSchema = spec.components?.schemas?.TraineeListItem as
+      | { properties?: Record<string, unknown> }
+      | undefined;
+    expect(traineeSchema?.properties).toHaveProperty('id');
+    expect(traineeSchema?.properties).toHaveProperty('traineeProfileId');
+    expect(traineeSchema?.properties).toHaveProperty('userId');
+    expect(traineeSchema?.properties).toHaveProperty('invitationId');
+    expect(traineeSchema?.properties).toHaveProperty('createdAt');
+    expect(traineeSchema?.properties).toHaveProperty('eligibility');
+  });
+
+  it('verifies platform organisation lifecycle contracts in OpenAPI components', () => {
+    const resendEligibility = spec.components?.schemas?.OrganisationResendEligibility as {
+      required?: string[];
+      properties?: {
+        reason?: {
+          type?: string;
+          nullable?: boolean;
+          enum?: Array<string | null>;
+        };
+      };
+    };
+    expect(resendEligibility).toBeDefined();
+    expect(resendEligibility.properties?.reason?.nullable).toBe(true);
+    expect(resendEligibility.properties?.reason?.enum).toEqual([
+      'ORGANISATION_NOT_ONBOARDING',
+      'INVITATION_NOT_ELIGIBLE',
+      'SETUP_ALREADY_COMPLETED',
+      'ACTIVE_SETUP_TOKEN_EXISTS',
+      'SETUP_TOKEN_EXPIRED',
+      'SETUP_EMAIL_FAILED',
+      'CONCURRENT_RESEND_IN_PROGRESS',
+      null,
+    ]);
+
+    const timelineEntry = spec.components?.schemas?.PlatformTimelineEntry as {
+      required?: string[];
+      properties?: {
+        metadata?: {
+          type?: string;
+          nullable?: boolean;
+          enum?: Array<null | string>;
+        };
+      };
+    };
+    expect(timelineEntry).toBeDefined();
+    expect(timelineEntry.properties?.metadata?.nullable).toBe(true);
+    expect(timelineEntry.properties?.metadata?.enum).toEqual([null]);
+
+    const setupStatus = spec.components?.schemas?.OrganisationInitialSetupStatus as {
+      required?: string[];
+      properties?: {
+        latestActionToken?: {
+          required?: string[];
+        };
+        latestEmailDelivery?: {
+          required?: string[];
+        };
+      };
+    };
+    expect(setupStatus).toBeDefined();
+    expect(setupStatus.required).toEqual(
+      expect.arrayContaining([
+        'id',
+        'status',
+        'recipientEmail',
+        'expiresAt',
+        'latestActionToken',
+        'latestEmailDelivery',
+      ]),
+    );
+    expect(setupStatus.properties?.latestActionToken?.required).toEqual(
+      expect.arrayContaining(['id', 'expiresAt', 'usedAt', 'revokedAt', 'status']),
+    );
+    expect(setupStatus.properties?.latestEmailDelivery?.required).toEqual(
+      expect.arrayContaining(['id', 'deliveryStatus', 'sentAt', 'failedAt', 'failureReason']),
     );
   });
 });
