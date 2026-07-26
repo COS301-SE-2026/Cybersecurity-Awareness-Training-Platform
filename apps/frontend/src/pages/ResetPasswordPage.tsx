@@ -20,8 +20,8 @@ const CONTEXT_ERROR_MESSAGE =
 const RATE_LIMIT_MESSAGE = 'Please wait before trying to reset your password again.';
 const GENERIC_ERROR_MESSAGE = 'We could not reset your password right now. Please try again later.';
 const VALIDATION_FALLBACK_MESSAGE = 'Please check the highlighted fields and try again.';
-const NEW_PASSWORD_ERROR_ID = 'reset-password-new-password-error';
-const CONFIRM_PASSWORD_ERROR_ID = 'reset-password-confirm-password-error';
+const NEW_FIELD_ERROR_ID = 'reset-new-field-error';
+const CONFIRMATION_FIELD_ERROR_ID = 'reset-confirmation-field-error';
 const RESEND_SUCCESS_MESSAGE =
   'If the account is still eligible, a new password reset link has been sent.';
 const RESEND_GENERIC_MESSAGE =
@@ -551,13 +551,13 @@ function ResetPasswordFlow({ token }: ResetPasswordFlowProps) {
                 required
                 autoComplete="new-password"
                 aria-invalid={fieldErrors.newPassword ? true : undefined}
-                aria-describedby={fieldErrors.newPassword ? NEW_PASSWORD_ERROR_ID : undefined}
+                aria-describedby={fieldErrors.newPassword ? NEW_FIELD_ERROR_ID : undefined}
                 className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                 placeholder="Enter a New Password"
               />
               {fieldErrors.newPassword && (
                 <p
-                  id={NEW_PASSWORD_ERROR_ID}
+                  id={NEW_FIELD_ERROR_ID}
                   role="alert"
                   className="mt-2 font-overpass text-sm text-red-700"
                 >
@@ -589,14 +589,14 @@ function ResetPasswordFlow({ token }: ResetPasswordFlowProps) {
                 autoComplete="new-password"
                 aria-invalid={fieldErrors.confirmNewPassword ? true : undefined}
                 aria-describedby={
-                  fieldErrors.confirmNewPassword ? CONFIRM_PASSWORD_ERROR_ID : undefined
+                  fieldErrors.confirmNewPassword ? CONFIRMATION_FIELD_ERROR_ID : undefined
                 }
                 className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                 placeholder="Re-Enter New Password"
               />
               {fieldErrors.confirmNewPassword && (
                 <p
-                  id={CONFIRM_PASSWORD_ERROR_ID}
+                  id={CONFIRMATION_FIELD_ERROR_ID}
                   role="alert"
                   className="mt-2 font-overpass text-sm text-red-700"
                 >
