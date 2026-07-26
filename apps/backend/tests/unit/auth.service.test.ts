@@ -765,7 +765,10 @@ describe('verifyEmailChange', () => {
     expect(result.state).toBe('VALID');
     expect(prismaMock.user.update).toHaveBeenCalledWith({
       where: { id: 'user-1' },
-      data: { email: 'new@example.com' },
+      data: {
+        email: 'new@example.com',
+        emailVerifiedAt: expect.any(Date),
+      },
     });
     expect(prismaMock.emailChangeRequest.update).toHaveBeenCalledWith({
       where: { id: 'request-123' },

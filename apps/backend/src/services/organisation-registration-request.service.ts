@@ -1077,10 +1077,10 @@ export function formatSetupStatus(
   let latestActionToken = null;
   if (latestToken) {
     let status: 'AVAILABLE' | 'USED' | 'REVOKED' | 'EXPIRED' = 'AVAILABLE';
-    if (latestToken.usedAt) {
-      status = 'USED';
-    } else if (latestToken.revokedAt) {
+    if (latestToken.revokedAt) {
       status = 'REVOKED';
+    } else if (latestToken.usedAt) {
+      status = 'USED';
     } else if (new Date(latestToken.expiresAt).getTime() <= Date.now()) {
       status = 'EXPIRED';
     }

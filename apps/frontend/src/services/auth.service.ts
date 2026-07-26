@@ -77,6 +77,18 @@ export function registerUser(payload: RegisterUserPayload): Promise<AuthRegister
   });
 }
 
+export function requestPasswordReset(
+  payload: AuthForgotPasswordRequestDto,
+): Promise<AuthForgotPasswordResponseDto> {
+  return apiClient.post<AuthForgotPasswordResponseDto, AuthForgotPasswordRequestDto>(
+    '/auth/forgot-password',
+    payload,
+    {
+      credentials: 'include',
+    },
+  );
+}
+
 export function resetPassword(payload: AuthResetPasswordRequestDto): Promise<SuccessResponseDto> {
   return apiClient.post<SuccessResponseDto, AuthResetPasswordRequestDto>(
     '/auth/reset-password',
