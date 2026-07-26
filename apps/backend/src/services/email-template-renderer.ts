@@ -256,7 +256,7 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
 
     case 'ORGANISATION_REQUEST_RECEIVED': {
       const data = organisationRequestReceivedTemplateDataSchema.parse(templateData);
-      return simpleEmail({
+      const fallback = simpleEmail({
         subject: "We've received your organisation registration request",
         heading: 'Request received',
         lines: [
@@ -267,6 +267,23 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
           `You will be able to complete your account setup once your request has been approved.`,
         ],
       });
+
+      return renderBrandedEmailOrFallback(
+        {
+          templateId: 'ORGANISATION_REQUEST_RECEIVED',
+          subject: fallback.subject,
+          previewText: 'Your organisation registration request has been received.',
+          title: 'Request received',
+          greeting: greeting(),
+          sections: [
+            `Thank you for requesting to register ${data.organisationName} with Insightful Phish.`,
+            'Your organisation registration request has been received.',
+            'Our team will review your request and notify you once we have an update.',
+            'You will be able to complete your account setup once your request has been approved.',
+          ],
+        },
+        fallback,
+      );
     } //organisation reqeust received
 
     // Please use INTITIAL_ROGANISATION_ADMIN_SETUP if the organisation was approved.
@@ -283,7 +300,7 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
 
     case 'ORGANISATION_REQUEST_REJECTED': {
       const data = organisationRequestRejectedTemplateDataSchema.parse(templateData);
-      return simpleEmail({
+      const fallback = simpleEmail({
         subject: 'Your organisation registration request was not approved',
         heading: 'Request not approved',
         lines: [
@@ -294,6 +311,27 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
           'If you believe this is incorrect or require additional information, please contact support.',
         ],
       });
+
+      return renderBrandedEmailOrFallback(
+        {
+          templateId: 'ORGANISATION_REQUEST_REJECTED',
+          subject: fallback.subject,
+          previewText: 'Your organisation registration request was not approved.',
+          title: 'Request not approved',
+          greeting: greeting(),
+          sections: [
+            `Unfortunately, your request to register ${data.organisationName} for Insightful Phish was not approved.`,
+            'Reason:',
+            data.rejectionReason ? data.rejectionReason : 'No reason provided.',
+            'If you believe this is incorrect or require additional information, please contact support.',
+          ],
+          support: {
+            subject: 'Organisation registration request help',
+            body: 'I need help with an organisation registration request.',
+          },
+        },
+        fallback,
+      );
     } //organisation request denied
 
     case 'INITIAL_ORGANISATION_ADMIN_SETUP': {
@@ -333,7 +371,7 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
           expiryText,
           support: {
             subject: 'Initial administrator setup help',
-            body: `I need help setting up the first administrator account for ${data.organisationName}.`,
+            body: 'I need help setting up the first administrator account.',
           },
         },
         fallback,
@@ -356,18 +394,35 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
         );
       }
 
-      return simpleEmail({
+      const fallback = simpleEmail({
         subject: `You're invited to join ${data.organisationName}`,
         heading: 'Organisation invitation',
         lines,
         action: { label: 'Accept invitation', url, expiresAt: data.actionTokenExpiresAt },
       });
+
+      return renderBrandedEmailOrFallback(
+        {
+          templateId: 'ORGANISATION_TRAINEE_INVITE',
+          subject: fallback.subject,
+          previewText: `You're invited to join ${data.organisationName}.`,
+          title: 'Organisation invitation',
+          greeting: greeting(data.firstName),
+          sections: lines.slice(1),
+          cta: {
+            label: 'Accept invitation',
+            url,
+          },
+          expiryText: expiryLines(data.actionTokenExpiresAt),
+        },
+        fallback,
+      );
     } //organisation trainee invite
 
     case 'ORGANISATION_ADMIN_PROMOTION_INVITE': {
       const data = organisationAdminPromotionInviteTemplateDataSchema.parse(templateData);
       const url = actionUrl('/accept-invite', data.actionToken);
-      return simpleEmail({
+      const fallback = simpleEmail({
         subject: `You're invited to become an organisation administrator`,
         heading: 'Administrator invitation',
         lines: [
@@ -378,6 +433,31 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
         ],
         action: { label: 'Accept administrator invite', url, expiresAt: data.actionTokenExpiresAt },
       });
+
+      return renderBrandedEmailOrFallback(
+        {
+          templateId: 'ORGANISATION_ADMIN_PROMOTION_INVITE',
+          subject: fallback.subject,
+          previewText: 'You have been invited to become an organisation administrator.',
+          title: 'Administrator invitation',
+          greeting: greeting(data.firstName),
+          sections: [
+            `You have been invited to become an organisation administrator for ${data.organisationName}.`,
+            'Organisation administrators can manage trainees, campaigns and organisation settings.',
+            'Accepting this invitation will replace your trainee access with administrator access.',
+          ],
+          cta: {
+            label: 'Accept administrator invite',
+            url,
+          },
+          expiryText: expiryLines(data.actionTokenExpiresAt),
+          support: {
+            subject: 'Organisation admin access help',
+            body: 'I need help with organisation admin access.',
+          },
+        },
+        fallback,
+      );
     } //organisation admin invite
 
     case 'PLATFORM_ADMIN_INVITE': {
