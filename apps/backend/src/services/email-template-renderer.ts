@@ -84,7 +84,7 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
     case 'EMAIL_VERIFICATION': {
       const data = emailVerificationTemplateDataSchema.parse(templateData);
       const url = actionUrl('/verify-email', data.actionToken);
-      return simpleEmail({
+      const fallback = simpleEmail({
         subject: 'Verify your email address',
         heading: 'Verify your email',
         lines: [
@@ -94,12 +94,32 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
         ],
         action: { label: 'Verify email', url, expiresAt: data.actionTokenExpiresAt },
       });
+
+      return renderBrandedEmailOrFallback(
+        {
+          templateId: 'EMAIL_VERIFICATION',
+          subject: fallback.subject,
+          previewText: 'Verify your Insightful Phish email address.',
+          title: 'Verify your email',
+          greeting: greeting(data.firstName),
+          sections: [
+            'Welcome to Insightful Phish.',
+            'Before you can start using your account, please verify your email address.',
+          ],
+          cta: {
+            label: 'Verify email',
+            url,
+          },
+          expiryText: expiryLines(data.actionTokenExpiresAt),
+        },
+        fallback,
+      );
     } //email_verification
 
     case 'PASSWORD_RESET': {
       const data = passwordResetTemplateDataSchema.parse(templateData);
       const url = actionUrl('/reset-password', data.actionToken);
-      return simpleEmail({
+      const fallback = simpleEmail({
         subject: 'Reset your password',
         heading: 'Reset your password',
         lines: [
@@ -109,11 +129,31 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
         ],
         action: { label: 'Reset password', url, expiresAt: data.actionTokenExpiresAt },
       });
+
+      return renderBrandedEmailOrFallback(
+        {
+          templateId: 'PASSWORD_RESET',
+          subject: fallback.subject,
+          previewText: 'Reset your Insightful Phish password.',
+          title: 'Reset your password',
+          greeting: greeting(data.firstName),
+          sections: [
+            'We received a request to reset your Insightful Phish password.',
+            'If you did not request a password reset, you can safely ignore this email. Your password will remain unchanged.',
+          ],
+          cta: {
+            label: 'Reset password',
+            url,
+          },
+          expiryText: expiryLines(data.actionTokenExpiresAt),
+        },
+        fallback,
+      );
     } //password reset
 
     case 'PASSWORD_CHANGED': {
       const data = passwordChangedTemplateDataSchema.parse(templateData);
-      return simpleEmail({
+      const fallback = simpleEmail({
         subject: 'Your password was changed',
         heading: 'Password changed',
         lines: [
@@ -123,12 +163,32 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
           `If you did not change your password, please contact support immediately.`,
         ],
       });
+
+      return renderBrandedEmailOrFallback(
+        {
+          templateId: 'PASSWORD_CHANGED',
+          subject: fallback.subject,
+          previewText: 'Your Insightful Phish password was changed.',
+          title: 'Password changed',
+          greeting: greeting(data.firstName),
+          sections: [
+            'Your Insightful Phish password was changed successfully',
+            'If you made this change, no further action is required.',
+            'If you did not change your password, please contact support immediately.',
+          ],
+          support: {
+            subject: 'Password changed help',
+            body: 'I need help with a password change on my account.',
+          },
+        },
+        fallback,
+      );
     } //password changed
 
     case 'EMAIL_CHANGE_CONFIRMATION': {
       const data = emailChangeConfirmationTemplateDataSchema.parse(templateData);
       const url = actionUrl('/confirm-email-change', data.actionToken);
-      return simpleEmail({
+      const fallback = simpleEmail({
         subject: 'Confirm your new email address',
         heading: 'Confirm your email change',
         lines: [
@@ -138,11 +198,31 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
         ],
         action: { label: 'Confirm email change', url, expiresAt: data.actionTokenExpiresAt },
       });
+
+      return renderBrandedEmailOrFallback(
+        {
+          templateId: 'EMAIL_CHANGE_CONFIRMATION',
+          subject: fallback.subject,
+          previewText: 'Confirm your Insightful Phish email change.',
+          title: 'Confirm your email change',
+          greeting: greeting(data.firstName),
+          sections: [
+            'We received a request to change your Insightful Phish email address.',
+            `Your account email will change from ${data.oldEmail} to ${data.newEmail}.`,
+          ],
+          cta: {
+            label: 'Confirm email change',
+            url,
+          },
+          expiryText: expiryLines(data.actionTokenExpiresAt),
+        },
+        fallback,
+      );
     } //email change confirmation
 
     case 'EMAIL_CHANGE_WARNING': {
       const data = emailChangeWarningTemplateDataSchema.parse(templateData);
-      return simpleEmail({
+      const fallback = simpleEmail({
         subject: 'Email change requested',
         heading: 'Email change requested',
         lines: [
@@ -152,6 +232,26 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
           `If you did not request this change, please contact support immediately.`,
         ],
       });
+
+      return renderBrandedEmailOrFallback(
+        {
+          templateId: 'EMAIL_CHANGE_WARNING',
+          subject: fallback.subject,
+          previewText: 'An Insightful Phish email change was requested.',
+          title: 'Email change requested',
+          greeting: greeting(data.firstName),
+          sections: [
+            `A request was made to change your Insightful Phish email address from ${data.oldEmail} to ${data.newEmail}.`,
+            'The new email address must still be confirmed before the change takes effect.',
+            'If you did not request this change, please contact support immediately.',
+          ],
+          support: {
+            subject: 'Email change help',
+            body: 'I need help with an email change request on my account.',
+          },
+        },
+        fallback,
+      );
     } //email change warning
 
     case 'ORGANISATION_REQUEST_RECEIVED': {
