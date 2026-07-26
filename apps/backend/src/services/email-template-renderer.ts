@@ -29,6 +29,16 @@ type SimpleEmailInput = {
   action?: { label: string; url: string; expiresAt?: Date };
 };
 type BrandedEmailInputWithoutSubject = Omit<BrandedEmailLayoutInput, 'subject'>;
+type TransactionalEmailInput = {
+  templateId: string;
+  subject: string;
+  title: string;
+  previewText: string;
+  greetingText?: string;
+  sections: string[];
+  action?: { label: string; url: string; expiresAt?: Date };
+  support?: BrandedEmailLayoutInput['support'];
+};
 
 function actionUrl(path: string, rawToken: string) {
   const url = new URL(path, env.FRONTEND_ORIGIN);
@@ -85,6 +95,27 @@ function brandedEmailWithFallback(
   );
 }
 
+function renderTransactionalEmail(input: TransactionalEmailInput): RenderedEmail {
+  return brandedEmailWithFallback(
+    {
+      subject: input.subject,
+      heading: input.title,
+      lines: [...(input.greetingText ? [input.greetingText] : []), ...input.sections],
+      action: input.action,
+    },
+    {
+      templateId: input.templateId,
+      previewText: input.previewText,
+      title: input.title,
+      greeting: input.greetingText,
+      sections: input.sections,
+      cta: input.action ? { label: input.action.label, url: input.action.url } : undefined,
+      expiryText: input.action?.expiresAt ? expiryLines(input.action.expiresAt) : undefined,
+      support: input.support,
+    },
+  );
+}
+
 function expiryLines(expiresAt: Date, now = new Date()) {
   const milliseconds = expiresAt.getTime() - now.getTime();
   const totalMinutes = Math.max(1, Math.ceil(milliseconds / (60 * 1000)));
@@ -110,23 +141,15 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
         'Welcome to Insightful Phish.',
         'Before you can start using your account, please verify your email address.',
       ];
-      return brandedEmailWithFallback(
-        {
-          subject: 'Verify your email address',
-          heading: 'Verify your email',
-          lines: [greeting(data.firstName), ...sections],
-          action: { label: 'Verify email', url, expiresAt: data.actionTokenExpiresAt },
-        },
-        {
-          templateId: 'EMAIL_VERIFICATION',
-          previewText: 'Verify your Insightful Phish email address.',
-          title: 'Verify your email',
-          greeting: greeting(data.firstName),
-          sections,
-          cta: { label: 'Verify email', url },
-          expiryText: expiryLines(data.actionTokenExpiresAt),
-        },
-      );
+      return renderTransactionalEmail({
+        templateId: 'EMAIL_VERIFICATION',
+        subject: 'Verify your email address',
+        title: 'Verify your email',
+        previewText: 'Verify your Insightful Phish email address.',
+        greetingText: greeting(data.firstName),
+        sections,
+        action: { label: 'Verify email', url, expiresAt: data.actionTokenExpiresAt },
+      });
     } //email_verification
 
     case 'PASSWORD_RESET': {
@@ -136,23 +159,15 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
         'We received a request to reset your Insightful Phish password.',
         'If you did not request a password reset, you can safely ignore this email. Your password will remain unchanged.',
       ];
-      return brandedEmailWithFallback(
-        {
-          subject: 'Reset your password',
-          heading: 'Reset your password',
-          lines: [greeting(data.firstName), ...sections],
-          action: { label: 'Reset password', url, expiresAt: data.actionTokenExpiresAt },
-        },
-        {
-          templateId: 'PASSWORD_RESET',
-          previewText: 'Reset your Insightful Phish password.',
-          title: 'Reset your password',
-          greeting: greeting(data.firstName),
-          sections,
-          cta: { label: 'Reset password', url },
-          expiryText: expiryLines(data.actionTokenExpiresAt),
-        },
-      );
+      return renderTransactionalEmail({
+        templateId: 'PASSWORD_RESET',
+        subject: 'Reset your password',
+        title: 'Reset your password',
+        previewText: 'Reset your Insightful Phish password.',
+        greetingText: greeting(data.firstName),
+        sections,
+        action: { label: 'Reset password', url, expiresAt: data.actionTokenExpiresAt },
+      });
     } //password reset
 
     case 'PASSWORD_CHANGED': {
@@ -162,24 +177,18 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
         'If you made this change, no further action is required.',
         'If you did not change your password, please contact support immediately.',
       ];
-      return brandedEmailWithFallback(
-        {
-          subject: 'Your password was changed',
-          heading: 'Password changed',
-          lines: [greeting(data.firstName), ...sections],
+      return renderTransactionalEmail({
+        templateId: 'PASSWORD_CHANGED',
+        subject: 'Your password was changed',
+        title: 'Password changed',
+        previewText: 'Your Insightful Phish password was changed.',
+        greetingText: greeting(data.firstName),
+        sections,
+        support: {
+          subject: 'Password changed help',
+          body: 'I need help with a password change on my account.',
         },
-        {
-          templateId: 'PASSWORD_CHANGED',
-          previewText: 'Your Insightful Phish password was changed.',
-          title: 'Password changed',
-          greeting: greeting(data.firstName),
-          sections,
-          support: {
-            subject: 'Password changed help',
-            body: 'I need help with a password change on my account.',
-          },
-        },
-      );
+      });
     } //password changed
 
     case 'EMAIL_CHANGE_CONFIRMATION': {
@@ -189,23 +198,15 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
         'We received a request to change your Insightful Phish email address.',
         `Your account email will change from ${data.oldEmail} to ${data.newEmail}.`,
       ];
-      return brandedEmailWithFallback(
-        {
-          subject: 'Confirm your new email address',
-          heading: 'Confirm your email change',
-          lines: [greeting(data.firstName), ...sections],
-          action: { label: 'Confirm email change', url, expiresAt: data.actionTokenExpiresAt },
-        },
-        {
-          templateId: 'EMAIL_CHANGE_CONFIRMATION',
-          previewText: 'Confirm your Insightful Phish email change.',
-          title: 'Confirm your email change',
-          greeting: greeting(data.firstName),
-          sections,
-          cta: { label: 'Confirm email change', url },
-          expiryText: expiryLines(data.actionTokenExpiresAt),
-        },
-      );
+      return renderTransactionalEmail({
+        templateId: 'EMAIL_CHANGE_CONFIRMATION',
+        subject: 'Confirm your new email address',
+        title: 'Confirm your email change',
+        previewText: 'Confirm your Insightful Phish email change.',
+        greetingText: greeting(data.firstName),
+        sections,
+        action: { label: 'Confirm email change', url, expiresAt: data.actionTokenExpiresAt },
+      });
     } //email change confirmation
 
     case 'EMAIL_CHANGE_WARNING': {
@@ -215,24 +216,18 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
         'The new email address must still be confirmed before the change takes effect.',
         'If you did not request this change, please contact support immediately.',
       ];
-      return brandedEmailWithFallback(
-        {
-          subject: 'Email change requested',
-          heading: 'Email change requested',
-          lines: [greeting(data.firstName), ...sections],
+      return renderTransactionalEmail({
+        templateId: 'EMAIL_CHANGE_WARNING',
+        subject: 'Email change requested',
+        title: 'Email change requested',
+        previewText: 'An Insightful Phish email change was requested.',
+        greetingText: greeting(data.firstName),
+        sections,
+        support: {
+          subject: 'Email change help',
+          body: 'I need help with an email change request on my account.',
         },
-        {
-          templateId: 'EMAIL_CHANGE_WARNING',
-          previewText: 'An Insightful Phish email change was requested.',
-          title: 'Email change requested',
-          greeting: greeting(data.firstName),
-          sections,
-          support: {
-            subject: 'Email change help',
-            body: 'I need help with an email change request on my account.',
-          },
-        },
-      );
+      });
     } //email change warning
 
     case 'ORGANISATION_REQUEST_RECEIVED': {
@@ -243,20 +238,14 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
         'Our team will review your request and notify you once we have an update.',
         'You will be able to complete your account setup once your request has been approved.',
       ];
-      return brandedEmailWithFallback(
-        {
-          subject: "We've received your organisation registration request",
-          heading: 'Request received',
-          lines: [greeting(), ...sections],
-        },
-        {
-          templateId: 'ORGANISATION_REQUEST_RECEIVED',
-          previewText: 'Your organisation registration request has been received.',
-          title: 'Request received',
-          greeting: greeting(),
-          sections,
-        },
-      );
+      return renderTransactionalEmail({
+        templateId: 'ORGANISATION_REQUEST_RECEIVED',
+        subject: "We've received your organisation registration request",
+        title: 'Request received',
+        previewText: 'Your organisation registration request has been received.',
+        greetingText: greeting(),
+        sections,
+      });
     } //organisation reqeust received
 
     // Please use INTITIAL_ROGANISATION_ADMIN_SETUP if the organisation was approved.
@@ -279,59 +268,44 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
         data.rejectionReason ? data.rejectionReason : 'No reason provided.',
         'If you believe this is incorrect or require additional information, please contact support.',
       ];
-      return brandedEmailWithFallback(
-        {
-          subject: 'Your organisation registration request was not approved',
-          heading: 'Request not approved',
-          lines: [greeting(), ...sections],
+      return renderTransactionalEmail({
+        templateId: 'ORGANISATION_REQUEST_REJECTED',
+        subject: 'Your organisation registration request was not approved',
+        title: 'Request not approved',
+        previewText: 'Your organisation registration request was not approved.',
+        greetingText: greeting(),
+        sections,
+        support: {
+          subject: 'Organisation registration request help',
+          body: 'I need help with an organisation registration request.',
         },
-        {
-          templateId: 'ORGANISATION_REQUEST_REJECTED',
-          previewText: 'Your organisation registration request was not approved.',
-          title: 'Request not approved',
-          greeting: greeting(),
-          sections,
-          support: {
-            subject: 'Organisation registration request help',
-            body: 'I need help with an organisation registration request.',
-          },
-        },
-      );
+      });
     } //organisation request denied
 
     case 'INITIAL_ORGANISATION_ADMIN_SETUP': {
       const data = initialOrganisationAdminSetupTemplateDataSchema.parse(templateData);
       const url = setupUrl(data.actionToken);
-      const expiryText = expiryLines(data.actionTokenExpiresAt);
       const sections = [
         `Good news! Your request to register ${data.organisationName} for Insightful Phish has been approved.`,
         'The next step is to create the first organisation administrator account.',
       ];
-      return brandedEmailWithFallback(
-        {
-          subject: `Your organisation has been approved`,
-          heading: 'Organisation approved',
-          lines: [greeting(data.firstName), ...sections],
-          action: {
-            label: 'Set up administrator account',
-            url,
-            expiresAt: data.actionTokenExpiresAt,
-          },
+      return renderTransactionalEmail({
+        templateId: 'INITIAL_ORGANISATION_ADMIN_SETUP',
+        subject: `Your organisation has been approved`,
+        title: 'Organisation approved',
+        previewText: 'Your organisation has been approved.',
+        greetingText: greeting(data.firstName),
+        sections,
+        action: {
+          label: 'Set up administrator account',
+          url,
+          expiresAt: data.actionTokenExpiresAt,
         },
-        {
-          templateId: 'INITIAL_ORGANISATION_ADMIN_SETUP',
-          previewText: 'Your organisation has been approved.',
-          title: 'Organisation approved',
-          greeting: greeting(data.firstName),
-          sections,
-          cta: { label: 'Set up administrator account', url },
-          expiryText,
-          support: {
-            subject: 'Initial administrator setup help',
-            body: 'I need help setting up the first administrator account.',
-          },
+        support: {
+          subject: 'Initial administrator setup help',
+          body: 'I need help setting up the first administrator account.',
         },
-      );
+      });
     } //organisation reqeust approved
 
     case 'ORGANISATION_TRAINEE_INVITE': {
@@ -350,23 +324,15 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
         );
       }
 
-      return brandedEmailWithFallback(
-        {
-          subject: `You're invited to join ${data.organisationName}`,
-          heading: 'Organisation invitation',
-          lines,
-          action: { label: 'Accept invitation', url, expiresAt: data.actionTokenExpiresAt },
-        },
-        {
-          templateId: 'ORGANISATION_TRAINEE_INVITE',
-          previewText: `You're invited to join ${data.organisationName}.`,
-          title: 'Organisation invitation',
-          greeting: greeting(data.firstName),
-          sections: lines.slice(1),
-          cta: { label: 'Accept invitation', url },
-          expiryText: expiryLines(data.actionTokenExpiresAt),
-        },
-      );
+      return renderTransactionalEmail({
+        templateId: 'ORGANISATION_TRAINEE_INVITE',
+        subject: `You're invited to join ${data.organisationName}`,
+        title: 'Organisation invitation',
+        previewText: `You're invited to join ${data.organisationName}.`,
+        greetingText: lines[0],
+        sections: lines.slice(1),
+        action: { label: 'Accept invitation', url, expiresAt: data.actionTokenExpiresAt },
+      });
     } //organisation trainee invite
 
     case 'ORGANISATION_ADMIN_PROMOTION_INVITE': {
@@ -377,31 +343,23 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
         'Organisation administrators can manage trainees, campaigns and organisation settings.',
         'Accepting this invitation will replace your trainee access with administrator access.',
       ];
-      return brandedEmailWithFallback(
-        {
-          subject: `You're invited to become an organisation administrator`,
-          heading: 'Administrator invitation',
-          lines: [greeting(data.firstName), ...sections],
-          action: {
-            label: 'Accept administrator invite',
-            url,
-            expiresAt: data.actionTokenExpiresAt,
-          },
+      return renderTransactionalEmail({
+        templateId: 'ORGANISATION_ADMIN_PROMOTION_INVITE',
+        subject: `You're invited to become an organisation administrator`,
+        title: 'Administrator invitation',
+        previewText: 'You have been invited to become an organisation administrator.',
+        greetingText: greeting(data.firstName),
+        sections,
+        action: {
+          label: 'Accept administrator invite',
+          url,
+          expiresAt: data.actionTokenExpiresAt,
         },
-        {
-          templateId: 'ORGANISATION_ADMIN_PROMOTION_INVITE',
-          previewText: 'You have been invited to become an organisation administrator.',
-          title: 'Administrator invitation',
-          greeting: greeting(data.firstName),
-          sections,
-          cta: { label: 'Accept administrator invite', url },
-          expiryText: expiryLines(data.actionTokenExpiresAt),
-          support: {
-            subject: 'Organisation admin access help',
-            body: 'I need help with organisation admin access.',
-          },
+        support: {
+          subject: 'Organisation admin access help',
+          body: 'I need help with organisation admin access.',
         },
-      );
+      });
     } //organisation admin invite
 
     case 'PLATFORM_ADMIN_INVITE': {
@@ -411,27 +369,19 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
         'You have been invited to join Insightful Phish as a platform administrator.',
         'Platform administrators manage organisations and content available to individual trainees, and oversee the platform.',
       ];
-      return brandedEmailWithFallback(
-        {
-          subject: `You're invited to join the Insightful Phish team`,
-          heading: 'Platform administrator invitation',
-          lines: [greeting(data.firstName), ...sections],
-          action: {
-            label: 'Create administrator account',
-            url,
-            expiresAt: data.actionTokenExpiresAt,
-          },
+      return renderTransactionalEmail({
+        templateId: 'PLATFORM_ADMIN_INVITE',
+        subject: `You're invited to join the Insightful Phish team`,
+        title: 'Platform administrator invitation',
+        previewText: 'You have been invited to join the Insightful Phish team.',
+        greetingText: greeting(data.firstName),
+        sections,
+        action: {
+          label: 'Create administrator account',
+          url,
+          expiresAt: data.actionTokenExpiresAt,
         },
-        {
-          templateId: 'PLATFORM_ADMIN_INVITE',
-          previewText: 'You have been invited to join the Insightful Phish team.',
-          title: 'Platform administrator invitation',
-          greeting: greeting(data.firstName),
-          sections,
-          cta: { label: 'Create administrator account', url },
-          expiryText: expiryLines(data.actionTokenExpiresAt),
-        },
-      );
+      });
     } //platform admin invite
 
     case 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION': {
@@ -442,23 +392,15 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
         'Accepting this upgrade will replace your current trainee account with platform administrator access.',
         'If you do not wish to become a platform administrator, simply ignore this email.',
       ];
-      return brandedEmailWithFallback(
-        {
-          subject: `Confirm your platform administrator upgrade`,
-          heading: 'Confirm administrator upgrade',
-          lines: [greeting(data.firstName), ...sections],
-          action: { label: 'Confirm upgrade', url, expiresAt: data.actionTokenExpiresAt },
-        },
-        {
-          templateId: 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION',
-          previewText: 'Confirm your platform administrator upgrade.',
-          title: 'Confirm administrator upgrade',
-          greeting: greeting(data.firstName),
-          sections,
-          cta: { label: 'Confirm upgrade', url },
-          expiryText: expiryLines(data.actionTokenExpiresAt),
-        },
-      );
+      return renderTransactionalEmail({
+        templateId: 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION',
+        subject: `Confirm your platform administrator upgrade`,
+        title: 'Confirm administrator upgrade',
+        previewText: 'Confirm your platform administrator upgrade.',
+        greetingText: greeting(data.firstName),
+        sections,
+        action: { label: 'Confirm upgrade', url, expiresAt: data.actionTokenExpiresAt },
+      });
     } //platform admin invite
 
     case 'ROLE_CHANGED_NOTIFICATION': {
@@ -470,24 +412,18 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
         roleChangeLine,
         'If you were not expecting this change, please contact support.',
       ];
-      return brandedEmailWithFallback(
-        {
-          subject: 'Your role has changed',
-          heading: 'Role updated',
-          lines: [greeting(data.firstName), ...sections],
+      return renderTransactionalEmail({
+        templateId: 'ROLE_CHANGED_NOTIFICATION',
+        subject: 'Your role has changed',
+        title: 'Role updated',
+        previewText: 'Your Insightful Phish role has changed.',
+        greetingText: greeting(data.firstName),
+        sections,
+        support: {
+          subject: 'Role change help',
+          body: 'I need help with an account role change.',
         },
-        {
-          templateId: 'ROLE_CHANGED_NOTIFICATION',
-          previewText: 'Your Insightful Phish role has changed.',
-          title: 'Role updated',
-          greeting: greeting(data.firstName),
-          sections,
-          support: {
-            subject: 'Role change help',
-            body: 'I need help with an account role change.',
-          },
-        },
-      );
+      });
     } //role changed notification
 
     default:
