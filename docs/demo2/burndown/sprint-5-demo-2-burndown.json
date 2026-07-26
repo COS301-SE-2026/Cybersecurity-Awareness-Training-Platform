@@ -1,8 +1,64 @@
 {
   "milestone": "Sprint 5 (Demo 2)",
   "start": "2026-07-13",
-  "end": "2026-07-26",
+  "end": "2026-07-29",
   "issues": [
+    {
+      "number": 374,
+      "title": "docs: integrate and finalise Demo 2 documentation",
+      "points": 5,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 373,
+      "title": "docs: complete Demo 2 user manual and screenshot catalogue",
+      "points": 5,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 372,
+      "title": "docs: complete Demo 2 coding standards and testing policy",
+      "points": 5,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 371,
+      "title": "docs: complete Demo 2 deployment and operations documentation",
+      "points": 5,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 370,
+      "title": "docs: complete Demo 2 SAS design patterns and technology requirements",
+      "points": 5,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 369,
+      "title": "docs: complete core Demo 2 SAS architecture specification",
+      "points": 5,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 368,
+      "title": "docs: complete Demo 2 SRS domain model and diagram",
+      "points": 5,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 367,
+      "title": "docs: complete Demo 2 SRS requirements and use cases",
+      "points": 5,
+      "state": "open",
+      "closed_date": null
+    },
     {
       "number": 358,
       "title": "fix: harden platform-admin invitation concurrency and repository boundaries",
@@ -14,8 +70,8 @@
       "number": 342,
       "title": "feat: migrate current transactional emails to branded templates",
       "points": 3,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-07-26"
     },
     {
       "number": 341,
@@ -91,8 +147,8 @@
       "number": 280,
       "title": "test: add backend admin and permission API integration coverage",
       "points": 3,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-07-26"
     },
     {
       "number": 279,
@@ -224,73 +280,73 @@
   "series": [
     {
       "date": "2026-07-13",
-      "remaining": 71,
-      "ideal": 71.0
+      "remaining": 111,
+      "ideal": 111.0
     },
     {
       "date": "2026-07-14",
-      "remaining": 69,
-      "ideal": 65.54
+      "remaining": 109,
+      "ideal": 104.06
     },
     {
       "date": "2026-07-15",
-      "remaining": 69,
-      "ideal": 60.08
+      "remaining": 109,
+      "ideal": 97.12
     },
     {
       "date": "2026-07-16",
-      "remaining": 67,
-      "ideal": 54.62
+      "remaining": 107,
+      "ideal": 90.19
     },
     {
       "date": "2026-07-17",
-      "remaining": 67,
-      "ideal": 49.15
+      "remaining": 107,
+      "ideal": 83.25
     },
     {
       "date": "2026-07-18",
-      "remaining": 67,
-      "ideal": 43.69
+      "remaining": 107,
+      "ideal": 76.31
     },
     {
       "date": "2026-07-19",
-      "remaining": 64,
-      "ideal": 38.23
+      "remaining": 104,
+      "ideal": 69.38
     },
     {
       "date": "2026-07-20",
-      "remaining": 53,
-      "ideal": 32.77
+      "remaining": 93,
+      "ideal": 62.44
     },
     {
       "date": "2026-07-21",
-      "remaining": 51,
-      "ideal": 27.31
+      "remaining": 91,
+      "ideal": 55.5
     },
     {
       "date": "2026-07-22",
-      "remaining": 49,
-      "ideal": 21.85
+      "remaining": 89,
+      "ideal": 48.56
     },
     {
       "date": "2026-07-23",
-      "remaining": 44,
-      "ideal": 16.38
+      "remaining": 84,
+      "ideal": 41.62
     },
     {
       "date": "2026-07-24",
-      "remaining": 40,
-      "ideal": 10.92
+      "remaining": 80,
+      "ideal": 34.69
     },
     {
       "date": "2026-07-25",
-      "remaining": 36,
-      "ideal": 5.46
+      "remaining": 76,
+      "ideal": 27.75
     },
     {
       "date": "2026-07-26",
-      "remaining": 32,
-      "ideal": 0.0
+      "remaining": 66,
+      "ideal": 20.81
     }
   ]
 }
