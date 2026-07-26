@@ -14,6 +14,8 @@ import {
 } from '../services/organisation-details.service';
 import type {
   OrganisationAdminSummaryDto,
+  PlatformOrganisationDetailDto,
+  PlatformOrganisationRequestDetailsResponseDto,
   ResendEligibilityDto,
   TimelineEventDto,
 } from '@insightful-phish/shared';
@@ -44,13 +46,77 @@ export interface OrganisationDetailData {
   organisationIdForResend: string | null;
 }
 
+function mapRequestDetailsToState(
+  reqData: PlatformOrganisationRequestDetailsResponseDto,
+): OrganisationDetailData {
+  return {
+    id: reqData.id,
+    name: reqData.submittedOrganisationName,
+    description: reqData.submittedOrganisationDescription || 'N/A',
+    website: reqData.submittedWebsite || 'N/A',
+    size:
+      reqData.submittedOrganisationSize !== null
+        ? String(reqData.submittedOrganisationSize)
+        : 'N/A',
+    registeredTrainees: 'N/A (Pending Request)',
+    registrationDate: reqData.createdAt,
+    status: reqData.status || 'PENDING',
+    detailType: reqData.detailType,
+    representative: {
+      fullName: `${reqData.representativeFirstName} ${reqData.representativeLastName}`,
+      email: reqData.representativeEmail,
+      phone: reqData.representativePhone,
+    },
+    setupStatus: reqData.setupStatus?.status || 'PENDING',
+    resendEligibility: reqData.resendEligibility,
+    admins: [],
+    timeline: reqData.timeline || [],
+    isRequestOnly: true,
+    organisationIdForResend: reqData.approvedOrganisationId,
+  };
+}
+
+function mapOrganisationDetailsToState(
+  orgData: PlatformOrganisationDetailDto,
+): OrganisationDetailData {
+  const repName = orgData.registrationRequest
+    ? `${orgData.registrationRequest.representativeFirstName} ${orgData.registrationRequest.representativeLastName}`
+    : 'N/A';
+  const repEmail = orgData.registrationRequest
+    ? orgData.registrationRequest.representativeEmail
+    : 'N/A';
+
+  return {
+    id: orgData.id,
+    name: orgData.name,
+    description: orgData.description || 'N/A',
+    website: orgData.website || 'N/A',
+    size: orgData.approximateSize !== null ? String(orgData.approximateSize) : 'N/A',
+    registeredTrainees: String(orgData._count?.traineeProfiles ?? 0),
+    registrationDate: orgData.createdAt,
+    status: orgData.status,
+    detailType: orgData.detailType,
+    representative: {
+      fullName: repName,
+      email: repEmail,
+    },
+    setupStatus: orgData.setupStatus?.status || 'N/A',
+    resendEligibility: orgData.resendEligibility,
+    admins: orgData.admins || [],
+    timeline: orgData.timeline || [],
+    isRequestOnly: false,
+    organisationIdForResend: orgData.id,
+  };
+}
+
 function parseApiError(err: unknown, fallbackMessage: string): string {
   const status =
-    err && typeof err === 'object' && 'status' in err
-      ? (err as { status: number }).status
-      : null;
+    err && typeof err === 'object' && 'status' in err ? (err as { status: number }).status : null;
   const message =
-    err && typeof err === 'object' && 'message' in err && typeof (err as { message: unknown }).message === 'string'
+    err &&
+    typeof err === 'object' &&
+    'message' in err &&
+    typeof (err as { message: unknown }).message === 'string'
       ? (err as { message: string }).message
       : null;
 
@@ -81,7 +147,11 @@ function OrganisationInformationPage() {
   const params = useParams<{ organisationId?: string; requestId?: string; id?: string }>();
   const [searchParams] = useSearchParams();
 
-  const routeOrgId = params.organisationId || params.id || searchParams.get('organisationId') || searchParams.get('id');
+  const routeOrgId =
+    params.organisationId ||
+    params.id ||
+    searchParams.get('organisationId') ||
+    searchParams.get('id');
   const routeReqId = params.requestId || searchParams.get('requestId');
   const targetId = routeOrgId || routeReqId || authContext?.organisation?.id || null;
 
@@ -101,60 +171,12 @@ function OrganisationInformationPage() {
     try {
       if (routeReqId) {
         const reqData = await getPlatformOrganisationRequestDetails(routeReqId, token);
-        setDetailData({
-          id: reqData.id,
-          name: reqData.submittedOrganisationName,
-          description: reqData.submittedOrganisationDescription || 'N/A',
-          website: reqData.submittedWebsite || 'N/A',
-          size: reqData.submittedOrganisationSize !== null ? String(reqData.submittedOrganisationSize) : 'N/A',
-          registeredTrainees: 'N/A (Pending Request)',
-          registrationDate: reqData.createdAt,
-          status: reqData.status || 'PENDING',
-          detailType: reqData.detailType,
-          representative: {
-            fullName: `${reqData.representativeFirstName} ${reqData.representativeLastName}`,
-            email: reqData.representativeEmail,
-            phone: reqData.representativePhone,
-          },
-          setupStatus: reqData.setupStatus?.status || 'PENDING',
-          resendEligibility: reqData.resendEligibility,
-          admins: [],
-          timeline: reqData.timeline || [],
-          isRequestOnly: true,
-          organisationIdForResend: reqData.approvedOrganisationId,
-        });
+        setDetailData(mapRequestDetailsToState(reqData));
         return;
       }
 
       const orgData = await getPlatformOrganisationDetail(targetId, token);
-      const repName = orgData.registrationRequest
-        ? `${orgData.registrationRequest.representativeFirstName} ${orgData.registrationRequest.representativeLastName}`
-        : 'N/A';
-      const repEmail = orgData.registrationRequest
-        ? orgData.registrationRequest.representativeEmail
-        : 'N/A';
-
-      setDetailData({
-        id: orgData.id,
-        name: orgData.name,
-        description: orgData.description || 'N/A',
-        website: orgData.website || 'N/A',
-        size: orgData.approximateSize !== null ? String(orgData.approximateSize) : 'N/A',
-        registeredTrainees: String(orgData._count?.traineeProfiles ?? 0),
-        registrationDate: orgData.createdAt,
-        status: orgData.status,
-        detailType: orgData.detailType,
-        representative: {
-          fullName: repName,
-          email: repEmail,
-        },
-        setupStatus: orgData.setupStatus?.status || 'N/A',
-        resendEligibility: orgData.resendEligibility,
-        admins: orgData.admins || [],
-        timeline: orgData.timeline || [],
-        isRequestOnly: false,
-        organisationIdForResend: orgData.id,
-      });
+      setDetailData(mapOrganisationDetailsToState(orgData));
     } catch {
       // reload error ignored
     }
@@ -175,62 +197,13 @@ function OrganisationInformationPage() {
         if (routeReqId) {
           const reqData = await getPlatformOrganisationRequestDetails(routeReqId, token);
           if (!isMounted) return;
-          setDetailData({
-            id: reqData.id,
-            name: reqData.submittedOrganisationName,
-            description: reqData.submittedOrganisationDescription || 'N/A',
-            website: reqData.submittedWebsite || 'N/A',
-            size: reqData.submittedOrganisationSize !== null ? String(reqData.submittedOrganisationSize) : 'N/A',
-            registeredTrainees: 'N/A (Pending Request)',
-            registrationDate: reqData.createdAt,
-            status: reqData.status || 'PENDING',
-            detailType: reqData.detailType,
-            representative: {
-              fullName: `${reqData.representativeFirstName} ${reqData.representativeLastName}`,
-              email: reqData.representativeEmail,
-              phone: reqData.representativePhone,
-            },
-            setupStatus: reqData.setupStatus?.status || 'PENDING',
-            resendEligibility: reqData.resendEligibility,
-            admins: [],
-            timeline: reqData.timeline || [],
-            isRequestOnly: true,
-            organisationIdForResend: reqData.approvedOrganisationId,
-          });
+          setDetailData(mapRequestDetailsToState(reqData));
           return;
         }
 
         const orgData = await getPlatformOrganisationDetail(targetId, token);
         if (!isMounted) return;
-
-        const repName = orgData.registrationRequest
-          ? `${orgData.registrationRequest.representativeFirstName} ${orgData.registrationRequest.representativeLastName}`
-          : 'N/A';
-        const repEmail = orgData.registrationRequest
-          ? orgData.registrationRequest.representativeEmail
-          : 'N/A';
-
-        setDetailData({
-          id: orgData.id,
-          name: orgData.name,
-          description: orgData.description || 'N/A',
-          website: orgData.website || 'N/A',
-          size: orgData.approximateSize !== null ? String(orgData.approximateSize) : 'N/A',
-          registeredTrainees: String(orgData._count?.traineeProfiles ?? 0),
-          registrationDate: orgData.createdAt,
-          status: orgData.status,
-          detailType: orgData.detailType,
-          representative: {
-            fullName: repName,
-            email: repEmail,
-          },
-          setupStatus: orgData.setupStatus?.status || 'N/A',
-          resendEligibility: orgData.resendEligibility,
-          admins: orgData.admins || [],
-          timeline: orgData.timeline || [],
-          isRequestOnly: false,
-          organisationIdForResend: orgData.id,
-        });
+        setDetailData(mapOrganisationDetailsToState(orgData));
       } catch (err: unknown) {
         if (!isMounted) return;
         const errStatusVal =
@@ -241,28 +214,7 @@ function OrganisationInformationPage() {
           try {
             const reqData = await getPlatformOrganisationRequestDetails(targetId, token);
             if (!isMounted) return;
-            setDetailData({
-              id: reqData.id,
-              name: reqData.submittedOrganisationName,
-              description: reqData.submittedOrganisationDescription || 'N/A',
-              website: reqData.submittedWebsite || 'N/A',
-              size: reqData.submittedOrganisationSize !== null ? String(reqData.submittedOrganisationSize) : 'N/A',
-              registeredTrainees: 'N/A (Pending Request)',
-              registrationDate: reqData.createdAt,
-              status: reqData.status || 'PENDING',
-              detailType: reqData.detailType,
-              representative: {
-                fullName: `${reqData.representativeFirstName} ${reqData.representativeLastName}`,
-                email: reqData.representativeEmail,
-                phone: reqData.representativePhone,
-              },
-              setupStatus: reqData.setupStatus?.status || 'PENDING',
-              resendEligibility: reqData.resendEligibility,
-              admins: [],
-              timeline: reqData.timeline || [],
-              isRequestOnly: true,
-              organisationIdForResend: reqData.approvedOrganisationId,
-            });
+            setDetailData(mapRequestDetailsToState(reqData));
           } catch (reqErr: unknown) {
             if (!isMounted) return;
             const status =
@@ -270,7 +222,9 @@ function OrganisationInformationPage() {
                 ? (reqErr as { status: number }).status
                 : 500;
             setErrorStatus(status);
-            setErrorMessage(parseApiError(reqErr, 'Organisation or registration request details not found.'));
+            setErrorMessage(
+              parseApiError(reqErr, 'Organisation or registration request details not found.'),
+            );
           }
         } else {
           const status =
@@ -374,7 +328,8 @@ function OrganisationInformationPage() {
             Danger Zone (Sprint 4)
           </h4>
           <p className="text-sm text-gray-600 mb-3">
-            Organisation lifecycle actions. Note: Suspend and Delete actions are disabled for Sprint 4 release.
+            Organisation lifecycle actions. Note: Suspend and Delete actions are disabled for Sprint
+            4 release.
           </p>
           <div className="flex gap-4">
             <button
@@ -401,8 +356,8 @@ function OrganisationInformationPage() {
               errorStatus === 403 || errorStatus === 401
                 ? 'bg-amber-50 border-amber-300 text-amber-900'
                 : errorStatus === 404
-                ? 'bg-blue-50 border-blue-300 text-blue-900'
-                : 'bg-red-50 border-red-300 text-red-900'
+                  ? 'bg-blue-50 border-blue-300 text-blue-900'
+                  : 'bg-red-50 border-red-300 text-red-900'
             }`}
           >
             <span className="font-semibold">Notice:</span> {errorMessage}
@@ -413,7 +368,9 @@ function OrganisationInformationPage() {
         {isLoading ? (
           <div className="flex justify-center items-center py-16 bg-white border border-default rounded-none">
             <LoadingSpinnerSVG />
-            <span className="ml-3 font-jost text-xl text-gray-600">Loading organisation details...</span>
+            <span className="ml-3 font-jost text-xl text-gray-600">
+              Loading organisation details...
+            </span>
           </div>
         ) : (
           <>
@@ -503,9 +460,7 @@ function OrganisationInformationPage() {
                 />
               )}
 
-              {currentTab === 4 && (
-                <OrganisationTimelinePage timeline={detailData?.timeline} />
-              )}
+              {currentTab === 4 && <OrganisationTimelinePage timeline={detailData?.timeline} />}
             </div>
           </>
         )}

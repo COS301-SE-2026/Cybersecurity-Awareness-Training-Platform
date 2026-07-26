@@ -67,8 +67,14 @@ function AppRoutes() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/organisation-information" element={<OrganisationInformationPage />} />
       <Route path="/organisation-information/:id" element={<OrganisationInformationPage />} />
-      <Route path="/platform/organisations/:organisationId" element={<OrganisationInformationPage />} />
-      <Route path="/platform/organisation-requests/:requestId" element={<OrganisationInformationPage />} />
+      <Route
+        path="/platform/organisations/:organisationId"
+        element={<OrganisationInformationPage />}
+      />
+      <Route
+        path="/platform/organisation-requests/:requestId"
+        element={<OrganisationInformationPage />}
+      />
       <Route path="*" element={<Navigate to="/" replace />} />
       <Route
         path="/organisation-security-preferences"

@@ -27,10 +27,9 @@ describe('Organisation Details Service', () => {
 
     const result = await getPlatformOrganisationDetail('org-123', 'test-token');
 
-    expect(apiClient.get).toHaveBeenCalledWith(
-      '/platform/organisations/org-123',
-      { authToken: 'test-token' },
-    );
+    expect(apiClient.get).toHaveBeenCalledWith('/platform/organisations/org-123', {
+      authToken: 'test-token',
+    });
     expect(result).toEqual(mockResponse);
   });
 
@@ -40,10 +39,9 @@ describe('Organisation Details Service', () => {
 
     const result = await getPlatformOrganisationRequestDetails('req-456', 'test-token');
 
-    expect(apiClient.get).toHaveBeenCalledWith(
-      '/platform/organisation-requests/req-456/details',
-      { authToken: 'test-token' },
-    );
+    expect(apiClient.get).toHaveBeenCalledWith('/platform/organisation-requests/req-456/details', {
+      authToken: 'test-token',
+    });
     expect(result).toEqual(mockResponse);
   });
 

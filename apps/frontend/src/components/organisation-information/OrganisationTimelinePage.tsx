@@ -14,28 +14,30 @@ function OrganisationTimelinePage({ timeline }: OrganisationTimelineProps) {
     timestamp: string;
     action: string;
     summary: string;
-  }> = timeline && timeline.length > 0
-    ? timeline.map((item) => ({
-        id: item.id,
-        timestamp: new Date(item.timestamp).toLocaleString(),
-        action: item.action,
-        summary: item.summary,
-      }))
-    : [
-        {
-          id: '1',
-          timestamp: '19 June 2026, 06:00 PM',
-          action: 'Organisation Request Submitted',
-          summary: 'The organisation registration request was submitted by representative Jan van der Merwe.',
-        },
-        {
-          id: '2',
-          timestamp: '20 June 2026, 07:00 PM',
-          action: 'Organisation Request Declined',
-          summary:
-            'The organisation registration request was declined by the Insightful Phish platform administrator.',
-        },
-      ];
+  }> =
+    timeline && timeline.length > 0
+      ? timeline.map((item) => ({
+          id: item.id,
+          timestamp: new Date(item.timestamp).toLocaleString(),
+          action: item.action,
+          summary: item.summary,
+        }))
+      : [
+          {
+            id: '1',
+            timestamp: '19 June 2026, 06:00 PM',
+            action: 'Organisation Request Submitted',
+            summary:
+              'The organisation registration request was submitted by representative Jan van der Merwe.',
+          },
+          {
+            id: '2',
+            timestamp: '20 June 2026, 07:00 PM',
+            action: 'Organisation Request Declined',
+            summary:
+              'The organisation registration request was declined by the Insightful Phish platform administrator.',
+          },
+        ];
 
   return (
     <div className="-mt-2 -ml-2">

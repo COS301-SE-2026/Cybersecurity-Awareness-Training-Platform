@@ -13,12 +13,9 @@ export async function getPlatformOrganisationDetail(
   token: string,
 ): Promise<PlatformOrganisationDetailDto> {
   // call backend endpoint to get surface level organisation details
-  return apiClient.get<PlatformOrganisationDetailDto>(
-    `/platform/organisations/${organisationId}`,
-    {
-      authToken: token,
-    },
-  );
+  return apiClient.get<PlatformOrganisationDetailDto>(`/platform/organisations/${organisationId}`, {
+    authToken: token,
+  });
 }
 
 export async function getPlatformOrganisationRequestDetails(

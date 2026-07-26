@@ -26,7 +26,10 @@ function RepresentativeInformationPage({
 }: RepresentativeInfoProps) {
   // button is disabled if resend is not eligible or action is currently in progress
   const isResendDisabled =
-    isResending || (resendEligibility !== undefined && resendEligibility !== null && !resendEligibility.isEligible);
+    isResending ||
+    (resendEligibility !== undefined &&
+      resendEligibility !== null &&
+      !resendEligibility.isEligible);
 
   return (
     <div className="-mt-2 -ml-2">
@@ -128,9 +131,7 @@ function RepresentativeInformationPage({
         >
           <span className="material-icons-sharp">send</span>
           <span>
-            {isResending
-              ? 'Sending Setup Email...'
-              : 'Resend Initial Administrator Setup Email'}
+            {isResending ? 'Sending Setup Email...' : 'Resend Initial Administrator Setup Email'}
           </span>
         </button>
         {resendEligibility?.reason && !resendEligibility.isEligible && (

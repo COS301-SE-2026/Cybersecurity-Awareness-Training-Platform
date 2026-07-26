@@ -21,9 +21,7 @@ function BasicOrganisationInformationPage({
   status = '',
 }: BasicOrganisationInfoProps) {
   // convert ISO timestamp string to YYYY-MM-DD format for date input
-  const formattedDate = registrationDate
-    ? registrationDate.split('T')[0]
-    : '';
+  const formattedDate = registrationDate ? registrationDate.split('T')[0] : '';
 
   return (
     <div className="-mt-2 -ml-2">

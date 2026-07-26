@@ -47,7 +47,8 @@ function OrganisationAdminInformationPage({
       {isRequestOnly ? (
         <div className="p-4 bg-yellow-50 border border-yellow-200 text-yellow-800 font-overpass rounded-none mt-4">
           <p className="font-medium">
-            Pending Request: Organisation has not been fully created yet. High-level administrator list will appear once onboarding begins.
+            Pending Request: Organisation has not been fully created yet. High-level administrator
+            list will appear once onboarding begins.
           </p>
         </div>
       ) : (
@@ -84,9 +85,10 @@ function OrganisationAdminInformationPage({
             </thead>
             <tbody className="font-overpass font-regular text-[1rem] tracking-wide">
               {displayAdmins.map((admin) => {
-                const fullName = admin.firstName && admin.lastName
-                  ? `${admin.firstName} ${admin.lastName}`
-                  : admin.firstName || admin.email;
+                const fullName =
+                  admin.firstName && admin.lastName
+                    ? `${admin.firstName} ${admin.lastName}`
+                    : admin.firstName || admin.email;
                 const isActive = admin.adminStatus === 'ACTIVE';
 
                 return (
@@ -94,7 +96,10 @@ function OrganisationAdminInformationPage({
                     key={admin.id}
                     className="odd:bg-neutral-primary font-overpass even:bg-neutral-secondary-soft border-b border-default"
                   >
-                    <th scope="row" className="px-6 py-4 font-medium text-gray-600 whitespace-nowrap">
+                    <th
+                      scope="row"
+                      className="px-6 py-4 font-medium text-gray-600 whitespace-nowrap"
+                    >
                       {fullName} {admin.isInitialAdmin ? '(Initial Admin)' : ''}
                     </th>
                     <td className="px-6 py-4">{admin.email}</td>
