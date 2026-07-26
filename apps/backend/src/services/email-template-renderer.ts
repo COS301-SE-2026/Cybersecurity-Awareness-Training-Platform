@@ -1,6 +1,10 @@
 import type { EmailDeliveryType } from '../generated/prisma/enums.js';
 import { env } from '../config/env.js';
-import { escapeHtml, renderBrandedEmailOrFallback } from './email-rendering-helper.js';
+import {
+  escapeHtml,
+  renderBrandedEmailOrFallback,
+  type BrandedEmailLayoutInput,
+} from './email-rendering-helper.js';
 
 import {
   emailVerificationTemplateDataSchema,
@@ -18,6 +22,13 @@ import {
   platformAdminUpgradeConfirmationTemplateDataSchema,
 } from '@insightful-phish/shared';
 export type RenderedEmail = { subject: string; text: string; html: string };
+type SimpleEmailInput = {
+  subject: string;
+  heading: string;
+  lines: string[];
+  action?: { label: string; url: string; expiresAt?: Date };
+};
+type BrandedEmailInputWithoutSubject = Omit<BrandedEmailLayoutInput, 'subject'>;
 
 function actionUrl(path: string, rawToken: string) {
   const url = new URL(path, env.FRONTEND_ORIGIN);
@@ -31,12 +42,7 @@ function setupUrl(rawToken: string) {
 function greeting(firstName?: string) {
   return firstName ? `Hi ${firstName},` : `Hi,`;
 }
-function simpleEmail(input: {
-  subject: string;
-  heading: string;
-  lines: string[];
-  action?: { label: string; url: string; expiresAt?: Date };
-}): RenderedEmail {
+function simpleEmail(input: SimpleEmailInput): RenderedEmail {
   const actionTextLines = input.action
     ? [
         `${input.action.label}: ${input.action.url}`,
@@ -63,6 +69,22 @@ function simpleEmail(input: {
     html: `<h1>${escapeHtml(input.heading)}</h1>${htmlLines}${actionHtml}`,
   };
 }
+
+function brandedEmailWithFallback(
+  fallbackInput: SimpleEmailInput,
+  brandedInput: BrandedEmailInputWithoutSubject,
+): RenderedEmail {
+  const fallback = simpleEmail(fallbackInput);
+
+  return renderBrandedEmailOrFallback(
+    {
+      ...brandedInput,
+      subject: fallback.subject,
+    },
+    fallback,
+  );
+}
+
 function expiryLines(expiresAt: Date, now = new Date()) {
   const milliseconds = expiresAt.getTime() - now.getTime();
   const totalMinutes = Math.max(1, Math.ceil(milliseconds / (60 * 1000)));
@@ -84,205 +106,156 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
     case 'EMAIL_VERIFICATION': {
       const data = emailVerificationTemplateDataSchema.parse(templateData);
       const url = actionUrl('/verify-email', data.actionToken);
-      const fallback = simpleEmail({
-        subject: 'Verify your email address',
-        heading: 'Verify your email',
-        lines: [
-          greeting(data.firstName),
-          `Welcome to Insightful Phish.`,
-          'Before you can start using your account, please verify your email address.',
-        ],
-        action: { label: 'Verify email', url, expiresAt: data.actionTokenExpiresAt },
-      });
-
-      return renderBrandedEmailOrFallback(
+      const sections = [
+        'Welcome to Insightful Phish.',
+        'Before you can start using your account, please verify your email address.',
+      ];
+      return brandedEmailWithFallback(
+        {
+          subject: 'Verify your email address',
+          heading: 'Verify your email',
+          lines: [greeting(data.firstName), ...sections],
+          action: { label: 'Verify email', url, expiresAt: data.actionTokenExpiresAt },
+        },
         {
           templateId: 'EMAIL_VERIFICATION',
-          subject: fallback.subject,
           previewText: 'Verify your Insightful Phish email address.',
           title: 'Verify your email',
           greeting: greeting(data.firstName),
-          sections: [
-            'Welcome to Insightful Phish.',
-            'Before you can start using your account, please verify your email address.',
-          ],
-          cta: {
-            label: 'Verify email',
-            url,
-          },
+          sections,
+          cta: { label: 'Verify email', url },
           expiryText: expiryLines(data.actionTokenExpiresAt),
         },
-        fallback,
       );
     } //email_verification
 
     case 'PASSWORD_RESET': {
       const data = passwordResetTemplateDataSchema.parse(templateData);
       const url = actionUrl('/reset-password', data.actionToken);
-      const fallback = simpleEmail({
-        subject: 'Reset your password',
-        heading: 'Reset your password',
-        lines: [
-          greeting(data.firstName),
-          `We received a request to reset your Insightful Phish password.`,
-          `If you did not request a password reset, you can safely ignore this email. Your password will remain unchanged.`,
-        ],
-        action: { label: 'Reset password', url, expiresAt: data.actionTokenExpiresAt },
-      });
-
-      return renderBrandedEmailOrFallback(
+      const sections = [
+        'We received a request to reset your Insightful Phish password.',
+        'If you did not request a password reset, you can safely ignore this email. Your password will remain unchanged.',
+      ];
+      return brandedEmailWithFallback(
+        {
+          subject: 'Reset your password',
+          heading: 'Reset your password',
+          lines: [greeting(data.firstName), ...sections],
+          action: { label: 'Reset password', url, expiresAt: data.actionTokenExpiresAt },
+        },
         {
           templateId: 'PASSWORD_RESET',
-          subject: fallback.subject,
           previewText: 'Reset your Insightful Phish password.',
           title: 'Reset your password',
           greeting: greeting(data.firstName),
-          sections: [
-            'We received a request to reset your Insightful Phish password.',
-            'If you did not request a password reset, you can safely ignore this email. Your password will remain unchanged.',
-          ],
-          cta: {
-            label: 'Reset password',
-            url,
-          },
+          sections,
+          cta: { label: 'Reset password', url },
           expiryText: expiryLines(data.actionTokenExpiresAt),
         },
-        fallback,
       );
     } //password reset
 
     case 'PASSWORD_CHANGED': {
       const data = passwordChangedTemplateDataSchema.parse(templateData);
-      const fallback = simpleEmail({
-        subject: 'Your password was changed',
-        heading: 'Password changed',
-        lines: [
-          greeting(data.firstName),
-          `Your Insightful Phish password was changed successfully`,
-          'If you made this change, no further action is required.',
-          `If you did not change your password, please contact support immediately.`,
-        ],
-      });
-
-      return renderBrandedEmailOrFallback(
+      const sections = [
+        'Your Insightful Phish password was changed successfully',
+        'If you made this change, no further action is required.',
+        'If you did not change your password, please contact support immediately.',
+      ];
+      return brandedEmailWithFallback(
+        {
+          subject: 'Your password was changed',
+          heading: 'Password changed',
+          lines: [greeting(data.firstName), ...sections],
+        },
         {
           templateId: 'PASSWORD_CHANGED',
-          subject: fallback.subject,
           previewText: 'Your Insightful Phish password was changed.',
           title: 'Password changed',
           greeting: greeting(data.firstName),
-          sections: [
-            'Your Insightful Phish password was changed successfully',
-            'If you made this change, no further action is required.',
-            'If you did not change your password, please contact support immediately.',
-          ],
+          sections,
           support: {
             subject: 'Password changed help',
             body: 'I need help with a password change on my account.',
           },
         },
-        fallback,
       );
     } //password changed
 
     case 'EMAIL_CHANGE_CONFIRMATION': {
       const data = emailChangeConfirmationTemplateDataSchema.parse(templateData);
       const url = actionUrl('/confirm-email-change', data.actionToken);
-      const fallback = simpleEmail({
-        subject: 'Confirm your new email address',
-        heading: 'Confirm your email change',
-        lines: [
-          greeting(data.firstName),
-          `We received a request to change your Insightful Phish email address.`,
-          `Your account email will change from ${data.oldEmail} to ${data.newEmail}.`,
-        ],
-        action: { label: 'Confirm email change', url, expiresAt: data.actionTokenExpiresAt },
-      });
-
-      return renderBrandedEmailOrFallback(
+      const sections = [
+        'We received a request to change your Insightful Phish email address.',
+        `Your account email will change from ${data.oldEmail} to ${data.newEmail}.`,
+      ];
+      return brandedEmailWithFallback(
+        {
+          subject: 'Confirm your new email address',
+          heading: 'Confirm your email change',
+          lines: [greeting(data.firstName), ...sections],
+          action: { label: 'Confirm email change', url, expiresAt: data.actionTokenExpiresAt },
+        },
         {
           templateId: 'EMAIL_CHANGE_CONFIRMATION',
-          subject: fallback.subject,
           previewText: 'Confirm your Insightful Phish email change.',
           title: 'Confirm your email change',
           greeting: greeting(data.firstName),
-          sections: [
-            'We received a request to change your Insightful Phish email address.',
-            `Your account email will change from ${data.oldEmail} to ${data.newEmail}.`,
-          ],
-          cta: {
-            label: 'Confirm email change',
-            url,
-          },
+          sections,
+          cta: { label: 'Confirm email change', url },
           expiryText: expiryLines(data.actionTokenExpiresAt),
         },
-        fallback,
       );
     } //email change confirmation
 
     case 'EMAIL_CHANGE_WARNING': {
       const data = emailChangeWarningTemplateDataSchema.parse(templateData);
-      const fallback = simpleEmail({
-        subject: 'Email change requested',
-        heading: 'Email change requested',
-        lines: [
-          greeting(data.firstName),
-          `A request was made to change your Insightful Phish email address from ${data.oldEmail} to ${data.newEmail}.`,
-          `The new email address must still be confirmed before the change takes effect.`,
-          `If you did not request this change, please contact support immediately.`,
-        ],
-      });
-
-      return renderBrandedEmailOrFallback(
+      const sections = [
+        `A request was made to change your Insightful Phish email address from ${data.oldEmail} to ${data.newEmail}.`,
+        'The new email address must still be confirmed before the change takes effect.',
+        'If you did not request this change, please contact support immediately.',
+      ];
+      return brandedEmailWithFallback(
+        {
+          subject: 'Email change requested',
+          heading: 'Email change requested',
+          lines: [greeting(data.firstName), ...sections],
+        },
         {
           templateId: 'EMAIL_CHANGE_WARNING',
-          subject: fallback.subject,
           previewText: 'An Insightful Phish email change was requested.',
           title: 'Email change requested',
           greeting: greeting(data.firstName),
-          sections: [
-            `A request was made to change your Insightful Phish email address from ${data.oldEmail} to ${data.newEmail}.`,
-            'The new email address must still be confirmed before the change takes effect.',
-            'If you did not request this change, please contact support immediately.',
-          ],
+          sections,
           support: {
             subject: 'Email change help',
             body: 'I need help with an email change request on my account.',
           },
         },
-        fallback,
       );
     } //email change warning
 
     case 'ORGANISATION_REQUEST_RECEIVED': {
       const data = organisationRequestReceivedTemplateDataSchema.parse(templateData);
-      const fallback = simpleEmail({
-        subject: "We've received your organisation registration request",
-        heading: 'Request received',
-        lines: [
-          greeting(),
-          `Thank you for requesting to register ${data.organisationName} with Insightful Phish.`,
-          `Your organisation registration request has been received.`,
-          'Our team will review your request and notify you once we have an update.',
-          `You will be able to complete your account setup once your request has been approved.`,
-        ],
-      });
-
-      return renderBrandedEmailOrFallback(
+      const sections = [
+        `Thank you for requesting to register ${data.organisationName} with Insightful Phish.`,
+        'Your organisation registration request has been received.',
+        'Our team will review your request and notify you once we have an update.',
+        'You will be able to complete your account setup once your request has been approved.',
+      ];
+      return brandedEmailWithFallback(
+        {
+          subject: "We've received your organisation registration request",
+          heading: 'Request received',
+          lines: [greeting(), ...sections],
+        },
         {
           templateId: 'ORGANISATION_REQUEST_RECEIVED',
-          subject: fallback.subject,
           previewText: 'Your organisation registration request has been received.',
           title: 'Request received',
           greeting: greeting(),
-          sections: [
-            `Thank you for requesting to register ${data.organisationName} with Insightful Phish.`,
-            'Your organisation registration request has been received.',
-            'Our team will review your request and notify you once we have an update.',
-            'You will be able to complete your account setup once your request has been approved.',
-          ],
+          sections,
         },
-        fallback,
       );
     } //organisation reqeust received
 
@@ -300,37 +273,29 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
 
     case 'ORGANISATION_REQUEST_REJECTED': {
       const data = organisationRequestRejectedTemplateDataSchema.parse(templateData);
-      const fallback = simpleEmail({
-        subject: 'Your organisation registration request was not approved',
-        heading: 'Request not approved',
-        lines: [
-          greeting(),
-          `Unfortunately, your request to register ${data.organisationName} for Insightful Phish was not approved.`,
-          `Reason: `,
-          data.rejectionReason ? `${data.rejectionReason}` : 'No reason provided.',
-          'If you believe this is incorrect or require additional information, please contact support.',
-        ],
-      });
-
-      return renderBrandedEmailOrFallback(
+      const sections = [
+        `Unfortunately, your request to register ${data.organisationName} for Insightful Phish was not approved.`,
+        'Reason:',
+        data.rejectionReason ? data.rejectionReason : 'No reason provided.',
+        'If you believe this is incorrect or require additional information, please contact support.',
+      ];
+      return brandedEmailWithFallback(
+        {
+          subject: 'Your organisation registration request was not approved',
+          heading: 'Request not approved',
+          lines: [greeting(), ...sections],
+        },
         {
           templateId: 'ORGANISATION_REQUEST_REJECTED',
-          subject: fallback.subject,
           previewText: 'Your organisation registration request was not approved.',
           title: 'Request not approved',
           greeting: greeting(),
-          sections: [
-            `Unfortunately, your request to register ${data.organisationName} for Insightful Phish was not approved.`,
-            'Reason:',
-            data.rejectionReason ? data.rejectionReason : 'No reason provided.',
-            'If you believe this is incorrect or require additional information, please contact support.',
-          ],
+          sections,
           support: {
             subject: 'Organisation registration request help',
             body: 'I need help with an organisation registration request.',
           },
         },
-        fallback,
       );
     } //organisation request denied
 
@@ -338,43 +303,34 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
       const data = initialOrganisationAdminSetupTemplateDataSchema.parse(templateData);
       const url = setupUrl(data.actionToken);
       const expiryText = expiryLines(data.actionTokenExpiresAt);
-      const fallback = simpleEmail({
-        subject: `Your organisation has been approved`,
-        heading: 'Organisation approved',
-        lines: [
-          greeting(data.firstName),
-          `Good news! Your request to register ${data.organisationName} for Insightful Phish has been approved.`,
-          `The next step is to create the first organisation administrator account.`,
-        ],
-        action: {
-          label: 'Set up administrator account',
-          url,
-          expiresAt: data.actionTokenExpiresAt,
+      const sections = [
+        `Good news! Your request to register ${data.organisationName} for Insightful Phish has been approved.`,
+        'The next step is to create the first organisation administrator account.',
+      ];
+      return brandedEmailWithFallback(
+        {
+          subject: `Your organisation has been approved`,
+          heading: 'Organisation approved',
+          lines: [greeting(data.firstName), ...sections],
+          action: {
+            label: 'Set up administrator account',
+            url,
+            expiresAt: data.actionTokenExpiresAt,
+          },
         },
-      });
-
-      return renderBrandedEmailOrFallback(
         {
           templateId: 'INITIAL_ORGANISATION_ADMIN_SETUP',
-          subject: fallback.subject,
           previewText: 'Your organisation has been approved.',
           title: 'Organisation approved',
           greeting: greeting(data.firstName),
-          sections: [
-            `Good news! Your request to register ${data.organisationName} for Insightful Phish has been approved.`,
-            'The next step is to create the first organisation administrator account.',
-          ],
-          cta: {
-            label: 'Set up administrator account',
-            url,
-          },
+          sections,
+          cta: { label: 'Set up administrator account', url },
           expiryText,
           support: {
             subject: 'Initial administrator setup help',
             body: 'I need help setting up the first administrator account.',
           },
         },
-        fallback,
       );
     } //organisation reqeust approved
 
@@ -394,145 +350,114 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
         );
       }
 
-      const fallback = simpleEmail({
-        subject: `You're invited to join ${data.organisationName}`,
-        heading: 'Organisation invitation',
-        lines,
-        action: { label: 'Accept invitation', url, expiresAt: data.actionTokenExpiresAt },
-      });
-
-      return renderBrandedEmailOrFallback(
+      return brandedEmailWithFallback(
+        {
+          subject: `You're invited to join ${data.organisationName}`,
+          heading: 'Organisation invitation',
+          lines,
+          action: { label: 'Accept invitation', url, expiresAt: data.actionTokenExpiresAt },
+        },
         {
           templateId: 'ORGANISATION_TRAINEE_INVITE',
-          subject: fallback.subject,
           previewText: `You're invited to join ${data.organisationName}.`,
           title: 'Organisation invitation',
           greeting: greeting(data.firstName),
           sections: lines.slice(1),
-          cta: {
-            label: 'Accept invitation',
-            url,
-          },
+          cta: { label: 'Accept invitation', url },
           expiryText: expiryLines(data.actionTokenExpiresAt),
         },
-        fallback,
       );
     } //organisation trainee invite
 
     case 'ORGANISATION_ADMIN_PROMOTION_INVITE': {
       const data = organisationAdminPromotionInviteTemplateDataSchema.parse(templateData);
       const url = actionUrl('/accept-invite', data.actionToken);
-      const fallback = simpleEmail({
-        subject: `You're invited to become an organisation administrator`,
-        heading: 'Administrator invitation',
-        lines: [
-          greeting(data.firstName),
-          `You have been invited to become an organisation administrator for ${data.organisationName}.`,
-          `Organisation administrators can manage trainees, campaigns and organisation settings.`,
-          `Accepting this invitation will replace your trainee access with administrator access.`,
-        ],
-        action: { label: 'Accept administrator invite', url, expiresAt: data.actionTokenExpiresAt },
-      });
-
-      return renderBrandedEmailOrFallback(
+      const sections = [
+        `You have been invited to become an organisation administrator for ${data.organisationName}.`,
+        'Organisation administrators can manage trainees, campaigns and organisation settings.',
+        'Accepting this invitation will replace your trainee access with administrator access.',
+      ];
+      return brandedEmailWithFallback(
+        {
+          subject: `You're invited to become an organisation administrator`,
+          heading: 'Administrator invitation',
+          lines: [greeting(data.firstName), ...sections],
+          action: {
+            label: 'Accept administrator invite',
+            url,
+            expiresAt: data.actionTokenExpiresAt,
+          },
+        },
         {
           templateId: 'ORGANISATION_ADMIN_PROMOTION_INVITE',
-          subject: fallback.subject,
           previewText: 'You have been invited to become an organisation administrator.',
           title: 'Administrator invitation',
           greeting: greeting(data.firstName),
-          sections: [
-            `You have been invited to become an organisation administrator for ${data.organisationName}.`,
-            'Organisation administrators can manage trainees, campaigns and organisation settings.',
-            'Accepting this invitation will replace your trainee access with administrator access.',
-          ],
-          cta: {
-            label: 'Accept administrator invite',
-            url,
-          },
+          sections,
+          cta: { label: 'Accept administrator invite', url },
           expiryText: expiryLines(data.actionTokenExpiresAt),
           support: {
             subject: 'Organisation admin access help',
             body: 'I need help with organisation admin access.',
           },
         },
-        fallback,
       );
     } //organisation admin invite
 
     case 'PLATFORM_ADMIN_INVITE': {
       const data = platformAdminInviteTemplateDataSchema.parse(templateData);
       const url = setupUrl(data.actionToken);
-      const fallback = simpleEmail({
-        subject: `You're invited to join the Insightful Phish team`,
-        heading: 'Platform administrator invitation',
-        lines: [
-          greeting(data.firstName),
-          `You have been invited to join Insightful Phish as a platform administrator.`,
-          `Platform administrators manage organisations and content available to individual trainees, and oversee the platform.`,
-        ],
-        action: {
-          label: 'Create administrator account',
-          url,
-          expiresAt: data.actionTokenExpiresAt,
+      const sections = [
+        'You have been invited to join Insightful Phish as a platform administrator.',
+        'Platform administrators manage organisations and content available to individual trainees, and oversee the platform.',
+      ];
+      return brandedEmailWithFallback(
+        {
+          subject: `You're invited to join the Insightful Phish team`,
+          heading: 'Platform administrator invitation',
+          lines: [greeting(data.firstName), ...sections],
+          action: {
+            label: 'Create administrator account',
+            url,
+            expiresAt: data.actionTokenExpiresAt,
+          },
         },
-      });
-
-      return renderBrandedEmailOrFallback(
         {
           templateId: 'PLATFORM_ADMIN_INVITE',
-          subject: fallback.subject,
           previewText: 'You have been invited to join the Insightful Phish team.',
           title: 'Platform administrator invitation',
           greeting: greeting(data.firstName),
-          sections: [
-            'You have been invited to join Insightful Phish as a platform administrator.',
-            'Platform administrators manage organisations and content available to individual trainees, and oversee the platform.',
-          ],
-          cta: {
-            label: 'Create administrator account',
-            url,
-          },
+          sections,
+          cta: { label: 'Create administrator account', url },
           expiryText: expiryLines(data.actionTokenExpiresAt),
         },
-        fallback,
       );
     } //platform admin invite
 
     case 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION': {
       const data = platformAdminUpgradeConfirmationTemplateDataSchema.parse(templateData);
       const url = actionUrl('/accept-invite', data.actionToken);
-      const fallback = simpleEmail({
-        subject: `Confirm your platform administrator upgrade`,
-        heading: 'Confirm administrator upgrade',
-        lines: [
-          greeting(data.firstName),
-          `You have been invited to upgrade your existing account to a platform administrator account.`,
-          `Accepting this upgrade will replace your current trainee account with platform administrator access.`,
-          `If you do not wish to become a platform administrator, simply ignore this email.`,
-        ],
-        action: { label: 'Confirm upgrade', url, expiresAt: data.actionTokenExpiresAt },
-      });
-
-      return renderBrandedEmailOrFallback(
+      const sections = [
+        'You have been invited to upgrade your existing account to a platform administrator account.',
+        'Accepting this upgrade will replace your current trainee account with platform administrator access.',
+        'If you do not wish to become a platform administrator, simply ignore this email.',
+      ];
+      return brandedEmailWithFallback(
+        {
+          subject: `Confirm your platform administrator upgrade`,
+          heading: 'Confirm administrator upgrade',
+          lines: [greeting(data.firstName), ...sections],
+          action: { label: 'Confirm upgrade', url, expiresAt: data.actionTokenExpiresAt },
+        },
         {
           templateId: 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION',
-          subject: fallback.subject,
           previewText: 'Confirm your platform administrator upgrade.',
           title: 'Confirm administrator upgrade',
           greeting: greeting(data.firstName),
-          sections: [
-            'You have been invited to upgrade your existing account to a platform administrator account.',
-            'Accepting this upgrade will replace your current trainee account with platform administrator access.',
-            'If you do not wish to become a platform administrator, simply ignore this email.',
-          ],
-          cta: {
-            label: 'Confirm upgrade',
-            url,
-          },
+          sections,
+          cta: { label: 'Confirm upgrade', url },
           expiryText: expiryLines(data.actionTokenExpiresAt),
         },
-        fallback,
       );
     } //platform admin invite
 
@@ -541,33 +466,27 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
       const roleChangeLine = data.organisationName
         ? `Your role in ${data.organisationName} has been updated to ${data.roleName}.`
         : `Your Insightful Phish role has been updated to ${data.roleName}.`;
-      const fallback = simpleEmail({
-        subject: 'Your role has changed',
-        heading: 'Role updated',
-        lines: [
-          greeting(data.firstName),
-          roleChangeLine,
-          'If you were not expecting this change, please contact support.',
-        ],
-      });
-
-      return renderBrandedEmailOrFallback(
+      const sections = [
+        roleChangeLine,
+        'If you were not expecting this change, please contact support.',
+      ];
+      return brandedEmailWithFallback(
+        {
+          subject: 'Your role has changed',
+          heading: 'Role updated',
+          lines: [greeting(data.firstName), ...sections],
+        },
         {
           templateId: 'ROLE_CHANGED_NOTIFICATION',
-          subject: fallback.subject,
           previewText: 'Your Insightful Phish role has changed.',
           title: 'Role updated',
           greeting: greeting(data.firstName),
-          sections: [
-            roleChangeLine,
-            'If you were not expecting this change, please contact support.',
-          ],
+          sections,
           support: {
             subject: 'Role change help',
             body: 'I need help with an account role change.',
           },
         },
-        fallback,
       );
     } //role changed notification
 
