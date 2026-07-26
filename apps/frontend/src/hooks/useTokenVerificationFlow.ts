@@ -119,6 +119,7 @@ export function useTokenVerificationFlow<TResponse extends TokenVerificationResp
   resendToken,
 }: UseTokenVerificationFlowInput<TResponse>) {
   const isMounted = useRef(true);
+  const resendRequestGeneration = useRef(0);
   const [status, setStatus] = useState<TokenVerificationStatus>('pending');
   const [message, setMessage] = useState(messages.pending);
   const [canResend, setCanResend] = useState(false);
@@ -151,7 +152,9 @@ export function useTokenVerificationFlow<TResponse extends TokenVerificationResp
     async function verifyAndLoadContext() {
       setCanResend(false);
       setResendCooldownSeconds(0);
+      setIsResending(false);
       setResendFeedbackMessage(null);
+      setResendFeedbackStatus('success');
 
       if (!token) {
         setStatus('error');
@@ -195,6 +198,7 @@ export function useTokenVerificationFlow<TResponse extends TokenVerificationResp
 
     return () => {
       isCurrentRequest = false;
+      resendRequestGeneration.current += 1;
     };
   }, [expectedFlow, getTokenContext, messages, token, verifyToken]);
 
@@ -203,19 +207,25 @@ export function useTokenVerificationFlow<TResponse extends TokenVerificationResp
       return;
     }
 
+    const requestGeneration = resendRequestGeneration.current + 1;
+    resendRequestGeneration.current = requestGeneration;
+
+    const isCurrentResendRequest = () =>
+      isMounted.current && resendRequestGeneration.current === requestGeneration;
+
     setIsResending(true);
     setResendFeedbackMessage(null);
 
     try {
       await resendToken(token);
-      if (!isMounted.current) return;
+      if (!isCurrentResendRequest()) return;
 
       setCanResend(false);
       setResendCooldownSeconds(0);
       setResendFeedbackStatus('success');
       setResendFeedbackMessage(messages.resendSuccess);
     } catch (error) {
-      if (!isMounted.current) return;
+      if (!isCurrentResendRequest()) return;
 
       if (error instanceof ApiError) {
         const errorCode = getApiErrorCode(error);
@@ -239,7 +249,7 @@ export function useTokenVerificationFlow<TResponse extends TokenVerificationResp
       setResendFeedbackStatus('error');
       setResendFeedbackMessage(messages.resendGeneric);
     } finally {
-      if (isMounted.current) {
+      if (isCurrentResendRequest()) {
         setIsResending(false);
       }
     }

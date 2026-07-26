@@ -503,4 +503,144 @@ describe('VerifyEmailPage', () => {
     });
     expect(resendButton).toBeDisabled();
   });
+
+  it('ignores stale resend success after navigating to a new token', async () => {
+    const user = userEvent.setup();
+    const resendRequest = createDeferred<{ success: boolean }>();
+
+    verifyEmailMock.mockImplementation((token: string) => {
+      if (token === verificationToken || token === nextVerificationToken) {
+        return Promise.resolve({ state: 'EXPIRED' });
+      }
+
+      throw new Error(`Unexpected token: ${token}`);
+    });
+    getTokenContextMock.mockImplementation((token: string) => {
+      if (token === verificationToken || token === nextVerificationToken) {
+        return Promise.resolve({
+          tokenState: 'EXPIRED',
+          canResend: true,
+          resendCooldownSeconds: 0,
+          messageCode: 'TOKEN_EXPIRED',
+          flow: 'EMAIL_VERIFICATION',
+        });
+      }
+      throw new Error(`Unexpected token: ${token}`);
+    });
+    resendTokenMock.mockImplementation((token: string) => {
+      if (token === verificationToken) return resendRequest.promise;
+
+      throw new Error(`Unexpected token: ${token}`);
+    });
+
+    renderWithRouter(<VerifyEmailNavigationHarness />, {
+      initialEntry: `/verify-email?token=${verificationToken}`,
+      routePath: '/verify-email',
+    });
+
+    const tokenAResendButton = await screen.findByRole('button', {
+      name: /resend verification link/i,
+    });
+    await user.click(tokenAResendButton);
+
+    expect(resendToken).toHaveBeenCalledTimes(1);
+    expect(resendToken).toHaveBeenCalledWith(verificationToken);
+    expect(screen.getByRole('button', { name: 'Sending verification link...' })).toBeDisabled();
+
+    await user.click(screen.getByRole('button', { name: 'Verify next token' }));
+
+    await waitFor(() => {
+      expect(getTokenContext).toHaveBeenCalledWith(nextVerificationToken);
+    });
+
+    const tokenBResendButton = await screen.findByRole('button', {
+      name: /resend verification link/i,
+    });
+    expect(tokenBResendButton).toBeEnabled();
+
+    await act(async () => {
+      resendRequest.resolve({ success: true });
+      await resendRequest.promise;
+    });
+
+    expect(
+      screen.queryByText('If the email is still eligible, a new verification link has been sent.'),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /resend verification link/i })).toBeEnabled();
+    expect(resendToken).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores stale resend failure and cooldown after navigating to a new token', async () => {
+    const user = userEvent.setup();
+    const resendRequest = createDeferred<{ success: boolean }>();
+
+    verifyEmailMock.mockImplementation((token: string) => {
+      if (token === verificationToken || token === nextVerificationToken) {
+        return Promise.resolve({ state: 'EXPIRED' });
+      }
+
+      throw new Error(`Unexpected token: ${token}`);
+    });
+    getTokenContextMock.mockImplementation((token: string) => {
+      if (token === verificationToken || token === nextVerificationToken) {
+        return Promise.resolve({
+          tokenState: 'EXPIRED',
+          canResend: true,
+          resendCooldownSeconds: 0,
+          messageCode: 'TOKEN_EXPIRED',
+          flow: 'EMAIL_VERIFICATION',
+        });
+      }
+
+      throw new Error(`Unexpected token: ${token}`);
+    });
+    resendTokenMock.mockImplementation((token: string) => {
+      if (token === verificationToken) return resendRequest.promise;
+
+      throw new Error(`Unexpected token: ${token}`);
+    });
+
+    renderWithRouter(<VerifyEmailNavigationHarness />, {
+      initialEntry: `/verify-email?token=${verificationToken}`,
+      routePath: '/verify-email',
+    });
+
+    await user.click(await screen.findByRole('button', { name: /resend verification link/i }));
+
+    expect(resendToken).toHaveBeenCalledTimes(1);
+    expect(resendToken).toHaveBeenCalledWith(verificationToken);
+    await user.click(screen.getByRole('button', { name: 'Verify next token' }));
+
+    await waitFor(() => {
+      expect(getTokenContext).toHaveBeenCalledWith(nextVerificationToken);
+    });
+
+    expect(await screen.findByRole('button', { name: /resend verification link/i })).toBeEnabled();
+
+    const cooldownError = new ApiError('Resend cooldown active. Please try again later.', {
+      status: 429,
+      statusText: 'Too Many Requests',
+      method: 'POST',
+      url: '/auth/tokens/token/resend',
+      body: {
+        error: 'RESEND_COOLDOWN_ACTIVE',
+        message: 'Resend cooldown active. Please try again later.',
+        cooldownSeconds: 40,
+      },
+    });
+
+    await act(async () => {
+      resendRequest.reject(cooldownError);
+      await expect(resendRequest.promise).rejects.toBe(cooldownError);
+    });
+
+    expect(
+      screen.queryByText('Please wait 40 seconds before requesting another verification link.'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /resend verification link \(40s\)/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /resend verification link/i })).toBeEnabled();
+    expect(resendToken).toHaveBeenCalledTimes(1);
+  });
 });
