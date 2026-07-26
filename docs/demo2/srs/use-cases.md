@@ -49,7 +49,7 @@ The following use cases describe how users interact with the Insightful Phish sy
 The follwoing high level use case diagrams group closely related use cases by system capability. Each grouped diagram is embedded once in this section, and is then cross-referenced from the written use cases it covers.
 
 > [!note]
-> The Use Case Diagrams below are only for use cases that have been implemented in the system. Unimplemented use cases are not in use case diagrams.
+> The Use Case Diagrams below cover only use cases that are implemented or actively integrated. Planned and future use cases are excluded.
 
 ### Authentication and Account Access
 
@@ -83,6 +83,8 @@ _Figure 4.6: Organisation security and personal account management processes cov
 
 ## 4.2 Authentication and Account Access Use Cases
 
+**Use Case Diagram:** [Authentication and Account Access](#authentication-and-account-access)
+
 ### `AUTH-01` Register an Individual Account
 
 R1.1
@@ -115,9 +117,7 @@ Resend features around verification, recovery, setup or invitation email resend 
 
 **TUCEW** The trainee views the selected simulated email safely
 
-**Use Case Diagram**
-
-![UC-01: View Emails in a Simulated Inbox]() <!-- TODO insert appropriate link -->
+**Related Use Case Diagram:** [Trainee Campaign Participation](#trainee-campaign-participation)
 
 > [!Note]
 > This Use Case (`UC-01`) is related to [User Stories **5.2** and **5.3**](), [Functional Requirements **R2**]() and [Functional Requirements **R3**](). <!-- TODO insert appropriate links -->
@@ -168,9 +168,7 @@ Resend features around verification, recovery, setup or invitation email resend 
 
 **TUCEW** The trainee has read th training document and can continue with the campagin
 
-**Use Case Diagram**
-
-![UC-02 View a Training Document]() <!-- TODO insert appropriate link -->
+**Related Use Case Diagram:** [Trainee Campaign Participation](#trainee-campaign-participation)
 
 > [!Note]
 > This Use Case (`UC-02`) is related to [User Stories **5.2** and **5.6**](), [Functional Requirements **R2**]() and [Functional Requirements **R4**](). <!-- TODO insert appropriate links -->
@@ -222,7 +220,7 @@ Resend features around verification, recovery, setup or invitation email resend 
 
 **Use Case Diagram**
 
-![UC-03 Complete a Quiz and View Results]() <!-- TODO insert appropriate link -->
+**Related Use Case Diagram:** [Trainee Campaign Participation](#trainee-campaign-participation)
 
 > [!Note]
 > This Use Case (`UC-03`) is related to [User Stories **5.2** and **5.7**](), [Functional Requirements **R2**]() and [Functional Requirements **R5**](). <!-- TODO insert appropriate links -->
@@ -275,9 +273,7 @@ Resend features around verification, recovery, setup or invitation email resend 
 
 **TUCEW** The Organisation Representative receives confirmation that the request has been submitted for platform review
 
-**Use Case Diagram**
-
-![UC-04 Request Organisation Registration]() <!-- TODO insert appropriate link -->
+**Related Use Case Diagram:** [Organisation Onboarding and Invitations](#organisation-onboarding-and-invitations)
 
 > [!Note]
 > This Use Case (`UC-04`) is related to [User Story **1.1**]() and [Functional Requirements **R6**](). <!-- TODO insert appropriate links -->
@@ -330,9 +326,7 @@ Resend features around verification, recovery, setup or invitation email resend 
 
 **TUCEW** The Platform Administrator sees the resulting request, invitation, or organisation status after the selected action is completed
 
-**Use Case Diagram**
-
-![UC-05 Review and Manage Organisation Registrations]() <!-- TODO insert appropriate link -->
+**Related Use Case Diagram:** [Organisation Onboarding and Invitations](#organisation-onboarding-and-invitations)
 
 > [!Note]
 > This Use Case (`UC-05`) is related to [User Stories **7.1** to **7.3**]() and [Functional Requirements **R7**](). <!-- TODO insert appropriate links -->
@@ -398,9 +392,7 @@ Resend features around verification, recovery, setup or invitation email resend 
 
 **TUCEW** The Initial Organisation Administrator receives confirmation that the account is active and can proceed to log in and administer the organisation
 
-**Use Case Diagram**
-
-![UC-06 Complete First Organisation Administrator Setup]() <!-- TODO insert appropriate link -->
+**Related Use Case Diagram:** [Organisation Onboarding and Invitations](#organisation-onboarding-and-invitations)
 
 > [!Note]
 > This Use Case (`UC-06`) is related to [User Story **6.1**]() and [Functional Requirements **R8**](). <!-- TODO insert appropriate links -->
@@ -456,9 +448,7 @@ Resend features around verification, recovery, setup or invitation email resend 
 
 **TUCEW** The invited Organisation User receives confirmation that the accepted membership or role change has been applied
 
-**Use Case Diagram**
-
-![UC-07 Accept an Organisation Invitation or Role Change]() <!-- TODO insert appropriate link -->
+**Related Use Case Diagram:** [Organisation Onboarding and Invitations](#organisation-onboarding-and-invitations)
 
 > [!Note]
 > This Use Case (`UC-07`) is related to [User Stories **4.1** and **4.3**]() and [Functional Requirements **R9**](). <!-- TODO insert appropriate links -->
@@ -519,9 +509,7 @@ Resend features around verification, recovery, setup or invitation email resend 
 
 **TUCEW** The Organisation Administrator sees the resulting trainee, membership, or invitation status after the selected action is completed
 
-**Use Case Diagram**
-
-![UC-08 Manage Organisation Trainees]() <!-- TODO insert appropriate link -->
+**Related Use Case Diagram:** [Organisation Membership and Role Administration](#organisation-membership-and-role-administration)
 
 > [!Note]
 > This Use Case (`UC-08`) is related to [User Stories **6.2** to **6.4**]() and [Functional Requirements **R10**](). <!-- TODO insert appropriate links -->
@@ -587,9 +575,7 @@ Resend features around verification, recovery, setup or invitation email resend 
 
 **TUCEW** The Organisation Administrator sees the resulting administrator, permission, or promotion invitation status
 
-**Use Case Diagram**
-
-![UC-09 Manage Organisation Administrators and Permissions]() <!-- TODO insert appropriate link -->
+**Related Use Case Diagram:** [Organisation Membership and Role Administration](#organisation-membership-and-role-administration)
 
 > [!Note]
 > This Use Case (`UC-09`) is related to [User Stories **6.5** to **6.7**]() and [Functional Requirements **R11**](). <!-- TODO insert appropriate links -->
@@ -654,9 +640,7 @@ Resend features around verification, recovery, setup or invitation email resend 
 
 **TUCEW** The initiating actor sees the resulting administrator, invitation, or role status after the selected action is completed
 
-**Use Case Diagram**
-
-![UC-10 Manage Platform Administrators]() <!-- TODO insert appropriate link -->
+**Related Use Case Diagram:** [Platform Administrator Governance](#platform-administrator-governance)
 
 > [!Note]
 > This Use Case (`UC-10`) is related to [User Stories **8.1** to **8.3**]() and [Functional Requirements **R12**](). <!-- TODO insert appropriate links -->
@@ -728,10 +712,7 @@ Resend features around verification, recovery, setup or invitation email resend 
 
 **Use Case Diagram**
 
-![UC-11 Manage Organisation Security Settings]() <!-- TODO insert appropriate link -->
-
-> [!Note]
-> This Use Case (`UC-11`) is related to [User Story **6.8**]() and [Functional Requirements **R13**](). <!-- TODO insert appropriate links -->
+**Related Use Case Diagram:** [Security and Account Managenent](#security-and-account-management)
 
 <details> <summary><strong>View more details about UC-11</strong></summary>
 
@@ -786,9 +767,7 @@ Resend features around verification, recovery, setup or invitation email resend 
 
 **TUCEW** The Authenticated User sees the resulting account, security, session, or preferences state after the selected action is completed
 
-**Use Case Diagram**
-
-![UC-12 Manage Personal Account and Security Settings]() <!-- TODO insert appropriate link -->
+**Related Use Case Diagram:** [Security and Account Managenent](#security-and-account-management)
 
 > [!Note]
 > This Use Case (`UC-12`) is related to [User Stories **2.4** to **2.6**](), [Functional Requirements **R1**]() and [Functional Requirements **R14**](). <!-- TODO insert appropriate links -->
