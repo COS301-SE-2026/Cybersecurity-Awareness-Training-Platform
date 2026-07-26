@@ -1,3 +1,4 @@
+import type { EmailDeliveryType } from '../../src/generated/prisma/enums.js';
 import { describe, expect, it, vi } from 'vitest';
 vi.mock('../../src/config/env.js', () => ({
   env: {
@@ -15,6 +16,20 @@ const {
   renderBrandedEmail,
   renderBrandedEmailOrFallback,
 } = await import('../../src/services/email-rendering-helper.js');
+
+type MigratedEmailCase = {
+  emailType: EmailDeliveryType;
+  subject: string;
+  title: string;
+  textFragment: string;
+  templateData: unknown;
+  actionLabel?: string;
+  actionUrl?: string;
+  hasExpiry: boolean;
+  hasSupport: boolean;
+};
+
+type TokenizedActionUrlExpectation = readonly [EmailDeliveryType, string, string];
 
 function countOccurrences(value: string, needle: string): number {
   return value.split(needle).length - 1;
@@ -37,6 +52,225 @@ function renderInitialAdminSetupEmail() {
   });
 }
 
+const tokenizedActionUrlExpectations: readonly TokenizedActionUrlExpectation[] = [
+  ['EMAIL_VERIFICATION' as const, 'http://frontend.com/verify-email?token=', 'Verify email'],
+  ['PASSWORD_RESET' as const, 'http://frontend.com/reset-password?token=', 'Reset password'],
+  [
+    'EMAIL_CHANGE_CONFIRMATION' as const,
+    'http://frontend.com/confirm-email-change?token=',
+    'Confirm email change',
+  ],
+  [
+    'INITIAL_ORGANISATION_ADMIN_SETUP' as const,
+    'http://frontend.com/setup/token/',
+    'Set up administrator account',
+  ],
+  ['ORGANISATION_TRAINEE_INVITE' as const, 'http://frontend.com/setup/token/', 'Accept invitation'],
+  [
+    'ORGANISATION_ADMIN_PROMOTION_INVITE' as const,
+    'http://frontend.com/accept-invite?token=',
+    'Accept administrator invite',
+  ],
+  [
+    'PLATFORM_ADMIN_INVITE' as const,
+    'http://frontend.com/setup/token/',
+    'Create administrator account',
+  ],
+  [
+    'PLATFORM_ADMIN_UPGRADE_CONFIRMATION' as const,
+    'http://frontend.com/accept-invite?token=',
+    'Confirm upgrade',
+  ],
+] as const;
+
+const migratedEmailCases: readonly MigratedEmailCase[] = [
+  {
+    emailType: 'EMAIL_VERIFICATION' as const,
+    subject: 'Verify your email address',
+    title: 'Verify your email',
+    textFragment: 'Before you can start using your account',
+    templateData: {
+      firstName: 'Johan',
+      actionToken: rawToken,
+      actionTokenExpiresAt: expiresAt,
+    },
+    actionLabel: 'Verify email',
+    actionUrl: `http://frontend.com/verify-email?token=${rawToken}`,
+    hasExpiry: true,
+    hasSupport: false,
+  },
+  {
+    emailType: 'PASSWORD_RESET' as const,
+    subject: 'Reset your password',
+    title: 'Reset your password',
+    textFragment: 'We received a request to reset your Insightful Phish password.',
+    templateData: {
+      firstName: 'Johan',
+      actionToken: rawToken,
+      actionTokenExpiresAt: expiresAt,
+    },
+    actionLabel: 'Reset password',
+    actionUrl: `http://frontend.com/reset-password?token=${rawToken}`,
+    hasExpiry: true,
+    hasSupport: false,
+  },
+  {
+    emailType: 'PASSWORD_CHANGED' as const,
+    subject: 'Your password was changed',
+    title: 'Password changed',
+    textFragment: 'Your Insightful Phish password was changed successfully',
+    templateData: { firstName: 'Johan' },
+    hasExpiry: false,
+    hasSupport: true,
+  },
+  {
+    emailType: 'EMAIL_CHANGE_CONFIRMATION' as const,
+    subject: 'Confirm your new email address',
+    title: 'Confirm your email change',
+    textFragment: 'Your account email will change from old.johan@example.com to johan@example.com.',
+    templateData: {
+      firstName: 'Johan',
+      oldEmail: 'old.johan@example.com',
+      newEmail: 'johan@example.com',
+      actionToken: rawToken,
+      actionTokenExpiresAt: expiresAt,
+    },
+    actionLabel: 'Confirm email change',
+    actionUrl: `http://frontend.com/confirm-email-change?token=${rawToken}`,
+    hasExpiry: true,
+    hasSupport: false,
+  },
+  {
+    emailType: 'EMAIL_CHANGE_WARNING' as const,
+    subject: 'Email change requested',
+    title: 'Email change requested',
+    textFragment:
+      'A request was made to change your Insightful Phish email address from old.johan@example.com to johan@example.com.',
+    templateData: {
+      firstName: 'Johan',
+      oldEmail: 'old.johan@example.com',
+      newEmail: 'johan@example.com',
+    },
+    hasExpiry: false,
+    hasSupport: true,
+  },
+  {
+    emailType: 'ORGANISATION_REQUEST_RECEIVED' as const,
+    subject: "We've received your organisation registration request",
+    title: 'Request received',
+    textFragment: 'Your organisation registration request has been received.',
+    templateData: { organisationName: 'Test Org' },
+    hasExpiry: false,
+    hasSupport: false,
+  },
+  {
+    emailType: 'ORGANISATION_REQUEST_REJECTED' as const,
+    subject: 'Your organisation registration request was not approved',
+    title: 'Request not approved',
+    textFragment:
+      'Unfortunately, your request to register Test Org for Insightful Phish was not approved.',
+    templateData: {
+      organisationName: 'Test Org',
+      rejectionReason: 'Incomplete registration detail.',
+    },
+    hasExpiry: false,
+    hasSupport: true,
+  },
+  {
+    emailType: 'INITIAL_ORGANISATION_ADMIN_SETUP' as const,
+    subject: 'Your organisation has been approved',
+    title: 'Organisation approved',
+    textFragment: 'The next step is to create the first organisation administrator account.',
+    templateData: {
+      firstName: 'Johan',
+      organisationName: 'Test Org',
+      actionToken: rawToken,
+      actionTokenExpiresAt: expiresAt,
+    },
+    actionLabel: 'Set up administrator account',
+    actionUrl: `http://frontend.com/setup/token/${rawToken}`,
+    hasExpiry: true,
+    hasSupport: true,
+  },
+  {
+    emailType: 'ORGANISATION_TRAINEE_INVITE' as const,
+    subject: "You're invited to join Test Org",
+    title: 'Organisation invitation',
+    textFragment: 'You have been invited to join Test Org on Insightful Phish.',
+    templateData: {
+      firstName: 'Johan',
+      organisationName: 'Test Org',
+      actionToken: rawToken,
+      actionTokenExpiresAt: expiresAt,
+    },
+    actionLabel: 'Accept invitation',
+    actionUrl: `http://frontend.com/setup/token/${rawToken}`,
+    hasExpiry: true,
+    hasSupport: false,
+  },
+  {
+    emailType: 'ORGANISATION_ADMIN_PROMOTION_INVITE' as const,
+    subject: "You're invited to become an organisation administrator",
+    title: 'Administrator invitation',
+    textFragment:
+      'Accepting this invitation will replace your trainee access with administrator access.',
+    templateData: {
+      firstName: 'Johan',
+      organisationName: 'Test Org',
+      actionToken: rawToken,
+      actionTokenExpiresAt: expiresAt,
+    },
+    actionLabel: 'Accept administrator invite',
+    actionUrl: `http://frontend.com/accept-invite?token=${rawToken}`,
+    hasExpiry: true,
+    hasSupport: true,
+  },
+  {
+    emailType: 'PLATFORM_ADMIN_INVITE' as const,
+    subject: "You're invited to join the Insightful Phish team",
+    title: 'Platform administrator invitation',
+    textFragment: 'You have been invited to join Insightful Phish as a platform administrator.',
+    templateData: {
+      firstName: 'Johan',
+      actionToken: rawToken,
+      actionTokenExpiresAt: expiresAt,
+    },
+    actionLabel: 'Create administrator account',
+    actionUrl: `http://frontend.com/setup/token/${rawToken}`,
+    hasExpiry: true,
+    hasSupport: false,
+  },
+  {
+    emailType: 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION' as const,
+    subject: 'Confirm your platform administrator upgrade',
+    title: 'Confirm administrator upgrade',
+    textFragment:
+      'Accepting this upgrade will replace your current trainee account with platform administrator access.',
+    templateData: {
+      firstName: 'Johan',
+      actionToken: rawToken,
+      actionTokenExpiresAt: expiresAt,
+    },
+    actionLabel: 'Confirm upgrade',
+    actionUrl: `http://frontend.com/accept-invite?token=${rawToken}`,
+    hasExpiry: true,
+    hasSupport: false,
+  },
+  {
+    emailType: 'ROLE_CHANGED_NOTIFICATION' as const,
+    subject: 'Your role has changed',
+    title: 'Role updated',
+    textFragment: 'Your role in Test Org has been updated to organisation admin.',
+    templateData: {
+      firstName: 'Johan',
+      organisationName: 'Test Org',
+      roleName: 'organisation admin',
+    },
+    hasExpiry: false,
+    hasSupport: true,
+  },
+] as const;
+
 describe('renderEmail', () => {
   it('renders a token action URL and expiry and doesnt render token hashes', async () => {
     const rendered = renderEmail('EMAIL_VERIFICATION', {
@@ -54,7 +288,7 @@ describe('renderEmail', () => {
     expect(rendered.text).not.toContain(tokenHash);
 
     expect(rendered.subject).toBe('Verify your email address');
-    expect(rendered.html).toContain(`<h1>Verify your email</h1>`);
+    expect(rendered.html).toContain('Verify your email</h1>');
     expect(rendered.html).toContain(`href="http://frontend.com/verify-email?token=${rawToken}"`);
     expect(rendered.html).toContain('This link expires in');
     expect(rendered.html).not.toContain(tokenHash);
@@ -163,7 +397,7 @@ describe('renderEmail', () => {
         actionTokenExpiresAt: expiresAt,
       },
     ],
-  ])('renders %s witht eh correct action path', async (emailType, path, templateData) => {
+  ])('renders %s with the correct action path', async (emailType, path, templateData) => {
     const email = renderEmail(emailType, templateData);
     if (path.startsWith('/setup/token')) {
       expect(email.text).toContain(`http://frontend.com${path}`);
@@ -174,7 +408,77 @@ describe('renderEmail', () => {
     }
   });
 
-  it('escapes display vaues in HTML', async () => {
+  it.each(tokenizedActionUrlExpectations)(
+    'renders %s token only in intended action URL locations',
+    (emailType, urlPrefix, actionLabel) => {
+      const testCase = migratedEmailCases.find((item) => item.emailType === emailType);
+
+      expect(testCase).toBeDefined();
+
+      if (!testCase) {
+        throw new Error(`Missing migrated email fixture for ${emailType}`);
+      }
+
+      const email = renderEmail(emailType, testCase.templateData);
+      const expectedUrl = `${urlPrefix}${rawToken}`;
+
+      expect(email.text).toContain(`${actionLabel}: ${expectedUrl}`);
+      expect(email.html).toContain(`href="${expectedUrl}"`);
+      expect(countOccurrences(email.html, rawToken)).toBe(1);
+      expect(countOccurrences(email.text, rawToken)).toBe(1);
+      expect(email.html).not.toContain(tokenHash);
+      expect(email.text).not.toContain(tokenHash);
+
+      const mailtoHref = email.html.match(/href="(mailto:[^"]+)"/)?.[1] ?? '';
+      expect(mailtoHref).not.toContain(rawToken);
+    },
+  );
+
+  it.each(migratedEmailCases)(
+    'renders branded HTML and meaningful text for $emailType',
+    (testCase) => {
+      const email = renderEmail(testCase.emailType, testCase.templateData);
+
+      expect(email.subject).toBe(testCase.subject);
+      expect(email.html).toContain('<!doctype html>');
+      expect(email.html).toContain('#0E0020');
+      expect(email.html).toContain('#2F0360');
+      expect(email.html).toContain('Insightful Phish');
+      expect(email.html).toContain(`${testCase.title}</h1>`);
+      expect(email.html).toContain(testCase.textFragment);
+      expect(email.text).toContain(testCase.title);
+      expect(email.text).toContain(testCase.textFragment);
+      expect(email.text).toContain('Insightful Phish');
+      expectNoBrowserRuntimeEmailMarkup(email.html);
+
+      if (testCase.actionLabel && testCase.actionUrl) {
+        expect(email.html).toContain('#3100E4');
+        expect(email.html).toContain(testCase.actionLabel);
+        expect(email.html).toContain(`href="${testCase.actionUrl}"`);
+        expect(email.text).toContain(`${testCase.actionLabel}: ${testCase.actionUrl}`);
+      }
+
+      if (testCase.hasExpiry) {
+        expect(email.html).toContain('This link expires in');
+        expect(email.text).toContain('This link expires in');
+      } else {
+        expect(email.text).not.toContain('This link expires in');
+      }
+
+      if (testCase.hasSupport) {
+        expect(email.html).toContain('You can reach support by emailing');
+        expect(email.html).toContain('mailto:support@insightfulphish.co.za');
+        expect(email.text).toContain(
+          'You can reach support by emailing support@insightfulphish.co.za.',
+        );
+      } else {
+        expect(email.html).not.toContain('mailto:support@insightfulphish.co.za');
+        expect(email.text).not.toContain('You can reach support by emailing');
+      }
+    },
+  );
+
+  it('escapes display values in HTML', async () => {
     const email = renderEmail('ORGANISATION_REQUEST_RECEIVED', {
       organisationName: '<Johan & Sons>',
     });

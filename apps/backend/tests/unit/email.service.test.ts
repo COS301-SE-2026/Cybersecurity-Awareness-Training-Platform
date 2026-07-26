@@ -127,7 +127,7 @@ describe('sendEmail', () => {
         'Verify email: http://frontend.com/verify-email?token=rawactiontokenqwertyuiopasdfghjklzxcvbnm',
       ),
       html: expect.stringContaining(
-        '<a href="http://frontend.com/verify-email?token=rawactiontokenqwertyuiopasdfghjklzxcvbnm">Verify email</a>',
+        'href="http://frontend.com/verify-email?token=rawactiontokenqwertyuiopasdfghjklzxcvbnm"',
       ),
     });
     expect(sendMailMock).toHaveBeenCalledWith(
