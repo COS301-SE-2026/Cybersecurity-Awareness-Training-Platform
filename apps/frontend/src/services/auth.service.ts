@@ -2,6 +2,8 @@ import {
   type AccountVerifyEmailChangeRequestDto,
   type AccountVerifyEmailChangeResponseDto,
   type ActionTokenStateDto,
+  type AuthForgotPasswordRequestDto,
+  type AuthForgotPasswordResponseDto,
   type AuthLoginRequestDto,
   type AuthLoginResponseDto,
   type AuthMeResponseDto,
