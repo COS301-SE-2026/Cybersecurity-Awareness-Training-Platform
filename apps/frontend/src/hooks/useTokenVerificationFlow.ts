@@ -14,6 +14,44 @@ type TokenVerificationResponse = {
 
 type ResendFeedbackStatus = 'success' | 'error';
 
+const inFlightVerifications = new Map<
+  TokenLinkFlowDto,
+  Map<string, Promise<TokenVerificationResponse>>
+>();
+
+function getOrCreateVerificationRequest<TResponse extends TokenVerificationResponse>(
+  expectedFlow: TokenLinkFlowDto,
+  token: string,
+  verifyToken: (token: string) => Promise<TResponse>,
+): Promise<TResponse> {
+  let flowRequests = inFlightVerifications.get(expectedFlow);
+
+  if (!flowRequests) {
+    flowRequests = new Map<string, Promise<TokenVerificationResponse>>();
+    inFlightVerifications.set(expectedFlow, flowRequests);
+  }
+
+  const existingRequest = flowRequests.get(token) as Promise<TResponse> | undefined;
+  if (existingRequest) return existingRequest;
+
+  const request = verifyToken(token);
+  flowRequests.set(token, request);
+
+  const removeSettledRequest = () => {
+    if (flowRequests.get(token) !== request) return;
+
+    flowRequests.delete(token);
+
+    if (flowRequests.size === 0 && inFlightVerifications.get(expectedFlow) === flowRequests) {
+      inFlightVerifications.delete(expectedFlow);
+    }
+  };
+
+  void request.then(removeSettledRequest, removeSettledRequest);
+
+  return request;
+}
+
 export type TokenVerificationMessages = Readonly<{
   pending: string;
   success: string;
@@ -125,7 +163,7 @@ export function useTokenVerificationFlow<TResponse extends TokenVerificationResp
       setMessage(messages.pending);
 
       try {
-        const result = await verifyToken(token);
+        const result = await getOrCreateVerificationRequest(expectedFlow, token, verifyToken);
         if (!isMounted.current || !isCurrentRequest) return;
 
         const nextState = getStateMessage(result.state, messages);

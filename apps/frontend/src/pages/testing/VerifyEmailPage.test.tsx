@@ -1,12 +1,13 @@
 import { StrictMode } from 'react';
 import '@testing-library/jest-dom/vitest';
 import { ApiError } from '../../lib/apiClient';
-import { cleanup, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createDeferred, renderWithRouter } from '../../testing/render';
 import { getTokenContext, resendToken, verifyEmail } from '../../services/auth.service';
 import VerifyEmailPage from '../VerifyEmailPage';
 import userEvent from '@testing-library/user-event';
+import { useNavigate } from 'react-router-dom';
 
 const { verifyEmailMock, getTokenContextMock, resendTokenMock } = vi.hoisted(() => ({
   verifyEmailMock: vi.fn(),
@@ -21,6 +22,23 @@ vi.mock('../../services/auth.service', () => ({
 }));
 
 const verificationToken = 'exampleVerificationTokeValueWithAtLeast32Chars';
+const nextVerificationToken = 'nextVerificationTokenValueWithAtLeast32Chars';
+
+function VerifyEmailNavigationHarness() {
+  const navigate = useNavigate();
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => navigate(`/verify-email?token=${nextVerificationToken}`)}
+      >
+        Verify next token
+      </button>
+      <VerifyEmailPage />
+    </>
+  );
+}
 
 function renderVerifyEmailPage(initialEntry = `/verify-email?token=${verificationToken}`) {
   return renderWithRouter(<VerifyEmailPage />, {
@@ -335,7 +353,7 @@ describe('VerifyEmailPage', () => {
     expect(screen.queryByText(verificationToken)).not.toBeInTheDocument();
   });
 
-  it('updates verification state after the Strict Mode effect cycle', async () => {
+  it('deduplicates verification and updates state after the Strict Mode effect cycle', async () => {
     const verificationRequest = createDeferred<{ state: 'VALID' }>();
     verifyEmailMock.mockReturnValue(verificationRequest.promise);
 
@@ -352,14 +370,85 @@ describe('VerifyEmailPage', () => {
     expect(screen.getByText('Verifying email address...')).toBeInTheDocument();
 
     await waitFor(() => {
+      expect(verifyEmail).toHaveBeenCalledTimes(1);
       expect(verifyEmail).toHaveBeenCalledWith(verificationToken);
     });
-    expect(verifyEmailMock.mock.calls.length).toBeGreaterThanOrEqual(1);
-    expect(verifyEmailMock.mock.calls.length).toBeLessThanOrEqual(2);
 
     verificationRequest.resolve({ state: 'VALID' });
 
     expect(await screen.findByText('Email verified. You can now log in.')).toBeInTheDocument();
+  });
+
+  it('starts a new request for a changed token and ignores the stale result', async () => {
+    const user = userEvent.setup();
+    const firstRequest = createDeferred<{ state: 'VALID' | 'EXPIRED' }>();
+    const secondRequest = createDeferred<{ state: 'VALID' | 'EXPIRED' }>();
+
+    verifyEmailMock.mockImplementation((token: string) =>
+      token === verificationToken ? firstRequest.promise : secondRequest.promise,
+    );
+
+    renderWithRouter(<VerifyEmailNavigationHarness />, {
+      initialEntry: `/verify-email?token=${verificationToken}`,
+      routePath: '/verify-email',
+    });
+
+    await waitFor(() => {
+      expect(verifyEmail).toHaveBeenCalledTimes(1);
+      expect(verifyEmail).toHaveBeenNthCalledWith(1, verificationToken);
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Verify next token' }));
+
+    await waitFor(() => {
+      expect(verifyEmail).toHaveBeenCalledTimes(2);
+      expect(verifyEmail).toHaveBeenNthCalledWith(2, nextVerificationToken);
+    });
+
+    await act(async () => {
+      secondRequest.resolve({ state: 'VALID' });
+      await secondRequest.promise;
+    });
+
+    expect(await screen.findByText('Email verified. You can now log in.')).toBeInTheDocument();
+
+    await act(async () => {
+      firstRequest.resolve({ state: 'EXPIRED' });
+      await firstRequest.promise;
+    });
+
+    expect(screen.getByText('Email verified. You can now log in.')).toBeInTheDocument();
+    expect(getTokenContext).not.toHaveBeenCalled();
+  });
+
+  it('removes a rejected verification request so the same token can be retried', async () => {
+    const verificationRequest = createDeferred<{ state: 'VALID' }>();
+    verifyEmailMock
+      .mockReturnValueOnce(verificationRequest.promise)
+      .mockResolvedValueOnce({ state: 'VALID' });
+
+    const firstRender = renderVerifyEmailPage();
+
+    await waitFor(() => {
+      expect(verifyEmail).toHaveBeenCalledTimes(1);
+    });
+
+    await act(async () => {
+      verificationRequest.reject(new Error('Verification failed'));
+      await expect(verificationRequest.promise).rejects.toThrow('Verification failed');
+    });
+
+    expect(
+      await screen.findByText('We could not verify your email right now. Please try again later.'),
+    ).toBeInTheDocument();
+
+    firstRender.unmount();
+    renderVerifyEmailPage();
+
+    expect(await screen.findByText('Email verified. You can now log in.')).toBeInTheDocument();
+    expect(verifyEmail).toHaveBeenCalledTimes(2);
+    expect(verifyEmail).toHaveBeenNthCalledWith(1, verificationToken);
+    expect(verifyEmail).toHaveBeenNthCalledWith(2, verificationToken);
   });
 
   it('shows pending state while verifying the email token', async () => {
