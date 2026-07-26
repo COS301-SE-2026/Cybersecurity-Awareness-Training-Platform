@@ -2,7 +2,7 @@ import '@testing-library/jest-dom/vitest';
 import { cleanup, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithRouter } from '../../testing/render';
-import { resendToken, verifyEmailChange } from '../../services/auth.service';
+import { getTokenContext, resendToken, verifyEmailChange } from '../../services/auth.service';
 import ConfirmEmailChangePage from '../ConfirmEmailChangePage';
 import userEvent from '@testing-library/user-event';
 import { ApiError } from '../../lib/apiClient';
@@ -84,6 +84,31 @@ describe('ConfirmEmailChangePage', () => {
     expect(
       await screen.findByText('This email change link has expired. Please request a new link.'),
     ).toBeInTheDocument();
+  });
+
+  it('does not expose resend for an email-verification token context', async () => {
+    verifyEmailChangeMock.mockResolvedValue({ state: 'EXPIRED' });
+    getTokenContextMock.mockResolvedValue({
+      tokenState: 'EXPIRED',
+      canResend: true,
+      resendCooldownSeconds: 35,
+      messageCode: 'TOKEN_EXPIRED',
+      flow: 'EMAIL_VERIFICATION',
+    });
+
+    renderConfirmEmailChangePage();
+
+    expect(
+      await screen.findByText('This email change link has expired. Please request a new link.'),
+    ).toBeInTheDocument();
+    expect(getTokenContext).toHaveBeenCalledWith(changeToken);
+    expect(
+      screen.queryByRole('button', { name: /resend email change link/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('EMAIL_VERIFICATION')).not.toBeInTheDocument();
+    expect(screen.queryByText(changeToken)).not.toBeInTheDocument();
+    expect(screen.queryByText('target@example.com')).not.toBeInTheDocument();
+    expect(resendToken).not.toHaveBeenCalled();
   });
 
   it('uses email-change resend copy when resend succeeds', async () => {

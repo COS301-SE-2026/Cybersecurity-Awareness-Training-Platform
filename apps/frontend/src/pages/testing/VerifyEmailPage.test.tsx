@@ -111,6 +111,33 @@ describe('VerifyEmailPage', () => {
     expect(getTokenContext).toHaveBeenCalledWith(verificationToken);
   });
 
+  it('does not expose resend for an email-change token context', async () => {
+    verifyEmailMock.mockResolvedValue({ state: 'EXPIRED' });
+    getTokenContextMock.mockResolvedValue({
+      tokenState: 'EXPIRED',
+      canResend: true,
+      resendCooldownSeconds: 0,
+      messageCode: 'TOKEN_EXPIRED',
+      flow: 'EMAIL_CHANGE_VERIFICATION',
+    });
+
+    renderVerifyEmailPage();
+
+    expect(
+      await screen.findByText(
+        'This verification link has expired. Please request a new verification email.',
+      ),
+    ).toBeInTheDocument();
+    expect(getTokenContext).toHaveBeenCalledWith(verificationToken);
+    expect(
+      screen.queryByRole('button', { name: /resend verification link/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('EMAIL_CHANGE_VERIFICATION')).not.toBeInTheDocument();
+    expect(screen.queryByText(verificationToken)).not.toBeInTheDocument();
+    expect(screen.queryByText('target@example.com')).not.toBeInTheDocument();
+    expect(resendToken).not.toHaveBeenCalled();
+  });
+
   it('hides resend when token context says canResend is false', async () => {
     verifyEmailMock.mockResolvedValue({ state: 'EXPIRED' });
 

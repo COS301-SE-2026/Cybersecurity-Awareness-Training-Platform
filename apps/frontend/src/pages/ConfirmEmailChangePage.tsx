@@ -29,6 +29,7 @@ function ConfirmEmailChangePage() {
 
   const verification = useTokenVerificationFlow({
     token,
+    expectedFlow: 'EMAIL_CHANGE_VERIFICATION',
     messages,
     verifyToken: verifyEmailChange,
     getTokenContext,

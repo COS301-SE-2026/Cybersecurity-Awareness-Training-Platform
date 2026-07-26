@@ -31,6 +31,7 @@ function VerifyEmailPage() {
 
   const verification = useTokenVerificationFlow({
     token,
+    expectedFlow: 'EMAIL_VERIFICATION',
     messages,
     verifyToken: verifyEmail,
     getTokenContext,

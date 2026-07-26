@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ActionTokenStateDto } from '@insightful-phish/shared';
 import { ApiError } from '../lib/apiClient';
-import type { ResendTokenResponseDto, TokenContextResponseDto } from '../services/auth.service';
+import type {
+  ResendTokenResponseDto,
+  TokenContextResponseDto,
+  TokenLinkFlowDto,
+} from '../services/auth.service';
 import type { TokenVerificationStatus } from '../components/auth/TokenVerificationPanel';
 
 type TokenVerificationResponse = {
@@ -27,6 +31,7 @@ export type TokenVerificationMessages = Readonly<{
 
 type UseTokenVerificationFlowInput<TResponse extends TokenVerificationResponse> = Readonly<{
   token: string;
+  expectedFlow: TokenLinkFlowDto;
   messages: TokenVerificationMessages;
   verifyToken: (token: string) => Promise<TResponse>;
   getTokenContext: (token: string) => Promise<TokenContextResponseDto>;
@@ -69,6 +74,7 @@ function getCooldownSeconds(error: ApiError): number {
 
 export function useTokenVerificationFlow<TResponse extends TokenVerificationResponse>({
   token,
+  expectedFlow,
   messages,
   verifyToken,
   getTokenContext,
@@ -132,8 +138,9 @@ export function useTokenVerificationFlow<TResponse extends TokenVerificationResp
           const context = await getTokenContext(token);
           if (!isMounted.current || !isCurrentRequest) return;
 
-          setCanResend(context.canResend);
-          setResendCooldownSeconds(context.resendCooldownSeconds);
+          const isResendEligible = context.canResend && context.flow === expectedFlow;
+          setCanResend(isResendEligible);
+          setResendCooldownSeconds(isResendEligible ? context.resendCooldownSeconds : 0);
         } catch {
           if (!isMounted.current || !isCurrentRequest) return;
           setCanResend(false);
@@ -151,7 +158,7 @@ export function useTokenVerificationFlow<TResponse extends TokenVerificationResp
     return () => {
       isCurrentRequest = false;
     };
-  }, [getTokenContext, messages, token, verifyToken]);
+  }, [expectedFlow, getTokenContext, messages, token, verifyToken]);
 
   const handleResend = useCallback(async () => {
     if (!token || !canResend || isResending || resendCooldownSeconds > 0) {
