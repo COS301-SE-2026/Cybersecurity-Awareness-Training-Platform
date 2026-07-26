@@ -463,7 +463,7 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
     case 'PLATFORM_ADMIN_INVITE': {
       const data = platformAdminInviteTemplateDataSchema.parse(templateData);
       const url = setupUrl(data.actionToken);
-      return simpleEmail({
+      const fallback = simpleEmail({
         subject: `You're invited to join the Insightful Phish team`,
         heading: 'Platform administrator invitation',
         lines: [
@@ -477,12 +477,32 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
           expiresAt: data.actionTokenExpiresAt,
         },
       });
+
+      return renderBrandedEmailOrFallback(
+        {
+          templateId: 'PLATFORM_ADMIN_INVITE',
+          subject: fallback.subject,
+          previewText: 'You have been invited to join the Insightful Phish team.',
+          title: 'Platform administrator invitation',
+          greeting: greeting(data.firstName),
+          sections: [
+            'You have been invited to join Insightful Phish as a platform administrator.',
+            'Platform administrators manage organisations and content available to individual trainees, and oversee the platform.',
+          ],
+          cta: {
+            label: 'Create administrator account',
+            url,
+          },
+          expiryText: expiryLines(data.actionTokenExpiresAt),
+        },
+        fallback,
+      );
     } //platform admin invite
 
     case 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION': {
       const data = platformAdminUpgradeConfirmationTemplateDataSchema.parse(templateData);
       const url = actionUrl('/accept-invite', data.actionToken);
-      return simpleEmail({
+      const fallback = simpleEmail({
         subject: `Confirm your platform administrator upgrade`,
         heading: 'Confirm administrator upgrade',
         lines: [
@@ -493,21 +513,62 @@ export function renderEmail(emailType: EmailDeliveryType, templateData: unknown)
         ],
         action: { label: 'Confirm upgrade', url, expiresAt: data.actionTokenExpiresAt },
       });
+
+      return renderBrandedEmailOrFallback(
+        {
+          templateId: 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION',
+          subject: fallback.subject,
+          previewText: 'Confirm your platform administrator upgrade.',
+          title: 'Confirm administrator upgrade',
+          greeting: greeting(data.firstName),
+          sections: [
+            'You have been invited to upgrade your existing account to a platform administrator account.',
+            'Accepting this upgrade will replace your current trainee account with platform administrator access.',
+            'If you do not wish to become a platform administrator, simply ignore this email.',
+          ],
+          cta: {
+            label: 'Confirm upgrade',
+            url,
+          },
+          expiryText: expiryLines(data.actionTokenExpiresAt),
+        },
+        fallback,
+      );
     } //platform admin invite
 
     case 'ROLE_CHANGED_NOTIFICATION': {
       const data = roleChangedNotificationTemplateDataSchema.parse(templateData);
-      return simpleEmail({
+      const roleChangeLine = data.organisationName
+        ? `Your role in ${data.organisationName} has been updated to ${data.roleName}.`
+        : `Your Insightful Phish role has been updated to ${data.roleName}.`;
+      const fallback = simpleEmail({
         subject: 'Your role has changed',
         heading: 'Role updated',
         lines: [
           greeting(data.firstName),
-          data.organisationName
-            ? `Your role in ${data.organisationName} has been updated to ${data.roleName}.`
-            : `Your Insightful Phish role has been updated to ${data.roleName}.`,
+          roleChangeLine,
           'If you were not expecting this change, please contact support.',
         ],
       });
+
+      return renderBrandedEmailOrFallback(
+        {
+          templateId: 'ROLE_CHANGED_NOTIFICATION',
+          subject: fallback.subject,
+          previewText: 'Your Insightful Phish role has changed.',
+          title: 'Role updated',
+          greeting: greeting(data.firstName),
+          sections: [
+            roleChangeLine,
+            'If you were not expecting this change, please contact support.',
+          ],
+          support: {
+            subject: 'Role change help',
+            body: 'I need help with an account role change.',
+          },
+        },
+        fallback,
+      );
     } //role changed notification
 
     default:
