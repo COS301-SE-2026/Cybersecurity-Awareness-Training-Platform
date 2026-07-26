@@ -150,6 +150,34 @@ describe('ResetPasswordPage', () => {
     expect(screen.queryByLabelText('New Password')).not.toBeInTheDocument();
   });
 
+  it('uses a safe terminal message when the linked account is disabled', async () => {
+    const user = userEvent.setup();
+    const unsafeBackendMessage = 'This account has been disabled.';
+
+    resetPasswordMock.mockRejectedValueOnce(
+      createResetApiError(
+        403,
+        {
+          error: 'USER_DISABLED',
+          message: unsafeBackendMessage,
+        },
+        'Forbidden',
+      ),
+    );
+
+    await showResetForm();
+    await fillValidPasswords(user);
+    await user.click(screen.getByRole('button', { name: 'Reset Password' }));
+
+    expect(
+      await screen.findByText('We could not reset your password with this link.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(unsafeBackendMessage)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('New Password')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Reset Password' })).not.toBeInTheDocument();
+    expect(resetPassword).toHaveBeenCalledTimes(1);
+  });
+
   it('maps one backend validation response to both password fields', async () => {
     const user = userEvent.setup();
     resetPasswordMock.mockRejectedValueOnce(
@@ -171,47 +199,69 @@ describe('ResetPasswordPage', () => {
     expect(screen.getByText('Backend confirmation error')).toBeInTheDocument();
   });
 
-  it('prevents duplicate submission and permits retry after failure', async () => {
-    const user = userEvent.setup();
-    const firstRequest = createDeferred<{ success: true }>();
-    resetPasswordMock
-      .mockReturnValueOnce(firstRequest.promise)
-      .mockResolvedValueOnce({ success: true });
+  it.each([
+    [
+      'rate-limited API failure',
+      () =>
+        createResetApiError(
+          429,
+          {
+            error: 'AUTH_RATE_LIMITED',
+            message: 'Raw backend rate-limit wording',
+          },
+          'Too Many Requests',
+        ),
+      'Please wait before trying to reset your password again.',
+    ],
+    [
+      'ordinary failure',
+      () => new Error('Temporary failure'),
+      'We could not reset your password right now. Please try again later.',
+    ],
+  ])(
+    'prevents duplicate submission and permits retry after a %s',
+    async (_caseName, createError, expectedMessage) => {
+      const user = userEvent.setup();
+      const firstRequest = createDeferred<{ success: true }>();
 
-    await showResetForm();
-    await fillValidPasswords(user);
+      resetPasswordMock
+        .mockReturnValueOnce(firstRequest.promise)
+        .mockResolvedValueOnce({ success: true });
 
-    const submitButton = screen.getByRole('button', { name: 'Reset Password' });
-    const form = submitButton.closest('form');
+      await showResetForm();
+      await fillValidPasswords(user);
 
-    if (!form) throw new Error('Expected reset-password form');
+      const submitButton = screen.getByRole('button', { name: 'Reset Password' });
+      const form = submitButton.closest('form');
 
-    fireEvent.submit(form);
-    fireEvent.submit(form);
+      if (!form) throw new Error('Expected reset-password form');
 
-    expect(resetPassword).toHaveBeenCalledTimes(1);
+      fireEvent.submit(form);
+      fireEvent.submit(form);
 
-    firstRequest.reject(new Error('Temporary failure'));
+      expect(resetPassword).toHaveBeenCalledTimes(1);
 
-    expect(
-      await screen.findByText(
-        'We could not reset your password right now. Please try again later.',
-      ),
-    ).toBeInTheDocument();
+      firstRequest.reject(createError());
 
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Reset Password' })).toBeEnabled();
-    });
+      expect(await screen.findByText(expectedMessage)).toBeInTheDocument();
+      expect(screen.getByLabelText('New Password')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Reset Password' }));
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Reset Password' })).toBeEnabled();
+      });
 
-    expect(resetPassword).toHaveBeenCalledTimes(2);
-    expect(
-      await screen.findByText(
-        'Your password has been updated. Please log in again using your new password.',
-      ),
-    ).toBeInTheDocument();
-  });
+      await user.click(screen.getByRole('button', { name: 'Reset Password' }));
+
+      await waitFor(() => {
+        expect(resetPassword).toHaveBeenCalledTimes(2);
+      });
+      expect(
+        await screen.findByText(
+          'Your password has been updated. Please log in again using your new password.',
+        ),
+      ).toBeInTheDocument();
+    },
+  );
 
   it('submits the exact reset payload and waits for success', async () => {
     const user = userEvent.setup();
@@ -415,6 +465,22 @@ describe('ResetPasswordPage', () => {
           },
         }),
       'Please wait 35 seconds before requesting another password reset link.',
+      true,
+    ],
+    [
+      'rate-limited response',
+      () =>
+        new ApiError('Resend failed', {
+          status: 429,
+          statusText: 'Too Many Requests',
+          method: 'POST',
+          url: `/auth/tokens/${resetToken}/resend`,
+          body: {
+            error: 'AUTH_RATE_LIMITED',
+            message: 'Raw backend rate-limit wording',
+          },
+        }),
+      'Please wait before requesting another password reset link.',
       true,
     ],
     [
