@@ -6,7 +6,7 @@ import BackToLoginButton from '../components/BackToLoginButton';
 import LoadingSpinnerSVG from '../components/LoadingSpinnerSVG';
 import { ApiError } from '../lib/apiClient';
 import { useSearchParams } from 'react-router-dom';
-import { getTokenContext, resetPassword } from '../services/auth.service';
+import { getTokenContext, resetPassword, resendToken } from '../services/auth.service';
 import TokenVerificationPanel from '../components/auth/TokenVerificationPanel';
 
 const MISSING_TOKEN_MESSAGE = 'This password reset link is missing a token.';
@@ -22,6 +22,19 @@ const GENERIC_ERROR_MESSAGE = 'We could not reset your password right now. Pleas
 const VALIDATION_FALLBACK_MESSAGE = 'Please check the highlighted fields and try again.';
 const NEW_PASSWORD_ERROR_ID = 'reset-password-new-password-error';
 const CONFIRM_PASSWORD_ERROR_ID = 'reset-password-confirm-password-error';
+const RESEND_SUCCESS_MESSAGE =
+  'If the account is still eligible, a new password reset link has been sent.';
+const RESEND_GENERIC_MESSAGE =
+  'We could not send a new password reset link right now. Please try again later.';
+const RESEND_RATE_LIMIT_MESSAGE = 'Please wait before requesting another password reset link.';
+const RESEND_INELIGIBLE_MESSAGE =
+  'This password reset link cannot be resent. Please request a new password reset.';
+
+function getResendCooldownMessage(seconds: number): string {
+  return seconds > 0
+    ? `Please wait ${seconds} seconds before requesting another password reset link.`
+    : RESEND_RATE_LIMIT_MESSAGE;
+}
 
 type FieldErrors = {
   newPassword?: string;
@@ -37,6 +50,14 @@ function getApiErrorCode(error: ApiError): string | null {
 
   const code = error.body.error;
   return typeof code === 'string' ? code : null;
+}
+
+function getCooldownSeconds(error: ApiError): number {
+  if (!isRecord(error.body)) return 0;
+
+  const cooldownSeconds = error.body.cooldownSeconds;
+
+  return typeof cooldownSeconds === 'number' && cooldownSeconds > 0 ? cooldownSeconds : 0;
 }
 
 function getValidationDetails(error: ApiError): Array<{ field: string; message: string }> {
@@ -76,6 +97,7 @@ interface ResetPasswordFlowProps {
 }
 
 type TokenStatus = 'loading' | 'valid' | 'error';
+type ResendFeedbackStatus = 'success' | 'error';
 
 function ResetPasswordFlow({ token }: ResetPasswordFlowProps) {
   const [tokenStatus, setTokenStatus] = useState<TokenStatus>(token ? 'loading' : 'error');
@@ -92,6 +114,13 @@ function ResetPasswordFlow({ token }: ResetPasswordFlowProps) {
   const confirmNewPasswordRef = useRef<HTMLInputElement>(null);
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [canResend, setCanResend] = useState(false);
+  const [resendCooldownSeconds, setResendCooldownSeconds] = useState(0);
+  const [isResending, setIsResending] = useState(false);
+  const [resendFeedbackStatus, setResendFeedbackStatus] = useState<ResendFeedbackStatus>('success');
+  const [resendFeedbackMessage, setResendFeedbackMessage] = useState<string | null>(null);
+  const resendInFlightRef = useRef(false);
+  const resendRequestIdRef = useRef(0);
 
   useEffect(() => {
     const requestId = ++contextRequestIdRef.current;
@@ -101,6 +130,8 @@ function ResetPasswordFlow({ token }: ResetPasswordFlowProps) {
         contextRequestIdRef.current += 1;
         submissionRequestIdRef.current += 1;
         submissionInFlightRef.current = false;
+        resendInFlightRef.current = false;
+        resendRequestIdRef.current += 1;
       };
     }
 
@@ -110,7 +141,16 @@ function ResetPasswordFlow({ token }: ResetPasswordFlowProps) {
 
         if (contextRequestIdRef.current !== requestId) return;
 
-        if (context.tokenState === 'VALID' && context.flow === 'PASSWORD_RESET') {
+        const isPasswordResetContext = context.flow === 'PASSWORD_RESET';
+        const isEligibleExpiredResetToken =
+          isPasswordResetContext && context.tokenState === 'EXPIRED' && context.canResend;
+
+        setCanResend(isEligibleExpiredResetToken);
+        setResendCooldownSeconds(
+          isEligibleExpiredResetToken ? Math.max(0, context.resendCooldownSeconds) : 0,
+        );
+
+        if (context.tokenState === 'VALID' && isPasswordResetContext) {
           setTokenStatus('valid');
           setTokenErrorMessage('');
           return;
@@ -124,6 +164,9 @@ function ResetPasswordFlow({ token }: ResetPasswordFlowProps) {
         );
       } catch (error) {
         if (contextRequestIdRef.current !== requestId) return;
+
+        setCanResend(false);
+        setResendCooldownSeconds(0);
 
         const isInvalidContextError =
           error instanceof ApiError &&
@@ -140,6 +183,8 @@ function ResetPasswordFlow({ token }: ResetPasswordFlowProps) {
       contextRequestIdRef.current += 1;
       submissionRequestIdRef.current += 1;
       submissionInFlightRef.current = false;
+      resendRequestIdRef.current += 1;
+      resendInFlightRef.current = false;
     };
   }, [token]);
 
@@ -153,6 +198,16 @@ function ResetPasswordFlow({ token }: ResetPasswordFlowProps) {
       confirmNewPasswordRef.current?.focus();
     }
   }
+
+  useEffect(() => {
+    if (resendCooldownSeconds <= 0) return;
+
+    const timer = window.setTimeout(() => {
+      setResendCooldownSeconds((current) => Math.max(0, current - 1));
+    }, 1000);
+
+    return () => window.clearTimeout(timer);
+  }, [resendCooldownSeconds]);
 
   function applyValidationDetails(error: ApiError): boolean {
     const details = getValidationDetails(error);
@@ -186,6 +241,71 @@ function ResetPasswordFlow({ token }: ResetPasswordFlowProps) {
     }
 
     return false;
+  }
+
+  async function handleResend() {
+    if (
+      !token ||
+      !canResend ||
+      resendInFlightRef.current ||
+      isResending ||
+      resendCooldownSeconds > 0
+    ) {
+      return;
+    }
+
+    resendInFlightRef.current = true;
+    const requestId = ++resendRequestIdRef.current;
+
+    setIsResending(true);
+    setResendFeedbackMessage(null);
+
+    try {
+      await resendToken(token);
+
+      if (resendRequestIdRef.current !== requestId) return;
+
+      setCanResend(false);
+      setResendCooldownSeconds(0);
+      setResendFeedbackStatus('success');
+      setResendFeedbackMessage(RESEND_SUCCESS_MESSAGE);
+    } catch (error) {
+      if (resendRequestIdRef.current !== requestId) return;
+
+      if (error instanceof ApiError) {
+        const code = getApiErrorCode(error);
+
+        if (code === 'RESEND_COOLDOWN_ACTIVE') {
+          const cooldownSeconds = getCooldownSeconds(error);
+
+          setResendCooldownSeconds(cooldownSeconds);
+          setResendFeedbackStatus('error');
+          setResendFeedbackMessage(getResendCooldownMessage(cooldownSeconds));
+          return;
+        }
+
+        if (code === 'TOKEN_RESEND_INELIGIBLE') {
+          setCanResend(false);
+          setResendFeedbackStatus('error');
+          setResendFeedbackMessage(RESEND_INELIGIBLE_MESSAGE);
+          return;
+        }
+
+        if (code === 'AUTH_RATE_LIMITED') {
+          setResendFeedbackStatus('error');
+          setResendFeedbackMessage(RESEND_RATE_LIMIT_MESSAGE);
+          return;
+        }
+      }
+
+      setResendFeedbackStatus('error');
+      setResendFeedbackMessage(RESEND_GENERIC_MESSAGE);
+    } finally {
+      if (resendRequestIdRef.current === requestId) {
+        resendInFlightRef.current = false;
+        setIsResending(false);
+      }
+    }
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -337,6 +457,16 @@ function ResetPasswordFlow({ token }: ResetPasswordFlowProps) {
         introMessage="We could not continue with this password reset link."
         status="error"
         message={tokenErrorMessage || INVALID_TOKEN_MESSAGE}
+        canResend={canResend}
+        isResending={isResending}
+        resendCooldownSeconds={resendCooldownSeconds}
+        resendButtonLabel="Send a new password reset link"
+        resendSendingLabel="Sending password reset link..."
+        resendFeedbackMessage={resendFeedbackMessage}
+        resendFeedbackStatus={resendFeedbackStatus}
+        onResend={() => {
+          void handleResend();
+        }}
       />
     );
   }

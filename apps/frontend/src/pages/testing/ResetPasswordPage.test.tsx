@@ -1,20 +1,22 @@
-import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import userEvent from '@testing-library/user-event';
 
 import ResetPasswordPage from '../ResetPasswordPage';
-import { resetPassword, getTokenContext } from '../../services/auth.service';
+import { resetPassword, getTokenContext, resendToken } from '../../services/auth.service';
 import { createDeferred, renderWithRouter } from '../../testing/render';
 import { ApiError } from '../../lib/apiClient';
 
-const { getTokenContextMock, resetPasswordMock } = vi.hoisted(() => ({
+const { getTokenContextMock, resetPasswordMock, resendTokenMock } = vi.hoisted(() => ({
   getTokenContextMock: vi.fn(),
   resetPasswordMock: vi.fn(),
+  resendTokenMock: vi.fn(),
 }));
 
 vi.mock('../../services/auth.service', () => ({
   getTokenContext: getTokenContextMock,
   resetPassword: resetPasswordMock,
+  resendToken: resendTokenMock,
 }));
 
 const resetToken = 'exampleResetTokenValueWithAtLeast32Characters';
@@ -26,6 +28,14 @@ const validTokenContext = {
   canResend: false,
   resendCooldownSeconds: 0,
   messageCode: 'TOKEN_VALID',
+  flow: 'PASSWORD_RESET' as const,
+};
+
+const eligibleExpiredContext = {
+  tokenState: 'EXPIRED' as const,
+  canResend: true,
+  resendCooldownSeconds: 0,
+  messageCode: 'TOKEN_EXPIRED',
   flow: 'PASSWORD_RESET' as const,
 };
 
@@ -59,9 +69,10 @@ async function fillValidPasswords(user: ReturnType<typeof userEvent.setup>) {
 
 describe('ResetPasswordPage', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     getTokenContextMock.mockResolvedValue(validTokenContext);
     resetPasswordMock.mockResolvedValue({ success: true });
+    resendTokenMock.mockResolvedValue({ success: true });
   });
 
   afterEach(() => {
@@ -229,7 +240,7 @@ describe('ResetPasswordPage', () => {
     resetRequest.resolve({ success: true });
 
     expect(
-      await screen.findAllByText(
+      await screen.findByText(
         'Your password has been updated. Please log in again using your new password.',
       ),
     ).toBeInTheDocument();
@@ -255,6 +266,207 @@ describe('ResetPasswordPage', () => {
 
       expect(await screen.findByText(expectedMessage)).toBeInTheDocument();
       expect(resetPassword).not.toHaveBeenCalled();
+    },
+  );
+
+  it('shows recovery only for an eligible expired password-reset token', async () => {
+    getTokenContextMock.mockResolvedValueOnce(eligibleExpiredContext);
+
+    renderResetPasswordPage();
+
+    expect(await screen.findByText('This password reset link has expired.')).toBeInTheDocument();
+    expect(screen.queryByLabelText('New Password')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {
+        name: 'Send a new password reset link',
+      }),
+    ).toBeEnabled();
+  });
+
+  it.each([
+    ['INVALID', 'PASSWORD_RESET', true],
+    ['USED', 'PASSWORD_RESET', true],
+    ['REVOKED', 'PASSWORD_RESET', true],
+    ['EXPIRED', 'EMAIL_VERIFICATION', true],
+    ['EXPIRED', 'PASSWORD_RESET', false],
+  ])(
+    'hides recovery for %s in the %s when canResend is %s',
+    async (tokenState, flow, canResend) => {
+      getTokenContextMock.mockResolvedValueOnce({
+        tokenState,
+        canResend,
+        resendCooldownSeconds: 0,
+        messageCode: `TOKEN_${tokenState}`,
+        flow,
+      });
+
+      renderResetPasswordPage();
+
+      await screen.findByRole('heading', { name: 'Reset Password Link' });
+
+      expect(
+        screen.queryByRole('button', { name: 'Send a new password reset link' }),
+      ).not.toBeInTheDocument();
+      expect(resendToken).not.toHaveBeenCalled();
+    },
+  );
+
+  it('prevents duplicate resend requests and shows success after resolution', async () => {
+    const resendRequest = createDeferred<{ success: true }>();
+
+    getTokenContextMock.mockResolvedValueOnce(eligibleExpiredContext);
+    resendTokenMock.mockReturnValueOnce(resendRequest.promise);
+
+    renderResetPasswordPage();
+
+    const resendButton = await screen.findByRole('button', {
+      name: 'Send a new password reset link',
+    });
+
+    fireEvent.click(resendButton);
+    fireEvent.click(resendButton);
+
+    expect(resendToken).toHaveBeenCalledTimes(1);
+    expect(resendToken).toHaveBeenCalledWith(resetToken);
+    expect(screen.getByRole('button', { name: 'Sending password reset link...' })).toBeDisabled();
+    expect(
+      screen.queryByText(
+        'If the account is still eligible, a new password reset link has been sent.',
+      ),
+    ).not.toBeInTheDocument();
+
+    resendRequest.resolve({ success: true });
+
+    expect(
+      await screen.findByText(
+        'If the account is still eligible, a new password reset link has been sent.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /password reset link/i })).not.toBeInTheDocument();
+  });
+
+  it('counts down the backend-provided cooldown and enables resend at zero', async () => {
+    vi.useFakeTimers();
+
+    try {
+      getTokenContextMock.mockResolvedValueOnce({
+        ...eligibleExpiredContext,
+        resendCooldownSeconds: 2,
+      });
+
+      renderResetPasswordPage();
+
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      expect(
+        screen.getByRole('button', { name: 'Send a new password reset link (2s)' }),
+      ).toBeDisabled();
+
+      await act(async () => {
+        vi.advanceTimersByTime(1000);
+      });
+
+      expect(
+        screen.getByRole('button', { name: 'Send a new password reset link (1s)' }),
+      ).toBeDisabled();
+
+      await act(async () => {
+        vi.advanceTimersByTime(1000);
+      });
+
+      expect(screen.getByRole('button', { name: 'Send a new password reset link' })).toBeEnabled();
+    } finally {
+      cleanup();
+      vi.useRealTimers();
+    }
+  });
+
+  it.each([
+    [
+      'ineligible response',
+      () =>
+        new ApiError('Resend failed', {
+          status: 400,
+          statusText: 'Bad Request',
+          method: 'POST',
+          url: `/auth/tokens/${resetToken}/resend`,
+          body: {
+            error: 'TOKEN_RESEND_INELIGIBLE',
+            message: 'Raw ineligible wording',
+          },
+        }),
+      'This password reset link cannot be resent. Please request a new password reset.',
+      false,
+    ],
+    [
+      'cooldown response',
+      () =>
+        new ApiError('Resend failed', {
+          status: 429,
+          statusText: 'Too Many Requests',
+          method: 'POST',
+          url: `/auth/tokens/${resetToken}/resend`,
+          body: {
+            error: 'RESEND_COOLDOWN_ACTIVE',
+            message: 'Raw cooldown wording',
+            cooldownSeconds: 35,
+          },
+        }),
+      'Please wait 35 seconds before requesting another password reset link.',
+      true,
+    ],
+    [
+      'network failure',
+      () => new Error('Network unavailable'),
+      'We could not send a new password reset link right now. Please try again later.',
+      true,
+    ],
+  ])(
+    'maps a %s to controlled recovery UI',
+    async (_caseName, createError, expectedMessage, remainsVisible) => {
+      const user = userEvent.setup();
+
+      getTokenContextMock.mockResolvedValueOnce(eligibleExpiredContext);
+      resendTokenMock.mockRejectedValueOnce(createError()).mockResolvedValueOnce({ success: true });
+
+      renderResetPasswordPage();
+
+      await user.click(
+        await screen.findByRole('button', { name: 'Send a new password reset link' }),
+      );
+
+      expect(await screen.findByText(expectedMessage)).toBeInTheDocument();
+
+      if (!remainsVisible) {
+        expect(
+          screen.queryByRole('button', {
+            name: /send a new password reset link/i,
+          }),
+        ).not.toBeInTheDocument();
+        return;
+      }
+
+      const resendButton = screen.getByRole('button', {
+        name:
+          _caseName === 'cooldown response'
+            ? 'Send a new password reset link (35s)'
+            : 'Send a new password reset link',
+      });
+
+      if (_caseName === 'cooldown response') {
+        expect(resendButton).toBeDisabled();
+        return;
+      }
+
+      expect(resendButton).toBeEnabled();
+
+      await user.click(resendButton);
+
+      await waitFor(() => {
+        expect(resendToken).toHaveBeenCalledTimes(2);
+      });
     },
   );
 });
