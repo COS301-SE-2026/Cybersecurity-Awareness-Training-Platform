@@ -885,8 +885,8 @@
           "number": 261,
           "title": "docs: define SRS use case UC-06 complete first organisation admin setup",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-07-26"
         },
         {
           "number": 255,
@@ -920,8 +920,8 @@
           "number": 249,
           "title": "docs: define SRS use case UC-04 request organisation registration",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-07-26"
         },
         {
           "number": 248,
@@ -1258,8 +1258,8 @@
           "number": 277,
           "title": "docs: define SRS use case UC-10 manage insightful phish platform admins",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-07-26"
         },
         {
           "number": 276,
@@ -1307,8 +1307,8 @@
           "number": 267,
           "title": "docs: define SRS use case UC-08 manage organisation employees",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-07-26"
         },
         {
           "number": 260,
@@ -1822,7 +1822,7 @@
     },
     {
       "date": "2026-07-26",
-      "remaining": 64,
+      "remaining": 56,
       "ideal": 0.0
     }
   ]

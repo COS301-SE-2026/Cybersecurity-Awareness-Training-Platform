@@ -147,8 +147,8 @@
       "number": 261,
       "title": "docs: define SRS use case UC-06 complete first organisation admin setup",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-07-26"
     },
     {
       "number": 255,
@@ -182,8 +182,8 @@
       "number": 249,
       "title": "docs: define SRS use case UC-04 request organisation registration",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-07-26"
     },
     {
       "number": 248,

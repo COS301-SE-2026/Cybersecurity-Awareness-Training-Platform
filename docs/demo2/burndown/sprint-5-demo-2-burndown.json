@@ -112,8 +112,8 @@
       "number": 277,
       "title": "docs: define SRS use case UC-10 manage insightful phish platform admins",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-07-26"
     },
     {
       "number": 276,
@@ -161,8 +161,8 @@
       "number": 267,
       "title": "docs: define SRS use case UC-08 manage organisation employees",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-07-26"
     },
     {
       "number": 260,
@@ -289,7 +289,7 @@
     },
     {
       "date": "2026-07-26",
-      "remaining": 36,
+      "remaining": 32,
       "ideal": 0.0
     }
   ]
