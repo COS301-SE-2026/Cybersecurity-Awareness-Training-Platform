@@ -452,7 +452,7 @@ We have decided to include the following use cases even though they are consider
 **Related Use Case Diagram:** [Trainee Campaign Participation](#trainee-campaign-participation)
 
 > [!Note]
-> This Use Case (`UC-01`) is related to [User Stories **5.2** and **5.3**](), [Functional Requirements **R2**]() and [Functional Requirements **R3**](). <!-- TODO insert appropriate links -->
+> This Use Case (`UC-01`) is related to User Stories **5.2** and **5.3** in [Training Campaign Participation](users-and-user-stories.md#5-training-campaign-participation), Functional Requirement **R2** in [Trainee Campaign Access](functional-requirements.md#r2-trainee-campaign-access), and Functional Requirement **R3** in [View Emails in a Simulated Inbox](functional-requirements.md#r3-view-emails-in-a-simulated-inbox).
 
 <details> <summary><strong>View more details about UC-01</strong></summary>
 
@@ -503,7 +503,7 @@ We have decided to include the following use cases even though they are consider
 **Related Use Case Diagram:** [Trainee Campaign Participation](#trainee-campaign-participation)
 
 > [!Note]
-> This Use Case (`UC-02`) is related to [User Stories **5.2** and **5.6**](), [Functional Requirements **R2**]() and [Functional Requirements **R4**](). <!-- TODO insert appropriate links -->
+> This Use Case (`UC-02`) is related to User Stories **5.2** and **5.6** in [Training Campaign Participation](users-and-user-stories.md#5-training-campaign-participation), Functional Requirement **R2** in [Trainee Campaign Access](functional-requirements.md#r2-trainee-campaign-access), and Functional Requirement **R4** in [View a Training Document](functional-requirements.md#r4-view-a-training-document).
 
 <details> <summary><strong>View more details about UC-02</strong></summary>
 
@@ -555,7 +555,7 @@ We have decided to include the following use cases even though they are consider
 **Related Use Case Diagram:** [Trainee Campaign Participation](#trainee-campaign-participation)
 
 > [!Note]
-> This Use Case (`UC-03`) is related to [User Stories **5.2** and **5.7**](), [Functional Requirements **R2**]() and [Functional Requirements **R5**](). <!-- TODO insert appropriate links -->
+> This Use Case (`UC-03`) is related to User Stories **5.2** and **5.7** in [Training Campaign Participation](users-and-user-stories.md#5-training-campaign-participation), Functional Requirement **R2** in [Trainee Campaign Access](functional-requirements.md#r2-trainee-campaign-access), and Functional Requirement **R5** in [Complete a Quiz and View Results](functional-requirements.md#r5-complete-a-quiz-and-view-results).
 
 <details> <summary><strong>View more details about UC-03</strong></summary>
 
@@ -608,7 +608,7 @@ We have decided to include the following use cases even though they are consider
 **Related Use Case Diagram:** [Organisation Onboarding and Invitations](#organisation-onboarding-and-invitations)
 
 > [!Note]
-> This Use Case (`UC-04`) is related to [User Story **1.1**]() and [Functional Requirements **R6**](). <!-- TODO insert appropriate links -->
+> This Use Case (`UC-04`) is related to User Story **1.1** in [Organisation Registration](users-and-user-stories.md#1-organisation-registration) and Functional Requirement **R6** in [Request Organisation Registration](functional-requirements.md#r6-request-organisation-registration).
 
 <details> <summary><strong>View more details about UC-04</strong></summary>
 
@@ -661,7 +661,7 @@ We have decided to include the following use cases even though they are consider
 **Related Use Case Diagram:** [Organisation Onboarding and Invitations](#organisation-onboarding-and-invitations)
 
 > [!Note]
-> This Use Case (`UC-05`) is related to [User Stories **7.1** to **7.3**]() and [Functional Requirements **R7**](). <!-- TODO insert appropriate links -->
+> This Use Case (`UC-05`) is related to User Stories **7.1** to **7.3** in [Platform Administration](users-and-user-stories.md#7-platform-administration) and Functional Requirement **R7** in [Review and Manage Organisation Registrations](functional-requirements.md#r7-review-and-manage-organisation-registrations).
 
 <details> <summary><strong>View more details about UC-05</strong></summary>
 
@@ -727,7 +727,7 @@ We have decided to include the following use cases even though they are consider
 **Related Use Case Diagram:** [Organisation Onboarding and Invitations](#organisation-onboarding-and-invitations)
 
 > [!Note]
-> This Use Case (`UC-06`) is related to [User Story **6.1**]() and [Functional Requirements **R8**](). <!-- TODO insert appropriate links -->
+> This Use Case (`UC-06`) is related to User Story **6.1** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration) and Functional Requirement **R8** in [Complete Initial Organisation Administrator Setup](functional-requirements.md#r8-complete-initial-organisation-administrator-setup).
 
 <details> <summary><strong>View more details about UC-06</strong></summary>
 
@@ -783,7 +783,7 @@ We have decided to include the following use cases even though they are consider
 **Related Use Case Diagram:** [Organisation Onboarding and Invitations](#organisation-onboarding-and-invitations)
 
 > [!Note]
-> This Use Case (`UC-07`) is related to [User Stories **4.1** and **4.3**]() and [Functional Requirements **R9**](). <!-- TODO insert appropriate links -->
+> This Use Case (`UC-07`) is related to User Stories **4.1** and **4.3** in [Organisation Trainee Membership](users-and-user-stories.md#4-organisation-trainee-membership) and Functional Requirement **R9** in [Accept an Organisation Invitation or Role Change](functional-requirements.md#r9-accept-an-organisation-invitation-or-role-change).
 
 <details> <summary><strong>View more details about UC-07</strong></summary>
 
@@ -844,7 +844,7 @@ We have decided to include the following use cases even though they are consider
 **Related Use Case Diagram:** [Organisation Membership and Role Administration](#organisation-membership-and-role-administration)
 
 > [!Note]
-> This Use Case (`UC-08`) is related to [User Stories **6.2** to **6.4**]() and [Functional Requirements **R10**](). <!-- TODO insert appropriate links -->
+> This Use Case (`UC-08`) is related to User Stories **6.2** to **6.4** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration) and Functional Requirement **R10** in [Manage Organisation Employees](functional-requirements.md#r10-manage-organisation-employees).
 
 <details> <summary><strong>View more details about UC-08</strong></summary>
 
@@ -910,7 +910,7 @@ We have decided to include the following use cases even though they are consider
 **Related Use Case Diagram:** [Organisation Membership and Role Administration](#organisation-membership-and-role-administration)
 
 > [!Note]
-> This Use Case (`UC-09`) is related to [User Stories **6.5** to **6.7**]() and [Functional Requirements **R11**](). <!-- TODO insert appropriate links -->
+> This Use Case (`UC-09`) is related to User Stories **6.5** to **6.7** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration) and Functional Requirement **R11** in [Manage Organisation Administrators and Permissions](functional-requirements.md#r11-manage-organisation-administrators-and-permissions).
 
 <details> <summary><strong>View more details about UC-09</strong></summary>
 
@@ -975,7 +975,7 @@ We have decided to include the following use cases even though they are consider
 **Related Use Case Diagram:** [Platform Administrator Governance](#platform-administrator-governance)
 
 > [!Note]
-> This Use Case (`UC-10`) is related to [User Stories **8.1** to **8.3**]() and [Functional Requirements **R12**](). <!-- TODO insert appropriate links -->
+> This Use Case (`UC-10`) is related to User Stories **8.1** to **8.3** in [Platform Super-Administrator](users-and-user-stories.md#8-platform-super-administrator) and Functional Requirement **R12** in [Manage Insightful Phish Platform Administrators](functional-requirements.md#r12-manage-insightful-phish-platform-administrators).
 
 <details> <summary><strong>View more details about UC-10</strong></summary>
 
@@ -1102,7 +1102,7 @@ We have decided to include the following use cases even though they are consider
 **Related Use Case Diagram:** [Security and Account Managenent](#security-and-account-management)
 
 > [!Note]
-> This Use Case (`UC-12`) is related to [User Stories **2.4** to **2.6**](), [Functional Requirements **R1**]() and [Functional Requirements **R14**](). <!-- TODO insert appropriate links -->
+> This Use Case (`UC-12`) is related to User Stories **2.4** to **2.6** in [Authentication and Account Management](users-and-user-stories.md#2-authentication-and-account-management), Functional Requirement **R1** in [Authentication and Account Access](functional-requirements.md#r1-authentication-and-account-access), and Functional Requirement **R14** in [Manage Personal Account and Security Settings](functional-requirements.md#r14-manage-personal-account-and-security-settings).
 
 <details> <summary><strong>View more details about UC-12</strong></summary>
 
@@ -1946,4 +1946,6 @@ We have decided to include the following use cases even though they are consider
 
 ---
 
-The next section of the SRS is: [Quality Requirements](quality-requirements.md)
+Previous section: [Functional Requirements](functional-requirements.md)
+
+Next section: [Quality Requirements](quality-requirements.md)

@@ -2,7 +2,7 @@
 
 Insightful Phish is a web-based cybersecurity awareness and training platform that helps organisations and individuals identify and respond to threats through realistic phishing simulations, interactive training, quizzes, and user risk insights.
 
-The Software Requirements Specification is split into seperate focused sections so that readers can navigate the requirements, use cases, quality expectations, domain model, and revision history without searching through one large document.
+The Software Requirements Specification is split into separate focused sections so that readers can navigate the requirements, use cases, quality expectations, domain model, and revision history without searching through one large document.
 
 ## SRS Content
 
