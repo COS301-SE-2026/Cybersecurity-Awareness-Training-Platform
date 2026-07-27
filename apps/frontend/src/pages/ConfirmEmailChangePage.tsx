@@ -4,10 +4,23 @@ import TokenVerificationPanel from '../components/auth/TokenVerificationPanel';
 import { getTokenContext, resendToken, verifyEmailChange } from '../services/auth.service';
 import { useTokenVerificationFlow } from '../hooks/useTokenVerificationFlow';
 import type { TokenVerificationMessages } from '../hooks/useTokenVerificationFlow';
+import { ApiError } from '../lib/apiClient';
+import { useAuth } from '../context/useAuth';
+
+function getEmailChangeVerificationErrorMessage(error: unknown): string | null {
+  if (!(error instanceof ApiError) || error.status !== 409) return null;
+
+  const body = error.body;
+  if (!body || typeof body !== 'object' || !('error' in body)) return null;
+
+  return (body as { error?: unknown }).error === 'AUTH_EMAIL_EXISTS'
+    ? 'This email address is already in use. Please restart the email-change process.'
+    : null;
+}
 
 const messages = {
   pending: 'Confirming email change...',
-  success: 'Email change confirmed.',
+  success: 'Email change confirmed. Please sign in again using your new email address.',
   used: 'This email change link has already been used.',
   missingToken: 'This email change link is missing a token. Please request a new link.',
   invalid: 'This email change link is invalid. Please request a new link.',
@@ -26,6 +39,7 @@ const messages = {
 function ConfirmEmailChangePage() {
   const [searchParams] = useSearchParams();
   const token = useMemo(() => searchParams.get('token')?.trim() ?? '', [searchParams]);
+  const { clearAuth } = useAuth();
 
   const verification = useTokenVerificationFlow({
     token,
@@ -34,6 +48,8 @@ function ConfirmEmailChangePage() {
     verifyToken: verifyEmailChange,
     getTokenContext,
     resendToken,
+    getVerificationErrorMessage: getEmailChangeVerificationErrorMessage,
+    onVerified: clearAuth,
   });
 
   return (
@@ -42,6 +58,7 @@ function ConfirmEmailChangePage() {
       introMessage="Checking your email change confirmation link."
       status={verification.status}
       message={verification.message}
+      showLoginLink={verification.status === 'success'}
       canResend={verification.canResend}
       isResending={verification.isResending}
       resendCooldownSeconds={verification.resendCooldownSeconds}

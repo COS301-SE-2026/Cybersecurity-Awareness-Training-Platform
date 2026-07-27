@@ -74,6 +74,8 @@ type UseTokenVerificationFlowInput<TResponse extends TokenVerificationResponse> 
   verifyToken: (token: string) => Promise<TResponse>;
   getTokenContext: (token: string) => Promise<TokenContextResponseDto>;
   resendToken: (token: string) => Promise<ResendTokenResponseDto>;
+  getVerificationErrorMessage?: (error: unknown) => string | null;
+  onVerified?: () => void;
 }>;
 
 function getStateMessage(
@@ -117,6 +119,8 @@ export function useTokenVerificationFlow<TResponse extends TokenVerificationResp
   verifyToken,
   getTokenContext,
   resendToken,
+  getVerificationErrorMessage,
+  onVerified,
 }: UseTokenVerificationFlowInput<TResponse>) {
   const isMounted = useRef(true);
   const resendRequestGeneration = useRef(0);
@@ -173,7 +177,10 @@ export function useTokenVerificationFlow<TResponse extends TokenVerificationResp
         setStatus(nextState.status);
         setMessage(nextState.message);
 
-        if (result.state === 'VALID') return;
+        if (result.state === 'VALID') {
+          onVerified?.();
+          return;
+        }
 
         try {
           const context = await getTokenContext(token);
@@ -187,10 +194,10 @@ export function useTokenVerificationFlow<TResponse extends TokenVerificationResp
           setCanResend(false);
           setResendCooldownSeconds(0);
         }
-      } catch {
+      } catch (error) {
         if (!isMounted.current || !isCurrentRequest) return;
         setStatus('error');
-        setMessage(messages.generic);
+        setMessage(getVerificationErrorMessage?.(error) ?? messages.generic);
       }
     }
 
@@ -200,7 +207,15 @@ export function useTokenVerificationFlow<TResponse extends TokenVerificationResp
       isCurrentRequest = false;
       resendRequestGeneration.current += 1;
     };
-  }, [expectedFlow, getTokenContext, messages, token, verifyToken]);
+  }, [
+    expectedFlow,
+    getTokenContext,
+    getVerificationErrorMessage,
+    messages,
+    onVerified,
+    token,
+    verifyToken,
+  ]);
 
   const handleResend = useCallback(async () => {
     if (!token || !canResend || isResending || resendCooldownSeconds > 0) {
