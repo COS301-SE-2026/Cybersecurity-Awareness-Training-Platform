@@ -51,6 +51,9 @@ function AppRoutes() {
         <Route path="/quizzes/:quizId" element={<QuizPage />} />
         <Route path="/quiz-attempts/:attemptId/results" element={<ResultsPage />} />
         <Route path="/campaigns" element={<CampaignsPage />} />
+
+        <Route path="/organisation-management" element={<PlatformOrganisationManagementPage />} />
+        <Route path="/organisation-trainees" element={<OrganisationTraineesPage />} />
       </Route>
 
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -73,9 +76,6 @@ function AppRoutes() {
         path="/organisation-security-preferences"
         element={<OrganisationSecuritySettingsPage />}
       />
-
-      <Route path="/organisation-management" element={<PlatformOrganisationManagementPage />} />
-      <Route path="/organisation-trainees" element={<OrganisationTraineesPage />} />
     </Routes>
   );
 }
