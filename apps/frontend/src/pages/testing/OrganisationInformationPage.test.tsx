@@ -89,6 +89,79 @@ describe('OrganisationInformationPage Integration', () => {
     expect(screen.getByRole('button', { name: /Timeline/i })).toBeInTheDocument();
   });
 
+  it('gates organisation-only sections for request-only pending records', async () => {
+    vi.spyOn(service, 'getPlatformOrganisationRequestDetails').mockResolvedValue({
+      id: 'req-789',
+      submittedOrganisationName: 'Cyber Jan Pending Request',
+      submittedOrganisationDescription: 'Pending approval',
+      submittedWebsite: 'https://cyberjan.co.za',
+      submittedPrimaryDomain: 'cyberjan.co.za',
+      submittedOrganisationSize: 20,
+      status: 'PENDING',
+      detailType: 'request-only',
+      createdAt: '2026-06-19T00:00:00.000Z',
+      updatedAt: '2026-06-19T00:00:00.000Z',
+      representativeFirstName: 'Rudolph',
+      representativeLastName: 'Lamprecht',
+      representativeEmail: 'zaza@cyberjan.co.za',
+      representativePhone: null,
+      contactedByIpAdminId: null,
+      approvedByIpAdminId: null,
+      rejectedByIpAdminId: null,
+      approvedOrganisationId: null,
+      contactedAt: null,
+      approvedAt: null,
+      rejectedAt: null,
+      rejectionReason: null,
+      setupStatus: null,
+      resendEligibility: { isEligible: false, reason: 'ORGANISATION_NOT_ONBOARDING' },
+      timeline: [],
+    });
+
+    renderWithRouter('/platform/organisation-requests/req-789');
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('heading', { name: /Cyber Jan Pending Request/i }),
+      ).toBeInTheDocument();
+    });
+
+    // Request submission date label check and absence of Registered Trainees
+    expect(screen.getByText(/Request Submission Date/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Registered Trainees/i)).not.toBeInTheDocument();
+
+    // Administrators tab button and Danger Zone must NOT be rendered for request-only records
+    expect(screen.queryByRole('button', { name: /Administrators/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Danger Zone/i)).not.toBeInTheDocument();
+  });
+
+  it('renders suspended warning banner for suspended organisations', async () => {
+    vi.spyOn(service, 'getPlatformOrganisationDetail').mockResolvedValue({
+      id: 'org-suspended-1',
+      name: 'Suspended Org',
+      status: 'SUSPENDED',
+      detailType: 'active organisation',
+      description: 'Suspended org',
+      approximateSize: 10,
+      website: 'https://cyberjan.co.za',
+      primaryDomain: 'cyberjan.co.za',
+      createdAt: '2026-06-19T00:00:00.000Z',
+      updatedAt: '2026-06-20T00:00:00.000Z',
+      _count: { adminProfiles: 1, traineeProfiles: 5 },
+      registrationRequest: null,
+      setupStatus: null,
+      resendEligibility: { isEligible: false, reason: 'INVITATION_NOT_ELIGIBLE' },
+      admins: [],
+      timeline: [],
+    });
+
+    renderWithRouter('/platform/organisations/org-suspended-1');
+
+    await waitFor(() => {
+      expect(screen.getByText(/This organisation is currently SUSPENDED/i)).toBeInTheDocument();
+    });
+  });
+
   it('renders access denied message when backend returns 403 forbidden', async () => {
     const error = { status: 403, message: 'Access Denied' };
     vi.spyOn(service, 'getPlatformOrganisationDetail').mockRejectedValue(error);

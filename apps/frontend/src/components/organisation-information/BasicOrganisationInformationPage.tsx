@@ -9,6 +9,7 @@ export interface BasicOrganisationInfoProps {
   registeredTrainees?: string | number;
   registrationDate?: string;
   status?: string;
+  isRequestOnly?: boolean;
 }
 
 function BasicOrganisationInformationPage({
@@ -19,6 +20,7 @@ function BasicOrganisationInformationPage({
   registeredTrainees = '',
   registrationDate = '',
   status = '',
+  isRequestOnly = false,
 }: BasicOrganisationInfoProps) {
   // convert ISO timestamp string to YYYY-MM-DD format for date input
   const formattedDate = registrationDate ? registrationDate.split('T')[0] : '';
@@ -123,34 +125,36 @@ function BasicOrganisationInformationPage({
           />
         </div>
 
-        {/* Registered # of Employees (Trainees) */}
-        <div>
-          <label
-            htmlFor="registered-trainees"
-            className=" block mb-2 font-jost tracking-wide text-xl font-medium text-pink"
-          >
-            Registered Trainees
-          </label>
-          <input
-            required
-            type="text"
-            name="registered-trainees"
-            id="registered-trainees"
-            disabled={true}
-            value={registeredTrainees}
-            readOnly
-            className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 rounded-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-            placeholder="Registered Number of Trainees"
-          />
-        </div>
+        {/* Registered # of Employees (Trainees) - Only shown for active organisation */}
+        {!isRequestOnly && (
+          <div>
+            <label
+              htmlFor="registered-trainees"
+              className=" block mb-2 font-jost tracking-wide text-xl font-medium text-pink"
+            >
+              Registered Trainees
+            </label>
+            <input
+              required
+              type="text"
+              name="registered-trainees"
+              id="registered-trainees"
+              disabled={true}
+              value={registeredTrainees}
+              readOnly
+              className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 rounded-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+              placeholder="Registered Number of Trainees"
+            />
+          </div>
+        )}
 
-        {/* Organisation Registration Date */}
+        {/* Organisation Registration Date / Request Submission Date */}
         <div>
           <label
             htmlFor="registration-date"
             className=" block mb-2 font-jost tracking-wide text-xl font-medium text-pink"
           >
-            Registration Date
+            {isRequestOnly ? 'Request Submission Date' : 'Registration Date'}
           </label>
           <input
             required
@@ -161,7 +165,7 @@ function BasicOrganisationInformationPage({
             value={formattedDate}
             readOnly
             className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 rounded-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-            placeholder="Registeration Date"
+            placeholder={isRequestOnly ? 'Request Submission Date' : 'Registration Date'}
           />
         </div>
 

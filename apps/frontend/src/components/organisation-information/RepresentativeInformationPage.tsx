@@ -12,6 +12,7 @@ export interface RepresentativeInfoProps {
   isResending?: boolean;
   resendSuccessMessage?: string | null;
   resendErrorMessage?: string | null;
+  isRequestOnly?: boolean;
 }
 
 function RepresentativeInformationPage({
@@ -23,6 +24,7 @@ function RepresentativeInformationPage({
   isResending = false,
   resendSuccessMessage = null,
   resendErrorMessage = null,
+  isRequestOnly = false,
 }: RepresentativeInfoProps) {
   // button is disabled if resend is not eligible or action is currently in progress
   const isResendDisabled =
@@ -52,7 +54,7 @@ function RepresentativeInformationPage({
 
       {resendErrorMessage && (
         <div className="mb-4 p-4 text-sm text-red-800 bg-red-50 border border-red-300 rounded-none dark:bg-gray-800 dark:text-red-400 dark:border-red-800 font-overpass">
-          <span className="font-medium">Error:</span> {resendErrorMessage}
+          <span className="font-medium">Notice:</span> {resendErrorMessage}
         </div>
       )}
 
@@ -121,25 +123,27 @@ function RepresentativeInformationPage({
         </div>
       </div>
 
-      {/* RESEND BUTTON */}
-      <div className="mt-8 flex flex-col gap-2 items-start justify-between">
-        <button
-          type="button"
-          onClick={onResendSetup}
-          disabled={isResendDisabled}
-          className="cursor-pointer px-6 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm px-4 py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed rounded-none"
-        >
-          <span className="material-icons-sharp">send</span>
-          <span>
-            {isResending ? 'Sending Setup Email...' : 'Resend Initial Administrator Setup Email'}
-          </span>
-        </button>
-        {resendEligibility?.reason && !resendEligibility.isEligible && (
-          <p className="text-xs text-gray-500 font-overpass">
-            Resend not available: {resendEligibility.reason}
-          </p>
-        )}
-      </div>
+      {/* RESEND BUTTON - Only shown for active organisation records */}
+      {!isRequestOnly && (
+        <div className="mt-8 flex flex-col gap-2 items-start justify-between">
+          <button
+            type="button"
+            onClick={onResendSetup}
+            disabled={isResendDisabled}
+            className="cursor-pointer px-6 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm px-4 py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed rounded-none"
+          >
+            <span className="material-icons-sharp">send</span>
+            <span>
+              {isResending ? 'Sending Setup Email...' : 'Resend Initial Administrator Setup Email'}
+            </span>
+          </button>
+          {resendEligibility?.reason && !resendEligibility.isEligible && (
+            <p className="text-xs text-gray-500 font-overpass">
+              Resend not available: {resendEligibility.reason}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

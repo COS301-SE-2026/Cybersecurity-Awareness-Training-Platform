@@ -8,36 +8,31 @@ export interface OrganisationTimelineProps {
 }
 
 function OrganisationTimelinePage({ timeline }: OrganisationTimelineProps) {
-  // default timeline events for fallback testing
-  const eventsToDisplay: Array<{
-    id: string;
-    timestamp: string;
-    action: string;
-    summary: string;
-  }> =
-    timeline && timeline.length > 0
-      ? timeline.map((item) => ({
-          id: item.id,
-          timestamp: new Date(item.timestamp).toLocaleString(),
-          action: item.action,
-          summary: item.summary,
-        }))
-      : [
-          {
-            id: '1',
-            timestamp: '19 June 2026, 06:00 PM',
-            action: 'Organisation Request Submitted',
-            summary:
-              'The organisation registration request was submitted by representative Jan van der Merwe.',
-          },
-          {
-            id: '2',
-            timestamp: '20 June 2026, 07:00 PM',
-            action: 'Organisation Request Declined',
-            summary:
-              'The organisation registration request was declined by the Insightful Phish platform administrator.',
-          },
-        ];
+  const hasTimelineEvents = Boolean(timeline && timeline.length > 0);
+
+  if (!hasTimelineEvents) {
+    return (
+      <div className="-mt-2 -ml-2 font-overpass">
+        <h3 className="font-jost text-2xl text-dark-pink tracking-wider font-medium">
+          Organisation Event Timeline
+        </h3>
+        <p className="font-regular tracking-wider text-[1.1rem] font-justify font-jost text-gray-500 mb-6">
+          View the chronological history of organisation registration, onboarding, and platform
+          events.
+        </p>
+        <div className="p-4 bg-gray-50 border border-gray-200 text-gray-600 rounded-none">
+          No timeline events recorded for this organisation yet.
+        </div>
+      </div>
+    );
+  }
+
+  const eventsToDisplay = (timeline ?? []).map((item) => ({
+    id: item.id,
+    timestamp: new Date(item.timestamp).toLocaleString(),
+    action: item.action,
+    summary: item.summary,
+  }));
 
   return (
     <div className="-mt-2 -ml-2">
