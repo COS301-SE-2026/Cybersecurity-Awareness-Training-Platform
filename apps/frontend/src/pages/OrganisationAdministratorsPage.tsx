@@ -9,6 +9,7 @@ interface OrganisationAdministrator {
   fullName: string;
   emailAddress: string;
   status: 'Active' | 'Invited' | 'Disabled';
+  permissions: string[];
 }
 
 // MOCK DATA
@@ -19,24 +20,37 @@ const mockOrganisationAdministrators: OrganisationAdministrator[] = [
     fullName: 'Adriano Jorge',
     emailAddress: 'adriano.jorge@tuks.co.za',
     status: 'Active',
+    permissions: ['View Organisation Trainees'],
   },
   {
     id: 2,
     fullName: 'Connor Bell',
     emailAddress: 'connor.bell@tuks.co.za',
     status: 'Active',
+    permissions: [
+      'View Organisation Trainees',
+      'Invite Organisation Trainees',
+      'Manage Organisation Campaigns',
+    ],
   },
   {
     id: 3,
     fullName: 'Johan Nel',
     emailAddress: 'johan.nel@tuks.co.za',
     status: 'Disabled',
+    permissions: [
+      'View Organisation Trainees',
+      'Invite Organisation Trainees',
+      'Manage Organisation Campaigns',
+      'Manage Security Settings',
+    ],
   },
   {
     id: 4,
     fullName: 'Zoë Joubert',
     emailAddress: 'zoë.joubert@tuks.co.za',
     status: 'Invited',
+    permissions: ['View Organisation Trainees', 'Invite Organisation Trainees'],
   },
 ];
 
@@ -69,36 +83,34 @@ const getStatusBadge = (status: OrganisationAdministrator['status']) => {
   }
 };
 
-const passwordPolicyPopover = (
-  <div className="w-100 bg-faint-purple shadow-lg">
-    <div className="bg-gray-100 bg-light-purple px-3 py-2">
-      <h3 className="font-semibold font-jost text-[1.4rem] text-purple tracking-wider">
-        Password Requirements
-      </h3>
-    </div>
+function PermissionsPopover({
+  permissions,
+  fullName,
+}: Readonly<{
+  permissions: string[];
+  fullName: string;
+}>) {
+  return (
+    <div className="w-100 bg-faint-purple shadow-lg">
+      <div className="bg-gray-100 bg-light-purple px-3 py-2">
+        <h3 className="font-semibold font-jost text-[1.4rem] text-purple tracking-wider">
+          Permissions <span className="font-light text-[1.1rem]">({fullName})</span>
+        </h3>
+      </div>
 
-    <div className="px-3 py-2">
-      <p className="text-sm font-overpass font-medium text-[1.05rem] text-dark-pink">
-        ● At Least 12 Characters
-      </p>
-      <p className="text-sm font-overpass font-medium text-[1.05rem] text-dark-pink">
-        ● At Most 128 Characters
-      </p>
-      <p className="text-sm font-overpass font-medium text-[1.05rem] text-dark-pink">
-        ● At Least ONE Uppercase Letter (A–Z)
-      </p>
-      <p className="text-sm font-overpass font-medium text-[1.05rem] text-dark-pink">
-        ● At Least ONE Lowercase Letter (a–z)
-      </p>
-      <p className="text-sm font-overpass font-medium text-[1.05rem] text-dark-pink">
-        ● At Least ONE Number (0–9)
-      </p>
-      <p className="text-sm font-overpass font-medium text-[1.05rem] text-dark-pink">
-        ● At Least ONE Special Character (e.g. ! @ # $ %)
-      </p>
+      <div className="px-3 py-2">
+        {permissions.map((permission) => (
+          <p
+            key={permission}
+            className="text-sm font-overpass tracking-wider font-medium text-[1.05rem] text-dark-pink"
+          >
+            ● {permission}
+          </p>
+        ))}
+      </div>
     </div>
-  </div>
-);
+  );
+}
 
 function OrganisationAdministratorsPage() {
   const [showBasicConfirmationModal, setShowBasicConfirmationModal] = useState(false);
@@ -112,6 +124,7 @@ function OrganisationAdministratorsPage() {
   const [statusFilter, setStatusFilter] = useState<'All' | 'Invited' | 'Active' | 'Disabled'>(
     'All',
   );
+  const [openPermissionPopover, setOpenPermissionPopover] = useState<number | null>(null);
 
   const filteredOrganisationAdministrators = mockOrganisationAdministrators.filter(
     (organisationAdministrator) => {
@@ -340,7 +353,7 @@ function OrganisationAdministratorsPage() {
           </h3>
 
           {/* TABLE */}
-          <div className="relative overflow-x-auto bg-neutral-primary-soft border border-default">
+          <div className="overflow-x-auto bg-neutral-primary-soft border border-default">
             <table className="w-full text-sm text-left rtl:text-right text-body">
               <thead className="bg-faint-purple border-b border-default">
                 <tr>
@@ -366,7 +379,7 @@ function OrganisationAdministratorsPage() {
                     scope="col"
                     className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
                   >
-                    Permission(s)
+                    Permissions
                   </th>
                   <th
                     scope="col"
@@ -396,19 +409,44 @@ function OrganisationAdministratorsPage() {
                     {/* Permissions */}
                     <td className="px-6 py-4">
                       <Popover
-                        content={passwordPolicyPopover}
+                        content={
+                          <PermissionsPopover
+                            permissions={organisationAdministrator.permissions}
+                            fullName={organisationAdministrator.fullName}
+                          />
+                        }
+                        open={openPermissionPopover === organisationAdministrator.id}
                         arrow={false}
+                        trigger="click"
+                        placement="right"
+                        onOpenChange={(open) =>
+                          setOpenPermissionPopover(open ? organisationAdministrator.id : null)
+                        }
                         theme={{
-                          base: 'rounded-none bg-transparent border-0 shadow-xl absolute z-20 inline-block w-max max-w-[100vw] outline-none',
+                          base: 'z-50 rounded-none bg-transparent border-0 shadow-xl absolute z-20 inline-block w-max max-w-[100vw] outline-none',
                           content: 'relative overflow-hidden rounded-none',
                         }}
                       >
-                        <span
-                          className="material-symbols-sharp cursor-pointer text-dark-pink"
-                          style={{ fontSize: '1.6 rem' }}
+                        <button
+                          //className="border-2 border-purple px-2 py-1 inline-flex items-center gap-2 cursor-pointer"
+
+                          className={`px-2 py-1 border-2 inline-flex items-center gap-2 cursor-pointer ${
+                            openPermissionPopover === organisationAdministrator.id
+                              ? 'border-purple'
+                              : 'border-transparent'
+                          }`}
+                          type="button"
                         >
-                          key
-                        </span>
+                          <span
+                            className="material-symbols-sharp text-dark-pink"
+                            style={{ fontSize: '1.6rem' }}
+                          >
+                            key
+                          </span>
+                          <span className="font-medium font-jost text-[1.1rem] text-dark-pink">
+                            View Permissions
+                          </span>
+                        </button>
                       </Popover>
                     </td>
 
