@@ -22,6 +22,7 @@ import OrganisationInformationPage from '../pages/OrganisationInformationPage';
 import OrganisationSecuritySettingsPage from '../pages/OrganisationSecuritySettingsPage';
 import PlatformOrganisationManagementPage from '../pages/PlatformOrganisationManagementPage';
 import OrganisationTraineesPage from '../pages/OrganisationTraineesPage';
+import OrganisationAdministratorsPage from '../pages/OrganisationAdministratorsPage';
 
 function AppRoutes() {
   return (
@@ -76,6 +77,7 @@ function AppRoutes() {
         path="/organisation-security-preferences"
         element={<OrganisationSecuritySettingsPage />}
       />
+      <Route path="/organisation-administrators" element={<OrganisationAdministratorsPage />} />
     </Routes>
   );
 }
