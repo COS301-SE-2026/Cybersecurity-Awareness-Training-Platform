@@ -238,7 +238,7 @@ function OrganisationTraineesPage() {
               <div className="flex flex-col items-center justify-between p-4 space-y-3 md:flex-row md:space-y-0 md:space-x-4">
                 {/* ==== SEARCH BAR ==== */}
                 <div className="w-full md:w-1/2">
-                  <form className="flex items-center">
+                  <div className="flex items-center">
                     {/* Search Input Label */}
                     <label htmlFor="simple-search" className="sr-only">
                       Search Trainees
@@ -270,7 +270,7 @@ function OrganisationTraineesPage() {
                         placeholder="Search Trainees"
                       />
                     </div>
-                  </form>
+                  </div>
                 </div>
                 {/* ==== SEARCH BAR ==== */}
 

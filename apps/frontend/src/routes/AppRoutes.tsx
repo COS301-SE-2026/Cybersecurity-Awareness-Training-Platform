@@ -21,7 +21,7 @@ import ConfirmEmailChangePage from '../pages/ConfirmEmailChangePage';
 import OrganisationInformationPage from '../pages/OrganisationInformationPage';
 import OrganisationSecuritySettingsPage from '../pages/OrganisationSecuritySettingsPage';
 import PlatformOrganisationManagementPage from '../pages/PlatformOrganisationManagementPage';
-import OrganisationTraineesPage from '../pages/ OrganisationTraineesPage';
+import OrganisationTraineesPage from '../pages/OrganisationTraineesPage';
 
 function AppRoutes() {
   return (
