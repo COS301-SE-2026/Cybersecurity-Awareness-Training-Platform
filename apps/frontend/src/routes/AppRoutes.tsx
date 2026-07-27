@@ -20,6 +20,7 @@ import VerifyEmailPage from '../pages/VerifyEmailPage';
 import ConfirmEmailChangePage from '../pages/ConfirmEmailChangePage';
 import OrganisationInformationPage from '../pages/OrganisationInformationPage';
 import OrganisationSecuritySettingsPage from '../pages/OrganisationSecuritySettingsPage';
+import PlatformOrganisationManagementPage from '../pages/PlatformOrganisationManagementPage';
 
 function AppRoutes() {
   return (
@@ -63,6 +64,7 @@ function AppRoutes() {
           path="/organisation-security-preferences"
           element={<OrganisationSecuritySettingsPage />}
         />
+        <Route path="/organisation-management" element={<PlatformOrganisationManagementPage />} />
       </Route>
 
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
