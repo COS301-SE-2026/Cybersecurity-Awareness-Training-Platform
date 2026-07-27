@@ -212,8 +212,8 @@
       "number": 268,
       "title": "feat: build frontend organisation trainee management",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-07-27"
     },
     {
       "number": 267,
@@ -352,7 +352,7 @@
     },
     {
       "date": "2026-07-27",
-      "remaining": 66,
+      "remaining": 64,
       "ideal": 13.88
     }
   ]
