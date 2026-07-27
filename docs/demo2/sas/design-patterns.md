@@ -36,7 +36,7 @@ This section records the design patterns that are relevant to the Insightful Phi
 
 ## 3. Design Patterns
 
-The architecture uses design patterns as supporting design tools inside the layered architecture. The patterns described here do not redefine the five-layer architecture; they explain design decisions that help the the elements of the architecture.
+The architecture uses design patterns as supporting design tools inside the layered architecture. The patterns described here do not redefine the five-layer architecture; they explain design decisions that help the elements of the architecture work together.
 
 ### 3.1 Selection Criteria
 
@@ -135,22 +135,62 @@ The selected patterns are Facade, Strategy, State, Adapter, and Proxy. They are 
 
 ### 3.3 Pattern Interactions
 
-This section explains how the selected patterns work together without duplicating each pattern entry.
+The selected patterns work best when they are seen as a small set of supporting decisions rather than as isolated boxes.
+
+Facade is the main organising pattern at the Application Services layer. A use case such as completing initial administrator setup, accepting an invitation, changing an email address, or submitting a quiz is exposed as one clear operation, even though the operation touches tokens, users, permissions, sessions, audit records, and notifications. This keeps the API layer from becoming a place where business workflows are assembled piece by piece.
+
+Strategy and State then support those facade-style services from different angles. Strategy handles rules that may vary, such as organisation security settings, session duration rules, invitation validation rules, campaign availability, or quiz marking behaviour. State handles where the system is in a lifecycle, such as whether an invitation is still pending, whether a token has already been used, whether an organisation is active, or whether a quiz attempt has already been submitted.
+
+Adapter keeps infrastructure concerns at the edge of those workflows. Email delivery, development email capture, persistence tooling, validation libraries, and API documentation are useful technologies, but the application should not be shaped around their provider-specific details. The adapter boundary gives the services a stable way to use those tools without leaking raw provider behaviour into the domain flow.
+
+Proxy sits at the access-control boundary. It protects the facade-style operations by checking authentication, permissions, organisation scope, request validation, and rate limits before sensitive services are reached. The service still performs important ownership and state checks, but the proxy-like boundary reduces the chance that obviously invalid or unauthorised requests enter the application workflow.
+
+Together, these patterns support the five-layer architecture in a practical way:
+
+- The **Presentation and Browser layer** asks for clear operations and receives safe responses.
+- The **API and Access-Control layer** applies proxy-like protection and validation.
+- The **Application Services layer** uses facade-style orchestration with strategy and state rules.
+- The **Repository and Data-Access layer** keeps persistence access behind stable operations.
+- The **Persistence layer** stores the state that makes token, account, campaign, audit, and organisation lifecycles reliable.
 
 ### 3.4 Limitations
 
-The limitations section records where a pattern introduces trade-offs, where a candidate pattern is intentionally not used, and where the design should remain simpler.
+These patterns should stay useful, not decorative. The main risk is over-design: if every small rule is forced into a named pattern, the architecture becomes harder to read instead of easier.
+
+Facade services must stay focused. A service that coordinates one use case is helpful; a service that quietly grows into a general platform coordinator becomes a maintenance problem. The boundary should follow real workflows such as onboarding, account security, organisation administration, campaign participation, or reporting.
+
+Strategy should be used where rules genuinely vary. Organisation security policy, invitation validation, and session policy are good fits because the rules depend on context. A simple fixed validation rule does not need a separate strategy just to look more architectural.
+
+State is useful only when the allowed transitions are explicit. A status field by itself does not protect the system. The architecture still needs clear rules for when a token, invitation, organisation, session, campaign assignment, or quiz attempt may move from one state to another.
+
+Adapter boundaries should not hide all detail. They should protect the application from provider-specific noise, but still return enough safe information for audit, diagnostics, and user-facing outcomes. For example, email delivery failures should be visible as safe delivery outcomes without exposing raw provider errors.
+
+Proxy-style access control is not a substitute for service-level checks. The API boundary can reject unauthenticated or unauthorised requests early, but sensitive services must still check ownership, organisation scope, and lifecycle state before changing data.
+
+Some familiar patterns are intentionally not used here. Observer, Factory, Template Method, and Decorator may become useful later, but the current domain evidence does not need them as primary SAS patterns. Keeping them out makes the document more honest and keeps attention on the patterns that explain the current design.
 
 ### 3.5 Quality Traceability
 
-Quality traceability links selected patterns to the measurable [SRS Quality Requirements](../srs/quality-requirements.md).
+The split [SRS Quality Requirements](../srs/quality-requirements.md) section is the intended home for measurable quality scenarios. Until those scenarios are fully expanded in this branch, the traceability below links the selected patterns to the quality concerns already described in the architecture and SRS material.
+
+| Pattern  | Main quality concerns supported                         | How the pattern contributes                                                                                                                                                              |
+| -------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Facade   | Maintainability, reliability, auditability, testability | Keeps multi-step workflows in one use-case boundary so transactional rules, audit recording, notification outcomes, and validation can be tested and reviewed together.                  |
+| Strategy | Security, privacy, maintainability, reliability         | Keeps variable rules such as session policy, email-change permission, invitation validation, campaign availability, and quiz scoring from being scattered through unrelated code paths.  |
+| State    | Reliability, security, auditability                     | Makes lifecycle-sensitive behaviour explicit for tokens, invitations, organisations, sessions, campaigns, and quiz attempts, reducing duplicate success outcomes and stale-action risks. |
+| Adapter  | Maintainability, reliability, privacy                   | Keeps provider-specific details such as email delivery behaviour, persistence tooling, and validation mechanics behind safer application-facing boundaries.                              |
+| Proxy    | Security, privacy, auditability                         | Protects sensitive operations before they reach application services by enforcing authentication, permission, organisation-scope, validation, and rate-limit checks.                     |
+
+These links also support the architecture quality themes in the [Demo 2 Architecture Overview](../architecture.md), especially security, reliability, maintainability, modularity, and traceability.
 
 ### 3.6 References
 
 - [Demo 2 Architecture Overview](../architecture.md)
 - [SRS Domain Model](../srs/domain-model.md)
 - [SRS Quality Requirements](../srs/quality-requirements.md)
-- COS214 design-patterns course notes
+- [Demo 2 Domain Model Source](../new-domain-model.txt)
+- [Technology Requirements](technology-requirements.md)
+- COS214 design-patterns course notes, including the pattern description method of intent, problem, participants, relationships, improvements, and trade-offs.
 
 ---
 
