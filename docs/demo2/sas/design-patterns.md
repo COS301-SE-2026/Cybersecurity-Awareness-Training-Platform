@@ -11,11 +11,10 @@ This section records the design patterns that are relevant to the Insightful Phi
   - [3.1 Selection Criteria](#31-selection-criteria)
   - [3.2 Design Patterns](#32-design-patterns)
     - [3.2.1 Facade](#321-facade)
-    - [3.2.2 Repository](#322-repository)
-    - [3.2.3 Strategy](#323-strategy)
-    - [3.2.4 State](#324-state)
-    - [3.2.5 Adapter](#325-adapter)
-    - [3.2.6 Protection Proxy](#326-protection-proxy)
+    - [3.2.2 Strategy](#322-strategy)
+    - [3.2.3 State](#323-state)
+    - [3.2.4 Adapter](#324-adapter)
+    - [3.2.5 Proxy](#325-proxy)
   - [3.3 Pattern Interactions](#33-pattern-interactions)
   - [3.4 Limitations](#34-limitations)
   - [3.5 Quality Traceability](#35-quality-traceability)
@@ -55,7 +54,7 @@ The selected patterns must satisfy these criteria:
 Patterns intentionally not selected at this stage include:
 
 - **Observer:** Audit and email reactions exist as system concerns, but the current SAS evidence does not require the use of this pattern.
-- **Factory** Token creation and email rendering involve structured object creation, but the domain model does not require a separate object-creation pattern to explain the architecture.
+- **Factory:** Token creation and email rendering involve structured object creation, but the domain model does not require a separate object-creation pattern to explain the architecture.
 - **Template Method:** Several workflows have ordered steps, but the SAS does not yet define a stable algorithm skeleton with specialised subclasses.
 - **Decorator:** No requirement shows runtime wrapping of domain behaviour as a central architectural decision.
 
@@ -171,7 +170,7 @@ Some familiar patterns are intentionally not used here. Observer, Factory, Templ
 
 ### 3.5 Quality Traceability
 
-The split [SRS Quality Requirements](../srs/quality-requirements.md) section is the intended home for measurable quality scenarios. Until those scenarios are fully expanded in this branch, the traceability below links the selected patterns to the quality concerns already described in the architecture and SRS material.
+The [SRS Quality Requirements](../srs/quality-requirements.md) section is the intended home for measurable quality scenarios. The traceability below links the selected patterns to the quality concerns already described in the architecture and SRS material.
 
 | Pattern  | Main quality concerns supported                         | How the pattern contributes                                                                                                                                                              |
 | -------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
