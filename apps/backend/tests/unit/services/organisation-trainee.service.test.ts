@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi, afterEach } from 'vitest';
 import { prisma } from '../../../src/lib/prisma.js';
 import { OrganisationPermissionKey } from '../../../src/generated/prisma/enums.js';
 import { OrganisationAdminServiceError } from '../../../src/services/organisation-admin.service.js';
@@ -95,6 +95,8 @@ vi.mock('../../../src/lib/prisma.js', () => ({
 
 describe('OrganisationTraineeService', () => {
   beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-15T08:00:00.000Z'));
     vi.clearAllMocks();
     emailMock.sendEmail.mockResolvedValue({
       status: 'ACCEPTED',
@@ -110,6 +112,9 @@ describe('OrganisationTraineeService', () => {
         OrganisationPermissionKey.REMOVE_ORGANISATION_TRAINEES,
       ]),
     );
+  });
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   describe('listOrganisationTrainees', () => {

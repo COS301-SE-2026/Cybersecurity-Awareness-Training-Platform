@@ -125,6 +125,18 @@ describe('organisation validation schemas', () => {
 
       expect(initialAdminSetupStatusSchema.parse(null)).toBeNull();
       expect(initialAdminSetupStatusSchema.parse(validSetupStatus)).toEqual(validSetupStatus);
+
+      const revokedSetupStatus = {
+        ...validSetupStatus,
+        latestActionToken: {
+          id: validUuid,
+          expiresAt: '2026-07-08T08:00:00.000Z',
+          usedAt: '2026-07-02T08:00:00.000Z',
+          revokedAt: '2026-07-03T08:00:00.000Z',
+          status: 'REVOKED' as const,
+        },
+      };
+      expect(initialAdminSetupStatusSchema.parse(revokedSetupStatus)).toEqual(revokedSetupStatus);
     });
 
     it('validates organisationAdminSummarySchema', () => {

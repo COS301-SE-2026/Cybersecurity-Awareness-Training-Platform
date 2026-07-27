@@ -673,8 +673,6 @@ export async function verifyEmailChange(rawToken: string): Promise<VerifyEmailCh
     throw new EmailChangeConflictError();
   }
 
-  const oldEmail = user.email;
-
   const resultState = await prisma.$transaction(async (tx) => {
     // 1. Load the EmailChangeRequest
     const changeRequest = await tx.emailChangeRequest.findUnique({
@@ -730,6 +728,7 @@ export async function verifyEmailChange(rawToken: string): Promise<VerifyEmailCh
       where: { id: user.id },
       data: {
         email: targetEmail,
+        emailVerifiedAt: new Date(),
       },
     });
 
@@ -765,8 +764,8 @@ export async function verifyEmailChange(rawToken: string): Promise<VerifyEmailCh
         outcome: 'SUCCESS',
         metadata: {
           changeType: 'EMAIL_CHANGE',
-          oldEmail,
-          newEmail: targetEmail,
+          emailChangeRequestId: changeRequest.id,
+          revokedSessionReason: 'EMAIL_CHANGE',
         },
       },
       tx,

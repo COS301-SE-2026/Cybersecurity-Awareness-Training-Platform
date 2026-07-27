@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 import { z } from 'zod';
+import { supportEmailAddressSchema } from './support-email.js';
 
 dotenv.config();
 
@@ -23,6 +24,7 @@ const EnvSchema = z.object({
   SMTP_SECURE: smtpSecureSchema,
   SMTP_FROM_ADDRESS: z.string().email().default('noreply@insightful-phish.local'),
   SMTP_FROM_NAME: z.string().default('Insightful Phish'),
+  SUPPORT_EMAIL_ADDRESS: supportEmailAddressSchema,
   SMTP_USER: optionalNonEmptyString,
   SMTP_PASSWORD: optionalNonEmptyString,
 }).superRefine((value, context) => {
