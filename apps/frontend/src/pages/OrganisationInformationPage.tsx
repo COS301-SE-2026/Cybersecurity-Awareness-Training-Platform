@@ -20,7 +20,7 @@ import type {
   TimelineEventDto,
 } from '@insightful-phish/shared';
 
-// main component for organisation information page integrated with backend API endpoints
+// main compoent for organisation information page integrated with backend API endpoints
 // handles loading, 404 not found, 403 access denied, 401 unauthorized, resend setup action, and lifecycle gating
 
 export interface OrganisationDetailData {
@@ -141,6 +141,49 @@ function parseApiError(err: unknown, fallbackMessage: string): string {
   return message || fallbackMessage;
 }
 
+function getErrorNoticeClass(errorStatus: number | null): string {
+  if (errorStatus === 403 || errorStatus === 401) {
+    return 'bg-amber-50 border-amber-300 text-amber-900';
+  }
+  if (errorStatus === 404) {
+    return 'bg-blue-50 border-blue-300 text-blue-900';
+  }
+  return 'bg-red-50 border-red-300 text-red-900';
+}
+
+function getTabButtonClass(isActive: boolean): string {
+  const baseClass =
+    'font-jost inline-block w-full border border-default focus:ring-4 focus:ring-neutral-secondary-strong font-light text-[1.2rem] tracking-wide leading-5 px-5 py-3 focus:outline-none rounded-none';
+  if (isActive) {
+    return `${baseClass} bg-faint-purple text-[var(--ip-purple)] font-medium`;
+  }
+  return `${baseClass} bg-neutral-primary-soft text-body hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)]`;
+}
+
+async function fetchOrganisationOrRequestDetail(
+  routeReqId: string | null,
+  targetId: string,
+  token: string,
+): Promise<OrganisationDetailData> {
+  if (routeReqId) {
+    const reqData = await getPlatformOrganisationRequestDetails(routeReqId, token);
+    return mapRequestDetailsToState(reqData);
+  }
+
+  try {
+    const orgData = await getPlatformOrganisationDetail(targetId, token);
+    return mapOrganisationDetailsToState(orgData);
+  } catch (err: unknown) {
+    const errStatus =
+      err && typeof err === 'object' && 'status' in err ? (err as { status: number }).status : null;
+    if (errStatus === 404) {
+      const reqData = await getPlatformOrganisationRequestDetails(targetId, token);
+      return mapRequestDetailsToState(reqData);
+    }
+    throw err;
+  }
+}
+
 function OrganisationInformationPage() {
   const [currentTab, setCurrentTab] = useState<1 | 2 | 3 | 4>(1);
   const { token, authContext } = useAuth();
@@ -167,20 +210,19 @@ function OrganisationInformationPage() {
   const [resendSuccessMessage, setResendSuccessMessage] = useState<string | null>(null);
   const [resendErrorMessage, setResendErrorMessage] = useState<string | null>(null);
 
+  // Derive effective active tab (if request-only record, tab 3 is disabled so fall back to 1)
+  const activeTab = detailData?.isRequestOnly && currentTab === 3 ? 1 : currentTab;
+
   const reloadData = useCallback(async () => {
     if (!token || !targetId) return;
 
-    if (routeReqId) {
-      const reqData = await getPlatformOrganisationRequestDetails(routeReqId, token);
+    try {
+      const data = await fetchOrganisationOrRequestDetail(routeReqId, targetId, token);
       if (currentTargetIdRef.current === targetId) {
-        setDetailData(mapRequestDetailsToState(reqData));
+        setDetailData(data);
       }
-      return;
-    }
-
-    const orgData = await getPlatformOrganisationDetail(targetId, token);
-    if (currentTargetIdRef.current === targetId) {
-      setDetailData(mapOrganisationDetailsToState(orgData));
+    } catch {
+      // ignore reload error
     }
   }, [token, targetId, routeReqId]);
 
@@ -188,15 +230,14 @@ function OrganisationInformationPage() {
     let isMounted = true;
     currentTargetIdRef.current = targetId;
 
-    // Immediately clear stale state when target ID changes
-    setDetailData(null);
-    setErrorMessage(null);
-    setErrorStatus(null);
-    setResendSuccessMessage(null);
-    setResendErrorMessage(null);
-    setIsLoading(Boolean(targetId && token));
-
     const loadAsync = async () => {
+      setDetailData(null);
+      setErrorMessage(null);
+      setErrorStatus(null);
+      setResendSuccessMessage(null);
+      setResendErrorMessage(null);
+      setIsLoading(Boolean(targetId && token));
+
       if (!token || !targetId) {
         if (isMounted && currentTargetIdRef.current === targetId) {
           setIsLoading(false);
@@ -205,46 +246,17 @@ function OrganisationInformationPage() {
       }
 
       try {
-        if (routeReqId) {
-          const reqData = await getPlatformOrganisationRequestDetails(routeReqId, token);
-          if (!isMounted || currentTargetIdRef.current !== targetId) return;
-          setDetailData(mapRequestDetailsToState(reqData));
-          return;
-        }
-
-        const orgData = await getPlatformOrganisationDetail(targetId, token);
+        const data = await fetchOrganisationOrRequestDetail(routeReqId, targetId, token);
         if (!isMounted || currentTargetIdRef.current !== targetId) return;
-        setDetailData(mapOrganisationDetailsToState(orgData));
+        setDetailData(data);
       } catch (err: unknown) {
         if (!isMounted || currentTargetIdRef.current !== targetId) return;
-        const errStatusVal =
+        const status =
           err && typeof err === 'object' && 'status' in err
             ? (err as { status: number }).status
-            : null;
-        if (errStatusVal === 404 && targetId) {
-          try {
-            const reqData = await getPlatformOrganisationRequestDetails(targetId, token);
-            if (!isMounted || currentTargetIdRef.current !== targetId) return;
-            setDetailData(mapRequestDetailsToState(reqData));
-          } catch (reqErr: unknown) {
-            if (!isMounted || currentTargetIdRef.current !== targetId) return;
-            const status =
-              reqErr && typeof reqErr === 'object' && 'status' in reqErr
-                ? (reqErr as { status: number }).status
-                : 500;
-            setErrorStatus(status);
-            setErrorMessage(
-              parseApiError(reqErr, 'Organisation or registration request details not found.'),
-            );
-          }
-        } else {
-          const status =
-            err && typeof err === 'object' && 'status' in err
-              ? (err as { status: number }).status
-              : 500;
-          setErrorStatus(status);
-          setErrorMessage(parseApiError(err, 'Failed to load organisation details.'));
-        }
+            : 500;
+        setErrorStatus(status);
+        setErrorMessage(parseApiError(err, 'Failed to load organisation details.'));
       } finally {
         if (isMounted && currentTargetIdRef.current === targetId) {
           setIsLoading(false);
@@ -258,13 +270,6 @@ function OrganisationInformationPage() {
       isMounted = false;
     };
   }, [token, targetId, routeReqId]);
-
-  // If request-only record is active and user is on tab 3 (Admins), reset tab to 1
-  useEffect(() => {
-    if (detailData?.isRequestOnly && currentTab === 3) {
-      setCurrentTab(1);
-    }
-  }, [detailData?.isRequestOnly, currentTab]);
 
   // handle resend initial admin setup email action button
   const handleResendSetup = async () => {
@@ -290,7 +295,6 @@ function OrganisationInformationPage() {
         setResendErrorMessage('Failed to resend initial administrator setup email.');
       }
 
-      // await refresh of detail data to retrieve authoritative eligibility and timeline
       try {
         await reloadData();
       } catch {
@@ -389,13 +393,7 @@ function OrganisationInformationPage() {
         {/* ERROR OR ACCESS DENIED MESSAGES */}
         {errorMessage && (
           <div
-            className={`mb-6 p-4 border rounded-none font-overpass text-base ${
-              errorStatus === 403 || errorStatus === 401
-                ? 'bg-amber-50 border-amber-300 text-amber-900'
-                : errorStatus === 404
-                  ? 'bg-blue-50 border-blue-300 text-blue-900'
-                  : 'bg-red-50 border-red-300 text-red-900'
-            }`}
+            className={`mb-6 p-4 border rounded-none font-overpass text-base ${getErrorNoticeClass(errorStatus)}`}
           >
             <span className="font-semibold">Notice:</span> {errorMessage}
           </div>
@@ -416,11 +414,7 @@ function OrganisationInformationPage() {
               <li className="w-full focus-within:z-10">
                 <button
                   onClick={() => setCurrentTab(1)}
-                  className={`font-jost inline-block w-full bg-neutral-primary-soft border border-default hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)] focus:ring-4 focus:ring-neutral-secondary-strong font-light text-[1.2rem] tracking-wide leading-5 px-5 py-3 focus:outline-none rounded-none ${
-                    currentTab === 1
-                      ? 'bg-faint-purple text-[var(--ip-purple)] font-medium'
-                      : 'bg-neutral-primary-soft text-body hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)]'
-                  }`}
+                  className={getTabButtonClass(activeTab === 1)}
                 >
                   Basic Information
                 </button>
@@ -428,11 +422,7 @@ function OrganisationInformationPage() {
               <li className="w-full focus-within:z-10">
                 <button
                   onClick={() => setCurrentTab(2)}
-                  className={`font-jost inline-block w-full bg-neutral-primary-soft border border-default hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)] focus:ring-4 focus:ring-neutral-secondary-strong font-light text-[1.2rem] tracking-wide leading-5 px-5 py-3 focus:outline-none rounded-none ${
-                    currentTab === 2
-                      ? 'bg-faint-purple text-[var(--ip-purple)] font-medium'
-                      : 'bg-neutral-primary-soft text-body hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)]'
-                  }`}
+                  className={getTabButtonClass(activeTab === 2)}
                 >
                   Representative Information
                 </button>
@@ -441,11 +431,7 @@ function OrganisationInformationPage() {
                 <li className="w-full focus-within:z-10">
                   <button
                     onClick={() => setCurrentTab(3)}
-                    className={`font-jost inline-block w-full bg-neutral-primary-soft border border-default hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)] focus:ring-4 focus:ring-neutral-secondary-strong font-light text-[1.2rem] tracking-wide leading-5 px-5 py-3 focus:outline-none rounded-none ${
-                      currentTab === 3
-                        ? 'bg-faint-purple text-[var(--ip-purple)] font-medium'
-                        : 'bg-neutral-primary-soft text-body hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)]'
-                    }`}
+                    className={getTabButtonClass(activeTab === 3)}
                   >
                     Administrators
                   </button>
@@ -454,11 +440,7 @@ function OrganisationInformationPage() {
               <li className="w-full focus-within:z-10">
                 <button
                   onClick={() => setCurrentTab(4)}
-                  className={`font-jost inline-block w-full bg-neutral-primary-soft border border-default hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)] focus:ring-4 focus:ring-neutral-secondary-strong font-light text-[1.2rem] tracking-wide leading-5 px-5 py-3 focus:outline-none rounded-none ${
-                    currentTab === 4
-                      ? 'bg-faint-purple text-[var(--ip-purple)] font-medium'
-                      : 'bg-neutral-primary-soft text-body hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)]'
-                  }`}
+                  className={getTabButtonClass(activeTab === 4)}
                 >
                   Timeline
                 </button>
@@ -467,7 +449,7 @@ function OrganisationInformationPage() {
 
             {/* CONTENT BOX */}
             <div className="w-full p-6 bg-white md:mt-0 bg-neutral-primary-soft border-default border-x border-b rounded-none">
-              {currentTab === 1 && (
+              {activeTab === 1 && (
                 <BasicOrganisationInformationPage
                   name={detailData?.name}
                   description={detailData?.description}
@@ -480,7 +462,7 @@ function OrganisationInformationPage() {
                 />
               )}
 
-              {currentTab === 2 && (
+              {activeTab === 2 && (
                 <RepresentativeInformationPage
                   fullName={detailData?.representative?.fullName}
                   email={detailData?.representative?.email}
@@ -494,14 +476,14 @@ function OrganisationInformationPage() {
                 />
               )}
 
-              {currentTab === 3 && !detailData?.isRequestOnly && (
+              {activeTab === 3 && !detailData?.isRequestOnly && (
                 <OrganisationAdminInformationPage
                   admins={detailData?.admins}
                   isRequestOnly={detailData?.isRequestOnly}
                 />
               )}
 
-              {currentTab === 4 && <OrganisationTimelinePage timeline={detailData?.timeline} />}
+              {activeTab === 4 && <OrganisationTimelinePage timeline={detailData?.timeline} />}
             </div>
           </>
         )}

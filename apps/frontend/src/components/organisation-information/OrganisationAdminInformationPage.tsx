@@ -11,7 +11,7 @@ export interface OrganisationAdminInfoProps {
 function OrganisationAdminInformationPage({
   admins,
   isRequestOnly = false,
-}: OrganisationAdminInfoProps) {
+}: Readonly<OrganisationAdminInfoProps>) {
   // if admins not passed, use fallback list so unit tests pass clean
   const displayAdmins = admins ?? [
     {

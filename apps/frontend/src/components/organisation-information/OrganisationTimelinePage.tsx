@@ -7,7 +7,7 @@ export interface OrganisationTimelineProps {
   timeline?: TimelineEventDto[];
 }
 
-function OrganisationTimelinePage({ timeline }: OrganisationTimelineProps) {
+function OrganisationTimelinePage({ timeline }: Readonly<OrganisationTimelineProps>) {
   const hasTimelineEvents = Boolean(timeline && timeline.length > 0);
 
   if (!hasTimelineEvents) {

@@ -25,7 +25,7 @@ function RepresentativeInformationPage({
   resendSuccessMessage = null,
   resendErrorMessage = null,
   isRequestOnly = false,
-}: RepresentativeInfoProps) {
+}: Readonly<RepresentativeInfoProps>) {
   // button is disabled if resend is not eligible or action is currently in progress
   const isResendDisabled =
     isResending ||
