@@ -745,8 +745,8 @@
           "number": 331,
           "title": "feat: add accept-invite token context endpoint",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-07-27"
         },
         {
           "number": 323,
@@ -780,8 +780,8 @@
           "number": 291,
           "title": "test: add backend account and security settings API integration coverage",
           "points": 3,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-07-27"
         },
         {
           "number": 289,
@@ -1202,8 +1202,8 @@
           "number": 367,
           "title": "docs: complete Demo 2 SRS requirements and use cases",
           "points": 5,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-07-27"
         },
         {
           "number": 358,
@@ -1384,8 +1384,8 @@
           "number": 258,
           "title": "test: add backend organisation onboarding API integration coverage",
           "points": 3,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-07-27"
         },
         {
           "number": 257,
@@ -1883,7 +1883,7 @@
     },
     {
       "date": "2026-07-27",
-      "remaining": 88,
+      "remaining": 75,
       "ideal": 11.03
     }
   ]

@@ -1,6 +1,6 @@
 # Burndown Check Report
 
-Last run: 2026-07-27 11:39:57 SAST
+Last run: 2026-07-27 16:52:47 SAST
 
 - #207 fix: seed campaign creator relation after Prisma schema update closed 1 day after Sprint 3 (Demo 2) ended.
 - #184 chore: clean trainee terminology and small frontend test warnings closed 1 day after Sprint 3 (Demo 2) ended.
@@ -11,6 +11,8 @@ Last run: 2026-07-27 11:39:57 SAST
 - #160 chore: add route builders and clean stale frontend routes closed 1 day after Sprint 3 (Demo 2) ended.
 - #159 chore: consolidate frontend API clients and base URL handling closed 1 day after Sprint 3 (Demo 2) ended.
 - #155 chore: clean deprecated static frontend assets and app metadata closed 1 day after Sprint 3 (Demo 2) ended.
+- #331 feat: add accept-invite token context endpoint closed 15 days after Sprint 4 (Demo 2) ended.
+- #291 test: add backend account and security settings API integration coverage closed 15 days after Sprint 4 (Demo 2) ended.
 - #265 feat: implement backend invitation acceptance and role change endpoints closed 8 days after Sprint 4 (Demo 2) ended.
 - #264 feat: build frontend accept invite and role change page closed 1 day after Sprint 4 (Demo 2) ended.
 - #263 docs: define SRS use case UC-07 accept organisation invitation closed 7 days after Sprint 4 (Demo 2) ended.
