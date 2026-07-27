@@ -3,6 +3,7 @@ import { Dropdown, DropdownItem, Popover } from 'flowbite-react';
 import { useState } from 'react';
 import BasicConfirmationModal from '../components/layout/modals/BasicConfirmationModal';
 import InviteOrganisationAdministratorModal from '../components/organisation-administrator-page/InviteOrganisationAdministratorModal';
+import EditOrganisationAdministratorPermissionsModal from '../components/organisation-administrator-page/EditOrganisationAdministratorPermissionsModal';
 
 interface OrganisationAdministrator {
   id: number;
@@ -114,6 +115,7 @@ function PermissionsPopover({
 
 function OrganisationAdministratorsPage() {
   const [showBasicConfirmationModal, setShowBasicConfirmationModal] = useState(false);
+  const [showEditPermissionsModal, setShowEditPermissionsModal] = useState(false);
   const [confirmationTitle, setConfirmationTitle] = useState('');
   const [confirmationMessage, setConfirmationMessage] = useState('');
   const [confirmationButtonText, setConfirmationButtonText] = useState('');
@@ -178,6 +180,10 @@ function OrganisationAdministratorsPage() {
     openConfirmationModal();
   };
 
+  const openEditPermissionsModal = () => {
+    setShowEditPermissionsModal(true);
+  };
+
   const showRevokeInviteModal = () => {
     setConfirmationButtonText('Revoke');
     setConfirmationTitle('Revoke Invitation');
@@ -187,7 +193,7 @@ function OrganisationAdministratorsPage() {
   };
 
   const confirmBasicConfirmation = () => {
-    closeOrganisationTraineePageConfirmationModal();
+    closeOrganisationAdministratorModal();
   };
 
   const showEnableOrganisationAdministratorModal = () => {
@@ -198,8 +204,12 @@ function OrganisationAdministratorsPage() {
     openConfirmationModal();
   };
 
-  const closeOrganisationTraineePageConfirmationModal = () => {
+  const closeOrganisationAdministratorPageConfirmationModal = () => {
     setShowBasicConfirmationModal(false);
+  };
+
+  const closeEditPermissionsModal = () => {
+    setShowEditPermissionsModal(false);
   };
 
   return (
@@ -466,6 +476,7 @@ function OrganisationAdministratorsPage() {
                           <button
                             className="cursor-pointer font-medium text-purple hover:underline"
                             type="button"
+                            onClick={openEditPermissionsModal}
                           >
                             <strong>Edit Permissions</strong>
                           </button>
@@ -485,6 +496,7 @@ function OrganisationAdministratorsPage() {
                           <button
                             className="cursor-pointer font-medium text-purple hover:underline"
                             type="button"
+                            onClick={openEditPermissionsModal}
                           >
                             <strong>Edit Permissions</strong>
                           </button>
@@ -528,7 +540,7 @@ function OrganisationAdministratorsPage() {
           confirmButtonText={confirmationButtonText}
           confirmButtonVariant={confirmationVariant}
           onConfirm={confirmBasicConfirmation}
-          onCancel={closeOrganisationTraineePageConfirmationModal}
+          onCancel={closeOrganisationAdministratorPageConfirmationModal}
         ></BasicConfirmationModal>
       )}
 
@@ -538,6 +550,13 @@ function OrganisationAdministratorsPage() {
           isOpen={showOrganisationAdministratorModal}
           onClose={() => closeOrganisationAdministratorModal()}
         ></InviteOrganisationAdministratorModal>
+      )}
+
+      {showEditPermissionsModal && (
+        <EditOrganisationAdministratorPermissionsModal
+          isOpen={showEditPermissionsModal}
+          onClose={() => closeEditPermissionsModal()}
+        ></EditOrganisationAdministratorPermissionsModal>
       )}
     </AppLayout>
   );
