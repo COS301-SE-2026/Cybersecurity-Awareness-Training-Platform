@@ -1,6 +1,8 @@
 # Users and User Stories
 
-### SRS Content
+This section describes the main user classes for Insightful Phish and their user goals.
+
+## SRS Content
 
 - [0. Home](README.md)
 - [1. Introduction and Scope](introduction.md)
@@ -24,34 +26,35 @@
 - [4. Use Cases](use-cases.md)
 - [5. Quality Requirements](quality-requirements.md)
 - [6. Domain Model](domain-model.md)
+- [7. Changelog](changelog.md)
 
 ---
 
-# 2. Users and User Stories
+## 2. Users and User Stories
 
-## 2.1 Product Perspective
+### 2.1 Product Perspective
 
-The Insightful Phish platform is a web-based browser accessed application that provides cybersecurity awareness training through campaigns. It is designed to be secure and modular, allowing for future expansion of features, content types, and reporting capabilities. The platform is intended to be used by individual trainees, organisation-linked trainees, organisation administrators, and Insightful Phish platform administrators. The product is designed to be accessed through modern web browsers and is intended to provide a consistent user experience across different devices and screen sizes for trainees. Administration and management features are primarily intended for desktop or larger-screen devices, where more complex workflows can be effectively managed.
+The Insightful Phish platform is a web-based application that provides cybersecurity awareness training through campaigns. It is designed to be secure and modular, allowing for future expansion of features, content types, and reporting capabilities. The platform is intended to be used by individual trainees, organisation-linked trainees, organisation administrators, and Insightful Phish platform administrators. The product is designed to be accessed through modern web browsers and to provide a consistent user experience across different devices and screen sizes for trainees. Administration and management features are primarily intended for desktop or larger-screen devices, where more complex workflows can be effectively managed.
 
-## 2.2 User Classes and Characteristics
+### 2.2 User Classes and Characteristics
 
 ### Individual Trainee
 
 An Individual Trainee is a self-enrolled user who uses the platform independently to improve their cybersecurity awareness. They are not linked to an organisation. They self-enrol and participate in training campaigns, complete simulations and quizzes and can monitor and track their own progress through personal dashboards and feedback.
 
-Individual trainees are expected to have basic computer literacy and be familiar with standard web browsers. They can only access their own profile, learning history and personal data. Their interface should prioritise simplicity, clear navigation, plain language, accessibility and responsive design accross desktop and mobile devices.
+Individual trainees are expected to have basic computer literacy and be familiar with standard web browsers. They can only access their own profile, learning history and personal data. Their interface should prioritise simplicity, clear navigation, plain language, accessibility and responsive design across desktop and mobile devices.
 
 ### Organisation Trainee
 
 An Organisation Trainee is a member of an organisation who completes cybersecurity awareness campaigns assigned to them by their organisation's administrators. They can also review their own results, feedback and learning progress while following organisation-defined security awareness programmes.
 
-Organisation Trainees, as Individual Trainees, are expected to have basic computer literacy and be familiar with standard web browsers. They have access to their own profile and training information. They can also access organisation specific settings and the campaigns that are assigned to them by organisation administrators. The interface is the same as General Trainees': It should prioritise simplicity, clear navigation, plain language, accessibility and responsive design accross desktop and mobile devices.
+Organisation trainees, like individual trainees, are expected to have basic computer literacy and be familiar with standard web browsers. They have access to their own profile and training information. They can also access organisation-specific settings and the campaigns that are assigned to them by organisation administrators. Their interface should prioritise simplicity, clear navigation, plain language, accessibility and responsive design across desktop and mobile devices.
 
 ### Organisation Administrator
 
 An Organisation Administrator manages cybersecurity awareness in a single organisation. Their responsibilities include managing trainees, creating and scheduling campaigns, reviewing trainee performance, monitoring organisation risk and configuring organisation-specific settings.
 
-Organisation Administrators are expected to have intermediate computer literacy, and be comfortoble with web-based administrator systems. They have authority over organisation-level data, campaign content, and trainee management within their organisation. Administrative interfaces should be efficient to use, present information clearly, have role based access control and be auditible. The administrator interface should also be responsive and be suited to larger displays.
+Organisation administrators are expected to have intermediate computer literacy and be comfortable with web-based administrator systems. They have authority over organisation-level data, campaign content, and trainee management within their organisation. Administrative interfaces should be efficient to use, present information clearly, have role-based access control and be auditable. The administrator interface should also be responsive and suited to larger displays.
 
 ### Insightful Phish Administrator
 
@@ -60,9 +63,9 @@ Organisation Administrators are expected to have intermediate computer literacy,
 
 An Insightful Phish Administrator oversees the entire platform and is responsible for managing organisations, organisation administrators, platform configuration and overall system health. They monitor platform usage, maintain security and perform platform-wide administrative functions.
 
-Insightful Phish Administrators are expected to have advanced computer literacy and experience with complex web-based admin systems. They have access to platform wide data and administrative functionality accross all organisations. Administrative interfaces should support efficient management of large datasets, comprehensive audit logging, role based access control and clear workflows for security and sensitive operations.
+Insightful Phish administrators are expected to have advanced computer literacy and experience with complex web-based administration systems. They have access to platform-wide data and administrative functionality across all organisations. Administrative interfaces should support efficient management of large datasets, comprehensive audit logging, role-based access control and clear workflows for security and sensitive operations.
 
-## 2.3 User Stories
+### 2.3 User Stories
 
 The following user stories describe the goals that each user type aims to achieve by using Insightful Phish. They are grouped according to the functionality that they relate to.
 
@@ -80,15 +83,15 @@ The following user stories describe the goals that each user type aims to achiev
 
 **2.4** As an authenticated user, I want to update my personal information and password, so that my account details remain accurate and secure.
 
-**2.5** As an authenticated user, I want to change and verify me email address, subject to my organisation's security policy (if applicable), so that account communication can reach the correct email address.
+**2.5** As an authenticated user, I want to change and verify my email address, subject to my organisation's security policy where applicable, so that account communication can reach the correct email address.
 
-**2.6** As an authenticated user, I want to view and revoke my active seesions and manage my account security settings, so that I can protect my account from unauthorised access.
+**2.6** As an authenticated user, I want to view and revoke my active sessions and manage my account security settings, so that I can protect my account from unauthorised access.
 
 ### 3. Individual Trainee Access
 
 **3.1** As an individual trainee, I want to register and verify my email address, so that I can securely access general cybersecurity awareness training campaigns.
 
-**3.2** As an individual trainee, I want to browse browse publisher premade campaigns and view their details, so that I can find training campaigns that interest interest me.
+**3.2** As an individual trainee, I want to browse publisher premade campaigns and view their details, so that I can find training campaigns that interest me.
 
 **3.3** As an individual trainee, I want to enrol myself in a selected premade campaign, so that I can begin training that interests me.
 
@@ -96,7 +99,7 @@ The following user stories describe the goals that each user type aims to achiev
 
 ### 4. Organisation Trainee Membership
 
-**4.1** As an invited organisation trainee, I want to accept an invitation and securely setup my account, so that I can control whether I join an organisation.
+**4.1** As an invited organisation trainee, I want to accept an invitation and securely set up my account, so that I can control whether I join an organisation.
 
 **4.2** As an organisation trainee, I want to view the campaigns assigned to me by my organisation, so that I can complete the training required by my organisation.
 
@@ -108,7 +111,7 @@ The following user stories describe the goals that each user type aims to achiev
 
 **5.2** As a trainee, I want to follow campaign items in their defined order and understand any locked prerequisites, so that I can complete the training in its intended sequence.
 
-**5.3** As a trainee, I want to view and open simulated emails in a controlled inbox, so that I cans afely practise recognising suspicious messages.
+**5.3** As a trainee, I want to view and open simulated emails in a controlled inbox, so that I can safely practise recognising suspicious messages.
 
 **5.4** As a trainee, I want to classify simulated emails and receive educational feedback, so that I can learn to recognise and respond to potential cybersecurity threats.
 
@@ -122,9 +125,9 @@ The following user stories describe the goals that each user type aims to achiev
 
 ### 6. Organisation Administration
 
-**6.1** As the initial organisation administrator, I want to complete my account setup, so that I can activate and beging configuring and managing my organisation.
+**6.1** As the initial organisation administrator, I want to complete my account setup, so that I can activate and begin configuring and managing my organisation.
 
-**6.2** As an organisation administrator, I want to view organisation trainees and their invitation statusses, so that I can understand the organisation's membership and onboarding state.
+**6.2** As an organisation administrator, I want to view organisation trainees and their invitation statuses, so that I can understand the organisation's membership and onboarding state.
 
 **6.3** As an organisation administrator, I want to invite trainees and resend or revoke eligible invitations, so that I can manage employee onboarding.
 
@@ -136,9 +139,9 @@ The following user stories describe the goals that each user type aims to achiev
 
 **6.7** As an organisation administrator with the appropriate permission, I want to change or remove another administrator's permissions, so that administrative access remains appropriate without leaving the organisation unmanaged.
 
-**6.8** As an organisation administrator with the appropriate permission, I want to configure organisation security policies so that user sessions and sensitive account actions follows the organisation's security requirements.
+**6.8** As an organisation administrator with the appropriate permission, I want to configure organisation security policies, so that user sessions and sensitive account actions follow the organisation's security requirements.
 
-**6.9** As an organisation administrator with the appropriate permission, I want to manage approved organisation context, including branding, policies, terminology and domains, so that trainng can represent the organisation accurately and safely.
+**6.9** As an organisation administrator with the appropriate permission, I want to manage approved organisation context, including branding, policies, terminology and domains, so that training can represent the organisation accurately and safely.
 
 **6.10** As an organisation administrator with the appropriate permission, I want to create and manage employee tags and tag memberships, so that trainees can be grouped flexibly for campaign assignment and reporting.
 
@@ -146,7 +149,7 @@ The following user stories describe the goals that each user type aims to achiev
 
 **6.12** As an organisation administrator with the appropriate permission, I want to create reusable campaign items, including training documents, quizzes and simulated inboxes, so that I can build campaigns efficiently and consistently.
 
-**6.13** As an organistion administrator with the appropriate permission, I want to assign campaigns to selected trainees and the current trainees of selected tags, so that the correct employees can receive the required training.
+**6.13** As an organisation administrator with the appropriate permission, I want to assign campaigns to selected trainees and the current trainees of selected tags, so that the correct employees can receive the required training.
 
 **6.14** As an organisation administrator with the appropriate permission, I want to reset progress for an explicitly selected campaign and trainee scope, so that retraining can occur without affecting other campaigns or trainees.
 
@@ -154,7 +157,7 @@ The following user stories describe the goals that each user type aims to achiev
 
 **6.16** As an organisation administrator with the appropriate permission, I want to review the organisation's audit history, so that important membership permission, security, content and campaign changes remain accountable.
 
-**6.17** As an organisation administrator with the appropriate permission, I want AI assistance when drafting simulated emails, training documents and quizzess, with human review required before publication, so that content can be created more efficiently without compromising quality or safety.
+**6.17** As an organisation administrator with the appropriate permission, I want AI assistance when drafting simulated emails, training documents and quizzes, with human review required before publication, so that content can be created more efficiently without compromising quality or safety.
 
 ### 7. Platform Administration
 
@@ -162,15 +165,15 @@ The following user stories describe the goals that each user type aims to achiev
 
 **7.2** As a platform administrator, I want to approve or reject an organisation registration request and invite its initial administrator following approval, so that only reviewed and approved organisations can access the platform.
 
-**7.3** As a platform administrator, I want to track an organisation's onboarding progress and resend an eligible initial-administrator invitation, so that failed or expired email delivery does not leave the organisation's onboarding permantently blocked.
+**7.3** As a platform administrator, I want to track an organisation's onboarding progress and resend an eligible initial-administrator invitation, so that failed or expired email delivery does not leave the organisation's onboarding permanently blocked.
 
 **7.4** As a platform administrator, I want to view organisation details and suspend or reactivate organisation access, so that platform-level access can be governed safely and consistently.
 
-**7.5** As a platform administrator, I want to create and manage premade campaigns and reuseable campaign items, so that individual trainees can access high quality training content and to make it easier for organisation administrators to create their own campaigns.
+**7.5** As a platform administrator, I want to create and manage premade campaigns and reusable campaign items, so that individual trainees can access high-quality training content and organisation administrators can create their own campaigns more easily.
 
 **7.6** As a platform administrator, I want to publish or unpublish premade campaigns, so that I can control what individual trainees can discover without erasing existing enrolments or progress.
 
-**7.7** As a platform administrator, I want to view aggregated platform usage, organisation-lifecycle and security insights, so that I can operate the platform without unnessarily accessing organisation- or trainee-level data.
+**7.7** As a platform administrator, I want to view aggregated platform usage, organisation-lifecycle and security insights, so that I can operate the platform without unnecessarily accessing organisation- or trainee-level data.
 
 **7.8** As a platform administrator, I want to review platform audit and security events, so that privileged actions and suspicious activity can be investigated.
 
@@ -184,4 +187,6 @@ The following user stories describe the goals that each user type aims to achiev
 
 ---
 
-The next section of the SRS is: [Functional Requirements](functional-requirements.md)
+Previous section: [Introduction and Scope](introduction.md)
+
+Next section: [Functional Requirements](functional-requirements.md)
