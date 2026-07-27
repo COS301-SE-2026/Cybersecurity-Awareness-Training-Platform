@@ -46,7 +46,7 @@ The following use cases describe how users interact with the Insightful Phish sy
 
 ## 4.1 High-Level Use Case Diagrams
 
-The follwoing high level use case diagrams group closely related use cases by system capability. Each grouped diagram is embedded once in this section, and is then cross-referenced from the written use cases it covers.
+The following high level use case diagrams group closely related use cases by system capability. Each grouped diagram is embedded once in this section, and is then cross-referenced from the written use cases it covers.
 
 > [!note]
 > The Use Case Diagrams below cover only use cases that are implemented or actively integrated. Planned and future use cases are excluded.
@@ -85,29 +85,339 @@ _Figure 4.6: Organisation security and personal account management processes cov
 
 **Use Case Diagram:** [Authentication and Account Access](#authentication-and-account-access)
 
+We have decided to include the following use cases even though they are considered to be basic authentication required for most systems.
+
 ### `AUTH-01` Register an Individual Account
 
-R1.1
+**TUCBW** An Individual Trainee submits the registration form to create an independent account
+
+**TUCEW** The Individual Trainee receives confirmation that the account has been created and must verify the registered email address before logging in
+
+**Related Use Case Diagram:** [Authentication and Account Access](#authentication-and-account-access)
+
+> [!Note]
+> This Use Case (`AUTH-01`) is related to User Story **3.1** in [Individual Trainee Access](users-and-user-stories.md#3-individual-trainee-access) and Functional Requirements **R1.1** and **R1.6** in [Authentication and Account Access](functional-requirements.md#r1-authentication-and-account-access).
+
+<details> <summary><strong>View more details about AUTH-01</strong></summary>
+
+**Trigger:** The Individual Trainee submits the public account registration form
+
+**Primary Actor:** Individual Trainee
+
+**Supporting Actor:** External Email Delivery Provider
+
+**Preconditions**
+
+- The Individual Trainee can access the public registration page
+- The submitted email address is not already associated with an existing account, unresolved organisation registration request, or active invitation
+- The submitted password meets the platform password policy
+
+**Postconditions**
+
+- A pending email-verification account is created for the Individual Trainee
+- An email verification token is created and sent to the registered email address
+- The Individual Trainee is not granted authenticated platform access until the email address is verified
+
+**Main Success Scenario**
+
+1. The Individual Trainee enters their first name, last name, email address, password and password confirmation
+2. The system validates the submitted registration details
+3. The system checks that the email address does not conflict with an existing account, unresolved organisation request, or active invitation
+4. The system creates an account in a pending email-verification state
+5. The system creates a verification token for the account
+6. The system sends an email verification link to the registered email address
+7. The system displays a confirmation that verification is required before login
+
+**Alternative Flows**
+
+- If optional registration information is not provided, the system continues with the required account information
+- If the verification email cannot be delivered after the account is created, the account remains pending and the user may request a new verification email
+
+**Exception Flows**
+
+- If required fields are invalid or missing, the system identifies the affected fields and does not create the account
+- If the password and confirmation do not match, the system rejects the registration
+- If the email address conflicts with an existing account, unresolved organisation request, or active invitation, the system rejects the registration with a safe explanation
+- If persistence fails before the account is created, no partial account is retained
+
+</details>
 
 ### `AUTH-02` Verify an Email Address
 
-R1.1.3 to R1.1.5 and R 1.6
+**TUCBW** An Account Holder opens the secure verification link sent to their registered email address
+
+**TUCEW** The Account Holder's email address is verified and the account becomes eligible for login where all other access checks pass
+
+**Related Use Case Diagram:** [Authentication and Account Access](#authentication-and-account-access)
+
+> [!Note]
+> This Use Case (`AUTH-02`) is related to User Story **3.1** in [Individual Trainee Access](users-and-user-stories.md#3-individual-trainee-access) and Functional Requirements **R1.1.3** to **R1.1.5** and **R1.6** in [Authentication and Account Access](functional-requirements.md#r1-authentication-and-account-access).
+
+<details> <summary><strong>View more details about AUTH-02</strong></summary>
+
+**Trigger:** The Account Holder opens or submits an email verification token
+
+**Primary Actor:** Account Holder
+
+**Supporting Actor:** None
+
+**Preconditions**
+
+- A pending email-verification account exists
+- A verification token exists for the account and registered email address
+- The token has not expired, been used, been revoked, or been superseded
+
+**Postconditions**
+
+- The account email address is marked as verified
+- The verification token is marked as used only after verification succeeds
+- The account can log in where credential, status and policy checks pass
+
+**Main Success Scenario**
+
+1. The Account Holder opens the verification link
+2. The system validates the token value, purpose, expiry, status and account context
+3. The system verifies that the token belongs to the intended account and email address
+4. The system marks the account email address as verified
+5. The system marks the token as used
+6. The system confirms that the email address has been verified
+
+**Alternative Flows**
+
+- If the account was already verified through a valid earlier action, the system displays an already-completed state without duplicating the tokenised action
+- If verification fails safely because the token can be resent, the system offers the appropriate resend path
+
+**Exception Flows**
+
+- If the token is missing, invalid, expired, revoked, used, or intended for another purpose, the system rejects the verification
+- If the token does not match the intended account or email context, the system rejects the verification
+- If verification cannot be completed, the token remains unused unless the intended action completed successfully
+
+</details>
 
 ### `AUTH-03` Log In
 
-R1.2
+**TUCBW** A Registered User submits credentials on the common login page
+
+**TUCEW** The Registered User receives an authenticated session and is directed to the appropriate area for their user type and context
+
+**Related Use Case Diagram:** [Authentication and Account Access](#authentication-and-account-access)
+
+> [!Note]
+> This Use Case (`AUTH-03`) is related to User Story **2.1** in [Authentication and Account Management](users-and-user-stories.md#2-authentication-and-account-management) and Functional Requirement **R1.2** in [Authentication and Account Access](functional-requirements.md#r1-authentication-and-account-access).
+
+<details> <summary><strong>View more details about AUTH-03</strong></summary>
+
+**Trigger:** The Registered User submits the login form
+
+**Primary Actor:** Registered User
+
+**Supporting Actor:** None
+
+**Preconditions**
+
+- The Registered User has an account on the platform
+- The account is eligible for password-based login
+- Any applicable organisation status and session policy allows access
+
+**Postconditions**
+
+- An authenticated session is created when login succeeds
+- The user is redirected to the appropriate area of the platform
+- Failed login attempts do not disclose whether the email address or password was incorrect
+
+**Main Success Scenario**
+
+1. The Registered User enters an email address and password
+2. The Registered User selects whether to request a remembered session where the option is available
+3. The system validates the credentials
+4. The system verifies the account status, email verification status and applicable organisation status
+5. The system applies platform and organisation session policy
+6. The system creates an authenticated session
+7. The system redirects the user to the appropriate platform area for their user type and context
+
+**Alternative Flows**
+
+- If a remembered session is requested but policy does not permit it, the system creates the permitted regular session instead or requires the user to retry according to the configured policy
+- If the user has more than one permitted context, the system directs them to the default or selected context
+
+**Exception Flows**
+
+- If the credentials are invalid, the system displays a generic login error
+- If the email address has not been verified, the system denies login and offers the appropriate verification recovery path
+- If the account is disabled, the system denies login
+- If the user's organisation status prohibits access, the system denies login with a safe access-denied state
+- If session creation fails, the user is not authenticated
+
+</details>
 
 ### `AUTH-04` Log Out
 
-R1.3
+**TUCBW** An Authenticated User chooses to log out of the current session
+
+**TUCEW** The current authenticated session is revoked and the user returns to a public page
+
+**Related Use Case Diagram:** [Authentication and Account Access](#authentication-and-account-access)
+
+> [!Note]
+> This Use Case (`AUTH-04`) is related to User Story **2.2** in [Authentication and Account Management](users-and-user-stories.md#2-authentication-and-account-management) and Functional Requirement **R1.3** in [Authentication and Account Access](functional-requirements.md#r1-authentication-and-account-access).
+
+<details> <summary><strong>View more details about AUTH-04</strong></summary>
+
+**Trigger:** The Authenticated User selects the logout action
+
+**Primary Actor:** Authenticated User
+
+**Supporting Actor:** None
+
+**Preconditions**
+
+- The user is authenticated
+- The current session can be identified
+
+**Postconditions**
+
+- The current authenticated session is revoked
+- The current refresh token can no longer be used to obtain new access credentials
+- The user is returned to a public page
+
+**Main Success Scenario**
+
+1. The Authenticated User selects logout
+2. The system identifies the current authenticated session
+3. The system revokes the current session and related refresh token access
+4. The system clears the client authentication state
+5. The system returns the user to a public page
+
+**Alternative Flows**
+
+- If the session was already revoked, the system still clears the client authentication state and returns the user to a public page
+- If the user logs out from one device, other active sessions remain unchanged
+
+**Exception Flows**
+
+- If the current session cannot be identified, the system clears local authentication state and treats the user as unauthenticated
+- If session revocation cannot be completed, the system does not claim that server-side logout succeeded
+
+</details>
 
 ### `AUTH-05` Recover Account Access
 
-Completing password recovery R1.4 and R1.6
+**TUCBW** An Account Holder requests password recovery and later submits a valid password reset token with a new password
+
+**TUCEW** The Account Holder's password is changed, existing active sessions are revoked, and a password change notification is sent
+
+**Related Use Case Diagram:** [Authentication and Account Access](#authentication-and-account-access)
+
+> [!Note]
+> This Use Case (`AUTH-05`) is related to User Story **2.3** in [Authentication and Account Management](users-and-user-stories.md#2-authentication-and-account-management) and Functional Requirements **R1.4** and **R1.6** in [Authentication and Account Access](functional-requirements.md#r1-authentication-and-account-access).
+
+<details> <summary><strong>View more details about AUTH-05</strong></summary>
+
+**Trigger:** The Account Holder requests password recovery or submits a password reset form with a token
+
+**Primary Actor:** Account Holder
+
+**Supporting Actor:** External Email Delivery Provider
+
+**Preconditions**
+
+- The Account Holder can access the password recovery page
+- The account is eligible for password recovery where an account exists
+- A valid reset token is required before a new password can be accepted
+
+**Postconditions**
+
+- The account password is updated only after a valid reset token and valid new password are accepted
+- Existing active sessions for the account are revoked after a successful password reset
+- A password change notification email is sent to the account email address
+
+**Main Success Scenario**
+
+1. The Account Holder submits the email address for password recovery
+2. The system returns a safe response without revealing whether the account exists
+3. Where an eligible account exists, the system creates a password reset token
+4. The system sends a password reset link to the account email address
+5. The Account Holder opens the reset link and enters a new password and password confirmation
+6. The system validates the token value, purpose, expiry, status and account context
+7. The system validates the new password and confirmation
+8. The system updates the account password
+9. The system marks the reset token as used
+10. The system revokes the account's existing active sessions
+11. The system sends a password change notification email
+12. The system confirms that the password has been changed
+
+**Alternative Flows**
+
+- If no eligible account exists for the submitted email address, the system still returns the same safe recovery-request response
+- If the notification email fails after the password is changed, the password reset remains complete and the delivery attempt is recorded
+- If the tokenised reset fails safely and a resend is permitted, the system offers the appropriate recovery path
+
+**Exception Flows**
+
+- If the reset token is missing, invalid, expired, revoked, used, or intended for another purpose, the system rejects the password reset
+- If the token does not match the intended account context, the system rejects the password reset
+- If the new password is invalid or does not match its confirmation, the system rejects the password reset without using the token
+- If the password update fails, the token is not marked as used and existing sessions are not revoked as if the reset succeeded
+
+</details>
 
 ### `AUTH-06` Resend an Account Access Email
 
-Resend features around verification, recovery, setup or invitation email resend R1.5 and R1.6
+**TUCBW** An eligible user or administrator requests a new verification, recovery, setup, or invitation email
+
+**TUCEW** The eligible account access email is resent or safely acknowledged while obsolete tokens are invalidated or superseded where required
+
+**Related Use Case Diagram:** [Authentication and Account Access](#authentication-and-account-access)
+
+> [!Note]
+> This Use Case (`AUTH-06`) is related to User Stories **2.3**, **3.1**, **6.3** and **7.3** in [Users and User Stories](users-and-user-stories.md) and Functional Requirements **R1.5** and **R1.6** in [Authentication and Account Access](functional-requirements.md#r1-authentication-and-account-access).
+
+<details> <summary><strong>View more details about AUTH-06</strong></summary>
+
+**Trigger:** The actor requests that an eligible account access email be sent again
+
+**Primary Actor:** Account Holder, Organisation Administrator, or Platform Administrator
+
+**Supporting Actor:** External Email Delivery Provider
+
+**Preconditions**
+
+- The actor is eligible to request the specific resend action
+- The relevant account, invitation, setup, or registration context is eligible for a new email
+- Any applicable resend cooldown has elapsed
+
+**Postconditions**
+
+- A new token or delivery attempt is created where the resend is eligible
+- Obsolete tokens are invalidated or superseded where required
+- The system returns an account-enumeration safe response where the existence of an account must remain private
+
+**Main Success Scenario**
+
+1. The actor requests a new verification, recovery, setup, or invitation email
+2. The system verifies that the actor may request the selected resend action
+3. The system validates the relevant account, invitation, setup, request, or organisation context
+4. The system verifies that the resend cooldown has elapsed
+5. The system invalidates or supersedes obsolete tokens where required
+6. The system creates the new token or delivery attempt
+7. The system sends the account access email
+8. The system returns the appropriate safe confirmation
+
+**Alternative Flows**
+
+- If the submitted email address must remain private and no eligible account exists, the system returns the same safe response without sending an email
+- If the existing token remains valid and the product policy allows reuse, the system may resend the existing link instead of creating a new token
+- If email delivery fails after an eligible resend is recorded, the system records the delivery failure and returns the safe response defined for that resend flow
+
+**Exception Flows**
+
+- If the resend cooldown has not elapsed, the system rejects or delays the resend request according to policy
+- If the actor is not authorised for the selected resend context, the system denies the request
+- If the related invitation, setup, request, account, or organisation context is no longer eligible, the system rejects the resend without issuing a new active token
+- If token creation or superseding fails, the system does not send an email that depends on the failed token state
+
+</details>
 
 ## 4.3 Core and Planned Product Use Cases
 
