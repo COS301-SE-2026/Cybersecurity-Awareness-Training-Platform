@@ -2,7 +2,7 @@ import AppLayout from '../components/layout/AppLayout';
 import { Dropdown, DropdownItem, Popover } from 'flowbite-react';
 import { useState } from 'react';
 import BasicConfirmationModal from '../components/layout/modals/BasicConfirmationModal';
-import InviteTraineeModal from '../components/layout/modals/InviteTraineeModal';
+import InviteOrganisationAdministratorModal from '../components/organisation-administrator-page/InviteOrganisationAdministratorModal';
 
 interface OrganisationAdministrator {
   id: number;
@@ -146,14 +146,15 @@ function OrganisationAdministratorsPage() {
     },
   );
 
-  const [showInviteTraineeModal, setShowInviteTraineeModal] = useState(false);
+  const [showOrganisationAdministratorModal, setShowOrganisationAdministratorModal] =
+    useState(false);
 
-  const openInviteTraineeModal = () => {
-    setShowInviteTraineeModal(true);
+  const openOrganisationAdministratorModal = () => {
+    setShowOrganisationAdministratorModal(true);
   };
 
-  const closeInviteTraineeModal = () => {
-    setShowInviteTraineeModal(false);
+  const closeOrganisationAdministratorModal = () => {
+    setShowOrganisationAdministratorModal(false);
   };
 
   const openConfirmationModal = () => {
@@ -328,7 +329,7 @@ function OrganisationAdministratorsPage() {
                 {/* Add (Invite) Organisation Administrator Button */}
                 <button
                   type="button"
-                  onClick={openInviteTraineeModal}
+                  onClick={openOrganisationAdministratorModal}
                   className="cursor-pointer px-4 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm py-[0.425rem] focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   <span className="material-symbols-sharp">add_2</span>
@@ -532,11 +533,11 @@ function OrganisationAdministratorsPage() {
       )}
 
       {/* REVIEW ORGANISATION REGISTRATION REQUEST MODAL  */}
-      {showInviteTraineeModal && (
-        <InviteTraineeModal
-          isOpen={showInviteTraineeModal}
-          onClose={() => closeInviteTraineeModal()}
-        ></InviteTraineeModal>
+      {showOrganisationAdministratorModal && (
+        <InviteOrganisationAdministratorModal
+          isOpen={showOrganisationAdministratorModal}
+          onClose={() => closeOrganisationAdministratorModal()}
+        ></InviteOrganisationAdministratorModal>
       )}
     </AppLayout>
   );
