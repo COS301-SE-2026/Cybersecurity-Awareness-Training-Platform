@@ -35,11 +35,12 @@ services:
       AUTH_RATE_LIMIT_MAX_REQUESTS: ${AUTH_RATE_LIMIT_MAX_REQUESTS:-5}
       TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:-0}
       FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:?Set FRONTEND_ORIGIN in deploy/.env}
-      SMTP_HOST: ${SMTP_HOST:-mailpit}
-      SMTP_PORT: ${SMTP_PORT:-1025}
-      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_HOST: ${SMTP_HOST:?Set SMTP_HOST in deploy/.env}
+      SMTP_PORT: ${SMTP_PORT:?Set SMTP_PORT in deploy/.env}
+      SMTP_SECURE: ${SMTP_SECURE:?Set SMTP_SECURE in deploy/.env}
       SMTP_FROM_ADDRESS: ${SMTP_FROM_ADDRESS:?Set SMTP_FROM_ADDRESS in deploy/.env}
-      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Insightful Phish}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:?Set SMTP_FROM_NAME in deploy/.env}
+      SUPPORT_EMAIL_ADDRESS: ${SUPPORT_EMAIL_ADDRESS:? Set SUPPORT_EMAIL_ADDRESS in deploy/.env}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
     ports:
@@ -86,18 +87,6 @@ services:
       timeout: 5s
       retries: 12
       start_period: 30s
-    logging:
-      options:
-        max-size: '10m'
-        max-file: '5'
-
-  mailpit:
-    image: axllent/mailpit:v1.30.0
-    restart: unless-stopped
-    expose:
-      - 1025
-    ports:
-      - '127.0.0.1:${MAILPIT_WEB_PORT:-8025}:8025'
     logging:
       options:
         max-size: '10m'

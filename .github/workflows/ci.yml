@@ -452,8 +452,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Validate proudction deployment script
-        run: bash -n delpoy/depoly-production.sh
+      - name: Validate production deployment script
+        run: bash -n delpoy/deploy-production.sh
 
       - name: Validate local Docker Compose config
         run: docker compose --profile tools config --quiet
@@ -553,7 +553,7 @@ jobs:
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,scope=frontend,mode=max
 
-  deploy-development:
+  deploy-production:
     name: Deploy Production
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.PRODUCTION_DEPLOY_ENABLED == 'true'
     needs:
@@ -588,10 +588,10 @@ jobs:
           ssh \
             -o BatchMode=yes \
             -o IdentitiesOnly=yes \
-            -o ScrictHotkeyChecking=yes \
-            -i "$Home/.ssh/id_ed25519" \
-            "$DEPLOY_USER@DEPLOY_HOST" \
-            "sudo /usr/local/bin/deploy-insightfulphish-production '${{github.sha}}"
+            -o StrictHotkeyChecking=yes \
+            -i "$HOME/.ssh/id_ed25519" \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            "sudo /usr/local/bin/deploy-insightfulphish-production '${{github.sha}}'"
       - name: Remove SSH credentials
         if: always()
         run: |
