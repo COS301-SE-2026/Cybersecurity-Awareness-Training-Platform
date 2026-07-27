@@ -367,7 +367,7 @@ describe('VerifyEmailPage', () => {
       },
     );
 
-    expect(screen.getByText('Verifying email address...')).toBeInTheDocument();
+    expect(screen.getByText('status')).toHaveTextContent('Checking your email verification link.');
 
     await waitFor(() => {
       expect(verifyEmail).toHaveBeenCalledTimes(1);
@@ -457,11 +457,19 @@ describe('VerifyEmailPage', () => {
 
     renderVerifyEmailPage();
 
-    expect(screen.getByText('Verifying email address...')).toBeInTheDocument();
+    const pendingStatus = screen.getByRole('status');
+
+    expect(pendingStatus).toHaveAttribute('aria-live', 'polite');
+    expect(pendingStatus).toHaveTextContent('Checking your email verification link.');
+    expect(pendingStatus.querySelector('svg[aria-hidden="true"]')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
 
     verificationRequest.resolve({ state: 'VALID' });
 
     expect(await screen.findByText('Email verified. You can now log in.')).toBeInTheDocument();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(screen.queryByText('Checking your email verification link.')).not.toBeInTheDocument();
+    expect(document.querySelector('svg[aria-hidden="true]')).not.toBeInTheDocument();
   });
 
   it('shows a token error for revoked verification links', async () => {

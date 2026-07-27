@@ -6,7 +6,7 @@ import { useTokenVerificationFlow } from '../hooks/useTokenVerificationFlow';
 import type { TokenVerificationMessages } from '../hooks/useTokenVerificationFlow';
 
 const messages = {
-  pending: 'Verifying email address...',
+  pending: 'Checking your email verification link.',
   success: 'Email verified. You can now log in.',
   used: 'This email verification link has already been used. You can log in.',
   missingToken:
@@ -41,7 +41,6 @@ function VerifyEmailPage() {
   return (
     <TokenVerificationPanel
       title="Verify Email"
-      introMessage="Checking your email verification link."
       status={verification.status}
       message={verification.message}
       showLoginLink={verification.status === 'success'}

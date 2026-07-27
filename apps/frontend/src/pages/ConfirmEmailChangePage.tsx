@@ -19,7 +19,7 @@ function getEmailChangeVerificationErrorMessage(error: unknown): string | null {
 }
 
 const messages = {
-  pending: 'Confirming email change...',
+  pending: 'Checking your email change confirmation link.',
   success: 'Email change confirmed. Please sign in again using your new email address.',
   used: 'This email change link has already been used.',
   missingToken: 'This email change link is missing a token. Please request a new link.',
@@ -55,7 +55,6 @@ function ConfirmEmailChangePage() {
   return (
     <TokenVerificationPanel
       title="Confirm Email Change"
-      introMessage="Checking your email change confirmation link."
       status={verification.status}
       message={verification.message}
       showLoginLink={verification.status === 'success'}
