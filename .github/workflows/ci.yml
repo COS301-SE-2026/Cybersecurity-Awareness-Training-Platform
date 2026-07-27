@@ -453,7 +453,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Validate production deployment script
-        run: bash -n delpoy/deploy-production.sh
+        run: bash -n deploy/deploy-production.sh
 
       - name: Validate local Docker Compose config
         run: docker compose --profile tools config --quiet
@@ -577,8 +577,8 @@ jobs:
           install -m 700 -d "$HOME/.ssh"
           printf '%s\n' "$DEPLOY_SSH_PRIVATE_KEY" > "$HOME/.ssh/id_ed25519"
           chmod 600 "$HOME/.ssh/id_ed25519"
-          printf '%s/n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
-          chmod 600 $HOME/.ssh/known_hosts
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
 
       - name: Deploy production release
         env:
@@ -588,10 +588,10 @@ jobs:
           ssh \
             -o BatchMode=yes \
             -o IdentitiesOnly=yes \
-            -o StrictHotkeyChecking=yes \
+            -o StrictHostKeyChecking=yes \
             -i "$HOME/.ssh/id_ed25519" \
             "$DEPLOY_USER@$DEPLOY_HOST" \
-            "sudo /usr/local/bin/deploy-insightfulphish-production '${{github.sha}}'"
+            "sudo /usr/local/bin/deploy-insightfulphish-production '${{ github.sha }}'"
       - name: Remove SSH credentials
         if: always()
         run: |

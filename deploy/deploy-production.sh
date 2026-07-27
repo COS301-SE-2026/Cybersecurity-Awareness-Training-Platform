@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
+umask 077
 
-APP_DIR='/var/www/insightfulphish/app'
-COMPOSE_FILE='$APP_DIR/docker-compose.deploy.yml'
-RUNTIME_ENV='$APP_DIR/deploy/.env'
-RELEASE_ENV='$APP_DIR/deploy/release.env'
-CANDIDATE_ENV='$APP_DIR/deploy/release.next.env'
-RELEASES_DIR='$APP_DIR/deploy/releases'
-CURRENT_FILE='$RELEASES_DIR/current'
-PREVIOUS_FILE='$RELEASES_DIR/previous'
-HISTORY_FILE='$RELEASES_DIR/deployment-history.log'
+APP_DIR="/var/www/insightfulphish/app"
+COMPOSE_FILE="$APP_DIR/docker-compose.deploy.yml"
+RUNTIME_ENV="$APP_DIR/deploy/.env"
+RELEASE_ENV="$APP_DIR/deploy/release.env"
+CANDIDATE_ENV="$APP_DIR/deploy/release.next.env"
+RELEASES_DIR="$APP_DIR/deploy/releases"
+CURRENT_FILE="$RELEASES_DIR/current"
+PREVIOUS_FILE="$RELEASES_DIR/previous"
+HISTORY_FILE="$RELEASES_DIR/deployment-history.log"
 
 IMAGE_PREFIX='ghcr.io/cos301-se-2026/cybersecurity-awareness-training-platform'
 LOCK_FILE='/run/lock/insightfulphish-production.lock'
@@ -31,11 +32,11 @@ finish() {
 	if ((status != 0)); then
 		echo "Deployment failed during phase: $phase" >&2
 		if [[ -f "$CURRENT_FILE" ]]; then
-			echo "Current successfully SHA: $(cat "$CURRENT_FILE")" >&2
+			echo "Current successful SHA: $(cat "$CURRENT_FILE")" >&2
 		else
-			echo "No current successfully SHA has been recorded" >&2
+			echo "No current successful SHA has been recorded" >&2
 		fi
-		if [[ "$phase"=="migration" || "$phase"=="application-recreation" || "$phase"=="health-checks" || "$phase"=="smoke-tests" ]]; then
+		if [[ "$phase" == "migration" || "$phase" == "application-recreation" || "$phase" == "health-checks" || "$phase" == "smoke-tests" ]]; then
 			echo "The migration may have changed the database. Do not roll back automatically without confirming DB compatibility." >&2
 		fi
 	fi
@@ -78,6 +79,8 @@ if [[ ! -f "$RUNTIME_ENV" ]]; then
 	exit 1
 fi
 
+install -d -o root -g root -m 700 "$RELEASES_DIR"
+
 phase="candidate-release-file"
 temporary_file="$(mktemp "$APP_DIR/deploy/.release.next.env.XXXXXX")"
 chmod 600 "$temporary_file"
@@ -85,7 +88,7 @@ chown root:root "$temporary_file"
 
 printf '%s\n' "BACKEND_IMAGE=$backend_image" "FRONTEND_IMAGE=$frontend_image" "DEPLOYED_SHA=$release_sha" > "$temporary_file"
 
-mv -f "$temporary_file" "CANDIDATE_ENV"
+mv -f "$temporary_file" "$CANDIDATE_ENV"
 temporary_file=""
 chmod 600 "$CANDIDATE_ENV"
 chown root:root "$CANDIDATE_ENV"
@@ -152,7 +155,7 @@ wait_for_http(){
 	local attempt
 
 	for((attempt=1; attempt<=HEALTH_ATTEMPTS; attempt+=1)); do 
-		if curl --fail --silent --show-error "$url" >dev/null; then
+		if curl --fail --silent --show-error "$url" >/dev/null; then
 			echo "$service_name passed HTTP smoke test"
 			return 0
 		fi 
@@ -173,18 +176,18 @@ phase="release-state-validation"
 current_sha=""
 previous_sha=""
 
-if [[ -f '$CURRENT_FILE' ]]; then
+if [[ -f "$CURRENT_FILE" ]]; then
 	current_sha="$(<"$CURRENT_FILE")"
-	if [[ -n "$current_sha" && ! "$current_sha" =~ ^[0-9a-f]{40}$]]; then
+	if [[ -n "$current_sha" && ! "$current_sha" =~ ^[0-9a-f]{40}$ ]]; then
 		echo "Existing (current) release marker is NOT valid" >&2
 		exit 1
 	fi
 fi 
 if [[ -n "$current_sha" && "$current_sha" != "$release_sha" ]]; then
 	previous_sha="$current_sha"
-elif [[ -f "PREVIOUS_FILE" ]]; then
+elif [[ -f "$PREVIOUS_FILE" ]]; then
 	previous_sha="$(<"$PREVIOUS_FILE")"
-	if [[ -n "$previous_sha" && ! "$previous_sha" =~ ^[0-9a-f]{40}$]]; then
+	if [[ -n "$previous_sha" && ! "$previous_sha" =~ ^[0-9a-f]{40}$ ]]; then
 		echo "Existing (previous) release marker is NOT valid" >&2
 		exit 1
 	fi
@@ -194,7 +197,7 @@ phase="release-promotion"
 
 mv -f "$CANDIDATE_ENV" "$RELEASE_ENV"
 chmod 600 "$RELEASE_ENV"
-chown root:root: "$RELEASE_ENV"
+chown root:root "$RELEASE_ENV"
 
 temporary_file="$(mktemp "$RELEASES_DIR/.previous.XXXXXX")"
 printf '%s\n' "$previous_sha" > "$temporary_file"
@@ -207,11 +210,11 @@ temporary_file="$(mktemp "$RELEASES_DIR/.current.XXXXXX")"
 printf '%s\n' "$release_sha" > "$temporary_file"
 chmod 600 "$temporary_file"
 chown root:root "$temporary_file"
-mv -f "$temporary_file" "$PREVIOUS_FILE"
+mv -f "$temporary_file" "$CURRENT_FILE"
 temporary_file=""
 
 deployment_timestamp="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
-printf '%s %s success previous=%s\n' "$deployment_timestamp" "$release_sha" "{$previous_sha:-none}" >> "$HISTORY_FILE"
+printf '%s %s success previous=%s\n' "$deployment_timestamp" "$release_sha" "${previous_sha:-none}" >> "$HISTORY_FILE"
 
 chmod 600 "$CURRENT_FILE" "$PREVIOUS_FILE" "$HISTORY_FILE"
 chown root:root "$CURRENT_FILE" "$PREVIOUS_FILE" "$HISTORY_FILE"
@@ -220,4 +223,4 @@ phase="complete"
 
 echo "Deployment completed successfully"
 echo "Deployed SHA: $release_sha"
-echo "Previous SHA: {$previous_sha:-none}"
+echo "Previous SHA: ${previous_sha:-none}"
