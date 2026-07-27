@@ -169,10 +169,10 @@ function OrganisationAdministratorsPage() {
     openConfirmationModal();
   };
 
-  const showDisableTraineeModal = () => {
+  const showDisableOrganisationAdministratorModal = () => {
     setConfirmationButtonText('Disable');
-    setConfirmationTitle('Disable Organisation Trainee');
-    setConfirmationMessage('Are you sure you want to disable this organisation trainee?');
+    setConfirmationTitle('Disable Organisation Administrator');
+    setConfirmationMessage('Are you sure you want to disable this organisation administrator?');
     setConfirmationVariant('danger');
     openConfirmationModal();
   };
@@ -185,24 +185,14 @@ function OrganisationAdministratorsPage() {
     openConfirmationModal();
   };
 
-  const showPromoteToOrgAdmin = () => {
-    setConfirmationButtonText('Promote');
-    setConfirmationTitle('Promote Trainee to Organisation Administrator');
-    setConfirmationMessage(
-      'Are you sure you want to promote this trainee to organisation administrator?',
-    );
-    setConfirmationVariant('default');
-    openConfirmationModal();
-  };
-
   const confirmBasicConfirmation = () => {
     closeOrganisationTraineePageConfirmationModal();
   };
 
-  const showEnableTraineeModal = () => {
+  const showEnableOrganisationAdministratorModal = () => {
     setConfirmationButtonText('Enable');
-    setConfirmationTitle('Enable Organisation Trainee');
-    setConfirmationMessage('Are you sure you want to enable this organisation trainee?');
+    setConfirmationTitle('Enable Organisation Administrator');
+    setConfirmationMessage('Are you sure you want to enable this organisation administrator?');
     setConfirmationVariant('success');
     openConfirmationModal();
   };
@@ -428,8 +418,6 @@ function OrganisationAdministratorsPage() {
                         }}
                       >
                         <button
-                          //className="border-2 border-purple px-2 py-1 inline-flex items-center gap-2 cursor-pointer"
-
                           className={`px-2 py-1 border-2 inline-flex items-center gap-2 cursor-pointer ${
                             openPermissionPopover === organisationAdministrator.id
                               ? 'border-purple'
@@ -443,8 +431,8 @@ function OrganisationAdministratorsPage() {
                           >
                             key
                           </span>
-                          <span className="font-medium font-jost text-[1.1rem] text-dark-pink">
-                            View Permissions
+                          <span className="hover:underline font-medium text-dark-pink">
+                            <strong>View Permissions</strong>
                           </span>
                         </button>
                       </Popover>
@@ -452,7 +440,65 @@ function OrganisationAdministratorsPage() {
 
                     {/* Actions */}
                     <td className="px-6 py-4">
-                      <div className="grid grid-cols-1 gap-1 justify-items-start"></div>
+                      <div className="grid grid-cols-1 gap-1 justify-items-start">
+                        {organisationAdministrator.status === 'Invited' && (
+                          <button
+                            className="cursor-pointer font-medium text-purple hover:underline"
+                            type="button"
+                            onClick={showResendInviteModal}
+                          >
+                            <strong>Re–Send Invitation</strong>
+                          </button>
+                        )}
+
+                        {organisationAdministrator.status === 'Invited' && (
+                          <button
+                            className="cursor-pointer font-medium text-red-600 hover:underline"
+                            type="button"
+                            onClick={showRevokeInviteModal}
+                          >
+                            <strong>Revoke Invitation</strong>
+                          </button>
+                        )}
+
+                        {organisationAdministrator.status === 'Active' && (
+                          <button
+                            className="cursor-pointer font-medium text-purple hover:underline"
+                            type="button"
+                          >
+                            <strong>Edit Permissions</strong>
+                          </button>
+                        )}
+
+                        {organisationAdministrator.status === 'Active' && (
+                          <button
+                            className="cursor-pointer font-medium text-red-600 hover:underline"
+                            type="button"
+                            onClick={showDisableOrganisationAdministratorModal}
+                          >
+                            <strong>Disable</strong>
+                          </button>
+                        )}
+
+                        {organisationAdministrator.status === 'Disabled' && (
+                          <button
+                            className="cursor-pointer font-medium text-purple hover:underline"
+                            type="button"
+                          >
+                            <strong>Edit Permissions</strong>
+                          </button>
+                        )}
+
+                        {organisationAdministrator.status === 'Disabled' && (
+                          <button
+                            className="cursor-pointer font-medium text-emerald-600 hover:underline"
+                            type="button"
+                            onClick={showEnableOrganisationAdministratorModal}
+                          >
+                            <strong>Enable</strong>
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
