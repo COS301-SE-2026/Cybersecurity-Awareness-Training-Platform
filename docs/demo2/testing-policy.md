@@ -1,6 +1,6 @@
 # Testing Policy
 
-This document describes how Insightful Phish tests Demo 2 work. It combines the repository’s current Vitest, Playwright, Docker, coverage, Lighthouse, and CI setup with the testing principles covered in the course material.
+This document describes how Insightful Phish tests Demo 2 work. It combines the repository's current Vitest, Playwright, Docker, coverage, Lighthouse, and CI setup with the testing principles covered in the course material.
 
 ## Contents
 
@@ -275,7 +275,7 @@ PR testing notes should include:
 
 When a defect is fixed, the relevant test set should be rerun and a regression test should be added where practical. Flaky tests should be corrected or isolated with a clear reason, not ignored as a normal practice.
 
-Regression testing is obviously the re-execution of a relevant subset of existing tests after a change to confirm that the same behaviour still holds. The subset should be chosen based on the changed code and what it effects.
+Regression testing is the re-execution of a relevant subset of existing tests after a change to confirm that expected behaviour still holds. The subset should be chosen based on the changed code and what it affects.
 
 Useful regression selection includes:
 
@@ -284,9 +284,9 @@ Useful regression selection includes:
 - A representative sample of broader unit or integration tests when the changed code is shared.
 - E2E or manual smoke checks when the change affects a reviewer-visible path.
 
-Defect fixes should prefer a test that would have failed before the fix. If the issue was caused by time, ordering, stale state, concurrent updates, token lifecycle, etc... the regression test should make that specific behaviour visible.
+Defect fixes should prefer a test that would have failed before the fix. If the issue was caused by time, ordering, stale state, concurrent updates, token lifecycle, organisation scope, unsafe metadata, or validation, the regression test should make that specific behaviour visible.
 
-Flaky tests should **not** be quietly accepted.
+Flaky tests should not be quietly accepted. If a test is unreliable because it depends on time, network timing, data ordering, or external services, stabilise the test data or isolate the boundary. If a test must be skipped temporarily, the reason and follow-up owner should be clear in the PR.
 
 ## References
 
