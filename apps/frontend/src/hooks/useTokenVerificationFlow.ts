@@ -32,7 +32,7 @@ function getOrCreateVerificationRequest<TResponse extends TokenVerificationRespo
   }
 
   const existingRequest = flowRequests.get(token) as Promise<TResponse> | undefined;
-  if (existingRequest) return existingRequest;
+  if (existingRequest !== undefined) return existingRequest;
 
   const request = verifyToken(token);
   flowRequests.set(token, request);
