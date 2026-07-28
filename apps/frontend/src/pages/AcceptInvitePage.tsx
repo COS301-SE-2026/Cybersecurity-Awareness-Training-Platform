@@ -323,9 +323,9 @@ function AcceptInvitePage() {
       <InvitationRoleChangePanel
         invitationType={context.invitationType}
         organisationName={context.organisationName}
-        roleGranted={context.roleGranted}
+        grantedRole={context.roleGranted}
         permissions={context.permissions}
-        currentEmail={user?.email}
+        currentAccountEmail={user?.email}
         rejectAllowed={context.rejectAllowed}
         isSubmitting={isSubmitting}
         onAccept={handleAccept}

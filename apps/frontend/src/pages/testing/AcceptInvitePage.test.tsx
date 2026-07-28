@@ -142,7 +142,7 @@ describe('AcceptInvitePage', () => {
       requiredAction: 'CONFIRM_ROLE_CHANGE',
       rejectAllowed: true,
       status: 'PENDING',
-      invitationType: 'PLATFORM_ADMIN_UPGRADE',
+      invitationType: 'PLATFORM_ADMIN',
       roleGranted: 'PLATFORM_ADMIN',
     });
 
