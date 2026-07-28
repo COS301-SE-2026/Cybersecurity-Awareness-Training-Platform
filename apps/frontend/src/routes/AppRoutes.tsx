@@ -67,7 +67,8 @@ function AppRoutes() {
       <Route path="/account-management" element={<AccountManagementPage />}></Route>
 
       {/* ACCEPT INVITE ROUTE */}
-      <Route path="/accept-invite" element={<AcceptInvitePage />}></Route>
+      <Route path="/accept-invite" element={<AcceptInvitePage />} />
+      <Route path="/accept-invite/:token" element={<AcceptInvitePage />} />
 
       <Route path="/" element={<LandingPage />} />
       <Route path="/organisation-information" element={<OrganisationInformationPage />} />

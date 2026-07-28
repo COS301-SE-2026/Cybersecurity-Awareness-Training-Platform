@@ -46,7 +46,7 @@ function actionUrl(path: string, rawToken: string) {
   return url.toString();
 }
 function setupUrl(rawToken: string) {
-  return new URL(`/setup/token/${rawToken}`, env.FRONTEND_ORIGIN).toString();
+  return actionUrl('/accept-invite', rawToken);
 }
 
 function greeting(firstName?: string) {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   AuthActionLink,
   AuthFormField,
@@ -24,6 +24,12 @@ function formatAlertMessage(message: string) {
 }
 
 function normalizeRedirectPath(redirectTo?: string | null) {
+  if (
+    redirectTo &&
+    (redirectTo.startsWith('/accept-invite') || redirectTo.startsWith('/setup/token/'))
+  ) {
+    return redirectTo;
+  }
   if (redirectTo === '/trainee/campaigns' || redirectTo === ROUTES.CAMPAIGNS) {
     return ROUTES.CAMPAIGNS;
   }
@@ -99,6 +105,8 @@ function getLoginErrorMessage(error: unknown) {
 
 function LoginPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const queryRedirect = searchParams.get('redirectTo');
 
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
 
@@ -119,9 +127,9 @@ function LoginPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate(normalizeRedirectPath(), { replace: true });
+      navigate(normalizeRedirectPath(queryRedirect), { replace: true });
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, queryRedirect]);
 
   async function handleLogin(event: FormEvent) {
     event.preventDefault();
@@ -152,7 +160,8 @@ function LoginPage() {
 
       setResendVerificationEmail(null);
       login(authResponse);
-      navigate(normalizeRedirectPath(authResponse.redirectTo));
+      const targetRedirect = queryRedirect || authResponse.redirectTo;
+      navigate(normalizeRedirectPath(targetRedirect));
     } catch (error) {
       setAlertMessage(getLoginErrorMessage(error));
 
