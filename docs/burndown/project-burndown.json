@@ -1328,8 +1328,8 @@
           "number": 274,
           "title": "feat: build frontend organisation admin management",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-07-28"
         },
         {
           "number": 271,
@@ -1888,7 +1888,7 @@
     },
     {
       "date": "2026-07-28",
-      "remaining": 73,
+      "remaining": 71,
       "ideal": 5.52
     }
   ]
