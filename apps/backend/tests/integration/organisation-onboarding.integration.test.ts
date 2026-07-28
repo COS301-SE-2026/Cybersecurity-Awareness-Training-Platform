@@ -24,7 +24,7 @@ vi.mock('nodemailer', () => ({ default: nodemailerMock }));
 function extractSetupTokenFromEmail(): string {
   const lastCall = sendMailMock.mock.calls[sendMailMock.mock.calls.length - 1]?.[0];
   const body = `${lastCall?.text ?? ''}\n${lastCall?.html ?? ''}`;
-  const match = body.match(/\/setup\/token\/([A-Za-z0-9_-]+)/);
+  const match = body.match(/(?:\/setup\/token\/|\/accept-invite\?token=)([A-Za-z0-9_-]+)/);
 
   if (!match?.[1]) {
     throw new Error(`Unable to extract setup token from email body: ${body}`);

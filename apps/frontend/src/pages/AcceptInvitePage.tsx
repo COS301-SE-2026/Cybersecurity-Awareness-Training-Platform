@@ -13,16 +13,19 @@ import {
 
 type InvitationErrorType = 'Expired' | 'Invalid' | 'Revoked' | 'Already Used' | 'RateLimited';
 
+const API_ERROR_CODE_MAP: Record<string, InvitationErrorType> = {
+  AUTH_RATE_LIMITED: 'RateLimited',
+  INVITATION_EXPIRED: 'Expired',
+  INVITATION_REVOKED: 'Revoked',
+  TOKEN_USED: 'Already Used',
+};
+
 function mapErrorToType(error: unknown): InvitationErrorType {
   if (error instanceof ApiError) {
     if (error.status === 429) return 'RateLimited';
-    const body = error.body;
-    if (body && typeof body === 'object' && 'error' in body) {
-      const code = (body as { error?: unknown }).error;
-      if (code === 'AUTH_RATE_LIMITED') return 'RateLimited';
-      if (code === 'INVITATION_EXPIRED') return 'Expired';
-      if (code === 'INVITATION_REVOKED') return 'Revoked';
-      if (code === 'TOKEN_USED') return 'Already Used';
+    const code = (error.body as { error?: string })?.error;
+    if (code && code in API_ERROR_CODE_MAP) {
+      return API_ERROR_CODE_MAP[code];
     }
   }
   return 'Invalid';
