@@ -185,21 +185,108 @@ Manual acceptance should not be used as an excuse to skip reasonable automated t
 
 Non-functional checks look at quality properties such as accessibility, security, reliability, maintainability, portability, and selected performance concerns. These checks should be reported separately from functional test results because they do not answer the same question as a unit, integration, or E2E test.
 
+Functional tests check what the system does. Non-functional checks ask whether the system is safe, usable, reliable, maintainable, and portable to run. For Demo 2, these checks should be tied to the repo evidence and the SRS quality requirements.
+
+| Quality area                | Demo 2 policy                                                                                                                                                                                                                                                                                |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Accessibility and usability | Frontend work should support keyboard access, labels, useful errors, visible focus, clear navigation, and responsive layouts. Playwright accessibility tests and Lighthouse checks are useful evidence where configured.                                                                     |
+| Security                    | Security checks should cover authentication, authorisation, rate limiting, session handling, data integrity, safe audit metadata, safe logging, and the absence of leaked secrets or tokens.                                                                                                 |
+| Reliability                 | Tests should cover failure handling, stale or repeated actions, recovery paths, and transaction behaviour where the workflow depends on several writes succeeding together.                                                                                                                  |
+| Maintainability             | Linting, formatting, type checking, small tests, clear fixtures, and focused documentation help reviewers understand change impact. These are quality checks, not substitutes for behaviour tests.                                                                                           |
+| Portability                 | Docker-backed setup, pnpm lockfile use, workspace scripts, and documented environment variables support repeatable local and CI runs.                                                                                                                                                        |
+| Performance                 | The repository has no dedicated load, stress, spike, endurance, concurrency, or soak-test tooling configured. Do not claim those checks were run unless a feature explicitly adds and documents them.                                                                                        |
+| Risk assessment             | Reviewers should consider security-sensitive code, configuration changes, CI evidence, and secret handling. CodeQL, SonarQube or SonarCloud, and GitHub Advanced Security findings may contribute to review when they are available on the platform, but they are separate from local tests. |
+
+Lighthouse is configured for the frontend through [`apps/frontend/lighthouserc.json`](../../apps/frontend/lighthouserc.json). It checks the login and registration routes for accessibility, best practices, and SEO, with performance disabled in that configuration. The workflow is currently non-blocking, so Lighthouse evidence should be reported honestly as a quality signal unless the workflow is changed to enforce it.
+
+The older [Demo 2 testing plan](testing.md) is still useful for manual demo thinking, especially around happy paths, negative paths, seeded data, and pass/fail notes. This policy does not copy that plan wholesale; it keeps the reusable testing rules and leaves feature-specific manual checklists in the older document until those are replaced by more current Demo 2 acceptance notes.
+
 ## Test Environments and Data
 
 Tests must use safe, deterministic data and must not depend on production secrets or production records. Backend integration tests should use the dedicated test database path described in the backend testing notes, while unit tests should keep data local to the behaviour under test.
+
+Expected environments:
+
+| Environment                       | Purpose                                                          | Data rules                                                                                                                                                                  |
+| --------------------------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Local unit test run               | Fast package-level checks during development.                    | Use local fixtures, mocks, and safe generated values. Do not depend on running services unless the test type says so.                                                       |
+| Backend integration test database | Database-backed backend checks.                                  | Use `insightful_phish_test` or another database whose name clearly contains `test`. Create records through setup or factories. Do not use Demo 1 seed data as a dependency. |
+| Frontend E2E preview server       | Browser smoke and E2E checks.                                    | Playwright builds the frontend and runs against the Vite preview server at `http://127.0.0.1:4173`.                                                                         |
+| CI test environment               | Repeatable verification on pull requests and protected branches. | CI installs with the lockfile, generates Prisma client where needed, runs migrations against the test database, and uploads coverage or test reports where configured.      |
+| Manual local environment          | Human acceptance and demo readiness checks.                      | Record the branch or build, roles used, local services such as MailPit, and the exact flow checked.                                                                         |
+
+The backend integration setup is deliberately defensive. It sets `NODE_ENV` to `test`, copies `TEST_DATABASE_URL` into `DATABASE_URL` when present, refuses cleanup unless the database name contains `test`, rejects known development or system databases, rejects production-like hosts, excludes `_prisma_migrations`, and truncates application tables before tests.
+
+Test data should be:
+
+- Deterministic enough that the same test can run tomorrow without changing meaning.
+- Isolated from other tests unless the suite deliberately shares setup.
+- Safe to print in failure output.
+- Free of real passwords, raw tokens, token hashes, SMTP credentials, cookies, auth headers, production data, and private organisation records.
+- Created as close as possible to the test that needs it, unless a shared factory makes the setup clearer.
 
 ## Responsibilities
 
 The developer who changes behaviour owns the first test update. Reviewers check whether the evidence matches the risk and whether the PR notes honestly describe what was and was not tested.
 
+Responsibilities:
+
+| Role          | Responsibility                                                                                                                 |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Developer     | Add or update tests for changed behaviour, run the relevant local commands, record manual checks, and keep fixtures safe.      |
+| Reviewer      | Check whether the test level matches the risk, whether important failure paths are covered, and whether PR evidence is honest. |
+| Feature owner | Decide when a larger flow needs follow-up integration, E2E, or manual acceptance work beyond the first feature slice.          |
+| Team          | Keep flaky tests visible and fix them promptly instead of normalising ignored failures.                                        |
+
+If a change cannot reasonably be covered by automated tests in the same slice, the PR should explain why and describe the manual acceptance evidence or follow-up issue.
+
 ## CI and Reporting
 
 CI should provide evidence that required checks were run. Coverage, test-result uploads, Lighthouse reports, and external quality checks should be described according to the repository configuration, without inventing gates that are not enforced.
 
+The current CI workflow provides these checks:
+
+| CI job                    | Evidence produced                                                                                            |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Formatting                | Runs `pnpm format:check`.                                                                                    |
+| Linting                   | Runs changed-file ESLint checks for pull requests into `dev`, or full `pnpm lint` in other configured cases. |
+| Typecheck                 | Runs backend, frontend, and shared TypeScript checks.                                                        |
+| Backend unit tests        | Runs backend unit coverage command and uploads backend coverage and JUnit results where configured.          |
+| Frontend unit tests       | Runs frontend unit coverage command and uploads frontend coverage and JUnit results where configured.        |
+| Shared unit tests         | Runs shared package coverage command and uploads shared coverage and JUnit results where configured.         |
+| Backend integration tests | Starts PostgreSQL, generates Prisma client, deploys migrations, and runs backend integration tests.          |
+| Build                     | Builds shared, backend, and frontend packages.                                                               |
+| Lighthouse                | Builds the frontend and runs Lighthouse against configured public routes as a non-blocking quality check.    |
+
+Codecov upload steps are configured for coverage reports and test results, but their upload failures are currently allowed not to fail CI. That means Codecov is useful reporting evidence, not proof that a numeric coverage gate is enforced by this repository.
+
+No repository-enforced numeric coverage requirement was found in the current package or Vitest configuration. Coverage should still be reviewed as a quality signal, especially when new code has little or no behavioural coverage.
+
+CI is a contract with reviewers: a green required build should mean that the configured checks passed. The team should not make empty passing suites, ignored failures, or forced-success commands normal practice.
+
+PR testing notes should include:
+
+- Relevant local commands run.
+- Manual acceptance checks, if any.
+- Known gaps or follow-up test issues.
+- Whether the change affected accessibility, security, database state, or external-service boundaries.
+
 ## Regression and Defect Handling
 
 When a defect is fixed, the relevant test set should be rerun and a regression test should be added where practical. Flaky tests should be corrected or isolated with a clear reason, not ignored as a normal practice.
+
+Regression testing is obviously the re-execution of a relevant subset of existing tests after a change to confirm that the same behaviour still holds. The subset should be chosen based on the changed code and what it effects.
+
+Useful regression selection includes:
+
+- Tests for the changed component, service, route, schema, or page.
+- Tests for nearby workflows that share the same state, policy, token, session, email, audit, or database path.
+- A representative sample of broader unit or integration tests when the changed code is shared.
+- E2E or manual smoke checks when the change affects a reviewer-visible path.
+
+Defect fixes should prefer a test that would have failed before the fix. If the issue was caused by time, ordering, stale state, concurrent updates, token lifecycle, etc... the regression test should make that specific behaviour visible.
+
+Flaky tests should **not** be quietly accepted.
 
 ## References
 
@@ -209,6 +296,14 @@ When a defect is fixed, the relevant test set should be rerun and a regression t
 - [Shared package scripts](../../packages/shared/package.json)
 - [Backend Testing](../../apps/backend/TESTING.md)
 - [Demo 2 Lighthouse Notes](LIGHTHOUSE.md)
+- [Demo 2 older testing plan](testing.md)
+- [Frontend Lighthouse configuration](../../apps/frontend/lighthouserc.json)
+- [Frontend Playwright configuration](../../apps/frontend/playwright.config.ts)
+- [Backend integration test configuration](../../apps/backend/vitest.integration.config.ts)
+- [Backend integration setup](../../apps/backend/tests/setup.integration.ts)
+- [Backend test database helper](../../apps/backend/tests/helpers/database.ts)
+- [Continuous Integration workflow](../../.github/workflows/ci.yml)
+- [Lighthouse workflow](../../.github/workflows/lighthouse.yml)
 - [Demo 2 Coding Standards](coding-standards.md)
 - Lecture guidance: Unit Testing / Software Testing, Integration Testing, Non-functional Testing, and Design Systems and CI/CD.
 
