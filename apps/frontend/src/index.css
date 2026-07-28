@@ -5,9 +5,9 @@
 @import url('https://fonts.googleapis.com/icon?family=Material+Symbols+Sharp');
 @import url('https://fonts.googleapis.com/icon?family=Material+Icons+Outlined');
 @import 'tailwindcss';
-@source '../.flowbite-react/class-list.json';
 @import 'flowbite-react/plugin/tailwindcss';
 @import 'flowbite/src/themes/default';
+@source '../.flowbite-react/class-list.json';
 
 html,
 body,
