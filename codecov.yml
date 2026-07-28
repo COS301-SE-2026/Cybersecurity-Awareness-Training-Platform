@@ -1,0 +1,78 @@
+coverage:
+  status:
+    project:
+      default:
+        target: 80%
+        threshold: 5%
+        informational: true
+      backend:
+        flags:
+          - backend
+        target: 80%
+        threshold: 5%
+        informational: true
+      frontend:
+        flags:
+          - frontend
+        target: 80%
+        threshold: 5%
+        informational: true
+      shared:
+        flags:
+          - shared
+        target: 80%
+        threshold: 5%
+        informational: true
+    patch:
+      default:
+        target: 80%
+        threshold: 5%
+        informational: true
+
+flag_management:
+  default_rules:
+    carryforward: false
+    statuses:
+      - type: project
+        target: 80%
+        threshold: 5%
+        informational: true
+  individual_flags:
+    - name: backend
+      paths:
+        - apps/backend/
+      carryforward: false
+    - name: frontend
+      paths:
+        - apps/frontend/
+      carryforward: false
+    - name: shared
+      paths:
+        - packages/shared/
+      carryforward: false
+
+comment:
+  layout: 'diff, flags, files'
+  behavior: default
+  require_changes: false
+
+component_management:
+  default_rules:
+    statuses:
+      - type: project
+        target: 80%
+        threshold: 5%
+        informational: true
+  individual_components:
+    - component_id: backend
+      name: Backend
+      paths:
+        - apps/backend/**
+    - component_id: frontend
+      name: Frontend
+      paths:
+        - apps/frontend/**
+    - component_id: shared
+      name: Shared
+      paths:
+        - packages/shared/**

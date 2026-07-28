@@ -11,8 +11,8 @@ import {
 } from '../controllers/trainee-training.controller.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { traineeTrainingRateLimit } from '../middleware/traineeTrainingRateLimit.js';
-import { validateBody } from '../middleware/validateRequest.js';
-import { validateParams } from '../middleware/validateParams.js';
+import { validateBody, validateParams } from '../middleware/validateRequest.js';
+import { asyncHandler } from '../middleware/asyncHandler.js';
 
 export const traineeTrainingRouter = Router();
 
@@ -46,7 +46,7 @@ traineeTrainingRouter.get(
   traineeTrainingRateLimit,
   requireAuth,
   validateParams(getTrainingDocumentRequestParamsSchema),
-  getTrainingDocument,
+  asyncHandler(getTrainingDocument),
 );
 
 /**
@@ -82,7 +82,7 @@ traineeTrainingRouter.post(
   requireAuth,
   validateParams(recordTrainingInteractionRequestParamsSchema),
   validateBody(recordTrainingInteractionRequestSchema),
-  recordTrainingViewed,
+  asyncHandler(recordTrainingViewed),
 );
 
 /**
@@ -118,5 +118,5 @@ traineeTrainingRouter.post(
   requireAuth,
   validateParams(recordTrainingInteractionRequestParamsSchema),
   validateBody(recordTrainingInteractionRequestSchema),
-  recordTrainingCompleted,
+  asyncHandler(recordTrainingCompleted),
 );

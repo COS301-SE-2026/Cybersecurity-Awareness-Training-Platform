@@ -105,7 +105,7 @@ export interface SimulatedEmailDetailDto {
   difficultyLevel: DifficultyLevelDto;
 }
 
-export interface GetSimulatedEmailResponseDto extends SimulatedEmailDetailDto {}
+export type GetSimulatedEmailResponseDto = SimulatedEmailDetailDto;
 
 export type RecordSimulatedEmailInteractionRequestParamsDto = z.infer<
   typeof recordSimulatedEmailInteractionRequestParamsSchema

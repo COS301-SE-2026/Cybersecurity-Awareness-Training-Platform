@@ -37,6 +37,13 @@ vi.mock('../../src/lib/prisma.js', () => ({
   prisma: prismaMock,
 }));
 
+vi.mock('../../src/services/auth-session.service.js', () => ({
+  validateAuthSession: vi.fn().mockImplementation(async (args: { sessionId: string }) => ({
+    state: 'ACTIVE',
+    session: { id: args.sessionId, userId: '11111111-1111-4111-8111-111111111111' },
+  })),
+}));
+
 const userId = '11111111-1111-4111-8111-111111111111';
 const traineeProfileId = '22222222-2222-4222-8222-222222222222';
 const otherCampaignId = '33333333-3333-4333-8333-333333333333';
@@ -60,9 +67,12 @@ const user = {
   authStatus: 'ACTIVE',
   createdAt: new Date('2026-05-16T08:00:00.000Z'),
   updatedAt: new Date('2026-05-16T08:00:00.000Z'),
+  traineeProfile: {
+    traineeStatus: 'ACTIVE',
+  },
 };
 
-const authHeader = () => `Bearer ${generateAuthToken(userId).token}`;
+const authHeader = () => `Bearer ${generateAuthToken(userId, 'session-123').token}`;
 
 function campaignSummaryItems() {
   return [
@@ -87,6 +97,7 @@ function baseAssignment() {
       id: campaignId,
       name: 'Phishing Fundamentals',
       description: 'Build safe email habits.',
+      accentColor: '#2563EB',
       campaignType: 'PREMADE_GENERAL',
       difficultyLevel: 'BEGINNER',
       status: 'ACTIVE',
@@ -111,6 +122,7 @@ function passwordSecuritySummaryAssignment() {
       id: DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN.id,
       name: DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN.name,
       description: DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN.description,
+      accentColor: DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN.accentColor,
       campaignType: DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN.campaignType,
       difficultyLevel: DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN.difficultyLevel,
       status: DEMO_SEED_PASSWORD_SECURITY_CAMPAIGN.status,
@@ -335,6 +347,7 @@ describe('Trainee campaign discovery routes', () => {
     expect(response.body.campaigns[0]).toMatchObject({
       campaignId,
       name: 'Phishing Fundamentals',
+      accentColor: '#2563EB',
       itemCount: 4,
       availableItemCount: 3,
       assignment: {
@@ -439,7 +452,9 @@ describe('Trainee campaign discovery routes', () => {
         currentCampaignItemId: DEMO_SEED_IDS.campaignItems.passwordSecurityTrainingDocument,
       },
     });
-    expect(response.body.items.map((item: any) => item.campaignItemId)).toEqual([
+    expect(
+      response.body.items.map((item: { campaignItemId: string }) => item.campaignItemId),
+    ).toEqual([
       DEMO_SEED_IDS.campaignItems.passwordSecurityTrainingDocument,
       DEMO_SEED_IDS.campaignItems.passwordSecurityQuiz,
     ]);
@@ -512,14 +527,14 @@ describe('Trainee campaign discovery routes', () => {
       .set('Authorization', authHeader());
 
     expect(response.status).toBe(200);
-    expect(response.body.items.map((item: any) => item.campaignItemId)).toEqual([
-      groupItemId,
-      simulationItemId,
-    ]);
-    expect(response.body.items[0].children.map((item: any) => item.campaignItemId)).toEqual([
-      trainingItemId,
-      quizItemId,
-    ]);
+    expect(
+      response.body.items.map((item: { campaignItemId: string }) => item.campaignItemId),
+    ).toEqual([groupItemId, simulationItemId]);
+    expect(
+      response.body.items[0].children.map(
+        (item: { campaignItemId: string }) => item.campaignItemId,
+      ),
+    ).toEqual([trainingItemId, quizItemId]);
     expect(response.body.items[0].children[0]).toHaveProperty('parentGroupId', groupItemId);
   });
 

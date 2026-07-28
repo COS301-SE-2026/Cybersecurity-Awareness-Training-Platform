@@ -104,7 +104,7 @@ def paged_rest(path: str) -> list[dict[str, Any]]:
 def parse_story_points_line(line: str) -> int | None:
     cleaned_line = line.strip()
 
-    if cleaned_line.startswith("- ") or cleaned_line.startswith("* "):
+    if cleaned_line.startswith(("- ", "* ")):
         cleaned_line = cleaned_line[2:].strip()
 
     cleaned_line = cleaned_line.replace("**", "").strip()

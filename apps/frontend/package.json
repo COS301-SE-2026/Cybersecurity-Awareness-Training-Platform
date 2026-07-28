@@ -5,12 +5,17 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "preview:e2e": "vite preview --host 127.0.0.1 --port 4173 --strictPort",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:e2e": "playwright test",
+    "test:e2e:install": "playwright install chromium",
+    "test:coverage": "vitest run --coverage",
+    "test:coverage:ci": "vitest run --coverage --reporter=default --reporter=junit --outputFile=test-results.junit.xml",
+    "lighthouse": "lhci autorun --config=lighthouserc.json"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -19,13 +24,20 @@
     "@mui/icons-material": "^9.0.1",
     "@mui/material": "^9.0.1",
     "@tanstack/react-query": "^5.100.5",
-    "dompurify": "^3.4.5",
+    "dompurify": "^3.4.11",
+    "flowbite": "^4.0.2",
+    "flowbite-react": "^0.12.17",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
-    "react-router-dom": "^7.15.0"
+    "react-router-dom": "^7.15.1"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.3",
+    "@codecov/vite-plugin": "^2.0.1",
     "@eslint/js": "^10.0.1",
+    "@lhci/cli": "^0.15.1",
+    "@playwright/test": "^1.61.0",
+    "@tailwindcss/vite": "^4.3.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
@@ -39,9 +51,10 @@
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.5.0",
     "jsdom": "^29.0.2",
+    "tailwindcss": "^4.3.1",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.58.2",
-    "vite": "^8.0.10",
+    "vite": "^8.0.16",
     "vitest": "^4.1.5"
   }
 }

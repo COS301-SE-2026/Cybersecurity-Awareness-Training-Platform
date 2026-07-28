@@ -59,6 +59,60 @@ function nullableString(example: string): OpenApiSchema {
   };
 }
 
+function booleanProperty(example: boolean): OpenApiSchema {
+  return {
+    type: 'boolean',
+    example,
+  };
+}
+
+function nullableIntegerRange(input: {
+  minimum: number;
+  maximum: number;
+  example: number;
+}): OpenApiSchema {
+  return {
+    type: 'integer',
+    nullable: true,
+    minimum: input.minimum,
+    maximum: input.maximum,
+    example: input.example,
+  };
+}
+
+function integerOptionsLimit(input: {
+  minimum: number;
+  maximum: number;
+  defaultValue: number;
+  options: number[];
+}): OpenApiSchema {
+  return {
+    type: 'object',
+    required: ['min', 'max', 'default', 'options'],
+    properties: {
+      min: {
+        type: 'integer',
+        example: input.minimum,
+      },
+      max: {
+        type: 'integer',
+        example: input.maximum,
+      },
+      default: {
+        type: 'integer',
+        example: input.defaultValue,
+      },
+      options: {
+        type: 'array',
+        items: {
+          type: 'integer',
+        },
+        example: input.options,
+      },
+    },
+  };
+}
+
 function trueSuccessProperty(): OpenApiSchema {
   return {
     type: 'boolean',
@@ -111,6 +165,41 @@ function responseComponent(description: string, schemaName: string) {
   };
 }
 
+const organisationSecuritySettingsValueRequired = [
+  'enforceRememberMePolicy',
+  'allowRememberMe',
+  'enforceRegularSessionLength',
+  'enforceIdleTimeout',
+  'requireReauthenticationForSensitiveActions',
+  'allowTraineeEmailChange',
+] as const;
+
+function organisationSecuritySettingsValueProperties(): Record<string, OpenApiSchema> {
+  return {
+    enforceRememberMePolicy: booleanProperty(true),
+    allowRememberMe: booleanProperty(true),
+    maxRememberedSessionHours: nullableIntegerRange({
+      minimum: 1,
+      maximum: 720,
+      example: 168,
+    }),
+    enforceRegularSessionLength: booleanProperty(true),
+    regularSessionLengthHours: nullableIntegerRange({
+      minimum: 1,
+      maximum: 24,
+      example: 8,
+    }),
+    enforceIdleTimeout: booleanProperty(true),
+    idleTimeoutMinutes: nullableIntegerRange({
+      minimum: 5,
+      maximum: 480,
+      example: 30,
+    }),
+    requireReauthenticationForSensitiveActions: booleanProperty(true),
+    allowTraineeEmailChange: booleanProperty(false),
+  };
+}
+
 const options: swaggerJsdoc.Options = {
   definition: {
     openapi: '3.0.0',
@@ -138,6 +227,26 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
       {
         name: 'Auth',
         description: 'Authentication and current user endpoints.',
+      },
+      {
+        name: 'Account Settings',
+        description: 'Authenticated account profile, email, password, sessions, and preferences.',
+      },
+      {
+        name: 'Setup',
+        description: 'Public token-driven setup endpoints.',
+      },
+      {
+        name: 'Organisation Registration Requests',
+        description: 'Public organisation onboarding request submission.',
+      },
+      {
+        name: 'Organisation Admins',
+        description: 'Organisation admin management and permission workflows.',
+      },
+      {
+        name: 'Organisation Security Settings',
+        description: 'Organisation-scoped security policy settings for active organisation admins.',
       },
       {
         name: 'Trainee Simulation',
@@ -252,11 +361,6 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             'Too many requests from this IP, please try again after 15 minutes',
           ),
         },
-        AuthEmailExistsErrorResponse: errorResponseSchema(
-          'ApiErrorResponse',
-          'AUTH_EMAIL_EXISTS',
-          'A user with the provided email already exists',
-        ),
         AuthInvalidErrorResponse: errorResponseSchema(
           'ApiErrorResponse',
           'AUTH_INVALID',
@@ -292,7 +396,10 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           ['IP_ADMIN', 'ORGANISATION_ADMIN', 'ORGANISATION_TRAINEE', 'GENERAL_TRAINEE'],
           'GENERAL_TRAINEE',
         ),
-        AuthStatus: enumString(['PENDING', 'ACTIVE', 'DISABLED'], 'ACTIVE'),
+        AuthStatus: enumString(
+          ['PENDING_EMAIL_VERIFICATION', 'PENDING_INVITE_SETUP', 'ACTIVE', 'DISABLED'],
+          'ACTIVE',
+        ),
         PublicOrganisation: {
           type: 'object',
           required: ['id', 'name'],
@@ -345,7 +452,7 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             },
             adminStatus: {
               type: 'string',
-              enum: ['ACTIVE', 'INACTIVE'],
+              enum: ['ACTIVE', 'DISABLED'],
               example: 'ACTIVE',
             },
             adminType: {
@@ -421,7 +528,8 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         },
         AuthRegisterRequest: {
           type: 'object',
-          required: ['email', 'password', 'firstName', 'lastName'],
+          required: ['email', 'password', 'confirmPassword', 'firstName', 'lastName'],
+          additionalProperties: false,
           properties: {
             email: {
               type: 'string',
@@ -432,8 +540,14 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             password: {
               type: 'string',
               format: 'password',
-              minLength: 8,
-              example: 'correct-horse-battery-staple',
+              minLength: 12,
+              example: 'ExampleLocalPassword1!',
+            },
+            confirmPassword: {
+              type: 'string',
+              format: 'password',
+              minLength: 12,
+              example: 'ExampleLocalPassword1!',
             },
             firstName: {
               type: 'string',
@@ -465,41 +579,789 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
               minLength: 1,
               example: 'correct-horse-battery-staple',
             },
+            rememberMe: {
+              type: 'boolean',
+              example: true,
+            },
           },
         },
         AuthRegisterResponse: {
           type: 'object',
-          required: ['user'],
+          required: ['message'],
+          properties: {
+            message: {
+              type: 'string',
+              example:
+                "If this email can be registered, we'll send you an email verification link. Please check your inbox.",
+            },
+          },
+        },
+        AuthContextUser: {
+          type: 'object',
+          required: ['id', 'userType', 'authStatus'],
+          properties: {
+            id: {
+              type: 'string',
+              format: 'uuid',
+              example: 'user-123',
+            },
+            userType: {
+              $ref: '#/components/schemas/UserType',
+            },
+            authStatus: {
+              $ref: '#/components/schemas/AuthStatus',
+            },
+          },
+        },
+        AuthOrganisationContext: {
+          type: 'object',
+          required: ['id', 'status', 'name'],
+          properties: {
+            id: {
+              type: 'string',
+              format: 'uuid',
+              example: 'org-123',
+            },
+            status: {
+              type: 'string',
+              example: 'ACTIVE',
+            },
+            name: {
+              type: 'string',
+              example: 'Example Organisation',
+            },
+          },
+        },
+        AuthContext: {
+          type: 'object',
+          required: [
+            'user',
+            'role',
+            'organisation',
+            'platformAdminRole',
+            'permissions',
+            'redirectTo',
+          ],
           properties: {
             user: {
-              $ref: '#/components/schemas/PublicUser',
+              $ref: '#/components/schemas/AuthContextUser',
+            },
+            role: {
+              $ref: '#/components/schemas/UserType',
+            },
+            organisation: {
+              nullable: true,
+              allOf: [
+                {
+                  $ref: '#/components/schemas/AuthOrganisationContext',
+                },
+              ],
+            },
+            platformAdminRole: {
+              type: 'string',
+              nullable: true,
+              enum: ['SUPER_ADMIN', 'NORMAL_ADMIN'],
+              example: 'NORMAL_ADMIN',
+            },
+            permissions: {
+              type: 'array',
+              items: {
+                type: 'string',
+              },
+              example: ['GENERAL_TRAINEE'],
+            },
+            redirectTo: {
+              type: 'string',
+              example: '/trainee/campaigns',
             },
           },
         },
         AuthLoginResponse: {
           type: 'object',
-          required: ['user', 'token', 'tokenType', 'expiresAt'],
+          required: ['accessToken', 'user', 'context', 'permissions', 'redirectTo'],
           properties: {
+            accessToken: {
+              type: 'string',
+              description: 'Bearer access token for authenticated requests.',
+              example:
+                'eyJ1c2VySWQiOiJ1c2VyLTEyMyIsImV4cGlyZXNBdCI6IjIwMjYtMDUtMTJUMjA6NDQ6NTQuMDAwWiJ9.signature',
+            },
             user: {
               $ref: '#/components/schemas/PublicUser',
             },
+            context: {
+              $ref: '#/components/schemas/AuthContext',
+            },
+            permissions: {
+              type: 'array',
+              items: {
+                type: 'string',
+              },
+              example: ['GENERAL_TRAINEE'],
+            },
+            redirectTo: {
+              type: 'string',
+              example: '/trainee/campaigns',
+            },
             token: {
               type: 'string',
-              description: 'Bearer token for authenticated requests.',
+              description: 'Alias of accessToken for compatibility.',
               example:
                 'eyJ1c2VySWQiOiJ1c2VyLTEyMyIsImV4cGlyZXNBdCI6IjIwMjYtMDUtMTJUMjA6NDQ6NTQuMDAwWiJ9.signature',
             },
             tokenType: {
               type: 'string',
-              enum: ['Bearer'],
+              description: 'Token type schema.',
               example: 'Bearer',
             },
             expiresAt: {
-              ...dateTimeString('2026-05-12T20:44:54.000Z'),
+              type: 'string',
+              description: 'ISO-8601 string representation of access token expiration date-time.',
+              example: '2026-05-12T20:44:54.000Z',
+            },
+            sessionExpiresAt: {
+              type: 'string',
+              description:
+                'ISO-8601 string representation of the associated session absolute expiration date-time.',
+              example: '2026-05-12T20:44:54.000Z',
             },
           },
         },
         AuthMeResponse: {
+          type: 'object',
+          required: ['user', 'context', 'permissions', 'redirectTo'],
+          properties: {
+            user: {
+              $ref: '#/components/schemas/PublicUser',
+            },
+            context: {
+              $ref: '#/components/schemas/AuthContext',
+            },
+            permissions: {
+              type: 'array',
+              items: {
+                type: 'string',
+              },
+              example: ['GENERAL_TRAINEE'],
+            },
+            redirectTo: {
+              type: 'string',
+              example: '/trainee/campaigns',
+            },
+          },
+        },
+        AuthResendVerificationRequest: {
+          type: 'object',
+          required: ['email'],
+          additionalProperties: false,
+          properties: {
+            email: {
+              type: 'string',
+              format: 'email',
+              example: 'johan@example.com',
+            },
+          },
+        },
+        AuthResendVerificationResponse: {
+          type: 'object',
+          required: ['message'],
+          properties: {
+            message: {
+              type: 'string',
+              example:
+                'If the email is registered and unverified, a verification link has been sent.',
+            },
+          },
+        },
+        AuthVerifyEmailRequest: {
+          type: 'object',
+          required: ['token'],
+          additionalProperties: false,
+          properties: {
+            token: {
+              type: 'string',
+              minLength: 32,
+              maxLength: 512,
+              pattern: '^[A-Za-z0-9_-]+$',
+              example: 'exampleVerificationTokenValueWithAtLeast32Chars',
+            },
+          },
+        },
+        AuthVerifyEmailResponse: {
+          type: 'object',
+          required: ['state'],
+          properties: {
+            state: enumString(['VALID', 'INVALID', 'EXPIRED', 'USED', 'REVOKED'], 'VALID'),
+            user: schemaRef('PublicUser'),
+          },
+        },
+        AccountProfileUpdateRequest: {
+          type: 'object',
+          required: ['firstName', 'lastName'],
+          additionalProperties: false,
+          properties: {
+            firstName: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 80,
+              example: 'Johan',
+            },
+            lastName: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 80,
+              example: 'Botha',
+            },
+          },
+        },
+        AccountChangeEmailRequest: {
+          type: 'object',
+          required: ['newEmail', 'confirmNewEmail', 'password'],
+          additionalProperties: false,
+          properties: {
+            newEmail: {
+              type: 'string',
+              format: 'email',
+              example: 'johan.new@example.com',
+            },
+            confirmNewEmail: {
+              type: 'string',
+              format: 'email',
+              example: 'johan.new@example.com',
+            },
+            password: {
+              type: 'string',
+              format: 'password',
+              minLength: 1,
+              maxLength: 128,
+              example: 'ExampleLocalPassword1!',
+            },
+          },
+        },
+        AccountChangeEmailResponse: {
+          type: 'object',
+          required: ['message', 'emailQueued'],
+          properties: {
+            message: {
+              type: 'string',
+              example:
+                'If this email change can be completed, a confirmation email has been sent to the new address.',
+            },
+            emailQueued: booleanProperty(true),
+          },
+        },
+        AccountChangePasswordRequest: {
+          type: 'object',
+          required: ['currentPassword', 'newPassword', 'confirmNewPassword'],
+          additionalProperties: false,
+          properties: {
+            currentPassword: {
+              type: 'string',
+              format: 'password',
+              minLength: 1,
+              maxLength: 128,
+              example: 'ExampleLocalPassword1!',
+            },
+            newPassword: {
+              type: 'string',
+              format: 'password',
+              minLength: 12,
+              maxLength: 128,
+              example: 'UpdatedLocalPassword1!',
+            },
+            confirmNewPassword: {
+              type: 'string',
+              format: 'password',
+              minLength: 12,
+              maxLength: 128,
+              example: 'UpdatedLocalPassword1!',
+            },
+          },
+        },
+        AccountChangePasswordResponse: {
+          type: 'object',
+          required: ['message', 'notificationQueued', 'revokedSessionCount'],
+          properties: {
+            message: {
+              type: 'string',
+              example: 'Password changed successfully.',
+            },
+            notificationQueued: booleanProperty(true),
+            revokedSessionCount: {
+              type: 'integer',
+              minimum: 0,
+              example: 2,
+            },
+          },
+        },
+        AccountProfile: {
+          type: 'object',
+          required: [
+            'id',
+            'firstName',
+            'lastName',
+            'email',
+            'userType',
+            'authStatus',
+            'emailVerified',
+            'emailVerifiedAt',
+            'createdAt',
+            'updatedAt',
+          ],
+          properties: {
+            id: {
+              type: 'string',
+              example: 'user-123',
+            },
+            firstName: {
+              type: 'string',
+              example: 'Johan',
+            },
+            lastName: {
+              type: 'string',
+              example: 'Botha',
+            },
+            email: {
+              type: 'string',
+              format: 'email',
+              example: 'johan@example.com',
+            },
+            userType: schemaRef('UserType'),
+            authStatus: schemaRef('AuthStatus'),
+            emailVerified: booleanProperty(true),
+            emailVerifiedAt: {
+              nullable: true,
+              allOf: [dateTimeString('2026-05-11T20:44:54.000Z')],
+            },
+            createdAt: dateTimeString('2026-05-11T20:44:54.000Z'),
+            updatedAt: dateTimeString('2026-05-16T09:00:00.000Z'),
+          },
+        },
+        AccountSecurityPreferences: {
+          type: 'object',
+          required: [
+            'id',
+            'preferredRegularSessionLengthHours',
+            'preferredRememberMeSessionLengthHours',
+            'preferredIdleTimeoutMinutes',
+            'updatedAt',
+          ],
+          properties: {
+            id: nullableString('security-preferences-123'),
+            preferredRegularSessionLengthHours: nullableIntegerRange({
+              minimum: 1,
+              maximum: 24,
+              example: 8,
+            }),
+            preferredRememberMeSessionLengthHours: nullableIntegerRange({
+              minimum: 1,
+              maximum: 720,
+              example: 168,
+            }),
+            preferredIdleTimeoutMinutes: nullableIntegerRange({
+              minimum: 5,
+              maximum: 480,
+              example: 30,
+            }),
+            updatedAt: {
+              nullable: true,
+              allOf: [dateTimeString('2026-05-16T09:00:00.000Z')],
+            },
+          },
+        },
+        AccountSecurityPreferencesRequest: {
+          type: 'object',
+          additionalProperties: false,
+          minProperties: 1,
+          properties: {
+            preferredRegularSessionLengthHours: nullableIntegerRange({
+              minimum: 1,
+              maximum: 24,
+              example: 8,
+            }),
+            preferredRememberMeSessionLengthHours: nullableIntegerRange({
+              minimum: 1,
+              maximum: 720,
+              example: 168,
+            }),
+            preferredIdleTimeoutMinutes: nullableIntegerRange({
+              minimum: 5,
+              maximum: 480,
+              example: 30,
+            }),
+          },
+        },
+        AccountPolicy: {
+          type: 'object',
+          required: [
+            'organisationId',
+            'rememberMeRequested',
+            'rememberMeAllowed',
+            'rememberMeApplied',
+            'regularSessionSeconds',
+            'rememberedSessionSeconds',
+            'effectiveSessionSeconds',
+            'idleTimeoutMinutes',
+            'requireReauthenticationForSensitiveActions',
+            'allowEmailChange',
+            'sources',
+          ],
+          properties: {
+            organisationId: nullableString('org-123'),
+            rememberMeRequested: booleanProperty(false),
+            rememberMeAllowed: booleanProperty(true),
+            rememberMeApplied: booleanProperty(false),
+            regularSessionSeconds: {
+              type: 'integer',
+              example: 900,
+            },
+            rememberedSessionSeconds: {
+              type: 'integer',
+              example: 604800,
+            },
+            effectiveSessionSeconds: {
+              type: 'integer',
+              example: 900,
+            },
+            idleTimeoutMinutes: nullableIntegerRange({
+              minimum: 5,
+              maximum: 480,
+              example: 30,
+            }),
+            requireReauthenticationForSensitiveActions: booleanProperty(true),
+            allowEmailChange: booleanProperty(true),
+            sources: {
+              type: 'object',
+              required: ['rememberMe', 'regularSession', 'rememberedSession', 'idleTimeout'],
+              properties: {
+                rememberMe: enumString(
+                  ['PLATFORM_DEFAULT', 'USER_PREFERENCE', 'ORGANISATION_POLICY'],
+                  'PLATFORM_DEFAULT',
+                ),
+                regularSession: enumString(
+                  ['PLATFORM_DEFAULT', 'USER_PREFERENCE', 'ORGANISATION_POLICY'],
+                  'PLATFORM_DEFAULT',
+                ),
+                rememberedSession: enumString(
+                  ['PLATFORM_DEFAULT', 'USER_PREFERENCE', 'ORGANISATION_POLICY'],
+                  'PLATFORM_DEFAULT',
+                ),
+                idleTimeout: enumString(
+                  ['PLATFORM_DEFAULT', 'USER_PREFERENCE', 'ORGANISATION_POLICY'],
+                  'PLATFORM_DEFAULT',
+                ),
+              },
+            },
+          },
+        },
+        AccountCapabilities: {
+          type: 'object',
+          required: [
+            'canEditProfile',
+            'canRequestEmailChange',
+            'canChangePassword',
+            'canEditSecurityPreferences',
+            'securityPreferenceEditable',
+            'blockedReasons',
+          ],
+          properties: {
+            canEditProfile: booleanProperty(true),
+            canRequestEmailChange: booleanProperty(true),
+            canChangePassword: booleanProperty(true),
+            canEditSecurityPreferences: booleanProperty(true),
+            securityPreferenceEditable: {
+              type: 'object',
+              required: [
+                'preferredRegularSessionLengthHours',
+                'preferredRememberMeSessionLengthHours',
+                'preferredIdleTimeoutMinutes',
+              ],
+              properties: {
+                preferredRegularSessionLengthHours: booleanProperty(true),
+                preferredRememberMeSessionLengthHours: booleanProperty(true),
+                preferredIdleTimeoutMinutes: booleanProperty(true),
+              },
+            },
+            blockedReasons: {
+              type: 'object',
+              required: [
+                'emailChange',
+                'securityPreferences',
+                'preferredRegularSessionLengthHours',
+                'preferredRememberMeSessionLengthHours',
+                'preferredIdleTimeoutMinutes',
+              ],
+              properties: {
+                emailChange: nullableString('ORGANISATION_POLICY_BLOCKED'),
+                securityPreferences: nullableString('ORGANISATION_POLICY_ENFORCED'),
+                preferredRegularSessionLengthHours: nullableString('ORGANISATION_POLICY_ENFORCED'),
+                preferredRememberMeSessionLengthHours: nullableString(
+                  'ORGANISATION_POLICY_ENFORCED',
+                ),
+                preferredIdleTimeoutMinutes: nullableString('ORGANISATION_POLICY_ENFORCED'),
+              },
+            },
+          },
+        },
+        AccountResponse: {
+          type: 'object',
+          required: ['profile', 'securityPreferences', 'effectivePolicy', 'capabilities'],
+          properties: {
+            profile: schemaRef('AccountProfile'),
+            securityPreferences: schemaRef('AccountSecurityPreferences'),
+            effectivePolicy: schemaRef('AccountPolicy'),
+            capabilities: schemaRef('AccountCapabilities'),
+          },
+        },
+        AccountSession: {
+          type: 'object',
+          required: [
+            'id',
+            'rememberMe',
+            'current',
+            'createdAt',
+            'lastActiveAt',
+            'expiresAt',
+            'idleTimeoutMinutes',
+            'deviceSummary',
+            'locationSummary',
+          ],
+          properties: {
+            id: {
+              type: 'string',
+              example: 'session-123',
+            },
+            rememberMe: booleanProperty(false),
+            current: booleanProperty(true),
+            createdAt: dateTimeString('2026-05-11T20:44:54.000Z'),
+            lastActiveAt: dateTimeString('2026-05-16T09:00:00.000Z'),
+            expiresAt: dateTimeString('2026-05-16T09:15:00.000Z'),
+            idleTimeoutMinutes: nullableIntegerRange({
+              minimum: 5,
+              maximum: 480,
+              example: 30,
+            }),
+            deviceSummary: nullableString('Chrome on Windows'),
+            locationSummary: nullableString('Johannesburg, ZA'),
+          },
+        },
+        AccountSessionsResponse: {
+          type: 'object',
+          required: ['sessions'],
+          properties: {
+            sessions: arrayOf(schemaRef('AccountSession')),
+          },
+        },
+        AccountSessionRevocationResponse: {
+          type: 'object',
+          required: ['revoked'],
+          properties: {
+            revoked: trueSuccessProperty(),
+          },
+        },
+        AccountLogoutOthersResponse: {
+          type: 'object',
+          required: ['revokedSessionCount'],
+          properties: {
+            revokedSessionCount: {
+              type: 'integer',
+              minimum: 0,
+              example: 2,
+            },
+          },
+        },
+        AccountVerifyEmailChangeRequest: {
+          type: 'object',
+          required: ['token'],
+          additionalProperties: false,
+          properties: {
+            token: {
+              type: 'string',
+              minLength: 32,
+              maxLength: 512,
+              pattern: '^[A-Za-z0-9_-]+$',
+              example: 'exampleEmailChangeTokenValueWithAtLeast32Chars',
+            },
+          },
+        },
+        AccountVerifyEmailChangeResponse: {
+          type: 'object',
+          required: ['state'],
+          properties: {
+            state: enumString(['VALID', 'INVALID', 'EXPIRED', 'USED', 'REVOKED'], 'VALID'),
+          },
+        },
+        AuthForgotPasswordRequest: {
+          type: 'object',
+          required: ['email'],
+          additionalProperties: false,
+          properties: {
+            email: {
+              type: 'string',
+              format: 'email',
+              example: 'johan@example.com',
+            },
+          },
+        },
+        AuthForgotPasswordResponse: {
+          type: 'object',
+          required: ['message'],
+          properties: {
+            message: {
+              type: 'string',
+              example: 'If the email is registered, a password reset link has been sent.',
+            },
+          },
+        },
+        AuthResetPasswordRequest: {
+          type: 'object',
+          required: ['token', 'newPassword', 'confirmNewPassword'],
+          additionalProperties: false,
+          properties: {
+            token: {
+              type: 'string',
+              example: 'exampleResetTokenValueWithAtLeast32Chars',
+            },
+            newPassword: {
+              type: 'string',
+              format: 'password',
+              minLength: 12,
+              example: 'ExampleLocalPassword1!',
+            },
+            confirmNewPassword: {
+              type: 'string',
+              example: 'ExampleLocalPassword1!',
+            },
+          },
+        },
+        AuthResetPasswordResponse: {
+          type: 'object',
+          required: ['success'],
+          properties: {
+            success: {
+              type: 'boolean',
+              example: true,
+            },
+          },
+        },
+        TokenContextResponse: {
+          type: 'object',
+          required: ['tokenState', 'canResend', 'resendCooldownSeconds', 'messageCode', 'flow'],
+          properties: {
+            tokenState: {
+              type: 'string',
+              enum: ['VALID', 'INVALID', 'EXPIRED', 'USED', 'REVOKED'],
+              example: 'VALID',
+            },
+            canResend: {
+              type: 'boolean',
+              example: true,
+            },
+            resendCooldownSeconds: {
+              type: 'integer',
+              example: 0,
+            },
+            messageCode: {
+              type: 'string',
+              example: 'TOKEN_VALID',
+            },
+            flow: {
+              type: 'string',
+              enum: [
+                'EMAIL_VERIFICATION',
+                'PASSWORD_RESET',
+                'EMAIL_CHANGE_VERIFICATION',
+                'INITIAL_ORGANISATION_ADMIN_SETUP',
+                'ORGANISATION_TRAINEE_INVITE',
+                'ORGANISATION_ADMIN_PROMOTION',
+                'PLATFORM_ADMIN_INVITE',
+                'PLATFORM_ADMIN_UPGRADE_CONFIRMATION',
+                'UNKNOWN',
+              ],
+              example: 'PASSWORD_RESET',
+            },
+          },
+        },
+        SetupTokenState: enumString(['VALID', 'INVALID', 'EXPIRED', 'USED', 'REVOKED'], 'VALID'),
+        SetupTokenContextResponse: {
+          type: 'object',
+          required: ['token'],
+          properties: {
+            token: {
+              type: 'object',
+              required: ['state'],
+              properties: {
+                state: {
+                  $ref: '#/components/schemas/SetupTokenState',
+                },
+                purpose: {
+                  type: 'string',
+                  nullable: true,
+                  enum: [
+                    'INITIAL_ORGANISATION_ADMIN_SETUP',
+                    'ORGANISATION_TRAINEE_INVITE',
+                    'PLATFORM_ADMIN_INVITE',
+                  ],
+                  example: 'ORGANISATION_TRAINEE_INVITE',
+                },
+              },
+            },
+            targetEmail: {
+              type: 'string',
+              format: 'email',
+              example: 'learner@example.com',
+            },
+            targetFirstName: {
+              type: 'string',
+              nullable: true,
+              example: 'Jane',
+            },
+            targetLastName: {
+              type: 'string',
+              nullable: true,
+              example: 'Doe',
+            },
+            role: {
+              type: 'string',
+              enum: ['ORGANISATION_TRAINEE', 'ORGANISATION_ADMIN', 'IP_ADMIN'],
+              example: 'ORGANISATION_TRAINEE',
+            },
+            organisationName: {
+              type: 'string',
+              example: 'Example Organisation',
+            },
+          },
+        },
+        SetupCompleteRequest: {
+          type: 'object',
+          required: ['firstName', 'lastName', 'password', 'confirmPassword'],
+          additionalProperties: false,
+          properties: {
+            firstName: {
+              type: 'string',
+              minLength: 1,
+              example: 'Adriano',
+            },
+            lastName: {
+              type: 'string',
+              minLength: 1,
+              example: 'Jorge',
+            },
+            password: {
+              type: 'string',
+              format: 'password',
+              minLength: 12,
+              example: 'ExampleLocalPassword1!',
+            },
+            confirmPassword: {
+              type: 'string',
+              format: 'password',
+              minLength: 12,
+              example: 'ExampleLocalPassword1!',
+            },
+          },
+        },
+        SetupCompleteResponse: {
           type: 'object',
           required: ['user'],
           properties: {
@@ -507,6 +1369,1389 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
               $ref: '#/components/schemas/PublicUser',
             },
           },
+        },
+        InvitationStatus: enumString(
+          [
+            'PENDING',
+            'ACCEPTED',
+            'REJECTED',
+            'EXPIRED',
+            'REVOKED',
+            'USED',
+            'SENT',
+            'FAILED_TO_SEND',
+          ],
+          'PENDING',
+        ),
+        InvitationType: enumString(
+          [
+            'ORGANISATION_TRAINEE',
+            'ORGANISATION_ADMIN_PROMOTION',
+            'PLATFORM_ADMIN',
+            'INITIAL_ORGANISATION_ADMIN_SETUP',
+          ],
+          'ORGANISATION_TRAINEE',
+        ),
+        InvitationRoleGranted: enumString(
+          ['ORGANISATION_TRAINEE', 'ORGANISATION_ADMIN', 'PLATFORM_ADMIN'],
+          'ORGANISATION_TRAINEE',
+        ),
+        InvitationContextResponse: {
+          type: 'object',
+          required: ['requiredAction', 'rejectAllowed', 'status'],
+          properties: {
+            requiredAction: enumString(
+              [
+                'CONTINUE_SETUP',
+                'LOGIN_REQUIRED',
+                'SWITCH_ACCOUNT',
+                'CONFIRM_ROLE_CHANGE',
+                'ROLE_CONFLICT',
+                'INVITATION_UNAVAILABLE',
+                'TOKEN_UNAVAILABLE',
+              ],
+              'LOGIN_REQUIRED',
+            ),
+            rejectAllowed: {
+              type: 'boolean',
+              example: true,
+            },
+            status: {
+              $ref: '#/components/schemas/InvitationStatus',
+            },
+            expiresAt: {
+              type: 'string',
+              format: 'date-time',
+              example: '2026-07-15T12:00:00.000Z',
+            },
+            invitationType: {
+              $ref: '#/components/schemas/InvitationType',
+            },
+            organisationId: {
+              type: 'string',
+              format: 'uuid',
+              example: '11111111-1111-4111-8111-111111111111',
+            },
+            organisationName: {
+              type: 'string',
+              example: 'Acme Corp',
+            },
+            roleGranted: {
+              $ref: '#/components/schemas/InvitationRoleGranted',
+            },
+            permissions: arrayOf({
+              type: 'string',
+              example: 'VIEW_ORGANISATION_TRAINEES',
+            }),
+          },
+        },
+        InvitationAcceptRequest: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            confirmRoleChange: {
+              type: 'boolean',
+              description:
+                'Must be true when accepting an invitation that promotes an Organisation Trainee to Organisation Admin.',
+              example: true,
+            },
+          },
+        },
+        InvitationAcceptResponse: {
+          type: 'object',
+          required: ['success'],
+          properties: {
+            success: {
+              type: 'boolean',
+              example: true,
+            },
+            message: {
+              type: 'string',
+              example: 'Invitation accepted successfully.',
+            },
+            redirectTo: {
+              type: 'string',
+              example: '/trainee/campaigns',
+            },
+            roleGranted: {
+              $ref: '#/components/schemas/InvitationRoleGranted',
+            },
+            organisationId: {
+              type: 'string',
+              format: 'uuid',
+              example: '11111111-1111-4111-8111-111111111111',
+            },
+            sessionOutcome: enumString(
+              ['REFRESH_AUTH_CONTEXT', 'REAUTHENTICATE'],
+              'REFRESH_AUTH_CONTEXT',
+            ),
+          },
+        },
+        InvitationRejectRequest: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            rejectionReason: {
+              type: 'string',
+              maxLength: 500,
+              example: 'No longer with the company.',
+            },
+          },
+        },
+        InvitationRejectResponse: {
+          type: 'object',
+          required: ['success', 'message'],
+          properties: {
+            success: {
+              type: 'boolean',
+              example: true,
+            },
+            message: {
+              type: 'string',
+              example: 'Invitation rejected successfully.',
+            },
+          },
+        },
+        CreateOrganisationRegistrationRequest: {
+          type: 'object',
+          required: [
+            'organisationName',
+            'organisationSize',
+            'representativeFirstName',
+            'representativeLastName',
+            'representativeEmail',
+          ],
+          additionalProperties: false,
+          properties: {
+            organisationName: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 200,
+              example: 'Example Consulting',
+            },
+            organisationDescription: {
+              type: 'string',
+              maxLength: 2000,
+              description: 'Stored using the current onboarding request description field.',
+              example: 'Small consulting company that wants phishing awareness training.',
+            },
+            organisationSize: {
+              type: 'integer',
+              minimum: 1,
+              maximum: 100000,
+              description: 'Approximate number of trainees or users in the organisation.',
+              example: 75,
+            },
+            organisationWebsiteUrl: {
+              type: 'string',
+              format: 'uri',
+              description: 'Optional. Must use http or https when provided.',
+              maxLength: 2048,
+              example: 'https://example-consulting.test',
+            },
+            representativeFirstName: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 100,
+              example: 'Adriano',
+            },
+            representativeLastName: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 100,
+              example: 'Jorge',
+            },
+            representativeEmail: {
+              type: 'string',
+              format: 'email',
+              maxLength: 254,
+              example: 'adriano@example.test',
+            },
+          },
+        },
+        OrganisationRegistrationRequestCreatedResponse: {
+          type: 'object',
+          required: ['requestId', 'status', 'confirmationEmailQueued'],
+          properties: {
+            requestId: {
+              type: 'string',
+              example: 'registration-request-123',
+            },
+            status: {
+              type: 'string',
+              enum: ['PENDING_REVIEW'],
+              example: 'PENDING_REVIEW',
+            },
+            confirmationEmailQueued: {
+              type: 'boolean',
+              example: true,
+            },
+          },
+        },
+        OrganisationRegistrationRequestConflictErrorResponse: errorResponseSchema(
+          'ApiErrorResponse',
+          'ORGANISATION_REQUEST_CONFLICT',
+          'The organisation registration request conflicts with existing records.',
+        ),
+        TraineeInvitationConflictErrorResponse: errorResponseSchema(
+          'ApiErrorResponse',
+          'CANNOT_INVITE_USER',
+          'The user cannot be invited to the organisation as a trainee at this time.',
+        ),
+        PlatformOrganisationRequest: {
+          type: 'object',
+          required: [
+            'id',
+            'submittedOrganisationName',
+            'representativeFirstName',
+            'representativeLastName',
+            'representativeEmail',
+            'status',
+            'createdAt',
+            'updatedAt',
+            'derivedStatus',
+          ],
+          properties: {
+            id: uuidString('9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+            submittedOrganisationName: { type: 'string', example: 'Example Consulting' },
+            submittedWebsite: nullableString('https://example.com'),
+            submittedOrganisationDescription: nullableString('A small consulting company'),
+            submittedOrganisationSize: { type: 'integer', nullable: true, example: 75 },
+            submittedPrimaryDomain: nullableString('example.com'),
+            representativeFirstName: { type: 'string', example: 'Adriano' },
+            representativeLastName: { type: 'string', example: 'Jorge' },
+            representativeEmail: {
+              type: 'string',
+              format: 'email',
+              example: 'adriano@example.com',
+            },
+            representativePhone: nullableString('+1234567890'),
+            status: enumString(
+              ['PENDING_REVIEW', 'CONTACTED', 'APPROVED', 'REJECTED', 'CANCELLED'],
+              'PENDING_REVIEW',
+            ),
+            contactedByIpAdminId: nullableUuidString('c3fdeb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+            approvedByIpAdminId: nullableUuidString('d4fdeb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+            rejectedByIpAdminId: nullableUuidString('e5fdeb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+            approvedOrganisationId: nullableUuidString('f6fdeb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+            contactedAt: { ...dateTimeString('2026-05-16T09:00:00.000Z'), nullable: true },
+            approvedAt: { ...dateTimeString('2026-05-16T09:00:00.000Z'), nullable: true },
+            rejectedAt: { ...dateTimeString('2026-05-16T09:00:00.000Z'), nullable: true },
+            rejectionReason: nullableString('Invalid details'),
+            createdAt: dateTimeString('2026-05-16T09:00:00.000Z'),
+            updatedAt: dateTimeString('2026-05-16T09:00:00.000Z'),
+            organisationStatus: {
+              type: 'string',
+              nullable: true,
+              enum: [
+                'PENDING_ONBOARDING',
+                'ACTIVE',
+                'INACTIVE',
+                'SUSPENDED',
+                'DISABLED',
+                'ARCHIVED',
+              ],
+              example: 'PENDING_ONBOARDING',
+            },
+            setupStatus: {
+              nullable: true,
+              $ref: '#/components/schemas/OrganisationInitialSetupStatus',
+            },
+            resendEligibility: {
+              nullable: true,
+              $ref: '#/components/schemas/OrganisationResendEligibility',
+            },
+            derivedStatus: {
+              type: 'string',
+              example: 'APPROVED_PENDING_SETUP',
+            },
+            contactedBy: {
+              type: 'object',
+              nullable: true,
+              properties: {
+                id: uuidString('c3fdeb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+                user: {
+                  type: 'object',
+                  properties: {
+                    firstName: { type: 'string', example: 'Jane' },
+                    lastName: { type: 'string', example: 'Doe' },
+                    email: { type: 'string', format: 'email', example: 'jane@example.com' },
+                  },
+                },
+              },
+            },
+            approvedBy: {
+              type: 'object',
+              nullable: true,
+              properties: {
+                id: uuidString('d4fdeb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+                user: {
+                  type: 'object',
+                  properties: {
+                    firstName: { type: 'string', example: 'Jane' },
+                    lastName: { type: 'string', example: 'Doe' },
+                    email: { type: 'string', format: 'email', example: 'jane@example.com' },
+                  },
+                },
+              },
+            },
+            rejectedBy: {
+              type: 'object',
+              nullable: true,
+              properties: {
+                id: uuidString('e5fdeb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+                user: {
+                  type: 'object',
+                  properties: {
+                    firstName: { type: 'string', example: 'Jane' },
+                    lastName: { type: 'string', example: 'Doe' },
+                    email: { type: 'string', format: 'email', example: 'jane@example.com' },
+                  },
+                },
+              },
+            },
+          },
+        },
+        PlatformOrganisationRequestsListResponse: {
+          type: 'object',
+          required: ['requests', 'pagination'],
+          properties: {
+            requests: {
+              type: 'array',
+              items: {
+                $ref: '#/components/schemas/PlatformOrganisationRequest',
+              },
+            },
+            pagination: {
+              type: 'object',
+              required: ['page', 'limit', 'total', 'totalPages'],
+              properties: {
+                page: { type: 'integer', example: 1 },
+                limit: { type: 'integer', example: 10 },
+                total: { type: 'integer', example: 50 },
+                totalPages: { type: 'integer', example: 5 },
+              },
+            },
+          },
+        },
+        ApproveOrganisationRequest: {
+          type: 'object',
+          required: ['initialAdminEmail'],
+          additionalProperties: false,
+          properties: {
+            organisationName: { type: 'string', maxLength: 200, example: 'Example Consulting' },
+            initialAdminEmail: { type: 'string', format: 'email', example: 'admin@example.com' },
+          },
+        },
+        RejectOrganisationRequest: {
+          type: 'object',
+          required: ['rejectionReason'],
+          additionalProperties: false,
+          properties: {
+            rejectionReason: {
+              type: 'string',
+              maxLength: 1000,
+              example: 'The domain representative is invalid.',
+            },
+          },
+        },
+        OrganisationInitialSetupStatus: {
+          type: 'object',
+          nullable: true,
+          required: [
+            'id',
+            'status',
+            'recipientEmail',
+            'expiresAt',
+            'latestActionToken',
+            'latestEmailDelivery',
+          ],
+          properties: {
+            id: uuidString('inv-1234-abcd'),
+            status: enumString(
+              [
+                'PENDING',
+                'SENT',
+                'FAILED_TO_SEND',
+                'ACCEPTED',
+                'COMPLETED',
+                'EXPIRED',
+                'REVOKED',
+                'REJECTED',
+              ],
+              'PENDING',
+            ),
+            recipientEmail: { type: 'string', format: 'email', example: 'admin@example.com' },
+            expiresAt: dateTimeString('2026-05-23T09:00:00.000Z'),
+            latestActionToken: {
+              type: 'object',
+              nullable: true,
+              required: ['id', 'expiresAt', 'usedAt', 'revokedAt', 'status'],
+              properties: {
+                id: uuidString('tok-1234-abcd'),
+                expiresAt: dateTimeString('2026-05-23T09:00:00.000Z'),
+                usedAt: { ...dateTimeString('2026-05-16T10:00:00.000Z'), nullable: true },
+                revokedAt: { ...dateTimeString('2026-05-16T10:00:00.000Z'), nullable: true },
+                status: enumString(['AVAILABLE', 'USED', 'REVOKED', 'EXPIRED'], 'AVAILABLE'),
+              },
+            },
+            latestEmailDelivery: {
+              type: 'object',
+              nullable: true,
+              required: ['id', 'deliveryStatus', 'sentAt', 'failedAt', 'failureReason'],
+              properties: {
+                id: uuidString('log-1234-abcd'),
+                deliveryStatus: enumString(['PENDING', 'SENT', 'FAILED'], 'SENT'),
+                sentAt: { ...dateTimeString('2026-05-16T09:00:00.000Z'), nullable: true },
+                failedAt: { ...dateTimeString('2026-05-16T09:00:00.000Z'), nullable: true },
+                failureReason: nullableString('SMTP connection timeout'),
+              },
+            },
+          },
+        },
+        OrganisationResendEligibility: {
+          type: 'object',
+          required: ['isEligible', 'reason'],
+          properties: {
+            isEligible: { type: 'boolean', example: true },
+            // reason is always present -- null when eligible, a typed code string when not.
+            reason: {
+              type: 'string',
+              nullable: true,
+              enum: [
+                'ORGANISATION_NOT_ONBOARDING',
+                'INVITATION_NOT_ELIGIBLE',
+                'SETUP_ALREADY_COMPLETED',
+                'ACTIVE_SETUP_TOKEN_EXISTS',
+                'SETUP_TOKEN_EXPIRED',
+                'SETUP_EMAIL_FAILED',
+                'CONCURRENT_RESEND_IN_PROGRESS',
+                null,
+              ],
+              example: 'ORGANISATION_NOT_ONBOARDING',
+            },
+          },
+        },
+        PlatformTimelineEntry: {
+          type: 'object',
+          required: [
+            'id',
+            'type',
+            'timestamp',
+            'action',
+            'summary',
+            'actor',
+            'outcome',
+            'metadata',
+          ],
+          properties: {
+            id: uuidString('log-5678-efgh'),
+            type: enumString(['AUDIT_LOG', 'EMAIL_DELIVERY'], 'AUDIT_LOG'),
+            timestamp: dateTimeString('2026-05-16T09:00:00.000Z'),
+            action: { type: 'string', example: 'APPROVED' },
+            summary: { type: 'string', example: 'APPROVED on ORGANISATION_REGISTRATION_REQUEST' },
+            actor: nullableString('Patricia Platform'),
+            // 'status' field removed -- runtime no longer returns it (was a stale duplicate of outcome).
+            outcome: nullableString('SUCCESS'),
+            // metadata is always null -- raw audit data is never exposed in timeline responses.
+            metadata: { type: 'string', nullable: true, enum: [null], example: null },
+          },
+        },
+        PlatformOrganisationDetail: {
+          type: 'object',
+          required: [
+            'id',
+            'name',
+            'status',
+            'detailType',
+            'description',
+            'approximateSize',
+            'website',
+            'primaryDomain',
+            'createdAt',
+            'updatedAt',
+            '_count',
+            'registrationRequest',
+            'setupStatus',
+            'resendEligibility',
+            'admins',
+            'timeline',
+          ],
+          properties: {
+            id: uuidString('f6fdeb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+            name: { type: 'string', example: 'Example Consulting' },
+            status: enumString(
+              ['PENDING_ONBOARDING', 'ACTIVE', 'INACTIVE', 'SUSPENDED', 'DISABLED', 'ARCHIVED'],
+              'PENDING_ONBOARDING',
+            ),
+            detailType: enumString(
+              [
+                'onboarding organisation',
+                'active organisation',
+                'suspended organisation',
+                'disabled organisation',
+              ],
+              'onboarding organisation',
+            ),
+            description: nullableString('A consulting company'),
+            approximateSize: { type: 'integer', nullable: true, example: 150 },
+            website: nullableString('https://example.com'),
+            primaryDomain: nullableString('example.com'),
+            createdAt: dateTimeString('2026-05-16T09:00:00.000Z'),
+            updatedAt: dateTimeString('2026-05-16T09:00:00.000Z'),
+            _count: {
+              type: 'object',
+              required: ['adminProfiles', 'traineeProfiles'],
+              properties: {
+                adminProfiles: { type: 'integer', example: 1 },
+                traineeProfiles: { type: 'integer', example: 15 },
+              },
+            },
+            registrationRequest: {
+              type: 'object',
+              nullable: true,
+              required: [
+                'id',
+                'representativeFirstName',
+                'representativeLastName',
+                'representativeEmail',
+              ],
+              properties: {
+                id: uuidString('9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+                representativeFirstName: { type: 'string', example: 'Adriano' },
+                representativeLastName: { type: 'string', example: 'Jorge' },
+                representativeEmail: {
+                  type: 'string',
+                  format: 'email',
+                  example: 'adriano@example.com',
+                },
+                submittedWebsite: nullableString('https://example.com'),
+                submittedPrimaryDomain: nullableString('example.com'),
+              },
+            },
+            setupStatus: {
+              $ref: '#/components/schemas/OrganisationInitialSetupStatus',
+            },
+            resendEligibility: {
+              $ref: '#/components/schemas/OrganisationResendEligibility',
+            },
+            admins: {
+              type: 'array',
+              items: {
+                type: 'object',
+                required: ['id', 'adminStatus', 'firstName', 'lastName', 'email', 'isInitialAdmin'],
+                properties: {
+                  id: uuidString('adm-1234-abcd'),
+                  // ACTIVE | DISABLED -- PENDING is an invitation status, not an admin profile status.
+                  adminStatus: enumString(['ACTIVE', 'DISABLED'], 'ACTIVE'),
+                  firstName: { type: 'string', example: 'Jane' },
+                  lastName: { type: 'string', example: 'Doe' },
+                  email: { type: 'string', format: 'email', example: 'jane@example.com' },
+                  isInitialAdmin: booleanProperty(false),
+                },
+              },
+            },
+            timeline: {
+              type: 'array',
+              items: {
+                $ref: '#/components/schemas/PlatformTimelineEntry',
+              },
+            },
+          },
+        },
+        PlatformOrganisationRequestDetailsResponse: {
+          allOf: [
+            { $ref: '#/components/schemas/PlatformOrganisationRequest' },
+            {
+              type: 'object',
+              required: ['detailType', 'setupStatus', 'resendEligibility', 'timeline'],
+              properties: {
+                detailType: enumString(
+                  [
+                    'request-only',
+                    'onboarding organisation',
+                    'active organisation',
+                    'suspended organisation',
+                    'disabled organisation',
+                  ],
+                  'request-only',
+                ),
+                setupStatus: {
+                  $ref: '#/components/schemas/OrganisationInitialSetupStatus',
+                },
+                resendEligibility: {
+                  $ref: '#/components/schemas/OrganisationResendEligibility',
+                },
+                timeline: {
+                  type: 'array',
+                  items: {
+                    $ref: '#/components/schemas/PlatformTimelineEntry',
+                  },
+                },
+              },
+            },
+          ],
+        },
+        OrganisationPermissionKey: enumString(
+          [
+            'VIEW_ORGANISATION_ADMINS',
+            'INVITE_ORGANISATION_ADMINS',
+            'REMOVE_ORGANISATION_ADMINS',
+            'CHANGE_ORGANISATION_ADMIN_PERMISSIONS',
+            'CHANGE_ORGANISATION_SECURITY_SETTINGS',
+            'VIEW_ORGANISATION_TRAINEES',
+            'INVITE_ORGANISATION_TRAINEES',
+            'REMOVE_ORGANISATION_TRAINEES',
+          ],
+          'VIEW_ORGANISATION_ADMINS',
+        ),
+        OrganisationAdminPermissionSummary: {
+          type: 'object',
+          required: ['key', 'displayName'],
+          properties: {
+            key: {
+              $ref: '#/components/schemas/OrganisationPermissionKey',
+            },
+            displayName: {
+              type: 'string',
+              example: 'View organisation admins',
+            },
+          },
+        },
+        OrganisationAdminAvailablePermission: {
+          type: 'object',
+          required: ['key', 'displayName', 'isCritical'],
+          properties: {
+            key: {
+              $ref: '#/components/schemas/OrganisationPermissionKey',
+            },
+            displayName: {
+              type: 'string',
+              example: 'Invite organisation admins',
+            },
+            description: {
+              type: 'string',
+              nullable: true,
+              example: 'Invite or promote users to organisation admin access.',
+            },
+            isCritical: {
+              type: 'boolean',
+              example: true,
+            },
+          },
+        },
+        OrganisationAdminSummary: {
+          type: 'object',
+          required: [
+            'id',
+            'userId',
+            'firstName',
+            'lastName',
+            'email',
+            'adminStatus',
+            'isInitialAdmin',
+            'joinedAt',
+            'disabledAt',
+            'permissions',
+          ],
+          properties: {
+            id: {
+              ...uuidString('22222222-2222-4222-8222-222222222222'),
+            },
+            userId: {
+              ...uuidString('11111111-1111-4111-8111-111111111111'),
+            },
+            firstName: {
+              type: 'string',
+              example: 'Johan',
+            },
+            lastName: {
+              type: 'string',
+              example: 'Nel',
+            },
+            email: {
+              type: 'string',
+              format: 'email',
+              example: 'johan@example.com',
+            },
+            adminStatus: enumString(['ACTIVE', 'DISABLED'], 'ACTIVE'),
+            isInitialAdmin: {
+              type: 'boolean',
+              example: true,
+            },
+            joinedAt: {
+              ...dateTimeString('2026-07-01T08:00:00.000Z'),
+            },
+            disabledAt: {
+              ...nullableString('2026-07-02T08:00:00.000Z'),
+            },
+            permissions: {
+              ...arrayOf(schemaRef('OrganisationAdminPermissionSummary')),
+            },
+          },
+        },
+        OrganisationAdminListResponse: {
+          type: 'object',
+          required: ['admins', 'availablePermissions', 'actorPermissions'],
+          properties: {
+            admins: {
+              ...arrayOf(schemaRef('OrganisationAdminSummary')),
+            },
+            availablePermissions: {
+              ...arrayOf(schemaRef('OrganisationAdminAvailablePermission')),
+            },
+            actorPermissions: {
+              type: 'array',
+              items: {
+                $ref: '#/components/schemas/OrganisationPermissionKey',
+              },
+              example: ['VIEW_ORGANISATION_ADMINS', 'INVITE_ORGANISATION_ADMINS'],
+            },
+          },
+        },
+        OrganisationAdminPromotionRequest: {
+          type: 'object',
+          required: ['traineeEmail', 'permissionKeys'],
+          additionalProperties: false,
+          properties: {
+            traineeEmail: {
+              type: 'string',
+              format: 'email',
+              example: 'trainee@example.com',
+            },
+            permissionKeys: {
+              type: 'array',
+              minItems: 1,
+              uniqueItems: true,
+              items: {
+                $ref: '#/components/schemas/OrganisationPermissionKey',
+              },
+              example: ['VIEW_ORGANISATION_ADMINS', 'INVITE_ORGANISATION_ADMINS'],
+            },
+          },
+        },
+        OrganisationAdminPromotionResponse: {
+          type: 'object',
+          required: [
+            'invitationId',
+            'actionTokenId',
+            'status',
+            'expiresAt',
+            'permissionKeys',
+            'emailQueued',
+          ],
+          properties: {
+            invitationId: {
+              ...uuidString('33333333-3333-4333-8333-333333333333'),
+            },
+            actionTokenId: {
+              ...uuidString('44444444-4444-4444-8444-444444444444'),
+            },
+            status: enumString(['PENDING', 'SENT', 'FAILED_TO_SEND'], 'SENT'),
+            expiresAt: {
+              ...dateTimeString('2026-07-08T08:00:00.000Z'),
+            },
+            permissionKeys: {
+              type: 'array',
+              items: {
+                $ref: '#/components/schemas/OrganisationPermissionKey',
+              },
+              example: ['VIEW_ORGANISATION_ADMINS', 'INVITE_ORGANISATION_ADMINS'],
+            },
+            emailQueued: {
+              type: 'boolean',
+              example: true,
+            },
+          },
+        },
+        OrganisationAdminPermissionUpdateRequest: {
+          type: 'object',
+          required: ['permissionKeys'],
+          additionalProperties: false,
+          properties: {
+            permissionKeys: {
+              type: 'array',
+              minItems: 1,
+              uniqueItems: true,
+              items: {
+                $ref: '#/components/schemas/OrganisationPermissionKey',
+              },
+              example: ['VIEW_ORGANISATION_ADMINS', 'CHANGE_ORGANISATION_ADMIN_PERMISSIONS'],
+            },
+          },
+        },
+        OrganisationAdminPermissionUpdateResponse: {
+          type: 'object',
+          required: ['adminId', 'permissionKeys'],
+          properties: {
+            adminId: {
+              ...uuidString('22222222-2222-4222-8222-222222222222'),
+            },
+            permissionKeys: {
+              type: 'array',
+              items: {
+                $ref: '#/components/schemas/OrganisationPermissionKey',
+              },
+              example: ['VIEW_ORGANISATION_ADMINS', 'CHANGE_ORGANISATION_ADMIN_PERMISSIONS'],
+            },
+          },
+        },
+        OrganisationAdminRemoveRequest: {
+          type: 'object',
+          required: ['password', 'confirmation'],
+          additionalProperties: false,
+          properties: {
+            password: {
+              type: 'string',
+              format: 'password',
+              minLength: 1,
+            },
+            confirmation: {
+              type: 'string',
+              enum: ['REMOVE'],
+              example: 'REMOVE',
+            },
+          },
+        },
+        OrganisationAdminRemoveResponse: {
+          type: 'object',
+          required: ['adminId', 'status'],
+          properties: {
+            adminId: {
+              ...uuidString('22222222-2222-4222-8222-222222222222'),
+            },
+            status: enumString(['DISABLED'], 'DISABLED'),
+          },
+        },
+        TraineeListItem: {
+          type: 'object',
+          required: ['id', 'rowType', 'type', 'email', 'status', 'eligibility'],
+          properties: {
+            id: {
+              type: 'string',
+              format: 'uuid',
+              example: '11111111-1111-4111-8111-111111111111',
+            },
+            rowType: {
+              type: 'string',
+              enum: ['ACTIVE_TRAINEE', 'INVITATION'],
+              example: 'INVITATION',
+            },
+            type: {
+              type: 'string',
+              enum: ['ACTIVE_TRAINEE', 'INVITATION'],
+              example: 'INVITATION',
+            },
+            traineeProfileId: {
+              type: 'string',
+              format: 'uuid',
+              example: '22222222-2222-4222-8222-222222222222',
+            },
+            userId: {
+              type: 'string',
+              format: 'uuid',
+              example: '33333333-3333-4333-8333-333333333333',
+            },
+            invitationId: {
+              type: 'string',
+              format: 'uuid',
+              example: '44444444-4444-4444-8444-444444444444',
+            },
+            invitationStatus: {
+              type: 'string',
+              enum: [
+                'PENDING',
+                'SENT',
+                'FAILED_TO_SEND',
+                'ACCEPTED',
+                'COMPLETED',
+                'EXPIRED',
+                'REVOKED',
+                'REJECTED',
+              ],
+              example: 'PENDING',
+            },
+            invitationLifecycleState: {
+              type: 'string',
+              enum: [
+                'PENDING',
+                'SENT',
+                'FAILED_TO_SEND',
+                'ACCEPTED',
+                'COMPLETED',
+                'EXPIRED',
+                'REVOKED',
+                'REJECTED',
+              ],
+              nullable: true,
+              example: 'PENDING',
+            },
+            email: {
+              type: 'string',
+              format: 'email',
+              example: 'trainee@example.com',
+            },
+            firstName: {
+              ...nullableString('Alex'),
+            },
+            lastName: {
+              ...nullableString('Trainee'),
+            },
+            status: enumString(
+              [
+                'ACTIVE',
+                'DISABLED',
+                'INVITE_PENDING',
+                'INVITE_FAILED',
+                'INVITE_EXPIRED',
+                'INVITE_REJECTED',
+                'INVITE_REVOKED',
+                'INVITE_ACCEPTED',
+                'INVITE_COMPLETED',
+              ],
+              'ACTIVE',
+            ),
+            createdAt: {
+              type: 'string',
+              format: 'date-time',
+              example: '2026-07-15T12:00:00.000Z',
+            },
+            joinedAt: {
+              ...nullableString('2026-07-15T12:00:00.000Z'),
+            },
+            invitedAt: {
+              ...nullableString('2026-07-15T12:00:00.000Z'),
+            },
+            disabledAt: {
+              ...nullableString('2026-07-20T12:00:00.000Z'),
+            },
+            disabledReason: {
+              ...nullableString('No longer with organisation.'),
+            },
+            expiresAt: {
+              ...nullableString('2026-07-22T12:00:00.000Z'),
+            },
+            emailDeliveryStatus: {
+              type: 'string',
+              enum: ['PENDING', 'SENT', 'FAILED', 'UNKNOWN'],
+              example: 'SENT',
+            },
+            deliveryState: {
+              type: 'string',
+              enum: ['PENDING', 'SENT', 'FAILED', 'UNKNOWN'],
+              example: 'SENT',
+            },
+            requiredAction: {
+              type: 'string',
+              enum: ['NONE', 'CONTINUE_SETUP'],
+              example: 'CONTINUE_SETUP',
+            },
+            requiredActions: {
+              type: 'array',
+              items: {
+                type: 'string',
+                enum: ['NONE', 'CONTINUE_SETUP'],
+              },
+              example: ['CONTINUE_SETUP'],
+            },
+            eligibility: {
+              type: 'object',
+              required: [
+                'canResend',
+                'canRevoke',
+                'canDisable',
+                'canPromote',
+                'resendCooldownSeconds',
+              ],
+              properties: {
+                canResend: booleanProperty(false),
+                canRevoke: booleanProperty(false),
+                canDisable: booleanProperty(true),
+                canPromote: booleanProperty(true),
+                resendCooldownSeconds: { type: 'number', example: 0 },
+                resendDisabledReason: nullableString('Resend is only available for invitations.'),
+                resendDisabledReasonCode: {
+                  type: 'string',
+                  nullable: true,
+                  enum: [
+                    'COOLDOWN_ACTIVE',
+                    'INVITATION_NOT_ACTIVE',
+                    'INVITATION_REVOKED',
+                    'INVITATION_ACCEPTED',
+                    'INVITATION_REJECTED',
+                    'INVITATION_EXPIRED',
+                    'INVITATION_COMPLETED',
+                    'INVITATION_NOT_RESENDABLE',
+                    'NOT_APPLICABLE',
+                  ],
+                  example: 'NOT_APPLICABLE',
+                },
+                revokeDisabledReason: nullableString('Revoke is only available for invitations.'),
+                revokeDisabledReasonCode: {
+                  type: 'string',
+                  nullable: true,
+                  enum: [
+                    'COOLDOWN_ACTIVE',
+                    'INVITATION_NOT_ACTIVE',
+                    'INVITATION_REVOKED',
+                    'INVITATION_ACCEPTED',
+                    'INVITATION_REJECTED',
+                    'INVITATION_EXPIRED',
+                    'INVITATION_COMPLETED',
+                    'INVITATION_NOT_RESENDABLE',
+                    'NOT_APPLICABLE',
+                  ],
+                  example: 'NOT_APPLICABLE',
+                },
+                disableDisabledReason: nullableString('Cannot disable a pending invitation.'),
+                disableDisabledReasonCode: {
+                  type: 'string',
+                  nullable: true,
+                  enum: ['COOLDOWN_ACTIVE', 'INVITATION_NOT_ACTIVE', 'NOT_APPLICABLE'],
+                  example: 'NOT_APPLICABLE',
+                },
+                promoteDisabledReason: nullableString('Only active trainees can be promoted.'),
+                promoteDisabledReasonCode: {
+                  type: 'string',
+                  nullable: true,
+                  enum: ['COOLDOWN_ACTIVE', 'INVITATION_NOT_ACTIVE', 'NOT_APPLICABLE'],
+                  example: 'NOT_APPLICABLE',
+                },
+              },
+            },
+          },
+        },
+        TraineeListResponse: {
+          type: 'object',
+          required: ['trainees', 'invitations'],
+          properties: {
+            trainees: arrayOf(schemaRef('TraineeListItem')),
+            invitations: arrayOf(schemaRef('TraineeListItem')),
+            pendingInvitations: arrayOf(schemaRef('TraineeListItem')),
+          },
+        },
+        CreateTraineeInvitationRequest: {
+          type: 'object',
+          required: ['email'],
+          additionalProperties: false,
+          properties: {
+            email: {
+              type: 'string',
+              format: 'email',
+              example: 'new.trainee@example.com',
+            },
+            firstName: {
+              type: 'string',
+              example: 'Sam',
+            },
+            lastName: {
+              type: 'string',
+              example: 'New',
+            },
+          },
+        },
+        CreateTraineeInvitationResponse: {
+          type: 'object',
+          required: ['success', 'message', 'invitation'],
+          properties: {
+            success: booleanProperty(true),
+            message: {
+              type: 'string',
+              example: 'Invitation sent successfully.',
+            },
+            invitation: {
+              $ref: '#/components/schemas/TraineeListItem',
+            },
+          },
+        },
+        InvitationResendResponse: {
+          type: 'object',
+          required: ['success', 'message', 'invitationId', 'status', 'resentAt', 'invitation'],
+          properties: {
+            success: booleanProperty(true),
+            message: {
+              type: 'string',
+              example: 'Invitation resent successfully.',
+            },
+            invitationId: {
+              ...uuidString('33333333-3333-4333-8333-333333333333'),
+            },
+            status: enumString(
+              [
+                'PENDING',
+                'SENT',
+                'FAILED_TO_SEND',
+                'ACCEPTED',
+                'COMPLETED',
+                'EXPIRED',
+                'REVOKED',
+                'REJECTED',
+              ],
+              'SENT',
+            ),
+            resentAt: {
+              ...dateTimeString('2026-07-15T08:30:00.000Z'),
+            },
+            invitation: {
+              $ref: '#/components/schemas/TraineeListItem',
+            },
+          },
+        },
+        InvitationRevokeResponse: {
+          type: 'object',
+          required: ['success', 'message', 'invitationId', 'status', 'revokedAt'],
+          properties: {
+            success: booleanProperty(true),
+            message: {
+              type: 'string',
+              example: 'Invitation revoked successfully.',
+            },
+            invitationId: {
+              ...uuidString('33333333-3333-4333-8333-333333333333'),
+            },
+            status: enumString(['REVOKED'], 'REVOKED'),
+            revokedAt: {
+              ...dateTimeString('2026-07-15T08:30:00.000Z'),
+            },
+          },
+        },
+        DisableTraineeRequest: {
+          type: 'object',
+          required: ['password', 'confirmation'],
+          additionalProperties: false,
+          properties: {
+            password: {
+              type: 'string',
+              format: 'password',
+              minLength: 1,
+            },
+            confirmation: {
+              type: 'boolean',
+              enum: [true],
+              example: true,
+            },
+            disabledReason: {
+              type: 'string',
+              example: 'Policy violation or leaving organization',
+            },
+          },
+        },
+        DisableTraineeResponse: {
+          type: 'object',
+          required: ['success', 'message'],
+          properties: {
+            success: booleanProperty(true),
+            message: {
+              type: 'string',
+              example: 'Trainee account disabled successfully.',
+            },
+            traineeId: uuidString('44444444-4444-4444-8444-444444444444'),
+            status: enumString(['DISABLED'], 'DISABLED'),
+          },
+        },
+        OrganisationSecuritySettings: {
+          type: 'object',
+          required: [
+            'id',
+            'organisationId',
+            ...organisationSecuritySettingsValueRequired,
+            'createdAt',
+            'updatedAt',
+          ],
+          properties: {
+            id: {
+              ...uuidString('33333333-3333-4333-8333-333333333333'),
+            },
+            organisationId: {
+              ...uuidString('11111111-1111-4111-8111-111111111111'),
+            },
+            ...organisationSecuritySettingsValueProperties(),
+            updatedByOrganisationAdminId: {
+              ...nullableUuidString('22222222-2222-4222-8222-222222222222'),
+            },
+            createdAt: {
+              ...dateTimeString('2026-07-01T08:00:00.000Z'),
+            },
+            updatedAt: {
+              ...dateTimeString('2026-07-02T08:00:00.000Z'),
+            },
+          },
+        },
+        OrganisationSecuritySettingsEffectivePolicy: {
+          type: 'object',
+          required: [
+            'organisationId',
+            'rememberMeRequested',
+            'rememberMeAllowed',
+            'rememberMeApplied',
+            'regularSessionSeconds',
+            'rememberedSessionSeconds',
+            'effectiveSessionSeconds',
+            'idleTimeoutMinutes',
+            'requireReauthenticationForSensitiveActions',
+            'allowEmailChange',
+          ],
+          properties: {
+            organisationId: {
+              ...nullableUuidString('11111111-1111-4111-8111-111111111111'),
+            },
+            rememberMeRequested: {
+              ...booleanProperty(false),
+            },
+            rememberMeAllowed: {
+              ...booleanProperty(true),
+            },
+            rememberMeApplied: {
+              ...booleanProperty(false),
+            },
+            regularSessionSeconds: {
+              type: 'integer',
+              example: 28800,
+            },
+            rememberedSessionSeconds: {
+              type: 'integer',
+              example: 604800,
+            },
+            effectiveSessionSeconds: {
+              type: 'integer',
+              example: 28800,
+            },
+            idleTimeoutMinutes: {
+              type: 'integer',
+              nullable: true,
+              example: 30,
+            },
+            requireReauthenticationForSensitiveActions: {
+              ...booleanProperty(true),
+            },
+            allowEmailChange: {
+              ...booleanProperty(false),
+            },
+          },
+        },
+        OrganisationSecuritySettingsLimits: {
+          type: 'object',
+          required: ['rememberMe', 'regularSession', 'idleTimeout'],
+          properties: {
+            rememberMe: {
+              type: 'object',
+              required: ['maxRememberedSessionHours'],
+              properties: {
+                maxRememberedSessionHours: integerOptionsLimit({
+                  minimum: 1,
+                  maximum: 720,
+                  defaultValue: 168,
+                  options: [24, 72, 168, 336, 720],
+                }),
+              },
+            },
+            regularSession: {
+              type: 'object',
+              required: ['regularSessionLengthHours'],
+              properties: {
+                regularSessionLengthHours: integerOptionsLimit({
+                  minimum: 1,
+                  maximum: 24,
+                  defaultValue: 8,
+                  options: [4, 8, 12, 24],
+                }),
+              },
+            },
+            idleTimeout: {
+              type: 'object',
+              required: ['idleTimeoutMinutes'],
+              properties: {
+                idleTimeoutMinutes: integerOptionsLimit({
+                  minimum: 5,
+                  maximum: 480,
+                  defaultValue: 30,
+                  options: [15, 30, 60, 120, 240, 480],
+                }),
+              },
+            },
+          },
+        },
+        OrganisationSecuritySettingsChangesApply: {
+          type: 'object',
+          required: [
+            'rememberMePolicy',
+            'regularSessionLength',
+            'idleTimeout',
+            'requireReauthenticationForSensitiveActions',
+            'allowTraineeEmailChange',
+          ],
+          properties: {
+            rememberMePolicy: enumString(['NEXT_REFRESH_OR_LOGIN'], 'NEXT_REFRESH_OR_LOGIN'),
+            regularSessionLength: enumString(['NEXT_REFRESH_OR_LOGIN'], 'NEXT_REFRESH_OR_LOGIN'),
+            idleTimeout: enumString(['NEXT_REFRESH'], 'NEXT_REFRESH'),
+            requireReauthenticationForSensitiveActions: enumString(
+              ['IMMEDIATE_FOR_NEW_ACTIONS'],
+              'IMMEDIATE_FOR_NEW_ACTIONS',
+            ),
+            allowTraineeEmailChange: enumString(
+              ['IMMEDIATE_FOR_NEW_REQUESTS'],
+              'IMMEDIATE_FOR_NEW_REQUESTS',
+            ),
+          },
+        },
+        OrganisationSecuritySettingsCapabilities: {
+          type: 'object',
+          required: ['canView', 'canEdit', 'readOnlyReason', 'changesApply'],
+          properties: {
+            canView: {
+              ...booleanProperty(true),
+            },
+            canEdit: {
+              ...booleanProperty(true),
+            },
+            readOnlyReason: {
+              type: 'string',
+              nullable: true,
+              enum: ['MISSING_PERMISSION', 'ORGANISATION_SUSPENDED', 'ORGANISATION_DISABLED'],
+              example: null,
+            },
+            changesApply: {
+              $ref: '#/components/schemas/OrganisationSecuritySettingsChangesApply',
+            },
+          },
+        },
+        OrganisationSecuritySettingsResponse: {
+          type: 'object',
+          required: [
+            'organisationId',
+            'settings',
+            'effectivePolicy',
+            'platformLimits',
+            'capabilities',
+          ],
+          properties: {
+            organisationId: {
+              ...uuidString('11111111-1111-4111-8111-111111111111'),
+            },
+            settings: {
+              $ref: '#/components/schemas/OrganisationSecuritySettings',
+            },
+            effectivePolicy: {
+              $ref: '#/components/schemas/OrganisationSecuritySettingsEffectivePolicy',
+            },
+            platformLimits: {
+              $ref: '#/components/schemas/OrganisationSecuritySettingsLimits',
+            },
+            capabilities: {
+              $ref: '#/components/schemas/OrganisationSecuritySettingsCapabilities',
+            },
+          },
+        },
+        OrganisationSecuritySettingsUpdateRequest: {
+          type: 'object',
+          required: [
+            ...organisationSecuritySettingsValueRequired,
+            'maxRememberedSessionHours',
+            'regularSessionLengthHours',
+            'idleTimeoutMinutes',
+          ],
+          additionalProperties: false,
+          properties: organisationSecuritySettingsValueProperties(),
         },
         DifficultyLevel: enumString(
           ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ADAPTIVE'],
@@ -613,6 +2858,10 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
             },
             description: {
               ...nullableString('Build safe email habits.'),
+            },
+            accentColor: {
+              ...nullableString('#00FFA6'),
+              pattern: '^#[0-9A-Fa-f]{6}$',
             },
             campaignType: {
               $ref: '#/components/schemas/CampaignType',
@@ -1636,6 +3885,88 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           },
           example: '22222222-2222-2222-2222-222222222222',
         },
+        OrganisationIdPathParam: {
+          name: 'organisationId',
+          in: 'path',
+          required: true,
+          description: 'Organisation identifier.',
+          schema: {
+            type: 'string',
+            format: 'uuid',
+          },
+          example: '11111111-1111-4111-8111-111111111111',
+        },
+        OrganisationAdminIdPathParam: {
+          name: 'adminId',
+          in: 'path',
+          required: true,
+          description: 'Organisation admin profile identifier.',
+          schema: {
+            type: 'string',
+            format: 'uuid',
+          },
+          example: '22222222-2222-4222-8222-222222222222',
+        },
+        TraineeIdPathParam: {
+          name: 'traineeId',
+          in: 'path',
+          required: true,
+          description: 'Organisation trainee profile identifier.',
+          schema: {
+            type: 'string',
+            format: 'uuid',
+          },
+          example: '55555555-5555-4555-8555-555555555555',
+        },
+        InvitationIdPathParam: {
+          name: 'invitationId',
+          in: 'path',
+          required: true,
+          description: 'Invitation identifier.',
+          schema: {
+            type: 'string',
+            format: 'uuid',
+          },
+          example: '33333333-3333-4333-8333-333333333333',
+        },
+        SetupTokenPathParam: {
+          name: 'token',
+          in: 'path',
+          required: true,
+          description: 'Opaque setup/action token from the setup link.',
+          schema: {
+            type: 'string',
+            minLength: 32,
+            maxLength: 512,
+            pattern: '^[A-Za-z0-9_-]+$',
+          },
+          example: 'exampleSetupTokenValueWithAtLeast32Chars',
+        },
+        InvitationTokenPathParam: {
+          name: 'token',
+          in: 'path',
+          required: true,
+          description:
+            'Opaque invitation token or action token identifier from the invitation link.',
+          schema: {
+            type: 'string',
+            minLength: 32,
+            maxLength: 512,
+            pattern: '^[A-Za-z0-9_-]+$',
+          },
+          example: 'exampleInvitationTokenValueWithAtLeast32Chars',
+        },
+        AccountSessionIdPathParam: {
+          name: 'sessionId',
+          in: 'path',
+          required: true,
+          description: 'Authenticated account session identifier.',
+          schema: {
+            type: 'string',
+            format: 'uuid',
+          },
+          example: '11111111-1111-4111-8111-111111111111',
+        },
       },
       requestBodies: {
         AuthRegister: {
@@ -1645,6 +3976,38 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         AuthLogin: {
           required: true,
           ...jsonContent(schemaRef('AuthLoginRequest')),
+        },
+        AuthVerifyEmail: {
+          required: true,
+          ...jsonContent(schemaRef('AuthVerifyEmailRequest')),
+        },
+        AccountVerifyEmailChange: {
+          required: true,
+          ...jsonContent(schemaRef('AccountVerifyEmailChangeRequest')),
+        },
+        AccountProfileUpdate: {
+          required: true,
+          ...jsonContent(schemaRef('AccountProfileUpdateRequest')),
+        },
+        AccountChangeEmail: {
+          required: true,
+          ...jsonContent(schemaRef('AccountChangeEmailRequest')),
+        },
+        AccountChangePassword: {
+          required: true,
+          ...jsonContent(schemaRef('AccountChangePasswordRequest')),
+        },
+        AccountSecurityPreferences: {
+          required: true,
+          ...jsonContent(schemaRef('AccountSecurityPreferencesRequest')),
+        },
+        AuthForgotPassword: {
+          required: true,
+          ...jsonContent(schemaRef('AuthForgotPasswordRequest')),
+        },
+        AuthResetPassword: {
+          required: true,
+          ...jsonContent(schemaRef('AuthResetPasswordRequest')),
         },
         EmptyJson: {
           required: false,
@@ -1662,6 +4025,54 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           required: true,
           ...jsonContent(schemaRef('SubmitQuizAttemptRequest')),
         },
+        SetupComplete: {
+          required: true,
+          ...jsonContent(schemaRef('SetupCompleteRequest')),
+        },
+        CreateOrganisationRegistrationRequest: {
+          required: true,
+          ...jsonContent(schemaRef('CreateOrganisationRegistrationRequest')),
+        },
+        OrganisationAdminPromotion: {
+          required: true,
+          ...jsonContent(schemaRef('OrganisationAdminPromotionRequest')),
+        },
+        OrganisationAdminPermissionUpdate: {
+          required: true,
+          ...jsonContent(schemaRef('OrganisationAdminPermissionUpdateRequest')),
+        },
+        OrganisationAdminRemove: {
+          required: true,
+          ...jsonContent(schemaRef('OrganisationAdminRemoveRequest')),
+        },
+        ApproveOrganisationRequest: {
+          required: true,
+          ...jsonContent(schemaRef('ApproveOrganisationRequest')),
+        },
+        RejectOrganisationRequest: {
+          required: true,
+          ...jsonContent(schemaRef('RejectOrganisationRequest')),
+        },
+        OrganisationSecuritySettingsUpdate: {
+          required: true,
+          ...jsonContent(schemaRef('OrganisationSecuritySettingsUpdateRequest')),
+        },
+        InvitationAccept: {
+          required: true,
+          ...jsonContent(schemaRef('InvitationAcceptRequest')),
+        },
+        InvitationReject: {
+          required: true,
+          ...jsonContent(schemaRef('InvitationRejectRequest')),
+        },
+        CreateTraineeInvitation: {
+          required: true,
+          ...jsonContent(schemaRef('CreateTraineeInvitationRequest')),
+        },
+        DisableTrainee: {
+          required: true,
+          ...jsonContent(schemaRef('DisableTraineeRequest')),
+        },
       },
       responses: {
         HealthOk: responseComponent('API and database are reachable.', 'HealthStatus'),
@@ -1673,19 +4084,122 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
           'Account registered successfully.',
           'AuthRegisterResponse',
         ),
-        AuthLoginOk: responseComponent('Login successful.', 'AuthLoginResponse'),
+        AuthLoginOk: {
+          description:
+            'Login successful. Returns access token, user context, and sets httpOnly refresh token cookie.',
+          headers: {
+            'Set-Cookie': {
+              schema: {
+                type: 'string',
+                example: 'refreshToken=abcde12345; Path=/; HttpOnly; Secure; SameSite=Lax',
+              },
+              description: 'Contains the rotating refresh token in an HTTP-only cookie.',
+            },
+          },
+          ...jsonContent(schemaRef('AuthLoginResponse')),
+        },
         AuthMeOk: responseComponent('Current authenticated user.', 'AuthMeResponse'),
         AuthEmailExists: responseComponent(
           'A user with the provided email already exists.',
           'AuthEmailExistsErrorResponse',
         ),
-        AuthInvalid: responseComponent(
-          'Email, password, or account status is invalid.',
-          'AuthInvalidErrorResponse',
-        ),
         AuthRateLimited: responseComponent(
           'Too many authentication requests.',
           'AuthRateLimitErrorResponse',
+        ),
+        AccountOk: responseComponent('Current account settings.', 'AccountResponse'),
+        AccountChangeEmailRequested: responseComponent(
+          'Email change request accepted for processing.',
+          'AccountChangeEmailResponse',
+        ),
+        AccountPasswordChanged: responseComponent(
+          'Password changed successfully.',
+          'AccountChangePasswordResponse',
+        ),
+        AccountSessionsOk: responseComponent('Active account sessions.', 'AccountSessionsResponse'),
+        AccountSessionRevoked: responseComponent(
+          'Account session revoked.',
+          'AccountSessionRevocationResponse',
+        ),
+        AccountOtherSessionsLoggedOut: responseComponent(
+          'Other account sessions logged out.',
+          'AccountLogoutOthersResponse',
+        ),
+        SetupTokenContextOk: responseComponent(
+          'Safe setup-token context. The token is not consumed.',
+          'SetupTokenContextResponse',
+        ),
+        SetupCompleteCreated: responseComponent(
+          'Setup completed successfully.',
+          'SetupCompleteResponse',
+        ),
+        InvitationContextOk: responseComponent(
+          'Safe invitation token context. The token is not consumed.',
+          'InvitationContextResponse',
+        ),
+        InvitationAcceptOk: responseComponent(
+          'Invitation accepted successfully.',
+          'InvitationAcceptResponse',
+        ),
+        InvitationRejectOk: responseComponent(
+          'Invitation rejected successfully.',
+          'InvitationRejectResponse',
+        ),
+        OrganisationTraineesOk: responseComponent(
+          'Organisation trainees and pending invitations.',
+          'TraineeListResponse',
+        ),
+        OrganisationTraineeInvitationCreated: responseComponent(
+          'Trainee invitation sent successfully.',
+          'CreateTraineeInvitationResponse',
+        ),
+        OrganisationTraineeInvitationResent: responseComponent(
+          'Trainee invitation resent successfully.',
+          'InvitationResendResponse',
+        ),
+        OrganisationTraineeInvitationRevoked: responseComponent(
+          'Trainee invitation revoked successfully.',
+          'InvitationRevokeResponse',
+        ),
+        OrganisationTraineeDisabled: responseComponent(
+          'Trainee account disabled successfully.',
+          'DisableTraineeResponse',
+        ),
+        OrganisationRegistrationRequestCreated: responseComponent(
+          'Organisation registration request submitted for review.',
+          'OrganisationRegistrationRequestCreatedResponse',
+        ),
+        OrganisationRegistrationRequestConflict: responseComponent(
+          'The submitted request conflicts with existing records.',
+          'OrganisationRegistrationRequestConflictErrorResponse',
+        ),
+        TraineeInvitationConflict: responseComponent(
+          'Cannot invite user to the organisation.',
+          'TraineeInvitationConflictErrorResponse',
+        ),
+        OrganisationAdminsOk: responseComponent(
+          'Organisation admins and available permissions.',
+          'OrganisationAdminListResponse',
+        ),
+        OrganisationAdminPromotionCreated: responseComponent(
+          'Organisation admin promotion invitation created.',
+          'OrganisationAdminPromotionResponse',
+        ),
+        OrganisationAdminPermissionsUpdated: responseComponent(
+          'Organisation admin permissions updated.',
+          'OrganisationAdminPermissionUpdateResponse',
+        ),
+        OrganisationAdminRemoved: responseComponent(
+          'Organisation admin privileges removed.',
+          'OrganisationAdminRemoveResponse',
+        ),
+        OrganisationSecuritySettingsOk: responseComponent(
+          'Organisation security settings and effective policy.',
+          'OrganisationSecuritySettingsResponse',
+        ),
+        OrganisationSecuritySettingsUpdated: responseComponent(
+          'Organisation security settings updated.',
+          'OrganisationSecuritySettingsResponse',
         ),
         TraineeCampaignsOk: responseComponent(
           'Campaigns accessible to the authenticated active trainee.',
@@ -1777,6 +4291,10 @@ This reference covers the currently mounted Demo 1 backend routes. Planned or un
         ),
         BadRequest: responseComponent(
           'The request payload or parameters are invalid.',
+          'ValidationErrorResponse',
+        ),
+        UnprocessableEntity: responseComponent(
+          'The request payload is syntactically valid JSON but fails validation.',
           'ValidationErrorResponse',
         ),
         Unauthorized: responseComponent(

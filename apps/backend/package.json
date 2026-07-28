@@ -6,18 +6,20 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc && node ./scripts/copy-training-content.mjs",
-    "start": "node dist/src/server.js",
-    "lint": "echo \"No lint configured for backend yet\"",
+    "start": "tsx dist/src/server.js",
+    "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run tests/unit",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:coverage": "vitest run tests/unit --coverage",
+    "test:coverage:ci": "vitest run tests/unit --coverage --reporter=default --reporter=junit --outputFile=test-results.junit.xml",
     "seed:demo1": "tsx prisma/seed.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "mailpit:smoke": "tsx scripts/send-mailpit-smoke-email.ts"
   },
   "dependencies": {
     "@insightful-phish/shared": "workspace:*",
@@ -28,24 +30,30 @@
     "express": "^4.21.2",
     "express-rate-limit": "^8.5.1",
     "helmet": "^8.0.0",
+    "nodemailer": "^9.0.1",
     "pg": "^8.20.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/node": "^22.10.2",
+    "@types/nodemailer": "^8.0.1",
     "@types/pg": "^8.20.0",
     "@types/supertest": "^6.0.2",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
     "@vitest/coverage-v8": "^4.1.5",
+    "eslint": "^10.2.1",
+    "globals": "17.5.0",
     "prisma": "7.0.0",
     "supertest": "^7.0.0",
     "tsx": "^4.19.2",
     "typescript": "^5.9.3",
+    "typescript-eslint": "8.58.0",
     "vitest": "^4.1.5"
   }
 }

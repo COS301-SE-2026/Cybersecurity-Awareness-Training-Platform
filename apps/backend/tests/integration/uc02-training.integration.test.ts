@@ -1,4 +1,5 @@
 import request from 'supertest';
+import { loginTestUser } from '../helpers/auth.js';
 import { readFile } from 'node:fs/promises';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../../src/app.js';
@@ -25,18 +26,18 @@ describe('UC-02 Training Document Integration Tests', () => {
   let traineeProfileId: string;
   let trainingDocId: string;
   let trainingDocTitle: string;
-  let trainingDocContentType: any;
+  let trainingDocContentType: string;
   let trainingDocContentRef: string;
   let trainingDocContent: string;
   let trainingDocContentSummary: string | null;
   let trainingDocEstimatedReadTimeMinutes: number | null;
-  let trainingDocDifficultyLevel: any;
-  let trainingDocStatus: any;
+  let trainingDocDifficultyLevel: string;
+  let trainingDocStatus: string;
   let campaignItemTitle: string;
   let campaignItemDescription: string | null;
   let campaignItemPosition: number;
   let campaignItemIsRequired: boolean;
-  let campaignItemAvailabilityStatus: any;
+  let campaignItemAvailabilityStatus: string;
 
   const phishingContentUrl = new URL(
     '../../src/content/training/phishing-warning-signs.md',
@@ -68,12 +69,7 @@ describe('UC-02 Training Document Integration Tests', () => {
       traineeProfileId: traineeProfile.id,
     });
 
-    const loginResponse = await request(createApp())
-      .post('/auth/login')
-      .send({
-        email: user.email,
-        password: ['pass', 'word'].join(''),
-      });
+    const loginResponse = await loginTestUser(user.email);
 
     token = loginResponse.body.token;
     campaignItemId = campaignItem.id;

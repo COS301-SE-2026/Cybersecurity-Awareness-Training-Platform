@@ -27,7 +27,7 @@ jobs:
 
     steps:
       - name: Checkout PR history
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           fetch-depth: 0
 
@@ -36,14 +36,14 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
+          if [[ "${{ github.event_name }}" = "pull_request" ]]; then
             base_sha="${{ github.event.pull_request.base.sha }}"
             head_sha="${{ github.event.pull_request.head.sha }}"
             changed_files="$(git diff --name-only --diff-filter=ACMR "$base_sha" "$head_sha" || true)"
-          elif [ "${{ github.event_name }}" = "push" ]; then
+          elif [[ "${{ github.event_name }}" = "push" ]]; then
             base_sha="${{ github.event.before }}"
             head_sha="${{ github.sha }}"
-            if [ "$base_sha" = "0000000000000000000000000000000000000000" ]; then
+            if [[ "$base_sha" = "0000000000000000000000000000000000000000" ]]; then
               changed_files="$(git diff-tree --no-commit-id --name-only -r "$head_sha" || true)"
             else
               changed_files="$(git diff --name-only --diff-filter=ACMR "$base_sha" "$head_sha" || true)"
@@ -52,7 +52,7 @@ jobs:
             changed_files="$(git diff-tree --no-commit-id --name-only -r HEAD || true)"
           fi
 
-          if [ -z "$changed_files" ]; then
+          if [[ -z "$changed_files" ]]; then
             echo "No changed files to check."
             exit 0
           fi
@@ -62,11 +62,11 @@ jobs:
           while IFS= read -r file; do
             basename="$(basename "$file")"
 
-            if [ "$basename" = ".env.example" ]; then
+            if [[ "$basename" = ".env.example" ]]; then
               continue
             fi
 
-            if [ "$basename" = "env" ] || [ "$basename" = ".env" ]; then
+            if [[ "$basename" = "env" ]] || [[ "$basename" = ".env" ]]; then
               blocked_files+=("$file")
               continue
             fi
@@ -77,7 +77,7 @@ jobs:
             fi
           done <<< "$changed_files"
 
-          if [ "${#blocked_files[@]}" -gt 0 ]; then
+          if [[ "${#blocked_files[@]}" -gt 0 ]]; then
             echo "Environment file policy failed."
             echo "The following environment files must not be committed:"
             printf '  - %s\n' "${blocked_files[@]}"
@@ -87,3 +87,57 @@ jobs:
           fi
 
           echo "Environment file policy passed."
+
+  demo1-docs-frozen:
+    name: Check Demo 1 docs are frozen
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout history
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Check docs/demo1 is unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${{ github.event_name }}" = "pull_request" ]]; then
+            base_sha="${{ github.event.pull_request.base.sha }}"
+            head_sha="${{ github.event.pull_request.head.sha }}"
+            changed_files="$(git diff --name-only --diff-filter=ACMRD "$base_sha" "$head_sha" || true)"
+          elif [[ "${{ github.event_name }}" = "push" ]]; then
+            base_sha="${{ github.event.before }}"
+            head_sha="${{ github.sha }}"
+            if [[ "$base_sha" = "0000000000000000000000000000000000000000" ]]; then
+              changed_files="$(git diff-tree --no-commit-id --name-only -r "$head_sha" || true)"
+            else
+              changed_files="$(git diff --name-only --diff-filter=ACMRD "$base_sha" "$head_sha" || true)"
+            fi
+          else
+            changed_files="$(git diff-tree --no-commit-id --name-only -r HEAD || true)"
+          fi
+
+          blocked_files=()
+
+          while IFS= read -r file; do
+            if [[ "$file" == docs/demo1/* ]]; then
+              blocked_files+=("$file")
+            fi
+          done <<< "$changed_files"
+
+          if [[ "${#blocked_files[@]}" -gt 0 ]]; then
+            echo "Demo 1 docs freeze policy failed."
+            echo "docs/demo1 is frozen. Do not change Demo 1 artefacts after the Demo 1 baseline."
+            echo "Copy or update content under docs/demo2 instead."
+            echo ""
+            echo "Blocked files:"
+            printf '  - %s\n' "${blocked_files[@]}"
+            exit 1
+          fi
+
+          echo "Demo 1 docs freeze policy passed."

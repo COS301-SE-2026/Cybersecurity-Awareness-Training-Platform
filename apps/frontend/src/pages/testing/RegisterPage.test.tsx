@@ -1,12 +1,17 @@
 import '@testing-library/jest-dom/vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ApiError } from '../../lib/apiClient';
+import { registerUser, resendVerification } from '../../services/auth.service';
 import RegisterPage from '../RegisterPage';
 
-const navigateMock = vi.fn();
-const fetchMock = vi.fn();
+const { navigateMock, registerUserMock, resendVerificationMock } = vi.hoisted(() => ({
+  navigateMock: vi.fn(),
+  registerUserMock: vi.fn(),
+  resendVerificationMock: vi.fn(),
+}));
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
@@ -16,6 +21,11 @@ vi.mock('react-router-dom', async () => {
     useNavigate: () => navigateMock,
   };
 });
+
+vi.mock('../../services/auth.service', () => ({
+  registerUser: registerUserMock,
+  resendVerification: resendVerificationMock,
+}));
 
 function renderRegisterPage() {
   return render(
@@ -34,13 +44,14 @@ async function fillRegistrationForm(user: ReturnType<typeof userEvent.setup>) {
 describe('RegisterPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    fetchMock.mockReset();
-    vi.stubGlobal('fetch', fetchMock);
+    registerUserMock.mockReset();
+    resendVerificationMock.mockReset();
+    registerUserMock.mockResolvedValue({ message: 'Registration accepted' });
+    resendVerificationMock.mockResolvedValue({ success: true });
   });
 
   afterEach(() => {
     cleanup();
-    vi.unstubAllGlobals();
     vi.useRealTimers();
   });
 
@@ -56,8 +67,8 @@ describe('RegisterPage', () => {
     await user.type(screen.getByLabelText(/confirm password/i), 'StrongPass123!');
     await user.click(screen.getByRole('button', { name: /register/i }));
 
-    expect(screen.getByText('Please enter a valid email address.')).toBeInTheDocument();
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(screen.getByText('Please Enter A Valid Email Address')).toBeInTheDocument();
+    expect(registerUser).not.toHaveBeenCalled();
   });
 
   it('blocks submission when the confirmation password does not match', async () => {
@@ -70,78 +81,191 @@ describe('RegisterPage', () => {
     await user.type(screen.getByLabelText(/confirm password/i), 'DifferentPass123!');
     await user.click(screen.getByRole('button', { name: /register/i }));
 
-    expect(screen.getByText('PASSWORDS DO NOT MATCH')).toBeInTheDocument();
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(screen.getByText('Password Confirmation Must Match Password')).toBeInTheDocument();
+    expect(registerUser).not.toHaveBeenCalled();
   });
 
-  it('submits registration details and redirects to login on success', async () => {
-    vi.useFakeTimers();
-
-    fetchMock.mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        user: {
-          id: 'user-1',
-        },
-      }),
-    });
-
-    renderRegisterPage();
-
-    fireEvent.change(screen.getByLabelText(/first name\(s\)/i), {
-      target: { value: '  Jane  ' },
-    });
-    fireEvent.change(screen.getByLabelText(/last name/i), {
-      target: { value: '  Doe  ' },
-    });
-    fireEvent.change(screen.getByLabelText(/email address/i), {
-      target: { value: '  TRAINEE@example.com  ' },
-    });
-    fireEvent.change(screen.getByLabelText(/^password$/i), {
-      target: { value: 'StrongPass123!' },
-    });
-    fireEvent.change(screen.getByLabelText(/confirm password/i), {
-      target: { value: 'StrongPass123!' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: /register/i }));
-
-    const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
-
-    expect(fetchMock.mock.calls[0]?.[0]).toContain('/auth/register');
-    expect(requestInit?.method).toBe('POST');
-    expect(JSON.parse(String(requestInit?.body))).toEqual({
-      firstName: 'Jane',
-      lastName: 'Doe',
-      email: 'trainee@example.com',
-      password: 'StrongPass123!',
-    });
-
-    await vi.runAllTimersAsync();
-
-    expect(navigateMock).toHaveBeenCalledWith('/login');
-  });
-
-  it('shows a duplicate-account message when the backend returns 409', async () => {
+  it('submits the registration details and shows the email verification modal on success', async () => {
     const user = userEvent.setup();
-
-    fetchMock.mockResolvedValue({
-      ok: false,
-      status: 409,
-      json: async () => ({
-        message: 'Conflict',
-      }),
-    });
 
     renderRegisterPage();
 
     await fillRegistrationForm(user);
-    await user.type(screen.getByLabelText(/^password$/i), 'StrongPass123!');
-    await user.type(screen.getByLabelText(/confirm password/i), 'StrongPass123!');
-    await user.click(screen.getByRole('button', { name: /register/i }));
+    await user.type(screen.getByLabelText(/^password$/i), 'ThisIsA$StrongPassword!301301!');
+    await user.type(screen.getByLabelText(/confirm password/i), 'ThisIsA$StrongPassword!301301!');
+
+    await user.click(screen.getByRole('button', { name: /Register/i }));
+
+    expect(registerUser).toHaveBeenCalledWith({
+      firstName: 'Jane',
+      lastName: 'Doe',
+      email: 'trainee@example.com',
+      password: 'ThisIsA$StrongPassword!301301!',
+      confirmPassword: 'ThisIsA$StrongPassword!301301!',
+    });
+    expect(registerUserMock.mock.calls[0][0]).toHaveProperty(
+      'confirmPassword',
+      'ThisIsA$StrongPassword!301301!',
+    );
+    expect(
+      await screen.findByRole('heading', { name: /Check your Email Inbox/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('shows a safe message when registration fails with a duplicate email conflict', async () => {
+    const user = userEvent.setup();
+    registerUserMock.mockRejectedValue(
+      new ApiError('Conflict', {
+        status: 409,
+        statusText: 'Conflict',
+        method: 'POST',
+        url: '/auth/register',
+      }),
+    );
+
+    renderRegisterPage();
+    await fillRegistrationForm(user);
+
+    await user.type(screen.getByLabelText(/^password$/i), 'ThisIsA$StrongPassword!301301!');
+    await user.type(screen.getByLabelText(/confirm password/i), 'ThisIsA$StrongPassword!301301!');
+    await user.click(screen.getByRole('button', { name: /Register/i }));
+
+    expect(await screen.findByText(/An account may already exist/i)).toBeInTheDocument();
+  });
+
+  it('shows an error when the server cannot be reached', async () => {
+    const user = userEvent.setup();
+    registerUserMock.mockRejectedValue(new Error('Network Error'));
+
+    renderRegisterPage();
+    await fillRegistrationForm(user);
+    await user.type(screen.getByLabelText(/^password$/i), 'ThisIsA$Gang$StrongPassword!42069!');
+    await user.type(
+      screen.getByLabelText(/confirm password/i),
+      'ThisIsA$Gang$StrongPassword!42069!',
+    );
+    await user.click(screen.getByRole('button', { name: /Register/i }));
+
+    expect(await screen.findByText('Something went wrong. Please try again.')).toBeInTheDocument();
+  });
+
+  it('shows a loading state while the registration request is in progress', async () => {
+    const user = userEvent.setup();
+
+    let resolveRegister!: (value: unknown) => void;
+
+    registerUserMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveRegister = resolve;
+        }),
+    );
+
+    renderRegisterPage();
+    await fillRegistrationForm(user);
+    await user.type(screen.getByLabelText(/^password$/i), 'ThisIsA$Gang$StrongPassword!42069!');
+    await user.type(
+      screen.getByLabelText(/confirm password/i),
+      'ThisIsA$Gang$StrongPassword!42069!',
+    );
+    await user.click(screen.getByRole('button', { name: /Register/i }));
+
+    expect(screen.getByRole('button', { name: /Creating Account.../i })).toBeDisabled();
+
+    resolveRegister({ message: 'Registration accepted' });
+
+    await screen.findByRole('heading', { name: /Check your Email Inbox/i });
+  });
+
+  it('disables the form fields while the registration request is in progress', async () => {
+    const user = userEvent.setup();
+
+    let resolveRegister!: (value: unknown) => void;
+
+    registerUserMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveRegister = resolve;
+        }),
+    );
+
+    renderRegisterPage();
+    await fillRegistrationForm(user);
+    await user.type(screen.getByLabelText(/^password$/i), 'ThisIsA$Gang$StrongPassword!42069!');
+    await user.type(
+      screen.getByLabelText(/confirm password/i),
+      'ThisIsA$Gang$StrongPassword!42069!',
+    );
+    await user.click(screen.getByRole('button', { name: /Register/i }));
+
+    expect(screen.getByLabelText(/first name\(s\)/i)).toBeDisabled();
+    expect(screen.getByLabelText(/last name/i)).toBeDisabled();
+    expect(screen.getByLabelText(/email address/i)).toBeDisabled();
+    expect(screen.getByLabelText(/^password$/i)).toBeDisabled();
+    expect(screen.getByLabelText(/confirm password/i)).toBeDisabled();
+
+    resolveRegister({ message: 'Registration accepted' });
+
+    await screen.findByRole('heading', { name: /Check your Email Inbox/i });
+  });
+
+  it('resend verification using the normalised registered email', async () => {
+    const user = userEvent.setup();
+
+    renderRegisterPage();
+    await fillRegistrationForm(user);
+    await user.type(screen.getByLabelText(/^password$/i), 'ThisIsA$Gang$StrongPassword!42069!');
+    await user.type(
+      screen.getByLabelText(/confirm password/i),
+      'ThisIsA$Gang$StrongPassword!42069!',
+    );
+    await user.click(screen.getByRole('button', { name: /Register/i }));
+
+    await user.click(
+      await screen.findByRole('button', { name: /Resend Email Verification Link/i }),
+    );
+
+    await waitFor(
+      () => {
+        expect(resendVerification).toHaveBeenCalledWith({
+          email: 'trainee@example.com',
+        });
+      },
+      { timeout: 3000 },
+    );
+  });
+
+  it('shows a rate-limit message wehn resend verification is rate limited', async () => {
+    const user = userEvent.setup();
+
+    resendVerificationMock.mockRejectedValue(
+      new ApiError('Too many attempts', {
+        status: 429,
+        statusText: 'Too Many Requests',
+        method: 'POST',
+        url: '/auth/resend-verification',
+      }),
+    );
+
+    renderRegisterPage();
+    await fillRegistrationForm(user);
+    await user.type(screen.getByLabelText(/^password$/i), 'ThisIsA$Gang$StrongPassword!42069!');
+    await user.type(
+      screen.getByLabelText(/confirm password/i),
+      'ThisIsA$Gang$StrongPassword!42069!',
+    );
+    await user.click(screen.getByRole('button', { name: /Register/i }));
+
+    await user.click(
+      await screen.findByRole('button', { name: /Resend Email Verification Link/i }),
+    );
 
     expect(
-      await screen.findByText('AN ACCOUNT WITH THIS EMAIL ALREADY EXISTS'),
+      await screen.findByText(
+        'Too many attempts. Please wait a moment and try again.',
+        {},
+        { timeout: 3000 },
+      ),
     ).toBeInTheDocument();
-    expect(navigateMock).not.toHaveBeenCalled();
   });
-});
+}); //describe

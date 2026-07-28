@@ -7,13 +7,13 @@ import {
 } from '@mui/icons-material';
 
 type TrainingActionRowProps = {
-  label: string;
-  status: string;
-  disabled?: boolean;
-  showLockIcon?: boolean;
-  large?: boolean;
-  iconType?: 'learn' | 'quiz' | 'simulation';
-  onClick?: () => void;
+  readonly label: string;
+  readonly status: string;
+  readonly disabled?: boolean;
+  readonly showLockIcon?: boolean;
+  readonly large?: boolean;
+  readonly iconType?: 'learn' | 'quiz' | 'simulation';
+  readonly onClick?: () => void;
 };
 
 function TrainingActionRow({
@@ -25,7 +25,7 @@ function TrainingActionRow({
   iconType,
   onClick,
 }: TrainingActionRowProps) {
-  const cleanedLabel = label.replace(/"/g, '');
+  const cleanedLabel = label.replaceAll('"', '');
 
   const labelParts = cleanedLabel.split(': ');
 
@@ -34,17 +34,23 @@ function TrainingActionRow({
   const labelTitle = labelParts.slice(1).join(': ');
 
   return (
-    <div
+    <button
       onClick={disabled ? undefined : onClick}
+      disabled={disabled}
+      type="button"
       style={{
         backgroundColor: disabled ? '#2A0844' : 'rgba(53, 0, 94, 0.75)',
-        opacity: disabled ? 0.65 : 1,
+        opacity: disabled ? 0.64 : 1,
         padding: large ? '1.5rem 1.8rem' : '1rem 1.4rem',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
         cursor: disabled ? 'not-allowed' : 'pointer',
         transition: '0.2s ease',
+        border: 'none',
+        width: '100%',
+        textAlign: 'left',
+        boxSizing: 'border-box',
       }}
     >
       <div
@@ -146,7 +152,7 @@ function TrainingActionRow({
           />
         )}
       </div>
-    </div>
+    </button>
   );
 }
 

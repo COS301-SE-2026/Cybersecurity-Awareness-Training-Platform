@@ -11,7 +11,7 @@ Insightful Phish is a `pnpm workspace` monorepo with:
 - Prisma 7 for database schema management
 - Husky, lint-staged, and commitlint for local Git quality checks
 
-The local setup path applies the current committed database migrations and can seed repeatable Demo 1 data using the modular campaign model. Demo 1 data is campaign-based: trainees access seeded campaign items for simulated inbox, training document, and quiz flows where the current app and APIs support them. The populated trainee has seeded phishing awareness and password security campaigns, while the empty-state trainee remains unassigned.
+Insightful Phish local development is Docker-first: Docker Compose runs the PostgreSQL database, the backend and the frontend. Root `pnpm docker:*` scripts provide short commands for docker setup, checks, logs, migration and seeding.
 
 ## 1. Required tools
 
@@ -22,6 +22,8 @@ Before starting, install these tools:
 - pnpm
 - Docker Desktop
 - GitHub CLI, optional but recommended
+
+`pnpm` is used to run the repo's command shortcuts. The app itself runs through Docker Compose.
 
 ### Check Git
 
@@ -70,7 +72,7 @@ docker compose version
 docker info
 ```
 
-Docker is used to run PostgreSQL locally without requiring each developer to install PostgreSQL directly on their machine.
+Docker Compose runs the local app stack, including PostgreSQL, backend, and frontend, without requiring each developer to install those services directly.
 
 If `docker info` fails, open Docker Desktop and wait until Docker is running.
 
@@ -87,11 +89,11 @@ The GitHub CLI is optional, but recommended. If installed and authenticated, the
 Clone the repository from GitHub:
 
 ```bash
-git clone https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform.git
-cd Cybersecurity-Awareness-Training-Platform
+git clone https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform.git InsightfulPhish
+cd InsightfulPhish
 ```
 
-If your local folder has been renamed to `Insightful Phish`, that is fine. The folder name does not affect the project as long as you are inside the repo root.
+The folder name does not affect the project as long as you are inside the repo root.
 
 Check that you are in the repo root:
 
@@ -157,297 +159,88 @@ GitHub → Settings → Access → Emails
 
 If you use GitHub private email protection, use your GitHub noreply email instead.
 
-## 4. Install dependencies
+## 4. Start the local Docker app stack
 
-From the repo root, run:
+The recommended local setup uses Docker Compose to run PostgreSQL, the backend and the frontend together.
 
-```bash
-pnpm install
-```
-
-This installs dependencies for all workspace packages.
-
-The repo uses pnpm workspaces, defined in `pnpm-workspace.yaml`:
-
-```yaml
-packages:
-  - 'apps/*'
-  - 'packages/*'
-```
-
-This means pnpm treats these folders as separate workspace packages:
-
-```txt
-apps/backend
-apps/frontend
-packages/shared
-```
-
-The root [package.json](package.json) contains shared scripts such as:
+From the repo root, create your local Compose environment file:
 
 ```bash
-pnpm typecheck
-pnpm test
-pnpm build
+cp .env.example .env
 ```
 
-These run across all workspace packages.
+Edit the created `.env` if needed. `POSTGRES_PASSWORD` is required. For Docker-first local setup, you do not need to create `apps/backend/.env` or `apps/frontend/.env`. The Docker Compose stack reads all the local values from the root `.env` file.
 
-### Quick fresh checkout path
+On Linux systems, set your `LOCAL_UID` and `LOCAL_GID` in the `.env` so files created by Docker workspace commands are owned by your host user. MacOD and Windows Docker Desktop users can usually leave these values alone.
 
-Use this compact path when starting from a clean checkout for local Demo 1 rehearsal.
-
-From the repo root:
+You can set these using:
 
 ```bash
-pnpm install
-cp apps/backend/.env.example apps/backend/.env
-cp apps/frontend/.env.example apps/frontend/.env
-docker compose up -d
-pnpm --filter @insightful-phish/backend prisma:generate
-pnpm --filter @insightful-phish/backend prisma:migrate:deploy
-DEMO_SEED_PASSWORD="your-local-demo-password" pnpm --filter @insightful-phish/backend seed:demo1
+LOCAL_UID=$(id -u)
+LOCAL_GID=$(id -g)
 ```
 
-Then start the backend:
+First, install workspace dependencies into Docker-managed volumes:
 
 ```bash
-pnpm --filter @insightful-phish/backend dev
+pnpm docker:tools:install
 ```
 
-In another terminal, start the frontend:
+Start the full Docker app stack:
 
 ```bash
-pnpm --filter @insightful-phish/frontend dev
+pnpm docker:up
 ```
 
-For Windows PowerShell and Command Prompt examples for `DEMO_SEED_PASSWORD`, see [apps/backend/SEEDING.md](apps/backend/SEEDING.md).
-
-## 5. Local Git checks with Husky
-
-The project uses Husky to run local checks before commits.
-
-Husky hooks are in:
-
-```txt
-.husky/pre-commit
-.husky/commit-msg
-```
-
-### Pre-commit hook
-
-Before a commit is created, Husky runs:
+Or run it in the background:
 
 ```bash
-./scripts/check-git-identity.sh
-./scripts/check-staged-file-policy.sh
-pnpm exec lint-staged
+pnpm docker:up:detached
 ```
 
-This does three things:
+The local services are available at:
 
-1. checks that your local Git identity is set correctly;
-2. prevents mixing Markdown documentation files with code/config changes in one commit;
-3. runs Prettier on staged files through lint-staged.
+- Frontend: [http://localhost:5173](http://localhost:5173)
+- Backend: [http://localhost:4000](http://localhost:4000)
+- Postgres: `localhost:5432`
+- Mailpit UI: [http://localhost:8025](http://localhost:8025)
+- Mailpit SMTP from Docker services: `mailpit:1025`
+- Mailpit SMTP from host machine: `localhost:1025`
 
-### Commit message hook
+### Inspect local emails with Mailpit
 
-Before Git accepts your commit message, Husky runs:
+Emails are captured locally using Mailpit. After triggering something that sends an email, you can inspect the email in the Mailpit UI at [http://localhost:8025](http://localhost:8025).
+
+To use the smoke-test script to see if the Mailpit service is running, you can run: `pnpm docker:mailpit:smoke`
+
+### Check service status and logs
+
+You can check the service status and logs using the commands below:
 
 ```bash
-./scripts/check-commit-message.sh "$1"
-pnpm exec commitlint --edit "$1"
+pnpm docker:ps
+pnpm docker:logs:backend
+pnpm docker:logs:frontend
+pnpm docker:logs:postgres
 ```
 
-This checks that commit messages follow the required format:
-
-```txt
-<type>: <description>
-```
-
-Allowed types:
-
-```txt
-feat
-fix
-docs
-chore
-```
-
-Examples:
-
-```txt
-feat: add user authentication
-fix: correct database health check
-docs: update setup instructions
-chore: add backend health check
-```
-
-Scopes are not allowed. For example, this is not allowed:
-
-```txt
-feat(auth): add login
-```
-
-`Co-authored-by:` trailers are also not allowed.
-
-## 6. Documentation and code commit policy
-
-To help with contribution tracking, documentation and code/config changes should be committed separately.
-
-Rules:
-
-- If a commit includes Markdown files (`.md`), the commit type must be `docs`.
-- If a commit includes Markdown files, it should not include code or configuration changes.
-- Code/config commits should not include Markdown documentation changes.
-
-Examples:
-
-```txt
-docs: update setup instructions
-chore: add ci workflow
-feat: add campaign creation endpoint
-fix: correct database connection check
-```
-
-If your commit is blocked because you staged docs and code together, split the changes into two commits.
-
-**Important:** Sync/Push to origin directly after committing: Do not create two commits locally (one for code and one for docs) and then push both together, as Hyperperform will track this as one commit with both code and docs changes. Instead, commit and push the first commit, then commit and push the second commit.
-
-## 7. Start PostgreSQL with Docker
-
-The backend uses PostgreSQL. For local development, PostgreSQL runs in Docker.
-
-Start PostgreSQL:
+To stop the stack while keeping the local database data, run:
 
 ```bash
-docker compose up -d
+pnpm docker:down
 ```
 
-The `-d` flag means detached mode, so the database keeps running in the background.
-
-Check the container status:
+To stop the stack and delete the local database data, run:
 
 ```bash
-docker compose ps
+pnpm docker:reset
 ```
 
-You should see a running container named:
+> Note: `docker compose down -v` deletes the local PostgreSQL volume: Use it only when you intentionally want to wipe local database data.
 
-```txt
-insightful-phish-postgres
-```
+## 5. Database Migrations and Demo 1 Seed Data
 
-### PostgreSQL connection details
-
-The database is configured in `docker-compose.yml`:
-
-```txt
-Host: localhost
-Port: 5432
-User: insightful_phish
-Password: insightful_phish
-Database: insightful_phish_dev
-```
-
-The backend connects with this URL:
-
-```env
-DATABASE_URL="postgresql://insightful_phish:insightful_phish@localhost:5432/insightful_phish_dev"
-```
-
-### Useful Docker commands
-
-Stop containers but keep database data:
-
-```bash
-docker compose down
-```
-
-Start again:
-
-```bash
-docker compose up -d
-```
-
-View PostgreSQL logs:
-
-```bash
-docker compose logs postgres
-```
-
-Restart PostgreSQL:
-
-```bash
-docker compose restart postgres
-```
-
-Delete the local database completely:
-
-```bash
-docker compose down -v
-```
-
-Only use `-v` if you intentionally want to delete the local database volume.
-
-### Local-only destructive reset for Demo 1 rehearsal data
-
-Use this only for your own local development database. It deletes the local Docker database volume and recreates the schema/data from committed migrations and the Demo 1 seed.
-
-Do not use this sequence against production, staging, or shared data.
-
-```bash
-docker compose down -v
-docker compose up -d
-pnpm --filter @insightful-phish/backend prisma:generate
-pnpm --filter @insightful-phish/backend prisma:migrate:deploy
-DEMO_SEED_PASSWORD="your-local-demo-password" pnpm --filter @insightful-phish/backend seed:demo1
-```
-
-See [apps/backend/SEEDING.md](apps/backend/SEEDING.md) for seed safety notes, idempotency details, and Windows-specific environment variable examples.
-
-## 8. Create backend environment file
-
-The backend uses environment variables from:
-
-```txt
-apps/backend/.env
-```
-
-This file is not committed. It is ignored by Git.
-
-Create it from the example file:
-
-```bash
-cp apps/backend/.env.example apps/backend/.env
-```
-
-The example file contains:
-
-```env
-NODE_ENV=development
-PORT=4000
-
-DATABASE_URL="postgresql://insightful_phish:insightful_phish@localhost:5432/insightful_phish_dev"
-
-FRONTEND_ORIGIN="http://localhost:5173"
-```
-
-### What these values mean
-
-`PORT=4000` means the backend runs at:
-
-```txt
-http://localhost:4000
-```
-
-`DATABASE_URL` tells Prisma how to connect to PostgreSQL.
-
-`FRONTEND_ORIGIN` allows the local frontend at `http://localhost:5173` to call the backend.
-
-## 9. Prisma setup
-
-The project uses Prisma 7.
+The local Docker stack uses Prisma 7 for database schema management.
 
 Important Prisma files:
 
@@ -455,68 +248,59 @@ Important Prisma files:
 - [apps/backend/prisma/schema.prisma](apps/backend/prisma/schema.prisma)
 - [apps/backend/prisma/migrations/](apps/backend/prisma/migrations/)
 
-### Prisma config
+For normal Docker startup, you do not need to run Prisma setup manually:
 
-[apps/backend/prisma.config.ts](apps/backend/prisma.config.ts) tells Prisma where the schema is, where migrations are stored, and which database URL to use.
+- The backend Docker image runs Prisma Client generation during image build
+- The backend container runs migrations automatically before starting the API
 
-In Prisma 7, the database URL is configured in [apps/backend/prisma.config.ts](apps/backend/prisma.config.ts), not directly in [apps/backend/prisma/schema.prisma](apps/backend/prisma/schema.prisma).
+> You only need to use manual Prisma commands when troubleshooting, resetting local data, or checking the tooling container.
 
-### Prisma schema
+### Manual Prisma Commands
 
-[apps/backend/prisma/schema.prisma](apps/backend/prisma/schema.prisma) defines the current backend database schema. The committed migrations include the Demo 1 modular campaign model, including campaign assignments, campaign items, reusable training documents, quizzes, simulations, simulated inboxes, simulated emails, and related interaction/result records.
-
-### Generate Prisma Client
-
-Run:
+Generate the Prisma Client manually:
 
 ```bash
-pnpm --filter @insightful-phish/backend prisma:generate
+pnpm docker:prisma:generate
 ```
 
-This generates the Prisma Client under:
-
-```txt
-apps/backend/src/generated/prisma
-```
-
-That generated folder is ignored by Git and should not be committed.
-
-### Run migrations
-
-For normal local setup from a clean checkout, apply the committed migrations:
+Apply committed migrations manually:
 
 ```bash
-pnpm --filter @insightful-phish/backend prisma:migrate:deploy
+pnpm docker:prisma:migrate
 ```
 
-This applies the version-controlled migration history under [apps/backend/prisma/migrations/](apps/backend/prisma/migrations/) to your local database.
+The generated Prisma Client is written to `apps/backend/src/generated/prisma`. This folder is ignored by Git and shouldn't be committed.
 
-Use `pnpm --filter @insightful-phish/backend prisma:migrate --name <migration-name>` only when you are intentionally changing the Prisma schema and creating a new development migration. Do not use it as the normal clean-checkout setup command.
+### Demo 1 Seed Data
 
-Prisma migration files under [apps/backend/prisma/migrations/](apps/backend/prisma/migrations/) should be committed. They are the version-controlled database schema history.
+The Demo 1 seed creates repeatable local users, campaign content, quizzes, training documents and simulated inbox data.
 
-Do not commit:
-
-```txt
-apps/backend/.env
-apps/backend/src/generated/prisma
-```
-
-### Demo 1 seed data
-
-For repeatable local Demo 1 users, campaign content, quizzes, and simulated inbox data, use the backend seed guide: [apps/backend/SEEDING.md](apps/backend/SEEDING.md).
-
-The short version:
+Make sure that the Docker stack is running:
 
 ```bash
-docker compose up -d
-pnpm --filter @insightful-phish/backend prisma:generate
-pnpm --filter @insightful-phish/backend prisma:migrate:deploy
+pnpm docker:up:detached
 ```
 
-Set `DEMO_SEED_PASSWORD` before running `pnpm --filter @insightful-phish/backend seed:demo1`. See [apps/backend/SEEDING.md](apps/backend/SEEDING.md) for PowerShell and Command Prompt examples.
+Then run the seeding command:
 
-The Demo 1 seed creates demo-only accounts:
+```bash
+pnpm docker:seed:demo1
+```
+
+The seed reads the `DEMO_SEED_PASSWORD` from the root `.env` file. The `DEMO_SEED_PASSWORD` is only required for:
+
+```bash
+pnpm docker:seed:demo1
+```
+
+This means that you can either set `DEMO_SEED_PASSWORD` in your `.env` file, or set it in the same terminal session before running the seed command:
+
+```bash
+export DEMO_SEED_PASSWORD="your-local-demo-password"
+pnpm docker:seed:demo1
+```
+
+The Demo 1 seed creates these demo-only accounts:
 
 ```txt
 demo.populated.trainee@example.com
@@ -524,338 +308,126 @@ demo.empty.trainee@example.com
 demo.admin@example.com
 ```
 
-All three use the password supplied through `DEMO_SEED_PASSWORD`.
+Only run the Demo 1 seed against a local development database. For more detail, please see `apps/backend/SEEDING.md`.
 
-The populated trainee is assigned to two active seeded campaigns:
+### Prisma Studio
 
-- phishing awareness
-- password security
-
-The password security campaign is a simple sequence with an available training document followed by a statically locked quiz. Training completion records interaction data but does not unlock the quiz, because dynamic unlock logic is out of scope for this seed.
-
-Only run the Demo 1 seed against a local development database.
-
-## 10. Run the backend
-
-Start PostgreSQL first:
+To inspect the local database with Prisma Studio you can use this command:
 
 ```bash
-docker compose up -d
+pnpm docker:prisma:studio
 ```
 
-Start the backend:
+## 6. Running checks
+
+Run checks through the Docker workspace service so everyone uses the same Node, pnpm and dependency environment.
+
+Before running checks for the first time, install workspace dependencies into Docker-managed volumes:
 
 ```bash
-pnpm --filter @insightful-phish/backend dev
+pnpm docker:tools:install
 ```
 
-The backend should print:
+Rerun this command whenever the pnpm lock file changes.
+
+### Run the main local checks
+
+Run TypeScript checks
+
+```bash
+pnpm docker:typecheck
+```
+
+Run linting:
+
+```bash
+pnpm docker:lint
+```
+
+Run tests:
+
+```bash
+pnpm docker:test
+```
+
+Check that all packages build:
+
+```bash
+pnpm docker:build
+```
+
+Check formatting:
+
+```bash
+pnpm docker:format:check
+```
+
+Fix formatting:
+
+```bash
+pnpm docker:format
+```
+
+### Run coverage
+
+```bash
+pnpm docker:test:coverage
+```
+
+This runs coverage for all workspace packages. The Coverage reports are generated in
 
 ```txt
-Insightful Phish backend running on http://localhost:4000
+apps/backend/coverage/
+apps/frontend/coverage/
+packages/shared/coverage
 ```
 
-In another terminal, test the health endpoint:
+CI uploads coverage to Codecov as separate `backend`, `frontend`, and `shared` flags. Local coverage runs do not require a `CODECOV_TOKEN`: This token is only stored in the GitHub repository.
+
+### Run package-specific checks
 
 ```bash
-curl http://localhost:4000/health
+pnpm docker:typecheck:backend
+pnpm docker:test:backend
+pnpm docker:build:backend
 ```
 
-Expected result:
+> Similar package-specific commands exist for frontend and shared packages.
 
-```json
-{
-  "app": "Insightful Phish",
-  "api": "working",
-  "database": "connected",
-  "timestamp": "..."
-}
-```
+### Run backend integration tests
 
-If the database is not running, the endpoint may return:
+Backend integration tests use a dedicated local test database named `insightful_phish_test`.
 
-```json
-{
-  "app": "Insightful Phish",
-  "api": "working",
-  "database": "not connected",
-  "timestamp": "..."
-}
-```
-
-In that case, start PostgreSQL with:
+Run them through Docker:
 
 ```bash
-docker compose up -d
+pnpm docker:test:integration:backend
 ```
 
-## 11. Run the frontend
+This command creates the test database (if it is missing), applies committed migration to it, and runs the backend integration tests.
 
-Create the frontend environment file:
+It does not drop or reset the test database. The integration test setup safely handles each table before each test.
+
+### Run frontend e2e tests
+
+Frontend browser smoke tests live in `apps/frontend/tests/e2e`.
+
+The current e2e test suite are intentionally small and has not been updated to work with Docker yet.
+
+- `/login` smoke coverage
+- `/status` smoke coverage with mocked health data
+- one axe accessibility check on `/login`
+
+Before running the browser tests for the first time, install the Chromium browser used by Playwright:
 
 ```bash
-cp apps/frontend/.env.example apps/frontend/.env
+pnpm --filter @insightful-phish/frontend test:e2e:install
 ```
 
-Start the frontend:
+From the repo root, run the frontend browser smoke tests with:
 
 ```bash
-pnpm --filter @insightful-phish/frontend dev
+pnpm test:e2e:frontend
 ```
 
-The frontend should run at:
-
-```txt
-http://localhost:5173
-```
-
-Open that URL in your browser.
-
-Verify the app loads and points at the local backend URL from [apps/frontend/.env](apps/frontend/.env).
-
-Where the current frontend supports it, log in with the seeded Demo 1 trainee credentials from [apps/backend/SEEDING.md](apps/backend/SEEDING.md) and verify the populated trainee can reach seeded campaign-based content.
-
-The backend health endpoint remains available at:
-
-```txt
-http://localhost:4000/health
-```
-
-The backend checks PostgreSQL through Prisma and returns the database status.
-
-## 12. Demo 1 local readiness checklist
-
-Before a local Demo 1 rehearsal, verify:
-
-- PostgreSQL is running with `docker compose ps`.
-- Committed migrations have been applied with `pnpm --filter @insightful-phish/backend prisma:migrate:deploy`.
-- The Demo 1 seed ran successfully with `DEMO_SEED_PASSWORD` set.
-- The backend responds at `http://localhost:4000/health`.
-- The frontend starts at `http://localhost:5173`.
-- `demo.populated.trainee@example.com` can log in with the local `DEMO_SEED_PASSWORD`.
-- The populated trainee can see both seeded campaigns where campaign discovery is supported.
-- `demo.empty.trainee@example.com` can log in and show the intended empty state where the current frontend supports it.
-- Seeded campaign-based content is reachable through the current app or APIs where implemented.
-- If UI/API verification is not wired yet, use Prisma Studio to inspect `Campaign`, `CampaignItem`, `CampaignAssignment`, `Simulation`, and `SimulatedInbox`.
-- Current setup docs do not require `LearningPath`, `TrainingModule`, `TrainingProgress`, or user-owned inbox assumptions.
-
-## 13. Running checks
-
-Run all workspace checks from the repo root.
-
-### Typecheck everything
-
-```bash
-pnpm typecheck
-```
-
-This checks TypeScript across the workspace.
-
-### Test everything
-
-```bash
-pnpm test
-```
-
-This runs tests in all workspace packages.
-
-### Run test coverage
-
-```bash
-pnpm test:coverage
-```
-
-This runs tests and generates coverage reports for all workspace packages. Reports are generated in `apps/backend/coverage/` and `apps/frontend/coverage/`.
-
-### Build everything
-
-```bash
-pnpm build
-```
-
-This checks that all packages can build successfully.
-
-### Run backend-only checks
-
-```bash
-pnpm --filter @insightful-phish/backend typecheck
-pnpm --filter @insightful-phish/backend test
-pnpm --filter @insightful-phish/backend build
-```
-
-For backend integration tests that use the dedicated test database, see [apps/backend/TESTING.md](apps/backend/TESTING.md).
-
-### Run frontend-only checks
-
-```bash
-pnpm --filter @insightful-phish/frontend typecheck
-pnpm --filter @insightful-phish/frontend test
-pnpm --filter @insightful-phish/frontend build
-```
-
-## 14. GitHub Actions CI
-
-The project has a CI workflow in:
-
-```txt
-.github/workflows/ci.yml
-```
-
-The workflow runs only on pull requests targeting `main`, and can also be started manually from GitHub.
-
-It runs:
-
-```bash
-pnpm install --frozen-lockfile
-pnpm --filter @insightful-phish/backend prisma:generate
-pnpm --filter @insightful-phish/backend prisma:migrate:deploy
-pnpm typecheck
-pnpm test
-pnpm build
-```
-
-### What this means
-
-`pnpm install --frozen-lockfile` installs dependencies exactly as recorded in `pnpm-lock.yaml`.
-
-`prisma:generate` regenerates the ignored Prisma Client in CI.
-
-`prisma migrate deploy` applies committed migrations to the temporary CI database.
-
-`pnpm typecheck` checks TypeScript.
-
-`pnpm test` runs tests.
-
-`pnpm build` ensures the repo builds successfully.
-
-The CI workflow starts a temporary PostgreSQL service during the run. That database is deleted after the CI job finishes.
-
-## 15. Common issues
-
-### `DATABASE_URL` is missing
-
-If Prisma says `Missing required environment variable: DATABASE_URL`, create the backend `.env` file:
-
-```bash
-cp apps/backend/.env.example apps/backend/.env
-```
-
-Then rerun the Prisma command.
-
-### PostgreSQL is not connected
-
-Check whether Docker is running:
-
-```bash
-docker compose ps
-```
-
-Start PostgreSQL:
-
-```bash
-docker compose up -d
-```
-
-Check logs:
-
-```bash
-docker compose logs postgres
-```
-
-### Prisma generated files appear in Git
-
-Generated Prisma Client files should not be committed.
-
-Check:
-
-```bash
-git status --short
-```
-
-If `apps/backend/src/generated/prisma` appears, make sure `.gitignore` includes:
-
-```gitignore
-apps/backend/src/generated/prisma
-```
-
-### Commit blocked because docs and code are mixed
-
-Split the commit.
-
-Example:
-
-```txt
-docs: update setup instructions
-chore: update backend tooling
-```
-
-Do not commit `.md` files together with code/config files. Remember to push the first commit before creating the second commit, to ensure Hyperperform tracks them as separate commits.
-
-### Commit message rejected
-
-Use this format:
-
-```txt
-<type>: <description>
-```
-
-Allowed:
-
-```txt
-feat: add user authentication
-fix: correct database health check
-docs: update setup instructions
-chore: add backend health check
-```
-
-Not allowed:
-
-```txt
-feat(auth): add login
-update stuff
-final changes
-```
-
-## 16. Normal development workflow
-
-A typical local development session looks like this:
-
-```bash
-git pull
-pnpm install
-docker compose up -d
-pnpm --filter @insightful-phish/backend prisma:generate
-pnpm --filter @insightful-phish/backend prisma:migrate:deploy
-pnpm --filter @insightful-phish/backend dev
-```
-
-In a second terminal:
-
-```bash
-pnpm --filter @insightful-phish/frontend dev
-```
-
-Before committing:
-
-```bash
-pnpm typecheck
-pnpm test
-pnpm build
-git status
-```
-
-Then stage and commit logically separated changes.
-
-## 17. Current local setup status
-
-At this stage, the project should support:
-
-- pnpm workspace installation
-- PostgreSQL through Docker Compose
-- Prisma 7 schema, config, generation, and committed migrations
-- local Demo 1 seeding for modular campaign-based trainee data
-- backend `/health` endpoint
-- backend and frontend local development servers
-- basic backend/frontend tests
-- Husky local checks
-- GitHub Actions CI for pull requests into `main`
+These checks are local-only. Docker setup will happen at a later stage.

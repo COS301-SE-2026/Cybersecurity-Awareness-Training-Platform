@@ -42,6 +42,8 @@ vi.mock('../../services/campaigns.service', () => ({
 }));
 
 const mockedGetSimulatedInbox = vi.mocked(getSimulatedInbox);
+const htmlLikePreview =
+  '<strong>Verify now</strong><script>window.hacked = true;</script><a href="javascript:alert(1)">link</a>';
 
 const inboxFixture: GetSimulatedInboxResponseDto = {
   emails: [
@@ -70,21 +72,7 @@ const inboxFixture: GetSimulatedInboxResponseDto = {
   ],
 };
 
-function createDeferred<T>() {
-  let resolve: (value: T) => void;
-  let reject: (reason?: unknown) => void;
-
-  const promise = new Promise<T>((promiseResolve, promiseReject) => {
-    resolve = promiseResolve;
-    reject = promiseReject;
-  });
-
-  return {
-    promise,
-    resolve: resolve!,
-    reject: reject!,
-  };
-}
+import { createDeferred } from '../../testing/render';
 
 describe('InboxPage', () => {
   beforeEach(() => {
@@ -161,5 +149,25 @@ describe('InboxPage', () => {
 
     expect(await screen.findByText('FAILED TO LOAD INBOX')).toBeInTheDocument();
     expect(mockedGetSimulatedInbox).not.toHaveBeenCalled();
+  });
+
+  it('keeps inbox previews as plain text when preview contains HTML-like content', async () => {
+    mockedGetSimulatedInbox.mockResolvedValue({
+      emails: [
+        {
+          ...inboxFixture.emails[0],
+          preview: htmlLikePreview,
+        },
+      ],
+    });
+
+    render(<InboxPage />);
+
+    const row = await screen.findByRole('button', { name: /finance team/i });
+
+    expect(row.textContent).toContain(htmlLikePreview);
+    expect(row.querySelector('strong')).not.toBeInTheDocument();
+    expect(row.querySelector('script')).not.toBeInTheDocument();
+    expect(row.querySelector('a')).not.toBeInTheDocument();
   });
 });

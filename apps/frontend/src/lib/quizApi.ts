@@ -1,8 +1,4 @@
-const DEFAULT_API_BASE_URL = 'http://localhost:3000';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') ?? DEFAULT_API_BASE_URL;
-
-const TOKEN_STORAGE_KEYS = ['authToken', 'accessToken', 'token'];
+import { apiClient } from './apiClient';
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
@@ -11,63 +7,16 @@ type QuizApiRequestOptions = {
   body?: unknown;
 };
 
-class QuizApiError extends Error {
-  status: number;
-  details: unknown;
-
-  constructor(message: string, status: number, details?: unknown) {
-    super(message);
-    this.name = 'QuizApiError';
-    this.status = status;
-    this.details = details;
-  }
-}
-
-function getExistingAuthToken(): string | null {
-  for (const key of TOKEN_STORAGE_KEYS) {
-    const token = localStorage.getItem(key);
-
-    if (token) {
-      return token;
-    }
-  }
-
-  return null;
-}
-
 async function quizApiRequest<T>(path: string, options: QuizApiRequestOptions = {}): Promise<T> {
   const { method = 'GET', body } = options;
-  const token = getExistingAuthToken();
-  const hasBody = body !== undefined;
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  return apiClient.request<T>(path, {
     method,
+    body,
     headers: {
       Accept: 'application/json',
-      ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
-    body: hasBody ? JSON.stringify(body) : undefined,
   });
-
-  const contentType = response.headers.get('content-type');
-  const payload = contentType?.includes('application/json')
-    ? await response.json()
-    : await response.text();
-
-  if (!response.ok) {
-    const message =
-      typeof payload === 'object' &&
-      payload !== null &&
-      'message' in payload &&
-      typeof payload.message === 'string'
-        ? payload.message
-        : `Quiz request failed with status ${response.status}`;
-
-    throw new QuizApiError(message, response.status, payload);
-  }
-
-  return payload as T;
 }
 
 export type QuizOption = {

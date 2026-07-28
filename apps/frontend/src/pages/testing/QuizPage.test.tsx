@@ -20,21 +20,7 @@ const mockedSubmitQuizAttempt = vi.mocked(submitQuizAttempt);
 const campaignItemId = '33333333-3333-4333-8333-333333333334';
 const attemptId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 
-function createDeferred<T>() {
-  let resolve: (value: T) => void;
-  let reject: (reason?: unknown) => void;
-
-  const promise = new Promise<T>((promiseResolve, promiseReject) => {
-    resolve = promiseResolve;
-    reject = promiseReject;
-  });
-
-  return {
-    promise,
-    resolve: resolve!,
-    reject: reject!,
-  };
-}
+import { createDeferred } from '../../testing/render';
 
 const quizFixture = {
   id: '55555555-5555-4555-8555-555555555551',
@@ -181,7 +167,7 @@ describe('QuizPage', () => {
     expect(mockedSubmitQuizAttempt).not.toHaveBeenCalled();
   });
 
-  it('allows learners to select answers and updates progress text', async () => {
+  it('allows trainees to select answers and updates progress text', async () => {
     const user = userEvent.setup();
 
     renderQuizPage();

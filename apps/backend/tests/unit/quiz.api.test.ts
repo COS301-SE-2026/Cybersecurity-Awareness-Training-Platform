@@ -2,7 +2,7 @@ import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../../src/app.js';
 import { generateAuthToken } from '../../src/services/auth-token.service.js';
-import { clearAuthRateLimitStore } from '../../src/middleware/authRateLimit.js';
+import { clearApiRateLimitStore } from '../../src/middleware/apiRateLimit.js';
 
 const mockPrisma = vi.hoisted(() => {
   const mockTx = {
@@ -23,6 +23,13 @@ const mockPrisma = vi.hoisted(() => {
 
 vi.mock('../../src/lib/prisma.js', () => ({
   prisma: mockPrisma,
+}));
+
+vi.mock('../../src/services/auth-session.service.js', () => ({
+  validateAuthSession: vi.fn().mockImplementation(async (args: { sessionId: string }) => ({
+    state: 'ACTIVE',
+    session: { id: args.sessionId, userId: 'trainee-user-id' },
+  })),
 }));
 
 const campaignItemId = '11111111-1111-1111-1111-111111111111';
@@ -143,11 +150,11 @@ function mockBoundedMultipleChoiceQuizAttempt(min: number, max: number, status =
 }
 
 describe('Quiz API Routes', () => {
-  const token = generateAuthToken('trainee-user-id').token;
+  const token = generateAuthToken('trainee-user-id', 'session-123').token;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
-    clearAuthRateLimitStore();
+    await clearApiRateLimitStore();
 
     mockPrisma.user.findUnique.mockResolvedValue({
       id: 'trainee-user-id',
@@ -157,6 +164,16 @@ describe('Quiz API Routes', () => {
       userType: 'ORGANISATION_TRAINEE',
       authStatus: 'ACTIVE',
       createdAt: new Date(),
+      traineeProfile: {
+        traineeStatus: 'ACTIVE',
+        organisationTraineeProfile: {
+          membershipStatus: 'ACTIVE',
+          organisation: {
+            id: 'mock-org',
+            status: 'ACTIVE',
+          },
+        },
+      },
     });
 
     mockPrisma.traineeProfile.findUnique.mockResolvedValue({

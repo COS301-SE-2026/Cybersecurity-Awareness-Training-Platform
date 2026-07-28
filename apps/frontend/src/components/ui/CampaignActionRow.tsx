@@ -1,11 +1,11 @@
 import { KeyboardArrowRight, LockOutlined } from '@mui/icons-material';
 
 type CampaignActionRowProps = {
-  title: string;
-  status: string;
-  disabled?: boolean;
-  showLockIcon?: boolean;
-  onClick?: () => void;
+  readonly title: string;
+  readonly status: string;
+  readonly disabled?: boolean;
+  readonly showLockIcon?: boolean;
+  readonly onClick?: () => void;
 };
 
 function CampaignActionRow({
@@ -16,17 +16,23 @@ function CampaignActionRow({
   onClick,
 }: CampaignActionRowProps) {
   return (
-    <div
+    <button
       onClick={!disabled ? onClick : undefined}
+      disabled={disabled}
+      type="button"
       style={{
-        backgroundColor: disabled ? 'rgba(40, 0, 60, 0.55)' : 'rgba(49, 0, 90, 0.55)',
-        opacity: disabled ? 0.72 : 1,
+        backgroundColor: disabled ? 'rgba(40, 0, 60, 0.54)' : 'rgba(49, 0, 90, 0.54)',
+        opacity: disabled ? 0.71 : 1,
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: '1.2rem 1.6rem',
+        padding: '1.21rem 1.61rem',
         cursor: disabled ? 'not-allowed' : 'pointer',
         transition: '0.2s ease',
+        border: 'none',
+        width: '100%',
+        textAlign: 'left',
+        boxSizing: 'border-box',
       }}
     >
       {/* LEFT SIDE */}
@@ -83,7 +89,7 @@ function CampaignActionRow({
           />
         )}
       </div>
-    </div>
+    </button>
   );
 }
 

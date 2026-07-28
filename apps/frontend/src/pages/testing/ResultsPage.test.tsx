@@ -1,12 +1,11 @@
-import '@testing-library/jest-dom/vitest';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ResultsPage from '../ResultsPage';
 import { getQuizResult } from '../../lib/quizApi';
 import type { QuizResult } from '../../lib/quizApi';
+import { renderWithRouter, createDeferred } from '../../testing/render';
 
 vi.mock('../../components/layout/AppLayout', () => ({
   default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
@@ -47,39 +46,16 @@ const resultFixture: QuizResult = {
   ],
 };
 
-function createDeferred<T>() {
-  let resolve: (value: T) => void;
-  let reject: (reason?: unknown) => void;
-
-  const promise = new Promise<T>((promiseResolve, promiseReject) => {
-    resolve = promiseResolve;
-    reject = promiseReject;
-  });
-
-  return {
-    promise,
-    resolve: resolve!,
-    reject: reject!,
-  };
-}
-
 function renderResultsPage() {
-  return render(
-    <MemoryRouter initialEntries={[`/quiz-attempts/${attemptId}/results`]}>
-      <Routes>
-        <Route path="/quiz-attempts/:attemptId/results" element={<ResultsPage />} />
-      </Routes>
-    </MemoryRouter>,
-  );
+  return renderWithRouter(<ResultsPage />, {
+    initialEntry: `/quiz-attempts/${attemptId}/results`,
+    routePath: '/quiz-attempts/:attemptId/results',
+  });
 }
 
 describe('ResultsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  afterEach(() => {
-    cleanup();
   });
 
   it('shows a loading state before quiz results resolve', async () => {
@@ -97,7 +73,7 @@ describe('ResultsPage', () => {
     expect(await screen.findByRole('heading', { level: 1, name: /passed/i })).toBeInTheDocument();
   });
 
-  it('renders the learner score, feedback, and navigation back to the quiz', async () => {
+  it('renders the trainee score, feedback, and navigation back to the quiz', async () => {
     mockedGetQuizResult.mockResolvedValue(resultFixture);
 
     renderResultsPage();

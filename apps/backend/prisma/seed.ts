@@ -1,10 +1,43 @@
 import { prisma } from '../src/lib/prisma.js';
 import { seedDemoCore, type DemoSeedSummary } from './seed-data/demoSeedCore.js';
-import { getDemoSeedAuthEnvVarName } from './seed-data/demoSeedHelpers.js';
+import { seedAuthBootstrap, type AuthBootstrapSeedSummary } from './seed-data/authBootstrapSeed.js';
+import {
+  seedOrganisationAdminPermissions,
+  type OrganisationPermissionSeedSummary,
+} from './seed-data/organisationPermissionSeed.js';
+import {
+  ensureDefaultOrganisationSecuritySettingsForAllOrganisations,
+  type OrganisationSecuritySettingsSeedSummary,
+} from '../src/repositories/security-settings.repository.js';
 
 async function seedDemo1(): Promise<void> {
   const summary = await seedDemoCore(prisma);
   printDemoSeedSummary(summary);
+}
+
+function printAuthBootstrapSeedSummary(summary: AuthBootstrapSeedSummary): void {
+  if (summary.skipped) {
+    console.log(`Auth bootstrap skipped: ${summary.reason}`);
+    return;
+  }
+
+  const action = summary.created ? 'created' : 'updated';
+  console.log(`Auth bootstrap ${action} SUPER_ADMIN user: ${summary.email}`);
+  console.log('Sensitive credential values are not printed.');
+}
+
+function printOrganisationPermissionSeedSummary(summary: OrganisationPermissionSeedSummary): void {
+  console.log(
+    `Organisation admin permissions seeded for ${summary.organisationCount} organisations: ${summary.permissionCount} permission records, ${summary.initialAdminGrantCount} initial-admin grants.`,
+  );
+}
+
+function printOrganisationSecuritySettingsSeedSummary(
+  summary: OrganisationSecuritySettingsSeedSummary,
+): void {
+  console.log(
+    `Organisation security settings ensured for ${summary.organisationCount} organisations: ${summary.createdSettingsCount} settings records created.`,
+  );
 }
 
 function printDemoSeedSummary(summary: DemoSeedSummary): void {
@@ -15,8 +48,8 @@ function printDemoSeedSummary(summary: DemoSeedSummary): void {
     console.log(`- ${user.label}: ${user.email} (${user.role})`);
   }
 
-  console.log(`Demo-only password source: ${getDemoSeedAuthEnvVarName()}`);
-  console.log('No password hashes printed.');
+  console.log('Demo-only credential source environment variable was used.');
+  console.log('Sensitive credential values are not printed.');
   console.log('Seeded assigned campaigns:');
   for (const campaign of summary.assignedCampaigns) {
     const lockedItemNote =
@@ -30,10 +63,31 @@ function printDemoSeedSummary(summary: DemoSeedSummary): void {
   );
 }
 
+function isExpectedSeedConfigError(error: unknown): error is Error {
+  return (
+    error instanceof TypeError && error.message.includes('before running the Demo 1 seed command')
+  );
+}
+
 try {
+  const authBootstrapSummary = await seedAuthBootstrap(prisma);
+  printAuthBootstrapSeedSummary(authBootstrapSummary);
+
+  const organisationPermissionSummary = await seedOrganisationAdminPermissions(prisma);
+  printOrganisationPermissionSeedSummary(organisationPermissionSummary);
+
+  const organisationSecuritySettingsSummary =
+    await ensureDefaultOrganisationSecuritySettingsForAllOrganisations(prisma);
+  printOrganisationSecuritySettingsSeedSummary(organisationSecuritySettingsSummary);
+
   await seedDemo1();
 } catch (error: unknown) {
-  console.error(error);
+  if (isExpectedSeedConfigError(error)) {
+    console.error('Demo 1 seed failed because a required local seed credential is missing.');
+  } else {
+    console.error('Seed failed before completion.');
+  }
+
   process.exitCode = 1;
 } finally {
   await prisma.$disconnect();

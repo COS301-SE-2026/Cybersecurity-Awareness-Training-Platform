@@ -16,13 +16,26 @@ import type {
 
 export type TraineeStatusDto = 'ACTIVE' | 'INACTIVE';
 
-export type OrganisationUserStatusDto = 'ACTIVE' | 'INACTIVE';
+export type OrganisationTraineeMembershipStatusDto = 'ACTIVE' | 'INACTIVE';
 
-export type AdminStatusDto = 'ACTIVE' | 'INACTIVE';
+export type AdminStatusDto = 'ACTIVE' | 'DISABLED';
+
+export type OrganisationPermissionKeyDto =
+  | 'VIEW_ORGANISATION_ADMINS'
+  | 'INVITE_ORGANISATION_ADMINS'
+  | 'REMOVE_ORGANISATION_ADMINS'
+  | 'CHANGE_ORGANISATION_ADMIN_PERMISSIONS'
+  | 'CHANGE_ORGANISATION_SECURITY_SETTINGS';
 
 export type GeneralTraineeAccessSourceDto = 'SELF_SIGNUP' | 'INVITE' | 'SEED' | 'ADMIN_CREATED';
 
-export type OrganisationStatusDto = 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';
+export type OrganisationStatusDto =
+  | 'PENDING_ONBOARDING'
+  | 'ACTIVE'
+  | 'INACTIVE'
+  | 'SUSPENDED'
+  | 'DISABLED'
+  | 'ARCHIVED';
 
 export type OrganisationContextTypeDto =
   | 'LOGO'
@@ -115,7 +128,10 @@ export interface OrganisationTraineeProfileDto {
   organisationId: string;
   employeeLabel?: string | null;
   joinedAt: string;
-  organisationUserStatus: OrganisationUserStatusDto;
+  membershipStatus: OrganisationTraineeMembershipStatusDto;
+  createdFromInvitationId?: string | null;
+  disabledAt?: string | null;
+  disabledReason?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -126,8 +142,40 @@ export interface OrganisationAdminProfileDto {
   organisationId: string;
   adminStatus: AdminStatusDto;
   joinedAt: string;
+  isInitialAdmin: boolean;
+  createdFromInvitationId?: string | null;
+  disabledAt?: string | null;
+  disabledReason?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface OrganisationPermissionDto {
+  id: string;
+  organisationId: string;
+  key: OrganisationPermissionKeyDto;
+  displayName: string;
+  description?: string | null;
+  isCritical: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OrganisationAdminPermissionDto {
+  id: string;
+  organisationId: string;
+  organisationAdminId: string;
+  organisationPermissionId: string;
+  grantedAt: string;
+  grantedByOrganisationAdminId?: string | null;
+}
+
+export interface InvitationPermissionGrantDto {
+  id: string;
+  organisationId: string;
+  invitationId: string;
+  organisationPermissionId: string;
+  createdAt: string;
 }
 
 export interface IpAdminProfileDto {
@@ -142,6 +190,33 @@ export interface OrganisationDto {
   id: string;
   name: string;
   status: OrganisationStatusDto;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OrganisationSecuritySettingsDto {
+  id: string;
+  organisationId: string;
+  enforceRememberMePolicy: boolean;
+  allowRememberMe: boolean;
+  maxRememberedSessionHours?: number | null;
+  enforceRegularSessionLength: boolean;
+  regularSessionLengthHours?: number | null;
+  enforceIdleTimeout: boolean;
+  idleTimeoutMinutes?: number | null;
+  requireReauthenticationForSensitiveActions: boolean;
+  allowTraineeEmailChange: boolean;
+  updatedByOrganisationAdminId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UserSecurityPreferencesDto {
+  id: string;
+  userId: string;
+  preferredRegularSessionLengthHours?: number | null;
+  preferredRememberMeSessionLengthHours?: number | null;
+  preferredIdleTimeoutMinutes?: number | null;
   createdAt: string;
   updatedAt: string;
 }

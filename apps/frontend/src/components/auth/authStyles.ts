@@ -18,5 +18,4 @@ export const authPrimaryButtonStyle = {
   fontFamily: 'Jost',
   fontWeight: 400,
   letterSpacing: '0.02em',
-  textTransform: 'uppercase',
 } satisfies CSSProperties;

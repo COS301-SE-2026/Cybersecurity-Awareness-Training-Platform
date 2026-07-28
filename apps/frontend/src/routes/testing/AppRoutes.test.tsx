@@ -1,9 +1,9 @@
-import '@testing-library/jest-dom/vitest';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
-import { MemoryRouter, useLocation } from 'react-router-dom';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { useLocation } from 'react-router-dom';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { renderWithRouter } from '../../testing/render';
 
 vi.mock('../../App', () => ({
   StatusPage: () => <h1>Status Page</h1>,
@@ -75,13 +75,24 @@ vi.mock('../../pages/ResultsPage', () => ({
   default: () => <h1>Quiz Results</h1>,
 }));
 
+vi.mock('../../pages/SetupPage', () => ({
+  default: () => <h1>Complete Setup</h1>,
+}));
+
+vi.mock('../../pages/VerifyEmailPage', () => ({
+  default: () => <h1>Verify Email</h1>,
+}));
+
+vi.mock('../../pages/ConfirmEmailChangePage', () => ({
+  default: () => <h1>Confirm Email Change</h1>,
+}));
+
 vi.mock('../../lib/campaignsApi', () => ({
   getTraineeCampaigns: vi.fn(),
   getTraineeCampaignDetail: vi.fn(),
 }));
 
 import AppRoutes from '../AppRoutes';
-import { AuthContext } from '../../context/auth-context';
 import { getTraineeCampaignDetail, getTraineeCampaigns } from '../../lib/campaignsApi';
 
 const mockedGetTraineeCampaigns = vi.mocked(getTraineeCampaigns);
@@ -105,27 +116,29 @@ function renderAppRoutes({
   initialEntry: string;
   isAuthenticated?: boolean;
 }) {
-  return render(
-    <AuthContext.Provider
-      value={{
+  return renderWithRouter(
+    <>
+      <LocationDisplay />
+      <AppRoutes />
+    </>,
+    {
+      initialEntry,
+      auth: {
         isAuthenticated,
         token: isAuthenticated ? 'demo-token' : null,
         user: isAuthenticated
           ? {
+              id: 'user-1',
               firstName: 'Jane',
               lastName: 'Doe',
               email: 'trainee@example.com',
+              userType: 'GENERAL_TRAINEE',
+              authStatus: 'ACTIVE',
+              createdAt: '2026-01-01T00:00:00.000Z',
             }
           : null,
-        login: vi.fn(),
-        logout: vi.fn(),
-      }}
-    >
-      <MemoryRouter initialEntries={[initialEntry]}>
-        <LocationDisplay />
-        <AppRoutes />
-      </MemoryRouter>
-    </AuthContext.Provider>,
+      },
+    },
   );
 }
 
@@ -157,13 +170,10 @@ describe('AppRoutes', () => {
     });
   });
 
-  afterEach(() => {
-    cleanup();
-  });
-
   it('renders the login screen at /login', async () => {
     renderAppRoutes({
       initialEntry: '/login',
+      isAuthenticated: false,
     });
 
     expect(
@@ -177,7 +187,40 @@ describe('AppRoutes', () => {
     });
 
     expect(
-      await screen.findByRole('heading', { level: 1, name: /^welcome$/i }),
+      await screen.findByRole('heading', { level: 1, name: /^Get Started$/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('renders the setup screen at /setup/token/:token', async () => {
+    renderAppRoutes({
+      initialEntry: '/setup/token/exampleSetupTokenValueWithAtLeast32Chars',
+      isAuthenticated: false,
+    });
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: /complete setup/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('renders the verify email screen at /verify-email', async () => {
+    renderAppRoutes({
+      initialEntry: '/verify-email?token=exampleVerificationTokenValueWithAtLeast32Chars',
+      isAuthenticated: false,
+    });
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: /verify email/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('renders the confirm email screen at /confirm-email-change', async () => {
+    renderAppRoutes({
+      initialEntry: '/confirm-email-change?token=exampleEmailChangeTokenValueWithAtLeast32Chars',
+      isAuthenticated: false,
+    });
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: /confirm email change/i }),
     ).toBeInTheDocument();
   });
 
@@ -302,5 +345,41 @@ describe('AppRoutes', () => {
     expect(
       await screen.findByRole('heading', { level: 1, name: /training document page/i }),
     ).toBeInTheDocument();
+  });
+
+  // unknown route redirects to '/'
+  it('redirects unknown routes to /', async () => {
+    renderAppRoutes({
+      initialEntry: '/not-a-real-route',
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('location-path')).toHaveTextContent('/');
+    });
+
+    expect(await screen.findByText(/DON'T TAKE THE BAIT/i)).toBeInTheDocument();
+  });
+
+  // unauthenticated users redirected to '/'
+  it('redirects unauthenticated users to the landing page', async () => {
+    renderAppRoutes({
+      initialEntry: '/campaigns',
+      isAuthenticated: false,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('location-path')).toHaveTextContent('/');
+    });
+  });
+
+  it('redirects authenticated users away from the login page', async () => {
+    renderAppRoutes({
+      initialEntry: '/login',
+      isAuthenticated: true,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('location-path')).toHaveTextContent('/campaigns');
+    });
   });
 });

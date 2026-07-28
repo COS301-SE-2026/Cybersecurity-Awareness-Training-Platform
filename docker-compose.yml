@@ -4,13 +4,123 @@ services:
     container_name: insightful-phish-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: insightful_phish
-      POSTGRES_PASSWORD: insightful_phish
-      POSTGRES_DB: insightful_phish_dev
+      POSTGRES_USER: ${POSTGRES_USER:-insightful_phish}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your local .env file or shell.}
+      POSTGRES_DB: ${POSTGRES_DB:-insightful_phish_dev}
     ports:
-      - '5432:5432'
+      - '${POSTGRES_PORT:-5432}:5432'
     volumes:
       - insightful_phish_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    container_name: insightful-phish-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: 4000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-insightful_phish}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your local .env file or shell.}@postgres:5432/${POSTGRES_DB:-insightful_phish_dev}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:5173}
+      SMTP_HOST: ${SMTP_HOST:-mailpit}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_FROM_ADDRESS: ${SMTP_FROM_ADDRESS:-noreply@insightful-phish.local}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Insightful Phish}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+    ports:
+      - '${BACKEND_PORT:-4000}:4000'
+    command: sh -c "pnpm prisma:migrate:deploy && pnpm start"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:4000}
+    container_name: insightful-phish-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - '${FRONTEND_PORT:-5173}:8080'
+
+  workspace:
+    build:
+      context: .
+      dockerfile: Dockerfile.workspace
+    working_dir: /workspace
+    profiles:
+      - tools
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      LOCAL_UID: ${LOCAL_UID:-1000}
+      LOCAL_GID: ${LOCAL_GID:-1000}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-insightful_phish}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your local .env file or shell.}@postgres:5432/${POSTGRES_DB:-insightful_phish_dev}
+      DEMO_SEED_PASSWORD: ${DEMO_SEED_PASSWORD:-}
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:4000}
+      TEST_DATABASE_URL: postgresql://${POSTGRES_USER:-insightful_phish}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your local .env file or shell.}@postgres:5432/insightful_phish_test
+      AUTH_BOOTSTRAP_SUPER_ADMIN_EMAIL: ${AUTH_BOOTSTRAP_SUPER_ADMIN_EMAIL:-}
+      AUTH_BOOTSTRAP_SUPER_ADMIN_PASSWORD: ${AUTH_BOOTSTRAP_SUPER_ADMIN_PASSWORD:-}
+      AUTH_BOOTSTRAP_SUPER_ADMIN_NAME: ${AUTH_BOOTSTRAP_SUPER_ADMIN_NAME:-}
+      SMTP_HOST: ${SMTP_HOST:-mailpit}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_FROM_ADDRESS: ${SMTP_FROM_ADDRESS:-noreply@insightful-phish.local}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Insightful Phish}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+    volumes:
+      - .:/workspace
+      - workspace_node_modules:/workspace/node_modules
+      - backend_node_modules:/workspace/apps/backend/node_modules
+      - frontend_node_modules:/workspace/apps/frontend/node_modules
+      - shared_node_modules:/workspace/packages/shared/node_modules
+    ports:
+      - '5555:5555'
+    command: sh
+
+  test-db-setup:
+    image: postgres:16-alpine
+    profiles:
+      - tools
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your local .env file or shell.}
+      POSTGRES_USER: ${POSTGRES_USER:-insightful_phish}
+      TEST_DATABASE_NAME: insightful_phish_test
+    command:
+      - sh
+      - -c
+      - |
+        psql -h postgres -U "$$POSTGRES_USER" -d postgres -tc "SELECT 1 FROM pg_database WHERE datname = '$$TEST_DATABASE_NAME'" | grep -q 1 || createdb -h postgres -U "$$POSTGRES_USER" "$$TEST_DATABASE_NAME"
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: insightful-phish-mailpit
+    restart: unless-stopped
+    ports:
+      - '${MAILPIT_SMTP_PORT:-1025}:1025'
+      - '${MAILPIT_WEB_PORT:-8025}:8025'
 
 volumes:
   insightful_phish_postgres_data:
+  workspace_node_modules:
+  backend_node_modules:
+  frontend_node_modules:
+  shared_node_modules:

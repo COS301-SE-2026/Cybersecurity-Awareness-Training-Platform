@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { StatusPage } from '../App';
 import LoginPage from '../pages/LoginPage';
 import RegisterPage from '../pages/RegisterPage';
@@ -9,12 +9,28 @@ import QuizPage from '../pages/QuizPage';
 import ResultsPage from '../pages/ResultsPage';
 import ProtectedRoute from './ProtectedRoute';
 import CampaignsPage from '../pages/CampaignsPage';
+import LandingPage from '../pages/LandingPage';
+import ForgotPasswordPage from '../pages/ForgotPasswordPage';
+import ResetPasswordPage from '../pages/ResetPasswordPage';
+import OrganisationRegistrationRequestPage from '../pages/OrganisationRegistrationRequestPage';
+import AccountManagementPage from '../pages/AccountManagementPage';
+import SetupPage from '../pages/SetupPage';
+import AcceptInvitePage from '../pages/AcceptInvitePage';
+import VerifyEmailPage from '../pages/VerifyEmailPage';
+import ConfirmEmailChangePage from '../pages/ConfirmEmailChangePage';
+import OrganisationInformationPage from '../pages/OrganisationInformationPage';
+import OrganisationSecuritySettingsPage from '../pages/OrganisationSecuritySettingsPage';
+import PlatformOrganisationManagementPage from '../pages/PlatformOrganisationManagementPage';
+import OrganisationTraineesPage from '../pages/OrganisationTraineesPage';
 
 function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/verify-email" element={<VerifyEmailPage />} />
+      <Route path="/confirm-email-change" element={<ConfirmEmailChangePage />} />
+      <Route path="/setup/token/:token" element={<SetupPage />} />
       <Route path="/status" element={<StatusPage />} />
       <Route element={<ProtectedRoute />}>
         <Route
@@ -35,7 +51,31 @@ function AppRoutes() {
         <Route path="/quizzes/:quizId" element={<QuizPage />} />
         <Route path="/quiz-attempts/:attemptId/results" element={<ResultsPage />} />
         <Route path="/campaigns" element={<CampaignsPage />} />
+
+        <Route path="/organisation-management" element={<PlatformOrganisationManagementPage />} />
+        <Route path="/organisation-trainees" element={<OrganisationTraineesPage />} />
       </Route>
+
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route
+        path="/organisation-registration-request"
+        element={<OrganisationRegistrationRequestPage />}
+      />
+
+      {/* Account Settings Route -- WILL PROBABLY NEED TO BE PROTECTED ROUTE */}
+      <Route path="/account-management" element={<AccountManagementPage />}></Route>
+
+      {/* ACCEPT INVITE ROUTE */}
+      <Route path="/accept-invite" element={<AcceptInvitePage />}></Route>
+
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/organisation-information" element={<OrganisationInformationPage />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route
+        path="/organisation-security-preferences"
+        element={<OrganisationSecuritySettingsPage />}
+      />
     </Routes>
   );
 }

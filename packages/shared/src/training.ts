@@ -2,6 +2,7 @@ import type { z } from 'zod';
 import type { SuccessResponseDto } from './common.js';
 import type {
   getTrainingDocumentRequestParamsSchema,
+  recordTrainingInteractionRequestSchema,
   recordTrainingInteractionRequestParamsSchema,
 } from './validation/training.schemas.js';
 
@@ -54,7 +55,9 @@ export type RecordTrainingInteractionRequestParamsDto = z.infer<
   typeof recordTrainingInteractionRequestParamsSchema
 >;
 
-export interface RecordTrainingInteractionRequestDto {}
+export type RecordTrainingInteractionRequestDto = z.infer<
+  typeof recordTrainingInteractionRequestSchema
+>;
 
 export interface RecordTrainingInteractionResponseDto extends SuccessResponseDto {
   campaignItemId: string;

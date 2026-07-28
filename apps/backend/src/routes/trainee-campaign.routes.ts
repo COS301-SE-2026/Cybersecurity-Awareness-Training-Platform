@@ -6,6 +6,7 @@ import {
 } from '../controllers/trainee-campaign.controller.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { validateParams } from '../middleware/validateRequest.js';
+import { asyncHandler } from '../middleware/asyncHandler.js';
 
 export const traineeCampaignRouter = Router();
 
@@ -28,7 +29,7 @@ export const traineeCampaignRouter = Router();
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-traineeCampaignRouter.get('/campaigns', requireAuth, listTraineeCampaigns);
+traineeCampaignRouter.get('/campaigns', requireAuth, asyncHandler(listTraineeCampaigns));
 
 /**
  * @openapi
@@ -59,5 +60,5 @@ traineeCampaignRouter.get(
   '/campaigns/:campaignId',
   requireAuth,
   validateParams(getTraineeCampaignRequestParamsSchema),
-  getTraineeCampaign,
+  asyncHandler(getTraineeCampaign),
 );

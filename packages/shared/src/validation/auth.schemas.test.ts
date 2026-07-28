@@ -1,8 +1,24 @@
 import { describe, expect, it } from 'vitest';
-import { authLoginRequestSchema, authRegisterRequestSchema } from './auth.schemas.js';
+import {
+  authLoginRequestSchema,
+  authRegisterRequestSchema,
+  setupCompleteRequestSchema,
+} from './auth.schemas.js';
 
 describe('auth validation schemas', () => {
-  const issueMessagesFor = (result: ReturnType<typeof authRegisterRequestSchema.safeParse>) => {
+  const registerIssueMessagesFor = (
+    result: ReturnType<typeof authRegisterRequestSchema.safeParse>,
+  ) => {
+    if (result.success) {
+      return [];
+    }
+
+    return result.error.issues.map((issue) => issue.message);
+  };
+
+  const setupIssueMessagesFor = (
+    result: ReturnType<typeof setupCompleteRequestSchema.safeParse>,
+  ) => {
     if (result.success) {
       return [];
     }
@@ -14,17 +30,21 @@ describe('auth validation schemas', () => {
     overrides: Partial<{
       email: string;
       password: string;
+      confirmPassword: string;
       firstName: string;
       lastName: string;
       role: string;
     }> = {},
-  ) => ({
-    email: 'trainee@example.com',
-    password: 'StrongerPass1!',
-    firstName: 'Jane',
-    lastName: 'Doe',
-    ...overrides,
-  });
+  ) => {
+    const input = {
+      email: 'trainee@example.com',
+      password: 'StrongerPass1!',
+      firstName: 'Jane',
+      lastName: 'Doe',
+      ...overrides,
+    };
+    return { ...input, confirmPassword: overrides.confirmPassword ?? input.password };
+  };
 
   const validLoginInput = (
     overrides: Partial<{
@@ -52,7 +72,20 @@ describe('auth validation schemas', () => {
       password: 'StrongerPass1!',
       firstName: 'Jane',
       lastName: 'Doe',
+      confirmPassword: 'StrongerPass1!',
     });
+  });
+
+  it('requires register password confurmation', () => {
+    const result = authRegisterRequestSchema.safeParse({
+      email: '  TRAINEE@EXAMPLE.COM  ',
+      password: 'StrongerPass1!',
+      firstName: ' Jane ',
+      lastName: ' Doe ',
+    });
+
+    expect(result.success).toBe(false);
+    expect(registerIssueMessagesFor(result)).toContain('Please confirm your password.');
   });
 
   it('rejects invalid register input', () => {
@@ -64,7 +97,7 @@ describe('auth validation schemas', () => {
     });
 
     expect(result.success).toBe(false);
-    expect(issueMessagesFor(result)).toEqual(
+    expect(registerIssueMessagesFor(result)).toEqual(
       expect.arrayContaining([
         'Please enter a valid email address.',
         'Please enter a first name.',
@@ -77,6 +110,29 @@ describe('auth validation schemas', () => {
     const result = authRegisterRequestSchema.safeParse(validRegisterInput({ role: 'IP_ADMIN' }));
 
     expect(result.success).toBe(false);
+  });
+
+  it('rejects register payloads with mismatched password confirmation', () => {
+    const result = authRegisterRequestSchema.safeParse({
+      ...validRegisterInput(),
+      confirmPassword: 'DifferentPass1!',
+    });
+
+    expect(result.success).toBe(false);
+    expect(registerIssueMessagesFor(result)).toContain(
+      'Password confirmation must match password.',
+    );
+  });
+
+  it('requires password confirmation for setup completion input', () => {
+    const result = setupCompleteRequestSchema.safeParse({
+      password: 'StrongerPass1!',
+      firstName: 'Jane',
+      lastName: 'Doe',
+    });
+
+    expect(result.success).toBe(false);
+    expect(setupIssueMessagesFor(result)).toContain('Please confirm your password.');
   });
 
   it.each([
@@ -106,7 +162,7 @@ describe('auth validation schemas', () => {
     const result = authRegisterRequestSchema.safeParse(validRegisterInput({ password }));
 
     expect(result.success).toBe(false);
-    expect(issueMessagesFor(result)).toContain(expectedMessage);
+    expect(registerIssueMessagesFor(result)).toContain(expectedMessage);
   });
 
   it('rejects register fields over maximum length', () => {
@@ -120,7 +176,7 @@ describe('auth validation schemas', () => {
     );
 
     expect(result.success).toBe(false);
-    expect(issueMessagesFor(result)).toEqual(
+    expect(registerIssueMessagesFor(result)).toEqual(
       expect.arrayContaining([
         'Email address must be at most 254 characters.',
         'Password must be at most 128 characters long',
@@ -175,9 +231,13 @@ describe('auth validation schemas', () => {
     }
   });
 
-  it('rejects login payloads with unexpected fields', () => {
+  it('accepts login payloads with rememberMe', () => {
     const result = authLoginRequestSchema.safeParse(validLoginInput({ rememberMe: true }));
+    expect(result.success).toBe(true);
+  });
 
+  it('rejects login payloads with other unexpected fields', () => {
+    const result = authLoginRequestSchema.safeParse({ ...validLoginInput(), role: 'IP_ADMIN' });
     expect(result.success).toBe(false);
   });
 });

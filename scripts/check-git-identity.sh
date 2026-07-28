@@ -12,7 +12,7 @@ ALLOWED_USERS=(
   "Adri4no098"
 )
 
-if [ -z "$GIT_NAME" ]; then
+if [[ -z "$GIT_NAME" ]]; then
   echo ""
   echo "Git identity check failed: Git user.name is not configured."
   echo ""
@@ -23,7 +23,7 @@ if [ -z "$GIT_NAME" ]; then
   exit 1
 fi
 
-if [ -z "$GIT_EMAIL" ]; then
+if [[ -z "$GIT_EMAIL" ]]; then
   echo ""
   echo "Git identity check failed: Git user.email is not configured."
   echo ""
@@ -34,9 +34,9 @@ if [ -z "$GIT_EMAIL" ]; then
   exit 1
 fi
 
-if [ "$GIT_NAME" = "your-github-username" ] || \
-   [ "$GIT_EMAIL" = "github@email.com" ] || \
-   [ "$GIT_EMAIL" = "your-github-email" ]; then
+if [[ "$GIT_NAME" = "your-github-username" ]] || \
+   [[ "$GIT_EMAIL" = "github@email.com" ]] || \
+   [[ "$GIT_EMAIL" = "your-github-email" ]]; then
 
   echo ""
   echo "Git identity check failed: Your Git identity still contains a placeholder value."
@@ -55,13 +55,13 @@ fi
 USER_ALLOWED=false
 
 for USER in "${ALLOWED_USERS[@]}"; do
-  if [ "$GIT_NAME" = "$USER" ]; then
+  if [[ "$GIT_NAME" = "$USER" ]]; then
     USER_ALLOWED=true
     break
   fi
 done
 
-if [ "$USER_ALLOWED" != true ]; then
+if [[ "$USER_ALLOWED" != true ]]; then
   echo ""
   echo "Git identity check failed: Git user.name must match one of the approved team GitHub usernames."
   echo ""
@@ -80,7 +80,7 @@ fi
 if command -v gh >/dev/null 2>&1; then
   GH_USER="$(gh api user --jq .login 2>/dev/null || true)"
 
-  if [ -n "$GH_USER" ] && [ "$GH_USER" != "$GIT_NAME" ]; then
+  if [[ -n "$GH_USER" ]] && [[ "$GH_USER" != "$GIT_NAME" ]]; then
     echo ""
     echo "Git identity check failed: Your GitHub CLI account does not match your local Git user.name."
     echo ""
