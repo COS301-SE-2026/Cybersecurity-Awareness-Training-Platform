@@ -25,6 +25,12 @@ const API_ERROR_CODE_MAP: Record<string, InvitationErrorType> = {
   ACCOUNT_ALREADY_EXISTS: 'RoleConflict',
 };
 
+const STATUS_ERROR_MAP: Record<string, InvitationErrorType> = {
+  EXPIRED: 'Expired',
+  REVOKED: 'Revoked',
+  USED: 'Already Used',
+};
+
 function mapErrorToType(error: unknown): InvitationErrorType {
   if (error instanceof ApiError) {
     if (error.status === 429) return 'RateLimited';
@@ -32,6 +38,13 @@ function mapErrorToType(error: unknown): InvitationErrorType {
     if (code && code in API_ERROR_CODE_MAP) {
       return API_ERROR_CODE_MAP[code];
     }
+  }
+  return 'Invalid';
+}
+
+function resolveStatusError(status?: string): InvitationErrorType {
+  if (status && status in STATUS_ERROR_MAP) {
+    return STATUS_ERROR_MAP[status];
   }
   return 'Invalid';
 }
@@ -87,18 +100,11 @@ function AcceptInvitePage() {
 
         setContext(data);
 
-        if (
-          data.requiredAction === 'TOKEN_UNAVAILABLE' ||
-          data.status === 'EXPIRED' ||
-          data.status === 'REVOKED' ||
-          data.status === 'USED' ||
-          data.status === 'REJECTED' ||
-          data.status === 'ACCEPTED'
-        ) {
-          if (data.status === 'EXPIRED') setErrorType('Expired');
-          else if (data.status === 'REVOKED') setErrorType('Revoked');
-          else if (data.status === 'USED') setErrorType('Already Used');
-          else setErrorType('Invalid');
+        const isTerminalStatus = ['EXPIRED', 'REVOKED', 'USED', 'REJECTED', 'ACCEPTED'].includes(
+          data.status,
+        );
+        if (data.requiredAction === 'TOKEN_UNAVAILABLE' || isTerminalStatus) {
+          setErrorType(resolveStatusError(data.status));
         }
       } catch (err) {
         if (!isMounted) return;

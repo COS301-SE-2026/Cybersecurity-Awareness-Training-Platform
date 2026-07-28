@@ -19,6 +19,42 @@ type AcceptInviteResultModalProps = Readonly<{
   onReauthenticate?: () => void;
 }>;
 
+function getErrorTitle(errorType?: InvitationErrorType): string {
+  if (errorType === 'RateLimited') return 'Invitation Rate Limited';
+  if (errorType === 'OrganisationSuspended') return 'Organisation Suspended';
+  if (errorType === 'RoleConflict') return 'Role Conflict';
+  return `Invitation ${errorType ?? 'Invalid'}`;
+}
+
+function renderErrorMessage(errorType?: InvitationErrorType) {
+  if (errorType === 'RateLimited') {
+    return (
+      <span>
+        You have made too many authentication attempts. Please wait a few seconds and try again.
+      </span>
+    );
+  }
+  if (errorType === 'OrganisationSuspended') {
+    return (
+      <span>
+        This invitation cannot be accepted because the organisation is currently suspended.
+      </span>
+    );
+  }
+  if (errorType === 'RoleConflict') {
+    return (
+      <span>This invitation cannot be accepted using your current account role configuration.</span>
+    );
+  }
+  return (
+    <span>
+      This <span className="font-semibold">invitation</span> is <strong>no longer valid</strong>{' '}
+      because it has either <em>expired</em>, <em>is invalid</em>, <em>has already been used</em>,
+      or <em>has been revoked</em>.
+    </span>
+  );
+}
+
 function AcceptInviteResultModal({
   isOpen,
   errorType,
@@ -94,13 +130,7 @@ function AcceptInviteResultModal({
             {/* HEADING */}
             {errorType && (
               <h3 className="font-jost text-3xl text-red-600 tracking-wider font-medium">
-                {errorType === 'RateLimited'
-                  ? 'Invitation Rate Limited'
-                  : errorType === 'OrganisationSuspended'
-                    ? 'Organisation Suspended'
-                    : errorType === 'RoleConflict'
-                      ? 'Role Conflict'
-                      : `Invitation ${errorType}`}
+                {getErrorTitle(errorType)}
               </h3>
             )}
 
@@ -120,29 +150,7 @@ function AcceptInviteResultModal({
             {/* SUB-HEADING */}
             {errorType && (
               <p className="font-overpass text-left text-regular text-[1.1rem] tracking-wider text-purple mb-8">
-                {errorType === 'RateLimited' ? (
-                  <span>
-                    You have made too many authentication attempts. Please wait a few seconds and
-                    try again.
-                  </span>
-                ) : errorType === 'OrganisationSuspended' ? (
-                  <span>
-                    This invitation cannot be accepted because the organisation is currently
-                    suspended.
-                  </span>
-                ) : errorType === 'RoleConflict' ? (
-                  <span>
-                    This invitation cannot be accepted using your current account role
-                    configuration.
-                  </span>
-                ) : (
-                  <span>
-                    This <span className="font-semibold">invitation</span> is{' '}
-                    <strong>no longer valid</strong> because it has either <em>expired</em>,{' '}
-                    <em>is invalid</em>, <em>has already been used</em>, or{' '}
-                    <em>has been revoked</em>.
-                  </span>
-                )}
+                {renderErrorMessage(errorType)}
               </p>
             )}
 
