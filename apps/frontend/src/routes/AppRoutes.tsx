@@ -55,6 +55,7 @@ function AppRoutes() {
 
         <Route path="/organisation-management" element={<PlatformOrganisationManagementPage />} />
         <Route path="/organisation-trainees" element={<OrganisationTraineesPage />} />
+        <Route path="/organisation-administrators" element={<OrganisationAdministratorsPage />} />
       </Route>
 
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -77,7 +78,6 @@ function AppRoutes() {
         path="/organisation-security-preferences"
         element={<OrganisationSecuritySettingsPage />}
       />
-      <Route path="/organisation-administrators" element={<OrganisationAdministratorsPage />} />
     </Routes>
   );
 }
