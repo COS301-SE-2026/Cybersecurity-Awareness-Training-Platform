@@ -150,6 +150,73 @@ describe('ResetPasswordPage', () => {
     expect(screen.queryByLabelText('New Password')).not.toBeInTheDocument();
   });
 
+  it('refreshes recovery eligibility when the token expires during submission', async () => {
+    const user = userEvent.setup();
+    const refreshedContextRequest = createDeferred<{
+      tokenState: 'EXPIRED';
+      canResend: true;
+      resendCooldownSeconds: number;
+      messageCode: string;
+      flow: 'PASSWORD_RESET';
+    }>();
+
+    getTokenContextMock
+      .mockResolvedValueOnce(validTokenContext)
+      .mockReturnValueOnce(refreshedContextRequest.promise);
+
+    resetPasswordMock.mockRejectedValueOnce(
+      createResetApiError(401, {
+        error: 'RESET_TOKEN_EXPIRED',
+        message: 'Raw backend wording',
+      }),
+    );
+
+    renderResetPasswordPage();
+
+    await screen.findByLabelText('New Password');
+    expect(getTokenContext).toHaveBeenCalledTimes(1);
+
+    await fillValidPasswords(user);
+    await user.click(screen.getByRole('button', { name: 'Reset Password' }));
+
+    expect(resetPassword).toHaveBeenCalledWith({
+      token: resetToken,
+      newPassword: validPassword,
+      confirmNewPassword: validPassword,
+    });
+
+    expect(await screen.findByText('This password reset link has expired.')).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(getTokenContext).toHaveBeenCalledTimes(2);
+    });
+    expect(getTokenContext).toHaveBeenNthCalledWith(2, resetToken);
+
+    expect(
+      screen.queryByRole('button', {
+        name: /send a new password reset link/i,
+      }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Raw backend wording')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('New Password')).not.toBeInTheDocument();
+
+    refreshedContextRequest.resolve({
+      tokenState: 'EXPIRED',
+      canResend: true,
+      resendCooldownSeconds: 35,
+      messageCode: 'TOKEN_EXPIRED',
+      flow: 'PASSWORD_RESET',
+    });
+
+    expect(
+      await screen.findByRole('button', {
+        name: 'Send a new password reset link (35s)',
+      }),
+    ).toBeDisabled();
+    expect(screen.queryByLabelText('New Password')).not.toBeInTheDocument();
+    expect(screen.getByText('This password reset link has expired.')).toBeInTheDocument();
+  });
+
   it('uses a safe terminal message when the linked account is disabled', async () => {
     const user = userEvent.setup();
     const unsafeBackendMessage = 'This account has been disabled.';

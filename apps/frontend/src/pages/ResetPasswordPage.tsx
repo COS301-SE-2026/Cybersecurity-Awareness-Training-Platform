@@ -243,6 +243,40 @@ function ResetPasswordFlow({ token }: ResetPasswordFlowProps) {
     return false;
   }
 
+  async function refreshExpiredRecovery() {
+    const requestId = ++contextRequestIdRef.current;
+
+    setCanResend(false);
+    setResendCooldownSeconds(0);
+    setResendFeedbackMessage(null);
+
+    try {
+      const context = await getTokenContext(token);
+
+      if (contextRequestIdRef.current !== requestId) return;
+
+      const hasValidCooldown =
+        typeof context.resendCooldownSeconds === 'number' &&
+        Number.isFinite(context.resendCooldownSeconds);
+
+      const isEligibleExpiredResetToken =
+        context.flow === 'PASSWORD_RESET' &&
+        context.tokenState === 'EXPIRED' &&
+        context.canResend === true &&
+        hasValidCooldown;
+
+      setCanResend(isEligibleExpiredResetToken);
+      setResendCooldownSeconds(
+        isEligibleExpiredResetToken ? Math.max(0, context.resendCooldownSeconds) : 0,
+      );
+    } catch {
+      if (contextRequestIdRef.current !== requestId) return;
+
+      setCanResend(false);
+      setResendCooldownSeconds(0);
+    }
+  }
+
   async function handleResend() {
     if (
       !token ||
@@ -367,6 +401,16 @@ function ResetPasswordFlow({ token }: ResetPasswordFlowProps) {
 
       if (error instanceof ApiError) {
         const code = getApiErrorCode(error);
+
+        if (code === 'RESET_TOKEN_EXPIRED') {
+          setCanResend(false);
+          setResendCooldownSeconds(0);
+          setTokenStatus('error');
+          setTokenErrorMessage(EXPIRED_TOKEN_MESSAGE);
+          void refreshExpiredRecovery();
+          return;
+        }
+
         const tokenMessage = getResetTokenErrorMessage(code);
 
         if (tokenMessage) {
