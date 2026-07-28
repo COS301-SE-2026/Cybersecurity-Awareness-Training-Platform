@@ -25,9 +25,27 @@ describe('AcceptInvitePage', () => {
 
     renderWithRouter(<AcceptInvitePage />, {
       initialEntry: `/accept-invite?token=${testToken}`,
-      auth: {},
+      auth: { isAuthLoading: false },
     });
 
+    expect(
+      screen.getByRole('heading', { name: /Validating Invitation\.\.\./i }),
+    ).toBeInTheDocument();
+  });
+
+  it('waits for isAuthLoading before loading context', async () => {
+    vi.spyOn(invitationService, 'getInvitationContext').mockResolvedValue({
+      requiredAction: 'LOGIN_REQUIRED',
+      rejectAllowed: true,
+      status: 'PENDING',
+    });
+
+    renderWithRouter(<AcceptInvitePage />, {
+      initialEntry: `/accept-invite?token=${testToken}`,
+      auth: { isAuthLoading: true },
+    });
+
+    expect(invitationService.getInvitationContext).not.toHaveBeenCalled();
     expect(
       screen.getByRole('heading', { name: /Validating Invitation\.\.\./i }),
     ).toBeInTheDocument();
@@ -43,7 +61,7 @@ describe('AcceptInvitePage', () => {
     renderWithRouter(<AcceptInvitePage />, {
       initialEntry: `/accept-invite?token=${testToken}`,
       routePath: '/accept-invite',
-      auth: {},
+      auth: { isAuthLoading: false },
     });
 
     await waitFor(() => {
@@ -61,7 +79,7 @@ describe('AcceptInvitePage', () => {
 
     renderWithRouter(<AcceptInvitePage />, {
       initialEntry: `/accept-invite?token=${testToken}`,
-      auth: { isAuthenticated: false, user: null },
+      auth: { isAuthenticated: false, user: null, isAuthLoading: false },
     });
 
     await waitFor(() => {
@@ -85,6 +103,7 @@ describe('AcceptInvitePage', () => {
       initialEntry: `/accept-invite?token=${testToken}`,
       auth: {
         isAuthenticated: true,
+        isAuthLoading: false,
         user: {
           id: 'u1',
           email: 'wronguser@example.com',
@@ -118,48 +137,46 @@ describe('AcceptInvitePage', () => {
     });
   });
 
-  it('renders CONFIRM_ROLE_CHANGE details and executes accept flow', async () => {
+  it('renders CONFIRM_ROLE_CHANGE details and executes accept flow with logout on REAUTHENTICATE', async () => {
     vi.spyOn(invitationService, 'getInvitationContext').mockResolvedValue({
       requiredAction: 'CONFIRM_ROLE_CHANGE',
       rejectAllowed: true,
       status: 'PENDING',
-      invitationType: 'ORGANISATION_ADMIN_PROMOTION',
-      roleGranted: 'ORGANISATION_ADMIN',
-      organisationName: 'CyberCorp (Pty) Ltd',
-      permissions: ['MANAGE_TRAINEES'],
+      invitationType: 'PLATFORM_ADMIN_UPGRADE',
+      roleGranted: 'PLATFORM_ADMIN',
     });
+
+    const logoutMock = vi.fn(async () => {});
 
     vi.spyOn(invitationService, 'acceptInvitation').mockResolvedValue({
       success: true,
       message: 'Invitation accepted successfully.',
-      roleGranted: 'ORGANISATION_ADMIN',
-      sessionOutcome: 'REFRESH_AUTH_CONTEXT',
+      roleGranted: 'PLATFORM_ADMIN',
+      sessionOutcome: 'REAUTHENTICATE',
     });
 
     renderWithRouter(<AcceptInvitePage />, {
       initialEntry: `/accept-invite?token=${testToken}`,
       auth: {
         isAuthenticated: true,
+        isAuthLoading: false,
         user: {
           id: 'u2',
           email: 'targetuser@example.com',
           firstName: 'Target',
           lastName: 'User',
-          userType: 'ORGANISATION_TRAINEE',
+          userType: 'GENERAL_TRAINEE',
           authStatus: 'ACTIVE',
           traineeProfile: null,
           adminProfile: null,
           createdAt: '2026-01-01T00:00:00.000Z',
         },
+        logout: logoutMock,
       },
     });
 
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: /^Accept Invitation$/i })).toBeInTheDocument();
-      expect(screen.getByText('CyberCorp (Pty) Ltd')).toBeInTheDocument();
-      expect(screen.getByText('Organisation Administrator')).toBeInTheDocument();
-      expect(screen.getByText('targetuser@example.com')).toBeInTheDocument();
-      expect(screen.getByText('MANAGE_TRAINEES')).toBeInTheDocument();
     });
 
     const acceptBtn = screen.getByRole('button', { name: /Accept Invite/i });
@@ -169,9 +186,11 @@ describe('AcceptInvitePage', () => {
       expect(invitationService.acceptInvitation).toHaveBeenCalledWith(testToken, {
         confirmRoleChange: true,
       });
+      expect(logoutMock).toHaveBeenCalled();
       expect(
         screen.getByRole('heading', { name: /Invitation Successfully Accepted/i }),
       ).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Proceed to Login/i })).toBeInTheDocument();
     });
   });
 
@@ -194,6 +213,7 @@ describe('AcceptInvitePage', () => {
       initialEntry: `/accept-invite?token=${testToken}`,
       auth: {
         isAuthenticated: true,
+        isAuthLoading: false,
         user: {
           id: 'u2',
           email: 'targetuser@example.com',
@@ -223,6 +243,52 @@ describe('AcceptInvitePage', () => {
     });
   });
 
+  it('renders clear message for ORGANISATION_SUSPENDED conflict error', async () => {
+    vi.spyOn(invitationService, 'getInvitationContext').mockRejectedValue(
+      new ApiError('Organisation suspended', {
+        status: 409,
+        statusText: 'Conflict',
+        method: 'GET',
+        url: '/context',
+        body: { error: 'ORGANISATION_SUSPENDED', message: 'Organisation is suspended.' },
+      }),
+    );
+
+    renderWithRouter(<AcceptInvitePage />, {
+      initialEntry: `/accept-invite?token=${testToken}`,
+      auth: { isAuthLoading: false },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Organisation Suspended/i })).toBeInTheDocument();
+      expect(screen.getByText(/organisation is currently suspended/i)).toBeInTheDocument();
+    });
+  });
+
+  it('renders clear message for ROLE_CONFLICT error', async () => {
+    vi.spyOn(invitationService, 'getInvitationContext').mockRejectedValue(
+      new ApiError('Role conflict', {
+        status: 409,
+        statusText: 'Conflict',
+        method: 'GET',
+        url: '/context',
+        body: { error: 'ROLE_CONFLICT', message: 'Incompatible role transition.' },
+      }),
+    );
+
+    renderWithRouter(<AcceptInvitePage />, {
+      initialEntry: `/accept-invite?token=${testToken}`,
+      auth: { isAuthLoading: false },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Role Conflict/i })).toBeInTheDocument();
+      expect(
+        screen.getByText(/cannot be accepted using your current account role configuration/i),
+      ).toBeInTheDocument();
+    });
+  });
+
   it('renders privacy-minimised error state when token is invalid or expired', async () => {
     vi.spyOn(invitationService, 'getInvitationContext').mockRejectedValue(
       new ApiError('Token expired', {
@@ -236,7 +302,7 @@ describe('AcceptInvitePage', () => {
 
     renderWithRouter(<AcceptInvitePage />, {
       initialEntry: `/accept-invite?token=${testToken}`,
-      auth: {},
+      auth: { isAuthLoading: false },
     });
 
     await waitFor(() => {

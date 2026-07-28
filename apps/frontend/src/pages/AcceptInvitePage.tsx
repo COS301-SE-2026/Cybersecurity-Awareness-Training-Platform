@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { InvitationContextResponseDto } from '@insightful-phish/shared';
-import AcceptInviteResultModal from '../components/layout/modals/AcceptInviteResultModal';
+import AcceptInviteResultModal, {
+  type InvitationErrorType,
+} from '../components/layout/modals/AcceptInviteResultModal';
 import InvitationRoleChangePanel from '../components/invitation/InvitationRoleChangePanel';
 import { useAuth } from '../context/useAuth';
 import { ApiError } from '../lib/apiClient';
@@ -11,13 +13,16 @@ import {
   rejectInvitation,
 } from '../services/invitation.service';
 
-type InvitationErrorType = 'Expired' | 'Invalid' | 'Revoked' | 'Already Used' | 'RateLimited';
-
 const API_ERROR_CODE_MAP: Record<string, InvitationErrorType> = {
   AUTH_RATE_LIMITED: 'RateLimited',
   INVITATION_EXPIRED: 'Expired',
   INVITATION_REVOKED: 'Revoked',
   TOKEN_USED: 'Already Used',
+  ORGANISATION_SUSPENDED: 'OrganisationSuspended',
+  ROLE_CONFLICT: 'RoleConflict',
+  ROLE_TRANSITION_CONFLICT: 'RoleConflict',
+  CROSS_ORGANISATION_CONFLICT: 'RoleConflict',
+  ACCOUNT_ALREADY_EXISTS: 'RoleConflict',
 };
 
 function mapErrorToType(error: unknown): InvitationErrorType {
@@ -37,7 +42,7 @@ function AcceptInvitePage() {
   const params = useParams<{ token?: string }>();
   const token = (searchParams.get('token') || params.token || '').trim();
 
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthLoading, token: authToken, logout } = useAuth();
 
   const [context, setContext] = useState<InvitationContextResponseDto | null>(null);
   const [isLoadingContext, setIsLoadingContext] = useState(true);
@@ -47,11 +52,19 @@ function AcceptInvitePage() {
   const [isResultModalOpen, setIsResultModalOpen] = useState(false);
   const [modalSuccess, setModalSuccess] = useState(false);
   const [modalDeclined, setModalDeclined] = useState(false);
+  const [modalSessionOutcome, setModalSessionOutcome] = useState<
+    'REFRESH_AUTH_CONTEXT' | 'REAUTHENTICATE' | undefined
+  >();
+  const [modalRoleGranted, setModalRoleGranted] = useState<string | undefined>();
 
   useEffect(() => {
     let isMounted = true;
 
     async function loadContext() {
+      if (isAuthLoading) {
+        return;
+      }
+
       if (!token) {
         if (isMounted) {
           setErrorType('Invalid');
@@ -102,12 +115,7 @@ function AcceptInvitePage() {
     return () => {
       isMounted = false;
     };
-  }, [token, isAuthenticated, navigate]);
-
-  const [modalSessionOutcome, setModalSessionOutcome] = useState<
-    'REFRESH_AUTH_CONTEXT' | 'REAUTHENTICATE' | undefined
-  >();
-  const [modalRoleGranted, setModalRoleGranted] = useState<string | undefined>();
+  }, [token, isAuthLoading, authToken, navigate]);
 
   async function handleAccept() {
     if (!token) return;
@@ -120,6 +128,14 @@ function AcceptInvitePage() {
       setModalRoleGranted(res.roleGranted);
       setErrorType(undefined);
       setIsResultModalOpen(true);
+
+      if (res.sessionOutcome === 'REAUTHENTICATE') {
+        try {
+          await logout();
+        } catch {
+          // Ignore error if session was already invalidated by backend
+        }
+      }
     } catch (err) {
       setErrorType(mapErrorToType(err));
       setModalSuccess(false);
@@ -155,14 +171,27 @@ function AcceptInvitePage() {
   }
 
   async function handleSwitchAccount() {
-    await logout();
+    try {
+      await logout();
+    } catch {
+      // Ignore logout error if session is invalid
+    }
     const returnPath = `/accept-invite?token=${encodeURIComponent(token)}`;
     navigate(`/login?redirectTo=${encodeURIComponent(returnPath)}`);
   }
 
+  async function handleReauthenticate() {
+    try {
+      await logout();
+    } catch {
+      // Ignore logout error if session is invalid
+    }
+    navigate('/login');
+  }
+
   let content = null;
 
-  if (isLoadingContext) {
+  if (isLoadingContext || isAuthLoading) {
     content = (
       <div className="w-full p-6 bg-white-purple shadow dark:border md:mt-0 sm:max-w-md dark:bg-gray-800 dark:border-gray-700 sm:p-8 text-center">
         <h3 className="font-jost text-3xl text-purple tracking-wider font-medium mb-4">
@@ -189,6 +218,42 @@ function AcceptInvitePage() {
         >
           Try Again
         </button>
+      </div>
+    );
+  } else if (errorType === 'OrganisationSuspended') {
+    content = (
+      <div className="w-full p-6 bg-white-purple shadow dark:border md:mt-0 sm:max-w-md dark:bg-gray-800 dark:border-gray-700 sm:p-8">
+        <h3 className="font-jost text-3xl text-red-600 tracking-wider font-medium mb-4">
+          Organisation Suspended
+        </h3>
+        <p className="font-overpass text-left text-regular text-[1.1rem] tracking-wider text-purple mb-8">
+          This invitation cannot be accepted because the organisation is currently suspended.
+        </p>
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 font-jost text-xl font-regular tracking-wide text-purple hover:text-purple cursor-pointer transition-colours"
+        >
+          <span className="material-icons-sharp">arrow_back</span>
+          <span>Back to Home Page</span>
+        </Link>
+      </div>
+    );
+  } else if (errorType === 'RoleConflict') {
+    content = (
+      <div className="w-full p-6 bg-white-purple shadow dark:border md:mt-0 sm:max-w-md dark:bg-gray-800 dark:border-gray-700 sm:p-8">
+        <h3 className="font-jost text-3xl text-red-600 tracking-wider font-medium mb-4">
+          Role Conflict
+        </h3>
+        <p className="font-overpass text-left text-regular text-[1.1rem] tracking-wider text-purple mb-8">
+          This invitation cannot be accepted using your current account role configuration.
+        </p>
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 font-jost text-xl font-regular tracking-wide text-purple hover:text-purple cursor-pointer transition-colours"
+        >
+          <span className="material-icons-sharp">arrow_back</span>
+          <span>Back to Home Page</span>
+        </Link>
       </div>
     );
   } else if (errorType || context?.requiredAction === 'TOKEN_UNAVAILABLE') {
@@ -223,7 +288,7 @@ function AcceptInvitePage() {
         <button
           type="button"
           onClick={handleLoginToContinue}
-          className="cursor-pointer w-full inline-flex items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm px-4 py-2.5 focus:outline-none"
+          className="cursor-pointer w-full inline-flex items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm px-4 py-2.5 focus:outline-none mb-4"
         >
           Log In to Continue
         </button>
@@ -240,32 +305,27 @@ function AcceptInvitePage() {
           and sign in with a different account to continue.
         </p>
         {user?.email && (
-          <div className="mb-6 p-4 bg-faint-purple border border-default">
-            <p className="font-jost text-sm font-medium text-dark-pink mb-1">
-              Currently signed in as:
-            </p>
-            <p className="font-google_sans_code text-base font-semibold text-pink tracking-wider">
-              {user.email}
-            </p>
+          <div className="mb-6 p-3 bg-faint-purple border border-default font-mono text-sm text-pink">
+            Currently signed in as: <strong className="block text-dark-pink">{user.email}</strong>
           </div>
         )}
         <button
           type="button"
           onClick={handleSwitchAccount}
-          className="cursor-pointer w-full inline-flex items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm px-4 py-2.5 focus:outline-none"
+          className="cursor-pointer w-full inline-flex items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm px-4 py-2.5 focus:outline-none mb-4"
         >
-          Sign Out &amp; Switch Account
+          Sign Out & Switch Account
         </button>
       </div>
     );
   } else if (context?.requiredAction === 'CONFIRM_ROLE_CHANGE') {
     content = (
       <InvitationRoleChangePanel
-        organisationName={context.organisationName}
-        grantedRole={context.roleGranted}
         invitationType={context.invitationType}
+        organisationName={context.organisationName}
+        roleGranted={context.roleGranted}
         permissions={context.permissions}
-        currentAccountEmail={user?.email}
+        currentEmail={user?.email}
         rejectAllowed={context.rejectAllowed}
         isSubmitting={isSubmitting}
         onAccept={handleAccept}
@@ -297,6 +357,7 @@ function AcceptInvitePage() {
           declined={modalDeclined}
           sessionOutcome={modalSessionOutcome}
           roleGranted={modalRoleGranted}
+          onReauthenticate={handleReauthenticate}
         />
 
         {content}

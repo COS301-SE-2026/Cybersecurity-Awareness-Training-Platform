@@ -1,6 +1,13 @@
 import { Link } from 'react-router-dom';
 
-type InvitationErrorType = 'Expired' | 'Invalid' | 'Revoked' | 'Already Used' | 'RateLimited';
+export type InvitationErrorType =
+  | 'Expired'
+  | 'Invalid'
+  | 'Revoked'
+  | 'Already Used'
+  | 'RateLimited'
+  | 'OrganisationSuspended'
+  | 'RoleConflict';
 
 type AcceptInviteResultModalProps = Readonly<{
   isOpen: boolean;
@@ -9,6 +16,7 @@ type AcceptInviteResultModalProps = Readonly<{
   declined?: boolean;
   sessionOutcome?: 'REFRESH_AUTH_CONTEXT' | 'REAUTHENTICATE';
   roleGranted?: string;
+  onReauthenticate?: () => void;
 }>;
 
 function AcceptInviteResultModal({
@@ -18,6 +26,7 @@ function AcceptInviteResultModal({
   declined,
   sessionOutcome,
   roleGranted,
+  onReauthenticate,
 }: AcceptInviteResultModalProps) {
   if (!isOpen) return null;
 
@@ -34,20 +43,30 @@ function AcceptInviteResultModal({
   if (success) {
     if (sessionOutcome === 'REAUTHENTICATE') {
       primaryAction = (
-        <Link
-          to="/login"
-          className="inline-flex items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple px-5 py-2.5 transition-colors"
+        <button
+          type="button"
+          onClick={onReauthenticate}
+          className="inline-flex items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple px-5 py-2.5 transition-colors cursor-pointer"
         >
           Proceed to Login
-        </Link>
+        </button>
       );
-    } else if (roleGranted === 'ORGANISATION_ADMIN') {
+    } else if (roleGranted === 'PLATFORM_ADMIN') {
       primaryAction = (
         <Link
           to="/organisation-management"
           className="inline-flex items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple px-5 py-2.5 transition-colors"
         >
-          Go to Organisation Management
+          Go to Platform Management
+        </Link>
+      );
+    } else if (roleGranted === 'ORGANISATION_ADMIN') {
+      primaryAction = (
+        <Link
+          to="/organisation-trainees"
+          className="inline-flex items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple px-5 py-2.5 transition-colors"
+        >
+          Go to Trainee Management
         </Link>
       );
     } else {
@@ -75,7 +94,13 @@ function AcceptInviteResultModal({
             {/* HEADING */}
             {errorType && (
               <h3 className="font-jost text-3xl text-red-600 tracking-wider font-medium">
-                Invitation {errorType === 'RateLimited' ? 'Rate Limited' : errorType}
+                {errorType === 'RateLimited'
+                  ? 'Invitation Rate Limited'
+                  : errorType === 'OrganisationSuspended'
+                    ? 'Organisation Suspended'
+                    : errorType === 'RoleConflict'
+                      ? 'Role Conflict'
+                      : `Invitation ${errorType}`}
               </h3>
             )}
 
@@ -100,6 +125,16 @@ function AcceptInviteResultModal({
                     You have made too many authentication attempts. Please wait a few seconds and
                     try again.
                   </span>
+                ) : errorType === 'OrganisationSuspended' ? (
+                  <span>
+                    This invitation cannot be accepted because the organisation is currently
+                    suspended.
+                  </span>
+                ) : errorType === 'RoleConflict' ? (
+                  <span>
+                    This invitation cannot be accepted using your current account role
+                    configuration.
+                  </span>
                 ) : (
                   <span>
                     This <span className="font-semibold">invitation</span> is{' '}
@@ -116,8 +151,8 @@ function AcceptInviteResultModal({
                 {sessionOutcome === 'REAUTHENTICATE' ? (
                   <span>
                     This invitation has been <strong>successfully accepted</strong>. Because your
-                    account was upgraded to a platform administrator, please log in again to
-                    activate your administrator session.
+                    account was upgraded, please log in again to activate your new administrator
+                    session.
                   </span>
                 ) : (
                   <span>
