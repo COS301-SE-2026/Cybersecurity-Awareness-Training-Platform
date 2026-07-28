@@ -1,0 +1,97 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in deploy/.env}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in deploy/.env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in deploy/.env}
+    volumes:
+      - deploy_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging:
+      options:
+        max-size: '10m'
+        max-file: '5'
+
+  backend:
+    image: ${BACKEND_IMAGE:?BACKEND_IMAGE is required}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 4000
+      DATABASE_URL: postgresql://${POSTGRES_USER:?Set POSTGRES_USER in deploy/.env}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in deploy/.env}@postgres:5432/${POSTGRES_DB:?Set POSTGRES_DB in deploy/.env}
+      AUTH_TOKEN_SECRET: ${AUTH_TOKEN_SECRET:? Set AUTH_TOKEN_SECRET in deploy/.env}
+      AUTH_TOKEN_EXPIRES_IN_SECONDS: ${AUTH_TOKEN_EXPIRES_IN_SECONDS:-28800}
+      AUTH_RATE_LIMIT_WINDOW_MS: ${AUTH_RATE_LIMIT_WINDOW_MS:-60000}
+      AUTH_RATE_LIMIT_MAX_REQUESTS: ${AUTH_RATE_LIMIT_MAX_REQUESTS:-5}
+      TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:-0}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:?Set FRONTEND_ORIGIN in deploy/.env}
+      SMTP_HOST: ${SMTP_HOST:?Set SMTP_HOST in deploy/.env}
+      SMTP_PORT: ${SMTP_PORT:?Set SMTP_PORT in deploy/.env}
+      SMTP_SECURE: ${SMTP_SECURE:?Set SMTP_SECURE in deploy/.env}
+      SMTP_FROM_ADDRESS: ${SMTP_FROM_ADDRESS:?Set SMTP_FROM_ADDRESS in deploy/.env}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:?Set SMTP_FROM_NAME in deploy/.env}
+      SUPPORT_EMAIL_ADDRESS: ${SUPPORT_EMAIL_ADDRESS:? Set SUPPORT_EMAIL_ADDRESS in deploy/.env}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+    ports:
+      - '127.0.0.1:${BACKEND_PORT:-4000}:4000'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:4000/health').then((response)=> process.exit(response.ok? 0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    logging:
+      options:
+        max-size: '10m'
+        max-file: '5'
+
+  backend-migrate:
+    image: ${BACKEND_IMAGE:?BACKEND_IMAGE is required}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:?Set POSTGRES_USER in deploy/.env}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in deploy/.env}@postgres:5432/${POSTGRES_DB:?Set POSTGRES_DB in deploy/.env}
+    command: ['pnpm', 'prisma:migrate:deploy']
+    restart: 'no'
+    profiles: ['migration']
+
+  frontend:
+    image: ${FRONTEND_IMAGE:?FRONTEND_IMAGE is required}
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - '127.0.0.1:${FRONTEND_PORT:-5173}:8080'
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -q -O /dev/null http://127.0.0.1:8080/ || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    logging:
+      options:
+        max-size: '10m'
+        max-file: '5'
+
+volumes:
+  deploy_postgres_data:
+    name: insightful_phish_deploy_postgres_data
