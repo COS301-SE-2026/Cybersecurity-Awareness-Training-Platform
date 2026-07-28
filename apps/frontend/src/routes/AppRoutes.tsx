@@ -32,6 +32,8 @@ function AppRoutes() {
       <Route path="/confirm-email-change" element={<ConfirmEmailChangePage />} />
       <Route path="/setup/token/:token" element={<SetupPage />} />
       <Route path="/status" element={<StatusPage />} />
+
+      {/* PROTECTED ROUTES */}
       <Route element={<ProtectedRoute />}>
         <Route
           path="/trainee/campaign-items/:campaignItemId/simulated-inbox"
@@ -43,15 +45,26 @@ function AppRoutes() {
           element={<EmailDetailPage />}
         />
 
-        {/* <Route path="/training/modules" element={<TrainingModulesPage />} /> */}
-
-        {/* <Route path="/training/modules/:trainingId" element={<TrainingDocumentPage />} /> */}
-
         <Route path="/training/:campaignItemId" element={<TrainingDocumentPage />} />
         <Route path="/quizzes/:quizId" element={<QuizPage />} />
         <Route path="/quiz-attempts/:attemptId/results" element={<ResultsPage />} />
         <Route path="/campaigns" element={<CampaignsPage />} />
 
+        {/* ORGANISATION DETAILS PROTECTED ROUTES */}
+        <Route path="/organisation-information" element={<OrganisationInformationPage />} />
+        <Route path="/organisation-information/:id" element={<OrganisationInformationPage />} />
+        <Route
+          path="/platform/organisations/:organisationId"
+          element={<OrganisationInformationPage />}
+        />
+        <Route
+          path="/platform/organisation-requests/:requestId"
+          element={<OrganisationInformationPage />}
+        />
+        <Route
+          path="/organisation-security-preferences"
+          element={<OrganisationSecuritySettingsPage />}
+        />
         <Route path="/organisation-management" element={<PlatformOrganisationManagementPage />} />
         <Route path="/organisation-trainees" element={<OrganisationTraineesPage />} />
       </Route>
@@ -63,19 +76,14 @@ function AppRoutes() {
         element={<OrganisationRegistrationRequestPage />}
       />
 
-      {/* Account Settings Route -- WILL PROBABLY NEED TO BE PROTECTED ROUTE */}
-      <Route path="/account-management" element={<AccountManagementPage />}></Route>
+      {/* Account Settings Route */}
+      <Route path="/account-management" element={<AccountManagementPage />} />
 
       {/* ACCEPT INVITE ROUTE */}
-      <Route path="/accept-invite" element={<AcceptInvitePage />}></Route>
+      <Route path="/accept-invite" element={<AcceptInvitePage />} />
 
       <Route path="/" element={<LandingPage />} />
-      <Route path="/organisation-information" element={<OrganisationInformationPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
-      <Route
-        path="/organisation-security-preferences"
-        element={<OrganisationSecuritySettingsPage />}
-      />
     </Routes>
   );
 }
