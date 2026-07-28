@@ -224,8 +224,8 @@
       "number": 260,
       "title": "feat: integrate organisation details page",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-07-28"
     },
     {
       "number": 259,
@@ -355,7 +355,7 @@
     },
     {
       "date": "2026-07-28",
-      "remaining": 56,
+      "remaining": 54,
       "ideal": 6.94
     }
   ]
