@@ -22,6 +22,7 @@ import OrganisationInformationPage from '../pages/OrganisationInformationPage';
 import OrganisationSecuritySettingsPage from '../pages/OrganisationSecuritySettingsPage';
 import PlatformOrganisationManagementPage from '../pages/PlatformOrganisationManagementPage';
 import OrganisationTraineesPage from '../pages/OrganisationTraineesPage';
+import OrganisationAdministratorsPage from '../pages/OrganisationAdministratorsPage';
 
 function AppRoutes() {
   return (
@@ -67,6 +68,7 @@ function AppRoutes() {
         />
         <Route path="/organisation-management" element={<PlatformOrganisationManagementPage />} />
         <Route path="/organisation-trainees" element={<OrganisationTraineesPage />} />
+        <Route path="/organisation-administrators" element={<OrganisationAdministratorsPage />} />
       </Route>
 
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
