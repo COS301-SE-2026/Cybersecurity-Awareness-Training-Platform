@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import ChangeEmailModal from './ChangeEmailModal';
 import ChangePasswordModal from './ChangePasswordModal';
-import DeleteAccountModal from './DeleteAccountModal';
 import BasicAlert from '../alerts/BasicAlert';
 import {
   type AccountProfileResponse,
@@ -23,7 +22,6 @@ function AccountSettingsPage({
 }: AccountSettingsPageProps) {
   const [showChangeEmailModal, setShowChangeEmailModal] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
-  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
 
   const canRequestEmailChange = capabilities?.canRequestEmailChange ?? true;
@@ -36,12 +34,6 @@ function AccountSettingsPage({
 
   function handlePasswordSuccess(msg: string) {
     setShowChangePasswordModal(false);
-    if (onNotification) onNotification(msg);
-    if (onRefresh) onRefresh();
-  }
-
-  function handleDeleteSuccess(msg: string) {
-    setShowDeleteAccountModal(false);
     if (onNotification) onNotification(msg);
     if (onRefresh) onRefresh();
   }
@@ -68,19 +60,12 @@ function AccountSettingsPage({
         onSuccess={handlePasswordSuccess}
       />
 
-      {/* Delete Account Modal */}
-      <DeleteAccountModal
-        isOpen={showDeleteAccountModal}
-        onClose={() => setShowDeleteAccountModal(false)}
-        onSuccess={handleDeleteSuccess}
-      />
-
       {/* SUB-HEADING */}
       <p className="font-regular tracking-wider text-[1.1rem] font-justify font-jost text-gray-500">
         Manage the settings associated with your account.
       </p>
       <p className="font-regular tracking-wider text-[1.1rem] font-justify font-jost -mt-1 text-gray-500 mb-6">
-        Update your email address, password, or delete your account.
+        Update your email address or password.
       </p>
 
       {alertMessage && (
@@ -168,19 +153,17 @@ function AccountSettingsPage({
       <p className="font-regular tracking-wider text-[1.1rem] font-justify font-jost mt-1 text-red-500">
         Permanently delete your <em>Insightful Phish</em> account and all associated data.
       </p>
-      <p className="font-regular tracking-wider text-[1.1rem] font-justify font-jost -mt-1 mb-4 text-red-500">
-        Once your account is deleted, it cannot be recovered.
-      </p>
 
       <div className="mt-2 flex items-center justify-between">
-        {/* Delete Account Button */}
+        {/* Delete Account Button disabled until backend deletion is in scope */}
         <button
           type="button"
-          onClick={() => setShowDeleteAccountModal(true)}
-          className="cursor-pointer px-6 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-red-600 hover:bg-red-700 box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm px-4 py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
+          disabled
+          title="Account deletion is currently managed by your platform administrator."
+          className="cursor-not-allowed px-6 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-red-600 opacity-50 box-border border border-transparent leading-5 text-sm px-4 py-2.5"
         >
           <span className="material-symbols-sharp">delete</span>
-          <span> Delete Account </span>
+          <span> Delete Account (Managed) </span>
         </button>
       </div>
     </div>

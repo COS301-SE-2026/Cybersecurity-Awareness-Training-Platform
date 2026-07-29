@@ -64,6 +64,14 @@ function ChangeEmailModal({ isOpen, onClose, onSuccess }: ChangeEmailModalProps)
         password,
       });
       setIsSubmitting(false);
+
+      if (res.emailQueued === false) {
+        setAlertMessage(
+          'Verification email delivery failed. Please check the email address and try again.',
+        );
+        return;
+      }
+
       onClose();
       if (onSuccess) {
         onSuccess(

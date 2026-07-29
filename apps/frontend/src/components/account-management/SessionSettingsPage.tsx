@@ -37,24 +37,25 @@ function formatLastActive(dateString: string): string {
   }
 }
 
-function getRegularLabel(hours: number): string {
-  if (hours === 24) return '1 Day';
-  if (hours === 168) return '7 Days';
-  if (hours === 336) return '14 Days';
-  return '30 Days';
+function getRegularLabel(hours: number | null): string {
+  if (hours === 4) return '4 Hours';
+  if (hours === 8) return '8 Hours';
+  if (hours === 12) return '12 Hours';
+  if (hours === 24) return '24 Hours (1 Day)';
+  return hours ? `${hours} Hours` : '24 Hours (1 Day)';
 }
 
-function getRememberLabel(hours: number | null): string {
-  if (!hours || hours === 0) return 'Never';
+function getRememberLabel(hours: number | null | undefined): string {
+  if (hours === null || hours === 0 || hours === undefined) return 'Never';
   if (hours === 24) return '1 Day';
   if (hours === 168) return '7 Days';
   if (hours === 336) return '14 Days';
   if (hours === 720) return '30 Days';
-  return 'Always';
+  return `${hours} Hours`;
 }
 
-function getIdleLabel(mins: number | null): string {
-  if (!mins || mins === 0) return 'Never';
+function getIdleLabel(mins: number | null | undefined): string {
+  if (mins === null || mins === 0 || mins === undefined) return 'Never';
   if (mins === 5) return '5 Minutes';
   if (mins === 15) return '15 Minutes';
   if (mins === 30) return '30 Minutes';
@@ -75,19 +76,38 @@ function SessionSettingsPage({
   const [alertMessage, setAlertMessage] = useState('');
   const [isUpdatingPreferences, setIsUpdatingPreferences] = useState(false);
 
-  const [customRegularHours, setCustomRegularHours] = useState<number | null>(null);
-  const [customRememberHours, setCustomRememberHours] = useState<number | null>(null);
-  const [customIdleMins, setCustomIdleMins] = useState<number | null>(null);
+  const regularSessionEditable =
+    capabilities?.securityPreferenceEditable?.preferredRegularSessionLengthHours ?? true;
+  const rememberMeEditable =
+    capabilities?.securityPreferenceEditable?.preferredRememberMeSessionLengthHours ?? true;
+  const idleTimeoutEditable =
+    capabilities?.securityPreferenceEditable?.preferredIdleTimeoutMinutes ?? true;
 
-  const regularSessionHours =
-    customRegularHours ?? securityPreferences?.preferredRegularSessionLengthHours ?? 720;
-  const rememberMeHours =
-    customRememberHours ?? securityPreferences?.preferredRememberMeSessionLengthHours ?? null;
-  const idleTimeoutMins =
-    customIdleMins ??
-    securityPreferences?.preferredIdleTimeoutMinutes ??
-    effectivePolicy?.idleTimeoutMinutes ??
-    5;
+  const defaultRegular = regularSessionEditable
+    ? (securityPreferences?.preferredRegularSessionLengthHours ?? 24)
+    : Math.floor((effectivePolicy?.regularSessionSeconds ?? 86400) / 3600);
+
+  const defaultRemember = rememberMeEditable
+    ? (securityPreferences?.preferredRememberMeSessionLengthHours ?? null)
+    : effectivePolicy?.rememberedSessionSeconds
+      ? Math.floor(effectivePolicy.rememberedSessionSeconds / 3600)
+      : null;
+
+  const defaultIdle = idleTimeoutEditable
+    ? (securityPreferences?.preferredIdleTimeoutMinutes ?? null)
+    : (effectivePolicy?.idleTimeoutMinutes ?? null);
+
+  const [selectedRegularHours, setSelectedRegularHours] = useState<number>(defaultRegular);
+  const [selectedRememberHours, setSelectedRememberHours] = useState<number | null>(
+    defaultRemember,
+  );
+  const [selectedIdleMins, setSelectedIdleMins] = useState<number | null>(defaultIdle);
+
+  useEffect(() => {
+    setSelectedRegularHours(defaultRegular);
+    setSelectedRememberHours(defaultRemember);
+    setSelectedIdleMins(defaultIdle);
+  }, [defaultRegular, defaultRemember, defaultIdle]);
 
   const loadSessions = useCallback(() => {
     getAccountSessions()
@@ -137,13 +157,31 @@ function SessionSettingsPage({
 
   async function handleSavePreferences() {
     setAlertMessage('');
+
+    const payload: {
+      preferredRegularSessionLengthHours?: number | null;
+      preferredRememberMeSessionLengthHours?: number | null;
+      preferredIdleTimeoutMinutes?: number | null;
+    } = {};
+
+    if (regularSessionEditable) {
+      payload.preferredRegularSessionLengthHours = selectedRegularHours;
+    }
+    if (rememberMeEditable) {
+      payload.preferredRememberMeSessionLengthHours = selectedRememberHours;
+    }
+    if (idleTimeoutEditable) {
+      payload.preferredIdleTimeoutMinutes = selectedIdleMins;
+    }
+
+    if (Object.keys(payload).length === 0) {
+      setAlertMessage('All session security preferences are managed by organisation policy.');
+      return;
+    }
+
     setIsUpdatingPreferences(true);
     try {
-      await updateAccountSecurityPreferences({
-        preferredRegularSessionLengthHours: regularSessionHours,
-        preferredRememberMeSessionLengthHours: rememberMeHours,
-        preferredIdleTimeoutMinutes: idleTimeoutMins,
-      });
+      await updateAccountSecurityPreferences(payload);
       setIsUpdatingPreferences(false);
       if (onRefresh) onRefresh();
       if (onNotification) {
@@ -154,13 +192,6 @@ function SessionSettingsPage({
       setAlertMessage(extractErrorMessage(err));
     }
   }
-
-  const regularSessionEditable =
-    capabilities?.securityPreferenceEditable?.preferredRegularSessionLengthHours ?? true;
-  const rememberMeEditable =
-    capabilities?.securityPreferenceEditable?.preferredRememberMeSessionLengthHours ?? true;
-  const idleTimeoutEditable =
-    capabilities?.securityPreferenceEditable?.preferredIdleTimeoutMinutes ?? true;
 
   return (
     <div className="-mt-2 -ml-2">
@@ -305,33 +336,33 @@ function SessionSettingsPage({
             </label>
 
             <Dropdown
-              label={getRegularLabel(regularSessionHours)}
+              label={getRegularLabel(selectedRegularHours)}
               disabled={!regularSessionEditable}
               className="border border-gray-300 bg-gray-50 text-deep-purple font-overpass text-[1.2rem] block w-full p-2.5 disabled:opacity-50"
             >
               <DropdownItem
                 className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setCustomRegularHours(24)}
+                onClick={() => setSelectedRegularHours(4)}
               >
-                1 Day
+                4 Hours
               </DropdownItem>
               <DropdownItem
                 className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setCustomRegularHours(168)}
+                onClick={() => setSelectedRegularHours(8)}
               >
-                7 Days
+                8 Hours
               </DropdownItem>
               <DropdownItem
                 className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setCustomRegularHours(336)}
+                onClick={() => setSelectedRegularHours(12)}
               >
-                14 Days
+                12 Hours
               </DropdownItem>
               <DropdownItem
                 className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setCustomRegularHours(720)}
+                onClick={() => setSelectedRegularHours(24)}
               >
-                30 Days
+                24 Hours (1 Day)
               </DropdownItem>
             </Dropdown>
             {!regularSessionEditable && (
@@ -351,45 +382,39 @@ function SessionSettingsPage({
             </label>
 
             <Dropdown
-              label={getRememberLabel(rememberMeHours)}
+              label={getRememberLabel(selectedRememberHours)}
               disabled={!rememberMeEditable}
               className="border border-gray-300 bg-gray-50 text-deep-purple font-overpass text-[1.2rem] block w-full p-2.5 disabled:opacity-50"
             >
               <DropdownItem
                 className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setCustomRememberHours(null)}
+                onClick={() => setSelectedRememberHours(null)}
               >
                 Never
               </DropdownItem>
               <DropdownItem
                 className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setCustomRememberHours(24)}
+                onClick={() => setSelectedRememberHours(24)}
               >
                 1 Day
               </DropdownItem>
               <DropdownItem
                 className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setCustomRememberHours(168)}
+                onClick={() => setSelectedRememberHours(168)}
               >
                 7 Days
               </DropdownItem>
               <DropdownItem
                 className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setCustomRememberHours(336)}
+                onClick={() => setSelectedRememberHours(336)}
               >
                 14 Days
               </DropdownItem>
               <DropdownItem
                 className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setCustomRememberHours(720)}
+                onClick={() => setSelectedRememberHours(720)}
               >
                 30 Days
-              </DropdownItem>
-              <DropdownItem
-                className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setCustomRememberHours(8760)}
-              >
-                Always
               </DropdownItem>
             </Dropdown>
             {!rememberMeEditable && (
@@ -409,43 +434,43 @@ function SessionSettingsPage({
             </label>
 
             <Dropdown
-              label={getIdleLabel(idleTimeoutMins)}
+              label={getIdleLabel(selectedIdleMins)}
               disabled={!idleTimeoutEditable}
               className="border border-gray-300 bg-gray-50 text-deep-purple font-overpass text-[1.2rem] block w-full p-2.5 disabled:opacity-50"
             >
               <DropdownItem
                 className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setCustomIdleMins(5)}
+                onClick={() => setSelectedIdleMins(5)}
               >
                 5 Minutes
               </DropdownItem>
               <DropdownItem
                 className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setCustomIdleMins(15)}
+                onClick={() => setSelectedIdleMins(15)}
               >
                 15 Minutes
               </DropdownItem>
               <DropdownItem
                 className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setCustomIdleMins(30)}
+                onClick={() => setSelectedIdleMins(30)}
               >
                 30 Minutes
               </DropdownItem>
               <DropdownItem
                 className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setCustomIdleMins(60)}
+                onClick={() => setSelectedIdleMins(60)}
               >
                 1 Hour
               </DropdownItem>
               <DropdownItem
                 className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setCustomIdleMins(120)}
+                onClick={() => setSelectedIdleMins(120)}
               >
                 2 Hours
               </DropdownItem>
               <DropdownItem
                 className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setCustomIdleMins(null)}
+                onClick={() => setSelectedIdleMins(null)}
               >
                 Never
               </DropdownItem>

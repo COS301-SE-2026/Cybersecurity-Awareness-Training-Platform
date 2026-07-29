@@ -78,9 +78,13 @@ function ChangePasswordModal({ isOpen, onClose, onSuccess }: ChangePasswordModal
       onClose();
       if (onSuccess) {
         onSuccess(
-          res.message || 'Password changed successfully. Other active sessions logged out.',
+          res.message || 'Password changed successfully. All active sessions have been logged out.',
         );
       }
+      // Password change revokes all active sessions. Redirect to login page immediately.
+      setTimeout(() => {
+        window.location.href = '/login?notice=password_changed';
+      }, 800);
     } catch (err: unknown) {
       setIsSubmitting(false);
       setAlertMessage(formatAlertMessage(extractErrorMessage(err)));

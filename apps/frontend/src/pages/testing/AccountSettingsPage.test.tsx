@@ -9,9 +9,7 @@ describe('AccountSettingsPage', () => {
     expect(
       screen.getByText('Manage the settings associated with your account.'),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText('Update your email address, password, or delete your account.'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Update your email address or password.')).toBeInTheDocument();
   });
 
   it('renders the email address and password fields', () => {
@@ -31,6 +29,5 @@ describe('AccountSettingsPage', () => {
     render(<AccountSettingsPage />);
     expect(screen.getByRole('heading', { name: /Danger Zone/i })).toBeInTheDocument();
     expect(screen.getByText(/Permanently delete your/i)).toBeInTheDocument();
-    expect(screen.getByText(/Once your account is deleted/i)).toBeInTheDocument();
   });
 });

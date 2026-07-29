@@ -2,10 +2,36 @@ import AppLayout from '../components/layout/AppLayout';
 import PersonalSettingsPage from '../components/account-management/PersonalSettingsPage';
 import AccountSettingsPage from '../components/account-management/AccountSettingsPage';
 import SessionSettingsPage from '../components/account-management/SessionSettingsPage';
-import { useState } from 'react';
+import BasicAlert from '../components/alerts/BasicAlert';
+import { useState, useEffect, useCallback } from 'react';
+import { getAccount, extractErrorMessage, type AccountResponse } from '../services/account.service';
 
 function AccountManagementPage() {
   const [currentTab, setCurrentTab] = useState<1 | 2 | 3>(1);
+  const [accountData, setAccountData] = useState<AccountResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [notificationMessage, setNotificationMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const loadAccount = useCallback(() => {
+    setLoading(true);
+    getAccount()
+      .then((res) => {
+        setAccountData(res);
+        setLoading(false);
+      })
+      .catch((err: unknown) => {
+        const msg = extractErrorMessage(err);
+        setErrorMessage(msg);
+        setLoading(false);
+      });
+  }, []);
+
+  useEffect(() => {
+    loadAccount();
+  }, [loadAccount]);
+
+  const isManagedByOrg = Boolean(accountData?.effectivePolicy?.organisationId);
 
   return (
     <AppLayout
@@ -29,7 +55,6 @@ function AccountManagementPage() {
             fontSize: '3.8rem',
             fontWeight: 500,
             lineHeight: 1,
-            // color: 'white',
             color: 'rgb(132, 25, 255)',
             fontFamily: 'Jost',
           }}
@@ -38,11 +63,29 @@ function AccountManagementPage() {
         </h1>
       </div>
 
-      {/* NOTICE */}
-      {/* DISPLAY THIS NOTICE WHEN SOME SETTINGS HAVE BEEN OVERRIDDEN BY THE ORGANISATION */}
-      <h4 className="font-overpass font-semibold text-[1rem] text-red-600 tracking-wider -mt-2 px-5 mb-1">
-        SOME SETTINGS ARE MANAGED BY YOUR ORGANISATION
-      </h4>
+      {/* SUCCESS OR ERROR NOTIFICATIONS */}
+      {notificationMessage && (
+        <div className="px-5 mb-2">
+          <BasicAlert variant="success" onClose={() => setNotificationMessage('')}>
+            {notificationMessage}
+          </BasicAlert>
+        </div>
+      )}
+
+      {errorMessage && (
+        <div className="px-5 mb-2">
+          <BasicAlert variant="danger" onClose={() => setErrorMessage('')}>
+            {errorMessage}
+          </BasicAlert>
+        </div>
+      )}
+
+      {/* NOTICE WHEN SOME SETTINGS ARE MANAGED BY ORGANISATION */}
+      {isManagedByOrg && (
+        <h4 className="font-overpass font-semibold text-[1rem] text-red-600 tracking-wider -mt-2 px-5 mb-1">
+          SOME SETTINGS ARE MANAGED BY YOUR ORGANISATION
+        </h4>
+      )}
 
       <div className="flex flex-col flex-1 p-5 -mt-5 w-full">
         {/* TAB BUTTONS */}
@@ -87,11 +130,40 @@ function AccountManagementPage() {
 
         {/* CONTENT BOX */}
         <div className="w-full p-6 bg-white md:mt-0 bg-neutral-primary-soft border-default border-x border-b">
-          {currentTab === 1 && <PersonalSettingsPage />}
+          {loading ? (
+            <div className="p-6 text-center text-gray-500 font-overpass text-lg">
+              Loading account settings...
+            </div>
+          ) : (
+            <>
+              {currentTab === 1 && (
+                <PersonalSettingsPage
+                  profile={accountData?.profile}
+                  onUpdateSuccess={(msg) => setNotificationMessage(msg)}
+                  onRefresh={loadAccount}
+                />
+              )}
 
-          {currentTab === 2 && <AccountSettingsPage />}
+              {currentTab === 2 && (
+                <AccountSettingsPage
+                  profile={accountData?.profile}
+                  capabilities={accountData?.capabilities}
+                  onNotification={(msg) => setNotificationMessage(msg)}
+                  onRefresh={loadAccount}
+                />
+              )}
 
-          {currentTab === 3 && <SessionSettingsPage />}
+              {currentTab === 3 && (
+                <SessionSettingsPage
+                  securityPreferences={accountData?.securityPreferences}
+                  effectivePolicy={accountData?.effectivePolicy}
+                  capabilities={accountData?.capabilities}
+                  onNotification={(msg) => setNotificationMessage(msg)}
+                  onRefresh={loadAccount}
+                />
+              )}
+            </>
+          )}
         </div>
       </div>
     </AppLayout>
