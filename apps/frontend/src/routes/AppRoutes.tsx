@@ -71,7 +71,17 @@ function AppRoutes() {
           element={<OrganisationSecuritySettingsPage />}
         />
         <Route path="/organisation-management" element={<PlatformOrganisationManagementPage />} />
-        <Route path="/organisation-trainees" element={<OrganisationTraineesPage />} />
+        <Route
+          element={
+            <ProtectedRoute
+              requiredRole="ORGANISATION_ADMIN"
+              requireOrganisation
+              requiredPermission="VIEW_ORGANISATION_TRAINEES"
+            />
+          }
+        >
+          <Route path="/organisation-trainees" element={<OrganisationTraineesPage />} />
+        </Route>
         <Route path="/organisation-administrators" element={<OrganisationAdministratorsPage />} />
       </Route>
 
