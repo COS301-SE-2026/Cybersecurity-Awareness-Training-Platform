@@ -1160,8 +1160,8 @@
           "number": 373,
           "title": "docs: complete Demo 2 user manual and screenshot catalogue",
           "points": 5,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-07-29"
         },
         {
           "number": 372,
@@ -1893,7 +1893,7 @@
     },
     {
       "date": "2026-07-29",
-      "remaining": 59,
+      "remaining": 54,
       "ideal": 0.0
     }
   ]
