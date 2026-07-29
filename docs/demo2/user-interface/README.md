@@ -49,10 +49,26 @@ Screenshots cover org registration, initial admin setup, org information, org se
 | `organisation-onboarding/02-organisation-registration-step-two.png` | Request Organisation Access      | Use a representative email only   |
 | `organisation-onboarding/03-organisation-registration-success.png`  | Request Organisation Access      | Avoid real submitted details      |
 | `organisation-onboarding/04-initial-admin-setup.png`                | Complete initial org admin setup | Hide setup token from address bar |
+| `organisation-admin/01-organisation-information.png`                | Review organisation information  | Use sample organisation data      |
+| `organisation-admin/02-organisation-timeline.png`                   | Review organisation information  | Do not show private audit data    |
+| `organisation-admin/03-security-preferences.png`                    | Update security preferences      | Show editable demo settings       |
+| `organisation-admin/04-trainee-management.png`                      | Review organisation trainees     | Use demo trainee rows only        |
+| `organisation-admin/05-invite-trainee-modal.png`                    | Review organisation trainees     | Use sample invitation details     |
+| `organisation-admin/06-administrator-management.png`                | Review organisation admins       | Use demo administrator rows only  |
+| `organisation-admin/07-admin-permissions-popover.png`               | Review organisation admins       | Use demo permission details       |
 
 ## Platform Admin flows
 
 Screenshots cover org request review, org details, onboarding timeline reviews, setup resend, and org management screens.
+
+| Screenshot                                         | Manual Section                         | Notes                          |
+| -------------------------------------------------- | -------------------------------------- | ------------------------------ |
+| `platform-admin/01-organisation-management.png`    | Review organisation requests           | Use sample organisation data   |
+| `platform-admin/02-review-request-modal.png`       | Review organisation requests           | Avoid real representative data |
+| `platform-admin/03-request-detail.png`             | Review request or organisation details | Use a seeded request           |
+| `platform-admin/04-organisation-detail.png`        | Review request or organisation details | Use a seeded organisation      |
+| `platform-admin/05-onboarding-timeline.png`        | Review request or organisation details | Do not expose private metadata |
+| `platform-admin/06-resend-initial-admin-setup.png` | Review request or organisation details | Hide setup tokens and emails   |
 
 ## User manual reuse
 

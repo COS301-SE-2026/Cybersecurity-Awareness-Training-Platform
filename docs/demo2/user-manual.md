@@ -172,11 +172,73 @@ This section covers org setup links, accepting org related account setup, comple
 
 ## Organisation Admin Tasks
 
-This section covers org reg requests, initial admin setup, org information, org security preferances, trainee management and org management.
+This section covers org reg requests, initial admin setup, org information, org security preferences, trainee management and org management.
+
+### Review organisation information
+
+1. Sign in as an organisation administrator.
+2. Open the organisation information page.
+3. Use the tabs to review basic information, representative info, admins, and the timeline.
+
+![Organisation information](user-interface/organisation-admin/01-organisation-information.png)
+![Organisation timeline](user-interface/organisation-admin/02-organisation-timeline.png)
+
+### Update Organisation Security Preferences
+
+1. Open **Organisation Security Preferences**.
+2. Review any read-only message at the top of the page.
+3. Change only the settings that are editable for your role.
+4. Select **Update Organisation Security Preferences**.
+5. Check for the success or validation message.
+
+![Organisation security preferences](user-interface/organisation-admin/03-security-preferences.png)
+
+### Review Organisation Trainees
+
+1. Open **Organisation Trainee**.
+2. Use search or filters to find a trainee or invitation.
+3. Open the invite trainee modal when a new trainee invitation needs to be prepared.
+4. Follow any confirmation prompts shown for row actions.
+
+![Organisation trainee management](user-interface/organisation-admin/04-trainee-management.png)
+![Invite trainee modal](user-interface/organisation-admin/05-invite-trainee-modal.png)
+
+### Review organisation admins
+
+1. Open **Organisation Administrators**.
+2. Search or filter the administrator list.
+3. Select **View permissions** to inspect a users visible permissions.
+4. Open the invite or edit permissions modal when needed.
+
+![Organisation administrator management](user-interface/organisation-admin/06-administrator-management.png)
+![Administrator permissions](user-interface/organisation-admin/07-admin-permissions-popover.png)
 
 ## Platform Admin Tasks
 
 This section covers org request review, org detail review, onboarding timeline checks, setup email resend, and platform level org management screens.
+
+### Review organisation requests
+
+1. Sign in as a platform admin.
+2. Open **Organisation Management**.
+3. Use the search field and filters to find a request.
+4. Select **Review request** when the request is pending.
+5. Review the request details before taking an approval or rejection action.
+
+![Organisation management](user-interface/platform-admin/01-organisation-management.png)
+![Review request modal](user-interface/platform-admin/02-review-request-modal.png)
+
+### Review Request or Organisation details
+
+1. Open the request or organisation detail page.
+2. Review basic information and representative information.
+3. Open the timeline tab to confirm the onboarding history.
+4. Use the resend setup action only when the page shows that resend is available.
+
+![Request detail](user-interface/platform-admin/03-request-detail.png)
+![Organisation detail](user-interface/platform-admin/04-organisation-detail.png)
+![Onboarding timeline](user-interface/platform-admin/05-onboarding-timeline.png)
+![Resend initial administrator setup](user-interface/platform-admin/06-resend-initial-admin-setup.png)
 
 ## Troubleshooting
 
