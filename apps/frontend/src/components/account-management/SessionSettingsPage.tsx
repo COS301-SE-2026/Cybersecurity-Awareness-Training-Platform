@@ -97,19 +97,21 @@ function SessionSettingsPage({
     ? (securityPreferences?.preferredIdleTimeoutMinutes ?? null)
     : (effectivePolicy?.idleTimeoutMinutes ?? null);
 
-  const [selectedRegularHours, setSelectedRegularHours] = useState<number>(defaultRegular);
-  const [selectedRememberHours, setSelectedRememberHours] = useState<number | null>(
-    defaultRemember,
-  );
-  const [selectedIdleMins, setSelectedIdleMins] = useState<number | null>(defaultIdle);
+  const [userRegularHours, setUserRegularHours] = useState<number | null>(null);
+  const [userRememberHours, setUserRememberHours] = useState<number | null | 'NEVER'>('INIT');
+  const [userIdleMins, setUserIdleMins] = useState<number | null | 'NEVER'>('INIT');
 
-  useEffect(() => {
-    setSelectedRegularHours(defaultRegular);
-    setSelectedRememberHours(defaultRemember);
-    setSelectedIdleMins(defaultIdle);
-  }, [defaultRegular, defaultRemember, defaultIdle]);
+  const selectedRegularHours = userRegularHours ?? defaultRegular;
+  const selectedRememberHours =
+    userRememberHours === 'INIT'
+      ? defaultRemember
+      : userRememberHours === 'NEVER'
+        ? null
+        : userRememberHours;
+  const selectedIdleMins =
+    userIdleMins === 'INIT' ? defaultIdle : userIdleMins === 'NEVER' ? null : userIdleMins;
 
-  const loadSessions = useCallback(() => {
+  const fetchSessionsData = useCallback(() => {
     getAccountSessions()
       .then((res) => {
         setSessions(res.sessions || []);
@@ -122,8 +124,8 @@ function SessionSettingsPage({
   }, []);
 
   useEffect(() => {
-    loadSessions();
-  }, [loadSessions]);
+    fetchSessionsData();
+  }, [fetchSessionsData]);
 
   async function handleRevokeSession(sessionId: string) {
     setAlertMessage('');
@@ -132,7 +134,7 @@ function SessionSettingsPage({
       if (onNotification) {
         onNotification('Session revoked successfully.');
       }
-      loadSessions();
+      fetchSessionsData();
     } catch (err: unknown) {
       setAlertMessage(extractErrorMessage(err));
     }
@@ -149,7 +151,7 @@ function SessionSettingsPage({
             : 'No other active sessions to log out.',
         );
       }
-      loadSessions();
+      fetchSessionsData();
     } catch (err: unknown) {
       setAlertMessage(extractErrorMessage(err));
     }
@@ -342,25 +344,25 @@ function SessionSettingsPage({
             >
               <DropdownItem
                 className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setSelectedRegularHours(4)}
+                onClick={() => setUserRegularHours(4)}
               >
                 4 Hours
               </DropdownItem>
               <DropdownItem
                 className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setSelectedRegularHours(8)}
+                onClick={() => setUserRegularHours(8)}
               >
                 8 Hours
               </DropdownItem>
               <DropdownItem
                 className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setSelectedRegularHours(12)}
+                onClick={() => setUserRegularHours(12)}
               >
                 12 Hours
               </DropdownItem>
               <DropdownItem
                 className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setSelectedRegularHours(24)}
+                onClick={() => setUserRegularHours(24)}
               >
                 24 Hours (1 Day)
               </DropdownItem>
@@ -388,31 +390,31 @@ function SessionSettingsPage({
             >
               <DropdownItem
                 className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setSelectedRememberHours(null)}
+                onClick={() => setUserRememberHours('NEVER')}
               >
                 Never
               </DropdownItem>
               <DropdownItem
                 className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setSelectedRememberHours(24)}
+                onClick={() => setUserRememberHours(24)}
               >
                 1 Day
               </DropdownItem>
               <DropdownItem
                 className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setSelectedRememberHours(168)}
+                onClick={() => setUserRememberHours(168)}
               >
                 7 Days
               </DropdownItem>
               <DropdownItem
                 className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setSelectedRememberHours(336)}
+                onClick={() => setUserRememberHours(336)}
               >
                 14 Days
               </DropdownItem>
               <DropdownItem
                 className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setSelectedRememberHours(720)}
+                onClick={() => setUserRememberHours(720)}
               >
                 30 Days
               </DropdownItem>
@@ -440,37 +442,37 @@ function SessionSettingsPage({
             >
               <DropdownItem
                 className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setSelectedIdleMins(5)}
+                onClick={() => setUserIdleMins(5)}
               >
                 5 Minutes
               </DropdownItem>
               <DropdownItem
                 className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setSelectedIdleMins(15)}
+                onClick={() => setUserIdleMins(15)}
               >
                 15 Minutes
               </DropdownItem>
               <DropdownItem
                 className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setSelectedIdleMins(30)}
+                onClick={() => setUserIdleMins(30)}
               >
                 30 Minutes
               </DropdownItem>
               <DropdownItem
                 className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setSelectedIdleMins(60)}
+                onClick={() => setUserIdleMins(60)}
               >
                 1 Hour
               </DropdownItem>
               <DropdownItem
                 className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setSelectedIdleMins(120)}
+                onClick={() => setUserIdleMins(120)}
               >
                 2 Hours
               </DropdownItem>
               <DropdownItem
                 className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setSelectedIdleMins(null)}
+                onClick={() => setUserIdleMins('NEVER')}
               >
                 Never
               </DropdownItem>

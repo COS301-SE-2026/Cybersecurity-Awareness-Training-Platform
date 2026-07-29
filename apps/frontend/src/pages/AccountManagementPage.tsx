@@ -13,23 +13,21 @@ function AccountManagementPage() {
   const [notificationMessage, setNotificationMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
-  const loadAccount = useCallback(() => {
-    setLoading(true);
+  const fetchAccountData = useCallback(() => {
     getAccount()
       .then((res) => {
         setAccountData(res);
         setLoading(false);
       })
       .catch((err: unknown) => {
-        const msg = extractErrorMessage(err);
-        setErrorMessage(msg);
+        setErrorMessage(extractErrorMessage(err));
         setLoading(false);
       });
   }, []);
 
   useEffect(() => {
-    loadAccount();
-  }, [loadAccount]);
+    fetchAccountData();
+  }, [fetchAccountData]);
 
   const isManagedByOrg = Boolean(accountData?.effectivePolicy?.organisationId);
 
@@ -140,7 +138,7 @@ function AccountManagementPage() {
                 <PersonalSettingsPage
                   profile={accountData?.profile}
                   onUpdateSuccess={(msg) => setNotificationMessage(msg)}
-                  onRefresh={loadAccount}
+                  onRefresh={fetchAccountData}
                 />
               )}
 
@@ -149,7 +147,7 @@ function AccountManagementPage() {
                   profile={accountData?.profile}
                   capabilities={accountData?.capabilities}
                   onNotification={(msg) => setNotificationMessage(msg)}
-                  onRefresh={loadAccount}
+                  onRefresh={fetchAccountData}
                 />
               )}
 
@@ -159,7 +157,7 @@ function AccountManagementPage() {
                   effectivePolicy={accountData?.effectivePolicy}
                   capabilities={accountData?.capabilities}
                   onNotification={(msg) => setNotificationMessage(msg)}
-                  onRefresh={loadAccount}
+                  onRefresh={fetchAccountData}
                 />
               )}
             </>
