@@ -6,6 +6,9 @@ type BasicConfirmationModalProps = Readonly<{
   onCancel: () => void;
   confirmButtonVariant: 'danger' | 'success' | 'default';
   isConfirming?: boolean;
+  isConfirmDisabled?: boolean;
+  isDismissDisabled?: boolean;
+  errorMessage?: string | null;
 }>;
 
 function BasicConfirmationModal({
@@ -16,6 +19,9 @@ function BasicConfirmationModal({
   onCancel,
   confirmButtonVariant,
   isConfirming = false,
+  isConfirmDisabled = false,
+  isDismissDisabled = false,
+  errorMessage = null,
 }: BasicConfirmationModalProps) {
   const confirmButtonClasses = {
     danger:
@@ -41,6 +47,7 @@ function BasicConfirmationModal({
             className="absolute top-3 end-2.5 text-body bg-transparent hover:bg-neutral-tertiary hover:text-heading text-sm w-9 h-9 ms-auto inline-flex justify-center items-center disabled:opacity-60 disabled:cursor-not-allowed"
             disabled={isConfirming}
             onClick={onCancel}
+            disabled={isDismissDisabled}
           >
             <span className="material-icons-sharp">close</span>
             <span className="sr-only">Close modal</span>
@@ -63,6 +70,14 @@ function BasicConfirmationModal({
             <h3 className="mb-6 text-body text-dark-pink font-medium font-overpass text-[1.1rem] tracking-wider">
               {message}
             </h3>
+            {errorMessage && (
+              <div
+                role="alert"
+                className="p-3 mb-6 text-red-800 bg-red-50 border border-red-200 font-overpass text-[1rem] tracking-wide"
+              >
+                {errorMessage}
+              </div>
+            )}
 
             {/* Buttons */}
             <div className="flex items-center space-x-4 justify-center">
@@ -71,9 +86,8 @@ function BasicConfirmationModal({
                 onClick={onConfirm}
                 data-modal-hide="popup-modal"
                 type="button"
-                className={confirmButtonClasses[confirmButtonVariant]}
-                disabled={isConfirming}
-                // className="text-white bg-danger box-border border border-transparent hover:bg-danger-strong focus:ring-4 focus:ring-danger-medium shadow-xs font-regular cursor-pointer tracking-wider leading-5 text-[1.1rem] px-4 py-2.5 focus:outline-none"
+                disabled={isConfirmDisabled}
+                className={`${confirmButtonClasses[confirmButtonVariant]} disabled:opacity-60 disabled:cursor-not-allowed`}
               >
                 {isConfirming ? 'Processing...' : confirmButtonText}
               </button>
@@ -82,8 +96,8 @@ function BasicConfirmationModal({
               <button
                 onClick={onCancel}
                 type="button"
-                disabled={isConfirming}
-                className="text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading focus:ring-4 focus:ring-neutral-tertiary shadow-xs font-jost tracking-wider cursor-pointer font-regular leading-5 text-[1.1rem] px-4 py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
+                disabled={isDismissDisabled}
+                className="text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading focus:ring-4 focus:ring-neutral-tertiary shadow-xs font-jost tracking-wider cursor-pointer font-regular leading-5 text-[1.1rem] px-4 py-2.5 focus:outline-none"
               >
                 Cancel
               </button>
