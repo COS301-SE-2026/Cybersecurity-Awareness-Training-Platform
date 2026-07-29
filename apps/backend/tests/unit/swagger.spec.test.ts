@@ -250,7 +250,7 @@ const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
   ['post', '/auth/tokens/{token}/resend', ['200', '400', '429', '500']],
   ['get', '/setup/token/{token}/context', ['200', '400', '401', '409', '429', '500']],
   ['post', '/setup/token/{token}/complete', ['201', '400', '401', '409', '429', '500']],
-  ['get', '/invitations/token/{token}/context', ['200', '400', '401','403','409','429', '500']],
+  ['get', '/invitations/token/{token}/context', ['200', '400', '401', '403', '409', '429', '500']],
   ['post', '/invitations/token/{token}/accept', ['200', '400', '401', '403', '409', '429', '500']],
   ['post', '/invitations/token/{token}/reject', ['200', '400', '401', '403', '409', '429', '500']],
   ['post', '/organisation-registration-requests', ['201', '409', '422', '429', '500']],
