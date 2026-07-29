@@ -25,6 +25,6 @@ This is the Insightful Phish Demo 2 documentation. Below you can find each aspec
 
 - **[Coding Standards](coding-standards.md)**
 - **[Testing Policy](testing-policy.md)**
-- **[User Manual](user-manual.md)**
+- **[User Manual](https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/wiki/Demo-2-User-Manual)**
 - **[Brand Style Guide](brand/README.md)**
 - **[User Interface Screenshots](user-interface/README.md)**

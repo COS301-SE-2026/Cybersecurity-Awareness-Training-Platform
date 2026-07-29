@@ -21,6 +21,7 @@ import { invitationRouter } from './routes/invitation.routes.js';
 
 export function createApp() {
   const app = express();
+  app.set('trust proxy', env.TRUST_PROXY_HOPS);
 
   app.use(helmet());
 
