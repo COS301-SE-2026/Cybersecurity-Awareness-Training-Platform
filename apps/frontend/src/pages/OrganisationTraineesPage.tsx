@@ -2,6 +2,7 @@ import AppLayout from '../components/layout/AppLayout';
 import { Dropdown, DropdownItem } from 'flowbite-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import InviteTraineeModal from '../components/layout/modals/InviteTraineeModal';
+import BasicConfirmationModal from '../components/layout/modals/BasicConfirmationModal';
 import {
   createTraineeInvitationRequestSchema,
   type CreateTraineeInvitationRequestDto,
@@ -12,6 +13,8 @@ import { useAuth } from '../context/useAuth';
 import {
   createOrganisationTraineeInvitation,
   getOrganisationTrainees,
+  resendOrganisationTraineeInvitation,
+  revokeOrganisationTraineeInvitation,
 } from '../services/organisation-trainee.service';
 import { Navigate } from 'react-router-dom';
 
@@ -67,6 +70,49 @@ type InviteErrorBody = {
   details?: unknown;
 };
 
+type InvitationActionType = 'resend' | 'revoke';
+
+type InvitationActionPhase =
+  | 'confirming'
+  | 'pending'
+  | 'reconciling'
+  | 'completed-refresh-failed'
+  | 'conflict-refresh-failed';
+
+type InvitationActionTarget = {
+  actionType: InvitationActionType;
+  invitationId: string;
+  organisationId: string;
+  token: string;
+  email: string;
+};
+
+type InvitationActionState = InvitationActionTarget & {
+  phase: InvitationActionPhase;
+  errorMessage: string | null;
+};
+
+type InvitationActionRequestOwner = InvitationActionTarget & {
+  requestId: number;
+};
+
+type InvitationActionFeedback = {
+  organisationId: string;
+  token: string;
+  variant: 'success' | 'error' | 'warning';
+  message: string;
+};
+
+type InvitationActionDeniedTarget = {
+  organisationId: string;
+  token: string;
+};
+
+type InvitationActionErrorBody = {
+  error?: unknown;
+  message?: unknown;
+};
+
 type ValidationIssue = {
   path: ReadonlyArray<string | number>;
   message: string;
@@ -93,6 +139,92 @@ function inviteTargetsMatch(
     left.organisationId === right.organisationId &&
     left.token === right.token
   );
+}
+
+function actionTargetsMatch(
+  left: InvitationActionTarget | null,
+  right: InvitationActionTarget | null,
+): boolean {
+  return (
+    left !== null &&
+    right !== null &&
+    left.actionType === right.actionType &&
+    left.invitationId === right.invitationId &&
+    left.organisationId === right.organisationId &&
+    left.token === right.token
+  );
+}
+
+function actionBelongsToContext(
+  action: Pick<InvitationActionTarget, 'organisationId' | 'token'> | null,
+  organisationId: string | null,
+  token: string | null,
+): boolean {
+  return (
+    action !== null &&
+    organisationId !== null &&
+    token !== null &&
+    action.organisationId === organisationId &&
+    action.token === token
+  );
+}
+
+function actionDeniedTargetMatches(
+  deniedTarget: InvitationActionDeniedTarget | null,
+  organisationId: string | null,
+  token: string | null,
+): boolean {
+  return (
+    deniedTarget !== null &&
+    organisationId !== null &&
+    token !== null &&
+    deniedTarget.organisationId === organisationId &&
+    deniedTarget.token === token
+  );
+}
+
+function getInvitationActionErrorBody(error: ApiError): InvitationActionErrorBody | null {
+  if (!error.body || typeof error.body !== 'object') {
+    return null;
+  }
+
+  return error.body as InvitationActionErrorBody;
+}
+
+function getInvitationActionErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) {
+    return 'Unable to connect to the server. Please check your connection and try again.';
+  }
+
+  const body = getInvitationActionErrorBody(error);
+  const bodyMessage =
+    typeof body?.message === 'string' && body.message.trim() ? body.message : null;
+
+  if (error.status === 401) {
+    return bodyMessage || 'Your session is no longer authorised. Please sign in again.';
+  }
+
+  if (error.status === 403) {
+    return bodyMessage || 'You do not have permission to manage trainee invitations.';
+  }
+
+  if (error.status === 404) {
+    return 'This invitation is no longer available. The trainee list is being refreshed.';
+  }
+
+  if (error.status === 409) {
+    return 'The invitation changed before this action completed. The trainee list is being refreshed.';
+  }
+
+  if (error.status === 429) {
+    return bodyMessage || 'Too many trainee-management requests. Please try again later.';
+  }
+
+  if (error.status >= 500) {
+    return 'The server could not complete the invitation action. Please try again later.';
+  }
+
+  return bodyMessage || 'The invitation action could not be completed.';
 }
 
 function getActiveTraineeDisplayStatus(row: ActiveTraineeRow): DisplayStatus {
@@ -352,6 +484,23 @@ function OrganisationTraineesPage() {
   const organisationId = authContext?.organisation?.id ?? null;
   const listRequestIdRef = useRef(0);
   const inviteRequestIdRef = useRef(0);
+  const invitationActionRequestIdRef = useRef(0);
+  const invitationActionOwnerRef = useRef<InvitationActionRequestOwner | null>(null);
+
+  const [invitationAction, setInvitationAction] = useState<InvitationActionState | null>(null);
+  const [invitationActionFeedback, setInvitationActionFeedback] =
+    useState<InvitationActionFeedback | null>(null);
+  const [invitationActionDeniedTarget, setInvitationActionDeniedTarget] =
+    useState<InvitationActionDeniedTarget | null>(null);
+
+  const hasInvitationActionPermission = permissions.includes('INVITE_ORGANISATION_TRAINEES');
+  const invitationsActionsDeniedForCurrentTarget = actionDeniedTargetMatches(
+    invitationActionDeniedTarget,
+    organisationId,
+    token,
+  );
+  const canManageInvitationActions =
+    hasInvitationActionPermission && !invitationsActionsDeniedForCurrentTarget;
 
   const [listResult, setListResult] = useState<ListResultState>({
     organisationId: null,
@@ -383,10 +532,41 @@ function OrganisationTraineesPage() {
         return 'stale';
       }
 
+      const refreshRows = [...response.trainees, ...response.invitations];
+
       setListResult({
         organisationId,
         rows: [...response.trainees, ...response.invitations],
         errorMessage: null,
+      });
+
+      setInvitationAction((current) => {
+        if (!current || !actionBelongsToContext(current, organisationId, token)) {
+          return current;
+        }
+
+        if (current.phase === 'pending') {
+          return current;
+        }
+
+        if (current.phase !== 'confirming') {
+          return null;
+        }
+
+        const refreshedRow = refreshRows.find(
+          (row) => row.rowType === 'INVITATION' && row.invitationId === current.invitationId,
+        );
+
+        if (!canManageInvitationActions || !refreshedRow || refreshedRow.rowType !== 'INVITATION') {
+          return null;
+        }
+
+        const remainsEligible =
+          current.actionType === 'resend'
+            ? refreshedRow.eligibility.canResend
+            : refreshedRow.eligibility.canRevoke;
+
+        return remainsEligible ? current : null;
       });
       return 'applied';
     } catch (error: unknown) {
@@ -401,7 +581,7 @@ function OrganisationTraineesPage() {
       });
       return 'failed';
     }
-  }, [organisationId, token]);
+  }, [canManageInvitationActions, organisationId, token]);
 
   useEffect(() => {
     let isCurrent = true;
@@ -421,6 +601,13 @@ function OrganisationTraineesPage() {
   useEffect(() => {
     return () => {
       inviteRequestIdRef.current += 1;
+    };
+  }, [organisationId, token]);
+
+  useEffect(() => {
+    return () => {
+      invitationActionRequestIdRef.current += 1;
+      invitationActionOwnerRef.current = null;
     };
   }, [organisationId, token]);
 
@@ -456,6 +643,344 @@ function OrganisationTraineesPage() {
 
   const canInvite = permissions.includes('INVITE_ORGANISATION_TRAINEES');
 
+  const currentInvitationAction = actionBelongsToContext(invitationAction, organisationId, token)
+    ? invitationAction
+    : null;
+
+  const currentInvitationActionFeedback =
+    invitationActionFeedback &&
+    actionBelongsToContext(invitationActionFeedback, organisationId, token)
+      ? invitationActionFeedback
+      : null;
+
+  const isCurrentActionOwned = (requestId: number, target: InvitationActionTarget): boolean => {
+    const owner = invitationActionOwnerRef.current;
+
+    return owner !== null && owner.requestId === requestId && actionTargetsMatch(owner, target);
+  };
+
+  const clearMatchingInvitationAction = (target: InvitationActionTarget) => {
+    setInvitationAction((current) => (actionTargetsMatch(current, target) ? null : current));
+  };
+
+  const executeInvitationAction = async (target: InvitationActionTarget) => {
+    const existingOwner = invitationActionOwnerRef.current;
+
+    if (existingOwner) {
+      if (
+        existingOwner.organisationId === target.organisationId &&
+        existingOwner.token === target.token
+      ) {
+        return;
+      }
+
+      invitationActionRequestIdRef.current += 1;
+      invitationActionOwnerRef.current = null;
+    }
+
+    const requestId = ++invitationActionRequestIdRef.current;
+    invitationActionOwnerRef.current = {
+      ...target,
+      requestId,
+    };
+
+    setInvitationAction({
+      ...target,
+      phase: 'pending',
+      errorMessage: null,
+    });
+    setInvitationActionFeedback(null);
+
+    try {
+      const response =
+        target.actionType === 'resend'
+          ? await resendOrganisationTraineeInvitation(
+              target.organisationId,
+              target.invitationId,
+              target.token,
+            )
+          : await revokeOrganisationTraineeInvitation(
+              target.organisationId,
+              target.invitationId,
+              target.token,
+            );
+
+      if (!isCurrentActionOwned(requestId, target)) {
+        return;
+      }
+
+      setInvitationAction({
+        ...target,
+        phase: 'reconciling',
+        errorMessage: null,
+      });
+
+      const refreshResult = await reloadOrganisationTrainees();
+
+      if (!isCurrentActionOwned(requestId, target)) {
+        return;
+      }
+
+      if (refreshResult === 'applied') {
+        clearMatchingInvitationAction(target);
+        setInvitationActionFeedback({
+          organisationId: target.organisationId,
+          token: target.token,
+          variant: 'success',
+          message: response.message,
+        });
+        return;
+      }
+
+      if (refreshResult === 'failed') {
+        const refreshFailureMessage =
+          `${response.message} The action succeeded, but the trainee list could not be refreshed. ` +
+          'Reload the page before attempting another action on this invitation.';
+
+        setInvitationAction({
+          ...target,
+          phase: 'completed-refresh-failed',
+          errorMessage: refreshFailureMessage,
+        });
+        setInvitationActionFeedback({
+          organisationId: target.organisationId,
+          token: target.token,
+          variant: 'warning',
+          message: refreshFailureMessage,
+        });
+        return;
+      }
+      clearMatchingInvitationAction(target);
+      setInvitationActionFeedback({
+        organisationId: target.organisationId,
+        token: target.token,
+        variant: 'success',
+        message: response.message,
+      });
+    } catch (error: unknown) {
+      if (!isCurrentActionOwned(requestId, target)) {
+        return;
+      }
+
+      const message = getInvitationActionErrorMessage(error);
+
+      if (error instanceof ApiError && (error.status === 404 || error.status === 409)) {
+        setInvitationAction({
+          ...target,
+          phase: 'reconciling',
+          errorMessage: null,
+        });
+        setInvitationActionFeedback({
+          organisationId: target.organisationId,
+          token: target.token,
+          variant: error.status === 409 ? 'warning' : 'error',
+          message,
+        });
+
+        const refreshResult = await reloadOrganisationTrainees();
+
+        if (!isCurrentActionOwned(requestId, target)) {
+          return;
+        }
+
+        if (refreshResult === 'applied') {
+          clearMatchingInvitationAction(target);
+          return;
+        }
+
+        if (refreshResult === 'failed') {
+          const reconciliationMessage =
+            `${message} Current invitation eligibility could not be loaded. ` +
+            'Reload the page before trying this action again.';
+
+          setInvitationAction({
+            ...target,
+            phase: 'conflict-refresh-failed',
+            errorMessage: reconciliationMessage,
+          });
+          setInvitationActionFeedback({
+            organisationId: target.organisationId,
+            token: target.token,
+            variant: error.status === 409 ? 'warning' : 'error',
+            message: reconciliationMessage,
+          });
+          return;
+        }
+
+        clearMatchingInvitationAction(target);
+        return;
+      }
+
+      if (error instanceof ApiError && error.status === 403) {
+        setInvitationActionDeniedTarget({
+          organisationId: target.organisationId,
+          token: target.token,
+        });
+        setInvitationAction({
+          ...target,
+          phase: 'reconciling',
+          errorMessage: null,
+        });
+        setInvitationActionFeedback({
+          organisationId: target.organisationId,
+          token: target.token,
+          variant: 'error',
+          message,
+        });
+
+        const refreshResult = await reloadOrganisationTrainees();
+
+        if (!isCurrentActionOwned(requestId, target)) {
+          return;
+        }
+
+        if (refreshResult === 'failed') {
+          setInvitationActionFeedback({
+            organisationId: target.organisationId,
+            token: target.token,
+            variant: 'error',
+            message:
+              `${message} The trainee list could not be refreshed, so invitation actions ` +
+              'remain unavailable.',
+          });
+        }
+
+        clearMatchingInvitationAction(target);
+        return;
+      }
+
+      setInvitationActionFeedback({
+        organisationId: target.organisationId,
+        token: target.token,
+        variant: 'error',
+        message,
+      });
+
+      if (target.actionType === 'revoke') {
+        setInvitationAction({
+          ...target,
+          phase: 'confirming',
+          errorMessage: message,
+        });
+      } else {
+        clearMatchingInvitationAction(target);
+      }
+    } finally {
+      if (isCurrentActionOwned(requestId, target)) {
+        invitationActionOwnerRef.current = null;
+      }
+    }
+  };
+
+  const beginInvitationAction = (row: InvitationTraineeRow, actionType: InvitationActionType) => {
+    if (!organisationId || !token || !canManageInvitationActions || !row.invitationId) {
+      return;
+    }
+
+    const target: InvitationActionTarget = {
+      actionType,
+      invitationId: row.invitationId,
+      organisationId,
+      token,
+      email: row.email,
+    };
+
+    setInvitationActionFeedback(null);
+
+    if (actionType === 'revoke') {
+      setInvitationAction({
+        ...target,
+        phase: 'confirming',
+        errorMessage: null,
+      });
+      return;
+    }
+
+    void executeInvitationAction(target);
+  };
+
+  const confirmInvitationAction = () => {
+    if (
+      !currentInvitationAction ||
+      currentInvitationAction.actionType !== 'revoke' ||
+      currentInvitationAction.phase !== 'confirming'
+    ) {
+      return;
+    }
+
+    void executeInvitationAction(currentInvitationAction);
+  };
+
+  const cancelInvitationAction = () => {
+    if (currentInvitationAction?.phase === 'pending') {
+      return;
+    }
+
+    setInvitationAction((current) =>
+      actionBelongsToContext(current, organisationId, token) ? null : current,
+    );
+  };
+
+  const renderInvitationActions = (row: TraineeListItemDto) => {
+    if (row.rowType !== 'INVITATION' || !canManageInvitationActions || !row.invitationId) {
+      return 'N/A';
+    }
+
+    const actionOwnsRow =
+      currentInvitationAction?.invitationId === row.invitationId &&
+      (currentInvitationAction.phase === 'pending' ||
+        currentInvitationAction.phase === 'reconciling' ||
+        currentInvitationAction.phase === 'completed-refresh-failed' ||
+        currentInvitationAction.phase === 'conflict-refresh-failed');
+
+    const resendPending =
+      actionOwnsRow &&
+      currentInvitationAction?.actionType === 'resend' &&
+      currentInvitationAction.phase === 'pending';
+    const revokePending =
+      actionOwnsRow &&
+      currentInvitationAction?.actionType === 'revoke' &&
+      currentInvitationAction.phase === 'pending';
+
+    const showResend =
+      row.eligibility.canResend ||
+      (!row.eligibility.canResend && row.eligibility.resendCooldownSeconds > 0);
+    const showRevoke = row.eligibility.canRevoke;
+
+    if (!showResend && !showRevoke) {
+      return 'N/A';
+    }
+
+    return (
+      <div className="flex flex-wrap items-center gap-2">
+        {showResend && (
+          <button
+            type="button"
+            disabled={!row.eligibility.canResend || actionOwnsRow}
+            onClick={() => beginInvitationAction(row, 'resend')}
+            className="px-3 py-1.5 text-white bg-main-purple hover:bg-hover-purple font-jost tracking-wide disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {resendPending
+              ? 'Resending...'
+              : !row.eligibility.canResend && row.eligibility.resendCooldownSeconds > 0
+                ? `Resend (${row.eligibility.resendCooldownSeconds}s)`
+                : 'Resend'}
+          </button>
+        )}
+        {showRevoke && (
+          <button
+            type="button"
+            disabled={actionOwnsRow}
+            onClick={() => beginInvitationAction(row, 'revoke')}
+            className="px-3 py-1.5 text-white bg-danger hover:bg-danger-strong font-jost tracking-wide disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {revokePending ? 'Revoking...' : 'Revoke'}
+          </button>
+        )}
+      </div>
+    );
+  };
+
   const resetInviteModal = () => {
     inviteRequestIdRef.current += 1;
     setInviteModalTarget(null);
@@ -473,6 +998,7 @@ function OrganisationTraineesPage() {
 
     resetInviteModal();
     setInviteSuccess(null);
+    setInvitationActionFeedback(null);
     setInviteModalTarget({
       organisationId,
       token,
@@ -667,6 +1193,29 @@ function OrganisationTraineesPage() {
         </div>
 
         <div className="px-6 pb-6">
+          {currentInvitationActionFeedback && (
+            <div
+              role={currentInvitationActionFeedback.variant === 'success' ? 'status' : 'alert'}
+              className={`p-4 mb-6 border rounded-none font-jost text-[1.1rem] flex items-center justify-between gap-3 w-full ${
+                currentInvitationActionFeedback.variant === 'success'
+                  ? 'text-green-800 bg-green-50 border-green-200'
+                  : currentInvitationActionFeedback.variant === 'warning'
+                    ? 'text-amber-800 bg-amber-50 border-amber-200'
+                    : 'text-red-800 bg-red-50 border-red-200'
+              }`}
+            >
+              <span>{currentInvitationActionFeedback.message}</span>
+
+              <button
+                type="button"
+                onClick={() => setInvitationActionFeedback(null)}
+                className="shrink-0 cursor-pointer"
+                aria-label="Dismiss invitation action message"
+              >
+                <span className="material-symbols-sharp">close</span>
+              </button>
+            </div>
+          )}
           {inviteSuccess && inviteTargetsMatch(inviteSuccess.target, currentInviteTarget) && (
             <output className="p-4 mb-6 text-green-800 bg-green-50 border border-green-200 rounded-none font-jost text-[1.1rem] flex items-center gap-3 w-full">
               <span className="material-symbols-sharp">check_circle</span>
@@ -895,7 +1444,7 @@ function OrganisationTraineesPage() {
                         <td className="px-6 py-4">{getStatusBadge(trainee.status)}</td>
 
                         {/* Actions */}
-                        <td className="px-6 py-4">N/A</td>
+                        <td className="px-6 py-4">{renderInvitationActions(trainee.source)}</td>
                       </tr>
                     ))}
 
@@ -933,6 +1482,20 @@ function OrganisationTraineesPage() {
             void submitInvitation();
           }}
           onCancel={closeInviteTraineeModal}
+        />
+      )}
+      {currentInvitationAction?.actionType === 'revoke' && (
+        <BasicConfirmationModal
+          title="Revoke trainee invitation"
+          message={`Revoke the invitation for ${currentInvitationAction.email}?`}
+          confirmButtonText="Revoke Invitation"
+          confirmButtonVariant="danger"
+          isConfirming={currentInvitationAction.phase === 'pending'}
+          isConfirmDisabled={currentInvitationAction.phase !== 'confirming'}
+          isDismissDisabled={currentInvitationAction.phase === 'pending'}
+          errorMessage={currentInvitationAction.errorMessage}
+          onConfirm={confirmInvitationAction}
+          onCancel={cancelInvitationAction}
         />
       )}
     </AppLayout>

@@ -1,6 +1,8 @@
 import type {
   CreateTraineeInvitationResponseDto,
   CreateTraineeInvitationRequestDto,
+  InvitationResendResponseDto,
+  InvitationRevokeResponseDto,
   TraineeListResponseDto,
 } from '@insightful-phish/shared';
 import { apiClient } from '../lib/apiClient';
@@ -25,6 +27,34 @@ export function createOrganisationTraineeInvitation(
   return apiClient.post<CreateTraineeInvitationResponseDto, CreateTraineeInvitationRequestDto>(
     `/organisations/${organisationId}/trainee-invitations`,
     input,
+    {
+      authToken: token,
+    },
+  );
+}
+
+export function resendOrganisationTraineeInvitation(
+  organisationId: string,
+  invitationId: string,
+  token: string,
+): Promise<InvitationResendResponseDto> {
+  return apiClient.post<InvitationResendResponseDto>(
+    `/organisations/${organisationId}/trainee-invitations/${invitationId}/resend`,
+    undefined,
+    {
+      authToken: token,
+    },
+  );
+}
+
+export function revokeOrganisationTraineeInvitation(
+  organisationId: string,
+  invitationId: string,
+  token: string,
+): Promise<InvitationRevokeResponseDto> {
+  return apiClient.post<InvitationRevokeResponseDto>(
+    `/organisations/${organisationId}/trainee-invitations/${invitationId}/revoke`,
+    undefined,
     {
       authToken: token,
     },
