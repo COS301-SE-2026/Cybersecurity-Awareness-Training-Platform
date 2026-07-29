@@ -1,11 +1,18 @@
 import AppLayout from '../components/layout/AppLayout';
 import { Dropdown, DropdownItem } from 'flowbite-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import InviteTraineeModal from '../components/layout/modals/InviteTraineeModal';
-import type { TraineeListItemDto } from '@insightful-phish/shared';
+import {
+  createTraineeInvitationRequestSchema,
+  type CreateTraineeInvitationRequestDto,
+  type TraineeListItemDto,
+} from '@insightful-phish/shared';
 import { ApiError } from '../lib/apiClient';
 import { useAuth } from '../context/useAuth';
-import { getOrganisationTrainees } from '../services/organisation-trainee.service';
+import {
+  createOrganisationTraineeInvitation,
+  getOrganisationTrainees,
+} from '../services/organisation-trainee.service';
 import { Navigate } from 'react-router-dom';
 
 type ActiveTraineeRow = Extract<TraineeListItemDto, { rowType: 'ACTIVE_TRAINEE' }>;
@@ -36,13 +43,65 @@ type ListResultState = {
   errorMessage: string | null;
 };
 
+type TraineeReloadResult = 'applied' | 'failed' | 'stale';
+
+type InviteField = 'email' | 'firstName' | 'lastName';
+
+type InviteValues = Record<InviteField, string>;
+
+type InviteFieldErrors = Partial<Record<InviteField, string>>;
+
+type InviteModalTarget = {
+  organisationId: string;
+  token: string;
+};
+
+type InviteSuccessState = {
+  target: InviteModalTarget;
+  message: string;
+};
+
+type InviteErrorBody = {
+  error?: unknown;
+  message?: unknown;
+  details?: unknown;
+};
+
+type ValidationIssue = {
+  path: ReadonlyArray<string | number>;
+  message: string;
+};
+
+type BackendValidationDetail = {
+  field: string;
+  message: string;
+};
+
+const EMPTY_INVITE_VALUES: InviteValues = {
+  email: '',
+  firstName: '',
+  lastName: '',
+};
+
+function inviteTargetsMatch(
+  left: InviteModalTarget | null,
+  right: InviteModalTarget | null,
+): boolean {
+  return (
+    left !== null &&
+    right !== null &&
+    left.organisationId === right.organisationId &&
+    left.token === right.token
+  );
+}
+
 function getActiveTraineeDisplayStatus(row: ActiveTraineeRow): DisplayStatus {
   if (row.status === 'ACTIVE') return 'Active';
   if (row.status === 'DISABLED') return 'Disabled';
   return 'Unknown';
 }
 
-function getInviatationDisplayStatus(
+function getInvitationDisplayStatus(
   lifecycleState: InvitationTraineeRow['invitationLifecycleState'],
 ): DisplayStatus {
   switch (lifecycleState) {
@@ -69,7 +128,7 @@ function getDisplayStatus(row: TraineeListItemDto): DisplayStatus {
     return getActiveTraineeDisplayStatus(row);
   }
 
-  return getInviatationDisplayStatus(row.invitationLifecycleState);
+  return getInvitationDisplayStatus(row.invitationLifecycleState);
 }
 
 function getDisplayName(row: TraineeListItemDto): string {
@@ -135,6 +194,136 @@ function getListErrorMessage(error: unknown): string {
   return bodyMessage || error.message || 'Failed to load organisation trainees.';
 }
 
+function getInviteErrorBody(error: ApiError): InviteErrorBody | null {
+  if (!error.body || typeof error.body !== 'object') {
+    return null;
+  }
+
+  return error.body as InviteErrorBody;
+}
+
+function getInviteApiErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) {
+    return 'Unable to connect to the server. Please check your connection and try again.';
+  }
+
+  const body = getInviteErrorBody(error);
+  const errorCode = typeof body?.error === 'string' ? body.error : null;
+  const bodyMessage =
+    typeof body?.message === 'string' && body.message.trim() ? body.message : null;
+
+  if (error.status === 401) {
+    return bodyMessage || 'Your session is no longer authorised. Please sign in again.';
+  }
+  if (error.status === 403) {
+    if (errorCode === 'ORGANISATION_NOT_ACTIVE') {
+      return bodyMessage || 'Invitations cannot be created while the organisation is inactive.';
+    }
+
+    if (errorCode === 'ORG_ADMIN_REQUIRED') {
+      return bodyMessage || 'Active organisation administrator access is required.';
+    }
+
+    if (errorCode === 'ORG_ADMIN_PERMISSION_REQUIRED') {
+      return bodyMessage || 'You do not have permission to invite organisation trainees.';
+    }
+
+    return bodyMessage || 'The invitation request was denied.';
+  }
+
+  if (error.status === 409 && errorCode === 'CANNOT_INVITE_USER') {
+    return bodyMessage || 'This user cannot be invited to the organisation.';
+  }
+
+  if (error.status === 429 && errorCode === 'ORGANISATION_TRAINEE_RATE_LIMITED') {
+    return bodyMessage || 'Too many trainee-management requests. Please try again later.';
+  }
+
+  if (error.status >= 500) {
+    return 'The server could not create the invitation. Please try again later.';
+  }
+
+  return bodyMessage || 'The invitation could not be created.';
+}
+
+function mapValidationIssues(issues: ReadonlyArray<ValidationIssue>): {
+  fieldErrors: InviteFieldErrors;
+  generalError: string | null;
+} {
+  const fieldErrors: InviteFieldErrors = {};
+  const generalMessages: string[] = [];
+
+  for (const issue of issues) {
+    const field = issue.path.join('.');
+
+    if (field === 'email' || field === 'firstName' || field === 'lastName') {
+      fieldErrors[field] ??= issue.message;
+    } else {
+      generalMessages.push(issue.message);
+    }
+  }
+
+  return {
+    fieldErrors,
+    generalError: generalMessages[0] ?? null,
+  };
+}
+
+function isBackendValidationDetail(value: unknown): value is BackendValidationDetail {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const detail = value as {
+    field?: unknown;
+    message?: unknown;
+  };
+
+  return typeof detail.field === 'string' && typeof detail.message === 'string';
+}
+
+function mapBackendValidationDetails(body: InviteErrorBody | null): {
+  fieldErrors: InviteFieldErrors;
+  generalError: string | null;
+} {
+  if (!Array.isArray(body?.details)) {
+    return {
+      fieldErrors: {},
+      generalError:
+        typeof body?.message === 'string'
+          ? body.message
+          : 'Please check the invitation details and try again.',
+    };
+  }
+
+  const validDetails = body.details.filter(isBackendValidationDetail);
+  const fieldErrors: InviteFieldErrors = {};
+  const generalMessages: string[] = [];
+
+  for (const detail of validDetails) {
+    if (detail.field === 'email' || detail.field === 'firstName' || detail.field === 'lastName') {
+      fieldErrors[detail.field] ??= detail.message;
+    } else {
+      generalMessages.push(detail.message);
+    }
+  }
+
+  if (validDetails.length !== body.details.length) {
+    generalMessages.push('Some validation errors could not be matched to a form field.');
+  }
+
+  return {
+    fieldErrors,
+    generalError:
+      generalMessages[0] ??
+      (Object.keys(fieldErrors).length === 0
+        ? typeof body.message === 'string'
+          ? body.message
+          : 'Please check the invitation details and try again.'
+        : null),
+  };
+}
+
 function getStatusBadge(status: DisplayStatus) {
   const variants: Record<DisplayStatus, string> = {
     Active: 'ring-success-subtle text-fg-success-strong bg-success-soft',
@@ -162,6 +351,7 @@ function OrganisationTraineesPage() {
   const { token, authContext, permissions } = useAuth();
   const organisationId = authContext?.organisation?.id ?? null;
   const listRequestIdRef = useRef(0);
+  const inviteRequestIdRef = useRef(0);
 
   const [listResult, setListResult] = useState<ListResultState>({
     organisationId: null,
@@ -171,37 +361,66 @@ function OrganisationTraineesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [inviteStatusFilter, setInviteStatusFilter] = useState<'ALL' | DisplayStatus>('ALL');
   const [showInviteTraineeModal, setShowInviteTraineeModal] = useState(false);
+  const [inviteModalTarget, setInviteModalTarget] = useState<InviteModalTarget | null>(null);
+  const [inviteValues, setInviteValues] = useState<InviteValues>(EMPTY_INVITE_VALUES);
+  const [inviteFieldErrors, setInviteFieldErrors] = useState<InviteFieldErrors>({});
+  const [inviteGeneralError, setInviteGeneralError] = useState<string | null>(null);
+  const [isInviting, setIsInviting] = useState(false);
+  const [inviteCreated, setInviteCreated] = useState(false);
+  const [inviteSuccess, setInviteSuccess] = useState<InviteSuccessState | null>(null);
 
-  useEffect(() => {
+  const reloadOrganisationTrainees = useCallback(async (): Promise<TraineeReloadResult> => {
     if (!token || !organisationId) {
-      return;
+      return 'stale';
     }
 
     const requestId = ++listRequestIdRef.current;
-    let isMounted = true;
 
-    getOrganisationTrainees(organisationId, token)
-      .then((response) => {
-        if (!isMounted || listRequestIdRef.current !== requestId) return;
+    try {
+      const response = await getOrganisationTrainees(organisationId, token);
 
-        setListResult({
-          organisationId,
-          rows: [...response.trainees, ...response.invitations],
-          errorMessage: null,
-        });
-      })
-      .catch((error: unknown) => {
-        if (!isMounted || listRequestIdRef.current !== requestId) return;
+      if (listRequestIdRef.current !== requestId) {
+        return 'stale';
+      }
 
-        setListResult({
-          organisationId,
-          rows: [],
-          errorMessage: getListErrorMessage(error),
-        });
+      setListResult({
+        organisationId,
+        rows: [...response.trainees, ...response.invitations],
+        errorMessage: null,
       });
+      return 'applied';
+    } catch (error: unknown) {
+      if (listRequestIdRef.current !== requestId) {
+        return 'stale';
+      }
+
+      setListResult({
+        organisationId,
+        rows: [],
+        errorMessage: getListErrorMessage(error),
+      });
+      return 'failed';
+    }
+  }, [organisationId, token]);
+
+  useEffect(() => {
+    let isCurrent = true;
+
+    queueMicrotask(() => {
+      if (isCurrent) {
+        void reloadOrganisationTrainees();
+      }
+    });
 
     return () => {
-      isMounted = false;
+      isCurrent = false;
+      listRequestIdRef.current += 1;
+    };
+  }, [reloadOrganisationTrainees]);
+
+  useEffect(() => {
+    return () => {
+      inviteRequestIdRef.current += 1;
     };
   }, [organisationId, token]);
 
@@ -237,13 +456,174 @@ function OrganisationTraineesPage() {
 
   const canInvite = permissions.includes('INVITE_ORGANISATION_TRAINEES');
 
+  const resetInviteModal = () => {
+    inviteRequestIdRef.current += 1;
+    setInviteModalTarget(null);
+    setInviteValues(EMPTY_INVITE_VALUES);
+    setInviteFieldErrors({});
+    setInviteGeneralError(null);
+    setIsInviting(false);
+    setInviteCreated(false);
+  };
+
   const openInviteTraineeModal = () => {
+    if (!organisationId || !token) {
+      return;
+    }
+
+    resetInviteModal();
+    setInviteSuccess(null);
+    setInviteModalTarget({
+      organisationId,
+      token,
+    });
     setShowInviteTraineeModal(true);
   };
 
   const closeInviteTraineeModal = () => {
+    if (isInviting) {
+      return;
+    }
+
     setShowInviteTraineeModal(false);
+    resetInviteModal();
   };
+
+  const changeInviteField = (field: InviteField, value: string) => {
+    setInviteValues((current) => ({
+      ...current,
+      [field]: value,
+    }));
+
+    setInviteFieldErrors((current) => ({
+      ...current,
+      [field]: undefined,
+    }));
+    setInviteGeneralError(null);
+  };
+
+  const submitInvitation = async () => {
+    const currentTarget: InviteModalTarget | null =
+      organisationId && token
+        ? {
+            organisationId,
+            token,
+          }
+        : null;
+
+    if (
+      !inviteModalTarget ||
+      !inviteTargetsMatch(inviteModalTarget, currentTarget) ||
+      isInviting ||
+      inviteCreated
+    ) {
+      return;
+    }
+
+    setInviteFieldErrors({});
+    setInviteGeneralError(null);
+    setInviteSuccess(null);
+
+    const firstName = inviteValues.firstName.trim();
+    const lastName = inviteValues.lastName.trim();
+
+    const validationResult = createTraineeInvitationRequestSchema.safeParse({
+      email: inviteValues.email.trim(),
+      ...(firstName ? { firstName } : {}),
+      ...(lastName ? { lastName } : {}),
+    });
+
+    if (!validationResult.success) {
+      const mapped = mapValidationIssues(validationResult.error.issues);
+      setInviteFieldErrors(mapped.fieldErrors);
+      setInviteGeneralError(mapped.generalError);
+      return;
+    }
+
+    const requestId = ++inviteRequestIdRef.current;
+    const requestTarget = inviteModalTarget;
+    const isCurrentRequest = () => inviteRequestIdRef.current === requestId;
+
+    setIsInviting(true);
+
+    try {
+      const payload: CreateTraineeInvitationRequestDto = validationResult.data;
+      const response = await createOrganisationTraineeInvitation(
+        requestTarget.organisationId,
+        payload,
+        requestTarget.token,
+      );
+
+      if (!isCurrentRequest()) {
+        return;
+      }
+
+      setInviteCreated(true);
+      setInviteSuccess({
+        target: requestTarget,
+        message: response.message,
+      });
+
+      const refreshResult = await reloadOrganisationTrainees();
+
+      if (!isCurrentRequest()) {
+        return;
+      }
+
+      if (refreshResult === 'failed') {
+        setInviteGeneralError(
+          `${response.message} The invitation was created, but the trainee list could not be refreshed. Close this dialog and reload the page before trying again.`,
+        );
+        return;
+      }
+
+      if (refreshResult === 'stale') {
+        return;
+      }
+
+      setShowInviteTraineeModal(false);
+      resetInviteModal();
+    } catch (error: unknown) {
+      if (!isCurrentRequest()) {
+        return;
+      }
+
+      if (error instanceof ApiError) {
+        const body = getInviteErrorBody(error);
+        const errorCode = typeof body?.error === 'string' ? body.error : null;
+
+        if (error.status === 422 && errorCode === 'VALIDATION_ERROR') {
+          const mapped = mapBackendValidationDetails(body);
+          setInviteFieldErrors(mapped.fieldErrors);
+          setInviteGeneralError(mapped.generalError);
+          return;
+        }
+
+        if (error.status === 409 && errorCode === 'CANNOT_INVITE_USER') {
+          setInviteGeneralError(getInviteApiErrorMessage(error));
+          void reloadOrganisationTrainees();
+          return;
+        }
+      }
+
+      setInviteGeneralError(getInviteApiErrorMessage(error));
+    } finally {
+      if (isCurrentRequest()) {
+        setIsInviting(false);
+      }
+    }
+  };
+
+  const currentInviteTarget: InviteModalTarget | null =
+    organisationId && token
+      ? {
+          organisationId,
+          token,
+        }
+      : null;
+
+  const showCurrentInviteModal =
+    showInviteTraineeModal && inviteTargetsMatch(inviteModalTarget, currentInviteTarget);
 
   if (!organisationId) {
     return <Navigate to="/" replace />;
@@ -287,6 +667,12 @@ function OrganisationTraineesPage() {
         </div>
 
         <div className="px-6 pb-6">
+          {inviteSuccess && inviteTargetsMatch(inviteSuccess.target, currentInviteTarget) && (
+            <output className="p-4 mb-6 text-green-800 bg-green-50 border border-green-200 rounded-none font-jost text-[1.1rem] flex items-center gap-3 w-full">
+              <span className="material-symbols-sharp">check_circle</span>
+              <span>{inviteSuccess.message}</span>
+            </output>
+          )}
           {loadError && (
             <div
               role="alert"
@@ -491,7 +877,6 @@ function OrganisationTraineesPage() {
                     </tr>
                   </thead>
                   <tbody className="font-overpass font-regular text-[1rem] tracking-wide">
-                    {/* MOCK ORGANISATION 1 */}
                     {filteredTrainees.map((trainee) => (
                       <tr
                         key={`${trainee.source.rowType}-${trainee.source.id}`}
@@ -513,20 +898,20 @@ function OrganisationTraineesPage() {
                         <td className="px-6 py-4">N/A</td>
                       </tr>
                     ))}
-                  </tbody>
 
-                  {filteredTrainees.length === 0 && (
-                    <tr>
-                      <td
-                        colSpan={5}
-                        className="py-8 text-center text-[1.2rem] tracking-wider text-red-500 font-jost"
-                      >
-                        {displayRows.length === 0
-                          ? 'No Organisation Trainees Found'
-                          : 'No Organisation Trainees Match the Current Search or Filter'}
-                      </td>
-                    </tr>
-                  )}
+                    {filteredTrainees.length === 0 && (
+                      <tr>
+                        <td
+                          colSpan={5}
+                          className="py-8 text-center text-[1.2rem] tracking-wider text-red-500 font-jost"
+                        >
+                          {displayRows.length === 0
+                            ? 'No Organisation Trainees Found'
+                            : 'No Organisation Trainees Match the Current Search or Filter'}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
                 </table>
               </div>
             </>
@@ -535,11 +920,20 @@ function OrganisationTraineesPage() {
       </div>
 
       {/* INVITE TRAINEE MODAL */}
-      {showInviteTraineeModal && (
+      {showCurrentInviteModal && (
         <InviteTraineeModal
-          isOpen={showInviteTraineeModal}
-          onClose={() => closeInviteTraineeModal()}
-        ></InviteTraineeModal>
+          isOpen={showCurrentInviteModal}
+          values={inviteValues}
+          fieldErrors={inviteFieldErrors}
+          generalError={inviteGeneralError}
+          isSubmitting={isInviting}
+          hasSubmittedSuccessfully={inviteCreated}
+          onChange={changeInviteField}
+          onSubmit={() => {
+            void submitInvitation();
+          }}
+          onCancel={closeInviteTraineeModal}
+        />
       )}
     </AppLayout>
   );
