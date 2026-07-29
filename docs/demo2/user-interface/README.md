@@ -29,9 +29,26 @@ Screenshots in this groups cover public access, registration, verification, pass
 
 Screenshots cover campaigns, training content, quizzes, results, simulated inbox and details page.
 
+| ScreenShot                              | Manual section                 | Notes                                    |
+| --------------------------------------- | ------------------------------ | ---------------------------------------- |
+| `trainee/01-campaigns.png`              | View assigned campaigns        | Use demo campaigns only                  |
+| `trainee/02-open-campaign.png`          | View assigned campaigns        | show availible and locked campaigns      |
+| `trainee/03-training-document.png`      | Read a training document       | Do not include private training material |
+| `trainee/04-quiz.png`                   | Use demo questions only        | Use demo questions only                  |
+| `trainee/05-quiz-results.png`           | Complete a quiz                | Use sample source data only              |
+| `trainee/06-simulated-inbox.png`        | work through a simulated inbox | Use seeded demo emails only              |
+| `trainee/07-simualted-email-detail.png` | work through a simulated inbox | Do not show real links or credentials    |
+
 ## Organisation Admin Flows
 
 Screenshots cover org registration, initial admin setup, org information, org security preferences, trainee management, and admin management screens.
+
+| Screenshot                                                          | Manual Section                   | Notes                             |
+| ------------------------------------------------------------------- | -------------------------------- | --------------------------------- |
+| `organisation-onboarding/01-organisation-registration-step-one.png` | Request Organisation Access      | Use a sample organisation         |
+| `organisation-onboarding/02-organisation-registration-step-two.png` | Request Organisation Access      | Use a representative email only   |
+| `organisation-onboarding/03-organisation-registration-success.png`  | Request Organisation Access      | Avoid real submitted details      |
+| `organisation-onboarding/04-initial-admin-setup.png`                | Complete initial org admin setup | Hide setup token from address bar |
 
 ## Platform Admin flows
 

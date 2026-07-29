@@ -102,9 +102,73 @@ This section will cover all of the security measures one can take within the app
 
 This section will cover campaign access, training docs, quizzes, simulated inbox activity and simulated email review.
 
+### View assigned campaigns
+
+1. sign in as a trainee.
+2. Open **Campaigns**.
+3. Review each campaign card and its status.
+4. Open a campaign to see the available activities.
+
+![Campaigns page](user-interface/trainee/01-campaigns.png)
+![Open campaign](user-interface/trainee/02-open-campaign.png)
+
+### Read a training document
+
+1. Open a campaign.
+2. Select an available training document activity.
+3. Read the content.
+4. Use the page action to mark the document as complete when available.
+
+![Training document](user-interface/trainee/03-training-document.png)
+
+### Complete a quiz
+
+1. Open a campaign.
+2. Select an available quiz activity.
+3. Answer the quiz questions.
+4. submit the quiz.
+5. review the results page.
+
+![Quiz page](user-interface/trainee/04-quiz.png)
+![Quiz results](user-interface/trainee/05-quiz-results.png)
+
+### Work through a simulated inbox
+
+1. Open a campaign.
+2. Select the simulated inbox activity.
+3. Review the emails listed in the inbox.
+4. Open an email to inspect the details.
+5. Follow the onscreen action for the simulation.
+
+![simulated inbox](user-interface/trainee/06-simulated-inbox.png)
+![Simulated email detail](user-interface/trainee/07-simulated-email-detail.png)
+
 ## Organisation Trainee Tasks
 
 This section covers org setup links, accepting org related account setup, completing assigned campaign work, and using account security controls where allowed.
+
+### Request organisation Access
+
+1. Open the organisation registration request page.
+2. Complete **Organisation information**.
+3. Select **Next**.
+4. Complete **Representative Information**.
+5. Submit the request.
+6. Wait for Platform review.
+
+![Organisation registration step one](user-interface/organisation-onboarding/01-organisation-registration-step-one.png)
+![Organisation registration step two](user-interface/organisation-onboarding/02-organisation-registration-step-two.png)
+![Organisation registration success](user-interface/organisation-onboarding/03-organisation-registration-success.png)
+
+### Complete Initial Organisation Administartor Setup
+
+1. Open the setup link from the approval email.
+2. Review the organisation and role shown on the setup page.
+3. Enter your name and password details.
+4. Select **Complete Setup**.
+5. Sign in after success message appears.
+
+![Initial administartor setup](user-interface/organisation-onboarding/04-initial-admin-setup.png)
 
 ## Organisation Admin Tasks
 
