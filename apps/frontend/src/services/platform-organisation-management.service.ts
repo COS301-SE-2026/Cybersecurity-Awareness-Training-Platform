@@ -113,7 +113,7 @@ export function getPlatformOrganisationRequest(
     { authToken: token },
   );
 }
-export function markPlatformOrgnisationRequestContacted(
+export function markPlatformOrganisationRequestContacted(
   requestId: string,
   token: string,
 ): Promise<PlatformOrganisationRequestReviewDto> {

@@ -1,16 +1,21 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import LoadingSpinnerSVG from '../components/LoadingSpinnerSVG';
+import BasicAlert from '../components/alerts/BasicAlert';
 import { useAuth } from '../context/useAuth';
 import { ApiError } from '../lib/apiClient';
 import {
+  getPlatformOrganisationRequest,
   listPlatformOrganisationRequests,
+  markPlatformOrganisationRequestContacted,
   type OrganisationRequestStatus,
   type PlatformOrganisationRequestListItemDto,
   type PlatformOrganisationStatus,
+  type PlatformOrganisationRequestReviewDto,
 } from '../services/platform-organisation-management.service';
 import { Dropdown, DropdownItem } from 'flowbite-react';
 import AppLayout from '../components/layout/AppLayout';
+import ReviewOrganisationRegistrationRequstModal from '../components/layout/modals/ReviewOrganisationRegistrationRequestModal';
 
 type RequestStatusFilter = 'ALL' | OrganisationRequestStatus;
 type OrganisationStatusFilter = 'ALL' | PlatformOrganisationStatus;
@@ -97,6 +102,17 @@ function PlatformOrganisationManagementPage() {
   const { token, clearAuth } = useAuth();
   const [requests, setRequests] = useState<PlatformOrganisationRequestListItemDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
+  const [selectedRequest, setSelectedRequest] =
+    useState<PlatformOrganisationRequestReviewDto | null>(null);
+  const [isReviewLoading, setIsReviewLoading] = useState(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
+  const [isContacting, setIsContacting] = useState(false);
+  const [notification, setNotification] = useState<{
+    variant: 'success' | 'warning';
+    message: string;
+  } | null>(null);
+
   const [loadError, setLoadError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [requestStatusFilter, setRequestStatusFilter] = useState<RequestStatusFilter>('ALL');
@@ -169,9 +185,82 @@ function PlatformOrganisationManagementPage() {
       requestStatusFilter === 'ALL' || request.status === requestStatusFilter;
     const matchesOrganisationStatus =
       organisationStatusFilter === 'ALL' || request.organisationStatus === organisationStatusFilter;
-
     return matchesSearch && matchesRequestStatus && matchesOrganisationStatus;
   });
+  function closeReview() {
+    setSelectedRequestId(null);
+    setSelectedRequest(null);
+    setReviewError(null);
+  }
+  async function handleReviewFailure(error: unknown, fallback: string) {
+    const status = error instanceof ApiError ? error.status : null;
+    const message = error instanceof ApiError ? error.message : fallback;
+    if (status === 401) {
+      clearAuth();
+      navigate('/login?notice=session_expired', { replace: true });
+      return;
+    }
+    if (status === 403) {
+      closeReview();
+      setLoadError('Access Denied. Active Platform Administrator Access Is Required');
+      return;
+    }
+    if (status === 404 || status === 409) {
+      closeReview();
+      setNotification({
+        variant: 'warning',
+        message:
+          status === 404
+            ? 'This Request No Longer Exists. The List Has Been Refreshed'
+            : `${message} The List Has Been Refreshed`,
+      });
+      await loadRequests();
+      return;
+    }
+    if (status === 429) {
+      setReviewError('Too Many Requests! Please Wait A Moment And Try Again');
+      return;
+    }
+    setReviewError(message || fallback);
+  }
+
+  async function openReview(requestId: string) {
+    if (!token) return;
+    setSelectedRequestId(requestId);
+    setSelectedRequest(null);
+    setReviewError(null);
+    setIsReviewLoading(true);
+    try {
+      const request = await getPlatformOrganisationRequest(requestId, token);
+      setSelectedRequest(request);
+    } catch (error: unknown) {
+      await handleReviewFailure(error, 'Unable To Load This Registration Request');
+    } finally {
+      setIsReviewLoading(false);
+    }
+  }
+
+  async function handleMarkContacted() {
+    if (!token || !selectedRequestId) return;
+    setIsContacting(true);
+    setReviewError(null);
+    try {
+      const updatedRequest = await markPlatformOrganisationRequestContacted(
+        selectedRequestId,
+        token,
+      );
+      setSelectedRequest(updatedRequest);
+      await loadRequests();
+      setNotification({
+        variant: 'success',
+        message: 'Organisation Registration Request Marked As Contacted',
+      });
+    } catch (error: unknown) {
+      await handleReviewFailure(error, 'Unable To Mark Request As Contacted');
+    } finally {
+      setIsContacting(false);
+    }
+  }
 
   return (
     <AppLayout
@@ -180,6 +269,11 @@ function PlatformOrganisationManagementPage() {
         backgroundColor: 'white',
       }}
     >
+      {notification && (
+        <BasicAlert variant={notification.variant} onClose={() => setNotification(null)}>
+          {notification.message}
+        </BasicAlert>
+      )}
       <div>
         {/* HEADING  and SUB-HEADING */}
         <div
@@ -446,12 +540,13 @@ function PlatformOrganisationManagementPage() {
                         <div className="grid grid-cols-1 gap-1 justify-items-start">
                           {(request.status === 'PENDING_REVIEW' ||
                             request.status === 'CONTACTED') && (
-                            <a
-                              href={`/platform/organisation-requests/${request.id}`}
+                            <button
+                              type="button"
+                              onClick={() => void openReview(request.id)}
                               className="cursor-pointer font-medium text-purple hover:underline"
                             >
                               <strong>Review</strong> Request
-                            </a>
+                            </button>
                           )}
 
                           {request.status !== 'PENDING_REVIEW' &&
@@ -479,8 +574,8 @@ function PlatformOrganisationManagementPage() {
                       className="py-8 text-center text-[1.2rem] tracking-wider text-gray-500 font-jost"
                     >
                       {requests.length === 0
-                        ? 'No Organisation Registration Requests Are Availavle.'
-                        : 'No Organisations Match The Current Search And Filters'}
+                        ? 'No organisation registration requests are available.'
+                        : 'No organisations match the current search and filters'}
                     </td>{' '}
                   </tr>
                 )}
@@ -489,6 +584,17 @@ function PlatformOrganisationManagementPage() {
           </div>
         </div>
       </div>
+      {selectedRequestId && (
+        <ReviewOrganisationRegistrationRequstModal
+          isOpen
+          request={selectedRequest}
+          isLoading={isReviewLoading}
+          isContacting={isContacting}
+          errorMessage={reviewError}
+          onClose={closeReview}
+          onMarkContacted={() => void handleMarkContacted()}
+        />
+      )}
     </AppLayout>
   );
 }
