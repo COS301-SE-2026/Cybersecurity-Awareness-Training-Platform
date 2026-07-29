@@ -81,10 +81,10 @@ function ChangePasswordModal({ isOpen, onClose, onSuccess }: ChangePasswordModal
           res.message || 'Password changed successfully. All active sessions have been logged out.',
         );
       }
-      // Password change revokes all active sessions. Redirect to login page immediately.
-      setTimeout(() => {
-        window.location.href = '/login?notice=password_changed';
-      }, 800);
+      // Password change revokes all active sessions. Clear stored auth state and redirect to login page immediately.
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.href = '/login?notice=password_changed';
     } catch (err: unknown) {
       setIsSubmitting(false);
       setAlertMessage(formatAlertMessage(extractErrorMessage(err)));
@@ -179,7 +179,7 @@ function ChangePasswordModal({ isOpen, onClose, onSuccess }: ChangePasswordModal
               <input
                 required
                 type="password"
-                name="new-password"
+                name="password"
                 id="new-password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}

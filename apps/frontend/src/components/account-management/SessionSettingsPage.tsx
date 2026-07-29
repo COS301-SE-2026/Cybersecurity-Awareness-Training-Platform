@@ -45,8 +45,9 @@ function getRegularLabel(hours: number | null): string {
   return hours ? `${hours} Hours` : '24 Hours (1 Day)';
 }
 
-function getRememberLabel(hours: number | null | undefined): string {
-  if (hours === null || hours === 0 || hours === undefined) return 'Never';
+function getRememberLabel(hours: number | null | undefined, isPolicyDisabled = false): string {
+  if (isPolicyDisabled) return 'Disabled by Policy';
+  if (hours === null || hours === undefined) return 'Organisation Default';
   if (hours === 24) return '1 Day';
   if (hours === 168) return '7 Days';
   if (hours === 336) return '14 Days';
@@ -55,7 +56,7 @@ function getRememberLabel(hours: number | null | undefined): string {
 }
 
 function getIdleLabel(mins: number | null | undefined): string {
-  if (mins === null || mins === 0 || mins === undefined) return 'Never';
+  if (mins === null || mins === undefined) return 'Organisation Default';
   if (mins === 5) return '5 Minutes';
   if (mins === 15) return '15 Minutes';
   if (mins === 30) return '30 Minutes';
@@ -83,33 +84,37 @@ function SessionSettingsPage({
   const idleTimeoutEditable =
     capabilities?.securityPreferenceEditable?.preferredIdleTimeoutMinutes ?? true;
 
+  const effectiveRegularHours = effectivePolicy?.regularSessionSeconds
+    ? Math.floor(effectivePolicy.regularSessionSeconds / 3600)
+    : 24;
+
+  const effectiveRememberHours = effectivePolicy?.rememberedSessionSeconds
+    ? Math.floor(effectivePolicy.rememberedSessionSeconds / 3600)
+    : null;
+
+  const effectiveIdleMins = effectivePolicy?.idleTimeoutMinutes ?? null;
+
   const defaultRegular = regularSessionEditable
-    ? (securityPreferences?.preferredRegularSessionLengthHours ?? 24)
-    : Math.floor((effectivePolicy?.regularSessionSeconds ?? 86400) / 3600);
+    ? (securityPreferences?.preferredRegularSessionLengthHours ?? effectiveRegularHours)
+    : effectiveRegularHours;
 
   const defaultRemember = rememberMeEditable
-    ? (securityPreferences?.preferredRememberMeSessionLengthHours ?? null)
-    : effectivePolicy?.rememberedSessionSeconds
-      ? Math.floor(effectivePolicy.rememberedSessionSeconds / 3600)
-      : null;
+    ? (securityPreferences?.preferredRememberMeSessionLengthHours ?? effectiveRememberHours)
+    : effectiveRememberHours;
 
   const defaultIdle = idleTimeoutEditable
-    ? (securityPreferences?.preferredIdleTimeoutMinutes ?? null)
-    : (effectivePolicy?.idleTimeoutMinutes ?? null);
+    ? (securityPreferences?.preferredIdleTimeoutMinutes ?? effectiveIdleMins)
+    : effectiveIdleMins;
 
+  // Track explicit user selection to avoid submitting unchanged default preferences
   const [userRegularHours, setUserRegularHours] = useState<number | null>(null);
-  const [userRememberHours, setUserRememberHours] = useState<number | null | 'NEVER'>('INIT');
-  const [userIdleMins, setUserIdleMins] = useState<number | null | 'NEVER'>('INIT');
+  const [userRememberHours, setUserRememberHours] = useState<number | null | undefined>(undefined);
+  const [userIdleMins, setUserIdleMins] = useState<number | null | undefined>(undefined);
 
   const selectedRegularHours = userRegularHours ?? defaultRegular;
   const selectedRememberHours =
-    userRememberHours === 'INIT'
-      ? defaultRemember
-      : userRememberHours === 'NEVER'
-        ? null
-        : userRememberHours;
-  const selectedIdleMins =
-    userIdleMins === 'INIT' ? defaultIdle : userIdleMins === 'NEVER' ? null : userIdleMins;
+    userRememberHours !== undefined ? userRememberHours : defaultRemember;
+  const selectedIdleMins = userIdleMins !== undefined ? userIdleMins : defaultIdle;
 
   const fetchSessionsData = useCallback(() => {
     getAccountSessions()
@@ -166,18 +171,19 @@ function SessionSettingsPage({
       preferredIdleTimeoutMinutes?: number | null;
     } = {};
 
-    if (regularSessionEditable) {
-      payload.preferredRegularSessionLengthHours = selectedRegularHours;
+    // Only include explicitly modified & editable preference fields in the PATCH body
+    if (regularSessionEditable && userRegularHours !== null) {
+      payload.preferredRegularSessionLengthHours = userRegularHours;
     }
-    if (rememberMeEditable) {
-      payload.preferredRememberMeSessionLengthHours = selectedRememberHours;
+    if (rememberMeEditable && userRememberHours !== undefined) {
+      payload.preferredRememberMeSessionLengthHours = userRememberHours;
     }
-    if (idleTimeoutEditable) {
-      payload.preferredIdleTimeoutMinutes = selectedIdleMins;
+    if (idleTimeoutEditable && userIdleMins !== undefined) {
+      payload.preferredIdleTimeoutMinutes = userIdleMins;
     }
 
     if (Object.keys(payload).length === 0) {
-      setAlertMessage('All session security preferences are managed by organisation policy.');
+      setAlertMessage('No preference changes were made to save.');
       return;
     }
 
@@ -185,6 +191,9 @@ function SessionSettingsPage({
     try {
       await updateAccountSecurityPreferences(payload);
       setIsUpdatingPreferences(false);
+      setUserRegularHours(null);
+      setUserRememberHours(undefined);
+      setUserIdleMins(undefined);
       if (onRefresh) onRefresh();
       if (onNotification) {
         onNotification('Session preferences updated successfully.');
@@ -384,15 +393,18 @@ function SessionSettingsPage({
             </label>
 
             <Dropdown
-              label={getRememberLabel(selectedRememberHours)}
+              label={getRememberLabel(
+                selectedRememberHours,
+                !rememberMeEditable && effectivePolicy?.rememberMeAllowed === false,
+              )}
               disabled={!rememberMeEditable}
               className="border border-gray-300 bg-gray-50 text-deep-purple font-overpass text-[1.2rem] block w-full p-2.5 disabled:opacity-50"
             >
               <DropdownItem
                 className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setUserRememberHours('NEVER')}
+                onClick={() => setUserRememberHours(null)}
               >
-                Never
+                Organisation Default
               </DropdownItem>
               <DropdownItem
                 className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
@@ -442,6 +454,12 @@ function SessionSettingsPage({
             >
               <DropdownItem
                 className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
+                onClick={() => setUserIdleMins(null)}
+              >
+                Organisation Default
+              </DropdownItem>
+              <DropdownItem
+                className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
                 onClick={() => setUserIdleMins(5)}
               >
                 5 Minutes
@@ -469,12 +487,6 @@ function SessionSettingsPage({
                 onClick={() => setUserIdleMins(120)}
               >
                 2 Hours
-              </DropdownItem>
-              <DropdownItem
-                className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setUserIdleMins('NEVER')}
-              >
-                Never
               </DropdownItem>
             </Dropdown>
             {!idleTimeoutEditable && (
