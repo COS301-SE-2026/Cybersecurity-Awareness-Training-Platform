@@ -1181,8 +1181,8 @@
           "number": 370,
           "title": "docs: complete Demo 2 SAS design patterns and technology requirements",
           "points": 5,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-07-29"
         },
         {
           "number": 369,
@@ -1893,7 +1893,7 @@
     },
     {
       "date": "2026-07-29",
-      "remaining": 52,
+      "remaining": 47,
       "ideal": 0.0
     }
   ]
