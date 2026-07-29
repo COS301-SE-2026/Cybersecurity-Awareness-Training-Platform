@@ -1,6 +1,167 @@
+import { useState, useEffect, useCallback } from 'react';
 import { Dropdown, DropdownItem } from 'flowbite-react';
+import BasicAlert from '../alerts/BasicAlert';
+import {
+  getAccountSessions,
+  revokeAccountSession,
+  logoutOtherAccountSessions,
+  updateAccountSecurityPreferences,
+  extractErrorMessage,
+  type AccountSessionResponse,
+  type AccountSecurityPreferencesResponse,
+  type AccountPolicyResponse,
+  type AccountCapabilitiesResponse,
+} from '../../services/account.service';
 
-function SessionSettingsPage() {
+type SessionSettingsPageProps = Readonly<{
+  securityPreferences?: AccountSecurityPreferencesResponse | null;
+  effectivePolicy?: AccountPolicyResponse | null;
+  capabilities?: AccountCapabilitiesResponse | null;
+  onNotification?: (message: string) => void;
+  onRefresh?: () => void;
+}>;
+
+function formatLastActive(dateString: string): string {
+  try {
+    const d = new Date(dateString);
+    return d.toLocaleString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return dateString;
+  }
+}
+
+function getRegularLabel(hours: number): string {
+  if (hours === 24) return '1 Day';
+  if (hours === 168) return '7 Days';
+  if (hours === 336) return '14 Days';
+  return '30 Days';
+}
+
+function getRememberLabel(hours: number | null): string {
+  if (!hours || hours === 0) return 'Never';
+  if (hours === 24) return '1 Day';
+  if (hours === 168) return '7 Days';
+  if (hours === 336) return '14 Days';
+  if (hours === 720) return '30 Days';
+  return 'Always';
+}
+
+function getIdleLabel(mins: number | null): string {
+  if (!mins || mins === 0) return 'Never';
+  if (mins === 5) return '5 Minutes';
+  if (mins === 15) return '15 Minutes';
+  if (mins === 30) return '30 Minutes';
+  if (mins === 60) return '1 Hour';
+  if (mins === 120) return '2 Hours';
+  return `${mins} Minutes`;
+}
+
+function SessionSettingsPage({
+  securityPreferences,
+  effectivePolicy,
+  capabilities,
+  onNotification,
+  onRefresh,
+}: SessionSettingsPageProps) {
+  const [sessions, setSessions] = useState<AccountSessionResponse[]>([]);
+  const [loadingSessions, setLoadingSessions] = useState(true);
+  const [alertMessage, setAlertMessage] = useState('');
+  const [isUpdatingPreferences, setIsUpdatingPreferences] = useState(false);
+
+  const [customRegularHours, setCustomRegularHours] = useState<number | null>(null);
+  const [customRememberHours, setCustomRememberHours] = useState<number | null>(null);
+  const [customIdleMins, setCustomIdleMins] = useState<number | null>(null);
+
+  const regularSessionHours =
+    customRegularHours ?? securityPreferences?.preferredRegularSessionLengthHours ?? 720;
+  const rememberMeHours =
+    customRememberHours ?? securityPreferences?.preferredRememberMeSessionLengthHours ?? null;
+  const idleTimeoutMins =
+    customIdleMins ??
+    securityPreferences?.preferredIdleTimeoutMinutes ??
+    effectivePolicy?.idleTimeoutMinutes ??
+    5;
+
+  const loadSessions = useCallback(() => {
+    getAccountSessions()
+      .then((res) => {
+        setSessions(res.sessions || []);
+        setLoadingSessions(false);
+      })
+      .catch((err: unknown) => {
+        setAlertMessage(extractErrorMessage(err));
+        setLoadingSessions(false);
+      });
+  }, []);
+
+  useEffect(() => {
+    loadSessions();
+  }, [loadSessions]);
+
+  async function handleRevokeSession(sessionId: string) {
+    setAlertMessage('');
+    try {
+      await revokeAccountSession(sessionId);
+      if (onNotification) {
+        onNotification('Session revoked successfully.');
+      }
+      loadSessions();
+    } catch (err: unknown) {
+      setAlertMessage(extractErrorMessage(err));
+    }
+  }
+
+  async function handleLogoutAllOthers() {
+    setAlertMessage('');
+    try {
+      const res = await logoutOtherAccountSessions();
+      if (onNotification) {
+        onNotification(
+          res.revokedSessionCount > 0
+            ? `Logged out of ${res.revokedSessionCount} other session(s).`
+            : 'No other active sessions to log out.',
+        );
+      }
+      loadSessions();
+    } catch (err: unknown) {
+      setAlertMessage(extractErrorMessage(err));
+    }
+  }
+
+  async function handleSavePreferences() {
+    setAlertMessage('');
+    setIsUpdatingPreferences(true);
+    try {
+      await updateAccountSecurityPreferences({
+        preferredRegularSessionLengthHours: regularSessionHours,
+        preferredRememberMeSessionLengthHours: rememberMeHours,
+        preferredIdleTimeoutMinutes: idleTimeoutMins,
+      });
+      setIsUpdatingPreferences(false);
+      if (onRefresh) onRefresh();
+      if (onNotification) {
+        onNotification('Session preferences updated successfully.');
+      }
+    } catch (err: unknown) {
+      setIsUpdatingPreferences(false);
+      setAlertMessage(extractErrorMessage(err));
+    }
+  }
+
+  const regularSessionEditable =
+    capabilities?.securityPreferenceEditable?.preferredRegularSessionLengthHours ?? true;
+  const rememberMeEditable =
+    capabilities?.securityPreferenceEditable?.preferredRememberMeSessionLengthHours ?? true;
+  const idleTimeoutEditable =
+    capabilities?.securityPreferenceEditable?.preferredIdleTimeoutMinutes ?? true;
+
   return (
     <div className="-mt-2 -ml-2">
       {/* HEADING */}
@@ -13,15 +174,21 @@ function SessionSettingsPage() {
         View and manage your recent sessions and configure how sessions on your account behave.
       </p>
 
+      {alertMessage && (
+        <BasicAlert variant="danger" onClose={() => setAlertMessage('')}>
+          {alertMessage}
+        </BasicAlert>
+      )}
+
       <div className="flex items-center justify-between">
         {/* Sessions HEADING */}
         <h3 className="font-jost text-[1.3rem] text-purple tracking-wider font-medium mb-2">
-          Active Sessions (4)
-          {/* THIS SHOULD INDICATE THE TOTAL NUMBER OF SESSIONS */}
+          Active Sessions ({sessions.length})
         </h3>
 
         <button
           type="button"
+          onClick={handleLogoutAllOthers}
           className="cursor-pointer font-overpass text-[1rem] font-medium text-red-600 hover:underline"
         >
           Log Out All Sessions
@@ -66,67 +233,62 @@ function SessionSettingsPage() {
             </tr>
           </thead>
           <tbody className="font-overpass font-regular text-[1rem] tracking-wide">
-            {/* SESSION 1 */}
-            <tr className="odd:bg-neutral-primary font-overpass even:bg-neutral-secondary-soft border-b border-default">
-              <th scope="row" className="px-6 py-4 font-medium text-gray-600 whitespace-nowrap">
-                Apple iPhone <span className="text-fg-brand">(Current Session)</span>
-              </th>
-              <td className="px-6 py-4">Safari</td>
-              <td className="px-6 py-4">Johannesburg, Gauteng, South Africa</td>
-              <td className="px-6 py-4">Monday, 16 June 2026, 11:30 PM</td>
-              <td className="px-6 py-4">
-                <button className="cursor-pointer font-medium text-red-600 hover:underline">
-                  Log Out Session
-                </button>
-              </td>
-            </tr>
-            {/* SESSION 2 */}
-            <tr className="odd:bg-neutral-primary font-overpass even:bg-neutral-secondary-soft border-default">
-              <th scope="row" className="px-6 py-4 font-medium text-gray-600 whitespace-nowrap">
-                Windows 11 Personal Computer
-              </th>
-              <td className="px-6 py-4">Chrome</td>
-              <td className="px-6 py-4">Pretoria, Gauteng, South Africa</td>
-              <td className="px-6 py-4">Friday, 13 June 2026, 08:15 AM</td>
-              <td className="px-6 py-4">
-                <button className="cursor-pointer font-medium text-red-600 hover:underline">
-                  Log Out Session
-                </button>
-              </td>
-            </tr>
+            {loadingSessions ? (
+              <tr className="bg-neutral-primary border-b border-default">
+                <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                  Loading active sessions...
+                </td>
+              </tr>
+            ) : sessions.length === 0 ? (
+              <tr className="bg-neutral-primary border-b border-default">
+                <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                  No active sessions found.
+                </td>
+              </tr>
+            ) : (
+              sessions.map((session, index) => {
+                const parts = (session.deviceSummary || '').split('·').map((s) => s.trim());
+                const deviceName = parts[0] || session.deviceSummary || 'Active Session';
+                const browserName = parts[1] || 'Web Browser';
+
+                return (
+                  <tr
+                    key={session.id}
+                    className={`${index % 2 === 0 ? 'bg-neutral-primary' : 'bg-neutral-secondary-soft'} font-overpass border-b border-default`}
+                  >
+                    <th
+                      scope="row"
+                      className="px-6 py-4 font-medium text-gray-600 whitespace-nowrap"
+                    >
+                      {deviceName}{' '}
+                      {session.current && <span className="text-fg-brand">(Current Session)</span>}
+                    </th>
+                    <td className="px-6 py-4">{browserName}</td>
+                    <td className="px-6 py-4">{session.locationSummary || 'Unknown Location'}</td>
+                    <td className="px-6 py-4">{formatLastActive(session.lastActiveAt)}</td>
+                    <td className="px-6 py-4">
+                      {session.current ? (
+                        <span className="text-gray-400 font-medium">Current Session</span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleRevokeSession(session.id)}
+                          className="cursor-pointer font-medium text-red-600 hover:underline"
+                        >
+                          Log Out Session
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>
 
-      {/* PAGINATION */}
-      {/* Max 2  */}
-      {/* <nav className="mt-2  ">
-        <ul className="flex -space-x-px">
-          <li>
-            <button className="flex items-center justify-center font-jost tracking-wider text-md font-medium text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-dark-pink px-3 h-9 focus:outline-none">
-              Previous
-            </button>
-          </li>
-          <li>
-            <button className="flex items-center justify-center font-jost tracking-wider text-md font-medium text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-dark-pink px-3 h-9 focus:outline-none">
-              1
-            </button>
-          </li>
-          <li>
-            <button className="flex items-center justify-center font-jost tracking-wider text-md font-medium text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-dark-pink px-3 h-9 focus:outline-none">
-              2
-            </button>
-          </li>
-          <li>
-            <button className="flex items-center justify-center font-jost tracking-wider text-md font-medium text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-dark-pink px-3 h-9 focus:outline-none">
-              Next
-            </button>
-          </li>
-        </ul>
-      </nav> */}
-
       {/* HEADING */}
-      <h3 className="font-jost text-[1.3rem] text-purple tracking-wider font-medium mt-12  -mb-3">
+      <h3 className="font-jost text-[1.3rem] text-purple tracking-wider font-medium mt-12 -mb-3">
         Session Preferences
       </h3>
 
@@ -135,7 +297,6 @@ function SessionSettingsPage() {
         <div className="mt-4 grid grid-cols-3 flex-1 max-w-4xl gap-6">
           {/* DROPDOWN 1: Regular Session Length Dropdown */}
           <div>
-            {/* Label */}
             <label
               htmlFor="regular-session-duration"
               className=" block mb-2 font-jost tracking-wide text-[1.2rem] font-regular text-dark-pink"
@@ -144,19 +305,44 @@ function SessionSettingsPage() {
             </label>
 
             <Dropdown
-              label="30 Days"
-              className="border border-gray-200 bg-gray-100 hover:bg-gray-100 text-body rounded-none font-overpass text-[1rem]"
+              label={getRegularLabel(regularSessionHours)}
+              disabled={!regularSessionEditable}
+              className="border border-gray-300 bg-gray-50 text-deep-purple font-overpass text-[1.2rem] block w-full p-2.5 disabled:opacity-50"
             >
-              <DropdownItem className="font-overpass text-[1rem]">1 Day</DropdownItem>
-              <DropdownItem className="font-overpass text-[1rem]">7 Days</DropdownItem>
-              <DropdownItem className="font-overpass text-[1rem]">14 Days</DropdownItem>
-              <DropdownItem className="font-overpass text-[1rem]">30 Days</DropdownItem>
+              <DropdownItem
+                className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
+                onClick={() => setCustomRegularHours(24)}
+              >
+                1 Day
+              </DropdownItem>
+              <DropdownItem
+                className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
+                onClick={() => setCustomRegularHours(168)}
+              >
+                7 Days
+              </DropdownItem>
+              <DropdownItem
+                className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
+                onClick={() => setCustomRegularHours(336)}
+              >
+                14 Days
+              </DropdownItem>
+              <DropdownItem
+                className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
+                onClick={() => setCustomRegularHours(720)}
+              >
+                30 Days
+              </DropdownItem>
             </Dropdown>
+            {!regularSessionEditable && (
+              <p className="font-overpass text-xs text-red-600 mt-1">
+                Managed by organisation policy.
+              </p>
+            )}
           </div>
 
           {/* DROPDOWN 2: Remember Me Duration */}
           <div>
-            {/* Label */}
             <label
               htmlFor="remember-me-duration"
               className=" block mb-2 font-jost tracking-wide text-[1.2rem] font-regular text-dark-pink"
@@ -165,21 +351,56 @@ function SessionSettingsPage() {
             </label>
 
             <Dropdown
-              label="Always"
-              className="border border-gray-200 bg-gray-100 hover:bg-gray-100 text-body rounded-none font-overpass text-[1rem]"
+              label={getRememberLabel(rememberMeHours)}
+              disabled={!rememberMeEditable}
+              className="border border-gray-300 bg-gray-50 text-deep-purple font-overpass text-[1.2rem] block w-full p-2.5 disabled:opacity-50"
             >
-              <DropdownItem className="font-overpass text-[1rem]">Never</DropdownItem>
-              <DropdownItem className="font-overpass text-[1rem]">1 Day</DropdownItem>
-              <DropdownItem className="font-overpass text-[1rem]">7 Days</DropdownItem>
-              <DropdownItem className="font-overpass text-[1rem]">14 Days</DropdownItem>
-              <DropdownItem className="font-overpass text-[1rem]">30 Days</DropdownItem>
-              <DropdownItem className="font-overpass text-[1rem]">Always</DropdownItem>
+              <DropdownItem
+                className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
+                onClick={() => setCustomRememberHours(null)}
+              >
+                Never
+              </DropdownItem>
+              <DropdownItem
+                className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
+                onClick={() => setCustomRememberHours(24)}
+              >
+                1 Day
+              </DropdownItem>
+              <DropdownItem
+                className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
+                onClick={() => setCustomRememberHours(168)}
+              >
+                7 Days
+              </DropdownItem>
+              <DropdownItem
+                className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
+                onClick={() => setCustomRememberHours(336)}
+              >
+                14 Days
+              </DropdownItem>
+              <DropdownItem
+                className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
+                onClick={() => setCustomRememberHours(720)}
+              >
+                30 Days
+              </DropdownItem>
+              <DropdownItem
+                className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
+                onClick={() => setCustomRememberHours(8760)}
+              >
+                Always
+              </DropdownItem>
             </Dropdown>
+            {!rememberMeEditable && (
+              <p className="font-overpass text-xs text-red-600 mt-1">
+                Managed by organisation policy.
+              </p>
+            )}
           </div>
 
           {/* DROPDOWN 3: Idle Timeout */}
           <div>
-            {/* Label */}
             <label
               htmlFor="idle-timeout-duration"
               className=" block mb-2 font-jost tracking-wide text-[1.2rem] font-regular text-dark-pink"
@@ -188,16 +409,52 @@ function SessionSettingsPage() {
             </label>
 
             <Dropdown
-              label="5 Minutes"
-              className="border border-gray-200 bg-gray-100 hover:bg-gray-100 text-body rounded-none font-overpass text-[1rem]"
+              label={getIdleLabel(idleTimeoutMins)}
+              disabled={!idleTimeoutEditable}
+              className="border border-gray-300 bg-gray-50 text-deep-purple font-overpass text-[1.2rem] block w-full p-2.5 disabled:opacity-50"
             >
-              <DropdownItem className="font-overpass text-[1rem]">5 Minutes</DropdownItem>
-              <DropdownItem className="font-overpass text-[1rem]">15 Minutes</DropdownItem>
-              <DropdownItem className="font-overpass text-[1rem]">30 Minutes</DropdownItem>
-              <DropdownItem className="font-overpass text-[1rem]">1 Hour</DropdownItem>
-              <DropdownItem className="font-overpass text-[1rem]">2 Hours</DropdownItem>
-              <DropdownItem className="font-overpass text-[1rem]">Never</DropdownItem>
+              <DropdownItem
+                className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
+                onClick={() => setCustomIdleMins(5)}
+              >
+                5 Minutes
+              </DropdownItem>
+              <DropdownItem
+                className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
+                onClick={() => setCustomIdleMins(15)}
+              >
+                15 Minutes
+              </DropdownItem>
+              <DropdownItem
+                className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
+                onClick={() => setCustomIdleMins(30)}
+              >
+                30 Minutes
+              </DropdownItem>
+              <DropdownItem
+                className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
+                onClick={() => setCustomIdleMins(60)}
+              >
+                1 Hour
+              </DropdownItem>
+              <DropdownItem
+                className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
+                onClick={() => setCustomIdleMins(120)}
+              >
+                2 Hours
+              </DropdownItem>
+              <DropdownItem
+                className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
+                onClick={() => setCustomIdleMins(null)}
+              >
+                Never
+              </DropdownItem>
             </Dropdown>
+            {!idleTimeoutEditable && (
+              <p className="font-overpass text-xs text-red-600 mt-1">
+                Managed by organisation policy.
+              </p>
+            )}
           </div>
         </div>
 
@@ -205,10 +462,15 @@ function SessionSettingsPage() {
           {/* Update Session Settings Button */}
           <button
             type="button"
+            disabled={
+              isUpdatingPreferences ||
+              (!regularSessionEditable && !rememberMeEditable && !idleTimeoutEditable)
+            }
+            onClick={handleSavePreferences}
             className="cursor-pointer px-6 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm px-4 py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <span className="material-icons-sharp">save</span>
-            <span> Update Session Settings </span>
+            <span> {isUpdatingPreferences ? 'Updating...' : 'Update Session Settings'} </span>
           </button>
         </div>
       </div>
