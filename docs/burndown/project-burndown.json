@@ -773,8 +773,8 @@
           "number": 313,
           "title": "fix: add resend verification cooldown response handling",
           "points": 1,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-07-29"
         },
         {
           "number": 291,
@@ -850,8 +850,8 @@
           "number": 266,
           "title": "feat: integrate accept invite and role change flows",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-07-29"
         },
         {
           "number": 265,
@@ -941,8 +941,8 @@
           "number": 246,
           "title": "feat: integrate token-link error handling",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-07-29"
         },
         {
           "number": 245,
@@ -955,8 +955,8 @@
           "number": 244,
           "title": "feat: build frontend token-link error handling",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-07-29"
         },
         {
           "number": 243,
@@ -1095,8 +1095,8 @@
           "number": 224,
           "title": "feat: build frontend shared Sprint 4 authentication shell and components",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-07-29"
         },
         {
           "number": 222,
@@ -1209,8 +1209,8 @@
           "number": 358,
           "title": "fix: harden platform-admin invitation concurrency and repository boundaries",
           "points": 3,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-07-29"
         },
         {
           "number": 342,
@@ -1893,7 +1893,7 @@
     },
     {
       "date": "2026-07-29",
-      "remaining": 71,
+      "remaining": 59,
       "ideal": 0.0
     }
   ]

@@ -1,6 +1,6 @@
 # Burndown Check Report
 
-Last run: 2026-07-29 02:02:28 SAST
+Last run: 2026-07-29 11:54:15 SAST
 
 - #207 fix: seed campaign creator relation after Prisma schema update closed 1 day after Sprint 3 (Demo 2) ended.
 - #184 chore: clean trainee terminology and small frontend test warnings closed 1 day after Sprint 3 (Demo 2) ended.
@@ -12,14 +12,19 @@ Last run: 2026-07-29 02:02:28 SAST
 - #159 chore: consolidate frontend API clients and base URL handling closed 1 day after Sprint 3 (Demo 2) ended.
 - #155 chore: clean deprecated static frontend assets and app metadata closed 1 day after Sprint 3 (Demo 2) ended.
 - #331 feat: add accept-invite token context endpoint closed 15 days after Sprint 4 (Demo 2) ended.
+- #313 fix: add resend verification cooldown response handling closed 17 days after Sprint 4 (Demo 2) ended.
 - #291 test: add backend account and security settings API integration coverage closed 15 days after Sprint 4 (Demo 2) ended.
+- #266 feat: integrate accept invite and role change flows closed 17 days after Sprint 4 (Demo 2) ended.
 - #265 feat: implement backend invitation acceptance and role change endpoints closed 8 days after Sprint 4 (Demo 2) ended.
 - #264 feat: build frontend accept invite and role change page closed 1 day after Sprint 4 (Demo 2) ended.
 - #263 docs: define SRS use case UC-07 accept organisation invitation closed 7 days after Sprint 4 (Demo 2) ended.
 - #261 docs: define SRS use case UC-06 complete first organisation admin setup closed 14 days after Sprint 4 (Demo 2) ended.
 - #252 feat: integrate organisation registration request flow closed 1 day after Sprint 4 (Demo 2) ended.
 - #249 docs: define SRS use case UC-04 request organisation registration closed 14 days after Sprint 4 (Demo 2) ended.
+- #246 feat: integrate token-link error handling closed 17 days after Sprint 4 (Demo 2) ended.
+- #244 feat: build frontend token-link error handling closed 17 days after Sprint 4 (Demo 2) ended.
 - #240 feat: integrate forgot password flow closed 10 days after Sprint 4 (Demo 2) ended.
 - #237 feat: integrate registration and setup flows closed 1 day after Sprint 4 (Demo 2) ended.
 - #236 feat: integrate email verification flow closed 9 days after Sprint 4 (Demo 2) ended.
+- #224 feat: build frontend shared Sprint 4 authentication shell and components closed 17 days after Sprint 4 (Demo 2) ended.
 - #221 docs: design Sprint 4 email bodies closed 3 days after Sprint 4 (Demo 2) ended.

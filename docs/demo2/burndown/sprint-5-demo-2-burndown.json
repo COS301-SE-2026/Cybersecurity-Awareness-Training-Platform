@@ -63,8 +63,8 @@
       "number": 358,
       "title": "fix: harden platform-admin invitation concurrency and repository boundaries",
       "points": 3,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-07-29"
     },
     {
       "number": 342,
@@ -360,7 +360,7 @@
     },
     {
       "date": "2026-07-29",
-      "remaining": 52,
+      "remaining": 49,
       "ideal": 0.0
     }
   ]
