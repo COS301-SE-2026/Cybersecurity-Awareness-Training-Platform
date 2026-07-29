@@ -1,12 +1,12 @@
 import { Link } from 'react-router-dom';
 import BasicAlert from '../alerts/BasicAlert';
 import { AuthPageFrame, AuthPageIntro } from './AuthPrimitives';
+import LoadingSpinnerSVG from '../LoadingSpinnerSVG';
 
 export type TokenVerificationStatus = 'pending' | 'success' | 'error';
 
 type TokenVerificationPanelProps = Readonly<{
   title: string;
-  introMessage: string;
   status: TokenVerificationStatus;
   message: string;
   showLoginLink?: boolean;
@@ -22,7 +22,6 @@ type TokenVerificationPanelProps = Readonly<{
 
 function TokenVerificationPanel({
   title,
-  introMessage,
   status,
   message,
   showLoginLink = false,
@@ -50,22 +49,30 @@ function TokenVerificationPanel({
       rightPanelStyle={{ padding: '2rem' }}
       leftChildren={
         <>
-          <AuthPageIntro
-            title={title}
-            message={introMessage}
-            dividerStyle={{ marginBottom: '1rem' }}
-            messageStyle={{ marginBottom: '1rem' }}
-          />
+          <AuthPageIntro title={title} dividerStyle={{ marginBottom: '1rem' }} />
 
           {status === 'pending' ? (
-            <p style={{ color: 'white', fontFamily: 'Overpass' }}>{message}</p>
+            <div
+              role="status"
+              aria-live="polite"
+              aria-busy="true"
+              style={{
+                alignItems: 'center',
+                color: 'white',
+                display: 'flex',
+                fontFamily: 'Overpass',
+              }}
+            >
+              <LoadingSpinnerSVG />
+              <span>{message}</span>
+            </div>
           ) : message ? (
             <BasicAlert variant={alertVariant}>{message}</BasicAlert>
           ) : null}
 
           {status === 'success' && showLoginLink ? (
             <Link to="/login" style={{ color: '#cca7ff', fontFamily: 'Jost', fontSize: '1.3rem' }}>
-              Go to login
+              Go to Login
             </Link>
           ) : null}
 
