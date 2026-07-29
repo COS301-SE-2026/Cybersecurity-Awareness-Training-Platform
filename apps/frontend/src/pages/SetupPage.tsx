@@ -246,7 +246,7 @@ function SetupPage() {
   } else if (isComplete) {
     setupContent = (
       <Link to="/login" style={{ color: '#cca7ff', fontFamily: 'Jost', fontSize: '1.3rem' }}>
-        Go to login
+        Go to Login
       </Link>
     );
   } else if (context?.token.state === 'VALID') {
