@@ -161,8 +161,8 @@
       "number": 278,
       "title": "feat: build frontend platform admin management",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-07-29"
     },
     {
       "number": 277,
@@ -360,7 +360,7 @@
     },
     {
       "date": "2026-07-29",
-      "remaining": 44,
+      "remaining": 42,
       "ideal": 0.0
     }
   ]
