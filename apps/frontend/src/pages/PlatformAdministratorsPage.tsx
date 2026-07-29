@@ -2,7 +2,7 @@ import AppLayout from '../components/layout/AppLayout';
 import { Dropdown, DropdownItem } from 'flowbite-react';
 import { useState } from 'react';
 import BasicConfirmationModal from '../components/layout/modals/BasicConfirmationModal';
-import InviteOrganisationAdministratorModal from '../components/organisation-administrator-page/InviteOrganisationAdministratorModal';
+import InvitePlatformAdministratorModal from '../components/layout/platform-administrators-page/InvitePlatformAdministratorModal';
 
 // IMPORTANT NOTE FOR INTEGRATION
 /* 
@@ -61,6 +61,13 @@ const mockPlatformAdministrators: PlatformAdministrator[] = [
     status: 'Invited',
     role: 'Administrator',
   },
+  {
+    id: 4,
+    fullName: 'Rudolph Last Name',
+    emailAddress: 'rudolph.last_name@tuks.co.za',
+    status: 'Failed Invitation',
+    role: 'Administrator',
+  },
 ];
 
 const getStatusBadge = (status: PlatformAdministrator['status']) => {
@@ -108,9 +115,9 @@ function PlatformAdministratorsPage() {
     'default',
   );
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'All' | 'Invited' | 'Active' | 'Disabled'>(
-    'All',
-  );
+  const [statusFilter, setStatusFilter] = useState<
+    'All' | 'Invited' | 'Active' | 'Disabled' | 'Failed Invitation'
+  >('All');
   const [roleFilter, setRoleFilter] = useState<'All' | 'Super Administrator' | 'Administrator'>(
     'All',
   );
@@ -137,15 +144,14 @@ function PlatformAdministratorsPage() {
     },
   );
 
-  const [showOrganisationAdministratorModal, setShowOrganisationAdministratorModal] =
-    useState(false);
+  const [showPlatformAdministratorModal, setShowPlatformAdministratorModal] = useState(false);
 
-  const openOrganisationAdministratorModal = () => {
-    setShowOrganisationAdministratorModal(true);
+  const openPlatformAdministratorModal = () => {
+    setShowPlatformAdministratorModal(true);
   };
 
-  const closeOrganisationAdministratorModal = () => {
-    setShowOrganisationAdministratorModal(false);
+  const closePlatformAdministratorModal = () => {
+    setShowPlatformAdministratorModal(false);
   };
 
   const openConfirmationModal = () => {
@@ -161,14 +167,6 @@ function PlatformAdministratorsPage() {
     openConfirmationModal();
   };
 
-  const showDisableOrganisationAdministratorModal = () => {
-    setConfirmationButtonText('Disable');
-    setConfirmationTitle('Disable Organisation Administrator');
-    setConfirmationMessage('Are you sure you want to disable this organisation administrator?');
-    setConfirmationVariant('danger');
-    openConfirmationModal();
-  };
-
   const showRevokeInviteModal = () => {
     setConfirmationButtonText('Revoke');
     setConfirmationTitle('Revoke Invitation');
@@ -177,8 +175,16 @@ function PlatformAdministratorsPage() {
     openConfirmationModal();
   };
 
+  const showDemoteAdministratorModal = () => {
+    setConfirmationButtonText('Demote');
+    setConfirmationTitle('Demote Administrator Role');
+    setConfirmationMessage('Are you sure you want to demote this administrator?');
+    setConfirmationVariant('danger');
+    openConfirmationModal();
+  };
+
   const confirmBasicConfirmation = () => {
-    closeOrganisationAdministratorModal();
+    closePlatformAdministratorModal();
   };
 
   // Re–Enable Platform Administrator Modal
@@ -199,7 +205,7 @@ function PlatformAdministratorsPage() {
     openConfirmationModal();
   };
 
-  const closeOrganisationAdministratorPageConfirmationModal = () => {
+  const closePlatformAdministratorPageConfirmationModal = () => {
     setShowBasicConfirmationModal(false);
   };
 
@@ -342,6 +348,12 @@ function PlatformAdministratorsPage() {
                           Invited
                         </DropdownItem>
                         <DropdownItem
+                          onClick={() => setStatusFilter('Failed Invitation')}
+                          className="font-jost text-gray-600 text-[1.1rem]"
+                        >
+                          Failed Invitation
+                        </DropdownItem>
+                        <DropdownItem
                           onClick={() => setStatusFilter('Active')}
                           className="font-jost text-gray-600 text-[1.1rem]"
                         >
@@ -359,10 +371,10 @@ function PlatformAdministratorsPage() {
                 </div>
                 {/* ==== FILTERS ==== */}
 
-                {/* Add (Invite) Organisation Administrator Button */}
+                {/* Add (Invite) Platform Administrator Button */}
                 <button
                   type="button"
-                  onClick={openOrganisationAdministratorModal}
+                  onClick={openPlatformAdministratorModal}
                   className="cursor-pointer px-4 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm py-[0.425rem] focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   <span className="material-symbols-sharp">add_2</span>
@@ -464,7 +476,7 @@ function PlatformAdministratorsPage() {
                             <button
                               className="cursor-pointer font-medium text-red-600 hover:underline"
                               type="button"
-                              onClick={showResendInviteModal}
+                              onClick={showDemoteAdministratorModal}
                             >
                               <strong>Demote Administrator Role</strong>
                             </button>
@@ -512,6 +524,17 @@ function PlatformAdministratorsPage() {
                               <strong>Disable Administrator</strong>
                             </button>
                           )}
+
+                        {platformAdministrator.role === 'Administrator' &&
+                          platformAdministrator.status === 'Invited' && (
+                            <button
+                              className="cursor-pointer font-medium text-red-600 hover:underline"
+                              type="button"
+                              onClick={showRevokeInviteModal}
+                            >
+                              <strong>Revoke Invitation</strong>
+                            </button>
+                          )}
                       </div>
                     </td>
                   </tr>
@@ -542,15 +565,15 @@ function PlatformAdministratorsPage() {
           confirmButtonText={confirmationButtonText}
           confirmButtonVariant={confirmationVariant}
           onConfirm={confirmBasicConfirmation}
-          onCancel={closeOrganisationAdministratorPageConfirmationModal}
+          onCancel={closePlatformAdministratorPageConfirmationModal}
         ></BasicConfirmationModal>
       )}
 
-      {showOrganisationAdministratorModal && (
-        <InviteOrganisationAdministratorModal
-          isOpen={showOrganisationAdministratorModal}
-          onClose={() => closeOrganisationAdministratorModal()}
-        ></InviteOrganisationAdministratorModal>
+      {showPlatformAdministratorModal && (
+        <InvitePlatformAdministratorModal
+          isOpen={showPlatformAdministratorModal}
+          onClose={() => closePlatformAdministratorModal()}
+        ></InvitePlatformAdministratorModal>
       )}
     </AppLayout>
   );
