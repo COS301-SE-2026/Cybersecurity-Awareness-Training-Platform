@@ -147,7 +147,7 @@ function PlatformAdministratorsPage() {
   );
 
   const [showPlatformAdministratorModal, setShowPlatformAdministratorModal] = useState(false);
-  const [showTranserSuperAdminModal, setShowTransferSuperAdminModal] = useState(false);
+  const [showTransferSuperAdminModal, setShowTransferSuperAdminModal] = useState(false);
 
   const openPlatformAdministratorModal = () => {
     setShowPlatformAdministratorModal(true);
@@ -597,9 +597,9 @@ function PlatformAdministratorsPage() {
         ></InvitePlatformAdministratorModal>
       )}
 
-      {showTranserSuperAdminModal && (
+      {showTransferSuperAdminModal && (
         <TransferSuperAdministratorRoleModal
-          isOpen={showTranserSuperAdminModal}
+          isOpen={showTransferSuperAdminModal}
           onConfirm={confirmTransferSuperAdminRole}
           onClose={() => closeTranserSuperAdministratorModal()}
         ></TransferSuperAdministratorRoleModal>
