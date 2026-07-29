@@ -150,9 +150,9 @@ Database standards:
 
 ## Testing Expectations
 
-Changes that add or alter behaviour are expected to include relevant tests or a clear reason why the change is documentation-only or otherwise not suited to automated tests. Testing expectations are expanded in the [Testing Policy](testing-policy.md).
+Developers must add or update unit tests when they add or change any behaviour. Documentation-only changes may not need automated tests, but they still need review and formatting checks. Testing expectations are expanded in the [Testing Policy](testing-policy.md).
 
-At coding-standard level, the expectation is simple: the developer who changes behaviour owns the first layer of tests for that change. Unit tests should cover the smallest practical unit, integration tests should cover real interfaces where mocks are not enough, and E2E or smoke tests should be reserved for important user-visible flows.
+At coding-standard level, the expectation is simple: the developer who changes behaviour owns that features unit tests for that change they made. Database and backend integration testing is planned through separate, focused integration-test issues created by the team lead. Integration tests are used to complement rather than replace unit tests.Additionally E2E or smoke tests should be reserved for important user-visible flows.
 
 Tests should be deterministic. Avoid stale hard-coded dates, production data, arbitrary sleeps, broad snapshots, and assertions that only prove an implementation detail. When a bug is fixed, add or update a regression test that would have failed before the fix.
 
