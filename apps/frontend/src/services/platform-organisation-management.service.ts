@@ -88,7 +88,7 @@ export interface ListPlatformOrganisationRequestsQuery {
   search?: string;
 }
 
-export function listPlatformOrgnisationRequests(
+export function listPlatformOrganisationRequests(
   query: ListPlatformOrganisationRequestsQuery,
   token: string,
 ): Promise<PlatformOrganisationRequestListResponseDto> {
@@ -97,7 +97,7 @@ export function listPlatformOrgnisationRequests(
     params.set('status', query.status);
   }
   if (query.search?.trim()) {
-    params.set('seatch', query.search.trim());
+    params.set('search', query.search.trim());
   }
   return apiClient.get<PlatformOrganisationRequestListResponseDto>(
     `platform/organisation-requests?${params.toString()}`,
