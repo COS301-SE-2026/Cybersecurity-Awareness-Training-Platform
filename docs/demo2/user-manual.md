@@ -8,9 +8,95 @@ This manual will explain how users can use the platform Insightful Phish. Each s
 
 Use a modern Desktop browser such as Chrome, Brave or safari. The demo 2 interface is designed for authenticated users and public visitors who need to register, verify email, reset passwords, or request organisational access.
 
+### Sign In
+
+1. Open the login page.
+2. Enter your email address and password.
+3. Select **Login**.
+4. After a successful login, the system opens the campaign area for trainee users.
+
+![Login page](user-interface/public-account/01-login-page.png)
+
+### Create An Individual Account
+
+1. Open the registration Page.
+2. Enter your first name, last name, email, password, and password confirmation.
+3. Select **register**.
+4. Check your email for the verification link before trying to use the account fully.
+
+![Registration form](user-interface/public-account/02-registration-form.png)
+
+### Verify Your Email Address
+
+1. Open the email verification link from your inbox.
+2. Wait for the verification results.
+3. If the link has expired and th page offers a resend action, request a new verification link.
+
+![Email verification result](user-interface/public-account/03-email-verification.png)
+
 ## Account and Security
 
-This section will cover all of the security messures one can take within the application.
+This section will cover all of the security measures one can take within the application.
+
+### Reset a forgotten Password
+
+1. Open **Forgot Password** from the login area.
+2. Enter the email address for your account.
+3. Select the password reset link.
+4. open the password reset link from your email.
+5. Enter and confirm the new password.
+
+![Forgot password form](user-interface/public-account/04-forgot-password.png)
+![Reset password form](user-interface/public-account/05-reset-password.png)
+
+### Complete an account setup from and invitation link
+
+1. Open the setup link from the invitation link.
+2. Review the role and organisation shown on the page.
+3. Enter your first name, last name, password, and password confirmation.
+4. Select **Complete Setup**.
+5. When setup is completed, go back to loh-in and sign in.
+
+![Complete setup Page](user-interface/public-account/06-complete-setup.png)
+
+### Open account management
+
+1. Sign in.
+2. Open the account menu in the top nav.
+3. Select account management.
+4. Use the tabs for personal info, account settings, and sessions.
+
+![Account management tabs](user-interface/public-account/07-account-management-tabs.png)
+
+### request an email change
+
+1. Open **Account Management**.
+2. Select the **Account** tab.
+3. Select **Change email**.
+4. Enter the new email address, confirm it, and enter your password.
+5. Submit the request and follow the verification email sent to the new address.
+
+![Change email modal](user-interface/public-account/08-change-email-modal.png)
+
+### Change your password
+
+1. Open **Account Management**.
+2. Select the **Account** tab.
+3. Select **Change Password**.
+4. Enter your current password.
+5. Enter and confirm the new password.
+6. Submit the change.
+
+![Change password modal](user-interface/public-account/09-change-password-modal.png)
+
+### Review Sessions
+
+1. Open **Account Management**.
+2. Select the **Sessions** tab.
+3. Review the listed devices and recent activity.
+4. Use the available logout actions for sessions you no longer want active.
+
+![Session settings](user-interface/public-account/10-session-settings.png)
 
 ## Individual Trainee Tasks
 
