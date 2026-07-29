@@ -1,9 +1,26 @@
 import AppLayout from '../components/layout/AppLayout';
-import { Dropdown, DropdownItem, Popover } from 'flowbite-react';
+import { Dropdown, DropdownItem } from 'flowbite-react';
 import { useState } from 'react';
 import BasicConfirmationModal from '../components/layout/modals/BasicConfirmationModal';
 import InviteOrganisationAdministratorModal from '../components/organisation-administrator-page/InviteOrganisationAdministratorModal';
-import EditOrganisationAdministratorPermissionsModal from '../components/organisation-administrator-page/EditOrganisationAdministratorPermissionsModal';
+
+// IMPORTANT NOTE FOR INTEGRATION
+/* 
+ONLY THE SUPER-ADMIN CAN: 
+  View the ACTIONS part of the the table... 
+  So, if they are NOT a super-admin, then you MUST hide the ACTIONS section of the table. 
+  Also, please hide the "+ Invite Platform Administrator" if they are NOT a super-admin!
+  
+  This is easy to do.
+  Just set a flag based on their role... 
+  If they ARE super-admin, then TRUE...
+  If they ARE NOT super-admin, then FALSE... 
+  Then do: 
+  {superAdministrator && (
+    // Component... 
+  )}
+
+*/
 
 interface PlatformAdministrator {
   id: number;
@@ -35,7 +52,7 @@ const mockPlatformAdministrators: PlatformAdministrator[] = [
     fullName: 'Johan Nel',
     emailAddress: 'johan.nel@tuks.co.za',
     status: 'Disabled',
-    role: 'Super Administrator',
+    role: 'Administrator',
   },
   {
     id: 4,
@@ -47,7 +64,6 @@ const mockPlatformAdministrators: PlatformAdministrator[] = [
 ];
 
 const getStatusBadge = (status: PlatformAdministrator['status']) => {
-  // status: 'Invited' | 'Active' | 'Disabled'
   switch (status) {
     case 'Disabled':
       // GREY
@@ -85,7 +101,6 @@ const getStatusBadge = (status: PlatformAdministrator['status']) => {
 
 function PlatformAdministratorsPage() {
   const [showBasicConfirmationModal, setShowBasicConfirmationModal] = useState(false);
-  const [showEditPermissionsModal, setShowEditPermissionsModal] = useState(false);
   const [confirmationTitle, setConfirmationTitle] = useState('');
   const [confirmationMessage, setConfirmationMessage] = useState('');
   const [confirmationButtonText, setConfirmationButtonText] = useState('');
@@ -154,10 +169,6 @@ function PlatformAdministratorsPage() {
     openConfirmationModal();
   };
 
-  const openEditPermissionsModal = () => {
-    setShowEditPermissionsModal(true);
-  };
-
   const showRevokeInviteModal = () => {
     setConfirmationButtonText('Revoke');
     setConfirmationTitle('Revoke Invitation');
@@ -170,20 +181,26 @@ function PlatformAdministratorsPage() {
     closeOrganisationAdministratorModal();
   };
 
-  const showEnableOrganisationAdministratorModal = () => {
-    setConfirmationButtonText('Enable');
-    setConfirmationTitle('Enable Organisation Administrator');
-    setConfirmationMessage('Are you sure you want to enable this organisation administrator?');
+  // Re–Enable Platform Administrator Modal
+  const showEnablePlatformAdministratorModal = () => {
+    setConfirmationButtonText('Re–Enable');
+    setConfirmationTitle('Re–Enable Platform Administrator');
+    setConfirmationMessage('Are you sure you want to enable this platform administrator?');
     setConfirmationVariant('success');
+    openConfirmationModal();
+  };
+
+  // Disable Platform Administrator Modal
+  const showDisablePlatformAdministratorModal = () => {
+    setConfirmationButtonText('Disable');
+    setConfirmationTitle('Disable Platform Administrator');
+    setConfirmationMessage('Are you sure you want to disable this platform administrator?');
+    setConfirmationVariant('danger');
     openConfirmationModal();
   };
 
   const closeOrganisationAdministratorPageConfirmationModal = () => {
     setShowBasicConfirmationModal(false);
-  };
-
-  const closeEditPermissionsModal = () => {
-    setShowEditPermissionsModal(false);
   };
 
   return (
@@ -419,71 +436,89 @@ function PlatformAdministratorsPage() {
                     {/* Actions */}
                     <td className="px-6 py-4">
                       <div className="grid grid-cols-1 gap-1 justify-items-start">
-                        {platformAdministrator.status === 'Invited' && (
-                          <button
-                            className="cursor-pointer font-medium text-purple hover:underline"
-                            type="button"
-                            onClick={showResendInviteModal}
-                          >
-                            <strong>Re–Send Invitation</strong>
-                          </button>
-                        )}
+                        {/* ACTIONS START HERE */}
+                        {platformAdministrator.role === 'Super Administrator' &&
+                          platformAdministrator.status === 'Active' && (
+                            <button
+                              className="cursor-pointer font-medium text-red-600 hover:underline"
+                              type="button"
+                              onClick={showResendInviteModal}
+                            >
+                              <strong>Transer Super Administrator Role</strong>
+                            </button>
+                          )}
 
-                        {platformAdministrator.status === 'Invited' && (
-                          <button
-                            className="cursor-pointer font-medium text-red-600 hover:underline"
-                            type="button"
-                            onClick={showRevokeInviteModal}
-                          >
-                            <strong>Revoke Invitation</strong>
-                          </button>
-                        )}
+                        {platformAdministrator.role === 'Super Administrator' &&
+                          platformAdministrator.status === 'Failed Invitation' && (
+                            <button
+                              className="cursor-pointer font-medium text-red-600 hover:underline"
+                              type="button"
+                              onClick={showResendInviteModal}
+                            >
+                              <strong>Re–Send Invitation</strong>
+                            </button>
+                          )}
 
-                        {platformAdministrator.status === 'Active' && (
-                          <button
-                            className="cursor-pointer font-medium text-purple hover:underline"
-                            type="button"
-                            onClick={openEditPermissionsModal}
-                          >
-                            <strong>Edit Permissions</strong>
-                          </button>
-                        )}
+                        {platformAdministrator.role === 'Administrator' &&
+                          platformAdministrator.status === 'Active' && (
+                            <button
+                              className="cursor-pointer font-medium text-red-600 hover:underline"
+                              type="button"
+                              onClick={showResendInviteModal}
+                            >
+                              <strong>Demote Administrator Role</strong>
+                            </button>
+                          )}
 
-                        {platformAdministrator.status === 'Active' && (
-                          <button
-                            className="cursor-pointer font-medium text-red-600 hover:underline"
-                            type="button"
-                            onClick={showDisableOrganisationAdministratorModal}
-                          >
-                            <strong>Disable</strong>
-                          </button>
-                        )}
+                        {platformAdministrator.role === 'Administrator' &&
+                          platformAdministrator.status === 'Invited' && (
+                            <button
+                              className="cursor-pointer font-medium text-purple hover:underline"
+                              type="button"
+                              onClick={showResendInviteModal}
+                            >
+                              <strong>Re–Send Invitation</strong>
+                            </button>
+                          )}
 
-                        {platformAdministrator.status === 'Disabled' && (
-                          <button
-                            className="cursor-pointer font-medium text-purple hover:underline"
-                            type="button"
-                            onClick={openEditPermissionsModal}
-                          >
-                            <strong>Edit Permissions</strong>
-                          </button>
-                        )}
+                        {platformAdministrator.role === 'Administrator' &&
+                          platformAdministrator.status === 'Failed Invitation' && (
+                            <button
+                              className="cursor-pointer font-medium text-purple hover:underline"
+                              type="button"
+                              onClick={showResendInviteModal}
+                            >
+                              <strong>Re–Send Invitation</strong>
+                            </button>
+                          )}
 
                         {platformAdministrator.status === 'Disabled' && (
                           <button
                             className="cursor-pointer font-medium text-emerald-600 hover:underline"
                             type="button"
-                            onClick={showEnableOrganisationAdministratorModal}
+                            onClick={showEnablePlatformAdministratorModal}
                           >
-                            <strong>Enable</strong>
+                            <strong>Re–Enable Administrator</strong>
                           </button>
                         )}
+
+                        {platformAdministrator.role === 'Administrator' &&
+                          platformAdministrator.status === 'Active' && (
+                            <button
+                              className="cursor-pointer font-medium text-red-600 hover:underline"
+                              type="button"
+                              onClick={showDisablePlatformAdministratorModal}
+                            >
+                              <strong>Disable Administrator</strong>
+                            </button>
+                          )}
                       </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
 
+              {/* Empty Table Message */}
               {filteredPlatformAdministrators.length === 0 && (
                 <tr>
                   <td
@@ -511,19 +546,11 @@ function PlatformAdministratorsPage() {
         ></BasicConfirmationModal>
       )}
 
-      {/* REVIEW ORGANISATION REGISTRATION REQUEST MODAL  */}
       {showOrganisationAdministratorModal && (
         <InviteOrganisationAdministratorModal
           isOpen={showOrganisationAdministratorModal}
           onClose={() => closeOrganisationAdministratorModal()}
         ></InviteOrganisationAdministratorModal>
-      )}
-
-      {showEditPermissionsModal && (
-        <EditOrganisationAdministratorPermissionsModal
-          isOpen={showEditPermissionsModal}
-          onClose={() => closeEditPermissionsModal()}
-        ></EditOrganisationAdministratorPermissionsModal>
       )}
     </AppLayout>
   );
