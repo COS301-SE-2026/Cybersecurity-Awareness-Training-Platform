@@ -73,3 +73,5 @@ Screenshots cover org request review, org details, onboarding timeline reviews, 
 ## User manual reuse
 
 When a screenshot is used please keep the same file name in this catalogue so reviewers can trace every image back to its workflow.
+
+- **[User Manual](user-manual.md)**

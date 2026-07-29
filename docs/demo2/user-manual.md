@@ -242,15 +242,49 @@ This section covers org request review, org detail review, onboarding timeline c
 
 ## Troubleshooting
 
-This section will mention common errors users might see and the safest way to handle them.
+### Login Does not work
+
+- check that the email and password are entered correctly.
+- If the password is forgotten, use the password reset flow.
+- If the account has not been verified yet, complete email verification first.
+
+### Verification link has expired
+
+- Use the resend option if it is shown.
+- If resend is not available, request a new link from the relevant registration, setup, or invitation flow.
+
+### Setup link is Invalid or already used
+
+- Setup links can expire, be revoked, or be used only once. Ask the admin who sent the invitation to send a new setup link.
+
+### A setting is read-only
+
+- Some account or security settings may be controlled by organisation policy.
+- If a setting is read-only, follow the message shown on the page or contact an organisation admin.
+
+### A page shows no data
+
+- Refresh the page and check that you are signed in with the correct role. Some pages are role specific and only show info for the users with the required access.
 
 ## Security and privacy
 
-We will use demo accounts and non-sensitive sample data when capturing screens
+Do not share passwords, setup links, reset links, verification links, or private organisation information.
+
+When using screenshots for demo 2, use seeded demo data or clearly fake examples. Crop the browser address bar when it contains a token. If an email address is visible, use a safe sample address rather than a real private address.
+
+Administrators Should only preform actions for organisations and users they are responsible for. Trainees should only use their own account and assigned training activities.
 
 ## Glossary
 
-This section explains the user facing terms used in the manual.
+**Campaign**: A set of training activities assigned to a trainee.
+**Training document**: Reading material that teaches a cybersecurity topic.
+**Quiz**: A set of questions used to check understanding after training.
+**Simulated inbox**: A safe training inbox used for phishing awareness.
+**Organisation registration request**: A request asking Insightful Phish to create an organisation account.
+**Initial admin setup**: The first setup process used by the approved org representative.
+**Organisation Admin**: A user who manages organisation settings, trainees, and admin screens.
+**Platform Admin**: An Insightful Phish admin who reviews org requests and platform org info.
+**Timeline**: A history of important onboarding events for a request or organisation.
 
 ## Support
 
