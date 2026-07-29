@@ -23,8 +23,8 @@
       "number": 372,
       "title": "docs: complete Demo 2 coding standards and testing policy",
       "points": 5,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-07-29"
     },
     {
       "number": 371,
@@ -362,7 +362,7 @@
     },
     {
       "date": "2026-07-29",
-      "remaining": 37,
+      "remaining": 32,
       "ideal": 0.0
     }
   ]
