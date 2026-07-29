@@ -86,8 +86,8 @@ describe('Organisation Trainee API Integration Tests', () => {
         expect.objectContaining({
           to: 'invitee.test@example.com',
           subject: expect.stringContaining("You're invited to join"),
-          text: expect.stringContaining('/setup/token/'),
-          html: expect.stringContaining('/setup/token/'),
+          text: expect.stringContaining('/accept-invite?token='),
+          html: expect.stringContaining('/accept-invite?token='),
         }),
       );
 
@@ -243,8 +243,8 @@ describe('Organisation Trainee API Integration Tests', () => {
       expect(sendMailMock).toHaveBeenCalledWith(
         expect.objectContaining({
           to: 'resend.target@example.com',
-          text: expect.stringContaining('/setup/token/'),
-          html: expect.stringContaining('/setup/token/'),
+          text: expect.stringContaining('/accept-invite?token='),
+          html: expect.stringContaining('/accept-invite?token='),
         }),
       );
 
