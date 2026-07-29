@@ -17,12 +17,7 @@ export type AccountPolicyResponse = {
   idleTimeoutMinutes: number | null;
   requireReauthenticationForSensitiveActions: boolean;
   allowEmailChange: boolean;
-  sources: {
-    rememberMe: string;
-    regularSession: string;
-    rememberedSession: string;
-    idleTimeout: string;
-  };
+  sources: Record<string, string>;
 };
 
 export type AccountCapabilitiesResponse = {
@@ -30,18 +25,8 @@ export type AccountCapabilitiesResponse = {
   canRequestEmailChange: boolean;
   canChangePassword: boolean;
   canEditSecurityPreferences: boolean;
-  securityPreferenceEditable: {
-    preferredRegularSessionLengthHours: boolean;
-    preferredRememberMeSessionLengthHours: boolean;
-    preferredIdleTimeoutMinutes: boolean;
-  };
-  blockedReasons: {
-    emailChange: string | null;
-    securityPreferences: string | null;
-    preferredRegularSessionLengthHours: string | null;
-    preferredRememberMeSessionLengthHours: string | null;
-    preferredIdleTimeoutMinutes: string | null;
-  };
+  securityPreferenceEditable: Record<string, boolean>;
+  blockedReasons: Record<string, string | null>;
 };
 
 export type AccountProfileResponse = {
@@ -72,11 +57,7 @@ export type AccountResponse = {
   capabilities: AccountCapabilitiesResponse;
 };
 
-export type AccountChangeEmailResponse = {
-  message: string;
-  emailQueued: boolean;
-};
-
+export type AccountChangeEmailResponse = { message: string; emailQueued: boolean };
 export type AccountChangePasswordResponse = {
   message: string;
   notificationQueued: boolean;
@@ -95,17 +76,9 @@ export type AccountSessionResponse = {
   locationSummary: string | null;
 };
 
-export type AccountSessionsResponse = {
-  sessions: AccountSessionResponse[];
-};
-
-export type AccountSessionRevocationResponse = {
-  revoked: true;
-};
-
-export type AccountLogoutOthersResponse = {
-  revokedSessionCount: number;
-};
+export type AccountSessionsResponse = { sessions: AccountSessionResponse[] };
+export type AccountSessionRevocationResponse = { revoked: true };
+export type AccountLogoutOthersResponse = { revokedSessionCount: number };
 
 export function getAccount(): Promise<AccountResponse> {
   return apiClient.get<AccountResponse>('/account', {
