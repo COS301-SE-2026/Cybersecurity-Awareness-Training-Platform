@@ -3,6 +3,7 @@ import { Dropdown, DropdownItem } from 'flowbite-react';
 import { useState } from 'react';
 import BasicConfirmationModal from '../components/layout/modals/BasicConfirmationModal';
 import InvitePlatformAdministratorModal from '../components/layout/platform-administrators-page/InvitePlatformAdministratorModal';
+import TransferSuperAdministratorRoleModal from '../components/layout/platform-administrators-page/TransferSuperAdministratorRoleModal';
 
 // IMPORTANT NOTE FOR INTEGRATION
 /* 
@@ -19,7 +20,8 @@ ONLY THE SUPER-ADMIN CAN:
   {superAdministrator && (
     // Component... 
   )}
-
+  // PLEASE DO THE SAME FOR THE HEADING!! It is currently commented out. But when you do the flag thing during integration, please
+  // just add that to the other heading too if they are NOT a super-admin
 */
 
 interface PlatformAdministrator {
@@ -145,6 +147,7 @@ function PlatformAdministratorsPage() {
   );
 
   const [showPlatformAdministratorModal, setShowPlatformAdministratorModal] = useState(false);
+  const [showTranserSuperAdminModal, setShowTransferSuperAdminModal] = useState(false);
 
   const openPlatformAdministratorModal = () => {
     setShowPlatformAdministratorModal(true);
@@ -152,6 +155,14 @@ function PlatformAdministratorsPage() {
 
   const closePlatformAdministratorModal = () => {
     setShowPlatformAdministratorModal(false);
+  };
+
+  const openTranserSuperAdministratorModal = () => {
+    setShowTransferSuperAdminModal(true);
+  };
+
+  const closeTranserSuperAdministratorModal = () => {
+    setShowTransferSuperAdminModal(false);
   };
 
   const openConfirmationModal = () => {
@@ -185,6 +196,10 @@ function PlatformAdministratorsPage() {
 
   const confirmBasicConfirmation = () => {
     closePlatformAdministratorModal();
+  };
+
+  const confirmTransferSuperAdminRole = () => {
+    closeTranserSuperAdministratorModal();
   };
 
   // Re–Enable Platform Administrator Modal
@@ -241,9 +256,15 @@ function PlatformAdministratorsPage() {
           </h1>
 
           {/* SUB-HEADING */}
+          {/* DISPLAY THIS HEADING IF THEY ARE SUPER-ADMIN */}
           <p className="font-regular tracking-wider text-[1.3rem] font-justify font-jost text-gray-500 mb-4">
             View, invite, and manage <em>Insightful Phish</em> platform administrators.
           </p>
+
+          {/* DISPLAY THIS HEADING IF THEY ARE NOT A SUPER-ADMIN */}
+          {/* <p className="font-regular tracking-wider text-[1.3rem] font-justify font-jost text-gray-500 mb-4">
+            View <em>Insightful Phish</em> platform administrators.
+          </p> */}
         </div>
 
         <div className="px-6 pb-6">
@@ -454,7 +475,7 @@ function PlatformAdministratorsPage() {
                             <button
                               className="cursor-pointer font-medium text-red-600 hover:underline"
                               type="button"
-                              onClick={showResendInviteModal}
+                              onClick={openTranserSuperAdministratorModal}
                             >
                               <strong>Transer Super Administrator Role</strong>
                             </button>
@@ -574,6 +595,14 @@ function PlatformAdministratorsPage() {
           isOpen={showPlatformAdministratorModal}
           onClose={() => closePlatformAdministratorModal()}
         ></InvitePlatformAdministratorModal>
+      )}
+
+      {showTranserSuperAdminModal && (
+        <TransferSuperAdministratorRoleModal
+          isOpen={showTranserSuperAdminModal}
+          onConfirm={confirmTransferSuperAdminRole}
+          onClose={() => closeTranserSuperAdministratorModal()}
+        ></TransferSuperAdministratorRoleModal>
       )}
     </AppLayout>
   );
