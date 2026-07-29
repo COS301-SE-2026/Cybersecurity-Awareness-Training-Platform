@@ -186,11 +186,17 @@ describe('AcceptInvitePage', () => {
       expect(invitationService.acceptInvitation).toHaveBeenCalledWith(testToken, {
         confirmRoleChange: true,
       });
-      expect(logoutMock).toHaveBeenCalled();
       expect(
         screen.getByRole('heading', { name: /Invitation Successfully Accepted/i }),
       ).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Proceed to Login/i })).toBeInTheDocument();
+    });
+
+    const proceedBtn = screen.getByRole('button', { name: /Proceed to Login/i });
+    fireEvent.click(proceedBtn);
+
+    await waitFor(() => {
+      expect(logoutMock).toHaveBeenCalled();
     });
   });
 

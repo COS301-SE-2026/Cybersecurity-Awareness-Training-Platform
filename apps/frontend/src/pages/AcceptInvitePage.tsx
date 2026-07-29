@@ -134,14 +134,6 @@ function AcceptInvitePage() {
       setModalRoleGranted(res.roleGranted);
       setErrorType(undefined);
       setIsResultModalOpen(true);
-
-      if (res.sessionOutcome === 'REAUTHENTICATE') {
-        try {
-          await logout();
-        } catch {
-          // Ignore error if session was already invalidated by backend
-        }
-      }
     } catch (err) {
       setErrorType(mapErrorToType(err));
       setModalSuccess(false);
