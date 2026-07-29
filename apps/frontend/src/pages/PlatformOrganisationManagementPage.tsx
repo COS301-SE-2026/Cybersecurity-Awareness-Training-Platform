@@ -5,13 +5,15 @@ import BasicConfirmationModal from '../components/layout/modals/BasicConfirmatio
 import ReviewOrganisationRegistrationRequstModal from '../components/layout/modals/ReviewOrganisationRegistrationRequestModal';
 
 interface Organisation {
-  id: number;
+  id: string | number;
   name: string;
   size: number;
   website: string;
   representative: string;
   requestStatus: 'Pending' | 'Contacted' | 'Rejected' | 'Approved Waiting Setup' | 'Approved';
   organisationStatus: 'Pending' | 'Onboarding' | 'Active' | 'Suspended' | 'Disabled';
+  requestId?: string;
+  organisationId?: string;
 }
 
 // MOCK DATA
@@ -506,8 +508,12 @@ function PlatformOrganisationManagementPage() {
 
                         {organisation.requestStatus !== 'Pending' && (
                           <a
-                            href="/organisation-information"
-                            className=" cursor-pointer font-medium text-purple hover:underline"
+                            href={
+                              organisation.organisationStatus === 'Pending'
+                                ? `/platform/organisation-requests/${organisation.requestId ?? organisation.id}`
+                                : `/platform/organisations/${organisation.organisationId ?? organisation.id}`
+                            }
+                            className="cursor-pointer font-medium text-purple hover:underline"
                           >
                             {/* THIS GOES TO THE ORGANISATION INFORMATION PAGE */}
                             <strong>View</strong> Information
