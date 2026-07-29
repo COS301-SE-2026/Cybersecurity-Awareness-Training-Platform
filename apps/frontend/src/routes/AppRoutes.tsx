@@ -84,6 +84,7 @@ function AppRoutes() {
 
       {/* ACCEPT INVITE ROUTE */}
       <Route path="/accept-invite" element={<AcceptInvitePage />} />
+      <Route path="/accept-invite/:token" element={<AcceptInvitePage />} />
 
       <Route path="/" element={<LandingPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />

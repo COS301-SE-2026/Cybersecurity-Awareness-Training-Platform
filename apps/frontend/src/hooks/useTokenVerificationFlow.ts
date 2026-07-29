@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ActionTokenStateDto } from '@insightful-phish/shared';
 import { ApiError } from '../lib/apiClient';
-import type { ResendTokenResponseDto, TokenContextResponseDto } from '../services/auth.service';
+import type {
+  ResendTokenResponseDto,
+  TokenContextResponseDto,
+  TokenLinkFlowDto,
+} from '../services/auth.service';
 import type { TokenVerificationStatus } from '../components/auth/TokenVerificationPanel';
 
 type TokenVerificationResponse = {
@@ -9,6 +13,44 @@ type TokenVerificationResponse = {
 };
 
 type ResendFeedbackStatus = 'success' | 'error';
+
+const inFlightVerifications = new Map<
+  TokenLinkFlowDto,
+  Map<string, Promise<TokenVerificationResponse>>
+>();
+
+function getOrCreateVerificationRequest<TResponse extends TokenVerificationResponse>(
+  expectedFlow: TokenLinkFlowDto,
+  token: string,
+  verifyToken: (token: string) => Promise<TResponse>,
+): Promise<TResponse> {
+  let flowRequests = inFlightVerifications.get(expectedFlow);
+
+  if (!flowRequests) {
+    flowRequests = new Map<string, Promise<TokenVerificationResponse>>();
+    inFlightVerifications.set(expectedFlow, flowRequests);
+  }
+
+  const existingRequest = flowRequests.get(token) as Promise<TResponse> | undefined;
+  if (existingRequest !== undefined) return existingRequest;
+
+  const request = verifyToken(token);
+  flowRequests.set(token, request);
+
+  const removeSettledRequest = () => {
+    if (flowRequests.get(token) !== request) return;
+
+    flowRequests.delete(token);
+
+    if (flowRequests.size === 0 && inFlightVerifications.get(expectedFlow) === flowRequests) {
+      inFlightVerifications.delete(expectedFlow);
+    }
+  };
+
+  void request.then(removeSettledRequest, removeSettledRequest);
+
+  return request;
+}
 
 export type TokenVerificationMessages = Readonly<{
   pending: string;
@@ -27,10 +69,13 @@ export type TokenVerificationMessages = Readonly<{
 
 type UseTokenVerificationFlowInput<TResponse extends TokenVerificationResponse> = Readonly<{
   token: string;
+  expectedFlow: TokenLinkFlowDto;
   messages: TokenVerificationMessages;
   verifyToken: (token: string) => Promise<TResponse>;
   getTokenContext: (token: string) => Promise<TokenContextResponseDto>;
   resendToken: (token: string) => Promise<ResendTokenResponseDto>;
+  getVerificationErrorMessage?: (error: unknown) => string | null;
+  onVerified?: () => void;
 }>;
 
 function getStateMessage(
@@ -69,12 +114,16 @@ function getCooldownSeconds(error: ApiError): number {
 
 export function useTokenVerificationFlow<TResponse extends TokenVerificationResponse>({
   token,
+  expectedFlow,
   messages,
   verifyToken,
   getTokenContext,
   resendToken,
+  getVerificationErrorMessage,
+  onVerified,
 }: UseTokenVerificationFlowInput<TResponse>) {
   const isMounted = useRef(true);
+  const resendRequestGeneration = useRef(0);
   const [status, setStatus] = useState<TokenVerificationStatus>('pending');
   const [message, setMessage] = useState(messages.pending);
   const [canResend, setCanResend] = useState(false);
@@ -107,7 +156,9 @@ export function useTokenVerificationFlow<TResponse extends TokenVerificationResp
     async function verifyAndLoadContext() {
       setCanResend(false);
       setResendCooldownSeconds(0);
+      setIsResending(false);
       setResendFeedbackMessage(null);
+      setResendFeedbackStatus('success');
 
       if (!token) {
         setStatus('error');
@@ -119,30 +170,34 @@ export function useTokenVerificationFlow<TResponse extends TokenVerificationResp
       setMessage(messages.pending);
 
       try {
-        const result = await verifyToken(token);
+        const result = await getOrCreateVerificationRequest(expectedFlow, token, verifyToken);
         if (!isMounted.current || !isCurrentRequest) return;
 
         const nextState = getStateMessage(result.state, messages);
         setStatus(nextState.status);
         setMessage(nextState.message);
 
-        if (result.state === 'VALID') return;
+        if (result.state === 'VALID') {
+          onVerified?.();
+          return;
+        }
 
         try {
           const context = await getTokenContext(token);
           if (!isMounted.current || !isCurrentRequest) return;
 
-          setCanResend(context.canResend);
-          setResendCooldownSeconds(context.resendCooldownSeconds);
+          const isResendEligible = context.canResend && context.flow === expectedFlow;
+          setCanResend(isResendEligible);
+          setResendCooldownSeconds(isResendEligible ? context.resendCooldownSeconds : 0);
         } catch {
           if (!isMounted.current || !isCurrentRequest) return;
           setCanResend(false);
           setResendCooldownSeconds(0);
         }
-      } catch {
+      } catch (error) {
         if (!isMounted.current || !isCurrentRequest) return;
         setStatus('error');
-        setMessage(messages.generic);
+        setMessage(getVerificationErrorMessage?.(error) ?? messages.generic);
       }
     }
 
@@ -150,27 +205,42 @@ export function useTokenVerificationFlow<TResponse extends TokenVerificationResp
 
     return () => {
       isCurrentRequest = false;
+      resendRequestGeneration.current += 1;
     };
-  }, [getTokenContext, messages, token, verifyToken]);
+  }, [
+    expectedFlow,
+    getTokenContext,
+    getVerificationErrorMessage,
+    messages,
+    onVerified,
+    token,
+    verifyToken,
+  ]);
 
   const handleResend = useCallback(async () => {
     if (!token || !canResend || isResending || resendCooldownSeconds > 0) {
       return;
     }
 
+    const requestGeneration = resendRequestGeneration.current + 1;
+    resendRequestGeneration.current = requestGeneration;
+
+    const isCurrentResendRequest = () =>
+      isMounted.current && resendRequestGeneration.current === requestGeneration;
+
     setIsResending(true);
     setResendFeedbackMessage(null);
 
     try {
       await resendToken(token);
-      if (!isMounted.current) return;
+      if (!isCurrentResendRequest()) return;
 
       setCanResend(false);
       setResendCooldownSeconds(0);
       setResendFeedbackStatus('success');
       setResendFeedbackMessage(messages.resendSuccess);
     } catch (error) {
-      if (!isMounted.current) return;
+      if (!isCurrentResendRequest()) return;
 
       if (error instanceof ApiError) {
         const errorCode = getApiErrorCode(error);
@@ -194,7 +264,7 @@ export function useTokenVerificationFlow<TResponse extends TokenVerificationResp
       setResendFeedbackStatus('error');
       setResendFeedbackMessage(messages.resendGeneric);
     } finally {
-      if (isMounted.current) {
+      if (isCurrentResendRequest()) {
         setIsResending(false);
       }
     }
