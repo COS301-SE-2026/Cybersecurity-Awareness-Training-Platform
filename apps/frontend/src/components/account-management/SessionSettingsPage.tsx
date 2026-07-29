@@ -247,7 +247,7 @@ function SessionSettingsPage({
               </tr>
             ) : (
               sessions.map((session, index) => {
-                const parts = (session.deviceSummary || '').split('·').map((s) => s.trim());
+                const parts = (session.deviceSummary || '').split('·').map((s: string) => s.trim());
                 const deviceName = parts[0] || session.deviceSummary || 'Active Session';
                 const browserName = parts[1] || 'Web Browser';
 

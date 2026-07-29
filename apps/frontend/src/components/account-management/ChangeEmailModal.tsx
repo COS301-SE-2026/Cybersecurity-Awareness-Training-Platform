@@ -1,9 +1,9 @@
 import { emailSchema } from '@insightful-phish/shared';
 import { useState } from 'react';
 import BasicAlert from '../alerts/BasicAlert';
+import { requestAccountEmailChange, extractErrorMessage } from '../../services/account.service';
 
 function formatAlertMessage(message: string) {
-  // makes everything title case and removes the . from the end of the message
   return message
     .replace(/\.$/, '')
     .replace(/\w\S*/g, (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
@@ -12,14 +12,17 @@ function formatAlertMessage(message: string) {
 type ChangeEmailModalProps = Readonly<{
   isOpen: boolean;
   onClose: () => void;
+  currentEmail?: string;
+  onSuccess?: (message: string) => void;
 }>;
 
-function ChangeEmailModal({ isOpen, onClose }: ChangeEmailModalProps) {
+function ChangeEmailModal({ isOpen, onClose, onSuccess }: ChangeEmailModalProps) {
   const [newEmail, setNewEmail] = useState('');
   const [confirmNewEmail, setConfirmNewEmail] = useState('');
   const [password, setPassword] = useState('');
 
   const [alertMessage, setAlertMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
 
@@ -48,6 +51,30 @@ function ChangeEmailModal({ isOpen, onClose }: ChangeEmailModalProps) {
     }
 
     return true;
+  }
+
+  async function handleSubmit() {
+    if (!validate()) return;
+
+    setIsSubmitting(true);
+    try {
+      const res = await requestAccountEmailChange({
+        newEmail: newEmail.trim(),
+        confirmNewEmail: confirmNewEmail.trim(),
+        password,
+      });
+      setIsSubmitting(false);
+      onClose();
+      if (onSuccess) {
+        onSuccess(
+          res.message ||
+            'Verification email sent to new address. Please verify to complete email change.',
+        );
+      }
+    } catch (err: unknown) {
+      setIsSubmitting(false);
+      setAlertMessage(formatAlertMessage(extractErrorMessage(err)));
+    }
   }
 
   return (
@@ -162,15 +189,12 @@ function ChangeEmailModal({ isOpen, onClose }: ChangeEmailModalProps) {
 
             <button
               type="button"
-              onClick={() => {
-                if (validate() === true) {
-                  // Call Backend or DO SOMETHING...
-                }
-              }}
-              className="cursor-pointer w-full inline-flex items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm px-4 py-2.5 focus:outline-none"
+              disabled={isSubmitting}
+              onClick={handleSubmit}
+              className="cursor-pointer w-full inline-flex items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm px-4 py-2.5 focus:outline-none disabled:opacity-50"
             >
               <span className="material-symbols-sharp mr-4">edit</span>
-              <span> Change Email Address</span>
+              <span> {isSubmitting ? 'Changing Email...' : 'Change Email Address'}</span>
             </button>
           </div>
         </div>
