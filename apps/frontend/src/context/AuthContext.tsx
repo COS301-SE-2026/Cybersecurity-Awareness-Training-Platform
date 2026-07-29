@@ -153,20 +153,33 @@ export function AuthProvider({ children }: AuthProviderProps) {
     !storedAuth.isAuthenticated || isAccessTokenExpired(storedAuth.expiresAt),
   );
 
+  const clearAuth = useCallback(() => {
+    clearStoredAuth();
+    setToken(null);
+    setUser(null);
+    setAuthContext(null);
+    setPermissions([]);
+    setRedirectTo(null);
+    setExpiresAt(null);
+    setSessionExpiresAt(null);
+    setIsAuthenticated(false);
+  }, [
+    setAuthContext,
+    setExpiresAt,
+    setIsAuthenticated,
+    setPermissions,
+    setRedirectTo,
+    setSessionExpiresAt,
+    setToken,
+    setUser,
+  ]);
+
   const login = useCallback(
     (authResponse: AuthContextResponseDto) => {
       const newToken = getAuthResponseToken(authResponse);
 
       if (!newToken) {
-        clearStoredAuth();
-        setToken(null);
-        setUser(null);
-        setAuthContext(null);
-        setPermissions([]);
-        setRedirectTo(null);
-        setExpiresAt(null);
-        setSessionExpiresAt(null);
-        setIsAuthenticated(false);
+        clearAuth();
         return;
       }
 
@@ -198,6 +211,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setIsAuthenticated(true);
     },
     [
+      clearAuth,
       setAuthContext,
       setExpiresAt,
       setIsAuthenticated,
@@ -213,18 +227,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       await logoutSession();
     } finally {
-      clearStoredAuth();
-
-      setToken(null);
-      setUser(null);
-      setAuthContext(null);
-      setPermissions([]);
-      setRedirectTo(null);
-      setExpiresAt(null);
-      setSessionExpiresAt(null);
-      setIsAuthenticated(false);
+      clearAuth();
     }
-  }, []);
+  }, [clearAuth]);
 
   useEffect(() => {
     if (storedAuth.isAuthenticated && !isAccessTokenExpired(storedAuth.expiresAt)) {
@@ -242,15 +247,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
       } catch {
         if (isMounted) {
-          clearStoredAuth();
-          setToken(null);
-          setUser(null);
-          setAuthContext(null);
-          setPermissions([]);
-          setRedirectTo(null);
-          setExpiresAt(null);
-          setSessionExpiresAt(null);
-          setIsAuthenticated(false);
+          clearAuth();
         }
       } finally {
         if (isMounted) {
@@ -264,7 +261,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return () => {
       isMounted = false;
     };
-  }, [login, storedAuth.expiresAt, storedAuth.isAuthenticated]);
+  }, [clearAuth, login, storedAuth.expiresAt, storedAuth.isAuthenticated]);
 
   const value = useMemo(
     () => ({
@@ -278,6 +275,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       expiresAt,
       sessionExpiresAt,
       login,
+      clearAuth,
       logout,
     }),
     [
@@ -291,6 +289,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       expiresAt,
       sessionExpiresAt,
       login,
+      clearAuth,
       logout,
     ],
   );
