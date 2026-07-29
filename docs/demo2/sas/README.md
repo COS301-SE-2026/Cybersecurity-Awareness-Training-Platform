@@ -1,6 +1,6 @@
 # Software Architecture Specification
 
-The Software Architecture Specification describes the architectural decisions, patterns, technology choices, contracts, and deployment considerations for Insightful Phish. These sections support the five-layer architecture without replacing the logical architecture described in the architecture overview.
+The Software Architecture Specification describes the architectural decisions, patterns, technology choices, contracts, and deployment considerations for Insightful Phish. These sections support the five-layer architecture without replacing the logical architecture work captured in the SAS architecture sections.
 
 ## SAS Content
 
@@ -12,12 +12,13 @@ The Software Architecture Specification describes the architectural decisions, p
 - [5. Technology Requirements](technology-requirements.md)
 - [6. API Contracts](api-contracts.md)
 - [7. Deployment and Operations](deployment.md)
+- [8. Changelog](changelog.md)
 
 ## Related Requirements and Context
 
-- [Demo 2 Architecture Overview](../architecture.md)
 - [SRS Quality Requirements](../srs/quality-requirements.md)
 - [SRS Domain Model](../srs/domain-model.md)
+- [Demo 2 Domain Model Source](../new-domain-model.txt)
 - [Demo 2 Documentation Home](../README.md)
 
 ---
