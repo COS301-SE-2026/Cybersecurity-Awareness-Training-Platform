@@ -72,7 +72,7 @@ function TokenVerificationPanel({
 
           {status === 'success' && showLoginLink ? (
             <Link to="/login" style={{ color: '#cca7ff', fontFamily: 'Jost', fontSize: '1.3rem' }}>
-              Go to login
+              Go to Login
             </Link>
           ) : null}
 
