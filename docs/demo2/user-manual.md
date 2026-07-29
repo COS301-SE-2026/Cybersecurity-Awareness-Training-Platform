@@ -277,13 +277,21 @@ Administrators Should only preform actions for organisations and users they are 
 ## Glossary
 
 **Campaign**: A set of training activities assigned to a trainee.
+
 **Training document**: Reading material that teaches a cybersecurity topic.
+
 **Quiz**: A set of questions used to check understanding after training.
+
 **Simulated inbox**: A safe training inbox used for phishing awareness.
+
 **Organisation registration request**: A request asking Insightful Phish to create an organisation account.
+
 **Initial admin setup**: The first setup process used by the approved org representative.
+
 **Organisation Admin**: A user who manages organisation settings, trainees, and admin screens.
+
 **Platform Admin**: An Insightful Phish admin who reviews org requests and platform org info.
+
 **Timeline**: A history of important onboarding events for a request or organisation.
 
 ## Support
