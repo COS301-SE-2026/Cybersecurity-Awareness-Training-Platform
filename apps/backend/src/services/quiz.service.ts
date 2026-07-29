@@ -5,6 +5,7 @@ import type {
   StartQuizAttemptResponseDto,
   SubmitQuizAttemptResponseDto,
 } from '@insightful-phish/shared';
+import type { Prisma } from '../generated/prisma/client.js';
 import { prisma } from '../lib/prisma.js';
 import { toGetQuizResponseDto } from '../mappers/quiz.mapper.js';
 
@@ -103,7 +104,9 @@ export async function getQuizByCampaignItemId(
   const campaignItem = await getValidatedCampaignItem(campaignItemId, traineeProfileId, true);
 
   return {
-    ...toGetQuizResponseDto(campaignItem.quiz as any),
+    ...toGetQuizResponseDto(
+      campaignItem.quiz as unknown as Parameters<typeof toGetQuizResponseDto>[0],
+    ),
     campaignItemId: campaignItem.id,
     campaignAssignmentId: campaignItem.campaign.assignments[0].id,
   };
@@ -222,8 +225,8 @@ export async function submitQuizAttempt(
 
     if (question.questionType === 'MULTIPLE_CHOICE') {
       const count = answerInput.selectedOptionIds.length;
-      const min = (question as any).minSelections;
-      const max = (question as any).maxSelections;
+      const min = (question as { minSelections?: number | null }).minSelections;
+      const max = (question as { maxSelections?: number | null }).maxSelections;
       if (min !== null && min !== undefined && count < min) {
         throw new QuizValidationError(
           `Multiple-choice question ${question.id} requires at least ${min} selected option(s)`,
@@ -241,7 +244,7 @@ export async function submitQuizAttempt(
       throw new QuizValidationError(`Duplicate options selected for question ${question.id}`);
     }
 
-    const selectedOptions = question.answerOptions.filter((opt: any) =>
+    const selectedOptions = question.answerOptions.filter((opt: { id: string }) =>
       answerInput.selectedOptionIds.includes(opt.id),
     );
 
@@ -249,12 +252,14 @@ export async function submitQuizAttempt(
       throw new QuizValidationError(`Invalid options selected for question ${question.id}`);
     }
 
-    const correctOptions = question.answerOptions.filter((opt: any) => opt.isCorrect);
+    const correctOptions = question.answerOptions.filter(
+      (opt: { isCorrect?: boolean }) => opt.isCorrect,
+    );
 
     // Score calculation logic for SINGLE/MULTIPLE_CHOICE (exact match)
     const isCorrect =
       correctOptions.length === selectedOptions.length &&
-      correctOptions.every((opt: any) => answerInput.selectedOptionIds.includes(opt.id));
+      correctOptions.every((opt: { id: string }) => answerInput.selectedOptionIds.includes(opt.id));
 
     const awardedPoints = isCorrect ? question.points : 0;
     totalScore += awardedPoints;
@@ -272,7 +277,7 @@ export async function submitQuizAttempt(
   const scorePercentage = Math.round((totalScore / maxPossibleScore) * 100) || 0;
   const passed = scorePercentage >= quiz.passThresholdPercentage;
 
-  await prisma.$transaction(async (tx: any) => {
+  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     for (const answer of createdAnswers) {
       const createdAnswer = await tx.attemptAnswer.create({
         data: {
@@ -349,16 +354,16 @@ export async function getQuizResult(
     scorePercentage: attempt.quizResult.scorePercentage,
     passed: attempt.quizResult.passed,
     summary: attempt.quizResult.summary,
-    answers: attempt.answers.map((answer: any) => ({
+    answers: attempt.answers.map((answer: (typeof attempt.answers)[0]) => ({
       questionId: answer.questionId,
       isCorrect: answer.isCorrect,
       awardedPoints: answer.awardedPoints,
-      feedbackShown: answer.feedbackShown,
-      selectedOptions: answer.selectedOptions.map((sel: any) => ({
+      feedbackShown: answer.feedbackShown ?? null,
+      selectedOptions: answer.selectedOptions.map((sel: (typeof answer.selectedOptions)[0]) => ({
         optionId: sel.answerOption.id,
         label: sel.answerOption.label,
         text: sel.answerOption.text,
-        isCorrect: sel.answerOption.isCorrect,
+        isCorrect: sel.answerOption.isCorrect ?? false,
         feedbackText: sel.answerOption.feedbackText,
       })),
     })),

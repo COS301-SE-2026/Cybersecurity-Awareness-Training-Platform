@@ -93,7 +93,8 @@ describe('email delivery integration', () => {
     expect(deliveryLog.deliveryStatus).toBe('FAILED');
     expect(deliveryLog.sentAt).toBeNull();
     expect(deliveryLog.failedAt).toBeInstanceOf(Date);
-    expect(deliveryLog.failureReason).toBe('SMTP broke');
+    expect(deliveryLog.failureReason).toBe('SMTP_NOT_ACCEPTED');
+    expect(deliveryLog.failureReason).not.toContain('SMTP broke');
   });
 
   it('resends verification emails and records a sent delivry log', async () => {
@@ -190,6 +191,7 @@ describe('email delivery integration', () => {
     expect(deliveryLog.providerMessageId).toBeNull();
     expect(deliveryLog.sentAt).toBeNull();
     expect(deliveryLog.failedAt).toBeInstanceOf(Date);
-    expect(deliveryLog.failureReason).toBe('SMTP broken');
+    expect(deliveryLog.failureReason).toBe('SMTP_NOT_ACCEPTED');
+    expect(deliveryLog.failureReason).not.toContain('SMTP broken');
   });
 }); //describe

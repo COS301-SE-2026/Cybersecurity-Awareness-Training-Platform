@@ -201,13 +201,31 @@ export async function createAdminPromotion(
     },
   });
 
-  const invitationStatus = emailResult.queued ? 'SENT' : 'FAILED_TO_SEND';
-  if (!emailResult.queued) {
+  const emailPersistenceFailures =
+    emailResult.status === 'ACCEPTED_PERSISTENCE_FAILED' ? emailResult.persistenceFailures : [];
+  const invitationSentPersistenceFailed = emailPersistenceFailures.some(
+    (failure) => failure.stage === 'INVITATION_SENT',
+  );
+  const invitationStatus =
+    emailResult.status === 'NOT_ACCEPTED'
+      ? 'FAILED_TO_SEND'
+      : invitationSentPersistenceFailed
+        ? 'PENDING'
+        : 'SENT';
+  if (emailResult.status === 'NOT_ACCEPTED') {
     await updatePromotionInvitationStatus({
       invitationId: promotion.invitation.id,
       status: invitationStatus,
     });
   }
+
+  const emailPersistenceMetadata =
+    emailResult.status === 'ACCEPTED_PERSISTENCE_FAILED'
+      ? {
+          emailPersistenceFailureCodes: emailPersistenceFailures.map((failure) => failure.code),
+          emailPersistenceFailureStages: emailPersistenceFailures.map((failure) => failure.stage),
+        }
+      : {};
 
   await recordAuditLog({
     actorUserId,
@@ -216,11 +234,13 @@ export async function createAdminPromotion(
     targetType: 'INVITATION',
     targetId: promotion.invitation.id,
     actionType: 'INVITED',
-    outcome: emailResult.queued ? 'SUCCESS' : 'FAILURE',
+    outcome: emailResult.status === 'ACCEPTED' ? 'SUCCESS' : 'FAILURE',
     metadata: {
       targetUserId: targetUser.id,
       permissionKeys,
       emailQueued: emailResult.queued,
+      emailOutcomeStatus: emailResult.status,
+      ...emailPersistenceMetadata,
     },
   });
 
@@ -430,7 +450,7 @@ export async function removeAdmin(
   };
 }
 
-async function requireActorAdmin(actorUserId: string, organisationId: string) {
+export async function requireActorAdmin(actorUserId: string, organisationId: string) {
   const actor = await findActorOrganisationAdmin({ userId: actorUserId, organisationId });
 
   if (!actor) {
@@ -466,7 +486,7 @@ async function requireTargetAdmin(organisationId: string, adminId: string) {
   return targetAdmin;
 }
 
-function assertOrganisationAllowsMutation(status: string) {
+export function assertOrganisationAllowsMutation(status: string) {
   if (status === 'ACTIVE') {
     return;
   }
@@ -478,11 +498,13 @@ function assertOrganisationAllowsMutation(status: string) {
   );
 }
 
-function permissionKeysForAdmin(admin: Awaited<ReturnType<typeof findActorOrganisationAdmin>>) {
+export function permissionKeysForAdmin(
+  admin: Awaited<ReturnType<typeof findActorOrganisationAdmin>>,
+) {
   return (admin?.permissionGrants ?? []).map((grant) => grant.organisationPermission.key);
 }
 
-function requirePermission(
+export function requirePermission(
   actorPermissionKeys: readonly OrganisationPermissionKeyValue[],
   requiredPermissionKey: OrganisationPermissionKeyValue,
 ) {

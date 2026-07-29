@@ -113,6 +113,22 @@ vi.mock('../../src/lib/prisma.js', () => ({
   prisma: prismaMock,
 }));
 
+const acceptedEmailOutcome = {
+  status: 'ACCEPTED' as const,
+  acceptedByProvider: true as const,
+  queued: true as const,
+  deliveryLogId: 'email-log-1',
+  providerMessageId: 'provider-message-1',
+};
+
+const notAcceptedEmailOutcome = {
+  status: 'NOT_ACCEPTED' as const,
+  acceptedByProvider: false as const,
+  queued: false as const,
+  deliveryLogId: 'email-log-1',
+  reason: 'EMAIL_SEND_FAILED' as const,
+};
+
 describe('registerUser', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -142,7 +158,7 @@ describe('registerUser', () => {
       rawToken: 'raw-action-token',
       token: { id: 'action-token-1', expiresAt: verificationExpiresAt },
     });
-    authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue({ queued: false });
+    authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue(notAcceptedEmailOutcome);
 
     const response = await registerUser({
       email: 'johan@example.com',
@@ -297,6 +313,43 @@ describe('registerUser', () => {
     expect(authEmailHookServiceMock.requestAuthEmailSend).not.toHaveBeenCalled();
   });
 
+  it('does not replace a valid verification token with a pending delivery attempt', async () => {
+    const expiresAt = new Date(Date.now() + 60 + 60 * 1000);
+    userRepositoryMock.findUserByEmail.mockResolvedValue({
+      id: 'pendinguser',
+      email: 'pending@example.com',
+      firstName: 'Pending',
+      authStatus: 'PENDING_EMAIL_VERIFICATION',
+    });
+    passwordServiceMock.hashPassword.mockResolvedValue('hashedpassword');
+    prismaMock.actionToken.findFirst.mockResolvedValue({
+      id: 'existingtoken',
+      userId: 'pendinguser',
+      targetEmail: 'pending@example.com',
+      purpose: 'EMAIL_VERIFICATION',
+      expiresAt,
+      usedAt: null,
+      revokedAt: null,
+      emailDeliveryLogs: [{ emailType: 'EMAIL_VERIFICATION', deliveryStatus: 'PENDING' }],
+    });
+
+    const response = await registerUser({
+      email: 'pending@example.com',
+      firstName: 'Pending',
+      lastName: 'User',
+      password: 'mySecurePassword123!',
+      confirmPassword: 'mySecurePassword123!',
+    });
+
+    expect(response).toEqual({
+      message:
+        "If this email can be registered, we'll send you an email verification link. Please check your inbox.",
+    });
+    expect(prismaMock.actionToken.updateMany).not.toHaveBeenCalled();
+    expect(actionTokenServiceMock.issueActionToken).not.toHaveBeenCalled();
+    expect(authEmailHookServiceMock.requestAuthEmailSend).not.toHaveBeenCalled();
+  });
+
   it('revokes existing cerification tokens and sends a new verification email for an expired pending token', async () => {
     const newExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
     userRepositoryMock.findUserByEmail.mockResolvedValue({
@@ -315,7 +368,7 @@ describe('registerUser', () => {
       revokedAt: null,
       emailDeliveryLogs: [{ emailType: 'EMAIL_VERIFICATION', deliveryStatus: 'SENT' }],
     });
-    authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue({ queued: true });
+    authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue(acceptedEmailOutcome);
     actionTokenServiceMock.issueActionToken.mockResolvedValue({
       rawToken: 'newrawtoken',
       token: { id: 'newtoken', expiresAt: newExpiresAt },
@@ -378,7 +431,7 @@ describe('registerUser', () => {
       rawToken: 'new-raw-token',
       token: { id: 'new-token', expiresAt: newExpiresAt },
     });
-    authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue({ queued: true });
+    authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue(acceptedEmailOutcome);
 
     const response = await registerUser({
       email: 'pending@example.com',
@@ -666,10 +719,7 @@ describe('resendVerificationEmail', () => {
       rawToken: 'raw',
       token: { id: 'token01', expiresAt: new Date('2026-07-12T10:00:00.000Z') },
     });
-    authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue({
-      queued: true,
-      deliveryLogId: 'delivery-log-1',
-    });
+    authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue(acceptedEmailOutcome);
 
     // First request should succeed
     await expect(resendVerificationEmail('user@example.com')).resolves.toBeUndefined();
@@ -743,7 +793,10 @@ describe('verifyEmailChange', () => {
     expect(result.state).toBe('VALID');
     expect(prismaMock.user.update).toHaveBeenCalledWith({
       where: { id: 'user-1' },
-      data: { email: 'new@example.com' },
+      data: {
+        email: 'new@example.com',
+        emailVerifiedAt: expect.any(Date),
+      },
     });
     expect(prismaMock.emailChangeRequest.update).toHaveBeenCalledWith({
       where: { id: 'request-123' },

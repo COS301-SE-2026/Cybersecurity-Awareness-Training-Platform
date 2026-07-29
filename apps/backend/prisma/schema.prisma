@@ -29,6 +29,7 @@ enum TraineeStatus {
 enum OrganisationUserStatus {
   ACTIVE
   INACTIVE
+  DISABLED
 }
 
 enum AdminStatus {
@@ -139,6 +140,9 @@ enum OrganisationPermissionKey {
   REMOVE_ORGANISATION_ADMINS
   CHANGE_ORGANISATION_ADMIN_PERMISSIONS
   CHANGE_ORGANISATION_SECURITY_SETTINGS
+  VIEW_ORGANISATION_TRAINEES
+  INVITE_ORGANISATION_TRAINEES
+  REMOVE_ORGANISATION_TRAINEES
 }
 
 enum InvitationPurpose {
@@ -666,6 +670,10 @@ model Organisation {
   id                         String                            @id @default(uuid())
   name                       String                            @unique
   status                     OrganisationStatus                @default(ACTIVE)
+  description                String?
+  approximateSize            Int?
+  website                    String?
+  primaryDomain              String?
   createdAt                  DateTime                          @default(now())
   updatedAt                  DateTime                          @updatedAt
   traineeProfiles            OrganisationTraineeProfile[]
@@ -828,6 +836,7 @@ model Invitation {
 
   @@unique([id, organisationId])
   @@index([organisationId])
+  @@index([organisationId, purpose])
   @@index([organisationRegistrationRequestId])
   @@index([targetUserId])
   @@index([recipientEmail])

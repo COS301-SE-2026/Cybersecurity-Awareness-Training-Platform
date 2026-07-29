@@ -5,6 +5,7 @@ import {
   AuthStatus,
   TraineeStatus,
   GeneralTraineeAccessSource,
+  AdminStatus,
   OrganisationUserStatus,
   OrganisationStatus,
   CampaignType,
@@ -24,12 +25,17 @@ import {
   EmailRedFlagType,
   RedFlagSeverity,
   QuestionType,
+  InvitationPurpose,
+  InvitationStatus,
+  ActionTokenPurpose,
 } from '../../src/generated/prisma/enums.js';
 import type {
   CampaignComponentType,
   CampaignGroupType,
   CompletionRule,
 } from '../../src/generated/prisma/enums.js';
+import { generateOpaqueToken, hashOpaqueToken } from '../../src/services/token-hash.service.js';
+import { seedOrganisationAdminPermissions } from '../../prisma/seed-data/organisationPermissionSeed.js';
 
 // Pre-hashed scrypt password hash for speed (corresponds to "password")
 const precalculatedHash = [
@@ -505,4 +511,210 @@ export async function createAnswerOption(overrides: {
       feedbackText: overrides.feedbackText ?? 'Feedback text',
     },
   });
+}
+
+/**
+ * Creates an Invitation record.
+ */
+export async function createInvitation(
+  overrides: {
+    id?: string;
+    organisationId?: string;
+    recipientEmail?: string;
+    recipientFirstName?: string;
+    recipientLastName?: string;
+    purpose?: InvitationPurpose;
+    status?: InvitationStatus;
+    expiresAt?: Date;
+  } = {},
+) {
+  const id = overrides.id ?? randomUUID();
+  const organisationId = overrides.organisationId ?? (await createOrganisation()).id;
+  const recipientEmail = overrides.recipientEmail ?? generateTestEmail('invitee');
+  const purpose = overrides.purpose ?? InvitationPurpose.ORGANISATION_TRAINEE_INVITE;
+  const status = overrides.status ?? InvitationStatus.PENDING;
+  const expiresAt = overrides.expiresAt ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+  return prisma.invitation.create({
+    data: {
+      id,
+      organisationId,
+      recipientEmail,
+      recipientFirstName: overrides.recipientFirstName ?? 'Alex',
+      recipientLastName: overrides.recipientLastName ?? 'Trainee',
+      purpose,
+      status,
+      expiresAt,
+    },
+  });
+}
+
+/**
+ * Creates an ActionToken for an Invitation with precalculated hash, returning both entity and rawToken.
+ */
+export async function createInvitationActionToken(
+  overrides: {
+    id?: string;
+    invitationId?: string | null;
+    purpose?: ActionTokenPurpose;
+    targetEmail?: string;
+    expiresAt?: Date;
+    usedAt?: Date | null;
+    revokedAt?: Date | null;
+    rawToken?: string;
+  } = {},
+) {
+  const id = overrides.id ?? randomUUID();
+  const invitationId =
+    overrides.invitationId !== undefined ? overrides.invitationId : (await createInvitation()).id;
+  const rawToken = overrides.rawToken ?? generateOpaqueToken(32);
+  const tokenHash = hashOpaqueToken(rawToken);
+  const purpose = overrides.purpose ?? ActionTokenPurpose.ORGANISATION_TRAINEE_INVITE;
+  const expiresAt = overrides.expiresAt ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+  const actionToken = await prisma.actionToken.create({
+    data: {
+      id,
+      tokenHash,
+      purpose,
+      invitationId,
+      targetEmail: overrides.targetEmail ?? null,
+      expiresAt,
+      usedAt: overrides.usedAt ?? null,
+      revokedAt: overrides.revokedAt ?? null,
+    },
+  });
+
+  return {
+    ...actionToken,
+    rawToken,
+  };
+}
+
+/**
+ * Creates a complete Invitation flow test fixture (Organisation, Trainee/User, Invitation, and ActionToken).
+ */
+export async function createInvitationTestFixture(
+  overrides: {
+    organisationStatus?: OrganisationStatus;
+    invitationStatus?: InvitationStatus;
+    actionTokenUsed?: boolean;
+    actionTokenRevoked?: boolean;
+    actionTokenExpired?: boolean;
+    userType?: UserType;
+    recipientEmail?: string;
+    rawToken?: string;
+    purpose?: InvitationPurpose | ActionTokenPurpose;
+  } = {},
+) {
+  const organisation = await createOrganisation({
+    status: overrides.organisationStatus ?? OrganisationStatus.ACTIVE,
+  });
+
+  const recipientEmail = overrides.recipientEmail ?? generateTestEmail('invite-target');
+
+  const trainee = await createTrainee({
+    user: {
+      email: recipientEmail,
+      userType: overrides.userType ?? UserType.GENERAL_TRAINEE,
+    },
+  });
+
+  const purpose = overrides.purpose ?? InvitationPurpose.ORGANISATION_TRAINEE_INVITE;
+  const isActionTokenOnlyPurpose =
+    purpose === 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION' || purpose === 'PLATFORM_ADMIN_INVITE';
+
+  const validInvitationPurposes = Object.values(InvitationPurpose) as string[];
+  const invitationPurpose = (
+    validInvitationPurposes.includes(purpose)
+      ? purpose
+      : InvitationPurpose.ORGANISATION_TRAINEE_INVITE
+  ) as InvitationPurpose;
+
+  const invitation = isActionTokenOnlyPurpose
+    ? null
+    : await createInvitation({
+        organisationId: organisation.id,
+        recipientEmail,
+        purpose: invitationPurpose,
+        status: overrides.invitationStatus ?? InvitationStatus.PENDING,
+        expiresAt: overrides.actionTokenExpired
+          ? new Date(Date.now() - 24 * 60 * 60 * 1000)
+          : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      });
+
+  const actionToken = await createInvitationActionToken({
+    invitationId: invitation?.id ?? null,
+    purpose,
+    targetEmail: recipientEmail,
+    expiresAt: overrides.actionTokenExpired
+      ? new Date(Date.now() - 24 * 60 * 60 * 1000)
+      : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    usedAt: overrides.actionTokenUsed ? new Date() : null,
+    revokedAt: overrides.actionTokenRevoked ? new Date() : null,
+    rawToken: overrides.rawToken,
+  });
+
+  return {
+    organisation,
+    trainee,
+    user: trainee.user,
+    invitation,
+    actionToken,
+    rawToken: actionToken.rawToken,
+  };
+}
+
+/**
+ * Creates an Organisation and an active Organisation Admin User with full permissions.
+ */
+export async function createOrganisationAdminTestFixture(
+  overrides: {
+    organisation?: Partial<Parameters<typeof createOrganisation>[0]> & { id?: string };
+    user?: Partial<Parameters<typeof prisma.user.create>[0]['data']>;
+    adminStatus?: AdminStatus;
+    isInitialAdmin?: boolean;
+  } = {},
+) {
+  let organisation;
+  if (overrides.organisation?.id) {
+    organisation = await prisma.organisation.findUniqueOrThrow({
+      where: { id: overrides.organisation.id },
+    });
+  } else {
+    organisation = await createOrganisation(overrides.organisation);
+  }
+  const userId = overrides.user?.id ?? randomUUID();
+  const email = overrides.user?.email ?? generateTestEmail('orgadmin');
+
+  const user = await prisma.user.create({
+    data: {
+      id: userId,
+      firstName: overrides.user?.firstName ?? 'Admin',
+      lastName: overrides.user?.lastName ?? 'User',
+      email,
+      passwordHash: overrides.user?.passwordHash ?? precalculatedHash,
+      userType: UserType.ORGANISATION_ADMIN,
+      authStatus: overrides.user?.authStatus ?? AuthStatus.ACTIVE,
+    },
+  });
+
+  const adminProfile = await prisma.organisationAdminProfile.create({
+    data: {
+      id: randomUUID(),
+      userId: user.id,
+      organisationId: organisation.id,
+      adminStatus: overrides.adminStatus ?? AdminStatus.ACTIVE,
+      isInitialAdmin: overrides.isInitialAdmin ?? true,
+      joinedAt: new Date(),
+    },
+  });
+
+  await seedOrganisationAdminPermissions(prisma);
+
+  return {
+    organisation,
+    user,
+    adminProfile,
+  };
 }

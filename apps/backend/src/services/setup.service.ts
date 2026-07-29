@@ -15,9 +15,11 @@ import {
   findSetupActionTokenById,
   findSetupUserByEmail,
   markInvitationAccepted,
+  SetupRepositoryConflictError,
   type SetupUserType,
 } from '../repositories/setup.repository.js';
 import { runWithConsumedActionToken, validateActionToken } from './action-token.service.js';
+import { recordAuditLog } from './audit-log.service.js';
 import { ensureActiveOrganisation } from './auth-status-guard.service.js';
 import { hashPassword } from './password.service.js';
 
@@ -92,22 +94,24 @@ async function seedInitialAdminPermissionsAndActivateOrg(
   tx: SetupTransaction,
 ) {
   if (freshToken.purpose !== 'INITIAL_ORGANISATION_ADMIN_SETUP') {
-    return;
+    return false;
   }
   const org = freshToken.invitation?.organisation;
   if (!org) {
-    return;
+    return false;
   }
 
+  let organisationActivated = false;
   if (org.status === 'PENDING_ONBOARDING' && 'organisation' in tx) {
-    await tx.organisation.update({
-      where: { id: org.id },
+    const activationResult = await tx.organisation.updateMany({
+      where: { id: org.id, status: 'PENDING_ONBOARDING' },
       data: { status: 'ACTIVE' },
     });
+    organisationActivated = activationResult.count === 1;
   }
 
   if (!('organisationAdminProfile' in tx)) {
-    return;
+    return organisationActivated;
   }
 
   const adminProfile = await tx.organisationAdminProfile.findFirst({
@@ -115,7 +119,7 @@ async function seedInitialAdminPermissionsAndActivateOrg(
   });
 
   if (!adminProfile) {
-    return;
+    return organisationActivated;
   }
 
   if ('organisationPermission' in tx && 'organisationAdminPermission' in tx) {
@@ -135,6 +139,7 @@ async function seedInitialAdminPermissionsAndActivateOrg(
       skipDuplicates: true,
     });
   }
+  return organisationActivated;
 }
 
 export async function completeSetupWithToken(
@@ -168,10 +173,16 @@ export async function completeSetupWithToken(
 
     assertSetupRecordIsUsable(freshToken);
 
+    // Full target-consistency check: the action-token target, invitation recipient,
+    // and registration-request representative must all agree before we consume anything.
+    assertSetupTargetConsistency(freshToken, targetEmail);
+
     const role = setupUserTypeForPurpose(freshToken.purpose);
     const organisationId = freshToken.invitation?.organisationId ?? null;
     const setupInvitationId = freshToken.invitationId ?? null;
     const existingUser = await findSetupUserByEmail(targetEmail, tx);
+    const existingOrganisationTraineeProfile =
+      existingUser?.traineeProfile?.organisationTraineeProfile ?? null;
     const userInput = {
       email: targetEmail,
       firstName: input.firstName,
@@ -184,6 +195,7 @@ export async function completeSetupWithToken(
           userId: existingUser.id,
           currentUserType: existingUser.userType,
           currentAuthStatus: existingUser.authStatus,
+          existingOrganisationTraineeProfile,
           role,
           organisationId,
           setupPurpose: freshToken.purpose,
@@ -208,7 +220,53 @@ export async function completeSetupWithToken(
       await markInvitationAccepted(freshToken.invitationId, tx);
     }
 
-    await seedInitialAdminPermissionsAndActivateOrg(user, freshToken, tx);
+    if (freshToken.purpose === 'INITIAL_ORGANISATION_ADMIN_SETUP' && freshToken.invitation) {
+      await recordAuditLog(
+        {
+          actorUserId: user.id,
+          actorType: 'ORGANISATION_ADMIN',
+          organisationId: freshToken.invitation.organisationId,
+          targetType: 'INVITATION',
+          targetId: freshToken.invitation.id,
+          actionType: 'COMPLETED',
+          outcome: 'SUCCESS',
+          metadata: {
+            milestone: 'INITIAL_ADMIN_SETUP_COMPLETED',
+          },
+        },
+        tx,
+      );
+    }
+
+    const organisationActivated = await seedInitialAdminPermissionsAndActivateOrg(
+      user,
+      freshToken,
+      tx,
+    );
+
+    if (
+      organisationActivated &&
+      freshToken.purpose === 'INITIAL_ORGANISATION_ADMIN_SETUP' &&
+      freshToken.invitation?.organisation
+    ) {
+      await recordAuditLog(
+        {
+          actorUserId: user.id,
+          actorType: 'ORGANISATION_ADMIN',
+          organisationId: freshToken.invitation.organisation.id,
+          targetType: 'ORGANISATION',
+          targetId: freshToken.invitation.organisation.id,
+          actionType: 'ENABLED',
+          outcome: 'SUCCESS',
+          metadata: {
+            milestone: 'ORGANISATION_ACTIVATED',
+            fromStatus: 'PENDING_ONBOARDING',
+            toStatus: 'ACTIVE',
+          },
+        },
+        tx,
+      );
+    }
 
     return user;
   });
@@ -357,6 +415,11 @@ async function activateExistingSetupUser(input: {
   userId: string;
   currentUserType: SetupUserType | 'GENERAL_TRAINEE';
   currentAuthStatus: string;
+  existingOrganisationTraineeProfile?: {
+    organisationId: string;
+    membershipStatus: string;
+    disabledAt: Date | null;
+  } | null;
   role: SetupUserType;
   organisationId: string | null;
   setupPurpose: ActionTokenPurpose;
@@ -376,6 +439,21 @@ async function activateExistingSetupUser(input: {
     );
   }
 
+  if (input.role === 'ORGANISATION_TRAINEE' && input.existingOrganisationTraineeProfile) {
+    const traineeProfile = input.existingOrganisationTraineeProfile;
+    if (
+      traineeProfile.organisationId !== input.organisationId ||
+      traineeProfile.membershipStatus !== 'ACTIVE' ||
+      traineeProfile.disabledAt
+    ) {
+      throw new SetupFlowError(
+        409,
+        'SETUP_ROLE_CONFLICT',
+        'Setup conflicts with an existing organisation trainee membership',
+      );
+    }
+  }
+
   if (input.role === 'IP_ADMIN') {
     return activatePlatformAdminUser({ userId: input.userId, ...input.userInput }, input.tx);
   }
@@ -385,15 +463,22 @@ async function activateExistingSetupUser(input: {
   }
 
   if (input.role === 'ORGANISATION_ADMIN') {
-    return activateOrganisationAdminUser(
-      {
-        userId: input.userId,
-        organisationId: input.organisationId,
-        ...input.userInput,
-        ...organisationAdminSetupMetadata(input.setupPurpose, input.setupInvitationId),
-      },
-      input.tx,
-    );
+    try {
+      return await activateOrganisationAdminUser(
+        {
+          userId: input.userId,
+          organisationId: input.organisationId,
+          ...input.userInput,
+          ...organisationAdminSetupMetadata(input.setupPurpose, input.setupInvitationId),
+        },
+        input.tx,
+      );
+    } catch (err) {
+      if (err instanceof SetupRepositoryConflictError) {
+        throw new SetupFlowError(409, err.error, err.message);
+      }
+      throw err;
+    }
   }
 
   return activateOrganisationTraineeUser(
@@ -417,4 +502,37 @@ function organisationAdminSetupMetadata(
     isInitialAdmin: true,
     createdFromInvitationId: setupInvitationId,
   };
+}
+
+/**
+ * Verifies that the action-token target email, invitation recipient email, and
+ * (where applicable) registration-request representative email all agree.
+ *
+ * This is the final authority check before any user/profile state is consumed.
+ * The resend flow checks some of these earlier, but setup completion must re-validate
+ * to guard against edge cases where the invitation was created with inconsistent data.
+ */
+function assertSetupTargetConsistency(freshToken: SetupActionToken, targetEmail: string): void {
+  const invitation = freshToken.invitation;
+  if (!invitation) {
+    // Platform-admin invites have no invitation; consistency is enforced elsewhere.
+    return;
+  }
+
+  if (invitation.recipientEmail !== targetEmail) {
+    throw new SetupFlowError(
+      409,
+      'SETUP_TARGET_MISMATCH',
+      'Setup token target email does not match the invitation recipient',
+    );
+  }
+
+  const repEmail = invitation.organisationRegistrationRequest?.representativeEmail;
+  if (repEmail && repEmail !== invitation.recipientEmail) {
+    throw new SetupFlowError(
+      409,
+      'SETUP_TARGET_MISMATCH',
+      'Registration request representative email does not match the invitation recipient',
+    );
+  }
 }

@@ -20,6 +20,7 @@ import {
 import { recordAuditLog } from './audit-log.service.js';
 import { requestAuthEmailSend } from './auth-email-hook.service.js';
 import { generateAuthToken } from './auth-token.service.js';
+import { recordNotificationFailureEvent } from './notification-failure-event.service.js';
 import * as PasswordService from './password.service.js';
 import { ensureUserCanAuthenticate } from './auth-status-guard.service.js';
 import {
@@ -92,6 +93,18 @@ async function sendEmailVerification(
   });
 }
 
+async function sendEmailVerificationBestEffort(
+  user: EmailVerificationUser,
+  verification: IssueActionTokenResult,
+) {
+  try {
+    await sendEmailVerification(user, verification);
+  } catch {
+    await recordNotificationFailureEvent('EMAIL_HOOK_UNEXPECTED_FAILURE');
+    return;
+  }
+}
+
 export class AuthResetPasswordError extends Error {
   constructor(
     public readonly statusCode: number,
@@ -134,7 +147,7 @@ export async function registerUser(
       };
     });
 
-    await sendEmailVerification(newUser, verification);
+    await sendEmailVerificationBestEffort(newUser, verification);
 
     return { message: REGISTER_GENERIC_MESSAGE };
   } //if
@@ -163,12 +176,20 @@ async function maybeSendReplacementVerificationEmail(user: {
     orderBy: { createdAt: 'desc' },
   });
 
+  const verificationDeliveryLogs =
+    latestToken?.emailDeliveryLogs.filter((log) => log.emailType === 'EMAIL_VERIFICATION') ?? [];
+  const hasAnyDeliveryAttempt = verificationDeliveryLogs.length > 0;
+  const hasSentDelivery = verificationDeliveryLogs.some((log) => log.deliveryStatus === 'SENT');
+  const hasPendingDelivery = verificationDeliveryLogs.some(
+    (log) => log.deliveryStatus === 'PENDING',
+  );
+  const hasFailedDelivery = verificationDeliveryLogs.some((log) => log.deliveryStatus === 'FAILED');
+  const tokenExpired = !latestToken || latestToken.expiresAt.getTime() <= Date.now();
+
   const shouldReissue =
-    !latestToken ||
-    latestToken.expiresAt.getTime() <= Date.now() ||
-    !latestToken.emailDeliveryLogs.some(
-      (log) => log.emailType === 'EMAIL_VERIFICATION' && log.deliveryStatus === 'SENT',
-    );
+    tokenExpired ||
+    !hasAnyDeliveryAttempt ||
+    (hasFailedDelivery && !hasSentDelivery && !hasPendingDelivery);
   if (!shouldReissue) {
     return;
   }
@@ -190,7 +211,7 @@ async function maybeSendReplacementVerificationEmail(user: {
     return { verification: verificationToken };
   });
 
-  await sendEmailVerification(user, verification);
+  await sendEmailVerificationBestEffort(user, verification);
 }
 
 export class AuthStatusGuardError extends Error {
@@ -581,7 +602,7 @@ export async function resendVerificationEmail(email: string): Promise<void> {
 
   const verification = await prisma.$transaction((tx) => issueEmailVerificationToken(user, tx));
 
-  await sendEmailVerification(user, verification);
+  await sendEmailVerificationBestEffort(user, verification);
 }
 
 export type VerifyEmailResult = {
@@ -677,8 +698,6 @@ export async function verifyEmailChange(rawToken: string): Promise<VerifyEmailCh
     throw new EmailChangeConflictError();
   }
 
-  const oldEmail = user.email;
-
   const resultState = await prisma.$transaction(async (tx) => {
     // 1. Load the EmailChangeRequest
     const changeRequest = await tx.emailChangeRequest.findUnique({
@@ -734,6 +753,7 @@ export async function verifyEmailChange(rawToken: string): Promise<VerifyEmailCh
       where: { id: user.id },
       data: {
         email: targetEmail,
+        emailVerifiedAt: new Date(),
       },
     });
 
@@ -769,8 +789,8 @@ export async function verifyEmailChange(rawToken: string): Promise<VerifyEmailCh
         outcome: 'SUCCESS',
         metadata: {
           changeType: 'EMAIL_CHANGE',
-          oldEmail,
-          newEmail: targetEmail,
+          emailChangeRequestId: changeRequest.id,
+          revokedSessionReason: 'EMAIL_CHANGE',
         },
       },
       tx,
@@ -814,17 +834,22 @@ export async function requestPasswordReset(email: string): Promise<void> {
     return { verification: resetToken };
   });
 
-  await requestAuthEmailSend({
-    emailType: 'PASSWORD_RESET',
-    recipientEmail: user.email,
-    userId: user.id,
-    actionTokenId: verification.token.id,
-    templateData: {
-      actionToken: verification.rawToken,
-      firstName: user.firstName,
-      actionTokenExpiresAt: verification.token.expiresAt,
-    },
-  });
+  try {
+    await requestAuthEmailSend({
+      emailType: 'PASSWORD_RESET',
+      recipientEmail: user.email,
+      userId: user.id,
+      actionTokenId: verification.token.id,
+      templateData: {
+        actionToken: verification.rawToken,
+        firstName: user.firstName,
+        actionTokenExpiresAt: verification.token.expiresAt,
+      },
+    });
+  } catch {
+    await recordNotificationFailureEvent('EMAIL_HOOK_UNEXPECTED_FAILURE');
+    return;
+  }
 }
 
 export async function resetUserPassword(
@@ -921,12 +946,16 @@ export async function resetUserPassword(
     userAgent,
   });
 
-  await requestAuthEmailSend({
-    emailType: 'PASSWORD_CHANGED',
-    recipientEmail: user.email,
-    userId: user.id,
-    templateData: {
-      firstName: user.firstName,
-    },
-  });
+  try {
+    await requestAuthEmailSend({
+      emailType: 'PASSWORD_CHANGED',
+      recipientEmail: user.email,
+      userId: user.id,
+      templateData: {
+        firstName: user.firstName,
+      },
+    });
+  } catch {
+    await recordNotificationFailureEvent('PASSWORD_CHANGED_NOTIFICATION_FAILED');
+  }
 }

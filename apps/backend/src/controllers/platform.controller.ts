@@ -6,44 +6,16 @@ import {
   approveOrganisationRequest as approveRequestService,
   rejectOrganisationRequest as rejectRequestService,
   deleteOrganisationRequest as deleteRequestService,
-  getPlatformOrganisationDetail as getOrganisationDetailService,
-  getOrganisationRequestDetails as getRequestDetailsService,
-  resendInitialAdminSetup as resendSetupService,
-  OrganisationRegistrationRequestError,
 } from '../services/organisation-registration-request.service.js';
-
-function requireActorUserId(req: Request, res: Response): string | null {
-  if (!req.auth?.userId) {
-    res.status(401).json({
-      error: 'AUTH_REQUIRED',
-      message: 'Authentication credentials are required',
-    });
-    return null;
-  }
-  return req.auth.userId;
-}
-
-function handleControllerError(error: unknown, res: Response) {
-  if (error instanceof OrganisationRegistrationRequestError) {
-    return res.status(error.statusCode).json({
-      error: error.error,
-      message: error.message,
-    });
-  }
-  throw error;
-}
-
-function requiredParam(req: Request, name: string): string {
-  const value = req.params[name];
-  if (typeof value !== 'string') {
-    throw new OrganisationRegistrationRequestError(
-      404,
-      'ROUTE_PARAM_MISSING',
-      'Route parameter is missing',
-    );
-  }
-  return value;
-}
+import { requireActorUserId, handleControllerError, requiredParam } from './controller.helpers.js';
+import {
+  listPlatformAdmins as listAdminsService,
+  invitePlatformAdmin as inviteAdminService,
+  resendPlatformAdminInvite as resendInviteService,
+  transferSuperAdmin as transferSuperAdminService,
+  demotePlatformAdmin as demoteAdminService,
+  PlatformAdminServiceError,
+} from '../services/platform-admin.service.js';
 
 export async function listOrganisationRequests(req: Request, res: Response) {
   const actorUserId = requireActorUserId(req, res);
@@ -134,41 +106,82 @@ export async function deleteOrganisationRequest(req: Request, res: Response) {
   }
 }
 
-export async function getPlatformOrganisationDetail(req: Request, res: Response) {
+// List platform admins with row action eligibilty
+export async function listPlatformAdmins(req: Request, res: Response) {
   const actorUserId = requireActorUserId(req, res);
   if (!actorUserId) return;
 
   try {
-    const result = await getOrganisationDetailService(
-      actorUserId,
-      requiredParam(req, 'organisationId'),
-    );
+    const result = await listAdminsService(actorUserId);
     return res.status(200).json(result);
   } catch (error) {
+    if (error instanceof PlatformAdminServiceError) {
+      return res.status(error.statusCode).json({ error: error.error, message: error.message });
+    }
     return handleControllerError(error, res);
   }
 }
 
-export async function getOrganisationRequestDetails(req: Request, res: Response) {
+// Invite new platform admin or triger trainee role upgrade
+export async function invitePlatformAdmin(req: Request, res: Response) {
   const actorUserId = requireActorUserId(req, res);
   if (!actorUserId) return;
 
   try {
-    const result = await getRequestDetailsService(actorUserId, requiredParam(req, 'requestId'));
-    return res.status(200).json(result);
+    const result = await inviteAdminService(actorUserId, req.body);
+    return res.status(201).json(result);
   } catch (error) {
+    if (error instanceof PlatformAdminServiceError) {
+      return res.status(error.statusCode).json({ error: error.error, message: error.message });
+    }
     return handleControllerError(error, res);
   }
 }
 
-export async function resendInitialAdminSetup(req: Request, res: Response) {
+// Resend platform admin invite token
+export async function resendPlatformAdminInvite(req: Request, res: Response) {
   const actorUserId = requireActorUserId(req, res);
   if (!actorUserId) return;
 
   try {
-    const result = await resendSetupService(actorUserId, requiredParam(req, 'organisationId'));
+    const result = await resendInviteService(actorUserId, requiredParam(req, 'id'));
     return res.status(200).json(result);
   } catch (error) {
+    if (error instanceof PlatformAdminServiceError) {
+      return res.status(error.statusCode).json({ error: error.error, message: error.message });
+    }
+    return handleControllerError(error, res);
+  }
+}
+
+// Transfer super admin role transactionaly
+export async function transferSuperAdmin(req: Request, res: Response) {
+  const actorUserId = requireActorUserId(req, res);
+  if (!actorUserId) return;
+
+  try {
+    const result = await transferSuperAdminService(actorUserId, req.body);
+    return res.status(200).json(result);
+  } catch (error) {
+    if (error instanceof PlatformAdminServiceError) {
+      return res.status(error.statusCode).json({ error: error.error, message: error.message });
+    }
+    return handleControllerError(error, res);
+  }
+}
+
+// Demote normal platform admin and revoke user sesions
+export async function demotePlatformAdmin(req: Request, res: Response) {
+  const actorUserId = requireActorUserId(req, res);
+  if (!actorUserId) return;
+
+  try {
+    const result = await demoteAdminService(actorUserId, requiredParam(req, 'userId'), req.body);
+    return res.status(200).json(result);
+  } catch (error) {
+    if (error instanceof PlatformAdminServiceError) {
+      return res.status(error.statusCode).json({ error: error.error, message: error.message });
+    }
     return handleControllerError(error, res);
   }
 }

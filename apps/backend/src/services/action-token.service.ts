@@ -1,6 +1,9 @@
 import type { ActionTokenPurpose, EmailDeliveryType } from '../generated/prisma/enums.js';
+import { ACTIVE_INVITATION_STATUSES } from './invitation-state-policy.js';
 import { prisma } from '../lib/prisma.js';
+
 import { requestAuthEmailSend } from './auth-email-hook.service.js';
+import { recordNotificationFailureEvent } from './notification-failure-event.service.js';
 import type { ActionTokenModel } from '../generated/prisma/models/ActionToken.js';
 import {
   createActionToken,
@@ -12,9 +15,6 @@ import {
 } from '../repositories/action-token.repository.js';
 import { generateOpaqueToken, hashOpaqueToken } from './token-hash.service.js';
 import type { Prisma } from '../generated/prisma/client.js';
-import { calculateResendCooldownSeconds } from './resend-cooldown.js';
-const MAX_TOKEN_RESEND_ENTRIES = 10_000;
-const tokenResendAttemptCooldowns = new Map<string, number>();
 
 export type ActionTokenState =
   | 'VALID'
@@ -168,37 +168,56 @@ function determineTokenState(
   return 'VALID';
 }
 
+function canResendPasswordReset(token: ActionTokenWithRelations) {
+  return token.user ? token.user.authStatus !== 'DISABLED' : false;
+}
+
+function canResendEmailVerification(token: ActionTokenWithRelations) {
+  return token.user ? token.user.authStatus === 'PENDING_EMAIL_VERIFICATION' : false;
+}
+
+function canResendEmailChangeVerification(token: ActionTokenWithRelations) {
+  return token.emailChangeRequest ? token.emailChangeRequest.status === 'PENDING' : false;
+}
+
+function canResendPlatformAdminUpgradeConfirmation(token: ActionTokenWithRelations) {
+  return token.user ? token.user.authStatus !== 'DISABLED' : true;
+}
+
+function canResendInvitation(token: ActionTokenWithRelations) {
+  return token.invitation
+    ? token.invitation.status !== 'ACCEPTED' &&
+        token.invitation.status !== 'REVOKED' &&
+        token.invitation.status !== 'COMPLETED'
+    : false;
+}
+
+function canResendByPurpose(token: ActionTokenWithRelations) {
+  switch (token.purpose) {
+    case 'PASSWORD_RESET':
+      return canResendPasswordReset(token);
+    case 'EMAIL_VERIFICATION':
+      return canResendEmailVerification(token);
+    case 'EMAIL_CHANGE_VERIFICATION':
+      return canResendEmailChangeVerification(token);
+    case 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION':
+      return canResendPlatformAdminUpgradeConfirmation(token);
+    case 'INITIAL_ORGANISATION_ADMIN_SETUP':
+    case 'ORGANISATION_TRAINEE_INVITE':
+    case 'ORGANISATION_ADMIN_PROMOTION':
+    case 'PLATFORM_ADMIN_INVITE':
+      return canResendInvitation(token);
+    default:
+      return false;
+  }
+}
+
 function checkResendEligibility(token: ActionTokenWithRelations, state: ActionTokenState): boolean {
   if (state !== 'VALID' && state !== 'EXPIRED') {
     return false;
   }
 
-  const flow = token.purpose;
-
-  if (flow === 'PASSWORD_RESET') {
-    return token.user ? token.user.authStatus !== 'DISABLED' : false;
-  }
-  if (flow === 'EMAIL_VERIFICATION') {
-    return token.user ? token.user.authStatus === 'PENDING_EMAIL_VERIFICATION' : false;
-  }
-  if (flow === 'EMAIL_CHANGE_VERIFICATION') {
-    return token.emailChangeRequest ? token.emailChangeRequest.status === 'PENDING' : false;
-  }
-  if (
-    flow === 'INITIAL_ORGANISATION_ADMIN_SETUP' ||
-    flow === 'ORGANISATION_TRAINEE_INVITE' ||
-    flow === 'ORGANISATION_ADMIN_PROMOTION' ||
-    flow === 'PLATFORM_ADMIN_INVITE' ||
-    flow === 'PLATFORM_ADMIN_UPGRADE_CONFIRMATION'
-  ) {
-    return token.invitation
-      ? token.invitation.status !== 'ACCEPTED' &&
-          token.invitation.status !== 'REVOKED' &&
-          token.invitation.status !== 'COMPLETED'
-      : false;
-  }
-
-  return false;
+  return canResendByPurpose(token);
 }
 
 function getRecipientEmail(token: ActionTokenWithRelations): string | null {
@@ -234,7 +253,9 @@ async function computeResendCooldown(
     return 0;
   }
 
-  return calculateResendCooldownSeconds(lastLog.createdAt, now.getTime());
+  const cooldownMs = 60000;
+  const elapsed = now.getTime() - lastLog.createdAt.getTime();
+  return elapsed < cooldownMs ? Math.max(0, Math.ceil((cooldownMs - elapsed) / 1000)) : 0;
 }
 
 export async function getTokenContext(rawToken: string): Promise<TokenContextResponse> {
@@ -343,24 +364,70 @@ export async function resendActionToken(rawToken: string): Promise<void> {
     throw new TokenResendError(400, 'TOKEN_RESEND_INELIGIBLE', 'Token cannot be resent safely');
   }
 
-  const resendAttemptKey = `${emailType}:${recipientEmail.trim().toLowerCase()}`;
-  const now = Date.now();
-  const lastAttempt = tokenResendAttemptCooldowns.get(resendAttemptKey);
-  if (lastAttempt !== undefined) {
-    const cooldownSeconds = calculateResendCooldownSeconds(lastAttempt, now);
-    if (cooldownSeconds > 0) {
-      throw new TokenResendError(
-        429,
-        'RESEND_COOLDOWN_ACTIVE',
-        'Resend cooldown active. Please try again later.',
-        cooldownSeconds,
-      );
-    }
-  }
-  recordTokenResendAttempt(resendAttemptKey, now);
+  const newToken = await prisma.$transaction(async (tx) => {
+    if (originalToken.invitationId) {
+      const claimedInv = await tx.invitation.updateMany({
+        where: {
+          id: originalToken.invitationId,
+          status: { in: [...ACTIVE_INVITATION_STATUSES] },
+        },
+        data: {
+          status: 'PENDING',
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        },
+      });
 
-  const newToken = await prisma.$transaction((tx) =>
-    issueActionToken(
+      if (claimedInv.count === 0) {
+        throw new TokenResendError(
+          409,
+          'TOKEN_RESEND_INELIGIBLE',
+          'Associated invitation is no longer active.',
+        );
+      }
+    }
+
+    const claimedToken = await tx.actionToken.updateMany({
+      where: {
+        id: originalToken.id,
+        usedAt: null,
+        revokedAt: null,
+      },
+      data: {
+        revokedAt: new Date(),
+        revokedReason: 'REPLACED',
+      },
+    });
+    if (claimedToken.count === 0) {
+      const currentToken = await tx.actionToken.findUnique({
+        where: { id: originalToken.id },
+      });
+      if (!currentToken || currentToken.usedAt || currentToken.revokedAt) {
+        throw new TokenResendError(
+          409,
+          'TOKEN_RESEND_INELIGIBLE',
+          'Token has already been used or replaced concurrently.',
+        );
+      }
+      throw new TokenResendError(400, 'TOKEN_RESEND_INELIGIBLE', 'Token cannot be resent safely');
+    }
+
+    await tx.actionToken.updateMany({
+      where: {
+        purpose: originalToken.purpose,
+        userId: originalToken.userId ?? null,
+        invitationId: originalToken.invitationId ?? null,
+        emailChangeRequestId: originalToken.emailChangeRequestId ?? null,
+        targetEmail: originalToken.targetEmail ?? null,
+        revokedAt: null,
+        usedAt: null,
+      },
+      data: {
+        revokedAt: new Date(),
+        revokedReason: 'REPLACED',
+      },
+    });
+
+    const issued = await issueActionToken(
       {
         purpose: originalToken.purpose,
         userId: originalToken.userId,
@@ -370,29 +437,39 @@ export async function resendActionToken(rawToken: string): Promise<void> {
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
       },
       tx,
-    ),
-  );
+    );
 
-  const emailResult = await requestAuthEmailSend({
-    emailType,
-    recipientEmail,
-    userId: originalToken.userId,
-    actionTokenId: newToken.token.id,
-    invitationId: originalToken.invitationId,
-    relatedEntityType: originalToken.emailChangeRequestId ? 'EMAIL_CHANGE_REQUEST' : undefined,
-    relatedEntityId: originalToken.emailChangeRequestId,
-    templateData: {
-      actionToken: newToken.rawToken,
-      firstName:
-        originalToken.user?.firstName ?? originalToken.invitation?.recipientFirstName ?? 'Trainee',
-      actionTokenExpiresAt: newToken.token.expiresAt,
-      oldEmail: originalToken.emailChangeRequest?.currentEmail,
-      newEmail: originalToken.emailChangeRequest?.RequestedEmail,
-      organisationName: originalToken.invitation?.organisation.name,
-    },
+    return issued;
   });
 
-  if (!emailResult.queued) {
+  let emailOutcome: Awaited<ReturnType<typeof requestAuthEmailSend>>;
+  try {
+    emailOutcome = await requestAuthEmailSend({
+      emailType,
+      recipientEmail,
+      userId: originalToken.userId,
+      actionTokenId: newToken.token.id,
+      invitationId: originalToken.invitationId,
+      relatedEntityType: originalToken.emailChangeRequestId ? 'EMAIL_CHANGE_REQUEST' : undefined,
+      relatedEntityId: originalToken.emailChangeRequestId,
+      templateData: {
+        actionToken: newToken.rawToken,
+        firstName:
+          originalToken.user?.firstName ??
+          originalToken.invitation?.recipientFirstName ??
+          'Trainee',
+        actionTokenExpiresAt: newToken.token.expiresAt,
+        oldEmail: originalToken.emailChangeRequest?.currentEmail,
+        newEmail: originalToken.emailChangeRequest?.RequestedEmail,
+        organisationName: originalToken.invitation?.organisation?.name ?? 'Platform Admin',
+      },
+    });
+  } catch {
+    await recordNotificationFailureEvent('ACTION_TOKEN_RESEND_NOTIFICATION_FAILED');
+    return;
+  }
+
+  if (emailOutcome.status === 'NOT_ACCEPTED') {
     await prisma.actionToken.updateMany({
       where: {
         id: newToken.token.id,
@@ -401,62 +478,8 @@ export async function resendActionToken(rawToken: string): Promise<void> {
       },
       data: {
         revokedAt: new Date(),
-        revokedReason: 'EMAIL_DELIVERY_FAILED',
+        revokedReason: 'EMAIL_SEND_FAILED',
       },
     });
-
-    throw new TokenResendError(
-      500,
-      'TOKEN_RESEND_DELIVERY_FAILED',
-      'Unable to resend the link. Please try again later.',
-    );
   }
-
-  const replacement = await prisma.actionToken.updateMany({
-    where: {
-      id: originalToken.id,
-      usedAt: null,
-      revokedAt: null,
-    },
-    data: { revokedAt: new Date(), revokedReason: 'REPLACED' },
-  });
-
-  if (replacement.count !== 1) {
-    await prisma.actionToken.updateMany({
-      where: {
-        id: newToken.token.id,
-        usedAt: null,
-        revokedAt: null,
-      },
-      data: { revokedAt: new Date(), revokedReason: 'CONCURRENT_REPLACEMENT' },
-    });
-
-    throw new TokenResendError(400, 'TOKEN_RESEND_INELIGIBLE', 'Token cannot be resent safely');
-  }
-}
-
-function recordTokenResendAttempt(key: string, now: number) {
-  if (
-    !tokenResendAttemptCooldowns.has(key) &&
-    tokenResendAttemptCooldowns.size >= MAX_TOKEN_RESEND_ENTRIES
-  ) {
-    for (const [storedKey, timestamp] of tokenResendAttemptCooldowns) {
-      if (calculateResendCooldownSeconds(timestamp, now) === 0) {
-        tokenResendAttemptCooldowns.delete(storedKey);
-      }
-    }
-
-    while (tokenResendAttemptCooldowns.size >= MAX_TOKEN_RESEND_ENTRIES) {
-      const oldest = tokenResendAttemptCooldowns.keys().next().value;
-      if (typeof oldest !== 'string') {
-        break;
-      }
-      tokenResendAttemptCooldowns.delete(oldest);
-    }
-  }
-  tokenResendAttemptCooldowns.set(key, now);
-}
-
-export function clearTokenResendAttemptCooldowns() {
-  tokenResendAttemptCooldowns.clear(); //for unit tests
 }

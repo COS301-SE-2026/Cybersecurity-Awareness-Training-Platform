@@ -2,8 +2,36 @@ import { useState } from 'react';
 import OrganisationInformationForm from '../components/org-reg/OrganisationInformationForm';
 import RepresentativeInformationForm from '../components/org-reg/RepresentativeInformationForm';
 import BasicAlert from '../components/alerts/BasicAlert';
-import { firstNameSchema, lastNameSchema, emailSchema } from '@insightful-phish/shared';
+import {
+  firstNameSchema,
+  lastNameSchema,
+  emailSchema,
+  createOrganisationRegistrationRequestSchema,
+  type CreateOrganisationRegistrationRequestDto,
+} from '@insightful-phish/shared';
 import SuccessfulRegistrationModal from '../components/layout/modals/SuccessfulRegistrationModal';
+import { ApiError } from '../lib/apiClient';
+import { submitOrganisationRegistrationRequest } from '../services/organisation-registration-request.service';
+
+const organisationStepSchema = createOrganisationRegistrationRequestSchema.pick({
+  organisationName: true,
+  organisationDescription: true,
+  organisationSize: true,
+  organisationWebsiteUrl: true,
+});
+
+const ORGANISATION_STEP_VALIDATION_FIELDS = new Set([
+  'organisationName',
+  'organisationDescription',
+  'organisationSize',
+  'organisationWebsiteUrl',
+]);
+
+const REPRESENTATIVE_STEP_VALIDATION_FIELDS = new Set([
+  'representativeFirstName',
+  'representativeLastName',
+  'representativeEmail',
+]);
 
 function formatAlertMessage(message: string) {
   // makes everything title case and removes the . from the end of the message
@@ -22,6 +50,8 @@ function OrganisationRegistrationRequestPage() {
 
   const [alertMessage, setAlertMessage] = useState('');
   const [alertType, setAlertType] = useState<'success' | 'danger'>('danger');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [confirmationEmailQueued, setConfirmationEmailQueued] = useState<boolean | null>(null);
 
   const [orgInfoValid, setOrgInfoValid] = useState(false);
 
@@ -34,49 +64,23 @@ function OrganisationRegistrationRequestPage() {
   function validateOrgInfo() {
     setAlertMessage('');
 
-    if (!orgName.trim()) {
-      // NO ORGANISATION NAME
-      // Org Name is REQUIRED
+    const organisationDescription = orgDescrip.trim();
+    const organisationWebsiteUrl = orgWeb.trim();
+
+    const validationResult = organisationStepSchema.safeParse({
+      organisationName: orgName.trim(),
+      organisationSize: orgSize === '' ? undefined : Number(orgSize),
+      ...(organisationDescription ? { organisationDescription } : {}),
+      ...(organisationWebsiteUrl ? { organisationWebsiteUrl } : {}),
+    });
+
+    if (!validationResult.success) {
       setAlertType('danger');
-      setAlertMessage('Please Enter An Organisation Name');
+      setAlertMessage(
+        formatAlertMessage(validationResult.error.issues[0]?.message ?? 'Invalid Input'),
+      );
       setOrgInfoValid(false);
       return false;
-    }
-
-    if (orgSize === '') {
-      // NO ORGANISATION SIZE
-      // Org Size is REQUIRED
-      setAlertType('danger');
-      setAlertMessage('Please Provide An Organisation Size');
-      setOrgInfoValid(false);
-      return false;
-    }
-
-    if (orgSize < 1) {
-      // INVALID ORGANISATION SIZE
-      // Org Size is REQUIRED (must be valid too)
-      setAlertType('danger');
-      setAlertMessage('Please Provide A Valid Organisation Size');
-      setOrgInfoValid(false);
-      return false;
-    }
-
-    const url = orgWeb.trim();
-    if (url) {
-      // INVALID URL
-      try {
-        const normalURL =
-          url.startsWith('https://') || url.startsWith('http://') ? url : `https://${url}`;
-        const parsedURL = new URL(normalURL);
-        if (!parsedURL.hostname.includes('.')) {
-          throw new Error('Invalid URL');
-        }
-      } catch {
-        setAlertType('danger');
-        setAlertMessage('Please Provide A Valid Website URL');
-        setOrgInfoValid(false);
-        return false;
-      }
     }
 
     setOrgInfoValid(true);
@@ -108,6 +112,99 @@ function OrganisationRegistrationRequestPage() {
     }
 
     return true;
+  }
+
+  type SubmitErrorBody = {
+    error?: string;
+    details?: Array<{ field: string; message: string }>;
+  };
+
+  function buildRequestPayload(): CreateOrganisationRegistrationRequestDto {
+    const organisationDescription = orgDescrip.trim();
+    const organisationWebsiteUrl = orgWeb.trim();
+
+    return {
+      organisationName: orgName.trim(),
+      organisationSize: Number(orgSize),
+      representativeFirstName: repFName.trim(),
+      representativeLastName: repLName.trim(),
+      representativeEmail: repEmail.trim().toLowerCase(),
+      ...(organisationDescription ? { organisationDescription } : {}),
+      ...(organisationWebsiteUrl ? { organisationWebsiteUrl } : {}),
+    };
+  }
+
+  function getSafeSubmitErrorMessage(error: unknown) {
+    if (!(error instanceof ApiError)) {
+      return 'We could not submit the request right now. Please try again later.';
+    }
+
+    const body = error.body as SubmitErrorBody | undefined;
+
+    if (error.status === 409 && body?.error === 'ORGANISATION_REQUEST_CONFLICT') {
+      return 'A registration request already exists or conflicts with existing records. Please check the details or contact support.';
+    }
+
+    if (error.status === 422 && body?.error === 'VALIDATION_ERROR') {
+      return body.details?.[0]?.message ?? 'Please check the request details and try again.';
+    }
+
+    if (error.status === 429 && body?.error === 'TOO_MANY_REQUESTS') {
+      return 'Too many requests. Please wait and try again later.';
+    }
+
+    return 'We could not submit the request right now. Please try again later.';
+  }
+
+  function getBackendValidationField(error: unknown) {
+    if (!(error instanceof ApiError)) {
+      return undefined;
+    }
+
+    const body = error.body as SubmitErrorBody | undefined;
+
+    if (error.status !== 422 || body?.error !== 'VALIDATION_ERROR') {
+      return undefined;
+    }
+
+    return body.details?.[0]?.field;
+  }
+
+  async function handleSubmitRegistrationRequest() {
+    setAlertMessage('');
+
+    if (!validateOrgInfo()) {
+      setCurrentStep(1);
+      return;
+    }
+
+    if (!validateRepInfo()) {
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const response = await submitOrganisationRegistrationRequest(buildRequestPayload());
+      setConfirmationEmailQueued(response.confirmationEmailQueued);
+      setShowSuccessfulRegModal(true);
+    } catch (error) {
+      const validationField = getBackendValidationField(error);
+
+      if (validationField && ORGANISATION_STEP_VALIDATION_FIELDS.has(validationField)) {
+        setCurrentStep(1);
+        setOrgInfoValid(false);
+      }
+
+      if (validationField && REPRESENTATIVE_STEP_VALIDATION_FIELDS.has(validationField)) {
+        setCurrentStep(2);
+      }
+
+      setAlertType('danger');
+      setAlertMessage(getSafeSubmitErrorMessage(error));
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -151,6 +248,7 @@ function OrganisationRegistrationRequestPage() {
             firstName={repFName}
             accountDescription="Organisation Administrator"
             organisation={orgName}
+            confirmationEmailQueued={confirmationEmailQueued}
           />
 
           {/* TAB BUTTONS */}
@@ -220,11 +318,8 @@ function OrganisationRegistrationRequestPage() {
                   setCurrentStep(1);
                   setOrgInfoValid(false);
                 }}
-                onSubmit={() => {
-                  if (validateRepInfo()) {
-                    setShowSuccessfulRegModal(true);
-                  }
-                }}
+                onSubmit={handleSubmitRegistrationRequest}
+                isSubmitting={isSubmitting}
               />
             )}
           </div>

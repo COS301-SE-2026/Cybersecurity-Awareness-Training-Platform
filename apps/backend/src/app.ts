@@ -14,12 +14,14 @@ import { errorHandler } from './middleware/errorHandler.js';
 import { setupRouter } from './routes/setup.routes.js';
 import { organisationRegistrationRequestRouter } from './routes/organisation-registration-request.routes.js';
 import { organisationAdminRouter } from './routes/organisation-admin.routes.js';
+import { organisationTraineeRouter } from './routes/organisation-trainee.routes.js';
 import { platformRouter } from './routes/platform.routes.js';
 import { organisationSecuritySettingsRouter } from './routes/organisation-security-settings.routes.js';
-import { invitationContextRouter } from './routes/invitation-context.routes.js';
+import { invitationRouter } from './routes/invitation.routes.js';
 
 export function createApp() {
   const app = express();
+  app.set('trust proxy', env.TRUST_PROXY_HOPS);
 
   app.use(helmet());
 
@@ -42,9 +44,10 @@ export function createApp() {
   app.use(authRouter);
   app.use(accountRouter);
   app.use(setupRouter);
-  app.use(invitationContextRouter);
+  app.use(invitationRouter);
   app.use(organisationRegistrationRequestRouter);
   app.use(organisationAdminRouter);
+  app.use(organisationTraineeRouter);
   app.use(platformRouter);
   app.use(organisationSecuritySettingsRouter);
   app.use('/trainee', traineeRouter);

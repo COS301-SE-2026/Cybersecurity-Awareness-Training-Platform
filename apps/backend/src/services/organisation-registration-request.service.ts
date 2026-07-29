@@ -13,39 +13,8 @@ import { prisma } from '../lib/prisma.js';
 import { Prisma } from '../generated/prisma/client.js';
 import { issueActionToken } from './action-token.service.js';
 import { ensureDefaultOrganisationSecuritySettings } from '../repositories/security-settings.repository.js';
-
-const ORGANISATION_ADMIN_PERMISSION_SEEDS = [
-  {
-    key: 'VIEW_ORGANISATION_ADMINS' as const,
-    displayName: 'View organisation admins',
-    description: 'View organisation admin users and their permission grants.',
-    isCritical: false,
-  },
-  {
-    key: 'INVITE_ORGANISATION_ADMINS' as const,
-    displayName: 'Invite organisation admins',
-    description: 'Invite or promote users to organisation admin access.',
-    isCritical: true,
-  },
-  {
-    key: 'REMOVE_ORGANISATION_ADMINS' as const,
-    displayName: 'Remove organisation admins',
-    description: 'Disable or remove organisation admin access.',
-    isCritical: false,
-  },
-  {
-    key: 'CHANGE_ORGANISATION_ADMIN_PERMISSIONS' as const,
-    displayName: 'Change organisation admin permissions',
-    description: 'Grant or revoke organisation admin permissions.',
-    isCritical: true,
-  },
-  {
-    key: 'CHANGE_ORGANISATION_SECURITY_SETTINGS' as const,
-    displayName: 'Change organisation security settings',
-    description: 'Change organisation security policy and related settings.',
-    isCritical: true,
-  },
-];
+import { recordNotificationFailureEvent } from './notification-failure-event.service.js';
+import { ORGANISATION_PERMISSION_SEEDS } from '../constants/organisation-permission-seeds.js';
 
 export class OrganisationRegistrationRequestError extends Error {
   constructor(
@@ -58,7 +27,7 @@ export class OrganisationRegistrationRequestError extends Error {
   }
 }
 
-async function requirePlatformAdminUser(userId: string) {
+export async function requirePlatformAdminUser(userId: string) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: { ipAdminProfile: true },
@@ -170,6 +139,7 @@ export async function listOrganisationRequests(
                 sentAt: true,
                 failedAt: true,
                 failureReason: true,
+                actionTokenId: true,
               },
             },
           },
@@ -209,15 +179,12 @@ export async function listOrganisationRequests(
         return 'SETUP_TOKEN_EXPIRED';
       }
 
-      const tokens = invitation.actionTokens || [];
-      const hasActiveToken = tokens.some(
-        (t) => !t.usedAt && !t.revokedAt && new Date(t.expiresAt).getTime() > now.getTime(),
-      );
-      if (!hasActiveToken) {
+      const activeToken = findActiveSetupToken(invitation, now);
+      if (!activeToken) {
         return 'SETUP_TOKEN_EXPIRED';
       }
 
-      if (latestEmailLog?.deliveryStatus === 'FAILED') {
+      if (isFailedDeliveryForCurrentSetupToken(latestEmailLog, activeToken)) {
         return 'SETUP_EMAIL_FAILED';
       }
 
@@ -252,7 +219,7 @@ export async function listOrganisationRequests(
   };
 }
 
-interface RegistrationRequestBase {
+export interface RegistrationRequestBase {
   id: string;
   submittedOrganisationName: string;
   submittedWebsite: string | null;
@@ -276,7 +243,7 @@ interface RegistrationRequestBase {
   updatedAt: Date;
 }
 
-const formatRegistrationRequestBase = (req: RegistrationRequestBase) => {
+export const formatRegistrationRequestBase = (req: RegistrationRequestBase) => {
   return {
     id: req.id,
     submittedOrganisationName: req.submittedOrganisationName,
@@ -558,6 +525,18 @@ export async function approveOrganisationRequest(
     );
   }
 
+  // Enforce that the designated initial admin email matches the submitted representative email.
+  // Allowing a different address would create an invitation inconsistent with the registration
+  // request, immediately breaking the resend consistency check and setup-completion target
+  // validation.
+  if (input.initialAdminEmail !== freshRequest.representativeEmail) {
+    throw new OrganisationRegistrationRequestError(
+      409,
+      'SETUP_EMAIL_MISMATCH',
+      'Initial admin email must match the registration request representative email',
+    );
+  }
+
   const existingUser = await prisma.user.findUnique({
     where: { email: input.initialAdminEmail },
   });
@@ -606,10 +585,14 @@ export async function approveOrganisationRequest(
         data: {
           name: orgName,
           status: 'PENDING_ONBOARDING',
+          description: freshRequest.submittedOrganisationDescription,
+          approximateSize: freshRequest.submittedOrganisationSize,
+          website: freshRequest.submittedWebsite,
+          primaryDomain: freshRequest.submittedPrimaryDomain,
         },
       });
 
-      const permissionData = ORGANISATION_ADMIN_PERMISSION_SEEDS.map((perm) => ({
+      const permissionData = ORGANISATION_PERMISSION_SEEDS.map((perm) => ({
         id: ['organisation-permission', organisation.id, perm.key].join('-'),
         organisationId: organisation.id,
         key: perm.key,
@@ -681,6 +664,20 @@ export async function approveOrganisationRequest(
         tx,
       );
 
+      // Record the initial-admin invitation creation so it appears in the onboarding timeline.
+      await recordAuditLog(
+        {
+          actorUserId,
+          actorType: 'IP_ADMIN',
+          targetType: 'INVITATION',
+          targetId: invitation.id,
+          actionType: 'CREATED',
+          outcome: 'SUCCESS',
+          organisationId: organisation.id,
+        },
+        tx,
+      );
+
       return {
         updatedRequest,
         organisation,
@@ -738,6 +735,15 @@ export async function approveOrganisationRequest(
     },
   });
 
+  if (emailResult.status === 'NOT_ACCEPTED') {
+    await recoverInitialSetupEmailSendFailure({
+      actorUserId,
+      organisationId: result.organisation.id,
+      invitationId: result.invitation.id,
+      actionTokenId: result.actionToken.token.id,
+    });
+  }
+
   return {
     ...result.updatedRequest,
     createdAt: result.updatedRequest.createdAt.toISOString(),
@@ -751,6 +757,94 @@ export async function approveOrganisationRequest(
     },
     setupEmailQueued: emailResult.queued,
   };
+}
+
+async function recoverInitialSetupEmailSendFailure(input: {
+  actorUserId: string;
+  organisationId: string;
+  invitationId: string;
+  actionTokenId: string;
+}) {
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.invitation.updateMany({
+        where: {
+          id: input.invitationId,
+          status: { in: ['PENDING', 'SENT', 'FAILED_TO_SEND'] },
+        },
+        data: {
+          status: 'FAILED_TO_SEND',
+        },
+      });
+
+      const invitation = await tx.invitation.findUnique({
+        where: { id: input.invitationId },
+        select: { status: true },
+      });
+
+      if (!invitation || invitation.status !== 'FAILED_TO_SEND') {
+        throw new OrganisationRegistrationRequestError(
+          409,
+          'SETUP_EMAIL_RECOVERY_FAILED',
+          'Setup email failure recovery could not mark the invitation failed',
+        );
+      }
+
+      await tx.actionToken.updateMany({
+        where: {
+          id: input.actionTokenId,
+          usedAt: null,
+          OR: [{ revokedAt: null }, { revokedReason: 'EMAIL_SEND_FAILED' }],
+        },
+        data: {
+          revokedAt: new Date(),
+          revokedReason: 'EMAIL_SEND_FAILED',
+        },
+      });
+
+      const token = await tx.actionToken.findUnique({
+        where: { id: input.actionTokenId },
+        select: {
+          usedAt: true,
+          revokedAt: true,
+          revokedReason: true,
+        },
+      });
+
+      if (
+        !token ||
+        token.usedAt ||
+        !token.revokedAt ||
+        token.revokedReason !== 'EMAIL_SEND_FAILED'
+      ) {
+        throw new OrganisationRegistrationRequestError(
+          409,
+          'SETUP_EMAIL_RECOVERY_FAILED',
+          'Setup email failure recovery could not revoke the setup token',
+        );
+      }
+
+      await recordAuditLog(
+        {
+          actorUserId: input.actorUserId,
+          actorType: 'IP_ADMIN',
+          targetType: 'INVITATION',
+          targetId: input.invitationId,
+          actionType: 'INVITED',
+          outcome: 'FAILURE',
+          organisationId: input.organisationId,
+          metadata: {
+            emailOutcome: 'NOT_ACCEPTED',
+            reason: 'EMAIL_SEND_FAILED',
+          },
+        },
+        tx,
+      );
+    });
+  } catch (error) {
+    await recordNotificationFailureEvent('SETUP_EMAIL_RECOVERY_FAILED');
+    throw error;
+  }
 }
 
 export async function deleteOrganisationRequest(actorUserId: string, requestId: string) {
@@ -781,389 +875,6 @@ export async function deleteOrganisationRequest(actorUserId: string, requestId: 
   });
 
   return { success: true };
-}
-
-export async function getPlatformOrganisationDetail(actorUserId: string, organisationId: string) {
-  await requirePlatformAdminUser(actorUserId);
-
-  const organisation = await prisma.organisation.findUnique({
-    where: { id: organisationId },
-    include: {
-      _count: {
-        select: {
-          adminProfiles: true,
-          traineeProfiles: true,
-        },
-      },
-    },
-  });
-
-  if (!organisation) {
-    throw new OrganisationRegistrationRequestError(
-      404,
-      'ORGANISATION_NOT_FOUND',
-      'Organisation not found',
-    );
-  }
-
-  // Find associated registration request
-  const registrationRequest = await prisma.organisationRegistrationRequest.findFirst({
-    where: { approvedOrganisationId: organisationId },
-  });
-
-  // Find initial setup invitation and tokens
-  const { invitation, latestEmailLog } = await querySetupInvitationAndEmailLog({ organisationId });
-
-  const resendEligibility = getResendEligibility(organisation.status, invitation, latestEmailLog);
-
-  // Fetch admin profiles with high-level summary only
-  const admins = await prisma.organisationAdminProfile.findMany({
-    where: { organisationId },
-    select: {
-      id: true,
-      adminStatus: true,
-      user: {
-        select: {
-          firstName: true,
-          lastName: true,
-          email: true,
-        },
-      },
-    },
-  });
-
-  // Fetch unified timeline
-  const timeline = await buildPlatformTimeline(
-    organisationId,
-    registrationRequest?.id ?? null,
-    invitation?.id ?? null,
-  );
-
-  return {
-    id: organisation.id,
-    name: organisation.name,
-    status: organisation.status,
-    createdAt: organisation.createdAt.toISOString(),
-    updatedAt: organisation.updatedAt.toISOString(),
-    _count: organisation._count,
-    registrationRequest: registrationRequest
-      ? {
-          id: registrationRequest.id,
-          representativeFirstName: registrationRequest.representativeFirstName,
-          representativeLastName: registrationRequest.representativeLastName,
-          representativeEmail: registrationRequest.representativeEmail,
-          submittedWebsite: registrationRequest.submittedWebsite,
-          submittedPrimaryDomain: registrationRequest.submittedPrimaryDomain,
-        }
-      : null,
-    setupStatus: formatSetupStatus(invitation, latestEmailLog),
-    resendEligibility,
-    admins: admins.map((admin) => ({
-      id: admin.id,
-      adminStatus: admin.adminStatus,
-      firstName: admin.user?.firstName ?? '',
-      lastName: admin.user?.lastName ?? '',
-      email: admin.user?.email ?? '',
-    })),
-    timeline,
-  };
-}
-
-export async function getOrganisationRequestDetails(actorUserId: string, requestId: string) {
-  await requirePlatformAdminUser(actorUserId);
-
-  const request = await prisma.organisationRegistrationRequest.findUnique({
-    where: { id: requestId },
-  });
-
-  if (!request) {
-    throw new OrganisationRegistrationRequestError(
-      404,
-      'REQUEST_NOT_FOUND',
-      'Organisation registration request not found',
-    );
-  }
-
-  // Find initial setup invitation and tokens (if request is approved)
-  const { invitation, latestEmailLog } = await querySetupInvitationAndEmailLog({
-    organisationRegistrationRequestId: requestId,
-  });
-
-  const organisation = request.approvedOrganisationId
-    ? await prisma.organisation.findUnique({ where: { id: request.approvedOrganisationId } })
-    : null;
-
-  const resendEligibility = getResendEligibility(
-    organisation?.status ?? 'PENDING_ONBOARDING',
-    invitation,
-    latestEmailLog,
-  );
-
-  // Fetch unified timeline
-  const timeline = await buildPlatformTimeline(
-    request.approvedOrganisationId,
-    requestId,
-    invitation?.id ?? null,
-  );
-
-  return {
-    ...formatRegistrationRequestBase(request),
-    setupStatus: formatSetupStatus(invitation, latestEmailLog),
-    resendEligibility,
-    timeline,
-  };
-}
-
-export async function resendInitialAdminSetup(actorUserId: string, organisationId: string) {
-  await requirePlatformAdminUser(actorUserId);
-
-  const organisation = await prisma.organisation.findUnique({
-    where: { id: organisationId },
-  });
-
-  if (!organisation) {
-    throw new OrganisationRegistrationRequestError(
-      404,
-      'ORGANISATION_NOT_FOUND',
-      'Organisation not found',
-    );
-  }
-
-  const invitation = await prisma.invitation.findFirst({
-    where: {
-      organisationId,
-      purpose: 'INITIAL_ORGANISATION_ADMIN_SETUP',
-    },
-    include: {
-      actionTokens: {
-        orderBy: { createdAt: 'desc' },
-      },
-    },
-  });
-
-  if (!invitation) {
-    throw new OrganisationRegistrationRequestError(
-      404,
-      'SETUP_INVITATION_NOT_FOUND',
-      'Initial admin setup invitation not found',
-    );
-  }
-
-  const latestEmailLog = await prisma.emailDeliveryLog.findFirst({
-    where: {
-      invitationId: invitation.id,
-      emailType: 'INITIAL_ORGANISATION_ADMIN_SETUP',
-    },
-    orderBy: { createdAt: 'desc' },
-  });
-
-  const eligibility = getResendEligibility(organisation.status, invitation, latestEmailLog);
-  if (!eligibility.isEligible) {
-    throw new OrganisationRegistrationRequestError(
-      409,
-      'RESEND_NOT_ELIGIBLE',
-      `Setup email is not eligible for resending: ${eligibility.reason}`,
-    );
-  }
-
-  const newExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-
-  const result = await prisma.$transaction(async (tx) => {
-    // Revoke any existing active action tokens for this invitation
-    await tx.actionToken.updateMany({
-      where: {
-        invitationId: invitation.id,
-        usedAt: null,
-        revokedAt: null,
-      },
-      data: {
-        revokedAt: new Date(),
-        revokedReason: 'SUPERSEDED_BY_RESEND',
-      },
-    });
-
-    // Generate a new action token
-    const actionTokenResult = await issueActionToken(
-      {
-        purpose: 'INITIAL_ORGANISATION_ADMIN_SETUP',
-        expiresAt: newExpiresAt,
-        targetEmail: invitation.recipientEmail,
-        invitationId: invitation.id,
-        organisationRegistrationRequestId:
-          invitation.organisationRegistrationRequestId ?? undefined,
-      },
-      tx,
-    );
-
-    // Update invitation
-    await tx.invitation.update({
-      where: { id: invitation.id },
-      data: {
-        status: 'PENDING',
-        expiresAt: newExpiresAt,
-      },
-    });
-
-    // Log audit entry
-    await recordAuditLog(
-      {
-        actorUserId,
-        actorType: 'IP_ADMIN',
-        targetType: 'INVITATION',
-        targetId: invitation.id,
-        actionType: 'RESENT',
-        outcome: 'SUCCESS',
-        organisationId: organisation.id,
-      },
-      tx,
-    );
-
-    return {
-      actionToken: actionTokenResult,
-    };
-  });
-
-  // Send the setup email outside of the transaction block
-  const emailResult = await requestAuthEmailSend({
-    emailType: 'INITIAL_ORGANISATION_ADMIN_SETUP',
-    recipientEmail: invitation.recipientEmail,
-    organisationId: organisation.id,
-    invitationId: invitation.id,
-    actionTokenId: result.actionToken.token.id,
-    organisationRegistrationRequestId: invitation.organisationRegistrationRequestId ?? undefined,
-    templateData: {
-      firstName: invitation.recipientFirstName ?? '',
-      organisationName: organisation.name,
-      actionToken: result.actionToken.rawToken,
-      actionTokenExpiresAt: result.actionToken.token.expiresAt,
-    },
-  });
-
-  return {
-    success: true,
-    emailQueued: emailResult.queued,
-  };
-}
-
-async function buildPlatformTimeline(
-  organisationId: string | null,
-  requestId: string | null,
-  invitationId: string | null,
-) {
-  const auditLogs = await prisma.auditLogEntry.findMany({
-    where: {
-      OR: [
-        ...(organisationId ? [{ organisationId }] : []),
-        ...(requestId
-          ? [{ targetType: 'ORGANISATION_REGISTRATION_REQUEST' as const, targetId: requestId }]
-          : []),
-        ...(invitationId ? [{ targetType: 'INVITATION' as const, targetId: invitationId }] : []),
-      ],
-    },
-    include: {
-      actorUser: {
-        select: {
-          firstName: true,
-          lastName: true,
-          email: true,
-        },
-      },
-    },
-    orderBy: { createdAt: 'desc' },
-  });
-
-  const emailLogs = await prisma.emailDeliveryLog.findMany({
-    where: {
-      OR: [
-        ...(organisationId ? [{ organisationId }] : []),
-        ...(requestId ? [{ organisationRegistrationRequestId: requestId }] : []),
-        ...(invitationId ? [{ invitationId }] : []),
-      ],
-    },
-    orderBy: { createdAt: 'desc' },
-  });
-
-  const timeline: Array<{
-    id: string;
-    type: 'AUDIT_LOG' | 'EMAIL_DELIVERY';
-    timestamp: string;
-    action: string;
-    summary: string;
-    actor?: string | null;
-    status?: string | null;
-    details?: unknown;
-  }> = [];
-
-  for (const log of auditLogs) {
-    let actorName = 'System';
-    if (log.actorUser) {
-      actorName =
-        `${log.actorUser.firstName} ${log.actorUser.lastName}`.trim() || log.actorUser.email;
-    }
-    timeline.push({
-      id: log.id,
-      type: 'AUDIT_LOG',
-      timestamp: log.createdAt.toISOString(),
-      action: log.actionType,
-      summary: `Action ${log.actionType} performed by ${actorName}`,
-      actor: actorName,
-      status: log.outcome,
-      details: log.metadata ?? undefined,
-    });
-  }
-
-  for (const log of emailLogs) {
-    timeline.push({
-      id: log.id,
-      type: 'EMAIL_DELIVERY',
-      timestamp: log.createdAt.toISOString(),
-      action: log.emailType,
-      summary: `Email of type ${log.emailType} to ${log.recipientEmail}`,
-      status: log.deliveryStatus,
-      details: log.failureReason ? { failureReason: log.failureReason } : undefined,
-    });
-  }
-
-  timeline.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-  return timeline;
-}
-
-function getResendEligibility(
-  organisationStatus: string,
-  invitation: FormatInvitationInput | null,
-  latestEmailLog: FormatEmailLogInput | null,
-  now: Date = new Date(),
-) {
-  if (organisationStatus !== 'PENDING_ONBOARDING') {
-    return { isEligible: false, reason: 'ORGANISATION_NOT_ONBOARDING' };
-  }
-  if (!invitation) {
-    return { isEligible: false, reason: 'INVITATION_NOT_ELIGIBLE' };
-  }
-  if (invitation.status === 'ACCEPTED' || invitation.status === 'COMPLETED') {
-    return { isEligible: false, reason: 'SETUP_ALREADY_COMPLETED' };
-  }
-  if (invitation.status === 'REVOKED' || invitation.status === 'REJECTED') {
-    return { isEligible: false, reason: 'INVITATION_NOT_ELIGIBLE' };
-  }
-  if (new Date(invitation.expiresAt).getTime() <= now.getTime()) {
-    return { isEligible: true, reason: 'SETUP_TOKEN_EXPIRED' };
-  }
-
-  const tokens = invitation.actionTokens || [];
-  const hasActiveToken = tokens.some(
-    (t) => !t.usedAt && !t.revokedAt && new Date(t.expiresAt).getTime() > now.getTime(),
-  );
-
-  if (!hasActiveToken) {
-    return { isEligible: true, reason: null };
-  }
-
-  if (latestEmailLog?.deliveryStatus === 'FAILED') {
-    return { isEligible: true, reason: 'SETUP_EMAIL_FAILED' };
-  }
-
-  return { isEligible: false, reason: 'ACTIVE_SETUP_TOKEN_EXISTS' };
 }
 
 export async function createOrganisationRegistrationRequest(
@@ -1269,7 +980,7 @@ async function requestRequestReceivedEmail(input: {
   requestId: string;
   organisationName: string;
   representativeEmail: string;
-}) {
+}): Promise<{ queued: boolean }> {
   try {
     return await requestAuthEmailSend({
       emailType: 'ORGANISATION_REQUEST_RECEIVED',
@@ -1280,10 +991,7 @@ async function requestRequestReceivedEmail(input: {
       },
     });
   } catch {
-    return {
-      queued: false,
-      reason: 'EMAIL_SEND_FAILED' as const,
-    };
+    return { queued: false };
   }
 }
 
@@ -1315,36 +1023,7 @@ function primaryDomainFromWebsite(value: string) {
   return hostname.startsWith('www.') ? hostname.slice(4) : hostname;
 }
 
-async function querySetupInvitationAndEmailLog(where: {
-  organisationId?: string;
-  organisationRegistrationRequestId?: string;
-}) {
-  const invitation = await prisma.invitation.findFirst({
-    where: {
-      purpose: 'INITIAL_ORGANISATION_ADMIN_SETUP',
-      ...where,
-    },
-    include: {
-      actionTokens: {
-        orderBy: { createdAt: 'desc' },
-      },
-    },
-  });
-
-  const latestEmailLog = invitation
-    ? await prisma.emailDeliveryLog.findFirst({
-        where: {
-          invitationId: invitation.id,
-          emailType: 'INITIAL_ORGANISATION_ADMIN_SETUP',
-        },
-        orderBy: { createdAt: 'desc' },
-      })
-    : null;
-
-  return { invitation, latestEmailLog };
-}
-
-interface FormatInvitationInput {
+export interface FormatInvitationInput {
   id: string;
   status: string;
   recipientEmail: string;
@@ -1357,32 +1036,70 @@ interface FormatInvitationInput {
   }>;
 }
 
-interface FormatEmailLogInput {
+export interface FormatEmailLogInput {
   id: string;
   deliveryStatus: string;
   sentAt: Date | null;
   failedAt: Date | null;
   failureReason: string | null;
+  actionTokenId?: string | null;
 }
 
-function formatSetupStatus(
+type FormatActionTokenInput = FormatInvitationInput['actionTokens'][number];
+
+function findActiveSetupToken(
+  invitation: FormatInvitationInput,
+  now: Date,
+): FormatActionTokenInput | undefined {
+  return invitation.actionTokens.find(
+    (token) =>
+      !token.usedAt && !token.revokedAt && new Date(token.expiresAt).getTime() > now.getTime(),
+  );
+}
+
+function isFailedDeliveryForCurrentSetupToken(
+  latestEmailLog: FormatEmailLogInput | null,
+  activeToken: FormatActionTokenInput | undefined,
+) {
+  if (latestEmailLog?.deliveryStatus !== 'FAILED') {
+    return false;
+  }
+
+  return !activeToken || latestEmailLog.actionTokenId === activeToken.id;
+}
+
+export function formatSetupStatus(
   invitation: FormatInvitationInput | null,
   latestEmailLog: FormatEmailLogInput | null,
 ) {
   if (!invitation) return null;
+  const latestToken = invitation.actionTokens[0];
+  let latestActionToken = null;
+  if (latestToken) {
+    let status: 'AVAILABLE' | 'USED' | 'REVOKED' | 'EXPIRED' = 'AVAILABLE';
+    if (latestToken.revokedAt) {
+      status = 'REVOKED';
+    } else if (latestToken.usedAt) {
+      status = 'USED';
+    } else if (new Date(latestToken.expiresAt).getTime() <= Date.now()) {
+      status = 'EXPIRED';
+    }
+
+    latestActionToken = {
+      id: latestToken.id,
+      expiresAt: latestToken.expiresAt.toISOString(),
+      usedAt: latestToken.usedAt?.toISOString() ?? null,
+      revokedAt: latestToken.revokedAt?.toISOString() ?? null,
+      status,
+    };
+  }
+
   return {
     id: invitation.id,
     status: invitation.status,
     recipientEmail: invitation.recipientEmail,
     expiresAt: invitation.expiresAt.toISOString(),
-    activeActionToken: invitation.actionTokens[0]
-      ? {
-          id: invitation.actionTokens[0].id,
-          expiresAt: invitation.actionTokens[0].expiresAt.toISOString(),
-          usedAt: invitation.actionTokens[0].usedAt?.toISOString() ?? null,
-          revokedAt: invitation.actionTokens[0].revokedAt?.toISOString() ?? null,
-        }
-      : null,
+    latestActionToken,
     latestEmailDelivery: latestEmailLog
       ? {
           id: latestEmailLog.id,
@@ -1393,4 +1110,42 @@ function formatSetupStatus(
         }
       : null,
   };
+}
+
+export function getResendEligibility(
+  organisationStatus: string,
+  invitation: FormatInvitationInput | null,
+  latestEmailLog: FormatEmailLogInput | null,
+  now: Date = new Date(),
+) {
+  if (organisationStatus !== 'PENDING_ONBOARDING') {
+    return { isEligible: false, reason: 'ORGANISATION_NOT_ONBOARDING' };
+  }
+  if (!invitation) {
+    return { isEligible: false, reason: 'INVITATION_NOT_ELIGIBLE' };
+  }
+  if (invitation.status === 'ACCEPTED' || invitation.status === 'COMPLETED') {
+    return { isEligible: false, reason: 'SETUP_ALREADY_COMPLETED' };
+  }
+  if (invitation.status === 'REVOKED' || invitation.status === 'REJECTED') {
+    return { isEligible: false, reason: 'INVITATION_NOT_ELIGIBLE' };
+  }
+  if (invitation.status === 'FAILED_TO_SEND') {
+    return { isEligible: true, reason: 'SETUP_EMAIL_FAILED' };
+  }
+  if (new Date(invitation.expiresAt).getTime() <= now.getTime()) {
+    return { isEligible: true, reason: 'SETUP_TOKEN_EXPIRED' };
+  }
+
+  const activeToken = findActiveSetupToken(invitation, now);
+
+  if (isFailedDeliveryForCurrentSetupToken(latestEmailLog, activeToken)) {
+    return { isEligible: true, reason: 'SETUP_EMAIL_FAILED' };
+  }
+
+  if (!activeToken) {
+    return { isEligible: true, reason: null };
+  }
+
+  return { isEligible: false, reason: 'ACTIVE_SETUP_TOKEN_EXISTS' };
 }

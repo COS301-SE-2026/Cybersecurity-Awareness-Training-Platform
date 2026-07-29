@@ -26,18 +26,18 @@ describe('UC-02 Training Document Integration Tests', () => {
   let traineeProfileId: string;
   let trainingDocId: string;
   let trainingDocTitle: string;
-  let trainingDocContentType: any;
+  let trainingDocContentType: string;
   let trainingDocContentRef: string;
   let trainingDocContent: string;
   let trainingDocContentSummary: string | null;
   let trainingDocEstimatedReadTimeMinutes: number | null;
-  let trainingDocDifficultyLevel: any;
-  let trainingDocStatus: any;
+  let trainingDocDifficultyLevel: string;
+  let trainingDocStatus: string;
   let campaignItemTitle: string;
   let campaignItemDescription: string | null;
   let campaignItemPosition: number;
   let campaignItemIsRequired: boolean;
-  let campaignItemAvailabilityStatus: any;
+  let campaignItemAvailabilityStatus: string;
 
   const phishingContentUrl = new URL(
     '../../src/content/training/phishing-warning-signs.md',

@@ -147,6 +147,17 @@ export function createPlatformAdminUser(
   });
 }
 
+export class SetupRepositoryConflictError extends Error {
+  constructor(
+    public readonly statusCode: 409,
+    public readonly error: string,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'SetupRepositoryConflictError';
+  }
+}
+
 export async function activateOrganisationAdminUser(
   input: {
     userId: string;
@@ -159,6 +170,20 @@ export async function activateOrganisationAdminUser(
   },
   client: SetupClient,
 ) {
+  // Guard: reject if an existing profile already belongs to a different organisation.
+  // Silently reassigning organisationId would move the admin out of their current org,
+  // breaking their existing permissions and org membership.
+  const existingProfile = await client.organisationAdminProfile.findUnique({
+    where: { userId: input.userId },
+  });
+  if (existingProfile && existingProfile.organisationId !== input.organisationId) {
+    throw new SetupRepositoryConflictError(
+      409,
+      'SETUP_ROLE_CONFLICT',
+      'Account is already registered with a different organisation',
+    );
+  }
+
   await ensureDefaultOrganisationSecuritySettings({ organisationId: input.organisationId }, client);
 
   await client.user.update({
@@ -183,7 +208,9 @@ export async function activateOrganisationAdminUser(
       createdFromInvitationId: input.createdFromInvitationId ?? null,
     },
     update: {
-      organisationId: input.organisationId,
+      // organisationId is intentionally NOT in the update set.
+      // The guard above ensures the existing profile is for the same org,
+      // so the value cannot change; and omitting it prevents accidental reassignment.
       adminStatus: 'ACTIVE',
       isInitialAdmin: input.isInitialAdmin ?? false,
       createdFromInvitationId: input.createdFromInvitationId ?? null,
@@ -236,7 +263,6 @@ export async function activateOrganisationTraineeUser(
       membershipStatus: 'ACTIVE',
     },
     update: {
-      organisationId: input.organisationId,
       membershipStatus: 'ACTIVE',
     },
   });
@@ -253,6 +279,35 @@ export async function activatePlatformAdminUser(
   },
   client: SetupClient,
 ) {
+  const existingUser = await client.user.findUnique({
+    where: { id: input.userId },
+    include: {
+      traineeProfile: {
+        include: {
+          organisationTraineeProfile: true,
+        },
+      },
+    },
+  });
+
+  if (existingUser?.traineeProfile) {
+    await client.traineeProfile.update({
+      where: { id: existingUser.traineeProfile.id },
+      data: { traineeStatus: 'INACTIVE' },
+    });
+
+    if (existingUser.traineeProfile.organisationTraineeProfile) {
+      await client.organisationTraineeProfile.update({
+        where: { traineeProfileId: existingUser.traineeProfile.id },
+        data: {
+          membershipStatus: 'INACTIVE',
+          disabledAt: new Date(),
+          disabledReason: 'Promoted to platform admin',
+        },
+      });
+    }
+  }
+
   await client.user.update({
     where: { id: input.userId },
     data: {
