@@ -4,7 +4,8 @@ import { Menu, SchoolOutlined } from '@mui/icons-material';
 import SecuritySharpIcon from '@mui/icons-material/SecuritySharp'; // Organisation Security Preferences Page (ORG ADMIN, NORM ADMIN, SUPER ADMIN)
 import CorporateFareSharpIcon from '@mui/icons-material/CorporateFareSharp'; // Organisation Management Page (NORM ADMIN, SUPER ADMIN)
 import GroupsSharpIcon from '@mui/icons-material/GroupsSharp'; // Organisation Trainees Page (ORG ADMIN, NORM ADMIN, SUPER ADMIN)
-import AdminPanelSettingsSharpIcon from '@mui/icons-material/AdminPanelSettingsSharp'; // Organisation Administrators Page (ORG ADMIN, NORM ADMIN, SUPER ADMIN) // Platform Administors Page (NORM ADMIN, SUPER ADMIN)
+import AdminPanelSettingsSharpIcon from '@mui/icons-material/AdminPanelSettingsSharp'; // Platform Administors Page (NORM ADMIN, SUPER ADMIN)
+import SupervisorAccountSharpIcon from '@mui/icons-material/SupervisorAccountSharp'; // Organisation Administrators Page (ORG ADMIN, NORM ADMIN, SUPER ADMIN)
 import { useAuth } from '../../context/useAuth';
 
 /*
@@ -34,8 +35,8 @@ function Sidebar() {
       label: 'Campaigns',
       path: '/campaigns',
     },
-    // SUPER ADMIN SPECIFIC NAV ITEMS
-    ...(isIPAdministrator && isSuperAdministrator
+    // NORMAL ADMIN && SUPER ADMIN SPECIFIC NAV ITEMS
+    ...(isIPAdministrator && (isPlatformAdministrator || isSuperAdministrator)
       ? [
           // Platform Administrators Page (1)
           {
@@ -48,6 +49,29 @@ function Sidebar() {
             icon: <CorporateFareSharpIcon />,
             label: 'Organisation Management',
             path: '/organisation-management',
+          },
+        ]
+      : []),
+    // ORGANISATION ADMIN SPECIFIC NAV ITEMS
+    ...(isOrganisationAdministrator
+      ? [
+          // Organisation Security Preferences Page (3)
+          {
+            icon: <SecuritySharpIcon />,
+            label: 'Organisation Security Preferences',
+            path: '/organisation-security-preferences',
+          },
+          // Organisation Administrators Page (4)
+          {
+            icon: <SupervisorAccountSharpIcon />,
+            label: 'Organisation Administrators',
+            path: '/organisation-administrators',
+          },
+          // Organisation Trainees Page (5)
+          {
+            icon: <GroupsSharpIcon />,
+            label: 'Organisation Trainees',
+            path: '/organisation-trainees',
           },
         ]
       : []),
