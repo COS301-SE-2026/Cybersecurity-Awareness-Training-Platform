@@ -1,11 +1,13 @@
 import '@testing-library/jest-dom/vitest';
-import { cleanup, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { renderWithRouter } from '../../testing/render';
-import { resendToken, verifyEmailChange } from '../../services/auth.service';
+import { createDeferred, renderWithRouter } from '../../testing/render';
+import { getTokenContext, resendToken, verifyEmailChange } from '../../services/auth.service';
 import ConfirmEmailChangePage from '../ConfirmEmailChangePage';
 import userEvent from '@testing-library/user-event';
 import { ApiError } from '../../lib/apiClient';
+import type { AuthContextType } from '../../context/auth-context';
+import { StrictMode } from 'react';
 
 const { verifyEmailChangeMock, getTokenContextMock, resendTokenMock } = vi.hoisted(() => ({
   verifyEmailChangeMock: vi.fn(),
@@ -21,10 +23,14 @@ vi.mock('../../services/auth.service', () => ({
 
 const changeToken = 'exampleEmailChangeTokenValueWithAtLeast32Chars';
 
-function renderConfirmEmailChangePage(initialEntry = `/confirm-email-change?token=${changeToken}`) {
+function renderConfirmEmailChangePage(
+  initialEntry = `/confirm-email-change?token=${changeToken}`,
+  auth: Partial<AuthContextType> = {},
+) {
   return renderWithRouter(<ConfirmEmailChangePage />, {
     initialEntry,
     routePath: '/confirm-email-change',
+    auth,
   });
 }
 
@@ -46,13 +52,70 @@ describe('ConfirmEmailChangePage', () => {
     cleanup();
   });
 
-  it('verifies the email-change token from the query string', async () => {
-    renderConfirmEmailChangePage();
+  it('clears auth once and shows sign-in guidance after successful confirmation', async () => {
+    const confirmationRequest = createDeferred<{ state: 'VALID' }>();
+    const clearAuth = vi.fn();
+    verifyEmailChangeMock.mockReturnValue(confirmationRequest.promise);
+
+    renderWithRouter(
+      <StrictMode>
+        <ConfirmEmailChangePage />
+      </StrictMode>,
+      {
+        initialEntry: `/confirm-email-change?token=${changeToken}`,
+        routePath: '/confirm-email-change',
+        auth: { clearAuth },
+      },
+    );
 
     await waitFor(() => {
+      expect(verifyEmailChange).toHaveBeenCalledTimes(1);
       expect(verifyEmailChange).toHaveBeenCalledWith(changeToken);
     });
-    expect(await screen.findByText('Email change confirmed.')).toBeInTheDocument();
+    expect(clearAuth).not.toHaveBeenCalled();
+
+    await act(async () => {
+      confirmationRequest.resolve({ state: 'VALID' });
+      await confirmationRequest.promise;
+    });
+
+    expect(
+      await screen.findByText(
+        'Email change confirmed. Please sign in again using your new email address.',
+      ),
+    ).toBeInTheDocument();
+    expect(clearAuth).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('link', { name: /go to login/i })).toHaveAttribute('href', '/login');
+    expect(screen.queryByText(changeToken)).not.toBeInTheDocument();
+  });
+
+  it('shows restart guidance for the occupied-email conflict without exposing details', async () => {
+    const clearAuth = vi.fn();
+    verifyEmailChangeMock.mockRejectedValue(
+      new ApiError('The email is already in use by another account.', {
+        status: 409,
+        statusText: 'Conflicts',
+        method: 'POST',
+        url: '/account/verify-email-change',
+        body: {
+          error: 'AUTH_EMAIL_EXISTS',
+          message: 'This email is already in use by another account.',
+        },
+      }),
+    );
+
+    renderConfirmEmailChangePage(undefined, { clearAuth });
+
+    expect(
+      await screen.findByText(
+        'This email address is already in use. Please restart the email-change process.',
+      ),
+    ).toBeInTheDocument();
+    expect(clearAuth).not.toHaveBeenCalled();
+    expect(screen.queryByText('AUTH_EMAIL_EXISTS')).not.toBeInTheDocument();
+    expect(screen.queryByText(changeToken)).not.toBeInTheDocument();
+    expect(screen.queryByText('target@example.com')).not.toBeInTheDocument();
+    expect(screen.queryByText(/belongs to|account owns/i)).not.toBeInTheDocument();
   });
 
   it('shows a token error when the token query parameter is missing', async () => {
@@ -86,6 +149,31 @@ describe('ConfirmEmailChangePage', () => {
     ).toBeInTheDocument();
   });
 
+  it('does not expose resend for an email-verification token context', async () => {
+    verifyEmailChangeMock.mockResolvedValue({ state: 'EXPIRED' });
+    getTokenContextMock.mockResolvedValue({
+      tokenState: 'EXPIRED',
+      canResend: true,
+      resendCooldownSeconds: 35,
+      messageCode: 'TOKEN_EXPIRED',
+      flow: 'EMAIL_VERIFICATION',
+    });
+
+    renderConfirmEmailChangePage();
+
+    expect(
+      await screen.findByText('This email change link has expired. Please request a new link.'),
+    ).toBeInTheDocument();
+    expect(getTokenContext).toHaveBeenCalledWith(changeToken);
+    expect(
+      screen.queryByRole('button', { name: /resend email change link/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('EMAIL_VERIFICATION')).not.toBeInTheDocument();
+    expect(screen.queryByText(changeToken)).not.toBeInTheDocument();
+    expect(screen.queryByText('target@example.com')).not.toBeInTheDocument();
+    expect(resendToken).not.toHaveBeenCalled();
+  });
+
   it('uses email-change resend copy when resend succeeds', async () => {
     const user = userEvent.setup();
 
@@ -112,25 +200,34 @@ describe('ConfirmEmailChangePage', () => {
   });
 
   it('shows a token error for invalid email-change links', async () => {
+    const clearAuth = vi.fn();
     verifyEmailChangeMock.mockResolvedValue({ state: 'INVALID' });
 
-    renderConfirmEmailChangePage();
+    renderConfirmEmailChangePage(undefined, { clearAuth });
 
     expect(
       await screen.findByText('This email change link is invalid. Please request a new link.'),
     ).toBeInTheDocument();
+    expect(clearAuth).not.toHaveBeenCalled();
   });
 
   it('shows a safe generic error when email-change verification fails unexpectedly', async () => {
+    const clearAuth = vi.fn();
     verifyEmailChangeMock.mockRejectedValue(new Error('Verification failed'));
 
-    renderConfirmEmailChangePage();
+    renderConfirmEmailChangePage(undefined, { clearAuth });
 
     expect(
       await screen.findByText(
         'We could not confirm your email change right now. Please try again later.',
       ),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        'This email address is already in use. Please restart the email-change process.',
+      ),
+    ).not.toBeInTheDocument();
+    expect(clearAuth).not.toHaveBeenCalled();
   });
 
   it('uses email-change cooldown copy when resend is rate limited', async () => {

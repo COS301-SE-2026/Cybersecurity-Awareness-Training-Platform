@@ -1,10 +1,10 @@
-type ReviewOrganisationRegistrationRequstModalProps = Readonly<{
+type InviteTraineeModalProps = Readonly<{
   isOpen: boolean;
   onClose: () => void;
   // YOU WILL NEED TO ADD MORE PROPS SO THAT YOU CAN PASS IN THE ORGANISATION AND REPRESENTATIVE INFORMATION
 }>;
 
-function InviteTraineeModal({ isOpen, onClose }: ReviewOrganisationRegistrationRequstModalProps) {
+function InviteTraineeModal({ isOpen, onClose }: InviteTraineeModalProps) {
   return (
     <div
       id="select-modal"

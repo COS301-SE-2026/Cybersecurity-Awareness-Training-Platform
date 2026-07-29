@@ -1,4 +1,30 @@
-function BasicOrganisationInformationPage() {
+// props for basic org info tab
+// displaying org basic details with all fields disabled for view-only mode
+
+export interface BasicOrganisationInfoProps {
+  name?: string;
+  description?: string;
+  website?: string;
+  size?: string | number;
+  registeredTrainees?: string | number;
+  registrationDate?: string;
+  status?: string;
+  isRequestOnly?: boolean;
+}
+
+function BasicOrganisationInformationPage({
+  name = '',
+  description = '',
+  website = '',
+  size = '',
+  registeredTrainees = '',
+  registrationDate = '',
+  status = '',
+  isRequestOnly = false,
+}: Readonly<BasicOrganisationInfoProps>) {
+  // convert ISO timestamp string to YYYY-MM-DD format for date input
+  const formattedDate = registrationDate ? registrationDate.split('T')[0] : '';
+
   return (
     <div className="-mt-2 -ml-2">
       {/* HEADING */}
@@ -26,7 +52,9 @@ function BasicOrganisationInformationPage() {
             name="organisation-name"
             id="organisation-name"
             disabled={true}
-            className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+            value={name}
+            readOnly
+            className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 rounded-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
             placeholder="Organisation Name"
           />
         </div>
@@ -45,7 +73,9 @@ function BasicOrganisationInformationPage() {
             name="organisation-description"
             id="organisation-description"
             disabled={true}
-            className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+            value={description}
+            readOnly
+            className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 rounded-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
             placeholder="Organisation Description"
           />
         </div>
@@ -64,7 +94,9 @@ function BasicOrganisationInformationPage() {
             name="organisation-website"
             id="organisation-website"
             disabled={true}
-            className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+            value={website}
+            readOnly
+            className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 rounded-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
             placeholder="Organisation Website"
           />
         </div>
@@ -86,37 +118,43 @@ function BasicOrganisationInformationPage() {
             name="organisation-size"
             id="organisation-size"
             disabled={true}
-            className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+            value={size}
+            readOnly
+            className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 rounded-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
             placeholder="Organisation Size"
           />
         </div>
 
-        {/* Registered # of Employees (Trainees) */}
-        <div>
-          <label
-            htmlFor="registered-trainees"
-            className=" block mb-2 font-jost tracking-wide text-xl font-medium text-pink"
-          >
-            Registered Trainees
-          </label>
-          <input
-            required
-            type="text"
-            name="registered-trainees"
-            id="registered-trainees"
-            disabled={true}
-            className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-            placeholder="Registered Number of Trainees"
-          />
-        </div>
+        {/* Registered # of Employees (Trainees) - Only shown for active organisation */}
+        {!isRequestOnly && (
+          <div>
+            <label
+              htmlFor="registered-trainees"
+              className=" block mb-2 font-jost tracking-wide text-xl font-medium text-pink"
+            >
+              Registered Trainees
+            </label>
+            <input
+              required
+              type="text"
+              name="registered-trainees"
+              id="registered-trainees"
+              disabled={true}
+              value={registeredTrainees}
+              readOnly
+              className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 rounded-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+              placeholder="Registered Number of Trainees"
+            />
+          </div>
+        )}
 
-        {/* Organisation Registration Date */}
+        {/* Organisation Registration Date / Request Submission Date */}
         <div>
           <label
             htmlFor="registration-date"
             className=" block mb-2 font-jost tracking-wide text-xl font-medium text-pink"
           >
-            Registration Date
+            {isRequestOnly ? 'Request Submission Date' : 'Registration Date'}
           </label>
           <input
             required
@@ -124,8 +162,10 @@ function BasicOrganisationInformationPage() {
             name="registration-date"
             id="registration-date"
             disabled={true}
-            className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-            placeholder="Registeration Date"
+            value={formattedDate}
+            readOnly
+            className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 rounded-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+            placeholder={isRequestOnly ? 'Request Submission Date' : 'Registration Date'}
           />
         </div>
 
@@ -142,7 +182,9 @@ function BasicOrganisationInformationPage() {
             name="status"
             id="status"
             disabled={true}
-            className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+            value={status}
+            readOnly
+            className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 rounded-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
             placeholder="Organisation Status"
           />
         </div>
