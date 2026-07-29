@@ -1,16 +1,56 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Menu, SchoolOutlined } from '@mui/icons-material';
+import SecuritySharpIcon from '@mui/icons-material/SecuritySharp'; // Organisation Security Preferences Page (ORG ADMIN, NORM ADMIN, SUPER ADMIN)
+import CorporateFareSharpIcon from '@mui/icons-material/CorporateFareSharp'; // Organisation Management Page (NORM ADMIN, SUPER ADMIN)
+import GroupsSharpIcon from '@mui/icons-material/GroupsSharp'; // Organisation Trainees Page (ORG ADMIN, NORM ADMIN, SUPER ADMIN)
+import AdminPanelSettingsSharpIcon from '@mui/icons-material/AdminPanelSettingsSharp'; // Organisation Administrators Page (ORG ADMIN, NORM ADMIN, SUPER ADMIN) // Platform Administors Page (NORM ADMIN, SUPER ADMIN)
+import { useAuth } from '../../context/useAuth';
+
+/*
+1. PLATFORM ADMIN PAGE (Norm, Super Admins)
+2. ORG MGMT PAGE (Norm, Super Admins)
+3. ORG SECURITY PAGE (Org, Norm, Super Admins)
+4. ORG ADMIN PAGE (Org, Norm, Super Admins)
+5. ORG TRAINEES PAGE (Org, Norm, Super Admins)
+*/
 
 function Sidebar() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const navigate = useNavigate();
+
+  // RETURNS THE CURRENT USER'S AUTH CONTEXT (SO WE KNOW WHAT KIND OF USER IS LOGGED IN)
+  const { authContext } = useAuth();
+
+  // BOOLEAN FLAGS FOR ROLES
+  const isIPAdministrator = authContext?.role === 'IP_ADMIN';
+  const isPlatformAdministrator = authContext?.platformAdminRole === 'NORMAL_ADMIN';
+  const isSuperAdministrator = authContext?.platformAdminRole === 'SUPER_ADMIN';
+  const isOrganisationAdministrator = authContext?.role === 'ORGANISATION_ADMIN';
+
   const navItems = [
     {
       icon: <SchoolOutlined />,
       label: 'Campaigns',
       path: '/campaigns',
     },
+    // SUPER ADMIN SPECIFIC NAV ITEMS
+    ...(isIPAdministrator && isSuperAdministrator
+      ? [
+          // Platform Administrators Page (1)
+          {
+            icon: <AdminPanelSettingsSharpIcon />,
+            label: 'Platform Administrators',
+            path: '/platform-administrators',
+          },
+          // Organisation Management Page (2)
+          {
+            icon: <CorporateFareSharpIcon />,
+            label: 'Organisation Management',
+            path: '/organisation-management',
+          },
+        ]
+      : []),
   ];
 
   return (
