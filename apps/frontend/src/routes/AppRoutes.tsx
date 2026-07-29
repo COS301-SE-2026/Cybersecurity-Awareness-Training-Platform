@@ -82,7 +82,17 @@ function AppRoutes() {
         >
           <Route path="/organisation-trainees" element={<OrganisationTraineesPage />} />
         </Route>
-        <Route path="/organisation-administrators" element={<OrganisationAdministratorsPage />} />
+        <Route
+          element={
+            <ProtectedRoute
+              requiredRole="ORGANISATION_ADMIN"
+              requireOrganisation
+              requiredPermission="VIEW_ORGANISATION_ADMINS"
+            />
+          }
+        >
+          <Route path="/organisation-administrators" element={<OrganisationAdministratorsPage />} />
+        </Route>
       </Route>
 
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
