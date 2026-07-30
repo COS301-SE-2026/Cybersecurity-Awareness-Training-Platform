@@ -24,3 +24,5 @@ env.*
 .pnpm-store/
 
 apps/frontend/.lighthouseci/
+
+*.drawio.bkp
