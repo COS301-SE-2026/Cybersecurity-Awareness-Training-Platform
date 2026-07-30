@@ -1,10 +1,17 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import AccountManagementPage from '../AccountManagementPage';
 
 vi.mock('../../components/layout/AppLayout', () => ({
   default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
+vi.mock('../../context/useAuth', () => ({
+  useAuth: () => ({
+    clearAuth: vi.fn(),
+  }),
 }));
 
 vi.mock('../../services/account.service', async () => {
@@ -34,14 +41,22 @@ vi.mock('../../components/account-management/SessionSettingsPage', () => ({
   default: () => <div>Session Settings</div>,
 }));
 
+function renderPage() {
+  return render(
+    <MemoryRouter>
+      <AccountManagementPage />
+    </MemoryRouter>,
+  );
+}
+
 describe('AccountManagementPage', () => {
   it('renders the page heading', () => {
-    render(<AccountManagementPage />);
+    renderPage();
     expect(screen.getByRole('heading', { name: /Account Management/i })).toBeInTheDocument();
   });
 
   it('renders the Personal Information tab by default', async () => {
-    render(<AccountManagementPage />);
+    renderPage();
     await waitFor(() => {
       expect(screen.getByText('Personal Information Settings')).toBeInTheDocument();
     });
@@ -51,7 +66,7 @@ describe('AccountManagementPage', () => {
 
   it('switches to the Account tab', async () => {
     const user = userEvent.setup();
-    render(<AccountManagementPage />);
+    renderPage();
     await waitFor(() => {
       expect(screen.getByText('Personal Information Settings')).toBeInTheDocument();
     });
@@ -62,7 +77,7 @@ describe('AccountManagementPage', () => {
 
   it('switches to the Sessions tab', async () => {
     const user = userEvent.setup();
-    render(<AccountManagementPage />);
+    renderPage();
     await waitFor(() => {
       expect(screen.getByText('Personal Information Settings')).toBeInTheDocument();
     });
@@ -73,7 +88,7 @@ describe('AccountManagementPage', () => {
 
   it('allows switching back to the Personal Information tab', async () => {
     const user = userEvent.setup();
-    render(<AccountManagementPage />);
+    renderPage();
     await waitFor(() => {
       expect(screen.getByText('Personal Information Settings')).toBeInTheDocument();
     });

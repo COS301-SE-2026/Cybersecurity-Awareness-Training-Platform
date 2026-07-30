@@ -14,9 +14,10 @@ type ChangeEmailModalProps = Readonly<{
   onClose: () => void;
   currentEmail?: string;
   onSuccess?: (message: string) => void;
+  onApiError?: (err: unknown) => boolean;
 }>;
 
-function ChangeEmailModal({ isOpen, onClose, onSuccess }: ChangeEmailModalProps) {
+function ChangeEmailModal({ isOpen, onClose, onSuccess, onApiError }: ChangeEmailModalProps) {
   const [newEmail, setNewEmail] = useState('');
   const [confirmNewEmail, setConfirmNewEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -81,6 +82,7 @@ function ChangeEmailModal({ isOpen, onClose, onSuccess }: ChangeEmailModalProps)
       }
     } catch (err: unknown) {
       setIsSubmitting(false);
+      if (onApiError?.(err)) return;
       setAlertMessage(formatAlertMessage(extractErrorMessage(err)));
     }
   }

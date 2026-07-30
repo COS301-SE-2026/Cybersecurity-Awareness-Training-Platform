@@ -12,6 +12,7 @@ type AccountSettingsPageProps = Readonly<{
   capabilities?: AccountCapabilitiesResponse | null;
   onNotification?: (message: string) => void;
   onRefresh?: () => void;
+  onApiError?: (err: unknown) => boolean;
 }>;
 
 function AccountSettingsPage({
@@ -19,6 +20,7 @@ function AccountSettingsPage({
   capabilities,
   onNotification,
   onRefresh,
+  onApiError,
 }: AccountSettingsPageProps) {
   const [showChangeEmailModal, setShowChangeEmailModal] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
@@ -51,6 +53,7 @@ function AccountSettingsPage({
         currentEmail={profile?.email}
         onClose={() => setShowChangeEmailModal(false)}
         onSuccess={handleEmailSuccess}
+        onApiError={onApiError}
       />
 
       {/* Change Password Modal */}
@@ -58,14 +61,12 @@ function AccountSettingsPage({
         isOpen={showChangePasswordModal}
         onClose={() => setShowChangePasswordModal(false)}
         onSuccess={handlePasswordSuccess}
+        onApiError={onApiError}
       />
 
       {/* SUB-HEADING */}
-      <p className="font-regular tracking-wider text-[1.1rem] font-justify font-jost text-gray-500">
-        Manage the settings associated with your account.
-      </p>
-      <p className="font-regular tracking-wider text-[1.1rem] font-justify font-jost -mt-1 text-gray-500 mb-6">
-        Update your email address or password.
+      <p className="font-regular tracking-wider text-[1.1rem] font-justify font-jost text-gray-500 mb-4">
+        Settings and security controls associated with your account on the platform.
       </p>
 
       {alertMessage && (
@@ -74,96 +75,81 @@ function AccountSettingsPage({
         </BasicAlert>
       )}
 
-      <form className="mt-4 grid grid-cols-2 gap-6" noValidate onSubmit={(e) => e.preventDefault()}>
-        {/* Email Address */}
-        <div>
-          <label
-            htmlFor="email-address"
-            className=" block mb-2 font-jost tracking-wide text-xl font-medium text-pink"
+      {/* FIELD 1: EMAIL ADDRESS */}
+      <div className="mb-6 max-w-lg">
+        <label
+          htmlFor="email-address"
+          className=" block mb-2 font-jost tracking-wide text-[1.2rem] font-regular text-dark-pink"
+        >
+          Email Address
+        </label>
+        <div className="flex items-center gap-4">
+          <input
+            disabled
+            type="email"
+            name="email-address"
+            id="email-address-acc"
+            value={profile?.email || ''}
+            className="font-overpass text-[1.2rem] bg-gray-200 border border-gray-300 text-gray-500 block w-full p-2.5 cursor-not-allowed"
+          />
+
+          <button
+            type="button"
+            disabled={!canRequestEmailChange}
+            onClick={() => setShowChangeEmailModal(true)}
+            className="cursor-pointer whitespace-nowrap px-6 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm py-2.5 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Email Address
-          </label>
-          <div className="flex items-end gap-2">
-            <input
-              required
-              type="email"
-              name="email-address"
-              disabled
-              value={profile?.email || ''}
-              id="email-address"
-              className="disabled:opacity-50 font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-              placeholder="Enter your Email Address"
-            />
-
-            <button
-              type="button"
-              disabled={!canRequestEmailChange}
-              onClick={() => setShowChangeEmailModal(true)}
-              className="w-150 cursor-pointer inline-flex items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-red-700 box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm py-3 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              <span className="material-symbols-sharp mr-4">edit</span>
-              <span> Change Email </span>
-            </button>
-          </div>
-          {!canRequestEmailChange && (
-            <p className="font-overpass text-xs text-red-600 mt-1">
-              Email change is disabled by organisation policy.
-            </p>
-          )}
+            <span className="material-symbols-sharp">mail</span>
+            <span>Change Email</span>
+          </button>
         </div>
+        {!canRequestEmailChange && (
+          <p className="font-overpass text-xs text-red-600 mt-1">
+            Email change is managed by organisation policy.
+          </p>
+        )}
+      </div>
 
-        {/* Password*/}
-        <div>
-          <label
-            htmlFor="password"
-            className=" block mb-2 font-jost tracking-wide text-xl font-medium text-pink"
-          >
-            Password
-          </label>
-          <div className="flex items-end gap-2">
-            <input
-              required
-              type="password"
-              name="password"
-              disabled
-              value="••••••••••••"
-              id="password"
-              className="disabled:opacity-50 font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-              placeholder="Enter your Password"
-            />
+      {/* FIELD 2: CHANGE PASSWORD */}
+      <div className="mb-6 max-w-lg">
+        <label
+          htmlFor="password"
+          className=" block mb-2 font-jost tracking-wide text-[1.2rem] font-regular text-dark-pink"
+        >
+          Password
+        </label>
 
-            <button
-              type="button"
-              onClick={() => setShowChangePasswordModal(true)}
-              className="w-150 cursor-pointer inline-flex items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-main-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm px-4 py-3 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              <span className="material-symbols-sharp mr-4">edit</span>
-              <span> Change Password </span>
-            </button>
-          </div>
-        </div>
-      </form>
+        <button
+          type="button"
+          onClick={() => setShowChangePasswordModal(true)}
+          className="cursor-pointer whitespace-nowrap px-6 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm py-2.5 focus:outline-none"
+        >
+          <span className="material-symbols-sharp">key</span>
+          <span>Change Password</span>
+        </button>
+      </div>
 
-      {/* HEADING */}
-      <h3 className="font-jost text-[1.3rem] text-red-600 tracking-wider font-medium mt-10">
-        Danger Zone
-      </h3>
+      {/* FIELD 3: DELETE ACCOUNT */}
+      <div className="mb-6 max-w-lg">
+        <label
+          htmlFor="delete-account"
+          className=" block mb-2 font-jost tracking-wide text-[1.2rem] font-regular text-dark-pink"
+        >
+          Delete Account
+        </label>
 
-      {/* SUB-HEADING */}
-      <p className="font-regular tracking-wider text-[1.1rem] font-justify font-jost mt-1 text-red-500">
-        Permanently delete your <em>Insightful Phish</em> account and all associated data.
-      </p>
+        <p className="font-overpass text-left text-regular text-[0.95rem] tracking-wider text-gray-500 mb-2">
+          Permanently remove your account and all associated personal data from the platform.
+        </p>
 
-      <div className="mt-2 flex items-center justify-between">
-        {/* Delete Account Button disabled until backend deletion is in scope */}
         <button
           type="button"
           disabled
           title="Account deletion is currently managed by your platform administrator."
-          className="cursor-not-allowed px-6 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-red-600 opacity-50 box-border border border-transparent leading-5 text-sm px-4 py-2.5"
+          className="opacity-60 cursor-not-allowed whitespace-nowrap px-6 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-red-600 box-border border border-transparent focus:outline-none"
         >
           <span className="material-symbols-sharp">delete</span>
-          <span> Delete Account (Managed) </span>
+          <span>Delete Account (Managed)</span>
         </button>
       </div>
     </div>

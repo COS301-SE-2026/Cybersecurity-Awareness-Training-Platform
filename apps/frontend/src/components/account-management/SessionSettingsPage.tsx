@@ -19,6 +19,7 @@ type SessionSettingsPageProps = Readonly<{
   capabilities?: AccountCapabilitiesResponse | null;
   onNotification?: (message: string) => void;
   onRefresh?: () => void;
+  onApiError?: (err: unknown) => boolean;
 }>;
 
 function formatLastActive(dateString: string): string {
@@ -37,12 +38,26 @@ function formatLastActive(dateString: string): string {
   }
 }
 
-function getRegularLabel(hours: number | null): string {
+function getEffectiveRegularText(seconds?: number | null): string {
+  if (!seconds) return '15 Minutes';
+  if (seconds < 3600) return `${Math.round(seconds / 60)} Minutes`;
+  const hours = Math.round(seconds / 3600);
+  if (hours === 24) return '24 Hours (1 Day)';
+  return `${hours} Hours`;
+}
+
+function getRegularLabel(
+  hours: number | null | undefined,
+  effectiveSeconds?: number | null,
+): string {
+  if (hours === null || hours === undefined) {
+    return `Organisation Default (${getEffectiveRegularText(effectiveSeconds)})`;
+  }
   if (hours === 4) return '4 Hours';
   if (hours === 8) return '8 Hours';
   if (hours === 12) return '12 Hours';
   if (hours === 24) return '24 Hours (1 Day)';
-  return hours ? `${hours} Hours` : '24 Hours (1 Day)';
+  return `${hours} Hours`;
 }
 
 function getRememberLabel(hours: number | null | undefined, isPolicyDisabled = false): string {
@@ -71,6 +86,7 @@ function SessionSettingsPage({
   capabilities,
   onNotification,
   onRefresh,
+  onApiError,
 }: SessionSettingsPageProps) {
   const [sessions, setSessions] = useState<AccountSessionResponse[]>([]);
   const [loadingSessions, setLoadingSessions] = useState(true);
@@ -84,34 +100,23 @@ function SessionSettingsPage({
   const idleTimeoutEditable =
     capabilities?.securityPreferenceEditable?.preferredIdleTimeoutMinutes ?? true;
 
-  const effectiveRegularHours = effectivePolicy?.regularSessionSeconds
-    ? Math.floor(effectivePolicy.regularSessionSeconds / 3600)
-    : 24;
-
-  const effectiveRememberHours = effectivePolicy?.rememberedSessionSeconds
-    ? Math.floor(effectivePolicy.rememberedSessionSeconds / 3600)
+  const defaultRegular = regularSessionEditable
+    ? (securityPreferences?.preferredRegularSessionLengthHours ?? null)
     : null;
 
-  const effectiveIdleMins = effectivePolicy?.idleTimeoutMinutes ?? null;
-
-  const defaultRegular = regularSessionEditable
-    ? (securityPreferences?.preferredRegularSessionLengthHours ?? effectiveRegularHours)
-    : effectiveRegularHours;
-
   const defaultRemember = rememberMeEditable
-    ? (securityPreferences?.preferredRememberMeSessionLengthHours ?? effectiveRememberHours)
-    : effectiveRememberHours;
+    ? (securityPreferences?.preferredRememberMeSessionLengthHours ?? null)
+    : null;
 
   const defaultIdle = idleTimeoutEditable
-    ? (securityPreferences?.preferredIdleTimeoutMinutes ?? effectiveIdleMins)
-    : effectiveIdleMins;
+    ? (securityPreferences?.preferredIdleTimeoutMinutes ?? null)
+    : null;
 
-  // Track explicit user selection to avoid submitting unchanged default preferences
-  const [userRegularHours, setUserRegularHours] = useState<number | null>(null);
+  const [userRegularHours, setUserRegularHours] = useState<number | null | undefined>(undefined);
   const [userRememberHours, setUserRememberHours] = useState<number | null | undefined>(undefined);
   const [userIdleMins, setUserIdleMins] = useState<number | null | undefined>(undefined);
 
-  const selectedRegularHours = userRegularHours ?? defaultRegular;
+  const selectedRegularHours = userRegularHours !== undefined ? userRegularHours : defaultRegular;
   const selectedRememberHours =
     userRememberHours !== undefined ? userRememberHours : defaultRemember;
   const selectedIdleMins = userIdleMins !== undefined ? userIdleMins : defaultIdle;
@@ -123,10 +128,11 @@ function SessionSettingsPage({
         setLoadingSessions(false);
       })
       .catch((err: unknown) => {
+        if (onApiError?.(err)) return;
         setAlertMessage(extractErrorMessage(err));
         setLoadingSessions(false);
       });
-  }, []);
+  }, [onApiError]);
 
   useEffect(() => {
     fetchSessionsData();
@@ -141,6 +147,7 @@ function SessionSettingsPage({
       }
       fetchSessionsData();
     } catch (err: unknown) {
+      if (onApiError?.(err)) return;
       setAlertMessage(extractErrorMessage(err));
     }
   }
@@ -158,6 +165,7 @@ function SessionSettingsPage({
       }
       fetchSessionsData();
     } catch (err: unknown) {
+      if (onApiError?.(err)) return;
       setAlertMessage(extractErrorMessage(err));
     }
   }
@@ -171,8 +179,7 @@ function SessionSettingsPage({
       preferredIdleTimeoutMinutes?: number | null;
     } = {};
 
-    // Only include explicitly modified & editable preference fields in the PATCH body
-    if (regularSessionEditable && userRegularHours !== null) {
+    if (regularSessionEditable && userRegularHours !== undefined) {
       payload.preferredRegularSessionLengthHours = userRegularHours;
     }
     if (rememberMeEditable && userRememberHours !== undefined) {
@@ -191,7 +198,7 @@ function SessionSettingsPage({
     try {
       await updateAccountSecurityPreferences(payload);
       setIsUpdatingPreferences(false);
-      setUserRegularHours(null);
+      setUserRegularHours(undefined);
       setUserRememberHours(undefined);
       setUserIdleMins(undefined);
       if (onRefresh) onRefresh();
@@ -200,6 +207,7 @@ function SessionSettingsPage({
       }
     } catch (err: unknown) {
       setIsUpdatingPreferences(false);
+      if (onApiError?.(err)) return;
       setAlertMessage(extractErrorMessage(err));
     }
   }
@@ -347,10 +355,17 @@ function SessionSettingsPage({
             </label>
 
             <Dropdown
-              label={getRegularLabel(selectedRegularHours)}
+              label={getRegularLabel(selectedRegularHours, effectivePolicy?.regularSessionSeconds)}
               disabled={!regularSessionEditable}
               className="border border-gray-300 bg-gray-50 text-deep-purple font-overpass text-[1.2rem] block w-full p-2.5 disabled:opacity-50"
             >
+              <DropdownItem
+                className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
+                onClick={() => setUserRegularHours(null)}
+              >
+                Organisation Default (
+                {getEffectiveRegularText(effectivePolicy?.regularSessionSeconds)})
+              </DropdownItem>
               <DropdownItem
                 className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
                 onClick={() => setUserRegularHours(4)}

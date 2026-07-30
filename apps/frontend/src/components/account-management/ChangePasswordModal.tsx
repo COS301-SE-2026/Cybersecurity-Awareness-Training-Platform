@@ -7,6 +7,7 @@ type ChangePasswordModalProps = Readonly<{
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: (message: string) => void;
+  onApiError?: (err: unknown) => boolean;
 }>;
 
 function formatAlertMessage(message: string) {
@@ -15,7 +16,7 @@ function formatAlertMessage(message: string) {
     .replace(/\w\S*/g, (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
 }
 
-function ChangePasswordModal({ isOpen, onClose, onSuccess }: ChangePasswordModalProps) {
+function ChangePasswordModal({ isOpen, onClose, onSuccess, onApiError }: ChangePasswordModalProps) {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
@@ -87,6 +88,7 @@ function ChangePasswordModal({ isOpen, onClose, onSuccess }: ChangePasswordModal
       window.location.href = '/login?notice=password_changed';
     } catch (err: unknown) {
       setIsSubmitting(false);
+      if (onApiError?.(err)) return;
       setAlertMessage(formatAlertMessage(extractErrorMessage(err)));
     }
   }
