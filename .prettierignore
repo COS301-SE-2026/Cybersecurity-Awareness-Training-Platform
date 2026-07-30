@@ -1,6 +1,8 @@
 node_modules/
 dist/
 build/
+.flowbite-react/
+**/class-list.json
 coverage/
 .git/
 .husky/_/

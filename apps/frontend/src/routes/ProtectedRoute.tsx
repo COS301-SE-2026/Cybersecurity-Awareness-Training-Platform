@@ -17,7 +17,23 @@ function ProtectedRoute({
   const { isAuthenticated, isAuthLoading, authContext, permissions } = useAuth();
 
   if (isAuthLoading) {
-    return null;
+    return (
+      <div
+        style={{
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: '#0E0020',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#C98FFF',
+          fontFamily: 'Jost',
+          fontSize: '1.5rem',
+        }}
+      >
+        Loading current user...
+      </div>
+    );
   }
 
   if (!isAuthenticated) {
