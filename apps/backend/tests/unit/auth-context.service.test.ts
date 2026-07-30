@@ -10,10 +10,10 @@ describe('auth-context serivce', () => {
   });
 
   it.each([
-    ['IP_ADMIN', ['PLATFORM_ADMIN'], '/admin'],
-    ['ORGANISATION_ADMIN', ['ORGANISATION_ADMIN'], '/organisation'],
-    ['ORGANISATION_TRAINEE', ['ORGANISATION_TRAINEE'], '/trainee/campaigns'],
-    ['GENERAL_TRAINEE', ['GENERAL_TRAINEE'], '/trainee/campaigns'],
+    ['IP_ADMIN', ['PLATFORM_ADMIN'], '/platform-administrators'],
+    ['ORGANISATION_ADMIN', ['ORGANISATION_ADMIN'], '/organisation-management'],
+    ['ORGANISATION_TRAINEE', ['ORGANISATION_TRAINEE'], '/campaigns'],
+    ['GENERAL_TRAINEE', ['GENERAL_TRAINEE'], '/campaigns'],
   ] as const)('builds context for %s', (userType, permissions, redirectTo) => {
     const context = buildAuthContext({
       user: { ...baseUser, userType },

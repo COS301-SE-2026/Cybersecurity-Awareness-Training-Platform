@@ -255,7 +255,7 @@ describe('Auth routes', () => {
         permissions: ['GENERAL_TRAINEE'],
       }),
       permissions: ['GENERAL_TRAINEE'],
-      redirectTo: '/trainee/campaigns',
+      redirectTo: '/campaigns',
       token: expect.any(String),
       tokenType: 'Bearer',
       expiresAt: expect.any(String),
@@ -338,7 +338,7 @@ describe('Auth routes', () => {
         permissions: ['GENERAL_TRAINEE'],
       }),
       permissions: ['GENERAL_TRAINEE'],
-      redirectTo: '/trainee/campaigns',
+      redirectTo: '/campaigns',
     });
     expect(response.body.user).not.toHaveProperty('passwordHash');
   });
@@ -595,7 +595,7 @@ describe('Auth routes', () => {
           permissions: ['GENERAL_TRAINEE'],
         }),
         permissions: ['GENERAL_TRAINEE'],
-        redirectTo: '/trainee/campaigns',
+        redirectTo: '/campaigns',
         token: expect.any(String),
         tokenType: 'Bearer',
         expiresAt: expect.any(String),

@@ -134,6 +134,66 @@ describe('LoginPage', () => {
     });
   });
 
+  it('logs the platform admin in and routes to /platform-administrators after a successful login', async () => {
+    const user = userEvent.setup();
+
+    const platformAdminAuthResponse = {
+      ...successfulAuthResponse,
+      user: {
+        ...successfulAuthResponse.user,
+        userType: 'IP_ADMIN',
+      },
+      context: {
+        ...successfulAuthResponse.context,
+        role: 'IP_ADMIN',
+        redirectTo: '/platform-administrators',
+      },
+      redirectTo: '/platform-administrators',
+    };
+
+    loginUserMock.mockResolvedValue(platformAdminAuthResponse);
+
+    renderLoginPage();
+
+    await user.type(screen.getByLabelText(/email address/i), 'admin@example.com');
+    await user.type(screen.getByLabelText(/^password$/i), 'legacy-password');
+    await user.click(screen.getByRole('button', { name: /Log In/i }));
+
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalledWith('/platform-administrators');
+    });
+  });
+
+  it('logs the organisation admin in and routes to /organisation-management after a successful login', async () => {
+    const user = userEvent.setup();
+
+    const orgAdminAuthResponse = {
+      ...successfulAuthResponse,
+      user: {
+        ...successfulAuthResponse.user,
+        userType: 'ORGANISATION_ADMIN',
+      },
+      context: {
+        ...successfulAuthResponse.context,
+        role: 'ORGANISATION_ADMIN',
+        redirectTo: '/organisation-management',
+      },
+      redirectTo: '/organisation-management',
+    };
+
+    loginUserMock.mockResolvedValue(orgAdminAuthResponse);
+
+    renderLoginPage();
+
+    await user.type(screen.getByLabelText(/email address/i), 'orgadmin@example.com');
+    await user.type(screen.getByLabelText(/^password$/i), 'legacy-password');
+    await user.click(screen.getByRole('button', { name: /Log In/i }));
+
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalledWith('/organisation-management');
+    });
+  });
+
   it('submits remember me when selected', async () => {
     const user = userEvent.setup();
 

@@ -30,10 +30,16 @@ function normalizeRedirectPath(redirectTo?: string | null) {
   ) {
     return redirectTo;
   }
+  if (redirectTo === '/admin' || redirectTo === '/platform-administrators') {
+    return '/platform-administrators';
+  }
+  if (redirectTo === '/organisation' || redirectTo === '/organisation-management') {
+    return '/organisation-management';
+  }
   if (redirectTo === '/trainee/campaigns' || redirectTo === ROUTES.CAMPAIGNS) {
     return ROUTES.CAMPAIGNS;
   }
-  return ROUTES.CAMPAIGNS;
+  return redirectTo || ROUTES.CAMPAIGNS;
 }
 
 function getApiErrorCode(error: ApiError): string | null {
@@ -110,7 +116,7 @@ function LoginPage() {
 
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
 
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, redirectTo } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -136,14 +142,15 @@ function LoginPage() {
   const [resendVerificationEmail, setResendVerificationEmail] = useState<string | null>(null);
 
   useEffect(() => {
+  useEffect(() => {
     if (
       isAuthenticated &&
       queryNotice !== 'password_changed' &&
       queryNotice !== 'session_expired'
     ) {
-      navigate(normalizeRedirectPath(queryRedirect), { replace: true });
+      navigate(normalizeRedirectPath(queryRedirect || redirectTo), { replace: true });
     }
-  }, [isAuthenticated, navigate, queryRedirect, queryNotice]);
+  }, [isAuthenticated, navigate, queryRedirect, redirectTo, queryNotice]);
 
   async function handleLogin(event: FormEvent) {
     event.preventDefault();

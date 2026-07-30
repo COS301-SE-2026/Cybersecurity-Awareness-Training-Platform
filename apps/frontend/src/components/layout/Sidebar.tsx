@@ -1,17 +1,77 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, SchoolOutlined } from '@mui/icons-material';
+import {
+  Menu,
+  SchoolOutlined,
+  BusinessOutlined,
+  AdminPanelSettingsOutlined,
+  SecurityOutlined,
+  InfoOutlined,
+} from '@mui/icons-material';
+import { useAuth } from '../../context/useAuth';
 
 function Sidebar() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const navigate = useNavigate();
-  const navItems = [
-    {
-      icon: <SchoolOutlined />,
-      label: 'Campaigns',
-      path: '/campaigns',
-    },
-  ];
+  const { user, authContext } = useAuth();
+  const role = authContext?.role || user?.userType;
+
+  const getNavItems = () => {
+    if (role === 'IP_ADMIN') {
+      return [
+        {
+          icon: <AdminPanelSettingsOutlined />,
+          label: 'Platform Administrators',
+          path: '/platform-administrators',
+        },
+        {
+          icon: <BusinessOutlined />,
+          label: 'Organisation Management',
+          path: '/organisation-management',
+        },
+      ];
+    }
+
+    if (role === 'ORGANISATION_ADMIN') {
+      return [
+        {
+          icon: <BusinessOutlined />,
+          label: 'Organisation Management',
+          path: '/organisation-management',
+        },
+        {
+          icon: <InfoOutlined />,
+          label: 'Organisation Information',
+          path: '/organisation-information',
+        },
+        {
+          icon: <SecurityOutlined />,
+          label: 'Security Preferences',
+          path: '/organisation-security-preferences',
+        },
+        {
+          icon: <SchoolOutlined />,
+          label: 'Trainees',
+          path: '/organisation-trainees',
+        },
+        {
+          icon: <AdminPanelSettingsOutlined />,
+          label: 'Administrators',
+          path: '/organisation-administrators',
+        },
+      ];
+    }
+
+    return [
+      {
+        icon: <SchoolOutlined />,
+        label: 'Campaigns',
+        path: '/campaigns',
+      },
+    ];
+  };
+
+  const navItems = getNavItems();
 
   return (
     <aside
