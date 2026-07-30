@@ -63,6 +63,12 @@ type InviteModalTarget = {
   token: string;
 };
 
+type InviteRequestOwner = {
+  requestId: number;
+  organisationId: string;
+  token: string;
+};
+
 type InviteSuccessState = {
   target: InviteModalTarget;
   message: string;
@@ -107,9 +113,10 @@ type InvitationActionFeedback = {
   message: string;
 };
 
-type InvitationActionDeniedTarget = {
+type InvitationActionsUnavailableTarget = {
   organisationId: string;
   token: string;
+  reason: 'permission-denied' | 'refresh-failed';
 };
 
 type InvitationActionErrorBody = {
@@ -270,17 +277,17 @@ function actionBelongsToContext(
   );
 }
 
-function actionDeniedTargetMatches(
-  deniedTarget: InvitationActionDeniedTarget | null,
+function invitationActionsUnavailableForContext(
+  target: InvitationActionsUnavailableTarget | null,
   organisationId: string | null,
   token: string | null,
 ): boolean {
   return (
-    deniedTarget !== null &&
+    target !== null &&
     organisationId !== null &&
     token !== null &&
-    deniedTarget.organisationId === organisationId &&
-    deniedTarget.token === token
+    target.organisationId === organisationId &&
+    target.token === token
   );
 }
 
@@ -401,7 +408,7 @@ function getListErrorMessage(error: unknown): string {
     if (errorCode === 'ORGANISATION_NOT_ACTIVE') {
       return (
         bodyMessage ||
-        'Organisation trainee management is unavailable while the organiation is inactive.'
+        'Organisation trainee management is unavailable while the organisation is inactive.'
       );
     }
 
@@ -585,23 +592,23 @@ function OrganisationTraineesPage() {
   const organisationId = authContext?.organisation?.id ?? null;
   const listRequestIdRef = useRef(0);
   const inviteRequestIdRef = useRef(0);
+  const inviteRequestOwnerRef = useRef<InviteRequestOwner | null>(null);
   const invitationActionRequestIdRef = useRef(0);
   const invitationActionOwnerRef = useRef<InvitationActionRequestOwner | null>(null);
 
   const [invitationAction, setInvitationAction] = useState<InvitationActionState | null>(null);
   const [invitationActionFeedback, setInvitationActionFeedback] =
     useState<InvitationActionFeedback | null>(null);
-  const [invitationActionDeniedTarget, setInvitationActionDeniedTarget] =
-    useState<InvitationActionDeniedTarget | null>(null);
+  const [invitationActionsUnavailableTarget, setInvitationActionsUnavailableTarget] =
+    useState<InvitationActionsUnavailableTarget | null>(null);
 
   const hasInvitationActionPermission = permissions.includes('INVITE_ORGANISATION_TRAINEES');
-  const invitationsActionsDeniedForCurrentTarget = actionDeniedTargetMatches(
-    invitationActionDeniedTarget,
+  const invitationActionsUnavailable = invitationActionsUnavailableForContext(
+    invitationActionsUnavailableTarget,
     organisationId,
     token,
   );
-  const canManageInvitationActions =
-    hasInvitationActionPermission && !invitationsActionsDeniedForCurrentTarget;
+  const canManageInvitationActions = hasInvitationActionPermission && !invitationActionsUnavailable;
 
   const disableRequestIdRef = useRef(0);
   const disableRequestOwnerRef = useRef<{
@@ -653,6 +660,16 @@ function OrganisationTraineesPage() {
         organisationId,
         rows: refreshRows,
         errorMessage: null,
+      });
+
+      setInvitationActionsUnavailableTarget((current) => {
+        if (
+          invitationActionsUnavailableForContext(current, organisationId, token) &&
+          current?.reason === 'refresh-failed'
+        ) {
+          return null;
+        }
+        return current;
       });
 
       setDisableActionsUnavailableTarget((current) => {
@@ -708,7 +725,11 @@ function OrganisationTraineesPage() {
           (row) => row.rowType === 'INVITATION' && row.invitationId === current.invitationId,
         );
 
-        if (!canManageInvitationActions || !refreshedRow || refreshedRow.rowType !== 'INVITATION') {
+        if (
+          !hasInvitationActionPermission ||
+          !refreshedRow ||
+          refreshedRow.rowType !== 'INVITATION'
+        ) {
           return null;
         }
 
@@ -732,7 +753,7 @@ function OrganisationTraineesPage() {
       });
       return 'failed';
     }
-  }, [canManageInvitationActions, hasDisablePermission, organisationId, token]);
+  }, [hasDisablePermission, hasInvitationActionPermission, organisationId, token]);
 
   useEffect(() => {
     let isCurrent = true;
@@ -752,6 +773,7 @@ function OrganisationTraineesPage() {
   useEffect(() => {
     return () => {
       inviteRequestIdRef.current += 1;
+      inviteRequestOwnerRef.current = null;
     };
   }, [organisationId, token]);
 
@@ -907,6 +929,12 @@ function OrganisationTraineesPage() {
       }
 
       if (refreshResult === 'failed') {
+        setInvitationActionsUnavailableTarget({
+          organisationId: target.organisationId,
+          token: target.token,
+          reason: 'refresh-failed',
+        });
+
         const refreshFailureMessage =
           `${response.message} The action succeeded, but the trainee list could not be refreshed. ` +
           'Reload the page before attempting another action on this invitation.';
@@ -963,6 +991,12 @@ function OrganisationTraineesPage() {
         }
 
         if (refreshResult === 'failed') {
+          setInvitationActionsUnavailableTarget({
+            organisationId: target.organisationId,
+            token: target.token,
+            reason: 'refresh-failed',
+          });
+
           const reconciliationMessage =
             `${message} Current invitation eligibility could not be loaded. ` +
             'Reload the page before trying this action again.';
@@ -986,9 +1020,10 @@ function OrganisationTraineesPage() {
       }
 
       if (error instanceof ApiError && error.status === 403) {
-        setInvitationActionDeniedTarget({
+        setInvitationActionsUnavailableTarget({
           organisationId: target.organisationId,
           token: target.token,
+          reason: 'permission-denied',
         });
         setInvitationAction({
           ...target,
@@ -1047,7 +1082,13 @@ function OrganisationTraineesPage() {
   };
 
   const beginInvitationAction = (row: InvitationTraineeRow, actionType: InvitationActionType) => {
-    if (!organisationId || !token || !canManageInvitationActions || !row.invitationId) {
+    if (
+      !organisationId ||
+      !token ||
+      !canManageInvitationActions ||
+      !row.invitationId ||
+      currentInvitationAction?.invitationId === row.invitationId
+    ) {
       return;
     }
 
@@ -1487,7 +1528,8 @@ function OrganisationTraineesPage() {
 
     const actionOwnsRow =
       currentInvitationAction?.invitationId === row.invitationId &&
-      (currentInvitationAction.phase === 'pending' ||
+      (currentInvitationAction.phase === 'confirming' ||
+        currentInvitationAction.phase === 'pending' ||
         currentInvitationAction.phase === 'reconciling' ||
         currentInvitationAction.phase === 'completed-refresh-failed' ||
         currentInvitationAction.phase === 'conflict-refresh-failed');
@@ -1544,7 +1586,6 @@ function OrganisationTraineesPage() {
   };
 
   const resetInviteModal = () => {
-    inviteRequestIdRef.current += 1;
     setInviteModalTarget(null);
     setInviteValues(EMPTY_INVITE_VALUES);
     setInviteFieldErrors({});
@@ -1560,7 +1601,6 @@ function OrganisationTraineesPage() {
 
     resetInviteModal();
     setInviteSuccess(null);
-    setInvitationActionFeedback(null);
     setInviteModalTarget({
       organisationId,
       token,
@@ -1569,7 +1609,7 @@ function OrganisationTraineesPage() {
   };
 
   const closeInviteTraineeModal = () => {
-    if (isInviting) {
+    if (isInviting || inviteRequestOwnerRef.current !== null) {
       return;
     }
 
@@ -1608,6 +1648,16 @@ function OrganisationTraineesPage() {
       return;
     }
 
+    const existingOwner = inviteRequestOwnerRef.current;
+
+    if (existingOwner) {
+      if (inviteTargetsMatch(existingOwner, currentTarget)) {
+        return;
+      }
+
+      inviteRequestIdRef.current += 1;
+      inviteRequestOwnerRef.current = null;
+    }
     setInviteFieldErrors({});
     setInviteGeneralError(null);
     setInviteSuccess(null);
@@ -1628,9 +1678,26 @@ function OrganisationTraineesPage() {
       return;
     }
 
-    const requestId = ++inviteRequestIdRef.current;
     const requestTarget = inviteModalTarget;
-    const isCurrentRequest = () => inviteRequestIdRef.current === requestId;
+    const requestId = ++inviteRequestIdRef.current;
+
+    inviteRequestOwnerRef.current = {
+      requestId,
+      organisationId: requestTarget.organisationId,
+      token: requestTarget.token,
+    };
+
+    const isCurrentRequest = (): boolean => {
+      const owner = inviteRequestOwnerRef.current;
+
+      return (
+        inviteRequestIdRef.current === requestId &&
+        owner !== null &&
+        owner.requestId === requestId &&
+        owner.organisationId === requestTarget.organisationId &&
+        owner.token === requestTarget.token
+      );
+    };
 
     setIsInviting(true);
 
@@ -1697,6 +1764,7 @@ function OrganisationTraineesPage() {
       setInviteGeneralError(getInviteApiErrorMessage(error));
     } finally {
       if (isCurrentRequest()) {
+        inviteRequestOwnerRef.current = null;
         setIsInviting(false);
       }
     }
