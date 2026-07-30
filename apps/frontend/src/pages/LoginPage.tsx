@@ -30,10 +30,16 @@ function normalizeRedirectPath(redirectTo?: string | null) {
   ) {
     return redirectTo;
   }
+  if (redirectTo === '/admin' || redirectTo === '/platform-administrators') {
+    return '/platform-administrators';
+  }
+  if (redirectTo === '/organisation' || redirectTo === '/organisation-information') {
+    return '/organisation-information';
+  }
   if (redirectTo === '/trainee/campaigns' || redirectTo === ROUTES.CAMPAIGNS) {
     return ROUTES.CAMPAIGNS;
   }
-  return ROUTES.CAMPAIGNS;
+  return redirectTo || ROUTES.CAMPAIGNS;
 }
 
 function getApiErrorCode(error: ApiError): string | null {
@@ -110,7 +116,7 @@ function LoginPage() {
 
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
 
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, redirectTo } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -118,18 +124,32 @@ function LoginPage() {
 
   const [isLoading, setIsLoading] = useState(false);
 
-  const [alertMessage, setAlertMessage] = useState('');
+  const queryNotice = searchParams.get('notice');
+
+  const [alertMessage, setAlertMessage] = useState(
+    queryNotice === 'session_expired'
+      ? 'Your session has expired or been revoked. Please log in again.'
+      : '',
+  );
   const [canResendVerification, setCanResendVerification] = useState(false);
   const [isResendingVerification, setIsResendingVerification] = useState(false);
-  const [resendVerificationMessage, setResendVerificationMessage] = useState<string | null>(null);
+  const [resendVerificationMessage, setResendVerificationMessage] = useState<string | null>(
+    queryNotice === 'password_changed'
+      ? 'Your password was changed successfully. Please log in with your new password.'
+      : null,
+  );
   const [resendVerificationError, setResendVerificationError] = useState<string | null>(null);
   const [resendVerificationEmail, setResendVerificationEmail] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate(normalizeRedirectPath(queryRedirect), { replace: true });
+    if (
+      isAuthenticated &&
+      queryNotice !== 'password_changed' &&
+      queryNotice !== 'session_expired'
+    ) {
+      navigate(normalizeRedirectPath(queryRedirect || redirectTo), { replace: true });
     }
-  }, [isAuthenticated, navigate, queryRedirect]);
+  }, [isAuthenticated, navigate, queryRedirect, redirectTo, queryNotice]);
 
   async function handleLogin(event: FormEvent) {
     event.preventDefault();

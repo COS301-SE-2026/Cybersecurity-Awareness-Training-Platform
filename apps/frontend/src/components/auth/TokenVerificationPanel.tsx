@@ -72,7 +72,7 @@ function TokenVerificationPanel({
 
           {status === 'success' && showLoginLink ? (
             <Link to="/login" style={{ color: '#cca7ff', fontFamily: 'Jost', fontSize: '1.3rem' }}>
-              Go to login
+              Go to Login
             </Link>
           ) : null}
 
@@ -83,6 +83,7 @@ function TokenVerificationPanel({
                   type="button"
                   onClick={onResend}
                   disabled={isResendDisabled}
+                  aria-busy={isResending}
                   style={{
                     background: 'transparent',
                     border: 0,
@@ -102,6 +103,8 @@ function TokenVerificationPanel({
 
               {resendFeedbackMessage ? (
                 <p
+                  role={resendFeedbackStatus === 'error' ? 'alert' : 'status'}
+                  aria-live="polite"
                   style={{
                     color: resendFeedbackStatus === 'success' ? '#86efac' : '#fca5a5',
                     fontFamily: 'Overpass',

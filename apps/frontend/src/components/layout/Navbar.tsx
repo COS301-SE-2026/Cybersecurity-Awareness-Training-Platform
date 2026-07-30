@@ -4,12 +4,33 @@ import { useAuth } from '../../context/useAuth';
 
 import { ExpandLess, ExpandMore, Logout, Settings, PersonOutlined } from '@mui/icons-material';
 
+function getRoleLabel(role?: string | null, platformAdminRole?: string | null) {
+  if (role === 'IP_ADMIN') {
+    return platformAdminRole === 'SUPER_ADMIN' ? 'Super Admin' : 'Platform Admin';
+  }
+  if (role === 'ORGANISATION_ADMIN') {
+    return 'Organisation Admin';
+  }
+  if (role === 'ORGANISATION_TRAINEE') {
+    return 'Organisation Trainee';
+  }
+  if (role === 'GENERAL_TRAINEE') {
+    return 'General Trainee';
+  }
+  return 'Trainee';
+}
+
 function Navbar() {
   const [profileOpen, setProfileOpen] = useState(false);
 
   const navigate = useNavigate();
 
-  const { logout, user } = useAuth();
+  const { logout, user, authContext } = useAuth();
+  const roleLabel = getRoleLabel(
+    authContext?.role || user?.userType,
+    authContext?.platformAdminRole,
+  );
+  const orgName = authContext?.organisation?.name;
 
   return (
     <nav
@@ -69,7 +90,15 @@ function Navbar() {
               fontSize: '1.6rem',
             }}
           />
-          {user ? `${user.firstName} ${user.lastName}` : 'Account'}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+            <span>{user ? `${user.firstName} ${user.lastName}` : 'Account'}</span>
+            {user && (
+              <span style={{ fontSize: '0.8rem', color: '#c9a2ff', opacity: 0.9 }}>
+                {roleLabel}
+                {orgName ? ` • ${orgName}` : ''}
+              </span>
+            )}
+          </div>
           {profileOpen ? (
             <ExpandLess
               style={{

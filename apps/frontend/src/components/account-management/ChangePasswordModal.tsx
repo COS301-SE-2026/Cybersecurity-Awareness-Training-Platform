@@ -1,25 +1,28 @@
 import { passwordSchema } from '@insightful-phish/shared';
 import { useState } from 'react';
 import BasicAlert from '../alerts/BasicAlert';
+import { changeAccountPassword, extractErrorMessage } from '../../services/account.service';
 
 type ChangePasswordModalProps = Readonly<{
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: (message: string) => void;
+  onApiError?: (err: unknown) => boolean;
 }>;
 
 function formatAlertMessage(message: string) {
-  // makes everything title case and removes the . from the end of the message
   return message
     .replace(/\.$/, '')
     .replace(/\w\S*/g, (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
 }
 
-function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProps) {
+function ChangePasswordModal({ isOpen, onClose, onSuccess, onApiError }: ChangePasswordModalProps) {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
 
   const [alertMessage, setAlertMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
 
@@ -60,6 +63,34 @@ function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProps) {
     }
 
     return true;
+  }
+
+  async function handleSubmit() {
+    if (!validate()) return;
+
+    setIsSubmitting(true);
+    try {
+      const res = await changeAccountPassword({
+        currentPassword,
+        newPassword,
+        confirmNewPassword,
+      });
+      setIsSubmitting(false);
+      onClose();
+      if (onSuccess) {
+        onSuccess(
+          res.message || 'Password changed successfully. All active sessions have been logged out.',
+        );
+      }
+      // Password change revokes all active sessions. Clear stored auth state and redirect to login page immediately.
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.href = '/login?notice=password_changed';
+    } catch (err: unknown) {
+      setIsSubmitting(false);
+      if (onApiError?.(err)) return;
+      setAlertMessage(formatAlertMessage(extractErrorMessage(err)));
+    }
   }
 
   return (
@@ -150,7 +181,7 @@ function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProps) {
               <input
                 required
                 type="password"
-                name="new-password"
+                name="password"
                 id="new-password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
@@ -181,15 +212,12 @@ function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProps) {
 
             <button
               type="button"
-              onClick={() => {
-                if (validate() === true) {
-                  // Call Backend or DO SOMETHING FUN (celebrate)...
-                }
-              }}
-              className="cursor-pointer w-full inline-flex items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm px-4 py-2.5 focus:outline-none"
+              disabled={isSubmitting}
+              onClick={handleSubmit}
+              className="cursor-pointer w-full inline-flex items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm px-4 py-2.5 focus:outline-none disabled:opacity-50"
             >
               <span className="material-symbols-sharp mr-4">edit</span>
-              <span> Change Password</span>
+              <span> {isSubmitting ? 'Changing Password...' : 'Change Password'}</span>
             </button>
           </div>
         </div>
