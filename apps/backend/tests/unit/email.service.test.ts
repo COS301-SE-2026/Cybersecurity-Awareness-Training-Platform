@@ -117,6 +117,10 @@ describe('sendEmail', () => {
       host: 'mailpit',
       port: 1025,
       secure: false,
+      dnsTimeout: 5_000,
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 20_000,
     });
 
     expect(sendMailMock).toHaveBeenCalledWith({
