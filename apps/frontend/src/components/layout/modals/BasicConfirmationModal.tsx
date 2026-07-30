@@ -44,9 +44,9 @@ function BasicConfirmationModal({
           {/* CLOSE MODAL Button */}
           <button
             type="button"
-            className="absolute top-3 end-2.5 text-body bg-transparent hover:bg-neutral-tertiary hover:text-heading text-sm w-9 h-9 ms-auto inline-flex justify-center items-center"
+            className="absolute top-3 end-2.5 text-body bg-transparent hover:bg-neutral-tertiary hover:text-heading text-sm w-9 h-9 ms-auto inline-flex justify-center items-center disabled:opacity-60 disabled:cursor-not-allowed"
+            disabled={isConfirmDisabled || isConfirming}
             onClick={onCancel}
-            disabled={isDismissDisabled}
           >
             <span className="material-icons-sharp">close</span>
             <span className="sr-only">Close modal</span>
@@ -85,7 +85,7 @@ function BasicConfirmationModal({
                 onClick={onConfirm}
                 data-modal-hide="popup-modal"
                 type="button"
-                disabled={isConfirmDisabled}
+                disabled={isConfirmDisabled || isConfirming}
                 className={`${confirmButtonClasses[confirmButtonVariant]} disabled:opacity-60 disabled:cursor-not-allowed`}
               >
                 {isConfirming ? 'Processing...' : confirmButtonText}
@@ -95,7 +95,7 @@ function BasicConfirmationModal({
               <button
                 onClick={onCancel}
                 type="button"
-                disabled={isDismissDisabled}
+                disabled={isDismissDisabled || isConfirming}
                 className="text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading focus:ring-4 focus:ring-neutral-tertiary shadow-xs font-jost tracking-wider cursor-pointer font-regular leading-5 text-[1.1rem] px-4 py-2.5 focus:outline-none"
               >
                 Cancel
