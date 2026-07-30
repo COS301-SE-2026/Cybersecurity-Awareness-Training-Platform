@@ -7,7 +7,6 @@
 @import 'tailwindcss';
 @import 'flowbite-react/plugin/tailwindcss';
 @import 'flowbite/src/themes/default';
-@source '../.flowbite-react/class-list.json';
 
 html,
 body,
@@ -122,4 +121,8 @@ section {
 
 .bg-deep-purple {
   background-color: var(--ip-deep-purple);
+}
+
+.bg-dark-pink {
+  background-color: var(--ip-dark-pink);
 }

@@ -8,6 +8,7 @@ import Iconography from './brand/Iconography';
 import Accessibility from './brand/Accessibility';
 import VoiceAndTone from './brand/VoiceAndTone';
 import ComponentLibrary from './brand/ComponentLibrary';
+import BrandFooter from './brand/BrandFooter';
 
 function BrandPage() {
   return (
@@ -51,6 +52,7 @@ function BrandPage() {
           <ComponentLibrary />
         </section>
       </div>
+      <BrandFooter />
     </main>
   );
 }
