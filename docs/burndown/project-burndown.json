@@ -752,8 +752,8 @@
           "number": 323,
           "title": "fix: make login timing safer for unknown emails",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-07-30"
         },
         {
           "number": 317,
@@ -1081,8 +1081,8 @@
           "number": 226,
           "title": "feat: integrate Sprint 4 auth client and protected route behaviour",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-07-30"
         },
         {
           "number": 225,
@@ -1377,8 +1377,8 @@
           "number": 259,
           "title": "feat: integrate platform organisation management flow",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-07-30"
         },
         {
           "number": 258,
@@ -1898,7 +1898,7 @@
     },
     {
       "date": "2026-07-30",
-      "remaining": 38,
+      "remaining": 32,
       "ideal": 0.0
     }
   ]

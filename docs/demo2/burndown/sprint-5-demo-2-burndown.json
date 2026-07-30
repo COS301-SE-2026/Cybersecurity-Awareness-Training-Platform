@@ -231,8 +231,8 @@
       "number": 259,
       "title": "feat: integrate platform organisation management flow",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-07-30"
     },
     {
       "number": 258,
@@ -365,7 +365,7 @@
     },
     {
       "date": "2026-07-30",
-      "remaining": 30,
+      "remaining": 28,
       "ideal": 0.0
     }
   ]
