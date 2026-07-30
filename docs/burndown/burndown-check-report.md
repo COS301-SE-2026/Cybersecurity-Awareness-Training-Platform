@@ -1,6 +1,6 @@
 # Burndown Check Report
 
-Last run: 2026-07-30 08:59:09 SAST
+Last run: 2026-07-30 09:35:36 SAST
 
 - #207 fix: seed campaign creator relation after Prisma schema update closed 1 day after Sprint 3 (Demo 2) ended.
 - #184 chore: clean trainee terminology and small frontend test warnings closed 1 day after Sprint 3 (Demo 2) ended.
@@ -14,6 +14,7 @@ Last run: 2026-07-30 08:59:09 SAST
 - #331 feat: add accept-invite token context endpoint closed 15 days after Sprint 4 (Demo 2) ended.
 - #313 fix: add resend verification cooldown response handling closed 17 days after Sprint 4 (Demo 2) ended.
 - #291 test: add backend account and security settings API integration coverage closed 15 days after Sprint 4 (Demo 2) ended.
+- #282 feat: build frontend minimal Sprint 4 dashboards closed 18 days after Sprint 4 (Demo 2) ended.
 - #266 feat: integrate accept invite and role change flows closed 17 days after Sprint 4 (Demo 2) ended.
 - #265 feat: implement backend invitation acceptance and role change endpoints closed 8 days after Sprint 4 (Demo 2) ended.
 - #264 feat: build frontend accept invite and role change page closed 1 day after Sprint 4 (Demo 2) ended.
