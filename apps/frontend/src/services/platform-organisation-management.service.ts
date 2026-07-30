@@ -127,8 +127,8 @@ export function approvePlatformOrganisationRequest(
   requestId: string,
   payload: ApproveOrganisationRequestDto,
   token: string,
-): Promise<ApproveOrganisationRequestDto> {
-  return apiClient.post<ApproveOrganisationRequestDto>(
+): Promise<ApproveOrganisationRequestResponseDto> {
+  return apiClient.post<ApproveOrganisationRequestResponseDto, ApproveOrganisationRequestDto>(
     `/platform/organisation-requests/${encodeURIComponent(requestId)}/approve`,
     payload,
     { authToken: token },

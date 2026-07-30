@@ -9,6 +9,7 @@ type ReviewOrganisationRegistrationRequstModalProps = Readonly<{
   // YOU WILL NEED TO ADD MORE PROPS SO THAT YOU CAN PASS IN THE ORGANISATION AND REPRESENTATIVE INFORMATION
   onMarkContacted: () => void;
   onReject: () => void;
+  onApprove: () => void;
 }>;
 
 function ReviewOrganisationRegistrationRequstModal({
@@ -20,6 +21,7 @@ function ReviewOrganisationRegistrationRequstModal({
   onClose,
   onMarkContacted,
   onReject,
+  onApprove,
 }: ReviewOrganisationRegistrationRequstModalProps) {
   if (!isOpen) return null;
   return (
@@ -170,7 +172,7 @@ function ReviewOrganisationRegistrationRequstModal({
                 </div>
                 <div className="mb-4 border-t border-default pt-3">
                   <p className="font-overpass text-[1rem] text-gray-600">
-                    Status:{request.status.replaceAll('_', ' ')}
+                    Status: {request.status.replaceAll('_', ' ')}
                   </p>
                   <p className="font-overpass text-[1rem] text-gray-600">
                     Submitted: {new Date(request.createdAt).toLocaleString()}
@@ -188,6 +190,17 @@ function ReviewOrganisationRegistrationRequstModal({
                     </p>
                   )}
                 </div>
+                {(request.status === 'PENDING_REVIEW' || request.status === 'CONTACTED') && (
+                  <button
+                    type="button"
+                    disabled={isContacting}
+                    onClick={onApprove}
+                    className="mt-2 inline-flex w-full items-center justify-center gap-2 bg-emerald-500 px-4 py-2.5 font-jost text-[1.1rem] tracking-wider text-white hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <span className="material-symbols-sharp">check</span>
+                    <span>Approve Request</span>
+                  </button>
+                )}
                 {(request.status === 'PENDING_REVIEW' || request.status === 'CONTACTED') && (
                   <button
                     type="button"

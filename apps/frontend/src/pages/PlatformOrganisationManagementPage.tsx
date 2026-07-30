@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import LoadingSpinnerSVG from '../components/LoadingSpinnerSVG';
 import BasicAlert from '../components/alerts/BasicAlert';
@@ -13,14 +13,20 @@ import {
   type PlatformOrganisationStatus,
   type PlatformOrganisationRequestReviewDto,
   rejectPlatformOrganisationRequest,
+  deletePlatformOrganisationRequest,
+  approvePlatformOrganisationRequest,
 } from '../services/platform-organisation-management.service';
 import { Dropdown, DropdownItem } from 'flowbite-react';
 import AppLayout from '../components/layout/AppLayout';
 import ReviewOrganisationRegistrationRequstModal from '../components/layout/modals/ReviewOrganisationRegistrationRequestModal';
 import RejectOrganisationRegistrationRequestModal from '../components/layout/modals/RejectOrganisationRegistrationRequestModal';
+import BasicConfirmationModal from '../components/layout/modals/BasicConfirmationModal';
 
 type RequestStatusFilter = 'ALL' | OrganisationRequestStatus;
 type OrganisationStatusFilter = 'ALL' | PlatformOrganisationStatus;
+type ConfirmationAction =
+  | { type: 'APPROVE'; request: PlatformOrganisationRequestReviewDto }
+  | { type: 'DELETE'; request: PlatformOrganisationRequestListItemDto };
 
 const statusLabels: Record<string, string> = {
   PENDING_REVIEW: 'Pending Review',
@@ -107,14 +113,17 @@ function PlatformOrganisationManagementPage() {
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
   const [selectedRequest, setSelectedRequest] =
     useState<PlatformOrganisationRequestReviewDto | null>(null);
+  const activeReviewRequestIdRef = useRef<string | null>(null);
   const [isReviewLoading, setIsReviewLoading] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
   const [isContacting, setIsContacting] = useState(false);
   const [notification, setNotification] = useState<{
-    variant: 'success' | 'warning';
+    variant: 'success' | 'warning' | 'danger';
     message: string;
   } | null>(null);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+  const [confirmationAction, setConfirmationAction] = useState<ConfirmationAction | null>(null);
+  const [isConfirming, setIsConfirming] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
   const [rejectError, setRejectError] = useState<string | null>(null);
 
@@ -198,6 +207,9 @@ function PlatformOrganisationManagementPage() {
     setReviewError(null);
     setIsRejectModalOpen(false);
     setRejectError(null);
+    setConfirmationAction(null);
+    activeReviewRequestIdRef.current = null;
+    setIsReviewLoading(false);
   }
   async function handleReviewFailure(error: unknown, fallback: string) {
     const status = error instanceof ApiError ? error.status : null;
@@ -233,17 +245,24 @@ function PlatformOrganisationManagementPage() {
 
   async function openReview(requestId: string) {
     if (!token) return;
+    activeReviewRequestIdRef.current = requestId;
     setSelectedRequestId(requestId);
     setSelectedRequest(null);
     setReviewError(null);
     setIsReviewLoading(true);
     try {
       const request = await getPlatformOrganisationRequest(requestId, token);
-      setSelectedRequest(request);
+      if (activeReviewRequestIdRef.current === requestId) {
+        setSelectedRequest(request);
+      }
     } catch (error: unknown) {
-      await handleReviewFailure(error, 'Unable To Load This Registration Request');
+      if (activeReviewRequestIdRef.current === requestId) {
+        await handleReviewFailure(error, 'Unable To Load This Registration Request');
+      }
     } finally {
-      setIsReviewLoading(false);
+      if (activeReviewRequestIdRef.current === requestId) {
+        setIsReviewLoading(false);
+      }
     }
   }
 
@@ -301,7 +320,6 @@ function PlatformOrganisationManagementPage() {
         await handleReviewFailure(error, 'Unable to reject this request.');
         return;
       }
-
       if (status === 422) {
         const body =
           error instanceof ApiError && error.body && typeof error.body === 'object'
@@ -324,6 +342,70 @@ function PlatformOrganisationManagementPage() {
       setIsRejecting(false);
     }
   }
+  async function handleApprove() {
+    if (!token || confirmationAction?.type !== 'APPROVE') return;
+    const request = confirmationAction.request;
+    setIsConfirming(true);
+    setReviewError(null);
+    try {
+      const response = await approvePlatformOrganisationRequest(
+        request.id,
+        { initialAdminEmail: request.representativeEmail },
+        token,
+      );
+      setConfirmationAction(null);
+      closeReview();
+      await loadRequests();
+      setNotification(
+        response.setupEmailQueued
+          ? {
+              variant: 'success',
+              message: `${response.approvedOrganisation.name} was approved and the initial administrator setup email was sent.`,
+            }
+          : {
+              variant: 'warning',
+              message: `${response.approvedOrganisation.name} was approved, but the initial administrator setup email was not delivered. Open the organisation details to resend it.`,
+            },
+      );
+      // if(!response.setupEmailQueued){
+      //   navigate(`/platform/organisations/${response.approvedOrganisation.id}`);
+      // }
+    } catch (error: unknown) {
+      setConfirmationAction(null);
+      await handleReviewFailure(error, 'Unable To Approve This Request');
+    } finally {
+      setIsConfirming(false);
+    }
+  }
+  async function handleDelete() {
+    if (!token || confirmationAction?.type !== 'DELETE') return;
+    setIsConfirming(true);
+    try {
+      await deletePlatformOrganisationRequest(confirmationAction.request.id, token);
+      setConfirmationAction(null);
+      await loadRequests();
+      setNotification({ variant: 'success', message: 'The registration request was deleted' });
+    } catch (error: unknown) {
+      setConfirmationAction(null);
+      const status = error instanceof ApiError ? error.status : null;
+      if (status === 401 || status === 403 || status === 404 || status === 409) {
+        await handleReviewFailure(error, 'Unable To Delete This Request');
+        return;
+      }
+      setNotification({
+        variant: 'warning',
+        message:
+          status === 429
+            ? 'Too Many Requests! Please Wait A Moment And Try Again'
+            : error instanceof ApiError
+              ? error.message
+              : 'Unable To Delete This Request',
+      });
+    } finally {
+      setIsConfirming(false);
+    }
+  }
+
   return (
     <AppLayout
       contentStyle={{
@@ -624,6 +706,18 @@ function PlatformOrganisationManagementPage() {
                                 <strong>View</strong> Information
                               </a>
                             )}
+
+                          {(request.status === 'REJECTED' || request.status === 'CANCELLED') && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                void setConfirmationAction({ type: 'DELETE', request })
+                              }
+                              className="cursor-pointer font-medium text-red-600 hover:underline"
+                            >
+                              <strong>Delete</strong> Request
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -655,6 +749,11 @@ function PlatformOrganisationManagementPage() {
           errorMessage={reviewError}
           onClose={closeReview}
           onMarkContacted={() => void handleMarkContacted()}
+          onApprove={() => {
+            if (selectedRequest) {
+              setConfirmationAction({ type: 'APPROVE', request: selectedRequest });
+            }
+          }}
           onReject={() => {
             setRejectError(null);
             setIsRejectModalOpen(true);
@@ -671,6 +770,28 @@ function PlatformOrganisationManagementPage() {
             setIsRejectModalOpen(false);
             setRejectError(null);
           }}
+        />
+      )}
+      {confirmationAction?.type === 'APPROVE' && (
+        <BasicConfirmationModal
+          title="Approve Organisation"
+          message={`Approve ${confirmationAction.request.submittedOrganisationName}. ${confirmationAction.request.representativeFirstName} ${confirmationAction.request.representativeLastName} (${confirmationAction.request.representativeEmail}) will receive the initial administrator setup email for this organisation.`}
+          confirmButtonText="Approve Organisation"
+          confirmButtonVariant="success"
+          isConfirming={isConfirming}
+          onConfirm={() => void handleApprove()}
+          onCancel={() => setConfirmationAction(null)}
+        />
+      )}
+      {confirmationAction?.type === 'DELETE' && (
+        <BasicConfirmationModal
+          title="Delete Registration Request"
+          message={`Delete the registration request for ${confirmationAction.request.submittedOrganisationName}. This cannot be undone. This will allow the representative associated with this request to create an Individual Trainee account or to submit a new Organisation Registration Request`}
+          confirmButtonText="Delete Request"
+          confirmButtonVariant="danger"
+          isConfirming={isConfirming}
+          onConfirm={() => void handleDelete()}
+          onCancel={() => setConfirmationAction(null)}
         />
       )}
     </AppLayout>
