@@ -62,6 +62,11 @@ function BrandNavbar() {
                   Iconography
                 </a>
               </li>
+              <li>
+                <a href="#accessibility" className="text-heading text-purple">
+                  Accessibility
+                </a>
+              </li>
             </ul>
           </div>
         </div>

@@ -48,7 +48,7 @@ function Logo() {
           Logo Usage
         </p>
 
-        <p className="text-xl mb-12 font-overpass font-justify tracking-wide text-dark-pink font-regular text-justify text-justify">
+        <p className="text-xl mb-12 font-overpass tracking-wide text-dark-pink font-regular text-justify text-justify">
           <strong>
             {' '}
             The <em>Insightful Phish</em> logo is the primary visual identifier of the brand and
@@ -60,10 +60,10 @@ function Logo() {
           always be selected to ensure maximum visibility and contrast against the background.
           <br />
           <br />
-          <span className="font-jost text-pink text-2xl">
+          <div className="font-jost text-pink text-left -mb-6 text-3xl max-w-xl">
             The sharp linework and modern typography reflect the brand's focus on precision,
             awareness, and confidence.
-          </span>
+          </div>
           <br />
           <br />
           To maintain brand consistency, the logo must always retain its original proportions,

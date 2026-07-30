@@ -5,6 +5,7 @@ import ColourPalette from './brand/ColourPalette';
 import Typography from './brand/Typography';
 import Logo from './brand/Logo';
 import Iconography from './brand/Iconography';
+import Accessibility from './brand/Accessibility';
 
 function BrandPage() {
   return (
@@ -34,6 +35,10 @@ function BrandPage() {
 
         <section id="iconography">
           <Iconography />
+        </section>
+
+        <section id="accessibility">
+          <Accessibility />
         </section>
       </div>
     </main>
