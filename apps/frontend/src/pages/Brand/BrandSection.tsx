@@ -4,7 +4,7 @@ function BrandSection() {
       {/* BRAND SECTION */}
       <div className="py-8 px-4 mx-auto max-w-screen-xl text-left lg:py-16">
         <h2 className="font-jost mb-12 text-6xl font-semibold tracking-regular text-purple">
-          Brand
+          The Brand
         </h2>
 
         <p className="text-3xl mb-2 font-jost tracking-wide text-purple font-medium text-justify">
