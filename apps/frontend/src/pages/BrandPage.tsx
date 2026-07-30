@@ -3,6 +3,8 @@ import BrandHeroSection from './brand/BrandHeroSection';
 import BrandSection from './brand/BrandSection';
 import ColourPalette from './brand/ColourPalette';
 import Typography from './brand/Typography';
+import Logo from './brand/Logo';
+import Iconography from './brand/Iconography';
 
 function BrandPage() {
   return (
@@ -24,6 +26,14 @@ function BrandPage() {
 
         <section id="typography">
           <Typography />
+        </section>
+
+        <section id="logo">
+          <Logo />
+        </section>
+
+        <section id="iconography">
+          <Iconography />
         </section>
       </div>
     </main>

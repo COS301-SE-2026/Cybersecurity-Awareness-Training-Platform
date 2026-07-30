@@ -119,3 +119,7 @@ section {
 .bg-pink {
   background-color: var(--ip-pink);
 }
+
+.bg-deep-purple {
+  background-color: var(--ip-deep-purple);
+}

@@ -58,7 +58,7 @@ function BrandNavbar() {
                 </a>
               </li>
               <li>
-                <a href="#iconogra  phy" className="text-heading text-purple">
+                <a href="#iconography" className="text-heading text-purple">
                   Iconography
                 </a>
               </li>
