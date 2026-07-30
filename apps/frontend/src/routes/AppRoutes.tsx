@@ -52,6 +52,9 @@ function AppRoutes() {
         <Route path="/quiz-attempts/:attemptId/results" element={<ResultsPage />} />
         <Route path="/campaigns" element={<CampaignsPage />} />
 
+        {/* ACCOUNT MANAGEMENT PROTECTED ROUTE */}
+        <Route path="/account-management" element={<AccountManagementPage />} />
+
         {/* ORGANISATION DETAILS PROTECTED ROUTES */}
         <Route path="/organisation-information" element={<OrganisationInformationPage />} />
         <Route path="/organisation-information/:id" element={<OrganisationInformationPage />} />
@@ -78,9 +81,6 @@ function AppRoutes() {
         path="/organisation-registration-request"
         element={<OrganisationRegistrationRequestPage />}
       />
-
-      {/* Account Settings Route */}
-      <Route path="/account-management" element={<AccountManagementPage />} />
 
       {/* ACCEPT INVITE ROUTE */}
       <Route path="/accept-invite" element={<AcceptInvitePage />} />
