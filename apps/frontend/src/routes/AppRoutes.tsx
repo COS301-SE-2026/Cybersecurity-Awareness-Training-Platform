@@ -36,29 +36,48 @@ function AppRoutes() {
       <Route path="/setup/token/:token" element={<SetupPage />} />
       <Route path="/status" element={<StatusPage />} />
 
-      {/* PROTECTED ROUTES */}
-      <Route element={<ProtectedRoute />}>
+      {/* TRAINEE / COMMON PROTECTED ROUTES */}
+      <Route
+        element={
+          <ProtectedRoute
+            allowedRoles={[
+              'GENERAL_TRAINEE',
+              'ORGANISATION_TRAINEE',
+              'ORGANISATION_ADMIN',
+              'IP_ADMIN',
+            ]}
+          />
+        }
+      >
         <Route
           path="/trainee/campaign-items/:campaignItemId/simulated-inbox"
           element={<InboxPage />}
         />
-
         <Route
           path="/trainee/campaign-items/:campaignItemId/simulated-emails/:emailId"
           element={<EmailDetailPage />}
         />
-
         <Route path="/training/:campaignItemId" element={<TrainingDocumentPage />} />
         <Route path="/quizzes/:quizId" element={<QuizPage />} />
         <Route path="/quiz-attempts/:attemptId/results" element={<ResultsPage />} />
         <Route path="/campaigns" element={<CampaignsPage />} />
+      </Route>
 
-        {/* ACCOUNT MANAGEMENT PROTECTED ROUTE */}
-        <Route path="/account-management" element={<AccountManagementPage />} />
-
-        {/* ORGANISATION DETAILS PROTECTED ROUTES */}
+      {/* ORGANISATION ADMIN PROTECTED ROUTES */}
+      <Route element={<ProtectedRoute allowedRoles={['ORGANISATION_ADMIN', 'IP_ADMIN']} />}>
         <Route path="/organisation-information" element={<OrganisationInformationPage />} />
         <Route path="/organisation-information/:id" element={<OrganisationInformationPage />} />
+        <Route
+          path="/organisation-security-preferences"
+          element={<OrganisationSecuritySettingsPage />}
+        />
+        <Route path="/organisation-trainees" element={<OrganisationTraineesPage />} />
+        <Route path="/organisation-administrators" element={<OrganisationAdministratorsPage />} />
+      </Route>
+
+      {/* PLATFORM ADMIN PROTECTED ROUTES */}
+      <Route element={<ProtectedRoute allowedRoles={['IP_ADMIN']} />}>
+        <Route path="/organisation-management" element={<PlatformOrganisationManagementPage />} />
         <Route
           path="/platform/organisations/:organisationId"
           element={<OrganisationInformationPage />}
@@ -72,10 +91,35 @@ function AppRoutes() {
           element={<OrganisationSecuritySettingsPage />}
         />
         <Route path="/organisation-management" element={<PlatformOrganisationManagementPage />} />
-        <Route path="/organisation-trainees" element={<OrganisationTraineesPage />} />
-        <Route path="/organisation-administrators" element={<OrganisationAdministratorsPage />} />
+        <Route
+          element={
+            <ProtectedRoute
+              requiredRole="ORGANISATION_ADMIN"
+              requireOrganisation
+              requiredPermission="VIEW_ORGANISATION_TRAINEES"
+            />
+          }
+        >
+          <Route path="/organisation-trainees" element={<OrganisationTraineesPage />} />
+        </Route>
+        <Route
+          element={
+            <ProtectedRoute
+              requiredRole="ORGANISATION_ADMIN"
+              requireOrganisation
+              requiredPermission="VIEW_ORGANISATION_ADMINS"
+            />
+          }
+        >
+          <Route path="/organisation-administrators" element={<OrganisationAdministratorsPage />} />
+        </Route>
+        <Route path="/platform-administrators" element={<PlatformAdministratorsPage />} />
       </Route>
 
+      {/* GENERAL PROTECTED ROUTES (ANY AUTHENTICATED USER) */}
+      <Route element={<ProtectedRoute />}>
+        <Route path="/account-management" element={<AccountManagementPage />} />
+      </Route>
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route
@@ -89,7 +133,6 @@ function AppRoutes() {
 
       <Route path="/" element={<LandingPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
-      <Route path="/platform-administrators" element={<PlatformAdministratorsPage />} />
       <Route path="/brand" element={<BrandPage />} />
     </Routes>
   );
