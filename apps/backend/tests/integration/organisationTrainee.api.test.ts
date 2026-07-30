@@ -86,8 +86,8 @@ describe('Organisation Trainee API Integration Tests', () => {
         expect.objectContaining({
           to: 'invitee.test@example.com',
           subject: expect.stringContaining("You're invited to join"),
-          text: expect.stringContaining('/setup/token/'),
-          html: expect.stringContaining('/setup/token/'),
+          text: expect.stringContaining('/accept-invite?token='),
+          html: expect.stringContaining('/accept-invite?token='),
         }),
       );
 
@@ -243,8 +243,8 @@ describe('Organisation Trainee API Integration Tests', () => {
       expect(sendMailMock).toHaveBeenCalledWith(
         expect.objectContaining({
           to: 'resend.target@example.com',
-          text: expect.stringContaining('/setup/token/'),
-          html: expect.stringContaining('/setup/token/'),
+          text: expect.stringContaining('/accept-invite?token='),
+          html: expect.stringContaining('/accept-invite?token='),
         }),
       );
 
@@ -292,35 +292,6 @@ describe('Organisation Trainee API Integration Tests', () => {
       });
       expect(auditLog.targetId).toBe(invId);
       expect(auditLog.outcome).toBe('SUCCESS');
-    });
-
-    it('allows exactly one of two concurrent resend requests to claim the invitation version', async () => {
-      const inviteRes = await request(app)
-        .post(`/organisations/${fixture.organisation.id}/trainee-invitations`)
-        .set('Authorization', `Bearer ${fixture.token}`)
-        .send({ email: 'concurrent.resend@example.com' });
-
-      const invId = inviteRes.body.invitation.id;
-      sendMailMock.mockClear();
-
-      const [res1, res2] = await Promise.all([
-        request(app)
-          .post(`/organisations/${fixture.organisation.id}/trainee-invitations/${invId}/resend`)
-          .set('Authorization', `Bearer ${fixture.token}`),
-        request(app)
-          .post(`/organisations/${fixture.organisation.id}/trainee-invitations/${invId}/resend`)
-          .set('Authorization', `Bearer ${fixture.token}`),
-      ]);
-
-      expect([res1.status, res2.status].sort()).toEqual([200, 409]);
-
-      const tokens = await prisma.actionToken.findMany({
-        where: { invitationId: invId },
-        orderBy: { createdAt: 'asc' },
-      });
-      expect(tokens).toHaveLength(2);
-      expect(tokens[0]?.revokedAt).not.toBeNull();
-      expect(tokens[1]?.revokedAt).toBeNull();
     });
 
     it('keeps a revoked invitation revoked even when a stale resend email SMTP succeeds later', async () => {

@@ -127,10 +127,14 @@ const tokenizedActionUrlExpectations: readonly TokenizedActionUrlExpectation[] =
   ],
   [
     'INITIAL_ORGANISATION_ADMIN_SETUP' as const,
-    'http://frontend.com/setup/token/',
+    'http://frontend.com/accept-invite?token=',
     'Set up administrator account',
   ],
-  ['ORGANISATION_TRAINEE_INVITE' as const, 'http://frontend.com/setup/token/', 'Accept invitation'],
+  [
+    'ORGANISATION_TRAINEE_INVITE' as const,
+    'http://frontend.com/accept-invite?token=',
+    'Accept invitation',
+  ],
   [
     'ORGANISATION_ADMIN_PROMOTION_INVITE' as const,
     'http://frontend.com/accept-invite?token=',
@@ -138,7 +142,7 @@ const tokenizedActionUrlExpectations: readonly TokenizedActionUrlExpectation[] =
   ],
   [
     'PLATFORM_ADMIN_INVITE' as const,
-    'http://frontend.com/setup/token/',
+    'http://frontend.com/accept-invite?token=',
     'Create administrator account',
   ],
   [
@@ -212,7 +216,7 @@ const migratedEmailCases: readonly MigratedEmailCase[] = [
     'Organisation approved',
     'The next step is to create the first organisation administrator account.',
     'Set up administrator account',
-    `http://frontend.com/setup/token/${rawToken}`,
+    `http://frontend.com/accept-invite?token=${rawToken}`,
     organisationTokenTemplateData(),
     true,
   ),
@@ -222,7 +226,7 @@ const migratedEmailCases: readonly MigratedEmailCase[] = [
     'Organisation invitation',
     'You have been invited to join Test Org on Insightful Phish.',
     'Accept invitation',
-    `http://frontend.com/setup/token/${rawToken}`,
+    `http://frontend.com/accept-invite?token=${rawToken}`,
     organisationTokenTemplateData(),
   ),
   tokenizedEmailCase(
@@ -241,7 +245,7 @@ const migratedEmailCases: readonly MigratedEmailCase[] = [
     'Platform administrator invitation',
     'You have been invited to join Insightful Phish as a platform administrator.',
     'Create administrator account',
-    `http://frontend.com/setup/token/${rawToken}`,
+    `http://frontend.com/accept-invite?token=${rawToken}`,
   ),
   tokenizedEmailCase(
     'PLATFORM_ADMIN_UPGRADE_CONFIRMATION',
