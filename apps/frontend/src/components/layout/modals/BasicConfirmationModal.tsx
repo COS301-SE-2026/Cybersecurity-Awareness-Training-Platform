@@ -25,11 +25,11 @@ function BasicConfirmationModal({
 }: BasicConfirmationModalProps) {
   const confirmButtonClasses = {
     danger:
-      'text-white bg-danger box-border border border-transparent hover:bg-danger-strong focus:ring-4 focus:ring-danger-medium shadow-xs font-regular cursor-pointer tracking-wider leading-5 text-[1.1rem] px-4 py-2.5 focus:outline-none',
+      'text-white bg-danger box-border border border-transparent hover:bg-danger-strong focus:ring-4 focus:ring-danger-medium shadow-xs font-regular cursor-pointer tracking-wider leading-5 text-[1.1rem] px-4 py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed',
     success:
-      'text-white bg-emerald-500 box-border border border-transparent hover:bg-emerald-600 focus:ring-4 focus:ring-danger-medium shadow-xs font-regular cursor-pointer tracking-wider leading-5 text-[1.1rem] px-4 py-2.5 focus:outline-none',
+      'text-white bg-emerald-500 box-border border border-transparent hover:bg-emerald-600 focus:ring-4 focus:ring-danger-medium shadow-xs font-regular cursor-pointer tracking-wider leading-5 text-[1.1rem] px-4 py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed',
     default:
-      'text-white bg-main-purple box-border border border-transparent hover:bg-main-purple focus:ring-4 focus:ring-danger-medium shadow-xs font-regular cursor-pointer tracking-wider leading-5 text-[1.1rem] px-4 py-2.5 focus:outline-none',
+      'text-white bg-main-purple box-border border border-transparent hover:bg-main-purple focus:ring-4 focus:ring-danger-medium shadow-xs font-regular cursor-pointer tracking-wider leading-5 text-[1.1rem] px-4 py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed',
   };
 
   return (
@@ -37,7 +37,7 @@ function BasicConfirmationModal({
       id="popup-modal"
       tabIndex={-1}
       aria-hidden="true"
-      className="fixed inset-0 z-100 flex items-center justify-center bg-black/50 backdrop-blur-xl"
+      className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/50 backdrop-blur-xl"
     >
       <div className="relative p-2 w-full max-w-md max-h-full">
         <div className="relative bg-white-purple border border-default shadow-xl p-4 md:p-6">
