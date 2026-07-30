@@ -118,18 +118,32 @@ function LoginPage() {
 
   const [isLoading, setIsLoading] = useState(false);
 
-  const [alertMessage, setAlertMessage] = useState('');
+  const queryNotice = searchParams.get('notice');
+
+  const [alertMessage, setAlertMessage] = useState(
+    queryNotice === 'session_expired'
+      ? 'Your session has expired or been revoked. Please log in again.'
+      : '',
+  );
   const [canResendVerification, setCanResendVerification] = useState(false);
   const [isResendingVerification, setIsResendingVerification] = useState(false);
-  const [resendVerificationMessage, setResendVerificationMessage] = useState<string | null>(null);
+  const [resendVerificationMessage, setResendVerificationMessage] = useState<string | null>(
+    queryNotice === 'password_changed'
+      ? 'Your password was changed successfully. Please log in with your new password.'
+      : null,
+  );
   const [resendVerificationError, setResendVerificationError] = useState<string | null>(null);
   const [resendVerificationEmail, setResendVerificationEmail] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (
+      isAuthenticated &&
+      queryNotice !== 'password_changed' &&
+      queryNotice !== 'session_expired'
+    ) {
       navigate(normalizeRedirectPath(queryRedirect), { replace: true });
     }
-  }, [isAuthenticated, navigate, queryRedirect]);
+  }, [isAuthenticated, navigate, queryRedirect, queryNotice]);
 
   async function handleLogin(event: FormEvent) {
     event.preventDefault();

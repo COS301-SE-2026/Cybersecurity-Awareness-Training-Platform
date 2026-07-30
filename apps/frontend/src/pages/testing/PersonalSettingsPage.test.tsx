@@ -8,8 +8,9 @@ describe('PersonalSettingsPage', () => {
     expect(
       screen.getByRole('heading', { name: /Personal Information Settings/i }),
     ).toBeInTheDocument();
-    expect(screen.getByText('Manage your personal information.')).toBeInTheDocument();
-    expect(screen.getByText('Update your first and last name.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Personal information associated with your account on the platform.'),
+    ).toBeInTheDocument();
   });
 
   it('renders the first name and last name fields', () => {
@@ -18,10 +19,8 @@ describe('PersonalSettingsPage', () => {
     expect(screen.getByLabelText('Last Name')).toBeInTheDocument();
   });
 
-  it('renders the update personal information button', () => {
+  it('renders the save personal information button', () => {
     render(<PersonalSettingsPage />);
-    expect(
-      screen.getByRole('button', { name: /Update Personal Information/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Save Personal Information/i })).toBeInTheDocument();
   });
 });
