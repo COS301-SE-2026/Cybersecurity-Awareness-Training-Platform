@@ -191,8 +191,8 @@
       "number": 271,
       "title": "feat: integrate organisation trainee management flow",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-07-30"
     },
     {
       "number": 270,
@@ -367,7 +367,7 @@
     },
     {
       "date": "2026-07-30",
-      "remaining": 26,
+      "remaining": 24,
       "ideal": 0.0
     }
   ]
