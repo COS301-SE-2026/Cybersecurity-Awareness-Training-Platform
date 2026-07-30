@@ -67,6 +67,16 @@ function BrandNavbar() {
                   Accessibility
                 </a>
               </li>
+              <li>
+                <a href="#voice-tone" className="text-heading text-purple">
+                  Voice & Tone
+                </a>
+              </li>
+              <li>
+                <a href="#component-library" className="text-heading text-purple">
+                  Component Library
+                </a>
+              </li>
             </ul>
           </div>
         </div>

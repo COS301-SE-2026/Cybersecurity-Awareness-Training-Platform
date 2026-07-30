@@ -13,7 +13,7 @@ function Logo() {
         />
 
         <p className="text-xl mb-12 mt-12 font-overpass tracking-wide text-dark-pink font-regular text-justify text-justify">
-          We also considered accessibility in the interface design. The platform uses high-contrast
+          We considered accessibility in the interface design. The platform uses high-contrast
           colours, large readable typography, clear navigation, and consistent layouts to improve
           usability and readability for trainees. We additionally used <em>Google Lighthouse</em>{' '}
           accessibility testing, where the frontend achieved a score ranging from 80 to 100.

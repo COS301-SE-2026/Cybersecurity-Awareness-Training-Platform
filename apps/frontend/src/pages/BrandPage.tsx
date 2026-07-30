@@ -6,6 +6,8 @@ import Typography from './brand/Typography';
 import Logo from './brand/Logo';
 import Iconography from './brand/Iconography';
 import Accessibility from './brand/Accessibility';
+import VoiceAndTone from './brand/VoiceAndTone';
+import ComponentLibrary from './brand/ComponentLibrary';
 
 function BrandPage() {
   return (
@@ -39,6 +41,14 @@ function BrandPage() {
 
         <section id="accessibility">
           <Accessibility />
+        </section>
+
+        <section id="voice-tone">
+          <VoiceAndTone />
+        </section>
+
+        <section id="component-library">
+          <ComponentLibrary />
         </section>
       </div>
     </main>
