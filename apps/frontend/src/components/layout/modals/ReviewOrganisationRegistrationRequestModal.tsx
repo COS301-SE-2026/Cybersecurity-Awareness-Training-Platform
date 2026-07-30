@@ -8,6 +8,7 @@ type ReviewOrganisationRegistrationRequstModalProps = Readonly<{
   onClose: () => void;
   // YOU WILL NEED TO ADD MORE PROPS SO THAT YOU CAN PASS IN THE ORGANISATION AND REPRESENTATIVE INFORMATION
   onMarkContacted: () => void;
+  onReject: () => void;
 }>;
 
 function ReviewOrganisationRegistrationRequstModal({
@@ -18,6 +19,7 @@ function ReviewOrganisationRegistrationRequstModal({
   errorMessage,
   onClose,
   onMarkContacted,
+  onReject,
 }: ReviewOrganisationRegistrationRequstModalProps) {
   if (!isOpen) return null;
   return (
@@ -38,10 +40,8 @@ function ReviewOrganisationRegistrationRequstModal({
             {/* CLOSE MODAL BUTTON */}
             <button
               type="button"
-              className="text-body bg-transparent hover:bg-neutral-tertiary hover:text-heading text-sm w-9 h-9 ms-auto inline-flex justify-center items-center"
+              className="text-body bg-transparent hover:bg-neutral-tertiary hover:text-heading text-sm w-9 h-9 ms-auto inline-flex justify-center items-center disabled:opacity-60 disabled:cursor-not-allowed"
               disabled={isContacting}
-              disabled:opacity-60
-              disabled:cursor-not-allowed
               onClick={onClose}
             >
               <span className="material-icons-sharp">close</span>
@@ -188,7 +188,17 @@ function ReviewOrganisationRegistrationRequstModal({
                     </p>
                   )}
                 </div>
-
+                {(request.status === 'PENDING_REVIEW' || request.status === 'CONTACTED') && (
+                  <button
+                    type="button"
+                    disabled={isContacting}
+                    onClick={onReject}
+                    className="mt-2 inline-flex w-full items-center justify-center gap-2 bg-danger px-4 py-2.5 font-jost text-[1.1rem] tracking-wider text-white hover:bg-danger-strong disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <span className="material-symbols-sharp">close</span>
+                    <span>Reject Request</span>
+                  </button>
+                )}
                 {request.status === 'PENDING_REVIEW' && (
                   <button
                     type="button"

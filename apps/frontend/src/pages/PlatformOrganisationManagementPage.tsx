@@ -12,10 +12,12 @@ import {
   type PlatformOrganisationRequestListItemDto,
   type PlatformOrganisationStatus,
   type PlatformOrganisationRequestReviewDto,
+  rejectPlatformOrganisationRequest,
 } from '../services/platform-organisation-management.service';
 import { Dropdown, DropdownItem } from 'flowbite-react';
 import AppLayout from '../components/layout/AppLayout';
 import ReviewOrganisationRegistrationRequstModal from '../components/layout/modals/ReviewOrganisationRegistrationRequestModal';
+import RejectOrganisationRegistrationRequestModal from '../components/layout/modals/RejectOrganisationRegistrationRequestModal';
 
 type RequestStatusFilter = 'ALL' | OrganisationRequestStatus;
 type OrganisationStatusFilter = 'ALL' | PlatformOrganisationStatus;
@@ -112,6 +114,9 @@ function PlatformOrganisationManagementPage() {
     variant: 'success' | 'warning';
     message: string;
   } | null>(null);
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+  const [isRejecting, setIsRejecting] = useState(false);
+  const [rejectError, setRejectError] = useState<string | null>(null);
 
   const [loadError, setLoadError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -191,6 +196,8 @@ function PlatformOrganisationManagementPage() {
     setSelectedRequestId(null);
     setSelectedRequest(null);
     setReviewError(null);
+    setIsRejectModalOpen(false);
+    setRejectError(null);
   }
   async function handleReviewFailure(error: unknown, fallback: string) {
     const status = error instanceof ApiError ? error.status : null;
@@ -261,7 +268,62 @@ function PlatformOrganisationManagementPage() {
       setIsContacting(false);
     }
   }
+  async function handleReject(rejectionReason: string) {
+    if (!token || !selectedRequestId) return;
+    setIsRejecting(true);
+    setRejectError(null);
+    try {
+      const response = await rejectPlatformOrganisationRequest(
+        selectedRequestId,
+        { rejectionReason },
+        token,
+      );
 
+      closeReview();
+      await loadRequests();
+
+      setNotification(
+        response.rejectionEmailQueued
+          ? {
+              variant: 'success',
+              message: 'The request was rejected. The Representative was notified.',
+            }
+          : {
+              variant: 'warning',
+              message:
+                "The request was rejected. The notification could not be delivered to the representative's email",
+            },
+      );
+    } catch (error: unknown) {
+      const status = error instanceof ApiError ? error.status : null;
+      if (status === 401 || status === 403 || status === 404 || status === 409) {
+        setIsRejectModalOpen(false);
+        await handleReviewFailure(error, 'Unable to reject this request.');
+        return;
+      }
+
+      if (status === 422) {
+        const body =
+          error instanceof ApiError && error.body && typeof error.body === 'object'
+            ? (error.body as { details?: Array<{ message?: unknown }> })
+            : null;
+        const detailMessage = body?.details?.[0]?.message;
+        setRejectError(
+          typeof detailMessage === 'string'
+            ? detailMessage
+            : 'Please enter a valid rejection reason.',
+        );
+        return;
+      }
+      if (status === 429) {
+        setRejectError('Too Many Requests! Please Wait A Moment And Try Again.');
+        return;
+      }
+      setRejectError(error instanceof ApiError ? error.message : 'Unable to reject this request.');
+    } finally {
+      setIsRejecting(false);
+    }
+  }
   return (
     <AppLayout
       contentStyle={{
@@ -593,6 +655,22 @@ function PlatformOrganisationManagementPage() {
           errorMessage={reviewError}
           onClose={closeReview}
           onMarkContacted={() => void handleMarkContacted()}
+          onReject={() => {
+            setRejectError(null);
+            setIsRejectModalOpen(true);
+          }}
+        />
+      )}
+      {isRejectModalOpen && selectedRequest && (
+        <RejectOrganisationRegistrationRequestModal
+          organisationName={selectedRequest.submittedOrganisationName}
+          isSubmitting={isRejecting}
+          serverError={rejectError}
+          onConfirm={(reason) => void handleReject(reason)}
+          onCancel={() => {
+            setIsRejectModalOpen(false);
+            setRejectError(null);
+          }}
         />
       )}
     </AppLayout>
