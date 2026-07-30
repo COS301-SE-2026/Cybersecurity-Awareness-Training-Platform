@@ -68,10 +68,17 @@ Finally, the system provides configurable organisation security settings for adm
   <a href="https://codecov.io/gh/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform">
     <img src="https://img.shields.io/codecov/c/github/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/dev?style=for-the-badge&logo=codecov&label=Coverage" alt="Codecov Coverage" />
   </a>
+
+  <a href="https://stats.uptimerobot.com/eW0J6TlkFn">
+  <img src="https://img.shields.io/uptimerobot/status/m803629841-fb7ba0ec8905f0b7298f7299?style=for-the-badge&logo=uptimerobot&label=Website" alt="Insightful Phish Website Status" />
+</a>
+<a href="https://stats.uptimerobot.com/eW0J6TlkFn">
+  <img src="https://img.shields.io/uptimerobot/ratio/m803629841-fb7ba0ec8905f0b7298f7299?style=for-the-badge&logo=uptimerobot&label=Uptime" alt="Insightful Phish Uptime" />
+</a>
 </p>
 
 <p align="left">
-  <a href="docs.insightfulphish.co.za">
+  <a href="https://docs.insightfulphish.co.za">
     <img src="https://img.shields.io/badge/Demo%202-Docs%20Available-blue?style=for-the-badge" alt="Demo 2 Docs Available" />
   </a>
   <img src="https://img.shields.io/badge/Monorepo-pnpm%20Workspaces-blue?style=for-the-badge" alt="Monorepo: pnpm workspaces" />
@@ -100,9 +107,27 @@ Finally, the system provides configurable organisation security settings for adm
 
 ### Demo 2 Documentation
 
-2. **Demo 2 Documentation**: https://docs.insightfulphish.co.za
-1. **Swagger Documentation (API Contracts)**: https://swagger.insightfulphish.co.za
-1. **Brand Guidelines**: https://brand.insightfulphish.co.za
+1. **Demo 2 Documentation**: https://docs.insightfulphish.co.za
+2. **Swagger Documentation (API Contracts)**: https://swagger.insightfulphish.co.za
+3. **Brand Guidelines**: https://brand.insightfulphish.co.za
+4. **Demo 2 Video**: [Youtube](https://youtu.be/lzpxob1Ty3A)
+
+### Demo 1 Documentation
+
+<details>
+<summary>Click here to see the Demo 1 Documentation and Video</summary>
+
+1. **Software Requirements Specification**: [docs/demo1/SRS.md](docs/demo1/SRS.md)
+2. **API Contracts**: [docs/demo1/API.md](docs/demo1/API.md)
+3. **Architecture**: [docs/demo1/architecture.md](docs/demo1/architecture.md)
+4. **Traceability**: [docs/demo1/traceability.md](docs/demo1/traceability.md)
+5. **Testing Documentation**: [docs/demo1/testing.md](docs/demo1/testing.md)
+6. **Design Specification**: [docs/demo1/DESIGN.md](docs/demo1/DESIGN.md)
+7. **Diagrams**: [docs/demo1/diagrams/README.md](docs/demo1/diagrams/README.md)
+8. **Wireframes**: [docs/demo1/wireframes/README.md](docs/demo1/wireframes/README.md)
+9. **Demo 1 Video**: [YouTube](https://youtu.be/2N3udVKsnH0)
+
+</details>
 
 ---
 

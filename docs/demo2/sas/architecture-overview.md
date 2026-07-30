@@ -1,112 +1,58 @@
 # Architecture Overview
 
-This document establishes the logical organisation of Insightful Phish and the boundaries that guide implementation and refactoring.
+This section defines the intended technology-neutral logical architecture of Insightful Phish, its five layers, normal dependency direction, supporting contracts, cross-cutting services, and known implementation deviations.
 
-## Contents
+## SAS Content
 
-- [Architecture Overview](#architecture-overview)
-  - [Contents](#contents)
-  - [1. Purpose](#1-purpose)
-  - [2. Architecture Overview](#2-architecture-overview)
-    - [Architecture Diagram](#architecture-diagram)
-  - [3. Layer Responsibilites](#3-layer-responsibilites)
-    - [3.1 Presentation and Browser Layer](#31-presentation-and-browser-layer)
-    - [3.2 API and Access-Control Layer](#32-api-and-access-control-layer)
-    - [3.3 Application Services Layer](#33-application-services-layer)
-    - [3.4 Repository and Data-Acees Layer](#34-repository-and-data-acees-layer)
-    - [3.5 Persistence Layer](#35-persistence-layer)
-  - [4. Dependancy Direction](#4-dependancy-direction)
-  - [5. Shared Contracts](#5-shared-contracts)
-  - [6. Cross-Cutting Services](#6-cross-cutting-services)
-    - [6.1 Email Service](#61-email-service)
-    - [6.2 Audit Service](#62-audit-service)
-  - [7. Current Deviations](#7-current-deviations)
-  - [8. References](#8-references)
+- [0. Home](README.md)
+- [1. Introduction](introduction.md)
+- [2. Architectural Requirements](architectural-requirements.md)
+- **[3. Architecture Overview](#3-architecture-overview)** &larr; _You are here_
+  - [3.1 Purpose](#31-purpose)
+  - [3.2 Architecture Diagram](#32-architecture-diagram)
+  - [3.3 Layer Responsibilities](#33-layer-responsibilities)
+  - [3.4 Shared Contracts](#34-shared-contracts)
+- [4. Architectural Patterns](architectural-patterns.md)
+- [5. Design Patterns](design-patterns.md)
+- [6. Quality to Architecture Mapping](quality-architecture-mapping.md)
+- [7. Technology Requirements](technology-requirements.md)
+- [8. API Contracts](api-contracts.md)
+- [9. Deployment and Operations](deployment.md)
+- [10. Changelog](changelog.md)
 
-## 1. Purpose
+---
 
-This document defines the intended logical organisation of the system, the responsibilities of each layer, the normal dependency direction, the role of supporting shared contracts and validation, the role of cross-cutting services, and known deviations in the current implementation.
+## 3. Architecture Overview
 
-## 2. Architecture Overview
+Our architecture establishes clear responsibility and dependency boundaries for presentation, access, application, data access and data persistences. It guides new implementation and future refactoring.
 
-A normal request follows this path:
+### 3.2 Architecture Diagram
 
-1. A user interaction originates in the Presentation and Browser Layer.
-2. The request crosses the API and Access-Control Layer boundary.
-3. Validation, authentication, session checks, and access control are applied at the boundary where required by the operation.
-4. An application service coordinates the relevant business use case.
-5. The application service uses one or mose repositories.
-6. The repositories communicate with persistant storage.
-7. The result travels back through the API boundary to the Presentation and Browser Layer.
+![Architecture Diagram](../diagrams/sas/architecture-diagram.drawio.svg)
+_Figure 3.1: Intended five-layer logical architecture for Insightful Phish._
 
-### Architecture Diagram
+To view the full rendered version of the diagram, click [here](../diagrams/sas/architecture-diagram.drawio.svg).
 
-![Architecture Diagram](../sas/diagrams/ArchitectureDiagram.drawio.svg)
+A normal request originates in the presentation layer, crosses the API boundary, is coordinated by an application service, and reaches persistent storage through a repository. The result returns through the same boundaries.
 
-## 3. Layer Responsibilites
+> [!Note]
+> The diagram represents the intended architecture rather than claiming that every current implementation path already conforms to it.
 
-### 3.1 Presentation and Browser Layer
+### 3.3 Layer Responsibilities
 
-The presentation and broswer layer supports user interaction, displays system state and feedback, provides client-side input assistance, and invokes defined API contracts. It may improve usability y identifying incomplete or malformed input early, but it must not make authoritative business-rule or access-control decisions.
+- **Presentation Layer:** Presents pages, forms, training content, navitation, status informtation and feedback to the user. It captures user interaction, manages temporary browser state, performs usability focused input checks, and sends requests using the defined API contracts. It shouldn't be trusted to enforce permissions, organisation boundaries or business rules.
+- **Access Layer:** Provides the system's controlled client-server entrypoint. It parses requests, validates request structure, authenticates users, checks session validity, applies rate limits, and confirms that users have the required role, permissions and organisation context (if they belong to an organisation). It invokes the appropriate application service and translates the result into a consistent response or safe error without exposing sensitive implementation details.
+- **Services Layer:** Coordinates complete business use cases such as registration, invitation acceptance, campaign assignment, quiz submission etc. It applies workflow and lifecycle rules, orders repository operations and uses other services when necessary. It is independent of browser presentation and direct storage implementation details.
+- **Repository Layer:** Provides application focussed operations for retrieving, creating, updating and summarising stored information. It isolates queries, projections, persistence specific behaviour and transactions from the application services. Repositories also apply user and organisation scoping, but they do not replace the access checks performed by the access and service layer.
+- **Persistence Layer:** Stores durable system information. Higher layers should access this state through repositories instead of depending directly on database-specific structures.
 
-### 3.2 API and Access-Control Layer
+### 3.4 Shared Contracts
 
-The API and Access-Control Layer exposes the client-server boundary. It parses and validates requests, authenticates users, checks sessions, and applies access control and organisation-boundary enforcement where required. It translates transport requests into application-service calls and returns stable responses and safe errors. Controllers and request handlers should remain thin so that business workflows and data access do not accumulate at this boundary.
+Shared contracts define the information exchanged between athe Presentation Layer, Access Layer and the Services Layer. They provide common request structures, response structures, validation rules, enumerations and error formats so that both sides interpret the API consistently.
 
-### 3.3 Application Services Layer
+The presentation layer uses these contracts to construct valid requests, interpret responses, and provide early feedback to users. The access layer uses them to validate incoming data before invoking an application service. Application services may use contract-derived values, but should work with application and domain concepts rather than browser-specific or transport-specific details.
 
-The application services layer coordinates business use cases and enforces workflow and domain rules. An application service sequences repository operations and invokes cross-cutting services when required. Transaction and idempotency requirements should be managed through suitable abstractions without exposing presentation concerns or direct persistent-storage details. This is the intended seperation and is not yet followed consistently by every current application service.
-
-### 3.4 Repository and Data-Acees Layer
-
-The repository and data-access layer isolates quries, writes, projections and persistence,specific operations. Repositories present application-orientated operations to services, apply the organisation or actor scoping required by the calling use case, and prevent persistence details from leaking into higher layers.
-
-Access control remains a coordinated responsibility across the API boundary, application service, and repository where appropriate. Using a repository does not automatically gaurantee than an auhtorisation check or organisation boundary is correct.
-
-### 3.5 Persistence Layer
-
-The persistence layer holds durable system state and supports integrity contraints, relationships, transactional storage, indexing, and other persistence mechanisms required to preserve system data correctly. Its implementation details remain behind repository and data-access operations.
-
-## 4. Dependancy Direction
-
-Normal dependencies point downwards:
-
-```text
-Presentation and Brower
-→ API and Access-Control
-→ Application Services
-→ Repository and Data-Access
-→Persistence
-```
-
-Lower layers do not depend on presentation behaviour. Repositories do not coordinate user-facing workflows, API handlers should not perform persistence operations directly, and applciation services should depend on repositoru abractration and not persistence clients. Response data may however travel upwards without reversing source-code dependency responsibility.
-
-> _**Dependency boundary**_ : Direct controller-to-persistence or application-service-to-persistence access bypasses the repository boundary and is a deviation from the target structure.
-
-## 5. Shared Contracts
-
-Shared contracts and validation support presentation, API, and application-service code by defining common request, response, and validation structures where appropriate. They reduce contract drift between parts of the system. They are however not a sixth runtime processing layer. Shared validation does not replace server-side authorisation checks or business-rule enforcement.
-
-## 6. Cross-Cutting Services
-
-### 6.1 Email Service
-
-The email service supports multiple application use cases by coordinating message preperation and delivery requests and by recording or exposing delivery outcomes where required. It communicates through a mail adapter with an exxternal mail server.
-
-### 6.2 Audit Service
-
-The audit service records security-sensitive and accountability-relevant events, sanitises sensitive details, and supports authorised review. Relevant application services incoke it as part of their use cases, and it should persist audit records through an appropriate repository or data-access boundary. This target responsibility does not mean all current workflows are audited.
-
-## 7. Current Deviations
-
-The current implementation does not follow the target structure consistently. Quiz controller or application-service code currently performs direct data-access operations, while simulation application-service code constains direct quries, transactions, and persistence-specific concurrency handling. These areas should move towards deidicated repositories while preserving externall visibile behaviour and contracts during refactoring,
-
-## 8. References
-
-- [Demo 2 Software Requirements Specification](../srs/README.md)
-- [SRS Function Requirements](../srs/functional-requirements.md)
-- [SRS Quality Requirements](../srs/quality-requirements.md)
-- [Architecture Overview](architecture-overview.md)
+Shared contracts support several layers but are not a separate processing layer. Requests do not pass "through" shared contracts, and shared contracts should not contain workflow coordination, persistence operations, authentication decisions, or organisation-access rules.
 
 ---
 

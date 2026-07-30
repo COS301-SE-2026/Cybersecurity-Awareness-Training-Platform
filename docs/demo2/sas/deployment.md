@@ -16,7 +16,6 @@ This section provides a view of the Insightful Phish deployment and CI/CD proces
   - [7.2 Deployment Diagrams](#72-deployment-diagrams)
   - [7.3 Deployment Failure Behaviour](#73-deployment-failure-behaviour)
   - [7.4 Rollback Strategy](#74-rollback-strategy)
-  - [7.5 References](#75-references)
 - [8. Changelog](changelog.md)
 
 ---
@@ -69,8 +68,6 @@ Successful deployments are also appended to `deploy/releases/deployment-history.
 Rollback is a manual action and is not automatic yet. The developer needs to identify the previous successful SHA and confirm that its backend image is compatible with the current database schema. If it is compatible, the previous SHA can be passed to the normal production deployment script. This causes the previous images to be pulled and deployed through the same migration, health-check, and smoke-test gates as any other release.
 
 Application rollback does not automatically reverse Prisma migrations or restore database data. If the previous application version is incompatible with migrations already applied by the failed release, the developer must use a compatible forward correction or a separately planned database-recovery procedure. The previous application image must not be redeployed until this compatibility has been assessed.
-
-This approach favours database safety over an automatic image rollback that could leave the application and database in inconsistent states.
 
 ---
 
