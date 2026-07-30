@@ -142,7 +142,6 @@ function LoginPage() {
   const [resendVerificationEmail, setResendVerificationEmail] = useState<string | null>(null);
 
   useEffect(() => {
-  useEffect(() => {
     if (
       isAuthenticated &&
       queryNotice !== 'password_changed' &&

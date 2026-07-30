@@ -63,11 +63,7 @@ function AppRoutes() {
       </Route>
 
       {/* ORGANISATION ADMIN PROTECTED ROUTES */}
-      <Route
-        element={
-          <ProtectedRoute allowedRoles={['ORGANISATION_ADMIN', 'IP_ADMIN']} />
-        }
-      >
+      <Route element={<ProtectedRoute allowedRoles={['ORGANISATION_ADMIN', 'IP_ADMIN']} />}>
         <Route path="/organisation-information" element={<OrganisationInformationPage />} />
         <Route path="/organisation-information/:id" element={<OrganisationInformationPage />} />
         <Route
