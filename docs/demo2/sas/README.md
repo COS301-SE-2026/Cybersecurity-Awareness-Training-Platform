@@ -1,21 +1,24 @@
 # Software Architecture Specification
 
-The Software Architecture Specification describes the architectural decisions, patterns, technology choices, contracts, and deployment considerations for Insightful Phish. These sections support the five-layer architecture without replacing the logical architecture work captured in the SAS architecture sections.
+This README is the ordered entry point to the Demo 2 Software Architecture Specification, which records the intended architecture, its constraints, supporting decisions, and relevant implementation context.
 
 ## SAS Content
 
-- **[0. Home](README.md)** &larr; _You are here_
-- [1. Architectural Requirements](architectural-requirements.md)
-- [2. Architectural Patterns](architectural-patterns.md)
-- [3. Design Patterns](design-patterns.md)
-- [4. Quality to Architecture Mapping](quality-architecture-mapping.md)
-- [5. Technology Requirements](technology-requirements.md)
-- [6. API Contracts](api-contracts.md)
-- [7. Deployment and Operations](deployment.md)
-- [8. Changelog](changelog.md)
+1. [Introduction](introduction.md)
+2. [Architectural Requirements](architectural-requirements.md)
+3. [Architecture Overview](architecture-overview.md)
+4. [Architectural Patterns](architectural-patterns.md)
+5. [Design Patterns](design-patterns.md)
+6. [Quality to Architecture Mapping](quality-architecture-mapping.md)
+7. [Technology Requirements](technology-requirements.md)
+8. [API Contracts](api-contracts.md)
+9. [Deployment and Operations](deployment.md)
+10. [Changelog](changelog.md)
 
 ## Related Requirements and Context
 
+- [Demo 2 Software Requirements Specification](../srs/README.md)
+- [SRS Function Requirements](../srs/functional-requirements.md)
 - [SRS Quality Requirements](../srs/quality-requirements.md)
 - [SRS Domain Model](../srs/domain-model.md)
 - [Demo 2 Domain Model Source](../new-domain-model.txt)
@@ -23,4 +26,4 @@ The Software Architecture Specification describes the architectural decisions, p
 
 ---
 
-Next section: [Architectural Requirements](architectural-requirements.md)
+Next section: [Introduction](introduction.md)
