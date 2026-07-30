@@ -6,7 +6,11 @@ import InviteOrganisationAdministratorModal from '../components/organisation-adm
 import EditOrganisationAdministratorPermissionsModal from '../components/organisation-administrator-page/EditOrganisationAdministratorPermissionsModal';
 import {
   getOrganisationAdmins,
+  promoteOrganisationAdmin,
+  updateOrganisationAdminPermissions,
+  type OrganisationAdminAvailablePermission,
   type OrganisationAdminListItem,
+  type OrganisationAdminPermissionKey,
 } from '../services/organisation-admin.service';
 import { ApiError } from '../lib/apiClient';
 import { useAuth } from '../context/useAuth';
@@ -24,8 +28,26 @@ interface OrganisationAdministrator {
 interface AdministratorListState {
   organisationId: string | null;
   rows: OrganisationAdminListItem[];
+  availablePermissions: OrganisationAdminAvailablePermission[];
+  actorPermissions: OrganisationAdminPermissionKey[];
   errorMessage: string | null;
 }
+
+type FeedbackState = {
+  kind: 'success' | 'warning';
+  message: string;
+} | null;
+
+type MutationErrorBody = {
+  error?: unknown;
+  message?: unknown;
+  details?: unknown;
+};
+
+type ValidationDetail = {
+  field: string;
+  message: string;
+};
 
 function toDisplayAdministrator(
   administrator: OrganisationAdminListItem,
@@ -75,6 +97,77 @@ function getListErrorMessage(error: unknown): string {
   }
 
   return bodyMessage || 'Unable to load organisation administrators. Please try again.';
+}
+
+function getMutationErrorBody(error: ApiError): MutationErrorBody | null {
+  if (!error.body || typeof error.body !== 'object') {
+    return null;
+  }
+
+  return error.body as MutationErrorBody;
+}
+
+function getMutationErrorMessage(error: unknown, fallback: string): string {
+  if (!(error instanceof ApiError)) {
+    return 'Unable to connect to the server. Please try again.';
+  }
+
+  const body = getMutationErrorBody(error);
+  const bodyMessage =
+    typeof body?.message === 'string' && body.message.trim() ? body.message : null;
+
+  if (error.status === 401) {
+    return bodyMessage || 'Your session could not be verified. Please try again.';
+  }
+
+  if (error.status === 403) {
+    return bodyMessage || 'You do not have permission to perform this action.';
+  }
+
+  if (error.status === 404) {
+    return bodyMessage || 'The selected administrator could not be found.';
+  }
+
+  if (error.status === 409) {
+    return bodyMessage || 'the administrator data changed. The list has been refreshed.';
+  }
+
+  if (error.status === 422) {
+    return bodyMessage || 'Please check the submitted valued and try again.';
+  }
+
+  if (error.status === 429) {
+    return bodyMessage || 'Too many administrator requests. Please try again later.';
+  }
+
+  if (error.status >= 500) {
+    return bodyMessage || 'The server could not complete this request.';
+  }
+
+  return bodyMessage || fallback;
+}
+
+function getValidationDetail(error: unknown, field: string): string | null {
+  if (!(error instanceof ApiError) || error.status !== 422) {
+    return null;
+  }
+
+  const body = getMutationErrorBody(error);
+  if (!Array.isArray(body?.details)) {
+    return null;
+  }
+
+  const detail = body.details.find((value): value is ValidationDetail => {
+    if (!value || typeof value !== 'object') {
+      return false;
+    }
+
+    const candidate = value as Partial<ValidationDetail>;
+
+    return candidate.field === field && typeof candidate.message === 'string';
+  });
+
+  return detail?.message ?? null;
 }
 
 const getStatusBadge = (status: OrganisationAdministrator['status']) => {
@@ -135,6 +228,8 @@ function OrganisationAdministratorsPage() {
   const [listState, setListState] = useState<AdministratorListState>({
     organisationId: null,
     rows: [],
+    availablePermissions: [],
+    actorPermissions: [],
     errorMessage: null,
   });
 
@@ -155,6 +250,8 @@ function OrganisationAdministratorsPage() {
       setListState({
         organisationId,
         rows: response.admins,
+        availablePermissions: response.availablePermissions,
+        actorPermissions: response.actorPermissions,
         errorMessage: null,
       });
     } catch (error: unknown) {
@@ -165,6 +262,8 @@ function OrganisationAdministratorsPage() {
       setListState({
         organisationId,
         rows: [],
+        availablePermissions: [],
+        actorPermissions: [],
         errorMessage: getListErrorMessage(error),
       });
     }
@@ -188,16 +287,38 @@ function OrganisationAdministratorsPage() {
   const isLoading = Boolean(token && organisationId && !hasCurrentResult);
   const loadError = hasCurrentResult ? listState.errorMessage : null;
 
+  const currentAvailablePermissions = hasCurrentResult ? listState.availablePermissions : [];
+
+  const currentActorPermissions = hasCurrentResult ? listState.actorPermissions : permissions;
+
   const organisationAdministrators = useMemo(
     () => (hasCurrentResult ? listState.rows : []).map(toDisplayAdministrator),
     [hasCurrentResult, listState.rows],
   );
 
-  const canInviteAdministrators = permissions.includes('INVITE_ORGANISATION_ADMINS');
-  const canChangeAdministratorPermissions = permissions.includes(
+  const canInviteAdministrators = currentActorPermissions.includes('INVITE_ORGANISATION_ADMINS');
+  const canChangeAdministratorPermissions = currentActorPermissions.includes(
     'CHANGE_ORGANISATION_ADMIN_PERMISSIONS',
   );
-  const canRemoveAdministrators = permissions.includes('REMOVE_ORGANISATION_ADMINS');
+  const canRemoveAdministrators = currentActorPermissions.includes('REMOVE_ORGANISATION_ADMINS');
+
+  const [feedback, setFeedback] = useState<FeedbackState>(null);
+
+  const [promotionEmail, setPromotionEmail] = useState('');
+  const [promotionPermissionKeys, setPromotionPermissionKeys] = useState<
+    OrganisationAdminPermissionKey[]
+  >([]);
+  const [promotionError, setPromotionError] = useState<string | null>(null);
+  const [promotionEmailError, setPromotionEmailError] = useState<string | null>(null);
+  const [isPromoting, setIsPromoting] = useState(false);
+
+  const [selectedAdministrator, setSelectedAdministrator] =
+    useState<OrganisationAdministrator | null>(null);
+  const [permissionUpdateKeys, setPermissionUpdateKeys] = useState<
+    OrganisationAdminPermissionKey[]
+  >([]);
+  const [permissionUpdateError, setPermissionUpdateError] = useState<string | null>(null);
+  const [isUpdatingPermissions, setIsUpdatingPermissions] = useState(false);
 
   const [showBasicConfirmationModal, setShowBasicConfirmationModal] = useState(false);
   const [showEditPermissionsModal, setShowEditPermissionsModal] = useState(false);
@@ -237,11 +358,22 @@ function OrganisationAdministratorsPage() {
     useState(false);
 
   const openOrganisationAdministratorModal = () => {
+    setPromotionEmail('');
+    setPromotionPermissionKeys([]);
+    setPromotionError(null);
+    setPromotionEmailError(null);
+    setFeedback(null);
     setShowOrganisationAdministratorModal(true);
   };
 
   const closeOrganisationAdministratorModal = () => {
+    if (isPromoting) {
+      return;
+    }
+
     setShowOrganisationAdministratorModal(false);
+    setPromotionError(null);
+    setPromotionEmailError(null);
   };
 
   const openConfirmationModal = () => {
@@ -256,7 +388,11 @@ function OrganisationAdministratorsPage() {
     openConfirmationModal();
   };
 
-  const openEditPermissionsModal = () => {
+  const openEditPermissionsModal = (administrator: OrganisationAdministrator) => {
+    setSelectedAdministrator(administrator);
+    setPermissionUpdateKeys(administrator.source.permissions.map((permission) => permission.key));
+    setPermissionUpdateError(null);
+    setFeedback(null);
     setShowEditPermissionsModal(true);
   };
 
@@ -269,7 +405,199 @@ function OrganisationAdministratorsPage() {
   };
 
   const closeEditPermissionsModal = () => {
+    if (isUpdatingPermissions) {
+      return;
+    }
+
     setShowEditPermissionsModal(false);
+    setSelectedAdministrator(null);
+    setPermissionUpdateError(null);
+  };
+
+  const submitPromotion = async () => {
+    if (!token || !organisationId || isPromoting) {
+      return;
+    }
+
+    const traineeEmail = promotionEmail.trim();
+
+    setPromotionEmailError(null);
+    setPromotionError(null);
+    setFeedback(null);
+
+    if (!traineeEmail) {
+      setPromotionEmailError('Trainee email is required.');
+      return;
+    }
+
+    if (promotionPermissionKeys.length === 0) {
+      setPromotionError('Select at least one permission.');
+      return;
+    }
+
+    setIsPromoting(true);
+
+    try {
+      const response = await promoteOrganisationAdmin(
+        organisationId,
+        {
+          traineeEmail,
+          permissionKeys: promotionPermissionKeys,
+        },
+        token,
+      );
+
+      setShowOrganisationAdministratorModal(false);
+      setPromotionEmail('');
+      setPromotionPermissionKeys([]);
+
+      await reloadOrganisationAdministrators();
+
+      setFeedback({
+        kind: response.emailQueued ? 'success' : 'warning',
+        message: response.emailQueued
+          ? 'The administrator invitation was created successfully.'
+          : 'The administrator invitation was created, but the email could not be sent.',
+      });
+    } catch (error: unknown) {
+      if (error instanceof ApiError && error.status === 403) {
+        const message = getMutationErrorMessage(
+          error,
+          'You do not have permission to promote organisation administrators.',
+        );
+
+        setShowOrganisationAdministratorModal(false);
+        setPromotionError(null);
+        setPromotionEmailError(null);
+
+        await reloadOrganisationAdministrators();
+
+        setFeedback({
+          kind: 'warning',
+          message,
+        });
+        return;
+      }
+
+      if (error instanceof ApiError && error.status === 409) {
+        setPromotionError(
+          getMutationErrorMessage(
+            error,
+            'The promotion conflicts with the current administrator data.',
+          ),
+        );
+        await reloadOrganisationAdministrators();
+        return;
+      }
+
+      const emailError = getValidationDetail(error, 'traineeEmail');
+      const permissionError = getValidationDetail(error, 'permissionKeys');
+
+      if (emailError) {
+        setPromotionEmailError(emailError);
+      }
+
+      setPromotionError(
+        permissionError ||
+          getMutationErrorMessage(error, 'The administrator invitation could not be created.'),
+      );
+    } finally {
+      setIsPromoting(false);
+    }
+  };
+
+  const submitPermissionUpdate = async () => {
+    if (!token || !organisationId || !selectedAdministrator || isUpdatingPermissions) {
+      return;
+    }
+
+    setPermissionUpdateError(null);
+    setFeedback(null);
+
+    if (permissionUpdateKeys.length === 0) {
+      setPermissionUpdateError('Select at least one permission.');
+      return;
+    }
+
+    setIsUpdatingPermissions(true);
+
+    try {
+      await updateOrganisationAdminPermissions(
+        organisationId,
+        selectedAdministrator.id,
+        {
+          permissionKeys: permissionUpdateKeys,
+        },
+        token,
+      );
+
+      setShowEditPermissionsModal(false);
+      setSelectedAdministrator(null);
+
+      await reloadOrganisationAdministrators();
+
+      setFeedback({
+        kind: 'success',
+        message: 'Administrator permissions were updated successfully.',
+      });
+    } catch (error: unknown) {
+      if (error instanceof ApiError && error.status === 403) {
+        const message = getMutationErrorMessage(
+          error,
+          'You do not have permission to change administrator permissions.',
+        );
+
+        setShowEditPermissionsModal(false);
+        setSelectedAdministrator(null);
+        setPermissionUpdateError(null);
+
+        await reloadOrganisationAdministrators();
+
+        setFeedback({
+          kind: 'warning',
+          message,
+        });
+        return;
+      }
+
+      if (error instanceof ApiError && error.status === 404) {
+        const message = getMutationErrorMessage(
+          error,
+          'The selected administrator no longer exists.',
+        );
+
+        setShowEditPermissionsModal(false);
+        setSelectedAdministrator(null);
+        setPermissionUpdateError(null);
+
+        await reloadOrganisationAdministrators();
+
+        setFeedback({
+          kind: 'warning',
+          message,
+        });
+        return;
+      }
+
+      if (error instanceof ApiError && error.status === 409) {
+        setPermissionUpdateError(
+          getMutationErrorMessage(
+            error,
+            'The permission update conflicts with the current administrator data.',
+          ),
+        );
+        await reloadOrganisationAdministrators();
+        return;
+      }
+
+      const permissionError = getValidationDetail(error, 'permissionKeys');
+      setPermissionUpdateError(
+        permissionError ||
+          getMutationErrorMessage(error, 'Administrator permissions could not be updated.'),
+      );
+    } finally {
+      setIsUpdatingPermissions(false);
+    }
   };
 
   return (
@@ -308,6 +636,19 @@ function OrganisationAdministratorsPage() {
             Manage organisation administrators and their permissions.
           </p>
         </div>
+
+        {feedback && (
+          <div
+            role={feedback.kind === 'success' ? 'status' : 'alert'}
+            className={`p-4 mb-6 border rounded-none font-jost text-[1.1rem] ${
+              feedback.kind === 'success'
+                ? 'text-green-800 bg-green-50 border-green-200'
+                : 'text-amber-800 bg-amber-50 border-amber-200'
+            }`}
+          >
+            {feedback.message}
+          </div>
+        )}
 
         <div className="px-6 pb-6">
           {/* SEARCH AND FILTER BAR */}
@@ -515,7 +856,9 @@ function OrganisationAdministratorsPage() {
                                 <button
                                   className="cursor-pointer font-medium text-purple hover:underline"
                                   type="button"
-                                  onClick={openEditPermissionsModal}
+                                  onClick={() =>
+                                    openEditPermissionsModal(organisationAdministrator)
+                                  }
                                 >
                                   <strong>Edit Permissions</strong>
                                 </button>
@@ -578,15 +921,41 @@ function OrganisationAdministratorsPage() {
       {showOrganisationAdministratorModal && (
         <InviteOrganisationAdministratorModal
           isOpen={showOrganisationAdministratorModal}
-          onClose={() => closeOrganisationAdministratorModal()}
-        ></InviteOrganisationAdministratorModal>
+          onClose={closeOrganisationAdministratorModal}
+          availablePermissions={currentAvailablePermissions}
+          traineeEmail={promotionEmail}
+          selectedPermissionKeys={promotionPermissionKeys}
+          onEmailChange={(email) => {
+            setPromotionEmail(email);
+            setPromotionEmailError(null);
+          }}
+          onPermissionKeysChange={(keys) => {
+            setPromotionPermissionKeys(keys);
+            setPromotionError(null);
+          }}
+          onSubmit={() => void submitPromotion()}
+          isSubmitting={isPromoting}
+          errorMessage={promotionError}
+          emailError={promotionEmailError}
+        />
       )}
 
-      {showEditPermissionsModal && (
+      {showEditPermissionsModal && selectedAdministrator && (
         <EditOrganisationAdministratorPermissionsModal
           isOpen={showEditPermissionsModal}
-          onClose={() => closeEditPermissionsModal()}
-        ></EditOrganisationAdministratorPermissionsModal>
+          onClose={closeEditPermissionsModal}
+          administratorName={selectedAdministrator.fullName}
+          administratorEmail={selectedAdministrator.emailAddress}
+          availablePermissions={currentAvailablePermissions}
+          selectedPermissionKeys={permissionUpdateKeys}
+          onPermissionKeysChange={(keys) => {
+            setPermissionUpdateKeys(keys);
+            setPermissionUpdateError(null);
+          }}
+          onSubmit={() => void submitPermissionUpdate()}
+          isSubmitting={isUpdatingPermissions}
+          errorMessage={permissionUpdateError}
+        />
       )}
     </AppLayout>
   );

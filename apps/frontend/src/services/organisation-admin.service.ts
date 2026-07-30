@@ -52,3 +52,58 @@ export function getOrganisationAdmins(
     },
   );
 }
+
+export interface OrganisationAdminPromotionRequest {
+  traineeEmail: string;
+  permissionKeys: OrganisationAdminPermissionKey[];
+}
+
+export interface OrganisationAdminPromotionResponse {
+  invitationId: string;
+  actionTokenId: string;
+  status: 'PENDING' | 'SENT' | 'FAILED_TO_SEND';
+  expiresAt: string;
+  permissionKeys: OrganisationAdminPermissionKey[];
+  emailQueued: boolean;
+}
+
+export interface OrganisationAdminPermissionUpdateRequest {
+  permissionKeys: OrganisationAdminPermissionKey[];
+}
+
+export interface OrganisationAdminPermissionUpdateResponse {
+  adminId: string;
+  permissionKeys: OrganisationAdminPermissionKey[];
+}
+
+export function promoteOrganisationAdmin(
+  organisationId: string,
+  input: OrganisationAdminPromotionRequest,
+  token: string,
+): Promise<OrganisationAdminPromotionResponse> {
+  return apiClient.post<OrganisationAdminPromotionResponse, OrganisationAdminPromotionRequest>(
+    `/organisations/${encodeURIComponent(organisationId)}/admin-promotions`,
+    input,
+    {
+      authToken: token,
+    },
+  );
+}
+
+export function updateOrganisationAdminPermissions(
+  organisationId: string,
+  adminId: string,
+  input: OrganisationAdminPermissionUpdateRequest,
+  token: string,
+): Promise<OrganisationAdminPermissionUpdateResponse> {
+  return apiClient.patch<
+    OrganisationAdminPermissionUpdateResponse,
+    OrganisationAdminPermissionUpdateRequest
+  >(
+    `/organisations/${encodeURIComponent(organisationId)}/admins/${encodeURIComponent(adminId)}/permissions`,
+    input,
+    {
+      authToken: token,
+    },
+  );
+}
