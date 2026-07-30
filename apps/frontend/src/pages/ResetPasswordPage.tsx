@@ -475,7 +475,6 @@ function ResetPasswordFlow({ token }: ResetPasswordFlowProps) {
     return (
       <TokenVerificationPanel
         title="Password Reset Successful"
-        introMessage="Your password was updated successfully."
         status="success"
         message="Your password has been updated. Please log in again using your new password."
         showLoginLink
@@ -487,7 +486,6 @@ function ResetPasswordFlow({ token }: ResetPasswordFlowProps) {
     return (
       <TokenVerificationPanel
         title="Reset Password"
-        introMessage="Checking your password reset link."
         status="pending"
         message="Validating password reset link..."
       />
@@ -498,7 +496,6 @@ function ResetPasswordFlow({ token }: ResetPasswordFlowProps) {
     return (
       <TokenVerificationPanel
         title="Reset Password Link"
-        introMessage="We could not continue with this password reset link."
         status="error"
         message={tokenErrorMessage || INVALID_TOKEN_MESSAGE}
         canResend={canResend}
