@@ -35,11 +35,6 @@ function Sidebar() {
     if (role === 'ORGANISATION_ADMIN') {
       return [
         {
-          icon: <BusinessOutlined />,
-          label: 'Organisation Management',
-          path: '/organisation-management',
-        },
-        {
           icon: <InfoOutlined />,
           label: 'Organisation Information',
           path: '/organisation-information',

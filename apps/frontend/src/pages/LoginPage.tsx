@@ -33,8 +33,8 @@ function normalizeRedirectPath(redirectTo?: string | null) {
   if (redirectTo === '/admin' || redirectTo === '/platform-administrators') {
     return '/platform-administrators';
   }
-  if (redirectTo === '/organisation' || redirectTo === '/organisation-management') {
-    return '/organisation-management';
+  if (redirectTo === '/organisation' || redirectTo === '/organisation-information') {
+    return '/organisation-information';
   }
   if (redirectTo === '/trainee/campaigns' || redirectTo === ROUTES.CAMPAIGNS) {
     return ROUTES.CAMPAIGNS;

@@ -96,7 +96,6 @@ function AppRoutes() {
       <Route element={<ProtectedRoute />}>
         <Route path="/account-management" element={<AccountManagementPage />} />
       </Route>
-
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route

@@ -11,7 +11,7 @@ describe('auth-context serivce', () => {
 
   it.each([
     ['IP_ADMIN', ['PLATFORM_ADMIN'], '/platform-administrators'],
-    ['ORGANISATION_ADMIN', ['ORGANISATION_ADMIN'], '/organisation-management'],
+    ['ORGANISATION_ADMIN', ['ORGANISATION_ADMIN'], '/organisation-information'],
     ['ORGANISATION_TRAINEE', ['ORGANISATION_TRAINEE'], '/campaigns'],
     ['GENERAL_TRAINEE', ['GENERAL_TRAINEE'], '/campaigns'],
   ] as const)('builds context for %s', (userType, permissions, redirectTo) => {

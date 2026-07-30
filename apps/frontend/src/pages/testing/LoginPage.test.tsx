@@ -164,7 +164,7 @@ describe('LoginPage', () => {
     });
   });
 
-  it('logs the organisation admin in and routes to /organisation-management after a successful login', async () => {
+  it('logs the organisation admin in and routes to /organisation-information after a successful login', async () => {
     const user = userEvent.setup();
 
     const orgAdminAuthResponse = {
@@ -176,9 +176,9 @@ describe('LoginPage', () => {
       context: {
         ...successfulAuthResponse.context,
         role: 'ORGANISATION_ADMIN',
-        redirectTo: '/organisation-management',
+        redirectTo: '/organisation-information',
       },
-      redirectTo: '/organisation-management',
+      redirectTo: '/organisation-information',
     };
 
     loginUserMock.mockResolvedValue(orgAdminAuthResponse);
@@ -190,7 +190,7 @@ describe('LoginPage', () => {
     await user.click(screen.getByRole('button', { name: /Log In/i }));
 
     await waitFor(() => {
-      expect(navigateMock).toHaveBeenCalledWith('/organisation-management');
+      expect(navigateMock).toHaveBeenCalledWith('/organisation-information');
     });
   });
 

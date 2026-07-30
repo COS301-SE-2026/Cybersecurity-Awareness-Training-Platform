@@ -12,7 +12,7 @@ export type AuthContextRole =
 
 export type AuthRedirectTarget =
   | '/platform-administrators'
-  | '/organisation-management'
+  | '/organisation-information'
   | '/campaigns'
   | '/login';
 
@@ -99,7 +99,7 @@ function resolveRedirectTarget(user: GuardUser): AuthRedirectTarget {
   }
 
   if (user.userType === 'ORGANISATION_ADMIN') {
-    return '/organisation-management';
+    return '/organisation-information';
   }
 
   if (user.userType === 'ORGANISATION_TRAINEE' || user.userType === 'GENERAL_TRAINEE') {
