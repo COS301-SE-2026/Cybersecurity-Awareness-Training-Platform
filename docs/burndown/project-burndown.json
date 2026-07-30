@@ -1321,8 +1321,8 @@
           "number": 276,
           "title": "feat: integrate organisation admin management flow",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-07-30"
         },
         {
           "number": 274,
@@ -1898,7 +1898,7 @@
     },
     {
       "date": "2026-07-30",
-      "remaining": 28,
+      "remaining": 26,
       "ideal": 0.0
     }
   ]
