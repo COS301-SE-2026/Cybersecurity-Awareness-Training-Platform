@@ -6,6 +6,15 @@ type BasicConfirmationModalProps = Readonly<{
   onCancel: () => void;
   confirmButtonVariant: 'danger' | 'success' | 'default';
   isConfirming?: boolean;
+  isConfirmDisabled?: boolean;
+  isDismissDisabled?: boolean;
+  errorMessage?: string | null;
+  passwordValue?: string;
+  onPasswordChange?: (value: string) => void;
+  passwordError?: string | null;
+  confirmationValue?: string;
+  onConfirmationChange?: (value: string) => void;
+  expectedConfirmationText?: string;
 }>;
 
 function BasicConfirmationModal({
@@ -16,6 +25,15 @@ function BasicConfirmationModal({
   onCancel,
   confirmButtonVariant,
   isConfirming = false,
+  isConfirmDisabled = false,
+  isDismissDisabled = false,
+  errorMessage = null,
+  passwordValue,
+  onPasswordChange,
+  passwordError = null,
+  confirmationValue,
+  onConfirmationChange,
+  expectedConfirmationText,
 }: BasicConfirmationModalProps) {
   const confirmButtonClasses = {
     danger:
@@ -63,6 +81,67 @@ function BasicConfirmationModal({
             <h3 className="mb-6 text-body text-dark-pink font-medium font-overpass text-[1.1rem] tracking-wider">
               {message}
             </h3>
+            {passwordValue !== undefined && onPasswordChange && (
+              <div className="mb-4 text-left">
+                <label
+                  htmlFor="confirmation-password"
+                  className="block mb-2 font-jost tracking-wide text-[1.1rem] font-medium text-pink"
+                >
+                  Password
+                </label>
+                <input
+                  id="confirmation-password"
+                  type="password"
+                  autoComplete="current-password"
+                  value={passwordValue}
+                  onChange={(event) => onPasswordChange(event.target.value)}
+                  disabled={isConfirming}
+                  aria-invalid={Boolean(passwordError)}
+                  aria-describedby={passwordError ? 'confirmation-password-error' : undefined}
+                  className="font-overpass text-[1.1rem] bg-gray-50 border border-gray-300 text-deep-purple block w-full p-2.5 disabled:opacity-60"
+                />
+                {passwordError && (
+                  <p
+                    id="confirmation-password-error"
+                    role="alert"
+                    className="mt-2 text-sm text-red-600"
+                  >
+                    {passwordError}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {confirmationValue !== undefined &&
+              onConfirmationChange &&
+              expectedConfirmationText && (
+                <div className="mb-4 text-left">
+                  <label
+                    htmlFor="typed-confirmation"
+                    className="block mb-2 font-jost tracking-wide text-[1.1rem] font-medium text-pink"
+                  >
+                    Type {expectedConfirmationText} to confirm
+                  </label>
+                  <input
+                    id="typed-confirmation"
+                    type="text"
+                    value={confirmationValue}
+                    onChange={(event) => onConfirmationChange(event.target.value)}
+                    disabled={isConfirming}
+                    autoComplete="off"
+                    className="font-overpass text-[1.1rem] bg-gray-50 border border-gray-300 text-deep-purple block w-full p-2.5 disabled:opacity-60"
+                  />
+                </div>
+              )}
+
+            {errorMessage && (
+              <div
+                role="alert"
+                className="p-3 mb-6 text-red-800 bg-red-50 border border-red-200 font-overpass text-[1rem] tracking-wide"
+              >
+                {errorMessage}
+              </div>
+            )}
 
             {/* Buttons */}
             <div className="flex items-center space-x-4 justify-center">
@@ -71,9 +150,8 @@ function BasicConfirmationModal({
                 onClick={onConfirm}
                 data-modal-hide="popup-modal"
                 type="button"
-                className={confirmButtonClasses[confirmButtonVariant]}
-                disabled={isConfirming}
-                // className="text-white bg-danger box-border border border-transparent hover:bg-danger-strong focus:ring-4 focus:ring-danger-medium shadow-xs font-regular cursor-pointer tracking-wider leading-5 text-[1.1rem] px-4 py-2.5 focus:outline-none"
+                disabled={isConfirmDisabled}
+                className={`${confirmButtonClasses[confirmButtonVariant]} disabled:opacity-60 disabled:cursor-not-allowed`}
               >
                 {isConfirming ? 'Processing...' : confirmButtonText}
               </button>
@@ -82,8 +160,8 @@ function BasicConfirmationModal({
               <button
                 onClick={onCancel}
                 type="button"
-                disabled={isConfirming}
-                className="text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading focus:ring-4 focus:ring-neutral-tertiary shadow-xs font-jost tracking-wider cursor-pointer font-regular leading-5 text-[1.1rem] px-4 py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
+                disabled={isDismissDisabled}
+                className="text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading focus:ring-4 focus:ring-neutral-tertiary shadow-xs font-jost tracking-wider cursor-pointer font-regular leading-5 text-[1.1rem] px-4 py-2.5 focus:outline-none"
               >
                 Cancel
               </button>

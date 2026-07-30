@@ -85,6 +85,33 @@ function AppRoutes() {
           path="/platform/organisation-requests/:requestId"
           element={<OrganisationInformationPage />}
         />
+        <Route
+          path="/organisation-security-preferences"
+          element={<OrganisationSecuritySettingsPage />}
+        />
+        <Route path="/organisation-management" element={<PlatformOrganisationManagementPage />} />
+        <Route
+          element={
+            <ProtectedRoute
+              requiredRole="ORGANISATION_ADMIN"
+              requireOrganisation
+              requiredPermission="VIEW_ORGANISATION_TRAINEES"
+            />
+          }
+        >
+          <Route path="/organisation-trainees" element={<OrganisationTraineesPage />} />
+        </Route>
+        <Route
+          element={
+            <ProtectedRoute
+              requiredRole="ORGANISATION_ADMIN"
+              requireOrganisation
+              requiredPermission="VIEW_ORGANISATION_ADMINS"
+            />
+          }
+        >
+          <Route path="/organisation-administrators" element={<OrganisationAdministratorsPage />} />
+        </Route>
         <Route path="/platform-administrators" element={<PlatformAdministratorsPage />} />
       </Route>
 
