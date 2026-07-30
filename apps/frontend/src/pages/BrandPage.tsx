@@ -1,7 +1,8 @@
-import BrandNavbar from './Brand/BrandNavbar';
-import BrandHeroSection from './Brand/BrandHeroSection';
-import BrandSection from './Brand/BrandSection';
-import ColourPalette from './Brand/ColourPalette';
+import BrandNavbar from './brand/BrandNavbar';
+import BrandHeroSection from './brand/BrandHeroSection';
+import BrandSection from './brand/BrandSection';
+import ColourPalette from './brand/ColourPalette';
+import Typography from './brand/Typography';
 
 function BrandPage() {
   return (
@@ -19,6 +20,10 @@ function BrandPage() {
 
         <section id="colours">
           <ColourPalette />
+        </section>
+
+        <section id="typography">
+          <Typography />
         </section>
       </div>
     </main>
