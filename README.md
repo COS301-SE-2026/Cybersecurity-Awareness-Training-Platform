@@ -38,28 +38,6 @@ By focusing on human behaviour, the most common source of security breaches, the
 
 ---
 
-# <img src="https://img.icons8.com/?size=100&id=OxDyKkYjQ5Yk&format=png&color=000000" width="32"> Current Demo Scope
-
-> _Demo 1_ is an **_early local prototype_** of the trainee journey. It is not a complete final SRS or full-year platform implementation.
-
-#### _Demo 1_ Scope
-
-- View and open seeded simulated inbox emails
-- View seeded training material
-- Complete a simple quiz flow and view results
-
-#### Base Supporting Features
-
-- Login, logout, and register
-- Form (login and register) and payload validation
-- Basic theme, navigation (sidebar), and trainee-facing feedback states (e.g., training material or quizzes started, not stated, etc.)
-
-Future platform direction includes organisation admin campaign builders, trainee/user management, reporting dashboards, real email delivery to actual inboxes, AI-assisted content generation, and advanced simulations such as fake login pages, richer link/attachment interactions, calls, or password-checker activities. Real email delivery must be opt-in and ethically constrained. AI-assisted generation remains future-facing and would require controlled schemas, prepared context, and review; training a custom model is undecided and is not promised.
-
-> _Demo 1_ **runs locally**. Deployment to _Southern Cross_ infrastructure is a later target.
-
----
-
 ## <img src="https://img.icons8.com/?size=100&id=VbgGe1XzgPAK&format=png&color=000000" width="24"> Badges
 
 <p align="left">
@@ -75,11 +53,8 @@ Future platform direction includes organisation admin campaign builders, trainee
 </p>
 
 <p align="left">
-  <a href="docs/demo1/SRS.md">
-    <img src="https://img.shields.io/badge/Requirements-SRS%20Documented-blue?style=for-the-badge" alt="Requirements: SRS documented" />
-  </a>
-  <a href="docs/demo1/SRS.md">
-    <img src="https://img.shields.io/badge/Demo%201-Docs%20Available-blue?style=for-the-badge" alt="Demo 1 docs available" />
+  <a href="docs.insightfulphish.co.za">
+    <img src="https://img.shields.io/badge/Demo%202-Docs%20Available-blue?style=for-the-badge" alt="Demo 2 docs available" />
   </a>
   <img src="https://img.shields.io/badge/Monorepo-pnpm%20Workspaces-blue?style=for-the-badge" alt="Monorepo: pnpm workspaces" />
   <img src="https://img.shields.io/badge/Branching-Feature%20Branches%20%2B%20Dev-blue?style=for-the-badge" alt="Branching: feature branches plus dev" />
@@ -99,21 +74,17 @@ Future platform direction includes organisation admin campaign builders, trainee
 
 ## <img src="https://img.icons8.com/?size=100&id=1BYH0ZFsjeIy&format=png&color=000000" width="24"> Important Project Links
 
-1. **Project Board**: https://developer.insightfulphish.co.za/repository/project-board
-2. **Project Issues**: https://developer.insightfulphish.co.za/repository/issues
-3. **Project Pull Requests**: https://developer.insightfulphish.co.za/repository/pull-requests
+1. **Project Board**: https://project.insightfulphish.co.za
+2. **Project Issues**: https://issues.insightfulphish.co.za
+3. **Project Pull Requests**: https://pr.insightfulphish.co.za
+4. **GitHub** https://github.insightfulphish.co.za _(YOU ARE HERE)_
+5. **Help** https://help.insightfulphish.co.za
 
-### Demo 1 Documentation
+### Demo 2 Documentation
 
-1. **Functional Requirements (SRS)**: [docs/demo1/SRS.md](docs/demo1/SRS.md)
-2. **API Contracts**: [docs/demo1/API.md](docs/demo1/API.md)
-3. **Architecture**: [docs/demo1/architecture.md](docs/demo1/architecture.md)
-4. **Traceability**: [docs/demo1/traceability.md](docs/demo1/traceability.md)
-5. **Testing Plan**: [docs/demo1/testing.md](docs/demo1/testing.md)
-6. **Design Specification**: [docs/demo1/DESIGN.md](docs/demo1/DESIGN.md)
-7. **Diagrams**: [docs/demo1/diagrams/README.md](docs/demo1/diagrams/README.md)
-8. **Wireframes**: [docs/demo1/wireframes/README.md](docs/demo1/wireframes/README.md)
-9. **Demo 1 Video**: [YouTube](https://youtu.be/2N3udVKsnH0)
+2. **Demo 2 Documentation**: https://docs.insightfulphish.co.za
+1. **Swagger Documentation (API Contracts)**: https://swagger.insightfulphish.co.za
+1. **Brand Guidelines**: https://brand.insightfulphish.co.za
 
 ---
 
