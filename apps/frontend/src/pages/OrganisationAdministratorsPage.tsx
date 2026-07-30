@@ -988,10 +988,11 @@ function OrganisationAdministratorsPage() {
                             }}
                           >
                             <button
-                              className={`px-2 py-1 border-2 inline-flex items-center gap-2 cursor-pointer ${openPermissionPopover === organisationAdministrator.id
+                              className={`px-2 py-1 border-2 inline-flex items-center gap-2 cursor-pointer ${
+                                openPermissionPopover === organisationAdministrator.id
                                   ? 'border-purple'
                                   : 'border-transparent'
-                                }`}
+                              }`}
                               type="button"
                             >
                               <span
