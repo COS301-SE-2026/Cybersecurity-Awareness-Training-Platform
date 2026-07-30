@@ -962,8 +962,8 @@
           "number": 243,
           "title": "feat: integrate reset password flow",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-07-30"
         },
         {
           "number": 242,
@@ -1898,7 +1898,7 @@
     },
     {
       "date": "2026-07-30",
-      "remaining": 32,
+      "remaining": 30,
       "ideal": 0.0
     }
   ]
