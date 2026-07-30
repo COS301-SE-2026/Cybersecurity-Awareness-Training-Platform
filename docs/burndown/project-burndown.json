@@ -815,8 +815,8 @@
           "number": 283,
           "title": "feat: integrate minimal Sprint 4 dashboards and role redirects",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-07-30"
         },
         {
           "number": 282,
@@ -1898,7 +1898,7 @@
     },
     {
       "date": "2026-07-30",
-      "remaining": 30,
+      "remaining": 28,
       "ideal": 0.0
     }
   ]
