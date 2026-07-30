@@ -139,11 +139,11 @@ function getMutationErrorMessage(error: unknown, fallback: string): string {
   }
 
   if (error.status === 409) {
-    return bodyMessage || 'the administrator data changed. The list has been refreshed.';
+    return bodyMessage || 'The administrator data changed. The list has been refreshed.';
   }
 
   if (error.status === 422) {
-    return bodyMessage || 'Please check the submitted valued and try again.';
+    return bodyMessage || 'Please check the submitted values and try again.';
   }
 
   if (error.status === 429) {
@@ -403,7 +403,7 @@ function OrganisationAdministratorsPage() {
     setFeedback(null);
     setConfirmationButtonText('Remove');
     setConfirmationTitle('Remove Organisation Administrator');
-    setConfirmationMessage(`Remove administrator priveleges from ${administrator.fullName}?`);
+    setConfirmationMessage(`Remove administrator privileges from ${administrator.fullName}?`);
     setConfirmationVariant('danger');
     setShowBasicConfirmationModal(true);
   };
