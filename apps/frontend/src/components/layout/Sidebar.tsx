@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { HelpCenterSharp, Menu, SchoolOutlined } from '@mui/icons-material';
+import { Menu, SchoolOutlined } from '@mui/icons-material';
 import SecuritySharpIcon from '@mui/icons-material/SecuritySharp'; // Organisation Security Preferences Page (ORG ADMIN, NORM ADMIN, SUPER ADMIN)
 import CorporateFareSharpIcon from '@mui/icons-material/CorporateFareSharp'; // Organisation Management Page (NORM ADMIN, SUPER ADMIN)
 import GroupsSharpIcon from '@mui/icons-material/GroupsSharp'; // Organisation Trainees Page (ORG ADMIN, NORM ADMIN, SUPER ADMIN)
@@ -77,7 +77,7 @@ function Sidebar() {
         ]
       : []),
     {
-      icon: <HelpCenterSharp />,
+      icon: <HelpOutlineSharpIcon />,
       label: 'Help',
       path: 'https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/wiki/Demo-2-User-Manual',
     },

@@ -1,4 +1,3 @@
-import BackToLoginButton from '../../components/BackToLoginButton';
 import { Popover } from 'flowbite-react';
 import LoadingSpinnerSVG from '../../components/LoadingSpinnerSVG';
 
