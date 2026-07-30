@@ -1,6 +1,6 @@
 # Burndown Check Report
 
-Last run: 2026-07-30 19:39:49 SAST
+Last run: 2026-07-31 00:16:00 SAST
 
 - #207 fix: seed campaign creator relation after Prisma schema update closed 1 day after Sprint 3 (Demo 2) ended.
 - #184 chore: clean trainee terminology and small frontend test warnings closed 1 day after Sprint 3 (Demo 2) ended.
@@ -33,3 +33,4 @@ Last run: 2026-07-30 19:39:49 SAST
 - #226 feat: integrate Sprint 4 auth client and protected route behaviour closed 18 days after Sprint 4 (Demo 2) ended.
 - #224 feat: build frontend shared Sprint 4 authentication shell and components closed 17 days after Sprint 4 (Demo 2) ended.
 - #221 docs: design Sprint 4 email bodies closed 3 days after Sprint 4 (Demo 2) ended.
+- No sprint is active on 2026-07-31 in SAST. Keeping latest started sprint `Sprint 5 (Demo 2)` as the latest sprint burndown.
