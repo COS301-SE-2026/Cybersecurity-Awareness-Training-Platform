@@ -1,17 +1,19 @@
-import type {
-  AuthForgotPasswordRequestDto,
-  AuthForgotPasswordResponseDto,
-  AccountVerifyEmailChangeRequestDto,
-  AccountVerifyEmailChangeResponseDto,
-  ActionTokenStateDto,
-  AuthLoginRequestDto,
-  AuthLoginResponseDto,
-  AuthMeResponseDto,
-  AuthRegisterResponseDto,
-  AuthVerifyEmailRequestDto,
-  AuthVerifyEmailResponseDto,
-  SetupCompleteResponseDto,
-  SetupTokenContextResponseDto,
+import {
+  type AccountVerifyEmailChangeRequestDto,
+  type AccountVerifyEmailChangeResponseDto,
+  type ActionTokenStateDto,
+  type AuthForgotPasswordRequestDto,
+  type AuthForgotPasswordResponseDto,
+  type AuthLoginRequestDto,
+  type AuthLoginResponseDto,
+  type AuthMeResponseDto,
+  type AuthRegisterResponseDto,
+  type AuthResetPasswordRequestDto,
+  type AuthVerifyEmailRequestDto,
+  type AuthVerifyEmailResponseDto,
+  type SetupCompleteResponseDto,
+  type SetupTokenContextResponseDto,
+  type SuccessResponseDto,
 } from '@insightful-phish/shared';
 import { apiClient } from '../lib/apiClient';
 
@@ -82,6 +84,16 @@ export function requestPasswordReset(
 ): Promise<AuthForgotPasswordResponseDto> {
   return apiClient.post<AuthForgotPasswordResponseDto, AuthForgotPasswordRequestDto>(
     '/auth/forgot-password',
+    payload,
+    {
+      credentials: 'include',
+    },
+  );
+}
+
+export function resetPassword(payload: AuthResetPasswordRequestDto): Promise<SuccessResponseDto> {
+  return apiClient.post<SuccessResponseDto, AuthResetPasswordRequestDto>(
+    '/auth/reset-password',
     payload,
     {
       credentials: 'include',
