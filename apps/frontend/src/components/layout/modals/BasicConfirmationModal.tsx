@@ -25,11 +25,11 @@ function BasicConfirmationModal({
 }: BasicConfirmationModalProps) {
   const confirmButtonClasses = {
     danger:
-      'text-white bg-danger box-border border border-transparent hover:bg-danger-strong focus:ring-4 focus:ring-danger-medium shadow-xs font-regular cursor-pointer tracking-wider leading-5 text-[1.1rem] px-4 py-2.5 focus:outline-none',
+      'text-white bg-danger box-border border border-transparent hover:bg-danger-strong focus:ring-4 focus:ring-danger-medium shadow-xs font-regular cursor-pointer tracking-wider leading-5 text-[1.1rem] px-4 py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed',
     success:
-      'text-white bg-emerald-500 box-border border border-transparent hover:bg-emerald-600 focus:ring-4 focus:ring-danger-medium shadow-xs font-regular cursor-pointer tracking-wider leading-5 text-[1.1rem] px-4 py-2.5 focus:outline-none',
+      'text-white bg-emerald-500 box-border border border-transparent hover:bg-emerald-600 focus:ring-4 focus:ring-danger-medium shadow-xs font-regular cursor-pointer tracking-wider leading-5 text-[1.1rem] px-4 py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed',
     default:
-      'text-white bg-main-purple box-border border border-transparent hover:bg-main-purple focus:ring-4 focus:ring-danger-medium shadow-xs font-regular cursor-pointer tracking-wider leading-5 text-[1.1rem] px-4 py-2.5 focus:outline-none',
+      'text-white bg-main-purple box-border border border-transparent hover:bg-main-purple focus:ring-4 focus:ring-danger-medium shadow-xs font-regular cursor-pointer tracking-wider leading-5 text-[1.1rem] px-4 py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed',
   };
 
   return (
@@ -37,16 +37,16 @@ function BasicConfirmationModal({
       id="popup-modal"
       tabIndex={-1}
       aria-hidden="true"
-      className="fixed inset-0 z-100 flex items-center justify-center bg-black/50 backdrop-blur-xl"
+      className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/50 backdrop-blur-xl"
     >
       <div className="relative p-2 w-full max-w-md max-h-full">
         <div className="relative bg-white-purple border border-default shadow-xl p-4 md:p-6">
           {/* CLOSE MODAL Button */}
           <button
             type="button"
-            className="absolute top-3 end-2.5 text-body bg-transparent hover:bg-neutral-tertiary hover:text-heading text-sm w-9 h-9 ms-auto inline-flex justify-center items-center"
+            className="absolute top-3 end-2.5 text-body bg-transparent hover:bg-neutral-tertiary hover:text-heading text-sm w-9 h-9 ms-auto inline-flex justify-center items-center disabled:opacity-60 disabled:cursor-not-allowed"
+            disabled={isConfirmDisabled || isConfirming}
             onClick={onCancel}
-            disabled={isDismissDisabled}
           >
             <span className="material-icons-sharp">close</span>
             <span className="sr-only">Close modal</span>
@@ -85,7 +85,7 @@ function BasicConfirmationModal({
                 onClick={onConfirm}
                 data-modal-hide="popup-modal"
                 type="button"
-                disabled={isConfirmDisabled}
+                disabled={isConfirmDisabled || isConfirming}
                 className={`${confirmButtonClasses[confirmButtonVariant]} disabled:opacity-60 disabled:cursor-not-allowed`}
               >
                 {isConfirming ? 'Processing...' : confirmButtonText}
@@ -95,7 +95,7 @@ function BasicConfirmationModal({
               <button
                 onClick={onCancel}
                 type="button"
-                disabled={isDismissDisabled}
+                disabled={isDismissDisabled || isConfirming}
                 className="text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading focus:ring-4 focus:ring-neutral-tertiary shadow-xs font-jost tracking-wider cursor-pointer font-regular leading-5 text-[1.1rem] px-4 py-2.5 focus:outline-none"
               >
                 Cancel

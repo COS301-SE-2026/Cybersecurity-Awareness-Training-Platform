@@ -1,3 +1,5 @@
+import LoadingSpinnerSVG from '../LoadingSpinnerSVG';
+
 type RepresentativeInformationFormProps = Readonly<{
   repFName: string;
   setRepFName: React.Dispatch<React.SetStateAction<string>>;
@@ -139,6 +141,7 @@ function RepresentativeInformationForm({
           disabled={isSubmitting}
           className="cursor-pointer px-6 py-3 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm px-4 py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
         >
+          {isSubmitting && <LoadingSpinnerSVG />}
           <span>{isSubmitting ? 'Submitting Request...' : 'Complete Registration Request'}</span>
         </button>
       </div>

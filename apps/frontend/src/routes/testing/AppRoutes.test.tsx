@@ -87,6 +87,10 @@ vi.mock('../../pages/ConfirmEmailChangePage', () => ({
   default: () => <h1>Confirm Email Change</h1>,
 }));
 
+vi.mock('../../pages/ResetPasswordPage', () => ({
+  default: () => <h1>Reset Password</h1>,
+}));
+
 vi.mock('../../lib/campaignsApi', () => ({
   getTraineeCampaigns: vi.fn(),
   getTraineeCampaignDetail: vi.fn(),
@@ -221,6 +225,20 @@ describe('AppRoutes', () => {
 
     expect(
       await screen.findByRole('heading', { level: 1, name: /confirm email change/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('renders the reset password screen with a token query parameter', async () => {
+    renderAppRoutes({
+      initialEntry: '/reset-password?token=exampleResetTokenValueWithAtLeast32Chars',
+      isAuthenticated: false,
+    });
+
+    expect(
+      await screen.findByRole('heading', {
+        level: 1,
+        name: /^reset password$/i,
+      }),
     ).toBeInTheDocument();
   });
 

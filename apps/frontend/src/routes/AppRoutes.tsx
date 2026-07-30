@@ -23,6 +23,7 @@ import OrganisationSecuritySettingsPage from '../pages/OrganisationSecuritySetti
 import PlatformOrganisationManagementPage from '../pages/PlatformOrganisationManagementPage';
 import OrganisationTraineesPage from '../pages/OrganisationTraineesPage';
 import OrganisationAdministratorsPage from '../pages/OrganisationAdministratorsPage';
+import PlatformAdministratorsPage from '../pages/PlatformAdministratorsPage';
 
 function AppRoutes() {
   return (
@@ -50,6 +51,9 @@ function AppRoutes() {
         <Route path="/quizzes/:quizId" element={<QuizPage />} />
         <Route path="/quiz-attempts/:attemptId/results" element={<ResultsPage />} />
         <Route path="/campaigns" element={<CampaignsPage />} />
+
+        {/* ACCOUNT MANAGEMENT PROTECTED ROUTE */}
+        <Route path="/account-management" element={<AccountManagementPage />} />
 
         {/* ORGANISATION DETAILS PROTECTED ROUTES */}
         <Route path="/organisation-information" element={<OrganisationInformationPage />} />
@@ -88,15 +92,13 @@ function AppRoutes() {
         element={<OrganisationRegistrationRequestPage />}
       />
 
-      {/* Account Settings Route */}
-      <Route path="/account-management" element={<AccountManagementPage />} />
-
       {/* ACCEPT INVITE ROUTE */}
       <Route path="/accept-invite" element={<AcceptInvitePage />} />
       <Route path="/accept-invite/:token" element={<AcceptInvitePage />} />
 
       <Route path="/" element={<LandingPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="/platform-administrators" element={<PlatformAdministratorsPage />} />
     </Routes>
   );
 }

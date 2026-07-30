@@ -1,55 +1,444 @@
 import BasicAlert from '../components/alerts/BasicAlert';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { authResetPasswordRequestSchema } from '@insightful-phish/shared';
-import SuccessfulPasswordResetModal from '../components/layout/modals/SuccessfulPasswordResetModal';
 import { Popover } from 'flowbite-react';
-import PasswordResetLinkExpiredModal from '../components/layout/modals/PasswordResetLinkExpiredModal';
 import BackToLoginButton from '../components/BackToLoginButton';
 import LoadingSpinnerSVG from '../components/LoadingSpinnerSVG';
+import { ApiError } from '../lib/apiClient';
+import { useSearchParams } from 'react-router-dom';
+import { getTokenContext, resetPassword, resendToken } from '../services/auth.service';
+import TokenVerificationPanel from '../components/auth/TokenVerificationPanel';
 
-function formatAlertMessage(message: string) {
-  // makes everything title case and removes the . from the end of the message
-  return message
-    .replace(/\.$/, '')
-    .replace(/\w\S*/g, (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
+const MISSING_TOKEN_MESSAGE = 'This password reset link is missing a token.';
+const INVALID_TOKEN_MESSAGE = 'This password reset link is invalid.';
+const EXPIRED_TOKEN_MESSAGE = 'This password reset link has expired.';
+const USED_TOKEN_MESSAGE = 'This password reset link has already been used.';
+const REVOKED_TOKEN_MESSAGE = 'This password reset link is no longer valid.';
+const DISABLED_ACCOUNT_MESSAGE = 'We could not reset your password with this link.';
+const CONTEXT_ERROR_MESSAGE =
+  'We could not validate this password reset link right now. Please try again later.';
+const RATE_LIMIT_MESSAGE = 'Please wait before trying to reset your password again.';
+const GENERIC_ERROR_MESSAGE = 'We could not reset your password right now. Please try again later.';
+const VALIDATION_FALLBACK_MESSAGE = 'Please check the highlighted fields and try again.';
+const NEW_FIELD_ERROR_ID = 'reset-new-field-error';
+const CONFIRMATION_FIELD_ERROR_ID = 'reset-confirmation-field-error';
+const RESEND_SUCCESS_MESSAGE =
+  'If the account is still eligible, a new password reset link has been sent.';
+const RESEND_GENERIC_MESSAGE =
+  'We could not send a new password reset link right now. Please try again later.';
+const RESEND_RATE_LIMIT_MESSAGE = 'Please wait before requesting another password reset link.';
+const RESEND_INELIGIBLE_MESSAGE =
+  'This password reset link cannot be resent. Please request a new password reset.';
+
+function getResendCooldownMessage(seconds: number): string {
+  return seconds > 0
+    ? `Please wait ${seconds} seconds before requesting another password reset link.`
+    : RESEND_RATE_LIMIT_MESSAGE;
 }
 
-function ResetPasswordPage() {
-  const [alertMessage, setAlertMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [showSuccessfulPasswordResetModal, setShowSuccessfulPasswordResetModal] = useState(false);
+type FieldErrors = {
+  newPassword?: string;
+  confirmNewPassword?: string;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function getApiErrorCode(error: ApiError): string | null {
+  if (!isRecord(error.body)) return null;
+
+  const code = error.body.error;
+  return typeof code === 'string' ? code : null;
+}
+
+function getCooldownSeconds(error: ApiError): number {
+  if (!isRecord(error.body)) return 0;
+
+  const cooldownSeconds = error.body.cooldownSeconds;
+
+  return typeof cooldownSeconds === 'number' && cooldownSeconds > 0 ? cooldownSeconds : 0;
+}
+
+function getValidationDetails(error: ApiError): Array<{ field: string; message: string }> {
+  if (!isRecord(error.body) || !Array.isArray(error.body.details)) return [];
+
+  return error.body.details.flatMap((detail) => {
+    if (
+      !isRecord(detail) ||
+      typeof detail.field !== 'string' ||
+      typeof detail.message !== 'string' ||
+      !detail.message.trim()
+    ) {
+      return [];
+    }
+    return [{ field: detail.field, message: detail.message }];
+  });
+}
+
+function getTokenStateMessage(state: string): string {
+  if (state === 'EXPIRED') return EXPIRED_TOKEN_MESSAGE;
+  if (state === 'USED') return USED_TOKEN_MESSAGE;
+  if (state === 'REVOKED') return REVOKED_TOKEN_MESSAGE;
+  return INVALID_TOKEN_MESSAGE;
+}
+
+function getResetTokenErrorMessage(code: string | null): string | null {
+  if (code === 'RESET_TOKEN_EXPIRED') return EXPIRED_TOKEN_MESSAGE;
+  if (code === 'RESET_TOKEN_USED') return USED_TOKEN_MESSAGE;
+  if (code === 'RESET_TOKEN_REVOKED') return REVOKED_TOKEN_MESSAGE;
+  if (code === 'RESET_TOKEN_INVALID') return INVALID_TOKEN_MESSAGE;
+  if (code === 'USER_DISABLED') return DISABLED_ACCOUNT_MESSAGE;
+  return null;
+}
+
+interface ResetPasswordFlowProps {
+  token: string;
+}
+
+type TokenStatus = 'loading' | 'valid' | 'error';
+type ResendFeedbackStatus = 'success' | 'error';
+
+function ResetPasswordFlow({ token }: ResetPasswordFlowProps) {
+  const [tokenStatus, setTokenStatus] = useState<TokenStatus>(token ? 'loading' : 'error');
+  const [tokenErrorMessage, setTokenErrorMessage] = useState(token ? '' : MISSING_TOKEN_MESSAGE);
+
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [formError, setFormError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccessful, setIsSuccessful] = useState(false);
+  const submissionInFlightRef = useRef(false);
+  const submissionRequestIdRef = useRef(0);
+  const contextRequestIdRef = useRef(0);
+  const newPasswordRef = useRef<HTMLInputElement>(null);
+  const confirmNewPasswordRef = useRef<HTMLInputElement>(null);
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
-  const [showPasswordResetLinkExpiredModal, setShowPasswordResetLinkExpiredModal] = useState(false);
+  const [canResend, setCanResend] = useState(false);
+  const [resendCooldownSeconds, setResendCooldownSeconds] = useState(0);
+  const [isResending, setIsResending] = useState(false);
+  const [resendFeedbackStatus, setResendFeedbackStatus] = useState<ResendFeedbackStatus>('success');
+  const [resendFeedbackMessage, setResendFeedbackMessage] = useState<string | null>(null);
+  const resendInFlightRef = useRef(false);
+  const resendRequestIdRef = useRef(0);
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  useEffect(() => {
+    const requestId = ++contextRequestIdRef.current;
+
+    if (!token) {
+      return () => {
+        contextRequestIdRef.current += 1;
+        submissionRequestIdRef.current += 1;
+        submissionInFlightRef.current = false;
+        resendInFlightRef.current = false;
+        resendRequestIdRef.current += 1;
+      };
+    }
+
+    async function loadContext() {
+      try {
+        const context = await getTokenContext(token);
+
+        if (contextRequestIdRef.current !== requestId) return;
+
+        const isPasswordResetContext = context.flow === 'PASSWORD_RESET';
+        const isEligibleExpiredResetToken =
+          isPasswordResetContext && context.tokenState === 'EXPIRED' && context.canResend;
+
+        setCanResend(isEligibleExpiredResetToken);
+        setResendCooldownSeconds(
+          isEligibleExpiredResetToken ? Math.max(0, context.resendCooldownSeconds) : 0,
+        );
+
+        if (context.tokenState === 'VALID' && isPasswordResetContext) {
+          setTokenStatus('valid');
+          setTokenErrorMessage('');
+          return;
+        }
+
+        setTokenStatus('error');
+        setTokenErrorMessage(
+          context.tokenState === 'VALID'
+            ? INVALID_TOKEN_MESSAGE
+            : getTokenStateMessage(context.tokenState),
+        );
+      } catch (error) {
+        if (contextRequestIdRef.current !== requestId) return;
+
+        setCanResend(false);
+        setResendCooldownSeconds(0);
+
+        const isInvalidContextError =
+          error instanceof ApiError &&
+          (error.status === 400 || getApiErrorCode(error) === 'VALIDATION_ERROR');
+
+        setTokenStatus('error');
+        setTokenErrorMessage(isInvalidContextError ? INVALID_TOKEN_MESSAGE : CONTEXT_ERROR_MESSAGE);
+      }
+    }
+
+    void loadContext();
+
+    return () => {
+      contextRequestIdRef.current += 1;
+      submissionRequestIdRef.current += 1;
+      submissionInFlightRef.current = false;
+      resendRequestIdRef.current += 1;
+      resendInFlightRef.current = false;
+    };
+  }, [token]);
+
+  function focusFirstFieldError(errors: FieldErrors) {
+    if (errors.newPassword) {
+      newPasswordRef.current?.focus();
+      return;
+    }
+
+    if (errors.confirmNewPassword) {
+      confirmNewPasswordRef.current?.focus();
+    }
+  }
+
+  useEffect(() => {
+    if (resendCooldownSeconds <= 0) return;
+
+    const timer = window.setTimeout(() => {
+      setResendCooldownSeconds((current) => Math.max(0, current - 1));
+    }, 1000);
+
+    return () => window.clearTimeout(timer);
+  }, [resendCooldownSeconds]);
+
+  function applyValidationDetails(error: ApiError): boolean {
+    const details = getValidationDetails(error);
+    const nextErrors: FieldErrors = {};
+    let hasUnknownField = false;
+
+    for (const detail of details) {
+      if (detail.field === 'newPassword' && !nextErrors.newPassword) {
+        nextErrors.newPassword = detail.message;
+      } else if (detail.field === 'confirmNewPassword' && !nextErrors.confirmNewPassword) {
+        nextErrors.confirmNewPassword = detail.message;
+      } else if (detail.field === 'token') {
+        setTokenStatus('error');
+        setTokenErrorMessage(INVALID_TOKEN_MESSAGE);
+        return true;
+      } else {
+        hasUnknownField = true;
+      }
+    }
+
+    setFieldErrors(nextErrors);
+
+    if (nextErrors.newPassword || nextErrors.confirmNewPassword) {
+      focusFirstFieldError(nextErrors);
+      return true;
+    }
+
+    if (hasUnknownField || details.length === 0) {
+      setFormError(VALIDATION_FALLBACK_MESSAGE);
+      return true;
+    }
+
+    return false;
+  }
+
+  async function refreshExpiredRecovery() {
+    const requestId = ++contextRequestIdRef.current;
+
+    setCanResend(false);
+    setResendCooldownSeconds(0);
+    setResendFeedbackMessage(null);
+
+    try {
+      const context = await getTokenContext(token);
+
+      if (contextRequestIdRef.current !== requestId) return;
+
+      const hasValidCooldown =
+        typeof context.resendCooldownSeconds === 'number' &&
+        Number.isFinite(context.resendCooldownSeconds);
+
+      const isEligibleExpiredResetToken =
+        context.flow === 'PASSWORD_RESET' &&
+        context.tokenState === 'EXPIRED' &&
+        context.canResend === true &&
+        hasValidCooldown;
+
+      setCanResend(isEligibleExpiredResetToken);
+      setResendCooldownSeconds(
+        isEligibleExpiredResetToken ? Math.max(0, context.resendCooldownSeconds) : 0,
+      );
+    } catch {
+      if (contextRequestIdRef.current !== requestId) return;
+
+      setCanResend(false);
+      setResendCooldownSeconds(0);
+    }
+  }
+
+  async function handleResend() {
+    if (
+      !token ||
+      !canResend ||
+      resendInFlightRef.current ||
+      isResending ||
+      resendCooldownSeconds > 0
+    ) {
+      return;
+    }
+
+    resendInFlightRef.current = true;
+    const requestId = ++resendRequestIdRef.current;
+
+    setIsResending(true);
+    setResendFeedbackMessage(null);
+
+    try {
+      await resendToken(token);
+
+      if (resendRequestIdRef.current !== requestId) return;
+
+      setCanResend(false);
+      setResendCooldownSeconds(0);
+      setResendFeedbackStatus('success');
+      setResendFeedbackMessage(RESEND_SUCCESS_MESSAGE);
+    } catch (error) {
+      if (resendRequestIdRef.current !== requestId) return;
+
+      if (error instanceof ApiError) {
+        const code = getApiErrorCode(error);
+
+        if (code === 'RESEND_COOLDOWN_ACTIVE') {
+          const cooldownSeconds = getCooldownSeconds(error);
+
+          setResendCooldownSeconds(cooldownSeconds);
+          setResendFeedbackStatus('error');
+          setResendFeedbackMessage(getResendCooldownMessage(cooldownSeconds));
+          return;
+        }
+
+        if (code === 'TOKEN_RESEND_INELIGIBLE') {
+          setCanResend(false);
+          setResendFeedbackStatus('error');
+          setResendFeedbackMessage(RESEND_INELIGIBLE_MESSAGE);
+          return;
+        }
+
+        if (code === 'AUTH_RATE_LIMITED') {
+          setResendFeedbackStatus('error');
+          setResendFeedbackMessage(RESEND_RATE_LIMIT_MESSAGE);
+          return;
+        }
+      }
+
+      setResendFeedbackStatus('error');
+      setResendFeedbackMessage(RESEND_GENERIC_MESSAGE);
+    } finally {
+      if (resendRequestIdRef.current === requestId) {
+        resendInFlightRef.current = false;
+        setIsResending(false);
+      }
+    }
+  }
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setAlertMessage('');
+
+    if (submissionInFlightRef.current || tokenStatus !== 'valid' || isSubmitting || isSuccessful) {
+      return;
+    }
+
+    setFieldErrors({});
+    setFormError('');
 
     const validationResult = authResetPasswordRequestSchema.safeParse({
-      token: 'temporary-reset-token-for-frontend-validation-only',
+      token,
       newPassword,
       confirmNewPassword,
     });
 
     if (!validationResult.success) {
-      setAlertMessage(
-        formatAlertMessage(validationResult.error.issues[0].message) || 'Unable To Reset Password',
-      );
+      const nextErrors: FieldErrors = {};
+      let hasUnknownIssue = false;
+
+      for (const issue of validationResult.error.issues) {
+        const field = issue.path[0];
+
+        if (field === 'newPassword' && !nextErrors.newPassword) {
+          nextErrors.newPassword = issue.message;
+        } else if (field === 'confirmNewPassword' && !nextErrors.confirmNewPassword) {
+          nextErrors.confirmNewPassword = issue.message;
+        } else if (field === 'token') {
+          setTokenStatus('error');
+          setTokenErrorMessage(INVALID_TOKEN_MESSAGE);
+          return;
+        } else {
+          hasUnknownIssue = true;
+        }
+      }
+
+      setFieldErrors(nextErrors);
+
+      if (hasUnknownIssue) {
+        setFormError(VALIDATION_FALLBACK_MESSAGE);
+      }
+      focusFirstFieldError(nextErrors);
       return;
     }
+    submissionInFlightRef.current = true;
+    const requestId = ++submissionRequestIdRef.current;
+    setIsSubmitting(true);
 
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      setShowSuccessfulPasswordResetModal(true);
-    }, 2000);
+    try {
+      await resetPassword(validationResult.data);
+
+      if (submissionRequestIdRef.current !== requestId) return;
+
+      setIsSuccessful(true);
+    } catch (error) {
+      if (submissionRequestIdRef.current !== requestId) return;
+
+      if (error instanceof ApiError) {
+        const code = getApiErrorCode(error);
+
+        if (code === 'RESET_TOKEN_EXPIRED') {
+          setCanResend(false);
+          setResendCooldownSeconds(0);
+          setTokenStatus('error');
+          setTokenErrorMessage(EXPIRED_TOKEN_MESSAGE);
+          void refreshExpiredRecovery();
+          return;
+        }
+
+        const tokenMessage = getResetTokenErrorMessage(code);
+
+        if (tokenMessage) {
+          setTokenStatus('error');
+          setTokenErrorMessage(tokenMessage);
+          return;
+        }
+
+        if (code === 'VALIDATION_ERROR' && applyValidationDetails(error)) {
+          return;
+        }
+
+        if (error.status === 429 || code === 'AUTH_RATE_LIMITED') {
+          setFormError(RATE_LIMIT_MESSAGE);
+          return;
+        }
+      }
+
+      setFormError(GENERIC_ERROR_MESSAGE);
+    } finally {
+      if (submissionRequestIdRef.current === requestId) {
+        submissionInFlightRef.current = false;
+        setIsSubmitting(false);
+      }
+    }
   }
 
-  let buttonText = 'Reset Password';
-  if (isLoading) {
-    buttonText = 'Resetting Password...';
-  }
+  const buttonText = isSubmitting ? 'Resetting Password...' : 'Reset Password';
 
   const passwordPolicyPopover = (
     <div className="w-100 bg-faint-purple shadow-lg">
@@ -82,26 +471,53 @@ function ResetPasswordPage() {
     </div>
   );
 
-  return (
-    <section className="bg-light-purple dark:bg-gray-900">
-      {/* SUCCESSFUL PASSWORD RESET INDICATION MODAL */}
-      <SuccessfulPasswordResetModal isOpen={showSuccessfulPasswordResetModal} />
+  if (isSuccessful) {
+    return (
+      <TokenVerificationPanel
+        title="Password Reset Successful"
+        status="success"
+        message="Your password has been updated. Please log in again using your new password."
+        showLoginLink
+      />
+    );
+  }
 
-      {/* PASSWORD RESET LINK EXPIRED MODAL  */}
-      <PasswordResetLinkExpiredModal
-        isOpen={showPasswordResetLinkExpiredModal}
-        errorType="Invalid" // See PasswordResetLinkExpiredModal.tsx for LIST...
-        onRequestNewLink={() => {
-          setShowPasswordResetLinkExpiredModal(false); // Make Lint Happy (I LOVE LINTING) (remove later).
-          // REDIRECT TO FORGOT PASSWORD or TRIGGER REQUEST NEW LINK FLOW...
+  if (tokenStatus === 'loading') {
+    return (
+      <TokenVerificationPanel
+        title="Reset Password"
+        status="pending"
+        message="Validating password reset link..."
+      />
+    );
+  }
+
+  if (tokenStatus === 'error') {
+    return (
+      <TokenVerificationPanel
+        title="Reset Password Link"
+        status="error"
+        message={tokenErrorMessage || INVALID_TOKEN_MESSAGE}
+        canResend={canResend}
+        isResending={isResending}
+        resendCooldownSeconds={resendCooldownSeconds}
+        resendButtonLabel="Send a new password reset link"
+        resendSendingLabel="Sending password reset link..."
+        resendFeedbackMessage={resendFeedbackMessage}
+        resendFeedbackStatus={resendFeedbackStatus}
+        onResend={() => {
+          void handleResend();
         }}
       />
+    );
+  }
 
+  return (
+    <section className="bg-light-purple dark:bg-gray-900">
       <div className="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0">
-        {/* LOGO  */}
-        {alertMessage && (
-          <BasicAlert variant="danger" onClose={() => setAlertMessage('')}>
-            {alertMessage}
+        {formError && (
+          <BasicAlert variant="danger" onClose={() => setFormError('')}>
+            {formError}
           </BasicAlert>
         )}
 
@@ -128,7 +544,12 @@ function ResetPasswordPage() {
             Enter and confirm your new password to complete the password reset process.
           </p>
 
-          <form className="mt-4 space-y-4 lg:mt-5 md:space-y-5" onSubmit={handleSubmit} noValidate>
+          <form
+            className="mt-4 space-y-4 lg:mt-5 md:space-y-5"
+            onSubmit={handleSubmit}
+            noValidate
+            aria-busy={isSubmitting}
+          >
             {/* PASSWORD INPUT */}
             <div>
               <div className="flex items-center justify-between">
@@ -147,24 +568,43 @@ function ResetPasswordPage() {
                     content: 'relative overflow-hidden rounded-none',
                   }}
                 >
-                  <span
+                  <button
+                    type="button"
+                    aria-label="Show password requirements"
                     className="material-icons-outlined mb-2 cursor-pointer text-pink"
                     style={{ fontSize: '1.6rem' }}
                   >
                     info
-                  </span>
+                  </button>
                 </Popover>
               </div>
               <input
+                ref={newPasswordRef}
                 type="password"
                 name="newPassword"
-                disabled={isLoading}
+                disabled={isSubmitting}
                 value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
+                onChange={(event) => {
+                  setNewPassword(event.target.value);
+                  setFieldErrors((current) => ({ ...current, newPassword: undefined }));
+                }}
                 id="new-password"
+                required
+                autoComplete="new-password"
+                aria-invalid={fieldErrors.newPassword ? true : undefined}
+                aria-describedby={fieldErrors.newPassword ? NEW_FIELD_ERROR_ID : undefined}
                 className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                 placeholder="Enter a New Password"
               />
+              {fieldErrors.newPassword && (
+                <p
+                  id={NEW_FIELD_ERROR_ID}
+                  role="alert"
+                  className="mt-2 font-overpass text-sm text-red-700"
+                >
+                  {fieldErrors.newPassword}
+                </p>
+              )}
             </div>
 
             {/* CONFIRM PASSWORD INPUT */}
@@ -176,24 +616,43 @@ function ResetPasswordPage() {
                 Confirm New Password
               </label>
               <input
+                ref={confirmNewPasswordRef}
                 type="password"
                 name="confirmNewPassword"
                 value={confirmNewPassword}
-                onChange={(e) => setConfirmNewPassword(e.target.value)}
-                disabled={isLoading}
+                onChange={(event) => {
+                  setConfirmNewPassword(event.target.value);
+                  setFieldErrors((current) => ({ ...current, confirmNewPassword: undefined }));
+                }}
+                disabled={isSubmitting}
                 id="confirm-new-password"
+                required
+                autoComplete="new-password"
+                aria-invalid={fieldErrors.confirmNewPassword ? true : undefined}
+                aria-describedby={
+                  fieldErrors.confirmNewPassword ? CONFIRMATION_FIELD_ERROR_ID : undefined
+                }
                 className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                 placeholder="Re-Enter New Password"
               />
+              {fieldErrors.confirmNewPassword && (
+                <p
+                  id={CONFIRMATION_FIELD_ERROR_ID}
+                  role="alert"
+                  className="mt-2 font-overpass text-sm text-red-700"
+                >
+                  {fieldErrors.confirmNewPassword}
+                </p>
+              )}
             </div>
 
             {/* RESET PASSWORD BUTTON */}
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isSubmitting}
               className="cursor-pointer w-full inline-flex items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm px-4 py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {isLoading && <LoadingSpinnerSVG />}
+              {isSubmitting && <LoadingSpinnerSVG />}
               <span>{buttonText}</span>
             </button>
 
@@ -204,6 +663,13 @@ function ResetPasswordPage() {
       </div>
     </section>
   );
+}
+
+function ResetPasswordPage() {
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get('token')?.trim() ?? '';
+
+  return <ResetPasswordFlow key={token} token={token} />;
 }
 
 export default ResetPasswordPage;
