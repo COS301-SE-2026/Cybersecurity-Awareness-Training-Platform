@@ -66,27 +66,27 @@ Finally, the system provides configurable organisation security settings for adm
     <img src="https://img.shields.io/github/actions/workflow/status/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/policy.yml?branch=dev&label=Policy&style=for-the-badge&logo=github" alt="Policy Checks" />
   </a>
   <a href="https://codecov.io/gh/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform">
-    <img src="https://img.shields.io/codecov/c/github/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/dev?style=for-the-badge&logo=codecov&label=Coverage" alt="Codecov coverage" />
+    <img src="https://img.shields.io/codecov/c/github/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/dev?style=for-the-badge&logo=codecov&label=Coverage" alt="Codecov Coverage" />
   </a>
 </p>
 
 <p align="left">
   <a href="docs.insightfulphish.co.za">
-    <img src="https://img.shields.io/badge/Demo%202-Docs%20Available-blue?style=for-the-badge" alt="Demo 2 docs available" />
+    <img src="https://img.shields.io/badge/Demo%202-Docs%20Available-blue?style=for-the-badge" alt="Demo 2 Docs Available" />
   </a>
   <img src="https://img.shields.io/badge/Monorepo-pnpm%20Workspaces-blue?style=for-the-badge" alt="Monorepo: pnpm workspaces" />
-  <img src="https://img.shields.io/badge/Branching-Feature%20Branches%20%2B%20Dev-blue?style=for-the-badge" alt="Branching: feature branches plus dev" />
+  <img src="https://img.shields.io/badge/Branching-Feature%20Branches%20%2B%20Dev-blue?style=for-the-badge" alt="Branching: Feature branches + dev" />
 </p>
 
 <p align="left">
   <a href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/issues">
-    <img src="https://img.shields.io/github/issues/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge&color=brightgreen" alt="GitHub issues" />
+    <img src="https://img.shields.io/github/issues/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge&color=brightgreen" alt="GitHub Issues" />
   </a>
   <a href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/issues?q=is%3Aissue%20is%3Aclosed">
-    <img src="https://img.shields.io/github/issues-closed/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge&color=brightgreen" alt="GitHub closed issues" />
+    <img src="https://img.shields.io/github/issues-closed/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge&color=brightgreen" alt="GitHub Closed Issues" />
   </a>
   <a href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/commits/dev/">
-    <img src="https://img.shields.io/github/last-commit/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/dev?style=for-the-badge&color=yellow" alt="Last commit" />
+    <img src="https://img.shields.io/github/last-commit/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/dev?style=for-the-badge&color=yellow" alt="Last Commit" />
   </a>
 </p>
 
