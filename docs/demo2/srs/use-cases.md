@@ -8,12 +8,12 @@
 - [3. Functional Requirements](functional-requirements.md)
 - **[4. Use Cases](#4-use-cases)** &larr; _You are here_
   - [4.1 High-Level Use Case Diagrams](#41-high-level-use-case-diagrams)
-    - [Authentication and Account Access]
-    - [Trainee Campaign Participation]
-    - [Organisation Onboarding and Invitations]
-    - [Organisation Membership and Role Administration]
-    - [Platform Administrator Governance]
-    - [Security and Account Management]
+    - [Authentication and Account Access](#authentication-and-account-access)
+    - [Trainee Campaign Participation](#trainee-campaign-participation)
+    - [Organisation Onboarding and Invitations](#organisation-onboarding-and-invitations)
+    - [Organisation Membership and Role Administration](#organisation-membership-and-role-administration)
+    - [Platform Administrator Governance](#platform-administrator-governance)
+    - [Security and Account Management](#security-and-account-management)
   - [4.2 Authentication and Account Access Use Cases](#42-authentication-and-account-access-use-cases)
     - [AUTH-01 Register an Individual Account](#auth-01-register-an-individual-account)
     - [AUTH-02 Verify an Email Address](#auth-02-verify-an-email-address)
