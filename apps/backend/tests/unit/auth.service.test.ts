@@ -534,7 +534,7 @@ describe('loginUser', () => {
           permissions: ['GENERAL_TRAINEE'],
         }),
         permissions: ['GENERAL_TRAINEE'],
-        redirectTo: '/trainee/campaigns',
+        redirectTo: '/campaigns',
       },
       accessTokenExpiresAt: '2026-05-12T14:00:00.000Z',
       rawRefreshToken: expect.any(String),
@@ -613,7 +613,7 @@ describe('getCurrentUser', () => {
         permissions: ['GENERAL_TRAINEE'],
       }),
       permissions: ['GENERAL_TRAINEE'],
-      redirectTo: '/trainee/campaigns',
+      redirectTo: '/campaigns',
     });
     expect(response.user).not.toHaveProperty('passwordHash');
   });

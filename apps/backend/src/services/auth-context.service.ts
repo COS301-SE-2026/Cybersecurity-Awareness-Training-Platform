@@ -10,7 +10,11 @@ export type AuthContextRole =
   | 'ORGANISATION_TRAINEE'
   | 'GENERAL_TRAINEE';
 
-export type AuthRedirectTarget = '/admin' | '/organisation' | '/trainee/campaigns' | '/login';
+export type AuthRedirectTarget =
+  | '/platform-administrators'
+  | '/organisation-information'
+  | '/campaigns'
+  | '/login';
 
 export type AuthContextUser = {
   id: string;
@@ -91,15 +95,15 @@ function resolvePermissions(subject: GuardAuthSubject): string[] {
 
 function resolveRedirectTarget(user: GuardUser): AuthRedirectTarget {
   if (user.userType === 'IP_ADMIN') {
-    return '/admin';
+    return '/platform-administrators';
   }
 
   if (user.userType === 'ORGANISATION_ADMIN') {
-    return '/organisation';
+    return '/organisation-information';
   }
 
   if (user.userType === 'ORGANISATION_TRAINEE' || user.userType === 'GENERAL_TRAINEE') {
-    return '/trainee/campaigns';
+    return '/campaigns';
   }
 
   return '/login';
