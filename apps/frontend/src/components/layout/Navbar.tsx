@@ -26,7 +26,10 @@ function Navbar() {
   const navigate = useNavigate();
 
   const { logout, user, authContext } = useAuth();
-  const roleLabel = getRoleLabel(authContext?.role || user?.userType, authContext?.platformAdminRole);
+  const roleLabel = getRoleLabel(
+    authContext?.role || user?.userType,
+    authContext?.platformAdminRole,
+  );
   const orgName = authContext?.organisation?.name;
 
   return (
@@ -91,7 +94,8 @@ function Navbar() {
             <span>{user ? `${user.firstName} ${user.lastName}` : 'Account'}</span>
             {user && (
               <span style={{ fontSize: '0.8rem', color: '#c9a2ff', opacity: 0.9 }}>
-                {roleLabel}{orgName ? ` • ${orgName}` : ''}
+                {roleLabel}
+                {orgName ? ` • ${orgName}` : ''}
               </span>
             )}
           </div>
