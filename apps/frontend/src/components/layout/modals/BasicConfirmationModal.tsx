@@ -9,6 +9,12 @@ type BasicConfirmationModalProps = Readonly<{
   isConfirmDisabled?: boolean;
   isDismissDisabled?: boolean;
   errorMessage?: string | null;
+  passwordValue?: string;
+  onPasswordChange?: (value: string) => void;
+  passwordError?: string | null;
+  confirmationValue?: string;
+  onConfirmationChange?: (value: string) => void;
+  expectedConfirmationText?: string;
 }>;
 
 function BasicConfirmationModal({
@@ -22,6 +28,12 @@ function BasicConfirmationModal({
   isConfirmDisabled = false,
   isDismissDisabled = false,
   errorMessage = null,
+  passwordValue,
+  onPasswordChange,
+  passwordError = null,
+  confirmationValue,
+  onConfirmationChange,
+  expectedConfirmationText,
 }: BasicConfirmationModalProps) {
   const confirmButtonClasses = {
     danger:
@@ -69,6 +81,59 @@ function BasicConfirmationModal({
             <h3 className="mb-6 text-body text-dark-pink font-medium font-overpass text-[1.1rem] tracking-wider">
               {message}
             </h3>
+            {passwordValue !== undefined && onPasswordChange && (
+              <div className="mb-4 text-left">
+                <label
+                  htmlFor="confirmation-password"
+                  className="block mb-2 font-jost tracking-wide text-[1.1rem] font-medium text-pink"
+                >
+                  Password
+                </label>
+                <input
+                  id="confirmation-password"
+                  type="password"
+                  autoComplete="current-password"
+                  value={passwordValue}
+                  onChange={(event) => onPasswordChange(event.target.value)}
+                  disabled={isConfirming}
+                  aria-invalid={Boolean(passwordError)}
+                  aria-describedby={passwordError ? 'confirmation-password-error' : undefined}
+                  className="font-overpass text-[1.1rem] bg-gray-50 border border-gray-300 text-deep-purple block w-full p-2.5 disabled:opacity-60"
+                />
+                {passwordError && (
+                  <p
+                    id="confirmation-password-error"
+                    role="alert"
+                    className="mt-2 text-sm text-red-600"
+                  >
+                    {passwordError}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {confirmationValue !== undefined &&
+              onConfirmationChange &&
+              expectedConfirmationText && (
+                <div className="mb-4 text-left">
+                  <label
+                    htmlFor="typed-confirmation"
+                    className="block mb-2 font-jost tracking-wide text-[1.1rem] font-medium text-pink"
+                  >
+                    Type {expectedConfirmationText} to confirm
+                  </label>
+                  <input
+                    id="typed-confirmation"
+                    type="text"
+                    value={confirmationValue}
+                    onChange={(event) => onConfirmationChange(event.target.value)}
+                    disabled={isConfirming}
+                    autoComplete="off"
+                    className="font-overpass text-[1.1rem] bg-gray-50 border border-gray-300 text-deep-purple block w-full p-2.5 disabled:opacity-60"
+                  />
+                </div>
+              )}
+
             {errorMessage && (
               <div
                 role="alert"

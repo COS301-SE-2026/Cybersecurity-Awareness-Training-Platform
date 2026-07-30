@@ -76,6 +76,16 @@ export interface OrganisationAdminPermissionUpdateResponse {
   permissionKeys: OrganisationAdminPermissionKey[];
 }
 
+export interface OrganisationAdminRemovalRequest {
+  password: string;
+  confirmation: 'REMOVE';
+}
+
+export interface OrganisationAdminRemovalResponse {
+  adminId: string;
+  status: 'DISABLED';
+}
+
 export function promoteOrganisationAdmin(
   organisationId: string,
   input: OrganisationAdminPromotionRequest,
@@ -101,6 +111,21 @@ export function updateOrganisationAdminPermissions(
     OrganisationAdminPermissionUpdateRequest
   >(
     `/organisations/${encodeURIComponent(organisationId)}/admins/${encodeURIComponent(adminId)}/permissions`,
+    input,
+    {
+      authToken: token,
+    },
+  );
+}
+
+export function removeOrganisationAdmin(
+  organisationId: string,
+  adminId: string,
+  input: OrganisationAdminRemovalRequest,
+  token: string,
+): Promise<OrganisationAdminRemovalResponse> {
+  return apiClient.post<OrganisationAdminRemovalResponse, OrganisationAdminRemovalRequest>(
+    `/organisations/${encodeURIComponent(organisationId)}/admins/${encodeURIComponent(adminId)}/remove`,
     input,
     {
       authToken: token,

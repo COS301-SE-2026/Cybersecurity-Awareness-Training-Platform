@@ -7,6 +7,7 @@ import EditOrganisationAdministratorPermissionsModal from '../components/organis
 import {
   getOrganisationAdmins,
   promoteOrganisationAdmin,
+  removeOrganisationAdmin,
   updateOrganisationAdminPermissions,
   type OrganisationAdminAvailablePermission,
   type OrganisationAdminListItem,
@@ -105,6 +106,15 @@ function getMutationErrorBody(error: ApiError): MutationErrorBody | null {
   }
 
   return error.body as MutationErrorBody;
+}
+
+function getMutationErrorCode(error: unknown): string | null {
+  if (!(error instanceof ApiError)) {
+    return null;
+  }
+
+  const body = getMutationErrorBody(error);
+  return typeof body?.error === 'string' ? body.error : null;
 }
 
 function getMutationErrorMessage(error: unknown, fallback: string): string {
@@ -320,6 +330,14 @@ function OrganisationAdministratorsPage() {
   const [permissionUpdateError, setPermissionUpdateError] = useState<string | null>(null);
   const [isUpdatingPermissions, setIsUpdatingPermissions] = useState(false);
 
+  const [selectedRemovalAdministrator, setSelectedRemovalAdministrator] =
+    useState<OrganisationAdministrator | null>(null);
+  const [removalPassword, setRemovalPassword] = useState('');
+  const [removalConfirmation, setRemovalConfirmation] = useState('');
+  const [removalError, setRemovalError] = useState<string | null>(null);
+  const [removalPasswordError, setRemovalPasswordError] = useState<string | null>(null);
+  const [isRemoving, setIsRemoving] = useState(false);
+
   const [showBasicConfirmationModal, setShowBasicConfirmationModal] = useState(false);
   const [showEditPermissionsModal, setShowEditPermissionsModal] = useState(false);
   const [confirmationTitle, setConfirmationTitle] = useState('');
@@ -376,16 +394,18 @@ function OrganisationAdministratorsPage() {
     setPromotionEmailError(null);
   };
 
-  const openConfirmationModal = () => {
-    setShowBasicConfirmationModal(true);
-  };
-
-  const showDisableOrganisationAdministratorModal = () => {
-    setConfirmationButtonText('Disable');
-    setConfirmationTitle('Disable Organisation Administrator');
-    setConfirmationMessage('Are you sure you want to disable this organisation administrator?');
+  const openRemoveAdministratorModal = (administrator: OrganisationAdministrator) => {
+    setSelectedRemovalAdministrator(administrator);
+    setRemovalPassword('');
+    setRemovalConfirmation('');
+    setRemovalError(null);
+    setRemovalPasswordError(null);
+    setFeedback(null);
+    setConfirmationButtonText('Remove');
+    setConfirmationTitle('Remove Organisation Administrator');
+    setConfirmationMessage(`Remove administrator priveleges from ${administrator.fullName}?`);
     setConfirmationVariant('danger');
-    openConfirmationModal();
+    setShowBasicConfirmationModal(true);
   };
 
   const openEditPermissionsModal = (administrator: OrganisationAdministrator) => {
@@ -396,12 +416,151 @@ function OrganisationAdministratorsPage() {
     setShowEditPermissionsModal(true);
   };
 
-  const confirmBasicConfirmation = () => {
-    closeOrganisationAdministratorModal();
+  const closeOrganisationAdministratorPageConfirmationModal = () => {
+    if (isRemoving) {
+      return;
+    }
+
+    setShowBasicConfirmationModal(false);
+    setSelectedRemovalAdministrator(null);
+    setRemovalPassword('');
+    setRemovalConfirmation('');
+    setRemovalError(null);
+    setRemovalPasswordError(null);
   };
 
-  const closeOrganisationAdministratorPageConfirmationModal = () => {
-    setShowBasicConfirmationModal(false);
+  const submitAdministratorRemoval = async () => {
+    if (!token || !organisationId || !selectedRemovalAdministrator || isRemoving) {
+      return;
+    }
+
+    setRemovalError(null);
+    setRemovalPasswordError(null);
+    setFeedback(null);
+
+    if (!removalPassword) {
+      setRemovalPasswordError('Password is required.');
+      return;
+    }
+
+    if (removalConfirmation !== 'REMOVE') {
+      setRemovalError('Type REMOVE exactly to confirm.');
+      return;
+    }
+
+    setIsRemoving(true);
+
+    try {
+      await removeOrganisationAdmin(
+        organisationId,
+        selectedRemovalAdministrator.id,
+        {
+          password: removalPassword,
+          confirmation: 'REMOVE',
+        },
+        token,
+      );
+
+      setShowBasicConfirmationModal(false);
+      setSelectedRemovalAdministrator(null);
+      setRemovalPassword('');
+      setRemovalConfirmation('');
+
+      await reloadOrganisationAdministrators();
+
+      setFeedback({
+        kind: 'success',
+        message: 'Administrator privileges were removed successfully.',
+      });
+    } catch (error: unknown) {
+      const errorCode = getMutationErrorCode(error);
+
+      if (
+        error instanceof ApiError &&
+        error.status === 403 &&
+        errorCode === 'ORG_ADMIN_PASSWORD_INVALID'
+      ) {
+        setRemovalPasswordError(getMutationErrorMessage(error, 'The password is incorrect.'));
+        return;
+      }
+
+      if (error instanceof ApiError && error.status === 401) {
+        setRemovalError('Your session could not be verified. Please try again.');
+        return;
+      }
+
+      if (error instanceof ApiError && error.status === 403) {
+        const message = getMutationErrorMessage(
+          error,
+          'You do not have permission to remove organisation administrators.',
+        );
+
+        setShowBasicConfirmationModal(false);
+        setSelectedRemovalAdministrator(null);
+        setRemovalPassword('');
+        setRemovalConfirmation('');
+        setRemovalError(null);
+        setRemovalPasswordError(null);
+
+        await reloadOrganisationAdministrators();
+
+        setFeedback({
+          kind: 'warning',
+          message,
+        });
+        return;
+      }
+
+      if (error instanceof ApiError && error.status === 404) {
+        const message = getMutationErrorMessage(
+          error,
+          'The selected administrator no longer exists.',
+        );
+
+        setShowBasicConfirmationModal(false);
+        setSelectedRemovalAdministrator(null);
+        setRemovalPassword('');
+        setRemovalConfirmation('');
+        setRemovalError(null);
+        setRemovalPasswordError(null);
+
+        await reloadOrganisationAdministrators();
+
+        setFeedback({
+          kind: 'warning',
+          message,
+        });
+        return;
+      }
+
+      if (error instanceof ApiError && error.status === 409) {
+        setRemovalError(
+          getMutationErrorMessage(
+            error,
+            'This change conflicts with the current administrator data.',
+          ),
+        );
+        await reloadOrganisationAdministrators();
+        return;
+      }
+
+      const passwordError = getValidationDetail(error, 'password');
+      const confirmationError = getValidationDetail(error, 'confirmation');
+
+      if (passwordError) {
+        setRemovalPasswordError(passwordError);
+      }
+
+      if (confirmationError) {
+        setRemovalError(confirmationError);
+      } else if (!passwordError) {
+        setRemovalError(
+          getMutationErrorMessage(error, 'Administrator privileges could not be removed.'),
+        );
+      }
+    } finally {
+      setIsRemoving(false);
+    }
   };
 
   const closeEditPermissionsModal = () => {
@@ -869,9 +1028,11 @@ function OrganisationAdministratorsPage() {
                                 <button
                                   className="cursor-pointer font-medium text-red-600 hover:underline"
                                   type="button"
-                                  onClick={showDisableOrganisationAdministratorModal}
+                                  onClick={() =>
+                                    openRemoveAdministratorModal(organisationAdministrator)
+                                  }
                                 >
-                                  <strong>Disable</strong>
+                                  <strong>Remove</strong>
                                 </button>
                               )}
 
@@ -912,9 +1073,25 @@ function OrganisationAdministratorsPage() {
           message={confirmationMessage}
           confirmButtonText={confirmationButtonText}
           confirmButtonVariant={confirmationVariant}
-          onConfirm={confirmBasicConfirmation}
+          isConfirming={isRemoving}
+          isConfirmDisabled={isRemoving}
+          isDismissDisabled={isRemoving}
+          errorMessage={removalError}
+          passwordValue={removalPassword}
+          onPasswordChange={(value) => {
+            setRemovalPassword(value);
+            setRemovalPasswordError(null);
+          }}
+          passwordError={removalPasswordError}
+          confirmationValue={removalConfirmation}
+          onConfirmationChange={(value) => {
+            setRemovalConfirmation(value);
+            setRemovalError(null);
+          }}
+          expectedConfirmationText="REMOVE"
+          onConfirm={() => void submitAdministratorRemoval()}
           onCancel={closeOrganisationAdministratorPageConfirmationModal}
-        ></BasicConfirmationModal>
+        />
       )}
 
       {/* REVIEW ORGANISATION REGISTRATION REQUEST MODAL  */}
