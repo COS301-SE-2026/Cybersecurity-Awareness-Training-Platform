@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, SchoolOutlined } from '@mui/icons-material';
+import { HelpCenterSharp, Menu, SchoolOutlined } from '@mui/icons-material';
 import SecuritySharpIcon from '@mui/icons-material/SecuritySharp'; // Organisation Security Preferences Page (ORG ADMIN, NORM ADMIN, SUPER ADMIN)
 import CorporateFareSharpIcon from '@mui/icons-material/CorporateFareSharp'; // Organisation Management Page (NORM ADMIN, SUPER ADMIN)
 import GroupsSharpIcon from '@mui/icons-material/GroupsSharp'; // Organisation Trainees Page (ORG ADMIN, NORM ADMIN, SUPER ADMIN)
 import AdminPanelSettingsSharpIcon from '@mui/icons-material/AdminPanelSettingsSharp'; // Platform Administors Page (NORM ADMIN, SUPER ADMIN)
 import SupervisorAccountSharpIcon from '@mui/icons-material/SupervisorAccountSharp'; // Organisation Administrators Page (ORG ADMIN, NORM ADMIN, SUPER ADMIN)
+import HelpOutlineSharpIcon from '@mui/icons-material/HelpOutlineSharp';
 import { useAuth } from '../../context/useAuth';
 
 /*
@@ -75,6 +76,11 @@ function Sidebar() {
           },
         ]
       : []),
+    {
+      icon: <HelpCenterSharp />,
+      label: 'Help',
+      path: 'https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/wiki/Demo-2-User-Manual',
+    },
   ];
 
   return (

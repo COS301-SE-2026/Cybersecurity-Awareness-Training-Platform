@@ -57,6 +57,14 @@ function LandingNavbar() {
                   Team
                 </a>
               </li>
+              <li>
+                <a
+                  href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/wiki/Demo-2-User-Manual"
+                  className="text-heading text-purple"
+                >
+                  Help
+                </a>
+              </li>
             </ul>
           </div>
         </div>
