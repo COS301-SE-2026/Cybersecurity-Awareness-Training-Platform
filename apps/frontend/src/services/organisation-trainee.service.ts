@@ -1,6 +1,8 @@
 import type {
   CreateTraineeInvitationResponseDto,
   CreateTraineeInvitationRequestDto,
+  DisableTraineeRequestDto,
+  DisableTraineeResponseDto,
   InvitationResendResponseDto,
   InvitationRevokeResponseDto,
   TraineeListResponseDto,
@@ -55,6 +57,21 @@ export function revokeOrganisationTraineeInvitation(
   return apiClient.post<InvitationRevokeResponseDto>(
     `/organisations/${organisationId}/trainee-invitations/${invitationId}/revoke`,
     undefined,
+    {
+      authToken: token,
+    },
+  );
+}
+
+export function disableOrganisationTrainee(
+  organisationId: string,
+  traineeId: string,
+  input: DisableTraineeRequestDto,
+  token: string,
+): Promise<DisableTraineeResponseDto> {
+  return apiClient.patch<DisableTraineeResponseDto, DisableTraineeRequestDto>(
+    `/organisations/${organisationId}/trainees/${traineeId}/disable`,
+    input,
     {
       authToken: token,
     },
