@@ -29,12 +29,30 @@ The platform vision combines realistic attack simulations with interactive train
 
 In addition to simulations, the platform uses training material and quizzes to teach trainees how to identify suspicious behaviour, avoid common mistakes, and build better security habits.
 
-To support organisations, **_Insightful Phish_** is intended to provide future reporting and insights that highlight trainee progress, campaign completion, quiz results, risky behaviour, and organisation-level risk. These reporting dashboards are later-demo direction, not part of the current Demo 1 trainee flow.
+To support organisations, **_Insightful Phish_** is intended to provide future reporting and insights that highlight trainee progress, campaign completion, quiz results, risky behaviour, and organisation-level risk. These reporting dashboards are later-demo direction.
 
 By focusing on human behaviour, the most common source of security breaches, the platform helps individuals and organisations reduce risk and build a stronger security culture.
 
 **_DON'T TAKE THE BAIT._**
 **_LEARN TO SPOT IT._**
+
+---
+
+# <img src="https://img.icons8.com/?size=100&id=OxDyKkYjQ5Yk&format=png&color=000000" width="32"> Current Demo (Demo 2) Scope
+
+For Demo 2, we focused on the organisation onboarding, administration, and security management features of the platform.
+
+An organisation representative first submits a registration request, which is then reviewed by a Platform Administrator who can approve, reject, track, and manage registration requests.
+
+Once approved, the invited Initial Organisation Administrator completes the organisation setup process, activates the organisation, and gains administrative access.
+
+The system also allows invited users to accept organisation invitations or administrator role changes, enabling them to join the organisation or receive additional permissions.
+
+Organisation Administrators can then manage trainees by inviting, disabling, reactivating, and monitoring employees, while also managing other administrators by assigning permissions, promoting trainees, and maintaining administrator roles.
+
+At the platform level, the Platform Super-Administrator can manage Platform Administrators by inviting new administrators, transferring the super-administrator role, and revoking or demoting existing administrators.
+
+Finally, the system provides configurable organisation security settings for administrators to manage organisation-wide security policies, alongside personal account and security settings that allow individual users to manage their own profile information, passwords, sessions, and other account security preferences.
 
 ---
 
