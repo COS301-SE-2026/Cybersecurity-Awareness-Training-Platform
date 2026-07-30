@@ -17,6 +17,9 @@ const authSubjectInclude = {
   organisationAdminProfile: {
     include: {
       organisation: true,
+      permissionGrants: {
+        include: { organisationPermission: true },
+      },
     },
   },
   ipAdminProfile: true,
@@ -110,6 +113,9 @@ export function toGuardAuthSubject(user: UserWithAuthSubject | null): GuardAuthS
     organisationAdminProfile: user.organisationAdminProfile
       ? {
           adminStatus: user.organisationAdminProfile.adminStatus,
+          permissionKeys: user.organisationAdminProfile.permissionGrants.map(
+            (grant) => grant.organisationPermission.key,
+          ),
           organisation: {
             id: user.organisationAdminProfile.organisation.id,
             status: user.organisationAdminProfile.organisation.status,

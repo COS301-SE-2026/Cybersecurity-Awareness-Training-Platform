@@ -46,6 +46,7 @@ export type GuardOrganisationTraineeProfile = {
 
 export type GuardOrganisationAdminProfile = {
   adminStatus: 'ACTIVE' | 'DISABLED';
+  permissionKeys?: string[];
   organisation?: GuardOrganisation | null;
 };
 

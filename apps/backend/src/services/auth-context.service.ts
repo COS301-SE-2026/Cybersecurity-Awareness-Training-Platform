@@ -79,7 +79,7 @@ function resolvePermissions(subject: GuardAuthSubject): string[] {
   }
 
   if (subject.user.userType === 'ORGANISATION_ADMIN') {
-    return ['ORGANISATION_ADMIN'];
+    return ['ORGANISATION_ADMIN', ...(subject.organisationAdminProfile?.permissionKeys ?? [])];
   }
 
   if (subject.user.userType === 'ORGANISATION_TRAINEE') {
