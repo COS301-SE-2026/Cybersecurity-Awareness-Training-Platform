@@ -10,7 +10,7 @@ function BasicAlert({ variant, children, onClose }: BasicAlertProps) {
   const style = AlertVariants[variant];
 
   return (
-    <div className="fixed top-4 right-4 z-50 w-full max-w-md">
+    <div className="fixed top-4 right-4 z-[9999] w-full max-w-md">
       <div
         className={`flex sm:items-center p-4 mb-4 text-sm border-t-4 ${style.container}`}
         role="alert"
