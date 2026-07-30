@@ -24,6 +24,8 @@ This section defines the intended technology-neutral logical architecture of Ins
 
 ## 3. Architecture Overview
 
+### 3.1 Purpose
+
 Our architecture establishes clear responsibility and dependency boundaries for presentation, access, application, data access and data persistences. It guides new implementation and future refactoring.
 
 ### 3.2 Architecture Diagram

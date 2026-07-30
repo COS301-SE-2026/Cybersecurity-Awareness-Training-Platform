@@ -97,8 +97,8 @@ The requirements for Insightful Phish are based on the following assumptions abo
 
 - [Insightful Phish Demo 2 documentation](../README.md)
 - [Software Architectural Specification](../sas/README.md)
-- [Demo 2 API Contract Documentation](../API.md)
-- [Demo 2 Design Documentation](../DESIGN.md)
+- [Demo 2 API Contract Documentation](../sas/api-contracts.md)
+- [Demo 2 Design Documentation](https://brand.insightfulphish.co.za)
 - [Demo 2 Traceability Matrix](../traceability.md)
 - [Demo 1 Software Requirements Specification](../../demo1/SRS.md)
 

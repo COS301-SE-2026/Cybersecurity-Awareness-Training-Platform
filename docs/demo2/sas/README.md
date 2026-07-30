@@ -21,9 +21,11 @@ This README is the ordered entry point to the Demo 2 Software Architecture Speci
 - [SRS Function Requirements](../srs/functional-requirements.md)
 - [SRS Quality Requirements](../srs/quality-requirements.md)
 - [SRS Domain Model](../srs/domain-model.md)
-- [Demo 2 Domain Model Source](../new-domain-model.txt)
+- [Demo 2 Domain Model Source](../domain-model-demo2.txt)
 - [Demo 2 Documentation Home](../README.md)
 
 ---
 
 Next section: [Introduction](introduction.md)
+
+Back to the [Demo 2 Documentation Home](../README.md).

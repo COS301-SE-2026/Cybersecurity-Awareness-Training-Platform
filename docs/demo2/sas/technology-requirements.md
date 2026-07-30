@@ -159,8 +159,8 @@ The alternatives below focus on major architectural choices rather than every pa
 ### 5.12 References
 
 - [SRS Quality Requirements](../srs/quality-requirements.md)
-- [Consolidated Demo 2 SRS](../srs/SRS.md)
-- [Demo 2 Domain Model Source](../new-domain-model.txt)
+- [Consolidated Demo 2 SRS](../srs/README.md)
+- [Demo 2 Domain Model Source](../domain-model-demo2.txt)
 - [Architectural Requirements](architectural-requirements.md)
 - [Architectural Patterns](architectural-patterns.md)
 - [Design Patterns](design-patterns.md)

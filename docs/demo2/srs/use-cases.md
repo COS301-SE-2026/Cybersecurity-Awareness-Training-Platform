@@ -29,7 +29,8 @@
     - [UC-05 Review and Manage Organisation Registrations](#uc-05-review-and-manage-organisation-registrations)
     - [UC-06 Complete First Organisation Administrator Setup](#uc-06-complete-first-organisation-administrator-setup)
     - [UC-07 Accept an Organisation Invitation or Role Change](#uc-07-accept-an-organisation-invitation-or-role-change)
-    - [UC-08 Manage Organisation Employees](#uc-08-manage-organisation-employees)
+    - [UC-08 Manage Organisation Trainees](#uc-08-manage-organisation-
+      trainees)
     - [UC-09 Manage Organisation Administrators and Permissions](#uc-09-manage-organisation-administrators-and-permissions)
     - [UC-10 Manage Platform Administrators](#uc-10-manage-platform-administrators)
     - [UC-11 Manage Organisation Security Settings](#uc-11-manage-organisation-security-settings)
