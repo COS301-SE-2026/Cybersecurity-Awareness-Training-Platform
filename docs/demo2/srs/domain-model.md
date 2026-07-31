@@ -13,11 +13,13 @@ The domain model describes the major conceptual entities used by Insightful Phis
 - **[6. Domain Model](#6-domain-model)** &larr; _You are here_
   - [6.1 Purpose](#61-purpose)
   - [6.2 Domain Diagram](#62-domain-diagram)
-  - [6.3 Core Account and Access Concepts](#63-core-account-and-access-concepts)
-  - [6.4 Organisation and Administration Concepts](#64-organisation-and-administration-concepts)
-  - [6.5 Campaign and Training Concepts](#65-campaign-and-training-concepts)
-  - [6.6 Reporting, Audit, and Safety Concepts](#66-reporting-audit-and-safety-concepts)
-  - [6.7 Domain Relationships and Limits](#67-domain-relationships-and-limits)
+  - [6.3 Domain Areas](#63-domain-areas)
+    - [6.3.1 Core Account and Access Concepts](#631-core-account-and-access-concepts)
+    - [6.3.2 Organisation and Aministrator Concepts](#632-organisation-and-administration-concepts)
+    - [6.3.3 Campaing and Training Concepts](#633-campaign-and-training-concepts)
+    - [6.3.4 Reporting, Audit and Safety Concepts](#634-reporting-audit-and-safety-concepts)
+  - [6.4 Key Relationships](#64-key-relationships)
+  - [6.5 Domain Model Limits and Information](#65-domain-model-limits-and-information)
 - [7. Changelog](changelog.md)
 
 ---
@@ -30,33 +32,43 @@ The domain model provides a conceptual view of the entities needed to support th
 
 ### 6.2 Domain Diagram
 
-The Demo 2 domain model source can be found here: [Demo 2 domain model](../diagrams/srs/domain-model.drawio).
+To view the full rendered version of the diagram, click [here](../diagrams/srs/domain-model.drawio.svg).
 
-### 6.3 Core Account and Access Concepts
+![Domain Model Diagram for Insightful Phish](../diagrams/srs/domain-model.drawio.svg)
+_Figure 6.1: Conceptual domain model for the Insightful Phish platform._
 
-- `User` represents a platform account with identity, authentication status, verified email state, and account-level security information.
-- `UserSecurityPreferences` represents a user's preferred session and account-security settings where the platform and organisation policy allow personal choice.
-- `AuthSession` represents an authenticated browser or device session.
-- `RefreshToken` represents the renewable credential associated with an authenticated session.
-- `ActionToken` represents a secure tokenised action such as email verification, password reset, initial setup, invitation acceptance, or email-change verification.
-- `EmailChangeRequest` represents the lifecycle of a requested account email-address change.
-- `IndividualTrainee` represents a trainee account that is not linked to an organisation.
-- `OrganisationTrainee` represents a trainee who belongs to an organisation.
-- `OrganisationAdministrator` represents an organisation-linked administrator with assigned permissions.
-- `PlatformAdministrator` represents an Insightful Phish administrator who can perform platform-level actions.
+### 6.3 Domain Areas
 
-### 6.4 Organisation and Administration Concepts
+#### 6.3.1 Core Account and Access concepts
+
+- `User` represents the common identity, authentication status, verified-email state, account type, and account-lifecycle information shared by all platform accounts.
+- `Trainee` represents the general form of a user who participates in cybersecurity-awareness training.
+- `GeneralTrainee` represents a trainee who obtains general platform access through self-registration, invitation, seeding, administrator creation, or a role change.
+- `OrganisationTrainee` represents a trainee who belongs to an organisation and records organisation-specific membership and lifecycle information.
+- `OrganisationAdmin` represents an organisation-linked administrator, including whether the administrator is the organisation's initial administrator and whether the role originated from an invitation.
+- `IPAdmin` represents an Insightful Phish platform administrator. Its platform administrator role distinguishes normal administrators from super-administrators.
+- `UserSecurityPreferences` represents a user's preferred regular-session length, remembered-session length, and inactivity timeout where platform and organisation policy permit personal choice.
+- `AuthSession` represents an authenticated browser or device session, including its expiry, activity, revocation, device, and location information.
+- `RefreshToken` represents a hashed renewable credential associated with an authentication session and records rotation, use, expiry, replacement, and revocation.
+- `ActionToken` represents a hashed, time-limited token for email verification, password reset, email-change verification, invitation acceptance, initial administrator setup, or platform administrator changes.
+- `EmailChangeRequest` represents the lifecycle of a requested change from a user's current email address to a new email address.
+
+#### 6.3.2 Organisation and Administration Concepts
 
 - `OrganisationRegistrationRequest` represents a public request for an organisation to be reviewed and onboarded.
 - `Organisation` represents an approved organisation using the platform.
 - `OrganisationInvitation` represents an invitation for a user to join an organisation or accept a role change.
 - `OrganisationSecuritySettings` represents organisation-level policies that affect session behaviour and sensitive account actions.
 - `OrganisationContext` represents approved organisation-specific context such as terminology, domains, and branding values.
-- `OrganisationPermission` represents the administrative capabilities assigned to organisation administrators.
+- `Invitation` represents initial organisation administrator setup, organisation trainee invitations, organisation administrator promotions, platform administrator invitations, and platform administrator upgrades.
+- `InvitationPermissionGrant` records a permission that will be applied if an invitation involving administrator permissions is accepted.
+- `OrganisationPermission` represents a named organisation administrator capabiliy, its category and access level, and any other permission that that implies
+- `OrganisationAdminPermission` records a permission granted to an organisation administrator, including who granted or revoked it and when the change occurred.
+- `OrganisationSecuritySettings` represents organisation-level rules for remembered sessions, regular session length, inactivity timeouts, sensitive-action re-authentication, and trainee email changes.
 - `TraineeTag` represents a grouping label for organisation trainees.
 - `TraineeTagMembership` links eligible trainees to organisation tags.
 
-### 6.5 Campaign and Training Concepts
+#### 6.3.3 Campaign and Training Concepts
 
 - `Campaign` represents the main container for a training programme. It can be a premade campaign or an organisation campaign.
 - `CampaignAssignment` links a campaign to a trainee or trainee scope and tracks availability, progress, due dates, and completion.
@@ -71,7 +83,7 @@ The Demo 2 domain model source can be found here: [Demo 2 domain model](../diagr
 - `EmailClassificationResponse` represents a trainee's classification of a simulated email.
 - `SimulatedInteractionEvent` represents a controlled interaction with simulated links, attachments, or forms.
 
-### 6.6 Reporting, Audit, and Safety Concepts
+#### 6.3.4 Reporting, Audit, and Safety Concepts
 
 - `ProgressRecord` represents campaign and campaign-item progress for a trainee.
 - `TrainingReport` represents organisation-level reporting over campaign completion, results, and risk indicators.
@@ -81,17 +93,29 @@ The Demo 2 domain model source can be found here: [Demo 2 domain model](../diagr
 - `RealEmailSimulationCampaign` represents an ethically constrained campaign that may use real email delivery only within an approved organisation scope.
 - `DeliveryOutcome` represents the result of an email delivery attempt without exposing unnecessary provider or credential details.
 
-### 6.7 Domain Relationships and Limits
+### 6.4 Key Relationships
 
-- A `User` may act as an Individual Trainee, Organisation Trainee, Organisation Administrator, Platform Administrator, or Platform Super-Administrator depending on account status and assigned role.
-- An `Organisation` may have many Organisation Trainees, Organisation Administrators, invitations, security settings, context values, tags, campaigns, reports, and audit entries.
-- Organisation-scoped concepts must remain within the owning organisation unless an explicit platform-level feature allows otherwise.
-- A `Campaign` contains ordered campaign items. Campaign items can expose training documents, quizzes, simulated inboxes, or future supported training activities.
-- Trainee progress belongs to the trainee and the campaign context in which the activity occurred.
-- Tokenised actions must be tied to their intended account, invitation, organisation, request, or email context.
-- Audit entries must describe sensitive changes with safe summaries and must not expose passwords, raw tokens, token hashes, or unnecessary request content.
-- AI-assisted content is draft content until an authorised human administrator reviews and approves it.
-- Real email simulation campaigns require explicit organisation approval, approved sending scope, and safeguards that prevent collection of real credentials or unnecessary personal information.
+- A `User` participates in the platform through a trainee or administrator role. `GeneralTrainee` and `OrganisationTrainee` are trainee roles, while `OrganisationAdmin` and `IPAdmin` provide organisation-level and platform-level administration.
+- An `Organisation` brings together its trainees, administrators, security settings, contextual information, invitations, campaigns, and audit history.
+- An `OrganisationRegistrationRequest` records the review process that may lead to an approved organisation and its initial administrator invitation.
+- Invitations connect the intended recipient, organisation, issuing user, secure action tokens, and any permissions that will be granted after acceptance.
+- Organisation administrators receive explicit organisation permissions. Permission changes retain their granting and revocation context so that administrative access remains accountable.
+- A user's security preferences operate alongside organisation policy. Authentication sessions, rotating refresh tokens, action tokens, and email-change requests represent the main account-security lifecycles.
+- A `Campaign` contains ordered campaign items and may depend on completion of other campaigns. Campaign assignments connect trainees to the campaigns available or assigned to them.
+- Campaign components expose reusable training documents, quizzes, or simulations. Component groups organise related components using a defined completion rule without allowing nested groups.
+- Quiz attempts connect a trainee to their submitted answers and resulting score, while preserving the campaign context in which the assessment was completed.
+- A simulated inbox contains controlled simulated emails. Trainee classifications, identified red flags, and interaction events record the learning activity associated with those emails.
+- Trainee progress is determined from campaign assignments, quiz attempts, results, classification responses, and interaction events rather than from a separate progress concept.
+- Email delivery records connect delivery outcomes to the relevant user, invitation, token, organisation request, or email-change request.
+- Audit entries connect sensitive actions to their actor, organisation, target, outcome, and safe change information without retaining credentials or raw security tokens.
+
+### 6.5 Domain Model Limits and Information
+
+- Please note that the domain model is a conceptual model. It is not a direct database-entity-relationship diagram, and it may be implemented differently in the actual database and data persistence layer.
+- Filled diamonds represent composition (ownsership)
+- Solid lines represent associations
+- Hollow triangles represent inheritence (generalisation)
+- Multiplicities describe domain participation, not database indexes
 
 ---
 
