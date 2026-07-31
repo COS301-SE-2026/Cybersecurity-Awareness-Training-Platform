@@ -104,6 +104,6 @@ The requirements for Insightful Phish are based on the following assumptions abo
 
 ---
 
-Previous section: [Home](README.md)
+Previous section: [SRS Home](README.md)
 
 Next section: [Users and User Stories](users-and-user-stories.md)

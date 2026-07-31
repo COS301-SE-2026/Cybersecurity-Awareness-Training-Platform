@@ -57,6 +57,6 @@ This specification is intended for developers, maintainers, reviewers, testers, 
 
 ---
 
-Previous section: [Software Architecture Specification](README.md)
+Previous section: [SAS Home](README.md)
 
 Next section: [Architectural Requirements](architectural-requirements.md)
