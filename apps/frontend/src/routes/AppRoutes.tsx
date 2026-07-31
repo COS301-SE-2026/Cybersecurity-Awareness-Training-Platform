@@ -24,6 +24,7 @@ import PlatformOrganisationManagementPage from '../pages/PlatformOrganisationMan
 import OrganisationTraineesPage from '../pages/OrganisationTraineesPage';
 import OrganisationAdministratorsPage from '../pages/OrganisationAdministratorsPage';
 import PlatformAdministratorsPage from '../pages/PlatformAdministratorsPage';
+import BrandPage from '../pages/BrandPage';
 
 function AppRoutes() {
   return (
@@ -132,6 +133,7 @@ function AppRoutes() {
 
       <Route path="/" element={<LandingPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="/brand" element={<BrandPage />} />
     </Routes>
   );
 }

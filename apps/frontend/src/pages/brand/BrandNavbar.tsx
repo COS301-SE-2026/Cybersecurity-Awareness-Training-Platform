@@ -1,7 +1,7 @@
+import GetStartedModal from '../../components/landing-page/GetStartedModal';
 import { useState } from 'react';
-import GetStartedModal from '../landing-page/GetStartedModal';
 
-function LandingNavbar() {
+function BrandNavbar() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   return (
     <header className="fixed w-full z-20 top-0 start-0">
@@ -39,30 +39,42 @@ function LandingNavbar() {
             <ul className="flex flex-row font-medium font-jost mt-0 space-x-8 rtl:space-x-reverse text-[1.4rem] tracking-wider">
               <li>
                 <a href="#home" className="text-heading text-purple" aria-current="page">
-                  Home
+                  Brand
                 </a>
               </li>
               <li>
-                <a href="#about" className="text-heading text-purple">
-                  About & FAQs
+                <a href="#colours" className="text-heading text-purple">
+                  Colours
                 </a>
               </li>
               <li>
-                <a href="#features" className="text-heading text-purple">
-                  Features
+                <a href="#typography" className="text-heading text-purple">
+                  Typography
                 </a>
               </li>
               <li>
-                <a href="#team" className="text-heading text-purple">
-                  Team
+                <a href="#logo" className="text-heading text-purple">
+                  Logo
                 </a>
               </li>
               <li>
-                <a
-                  href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/wiki/Demo-2-User-Manual"
-                  className="text-heading text-dark-pink"
-                >
-                  Help
+                <a href="#iconography" className="text-heading text-purple">
+                  Iconography
+                </a>
+              </li>
+              <li>
+                <a href="#accessibility" className="text-heading text-purple">
+                  Accessibility
+                </a>
+              </li>
+              <li>
+                <a href="#voice-tone" className="text-heading text-purple">
+                  Voice & Tone
+                </a>
+              </li>
+              <li>
+                <a href="#component-library" className="text-heading text-purple">
+                  Component Library
                 </a>
               </li>
             </ul>
@@ -76,4 +88,4 @@ function LandingNavbar() {
   );
 }
 
-export default LandingNavbar;
+export default BrandNavbar;
