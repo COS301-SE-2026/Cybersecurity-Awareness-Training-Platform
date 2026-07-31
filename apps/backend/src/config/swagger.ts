@@ -205,18 +205,22 @@ const options: swaggerJsdoc.Options = {
     openapi: '3.0.0',
     info: {
       title: `${APP_NAME} API`,
-      version: '0.1.0',
+      version: '0.2.0',
       description: `
 API documentation for ${APP_NAME}.
 
-### Demo 1 API Coverage
-This reference covers the currently mounted Demo 1 backend routes. Planned or unmounted routes are intentionally omitted.
+### Demo 2 API
+This reference covers the currently mounted Demo 2 backend routes. Planned or unmounted routes are omitted.
       `,
     },
     servers: [
       {
         url: `http://localhost:${env.PORT}`,
-        description: 'Development server',
+        description: 'Local Development',
+      },
+      {
+        url: `https://api.insightfulphish.co.za`,
+        description: 'Production Server',
       },
     ],
     tags: [

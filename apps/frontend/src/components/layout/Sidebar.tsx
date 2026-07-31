@@ -7,6 +7,7 @@ import {
   AdminPanelSettingsOutlined,
   SecurityOutlined,
   InfoOutlined,
+  HelpOutlineSharp,
 } from '@mui/icons-material';
 import { useAuth } from '../../context/useAuth';
 
@@ -31,7 +32,6 @@ function Sidebar() {
         },
       ];
     }
-
     if (role === 'ORGANISATION_ADMIN') {
       return [
         {
@@ -56,12 +56,16 @@ function Sidebar() {
         },
       ];
     }
-
     return [
       {
         icon: <SchoolOutlined />,
         label: 'Campaigns',
         path: '/campaigns',
+      },
+      {
+        icon: <HelpOutlineSharp />,
+        label: 'Help',
+        path: 'https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/wiki/Demo-2-User-Manual',
       },
     ];
   };

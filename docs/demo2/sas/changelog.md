@@ -4,12 +4,13 @@ This changelog summarises the main Software Architecture Spec changes since Demo
 
 ## Contents
 
-- [1. Demo 1 Architecture Baseline](#1-demo-1-architecture-baseline)
-- [2. Demo 2 SAS Restructure](#2-demo-2-sas-restructure)
-- [3. Domain and Quality Alignment](#3-domain-and-quality-alignment)
-- [4. Design Pattern Reassessment](#4-design-pattern-reassessment)
-- [5. Technology and Deployment Updates](#5-technology-and-deployment-updates)
-- [6. Removed or Superseded Material](#6-removed-or-superseded-material)
+- [SAS Changelog](#sas-changelog)
+  - [Contents](#contents)
+  - [1. Demo 1 Architecture Baseline](#1-demo-1-architecture-baseline)
+  - [2. Demo 2 SAS Restructure](#2-demo-2-sas-restructure)
+  - [3. Domain and Quality Alignment](#3-domain-and-quality-alignment)
+  - [4. Design Pattern Reassessment](#4-design-pattern-reassessment)
+  - [5. Technology and Deployment Updates](#5-technology-and-deployment-updates)
 
 ---
 

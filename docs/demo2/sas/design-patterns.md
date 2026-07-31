@@ -202,9 +202,9 @@ The quality requirements below use the identifiers and wording from the Demo 2 S
 ### 3.6 References
 
 - [SRS Quality Requirements](../srs/quality-requirements.md)
-- [Consolidated Demo 2 SRS](../srs/SRS.md)
+- [Consolidated Demo 2 SRS](../srs/README.md)
 - [SRS Domain Model](../srs/domain-model.md)
-- [Demo 2 Domain Model Source](../new-domain-model.txt)
+- [Demo 2 Domain Model Source](../domain-model-demo2.txt)
 - [Architectural Requirements](architectural-requirements.md)
 - [Architectural Patterns](architectural-patterns.md)
 - [Technology Requirements](technology-requirements.md)

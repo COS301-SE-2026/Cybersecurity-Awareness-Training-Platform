@@ -8,12 +8,12 @@
 - [3. Functional Requirements](functional-requirements.md)
 - **[4. Use Cases](#4-use-cases)** &larr; _You are here_
   - [4.1 High-Level Use Case Diagrams](#41-high-level-use-case-diagrams)
-    - [Authentication and Account Access]
-    - [Trainee Campaign Participation]
-    - [Organisation Onboarding and Invitations]
-    - [Organisation Membership and Role Administration]
-    - [Platform Administrator Governance]
-    - [Security and Account Management]
+    - [Authentication and Account Access](#authentication-and-account-access)
+    - [Trainee Campaign Participation](#trainee-campaign-participation)
+    - [Organisation Onboarding and Invitations](#organisation-onboarding-and-invitations)
+    - [Organisation Membership and Role Administration](#organisation-membership-and-role-administration)
+    - [Platform Administrator Governance](#platform-administrator-governance)
+    - [Security and Account Management](#security-and-account-management)
   - [4.2 Authentication and Account Access Use Cases](#42-authentication-and-account-access-use-cases)
     - [AUTH-01 Register an Individual Account](#auth-01-register-an-individual-account)
     - [AUTH-02 Verify an Email Address](#auth-02-verify-an-email-address)
@@ -29,7 +29,8 @@
     - [UC-05 Review and Manage Organisation Registrations](#uc-05-review-and-manage-organisation-registrations)
     - [UC-06 Complete First Organisation Administrator Setup](#uc-06-complete-first-organisation-administrator-setup)
     - [UC-07 Accept an Organisation Invitation or Role Change](#uc-07-accept-an-organisation-invitation-or-role-change)
-    - [UC-08 Manage Organisation Employees](#uc-08-manage-organisation-employees)
+    - [UC-08 Manage Organisation Trainees](#uc-08-manage-organisation-
+      trainees)
     - [UC-09 Manage Organisation Administrators and Permissions](#uc-09-manage-organisation-administrators-and-permissions)
     - [UC-10 Manage Platform Administrators](#uc-10-manage-platform-administrators)
     - [UC-11 Manage Organisation Security Settings](#uc-11-manage-organisation-security-settings)

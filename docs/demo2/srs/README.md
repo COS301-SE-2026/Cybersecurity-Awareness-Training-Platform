@@ -20,3 +20,5 @@ If you are looking for the **Software Architectural Specification**, you can fin
 ---
 
 Next section: [Introduction and Scope](introduction.md)
+
+Back to the [Demo 2 Documentation Home](../README.md).

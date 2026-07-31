@@ -29,7 +29,7 @@ The platform vision combines realistic attack simulations with interactive train
 
 In addition to simulations, the platform uses training material and quizzes to teach trainees how to identify suspicious behaviour, avoid common mistakes, and build better security habits.
 
-To support organisations, **_Insightful Phish_** is intended to provide future reporting and insights that highlight trainee progress, campaign completion, quiz results, risky behaviour, and organisation-level risk. These reporting dashboards are later-demo direction, not part of the current Demo 1 trainee flow.
+To support organisations, **_Insightful Phish_** is intended to provide future reporting and insights that highlight trainee progress, campaign completion, quiz results, risky behaviour, and organisation-level risk. These reporting dashboards are later-demo direction.
 
 By focusing on human behaviour, the most common source of security breaches, the platform helps individuals and organisations reduce risk and build a stronger security culture.
 
@@ -38,25 +38,21 @@ By focusing on human behaviour, the most common source of security breaches, the
 
 ---
 
-# <img src="https://img.icons8.com/?size=100&id=OxDyKkYjQ5Yk&format=png&color=000000" width="32"> Current Demo Scope
+# <img src="https://img.icons8.com/?size=100&id=OxDyKkYjQ5Yk&format=png&color=000000" width="32"> Current Demo (Demo 2) Scope
 
-> _Demo 1_ is an **_early local prototype_** of the trainee journey. It is not a complete final SRS or full-year platform implementation.
+For Demo 2, we focused on the organisation onboarding, administration, and security management features of the platform.
 
-#### _Demo 1_ Scope
+An organisation representative first submits a registration request, which is then reviewed by a Platform Administrator who can approve, reject, track, and manage registration requests.
 
-- View and open seeded simulated inbox emails
-- View seeded training material
-- Complete a simple quiz flow and view results
+Once approved, the invited Initial Organisation Administrator completes the organisation setup process, activates the organisation, and gains administrative access.
 
-#### Base Supporting Features
+The system also allows invited users to accept organisation invitations or administrator role changes, enabling them to join the organisation or receive additional permissions.
 
-- Login, logout, and register
-- Form (login and register) and payload validation
-- Basic theme, navigation (sidebar), and trainee-facing feedback states (e.g., training material or quizzes started, not stated, etc.)
+Organisation Administrators can then manage trainees by inviting, disabling, reactivating, and monitoring employees, while also managing other administrators by assigning permissions, promoting trainees, and maintaining administrator roles.
 
-Future platform direction includes organisation admin campaign builders, trainee/user management, reporting dashboards, real email delivery to actual inboxes, AI-assisted content generation, and advanced simulations such as fake login pages, richer link/attachment interactions, calls, or password-checker activities. Real email delivery must be opt-in and ethically constrained. AI-assisted generation remains future-facing and would require controlled schemas, prepared context, and review; training a custom model is undecided and is not promised.
+At the platform level, the Platform Super-Administrator can manage Platform Administrators by inviting new administrators, transferring the super-administrator role, and revoking or demoting existing administrators.
 
-> _Demo 1_ **runs locally**. Deployment to _Southern Cross_ infrastructure is a later target.
+Finally, the system provides configurable organisation security settings for administrators to manage organisation-wide security policies, alongside personal account and security settings that allow individual users to manage their own profile information, passwords, sessions, and other account security preferences.
 
 ---
 
@@ -70,50 +66,68 @@ Future platform direction includes organisation admin campaign builders, trainee
     <img src="https://img.shields.io/github/actions/workflow/status/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/policy.yml?branch=dev&label=Policy&style=for-the-badge&logo=github" alt="Policy Checks" />
   </a>
   <a href="https://codecov.io/gh/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform">
-    <img src="https://img.shields.io/codecov/c/github/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/dev?style=for-the-badge&logo=codecov&label=Coverage" alt="Codecov coverage" />
+    <img src="https://img.shields.io/codecov/c/github/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/dev?style=for-the-badge&logo=codecov&label=Coverage" alt="Codecov Coverage" />
   </a>
+
+  <a href="https://stats.uptimerobot.com/eW0J6TlkFn">
+  <img src="https://img.shields.io/uptimerobot/status/m803629841-fb7ba0ec8905f0b7298f7299?style=for-the-badge&logo=uptimerobot&label=Website" alt="Insightful Phish Website Status" />
+</a>
+<a href="https://stats.uptimerobot.com/eW0J6TlkFn">
+  <img src="https://img.shields.io/uptimerobot/ratio/m803629841-fb7ba0ec8905f0b7298f7299?style=for-the-badge&logo=uptimerobot&label=Uptime" alt="Insightful Phish Uptime" />
+</a>
 </p>
 
 <p align="left">
-  <a href="docs/demo1/SRS.md">
-    <img src="https://img.shields.io/badge/Requirements-SRS%20Documented-blue?style=for-the-badge" alt="Requirements: SRS documented" />
-  </a>
-  <a href="docs/demo1/SRS.md">
-    <img src="https://img.shields.io/badge/Demo%201-Docs%20Available-blue?style=for-the-badge" alt="Demo 1 docs available" />
+  <a href="https://docs.insightfulphish.co.za">
+    <img src="https://img.shields.io/badge/Demo%202-Docs%20Available-blue?style=for-the-badge" alt="Demo 2 Docs Available" />
   </a>
   <img src="https://img.shields.io/badge/Monorepo-pnpm%20Workspaces-blue?style=for-the-badge" alt="Monorepo: pnpm workspaces" />
-  <img src="https://img.shields.io/badge/Branching-Feature%20Branches%20%2B%20Dev-blue?style=for-the-badge" alt="Branching: feature branches plus dev" />
+  <img src="https://img.shields.io/badge/Branching-Feature%20Branches%20%2B%20Dev-blue?style=for-the-badge" alt="Branching: Feature branches + dev" />
 </p>
 
 <p align="left">
   <a href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/issues">
-    <img src="https://img.shields.io/github/issues/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge&color=brightgreen" alt="GitHub issues" />
+    <img src="https://img.shields.io/github/issues/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge&color=brightgreen" alt="GitHub Issues" />
   </a>
   <a href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/issues?q=is%3Aissue%20is%3Aclosed">
-    <img src="https://img.shields.io/github/issues-closed/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge&color=brightgreen" alt="GitHub closed issues" />
+    <img src="https://img.shields.io/github/issues-closed/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform?style=for-the-badge&color=brightgreen" alt="GitHub Closed Issues" />
   </a>
   <a href="https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/commits/dev/">
-    <img src="https://img.shields.io/github/last-commit/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/dev?style=for-the-badge&color=yellow" alt="Last commit" />
+    <img src="https://img.shields.io/github/last-commit/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/dev?style=for-the-badge&color=yellow" alt="Last Commit" />
   </a>
 </p>
 
 ## <img src="https://img.icons8.com/?size=100&id=1BYH0ZFsjeIy&format=png&color=000000" width="24"> Important Project Links
 
-1. **Project Board**: https://developer.insightfulphish.co.za/repository/project-board
-2. **Project Issues**: https://developer.insightfulphish.co.za/repository/issues
-3. **Project Pull Requests**: https://developer.insightfulphish.co.za/repository/pull-requests
+1. **Project Board**: https://project.insightfulphish.co.za
+2. **Project Issues**: https://issues.insightfulphish.co.za
+3. **Project Pull Requests**: https://pr.insightfulphish.co.za
+4. **GitHub** https://github.insightfulphish.co.za _(YOU ARE HERE)_
+5. **Help** https://help.insightfulphish.co.za
+
+### Demo 2 Documentation
+
+1. **Demo 2 Documentation**: https://docs.insightfulphish.co.za
+2. **Swagger Documentation (API Contracts)**: https://swagger.insightfulphish.co.za
+3. **Brand Guidelines**: https://brand.insightfulphish.co.za
+4. **Demo 2 Video**: [Youtube](https://youtu.be/lzpxob1Ty3A)
 
 ### Demo 1 Documentation
 
-1. **Functional Requirements (SRS)**: [docs/demo1/SRS.md](docs/demo1/SRS.md)
+<details>
+<summary>Click here to see the Demo 1 Documentation and Video</summary>
+
+1. **Software Requirements Specification**: [docs/demo1/SRS.md](docs/demo1/SRS.md)
 2. **API Contracts**: [docs/demo1/API.md](docs/demo1/API.md)
 3. **Architecture**: [docs/demo1/architecture.md](docs/demo1/architecture.md)
 4. **Traceability**: [docs/demo1/traceability.md](docs/demo1/traceability.md)
-5. **Testing Plan**: [docs/demo1/testing.md](docs/demo1/testing.md)
+5. **Testing Documentation**: [docs/demo1/testing.md](docs/demo1/testing.md)
 6. **Design Specification**: [docs/demo1/DESIGN.md](docs/demo1/DESIGN.md)
 7. **Diagrams**: [docs/demo1/diagrams/README.md](docs/demo1/diagrams/README.md)
 8. **Wireframes**: [docs/demo1/wireframes/README.md](docs/demo1/wireframes/README.md)
 9. **Demo 1 Video**: [YouTube](https://youtu.be/2N3udVKsnH0)
+
+</details>
 
 ---
 

@@ -1,8 +1,8 @@
-# Demo 1 Brand Asset Placeholder
+# Demo 2 Brand Assets
 
-This folder stores supporting Insightful Phish brand assets and source material. It is not the primary Demo 1 design document.
+This folder stores supporting Insightful Phish brand assets and source material. It is not the primary design document.
 
-For marking and review, use [../DESIGN.md](../DESIGN.md) as the main design reference. That document summarises the current Demo 1 brand guidelines, accessibility notes, and wireframe documentation.
+For marking and review, use [brand.insightfulphish.co.za](https://brand.insightfulphish.co.za) as the main design reference. That document summarises the current brand guidelines, accessibility notes, and wireframe documentation.
 
 The files in this folder are retained for:
 
@@ -12,3 +12,5 @@ The files in this folder are retained for:
 - The full brand-guidelines PDF source
 
 The interactive brand-guideline files may be refined or replaced later. They should be treated as supporting assets, not as the authoritative Demo 1 design specification.
+
+Back to the [Demo 2 Documentation Home](../README.md).
