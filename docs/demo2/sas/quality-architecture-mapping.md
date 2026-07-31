@@ -17,7 +17,6 @@ This section maps the selected SRS quality requirements to the architectural mec
 - [8. API Contracts](api-contracts.md)
 - [9. Deployment and Operations](deployment.md)
 - [10. Changelog](changelog.md)
--
 
 ---
 
