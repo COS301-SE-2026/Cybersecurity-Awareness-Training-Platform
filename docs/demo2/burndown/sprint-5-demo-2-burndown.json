@@ -7,8 +7,8 @@
       "number": 374,
       "title": "docs: integrate and finalise Demo 2 documentation",
       "points": 5,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-07-31"
     },
     {
       "number": 373,
@@ -28,8 +28,8 @@
       "number": 371,
       "title": "docs: complete Demo 2 deployment and operations documentation",
       "points": 5,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-07-31"
     },
     {
       "number": 370,
@@ -42,15 +42,15 @@
       "number": 369,
       "title": "docs: complete core Demo 2 SAS architecture specification",
       "points": 5,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-07-31"
     },
     {
       "number": 368,
       "title": "docs: complete Demo 2 SRS domain model and diagram",
       "points": 5,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-07-31"
     },
     {
       "number": 367,
