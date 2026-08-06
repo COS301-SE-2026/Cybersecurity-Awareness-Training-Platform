@@ -24,10 +24,15 @@ vi.mock('../../src/config/env.js', () => ({
     SMTP_PASSWORD: undefined,
     DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/insightful_phish_test',
     FRONTEND_ORIGIN: 'http://frontend.com',
+    EMAIL_DISPATCHER_MAX_ATTEMPTS: 4,
   },
 }));
 
 const emailDeliveryLogMock = vi.hoisted(() => ({
+  create: vi.fn(),
+  update: vi.fn(),
+}));
+const emailDeliveryJobMock = vi.hoisted(() => ({
   create: vi.fn(),
   update: vi.fn(),
 }));
@@ -37,6 +42,7 @@ const actionTokenMock = vi.hoisted(() => ({ findUnique: vi.fn().mockResolvedValu
 vi.mock('../../src/lib/prisma.js', () => ({
   prisma: {
     emailDeliveryLog: emailDeliveryLogMock,
+    emailDeliveryJob: emailDeliveryJobMock,
     invitation: invitationMock,
     actionToken: actionTokenMock,
   },
@@ -84,6 +90,12 @@ describe('sendEmail', () => {
 
     emailDeliveryLogMock.create.mockResolvedValue({
       id: 'emaillog01',
+    });
+    emailDeliveryJobMock.create.mockResolvedValue({
+      id: 'emailjob01',
+    });
+    emailDeliveryJobMock.update.mockResolvedValue({
+      id: 'emailjob01',
     });
 
     sendMailMock.mockResolvedValue({
@@ -207,6 +219,10 @@ describe('sendEmail', () => {
       emailDeliveryLog: {
         create: vi.fn().mockResolvedValue({ id: 'emaillogfromtx' }),
         update: vi.fn().mockResolvedValue({ id: 'emaillogfromtx' }),
+      },
+      emailDeliveryJob: {
+        create: vi.fn().mockResolvedValue({ id: 'emailjobfromtx' }),
+        update: vi.fn().mockResolvedValue({ id: 'emailjobfromtx' }),
       },
       invitation: {
         update: vi.fn(),
