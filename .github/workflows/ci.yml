@@ -441,6 +441,7 @@ jobs:
       VITE_API_BASE_URL: https://api.insightfulphish.co.za
       BACKEND_IMAGE: ghcr.io/example/insightfulphish/backend:ci
       FRONTEND_IMAGE: ghcr.io/example/insightfulphish/frontend:ci
+      MAILPIT_IMAGE: axllent/mailpit:ci
       SMTP_FROM_ADDRESS: noreply@insightfulphish.co.za
       SMTP_FROM_NAME: Insightful Phish
       SMTP_HOST: smtp.example.invalid
@@ -463,6 +464,7 @@ jobs:
 
   docker-build-backend:
     name: Docker Build & Publish (Backend)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs:
       - format
       - lint
@@ -508,6 +510,7 @@ jobs:
 
   docker-build-frontend:
     name: Docker Build & Publish (Frontend)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs:
       - format
       - lint
@@ -553,6 +556,109 @@ jobs:
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,scope=frontend,mode=max
 
+  docker-build-development-backend:
+    name: Docker Build & Publish Development (Backend)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    needs:
+      - format
+      - lint
+      - typecheck
+      - unit-tests-backend
+      - unit-tests-frontend
+      - unit-tests-shared
+      - integration-tests
+      - build
+      - docker-compose-config
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    timeout-minutes: 15
+    continue-on-error: false
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f95db51fddba0c2d1ec667646a06c2ce06100226 # v3.0.0
+
+      - name: Log into GHCR
+        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # 4.4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Publish Development Backend Image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: .
+          file: apps/backend/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ vars.GHCR_IMAGE_PREFIX }}/backend:dev-${{ github.sha }}
+          cache-from: type=gha,scope=backend-development-amd64
+          cache-to: type=gha,scope=backend-development-amd64,mode=max
+
+  docker-build-development-frontend:
+    name: Docker Build & Publish Development (Frontend)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    needs:
+      - format
+      - lint
+      - typecheck
+      - unit-tests-backend
+      - unit-tests-frontend
+      - unit-tests-shared
+      - integration-tests
+      - build
+      - docker-compose-config
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    timeout-minutes: 20
+    continue-on-error: false
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Require Development Frontend API URL
+        env:
+          DEVELOPMENT_FRONTEND_API_URL: ${{ vars.DEVELOPMENT_FRONTEND_API_URL }}
+        run: |
+          set -Eeuo pipefail
+          if [[ -z "$DEVELOPMENT_FRONTEND_API_URL" ]]; then
+            echo "DEVELOPMENT_FRONTEND_API_URL is required" >&2
+            exit 1
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f95db51fddba0c2d1ec667646a06c2ce06100226 # v3.0.0
+
+      - name: Log into GHCR
+        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # 4.4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Publish Development Frontend Image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: .
+          file: apps/frontend/Dockerfile
+          platforms: linux/amd64
+          build-args: |
+            VITE_API_BASE_URL= ${{ vars.DEVELOPMENT_FRONTEND_API_URL }}
+          tags: |
+            ${{ vars.GHCR_IMAGE_PREFIX }}/frontend:dev-${{github.sha}}
+          cache-from: type=gha,scope=frontend-development-amd64
+          cache-to: type=gha,scope=frontend-development-amd64,mode=max
+
   deploy-production:
     name: Deploy Production
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.PRODUCTION_DEPLOY_ENABLED == 'true'
@@ -596,3 +702,50 @@ jobs:
         if: always()
         run: |
           rm -f "$HOME/.ssh/id_ed25519"
+
+  deploy-development:
+    name: Deploy Development
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev' && vars.DEVELOPMENT_DEPLOY_ENABLED == 'true'
+    needs:
+      - docker-build-development-backend
+      - docker-build-development-frontend
+    runs-on: ubuntu-latest
+    environment:
+      name: development
+      url: https://dev.insightfulphish.co.za
+    timeout-minutes: 20
+    concurrency:
+      group: insightfulphish-development
+      cancel-in-progress: false
+    permissions: {}
+    steps:
+      - name: Prepare SSH
+        env:
+          DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          set -Eeuo pipefail
+          install -m 600 /dev/null "$RUNNER_TEMP/development_id_ed25519"
+          printf '%s\n' "$DEPLOY_SSH_PRIVATE_KEY" > "$RUNNER_TEMP/development_id_ed25519"
+          install -m 600 /dev/null "$RUNNER_TEMP/development_known_hosts"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$RUNNER_TEMP/development_known_hosts"
+
+      - name: Deploy development release
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          set -Eeuo pipefail
+          ssh \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o "UserKnownHostsFile=$RUNNER_TEMP/development_known_hosts" \
+            -i "$RUNNER_TEMP/development_id_ed25519" \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            "sudo /usr/local/bin/deploy-insightfulphish-development '${{ github.sha }}'"
+      - name: Remove SSH credentials
+        if: always()
+        run: |
+          rm -f "$RUNNER_TEMP/development_known_hosts"
+          rm -f "$RUNNER_TEMP/development_id_ed25519"
