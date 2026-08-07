@@ -1477,8 +1477,8 @@
           "number": 406,
           "title": "feat: add organisation campaign assignment permission and option endpoints",
           "points": 3,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-08-07"
         },
         {
           "number": 405,
@@ -2010,7 +2010,7 @@
     },
     {
       "date": "2026-08-07",
-      "remaining": 39,
+      "remaining": 36,
       "ideal": 15.77
     }
   ]
