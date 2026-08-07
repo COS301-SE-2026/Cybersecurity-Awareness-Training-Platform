@@ -270,3 +270,507 @@ export async function findAssignmentCandidates(
 
   return { items, total };
 }
+
+export type FindAssignableCampaignsByIdsInput = {
+  organisationId: string;
+  campaignIds: string[];
+};
+
+export async function findAssignableCampaignsByIds(
+  input: FindAssignableCampaignsByIdsInput,
+  client: DBClient = prisma,
+) {
+  if (input.campaignIds.length === 0) return [];
+  return client.campaign.findMany({
+    where: {
+      id: { in: input.campaignIds },
+      organisationId: input.organisationId,
+      campaignType: 'ORGANISATION_CUSTOM',
+      status: 'ACTIVE',
+    },
+    select: {
+      id: true,
+      name: true,
+      status: true,
+      campaignType: true,
+    },
+  });
+}
+
+export type FindEligibleTraineesByIdsInput = {
+  organisationId: string;
+  traineeProfileIds: string[];
+};
+
+export async function findEligibleTraineesByIds(
+  input: FindEligibleTraineesByIdsInput,
+  client: DBClient = prisma,
+) {
+  if (input.traineeProfileIds.length === 0) return [];
+  return client.organisationTraineeProfile.findMany({
+    where: {
+      organisationId: input.organisationId,
+      traineeProfileId: { in: input.traineeProfileIds },
+      membershipStatus: 'ACTIVE',
+      traineeProfile: {
+        traineeStatus: 'ACTIVE',
+        user: {
+          userType: 'ORGANISATION_TRAINEE',
+          authStatus: 'ACTIVE',
+        },
+      },
+    },
+    select: {
+      id: true,
+      traineeProfileId: true,
+    },
+  });
+}
+
+export async function findCampaignByIdInOrganisation(
+  organisationId: string,
+  campaignId: string,
+  client: DBClient = prisma,
+) {
+  return client.campaign.findFirst({
+    where: {
+      id: campaignId,
+      organisationId,
+    },
+    select: {
+      id: true,
+    },
+  });
+}
+
+export async function findTraineeByIdInOrganisation(
+  organisationId: string,
+  traineeProfileId: string,
+  client: DBClient = prisma,
+) {
+  return client.organisationTraineeProfile.findFirst({
+    where: {
+      traineeProfileId,
+      organisationId,
+    },
+    select: {
+      id: true,
+    },
+  });
+}
+
+export type ExecuteBulkCampaignAssignmentInput = {
+  organisationId: string;
+  campaignIds: string[];
+  traineeProfileIds: string[];
+  actorUserId: string;
+};
+
+export type CampaignAssignmentResultRow = {
+  assignmentId: string;
+  campaignId: string;
+  traineeProfileId: string;
+};
+
+export type ExecuteBulkCampaignAssignmentResult =
+  | {
+      success: true;
+      created: CampaignAssignmentResultRow[];
+      alreadyAssigned: CampaignAssignmentResultRow[];
+      summary: {
+        requestedCampaigns: number;
+        requestedTrainees: number;
+        requestedPairs: number;
+        createdCount: number;
+        alreadyAssignedCount: number;
+      };
+    }
+  | {
+      success: false;
+      error: 'CAMPAIGN_NOT_FOUND' | 'TRAINEE_NOT_FOUND' | 'CAMPAIGN_INACTIVE' | 'TRAINEE_DISABLED';
+      message: string;
+    };
+
+export async function executeBulkCampaignAssignment(
+  input: ExecuteBulkCampaignAssignmentInput,
+  client: DBClient = prisma,
+): Promise<ExecuteBulkCampaignAssignmentResult> {
+  const runInTx = async (tx: DBClient): Promise<ExecuteBulkCampaignAssignmentResult> => {
+    // 1. Fetch existing assignments matching requested pairs
+    const existing =
+      (await tx.campaignAssignment.findMany({
+        where: {
+          campaignId: { in: input.campaignIds },
+          traineeProfileId: { in: input.traineeProfileIds },
+        },
+        select: {
+          id: true,
+          campaignId: true,
+          traineeProfileId: true,
+        },
+      })) ?? [];
+
+    const existingMap = new Map<string, CampaignAssignmentResultRow>();
+    for (const row of existing) {
+      existingMap.set(`${row.campaignId}:${row.traineeProfileId}`, {
+        assignmentId: row.id,
+        campaignId: row.campaignId,
+        traineeProfileId: row.traineeProfileId,
+      });
+    }
+
+    // 2. Compute missing pairs that would need to be created
+    const missingPairs: Array<{ campaignId: string; traineeProfileId: string }> = [];
+    for (const campaignId of input.campaignIds) {
+      for (const traineeProfileId of input.traineeProfileIds) {
+        if (!existingMap.has(`${campaignId}:${traineeProfileId}`)) {
+          missingPairs.push({ campaignId, traineeProfileId });
+        }
+      }
+    }
+
+    // 3. Authoritative persistence validation inside the transaction for missing pairs
+    if (missingPairs.length > 0) {
+      const neededCampaignIds = Array.from(new Set(missingPairs.map((p) => p.campaignId)));
+      const neededTraineeProfileIds = Array.from(
+        new Set(missingPairs.map((p) => p.traineeProfileId)),
+      );
+
+      const campaigns = await tx.campaign.findMany({
+        where: { id: { in: input.campaignIds } },
+        select: { id: true, organisationId: true, status: true, campaignType: true },
+      });
+
+      const campaignMap = new Map((campaigns ?? []).map((c) => [c.id, c]));
+
+      for (const cId of input.campaignIds) {
+        const c = campaignMap.get(cId);
+        if (!c || c.organisationId !== input.organisationId) {
+          return {
+            success: false,
+            error: 'CAMPAIGN_NOT_FOUND',
+            message:
+              'One or more specified campaigns were not found or belong to another organisation',
+          };
+        }
+      }
+
+      for (const cId of neededCampaignIds) {
+        const c = campaignMap.get(cId)!;
+        if (c.status !== 'ACTIVE' || c.campaignType !== 'ORGANISATION_CUSTOM') {
+          return {
+            success: false,
+            error: 'CAMPAIGN_INACTIVE',
+            message: 'One or more specified campaigns are inactive or not eligible for assignment',
+          };
+        }
+      }
+
+      const orgTrainees = await tx.organisationTraineeProfile.findMany({
+        where: {
+          organisationId: input.organisationId,
+          traineeProfileId: { in: input.traineeProfileIds },
+        },
+        select: {
+          traineeProfileId: true,
+          membershipStatus: true,
+          traineeProfile: {
+            select: {
+              traineeStatus: true,
+              user: {
+                select: {
+                  userType: true,
+                  authStatus: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const traineeMap = new Map((orgTrainees ?? []).map((t) => [t.traineeProfileId, t]));
+
+      for (const tId of input.traineeProfileIds) {
+        const t = traineeMap.get(tId);
+        if (!t) {
+          return {
+            success: false,
+            error: 'TRAINEE_NOT_FOUND',
+            message:
+              'One or more specified trainees were not found or belong to another organisation',
+          };
+        }
+      }
+
+      for (const tId of neededTraineeProfileIds) {
+        const t = traineeMap.get(tId)!;
+        if (
+          t.membershipStatus !== 'ACTIVE' ||
+          t.traineeProfile.traineeStatus !== 'ACTIVE' ||
+          t.traineeProfile.user.userType !== 'ORGANISATION_TRAINEE' ||
+          t.traineeProfile.user.authStatus !== 'ACTIVE'
+        ) {
+          return {
+            success: false,
+            error: 'TRAINEE_DISABLED',
+            message: 'One or more specified trainees are disabled or not eligible for assignment',
+          };
+        }
+      }
+    }
+
+    // 4. Perform atomic insertion using createMany with skipDuplicates (ON CONFLICT DO NOTHING)
+    let countInsertedCount = 0;
+    if (missingPairs.length > 0) {
+      const createRes = await tx.campaignAssignment.createMany({
+        data: missingPairs.map((pair) => ({
+          campaignId: pair.campaignId,
+          traineeProfileId: pair.traineeProfileId,
+          assignedByUserId: input.actorUserId,
+          accessType: 'ASSIGNED',
+          assignmentStatus: 'ASSIGNED',
+        })),
+        skipDuplicates: true,
+      });
+      countInsertedCount = createRes?.count ?? 0;
+    }
+
+    // 5. Query all assignments after insertion
+    const allAssignments =
+      (await tx.campaignAssignment.findMany({
+        where: {
+          campaignId: { in: input.campaignIds },
+          traineeProfileId: { in: input.traineeProfileIds },
+        },
+        select: {
+          id: true,
+          campaignId: true,
+          traineeProfileId: true,
+        },
+      })) ?? [];
+
+    const created: CampaignAssignmentResultRow[] = [];
+    const alreadyAssigned: CampaignAssignmentResultRow[] = [];
+
+    for (const assignment of allAssignments) {
+      const key = `${assignment.campaignId}:${assignment.traineeProfileId}`;
+      const row: CampaignAssignmentResultRow = {
+        assignmentId: assignment.id,
+        campaignId: assignment.campaignId,
+        traineeProfileId: assignment.traineeProfileId,
+      };
+
+      if (existingMap.has(key) || (missingPairs.length > 0 && countInsertedCount === 0)) {
+        alreadyAssigned.push(row);
+      } else {
+        created.push(row);
+      }
+    }
+
+    const requestedCampaigns = input.campaignIds.length;
+    const requestedTrainees = input.traineeProfileIds.length;
+    const requestedPairs = requestedCampaigns * requestedTrainees;
+
+    return {
+      success: true,
+      created,
+      alreadyAssigned,
+      summary: {
+        requestedCampaigns,
+        requestedTrainees,
+        requestedPairs,
+        createdCount: created.length,
+        alreadyAssignedCount: alreadyAssigned.length,
+      },
+    };
+  };
+
+  if ('$transaction' in client && typeof client.$transaction === 'function') {
+    return client.$transaction(async (tx) => runInTx(tx));
+  }
+
+  return runInTx(client);
+}
+
+export type FindCampaignAssignmentsByCampaignInput = {
+  organisationId: string;
+  campaignId: string;
+  page: number;
+  limit: number;
+  search?: string;
+  status?: string;
+};
+
+export type CampaignAssignmentRepositoryReadRow = {
+  assignmentId: string;
+  campaignId: string;
+  campaignName: string;
+  campaignStatus: string;
+  campaignType: string;
+  traineeProfileId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  traineeStatus: string;
+  assignmentStatus: string;
+  accessType: string;
+  assignedAt: Date;
+  startedAt: Date | null;
+  completedAt: Date | null;
+};
+
+export type FindCampaignAssignmentsReadResult = {
+  items: CampaignAssignmentRepositoryReadRow[];
+  total: number;
+};
+
+function mapCampaignAssignmentRowToReadRow(r: {
+  id: string;
+  campaignId: string;
+  traineeProfileId: string;
+  assignedAt: Date;
+  startedAt: Date | null;
+  completedAt: Date | null;
+  assignmentStatus: string;
+  accessType: string;
+  campaign: { name: string; status: string; campaignType: string };
+  traineeProfile: {
+    traineeStatus: string;
+    user: { firstName: string; lastName: string; email: string };
+  };
+}): CampaignAssignmentRepositoryReadRow {
+  return {
+    assignmentId: r.id,
+    campaignId: r.campaignId,
+    campaignName: r.campaign.name,
+    campaignStatus: r.campaign.status,
+    campaignType: r.campaign.campaignType,
+    traineeProfileId: r.traineeProfileId,
+    firstName: r.traineeProfile.user.firstName,
+    lastName: r.traineeProfile.user.lastName,
+    email: r.traineeProfile.user.email,
+    traineeStatus: r.traineeProfile.traineeStatus,
+    assignmentStatus: r.assignmentStatus,
+    accessType: r.accessType,
+    assignedAt: r.assignedAt,
+    startedAt: r.startedAt,
+    completedAt: r.completedAt,
+  };
+}
+
+export async function findCampaignAssignmentsByCampaign(
+  input: FindCampaignAssignmentsByCampaignInput,
+  client: DBClient = prisma,
+): Promise<FindCampaignAssignmentsReadResult> {
+  const trimmedSearch = input.search?.trim();
+
+  const where: Prisma.CampaignAssignmentWhereInput = {
+    campaignId: input.campaignId,
+    campaign: {
+      organisationId: input.organisationId,
+    },
+    traineeProfile: {
+      organisationTraineeProfile: {
+        organisationId: input.organisationId,
+      },
+    },
+    ...(input.status
+      ? { assignmentStatus: input.status as Prisma.EnumAssignmentStatusFilter }
+      : {}),
+    ...(trimmedSearch
+      ? {
+          traineeProfile: {
+            user: {
+              OR: [
+                { firstName: { contains: trimmedSearch, mode: 'insensitive' } },
+                { lastName: { contains: trimmedSearch, mode: 'insensitive' } },
+                { email: { contains: trimmedSearch, mode: 'insensitive' } },
+              ],
+            },
+          },
+        }
+      : {}),
+  };
+
+  const skip = (input.page - 1) * input.limit;
+
+  const [rows, total] = await Promise.all([
+    client.campaignAssignment.findMany({
+      where,
+      orderBy: [{ assignedAt: 'desc' }, { id: 'asc' }],
+      skip,
+      take: input.limit,
+      include: {
+        campaign: true,
+        traineeProfile: {
+          include: {
+            user: true,
+          },
+        },
+      },
+    }),
+    client.campaignAssignment.count({ where }),
+  ]);
+
+  return { items: (rows ?? []).map(mapCampaignAssignmentRowToReadRow), total };
+}
+
+export type FindCampaignAssignmentsByTraineeInput = {
+  organisationId: string;
+  traineeProfileId: string;
+  page: number;
+  limit: number;
+  search?: string;
+  status?: string;
+};
+
+export async function findCampaignAssignmentsByTrainee(
+  input: FindCampaignAssignmentsByTraineeInput,
+  client: DBClient = prisma,
+): Promise<FindCampaignAssignmentsReadResult> {
+  const trimmedSearch = input.search?.trim();
+
+  const where: Prisma.CampaignAssignmentWhereInput = {
+    traineeProfileId: input.traineeProfileId,
+    traineeProfile: {
+      organisationTraineeProfile: {
+        organisationId: input.organisationId,
+      },
+    },
+    campaign: {
+      organisationId: input.organisationId,
+    },
+    ...(input.status
+      ? { assignmentStatus: input.status as Prisma.EnumAssignmentStatusFilter }
+      : {}),
+    ...(trimmedSearch
+      ? {
+          campaign: {
+            name: { contains: trimmedSearch, mode: 'insensitive' },
+          },
+        }
+      : {}),
+  };
+
+  const skip = (input.page - 1) * input.limit;
+
+  const [rows, total] = await Promise.all([
+    client.campaignAssignment.findMany({
+      where,
+      orderBy: [{ assignedAt: 'desc' }, { id: 'asc' }],
+      skip,
+      take: input.limit,
+      include: {
+        campaign: true,
+        traineeProfile: {
+          include: {
+            user: true,
+          },
+        },
+      },
+    }),
+    client.campaignAssignment.count({ where }),
+  ]);
+
+  return { items: (rows ?? []).map(mapCampaignAssignmentRowToReadRow), total };
+}
