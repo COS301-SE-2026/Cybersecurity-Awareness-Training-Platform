@@ -1,11 +1,16 @@
 import AppLayout from '../components/layout/AppLayout';
+import { useState } from 'react';
+import OrganisationTraineeSelectionPage from './campaign-assignment/OrganisationTraineeSelectionPage';
+import CampaignSelectionPage from './campaign-assignment/CampaignSelectionPage';
+import ReviewCampaignAssignmentPage from './campaign-assignment/ReviewCampaignAssignmentPage';
 
 function CampaignAssignmentPage() {
+  const [currentTab, setCurrentTab] = useState<1 | 2 | 3>(1);
+
   return (
     <AppLayout
       contentStyle={{
-        //backgroundColor: '#F3F4F6',
-        backgroundColor: 'white',
+        backgroundColor: '#F3F4F6',
       }}
     >
       <div>
@@ -29,15 +34,70 @@ function CampaignAssignmentPage() {
               color: 'rgb(132, 25, 255)',
             }}
           >
-            Campaign Assignment
+            Assign Training Campaigns
           </h1>
 
           <p className="font-regular tracking-wider text-[1.3rem] font-justify font-jost text-gray-500 mb-4">
-            Sub-heading...
+            Select the organisation trainees you want to assign training campaigns to, then choose
+            the campaigns and review your assignments before submitting. Assigning new campaigns
+            will not affect campaigns already assigned to organisation trainees or reset their
+            progress.
           </p>
         </div>
 
-        <div className="px-6 pb-6"></div>
+        <div className="flex flex-col flex-1 p-5 -mt-5 w-full">
+          {/* TAB BUTTONS */}
+          <ul className="hidden text-sm font-medium text-center text-body sm:flex -space-x-px">
+            <li className="w-full focus-within:z-10">
+              <button
+                type="button"
+                onClick={() => setCurrentTab(1)}
+                className={`font-jost inline-block w-full bg-neutral-primary-soft border border-default hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)] focus:ring-4 focus:ring-neutral-secondary-strong font-light text-[1.2rem] tracking-wide leading-5 px-5 py-3 focus:outline-none ${
+                  currentTab === 1
+                    ? 'bg-faint-purple text-[var(--ip-purple)] font-medium'
+                    : 'bg-neutral-primary-soft text-body hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)]'
+                }`}
+              >
+                1. Organisation Trainee Selection
+              </button>
+            </li>
+            <li className="w-full focus-within:z-10">
+              <button
+                type="button"
+                onClick={() => setCurrentTab(2)}
+                className={`font-jost inline-block w-full bg-neutral-primary-soft border border-default hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)] focus:ring-4 focus:ring-neutral-secondary-strong font-light text-[1.2rem] tracking-wide leading-5 px-5 py-3 focus:outline-none ${
+                  currentTab === 2
+                    ? 'bg-faint-purple text-[var(--ip-purple)] font-medium'
+                    : 'bg-neutral-primary-soft text-body hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)]'
+                }`}
+              >
+                2. Campaign Selection
+              </button>
+            </li>
+            <li className="w-full focus-within:z-10">
+              <button
+                type="button"
+                onClick={() => setCurrentTab(3)}
+                className={`font-jost inline-block w-full bg-neutral-primary-soft border border-default hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)] focus:ring-4 focus:ring-neutral-secondary-strong font-light text-[1.2rem] tracking-wide leading-5 px-5 py-3 focus:outline-none ${
+                  currentTab === 3
+                    ? 'bg-faint-purple text-[var(--ip-purple)] font-medium'
+                    : 'bg-neutral-primary-soft text-body hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)]'
+                }`}
+              >
+                3. Review Assignment
+              </button>
+            </li>
+          </ul>
+
+          {/* CONTENT BOX */}
+          <div className="w-full p-8 bg-white md:mt-0 bg-neutral-primary-soft border-default border-x border-b">
+            {currentTab === 1 && <OrganisationTraineeSelectionPage />}
+
+            {currentTab === 2 && <CampaignSelectionPage />}
+
+            {currentTab === 3 && <ReviewCampaignAssignmentPage />}
+          </div>
+        </div>
       </div>
     </AppLayout>
   );
