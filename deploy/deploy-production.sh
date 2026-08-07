@@ -2,18 +2,7 @@
 set -Eeuo pipefail
 umask 077
 
-APP_DIR="/var/www/insightfulphish/app"
-COMPOSE_FILE="$APP_DIR/docker-compose.deploy.yml"
-RUNTIME_ENV="$APP_DIR/deploy/.env"
-RELEASE_ENV="$APP_DIR/deploy/release.env"
-CANDIDATE_ENV="$APP_DIR/deploy/release.next.env"
-RELEASES_DIR="$APP_DIR/deploy/releases"
-CURRENT_FILE="$RELEASES_DIR/current"
-PREVIOUS_FILE="$RELEASES_DIR/previous"
-HISTORY_FILE="$RELEASES_DIR/deployment-history.log"
-
 IMAGE_PREFIX='ghcr.io/cos301-se-2026/cybersecurity-awareness-training-platform'
-LOCK_FILE='/run/lock/insightfulphish-production.lock'
 BACKEND_HEALTH_URL='http://127.0.0.1:4000/health'
 FRONTEND_HEALTH_URL='http://127.0.0.1:5173/'
 HEALTH_ATTEMPTS=24
@@ -31,7 +20,7 @@ finish() {
 
 	if ((status != 0)); then
 		echo "Deployment failed during phase: $phase" >&2
-		if [[ -f "$CURRENT_FILE" ]]; then
+		if [[ -n "${CURRENT_FILE:-}" && -f "${CURRENT_FILE:-}" ]]; then
 			echo "Current successful SHA: $(cat "$CURRENT_FILE")" >&2
 		else
 			echo "No current successful SHA has been recorded" >&2
@@ -46,14 +35,63 @@ finish() {
 
 trap finish EXIT
 
-if [[ "$#" -ne 1 || ! "$1" =~ ^[0-9a-f]{40}$ ]]; then
-	echo "Usage: deploy-insightful-phish-production <40-character-sha>" >&2
+deployment_target='production'
+
+case "$#" in
+	1)
+		release_sha="$1"
+		;;
+	3) 
+		if [[ "$1" != '--target' ]]; then
+			echo "Usage: ${0##*/} [--target production|development] <40-character-sha>" >&2
+			exit 64
+		fi
+		deployment_target="$2"
+		release_sha="$3"
+		;;
+	*)
+		echo "Usage: ${0##*/} [--target production|development] <40-character-sha>" >&2
+		exit 64
+		;;
+esac
+
+if [[ ! "$release_sha" =~ ^[0-9a-f]{40}$ ]]; then
+	echo "Release SHA must be 40 lowercase characters" >&2
 	exit 64
 fi
 
-release_sha="$1"
-backend_image="$IMAGE_PREFIX/backend:$release_sha"
-frontend_image="$IMAGE_PREFIX/frontend:$release_sha"
+case "$deployment_target" in 
+	production)
+		APP_DIR='/var/www/insightfulphish/app'
+		LOCK_FILE='/run/lock/insightfulphish-production.lock'
+		image_tag="$release_sha"
+		COMPOSE_FILES=("$APP_DIR/docker-compose.deploy.yml")
+		pull_services=(backend backend-migrate frontend)
+		application_services=(postgres backend frontend)
+		;;
+	development)
+		APP_DIR='/var/www/insightfulphish-dev'
+		LOCK_FILE='/run/lock/insightfulphish-development.lock'
+		image_tag="dev-$release_sha"
+		COMPOSE_FILES=("$APP_DIR/docker-compose.deploy.yml" "$APP_DIR/docker-compose.development.yml")
+		pull_services=(backend backend-migrate frontend mailpit)
+		application_services=(postgres mailpit backend frontend)
+		;;
+	*)
+		echo "Deployment target must be production or development" >&2
+		exit 64
+		;;
+esac
+
+RUNTIME_ENV="$APP_DIR/deploy/.env"
+RELEASE_ENV="$APP_DIR/deploy/release.env"
+CANDIDATE_ENV="$APP_DIR/deploy/release.next.env"
+RELEASES_DIR="$APP_DIR/deploy/releases"
+CURRENT_FILE="$RELEASES_DIR/current"
+PREVIOUS_FILE="$RELEASES_DIR/previous"
+HISTORY_FILE="$RELEASES_DIR/deployment-history.log"
+backend_image="$IMAGE_PREFIX/backend:$image_tag"
+frontend_image="$IMAGE_PREFIX/frontend:$image_tag"
 
 phase="deployment-lock"
 
@@ -70,10 +108,15 @@ if [[ ! -d "$APP_DIR" ]]; then
 	echo "Application directory does not exist: $APP_DIR" >&2
 	exit 1
 fi
-if [[ ! -f "$COMPOSE_FILE" ]]; then
-	echo "Compose file does not exist: $COMPOSE_FILE" >&2
-	exit 1
-fi
+
+for compose_file in "${COMPOSE_FILES[@]}"; do 
+	if [[ ! -f "$compose_file" ]]; then
+		echo "Compose file does not exit: $compose_file" >&2
+		exit 1
+	fi
+done
+
+
 if [[ ! -f "$RUNTIME_ENV" ]]; then
 	echo "Runtime env file does not exist: $RUNTIME_ENV" >&2
 	exit 1
@@ -93,7 +136,10 @@ temporary_file=""
 chmod 600 "$CANDIDATE_ENV"
 chown root:root "$CANDIDATE_ENV"
 
-compose_candidate=(docker compose --env-file "$RUNTIME_ENV" --env-file "$CANDIDATE_ENV" -f "$COMPOSE_FILE")
+compose_candidate=(docker compose --env-file "$RUNTIME_ENV" --env-file "$CANDIDATE_ENV")
+for compose_file in "${COMPOSE_FILES[@]}"; do
+	compose_candidate+=(-f "$compose_file")
+done
 
 phase="compose-validation"
 
@@ -101,15 +147,14 @@ phase="compose-validation"
 
 phase="image-pull"
 
-"${compose_candidate[@]}" pull backend backend-migrate frontend
+"${compose_candidate[@]}" pull "${pull_services[@]}"
 
 phase="migration"
-
 "${compose_candidate[@]}" --profile migration run --rm backend-migrate
 
 phase="application-recreation"
 
-"${compose_candidate[@]}" up -d --no-build --remove-orphans postgres backend frontend
+"${compose_candidate[@]}" up -d --no-build --remove-orphans "${application_services[@]}"
 
 service_is_healthy() {
 	local service_name="$1"
@@ -171,6 +216,29 @@ wait_for_http(){
 phase="smoke-tests"
 wait_for_http backend "$BACKEND_HEALTH_URL"
 wait_for_http frontend "$FRONTEND_HEALTH_URL"
+if [[ "$deployment_target" == 'development' ]]; then
+	echo "Checking backend to mailpit connectivity"
+	"${compose_candidate[@]}" exec -T backend node -e '
+	const net = require("node:net");
+	const socket = net.createConnection({ host: "mailpit", port: 1025 });
+	socket.setTimeout(5000);
+	socket.once("connect", () => {
+		socket.destroy();
+		process.exit(0);
+	});
+	socket.once("timeout", () => {
+		console.error("Mailpit connection timed out");
+		socket.destroy();
+		process.exit(1);
+	});
+	socket.once("error", (error) => {
+		console.error("Mailpit connection failed: " + error.message);
+		socket.destroy();
+		process.exit(1);
+	});
+	'
+	echo "Backend can reach mailpit"
+fi
 
 phase="release-state-validation"
 current_sha=""
@@ -214,7 +282,7 @@ mv -f "$temporary_file" "$CURRENT_FILE"
 temporary_file=""
 
 deployment_timestamp="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
-printf '%s %s success previous=%s\n' "$deployment_timestamp" "$release_sha" "${previous_sha:-none}" >> "$HISTORY_FILE"
+printf '%s %s success previous=%s target=%s\n' "$deployment_timestamp" "$release_sha" "${previous_sha:-none}" "$deployment_target" >> "$HISTORY_FILE"
 
 chmod 600 "$CURRENT_FILE" "$PREVIOUS_FILE" "$HISTORY_FILE"
 chown root:root "$CURRENT_FILE" "$PREVIOUS_FILE" "$HISTORY_FILE"
@@ -222,5 +290,6 @@ chown root:root "$CURRENT_FILE" "$PREVIOUS_FILE" "$HISTORY_FILE"
 phase="complete"
 
 echo "Deployment completed successfully"
+echo "Deployment target: $deployment_target"
 echo "Deployed SHA: $release_sha"
 echo "Previous SHA: ${previous_sha:-none}"

@@ -40,6 +40,7 @@ const EnvSchema = z.object({
   DATABASE_URL: z.string().min(1),
   FRONTEND_ORIGIN: z.string().default('http://localhost:5173'),
   AUTH_TOKEN_SECRET: z.string().min(32).default(DEMO_AUTH_TOKEN_SECRET),
+  AUTH_COOKIE_SECURE: z.enum(['true', 'false']).optional().transform((value) => value === undefined ? undefined : value === 'true'),
   AUTH_TOKEN_EXPIRES_IN_SECONDS: z.coerce.number().default(60 * 60 * 8),
   AUTH_RATE_LIMIT_WINDOW_MS: z.coerce.number().default(60 * 1000),
   AUTH_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().default(5),
@@ -63,7 +64,9 @@ export function parseEnv(input: NodeJS.ProcessEnv) {
   if (parsed.NODE_ENV === 'production'){
     ProductionSmtpSchema.parse(input);
   }
-  return parsed;
+  return {
+    ...parsed, AUTH_COOKIE_SECURE: parsed.AUTH_COOKIE_SECURE ?? parsed.NODE_ENV === 'production'
+  };
 }
 
 export const env = parseEnv(process.env);
