@@ -1,44 +1,51 @@
 import { z } from 'zod';
 
+function createNumericPreprocessor(
+  defaultValue: number,
+  errorMessagePrefix: 'Page' | 'Limit',
+  maxVal: number,
+) {
+  return z.preprocess(
+    (val) => {
+      if (val === undefined || val === '') return defaultValue;
+      if (typeof val === 'string') {
+        const trimmed = val.trim();
+        if (!/^\d+$/.test(trimmed)) return Number.NaN;
+        const parsed = Number(trimmed);
+        return Number.isSafeInteger(parsed) ? parsed : Number.NaN;
+      }
+      return typeof val === 'number' && Number.isSafeInteger(val) ? val : Number.NaN;
+    },
+    z
+      .number()
+      .int(`${errorMessagePrefix} must be an integer.`)
+      .min(1, `${errorMessagePrefix} must be at least 1.`)
+      .max(maxVal, `${errorMessagePrefix} exceeds maximum limit of ${maxVal}.`),
+  );
+}
+
+const pageQueryPreprocessor = createNumericPreprocessor(1, 'Page', 100000);
+const limitQueryPreprocessor = createNumericPreprocessor(20, 'Limit', 100);
+
 export const campaignAssignmentOptionsQuerySchema = z
   .object({
-    page: z.preprocess(
-      (val) => {
-        if (val === undefined || val === '') return 1;
-        if (typeof val === 'string') {
-          const trimmed = val.trim();
-          if (!/^\d+$/.test(trimmed)) return Number.NaN;
-          const parsed = Number(trimmed);
-          return Number.isSafeInteger(parsed) ? parsed : Number.NaN;
-        }
-        return typeof val === 'number' && Number.isSafeInteger(val) ? val : Number.NaN;
-      },
-      z
-        .number()
-        .int('Page must be an integer.')
-        .min(1, 'Page must be at least 1.')
-        .max(100000, 'Page exceeds maximum limit of 100000.'),
-    ),
-
-    limit: z.preprocess(
-      (val) => {
-        if (val === undefined || val === '') return 20;
-        if (typeof val === 'string') {
-          const trimmed = val.trim();
-          if (!/^\d+$/.test(trimmed)) return Number.NaN;
-          const parsed = Number(trimmed);
-          return Number.isSafeInteger(parsed) ? parsed : Number.NaN;
-        }
-        return typeof val === 'number' && Number.isSafeInteger(val) ? val : Number.NaN;
-      },
-      z
-        .number()
-        .int('Limit must be an integer.')
-        .min(1, 'Limit must be at least 1.')
-        .max(100, 'Limit must be at most 100.'),
-    ),
-
+    page: pageQueryPreprocessor,
+    limit: limitQueryPreprocessor,
     search: z.string().trim().optional(),
+  })
+  .strict();
+
+export const organisationAndCampaignIdParamsSchema = z
+  .object({
+    organisationId: z.string().uuid('Organisation ID must be a valid UUID'),
+    campaignId: z.string().uuid('Campaign ID must be a valid UUID'),
+  })
+  .strict();
+
+export const organisationAndTraineeProfileIdParamsSchema = z
+  .object({
+    organisationId: z.string().uuid('Organisation ID must be a valid UUID'),
+    traineeProfileId: z.string().uuid('Trainee profile ID must be a valid UUID'),
   })
   .strict();
 
@@ -86,6 +93,89 @@ export const campaignAssignmentCandidateOptionSchema = z
 export const getCampaignAssignmentCandidatesResponseSchema = z
   .object({
     items: z.array(campaignAssignmentCandidateOptionSchema),
+    pagination: paginationMetaSchema,
+  })
+  .strict();
+
+export const createCampaignAssignmentsSchema = z
+  .object({
+    campaignIds: z
+      .array(z.string().uuid('Campaign ID must be a valid UUID'))
+      .min(1, 'At least one campaign ID is required')
+      .max(100, 'Cannot specify more than 100 campaign IDs'),
+    traineeProfileIds: z
+      .array(z.string().uuid('Trainee profile ID must be a valid UUID'))
+      .min(1, 'At least one trainee profile ID is required')
+      .max(100, 'Cannot specify more than 100 trainee profile IDs'),
+  })
+  .strict();
+
+export const campaignAssignmentResultRowSchema = z
+  .object({
+    assignmentId: z.string().uuid(),
+    campaignId: z.string().uuid(),
+    traineeProfileId: z.string().uuid(),
+  })
+  .strict();
+
+export const campaignAssignmentSummarySchema = z
+  .object({
+    requestedCampaigns: z.number().int().min(0),
+    requestedTrainees: z.number().int().min(0),
+    requestedPairs: z.number().int().min(0),
+    createdCount: z.number().int().min(0),
+    alreadyAssignedCount: z.number().int().min(0),
+  })
+  .strict();
+
+export const createCampaignAssignmentsResponseSchema = z
+  .object({
+    created: z.array(campaignAssignmentResultRowSchema),
+    alreadyAssigned: z.array(campaignAssignmentResultRowSchema),
+    summary: campaignAssignmentSummarySchema,
+  })
+  .strict();
+
+export const campaignAssignmentsReadQuerySchema = z
+  .object({
+    page: pageQueryPreprocessor,
+    limit: limitQueryPreprocessor,
+    search: z.string().trim().optional(),
+    status: z
+      .enum(['AVAILABLE', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'EXPIRED'])
+      .optional(),
+  })
+  .strict();
+
+export const campaignAssignmentReadRowSchema = z
+  .object({
+    assignmentId: z.string().uuid(),
+    campaignId: z.string().uuid(),
+    campaignName: z.string().min(1),
+    campaignStatus: z.enum(['DRAFT', 'ACTIVE', 'PAUSED', 'COMPLETED', 'ARCHIVED']),
+    campaignType: z.enum(['PREMADE_GENERAL', 'ORGANISATION_CUSTOM']),
+    traineeProfileId: z.string().uuid(),
+    displayName: z.string().min(1),
+    email: z.string().email(),
+    traineeStatus: z.enum(['ACTIVE', 'INACTIVE']),
+    assignmentStatus: z.enum([
+      'AVAILABLE',
+      'ASSIGNED',
+      'IN_PROGRESS',
+      'COMPLETED',
+      'CANCELLED',
+      'EXPIRED',
+    ]),
+    accessType: z.enum(['ASSIGNED', 'SELF_SELECTED']),
+    assignedAt: z.string().datetime(),
+    startedAt: z.string().datetime().nullable(),
+    completedAt: z.string().datetime().nullable(),
+  })
+  .strict();
+
+export const getCampaignAssignmentsResponseSchema = z
+  .object({
+    items: z.array(campaignAssignmentReadRowSchema),
     pagination: paginationMetaSchema,
   })
   .strict();
