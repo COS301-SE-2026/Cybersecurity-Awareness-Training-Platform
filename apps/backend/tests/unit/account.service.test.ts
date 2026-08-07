@@ -49,7 +49,7 @@ const auditLogServiceMock = vi.hoisted(() => ({
 const authEmailHookServiceMock = vi.hoisted(() => ({
   requestAuthEmailSend: vi.fn(),
   shouldRevokeTokenForAuthEmailResult: vi.fn(
-    (result: { status: string }) => result.status === 'NOT_ACCEPTED',
+    (result: { status: string }) => result.status === 'NOT_QUEUED',
   ),
 }));
 
@@ -139,11 +139,11 @@ const effectivePolicy = {
 };
 
 const acceptedEmailOutcome = {
-  status: 'ACCEPTED' as const,
-  acceptedByProvider: true as const,
+  status: 'QUEUED' as const,
+  queueAccepted: true as const,
   queued: true as const,
   deliveryLogId: 'email-log-1',
-  providerMessageId: 'provider-message-1',
+  jobId: 'email-job-1',
 };
 
 function serializedAuditCalls() {
@@ -288,10 +288,10 @@ describe('account service', () => {
 
   it('revokes a failed email-change token only when confirmation email is not accepted', async () => {
     authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue({
-      status: 'NOT_ACCEPTED',
-      acceptedByProvider: false,
+      status: 'NOT_QUEUED',
+      queueAccepted: false,
       queued: false,
-      reason: 'EMAIL_SEND_FAILED',
+      reason: 'EMAIL_QUEUE_FAILED',
     });
 
     const result = await requestAccountEmailChange('user-1', {

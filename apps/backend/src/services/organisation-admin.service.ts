@@ -201,31 +201,13 @@ export async function createAdminPromotion(
     },
   });
 
-  const emailPersistenceFailures =
-    emailResult.status === 'ACCEPTED_PERSISTENCE_FAILED' ? emailResult.persistenceFailures : [];
-  const invitationSentPersistenceFailed = emailPersistenceFailures.some(
-    (failure) => failure.stage === 'INVITATION_SENT',
-  );
-  const invitationStatus =
-    emailResult.status === 'NOT_ACCEPTED'
-      ? 'FAILED_TO_SEND'
-      : invitationSentPersistenceFailed
-        ? 'PENDING'
-        : 'SENT';
-  if (emailResult.status === 'NOT_ACCEPTED') {
+  const invitationStatus = emailResult.status === 'NOT_QUEUED' ? 'FAILED_TO_SEND' : 'PENDING';
+  if (emailResult.status === 'NOT_QUEUED') {
     await updatePromotionInvitationStatus({
       invitationId: promotion.invitation.id,
       status: invitationStatus,
     });
   }
-
-  const emailPersistenceMetadata =
-    emailResult.status === 'ACCEPTED_PERSISTENCE_FAILED'
-      ? {
-          emailPersistenceFailureCodes: emailPersistenceFailures.map((failure) => failure.code),
-          emailPersistenceFailureStages: emailPersistenceFailures.map((failure) => failure.stage),
-        }
-      : {};
 
   await recordAuditLog({
     actorUserId,
@@ -234,13 +216,12 @@ export async function createAdminPromotion(
     targetType: 'INVITATION',
     targetId: promotion.invitation.id,
     actionType: 'INVITED',
-    outcome: emailResult.status === 'ACCEPTED' ? 'SUCCESS' : 'FAILURE',
+    outcome: emailResult.status === 'QUEUED' ? 'SUCCESS' : 'FAILURE',
     metadata: {
       targetUserId: targetUser.id,
       permissionKeys,
       emailQueued: emailResult.queued,
       emailOutcomeStatus: emailResult.status,
-      ...emailPersistenceMetadata,
     },
   });
 

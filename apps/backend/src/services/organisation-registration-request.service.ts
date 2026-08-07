@@ -735,7 +735,7 @@ export async function approveOrganisationRequest(
     },
   });
 
-  if (emailResult.status === 'NOT_ACCEPTED') {
+  if (emailResult.status === 'NOT_QUEUED') {
     await recoverInitialSetupEmailSendFailure({
       actorUserId,
       organisationId: result.organisation.id,
@@ -834,8 +834,8 @@ async function recoverInitialSetupEmailSendFailure(input: {
           outcome: 'FAILURE',
           organisationId: input.organisationId,
           metadata: {
-            emailOutcome: 'NOT_ACCEPTED',
-            reason: 'EMAIL_SEND_FAILED',
+            emailOutcome: 'NOT_QUEUED',
+            reason: 'EMAIL_QUEUE_FAILED',
           },
         },
         tx,

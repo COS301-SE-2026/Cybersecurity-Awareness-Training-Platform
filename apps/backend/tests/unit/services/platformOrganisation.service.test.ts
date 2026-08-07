@@ -79,11 +79,11 @@ const requestId = '55555555-5555-4555-8555-555555555555';
 const organisationId = '66666666-6666-4666-8666-666666666666';
 
 const acceptedHookResult = {
-  status: 'ACCEPTED' as const,
-  acceptedByProvider: true as const,
+  status: 'QUEUED' as const,
+  queueAccepted: true as const,
   queued: true as const,
   deliveryLogId: 'email-log-1',
-  providerMessageId: 'provider-message-1',
+  jobId: 'email-job-1',
 };
 
 function mockActivePlatformAdmin() {
@@ -636,7 +636,7 @@ describe('platformOrganisation service', () => {
       expect(setupStatus).not.toContain('provider host');
     });
 
-    it('does not revoke the replacement setup token when SMTP was accepted but persistence failed', async () => {
+    it('does not revoke the replacement setup token when the email is queued', async () => {
       const mockOrg = {
         id: organisationId,
         name: 'Target Org',
@@ -664,19 +664,11 @@ describe('platformOrganisation service', () => {
         rawToken: 'raw-token-string',
       });
       emailHookMock.requestAuthEmailSend.mockResolvedValue({
-        status: 'ACCEPTED_PERSISTENCE_FAILED',
-        acceptedByProvider: true,
+        status: 'QUEUED',
+        queueAccepted: true,
         queued: true,
         deliveryLogId: 'email-log-1',
-        providerMessageId: 'message-1',
-        reason: 'EMAIL_PERSISTENCE_FAILED',
-        persistenceFailures: [
-          {
-            stage: 'INVITATION_SENT',
-            code: 'INVITATION_SENT_WRITE_FAILED',
-          },
-        ],
-        persistenceFailureReason: 'INVITATION_SENT_WRITE_FAILED',
+        jobId: 'email-job-1',
       });
 
       const response = await resendInitialAdminSetup(actorUserId, organisationId);
@@ -741,7 +733,7 @@ describe('platformOrganisation service', () => {
       });
     });
 
-    it('revokes the replacement setup token only when the provider explicitly does not accept it', async () => {
+    it('revokes the replacement setup token only when the queue does not accept it', async () => {
       const mockOrg = {
         id: organisationId,
         name: 'Target Org',
@@ -769,11 +761,11 @@ describe('platformOrganisation service', () => {
         rawToken: 'raw-token-string',
       });
       emailHookMock.requestAuthEmailSend.mockResolvedValue({
-        status: 'NOT_ACCEPTED',
-        acceptedByProvider: false,
+        status: 'NOT_QUEUED',
+        queueAccepted: false,
         queued: false,
         deliveryLogId: 'email-log-1',
-        reason: 'EMAIL_SEND_FAILED',
+        reason: 'EMAIL_QUEUE_FAILED',
       });
 
       const response = await resendInitialAdminSetup(actorUserId, organisationId);
@@ -790,7 +782,7 @@ describe('platformOrganisation service', () => {
       expect(auditLogMock.recordAuditLog).toHaveBeenCalledWith(
         expect.objectContaining({
           outcome: 'FAILURE',
-          metadata: { error: 'Email was not accepted for delivery by the provider' },
+          metadata: { error: 'Email was not accepted into the delivery queue' },
         }),
       );
     });

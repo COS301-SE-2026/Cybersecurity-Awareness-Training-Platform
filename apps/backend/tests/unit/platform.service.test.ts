@@ -384,10 +384,11 @@ describe('platform organisation registration request service', () => {
         submittedOrganisationName: 'Acme',
       });
       emailHookMock.requestAuthEmailSend.mockResolvedValue({
-        status: 'ACCEPTED',
-        acceptedByProvider: true,
+        status: 'QUEUED',
+        queueAccepted: true,
         queued: true,
         deliveryLogId: 'email-log-1',
+        jobId: 'email-job-1',
       });
 
       const response = await rejectOrganisationRequest(actorUserId, requestId, {
@@ -508,11 +509,11 @@ describe('platform organisation registration request service', () => {
         submittedOrganisationName: 'Acme',
       });
       emailHookMock.requestAuthEmailSend.mockResolvedValue({
-        status: 'ACCEPTED',
-        acceptedByProvider: true,
+        status: 'QUEUED',
+        queueAccepted: true,
         queued: true,
         deliveryLogId: 'email-log-1',
-        providerMessageId: 'provider-message-1',
+        jobId: 'email-job-1',
       });
 
       const response = await approveOrganisationRequest(actorUserId, requestId, {
@@ -536,11 +537,11 @@ describe('platform organisation registration request service', () => {
     it('revokes the first setup token when the setup email is explicitly not accepted', async () => {
       mockApprovalPersistence();
       emailHookMock.requestAuthEmailSend.mockResolvedValue({
-        status: 'NOT_ACCEPTED',
-        acceptedByProvider: false,
+        status: 'NOT_QUEUED',
+        queueAccepted: false,
         queued: false,
         deliveryLogId: 'email-log-1',
-        reason: 'EMAIL_SEND_FAILED',
+        reason: 'EMAIL_QUEUE_FAILED',
       });
 
       const response = await approveOrganisationRequest(actorUserId, requestId, {
@@ -582,8 +583,8 @@ describe('platform organisation registration request service', () => {
           outcome: 'FAILURE',
           organisationId,
           metadata: {
-            emailOutcome: 'NOT_ACCEPTED',
-            reason: 'EMAIL_SEND_FAILED',
+            emailOutcome: 'NOT_QUEUED',
+            reason: 'EMAIL_QUEUE_FAILED',
           },
         }),
         expect.anything(),
@@ -606,11 +607,11 @@ describe('platform organisation registration request service', () => {
         revokedReason: null,
       });
       emailHookMock.requestAuthEmailSend.mockResolvedValue({
-        status: 'NOT_ACCEPTED',
-        acceptedByProvider: false,
+        status: 'NOT_QUEUED',
+        queueAccepted: false,
         queued: false,
         deliveryLogId: 'email-log-1',
-        reason: 'EMAIL_SEND_FAILED',
+        reason: 'EMAIL_QUEUE_FAILED',
       });
 
       await expect(
@@ -634,38 +635,11 @@ describe('platform organisation registration request service', () => {
     it('preserves the first setup token when SMTP acceptance is persisted successfully', async () => {
       mockApprovalPersistence();
       emailHookMock.requestAuthEmailSend.mockResolvedValue({
-        status: 'ACCEPTED',
-        acceptedByProvider: true,
+        status: 'QUEUED',
+        queueAccepted: true,
         queued: true,
         deliveryLogId: 'email-log-1',
-        providerMessageId: 'provider-message-1',
-      });
-
-      const response = await approveOrganisationRequest(actorUserId, requestId, {
-        organisationName: 'Acme Corp',
-        initialAdminEmail: 'john@acme.com',
-      });
-
-      expect(response.setupEmailQueued).toBe(true);
-      expect(actionTokenServiceMock.revokeActionTokenById).not.toHaveBeenCalled();
-    });
-
-    it('preserves the first setup token when SMTP accepted but persistence failed', async () => {
-      mockApprovalPersistence();
-      emailHookMock.requestAuthEmailSend.mockResolvedValue({
-        status: 'ACCEPTED_PERSISTENCE_FAILED',
-        acceptedByProvider: true,
-        queued: true,
-        deliveryLogId: 'email-log-1',
-        providerMessageId: 'provider-message-1',
-        reason: 'EMAIL_PERSISTENCE_FAILED',
-        persistenceFailures: [
-          {
-            stage: 'DELIVERY_LOG_SENT',
-            code: 'DELIVERY_LOG_SENT_WRITE_FAILED',
-          },
-        ],
-        persistenceFailureReason: 'DELIVERY_LOG_SENT_WRITE_FAILED',
+        jobId: 'email-job-1',
       });
 
       const response = await approveOrganisationRequest(actorUserId, requestId, {

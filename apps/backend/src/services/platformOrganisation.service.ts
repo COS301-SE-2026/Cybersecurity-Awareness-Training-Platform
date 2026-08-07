@@ -339,12 +339,8 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
     };
   });
 
-  // Send the setup email OUTSIDE the transaction so a DB write failure on delivery log
-  // does not incorrectly surface as a provider send failure.
-  //
-  // requestAuthEmailSend distinguishes provider rejection from provider acceptance followed by
-  // persistence failure. Do not revoke a token for ACCEPTED_PERSISTENCE_FAILED or an unexpected
-  // hook failure because the provider acceptance state is not a definite rejection.
+  // Queue the setup email OUTSIDE the transaction so delivery happens asynchronously.
+  // Only revoke the replacement token when the durable queue cannot accept the email.
   let shouldRevokeIssuedToken: boolean;
   let emailQueued: boolean;
 
@@ -374,9 +370,7 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
   }
 
   if (shouldRevokeIssuedToken) {
-    // Only revoke the token when we know for certain the email was NOT accepted for delivery.
-    // This prevents invalidating a link already in the recipient's inbox due to a DB
-    // persistence failure that happened AFTER the provider accepted the message.
+    // Only revoke the token when the email was not accepted into the durable local queue.
     await prisma.actionToken.update({
       where: { id: result.actionToken.token.id },
       data: {
@@ -393,7 +387,7 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
       actionType: 'RESENT',
       outcome: 'FAILURE',
       organisationId: organisation.id,
-      metadata: { error: 'Email was not accepted for delivery by the provider' },
+      metadata: { error: 'Email was not accepted into the delivery queue' },
     });
   }
 

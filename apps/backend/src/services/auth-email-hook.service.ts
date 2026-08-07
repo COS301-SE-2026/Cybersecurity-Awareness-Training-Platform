@@ -1,5 +1,5 @@
-import { sendEmail } from './email.service.js';
 import type { EmailDeliveryType } from '../generated/prisma/client.js';
+import { sendEmail } from './email.service.js';
 import type { EmailSendOutcome } from './email.service.js';
 
 export type AuthEmailType = EmailDeliveryType;
@@ -16,28 +16,20 @@ export type AuthEmailHookInput = {
   relatedEntityId?: string | null;
 };
 
-type AcceptedEmailOutcome = Extract<EmailSendOutcome, { status: 'ACCEPTED' }>;
-
-type AcceptedPersistenceFailedEmailOutcome = Extract<
-  EmailSendOutcome,
-  { status: 'ACCEPTED_PERSISTENCE_FAILED' }
->;
+type QueuedEmailOutcome = Extract<EmailSendOutcome, { status: 'QUEUED' }>;
 
 export type AuthEmailHookResult =
-  | AcceptedEmailOutcome
+  | QueuedEmailOutcome
   | {
-      status: 'NOT_ACCEPTED';
-      acceptedByProvider: false;
+      status: 'NOT_QUEUED';
+      queueAccepted: false;
       queued: false;
-      reason: 'EMAIL_SEND_FAILED';
+      reason: 'EMAIL_QUEUE_FAILED';
       deliveryLogId?: string;
-    }
-  | (AcceptedPersistenceFailedEmailOutcome & {
-      reason: 'EMAIL_PERSISTENCE_FAILED';
-    });
+    };
 
 export const shouldRevokeTokenForAuthEmailResult = (result: AuthEmailHookResult): boolean =>
-  result.status === 'NOT_ACCEPTED';
+  result.status === 'NOT_QUEUED';
 
 export async function requestAuthEmailSend(
   input: AuthEmailHookInput,
@@ -58,20 +50,15 @@ export async function requestAuthEmailSend(
   });
 
   switch (result.status) {
-    case 'NOT_ACCEPTED':
+    case 'NOT_QUEUED':
       return {
-        status: 'NOT_ACCEPTED',
-        acceptedByProvider: false,
+        status: 'NOT_QUEUED',
+        queueAccepted: false,
         queued: false,
-        reason: 'EMAIL_SEND_FAILED',
+        reason: 'EMAIL_QUEUE_FAILED',
         deliveryLogId: result.deliveryLogId,
       };
-    case 'ACCEPTED_PERSISTENCE_FAILED':
-      return {
-        ...result,
-        reason: 'EMAIL_PERSISTENCE_FAILED',
-      };
-    case 'ACCEPTED':
+    case 'QUEUED':
       return result;
   }
 }

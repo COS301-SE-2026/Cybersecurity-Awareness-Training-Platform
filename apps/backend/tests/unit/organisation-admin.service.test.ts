@@ -134,10 +134,11 @@ describe('organisation admin service', () => {
     });
     auditLogMock.recordAuditLog.mockResolvedValue({ id: 'audit-1' });
     emailHookMock.requestAuthEmailSend.mockResolvedValue({
-      status: 'ACCEPTED',
-      acceptedByProvider: true,
+      status: 'QUEUED',
+      queueAccepted: true,
       queued: true,
       deliveryLogId: 'email-log-1',
+      jobId: 'email-job-1',
     });
     passwordMock.verifyPassword.mockResolvedValue(true);
   });
@@ -257,7 +258,7 @@ describe('organisation admin service', () => {
     expect(result).toEqual({
       invitationId: 'invitation-1',
       actionTokenId: 'action-token-1',
-      status: 'SENT',
+      status: 'PENDING',
       expiresAt: '2026-07-08T08:00:00.000Z',
       permissionKeys: ['VIEW_ORGANISATION_ADMINS'],
       emailQueued: true,
@@ -285,10 +286,10 @@ describe('organisation admin service', () => {
     });
     repositoryMock.createInvitationPermissionGrants.mockResolvedValue({ count: 1 });
     emailHookMock.requestAuthEmailSend.mockResolvedValue({
-      status: 'NOT_ACCEPTED',
-      acceptedByProvider: false,
+      status: 'NOT_QUEUED',
+      queueAccepted: false,
       queued: false,
-      reason: 'EMAIL_SEND_FAILED',
+      reason: 'EMAIL_QUEUE_FAILED',
     });
 
     await expect(
@@ -332,19 +333,11 @@ describe('organisation admin service', () => {
     });
     repositoryMock.createInvitationPermissionGrants.mockResolvedValue({ count: 1 });
     emailHookMock.requestAuthEmailSend.mockResolvedValue({
-      status: 'ACCEPTED_PERSISTENCE_FAILED',
-      acceptedByProvider: true,
+      status: 'QUEUED',
+      queueAccepted: true,
       queued: true,
       deliveryLogId: 'email-log-1',
-      providerMessageId: 'provider-message-1',
-      reason: 'EMAIL_PERSISTENCE_FAILED',
-      persistenceFailures: [
-        {
-          stage: 'DELIVERY_LOG_SENT',
-          code: 'DELIVERY_LOG_SENT_WRITE_FAILED',
-        },
-      ],
-      persistenceFailureReason: 'DELIVERY_LOG_SENT_WRITE_FAILED',
+      jobId: 'email-job-1',
     });
 
     const result = await createAdminPromotion(actorUserId, organisationId, {
@@ -353,17 +346,15 @@ describe('organisation admin service', () => {
     });
 
     expect(result).toMatchObject({
-      status: 'SENT',
+      status: 'PENDING',
       emailQueued: true,
     });
     expect(repositoryMock.updatePromotionInvitationStatus).not.toHaveBeenCalled();
     expect(auditLogMock.recordAuditLog).toHaveBeenCalledWith(
       expect.objectContaining({
-        outcome: 'FAILURE',
+        outcome: 'SUCCESS',
         metadata: expect.objectContaining({
-          emailOutcomeStatus: 'ACCEPTED_PERSISTENCE_FAILED',
-          emailPersistenceFailureCodes: ['DELIVERY_LOG_SENT_WRITE_FAILED'],
-          emailPersistenceFailureStages: ['DELIVERY_LOG_SENT'],
+          emailOutcomeStatus: 'QUEUED',
         }),
       }),
     );
@@ -397,19 +388,11 @@ describe('organisation admin service', () => {
     });
     repositoryMock.createInvitationPermissionGrants.mockResolvedValue({ count: 1 });
     emailHookMock.requestAuthEmailSend.mockResolvedValue({
-      status: 'ACCEPTED_PERSISTENCE_FAILED',
-      acceptedByProvider: true,
+      status: 'QUEUED',
+      queueAccepted: true,
       queued: true,
       deliveryLogId: 'email-log-1',
-      providerMessageId: 'provider-message-1',
-      reason: 'EMAIL_PERSISTENCE_FAILED',
-      persistenceFailures: [
-        {
-          stage: 'INVITATION_SENT',
-          code: 'INVITATION_SENT_WRITE_FAILED',
-        },
-      ],
-      persistenceFailureReason: 'INVITATION_SENT_WRITE_FAILED',
+      jobId: 'email-job-1',
     });
 
     const result = await createAdminPromotion(actorUserId, organisationId, {
@@ -423,11 +406,9 @@ describe('organisation admin service', () => {
     });
     expect(auditLogMock.recordAuditLog).toHaveBeenCalledWith(
       expect.objectContaining({
-        outcome: 'FAILURE',
+        outcome: 'SUCCESS',
         metadata: expect.objectContaining({
-          emailOutcomeStatus: 'ACCEPTED_PERSISTENCE_FAILED',
-          emailPersistenceFailureCodes: ['INVITATION_SENT_WRITE_FAILED'],
-          emailPersistenceFailureStages: ['INVITATION_SENT'],
+          emailOutcomeStatus: 'QUEUED',
         }),
       }),
     );
@@ -454,23 +435,11 @@ describe('organisation admin service', () => {
     });
     repositoryMock.createInvitationPermissionGrants.mockResolvedValue({ count: 1 });
     emailHookMock.requestAuthEmailSend.mockResolvedValue({
-      status: 'ACCEPTED_PERSISTENCE_FAILED',
-      acceptedByProvider: true,
+      status: 'QUEUED',
+      queueAccepted: true,
       queued: true,
       deliveryLogId: 'email-log-1',
-      providerMessageId: 'provider-message-1',
-      reason: 'EMAIL_PERSISTENCE_FAILED',
-      persistenceFailures: [
-        {
-          stage: 'DELIVERY_LOG_SENT',
-          code: 'DELIVERY_LOG_SENT_WRITE_FAILED',
-        },
-        {
-          stage: 'INVITATION_SENT',
-          code: 'INVITATION_SENT_WRITE_FAILED',
-        },
-      ],
-      persistenceFailureReason: 'DELIVERY_LOG_SENT_WRITE_FAILED; INVITATION_SENT_WRITE_FAILED',
+      jobId: 'email-job-1',
     });
 
     const result = await createAdminPromotion(actorUserId, organisationId, {
@@ -484,13 +453,9 @@ describe('organisation admin service', () => {
     });
     expect(auditLogMock.recordAuditLog).toHaveBeenCalledWith(
       expect.objectContaining({
-        outcome: 'FAILURE',
+        outcome: 'SUCCESS',
         metadata: expect.objectContaining({
-          emailPersistenceFailureCodes: [
-            'DELIVERY_LOG_SENT_WRITE_FAILED',
-            'INVITATION_SENT_WRITE_FAILED',
-          ],
-          emailPersistenceFailureStages: ['DELIVERY_LOG_SENT', 'INVITATION_SENT'],
+          emailOutcomeStatus: 'QUEUED',
         }),
       }),
     );

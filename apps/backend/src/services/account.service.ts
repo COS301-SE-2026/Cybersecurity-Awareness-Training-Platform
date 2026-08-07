@@ -432,14 +432,7 @@ function getEmailChangeExpiresAt() {
 function emailPersistenceAuditMetadata(
   emailResult: Awaited<ReturnType<typeof requestAuthEmailSend>>,
 ): Prisma.InputJsonObject {
-  if (emailResult.status !== 'ACCEPTED_PERSISTENCE_FAILED') {
-    return {};
-  }
-
-  return {
-    emailPersistenceFailureCodes: emailResult.persistenceFailures.map((failure) => failure.code),
-    emailPersistenceFailureStages: emailResult.persistenceFailures.map((failure) => failure.stage),
-  };
+  return emailResult.status === 'NOT_QUEUED' ? { emailQueueFailure: true } : {};
 }
 
 async function sendEmailChangeWarning(input: {
@@ -664,7 +657,7 @@ export async function requestAccountEmailChange(
     targetType: 'USER',
     targetId: userId,
     actionType: 'SETTINGS_CHANGED',
-    outcome: emailResult.status === 'NOT_ACCEPTED' ? 'FAILURE' : 'SUCCESS',
+    outcome: emailResult.status === 'NOT_QUEUED' ? 'FAILURE' : 'SUCCESS',
     metadata: {
       changeType: 'EMAIL_CHANGE_CONFIRMATION_DELIVERY',
       emailQueued: emailResult.queued,
@@ -673,7 +666,7 @@ export async function requestAccountEmailChange(
     },
   });
 
-  if (emailResult.status !== 'NOT_ACCEPTED') {
+  if (emailResult.status !== 'NOT_QUEUED') {
     await sendEmailChangeWarning({
       userId,
       oldEmail: userWithPassword.email,

@@ -57,35 +57,19 @@ vi.mock('../../src/lib/prisma.js', () => ({
 }));
 
 const acceptedAuthEmailResult = {
-  status: 'ACCEPTED' as const,
-  acceptedByProvider: true as const,
+  status: 'QUEUED' as const,
+  queueAccepted: true as const,
   queued: true as const,
   deliveryLogId: 'email-log-1',
-  providerMessageId: 'provider-message-1',
-};
-
-const acceptedPersistenceFailedAuthEmailResult = {
-  status: 'ACCEPTED_PERSISTENCE_FAILED' as const,
-  acceptedByProvider: true as const,
-  queued: true as const,
-  deliveryLogId: 'email-log-1',
-  providerMessageId: 'provider-message-1',
-  reason: 'EMAIL_PERSISTENCE_FAILED' as const,
-  persistenceFailures: [
-    {
-      stage: 'DELIVERY_LOG_SENT' as const,
-      code: 'DELIVERY_LOG_SENT_WRITE_FAILED' as const,
-    },
-  ],
-  persistenceFailureReason: 'DELIVERY_LOG_SENT_WRITE_FAILED',
+  jobId: 'email-job-1',
 };
 
 const notAcceptedAuthEmailResult = {
-  status: 'NOT_ACCEPTED' as const,
-  acceptedByProvider: false as const,
+  status: 'NOT_QUEUED' as const,
+  queueAccepted: false as const,
   queued: false as const,
   deliveryLogId: 'email-log-1',
-  reason: 'EMAIL_SEND_FAILED' as const,
+  reason: 'EMAIL_QUEUE_FAILED' as const,
 };
 
 describe('action-token service', () => {
@@ -390,9 +374,7 @@ describe('action-token service', () => {
         id: 'token-456',
         expiresAt: new Date(Date.now() + 3600000),
       });
-      authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue(
-        acceptedPersistenceFailedAuthEmailResult,
-      );
+      authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue(acceptedAuthEmailResult);
 
       await resendActionToken('some-token');
 
