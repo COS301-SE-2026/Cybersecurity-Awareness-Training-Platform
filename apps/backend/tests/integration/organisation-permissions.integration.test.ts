@@ -12,7 +12,11 @@ type PermissionKey =
   | 'INVITE_ORGANISATION_ADMINS'
   | 'REMOVE_ORGANISATION_ADMINS'
   | 'CHANGE_ORGANISATION_ADMIN_PERMISSIONS'
-  | 'CHANGE_ORGANISATION_SECURITY_SETTINGS';
+  | 'CHANGE_ORGANISATION_SECURITY_SETTINGS'
+  | 'VIEW_ORGANISATION_TRAINEES'
+  | 'INVITE_ORGANISATION_TRAINEES'
+  | 'REMOVE_ORGANISATION_TRAINEES'
+  | 'ASSIGN_CAMPAIGNS';
 
 function testId(prefix: string): string {
   return `${prefix}-${randomUUID()}`;
@@ -313,6 +317,7 @@ describe('organisation admin permission Prisma relations', () => {
     expect(
       await grantedPermissionKeysForAdmin({ organisationId, adminId: initialAdminId }),
     ).toEqual([
+      'ASSIGN_CAMPAIGNS',
       'CHANGE_ORGANISATION_ADMIN_PERMISSIONS',
       'CHANGE_ORGANISATION_SECURITY_SETTINGS',
       'INVITE_ORGANISATION_ADMINS',

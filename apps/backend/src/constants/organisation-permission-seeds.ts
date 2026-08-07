@@ -47,6 +47,12 @@ export const ORGANISATION_PERMISSION_SEEDS = [
     description: 'Disable or remove organisation trainee access.',
     isCritical: false,
   },
+  {
+    key: 'ASSIGN_CAMPAIGNS',
+    displayName: 'Assign campaigns',
+    description: 'Assign campaigns to eligible organisation trainees.',
+    isCritical: false,
+  },
 ] as const;
 
 export type OrganisationPermissionSeed = (typeof ORGANISATION_PERMISSION_SEEDS)[number];

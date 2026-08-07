@@ -840,4 +840,55 @@ describe('swaggerSpec', () => {
       expect.arrayContaining(['id', 'deliveryStatus', 'sentAt', 'failedAt', 'failureReason']),
     );
   });
+
+  it('documents campaign assignment OpenAPI schemas with page maximum, non-negative constraints, strict additionalProperties: false, and active true constraint', () => {
+    const pageParamDoc = JSON.stringify(
+      spec.paths?.['/organisations/{organisationId}/campaigns/assignable']?.get,
+    );
+    expect(pageParamDoc).toContain('"maximum":100000');
+
+    const candidatePageParamDoc = JSON.stringify(
+      spec.paths?.['/organisations/{organisationId}/campaign-assignment-candidates']?.get,
+    );
+    expect(candidatePageParamDoc).toContain('"maximum":100000');
+
+    const paginationMeta = spec.components?.schemas?.PaginationMeta as {
+      additionalProperties?: boolean;
+      properties?: Record<string, { minimum?: number }>;
+    };
+    expect(paginationMeta).toBeDefined();
+    expect(paginationMeta.additionalProperties).toBe(false);
+    expect(paginationMeta.properties?.page?.minimum).toBe(1);
+    expect(paginationMeta.properties?.limit?.minimum).toBe(1);
+    expect(paginationMeta.properties?.total?.minimum).toBe(0);
+    expect(paginationMeta.properties?.totalPages?.minimum).toBe(0);
+
+    const assignableOption = spec.components?.schemas?.AssignableCampaignOption as {
+      additionalProperties?: boolean;
+      properties?: Record<string, { minimum?: number }>;
+    };
+    expect(assignableOption).toBeDefined();
+    expect(assignableOption.additionalProperties).toBe(false);
+    expect(assignableOption.properties?.itemCount?.minimum).toBe(0);
+    expect(assignableOption.properties?.assignmentCount?.minimum).toBe(0);
+
+    const assignableResponse = spec.components?.schemas?.GetAssignableCampaignsResponse as {
+      additionalProperties?: boolean;
+    };
+    expect(assignableResponse?.additionalProperties).toBe(false);
+
+    const candidateOption = spec.components?.schemas?.CampaignAssignmentCandidateOption as {
+      additionalProperties?: boolean;
+      properties?: Record<string, { enum?: boolean[] }>;
+    };
+    expect(candidateOption).toBeDefined();
+    expect(candidateOption.additionalProperties).toBe(false);
+    expect(candidateOption.properties?.active?.enum).toEqual([true]);
+
+    const candidatesResponse = spec.components?.schemas
+      ?.GetCampaignAssignmentCandidatesResponse as {
+      additionalProperties?: boolean;
+    };
+    expect(candidatesResponse?.additionalProperties).toBe(false);
+  });
 });

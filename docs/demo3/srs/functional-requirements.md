@@ -775,6 +775,12 @@ The following functional requirements define the capabilities and observable beh
 
 - `R23.3` The system shall audit organisation campaign assignment actions
 
+> **Sprint 6 Implementation Scope (Issue #406 / Rudolph):**
+> Sprint 6 provides candidate option read contracts (`GET /organisations/:organisationId/campaigns/assignable` and `GET /organisations/:organisationId/campaign-assignment-candidates`) guarded by `ASSIGN_CAMPAIGNS`.
+>
+> - Assignable campaigns are restricted to active `ORGANISATION_CUSTOM` campaigns owned by the actor's organisation (platform catalogue availability is deferred).
+> - Candidates are restricted to active organisation trainees (`OrganisationTraineeProfile`). Tag/group assignment remains documented future behavior.
+
 ## `R24` Reset Organisation Campaign Progress
 
 > The Functional Requirements in `R24` are related to [**UC-27: Reset Organisation Campaign Progress**](use-cases.md#uc-27-reset-organisation-campaign-progress).
