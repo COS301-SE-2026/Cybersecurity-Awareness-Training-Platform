@@ -1,0 +1,43 @@
+services:
+  postgres:
+    volumes:
+      - development_postgres_data:/var/lib/postgresql/data
+
+  backend:
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    environment:
+      NODE_ENV: development
+      AUTH_COOKIE_SECURE: 'true'
+      TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:-1}
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      SMTP_SECURE: 'false'
+      SMTP_FROM_ADDRESS: ${SMTP_FROM_ADDRESS:-noreply@insightful-phish.local}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Insightful Phish Dev}
+      SMTP_USER: ''
+      SMTP_PASSWORD: ''
+      SUPPORT_EMAIL_ADDRESS: ${SUPPORT_EMAIL_ADDRESS:-support@dev.insightfulphish.invalid}
+
+  mailpit:
+    image: ${MAILPIT_IMAGE:?Set MAILPIT_IMAGE to an ARM64 image}
+    restart: unless-stopped
+    environment:
+      MP_DATABASE: /data/mailpit.db
+    volumes:
+      - development_mailpit_data:/data
+    ports:
+      - '127.0.0.1:${MAILPIT_WEB_PORT:-8025}:8025'
+    logging:
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+volumes:
+  development_postgres_data:
+    name: insightful_phish_dev_postgres_data
+  development_mailpit_data:
+    name: insightful_phish_dev_mailpit_data
