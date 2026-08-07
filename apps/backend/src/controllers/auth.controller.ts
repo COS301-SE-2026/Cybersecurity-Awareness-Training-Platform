@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import { env } from '../config/env.js';
 import {
   AuthUnauthorizedError,
   AuthStatusGuardError,
@@ -50,7 +51,7 @@ export async function login(req: Request, res: Response) {
 
     res.cookie('refreshToken', rawRefreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: env.AUTH_COOKIE_SECURE,
       sameSite: 'lax',
       expires: sessionExpiresAt,
     });
@@ -119,7 +120,7 @@ export async function logout(req: Request, res: Response) {
 
   res.clearCookie('refreshToken', {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: env.AUTH_COOKIE_SECURE,
     sameSite: 'lax',
   });
 
@@ -142,7 +143,7 @@ export async function refresh(req: Request, res: Response) {
 
     res.cookie('refreshToken', rawRefreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: env.AUTH_COOKIE_SECURE,
       sameSite: 'lax',
       expires: sessionExpiresAt,
     });
@@ -157,7 +158,7 @@ export async function refresh(req: Request, res: Response) {
   } catch (error) {
     res.clearCookie('refreshToken', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: env.AUTH_COOKIE_SECURE,
       sameSite: 'lax',
     });
 
