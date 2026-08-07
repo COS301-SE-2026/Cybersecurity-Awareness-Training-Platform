@@ -18,9 +18,10 @@ import { seedOrganisationAdminPermissions } from '../../prisma/seed-data/organis
 import { clearAuthRateLimitStore } from '../../src/middleware/authRateLimit.js';
 import { clearCampaignAssignmentRateLimitStores } from '../../src/routes/campaign-assignment.routes.js';
 import { createCampaign, createOrganisation, generateTestEmail } from '../helpers/factories.js';
+import { hashOpaqueToken } from '../../src/services/token-hash.service.js';
 
 const app = createApp();
-const PASSWORD = 'Password123!';
+const PASSWORD = 'password';
 const precalculatedHash = [
   'scrypt$16384$8$1$fe5b63f10eb85027cc0bb85210efc592$',
   '2b8c42c34456dc85c1cb018557067b2b1ea06e5a39e9a9a3a5892cc3e67899c34e7cf0ff478844589efff6c517d8fc08ca9f4ef12caf413b799d15978b0ce3ba',
@@ -176,49 +177,61 @@ describe('Campaign Assignment API Integration Tests', () => {
 
   describe('1. Real Onboarding & Initial Administrator Setup Workflow', () => {
     it('grants ASSIGN_CAMPAIGNS explicitly during real onboarding setup, allowing campaign options HTTP access', async () => {
-      // 1. Submit organisation registration request
+      const adminEmail = generateTestEmail('initial-admin');
       const registrationRes = await request(app)
         .post('/organisation-registration-requests')
         .send({
-          submittedOrganisationName: `Acme Corp ${randomUUID()}`,
+          organisationName: `Acme Corp ${randomUUID()}`,
+          organisationDescription: 'Test Organisation Description',
+          organisationSize: 50,
+          organisationWebsiteUrl: 'https://acme.example.com',
           representativeFirstName: 'Initial',
           representativeLastName: 'Admin',
-          representativeEmail: generateTestEmail('initial-admin'),
+          representativeEmail: adminEmail,
         });
 
       expect(registrationRes.status).toBe(201);
-      const requestId = registrationRes.body.request.id as string;
+      const requestId = registrationRes.body.requestId as string;
 
       // 2. Approve request as platform super admin
       const superAdmin = await loginAsPlatformSuperAdmin();
       const approveRes = await request(app)
         .post(`/platform/organisation-requests/${requestId}/approve`)
         .set('Authorization', `Bearer ${superAdmin.token}`)
-        .send({});
+        .send({ initialAdminEmail: adminEmail });
 
       expect(approveRes.status).toBe(200);
-      const organisationId = approveRes.body.organisation.id as string;
+      const organisationId = approveRes.body.approvedOrganisation.id as string;
 
-      // 3. Find setup action token created for registration
-      const actionToken = await prisma.actionToken.findFirstOrThrow({
+      // 3. Find setup action token created for registration and update with known rawToken
+      const rawToken = ['setup-test', randomUUID()].join('-');
+      const actionTokenRecord = await prisma.actionToken.findFirstOrThrow({
         where: { organisationRegistrationRequestId: requestId },
       });
+      await prisma.actionToken.update({
+        where: { id: actionTokenRecord.id },
+        data: { tokenHash: hashOpaqueToken(rawToken) },
+      });
 
-      const setupContextRes = await request(app).get(`/setup/token/${actionToken.id}/context`);
+      const setupContextRes = await request(app).get(`/setup/token/${rawToken}/context`);
       expect(setupContextRes.status).toBe(200);
 
       // 4. Complete initial admin setup
-      const completeRes = await request(app)
-        .post(`/setup/token/${actionToken.id}/complete`)
-        .send({ password: 'Password123!' });
+      const setupPass = 'Password12345!';
+      const completeRes = await request(app).post(`/setup/token/${rawToken}/complete`).send({
+        firstName: 'Initial',
+        lastName: 'Admin',
+        password: setupPass,
+        confirmPassword: setupPass,
+      });
 
       expect(completeRes.status).toBe(201);
-      const adminEmail = completeRes.body.user.email as string;
+      const completedAdminEmail = completeRes.body.user.email as string;
 
       // 5. Log in as initial admin
       const loginRes = await request(app)
         .post('/auth/login')
-        .send({ email: adminEmail, password: 'Password123!' });
+        .send({ email: completedAdminEmail, password: setupPass });
 
       expect(loginRes.status).toBe(200);
       const token = loginRes.body.token as string;
@@ -438,10 +451,13 @@ describe('Campaign Assignment API Integration Tests', () => {
     });
 
     it('returns 403 ORGANISATION_NOT_ACTIVE when organisation is suspended', async () => {
-      const adminFixture = await loginAsOrgAdmin({
-        organisationStatus: OrganisationStatus.SUSPENDED,
-      });
+      const adminFixture = await loginAsOrgAdmin({ grantAssignCampaigns: true });
       const orgId = adminFixture.organisation.id;
+
+      await prisma.organisation.update({
+        where: { id: orgId },
+        data: { status: OrganisationStatus.SUSPENDED },
+      });
 
       const response = await request(app)
         .get(`/organisations/${orgId}/campaigns/assignable`)
@@ -449,8 +465,8 @@ describe('Campaign Assignment API Integration Tests', () => {
 
       expect(response.status).toBe(403);
       expect(response.body).toEqual({
-        error: 'ORGANISATION_NOT_ACTIVE',
-        message: 'Organisation is not active',
+        error: 'ORGANISATION_SUSPENDED',
+        message: 'Organisation is suspended',
       });
     });
   });
