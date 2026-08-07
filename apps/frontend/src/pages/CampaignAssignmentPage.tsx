@@ -3,7 +3,7 @@ import { useState } from 'react';
 import OrganisationTraineeSelectionPage from './campaign-assignment/OrganisationTraineeSelectionPage';
 import CampaignSelectionPage from './campaign-assignment/CampaignSelectionPage';
 import ReviewCampaignAssignmentPage from './campaign-assignment/ReviewCampaignAssignmentPage';
-
+import { Link } from 'react-router-dom';
 function CampaignAssignmentPage() {
   const [currentTab, setCurrentTab] = useState<1 | 2 | 3>(1);
 
@@ -23,12 +23,21 @@ function CampaignAssignmentPage() {
             paddingBottom: '0.8rem',
           }}
         >
+          {/* Back to Organisation Trainees Page Button */}
+          <Link
+            to="/organisation-trainees"
+            className="-mt-4 inline-flex items-center gap-2 font-jost text-xl font-regular tracking-wide text-purple hover:text-purple cursor-pointer transition-colours"
+          >
+            <span className="material-icons-sharp">arrow_back</span>
+            <span className="hover:underline"> Back to Organisation Trainees</span>
+          </Link>
+
           <h1
             style={{
               margin: 0,
               marginBottom: '0.8rem',
               fontWeight: 500,
-              fontSize: '3.8rem',
+              fontSize: '2.8rem',
               lineHeight: 1,
               fontFamily: 'Jost',
               color: 'rgb(132, 25, 255)',
@@ -37,7 +46,7 @@ function CampaignAssignmentPage() {
             Assign Training Campaigns
           </h1>
 
-          <p className="font-regular tracking-wider text-[1.3rem] font-justify font-jost text-gray-500 mb-4">
+          <p className="font-regular tracking-wider text-[1.3rem] font-justify font-jost text-gray-500">
             Select the organisation trainees you want to assign training campaigns to, then choose
             the campaigns and review your assignments before submitting. Assigning new campaigns
             will not affect campaigns already assigned to organisation trainees or reset their
