@@ -81,7 +81,7 @@ function OrganisationTraineeSelectionPage() {
                 <div className="flex items-center">
                   {/* Search Input Label */}
                   <label htmlFor="simple-search" className="sr-only">
-                    Search Trainees
+                    Search Organisation Trainees
                   </label>
                   <div className="relative w-full">
                     <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
