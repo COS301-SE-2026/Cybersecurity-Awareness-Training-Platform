@@ -8,7 +8,7 @@ function CampaignSelectionPage() {
 
       {/* HEADING */}
       <h3 className="font-jost text-2xl text-dark-pink tracking-wider font-medium">
-        Campaign Selection
+        Training Campaign Selection
       </h3>
 
       {/* SUB-HEADING */}

@@ -51,6 +51,7 @@ function CampaignAssignmentPage() {
             <li className="w-full focus-within:z-10">
               <button
                 type="button"
+                aria-current={currentTab === 1 ? 'step' : undefined}
                 onClick={() => setCurrentTab(1)}
                 className={`font-jost inline-block w-full bg-neutral-primary-soft border border-default hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)] focus:ring-4 focus:ring-neutral-secondary-strong font-light text-[1.2rem] tracking-wide leading-5 px-5 py-3 focus:outline-none ${
                   currentTab === 1
@@ -64,6 +65,7 @@ function CampaignAssignmentPage() {
             <li className="w-full focus-within:z-10">
               <button
                 type="button"
+                aria-current={currentTab === 2 ? 'step' : undefined}
                 onClick={() => setCurrentTab(2)}
                 className={`font-jost inline-block w-full bg-neutral-primary-soft border border-default hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)] focus:ring-4 focus:ring-neutral-secondary-strong font-light text-[1.2rem] tracking-wide leading-5 px-5 py-3 focus:outline-none ${
                   currentTab === 2
@@ -71,12 +73,13 @@ function CampaignAssignmentPage() {
                     : 'bg-neutral-primary-soft text-body hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)]'
                 }`}
               >
-                2. Campaign Selection
+                2. Training Campaign Selection
               </button>
             </li>
             <li className="w-full focus-within:z-10">
               <button
                 type="button"
+                aria-current={currentTab === 3 ? 'step' : undefined}
                 onClick={() => setCurrentTab(3)}
                 className={`font-jost inline-block w-full bg-neutral-primary-soft border border-default hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)] focus:ring-4 focus:ring-neutral-secondary-strong font-light text-[1.2rem] tracking-wide leading-5 px-5 py-3 focus:outline-none ${
                   currentTab === 3
