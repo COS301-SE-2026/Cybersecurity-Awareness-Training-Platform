@@ -76,6 +76,7 @@ describe('organisation admin permission seed', () => {
         { id: 'permission-view-trainees' },
         { id: 'permission-invite-trainees' },
         { id: 'permission-remove-trainees' },
+        { id: 'permission-assign-campaigns' },
       ],
     });
 
@@ -83,8 +84,8 @@ describe('organisation admin permission seed', () => {
 
     expect(summary).toEqual({
       organisationCount: 1,
-      permissionCount: 8,
-      initialAdminGrantCount: 8,
+      permissionCount: 9,
+      initialAdminGrantCount: 9,
     });
 
     const serializedExecuteValues = JSON.stringify(
@@ -99,6 +100,7 @@ describe('organisation admin permission seed', () => {
     expect(serializedExecuteValues).toContain('VIEW_ORGANISATION_TRAINEES');
     expect(serializedExecuteValues).toContain('INVITE_ORGANISATION_TRAINEES');
     expect(serializedExecuteValues).toContain('REMOVE_ORGANISATION_TRAINEES');
+    expect(serializedExecuteValues).toContain('ASSIGN_CAMPAIGNS');
     expect(serializedExecuteValues).not.toContain('password');
     expect(serializedExecuteValues).not.toContain('token');
 
@@ -106,12 +108,12 @@ describe('organisation admin permission seed', () => {
       seedClient.executeCalls.filter((call) =>
         call.sql.includes('INSERT INTO "OrganisationPermission"'),
       ),
-    ).toHaveLength(8);
+    ).toHaveLength(9);
     expect(
       seedClient.executeCalls.filter((call) =>
         call.sql.includes('INSERT INTO "OrganisationAdminPermission"'),
       ),
-    ).toHaveLength(8);
+    ).toHaveLength(9);
   });
 
   it('does not create grants when an organisation has no initial admins', async () => {
@@ -125,7 +127,7 @@ describe('organisation admin permission seed', () => {
 
     expect(summary).toEqual({
       organisationCount: 1,
-      permissionCount: 8,
+      permissionCount: 9,
       initialAdminGrantCount: 0,
     });
     expect(
@@ -148,16 +150,17 @@ describe('organisation admin permission seed', () => {
         { id: 'permission-view-trainees' },
         { id: 'permission-invite-trainees' },
         { id: 'permission-remove-trainees' },
+        { id: 'permission-assign-campaigns' },
       ],
-      adminGrantInsertCounts: [1, 0, 1, 0, 1, 1, 0, 1],
+      adminGrantInsertCounts: [1, 0, 1, 0, 1, 1, 0, 1, 1],
     });
 
     const summary = await seedOrganisationAdminPermissions(seedClient.client);
 
     expect(summary).toEqual({
       organisationCount: 1,
-      permissionCount: 8,
-      initialAdminGrantCount: 5,
+      permissionCount: 9,
+      initialAdminGrantCount: 6,
     });
   });
 });

@@ -2006,6 +2006,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             'VIEW_ORGANISATION_TRAINEES',
             'INVITE_ORGANISATION_TRAINEES',
             'REMOVE_ORGANISATION_TRAINEES',
+            'ASSIGN_CAMPAIGNS',
           ],
           'VIEW_ORGANISATION_ADMINS',
         ),
@@ -3843,6 +3844,97 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             },
           },
         },
+        PaginationMeta: {
+          type: 'object',
+          required: ['page', 'limit', 'total', 'totalPages'],
+          additionalProperties: false,
+          properties: {
+            page: { type: 'integer', minimum: 1, example: 1 },
+            limit: { type: 'integer', minimum: 1, example: 20 },
+            total: { type: 'integer', minimum: 0, example: 45 },
+            totalPages: { type: 'integer', minimum: 0, example: 3 },
+          },
+        },
+        AssignableCampaignOption: {
+          type: 'object',
+          required: [
+            'campaignId',
+            'name',
+            'description',
+            'status',
+            'type',
+            'itemCount',
+            'startDate',
+            'endDate',
+            'assignmentCount',
+          ],
+          additionalProperties: false,
+          properties: {
+            campaignId: uuidString('9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+            name: { type: 'string', example: 'Q3 Phishing Awareness' },
+            description: nullableString('Quarterly phishing simulation and training'),
+            status: enumString(['DRAFT', 'ACTIVE', 'PAUSED', 'COMPLETED', 'ARCHIVED'], 'ACTIVE'),
+            type: enumString(['PREMADE_GENERAL', 'ORGANISATION_CUSTOM'], 'ORGANISATION_CUSTOM'),
+            itemCount: { type: 'integer', minimum: 0, example: 3 },
+            startDate: {
+              type: 'string',
+              format: 'date-time',
+              nullable: true,
+              example: '2026-09-01T00:00:00.000Z',
+            },
+            endDate: {
+              type: 'string',
+              format: 'date-time',
+              nullable: true,
+              example: '2026-09-30T23:59:59.000Z',
+            },
+            assignmentCount: { type: 'integer', minimum: 0, example: 12 },
+          },
+        },
+        GetAssignableCampaignsResponse: {
+          type: 'object',
+          required: ['items', 'pagination'],
+          additionalProperties: false,
+          properties: {
+            items: {
+              type: 'array',
+              items: schemaRef('AssignableCampaignOption'),
+            },
+            pagination: schemaRef('PaginationMeta'),
+          },
+        },
+        CampaignAssignmentCandidateOption: {
+          type: 'object',
+          required: [
+            'traineeProfileId',
+            'organisationTraineeProfileId',
+            'userId',
+            'displayName',
+            'email',
+            'active',
+          ],
+          additionalProperties: false,
+          properties: {
+            traineeProfileId: uuidString('a1b2c3d4-e5f6-47a8-b9c0-d1e2f3a4b5c6'),
+            organisationTraineeProfileId: uuidString('b2c3d4e5-f6a7-48b9-c0d1-e2f3a4b5c6d7'),
+            userId: uuidString('c3d4e5f6-a7b8-49c0-d1e2-f3a4b5c6d7e8'),
+            displayName: { type: 'string', example: 'Jane Doe' },
+            email: { type: 'string', format: 'email', example: 'jane.doe@example.com' },
+            active: { type: 'boolean', enum: [true], example: true },
+          },
+        },
+        GetCampaignAssignmentCandidatesResponse: {
+          type: 'object',
+          required: ['items', 'pagination'],
+          additionalProperties: false,
+          properties: {
+            items: {
+              type: 'array',
+              items: schemaRef('CampaignAssignmentCandidateOption'),
+            },
+            pagination: schemaRef('PaginationMeta'),
+          },
+        },
       },
       parameters: {
         CampaignIdPathParam: {
@@ -4079,6 +4171,14 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         },
       },
       responses: {
+        GetAssignableCampaignsOk: responseComponent(
+          'Paginated list of assignable custom campaigns.',
+          'GetAssignableCampaignsResponse',
+        ),
+        GetCampaignAssignmentCandidatesOk: responseComponent(
+          'Paginated list of eligible trainee assignment candidates.',
+          'GetCampaignAssignmentCandidatesResponse',
+        ),
         HealthOk: responseComponent('API and database are reachable.', 'HealthStatus'),
         HealthDatabaseUnavailable: responseComponent(
           'API is reachable, but the database check failed.',
