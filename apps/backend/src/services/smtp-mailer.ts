@@ -8,6 +8,19 @@ export type SmtpAcceptedResult = {
   providerMessageId: string;
 };
 
+export type SmtpFailureKind = 'RETRYABLE' | 'NON_RETRYABLE' | 'AMBIGUOUS';
+
+export class SmtpDeliveryError extends Error {
+  constructor(
+    message: string,
+    readonly failureKind: SmtpFailureKind,
+    readonly reasonCode: string,
+  ) {
+    super(message);
+    this.name = 'SmtpDeliveryError';
+  }
+}
+
 export async function sendViaSMTP(input: SmtpMailInput): Promise<SmtpAcceptedResult> {
   const transporter = nodemailer.createTransport({
     host: env.SMTP_HOST,
@@ -51,14 +64,52 @@ export async function sendViaSMTP(input: SmtpMailInput): Promise<SmtpAcceptedRes
       error instanceof Error
         ? (error as Error & { code?: string; command?: string; responseCode?: number })
         : undefined;
+    const classified = classifySmtpFailure(smtpError);
+
     console.error('[SMTP] Message Failed', {
       durationMs: Date.now() - startedAt,
       errorName: smtpError?.name,
       code: smtpError?.code,
       command: smtpError?.command,
       responseCode: smtpError?.responseCode,
-      message: smtpError?.message,
+      reasonCode: classified.reasonCode,
     });
-    throw error;
+
+    throw new SmtpDeliveryError(
+      'SMTP delivery failed',
+      classified.failureKind,
+      classified.reasonCode,
+    );
   }
+}
+
+function classifySmtpFailure(error?: { code?: string; responseCode?: number }): {
+  failureKind: SmtpFailureKind;
+  reasonCode: string;
+} {
+  if (typeof error?.responseCode === 'number') {
+    if (error.responseCode >= 500) {
+      return { failureKind: 'NON_RETRYABLE', reasonCode: 'SMTP_PERMANENT_FAILURE' };
+    }
+
+    if (error.responseCode >= 400) {
+      return { failureKind: 'RETRYABLE', reasonCode: 'SMTP_TEMPORARY_FAILURE' };
+    }
+  }
+
+  if (error?.code === 'EAUTH') {
+    return { failureKind: 'NON_RETRYABLE', reasonCode: 'SMTP_AUTH_FAILED' };
+  }
+
+  if (
+    error?.code === 'ETIMEDOUT' ||
+    error?.code === 'ECONNRESET' ||
+    error?.code === 'ECONNECTION' ||
+    error?.code === 'ESOCKET' ||
+    error?.code === 'EAI_AGAIN'
+  ) {
+    return { failureKind: 'AMBIGUOUS', reasonCode: 'SMTP_AMBIGUOUS_TRANSPORT_FAILURE' };
+  }
+
+  return { failureKind: 'AMBIGUOUS', reasonCode: 'SMTP_UNKNOWN_FAILURE' };
 }

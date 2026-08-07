@@ -1,4 +1,6 @@
 import type {
+  EmailDeliveryProviderOutcome,
+  EmailDeliveryProviderKind,
   EmailDeliveryType,
   EmailRelatedEntityType,
   PrismaClient,
@@ -23,6 +25,61 @@ export type EmailDeliveryRepositoryClient = {
   emailDeliveryJob: Pick<PrismaClient['emailDeliveryJob'], 'create' | 'update'>;
   invitation: Pick<PrismaClient['invitation'], 'updateMany'>;
   actionToken: Pick<PrismaClient['actionToken'], 'findUnique'>;
+};
+
+export type EmailDeliveryDispatchJob = {
+  id: string;
+  deliveryLogId: string;
+  status: 'PROCESSING';
+  providerKind: EmailDeliveryProviderKind;
+  recipientEmail: string;
+  subject: string;
+  textBody: string;
+  htmlBody: string | null;
+  emailType: EmailDeliveryType;
+  invitationStateVersion: Date | null;
+  attemptCount: number;
+  maxAttempts: number;
+  firstAttemptAt: Date | null;
+  retryDeadlineAt: Date | null;
+  deliveryLog: {
+    id: string;
+    userId: string | null;
+    actionTokenId: string | null;
+    organisationId: string | null;
+    organisationRegistrationRequestId: string | null;
+    invitationId: string | null;
+    fallbackRelatedEntityType: EmailRelatedEntityType | null;
+    fallbackRelatedEntityId: string | null;
+  };
+};
+
+export type ClaimDueEmailDeliveryJobsInput = {
+  leaseOwner: string;
+  batchSize: number;
+  leaseSeconds: number;
+  retryDeadlineSeconds: number;
+  now?: Date;
+};
+
+export type RecordEmailDeliveryAcceptedInput = {
+  jobId: string;
+  deliveryLogId: string;
+  providerMessageId: string;
+};
+
+export type ScheduleEmailDeliveryRetryInput = {
+  jobId: string;
+  nextAttemptAt: Date;
+  providerOutcome: EmailDeliveryProviderOutcome;
+  reasonCode: string;
+};
+
+export type RecordEmailDeliveryTerminalFailureInput = {
+  jobId: string;
+  deliveryLogId: string;
+  providerOutcome: EmailDeliveryProviderOutcome;
+  reasonCode: string;
 };
 
 export type EnqueueEmailDeliveryInput = {
@@ -56,6 +113,10 @@ type EmailDeliveryWritableClient = Pick<
   EmailDeliveryRepositoryClient,
   'emailDeliveryLog' | 'emailDeliveryJob' | 'invitation' | 'actionToken'
 >;
+
+function addSeconds(date: Date, seconds: number) {
+  return new Date(date.getTime() + seconds * 1000);
+}
 
 function hasTypedRelation(entity: EmailDeliveryRelatedEntity): boolean {
   return Boolean(
@@ -259,4 +320,178 @@ export async function markEmailInvitationFailedIfRelevant(
       tx,
     ),
   );
+}
+
+export async function recoverExpiredEmailDeliveryLeases(input: { now?: Date } = {}) {
+  const now = input.now ?? new Date();
+
+  await prisma.emailDeliveryJob.updateMany({
+    where: {
+      status: 'PROCESSING',
+      leaseExpiresAt: { lt: now },
+      terminalAt: null,
+    },
+    data: {
+      status: 'RETRY_SCHEDULED',
+      leaseOwner: null,
+      leasedAt: null,
+      leaseExpiresAt: null,
+      nextAttemptAt: now,
+      lastReasonCode: 'LEASE_EXPIRED',
+    },
+  });
+}
+
+export async function claimDueEmailDeliveryJobs(
+  input: ClaimDueEmailDeliveryJobsInput,
+): Promise<EmailDeliveryDispatchJob[]> {
+  const now = input.now ?? new Date();
+  const leaseExpiresAt = addSeconds(now, input.leaseSeconds);
+
+  const candidates = await prisma.emailDeliveryJob.findMany({
+    where: {
+      status: { in: ['PENDING', 'RETRY_SCHEDULED'] },
+      nextAttemptAt: { lte: now },
+      terminalAt: null,
+    },
+    orderBy: [{ nextAttemptAt: 'asc' }, { createdAt: 'asc' }],
+    take: input.batchSize,
+    include: {
+      deliveryLog: {
+        select: {
+          id: true,
+          userId: true,
+          actionTokenId: true,
+          organisationId: true,
+          organisationRegistrationRequestId: true,
+          invitationId: true,
+          fallbackRelatedEntityType: true,
+          fallbackRelatedEntityId: true,
+        },
+      },
+    },
+  });
+
+  const claimedJobs: EmailDeliveryDispatchJob[] = [];
+
+  for (const candidate of candidates) {
+    const firstAttemptAt = candidate.firstAttemptAt ?? now;
+    const retryDeadlineAt =
+      candidate.retryDeadlineAt ?? addSeconds(firstAttemptAt, input.retryDeadlineSeconds);
+
+    const claim = await prisma.emailDeliveryJob.updateMany({
+      where: {
+        id: candidate.id,
+        status: { in: ['PENDING', 'RETRY_SCHEDULED'] },
+        nextAttemptAt: { lte: now },
+        terminalAt: null,
+      },
+      data: {
+        status: 'PROCESSING',
+        leaseOwner: input.leaseOwner,
+        leasedAt: now,
+        leaseExpiresAt,
+        attemptCount: { increment: 1 },
+        firstAttemptAt,
+        retryDeadlineAt,
+      },
+    });
+
+    if (claim.count !== 1) {
+      continue;
+    }
+
+    const claimed = await prisma.emailDeliveryJob.findUnique({
+      where: { id: candidate.id },
+      include: {
+        deliveryLog: {
+          select: {
+            id: true,
+            userId: true,
+            actionTokenId: true,
+            organisationId: true,
+            organisationRegistrationRequestId: true,
+            invitationId: true,
+            fallbackRelatedEntityType: true,
+            fallbackRelatedEntityId: true,
+          },
+        },
+      },
+    });
+
+    if (claimed?.status === 'PROCESSING') {
+      claimedJobs.push(claimed as EmailDeliveryDispatchJob);
+    }
+  }
+
+  return claimedJobs;
+}
+
+export async function recordEmailDeliveryAccepted(input: RecordEmailDeliveryAcceptedInput) {
+  await prisma.$transaction(async (tx) => {
+    await tx.emailDeliveryLog.update({
+      where: { id: input.deliveryLogId },
+      data: {
+        deliveryStatus: 'SENT',
+        providerMessageId: input.providerMessageId,
+        sentAt: new Date(),
+      },
+    });
+
+    await tx.emailDeliveryJob.update({
+      where: { id: input.jobId },
+      data: {
+        status: 'SUCCEEDED',
+        terminalAt: new Date(),
+        leaseOwner: null,
+        leasedAt: null,
+        leaseExpiresAt: null,
+        lastProviderOutcome: 'PROVIDER_ACCEPTED',
+        lastReasonCode: null,
+      },
+    });
+  });
+}
+
+export async function scheduleEmailDeliveryRetry(input: ScheduleEmailDeliveryRetryInput) {
+  await prisma.emailDeliveryJob.update({
+    where: { id: input.jobId },
+    data: {
+      status: 'RETRY_SCHEDULED',
+      nextAttemptAt: input.nextAttemptAt,
+      leaseOwner: null,
+      leasedAt: null,
+      leaseExpiresAt: null,
+      lastProviderOutcome: input.providerOutcome,
+      lastReasonCode: input.reasonCode,
+    },
+  });
+}
+
+export async function recordEmailDeliveryTerminalFailure(
+  input: RecordEmailDeliveryTerminalFailureInput,
+) {
+  await prisma.$transaction(async (tx) => {
+    await tx.emailDeliveryLog.update({
+      where: { id: input.deliveryLogId },
+      data: {
+        deliveryStatus: 'FAILED',
+        failedAt: new Date(),
+        failureReason: input.reasonCode,
+      },
+    });
+
+    await tx.emailDeliveryJob.update({
+      where: { id: input.jobId },
+      data: {
+        status: 'FAILED',
+        terminalAt: new Date(),
+        leaseOwner: null,
+        leasedAt: null,
+        leaseExpiresAt: null,
+        lastProviderOutcome: input.providerOutcome,
+        lastReasonCode: input.reasonCode,
+      },
+    });
+  });
 }
