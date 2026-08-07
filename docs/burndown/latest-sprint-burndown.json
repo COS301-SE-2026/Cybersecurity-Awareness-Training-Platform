@@ -30,8 +30,8 @@
       "number": 409,
       "title": "chore: deploy dev to an isolated secondary server",
       "points": 5,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-08-07"
     },
     {
       "number": 408,
@@ -82,7 +82,7 @@
     },
     {
       "date": "2026-08-07",
-      "remaining": 36,
+      "remaining": 31,
       "ideal": 23.4
     }
   ]
