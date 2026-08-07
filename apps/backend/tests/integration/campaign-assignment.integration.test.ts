@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import request from 'supertest';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../../src/app.js';
 import { prisma } from '../../src/lib/prisma.js';
 import {
@@ -19,6 +19,20 @@ import { clearAuthRateLimitStore } from '../../src/middleware/authRateLimit.js';
 import { clearCampaignAssignmentRateLimitStores } from '../../src/routes/campaign-assignment.routes.js';
 import { createCampaign, createOrganisation, generateTestEmail } from '../helpers/factories.js';
 import { hashOpaqueToken } from '../../src/services/token-hash.service.js';
+
+const { sendMailMock, nodemailerMock } = vi.hoisted(() => {
+  const sendMailMock = vi.fn();
+  return {
+    sendMailMock,
+    nodemailerMock: {
+      createTransport: vi.fn().mockReturnValue({
+        sendMail: sendMailMock,
+      }),
+    },
+  };
+});
+
+vi.mock('nodemailer', () => ({ default: nodemailerMock }));
 
 const app = createApp();
 const PASSWORD = 'password';
@@ -171,6 +185,8 @@ async function loginAsPlatformSuperAdmin() {
 
 describe('Campaign Assignment API Integration Tests', () => {
   beforeEach(async () => {
+    vi.clearAllMocks();
+    sendMailMock.mockResolvedValue({ messageId: 'smtpmessage01' });
     clearAuthRateLimitStore();
     await clearCampaignAssignmentRateLimitStores();
   });
