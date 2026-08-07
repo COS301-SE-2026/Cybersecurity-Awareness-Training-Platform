@@ -89,9 +89,7 @@ async function loginAsOrgAdmin(
     });
   }
 
-  const loginRes = await request(app)
-    .post('/api/v1/auth/login')
-    .send({ email, password: PASSWORD });
+  const loginRes = await request(app).post('/auth/login').send({ email, password: PASSWORD });
 
   const token = (loginRes.body.token as string) ?? '';
 
@@ -132,9 +130,7 @@ async function loginAsTrainee(input: { organisationId: string }) {
     },
   });
 
-  const loginRes = await request(app)
-    .post('/api/v1/auth/login')
-    .send({ email, password: PASSWORD });
+  const loginRes = await request(app).post('/auth/login').send({ email, password: PASSWORD });
 
   const token = (loginRes.body.token as string) ?? '';
 
@@ -167,9 +163,7 @@ async function loginAsPlatformSuperAdmin() {
     },
   });
 
-  const loginRes = await request(app)
-    .post('/api/v1/auth/login')
-    .send({ email, password: PASSWORD });
+  const loginRes = await request(app).post('/auth/login').send({ email, password: PASSWORD });
 
   return { user, token: (loginRes.body.token as string) ?? '' };
 }
@@ -184,7 +178,7 @@ describe('Campaign Assignment API Integration Tests', () => {
     it('grants ASSIGN_CAMPAIGNS explicitly during real onboarding setup, allowing campaign options HTTP access', async () => {
       // 1. Submit organisation registration request
       const registrationRes = await request(app)
-        .post('/api/v1/organisation-registration-requests')
+        .post('/organisation-registration-requests')
         .send({
           submittedOrganisationName: `Acme Corp ${randomUUID()}`,
           representativeFirstName: 'Initial',
@@ -198,7 +192,7 @@ describe('Campaign Assignment API Integration Tests', () => {
       // 2. Approve request as platform super admin
       const superAdmin = await loginAsPlatformSuperAdmin();
       const approveRes = await request(app)
-        .post(`/api/v1/platform/organisation-requests/${requestId}/approve`)
+        .post(`/platform/organisation-requests/${requestId}/approve`)
         .set('Authorization', `Bearer ${superAdmin.token}`)
         .send({});
 
@@ -210,14 +204,12 @@ describe('Campaign Assignment API Integration Tests', () => {
         where: { organisationRegistrationRequestId: requestId },
       });
 
-      const setupContextRes = await request(app).get(
-        `/api/v1/setup/token/${actionToken.id}/context`,
-      );
+      const setupContextRes = await request(app).get(`/setup/token/${actionToken.id}/context`);
       expect(setupContextRes.status).toBe(200);
 
       // 4. Complete initial admin setup
       const completeRes = await request(app)
-        .post(`/api/v1/setup/token/${actionToken.id}/complete`)
+        .post(`/setup/token/${actionToken.id}/complete`)
         .send({ password: 'Password123!' });
 
       expect(completeRes.status).toBe(201);
@@ -225,7 +217,7 @@ describe('Campaign Assignment API Integration Tests', () => {
 
       // 5. Log in as initial admin
       const loginRes = await request(app)
-        .post('/api/v1/auth/login')
+        .post('/auth/login')
         .send({ email: adminEmail, password: 'Password123!' });
 
       expect(loginRes.status).toBe(200);
@@ -233,7 +225,7 @@ describe('Campaign Assignment API Integration Tests', () => {
 
       // 6. Access campaign options endpoint over HTTP
       const optionsRes = await request(app)
-        .get(`/api/v1/organisations/${organisationId}/campaigns/assignable`)
+        .get(`/organisations/${organisationId}/campaigns/assignable`)
         .set('Authorization', `Bearer ${token}`);
 
       expect(optionsRes.status).toBe(200);
@@ -266,7 +258,7 @@ describe('Campaign Assignment API Integration Tests', () => {
       });
 
       const response = await request(app)
-        .get(`/api/v1/organisations/${orgAId}/campaigns/assignable`)
+        .get(`/organisations/${orgAId}/campaigns/assignable`)
         .set('Authorization', `Bearer ${adminFixture.token}`);
 
       expect(response.status).toBe(200);
@@ -342,7 +334,7 @@ describe('Campaign Assignment API Integration Tests', () => {
       });
 
       const response = await request(app)
-        .get(`/api/v1/organisations/${orgId}/campaign-assignment-candidates`)
+        .get(`/organisations/${orgId}/campaign-assignment-candidates`)
         .set('Authorization', `Bearer ${adminFixture.token}`);
 
       expect(response.status).toBe(200);
@@ -374,7 +366,7 @@ describe('Campaign Assignment API Integration Tests', () => {
       const traineeFixture = await loginAsTrainee({ organisationId: orgId });
 
       const campaignRes = await request(app)
-        .get(`/api/v1/organisations/${orgId}/campaigns/assignable`)
+        .get(`/organisations/${orgId}/campaigns/assignable`)
         .set('Authorization', `Bearer ${traineeFixture.token}`);
 
       expect(campaignRes.status).toBe(403);
@@ -384,7 +376,7 @@ describe('Campaign Assignment API Integration Tests', () => {
       });
 
       const candidateRes = await request(app)
-        .get(`/api/v1/organisations/${orgId}/campaign-assignment-candidates`)
+        .get(`/organisations/${orgId}/campaign-assignment-candidates`)
         .set('Authorization', `Bearer ${traineeFixture.token}`);
 
       expect(candidateRes.status).toBe(403);
@@ -399,7 +391,7 @@ describe('Campaign Assignment API Integration Tests', () => {
       const orgId = adminFixture.organisation.id;
 
       const response = await request(app)
-        .get(`/api/v1/organisations/${orgId}/campaigns/assignable`)
+        .get(`/organisations/${orgId}/campaigns/assignable`)
         .set('Authorization', `Bearer ${adminFixture.token}`);
 
       expect(response.status).toBe(403);
@@ -415,11 +407,11 @@ describe('Campaign Assignment API Integration Tests', () => {
       const nonexistentUuid = randomUUID();
 
       const foreignRes = await request(app)
-        .get(`/api/v1/organisations/${foreignOrgId}/campaigns/assignable`)
+        .get(`/organisations/${foreignOrgId}/campaigns/assignable`)
         .set('Authorization', `Bearer ${adminFixture.token}`);
 
       const nonexistentRes = await request(app)
-        .get(`/api/v1/organisations/${nonexistentUuid}/campaigns/assignable`)
+        .get(`/organisations/${nonexistentUuid}/campaigns/assignable`)
         .set('Authorization', `Bearer ${adminFixture.token}`);
 
       expect(foreignRes.status).toBe(404);
@@ -439,9 +431,7 @@ describe('Campaign Assignment API Integration Tests', () => {
     it('returns 401 UNAUTHENTICATED when requesting options endpoints unauthenticated', async () => {
       const orgId = (await createOrganisation()).id;
 
-      const response = await request(app).get(
-        `/api/v1/organisations/${orgId}/campaigns/assignable`,
-      );
+      const response = await request(app).get(`/organisations/${orgId}/campaigns/assignable`);
 
       expect(response.status).toBe(401);
       expect(response.body).toHaveProperty('error');
@@ -454,7 +444,7 @@ describe('Campaign Assignment API Integration Tests', () => {
       const orgId = adminFixture.organisation.id;
 
       const response = await request(app)
-        .get(`/api/v1/organisations/${orgId}/campaigns/assignable`)
+        .get(`/organisations/${orgId}/campaigns/assignable`)
         .set('Authorization', `Bearer ${adminFixture.token}`);
 
       expect(response.status).toBe(403);
@@ -485,7 +475,7 @@ describe('Campaign Assignment API Integration Tests', () => {
       });
 
       const response = await request(app)
-        .get(`/api/v1/organisations/${orgId}/campaigns/assignable?search=Target&page=1&limit=10`)
+        .get(`/organisations/${orgId}/campaigns/assignable?search=Target&page=1&limit=10`)
         .set('Authorization', `Bearer ${adminFixture.token}`);
 
       expect(response.status).toBe(200);
