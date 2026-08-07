@@ -50,6 +50,7 @@ export async function clearCampaignAssignmentRateLimitStores(): Promise<void> {
  *         schema:
  *           type: integer
  *           minimum: 1
+ *           maximum: 100000
  *           default: 1
  *         description: 1-based page number
  *       - in: query
@@ -108,6 +109,7 @@ campaignAssignmentRouter.get(
  *         schema:
  *           type: integer
  *           minimum: 1
+ *           maximum: 100000
  *           default: 1
  *         description: 1-based page number
  *       - in: query

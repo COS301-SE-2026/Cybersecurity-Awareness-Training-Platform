@@ -7,6 +7,7 @@ import type {
 } from '@insightful-phish/shared';
 import {
   findActorOrganisationAdmin,
+  findActorOrganisationTrainee,
   findAssignableCampaigns,
   findAssignmentCandidates,
 } from '../repositories/campaign-assignment.repository.js';
@@ -23,12 +24,33 @@ export class CampaignAssignmentServiceError extends Error {
 }
 
 async function requireAuthorisedOrganisationAdmin(actorUserId: string, organisationId: string) {
-  const actor = await findActorOrganisationAdmin({
+  const adminActor = await findActorOrganisationAdmin({
     userId: actorUserId,
     organisationId,
   });
 
-  if (!actor) {
+  if (!adminActor) {
+    const traineeActor = await findActorOrganisationTrainee({
+      userId: actorUserId,
+      organisationId,
+    });
+
+    if (traineeActor) {
+      if (traineeActor.organisation.status !== 'ACTIVE') {
+        throw new CampaignAssignmentServiceError(
+          403,
+          'ORGANISATION_NOT_ACTIVE',
+          'Organisation is not active',
+        );
+      }
+
+      throw new CampaignAssignmentServiceError(
+        403,
+        'FORBIDDEN_ORGANISATION_ROLE',
+        'Trainees cannot manage campaign assignments',
+      );
+    }
+
     throw new CampaignAssignmentServiceError(
       404,
       'INACCESSIBLE_ORGANISATION',
@@ -36,7 +58,7 @@ async function requireAuthorisedOrganisationAdmin(actorUserId: string, organisat
     );
   }
 
-  if (actor.organisation.status !== 'ACTIVE') {
+  if (adminActor.organisation.status !== 'ACTIVE') {
     throw new CampaignAssignmentServiceError(
       403,
       'ORGANISATION_NOT_ACTIVE',
@@ -44,7 +66,7 @@ async function requireAuthorisedOrganisationAdmin(actorUserId: string, organisat
     );
   }
 
-  const hasAssignPermission = actor.permissionGrants.some(
+  const hasAssignPermission = adminActor.permissionGrants.some(
     (grant) => grant.organisationPermission.key === 'ASSIGN_CAMPAIGNS',
   );
 
@@ -56,7 +78,7 @@ async function requireAuthorisedOrganisationAdmin(actorUserId: string, organisat
     );
   }
 
-  return actor;
+  return adminActor;
 }
 
 export async function getAssignableCampaigns(

@@ -86,6 +86,39 @@ export async function findActorOrganisationAdmin(
   });
 }
 
+export type FindActorOrganisationTraineeInput = {
+  userId: string;
+  organisationId: string;
+};
+
+export async function findActorOrganisationTrainee(
+  input: FindActorOrganisationTraineeInput,
+  client: DBClient = prisma,
+) {
+  return client.organisationTraineeProfile.findFirst({
+    where: {
+      organisationId: input.organisationId,
+      membershipStatus: 'ACTIVE',
+      traineeProfile: {
+        userId: input.userId,
+        traineeStatus: 'ACTIVE',
+        user: {
+          userType: 'ORGANISATION_TRAINEE',
+          authStatus: 'ACTIVE',
+        },
+      },
+    },
+    include: {
+      organisation: true,
+      traineeProfile: {
+        include: {
+          user: true,
+        },
+      },
+    },
+  });
+}
+
 export async function findAssignableCampaigns(
   input: FindAssignableCampaignsInput,
   client: DBClient = prisma,

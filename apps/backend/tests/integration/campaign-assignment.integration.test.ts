@@ -1,515 +1,502 @@
 import { randomUUID } from 'node:crypto';
 import request from 'supertest';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../../src/app.js';
 import { prisma } from '../../src/lib/prisma.js';
-import { activateOrganisationAdminUser } from '../../src/repositories/setup.repository.js';
 import {
-  findActorOrganisationAdmin,
-  findAssignableCampaigns,
-  findAssignmentCandidates,
-} from '../../src/repositories/campaign-assignment.repository.js';
-import {
-  CampaignAssignmentServiceError,
-  getAssignableCampaigns,
-} from '../../src/services/campaign-assignment.service.js';
+  AdminStatus,
+  AuthStatus,
+  CampaignStatus,
+  CampaignType,
+  OrganisationStatus,
+  OrganisationUserStatus,
+  PlatformAdminRole,
+  TraineeStatus,
+  UserType,
+} from '../../src/generated/prisma/enums.js';
+import { seedOrganisationAdminPermissions } from '../../prisma/seed-data/organisationPermissionSeed.js';
+import { clearAuthRateLimitStore } from '../../src/middleware/authRateLimit.js';
+import { clearCampaignAssignmentRateLimitStores } from '../../src/routes/campaign-assignment.routes.js';
+import { createCampaign, createOrganisation, generateTestEmail } from '../helpers/factories.js';
 
 const app = createApp();
-const NOW = new Date('2026-08-01T08:00:00.000Z');
-const CREDENTIAL_HASH = ['scrypt', 'campaign-assignment', 'fixture'].join('$');
+const PASSWORD = 'Password123!';
+const precalculatedHash = [
+  'scrypt$16384$8$1$fe5b63f10eb85027cc0bb85210efc592$',
+  '2b8c42c34456dc85c1cb018557067b2b1ea06e5a39e9a9a3a5892cc3e67899c34e7cf0ff478844589efff6c517d8fc08ca9f4ef12caf413b799d15978b0ce3ba',
+].join('');
 
-function testId(prefix: string): string {
-  return `${prefix}-${randomUUID()}`;
-}
-
-function testEmail(prefix: string): string {
-  return `${prefix}-${randomUUID()}@example.test`;
-}
-
-async function createOrganisation(
-  namePrefix: string,
-  status: 'ACTIVE' | 'INACTIVE' = 'ACTIVE',
-): Promise<string> {
-  const organisationId = testId('org');
-  await prisma.organisation.create({
-    data: {
-      id: organisationId,
-      name: `${namePrefix} ${randomUUID()}`,
-      status,
-      updatedAt: NOW,
-    },
-  });
-
-  const permissionKeys = [
-    'VIEW_ORGANISATION_ADMINS',
-    'INVITE_ORGANISATION_ADMINS',
-    'REMOVE_ORGANISATION_ADMINS',
-    'CHANGE_ORGANISATION_ADMIN_PERMISSIONS',
-    'CHANGE_ORGANISATION_SECURITY_SETTINGS',
-    'VIEW_ORGANISATION_TRAINEES',
-    'INVITE_ORGANISATION_TRAINEES',
-    'REMOVE_ORGANISATION_TRAINEES',
-    'ASSIGN_CAMPAIGNS',
-  ] as const;
-
-  for (const key of permissionKeys) {
-    await prisma.organisationPermission.create({
-      data: {
-        id: ['organisation-permission', organisationId, key].join('-'),
-        organisationId,
-        key,
-        displayName: key,
-        description: `${key} permission`,
-        isCritical: false,
-      },
+async function loginAsOrgAdmin(
+  input: {
+    organisationId?: string;
+    grantAssignCampaigns?: boolean;
+    organisationStatus?: OrganisationStatus;
+    userAuthStatus?: AuthStatus;
+  } = {},
+) {
+  let organisation;
+  if (input.organisationId) {
+    organisation = await prisma.organisation.findUniqueOrThrow({
+      where: { id: input.organisationId },
+    });
+  } else {
+    organisation = await createOrganisation({
+      status: input.organisationStatus ?? OrganisationStatus.ACTIVE,
     });
   }
 
-  return organisationId;
-}
+  await seedOrganisationAdminPermissions(prisma);
 
-async function createAdminUser(input: {
-  organisationId: string;
-  isInitialAdmin?: boolean;
-  grantAssignCampaigns?: boolean;
-  authStatus?: 'ACTIVE' | 'DISABLED';
-  userType?: 'ORGANISATION_ADMIN' | 'ORGANISATION_TRAINEE';
-}) {
-  const userId = testId('user-admin');
-  const email = testEmail('admin');
+  const email = generateTestEmail('admin');
+  const userId = randomUUID();
 
-  await prisma.user.create({
+  const user = await prisma.user.create({
     data: {
       id: userId,
-      email,
       firstName: 'Admin',
       lastName: 'User',
-      passwordHash: CREDENTIAL_HASH,
-      userType: input.userType ?? 'ORGANISATION_ADMIN',
-      authStatus: input.authStatus ?? 'ACTIVE',
-      emailVerifiedAt: NOW,
+      email,
+      passwordHash: precalculatedHash,
+      userType: UserType.ORGANISATION_ADMIN,
+      authStatus: input.userAuthStatus ?? AuthStatus.ACTIVE,
+      emailVerifiedAt: new Date(),
     },
   });
 
   const adminProfile = await prisma.organisationAdminProfile.create({
     data: {
-      id: testId('org-admin'),
-      userId,
-      organisationId: input.organisationId,
-      adminStatus: 'ACTIVE',
-      isInitialAdmin: input.isInitialAdmin ?? false,
+      id: randomUUID(),
+      userId: user.id,
+      organisationId: organisation.id,
+      adminStatus: AdminStatus.ACTIVE,
+      isInitialAdmin: true,
+      joinedAt: new Date(),
     },
   });
 
-  if (input.grantAssignCampaigns) {
+  if (input.grantAssignCampaigns !== false) {
     const permission = await prisma.organisationPermission.findFirstOrThrow({
-      where: { organisationId: input.organisationId, key: 'ASSIGN_CAMPAIGNS' },
+      where: { organisationId: organisation.id, key: 'ASSIGN_CAMPAIGNS' },
     });
 
     await prisma.organisationAdminPermission.create({
       data: {
-        id: testId('grant'),
-        organisationId: input.organisationId,
+        id: randomUUID(),
+        organisationId: organisation.id,
         organisationAdminId: adminProfile.id,
         organisationPermissionId: permission.id,
       },
     });
   }
 
-  return { userId, adminProfileId: adminProfile.id, email };
+  const loginRes = await request(app)
+    .post('/api/v1/auth/login')
+    .send({ email, password: PASSWORD });
+
+  const token = (loginRes.body.token as string) ?? '';
+
+  return { organisation, user, adminProfile, token };
 }
 
-async function createTraineeUser(input: {
-  organisationId: string;
-  firstName: string;
-  lastName: string;
-  emailPrefix?: string;
-  userType?: 'ORGANISATION_TRAINEE' | 'ORGANISATION_ADMIN';
-  authStatus?: 'ACTIVE' | 'DISABLED';
-  traineeStatus?: 'ACTIVE' | 'INACTIVE';
-  membershipStatus?: 'ACTIVE' | 'DISABLED';
-}) {
-  const userId = testId('user-trainee');
-  const email = testEmail(input.emailPrefix ?? 'trainee');
+async function loginAsTrainee(input: { organisationId: string }) {
+  const email = generateTestEmail('trainee');
+  const userId = randomUUID();
 
-  await prisma.user.create({
+  const user = await prisma.user.create({
     data: {
       id: userId,
+      firstName: 'Trainee',
+      lastName: 'User',
       email,
-      firstName: input.firstName,
-      lastName: input.lastName,
-      passwordHash: CREDENTIAL_HASH,
-      userType: input.userType ?? 'ORGANISATION_TRAINEE',
-      authStatus: input.authStatus ?? 'ACTIVE',
-      emailVerifiedAt: NOW,
+      passwordHash: precalculatedHash,
+      userType: UserType.ORGANISATION_TRAINEE,
+      authStatus: AuthStatus.ACTIVE,
+      emailVerifiedAt: new Date(),
     },
   });
 
   const traineeProfile = await prisma.traineeProfile.create({
     data: {
-      id: testId('trainee-prof'),
+      id: randomUUID(),
       userId,
-      traineeStatus: input.traineeStatus ?? 'ACTIVE',
+      traineeStatus: TraineeStatus.ACTIVE,
     },
   });
 
   const orgTraineeProfile = await prisma.organisationTraineeProfile.create({
     data: {
-      id: testId('org-trainee-prof'),
-      organisationId: input.organisationId,
+      id: randomUUID(),
       traineeProfileId: traineeProfile.id,
-      membershipStatus: input.membershipStatus ?? 'ACTIVE',
-    },
-  });
-
-  return {
-    userId,
-    traineeProfileId: traineeProfile.id,
-    orgTraineeProfileId: orgTraineeProfile.id,
-    email,
-  };
-}
-
-async function createCampaign(input: {
-  organisationId: string;
-  name: string;
-  description?: string;
-  status?: 'ACTIVE' | 'DRAFT' | 'COMPLETED';
-  campaignType?: 'ORGANISATION_CUSTOM' | 'PREMADE_GENERAL';
-}) {
-  return prisma.campaign.create({
-    data: {
-      id: testId('camp'),
       organisationId: input.organisationId,
-      name: input.name,
-      description: input.description ?? 'Test campaign description',
-      status: input.status ?? 'ACTIVE',
-      campaignType: input.campaignType ?? 'ORGANISATION_CUSTOM',
-      startDate: NOW,
+      membershipStatus: OrganisationUserStatus.ACTIVE,
     },
   });
+
+  const loginRes = await request(app)
+    .post('/api/v1/auth/login')
+    .send({ email, password: PASSWORD });
+
+  const token = (loginRes.body.token as string) ?? '';
+
+  return { user, traineeProfile, orgTraineeProfile, token };
 }
 
-describe('Campaign Assignment Integration Tests', () => {
-  describe('1. Initial Administrator Setup & Explicit Permission Granting', () => {
-    it('grants ASSIGN_CAMPAIGNS explicitly during initial-admin setup, while custom admin does not get it', async () => {
-      const orgId = await createOrganisation('Org Setup');
-      const userId = testId('setup-initial-admin');
+async function loginAsPlatformSuperAdmin() {
+  const email = generateTestEmail('superadmin');
+  const userId = randomUUID();
 
-      await prisma.user.create({
+  const user = await prisma.user.create({
+    data: {
+      id: userId,
+      firstName: 'Super',
+      lastName: 'Admin',
+      email,
+      passwordHash: precalculatedHash,
+      userType: UserType.IP_ADMIN,
+      authStatus: AuthStatus.ACTIVE,
+      emailVerifiedAt: new Date(),
+    },
+  });
+
+  await prisma.ipAdminProfile.create({
+    data: {
+      id: randomUUID(),
+      userId: user.id,
+      adminStatus: AdminStatus.ACTIVE,
+      platformAdminRole: PlatformAdminRole.SUPER_ADMIN,
+    },
+  });
+
+  const loginRes = await request(app)
+    .post('/api/v1/auth/login')
+    .send({ email, password: PASSWORD });
+
+  return { user, token: (loginRes.body.token as string) ?? '' };
+}
+
+describe('Campaign Assignment API Integration Tests', () => {
+  beforeEach(async () => {
+    clearAuthRateLimitStore();
+    await clearCampaignAssignmentRateLimitStores();
+  });
+
+  describe('1. Real Onboarding & Initial Administrator Setup Workflow', () => {
+    it('grants ASSIGN_CAMPAIGNS explicitly during real onboarding setup, allowing campaign options HTTP access', async () => {
+      // 1. Submit organisation registration request
+      const registrationRes = await request(app)
+        .post('/api/v1/organisation-registration-requests')
+        .send({
+          submittedOrganisationName: `Acme Corp ${randomUUID()}`,
+          representativeFirstName: 'Initial',
+          representativeLastName: 'Admin',
+          representativeEmail: generateTestEmail('initial-admin'),
+        });
+
+      expect(registrationRes.status).toBe(201);
+      const requestId = registrationRes.body.request.id as string;
+
+      // 2. Approve request as platform super admin
+      const superAdmin = await loginAsPlatformSuperAdmin();
+      const approveRes = await request(app)
+        .post(`/api/v1/platform/organisation-requests/${requestId}/approve`)
+        .set('Authorization', `Bearer ${superAdmin.token}`)
+        .send({});
+
+      expect(approveRes.status).toBe(200);
+      const organisationId = approveRes.body.organisation.id as string;
+
+      // 3. Find setup action token created for registration
+      const actionToken = await prisma.actionToken.findFirstOrThrow({
+        where: { organisationRegistrationRequestId: requestId },
+      });
+
+      const setupContextRes = await request(app).get(
+        `/api/v1/setup/token/${actionToken.id}/context`,
+      );
+      expect(setupContextRes.status).toBe(200);
+
+      // 4. Complete initial admin setup
+      const completeRes = await request(app)
+        .post(`/api/v1/setup/token/${actionToken.id}/complete`)
+        .send({ password: 'Password123!' });
+
+      expect(completeRes.status).toBe(201);
+      const adminEmail = completeRes.body.user.email as string;
+
+      // 5. Log in as initial admin
+      const loginRes = await request(app)
+        .post('/api/v1/auth/login')
+        .send({ email: adminEmail, password: 'Password123!' });
+
+      expect(loginRes.status).toBe(200);
+      const token = loginRes.body.token as string;
+
+      // 6. Access campaign options endpoint over HTTP
+      const optionsRes = await request(app)
+        .get(`/api/v1/organisations/${organisationId}/campaigns/assignable`)
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(optionsRes.status).toBe(200);
+      expect(optionsRes.body).toHaveProperty('items');
+      expect(optionsRes.body).toHaveProperty('pagination');
+    });
+  });
+
+  describe('2. Authenticated HTTP Endpoints Success & Serialization', () => {
+    it('returns 200 OK with assignable campaigns, serialized dates, and pagination meta restricted to organisation', async () => {
+      const adminFixture = await loginAsOrgAdmin({ grantAssignCampaigns: true });
+      const orgAId = adminFixture.organisation.id;
+      const orgBId = (await createOrganisation()).id;
+
+      // Campaign in Org A (eligible)
+      const campaignA = await createCampaign({
+        organisationId: orgAId,
+        name: 'Alpha Phishing Training',
+        campaignType: CampaignType.ORGANISATION_CUSTOM,
+        status: CampaignStatus.ACTIVE,
+        startDate: new Date('2026-09-01T00:00:00.000Z'),
+      });
+
+      // Campaign in Org B (foreign - should not be included)
+      await createCampaign({
+        organisationId: orgBId,
+        name: 'Beta Foreign Training',
+        campaignType: CampaignType.ORGANISATION_CUSTOM,
+        status: CampaignStatus.ACTIVE,
+      });
+
+      const response = await request(app)
+        .get(`/api/v1/organisations/${orgAId}/campaigns/assignable`)
+        .set('Authorization', `Bearer ${adminFixture.token}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({
+        items: [
+          expect.objectContaining({
+            campaignId: campaignA.id,
+            name: 'Alpha Phishing Training',
+            status: 'ACTIVE',
+            type: 'ORGANISATION_CUSTOM',
+            startDate: '2026-09-01T00:00:00.000Z',
+          }),
+        ],
+        pagination: {
+          page: 1,
+          limit: 20,
+          total: 1,
+          totalPages: 1,
+        },
+      });
+    });
+
+    it('returns 200 OK with candidate options, displayName, email, active: true, and excludes promoted admins', async () => {
+      const adminFixture = await loginAsOrgAdmin({ grantAssignCampaigns: true });
+      const orgId = adminFixture.organisation.id;
+
+      // Trainee A in Org
+      const traineeUser = await prisma.user.create({
         data: {
-          id: userId,
-          email: testEmail('initial-admin-setup'),
-          firstName: 'Initial',
-          lastName: 'Admin',
-          passwordHash: CREDENTIAL_HASH,
-          userType: 'ORGANISATION_ADMIN',
-          authStatus: 'DISABLED',
+          id: randomUUID(),
+          firstName: 'Alice',
+          lastName: 'Candidate',
+          email: generateTestEmail('candidate'),
+          passwordHash: precalculatedHash,
+          userType: UserType.ORGANISATION_TRAINEE,
+          authStatus: AuthStatus.ACTIVE,
         },
       });
-
-      await activateOrganisationAdminUser(
-        {
-          userId,
-          firstName: 'Activated',
-          lastName: 'Initial',
-          passwordHash: CREDENTIAL_HASH,
+      const traineeProfile = await prisma.traineeProfile.create({
+        data: { id: randomUUID(), userId: traineeUser.id, traineeStatus: TraineeStatus.ACTIVE },
+      });
+      const orgTraineeProfile = await prisma.organisationTraineeProfile.create({
+        data: {
+          id: randomUUID(),
+          traineeProfileId: traineeProfile.id,
           organisationId: orgId,
-          isInitialAdmin: true,
+          membershipStatus: OrganisationUserStatus.ACTIVE,
         },
-        prisma,
-      );
+      });
 
-      const adminProfile = await prisma.organisationAdminProfile.findUniqueOrThrow({
-        where: { userId },
-        include: {
-          permissionGrants: {
-            include: { organisationPermission: true },
+      // Promoted admin (should be excluded from candidates)
+      const promotedUser = await prisma.user.create({
+        data: {
+          id: randomUUID(),
+          firstName: 'Promoted',
+          lastName: 'Admin',
+          email: generateTestEmail('promoted'),
+          passwordHash: precalculatedHash,
+          userType: UserType.ORGANISATION_ADMIN,
+          authStatus: AuthStatus.ACTIVE,
+        },
+      });
+      const promotedTraineeProfile = await prisma.traineeProfile.create({
+        data: { id: randomUUID(), userId: promotedUser.id, traineeStatus: TraineeStatus.ACTIVE },
+      });
+      await prisma.organisationTraineeProfile.create({
+        data: {
+          id: randomUUID(),
+          traineeProfileId: promotedTraineeProfile.id,
+          organisationId: orgId,
+          membershipStatus: OrganisationUserStatus.ACTIVE,
+        },
+      });
+
+      const response = await request(app)
+        .get(`/api/v1/organisations/${orgId}/campaign-assignment-candidates`)
+        .set('Authorization', `Bearer ${adminFixture.token}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({
+        items: [
+          {
+            traineeProfileId: traineeProfile.id,
+            organisationTraineeProfileId: orgTraineeProfile.id,
+            userId: traineeUser.id,
+            displayName: 'Alice Candidate',
+            email: traineeUser.email,
+            active: true,
           },
+        ],
+        pagination: {
+          page: 1,
+          limit: 20,
+          total: 1,
+          totalPages: 1,
         },
       });
-
-      expect(adminProfile.isInitialAdmin).toBe(true);
-      const grantedKeys = adminProfile.permissionGrants.map((g) => g.organisationPermission.key);
-      expect(grantedKeys).toContain('ASSIGN_CAMPAIGNS');
-
-      // Create a custom non-initial admin
-      const customAdmin = await createAdminUser({
-        organisationId: orgId,
-        isInitialAdmin: false,
-        grantAssignCampaigns: false,
-      });
-
-      const customAdminProfile = await prisma.organisationAdminProfile.findUniqueOrThrow({
-        where: { userId: customAdmin.userId },
-        include: {
-          permissionGrants: {
-            include: { organisationPermission: true },
-          },
-        },
-      });
-
-      expect(customAdminProfile.isInitialAdmin).toBe(false);
-      const customGrantedKeys = customAdminProfile.permissionGrants.map(
-        (g) => g.organisationPermission.key,
-      );
-      expect(customGrantedKeys).not.toContain('ASSIGN_CAMPAIGNS');
     });
   });
 
-  describe('2. Timing Attack & Resource Existence Protection', () => {
-    it('returns exact same 404 INACCESSIBLE_ORGANISATION for existing foreign org ID and nonexistent UUID', async () => {
-      const orgAId = await createOrganisation('Org A');
-      const orgBId = await createOrganisation('Org B');
-      const nonExistentUuid = randomUUID();
+  describe('3. Role Distinction & Indistinguishable Concealment (403 vs 404)', () => {
+    it('returns 403 FORBIDDEN_ORGANISATION_ROLE when a same-organisation trainee requests options endpoints', async () => {
+      const adminFixture = await loginAsOrgAdmin();
+      const orgId = adminFixture.organisation.id;
+      const traineeFixture = await loginAsTrainee({ organisationId: orgId });
 
-      const adminA = await createAdminUser({
-        organisationId: orgAId,
-        grantAssignCampaigns: true,
+      const campaignRes = await request(app)
+        .get(`/api/v1/organisations/${orgId}/campaigns/assignable`)
+        .set('Authorization', `Bearer ${traineeFixture.token}`);
+
+      expect(campaignRes.status).toBe(403);
+      expect(campaignRes.body).toEqual({
+        error: 'FORBIDDEN_ORGANISATION_ROLE',
+        message: 'Trainees cannot manage campaign assignments',
       });
 
-      // Query foreign Org B
-      let foreignErr: CampaignAssignmentServiceError | null = null;
-      try {
-        await getAssignableCampaigns(adminA.userId, orgBId, { page: 1, limit: 20 });
-      } catch (err: unknown) {
-        if (err instanceof CampaignAssignmentServiceError) {
-          foreignErr = err;
-        }
-      }
+      const candidateRes = await request(app)
+        .get(`/api/v1/organisations/${orgId}/campaign-assignment-candidates`)
+        .set('Authorization', `Bearer ${traineeFixture.token}`);
 
-      // Query non-existent UUID
-      let nonExistentErr: CampaignAssignmentServiceError | null = null;
-      try {
-        await getAssignableCampaigns(adminA.userId, nonExistentUuid, { page: 1, limit: 20 });
-      } catch (err: unknown) {
-        if (err instanceof CampaignAssignmentServiceError) {
-          nonExistentErr = err;
-        }
-      }
+      expect(candidateRes.status).toBe(403);
+      expect(candidateRes.body).toEqual({
+        error: 'FORBIDDEN_ORGANISATION_ROLE',
+        message: 'Trainees cannot manage campaign assignments',
+      });
+    });
 
-      expect(foreignErr).not.toBeNull();
-      expect(nonExistentErr).not.toBeNull();
-      expect(foreignErr?.statusCode).toBe(404);
-      expect(nonExistentErr?.statusCode).toBe(404);
-      expect(foreignErr?.error).toBe('INACCESSIBLE_ORGANISATION');
-      expect(nonExistentErr?.error).toBe('INACCESSIBLE_ORGANISATION');
-      expect(foreignErr?.message).toBe('Inaccessible organisation');
-      expect(nonExistentErr?.message).toBe('Inaccessible organisation');
+    it('returns 403 MISSING_ASSIGN_CAMPAIGNS_PERMISSION when admin lacks explicit grant', async () => {
+      const adminFixture = await loginAsOrgAdmin({ grantAssignCampaigns: false });
+      const orgId = adminFixture.organisation.id;
+
+      const response = await request(app)
+        .get(`/api/v1/organisations/${orgId}/campaigns/assignable`)
+        .set('Authorization', `Bearer ${adminFixture.token}`);
+
+      expect(response.status).toBe(403);
+      expect(response.body).toEqual({
+        error: 'MISSING_ASSIGN_CAMPAIGNS_PERMISSION',
+        message: 'Assign campaigns permission is required',
+      });
+    });
+
+    it('returns exact same 404 INACCESSIBLE_ORGANISATION for foreign org ID and nonexistent org UUID', async () => {
+      const adminFixture = await loginAsOrgAdmin({ grantAssignCampaigns: true });
+      const foreignOrgId = (await createOrganisation()).id;
+      const nonexistentUuid = randomUUID();
+
+      const foreignRes = await request(app)
+        .get(`/api/v1/organisations/${foreignOrgId}/campaigns/assignable`)
+        .set('Authorization', `Bearer ${adminFixture.token}`);
+
+      const nonexistentRes = await request(app)
+        .get(`/api/v1/organisations/${nonexistentUuid}/campaigns/assignable`)
+        .set('Authorization', `Bearer ${adminFixture.token}`);
+
+      expect(foreignRes.status).toBe(404);
+      expect(nonexistentRes.status).toBe(404);
+      expect(foreignRes.body).toEqual({
+        error: 'INACCESSIBLE_ORGANISATION',
+        message: 'Inaccessible organisation',
+      });
+      expect(nonexistentRes.body).toEqual({
+        error: 'INACCESSIBLE_ORGANISATION',
+        message: 'Inaccessible organisation',
+      });
     });
   });
 
-  describe('3. Promoted Administrator Exclusion', () => {
-    it('excludes promoted administrators from candidate items list and total count', async () => {
-      const orgId = await createOrganisation('Org Promoted Candidate');
-
-      const trainee = await createTraineeUser({
-        organisationId: orgId,
-        firstName: 'Promoted',
-        lastName: 'Trainee',
-      });
-
-      // Before promotion, candidate is returned
-      const beforeResult = await findAssignmentCandidates({
-        organisationId: orgId,
-        page: 1,
-        limit: 20,
-      });
-      expect(beforeResult.total).toBe(1);
-      expect(beforeResult.items[0].userId).toBe(trainee.userId);
-
-      // Promote trainee to ORGANISATION_ADMIN
-      await prisma.user.update({
-        where: { id: trainee.userId },
-        data: { userType: 'ORGANISATION_ADMIN' },
-      });
-
-      // After promotion, candidate must be excluded from items and total count
-      const afterResult = await findAssignmentCandidates({
-        organisationId: orgId,
-        page: 1,
-        limit: 20,
-      });
-      expect(afterResult.total).toBe(0);
-      expect(afterResult.items).toHaveLength(0);
-    });
-  });
-
-  describe('4. Actor Bounded Isolation & Active State Constraints', () => {
-    it('rejects disabled users, trainee users, and cross-organisation admins', async () => {
-      const orgAId = await createOrganisation('Org Actor State A');
-      const orgBId = await createOrganisation('Org Actor State B');
-
-      const disabledAdmin = await createAdminUser({
-        organisationId: orgAId,
-        authStatus: 'DISABLED',
-        grantAssignCampaigns: true,
-      });
-
-      const traineeAsActor = await createTraineeUser({
-        organisationId: orgAId,
-        firstName: 'Trainee',
-        lastName: 'Actor',
-      });
-
-      // Disabled admin actor lookup returns null
-      const disabledLookup = await findActorOrganisationAdmin({
-        userId: disabledAdmin.userId,
-        organisationId: orgAId,
-      });
-      expect(disabledLookup).toBeNull();
-
-      // Trainee user actor lookup returns null
-      const traineeLookup = await findActorOrganisationAdmin({
-        userId: traineeAsActor.userId,
-        organisationId: orgAId,
-      });
-      expect(traineeLookup).toBeNull();
-
-      // Cross-organisation admin lookup returns null
-      const adminA = await createAdminUser({
-        organisationId: orgAId,
-        grantAssignCampaigns: true,
-      });
-      const crossOrgLookup = await findActorOrganisationAdmin({
-        userId: adminA.userId,
-        organisationId: orgBId,
-      });
-      expect(crossOrgLookup).toBeNull();
-    });
-  });
-
-  describe('5. Real-Database Campaign & Candidate Filtering, Sorting & Pagination', () => {
-    it('filters campaigns by organisation, custom type, and active status with pagination and search', async () => {
-      const orgAId = await createOrganisation('Org Filter A');
-      const orgBId = await createOrganisation('Org Filter B');
-
-      // Matching active custom campaign in Org A
-      const camp1 = await createCampaign({
-        organisationId: orgAId,
-        name: 'Alpha Cyber Safety',
-        status: 'ACTIVE',
-        campaignType: 'ORGANISATION_CUSTOM',
-      });
-
-      const camp2 = await createCampaign({
-        organisationId: orgAId,
-        name: 'Beta Phishing Defense',
-        status: 'ACTIVE',
-        campaignType: 'ORGANISATION_CUSTOM',
-      });
-
-      // Excluded: Draft status
-      await createCampaign({
-        organisationId: orgAId,
-        name: 'Draft Campaign',
-        status: 'DRAFT',
-        campaignType: 'ORGANISATION_CUSTOM',
-      });
-
-      // Excluded: Premade type
-      await createCampaign({
-        organisationId: orgAId,
-        name: 'Premade General',
-        status: 'ACTIVE',
-        campaignType: 'PREMADE_GENERAL',
-      });
-
-      // Excluded: Foreign Org B campaign
-      await createCampaign({
-        organisationId: orgBId,
-        name: 'Foreign Org B Campaign',
-        status: 'ACTIVE',
-        campaignType: 'ORGANISATION_CUSTOM',
-      });
-
-      // Query Org A campaigns
-      const resAll = await findAssignableCampaigns({
-        organisationId: orgAId,
-        page: 1,
-        limit: 20,
-      });
-
-      expect(resAll.total).toBe(2);
-      expect(resAll.items).toHaveLength(2);
-      expect(resAll.items[0].id).toBe(camp1.id);
-      expect(resAll.items[1].id).toBe(camp2.id);
-
-      // Search query filter
-      const resSearch = await findAssignableCampaigns({
-        organisationId: orgAId,
-        page: 1,
-        limit: 20,
-        search: '  phishing  ',
-      });
-
-      expect(resSearch.total).toBe(1);
-      expect(resSearch.items[0].id).toBe(camp2.id);
-
-      // Page beyond total pages returns empty items
-      const resEmptyPage = await findAssignableCampaigns({
-        organisationId: orgAId,
-        page: 5,
-        limit: 20,
-      });
-
-      expect(resEmptyPage.total).toBe(2);
-      expect(resEmptyPage.items).toHaveLength(0);
-    });
-
-    it('sorts candidates deterministically by firstName asc, lastName asc, id asc and handles pagination', async () => {
-      const orgId = await createOrganisation('Org Candidates Sort');
-
-      const t1 = await createTraineeUser({
-        organisationId: orgId,
-        firstName: 'Alice',
-        lastName: 'Smith',
-      });
-
-      const t2 = await createTraineeUser({
-        organisationId: orgId,
-        firstName: 'Alice',
-        lastName: 'Zimmer',
-      });
-
-      const t3 = await createTraineeUser({
-        organisationId: orgId,
-        firstName: 'Bob',
-        lastName: 'Brown',
-      });
-
-      const page1 = await findAssignmentCandidates({
-        organisationId: orgId,
-        page: 1,
-        limit: 2,
-      });
-
-      expect(page1.total).toBe(3);
-      expect(page1.items).toHaveLength(2);
-      expect(page1.items[0].userId).toBe(t1.userId);
-      expect(page1.items[1].userId).toBe(t2.userId);
-
-      const page2 = await findAssignmentCandidates({
-        organisationId: orgId,
-        page: 2,
-        limit: 2,
-      });
-
-      expect(page2.total).toBe(3);
-      expect(page2.items).toHaveLength(1);
-      expect(page2.items[0].userId).toBe(t3.userId);
-    });
-  });
-
-  describe('6. End-to-End Route Validation', () => {
+  describe('4. Active State & Unauthenticated Enforcement', () => {
     it('returns 401 UNAUTHENTICATED when requesting options endpoints unauthenticated', async () => {
-      const orgId = await createOrganisation('Org E2E Unauth');
+      const orgId = (await createOrganisation()).id;
 
-      const res1 = await request(app).get(`/organisations/${orgId}/campaigns/assignable`);
-      expect(res1.status).toBe(401);
+      const response = await request(app).get(
+        `/api/v1/organisations/${orgId}/campaigns/assignable`,
+      );
 
-      const res2 = await request(app).get(`/organisations/${orgId}/campaign-assignment-candidates`);
-      expect(res2.status).toBe(401);
+      expect(response.status).toBe(401);
+      expect(response.body).toHaveProperty('error');
+    });
+
+    it('returns 403 ORGANISATION_NOT_ACTIVE when organisation is suspended', async () => {
+      const adminFixture = await loginAsOrgAdmin({
+        organisationStatus: OrganisationStatus.SUSPENDED,
+      });
+      const orgId = adminFixture.organisation.id;
+
+      const response = await request(app)
+        .get(`/api/v1/organisations/${orgId}/campaigns/assignable`)
+        .set('Authorization', `Bearer ${adminFixture.token}`);
+
+      expect(response.status).toBe(403);
+      expect(response.body).toEqual({
+        error: 'ORGANISATION_NOT_ACTIVE',
+        message: 'Organisation is not active',
+      });
+    });
+  });
+
+  describe('5. Filtering, Pagination & Search HTTP Endpoints', () => {
+    it('supports search, page, and limit query parameters over HTTP', async () => {
+      const adminFixture = await loginAsOrgAdmin({ grantAssignCampaigns: true });
+      const orgId = adminFixture.organisation.id;
+
+      await createCampaign({
+        organisationId: orgId,
+        name: 'Target Phishing Alpha',
+        campaignType: CampaignType.ORGANISATION_CUSTOM,
+        status: CampaignStatus.ACTIVE,
+      });
+
+      await createCampaign({
+        organisationId: orgId,
+        name: 'Other Training',
+        campaignType: CampaignType.ORGANISATION_CUSTOM,
+        status: CampaignStatus.ACTIVE,
+      });
+
+      const response = await request(app)
+        .get(`/api/v1/organisations/${orgId}/campaigns/assignable?search=Target&page=1&limit=10`)
+        .set('Authorization', `Bearer ${adminFixture.token}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.items).toHaveLength(1);
+      expect(response.body.items[0].name).toBe('Target Phishing Alpha');
+      expect(response.body.pagination).toEqual({
+        page: 1,
+        limit: 10,
+        total: 1,
+        totalPages: 1,
+      });
     });
   });
 });

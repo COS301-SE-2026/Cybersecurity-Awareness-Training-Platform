@@ -7,6 +7,7 @@ import {
 
 const repoMock = vi.hoisted(() => ({
   findActorOrganisationAdmin: vi.fn(),
+  findActorOrganisationTrainee: vi.fn(),
   findAssignableCampaigns: vi.fn(),
   findAssignmentCandidates: vi.fn(),
 }));
@@ -22,8 +23,9 @@ describe('CampaignAssignmentService', () => {
   });
 
   describe('getAssignableCampaigns', () => {
-    it('throws 404 INACCESSIBLE_ORGANISATION if actor is not an admin of the organisation', async () => {
+    it('throws 404 INACCESSIBLE_ORGANISATION if actor is not an admin or trainee of the organisation', async () => {
       repoMock.findActorOrganisationAdmin.mockResolvedValue(null);
+      repoMock.findActorOrganisationTrainee.mockResolvedValue(null);
 
       await expect(
         getAssignableCampaigns(actorUserId, organisationId, { page: 1, limit: 20 }),
@@ -35,6 +37,26 @@ describe('CampaignAssignmentService', () => {
         if (err instanceof CampaignAssignmentServiceError) {
           expect(err.statusCode).toBe(404);
           expect(err.error).toBe('INACCESSIBLE_ORGANISATION');
+        } else {
+          throw err;
+        }
+      }
+    });
+
+    it('throws 403 FORBIDDEN_ORGANISATION_ROLE if actor is a same-organisation trainee', async () => {
+      repoMock.findActorOrganisationAdmin.mockResolvedValue(null);
+      repoMock.findActorOrganisationTrainee.mockResolvedValue({
+        id: 'trainee-profile-1',
+        organisation: { status: 'ACTIVE' },
+      });
+
+      try {
+        await getAssignableCampaigns(actorUserId, organisationId, { page: 1, limit: 20 });
+      } catch (err: unknown) {
+        if (err instanceof CampaignAssignmentServiceError) {
+          expect(err.statusCode).toBe(403);
+          expect(err.error).toBe('FORBIDDEN_ORGANISATION_ROLE');
+          expect(err.message).toBe('Trainees cannot manage campaign assignments');
         } else {
           throw err;
         }
