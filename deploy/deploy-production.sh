@@ -111,7 +111,7 @@ fi
 
 for compose_file in "${COMPOSE_FILES[@]}"; do 
 	if [[ ! -f "$compose_file" ]]; then
-		echo "Compose file doest not exit: $compose_file" >&2
+		echo "Compose file does not exit: $compose_file" >&2
 		exit 1
 	fi
 done
@@ -216,6 +216,29 @@ wait_for_http(){
 phase="smoke-tests"
 wait_for_http backend "$BACKEND_HEALTH_URL"
 wait_for_http frontend "$FRONTEND_HEALTH_URL"
+if [[ "$deployment_target" == 'development' ]]; then
+	echo "Checking backend to mailpit connectivity"
+	"${compose_candidate[@]}" exec -T backend node -e '
+	const net = require("node:net");
+	const socket = net.createConnection({ host: "mailpit", port: 1025 });
+	socket.setTimeout(5000);
+	socket.once("connect", () => {
+		socket.destroy();
+		process.exit(0);
+	});
+	socket.once("timeout", () => {
+		console.error("Mailpit connection timed out");
+		socket.destroy();
+		process.exit(1);
+	});
+	socket.once("error", (error) => {
+		console.error("Mailpit connection failed: " + error.message);
+		socket.destroy();
+		process.exit(1);
+	});
+	'
+	echo "Backend can reach mailpit"
+fi
 
 phase="release-state-validation"
 current_sha=""

@@ -23,7 +23,7 @@ services:
       SUPPORT_EMAIL_ADDRESS: ${SUPPORT_EMAIL_ADDRESS:-support@dev.insightfulphish.invalid}
 
   mailpit:
-    image: ${MAILPIT_IMAGE:?Set MAILPIT_IMAGE to an ARM64 image}
+    image: ${MAILPIT_IMAGE:?Set MAILPIT_IMAGE to a compatible image}
     restart: unless-stopped
     environment:
       MP_DATABASE: /data/mailpit.db

@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 if [[ "$#" -ne 1 ]]; then
-	echo "Usage: ${0##*/} <40 character sha>" >&2
+	echo "Usage: ${0##*/} <40-character-sha>" >&2
 	exit 64
 fi
 if [[ ! "$1" =~ ^[0-9a-f]{40}$ ]]; then

@@ -133,18 +133,24 @@ describe('parseEnv', () => {
   it.skip('normalises empty SMTP values to be undefined', () => {
     expect(parseEnv({ ...baseEnv, SMTP_USER: '' }).SMTP_USER).toBeUndefined();
     expect(parseEnv({ ...baseEnv, SMTP_PASSWORD: '' }).SMTP_PASSWORD).toBeUndefined();
+  });
 
-    it('defaults secure cookies to false in dev', () => {
-      expect(parseEnv({ ...baseEnv, NODE_ENV: 'development' }).AUTH_COOKIE_SECURE).toBe(false);
-    });
-    it('parses a false secure cookie value correctly', () => {
-      expect(
-        parseEnv({ ...baseEnv, NODE_ENV: 'development', AUTH_SECURE_COOKIE: 'false' })
-          .AUTH_COOKIE_SECURE,
-      ).toBe(false);
-    });
-    it('rejects invalid secure cookie values', () => {
-      expect(() => parseEnv({ ...baseEnv, AUTH_COOKIE_SECURE: 'yes' })).toThrow();
-    });
+  it('defaults secure cookies to false in dev', () => {
+    expect(parseEnv({ ...baseEnv, NODE_ENV: 'development' }).AUTH_COOKIE_SECURE).toBe(false);
+  });
+  it('parses a false secure cookie value correctly', () => {
+    expect(
+      parseEnv({ ...baseEnv, NODE_ENV: 'development', AUTH_COOKIE_SECURE: 'false' })
+        .AUTH_COOKIE_SECURE,
+    ).toBe(false);
+  });
+  it('parses a true secure cookie value correctly', () => {
+    expect(
+      parseEnv({ ...baseEnv, NODE_ENV: 'development', AUTH_COOKIE_SECURE: 'true' })
+        .AUTH_COOKIE_SECURE,
+    ).toBe(true);
+  });
+  it('rejects invalid secure cookie values', () => {
+    expect(() => parseEnv({ ...baseEnv, AUTH_COOKIE_SECURE: 'yes' })).toThrow();
   });
 });
