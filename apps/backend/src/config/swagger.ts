@@ -3935,6 +3935,124 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             pagination: schemaRef('PaginationMeta'),
           },
         },
+        CreateCampaignAssignmentsRequest: {
+          type: 'object',
+          required: ['campaignIds', 'traineeProfileIds'],
+          additionalProperties: false,
+          properties: {
+<<<<<<< HEAD
+            campaignIds: uuidArray(['9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d']),
+            traineeProfileIds: uuidArray(['a1b2c3d4-e5f6-47a8-b9c0-d1e2f3a4b5c6']),
+=======
+            campaignIds: {
+              ...uuidArray(['9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d']),
+              minItems: 1,
+              maxItems: 100,
+            },
+            traineeProfileIds: {
+              ...uuidArray(['a1b2c3d4-e5f6-47a8-b9c0-d1e2f3a4b5c6']),
+              minItems: 1,
+              maxItems: 100,
+            },
+>>>>>>> a14d5b721 (feat: manage organisation campaign assignments transactionally (#407))
+          },
+        },
+        CampaignAssignmentResultRow: {
+          type: 'object',
+          required: ['assignmentId', 'campaignId', 'traineeProfileId'],
+          additionalProperties: false,
+          properties: {
+            assignmentId: uuidString('55555555-5555-4555-8555-555555555555'),
+            campaignId: uuidString('9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+            traineeProfileId: uuidString('a1b2c3d4-e5f6-47a8-b9c0-d1e2f3a4b5c6'),
+          },
+        },
+        CampaignAssignmentSummary: {
+          type: 'object',
+          required: [
+            'requestedCampaigns',
+            'requestedTrainees',
+            'requestedPairs',
+            'createdCount',
+            'alreadyAssignedCount',
+          ],
+          additionalProperties: false,
+          properties: {
+            requestedCampaigns: { type: 'integer', minimum: 0, example: 1 },
+            requestedTrainees: { type: 'integer', minimum: 0, example: 2 },
+            requestedPairs: { type: 'integer', minimum: 0, example: 2 },
+            createdCount: { type: 'integer', minimum: 0, example: 2 },
+            alreadyAssignedCount: { type: 'integer', minimum: 0, example: 0 },
+          },
+        },
+        CreateCampaignAssignmentsResponse: {
+          type: 'object',
+          required: ['created', 'alreadyAssigned', 'summary'],
+          additionalProperties: false,
+          properties: {
+            created: arrayOf(schemaRef('CampaignAssignmentResultRow')),
+            alreadyAssigned: arrayOf(schemaRef('CampaignAssignmentResultRow')),
+            summary: schemaRef('CampaignAssignmentSummary'),
+          },
+        },
+        CampaignAssignmentReadRow: {
+          type: 'object',
+          required: [
+            'assignmentId',
+            'campaignId',
+            'campaignName',
+            'campaignStatus',
+            'campaignType',
+            'traineeProfileId',
+            'displayName',
+            'email',
+            'traineeStatus',
+            'assignmentStatus',
+            'accessType',
+            'assignedAt',
+            'startedAt',
+            'completedAt',
+          ],
+          additionalProperties: false,
+          properties: {
+            assignmentId: uuidString('55555555-5555-4555-8555-555555555555'),
+            campaignId: uuidString('9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+            campaignName: { type: 'string', example: 'Checkers Sixty60 Phishing Awareness' },
+            campaignStatus: enumString(
+              ['DRAFT', 'ACTIVE', 'PAUSED', 'COMPLETED', 'ARCHIVED'],
+              'ACTIVE',
+            ),
+            campaignType: enumString(
+              ['PREMADE_GENERAL', 'ORGANISATION_CUSTOM'],
+              'ORGANISATION_CUSTOM',
+            ),
+            traineeProfileId: uuidString('a1b2c3d4-e5f6-47a8-b9c0-d1e2f3a4b5c6'),
+            displayName: { type: 'string', example: 'Sipho Ndlovu' },
+            email: {
+              type: 'string',
+              format: 'email',
+              example: 'sipho.ndlovu@rustenburg-cyber.co.za',
+            },
+            traineeStatus: enumString(['ACTIVE', 'INACTIVE'], 'ACTIVE'),
+            assignmentStatus: enumString(
+              ['AVAILABLE', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'EXPIRED'],
+              'ASSIGNED',
+            ),
+            accessType: enumString(['ASSIGNED', 'SELF_SELECTED'], 'ASSIGNED'),
+            assignedAt: dateTimeString('2026-08-07T12:00:00.000Z'),
+            startedAt: { type: 'string', format: 'date-time', nullable: true, example: null },
+            completedAt: { type: 'string', format: 'date-time', nullable: true, example: null },
+          },
+        },
+        GetCampaignAssignmentsResponse: {
+          type: 'object',
+          required: ['items', 'pagination'],
+          additionalProperties: false,
+          properties: {
+            items: arrayOf(schemaRef('CampaignAssignmentReadRow')),
+            pagination: schemaRef('PaginationMeta'),
+          },
+        },
       },
       parameters: {
         CampaignIdPathParam: {
@@ -4169,6 +4287,10 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
           required: true,
           ...jsonContent(schemaRef('DisableTraineeRequest')),
         },
+        CreateCampaignAssignments: {
+          required: true,
+          ...jsonContent(schemaRef('CreateCampaignAssignmentsRequest')),
+        },
       },
       responses: {
         GetAssignableCampaignsOk: responseComponent(
@@ -4178,6 +4300,14 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         GetCampaignAssignmentCandidatesOk: responseComponent(
           'Paginated list of eligible trainee assignment candidates.',
           'GetCampaignAssignmentCandidatesResponse',
+        ),
+        CreateCampaignAssignmentsOk: responseComponent(
+          'Bulk campaign assignments created or returned as existing.',
+          'CreateCampaignAssignmentsResponse',
+        ),
+        GetCampaignAssignmentsOk: responseComponent(
+          'Paginated list of campaign assignments.',
+          'GetCampaignAssignmentsResponse',
         ),
         HealthOk: responseComponent('API and database are reachable.', 'HealthStatus'),
         HealthDatabaseUnavailable: responseComponent(

@@ -68,8 +68,8 @@ async function loginAsOrgAdmin(
   const user = await prisma.user.create({
     data: {
       id: userId,
-      firstName: 'Admin',
-      lastName: 'User',
+      firstName: 'Thabo',
+      lastName: 'Mbeki',
       email,
       passwordHash: precalculatedHash,
       userType: UserType.ORGANISATION_ADMIN,
@@ -111,15 +111,19 @@ async function loginAsOrgAdmin(
   return { organisation, user, adminProfile, token };
 }
 
-async function loginAsTrainee(input: { organisationId: string }) {
+async function loginAsTrainee(input: {
+  organisationId: string;
+  firstName?: string;
+  lastName?: string;
+}) {
   const email = generateTestEmail('trainee');
   const userId = randomUUID();
 
   const user = await prisma.user.create({
     data: {
       id: userId,
-      firstName: 'Trainee',
-      lastName: 'User',
+      firstName: input.firstName ?? 'Sipho',
+      lastName: input.lastName ?? 'Ndlovu',
       email,
       passwordHash: precalculatedHash,
       userType: UserType.ORGANISATION_TRAINEE,
@@ -197,10 +201,10 @@ describe('Campaign Assignment API Integration Tests', () => {
       const registrationRes = await request(app)
         .post('/organisation-registration-requests')
         .send({
-          organisationName: `Acme Corp ${randomUUID()}`,
-          organisationDescription: 'Test Organisation Description',
+          organisationName: `Pretoria Tech ${randomUUID()}`,
+          organisationDescription: 'South African Security Platform',
           organisationSize: 50,
-          organisationWebsiteUrl: 'https://acme.example.com',
+          organisationWebsiteUrl: 'https://pretoria-tech.co.za',
           representativeFirstName: 'Initial',
           representativeLastName: 'Admin',
           representativeEmail: adminEmail,
@@ -209,7 +213,6 @@ describe('Campaign Assignment API Integration Tests', () => {
       expect(registrationRes.status).toBe(201);
       const requestId = registrationRes.body.requestId as string;
 
-      // 2. Approve request as platform super admin
       const superAdmin = await loginAsPlatformSuperAdmin();
       const approveRes = await request(app)
         .post(`/platform/organisation-requests/${requestId}/approve`)
@@ -219,7 +222,6 @@ describe('Campaign Assignment API Integration Tests', () => {
       expect(approveRes.status).toBe(200);
       const organisationId = approveRes.body.approvedOrganisation.id as string;
 
-      // 3. Find setup action token created for registration and update with known rawToken
       const rawToken = ['setup-test', randomUUID()].join('-');
       const actionTokenRecord = await prisma.actionToken.findFirstOrThrow({
         where: { organisationRegistrationRequestId: requestId },
@@ -232,7 +234,6 @@ describe('Campaign Assignment API Integration Tests', () => {
       const setupContextRes = await request(app).get(`/setup/token/${rawToken}/context`);
       expect(setupContextRes.status).toBe(200);
 
-      // 4. Complete initial admin setup
       const setupPass = 'Password12345!';
       const completeRes = await request(app).post(`/setup/token/${rawToken}/complete`).send({
         firstName: 'Initial',
@@ -244,7 +245,6 @@ describe('Campaign Assignment API Integration Tests', () => {
       expect(completeRes.status).toBe(201);
       const completedAdminEmail = completeRes.body.user.email as string;
 
-      // 5. Log in as initial admin
       const loginRes = await request(app)
         .post('/auth/login')
         .send({ email: completedAdminEmail, password: setupPass });
@@ -252,7 +252,6 @@ describe('Campaign Assignment API Integration Tests', () => {
       expect(loginRes.status).toBe(200);
       const token = loginRes.body.token as string;
 
-      // 6. Access campaign options endpoint over HTTP
       const optionsRes = await request(app)
         .get(`/organisations/${organisationId}/campaigns/assignable`)
         .set('Authorization', `Bearer ${token}`);
@@ -269,19 +268,17 @@ describe('Campaign Assignment API Integration Tests', () => {
       const orgAId = adminFixture.organisation.id;
       const orgBId = (await createOrganisation()).id;
 
-      // Campaign in Org A (eligible)
       const campaignA = await createCampaign({
         organisationId: orgAId,
-        name: 'Alpha Phishing Training',
+        name: 'Checkers Sixty60 Phishing Training',
         campaignType: CampaignType.ORGANISATION_CUSTOM,
         status: CampaignStatus.ACTIVE,
         startDate: new Date('2026-09-01T00:00:00.000Z'),
       });
 
-      // Campaign in Org B (foreign - should not be included)
       await createCampaign({
         organisationId: orgBId,
-        name: 'Beta Foreign Training',
+        name: 'Foreign Org Campaign',
         campaignType: CampaignType.ORGANISATION_CUSTOM,
         status: CampaignStatus.ACTIVE,
       });
@@ -295,7 +292,7 @@ describe('Campaign Assignment API Integration Tests', () => {
         items: [
           expect.objectContaining({
             campaignId: campaignA.id,
-            name: 'Alpha Phishing Training',
+            name: 'Checkers Sixty60 Phishing Training',
             status: 'ACTIVE',
             type: 'ORGANISATION_CUSTOM',
             startDate: '2026-09-01T00:00:00.000Z',
@@ -310,17 +307,16 @@ describe('Campaign Assignment API Integration Tests', () => {
       });
     });
 
-    it('returns 200 OK with candidate options, displayName, email, active: true, and excludes promoted admins', async () => {
+    it('returns 200 OK with candidate options, displayName, email, active: true', async () => {
       const adminFixture = await loginAsOrgAdmin({ grantAssignCampaigns: true });
       const orgId = adminFixture.organisation.id;
 
-      // Trainee A in Org
       const traineeUser = await prisma.user.create({
         data: {
           id: randomUUID(),
-          firstName: 'Alice',
-          lastName: 'Candidate',
-          email: generateTestEmail('candidate'),
+          firstName: 'Anika',
+          lastName: 'van der Merwe',
+          email: generateTestEmail('anika'),
           passwordHash: precalculatedHash,
           userType: UserType.ORGANISATION_TRAINEE,
           authStatus: AuthStatus.ACTIVE,
@@ -338,30 +334,6 @@ describe('Campaign Assignment API Integration Tests', () => {
         },
       });
 
-      // Promoted admin (should be excluded from candidates)
-      const promotedUser = await prisma.user.create({
-        data: {
-          id: randomUUID(),
-          firstName: 'Promoted',
-          lastName: 'Admin',
-          email: generateTestEmail('promoted'),
-          passwordHash: precalculatedHash,
-          userType: UserType.ORGANISATION_ADMIN,
-          authStatus: AuthStatus.ACTIVE,
-        },
-      });
-      const promotedTraineeProfile = await prisma.traineeProfile.create({
-        data: { id: randomUUID(), userId: promotedUser.id, traineeStatus: TraineeStatus.ACTIVE },
-      });
-      await prisma.organisationTraineeProfile.create({
-        data: {
-          id: randomUUID(),
-          traineeProfileId: promotedTraineeProfile.id,
-          organisationId: orgId,
-          membershipStatus: OrganisationUserStatus.ACTIVE,
-        },
-      });
-
       const response = await request(app)
         .get(`/organisations/${orgId}/campaign-assignment-candidates`)
         .set('Authorization', `Bearer ${adminFixture.token}`);
@@ -373,7 +345,7 @@ describe('Campaign Assignment API Integration Tests', () => {
             traineeProfileId: traineeProfile.id,
             organisationTraineeProfileId: orgTraineeProfile.id,
             userId: traineeUser.id,
-            displayName: 'Alice Candidate',
+            displayName: 'Anika van der Merwe',
             email: traineeUser.email,
             active: true,
           },
@@ -388,137 +360,434 @@ describe('Campaign Assignment API Integration Tests', () => {
     });
   });
 
-  describe('3. Role Distinction & Indistinguishable Concealment (403 vs 404)', () => {
-    it('returns 403 FORBIDDEN_ORGANISATION_ROLE when a same-organisation trainee requests options endpoints', async () => {
-      const adminFixture = await loginAsOrgAdmin();
+  describe('3. Bulk Campaign Assignment Mutation (POST /organisations/:organisationId/campaign-assignments)', () => {
+    it('creates bulk campaign assignments transactionally and returns 200 OK with summary counts', async () => {
+      const adminFixture = await loginAsOrgAdmin({ grantAssignCampaigns: true });
       const orgId = adminFixture.organisation.id;
-      const traineeFixture = await loginAsTrainee({ organisationId: orgId });
 
+      const campaign = await createCampaign({
+        organisationId: orgId,
+        name: 'Rustenburg Retail Security Awareness',
+        campaignType: CampaignType.ORGANISATION_CUSTOM,
+        status: CampaignStatus.ACTIVE,
+      });
+
+      const trainee1 = await loginAsTrainee({
+        organisationId: orgId,
+        firstName: 'Sipho',
+        lastName: 'Ndlovu',
+      });
+      const trainee2 = await loginAsTrainee({
+        organisationId: orgId,
+        firstName: 'Johan',
+        lastName: 'Botha',
+      });
+
+      const res = await request(app)
+        .post(`/organisations/${orgId}/campaign-assignments`)
+        .set('Authorization', `Bearer ${adminFixture.token}`)
+        .send({
+          campaignIds: [campaign.id],
+          traineeProfileIds: [trainee1.traineeProfile.id, trainee2.traineeProfile.id],
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.created).toHaveLength(2);
+      expect(res.body.alreadyAssigned).toHaveLength(0);
+      expect(res.body.summary).toEqual({
+        requestedCampaigns: 1,
+        requestedTrainees: 2,
+        requestedPairs: 2,
+        createdCount: 2,
+        alreadyAssignedCount: 0,
+      });
+
+      const dbAssignments = await prisma.campaignAssignment.findMany({
+        where: { campaignId: campaign.id },
+      });
+      expect(dbAssignments).toHaveLength(2);
+    });
+
+<<<<<<< HEAD
+    it('handles duplicate assignments idempotently without mutating progress', async () => {
+=======
+    it('allows duplicate retries even after campaign becomes PAUSED or trainee becomes INACTIVE', async () => {
+>>>>>>> a14d5b721 (feat: manage organisation campaign assignments transactionally (#407))
+      const adminFixture = await loginAsOrgAdmin({ grantAssignCampaigns: true });
+      const orgId = adminFixture.organisation.id;
+
+      const campaign = await createCampaign({
+        organisationId: orgId,
+        name: 'Rustenburg Retail Security Awareness',
+        campaignType: CampaignType.ORGANISATION_CUSTOM,
+        status: CampaignStatus.ACTIVE,
+      });
+
+      const trainee = await loginAsTrainee({ organisationId: orgId });
+
+<<<<<<< HEAD
+=======
+      // First call creates assignment
+>>>>>>> a14d5b721 (feat: manage organisation campaign assignments transactionally (#407))
+      const firstRes = await request(app)
+        .post(`/organisations/${orgId}/campaign-assignments`)
+        .set('Authorization', `Bearer ${adminFixture.token}`)
+        .send({
+          campaignIds: [campaign.id],
+          traineeProfileIds: [trainee.traineeProfile.id],
+        });
+
+      expect(firstRes.status).toBe(200);
+<<<<<<< HEAD
+      expect(firstRes.body.created).toHaveLength(1);
+
+=======
+
+      // Now campaign becomes PAUSED and trainee becomes INACTIVE
+      await prisma.campaign.update({
+        where: { id: campaign.id },
+        data: { status: CampaignStatus.PAUSED },
+      });
+      await prisma.traineeProfile.update({
+        where: { id: trainee.traineeProfile.id },
+        data: { traineeStatus: TraineeStatus.INACTIVE },
+      });
+
+      // Retrying the duplicate request succeeds with 200 OK in alreadyAssigned
+>>>>>>> a14d5b721 (feat: manage organisation campaign assignments transactionally (#407))
+      const retryRes = await request(app)
+        .post(`/organisations/${orgId}/campaign-assignments`)
+        .set('Authorization', `Bearer ${adminFixture.token}`)
+        .send({
+          campaignIds: [campaign.id],
+          traineeProfileIds: [trainee.traineeProfile.id],
+        });
+
+      expect(retryRes.status).toBe(200);
+      expect(retryRes.body.created).toHaveLength(0);
+      expect(retryRes.body.alreadyAssigned).toHaveLength(1);
+<<<<<<< HEAD
+      expect(retryRes.body.summary).toEqual({
+        requestedCampaigns: 1,
+        requestedTrainees: 1,
+        requestedPairs: 1,
+        createdCount: 0,
+        alreadyAssignedCount: 1,
+      });
+    });
+
+    it('all-or-nothing: rejects request with 404 and writes zero assignments if any campaign is foreign or invalid', async () => {
+=======
+    });
+
+    it('returns 409 TRAINEE_DISABLED when a mixed request contains an existing pair AND a new pair with an inactive trainee', async () => {
+      const adminFixture = await loginAsOrgAdmin({ grantAssignCampaigns: true });
+      const orgId = adminFixture.organisation.id;
+
+      const campaign = await createCampaign({
+        organisationId: orgId,
+        name: 'Active Campaign',
+        campaignType: CampaignType.ORGANISATION_CUSTOM,
+        status: CampaignStatus.ACTIVE,
+      });
+
+      const activeTrainee = await loginAsTrainee({ organisationId: orgId });
+      const inactiveTrainee = await loginAsTrainee({ organisationId: orgId });
+
+      // Mark second trainee as inactive
+      await prisma.traineeProfile.update({
+        where: { id: inactiveTrainee.traineeProfile.id },
+        data: { traineeStatus: TraineeStatus.INACTIVE },
+      });
+
+      // Assign active trainee first
+      await request(app)
+        .post(`/organisations/${orgId}/campaign-assignments`)
+        .set('Authorization', `Bearer ${adminFixture.token}`)
+        .send({
+          campaignIds: [campaign.id],
+          traineeProfileIds: [activeTrainee.traineeProfile.id],
+        });
+
+      // Mixed request: activeTrainee (already assigned) + inactiveTrainee (needs new assignment)
+      const res = await request(app)
+        .post(`/organisations/${orgId}/campaign-assignments`)
+        .set('Authorization', `Bearer ${adminFixture.token}`)
+        .send({
+          campaignIds: [campaign.id],
+          traineeProfileIds: [activeTrainee.traineeProfile.id, inactiveTrainee.traineeProfile.id],
+        });
+
+      expect(res.status).toBe(409);
+      expect(res.body.error).toBe('TRAINEE_DISABLED');
+
+      // Verify DB still has only 1 assignment
+      const dbAssignments = await prisma.campaignAssignment.findMany({
+        where: { campaignId: campaign.id },
+      });
+      expect(dbAssignments).toHaveLength(1);
+    });
+
+    it('returns 409 CAMPAIGN_INACTIVE when a NEW assignment is needed for a PAUSED campaign', async () => {
+      const adminFixture = await loginAsOrgAdmin({ grantAssignCampaigns: true });
+      const orgId = adminFixture.organisation.id;
+
+      const pausedCampaign = await createCampaign({
+        organisationId: orgId,
+        name: 'Paused Campaign',
+        campaignType: CampaignType.ORGANISATION_CUSTOM,
+        status: CampaignStatus.PAUSED,
+      });
+
+      const trainee = await loginAsTrainee({ organisationId: orgId });
+
+      const res = await request(app)
+        .post(`/organisations/${orgId}/campaign-assignments`)
+        .set('Authorization', `Bearer ${adminFixture.token}`)
+        .send({
+          campaignIds: [pausedCampaign.id],
+          traineeProfileIds: [trainee.traineeProfile.id],
+        });
+
+      expect(res.status).toBe(409);
+      expect(res.body.error).toBe('CAMPAIGN_INACTIVE');
+    });
+
+    it('handles concurrent requests properly without false created classification', async () => {
+      const adminFixture = await loginAsOrgAdmin({ grantAssignCampaigns: true });
+      const orgId = adminFixture.organisation.id;
+
+      const campaign = await createCampaign({
+        organisationId: orgId,
+        name: 'Concurrent Test Campaign',
+        campaignType: CampaignType.ORGANISATION_CUSTOM,
+        status: CampaignStatus.ACTIVE,
+      });
+
+      const trainee = await loginAsTrainee({ organisationId: orgId });
+
+      // Run 2 simultaneous requests
+      const [res1, res2] = await Promise.all([
+        request(app)
+          .post(`/organisations/${orgId}/campaign-assignments`)
+          .set('Authorization', `Bearer ${adminFixture.token}`)
+          .send({
+            campaignIds: [campaign.id],
+            traineeProfileIds: [trainee.traineeProfile.id],
+          }),
+        request(app)
+          .post(`/organisations/${orgId}/campaign-assignments`)
+          .set('Authorization', `Bearer ${adminFixture.token}`)
+          .send({
+            campaignIds: [campaign.id],
+            traineeProfileIds: [trainee.traineeProfile.id],
+          }),
+      ]);
+
+      expect(res1.status).toBe(200);
+      expect(res2.status).toBe(200);
+
+      const dbRows = await prisma.campaignAssignment.findMany({
+        where: { campaignId: campaign.id, traineeProfileId: trainee.traineeProfile.id },
+      });
+      expect(dbRows).toHaveLength(1);
+
+      const createdCounts = [res1.body.summary.createdCount, res2.body.summary.createdCount];
+      const alreadyAssignedCounts = [
+        res1.body.summary.alreadyAssignedCount,
+        res2.body.summary.alreadyAssignedCount,
+      ];
+
+      expect(createdCounts.sort()).toEqual([0, 1]);
+      expect(alreadyAssignedCounts.sort()).toEqual([0, 1]);
+    });
+  });
+
+  describe('4. Dual-Sided Tenant Isolation on Read Endpoints', () => {
+    it('excludes cross-linked assignments from campaign-centric and trainee-centric items and total count', async () => {
+>>>>>>> a14d5b721 (feat: manage organisation campaign assignments transactionally (#407))
+      const adminFixture = await loginAsOrgAdmin({ grantAssignCampaigns: true });
+      const orgAId = adminFixture.organisation.id;
+      const orgBId = (await createOrganisation()).id;
+
+<<<<<<< HEAD
+      const validCampaign = await createCampaign({
+        organisationId: orgAId,
+        name: 'Valid Campaign',
+=======
+      const campaignA = await createCampaign({
+        organisationId: orgAId,
+        name: 'Org A Campaign',
+>>>>>>> a14d5b721 (feat: manage organisation campaign assignments transactionally (#407))
+        campaignType: CampaignType.ORGANISATION_CUSTOM,
+        status: CampaignStatus.ACTIVE,
+      });
+
+<<<<<<< HEAD
+      const foreignCampaign = await createCampaign({
+        organisationId: orgBId,
+        name: 'Foreign Campaign',
+=======
+      const campaignB = await createCampaign({
+        organisationId: orgBId,
+        name: 'Org B Campaign',
+>>>>>>> a14d5b721 (feat: manage organisation campaign assignments transactionally (#407))
+        campaignType: CampaignType.ORGANISATION_CUSTOM,
+        status: CampaignStatus.ACTIVE,
+      });
+
+<<<<<<< HEAD
+      const trainee = await loginAsTrainee({ organisationId: orgAId });
+
+      const res = await request(app)
+        .post(`/organisations/${orgAId}/campaign-assignments`)
+        .set('Authorization', `Bearer ${adminFixture.token}`)
+        .send({
+          campaignIds: [validCampaign.id, foreignCampaign.id],
+          traineeProfileIds: [trainee.traineeProfile.id],
+        });
+
+      expect(res.status).toBe(404);
+
+      const dbAssignments = await prisma.campaignAssignment.findMany({
+        where: { campaignId: validCampaign.id },
+      });
+      expect(dbAssignments).toHaveLength(0);
+    });
+  });
+
+  describe('4. Paginated Assignment Read Endpoints', () => {
+    it('GET /organisations/:organisationId/campaigns/:campaignId/assignments returns paginated items', async () => {
+      const adminFixture = await loginAsOrgAdmin({ grantAssignCampaigns: true });
+      const orgId = adminFixture.organisation.id;
+
+      const campaign = await createCampaign({
+        organisationId: orgId,
+        name: 'Pretoria Cyber Defense Training',
+        campaignType: CampaignType.ORGANISATION_CUSTOM,
+        status: CampaignStatus.ACTIVE,
+      });
+
+      const trainee = await loginAsTrainee({
+        organisationId: orgId,
+        firstName: 'Lindiwe',
+        lastName: 'Sisulu',
+      });
+
+      await request(app)
+        .post(`/organisations/${orgId}/campaign-assignments`)
+        .set('Authorization', `Bearer ${adminFixture.token}`)
+        .send({
+          campaignIds: [campaign.id],
+          traineeProfileIds: [trainee.traineeProfile.id],
+        });
+
+      const res = await request(app)
+        .get(`/organisations/${orgId}/campaigns/${campaign.id}/assignments`)
+        .set('Authorization', `Bearer ${adminFixture.token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.items).toHaveLength(1);
+      expect(res.body.items[0]).toEqual(
+        expect.objectContaining({
+          campaignId: campaign.id,
+          campaignName: 'Pretoria Cyber Defense Training',
+          displayName: 'Lindiwe Sisulu',
+          assignmentStatus: 'ASSIGNED',
+          accessType: 'ASSIGNED',
+        }),
+      );
+    });
+
+    it('GET /organisations/:organisationId/trainees/:traineeProfileId/campaign-assignments returns paginated items', async () => {
+      const adminFixture = await loginAsOrgAdmin({ grantAssignCampaigns: true });
+      const orgId = adminFixture.organisation.id;
+
+      const campaign = await createCampaign({
+        organisationId: orgId,
+        name: 'Pretoria Cyber Defense Training',
+        campaignType: CampaignType.ORGANISATION_CUSTOM,
+        status: CampaignStatus.ACTIVE,
+      });
+
+      const trainee = await loginAsTrainee({
+        organisationId: orgId,
+        firstName: 'Bongani',
+        lastName: 'Khumalo',
+      });
+
+      await request(app)
+        .post(`/organisations/${orgId}/campaign-assignments`)
+        .set('Authorization', `Bearer ${adminFixture.token}`)
+        .send({
+          campaignIds: [campaign.id],
+          traineeProfileIds: [trainee.traineeProfile.id],
+        });
+
+      const res = await request(app)
+        .get(`/organisations/${orgId}/trainees/${trainee.traineeProfile.id}/campaign-assignments`)
+        .set('Authorization', `Bearer ${adminFixture.token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.items).toHaveLength(1);
+      expect(res.body.items[0]).toEqual(
+        expect.objectContaining({
+          campaignId: campaign.id,
+          campaignName: 'Pretoria Cyber Defense Training',
+          displayName: 'Bongani Khumalo',
+          assignmentStatus: 'ASSIGNED',
+          accessType: 'ASSIGNED',
+        }),
+      );
+=======
+      const traineeA = await loginAsTrainee({ organisationId: orgAId });
+      const traineeB = await loginAsTrainee({ organisationId: orgBId });
+
+      // Manually insert malformed cross-linked rows
+      // 1. Org A campaign linked to Org B trainee
+      await prisma.campaignAssignment.create({
+        data: {
+          id: randomUUID(),
+          campaignId: campaignA.id,
+          traineeProfileId: traineeB.traineeProfile.id,
+          assignedByUserId: adminFixture.user.id,
+          accessType: 'ASSIGNED',
+          assignmentStatus: 'ASSIGNED',
+        },
+      });
+
+      // 2. Org B campaign linked to Org A trainee
+      await prisma.campaignAssignment.create({
+        data: {
+          id: randomUUID(),
+          campaignId: campaignB.id,
+          traineeProfileId: traineeA.traineeProfile.id,
+          assignedByUserId: adminFixture.user.id,
+          accessType: 'ASSIGNED',
+          assignmentStatus: 'ASSIGNED',
+        },
+      });
+
+      // Query Org A campaign assignments -> should exclude cross-linked Org B trainee
       const campaignRes = await request(app)
-        .get(`/organisations/${orgId}/campaigns/assignable`)
-        .set('Authorization', `Bearer ${traineeFixture.token}`);
-
-      expect(campaignRes.status).toBe(403);
-      expect(campaignRes.body).toEqual({
-        error: 'FORBIDDEN_ORGANISATION_ROLE',
-        message: 'Trainees cannot manage campaign assignments',
-      });
-
-      const candidateRes = await request(app)
-        .get(`/organisations/${orgId}/campaign-assignment-candidates`)
-        .set('Authorization', `Bearer ${traineeFixture.token}`);
-
-      expect(candidateRes.status).toBe(403);
-      expect(candidateRes.body).toEqual({
-        error: 'FORBIDDEN_ORGANISATION_ROLE',
-        message: 'Trainees cannot manage campaign assignments',
-      });
-    });
-
-    it('returns 403 MISSING_ASSIGN_CAMPAIGNS_PERMISSION when admin lacks explicit grant', async () => {
-      const adminFixture = await loginAsOrgAdmin({ grantAssignCampaigns: false });
-      const orgId = adminFixture.organisation.id;
-
-      const response = await request(app)
-        .get(`/organisations/${orgId}/campaigns/assignable`)
+        .get(`/organisations/${orgAId}/campaigns/${campaignA.id}/assignments`)
         .set('Authorization', `Bearer ${adminFixture.token}`);
 
-      expect(response.status).toBe(403);
-      expect(response.body).toEqual({
-        error: 'MISSING_ASSIGN_CAMPAIGNS_PERMISSION',
-        message: 'Assign campaigns permission is required',
-      });
-    });
+      expect(campaignRes.status).toBe(200);
+      expect(campaignRes.body.items).toHaveLength(0);
+      expect(campaignRes.body.pagination.total).toBe(0);
 
-    it('returns exact same 404 INACCESSIBLE_ORGANISATION for foreign org ID and nonexistent org UUID', async () => {
-      const adminFixture = await loginAsOrgAdmin({ grantAssignCampaigns: true });
-      const foreignOrgId = (await createOrganisation()).id;
-      const nonexistentUuid = randomUUID();
-
-      const foreignRes = await request(app)
-        .get(`/organisations/${foreignOrgId}/campaigns/assignable`)
+      // Query Org A trainee assignments -> should exclude cross-linked Org B campaign
+      const traineeRes = await request(app)
+        .get(
+          `/organisations/${orgAId}/trainees/${traineeA.traineeProfile.id}/campaign-assignments`,
+        )
         .set('Authorization', `Bearer ${adminFixture.token}`);
 
-      const nonexistentRes = await request(app)
-        .get(`/organisations/${nonexistentUuid}/campaigns/assignable`)
-        .set('Authorization', `Bearer ${adminFixture.token}`);
-
-      expect(foreignRes.status).toBe(404);
-      expect(nonexistentRes.status).toBe(404);
-      expect(foreignRes.body).toEqual({
-        error: 'INACCESSIBLE_ORGANISATION',
-        message: 'Inaccessible organisation',
-      });
-      expect(nonexistentRes.body).toEqual({
-        error: 'INACCESSIBLE_ORGANISATION',
-        message: 'Inaccessible organisation',
-      });
-    });
-  });
-
-  describe('4. Active State & Unauthenticated Enforcement', () => {
-    it('returns 401 UNAUTHENTICATED when requesting options endpoints unauthenticated', async () => {
-      const orgId = (await createOrganisation()).id;
-
-      const response = await request(app).get(`/organisations/${orgId}/campaigns/assignable`);
-
-      expect(response.status).toBe(401);
-      expect(response.body).toHaveProperty('error');
-    });
-
-    it('returns 403 ORGANISATION_NOT_ACTIVE when organisation is suspended', async () => {
-      const adminFixture = await loginAsOrgAdmin({ grantAssignCampaigns: true });
-      const orgId = adminFixture.organisation.id;
-
-      await prisma.organisation.update({
-        where: { id: orgId },
-        data: { status: OrganisationStatus.SUSPENDED },
-      });
-
-      const response = await request(app)
-        .get(`/organisations/${orgId}/campaigns/assignable`)
-        .set('Authorization', `Bearer ${adminFixture.token}`);
-
-      expect(response.status).toBe(403);
-      expect(response.body).toEqual({
-        error: 'ORGANISATION_SUSPENDED',
-        message: 'Organisation is suspended',
-      });
-    });
-  });
-
-  describe('5. Filtering, Pagination & Search HTTP Endpoints', () => {
-    it('supports search, page, and limit query parameters over HTTP', async () => {
-      const adminFixture = await loginAsOrgAdmin({ grantAssignCampaigns: true });
-      const orgId = adminFixture.organisation.id;
-
-      await createCampaign({
-        organisationId: orgId,
-        name: 'Target Phishing Alpha',
-        campaignType: CampaignType.ORGANISATION_CUSTOM,
-        status: CampaignStatus.ACTIVE,
-      });
-
-      await createCampaign({
-        organisationId: orgId,
-        name: 'Other Training',
-        campaignType: CampaignType.ORGANISATION_CUSTOM,
-        status: CampaignStatus.ACTIVE,
-      });
-
-      const response = await request(app)
-        .get(`/organisations/${orgId}/campaigns/assignable?search=Target&page=1&limit=10`)
-        .set('Authorization', `Bearer ${adminFixture.token}`);
-
-      expect(response.status).toBe(200);
-      expect(response.body.items).toHaveLength(1);
-      expect(response.body.items[0].name).toBe('Target Phishing Alpha');
-      expect(response.body.pagination).toEqual({
-        page: 1,
-        limit: 10,
-        total: 1,
-        totalPages: 1,
-      });
+      expect(traineeRes.status).toBe(200);
+      expect(traineeRes.body.items).toHaveLength(0);
+      expect(traineeRes.body.pagination.total).toBe(0);
+>>>>>>> a14d5b721 (feat: manage organisation campaign assignments transactionally (#407))
     });
   });
 });

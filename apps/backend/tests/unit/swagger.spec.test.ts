@@ -159,6 +159,12 @@ const expectedSchemas = [
   'InvitationRevokeResponse',
   'DisableTraineeRequest',
   'DisableTraineeResponse',
+  'CreateCampaignAssignmentsRequest',
+  'CampaignAssignmentResultRow',
+  'CampaignAssignmentSummary',
+  'CreateCampaignAssignmentsResponse',
+  'CampaignAssignmentReadRow',
+  'GetCampaignAssignmentsResponse',
 ] as const;
 
 const expectedResponses = [
@@ -170,6 +176,10 @@ const expectedResponses = [
   'UnprocessableEntity',
   'TooManyRequests',
   'InternalServerError',
+  'GetAssignableCampaignsOk',
+  'GetCampaignAssignmentCandidatesOk',
+  'CreateCampaignAssignmentsOk',
+  'GetCampaignAssignmentsOk',
   'InvitationContextOk',
   'InvitationAcceptOk',
   'InvitationRejectOk',
@@ -187,6 +197,7 @@ const expectedResponses = [
 ] as const;
 
 const expectedParameters = [
+  'OrganisationIdPathParam',
   'CampaignIdPathParam',
   'CampaignItemIdPathParam',
   'EmailIdPathParam',
@@ -222,6 +233,7 @@ const expectedRequestBodies = [
   'InvitationReject',
   'CreateTraineeInvitation',
   'DisableTrainee',
+  'CreateCampaignAssignments',
 ] as const;
 
 const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
