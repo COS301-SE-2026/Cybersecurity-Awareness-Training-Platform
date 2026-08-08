@@ -408,6 +408,46 @@ describe('Campaign Assignment API Integration Tests', () => {
       expect(dbAssignments).toHaveLength(2);
     });
 
+    it('returns 404 when submitting an existing assignment that belongs entirely to another organisation', async () => {
+      const adminOrgA = await loginAsOrgAdmin({ grantAssignCampaigns: true });
+      const orgAId = adminOrgA.organisation.id;
+      const orgBId = (await createOrganisation()).id;
+
+      const campaignB = await createCampaign({
+        organisationId: orgBId,
+        name: 'Org B Campaign',
+        campaignType: CampaignType.ORGANISATION_CUSTOM,
+        status: CampaignStatus.ACTIVE,
+      });
+      const traineeB = await loginAsTrainee({ organisationId: orgBId });
+
+      // Create pre-existing assignment in Org B
+      await prisma.campaignAssignment.create({
+        data: {
+          id: randomUUID(),
+          campaignId: campaignB.id,
+          traineeProfileId: traineeB.traineeProfile.id,
+          assignedByUserId: adminOrgA.user.id,
+          accessType: 'ASSIGNED',
+          assignmentStatus: 'ASSIGNED',
+        },
+      });
+
+      // Org A admin tries to submit Org B's existing campaign & trainee
+      const res = await request(app)
+        .post(`/organisations/${orgAId}/campaign-assignments`)
+        .set('Authorization', `Bearer ${adminOrgA.token}`)
+        .send({
+          campaignIds: [campaignB.id],
+          traineeProfileIds: [traineeB.traineeProfile.id],
+        });
+
+      expect(res.status).toBe(404);
+      expect(res.body.error).toBe('CAMPAIGN_NOT_FOUND');
+      expect(res.body).not.toHaveProperty('created');
+      expect(res.body).not.toHaveProperty('alreadyAssigned');
+    });
+
     it('allows duplicate retries even after campaign becomes PAUSED or trainee becomes INACTIVE', async () => {
       const adminFixture = await loginAsOrgAdmin({ grantAssignCampaigns: true });
       const orgId = adminFixture.organisation.id;
@@ -529,58 +569,69 @@ describe('Campaign Assignment API Integration Tests', () => {
       expect(res.body.error).toBe('CAMPAIGN_INACTIVE');
     });
 
-    it('handles concurrent requests properly without false created classification', async () => {
+    it('handles concurrent requests properly with partial overlap without false created classification', async () => {
       const adminFixture = await loginAsOrgAdmin({ grantAssignCampaigns: true });
       const orgId = adminFixture.organisation.id;
 
-      const campaign = await createCampaign({
+      const campaign1 = await createCampaign({
         organisationId: orgId,
-        name: 'Concurrent Test Campaign',
+        name: 'Concurrent Campaign 1',
+        campaignType: CampaignType.ORGANISATION_CUSTOM,
+        status: CampaignStatus.ACTIVE,
+      });
+      const campaign2 = await createCampaign({
+        organisationId: orgId,
+        name: 'Concurrent Campaign 2',
         campaignType: CampaignType.ORGANISATION_CUSTOM,
         status: CampaignStatus.ACTIVE,
       });
 
       const trainee = await loginAsTrainee({ organisationId: orgId });
 
-      // Run 2 simultaneous requests
-      const [res1, res2] = await Promise.all([
+      // Run 2 simultaneous partially-overlapping requests:
+      // Request A requests [campaign1, campaign2]
+      // Request B rquests [campaign1]
+      const [resA, resB] = await Promise.all([
         request(app)
           .post(`/organisations/${orgId}/campaign-assignments`)
           .set('Authorization', `Bearer ${adminFixture.token}`)
           .send({
-            campaignIds: [campaign.id],
+            campaignIds: [campaign1.id, campaign2.id],
             traineeProfileIds: [trainee.traineeProfile.id],
           }),
         request(app)
           .post(`/organisations/${orgId}/campaign-assignments`)
           .set('Authorization', `Bearer ${adminFixture.token}`)
           .send({
-            campaignIds: [campaign.id],
+            campaignIds: [campaign1.id],
             traineeProfileIds: [trainee.traineeProfile.id],
           }),
       ]);
 
-      expect(res1.status).toBe(200);
-      expect(res2.status).toBe(200);
+      expect(resA.status).toBe(200);
+      expect(resB.status).toBe(200);
 
       const dbRows = await prisma.campaignAssignment.findMany({
-        where: { campaignId: campaign.id, traineeProfileId: trainee.traineeProfile.id },
+        where: {
+          campaignId: { in: [campaign1.id, campaign2.id] },
+          traineeProfileId: trainee.traineeProfile.id,
+        },
       });
-      expect(dbRows).toHaveLength(1);
+      expect(dbRows).toHaveLength(2);
 
-      const createdCounts = [res1.body.summary.createdCount, res2.body.summary.createdCount];
-      const alreadyAssignedCounts = [
-        res1.body.summary.alreadyAssignedCount,
-        res2.body.summary.alreadyAssignedCount,
-      ];
+      // Total created count across both responses must equal exact total DB rows created (2)
+      const totalCreated = resA.body.summary.createdCount + resB.body.summary.createdCount;
+      expect(totalCreated).toBe(2);
 
-      expect(createdCounts.sort()).toEqual([0, 1]);
-      expect(alreadyAssignedCounts.sort()).toEqual([0, 1]);
+      // Neither response should falsely classify a row as created if it didn't create it
+      const resAAlreadyAssignedCount = resA.body.summary.alreadyAssignedCount;
+      const resBAlreadyAssignedCount = resB.body.summary.alreadyAssignedCount;
+      expect(resAAlreadyAssignedCount + resBAlreadyAssignedCount).toBe(1);
     });
   });
 
   describe('4. Dual-Sided Tenant Isolation on Read Endpoints', () => {
-    it('excludes cross-linked assignments from campaign-centric and trainee-centric items and total count', async () => {
+    it('excludes cross-linked assignments from campaign-centric and trainee-centric items and total count, including with search filters', async () => {
       const adminFixture = await loginAsOrgAdmin({ grantAssignCampaigns: true });
       const orgAId = adminFixture.organisation.id;
       const orgBId = (await createOrganisation()).id;
@@ -594,13 +645,17 @@ describe('Campaign Assignment API Integration Tests', () => {
 
       const campaignB = await createCampaign({
         organisationId: orgBId,
-        name: 'Org B Campaign',
+        name: 'Foreign Campaign Org B',
         campaignType: CampaignType.ORGANISATION_CUSTOM,
         status: CampaignStatus.ACTIVE,
       });
 
       const traineeA = await loginAsTrainee({ organisationId: orgAId });
-      const traineeB = await loginAsTrainee({ organisationId: orgBId });
+      const traineeB = await loginAsTrainee({
+        organisationId: orgBId,
+        firstName: 'ForeignTraineeFirst',
+        lastName: 'ForeignTraineeLast',
+      });
 
       // Manually insert malformed cross-linked rows
       // 1. Org A campaign linked to Org B trainee
@@ -636,6 +691,15 @@ describe('Campaign Assignment API Integration Tests', () => {
       expect(campaignRes.body.items).toHaveLength(0);
       expect(campaignRes.body.pagination.total).toBe(0);
 
+      // Query Org A campaign assignments WITH search term matching foreign trainee
+      const campaignSearchRes = await request(app)
+        .get(`/organisations/${orgAId}/campaigns/${campaignA.id}/assignments?search=ForeignTrainee`)
+        .set('Authorization', `Bearer ${adminFixture.token}`);
+
+      expect(campaignSearchRes.status).toBe(200);
+      expect(campaignSearchRes.body.items).toHaveLength(0);
+      expect(campaignSearchRes.body.pagination.total).toBe(0);
+
       // Query Org A trainee assignments -> should exclude cross-linked Org B campaign
       const traineeRes = await request(app)
         .get(`/organisations/${orgAId}/trainees/${traineeA.traineeProfile.id}/campaign-assignments`)
@@ -644,6 +708,17 @@ describe('Campaign Assignment API Integration Tests', () => {
       expect(traineeRes.status).toBe(200);
       expect(traineeRes.body.items).toHaveLength(0);
       expect(traineeRes.body.pagination.total).toBe(0);
+
+      // Query Org A trainee assignments WITH search term matching foreign campaign
+      const traineeSearchRes = await request(app)
+        .get(
+          `/organisations/${orgAId}/trainees/${traineeA.traineeProfile.id}/campaign-assignments?search=Foreign`,
+        )
+        .set('Authorization', `Bearer ${adminFixture.token}`);
+
+      expect(traineeSearchRes.status).toBe(200);
+      expect(traineeSearchRes.body.items).toHaveLength(0);
+      expect(traineeSearchRes.body.pagination.total).toBe(0);
     });
   });
 });

@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { Prisma, PrismaClient } from '../generated/prisma/client.js';
 import { prisma } from '../lib/prisma.js';
 
@@ -396,12 +397,20 @@ export async function executeBulkCampaignAssignment(
   client: DBClient = prisma,
 ): Promise<ExecuteBulkCampaignAssignmentResult> {
   const runInTx = async (tx: DBClient): Promise<ExecuteBulkCampaignAssignmentResult> => {
-    // 1. Fetch existing assignments matching requested pairs
+    // 1. Fetch existing assignmets matching requested pairs, scoped to the organization on BOTH campaign and trainee
     const existing =
       (await tx.campaignAssignment.findMany({
         where: {
           campaignId: { in: input.campaignIds },
           traineeProfileId: { in: input.traineeProfileIds },
+          campaign: {
+            organisationId: input.organisationId,
+          },
+          traineeProfile: {
+            organisationTraineeProfile: {
+              organisationId: input.organisationId,
+            },
+          },
         },
         select: {
           id: true,
@@ -419,12 +428,21 @@ export async function executeBulkCampaignAssignment(
       });
     }
 
-    // 2. Compute missing pairs that would need to be created
-    const missingPairs: Array<{ campaignId: string; traineeProfileId: string }> = [];
+    // 2. Compute missing pairs that would need to be created, assigning a candidate ID per pair for precise ownership tracking
+    const missingPairs: Array<{
+      candidateId: string;
+      campaignId: string;
+      traineeProfileId: string;
+    }> = [];
+    const candidateIdMap = new Map<string, string>();
+
     for (const campaignId of input.campaignIds) {
       for (const traineeProfileId of input.traineeProfileIds) {
-        if (!existingMap.has(`${campaignId}:${traineeProfileId}`)) {
-          missingPairs.push({ campaignId, traineeProfileId });
+        const key = `${campaignId}:${traineeProfileId}`;
+        if (!existingMap.has(key)) {
+          const candidateId = randomUUID();
+          missingPairs.push({ candidateId, campaignId, traineeProfileId });
+          candidateIdMap.set(key, candidateId);
         }
       }
     }
@@ -519,11 +537,11 @@ export async function executeBulkCampaignAssignment(
       }
     }
 
-    // 4. Perform atomic insertion using createMany with skipDuplicates (ON CONFLICT DO NOTHING)
-    let countInsertedCount = 0;
+    // 4. Perform atomic insertion using createMany with candidate IDs and skipDuplicates (ON CONFLICT DO NOTHING)
     if (missingPairs.length > 0) {
-      const createRes = await tx.campaignAssignment.createMany({
+      await tx.campaignAssignment.createMany({
         data: missingPairs.map((pair) => ({
+          id: pair.candidateId,
           campaignId: pair.campaignId,
           traineeProfileId: pair.traineeProfileId,
           assignedByUserId: input.actorUserId,
@@ -532,7 +550,6 @@ export async function executeBulkCampaignAssignment(
         })),
         skipDuplicates: true,
       });
-      countInsertedCount = createRes?.count ?? 0;
     }
 
     // 5. Query all assignments after insertion
@@ -560,10 +577,11 @@ export async function executeBulkCampaignAssignment(
         traineeProfileId: assignment.traineeProfileId,
       };
 
-      if (existingMap.has(key) || (missingPairs.length > 0 && countInsertedCount === 0)) {
-        alreadyAssigned.push(row);
-      } else {
+      const candidateId = candidateIdMap.get(key);
+      if (candidateId && assignment.id === candidateId) {
         created.push(row);
+      } else {
+        alreadyAssigned.push(row);
       }
     }
 
@@ -673,13 +691,8 @@ export async function findCampaignAssignmentsByCampaign(
       organisationTraineeProfile: {
         organisationId: input.organisationId,
       },
-    },
-    ...(input.status
-      ? { assignmentStatus: input.status as Prisma.EnumAssignmentStatusFilter }
-      : {}),
-    ...(trimmedSearch
-      ? {
-          traineeProfile: {
+      ...(trimmedSearch
+        ? {
             user: {
               OR: [
                 { firstName: { contains: trimmedSearch, mode: 'insensitive' } },
@@ -687,8 +700,11 @@ export async function findCampaignAssignmentsByCampaign(
                 { email: { contains: trimmedSearch, mode: 'insensitive' } },
               ],
             },
-          },
-        }
+          }
+        : {}),
+    },
+    ...(input.status
+      ? { assignmentStatus: input.status as Prisma.EnumAssignmentStatusFilter }
       : {}),
   };
 
@@ -739,16 +755,14 @@ export async function findCampaignAssignmentsByTrainee(
     },
     campaign: {
       organisationId: input.organisationId,
+      ...(trimmedSearch
+        ? {
+            name: { contains: trimmedSearch, mode: 'insensitive' },
+          }
+        : {}),
     },
     ...(input.status
       ? { assignmentStatus: input.status as Prisma.EnumAssignmentStatusFilter }
-      : {}),
-    ...(trimmedSearch
-      ? {
-          campaign: {
-            name: { contains: trimmedSearch, mode: 'insensitive' },
-          },
-        }
       : {}),
   };
 

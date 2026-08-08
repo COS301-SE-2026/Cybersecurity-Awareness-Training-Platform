@@ -35,10 +35,27 @@ describe('CampaignAssignmentRepository', () => {
 
   describe('executeBulkCampaignAssignment', () => {
     it('creates missing assignments when target campaign and trainee are active', async () => {
-      const createdRow = { id: 'assign-1', campaignId, traineeProfileId };
+      let createdData: Array<{ id: string; campaignId: string; traineeProfileId: string }> = [];
+
+      (prisma.campaignAssignment.createMany as ReturnType<typeof vi.fn>).mockImplementation(
+        async (args: {
+          data: Array<{ id: string; campaignId: string; traineeProfileId: string }>;
+        }) => {
+          createdData = args.data;
+          return { count: args.data.length };
+        },
+      );
+
       (prisma.campaignAssignment.findMany as ReturnType<typeof vi.fn>)
         .mockResolvedValueOnce([]) // initial existing check
-        .mockResolvedValueOnce([createdRow]); // post-write fetch
+        .mockImplementationOnce(async () =>
+          createdData.map((d) => ({
+            id: d.id,
+            campaignId: d.campaignId,
+            traineeProfileId: d.traineeProfileId,
+          })),
+        ); // postwrite fetch
+
       (prisma.campaign.findMany as ReturnType<typeof vi.fn>).mockResolvedValueOnce([
         {
           id: campaignId,
@@ -59,9 +76,6 @@ describe('CampaignAssignmentRepository', () => {
           },
         },
       ]);
-      (prisma.campaignAssignment.createMany as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-        count: 1,
-      });
 
       const result = await executeBulkCampaignAssignment({
         organisationId,
