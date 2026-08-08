@@ -1456,8 +1456,8 @@
           "number": 409,
           "title": "chore: deploy dev to an isolated secondary server",
           "points": 5,
-          "state": "closed",
-          "closed_date": "2026-08-07"
+          "state": "open",
+          "closed_date": null
         },
         {
           "number": 408,
@@ -1470,8 +1470,8 @@
           "number": 407,
           "title": "feat: manage organisation campaign assignments transactionally",
           "points": 5,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-08-08"
         },
         {
           "number": 406,
@@ -2010,7 +2010,7 @@
     },
     {
       "date": "2026-08-07",
-      "remaining": 31,
+      "remaining": 36,
       "ideal": 15.77
     },
     {
