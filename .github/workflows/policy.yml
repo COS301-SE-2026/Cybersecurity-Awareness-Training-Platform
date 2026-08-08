@@ -109,7 +109,7 @@ jobs:
           if [[ "${{ github.event_name }}" = "pull_request" ]]; then
             base_sha="${{ github.event.pull_request.base.sha }}"
             head_sha="${{ github.event.pull_request.head.sha }}"
-            changed_files="$(git diff --name-only --diff-filter=ACMRD "$base_sha" "$head_sha")"
+            changed_files="$(git diff --name-only --diff-filter=ACMRD "$base_sha"..."$head_sha")"
           elif [[ "${{ github.event_name }}" = "push" ]]; then
             base_sha="${{ github.event.before }}"
             head_sha="${{ github.sha }}"
@@ -163,7 +163,7 @@ jobs:
           if [[ "${{ github.event_name }}" = "pull_request" ]]; then
             base_sha="${{ github.event.pull_request.base.sha }}"
             head_sha="${{ github.event.pull_request.head.sha }}"
-            changed_files="$(git diff --name-only --diff-filter=ACMRD "$base_sha" "$head_sha")"
+            changed_files="$(git diff --name-only --diff-filter=ACMRD "$base_sha"..."$head_sha")"
           elif [[ "${{ github.event_name }}" = "push" ]]; then
             base_sha="${{ github.event.before }}"
             head_sha="${{ github.sha }}"

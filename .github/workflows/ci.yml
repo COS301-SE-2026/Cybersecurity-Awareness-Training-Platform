@@ -741,14 +741,24 @@ jobs:
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
         run: |
           set -Eeuo pipefail
-          ssh \
+          if ! ssh \
             -o BatchMode=yes \
             -o IdentitiesOnly=yes \
             -o StrictHostKeyChecking=yes \
+            -o ConnectTimeout=15 \
+            -o ConnectionAttempts=1 \
+            -o ServerAliveInterval=15 \
+            -o ServerAliveCountMax=2 \
             -o "UserKnownHostsFile=$RUNNER_TEMP/development_known_hosts" \
             -i "$RUNNER_TEMP/development_id_ed25519" \
             "$DEPLOY_USER@$DEPLOY_HOST" \
             "sudo /usr/local/bin/deploy-insightfulphish-development '${{ github.sha }}'"
+          then
+            echo "Development deployment SSH connection or remote command failed" >&2
+            echo "If the server is stopped, start it and wait for SSH before retrying." >&2
+            exit 1
+          fi
+
       - name: Remove SSH credentials
         if: always()
         run: |
