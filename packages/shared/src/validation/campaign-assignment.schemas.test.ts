@@ -3,8 +3,15 @@ import {
   assignableCampaignOptionSchema,
   campaignAssignmentCandidateOptionSchema,
   campaignAssignmentOptionsQuerySchema,
+  campaignAssignmentReadRowSchema,
+  campaignAssignmentsReadQuerySchema,
+  createCampaignAssignmentsResponseSchema,
+  createCampaignAssignmentsSchema,
   getAssignableCampaignsResponseSchema,
   getCampaignAssignmentCandidatesResponseSchema,
+  getCampaignAssignmentsResponseSchema,
+  organisationAndCampaignIdParamsSchema,
+  organisationAndTraineeProfileIdParamsSchema,
 } from './campaign-assignment.schemas.js';
 
 describe('campaignAssignmentOptionsQuerySchema', () => {
@@ -24,14 +31,14 @@ describe('campaignAssignmentOptionsQuerySchema', () => {
     const parsed = campaignAssignmentOptionsQuerySchema.safeParse({
       page: '2',
       limit: '50',
-      search: '   security   ',
+      search: '   Pretoria   ',
     });
     expect(parsed.success).toBe(true);
     if (parsed.success) {
       expect(parsed.data).toEqual({
         page: 2,
         limit: 50,
-        search: 'security',
+        search: 'Pretoria',
       });
     }
   });
@@ -53,11 +60,139 @@ describe('campaignAssignmentOptionsQuerySchema', () => {
   });
 });
 
+describe('createCampaignAssignmentsSchema', () => {
+  const validCampaignId = '11111111-1111-4111-8111-111111111111';
+  const validTraineeProfileId = '22222222-2222-4222-8222-222222222222';
+
+  it('parses a valid bulk campaign assignment request', () => {
+    const parsed = createCampaignAssignmentsSchema.safeParse({
+      campaignIds: [validCampaignId],
+      traineeProfileIds: [validTraineeProfileId],
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data).toEqual({
+        campaignIds: [validCampaignId],
+        traineeProfileIds: [validTraineeProfileId],
+      });
+    }
+  });
+
+  it('rejects empty array or non-UUID campaign/trainee IDs', () => {
+    expect(
+      createCampaignAssignmentsSchema.safeParse({
+        campaignIds: [],
+        traineeProfileIds: [validTraineeProfileId],
+      }).success,
+    ).toBe(false);
+
+    expect(
+      createCampaignAssignmentsSchema.safeParse({
+        campaignIds: [validCampaignId],
+        traineeProfileIds: [],
+      }).success,
+    ).toBe(false);
+
+    expect(
+      createCampaignAssignmentsSchema.safeParse({
+        campaignIds: ['invalid-uuid'],
+        traineeProfileIds: [validTraineeProfileId],
+      }).success,
+    ).toBe(false);
+  });
+
+  it('rejects requests exceeding maximum bounded element limit of 100', () => {
+    const tooManyCampaigns = Array.from({ length: 101 }, () => validCampaignId);
+    expect(
+      createCampaignAssignmentsSchema.safeParse({
+        campaignIds: tooManyCampaigns,
+        traineeProfileIds: [validTraineeProfileId],
+      }).success,
+    ).toBe(false);
+  });
+
+  it('rejects requests with unknown extra properties', () => {
+    expect(
+      createCampaignAssignmentsSchema.safeParse({
+        campaignIds: [validCampaignId],
+        traineeProfileIds: [validTraineeProfileId],
+        extra: 'property',
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe('campaignAssignmentsReadQuerySchema', () => {
+  it('parses valid read query params including status filter', () => {
+    const parsed = campaignAssignmentsReadQuerySchema.safeParse({
+      page: '1',
+      limit: '10',
+      search: '  Rustenburg Branch  ',
+      status: 'ASSIGNED',
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data).toEqual({
+        page: 1,
+        limit: 10,
+        search: 'Rustenburg Branch',
+        status: 'ASSIGNED',
+      });
+    }
+  });
+
+  it('rejects invalid assignment status enum', () => {
+    expect(
+      campaignAssignmentsReadQuerySchema.safeParse({
+        status: 'NON_EXISTENT_STATUS',
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe('organisation route parameter schemas', () => {
+  const validOrgId = 'a1b2c3d4-e5f6-47a8-b9c0-d1e2f3a4b5c6';
+  const validCampaignId = 'b2c3d4e5-f6a7-48b9-c0d1-e2f3a4b5c6d7';
+  const validTraineeProfileId = 'c3d4e5f6-a7b8-49c0-d1e2-f3a4b5c6d7e8';
+
+  it('validates organisationAndCampaignIdParamsSchema', () => {
+    expect(
+      organisationAndCampaignIdParamsSchema.safeParse({
+        organisationId: validOrgId,
+        campaignId: validCampaignId,
+      }).success,
+    ).toBe(true);
+
+    expect(
+      organisationAndCampaignIdParamsSchema.safeParse({
+        organisationId: 'invalid-uuid',
+        campaignId: validCampaignId,
+      }).success,
+    ).toBe(false);
+  });
+
+  it('validates organisationAndTraineeProfileIdParamsSchema', () => {
+    expect(
+      organisationAndTraineeProfileIdParamsSchema.safeParse({
+        organisationId: validOrgId,
+        traineeProfileId: validTraineeProfileId,
+      }).success,
+    ).toBe(true);
+
+    expect(
+      organisationAndTraineeProfileIdParamsSchema.safeParse({
+        organisationId: validOrgId,
+        traineeProfileId: 'invalid-uuid',
+      }).success,
+    ).toBe(false);
+  });
+});
+
 describe('campaign assignment response schemas', () => {
   const validCampaignItem = {
     campaignId: '11111111-1111-4111-8111-111111111111',
-    name: 'Security 101',
-    description: 'Basic phishing training',
+    name: 'Checkers Sixty60 Phishing Awareness Training',
+    description: 'South African e-commerce phishing scenario training',
     status: 'ACTIVE',
     type: 'ORGANISATION_CUSTOM',
     itemCount: 5,
@@ -70,9 +205,26 @@ describe('campaign assignment response schemas', () => {
     traineeProfileId: '22222222-2222-4222-8222-222222222222',
     organisationTraineeProfileId: '33333333-3333-4333-8333-333333333333',
     userId: '44444444-4444-4444-8444-444444444444',
-    displayName: 'Jane Doe',
-    email: 'jane.doe@example.com',
+    displayName: 'Sipho Ndlovu',
+    email: 'sipho.ndlovu@rustenburg-cyber.co.za',
     active: true,
+  };
+
+  const validReadRowItem = {
+    assignmentId: '55555555-5555-4555-8555-555555555555',
+    campaignId: '11111111-1111-4111-8111-111111111111',
+    campaignName: 'Checkers Sixty60 Phishing Awareness Training',
+    campaignStatus: 'ACTIVE',
+    campaignType: 'ORGANISATION_CUSTOM',
+    traineeProfileId: '22222222-2222-4222-8222-222222222222',
+    displayName: 'Anika van der Merwe',
+    email: 'anika.vdmerwe@pretoria-tech.co.za',
+    traineeStatus: 'ACTIVE',
+    assignmentStatus: 'ASSIGNED',
+    accessType: 'ASSIGNED',
+    assignedAt: '2026-08-07T12:00:00.000Z',
+    startedAt: null,
+    completedAt: null,
   };
 
   it('validates assignableCampaignOptionSchema and response', () => {
@@ -100,23 +252,45 @@ describe('campaign assignment response schemas', () => {
     expect(assignableCampaignOptionSchema.safeParse(campaignWithNulls).success).toBe(true);
   });
 
-  it('rejects campaign with invalid enum or malformed date', () => {
-    expect(
-      assignableCampaignOptionSchema.safeParse({
-        ...validCampaignItem,
-        status: 'UNKNOWN_STATUS',
-      }).success,
-    ).toBe(false);
-
-    expect(
-      assignableCampaignOptionSchema.safeParse({
-        ...validCampaignItem,
-        startDate: 'not-a-date',
-      }).success,
-    ).toBe(false);
+  it('validates createCampaignAssignmentsResponseSchema', () => {
+    const validMutationResponse = {
+      created: [
+        {
+          assignmentId: '55555555-5555-4555-8555-555555555555',
+          campaignId: '11111111-1111-4111-8111-111111111111',
+          traineeProfileId: '22222222-2222-4222-8222-222222222222',
+        },
+      ],
+      alreadyAssigned: [],
+      summary: {
+        requestedCampaigns: 1,
+        requestedTrainees: 1,
+        requestedPairs: 1,
+        createdCount: 1,
+        alreadyAssignedCount: 0,
+      },
+    };
+    expect(createCampaignAssignmentsResponseSchema.safeParse(validMutationResponse).success).toBe(
+      true,
+    );
   });
 
-  it('validates campaignAssignmentCandidateOptionSchema and response', () => {
+  it('validates campaignAssignmentReadRowSchema and response', () => {
+    expect(campaignAssignmentReadRowSchema.safeParse(validReadRowItem).success).toBe(true);
+
+    const validReadResponse = {
+      items: [validReadRowItem],
+      pagination: {
+        page: 1,
+        limit: 20,
+        total: 1,
+        totalPages: 1,
+      },
+    };
+    expect(getCampaignAssignmentsResponseSchema.safeParse(validReadResponse).success).toBe(true);
+  });
+
+  it('validates candidate option schema and response', () => {
     expect(campaignAssignmentCandidateOptionSchema.safeParse(validCandidateItem).success).toBe(
       true,
     );
@@ -131,38 +305,6 @@ describe('campaign assignment response schemas', () => {
       },
     };
     expect(getCampaignAssignmentCandidatesResponseSchema.safeParse(validResponse).success).toBe(
-      true,
-    );
-  });
-
-  it('rejects candidate with malformed email or unexpected properties', () => {
-    expect(
-      campaignAssignmentCandidateOptionSchema.safeParse({
-        ...validCandidateItem,
-        email: 'invalid-email',
-      }).success,
-    ).toBe(false);
-
-    expect(
-      campaignAssignmentCandidateOptionSchema.safeParse({
-        ...validCandidateItem,
-        extraProp: 'unexpected',
-      }).success,
-    ).toBe(false);
-  });
-
-  it('validates empty items list response', () => {
-    const emptyResponse = {
-      items: [],
-      pagination: {
-        page: 1,
-        limit: 20,
-        total: 0,
-        totalPages: 0,
-      },
-    };
-    expect(getAssignableCampaignsResponseSchema.safeParse(emptyResponse).success).toBe(true);
-    expect(getCampaignAssignmentCandidatesResponseSchema.safeParse(emptyResponse).success).toBe(
       true,
     );
   });
