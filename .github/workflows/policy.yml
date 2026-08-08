@@ -21,7 +21,7 @@ jobs:
   env-files:
     name: Check for ENV files
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    timeout-minutes: 10
     permissions:
       contents: read
 
@@ -39,17 +39,17 @@ jobs:
           if [[ "${{ github.event_name }}" = "pull_request" ]]; then
             base_sha="${{ github.event.pull_request.base.sha }}"
             head_sha="${{ github.event.pull_request.head.sha }}"
-            changed_files="$(git diff --name-only --diff-filter=ACMR "$base_sha" "$head_sha" || true)"
+            changed_files="$(git diff --name-only --diff-filter=ACMR "$base_sha"..."$head_sha")"
           elif [[ "${{ github.event_name }}" = "push" ]]; then
             base_sha="${{ github.event.before }}"
             head_sha="${{ github.sha }}"
             if [[ "$base_sha" = "0000000000000000000000000000000000000000" ]]; then
-              changed_files="$(git diff-tree --no-commit-id --name-only -r "$head_sha" || true)"
+              changed_files="$(git diff-tree --no-commit-id --name-only -r "$head_sha")"
             else
-              changed_files="$(git diff --name-only --diff-filter=ACMR "$base_sha" "$head_sha" || true)"
+              changed_files="$(git diff --name-only --diff-filter=ACMR "$base_sha" "$head_sha")"
             fi
           else
-            changed_files="$(git diff-tree --no-commit-id --name-only -r HEAD || true)"
+            changed_files="$(git diff-tree --no-commit-id --name-only -r HEAD)"
           fi
 
           if [[ -z "$changed_files" ]]; then
@@ -91,7 +91,7 @@ jobs:
   demo1-docs-frozen:
     name: Check Demo 1 docs are frozen
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    timeout-minutes: 10
     permissions:
       contents: read
 
@@ -109,17 +109,17 @@ jobs:
           if [[ "${{ github.event_name }}" = "pull_request" ]]; then
             base_sha="${{ github.event.pull_request.base.sha }}"
             head_sha="${{ github.event.pull_request.head.sha }}"
-            changed_files="$(git diff --name-only --diff-filter=ACMRD "$base_sha" "$head_sha" || true)"
+            changed_files="$(git diff --name-only --diff-filter=ACMRD "$base_sha" "$head_sha")"
           elif [[ "${{ github.event_name }}" = "push" ]]; then
             base_sha="${{ github.event.before }}"
             head_sha="${{ github.sha }}"
             if [[ "$base_sha" = "0000000000000000000000000000000000000000" ]]; then
-              changed_files="$(git diff-tree --no-commit-id --name-only -r "$head_sha" || true)"
+              changed_files="$(git diff-tree --no-commit-id --name-only -r "$head_sha")"
             else
-              changed_files="$(git diff --name-only --diff-filter=ACMRD "$base_sha" "$head_sha" || true)"
+              changed_files="$(git diff --name-only --diff-filter=ACMRD "$base_sha" "$head_sha")"
             fi
           else
-            changed_files="$(git diff-tree --no-commit-id --name-only -r HEAD || true)"
+            changed_files="$(git diff-tree --no-commit-id --name-only -r HEAD)"
           fi
 
           blocked_files=()
@@ -145,7 +145,7 @@ jobs:
   demo2-docs-frozen:
     name: Check Demo 2 docs are frozen
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    timeout-minutes: 10
     permissions:
       contents: read
 
@@ -163,17 +163,17 @@ jobs:
           if [[ "${{ github.event_name }}" = "pull_request" ]]; then
             base_sha="${{ github.event.pull_request.base.sha }}"
             head_sha="${{ github.event.pull_request.head.sha }}"
-            changed_files="$(git diff --name-only --diff-filter=ACMRD "$base_sha" "$head_sha" || true)"
+            changed_files="$(git diff --name-only --diff-filter=ACMRD "$base_sha" "$head_sha")"
           elif [[ "${{ github.event_name }}" = "push" ]]; then
             base_sha="${{ github.event.before }}"
             head_sha="${{ github.sha }}"
             if [[ "$base_sha" = "0000000000000000000000000000000000000000" ]]; then
-              changed_files="$(git diff-tree --no-commit-id --name-only -r "$head_sha" || true)"
+              changed_files="$(git diff-tree --no-commit-id --name-only -r "$head_sha")"
             else
-              changed_files="$(git diff --name-only --diff-filter=ACMRD "$base_sha" "$head_sha" || true)"
+              changed_files="$(git diff --name-only --diff-filter=ACMRD "$base_sha" "$head_sha")"
             fi
           else
-            changed_files="$(git diff-tree --no-commit-id --name-only -r HEAD || true)"
+            changed_files="$(git diff-tree --no-commit-id --name-only -r HEAD)"
           fi
 
           blocked_files=()
