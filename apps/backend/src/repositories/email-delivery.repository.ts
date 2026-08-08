@@ -114,6 +114,36 @@ type EmailDeliveryWritableClient = Pick<
   'emailDeliveryLog' | 'emailDeliveryJob' | 'invitation' | 'actionToken'
 >;
 
+const emailDeliveryTerminalJobSelect = {
+  emailType: true,
+  invitationStateVersion: true,
+  deliveryLog: {
+    select: {
+      fallbackRelatedEntityType: true,
+      fallbackRelatedEntityId: true,
+      userId: true,
+      actionTokenId: true,
+      organisationId: true,
+      organisationRegistrationRequestId: true,
+      invitationId: true,
+    },
+  },
+} as const;
+
+type EmailDeliveryJobWithRelation = {
+  emailType: EmailDeliveryType;
+  invitationStateVersion: Date | null;
+  deliveryLog: {
+    fallbackRelatedEntityType: EmailRelatedEntityType | null;
+    fallbackRelatedEntityId: string | null;
+    userId: string | null;
+    actionTokenId: string | null;
+    organisationId: string | null;
+    organisationRegistrationRequestId: string | null;
+    invitationId: string | null;
+  };
+};
+
 function addSeconds(date: Date, seconds: number) {
   return new Date(date.getTime() + seconds * 1000);
 }
@@ -140,6 +170,19 @@ function buildInvitationVersionFilter(entity: EmailDeliveryRelatedEntity) {
   return entity.invitationStateVersion
     ? { updatedAt: new Date(entity.invitationStateVersion) }
     : {};
+}
+
+function buildRelatedEntityFromJob(job: EmailDeliveryJobWithRelation): EmailDeliveryRelatedEntity {
+  return {
+    fallbackType: job.deliveryLog.fallbackRelatedEntityType ?? undefined,
+    fallbackId: job.deliveryLog.fallbackRelatedEntityId,
+    userId: job.deliveryLog.userId,
+    actionTokenId: job.deliveryLog.actionTokenId,
+    organisationId: job.deliveryLog.organisationId,
+    organisationRegistrationRequestId: job.deliveryLog.organisationRegistrationRequestId,
+    invitationId: job.deliveryLog.invitationId,
+    invitationStateVersion: job.invitationStateVersion?.toISOString() ?? null,
+  };
 }
 
 async function runWrite<T>(
@@ -429,6 +472,11 @@ export async function claimDueEmailDeliveryJobs(
 
 export async function recordEmailDeliveryAccepted(input: RecordEmailDeliveryAcceptedInput) {
   await prisma.$transaction(async (tx) => {
+    const job = await tx.emailDeliveryJob.findUnique({
+      where: { id: input.jobId },
+      select: emailDeliveryTerminalJobSelect,
+    });
+
     await tx.emailDeliveryLog.update({
       where: { id: input.deliveryLogId },
       data: {
@@ -450,6 +498,17 @@ export async function recordEmailDeliveryAccepted(input: RecordEmailDeliveryAcce
         lastReasonCode: null,
       },
     });
+
+    if (job) {
+      await markInvitationIfRelevant(
+        {
+          emailType: job.emailType,
+          relatedEntity: buildRelatedEntityFromJob(job),
+          status: 'SENT',
+        },
+        tx,
+      );
+    }
   });
 }
 
@@ -472,6 +531,11 @@ export async function recordEmailDeliveryTerminalFailure(
   input: RecordEmailDeliveryTerminalFailureInput,
 ) {
   await prisma.$transaction(async (tx) => {
+    const job = await tx.emailDeliveryJob.findUnique({
+      where: { id: input.jobId },
+      select: emailDeliveryTerminalJobSelect,
+    });
+
     await tx.emailDeliveryLog.update({
       where: { id: input.deliveryLogId },
       data: {
@@ -493,5 +557,16 @@ export async function recordEmailDeliveryTerminalFailure(
         lastReasonCode: input.reasonCode,
       },
     });
+
+    if (job) {
+      await markInvitationIfRelevant(
+        {
+          emailType: job.emailType,
+          relatedEntity: buildRelatedEntityFromJob(job),
+          status: 'FAILED_TO_SEND',
+        },
+        tx,
+      );
+    }
   });
 }
