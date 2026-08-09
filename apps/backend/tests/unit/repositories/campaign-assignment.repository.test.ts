@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { executeBulkCampaignAssignment } from '../../../src/repositories/campaign-assignment.repository.js';
+import {
+  deleteCampaignAssignment,
+  executeBulkCampaignAssignment,
+} from '../../../src/repositories/campaign-assignment.repository.js';
 import { prisma } from '../../../src/lib/prisma.js';
 
 vi.mock('../../../src/lib/prisma.js', () => ({
@@ -8,15 +11,29 @@ vi.mock('../../../src/lib/prisma.js', () => ({
       findMany: vi.fn(),
       findFirst: vi.fn(),
     },
+    campaignItem: {
+      findMany: vi.fn(),
+    },
     organisationTraineeProfile: {
       findMany: vi.fn(),
       findFirst: vi.fn(),
     },
     campaignAssignment: {
       findMany: vi.fn(),
+      findFirst: vi.fn(),
       create: vi.fn(),
       createMany: vi.fn(),
       count: vi.fn(),
+      delete: vi.fn(),
+    },
+    interactionEvent: {
+      deleteMany: vi.fn(),
+    },
+    emailClassificationResponse: {
+      deleteMany: vi.fn(),
+    },
+    quizAttempt: {
+      deleteMany: vi.fn(),
     },
     $transaction: vi.fn((cb) => cb(prisma)),
   },
@@ -134,6 +151,60 @@ describe('CampaignAssignmentRepository', () => {
       if (!result.success) {
         expect(result.error).toBe('CAMPAIGN_INACTIVE');
       }
+    });
+  });
+
+  describe('deleteCampaignAssignment', () => {
+    const assignmentId = '55555555-5555-4555-8555-555555555555';
+
+    it('returns ASSIGNMENT_NOT_FOUND if campaign assignment is not found', async () => {
+      (prisma.campaignAssignment.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce(null);
+
+      const result = await deleteCampaignAssignment({ organisationId, assignmentId });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe('ASSIGNMENT_NOT_FOUND');
+      }
+    });
+
+    it('deletes progress and assignment in dependency-safe order', async () => {
+      (prisma.campaignAssignment.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        id: assignmentId,
+        campaignId,
+        traineeProfileId,
+      });
+
+      (prisma.campaignItem.findMany as ReturnType<typeof vi.fn>).mockResolvedValueOnce([
+        { id: 'item-1' },
+      ]);
+
+      (prisma.interactionEvent.deleteMany as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        count: 4,
+      });
+      (
+        prisma.emailClassificationResponse.deleteMany as ReturnType<typeof vi.fn>
+      ).mockResolvedValueOnce({ count: 2 });
+      (prisma.quizAttempt.deleteMany as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        count: 1,
+      });
+      (prisma.campaignAssignment.delete as ReturnType<typeof vi.fn>).mockResolvedValueOnce({});
+
+      const result = await deleteCampaignAssignment({ organisationId, assignmentId });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.assignmentId).toBe(assignmentId);
+        expect(result.deletedProgress).toEqual({
+          quizAttempts: 1,
+          emailClassificationResponses: 2,
+          interactionEvents: 4,
+        });
+      }
+
+      expect(prisma.campaignAssignment.delete).toHaveBeenCalledWith({
+        where: { id: assignmentId },
+      });
     });
   });
 });

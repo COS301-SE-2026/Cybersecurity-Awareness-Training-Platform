@@ -7,6 +7,7 @@ import type {
 import {
   CampaignAssignmentServiceError,
   createCampaignAssignments,
+  deleteCampaignAssignment,
   getAssignableCampaigns,
   getAssignmentCandidates,
   getCampaignAssignmentsByCampaign,
@@ -140,6 +141,23 @@ export async function getCampaignAssignmentsByTraineeController(req: Request, re
       traineeProfileId,
       query,
     );
+    return res.status(200).json(result);
+  } catch (error) {
+    return handleCampaignAssignmentError(error, res);
+  }
+}
+
+export async function deleteCampaignAssignmentController(req: Request, res: Response) {
+  const actorUserId = requireActorUserId(req, res);
+  if (!actorUserId) {
+    return;
+  }
+
+  try {
+    const organisationId = requiredParam(req, 'organisationId');
+    const assignmentId = requiredParam(req, 'assignmentId');
+
+    const result = await deleteCampaignAssignment(actorUserId, organisationId, assignmentId);
     return res.status(200).json(result);
   } catch (error) {
     return handleCampaignAssignmentError(error, res);

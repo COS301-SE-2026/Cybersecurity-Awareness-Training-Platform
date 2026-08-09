@@ -788,3 +788,122 @@ export async function findCampaignAssignmentsByTrainee(
 
   return { items: (rows ?? []).map(mapCampaignAssignmentRowToReadRow), total };
 }
+
+export type DeleteCampaignAssignmentInput = {
+  organisationId: string;
+  assignmentId: string;
+};
+
+export type DeleteCampaignAssignmentResult =
+  | {
+      success: true;
+      assignmentId: string;
+      campaignId: string;
+      traineeProfileId: string;
+      unassigned: true;
+      deletedProgress: {
+        quizAttempts: number;
+        emailClassificationResponses: number;
+        interactionEvents: number;
+      };
+    }
+  | {
+      success: false;
+      error: 'ASSIGNMENT_NOT_FOUND';
+      message: string;
+    };
+
+export async function deleteCampaignAssignment(
+  input: DeleteCampaignAssignmentInput,
+  client: DBClient = prisma,
+): Promise<DeleteCampaignAssignmentResult> {
+  const runInTx = async (tx: DBClient): Promise<DeleteCampaignAssignmentResult> => {
+    const assignment = await tx.campaignAssignment.findFirst({
+      where: {
+        id: input.assignmentId,
+        accessType: 'ASSIGNED',
+        campaign: {
+          organisationId: input.organisationId,
+        },
+        traineeProfile: {
+          organisationTraineeProfile: {
+            organisationId: input.organisationId,
+          },
+        },
+      },
+      select: {
+        id: true,
+        campaignId: true,
+        traineeProfileId: true,
+      },
+    });
+
+    if (!assignment) {
+      return {
+        success: false,
+        error: 'ASSIGNMENT_NOT_FOUND',
+        message: 'Campaign assignment was not found in this organisation',
+      };
+    }
+
+    const campaignItems = await tx.campaignItem.findMany({
+      where: { campaignId: assignment.campaignId },
+      select: { id: true },
+    });
+    const itemIds = campaignItems.map((item) => item.id);
+
+    const interactionEventsResult = await tx.interactionEvent.deleteMany({
+      where: {
+        traineeProfileId: assignment.traineeProfileId,
+        OR: [
+          { campaignAssignmentId: assignment.id },
+          ...(itemIds.length > 0 ? [{ campaignItemId: { in: itemIds } }] : []),
+          { targetType: 'CAMPAIGN', targetId: assignment.campaignId },
+        ],
+      },
+    });
+
+    const emailClassificationResult = await tx.emailClassificationResponse.deleteMany({
+      where: {
+        traineeProfileId: assignment.traineeProfileId,
+        OR: [
+          { campaignAssignmentId: assignment.id },
+          ...(itemIds.length > 0 ? [{ campaignItemId: { in: itemIds } }] : []),
+        ],
+      },
+    });
+
+    const quizAttemptsResult = await tx.quizAttempt.deleteMany({
+      where: {
+        traineeProfileId: assignment.traineeProfileId,
+        OR: [
+          { campaignAssignmentId: assignment.id },
+          ...(itemIds.length > 0 ? [{ campaignItemId: { in: itemIds } }] : []),
+        ],
+      },
+    });
+
+    await tx.campaignAssignment.delete({
+      where: { id: assignment.id },
+    });
+
+    return {
+      success: true,
+      assignmentId: assignment.id,
+      campaignId: assignment.campaignId,
+      traineeProfileId: assignment.traineeProfileId,
+      unassigned: true,
+      deletedProgress: {
+        quizAttempts: quizAttemptsResult.count,
+        emailClassificationResponses: emailClassificationResult.count,
+        interactionEvents: interactionEventsResult.count,
+      },
+    };
+  };
+
+  if ('$transaction' in client && typeof client.$transaction === 'function') {
+    return client.$transaction(async (tx) => runInTx(tx));
+  }
+
+  return runInTx(client);
+}

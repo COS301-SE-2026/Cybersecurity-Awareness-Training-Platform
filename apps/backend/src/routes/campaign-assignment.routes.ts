@@ -2,6 +2,7 @@ import {
   campaignAssignmentOptionsQuerySchema,
   campaignAssignmentsReadQuerySchema,
   createCampaignAssignmentsSchema,
+  organisationAndAssignmentIdParamsSchema,
   organisationAndCampaignIdParamsSchema,
   organisationAndTraineeProfileIdParamsSchema,
   organisationIdParamsSchema,
@@ -10,11 +11,13 @@ import { Router } from 'express';
 import rateLimit, { MemoryStore } from 'express-rate-limit';
 import {
   createCampaignAssignmentsController,
+  deleteCampaignAssignmentController,
   getAssignableCampaignsController,
   getAssignmentCandidatesController,
   getCampaignAssignmentsByCampaignController,
   getCampaignAssignmentsByTraineeController,
 } from '../controllers/campaign-assignment.controller.js';
+
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { validateBody, validateParams, validateQuery } from '../middleware/validateRequest.js';
@@ -352,4 +355,50 @@ campaignAssignmentRouter.get(
   validateParams(organisationAndTraineeProfileIdParamsSchema),
   validateQuery(campaignAssignmentsReadQuerySchema, { statusCode: 422 }),
   asyncHandler(getCampaignAssignmentsByTraineeController),
+);
+
+/**
+ * @openapi
+ * /organisations/{organisationId}/campaign-assignments/{assignmentId}:
+ *   delete:
+ *     tags: [Organisation Campaign Assignment]
+ *     summary: Permanently unassign a campaign assignment and remove associated trainee progress
+ *     description: Irreversibly deletes one selected campaign assignment and all associated training, quiz, simulation, classification, and interaction progress for that trainee and campaign in one transaction, guarded by ASSIGN_CAMPAIGNS.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/OrganisationIdPathParam'
+ *       - name: assignmentId
+ *         in: path
+ *         required: true
+ *         description: Campaign assignment identifier.
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         $ref: '#/components/responses/DeleteCampaignAssignmentOk'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ *       422:
+ *         $ref: '#/components/responses/UnprocessableEntity'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+campaignAssignmentRouter.delete(
+  '/organisations/:organisationId/campaign-assignments/:assignmentId',
+  campaignAssignmentMutationRateLimit,
+  requireAuth,
+  validateParams(organisationAndAssignmentIdParamsSchema),
+  asyncHandler(deleteCampaignAssignmentController),
 );

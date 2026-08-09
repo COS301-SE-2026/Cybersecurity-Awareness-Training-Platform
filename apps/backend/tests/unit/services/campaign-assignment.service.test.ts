@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   CampaignAssignmentServiceError,
   createCampaignAssignments,
+  deleteCampaignAssignment,
   getAssignableCampaigns,
 } from '../../../src/services/campaign-assignment.service.js';
 
@@ -15,6 +16,7 @@ const repoMock = vi.hoisted(() => ({
   findCampaignByIdInOrganisation: vi.fn(),
   findTraineeByIdInOrganisation: vi.fn(),
   executeBulkCampaignAssignment: vi.fn(),
+  deleteCampaignAssignment: vi.fn(),
   findCampaignAssignmentsByCampaign: vi.fn(),
   findCampaignAssignmentsByTrainee: vi.fn(),
 }));
@@ -266,6 +268,94 @@ describe('CampaignAssignmentService', () => {
           throw err;
         }
       }
+    });
+  });
+
+  describe('deleteCampaignAssignment', () => {
+    const assignmentId = '77777777-7777-4777-8777-777777777777';
+
+    it('throws 404 ASSIGNMENT_NOT_FOUND when repo signals missing assignment', async () => {
+      repoMock.findActorOrganisationAdmin.mockResolvedValue({
+        id: 'admin-1',
+        organisation: { status: 'ACTIVE' },
+        permissionGrants: [{ organisationPermission: { key: 'ASSIGN_CAMPAIGNS' } }],
+      });
+      repoMock.deleteCampaignAssignment.mockResolvedValue({
+        success: false,
+        error: 'ASSIGNMENT_NOT_FOUND',
+        message: 'Campaign assignment was not found in this organisation',
+      });
+
+      try {
+        await deleteCampaignAssignment(actorUserId, organisationId, assignmentId);
+      } catch (err: unknown) {
+        if (err instanceof CampaignAssignmentServiceError) {
+          expect(err.statusCode).toBe(404);
+          expect(err.error).toBe('ASSIGNMENT_NOT_FOUND');
+        } else {
+          throw err;
+        }
+      }
+    });
+
+    it('successfully unassigns campaign assignment and writes REVOKED audit record', async () => {
+      repoMock.findActorOrganisationAdmin.mockResolvedValue({
+        id: 'admin-1',
+        organisation: { status: 'ACTIVE' },
+        permissionGrants: [{ organisationPermission: { key: 'ASSIGN_CAMPAIGNS' } }],
+      });
+      repoMock.deleteCampaignAssignment.mockResolvedValue({
+        success: true,
+        assignmentId,
+        campaignId: campaignId1,
+        traineeProfileId: traineeProfileId1,
+        unassigned: true,
+        deletedProgress: {
+          quizAttempts: 2,
+          emailClassificationResponses: 3,
+          interactionEvents: 8,
+        },
+      });
+
+      const result = await deleteCampaignAssignment(actorUserId, organisationId, assignmentId);
+
+      expect(repoMock.deleteCampaignAssignment).toHaveBeenCalledWith({
+        organisationId,
+        assignmentId,
+      });
+
+      expect(auditMock.recordAuditLog).toHaveBeenCalledWith({
+        actorUserId,
+        actorType: 'ORGANISATION_ADMIN',
+        organisationId,
+        targetType: 'CAMPAIGN',
+        targetId: campaignId1,
+        actionType: 'REVOKED',
+        outcome: 'SUCCESS',
+        metadata: {
+          assignmentId,
+          campaignId: campaignId1,
+          traineeProfileId: traineeProfileId1,
+          unassigned: true,
+          deletedProgress: {
+            quizAttempts: 2,
+            emailClassificationResponses: 3,
+            interactionEvents: 8,
+          },
+        },
+      });
+
+      expect(result).toEqual({
+        assignmentId,
+        campaignId: campaignId1,
+        traineeProfileId: traineeProfileId1,
+        unassigned: true,
+        deletedProgress: {
+          quizAttempts: 2,
+          emailClassificationResponses: 3,
+          interactionEvents: 8,
+        },
+      });
     });
   });
 });
