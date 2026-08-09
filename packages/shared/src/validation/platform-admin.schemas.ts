@@ -68,8 +68,6 @@ export const platformAdminListResponseSchema = z
 
 export type PlatformAdminListResponseDto = z.infer<typeof platformAdminListResponseSchema>;
 
-export type InvitePLatformAdminResponseDto = z.infer<typeof invitePlatformAdminRequestSchema>;
-
 export const invitePlatformAdminResponseSchema = z.discriminatedUnion('type', [
   z
     .object({
@@ -86,6 +84,8 @@ export const invitePlatformAdminResponseSchema = z.discriminatedUnion('type', [
     })
     .strict(),
 ]);
+
+export type InvitePlatformAdminResponseDto = z.infer<typeof invitePlatformAdminResponseSchema>;
 
 export const resendPlatformAdminInviteResponseSchema = z
   .object({
