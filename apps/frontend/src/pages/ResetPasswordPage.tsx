@@ -23,7 +23,7 @@ const VALIDATION_FALLBACK_MESSAGE = 'Please check the highlighted fields and try
 const NEW_FIELD_ERROR_ID = 'reset-new-field-error';
 const CONFIRMATION_FIELD_ERROR_ID = 'reset-confirmation-field-error';
 const RESEND_SUCCESS_MESSAGE =
-  'If the account is still eligible, a new password reset link has been sent.';
+  'If the account is still eligible, a new password reset link has been queued for delivery.';
 const RESEND_GENERIC_MESSAGE =
   'We could not send a new password reset link right now. Please try again later.';
 const RESEND_RATE_LIMIT_MESSAGE = 'Please wait before requesting another password reset link.';

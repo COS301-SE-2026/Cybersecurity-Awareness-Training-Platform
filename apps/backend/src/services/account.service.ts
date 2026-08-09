@@ -171,7 +171,7 @@ export type AccountLogoutOthersResponse = {
 const SECURITY_PREFERENCE_BLOCKED_REASON = 'ORGANISATION_POLICY_ENFORCED';
 const EMAIL_CHANGE_TOKEN_TTL_HOURS = 24;
 const EMAIL_CHANGE_GENERIC_MESSAGE =
-  'If this email change can be completed, a confirmation email has been sent to the new address.';
+  'If this email change can be completed, a confirmation email has been queued for delivery to the new address.';
 
 function validationError(fieldErrors: AccountFieldError[]) {
   return new AccountServiceError(

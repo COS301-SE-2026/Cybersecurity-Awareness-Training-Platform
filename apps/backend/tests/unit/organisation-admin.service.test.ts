@@ -312,7 +312,7 @@ describe('organisation admin service', () => {
     );
   });
 
-  it('reports promotion invitations as sent when only delivery-log accepted persistence fails', async () => {
+  it('reports promotion invitations as queued when the email is queued', async () => {
     repositoryMock.findActorOrganisationAdmin.mockResolvedValue(
       actorAdmin(['INVITE_ORGANISATION_ADMINS']),
     );
@@ -367,7 +367,7 @@ describe('organisation admin service', () => {
     );
   });
 
-  it('does not claim promotion invitations are sent when invitation accepted persistence fails', async () => {
+  it('does not claim promotion invitations reached the provider when the email is queued', async () => {
     repositoryMock.findActorOrganisationAdmin.mockResolvedValue(
       actorAdmin(['INVITE_ORGANISATION_ADMINS']),
     );

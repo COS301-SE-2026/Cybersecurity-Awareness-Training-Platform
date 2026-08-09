@@ -286,7 +286,7 @@ function OrganisationInformationPage() {
       if (currentTargetIdRef.current !== initiatingTargetId) return;
 
       if (response.success && response.emailQueued) {
-        setResendSuccessMessage('Initial administrator setup email successfully queued and sent.');
+        setResendSuccessMessage('Initial administrator setup email queued for delivery.');
       } else if (response.success && !response.emailQueued) {
         setResendErrorMessage(
           'Setup token was created/updated, but setup email delivery could not be queued.',

@@ -107,7 +107,7 @@ describe('Forgot Password and Reset Password API', () => {
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty(
         'message',
-        'If the email is registered, a password reset link has been sent.',
+        'If the email is registered, a password reset link has been queued for delivery.',
       );
       expect(userRepositoryMock.findUserByEmail).toHaveBeenCalledWith('test@example.com');
       expect(actionTokenServiceMock.issueActionToken).toHaveBeenCalled();
@@ -130,7 +130,7 @@ describe('Forgot Password and Reset Password API', () => {
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty(
         'message',
-        'If the email is registered, a password reset link has been sent.',
+        'If the email is registered, a password reset link has been queued for delivery.',
       );
       expect(actionTokenServiceMock.issueActionToken).not.toHaveBeenCalled();
       expect(authEmailHookServiceMock.requestAuthEmailSend).not.toHaveBeenCalled();
@@ -164,7 +164,7 @@ describe('Forgot Password and Reset Password API', () => {
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty(
         'message',
-        'If the email is registered, a password reset link has been sent.',
+        'If the email is registered, a password reset link has been queued for delivery.',
       );
       expect(actionTokenServiceMock.issueActionToken).toHaveBeenCalled();
       expect(authEmailHookServiceMock.requestAuthEmailSend).toHaveBeenCalled();

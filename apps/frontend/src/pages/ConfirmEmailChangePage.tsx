@@ -27,7 +27,8 @@ const messages = {
   expired: 'This email change link has expired. Please request a new link.',
   revoked: 'This email change link is no longer valid. Please request a new link.',
   generic: 'We could not confirm your email change right now. Please try again later.',
-  resendSuccess: 'If the email change is still eligible, a new confirmation link has been sent.',
+  resendSuccess:
+    'If the email change is still eligible, a new confirmation link has been queued for delivery.',
   resendGeneric: 'We could not send a new email change link right now. Please try again later.',
   resendIneligible: 'This email change link cannot be resent. Please request a new link.',
   resendCooldown: (seconds: number) =>

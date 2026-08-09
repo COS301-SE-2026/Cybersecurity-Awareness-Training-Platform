@@ -16,7 +16,7 @@ vi.mock('../../services/auth.service', () => ({
 }));
 
 const successResponse = {
-  message: 'If the email is registered, a password reset link has been sent.',
+  message: 'If the email is registered, a password reset link has been queued for delivery.',
 };
 
 function renderForgotPasswordPage() {
@@ -89,7 +89,9 @@ describe('ForgotPasswordPage', () => {
     });
 
     expect(
-      await screen.findByText('If the email is registered, a password reset link has been sent.'),
+      await screen.findByText(
+        'If the email is registered, a password reset link has been queued for delivery.',
+      ),
     ).toBeInTheDocument();
 
     const emailInput = screen.getByLabelText(/email address/i);
@@ -165,12 +167,16 @@ describe('ForgotPasswordPage', () => {
 
     expect(screen.getByRole('button', { name: /resending password reset link/i })).toBeDisabled();
     expect(
-      screen.queryByText('If the email is registered, a password reset link has been sent.'),
+      screen.queryByText(
+        'If the email is registered, a password reset link has been queued for delivery.',
+      ),
     ).not.toBeInTheDocument();
     resendRequest.resolve(successResponse);
 
     expect(
-      await screen.findByText('If the email is registered, a password reset link has been sent.'),
+      await screen.findByText(
+        'If the email is registered, a password reset link has been queued for delivery.',
+      ),
     ).toBeInTheDocument();
   });
 
@@ -270,7 +276,9 @@ describe('ForgotPasswordPage', () => {
     ).toBeInTheDocument();
     expect(screen.queryByText(rawMessage)).not.toBeInTheDocument();
     expect(
-      screen.queryByText('If the email is registered, a password reset link has been sent.'),
+      screen.queryByText(
+        'If the email is registered, a password reset link has been queued for delivery.',
+      ),
     ).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /send password reset link/i })).toBeEnabled();
     expect(
@@ -300,7 +308,9 @@ describe('ForgotPasswordPage', () => {
     });
 
     expect(
-      screen.getByText('If the email is registered, a password reset link has been sent.'),
+      screen.getByText(
+        'If the email is registered, a password reset link has been queued for delivery.',
+      ),
     ).toBeInTheDocument();
     expect(emailInput).toHaveValue('user@example.com');
     expect(emailInput).toBeDisabled();
@@ -314,7 +324,9 @@ describe('ForgotPasswordPage', () => {
       email: 'user@example.com',
     });
     expect(
-      screen.queryByText('If the email is registered, a password reset link has been sent.'),
+      screen.queryByText(
+        'If the email is registered, a password reset link has been queued for delivery.',
+      ),
     ).not.toBeInTheDocument();
     expect(screen.queryByText('Raw backend rate-limit message')).not.toBeInTheDocument();
     expect(emailInput).toHaveValue('user@example.com');

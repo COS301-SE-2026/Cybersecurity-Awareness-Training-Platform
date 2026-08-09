@@ -305,12 +305,13 @@ function PlatformOrganisationManagementPage() {
         response.rejectionEmailQueued
           ? {
               variant: 'success',
-              message: 'The request was rejected. The Representative was notified.',
+              message:
+                'The request was rejected. The representative notification was queued for delivery.',
             }
           : {
               variant: 'warning',
               message:
-                "The request was rejected. The notification could not be delivered to the representative's email",
+                'The request was rejected. The representative notification could not be queued.',
             },
       );
     } catch (error: unknown) {
@@ -360,11 +361,11 @@ function PlatformOrganisationManagementPage() {
         response.setupEmailQueued
           ? {
               variant: 'success',
-              message: `${response.approvedOrganisation.name} was approved and the initial administrator setup email was sent.`,
+              message: `${response.approvedOrganisation.name} was approved and the initial administrator setup email was queued for delivery.`,
             }
           : {
               variant: 'warning',
-              message: `${response.approvedOrganisation.name} was approved, but the initial administrator setup email was not delivered. Open the organisation details to resend it.`,
+              message: `${response.approvedOrganisation.name} was approved, but the initial administrator setup email could not be queued. Open the organisation details to resend it.`,
             },
       );
       // if(!response.setupEmailQueued){

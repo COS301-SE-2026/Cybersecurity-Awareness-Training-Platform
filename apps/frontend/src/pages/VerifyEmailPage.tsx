@@ -15,7 +15,8 @@ const messages = {
   expired: 'This verification link has expired. Please request a new verification email.',
   revoked: 'This verification link is no longer valid. Please request a new verification email.',
   generic: 'We could not verify your email right now. Please try again later.',
-  resendSuccess: 'If the email is still eligible, a new verification link has been sent.',
+  resendSuccess:
+    'If the email is still eligible, a new verification link has been queued for delivery.',
   resendGeneric: 'We could not send a new verification link right now. Please try again later.',
   resendIneligible:
     'This verification link cannot be resent. Please request a new verification email.',

@@ -471,7 +471,7 @@ describe('platform organisation registration request service', () => {
       });
     };
 
-    it('runs approval onboarding transaction and sends setup email', async () => {
+    it('runs approval onboarding transaction and queues setup email', async () => {
       prismaMock.organisationRegistrationRequest.findUnique.mockResolvedValue({
         id: requestId,
         status: 'PENDING_REVIEW',

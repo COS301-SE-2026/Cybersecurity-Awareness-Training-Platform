@@ -53,7 +53,7 @@ describe('account.service', () => {
   });
 
   it('requests account email change', async () => {
-    const mockData = { message: 'Verification email sent', emailQueued: true };
+    const mockData = { message: 'Verification email queued for delivery', emailQueued: true };
     vi.mocked(apiClient.post).mockResolvedValueOnce(mockData);
 
     const payload = {

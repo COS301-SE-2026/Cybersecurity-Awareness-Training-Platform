@@ -773,7 +773,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             message: {
               type: 'string',
               example:
-                'If the email is registered and unverified, a verification link has been sent.',
+                'If the email is registered and unverified, a verification link has been queued for delivery.',
             },
           },
         },
@@ -849,7 +849,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             message: {
               type: 'string',
               example:
-                'If this email change can be completed, a confirmation email has been sent to the new address.',
+                'If this email change can be completed, a confirmation email has been queued for delivery to the new address.',
             },
             emailQueued: booleanProperty(true),
           },
@@ -1213,7 +1213,8 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
           properties: {
             message: {
               type: 'string',
-              example: 'If the email is registered, a password reset link has been sent.',
+              example:
+                'If the email is registered, a password reset link has been queued for delivery.',
             },
           },
         },
@@ -2462,7 +2463,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             success: booleanProperty(true),
             message: {
               type: 'string',
-              example: 'Invitation sent successfully.',
+              example: 'Invitation email queued for delivery.',
             },
             invitation: {
               $ref: '#/components/schemas/TraineeListItem',
@@ -2476,7 +2477,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             success: booleanProperty(true),
             message: {
               type: 'string',
-              example: 'Invitation resent successfully.',
+              example: 'Invitation email queued for delivery.',
             },
             invitationId: {
               ...uuidString('33333333-3333-4333-8333-333333333333'),
@@ -4379,11 +4380,11 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
           'TraineeListResponse',
         ),
         OrganisationTraineeInvitationCreated: responseComponent(
-          'Trainee invitation sent successfully.',
+          'Trainee invitation email queued for delivery.',
           'CreateTraineeInvitationResponse',
         ),
         OrganisationTraineeInvitationResent: responseComponent(
-          'Trainee invitation resent successfully.',
+          'Trainee invitation email queued for delivery.',
           'InvitationResendResponse',
         ),
         OrganisationTraineeInvitationRevoked: responseComponent(

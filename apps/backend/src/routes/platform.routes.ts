@@ -596,7 +596,7 @@ platformRouter.get('/platform/admins', asyncHandler(listPlatformAdmins));
  *                 type: boolean
  *     responses:
  *       201:
- *         description: Invitation sent successfully
+ *         description: Invitation email queued for delivery
  *         content:
  *           application/json:
  *             schema:
@@ -635,7 +635,7 @@ platformRouter.post(
  *   post:
  *     tags: [Platform Admins]
  *     summary: Resend platform admin invite
- *     description: Revokes the old invite token and issues a new platform admin invitation or upgrade email.
+ *     description: Revokes the old invite token and queues a new platform admin invitation or upgrade email for delivery.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -648,7 +648,7 @@ platformRouter.post(
  *         description: The action token ID of the invitation to resend
  *     responses:
  *       200:
- *         description: Invitation resent successfully
+ *         description: Invitation email queued for delivery
  *         content:
  *           application/json:
  *             schema:

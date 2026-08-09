@@ -662,7 +662,8 @@ describe('Auth routes', () => {
 
       expect(response.status).toBe(200);
       expect(response.body).toEqual({
-        message: 'If the email is registered and unverified, a verification link has been sent.',
+        message:
+          'If the email is registered and unverified, a verification link has been queued for delivery.',
       });
     });
 
@@ -692,7 +693,8 @@ describe('Auth routes', () => {
 
       expect(response.status).toBe(200);
       expect(response.body).toEqual({
-        message: 'If the email is registered and unverified, a verification link has been sent.',
+        message:
+          'If the email is registered and unverified, a verification link has been queued for delivery.',
       });
       expect(actionTokenServiceMock.issueActionToken).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -725,7 +727,8 @@ describe('Auth routes', () => {
 
       expect(response.status).toBe(200);
       expect(response.body).toEqual({
-        message: 'If the email is registered and unverified, a verification link has been sent.',
+        message:
+          'If the email is registered and unverified, a verification link has been queued for delivery.',
       });
       expect(actionTokenServiceMock.issueActionToken).toHaveBeenCalled();
       expect(authEmailHookServiceMock.requestAuthEmailSend).toHaveBeenCalled();

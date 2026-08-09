@@ -206,7 +206,7 @@ describe('account service', () => {
 
     expect(result).toEqual({
       message:
-        'If this email change can be completed, a confirmation email has been sent to the new address.',
+        'If this email change can be completed, a confirmation email has been queued for delivery to the new address.',
       emailQueued: true,
     });
     expect(JSON.stringify(result)).not.toContain('raw-email-change-token');
