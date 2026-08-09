@@ -1,9 +1,8 @@
-import { Pagination } from 'flowbite-react';
 import type {
   AssignableCampaignOptionDto,
   CampaignAssignmentCandidateOptionDto,
-  GetAssignableCampaignResponseDto,
-  GetCampaignAssignmentCanidatesResponseDto,
+  GetAssignableCampaignsResponseDto,
+  GetCampaignAssignmentCandidatesResponseDto,
 } from '../../../../../packages/shared/src/campaign-assignment.ts';
 
 export const mockTraineeCandidates: CampaignAssignmentCandidateOptionDto[] = [
@@ -77,17 +76,18 @@ export const mockAssignableCampaigns: AssignableCampaignOptionDto[] = [
   },
 ];
 
-export const mockCampaignAssignmentCandidatesResponse: GetCampaignAssignmentCanidatesResponseDto = {
-  items: mockTraineeCandidates,
-  pagination: {
-    page: 1,
-    limit: 20,
-    total: mockTraineeCandidates.length,
-    totalPages: 1,
-  },
-};
+export const mockCampaignAssignmentCandidatesResponse: GetCampaignAssignmentCandidatesResponseDto =
+  {
+    items: mockTraineeCandidates,
+    pagination: {
+      page: 1,
+      limit: 20,
+      total: mockTraineeCandidates.length,
+      totalPages: 1,
+    },
+  };
 
-export const mockAssignableCampaignsResponse: GetAssignableCampaignResponseDto = {
+export const mockAssignableCampaignsResponse: GetAssignableCampaignsResponseDto = {
   items: mockAssignableCampaigns,
   pagination: {
     page: 1,
