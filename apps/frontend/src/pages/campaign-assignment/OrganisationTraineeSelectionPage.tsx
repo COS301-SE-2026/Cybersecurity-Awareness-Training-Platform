@@ -1,3 +1,5 @@
+import { mockCampaignAssignmentCandidatesResponse } from '../../testing/fixtures/campaignAssignmentFixtures';
+
 type DisplayStatus =
   | 'Active'
   | 'Disabled'
@@ -44,6 +46,17 @@ function OrganisationTraineeSelectionPage({
   setSelectedTraineesIds,
   onContinue,
 }: OrganisationTraineeSelectionPageProps) {
+  const trainees = mockCampaignAssignmentCandidatesResponse.items;
+
+  const handleTraineeSelection = (traineeProfileId: string) => {
+    setSelectedTraineesIds((currentSelectedIds) => {
+      if (currentSelectedIds.includes(traineeProfileId)) {
+        return currentSelectedIds.filter((id) => id !== traineeProfileId);
+      }
+
+      return [...currentSelectedIds, traineeProfileId];
+    });
+  };
   return (
     <div className="-mt-5 -ml-4">
       <div className="grid grid-cols-2 gap-12">
@@ -65,12 +78,18 @@ function OrganisationTraineeSelectionPage({
         </div>
 
         <div className="flex flex-col items-end">
-          {/* <p className="font-regular tracking-wide text-[1.2rem] font-left font-jost text-pink mb-2">
-            4 Organisation Trainee(s) Selected
-          </p> */}
-          <p className="font-regular tracking-wide text-[1.2rem] font-left font-jost text-red-600 mb-2">
-            No Organisation Trainees Selected
+          <p
+            className={`font-regular tracking-wide text-[1.2rem] font-left font-jost mb-2 ${
+              selectedTraineeIds.length === 0 ? 'text-red-600' : 'text-pink'
+            }`}
+          >
+            {selectedTraineeIds.length === 0
+              ? 'No Organisation Trainees Selected'
+              : `${selectedTraineeIds.length} Organisation Trainee${
+                  selectedTraineeIds.length === 1 ? '' : 's'
+                } Selected`}
           </p>
+
           <button
             type="button"
             disabled={selectedTraineeIds.length === 0}
@@ -125,7 +144,8 @@ function OrganisationTraineeSelectionPage({
 
               <button
                 type="button"
-                disabled={true} // IF NONE SELECTED, DISABLE
+                disabled={selectedTraineeIds.length === 0}
+                onClick={() => setSelectedTraineesIds([])}
                 className="disabled:hover:bg-gray-200 disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer w-60 font-jost tracking-wider text-xl text-body font-regular bg-gray-200 hover:bg-gray-300 leading-5 px-4 py-2.5 focus:outline-none"
               >
                 Clear Selection
@@ -135,7 +155,7 @@ function OrganisationTraineeSelectionPage({
         </div>
 
         {/* TABLE */}
-        <div className="relative max-h-[11.80rem] overflow-y-auto overflow-x-auto bg-neutral-primary-soft border border-default">
+        <div className="relative max-h-[11.45rem] overflow-y-auto overflow-x-auto bg-neutral-primary-soft border border-default">
           <table className="w-full text-sm text-left rtl:text-right text-body">
             <thead className="bg-faint-purple border-b border-default">
               <tr>
@@ -164,160 +184,30 @@ function OrganisationTraineeSelectionPage({
               </tr>
             </thead>
             <tbody className="font-overpass font-regular text-[1rem] tracking-wider">
-              <tr className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default">
-                <td className="px-6 py-2">
-                  <div className="flex items-center">
-                    <input
-                      id="default-checkbox"
-                      type="checkbox"
-                      className="accent-[#8400ff] w-5 h-5 border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
-                    />
-                  </div>
-                </td>
-                <td className="px-6 py-2">Connor Bell</td>
-                <td className="px-6 py-2">cbell@cbell.co.za</td>
-                <td className="px-6 py-3">{getStatusBadge('Active')}</td>
-              </tr>
-              <tr className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default">
-                <td className="px-6 py-2">
-                  <div className="flex items-center">
-                    <input
-                      id="default-checkbox"
-                      type="checkbox"
-                      className="accent-[#8400ff] w-5 h-5 border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
-                    />
-                  </div>
-                </td>
-                <td className="px-6 py-2">Connor Bell</td>
-                <td className="px-6 py-2">cbell@cbell.co.za</td>
-                <td className="px-6 py-3">{getStatusBadge('Active')}</td>
-              </tr>
-              <tr className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default">
-                <td className="px-6 py-2">
-                  <div className="flex items-center">
-                    <input
-                      id="default-checkbox"
-                      type="checkbox"
-                      className="accent-[#8400ff] w-5 h-5 border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
-                    />
-                  </div>
-                </td>
-                <td className="px-6 py-2">Connor Bell</td>
-                <td className="px-6 py-2">cbell@cbell.co.za</td>
-                <td className="px-6 py-3">{getStatusBadge('Active')}</td>
-              </tr>
-              <tr className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default">
-                <td className="px-6 py-2">
-                  <div className="flex items-center">
-                    <input
-                      id="default-checkbox"
-                      type="checkbox"
-                      className="accent-[#8400ff] w-5 h-5 border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
-                    />
-                  </div>
-                </td>
-                <td className="px-6 py-2">Connor Bell</td>
-                <td className="px-6 py-2">cbell@cbell.co.za</td>
-                <td className="px-6 py-3">{getStatusBadge('Active')}</td>
-              </tr>
-              <tr className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default">
-                <td className="px-6 py-2">
-                  <div className="flex items-center">
-                    <input
-                      id="default-checkbox"
-                      type="checkbox"
-                      className="accent-[#8400ff] w-5 h-5 border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
-                    />
-                  </div>
-                </td>
-                <td className="px-6 py-2">Connor Bell</td>
-                <td className="px-6 py-2">cbell@cbell.co.za</td>
-                <td className="px-6 py-3">{getStatusBadge('Active')}</td>
-              </tr>
-              <tr className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default">
-                <td className="px-6 py-2">
-                  <div className="flex items-center">
-                    <input
-                      id="default-checkbox"
-                      type="checkbox"
-                      className="accent-[#8400ff] w-5 h-5 border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
-                    />
-                  </div>
-                </td>
-                <td className="px-6 py-2">Connor Bell</td>
-                <td className="px-6 py-2">cbell@cbell.co.za</td>
-                <td className="px-6 py-3">{getStatusBadge('Active')}</td>
-              </tr>
-              <tr className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default">
-                <td className="px-6 py-2">
-                  <div className="flex items-center">
-                    <input
-                      id="default-checkbox"
-                      type="checkbox"
-                      className="accent-[#8400ff] w-5 h-5 border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
-                    />
-                  </div>
-                </td>
-                <td className="px-6 py-2">Connor Bell</td>
-                <td className="px-6 py-2">cbell@cbell.co.za</td>
-                <td className="px-6 py-3">{getStatusBadge('Active')}</td>
-              </tr>
-              <tr className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default">
-                <td className="px-6 py-2">
-                  <div className="flex items-center">
-                    <input
-                      id="default-checkbox"
-                      type="checkbox"
-                      className="accent-[#8400ff] w-5 h-5 border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
-                    />
-                  </div>
-                </td>
-                <td className="px-6 py-2">Connor Bell</td>
-                <td className="px-6 py-2">cbell@cbell.co.za</td>
-                <td className="px-6 py-3">{getStatusBadge('Active')}</td>
-              </tr>
-              <tr className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default">
-                <td className="px-6 py-2">
-                  <div className="flex items-center">
-                    <input
-                      id="default-checkbox"
-                      type="checkbox"
-                      className="accent-[#8400ff] w-5 h-5 border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
-                    />
-                  </div>
-                </td>
-                <td className="px-6 py-2">Connor Bell</td>
-                <td className="px-6 py-2">cbell@cbell.co.za</td>
-                <td className="px-6 py-3">{getStatusBadge('Active')}</td>
-              </tr>
-              <tr className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default">
-                <td className="px-6 py-2">
-                  <div className="flex items-center">
-                    <input
-                      id="default-checkbox"
-                      type="checkbox"
-                      className="accent-[#8400ff] w-5 h-5 border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
-                    />
-                  </div>
-                </td>
-                <td className="px-6 py-2">Connor Bell</td>
-                <td className="px-6 py-2">cbell@cbell.co.za</td>
-                <td className="px-6 py-3">{getStatusBadge('Active')}</td>
-              </tr>
-              <tr className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default">
-                <td className="px-6 py-2">
-                  <div className="flex items-center">
-                    <input
-                      id="default-checkbox"
-                      type="checkbox"
-                      className="accent-[#8400ff] w-5 h-5 border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
-                    />
-                  </div>
-                </td>
-                <td className="px-6 py-2">Connor Bell</td>
-                <td className="px-6 py-2">cbell@cbell.co.za</td>
-                <td className="px-6 py-3">{getStatusBadge('Active')}</td>
-              </tr>
+              {trainees.map((trainee) => (
+                <tr
+                  key={trainee.traineeProfileId}
+                  className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default"
+                >
+                  <td className="px-6 py-3">
+                    <div className="flex items-center">
+                      <input
+                        id={`trainee-${trainee.traineeProfileId}`}
+                        type="checkbox"
+                        checked={selectedTraineeIds.includes(trainee.traineeProfileId)}
+                        onChange={() => handleTraineeSelection(trainee.traineeProfileId)}
+                        className="accent-[#8400ff] w-5 h-5 border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
+                      />
+                    </div>
+                  </td>
+
+                  <td className="px-6 py-2">{trainee.displayName}</td>
+
+                  <td className="px-6 py-2">{trainee.email}</td>
+
+                  <td className="px-6 py-2">{getStatusBadge('Active')}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
