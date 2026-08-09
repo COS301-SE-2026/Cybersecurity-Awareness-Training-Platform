@@ -775,6 +775,14 @@ The following functional requirements define the capabilities and observable beh
 
 - `R23.3` The system shall audit organisation campaign assignment actions
 
+> **Sprint 6 Implementation Scope (Issue #406 & #407 / Rudolph):**
+> Sprint 6 provides candidate option read contracts (`GET /organisations/:organisationId/campaigns/assignable` and `GET /organisations/:organisationId/campaign-assignment-candidates`), transactional bulk assignment mutation (`POST /organisations/:organisationId/campaign-assignments`), and paginated assignment read views (`GET /organisations/:organisationId/campaigns/:campaignId/assignments` and `GET /organisations/:organisationId/trainees/:traineeProfileId/campaign-assignments`) guarded by `ASSIGN_CAMPAIGNS`.
+>
+> - Bulk campaign assignment mutation is strictly **all-or-nothing**: every non-duplicate campaign and trainee target must be valid and eligible before any new assignment is written. Invalid, inactive, disabled, missing, forbidden, or cross-organisation targets reject the complete request with zero writes.
+> - Duplicate active assignments return HTTP 200 OK with existing pairs classified as `alreadyAssigned` without mutating existing progress (`currentCampaignItemId`, `assignmentStatus`, timestamps, quiz attempts, or interaction events).
+> - Assignable campaigns are restricted to active `ORGANISATION_CUSTOM` campaigns owned by the actor's organisation (platform catalogue availability is deferred).
+> - Candidates are restricted to active organisation trainees (`OrganisationTraineeProfile`). Tag/group assignment remains documented future behavior.
+
 ## `R24` Reset Organisation Campaign Progress
 
 > The Functional Requirements in `R24` are related to [**UC-27: Reset Organisation Campaign Progress**](use-cases.md#uc-27-reset-organisation-campaign-progress).

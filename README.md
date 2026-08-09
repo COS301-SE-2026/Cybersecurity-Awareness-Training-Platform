@@ -38,9 +38,11 @@ By focusing on human behaviour, the most common source of security breaches, the
 
 ---
 
-# <img src="https://img.icons8.com/?size=100&id=OxDyKkYjQ5Yk&format=png&color=000000" width="32"> Current Demo (Demo 2) Scope
+# <img src="https://img.icons8.com/?size=100&id=OxDyKkYjQ5Yk&format=png&color=000000" width="32"> Current Demo (Demo 3) Scope
 
-For Demo 2, we focused on the organisation onboarding, administration, and security management features of the platform.
+Demo 3 plans to have the base Insightful Phish product done. This section will be updated closer to the demo.
+
+<!-- For Demo 2, we focused on the organisation onboarding, administration, and security management features of the platform.
 
 An organisation representative first submits a registration request, which is then reviewed by a Platform Administrator who can approve, reject, track, and manage registration requests.
 
@@ -52,7 +54,7 @@ Organisation Administrators can then manage trainees by inviting, disabling, rea
 
 At the platform level, the Platform Super-Administrator can manage Platform Administrators by inviting new administrators, transferring the super-administrator role, and revoking or demoting existing administrators.
 
-Finally, the system provides configurable organisation security settings for administrators to manage organisation-wide security policies, alongside personal account and security settings that allow individual users to manage their own profile information, passwords, sessions, and other account security preferences.
+Finally, the system provides configurable organisation security settings for administrators to manage organisation-wide security policies, alongside personal account and security settings that allow individual users to manage their own profile information, passwords, sessions, and other account security preferences. -->
 
 ---
 
@@ -79,7 +81,7 @@ Finally, the system provides configurable organisation security settings for adm
 
 <p align="left">
   <a href="https://docs.insightfulphish.co.za">
-    <img src="https://img.shields.io/badge/Demo%202-Docs%20Available-blue?style=for-the-badge" alt="Demo 2 Docs Available" />
+    <img src="https://img.shields.io/badge/Demo%202-Docs%20Available-blue?style=for-the-badge" alt="Demo 3 Docs Available" />
   </a>
   <img src="https://img.shields.io/badge/Monorepo-pnpm%20Workspaces-blue?style=for-the-badge" alt="Monorepo: pnpm workspaces" />
   <img src="https://img.shields.io/badge/Branching-Feature%20Branches%20%2B%20Dev-blue?style=for-the-badge" alt="Branching: Feature branches + dev" />
@@ -102,15 +104,29 @@ Finally, the system provides configurable organisation security settings for adm
 1. **Project Board**: https://project.insightfulphish.co.za
 2. **Project Issues**: https://issues.insightfulphish.co.za
 3. **Project Pull Requests**: https://pr.insightfulphish.co.za
-4. **GitHub** https://github.insightfulphish.co.za _(YOU ARE HERE)_
+4. **GitHub** https://github.insightfulphish.co.za &larr; _You are here_
 5. **Help** https://help.insightfulphish.co.za
+
+### Demo 3 Documentation
+
+1. **Demo 3 Documentation**: https://docs.insightfulphish.co.za
+2. **Swagger Documentation (API Contracts)**: https://swagger.insightfulphish.co.za
+3. **Brand Guidelines**: https://brand.insightfulphish.co.za
+4. **Demo 3 Video**: Not available yet
+
+</details>
 
 ### Demo 2 Documentation
 
-1. **Demo 2 Documentation**: https://docs.insightfulphish.co.za
-2. **Swagger Documentation (API Contracts)**: https://swagger.insightfulphish.co.za
-3. **Brand Guidelines**: https://brand.insightfulphish.co.za
+<details>
+<summary>Click here to see the Demo 2 Documentation and Video</summary>
+
+1. **Demo 2 Documentation**: [docs/demo2/README.md](docs/demo2/README.md)
+2. **Swagger Documentation (API Contracts)**: [docs/demo2/sas/api-contracts.md](docs/demo2/sas/api-contracts.md)
+3. **Brand Guidelines**: [docs/demo2/brand/README.md](docs/demo2/brand/README.md)
 4. **Demo 2 Video**: [Youtube](https://youtu.be/lzpxob1Ty3A)
+
+</details>
 
 ### Demo 1 Documentation
 
