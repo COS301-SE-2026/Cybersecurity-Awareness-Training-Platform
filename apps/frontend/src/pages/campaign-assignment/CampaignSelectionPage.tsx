@@ -1,34 +1,21 @@
-type DisplayStatus =
-  | 'Active'
-  | 'Disabled'
-  | 'Invited'
-  | 'Failed to Send'
-  | 'Accepted'
-  | 'Completed'
-  | 'Expired'
-  | 'Revoked'
-  | 'Rejected'
-  | 'Unknown';
+import { mockAssignableCampaignsResponse } from '../../testing/fixtures/campaignAssignmentFixtures';
+
+type DisplayStatus = 'ACTIVE' | 'DRAFT' | 'PAUSED' | 'COMPLETED' | 'ARCHIVED';
 
 function getStatusBadge(status: DisplayStatus) {
   const variants: Record<DisplayStatus, string> = {
-    Active: 'ring-success-subtle text-fg-success-strong bg-success-soft',
-    Disabled: 'ring-default-medium text-heading bg-neutral-secondary-medium',
-    Invited: 'ring-brand-subtle text-fg-brand-strong bg-brand-softer',
-    'Failed to Send': 'ring-danger-subtle text-fg-danger-strong bg-danger-soft',
-    Accepted: 'ring-success-subtle text-fg-success-strong bg-success-soft',
-    Completed: 'ring-success-subtle text-fg-success-strong bg-success-soft',
-    Expired: 'ring-default-medium text-heading bg-neutral-secondary-medium',
-    Revoked: 'ring-danger-subtle text-fg-danger-strong bg-danger-soft',
-    Rejected: 'ring-warning-subtle text-fg-warning bg-warning-soft',
-    Unknown: 'ring-default-medium text-fg-heading bg-neutral-secondary-medium',
+    ACTIVE: 'ring-success-subtle text-fg-success-strong bg-success-soft',
+    COMPLETED: 'ring-brand-subtle text-fg-brand-strong bg-brand-softer',
+    PAUSED: 'ring-warning-subtle text-fg-warning bg-warning-soft',
+    ARCHIVED: 'ring-default-medium text-fg-heading bg-neutral-secondary-medium',
+    DRAFT: 'ring-default-medium text-fg-heading bg-neutral-secondary-medium',
   };
 
   return (
     <span
       className={`items-flex justify-center items-center w-32 px-4 py-1 pt-[0.4rem] ring-2 ring-inset text-sm font-medium ${variants[status]}`}
     >
-      {status}
+      {status.charAt(0) + status.slice(1).toLowerCase()}
     </span>
   );
 }
@@ -46,6 +33,16 @@ function CampaignSelectionPage({
   onBack,
   onContinue,
 }: CampaignAssignmentPageProps) {
+  const campaigns = mockAssignableCampaignsResponse.items;
+
+  const handleCampaignSelection = (campaignId: string) => {
+    setSelectedCampaignIds((current) =>
+      current.includes(campaignId)
+        ? current.filter((id) => id !== campaignId)
+        : [...current, campaignId],
+    );
+  };
+
   return (
     <div className="-mt-5 -ml-4">
       <div className="grid grid-cols-[1fr_auto]">
@@ -67,12 +64,18 @@ function CampaignSelectionPage({
         </div>
 
         <div className="flex flex-col items-end">
-          {/* <p className="font-regular tracking-wide text-[1.2rem] font-left font-jost text-pink mb-2">
-            4 Training Campaign(s) Selected
-          </p> */}
-          <p className="font-regular tracking-wide text-[1.2rem] font-left font-jost text-red-600 mb-2">
-            No Training Campaigns Selected
+          <p
+            className={`font-regular tracking-wide text-[1.2rem] font-left font-jost mb-2 ${
+              selectedCampaignIds.length === 0 ? 'text-red-600' : 'text-pink'
+            }`}
+          >
+            {selectedCampaignIds.length === 0
+              ? 'No Training Campaigns Selected'
+              : `${selectedCampaignIds.length} Training Campaign${
+                  selectedCampaignIds.length === 1 ? '' : 's'
+                } Selected`}
           </p>
+
           <div className="grid grid-cols-2 gap-2">
             {/* Back Button (TO STEP 1) */}
             <button
@@ -139,7 +142,8 @@ function CampaignSelectionPage({
 
               <button
                 type="button"
-                disabled={true} // IF NONE SELECTED, DISABLE
+                disabled={selectedCampaignIds.length === 0}
+                onClick={() => setSelectedCampaignIds([])}
                 className="disabled:hover:bg-gray-200 disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer w-60 font-jost tracking-wider text-xl text-body font-regular bg-gray-200 hover:bg-gray-300 leading-5 px-4 py-2.5 focus:outline-none"
               >
                 Clear Selection
@@ -149,7 +153,7 @@ function CampaignSelectionPage({
         </div>
 
         {/* TABLE */}
-        <div className="relative max-h-[11.80rem] overflow-y-auto overflow-x-auto bg-neutral-primary-soft border border-default">
+        <div className="relative max-h-[12.00rem] overflow-y-auto overflow-x-auto bg-neutral-primary-soft border border-default">
           <table className="w-full min-w-full text-sm text-left rtl:text-right text-body">
             <thead className="bg-faint-purple border-b border-default">
               <tr>
@@ -202,7 +206,7 @@ function CampaignSelectionPage({
               </tr>
             </thead>
             <tbody className="font-overpass font-regular text-[1rem] tracking-wider">
-              <tr className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default">
+              {/* <tr className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default">
                 <td className="px-3 py-2">
                   <div className="flex items-center">
                     <input
@@ -234,106 +238,82 @@ function CampaignSelectionPage({
                   <span className="font-google_sans_code">{'01/08/26'}</span> to{' '}
                   <span className="font-google_sans_code">{'31/08/26'}</span>
                 </td>
-              </tr>
-              <tr className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default">
-                <td className="px-3 py-2">
-                  <div className="flex items-center">
-                    <input
-                      id="default-checkbox"
-                      type="checkbox"
-                      className="accent-[#8400ff] w-5 h-5 border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
-                    />
-                  </div>
-                </td>
-                <td
-                  className="truncate max-w-[12rem] px-3 py-2"
-                  title="Phishing Awareness Fundamentals"
+              </tr> */}
+
+              {campaigns.map((campaign) => (
+                <tr
+                  key={campaign.campaignId}
+                  className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default"
                 >
-                  Phishing Awareness Fundamentals
-                </td>
-                <td
-                  className="truncate max-w-[12rem] px-3 py-2"
-                  title="Learn how to identify and respond to common phishing attacks."
-                >
-                  Learn how to identify and respond to common phishing attacks.
-                </td>
-                <td className="px-3 py-3">{getStatusBadge('Active')}</td>
-                <td className="truncate max-w-[12rem] px-3 py-3" title="Phishing">
-                  Phishing
-                </td>
-                <td className="px-3 py-3">12</td>
-                <td className="px-3 py-3">200</td>
-                <td className="px-3 py-3">
-                  <span className="font-google_sans_code">{'01/08/26'}</span> to{' '}
-                  <span className="font-google_sans_code">{'31/08/26'}</span>
-                </td>
-              </tr>
-              <tr className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default">
-                <td className="px-3 py-2">
-                  <div className="flex items-center">
-                    <input
-                      id="default-checkbox"
-                      type="checkbox"
-                      className="accent-[#8400ff] w-5 h-5 border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
-                    />
-                  </div>
-                </td>
-                <td
-                  className="truncate max-w-[12rem] px-3 py-2"
-                  title="Phishing Awareness Fundamentals"
-                >
-                  Phishing Awareness Fundamentals
-                </td>
-                <td
-                  className="truncate max-w-[12rem] px-3 py-2"
-                  title="Learn how to identify and respond to common phishing attacks."
-                >
-                  Learn how to identify and respond to common phishing attacks.
-                </td>
-                <td className="px-3 py-3">{getStatusBadge('Active')}</td>
-                <td className="truncate max-w-[12rem] px-3 py-3" title="Phishing">
-                  Phishing
-                </td>
-                <td className="px-3 py-3">12</td>
-                <td className="px-3 py-3">200</td>
-                <td className="px-3 py-3">
-                  <span className="font-google_sans_code">{'01/08/26'}</span> to{' '}
-                  <span className="font-google_sans_code">{'31/08/26'}</span>
-                </td>
-              </tr>
-              <tr className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default">
-                <td className="px-3 py-2">
-                  <div className="flex items-center">
-                    <input
-                      id="default-checkbox"
-                      type="checkbox"
-                      className="accent-[#8400ff] w-5 h-5 border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
-                    />
-                  </div>
-                </td>
-                <td
-                  className="truncate max-w-[12rem] px-3 py-2"
-                  title="Phishing Awareness Fundamentals"
-                >
-                  Phishing Awareness Fundamentals
-                </td>
-                <td
-                  className="truncate max-w-[12rem] px-3 py-2"
-                  title="Learn how to identify and respond to common phishing attacks."
-                >
-                  Learn how to identify and respond to common phishing attacks.
-                </td>
-                <td className="px-3 py-3">{getStatusBadge('Active')}</td>
-                <td className="truncate max-w-[12rem] px-3 py-3" title="Phishing">
-                  Phishing
-                </td>
-                <td className="px-3 py-3">12</td>
-                <td className="px-3 py-3">200</td>
-                <td className="px-3 py-3">
-                  <span className="font-google_sans_code">{'01/08/26'}</span> to{' '}
-                  <span className="font-google_sans_code">{'31/08/26'}</span>
-                </td>
-              </tr>
+                  <td className="px-3 py-3">
+                    <div className="flex items-center">
+                      <input
+                        id={`campaign-${campaign.campaignId}`}
+                        type="checkbox"
+                        checked={selectedCampaignIds.includes(campaign.campaignId)}
+                        onChange={() => handleCampaignSelection(campaign.campaignId)}
+                        className="accent-[#8400ff] w-5 h-5 border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
+                      />
+                    </div>
+                  </td>
+
+                  <td className="truncate max-w-[12rem] px-3 py-3" title={campaign.name}>
+                    {campaign.name}
+                  </td>
+
+                  <td
+                    className="truncate max-w-[12rem] px-3 py-3"
+                    title={campaign.description ?? 'No Description'}
+                  >
+                    {campaign.description ?? '—'}
+                  </td>
+
+                  {/* STATUS */}
+                  <td className="px-3 py-2">{getStatusBadge(campaign.status)}</td>
+
+                  {/* TYPE */}
+                  <td
+                    className="truncate max-w-[12rem] px-3 py-3"
+                    title={
+                      campaign.type === 'PREMADE_GENERAL'
+                        ? 'Premade General'
+                        : 'Organisation Custom'
+                    }
+                  >
+                    {campaign.type === 'PREMADE_GENERAL'
+                      ? 'Premade General'
+                      : 'Organisation Custom'}
+                  </td>
+
+                  <td className="px-3 py-3">{campaign.itemCount}</td>
+
+                  <td className="px-3 py-3">{campaign.assignmentCount}</td>
+
+                  <td className="px-3 py-3">
+                    {campaign.startDate && campaign.endDate ? (
+                      <>
+                        <span className="font-google_sans_code">
+                          {new Date(campaign.startDate).toLocaleDateString('en-GB', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                          })}
+                        </span>{' '}
+                        to{' '}
+                        <span className="font-google_sans_code">
+                          {new Date(campaign.endDate).toLocaleDateString('en-GB', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                          })}
+                        </span>
+                      </>
+                    ) : (
+                      '—'
+                    )}
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>

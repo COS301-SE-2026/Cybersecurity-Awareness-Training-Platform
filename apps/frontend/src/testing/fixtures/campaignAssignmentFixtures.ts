@@ -48,8 +48,8 @@ export const mockAssignableCampaigns: AssignableCampaignOptionDto[] = [
     status: 'ACTIVE',
     type: 'PREMADE_GENERAL',
     itemCount: 8,
-    startDate: '2026-08-01T00:00.000Z',
-    endDate: '2026-12-31T00:00.000Z',
+    startDate: '2026-08-01T00:00:00.000Z',
+    endDate: '2026-12-31T00:00:00.000Z',
     assignmentCount: 12,
   },
   {
@@ -59,8 +59,8 @@ export const mockAssignableCampaigns: AssignableCampaignOptionDto[] = [
     status: 'ACTIVE',
     type: 'PREMADE_GENERAL',
     itemCount: 6,
-    startDate: '2026-08-01T00:00.000Z',
-    endDate: '2026-12-31T00:00.000Z',
+    startDate: '2026-08-01T00:00:00.000Z',
+    endDate: '2026-12-31T00:00:00.000Z',
     assignmentCount: 8,
   },
   {
@@ -70,8 +70,8 @@ export const mockAssignableCampaigns: AssignableCampaignOptionDto[] = [
     status: 'ACTIVE',
     type: 'PREMADE_GENERAL',
     itemCount: 12,
-    startDate: '2026-08-01T00:00.000Z',
-    endDate: '2026-12-31T00:00.000Z',
+    startDate: '2026-08-01T00:00:00.000Z',
+    endDate: '2026-12-31T00:00:00.000Z',
     assignmentCount: 16,
   },
 ];
