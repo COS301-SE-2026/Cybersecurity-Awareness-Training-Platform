@@ -2,6 +2,111 @@ import { z } from 'zod';
 import { idParamSchema } from './common.schemas.js';
 import { emailSchema, firstNameSchema, lastNameSchema } from './auth.schemas.js';
 
+const platformAdminRoleResponseSchema = z.union([
+  z.enum(['SUPER_ADMIN', 'NORMAL_ADMIN']),
+  z.string(),
+]);
+
+const platformAdminStatusResponseSchema = z.union([z.enum(['ACTIVE', 'DISABLED']), z.string()]);
+
+const platformAdminAuthStatusResponseSchema = z.union([
+  z.enum(['PENDING_EMAIL_VERIFICATION', 'PENDING_INVITE_SETUP', 'ACTIVE', 'DISABLED']),
+  z.string(),
+]);
+
+const platformAdminInvitationStatusResponseSchema = z.union([
+  z.enum([
+    'PENDING',
+    'SENT',
+    'FAILED_TO_SEND',
+    'ACCEPTED',
+    'COMPLETED',
+    'EXPIRED',
+    'REVOKED',
+    'REJECTED',
+    'PENDING_UPGRADE',
+  ]),
+  z.string(),
+]);
+
+export const platformAdminAllowedActionSchema = z
+  .object({
+    canTransferSuperAdmin: z.boolean(),
+    canDemote: z.boolean(),
+    canResendInvite: z.boolean(),
+  })
+  .strict();
+
+export type PlatformAdminAllowedActionDto = z.infer<typeof platformAdminAllowedActionSchema>;
+
+export const platformAdminListItemSchema = z
+  .object({
+    id: idParamSchema,
+    firstName: z.string(),
+    lastName: z.string(),
+    email: z.string().email(),
+    platformAdminRole: platformAdminRoleResponseSchema,
+    adminStatus: platformAdminStatusResponseSchema,
+    authStatus: platformAdminAuthStatusResponseSchema,
+    invitationStatus: platformAdminInvitationStatusResponseSchema.nullable(),
+    inviteId: idParamSchema.nullable(),
+    allowedActions: platformAdminAllowedActionSchema,
+  })
+  .strict();
+
+export type PlatformAdminListItemDto = z.infer<typeof platformAdminListItemSchema>;
+
+export const platformAdminListResponseSchema = z
+  .object({
+    admins: z.array(platformAdminListItemSchema),
+    allowedToInvite: z.boolean(),
+    allowedToTransfer: z.boolean(),
+    allowedToDemote: z.boolean(),
+    allowedToResendInvites: z.boolean(),
+  })
+  .strict();
+
+export type PlatformAdminListResponseDto = z.infer<typeof platformAdminListResponseSchema>;
+
+export const invitePlatformAdminResponseSchema = z.discriminatedUnion('type', [
+  z
+    .object({
+      type: z.literal('new-invite'),
+      userId: idParamSchema,
+      email: z.string().email(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('upgrade-confirmation'),
+      userId: idParamSchema,
+      email: z.string().email(),
+    })
+    .strict(),
+]);
+
+export const resendPlatformAdminInviteResponseSchema = z
+  .object({
+    success: z.literal(true),
+    emailQueued: z.boolean(),
+  })
+  .strict();
+
+export type ResendPlatformAdminInviteResponseDto = z.infer<
+  typeof resendPlatformAdminInviteResponseSchema
+>;
+
+export const demotePlatformAdminResponseSchema = z
+  .object({
+    userId: idParamSchema,
+    email: z.string().email(),
+    adminStatus: z.literal('DISABLED'),
+    authStatus: platformAdminAuthStatusResponseSchema,
+  })
+  .strict();
+
+export type DemotePlatformAdminResponseDto = z.infer<typeof demotePlatformAdminResponseSchema>;
+
 // Shcema for path params when modifying a platfrom admin user
 export const platformAdminUserIdParamsSchema = z.object({
   userId: idParamSchema,
