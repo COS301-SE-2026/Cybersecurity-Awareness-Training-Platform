@@ -33,7 +33,17 @@ function getStatusBadge(status: DisplayStatus) {
   );
 }
 
-function OrganisationTraineeSelectionPage() {
+type OrganisationTraineeSelectionPageProps = Readonly<{
+  selectedTraineeIds: string[];
+  setSelectedTraineesIds: React.Dispatch<React.SetStateAction<string[]>>;
+  onContinue: () => void;
+}>;
+
+function OrganisationTraineeSelectionPage({
+  selectedTraineeIds,
+  setSelectedTraineesIds,
+  onContinue,
+}: OrganisationTraineeSelectionPageProps) {
   return (
     <div className="-mt-5 -ml-4">
       <div className="grid grid-cols-2 gap-12">
@@ -63,7 +73,8 @@ function OrganisationTraineeSelectionPage() {
           </p>
           <button
             type="button"
-            disabled={true} // IF NO ORGANISATION TRAINEES SELECTED, CANNOT CONTINUE... DISABLE!!
+            disabled={selectedTraineeIds.length === 0}
+            onClick={onContinue}
             className="disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer w-40 font-jost tracking-wider text-xl text-white font-regular bg-main-purple leading-5 px-4 py-3 focus:outline-none"
           >
             Continue

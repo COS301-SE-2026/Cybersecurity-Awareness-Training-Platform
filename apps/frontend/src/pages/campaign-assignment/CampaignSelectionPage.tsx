@@ -33,7 +33,19 @@ function getStatusBadge(status: DisplayStatus) {
   );
 }
 
-function CampaignSelectionPage() {
+type CampaignAssignmentPageProps = Readonly<{
+  selectedCampaignIds: string[];
+  setSelectedCampaignIds: React.Dispatch<React.SetStateAction<string[]>>;
+  onBack: () => void;
+  onContinue: () => void;
+}>;
+
+function CampaignSelectionPage({
+  selectedCampaignIds,
+  setSelectedCampaignIds,
+  onBack,
+  onContinue,
+}: CampaignAssignmentPageProps) {
   return (
     <div className="-mt-5 -ml-4">
       <div className="grid grid-cols-[1fr_auto]">
@@ -65,6 +77,7 @@ function CampaignSelectionPage() {
             {/* Back Button (TO STEP 1) */}
             <button
               type="button"
+              onClick={onBack}
               className="cursor-pointer w-40 font-jost tracking-wider text-xl text-body font-regular bg-gray-200 hover:bg-gray-300 leading-5 px-4 py-3 focus:outline-none"
             >
               Back
@@ -73,7 +86,8 @@ function CampaignSelectionPage() {
             {/* CONTINUE BUTTON (TO STEP 3) */}
             <button
               type="button"
-              disabled={true} // IF NO TRAINING CAMPAIGNS SELECTED, CANNOT CONTINUE... DISABLE!!
+              disabled={selectedCampaignIds.length === 0}
+              onClick={onContinue}
               className="disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer w-40 font-jost tracking-wider text-xl text-white font-regular bg-main-purple leading-5 px-4 py-3 focus:outline-none"
             >
               Continue

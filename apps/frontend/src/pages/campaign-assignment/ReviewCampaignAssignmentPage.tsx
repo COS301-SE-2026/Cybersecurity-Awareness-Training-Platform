@@ -1,4 +1,18 @@
-function ReviewCampaignAssignmentPage() {
+type ReviewCampaignAssignmentPageProps = Readonly<{
+  selectedTraineeIds: string[];
+  selectedCampaignIds: string[];
+  onBack: () => void;
+}>;
+
+function ReviewCampaignAssignmentPage({
+  selectedTraineeIds,
+  selectedCampaignIds,
+  onBack,
+}: ReviewCampaignAssignmentPageProps) {
+  const traineeCount = selectedTraineeIds.length; // # Trainees
+  const campaignCount = selectedCampaignIds.length; // # Campaigns
+  const assignmentCount = traineeCount * campaignCount; // Total Assignments
+
   return (
     <div className="-mt-5 -ml-4">
       <div className="grid grid-cols-[1fr_auto] mb-4">

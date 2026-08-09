@@ -1,11 +1,29 @@
 import AppLayout from '../components/layout/AppLayout';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import OrganisationTraineeSelectionPage from './campaign-assignment/OrganisationTraineeSelectionPage';
 import CampaignSelectionPage from './campaign-assignment/CampaignSelectionPage';
 import ReviewCampaignAssignmentPage from './campaign-assignment/ReviewCampaignAssignmentPage';
 import { Link } from 'react-router-dom';
+
 function CampaignAssignmentPage() {
   const [currentTab, setCurrentTab] = useState<1 | 2 | 3>(1);
+  const [selectedTraineeIds, setSelectedTraineeIds] = useState<string[]>([]);
+  const [selectedCampaignIds, setSelectedCampaignIds] = useState<string[]>([]);
+
+  const hasSelectedTrainees = setSelectedTraineeIds.length > 0;
+  const hasSelectedCampaigns = setSelectedCampaignIds.length > 0;
+
+  useEffect(() => {
+    if (!hasSelectedTrainees && currentTab !== 1) {
+      setCurrentTab(1);
+    }
+  }, [hasSelectedTrainees, currentTab]);
+
+  useEffect(() => {
+    if (!hasSelectedCampaigns && currentTab !== 3) {
+      setCurrentTab(2);
+    }
+  }, [hasSelectedTrainees, currentTab]);
 
   return (
     <AppLayout
@@ -75,6 +93,7 @@ function CampaignAssignmentPage() {
               <button
                 type="button"
                 aria-current={currentTab === 2 ? 'step' : undefined}
+                disabled={!hasSelectedTrainees}
                 onClick={() => setCurrentTab(2)}
                 className={`font-jost inline-block w-full bg-neutral-primary-soft border border-default hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)] focus:ring-4 focus:ring-neutral-secondary-strong font-light text-[1.2rem] tracking-wide leading-5 px-5 py-3 focus:outline-none ${
                   currentTab === 2
@@ -89,6 +108,7 @@ function CampaignAssignmentPage() {
               <button
                 type="button"
                 aria-current={currentTab === 3 ? 'step' : undefined}
+                disabled={!hasSelectedTrainees || !hasSelectedCampaigns}
                 onClick={() => setCurrentTab(3)}
                 className={`font-jost inline-block w-full bg-neutral-primary-soft border border-default hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)] focus:ring-4 focus:ring-neutral-secondary-strong font-light text-[1.2rem] tracking-wide leading-5 px-5 py-3 focus:outline-none ${
                   currentTab === 3
@@ -103,11 +123,30 @@ function CampaignAssignmentPage() {
 
           {/* CONTENT BOX */}
           <div className="w-full p-8 bg-white md:mt-0 bg-neutral-primary-soft border-default border-x border-b">
-            {currentTab === 1 && <OrganisationTraineeSelectionPage />}
+            {currentTab === 1 && (
+              <OrganisationTraineeSelectionPage
+                selectedTraineeIds={selectedTraineeIds}
+                setSelectedTraineesIds={setSelectedTraineeIds}
+                onContinue={() => setCurrentTab(2)}
+              />
+            )}
 
-            {currentTab === 2 && <CampaignSelectionPage />}
+            {currentTab === 2 && (
+              <CampaignSelectionPage
+                selectedCampaignIds={selectedCampaignIds}
+                setSelectedCampaignIds={setSelectedCampaignIds}
+                onBack={() => setCurrentTab(1)}
+                onContinue={() => setCurrentTab(3)}
+              />
+            )}
 
-            {currentTab === 3 && <ReviewCampaignAssignmentPage />}
+            {currentTab === 3 && (
+              <ReviewCampaignAssignmentPage
+                selectedTraineeIds={selectedTraineeIds}
+                selectedCampaignIds={selectedCampaignIds}
+                onBack={() => setCurrentTab(2)}
+              />
+            )}
           </div>
         </div>
       </div>
