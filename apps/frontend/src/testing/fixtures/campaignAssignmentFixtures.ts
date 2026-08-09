@@ -65,7 +65,7 @@ export const mockAssignableCampaigns: AssignableCampaignOptionDto[] = [
     assignmentCount: 8,
   },
   {
-    campaignId: '41111111-1111-4111-8111-111111111112',
+    campaignId: '41111111-1111-4111-8111-111111111113',
     name: 'Password Security',
     description: 'Best practises for creating and protecting secure passwords.',
     status: 'ACTIVE',
