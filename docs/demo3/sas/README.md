@@ -1,6 +1,6 @@
 # Software Architecture Specification
 
-This README is the ordered entry point to the Demo 2 Software Architecture Specification, which records the intended architecture, its constraints, supporting decisions, and relevant implementation context.
+This README is the ordered entry point to the Demo 3 Software Architecture Specification, which records the intended architecture, its constraints, supporting decisions, and relevant implementation context.
 
 ## SAS Content
 
@@ -17,15 +17,15 @@ This README is the ordered entry point to the Demo 2 Software Architecture Speci
 
 ## Related Requirements and Context
 
-- [Demo 2 Software Requirements Specification](../srs/README.md)
+- [Demo 3 Software Requirements Specification](../srs/README.md)
 - [SRS Function Requirements](../srs/functional-requirements.md)
 - [SRS Quality Requirements](../srs/quality-requirements.md)
 - [SRS Domain Model](../srs/domain-model.md)
-- [Demo 2 Domain Model Source](../domain-model-demo2.txt)
-- [Demo 2 Documentation Home](../README.md)
+- [Demo 3 Domain Model Source](../domain-model-demo2.txt)
+- [Demo 3 Documentation Home](../README.md)
 
 ---
 
 Next section: [Introduction](introduction.md)
 
-Back to the [Demo 2 Documentation Home](../README.md).
+Back to the [Demo 3 Documentation Home](../README.md).

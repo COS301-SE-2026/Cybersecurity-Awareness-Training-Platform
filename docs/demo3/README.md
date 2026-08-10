@@ -1,6 +1,6 @@
-# Insightful Phish Demo 2 Documentation
+# Insightful Phish Demo 3 Documentation
 
-This is the Insightful Phish Demo 2 documentation. Below you can find each aspect of the Demo 2 documentation, and their respective links.
+This is the Insightful Phish Demo 3 documentation. Below you can find each aspect of the Demo 3 documentation, and their respective links.
 
 ### [Software Requirement Specification](srs/README.md)
 

@@ -1,4 +1,4 @@
-# Demo 2 Brand Assets
+# Demo 3 Brand Assets
 
 This folder stores supporting Insightful Phish brand assets and source material. It is not the primary design document.
 
@@ -13,4 +13,4 @@ The files in this folder are retained for:
 
 The interactive brand-guideline files may be refined or replaced later. They should be treated as supporting assets, not as the authoritative Demo 1 design specification.
 
-Back to the [Demo 2 Documentation Home](../README.md).
+Back to the [Demo 3 Documentation Home](../README.md).
