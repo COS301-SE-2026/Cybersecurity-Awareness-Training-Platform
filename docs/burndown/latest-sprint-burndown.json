@@ -16,8 +16,8 @@
       "number": 411,
       "title": "feat: unassign an organisation campaign and delete its progress",
       "points": 5,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-08-10"
     },
     {
       "number": 410,
@@ -97,7 +97,7 @@
     },
     {
       "date": "2026-08-10",
-      "remaining": 26,
+      "remaining": 21,
       "ideal": 0.0
     }
   ]
