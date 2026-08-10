@@ -1,5 +1,7 @@
-import { mockTraineeCandidates } from '../../testing/fixtures/campaignAssignmentFixtures';
-import { mockAssignableCampaigns } from '../../testing/fixtures/campaignAssignmentFixtures';
+import {
+  mockTraineeCandidates,
+  mockAssignableCampaigns,
+} from '../../testing/fixtures/campaignAssignmentFixtures';
 
 type ReviewCampaignAssignmentPageProps = Readonly<{
   selectedTraineeIds: string[];
