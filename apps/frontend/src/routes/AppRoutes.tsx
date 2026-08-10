@@ -135,7 +135,22 @@ function AppRoutes() {
       <Route path="/" element={<LandingPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
       <Route path="/brand" element={<BrandPage />} />
-      <Route path="/campaign-assignment" element={<CampaignAssignmentPage />} />
+
+      {/* <Route path="/campaign-assignment" element={<CampaignAssignmentPage />} /> */}
+      <Route
+        element={
+          <ProtectedRoute
+            requiredRole="ORGANISATION_ADMIN"
+            requireOrganisation
+            requiredPermission="ASSIGN_CAMPAIGNS"
+          />
+        }
+      >
+        <Route
+          path="/organisations/:organisationId/campaign-assignment/new"
+          element={<CampaignAssignmentPage />}
+        />
+      </Route>
     </Routes>
   );
 }
