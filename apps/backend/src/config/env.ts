@@ -77,7 +77,7 @@ const EnvSchema = z.object({
   .transform((value) => value === 'true'),
   EMAIL_DISPATCHER_POLL_INTERVAL_MS: z.coerce.number().int().min(250).max(60_000).default(1_000),
   EMAIL_DISPATCHER_BATCH_SIZE: z.coerce.number().int().min(1).max(50).default(10),
-  EMAIL_DISPATCHER_LEASE_SECONDS: z.coerce.number().int().min(5).max(300).default(30),
+  EMAIL_DISPATCHER_LEASE_SECONDS: z.coerce.number().int().min(30).max(300).default(75),
   EMAIL_DISPATCHER_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(4).default(4),
   EMAIL_DISPATCHER_BACKOFF_SECONDS: dispatcherBackoffSecondsSchema,
   EMAIL_DISPATCHER_RETRY_DEADLINE_SECONDS: z.coerce.number().int().min(15).max(600).default(120),

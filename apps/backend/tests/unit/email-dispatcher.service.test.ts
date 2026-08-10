@@ -16,10 +16,12 @@ const MockSmtpDeliveryError = vi.hoisted(
 
 const repositoryMock = vi.hoisted(() => ({
   claimDueEmailDeliveryJobs: vi.fn(),
+  markEmailDeliveryProviderPersistenceFailed: vi.fn(),
   recoverExpiredEmailDeliveryLeases: vi.fn(),
   recordEmailDeliveryAccepted: vi.fn(),
   recordEmailDeliveryTerminalFailure: vi.fn(),
   scheduleEmailDeliveryRetry: vi.fn(),
+  verifyEmailDeliveryClaimOwnership: vi.fn(),
 }));
 
 const smtpMock = vi.hoisted(() => ({
@@ -31,7 +33,7 @@ vi.mock('../../src/config/env.js', () => ({
     EMAIL_DISPATCHER_ENABLED: true,
     EMAIL_DISPATCHER_POLL_INTERVAL_MS: 60_000,
     EMAIL_DISPATCHER_BATCH_SIZE: 5,
-    EMAIL_DISPATCHER_LEASE_SECONDS: 30,
+    EMAIL_DISPATCHER_LEASE_SECONDS: 75,
     EMAIL_DISPATCHER_RETRY_DEADLINE_SECONDS: 120,
     EMAIL_DISPATCHER_BACKOFF_SECONDS: [15, 30, 60],
   },
@@ -50,6 +52,8 @@ const dispatchJob = {
   id: 'email-job-1',
   deliveryLogId: 'email-log-1',
   status: 'PROCESSING' as const,
+  leaseOwner: 'email-dispatcher-test-owner',
+  leaseExpiresAt: new Date('2026-08-09T10:01:20.000Z'),
   providerKind: 'SMTP' as const,
   recipientEmail: 'recipient@example.test',
   subject: 'Safe subject',
@@ -91,9 +95,11 @@ describe('email dispatcher', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     repositoryMock.claimDueEmailDeliveryJobs.mockResolvedValue([dispatchJob]);
     repositoryMock.recoverExpiredEmailDeliveryLeases.mockResolvedValue(undefined);
-    repositoryMock.recordEmailDeliveryAccepted.mockResolvedValue(undefined);
-    repositoryMock.recordEmailDeliveryTerminalFailure.mockResolvedValue(undefined);
-    repositoryMock.scheduleEmailDeliveryRetry.mockResolvedValue(undefined);
+    repositoryMock.recordEmailDeliveryAccepted.mockResolvedValue(true);
+    repositoryMock.recordEmailDeliveryTerminalFailure.mockResolvedValue(true);
+    repositoryMock.scheduleEmailDeliveryRetry.mockResolvedValue(true);
+    repositoryMock.verifyEmailDeliveryClaimOwnership.mockResolvedValue(true);
+    repositoryMock.markEmailDeliveryProviderPersistenceFailed.mockResolvedValue(true);
   });
 
   afterEach(() => {
@@ -113,7 +119,7 @@ describe('email dispatcher', () => {
     expect(repositoryMock.claimDueEmailDeliveryJobs).toHaveBeenCalledWith(
       expect.objectContaining({
         batchSize: 5,
-        leaseSeconds: 30,
+        leaseSeconds: 75,
         retryDeadlineSeconds: 120,
       }),
     );
@@ -127,6 +133,7 @@ describe('email dispatcher', () => {
       jobId: 'email-job-1',
       deliveryLogId: 'email-log-1',
       providerMessageId: 'provider-message-1',
+      leaseOwner: 'email-dispatcher-test-owner',
     });
     expect(repositoryMock.scheduleEmailDeliveryRetry).not.toHaveBeenCalled();
     expect(repositoryMock.recordEmailDeliveryTerminalFailure).not.toHaveBeenCalled();
@@ -160,6 +167,7 @@ describe('email dispatcher', () => {
         jobId: 'email-job-1',
         providerOutcome: 'PROVIDER_TEMPORARY_FAILURE',
         reasonCode: 'SMTP_TEMPORARY_FAILURE',
+        leaseOwner: 'email-dispatcher-test-owner',
       }),
     );
     const retryDelayMs =
@@ -189,6 +197,7 @@ describe('email dispatcher', () => {
       deliveryLogId: 'email-log-1',
       providerOutcome: 'PROVIDER_TEMPORARY_FAILURE',
       reasonCode: 'SMTP_TEMPORARY_FAILURE',
+      leaseOwner: 'email-dispatcher-test-owner',
     });
   });
 
@@ -211,6 +220,7 @@ describe('email dispatcher', () => {
       deliveryLogId: 'email-log-1',
       providerOutcome: 'PROVIDER_TEMPORARY_FAILURE',
       reasonCode: 'SMTP_TEMPORARY_FAILURE',
+      leaseOwner: 'email-dispatcher-test-owner',
     });
   });
 
@@ -231,6 +241,7 @@ describe('email dispatcher', () => {
       deliveryLogId: 'email-log-1',
       providerOutcome: 'PROVIDER_AMBIGUOUS',
       reasonCode: 'SMTP_AMBIGUOUS_TRANSPORT_FAILURE',
+      leaseOwner: 'email-dispatcher-test-owner',
     });
   });
 
@@ -247,6 +258,39 @@ describe('email dispatcher', () => {
       deliveryLogId: 'email-log-1',
       providerOutcome: 'PROVIDER_REJECTED',
       reasonCode: 'SMTP_AUTH_FAILED',
+      leaseOwner: 'email-dispatcher-test-owner',
     });
+  });
+
+  it('verifies lease ownership before sending', async () => {
+    repositoryMock.verifyEmailDeliveryClaimOwnership.mockResolvedValue(false);
+
+    await runSingleDispatcherCycle();
+
+    expect(smtpMock.sendViaSMTP).not.toHaveBeenCalled();
+    expect(repositoryMock.recordEmailDeliveryAccepted).not.toHaveBeenCalled();
+    expect(repositoryMock.scheduleEmailDeliveryRetry).not.toHaveBeenCalled();
+    expect(repositoryMock.recordEmailDeliveryTerminalFailure).not.toHaveBeenCalled();
+  });
+
+  it('marks accepted provider delivery as persistence failed when finalisation throws', async () => {
+    smtpMock.sendViaSMTP.mockResolvedValue({
+      acceptedByProvider: true,
+      providerMessageId: 'provider-message-1',
+    });
+    repositoryMock.recordEmailDeliveryAccepted.mockRejectedValueOnce(
+      new Error('database transaction failed'),
+    );
+
+    await runSingleDispatcherCycle();
+
+    expect(repositoryMock.markEmailDeliveryProviderPersistenceFailed).toHaveBeenCalledWith({
+      jobId: 'email-job-1',
+      deliveryLogId: 'email-log-1',
+      reasonCode: 'EMAIL_ACCEPTED_STATE_PERSISTENCE_FAILED',
+      leaseOwner: 'email-dispatcher-test-owner',
+    });
+    expect(repositoryMock.scheduleEmailDeliveryRetry).not.toHaveBeenCalled();
+    expect(repositoryMock.recordEmailDeliveryTerminalFailure).not.toHaveBeenCalled();
   });
 });

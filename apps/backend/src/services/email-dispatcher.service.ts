@@ -3,10 +3,12 @@ import { env } from '../config/env.js';
 import type { EmailDeliveryDispatchJob } from '../repositories/email-delivery.repository.js';
 import {
   claimDueEmailDeliveryJobs,
+  markEmailDeliveryProviderPersistenceFailed,
   recoverExpiredEmailDeliveryLeases,
   recordEmailDeliveryAccepted,
   recordEmailDeliveryTerminalFailure,
   scheduleEmailDeliveryRetry,
+  verifyEmailDeliveryClaimOwnership,
 } from '../repositories/email-delivery.repository.js';
 import { sendViaSMTP, SmtpDeliveryError } from './smtp-mailer.js';
 
@@ -80,41 +82,74 @@ function nextRetryAt(job: EmailDeliveryDispatchJob, now: Date): Date | null {
 
 async function dispatchJob(job: EmailDeliveryDispatchJob) {
   const startedAt = Date.now();
+  const leaseOwner = job.leaseOwner;
+
+  if (!leaseOwner) {
+    console.warn('[EmailDispatcher] Claimed job missing lease owner', {
+      jobId: job.id,
+      deliveryLogId: job.deliveryLogId,
+      emailType: job.emailType,
+      providerKind: job.providerKind,
+      reasonCode: 'EMAIL_DISPATCHER_MISSING_LEASE_OWNER',
+    });
+    return;
+  }
+
+  const ownsClaim = await verifyEmailDeliveryClaimOwnership({
+    jobId: job.id,
+    leaseOwner,
+  });
+
+  if (!ownsClaim) {
+    console.warn('[EmailDispatcher] Skipping stale email delivery claim before provider call', {
+      jobId: job.id,
+      deliveryLogId: job.deliveryLogId,
+      emailType: job.emailType,
+      providerKind: job.providerKind,
+      reasonCode: 'EMAIL_DISPATCHER_STALE_CLAIM',
+    });
+    return;
+  }
+
+  let result: Awaited<ReturnType<typeof sendViaSMTP>> | undefined;
 
   try {
-    const result = await sendViaSMTP({
+    result = await sendViaSMTP({
       to: job.recipientEmail,
       subject: job.subject,
       text: job.textBody,
       html: job.htmlBody ?? undefined,
     });
-
-    await recordEmailDeliveryAccepted({
-      jobId: job.id,
-      deliveryLogId: job.deliveryLogId,
-      providerMessageId: result.providerMessageId,
-    });
-
-    console.info('[EmailDispatcher] Email provider accepted queued job', {
-      jobId: job.id,
-      deliveryLogId: job.deliveryLogId,
-      emailType: job.emailType,
-      providerKind: job.providerKind,
-      attemptNumber: job.attemptCount,
-      durationMs: Date.now() - startedAt,
-    });
   } catch (error: unknown) {
+    if (!(error instanceof SmtpDeliveryError)) {
+      throw error;
+    }
+
     const failure = classifyDispatcherFailure(error);
     const now = new Date();
     const retryAt = failure.retryable ? nextRetryAt(job, now) : null;
 
     if (retryAt) {
-      await scheduleEmailDeliveryRetry({
+      const scheduled = await scheduleEmailDeliveryRetry({
         jobId: job.id,
         nextAttemptAt: retryAt,
         providerOutcome: failure.providerOutcome,
         reasonCode: failure.reasonCode,
+        leaseOwner,
       });
+
+      if (!scheduled) {
+        console.warn('[EmailDispatcher] Skipping retry because email delivery claim is stale', {
+          jobId: job.id,
+          deliveryLogId: job.deliveryLogId,
+          emailType: job.emailType,
+          providerKind: job.providerKind,
+          attemptNumber: job.attemptCount,
+          reasonCode: 'EMAIL_DISPATCHER_STALE_RETRY',
+          durationMs: Date.now() - startedAt,
+        });
+        return;
+      }
 
       console.warn('[EmailDispatcher] Email delivery retry scheduled', {
         jobId: job.id,
@@ -129,12 +164,29 @@ async function dispatchJob(job: EmailDeliveryDispatchJob) {
       return;
     }
 
-    await recordEmailDeliveryTerminalFailure({
+    const recorded = await recordEmailDeliveryTerminalFailure({
       jobId: job.id,
       deliveryLogId: job.deliveryLogId,
       providerOutcome: failure.providerOutcome,
       reasonCode: failure.reasonCode,
+      leaseOwner,
     });
+
+    if (!recorded) {
+      console.warn(
+        '[EmailDispatcher] Skipping terminal failure because email delivery claim is stale',
+        {
+          jobId: job.id,
+          deliveryLogId: job.deliveryLogId,
+          emailType: job.emailType,
+          providerKind: job.providerKind,
+          attemptNumber: job.attemptCount,
+          reasonCode: 'EMAIL_DISPATCHER_STALE_TERMINAL_FAILURE',
+          durationMs: Date.now() - startedAt,
+        },
+      );
+      return;
+    }
 
     console.error('[EmailDispatcher] Email delivery reached terminal failure', {
       jobId: job.id,
@@ -143,6 +195,73 @@ async function dispatchJob(job: EmailDeliveryDispatchJob) {
       providerKind: job.providerKind,
       attemptNumber: job.attemptCount,
       reasonCode: failure.reasonCode,
+      durationMs: Date.now() - startedAt,
+    });
+  }
+
+  if (!result) {
+    return;
+  }
+
+  try {
+    const recorded = await recordEmailDeliveryAccepted({
+      jobId: job.id,
+      deliveryLogId: job.deliveryLogId,
+      providerMessageId: result.providerMessageId,
+      leaseOwner,
+    });
+
+    if (!recorded) {
+      console.warn(
+        '[EmailDispatcher] Provider accepted email but claim was stale at finalisation',
+        {
+          jobId: job.id,
+          deliveryLogId: job.deliveryLogId,
+          emailType: job.emailType,
+          providerKind: job.providerKind,
+          attemptNumber: job.attemptCount,
+          reasonCode: 'EMAIL_DISPATCHER_STALE_ACCEPTED_FINALISATION',
+          durationMs: Date.now() - startedAt,
+        },
+      );
+      return;
+    }
+
+    console.info('[EmailDispatcher] Email provider accepted queued job', {
+      jobId: job.id,
+      deliveryLogId: job.deliveryLogId,
+      emailType: job.emailType,
+      providerKind: job.providerKind,
+      attemptNumber: job.attemptCount,
+      durationMs: Date.now() - startedAt,
+    });
+  } catch {
+    try {
+      await markEmailDeliveryProviderPersistenceFailed({
+        jobId: job.id,
+        deliveryLogId: job.deliveryLogId,
+        reasonCode: 'EMAIL_ACCEPTED_STATE_PERSISTENCE_FAILED',
+        leaseOwner,
+      });
+    } catch {
+      console.error('[EmailDispatcher] Provider accepted email but safe-state persistence failed', {
+        jobId: job.id,
+        deliveryLogId: job.deliveryLogId,
+        emailType: job.emailType,
+        providerKind: job.providerKind,
+        attemptNumber: job.attemptCount,
+        reasonCode: 'EMAIL_ACCEPTED_SAFE_STATE_PERSISTENCE_FAILED',
+        durationMs: Date.now() - startedAt,
+      });
+    }
+
+    console.error('[EmailDispatcher] Provider accepted email but finalisation failed safely', {
+      jobId: job.id,
+      deliveryLogId: job.deliveryLogId,
+      emailType: job.emailType,
+      providerKind: job.providerKind,
+      attemptNumber: job.attemptCount,
+      reasonCode: 'EMAIL_ACCEPTED_STATE_PERSISTENCE_FAILED',
       durationMs: Date.now() - startedAt,
     });
   }

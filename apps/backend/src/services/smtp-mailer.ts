@@ -10,6 +10,12 @@ export type SmtpAcceptedResult = {
 
 export type SmtpFailureKind = 'RETRYABLE' | 'NON_RETRYABLE' | 'AMBIGUOUS';
 
+type SmtpFailureInput = {
+  code?: string;
+  command?: string;
+  responseCode?: number;
+};
+
 export class SmtpDeliveryError extends Error {
   constructor(
     message: string,
@@ -60,10 +66,7 @@ export async function sendViaSMTP(input: SmtpMailInput): Promise<SmtpAcceptedRes
       providerMessageId: result.messageId,
     };
   } catch (error: unknown) {
-    const smtpError =
-      error instanceof Error
-        ? (error as Error & { code?: string; command?: string; responseCode?: number })
-        : undefined;
+    const smtpError = error instanceof Error ? (error as Error & SmtpFailureInput) : undefined;
     const classified = classifySmtpFailure(smtpError);
 
     console.error('[SMTP] Message Failed', {
@@ -83,10 +86,12 @@ export async function sendViaSMTP(input: SmtpMailInput): Promise<SmtpAcceptedRes
   }
 }
 
-function classifySmtpFailure(error?: { code?: string; responseCode?: number }): {
+export function classifySmtpFailure(error?: SmtpFailureInput): {
   failureKind: SmtpFailureKind;
   reasonCode: string;
 } {
+  const command = error?.command?.toUpperCase();
+
   if (typeof error?.responseCode === 'number') {
     if (error.responseCode >= 500) {
       return { failureKind: 'NON_RETRYABLE', reasonCode: 'SMTP_PERMANENT_FAILURE' };
@@ -101,13 +106,25 @@ function classifySmtpFailure(error?: { code?: string; responseCode?: number }): 
     return { failureKind: 'NON_RETRYABLE', reasonCode: 'SMTP_AUTH_FAILED' };
   }
 
-  if (
-    error?.code === 'ETIMEDOUT' ||
-    error?.code === 'ECONNRESET' ||
-    error?.code === 'ECONNECTION' ||
-    error?.code === 'ESOCKET' ||
-    error?.code === 'EAI_AGAIN'
-  ) {
+  const transportFailureCodes = new Set([
+    'ETIMEDOUT',
+    'ECONNRESET',
+    'ECONNECTION',
+    'ECONNREFUSED',
+    'ESOCKET',
+    'EAI_AGAIN',
+    'ENOTFOUND',
+  ]);
+
+  if (error?.code && transportFailureCodes.has(error.code)) {
+    if (command === 'DATA' || command === 'SMTP-DATA') {
+      return { failureKind: 'AMBIGUOUS', reasonCode: 'SMTP_AMBIGUOUS_AFTER_DATA' };
+    }
+
+    return { failureKind: 'RETRYABLE', reasonCode: 'SMTP_PRE_SUBMISSION_TRANSPORT_FAILURE' };
+  }
+
+  if (command === 'DATA' || command === 'SMTP-DATA') {
     return { failureKind: 'AMBIGUOUS', reasonCode: 'SMTP_AMBIGUOUS_TRANSPORT_FAILURE' };
   }
 
