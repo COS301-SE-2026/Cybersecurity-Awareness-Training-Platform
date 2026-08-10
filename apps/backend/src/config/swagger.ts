@@ -4048,7 +4048,36 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             pagination: schemaRef('PaginationMeta'),
           },
         },
+        DeletedProgressCounts: {
+          type: 'object',
+          required: ['quizAttempts', 'emailClassificationResponses', 'interactionEvents'],
+          additionalProperties: false,
+          properties: {
+            quizAttempts: { type: 'integer', minimum: 0, example: 1 },
+            emailClassificationResponses: { type: 'integer', minimum: 0, example: 2 },
+            interactionEvents: { type: 'integer', minimum: 0, example: 5 },
+          },
+        },
+        DeleteCampaignAssignmentResponse: {
+          type: 'object',
+          required: [
+            'assignmentId',
+            'campaignId',
+            'traineeProfileId',
+            'unassigned',
+            'deletedProgress',
+          ],
+          additionalProperties: false,
+          properties: {
+            assignmentId: uuidString('55555555-5555-4555-8555-555555555555'),
+            campaignId: uuidString('9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+            traineeProfileId: uuidString('a1b2c3d4-e5f6-47a8-b9c0-d1e2f3a4b5c6'),
+            unassigned: trueSuccessProperty(),
+            deletedProgress: schemaRef('DeletedProgressCounts'),
+          },
+        },
       },
+
       parameters: {
         CampaignIdPathParam: {
           name: 'campaignId',
@@ -4304,6 +4333,11 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
           'Paginated list of campaign assignments.',
           'GetCampaignAssignmentsResponse',
         ),
+        DeleteCampaignAssignmentOk: responseComponent(
+          'Campaign assignment and all associated trainee progress permanently removed.',
+          'DeleteCampaignAssignmentResponse',
+        ),
+
         HealthOk: responseComponent('API and database are reachable.', 'HealthStatus'),
         HealthDatabaseUnavailable: responseComponent(
           'API is reachable, but the database check failed.',

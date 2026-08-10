@@ -151,6 +151,8 @@ The following user stories describe the goals that each user type aims to achiev
 
 **6.13** As an organisation administrator with the appropriate permission, I want to assign campaigns to selected trainees and the current trainees of selected tags, so that the correct employees can receive the required training.
 
+**6.13b** As an organisation administrator with the appropriate permission, I want to unassign an organisation campaign from a selected employee and permanently remove all associated progress records, so that erroneous assignments can be cleaned up cleanly and completely.
+
 **6.14** As an organisation administrator with the appropriate permission, I want to reset progress for an explicitly selected campaign and trainee scope, so that retraining can occur without affecting other campaigns or trainees.
 
 **6.15** As an organisation administrator with the appropriate permission, I want to view campaign progress, performance and risk score for trainees and tags, so that I can understand the organisation's cybersecurity awareness understanding and readiness.

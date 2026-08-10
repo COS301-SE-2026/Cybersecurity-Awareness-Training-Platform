@@ -26,6 +26,7 @@ const serviceMock = vi.hoisted(() => {
     getAssignableCampaigns: vi.fn(),
     getAssignmentCandidates: vi.fn(),
     createCampaignAssignments: vi.fn(),
+    deleteCampaignAssignment: vi.fn(),
     getCampaignAssignmentsByCampaign: vi.fn(),
     getCampaignAssignmentsByTrainee: vi.fn(),
   };
@@ -316,6 +317,74 @@ describe('Campaign Assignment Routes', () => {
 
       expect(res.status).toBe(200);
       expect(res.body).toEqual(mockResult);
+    });
+  });
+
+  describe('DELETE /organisations/:organisationId/campaign-assignments/:assignmentId', () => {
+    const assignmentId = '55555555-5555-4555-8555-555555555555';
+
+    it('returns 401 when user is not authenticated', async () => {
+      authenticated = false;
+      const res = await request(app).delete(
+        `/organisations/${organisationId}/campaign-assignments/${assignmentId}`,
+      );
+      expect(res.status).toBe(401);
+      expect(res.body.error).toBe('UNAUTHENTICATED');
+    });
+
+    it('returns 422 when organisationId or assignmentId is not a valid UUID', async () => {
+      const res = await request(app).delete(
+        `/organisations/${organisationId}/campaign-assignments/not-a-uuid`,
+      );
+      expect(res.status).toBe(422);
+      expect(res.body.error).toBe('VALIDATION_ERROR');
+    });
+
+    it('returns 404 when assignment is missing or cross-organisation', async () => {
+      serviceMock.deleteCampaignAssignment.mockRejectedValue(
+        new serviceMock.CampaignAssignmentServiceError(
+          404,
+          'ASSIGNMENT_NOT_FOUND',
+          'Campaign assignment was not found in this organisation',
+        ),
+      );
+
+      const res = await request(app).delete(
+        `/organisations/${organisationId}/campaign-assignments/${assignmentId}`,
+      );
+      expect(res.status).toBe(404);
+      expect(res.body).toEqual({
+        error: 'ASSIGNMENT_NOT_FOUND',
+        message: 'Campaign assignment was not found in this organisation',
+      });
+    });
+
+    it('returns 200 with deletion summary on successful unassignment', async () => {
+      const mockResult = {
+        assignmentId,
+        campaignId,
+        traineeProfileId,
+        unassigned: true,
+        deletedProgress: {
+          quizAttempts: 1,
+          emailClassificationResponses: 2,
+          interactionEvents: 5,
+        },
+      };
+
+      serviceMock.deleteCampaignAssignment.mockResolvedValue(mockResult);
+
+      const res = await request(app).delete(
+        `/organisations/${organisationId}/campaign-assignments/${assignmentId}`,
+      );
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual(mockResult);
+      expect(serviceMock.deleteCampaignAssignment).toHaveBeenCalledWith(
+        actorUserId,
+        organisationId,
+        assignmentId,
+      );
     });
   });
 });
