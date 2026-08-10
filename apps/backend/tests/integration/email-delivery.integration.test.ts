@@ -255,7 +255,7 @@ describe('email delivery integration', () => {
 
   it('retries a pre-submission SMTP transport failure and succeeds without another HTTP request', async () => {
     sendMailMock.mockRejectedValueOnce(
-      smtpErrorWith({ message: 'connect timed out', code: 'ETIMEDOUT' }),
+      smtpErrorWith({ message: 'temporary DNS lookup failure', code: 'EAI_AGAIN' }),
     );
 
     const response = await request(createApp())
@@ -277,7 +277,7 @@ describe('email delivery integration', () => {
 
     expect(retryJob.status).toBe('RETRY_SCHEDULED');
     expect(retryJob.lastProviderOutcome).toBe('PROVIDER_TEMPORARY_FAILURE');
-    expect(retryJob.lastReasonCode).toBe('SMTP_PRE_SUBMISSION_TRANSPORT_FAILURE');
+    expect(retryJob.lastReasonCode).toBe('SMTP_DNS_TEMPORARY_FAILURE');
     expect(sendMailMock).toHaveBeenCalledTimes(1);
 
     await prisma.emailDeliveryJob.update({

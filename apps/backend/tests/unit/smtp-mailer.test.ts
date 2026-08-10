@@ -2,10 +2,34 @@ import { describe, expect, it } from 'vitest';
 import { classifySmtpFailure } from '../../src/services/smtp-mailer.js';
 
 describe('SMTP failure classification', () => {
-  it.each(['ETIMEDOUT', 'ECONNRESET', 'ESOCKET', 'EAI_AGAIN', 'ECONNREFUSED', 'ENOTFOUND'])(
-    'classifies pre-submission %s failures as retryable',
+  it.each(['EDNS', 'EAI_AGAIN', 'ENOTFOUND'])('classifies DNS %s failures as retryable', (code) => {
+    expect(classifySmtpFailure({ code, command: 'EDNS' })).toEqual({
+      failureKind: 'RETRYABLE',
+      reasonCode: 'SMTP_DNS_TEMPORARY_FAILURE',
+    });
+  });
+
+  it('classifies refused connection before SMTP submission as retryable', () => {
+    expect(classifySmtpFailure({ code: 'ECONNREFUSED', command: 'CONN' })).toEqual({
+      failureKind: 'RETRYABLE',
+      reasonCode: 'SMTP_PRE_SUBMISSION_TRANSPORT_FAILURE',
+    });
+  });
+
+  it.each(['ETIMEDOUT', 'ECONNRESET', 'ESOCKET', 'ECONNECTION'])(
+    'classifies socket %s with Nodemailer CONN command as ambiguous',
     (code) => {
       expect(classifySmtpFailure({ code, command: 'CONN' })).toEqual({
+        failureKind: 'AMBIGUOUS',
+        reasonCode: 'SMTP_AMBIGUOUS_TRANSPORT_FAILURE',
+      });
+    },
+  );
+
+  it.each(['ETIMEDOUT', 'ECONNRESET', 'ESOCKET', 'ECONNECTION'])(
+    'classifies definite pre-DATA %s failures as retryable',
+    (code) => {
+      expect(classifySmtpFailure({ code, command: 'RCPT TO' })).toEqual({
         failureKind: 'RETRYABLE',
         reasonCode: 'SMTP_PRE_SUBMISSION_TRANSPORT_FAILURE',
       });

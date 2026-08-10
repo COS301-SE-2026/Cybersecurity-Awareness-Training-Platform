@@ -393,22 +393,83 @@ export async function markEmailInvitationFailedIfRelevant(
 
 export async function recoverExpiredEmailDeliveryLeases(input: { now?: Date } = {}) {
   const now = input.now ?? new Date();
-
-  await prisma.emailDeliveryJob.updateMany({
+  const expiredJobs = await prisma.emailDeliveryJob.findMany({
     where: {
       status: 'PROCESSING',
       leaseExpiresAt: { lt: now },
       terminalAt: null,
     },
-    data: {
-      status: 'RETRY_SCHEDULED',
-      leaseOwner: null,
-      leasedAt: null,
-      leaseExpiresAt: null,
-      nextAttemptAt: now,
-      lastReasonCode: 'LEASE_EXPIRED',
+    select: {
+      id: true,
+      deliveryLogId: true,
+      emailType: true,
+      invitationStateVersion: true,
+      deliveryLog: {
+        select: {
+          fallbackRelatedEntityType: true,
+          fallbackRelatedEntityId: true,
+          userId: true,
+          actionTokenId: true,
+          organisationId: true,
+          organisationRegistrationRequestId: true,
+          invitationId: true,
+        },
+      },
     },
   });
+
+  for (const job of expiredJobs) {
+    await prisma.$transaction(async (tx) => {
+      const updateResult = await tx.emailDeliveryJob.updateMany({
+        where: {
+          id: job.id,
+          status: 'PROCESSING',
+          leaseExpiresAt: { lt: now },
+          terminalAt: null,
+        },
+        data: {
+          status: 'FAILED',
+          terminalAt: now,
+          leaseOwner: null,
+          leasedAt: null,
+          leaseExpiresAt: null,
+          lastProviderOutcome: 'PROVIDER_AMBIGUOUS',
+          lastReasonCode: 'EMAIL_PROCESSING_LEASE_EXPIRED',
+        },
+      });
+
+      if (updateResult.count !== 1) {
+        return;
+      }
+
+      await tx.emailDeliveryLog.update({
+        where: { id: job.deliveryLogId },
+        data: {
+          deliveryStatus: 'FAILED',
+          failedAt: now,
+          failureReason: 'EMAIL_PROCESSING_LEASE_EXPIRED',
+        },
+      });
+
+      await markInvitationIfRelevant(
+        {
+          emailType: job.emailType,
+          relatedEntity: {
+            fallbackType: job.deliveryLog.fallbackRelatedEntityType ?? undefined,
+            fallbackId: job.deliveryLog.fallbackRelatedEntityId,
+            userId: job.deliveryLog.userId,
+            actionTokenId: job.deliveryLog.actionTokenId,
+            organisationId: job.deliveryLog.organisationId,
+            organisationRegistrationRequestId: job.deliveryLog.organisationRegistrationRequestId,
+            invitationId: job.deliveryLog.invitationId,
+            invitationStateVersion: job.invitationStateVersion?.toISOString() ?? null,
+          },
+          status: 'FAILED_TO_SEND',
+        },
+        tx,
+      );
+    });
+  }
 }
 
 async function expireJobsPastRetryDeadline(now: Date) {
@@ -572,7 +633,11 @@ export async function claimDueEmailDeliveryJobs(
       },
     });
 
-    if (claimed?.status === 'PROCESSING') {
+    if (
+      claimed?.status === 'PROCESSING' &&
+      claimed.leaseOwner === input.leaseOwner &&
+      claimed.leaseExpiresAt?.getTime() === leaseExpiresAt.getTime()
+    ) {
       claimedJobs.push(claimed as EmailDeliveryDispatchJob);
     }
   }

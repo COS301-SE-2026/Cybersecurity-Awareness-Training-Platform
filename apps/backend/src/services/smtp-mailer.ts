@@ -16,6 +16,28 @@ type SmtpFailureInput = {
   responseCode?: number;
 };
 
+const DATA_COMMANDS = new Set(['DATA', 'SMTP-DATA']);
+const DEFINITE_PRE_SUBMISSION_COMMANDS = new Set([
+  'CONN',
+  'EDNS',
+  'EHLO',
+  'HELO',
+  'STARTTLS',
+  'AUTH',
+  'MAIL FROM',
+  'MAIL',
+  'RCPT TO',
+  'RCPT',
+]);
+const DNS_FAILURE_CODES = new Set(['EDNS', 'EAI_AGAIN', 'ENOTFOUND']);
+const CONNECTION_FAILURE_CODES = new Set(['ECONNREFUSED']);
+const AMBIGUOUS_TRANSPORT_FAILURE_CODES = new Set([
+  'ETIMEDOUT',
+  'ECONNRESET',
+  'ECONNECTION',
+  'ESOCKET',
+]);
+
 export class SmtpDeliveryError extends Error {
   constructor(
     message: string,
@@ -91,6 +113,7 @@ export function classifySmtpFailure(error?: SmtpFailureInput): {
   reasonCode: string;
 } {
   const command = error?.command?.toUpperCase();
+  const code = error?.code?.toUpperCase();
 
   if (typeof error?.responseCode === 'number') {
     if (error.responseCode >= 500) {
@@ -102,29 +125,31 @@ export function classifySmtpFailure(error?: SmtpFailureInput): {
     }
   }
 
-  if (error?.code === 'EAUTH') {
+  if (code === 'EAUTH') {
     return { failureKind: 'NON_RETRYABLE', reasonCode: 'SMTP_AUTH_FAILED' };
   }
 
-  const transportFailureCodes = new Set([
-    'ETIMEDOUT',
-    'ECONNRESET',
-    'ECONNECTION',
-    'ECONNREFUSED',
-    'ESOCKET',
-    'EAI_AGAIN',
-    'ENOTFOUND',
-  ]);
+  if (code && DNS_FAILURE_CODES.has(code)) {
+    return { failureKind: 'RETRYABLE', reasonCode: 'SMTP_DNS_TEMPORARY_FAILURE' };
+  }
 
-  if (error?.code && transportFailureCodes.has(error.code)) {
-    if (command === 'DATA' || command === 'SMTP-DATA') {
-      return { failureKind: 'AMBIGUOUS', reasonCode: 'SMTP_AMBIGUOUS_AFTER_DATA' };
-    }
-
+  if (code && CONNECTION_FAILURE_CODES.has(code)) {
     return { failureKind: 'RETRYABLE', reasonCode: 'SMTP_PRE_SUBMISSION_TRANSPORT_FAILURE' };
   }
 
-  if (command === 'DATA' || command === 'SMTP-DATA') {
+  if (code && AMBIGUOUS_TRANSPORT_FAILURE_CODES.has(code)) {
+    if (command && DATA_COMMANDS.has(command)) {
+      return { failureKind: 'AMBIGUOUS', reasonCode: 'SMTP_AMBIGUOUS_AFTER_DATA' };
+    }
+
+    if (command && DEFINITE_PRE_SUBMISSION_COMMANDS.has(command) && command !== 'CONN') {
+      return { failureKind: 'RETRYABLE', reasonCode: 'SMTP_PRE_SUBMISSION_TRANSPORT_FAILURE' };
+    }
+
+    return { failureKind: 'AMBIGUOUS', reasonCode: 'SMTP_AMBIGUOUS_TRANSPORT_FAILURE' };
+  }
+
+  if (command && DATA_COMMANDS.has(command)) {
     return { failureKind: 'AMBIGUOUS', reasonCode: 'SMTP_AMBIGUOUS_TRANSPORT_FAILURE' };
   }
 

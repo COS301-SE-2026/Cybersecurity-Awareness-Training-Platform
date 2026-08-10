@@ -163,24 +163,57 @@ describe('email-delivery.repository queue claiming', () => {
     prismaMock.emailDeliveryJob.findMany.mockResolvedValue([]);
   });
 
-  it('recovers expired processing leases back into the retry queue', async () => {
+  it('marks expired processing leases terminal ambiguous instead of retrying', async () => {
     const now = new Date('2026-08-09T10:00:00.000Z');
+    prismaMock.emailDeliveryJob.findMany.mockResolvedValue([
+      {
+        id: 'email-job-1',
+        deliveryLogId: 'email-log-1',
+        emailType: 'ORGANISATION_TRAINEE_INVITE',
+        invitationStateVersion: new Date('2026-08-01T10:00:00.000Z'),
+        deliveryLog: {
+          fallbackRelatedEntityType: null,
+          fallbackRelatedEntityId: null,
+          userId: null,
+          actionTokenId: 'action-token-1',
+          organisationId: 'organisation-1',
+          organisationRegistrationRequestId: null,
+          invitationId: 'invitation-1',
+        },
+      },
+    ]);
+    txMock.emailDeliveryJob.updateMany.mockResolvedValue({ count: 1 });
 
     await recoverExpiredEmailDeliveryLeases({ now });
 
-    expect(prismaMock.emailDeliveryJob.updateMany).toHaveBeenCalledWith({
+    expect(prismaMock.emailDeliveryJob.findMany).toHaveBeenCalledWith({
       where: {
         status: 'PROCESSING',
         leaseExpiresAt: { lt: now },
         terminalAt: null,
       },
+      select: expect.any(Object),
+    });
+    expect(txMock.emailDeliveryJob.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'email-job-1',
+        status: 'PROCESSING',
+        leaseExpiresAt: { lt: now },
+        terminalAt: null,
+      },
+      data: expect.objectContaining({
+        status: 'FAILED',
+        terminalAt: now,
+        lastProviderOutcome: 'PROVIDER_AMBIGUOUS',
+        lastReasonCode: 'EMAIL_PROCESSING_LEASE_EXPIRED',
+      }),
+    });
+    expect(txMock.emailDeliveryLog.update).toHaveBeenCalledWith({
+      where: { id: 'email-log-1' },
       data: {
-        status: 'RETRY_SCHEDULED',
-        leaseOwner: null,
-        leasedAt: null,
-        leaseExpiresAt: null,
-        nextAttemptAt: now,
-        lastReasonCode: 'LEASE_EXPIRED',
+        deliveryStatus: 'FAILED',
+        failedAt: now,
+        failureReason: 'EMAIL_PROCESSING_LEASE_EXPIRED',
       },
     });
   });
@@ -220,6 +253,8 @@ describe('email-delivery.repository queue claiming', () => {
       attemptCount: 1,
       firstAttemptAt: now,
       retryDeadlineAt: new Date('2026-08-09T10:02:00.000Z'),
+      leaseOwner: 'dispatcher-1',
+      leaseExpiresAt: new Date('2026-08-09T10:00:30.000Z'),
     };
     prismaMock.emailDeliveryJob.findMany
       .mockResolvedValueOnce([])
@@ -295,6 +330,34 @@ describe('email-delivery.repository queue claiming', () => {
 
     expect(result).toEqual([]);
     expect(prismaMock.emailDeliveryJob.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('does not return a read-back job when the lease owner has already changed', async () => {
+    const now = new Date('2026-08-09T10:00:00.000Z');
+    prismaMock.emailDeliveryJob.findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([
+      {
+        id: 'email-job-1',
+        firstAttemptAt: null,
+        retryDeadlineAt: null,
+      },
+    ]);
+    prismaMock.emailDeliveryJob.updateMany.mockResolvedValue({ count: 1 });
+    prismaMock.emailDeliveryJob.findUnique.mockResolvedValue({
+      id: 'email-job-1',
+      status: 'PROCESSING',
+      leaseOwner: 'dispatcher-2',
+      leaseExpiresAt: new Date('2026-08-09T10:00:30.000Z'),
+    });
+
+    const result = await claimDueEmailDeliveryJobs({
+      leaseOwner: 'dispatcher-1',
+      batchSize: 10,
+      leaseSeconds: 30,
+      retryDeadlineSeconds: 120,
+      now,
+    });
+
+    expect(result).toEqual([]);
   });
 
   it('does not claim jobs whose retry deadline has already passed', async () => {
