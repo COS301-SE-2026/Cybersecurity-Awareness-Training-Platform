@@ -49,8 +49,8 @@ services:
       SMTP_FROM_ADDRESS: ${SMTP_FROM_ADDRESS:?Set SMTP_FROM_ADDRESS in deploy/.env}
       SMTP_FROM_NAME: ${SMTP_FROM_NAME:?Set SMTP_FROM_NAME in deploy/.env}
       SUPPORT_EMAIL_ADDRESS: ${SUPPORT_EMAIL_ADDRESS:? Set SUPPORT_EMAIL_ADDRESS in deploy/.env}
-      SMTP_USER: ${SMTP_USER:?Set SMTP_USER in deploy/.env}
-      SMTP_PASSWORD: ${SMTP_PASSWORD:?Set SMTP_PASSWORD in deploy/.env}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
     ports:
       - '127.0.0.1:${BACKEND_PORT:-4000}:4000'
     healthcheck:

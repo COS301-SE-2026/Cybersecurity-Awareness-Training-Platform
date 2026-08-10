@@ -11,6 +11,7 @@ import { clearApiRateLimitStore } from '../../src/middleware/apiRateLimit.js';
 import { runEmailDispatcherCycle } from '../../src/services/email-dispatcher.service.js';
 import {
   claimDueEmailDeliveryJobs,
+  markEmailDeliveryProviderPersistenceFailed,
   recordEmailDeliveryAccepted,
 } from '../../src/repositories/email-delivery.repository.js';
 import { createTrainee } from '../helpers/factories.js';
@@ -344,12 +345,32 @@ describe('email delivery integration', () => {
       where: { userId: user.id, emailType: 'EMAIL_VERIFICATION' },
     });
 
-    const updateSpy = vi
-      .spyOn(prisma.emailDeliveryLog, 'update')
-      .mockRejectedValueOnce(new Error('delivery log write failed'));
+    const leaseOwner = 'integration-accepted-persistence-failure';
+    const claimedJobs = await claimDueEmailDeliveryJobs({
+      leaseOwner,
+      batchSize: 1,
+      leaseSeconds: 75,
+      retryDeadlineSeconds: 120,
+    });
+    expect(claimedJobs).toHaveLength(1);
 
-    await runEmailDispatcherCycle();
-    updateSpy.mockRestore();
+    await expect(
+      recordEmailDeliveryAccepted({
+        jobId: claimedJobs[0].id,
+        deliveryLogId: 'missing-delivery-log-id',
+        providerMessageId: 'smtpmessage01',
+        leaseOwner,
+      }),
+    ).rejects.toThrow();
+
+    await expect(
+      markEmailDeliveryProviderPersistenceFailed({
+        jobId: claimedJobs[0].id,
+        deliveryLogId: deliveryLog.id,
+        reasonCode: 'EMAIL_ACCEPTED_STATE_PERSISTENCE_FAILED',
+        leaseOwner,
+      }),
+    ).resolves.toBe(true);
 
     const safeJob = await prisma.emailDeliveryJob.findUniqueOrThrow({
       where: { deliveryLogId: deliveryLog.id },
@@ -361,11 +382,12 @@ describe('email delivery integration', () => {
     expect(safeJob.status).toBe('FAILED');
     expect(safeJob.lastProviderOutcome).toBe('PROVIDER_PERSISTENCE_FAILED');
     expect(safeDeliveryLog.deliveryStatus).toBe('FAILED');
-    expect(sendMailMock).toHaveBeenCalledTimes(1);
+    expect(safeDeliveryLog.failureReason).toBe('EMAIL_ACCEPTED_STATE_PERSISTENCE_FAILED');
+    expect(sendMailMock).not.toHaveBeenCalled();
 
     await runEmailDispatcherCycle();
 
-    expect(sendMailMock).toHaveBeenCalledTimes(1);
+    expect(sendMailMock).not.toHaveBeenCalled();
   });
 
   it('prevents a stale lease owner from finalising delivery', async () => {

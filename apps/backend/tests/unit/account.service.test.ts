@@ -237,6 +237,7 @@ describe('account service', () => {
         recipientEmail: 'new-address@example.test',
         actionTokenId: 'action-token-1',
       }),
+      txClient,
     );
     expect(authEmailHookServiceMock.requestAuthEmailSend).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -286,7 +287,7 @@ describe('account service', () => {
     expect(accountRepositoryMock.createEmailChangeRequest).not.toHaveBeenCalled();
   });
 
-  it('revokes a failed email-change token only when confirmation email is not accepted', async () => {
+  it('rolls back email-change request when confirmation email is not queued', async () => {
     authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue({
       status: 'NOT_QUEUED',
       queueAccepted: false,
@@ -294,20 +295,19 @@ describe('account service', () => {
       reason: 'EMAIL_QUEUE_FAILED',
     });
 
-    const result = await requestAccountEmailChange('user-1', {
-      newEmail: 'new-address@example.test',
-      confirmNewEmail: 'new-address@example.test',
-      password: 'CorrectPassword1!',
+    await expect(
+      requestAccountEmailChange('user-1', {
+        newEmail: 'new-address@example.test',
+        confirmNewEmail: 'new-address@example.test',
+        password: 'CorrectPassword1!',
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      error: 'ACCOUNT_EMAIL_CHANGE_QUEUE_FAILED',
     });
 
-    expect(result.emailQueued).toBe(false);
-    expect(actionTokenServiceMock.revokeActionTokenById).toHaveBeenCalledWith({
-      tokenId: 'action-token-1',
-      reason: 'EMAIL_SEND_FAILED',
-    });
-    expect(accountRepositoryMock.cancelEmailChangeRequest).toHaveBeenCalledWith(
-      expect.objectContaining({ requestId: 'email-change-request-1' }),
-    );
+    expect(actionTokenServiceMock.revokeActionTokenById).not.toHaveBeenCalled();
+    expect(accountRepositoryMock.cancelEmailChangeRequest).not.toHaveBeenCalled();
     expect(authEmailHookServiceMock.requestAuthEmailSend).not.toHaveBeenCalledWith(
       expect.objectContaining({ emailType: 'EMAIL_CHANGE_WARNING' }),
     );

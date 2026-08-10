@@ -534,7 +534,7 @@ describe('platform organisation registration request service', () => {
       expect(actionTokenServiceMock.revokeActionTokenById).not.toHaveBeenCalled();
     });
 
-    it('revokes the first setup token when the setup email is explicitly not accepted', async () => {
+    it('rejects approval when the required setup email cannot be queued', async () => {
       mockApprovalPersistence();
       emailHookMock.requestAuthEmailSend.mockResolvedValue({
         status: 'NOT_QUEUED',
@@ -544,51 +544,24 @@ describe('platform organisation registration request service', () => {
         reason: 'EMAIL_QUEUE_FAILED',
       });
 
-      const response = await approveOrganisationRequest(actorUserId, requestId, {
-        organisationName: 'Acme Corp',
-        initialAdminEmail: 'john@acme.com',
-      });
+      await expect(
+        approveOrganisationRequest(actorUserId, requestId, {
+          organisationName: 'Acme Corp',
+          initialAdminEmail: 'john@acme.com',
+        }),
+      ).rejects.toThrowError(
+        new OrganisationRegistrationRequestError(
+          409,
+          'EMAIL_QUEUE_FAILED',
+          'Required email could not be queued for delivery',
+        ),
+      );
 
-      expect(response.status).toBe('APPROVED');
-      expect(response.setupEmailQueued).toBe(false);
       expect(prismaMock.organisation.create).toHaveBeenCalled();
       expect(prismaMock.invitation.create).toHaveBeenCalled();
       expect(actionTokenServiceMock.issueActionToken).toHaveBeenCalled();
-      expect(prismaMock.invitation.updateMany).toHaveBeenCalledWith({
-        where: {
-          id: 'invitation-1',
-          status: { in: ['PENDING', 'SENT', 'FAILED_TO_SEND'] },
-        },
-        data: {
-          status: 'FAILED_TO_SEND',
-        },
-      });
-      expect(prismaMock.actionToken.updateMany).toHaveBeenCalledWith({
-        where: {
-          id: 'token-id-1',
-          usedAt: null,
-          OR: [{ revokedAt: null }, { revokedReason: 'EMAIL_SEND_FAILED' }],
-        },
-        data: {
-          revokedAt: expect.any(Date),
-          revokedReason: 'EMAIL_SEND_FAILED',
-        },
-      });
-      expect(auditLogMock.recordAuditLog).toHaveBeenCalledWith(
-        expect.objectContaining({
-          actorType: 'IP_ADMIN',
-          targetType: 'INVITATION',
-          targetId: 'invitation-1',
-          actionType: 'INVITED',
-          outcome: 'FAILURE',
-          organisationId,
-          metadata: {
-            emailOutcome: 'NOT_QUEUED',
-            reason: 'EMAIL_QUEUE_FAILED',
-          },
-        }),
-        expect.anything(),
-      );
+      expect(prismaMock.invitation.updateMany).not.toHaveBeenCalled();
+      expect(prismaMock.actionToken.updateMany).not.toHaveBeenCalled();
       expect(notificationFailureEventMock.recordNotificationFailureEvent).not.toHaveBeenCalled();
       expect(auditLogMock.recordAuditLog).not.toHaveBeenCalledWith(
         expect.objectContaining({
@@ -599,7 +572,7 @@ describe('platform organisation registration request service', () => {
       );
     });
 
-    it('records a stable event when first setup email failure recovery cannot complete', async () => {
+    it('does not run setup email recovery when transactional queueing fails', async () => {
       mockApprovalPersistence();
       prismaMock.actionToken.findUnique.mockResolvedValue({
         usedAt: null,
@@ -622,14 +595,13 @@ describe('platform organisation registration request service', () => {
       ).rejects.toThrowError(
         new OrganisationRegistrationRequestError(
           409,
-          'SETUP_EMAIL_RECOVERY_FAILED',
-          'Setup email failure recovery could not revoke the setup token',
+          'EMAIL_QUEUE_FAILED',
+          'Required email could not be queued for delivery',
         ),
       );
 
-      expect(notificationFailureEventMock.recordNotificationFailureEvent).toHaveBeenCalledWith(
-        'SETUP_EMAIL_RECOVERY_FAILED',
-      );
+      expect(notificationFailureEventMock.recordNotificationFailureEvent).not.toHaveBeenCalled();
+      expect(actionTokenServiceMock.revokeActionTokenById).not.toHaveBeenCalled();
     });
 
     it('preserves the first setup token when SMTP acceptance is persisted successfully', async () => {

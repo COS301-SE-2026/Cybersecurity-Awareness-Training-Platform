@@ -11,6 +11,11 @@ import { prisma } from '../../src/lib/prisma.js';
 import { clearApiRateLimitStore } from '../../src/middleware/apiRateLimit.js';
 import { clearAuthRateLimitStore } from '../../src/middleware/authRateLimit.js';
 import { clearOrganisationTraineeRateLimitStores } from '../../src/routes/organisation-trainee.routes.js';
+import {
+  claimDueEmailDeliveryJobs,
+  markEmailDeliveryProviderPersistenceFailed,
+  recordEmailDeliveryAccepted,
+} from '../../src/repositories/email-delivery.repository.js';
 import { runEmailDispatcherCycle } from '../../src/services/email-dispatcher.service.js';
 import { loginOrganisationAdmin, testUserPassword } from '../helpers/auth.js';
 import { createOrganisation, createTrainee } from '../helpers/factories.js';
@@ -447,10 +452,6 @@ describe('Organisation Trainee API Integration Tests', () => {
     });
 
     it('records accepted-safe state when provider success is followed by persistence failure', async () => {
-      const updateSpy = vi
-        .spyOn(prisma.emailDeliveryLog, 'update')
-        .mockRejectedValueOnce(new Error('delivery log write failed'));
-
       const response = await request(app)
         .post(`/organisations/${fixture.organisation.id}/trainee-invitations`)
         .set('Authorization', `Bearer ${fixture.token}`)
@@ -460,17 +461,46 @@ describe('Organisation Trainee API Integration Tests', () => {
       expect(response.body.success).toBe(true);
       expect(response.body.invitation.deliveryState).toBe('PENDING');
 
-      await runEmailDispatcherCycle();
-      updateSpy.mockRestore();
+      const leaseOwner = 'integration-trainee-accepted-persistence-failure';
+      const claimedJobs = await claimDueEmailDeliveryJobs({
+        leaseOwner,
+        batchSize: 1,
+        leaseSeconds: 75,
+        retryDeadlineSeconds: 120,
+      });
+      expect(claimedJobs).toHaveLength(1);
 
       const deliveryLog = await prisma.emailDeliveryLog.findFirstOrThrow({
         where: { invitationId: response.body.invitation.id },
+      });
+
+      await expect(
+        recordEmailDeliveryAccepted({
+          jobId: claimedJobs[0].id,
+          deliveryLogId: 'missing-delivery-log-id',
+          providerMessageId: 'smtpmessage01',
+          leaseOwner,
+        }),
+      ).rejects.toThrow();
+
+      await expect(
+        markEmailDeliveryProviderPersistenceFailed({
+          jobId: claimedJobs[0].id,
+          deliveryLogId: deliveryLog.id,
+          reasonCode: 'EMAIL_ACCEPTED_STATE_PERSISTENCE_FAILED',
+          leaseOwner,
+        }),
+      ).resolves.toBe(true);
+
+      const safeDeliveryLog = await prisma.emailDeliveryLog.findUniqueOrThrow({
+        where: { id: deliveryLog.id },
       });
       const deliveryJob = await prisma.emailDeliveryJob.findUniqueOrThrow({
         where: { deliveryLogId: deliveryLog.id },
       });
 
-      expect(deliveryLog.deliveryStatus).toBe('FAILED');
+      expect(safeDeliveryLog.deliveryStatus).toBe('FAILED');
+      expect(safeDeliveryLog.failureReason).toBe('EMAIL_ACCEPTED_STATE_PERSISTENCE_FAILED');
       expect(deliveryJob.status).toBe('FAILED');
       expect(deliveryJob.lastProviderOutcome).toBe('PROVIDER_PERSISTENCE_FAILED');
 
@@ -534,6 +564,8 @@ describe('Organisation Trainee API Integration Tests', () => {
       });
       expect(sessionDb.revokedAt).not.toBeNull();
       expect(sessionDb.revokedReason).toBe('ADMIN_DISABLED');
+
+      await runEmailDispatcherCycle();
 
       expect(sendMailMock).toHaveBeenCalledWith(
         expect.objectContaining({

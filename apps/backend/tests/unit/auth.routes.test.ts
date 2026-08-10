@@ -96,10 +96,11 @@ describe('Auth routes', () => {
       token: { id: 'action-token-1' },
     });
     authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue({
-      status: 'NOT_ACCEPTED',
-      acceptedByProvider: false,
-      queued: false,
-      reason: 'EMAIL_SEND_FAILED',
+      status: 'QUEUED',
+      queueAccepted: true,
+      queued: true,
+      deliveryLogId: 'email-log-1',
+      jobId: 'email-job-1',
     });
 
     const response = await request(createApp()).post('/auth/register').send({
@@ -172,7 +173,7 @@ describe('Auth routes', () => {
     expect(prismaMock.user.create).not.toHaveBeenCalled();
   });
 
-  it('keeps registration response generic when verification email hook rejects for an eligible account', async () => {
+  it('keeps registration response generic when verification email cannot be queued for an eligible account', async () => {
     prismaMock.user.findUnique.mockResolvedValue({
       id: 'pending-user-id',
       email: 'pending@example.com',
@@ -188,9 +189,12 @@ describe('Auth routes', () => {
       rawToken: 'raw-action-token',
       token: { id: 'replacement-token-id', expiresAt: new Date() },
     });
-    authEmailHookServiceMock.requestAuthEmailSend.mockRejectedValueOnce(
-      new Error('unexpected hook failure'),
-    );
+    authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValueOnce({
+      status: 'NOT_QUEUED',
+      queueAccepted: false,
+      queued: false,
+      reason: 'EMAIL_QUEUE_FAILED',
+    });
 
     const response = await request(createApp()).post('/auth/register').send({
       email: 'pending@example.com',
@@ -681,10 +685,11 @@ describe('Auth routes', () => {
         token: { id: 'token-resend-id' },
       });
       authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue({
-        status: 'ACCEPTED',
-        acceptedByProvider: true,
+        status: 'QUEUED',
+        queueAccepted: true,
         queued: true,
         deliveryLogId: 'email-log-1',
+        jobId: 'email-job-1',
       });
 
       const response = await request(createApp())
@@ -705,7 +710,7 @@ describe('Auth routes', () => {
       );
     });
 
-    it('keeps verification resend response generic when email hook rejects for an eligible account', async () => {
+    it('keeps verification resend response generic when email cannot be queued for an eligible account', async () => {
       prismaMock.user.findUnique.mockResolvedValue({
         id: 'user-pending',
         email: 'pending@example.com',
@@ -717,9 +722,12 @@ describe('Auth routes', () => {
         rawToken: 'raw-resend-token',
         token: { id: 'token-resend-id' },
       });
-      authEmailHookServiceMock.requestAuthEmailSend.mockRejectedValueOnce(
-        new Error('unexpected hook failure'),
-      );
+      authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValueOnce({
+        status: 'NOT_QUEUED',
+        queueAccepted: false,
+        queued: false,
+        reason: 'EMAIL_QUEUE_FAILED',
+      });
 
       const response = await request(createApp())
         .post('/auth/resend-verification')
@@ -747,10 +755,11 @@ describe('Auth routes', () => {
         token: { id: 'token-resend-id' },
       });
       authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue({
-        status: 'ACCEPTED',
-        acceptedByProvider: true,
+        status: 'QUEUED',
+        queueAccepted: true,
         queued: true,
         deliveryLogId: 'email-log-1',
+        jobId: 'email-job-1',
       });
 
       // First request succeeds
