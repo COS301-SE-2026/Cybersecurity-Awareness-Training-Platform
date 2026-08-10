@@ -65,6 +65,7 @@ function ReviewCampaignAssignmentPage({
             {/* CONTINUE BUTTON (TO STEP 3) */}
             <button
               type="button"
+              disabled={traineeCount === 0 || campaignCount === 0}
               className="disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer w-60 font-jost tracking-wider text-xl text-white font-regular bg-main-purple leading-5 px-4 py-3 focus:outline-none"
             >
               Complete Assignment
@@ -109,6 +110,17 @@ function ReviewCampaignAssignmentPage({
                       </td>
                     </tr>
                   ))}
+
+                  {traineeCount === 0 && (
+                    <tr>
+                      <td
+                        colSpan={5}
+                        className="py-8 text-center text-[1.2rem] tracking-wider text-red-500 font-jost"
+                      >
+                        No Organisation Trainee(s) Selected
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -170,6 +182,17 @@ function ReviewCampaignAssignmentPage({
                       </td>
                     </tr>
                   ))}
+
+                  {campaignCount === 0 && (
+                    <tr>
+                      <td
+                        colSpan={5}
+                        className="py-8 text-center text-[1.2rem] tracking-wider text-red-500 font-jost"
+                      >
+                        No Training Campaign(s) Selected
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

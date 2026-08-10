@@ -10,8 +10,8 @@ function CampaignAssignmentPage() {
   const [selectedTraineeIds, setSelectedTraineeIds] = useState<string[]>([]);
   const [selectedCampaignIds, setSelectedCampaignIds] = useState<string[]>([]);
 
-  const hasSelectedTrainees = setSelectedTraineeIds.length > 0;
-  const hasSelectedCampaigns = setSelectedCampaignIds.length > 0;
+  const hasSelectedTrainees = selectedTraineeIds.length > 0;
+  const hasSelectedCampaigns = selectedCampaignIds.length > 0;
 
   useEffect(() => {
     if (!hasSelectedTrainees && currentTab !== 1) {
@@ -20,10 +20,10 @@ function CampaignAssignmentPage() {
   }, [hasSelectedTrainees, currentTab]);
 
   useEffect(() => {
-    if (!hasSelectedCampaigns && currentTab !== 3) {
+    if (hasSelectedTrainees && !hasSelectedCampaigns && currentTab === 3) {
       setCurrentTab(2);
     }
-  }, [hasSelectedTrainees, currentTab]);
+  }, [hasSelectedTrainees, hasSelectedCampaigns, currentTab]);
 
   return (
     <AppLayout
@@ -80,7 +80,7 @@ function CampaignAssignmentPage() {
                 type="button"
                 aria-current={currentTab === 1 ? 'step' : undefined}
                 onClick={() => setCurrentTab(1)}
-                className={`font-jost inline-block w-full bg-neutral-primary-soft border border-default hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)] focus:ring-4 focus:ring-neutral-secondary-strong font-light text-[1.2rem] tracking-wide leading-5 px-5 py-3 focus:outline-none ${
+                className={`disabled:opacity-50 disabled:hover:text-body disabled:hover:bg-white disabled:cursor-not-allowed font-jost inline-block w-full bg-neutral-primary-soft border border-default hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)] focus:ring-4 focus:ring-neutral-secondary-strong font-light text-[1.2rem] tracking-wide leading-5 px-5 py-3 focus:outline-none ${
                   currentTab === 1
                     ? 'bg-faint-purple text-[var(--ip-purple)] font-medium'
                     : 'bg-neutral-primary-soft text-body hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)]'
@@ -95,7 +95,7 @@ function CampaignAssignmentPage() {
                 aria-current={currentTab === 2 ? 'step' : undefined}
                 disabled={!hasSelectedTrainees}
                 onClick={() => setCurrentTab(2)}
-                className={`font-jost inline-block w-full bg-neutral-primary-soft border border-default hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)] focus:ring-4 focus:ring-neutral-secondary-strong font-light text-[1.2rem] tracking-wide leading-5 px-5 py-3 focus:outline-none ${
+                className={`disabled:opacity-50 disabled:hover:text-body disabled:hover:bg-white disabled:cursor-not-allowed font-jost inline-block w-full bg-neutral-primary-soft border border-default hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)] focus:ring-4 focus:ring-neutral-secondary-strong font-light text-[1.2rem] tracking-wide leading-5 px-5 py-3 focus:outline-none ${
                   currentTab === 2
                     ? 'bg-faint-purple text-[var(--ip-purple)] font-medium'
                     : 'bg-neutral-primary-soft text-body hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)]'
@@ -110,7 +110,7 @@ function CampaignAssignmentPage() {
                 aria-current={currentTab === 3 ? 'step' : undefined}
                 disabled={!hasSelectedTrainees || !hasSelectedCampaigns}
                 onClick={() => setCurrentTab(3)}
-                className={`font-jost inline-block w-full bg-neutral-primary-soft border border-default hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)] focus:ring-4 focus:ring-neutral-secondary-strong font-light text-[1.2rem] tracking-wide leading-5 px-5 py-3 focus:outline-none ${
+                className={`disabled:opacity-50 disabled:hover:text-body disabled:hover:bg-white disabled:cursor-not-allowed font-jost inline-block w-full bg-neutral-primary-soft border border-default hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)] focus:ring-4 focus:ring-neutral-secondary-strong font-light text-[1.2rem] tracking-wide leading-5 px-5 py-3 focus:outline-none ${
                   currentTab === 3
                     ? 'bg-faint-purple text-[var(--ip-purple)] font-medium'
                     : 'bg-neutral-primary-soft text-body hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)]'
