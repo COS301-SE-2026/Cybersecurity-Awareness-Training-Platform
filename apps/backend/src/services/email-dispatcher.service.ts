@@ -267,6 +267,23 @@ async function dispatchJob(job: EmailDeliveryDispatchJob) {
   }
 }
 
+export async function runEmailDispatcherCycle(input: { leaseOwner?: string } = {}) {
+  const leaseOwner = input.leaseOwner ?? `email-dispatcher-test-${randomUUID()}`;
+
+  await recoverExpiredEmailDeliveryLeases();
+
+  const jobs = await claimDueEmailDeliveryJobs({
+    leaseOwner,
+    batchSize: env.EMAIL_DISPATCHER_BATCH_SIZE,
+    leaseSeconds: env.EMAIL_DISPATCHER_LEASE_SECONDS,
+    retryDeadlineSeconds: env.EMAIL_DISPATCHER_RETRY_DEADLINE_SECONDS,
+  });
+
+  await Promise.all(jobs.map((job) => dispatchJob(job)));
+
+  return { claimedJobCount: jobs.length };
+}
+
 export function startEmailDispatcher(): EmailDispatcherHandle {
   if (!env.EMAIL_DISPATCHER_ENABLED) {
     console.info('[EmailDispatcher] Dispatcher disabled by configuration');
@@ -298,16 +315,7 @@ export function startEmailDispatcher(): EmailDispatcherHandle {
     running = true;
 
     try {
-      await recoverExpiredEmailDeliveryLeases();
-
-      const jobs = await claimDueEmailDeliveryJobs({
-        leaseOwner,
-        batchSize: env.EMAIL_DISPATCHER_BATCH_SIZE,
-        leaseSeconds: env.EMAIL_DISPATCHER_LEASE_SECONDS,
-        retryDeadlineSeconds: env.EMAIL_DISPATCHER_RETRY_DEADLINE_SECONDS,
-      });
-
-      await Promise.all(jobs.map((job) => dispatchJob(job)));
+      await runEmailDispatcherCycle({ leaseOwner });
     } catch {
       console.error('[EmailDispatcher] Dispatcher cycle failed', {
         leaseOwner,

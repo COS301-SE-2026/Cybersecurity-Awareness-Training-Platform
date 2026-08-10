@@ -11,6 +11,7 @@ import { prisma } from '../../src/lib/prisma.js';
 import { clearApiRateLimitStore } from '../../src/middleware/apiRateLimit.js';
 import { clearAuthRateLimitStore } from '../../src/middleware/authRateLimit.js';
 import { clearOrganisationTraineeRateLimitStores } from '../../src/routes/organisation-trainee.routes.js';
+import { runEmailDispatcherCycle } from '../../src/services/email-dispatcher.service.js';
 import { loginOrganisationAdmin, testUserPassword } from '../helpers/auth.js';
 import { createOrganisation, createTrainee } from '../helpers/factories.js';
 import { traineeListResponseSchema } from '@insightful-phish/shared';
@@ -45,7 +46,7 @@ describe('Organisation Trainee API Integration Tests', () => {
 
       expect(response.status).toBe(201);
       expect(response.body.success).toBe(true);
-      expect(response.body.message).toBe('Invitation sent successfully.');
+      expect(response.body.message).toBe('Invitation email queued for delivery.');
       expect(response.body.invitation).toEqual(
         expect.objectContaining({
           email: 'invitee.test@example.com',
@@ -53,8 +54,8 @@ describe('Organisation Trainee API Integration Tests', () => {
           lastName: 'Person',
           rowType: 'INVITATION',
           status: 'INVITE_PENDING',
-          invitationStatus: 'SENT',
-          deliveryState: 'SENT',
+          invitationStatus: 'PENDING',
+          deliveryState: 'PENDING',
         }),
       );
 
@@ -64,7 +65,7 @@ describe('Organisation Trainee API Integration Tests', () => {
           recipientEmail: 'invitee.test@example.com',
         },
       });
-      expect(invitation.status).toBe('SENT');
+      expect(invitation.status).toBe('PENDING');
       expect(invitation.purpose).toBe('ORGANISATION_TRAINEE_INVITE');
 
       const actionToken = await prisma.actionToken.findFirstOrThrow({
@@ -80,7 +81,19 @@ describe('Organisation Trainee API Integration Tests', () => {
       });
       expect(deliveryLog.recipientEmail).toBe('invitee.test@example.com');
       expect(deliveryLog.emailType).toBe('ORGANISATION_TRAINEE_INVITE');
-      expect(deliveryLog.deliveryStatus).toBe('SENT');
+      expect(deliveryLog.deliveryStatus).toBe('PENDING');
+      expect(sendMailMock).not.toHaveBeenCalled();
+
+      await runEmailDispatcherCycle();
+
+      const sentInvitation = await prisma.invitation.findUniqueOrThrow({
+        where: { id: invitation.id },
+      });
+      const sentDeliveryLog = await prisma.emailDeliveryLog.findUniqueOrThrow({
+        where: { id: deliveryLog.id },
+      });
+      expect(sentInvitation.status).toBe('SENT');
+      expect(sentDeliveryLog.deliveryStatus).toBe('SENT');
 
       expect(sendMailMock).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -219,8 +232,6 @@ describe('Organisation Trainee API Integration Tests', () => {
       });
       expect(firstToken.revokedAt).toBeNull();
 
-      sendMailMock.mockClear();
-
       const response = await request(app)
         .post(`/organisations/${fixture.organisation.id}/trainee-invitations/${invId}/resend`)
         .set('Authorization', `Bearer ${fixture.token}`);
@@ -239,6 +250,14 @@ describe('Organisation Trainee API Integration Tests', () => {
       expect(allTokens).toHaveLength(2);
       expect(allTokens[1].id).not.toBe(firstToken.id);
       expect(allTokens[1].revokedAt).toBeNull();
+
+      const deliveryLog = await prisma.emailDeliveryLog.findFirstOrThrow({
+        where: { actionTokenId: allTokens[1].id },
+      });
+      expect(deliveryLog.deliveryStatus).toBe('PENDING');
+      expect(sendMailMock).not.toHaveBeenCalled();
+
+      await runEmailDispatcherCycle();
 
       expect(sendMailMock).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -305,31 +324,18 @@ describe('Organisation Trainee API Integration Tests', () => {
         where: { invitationId: invId },
       });
 
-      let resolveSmtp: (value: unknown) => void = () => {};
-      const smtpPromise = new Promise((resolve) => {
-        resolveSmtp = resolve;
-      });
-      sendMailMock.mockReturnValue(smtpPromise);
+      await runEmailDispatcherCycle();
+      sendMailMock.mockClear();
 
-      const resendPromise = request(app)
+      const resendResponse = await request(app)
         .post(`/organisations/${fixture.organisation.id}/trainee-invitations/${invId}/resend`)
         .set('Authorization', `Bearer ${fixture.token}`);
+      expect(resendResponse.status).toBe(200);
 
-      // Start the request in the background
-      const responsePromise = resendPromise.then((res) => res);
-
-      // Wait until the resend transaction commits (second token is created)
-      let replacementToken = null;
-      for (let i = 0; i < 100; i++) {
-        const tokens = await prisma.actionToken.findMany({
-          where: { invitationId: invId },
-        });
-        if (tokens.length > 1) {
-          replacementToken = tokens.find((t) => t.id !== initialToken.id);
-          break;
-        }
-        await new Promise((r) => setTimeout(r, 50));
-      }
+      const tokens = await prisma.actionToken.findMany({
+        where: { invitationId: invId },
+      });
+      const replacementToken = tokens.find((t) => t.id !== initialToken.id);
       expect(replacementToken).not.toBeNull();
       if (!replacementToken) {
         throw new Error('Replacement token not found');
@@ -341,14 +347,7 @@ describe('Organisation Trainee API Integration Tests', () => {
         .set('Authorization', `Bearer ${fixture.token}`);
       expect(revokeResponse.status).toBe(200);
 
-      // Now resolve the SMTP send
-      resolveSmtp({ messageId: 'smtpmessage01' });
-
-      const resendResponse = await responsePromise;
-      expect(resendResponse.status).toBe(409);
-      expect(resendResponse.body).toMatchObject({
-        error: 'INVITATION_REVOKED',
-      });
+      await runEmailDispatcherCycle();
 
       // Verify final database state
       const invitation = await prisma.invitation.findUniqueOrThrow({ where: { id: invId } });
@@ -378,31 +377,18 @@ describe('Organisation Trainee API Integration Tests', () => {
         where: { invitationId: invId },
       });
 
-      let rejectSmtp: (reason: Error) => void = () => {};
-      const smtpPromise = new Promise((_, reject) => {
-        rejectSmtp = reject;
-      });
-      sendMailMock.mockReturnValue(smtpPromise);
+      await runEmailDispatcherCycle();
+      sendMailMock.mockClear();
 
-      const resendPromise = request(app)
+      const resendResponse = await request(app)
         .post(`/organisations/${fixture.organisation.id}/trainee-invitations/${invId}/resend`)
         .set('Authorization', `Bearer ${fixture.token}`);
+      expect(resendResponse.status).toBe(200);
 
-      // Start the request in the background
-      const responsePromise = resendPromise.then((res) => res);
-
-      // Wait until the resend transaction commits (second token is created)
-      let replacementToken = null;
-      for (let i = 0; i < 100; i++) {
-        const tokens = await prisma.actionToken.findMany({
-          where: { invitationId: invId },
-        });
-        if (tokens.length > 1) {
-          replacementToken = tokens.find((t) => t.id !== initialToken.id);
-          break;
-        }
-        await new Promise((r) => setTimeout(r, 50));
-      }
+      const tokens = await prisma.actionToken.findMany({
+        where: { invitationId: invId },
+      });
+      const replacementToken = tokens.find((t) => t.id !== initialToken.id);
       expect(replacementToken).not.toBeNull();
       if (!replacementToken) {
         throw new Error('Replacement token not found');
@@ -414,14 +400,8 @@ describe('Organisation Trainee API Integration Tests', () => {
         .set('Authorization', `Bearer ${fixture.token}`);
       expect(revokeResponse.status).toBe(200);
 
-      // Now reject SMTP send
-      rejectSmtp(new Error('SMTP delivery failed'));
-
-      const resendResponse = await responsePromise;
-      expect(resendResponse.status).toBe(409);
-      expect(resendResponse.body).toMatchObject({
-        error: 'INVITATION_REVOKED',
-      });
+      sendMailMock.mockRejectedValueOnce(new Error('SMTP delivery failed'));
+      await runEmailDispatcherCycle();
 
       // Verify final database state
       const invitation = await prisma.invitation.findUniqueOrThrow({ where: { id: invId } });
@@ -439,7 +419,7 @@ describe('Organisation Trainee API Integration Tests', () => {
       expect(deliveryLog?.deliveryStatus).toBe('FAILED');
     });
 
-    it('returns a truthful failed-delivery response when SMTP rejects the invitation email', async () => {
+    it('records failed delivery after queued invitation email SMTP rejection', async () => {
       sendMailMock.mockReset();
       sendMailMock.mockRejectedValue(new Error('SMTP rejected the message'));
 
@@ -450,11 +430,23 @@ describe('Organisation Trainee API Integration Tests', () => {
 
       expect(response.status).toBe(201);
       expect(response.body.success).toBe(true);
-      expect(response.body.invitation.deliveryState).toBe('FAILED');
-      expect(response.body.invitation.invitationLifecycleState).toBe('FAILED_TO_SEND');
+      expect(response.body.invitation.deliveryState).toBe('PENDING');
+      expect(response.body.invitation.invitationLifecycleState).toBe('PENDING');
+
+      await runEmailDispatcherCycle();
+
+      const invitation = await prisma.invitation.findUniqueOrThrow({
+        where: { id: response.body.invitation.id },
+      });
+      const deliveryLog = await prisma.emailDeliveryLog.findFirstOrThrow({
+        where: { invitationId: invitation.id },
+      });
+
+      expect(invitation.status).toBe('FAILED_TO_SEND');
+      expect(deliveryLog.deliveryStatus).toBe('FAILED');
     });
 
-    it('returns an unknown delivery outcome when provider success is followed by delivery-log persistence failure', async () => {
+    it('records accepted-safe state when provider success is followed by persistence failure', async () => {
       const updateSpy = vi
         .spyOn(prisma.emailDeliveryLog, 'update')
         .mockRejectedValueOnce(new Error('delivery log write failed'));
@@ -464,12 +456,27 @@ describe('Organisation Trainee API Integration Tests', () => {
         .set('Authorization', `Bearer ${fixture.token}`)
         .send({ email: 'unknown.delivery@example.com' });
 
-      updateSpy.mockRestore();
-
       expect(response.status).toBe(201);
       expect(response.body.success).toBe(true);
-      expect(response.body.invitation.deliveryState).toBe('UNKNOWN');
-      expect(response.body.invitation.invitationLifecycleState).toBe('SENT');
+      expect(response.body.invitation.deliveryState).toBe('PENDING');
+
+      await runEmailDispatcherCycle();
+      updateSpy.mockRestore();
+
+      const deliveryLog = await prisma.emailDeliveryLog.findFirstOrThrow({
+        where: { invitationId: response.body.invitation.id },
+      });
+      const deliveryJob = await prisma.emailDeliveryJob.findUniqueOrThrow({
+        where: { deliveryLogId: deliveryLog.id },
+      });
+
+      expect(deliveryLog.deliveryStatus).toBe('FAILED');
+      expect(deliveryJob.status).toBe('FAILED');
+      expect(deliveryJob.lastProviderOutcome).toBe('PROVIDER_PERSISTENCE_FAILED');
+
+      sendMailMock.mockClear();
+      await runEmailDispatcherCycle();
+      expect(sendMailMock).not.toHaveBeenCalled();
     });
   });
 
