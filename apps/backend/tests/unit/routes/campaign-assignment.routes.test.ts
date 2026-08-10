@@ -332,11 +332,11 @@ describe('Campaign Assignment Routes', () => {
       expect(res.body.error).toBe('UNAUTHENTICATED');
     });
 
-    it('returns 400 when organisationId or assignmentId is not a valid UUID', async () => {
+    it('returns 422 when organisationId or assignmentId is not a valid UUID', async () => {
       const res = await request(app).delete(
         `/organisations/${organisationId}/campaign-assignments/not-a-uuid`,
       );
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(422);
       expect(res.body.error).toBe('VALIDATION_ERROR');
     });
 

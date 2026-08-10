@@ -378,16 +378,12 @@ campaignAssignmentRouter.get(
  *     responses:
  *       200:
  *         $ref: '#/components/responses/DeleteCampaignAssignmentOk'
- *       400:
- *         $ref: '#/components/responses/BadRequest'
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  *       403:
  *         $ref: '#/components/responses/Forbidden'
  *       404:
  *         $ref: '#/components/responses/NotFound'
- *       409:
- *         $ref: '#/components/responses/Conflict'
  *       422:
  *         $ref: '#/components/responses/UnprocessableEntity'
  *       429:
@@ -399,6 +395,6 @@ campaignAssignmentRouter.delete(
   '/organisations/:organisationId/campaign-assignments/:assignmentId',
   campaignAssignmentMutationRateLimit,
   requireAuth,
-  validateParams(organisationAndAssignmentIdParamsSchema),
+  validateParams(organisationAndAssignmentIdParamsSchema, { statusCode: 422 }),
   asyncHandler(deleteCampaignAssignmentController),
 );

@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
-import type { Prisma, PrismaClient } from '../generated/prisma/client.js';
+import { Prisma, type PrismaClient } from '../generated/prisma/client.js';
+
 import { prisma } from '../lib/prisma.js';
 
 type DBClient = PrismaClient | Prisma.TransactionClient;
@@ -792,6 +793,7 @@ export async function findCampaignAssignmentsByTrainee(
 export type DeleteCampaignAssignmentInput = {
   organisationId: string;
   assignmentId: string;
+  actorUserId: string;
 };
 
 export type DeleteCampaignAssignmentResult =
@@ -818,25 +820,48 @@ export async function deleteCampaignAssignment(
   client: DBClient = prisma,
 ): Promise<DeleteCampaignAssignmentResult> {
   const runInTx = async (tx: DBClient): Promise<DeleteCampaignAssignmentResult> => {
-    const assignment = await tx.campaignAssignment.findFirst({
-      where: {
-        id: input.assignmentId,
-        accessType: 'ASSIGNED',
-        campaign: {
-          organisationId: input.organisationId,
-        },
-        traineeProfile: {
-          organisationTraineeProfile: {
+    let assignment: { id: string; campaignId: string; traineeProfileId: string } | null;
+
+    if (typeof (tx as { $queryRaw?: unknown }).$queryRaw === 'function') {
+      const rows = await (
+        tx as {
+          $queryRaw: <R>(query: Prisma.Sql) => Promise<R>;
+        }
+      ).$queryRaw<Array<{ id: string; campaignId: string; traineeProfileId: string }>>(
+        Prisma.sql`
+          SELECT ca.id, ca."campaignId", ca."traineeProfileId"
+          FROM "CampaignAssignment" ca
+          INNER JOIN "Campaign" c ON c.id = ca."campaignId"
+          INNER JOIN "OrganisationTraineeProfile" otp ON otp."traineeProfileId" = ca."traineeProfileId"
+          WHERE ca.id = ${input.assignmentId}
+            AND c."organisationId" = ${input.organisationId}
+            AND otp."organisationId" = ${input.organisationId}
+            AND ca."accessType" = 'ASSIGNED'
+          FOR UPDATE OF ca
+        `,
+      );
+      assignment = rows[0] ?? null;
+    } else {
+      assignment = await tx.campaignAssignment.findFirst({
+        where: {
+          id: input.assignmentId,
+          accessType: 'ASSIGNED',
+          campaign: {
             organisationId: input.organisationId,
           },
+          traineeProfile: {
+            organisationTraineeProfile: {
+              organisationId: input.organisationId,
+            },
+          },
         },
-      },
-      select: {
-        id: true,
-        campaignId: true,
-        traineeProfileId: true,
-      },
-    });
+        select: {
+          id: true,
+          campaignId: true,
+          traineeProfileId: true,
+        },
+      });
+    }
 
     if (!assignment) {
       return {
@@ -885,6 +910,30 @@ export async function deleteCampaignAssignment(
 
     await tx.campaignAssignment.delete({
       where: { id: assignment.id },
+    });
+
+    await tx.auditLogEntry.create({
+      data: {
+        id: randomUUID(),
+        actorUserId: input.actorUserId,
+        actorType: 'ORGANISATION_ADMIN',
+        organisationId: input.organisationId,
+        targetType: 'CAMPAIGN',
+        targetId: assignment.campaignId,
+        actionType: 'REVOKED',
+        outcome: 'SUCCESS',
+        metadata: {
+          assignmentId: assignment.id,
+          campaignId: assignment.campaignId,
+          traineeProfileId: assignment.traineeProfileId,
+          unassigned: true,
+          deletedProgress: {
+            quizAttempts: quizAttemptsResult.count,
+            emailClassificationResponses: emailClassificationResult.count,
+            interactionEvents: interactionEventsResult.count,
+          },
+        },
+      },
     });
 
     return {

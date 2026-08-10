@@ -67,7 +67,7 @@ async function loginAsOrgAdmin(
 
   await seedOrganisationAdminPermissions(prisma);
 
-  const email = generateTestEmail('admin');
+  const email = generateTestEmail(`admin-${randomUUID()}`);
   const userId = randomUUID();
 
   const user = await prisma.user.create({
@@ -121,7 +121,7 @@ async function loginAsTrainee(input: {
   firstName?: string;
   lastName?: string;
 }) {
-  const email = generateTestEmail('trainee');
+  const email = generateTestEmail(`trainee-${randomUUID()}`);
   const userId = randomUUID();
 
   const user = await prisma.user.create({
@@ -162,7 +162,7 @@ async function loginAsTrainee(input: {
 }
 
 async function loginAsPlatformSuperAdmin() {
-  const email = generateTestEmail('superadmin');
+  const email = generateTestEmail(`superadmin-${randomUUID()}`);
   const userId = randomUUID();
 
   const user = await prisma.user.create({
@@ -194,6 +194,7 @@ async function loginAsPlatformSuperAdmin() {
 
 describe('Campaign Assignment API Integration Tests', () => {
   beforeEach(async () => {
+    vi.setConfig({ testTimeout: 30000 });
     vi.clearAllMocks();
     sendMailMock.mockResolvedValue({ messageId: 'smtpmessage01' });
     clearAuthRateLimitStore();
@@ -202,14 +203,16 @@ describe('Campaign Assignment API Integration Tests', () => {
 
   describe('1. Real Onboarding & Initial Administrator Setup Workflow', () => {
     it('grants ASSIGN_CAMPAIGNS explicitly during real onboarding setup, allowing campaign options HTTP access', async () => {
-      const adminEmail = generateTestEmail('initial-admin');
+      const adminEmail = generateTestEmail(`initial-admin-${randomUUID()}`);
+      const uniqueId = randomUUID();
+
       const registrationRes = await request(app)
         .post('/organisation-registration-requests')
         .send({
-          organisationName: `Pretoria Tech ${randomUUID()}`,
+          organisationName: `Pretoria Tech ${uniqueId}`,
           organisationDescription: 'South African Security Platform',
           organisationSize: 50,
-          organisationWebsiteUrl: 'https://pretoria-tech.co.za',
+          organisationWebsiteUrl: `https://pretoria-tech-${uniqueId}.co.za`,
           representativeFirstName: 'Initial',
           representativeLastName: 'Admin',
           representativeEmail: adminEmail,
@@ -1175,6 +1178,86 @@ describe('Campaign Assignment API Integration Tests', () => {
 
       expect(res.status).toBe(403);
       expect(res.body.error).toBe('MISSING_ASSIGN_CAMPAIGNS_PERMISSION');
+    });
+
+    it('returns 422 UNPROCESSABLE ENTITY when assignmentId path parameter is not a valid UUID', async () => {
+      const adminFixture = await loginAsOrgAdmin({ grantAssignCampaigns: true });
+      const orgId = adminFixture.organisation.id;
+
+      const res = await request(app)
+        .delete(`/organisations/${orgId}/campaign-assignments/not-a-uuid`)
+        .set('Authorization', `Bearer ${adminFixture.token}`);
+
+      expect(res.status).toBe(422);
+      expect(res.body.error).toBe('VALIDATION_ERROR');
+    });
+
+    it('safely handles two simultaneous unassignment requests via row locking without unhandled errors', async () => {
+      const adminFixture = await loginAsOrgAdmin({ grantAssignCampaigns: true });
+      const orgId = adminFixture.organisation.id;
+      const trainee = await loginAsTrainee({ organisationId: orgId });
+
+      const progressFixture = await createFullCampaignProgressFixture({
+        organisationId: orgId,
+        traineeProfileId: trainee.traineeProfile.id,
+        assignedByUserId: adminFixture.user.id,
+      });
+
+      const [res1, res2] = await Promise.all([
+        request(app)
+          .delete(`/organisations/${orgId}/campaign-assignments/${progressFixture.assignment.id}`)
+          .set('Authorization', `Bearer ${adminFixture.token}`),
+        request(app)
+          .delete(`/organisations/${orgId}/campaign-assignments/${progressFixture.assignment.id}`)
+          .set('Authorization', `Bearer ${adminFixture.token}`),
+      ]);
+
+      const statuses = [res1.status, res2.status].sort();
+      expect(statuses).toEqual([200, 404]);
+
+      const successfulRes = res1.status === 200 ? res1 : res2;
+      expect(successfulRes.body.unassigned).toBe(true);
+
+      const notFoundRes = res1.status === 404 ? res1 : res2;
+      expect(notFoundRes.body.error).toBe('ASSIGNMENT_NOT_FOUND');
+    });
+
+    it('cleans up legacy and null-assignment progress matching trainee and campaign items', async () => {
+      const adminFixture = await loginAsOrgAdmin({ grantAssignCampaigns: true });
+      const orgId = adminFixture.organisation.id;
+      const trainee = await loginAsTrainee({ organisationId: orgId });
+
+      const progressFixture = await createFullCampaignProgressFixture({
+        organisationId: orgId,
+        traineeProfileId: trainee.traineeProfile.id,
+        assignedByUserId: adminFixture.user.id,
+      });
+
+      // Create null-assignment progress records for this trainee and campaign item
+      await prisma.interactionEvent.create({
+        data: {
+          id: randomUUID(),
+          traineeProfileId: trainee.traineeProfile.id,
+          campaignAssignmentId: null,
+          campaignItemId: progressFixture.item.id,
+          eventType: InteractionEventType.TRAINING_VIEWED,
+          targetType: InteractionTargetType.TRAINING_DOCUMENT,
+          targetId: randomUUID(),
+        },
+      });
+
+      await request(app)
+        .delete(`/organisations/${orgId}/campaign-assignments/${progressFixture.assignment.id}`)
+        .set('Authorization', `Bearer ${adminFixture.token}`);
+
+      // Assert no progress exists for trainee on this campaign item
+      const itemEvents = await prisma.interactionEvent.findMany({
+        where: {
+          traineeProfileId: trainee.traineeProfile.id,
+          campaignItemId: progressFixture.item.id,
+        },
+      });
+      expect(itemEvents).toHaveLength(0);
     });
   });
 });

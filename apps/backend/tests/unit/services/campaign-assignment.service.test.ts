@@ -322,27 +322,7 @@ describe('CampaignAssignmentService', () => {
       expect(repoMock.deleteCampaignAssignment).toHaveBeenCalledWith({
         organisationId,
         assignmentId,
-      });
-
-      expect(auditMock.recordAuditLog).toHaveBeenCalledWith({
         actorUserId,
-        actorType: 'ORGANISATION_ADMIN',
-        organisationId,
-        targetType: 'CAMPAIGN',
-        targetId: campaignId1,
-        actionType: 'REVOKED',
-        outcome: 'SUCCESS',
-        metadata: {
-          assignmentId,
-          campaignId: campaignId1,
-          traineeProfileId: traineeProfileId1,
-          unassigned: true,
-          deletedProgress: {
-            quizAttempts: 2,
-            emailClassificationResponses: 3,
-            interactionEvents: 8,
-          },
-        },
       });
 
       expect(result).toEqual({

@@ -346,31 +346,11 @@ export async function deleteCampaignAssignment(
   const result = await deleteCampaignAssignmentInRepo({
     organisationId,
     assignmentId,
+    actorUserId,
   });
 
   if (!result.success) {
     throw new CampaignAssignmentServiceError(404, 'ASSIGNMENT_NOT_FOUND', result.message);
-  }
-
-  try {
-    await recordAuditLog({
-      actorUserId,
-      actorType: 'ORGANISATION_ADMIN',
-      organisationId,
-      targetType: 'CAMPAIGN',
-      targetId: result.campaignId,
-      actionType: 'REVOKED',
-      outcome: 'SUCCESS',
-      metadata: {
-        assignmentId: result.assignmentId,
-        campaignId: result.campaignId,
-        traineeProfileId: result.traineeProfileId,
-        unassigned: true,
-        deletedProgress: result.deletedProgress,
-      },
-    });
-  } catch (_auditError) {
-    // Non-blocking audit log catch
   }
 
   return {

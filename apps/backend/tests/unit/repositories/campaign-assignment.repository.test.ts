@@ -35,6 +35,9 @@ vi.mock('../../../src/lib/prisma.js', () => ({
     quizAttempt: {
       deleteMany: vi.fn(),
     },
+    auditLogEntry: {
+      create: vi.fn(),
+    },
     $transaction: vi.fn((cb) => cb(prisma)),
   },
 }));
@@ -160,7 +163,7 @@ describe('CampaignAssignmentRepository', () => {
     it('returns ASSIGNMENT_NOT_FOUND if campaign assignment is not found', async () => {
       (prisma.campaignAssignment.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce(null);
 
-      const result = await deleteCampaignAssignment({ organisationId, assignmentId });
+      const result = await deleteCampaignAssignment({ organisationId, assignmentId, actorUserId });
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -168,7 +171,7 @@ describe('CampaignAssignmentRepository', () => {
       }
     });
 
-    it('deletes progress and assignment in dependency-safe order', async () => {
+    it('deletes progress, assignment, and writes audit record in single transaction', async () => {
       (prisma.campaignAssignment.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         id: assignmentId,
         campaignId,
@@ -189,8 +192,9 @@ describe('CampaignAssignmentRepository', () => {
         count: 1,
       });
       (prisma.campaignAssignment.delete as ReturnType<typeof vi.fn>).mockResolvedValueOnce({});
+      (prisma.auditLogEntry.create as ReturnType<typeof vi.fn>).mockResolvedValueOnce({});
 
-      const result = await deleteCampaignAssignment({ organisationId, assignmentId });
+      const result = await deleteCampaignAssignment({ organisationId, assignmentId, actorUserId });
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -205,6 +209,45 @@ describe('CampaignAssignmentRepository', () => {
       expect(prisma.campaignAssignment.delete).toHaveBeenCalledWith({
         where: { id: assignmentId },
       });
+      expect(prisma.auditLogEntry.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            actorUserId,
+            actionType: 'REVOKED',
+            outcome: 'SUCCESS',
+            organisationId,
+            targetId: campaignId,
+          }),
+        }),
+      );
+    });
+
+    it('rolls back whole transaction when audit log insertion fails', async () => {
+      (prisma.campaignAssignment.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        id: assignmentId,
+        campaignId,
+        traineeProfileId,
+      });
+      (prisma.campaignItem.findMany as ReturnType<typeof vi.fn>).mockResolvedValueOnce([
+        { id: 'item-1' },
+      ]);
+      (prisma.interactionEvent.deleteMany as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        count: 4,
+      });
+      (
+        prisma.emailClassificationResponse.deleteMany as ReturnType<typeof vi.fn>
+      ).mockResolvedValueOnce({ count: 2 });
+      (prisma.quizAttempt.deleteMany as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        count: 1,
+      });
+      (prisma.campaignAssignment.delete as ReturnType<typeof vi.fn>).mockResolvedValueOnce({});
+      (prisma.auditLogEntry.create as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
+        new Error('Database write failure on audit entry'),
+      );
+
+      await expect(
+        deleteCampaignAssignment({ organisationId, assignmentId, actorUserId }),
+      ).rejects.toThrow('Database write failure on audit entry');
     });
   });
 });
