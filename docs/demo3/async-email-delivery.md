@@ -34,6 +34,8 @@ This keeps user-facing requests responsive while still recording the final provi
 
 Controllers and feature services do not call SMTP directly.
 
+When delivery is required for a business operation, the feature service queues the render-ready email job inside the same database transaction as the token, invitation, or account-state change. If the local queue cannot persist the job, the related business change is rolled back instead of leaving a usable token or invitation without a durable delivery job.
+
 ## 3. Queue Acceptance and Provider Delivery
 
 The immediate response only describes durable local queue acceptance.
@@ -98,6 +100,8 @@ The update uses the stored related entity values, action-token state, active inv
 MailPit remains the development SMTP capture tool.
 
 The configured SMTP mailer remains the primary production transport boundary. Resend may be used through SMTP configuration, but a Resend API fallback is not implemented in this issue.
+
+Production configuration fails closed: SMTP host, sender address, username, password, and supported port/security combinations must be valid before the backend starts. MailPit remains development-only, while Resend SMTP is represented as normal SMTP configuration.
 
 Provider-specific details stay inside the SMTP adapter and dispatcher. Feature services receive safe queue semantics rather than raw provider responses.
 

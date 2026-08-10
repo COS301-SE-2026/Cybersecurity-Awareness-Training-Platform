@@ -1,4 +1,5 @@
 import type { EmailDeliveryType } from '../generated/prisma/client.js';
+import type { EmailDeliveryRepositoryClient } from '../repositories/email-delivery.repository.js';
 import { sendEmail } from './email.service.js';
 import type { EmailSendOutcome } from './email.service.js';
 
@@ -33,21 +34,25 @@ export const shouldRevokeTokenForAuthEmailResult = (result: AuthEmailHookResult)
 
 export async function requestAuthEmailSend(
   input: AuthEmailHookInput,
+  client?: EmailDeliveryRepositoryClient,
 ): Promise<AuthEmailHookResult> {
-  const result = await sendEmail({
-    emailType: input.emailType,
-    recipientEmail: input.recipientEmail,
-    relatedEntity: {
-      userId: input.userId ?? null,
-      actionTokenId: input.actionTokenId ?? null,
-      organisationId: input.organisationId ?? null,
-      invitationId: input.invitationId ?? null,
-      organisationRegistrationRequestId: input.organisationRegistrationRequestId ?? null,
-      fallbackType: input.relatedEntityType,
-      fallbackId: input.relatedEntityId ?? null,
+  const result = await sendEmail(
+    {
+      emailType: input.emailType,
+      recipientEmail: input.recipientEmail,
+      relatedEntity: {
+        userId: input.userId ?? null,
+        actionTokenId: input.actionTokenId ?? null,
+        organisationId: input.organisationId ?? null,
+        invitationId: input.invitationId ?? null,
+        organisationRegistrationRequestId: input.organisationRegistrationRequestId ?? null,
+        fallbackType: input.relatedEntityType,
+        fallbackId: input.relatedEntityId ?? null,
+      },
+      templateData: input.templateData,
     },
-    templateData: input.templateData,
-  });
+    client,
+  );
 
   switch (result.status) {
     case 'NOT_QUEUED':

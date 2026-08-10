@@ -11,7 +11,6 @@ import {
 import type { Prisma } from '../generated/prisma/client.js';
 import type { AuditActorType } from '../generated/prisma/enums.js';
 import {
-  cancelEmailChangeRequest,
   cancelPendingEmailChangeRequests,
   createEmailChangeRequest,
   findAccountSessionForUser,
@@ -36,12 +35,9 @@ import {
   type AccountUserRecord,
 } from '../repositories/account.repository.js';
 import { findAuthSubjectByUserId } from '../repositories/user.repository.js';
-import { issueActionToken, revokeActionTokenById } from './action-token.service.js';
+import { issueActionToken } from './action-token.service.js';
 import { recordAuditLog } from './audit-log.service.js';
-import {
-  requestAuthEmailSend,
-  shouldRevokeTokenForAuthEmailResult,
-} from './auth-email-hook.service.js';
+import { requestAuthEmailSend } from './auth-email-hook.service.js';
 import {
   organisationIdForSecurityPolicy,
   resolveEffectiveSecurityPolicy,
@@ -435,6 +431,17 @@ function emailPersistenceAuditMetadata(
   return emailResult.status === 'NOT_QUEUED' ? { emailQueueFailure: true } : {};
 }
 
+function assertEmailChangeConfirmationQueued(
+  emailResult: Awaited<ReturnType<typeof requestAuthEmailSend>>,
+) {
+  if (emailResult.status === 'NOT_QUEUED') {
+    throw conflictError(
+      'ACCOUNT_EMAIL_CHANGE_QUEUE_FAILED',
+      'Email change confirmation could not be queued for delivery.',
+    );
+  }
+}
+
 async function sendEmailChangeWarning(input: {
   userId: string;
   oldEmail: string;
@@ -619,36 +626,32 @@ export async function requestAccountEmailChange(
       tx,
     );
 
+    const emailResult = await requestAuthEmailSend(
+      {
+        emailType: 'EMAIL_CHANGE_CONFIRMATION',
+        recipientEmail: requestedEmail,
+        userId,
+        actionTokenId: actionToken.token.id,
+        relatedEntityType: 'EMAIL_CHANGE_REQUEST',
+        relatedEntityId: request.id,
+        templateData: {
+          firstName: userWithPassword.firstName,
+          oldEmail: userWithPassword.email,
+          newEmail: requestedEmail,
+          actionToken: actionToken.rawToken,
+          actionTokenExpiresAt: actionToken.token.expiresAt,
+        },
+      },
+      tx,
+    );
+    assertEmailChangeConfirmationQueued(emailResult);
+
     return {
       request,
       actionToken,
+      emailResult,
     };
   });
-
-  const emailResult = await requestAuthEmailSend({
-    emailType: 'EMAIL_CHANGE_CONFIRMATION',
-    recipientEmail: requestedEmail,
-    userId,
-    actionTokenId: emailChange.actionToken.token.id,
-    relatedEntityType: 'EMAIL_CHANGE_REQUEST',
-    relatedEntityId: emailChange.request.id,
-    templateData: {
-      firstName: userWithPassword.firstName,
-      oldEmail: userWithPassword.email,
-      newEmail: requestedEmail,
-      actionToken: emailChange.actionToken.rawToken,
-      actionTokenExpiresAt: emailChange.actionToken.token.expiresAt,
-    },
-  });
-
-  if (shouldRevokeTokenForAuthEmailResult(emailResult)) {
-    const now = new Date();
-    await revokeActionTokenById({
-      tokenId: emailChange.actionToken.token.id,
-      reason: 'EMAIL_SEND_FAILED',
-    });
-    await cancelEmailChangeRequest({ requestId: emailChange.request.id, now });
-  }
 
   await recordAuditLog({
     actorUserId: userId,
@@ -657,28 +660,26 @@ export async function requestAccountEmailChange(
     targetType: 'USER',
     targetId: userId,
     actionType: 'SETTINGS_CHANGED',
-    outcome: emailResult.status === 'NOT_QUEUED' ? 'FAILURE' : 'SUCCESS',
+    outcome: 'SUCCESS',
     metadata: {
       changeType: 'EMAIL_CHANGE_CONFIRMATION_DELIVERY',
-      emailQueued: emailResult.queued,
-      emailOutcomeStatus: emailResult.status,
-      ...emailPersistenceAuditMetadata(emailResult),
+      emailQueued: emailChange.emailResult.queued,
+      emailOutcomeStatus: emailChange.emailResult.status,
+      ...emailPersistenceAuditMetadata(emailChange.emailResult),
     },
   });
 
-  if (emailResult.status !== 'NOT_QUEUED') {
-    await sendEmailChangeWarning({
-      userId,
-      oldEmail: userWithPassword.email,
-      newEmail: requestedEmail,
-      firstName: userWithPassword.firstName,
-      requestId: emailChange.request.id,
-    });
-  }
+  await sendEmailChangeWarning({
+    userId,
+    oldEmail: userWithPassword.email,
+    newEmail: requestedEmail,
+    firstName: userWithPassword.firstName,
+    requestId: emailChange.request.id,
+  });
 
   return {
     message: EMAIL_CHANGE_GENERIC_MESSAGE,
-    emailQueued: emailResult.queued,
+    emailQueued: emailChange.emailResult.queued,
   };
 }
 

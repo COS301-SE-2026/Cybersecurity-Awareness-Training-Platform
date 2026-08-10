@@ -54,6 +54,16 @@ export class OrganisationTraineeServiceError extends Error {
   }
 }
 
+function assertEmailQueued(result: Awaited<ReturnType<typeof sendEmail>>) {
+  if (result.status === 'NOT_QUEUED') {
+    throw new OrganisationTraineeServiceError(
+      503,
+      'EMAIL_QUEUE_FAILED',
+      'Invitation email could not be queued for delivery.',
+    );
+  }
+}
+
 function assertTraineeMutationAllowed(status: string) {
   if (status === 'ACTIVE') {
     return;
@@ -487,24 +497,28 @@ export async function createOrganisationTraineeInvitation(
       tx,
     );
 
-    return { invitation, actionToken, rawToken, expiresAt };
-  });
+    const emailResult = await sendEmail(
+      {
+        emailType: 'ORGANISATION_TRAINEE_INVITE',
+        recipientEmail: normalisedEmail,
+        relatedEntity: {
+          organisationId,
+          invitationId: invitation.id,
+          actionTokenId: actionToken.id,
+        },
+        templateData: {
+          firstName: input.firstName,
+          organisationName: actor.organisation.name,
+          actionToken: rawToken,
+          actionTokenExpiresAt: expiresAt,
+          requiresAccountConflictResolution,
+        },
+      },
+      tx,
+    );
+    assertEmailQueued(emailResult);
 
-  const emailResult = await sendEmail({
-    emailType: 'ORGANISATION_TRAINEE_INVITE',
-    recipientEmail: normalisedEmail,
-    relatedEntity: {
-      organisationId,
-      invitationId: txResult.invitation.id,
-      actionTokenId: txResult.actionToken.id,
-    },
-    templateData: {
-      firstName: input.firstName,
-      organisationName: actor.organisation.name,
-      actionToken: txResult.rawToken,
-      actionTokenExpiresAt: txResult.expiresAt,
-      requiresAccountConflictResolution,
-    },
+    return { invitation, actionToken, rawToken, expiresAt, emailResult };
   });
 
   const finalInvite = await prisma.invitation.findUnique({
@@ -520,7 +534,7 @@ export async function createOrganisationTraineeInvitation(
     invitationLifecycleState === 'SENT' ||
     invitationLifecycleState === 'FAILED_TO_SEND';
   const canRevoke = canResend;
-  const emailQueued = emailResult.status === 'QUEUED';
+  const emailQueued = txResult.emailResult.status === 'QUEUED';
   const deliveryState: 'PENDING' | 'SENT' | 'FAILED' | 'UNKNOWN' = emailQueued
     ? 'PENDING'
     : 'FAILED';
@@ -675,28 +689,32 @@ export async function resendTraineeInvitation(
       tx,
     );
 
-    return { actionToken, rawToken, expiresAt, claimedAt };
+    const emailResult = await sendEmail(
+      {
+        emailType: 'ORGANISATION_TRAINEE_INVITE',
+        recipientEmail: invitation.recipientEmail,
+        relatedEntity: {
+          organisationId: invitation.organisationId,
+          invitationId: invitation.id,
+          actionTokenId: actionToken.id,
+          invitationStateVersion: claimedAt.toISOString(),
+        },
+        templateData: {
+          firstName: invitation.recipientFirstName ?? undefined,
+          organisationName: actor.organisation.name,
+          actionToken: rawToken,
+          actionTokenExpiresAt: expiresAt,
+          requiresAccountConflictResolution,
+        },
+      },
+      tx,
+    );
+    assertEmailQueued(emailResult);
+
+    return { actionToken, rawToken, expiresAt, claimedAt, emailResult };
   });
 
-  const emailResult = await sendEmail({
-    emailType: 'ORGANISATION_TRAINEE_INVITE',
-    recipientEmail: invitation.recipientEmail,
-    relatedEntity: {
-      organisationId: invitation.organisationId,
-      invitationId: invitation.id,
-      actionTokenId: txResult.actionToken.id,
-      invitationStateVersion: txResult.claimedAt.toISOString(),
-    },
-    templateData: {
-      firstName: invitation.recipientFirstName ?? undefined,
-      organisationName: actor.organisation.name,
-      actionToken: txResult.rawToken,
-      actionTokenExpiresAt: txResult.expiresAt,
-      requiresAccountConflictResolution,
-    },
-  });
-
-  const emailQueued = emailResult.status === 'QUEUED';
+  const emailQueued = txResult.emailResult.status === 'QUEUED';
   const deliveryState: 'PENDING' | 'SENT' | 'FAILED' | 'UNKNOWN' = emailQueued
     ? 'PENDING'
     : 'FAILED';

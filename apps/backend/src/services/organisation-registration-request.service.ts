@@ -13,7 +13,6 @@ import { prisma } from '../lib/prisma.js';
 import { Prisma } from '../generated/prisma/client.js';
 import { issueActionToken } from './action-token.service.js';
 import { ensureDefaultOrganisationSecuritySettings } from '../repositories/security-settings.repository.js';
-import { recordNotificationFailureEvent } from './notification-failure-event.service.js';
 import { ORGANISATION_PERMISSION_SEEDS } from '../constants/organisation-permission-seeds.js';
 
 export class OrganisationRegistrationRequestError extends Error {
@@ -24,6 +23,16 @@ export class OrganisationRegistrationRequestError extends Error {
   ) {
     super(message);
     this.name = 'OrganisationRegistrationRequestError';
+  }
+}
+
+function assertRequiredEmailQueued(result: Awaited<ReturnType<typeof requestAuthEmailSend>>) {
+  if (result.status === 'NOT_QUEUED') {
+    throw new OrganisationRegistrationRequestError(
+      409,
+      'EMAIL_QUEUE_FAILED',
+      'Required email could not be queued for delivery',
+    );
   }
 }
 
@@ -678,11 +687,31 @@ export async function approveOrganisationRequest(
         tx,
       );
 
+      const emailResult = await requestAuthEmailSend(
+        {
+          emailType: 'INITIAL_ORGANISATION_ADMIN_SETUP',
+          recipientEmail: input.initialAdminEmail,
+          organisationId: organisation.id,
+          invitationId: invitation.id,
+          actionTokenId: actionTokenResult.token.id,
+          organisationRegistrationRequestId: requestId,
+          templateData: {
+            firstName: invitation.recipientFirstName ?? '',
+            organisationName: organisation.name,
+            actionToken: actionTokenResult.rawToken,
+            actionTokenExpiresAt: actionTokenResult.token.expiresAt,
+          },
+        },
+        tx,
+      );
+      assertRequiredEmailQueued(emailResult);
+
       return {
         updatedRequest,
         organisation,
         invitation,
         actionToken: actionTokenResult,
+        emailResult,
       };
     });
   } catch (error: unknown) {
@@ -720,30 +749,6 @@ export async function approveOrganisationRequest(
     throw error;
   }
 
-  const emailResult = await requestAuthEmailSend({
-    emailType: 'INITIAL_ORGANISATION_ADMIN_SETUP',
-    recipientEmail: input.initialAdminEmail,
-    organisationId: result.organisation.id,
-    invitationId: result.invitation.id,
-    actionTokenId: result.actionToken.token.id,
-    organisationRegistrationRequestId: requestId,
-    templateData: {
-      firstName: result.invitation.recipientFirstName ?? '',
-      organisationName: result.organisation.name,
-      actionToken: result.actionToken.rawToken,
-      actionTokenExpiresAt: result.actionToken.token.expiresAt,
-    },
-  });
-
-  if (emailResult.status === 'NOT_QUEUED') {
-    await recoverInitialSetupEmailSendFailure({
-      actorUserId,
-      organisationId: result.organisation.id,
-      invitationId: result.invitation.id,
-      actionTokenId: result.actionToken.token.id,
-    });
-  }
-
   return {
     ...result.updatedRequest,
     createdAt: result.updatedRequest.createdAt.toISOString(),
@@ -755,96 +760,8 @@ export async function approveOrganisationRequest(
       id: result.organisation.id,
       name: result.organisation.name,
     },
-    setupEmailQueued: emailResult.queued,
+    setupEmailQueued: result.emailResult.queued,
   };
-}
-
-async function recoverInitialSetupEmailSendFailure(input: {
-  actorUserId: string;
-  organisationId: string;
-  invitationId: string;
-  actionTokenId: string;
-}) {
-  try {
-    await prisma.$transaction(async (tx) => {
-      await tx.invitation.updateMany({
-        where: {
-          id: input.invitationId,
-          status: { in: ['PENDING', 'SENT', 'FAILED_TO_SEND'] },
-        },
-        data: {
-          status: 'FAILED_TO_SEND',
-        },
-      });
-
-      const invitation = await tx.invitation.findUnique({
-        where: { id: input.invitationId },
-        select: { status: true },
-      });
-
-      if (!invitation || invitation.status !== 'FAILED_TO_SEND') {
-        throw new OrganisationRegistrationRequestError(
-          409,
-          'SETUP_EMAIL_RECOVERY_FAILED',
-          'Setup email failure recovery could not mark the invitation failed',
-        );
-      }
-
-      await tx.actionToken.updateMany({
-        where: {
-          id: input.actionTokenId,
-          usedAt: null,
-          OR: [{ revokedAt: null }, { revokedReason: 'EMAIL_SEND_FAILED' }],
-        },
-        data: {
-          revokedAt: new Date(),
-          revokedReason: 'EMAIL_SEND_FAILED',
-        },
-      });
-
-      const token = await tx.actionToken.findUnique({
-        where: { id: input.actionTokenId },
-        select: {
-          usedAt: true,
-          revokedAt: true,
-          revokedReason: true,
-        },
-      });
-
-      if (
-        !token ||
-        token.usedAt ||
-        !token.revokedAt ||
-        token.revokedReason !== 'EMAIL_SEND_FAILED'
-      ) {
-        throw new OrganisationRegistrationRequestError(
-          409,
-          'SETUP_EMAIL_RECOVERY_FAILED',
-          'Setup email failure recovery could not revoke the setup token',
-        );
-      }
-
-      await recordAuditLog(
-        {
-          actorUserId: input.actorUserId,
-          actorType: 'IP_ADMIN',
-          targetType: 'INVITATION',
-          targetId: input.invitationId,
-          actionType: 'INVITED',
-          outcome: 'FAILURE',
-          organisationId: input.organisationId,
-          metadata: {
-            emailOutcome: 'NOT_QUEUED',
-            reason: 'EMAIL_QUEUE_FAILED',
-          },
-        },
-        tx,
-      );
-    });
-  } catch (error) {
-    await recordNotificationFailureEvent('SETUP_EMAIL_RECOVERY_FAILED');
-    throw error;
-  }
 }
 
 export async function deleteOrganisationRequest(actorUserId: string, requestId: string) {

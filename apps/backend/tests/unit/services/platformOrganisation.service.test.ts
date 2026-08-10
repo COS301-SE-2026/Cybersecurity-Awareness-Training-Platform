@@ -616,6 +616,7 @@ describe('platformOrganisation service', () => {
           invitationId: inviteUuid,
           actionTokenId: newTokenUuid,
         }),
+        prismaMock,
       );
       expect(response.setupStatus?.latestActionToken).toEqual(
         expect.objectContaining({
@@ -683,7 +684,7 @@ describe('platformOrganisation service', () => {
       );
     });
 
-    it('does not revoke the replacement setup token when the email hook outcome is unknown', async () => {
+    it('propagates an unexpected setup email hook failure inside the transaction', async () => {
       const mockOrg = {
         id: organisationId,
         name: 'Target Org',
@@ -714,26 +715,18 @@ describe('platformOrganisation service', () => {
         new Error('unexpected hook failure'),
       );
 
-      const response = await resendInitialAdminSetup(actorUserId, organisationId);
-
-      expect(response.success).toBe(true);
-      expect(response.emailQueued).toBe(false);
+      await expect(resendInitialAdminSetup(actorUserId, organisationId)).rejects.toThrow(
+        'unexpected hook failure',
+      );
       expect(prismaMock.actionToken.update).not.toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'new-token-id' },
           data: expect.objectContaining({ revokedReason: 'EMAIL_SEND_FAILED' }),
         }),
       );
-      expect(auditLogMock.recordAuditLog).toHaveBeenCalledWith({
-        actorType: 'SYSTEM',
-        targetType: 'OTHER',
-        actionType: 'UPDATED',
-        outcome: 'FAILURE',
-        metadata: { eventType: 'EMAIL_HOOK_UNEXPECTED_FAILURE' },
-      });
     });
 
-    it('revokes the replacement setup token only when the queue does not accept it', async () => {
+    it('rejects the resend transaction when the queue does not accept the setup email', async () => {
       const mockOrg = {
         id: organisationId,
         name: 'Target Org',
@@ -768,23 +761,11 @@ describe('platformOrganisation service', () => {
         reason: 'EMAIL_QUEUE_FAILED',
       });
 
-      const response = await resendInitialAdminSetup(actorUserId, organisationId);
-
-      expect(response.success).toBe(true);
-      expect(response.emailQueued).toBe(false);
-      expect(prismaMock.actionToken.update).toHaveBeenCalledWith({
-        where: { id: 'new-token-id' },
-        data: {
-          revokedAt: expect.any(Date),
-          revokedReason: 'EMAIL_SEND_FAILED',
-        },
+      await expect(resendInitialAdminSetup(actorUserId, organisationId)).rejects.toMatchObject({
+        statusCode: 409,
+        error: 'EMAIL_QUEUE_FAILED',
       });
-      expect(auditLogMock.recordAuditLog).toHaveBeenCalledWith(
-        expect.objectContaining({
-          outcome: 'FAILURE',
-          metadata: { error: 'Email was not accepted into the delivery queue' },
-        }),
-      );
+      expect(prismaMock.actionToken.update).not.toHaveBeenCalled();
     });
 
     it('throws 409 Conflict if organisation is already active', async () => {

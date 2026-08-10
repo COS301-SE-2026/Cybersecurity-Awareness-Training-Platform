@@ -70,10 +70,11 @@ describe('createOrganisationRegistrationRequest', () => {
     mockNoExistingConflicts();
     mockCreatedRequest();
     emailHookMock.requestAuthEmailSend.mockResolvedValue({
-      status: 'ACCEPTED',
-      acceptedByProvider: true,
+      status: 'QUEUED',
+      queueAccepted: true,
       queued: true,
       deliveryLogId: 'email-log-1',
+      jobId: 'email-job-1',
     });
     auditLogMock.recordAuditLog.mockResolvedValue({ id: 'audit-1' });
   });
@@ -160,12 +161,12 @@ describe('createOrganisationRegistrationRequest', () => {
     });
   });
 
-  it('does not fail submission when the email hook reports failure', async () => {
+  it('does not fail public submission when the confirmation email hook reports failure', async () => {
     emailHookMock.requestAuthEmailSend.mockResolvedValue({
-      status: 'NOT_ACCEPTED',
-      acceptedByProvider: false,
+      status: 'NOT_QUEUED',
+      queueAccepted: false,
       queued: false,
-      reason: 'EMAIL_SEND_FAILED',
+      reason: 'EMAIL_QUEUE_FAILED',
       deliveryLogId: 'email-log-1',
     });
 

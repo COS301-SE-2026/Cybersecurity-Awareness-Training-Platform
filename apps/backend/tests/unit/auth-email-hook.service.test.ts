@@ -48,20 +48,23 @@ describe('requestAuthEmailSend', () => {
       queued: false,
       reason: 'EMAIL_QUEUE_FAILED',
     });
-    expect(sendEmailMock).toHaveBeenCalledWith({
-      emailType: 'EMAIL_VERIFICATION',
-      recipientEmail: 'learner@example.test',
-      relatedEntity: {
-        userId: 'user-1',
-        actionTokenId: 'action-token-1',
-        organisationId: null,
-        invitationId: null,
-        organisationRegistrationRequestId: null,
-        fallbackType: undefined,
-        fallbackId: null,
+    expect(sendEmailMock).toHaveBeenCalledWith(
+      {
+        emailType: 'EMAIL_VERIFICATION',
+        recipientEmail: 'learner@example.test',
+        relatedEntity: {
+          userId: 'user-1',
+          actionTokenId: 'action-token-1',
+          organisationId: null,
+          invitationId: null,
+          organisationRegistrationRequestId: null,
+          fallbackType: undefined,
+          fallbackId: null,
+        },
+        templateData: undefined,
       },
-      templateData: undefined,
-    });
+      undefined,
+    );
   });
 
   it('queues organisation request received email through the central email service', async () => {
@@ -76,22 +79,25 @@ describe('requestAuthEmailSend', () => {
       },
     });
 
-    expect(sendEmailMock).toHaveBeenCalledWith({
-      emailType: 'ORGANISATION_REQUEST_RECEIVED',
-      recipientEmail: 'representative@example.test',
-      relatedEntity: {
-        userId: null,
-        actionTokenId: null,
-        organisationId: null,
-        invitationId: null,
-        organisationRegistrationRequestId: 'request-1',
-        fallbackType: undefined,
-        fallbackId: null,
+    expect(sendEmailMock).toHaveBeenCalledWith(
+      {
+        emailType: 'ORGANISATION_REQUEST_RECEIVED',
+        recipientEmail: 'representative@example.test',
+        relatedEntity: {
+          userId: null,
+          actionTokenId: null,
+          organisationId: null,
+          invitationId: null,
+          organisationRegistrationRequestId: 'request-1',
+          fallbackType: undefined,
+          fallbackId: null,
+        },
+        templateData: {
+          organisationName: 'Example Consulting',
+        },
       },
-      templateData: {
-        organisationName: 'Example Consulting',
-      },
-    });
+      undefined,
+    );
     expect(result).toEqual(queuedEmailResult);
   });
 
@@ -113,6 +119,7 @@ describe('requestAuthEmailSend', () => {
           organisationName: '<Example & Sons>',
         },
       }),
+      undefined,
     );
   });
 
