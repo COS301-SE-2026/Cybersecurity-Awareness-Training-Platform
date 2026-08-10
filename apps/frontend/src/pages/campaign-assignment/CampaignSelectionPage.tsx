@@ -43,6 +43,17 @@ function CampaignSelectionPage({
     );
   };
 
+  let campaignSelectionText = 'No Training Campaigns Selected';
+  if (selectedCampaignIds.length > 0) {
+    campaignSelectionText = `${selectedCampaignIds.length} Training Campaign`;
+
+    if (selectedCampaignIds.length !== 1) {
+      campaignSelectionText += 's';
+    }
+
+    campaignSelectionText += ' Selected';
+  }
+
   return (
     <div className="-mt-5 -ml-4">
       <div className="grid grid-cols-[1fr_auto]">
@@ -69,11 +80,7 @@ function CampaignSelectionPage({
               selectedCampaignIds.length === 0 ? 'text-red-600' : 'text-pink'
             }`}
           >
-            {selectedCampaignIds.length === 0
-              ? 'No Training Campaigns Selected'
-              : `${selectedCampaignIds.length} Training Campaign${
-                  selectedCampaignIds.length === 1 ? '' : 's'
-                } Selected`}
+            {campaignSelectionText}
           </p>
 
           <div className="grid grid-cols-2 gap-2">

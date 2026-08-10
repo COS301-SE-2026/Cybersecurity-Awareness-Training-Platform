@@ -57,6 +57,18 @@ function OrganisationTraineeSelectionPage({
       return [...currentSelectedIds, traineeProfileId];
     });
   };
+
+  let traineeSelectionText = 'No Organisation Trainees Selected';
+  if (selectedTraineeIds.length > 0) {
+    traineeSelectionText = `${selectedTraineeIds.length} Organisation Trainee`;
+
+    if (selectedTraineeIds.length !== 1) {
+      traineeSelectionText += 's';
+    }
+
+    traineeSelectionText += ' Selected';
+  }
+
   return (
     <div className="-mt-5 -ml-4">
       <div className="grid grid-cols-2 gap-12">
@@ -83,11 +95,7 @@ function OrganisationTraineeSelectionPage({
               selectedTraineeIds.length === 0 ? 'text-red-600' : 'text-pink'
             }`}
           >
-            {selectedTraineeIds.length === 0
-              ? 'No Organisation Trainees Selected'
-              : `${selectedTraineeIds.length} Organisation Trainee${
-                  selectedTraineeIds.length === 1 ? '' : 's'
-                } Selected`}
+            {traineeSelectionText}
           </p>
 
           <button
