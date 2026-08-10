@@ -206,40 +206,6 @@ function CampaignSelectionPage({
               </tr>
             </thead>
             <tbody className="font-overpass font-regular text-[1rem] tracking-wider">
-              {/* <tr className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default">
-                <td className="px-3 py-2">
-                  <div className="flex items-center">
-                    <input
-                      id="default-checkbox"
-                      type="checkbox"
-                      className="accent-[#8400ff] w-5 h-5 border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
-                    />
-                  </div>
-                </td>
-                <td
-                  className="truncate max-w-[12rem] px-3 py-2"
-                  title="Phishing Awareness Fundamentals"
-                >
-                  Phishing Awareness Fundamentals
-                </td>
-                <td
-                  className="truncate max-w-[12rem] px-3 py-2"
-                  title="Learn how to identify and respond to common phishing attacks."
-                >
-                  Learn how to identify and respond to common phishing attacks.
-                </td>
-                <td className="px-3 py-3">{getStatusBadge('Active')}</td>
-                <td className="truncate max-w-[12rem] px-3 py-3" title="Phishing">
-                  Phishing
-                </td>
-                <td className="px-3 py-3">12</td>
-                <td className="px-3 py-3">200</td>
-                <td className="px-3 py-3">
-                  <span className="font-google_sans_code">{'01/08/26'}</span> to{' '}
-                  <span className="font-google_sans_code">{'31/08/26'}</span>
-                </td>
-              </tr> */}
-
               {campaigns.map((campaign) => (
                 <tr
                   key={campaign.campaignId}

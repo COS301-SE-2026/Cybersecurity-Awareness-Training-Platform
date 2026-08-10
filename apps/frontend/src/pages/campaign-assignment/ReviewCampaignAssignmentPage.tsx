@@ -1,3 +1,6 @@
+import { mockTraineeCandidates } from '../../testing/fixtures/campaignAssignmentFixtures';
+import { mockAssignableCampaigns } from '../../testing/fixtures/campaignAssignmentFixtures';
+
 type ReviewCampaignAssignmentPageProps = Readonly<{
   selectedTraineeIds: string[];
   selectedCampaignIds: string[];
@@ -12,6 +15,13 @@ function ReviewCampaignAssignmentPage({
   const traineeCount = selectedTraineeIds.length; // # Trainees
   const campaignCount = selectedCampaignIds.length; // # Campaigns
   const assignmentCount = traineeCount * campaignCount; // Total Assignments
+
+  const selectedTrainees = mockTraineeCandidates.filter((trainee) =>
+    selectedTraineeIds.includes(trainee.traineeProfileId),
+  );
+  const selectedCampaigns = mockAssignableCampaigns.filter((campaign) =>
+    selectedCampaignIds.includes(campaign.campaignId),
+  );
 
   return (
     <div className="-mt-5 -ml-4">
@@ -36,17 +46,17 @@ function ReviewCampaignAssignmentPage({
 
         <div className="flex flex-col items-end">
           <p className="font-regular tracking-wide text-[1.2rem] font-left font-jost text-pink">
-            Assigning <span className="font-medium">{'6'}</span> Training Campaign(s) to{' '}
-            <span className="font-medium">{'6'}</span> Organisation Trainee(s)
+            Assigning {traineeCount} Training Campaign(s) to {campaignCount} Organisation Trainee(s)
           </p>
           <p className="font-regular tracking-wide text-[1.2rem] font-left font-jost text-pink mb-2">
-            <span className="font-medium">{'36'}</span> Total Assignment(s)
+            {assignmentCount} Total Assignment(s)
           </p>
 
           <div className="flex gap-4">
             {/* Back Button (TO STEP 1) */}
             <button
               type="button"
+              onClick={onBack}
               className="cursor-pointer w-40 font-jost tracking-wider text-xl text-body font-regular bg-gray-200 hover:bg-gray-300 leading-5 px-4 py-3 focus:outline-none"
             >
               Back
@@ -64,24 +74,10 @@ function ReviewCampaignAssignmentPage({
       </div>
 
       <div>
-        {/* SEARCH AND FILTER BAR */}
-        {/* <div className="w-full mb-4">
-          <div className="relative bg-white-purple border border-gray-200">
-            <div className="flex flex-col items-center justify-between p-4 space-y-3 md:flex-row md:space-y-0 md:space-x-4">
-              <button
-                type="button"
-                className="disabled:hover:bg-gray-200 disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer w-60 font-jost tracking-wider text-xl text-body font-regular bg-gray-200 hover:bg-gray-300 leading-5 px-4 py-2.5 focus:outline-none"
-              >
-                Edit Selections
-              </button>
-            </div>
-          </div>
-        </div> */}
-
         <div className="grid grid-cols-2 gap-6">
           <div>
             <h3 className="font-jost text-xl text-purple tracking-wider font-regular mb-1">
-              Organisation Trainee Selection ({'6'})
+              Organisation Trainee Selection
             </h3>
             <div className="relative max-h-[11.80rem] overflow-y-auto overflow-x-auto bg-neutral-primary-soft border border-default">
               {/* SELECTED ORGANISATION TRAINEES TABLE */}
@@ -103,30 +99,16 @@ function ReviewCampaignAssignmentPage({
                   </tr>
                 </thead>
                 <tbody className="font-overpass font-regular text-[1rem] tracking-wider">
-                  <tr className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default">
-                    <td className="truncate max-w-[12rem] px-3 py-3" title="Connor Bell">
-                      Connor Bell
-                    </td>
-                    <td className="truncate max-w-[12rem] px-3 py-3" title="Connor Bell">
-                      cbell@cbell.co.za
-                    </td>
-                  </tr>
-                  <tr className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default">
-                    <td className="truncate max-w-[12rem] px-3 py-3" title="Connor Bell">
-                      Connor Bell
-                    </td>
-                    <td className="truncate max-w-[12rem] px-3 py-3" title="Connor Bell">
-                      cbell@cbell.co.za
-                    </td>
-                  </tr>
-                  <tr className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default">
-                    <td className="truncate max-w-[12rem] px-3 py-3" title="Connor Bell">
-                      Connor Bell
-                    </td>
-                    <td className="truncate max-w-[12rem] px-3 py-3" title="Connor Bell">
-                      cbell@cbell.co.za
-                    </td>
-                  </tr>
+                  {selectedTrainees.map((trainee) => (
+                    <tr key={trainee.traineeProfileId}>
+                      <td className="truncate max-w-[12rem] px-3 py-3" title="Connor Bell">
+                        {trainee.displayName}
+                      </td>
+                      <td className="truncate max-w-[12rem] px-3 py-3" title="Connor Bell">
+                        {trainee.email}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -134,7 +116,7 @@ function ReviewCampaignAssignmentPage({
 
           <div>
             <h3 className="font-jost text-xl text-purple tracking-wider font-regular mb-1">
-              Training Campaign Selection ({'6'})
+              Training Campaign Selection
             </h3>
             {/* SELECTED TRAINING CAMPAIGNS TABLE */}
             <div className="relative max-h-[11.80rem] overflow-y-auto overflow-x-auto bg-neutral-primary-soft border border-default">
@@ -163,74 +145,31 @@ function ReviewCampaignAssignmentPage({
                   </tr>
                 </thead>
                 <tbody className="font-overpass font-regular text-[1rem] tracking-wider">
-                  <tr className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default">
-                    <td
-                      className="truncate max-w-[6rem] px-3 py-3"
-                      title="Phishing Awareness Fundamentals"
-                    >
-                      Phishing Awareness Fundamentals
-                    </td>
-                    <td
-                      className="truncate max-w-[6rem] px-3 py-3"
-                      title="Learn how to identify and respond to common phishing attacks."
-                    >
-                      Learn how to identify and respond to common phishing attacks.
-                    </td>
-                    <td className="truncate max-w-[6rem] px-3 py-3" title="Phishing">
-                      Phishing
-                    </td>
-                  </tr>
-                  <tr className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default">
-                    <td
-                      className="truncate max-w-[6rem] px-3 py-3"
-                      title="Phishing Awareness Fundamentals"
-                    >
-                      Phishing Awareness Fundamentals
-                    </td>
-                    <td
-                      className="truncate max-w-[6rem] px-3 py-3"
-                      title="Learn how to identify and respond to common phishing attacks."
-                    >
-                      Learn how to identify and respond to common phishing attacks.
-                    </td>
-                    <td className="truncate max-w-[6rem] px-3 py-3" title="Phishing">
-                      Phishing
-                    </td>
-                  </tr>
-                  <tr className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default">
-                    <td
-                      className="truncate max-w-[6rem] px-3 py-3"
-                      title="Phishing Awareness Fundamentals"
-                    >
-                      Phishing Awareness Fundamentals
-                    </td>
-                    <td
-                      className="truncate max-w-[6rem] px-3 py-3"
-                      title="Learn how to identify and respond to common phishing attacks."
-                    >
-                      Learn how to identify and respond to common phishing attacks.
-                    </td>
-                    <td className="truncate max-w-[6rem] px-3 py-3" title="Phishing">
-                      Phishing
-                    </td>
-                  </tr>
-                  <tr className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default">
-                    <td
-                      className="truncate max-w-[6rem] px-3 py-3"
-                      title="Phishing Awareness Fundamentals"
-                    >
-                      Phishing Awareness Fundamentals
-                    </td>
-                    <td
-                      className="truncate max-w-[6rem] px-3 py-3"
-                      title="Learn how to identify and respond to common phishing attacks."
-                    >
-                      Learn how to identify and respond to common phishing attacks.
-                    </td>
-                    <td className="truncate max-w-[6rem] px-3 py-3" title="Phishing">
-                      Phishing
-                    </td>
-                  </tr>
+                  {selectedCampaigns.map((campaign) => (
+                    <tr key={campaign.campaignId}>
+                      <td className="truncate max-w-[6rem] px-3 py-3" title={campaign.name}>
+                        {campaign.name}
+                      </td>
+                      <td
+                        className="truncate max-w-[6rem] px-3 py-3"
+                        title={campaign.description ?? 'No Description'}
+                      >
+                        {campaign.description ?? '—'}
+                      </td>
+                      <td
+                        className="truncate max-w-[6rem] px-3 py-3"
+                        title={
+                          campaign.type === 'PREMADE_GENERAL'
+                            ? 'Premade General'
+                            : 'Organisation Custom'
+                        }
+                      >
+                        {campaign.type === 'PREMADE_GENERAL'
+                          ? 'Premade General'
+                          : 'Organisation Custom'}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
