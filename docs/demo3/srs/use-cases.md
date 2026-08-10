@@ -1613,7 +1613,7 @@ We have decided to include the following use cases even though they are consider
 
 <details> <summary><strong>View more details about UC-26</strong></summary>
 
-**Brief Description:** An Organisation Administrator assigns campaigns to selected trainees or eligible trainee groups within their organisation.
+**Brief Description:** An Organisation Administrator assigns campaigns to selected trainees or eligible trainee groups within their organisation, or unassigns an existing organisation campaign assignment from a trainee.
 
 **Primary Actor:** Organisation Administrator
 
@@ -1622,7 +1622,7 @@ We have decided to include the following use cases even though they are consider
 **Preconditions**
 
 - The Organisation Administrator is authenticated and belongs to the organisation
-- The administrator has permission to assign campaigns
+- The administrator has permission to assign campaigns (`ASSIGN_CAMPAIGNS`)
 - The selected campaign and trainee scope are valid for the organisation
 
 **Postconditions**
@@ -1630,10 +1630,17 @@ We have decided to include the following use cases even though they are consider
 - Eligible trainees in the selected scope receive the campaign assignment
 - Disabled or ineligible trainees are skipped or rejected according to the assignment rules
 - Duplicate active assignments are prevented
+- **Unassignment Path (`DELETE /organisations/:organisationId/campaign-assignments/:assignmentId`)**: The selected campaign assignment and every associated trainee progress record (quiz attempts, answers, quiz results, email classification responses, selected red flags, and interaction events) for that employee and campaign are permanently deleted in one atomic transaction. A bounded `REVOKED` audit log entry is written without retaining deleted response content.
 
-**Related Functional Requirements:** [**R23**](functional-requirements.md#r23-assign-campaigns-to-organisation-trainees)
+**Unassignment Specification & Distinction from UC-27**:
 
-**Related User Stories:** **6.13** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration)
+- **Scope**: Applies to a single assignment with `accessType = ASSIGNED`. Self-selected enrolments (`SELF_SELECTED`), cross-organisation targets, or missing IDs return safe HTTP 404 without mutating any records.
+- **Employee Status**: Supports removing assignments for active, inactive, or disabled organisation trainees.
+- **Distinction from UC-27 (Progress Reset)**: Unassignment is a destructive cleanup operation on an assignment, NOT UC-27 progress reset. It does not preserve progress history, has no soft deletion, and has no restore path. Reassignment of the same campaign starts cleanly without rediscovering deleted progress.
+
+**Related Functional Requirements:** [**R23**](functional-requirements.md#r23-assign-campaigns-to-organisation-trainees) (specifically `R23.4`)
+
+**Related User Stories:** **6.13**, **6.13b** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration)
 
 **Related Use Case Diagram:** Not shown in the current grouped diagrams
 

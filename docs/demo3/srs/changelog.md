@@ -70,11 +70,13 @@ Demo 2 expands the SRS from the initial trainee-facing baseline to a broader pla
 - Added detailed authentication and account access use cases `AUTH-01` to `AUTH-06`.
 - Added high-level planned product use cases `UC-13` to `UC-35`.
 - Added measurable quality scenarios for security, privacy, usability, accessibility, reliability, performance, maintainability, auditability, and ethical simulation safety.
+- Added `R23.4` and user story `6.13b` for organisation campaign unassignment (`DELETE /organisations/:organisationId/campaign-assignments/:assignmentId`), providing transactional single-assignment removal and complete progress cleanup.
 
 ### 7.6 Updates
 
 - Updated terminology to use consistent Insightful Phish roles, including Individual Trainee, Organisation Trainee, Organisation Administrator, Platform Administrator, and Platform Super-Administrator.
 - Updated use-case traceability so new use cases refer to the relevant functional requirement groups and user-story areas.
+- Updated `UC-26` and `R23` to explicitly document the single-assignment destructive unassignment contract and distinguish it from `UC-27` progress reset.
 - Updated the domain model description to reflect Demo 2 authentication, organisation onboarding, account security, campaign, reporting, and audit concepts.
 - Updated navigation so readers can move through the split SRS in the required order.
 

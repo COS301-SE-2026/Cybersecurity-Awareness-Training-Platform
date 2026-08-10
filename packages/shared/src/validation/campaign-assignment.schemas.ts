@@ -49,6 +49,31 @@ export const organisationAndTraineeProfileIdParamsSchema = z
   })
   .strict();
 
+export const organisationAndAssignmentIdParamsSchema = z
+  .object({
+    organisationId: z.string().uuid('Organisation ID must be a valid UUID'),
+    assignmentId: z.string().uuid('Assignment ID must be a valid UUID'),
+  })
+  .strict();
+
+export const deletedProgressCountsSchema = z
+  .object({
+    quizAttempts: z.number().int().min(0),
+    emailClassificationResponses: z.number().int().min(0),
+    interactionEvents: z.number().int().min(0),
+  })
+  .strict();
+
+export const deleteCampaignAssignmentResponseSchema = z
+  .object({
+    assignmentId: z.string().uuid(),
+    campaignId: z.string().uuid(),
+    traineeProfileId: z.string().uuid(),
+    unassigned: z.literal(true),
+    deletedProgress: deletedProgressCountsSchema,
+  })
+  .strict();
+
 export const paginationMetaSchema = z
   .object({
     page: z.number().int().min(1),
