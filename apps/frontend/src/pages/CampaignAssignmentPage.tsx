@@ -1,5 +1,5 @@
 import AppLayout from '../components/layout/AppLayout';
-import { useEffect, useState } from 'react';
+import { useState, type SetStateAction } from 'react';
 import OrganisationTraineeSelectionPage from './campaign-assignment/OrganisationTraineeSelectionPage';
 import CampaignSelectionPage from './campaign-assignment/CampaignSelectionPage';
 import ReviewCampaignAssignmentPage from './campaign-assignment/ReviewCampaignAssignmentPage';
@@ -13,17 +13,29 @@ function CampaignAssignmentPage() {
   const hasSelectedTrainees = selectedTraineeIds.length > 0;
   const hasSelectedCampaigns = selectedCampaignIds.length > 0;
 
-  useEffect(() => {
-    if (!hasSelectedTrainees && currentTab !== 1) {
+  const handleTraineeSelectionChange = (ids: SetStateAction<string[]>) => {
+    setSelectedTraineeIds(ids);
+
+    if (typeof ids === 'function') {
+      return;
+    }
+
+    if (ids.length === 0) {
       setCurrentTab(1);
     }
-  }, [hasSelectedTrainees, currentTab]);
+  };
 
-  useEffect(() => {
-    if (hasSelectedTrainees && !hasSelectedCampaigns && currentTab === 3) {
+  const handleCampaignSelectionChange = (ids: SetStateAction<string[]>) => {
+    setSelectedCampaignIds(ids);
+
+    if (typeof ids === 'function') {
+      return;
+    }
+
+    if (ids.length === 0 && currentTab === 3) {
       setCurrentTab(2);
     }
-  }, [hasSelectedTrainees, hasSelectedCampaigns, currentTab]);
+  };
 
   return (
     <AppLayout
@@ -126,7 +138,7 @@ function CampaignAssignmentPage() {
             {currentTab === 1 && (
               <OrganisationTraineeSelectionPage
                 selectedTraineeIds={selectedTraineeIds}
-                setSelectedTraineesIds={setSelectedTraineeIds}
+                setSelectedTraineesIds={handleTraineeSelectionChange}
                 onContinue={() => setCurrentTab(2)}
               />
             )}
@@ -134,7 +146,7 @@ function CampaignAssignmentPage() {
             {currentTab === 2 && (
               <CampaignSelectionPage
                 selectedCampaignIds={selectedCampaignIds}
-                setSelectedCampaignIds={setSelectedCampaignIds}
+                setSelectedCampaignIds={handleCampaignSelectionChange}
                 onBack={() => setCurrentTab(1)}
                 onContinue={() => setCurrentTab(3)}
               />
