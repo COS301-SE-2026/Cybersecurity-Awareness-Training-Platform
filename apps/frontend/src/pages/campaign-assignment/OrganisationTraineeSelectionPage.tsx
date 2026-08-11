@@ -1,4 +1,3 @@
-import { Label } from 'flowbite-react';
 import { mockCampaignAssignmentCandidatesResponse } from '../../testing/fixtures/campaignAssignmentFixtures';
 
 type DisplayStatus =
