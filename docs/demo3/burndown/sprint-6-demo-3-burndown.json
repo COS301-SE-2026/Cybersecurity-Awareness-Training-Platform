@@ -63,8 +63,8 @@
       "number": 404,
       "title": "feat: queue transactional email delivery through a durable asynchronous outbox",
       "points": 5,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-08-11"
     }
   ],
   "series": [
