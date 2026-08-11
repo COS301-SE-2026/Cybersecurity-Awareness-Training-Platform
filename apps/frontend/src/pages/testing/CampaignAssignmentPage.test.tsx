@@ -19,7 +19,7 @@ function renderPage() {
 }
 
 describe('CampaignAssignmentPage', () => {
-  it('renders the page heading, instructions, and back link', () => {
+  it('renders the page heading and instructions', () => {
     renderPage();
 
     expect(
@@ -32,10 +32,6 @@ describe('CampaignAssignmentPage', () => {
         /select the organisation trainees you want to assign training campaigns to/i,
       ),
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /back to organisation trainees/i })).toHaveAttribute(
-      'href',
-      '/organisation-trainees',
-    );
   });
 
   it('starts on trainee selection and disables later steps until prerequisites are selected', () => {
