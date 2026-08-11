@@ -194,7 +194,7 @@ describe('ConfirmEmailChangePage', () => {
     expect(resendToken).toHaveBeenCalledWith(changeToken);
     expect(
       await screen.findByText(
-        'If the email change is still eligible, a new confirmation link has been sent.',
+        'If the email change is still eligible, a new confirmation link has been queued for delivery.',
       ),
     ).toBeInTheDocument();
   });

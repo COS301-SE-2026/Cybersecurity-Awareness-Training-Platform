@@ -191,7 +191,8 @@ export async function resendVerification(req: Request, res: Response) {
   try {
     await resendVerificationEmail(req.body.email);
     return res.status(200).json({
-      message: 'If the email is registered and unverified, a verification link has been sent.',
+      message:
+        'If the email is registered and unverified, a verification link has been queued for delivery.',
     });
   } catch (error) {
     if (error instanceof AuthResendCooldownError) {
@@ -212,7 +213,7 @@ export async function verify(req: Request, res: Response) {
 export async function forgotPassword(req: Request, res: Response) {
   await requestPasswordReset(req.body.email);
   return res.status(200).json({
-    message: 'If the email is registered, a password reset link has been sent.',
+    message: 'If the email is registered, a password reset link has been queued for delivery.',
   });
 }
 

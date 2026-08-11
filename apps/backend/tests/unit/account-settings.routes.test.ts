@@ -143,7 +143,7 @@ describe('account settings routes', () => {
   it('requests email change for the authenticated user', async () => {
     accountServiceMock.requestAccountEmailChange.mockResolvedValue({
       message:
-        'If this email change can be completed, a confirmation email has been sent to the new address.',
+        'If this email change can be completed, a confirmation email has been queued for delivery to the new address.',
       emailQueued: true,
     });
 

@@ -1,11 +1,7 @@
 import { prisma } from '../lib/prisma.js';
 import * as OrganisationRepository from '../repositories/organisation.repository.js';
 import { recordAuditLog } from './audit-log.service.js';
-import {
-  requestAuthEmailSend,
-  shouldRevokeTokenForAuthEmailResult,
-} from './auth-email-hook.service.js';
-import { recordNotificationFailureEvent } from './notification-failure-event.service.js';
+import { requestAuthEmailSend } from './auth-email-hook.service.js';
 import { issueActionToken } from './action-token.service.js';
 import {
   OrganisationRegistrationRequestError,
@@ -27,6 +23,16 @@ export type {
   FormatInvitationInput,
   FormatEmailLogInput,
 } from './organisation-registration-request.service.js';
+
+function assertAuthEmailQueued(result: Awaited<ReturnType<typeof requestAuthEmailSend>>) {
+  if (result.status === 'NOT_QUEUED') {
+    throw new OrganisationRegistrationRequestError(
+      409,
+      'EMAIL_QUEUE_FAILED',
+      'Required email could not be queued for delivery',
+    );
+  }
+}
 
 export async function getPlatformOrganisationDetail(actorUserId: string, organisationId: string) {
   await requirePlatformAdminUser(actorUserId);
@@ -333,69 +339,32 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
       tx,
     );
 
+    const emailResult = await requestAuthEmailSend(
+      {
+        emailType: 'INITIAL_ORGANISATION_ADMIN_SETUP',
+        recipientEmail: invitationTx.recipientEmail,
+        organisationId: organisation.id,
+        invitationId: invitationTx.id,
+        actionTokenId: actionTokenResult.token.id,
+        organisationRegistrationRequestId:
+          invitationTx.organisationRegistrationRequestId ?? undefined,
+        templateData: {
+          firstName: invitationTx.recipientFirstName ?? '',
+          organisationName: organisation.name,
+          actionToken: actionTokenResult.rawToken,
+          actionTokenExpiresAt: actionTokenResult.token.expiresAt,
+        },
+      },
+      tx,
+    );
+    assertAuthEmailQueued(emailResult);
+
     return {
       actionToken: actionTokenResult,
       invitation: invitationTx,
+      emailResult,
     };
   });
-
-  // Send the setup email OUTSIDE the transaction so a DB write failure on delivery log
-  // does not incorrectly surface as a provider send failure.
-  //
-  // requestAuthEmailSend distinguishes provider rejection from provider acceptance followed by
-  // persistence failure. Do not revoke a token for ACCEPTED_PERSISTENCE_FAILED or an unexpected
-  // hook failure because the provider acceptance state is not a definite rejection.
-  let shouldRevokeIssuedToken: boolean;
-  let emailQueued: boolean;
-
-  try {
-    const emailResult = await requestAuthEmailSend({
-      emailType: 'INITIAL_ORGANISATION_ADMIN_SETUP',
-      recipientEmail: result.invitation.recipientEmail,
-      organisationId: organisation.id,
-      invitationId: result.invitation.id,
-      actionTokenId: result.actionToken.token.id,
-      organisationRegistrationRequestId:
-        result.invitation.organisationRegistrationRequestId ?? undefined,
-      templateData: {
-        firstName: result.invitation.recipientFirstName ?? '',
-        organisationName: organisation.name,
-        actionToken: result.actionToken.rawToken,
-        actionTokenExpiresAt: result.actionToken.token.expiresAt,
-      },
-    });
-
-    shouldRevokeIssuedToken = shouldRevokeTokenForAuthEmailResult(emailResult);
-    emailQueued = emailResult.queued;
-  } catch {
-    shouldRevokeIssuedToken = false;
-    emailQueued = false;
-    await recordNotificationFailureEvent('EMAIL_HOOK_UNEXPECTED_FAILURE');
-  }
-
-  if (shouldRevokeIssuedToken) {
-    // Only revoke the token when we know for certain the email was NOT accepted for delivery.
-    // This prevents invalidating a link already in the recipient's inbox due to a DB
-    // persistence failure that happened AFTER the provider accepted the message.
-    await prisma.actionToken.update({
-      where: { id: result.actionToken.token.id },
-      data: {
-        revokedAt: new Date(),
-        revokedReason: 'EMAIL_SEND_FAILED',
-      },
-    });
-
-    await recordAuditLog({
-      actorUserId,
-      actorType: 'IP_ADMIN',
-      targetType: 'INVITATION',
-      targetId: result.invitation.id,
-      actionType: 'RESENT',
-      outcome: 'FAILURE',
-      organisationId: organisation.id,
-      metadata: { error: 'Email was not accepted for delivery by the provider' },
-    });
-  }
 
   const updatedInvitation = await OrganisationRepository.findSetupInvitationAndEmailLog({
     organisationId,
@@ -406,7 +375,7 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
 
   return {
     success: true,
-    emailQueued,
+    emailQueued: result.emailResult.queued,
     setupStatus: formatSetupStatus(updatedInvitation, updatedEmailLog),
   };
 }

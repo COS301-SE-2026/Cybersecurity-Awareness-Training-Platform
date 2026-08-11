@@ -54,6 +54,16 @@ export class OrganisationTraineeServiceError extends Error {
   }
 }
 
+function assertEmailQueued(result: Awaited<ReturnType<typeof sendEmail>>) {
+  if (result.status === 'NOT_QUEUED') {
+    throw new OrganisationTraineeServiceError(
+      503,
+      'EMAIL_QUEUE_FAILED',
+      'Invitation email could not be queued for delivery.',
+    );
+  }
+}
+
 function assertTraineeMutationAllowed(status: string) {
   if (status === 'ACTIVE') {
     return;
@@ -487,24 +497,28 @@ export async function createOrganisationTraineeInvitation(
       tx,
     );
 
-    return { invitation, actionToken, rawToken, expiresAt };
-  });
+    const emailResult = await sendEmail(
+      {
+        emailType: 'ORGANISATION_TRAINEE_INVITE',
+        recipientEmail: normalisedEmail,
+        relatedEntity: {
+          organisationId,
+          invitationId: invitation.id,
+          actionTokenId: actionToken.id,
+        },
+        templateData: {
+          firstName: input.firstName,
+          organisationName: actor.organisation.name,
+          actionToken: rawToken,
+          actionTokenExpiresAt: expiresAt,
+          requiresAccountConflictResolution,
+        },
+      },
+      tx,
+    );
+    assertEmailQueued(emailResult);
 
-  const emailResult = await sendEmail({
-    emailType: 'ORGANISATION_TRAINEE_INVITE',
-    recipientEmail: normalisedEmail,
-    relatedEntity: {
-      organisationId,
-      invitationId: txResult.invitation.id,
-      actionTokenId: txResult.actionToken.id,
-    },
-    templateData: {
-      firstName: input.firstName,
-      organisationName: actor.organisation.name,
-      actionToken: txResult.rawToken,
-      actionTokenExpiresAt: txResult.expiresAt,
-      requiresAccountConflictResolution,
-    },
+    return { invitation, actionToken, rawToken, expiresAt, emailResult };
   });
 
   const finalInvite = await prisma.invitation.findUnique({
@@ -520,24 +534,16 @@ export async function createOrganisationTraineeInvitation(
     invitationLifecycleState === 'SENT' ||
     invitationLifecycleState === 'FAILED_TO_SEND';
   const canRevoke = canResend;
-  const emailDelivered = emailResult.status !== 'NOT_ACCEPTED';
-  const deliveryState: 'PENDING' | 'SENT' | 'FAILED' | 'UNKNOWN' =
-    emailResult.status === 'ACCEPTED'
-      ? 'SENT'
-      : emailResult.status === 'ACCEPTED_PERSISTENCE_FAILED'
-        ? 'UNKNOWN'
-        : 'FAILED';
-  const isDeliveryUnknown = deliveryState === 'UNKNOWN';
+  const emailQueued = txResult.emailResult.status === 'QUEUED';
+  const deliveryState: 'PENDING' | 'SENT' | 'FAILED' | 'UNKNOWN' = emailQueued
+    ? 'PENDING'
+    : 'FAILED';
 
-  const invitationStatus = emailDelivered ? 'INVITE_PENDING' : 'INVITE_FAILED';
+  const invitationStatus = emailQueued ? 'INVITE_PENDING' : 'INVITE_FAILED';
 
-  let resendMessage = 'Invitation created, but email delivery failed to send.';
-  if (isDeliveryUnknown) {
-    resendMessage =
-      'Invitation was created and queued, but email delivery outcome is unknown because persistence failed after provider acceptance.';
-  } else if (emailDelivered) {
-    resendMessage = 'Invitation sent successfully.';
-  }
+  const resendMessage = emailQueued
+    ? 'Invitation email queued for delivery.'
+    : 'Invitation created, but email delivery could not be queued.';
 
   const invitationExpiresAt = (finalInvite?.expiresAt ?? txResult.expiresAt).toISOString();
   const createdAt = txResult.invitation.createdAt.toISOString();
@@ -683,34 +689,35 @@ export async function resendTraineeInvitation(
       tx,
     );
 
-    return { actionToken, rawToken, expiresAt, claimedAt };
+    const emailResult = await sendEmail(
+      {
+        emailType: 'ORGANISATION_TRAINEE_INVITE',
+        recipientEmail: invitation.recipientEmail,
+        relatedEntity: {
+          organisationId: invitation.organisationId,
+          invitationId: invitation.id,
+          actionTokenId: actionToken.id,
+          invitationStateVersion: claimedAt.toISOString(),
+        },
+        templateData: {
+          firstName: invitation.recipientFirstName ?? undefined,
+          organisationName: actor.organisation.name,
+          actionToken: rawToken,
+          actionTokenExpiresAt: expiresAt,
+          requiresAccountConflictResolution,
+        },
+      },
+      tx,
+    );
+    assertEmailQueued(emailResult);
+
+    return { actionToken, rawToken, expiresAt, claimedAt, emailResult };
   });
 
-  const emailResult = await sendEmail({
-    emailType: 'ORGANISATION_TRAINEE_INVITE',
-    recipientEmail: invitation.recipientEmail,
-    relatedEntity: {
-      organisationId: invitation.organisationId,
-      invitationId: invitation.id,
-      actionTokenId: txResult.actionToken.id,
-      invitationStateVersion: txResult.claimedAt.toISOString(),
-    },
-    templateData: {
-      firstName: invitation.recipientFirstName ?? undefined,
-      organisationName: actor.organisation.name,
-      actionToken: txResult.rawToken,
-      actionTokenExpiresAt: txResult.expiresAt,
-      requiresAccountConflictResolution,
-    },
-  });
-
-  const emailDelivered = emailResult.status !== 'NOT_ACCEPTED';
-  const deliveryState: 'PENDING' | 'SENT' | 'FAILED' | 'UNKNOWN' =
-    emailResult.status === 'ACCEPTED'
-      ? 'SENT'
-      : emailResult.status === 'ACCEPTED_PERSISTENCE_FAILED'
-        ? 'UNKNOWN'
-        : 'FAILED';
+  const emailQueued = txResult.emailResult.status === 'QUEUED';
+  const deliveryState: 'PENDING' | 'SENT' | 'FAILED' | 'UNKNOWN' = emailQueued
+    ? 'PENDING'
+    : 'FAILED';
 
   const finalInvitation = await prisma.invitation.findUnique({
     where: { id: invitation.id },
@@ -754,12 +761,9 @@ export async function resendTraineeInvitation(
   }
 
   const invitationLifecycleState = deriveInvitationLifecycleState(finalInvitation);
-  const isDeliveryUnknown = deliveryState === 'UNKNOWN';
-  const resendMessage = isDeliveryUnknown
-    ? 'Invitation was resent and the action token rotated, but email delivery outcome is unknown because persistence failed after provider acceptance.'
-    : emailDelivered
-      ? 'Invitation resent successfully.'
-      : 'Invitation action token rotated successfully, but email delivery failed to send.';
+  const resendMessage = emailQueued
+    ? 'Invitation email queued for delivery.'
+    : 'Invitation action token rotated, but email delivery could not be queued.';
   const resendStatus =
     finalInvitation.status === 'SENT'
       ? 'SENT'
@@ -773,7 +777,7 @@ export async function resendTraineeInvitation(
   const canRevoke = canResend;
   const invitationExpiresAt = finalInvitation.expiresAt.toISOString();
   const createdAt = invitation.createdAt.toISOString();
-  const invitationStatus = emailDelivered ? 'INVITE_PENDING' : 'INVITE_FAILED';
+  const invitationStatus = emailQueued ? 'INVITE_PENDING' : 'INVITE_FAILED';
 
   return {
     success: true,

@@ -384,10 +384,11 @@ describe('platform organisation registration request service', () => {
         submittedOrganisationName: 'Acme',
       });
       emailHookMock.requestAuthEmailSend.mockResolvedValue({
-        status: 'ACCEPTED',
-        acceptedByProvider: true,
+        status: 'QUEUED',
+        queueAccepted: true,
         queued: true,
         deliveryLogId: 'email-log-1',
+        jobId: 'email-job-1',
       });
 
       const response = await rejectOrganisationRequest(actorUserId, requestId, {
@@ -470,7 +471,7 @@ describe('platform organisation registration request service', () => {
       });
     };
 
-    it('runs approval onboarding transaction and sends setup email', async () => {
+    it('runs approval onboarding transaction and queues setup email', async () => {
       prismaMock.organisationRegistrationRequest.findUnique.mockResolvedValue({
         id: requestId,
         status: 'PENDING_REVIEW',
@@ -508,11 +509,11 @@ describe('platform organisation registration request service', () => {
         submittedOrganisationName: 'Acme',
       });
       emailHookMock.requestAuthEmailSend.mockResolvedValue({
-        status: 'ACCEPTED',
-        acceptedByProvider: true,
+        status: 'QUEUED',
+        queueAccepted: true,
         queued: true,
         deliveryLogId: 'email-log-1',
-        providerMessageId: 'provider-message-1',
+        jobId: 'email-job-1',
       });
 
       const response = await approveOrganisationRequest(actorUserId, requestId, {
@@ -533,84 +534,14 @@ describe('platform organisation registration request service', () => {
       expect(actionTokenServiceMock.revokeActionTokenById).not.toHaveBeenCalled();
     });
 
-    it('revokes the first setup token when the setup email is explicitly not accepted', async () => {
+    it('rejects approval when the required setup email cannot be queued', async () => {
       mockApprovalPersistence();
       emailHookMock.requestAuthEmailSend.mockResolvedValue({
-        status: 'NOT_ACCEPTED',
-        acceptedByProvider: false,
+        status: 'NOT_QUEUED',
+        queueAccepted: false,
         queued: false,
         deliveryLogId: 'email-log-1',
-        reason: 'EMAIL_SEND_FAILED',
-      });
-
-      const response = await approveOrganisationRequest(actorUserId, requestId, {
-        organisationName: 'Acme Corp',
-        initialAdminEmail: 'john@acme.com',
-      });
-
-      expect(response.status).toBe('APPROVED');
-      expect(response.setupEmailQueued).toBe(false);
-      expect(prismaMock.organisation.create).toHaveBeenCalled();
-      expect(prismaMock.invitation.create).toHaveBeenCalled();
-      expect(actionTokenServiceMock.issueActionToken).toHaveBeenCalled();
-      expect(prismaMock.invitation.updateMany).toHaveBeenCalledWith({
-        where: {
-          id: 'invitation-1',
-          status: { in: ['PENDING', 'SENT', 'FAILED_TO_SEND'] },
-        },
-        data: {
-          status: 'FAILED_TO_SEND',
-        },
-      });
-      expect(prismaMock.actionToken.updateMany).toHaveBeenCalledWith({
-        where: {
-          id: 'token-id-1',
-          usedAt: null,
-          OR: [{ revokedAt: null }, { revokedReason: 'EMAIL_SEND_FAILED' }],
-        },
-        data: {
-          revokedAt: expect.any(Date),
-          revokedReason: 'EMAIL_SEND_FAILED',
-        },
-      });
-      expect(auditLogMock.recordAuditLog).toHaveBeenCalledWith(
-        expect.objectContaining({
-          actorType: 'IP_ADMIN',
-          targetType: 'INVITATION',
-          targetId: 'invitation-1',
-          actionType: 'INVITED',
-          outcome: 'FAILURE',
-          organisationId,
-          metadata: {
-            emailOutcome: 'NOT_ACCEPTED',
-            reason: 'EMAIL_SEND_FAILED',
-          },
-        }),
-        expect.anything(),
-      );
-      expect(notificationFailureEventMock.recordNotificationFailureEvent).not.toHaveBeenCalled();
-      expect(auditLogMock.recordAuditLog).not.toHaveBeenCalledWith(
-        expect.objectContaining({
-          metadata: expect.objectContaining({
-            reason: expect.stringContaining('SMTP broke'),
-          }),
-        }),
-      );
-    });
-
-    it('records a stable event when first setup email failure recovery cannot complete', async () => {
-      mockApprovalPersistence();
-      prismaMock.actionToken.findUnique.mockResolvedValue({
-        usedAt: null,
-        revokedAt: null,
-        revokedReason: null,
-      });
-      emailHookMock.requestAuthEmailSend.mockResolvedValue({
-        status: 'NOT_ACCEPTED',
-        acceptedByProvider: false,
-        queued: false,
-        deliveryLogId: 'email-log-1',
-        reason: 'EMAIL_SEND_FAILED',
+        reason: 'EMAIL_QUEUE_FAILED',
       });
 
       await expect(
@@ -621,51 +552,66 @@ describe('platform organisation registration request service', () => {
       ).rejects.toThrowError(
         new OrganisationRegistrationRequestError(
           409,
-          'SETUP_EMAIL_RECOVERY_FAILED',
-          'Setup email failure recovery could not revoke the setup token',
+          'EMAIL_QUEUE_FAILED',
+          'Required email could not be queued for delivery',
         ),
       );
 
-      expect(notificationFailureEventMock.recordNotificationFailureEvent).toHaveBeenCalledWith(
-        'SETUP_EMAIL_RECOVERY_FAILED',
+      expect(prismaMock.organisation.create).toHaveBeenCalled();
+      expect(prismaMock.invitation.create).toHaveBeenCalled();
+      expect(actionTokenServiceMock.issueActionToken).toHaveBeenCalled();
+      expect(prismaMock.invitation.updateMany).not.toHaveBeenCalled();
+      expect(prismaMock.actionToken.updateMany).not.toHaveBeenCalled();
+      expect(notificationFailureEventMock.recordNotificationFailureEvent).not.toHaveBeenCalled();
+      expect(auditLogMock.recordAuditLog).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            reason: expect.stringContaining('SMTP broke'),
+          }),
+        }),
       );
+    });
+
+    it('does not run setup email recovery when transactional queueing fails', async () => {
+      mockApprovalPersistence();
+      prismaMock.actionToken.findUnique.mockResolvedValue({
+        usedAt: null,
+        revokedAt: null,
+        revokedReason: null,
+      });
+      emailHookMock.requestAuthEmailSend.mockResolvedValue({
+        status: 'NOT_QUEUED',
+        queueAccepted: false,
+        queued: false,
+        deliveryLogId: 'email-log-1',
+        reason: 'EMAIL_QUEUE_FAILED',
+      });
+
+      await expect(
+        approveOrganisationRequest(actorUserId, requestId, {
+          organisationName: 'Acme Corp',
+          initialAdminEmail: 'john@acme.com',
+        }),
+      ).rejects.toThrowError(
+        new OrganisationRegistrationRequestError(
+          409,
+          'EMAIL_QUEUE_FAILED',
+          'Required email could not be queued for delivery',
+        ),
+      );
+
+      expect(notificationFailureEventMock.recordNotificationFailureEvent).not.toHaveBeenCalled();
+      expect(actionTokenServiceMock.revokeActionTokenById).not.toHaveBeenCalled();
     });
 
     it('preserves the first setup token when SMTP acceptance is persisted successfully', async () => {
       mockApprovalPersistence();
       emailHookMock.requestAuthEmailSend.mockResolvedValue({
-        status: 'ACCEPTED',
-        acceptedByProvider: true,
+        status: 'QUEUED',
+        queueAccepted: true,
         queued: true,
         deliveryLogId: 'email-log-1',
-        providerMessageId: 'provider-message-1',
-      });
-
-      const response = await approveOrganisationRequest(actorUserId, requestId, {
-        organisationName: 'Acme Corp',
-        initialAdminEmail: 'john@acme.com',
-      });
-
-      expect(response.setupEmailQueued).toBe(true);
-      expect(actionTokenServiceMock.revokeActionTokenById).not.toHaveBeenCalled();
-    });
-
-    it('preserves the first setup token when SMTP accepted but persistence failed', async () => {
-      mockApprovalPersistence();
-      emailHookMock.requestAuthEmailSend.mockResolvedValue({
-        status: 'ACCEPTED_PERSISTENCE_FAILED',
-        acceptedByProvider: true,
-        queued: true,
-        deliveryLogId: 'email-log-1',
-        providerMessageId: 'provider-message-1',
-        reason: 'EMAIL_PERSISTENCE_FAILED',
-        persistenceFailures: [
-          {
-            stage: 'DELIVERY_LOG_SENT',
-            code: 'DELIVERY_LOG_SENT_WRITE_FAILED',
-          },
-        ],
-        persistenceFailureReason: 'DELIVERY_LOG_SENT_WRITE_FAILED',
+        jobId: 'email-job-1',
       });
 
       const response = await approveOrganisationRequest(actorUserId, requestId, {

@@ -208,7 +208,7 @@ function LoginPage() {
       await resendVerification({ email: resendVerificationEmail });
 
       setResendVerificationMessage(
-        'If the email is registered and unverified, a verification link has been sent.',
+        'If the email is registered and unverified, a verification link has been queued for delivery.',
       );
     } catch (error) {
       if (error instanceof ApiError && error.status === 429) {
