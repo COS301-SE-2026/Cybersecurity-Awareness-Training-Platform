@@ -1,9 +1,9 @@
 import AppLayout from '../components/layout/AppLayout';
-import { useState, type SetStateAction } from 'react';
+import { useEffect, useState, type SetStateAction } from 'react';
 import OrganisationTraineeSelectionPage from './campaign-assignment/OrganisationTraineeSelectionPage';
 import CampaignSelectionPage from './campaign-assignment/CampaignSelectionPage';
 import ReviewCampaignAssignmentPage from './campaign-assignment/ReviewCampaignAssignmentPage';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import BasicConfirmationModal from '../components/layout/modals/BasicConfirmationModal';
 
 function CampaignAssignmentPage() {
@@ -41,6 +41,21 @@ function CampaignAssignmentPage() {
       setCurrentTab(2);
     }
   };
+
+  useEffect(() => {
+    if (hasUnsubmittedSelection === false) {
+      return;
+    }
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [hasUnsubmittedSelection]);
 
   return (
     <AppLayout
