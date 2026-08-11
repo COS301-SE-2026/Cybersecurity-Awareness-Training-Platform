@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import type SMTPTransport from 'nodemailer/lib/smtp-transport/index.js';
 import { env } from '../config/env.js';
 
 export type SmtpMailInput = { to: string; subject: string; text: string; html?: string };
@@ -16,9 +17,25 @@ type SmtpFailureInput = {
   responseCode?: number;
 };
 
+type SmtpSubmissionPhase = 'BEFORE_SUBMISSION' | 'SUBMISSION_STARTED';
+
+type SmtpPhaseTracker = {
+  phase: SmtpSubmissionPhase;
+};
+
+type SmtpLoggerRecord = {
+  tnx?: string;
+  command?: string;
+  action?: string;
+};
+
+type SmtpPhaseLogger = Record<
+  'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal',
+  (record: SmtpLoggerRecord, message?: string) => void
+>;
+
 const DATA_COMMANDS = new Set(['DATA', 'SMTP-DATA']);
 const DEFINITE_PRE_SUBMISSION_COMMANDS = new Set([
-  'CONN',
   'EDNS',
   'EHLO',
   'HELO',
@@ -29,14 +46,55 @@ const DEFINITE_PRE_SUBMISSION_COMMANDS = new Set([
   'RCPT TO',
   'RCPT',
 ]);
+const SUBMISSION_STARTED_COMMANDS = new Set([...DATA_COMMANDS]);
 const DNS_FAILURE_CODES = new Set(['EDNS', 'EAI_AGAIN', 'ENOTFOUND']);
-const CONNECTION_FAILURE_CODES = new Set(['ECONNREFUSED']);
+const DEFINITE_PRE_SUBMISSION_FAILURE_CODES = new Set(['ECONNREFUSED', 'ETLS']);
 const AMBIGUOUS_TRANSPORT_FAILURE_CODES = new Set([
   'ETIMEDOUT',
   'ECONNRESET',
   'ECONNECTION',
   'ESOCKET',
 ]);
+
+function normaliseSmtpToken(value?: string) {
+  return value?.trim().toUpperCase();
+}
+
+function smtpLogIndicatesSubmissionStarted(record: SmtpLoggerRecord, message?: string) {
+  const command = normaliseSmtpToken(record.command ?? record.action);
+  if (command && SUBMISSION_STARTED_COMMANDS.has(command)) {
+    return true;
+  }
+
+  const text = normaliseSmtpToken(message);
+  return Boolean(
+    text &&
+    [...SUBMISSION_STARTED_COMMANDS].some(
+      (submissionCommand) =>
+        text === submissionCommand ||
+        text.startsWith(`${submissionCommand} `) ||
+        text.includes(` C: ${submissionCommand}`) ||
+        text.includes(`CLIENT ${submissionCommand}`),
+    ),
+  );
+}
+
+function createSmtpPhaseLogger(tracker: SmtpPhaseTracker): SmtpPhaseLogger {
+  const observe = (record: SmtpLoggerRecord, message?: string) => {
+    if (smtpLogIndicatesSubmissionStarted(record, message)) {
+      tracker.phase = 'SUBMISSION_STARTED';
+    }
+  };
+
+  return {
+    trace: observe,
+    debug: observe,
+    info: observe,
+    warn: observe,
+    error: observe,
+    fatal: observe,
+  };
+}
 
 export class SmtpDeliveryError extends Error {
   constructor(
@@ -50,10 +108,12 @@ export class SmtpDeliveryError extends Error {
 }
 
 export async function sendViaSMTP(input: SmtpMailInput): Promise<SmtpAcceptedResult> {
-  const transporter = nodemailer.createTransport({
+  const phaseTracker: SmtpPhaseTracker = { phase: 'BEFORE_SUBMISSION' };
+  const transportOptions: SMTPTransport.Options = {
     host: env.SMTP_HOST,
     port: env.SMTP_PORT,
     secure: env.SMTP_SECURE,
+    logger: createSmtpPhaseLogger(phaseTracker) as SMTPTransport.Options['logger'],
 
     dnsTimeout: 5_000,
     connectionTimeout: 10_000,
@@ -63,7 +123,8 @@ export async function sendViaSMTP(input: SmtpMailInput): Promise<SmtpAcceptedRes
     ...(env.SMTP_USER && env.SMTP_PASSWORD
       ? { auth: { user: env.SMTP_USER, pass: env.SMTP_PASSWORD } }
       : {}),
-  });
+  };
+  const transporter = nodemailer.createTransport(transportOptions);
 
   const startedAt = Date.now();
 
@@ -89,7 +150,7 @@ export async function sendViaSMTP(input: SmtpMailInput): Promise<SmtpAcceptedRes
     };
   } catch (error: unknown) {
     const smtpError = error instanceof Error ? (error as Error & SmtpFailureInput) : undefined;
-    const classified = classifySmtpFailure(smtpError);
+    const classified = classifySmtpFailure(smtpError, phaseTracker.phase);
 
     console.error('[SMTP] Message Failed', {
       durationMs: Date.now() - startedAt,
@@ -97,6 +158,7 @@ export async function sendViaSMTP(input: SmtpMailInput): Promise<SmtpAcceptedRes
       code: smtpError?.code,
       command: smtpError?.command,
       responseCode: smtpError?.responseCode,
+      submissionPhase: phaseTracker.phase,
       reasonCode: classified.reasonCode,
     });
 
@@ -108,12 +170,15 @@ export async function sendViaSMTP(input: SmtpMailInput): Promise<SmtpAcceptedRes
   }
 }
 
-export function classifySmtpFailure(error?: SmtpFailureInput): {
+export function classifySmtpFailure(
+  error?: SmtpFailureInput,
+  submissionPhase: SmtpSubmissionPhase = 'SUBMISSION_STARTED',
+): {
   failureKind: SmtpFailureKind;
   reasonCode: string;
 } {
-  const command = error?.command?.toUpperCase();
-  const code = error?.code?.toUpperCase();
+  const command = normaliseSmtpToken(error?.command);
+  const code = normaliseSmtpToken(error?.code);
 
   if (typeof error?.responseCode === 'number') {
     if (error.responseCode >= 500) {
@@ -133,7 +198,7 @@ export function classifySmtpFailure(error?: SmtpFailureInput): {
     return { failureKind: 'RETRYABLE', reasonCode: 'SMTP_DNS_TEMPORARY_FAILURE' };
   }
 
-  if (code && CONNECTION_FAILURE_CODES.has(code)) {
+  if (code && DEFINITE_PRE_SUBMISSION_FAILURE_CODES.has(code)) {
     return { failureKind: 'RETRYABLE', reasonCode: 'SMTP_PRE_SUBMISSION_TRANSPORT_FAILURE' };
   }
 
@@ -142,7 +207,10 @@ export function classifySmtpFailure(error?: SmtpFailureInput): {
       return { failureKind: 'AMBIGUOUS', reasonCode: 'SMTP_AMBIGUOUS_AFTER_DATA' };
     }
 
-    if (command && DEFINITE_PRE_SUBMISSION_COMMANDS.has(command) && command !== 'CONN') {
+    if (
+      submissionPhase === 'BEFORE_SUBMISSION' ||
+      (command && DEFINITE_PRE_SUBMISSION_COMMANDS.has(command))
+    ) {
       return { failureKind: 'RETRYABLE', reasonCode: 'SMTP_PRE_SUBMISSION_TRANSPORT_FAILURE' };
     }
 

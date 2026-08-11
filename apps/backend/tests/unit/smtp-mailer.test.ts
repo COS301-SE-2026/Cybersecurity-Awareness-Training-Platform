@@ -26,6 +26,32 @@ describe('SMTP failure classification', () => {
     },
   );
 
+  it.each(['ETIMEDOUT', 'ESOCKET'])(
+    'classifies cold %s failures before SMTP submission as retryable',
+    (code) => {
+      expect(classifySmtpFailure({ code, command: 'CONN' }, 'BEFORE_SUBMISSION')).toEqual({
+        failureKind: 'RETRYABLE',
+        reasonCode: 'SMTP_PRE_SUBMISSION_TRANSPORT_FAILURE',
+      });
+    },
+  );
+
+  it('classifies TLS setup failure before SMTP submission as retryable', () => {
+    expect(classifySmtpFailure({ code: 'ETLS', command: 'CONN' }, 'BEFORE_SUBMISSION')).toEqual({
+      failureKind: 'RETRYABLE',
+      reasonCode: 'SMTP_PRE_SUBMISSION_TRANSPORT_FAILURE',
+    });
+  });
+
+  it('keeps CONN socket failures ambiguous after SMTP submission has started', () => {
+    expect(
+      classifySmtpFailure({ code: 'ETIMEDOUT', command: 'CONN' }, 'SUBMISSION_STARTED'),
+    ).toEqual({
+      failureKind: 'AMBIGUOUS',
+      reasonCode: 'SMTP_AMBIGUOUS_TRANSPORT_FAILURE',
+    });
+  });
+
   it.each(['ETIMEDOUT', 'ECONNRESET', 'ESOCKET', 'ECONNECTION'])(
     'classifies definite pre-DATA %s failures as retryable',
     (code) => {
