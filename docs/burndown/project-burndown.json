@@ -1484,8 +1484,8 @@
           "number": 405,
           "title": "feat: add Resend API fallback for queued production email",
           "points": 3,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-08-11"
         },
         {
           "number": 404,
@@ -2095,8 +2095,13 @@
     },
     {
       "date": "2026-08-11",
-      "remaining": 52,
+      "remaining": 49,
       "ideal": 31.5
+    },
+    {
+      "date": "2026-08-12",
+      "remaining": 49,
+      "ideal": 26.25
     }
   ]
 }
