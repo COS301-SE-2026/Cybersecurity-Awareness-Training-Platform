@@ -220,6 +220,10 @@ function CampaignSelectionPage({
                 >
                   <td className="px-3 py-3">
                     <div className="flex items-center">
+                      <label htmlFor={`trainee-${campaign.campaignId}`} className="sr-only">
+                        Select {campaign.name}
+                      </label>
+
                       <input
                         id={`campaign-${campaign.campaignId}`}
                         type="checkbox"

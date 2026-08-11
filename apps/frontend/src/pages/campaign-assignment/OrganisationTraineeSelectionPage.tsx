@@ -1,3 +1,4 @@
+import { Label } from 'flowbite-react';
 import { mockCampaignAssignmentCandidatesResponse } from '../../testing/fixtures/campaignAssignmentFixtures';
 
 type DisplayStatus =
@@ -199,6 +200,9 @@ function OrganisationTraineeSelectionPage({
                 >
                   <td className="px-6 py-3">
                     <div className="flex items-center">
+                      <label htmlFor={`trainee-${trainee.traineeProfileId}`} className="sr-only">
+                        Select {trainee.displayName}
+                      </label>
                       <input
                         id={`trainee-${trainee.traineeProfileId}`}
                         type="checkbox"

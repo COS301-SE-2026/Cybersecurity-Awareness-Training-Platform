@@ -136,7 +136,7 @@ function AppRoutes() {
       <Route path="*" element={<Navigate to="/" replace />} />
       <Route path="/brand" element={<BrandPage />} />
 
-      {/* <Route path="/campaign-assignment" element={<CampaignAssignmentPage />} /> */}
+      <Route path="/campaign-assignment" element={<CampaignAssignmentPage />} />
       <Route
         element={
           <ProtectedRoute
