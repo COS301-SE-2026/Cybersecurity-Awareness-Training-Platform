@@ -3,15 +3,20 @@ import { useState, type SetStateAction } from 'react';
 import OrganisationTraineeSelectionPage from './campaign-assignment/OrganisationTraineeSelectionPage';
 import CampaignSelectionPage from './campaign-assignment/CampaignSelectionPage';
 import ReviewCampaignAssignmentPage from './campaign-assignment/ReviewCampaignAssignmentPage';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import BasicConfirmationModal from '../components/layout/modals/BasicConfirmationModal';
 
 function CampaignAssignmentPage() {
   const [currentTab, setCurrentTab] = useState<1 | 2 | 3>(1);
   const [selectedTraineeIds, setSelectedTraineeIds] = useState<string[]>([]);
   const [selectedCampaignIds, setSelectedCampaignIds] = useState<string[]>([]);
+  const [showLeaveConfirmation, setShowLeaveConfirmation] = useState(false);
 
   const hasSelectedTrainees = selectedTraineeIds.length > 0;
   const hasSelectedCampaigns = selectedCampaignIds.length > 0;
+  const hasUnsubmittedSelection = hasSelectedTrainees || hasSelectedCampaigns;
+
+  const navigate = useNavigate();
 
   const handleTraineeSelectionChange = (ids: SetStateAction<string[]>) => {
     setSelectedTraineeIds(ids);
@@ -54,13 +59,34 @@ function CampaignAssignmentPage() {
           }}
         >
           {/* Back to Organisation Trainees Page Button */}
-          <Link
-            to="/organisation-trainees"
+          <button
+            type="button"
+            onClick={() => {
+              if (hasUnsubmittedSelection === true) {
+                setShowLeaveConfirmation(true);
+              } else {
+                navigate('/organisation-trainees');
+              }
+            }}
             className="-mt-4 inline-flex items-center gap-2 font-jost text-xl font-regular tracking-wide text-purple hover:text-purple cursor-pointer transition-colours"
           >
             <span className="material-icons-sharp">arrow_back</span>
             <span className="hover:underline"> Back to Organisation Trainees</span>
-          </Link>
+          </button>
+
+          {showLeaveConfirmation && (
+            <BasicConfirmationModal
+              title="Leave Campaign Assignment"
+              message="Your unsubmitted organisation trainee and training campaign selections will be lost. Are you sure that you want to leave?"
+              confirmButtonText="Leave"
+              confirmButtonVariant="danger"
+              onConfirm={() => {
+                setShowLeaveConfirmation(false);
+                navigate('/organisation-trainees');
+              }}
+              onCancel={() => setShowLeaveConfirmation(false)}
+            />
+          )}
 
           <h1
             style={{
