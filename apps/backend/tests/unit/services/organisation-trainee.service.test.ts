@@ -99,11 +99,11 @@ describe('OrganisationTraineeService', () => {
     vi.setSystemTime(new Date('2026-07-15T08:00:00.000Z'));
     vi.clearAllMocks();
     emailMock.sendEmail.mockResolvedValue({
-      status: 'ACCEPTED',
-      acceptedByProvider: true,
+      status: 'QUEUED',
+      queueAccepted: true,
       queued: true,
       deliveryLogId: 'delivery-log-1',
-      providerMessageId: 'smtp-message-1',
+      jobId: 'email-job-1',
     });
     orgAdminRepoMock.findActorOrganisationAdmin.mockResolvedValue(
       buildMockActorAdmin([
@@ -214,6 +214,7 @@ describe('OrganisationTraineeService', () => {
           emailType: 'ORGANISATION_TRAINEE_INVITE',
           recipientEmail: 'trainee@example.com',
         }),
+        txMock,
       );
     });
 

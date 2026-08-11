@@ -1,5 +1,6 @@
-import { sendEmail } from './email.service.js';
 import type { EmailDeliveryType } from '../generated/prisma/client.js';
+import type { EmailDeliveryRepositoryClient } from '../repositories/email-delivery.repository.js';
+import { sendEmail } from './email.service.js';
 import type { EmailSendOutcome } from './email.service.js';
 
 export type AuthEmailType = EmailDeliveryType;
@@ -16,62 +17,53 @@ export type AuthEmailHookInput = {
   relatedEntityId?: string | null;
 };
 
-type AcceptedEmailOutcome = Extract<EmailSendOutcome, { status: 'ACCEPTED' }>;
-
-type AcceptedPersistenceFailedEmailOutcome = Extract<
-  EmailSendOutcome,
-  { status: 'ACCEPTED_PERSISTENCE_FAILED' }
->;
+type QueuedEmailOutcome = Extract<EmailSendOutcome, { status: 'QUEUED' }>;
 
 export type AuthEmailHookResult =
-  | AcceptedEmailOutcome
+  | QueuedEmailOutcome
   | {
-      status: 'NOT_ACCEPTED';
-      acceptedByProvider: false;
+      status: 'NOT_QUEUED';
+      queueAccepted: false;
       queued: false;
-      reason: 'EMAIL_SEND_FAILED';
+      reason: 'EMAIL_QUEUE_FAILED';
       deliveryLogId?: string;
-    }
-  | (AcceptedPersistenceFailedEmailOutcome & {
-      reason: 'EMAIL_PERSISTENCE_FAILED';
-    });
+    };
 
 export const shouldRevokeTokenForAuthEmailResult = (result: AuthEmailHookResult): boolean =>
-  result.status === 'NOT_ACCEPTED';
+  result.status === 'NOT_QUEUED';
 
 export async function requestAuthEmailSend(
   input: AuthEmailHookInput,
+  client?: EmailDeliveryRepositoryClient,
 ): Promise<AuthEmailHookResult> {
-  const result = await sendEmail({
-    emailType: input.emailType,
-    recipientEmail: input.recipientEmail,
-    relatedEntity: {
-      userId: input.userId ?? null,
-      actionTokenId: input.actionTokenId ?? null,
-      organisationId: input.organisationId ?? null,
-      invitationId: input.invitationId ?? null,
-      organisationRegistrationRequestId: input.organisationRegistrationRequestId ?? null,
-      fallbackType: input.relatedEntityType,
-      fallbackId: input.relatedEntityId ?? null,
+  const result = await sendEmail(
+    {
+      emailType: input.emailType,
+      recipientEmail: input.recipientEmail,
+      relatedEntity: {
+        userId: input.userId ?? null,
+        actionTokenId: input.actionTokenId ?? null,
+        organisationId: input.organisationId ?? null,
+        invitationId: input.invitationId ?? null,
+        organisationRegistrationRequestId: input.organisationRegistrationRequestId ?? null,
+        fallbackType: input.relatedEntityType,
+        fallbackId: input.relatedEntityId ?? null,
+      },
+      templateData: input.templateData,
     },
-    templateData: input.templateData,
-  });
+    client,
+  );
 
   switch (result.status) {
-    case 'NOT_ACCEPTED':
+    case 'NOT_QUEUED':
       return {
-        status: 'NOT_ACCEPTED',
-        acceptedByProvider: false,
+        status: 'NOT_QUEUED',
+        queueAccepted: false,
         queued: false,
-        reason: 'EMAIL_SEND_FAILED',
+        reason: 'EMAIL_QUEUE_FAILED',
         deliveryLogId: result.deliveryLogId,
       };
-    case 'ACCEPTED_PERSISTENCE_FAILED':
-      return {
-        ...result,
-        reason: 'EMAIL_PERSISTENCE_FAILED',
-      };
-    case 'ACCEPTED':
+    case 'QUEUED':
       return result;
   }
 }

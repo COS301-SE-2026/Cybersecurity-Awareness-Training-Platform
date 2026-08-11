@@ -11,6 +11,7 @@ import {
   listOrganisationTrainees,
 } from '../../src/services/organisation-trainee.service.js';
 import { prisma } from '../../src/lib/prisma.js';
+import { runEmailDispatcherCycle } from '../../src/services/email-dispatcher.service.js';
 import { createOrganisation, createTrainee, generateTestEmail } from '../helpers/factories.js';
 import { hashOpaqueToken } from '../../src/services/token-hash.service.js';
 
@@ -105,6 +106,8 @@ describe('organisation onboarding and role transition integration', () => {
       organisationName: uniqueOrgName,
       initialAdminEmail,
     });
+
+    await runEmailDispatcherCycle();
 
     const setupToken = extractSetupTokenFromEmail();
     const setupResult = await completeSetupWithToken(setupToken, {

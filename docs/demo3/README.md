@@ -28,3 +28,9 @@ This is the Insightful Phish Demo 3 documentation. Below you can find each aspec
 - **[User Manual](https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/wiki/Demo-2-User-Manual)**
 - **[Brand Style Guide](https://brand.insightfulphish.co.za)**
 - **[User Interface](user-interface/README.md)**
+
+This folder contains implementation notes for Demo 3 changes. The documents focus on behaviour that is implemented in the current codebase and avoid repeating earlier Demo 1 or Demo 2 documentation.
+
+## Contents
+
+- [Asynchronous Email Delivery](async-email-delivery.md)

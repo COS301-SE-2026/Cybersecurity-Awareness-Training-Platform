@@ -110,6 +110,26 @@ enum EmailDeliveryStatus {
   FAILED
 }
 
+enum EmailDeliveryJobStatus {
+  PENDING
+  PROCESSING
+  RETRY_SCHEDULED
+  SUCCEEDED
+  FAILED
+}
+
+enum EmailDeliveryProviderKind {
+  SMTP
+}
+
+enum EmailDeliveryProviderOutcome {
+  PROVIDER_ACCEPTED
+  PROVIDER_REJECTED
+  PROVIDER_TEMPORARY_FAILURE
+  PROVIDER_AMBIGUOUS
+  PROVIDER_PERSISTENCE_FAILED
+}
+
 enum GeneralTraineeAccessSource {
   SELF_SIGNUP
   INVITE
@@ -654,6 +674,7 @@ model EmailDeliveryLog {
   organisation                      Organisation?                    @relation(fields: [organisationId], references: [id], onDelete: SetNull)
   organisationRegistrationRequest   OrganisationRegistrationRequest? @relation(fields: [organisationRegistrationRequestId], references: [id], onDelete: SetNull)
   invitation                        Invitation?                      @relation("InvitationEmailDeliveryLogs", fields: [invitationId], references: [id], onDelete: SetNull)
+  deliveryJob                       EmailDeliveryJob?
 
   @@index([recipientEmail])
   @@index([emailType])
@@ -665,6 +686,38 @@ model EmailDeliveryLog {
   @@index([organisationId])
   @@index([organisationRegistrationRequestId])
   @@index([invitationId])
+}
+
+model EmailDeliveryJob {
+  id                     String                        @id @default(uuid())
+  deliveryLogId          String                        @unique
+  status                 EmailDeliveryJobStatus        @default(PENDING)
+  providerKind           EmailDeliveryProviderKind     @default(SMTP)
+  recipientEmail         String
+  subject                String
+  textBody               String
+  htmlBody               String?
+  emailType              EmailDeliveryType
+  invitationStateVersion DateTime?
+  attemptCount           Int                           @default(0)
+  maxAttempts            Int                           @default(4)
+  nextAttemptAt          DateTime                      @default(now())
+  firstAttemptAt         DateTime?
+  retryDeadlineAt        DateTime?
+  leaseOwner             String?
+  leasedAt               DateTime?
+  leaseExpiresAt         DateTime?
+  lastProviderOutcome    EmailDeliveryProviderOutcome?
+  lastReasonCode         String?
+  terminalAt             DateTime?
+  createdAt              DateTime                      @default(now())
+  updatedAt              DateTime                      @updatedAt
+  deliveryLog            EmailDeliveryLog              @relation(fields: [deliveryLogId], references: [id], onDelete: Cascade)
+
+  @@index([status, nextAttemptAt])
+  @@index([leaseExpiresAt])
+  @@index([providerKind])
+  @@index([terminalAt])
 }
 
 model Organisation {
