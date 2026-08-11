@@ -97,6 +97,7 @@ function CampaignAssignmentPage() {
               confirmButtonVariant="danger"
               onConfirm={() => {
                 setShowLeaveConfirmation(false);
+
                 navigate('/organisation-trainees');
               }}
               onCancel={() => setShowLeaveConfirmation(false)}
