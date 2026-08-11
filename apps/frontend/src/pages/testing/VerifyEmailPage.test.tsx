@@ -188,7 +188,7 @@ describe('VerifyEmailPage', () => {
     expect(resendToken).toHaveBeenCalledWith(verificationToken);
     expect(
       await screen.findByText(
-        'If the email is still eligible, a new verification link has been sent.',
+        'If the email is still eligible, a new verification link has been queued for delivery.',
       ),
     ).toBeInTheDocument();
   });
@@ -219,7 +219,7 @@ describe('VerifyEmailPage', () => {
 
     expect(
       await screen.findByText(
-        'If the email is still eligible, a new verification link has been sent.',
+        'If the email is still eligible, a new verification link has been queued for delivery.',
       ),
     ).toBeInTheDocument();
   });
@@ -572,7 +572,9 @@ describe('VerifyEmailPage', () => {
     });
 
     expect(
-      screen.queryByText('If the email is still eligible, a new verification link has been sent.'),
+      screen.queryByText(
+        'If the email is still eligible, a new verification link has been queued for delivery.',
+      ),
     ).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /resend verification link/i })).toBeEnabled();
     expect(resendToken).toHaveBeenCalledTimes(1);

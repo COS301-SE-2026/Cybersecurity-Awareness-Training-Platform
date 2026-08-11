@@ -33,25 +33,24 @@ const result = await sendEmail({
 console.log(
   JSON.stringify(
     {
-      ok: result.acceptedByProvider,
+      ok: result.queueAccepted,
       status: result.status,
       recipientEmail,
       actionTokenId: actionToken.id,
       deliveryLogId: result.deliveryLogId,
+      emailQueued: result.queued,
       mailpitUi: 'http://localhost:8025',
-      ...(result.acceptedByProvider
-        ? { messageId: result.providerMessageId }
-        : { error: result.failureReason }),
+      ...(result.queueAccepted ? { jobId: result.jobId } : { error: result.failureReason }),
     },
     null,
     2,
   ),
 );
 
-console.log('Open Mailpit to inspect the email: http://localhost:8025 (should work locally).');
+console.log('Email queued locally. Run the dispatcher before checking Mailpit.');
 
 await prisma.$disconnect();
 
-if (!result.acceptedByProvider) {
+if (!result.queueAccepted) {
   process.exitCode = 1;
 }

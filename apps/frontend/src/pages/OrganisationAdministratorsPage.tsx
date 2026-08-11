@@ -615,8 +615,8 @@ function OrganisationAdministratorsPage() {
       setFeedback({
         kind: response.emailQueued ? 'success' : 'warning',
         message: response.emailQueued
-          ? 'The administrator invitation was created successfully.'
-          : 'The administrator invitation was created, but the email could not be sent.',
+          ? 'The administrator invitation email was queued for delivery.'
+          : 'The administrator invitation was created, but the email could not be queued.',
       });
     } catch (error: unknown) {
       if (error instanceof ApiError && error.status === 403) {

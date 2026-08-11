@@ -7,7 +7,8 @@ import { ApiError } from '../lib/apiClient';
 import { requestPasswordReset } from '../services/auth.service';
 
 const EMAIL_ERROR_ID = 'forgot-password-email-error';
-const GENERIC_SUCCESS_MESSAGE = 'If the email is registered, a password reset link has been sent.';
+const GENERIC_SUCCESS_MESSAGE =
+  'If the email is registered, a password reset link has been queued for delivery.';
 const RATE_LIMIT_MESSAGE = 'Please wait before requesting another password reset link.';
 const GENERIC_ERROR_MESSAGE =
   'We could not request a password reset link right now. Please try again later.';

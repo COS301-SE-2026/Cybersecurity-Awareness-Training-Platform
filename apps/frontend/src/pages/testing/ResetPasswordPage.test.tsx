@@ -448,7 +448,7 @@ describe('ResetPasswordPage', () => {
     expect(screen.getByRole('button', { name: 'Sending password reset link...' })).toBeDisabled();
     expect(
       screen.queryByText(
-        'If the account is still eligible, a new password reset link has been sent.',
+        'If the account is still eligible, a new password reset link has been queued for delivery.',
       ),
     ).not.toBeInTheDocument();
 
@@ -456,7 +456,7 @@ describe('ResetPasswordPage', () => {
 
     expect(
       await screen.findByText(
-        'If the account is still eligible, a new password reset link has been sent.',
+        'If the account is still eligible, a new password reset link has been queued for delivery.',
       ),
     ).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /password reset link/i })).not.toBeInTheDocument();

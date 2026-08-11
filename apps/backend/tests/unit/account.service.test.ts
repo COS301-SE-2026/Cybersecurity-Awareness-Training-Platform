@@ -49,7 +49,7 @@ const auditLogServiceMock = vi.hoisted(() => ({
 const authEmailHookServiceMock = vi.hoisted(() => ({
   requestAuthEmailSend: vi.fn(),
   shouldRevokeTokenForAuthEmailResult: vi.fn(
-    (result: { status: string }) => result.status === 'NOT_ACCEPTED',
+    (result: { status: string }) => result.status === 'NOT_QUEUED',
   ),
 }));
 
@@ -139,11 +139,11 @@ const effectivePolicy = {
 };
 
 const acceptedEmailOutcome = {
-  status: 'ACCEPTED' as const,
-  acceptedByProvider: true as const,
+  status: 'QUEUED' as const,
+  queueAccepted: true as const,
   queued: true as const,
   deliveryLogId: 'email-log-1',
-  providerMessageId: 'provider-message-1',
+  jobId: 'email-job-1',
 };
 
 function serializedAuditCalls() {
@@ -206,7 +206,7 @@ describe('account service', () => {
 
     expect(result).toEqual({
       message:
-        'If this email change can be completed, a confirmation email has been sent to the new address.',
+        'If this email change can be completed, a confirmation email has been queued for delivery to the new address.',
       emailQueued: true,
     });
     expect(JSON.stringify(result)).not.toContain('raw-email-change-token');
@@ -237,6 +237,7 @@ describe('account service', () => {
         recipientEmail: 'new-address@example.test',
         actionTokenId: 'action-token-1',
       }),
+      txClient,
     );
     expect(authEmailHookServiceMock.requestAuthEmailSend).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -286,28 +287,27 @@ describe('account service', () => {
     expect(accountRepositoryMock.createEmailChangeRequest).not.toHaveBeenCalled();
   });
 
-  it('revokes a failed email-change token only when confirmation email is not accepted', async () => {
+  it('rolls back email-change request when confirmation email is not queued', async () => {
     authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue({
-      status: 'NOT_ACCEPTED',
-      acceptedByProvider: false,
+      status: 'NOT_QUEUED',
+      queueAccepted: false,
       queued: false,
-      reason: 'EMAIL_SEND_FAILED',
+      reason: 'EMAIL_QUEUE_FAILED',
     });
 
-    const result = await requestAccountEmailChange('user-1', {
-      newEmail: 'new-address@example.test',
-      confirmNewEmail: 'new-address@example.test',
-      password: 'CorrectPassword1!',
+    await expect(
+      requestAccountEmailChange('user-1', {
+        newEmail: 'new-address@example.test',
+        confirmNewEmail: 'new-address@example.test',
+        password: 'CorrectPassword1!',
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      error: 'ACCOUNT_EMAIL_CHANGE_QUEUE_FAILED',
     });
 
-    expect(result.emailQueued).toBe(false);
-    expect(actionTokenServiceMock.revokeActionTokenById).toHaveBeenCalledWith({
-      tokenId: 'action-token-1',
-      reason: 'EMAIL_SEND_FAILED',
-    });
-    expect(accountRepositoryMock.cancelEmailChangeRequest).toHaveBeenCalledWith(
-      expect.objectContaining({ requestId: 'email-change-request-1' }),
-    );
+    expect(actionTokenServiceMock.revokeActionTokenById).not.toHaveBeenCalled();
+    expect(accountRepositoryMock.cancelEmailChangeRequest).not.toHaveBeenCalled();
     expect(authEmailHookServiceMock.requestAuthEmailSend).not.toHaveBeenCalledWith(
       expect.objectContaining({ emailType: 'EMAIL_CHANGE_WARNING' }),
     );

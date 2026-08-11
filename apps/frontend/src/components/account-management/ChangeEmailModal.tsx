@@ -77,7 +77,7 @@ function ChangeEmailModal({ isOpen, onClose, onSuccess, onApiError }: ChangeEmai
       if (onSuccess) {
         onSuccess(
           res.message ||
-            'Verification email sent to new address. Please verify to complete email change.',
+            'Verification email queued for delivery to the new address. Please verify to complete email change.',
         );
       }
     } catch (err: unknown) {

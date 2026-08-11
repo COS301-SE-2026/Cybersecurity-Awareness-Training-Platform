@@ -319,7 +319,7 @@ async function handleExistingUserInvite(
         actionTokenExpiresAt: expiry,
       },
     });
-    if (outcome?.status === 'NOT_ACCEPTED') {
+    if (outcome?.status === 'NOT_QUEUED') {
       emailDeliveryFailed = true;
     }
   } catch (err) {
@@ -368,7 +368,7 @@ async function handleNewUserInvite(
         actionTokenExpiresAt: expiry,
       },
     });
-    if (outcome?.status === 'NOT_ACCEPTED') {
+    if (outcome?.status === 'NOT_QUEUED') {
       emailDeliveryFailed = true;
     }
   } catch (err) {
@@ -457,7 +457,7 @@ export async function resendPlatformAdminInvite(actorUserId: string, actionToken
         actionTokenExpiresAt: expiry,
       },
     });
-    if (outcome?.status === 'NOT_ACCEPTED') {
+    if (outcome?.status === 'NOT_QUEUED') {
       emailDeliveryFailed = true;
     }
   } catch (err) {

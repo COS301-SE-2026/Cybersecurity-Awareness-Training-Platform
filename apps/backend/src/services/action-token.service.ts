@@ -469,7 +469,7 @@ export async function resendActionToken(rawToken: string): Promise<void> {
     return;
   }
 
-  if (emailOutcome.status === 'NOT_ACCEPTED') {
+  if (emailOutcome.status === 'NOT_QUEUED') {
     await prisma.actionToken.updateMany({
       where: {
         id: newToken.token.id,
