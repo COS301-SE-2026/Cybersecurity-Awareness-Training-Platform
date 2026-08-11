@@ -4,6 +4,19 @@ import { parseEnv } from '../../src/config/env.js';
 const baseEnv = {
   DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/insightful_phish_test',
 };
+const productionEnv = {
+  ...baseEnv,
+  NODE_ENV: 'production',
+  AUTH_TOKEN_SECRET: 'this-is-a-production-auth-secret-token',
+  SMTP_HOST: 'smtp.resend.com',
+  SMTP_PORT: '587',
+  SMTP_SECURE: 'false',
+  SMTP_FROM_ADDRESS: 'noreply@insightfulphish.co.za',
+  SMTP_FROM_NAME: 'Insightful Phish',
+  SMTP_USER: 'resend',
+  SMTP_PASSWORD: 'smtp-password',
+  SUPPORT_EMAIL_ADDRESS: 'support@insightfulphish.co.za',
+};
 describe('parseEnv', () => {
   it('allows demo auth token in development', () => {
     const env = parseEnv({ ...baseEnv, NODE_ENV: 'development' });
@@ -133,5 +146,68 @@ describe('parseEnv', () => {
   it.skip('normalises empty SMTP values to be undefined', () => {
     expect(parseEnv({ ...baseEnv, SMTP_USER: '' }).SMTP_USER).toBeUndefined();
     expect(parseEnv({ ...baseEnv, SMTP_PASSWORD: '' }).SMTP_PASSWORD).toBeUndefined();
+  });
+
+  it('defaults secure cookies to false in dev', () => {
+    expect(parseEnv({ ...baseEnv, NODE_ENV: 'development' }).AUTH_COOKIE_SECURE).toBe(false);
+  });
+  it('parses a false secure cookie value correctly', () => {
+    expect(
+      parseEnv({ ...baseEnv, NODE_ENV: 'development', AUTH_COOKIE_SECURE: 'false' })
+        .AUTH_COOKIE_SECURE,
+    ).toBe(false);
+  });
+  it('parses a true secure cookie value correctly', () => {
+    expect(
+      parseEnv({ ...baseEnv, NODE_ENV: 'development', AUTH_COOKIE_SECURE: 'true' })
+        .AUTH_COOKIE_SECURE,
+    ).toBe(true);
+  });
+  it('rejects invalid secure cookie values', () => {
+    expect(() => parseEnv({ ...baseEnv, AUTH_COOKIE_SECURE: 'yes' })).toThrow();
+  });
+
+  it('rejects missing SMTP credentials in production', () => {
+    expect(() =>
+      parseEnv({
+        ...productionEnv,
+        SMTP_USER: '',
+      }),
+    ).toThrow(/SMTP_USER is required in production/);
+
+    expect(() =>
+      parseEnv({
+        ...productionEnv,
+        SMTP_PASSWORD: '',
+      }),
+    ).toThrow(/SMTP_PASSWORD is required in production/);
+  });
+
+  it('rejects invalid production SMTP port and security combinations', () => {
+    expect(() =>
+      parseEnv({
+        ...productionEnv,
+        SMTP_PORT: '465',
+        SMTP_SECURE: 'false',
+      }),
+    ).toThrow(/SMTP_SECURE must be true when SMTP_PORT is 465/);
+
+    expect(() =>
+      parseEnv({
+        ...productionEnv,
+        SMTP_PORT: '587',
+        SMTP_SECURE: 'true',
+      }),
+    ).toThrow(/SMTP_SECURE must be false when SMTP_PORT is 587/);
+  });
+
+  it('accepts the supported Resend SMTP production combination', () => {
+    const env = parseEnv(productionEnv);
+
+    expect(env.SMTP_HOST).toBe('smtp.resend.com');
+    expect(env.SMTP_PORT).toBe(587);
+    expect(env.SMTP_SECURE).toBe(false);
+    expect(env.SMTP_USER).toBe('resend');
+    expect(env.SMTP_PASSWORD).toBe('smtp-password');
   });
 });

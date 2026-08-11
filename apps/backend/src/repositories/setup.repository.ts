@@ -198,13 +198,15 @@ export async function activateOrganisationAdminUser(
     },
   });
 
-  await client.organisationAdminProfile.upsert({
+  const isInitialAdmin = input.isInitialAdmin ?? false;
+
+  const adminProfile = await client.organisationAdminProfile.upsert({
     where: { userId: input.userId },
     create: {
       userId: input.userId,
       organisationId: input.organisationId,
       adminStatus: 'ACTIVE',
-      isInitialAdmin: input.isInitialAdmin ?? false,
+      isInitialAdmin,
       createdFromInvitationId: input.createdFromInvitationId ?? null,
     },
     update: {
@@ -212,10 +214,38 @@ export async function activateOrganisationAdminUser(
       // The guard above ensures the existing profile is for the same org,
       // so the value cannot change; and omitting it prevents accidental reassignment.
       adminStatus: 'ACTIVE',
-      isInitialAdmin: input.isInitialAdmin ?? false,
+      isInitialAdmin,
       createdFromInvitationId: input.createdFromInvitationId ?? null,
     },
   });
+
+  if (isInitialAdmin && client.organisationPermission) {
+    const permissions = await client.organisationPermission.findMany({
+      where: { organisationId: input.organisationId },
+      select: { id: true },
+    });
+
+    for (const permission of permissions) {
+      const grantId = ['org-admin-permission', adminProfile.id, permission.id].join(':');
+      if (client.organisationAdminPermission) {
+        await client.organisationAdminPermission.upsert({
+          where: {
+            organisationAdminId_organisationPermissionId: {
+              organisationAdminId: adminProfile.id,
+              organisationPermissionId: permission.id,
+            },
+          },
+          create: {
+            id: grantId,
+            organisationId: input.organisationId,
+            organisationAdminId: adminProfile.id,
+            organisationPermissionId: permission.id,
+          },
+          update: {},
+        });
+      }
+    }
+  }
 
   return client.user.findUniqueOrThrow({ where: { id: input.userId } });
 }

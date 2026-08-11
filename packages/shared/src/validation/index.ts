@@ -14,3 +14,4 @@ export * from './invitation.js';
 export * from './organisation-trainee.js';
 export * from './platform-admin.schemas.js';
 export * from './account-settings.schemas.js';
+export * from './campaign-assignment.schemas.js';

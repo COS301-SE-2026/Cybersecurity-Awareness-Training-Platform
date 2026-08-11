@@ -264,7 +264,7 @@ describe('Auth Integration Tests', () => {
     const response = await request(createApp()).post('/auth/resend-verification').send({ email });
 
     expect(response.status).toBe(200);
-    expect(response.body.message).toContain('verification link has been sent');
+    expect(response.body.message).toContain('verification link has been queued for delivery');
   });
 
   describe('Setup Token Flow', () => {

@@ -489,7 +489,7 @@ describe('LoginPage', () => {
 
     expect(
       await screen.findByText(
-        'If the email is registered and unverified, a verification link has been sent.',
+        'If the email is registered and unverified, a verification link has been queued for delivery.',
       ),
     ).toBeInTheDocument();
   });
@@ -509,7 +509,7 @@ describe('LoginPage', () => {
 
     expect(
       await screen.findByText(
-        'If the email is registered and unverified, a verification link has been sent.',
+        'If the email is registered and unverified, a verification link has been queued for delivery.',
       ),
     ).toBeInTheDocument();
   });

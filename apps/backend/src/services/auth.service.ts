@@ -46,6 +46,13 @@ import {
 const EMAIL_VERIFICATION_TOKEN_TTL_HOURS = 24;
 const REGISTER_GENERIC_MESSAGE =
   "If this email can be registered, we'll send you an email verification link. Please check your inbox.";
+class RequiredEmailQueueError extends Error {
+  constructor(message = 'Required email was not accepted into the delivery queue') {
+    super(message);
+    this.name = 'RequiredEmailQueueError';
+  }
+}
+
 export class AuthConflictError extends Error {
   constructor(message = 'A user with the provided email already exists') {
     super(message);
@@ -77,29 +84,27 @@ function issueEmailVerificationToken(
 async function sendEmailVerification(
   user: EmailVerificationUser,
   verification: IssueActionTokenResult,
+  client?: Prisma.TransactionClient,
 ) {
-  await requestAuthEmailSend({
-    emailType: 'EMAIL_VERIFICATION',
-    recipientEmail: user.email,
-    userId: user.id,
-    actionTokenId: verification.token.id,
-    templateData: {
-      firstName: user.firstName,
-      actionToken: verification.rawToken,
-      actionTokenExpiresAt: verification.token.expiresAt,
+  return requestAuthEmailSend(
+    {
+      emailType: 'EMAIL_VERIFICATION',
+      recipientEmail: user.email,
+      userId: user.id,
+      actionTokenId: verification.token.id,
+      templateData: {
+        firstName: user.firstName,
+        actionToken: verification.rawToken,
+        actionTokenExpiresAt: verification.token.expiresAt,
+      },
     },
-  });
+    client,
+  );
 }
 
-async function sendEmailVerificationBestEffort(
-  user: EmailVerificationUser,
-  verification: IssueActionTokenResult,
-) {
-  try {
-    await sendEmailVerification(user, verification);
-  } catch {
-    await recordNotificationFailureEvent('EMAIL_HOOK_UNEXPECTED_FAILURE');
-    return;
+function assertRequiredEmailQueued(result: Awaited<ReturnType<typeof requestAuthEmailSend>>) {
+  if (result.status === 'NOT_QUEUED') {
+    throw new RequiredEmailQueueError();
   }
 }
 
@@ -128,24 +133,28 @@ export async function registerUser(
   const passwordHash = await PasswordService.hashPassword(input.password);
 
   if (!existingUser) {
-    const { newUser, verification } = await prisma.$transaction(async (tx) => {
-      const createdUser = await UserRepository.createGeneralTraineeUser(
-        {
-          email: input.email,
-          firstName: input.firstName,
-          lastName: input.lastName,
-          passwordHash,
-        },
-        tx,
-      );
-      const verificationToken = await issueEmailVerificationToken(createdUser, tx);
-      return {
-        newUser: createdUser,
-        verification: verificationToken,
-      };
-    });
-
-    await sendEmailVerificationBestEffort(newUser, verification);
+    try {
+      await prisma.$transaction(async (tx) => {
+        const createdUser = await UserRepository.createGeneralTraineeUser(
+          {
+            email: input.email,
+            firstName: input.firstName,
+            lastName: input.lastName,
+            passwordHash,
+          },
+          tx,
+        );
+        const verificationToken = await issueEmailVerificationToken(createdUser, tx);
+        const emailResult = await sendEmailVerification(createdUser, verificationToken, tx);
+        assertRequiredEmailQueued(emailResult);
+      });
+    } catch (error) {
+      if (error instanceof RequiredEmailQueueError) {
+        await recordNotificationFailureEvent('EMAIL_HOOK_UNEXPECTED_FAILURE');
+        return { message: REGISTER_GENERIC_MESSAGE };
+      }
+      throw error;
+    }
 
     return { message: REGISTER_GENERIC_MESSAGE };
   } //if
@@ -192,24 +201,30 @@ async function maybeSendReplacementVerificationEmail(user: {
     return;
   }
 
-  const { verification } = await prisma.$transaction(async (tx) => {
-    await tx.actionToken.updateMany({
-      where: {
-        userId: user.id,
-        targetEmail: user.email,
-        purpose: 'EMAIL_VERIFICATION',
-        usedAt: null,
-        revokedAt: null,
-      },
-      data: { revokedAt: new Date(), revokedReason: 'REGISTRATION_VERIFICATION_REISSUED' },
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.actionToken.updateMany({
+        where: {
+          userId: user.id,
+          targetEmail: user.email,
+          purpose: 'EMAIL_VERIFICATION',
+          usedAt: null,
+          revokedAt: null,
+        },
+        data: { revokedAt: new Date(), revokedReason: 'REGISTRATION_VERIFICATION_REISSUED' },
+      });
+
+      const verificationToken = await issueEmailVerificationToken(user, tx);
+      const emailResult = await sendEmailVerification(user, verificationToken, tx);
+      assertRequiredEmailQueued(emailResult);
     });
-
-    const verificationToken = await issueEmailVerificationToken(user, tx);
-
-    return { verification: verificationToken };
-  });
-
-  await sendEmailVerificationBestEffort(user, verification);
+  } catch (error) {
+    if (error instanceof RequiredEmailQueueError) {
+      await recordNotificationFailureEvent('EMAIL_HOOK_UNEXPECTED_FAILURE');
+      return;
+    }
+    throw error;
+  }
 }
 
 export class AuthStatusGuardError extends Error {
@@ -575,9 +590,19 @@ export async function resendVerificationEmail(email: string): Promise<void> {
     return;
   }
 
-  const verification = await prisma.$transaction((tx) => issueEmailVerificationToken(user, tx));
-
-  await sendEmailVerificationBestEffort(user, verification);
+  try {
+    await prisma.$transaction(async (tx) => {
+      const verification = await issueEmailVerificationToken(user, tx);
+      const emailResult = await sendEmailVerification(user, verification, tx);
+      assertRequiredEmailQueued(emailResult);
+    });
+  } catch (error) {
+    if (error instanceof RequiredEmailQueueError) {
+      await recordNotificationFailureEvent('EMAIL_HOOK_UNEXPECTED_FAILURE');
+      return;
+    }
+    throw error;
+  }
 }
 
 export type VerifyEmailResult = {
@@ -783,43 +808,47 @@ export async function requestPasswordReset(email: string): Promise<void> {
     return;
   }
 
-  const { verification } = await prisma.$transaction(async (tx) => {
-    await tx.actionToken.updateMany({
-      where: {
-        userId: user.id,
-        purpose: 'PASSWORD_RESET',
-        revokedAt: null,
-        usedAt: null,
-      },
-      data: {
-        revokedAt: new Date(),
-        revokedReason: 'REPLACED',
-      },
-    });
-
-    const resetToken = await issueActionToken(
-      {
-        purpose: 'PASSWORD_RESET',
-        userId: user.id,
-        targetEmail: user.email,
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-      },
-      tx,
-    );
-    return { verification: resetToken };
-  });
-
   try {
-    await requestAuthEmailSend({
-      emailType: 'PASSWORD_RESET',
-      recipientEmail: user.email,
-      userId: user.id,
-      actionTokenId: verification.token.id,
-      templateData: {
-        actionToken: verification.rawToken,
-        firstName: user.firstName,
-        actionTokenExpiresAt: verification.token.expiresAt,
-      },
+    await prisma.$transaction(async (tx) => {
+      await tx.actionToken.updateMany({
+        where: {
+          userId: user.id,
+          purpose: 'PASSWORD_RESET',
+          revokedAt: null,
+          usedAt: null,
+        },
+        data: {
+          revokedAt: new Date(),
+          revokedReason: 'REPLACED',
+        },
+      });
+
+      const resetToken = await issueActionToken(
+        {
+          purpose: 'PASSWORD_RESET',
+          userId: user.id,
+          targetEmail: user.email,
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        },
+        tx,
+      );
+
+      const emailResult = await requestAuthEmailSend(
+        {
+          emailType: 'PASSWORD_RESET',
+          recipientEmail: user.email,
+          userId: user.id,
+          actionTokenId: resetToken.token.id,
+          templateData: {
+            actionToken: resetToken.rawToken,
+            firstName: user.firstName,
+            actionTokenExpiresAt: resetToken.token.expiresAt,
+          },
+        },
+        tx,
+      );
+
+      assertRequiredEmailQueued(emailResult);
     });
   } catch {
     await recordNotificationFailureEvent('EMAIL_HOOK_UNEXPECTED_FAILURE');

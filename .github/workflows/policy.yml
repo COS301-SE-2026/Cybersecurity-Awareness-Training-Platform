@@ -21,7 +21,7 @@ jobs:
   env-files:
     name: Check for ENV files
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    timeout-minutes: 10
     permissions:
       contents: read
 
@@ -39,17 +39,17 @@ jobs:
           if [[ "${{ github.event_name }}" = "pull_request" ]]; then
             base_sha="${{ github.event.pull_request.base.sha }}"
             head_sha="${{ github.event.pull_request.head.sha }}"
-            changed_files="$(git diff --name-only --diff-filter=ACMR "$base_sha" "$head_sha" || true)"
+            changed_files="$(git diff --name-only --diff-filter=ACMR "$base_sha"..."$head_sha")"
           elif [[ "${{ github.event_name }}" = "push" ]]; then
             base_sha="${{ github.event.before }}"
             head_sha="${{ github.sha }}"
             if [[ "$base_sha" = "0000000000000000000000000000000000000000" ]]; then
-              changed_files="$(git diff-tree --no-commit-id --name-only -r "$head_sha" || true)"
+              changed_files="$(git diff-tree --no-commit-id --name-only -r "$head_sha")"
             else
-              changed_files="$(git diff --name-only --diff-filter=ACMR "$base_sha" "$head_sha" || true)"
+              changed_files="$(git diff --name-only --diff-filter=ACMR "$base_sha" "$head_sha")"
             fi
           else
-            changed_files="$(git diff-tree --no-commit-id --name-only -r HEAD || true)"
+            changed_files="$(git diff-tree --no-commit-id --name-only -r HEAD)"
           fi
 
           if [[ -z "$changed_files" ]]; then
@@ -91,7 +91,7 @@ jobs:
   demo1-docs-frozen:
     name: Check Demo 1 docs are frozen
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    timeout-minutes: 10
     permissions:
       contents: read
 
@@ -109,17 +109,17 @@ jobs:
           if [[ "${{ github.event_name }}" = "pull_request" ]]; then
             base_sha="${{ github.event.pull_request.base.sha }}"
             head_sha="${{ github.event.pull_request.head.sha }}"
-            changed_files="$(git diff --name-only --diff-filter=ACMRD "$base_sha" "$head_sha" || true)"
+            changed_files="$(git diff --name-only --diff-filter=ACMRD "$base_sha"..."$head_sha")"
           elif [[ "${{ github.event_name }}" = "push" ]]; then
             base_sha="${{ github.event.before }}"
             head_sha="${{ github.sha }}"
             if [[ "$base_sha" = "0000000000000000000000000000000000000000" ]]; then
-              changed_files="$(git diff-tree --no-commit-id --name-only -r "$head_sha" || true)"
+              changed_files="$(git diff-tree --no-commit-id --name-only -r "$head_sha")"
             else
-              changed_files="$(git diff --name-only --diff-filter=ACMRD "$base_sha" "$head_sha" || true)"
+              changed_files="$(git diff --name-only --diff-filter=ACMRD "$base_sha" "$head_sha")"
             fi
           else
-            changed_files="$(git diff-tree --no-commit-id --name-only -r HEAD || true)"
+            changed_files="$(git diff-tree --no-commit-id --name-only -r HEAD)"
           fi
 
           blocked_files=()
@@ -133,7 +133,7 @@ jobs:
           if [[ "${#blocked_files[@]}" -gt 0 ]]; then
             echo "Demo 1 docs freeze policy failed."
             echo "docs/demo1 is frozen. Do not change Demo 1 artefacts after the Demo 1 baseline."
-            echo "Copy or update content under docs/demo2 instead."
+            echo "Copy or update content under docs/demo3 instead."
             echo ""
             echo "Blocked files:"
             printf '  - %s\n' "${blocked_files[@]}"
@@ -141,3 +141,57 @@ jobs:
           fi
 
           echo "Demo 1 docs freeze policy passed."
+
+  demo2-docs-frozen:
+    name: Check Demo 2 docs are frozen
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout history
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Check docs/demo2 is unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${{ github.event_name }}" = "pull_request" ]]; then
+            base_sha="${{ github.event.pull_request.base.sha }}"
+            head_sha="${{ github.event.pull_request.head.sha }}"
+            changed_files="$(git diff --name-only --diff-filter=ACMRD "$base_sha"..."$head_sha")"
+          elif [[ "${{ github.event_name }}" = "push" ]]; then
+            base_sha="${{ github.event.before }}"
+            head_sha="${{ github.sha }}"
+            if [[ "$base_sha" = "0000000000000000000000000000000000000000" ]]; then
+              changed_files="$(git diff-tree --no-commit-id --name-only -r "$head_sha")"
+            else
+              changed_files="$(git diff --name-only --diff-filter=ACMRD "$base_sha" "$head_sha")"
+            fi
+          else
+            changed_files="$(git diff-tree --no-commit-id --name-only -r HEAD)"
+          fi
+
+          blocked_files=()
+
+          while IFS= read -r file; do
+            if [[ "$file" == docs/demo2/* ]]; then
+              blocked_files+=("$file")
+            fi
+          done <<< "$changed_files"
+
+          if [[ "${#blocked_files[@]}" -gt 0 ]]; then
+            echo "Demo 2 docs freeze policy failed."
+            echo "docs/demo2 is frozen. Do not change Demo 2 artefacts after the Demo 2 baseline."
+            echo "Copy or update content under docs/demo3 instead."
+            echo ""
+            echo "Blocked files:"
+            printf '  - %s\n' "${blocked_files[@]}"
+            exit 1
+          fi
+
+          echo "Demo 2 docs freeze policy passed."

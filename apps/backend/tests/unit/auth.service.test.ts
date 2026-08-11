@@ -113,19 +113,11 @@ vi.mock('../../src/lib/prisma.js', () => ({
 }));
 
 const acceptedEmailOutcome = {
-  status: 'ACCEPTED' as const,
-  acceptedByProvider: true as const,
+  status: 'QUEUED' as const,
+  queueAccepted: true as const,
   queued: true as const,
   deliveryLogId: 'email-log-1',
-  providerMessageId: 'provider-message-1',
-};
-
-const notAcceptedEmailOutcome = {
-  status: 'NOT_ACCEPTED' as const,
-  acceptedByProvider: false as const,
-  queued: false as const,
-  deliveryLogId: 'email-log-1',
-  reason: 'EMAIL_SEND_FAILED' as const,
+  jobId: 'email-job-1',
 };
 
 describe('registerUser', () => {
@@ -157,7 +149,7 @@ describe('registerUser', () => {
       rawToken: 'raw-action-token',
       token: { id: 'action-token-1', expiresAt: verificationExpiresAt },
     });
-    authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue(notAcceptedEmailOutcome);
+    authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue(acceptedEmailOutcome);
 
     const response = await registerUser({
       email: 'johan@example.com',
@@ -187,17 +179,20 @@ describe('registerUser', () => {
       },
       prismaMock,
     );
-    expect(authEmailHookServiceMock.requestAuthEmailSend).toHaveBeenCalledWith({
-      emailType: 'EMAIL_VERIFICATION',
-      recipientEmail: 'johan@example.com',
-      userId: 'user-1',
-      actionTokenId: 'action-token-1',
-      templateData: {
-        firstName: 'Johan',
-        actionToken: 'raw-action-token',
-        actionTokenExpiresAt: verificationExpiresAt,
+    expect(authEmailHookServiceMock.requestAuthEmailSend).toHaveBeenCalledWith(
+      {
+        emailType: 'EMAIL_VERIFICATION',
+        recipientEmail: 'johan@example.com',
+        userId: 'user-1',
+        actionTokenId: 'action-token-1',
+        templateData: {
+          firstName: 'Johan',
+          actionToken: 'raw-action-token',
+          actionTokenExpiresAt: verificationExpiresAt,
+        },
       },
-    });
+      prismaMock,
+    );
     expect(response).toEqual({
       message:
         "If this email can be registered, we'll send you an email verification link. Please check your inbox.",
@@ -402,17 +397,20 @@ describe('registerUser', () => {
       },
       prismaMock,
     );
-    expect(authEmailHookServiceMock.requestAuthEmailSend).toHaveBeenCalledWith({
-      emailType: 'EMAIL_VERIFICATION',
-      recipientEmail: 'pending@example.com',
-      userId: 'pendinguser',
-      actionTokenId: 'newtoken',
-      templateData: {
-        firstName: 'Pending',
-        actionToken: 'newrawtoken',
-        actionTokenExpiresAt: newExpiresAt,
+    expect(authEmailHookServiceMock.requestAuthEmailSend).toHaveBeenCalledWith(
+      {
+        emailType: 'EMAIL_VERIFICATION',
+        recipientEmail: 'pending@example.com',
+        userId: 'pendinguser',
+        actionTokenId: 'newtoken',
+        templateData: {
+          firstName: 'Pending',
+          actionToken: 'newrawtoken',
+          actionTokenExpiresAt: newExpiresAt,
+        },
       },
-    });
+      prismaMock,
+    );
   });
 
   it('sends a new verification email for a pending unverified account with no existing verificationtoken', async () => {

@@ -94,10 +94,11 @@ describe('Forgot Password and Reset Password API', () => {
       });
 
       authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValue({
-        status: 'ACCEPTED',
-        acceptedByProvider: true,
+        status: 'QUEUED',
+        queueAccepted: true,
         queued: true,
         deliveryLogId: 'log-123',
+        jobId: 'job-123',
       });
 
       const response = await request(createApp())
@@ -107,7 +108,7 @@ describe('Forgot Password and Reset Password API', () => {
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty(
         'message',
-        'If the email is registered, a password reset link has been sent.',
+        'If the email is registered, a password reset link has been queued for delivery.',
       );
       expect(userRepositoryMock.findUserByEmail).toHaveBeenCalledWith('test@example.com');
       expect(actionTokenServiceMock.issueActionToken).toHaveBeenCalled();
@@ -117,6 +118,7 @@ describe('Forgot Password and Reset Password API', () => {
           recipientEmail: 'test@example.com',
           userId: 'user-123',
         }),
+        expect.anything(),
       );
     });
 
@@ -130,7 +132,7 @@ describe('Forgot Password and Reset Password API', () => {
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty(
         'message',
-        'If the email is registered, a password reset link has been sent.',
+        'If the email is registered, a password reset link has been queued for delivery.',
       );
       expect(actionTokenServiceMock.issueActionToken).not.toHaveBeenCalled();
       expect(authEmailHookServiceMock.requestAuthEmailSend).not.toHaveBeenCalled();
@@ -153,9 +155,12 @@ describe('Forgot Password and Reset Password API', () => {
           expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
         },
       });
-      authEmailHookServiceMock.requestAuthEmailSend.mockRejectedValueOnce(
-        new Error('unexpected hook failure'),
-      );
+      authEmailHookServiceMock.requestAuthEmailSend.mockResolvedValueOnce({
+        status: 'NOT_QUEUED',
+        queueAccepted: false,
+        queued: false,
+        reason: 'EMAIL_QUEUE_FAILED',
+      });
 
       const response = await request(createApp())
         .post('/auth/forgot-password')
@@ -164,7 +169,7 @@ describe('Forgot Password and Reset Password API', () => {
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty(
         'message',
-        'If the email is registered, a password reset link has been sent.',
+        'If the email is registered, a password reset link has been queued for delivery.',
       );
       expect(actionTokenServiceMock.issueActionToken).toHaveBeenCalled();
       expect(authEmailHookServiceMock.requestAuthEmailSend).toHaveBeenCalled();

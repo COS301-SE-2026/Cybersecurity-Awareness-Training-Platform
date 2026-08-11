@@ -773,7 +773,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             message: {
               type: 'string',
               example:
-                'If the email is registered and unverified, a verification link has been sent.',
+                'If the email is registered and unverified, a verification link has been queued for delivery.',
             },
           },
         },
@@ -849,7 +849,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             message: {
               type: 'string',
               example:
-                'If this email change can be completed, a confirmation email has been sent to the new address.',
+                'If this email change can be completed, a confirmation email has been queued for delivery to the new address.',
             },
             emailQueued: booleanProperty(true),
           },
@@ -1213,7 +1213,8 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
           properties: {
             message: {
               type: 'string',
-              example: 'If the email is registered, a password reset link has been sent.',
+              example:
+                'If the email is registered, a password reset link has been queued for delivery.',
             },
           },
         },
@@ -2006,6 +2007,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             'VIEW_ORGANISATION_TRAINEES',
             'INVITE_ORGANISATION_TRAINEES',
             'REMOVE_ORGANISATION_TRAINEES',
+            'ASSIGN_CAMPAIGNS',
           ],
           'VIEW_ORGANISATION_ADMINS',
         ),
@@ -2461,7 +2463,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             success: booleanProperty(true),
             message: {
               type: 'string',
-              example: 'Invitation sent successfully.',
+              example: 'Invitation email queued for delivery.',
             },
             invitation: {
               $ref: '#/components/schemas/TraineeListItem',
@@ -2475,7 +2477,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             success: booleanProperty(true),
             message: {
               type: 'string',
-              example: 'Invitation resent successfully.',
+              example: 'Invitation email queued for delivery.',
             },
             invitationId: {
               ...uuidString('33333333-3333-4333-8333-333333333333'),
@@ -3843,7 +3845,240 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             },
           },
         },
+        PaginationMeta: {
+          type: 'object',
+          required: ['page', 'limit', 'total', 'totalPages'],
+          additionalProperties: false,
+          properties: {
+            page: { type: 'integer', minimum: 1, example: 1 },
+            limit: { type: 'integer', minimum: 1, example: 20 },
+            total: { type: 'integer', minimum: 0, example: 45 },
+            totalPages: { type: 'integer', minimum: 0, example: 3 },
+          },
+        },
+        AssignableCampaignOption: {
+          type: 'object',
+          required: [
+            'campaignId',
+            'name',
+            'description',
+            'status',
+            'type',
+            'itemCount',
+            'startDate',
+            'endDate',
+            'assignmentCount',
+          ],
+          additionalProperties: false,
+          properties: {
+            campaignId: uuidString('9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+            name: { type: 'string', example: 'Q3 Phishing Awareness' },
+            description: nullableString('Quarterly phishing simulation and training'),
+            status: enumString(['DRAFT', 'ACTIVE', 'PAUSED', 'COMPLETED', 'ARCHIVED'], 'ACTIVE'),
+            type: enumString(['PREMADE_GENERAL', 'ORGANISATION_CUSTOM'], 'ORGANISATION_CUSTOM'),
+            itemCount: { type: 'integer', minimum: 0, example: 3 },
+            startDate: {
+              type: 'string',
+              format: 'date-time',
+              nullable: true,
+              example: '2026-09-01T00:00:00.000Z',
+            },
+            endDate: {
+              type: 'string',
+              format: 'date-time',
+              nullable: true,
+              example: '2026-09-30T23:59:59.000Z',
+            },
+            assignmentCount: { type: 'integer', minimum: 0, example: 12 },
+          },
+        },
+        GetAssignableCampaignsResponse: {
+          type: 'object',
+          required: ['items', 'pagination'],
+          additionalProperties: false,
+          properties: {
+            items: {
+              type: 'array',
+              items: schemaRef('AssignableCampaignOption'),
+            },
+            pagination: schemaRef('PaginationMeta'),
+          },
+        },
+        CampaignAssignmentCandidateOption: {
+          type: 'object',
+          required: [
+            'traineeProfileId',
+            'organisationTraineeProfileId',
+            'userId',
+            'displayName',
+            'email',
+            'active',
+          ],
+          additionalProperties: false,
+          properties: {
+            traineeProfileId: uuidString('a1b2c3d4-e5f6-47a8-b9c0-d1e2f3a4b5c6'),
+            organisationTraineeProfileId: uuidString('b2c3d4e5-f6a7-48b9-c0d1-e2f3a4b5c6d7'),
+            userId: uuidString('c3d4e5f6-a7b8-49c0-d1e2-f3a4b5c6d7e8'),
+            displayName: { type: 'string', example: 'Jane Doe' },
+            email: { type: 'string', format: 'email', example: 'jane.doe@example.com' },
+            active: { type: 'boolean', enum: [true], example: true },
+          },
+        },
+        GetCampaignAssignmentCandidatesResponse: {
+          type: 'object',
+          required: ['items', 'pagination'],
+          additionalProperties: false,
+          properties: {
+            items: {
+              type: 'array',
+              items: schemaRef('CampaignAssignmentCandidateOption'),
+            },
+            pagination: schemaRef('PaginationMeta'),
+          },
+        },
+        CreateCampaignAssignmentsRequest: {
+          type: 'object',
+          required: ['campaignIds', 'traineeProfileIds'],
+          additionalProperties: false,
+          properties: {
+            campaignIds: {
+              ...uuidArray(['9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d']),
+              minItems: 1,
+              maxItems: 100,
+            },
+            traineeProfileIds: {
+              ...uuidArray(['a1b2c3d4-e5f6-47a8-b9c0-d1e2f3a4b5c6']),
+              minItems: 1,
+              maxItems: 100,
+            },
+          },
+        },
+        CampaignAssignmentResultRow: {
+          type: 'object',
+          required: ['assignmentId', 'campaignId', 'traineeProfileId'],
+          additionalProperties: false,
+          properties: {
+            assignmentId: uuidString('55555555-5555-4555-8555-555555555555'),
+            campaignId: uuidString('9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+            traineeProfileId: uuidString('a1b2c3d4-e5f6-47a8-b9c0-d1e2f3a4b5c6'),
+          },
+        },
+        CampaignAssignmentSummary: {
+          type: 'object',
+          required: [
+            'requestedCampaigns',
+            'requestedTrainees',
+            'requestedPairs',
+            'createdCount',
+            'alreadyAssignedCount',
+          ],
+          additionalProperties: false,
+          properties: {
+            requestedCampaigns: { type: 'integer', minimum: 0, example: 1 },
+            requestedTrainees: { type: 'integer', minimum: 0, example: 2 },
+            requestedPairs: { type: 'integer', minimum: 0, example: 2 },
+            createdCount: { type: 'integer', minimum: 0, example: 2 },
+            alreadyAssignedCount: { type: 'integer', minimum: 0, example: 0 },
+          },
+        },
+        CreateCampaignAssignmentsResponse: {
+          type: 'object',
+          required: ['created', 'alreadyAssigned', 'summary'],
+          additionalProperties: false,
+          properties: {
+            created: arrayOf(schemaRef('CampaignAssignmentResultRow')),
+            alreadyAssigned: arrayOf(schemaRef('CampaignAssignmentResultRow')),
+            summary: schemaRef('CampaignAssignmentSummary'),
+          },
+        },
+        CampaignAssignmentReadRow: {
+          type: 'object',
+          required: [
+            'assignmentId',
+            'campaignId',
+            'campaignName',
+            'campaignStatus',
+            'campaignType',
+            'traineeProfileId',
+            'displayName',
+            'email',
+            'traineeStatus',
+            'assignmentStatus',
+            'accessType',
+            'assignedAt',
+            'startedAt',
+            'completedAt',
+          ],
+          additionalProperties: false,
+          properties: {
+            assignmentId: uuidString('55555555-5555-4555-8555-555555555555'),
+            campaignId: uuidString('9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+            campaignName: { type: 'string', example: 'Checkers Sixty60 Phishing Awareness' },
+            campaignStatus: enumString(
+              ['DRAFT', 'ACTIVE', 'PAUSED', 'COMPLETED', 'ARCHIVED'],
+              'ACTIVE',
+            ),
+            campaignType: enumString(
+              ['PREMADE_GENERAL', 'ORGANISATION_CUSTOM'],
+              'ORGANISATION_CUSTOM',
+            ),
+            traineeProfileId: uuidString('a1b2c3d4-e5f6-47a8-b9c0-d1e2f3a4b5c6'),
+            displayName: { type: 'string', example: 'Sipho Ndlovu' },
+            email: {
+              type: 'string',
+              format: 'email',
+              example: 'sipho.ndlovu@rustenburg-cyber.co.za',
+            },
+            traineeStatus: enumString(['ACTIVE', 'INACTIVE'], 'ACTIVE'),
+            assignmentStatus: enumString(
+              ['AVAILABLE', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'EXPIRED'],
+              'ASSIGNED',
+            ),
+            accessType: enumString(['ASSIGNED', 'SELF_SELECTED'], 'ASSIGNED'),
+            assignedAt: dateTimeString('2026-08-07T12:00:00.000Z'),
+            startedAt: { type: 'string', format: 'date-time', nullable: true, example: null },
+            completedAt: { type: 'string', format: 'date-time', nullable: true, example: null },
+          },
+        },
+        GetCampaignAssignmentsResponse: {
+          type: 'object',
+          required: ['items', 'pagination'],
+          additionalProperties: false,
+          properties: {
+            items: arrayOf(schemaRef('CampaignAssignmentReadRow')),
+            pagination: schemaRef('PaginationMeta'),
+          },
+        },
+        DeletedProgressCounts: {
+          type: 'object',
+          required: ['quizAttempts', 'emailClassificationResponses', 'interactionEvents'],
+          additionalProperties: false,
+          properties: {
+            quizAttempts: { type: 'integer', minimum: 0, example: 1 },
+            emailClassificationResponses: { type: 'integer', minimum: 0, example: 2 },
+            interactionEvents: { type: 'integer', minimum: 0, example: 5 },
+          },
+        },
+        DeleteCampaignAssignmentResponse: {
+          type: 'object',
+          required: [
+            'assignmentId',
+            'campaignId',
+            'traineeProfileId',
+            'unassigned',
+            'deletedProgress',
+          ],
+          additionalProperties: false,
+          properties: {
+            assignmentId: uuidString('55555555-5555-4555-8555-555555555555'),
+            campaignId: uuidString('9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+            traineeProfileId: uuidString('a1b2c3d4-e5f6-47a8-b9c0-d1e2f3a4b5c6'),
+            unassigned: trueSuccessProperty(),
+            deletedProgress: schemaRef('DeletedProgressCounts'),
+          },
+        },
       },
+
       parameters: {
         CampaignIdPathParam: {
           name: 'campaignId',
@@ -4077,8 +4312,33 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
           required: true,
           ...jsonContent(schemaRef('DisableTraineeRequest')),
         },
+        CreateCampaignAssignments: {
+          required: true,
+          ...jsonContent(schemaRef('CreateCampaignAssignmentsRequest')),
+        },
       },
       responses: {
+        GetAssignableCampaignsOk: responseComponent(
+          'Paginated list of assignable custom campaigns.',
+          'GetAssignableCampaignsResponse',
+        ),
+        GetCampaignAssignmentCandidatesOk: responseComponent(
+          'Paginated list of eligible trainee assignment candidates.',
+          'GetCampaignAssignmentCandidatesResponse',
+        ),
+        CreateCampaignAssignmentsOk: responseComponent(
+          'Bulk campaign assignments created or returned as existing.',
+          'CreateCampaignAssignmentsResponse',
+        ),
+        GetCampaignAssignmentsOk: responseComponent(
+          'Paginated list of campaign assignments.',
+          'GetCampaignAssignmentsResponse',
+        ),
+        DeleteCampaignAssignmentOk: responseComponent(
+          'Campaign assignment and all associated trainee progress permanently removed.',
+          'DeleteCampaignAssignmentResponse',
+        ),
+
         HealthOk: responseComponent('API and database are reachable.', 'HealthStatus'),
         HealthDatabaseUnavailable: responseComponent(
           'API is reachable, but the database check failed.',
@@ -4154,11 +4414,11 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
           'TraineeListResponse',
         ),
         OrganisationTraineeInvitationCreated: responseComponent(
-          'Trainee invitation sent successfully.',
+          'Trainee invitation email queued for delivery.',
           'CreateTraineeInvitationResponse',
         ),
         OrganisationTraineeInvitationResent: responseComponent(
-          'Trainee invitation resent successfully.',
+          'Trainee invitation email queued for delivery.',
           'InvitationResendResponse',
         ),
         OrganisationTraineeInvitationRevoked: responseComponent(
