@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getPlatformAdmins } from '../../services/platform-admin.service';
 import PlatformAdministratorsPage from '../PlatformAdministratorsPage';
 import type { ReactNode } from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type {
   PlatformAdminListItemDto,
   PlatformAdminListResponseDto,
@@ -74,7 +74,7 @@ function buildResponse(
   };
 }
 
-function renderPage() {
+function renderPage(platformAdminRole: 'SUPER_ADMIN' | 'NORMAL_ADMIN' = 'SUPER_ADMIN') {
   const auth = createAuthContextValue({
     token: 'platform-admin-token',
     authContext: {
@@ -85,7 +85,7 @@ function renderPage() {
       },
       role: 'IP_ADMIN',
       organisation: null,
-      platformAdminRole: 'SUPER_ADMIN',
+      platformAdminRole,
       permissions: [],
       redirectTo: '/platform-administrators',
     },
@@ -322,5 +322,176 @@ describe('PlatformAdministratorsPage', () => {
     expect(
       screen.getByText('No platform administrators match your search or filters.'),
     ).toBeInTheDocument();
+  });
+
+  it('renders a normal platform administrator as read-only', async () => {
+    mockGetPlatformAdmins.mockResolvedValueOnce(
+      buildResponse([buildRow()], {
+        allowedToInvite: false,
+        allowedToTransfer: false,
+        allowedToDemote: false,
+        allowedToResendInvites: false,
+      }),
+    );
+
+    renderPage('NORMAL_ADMIN');
+
+    expect(await screen.findByText('Ada Lovelace')).toBeInTheDocument();
+
+    expect(
+      screen.getByText(
+        (_, element) =>
+          element?.tagName === 'P' &&
+          element.textContent === 'View Insightful Phish platform administrators.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Invite platform administrator' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: 'Actions' })).not.toBeInTheDocument();
+  });
+
+  it('uses super-admin subtitle while server capability controls Invite', async () => {
+    mockGetPlatformAdmins.mockResolvedValueOnce(
+      buildResponse([buildRow()], {
+        allowedToInvite: false,
+        allowedToTransfer: false,
+        allowedToDemote: false,
+        allowedToResendInvites: false,
+      }),
+    );
+    const firstRender = renderPage('SUPER_ADMIN');
+
+    await screen.findByText('Ada Lovelace');
+
+    expect(
+      screen.getByText(
+        (_, element) =>
+          element?.tagName === 'P' &&
+          element.textContent ===
+            'View, invite, and manage Insightful Phish platform administrators.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Invite platform administrator' }),
+    ).not.toBeInTheDocument();
+
+    firstRender.unmount();
+
+    mockGetPlatformAdmins.mockResolvedValueOnce(
+      buildResponse([buildRow()], {
+        allowedToInvite: true,
+        allowedToTransfer: false,
+        allowedToDemote: false,
+        allowedToResendInvites: false,
+      }),
+    );
+
+    renderPage('SUPER_ADMIN');
+    expect(
+      await screen.findByRole('button', { name: /Invite platform administrator/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('renders supported actions only on their eligible rows', async () => {
+    mockGetPlatformAdmins.mockResolvedValueOnce(
+      buildResponse([
+        buildRow(),
+        buildRow({
+          id: '22222222-2222-4222-8222-222222222222',
+          firstName: 'Resend',
+          lastName: 'Target',
+          authStatus: 'PENDING_INVITE_SETUP',
+          invitationStatus: 'SENT',
+          inviteId: '833333333-3333-4333-8333-333333333333',
+          allowedActions: {
+            canTransferSuperAdmin: false,
+            canDemote: false,
+            canResendInvite: true,
+          },
+        }),
+        buildRow({
+          id: '44444444-4444-44444-84444-444444444444',
+          firstName: 'Transfer',
+          lastName: 'Target',
+          platformAdminRole: 'NORMAL_ADMIN',
+          allowedActions: {
+            canTransferSuperAdmin: true,
+            canDemote: false,
+            canResendInvite: false,
+          },
+        }),
+        buildRow({
+          id: '55555555-5555-4555-8555-555555555553',
+          firstName: 'Demote',
+          lastName: 'Target',
+          platformAdminRole: 'NORMAL_ADMIN',
+          allowedActions: {
+            canTransferSuperAdmin: false,
+            canDemote: true,
+            canResendInvite: false,
+          },
+        }),
+      ]),
+    );
+
+    renderPage('SUPER_ADMIN');
+
+    const resendRow = (await screen.findByText('Resend Target')).closest('tr');
+    const transferRow = screen.getByText('Transfer Target').closest('tr');
+    const demoteRow = screen.getByText('Demote Target').closest('tr');
+
+    expect(resendRow).not.toBeNull();
+    expect(transferRow).not.toBeNull();
+    expect(demoteRow).not.toBeNull();
+
+    expect(
+      within(resendRow!).getByRole('button', { name: 'Resend invitation' }),
+    ).toBeInTheDocument();
+    expect(
+      within(transferRow!).getByRole('button', { name: 'Transfer super administrator role' }),
+    ).toBeInTheDocument();
+    expect(
+      within(demoteRow!).getByRole('button', { name: 'Demote administrator' }),
+    ).toBeInTheDocument();
+
+    expect(screen.getByRole('columnheader', { name: 'Actions' })).toBeInTheDocument();
+  });
+
+  it('hides unsafe and unsupported controls for an unknown status', async () => {
+    mockGetPlatformAdmins.mockResolvedValueOnce(
+      buildResponse([
+        buildRow({
+          adminStatus: 'FUTURE_ADMIN_STATUS',
+          inviteId: '833333333-3333-4333-8333-333333333333',
+          allowedActions: {
+            canTransferSuperAdmin: true,
+            canDemote: true,
+            canResendInvite: true,
+          },
+        }),
+      ]),
+    );
+
+    renderPage('SUPER_ADMIN');
+
+    const unknownStatus = await screen.findByRole('cell', { name: 'Unknown status' });
+    const row = unknownStatus.closest('tr');
+
+    expect(row).not.toBeNull();
+    expect(
+      within(row!).queryByRole('button', { name: 'Resend invitation' }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(row!).queryByRole('button', { name: 'Transfer super administrator role' }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(row!).queryByRole('button', { name: 'Demote administrator' }),
+    ).not.toBeInTheDocument();
+
+    expect(screen.queryByText(/Revoke invitation/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Enable administrator/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Disable administrator/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Re-enable administrator/i)).not.toBeInTheDocument();
   });
 });

@@ -32,6 +32,14 @@ type DisplayAdministrator = {
   email: string;
   role: DisplayRole;
   status: DisplayStatus;
+  inviteId: string | null;
+  allowedActions: PlatformAdminListItemDto['allowedActions'];
+};
+
+type SelectedActionTarget = {
+  action: 'resend' | 'transfer' | 'demote';
+  userId: string;
+  inviteId: string | null;
 };
 
 function getDisplayRole(platformAdminRole: string): DisplayRole {
@@ -96,6 +104,8 @@ function toDisplayAdministrator(administrator: PlatformAdminListItemDto): Displa
     email: administrator.email,
     role: getDisplayRole(administrator.platformAdminRole),
     status: getDisplayStatus(administrator),
+    inviteId: administrator.inviteId,
+    allowedActions: administrator.allowedActions,
   };
 }
 
@@ -128,19 +138,30 @@ function PlatformAdministratorsPage() {
   const [hasLoadError, setHasLoadError] = useState(false);
 
   const [showBasicConfirmationModal, setShowBasicConfirmationModal] = useState(false);
-  const [confirmationTitle] = useState('');
-  const [confirmationMessage] = useState('');
-  const [confirmationButtonText] = useState('');
-  const [confirmationVariant] = useState<'danger' | 'success' | 'default'>('default');
+  const [confirmationTitle, setConfirmationTitle] = useState('');
+  const [confirmationMessage, setConfirmationMessage] = useState('');
+  const [confirmationButtonText, setConfirmationButtonText] = useState('');
+  const [confirmationVariant, setConfirmationVariant] = useState<'danger' | 'success' | 'default'>(
+    'default',
+  );
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('All');
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('All');
 
+  const [selectedActionTarget, setSelectedActionTarget] = useState<SelectedActionTarget | null>(
+    null,
+  );
   const [showPlatformAdministratorModal, setShowPlatformAdministratorModal] = useState(false);
   const [showTransferSuperAdminModal, setShowTransferSuperAdminModal] = useState(false);
 
   // BOOLEAN FLAGS FOR ROLES
   const isSuperAdministrator = authContext?.platformAdminRole === 'SUPER_ADMIN';
+
+  const canInvite = isSuperAdministrator && platformAdminResponse?.allowedToInvite === true;
+  const canResendInvites =
+    isSuperAdministrator && platformAdminResponse?.allowedToResendInvites === true;
+  const canTransfer = isSuperAdministrator && platformAdminResponse?.allowedToTransfer === true;
+  const canDemote = isSuperAdministrator && platformAdminResponse?.allowedToDemote === true;
 
   const reloadPlatformAdministrators = useCallback(async () => {
     if (!token) {
@@ -238,10 +259,12 @@ function PlatformAdministratorsPage() {
 
   const closeTranserSuperAdministratorModal = () => {
     setShowTransferSuperAdminModal(false);
+    setSelectedActionTarget(null);
   };
 
   const confirmBasicConfirmation = () => {
     setShowBasicConfirmationModal(false);
+    setSelectedActionTarget(null);
   };
 
   const confirmTransferSuperAdminRole = () => {
@@ -250,6 +273,79 @@ function PlatformAdministratorsPage() {
 
   const closePlatformAdministratorPageConfirmationModal = () => {
     setShowBasicConfirmationModal(false);
+    setSelectedActionTarget(null);
+  };
+
+  const canResendAdministratorInvite = (administrator: DisplayAdministrator) =>
+    administrator.status !== 'Unknown status' &&
+    canResendInvites &&
+    administrator.allowedActions.canResendInvite &&
+    administrator.inviteId !== null;
+
+  const canTransferToAdministrator = (administrator: DisplayAdministrator) =>
+    administrator.status !== 'Unknown status' &&
+    canTransfer &&
+    administrator.allowedActions.canTransferSuperAdmin;
+
+  const canDemoteAdministrator = (administrator: DisplayAdministrator) =>
+    administrator.status !== 'Unknown status' &&
+    canDemote &&
+    administrator.allowedActions.canDemote;
+
+  const administratorHasAction = (administrator: DisplayAdministrator) =>
+    canResendAdministratorInvite(administrator) ||
+    canTransferToAdministrator(administrator) ||
+    canDemoteAdministrator(administrator);
+
+  const showActionsColumn = filteredPlatformAdministrators.some(administratorHasAction);
+
+  const openResendInvitationModal = (administrator: DisplayAdministrator) => {
+    if (!canResendAdministratorInvite(administrator)) {
+      return;
+    }
+
+    setSelectedActionTarget({
+      action: 'resend',
+      userId: administrator.id,
+      inviteId: administrator.inviteId,
+    });
+    setConfirmationTitle('Resend Invitation');
+    setConfirmationMessage(
+      `Are you sure you want to resend the invitation to ${administrator.fullName}?`,
+    );
+    setConfirmationButtonText('Resend');
+    setConfirmationVariant('default');
+    setShowBasicConfirmationModal(true);
+  };
+
+  const openTransferSuperAdministratorModal = (administrator: DisplayAdministrator) => {
+    if (!canTransferToAdministrator(administrator)) {
+      return;
+    }
+
+    setSelectedActionTarget({
+      action: 'transfer',
+      userId: administrator.id,
+      inviteId: null,
+    });
+    setShowTransferSuperAdminModal(true);
+  };
+
+  const openDemoteAdministratorModal = (administrator: DisplayAdministrator) => {
+    if (!canDemoteAdministrator(administrator)) {
+      return;
+    }
+
+    setSelectedActionTarget({
+      action: 'demote',
+      userId: administrator.id,
+      inviteId: null,
+    });
+    setConfirmationTitle('Demote Administrator');
+    setConfirmationMessage(`Are you sure you want to demote ${administrator.fullName}?`);
+    setConfirmationButtonText('Demote');
+    setConfirmationVariant('danger');
+    setShowBasicConfirmationModal(true);
   };
 
   return (
@@ -283,10 +379,16 @@ function PlatformAdministratorsPage() {
             Platform Administrators
           </h1>
 
-          {/* SUB-HEADING */}
-          {/* DISPLAY THIS HEADING IF THEY ARE SUPER-ADMIN */}
           <p className="font-regular tracking-wider text-[1.3rem] font-justify font-jost text-gray-500 mb-4">
-            View, invite, and manage <em>Insightful Phish</em> platform administrators.
+            {isSuperAdministrator ? (
+              <>
+                View, invite, and manage <em>Insightful Phish</em> platform administrators.
+              </>
+            ) : (
+              <>
+                View <em>Insightful Phish</em> platform administrators.
+              </>
+            )}
           </p>
 
           {/* DISPLAY THIS HEADING IF THEY ARE NOT A SUPER-ADMIN */}
@@ -419,14 +521,14 @@ function PlatformAdministratorsPage() {
 
                 {/* Add (Invite) Platform Administrator Button */}
                 {/* ONLY SHOW IF SUPER ADMIN */}
-                {isSuperAdministrator && (
+                {canInvite && (
                   <button
                     type="button"
                     onClick={openPlatformAdministratorModal}
                     className="cursor-pointer px-4 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm py-[0.425rem] focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     <span className="material-symbols-sharp">add_2</span>
-                    <span className="whitespace-nowrap">Invite Platform Administrator</span>
+                    <span className="whitespace-nowrap">Invite platform administrator</span>
                   </button>
                 )}
               </div>
@@ -482,6 +584,14 @@ function PlatformAdministratorsPage() {
                     >
                       Status
                     </th>
+                    {showActionsColumn && (
+                      <th
+                        scope="col"
+                        className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
+                      >
+                        Actions
+                      </th>
+                    )}
                   </tr>
                 </thead>
                 {/* Table Content */}
@@ -504,6 +614,44 @@ function PlatformAdministratorsPage() {
                       <td className="px-6 py-4">
                         <StatusBadge status={platformAdministrator.status} />
                       </td>
+
+                      {showActionsColumn && (
+                        <td className="px-6 py-4">
+                          <div className="grid grid-cols-1 gap-1 justify-items-start">
+                            {canResendAdministratorInvite(platformAdministrator) && (
+                              <button
+                                type="button"
+                                onClick={() => openResendInvitationModal(platformAdministrator)}
+                                className="cursor-pointer font-medium text-purple hover:underline"
+                              >
+                                Resend invitation
+                              </button>
+                            )}
+
+                            {canTransferToAdministrator(platformAdministrator) && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  openTransferSuperAdministratorModal(platformAdministrator)
+                                }
+                                className="cursor-pointer font-medium text-purple hover:underline"
+                              >
+                                Transfer super administrator role
+                              </button>
+                            )}
+
+                            {canDemoteAdministrator(platformAdministrator) && (
+                              <button
+                                type="button"
+                                onClick={() => openDemoteAdministratorModal(platformAdministrator)}
+                                className="cursor-pointer font-medium text-red-600 hover:underline"
+                              >
+                                Demote administrator
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   ))}
 
@@ -511,7 +659,7 @@ function PlatformAdministratorsPage() {
                   {filteredPlatformAdministrators.length === 0 && (
                     <tr>
                       <td
-                        colSpan={4}
+                        colSpan={showActionsColumn ? 5 : 4}
                         className="py-8 text-center text-[1.2rem] tracking-wider text-red-500 font-jost"
                       >
                         {emptyMessage}
@@ -526,16 +674,18 @@ function PlatformAdministratorsPage() {
       </div>
 
       {/* BASIC CONFIRMATION MODAL */}
-      {showBasicConfirmationModal && (
-        <BasicConfirmationModal
-          title={confirmationTitle}
-          message={confirmationMessage}
-          confirmButtonText={confirmationButtonText}
-          confirmButtonVariant={confirmationVariant}
-          onConfirm={confirmBasicConfirmation}
-          onCancel={closePlatformAdministratorPageConfirmationModal}
-        ></BasicConfirmationModal>
-      )}
+      {showBasicConfirmationModal &&
+        selectedActionTarget !== null &&
+        selectedActionTarget.action !== 'transfer' && (
+          <BasicConfirmationModal
+            title={confirmationTitle}
+            message={confirmationMessage}
+            confirmButtonText={confirmationButtonText}
+            confirmButtonVariant={confirmationVariant}
+            onConfirm={confirmBasicConfirmation}
+            onCancel={closePlatformAdministratorPageConfirmationModal}
+          ></BasicConfirmationModal>
+        )}
 
       {showPlatformAdministratorModal && (
         <InvitePlatformAdministratorModal
@@ -544,7 +694,7 @@ function PlatformAdministratorsPage() {
         ></InvitePlatformAdministratorModal>
       )}
 
-      {showTransferSuperAdminModal && (
+      {showTransferSuperAdminModal && selectedActionTarget?.action === 'transfer' && (
         <TransferSuperAdministratorRoleModal
           isOpen={showTransferSuperAdminModal}
           onConfirm={confirmTransferSuperAdminRole}
