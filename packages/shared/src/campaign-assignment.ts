@@ -9,9 +9,12 @@ import type {
   campaignAssignmentSummarySchema,
   createCampaignAssignmentsResponseSchema,
   createCampaignAssignmentsSchema,
+  deleteCampaignAssignmentResponseSchema,
+  deletedProgressCountsSchema,
   getAssignableCampaignsResponseSchema,
   getCampaignAssignmentCandidatesResponseSchema,
   getCampaignAssignmentsResponseSchema,
+  organisationAndAssignmentIdParamsSchema,
   organisationAndCampaignIdParamsSchema,
   organisationAndTraineeProfileIdParamsSchema,
   paginationMetaSchema,
@@ -27,6 +30,16 @@ export type OrganisationAndCampaignIdParamsDto = z.infer<
 
 export type OrganisationAndTraineeProfileIdParamsDto = z.infer<
   typeof organisationAndTraineeProfileIdParamsSchema
+>;
+
+export type OrganisationAndAssignmentIdParamsDto = z.infer<
+  typeof organisationAndAssignmentIdParamsSchema
+>;
+
+export type DeletedProgressCountsDto = z.infer<typeof deletedProgressCountsSchema>;
+
+export type DeleteCampaignAssignmentResponseDto = z.infer<
+  typeof deleteCampaignAssignmentResponseSchema
 >;
 
 export type PaginationMetaDto = z.infer<typeof paginationMetaSchema>;

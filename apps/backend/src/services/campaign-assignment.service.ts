@@ -6,11 +6,13 @@ import type {
   CampaignAssignmentsReadQueryDto,
   CreateCampaignAssignmentsRequestDto,
   CreateCampaignAssignmentsResponseDto,
+  DeleteCampaignAssignmentResponseDto,
   GetAssignableCampaignsResponseDto,
   GetCampaignAssignmentCandidatesResponseDto,
   GetCampaignAssignmentsResponseDto,
 } from '@insightful-phish/shared';
 import {
+  deleteCampaignAssignment as deleteCampaignAssignmentInRepo,
   executeBulkCampaignAssignment,
   findActorOrganisationAdmin,
   findActorOrganisationTrainee,
@@ -21,6 +23,7 @@ import {
   findCampaignByIdInOrganisation,
   findTraineeByIdInOrganisation,
 } from '../repositories/campaign-assignment.repository.js';
+
 import { recordAuditLog } from './audit-log.service.js';
 
 export class CampaignAssignmentServiceError extends Error {
@@ -330,5 +333,31 @@ export async function getCampaignAssignmentsByTrainee(
       total,
       totalPages,
     },
+  };
+}
+
+export async function deleteCampaignAssignment(
+  actorUserId: string,
+  organisationId: string,
+  assignmentId: string,
+): Promise<DeleteCampaignAssignmentResponseDto> {
+  await requireAuthorisedOrganisationAdmin(actorUserId, organisationId);
+
+  const result = await deleteCampaignAssignmentInRepo({
+    organisationId,
+    assignmentId,
+    actorUserId,
+  });
+
+  if (!result.success) {
+    throw new CampaignAssignmentServiceError(404, 'ASSIGNMENT_NOT_FOUND', result.message);
+  }
+
+  return {
+    assignmentId: result.assignmentId,
+    campaignId: result.campaignId,
+    traineeProfileId: result.traineeProfileId,
+    unassigned: true,
+    deletedProgress: result.deletedProgress,
   };
 }

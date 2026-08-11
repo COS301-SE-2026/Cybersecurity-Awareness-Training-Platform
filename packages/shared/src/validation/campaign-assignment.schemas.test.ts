@@ -7,9 +7,11 @@ import {
   campaignAssignmentsReadQuerySchema,
   createCampaignAssignmentsResponseSchema,
   createCampaignAssignmentsSchema,
+  deleteCampaignAssignmentResponseSchema,
   getAssignableCampaignsResponseSchema,
   getCampaignAssignmentCandidatesResponseSchema,
   getCampaignAssignmentsResponseSchema,
+  organisationAndAssignmentIdParamsSchema,
   organisationAndCampaignIdParamsSchema,
   organisationAndTraineeProfileIdParamsSchema,
 } from './campaign-assignment.schemas.js';
@@ -305,6 +307,37 @@ describe('campaign assignment response schemas', () => {
       },
     };
     expect(getCampaignAssignmentCandidatesResponseSchema.safeParse(validResponse).success).toBe(
+      true,
+    );
+  });
+
+  it('validates organisationAndAssignmentIdParamsSchema', () => {
+    const validParams = {
+      organisationId: '11111111-1111-4111-8111-111111111111',
+      assignmentId: '55555555-5555-4555-8555-555555555555',
+    };
+    expect(organisationAndAssignmentIdParamsSchema.safeParse(validParams).success).toBe(true);
+    expect(
+      organisationAndAssignmentIdParamsSchema.safeParse({
+        organisationId: 'invalid-uuid',
+        assignmentId: '55555555-5555-4555-8555-555555555555',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('validates deleteCampaignAssignmentResponseSchema', () => {
+    const validUnassignResponse = {
+      assignmentId: '55555555-5555-4555-8555-555555555555',
+      campaignId: '11111111-1111-4111-8111-111111111111',
+      traineeProfileId: '22222222-2222-4222-8222-222222222222',
+      unassigned: true,
+      deletedProgress: {
+        quizAttempts: 2,
+        emailClassificationResponses: 3,
+        interactionEvents: 10,
+      },
+    };
+    expect(deleteCampaignAssignmentResponseSchema.safeParse(validUnassignResponse).success).toBe(
       true,
     );
   });

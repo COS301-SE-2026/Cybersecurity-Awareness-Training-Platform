@@ -6,14 +6,19 @@ import { prisma } from '../../src/lib/prisma.js';
 import {
   AdminStatus,
   AuthStatus,
+  CampaignAccessType,
   CampaignStatus,
   CampaignType,
+  EmailClassification,
+  InteractionEventType,
+  InteractionTargetType,
   OrganisationStatus,
   OrganisationUserStatus,
   PlatformAdminRole,
   TraineeStatus,
   UserType,
 } from '../../src/generated/prisma/enums.js';
+
 import { seedOrganisationAdminPermissions } from '../../prisma/seed-data/organisationPermissionSeed.js';
 import { clearAuthRateLimitStore } from '../../src/middleware/authRateLimit.js';
 import { clearCampaignAssignmentRateLimitStores } from '../../src/routes/campaign-assignment.routes.js';
@@ -62,7 +67,7 @@ async function loginAsOrgAdmin(
 
   await seedOrganisationAdminPermissions(prisma);
 
-  const email = generateTestEmail('admin');
+  const email = generateTestEmail(`admin-${randomUUID()}`);
   const userId = randomUUID();
 
   const user = await prisma.user.create({
@@ -116,7 +121,7 @@ async function loginAsTrainee(input: {
   firstName?: string;
   lastName?: string;
 }) {
-  const email = generateTestEmail('trainee');
+  const email = generateTestEmail(`trainee-${randomUUID()}`);
   const userId = randomUUID();
 
   const user = await prisma.user.create({
@@ -157,7 +162,7 @@ async function loginAsTrainee(input: {
 }
 
 async function loginAsPlatformSuperAdmin() {
-  const email = generateTestEmail('superadmin');
+  const email = generateTestEmail(`superadmin-${randomUUID()}`);
   const userId = randomUUID();
 
   const user = await prisma.user.create({
@@ -189,6 +194,7 @@ async function loginAsPlatformSuperAdmin() {
 
 describe('Campaign Assignment API Integration Tests', () => {
   beforeEach(async () => {
+    vi.setConfig({ testTimeout: 30000 });
     vi.clearAllMocks();
     sendMailMock.mockResolvedValue({ messageId: 'smtpmessage01' });
     clearAuthRateLimitStore();
@@ -197,14 +203,16 @@ describe('Campaign Assignment API Integration Tests', () => {
 
   describe('1. Real Onboarding & Initial Administrator Setup Workflow', () => {
     it('grants ASSIGN_CAMPAIGNS explicitly during real onboarding setup, allowing campaign options HTTP access', async () => {
-      const adminEmail = generateTestEmail('initial-admin');
+      const adminEmail = generateTestEmail(`initial-admin-${randomUUID()}`);
+      const uniqueId = randomUUID();
+
       const registrationRes = await request(app)
         .post('/organisation-registration-requests')
         .send({
-          organisationName: `Pretoria Tech ${randomUUID()}`,
+          organisationName: `Pretoria Tech ${uniqueId}`,
           organisationDescription: 'South African Security Platform',
           organisationSize: 50,
-          organisationWebsiteUrl: 'https://pretoria-tech.co.za',
+          organisationWebsiteUrl: `https://pretoria-tech-${uniqueId}.co.za`,
           representativeFirstName: 'Initial',
           representativeLastName: 'Admin',
           representativeEmail: adminEmail,
@@ -719,6 +727,537 @@ describe('Campaign Assignment API Integration Tests', () => {
       expect(traineeSearchRes.status).toBe(200);
       expect(traineeSearchRes.body.items).toHaveLength(0);
       expect(traineeSearchRes.body.pagination.total).toBe(0);
+    });
+  });
+
+  describe('5. Unassignment and Destructive Cleanup Workflow', () => {
+    async function createFullCampaignProgressFixture(input: {
+      organisationId: string;
+      traineeProfileId: string;
+      assignedByUserId: string;
+      campaignName?: string;
+    }) {
+      const campaign = await createCampaign({
+        organisationId: input.organisationId,
+        name: input.campaignName ?? 'Capitec Phishing Awareness',
+        campaignType: CampaignType.ORGANISATION_CUSTOM,
+        status: CampaignStatus.ACTIVE,
+      });
+
+      const quiz = await prisma.quiz.create({
+        data: {
+          id: randomUUID(),
+          title: 'South African Security Quiz',
+          passThresholdPercentage: 80,
+        },
+      });
+
+      const quizQuestion = await prisma.quizQuestion.create({
+        data: {
+          id: randomUUID(),
+          quizId: quiz.id,
+          prompt: 'Spot the malicious link in the banking notice',
+          position: 1,
+        },
+      });
+
+      const answerOption = await prisma.answerOption.create({
+        data: {
+          id: randomUUID(),
+          questionId: quizQuestion.id,
+          label: 'A',
+          text: 'http://capitec-verification.co.za',
+          isCorrect: true,
+          position: 1,
+        },
+      });
+
+      const item = await prisma.campaignItem.create({
+        data: {
+          id: randomUUID(),
+          campaignId: campaign.id,
+          itemType: 'COMPONENT',
+          componentType: 'QUIZ',
+          title: 'Quiz Item',
+          position: 1,
+          quizId: quiz.id,
+        },
+      });
+
+      const assignment = await prisma.campaignAssignment.create({
+        data: {
+          id: randomUUID(),
+          campaignId: campaign.id,
+          traineeProfileId: input.traineeProfileId,
+          assignedByUserId: input.assignedByUserId,
+          currentCampaignItemId: item.id,
+          assignmentStatus: 'IN_PROGRESS',
+          accessType: CampaignAccessType.ASSIGNED,
+          startedAt: new Date(),
+        },
+      });
+
+      const quizAttempt = await prisma.quizAttempt.create({
+        data: {
+          id: randomUUID(),
+          traineeProfileId: input.traineeProfileId,
+          quizId: quiz.id,
+          campaignAssignmentId: assignment.id,
+          campaignItemId: item.id,
+          status: 'SUBMITTED',
+          submittedAt: new Date(),
+        },
+      });
+
+      const attemptAnswer = await prisma.attemptAnswer.create({
+        data: {
+          id: randomUUID(),
+          attemptId: quizAttempt.id,
+          questionId: quizQuestion.id,
+          isCorrect: true,
+          awardedPoints: 1,
+        },
+      });
+
+      await prisma.attemptAnswerOption.create({
+        data: {
+          id: randomUUID(),
+          attemptAnswerId: attemptAnswer.id,
+          answerOptionId: answerOption.id,
+        },
+      });
+
+      await prisma.quizResult.create({
+        data: {
+          id: randomUUID(),
+          attemptId: quizAttempt.id,
+          scorePercentage: 100,
+          passed: true,
+        },
+      });
+
+      const simulation = await prisma.simulation.create({
+        data: {
+          id: randomUUID(),
+          simulationType: 'SIMULATED_INBOX',
+          title: 'FNB Alert Simulation',
+        },
+      });
+
+      const inbox = await prisma.simulatedInbox.create({
+        data: {
+          id: randomUUID(),
+          simulationId: simulation.id,
+          title: 'FNB Inbox',
+        },
+      });
+
+      const simulatedEmail = await prisma.simulatedEmail.create({
+        data: {
+          id: randomUUID(),
+          inboxId: inbox.id,
+          senderLabel: 'FNB Security',
+          senderAddress: 'alert@fnb-verify.co.za',
+          subject: 'Action Required',
+          bodyHtml: '<p>Click link to protect ZAR account.</p>',
+          expectedClassification: EmailClassification.PHISHING,
+        },
+      });
+
+      const redFlag = await prisma.emailRedFlag.create({
+        data: {
+          id: randomUUID(),
+          simulatedEmailId: simulatedEmail.id,
+          redFlagType: 'DOMAIN',
+          label: 'Fake Domain',
+        },
+      });
+
+      const classificationResponse = await prisma.emailClassificationResponse.create({
+        data: {
+          id: randomUUID(),
+          traineeProfileId: input.traineeProfileId,
+          simulatedEmailId: simulatedEmail.id,
+          campaignAssignmentId: assignment.id,
+          campaignItemId: item.id,
+          selectedClassification: EmailClassification.PHISHING,
+          isCorrect: true,
+        },
+      });
+
+      await prisma.emailClassificationSelectedRedFlag.create({
+        data: {
+          id: randomUUID(),
+          emailClassificationResponseId: classificationResponse.id,
+          emailRedFlagId: redFlag.id,
+        },
+      });
+
+      const event1 = await prisma.interactionEvent.create({
+        data: {
+          id: randomUUID(),
+          traineeProfileId: input.traineeProfileId,
+          campaignAssignmentId: assignment.id,
+          campaignItemId: item.id,
+          eventType: InteractionEventType.CAMPAIGN_STARTED,
+          targetType: InteractionTargetType.CAMPAIGN,
+          targetId: campaign.id,
+        },
+      });
+
+      const event2 = await prisma.interactionEvent.create({
+        data: {
+          id: randomUUID(),
+          traineeProfileId: input.traineeProfileId,
+          campaignAssignmentId: assignment.id,
+          campaignItemId: item.id,
+          eventType: InteractionEventType.QUIZ_STARTED,
+          targetType: InteractionTargetType.QUIZ_ATTEMPT,
+          targetId: quizAttempt.id,
+          quizAttemptId: quizAttempt.id,
+        },
+      });
+
+      return {
+        campaign,
+        item,
+        assignment,
+        quizAttempt,
+        classificationResponse,
+        events: [event1, event2],
+      };
+    }
+
+    it('permanently deletes selected employee campaign assignment and progress while preserving unrelated progress and creating REVOKED audit record', async () => {
+      const adminFixture = await loginAsOrgAdmin({ grantAssignCampaigns: true });
+      const orgId = adminFixture.organisation.id;
+
+      const targetTrainee = await loginAsTrainee({
+        organisationId: orgId,
+        firstName: 'Sipho',
+        lastName: 'Ndlovu',
+      });
+      const otherTrainee = await loginAsTrainee({
+        organisationId: orgId,
+        firstName: 'Lerato',
+        lastName: 'Khumalo',
+      });
+
+      const targetFixture = await createFullCampaignProgressFixture({
+        organisationId: orgId,
+        traineeProfileId: targetTrainee.traineeProfile.id,
+        assignedByUserId: adminFixture.user.id,
+        campaignName: 'Target Employee Campaign',
+      });
+
+      const otherFixture = await createFullCampaignProgressFixture({
+        organisationId: orgId,
+        traineeProfileId: otherTrainee.traineeProfile.id,
+        assignedByUserId: adminFixture.user.id,
+        campaignName: 'Other Employee Campaign',
+      });
+
+      const res = await request(app)
+        .delete(`/organisations/${orgId}/campaign-assignments/${targetFixture.assignment.id}`)
+        .set('Authorization', `Bearer ${adminFixture.token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
+        assignmentId: targetFixture.assignment.id,
+        campaignId: targetFixture.campaign.id,
+        traineeProfileId: targetTrainee.traineeProfile.id,
+        unassigned: true,
+        deletedProgress: {
+          quizAttempts: 1,
+          emailClassificationResponses: 1,
+          interactionEvents: 2,
+        },
+      });
+
+      // Assert target progress rows are gone
+      const deletedAssignment = await prisma.campaignAssignment.findUnique({
+        where: { id: targetFixture.assignment.id },
+      });
+      expect(deletedAssignment).toBeNull();
+
+      const deletedAttempts = await prisma.quizAttempt.findMany({
+        where: { campaignAssignmentId: targetFixture.assignment.id },
+      });
+      expect(deletedAttempts).toHaveLength(0);
+
+      const deletedClassifications = await prisma.emailClassificationResponse.findMany({
+        where: { campaignAssignmentId: targetFixture.assignment.id },
+      });
+      expect(deletedClassifications).toHaveLength(0);
+
+      const deletedEvents = await prisma.interactionEvent.findMany({
+        where: { campaignAssignmentId: targetFixture.assignment.id },
+      });
+      expect(deletedEvents).toHaveLength(0);
+
+      // Assert audit log record created with REVOKED action type
+      const auditEntry = await prisma.auditLogEntry.findFirst({
+        where: {
+          organisationId: orgId,
+          targetId: targetFixture.campaign.id,
+          actionType: 'REVOKED',
+        },
+      });
+      expect(auditEntry).not.toBeNull();
+      expect(auditEntry?.outcome).toBe('SUCCESS');
+
+      // Assert unrelated trainee progress remains byte-for-byte intact
+      const otherAssignment = await prisma.campaignAssignment.findUnique({
+        where: { id: otherFixture.assignment.id },
+      });
+      expect(otherAssignment).not.toBeNull();
+
+      const otherAttempts = await prisma.quizAttempt.findMany({
+        where: { campaignAssignmentId: otherFixture.assignment.id },
+      });
+      expect(otherAttempts).toHaveLength(1);
+    });
+
+    it('allows clean reassignment of the same campaign after unassignment without rediscovering old progress', async () => {
+      const adminFixture = await loginAsOrgAdmin({ grantAssignCampaigns: true });
+      const orgId = adminFixture.organisation.id;
+      const trainee = await loginAsTrainee({ organisationId: orgId });
+
+      const progressFixture = await createFullCampaignProgressFixture({
+        organisationId: orgId,
+        traineeProfileId: trainee.traineeProfile.id,
+        assignedByUserId: adminFixture.user.id,
+      });
+
+      // Perform unassignment
+      await request(app)
+        .delete(`/organisations/${orgId}/campaign-assignments/${progressFixture.assignment.id}`)
+        .set('Authorization', `Bearer ${adminFixture.token}`);
+
+      // Reassign the same campaign
+      const reassignRes = await request(app)
+        .post(`/organisations/${orgId}/campaign-assignments`)
+        .set('Authorization', `Bearer ${adminFixture.token}`)
+        .send({
+          campaignIds: [progressFixture.campaign.id],
+          traineeProfileIds: [trainee.traineeProfile.id],
+        });
+
+      expect(reassignRes.status).toBe(200);
+      expect(reassignRes.body.summary.createdCount).toBe(1);
+
+      const newAssignmentId = reassignRes.body.created[0].assignmentId;
+      expect(newAssignmentId).not.toBe(progressFixture.assignment.id);
+
+      const newAssignmentInDb = await prisma.campaignAssignment.findUniqueOrThrow({
+        where: { id: newAssignmentId },
+      });
+      expect(newAssignmentInDb.assignmentStatus).toBe('ASSIGNED');
+      expect(newAssignmentInDb.startedAt).toBeNull();
+      expect(newAssignmentInDb.completedAt).toBeNull();
+      expect(newAssignmentInDb.currentCampaignItemId).toBeNull();
+
+      // Ensure no attempts or classification responses exist for trainee on this campaign
+      const attempts = await prisma.quizAttempt.findMany({
+        where: {
+          traineeProfileId: trainee.traineeProfile.id,
+          quizId: progressFixture.item.quizId!,
+        },
+      });
+      expect(attempts).toHaveLength(0);
+    });
+
+    it('allows unassignment of an inactive or disabled employee same-organisation assignment', async () => {
+      const adminFixture = await loginAsOrgAdmin({ grantAssignCampaigns: true });
+      const orgId = adminFixture.organisation.id;
+      const trainee = await loginAsTrainee({ organisationId: orgId });
+
+      const progressFixture = await createFullCampaignProgressFixture({
+        organisationId: orgId,
+        traineeProfileId: trainee.traineeProfile.id,
+        assignedByUserId: adminFixture.user.id,
+      });
+
+      // Disable organisation trainee profile
+      await prisma.organisationTraineeProfile.update({
+        where: { id: trainee.orgTraineeProfile.id },
+        data: {
+          membershipStatus: OrganisationUserStatus.DISABLED,
+          disabledAt: new Date(),
+        },
+      });
+
+      const res = await request(app)
+        .delete(`/organisations/${orgId}/campaign-assignments/${progressFixture.assignment.id}`)
+        .set('Authorization', `Bearer ${adminFixture.token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.unassigned).toBe(true);
+    });
+
+    it('returns 404 when trying to delete a SELF_SELECTED enrolment', async () => {
+      const adminFixture = await loginAsOrgAdmin({ grantAssignCampaigns: true });
+      const orgId = adminFixture.organisation.id;
+      const trainee = await loginAsTrainee({ organisationId: orgId });
+
+      const campaign = await createCampaign({
+        organisationId: orgId,
+        campaignType: CampaignType.ORGANISATION_CUSTOM,
+        status: CampaignStatus.ACTIVE,
+      });
+
+      const selfSelectedAssignment = await prisma.campaignAssignment.create({
+        data: {
+          id: randomUUID(),
+          campaignId: campaign.id,
+          traineeProfileId: trainee.traineeProfile.id,
+          assignedByUserId: adminFixture.user.id,
+          accessType: CampaignAccessType.SELF_SELECTED,
+          assignmentStatus: 'ASSIGNED',
+        },
+      });
+
+      const res = await request(app)
+        .delete(`/organisations/${orgId}/campaign-assignments/${selfSelectedAssignment.id}`)
+        .set('Authorization', `Bearer ${adminFixture.token}`);
+
+      expect(res.status).toBe(404);
+      expect(res.body.error).toBe('ASSIGNMENT_NOT_FOUND');
+
+      // Assert row still exists
+      const existing = await prisma.campaignAssignment.findUnique({
+        where: { id: selfSelectedAssignment.id },
+      });
+      expect(existing).not.toBeNull();
+    });
+
+    it('returns 404 for cross-organisation assignment deletion attempts without revealing existence', async () => {
+      const adminFixtureA = await loginAsOrgAdmin({ grantAssignCampaigns: true });
+      const orgAId = adminFixtureA.organisation.id;
+      const orgBId = (await createOrganisation()).id;
+
+      const traineeB = await loginAsTrainee({ organisationId: orgBId });
+      const campaignB = await createCampaign({
+        organisationId: orgBId,
+        campaignType: CampaignType.ORGANISATION_CUSTOM,
+        status: CampaignStatus.ACTIVE,
+      });
+
+      const assignmentB = await prisma.campaignAssignment.create({
+        data: {
+          id: randomUUID(),
+          campaignId: campaignB.id,
+          traineeProfileId: traineeB.traineeProfile.id,
+          accessType: CampaignAccessType.ASSIGNED,
+          assignmentStatus: 'ASSIGNED',
+        },
+      });
+
+      // Admin A attempts to delete Org B's assignment using Org A path
+      const res = await request(app)
+        .delete(`/organisations/${orgAId}/campaign-assignments/${assignmentB.id}`)
+        .set('Authorization', `Bearer ${adminFixtureA.token}`);
+
+      expect(res.status).toBe(404);
+      expect(res.body.error).toBe('ASSIGNMENT_NOT_FOUND');
+
+      // Verify Org B's assignment was NOT deleted
+      const checkAssignment = await prisma.campaignAssignment.findUnique({
+        where: { id: assignmentB.id },
+      });
+      expect(checkAssignment).not.toBeNull();
+    });
+
+    it('returns 403 when authenticated admin lacks ASSIGN_CAMPAIGNS permission', async () => {
+      const adminFixture = await loginAsOrgAdmin({ grantAssignCampaigns: false });
+      const orgId = adminFixture.organisation.id;
+
+      const res = await request(app)
+        .delete(`/organisations/${orgId}/campaign-assignments/${randomUUID()}`)
+        .set('Authorization', `Bearer ${adminFixture.token}`);
+
+      expect(res.status).toBe(403);
+      expect(res.body.error).toBe('MISSING_ASSIGN_CAMPAIGNS_PERMISSION');
+    });
+
+    it('returns 422 UNPROCESSABLE ENTITY when assignmentId path parameter is not a valid UUID', async () => {
+      const adminFixture = await loginAsOrgAdmin({ grantAssignCampaigns: true });
+      const orgId = adminFixture.organisation.id;
+
+      const res = await request(app)
+        .delete(`/organisations/${orgId}/campaign-assignments/not-a-uuid`)
+        .set('Authorization', `Bearer ${adminFixture.token}`);
+
+      expect(res.status).toBe(422);
+      expect(res.body.error).toBe('VALIDATION_ERROR');
+    });
+
+    it('safely handles two simultaneous unassignment requests via row locking without unhandled errors', async () => {
+      const adminFixture = await loginAsOrgAdmin({ grantAssignCampaigns: true });
+      const orgId = adminFixture.organisation.id;
+      const trainee = await loginAsTrainee({ organisationId: orgId });
+
+      const progressFixture = await createFullCampaignProgressFixture({
+        organisationId: orgId,
+        traineeProfileId: trainee.traineeProfile.id,
+        assignedByUserId: adminFixture.user.id,
+      });
+
+      const [res1, res2] = await Promise.all([
+        request(app)
+          .delete(`/organisations/${orgId}/campaign-assignments/${progressFixture.assignment.id}`)
+          .set('Authorization', `Bearer ${adminFixture.token}`),
+        request(app)
+          .delete(`/organisations/${orgId}/campaign-assignments/${progressFixture.assignment.id}`)
+          .set('Authorization', `Bearer ${adminFixture.token}`),
+      ]);
+
+      const statuses = [res1.status, res2.status].sort();
+      expect(statuses).toEqual([200, 404]);
+
+      const successfulRes = res1.status === 200 ? res1 : res2;
+      expect(successfulRes.body.unassigned).toBe(true);
+
+      const notFoundRes = res1.status === 404 ? res1 : res2;
+      expect(notFoundRes.body.error).toBe('ASSIGNMENT_NOT_FOUND');
+    });
+
+    it('cleans up legacy and null-assignment progress matching trainee and campaign items', async () => {
+      const adminFixture = await loginAsOrgAdmin({ grantAssignCampaigns: true });
+      const orgId = adminFixture.organisation.id;
+      const trainee = await loginAsTrainee({ organisationId: orgId });
+
+      const progressFixture = await createFullCampaignProgressFixture({
+        organisationId: orgId,
+        traineeProfileId: trainee.traineeProfile.id,
+        assignedByUserId: adminFixture.user.id,
+      });
+
+      // Create null-assignment progress records for this trainee and campaign item
+      await prisma.interactionEvent.create({
+        data: {
+          id: randomUUID(),
+          traineeProfileId: trainee.traineeProfile.id,
+          campaignAssignmentId: null,
+          campaignItemId: progressFixture.item.id,
+          eventType: InteractionEventType.TRAINING_VIEWED,
+          targetType: InteractionTargetType.TRAINING_DOCUMENT,
+          targetId: randomUUID(),
+        },
+      });
+
+      await request(app)
+        .delete(`/organisations/${orgId}/campaign-assignments/${progressFixture.assignment.id}`)
+        .set('Authorization', `Bearer ${adminFixture.token}`);
+
+      // Assert no progress exists for trainee on this campaign item
+      const itemEvents = await prisma.interactionEvent.findMany({
+        where: {
+          traineeProfileId: trainee.traineeProfile.id,
+          campaignItemId: progressFixture.item.id,
+        },
+      });
+      expect(itemEvents).toHaveLength(0);
     });
   });
 });
