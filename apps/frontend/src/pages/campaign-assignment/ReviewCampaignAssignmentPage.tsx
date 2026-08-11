@@ -48,7 +48,7 @@ function ReviewCampaignAssignmentPage({
 
         <div className="flex flex-col items-end">
           <p className="font-regular tracking-wide text-[1.2rem] font-left font-jost text-pink">
-            Assigning {traineeCount} Training Campaign(s) to {campaignCount} Organisation Trainee(s)
+            Assigning {campaignCount} Training Campaign(s) to {traineeCount} Organisation Trainee(s)
           </p>
           <p className="font-regular tracking-wide text-[1.2rem] font-left font-jost text-pink mb-2">
             {assignmentCount} Total Assignment(s)
