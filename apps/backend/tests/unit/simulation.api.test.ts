@@ -7,6 +7,7 @@ const prismaMock = vi.hoisted(() => {
   const tx = {
     $executeRaw: vi.fn(),
     interactionEvent: { create: vi.fn(), findFirst: vi.fn() },
+    emailClassificationResponse: { create: vi.fn(), findFirst: vi.fn() },
   };
 
   return {
@@ -374,8 +375,8 @@ describe('Simulation API', () => {
     it('classifies an email and creates interaction event with correct context', async () => {
       prismaMock.simulatedEmail.findUnique.mockResolvedValue(createMockEmail());
       prismaMock.emailClassificationResponse.findFirst.mockResolvedValue(null);
-      prismaMock.emailClassificationResponse.create.mockResolvedValue({ id: 'resp-123' });
-      prismaMock.interactionEvent.create.mockResolvedValue({ id: 'event-2' });
+      prismaMock.__tx.emailClassificationResponse.create.mockResolvedValue({ id: 'resp-123' });
+      prismaMock.__tx.interactionEvent.create.mockResolvedValue({ id: 'event-2' });
 
       const response = await request(app)
         .post(
@@ -388,7 +389,7 @@ describe('Simulation API', () => {
         });
 
       expect(response.status).toBe(200);
-      expect(prismaMock.emailClassificationResponse.create).toHaveBeenCalledWith(
+      expect(prismaMock.__tx.emailClassificationResponse.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
             campaignAssignmentId: '44444444-4444-4444-4444-444444444444',
@@ -396,7 +397,7 @@ describe('Simulation API', () => {
           }),
         }),
       );
-      expect(prismaMock.interactionEvent.create).toHaveBeenCalledWith(
+      expect(prismaMock.__tx.interactionEvent.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
             eventType: 'SIMULATED_EMAIL_CLASSIFIED',

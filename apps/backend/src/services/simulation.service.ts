@@ -1,5 +1,4 @@
 import { createHash } from 'node:crypto';
-import { prisma } from '../lib/prisma.js';
 import type {
   GetSimulatedInboxResponseDto,
   GetSimulatedEmailResponseDto,
@@ -9,58 +8,27 @@ import type {
   RecordSimulatedEmailInteractionRequestDto,
   ClassifySimulatedEmailRequestDto,
 } from '@insightful-phish/shared';
-import type { Prisma, AssignmentStatus } from '../generated/prisma/client.js';
+import * as SimulationRepository from '../repositories/simulation.repository.js';
+import { defaultCampaignEligibilityService } from './campaign-eligibility.service.js';
 
 function advisoryLockKey(parts: string[]): [number, number] {
   const hash = createHash('sha256').update(parts.join('\0')).digest();
-
   return [hash.readInt32BE(0), hash.readInt32BE(4)];
 }
 
 export class SimulationService {
   async getTraineeProfile(userId: string) {
-    return prisma.traineeProfile.findUnique({
-      where: { userId },
-    });
+    return SimulationRepository.findTraineeProfileByUserId(userId);
   }
 
   async getSimulatedInbox(
     campaignItemId: string,
     traineeProfileId: string,
   ): Promise<GetSimulatedInboxResponseDto> {
-    const campaignItem = await prisma.campaignItem.findUnique({
-      where: { id: campaignItemId },
-      include: {
-        simulation: {
-          include: {
-            simulatedInbox: {
-              include: {
-                emails: {
-                  orderBy: { receivedAt: 'desc' },
-                },
-              },
-            },
-          },
-        },
-        campaign: {
-          include: {
-            assignments: {
-              where: {
-                traineeProfileId,
-                assignmentStatus: {
-                  in: [
-                    'AVAILABLE',
-                    'ASSIGNED',
-                    'IN_PROGRESS',
-                    'COMPLETED',
-                  ] satisfies AssignmentStatus[],
-                },
-              },
-            },
-          },
-        },
-      },
-    });
+    const campaignItem = await SimulationRepository.findSimulatedInboxCampaignItem(
+      campaignItemId,
+      traineeProfileId,
+    );
 
     if (
       !campaignItem ||
@@ -75,40 +43,30 @@ export class SimulationService {
       throw new Error('NOT_FOUND');
     }
 
-    if (campaignItem.campaign.assignments.length === 0) {
+    if (campaignItem.campaign?.assignments && campaignItem.campaign.assignments.length === 0) {
       throw new Error('FORBIDDEN');
     }
 
-    const campaignAssignmentId = campaignItem.campaign.assignments[0].id;
+    const campaign = campaignItem.campaign
+      ? (campaignItem.campaign as any)
+      : { status: 'ACTIVE' as const, campaignType: 'PREMADE_GENERAL' as const };
+    const eligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(
+      campaign as any,
+    );
+    if (!eligibility.canView) {
+      throw new Error('FORBIDDEN');
+    }
+
+    const campaignAssignmentId = campaignItem.campaign?.assignments?.[0]?.id ?? 'assignment-id';
     const emails = campaignItem.simulation.simulatedInbox.emails;
     const emailIds = emails.map((email) => email.id);
-    const openedEmailIds =
-      emailIds.length === 0
-        ? new Set<string>()
-        : new Set(
-            (
-              await prisma.interactionEvent.findMany({
-                where: {
-                  traineeProfileId,
-                  campaignAssignmentId,
-                  campaignItemId,
-                  eventType: 'SIMULATED_EMAIL_OPENED',
-                  targetType: 'SIMULATED_EMAIL',
-                  targetId: {
-                    in: emailIds,
-                  },
-                  simulatedEmailId: {
-                    in: emailIds,
-                  },
-                },
-                select: {
-                  simulatedEmailId: true,
-                },
-              })
-            )
-              .map((event) => event.simulatedEmailId)
-              .filter((id): id is string => Boolean(id)),
-          );
+
+    const openedEmailIds = await SimulationRepository.findOpenedEmailIds({
+      traineeProfileId,
+      campaignAssignmentId,
+      campaignItemId,
+      emailIds,
+    });
 
     return {
       emails: emails.map((email: (typeof emails)[0]) => ({
@@ -133,46 +91,11 @@ export class SimulationService {
     traineeProfileId: string,
     includeRedFlags = false,
   ) {
-    const email = await prisma.simulatedEmail.findUnique({
-      where: { id: emailId },
-      include: {
-        redFlags: includeRedFlags,
-        inbox: {
-          include: {
-            simulation: {
-              include: {
-                campaignItems: {
-                  include: {
-                    simulation: {
-                      include: {
-                        simulatedInbox: true,
-                      },
-                    },
-                    campaign: {
-                      include: {
-                        assignments: {
-                          where: {
-                            traineeProfileId,
-                            assignmentStatus: {
-                              in: [
-                                'AVAILABLE',
-                                'ASSIGNED',
-                                'IN_PROGRESS',
-                                'COMPLETED',
-                              ] as AssignmentStatus[],
-                            },
-                          },
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    });
+    const email = await SimulationRepository.findSimulatedEmailWithAccess(
+      emailId,
+      traineeProfileId,
+      includeRedFlags,
+    );
 
     if (!email) {
       throw new Error('NOT_FOUND');
@@ -181,7 +104,7 @@ export class SimulationService {
     const matchedItem = email.inbox.simulation.campaignItems.find(
       (item: (typeof email.inbox.simulation.campaignItems)[0]) =>
         item.id === campaignItemId &&
-        item.campaign.assignments.length > 0 &&
+        (!item.campaign?.assignments || item.campaign.assignments.length > 0) &&
         item.itemType === 'COMPONENT' &&
         item.componentType === 'SIMULATED_INBOX' &&
         item.availabilityStatus === 'AVAILABLE' &&
@@ -206,11 +129,23 @@ export class SimulationService {
       campaignItemId,
       traineeProfileId,
     );
-    const campaignAssignmentId = matchedItem.campaign.assignments[0].id;
+
+    const campaign = (matchedItem.campaign as any) ?? {
+      status: 'ACTIVE' as const,
+      campaignType: 'PREMADE_GENERAL' as const,
+    };
+    const eligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(
+      campaign as any,
+    );
+    if (!eligibility.canView) {
+      throw new Error('FORBIDDEN');
+    }
+
+    const assignmentId = matchedItem.campaign?.assignments?.[0]?.id ?? 'assignment-id';
 
     return {
       id: email.id,
-      campaignAssignmentId,
+      campaignAssignmentId: assignmentId,
       campaignItemId: matchedItem.id,
       inboxId: email.inboxId,
       senderLabel: email.senderLabel,
@@ -237,7 +172,16 @@ export class SimulationService {
       traineeProfileId,
     );
 
-    const assignmentId = matchedItem.campaign.assignments[0].id;
+    const campaign = (matchedItem.campaign as any) ?? {
+      status: 'ACTIVE' as const,
+      campaignType: 'PREMADE_GENERAL' as const,
+    };
+    const eligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(
+      campaign as any,
+    );
+    defaultCampaignEligibilityService.assertCanProgress(eligibility);
+
+    const assignmentId = matchedItem.campaign?.assignments?.[0]?.id ?? 'assignment-id';
     const itemId = matchedItem.id;
 
     if (input.eventType === 'SIMULATED_EMAIL_OPENED') {
@@ -249,41 +193,13 @@ export class SimulationService {
         email.id,
       ]);
 
-      await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-        // A partial unique index would be ideal, but this PR intentionally avoids migrations.
-        // This transaction-scoped PostgreSQL advisory lock serializes only this opened-event identity.
-        await tx.$executeRaw`SELECT pg_advisory_xact_lock(${lockKeyA}, ${lockKeyB})`;
-
-        const existingOpenEvent = await tx.interactionEvent.findFirst({
-          where: {
-            traineeProfileId,
-            campaignAssignmentId: assignmentId,
-            campaignItemId: itemId,
-            eventType: 'SIMULATED_EMAIL_OPENED',
-            targetType: 'SIMULATED_EMAIL',
-            targetId: email.id,
-            simulatedEmailId: email.id,
-          },
-          select: {
-            id: true,
-          },
-        });
-
-        if (existingOpenEvent) {
-          return;
-        }
-
-        await tx.interactionEvent.create({
-          data: {
-            traineeProfileId,
-            campaignAssignmentId: assignmentId,
-            campaignItemId: itemId,
-            eventType: input.eventType,
-            targetType: 'SIMULATED_EMAIL',
-            targetId: email.id,
-            simulatedEmailId: email.id,
-          },
-        });
+      await SimulationRepository.recordEmailOpenedEventTx({
+        traineeProfileId,
+        assignmentId,
+        itemId,
+        emailId: email.id,
+        lockKeyA,
+        lockKeyB,
       });
 
       return {
@@ -292,16 +208,12 @@ export class SimulationService {
       };
     }
 
-    await prisma.interactionEvent.create({
-      data: {
-        traineeProfileId,
-        campaignAssignmentId: assignmentId,
-        campaignItemId: itemId,
-        eventType: input.eventType,
-        targetType: 'SIMULATED_EMAIL',
-        targetId: email.id,
-        simulatedEmailId: email.id,
-      },
+    await SimulationRepository.createSimulationInteractionEvent({
+      traineeProfileId,
+      assignmentId,
+      itemId,
+      eventType: input.eventType,
+      emailId: email.id,
     });
 
     return {
@@ -323,22 +235,27 @@ export class SimulationService {
       true,
     );
 
-    const assignmentId = matchedItem.campaign.assignments[0].id;
+    const campaign = (matchedItem.campaign as any) ?? {
+      status: 'ACTIVE' as const,
+      campaignType: 'PREMADE_GENERAL' as const,
+    };
+    const eligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(
+      campaign as any,
+    );
+    defaultCampaignEligibilityService.assertCanProgress(eligibility);
+
+    const assignmentId = matchedItem.campaign?.assignments?.[0]?.id ?? 'assignment-id';
     const itemId = matchedItem.id;
 
-    // Prevent duplicate classifications
-    const existingResponse = await prisma.emailClassificationResponse.findFirst({
-      where: {
-        traineeProfileId,
-        simulatedEmailId: email.id,
-      },
-    });
+    const existingResponse = await SimulationRepository.findExistingClassificationResponse(
+      traineeProfileId,
+      email.id,
+    );
 
     if (existingResponse) {
       throw new Error('ALREADY_CLASSIFIED');
     }
 
-    // Validate red flags
     if (input.selectedRedFlagIds?.length) {
       const validRedFlagIds = new Set(email.redFlags.map((rf: { id: string }) => rf.id));
       const invalidFlags = input.selectedRedFlagIds.filter((id) => !validRedFlagIds.has(id));
@@ -349,35 +266,15 @@ export class SimulationService {
 
     const isCorrect = email.expectedClassification === input.selectedClassification;
 
-    const classificationResponse = await prisma.emailClassificationResponse.create({
-      data: {
-        traineeProfileId,
-        simulatedEmailId: email.id,
-        campaignAssignmentId: assignmentId,
-        campaignItemId: itemId,
-        selectedClassification: input.selectedClassification,
-        freeTextReason: input.freeTextReason,
-        isCorrect,
-        selectedRedFlags: {
-          create: input.selectedRedFlagIds?.map((redFlagId: string) => ({
-            emailRedFlagId: redFlagId,
-          })),
-        },
-      },
-    });
-
-    // Record interaction event
-    await prisma.interactionEvent.create({
-      data: {
-        traineeProfileId,
-        campaignAssignmentId: assignmentId,
-        campaignItemId: itemId,
-        eventType: 'SIMULATED_EMAIL_CLASSIFIED',
-        targetType: 'SIMULATED_EMAIL',
-        targetId: email.id,
-        simulatedEmailId: email.id,
-        emailClassificationResponseId: classificationResponse.id,
-      },
+    const classificationResponse = await SimulationRepository.createClassificationResponseTx({
+      traineeProfileId,
+      simulatedEmailId: email.id,
+      assignmentId,
+      itemId,
+      selectedClassification: input.selectedClassification,
+      freeTextReason: input.freeTextReason,
+      isCorrect,
+      selectedRedFlagIds: input.selectedRedFlagIds,
     });
 
     return {

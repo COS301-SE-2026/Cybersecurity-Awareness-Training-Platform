@@ -5,6 +5,7 @@ import type {
 } from '@insightful-phish/shared';
 import * as TraineeTrainingRepository from '../repositories/trainee-training.repository.js';
 import { resolveContent } from './content-resolver.service.js';
+import { defaultCampaignEligibilityService } from './campaign-eligibility.service.js';
 
 type TrainingCampaignItem = NonNullable<
   Awaited<ReturnType<typeof TraineeTrainingRepository.findTrainingCampaignItemById>>
@@ -105,6 +106,14 @@ export async function getTrainingDocumentForCampaignItem(
   campaignItemId: string,
 ): Promise<GetTrainingDocumentResponseDto> {
   const access = await resolveTrainingDocumentAccess(userId, campaignItemId);
+
+  const eligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(
+    access.campaignItem.campaign,
+  );
+  if (!eligibility.canView) {
+    throw new TrainingDocumentAccessNotFoundError();
+  }
+
   const content = await resolveContent(
     access.trainingDocument.contentType,
     access.trainingDocument.contentRef,
@@ -123,6 +132,11 @@ export async function recordTrainingInteraction(input: {
   eventType: TrainingInteractionEventTypeDto;
 }): Promise<RecordTrainingInteractionResponseDto> {
   const access = await resolveTrainingDocumentAccess(input.userId, input.campaignItemId);
+
+  const eligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(
+    access.campaignItem.campaign,
+  );
+  defaultCampaignEligibilityService.assertCanProgress(eligibility);
 
   const eventInput = {
     traineeProfileId: access.traineeProfileId,

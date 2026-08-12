@@ -152,6 +152,9 @@ describe('Trainee training document routes', () => {
         campaign: {
           select: {
             status: true,
+            campaignType: true,
+            startDate: true,
+            endDate: true,
           },
         },
         trainingDocument: true,

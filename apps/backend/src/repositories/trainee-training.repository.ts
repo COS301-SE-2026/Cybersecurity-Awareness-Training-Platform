@@ -21,6 +21,9 @@ export function findTrainingCampaignItemById(campaignItemId: string) {
       campaign: {
         select: {
           status: true,
+          campaignType: true,
+          startDate: true,
+          endDate: true,
         },
       },
       trainingDocument: true,
