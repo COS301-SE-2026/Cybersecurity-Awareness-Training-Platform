@@ -152,6 +152,7 @@ function PlatformAdministratorsPage() {
     null,
   );
   const [showPlatformAdministratorModal, setShowPlatformAdministratorModal] = useState(false);
+  const [invitationFeedback, setInvitationFeedback] = useState<string | null>(null);
   const [showTransferSuperAdminModal, setShowTransferSuperAdminModal] = useState(false);
 
   // BOOLEAN FLAGS FOR ROLES
@@ -250,11 +251,17 @@ function PlatformAdministratorsPage() {
       : 'No platform administrators match your search or filters.';
 
   const openPlatformAdministratorModal = () => {
+    setInvitationFeedback(null);
     setShowPlatformAdministratorModal(true);
   };
 
   const closePlatformAdministratorModal = () => {
     setShowPlatformAdministratorModal(false);
+  };
+
+  const handleInvitationSuccess = async (email: string) => {
+    await reloadPlatformAdministrators();
+    setInvitationFeedback(`Invitation created for ${email}.`);
   };
 
   const closeTranserSuperAdministratorModal = () => {
@@ -397,6 +404,14 @@ function PlatformAdministratorsPage() {
           </p> */}
         </div>
 
+        {invitationFeedback && (
+          <div
+            role="status"
+            className="mx-6 p-4 mb-6 border font-jost text-[1.1rem] text-green-800 bg-green-50 border-green-200"
+          >
+            {invitationFeedback}
+          </div>
+        )}
         <div className="px-6 pb-6">
           {/* SEARCH AND FILTER BAR */}
           <div className="w-full mb-4">
@@ -687,10 +702,12 @@ function PlatformAdministratorsPage() {
           ></BasicConfirmationModal>
         )}
 
-      {showPlatformAdministratorModal && (
+      {showPlatformAdministratorModal && token && (
         <InvitePlatformAdministratorModal
           isOpen={showPlatformAdministratorModal}
-          onClose={() => closePlatformAdministratorModal()}
+          token={token}
+          onClose={closePlatformAdministratorModal}
+          onSuccess={handleInvitationSuccess}
         ></InvitePlatformAdministratorModal>
       )}
 

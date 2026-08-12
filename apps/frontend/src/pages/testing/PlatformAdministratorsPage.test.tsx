@@ -1,18 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getPlatformAdmins } from '../../services/platform-admin.service';
+import { getPlatformAdmins, invitePlatformAdmin } from '../../services/platform-admin.service';
 import PlatformAdministratorsPage from '../PlatformAdministratorsPage';
 import type { ReactNode } from 'react';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type {
+  InvitePlatformAdminResponseDto,
   PlatformAdminListItemDto,
   PlatformAdminListResponseDto,
 } from '@insightful-phish/shared';
 import { createAuthContextValue, createDeferred } from '../../testing/render';
 import { MemoryRouter } from 'react-router-dom';
 import { AuthContext } from '../../context/auth-context';
+import { ApiError } from '../../lib/apiClient';
 
 vi.mock('../../services/platform-admin.service', () => ({
   getPlatformAdmins: vi.fn(),
+  invitePlatformAdmin: vi.fn(),
 }));
 
 vi.mock('flowbite-react', () => ({
@@ -33,6 +36,7 @@ vi.mock('flowbite-react', () => ({
 }));
 
 const mockGetPlatformAdmins = vi.mocked(getPlatformAdmins);
+const mockInvitePlatformAdmin = vi.mocked(invitePlatformAdmin);
 const actorId = '11111111-1111-4111-8111-111111111111';
 
 function buildRow(overrides: Partial<PlatformAdminListItemDto> = {}): PlatformAdminListItemDto {
@@ -98,6 +102,16 @@ function renderPage(platformAdminRole: 'SUPER_ADMIN' | 'NORMAL_ADMIN' = 'SUPER_A
       </AuthContext.Provider>
     </MemoryRouter>,
   );
+}
+
+function createInviteApiError(status: number, error: string, message: string): ApiError {
+  return new ApiError(message, {
+    status,
+    statusText: 'Request Failed',
+    method: 'POST',
+    url: '/platform/admin-invitations',
+    body: { error, message },
+  });
 }
 
 describe('PlatformAdministratorsPage', () => {
@@ -493,5 +507,139 @@ describe('PlatformAdministratorsPage', () => {
     expect(screen.queryByText(/Enable administrator/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Disable administrator/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Re-enable administrator/i)).not.toBeInTheDocument();
+  });
+
+  it('submits one invitation, reloads the list, and shows success feedback', async () => {
+    mockGetPlatformAdmins.mockResolvedValue(buildResponse([buildRow()]));
+    const invitation = createDeferred<InvitePlatformAdminResponseDto>();
+    mockInvitePlatformAdmin.mockReturnValueOnce(invitation.promise);
+
+    renderPage();
+    await screen.findByText('Ada Lovelace');
+
+    fireEvent.click(screen.getByRole('button', { name: /Invite platform administrator/ }));
+    fireEvent.change(screen.getByLabelText(/Email/), {
+      target: { value: ' NEW.ADMIN@EXAMPLE.COM ' },
+    });
+    fireEvent.change(screen.getByLabelText('First name'), {
+      target: { value: 'New' },
+    });
+    fireEvent.change(screen.getByLabelText('Last name'), {
+      target: { value: 'Admin' },
+    });
+
+    const submit = screen.getByRole('button', { name: 'Send invitation' });
+    fireEvent.click(submit);
+    fireEvent.click(submit);
+
+    expect(mockInvitePlatformAdmin).toHaveBeenCalledTimes(1);
+    expect(mockInvitePlatformAdmin).toHaveBeenCalledWith(
+      {
+        email: 'new.admin@example.com',
+        firstName: 'New',
+        lastName: 'Admin',
+      },
+      'platform-admin-token',
+    );
+    expect(screen.getByRole('button', { name: 'Sending invitation…' })).toBeDisabled();
+
+    invitation.resolve({
+      type: 'new-invite',
+      userId: '22222222-2222-4222-8222-222222222222',
+      email: 'new.admin@example.com',
+    });
+
+    expect(
+      await screen.findByText('Invitation created for new.admin@example.com.'),
+    ).toBeInTheDocument();
+    expect(mockGetPlatformAdmins).toHaveBeenCalledTimes(2);
+  });
+
+  it('preserves values and resubmits an explicitly confirmed upgrade', async () => {
+    mockGetPlatformAdmins.mockResolvedValue(buildResponse([buildRow()]));
+    mockInvitePlatformAdmin
+      .mockRejectedValueOnce(
+        createInviteApiError(
+          409,
+          'UPGRADE_CONFIRMATION_REQUIRED',
+          'Explicit confirmation is required.',
+        ),
+      )
+      .mockResolvedValueOnce({
+        type: 'upgrade-confirmation',
+        userId: '22222222-2222-4222-8222-222222222222',
+        email: 'trainee@example.com',
+      });
+
+    renderPage();
+    await screen.findByText('Ada Lovelace');
+
+    fireEvent.click(screen.getByRole('button', { name: /Invite platform administrator/ }));
+    fireEvent.change(screen.getByLabelText(/Email/), {
+      target: { value: 'trainee@example.com' },
+    });
+    fireEvent.change(screen.getByLabelText('First name'), {
+      target: { value: 'Existing' },
+    });
+    fireEvent.change(screen.getByLabelText('Last name'), {
+      target: { value: 'Trainee' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }));
+
+    expect(
+      await screen.findByText(
+        'An account already exists for this email. Confirm that it should be upgraded to a platform administrator.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText(/Email/)).toHaveValue('trainee@example.com');
+    expect(screen.getByLabelText('First name')).toHaveValue('Existing');
+    expect(screen.getByLabelText('Last name')).toHaveValue('Trainee');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm upgrade' }));
+
+    await waitFor(() => {
+      expect(mockInvitePlatformAdmin).toHaveBeenLastCalledWith(
+        {
+          email: 'trainee@example.com',
+          firstName: 'Existing',
+          lastName: 'Trainee',
+          confirmUpgrade: true,
+        },
+        'platform-admin-token',
+      );
+    });
+
+    expect(
+      await screen.findByText('Invitation created for trainee@example.com.'),
+    ).toBeInTheDocument();
+  });
+
+  it('does not treat an ordinary conflict as upgradeable', async () => {
+    mockGetPlatformAdmins.mockResolvedValue(buildResponse([buildRow()]));
+    mockInvitePlatformAdmin.mockRejectedValueOnce(
+      createInviteApiError(
+        409,
+        'EXISTING_PLATFORM_ADMIN',
+        'User is already a platform administrator',
+      ),
+    );
+
+    renderPage();
+    await screen.findByText('Ada Lovelace');
+
+    fireEvent.click(screen.getByRole('button', { name: /Invite platform administrator/ }));
+    fireEvent.change(screen.getByLabelText(/Email/), { target: { value: 'existing@example.com' } });
+    fireEvent.change(screen.getByLabelText('First name'), { target: { value: 'Existing' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'User is already a platform administrator',
+    );
+    expect(screen.getByLabelText(/Email/)).toHaveValue('existing@example.com');
+    expect(screen.getByLabelText('First name')).toHaveValue('Existing');
+    expect(screen.queryByRole('button', { name: 'Confirm upgrade' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Send invitation' })).toBeEnabled();
+    expect(mockInvitePlatformAdmin).toHaveBeenCalledTimes(1);
+    expect(mockGetPlatformAdmins).toHaveBeenCalledTimes(1);
   });
 });
