@@ -13,3 +13,12 @@ export interface ApiErrorResponseDto {
 export interface SuccessResponseDto {
   success: true;
 }
+
+export interface PaginationMetadataDto {
+  page: number;
+  limit: number;
+  totalItems: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}

@@ -29,8 +29,9 @@ export function requiredTrimmedStringSchema({
     .max(maxLength, maxMessage);
 }
 
-export function optionalTrimmedStringSchema(maxLength: number, maxMessage: string) {
-  return z.string().trim().max(maxLength, maxMessage);
+export function optionalTrimmedStringSchema(maxLength: number, maxMessage?: string) {
+  const msg = maxMessage ?? `Must be at most ${maxLength} characters.`;
+  return z.string().trim().max(maxLength, msg).optional();
 }
 
 export const validationErrorDetailSchema = z.object({

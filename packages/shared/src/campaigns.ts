@@ -1,5 +1,5 @@
 import type { z } from 'zod';
-import type { SuccessResponseDto } from './common.js';
+import type { PaginationMetadataDto, SuccessResponseDto } from './common.js';
 import type {
   CampaignAccessTypeDto,
   CampaignComponentTypeDto,
@@ -12,8 +12,15 @@ import type {
   CompletionRuleDto,
 } from './entities.js';
 import type { QuizStatusDto } from './quizzes.js';
-import type { DifficultyLevelDto, TrainingDocumentStatusDto } from './training.js';
 import type {
+  DifficultyLevelDto,
+  TrainingContentTypeDto,
+  TrainingDocumentStatusDto,
+} from './training.js';
+import type {
+  campaignCatalogueQuerySchema,
+  campaignListQuerySchema,
+  createCampaignDraftRequestSchema,
   getTraineeCampaignRequestParamsSchema,
   listTraineeCampaignsRequestSchema,
   traineeCampaignItemRequestParamsSchema,
@@ -46,6 +53,26 @@ export const SUPPORTED_TRAINEE_CAMPAIGN_COMPONENT_TYPES = [
 
 export type SupportedTraineeCampaignComponentTypeDto =
   (typeof SUPPORTED_TRAINEE_CAMPAIGN_COMPONENT_TYPES)[number];
+
+export type CampaignAllowedActionDto =
+  | 'VIEW'
+  | 'EDIT'
+  | 'ACTIVATE'
+  | 'ARCHIVE'
+  | 'REACTIVATE'
+  | 'ASSIGN';
+
+export type CampaignEligibilityReasonDto =
+  | 'AVAILABLE'
+  | 'NOT_STARTED'
+  | 'EXPIRED'
+  | 'CAMPAIGN_INACTIVE';
+
+export interface CampaignEligibilityDto {
+  canView: boolean;
+  canProgress: boolean;
+  reason: CampaignEligibilityReasonDto;
+}
 
 export function getTraineeCampaignActivityApiPath(
   componentType: SupportedTraineeCampaignComponentTypeDto,
@@ -113,6 +140,7 @@ export interface TraineeCampaignSummaryDto {
   assignment?: TraineeCampaignAssignmentSummaryDto | null;
   accessType?: CampaignAccessTypeDto | null;
   progressStatus?: TraineeCampaignProgressStatusDto | null;
+  eligibility?: CampaignEligibilityDto;
 }
 
 interface TraineeCampaignItemSummaryBaseDto {
@@ -127,6 +155,7 @@ interface TraineeCampaignItemSummaryBaseDto {
   availabilityStatus: CampaignItemAvailabilityStatusDto;
   isOpenable: boolean;
   progressStatus?: TraineeCampaignProgressStatusDto | null;
+  eligibility?: CampaignEligibilityDto;
 }
 
 export interface TraineeCampaignComponentItemSummaryDto extends TraineeCampaignItemSummaryBaseDto {
@@ -173,4 +202,121 @@ export type GetTraineeCampaignResponseDto = GetTraineeCampaignDetailResponseDto;
 export interface TraineeCampaignActionResponseDto extends SuccessResponseDto {
   campaignId?: string;
   campaignItemId?: string;
+}
+
+export type CampaignCatalogueQueryDto = z.infer<typeof campaignCatalogueQuerySchema>;
+export type CampaignListQueryDto = z.infer<typeof campaignListQuerySchema>;
+export type CreateCampaignDraftRequestDto = z.infer<typeof createCampaignDraftRequestSchema>;
+export type UpdateCampaignDraftRequestDto = CreateCampaignDraftRequestDto;
+
+export interface TrainingDocumentCatalogueItemDto {
+  id: string;
+  type: 'TRAINING_DOCUMENT';
+  title: string;
+  description?: string | null;
+  contentType: TrainingContentTypeDto;
+  estimatedReadTimeMinutes?: number | null;
+  difficultyLevel: DifficultyLevelDto;
+  status: TrainingDocumentStatusDto;
+}
+
+export interface QuizCatalogueItemDto {
+  id: string;
+  type: 'QUIZ';
+  title: string;
+  description?: string | null;
+  passThresholdPercentage: number;
+  questionCount?: number;
+  difficultyLevel: DifficultyLevelDto;
+  status: QuizStatusDto;
+}
+
+export interface SimulatedInboxCatalogueItemDto {
+  id: string;
+  type: 'SIMULATED_INBOX';
+  title: string;
+  description?: string | null;
+  emailCount?: number;
+  difficultyLevel: DifficultyLevelDto;
+  status: string;
+}
+
+export type CampaignCatalogueItemDto =
+  | TrainingDocumentCatalogueItemDto
+  | QuizCatalogueItemDto
+  | SimulatedInboxCatalogueItemDto;
+
+export interface GetCampaignCatalogueResponseDto {
+  items: CampaignCatalogueItemDto[];
+  pagination: PaginationMetadataDto;
+}
+
+export interface CampaignListRowDto {
+  id: string;
+  name: string;
+  description?: string | null;
+  accentColor?: string | null;
+  campaignType: CampaignTypeDto;
+  status: CampaignStatusDto;
+  itemCount: number;
+  startDate?: string | null;
+  endDate?: string | null;
+  createdBy?: {
+    id: string;
+    displayName: string;
+    email?: string;
+  } | null;
+  createdAt: string;
+  updatedAt: string;
+  allowedActions: CampaignAllowedActionDto[];
+}
+
+export interface CreateCampaignDraftItemInputDto {
+  campaignItemId?: string;
+  componentType: SupportedTraineeCampaignComponentTypeDto;
+  contentId: string;
+  isRequired?: boolean;
+}
+
+export interface GetCampaignsResponseDto {
+  items: CampaignListRowDto[];
+  pagination: PaginationMetadataDto;
+}
+
+export interface CampaignDetailItemDto {
+  campaignItemId: string;
+  componentType: SupportedTraineeCampaignComponentTypeDto;
+  contentId: string;
+  title: string;
+  description?: string | null;
+  position: number;
+  isRequired: boolean;
+  sourceAvailable: boolean;
+}
+
+export interface CampaignDetailResponseDto {
+  id: string;
+  organisationId?: string | null;
+  name: string;
+  description?: string | null;
+  accentColor?: string | null;
+  campaignType: CampaignTypeDto;
+  status: CampaignStatusDto;
+  startDate?: string | null;
+  endDate?: string | null;
+  createdBy?: {
+    id: string;
+    displayName: string;
+  } | null;
+  createdAt: string;
+  updatedAt: string;
+  allowedActions: CampaignAllowedActionDto[];
+  items: CampaignDetailItemDto[];
+}
+
+export interface CampaignLifecycleActionResponseDto {
+  success: boolean;
+  campaignId: string;
+  status: CampaignStatusDto;
+  allowedActions: CampaignAllowedActionDto[];
 }

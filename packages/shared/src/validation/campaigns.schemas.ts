@@ -5,6 +5,33 @@ import {
   requiredTrimmedStringSchema,
 } from './common.schemas.js';
 
+function createNumericPreprocessor(
+  defaultValue: number,
+  errorMessagePrefix: 'Page' | 'Limit',
+  maxVal: number,
+) {
+  return z.preprocess(
+    (val) => {
+      if (val === undefined || val === '') return defaultValue;
+      if (typeof val === 'string') {
+        const trimmed = val.trim();
+        if (!/^\d+$/.test(trimmed)) return Number.NaN;
+        const parsed = Number(trimmed);
+        return Number.isSafeInteger(parsed) ? parsed : Number.NaN;
+      }
+      return typeof val === 'number' && Number.isSafeInteger(val) ? val : Number.NaN;
+    },
+    z
+      .number()
+      .int(`${errorMessagePrefix} must be an integer.`)
+      .min(1, `${errorMessagePrefix} must be at least 1.`)
+      .max(maxVal, `${errorMessagePrefix} exceeds maximum limit of ${maxVal}.`),
+  );
+}
+
+const pageQueryPreprocessor = createNumericPreprocessor(1, 'Page', 100000);
+const limitQueryPreprocessor = createNumericPreprocessor(10, 'Limit', 100);
+
 const titleSchema = requiredTrimmedStringSchema({
   requiredMessage: 'Please enter a title.',
   maxLength: 200,
@@ -30,7 +57,7 @@ const campaignStatusSchema = z.enum(['DRAFT', 'ACTIVE', 'PAUSED', 'COMPLETED', '
 
 const difficultyLevelSchema = z.enum(['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ADAPTIVE']);
 
-const hexColorSchema = z
+export const hexColorSchema = z
   .string()
   .regex(/^#[0-9A-Fa-f]{6}$/, 'Accent colour must be a six digit HEX colour.');
 
@@ -73,6 +100,21 @@ export const traineeCampaignProgressStatusSchema = z.enum([
   'COMPLETED',
   'SUBMITTED',
 ]);
+
+export const campaignEligibilityReasonSchema = z.enum([
+  'AVAILABLE',
+  'NOT_STARTED',
+  'EXPIRED',
+  'CAMPAIGN_INACTIVE',
+]);
+
+export const campaignEligibilitySchema = z
+  .object({
+    canView: z.boolean(),
+    canProgress: z.boolean(),
+    reason: campaignEligibilityReasonSchema,
+  })
+  .strict();
 
 const activityApiPathSchema = z
   .string()
@@ -128,6 +170,7 @@ export const traineeCampaignSummarySchema = z
     assignment: traineeCampaignAssignmentSummarySchema.nullish(),
     accessType: campaignAccessTypeSchema.nullish(),
     progressStatus: traineeCampaignProgressStatusSchema.nullish(),
+    eligibility: campaignEligibilitySchema.optional(),
   })
   .strict();
 
@@ -175,6 +218,7 @@ const traineeCampaignItemSummaryBaseSchema = z
     availabilityStatus: campaignItemAvailabilityStatusSchema,
     isOpenable: z.boolean(),
     progressStatus: traineeCampaignProgressStatusSchema.nullish(),
+    eligibility: campaignEligibilitySchema.optional(),
   })
   .strict();
 
@@ -231,3 +275,43 @@ export const getTraineeCampaignDetailResponseSchema = traineeCampaignSummarySche
     items: z.array(traineeCampaignItemSummarySchema),
   })
   .strict();
+
+export const campaignCatalogueQuerySchema = z
+  .object({
+    page: pageQueryPreprocessor,
+    limit: limitQueryPreprocessor,
+    search: optionalTrimmedStringSchema(100),
+    type: campaignComponentTypeSchema.optional(),
+  })
+  .strict();
+
+export const campaignListQuerySchema = z
+  .object({
+    page: pageQueryPreprocessor,
+    limit: limitQueryPreprocessor,
+    search: optionalTrimmedStringSchema(100),
+    status: z.enum(['DRAFT', 'ACTIVE', 'ARCHIVED']).optional(),
+  })
+  .strict();
+
+export const createCampaignDraftItemInputSchema = z
+  .object({
+    campaignItemId: idParamSchema.optional(),
+    componentType: campaignComponentTypeSchema,
+    contentId: idParamSchema,
+    isRequired: z.boolean().optional().default(true),
+  })
+  .strict();
+
+export const createCampaignDraftRequestSchema = z
+  .object({
+    name: campaignNameSchema,
+    description: descriptionSchema.nullish(),
+    accentColor: hexColorSchema,
+    startDate: z.string().datetime().nullish(),
+    endDate: z.string().datetime().nullish(),
+    items: z.array(createCampaignDraftItemInputSchema),
+  })
+  .strict();
+
+export const updateCampaignDraftRequestSchema = createCampaignDraftRequestSchema;
