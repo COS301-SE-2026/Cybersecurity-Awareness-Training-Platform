@@ -11,11 +11,13 @@ import type {
   PlatformAdminListItemDto,
   PlatformAdminListResponseDto,
   TransferSuperAdminRequestDto,
+  DemotePlatformAdminRequestDto,
 } from '@insightful-phish/shared';
 import {
   getPlatformAdmins,
   resendPlatformAdminInvite,
   transferSuperAdmin,
+  demotePlatformAdmin,
 } from '../services/platform-admin.service';
 
 type DisplayStatus =
@@ -176,6 +178,11 @@ function PlatformAdministratorsPage() {
   const [transferPasswordError, setTransferPasswordError] = useState<string | null>(null);
   const [isTransferring, setIsTransferring] = useState(false);
   const [isRefreshingAfterTransfer, setIsRefreshingAfterTransfer] = useState(false);
+  const [demotePassword, setDemotePassword] = useState('');
+  const [demoteConfirmation, setDemoteConfirmation] = useState('');
+  const [demoteError, setDemoteError] = useState<string | null>(null);
+  const [demotePasswordError, setDemotePasswordError] = useState<string | null>(null);
+  const [isDemoting, setIsDemoting] = useState(false);
 
   // BOOLEAN FLAGS FOR ROLES
   const isSuperAdministrator = authContext?.platformAdminRole === 'SUPER_ADMIN';
@@ -313,9 +320,22 @@ function PlatformAdministratorsPage() {
     resetTransferWorkflow();
   };
 
+  const resetDemotionWorkFlow = () => {
+    setShowBasicConfirmationModal(false);
+    setSelectedActionTarget(null);
+    setDemotePassword('');
+    setDemoteConfirmation('');
+    setDemoteError(null);
+    setDemotePasswordError(null);
+  };
+
   const confirmBasicConfirmation = () => {
     if (selectedActionTarget?.action === 'resend') {
       void confirmResendInvitation();
+      return;
+    }
+    if (selectedActionTarget?.action === 'demote') {
+      void confirmDemoteAdministrator();
       return;
     }
     setShowBasicConfirmationModal(false);
@@ -412,10 +432,16 @@ function PlatformAdministratorsPage() {
   };
 
   const closePlatformAdministratorPageConfirmationModal = () => {
+    if (isResendingInvite || isDemoting) return;
+
     setShowBasicConfirmationModal(false);
     setSelectedActionTarget(null);
     setResendError(null);
     setIsResendingInvite(false);
+    setDemotePassword('');
+    setDemoteConfirmation('');
+    setDemoteError(null);
+    setDemotePasswordError(null);
   };
 
   const canResendAdministratorInvite = (administrator: DisplayAdministrator) =>
@@ -497,6 +523,80 @@ function PlatformAdministratorsPage() {
     }
   };
 
+  const confirmDemoteAdministrator = async () => {
+    if (!token || isDemoting || selectedActionTarget?.action !== 'demote') {
+      return;
+    }
+
+    setDemoteError(null);
+    setDemotePasswordError(null);
+    setPlatformAdminFeedback(null);
+
+    if (!demotePassword) {
+      setDemotePasswordError('Password is required.');
+      return;
+    }
+
+    if (demoteConfirmation !== 'DEMOTE') {
+      setDemoteError('Type DEMOTE exactly to confirm.');
+      return;
+    }
+
+    const target = selectedActionTarget;
+    const input: DemotePlatformAdminRequestDto = {
+      password: demotePassword,
+      confirmation: 'DEMOTE',
+    };
+
+    setIsDemoting(true);
+
+    try {
+      await demotePlatformAdmin(target.userId, input, token);
+    } catch (error: unknown) {
+      const errorCode =
+        error instanceof ApiError &&
+        error.body &&
+        typeof error.body === 'object' &&
+        'error' in error.body &&
+        typeof error.body.error === 'string'
+          ? error.body.error
+          : null;
+
+      if (
+        error instanceof ApiError &&
+        error.status === 403 &&
+        errorCode === 'PLATFORM_ADMIN_PASSWORD_INVALID'
+      ) {
+        setDemotePasswordError(error.message.trim() || 'The password is incorrect.');
+      } else {
+        setDemoteError(
+          error instanceof ApiError && error.status < 500
+            ? error.message.trim() || 'The administrator could not be demoted.'
+            : 'The administrator could not be demoted. Please try again.',
+        );
+
+        if (
+          error instanceof ApiError &&
+          error.status === 409 &&
+          (errorCode === 'SELF_DEMOTION_CONFLICT' ||
+            errorCode === 'SUPER_ADMIN_DEMOTION_BLOCKED' ||
+            errorCode === 'PLATFORM_ADMIN_ALREADY_DEMOTED')
+        ) {
+          await reloadPlatformAdministrators();
+        }
+      }
+
+      setIsDemoting(false);
+      return;
+    }
+
+    await reloadPlatformAdministrators();
+
+    resetDemotionWorkFlow();
+    setIsDemoting(false);
+    setPlatformAdminFeedback(`${target.name} is no longer a platform administrator.`);
+  };
+
   const openTransferSuperAdministratorModal = (administrator: DisplayAdministrator) => {
     if (!canTransferToAdministrator(administrator)) {
       return;
@@ -523,6 +623,12 @@ function PlatformAdministratorsPage() {
       return;
     }
 
+    setPlatformAdminFeedback(null);
+    setDemotePassword('');
+    setDemoteConfirmation('');
+    setDemoteError(null);
+    setDemotePasswordError(null);
+
     setSelectedActionTarget({
       action: 'demote',
       userId: administrator.id,
@@ -530,9 +636,11 @@ function PlatformAdministratorsPage() {
       email: administrator.email,
       name: administrator.fullName,
     });
-    setConfirmationTitle('Demote Administrator');
-    setConfirmationMessage(`Are you sure you want to demote ${administrator.fullName}?`);
-    setConfirmationButtonText('Demote');
+    setConfirmationTitle('Demote administrator');
+    setConfirmationMessage(
+      `Remove platform administrator privileges from ${administrator.fullName}?`,
+    );
+    setConfirmationButtonText('Demote administrator');
     setConfirmationVariant('danger');
     setShowBasicConfirmationModal(true);
   };
@@ -879,11 +987,43 @@ function PlatformAdministratorsPage() {
             message={confirmationMessage}
             confirmButtonText={confirmationButtonText}
             confirmButtonVariant={confirmationVariant}
-            appendQuestionMark={selectedActionTarget.action !== 'resend'}
-            isConfirming={isResendingInvite}
-            isConfirmDisabled={isResendingInvite}
-            isDismissDisabled={isResendingInvite}
-            errorMessage={resendError}
+            appendQuestionMark={
+              selectedActionTarget.action !== 'resend' && selectedActionTarget.action !== 'demote'
+            }
+            isConfirming={selectedActionTarget.action === 'demote' ? isDemoting : isResendingInvite}
+            isConfirmDisabled={
+              selectedActionTarget.action === 'demote'
+                ? isDemoting || !demotePassword || demoteConfirmation !== 'DEMOTE'
+                : isResendingInvite
+            }
+            isDismissDisabled={
+              selectedActionTarget.action === 'demote' ? isDemoting : isResendingInvite
+            }
+            errorMessage={selectedActionTarget.action === 'demote' ? demoteError : resendError}
+            passwordValue={selectedActionTarget.action === 'demote' ? demotePassword : undefined}
+            onPasswordChange={
+              selectedActionTarget.action === 'demote'
+                ? (value) => {
+                    setDemotePassword(value);
+                    setDemotePasswordError(null);
+                  }
+                : undefined
+            }
+            passwordError={selectedActionTarget.action === 'demote' ? demotePasswordError : null}
+            confirmationValue={
+              selectedActionTarget.action === 'demote' ? demoteConfirmation : undefined
+            }
+            onConfirmationChange={
+              selectedActionTarget.action === 'demote'
+                ? (value) => {
+                    setDemoteConfirmation(value);
+                    setDemoteError(null);
+                  }
+                : undefined
+            }
+            expectedConfirmationText={
+              selectedActionTarget.action === 'demote' ? 'DEMOTE' : undefined
+            }
             onConfirm={confirmBasicConfirmation}
             onCancel={closePlatformAdministratorPageConfirmationModal}
           ></BasicConfirmationModal>

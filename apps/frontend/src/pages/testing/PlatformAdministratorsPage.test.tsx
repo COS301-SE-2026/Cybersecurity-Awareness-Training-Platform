@@ -4,6 +4,7 @@ import {
   invitePlatformAdmin,
   resendPlatformAdminInvite,
   transferSuperAdmin,
+  demotePlatformAdmin,
 } from '../../services/platform-admin.service';
 import PlatformAdministratorsPage from '../PlatformAdministratorsPage';
 import type { ReactNode } from 'react';
@@ -14,6 +15,7 @@ import {
   type PlatformAdminListItemDto,
   type PlatformAdminListResponseDto,
   type AuthMeResponseDto,
+  type DemotePlatformAdminResponseDto,
 } from '@insightful-phish/shared';
 import type { AuthContextType } from '../../context/auth-context';
 import { createAuthContextValue, createDeferred } from '../../testing/render';
@@ -26,6 +28,7 @@ vi.mock('../../services/platform-admin.service', () => ({
   invitePlatformAdmin: vi.fn(),
   resendPlatformAdminInvite: vi.fn(),
   transferSuperAdmin: vi.fn(),
+  demotePlatformAdmin: vi.fn(),
 }));
 
 vi.mock('flowbite-react', () => ({
@@ -50,6 +53,7 @@ const mockInvitePlatformAdmin = vi.mocked(invitePlatformAdmin);
 const mockResendPlatformAdminInvite = vi.mocked(resendPlatformAdminInvite);
 const actorId = '11111111-1111-4111-8111-111111111111';
 const mockTransferSuperAdmin = vi.mocked(transferSuperAdmin);
+const mockDemotePlatformAdmin = vi.mocked(demotePlatformAdmin);
 
 function buildRow(overrides: Partial<PlatformAdminListItemDto> = {}): PlatformAdminListItemDto {
   return {
@@ -146,6 +150,16 @@ function createTransferApiError(status: number, error: string, message: string):
     statusText: 'Request Failed',
     method: 'POST',
     url: '/platform/admins/transfer-super-admin',
+    body: { error, message },
+  });
+}
+
+function createDemoteApiError(status: number, error: string, message: string): ApiError {
+  return new ApiError(message, {
+    status,
+    statusText: 'Request Failed',
+    method: 'POST',
+    url: '/platform/admins/target-user/demote',
     body: { error, message },
   });
 }
@@ -982,5 +996,167 @@ describe('PlatformAdministratorsPage', () => {
     expect(mockTransferSuperAdmin).toHaveBeenCalledTimes(1);
     expect(refreshAuthContext).not.toHaveBeenCalled();
     expect(mockGetPlatformAdmins).toHaveBeenCalledTimes(1);
+  });
+
+  it('demotes the selected user once, reloads, and shows eact feedback', async () => {
+    const targetId = '55555555-5555-4555-8555-555555555555';
+    const target = buildRow({
+      id: targetId,
+      firstName: 'Demote',
+      lastName: 'Target',
+      platformAdminRole: 'NORMAL_ADMIN',
+      allowedActions: {
+        canTransferSuperAdmin: false,
+        canDemote: true,
+        canResendInvite: false,
+      },
+    });
+
+    mockGetPlatformAdmins.mockResolvedValue(buildResponse([target]));
+
+    const demotion = createDeferred<DemotePlatformAdminResponseDto>();
+    mockDemotePlatformAdmin.mockReturnValueOnce(demotion.promise);
+
+    renderPage();
+
+    const row = (await screen.findByText('Demote Target')).closest('tr');
+    fireEvent.click(within(row!).getByRole('button', { name: 'Demote administrator' }));
+
+    const modal = document.getElementById('popup-modal');
+    expect(modal).not.toBeNull();
+
+    fireEvent.change(screen.getByLabelText('Password', { selector: 'input' }), {
+      target: { value: 'current-password' },
+    });
+    fireEvent.change(screen.getByLabelText('Type DEMOTE to confirm'), {
+      target: { value: 'DEMOTE' },
+    });
+
+    const confirm = within(modal!).getByRole('button', {
+      name: 'Demote administrator',
+      hidden: true,
+    });
+
+    fireEvent.click(confirm);
+    fireEvent.click(confirm);
+
+    expect(mockDemotePlatformAdmin).toHaveBeenCalledTimes(1);
+    expect(mockDemotePlatformAdmin).toHaveBeenCalledWith(
+      targetId,
+      {
+        password: 'current-password',
+        confirmation: 'DEMOTE',
+      },
+      'platform-admin-token',
+    );
+
+    demotion.resolve({
+      userId: targetId,
+      email: 'ada@example.com',
+      adminStatus: 'DISABLED',
+      authStatus: 'ACTIVE',
+    });
+
+    expect(
+      await screen.findByText('Demote Target is no longer a platform administrator.'),
+    ).toBeInTheDocument();
+    expect(mockGetPlatformAdmins).toHaveBeenCalledTimes(2);
+  });
+
+  it('requires a password and exact DEMOTE confirmation', async () => {
+    const targetId = '55555555-5555-4555-8555-555555555555';
+    const target = buildRow({
+      id: targetId,
+      firstName: 'Demote',
+      lastName: 'Target',
+      platformAdminRole: 'NORMAL_ADMIN',
+      allowedActions: {
+        canTransferSuperAdmin: false,
+        canDemote: true,
+        canResendInvite: false,
+      },
+    });
+
+    mockGetPlatformAdmins.mockResolvedValue(buildResponse([target]));
+    renderPage();
+
+    const row = (await screen.findByText('Demote Target')).closest('tr');
+    fireEvent.click(within(row!).getByRole('button', { name: 'Demote administrator' }));
+
+    const modal = document.getElementById('popup-modal');
+    expect(modal).not.toBeNull();
+
+    const confirm = within(modal!).getByRole('button', {
+      name: 'Demote administrator',
+      hidden: true,
+    });
+
+    expect(confirm).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText('Password', { selector: 'input' }), {
+      target: { value: 'current-password' },
+    });
+    fireEvent.change(screen.getByLabelText('Type DEMOTE to confirm'), {
+      target: { value: 'demote' },
+    });
+
+    expect(confirm).toBeDisabled();
+    expect(mockDemotePlatformAdmin).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByLabelText('Type DEMOTE to confirm'), {
+      target: { value: 'DEMOTE' },
+    });
+
+    expect(confirm).toBeEnabled();
+  });
+
+  it('keeps demotion usable after the verified invalid-password error', async () => {
+    const targetId = '55555555-5555-4555-8555-555555555555';
+    const target = buildRow({
+      id: targetId,
+      firstName: 'Demote',
+      lastName: 'Target',
+      platformAdminRole: 'NORMAL_ADMIN',
+      allowedActions: {
+        canTransferSuperAdmin: false,
+        canDemote: true,
+        canResendInvite: false,
+      },
+    });
+    const refreshAuthContext = vi.fn();
+
+    mockGetPlatformAdmins.mockResolvedValue(buildResponse([target]));
+    mockDemotePlatformAdmin.mockRejectedValue(
+      createDemoteApiError(403, 'PLATFORM_ADMIN_PASSWORD_INVALID', 'Password confirmation failed'),
+    );
+
+    renderPage('SUPER_ADMIN', { refreshAuthContext });
+
+    const row = (await screen.findByText('Demote Target')).closest('tr');
+    fireEvent.click(within(row!).getByRole('button', { name: 'Demote administrator' }));
+
+    const modal = document.getElementById('popup-modal');
+    expect(modal).not.toBeNull();
+
+    fireEvent.change(screen.getByLabelText('Password', { selector: 'input' }), {
+      target: { value: 'wrong-password' },
+    });
+    fireEvent.change(screen.getByLabelText('Type DEMOTE to confirm'), {
+      target: { value: 'DEMOTE' },
+    });
+    fireEvent.click(
+      within(modal!).getByRole('button', { name: 'Demote administrator', hidden: true }),
+    );
+
+    expect(await within(modal!).findByRole('alert', { hidden: true })).toHaveTextContent(
+      'Password confirmation failed',
+    );
+    expect(screen.getByLabelText('Password', { selector: 'input' })).toHaveValue('wrong-password');
+    expect(
+      within(modal!).getByRole('button', { name: 'Demote administrator', hidden: true }),
+    ).toBeEnabled();
+    expect(mockDemotePlatformAdmin).toHaveBeenCalledTimes(1);
+    expect(mockGetPlatformAdmins).toHaveBeenCalledTimes(1);
+    expect(refreshAuthContext).not.toHaveBeenCalled();
   });
 });
