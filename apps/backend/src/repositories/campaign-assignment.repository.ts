@@ -871,16 +871,24 @@ export async function deleteCampaignAssignment(
         }),
       ]);
 
-    const deletedAssignment = await tx.campaignAssignment.deleteMany({
-      where: { id: assignment.id },
-    });
-
-    if (deletedAssignment.count === 0) {
-      return {
-        success: false as const,
-        error: 'ASSIGNMENT_NOT_FOUND' as const,
-        message: 'Campaign assignment not found',
-      };
+    try {
+      await tx.campaignAssignment.delete({
+        where: { id: assignment.id },
+      });
+    } catch (err: unknown) {
+      if (
+        typeof err === 'object' &&
+        err !== null &&
+        'code' in err &&
+        (err as { code: string }).code === 'P2025'
+      ) {
+        return {
+          success: false as const,
+          error: 'ASSIGNMENT_NOT_FOUND' as const,
+          message: 'Campaign assignment not found',
+        };
+      }
+      throw err;
     }
 
     await tx.auditLogEntry.create({
