@@ -6,11 +6,12 @@ import InvitePlatformAdministratorModal from '../components/layout/platform-admi
 import TransferSuperAdministratorRoleModal from '../components/layout/platform-administrators-page/TransferSuperAdministratorRoleModal';
 import AdminPagesSearchSVG from '../components/AdminPagesSearchSVG';
 import { useAuth } from '../context/useAuth';
+import { ApiError } from '../lib/apiClient';
 import type {
   PlatformAdminListItemDto,
   PlatformAdminListResponseDto,
 } from '@insightful-phish/shared';
-import { getPlatformAdmins } from '../services/platform-admin.service';
+import { getPlatformAdmins, resendPlatformAdminInvite } from '../services/platform-admin.service';
 
 type DisplayStatus =
   | 'Active'
@@ -40,6 +41,7 @@ type SelectedActionTarget = {
   action: 'resend' | 'transfer' | 'demote';
   userId: string;
   inviteId: string | null;
+  email: string;
 };
 
 function getDisplayRole(platformAdminRole: string): DisplayRole {
@@ -109,6 +111,12 @@ function toDisplayAdministrator(administrator: PlatformAdminListItemDto): Displa
   };
 }
 
+function getResendErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) return 'Unable to connect to the server. Please try again.';
+  if (error.status >= 500) return 'The server could not resend this invitation. Please try again.';
+  return error.message.trim() || 'The invitation could not be resent. Please try again.';
+}
+
 function StatusBadge({ status }: Readonly<{ status: DisplayStatus }>) {
   const variants: Record<DisplayStatus, string> = {
     Active: 'ring-success-subtle text-fg-success-strong bg-success-soft',
@@ -151,8 +159,10 @@ function PlatformAdministratorsPage() {
   const [selectedActionTarget, setSelectedActionTarget] = useState<SelectedActionTarget | null>(
     null,
   );
+  const [isResendingInvite, setIsResendingInvite] = useState(false);
+  const [resendError, setResendError] = useState<string | null>(null);
   const [showPlatformAdministratorModal, setShowPlatformAdministratorModal] = useState(false);
-  const [invitationFeedback, setInvitationFeedback] = useState<string | null>(null);
+  const [platformAdminFeedback, setPlatformAdminFeedback] = useState<string | null>(null);
   const [showTransferSuperAdminModal, setShowTransferSuperAdminModal] = useState(false);
 
   // BOOLEAN FLAGS FOR ROLES
@@ -251,7 +261,7 @@ function PlatformAdministratorsPage() {
       : 'No platform administrators match your search or filters.';
 
   const openPlatformAdministratorModal = () => {
-    setInvitationFeedback(null);
+    setPlatformAdminFeedback(null);
     setShowPlatformAdministratorModal(true);
   };
 
@@ -261,7 +271,7 @@ function PlatformAdministratorsPage() {
 
   const handleInvitationSuccess = async (email: string) => {
     await reloadPlatformAdministrators();
-    setInvitationFeedback(`Invitation created for ${email}.`);
+    setPlatformAdminFeedback(`Invitation created for ${email}.`);
   };
 
   const closeTranserSuperAdministratorModal = () => {
@@ -270,6 +280,10 @@ function PlatformAdministratorsPage() {
   };
 
   const confirmBasicConfirmation = () => {
+    if (selectedActionTarget?.action === 'resend') {
+      void confirmResendInvitation();
+      return;
+    }
     setShowBasicConfirmationModal(false);
     setSelectedActionTarget(null);
   };
@@ -281,6 +295,8 @@ function PlatformAdministratorsPage() {
   const closePlatformAdministratorPageConfirmationModal = () => {
     setShowBasicConfirmationModal(false);
     setSelectedActionTarget(null);
+    setResendError(null);
+    setIsResendingInvite(false);
   };
 
   const canResendAdministratorInvite = (administrator: DisplayAdministrator) =>
@@ -310,19 +326,55 @@ function PlatformAdministratorsPage() {
     if (!canResendAdministratorInvite(administrator)) {
       return;
     }
+    setPlatformAdminFeedback(null);
+    setResendError(null);
 
     setSelectedActionTarget({
       action: 'resend',
       userId: administrator.id,
       inviteId: administrator.inviteId,
+      email: administrator.email,
     });
-    setConfirmationTitle('Resend Invitation');
+    setConfirmationTitle('Resend invitation');
     setConfirmationMessage(
-      `Are you sure you want to resend the invitation to ${administrator.fullName}?`,
+      `Send a new invitation link to ${administrator.email}? The previous link will no longer be valid.`,
     );
-    setConfirmationButtonText('Resend');
+    setConfirmationButtonText('Resend invitation');
     setConfirmationVariant('default');
     setShowBasicConfirmationModal(true);
+  };
+
+  const confirmResendInvitation = async () => {
+    if (
+      !token ||
+      isResendingInvite ||
+      selectedActionTarget?.action !== 'resend' ||
+      !selectedActionTarget.inviteId
+    ) {
+      return;
+    }
+
+    const { inviteId, email } = selectedActionTarget;
+    setResendError(null);
+    setIsResendingInvite(true);
+
+    try {
+      await resendPlatformAdminInvite(inviteId, token);
+      setShowBasicConfirmationModal(false);
+      setSelectedActionTarget(null);
+      setResendError(null);
+
+      await reloadPlatformAdministrators();
+      setPlatformAdminFeedback(`A new invitation was queued for ${email}.`);
+    } catch (error: unknown) {
+      setResendError(getResendErrorMessage(error));
+
+      if (error instanceof ApiError && (error.status === 404 || error.status === 409)) {
+        await reloadPlatformAdministrators();
+      }
+    } finally {
+      setIsResendingInvite(false);
+    }
   };
 
   const openTransferSuperAdministratorModal = (administrator: DisplayAdministrator) => {
@@ -334,6 +386,7 @@ function PlatformAdministratorsPage() {
       action: 'transfer',
       userId: administrator.id,
       inviteId: null,
+      email: administrator.email,
     });
     setShowTransferSuperAdminModal(true);
   };
@@ -347,6 +400,7 @@ function PlatformAdministratorsPage() {
       action: 'demote',
       userId: administrator.id,
       inviteId: null,
+      email: administrator.email,
     });
     setConfirmationTitle('Demote Administrator');
     setConfirmationMessage(`Are you sure you want to demote ${administrator.fullName}?`);
@@ -404,12 +458,12 @@ function PlatformAdministratorsPage() {
           </p> */}
         </div>
 
-        {invitationFeedback && (
+        {platformAdminFeedback && (
           <div
             role="status"
             className="mx-6 p-4 mb-6 border font-jost text-[1.1rem] text-green-800 bg-green-50 border-green-200"
           >
-            {invitationFeedback}
+            {platformAdminFeedback}
           </div>
         )}
         <div className="px-6 pb-6">
@@ -697,6 +751,11 @@ function PlatformAdministratorsPage() {
             message={confirmationMessage}
             confirmButtonText={confirmationButtonText}
             confirmButtonVariant={confirmationVariant}
+            appendQuestionMark={selectedActionTarget.action !== 'resend'}
+            isConfirming={isResendingInvite}
+            isConfirmDisabled={isResendingInvite}
+            isDismissDisabled={isResendingInvite}
+            errorMessage={resendError}
             onConfirm={confirmBasicConfirmation}
             onCancel={closePlatformAdministratorPageConfirmationModal}
           ></BasicConfirmationModal>

@@ -1,12 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getPlatformAdmins, invitePlatformAdmin } from '../../services/platform-admin.service';
+import {
+  getPlatformAdmins,
+  invitePlatformAdmin,
+  resendPlatformAdminInvite,
+} from '../../services/platform-admin.service';
 import PlatformAdministratorsPage from '../PlatformAdministratorsPage';
 import type { ReactNode } from 'react';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import type {
-  InvitePlatformAdminResponseDto,
-  PlatformAdminListItemDto,
-  PlatformAdminListResponseDto,
+import {
+  type ResendPlatformAdminInviteResponseDto,
+  type InvitePlatformAdminResponseDto,
+  type PlatformAdminListItemDto,
+  type PlatformAdminListResponseDto,
 } from '@insightful-phish/shared';
 import { createAuthContextValue, createDeferred } from '../../testing/render';
 import { MemoryRouter } from 'react-router-dom';
@@ -16,6 +21,7 @@ import { ApiError } from '../../lib/apiClient';
 vi.mock('../../services/platform-admin.service', () => ({
   getPlatformAdmins: vi.fn(),
   invitePlatformAdmin: vi.fn(),
+  resendPlatformAdminInvite: vi.fn(),
 }));
 
 vi.mock('flowbite-react', () => ({
@@ -37,6 +43,7 @@ vi.mock('flowbite-react', () => ({
 
 const mockGetPlatformAdmins = vi.mocked(getPlatformAdmins);
 const mockInvitePlatformAdmin = vi.mocked(invitePlatformAdmin);
+const mockResendPlatformAdminInvite = vi.mocked(resendPlatformAdminInvite);
 const actorId = '11111111-1111-4111-8111-111111111111';
 
 function buildRow(overrides: Partial<PlatformAdminListItemDto> = {}): PlatformAdminListItemDto {
@@ -111,6 +118,16 @@ function createInviteApiError(status: number, error: string, message: string): A
     method: 'POST',
     url: '/platform/admin-invitations',
     body: { error, message },
+  });
+}
+
+function createResendApiError(status: number, message: string): ApiError {
+  return new ApiError(message, {
+    status,
+    statusText: 'Request Failed',
+    method: 'POST',
+    url: '/platform/admin-invitations/invite-id/resend',
+    body: { error: 'RESEND_FAILED', message },
   });
 }
 
@@ -640,6 +657,138 @@ describe('PlatformAdministratorsPage', () => {
     expect(screen.queryByRole('button', { name: 'Confirm upgrade' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Send invitation' })).toBeEnabled();
     expect(mockInvitePlatformAdmin).toHaveBeenCalledTimes(1);
+    expect(mockGetPlatformAdmins).toHaveBeenCalledTimes(1);
+  });
+
+  it('resends by inviteId, prevents duplicates, reloads, and shows success', async () => {
+    const inviteId = '83333333-3333-4333-8333-333333333333';
+    const resendRow = buildRow({
+      id: '22222222-2222-4222-8222-222222222222',
+      firstName: 'Resend',
+      lastName: 'Target',
+      email: 'resend@example.com',
+      authStatus: 'PENDING_INVITE_SETUP',
+      invitationStatus: 'SENT',
+      inviteId,
+      allowedActions: {
+        canTransferSuperAdmin: false,
+        canDemote: false,
+        canResendInvite: true,
+      },
+    });
+
+    mockGetPlatformAdmins.mockResolvedValue(buildResponse([resendRow]));
+    const resend = createDeferred<ResendPlatformAdminInviteResponseDto>();
+    mockResendPlatformAdminInvite.mockReturnValueOnce(resend.promise);
+
+    renderPage();
+    const row = (await screen.findByText('Resend Target')).closest('tr');
+    fireEvent.click(within(row!).getByRole('button', { name: 'Resend invitation' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Resend invitation', { selector: 'h3' })).toBeInTheDocument();
+    });
+    const modal = document.getElementById('popup-modal');
+    expect(modal).not.toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Resend invitation?' })).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Send a new invitation link to resend@example.com? The previous link will no longer be valid.',
+      ),
+    ).toBeInTheDocument();
+
+    const confirm = within(modal!).getByRole('button', { name: 'Resend invitation', hidden: true });
+    fireEvent.click(confirm);
+    fireEvent.click(confirm);
+
+    expect(mockResendPlatformAdminInvite).toHaveBeenCalledTimes(1);
+    expect(mockResendPlatformAdminInvite).toHaveBeenCalledWith(inviteId, 'platform-admin-token');
+    expect(
+      within(modal!).getByRole('button', { name: 'Processing...', hidden: true }),
+    ).toBeDisabled();
+
+    resend.resolve({ success: true, emailQueued: true });
+
+    expect(
+      await screen.findByText('A new invitation was queued for resend@example.com.'),
+    ).toBeInTheDocument();
+    expect(mockGetPlatformAdmins).toHaveBeenCalledTimes(2);
+  });
+
+  it('shows a stale resend error and refreshes the authoritative list', async () => {
+    const resendRow = buildRow({
+      email: 'stale@example.com',
+      authStatus: 'PENDING_INVITE_SETUP',
+      invitationStatus: 'SENT',
+      inviteId: '83333333-3333-4333-8333-333333333333',
+      allowedActions: {
+        canTransferSuperAdmin: false,
+        canDemote: false,
+        canResendInvite: true,
+      },
+    });
+
+    mockGetPlatformAdmins.mockResolvedValue(buildResponse([resendRow]));
+    mockResendPlatformAdminInvite.mockRejectedValueOnce(
+      createResendApiError(409, 'This invitation is no longer eligible to be resent.'),
+    );
+
+    renderPage();
+    const row = (await screen.findByText('Ada Lovelace')).closest('tr');
+    fireEvent.click(within(row!).getByRole('button', { name: 'Resend invitation' }));
+    await waitFor(() => {
+      expect(screen.getByText('Resend invitation', { selector: 'h3' })).toBeInTheDocument();
+    });
+    const modal = document.getElementById('popup-modal');
+    expect(modal).not.toBeNull();
+    fireEvent.click(
+      within(modal!).getByRole('button', { name: 'Resend invitation', hidden: true }),
+    );
+
+    expect(await within(modal!).findByRole('alert', { hidden: true })).toHaveTextContent(
+      'This invitation is no longer eligible to be resent.',
+    );
+    expect(mockResendPlatformAdminInvite).toHaveBeenCalledTimes(1);
+    expect(mockGetPlatformAdmins).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps resend usable after an ordinary error without refreshing', async () => {
+    const resendRow = buildRow({
+      email: 'limited@example.com',
+      authStatus: 'PENDING_INVITE_SETUP',
+      invitationStatus: 'SENT',
+      inviteId: '83333333-3333-4333-8333-333333333333',
+      allowedActions: {
+        canTransferSuperAdmin: false,
+        canDemote: false,
+        canResendInvite: true,
+      },
+    });
+
+    mockGetPlatformAdmins.mockResolvedValue(buildResponse([resendRow]));
+    mockResendPlatformAdminInvite.mockRejectedValueOnce(
+      createResendApiError(429, 'Too many resend requests. Please try again later.'),
+    );
+
+    renderPage();
+    const row = (await screen.findByText('Ada Lovelace')).closest('tr');
+    fireEvent.click(within(row!).getByRole('button', { name: 'Resend invitation' }));
+    await waitFor(() => {
+      expect(screen.getByText('Resend invitation', { selector: 'h3' })).toBeInTheDocument();
+    });
+    const modal = document.getElementById('popup-modal');
+    expect(modal).not.toBeNull();
+    fireEvent.click(
+      within(modal!).getByRole('button', { name: 'Resend invitation', hidden: true }),
+    );
+
+    expect(await within(modal!).findByRole('alert', { hidden: true })).toHaveTextContent(
+      'Too many resend requests. Please try again later.',
+    );
+    expect(
+      within(modal!).getByRole('button', { name: 'Resend invitation', hidden: true }),
+    ).toBeEnabled();
+    expect(mockResendPlatformAdminInvite).toHaveBeenCalledTimes(1);
     expect(mockGetPlatformAdmins).toHaveBeenCalledTimes(1);
   });
 });

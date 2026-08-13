@@ -9,6 +9,7 @@ type BasicConfirmationModalProps = Readonly<{
   isConfirmDisabled?: boolean;
   isDismissDisabled?: boolean;
   errorMessage?: string | null;
+  appendQuestionMark?: boolean;
   passwordValue?: string;
   onPasswordChange?: (value: string) => void;
   passwordError?: string | null;
@@ -28,6 +29,7 @@ function BasicConfirmationModal({
   isConfirmDisabled = false,
   isDismissDisabled = false,
   errorMessage = null,
+  appendQuestionMark = true,
   passwordValue,
   onPasswordChange,
   passwordError = null,
@@ -74,7 +76,8 @@ function BasicConfirmationModal({
 
             {/* Heading */}
             <h3 className="mb-4 text-body text-purple font-jost text-2xl tracking-wider font-medium">
-              {title}?
+              {title}
+              {appendQuestionMark ? '?' : ''}
             </h3>
 
             {/* Message */}
