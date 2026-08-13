@@ -3,6 +3,7 @@ import {
   getPlatformAdmins,
   invitePlatformAdmin,
   resendPlatformAdminInvite,
+  transferSuperAdmin,
 } from '../../services/platform-admin.service';
 import PlatformAdministratorsPage from '../PlatformAdministratorsPage';
 import type { ReactNode } from 'react';
@@ -12,7 +13,9 @@ import {
   type InvitePlatformAdminResponseDto,
   type PlatformAdminListItemDto,
   type PlatformAdminListResponseDto,
+  type AuthMeResponseDto,
 } from '@insightful-phish/shared';
+import type { AuthContextType } from '../../context/auth-context';
 import { createAuthContextValue, createDeferred } from '../../testing/render';
 import { MemoryRouter } from 'react-router-dom';
 import { AuthContext } from '../../context/auth-context';
@@ -22,6 +25,7 @@ vi.mock('../../services/platform-admin.service', () => ({
   getPlatformAdmins: vi.fn(),
   invitePlatformAdmin: vi.fn(),
   resendPlatformAdminInvite: vi.fn(),
+  transferSuperAdmin: vi.fn(),
 }));
 
 vi.mock('flowbite-react', () => ({
@@ -45,6 +49,7 @@ const mockGetPlatformAdmins = vi.mocked(getPlatformAdmins);
 const mockInvitePlatformAdmin = vi.mocked(invitePlatformAdmin);
 const mockResendPlatformAdminInvite = vi.mocked(resendPlatformAdminInvite);
 const actorId = '11111111-1111-4111-8111-111111111111';
+const mockTransferSuperAdmin = vi.mocked(transferSuperAdmin);
 
 function buildRow(overrides: Partial<PlatformAdminListItemDto> = {}): PlatformAdminListItemDto {
   return {
@@ -85,7 +90,10 @@ function buildResponse(
   };
 }
 
-function renderPage(platformAdminRole: 'SUPER_ADMIN' | 'NORMAL_ADMIN' = 'SUPER_ADMIN') {
+function renderPage(
+  platformAdminRole: 'SUPER_ADMIN' | 'NORMAL_ADMIN' = 'SUPER_ADMIN',
+  authOverrides: Partial<AuthContextType> = {},
+) {
   const auth = createAuthContextValue({
     token: 'platform-admin-token',
     authContext: {
@@ -100,6 +108,7 @@ function renderPage(platformAdminRole: 'SUPER_ADMIN' | 'NORMAL_ADMIN' = 'SUPER_A
       permissions: [],
       redirectTo: '/platform-administrators',
     },
+    ...authOverrides,
   });
 
   return render(
@@ -128,6 +137,16 @@ function createResendApiError(status: number, message: string): ApiError {
     method: 'POST',
     url: '/platform/admin-invitations/invite-id/resend',
     body: { error: 'RESEND_FAILED', message },
+  });
+}
+
+function createTransferApiError(status: number, error: string, message: string): ApiError {
+  return new ApiError(message, {
+    status,
+    statusText: 'Request Failed',
+    method: 'POST',
+    url: '/platform/admins/transfer-super-admin',
+    body: { error, message },
   });
 }
 
@@ -789,6 +808,179 @@ describe('PlatformAdministratorsPage', () => {
       within(modal!).getByRole('button', { name: 'Resend invitation', hidden: true }),
     ).toBeEnabled();
     expect(mockResendPlatformAdminInvite).toHaveBeenCalledTimes(1);
+    expect(mockGetPlatformAdmins).toHaveBeenCalledTimes(1);
+  });
+
+  it('transfers once, locks stale actions, and refreshes auth before the list', async () => {
+    const targetId = '44444444-4444-4444-8444-444444444444';
+    const target = buildRow({
+      id: targetId,
+      firstName: 'Target',
+      lastName: 'Name',
+      platformAdminRole: 'NORMAL_ADMIN',
+      allowedActions: {
+        canTransferSuperAdmin: true,
+        canDemote: false,
+        canResendInvite: false,
+      },
+    });
+
+    mockGetPlatformAdmins.mockResolvedValue(buildResponse([target]));
+
+    const transfer = createDeferred<AuthMeResponseDto>();
+    const authRefresh = createDeferred<void>();
+    const refreshAuthContext = vi.fn(() => authRefresh.promise);
+
+    mockTransferSuperAdmin.mockReturnValueOnce(transfer.promise);
+
+    renderPage('SUPER_ADMIN', { refreshAuthContext });
+
+    const row = (await screen.findByText('Target Name')).closest('tr');
+    fireEvent.click(
+      within(row!).getByRole('button', { name: 'Transfer super administrator role' }),
+    );
+
+    fireEvent.change(screen.getByLabelText('Current password'), {
+      target: { value: 'current-password' },
+    });
+    fireEvent.change(screen.getByLabelText('Type TRANSFER to confirm'), {
+      target: { value: 'TRANSFER' },
+    });
+
+    const modal = document.getElementById('popup-modal');
+    expect(modal).not.toBeNull();
+
+    const submit = within(modal!).getByRole('button', {
+      name: 'Transfer super administrator role',
+    });
+
+    fireEvent.click(submit);
+    fireEvent.click(submit);
+
+    expect(mockTransferSuperAdmin).toHaveBeenCalledTimes(1);
+    expect(mockTransferSuperAdmin).toHaveBeenCalledWith(
+      {
+        targetUserId: targetId,
+        password: 'current-password',
+        confirmation: 'TRANSFER',
+      },
+      'platform-admin-token',
+    );
+
+    transfer.resolve({} as AuthMeResponseDto);
+
+    await waitFor(() => expect(refreshAuthContext).toHaveBeenCalledTimes(1));
+
+    expect(mockGetPlatformAdmins).toHaveBeenCalledTimes(1);
+    expect(
+      screen.queryByRole('button', { name: 'Invite platform administrator' }),
+    ).not.toBeInTheDocument();
+
+    authRefresh.resolve();
+
+    expect(
+      await screen.findByText('Super administrator role transferred to Target Name.'),
+    ).toBeInTheDocument();
+    expect(mockGetPlatformAdmins).toHaveBeenCalledTimes(2);
+  });
+
+  it('requires a password and exact TRANSFER confirmation', async () => {
+    const targetId = '44444444-4444-4444-8444-444444444444';
+    const target = buildRow({
+      id: targetId,
+      firstName: 'Target',
+      lastName: 'Name',
+      platformAdminRole: 'NORMAL_ADMIN',
+      allowedActions: {
+        canTransferSuperAdmin: true,
+        canDemote: false,
+        canResendInvite: false,
+      },
+    });
+
+    mockGetPlatformAdmins.mockResolvedValue(buildResponse([target]));
+    renderPage();
+
+    const row = (await screen.findByText('Target Name')).closest('tr');
+    fireEvent.click(
+      within(row!).getByRole('button', { name: 'Transfer super administrator role' }),
+    );
+
+    const modal = document.getElementById('popup-modal');
+    expect(modal).not.toBeNull();
+
+    const submit = within(modal!).getByRole('button', {
+      name: 'Transfer super administrator role',
+    });
+
+    expect(submit).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText('Current password'), {
+      target: { value: 'current-password' },
+    });
+    fireEvent.change(screen.getByLabelText('Type TRANSFER to confirm'), {
+      target: { value: 'transfer' },
+    });
+
+    expect(submit).toBeDisabled();
+    expect(mockTransferSuperAdmin).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByLabelText('Type TRANSFER to confirm'), {
+      target: { value: 'TRANSFER' },
+    });
+
+    expect(submit).toBeEnabled();
+  });
+
+  it('keeps transfer usable after the verified invalid-password error', async () => {
+    const targetId = '44444444-4444-4444-8444-444444444444';
+    const target = buildRow({
+      id: targetId,
+      firstName: 'Target',
+      lastName: 'Name',
+      platformAdminRole: 'NORMAL_ADMIN',
+      allowedActions: {
+        canTransferSuperAdmin: true,
+        canDemote: false,
+        canResendInvite: false,
+      },
+    });
+    const refreshAuthContext = vi.fn();
+
+    mockGetPlatformAdmins.mockResolvedValue(buildResponse([target]));
+    mockTransferSuperAdmin.mockRejectedValueOnce(
+      createTransferApiError(
+        403,
+        'PLATFORM_ADMIN_PASSWORD_INVALID',
+        'Password confirmation failed',
+      ),
+    );
+
+    renderPage('SUPER_ADMIN', { refreshAuthContext });
+
+    const row = (await screen.findByText('Target Name')).closest('tr');
+    fireEvent.click(
+      within(row!).getByRole('button', { name: 'Transfer super administrator role' }),
+    );
+    const modal = document.getElementById('popup-modal');
+    expect(modal).not.toBeNull();
+
+    fireEvent.change(screen.getByLabelText('Current password'), {
+      target: { value: 'wrong-password' },
+    });
+    fireEvent.change(screen.getByLabelText('Type TRANSFER to confirm'), {
+      target: { value: 'TRANSFER' },
+    });
+    fireEvent.click(
+      within(modal!).getByRole('button', { name: 'Transfer super administrator role' }),
+    );
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Password confirmation failed');
+    expect(
+      within(modal!).getByRole('button', { name: 'Transfer super administrator role' }),
+    ).toBeEnabled();
+    expect(mockTransferSuperAdmin).toHaveBeenCalledTimes(1);
+    expect(refreshAuthContext).not.toHaveBeenCalled();
     expect(mockGetPlatformAdmins).toHaveBeenCalledTimes(1);
   });
 });

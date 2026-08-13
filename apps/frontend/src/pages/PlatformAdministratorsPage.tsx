@@ -10,8 +10,13 @@ import { ApiError } from '../lib/apiClient';
 import type {
   PlatformAdminListItemDto,
   PlatformAdminListResponseDto,
+  TransferSuperAdminRequestDto,
 } from '@insightful-phish/shared';
-import { getPlatformAdmins, resendPlatformAdminInvite } from '../services/platform-admin.service';
+import {
+  getPlatformAdmins,
+  resendPlatformAdminInvite,
+  transferSuperAdmin,
+} from '../services/platform-admin.service';
 
 type DisplayStatus =
   | 'Active'
@@ -42,6 +47,7 @@ type SelectedActionTarget = {
   userId: string;
   inviteId: string | null;
   email: string;
+  name: string;
 };
 
 function getDisplayRole(platformAdminRole: string): DisplayRole {
@@ -137,7 +143,7 @@ function StatusBadge({ status }: Readonly<{ status: DisplayStatus }>) {
 }
 
 function PlatformAdministratorsPage() {
-  const { token, authContext } = useAuth();
+  const { token, authContext, refreshAuthContext, clearAuth } = useAuth();
   const requestIdRef = useRef(0);
 
   const [platformAdminResponse, setPlatformAdminResponse] =
@@ -164,15 +170,34 @@ function PlatformAdministratorsPage() {
   const [showPlatformAdministratorModal, setShowPlatformAdministratorModal] = useState(false);
   const [platformAdminFeedback, setPlatformAdminFeedback] = useState<string | null>(null);
   const [showTransferSuperAdminModal, setShowTransferSuperAdminModal] = useState(false);
+  const [transferPassword, setTransferPassword] = useState('');
+  const [transferConfirmation, setTransferConfirmation] = useState('');
+  const [transferError, setTransferError] = useState<string | null>(null);
+  const [transferPasswordError, setTransferPasswordError] = useState<string | null>(null);
+  const [isTransferring, setIsTransferring] = useState(false);
+  const [isRefreshingAfterTransfer, setIsRefreshingAfterTransfer] = useState(false);
 
   // BOOLEAN FLAGS FOR ROLES
   const isSuperAdministrator = authContext?.platformAdminRole === 'SUPER_ADMIN';
 
-  const canInvite = isSuperAdministrator && platformAdminResponse?.allowedToInvite === true;
+  const managementActionsLocked = isRefreshingAfterTransfer;
+
+  const canInvite =
+    !managementActionsLocked &&
+    isSuperAdministrator &&
+    platformAdminResponse?.allowedToInvite === true;
   const canResendInvites =
-    isSuperAdministrator && platformAdminResponse?.allowedToResendInvites === true;
-  const canTransfer = isSuperAdministrator && platformAdminResponse?.allowedToTransfer === true;
-  const canDemote = isSuperAdministrator && platformAdminResponse?.allowedToDemote === true;
+    !managementActionsLocked &&
+    isSuperAdministrator &&
+    platformAdminResponse?.allowedToResendInvites === true;
+  const canTransfer =
+    !managementActionsLocked &&
+    isSuperAdministrator &&
+    platformAdminResponse?.allowedToTransfer === true;
+  const canDemote =
+    !managementActionsLocked &&
+    isSuperAdministrator &&
+    platformAdminResponse?.allowedToDemote === true;
 
   const reloadPlatformAdministrators = useCallback(async () => {
     if (!token) {
@@ -274,9 +299,18 @@ function PlatformAdministratorsPage() {
     setPlatformAdminFeedback(`Invitation created for ${email}.`);
   };
 
-  const closeTranserSuperAdministratorModal = () => {
+  const resetTransferWorkflow = () => {
     setShowTransferSuperAdminModal(false);
     setSelectedActionTarget(null);
+    setTransferPassword('');
+    setTransferConfirmation('');
+    setTransferError(null);
+    setTransferPasswordError(null);
+  };
+
+  const closeTranserSuperAdministratorModal = () => {
+    if (isTransferring) return;
+    resetTransferWorkflow();
   };
 
   const confirmBasicConfirmation = () => {
@@ -288,8 +322,93 @@ function PlatformAdministratorsPage() {
     setSelectedActionTarget(null);
   };
 
-  const confirmTransferSuperAdminRole = () => {
-    closeTranserSuperAdministratorModal();
+  const confirmTransferSuperAdminRole = async () => {
+    if (!token || isTransferring || selectedActionTarget?.action !== 'transfer') {
+      return;
+    }
+
+    setTransferError(null);
+    setTransferPasswordError(null);
+    setPlatformAdminFeedback(null);
+
+    if (!transferPassword) {
+      setTransferPasswordError('Password is required.');
+      return;
+    }
+
+    if (transferConfirmation !== 'TRANSFER') {
+      setTransferError('Type TRANSFER exactly to confirm.');
+      return;
+    }
+
+    const target = selectedActionTarget;
+    const input: TransferSuperAdminRequestDto = {
+      targetUserId: target.userId,
+      password: transferPassword,
+      confirmation: 'TRANSFER',
+    };
+
+    setIsTransferring(true);
+
+    try {
+      await transferSuperAdmin(input, token);
+    } catch (error: unknown) {
+      const errorCode =
+        error instanceof ApiError &&
+        error.body &&
+        typeof error.body === 'object' &&
+        'error' in error.body &&
+        typeof error.body.error === 'string'
+          ? error.body.error
+          : null;
+
+      if (
+        error instanceof ApiError &&
+        error.status === 403 &&
+        errorCode === 'PLATFORM_ADMIN_PASSWORD_INVALID'
+      ) {
+        setTransferPasswordError(error.message.trim() || 'The password is incorrect.');
+      } else {
+        setTransferError(
+          error instanceof ApiError && error.status < 500
+            ? error.message.trim() || 'The role could not be tranferred.'
+            : 'The role could not be transferred. Please try again.',
+        );
+
+        if (
+          error instanceof ApiError &&
+          error.status === 409 &&
+          errorCode === 'STALE_SUPER_ADMIN_TRANSFER'
+        ) {
+          await reloadPlatformAdministrators();
+        }
+      }
+
+      setIsTransferring(false);
+      return;
+    }
+
+    setIsRefreshingAfterTransfer(true);
+
+    try {
+      await refreshAuthContext();
+    } catch {
+      resetTransferWorkflow();
+      setIsRefreshingAfterTransfer(false);
+      setIsTransferring(false);
+      setPlatformAdminFeedback(
+        'Super administrator role was transferred, but current access could not be refreshed. Please sign in again.',
+      );
+      clearAuth();
+      return;
+    }
+
+    await reloadPlatformAdministrators();
+
+    resetTransferWorkflow();
+    setIsRefreshingAfterTransfer(false);
+    setIsTransferring(false);
+    setPlatformAdminFeedback(`Super administrator role transferred to ${target.name}.`);
   };
 
   const closePlatformAdministratorPageConfirmationModal = () => {
@@ -334,6 +453,7 @@ function PlatformAdministratorsPage() {
       userId: administrator.id,
       inviteId: administrator.inviteId,
       email: administrator.email,
+      name: administrator.fullName,
     });
     setConfirmationTitle('Resend invitation');
     setConfirmationMessage(
@@ -382,11 +502,18 @@ function PlatformAdministratorsPage() {
       return;
     }
 
+    setPlatformAdminFeedback(null);
+    setTransferPassword('');
+    setTransferConfirmation('');
+    setTransferError(null);
+    setTransferPasswordError(null);
+
     setSelectedActionTarget({
       action: 'transfer',
       userId: administrator.id,
       inviteId: null,
       email: administrator.email,
+      name: administrator.fullName,
     });
     setShowTransferSuperAdminModal(true);
   };
@@ -401,6 +528,7 @@ function PlatformAdministratorsPage() {
       userId: administrator.id,
       inviteId: null,
       email: administrator.email,
+      name: administrator.fullName,
     });
     setConfirmationTitle('Demote Administrator');
     setConfirmationMessage(`Are you sure you want to demote ${administrator.fullName}?`);
@@ -773,6 +901,20 @@ function PlatformAdministratorsPage() {
       {showTransferSuperAdminModal && selectedActionTarget?.action === 'transfer' && (
         <TransferSuperAdministratorRoleModal
           isOpen={showTransferSuperAdminModal}
+          targetName={selectedActionTarget.name}
+          password={transferPassword}
+          confirmation={transferConfirmation}
+          errorMessage={transferError}
+          passwordError={transferPasswordError}
+          isSubmitting={isTransferring}
+          onPasswordChange={(value) => {
+            setTransferPassword(value);
+            setTransferPasswordError(null);
+          }}
+          onConfirmationChange={(value) => {
+            setTransferConfirmation(value);
+            setTransferError(null);
+          }}
           onConfirm={confirmTransferSuperAdminRole}
           onClose={() => closeTranserSuperAdministratorModal()}
         ></TransferSuperAdministratorRoleModal>
