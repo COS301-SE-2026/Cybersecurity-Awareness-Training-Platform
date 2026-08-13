@@ -50,6 +50,7 @@ export function createAuthContextValue(overrides: Partial<AuthContextType> = {})
     expiresAt: isAuthenticated ? '2026-01-01T01:00:00.000Z' : null,
     sessionExpiresAt: isAuthenticated ? '2026-01-08T00:00:00.000Z' : null,
     login: vi.fn(),
+    refreshAuthContext: vi.fn(async () => {}),
     clearAuth: vi.fn(),
     logout: vi.fn(async () => {}),
     ...overrides,

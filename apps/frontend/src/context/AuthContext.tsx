@@ -1,6 +1,7 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import type { ReactNode } from 'react';
-import { logoutSession, refreshSession } from '../services/auth.service';
+import { getCurrentUser, logoutSession, refreshSession } from '../services/auth.service';
+import { ApiError } from '../lib/apiClient';
 import { AuthContext } from './auth-context';
 import type { AuthUser } from './auth-context';
 import type { AuthContextDto, AuthContextResponseDto } from '@insightful-phish/shared';
@@ -132,6 +133,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const storedAuth = getStoredAuth();
 
   const [token, setToken] = useState<string | null>(storedAuth.token);
+  const activeTokenRef = useRef(token);
 
   const [user, setUser] = useState<AuthUser | null>(storedAuth.user);
 
@@ -155,6 +157,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const clearAuth = useCallback(() => {
     clearStoredAuth();
+    activeTokenRef.current = null;
     setToken(null);
     setUser(null);
     setAuthContext(null);
@@ -201,6 +204,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         getStorage()?.removeItem('sessionExpiresAt');
       }
 
+      activeTokenRef.current = newToken;
       setToken(newToken);
       setUser(authResponse.user);
       setAuthContext(authResponse.context);
@@ -222,6 +226,42 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setUser,
     ],
   );
+
+  const refreshAuthContext = useCallback(async () => {
+    const currentToken = activeTokenRef.current;
+
+    if (!currentToken) {
+      throw new Error('Cannot refresh auth context without an access token');
+    }
+
+    try {
+      const authResponse = await getCurrentUser(currentToken);
+
+      if (activeTokenRef.current !== currentToken) {
+        throw new Error('Authenticated session changed during auth context refresh');
+      }
+
+      getStorage()?.setItem('user', JSON.stringify(authResponse.user));
+      getStorage()?.setItem('authContext', JSON.stringify(authResponse.context));
+      getStorage()?.setItem('permissions', JSON.stringify(authResponse.permissions));
+      getStorage()?.setItem('redirectTo', authResponse.redirectTo);
+
+      setUser(authResponse.user);
+      setAuthContext(authResponse.context);
+      setPermissions(authResponse.permissions);
+      setRedirectTo(authResponse.redirectTo);
+    } catch (error: unknown) {
+      if (
+        error instanceof ApiError &&
+        error.status === 401 &&
+        activeTokenRef.current === currentToken
+      ) {
+        clearAuth();
+      }
+
+      throw error;
+    }
+  }, [clearAuth]);
 
   const logout = useCallback(async () => {
     try {
@@ -275,6 +315,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       expiresAt,
       sessionExpiresAt,
       login,
+      refreshAuthContext,
       clearAuth,
       logout,
     }),
@@ -289,6 +330,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       expiresAt,
       sessionExpiresAt,
       login,
+      refreshAuthContext,
       clearAuth,
       logout,
     ],
