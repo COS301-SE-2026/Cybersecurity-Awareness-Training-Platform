@@ -19,6 +19,7 @@ import { platformRouter } from './routes/platform.routes.js';
 import { organisationSecuritySettingsRouter } from './routes/organisation-security-settings.routes.js';
 import { invitationRouter } from './routes/invitation.routes.js';
 import { campaignAssignmentRouter } from './routes/campaign-assignment.routes.js';
+import { campaignManagementRouter } from './routes/campaign-management.routes.js';
 
 export function createApp() {
   const app = express();
@@ -37,10 +38,8 @@ export function createApp() {
 
   app.use(express.json());
 
-  // Swagger Documentation
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-  // Mount API Routers
   app.use(healthRoutes);
   app.use(authRouter);
   app.use(accountRouter);
@@ -52,6 +51,7 @@ export function createApp() {
   app.use(platformRouter);
   app.use(organisationSecuritySettingsRouter);
   app.use(campaignAssignmentRouter);
+  app.use(campaignManagementRouter);
   app.use('/trainee', traineeRouter);
   app.use(traineeTrainingRouter);
   app.use('/trainee/campaign-items', traineeQuizRouter);
