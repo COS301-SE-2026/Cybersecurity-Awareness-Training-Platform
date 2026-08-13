@@ -568,6 +568,9 @@ describe('PlatformAdministratorsPage', () => {
     await screen.findByText('Ada Lovelace');
 
     fireEvent.click(screen.getByRole('button', { name: /Invite platform administrator/ }));
+    const inviteDialog = screen.getByRole('dialog', { name: 'Invite platform administrator' });
+    expect(inviteDialog).toHaveAttribute('aria-modal', 'true');
+    expect(screen.getByLabelText(/Email/)).toHaveFocus();
     fireEvent.change(screen.getByLabelText(/Email/), {
       target: { value: ' NEW.ADMIN@EXAMPLE.COM ' },
     });
@@ -716,13 +719,16 @@ describe('PlatformAdministratorsPage', () => {
 
     renderPage();
     const row = (await screen.findByText('Resend Target')).closest('tr');
-    fireEvent.click(within(row!).getByRole('button', { name: 'Resend invitation' }));
+    const opener = within(row!).getByRole('button', { name: 'Resend invitation' });
+    opener.focus();
+    fireEvent.click(opener);
 
     await waitFor(() => {
       expect(screen.getByText('Resend invitation', { selector: 'h3' })).toBeInTheDocument();
     });
-    const modal = document.getElementById('popup-modal');
-    expect(modal).not.toBeNull();
+    const modal = screen.getByRole('dialog', { name: 'Resend invitation' });
+    expect(modal).toHaveAttribute('aria-modal', 'true');
+    expect(within(modal).getByRole('button', { name: 'Cancel' })).toHaveFocus();
     expect(screen.queryByRole('heading', { name: 'Resend invitation?' })).not.toBeInTheDocument();
     expect(
       screen.getByText(
@@ -730,15 +736,13 @@ describe('PlatformAdministratorsPage', () => {
       ),
     ).toBeInTheDocument();
 
-    const confirm = within(modal!).getByRole('button', { name: 'Resend invitation', hidden: true });
+    const confirm = within(modal!).getByRole('button', { name: 'Resend invitation' });
     fireEvent.click(confirm);
     fireEvent.click(confirm);
 
     expect(mockResendPlatformAdminInvite).toHaveBeenCalledTimes(1);
     expect(mockResendPlatformAdminInvite).toHaveBeenCalledWith(inviteId, 'platform-admin-token');
-    expect(
-      within(modal!).getByRole('button', { name: 'Processing...', hidden: true }),
-    ).toBeDisabled();
+    expect(within(modal!).getByRole('button', { name: 'Processing...' })).toBeDisabled();
 
     resend.resolve({ success: true, emailQueued: true });
 
@@ -746,6 +750,7 @@ describe('PlatformAdministratorsPage', () => {
       await screen.findByText('A new invitation was queued for resend@example.com.'),
     ).toBeInTheDocument();
     expect(mockGetPlatformAdmins).toHaveBeenCalledTimes(2);
+    await waitFor(() => expect(opener).toHaveFocus());
   });
 
   it('shows a stale resend error and refreshes the authoritative list', async () => {
@@ -774,11 +779,10 @@ describe('PlatformAdministratorsPage', () => {
     });
     const modal = document.getElementById('popup-modal');
     expect(modal).not.toBeNull();
-    fireEvent.click(
-      within(modal!).getByRole('button', { name: 'Resend invitation', hidden: true }),
-    );
+    fireEvent.click(within(modal!).getByRole('button', { name: 'Resend invitation' }));
 
-    expect(await within(modal!).findByRole('alert', { hidden: true })).toHaveTextContent(
+    const updatedModal = await screen.findByRole('dialog', { name: 'Resend invitation' });
+    expect(await within(updatedModal).findByRole('alert')).toHaveTextContent(
       'This invitation is no longer eligible to be resent.',
     );
     expect(mockResendPlatformAdminInvite).toHaveBeenCalledTimes(1);
@@ -811,16 +815,13 @@ describe('PlatformAdministratorsPage', () => {
     });
     const modal = document.getElementById('popup-modal');
     expect(modal).not.toBeNull();
-    fireEvent.click(
-      within(modal!).getByRole('button', { name: 'Resend invitation', hidden: true }),
-    );
+    fireEvent.click(within(modal!).getByRole('button', { name: 'Resend invitation' }));
 
-    expect(await within(modal!).findByRole('alert', { hidden: true })).toHaveTextContent(
+    const updatedModal = await screen.findByRole('dialog', { name: 'Resend invitation' });
+    expect(await within(updatedModal).findByRole('alert')).toHaveTextContent(
       'Too many resend requests. Please try again later.',
     );
-    expect(
-      within(modal!).getByRole('button', { name: 'Resend invitation', hidden: true }),
-    ).toBeEnabled();
+    expect(within(updatedModal).getByRole('button', { name: 'Resend invitation' })).toBeEnabled();
     expect(mockResendPlatformAdminInvite).toHaveBeenCalledTimes(1);
     expect(mockGetPlatformAdmins).toHaveBeenCalledTimes(1);
   });
@@ -1034,7 +1035,6 @@ describe('PlatformAdministratorsPage', () => {
 
     const confirm = within(modal!).getByRole('button', {
       name: 'Demote administrator',
-      hidden: true,
     });
 
     fireEvent.click(confirm);
@@ -1088,7 +1088,6 @@ describe('PlatformAdministratorsPage', () => {
 
     const confirm = within(modal!).getByRole('button', {
       name: 'Demote administrator',
-      hidden: true,
     });
 
     expect(confirm).toBeDisabled();
@@ -1144,19 +1143,53 @@ describe('PlatformAdministratorsPage', () => {
     fireEvent.change(screen.getByLabelText('Type DEMOTE to confirm'), {
       target: { value: 'DEMOTE' },
     });
-    fireEvent.click(
-      within(modal!).getByRole('button', { name: 'Demote administrator', hidden: true }),
-    );
+    fireEvent.click(within(modal!).getByRole('button', { name: 'Demote administrator' }));
 
-    expect(await within(modal!).findByRole('alert', { hidden: true })).toHaveTextContent(
+    expect(await within(modal!).findByRole('alert')).toHaveTextContent(
       'Password confirmation failed',
     );
     expect(screen.getByLabelText('Password', { selector: 'input' })).toHaveValue('wrong-password');
-    expect(
-      within(modal!).getByRole('button', { name: 'Demote administrator', hidden: true }),
-    ).toBeEnabled();
+    expect(within(modal!).getByRole('button', { name: 'Demote administrator' })).toBeEnabled();
     expect(mockDemotePlatformAdmin).toHaveBeenCalledTimes(1);
     expect(mockGetPlatformAdmins).toHaveBeenCalledTimes(1);
     expect(refreshAuthContext).not.toHaveBeenCalled();
+  });
+
+  it('reloads the list when the demotion target no longer exists', async () => {
+    const targetId = '55555555-5555-4555-8555-555555555555';
+    const target = buildRow({
+      id: targetId,
+      firstName: 'Demote',
+      lastName: 'Target',
+      platformAdminRole: 'NORMAL_ADMIN',
+      allowedActions: {
+        canTransferSuperAdmin: false,
+        canDemote: true,
+        canResendInvite: false,
+      },
+    });
+
+    mockGetPlatformAdmins.mockResolvedValue(buildResponse([target]));
+    mockDemotePlatformAdmin.mockRejectedValueOnce(
+      createDemoteApiError(404, 'PLATFORM_ADMIN_NOT_FOUND', 'Platform admin not found'),
+    );
+
+    renderPage();
+    const row = (await screen.findByText('Demote Target')).closest('tr');
+    fireEvent.click(within(row!).getByRole('button', { name: 'Demote administrator' }));
+
+    const modal = screen.getByRole('dialog', { name: 'Demote administrator' });
+
+    fireEvent.change(within(modal).getByLabelText('Password'), {
+      target: { value: 'current-password' },
+    });
+    fireEvent.change(within(modal).getByLabelText('Type DEMOTE to confirm'), {
+      target: { value: 'DEMOTE' },
+    });
+    fireEvent.click(within(modal).getByRole('button', { name: 'Demote administrator' }));
+
+    expect(await within(modal).findByRole('alert')).toHaveTextContent('Platform admin not found');
+    await waitFor(() => expect(mockGetPlatformAdmins).toHaveBeenCalledTimes(2));
+    expect(mockDemotePlatformAdmin).toHaveBeenCalledTimes(1);
   });
 });

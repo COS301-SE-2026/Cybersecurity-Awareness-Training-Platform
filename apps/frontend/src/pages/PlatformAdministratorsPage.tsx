@@ -147,6 +147,8 @@ function StatusBadge({ status }: Readonly<{ status: DisplayStatus }>) {
 function PlatformAdministratorsPage() {
   const { token, authContext, refreshAuthContext, clearAuth } = useAuth();
   const requestIdRef = useRef(0);
+  const modalOpenerRef = useRef<HTMLButtonElement | null>(null);
+  const pageHeadingRef = useRef<HTMLHeadingElement | null>(null);
 
   const [platformAdminResponse, setPlatformAdminResponse] =
     useState<PlatformAdminListResponseDto | null>(null);
@@ -292,13 +294,25 @@ function PlatformAdministratorsPage() {
       ? 'No platform administrators have been added.'
       : 'No platform administrators match your search or filters.';
 
-  const openPlatformAdministratorModal = () => {
+  const restoreModalFocus = () => {
+    const opener = modalOpenerRef.current;
+    modalOpenerRef.current = null;
+
+    queueMicrotask(() => {
+      if (opener?.isConnected) opener.focus();
+      else pageHeadingRef.current?.focus();
+    });
+  };
+
+  const openPlatformAdministratorModal = (opener: HTMLButtonElement) => {
+    modalOpenerRef.current = opener;
     setPlatformAdminFeedback(null);
     setShowPlatformAdministratorModal(true);
   };
 
   const closePlatformAdministratorModal = () => {
     setShowPlatformAdministratorModal(false);
+    restoreModalFocus();
   };
 
   const handleInvitationSuccess = async (email: string) => {
@@ -313,6 +327,7 @@ function PlatformAdministratorsPage() {
     setTransferConfirmation('');
     setTransferError(null);
     setTransferPasswordError(null);
+    restoreModalFocus();
   };
 
   const closeTranserSuperAdministratorModal = () => {
@@ -327,6 +342,7 @@ function PlatformAdministratorsPage() {
     setDemoteConfirmation('');
     setDemoteError(null);
     setDemotePasswordError(null);
+    restoreModalFocus();
   };
 
   const confirmBasicConfirmation = () => {
@@ -442,6 +458,7 @@ function PlatformAdministratorsPage() {
     setDemoteConfirmation('');
     setDemoteError(null);
     setDemotePasswordError(null);
+    restoreModalFocus();
   };
 
   const canResendAdministratorInvite = (administrator: DisplayAdministrator) =>
@@ -467,10 +484,14 @@ function PlatformAdministratorsPage() {
 
   const showActionsColumn = filteredPlatformAdministrators.some(administratorHasAction);
 
-  const openResendInvitationModal = (administrator: DisplayAdministrator) => {
+  const openResendInvitationModal = (
+    administrator: DisplayAdministrator,
+    opener: HTMLButtonElement,
+  ) => {
     if (!canResendAdministratorInvite(administrator)) {
       return;
     }
+    modalOpenerRef.current = opener;
     setPlatformAdminFeedback(null);
     setResendError(null);
 
@@ -512,6 +533,7 @@ function PlatformAdministratorsPage() {
 
       await reloadPlatformAdministrators();
       setPlatformAdminFeedback(`A new invitation was queued for ${email}.`);
+      restoreModalFocus();
     } catch (error: unknown) {
       setResendError(getResendErrorMessage(error));
 
@@ -577,10 +599,11 @@ function PlatformAdministratorsPage() {
 
         if (
           error instanceof ApiError &&
-          error.status === 409 &&
-          (errorCode === 'SELF_DEMOTION_CONFLICT' ||
-            errorCode === 'SUPER_ADMIN_DEMOTION_BLOCKED' ||
-            errorCode === 'PLATFORM_ADMIN_ALREADY_DEMOTED')
+          ((error.status === 404 && errorCode === 'PLATFORM_ADMIN_NOT_FOUND') ||
+            (error.status === 409 &&
+              (errorCode === 'SELF_DEMOTION_CONFLICT' ||
+                errorCode === 'SUPER_ADMIN_DEMOTION_BLOCKED' ||
+                errorCode === 'PLATFORM_ADMIN_ALREADY_DEMOTED')))
         ) {
           await reloadPlatformAdministrators();
         }
@@ -597,10 +620,14 @@ function PlatformAdministratorsPage() {
     setPlatformAdminFeedback(`${target.name} is no longer a platform administrator.`);
   };
 
-  const openTransferSuperAdministratorModal = (administrator: DisplayAdministrator) => {
+  const openTransferSuperAdministratorModal = (
+    administrator: DisplayAdministrator,
+    opener: HTMLButtonElement,
+  ) => {
     if (!canTransferToAdministrator(administrator)) {
       return;
     }
+    modalOpenerRef.current = opener;
 
     setPlatformAdminFeedback(null);
     setTransferPassword('');
@@ -618,10 +645,14 @@ function PlatformAdministratorsPage() {
     setShowTransferSuperAdminModal(true);
   };
 
-  const openDemoteAdministratorModal = (administrator: DisplayAdministrator) => {
+  const openDemoteAdministratorModal = (
+    administrator: DisplayAdministrator,
+    opener: HTMLButtonElement,
+  ) => {
     if (!canDemoteAdministrator(administrator)) {
       return;
     }
+    modalOpenerRef.current = opener;
 
     setPlatformAdminFeedback(null);
     setDemotePassword('');
@@ -663,6 +694,8 @@ function PlatformAdministratorsPage() {
           }}
         >
           <h1
+            ref={pageHeadingRef}
+            tabIndex={-1}
             style={{
               margin: 0,
               marginBottom: '0.8rem',
@@ -829,7 +862,7 @@ function PlatformAdministratorsPage() {
                 {canInvite && (
                   <button
                     type="button"
-                    onClick={openPlatformAdministratorModal}
+                    onClick={(event) => openPlatformAdministratorModal(event.currentTarget)}
                     className="cursor-pointer px-4 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm py-[0.425rem] focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     <span className="material-symbols-sharp">add_2</span>
@@ -926,7 +959,12 @@ function PlatformAdministratorsPage() {
                             {canResendAdministratorInvite(platformAdministrator) && (
                               <button
                                 type="button"
-                                onClick={() => openResendInvitationModal(platformAdministrator)}
+                                onClick={(event) =>
+                                  openResendInvitationModal(
+                                    platformAdministrator,
+                                    event.currentTarget,
+                                  )
+                                }
                                 className="cursor-pointer font-medium text-purple hover:underline"
                               >
                                 Resend invitation
@@ -936,8 +974,11 @@ function PlatformAdministratorsPage() {
                             {canTransferToAdministrator(platformAdministrator) && (
                               <button
                                 type="button"
-                                onClick={() =>
-                                  openTransferSuperAdministratorModal(platformAdministrator)
+                                onClick={(event) =>
+                                  openTransferSuperAdministratorModal(
+                                    platformAdministrator,
+                                    event.currentTarget,
+                                  )
                                 }
                                 className="cursor-pointer font-medium text-purple hover:underline"
                               >
@@ -948,7 +989,12 @@ function PlatformAdministratorsPage() {
                             {canDemoteAdministrator(platformAdministrator) && (
                               <button
                                 type="button"
-                                onClick={() => openDemoteAdministratorModal(platformAdministrator)}
+                                onClick={(event) =>
+                                  openDemoteAdministratorModal(
+                                    platformAdministrator,
+                                    event.currentTarget,
+                                  )
+                                }
                                 className="cursor-pointer font-medium text-red-600 hover:underline"
                               >
                                 Demote administrator

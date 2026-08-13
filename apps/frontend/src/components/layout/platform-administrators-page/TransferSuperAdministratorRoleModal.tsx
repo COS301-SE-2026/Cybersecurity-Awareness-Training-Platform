@@ -1,3 +1,5 @@
+import { useEffect, useRef } from 'react';
+
 type TransferSuperAdministratorRoleModalProps = Readonly<{
   isOpen: boolean;
   targetName: string;
@@ -25,11 +27,19 @@ function TransferSuperAdministratorRoleModal({
   onClose,
   onConfirm,
 }: TransferSuperAdministratorRoleModalProps) {
+  const passwordInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (isOpen) passwordInputRef.current?.focus();
+  }, [isOpen]);
+
   return (
     <div
       id="popup-modal"
       tabIndex={-1}
-      aria-hidden={!isOpen}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="transfer-super-administrator-title"
       className="fixed inset-0 z-999 flex items-center justify-center bg-black/50 backdrop-blur-xl"
     >
       <div className="relative p-2 w-full max-w-md max-h-full">
@@ -54,7 +64,10 @@ function TransferSuperAdministratorRoleModal({
             </span>
 
             {/* Heading */}
-            <h3 className="mb-4 text-body text-purple font-jost text-2xl tracking-wider font-medium">
+            <h3
+              id="transfer-super-administrator-title"
+              className="mb-4 text-body text-purple font-jost text-2xl tracking-wider font-medium"
+            >
               Transfer Super Administrator Role?
             </h3>
 
@@ -84,6 +97,7 @@ function TransferSuperAdministratorRoleModal({
               </label>
               <input
                 id="transfer-current-password"
+                ref={passwordInputRef}
                 type="password"
                 autoComplete="current-password"
                 value={password}

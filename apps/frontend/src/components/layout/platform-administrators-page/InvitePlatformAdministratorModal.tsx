@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 import {
   invitePlatformAdminRequestSchema,
   type InvitePlatformAdminRequestDto,
@@ -36,6 +36,11 @@ function InvitePlatformAdministratorModal({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [requiresUpgrade, setRequiresUpgrade] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const emailInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (isOpen) emailInputRef.current?.focus();
+  }, [isOpen]);
 
   if (!isOpen) {
     return null;
@@ -98,14 +103,19 @@ function InvitePlatformAdministratorModal({
     <div
       id="select-modal"
       tabIndex={-1}
-      aria-hidden={!isOpen}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="invite-platform-administrator-title"
       className="fixed inset-0 z-999 flex items-center justify-center bg-black/50 backdrop-blur-xl"
     >
       <div className="relative p-4 w-full max-w-md">
         <div className="relative bg-white-purple border border-default shadow-md p-4 md:p-6">
           <div className="flex items-center justify-between border-b border-default pb-4 md:pb-5">
             {/* HEADING */}
-            <h3 className="font-jost text-3xl text-purple tracking-wider font-medium text-heading">
+            <h3
+              id="invite-platform-administrator-title"
+              className="font-jost text-3xl text-purple tracking-wider font-medium text-heading"
+            >
               Invite platform administrator
             </h3>
 
@@ -178,6 +188,7 @@ function InvitePlatformAdministratorModal({
                 onChange={(e) => setEmailAddress(e.target.value)}
                 name="admin-email-address"
                 id="admin-email-address"
+                ref={emailInputRef}
                 className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                 placeholder="Enter the Administrator's Email Address"
               />
