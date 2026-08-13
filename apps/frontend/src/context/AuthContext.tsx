@@ -261,7 +261,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       throw error;
     }
-  }, [clearAuth]);
+  }, [clearAuth, setAuthContext, setPermissions, setRedirectTo, setUser]);
 
   const logout = useCallback(async () => {
     try {

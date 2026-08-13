@@ -407,7 +407,7 @@ function PlatformAdministratorsPage() {
       } else {
         setTransferError(
           error instanceof ApiError && error.status < 500
-            ? error.message.trim() || 'The role could not be tranferred.'
+            ? error.message.trim() || 'The role could not be transferred.'
             : 'The role could not be transferred. Please try again.',
         );
 

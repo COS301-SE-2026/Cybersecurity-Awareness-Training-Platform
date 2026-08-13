@@ -1,8 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, render, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import type { AuthContextResponseDto, AuthMeResponseDto } from '@insightful-phish/shared';
 import { AuthProvider } from '../AuthContext';
-import type { AuthContextType } from '../auth-context';
 import { useAuth } from '../useAuth';
 
 const { getCurrentUserMock, logoutSessionMock, refreshSessionMock } = vi.hoisted(() => ({
@@ -16,8 +15,6 @@ vi.mock('../../services/auth.service', () => ({
   logoutSession: logoutSessionMock,
   refreshSession: refreshSessionMock,
 }));
-
-let currentAuth: AuthContextType | null = null;
 
 const storedValues = new Map<string, string>();
 
@@ -69,11 +66,6 @@ const authoritativeResponse: AuthMeResponseDto = {
   redirectTo: '/platform-administrators',
 };
 
-function ContextObserver() {
-  currentAuth = useAuth();
-  return null;
-}
-
 function seedAuthenticatedSession(
   token = 'existing-token',
   expiresAt = '2099-01-01T01:00:00.000Z',
@@ -88,11 +80,7 @@ function seedAuthenticatedSession(
 }
 
 function renderProvider() {
-  return render(
-    <AuthProvider>
-      <ContextObserver />
-    </AuthProvider>,
-  );
+  return renderHook(() => useAuth(), { wrapper: AuthProvider });
 }
 
 describe('AuthProvider authenticated-context refresh', () => {
@@ -100,7 +88,6 @@ describe('AuthProvider authenticated-context refresh', () => {
     vi.clearAllMocks();
     vi.stubGlobal('localStorage', localStorageMock);
     localStorage.clear();
-    currentAuth = null;
   });
 
   it('uses the rotated current token and authoritatively replaces privileges', async () => {
@@ -119,42 +106,42 @@ describe('AuthProvider authenticated-context refresh', () => {
     refreshSessionMock.mockResolvedValueOnce(restoredSession);
     getCurrentUserMock.mockResolvedValueOnce(authoritativeResponse);
 
-    renderProvider();
+    const { result } = renderProvider();
 
     await waitFor(() => {
-      expect(currentAuth?.token).toBe('new-token');
-      expect(currentAuth?.isAuthLoading).toBe(false);
+      expect(result.current.token).toBe('new-token');
+      expect(result.current.isAuthLoading).toBe(false);
     });
 
     await act(async () => {
-      await currentAuth!.refreshAuthContext();
+      await result.current!.refreshAuthContext();
     });
 
     expect(getCurrentUserMock).toHaveBeenCalledWith('new-token');
-    expect(currentAuth!.token).toBe('new-token');
+    expect(result.current!.token).toBe('new-token');
     expect(localStorage.getItem('token')).toBe('new-token');
-    expect(currentAuth!.authContext?.platformAdminRole).toBe('NORMAL_ADMIN');
-    expect(currentAuth!.authContext?.organisation).toBeNull();
-    expect(currentAuth!.permissions).toEqual(['PLATFORM_ADMIN_READ']);
-    expect(currentAuth!.permissions).not.toContain('PLATFORM_ADMIN_MANAGE');
-    expect(currentAuth!.redirectTo).toBe('/platform-administrators');
-    expect(currentAuth!.expiresAt).toBe('2099-01-01T01:00:00.000Z');
-    expect(currentAuth!.sessionExpiresAt).toBe('2099-01-08T00:00:00.000Z');
+    expect(result.current!.authContext?.platformAdminRole).toBe('NORMAL_ADMIN');
+    expect(result.current!.authContext?.organisation).toBeNull();
+    expect(result.current!.permissions).toEqual(['PLATFORM_ADMIN_READ']);
+    expect(result.current!.permissions).not.toContain('PLATFORM_ADMIN_MANAGE');
+    expect(result.current!.redirectTo).toBe('/platform-administrators');
+    expect(result.current!.expiresAt).toBe('2099-01-01T01:00:00.000Z');
+    expect(result.current!.sessionExpiresAt).toBe('2099-01-08T00:00:00.000Z');
   });
 
   it('propagates transient failure without corrupting valid auth', async () => {
     seedAuthenticatedSession();
     getCurrentUserMock.mockRejectedValueOnce(new Error('Temporary failure'));
 
-    renderProvider();
+    const { result } = renderProvider();
 
-    await waitFor(() => expect(currentAuth).not.toBeNull());
+    await waitFor(() => expect(result.current).not.toBeNull());
 
-    await expect(currentAuth!.refreshAuthContext()).rejects.toThrow('Temporary failure');
+    await expect(result.current!.refreshAuthContext()).rejects.toThrow('Temporary failure');
 
-    expect(currentAuth!.token).toBe('existing-token');
-    expect(currentAuth!.authContext?.platformAdminRole).toBe('SUPER_ADMIN');
-    expect(currentAuth!.permissions).toEqual(['PLATFORM_ADMIN_MANAGE']);
+    expect(result.current!.token).toBe('existing-token');
+    expect(result.current!.authContext?.platformAdminRole).toBe('SUPER_ADMIN');
+    expect(result.current!.permissions).toEqual(['PLATFORM_ADMIN_MANAGE']);
     expect(localStorage.getItem('token')).toBe('existing-token');
     expect(localStorage.getItem('authContext')).toBe(JSON.stringify(privilegedContext));
   });
@@ -169,14 +156,14 @@ describe('AuthProvider authenticated-context refresh', () => {
       }),
     );
 
-    renderProvider();
+    const { result } = renderProvider();
 
-    await waitFor(() => expect(currentAuth).not.toBeNull());
+    await waitFor(() => expect(result.current).not.toBeNull());
 
-    const refreshPromise = currentAuth!.refreshAuthContext();
+    const refreshPromise = result.current!.refreshAuthContext();
 
     act(() => {
-      currentAuth!.clearAuth();
+      result.current!.clearAuth();
     });
 
     resolveRequest(authoritativeResponse);
@@ -185,9 +172,9 @@ describe('AuthProvider authenticated-context refresh', () => {
       'Authenticated session changed during auth context refresh',
     );
 
-    expect(currentAuth!.token).toBeNull();
-    expect(currentAuth!.authContext).toBeNull();
-    expect(currentAuth!.permissions).toEqual([]);
+    expect(result.current!.token).toBeNull();
+    expect(result.current!.authContext).toBeNull();
+    expect(result.current!.permissions).toEqual([]);
     expect(localStorage.getItem('token')).toBeNull();
   });
 });
