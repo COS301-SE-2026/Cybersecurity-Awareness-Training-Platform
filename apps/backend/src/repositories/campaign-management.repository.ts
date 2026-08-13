@@ -302,6 +302,41 @@ export async function findCampaignById(
   };
 }
 
+async function resolveCampaignItemDetails(
+  tx: Prisma.TransactionClient,
+  itemInput: { componentType: CampaignComponentType; contentId: string },
+  index: number,
+) {
+  let title = `Item ${index + 1}`;
+  let description: string | null = null;
+
+  if (itemInput.componentType === 'TRAINING_DOCUMENT') {
+    const doc = await tx.trainingDocument.findUnique({ where: { id: itemInput.contentId } });
+    if (!doc) throw new Error(`TRAINING_DOCUMENT_NOT_FOUND:${itemInput.contentId}`);
+    title = doc.title;
+    description = doc.contentSummary;
+  } else if (itemInput.componentType === 'QUIZ') {
+    const quiz = await tx.quiz.findUnique({ where: { id: itemInput.contentId } });
+    if (!quiz) throw new Error(`QUIZ_NOT_FOUND:${itemInput.contentId}`);
+    title = quiz.title;
+    description = quiz.description;
+  } else if (itemInput.componentType === 'SIMULATED_INBOX') {
+    const sim = await tx.simulation.findUnique({ where: { id: itemInput.contentId } });
+    if (!sim) throw new Error(`SIMULATION_NOT_FOUND:${itemInput.contentId}`);
+    title = sim.title;
+    description = sim.description;
+  }
+
+  return {
+    title,
+    description,
+    trainingDocumentId:
+      itemInput.componentType === 'TRAINING_DOCUMENT' ? itemInput.contentId : null,
+    quizId: itemInput.componentType === 'QUIZ' ? itemInput.contentId : null,
+    simulationId: itemInput.componentType === 'SIMULATED_INBOX' ? itemInput.contentId : null,
+  };
+}
+
 export async function createCampaignDraft(input: {
   organisationId?: string | null;
   createdByUserId?: string | null;
@@ -343,52 +378,20 @@ export async function createCampaignDraft(input: {
     for (let index = 0; index < input.items.length; index++) {
       const itemInput = input.items[index];
       const position = (index + 1) * 10;
-
-      let title = `Item ${index + 1}`;
-      let description: string | null = null;
-
-      if (itemInput.componentType === 'TRAINING_DOCUMENT') {
-        const doc = await tx.trainingDocument.findUnique({
-          where: { id: itemInput.contentId },
-        });
-        if (!doc) {
-          throw new Error(`TRAINING_DOCUMENT_NOT_FOUND:${itemInput.contentId}`);
-        }
-        title = doc.title;
-        description = doc.contentSummary;
-      } else if (itemInput.componentType === 'QUIZ') {
-        const quiz = await tx.quiz.findUnique({
-          where: { id: itemInput.contentId },
-        });
-        if (!quiz) {
-          throw new Error(`QUIZ_NOT_FOUND:${itemInput.contentId}`);
-        }
-        title = quiz.title;
-        description = quiz.description;
-      } else if (itemInput.componentType === 'SIMULATED_INBOX') {
-        const sim = await tx.simulation.findUnique({
-          where: { id: itemInput.contentId },
-        });
-        if (!sim) {
-          throw new Error(`SIMULATION_NOT_FOUND:${itemInput.contentId}`);
-        }
-        title = sim.title;
-        description = sim.description;
-      }
+      const details = await resolveCampaignItemDetails(tx, itemInput, index);
 
       await tx.campaignItem.create({
         data: {
           campaignId: campaign.id,
           itemType: 'COMPONENT',
           componentType: itemInput.componentType,
-          title,
-          description,
+          title: details.title,
+          description: details.description,
           position,
           isRequired: itemInput.isRequired,
-          trainingDocumentId:
-            itemInput.componentType === 'TRAINING_DOCUMENT' ? itemInput.contentId : null,
-          quizId: itemInput.componentType === 'QUIZ' ? itemInput.contentId : null,
-          simulationId: itemInput.componentType === 'SIMULATED_INBOX' ? itemInput.contentId : null,
+          trainingDocumentId: details.trainingDocumentId,
+          quizId: details.quizId,
+          simulationId: details.simulationId,
         },
       });
     }
@@ -441,26 +444,7 @@ export async function updateCampaignDraft(input: {
     for (let index = 0; index < input.items.length; index++) {
       const itemInput = input.items[index];
       const position = (index + 1) * 10;
-
-      let title = `Item ${index + 1}`;
-      let description: string | null = null;
-
-      if (itemInput.componentType === 'TRAINING_DOCUMENT') {
-        const doc = await tx.trainingDocument.findUnique({ where: { id: itemInput.contentId } });
-        if (!doc) throw new Error(`TRAINING_DOCUMENT_NOT_FOUND:${itemInput.contentId}`);
-        title = doc.title;
-        description = doc.contentSummary;
-      } else if (itemInput.componentType === 'QUIZ') {
-        const quiz = await tx.quiz.findUnique({ where: { id: itemInput.contentId } });
-        if (!quiz) throw new Error(`QUIZ_NOT_FOUND:${itemInput.contentId}`);
-        title = quiz.title;
-        description = quiz.description;
-      } else if (itemInput.componentType === 'SIMULATED_INBOX') {
-        const sim = await tx.simulation.findUnique({ where: { id: itemInput.contentId } });
-        if (!sim) throw new Error(`SIMULATION_NOT_FOUND:${itemInput.contentId}`);
-        title = sim.title;
-        description = sim.description;
-      }
+      const details = await resolveCampaignItemDetails(tx, itemInput, index);
 
       if (
         itemInput.campaignItemId &&
@@ -470,15 +454,13 @@ export async function updateCampaignDraft(input: {
           where: { id: itemInput.campaignItemId },
           data: {
             componentType: itemInput.componentType,
-            title,
-            description,
+            title: details.title,
+            description: details.description,
             position,
             isRequired: itemInput.isRequired,
-            trainingDocumentId:
-              itemInput.componentType === 'TRAINING_DOCUMENT' ? itemInput.contentId : null,
-            quizId: itemInput.componentType === 'QUIZ' ? itemInput.contentId : null,
-            simulationId:
-              itemInput.componentType === 'SIMULATED_INBOX' ? itemInput.contentId : null,
+            trainingDocumentId: details.trainingDocumentId,
+            quizId: details.quizId,
+            simulationId: details.simulationId,
           },
         });
         keptItemIds.add(itemInput.campaignItemId);
@@ -488,15 +470,13 @@ export async function updateCampaignDraft(input: {
             campaignId: input.campaignId,
             itemType: 'COMPONENT',
             componentType: itemInput.componentType,
-            title,
-            description,
+            title: details.title,
+            description: details.description,
             position,
             isRequired: itemInput.isRequired,
-            trainingDocumentId:
-              itemInput.componentType === 'TRAINING_DOCUMENT' ? itemInput.contentId : null,
-            quizId: itemInput.componentType === 'QUIZ' ? itemInput.contentId : null,
-            simulationId:
-              itemInput.componentType === 'SIMULATED_INBOX' ? itemInput.contentId : null,
+            trainingDocumentId: details.trainingDocumentId,
+            quizId: details.quizId,
+            simulationId: details.simulationId,
           },
         });
         keptItemIds.add(newItem.id);

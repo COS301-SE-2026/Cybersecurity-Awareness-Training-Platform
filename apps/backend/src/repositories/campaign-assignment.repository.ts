@@ -163,7 +163,15 @@ export async function findAssignableCampaigns(
         _count: {
           select: {
             items: true,
-            assignments: true,
+            assignments: {
+              where: {
+                traineeProfile: {
+                  organisationTraineeProfile: {
+                    organisationId: input.organisationId,
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -612,11 +620,26 @@ export async function executeBulkCampaignAssignment(
             traineeProfileId,
           });
         } else {
-          createdRows.push({
-            assignmentId,
-            campaignId,
-            traineeProfileId,
-          });
+          const wasCreatedByUs = missingPairs.some(
+            (p) =>
+              p.campaignId === campaignId &&
+              p.traineeProfileId === traineeProfileId &&
+              p.candidateId === assignmentId,
+          );
+
+          if (wasCreatedByUs) {
+            createdRows.push({
+              assignmentId,
+              campaignId,
+              traineeProfileId,
+            });
+          } else {
+            alreadyAssignedRows.push({
+              assignmentId,
+              campaignId,
+              traineeProfileId,
+            });
+          }
         }
       }
     }
@@ -660,6 +683,9 @@ export async function findCampaignAssignmentsByCampaign(
 
   const where: Prisma.CampaignAssignmentWhereInput = {
     campaignId: input.campaignId,
+    campaign: {
+      OR: [{ organisationId: input.organisationId }, { organisationId: null }],
+    },
     traineeProfile: {
       organisationTraineeProfile: {
         organisationId: input.organisationId,
@@ -689,25 +715,22 @@ export async function findCampaignAssignmentsByCampaign(
       : {}),
   };
 
-  const [total, assignments] = await Promise.all([
-    client.campaignAssignment.count({ where }),
-    client.campaignAssignment.findMany({
-      where,
-      skip,
-      take: input.limit,
-      orderBy: { assignedAt: 'desc' },
-      include: {
-        campaign: true,
-        traineeProfile: {
-          include: {
-            user: true,
-          },
-        },
-      },
-    }),
-  ]);
+  return fetchAssignmentsPage(where, skip, input.limit, client);
+}
 
-  const items = assignments.map((a) => ({
+const campaignAssignmentInclude = {
+  campaign: true,
+  traineeProfile: {
+    include: {
+      user: true,
+    },
+  },
+} as const;
+
+function mapCampaignAssignmentRow(
+  a: Prisma.CampaignAssignmentGetPayload<{ include: typeof campaignAssignmentInclude }>,
+) {
+  return {
     assignmentId: a.id,
     campaignId: a.campaignId,
     campaignName: a.campaign.name,
@@ -723,9 +746,27 @@ export async function findCampaignAssignmentsByCampaign(
     assignedAt: a.assignedAt,
     startedAt: a.startedAt,
     completedAt: a.completedAt,
-  }));
+  };
+}
 
-  return { items, total };
+async function fetchAssignmentsPage(
+  where: Prisma.CampaignAssignmentWhereInput,
+  skip: number,
+  limit: number,
+  client: DBClient = prisma,
+) {
+  const [total, assignments] = await Promise.all([
+    client.campaignAssignment.count({ where }),
+    client.campaignAssignment.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: { assignedAt: 'desc' },
+      include: campaignAssignmentInclude,
+    }),
+  ]);
+
+  return { items: assignments.map(mapCampaignAssignmentRow), total };
 }
 
 export type FindCampaignAssignmentsByTraineeInput = {
@@ -746,6 +787,14 @@ export async function findCampaignAssignmentsByTrainee(
 
   const where: Prisma.CampaignAssignmentWhereInput = {
     traineeProfileId: input.traineeProfileId,
+    campaign: {
+      OR: [{ organisationId: input.organisationId }, { organisationId: null }],
+      ...(trimmedSearch
+        ? {
+            name: { contains: trimmedSearch, mode: 'insensitive' },
+          }
+        : {}),
+    },
     traineeProfile: {
       organisationTraineeProfile: {
         organisationId: input.organisationId,
@@ -754,52 +803,9 @@ export async function findCampaignAssignmentsByTrainee(
     ...(input.status
       ? { assignmentStatus: input.status as Prisma.EnumAssignmentStatusFilter }
       : {}),
-    ...(trimmedSearch
-      ? {
-          campaign: {
-            name: { contains: trimmedSearch, mode: 'insensitive' },
-          },
-        }
-      : {}),
   };
 
-  const [total, assignments] = await Promise.all([
-    client.campaignAssignment.count({ where }),
-    client.campaignAssignment.findMany({
-      where,
-      skip,
-      take: input.limit,
-      orderBy: { assignedAt: 'desc' },
-      include: {
-        campaign: true,
-        traineeProfile: {
-          include: {
-            user: true,
-          },
-        },
-      },
-    }),
-  ]);
-
-  const items = assignments.map((a) => ({
-    assignmentId: a.id,
-    campaignId: a.campaignId,
-    campaignName: a.campaign.name,
-    campaignStatus: a.campaign.status,
-    campaignType: a.campaign.campaignType,
-    traineeProfileId: a.traineeProfileId,
-    firstName: a.traineeProfile.user.firstName,
-    lastName: a.traineeProfile.user.lastName,
-    email: a.traineeProfile.user.email,
-    traineeStatus: a.traineeProfile.traineeStatus,
-    assignmentStatus: a.assignmentStatus,
-    accessType: a.accessType,
-    assignedAt: a.assignedAt,
-    startedAt: a.startedAt,
-    completedAt: a.completedAt,
-  }));
-
-  return { items, total };
+  return fetchAssignmentsPage(where, skip, input.limit, client);
 }
 
 export type DeleteCampaignAssignmentInput = {
@@ -824,7 +830,7 @@ export async function deleteCampaignAssignment(
       },
     });
 
-    if (!assignment) {
+    if (!assignment || assignment.accessType === 'SELF_SELECTED') {
       return {
         success: false as const,
         error: 'ASSIGNMENT_NOT_FOUND' as const,
@@ -832,22 +838,50 @@ export async function deleteCampaignAssignment(
       };
     }
 
+    const campaignItems = await tx.campaignItem.findMany({
+      where: { campaignId: assignment.campaignId },
+      select: { id: true },
+    });
+    const campaignItemIds = campaignItems.map((ci) => ci.id);
+
+    const progressWhere = {
+      OR: [
+        { campaignAssignmentId: assignment.id },
+        ...(campaignItemIds.length > 0
+          ? [
+              {
+                traineeProfileId: assignment.traineeProfileId,
+                campaignItemId: { in: campaignItemIds },
+              },
+            ]
+          : []),
+      ],
+    };
+
     const [interactionEventsCount, classificationResponsesCount, quizAttemptsCount] =
       await Promise.all([
         tx.interactionEvent.deleteMany({
-          where: { campaignAssignmentId: assignment.id },
+          where: progressWhere,
         }),
         tx.emailClassificationResponse.deleteMany({
-          where: { campaignAssignmentId: assignment.id },
+          where: progressWhere,
         }),
         tx.quizAttempt.deleteMany({
-          where: { campaignAssignmentId: assignment.id },
+          where: progressWhere,
         }),
       ]);
 
-    await tx.campaignAssignment.delete({
+    const deletedAssignment = await tx.campaignAssignment.deleteMany({
       where: { id: assignment.id },
     });
+
+    if (deletedAssignment.count === 0) {
+      return {
+        success: false as const,
+        error: 'ASSIGNMENT_NOT_FOUND' as const,
+        message: 'Campaign assignment not found',
+      };
+    }
 
     await tx.auditLogEntry.create({
       data: {

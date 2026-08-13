@@ -46,6 +46,26 @@ export const apiErrorResponseSchema = z.object({
   details: z.array(validationErrorDetailSchema).optional(),
 });
 
-export const successResponseSchema = z.object({
-  success: z.literal(true),
-});
+export function createNumericPreprocessor(
+  defaultValue: number,
+  errorMessagePrefix: 'Page' | 'Limit',
+  maxVal: number,
+) {
+  return z.preprocess(
+    (val) => {
+      if (val === undefined || val === '') return defaultValue;
+      if (typeof val === 'string') {
+        const trimmed = val.trim();
+        if (!/^\d+$/.test(trimmed)) return Number.NaN;
+        const parsed = Number(trimmed);
+        return Number.isSafeInteger(parsed) ? parsed : Number.NaN;
+      }
+      return typeof val === 'number' && Number.isSafeInteger(val) ? val : Number.NaN;
+    },
+    z
+      .number()
+      .int(`${errorMessagePrefix} must be an integer.`)
+      .min(1, `${errorMessagePrefix} must be at least 1.`)
+      .max(maxVal, `${errorMessagePrefix} exceeds maximum limit of ${maxVal}.`),
+  );
+}
