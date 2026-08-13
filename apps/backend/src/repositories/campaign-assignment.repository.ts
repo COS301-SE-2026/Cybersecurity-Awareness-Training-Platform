@@ -636,7 +636,7 @@ export async function executeBulkCampaignAssignment(
   };
 
   if ('$transaction' in client && typeof client.$transaction === 'function') {
-    return (client as PrismaClient).$transaction(async (tx) => runInTx(tx));
+    return client.$transaction(async (tx) => runInTx(tx));
   }
 
   return runInTx(client);
@@ -884,7 +884,7 @@ export async function deleteCampaignAssignment(
   };
 
   if ('$transaction' in client && typeof client.$transaction === 'function') {
-    return (client as PrismaClient).$transaction(async (tx) => runInTx(tx));
+    return client.$transaction(async (tx) => runInTx(tx));
   }
 
   return runInTx(client);

@@ -39,7 +39,7 @@ export async function getOrganisationCampaignCatalogue(
   params?: CampaignCatalogueQueryDto,
 ): Promise<GetCampaignCatalogueResponseDto> {
   return apiClient.get<GetCampaignCatalogueResponseDto>(
-    `/organisations/${organisationId}/campaign-content/catalog${buildQueryString(params as any)}`,
+    `/organisations/${organisationId}/campaign-content/catalog${buildQueryString(params as Record<string, unknown>)}`,
   );
 }
 
@@ -47,7 +47,7 @@ export async function getPlatformCampaignCatalogue(
   params?: CampaignCatalogueQueryDto,
 ): Promise<GetCampaignCatalogueResponseDto> {
   return apiClient.get<GetCampaignCatalogueResponseDto>(
-    `/platform/campaign-content/catalog${buildQueryString(params as any)}`,
+    `/platform/campaign-content/catalog${buildQueryString(params as Record<string, unknown>)}`,
   );
 }
 
@@ -56,7 +56,7 @@ export async function getOrganisationCampaigns(
   params?: CampaignListQueryDto,
 ): Promise<GetCampaignsResponseDto> {
   return apiClient.get<GetCampaignsResponseDto>(
-    `/organisations/${organisationId}/campaigns${buildQueryString(params as any)}`,
+    `/organisations/${organisationId}/campaigns${buildQueryString(params as Record<string, unknown>)}`,
   );
 }
 
@@ -64,7 +64,7 @@ export async function getPlatformCampaigns(
   params?: CampaignListQueryDto,
 ): Promise<GetCampaignsResponseDto> {
   return apiClient.get<GetCampaignsResponseDto>(
-    `/platform/campaigns${buildQueryString(params as any)}`,
+    `/platform/campaigns${buildQueryString(params as Record<string, unknown>)}`,
   );
 }
 

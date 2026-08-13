@@ -31,7 +31,9 @@ describe('CampaignManagementService Unit Tests', () => {
       adminStatus: 'ACTIVE',
       organisation: { id: orgId, name: 'Test Org', status: 'ACTIVE' },
       permissionGrants: [{ organisationPermission: { key: 'MANAGE_CAMPAIGNS' } }],
-    } as any);
+    } as unknown as Awaited<
+      ReturnType<typeof OrganisationScopeRepository.findOrganisationAdminActorScope>
+    >);
 
     await expect(
       CampaignManagementService.createOrganisationCampaignDraft(adminActor, orgId, {
@@ -70,7 +72,9 @@ describe('CampaignManagementService Unit Tests', () => {
       adminStatus: 'ACTIVE',
       organisation: { id: orgId, name: 'Test Org', status: 'ACTIVE' },
       permissionGrants: [{ organisationPermission: { key: 'VIEW_CAMPAIGNS' } }],
-    } as any);
+    } as unknown as Awaited<
+      ReturnType<typeof OrganisationScopeRepository.findOrganisationAdminActorScope>
+    >);
 
     vi.mocked(CampaignManagementRepository.findCampaigns).mockResolvedValue({
       items: [

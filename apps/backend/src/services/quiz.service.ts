@@ -62,9 +62,7 @@ export async function getQuizByCampaignItemId(
   const campaignItem = await getValidatedCampaignItem(campaignItemId, traineeProfileId);
 
   const campaign = campaignItem.campaign ?? { status: 'ACTIVE', campaignType: 'PREMADE_GENERAL' };
-  const eligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(
-    campaign as Parameters<typeof defaultCampaignEligibilityService.evaluateCampaignEligibility>[0],
-  );
+  const eligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(campaign);
   if (!eligibility.canView) {
     throw new QuizForbiddenError('Campaign is not viewable');
   }
@@ -87,9 +85,7 @@ export async function startQuizAttempt(
   const campaignItem = await getValidatedCampaignItem(campaignItemId, traineeProfileId);
 
   const campaign = campaignItem.campaign ?? { status: 'ACTIVE', campaignType: 'PREMADE_GENERAL' };
-  const eligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(
-    campaign as Parameters<typeof defaultCampaignEligibilityService.evaluateCampaignEligibility>[0],
-  );
+  const eligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(campaign);
   defaultCampaignEligibilityService.assertCanProgress(eligibility);
 
   const assignmentId = campaignItem.campaign?.assignments?.[0]?.id ?? 'assignment-id';

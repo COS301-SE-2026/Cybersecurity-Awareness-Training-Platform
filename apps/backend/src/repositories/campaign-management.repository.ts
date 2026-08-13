@@ -519,6 +519,37 @@ export async function updateCampaignDraft(input: {
   });
 }
 
+type CampaignItemWithContent = {
+  componentType: string | null;
+  trainingDocument?: { status: string } | null;
+  quiz?: { status: string } | null;
+  simulation?: { safetyStatus: string; simulatedInbox?: { status: string } | null } | null;
+};
+
+function checkItemsContentStatus(items: CampaignItemWithContent[]): boolean {
+  for (const item of items) {
+    if (item.componentType === 'TRAINING_DOCUMENT') {
+      if (!item.trainingDocument || item.trainingDocument.status !== 'AVAILABLE') {
+        return false;
+      }
+    } else if (item.componentType === 'QUIZ') {
+      if (!item.quiz || item.quiz.status !== 'PUBLISHED') {
+        return false;
+      }
+    } else if (item.componentType === 'SIMULATED_INBOX') {
+      if (
+        !item.simulation ||
+        item.simulation.safetyStatus !== 'APPROVED' ||
+        !item.simulation.simulatedInbox ||
+        item.simulation.simulatedInbox.status !== 'ACTIVE'
+      ) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
 export async function activateCampaign(
   campaignId: string,
   _actorUserId?: string,
@@ -550,25 +581,8 @@ export async function activateCampaign(
       return { success: false, error: 'EMPTY_CAMPAIGN' as const };
     }
 
-    for (const item of campaign.items) {
-      if (item.componentType === 'TRAINING_DOCUMENT') {
-        if (!item.trainingDocument || item.trainingDocument.status !== 'AVAILABLE') {
-          return { success: false, error: 'INVALID_CONTENT_STATUS' as const };
-        }
-      } else if (item.componentType === 'QUIZ') {
-        if (!item.quiz || item.quiz.status !== 'PUBLISHED') {
-          return { success: false, error: 'INVALID_CONTENT_STATUS' as const };
-        }
-      } else if (item.componentType === 'SIMULATED_INBOX') {
-        if (
-          !item.simulation ||
-          item.simulation.safetyStatus !== 'APPROVED' ||
-          !item.simulation.simulatedInbox ||
-          item.simulation.simulatedInbox.status !== 'ACTIVE'
-        ) {
-          return { success: false, error: 'INVALID_CONTENT_STATUS' as const };
-        }
-      }
+    if (!checkItemsContentStatus(campaign.items)) {
+      return { success: false, error: 'INVALID_CONTENT_STATUS' as const };
     }
 
     await tx.campaign.update({
@@ -634,25 +648,8 @@ export async function reactivateCampaign(
       return { success: false, error: 'INVALID_LIFECYCLE_TRANSITION' as const };
     }
 
-    for (const item of campaign.items) {
-      if (item.componentType === 'TRAINING_DOCUMENT') {
-        if (!item.trainingDocument || item.trainingDocument.status !== 'AVAILABLE') {
-          return { success: false, error: 'INVALID_CONTENT_STATUS' as const };
-        }
-      } else if (item.componentType === 'QUIZ') {
-        if (!item.quiz || item.quiz.status !== 'PUBLISHED') {
-          return { success: false, error: 'INVALID_CONTENT_STATUS' as const };
-        }
-      } else if (item.componentType === 'SIMULATED_INBOX') {
-        if (
-          !item.simulation ||
-          item.simulation.safetyStatus !== 'APPROVED' ||
-          !item.simulation.simulatedInbox ||
-          item.simulation.simulatedInbox.status !== 'ACTIVE'
-        ) {
-          return { success: false, error: 'INVALID_CONTENT_STATUS' as const };
-        }
-      }
+    if (!checkItemsContentStatus(campaign.items)) {
+      return { success: false, error: 'INVALID_CONTENT_STATUS' as const };
     }
 
     await tx.campaign.update({

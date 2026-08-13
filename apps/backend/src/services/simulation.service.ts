@@ -47,12 +47,8 @@ export class SimulationService {
       throw new Error('FORBIDDEN');
     }
 
-    const campaign = campaignItem.campaign
-      ? (campaignItem.campaign as any)
-      : { status: 'ACTIVE' as const, campaignType: 'PREMADE_GENERAL' as const };
-    const eligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(
-      campaign as any,
-    );
+    const campaign = campaignItem.campaign ?? { status: 'ACTIVE', campaignType: 'PREMADE_GENERAL' };
+    const eligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(campaign);
     if (!eligibility.canView) {
       throw new Error('FORBIDDEN');
     }
@@ -130,13 +126,8 @@ export class SimulationService {
       traineeProfileId,
     );
 
-    const campaign = (matchedItem.campaign as any) ?? {
-      status: 'ACTIVE' as const,
-      campaignType: 'PREMADE_GENERAL' as const,
-    };
-    const eligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(
-      campaign as any,
-    );
+    const campaign = matchedItem.campaign ?? { status: 'ACTIVE', campaignType: 'PREMADE_GENERAL' };
+    const eligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(campaign);
     if (!eligibility.canView) {
       throw new Error('FORBIDDEN');
     }
@@ -172,13 +163,8 @@ export class SimulationService {
       traineeProfileId,
     );
 
-    const campaign = (matchedItem.campaign as any) ?? {
-      status: 'ACTIVE' as const,
-      campaignType: 'PREMADE_GENERAL' as const,
-    };
-    const eligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(
-      campaign as any,
-    );
+    const campaign = matchedItem.campaign ?? { status: 'ACTIVE', campaignType: 'PREMADE_GENERAL' };
+    const eligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(campaign);
     defaultCampaignEligibilityService.assertCanProgress(eligibility);
 
     const assignmentId = matchedItem.campaign?.assignments?.[0]?.id ?? 'assignment-id';
@@ -235,13 +221,8 @@ export class SimulationService {
       true,
     );
 
-    const campaign = (matchedItem.campaign as any) ?? {
-      status: 'ACTIVE' as const,
-      campaignType: 'PREMADE_GENERAL' as const,
-    };
-    const eligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(
-      campaign as any,
-    );
+    const campaign = matchedItem.campaign ?? { status: 'ACTIVE', campaignType: 'PREMADE_GENERAL' };
+    const eligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(campaign);
     defaultCampaignEligibilityService.assertCanProgress(eligibility);
 
     const assignmentId = matchedItem.campaign?.assignments?.[0]?.id ?? 'assignment-id';

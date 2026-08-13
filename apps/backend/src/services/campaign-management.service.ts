@@ -5,14 +5,11 @@ import type {
   CampaignLifecycleActionResponseDto,
   CampaignListQueryDto,
   CampaignListRowDto,
-  CampaignStatusDto,
-  CampaignTypeDto,
   CreateCampaignDraftItemInputDto,
   CreateCampaignDraftRequestDto,
   GetCampaignCatalogueResponseDto,
   GetCampaignsResponseDto,
   PaginationMetadataDto,
-  SupportedTraineeCampaignComponentTypeDto,
   UpdateCampaignDraftRequestDto,
 } from '@insightful-phish/shared';
 
@@ -119,6 +116,83 @@ function computeAllowedActions(
   }
 }
 
+function mapCampaignRow(
+  row: Awaited<ReturnType<typeof CampaignManagementRepository.findCampaigns>>['items'][number],
+  userType: string,
+  isManager: boolean,
+): CampaignListRowDto {
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    accentColor: row.accentColor,
+    campaignType: row.campaignType,
+    status: row.status,
+    itemCount: row.itemCount,
+    startDate: row.startDate ? row.startDate.toISOString() : null,
+    endDate: row.endDate ? row.endDate.toISOString() : null,
+    createdBy: row.createdBy,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+    allowedActions: computeAllowedActions(row.status, userType, isManager),
+  };
+}
+
+function mapCampaignDetail(
+  campaign: NonNullable<Awaited<ReturnType<typeof CampaignManagementRepository.findCampaignById>>>,
+  userType: string,
+  isManager: boolean,
+): CampaignDetailResponseDto {
+  const items: CampaignDetailItemDto[] = campaign.items.map((item) => ({
+    campaignItemId: item.campaignItemId,
+    componentType: item.componentType,
+    contentId: item.contentId,
+    title: item.title,
+    description: item.description,
+    position: item.position,
+    isRequired: item.isRequired,
+    sourceAvailable: item.sourceAvailable,
+  }));
+
+  return {
+    id: campaign.id,
+    name: campaign.name,
+    description: campaign.description,
+    accentColor: campaign.accentColor,
+    campaignType: campaign.campaignType,
+    status: campaign.status,
+    startDate: campaign.startDate ? campaign.startDate.toISOString() : null,
+    endDate: campaign.endDate ? campaign.endDate.toISOString() : null,
+    createdBy: campaign.createdBy,
+    createdAt: campaign.createdAt.toISOString(),
+    updatedAt: campaign.updatedAt.toISOString(),
+    allowedActions: computeAllowedActions(campaign.status, userType, isManager),
+    items,
+  };
+}
+
+function parseAndValidateDates(input: { startDate?: string | null; endDate?: string | null }) {
+  let startDate: Date | null = null;
+  let endDate: Date | null = null;
+
+  if (input.startDate) {
+    startDate = new Date(input.startDate);
+  }
+  if (input.endDate) {
+    endDate = new Date(input.endDate);
+  }
+
+  if (startDate && endDate && endDate.getTime() <= startDate.getTime()) {
+    throw new CampaignManagementServiceError(
+      400,
+      'VALIDATION_ERROR',
+      'endDate must be after startDate',
+    );
+  }
+
+  return { startDate, endDate };
+}
+
 export async function getOrganisationCampaignCatalogue(
   actor: UserActorContext,
   organisationId: string,
@@ -176,24 +250,8 @@ export async function getOrganisationCampaigns(
     status: query.status,
   });
 
-  const rowDtos: CampaignListRowDto[] = items.map((row) => ({
-    id: row.id,
-    name: row.name,
-    description: row.description,
-    accentColor: row.accentColor,
-    campaignType: row.campaignType as CampaignTypeDto,
-    status: row.status as CampaignStatusDto,
-    itemCount: row.itemCount,
-    startDate: row.startDate ? row.startDate.toISOString() : null,
-    endDate: row.endDate ? row.endDate.toISOString() : null,
-    createdBy: row.createdBy,
-    createdAt: row.createdAt.toISOString(),
-    updatedAt: row.updatedAt.toISOString(),
-    allowedActions: computeAllowedActions(row.status, actor.userType, isManager),
-  }));
-
   return {
-    items: rowDtos,
+    items: items.map((row) => mapCampaignRow(row, actor.userType, isManager)),
     pagination: buildPaginationMetadata(query.page, query.limit, total),
   };
 }
@@ -212,24 +270,8 @@ export async function getPlatformCampaigns(
     status: query.status,
   });
 
-  const rowDtos: CampaignListRowDto[] = items.map((row) => ({
-    id: row.id,
-    name: row.name,
-    description: row.description,
-    accentColor: row.accentColor,
-    campaignType: row.campaignType as CampaignTypeDto,
-    status: row.status as CampaignStatusDto,
-    itemCount: row.itemCount,
-    startDate: row.startDate ? row.startDate.toISOString() : null,
-    endDate: row.endDate ? row.endDate.toISOString() : null,
-    createdBy: row.createdBy,
-    createdAt: row.createdAt.toISOString(),
-    updatedAt: row.updatedAt.toISOString(),
-    allowedActions: computeAllowedActions(row.status, actor.userType, true),
-  }));
-
   return {
-    items: rowDtos,
+    items: items.map((row) => mapCampaignRow(row, actor.userType, true)),
     pagination: buildPaginationMetadata(query.page, query.limit, total),
   };
 }
@@ -252,32 +294,7 @@ export async function getOrganisationCampaignDetail(
     throw new CampaignManagementServiceError(404, 'NOT_FOUND', 'Campaign not found');
   }
 
-  const items: CampaignDetailItemDto[] = campaign.items.map((item) => ({
-    campaignItemId: item.campaignItemId,
-    componentType: item.componentType as SupportedTraineeCampaignComponentTypeDto,
-    contentId: item.contentId,
-    title: item.title,
-    description: item.description,
-    position: item.position,
-    isRequired: item.isRequired,
-    sourceAvailable: item.sourceAvailable,
-  }));
-
-  return {
-    id: campaign.id,
-    name: campaign.name,
-    description: campaign.description,
-    accentColor: campaign.accentColor,
-    campaignType: campaign.campaignType as CampaignTypeDto,
-    status: campaign.status as CampaignStatusDto,
-    startDate: campaign.startDate ? campaign.startDate.toISOString() : null,
-    endDate: campaign.endDate ? campaign.endDate.toISOString() : null,
-    createdBy: campaign.createdBy,
-    createdAt: campaign.createdAt.toISOString(),
-    updatedAt: campaign.updatedAt.toISOString(),
-    allowedActions: computeAllowedActions(campaign.status, actor.userType, isManager),
-    items,
-  };
+  return mapCampaignDetail(campaign, actor.userType, isManager);
 }
 
 export async function getPlatformCampaignDetail(
@@ -294,32 +311,7 @@ export async function getPlatformCampaignDetail(
     throw new CampaignManagementServiceError(404, 'NOT_FOUND', 'Platform campaign not found');
   }
 
-  const items: CampaignDetailItemDto[] = campaign.items.map((item) => ({
-    campaignItemId: item.campaignItemId,
-    componentType: item.componentType as SupportedTraineeCampaignComponentTypeDto,
-    contentId: item.contentId,
-    title: item.title,
-    description: item.description,
-    position: item.position,
-    isRequired: item.isRequired,
-    sourceAvailable: item.sourceAvailable,
-  }));
-
-  return {
-    id: campaign.id,
-    name: campaign.name,
-    description: campaign.description,
-    accentColor: campaign.accentColor,
-    campaignType: campaign.campaignType as CampaignTypeDto,
-    status: campaign.status as CampaignStatusDto,
-    startDate: campaign.startDate ? campaign.startDate.toISOString() : null,
-    endDate: campaign.endDate ? campaign.endDate.toISOString() : null,
-    createdBy: campaign.createdBy,
-    createdAt: campaign.createdAt.toISOString(),
-    updatedAt: campaign.updatedAt.toISOString(),
-    allowedActions: computeAllowedActions(campaign.status, actor.userType, true),
-    items,
-  };
+  return mapCampaignDetail(campaign, actor.userType, true);
 }
 
 export async function createOrganisationCampaignDraft(
@@ -329,23 +321,7 @@ export async function createOrganisationCampaignDraft(
 ): Promise<CampaignDetailResponseDto> {
   await validateOrganisationAdminActor(actor, organisationId, 'MANAGE_CAMPAIGNS');
 
-  let startDate: Date | null = null;
-  let endDate: Date | null = null;
-
-  if (input.startDate) {
-    startDate = new Date(input.startDate);
-  }
-  if (input.endDate) {
-    endDate = new Date(input.endDate);
-  }
-
-  if (startDate && endDate && endDate.getTime() <= startDate.getTime()) {
-    throw new CampaignManagementServiceError(
-      400,
-      'VALIDATION_ERROR',
-      'endDate must be after startDate',
-    );
-  }
+  const { startDate, endDate } = parseAndValidateDates(input);
 
   const createdId = await CampaignManagementRepository.createCampaignDraft({
     name: input.name,
@@ -423,23 +399,7 @@ export async function updateOrganisationCampaignDraft(
     );
   }
 
-  let startDate: Date | null = null;
-  let endDate: Date | null = null;
-
-  if (input.startDate) {
-    startDate = new Date(input.startDate);
-  }
-  if (input.endDate) {
-    endDate = new Date(input.endDate);
-  }
-
-  if (startDate && endDate && endDate.getTime() <= startDate.getTime()) {
-    throw new CampaignManagementServiceError(
-      400,
-      'VALIDATION_ERROR',
-      'endDate must be after startDate',
-    );
-  }
+  const { startDate, endDate } = parseAndValidateDates(input);
 
   await CampaignManagementRepository.updateCampaignDraft({
     campaignId,
@@ -508,30 +468,48 @@ export async function updatePlatformCampaignDraft(
   return getPlatformCampaignDetail(actor, campaignId);
 }
 
-export async function activateOrganisationCampaign(
-  actor: UserActorContext,
-  organisationId: string,
-  campaignId: string,
-): Promise<CampaignLifecycleActionResponseDto> {
-  await validateOrganisationAdminActor(actor, organisationId, 'MANAGE_CAMPAIGNS');
+async function performLifecycleTransition(options: {
+  actor: UserActorContext;
+  organisationId?: string | null;
+  campaignId: string;
+  expectedCurrentStatus: string;
+  targetStatus: 'ACTIVE' | 'ARCHIVED';
+  requireNonEmpty?: boolean;
+  repoAction: (
+    campaignId: string,
+    actorUserId?: string,
+    orgId?: string | null,
+  ) => Promise<{ success: boolean; status?: string; error?: string }>;
+  fetchDetail: (
+    actor: UserActorContext,
+    campaignId: string,
+    orgId?: string | null,
+  ) => Promise<CampaignDetailResponseDto>;
+}): Promise<CampaignLifecycleActionResponseDto> {
+  if (options.organisationId) {
+    await validateOrganisationAdminActor(options.actor, options.organisationId, 'MANAGE_CAMPAIGNS');
+  } else {
+    await validatePlatformAdminActor(options.actor);
+  }
 
-  const existing = await CampaignManagementRepository.findCampaignById(campaignId, {
-    organisationId,
+  const existing = await CampaignManagementRepository.findCampaignById(options.campaignId, {
+    organisationId: options.organisationId ?? undefined,
+    platformOnly: !options.organisationId,
   });
 
   if (!existing) {
     throw new CampaignManagementServiceError(404, 'NOT_FOUND', 'Campaign not found');
   }
 
-  if (existing.status !== 'DRAFT') {
+  if (existing.status !== options.expectedCurrentStatus) {
     throw new CampaignManagementServiceError(
       409,
       'LIFECYCLE_CONFLICT',
-      `Cannot activate campaign with status ${existing.status}`,
+      `Cannot transition campaign with status ${existing.status} to ${options.targetStatus}`,
     );
   }
 
-  if (existing.items.length === 0) {
+  if (options.requireNonEmpty && existing.items.length === 0) {
     throw new CampaignManagementServiceError(
       409,
       'EMPTY_CAMPAIGN',
@@ -548,67 +526,53 @@ export async function activateOrganisationCampaign(
     );
   }
 
-  await CampaignManagementRepository.activateCampaign(campaignId, actor.userId, organisationId);
+  await options.repoAction(options.campaignId, options.actor.userId, options.organisationId);
 
-  const updated = await getOrganisationCampaignDetail(actor, organisationId, campaignId);
+  const updated = await options.fetchDetail(
+    options.actor,
+    options.campaignId,
+    options.organisationId,
+  );
 
   return {
     success: true,
-    campaignId,
-    status: 'ACTIVE',
+    campaignId: options.campaignId,
+    status: options.targetStatus,
     allowedActions: updated.allowedActions,
   };
+}
+
+export async function activateOrganisationCampaign(
+  actor: UserActorContext,
+  organisationId: string,
+  campaignId: string,
+): Promise<CampaignLifecycleActionResponseDto> {
+  return performLifecycleTransition({
+    actor,
+    organisationId,
+    campaignId,
+    expectedCurrentStatus: 'DRAFT',
+    targetStatus: 'ACTIVE',
+    requireNonEmpty: true,
+    repoAction: CampaignManagementRepository.activateCampaign,
+    fetchDetail: (act, id, orgId) => getOrganisationCampaignDetail(act, orgId!, id),
+  });
 }
 
 export async function activatePlatformCampaign(
   actor: UserActorContext,
   campaignId: string,
 ): Promise<CampaignLifecycleActionResponseDto> {
-  await validatePlatformAdminActor(actor);
-
-  const existing = await CampaignManagementRepository.findCampaignById(campaignId, {
-    platformOnly: true,
-  });
-
-  if (!existing) {
-    throw new CampaignManagementServiceError(404, 'NOT_FOUND', 'Platform campaign not found');
-  }
-
-  if (existing.status !== 'DRAFT') {
-    throw new CampaignManagementServiceError(
-      409,
-      'LIFECYCLE_CONFLICT',
-      `Cannot activate platform campaign with status ${existing.status}`,
-    );
-  }
-
-  if (existing.items.length === 0) {
-    throw new CampaignManagementServiceError(
-      409,
-      'EMPTY_CAMPAIGN',
-      'Campaign must contain at least one item before activation',
-    );
-  }
-
-  const hasUnavailableContent = existing.items.some((item) => !item.sourceAvailable);
-  if (hasUnavailableContent) {
-    throw new CampaignManagementServiceError(
-      409,
-      'UNAVAILABLE_CONTENT',
-      'Campaign contains unavailable or unapproved component content',
-    );
-  }
-
-  await CampaignManagementRepository.activateCampaign(campaignId, actor.userId, null);
-
-  const updated = await getPlatformCampaignDetail(actor, campaignId);
-
-  return {
-    success: true,
+  return performLifecycleTransition({
+    actor,
+    organisationId: null,
     campaignId,
-    status: 'ACTIVE',
-    allowedActions: updated.allowedActions,
-  };
+    expectedCurrentStatus: 'DRAFT',
+    targetStatus: 'ACTIVE',
+    requireNonEmpty: true,
+    repoAction: CampaignManagementRepository.activateCampaign,
+    fetchDetail: (act, id) => getPlatformCampaignDetail(act, id),
+  });
 }
 
 export async function archiveOrganisationCampaign(
@@ -616,68 +580,30 @@ export async function archiveOrganisationCampaign(
   organisationId: string,
   campaignId: string,
 ): Promise<CampaignLifecycleActionResponseDto> {
-  await validateOrganisationAdminActor(actor, organisationId, 'MANAGE_CAMPAIGNS');
-
-  const existing = await CampaignManagementRepository.findCampaignById(campaignId, {
+  return performLifecycleTransition({
+    actor,
     organisationId,
-  });
-
-  if (!existing) {
-    throw new CampaignManagementServiceError(404, 'NOT_FOUND', 'Campaign not found');
-  }
-
-  if (existing.status !== 'ACTIVE') {
-    throw new CampaignManagementServiceError(
-      409,
-      'LIFECYCLE_CONFLICT',
-      `Cannot archive campaign with status ${existing.status}`,
-    );
-  }
-
-  await CampaignManagementRepository.archiveCampaign(campaignId, actor.userId, organisationId);
-
-  const updated = await getOrganisationCampaignDetail(actor, organisationId, campaignId);
-
-  return {
-    success: true,
     campaignId,
-    status: 'ARCHIVED',
-    allowedActions: updated.allowedActions,
-  };
+    expectedCurrentStatus: 'ACTIVE',
+    targetStatus: 'ARCHIVED',
+    repoAction: CampaignManagementRepository.archiveCampaign,
+    fetchDetail: (act, id, orgId) => getOrganisationCampaignDetail(act, orgId!, id),
+  });
 }
 
 export async function archivePlatformCampaign(
   actor: UserActorContext,
   campaignId: string,
 ): Promise<CampaignLifecycleActionResponseDto> {
-  await validatePlatformAdminActor(actor);
-
-  const existing = await CampaignManagementRepository.findCampaignById(campaignId, {
-    platformOnly: true,
-  });
-
-  if (!existing) {
-    throw new CampaignManagementServiceError(404, 'NOT_FOUND', 'Platform campaign not found');
-  }
-
-  if (existing.status !== 'ACTIVE') {
-    throw new CampaignManagementServiceError(
-      409,
-      'LIFECYCLE_CONFLICT',
-      `Cannot archive platform campaign with status ${existing.status}`,
-    );
-  }
-
-  await CampaignManagementRepository.archiveCampaign(campaignId, actor.userId, null);
-
-  const updated = await getPlatformCampaignDetail(actor, campaignId);
-
-  return {
-    success: true,
+  return performLifecycleTransition({
+    actor,
+    organisationId: null,
     campaignId,
-    status: 'ARCHIVED',
-    allowedActions: updated.allowedActions,
-  };
+    expectedCurrentStatus: 'ACTIVE',
+    targetStatus: 'ARCHIVED',
+    repoAction: CampaignManagementRepository.archiveCampaign,
+    fetchDetail: (act, id) => getPlatformCampaignDetail(act, id),
+  });
 }
 
 export async function reactivateOrganisationCampaign(
@@ -685,84 +611,28 @@ export async function reactivateOrganisationCampaign(
   organisationId: string,
   campaignId: string,
 ): Promise<CampaignLifecycleActionResponseDto> {
-  await validateOrganisationAdminActor(actor, organisationId, 'MANAGE_CAMPAIGNS');
-
-  const existing = await CampaignManagementRepository.findCampaignById(campaignId, {
+  return performLifecycleTransition({
+    actor,
     organisationId,
-  });
-
-  if (!existing) {
-    throw new CampaignManagementServiceError(404, 'NOT_FOUND', 'Campaign not found');
-  }
-
-  if (existing.status !== 'ARCHIVED') {
-    throw new CampaignManagementServiceError(
-      409,
-      'LIFECYCLE_CONFLICT',
-      `Cannot reactivate campaign with status ${existing.status}`,
-    );
-  }
-
-  const hasUnavailableContent = existing.items.some((item) => !item.sourceAvailable);
-  if (hasUnavailableContent) {
-    throw new CampaignManagementServiceError(
-      409,
-      'UNAVAILABLE_CONTENT',
-      'Campaign contains unavailable or unapproved component content',
-    );
-  }
-
-  await CampaignManagementRepository.reactivateCampaign(campaignId, actor.userId, organisationId);
-
-  const updated = await getOrganisationCampaignDetail(actor, organisationId, campaignId);
-
-  return {
-    success: true,
     campaignId,
-    status: 'ACTIVE',
-    allowedActions: updated.allowedActions,
-  };
+    expectedCurrentStatus: 'ARCHIVED',
+    targetStatus: 'ACTIVE',
+    repoAction: CampaignManagementRepository.reactivateCampaign,
+    fetchDetail: (act, id, orgId) => getOrganisationCampaignDetail(act, orgId!, id),
+  });
 }
 
 export async function reactivatePlatformCampaign(
   actor: UserActorContext,
   campaignId: string,
 ): Promise<CampaignLifecycleActionResponseDto> {
-  await validatePlatformAdminActor(actor);
-
-  const existing = await CampaignManagementRepository.findCampaignById(campaignId, {
-    platformOnly: true,
-  });
-
-  if (!existing) {
-    throw new CampaignManagementServiceError(404, 'NOT_FOUND', 'Platform campaign not found');
-  }
-
-  if (existing.status !== 'ARCHIVED') {
-    throw new CampaignManagementServiceError(
-      409,
-      'LIFECYCLE_CONFLICT',
-      `Cannot reactivate platform campaign with status ${existing.status}`,
-    );
-  }
-
-  const hasUnavailableContent = existing.items.some((item) => !item.sourceAvailable);
-  if (hasUnavailableContent) {
-    throw new CampaignManagementServiceError(
-      409,
-      'UNAVAILABLE_CONTENT',
-      'Campaign contains unavailable or unapproved component content',
-    );
-  }
-
-  await CampaignManagementRepository.reactivateCampaign(campaignId, actor.userId, null);
-
-  const updated = await getPlatformCampaignDetail(actor, campaignId);
-
-  return {
-    success: true,
+  return performLifecycleTransition({
+    actor,
+    organisationId: null,
     campaignId,
-    status: 'ACTIVE',
-    allowedActions: updated.allowedActions,
-  };
+    expectedCurrentStatus: 'ARCHIVED',
+    targetStatus: 'ACTIVE',
+    repoAction: CampaignManagementRepository.reactivateCampaign,
+    fetchDetail: (act, id) => getPlatformCampaignDetail(act, id),
+  });
 }
