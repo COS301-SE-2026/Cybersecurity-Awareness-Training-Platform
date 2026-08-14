@@ -146,6 +146,49 @@ function renderAppRoutes({
   );
 }
 
+function renderCampaignManagementRoutes(
+  initialEntry: string,
+  role: 'ORGANISATION_ADMIN' | 'IP_ADMIN',
+  organisationId: string | null,
+) {
+  return renderWithRouter(<AppRoutes />, {
+    initialEntry,
+    auth: {
+      user: {
+        id: 'campaign-admin-user',
+        firstName: 'Campaign',
+        lastName: 'Administrator',
+        email: 'campaign-admin@example.com',
+        userType: role,
+        authStatus: 'ACTIVE',
+        traineeProfile: null,
+        adminProfile: null,
+        createdAt: '2026-08-01T00:00:00.00Z',
+      },
+      authContext: {
+        user: {
+          id: 'campaign-admin-user',
+          userType: role,
+          authStatus: 'ACTIVE',
+        },
+        role,
+        organisation: organisationId
+          ? {
+              id: organisationId,
+              name: 'Example Organisation',
+              status: 'ACTIVE',
+            }
+          : null,
+        platformAdminRole: role === 'IP_ADMIN' ? 'NORMAL_ADMIN' : null,
+        permissions: [],
+        redirectTo: role === 'IP_ADMIN' ? '/platform/campaigns' : '/organisation-information',
+      },
+      permissions: [],
+      redirectTo: role === 'IP_ADMIN' ? '/platform/campaigns' : 'organisation-information',
+    },
+  });
+}
+
 describe('AppRoutes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -399,5 +442,33 @@ describe('AppRoutes', () => {
     await waitFor(() => {
       expect(screen.getByTestId('location-path')).toHaveTextContent('/campaigns');
     });
+  });
+
+  it('renders the shared organisation Campaign list with organisation copy', async () => {
+    const organisationId = '11111111-1111-4111-8111-111111111111';
+
+    renderCampaignManagementRoutes(
+      `/organisations/${organisationId}/campaigns`,
+      'ORGANISATION_ADMIN',
+      organisationId,
+    );
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: /^Campaigns$/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Create and manage campaigns for your organisation.'),
+    ).toBeInTheDocument();
+  });
+
+  it('renders the shared platform Campaign list with platform copy', async () => {
+    renderCampaignManagementRoutes('/platform/campaigns', 'IP_ADMIN', null);
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: /^Platform Campaigns$/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Create and manage campaigns available through Insightful Phish.'),
+    ).toBeInTheDocument();
   });
 });

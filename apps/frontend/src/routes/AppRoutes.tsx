@@ -26,6 +26,7 @@ import OrganisationAdministratorsPage from '../pages/OrganisationAdministratorsP
 import PlatformAdministratorsPage from '../pages/PlatformAdministratorsPage';
 import BrandPage from '../pages/BrandPage';
 import CampaignAssignmentPage from '../pages/CampaignAssignmentPage';
+import CampaignManagementListPage from '../features/campaign-management/CampaignManagementListPage';
 
 function AppRoutes() {
   return (
@@ -74,6 +75,10 @@ function AppRoutes() {
         />
         <Route path="/organisation-trainees" element={<OrganisationTraineesPage />} />
         <Route path="/organisation-administrators" element={<OrganisationAdministratorsPage />} />
+        <Route
+          path="/organisation/:organisationId/campaigns"
+          element={<CampaignManagementListPage contextKind="organisation" />}
+        />
       </Route>
 
       {/* PLATFORM ADMIN PROTECTED ROUTES */}
@@ -115,6 +120,10 @@ function AppRoutes() {
           <Route path="/organisation-administrators" element={<OrganisationAdministratorsPage />} />
         </Route>
         <Route path="/platform-administrators" element={<PlatformAdministratorsPage />} />
+        <Route
+          path="/platform/campaigns"
+          element={<CampaignManagementListPage contextKind="platform" />}
+        />
       </Route>
 
       {/* GENERAL PROTECTED ROUTES (ANY AUTHENTICATED USER) */}
