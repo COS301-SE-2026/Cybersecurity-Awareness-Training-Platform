@@ -600,17 +600,25 @@ export async function executeBulkCampaignAssignment(
     for (const campaignId of input.campaignIds) {
       for (const traineeProfileId of input.traineeProfileIds) {
         const key = `${campaignId}:${traineeProfileId}`;
-        const assignmentId = verifyMap.get(key) ?? candidateIdMap.get(key) ?? randomUUID();
+        const candidateId = candidateIdMap.get(key);
+        const persistedId = verifyMap.get(key);
+        const assignmentId = persistedId ?? candidateId ?? randomUUID();
         const row: CampaignAssignmentResultRow = {
           assignmentId,
           campaignId,
           traineeProfileId,
         };
 
-        if (existingMap.has(key)) {
-          alreadyAssignedRows.push(row);
-        } else {
+        const wasCreatedByThisCall =
+          !existingMap.has(key) &&
+          candidateId !== undefined &&
+          persistedId !== undefined &&
+          candidateId === persistedId;
+
+        if (wasCreatedByThisCall) {
           createdRows.push(row);
+        } else {
+          alreadyAssignedRows.push(row);
         }
       }
     }
