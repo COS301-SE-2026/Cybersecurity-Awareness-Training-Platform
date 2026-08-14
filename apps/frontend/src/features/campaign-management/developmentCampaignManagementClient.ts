@@ -1,7 +1,7 @@
 import type {
   CampaignListQueryDto,
   CampaignListRowDto,
-  GetCampaignResponseDto,
+  GetCampaignsResponseDto,
 } from './campaignManagement.contract';
 import type { CampaignManagementClient } from './campaignManagementClient';
 import type { CampaignManagementContext } from './campaignManagement.types';
@@ -29,7 +29,7 @@ const DEVELOPMENT_CAMPAIGNS: readonly DevelopmentCampaignFixture[] = [
       status: 'DRAFT',
       itemCount: 3,
       startDate: '2026-09-01T08:00:00.000Z',
-      endDate: '2026-10-01T17:00:00:00.000Z',
+      endDate: '2026-10-01T17:00:00.000Z',
       createdBy: {
         id: '20000000-0000-4000-8000-000000000001',
         displayName: 'Organisation Administrator',
@@ -46,15 +46,15 @@ const DEVELOPMENT_CAMPAIGNS: readonly DevelopmentCampaignFixture[] = [
       organisationId: PRIMARY_ORGANISATION_ID,
     },
     campaign: {
-      id: '10000000-0000-4000-8000-000000000001',
-      name: 'Qaurterly phishsing awareness',
+      id: '10000000-0000-4000-8000-000000000002',
+      name: 'Quarterly phishing awareness',
       description: 'Active quarterly awareness campaign.',
       accentColor: '#00D1FF',
       campaignType: 'ORGANISATION_CUSTOM',
       status: 'ACTIVE',
       itemCount: 5,
       startDate: '2026-07-01T08:00:00.000Z',
-      endDate: '2026-09-30T17:00:00:00.000Z',
+      endDate: '2026-09-30T17:00:00.000Z',
       createdBy: {
         id: '20000000-0000-4000-8000-000000000001',
         displayName: 'Organisation Administrator',
@@ -68,18 +68,43 @@ const DEVELOPMENT_CAMPAIGNS: readonly DevelopmentCampaignFixture[] = [
   {
     scope: {
       kind: 'organisation',
+      organisationId: PRIMARY_ORGANISATION_ID,
+    },
+    campaign: {
+      id: '10000000-0000-4000-8000-000000000003',
+      name: 'Archives awareness campaign',
+      description: 'Archived organisation awareness campaign.',
+      accentColor: '#837DC3',
+      campaignType: 'ORGANISATION_CUSTOM',
+      status: 'ARCHIVED',
+      itemCount: 4,
+      startDate: '2026-04-01T08:00:00.000Z',
+      endDate: '2026-05-30T17:00:00.000Z',
+      createdBy: {
+        id: '20000000-0000-4000-8000-000000000001',
+        displayName: 'Organisation Administrator',
+        email: 'admin@example.org',
+      },
+      createdAt: '2026-08-10T08:00:00.000Z',
+      updatedAt: '2026-08-14T09:30:00.000Z',
+      allowedActions: ['VIEW', 'REACTIVATE'],
+    },
+  },
+  {
+    scope: {
+      kind: 'organisation',
       organisationId: SECONDARY_ORGANISATION_ID,
     },
     campaign: {
-      id: '10000000-0000-4000-8000-000000000001',
-      name: 'Secondary campaign',
-      description: 'Active quarterly awareness campaign.',
+      id: '10000000-0000-4000-8000-000000000004',
+      name: 'Platform draft campaign',
+      description: 'Draft platform awareness campaign.',
       accentColor: '#00D1FF',
       campaignType: 'ORGANISATION_CUSTOM',
-      status: 'ACTIVE',
+      status: 'DRAFT',
       itemCount: 5,
-      startDate: '2026-07-01T08:00:00.000Z',
-      endDate: '2026-09-30T17:00:00:00.000Z',
+      startDate: null,
+      endDate: null,
       createdBy: {
         id: '20000000-0000-4000-8000-000000000001',
         displayName: 'Organisation Administrator',
@@ -100,10 +125,10 @@ const DEVELOPMENT_CAMPAIGNS: readonly DevelopmentCampaignFixture[] = [
       description: 'Active quarterly awareness campaign.',
       accentColor: '#00D1FF',
       campaignType: 'PREMADE_GENERAL',
-      status: 'ACTIVE',
+      status: 'DRAFT',
       itemCount: 5,
       startDate: '2026-07-01T08:00:00.000Z',
-      endDate: '2026-09-30T17:00:00:00.000Z',
+      endDate: '2026-09-30T17:00:00.000Z',
       createdBy: {
         id: '20000000-0000-4000-8000-000000000001',
         displayName: 'Organisation Administrator',
@@ -112,6 +137,30 @@ const DEVELOPMENT_CAMPAIGNS: readonly DevelopmentCampaignFixture[] = [
       createdAt: '2026-08-10T08:00:00.000Z',
       updatedAt: '2026-08-14T09:30:00.000Z',
       allowedActions: ['VIEW', 'EDIT', 'ACTIVATE'],
+    },
+  },
+  {
+    scope: {
+      kind: 'platform',
+    },
+    campaign: {
+      id: '30000000-0000-4000-8000-000000000002',
+      name: 'Archives platfrom campaign',
+      description: 'Archived platform awareness campaign.',
+      accentColor: '#837DC3',
+      campaignType: 'PREMADE_GENERAL',
+      status: 'ARCHIVED',
+      itemCount: 5,
+      startDate: null,
+      endDate: null,
+      createdBy: {
+        id: '20000000-0000-4000-8000-000000000001',
+        displayName: 'Organisation Administrator',
+        email: 'admin@example.org',
+      },
+      createdAt: '2026-08-10T08:00:00.000Z',
+      updatedAt: '2026-08-14T09:30:00.000Z',
+      allowedActions: ['VIEW', 'REACTIVATE'],
     },
   },
 ];
@@ -148,12 +197,13 @@ export const developmentCampaignManagementClient: CampaignManagementClient = {
   async listCampaigns(
     context: CampaignManagementContext,
     query: CampaignListQueryDto,
-  ): Promise<GetCampaignResponseDto> {
+  ): Promise<GetCampaignsResponseDto> {
     const matchingCampaigns = DEVELOPMENT_CAMPAIGNS.filter((fixture) =>
       isInContext(fixture, context),
     )
       .map((fixture) => fixture.campaign)
-      .filter((campaign) => matchesQuery(campaign, query));
+      .filter((campaign) => matchesQuery(campaign, query))
+      .sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt));
 
     const startIndex = (query.page - 1) * query.limit;
     const items = matchingCampaigns.slice(startIndex, startIndex + query.limit);

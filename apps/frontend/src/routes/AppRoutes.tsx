@@ -76,7 +76,7 @@ function AppRoutes() {
         <Route path="/organisation-trainees" element={<OrganisationTraineesPage />} />
         <Route path="/organisation-administrators" element={<OrganisationAdministratorsPage />} />
         <Route
-          path="/organisation/:organisationId/campaigns"
+          path="/organisations/:organisationId/campaigns"
           element={<CampaignManagementListPage contextKind="organisation" />}
         />
       </Route>

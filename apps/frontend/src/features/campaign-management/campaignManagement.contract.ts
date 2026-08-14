@@ -23,7 +23,7 @@ export type CampaignListQueryDto = {
   status?: CampaignListStatusFilterDto;
 };
 
-export type CampaignListCreateDto = {
+export type CampaignListCreatorDto = {
   id: string;
   displayName: string;
   email?: string;
@@ -39,13 +39,13 @@ export type CampaignListRowDto = {
   itemCount: number;
   startDate?: string | null;
   endDate?: string | null;
-  createdBy?: CampaignListCreateDto | null;
+  createdBy?: CampaignListCreatorDto | null;
   createdAt: string;
   updatedAt: string;
   allowedActions: CampaignAllowedActionDto[];
 };
 
-export type CampaignPaginsationMetadateDto = {
+export type PaginationMetadataDto = {
   page: number;
   limit: number;
   totalItems: number;
@@ -54,7 +54,7 @@ export type CampaignPaginsationMetadateDto = {
   hasPreviousPage: boolean;
 };
 
-export type GetCampaignResponseDto = {
+export type GetCampaignsResponseDto = {
   items: CampaignListRowDto[];
-  pagination: CampaignPaginsationMetadateDto;
+  pagination: PaginationMetadataDto;
 };

@@ -9,7 +9,7 @@ import type {
   CampaignListRowDto,
   CampaignListStatusFilterDto,
   CampaignStatusDto,
-  GetCampaignResponseDto,
+  GetCampaignsResponseDto,
 } from './campaignManagement.contract';
 import type { CampaignManagementClient } from './campaignManagementClient';
 import type { CampaignManagementContext } from './campaignManagement.types';
@@ -96,7 +96,7 @@ function CampaignManagementListPage({
       : 'Create and manage campaigns for your organisation.';
 
   const [query, setQuery] = useState<CampaignListQueryDto>(INITIAL_QUERY);
-  const [result, setResult] = useState<GetCampaignResponseDto | null>(null);
+  const [result, setResult] = useState<GetCampaignsResponseDto | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const requestIdRef = useRef(0);
@@ -129,6 +129,9 @@ function CampaignManagementListPage({
   }, [client, context, query]);
 
   useEffect(() => {
+    // The asynchronous client request is effect-owned and guarded by requestIdRef
+    // so an earlier response cannot overwrite the latest query result.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadCampaigns();
 
     return () => {
@@ -146,7 +149,7 @@ function CampaignManagementListPage({
   return (
     <AppLayout>
       <div className="campaign-page" aria-busy={isLoading}>
-        <header className="campaign-page__headers">
+        <header className="campaign-page__header">
           <h1 className="campaign-page__title">{heading}</h1>
           <p className="campaign-page__helper">{helper}</p>
         </header>
@@ -174,7 +177,7 @@ function CampaignManagementListPage({
             </div>
           </div>
 
-          <div className="campaign-filters">
+          <div className="campaign-filter">
             <label htmlFor="campaign-status-filter">Campaign status</label>
             <select
               id="campaign-status-filter"
@@ -241,7 +244,7 @@ function CampaignManagementListPage({
               {result.items.map((campaign) => (
                 <article className="campaign-card" key={campaign.id}>
                   <div
-                    className="campaign-card_accent"
+                    className="campaign-card__accent"
                     style={{
                       backgroundColor: campaign.accentColor ?? '#837Dc3',
                     }}
@@ -292,7 +295,7 @@ function CampaignManagementListPage({
                     </dl>
 
                     <div className="campaign-card__footer">
-                      Created by {campaign.createdBy?.displayName ?? 'Unkown administrator'}
+                      Created by {campaign.createdBy?.displayName ?? 'Unknown administrator'}
                     </div>
                   </div>
                 </article>

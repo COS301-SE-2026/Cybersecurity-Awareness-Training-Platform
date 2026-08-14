@@ -6,23 +6,23 @@ import { describe, expect, it, vi } from 'vitest';
 import type {
   CampaignListQueryDto,
   CampaignListRowDto,
-  GetCampaignResponseDto,
+  GetCampaignsResponseDto,
 } from './campaignManagement.contract';
 import type { CampaignManagementClient } from './campaignManagementClient';
 import CampaignManagementListPage from './CampaignManagementListPage';
 import { createDeferred, renderWithRouter } from '../../testing/render';
 
-vi.mock('../../../components/layout/AppLayout', () => ({
+vi.mock('../../components/layout/AppLayout', () => ({
   default: ({ children }: { children: ReactNode }) => {
-    <div>{children}</div>;
+    return <div>{children}</div>;
   },
 }));
 
 const ORGANISATION_ROUTE = '/organisations/:organisationId/campaigns';
-const ORGANISATION_PATH = 'organisations/11111111-1111-4111-8111-111111111111/campaigns';
+const ORGANISATION_PATH = '/organisations/11111111-1111-4111-8111-111111111111/campaigns';
 
 const DRAFT_CAMPAIGN: CampaignListRowDto = {
-  id: '10000000-0000-4000-8000-0000000000001',
+  id: '10000000-0000-4000-8000-000000000001',
   name: 'Draft awareness campaign',
   description: 'Editable draft',
   accentColor: '#8400FF',
@@ -46,7 +46,7 @@ const ACTIVE_CAMPAIGN: CampaignListRowDto = {
   allowedActions: ['VIEW', 'ARCHIVE'],
 };
 
-function createResponse(items: CampaignListRowDto[]): GetCampaignResponseDto {
+function createResponse(items: CampaignListRowDto[]): GetCampaignsResponseDto {
   return {
     items,
     pagination: {
@@ -95,7 +95,7 @@ describe('CampaignManagementListPage', () => {
     });
 
     expect(await screen.findByText('Draft awareness campaign')).toBeInTheDocument();
-    await user.type(screen.getByRole('searchbox', { name: /searhc campaigns/i }), 'Active');
+    await user.type(screen.getByRole('searchbox', { name: /search campaigns/i }), 'Active');
     expect(await screen.findByText('Active phishing campaign')).toBeInTheDocument();
     expect(screen.queryByText('Draft awareness campaign')).not.toBeInTheDocument();
     await user.selectOptions(screen.getByLabelText('Campaign status'), 'DRAFT');
@@ -133,7 +133,7 @@ describe('CampaignManagementListPage', () => {
 
   it('ignores an older response after a newer search completes', async () => {
     const user = userEvent.setup();
-    const initialRequest = createDeferred<GetCampaignResponseDto>();
+    const initialRequest = createDeferred<GetCampaignsResponseDto>();
     let requestCount = 0;
 
     renderPage({
