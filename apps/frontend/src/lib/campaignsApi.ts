@@ -42,7 +42,7 @@ export async function getTraineeCampaignDetail(
   campaignId: string,
 ): Promise<GetTraineeCampaignDetailResponseDto> {
   const res = await apiClient.get<unknown>(`/trainee/campaigns/${campaignId}`);
-  return getTraineeCampaignDetailResponseSchema.parse(res);
+  return getTraineeCampaignDetailResponseSchema.parse(res) as GetTraineeCampaignDetailResponseDto;
 }
 
 export async function getOrganisationCampaignCatalogue(
