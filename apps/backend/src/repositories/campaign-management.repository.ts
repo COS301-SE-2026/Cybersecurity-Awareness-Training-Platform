@@ -325,55 +325,25 @@ export async function findCampaignById(
     }
   }
 
-  const mappedItems = topLevelItems.map((item) => {
-    if (item.itemType === 'GROUP') {
-      const children = (childMap.get(item.id) ?? []).map((child) => {
-        let title = child.title;
-        let description = child.description;
-        let sourceAvailable = false;
-
-        if (child.componentType === 'TRAINING_DOCUMENT' && child.trainingDocument) {
-          title = child.trainingDocument.title;
-          sourceAvailable = child.trainingDocument.status === 'AVAILABLE';
-        } else if (child.componentType === 'QUIZ' && child.quiz) {
-          title = child.quiz.title;
-          description = child.quiz.description;
-          sourceAvailable = child.quiz.status === 'PUBLISHED';
-        } else if (child.componentType === 'SIMULATED_INBOX' && child.simulation) {
-          title = child.simulation.title;
-          sourceAvailable =
-            child.simulation.safetyStatus === 'APPROVED' &&
-            child.simulation.simulatedInbox?.status === 'ACTIVE';
-        }
-
-        const contentId = child.trainingDocumentId ?? child.quizId ?? child.simulationId ?? '';
-
-        return {
-          itemType: 'COMPONENT' as const,
-          campaignItemId: child.id,
-          componentType: child.componentType as CampaignComponentType,
-          contentId,
-          title,
-          description,
-          position: child.position,
-          isRequired: child.isRequired,
-          sourceAvailable,
-        };
-      });
-
-      return {
-        itemType: 'GROUP' as const,
-        campaignItemId: item.id,
-        title: item.title,
-        description: item.description,
-        groupType: item.groupType as CampaignGroupType,
-        completionRule: item.completionRule as CompletionRule,
-        position: item.position,
-        isRequired: item.isRequired,
-        children,
-      };
-    }
-
+  function mapComponentItemDetail(item: {
+    id: string;
+    title: string;
+    description: string | null;
+    componentType: string | null;
+    position: number;
+    isRequired: boolean;
+    trainingDocumentId: string | null;
+    quizId: string | null;
+    simulationId: string | null;
+    trainingDocument?: { id: string; title: string; status: string } | null;
+    quiz?: { id: string; title: string; description: string | null; status: string } | null;
+    simulation?: {
+      id: string;
+      title: string;
+      safetyStatus: string;
+      simulatedInbox?: { status: string } | null;
+    } | null;
+  }) {
     let title = item.title;
     let description = item.description;
     let sourceAvailable = false;
@@ -405,6 +375,26 @@ export async function findCampaignById(
       isRequired: item.isRequired,
       sourceAvailable,
     };
+  }
+
+  const mappedItems = topLevelItems.map((item) => {
+    if (item.itemType === 'GROUP') {
+      const children = (childMap.get(item.id) ?? []).map(mapComponentItemDetail);
+
+      return {
+        itemType: 'GROUP' as const,
+        campaignItemId: item.id,
+        title: item.title,
+        description: item.description,
+        groupType: item.groupType as CampaignGroupType,
+        completionRule: item.completionRule as CompletionRule,
+        position: item.position,
+        isRequired: item.isRequired,
+        children,
+      };
+    }
+
+    return mapComponentItemDetail(item);
   });
 
   return {
@@ -624,6 +614,34 @@ export async function createCampaignDraft(input: {
   });
 }
 
+function validateExistingComponentItemIdentity(
+  existingItem: {
+    itemType: string;
+    componentType: string | null;
+    trainingDocumentId: string | null;
+    quizId: string | null;
+    simulationId: string | null;
+  },
+  itemInput: { componentType: CampaignComponentType; contentId: string },
+): boolean {
+  if (
+    existingItem.itemType !== 'COMPONENT' ||
+    existingItem.componentType !== itemInput.componentType
+  ) {
+    return false;
+  }
+  if (itemInput.componentType === 'TRAINING_DOCUMENT') {
+    return existingItem.trainingDocumentId === itemInput.contentId;
+  }
+  if (itemInput.componentType === 'QUIZ') {
+    return existingItem.quizId === itemInput.contentId;
+  }
+  if (itemInput.componentType === 'SIMULATED_INBOX') {
+    return existingItem.simulationId === itemInput.contentId;
+  }
+  return false;
+}
+
 export async function updateCampaignDraft(input: {
   campaignId: string;
   organisationId?: string | null;
@@ -679,15 +697,7 @@ export async function updateCampaignDraft(input: {
             if (!existingChild) {
               return { success: false, error: 'INVALID_CAMPAIGN_ITEM_ID' as const };
             }
-            if (
-              existingChild.itemType !== 'COMPONENT' ||
-              existingChild.componentType !== child.componentType ||
-              (child.componentType === 'TRAINING_DOCUMENT' &&
-                existingChild.trainingDocumentId !== child.contentId) ||
-              (child.componentType === 'QUIZ' && existingChild.quizId !== child.contentId) ||
-              (child.componentType === 'SIMULATED_INBOX' &&
-                existingChild.simulationId !== child.contentId)
-            ) {
+            if (!validateExistingComponentItemIdentity(existingChild, child)) {
               return { success: false, error: 'CAMPAIGN_ITEM_IDENTITY_CHANGED' as const };
             }
           }
@@ -698,15 +708,7 @@ export async function updateCampaignDraft(input: {
           if (!existingItem) {
             return { success: false, error: 'INVALID_CAMPAIGN_ITEM_ID' as const };
           }
-          if (
-            existingItem.itemType !== 'COMPONENT' ||
-            existingItem.componentType !== itemInput.componentType ||
-            (itemInput.componentType === 'TRAINING_DOCUMENT' &&
-              existingItem.trainingDocumentId !== itemInput.contentId) ||
-            (itemInput.componentType === 'QUIZ' && existingItem.quizId !== itemInput.contentId) ||
-            (itemInput.componentType === 'SIMULATED_INBOX' &&
-              existingItem.simulationId !== itemInput.contentId)
-          ) {
+          if (!validateExistingComponentItemIdentity(existingItem, itemInput)) {
             return { success: false, error: 'CAMPAIGN_ITEM_IDENTITY_CHANGED' as const };
           }
         }

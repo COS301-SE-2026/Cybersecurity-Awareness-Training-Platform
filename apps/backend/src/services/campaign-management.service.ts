@@ -357,6 +357,66 @@ export async function getPlatformCampaignDetail(
   return mapCampaignDetail(campaign, true, false);
 }
 
+function mapDraftInputItems(
+  items: CreateCampaignDraftRequestDto['items'],
+): CampaignManagementRepository.RepositoryCampaignItemInput[] {
+  return items.map((item) => {
+    if (item.itemType === 'GROUP') {
+      return {
+        itemType: 'GROUP' as const,
+        campaignItemId: item.campaignItemId,
+        title: item.title,
+        description: item.description ?? null,
+        groupType: item.groupType,
+        completionRule: item.completionRule,
+        isRequired: item.isRequired ?? true,
+        children: item.children.map((c) => ({
+          itemType: 'COMPONENT' as const,
+          campaignItemId: c.campaignItemId,
+          componentType: c.componentType,
+          contentId: c.contentId,
+          isRequired: c.isRequired ?? true,
+        })),
+      };
+    }
+    return {
+      itemType: 'COMPONENT' as const,
+      campaignItemId: item.campaignItemId,
+      componentType: item.componentType,
+      contentId: item.contentId,
+      isRequired: item.isRequired ?? true,
+    };
+  });
+}
+
+function handleUpdateDraftError(error?: string): never {
+  if (error === 'CAMPAIGN_NOT_FOUND') {
+    throw new CampaignManagementServiceError(404, 'NOT_FOUND', 'Campaign not found');
+  }
+  if (error === 'CAMPAIGN_CHANGED') {
+    throw new CampaignManagementServiceError(
+      409,
+      'CAMPAIGN_CHANGED',
+      'Campaign has been modified concurrently',
+    );
+  }
+  if (error === 'CAMPAIGN_IMMUTABLE') {
+    throw new CampaignManagementServiceError(
+      409,
+      'CAMPAIGN_IMMUTABLE',
+      'Active or Archived campaigns are immutable and cannot be updated as drafts',
+    );
+  }
+  if (error === 'CAMPAIGN_ITEM_IDENTITY_CHANGED') {
+    throw new CampaignManagementServiceError(
+      409,
+      'CAMPAIGN_ITEM_IDENTITY_CHANGED',
+      'Campaign item component type or content cannot be altered',
+    );
+  }
+  throw new CampaignManagementServiceError(400, 'VALIDATION_ERROR', error ?? 'Invalid data');
+}
+
 export async function createOrganisationCampaignDraft(
   actor: UserActorContext,
   organisationId: string,
@@ -375,33 +435,7 @@ export async function createOrganisationCampaignDraft(
     campaignType: 'ORGANISATION_CUSTOM',
     organisationId,
     createdByUserId: actor.userId,
-    items: input.items.map((item) => {
-      if (item.itemType === 'GROUP') {
-        return {
-          itemType: 'GROUP' as const,
-          campaignItemId: item.campaignItemId,
-          title: item.title,
-          description: item.description ?? null,
-          groupType: item.groupType,
-          completionRule: item.completionRule,
-          isRequired: item.isRequired ?? true,
-          children: item.children.map((c) => ({
-            itemType: 'COMPONENT' as const,
-            campaignItemId: c.campaignItemId,
-            componentType: c.componentType,
-            contentId: c.contentId,
-            isRequired: c.isRequired ?? true,
-          })),
-        };
-      }
-      return {
-        itemType: 'COMPONENT' as const,
-        campaignItemId: item.campaignItemId,
-        componentType: item.componentType,
-        contentId: item.contentId,
-        isRequired: item.isRequired ?? true,
-      };
-    }),
+    items: mapDraftInputItems(input.items),
   });
 
   return getOrganisationCampaignDetail(actor, organisationId, createdId);
@@ -430,33 +464,7 @@ export async function createPlatformCampaignDraft(
     campaignType: 'PREMADE_GENERAL',
     organisationId: null,
     createdByUserId: actor.userId,
-    items: input.items.map((item) => {
-      if (item.itemType === 'GROUP') {
-        return {
-          itemType: 'GROUP' as const,
-          campaignItemId: item.campaignItemId,
-          title: item.title,
-          description: item.description ?? null,
-          groupType: item.groupType,
-          completionRule: item.completionRule,
-          isRequired: item.isRequired ?? true,
-          children: item.children.map((c) => ({
-            itemType: 'COMPONENT' as const,
-            campaignItemId: c.campaignItemId,
-            componentType: c.componentType,
-            contentId: c.contentId,
-            isRequired: c.isRequired ?? true,
-          })),
-        };
-      }
-      return {
-        itemType: 'COMPONENT' as const,
-        campaignItemId: item.campaignItemId,
-        componentType: item.componentType,
-        contentId: item.contentId,
-        isRequired: item.isRequired ?? true,
-      };
-    }),
+    items: mapDraftInputItems(input.items),
   });
 
   return getPlatformCampaignDetail(actor, createdId);
@@ -481,65 +489,11 @@ export async function updateOrganisationCampaignDraft(
     accentColor: input.accentColor,
     startDate,
     endDate,
-    items: input.items.map((item) => {
-      if (item.itemType === 'GROUP') {
-        return {
-          itemType: 'GROUP' as const,
-          campaignItemId: item.campaignItemId,
-          title: item.title,
-          description: item.description ?? null,
-          groupType: item.groupType,
-          completionRule: item.completionRule,
-          isRequired: item.isRequired ?? true,
-          children: item.children.map((c) => ({
-            itemType: 'COMPONENT' as const,
-            campaignItemId: c.campaignItemId,
-            componentType: c.componentType,
-            contentId: c.contentId,
-            isRequired: c.isRequired ?? true,
-          })),
-        };
-      }
-      return {
-        itemType: 'COMPONENT' as const,
-        campaignItemId: item.campaignItemId,
-        componentType: item.componentType,
-        contentId: item.contentId,
-        isRequired: item.isRequired ?? true,
-      };
-    }),
+    items: mapDraftInputItems(input.items),
   });
 
   if (!result.success) {
-    if (result.error === 'CAMPAIGN_NOT_FOUND') {
-      throw new CampaignManagementServiceError(404, 'NOT_FOUND', 'Campaign not found');
-    }
-    if (result.error === 'CAMPAIGN_CHANGED') {
-      throw new CampaignManagementServiceError(
-        409,
-        'CAMPAIGN_CHANGED',
-        'Campaign has been modified concurrently',
-      );
-    }
-    if (result.error === 'CAMPAIGN_IMMUTABLE') {
-      throw new CampaignManagementServiceError(
-        409,
-        'CAMPAIGN_IMMUTABLE',
-        'Active or Archived campaigns are immutable and cannot be updated as drafts',
-      );
-    }
-    if (result.error === 'CAMPAIGN_ITEM_IDENTITY_CHANGED') {
-      throw new CampaignManagementServiceError(
-        409,
-        'CAMPAIGN_ITEM_IDENTITY_CHANGED',
-        'Campaign item component type or content cannot be altered',
-      );
-    }
-    throw new CampaignManagementServiceError(
-      400,
-      'VALIDATION_ERROR',
-      result.error ?? 'Invalid data',
-    );
+    handleUpdateDraftError(result.error);
   }
 
   return getOrganisationCampaignDetail(actor, organisationId, campaignId);
@@ -569,65 +523,11 @@ export async function updatePlatformCampaignDraft(
     accentColor: input.accentColor,
     startDate: null,
     endDate: null,
-    items: input.items.map((item) => {
-      if (item.itemType === 'GROUP') {
-        return {
-          itemType: 'GROUP' as const,
-          campaignItemId: item.campaignItemId,
-          title: item.title,
-          description: item.description ?? null,
-          groupType: item.groupType,
-          completionRule: item.completionRule,
-          isRequired: item.isRequired ?? true,
-          children: item.children.map((c) => ({
-            itemType: 'COMPONENT' as const,
-            campaignItemId: c.campaignItemId,
-            componentType: c.componentType,
-            contentId: c.contentId,
-            isRequired: c.isRequired ?? true,
-          })),
-        };
-      }
-      return {
-        itemType: 'COMPONENT' as const,
-        campaignItemId: item.campaignItemId,
-        componentType: item.componentType,
-        contentId: item.contentId,
-        isRequired: item.isRequired ?? true,
-      };
-    }),
+    items: mapDraftInputItems(input.items),
   });
 
   if (!result.success) {
-    if (result.error === 'CAMPAIGN_NOT_FOUND') {
-      throw new CampaignManagementServiceError(404, 'NOT_FOUND', 'Platform campaign not found');
-    }
-    if (result.error === 'CAMPAIGN_CHANGED') {
-      throw new CampaignManagementServiceError(
-        409,
-        'CAMPAIGN_CHANGED',
-        'Campaign has been modified concurrently',
-      );
-    }
-    if (result.error === 'CAMPAIGN_IMMUTABLE') {
-      throw new CampaignManagementServiceError(
-        409,
-        'CAMPAIGN_IMMUTABLE',
-        'Active or Archived campaigns are immutable and cannot be updated as drafts',
-      );
-    }
-    if (result.error === 'CAMPAIGN_ITEM_IDENTITY_CHANGED') {
-      throw new CampaignManagementServiceError(
-        409,
-        'CAMPAIGN_ITEM_IDENTITY_CHANGED',
-        'Campaign item component type or content cannot be altered',
-      );
-    }
-    throw new CampaignManagementServiceError(
-      400,
-      'VALIDATION_ERROR',
-      result.error ?? 'Invalid data',
-    );
+    handleUpdateDraftError(result.error);
   }
 
   return getPlatformCampaignDetail(actor, campaignId);
