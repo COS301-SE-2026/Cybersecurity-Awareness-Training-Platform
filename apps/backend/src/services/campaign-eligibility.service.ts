@@ -63,12 +63,6 @@ export class CampaignEligibilityService {
     const now = customNow ?? this.clock.now();
 
     switch (campaign.status) {
-      case 'DRAFT':
-        return {
-          canView: false,
-          canProgress: false,
-          reason: 'CAMPAIGN_INACTIVE',
-        };
       case 'ARCHIVED':
       case 'PAUSED':
         return {
@@ -107,6 +101,7 @@ export class CampaignEligibilityService {
           reason: 'AVAILABLE',
         };
       }
+      case 'DRAFT':
       default:
         return {
           canView: false,

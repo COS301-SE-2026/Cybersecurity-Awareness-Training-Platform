@@ -88,7 +88,7 @@ export async function requireOrganisationAdminScope(input: {
 
 export async function validateOrganisationScopeExists(organisationId: string) {
   const org = await OrganisationScopeRepository.findOrganisationScopeById(organisationId);
-  if (!org || org.status !== 'ACTIVE') {
+  if (org?.status !== 'ACTIVE') {
     throw new OrganisationScopeServiceError(
       404,
       'INACCESSIBLE_ORGANISATION',

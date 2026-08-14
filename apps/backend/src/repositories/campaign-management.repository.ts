@@ -266,6 +266,58 @@ export async function findCampaigns(input: {
   };
 }
 
+function mapComponentItemDetail(item: {
+  id: string;
+  title: string;
+  description: string | null;
+  componentType: string | null;
+  position: number;
+  isRequired: boolean;
+  trainingDocumentId: string | null;
+  quizId: string | null;
+  simulationId: string | null;
+  trainingDocument?: { id: string; title: string; status: string } | null;
+  quiz?: { id: string; title: string; description: string | null; status: string } | null;
+  simulation?: {
+    id: string;
+    title: string;
+    safetyStatus: string;
+    simulatedInbox?: { status: string } | null;
+  } | null;
+}) {
+  let title = item.title;
+  let description = item.description;
+  let sourceAvailable = false;
+
+  if (item.componentType === 'TRAINING_DOCUMENT' && item.trainingDocument) {
+    title = item.trainingDocument.title;
+    sourceAvailable = item.trainingDocument.status === 'AVAILABLE';
+  } else if (item.componentType === 'QUIZ' && item.quiz) {
+    title = item.quiz.title;
+    description = item.quiz.description;
+    sourceAvailable = item.quiz.status === 'PUBLISHED';
+  } else if (item.componentType === 'SIMULATED_INBOX' && item.simulation) {
+    title = item.simulation.title;
+    sourceAvailable =
+      item.simulation.safetyStatus === 'APPROVED' &&
+      item.simulation.simulatedInbox?.status === 'ACTIVE';
+  }
+
+  const contentId = item.trainingDocumentId ?? item.quizId ?? item.simulationId ?? '';
+
+  return {
+    itemType: 'COMPONENT' as const,
+    campaignItemId: item.id,
+    componentType: item.componentType as CampaignComponentType,
+    contentId,
+    title,
+    description,
+    position: item.position,
+    isRequired: item.isRequired,
+    sourceAvailable,
+  };
+}
+
 export async function findCampaignById(
   campaignId: string,
   scope?: { organisationId?: string | null; platformOnly?: boolean },
@@ -325,58 +377,6 @@ export async function findCampaignById(
     }
   }
 
-  function mapComponentItemDetail(item: {
-    id: string;
-    title: string;
-    description: string | null;
-    componentType: string | null;
-    position: number;
-    isRequired: boolean;
-    trainingDocumentId: string | null;
-    quizId: string | null;
-    simulationId: string | null;
-    trainingDocument?: { id: string; title: string; status: string } | null;
-    quiz?: { id: string; title: string; description: string | null; status: string } | null;
-    simulation?: {
-      id: string;
-      title: string;
-      safetyStatus: string;
-      simulatedInbox?: { status: string } | null;
-    } | null;
-  }) {
-    let title = item.title;
-    let description = item.description;
-    let sourceAvailable = false;
-
-    if (item.componentType === 'TRAINING_DOCUMENT' && item.trainingDocument) {
-      title = item.trainingDocument.title;
-      sourceAvailable = item.trainingDocument.status === 'AVAILABLE';
-    } else if (item.componentType === 'QUIZ' && item.quiz) {
-      title = item.quiz.title;
-      description = item.quiz.description;
-      sourceAvailable = item.quiz.status === 'PUBLISHED';
-    } else if (item.componentType === 'SIMULATED_INBOX' && item.simulation) {
-      title = item.simulation.title;
-      sourceAvailable =
-        item.simulation.safetyStatus === 'APPROVED' &&
-        item.simulation.simulatedInbox?.status === 'ACTIVE';
-    }
-
-    const contentId = item.trainingDocumentId ?? item.quizId ?? item.simulationId ?? '';
-
-    return {
-      itemType: 'COMPONENT' as const,
-      campaignItemId: item.id,
-      componentType: item.componentType as CampaignComponentType,
-      contentId,
-      title,
-      description,
-      position: item.position,
-      isRequired: item.isRequired,
-      sourceAvailable,
-    };
-  }
-
   const mappedItems = topLevelItems.map((item) => {
     if (item.itemType === 'GROUP') {
       const children = (childMap.get(item.id) ?? []).map(mapComponentItemDetail);
@@ -429,14 +429,14 @@ async function resolveCampaignItemDetails(
 
   if (itemInput.componentType === 'TRAINING_DOCUMENT') {
     const doc = await tx.trainingDocument.findUnique({ where: { id: itemInput.contentId } });
-    if (!doc || doc.status !== 'AVAILABLE') {
+    if (doc?.status !== 'AVAILABLE') {
       throw new Error(`TRAINING_DOCUMENT_UNAVAILABLE:${itemInput.contentId}`);
     }
     title = doc.title;
     description = doc.contentSummary;
   } else if (itemInput.componentType === 'QUIZ') {
     const quiz = await tx.quiz.findUnique({ where: { id: itemInput.contentId } });
-    if (!quiz || quiz.status !== 'PUBLISHED') {
+    if (quiz?.status !== 'PUBLISHED') {
       throw new Error(`QUIZ_UNAVAILABLE:${itemInput.contentId}`);
     }
     title = quiz.title;
@@ -446,12 +446,7 @@ async function resolveCampaignItemDetails(
       where: { id: itemInput.contentId },
       include: { simulatedInbox: true },
     });
-    if (
-      !sim ||
-      sim.safetyStatus !== 'APPROVED' ||
-      !sim.simulatedInbox ||
-      sim.simulatedInbox.status !== 'ACTIVE'
-    ) {
+    if (sim?.safetyStatus !== 'APPROVED' || sim.simulatedInbox?.status !== 'ACTIVE') {
       throw new Error(`SIMULATION_UNAVAILABLE:${itemInput.contentId}`);
     }
     title = sim.title;
@@ -466,6 +461,25 @@ async function resolveCampaignItemDetails(
     quizId: itemInput.componentType === 'QUIZ' ? itemInput.contentId : null,
     simulationId: itemInput.componentType === 'SIMULATED_INBOX' ? itemInput.contentId : null,
   };
+}
+
+function checkItemDuplicate(
+  seenSources: Set<string>,
+  seenItemIds: Set<string>,
+  item: { campaignItemId?: string; componentType: CampaignComponentType; contentId: string },
+): string | null {
+  if (item.campaignItemId) {
+    if (seenItemIds.has(item.campaignItemId)) {
+      return 'DUPLICATE_CAMPAIGN_ITEM_ID';
+    }
+    seenItemIds.add(item.campaignItemId);
+  }
+  const sourceKey = `${item.componentType}:${item.contentId}`;
+  if (seenSources.has(sourceKey)) {
+    return 'DUPLICATE_SOURCE';
+  }
+  seenSources.add(sourceKey);
+  return null;
 }
 
 function validateItemStructure(items: RepositoryCampaignItemInput[]): {
@@ -488,28 +502,129 @@ function validateItemStructure(items: RepositoryCampaignItemInput[]): {
         return { valid: false, error: 'GROUP_MIN_CHILDREN_REQUIRED' };
       }
       for (const child of item.children) {
-        if (child.campaignItemId) {
-          if (seenItemIds.has(child.campaignItemId)) {
-            return { valid: false, error: 'DUPLICATE_CAMPAIGN_ITEM_ID' };
-          }
-          seenItemIds.add(child.campaignItemId);
+        const error = checkItemDuplicate(seenSources, seenItemIds, child);
+        if (error) {
+          return { valid: false, error };
         }
-        const sourceKey = `${child.componentType}:${child.contentId}`;
-        if (seenSources.has(sourceKey)) {
-          return { valid: false, error: 'DUPLICATE_SOURCE' };
-        }
-        seenSources.add(sourceKey);
       }
     } else {
-      const sourceKey = `${item.componentType}:${item.contentId}`;
-      if (seenSources.has(sourceKey)) {
-        return { valid: false, error: 'DUPLICATE_SOURCE' };
+      const error = checkItemDuplicate(seenSources, seenItemIds, item);
+      if (error) {
+        return { valid: false, error };
       }
-      seenSources.add(sourceKey);
     }
   }
 
   return { valid: true };
+}
+
+async function persistDraftComponentItem(
+  tx: Prisma.TransactionClient,
+  campaignId: string,
+  itemInput: {
+    campaignItemId?: string;
+    componentType: CampaignComponentType;
+    contentId: string;
+    isRequired: boolean;
+  },
+  position: number,
+  existingItems: { id: string }[],
+  keptItemIds: Set<string>,
+  parentGroupId: string | null = null,
+  index: number = 0,
+) {
+  const details = await resolveCampaignItemDetails(tx, itemInput, index);
+  const exists =
+    itemInput.campaignItemId && existingItems.some((i) => i.id === itemInput.campaignItemId);
+
+  if (exists && itemInput.campaignItemId) {
+    await tx.campaignItem.update({
+      where: { id: itemInput.campaignItemId },
+      data: {
+        parentGroupId,
+        componentType: itemInput.componentType,
+        title: details.title,
+        description: details.description,
+        position,
+        isRequired: itemInput.isRequired,
+        trainingDocumentId: details.trainingDocumentId,
+        quizId: details.quizId,
+        simulationId: details.simulationId,
+      },
+    });
+    keptItemIds.add(itemInput.campaignItemId);
+  } else {
+    const created = await tx.campaignItem.create({
+      data: {
+        campaignId,
+        parentGroupId,
+        itemType: 'COMPONENT',
+        componentType: itemInput.componentType,
+        title: details.title,
+        description: details.description,
+        position,
+        isRequired: itemInput.isRequired,
+        trainingDocumentId: details.trainingDocumentId,
+        quizId: details.quizId,
+        simulationId: details.simulationId,
+      },
+    });
+    keptItemIds.add(created.id);
+  }
+}
+
+async function persistDraftGroupItem(
+  tx: Prisma.TransactionClient,
+  campaignId: string,
+  groupInput: Extract<RepositoryCampaignItemInput, { itemType: 'GROUP' }>,
+  position: number,
+  existingItems: { id: string }[],
+  keptItemIds: Set<string>,
+) {
+  let groupId = groupInput.campaignItemId;
+  const exists = groupId && existingItems.some((i) => i.id === groupId);
+
+  if (exists && groupId) {
+    await tx.campaignItem.update({
+      where: { id: groupId },
+      data: {
+        title: groupInput.title,
+        description: groupInput.description ?? null,
+        groupType: groupInput.groupType,
+        completionRule: groupInput.completionRule,
+        position,
+        isRequired: groupInput.isRequired,
+      },
+    });
+  } else {
+    const createdGroup = await tx.campaignItem.create({
+      data: {
+        campaignId,
+        itemType: 'GROUP',
+        groupType: groupInput.groupType,
+        completionRule: groupInput.completionRule,
+        title: groupInput.title,
+        description: groupInput.description ?? null,
+        position,
+        isRequired: groupInput.isRequired,
+      },
+    });
+    groupId = createdGroup.id;
+  }
+  keptItemIds.add(groupId);
+
+  for (let cIdx = 0; cIdx < groupInput.children.length; cIdx++) {
+    await persistDraftComponentItem(
+      tx,
+      campaignId,
+      groupInput.children[cIdx],
+      (cIdx + 1) * 10,
+      existingItems,
+      keptItemIds,
+      groupId,
+      cIdx,
+    );
+  }
 }
 
 export async function createCampaignDraft(input: {
@@ -551,62 +666,25 @@ export async function createCampaignDraft(input: {
       },
     });
 
+    const keptItemIds = new Set<string>();
+
     for (let index = 0; index < input.items.length; index++) {
       const itemInput = input.items[index];
       const position = (index + 1) * 10;
 
       if (itemInput.itemType === 'GROUP') {
-        const group = await tx.campaignItem.create({
-          data: {
-            campaignId: campaign.id,
-            itemType: 'GROUP',
-            groupType: itemInput.groupType,
-            completionRule: itemInput.completionRule,
-            title: itemInput.title,
-            description: itemInput.description ?? null,
-            position,
-            isRequired: itemInput.isRequired,
-          },
-        });
-
-        for (let cIdx = 0; cIdx < itemInput.children.length; cIdx++) {
-          const childInput = itemInput.children[cIdx];
-          const childPosition = (cIdx + 1) * 10;
-          const childDetails = await resolveCampaignItemDetails(tx, childInput, cIdx);
-
-          await tx.campaignItem.create({
-            data: {
-              campaignId: campaign.id,
-              parentGroupId: group.id,
-              itemType: 'COMPONENT',
-              componentType: childInput.componentType,
-              title: childDetails.title,
-              description: childDetails.description,
-              position: childPosition,
-              isRequired: childInput.isRequired,
-              trainingDocumentId: childDetails.trainingDocumentId,
-              quizId: childDetails.quizId,
-              simulationId: childDetails.simulationId,
-            },
-          });
-        }
+        await persistDraftGroupItem(tx, campaign.id, itemInput, position, [], keptItemIds);
       } else {
-        const details = await resolveCampaignItemDetails(tx, itemInput, index);
-
-        await tx.campaignItem.create({
-          data: {
-            campaignId: campaign.id,
-            itemType: 'COMPONENT',
-            componentType: itemInput.componentType,
-            title: details.title,
-            description: details.description,
-            position,
-            isRequired: itemInput.isRequired,
-            trainingDocumentId: details.trainingDocumentId,
-            quizId: details.quizId,
-            simulationId: details.simulationId,
-          },
-        });
+        await persistDraftComponentItem(
+          tx,
+          campaign.id,
+          itemInput,
+          position,
+          [],
+          keptItemIds,
+          null,
+          index,
+        );
       }
     }
 
@@ -640,6 +718,52 @@ function validateExistingComponentItemIdentity(
     return existingItem.simulationId === itemInput.contentId;
   }
   return false;
+}
+
+function validateCampaignDraftItemIdentities(
+  existingItems: {
+    id: string;
+    itemType: string;
+    componentType: string | null;
+    trainingDocumentId: string | null;
+    quizId: string | null;
+    simulationId: string | null;
+  }[],
+  items: RepositoryCampaignItemInput[],
+): { valid: boolean; error?: string } {
+  for (const itemInput of items) {
+    if (itemInput.itemType === 'GROUP') {
+      if (itemInput.campaignItemId) {
+        const existingGroup = existingItems.find((i) => i.id === itemInput.campaignItemId);
+        if (!existingGroup) {
+          return { valid: false, error: 'INVALID_CAMPAIGN_ITEM_ID' };
+        }
+        if (existingGroup.itemType !== 'GROUP') {
+          return { valid: false, error: 'CAMPAIGN_ITEM_IDENTITY_CHANGED' };
+        }
+      }
+      for (const child of itemInput.children) {
+        if (child.campaignItemId) {
+          const existingChild = existingItems.find((i) => i.id === child.campaignItemId);
+          if (!existingChild) {
+            return { valid: false, error: 'INVALID_CAMPAIGN_ITEM_ID' };
+          }
+          if (!validateExistingComponentItemIdentity(existingChild, child)) {
+            return { valid: false, error: 'CAMPAIGN_ITEM_IDENTITY_CHANGED' };
+          }
+        }
+      }
+    } else if (itemInput.campaignItemId) {
+      const existingItem = existingItems.find((i) => i.id === itemInput.campaignItemId);
+      if (!existingItem) {
+        return { valid: false, error: 'INVALID_CAMPAIGN_ITEM_ID' };
+      }
+      if (!validateExistingComponentItemIdentity(existingItem, itemInput)) {
+        return { valid: false, error: 'CAMPAIGN_ITEM_IDENTITY_CHANGED' };
+      }
+    }
+  }
+  return { valid: true };
 }
 
 export async function updateCampaignDraft(input: {
@@ -680,39 +804,9 @@ export async function updateCampaignDraft(input: {
       return { success: false, error: 'CAMPAIGN_CHANGED' as const };
     }
 
-    for (const itemInput of input.items) {
-      if (itemInput.itemType === 'GROUP') {
-        if (itemInput.campaignItemId) {
-          const existingGroup = existing.items.find((i) => i.id === itemInput.campaignItemId);
-          if (!existingGroup) {
-            return { success: false, error: 'INVALID_CAMPAIGN_ITEM_ID' as const };
-          }
-          if (existingGroup.itemType !== 'GROUP') {
-            return { success: false, error: 'CAMPAIGN_ITEM_IDENTITY_CHANGED' as const };
-          }
-        }
-        for (const child of itemInput.children) {
-          if (child.campaignItemId) {
-            const existingChild = existing.items.find((i) => i.id === child.campaignItemId);
-            if (!existingChild) {
-              return { success: false, error: 'INVALID_CAMPAIGN_ITEM_ID' as const };
-            }
-            if (!validateExistingComponentItemIdentity(existingChild, child)) {
-              return { success: false, error: 'CAMPAIGN_ITEM_IDENTITY_CHANGED' as const };
-            }
-          }
-        }
-      } else {
-        if (itemInput.campaignItemId) {
-          const existingItem = existing.items.find((i) => i.id === itemInput.campaignItemId);
-          if (!existingItem) {
-            return { success: false, error: 'INVALID_CAMPAIGN_ITEM_ID' as const };
-          }
-          if (!validateExistingComponentItemIdentity(existingItem, itemInput)) {
-            return { success: false, error: 'CAMPAIGN_ITEM_IDENTITY_CHANGED' as const };
-          }
-        }
-      }
+    const identityCheck = validateCampaignDraftItemIdentities(existing.items, input.items);
+    if (!identityCheck.valid) {
+      return { success: false, error: identityCheck.error as string };
     }
 
     await tx.campaign.update({
@@ -733,120 +827,25 @@ export async function updateCampaignDraft(input: {
       const position = (index + 1) * 10;
 
       if (itemInput.itemType === 'GROUP') {
-        let groupId = itemInput.campaignItemId;
-
-        if (groupId && existing.items.some((i) => i.id === groupId)) {
-          await tx.campaignItem.update({
-            where: { id: groupId },
-            data: {
-              title: itemInput.title,
-              description: itemInput.description ?? null,
-              groupType: itemInput.groupType,
-              completionRule: itemInput.completionRule,
-              position,
-              isRequired: itemInput.isRequired,
-            },
-          });
-        } else {
-          const newGroup = await tx.campaignItem.create({
-            data: {
-              campaignId: input.campaignId,
-              itemType: 'GROUP',
-              groupType: itemInput.groupType,
-              completionRule: itemInput.completionRule,
-              title: itemInput.title,
-              description: itemInput.description ?? null,
-              position,
-              isRequired: itemInput.isRequired,
-            },
-          });
-          groupId = newGroup.id;
-        }
-        keptItemIds.add(groupId);
-
-        for (let cIdx = 0; cIdx < itemInput.children.length; cIdx++) {
-          const childInput = itemInput.children[cIdx];
-          const childPosition = (cIdx + 1) * 10;
-          const childDetails = await resolveCampaignItemDetails(tx, childInput, cIdx);
-
-          if (
-            childInput.campaignItemId &&
-            existing.items.some((i) => i.id === childInput.campaignItemId)
-          ) {
-            await tx.campaignItem.update({
-              where: { id: childInput.campaignItemId },
-              data: {
-                parentGroupId: groupId,
-                componentType: childInput.componentType,
-                title: childDetails.title,
-                description: childDetails.description,
-                position: childPosition,
-                isRequired: childInput.isRequired,
-                trainingDocumentId: childDetails.trainingDocumentId,
-                quizId: childDetails.quizId,
-                simulationId: childDetails.simulationId,
-              },
-            });
-            keptItemIds.add(childInput.campaignItemId);
-          } else {
-            const newChild = await tx.campaignItem.create({
-              data: {
-                campaignId: input.campaignId,
-                parentGroupId: groupId,
-                itemType: 'COMPONENT',
-                componentType: childInput.componentType,
-                title: childDetails.title,
-                description: childDetails.description,
-                position: childPosition,
-                isRequired: childInput.isRequired,
-                trainingDocumentId: childDetails.trainingDocumentId,
-                quizId: childDetails.quizId,
-                simulationId: childDetails.simulationId,
-              },
-            });
-            keptItemIds.add(newChild.id);
-          }
-        }
+        await persistDraftGroupItem(
+          tx,
+          input.campaignId,
+          itemInput,
+          position,
+          existing.items,
+          keptItemIds,
+        );
       } else {
-        const details = await resolveCampaignItemDetails(tx, itemInput, index);
-
-        if (
-          itemInput.campaignItemId &&
-          existing.items.some((i) => i.id === itemInput.campaignItemId)
-        ) {
-          await tx.campaignItem.update({
-            where: { id: itemInput.campaignItemId },
-            data: {
-              parentGroupId: null,
-              componentType: itemInput.componentType,
-              title: details.title,
-              description: details.description,
-              position,
-              isRequired: itemInput.isRequired,
-              trainingDocumentId: details.trainingDocumentId,
-              quizId: details.quizId,
-              simulationId: details.simulationId,
-            },
-          });
-          keptItemIds.add(itemInput.campaignItemId);
-        } else {
-          const newItem = await tx.campaignItem.create({
-            data: {
-              campaignId: input.campaignId,
-              parentGroupId: null,
-              itemType: 'COMPONENT',
-              componentType: itemInput.componentType,
-              title: details.title,
-              description: details.description,
-              position,
-              isRequired: itemInput.isRequired,
-              trainingDocumentId: details.trainingDocumentId,
-              quizId: details.quizId,
-              simulationId: details.simulationId,
-            },
-          });
-          keptItemIds.add(newItem.id);
-        }
+        await persistDraftComponentItem(
+          tx,
+          input.campaignId,
+          itemInput,
+          position,
+          existing.items,
+          keptItemIds,
+          null,
+          index,
+        );
       }
     }
 
@@ -874,31 +873,29 @@ type CampaignItemWithContent = {
   simulation?: { safetyStatus: string; simulatedInbox?: { status: string } | null } | null;
 };
 
-function checkItemsContentStatus(items: CampaignItemWithContent[]): boolean {
-  for (const item of items) {
-    if (item.itemType === 'GROUP') {
-      continue;
-    }
-    if (item.componentType === 'TRAINING_DOCUMENT') {
-      if (!item.trainingDocument || item.trainingDocument.status !== 'AVAILABLE') {
-        return false;
-      }
-    } else if (item.componentType === 'QUIZ') {
-      if (!item.quiz || item.quiz.status !== 'PUBLISHED') {
-        return false;
-      }
-    } else if (item.componentType === 'SIMULATED_INBOX') {
-      if (
-        !item.simulation ||
-        item.simulation.safetyStatus !== 'APPROVED' ||
-        !item.simulation.simulatedInbox ||
-        item.simulation.simulatedInbox.status !== 'ACTIVE'
-      ) {
-        return false;
-      }
-    }
+function isComponentContentAvailable(item: CampaignItemWithContent): boolean {
+  if (item.componentType === 'TRAINING_DOCUMENT') {
+    return item.trainingDocument?.status === 'AVAILABLE';
+  }
+  if (item.componentType === 'QUIZ') {
+    return item.quiz?.status === 'PUBLISHED';
+  }
+  if (item.componentType === 'SIMULATED_INBOX') {
+    return (
+      item.simulation?.safetyStatus === 'APPROVED' &&
+      item.simulation.simulatedInbox?.status === 'ACTIVE'
+    );
   }
   return true;
+}
+
+function checkItemsContentStatus(items: CampaignItemWithContent[]): boolean {
+  return items.every((item) => {
+    if (item.itemType === 'GROUP') {
+      return true;
+    }
+    return isComponentContentAvailable(item);
+  });
 }
 
 export async function activateCampaign(

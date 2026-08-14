@@ -50,7 +50,7 @@ async function getValidatedCampaignItem(campaignItemId: string, traineeProfileId
     throw new QuizNotFoundError();
   }
 
-  if (campaignItem.campaign?.assignments && campaignItem.campaign.assignments.length === 0) {
+  if (campaignItem.campaign?.assignments?.length === 0) {
     throw new QuizForbiddenError();
   }
 

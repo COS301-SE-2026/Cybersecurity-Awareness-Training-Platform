@@ -37,13 +37,12 @@ export class SimulationService {
       campaignItem.availabilityStatus !== 'AVAILABLE' ||
       !campaignItem.simulation ||
       campaignItem.simulation.safetyStatus !== 'APPROVED' ||
-      !campaignItem.simulation.simulatedInbox ||
-      campaignItem.simulation.simulatedInbox.status !== 'ACTIVE'
+      campaignItem.simulation.simulatedInbox?.status !== 'ACTIVE'
     ) {
       throw new Error('NOT_FOUND');
     }
 
-    if (campaignItem.campaign?.assignments && campaignItem.campaign.assignments.length === 0) {
+    if (campaignItem.campaign?.assignments?.length === 0) {
       throw new Error('FORBIDDEN');
     }
 

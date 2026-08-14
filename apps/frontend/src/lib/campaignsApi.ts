@@ -21,7 +21,9 @@ import {
 } from '@insightful-phish/shared';
 import { apiClient } from './apiClient.js';
 
-function buildQueryString(params?: Record<string, unknown>): string {
+function buildQueryString(
+  params?: Record<string, string | number | boolean | null | undefined>,
+): string {
   if (!params) return '';
   const searchParams = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
@@ -50,7 +52,7 @@ export async function getOrganisationCampaignCatalogue(
   params?: CampaignCatalogueQueryDto,
 ): Promise<GetCampaignCatalogueResponseDto> {
   const res = await apiClient.get<unknown>(
-    `/organisations/${organisationId}/campaign-content/catalog${buildQueryString(params as Record<string, unknown>)}`,
+    `/organisations/${organisationId}/campaign-content/catalog${buildQueryString(params as Record<string, string | number | boolean | null | undefined>)}`,
   );
   return getCampaignCatalogueResponseSchema.parse(res);
 }
@@ -59,7 +61,7 @@ export async function getPlatformCampaignCatalogue(
   params?: CampaignCatalogueQueryDto,
 ): Promise<GetCampaignCatalogueResponseDto> {
   const res = await apiClient.get<unknown>(
-    `/platform/campaign-content/catalog${buildQueryString(params as Record<string, unknown>)}`,
+    `/platform/campaign-content/catalog${buildQueryString(params as Record<string, string | number | boolean | null | undefined>)}`,
   );
   return getCampaignCatalogueResponseSchema.parse(res);
 }
@@ -69,7 +71,7 @@ export async function getOrganisationCampaigns(
   params?: CampaignListQueryDto,
 ): Promise<GetCampaignsResponseDto> {
   const res = await apiClient.get<unknown>(
-    `/organisations/${organisationId}/campaigns${buildQueryString(params as Record<string, unknown>)}`,
+    `/organisations/${organisationId}/campaigns${buildQueryString(params as Record<string, string | number | boolean | null | undefined>)}`,
   );
   return getCampaignsResponseSchema.parse(res);
 }
@@ -78,7 +80,7 @@ export async function getPlatformCampaigns(
   params?: CampaignListQueryDto,
 ): Promise<GetCampaignsResponseDto> {
   const res = await apiClient.get<unknown>(
-    `/platform/campaigns${buildQueryString(params as Record<string, unknown>)}`,
+    `/platform/campaigns${buildQueryString(params as Record<string, string | number | boolean | null | undefined>)}`,
   );
   return getCampaignsResponseSchema.parse(res);
 }

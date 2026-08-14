@@ -24,7 +24,7 @@ import * as OrganisationScopeRepository from '../repositories/organisation-scope
 
 export type UserActorContext = {
   userId: string;
-  userType: 'ORGANISATION_ADMIN' | 'IP_ADMIN' | string;
+  userType: string;
 };
 
 export class CampaignManagementServiceError extends Error {
@@ -106,6 +106,14 @@ async function validatePlatformAdminActor(actor: UserActorContext) {
   return ipAdmin;
 }
 
+function isCampaignActivatable(
+  hasItems: boolean,
+  sourcesUsable: boolean,
+  isExpired: boolean,
+): boolean {
+  return hasItems && sourcesUsable && !isExpired;
+}
+
 function computeAllowedActions(input: {
   status: string;
   canManage: boolean;
@@ -118,21 +126,20 @@ function computeAllowedActions(input: {
   const actions: CampaignAllowedActionDto[] = ['VIEW'];
   const now = input.now ?? new Date();
   const isExpired = input.endDate ? input.endDate.getTime() < now.getTime() : false;
-  const hasItems = input.hasItems ?? true;
-  const sourcesUsable = input.sourcesUsable ?? true;
+  const canActivate = isCampaignActivatable(
+    input.hasItems ?? true,
+    input.sourcesUsable ?? true,
+    isExpired,
+  );
 
   if (input.canManage) {
     if (input.status === 'DRAFT') {
       actions.push('EDIT');
-      if (hasItems && sourcesUsable && !isExpired) {
-        actions.push('ACTIVATE');
-      }
+      if (canActivate) actions.push('ACTIVATE');
     } else if (input.status === 'ACTIVE') {
       actions.push('ARCHIVE');
-    } else if (input.status === 'ARCHIVED') {
-      if (hasItems && sourcesUsable && !isExpired) {
-        actions.push('REACTIVATE');
-      }
+    } else if (input.status === 'ARCHIVED' && canActivate) {
+      actions.push('REACTIVATE');
     }
   }
 

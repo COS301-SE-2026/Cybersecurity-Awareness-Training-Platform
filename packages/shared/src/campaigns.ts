@@ -227,7 +227,6 @@ export type CampaignMutationPreconditionDto = z.infer<typeof campaignMutationPre
 export type CampaignDraftComponentItemInputDto = z.infer<typeof campaignDraftComponentItemSchema>;
 export type CampaignDraftGroupItemInputDto = z.infer<typeof campaignDraftGroupItemSchema>;
 export type CampaignDraftItemInputDto = z.infer<typeof campaignDraftItemSchema>;
-export type CreateCampaignDraftItemInputDto = CampaignDraftComponentItemInputDto;
 
 export type TrainingDocumentCatalogueItemDto = z.infer<typeof trainingDocumentCatalogueItemSchema>;
 export type QuizCatalogueItemDto = z.infer<typeof quizCatalogueItemSchema>;
