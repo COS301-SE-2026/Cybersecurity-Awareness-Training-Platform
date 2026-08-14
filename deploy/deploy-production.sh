@@ -11,6 +11,16 @@ HEALTH_RETRY_SECONDS=5
 phase='argument-validation'
 temporary_file=''
 
+candidate_started=false
+migration_started=false
+migration_state_before=''
+migration_state_after=''
+migration_change='not-run'
+application_recreated=false
+previous_release_available=false
+migration_compatibility='unknown'
+active_compose=()
+
 finish() {
 	local status=$?
 	trap - EXIT
@@ -36,29 +46,43 @@ finish() {
 trap finish EXIT
 
 deployment_target='production'
+migration_compatibility='unkown'
 
-case "$#" in
-	1)
-		release_sha="$1"
-		;;
-	3) 
-		if [[ "$1" != '--target' ]]; then
-			echo "Usage: ${0##*/} [--target production|development] <40-character-sha>" >&2
+while (( "$#" > 1 )); do
+	case "$1" in
+		--target)
+			deployment_target="$2"
+			shift 2
+			;;
+		--migration-compatibility)
+			migration_compatibility="$2"
+			shift 2
+			;;
+		*)
+			echo "Unkown deployment option: $1" >&2
 			exit 64
-		fi
-		deployment_target="$2"
-		release_sha="$3"
-		;;
-	*)
-		echo "Usage: ${0##*/} [--target production|development] <40-character-sha>" >&2
-		exit 64
-		;;
-esac
+			;;
+	esac
+done
+
+if [[ "$#" -ne 1 ]]; then
+	echo "Usage: ${0##*/} [--target production|development] [--migration-compatibility unkown|backward-compatible] <40-character-sha>" >&2
+	exit 64
+fi
+release_sha="$1"
 
 if [[ ! "$release_sha" =~ ^[0-9a-f]{40}$ ]]; then
 	echo "Release SHA must be 40 lowercase characters" >&2
 	exit 64
 fi
+case "$migration_compatibility" in
+	unknown|backward-compatible)
+		;;
+	*)
+		echo "Migration compatibility must be unkown or backward-compatible" >&2
+		exit 64
+		;;
+esac
 
 case "$deployment_target" in 
 	production)
