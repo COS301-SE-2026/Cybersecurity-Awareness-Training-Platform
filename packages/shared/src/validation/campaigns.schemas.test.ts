@@ -87,6 +87,11 @@ describe('campaign validation schemas', () => {
           status: 'ACTIVE',
           accessType: 'ASSIGNED',
           progressStatus: 'IN_PROGRESS',
+          eligibility: {
+            canView: true,
+            canProgress: true,
+            reason: 'AVAILABLE',
+          },
         },
         {
           campaignId: '44444444-4444-4444-8444-444444444444',
@@ -96,6 +101,11 @@ describe('campaign validation schemas', () => {
           campaignType: 'PREMADE_GENERAL',
           difficultyLevel: 'BEGINNER',
           status: 'ACTIVE',
+          eligibility: {
+            canView: true,
+            canProgress: true,
+            reason: 'AVAILABLE',
+          },
         },
       ],
     });
@@ -111,6 +121,11 @@ describe('campaign validation schemas', () => {
           campaignType: 'PREMADE_GENERAL',
           difficultyLevel: 'BEGINNER',
           status: 'ACTIVE',
+          eligibility: {
+            canView: true,
+            canProgress: true,
+            reason: 'AVAILABLE',
+          },
         },
       ],
     });
@@ -156,6 +171,11 @@ describe('campaign validation schemas', () => {
       availabilityStatus: 'AVAILABLE',
       isOpenable: true,
       progressStatus: 'IN_PROGRESS',
+      eligibility: {
+        canView: true,
+        canProgress: true,
+        reason: 'AVAILABLE',
+      },
     });
 
     expect(result.success).toBe(false);
@@ -173,6 +193,11 @@ describe('campaign validation schemas', () => {
       availabilityStatus: 'AVAILABLE',
       isOpenable: true,
       activityApiPath: getTraineeCampaignActivityApiPath('QUIZ', campaignItemId),
+      eligibility: {
+        canView: true,
+        canProgress: true,
+        reason: 'AVAILABLE',
+      },
     });
 
     expect(result.success).toBe(false);
@@ -184,6 +209,7 @@ describe('campaign validation schemas', () => {
   });
 
   it('accepts group items with child campaign items', () => {
+    const secondChildItemId = '55555555-5555-4555-8555-555555555555';
     const result = traineeCampaignItemSummarySchema.safeParse({
       campaignItemId,
       campaignId,
@@ -195,6 +221,11 @@ describe('campaign validation schemas', () => {
       isRequired: true,
       availabilityStatus: 'AVAILABLE',
       isOpenable: false,
+      eligibility: {
+        canView: true,
+        canProgress: true,
+        reason: 'AVAILABLE',
+      },
       children: [
         {
           campaignItemId: childCampaignItemId,
@@ -212,6 +243,30 @@ describe('campaign validation schemas', () => {
             childCampaignItemId,
           ),
           progressStatus: 'VIEWED',
+          eligibility: {
+            canView: true,
+            canProgress: true,
+            reason: 'AVAILABLE',
+          },
+        },
+        {
+          campaignItemId: secondChildItemId,
+          campaignId,
+          parentGroupId: campaignItemId,
+          itemType: 'COMPONENT',
+          componentType: 'QUIZ',
+          title: 'Module 1 Quiz',
+          position: 1,
+          isRequired: true,
+          availabilityStatus: 'AVAILABLE',
+          isOpenable: true,
+          activityApiPath: getTraineeCampaignActivityApiPath('QUIZ', secondChildItemId),
+          progressStatus: 'NOT_STARTED',
+          eligibility: {
+            canView: true,
+            canProgress: true,
+            reason: 'AVAILABLE',
+          },
         },
       ],
     });

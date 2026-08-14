@@ -4,24 +4,32 @@ import { createApp } from '../../src/app.js';
 import { clearTraineeTrainingRateLimitStore } from '../../src/middleware/traineeTrainingRateLimit.js';
 import { generateAuthToken } from '../../src/services/auth-token.service.js';
 
-const prismaMock = vi.hoisted(() => ({
-  user: {
-    findUnique: vi.fn(),
-  },
-  traineeProfile: {
-    findFirst: vi.fn(),
-  },
-  campaignItem: {
-    findUnique: vi.fn(),
-  },
-  campaignAssignment: {
-    findFirst: vi.fn(),
-  },
-  interactionEvent: {
-    findFirst: vi.fn(),
-    create: vi.fn(),
-  },
-}));
+const prismaMock = vi.hoisted(() => {
+  const mock = {
+    user: {
+      findUnique: vi.fn(),
+    },
+    traineeProfile: {
+      findFirst: vi.fn(),
+    },
+    campaignItem: {
+      findUnique: vi.fn(),
+    },
+    campaignAssignment: {
+      findFirst: vi.fn(),
+    },
+    interactionEvent: {
+      findFirst: vi.fn(),
+      create: vi.fn(),
+    },
+    $queryRaw: vi.fn().mockResolvedValue([{ id: 'mock-id' }]),
+    $transaction: vi.fn(),
+  };
+  mock.$transaction.mockImplementation((callback: (tx: typeof mock) => Promise<unknown>) =>
+    callback(mock),
+  );
+  return mock;
+});
 
 const contentResolverMock = vi.hoisted(() => ({
   resolveContent: vi.fn(),
@@ -102,6 +110,9 @@ const campaignItem = {
   updatedAt: new Date('2026-05-16T08:00:00.000Z'),
   campaign: {
     status: 'ACTIVE',
+    campaignType: 'PREMADE_GENERAL',
+    startDate: null,
+    endDate: null,
   },
   trainingDocument,
 };
@@ -121,7 +132,15 @@ function mockAuthenticatedUser() {
 function mockTrainingAccess() {
   prismaMock.traineeProfile.findFirst.mockResolvedValue({ id: traineeProfileId });
   prismaMock.campaignItem.findUnique.mockResolvedValue(campaignItem);
-  prismaMock.campaignAssignment.findFirst.mockResolvedValue({ id: campaignAssignmentId });
+  prismaMock.campaignAssignment.findFirst.mockResolvedValue({
+    id: campaignAssignmentId,
+    campaign: {
+      status: 'ACTIVE',
+      campaignType: 'PREMADE_GENERAL',
+      startDate: null,
+      endDate: null,
+    },
+  });
   prismaMock.interactionEvent.findFirst.mockResolvedValue(null);
 }
 

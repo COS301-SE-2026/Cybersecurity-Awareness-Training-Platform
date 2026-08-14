@@ -47,8 +47,14 @@ export class SimulationService {
     }
 
     const campaign = campaignItem.campaign ?? { status: 'ACTIVE', campaignType: 'PREMADE_GENERAL' };
-    const eligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(campaign);
-    if (!eligibility.canView) {
+    const campaignEligibility =
+      defaultCampaignEligibilityService.evaluateCampaignEligibility(campaign);
+    const itemEligibility = defaultCampaignEligibilityService.evaluateItemEligibility(
+      campaignEligibility,
+      'SIMULATED_INBOX',
+    );
+
+    if (!itemEligibility.canView) {
       throw new Error('FORBIDDEN');
     }
 
@@ -126,12 +132,34 @@ export class SimulationService {
     );
 
     const campaign = matchedItem.campaign ?? { status: 'ACTIVE', campaignType: 'PREMADE_GENERAL' };
-    const eligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(campaign);
-    if (!eligibility.canView) {
+    const campaignEligibility =
+      defaultCampaignEligibilityService.evaluateCampaignEligibility(campaign);
+    const itemEligibility = defaultCampaignEligibilityService.evaluateItemEligibility(
+      campaignEligibility,
+      'SIMULATED_INBOX',
+    );
+
+    if (!itemEligibility.canView) {
       throw new Error('FORBIDDEN');
     }
 
     const assignmentId = matchedItem.campaign?.assignments?.[0]?.id ?? 'assignment-id';
+
+    if (
+      itemEligibility.canView &&
+      !itemEligibility.canProgress &&
+      campaignEligibility.reason !== 'COMPLETED'
+    ) {
+      const history = await SimulationRepository.hasExistingSimulationEmailHistory({
+        traineeProfileId,
+        campaignAssignmentId: assignmentId,
+        campaignItemId: matchedItem.id,
+        simulatedEmailId: email.id,
+      });
+      if (!history) {
+        throw new Error('FORBIDDEN');
+      }
+    }
 
     return {
       id: email.id,
@@ -162,12 +190,21 @@ export class SimulationService {
       traineeProfileId,
     );
 
+    const checkedAt = new Date();
     const campaign = matchedItem.campaign ?? { status: 'ACTIVE', campaignType: 'PREMADE_GENERAL' };
-    const eligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(campaign);
-    defaultCampaignEligibilityService.assertCanProgress(eligibility);
+    const campaignEligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(
+      campaign,
+      checkedAt,
+    );
+    const itemEligibility = defaultCampaignEligibilityService.evaluateItemEligibility(
+      campaignEligibility,
+      'SIMULATED_INBOX',
+    );
+    defaultCampaignEligibilityService.assertCanProgress(itemEligibility);
 
     const assignmentId = matchedItem.campaign?.assignments?.[0]?.id ?? 'assignment-id';
     const itemId = matchedItem.id;
+    const campaignId = matchedItem.campaignId;
 
     if (input.eventType === 'SIMULATED_EMAIL_OPENED') {
       const [lockKeyA, lockKeyB] = advisoryLockKey([
@@ -178,14 +215,27 @@ export class SimulationService {
         email.id,
       ]);
 
-      await SimulationRepository.recordEmailOpenedEventTx({
+      const result = await SimulationRepository.recordEmailOpenedEventTx({
+        campaignId,
         traineeProfileId,
         assignmentId,
         itemId,
         emailId: email.id,
         lockKeyA,
         lockKeyB,
+        checkedAt,
       });
+
+      if (!result.allowed) {
+        if (result.reason === 'NOT_FOUND' || !result.campaign) {
+          throw new Error('NOT_FOUND');
+        }
+        const guardEligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(
+          result.campaign,
+          checkedAt,
+        );
+        defaultCampaignEligibilityService.assertCanProgress(guardEligibility);
+      }
 
       return {
         success: true,
@@ -220,12 +270,21 @@ export class SimulationService {
       true,
     );
 
+    const checkedAt = new Date();
     const campaign = matchedItem.campaign ?? { status: 'ACTIVE', campaignType: 'PREMADE_GENERAL' };
-    const eligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(campaign);
-    defaultCampaignEligibilityService.assertCanProgress(eligibility);
+    const campaignEligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(
+      campaign,
+      checkedAt,
+    );
+    const itemEligibility = defaultCampaignEligibilityService.evaluateItemEligibility(
+      campaignEligibility,
+      'SIMULATED_INBOX',
+    );
+    defaultCampaignEligibilityService.assertCanProgress(itemEligibility);
 
     const assignmentId = matchedItem.campaign?.assignments?.[0]?.id ?? 'assignment-id';
     const itemId = matchedItem.id;
+    const campaignId = matchedItem.campaignId;
 
     const existingResponse = await SimulationRepository.findExistingClassificationResponse(
       traineeProfileId,
@@ -246,7 +305,8 @@ export class SimulationService {
 
     const isCorrect = email.expectedClassification === input.selectedClassification;
 
-    const classificationResponse = await SimulationRepository.createClassificationResponseTx({
+    const classificationResult = await SimulationRepository.createClassificationResponseTx({
+      campaignId,
       traineeProfileId,
       simulatedEmailId: email.id,
       assignmentId,
@@ -255,7 +315,25 @@ export class SimulationService {
       freeTextReason: input.freeTextReason,
       isCorrect,
       selectedRedFlagIds: input.selectedRedFlagIds,
+      checkedAt,
     });
+
+    if (!classificationResult.allowed) {
+      if (classificationResult.reason === 'ALREADY_CLASSIFIED') {
+        throw new Error('ALREADY_CLASSIFIED');
+      }
+      if (classificationResult.reason === 'NOT_FOUND' || !classificationResult.campaign) {
+        throw new Error('NOT_FOUND');
+      }
+      const guardEligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(
+        classificationResult.campaign,
+        checkedAt,
+      );
+      defaultCampaignEligibilityService.assertCanProgress(guardEligibility);
+      throw new Error('FORBIDDEN');
+    }
+
+    const classificationResponse = classificationResult.value;
 
     return {
       success: true,

@@ -92,6 +92,7 @@ describe('CampaignManagementService Unit Tests', () => {
           createdBy: { id: 'u1', displayName: 'Admin User', email: 'admin@example.com' },
           createdAt: new Date(),
           updatedAt: new Date(),
+          sourceFacts: [],
         },
       ],
       total: 1,

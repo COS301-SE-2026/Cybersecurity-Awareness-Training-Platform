@@ -149,9 +149,9 @@ export async function updatePlatformCampaignDraft(
 export async function activateOrganisationCampaign(
   organisationId: string,
   campaignId: string,
-  precondition?: CampaignMutationPreconditionDto,
+  precondition: CampaignMutationPreconditionDto,
 ): Promise<CampaignLifecycleActionResponseDto> {
-  const res = await apiClient.post<unknown, CampaignMutationPreconditionDto | undefined>(
+  const res = await apiClient.post<unknown, CampaignMutationPreconditionDto>(
     `/organisations/${organisationId}/campaigns/${campaignId}/activate`,
     precondition,
   );
@@ -160,9 +160,9 @@ export async function activateOrganisationCampaign(
 
 export async function activatePlatformCampaign(
   campaignId: string,
-  precondition?: CampaignMutationPreconditionDto,
+  precondition: CampaignMutationPreconditionDto,
 ): Promise<CampaignLifecycleActionResponseDto> {
-  const res = await apiClient.post<unknown, CampaignMutationPreconditionDto | undefined>(
+  const res = await apiClient.post<unknown, CampaignMutationPreconditionDto>(
     `/platform/campaigns/${campaignId}/activate`,
     precondition,
   );
@@ -172,9 +172,9 @@ export async function activatePlatformCampaign(
 export async function archiveOrganisationCampaign(
   organisationId: string,
   campaignId: string,
-  precondition?: CampaignMutationPreconditionDto,
+  precondition: CampaignMutationPreconditionDto,
 ): Promise<CampaignLifecycleActionResponseDto> {
-  const res = await apiClient.post<unknown, CampaignMutationPreconditionDto | undefined>(
+  const res = await apiClient.post<unknown, CampaignMutationPreconditionDto>(
     `/organisations/${organisationId}/campaigns/${campaignId}/archive`,
     precondition,
   );
@@ -183,9 +183,9 @@ export async function archiveOrganisationCampaign(
 
 export async function archivePlatformCampaign(
   campaignId: string,
-  precondition?: CampaignMutationPreconditionDto,
+  precondition: CampaignMutationPreconditionDto,
 ): Promise<CampaignLifecycleActionResponseDto> {
-  const res = await apiClient.post<unknown, CampaignMutationPreconditionDto | undefined>(
+  const res = await apiClient.post<unknown, CampaignMutationPreconditionDto>(
     `/platform/campaigns/${campaignId}/archive`,
     precondition,
   );
@@ -195,9 +195,9 @@ export async function archivePlatformCampaign(
 export async function reactivateOrganisationCampaign(
   organisationId: string,
   campaignId: string,
-  precondition?: CampaignMutationPreconditionDto,
+  precondition: CampaignMutationPreconditionDto,
 ): Promise<CampaignLifecycleActionResponseDto> {
-  const res = await apiClient.post<unknown, CampaignMutationPreconditionDto | undefined>(
+  const res = await apiClient.post<unknown, CampaignMutationPreconditionDto>(
     `/organisations/${organisationId}/campaigns/${campaignId}/reactivate`,
     precondition,
   );
@@ -206,9 +206,9 @@ export async function reactivateOrganisationCampaign(
 
 export async function reactivatePlatformCampaign(
   campaignId: string,
-  precondition?: CampaignMutationPreconditionDto,
+  precondition: CampaignMutationPreconditionDto,
 ): Promise<CampaignLifecycleActionResponseDto> {
-  const res = await apiClient.post<unknown, CampaignMutationPreconditionDto | undefined>(
+  const res = await apiClient.post<unknown, CampaignMutationPreconditionDto>(
     `/platform/campaigns/${campaignId}/reactivate`,
     precondition,
   );

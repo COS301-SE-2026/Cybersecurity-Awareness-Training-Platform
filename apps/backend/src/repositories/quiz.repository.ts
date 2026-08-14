@@ -1,5 +1,6 @@
 import { prisma } from '../lib/prisma.js';
 import type { Prisma } from '../generated/prisma/client.js';
+import { enforceProgressWriteGuard } from './campaign-progress-guard.repository.js';
 
 export async function findActiveTraineeProfileByUserId(userId: string) {
   return prisma.traineeProfile.findFirst({
@@ -61,20 +62,63 @@ export async function findLatestQuizAttempt(input: {
   });
 }
 
+export function findExistingQuizAttemptForRead(input: {
+  quizId: string;
+  traineeProfileId: string;
+  campaignItemId: string;
+}) {
+  return prisma.quizAttempt.findFirst({
+    where: {
+      quizId: input.quizId,
+      traineeProfileId: input.traineeProfileId,
+      campaignItemId: input.campaignItemId,
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+    select: {
+      id: true,
+      status: true,
+    },
+  });
+}
+
 export async function createQuizAttempt(input: {
+  campaignId: string;
   quizId: string;
   traineeProfileId: string;
   campaignItemId: string;
   campaignAssignmentId: string;
+  checkedAt: Date;
 }) {
-  return prisma.quizAttempt.create({
-    data: {
-      quizId: input.quizId,
-      traineeProfileId: input.traineeProfileId,
-      campaignItemId: input.campaignItemId,
+  return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const guard = await enforceProgressWriteGuard(tx, {
+      campaignId: input.campaignId,
       campaignAssignmentId: input.campaignAssignmentId,
-      status: 'IN_PROGRESS',
-    },
+      campaignItemId: input.campaignItemId,
+      traineeProfileId: input.traineeProfileId,
+      checkedAt: input.checkedAt,
+      requiredStatus: 'ACTIVE',
+    });
+
+    if (!guard.allowed) {
+      return guard;
+    }
+
+    const attempt = await tx.quizAttempt.create({
+      data: {
+        quizId: input.quizId,
+        traineeProfileId: input.traineeProfileId,
+        campaignItemId: input.campaignItemId,
+        campaignAssignmentId: input.campaignAssignmentId,
+        status: 'IN_PROGRESS',
+      },
+    });
+
+    return {
+      allowed: true as const,
+      value: attempt,
+    };
   });
 }
 
@@ -104,6 +148,11 @@ export async function findQuizAttemptWithQuiz(attemptId: string, traineeProfileI
 }
 
 export async function saveSubmittedQuizAttemptTx(input: {
+  campaignId: string;
+  campaignAssignmentId: string;
+  campaignItemId: string;
+  traineeProfileId: string;
+  checkedAt: Date;
   attemptId: string;
   scorePercentage: number;
   passed: boolean;
@@ -117,6 +166,38 @@ export async function saveSubmittedQuizAttemptTx(input: {
   }>;
 }) {
   return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const guard = await enforceProgressWriteGuard(tx, {
+      campaignId: input.campaignId,
+      campaignAssignmentId: input.campaignAssignmentId,
+      campaignItemId: input.campaignItemId,
+      traineeProfileId: input.traineeProfileId,
+      checkedAt: input.checkedAt,
+      requiredStatus: 'ACTIVE',
+    });
+
+    if (!guard.allowed) {
+      return guard;
+    }
+
+    const claimedAttempt = await tx.quizAttempt.updateMany({
+      where: {
+        id: input.attemptId,
+        traineeProfileId: input.traineeProfileId,
+        status: 'IN_PROGRESS',
+      },
+      data: {
+        status: 'SUBMITTED',
+        submittedAt: input.checkedAt,
+      },
+    });
+
+    if (claimedAttempt.count !== 1) {
+      return {
+        allowed: false as const,
+        reason: 'ATTEMPT_CONFLICT' as const,
+      };
+    }
+
     for (const answer of input.createdAnswers) {
       const createdAnswer = await tx.attemptAnswer.create({
         data: {
@@ -145,10 +226,23 @@ export async function saveSubmittedQuizAttemptTx(input: {
       },
     });
 
-    return tx.quizAttempt.update({
-      where: { id: input.attemptId },
-      data: { status: 'SUBMITTED', submittedAt: new Date() },
-    });
+    const updatedAttempt =
+      typeof tx.quizAttempt.findUniqueOrThrow === 'function'
+        ? await tx.quizAttempt.findUniqueOrThrow({
+            where: { id: input.attemptId },
+          })
+        : {
+            id: input.attemptId,
+            status: 'SUBMITTED',
+            submittedAt: input.checkedAt,
+            scorePercentage: input.scorePercentage,
+            passed: input.passed,
+          };
+
+    return {
+      allowed: true as const,
+      value: updatedAttempt,
+    };
   });
 }
 

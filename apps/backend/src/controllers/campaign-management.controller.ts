@@ -284,8 +284,7 @@ export async function activateOrganisationCampaignHandler(req: Request, res: Res
     const actor = extractActor(req);
     const organisationId = String(req.params.organisationId);
     const campaignId = String(req.params.campaignId);
-    const parseResult = campaignMutationPreconditionSchema.optional().safeParse(req.body);
-    const precondition = parseResult.success ? parseResult.data : undefined;
+    const precondition = campaignMutationPreconditionSchema.parse(req.body);
 
     const result = await CampaignManagementService.activateOrganisationCampaign(
       actor,
@@ -303,8 +302,7 @@ export async function activatePlatformCampaignHandler(req: Request, res: Respons
   try {
     const actor = extractActor(req);
     const campaignId = String(req.params.campaignId);
-    const parseResult = campaignMutationPreconditionSchema.optional().safeParse(req.body);
-    const precondition = parseResult.success ? parseResult.data : undefined;
+    const precondition = campaignMutationPreconditionSchema.parse(req.body);
 
     const result = await CampaignManagementService.activatePlatformCampaign(
       actor,
@@ -322,8 +320,7 @@ export async function archiveOrganisationCampaignHandler(req: Request, res: Resp
     const actor = extractActor(req);
     const organisationId = String(req.params.organisationId);
     const campaignId = String(req.params.campaignId);
-    const parseResult = campaignMutationPreconditionSchema.optional().safeParse(req.body);
-    const precondition = parseResult.success ? parseResult.data : undefined;
+    const precondition = campaignMutationPreconditionSchema.parse(req.body);
 
     const result = await CampaignManagementService.archiveOrganisationCampaign(
       actor,
@@ -341,8 +338,7 @@ export async function archivePlatformCampaignHandler(req: Request, res: Response
   try {
     const actor = extractActor(req);
     const campaignId = String(req.params.campaignId);
-    const parseResult = campaignMutationPreconditionSchema.optional().safeParse(req.body);
-    const precondition = parseResult.success ? parseResult.data : undefined;
+    const precondition = campaignMutationPreconditionSchema.parse(req.body);
 
     const result = await CampaignManagementService.archivePlatformCampaign(
       actor,
@@ -360,8 +356,7 @@ export async function reactivateOrganisationCampaignHandler(req: Request, res: R
     const actor = extractActor(req);
     const organisationId = String(req.params.organisationId);
     const campaignId = String(req.params.campaignId);
-    const parseResult = campaignMutationPreconditionSchema.optional().safeParse(req.body);
-    const precondition = parseResult.success ? parseResult.data : undefined;
+    const precondition = campaignMutationPreconditionSchema.parse(req.body);
 
     const result = await CampaignManagementService.reactivateOrganisationCampaign(
       actor,
@@ -379,8 +374,7 @@ export async function reactivatePlatformCampaignHandler(req: Request, res: Respo
   try {
     const actor = extractActor(req);
     const campaignId = String(req.params.campaignId);
-    const parseResult = campaignMutationPreconditionSchema.optional().safeParse(req.body);
-    const precondition = parseResult.success ? parseResult.data : undefined;
+    const precondition = campaignMutationPreconditionSchema.parse(req.body);
 
     const result = await CampaignManagementService.reactivatePlatformCampaign(
       actor,

@@ -3,6 +3,7 @@ import rateLimit, { MemoryStore } from 'express-rate-limit';
 import {
   campaignCatalogueQuerySchema,
   campaignListQuerySchema,
+  campaignMutationPreconditionSchema,
   createCampaignDraftRequestSchema,
   updateCampaignDraftRequestSchema,
   idParamSchema,
@@ -104,6 +105,10 @@ const campaignIdParamSchema = z
  *     responses:
  *       200:
  *         description: Catalogue items retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/GetCampaignCatalogueResponse'
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  *       403:
@@ -150,6 +155,10 @@ campaignManagementRouter.get(
  *     responses:
  *       200:
  *         description: Catalogue items retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/GetCampaignCatalogueResponse'
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  *       403:
@@ -194,6 +203,10 @@ campaignManagementRouter.get(
  *     responses:
  *       200:
  *         description: Campaigns list retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/GetCampaignsResponse'
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  *       403:
@@ -240,6 +253,10 @@ campaignManagementRouter.get(
  *     responses:
  *       200:
  *         description: Platform campaigns list retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/GetCampaignsResponse'
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  *       403:
@@ -273,6 +290,10 @@ campaignManagementRouter.get(
  *     responses:
  *       200:
  *         description: Campaign detail retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/CampaignDetailResponse'
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  *       403:
@@ -307,6 +328,10 @@ campaignManagementRouter.get(
  *     responses:
  *       200:
  *         description: Platform campaign detail retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/CampaignDetailResponse'
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  *       403:
@@ -333,9 +358,19 @@ campaignManagementRouter.get(
  *       - bearerAuth: []
  *     parameters:
  *       - $ref: '#/components/parameters/OrganisationIdPathParam'
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CreateCampaignDraftRequest'
  *     responses:
  *       201:
  *         description: Draft campaign created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/CampaignDetailResponse'
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  *       403:
@@ -361,9 +396,19 @@ campaignManagementRouter.post(
  *     description: Creates a new platform premade campaign draft.
  *     security:
  *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CreateCampaignDraftRequest'
  *     responses:
  *       201:
  *         description: Platform campaign draft created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/CampaignDetailResponse'
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  *       403:
@@ -396,11 +441,21 @@ campaignManagementRouter.post(
  *         schema:
  *           type: string
  *           format: uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UpdateCampaignDraftRequest'
  *     responses:
  *       200:
  *         description: Draft campaign updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/CampaignDetailResponse'
  *       409:
- *         description: Campaign is active or archived (immutable)
+ *         $ref: '#/components/responses/Conflict'
  *       422:
  *         $ref: '#/components/responses/UnprocessableEntity'
  */
@@ -429,11 +484,21 @@ campaignManagementRouter.put(
  *         schema:
  *           type: string
  *           format: uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UpdateCampaignDraftRequest'
  *     responses:
  *       200:
  *         description: Platform draft updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/CampaignDetailResponse'
  *       409:
- *         description: Campaign is active or archived (immutable)
+ *         $ref: '#/components/responses/Conflict'
  *       422:
  *         $ref: '#/components/responses/UnprocessableEntity'
  */
@@ -463,17 +528,30 @@ campaignManagementRouter.put(
  *         schema:
  *           type: string
  *           format: uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CampaignMutationPrecondition'
  *     responses:
  *       200:
  *         description: Campaign activated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/CampaignLifecycleActionResponse'
  *       409:
- *         description: Invalid state transition or empty campaign
+ *         $ref: '#/components/responses/Conflict'
+ *       422:
+ *         $ref: '#/components/responses/UnprocessableEntity'
  */
 campaignManagementRouter.post(
   '/organisations/:organisationId/campaigns/:campaignId/activate',
   campaignManagementRateLimit,
   requireAuth,
   validateParams(organisationAndCampaignIdParamsSchema),
+  validateBody(campaignMutationPreconditionSchema, { statusCode: 422 }),
   asyncHandler(activateOrganisationCampaignHandler),
 );
 
@@ -493,17 +571,30 @@ campaignManagementRouter.post(
  *         schema:
  *           type: string
  *           format: uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CampaignMutationPrecondition'
  *     responses:
  *       200:
  *         description: Platform campaign activated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/CampaignLifecycleActionResponse'
  *       409:
- *         description: Invalid state transition or empty campaign
+ *         $ref: '#/components/responses/Conflict'
+ *       422:
+ *         $ref: '#/components/responses/UnprocessableEntity'
  */
 campaignManagementRouter.post(
   '/platform/campaigns/:campaignId/activate',
   campaignManagementRateLimit,
   requireAuth,
   validateParams(campaignIdParamSchema),
+  validateBody(campaignMutationPreconditionSchema, { statusCode: 422 }),
   asyncHandler(activatePlatformCampaignHandler),
 );
 
@@ -524,17 +615,30 @@ campaignManagementRouter.post(
  *         schema:
  *           type: string
  *           format: uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CampaignMutationPrecondition'
  *     responses:
  *       200:
  *         description: Campaign archived successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/CampaignLifecycleActionResponse'
  *       409:
- *         description: Invalid state transition
+ *         $ref: '#/components/responses/Conflict'
+ *       422:
+ *         $ref: '#/components/responses/UnprocessableEntity'
  */
 campaignManagementRouter.post(
   '/organisations/:organisationId/campaigns/:campaignId/archive',
   campaignManagementRateLimit,
   requireAuth,
   validateParams(organisationAndCampaignIdParamsSchema),
+  validateBody(campaignMutationPreconditionSchema, { statusCode: 422 }),
   asyncHandler(archiveOrganisationCampaignHandler),
 );
 
@@ -554,17 +658,30 @@ campaignManagementRouter.post(
  *         schema:
  *           type: string
  *           format: uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CampaignMutationPrecondition'
  *     responses:
  *       200:
  *         description: Platform campaign archived
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/CampaignLifecycleActionResponse'
  *       409:
- *         description: Invalid state transition
+ *         $ref: '#/components/responses/Conflict'
+ *       422:
+ *         $ref: '#/components/responses/UnprocessableEntity'
  */
 campaignManagementRouter.post(
   '/platform/campaigns/:campaignId/archive',
   campaignManagementRateLimit,
   requireAuth,
   validateParams(campaignIdParamSchema),
+  validateBody(campaignMutationPreconditionSchema, { statusCode: 422 }),
   asyncHandler(archivePlatformCampaignHandler),
 );
 
@@ -585,17 +702,30 @@ campaignManagementRouter.post(
  *         schema:
  *           type: string
  *           format: uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CampaignMutationPrecondition'
  *     responses:
  *       200:
  *         description: Campaign reactivated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/CampaignLifecycleActionResponse'
  *       409:
- *         description: Invalid state transition
+ *         $ref: '#/components/responses/Conflict'
+ *       422:
+ *         $ref: '#/components/responses/UnprocessableEntity'
  */
 campaignManagementRouter.post(
   '/organisations/:organisationId/campaigns/:campaignId/reactivate',
   campaignManagementRateLimit,
   requireAuth,
   validateParams(organisationAndCampaignIdParamsSchema),
+  validateBody(campaignMutationPreconditionSchema, { statusCode: 422 }),
   asyncHandler(reactivateOrganisationCampaignHandler),
 );
 
@@ -615,16 +745,29 @@ campaignManagementRouter.post(
  *         schema:
  *           type: string
  *           format: uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CampaignMutationPrecondition'
  *     responses:
  *       200:
  *         description: Platform campaign reactivated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/CampaignLifecycleActionResponse'
  *       409:
- *         description: Invalid state transition
+ *         $ref: '#/components/responses/Conflict'
+ *       422:
+ *         $ref: '#/components/responses/UnprocessableEntity'
  */
 campaignManagementRouter.post(
   '/platform/campaigns/:campaignId/reactivate',
   campaignManagementRateLimit,
   requireAuth,
   validateParams(campaignIdParamSchema),
+  validateBody(campaignMutationPreconditionSchema, { statusCode: 422 }),
   asyncHandler(reactivatePlatformCampaignHandler),
 );

@@ -13,6 +13,8 @@ import type {
 } from '@insightful-phish/shared';
 import {
   getTraineeCampaignActivityApiPath,
+  getTraineeCampaignDetailResponseSchema,
+  getTraineeCampaignsResponseSchema,
   SUPPORTED_TRAINEE_CAMPAIGN_COMPONENT_TYPES,
 } from '@insightful-phish/shared';
 import * as TraineeCampaignRepository from '../repositories/trainee-campaign.repository.js';
@@ -371,17 +373,18 @@ function toCampaignItemTree(input: {
         });
       }
 
-      const children = toCampaignItemTree({
-        items: input.items,
-        parentGroupId: item.id,
-        campaignEligibility: input.campaignEligibility,
-        progressByItemId: input.progressByItemId,
-      }).map(
-        (child): TraineeCampaignChildItemSummaryDto => ({
-          ...child,
+      const children: TraineeCampaignChildItemSummaryDto[] = sortByPosition(
+        input.items.filter((c) => c.parentGroupId === item.id && c.itemType === 'COMPONENT'),
+      )
+        .filter((c) => c.componentType !== null && isSupportedComponentType(c.componentType))
+        .map((c) => ({
+          ...toComponentItemSummary({
+            item: c as CampaignItemRecord & { itemType: 'COMPONENT' },
+            campaignEligibility: input.campaignEligibility,
+            progressByItemId: input.progressByItemId,
+          }),
           parentGroupId: item.id,
-        }),
-      );
+        }));
 
       return {
         campaignItemId: item.id,
@@ -417,9 +420,11 @@ export async function getTraineeCampaigns(
     traineeProfile.id,
   );
 
-  return {
+  const parsed = getTraineeCampaignsResponseSchema.parse({
     campaigns: assignments.map(toCampaignSummary),
-  };
+  });
+
+  return parsed as GetTraineeCampaignsResponseWithCountsDto;
 }
 
 export async function getTraineeCampaignDetail(
@@ -449,7 +454,7 @@ export async function getTraineeCampaignDetail(
     items: assignment.campaign.items,
   });
 
-  return {
+  return getTraineeCampaignDetailResponseSchema.parse({
     ...toCampaignSummary(assignment),
     items: toCampaignItemTree({
       items: assignment.campaign.items,
@@ -457,5 +462,5 @@ export async function getTraineeCampaignDetail(
       campaignEligibility,
       progressByItemId,
     }),
-  };
+  });
 }

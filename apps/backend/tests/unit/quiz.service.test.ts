@@ -13,7 +13,18 @@ const mockPrisma = vi.hoisted(() => {
     attemptAnswer: { create: vi.fn().mockResolvedValue({ id: 'mock-answer-id' }) },
     attemptAnswerOption: { createMany: vi.fn() },
     quizResult: { create: vi.fn() },
-    quizAttempt: { update: vi.fn() },
+    quizAttempt: {
+      update: vi.fn(),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      create: vi.fn().mockResolvedValue({
+        id: 'attempt-1',
+        quizId: 'quiz-1',
+        traineeProfileId: 'trainee-1',
+        status: 'IN_PROGRESS',
+      }),
+    },
+    $queryRaw: vi.fn().mockResolvedValue([{ id: 'mock-id' }]),
+    $executeRaw: vi.fn().mockResolvedValue(1),
   };
 
   return {
@@ -22,6 +33,7 @@ const mockPrisma = vi.hoisted(() => {
       findFirst: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
     $transaction: vi.fn(async (cb) => cb(txMock)),
   };

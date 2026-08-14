@@ -1,5 +1,6 @@
 import { prisma } from '../lib/prisma.js';
 import type { Prisma, AssignmentStatus, InteractionEventType } from '../generated/prisma/client.js';
+import { enforceProgressWriteGuard } from './campaign-progress-guard.repository.js';
 type SimulatedEmailInteractionEventType = InteractionEventType;
 
 export async function findTraineeProfileByUserId(userId: string) {
@@ -124,16 +125,50 @@ export async function findSimulatedEmailWithAccess(
   });
 }
 
+export function hasExistingSimulationEmailHistory(input: {
+  traineeProfileId: string;
+  campaignAssignmentId: string;
+  campaignItemId: string;
+  simulatedEmailId: string;
+}) {
+  return prisma.interactionEvent.findFirst({
+    where: {
+      traineeProfileId: input.traineeProfileId,
+      campaignAssignmentId: input.campaignAssignmentId,
+      campaignItemId: input.campaignItemId,
+      simulatedEmailId: input.simulatedEmailId,
+    },
+    select: {
+      id: true,
+    },
+  });
+}
+
 export async function recordEmailOpenedEventTx(input: {
+  campaignId: string;
   traineeProfileId: string;
   assignmentId: string;
   itemId: string;
   emailId: string;
   lockKeyA: number;
   lockKeyB: number;
+  checkedAt: Date;
 }) {
   return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(${input.lockKeyA}, ${input.lockKeyB})`;
+
+    const guard = await enforceProgressWriteGuard(tx, {
+      campaignId: input.campaignId,
+      campaignAssignmentId: input.assignmentId,
+      campaignItemId: input.itemId,
+      traineeProfileId: input.traineeProfileId,
+      checkedAt: input.checkedAt,
+      requiredStatus: 'ACTIVE',
+    });
+
+    if (!guard.allowed) {
+      return guard;
+    }
 
     const existingOpenEvent = await tx.interactionEvent.findFirst({
       where: {
@@ -151,7 +186,7 @@ export async function recordEmailOpenedEventTx(input: {
     });
 
     if (existingOpenEvent) {
-      return;
+      return { allowed: true as const, value: undefined };
     }
 
     await tx.interactionEvent.create({
@@ -165,6 +200,8 @@ export async function recordEmailOpenedEventTx(input: {
         simulatedEmailId: input.emailId,
       },
     });
+
+    return { allowed: true as const, value: undefined };
   });
 }
 
@@ -175,7 +212,7 @@ export async function createSimulationInteractionEvent(input: {
   eventType: SimulatedEmailInteractionEventType;
   emailId: string;
 }) {
-  return prisma.interactionEvent.create({
+  const event = await prisma.interactionEvent.create({
     data: {
       traineeProfileId: input.traineeProfileId,
       campaignAssignmentId: input.assignmentId,
@@ -186,6 +223,11 @@ export async function createSimulationInteractionEvent(input: {
       simulatedEmailId: input.emailId,
     },
   });
+
+  return {
+    allowed: true as const,
+    value: event,
+  };
 }
 
 export async function findExistingClassificationResponse(
@@ -201,6 +243,7 @@ export async function findExistingClassificationResponse(
 }
 
 export async function createClassificationResponseTx(input: {
+  campaignId: string;
   traineeProfileId: string;
   simulatedEmailId: string;
   assignmentId: string;
@@ -209,8 +252,36 @@ export async function createClassificationResponseTx(input: {
   freeTextReason?: string;
   isCorrect: boolean;
   selectedRedFlagIds?: string[];
+  checkedAt: Date;
 }) {
   return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const guard = await enforceProgressWriteGuard(tx, {
+      campaignId: input.campaignId,
+      campaignAssignmentId: input.assignmentId,
+      campaignItemId: input.itemId,
+      traineeProfileId: input.traineeProfileId,
+      checkedAt: input.checkedAt,
+      requiredStatus: 'ACTIVE',
+    });
+
+    if (!guard.allowed) {
+      return guard;
+    }
+
+    const existing = await tx.emailClassificationResponse.findFirst({
+      where: {
+        traineeProfileId: input.traineeProfileId,
+        simulatedEmailId: input.simulatedEmailId,
+      },
+    });
+
+    if (existing) {
+      return {
+        allowed: false as const,
+        reason: 'ALREADY_CLASSIFIED' as const,
+      };
+    }
+
     const classificationResponse = await tx.emailClassificationResponse.create({
       data: {
         traineeProfileId: input.traineeProfileId,
@@ -245,6 +316,9 @@ export async function createClassificationResponseTx(input: {
       },
     });
 
-    return classificationResponse;
+    return {
+      allowed: true as const,
+      value: classificationResponse,
+    };
   });
 }

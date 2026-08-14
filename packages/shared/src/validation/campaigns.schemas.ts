@@ -157,11 +157,9 @@ export const traineeCampaignSummarySchema = z
     assignment: traineeCampaignAssignmentSummarySchema.nullish(),
     accessType: campaignAccessTypeSchema.nullish(),
     progressStatus: traineeCampaignProgressStatusSchema.nullish(),
-    eligibility: campaignEligibilitySchema.default({
-      canView: true,
-      canProgress: true,
-      reason: 'AVAILABLE',
-    }),
+    itemCount: z.number().int().nonnegative().nullish(),
+    availableItemCount: z.number().int().nonnegative().nullish(),
+    eligibility: campaignEligibilitySchema,
   })
   .strict();
 
@@ -209,11 +207,7 @@ const traineeCampaignItemSummaryBaseSchema = z
     availabilityStatus: campaignItemAvailabilityStatusSchema,
     isOpenable: z.boolean(),
     progressStatus: traineeCampaignProgressStatusSchema.nullish(),
-    eligibility: campaignEligibilitySchema.default({
-      canView: true,
-      canProgress: true,
-      reason: 'AVAILABLE',
-    }),
+    eligibility: campaignEligibilitySchema,
   })
   .strict();
 
@@ -231,33 +225,29 @@ export const traineeCampaignComponentItemSummarySchema = traineeCampaignItemSumm
   })
   .strict();
 
-export type TraineeCampaignItemSummarySchema = z.ZodType<unknown>;
-
-export const traineeCampaignItemSummarySchema: TraineeCampaignItemSummarySchema = z.lazy(() =>
-  z.union([
-    traineeCampaignComponentItemSummarySchema,
-    traineeCampaignItemSummaryBaseSchema
-      .extend({
-        itemType: z.literal('GROUP'),
-        componentType: z.null().optional(),
-        groupType: campaignGroupTypeSchema,
-        completionRule: completionRuleSchema,
-        isOpenable: z.literal(false),
-        activityApiPath: z.null().optional(),
-        children: z.array(
-          traineeCampaignItemSummarySchema.refine(
-            (item) =>
-              typeof item === 'object' &&
-              item !== null &&
-              'parentGroupId' in item &&
-              typeof item.parentGroupId === 'string',
-            'Child campaign items must include parentGroupId',
-          ),
+export const traineeCampaignGroupItemSummarySchema = traineeCampaignItemSummaryBaseSchema
+  .extend({
+    itemType: z.literal('GROUP'),
+    componentType: z.null().optional(),
+    groupType: campaignGroupTypeSchema,
+    completionRule: completionRuleSchema,
+    isOpenable: z.literal(false),
+    activityApiPath: z.null().optional(),
+    children: z
+      .array(
+        traineeCampaignComponentItemSummarySchema.refine(
+          (item) => typeof item.parentGroupId === 'string',
+          'Child campaign items must include parentGroupId',
         ),
-      })
-      .strict(),
-  ]),
-);
+      )
+      .min(2),
+  })
+  .strict();
+
+export const traineeCampaignItemSummarySchema = z.discriminatedUnion('itemType', [
+  traineeCampaignComponentItemSummarySchema,
+  traineeCampaignGroupItemSummarySchema,
+]);
 
 export const getTraineeCampaignsResponseSchema = z
   .object({
@@ -340,7 +330,7 @@ export const updateCampaignDraftRequestSchema = createCampaignDraftRequestSchema
 
 export const campaignMutationPreconditionSchema = z
   .object({
-    expectedUpdatedAt: z.string().datetime().optional(),
+    expectedUpdatedAt: z.string().datetime(),
   })
   .strict();
 
@@ -381,6 +371,8 @@ export const quizCatalogueItemSchema = z
   })
   .strict();
 
+export const inboxStatusSchema = z.enum(['ACTIVE', 'ARCHIVED']);
+
 export const simulatedInboxCatalogueItemSchema = z
   .object({
     id: entityIdSchema,
@@ -389,11 +381,11 @@ export const simulatedInboxCatalogueItemSchema = z
     description: descriptionSchema.nullish(),
     emailCount: z.number().int().nonnegative().nullish(),
     difficultyLevel: difficultyLevelSchema,
-    status: z.string(),
+    status: z.literal('ACTIVE'),
   })
   .strict();
 
-export const campaignCatalogueItemSchema = z.union([
+export const campaignCatalogueItemSchema = z.discriminatedUnion('type', [
   trainingDocumentCatalogueItemSchema,
   quizCatalogueItemSchema,
   simulatedInboxCatalogueItemSchema,
@@ -461,7 +453,7 @@ export const campaignDetailGroupItemSchema = z
     completionRule: completionRuleSchema,
     position: z.number().int().nonnegative(),
     isRequired: z.boolean(),
-    children: z.array(campaignDetailComponentItemSchema),
+    children: z.array(campaignDetailComponentItemSchema).min(2),
   })
   .strict();
 
@@ -496,9 +488,10 @@ export const campaignDetailResponseSchema = z
 
 export const campaignLifecycleActionResponseSchema = z
   .object({
-    success: z.boolean(),
+    success: z.literal(true),
     campaignId: entityIdSchema,
     status: campaignStatusSchema,
+    updatedAt: z.string().datetime(),
     allowedActions: z.array(campaignAllowedActionSchema),
   })
   .strict();

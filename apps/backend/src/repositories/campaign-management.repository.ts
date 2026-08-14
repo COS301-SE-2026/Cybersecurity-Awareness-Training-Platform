@@ -33,6 +33,50 @@ export type RepositoryCampaignItemInput =
       }>;
     };
 
+export type CampaignRepositoryFailureCode =
+  | 'CAMPAIGN_NOT_FOUND'
+  | 'CAMPAIGN_CHANGED'
+  | 'CAMPAIGN_IMMUTABLE'
+  | 'CAMPAIGN_LIFECYCLE_CONFLICT'
+  | 'CAMPAIGN_ITEM_IDENTITY_CHANGED'
+  | 'INVALID_CAMPAIGN_ITEM_ID'
+  | 'UNAVAILABLE_CONTENT'
+  | 'EMPTY_CAMPAIGN';
+
+export type CampaignRepositoryFailure = {
+  success: false;
+  error: CampaignRepositoryFailureCode;
+  contentType?: CampaignComponentType;
+};
+
+export type CampaignRepositorySuccess = {
+  success: true;
+  campaignId: string;
+  status: CampaignStatus;
+  updatedAt: Date;
+};
+
+export type CampaignRepositoryResult = CampaignRepositorySuccess | CampaignRepositoryFailure;
+
+export class CampaignRepositoryAbort extends Error {
+  constructor(readonly result: CampaignRepositoryFailure) {
+    super(result.error);
+    this.name = 'CampaignRepositoryAbort';
+  }
+}
+
+export type CampaignTransitionCommand = {
+  campaignId: string;
+  organisationId: string | null;
+  expectedStatus: CampaignStatus;
+  targetStatus: CampaignStatus;
+  expectedUpdatedAt: Date;
+  requirements: {
+    requireItems: boolean;
+    requireAvailableSources: boolean;
+  };
+};
+
 export async function findCampaignCatalogue(input: {
   page: number;
   limit: number;
@@ -236,6 +280,32 @@ export async function findCampaigns(input: {
         _count: {
           select: { items: true },
         },
+        items: {
+          select: {
+            itemType: true,
+            componentType: true,
+            trainingDocument: {
+              select: {
+                status: true,
+              },
+            },
+            quiz: {
+              select: {
+                status: true,
+              },
+            },
+            simulation: {
+              select: {
+                safetyStatus: true,
+                simulatedInbox: {
+                  select: {
+                    status: true,
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     }),
   ]);
@@ -261,6 +331,7 @@ export async function findCampaigns(input: {
         : null,
       createdAt: campaign.createdAt,
       updatedAt: campaign.updatedAt,
+      sourceFacts: campaign.items,
     })),
     total,
   };
@@ -419,103 +490,141 @@ export async function findCampaignById(
   };
 }
 
+type ResolvedCampaignItemDetails =
+  | {
+      available: true;
+      title: string;
+      description: string | null;
+      trainingDocumentId: string | null;
+      quizId: string | null;
+      simulationId: string | null;
+    }
+  | {
+      available: false;
+      contentType: CampaignComponentType;
+    };
+
 async function resolveCampaignItemDetails(
   tx: Prisma.TransactionClient,
   itemInput: { componentType: CampaignComponentType; contentId: string },
-  index: number,
-) {
-  let title = `Item ${index + 1}`;
-  let description: string | null = null;
-
+  _index: number = 0,
+): Promise<ResolvedCampaignItemDetails> {
   if (itemInput.componentType === 'TRAINING_DOCUMENT') {
-    const doc = await tx.trainingDocument.findUnique({ where: { id: itemInput.contentId } });
-    if (doc?.status !== 'AVAILABLE') {
-      throw new Error(`TRAINING_DOCUMENT_UNAVAILABLE:${itemInput.contentId}`);
-    }
-    title = doc.title;
-    description = doc.contentSummary;
-  } else if (itemInput.componentType === 'QUIZ') {
-    const quiz = await tx.quiz.findUnique({ where: { id: itemInput.contentId } });
-    if (quiz?.status !== 'PUBLISHED') {
-      throw new Error(`QUIZ_UNAVAILABLE:${itemInput.contentId}`);
-    }
-    title = quiz.title;
-    description = quiz.description;
-  } else if (itemInput.componentType === 'SIMULATED_INBOX') {
-    const sim = await tx.simulation.findUnique({
+    const doc = await tx.trainingDocument.findUnique({
       where: { id: itemInput.contentId },
-      include: { simulatedInbox: true },
+      select: {
+        id: true,
+        title: true,
+        contentSummary: true,
+        status: true,
+      },
     });
-    if (sim?.safetyStatus !== 'APPROVED' || sim.simulatedInbox?.status !== 'ACTIVE') {
-      throw new Error(`SIMULATION_UNAVAILABLE:${itemInput.contentId}`);
+    if (!doc || doc.status !== 'AVAILABLE') {
+      return {
+        available: false,
+        contentType: 'TRAINING_DOCUMENT',
+      };
     }
-    title = sim.title;
-    description = sim.description;
+    return {
+      available: true,
+      title: doc.title,
+      description: doc.contentSummary,
+      trainingDocumentId: doc.id,
+      quizId: null,
+      simulationId: null,
+    };
+  }
+
+  if (itemInput.componentType === 'QUIZ') {
+    const quiz = await tx.quiz.findUnique({
+      where: { id: itemInput.contentId },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        status: true,
+      },
+    });
+    if (!quiz || quiz.status !== 'PUBLISHED') {
+      return {
+        available: false,
+        contentType: 'QUIZ',
+      };
+    }
+    return {
+      available: true,
+      title: quiz.title,
+      description: quiz.description,
+      trainingDocumentId: null,
+      quizId: quiz.id,
+      simulationId: null,
+    };
+  }
+
+  const sim = await tx.simulation.findUnique({
+    where: { id: itemInput.contentId },
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      safetyStatus: true,
+      simulatedInbox: {
+        select: {
+          status: true,
+        },
+      },
+    },
+  });
+
+  if (!sim || sim.safetyStatus !== 'APPROVED' || sim.simulatedInbox?.status !== 'ACTIVE') {
+    return {
+      available: false,
+      contentType: 'SIMULATED_INBOX',
+    };
   }
 
   return {
-    title,
-    description,
-    trainingDocumentId:
-      itemInput.componentType === 'TRAINING_DOCUMENT' ? itemInput.contentId : null,
-    quizId: itemInput.componentType === 'QUIZ' ? itemInput.contentId : null,
-    simulationId: itemInput.componentType === 'SIMULATED_INBOX' ? itemInput.contentId : null,
+    available: true,
+    title: sim.title,
+    description: sim.description,
+    trainingDocumentId: null,
+    quizId: null,
+    simulationId: sim.id,
   };
 }
 
-function checkItemDuplicate(
-  seenSources: Set<string>,
-  seenItemIds: Set<string>,
-  item: { campaignItemId?: string; componentType: CampaignComponentType; contentId: string },
-): string | null {
-  if (item.campaignItemId) {
-    if (seenItemIds.has(item.campaignItemId)) {
-      return 'DUPLICATE_CAMPAIGN_ITEM_ID';
-    }
-    seenItemIds.add(item.campaignItemId);
-  }
-  const sourceKey = `${item.componentType}:${item.contentId}`;
-  if (seenSources.has(sourceKey)) {
-    return 'DUPLICATE_SOURCE';
-  }
-  seenSources.add(sourceKey);
-  return null;
+function campaignScopeWhere(input: {
+  campaignId: string;
+  organisationId: string | null;
+}): Prisma.CampaignWhereInput {
+  return input.organisationId === null
+    ? {
+        id: input.campaignId,
+        organisationId: null,
+        campaignType: 'PREMADE_GENERAL',
+      }
+    : {
+        id: input.campaignId,
+        organisationId: input.organisationId,
+        campaignType: 'ORGANISATION_CUSTOM',
+      };
 }
 
-function validateItemStructure(items: RepositoryCampaignItemInput[]): {
-  valid: boolean;
-  error?: string;
-} {
-  const seenSources = new Set<string>();
-  const seenItemIds = new Set<string>();
-
-  for (const item of items) {
-    if (item.campaignItemId) {
-      if (seenItemIds.has(item.campaignItemId)) {
-        return { valid: false, error: 'DUPLICATE_CAMPAIGN_ITEM_ID' };
-      }
-      seenItemIds.add(item.campaignItemId);
-    }
-
-    if (item.itemType === 'GROUP') {
-      if (!item.children || item.children.length < 2) {
-        return { valid: false, error: 'GROUP_MIN_CHILDREN_REQUIRED' };
-      }
-      for (const child of item.children) {
-        const error = checkItemDuplicate(seenSources, seenItemIds, child);
-        if (error) {
-          return { valid: false, error };
-        }
-      }
-    } else {
-      const error = checkItemDuplicate(seenSources, seenItemIds, item);
-      if (error) {
-        return { valid: false, error };
-      }
-    }
+async function reserveTemporaryPositions(
+  tx: Prisma.TransactionClient,
+  _campaignId: string,
+  existingItemIds: string[],
+): Promise<void> {
+  for (let index = 0; index < existingItemIds.length; index += 1) {
+    await tx.campaignItem.update({
+      where: {
+        id: existingItemIds[index],
+      },
+      data: {
+        position: -(index + 1),
+      },
+    });
   }
-
-  return { valid: true };
 }
 
 async function persistDraftComponentItem(
@@ -534,6 +643,14 @@ async function persistDraftComponentItem(
   index: number = 0,
 ) {
   const details = await resolveCampaignItemDetails(tx, itemInput, index);
+  if (!details.available) {
+    throw new CampaignRepositoryAbort({
+      success: false,
+      error: 'UNAVAILABLE_CONTENT',
+      contentType: details.contentType,
+    });
+  }
+
   const exists =
     itemInput.campaignItemId && existingItems.some((i) => i.id === itemInput.campaignItemId);
 
@@ -542,6 +659,9 @@ async function persistDraftComponentItem(
       where: { id: itemInput.campaignItemId },
       data: {
         parentGroupId,
+        itemType: 'COMPONENT',
+        groupType: null,
+        completionRule: null,
         componentType: itemInput.componentType,
         title: details.title,
         description: details.description,
@@ -588,12 +708,18 @@ async function persistDraftGroupItem(
     await tx.campaignItem.update({
       where: { id: groupId },
       data: {
+        parentGroupId: null,
+        itemType: 'GROUP',
+        componentType: null,
         title: groupInput.title,
         description: groupInput.description ?? null,
         groupType: groupInput.groupType,
         completionRule: groupInput.completionRule,
         position,
         isRequired: groupInput.isRequired,
+        trainingDocumentId: null,
+        quizId: null,
+        simulationId: null,
       },
     });
   } else {
@@ -628,7 +754,7 @@ async function persistDraftGroupItem(
 }
 
 export async function createCampaignDraft(input: {
-  organisationId?: string | null;
+  organisationId: string | null;
   createdByUserId?: string | null;
   name: string;
   description?: string | null;
@@ -637,24 +763,11 @@ export async function createCampaignDraft(input: {
   startDate?: Date | null;
   endDate?: Date | null;
   items: RepositoryCampaignItemInput[];
-}) {
-  if (input.campaignType === 'PREMADE_GENERAL' && input.organisationId !== null) {
-    throw new Error('PREMADE_GENERAL campaigns must have null organisationId');
-  }
-
-  if (input.campaignType === 'ORGANISATION_CUSTOM' && !input.organisationId) {
-    throw new Error('ORGANISATION_CUSTOM campaigns must have a valid organisationId');
-  }
-
-  const structureValidation = validateItemStructure(input.items);
-  if (!structureValidation.valid) {
-    throw new Error(structureValidation.error);
-  }
-
+}): Promise<string> {
   return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const campaign = await tx.campaign.create({
       data: {
-        organisationId: input.organisationId ?? null,
+        organisationId: input.organisationId,
         createdByUserId: input.createdByUserId ?? null,
         name: input.name,
         description: input.description ?? null,
@@ -730,7 +843,7 @@ function validateCampaignDraftItemIdentities(
     simulationId: string | null;
   }[],
   items: RepositoryCampaignItemInput[],
-): { valid: boolean; error?: string } {
+): { valid: boolean; error?: CampaignRepositoryFailureCode } {
   for (const itemInput of items) {
     if (itemInput.itemType === 'GROUP') {
       if (itemInput.campaignItemId) {
@@ -768,7 +881,7 @@ function validateCampaignDraftItemIdentities(
 
 export async function updateCampaignDraft(input: {
   campaignId: string;
-  organisationId?: string | null;
+  organisationId: string | null;
   expectedUpdatedAt: Date;
   name: string;
   description?: string | null;
@@ -776,93 +889,154 @@ export async function updateCampaignDraft(input: {
   startDate?: Date | null;
   endDate?: Date | null;
   items: RepositoryCampaignItemInput[];
-}) {
-  const structureValidation = validateItemStructure(input.items);
-  if (!structureValidation.valid) {
-    return { success: false, error: structureValidation.error as string };
-  }
-
-  return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    const existing = await tx.campaign.findUnique({
-      where: { id: input.campaignId },
-      include: { items: true },
-    });
-
-    if (!existing) {
-      return { success: false, error: 'CAMPAIGN_NOT_FOUND' as const };
-    }
-
-    if (input.organisationId !== undefined && existing.organisationId !== input.organisationId) {
-      return { success: false, error: 'CAMPAIGN_NOT_FOUND' as const };
-    }
-
-    if (existing.status !== 'DRAFT') {
-      return { success: false, error: 'CAMPAIGN_IMMUTABLE' as const };
-    }
-
-    if (existing.updatedAt.getTime() !== input.expectedUpdatedAt.getTime()) {
-      return { success: false, error: 'CAMPAIGN_CHANGED' as const };
-    }
-
-    const identityCheck = validateCampaignDraftItemIdentities(existing.items, input.items);
-    if (!identityCheck.valid) {
-      return { success: false, error: identityCheck.error as string };
-    }
-
-    await tx.campaign.update({
-      where: { id: input.campaignId },
-      data: {
-        name: input.name,
-        description: input.description ?? null,
-        accentColor: input.accentColor ?? null,
-        startDate: input.startDate ?? null,
-        endDate: input.endDate ?? null,
-      },
-    });
-
-    const keptItemIds = new Set<string>();
-
-    for (let index = 0; index < input.items.length; index++) {
-      const itemInput = input.items[index];
-      const position = (index + 1) * 10;
-
-      if (itemInput.itemType === 'GROUP') {
-        await persistDraftGroupItem(
-          tx,
-          input.campaignId,
-          itemInput,
-          position,
-          existing.items,
-          keptItemIds,
-        );
-      } else {
-        await persistDraftComponentItem(
-          tx,
-          input.campaignId,
-          itemInput,
-          position,
-          existing.items,
-          keptItemIds,
-          null,
-          index,
-        );
-      }
-    }
-
-    const itemIdsToDelete = existing.items
-      .filter((item) => !keptItemIds.has(item.id))
-      .map((item) => item.id);
-
-    if (itemIdsToDelete.length > 0) {
-      await tx.campaignItem.deleteMany({
+}): Promise<CampaignRepositoryResult> {
+  try {
+    return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const claimed = await tx.campaign.updateMany({
         where: {
-          id: { in: itemIdsToDelete },
+          ...campaignScopeWhere({
+            campaignId: input.campaignId,
+            organisationId: input.organisationId,
+          }),
+          status: 'DRAFT',
+          updatedAt: input.expectedUpdatedAt,
+        },
+        data: {
+          name: input.name,
+          description: input.description ?? null,
+          accentColor: input.accentColor ?? null,
+          startDate: input.startDate ?? null,
+          endDate: input.endDate ?? null,
         },
       });
-    }
 
-    return { success: true };
-  });
+      if (claimed.count !== 1) {
+        const current = await tx.campaign.findFirst({
+          where: campaignScopeWhere({
+            campaignId: input.campaignId,
+            organisationId: input.organisationId,
+          }),
+          select: {
+            status: true,
+            updatedAt: true,
+          },
+        });
+
+        if (!current) {
+          return {
+            success: false,
+            error: 'CAMPAIGN_NOT_FOUND',
+          } as const;
+        }
+
+        if (current.status !== 'DRAFT') {
+          return {
+            success: false,
+            error: 'CAMPAIGN_IMMUTABLE',
+          } as const;
+        }
+
+        return {
+          success: false,
+          error: 'CAMPAIGN_CHANGED',
+        } as const;
+      }
+
+      const existingItems = await tx.campaignItem.findMany({
+        where: {
+          campaignId: input.campaignId,
+        },
+        select: {
+          id: true,
+          itemType: true,
+          componentType: true,
+          parentGroupId: true,
+          position: true,
+          trainingDocumentId: true,
+          quizId: true,
+          simulationId: true,
+        },
+      });
+
+      const identityCheck = validateCampaignDraftItemIdentities(existingItems, input.items);
+      if (!identityCheck.valid) {
+        throw new CampaignRepositoryAbort({
+          success: false,
+          error: identityCheck.error as CampaignRepositoryFailureCode,
+        });
+      }
+
+      await reserveTemporaryPositions(
+        tx,
+        input.campaignId,
+        existingItems.map((item) => item.id),
+      );
+
+      const keptItemIds = new Set<string>();
+
+      for (let index = 0; index < input.items.length; index++) {
+        const itemInput = input.items[index];
+        const position = (index + 1) * 10;
+
+        if (itemInput.itemType === 'GROUP') {
+          await persistDraftGroupItem(
+            tx,
+            input.campaignId,
+            itemInput,
+            position,
+            existingItems,
+            keptItemIds,
+          );
+        } else {
+          await persistDraftComponentItem(
+            tx,
+            input.campaignId,
+            itemInput,
+            position,
+            existingItems,
+            keptItemIds,
+            null,
+            index,
+          );
+        }
+      }
+
+      const itemIdsToDelete = existingItems
+        .filter((item) => !keptItemIds.has(item.id))
+        .map((item) => item.id);
+
+      if (itemIdsToDelete.length > 0) {
+        await tx.campaignItem.deleteMany({
+          where: {
+            id: { in: itemIdsToDelete },
+          },
+        });
+      }
+
+      const updatedCampaign = await tx.campaign.findUniqueOrThrow({
+        where: {
+          id: input.campaignId,
+        },
+        select: {
+          id: true,
+          status: true,
+          updatedAt: true,
+        },
+      });
+
+      return {
+        success: true,
+        campaignId: updatedCampaign.id,
+        status: updatedCampaign.status,
+        updatedAt: updatedCampaign.updatedAt,
+      } as const;
+    });
+  } catch (error) {
+    if (error instanceof CampaignRepositoryAbort) {
+      return error.result;
+    }
+    throw error;
+  }
 }
 
 type CampaignItemWithContent = {
@@ -898,140 +1072,125 @@ function checkItemsContentStatus(items: CampaignItemWithContent[]): boolean {
   });
 }
 
-export async function activateCampaign(
-  campaignId: string,
-  _actorUserId?: string,
-  organisationId?: string | null,
-  expectedUpdatedAt?: Date,
-) {
-  return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    const campaign = await tx.campaign.findUnique({
-      where: { id: campaignId },
-      include: {
-        items: {
-          include: {
-            trainingDocument: true,
-            quiz: true,
-            simulation: { include: { simulatedInbox: true } },
-          },
+export async function transitionCampaign(
+  command: CampaignTransitionCommand,
+): Promise<CampaignRepositoryResult> {
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const claimed = await tx.campaign.updateMany({
+        where: {
+          ...campaignScopeWhere({
+            campaignId: command.campaignId,
+            organisationId: command.organisationId,
+          }),
+          status: command.expectedStatus,
+          updatedAt: command.expectedUpdatedAt,
         },
-      },
-    });
-
-    if (!campaign) {
-      return { success: false, error: 'CAMPAIGN_NOT_FOUND' as const };
-    }
-
-    if (organisationId !== undefined && campaign.organisationId !== organisationId) {
-      return { success: false, error: 'CAMPAIGN_NOT_FOUND' as const };
-    }
-
-    if (campaign.status !== 'DRAFT') {
-      return { success: false, error: 'CAMPAIGN_LIFECYCLE_CONFLICT' as const };
-    }
-
-    if (expectedUpdatedAt && campaign.updatedAt.getTime() !== expectedUpdatedAt.getTime()) {
-      return { success: false, error: 'CAMPAIGN_CHANGED' as const };
-    }
-
-    if (campaign.items.length === 0) {
-      return { success: false, error: 'EMPTY_CAMPAIGN' as const };
-    }
-
-    if (!checkItemsContentStatus(campaign.items)) {
-      return { success: false, error: 'INVALID_CONTENT_STATUS' as const };
-    }
-
-    await tx.campaign.update({
-      where: { id: campaignId },
-      data: { status: 'ACTIVE' },
-    });
-
-    return { success: true, status: 'ACTIVE' as const };
-  });
-}
-
-export async function archiveCampaign(
-  campaignId: string,
-  _actorUserId?: string,
-  organisationId?: string | null,
-  expectedUpdatedAt?: Date,
-) {
-  return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    const campaign = await tx.campaign.findUnique({
-      where: { id: campaignId },
-    });
-
-    if (!campaign) {
-      return { success: false, error: 'CAMPAIGN_NOT_FOUND' as const };
-    }
-
-    if (organisationId !== undefined && campaign.organisationId !== organisationId) {
-      return { success: false, error: 'CAMPAIGN_NOT_FOUND' as const };
-    }
-
-    if (campaign.status !== 'ACTIVE') {
-      return { success: false, error: 'CAMPAIGN_LIFECYCLE_CONFLICT' as const };
-    }
-
-    if (expectedUpdatedAt && campaign.updatedAt.getTime() !== expectedUpdatedAt.getTime()) {
-      return { success: false, error: 'CAMPAIGN_CHANGED' as const };
-    }
-
-    await tx.campaign.update({
-      where: { id: campaignId },
-      data: { status: 'ARCHIVED' },
-    });
-
-    return { success: true, status: 'ARCHIVED' as const };
-  });
-}
-
-export async function reactivateCampaign(
-  campaignId: string,
-  _actorUserId?: string,
-  organisationId?: string | null,
-  expectedUpdatedAt?: Date,
-) {
-  return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    const campaign = await tx.campaign.findUnique({
-      where: { id: campaignId },
-      include: {
-        items: {
-          include: {
-            trainingDocument: true,
-            quiz: true,
-            simulation: { include: { simulatedInbox: true } },
-          },
+        data: {
+          status: command.targetStatus,
         },
-      },
+      });
+
+      if (claimed.count !== 1) {
+        const current = await tx.campaign.findFirst({
+          where: campaignScopeWhere({
+            campaignId: command.campaignId,
+            organisationId: command.organisationId,
+          }),
+          select: {
+            status: true,
+            updatedAt: true,
+          },
+        });
+
+        if (!current) {
+          return {
+            success: false,
+            error: 'CAMPAIGN_NOT_FOUND',
+          } as const;
+        }
+
+        if (current.status !== command.expectedStatus) {
+          return {
+            success: false,
+            error: 'CAMPAIGN_LIFECYCLE_CONFLICT',
+          } as const;
+        }
+
+        return {
+          success: false,
+          error: 'CAMPAIGN_CHANGED',
+        } as const;
+      }
+
+      if (command.requirements.requireItems || command.requirements.requireAvailableSources) {
+        const items = await tx.campaignItem.findMany({
+          where: {
+            campaignId: command.campaignId,
+          },
+          select: {
+            itemType: true,
+            componentType: true,
+            trainingDocument: {
+              select: {
+                status: true,
+              },
+            },
+            quiz: {
+              select: {
+                status: true,
+              },
+            },
+            simulation: {
+              select: {
+                safetyStatus: true,
+                simulatedInbox: {
+                  select: {
+                    status: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        if (command.requirements.requireItems && items.length === 0) {
+          throw new CampaignRepositoryAbort({
+            success: false,
+            error: 'EMPTY_CAMPAIGN',
+          });
+        }
+
+        if (command.requirements.requireAvailableSources && !checkItemsContentStatus(items)) {
+          throw new CampaignRepositoryAbort({
+            success: false,
+            error: 'UNAVAILABLE_CONTENT',
+          });
+        }
+      }
+
+      const updated = await tx.campaign.findUniqueOrThrow({
+        where: {
+          id: command.campaignId,
+        },
+        select: {
+          id: true,
+          status: true,
+          updatedAt: true,
+        },
+      });
+
+      return {
+        success: true,
+        campaignId: updated.id,
+        status: updated.status,
+        updatedAt: updated.updatedAt,
+      };
     });
-
-    if (!campaign) {
-      return { success: false, error: 'CAMPAIGN_NOT_FOUND' as const };
+  } catch (error) {
+    if (error instanceof CampaignRepositoryAbort) {
+      return error.result;
     }
-
-    if (organisationId !== undefined && campaign.organisationId !== organisationId) {
-      return { success: false, error: 'CAMPAIGN_NOT_FOUND' as const };
-    }
-
-    if (campaign.status !== 'ARCHIVED') {
-      return { success: false, error: 'CAMPAIGN_LIFECYCLE_CONFLICT' as const };
-    }
-
-    if (expectedUpdatedAt && campaign.updatedAt.getTime() !== expectedUpdatedAt.getTime()) {
-      return { success: false, error: 'CAMPAIGN_CHANGED' as const };
-    }
-
-    if (!checkItemsContentStatus(campaign.items)) {
-      return { success: false, error: 'INVALID_CONTENT_STATUS' as const };
-    }
-
-    await tx.campaign.update({
-      where: { id: campaignId },
-      data: { status: 'ACTIVE' },
-    });
-
-    return { success: true, status: 'ACTIVE' as const };
-  });
+    throw error;
+  }
 }

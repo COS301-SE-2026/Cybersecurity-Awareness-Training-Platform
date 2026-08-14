@@ -1,4 +1,6 @@
 import { prisma } from '../lib/prisma.js';
+import type { Prisma } from '../generated/prisma/client.js';
+import { enforceProgressWriteGuard } from './campaign-progress-guard.repository.js';
 
 export function findActiveTraineeProfileByUserId(userId: string) {
   return prisma.traineeProfile.findFirst({
@@ -95,5 +97,78 @@ export function createTrainingInteractionEvent(input: {
       eventType: true,
       occurredAt: true,
     },
+  });
+}
+
+export async function createTrainingInteractionEventGuarded(input: {
+  campaignId: string;
+  traineeProfileId: string;
+  campaignAssignmentId: string;
+  campaignItemId: string;
+  trainingDocumentId: string;
+  eventType: 'TRAINING_VIEWED' | 'TRAINING_COMPLETED';
+  checkedAt: Date;
+}) {
+  return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const guard = await enforceProgressWriteGuard(tx, {
+      campaignId: input.campaignId,
+      campaignAssignmentId: input.campaignAssignmentId,
+      campaignItemId: input.campaignItemId,
+      traineeProfileId: input.traineeProfileId,
+      checkedAt: input.checkedAt,
+      requiredStatus: 'ACTIVE',
+    });
+
+    if (!guard.allowed) {
+      return guard;
+    }
+
+    if (input.eventType === 'TRAINING_COMPLETED') {
+      const existing = await tx.interactionEvent.findFirst({
+        where: {
+          traineeProfileId: input.traineeProfileId,
+          campaignAssignmentId: input.campaignAssignmentId,
+          campaignItemId: input.campaignItemId,
+          eventType: 'TRAINING_COMPLETED',
+          targetType: 'TRAINING_DOCUMENT',
+          targetId: input.trainingDocumentId,
+          trainingDocumentId: input.trainingDocumentId,
+        },
+        select: {
+          id: true,
+          eventType: true,
+          occurredAt: true,
+        },
+      });
+
+      if (existing) {
+        return {
+          allowed: true as const,
+          value: existing,
+        };
+      }
+    }
+
+    const event = await tx.interactionEvent.create({
+      data: {
+        traineeProfileId: input.traineeProfileId,
+        campaignAssignmentId: input.campaignAssignmentId,
+        campaignItemId: input.campaignItemId,
+        eventType: input.eventType,
+        targetType: 'TRAINING_DOCUMENT',
+        targetId: input.trainingDocumentId,
+        trainingDocumentId: input.trainingDocumentId,
+      },
+      select: {
+        id: true,
+        eventType: true,
+        occurredAt: true,
+      },
+    });
+
+    return {
+      allowed: true as const,
+      value: event,
+    };
   });
 }

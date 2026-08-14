@@ -469,20 +469,21 @@ export async function executeBulkCampaignAssignment(
     }
 
     if (missingPairs.length > 0) {
-      const neededCampaignIds = Array.from(new Set(missingPairs.map((p) => p.campaignId)));
-      const neededTraineeProfileIds = Array.from(
-        new Set(missingPairs.map((p) => p.traineeProfileId)),
-      );
-
       const campaigns = await tx.campaign.findMany({
-        where: { id: { in: neededCampaignIds } },
-        select: { id: true, organisationId: true, status: true, campaignType: true, endDate: true },
+        where: { id: { in: input.campaignIds } },
+        select: {
+          id: true,
+          organisationId: true,
+          status: true,
+          campaignType: true,
+          endDate: true,
+        },
       });
 
       const campaignMap = new Map((campaigns ?? []).map((c) => [c.id, c]));
       const now = new Date();
 
-      for (const cId of neededCampaignIds) {
+      for (const cId of input.campaignIds) {
         const c = campaignMap.get(cId);
         if (!c) {
           return {
@@ -518,7 +519,7 @@ export async function executeBulkCampaignAssignment(
       const orgTrainees = await tx.organisationTraineeProfile.findMany({
         where: {
           organisationId: input.organisationId,
-          traineeProfileId: { in: neededTraineeProfileIds },
+          traineeProfileId: { in: input.traineeProfileIds },
         },
         select: {
           traineeProfileId: true,
@@ -539,7 +540,7 @@ export async function executeBulkCampaignAssignment(
 
       const traineeMap = new Map((orgTrainees ?? []).map((t) => [t.traineeProfileId, t]));
 
-      for (const tId of neededTraineeProfileIds) {
+      for (const tId of input.traineeProfileIds) {
         const t = traineeMap.get(tId);
         if (!t) {
           return {

@@ -136,9 +136,11 @@ export async function recordTrainingInteraction(input: {
   eventType: TrainingInteractionEventTypeDto;
 }): Promise<RecordTrainingInteractionResponseDto> {
   const access = await resolveTrainingDocumentAccess(input.userId, input.campaignItemId);
+  const checkedAt = new Date();
 
   const campaignEligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(
     access.campaignItem.campaign,
+    checkedAt,
   );
   const itemEligibility = defaultCampaignEligibilityService.evaluateItemEligibility(
     campaignEligibility,
@@ -146,19 +148,30 @@ export async function recordTrainingInteraction(input: {
   );
   defaultCampaignEligibilityService.assertCanProgress(itemEligibility);
 
-  const eventInput = {
+  const result = await TraineeTrainingRepository.createTrainingInteractionEventGuarded({
+    campaignId: access.campaignItem.campaignId,
     traineeProfileId: access.traineeProfileId,
     campaignAssignmentId: access.campaignAssignment.id,
     campaignItemId: access.campaignItem.id,
     trainingDocumentId: access.trainingDocument.id,
     eventType: input.eventType,
-  };
+    checkedAt,
+  });
 
-  const event =
-    input.eventType === 'TRAINING_COMPLETED'
-      ? ((await TraineeTrainingRepository.findExistingTrainingCompletedEvent(eventInput)) ??
-        (await TraineeTrainingRepository.createTrainingInteractionEvent(eventInput)))
-      : await TraineeTrainingRepository.createTrainingInteractionEvent(eventInput);
+  if (!result.allowed) {
+    if (result.reason === 'NOT_FOUND' || !result.campaign) {
+      throw new TrainingDocumentAccessNotFoundError();
+    }
+    const guardEligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(
+      result.campaign,
+      checkedAt,
+    );
+    defaultCampaignEligibilityService.assertCanProgress(guardEligibility);
+  }
+
+  const event = (
+    result as { allowed: true; value: { id: string; eventType: string; occurredAt: Date } }
+  ).value;
 
   return {
     success: true,

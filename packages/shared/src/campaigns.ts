@@ -1,15 +1,9 @@
 import type { z } from 'zod';
 import type { SuccessResponseDto } from './common.js';
 import type {
+  AssignmentStatusDto,
   CampaignAccessTypeDto,
   CampaignComponentTypeDto,
-  CampaignGroupTypeDto,
-  CampaignItemAvailabilityStatusDto,
-  CampaignItemTypeDto,
-  CampaignStatusDto,
-  CampaignTypeDto,
-  AssignmentStatusDto,
-  CompletionRuleDto,
 } from './entities.js';
 import type { QuizStatusDto } from './quizzes.js';
 import type { DifficultyLevelDto, TrainingDocumentStatusDto } from './training.js';
@@ -30,11 +24,17 @@ import type {
   createCampaignDraftRequestSchema,
   getCampaignCatalogueResponseSchema,
   getCampaignsResponseSchema,
+  getTraineeCampaignDetailResponseSchema,
   getTraineeCampaignRequestParamsSchema,
+  getTraineeCampaignsResponseSchema,
   listTraineeCampaignsRequestSchema,
   quizCatalogueItemSchema,
   simulatedInboxCatalogueItemSchema,
+  traineeCampaignComponentItemSummarySchema,
+  traineeCampaignGroupItemSummarySchema,
   traineeCampaignItemRequestParamsSchema,
+  traineeCampaignItemSummarySchema,
+  traineeCampaignSummarySchema,
   trainingDocumentCatalogueItemSchema,
   updateCampaignDraftRequestSchema,
 } from './validation/campaigns.schemas.js';
@@ -141,75 +141,29 @@ export interface TraineeCampaignAssignmentSummaryDto {
   completedAt?: string | null;
 }
 
-export interface TraineeCampaignSummaryDto {
-  campaignId: string;
-  name: string;
-  description?: string | null;
-  accentColor?: string | null;
-  campaignType: CampaignTypeDto;
-  difficultyLevel: DifficultyLevelDto;
-  status: CampaignStatusDto;
-  startDate?: string | null;
-  endDate?: string | null;
-  assignment?: TraineeCampaignAssignmentSummaryDto | null;
-  accessType?: CampaignAccessTypeDto | null;
-  progressStatus?: TraineeCampaignProgressStatusDto | null;
-  eligibility?: CampaignEligibilityDto;
-}
+export type TraineeCampaignSummaryDto = z.infer<typeof traineeCampaignSummarySchema>;
 
-interface TraineeCampaignItemSummaryBaseDto {
-  campaignItemId: string;
-  campaignId: string;
-  parentGroupId?: string | null;
-  itemType: CampaignItemTypeDto;
-  title: string;
-  description?: string | null;
-  position: number;
-  isRequired: boolean;
-  availabilityStatus: CampaignItemAvailabilityStatusDto;
-  isOpenable: boolean;
-  progressStatus?: TraineeCampaignProgressStatusDto | null;
-  eligibility?: CampaignEligibilityDto;
-}
+export type TraineeCampaignComponentItemSummaryDto = z.infer<
+  typeof traineeCampaignComponentItemSummarySchema
+>;
 
-export interface TraineeCampaignComponentItemSummaryDto extends TraineeCampaignItemSummaryBaseDto {
-  itemType: 'COMPONENT';
-  componentType: SupportedTraineeCampaignComponentTypeDto;
-  groupType?: null;
-  completionRule?: null;
-  activityApiPath: string;
-  trainingDocument?: CampaignTrainingDocumentSummaryDto | null;
-  quiz?: CampaignQuizSummaryDto | null;
-  simulation?: CampaignSimulationSummaryDto | null;
-}
+export type TraineeCampaignGroupItemSummaryDto = z.infer<
+  typeof traineeCampaignGroupItemSummarySchema
+>;
 
-export interface TraineeCampaignGroupItemSummaryDto extends TraineeCampaignItemSummaryBaseDto {
-  itemType: 'GROUP';
-  componentType?: null;
-  groupType: CampaignGroupTypeDto;
-  completionRule: CompletionRuleDto;
-  isOpenable: false;
-  activityApiPath?: null;
-  children: TraineeCampaignChildItemSummaryDto[];
-}
+export type TraineeCampaignItemSummaryDto = z.infer<typeof traineeCampaignItemSummarySchema>;
 
-export type TraineeCampaignItemSummaryDto =
-  | TraineeCampaignComponentItemSummaryDto
-  | TraineeCampaignGroupItemSummaryDto;
-
-export type TraineeCampaignChildItemSummaryDto = TraineeCampaignItemSummaryDto & {
+export type TraineeCampaignChildItemSummaryDto = TraineeCampaignComponentItemSummaryDto & {
   parentGroupId: string;
 };
 
 export type TraineeCampaignItemDto = TraineeCampaignItemSummaryDto;
 
-export interface GetTraineeCampaignsResponseDto {
-  campaigns: TraineeCampaignSummaryDto[];
-}
+export type GetTraineeCampaignsResponseDto = z.infer<typeof getTraineeCampaignsResponseSchema>;
 
-export interface GetTraineeCampaignDetailResponseDto extends TraineeCampaignSummaryDto {
-  items: TraineeCampaignItemSummaryDto[];
-}
+export type GetTraineeCampaignDetailResponseDto = z.infer<
+  typeof getTraineeCampaignDetailResponseSchema
+>;
 
 export type GetTraineeCampaignResponseDto = GetTraineeCampaignDetailResponseDto;
 
