@@ -25,6 +25,7 @@ import OrganisationTraineesPage from '../pages/OrganisationTraineesPage';
 import OrganisationAdministratorsPage from '../pages/OrganisationAdministratorsPage';
 import PlatformAdministratorsPage from '../pages/PlatformAdministratorsPage';
 import BrandPage from '../pages/BrandPage';
+import CampaignAssignmentPage from '../pages/CampaignAssignmentPage';
 
 function AppRoutes() {
   return (
@@ -134,6 +135,22 @@ function AppRoutes() {
       <Route path="/" element={<LandingPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
       <Route path="/brand" element={<BrandPage />} />
+
+      {/* <Route path="/campaign-assignment" element={<CampaignAssignmentPage />} /> */}
+      <Route
+        element={
+          <ProtectedRoute
+            requiredRole="ORGANISATION_ADMIN"
+            requireOrganisation
+            requiredPermission="ASSIGN_CAMPAIGNS"
+          />
+        }
+      >
+        <Route
+          path="/organisations/:organisationId/campaign-assignments/new"
+          element={<CampaignAssignmentPage />}
+        />
+      </Route>
     </Routes>
   );
 }
