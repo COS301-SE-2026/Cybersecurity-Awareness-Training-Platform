@@ -37,6 +37,12 @@ export class QuizValidationError extends Error {
   }
 }
 
+export async function getActiveTraineeProfileId(userId?: string) {
+  if (!userId) return null;
+  const profile = await QuizRepository.findActiveTraineeProfileByUserId(userId);
+  return profile?.id ?? null;
+}
+
 async function getValidatedCampaignItem(campaignItemId: string, traineeProfileId: string) {
   const campaignItem = await QuizRepository.findQuizCampaignItem(campaignItemId, traineeProfileId);
 

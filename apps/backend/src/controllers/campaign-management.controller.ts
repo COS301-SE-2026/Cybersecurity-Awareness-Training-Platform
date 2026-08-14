@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import {
   campaignCatalogueQuerySchema,
   campaignListQuerySchema,
+  campaignMutationPreconditionSchema,
   createCampaignDraftRequestSchema,
   updateCampaignDraftRequestSchema,
 } from '@insightful-phish/shared';
@@ -283,11 +284,14 @@ export async function activateOrganisationCampaignHandler(req: Request, res: Res
     const actor = extractActor(req);
     const organisationId = String(req.params.organisationId);
     const campaignId = String(req.params.campaignId);
+    const parseResult = campaignMutationPreconditionSchema.optional().safeParse(req.body);
+    const precondition = parseResult.success ? parseResult.data : undefined;
 
     const result = await CampaignManagementService.activateOrganisationCampaign(
       actor,
       organisationId,
       campaignId,
+      precondition,
     );
     return res.status(200).json(result);
   } catch (err) {
@@ -299,8 +303,14 @@ export async function activatePlatformCampaignHandler(req: Request, res: Respons
   try {
     const actor = extractActor(req);
     const campaignId = String(req.params.campaignId);
+    const parseResult = campaignMutationPreconditionSchema.optional().safeParse(req.body);
+    const precondition = parseResult.success ? parseResult.data : undefined;
 
-    const result = await CampaignManagementService.activatePlatformCampaign(actor, campaignId);
+    const result = await CampaignManagementService.activatePlatformCampaign(
+      actor,
+      campaignId,
+      precondition,
+    );
     return res.status(200).json(result);
   } catch (err) {
     return handleControllerError(res, err);
@@ -312,11 +322,14 @@ export async function archiveOrganisationCampaignHandler(req: Request, res: Resp
     const actor = extractActor(req);
     const organisationId = String(req.params.organisationId);
     const campaignId = String(req.params.campaignId);
+    const parseResult = campaignMutationPreconditionSchema.optional().safeParse(req.body);
+    const precondition = parseResult.success ? parseResult.data : undefined;
 
     const result = await CampaignManagementService.archiveOrganisationCampaign(
       actor,
       organisationId,
       campaignId,
+      precondition,
     );
     return res.status(200).json(result);
   } catch (err) {
@@ -328,8 +341,14 @@ export async function archivePlatformCampaignHandler(req: Request, res: Response
   try {
     const actor = extractActor(req);
     const campaignId = String(req.params.campaignId);
+    const parseResult = campaignMutationPreconditionSchema.optional().safeParse(req.body);
+    const precondition = parseResult.success ? parseResult.data : undefined;
 
-    const result = await CampaignManagementService.archivePlatformCampaign(actor, campaignId);
+    const result = await CampaignManagementService.archivePlatformCampaign(
+      actor,
+      campaignId,
+      precondition,
+    );
     return res.status(200).json(result);
   } catch (err) {
     return handleControllerError(res, err);
@@ -341,11 +360,14 @@ export async function reactivateOrganisationCampaignHandler(req: Request, res: R
     const actor = extractActor(req);
     const organisationId = String(req.params.organisationId);
     const campaignId = String(req.params.campaignId);
+    const parseResult = campaignMutationPreconditionSchema.optional().safeParse(req.body);
+    const precondition = parseResult.success ? parseResult.data : undefined;
 
     const result = await CampaignManagementService.reactivateOrganisationCampaign(
       actor,
       organisationId,
       campaignId,
+      precondition,
     );
     return res.status(200).json(result);
   } catch (err) {
@@ -357,8 +379,14 @@ export async function reactivatePlatformCampaignHandler(req: Request, res: Respo
   try {
     const actor = extractActor(req);
     const campaignId = String(req.params.campaignId);
+    const parseResult = campaignMutationPreconditionSchema.optional().safeParse(req.body);
+    const precondition = parseResult.success ? parseResult.data : undefined;
 
-    const result = await CampaignManagementService.reactivatePlatformCampaign(actor, campaignId);
+    const result = await CampaignManagementService.reactivatePlatformCampaign(
+      actor,
+      campaignId,
+      precondition,
+    );
     return res.status(200).json(result);
   } catch (err) {
     return handleControllerError(res, err);

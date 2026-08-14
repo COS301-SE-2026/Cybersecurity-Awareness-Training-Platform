@@ -58,7 +58,7 @@ function isAccessibleTrainingDocumentItem(
 } {
   return Boolean(
     campaignItem &&
-    campaignItem.campaign.status === 'ACTIVE' &&
+    ['ACTIVE', 'ARCHIVED'].includes(campaignItem.campaign.status) &&
     campaignItem.itemType === 'COMPONENT' &&
     campaignItem.componentType === 'TRAINING_DOCUMENT' &&
     campaignItem.availabilityStatus === 'AVAILABLE' &&
@@ -107,10 +107,14 @@ export async function getTrainingDocumentForCampaignItem(
 ): Promise<GetTrainingDocumentResponseDto> {
   const access = await resolveTrainingDocumentAccess(userId, campaignItemId);
 
-  const eligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(
+  const campaignEligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(
     access.campaignItem.campaign,
   );
-  if (!eligibility.canView) {
+  const itemEligibility = defaultCampaignEligibilityService.evaluateItemEligibility(
+    campaignEligibility,
+    access.campaignItem.componentType,
+  );
+  if (!itemEligibility.canView) {
     throw new TrainingDocumentAccessNotFoundError();
   }
 
@@ -133,10 +137,14 @@ export async function recordTrainingInteraction(input: {
 }): Promise<RecordTrainingInteractionResponseDto> {
   const access = await resolveTrainingDocumentAccess(input.userId, input.campaignItemId);
 
-  const eligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(
+  const campaignEligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(
     access.campaignItem.campaign,
   );
-  defaultCampaignEligibilityService.assertCanProgress(eligibility);
+  const itemEligibility = defaultCampaignEligibilityService.evaluateItemEligibility(
+    campaignEligibility,
+    access.campaignItem.componentType,
+  );
+  defaultCampaignEligibilityService.assertCanProgress(itemEligibility);
 
   const eventInput = {
     traineeProfileId: access.traineeProfileId,

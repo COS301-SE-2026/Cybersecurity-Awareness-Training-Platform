@@ -475,14 +475,14 @@ export async function executeBulkCampaignAssignment(
       );
 
       const campaigns = await tx.campaign.findMany({
-        where: { id: { in: input.campaignIds } },
+        where: { id: { in: neededCampaignIds } },
         select: { id: true, organisationId: true, status: true, campaignType: true, endDate: true },
       });
 
       const campaignMap = new Map((campaigns ?? []).map((c) => [c.id, c]));
       const now = new Date();
 
-      for (const cId of input.campaignIds) {
+      for (const cId of neededCampaignIds) {
         const c = campaignMap.get(cId);
         if (!c) {
           return {
@@ -505,10 +505,6 @@ export async function executeBulkCampaignAssignment(
             message: 'Invalid platform campaign scope',
           };
         }
-      }
-
-      for (const cId of neededCampaignIds) {
-        const c = campaignMap.get(cId)!;
         const isExpired = c.endDate ? now.getTime() >= c.endDate.getTime() : false;
         if (c.status !== 'ACTIVE' || isExpired) {
           return {
@@ -522,7 +518,7 @@ export async function executeBulkCampaignAssignment(
       const orgTrainees = await tx.organisationTraineeProfile.findMany({
         where: {
           organisationId: input.organisationId,
-          traineeProfileId: { in: input.traineeProfileIds },
+          traineeProfileId: { in: neededTraineeProfileIds },
         },
         select: {
           traineeProfileId: true,
@@ -543,7 +539,7 @@ export async function executeBulkCampaignAssignment(
 
       const traineeMap = new Map((orgTrainees ?? []).map((t) => [t.traineeProfileId, t]));
 
-      for (const tId of input.traineeProfileIds) {
+      for (const tId of neededTraineeProfileIds) {
         const t = traineeMap.get(tId);
         if (!t) {
           return {
@@ -553,10 +549,6 @@ export async function executeBulkCampaignAssignment(
               'One or more specified trainees were not found or belong to another organisation',
           };
         }
-      }
-
-      for (const tId of neededTraineeProfileIds) {
-        const t = traineeMap.get(tId)!;
         if (
           t.membershipStatus !== 'ACTIVE' ||
           t.traineeProfile.traineeStatus !== 'ACTIVE' ||
@@ -570,9 +562,7 @@ export async function executeBulkCampaignAssignment(
           };
         }
       }
-    }
 
-    if (missingPairs.length > 0) {
       await tx.campaignAssignment.createMany({
         data: missingPairs.map((pair) => ({
           id: pair.candidateId,
@@ -610,36 +600,17 @@ export async function executeBulkCampaignAssignment(
     for (const campaignId of input.campaignIds) {
       for (const traineeProfileId of input.traineeProfileIds) {
         const key = `${campaignId}:${traineeProfileId}`;
-        const assignmentId = verifyMap.get(key);
-        if (!assignmentId) continue;
+        const assignmentId = verifyMap.get(key) ?? candidateIdMap.get(key) ?? randomUUID();
+        const row: CampaignAssignmentResultRow = {
+          assignmentId,
+          campaignId,
+          traineeProfileId,
+        };
 
         if (existingMap.has(key)) {
-          alreadyAssignedRows.push({
-            assignmentId,
-            campaignId,
-            traineeProfileId,
-          });
+          alreadyAssignedRows.push(row);
         } else {
-          const wasCreatedByUs = missingPairs.some(
-            (p) =>
-              p.campaignId === campaignId &&
-              p.traineeProfileId === traineeProfileId &&
-              p.candidateId === assignmentId,
-          );
-
-          if (wasCreatedByUs) {
-            createdRows.push({
-              assignmentId,
-              campaignId,
-              traineeProfileId,
-            });
-          } else {
-            alreadyAssignedRows.push({
-              assignmentId,
-              campaignId,
-              traineeProfileId,
-            });
-          }
+          createdRows.push(row);
         }
       }
     }

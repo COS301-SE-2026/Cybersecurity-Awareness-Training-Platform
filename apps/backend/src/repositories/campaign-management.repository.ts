@@ -2,9 +2,36 @@ import { prisma } from '../lib/prisma.js';
 import type {
   Prisma,
   CampaignComponentType,
+  CampaignGroupType,
   CampaignStatus,
   CampaignType,
+  CompletionRule,
 } from '../generated/prisma/client.js';
+
+export type RepositoryCampaignItemInput =
+  | {
+      itemType?: 'COMPONENT';
+      campaignItemId?: string;
+      componentType: CampaignComponentType;
+      contentId: string;
+      isRequired: boolean;
+    }
+  | {
+      itemType: 'GROUP';
+      campaignItemId?: string;
+      title: string;
+      description?: string | null;
+      groupType: CampaignGroupType;
+      completionRule: CompletionRule;
+      isRequired: boolean;
+      children: Array<{
+        itemType?: 'COMPONENT';
+        campaignItemId?: string;
+        componentType: CampaignComponentType;
+        contentId: string;
+        isRequired: boolean;
+      }>;
+    };
 
 export async function findCampaignCatalogue(input: {
   page: number;
@@ -13,7 +40,23 @@ export async function findCampaignCatalogue(input: {
   type?: CampaignComponentType;
 }) {
   const skip = (input.page - 1) * input.limit;
-  const searchFilter = input.search
+  const trainingSearch = input.search
+    ? {
+        OR: [
+          { title: { contains: input.search, mode: 'insensitive' as const } },
+          { contentSummary: { contains: input.search, mode: 'insensitive' as const } },
+        ],
+      }
+    : {};
+  const quizSearch = input.search
+    ? {
+        OR: [
+          { title: { contains: input.search, mode: 'insensitive' as const } },
+          { description: { contains: input.search, mode: 'insensitive' as const } },
+        ],
+      }
+    : {};
+  const simulationSearch = input.search
     ? {
         OR: [
           { title: { contains: input.search, mode: 'insensitive' as const } },
@@ -31,7 +74,17 @@ export async function findCampaignCatalogue(input: {
       ? prisma.trainingDocument.findMany({
           where: {
             status: 'AVAILABLE',
-            ...searchFilter,
+            ...trainingSearch,
+          },
+          select: {
+            id: true,
+            title: true,
+            contentSummary: true,
+            contentType: true,
+            estimatedReadTimeMinutes: true,
+            difficultyLevel: true,
+            status: true,
+            createdAt: true,
           },
         })
       : [],
@@ -39,9 +92,16 @@ export async function findCampaignCatalogue(input: {
       ? prisma.quiz.findMany({
           where: {
             status: 'PUBLISHED',
-            ...searchFilter,
+            ...quizSearch,
           },
-          include: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            passThresholdPercentage: true,
+            difficultyLevel: true,
+            status: true,
+            createdAt: true,
             _count: {
               select: { questions: true },
             },
@@ -55,11 +115,17 @@ export async function findCampaignCatalogue(input: {
             simulatedInbox: {
               status: 'ACTIVE',
             },
-            ...searchFilter,
+            ...simulationSearch,
           },
-          include: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            difficultyLevel: true,
+            createdAt: true,
             simulatedInbox: {
-              include: {
+              select: {
+                status: true,
                 _count: {
                   select: { emails: true },
                 },
@@ -248,6 +314,99 @@ export async function findCampaignById(
     return null;
   }
 
+  const topLevelItems = campaign.items.filter((item) => !item.parentGroupId);
+  const childMap = new Map<string, typeof campaign.items>();
+
+  for (const item of campaign.items) {
+    if (item.parentGroupId) {
+      const list = childMap.get(item.parentGroupId) ?? [];
+      list.push(item);
+      childMap.set(item.parentGroupId, list);
+    }
+  }
+
+  const mappedItems = topLevelItems.map((item) => {
+    if (item.itemType === 'GROUP') {
+      const children = (childMap.get(item.id) ?? []).map((child) => {
+        let title = child.title;
+        let description = child.description;
+        let sourceAvailable = false;
+
+        if (child.componentType === 'TRAINING_DOCUMENT' && child.trainingDocument) {
+          title = child.trainingDocument.title;
+          sourceAvailable = child.trainingDocument.status === 'AVAILABLE';
+        } else if (child.componentType === 'QUIZ' && child.quiz) {
+          title = child.quiz.title;
+          description = child.quiz.description;
+          sourceAvailable = child.quiz.status === 'PUBLISHED';
+        } else if (child.componentType === 'SIMULATED_INBOX' && child.simulation) {
+          title = child.simulation.title;
+          sourceAvailable =
+            child.simulation.safetyStatus === 'APPROVED' &&
+            child.simulation.simulatedInbox?.status === 'ACTIVE';
+        }
+
+        const contentId = child.trainingDocumentId ?? child.quizId ?? child.simulationId ?? '';
+
+        return {
+          itemType: 'COMPONENT' as const,
+          campaignItemId: child.id,
+          componentType: child.componentType as CampaignComponentType,
+          contentId,
+          title,
+          description,
+          position: child.position,
+          isRequired: child.isRequired,
+          sourceAvailable,
+        };
+      });
+
+      return {
+        itemType: 'GROUP' as const,
+        campaignItemId: item.id,
+        title: item.title,
+        description: item.description,
+        groupType: item.groupType as CampaignGroupType,
+        completionRule: item.completionRule as CompletionRule,
+        position: item.position,
+        isRequired: item.isRequired,
+        children,
+      };
+    }
+
+    let title = item.title;
+    let description = item.description;
+    let sourceAvailable = false;
+
+    if (item.componentType === 'TRAINING_DOCUMENT' && item.trainingDocument) {
+      title = item.trainingDocument.title;
+      sourceAvailable = item.trainingDocument.status === 'AVAILABLE';
+    } else if (item.componentType === 'QUIZ' && item.quiz) {
+      title = item.quiz.title;
+      description = item.quiz.description;
+      sourceAvailable = item.quiz.status === 'PUBLISHED';
+    } else if (item.componentType === 'SIMULATED_INBOX' && item.simulation) {
+      title = item.simulation.title;
+      sourceAvailable =
+        item.simulation.safetyStatus === 'APPROVED' &&
+        item.simulation.simulatedInbox?.status === 'ACTIVE';
+    }
+
+    const contentId = item.trainingDocumentId ?? item.quizId ?? item.simulationId ?? '';
+
+    return {
+      itemType: 'COMPONENT' as const,
+      campaignItemId: item.id,
+      componentType: item.componentType as CampaignComponentType,
+      contentId,
+      title,
+      description,
+      position: item.position,
+      isRequired: item.isRequired,
+      sourceAvailable,
+    };
+  });
+
   return {
     id: campaign.id,
     organisationId: campaign.organisationId,
@@ -262,43 +421,11 @@ export async function findCampaignById(
       ? {
           id: campaign.createdBy.id,
           displayName: `${campaign.createdBy.firstName} ${campaign.createdBy.lastName}`.trim(),
-          email: campaign.createdBy.email,
         }
       : null,
     createdAt: campaign.createdAt,
     updatedAt: campaign.updatedAt,
-    items: campaign.items.map((item: (typeof campaign.items)[0]) => {
-      let title = item.title;
-      let description = item.description;
-      let sourceAvailable = false;
-
-      if (item.componentType === 'TRAINING_DOCUMENT' && item.trainingDocument) {
-        title = item.trainingDocument.title;
-        sourceAvailable = item.trainingDocument.status === 'AVAILABLE';
-      } else if (item.componentType === 'QUIZ' && item.quiz) {
-        title = item.quiz.title;
-        description = item.quiz.description;
-        sourceAvailable = item.quiz.status === 'PUBLISHED';
-      } else if (item.componentType === 'SIMULATED_INBOX' && item.simulation) {
-        title = item.simulation.title;
-        sourceAvailable =
-          item.simulation.safetyStatus === 'APPROVED' &&
-          item.simulation.simulatedInbox?.status === 'ACTIVE';
-      }
-
-      const contentId = item.trainingDocumentId ?? item.quizId ?? item.simulationId ?? '';
-
-      return {
-        campaignItemId: item.id,
-        componentType: item.componentType as CampaignComponentType,
-        contentId,
-        title,
-        description,
-        position: item.position,
-        isRequired: item.isRequired,
-        sourceAvailable,
-      };
-    }),
+    items: mappedItems,
   };
 }
 
@@ -312,17 +439,31 @@ async function resolveCampaignItemDetails(
 
   if (itemInput.componentType === 'TRAINING_DOCUMENT') {
     const doc = await tx.trainingDocument.findUnique({ where: { id: itemInput.contentId } });
-    if (!doc) throw new Error(`TRAINING_DOCUMENT_NOT_FOUND:${itemInput.contentId}`);
+    if (!doc || doc.status !== 'AVAILABLE') {
+      throw new Error(`TRAINING_DOCUMENT_UNAVAILABLE:${itemInput.contentId}`);
+    }
     title = doc.title;
     description = doc.contentSummary;
   } else if (itemInput.componentType === 'QUIZ') {
     const quiz = await tx.quiz.findUnique({ where: { id: itemInput.contentId } });
-    if (!quiz) throw new Error(`QUIZ_NOT_FOUND:${itemInput.contentId}`);
+    if (!quiz || quiz.status !== 'PUBLISHED') {
+      throw new Error(`QUIZ_UNAVAILABLE:${itemInput.contentId}`);
+    }
     title = quiz.title;
     description = quiz.description;
   } else if (itemInput.componentType === 'SIMULATED_INBOX') {
-    const sim = await tx.simulation.findUnique({ where: { id: itemInput.contentId } });
-    if (!sim) throw new Error(`SIMULATION_NOT_FOUND:${itemInput.contentId}`);
+    const sim = await tx.simulation.findUnique({
+      where: { id: itemInput.contentId },
+      include: { simulatedInbox: true },
+    });
+    if (
+      !sim ||
+      sim.safetyStatus !== 'APPROVED' ||
+      !sim.simulatedInbox ||
+      sim.simulatedInbox.status !== 'ACTIVE'
+    ) {
+      throw new Error(`SIMULATION_UNAVAILABLE:${itemInput.contentId}`);
+    }
     title = sim.title;
     description = sim.description;
   }
@@ -337,6 +478,50 @@ async function resolveCampaignItemDetails(
   };
 }
 
+function validateItemStructure(items: RepositoryCampaignItemInput[]): {
+  valid: boolean;
+  error?: string;
+} {
+  const seenSources = new Set<string>();
+  const seenItemIds = new Set<string>();
+
+  for (const item of items) {
+    if (item.campaignItemId) {
+      if (seenItemIds.has(item.campaignItemId)) {
+        return { valid: false, error: 'DUPLICATE_CAMPAIGN_ITEM_ID' };
+      }
+      seenItemIds.add(item.campaignItemId);
+    }
+
+    if (item.itemType === 'GROUP') {
+      if (!item.children || item.children.length < 2) {
+        return { valid: false, error: 'GROUP_MIN_CHILDREN_REQUIRED' };
+      }
+      for (const child of item.children) {
+        if (child.campaignItemId) {
+          if (seenItemIds.has(child.campaignItemId)) {
+            return { valid: false, error: 'DUPLICATE_CAMPAIGN_ITEM_ID' };
+          }
+          seenItemIds.add(child.campaignItemId);
+        }
+        const sourceKey = `${child.componentType}:${child.contentId}`;
+        if (seenSources.has(sourceKey)) {
+          return { valid: false, error: 'DUPLICATE_SOURCE' };
+        }
+        seenSources.add(sourceKey);
+      }
+    } else {
+      const sourceKey = `${item.componentType}:${item.contentId}`;
+      if (seenSources.has(sourceKey)) {
+        return { valid: false, error: 'DUPLICATE_SOURCE' };
+      }
+      seenSources.add(sourceKey);
+    }
+  }
+
+  return { valid: true };
+}
+
 export async function createCampaignDraft(input: {
   organisationId?: string | null;
   createdByUserId?: string | null;
@@ -346,11 +531,7 @@ export async function createCampaignDraft(input: {
   campaignType: CampaignType;
   startDate?: Date | null;
   endDate?: Date | null;
-  items: Array<{
-    componentType: CampaignComponentType;
-    contentId: string;
-    isRequired: boolean;
-  }>;
+  items: RepositoryCampaignItemInput[];
 }) {
   if (input.campaignType === 'PREMADE_GENERAL' && input.organisationId !== null) {
     throw new Error('PREMADE_GENERAL campaigns must have null organisationId');
@@ -358,6 +539,11 @@ export async function createCampaignDraft(input: {
 
   if (input.campaignType === 'ORGANISATION_CUSTOM' && !input.organisationId) {
     throw new Error('ORGANISATION_CUSTOM campaigns must have a valid organisationId');
+  }
+
+  const structureValidation = validateItemStructure(input.items);
+  if (!structureValidation.valid) {
+    throw new Error(structureValidation.error);
   }
 
   return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
@@ -378,22 +564,60 @@ export async function createCampaignDraft(input: {
     for (let index = 0; index < input.items.length; index++) {
       const itemInput = input.items[index];
       const position = (index + 1) * 10;
-      const details = await resolveCampaignItemDetails(tx, itemInput, index);
 
-      await tx.campaignItem.create({
-        data: {
-          campaignId: campaign.id,
-          itemType: 'COMPONENT',
-          componentType: itemInput.componentType,
-          title: details.title,
-          description: details.description,
-          position,
-          isRequired: itemInput.isRequired,
-          trainingDocumentId: details.trainingDocumentId,
-          quizId: details.quizId,
-          simulationId: details.simulationId,
-        },
-      });
+      if (itemInput.itemType === 'GROUP') {
+        const group = await tx.campaignItem.create({
+          data: {
+            campaignId: campaign.id,
+            itemType: 'GROUP',
+            groupType: itemInput.groupType,
+            completionRule: itemInput.completionRule,
+            title: itemInput.title,
+            description: itemInput.description ?? null,
+            position,
+            isRequired: itemInput.isRequired,
+          },
+        });
+
+        for (let cIdx = 0; cIdx < itemInput.children.length; cIdx++) {
+          const childInput = itemInput.children[cIdx];
+          const childPosition = (cIdx + 1) * 10;
+          const childDetails = await resolveCampaignItemDetails(tx, childInput, cIdx);
+
+          await tx.campaignItem.create({
+            data: {
+              campaignId: campaign.id,
+              parentGroupId: group.id,
+              itemType: 'COMPONENT',
+              componentType: childInput.componentType,
+              title: childDetails.title,
+              description: childDetails.description,
+              position: childPosition,
+              isRequired: childInput.isRequired,
+              trainingDocumentId: childDetails.trainingDocumentId,
+              quizId: childDetails.quizId,
+              simulationId: childDetails.simulationId,
+            },
+          });
+        }
+      } else {
+        const details = await resolveCampaignItemDetails(tx, itemInput, index);
+
+        await tx.campaignItem.create({
+          data: {
+            campaignId: campaign.id,
+            itemType: 'COMPONENT',
+            componentType: itemInput.componentType,
+            title: details.title,
+            description: details.description,
+            position,
+            isRequired: itemInput.isRequired,
+            trainingDocumentId: details.trainingDocumentId,
+            quizId: details.quizId,
+            simulationId: details.simulationId,
+          },
+        });
+      }
     }
 
     return campaign.id;
@@ -402,18 +626,20 @@ export async function createCampaignDraft(input: {
 
 export async function updateCampaignDraft(input: {
   campaignId: string;
+  organisationId?: string | null;
+  expectedUpdatedAt: Date;
   name: string;
   description?: string | null;
   accentColor?: string | null;
   startDate?: Date | null;
   endDate?: Date | null;
-  items: Array<{
-    campaignItemId?: string;
-    componentType: CampaignComponentType;
-    contentId: string;
-    isRequired: boolean;
-  }>;
+  items: RepositoryCampaignItemInput[];
 }) {
+  const structureValidation = validateItemStructure(input.items);
+  if (!structureValidation.valid) {
+    return { success: false, error: structureValidation.error as string };
+  }
+
   return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const existing = await tx.campaign.findUnique({
       where: { id: input.campaignId },
@@ -424,8 +650,67 @@ export async function updateCampaignDraft(input: {
       return { success: false, error: 'CAMPAIGN_NOT_FOUND' as const };
     }
 
+    if (input.organisationId !== undefined && existing.organisationId !== input.organisationId) {
+      return { success: false, error: 'CAMPAIGN_NOT_FOUND' as const };
+    }
+
     if (existing.status !== 'DRAFT') {
       return { success: false, error: 'CAMPAIGN_IMMUTABLE' as const };
+    }
+
+    if (existing.updatedAt.getTime() !== input.expectedUpdatedAt.getTime()) {
+      return { success: false, error: 'CAMPAIGN_CHANGED' as const };
+    }
+
+    for (const itemInput of input.items) {
+      if (itemInput.itemType === 'GROUP') {
+        if (itemInput.campaignItemId) {
+          const existingGroup = existing.items.find((i) => i.id === itemInput.campaignItemId);
+          if (!existingGroup) {
+            return { success: false, error: 'INVALID_CAMPAIGN_ITEM_ID' as const };
+          }
+          if (existingGroup.itemType !== 'GROUP') {
+            return { success: false, error: 'CAMPAIGN_ITEM_IDENTITY_CHANGED' as const };
+          }
+        }
+        for (const child of itemInput.children) {
+          if (child.campaignItemId) {
+            const existingChild = existing.items.find((i) => i.id === child.campaignItemId);
+            if (!existingChild) {
+              return { success: false, error: 'INVALID_CAMPAIGN_ITEM_ID' as const };
+            }
+            if (
+              existingChild.itemType !== 'COMPONENT' ||
+              existingChild.componentType !== child.componentType ||
+              (child.componentType === 'TRAINING_DOCUMENT' &&
+                existingChild.trainingDocumentId !== child.contentId) ||
+              (child.componentType === 'QUIZ' && existingChild.quizId !== child.contentId) ||
+              (child.componentType === 'SIMULATED_INBOX' &&
+                existingChild.simulationId !== child.contentId)
+            ) {
+              return { success: false, error: 'CAMPAIGN_ITEM_IDENTITY_CHANGED' as const };
+            }
+          }
+        }
+      } else {
+        if (itemInput.campaignItemId) {
+          const existingItem = existing.items.find((i) => i.id === itemInput.campaignItemId);
+          if (!existingItem) {
+            return { success: false, error: 'INVALID_CAMPAIGN_ITEM_ID' as const };
+          }
+          if (
+            existingItem.itemType !== 'COMPONENT' ||
+            existingItem.componentType !== itemInput.componentType ||
+            (itemInput.componentType === 'TRAINING_DOCUMENT' &&
+              existingItem.trainingDocumentId !== itemInput.contentId) ||
+            (itemInput.componentType === 'QUIZ' && existingItem.quizId !== itemInput.contentId) ||
+            (itemInput.componentType === 'SIMULATED_INBOX' &&
+              existingItem.simulationId !== itemInput.contentId)
+          ) {
+            return { success: false, error: 'CAMPAIGN_ITEM_IDENTITY_CHANGED' as const };
+          }
+        }
+      }
     }
 
     await tx.campaign.update({
@@ -444,42 +729,122 @@ export async function updateCampaignDraft(input: {
     for (let index = 0; index < input.items.length; index++) {
       const itemInput = input.items[index];
       const position = (index + 1) * 10;
-      const details = await resolveCampaignItemDetails(tx, itemInput, index);
 
-      if (
-        itemInput.campaignItemId &&
-        existing.items.some((i) => i.id === itemInput.campaignItemId)
-      ) {
-        await tx.campaignItem.update({
-          where: { id: itemInput.campaignItemId },
-          data: {
-            componentType: itemInput.componentType,
-            title: details.title,
-            description: details.description,
-            position,
-            isRequired: itemInput.isRequired,
-            trainingDocumentId: details.trainingDocumentId,
-            quizId: details.quizId,
-            simulationId: details.simulationId,
-          },
-        });
-        keptItemIds.add(itemInput.campaignItemId);
+      if (itemInput.itemType === 'GROUP') {
+        let groupId = itemInput.campaignItemId;
+
+        if (groupId && existing.items.some((i) => i.id === groupId)) {
+          await tx.campaignItem.update({
+            where: { id: groupId },
+            data: {
+              title: itemInput.title,
+              description: itemInput.description ?? null,
+              groupType: itemInput.groupType,
+              completionRule: itemInput.completionRule,
+              position,
+              isRequired: itemInput.isRequired,
+            },
+          });
+        } else {
+          const newGroup = await tx.campaignItem.create({
+            data: {
+              campaignId: input.campaignId,
+              itemType: 'GROUP',
+              groupType: itemInput.groupType,
+              completionRule: itemInput.completionRule,
+              title: itemInput.title,
+              description: itemInput.description ?? null,
+              position,
+              isRequired: itemInput.isRequired,
+            },
+          });
+          groupId = newGroup.id;
+        }
+        keptItemIds.add(groupId);
+
+        for (let cIdx = 0; cIdx < itemInput.children.length; cIdx++) {
+          const childInput = itemInput.children[cIdx];
+          const childPosition = (cIdx + 1) * 10;
+          const childDetails = await resolveCampaignItemDetails(tx, childInput, cIdx);
+
+          if (
+            childInput.campaignItemId &&
+            existing.items.some((i) => i.id === childInput.campaignItemId)
+          ) {
+            await tx.campaignItem.update({
+              where: { id: childInput.campaignItemId },
+              data: {
+                parentGroupId: groupId,
+                componentType: childInput.componentType,
+                title: childDetails.title,
+                description: childDetails.description,
+                position: childPosition,
+                isRequired: childInput.isRequired,
+                trainingDocumentId: childDetails.trainingDocumentId,
+                quizId: childDetails.quizId,
+                simulationId: childDetails.simulationId,
+              },
+            });
+            keptItemIds.add(childInput.campaignItemId);
+          } else {
+            const newChild = await tx.campaignItem.create({
+              data: {
+                campaignId: input.campaignId,
+                parentGroupId: groupId,
+                itemType: 'COMPONENT',
+                componentType: childInput.componentType,
+                title: childDetails.title,
+                description: childDetails.description,
+                position: childPosition,
+                isRequired: childInput.isRequired,
+                trainingDocumentId: childDetails.trainingDocumentId,
+                quizId: childDetails.quizId,
+                simulationId: childDetails.simulationId,
+              },
+            });
+            keptItemIds.add(newChild.id);
+          }
+        }
       } else {
-        const newItem = await tx.campaignItem.create({
-          data: {
-            campaignId: input.campaignId,
-            itemType: 'COMPONENT',
-            componentType: itemInput.componentType,
-            title: details.title,
-            description: details.description,
-            position,
-            isRequired: itemInput.isRequired,
-            trainingDocumentId: details.trainingDocumentId,
-            quizId: details.quizId,
-            simulationId: details.simulationId,
-          },
-        });
-        keptItemIds.add(newItem.id);
+        const details = await resolveCampaignItemDetails(tx, itemInput, index);
+
+        if (
+          itemInput.campaignItemId &&
+          existing.items.some((i) => i.id === itemInput.campaignItemId)
+        ) {
+          await tx.campaignItem.update({
+            where: { id: itemInput.campaignItemId },
+            data: {
+              parentGroupId: null,
+              componentType: itemInput.componentType,
+              title: details.title,
+              description: details.description,
+              position,
+              isRequired: itemInput.isRequired,
+              trainingDocumentId: details.trainingDocumentId,
+              quizId: details.quizId,
+              simulationId: details.simulationId,
+            },
+          });
+          keptItemIds.add(itemInput.campaignItemId);
+        } else {
+          const newItem = await tx.campaignItem.create({
+            data: {
+              campaignId: input.campaignId,
+              parentGroupId: null,
+              itemType: 'COMPONENT',
+              componentType: itemInput.componentType,
+              title: details.title,
+              description: details.description,
+              position,
+              isRequired: itemInput.isRequired,
+              trainingDocumentId: details.trainingDocumentId,
+              quizId: details.quizId,
+              simulationId: details.simulationId,
+            },
+          });
+          keptItemIds.add(newItem.id);
+        }
       }
     }
 
@@ -500,6 +865,7 @@ export async function updateCampaignDraft(input: {
 }
 
 type CampaignItemWithContent = {
+  itemType: string;
   componentType: string | null;
   trainingDocument?: { status: string } | null;
   quiz?: { status: string } | null;
@@ -508,6 +874,9 @@ type CampaignItemWithContent = {
 
 function checkItemsContentStatus(items: CampaignItemWithContent[]): boolean {
   for (const item of items) {
+    if (item.itemType === 'GROUP') {
+      continue;
+    }
     if (item.componentType === 'TRAINING_DOCUMENT') {
       if (!item.trainingDocument || item.trainingDocument.status !== 'AVAILABLE') {
         return false;
@@ -533,7 +902,8 @@ function checkItemsContentStatus(items: CampaignItemWithContent[]): boolean {
 export async function activateCampaign(
   campaignId: string,
   _actorUserId?: string,
-  _organisationId?: string | null,
+  organisationId?: string | null,
+  expectedUpdatedAt?: Date,
 ) {
   return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const campaign = await tx.campaign.findUnique({
@@ -553,8 +923,16 @@ export async function activateCampaign(
       return { success: false, error: 'CAMPAIGN_NOT_FOUND' as const };
     }
 
+    if (organisationId !== undefined && campaign.organisationId !== organisationId) {
+      return { success: false, error: 'CAMPAIGN_NOT_FOUND' as const };
+    }
+
     if (campaign.status !== 'DRAFT') {
-      return { success: false, error: 'INVALID_LIFECYCLE_TRANSITION' as const };
+      return { success: false, error: 'CAMPAIGN_LIFECYCLE_CONFLICT' as const };
+    }
+
+    if (expectedUpdatedAt && campaign.updatedAt.getTime() !== expectedUpdatedAt.getTime()) {
+      return { success: false, error: 'CAMPAIGN_CHANGED' as const };
     }
 
     if (campaign.items.length === 0) {
@@ -577,7 +955,8 @@ export async function activateCampaign(
 export async function archiveCampaign(
   campaignId: string,
   _actorUserId?: string,
-  _organisationId?: string | null,
+  organisationId?: string | null,
+  expectedUpdatedAt?: Date,
 ) {
   return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const campaign = await tx.campaign.findUnique({
@@ -588,8 +967,16 @@ export async function archiveCampaign(
       return { success: false, error: 'CAMPAIGN_NOT_FOUND' as const };
     }
 
+    if (organisationId !== undefined && campaign.organisationId !== organisationId) {
+      return { success: false, error: 'CAMPAIGN_NOT_FOUND' as const };
+    }
+
     if (campaign.status !== 'ACTIVE') {
-      return { success: false, error: 'INVALID_LIFECYCLE_TRANSITION' as const };
+      return { success: false, error: 'CAMPAIGN_LIFECYCLE_CONFLICT' as const };
+    }
+
+    if (expectedUpdatedAt && campaign.updatedAt.getTime() !== expectedUpdatedAt.getTime()) {
+      return { success: false, error: 'CAMPAIGN_CHANGED' as const };
     }
 
     await tx.campaign.update({
@@ -604,7 +991,8 @@ export async function archiveCampaign(
 export async function reactivateCampaign(
   campaignId: string,
   _actorUserId?: string,
-  _organisationId?: string | null,
+  organisationId?: string | null,
+  expectedUpdatedAt?: Date,
 ) {
   return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const campaign = await tx.campaign.findUnique({
@@ -624,8 +1012,16 @@ export async function reactivateCampaign(
       return { success: false, error: 'CAMPAIGN_NOT_FOUND' as const };
     }
 
+    if (organisationId !== undefined && campaign.organisationId !== organisationId) {
+      return { success: false, error: 'CAMPAIGN_NOT_FOUND' as const };
+    }
+
     if (campaign.status !== 'ARCHIVED') {
-      return { success: false, error: 'INVALID_LIFECYCLE_TRANSITION' as const };
+      return { success: false, error: 'CAMPAIGN_LIFECYCLE_CONFLICT' as const };
+    }
+
+    if (expectedUpdatedAt && campaign.updatedAt.getTime() !== expectedUpdatedAt.getTime()) {
+      return { success: false, error: 'CAMPAIGN_CHANGED' as const };
     }
 
     if (!checkItemsContentStatus(campaign.items)) {

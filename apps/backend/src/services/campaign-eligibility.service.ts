@@ -2,7 +2,12 @@ type CampaignStatus = 'DRAFT' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'ARCHIVED';
 type CampaignType = 'PREMADE_GENERAL' | 'ORGANISATION_CUSTOM';
 type CampaignComponentType = 'SIMULATED_INBOX' | 'TRAINING_DOCUMENT' | 'QUIZ';
 
-export type EligibilityReason = 'AVAILABLE' | 'NOT_STARTED' | 'EXPIRED' | 'CAMPAIGN_INACTIVE';
+export type EligibilityReason =
+  | 'AVAILABLE'
+  | 'NOT_STARTED'
+  | 'EXPIRED'
+  | 'CAMPAIGN_INACTIVE'
+  | 'COMPLETED';
 
 export type CampaignEligibilityResult = {
   canView: boolean;
@@ -17,13 +22,19 @@ export type ItemEligibilityResult = {
 };
 
 export class CampaignEligibilityDenialError extends Error {
+  public readonly status = 409;
+  public readonly statusCode = 409;
+
   constructor(
-    public readonly statusCode: 409,
-    public readonly errorCode: 'CAMPAIGN_NOT_STARTED' | 'CAMPAIGN_EXPIRED' | 'CAMPAIGN_ARCHIVED',
+    public readonly error: 'CAMPAIGN_NOT_STARTED' | 'CAMPAIGN_EXPIRED' | 'CAMPAIGN_ARCHIVED',
     message: string,
   ) {
     super(message);
     this.name = 'CampaignEligibilityDenialError';
+  }
+
+  get errorCode(): 'CAMPAIGN_NOT_STARTED' | 'CAMPAIGN_EXPIRED' | 'CAMPAIGN_ARCHIVED' {
+    return this.error;
   }
 }
 
@@ -51,45 +62,58 @@ export class CampaignEligibilityService {
   ): CampaignEligibilityResult {
     const now = customNow ?? this.clock.now();
 
-    if (campaign.status === 'DRAFT') {
-      return {
-        canView: false,
-        canProgress: false,
-        reason: 'CAMPAIGN_INACTIVE',
-      };
-    }
-
-    if (campaign.status === 'ARCHIVED' || campaign.status === 'PAUSED') {
-      return {
-        canView: true,
-        canProgress: false,
-        reason: 'CAMPAIGN_INACTIVE',
-      };
-    }
-
-    if (campaign.campaignType === 'ORGANISATION_CUSTOM') {
-      if (campaign.startDate && now.getTime() < campaign.startDate.getTime()) {
+    switch (campaign.status) {
+      case 'DRAFT':
+        return {
+          canView: false,
+          canProgress: false,
+          reason: 'CAMPAIGN_INACTIVE',
+        };
+      case 'ARCHIVED':
+      case 'PAUSED':
         return {
           canView: true,
           canProgress: false,
-          reason: 'NOT_STARTED',
+          reason: 'CAMPAIGN_INACTIVE',
         };
-      }
-
-      if (campaign.endDate && now.getTime() >= campaign.endDate.getTime()) {
+      case 'COMPLETED':
         return {
           canView: true,
           canProgress: false,
-          reason: 'EXPIRED',
+          reason: 'COMPLETED',
+        };
+      case 'ACTIVE': {
+        if (campaign.campaignType === 'ORGANISATION_CUSTOM') {
+          if (campaign.startDate && now.getTime() < campaign.startDate.getTime()) {
+            return {
+              canView: true,
+              canProgress: false,
+              reason: 'NOT_STARTED',
+            };
+          }
+
+          if (campaign.endDate && now.getTime() >= campaign.endDate.getTime()) {
+            return {
+              canView: true,
+              canProgress: false,
+              reason: 'EXPIRED',
+            };
+          }
+        }
+
+        return {
+          canView: true,
+          canProgress: true,
+          reason: 'AVAILABLE',
         };
       }
+      default:
+        return {
+          canView: false,
+          canProgress: false,
+          reason: 'CAMPAIGN_INACTIVE',
+        };
     }
-
-    return {
-      canView: true,
-      canProgress: true,
-      reason: 'AVAILABLE',
-    };
   }
 
   evaluateItemEligibility(
@@ -101,6 +125,14 @@ export class CampaignEligibilityService {
         canView: false,
         canProgress: false,
         reason: campaignEligibility.reason,
+      };
+    }
+
+    if (campaignEligibility.reason === 'NOT_STARTED') {
+      return {
+        canView: false,
+        canProgress: false,
+        reason: 'NOT_STARTED',
       };
     }
 
@@ -126,18 +158,16 @@ export class CampaignEligibilityService {
 
     if (eligibility.reason === 'NOT_STARTED') {
       throw new CampaignEligibilityDenialError(
-        409,
         'CAMPAIGN_NOT_STARTED',
         'Campaign has not started yet',
       );
     }
 
     if (eligibility.reason === 'EXPIRED') {
-      throw new CampaignEligibilityDenialError(409, 'CAMPAIGN_EXPIRED', 'Campaign has expired');
+      throw new CampaignEligibilityDenialError('CAMPAIGN_EXPIRED', 'Campaign has expired');
     }
 
     throw new CampaignEligibilityDenialError(
-      409,
       'CAMPAIGN_ARCHIVED',
       'Campaign is archived or inactive',
     );

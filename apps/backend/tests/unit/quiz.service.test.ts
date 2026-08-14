@@ -69,6 +69,8 @@ function mockCampaignItem() {
       ],
     },
     campaign: {
+      status: 'ACTIVE',
+      campaignType: 'PREMADE_GENERAL',
       assignments: [{ id: 'assign-1', traineeProfileId: 'trainee-1' }],
     },
   };

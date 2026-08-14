@@ -104,7 +104,7 @@ export function findAccessibleCampaignAssignments(traineeProfileId: string) {
         in: [...ACCESSIBLE_ASSIGNMENT_STATUSES],
       },
       campaign: {
-        status: 'ACTIVE',
+        status: { in: ['ACTIVE', 'ARCHIVED'] },
       },
     },
     orderBy: {
@@ -138,7 +138,7 @@ export function findAccessibleCampaignAssignment(input: {
         in: [...ACCESSIBLE_ASSIGNMENT_STATUSES],
       },
       campaign: {
-        status: 'ACTIVE',
+        status: { in: ['ACTIVE', 'ARCHIVED'] },
       },
     },
     select: {

@@ -1,16 +1,22 @@
 import type {
+  CampaignAllowedActionDto,
   CampaignCatalogueQueryDto,
-  CampaignDetailItemDto,
   CampaignDetailResponseDto,
   CampaignLifecycleActionResponseDto,
   CampaignListQueryDto,
   CampaignListRowDto,
-  CreateCampaignDraftItemInputDto,
+  CampaignMutationPreconditionDto,
   CreateCampaignDraftRequestDto,
   GetCampaignCatalogueResponseDto,
   GetCampaignsResponseDto,
   PaginationMetadataDto,
   UpdateCampaignDraftRequestDto,
+} from '@insightful-phish/shared';
+import {
+  campaignDetailResponseSchema,
+  campaignLifecycleActionResponseSchema,
+  getCampaignCatalogueResponseSchema,
+  getCampaignsResponseSchema,
 } from '@insightful-phish/shared';
 
 import * as CampaignManagementRepository from '../repositories/campaign-management.repository.js';
@@ -68,9 +74,14 @@ async function validateOrganisationAdminActor(
   }
 
   if (requiredPermissionKey) {
-    const hasPermission = adminScope.permissionGrants.some(
-      (grant) => grant.organisationPermission.key === requiredPermissionKey,
-    );
+    const hasPermission = adminScope.permissionGrants.some((grant) => {
+      const key = grant.organisationPermission.key;
+      if (requiredPermissionKey === 'VIEW_CAMPAIGNS') {
+        return key === 'VIEW_CAMPAIGNS' || key === 'MANAGE_CAMPAIGNS';
+      }
+      return key === requiredPermissionKey;
+    });
+
     if (!hasPermission) {
       throw new CampaignManagementServiceError(
         403,
@@ -95,31 +106,47 @@ async function validatePlatformAdminActor(actor: UserActorContext) {
   return ipAdmin;
 }
 
-function computeAllowedActions(
-  status: string,
-  userType: string,
-  isManager: boolean,
-): Array<'VIEW' | 'EDIT' | 'ACTIVATE' | 'ARCHIVE' | 'REACTIVATE' | 'ASSIGN'> {
-  if (!isManager && userType !== 'IP_ADMIN') {
-    return ['VIEW'];
+function computeAllowedActions(input: {
+  status: string;
+  canManage: boolean;
+  canAssign?: boolean;
+  hasItems?: boolean;
+  sourcesUsable?: boolean;
+  endDate?: Date | null;
+  now?: Date;
+}): CampaignAllowedActionDto[] {
+  const actions: CampaignAllowedActionDto[] = ['VIEW'];
+  const now = input.now ?? new Date();
+  const isExpired = input.endDate ? input.endDate.getTime() < now.getTime() : false;
+  const hasItems = input.hasItems ?? true;
+  const sourcesUsable = input.sourcesUsable ?? true;
+
+  if (input.canManage) {
+    if (input.status === 'DRAFT') {
+      actions.push('EDIT');
+      if (hasItems && sourcesUsable && !isExpired) {
+        actions.push('ACTIVATE');
+      }
+    } else if (input.status === 'ACTIVE') {
+      actions.push('ARCHIVE');
+    } else if (input.status === 'ARCHIVED') {
+      if (hasItems && sourcesUsable && !isExpired) {
+        actions.push('REACTIVATE');
+      }
+    }
   }
 
-  switch (status) {
-    case 'DRAFT':
-      return ['VIEW', 'EDIT', 'ACTIVATE'];
-    case 'ACTIVE':
-      return ['VIEW', 'ARCHIVE', 'ASSIGN'];
-    case 'ARCHIVED':
-      return ['VIEW', 'REACTIVATE'];
-    default:
-      return ['VIEW'];
+  if (input.canAssign && input.status === 'ACTIVE' && !isExpired) {
+    actions.push('ASSIGN');
   }
+
+  return actions;
 }
 
 function mapCampaignRow(
   row: Awaited<ReturnType<typeof CampaignManagementRepository.findCampaigns>>['items'][number],
-  userType: string,
-  isManager: boolean,
+  canManage: boolean,
+  canAssign: boolean,
 ): CampaignListRowDto {
   return {
     id: row.id,
@@ -134,28 +161,31 @@ function mapCampaignRow(
     createdBy: row.createdBy,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
-    allowedActions: computeAllowedActions(row.status, userType, isManager),
+    allowedActions: computeAllowedActions({
+      status: row.status,
+      canManage,
+      canAssign,
+      hasItems: row.itemCount > 0,
+      endDate: row.endDate,
+    }),
   };
 }
 
 function mapCampaignDetail(
   campaign: NonNullable<Awaited<ReturnType<typeof CampaignManagementRepository.findCampaignById>>>,
-  userType: string,
-  isManager: boolean,
+  canManage: boolean,
+  canAssign: boolean,
 ): CampaignDetailResponseDto {
-  const items: CampaignDetailItemDto[] = campaign.items.map((item) => ({
-    campaignItemId: item.campaignItemId,
-    componentType: item.componentType,
-    contentId: item.contentId,
-    title: item.title,
-    description: item.description,
-    position: item.position,
-    isRequired: item.isRequired,
-    sourceAvailable: item.sourceAvailable,
-  }));
+  const allSourcesUsable = campaign.items.every((item) => {
+    if (item.itemType === 'GROUP') {
+      return item.children.every((child) => child.sourceAvailable);
+    }
+    return item.sourceAvailable;
+  });
 
-  return {
+  return campaignDetailResponseSchema.parse({
     id: campaign.id,
+    organisationId: campaign.organisationId,
     name: campaign.name,
     description: campaign.description,
     accentColor: campaign.accentColor,
@@ -166,9 +196,16 @@ function mapCampaignDetail(
     createdBy: campaign.createdBy,
     createdAt: campaign.createdAt.toISOString(),
     updatedAt: campaign.updatedAt.toISOString(),
-    allowedActions: computeAllowedActions(campaign.status, userType, isManager),
-    items,
-  };
+    allowedActions: computeAllowedActions({
+      status: campaign.status,
+      canManage,
+      canAssign,
+      hasItems: campaign.items.length > 0,
+      sourcesUsable: allSourcesUsable,
+      endDate: campaign.endDate,
+    }),
+    items: campaign.items,
+  });
 }
 
 function parseAndValidateDates(input: { startDate?: string | null; endDate?: string | null }) {
@@ -207,10 +244,10 @@ export async function getOrganisationCampaignCatalogue(
     type: query.type,
   });
 
-  return {
+  return getCampaignCatalogueResponseSchema.parse({
     items,
     pagination: buildPaginationMetadata(query.page, query.limit, total),
-  };
+  });
 }
 
 export async function getPlatformCampaignCatalogue(
@@ -226,10 +263,10 @@ export async function getPlatformCampaignCatalogue(
     type: query.type,
   });
 
-  return {
+  return getCampaignCatalogueResponseSchema.parse({
     items,
     pagination: buildPaginationMetadata(query.page, query.limit, total),
-  };
+  });
 }
 
 export async function getOrganisationCampaigns(
@@ -238,8 +275,11 @@ export async function getOrganisationCampaigns(
   query: CampaignListQueryDto,
 ): Promise<GetCampaignsResponseDto> {
   const adminScope = await validateOrganisationAdminActor(actor, organisationId, 'VIEW_CAMPAIGNS');
-  const isManager = adminScope.permissionGrants.some(
+  const canManage = adminScope.permissionGrants.some(
     (grant) => grant.organisationPermission.key === 'MANAGE_CAMPAIGNS',
+  );
+  const canAssign = adminScope.permissionGrants.some(
+    (grant) => grant.organisationPermission.key === 'ASSIGN_CAMPAIGNS',
   );
 
   const { items, total } = await CampaignManagementRepository.findCampaigns({
@@ -250,10 +290,10 @@ export async function getOrganisationCampaigns(
     status: query.status,
   });
 
-  return {
-    items: items.map((row) => mapCampaignRow(row, actor.userType, isManager)),
+  return getCampaignsResponseSchema.parse({
+    items: items.map((row) => mapCampaignRow(row, canManage, canAssign)),
     pagination: buildPaginationMetadata(query.page, query.limit, total),
-  };
+  });
 }
 
 export async function getPlatformCampaigns(
@@ -270,10 +310,10 @@ export async function getPlatformCampaigns(
     status: query.status,
   });
 
-  return {
-    items: items.map((row) => mapCampaignRow(row, actor.userType, true)),
+  return getCampaignsResponseSchema.parse({
+    items: items.map((row) => mapCampaignRow(row, true, false)),
     pagination: buildPaginationMetadata(query.page, query.limit, total),
-  };
+  });
 }
 
 export async function getOrganisationCampaignDetail(
@@ -282,8 +322,11 @@ export async function getOrganisationCampaignDetail(
   campaignId: string,
 ): Promise<CampaignDetailResponseDto> {
   const adminScope = await validateOrganisationAdminActor(actor, organisationId, 'VIEW_CAMPAIGNS');
-  const isManager = adminScope.permissionGrants.some(
+  const canManage = adminScope.permissionGrants.some(
     (grant) => grant.organisationPermission.key === 'MANAGE_CAMPAIGNS',
+  );
+  const canAssign = adminScope.permissionGrants.some(
+    (grant) => grant.organisationPermission.key === 'ASSIGN_CAMPAIGNS',
   );
 
   const campaign = await CampaignManagementRepository.findCampaignById(campaignId, {
@@ -294,7 +337,7 @@ export async function getOrganisationCampaignDetail(
     throw new CampaignManagementServiceError(404, 'NOT_FOUND', 'Campaign not found');
   }
 
-  return mapCampaignDetail(campaign, actor.userType, isManager);
+  return mapCampaignDetail(campaign, canManage, canAssign);
 }
 
 export async function getPlatformCampaignDetail(
@@ -311,7 +354,7 @@ export async function getPlatformCampaignDetail(
     throw new CampaignManagementServiceError(404, 'NOT_FOUND', 'Platform campaign not found');
   }
 
-  return mapCampaignDetail(campaign, actor.userType, true);
+  return mapCampaignDetail(campaign, true, false);
 }
 
 export async function createOrganisationCampaignDraft(
@@ -332,11 +375,33 @@ export async function createOrganisationCampaignDraft(
     campaignType: 'ORGANISATION_CUSTOM',
     organisationId,
     createdByUserId: actor.userId,
-    items: input.items.map((item: CreateCampaignDraftItemInputDto) => ({
-      componentType: item.componentType,
-      contentId: item.contentId,
-      isRequired: item.isRequired ?? true,
-    })),
+    items: input.items.map((item) => {
+      if (item.itemType === 'GROUP') {
+        return {
+          itemType: 'GROUP' as const,
+          campaignItemId: item.campaignItemId,
+          title: item.title,
+          description: item.description ?? null,
+          groupType: item.groupType,
+          completionRule: item.completionRule,
+          isRequired: item.isRequired ?? true,
+          children: item.children.map((c) => ({
+            itemType: 'COMPONENT' as const,
+            campaignItemId: c.campaignItemId,
+            componentType: c.componentType,
+            contentId: c.contentId,
+            isRequired: c.isRequired ?? true,
+          })),
+        };
+      }
+      return {
+        itemType: 'COMPONENT' as const,
+        campaignItemId: item.campaignItemId,
+        componentType: item.componentType,
+        contentId: item.contentId,
+        isRequired: item.isRequired ?? true,
+      };
+    }),
   });
 
   return getOrganisationCampaignDetail(actor, organisationId, createdId);
@@ -365,11 +430,33 @@ export async function createPlatformCampaignDraft(
     campaignType: 'PREMADE_GENERAL',
     organisationId: null,
     createdByUserId: actor.userId,
-    items: input.items.map((item: CreateCampaignDraftItemInputDto) => ({
-      componentType: item.componentType,
-      contentId: item.contentId,
-      isRequired: item.isRequired ?? true,
-    })),
+    items: input.items.map((item) => {
+      if (item.itemType === 'GROUP') {
+        return {
+          itemType: 'GROUP' as const,
+          campaignItemId: item.campaignItemId,
+          title: item.title,
+          description: item.description ?? null,
+          groupType: item.groupType,
+          completionRule: item.completionRule,
+          isRequired: item.isRequired ?? true,
+          children: item.children.map((c) => ({
+            itemType: 'COMPONENT' as const,
+            campaignItemId: c.campaignItemId,
+            componentType: c.componentType,
+            contentId: c.contentId,
+            isRequired: c.isRequired ?? true,
+          })),
+        };
+      }
+      return {
+        itemType: 'COMPONENT' as const,
+        campaignItemId: item.campaignItemId,
+        componentType: item.componentType,
+        contentId: item.contentId,
+        isRequired: item.isRequired ?? true,
+      };
+    }),
   });
 
   return getPlatformCampaignDetail(actor, createdId);
@@ -383,38 +470,77 @@ export async function updateOrganisationCampaignDraft(
 ): Promise<CampaignDetailResponseDto> {
   await validateOrganisationAdminActor(actor, organisationId, 'MANAGE_CAMPAIGNS');
 
-  const existing = await CampaignManagementRepository.findCampaignById(campaignId, {
-    organisationId,
-  });
-
-  if (!existing) {
-    throw new CampaignManagementServiceError(404, 'NOT_FOUND', 'Campaign not found');
-  }
-
-  if (existing.status !== 'DRAFT') {
-    throw new CampaignManagementServiceError(
-      409,
-      'CAMPAIGN_IMMUTABLE',
-      'Active or Archived campaigns are immutable and cannot be updated as drafts',
-    );
-  }
-
   const { startDate, endDate } = parseAndValidateDates(input);
 
-  await CampaignManagementRepository.updateCampaignDraft({
+  const result = await CampaignManagementRepository.updateCampaignDraft({
     campaignId,
+    organisationId,
+    expectedUpdatedAt: new Date(input.expectedUpdatedAt),
     name: input.name,
     description: input.description ?? null,
     accentColor: input.accentColor,
     startDate,
     endDate,
-    items: input.items.map((item: CreateCampaignDraftItemInputDto) => ({
-      campaignItemId: item.campaignItemId,
-      componentType: item.componentType,
-      contentId: item.contentId,
-      isRequired: item.isRequired ?? true,
-    })),
+    items: input.items.map((item) => {
+      if (item.itemType === 'GROUP') {
+        return {
+          itemType: 'GROUP' as const,
+          campaignItemId: item.campaignItemId,
+          title: item.title,
+          description: item.description ?? null,
+          groupType: item.groupType,
+          completionRule: item.completionRule,
+          isRequired: item.isRequired ?? true,
+          children: item.children.map((c) => ({
+            itemType: 'COMPONENT' as const,
+            campaignItemId: c.campaignItemId,
+            componentType: c.componentType,
+            contentId: c.contentId,
+            isRequired: c.isRequired ?? true,
+          })),
+        };
+      }
+      return {
+        itemType: 'COMPONENT' as const,
+        campaignItemId: item.campaignItemId,
+        componentType: item.componentType,
+        contentId: item.contentId,
+        isRequired: item.isRequired ?? true,
+      };
+    }),
   });
+
+  if (!result.success) {
+    if (result.error === 'CAMPAIGN_NOT_FOUND') {
+      throw new CampaignManagementServiceError(404, 'NOT_FOUND', 'Campaign not found');
+    }
+    if (result.error === 'CAMPAIGN_CHANGED') {
+      throw new CampaignManagementServiceError(
+        409,
+        'CAMPAIGN_CHANGED',
+        'Campaign has been modified concurrently',
+      );
+    }
+    if (result.error === 'CAMPAIGN_IMMUTABLE') {
+      throw new CampaignManagementServiceError(
+        409,
+        'CAMPAIGN_IMMUTABLE',
+        'Active or Archived campaigns are immutable and cannot be updated as drafts',
+      );
+    }
+    if (result.error === 'CAMPAIGN_ITEM_IDENTITY_CHANGED') {
+      throw new CampaignManagementServiceError(
+        409,
+        'CAMPAIGN_ITEM_IDENTITY_CHANGED',
+        'Campaign item component type or content cannot be altered',
+      );
+    }
+    throw new CampaignManagementServiceError(
+      400,
+      'VALIDATION_ERROR',
+      result.error ?? 'Invalid data',
+    );
+  }
 
   return getOrganisationCampaignDetail(actor, organisationId, campaignId);
 }
@@ -434,36 +560,75 @@ export async function updatePlatformCampaignDraft(
     );
   }
 
-  const existing = await CampaignManagementRepository.findCampaignById(campaignId, {
-    platformOnly: true,
-  });
-
-  if (!existing) {
-    throw new CampaignManagementServiceError(404, 'NOT_FOUND', 'Platform campaign not found');
-  }
-
-  if (existing.status !== 'DRAFT') {
-    throw new CampaignManagementServiceError(
-      409,
-      'CAMPAIGN_IMMUTABLE',
-      'Active or Archived campaigns are immutable and cannot be updated as drafts',
-    );
-  }
-
-  await CampaignManagementRepository.updateCampaignDraft({
+  const result = await CampaignManagementRepository.updateCampaignDraft({
     campaignId,
+    organisationId: null,
+    expectedUpdatedAt: new Date(input.expectedUpdatedAt),
     name: input.name,
     description: input.description ?? null,
     accentColor: input.accentColor,
     startDate: null,
     endDate: null,
-    items: input.items.map((item: CreateCampaignDraftItemInputDto) => ({
-      campaignItemId: item.campaignItemId,
-      componentType: item.componentType,
-      contentId: item.contentId,
-      isRequired: item.isRequired ?? true,
-    })),
+    items: input.items.map((item) => {
+      if (item.itemType === 'GROUP') {
+        return {
+          itemType: 'GROUP' as const,
+          campaignItemId: item.campaignItemId,
+          title: item.title,
+          description: item.description ?? null,
+          groupType: item.groupType,
+          completionRule: item.completionRule,
+          isRequired: item.isRequired ?? true,
+          children: item.children.map((c) => ({
+            itemType: 'COMPONENT' as const,
+            campaignItemId: c.campaignItemId,
+            componentType: c.componentType,
+            contentId: c.contentId,
+            isRequired: c.isRequired ?? true,
+          })),
+        };
+      }
+      return {
+        itemType: 'COMPONENT' as const,
+        campaignItemId: item.campaignItemId,
+        componentType: item.componentType,
+        contentId: item.contentId,
+        isRequired: item.isRequired ?? true,
+      };
+    }),
   });
+
+  if (!result.success) {
+    if (result.error === 'CAMPAIGN_NOT_FOUND') {
+      throw new CampaignManagementServiceError(404, 'NOT_FOUND', 'Platform campaign not found');
+    }
+    if (result.error === 'CAMPAIGN_CHANGED') {
+      throw new CampaignManagementServiceError(
+        409,
+        'CAMPAIGN_CHANGED',
+        'Campaign has been modified concurrently',
+      );
+    }
+    if (result.error === 'CAMPAIGN_IMMUTABLE') {
+      throw new CampaignManagementServiceError(
+        409,
+        'CAMPAIGN_IMMUTABLE',
+        'Active or Archived campaigns are immutable and cannot be updated as drafts',
+      );
+    }
+    if (result.error === 'CAMPAIGN_ITEM_IDENTITY_CHANGED') {
+      throw new CampaignManagementServiceError(
+        409,
+        'CAMPAIGN_ITEM_IDENTITY_CHANGED',
+        'Campaign item component type or content cannot be altered',
+      );
+    }
+    throw new CampaignManagementServiceError(
+      400,
+      'VALIDATION_ERROR',
+      result.error ?? 'Invalid data',
+    );
+  }
 
   return getPlatformCampaignDetail(actor, campaignId);
 }
@@ -472,13 +637,13 @@ async function performLifecycleTransition(options: {
   actor: UserActorContext;
   organisationId?: string | null;
   campaignId: string;
-  expectedCurrentStatus: string;
+  precondition?: CampaignMutationPreconditionDto;
   targetStatus: 'ACTIVE' | 'ARCHIVED';
-  requireNonEmpty?: boolean;
   repoAction: (
     campaignId: string,
     actorUserId?: string,
     orgId?: string | null,
+    expectedUpdatedAt?: Date,
   ) => Promise<{ success: boolean; status?: string; error?: string }>;
   fetchDetail: (
     actor: UserActorContext,
@@ -492,41 +657,55 @@ async function performLifecycleTransition(options: {
     await validatePlatformAdminActor(options.actor);
   }
 
-  const existing = await CampaignManagementRepository.findCampaignById(options.campaignId, {
-    organisationId: options.organisationId ?? undefined,
-    platformOnly: !options.organisationId,
-  });
+  const expectedUpdatedAt = options.precondition?.expectedUpdatedAt
+    ? new Date(options.precondition.expectedUpdatedAt)
+    : undefined;
 
-  if (!existing) {
-    throw new CampaignManagementServiceError(404, 'NOT_FOUND', 'Campaign not found');
-  }
+  const result = await options.repoAction(
+    options.campaignId,
+    options.actor.userId,
+    options.organisationId,
+    expectedUpdatedAt,
+  );
 
-  if (existing.status !== options.expectedCurrentStatus) {
+  if (!result.success) {
+    if (result.error === 'CAMPAIGN_NOT_FOUND') {
+      throw new CampaignManagementServiceError(404, 'NOT_FOUND', 'Campaign not found');
+    }
+    if (result.error === 'CAMPAIGN_CHANGED') {
+      throw new CampaignManagementServiceError(
+        409,
+        'CAMPAIGN_CHANGED',
+        'Campaign has been modified concurrently',
+      );
+    }
+    if (result.error === 'CAMPAIGN_LIFECYCLE_CONFLICT') {
+      throw new CampaignManagementServiceError(
+        409,
+        'LIFECYCLE_CONFLICT',
+        `Cannot transition campaign to ${options.targetStatus}`,
+      );
+    }
+    if (result.error === 'EMPTY_CAMPAIGN') {
+      throw new CampaignManagementServiceError(
+        409,
+        'EMPTY_CAMPAIGN',
+        'Campaign must contain at least one item before activation',
+      );
+    }
+    if (result.error === 'INVALID_CONTENT_STATUS') {
+      throw new CampaignManagementServiceError(
+        409,
+        'UNAVAILABLE_CONTENT',
+        'Campaign contains unavailable or unapproved component content',
+      );
+    }
     throw new CampaignManagementServiceError(
-      409,
-      'LIFECYCLE_CONFLICT',
-      `Cannot transition campaign with status ${existing.status} to ${options.targetStatus}`,
+      400,
+      'VALIDATION_ERROR',
+      result.error ?? 'Lifecycle transition failed',
     );
   }
-
-  if (options.requireNonEmpty && existing.items.length === 0) {
-    throw new CampaignManagementServiceError(
-      409,
-      'EMPTY_CAMPAIGN',
-      'Campaign must contain at least one item before activation',
-    );
-  }
-
-  const hasUnavailableContent = existing.items.some((item) => !item.sourceAvailable);
-  if (hasUnavailableContent) {
-    throw new CampaignManagementServiceError(
-      409,
-      'UNAVAILABLE_CONTENT',
-      'Campaign contains unavailable or unapproved component content',
-    );
-  }
-
-  await options.repoAction(options.campaignId, options.actor.userId, options.organisationId);
 
   const updated = await options.fetchDetail(
     options.actor,
@@ -534,26 +713,26 @@ async function performLifecycleTransition(options: {
     options.organisationId,
   );
 
-  return {
+  return campaignLifecycleActionResponseSchema.parse({
     success: true,
     campaignId: options.campaignId,
     status: options.targetStatus,
     allowedActions: updated.allowedActions,
-  };
+  });
 }
 
 export async function activateOrganisationCampaign(
   actor: UserActorContext,
   organisationId: string,
   campaignId: string,
+  precondition?: CampaignMutationPreconditionDto,
 ): Promise<CampaignLifecycleActionResponseDto> {
   return performLifecycleTransition({
     actor,
     organisationId,
     campaignId,
-    expectedCurrentStatus: 'DRAFT',
+    precondition,
     targetStatus: 'ACTIVE',
-    requireNonEmpty: true,
     repoAction: CampaignManagementRepository.activateCampaign,
     fetchDetail: (act, id, orgId) => getOrganisationCampaignDetail(act, orgId!, id),
   });
@@ -562,14 +741,14 @@ export async function activateOrganisationCampaign(
 export async function activatePlatformCampaign(
   actor: UserActorContext,
   campaignId: string,
+  precondition?: CampaignMutationPreconditionDto,
 ): Promise<CampaignLifecycleActionResponseDto> {
   return performLifecycleTransition({
     actor,
     organisationId: null,
     campaignId,
-    expectedCurrentStatus: 'DRAFT',
+    precondition,
     targetStatus: 'ACTIVE',
-    requireNonEmpty: true,
     repoAction: CampaignManagementRepository.activateCampaign,
     fetchDetail: (act, id) => getPlatformCampaignDetail(act, id),
   });
@@ -579,12 +758,13 @@ export async function archiveOrganisationCampaign(
   actor: UserActorContext,
   organisationId: string,
   campaignId: string,
+  precondition?: CampaignMutationPreconditionDto,
 ): Promise<CampaignLifecycleActionResponseDto> {
   return performLifecycleTransition({
     actor,
     organisationId,
     campaignId,
-    expectedCurrentStatus: 'ACTIVE',
+    precondition,
     targetStatus: 'ARCHIVED',
     repoAction: CampaignManagementRepository.archiveCampaign,
     fetchDetail: (act, id, orgId) => getOrganisationCampaignDetail(act, orgId!, id),
@@ -594,12 +774,13 @@ export async function archiveOrganisationCampaign(
 export async function archivePlatformCampaign(
   actor: UserActorContext,
   campaignId: string,
+  precondition?: CampaignMutationPreconditionDto,
 ): Promise<CampaignLifecycleActionResponseDto> {
   return performLifecycleTransition({
     actor,
     organisationId: null,
     campaignId,
-    expectedCurrentStatus: 'ACTIVE',
+    precondition,
     targetStatus: 'ARCHIVED',
     repoAction: CampaignManagementRepository.archiveCampaign,
     fetchDetail: (act, id) => getPlatformCampaignDetail(act, id),
@@ -610,12 +791,13 @@ export async function reactivateOrganisationCampaign(
   actor: UserActorContext,
   organisationId: string,
   campaignId: string,
+  precondition?: CampaignMutationPreconditionDto,
 ): Promise<CampaignLifecycleActionResponseDto> {
   return performLifecycleTransition({
     actor,
     organisationId,
     campaignId,
-    expectedCurrentStatus: 'ARCHIVED',
+    precondition,
     targetStatus: 'ACTIVE',
     repoAction: CampaignManagementRepository.reactivateCampaign,
     fetchDetail: (act, id, orgId) => getOrganisationCampaignDetail(act, orgId!, id),
@@ -625,12 +807,13 @@ export async function reactivateOrganisationCampaign(
 export async function reactivatePlatformCampaign(
   actor: UserActorContext,
   campaignId: string,
+  precondition?: CampaignMutationPreconditionDto,
 ): Promise<CampaignLifecycleActionResponseDto> {
   return performLifecycleTransition({
     actor,
     organisationId: null,
     campaignId,
-    expectedCurrentStatus: 'ARCHIVED',
+    precondition,
     targetStatus: 'ACTIVE',
     repoAction: CampaignManagementRepository.reactivateCampaign,
     fetchDetail: (act, id) => getPlatformCampaignDetail(act, id),

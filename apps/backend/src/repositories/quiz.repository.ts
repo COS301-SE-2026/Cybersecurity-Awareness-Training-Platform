@@ -1,6 +1,12 @@
 import { prisma } from '../lib/prisma.js';
 import type { Prisma } from '../generated/prisma/client.js';
 
+export async function findActiveTraineeProfileByUserId(userId: string) {
+  return prisma.traineeProfile.findFirst({
+    where: { userId, traineeStatus: 'ACTIVE' },
+  });
+}
+
 export async function findQuizCampaignItem(campaignItemId: string, traineeProfileId: string) {
   return prisma.campaignItem.findFirst({
     where: {

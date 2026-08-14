@@ -79,6 +79,8 @@ describe('Simulation API', () => {
               simulatedInbox: { status: 'ACTIVE' },
             },
             campaign: {
+              status: 'ACTIVE',
+              campaignType: 'PREMADE_GENERAL',
               assignments: assigned ? [{ id: '44444444-4444-4444-4444-444444444444' }] : [],
             },
           },
@@ -100,7 +102,11 @@ describe('Simulation API', () => {
           safetyStatus: 'APPROVED',
           simulatedInbox: { status: 'ACTIVE', emails: [createMockEmail()] },
         },
-        campaign: { assignments: [{ id: '44444444-4444-4444-4444-444444444444' }] },
+        campaign: {
+          status: 'ACTIVE',
+          campaignType: 'PREMADE_GENERAL',
+          assignments: [{ id: '44444444-4444-4444-4444-444444444444' }],
+        },
       };
       prismaMock.campaignItem.findUnique.mockResolvedValue(campaignItem);
 
@@ -137,7 +143,11 @@ describe('Simulation API', () => {
           safetyStatus: 'APPROVED',
           simulatedInbox: { status: 'ACTIVE', emails: [createMockEmail()] },
         },
-        campaign: { assignments: [{ id: '44444444-4444-4444-4444-444444444444' }] },
+        campaign: {
+          status: 'ACTIVE',
+          campaignType: 'PREMADE_GENERAL',
+          assignments: [{ id: '44444444-4444-4444-4444-444444444444' }],
+        },
       };
       prismaMock.campaignItem.findUnique.mockResolvedValue(campaignItem);
       prismaMock.interactionEvent.findMany.mockResolvedValue([

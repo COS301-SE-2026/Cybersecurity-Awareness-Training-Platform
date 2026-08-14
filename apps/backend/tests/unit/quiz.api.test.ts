@@ -70,6 +70,8 @@ function mockCampaignItem(quizStatus = 'PUBLISHED') {
       ],
     },
     campaign: {
+      status: 'ACTIVE',
+      campaignType: 'PREMADE_GENERAL',
       assignments: [
         {
           id: 'assign-1',
@@ -242,6 +244,8 @@ describe('Quiz API Routes', () => {
       mockPrisma.campaignItem.findFirst.mockResolvedValue({
         ...mockCampaignItem(),
         campaign: {
+          status: 'ACTIVE',
+          campaignType: 'PREMADE_GENERAL',
           assignments: [
             {
               id: 'assign-1',

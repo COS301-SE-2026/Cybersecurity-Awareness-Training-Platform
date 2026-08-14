@@ -237,7 +237,7 @@ describe('Trainee training document routes', () => {
     prismaMock.campaignItem.findUnique.mockResolvedValue({
       ...campaignItem,
       campaign: {
-        status: 'ARCHIVED',
+        status: 'DRAFT',
       },
     });
 
