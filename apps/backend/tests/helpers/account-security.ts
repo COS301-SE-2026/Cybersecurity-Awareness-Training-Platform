@@ -255,7 +255,7 @@ export async function createAccountSecurityUserWithSessions(
   };
 }
 
-export async function getAccount(app = createApp(), accessToken: string) {
+export async function getAccount(accessToken: string, app = createApp()) {
   return request(app).get('/account').set(accountAuthHeader(accessToken));
 }
 
