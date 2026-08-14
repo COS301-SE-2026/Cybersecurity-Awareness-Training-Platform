@@ -83,6 +83,7 @@ export const campaignEligibilityReasonSchema = z.enum([
   'NOT_STARTED',
   'EXPIRED',
   'CAMPAIGN_INACTIVE',
+  'COMPLETED',
 ]);
 
 export const campaignEligibilitySchema = z
@@ -92,6 +93,15 @@ export const campaignEligibilitySchema = z
     reason: campaignEligibilityReasonSchema,
   })
   .strict();
+
+export const campaignAllowedActionSchema = z.enum([
+  'VIEW',
+  'EDIT',
+  'ACTIVATE',
+  'ARCHIVE',
+  'REACTIVATE',
+  'ASSIGN',
+]);
 
 const activityApiPathSchema = z
   .string()
@@ -147,7 +157,11 @@ export const traineeCampaignSummarySchema = z
     assignment: traineeCampaignAssignmentSummarySchema.nullish(),
     accessType: campaignAccessTypeSchema.nullish(),
     progressStatus: traineeCampaignProgressStatusSchema.nullish(),
-    eligibility: campaignEligibilitySchema.optional(),
+    eligibility: campaignEligibilitySchema.default({
+      canView: true,
+      canProgress: true,
+      reason: 'AVAILABLE',
+    }),
   })
   .strict();
 
@@ -168,9 +182,9 @@ const campaignQuizSummarySchema = z
     title: titleSchema,
     description: descriptionSchema.nullish(),
     passThresholdPercentage: z.number().min(0).max(100),
+    questionCount: z.number().int().nonnegative().nullish(),
     difficultyLevel: difficultyLevelSchema,
     status: z.enum(['DRAFT', 'PUBLISHED', 'ARCHIVED']),
-    questionCount: z.number().int().nonnegative().optional(),
   })
   .strict();
 
@@ -195,7 +209,11 @@ const traineeCampaignItemSummaryBaseSchema = z
     availabilityStatus: campaignItemAvailabilityStatusSchema,
     isOpenable: z.boolean(),
     progressStatus: traineeCampaignProgressStatusSchema.nullish(),
-    eligibility: campaignEligibilitySchema.optional(),
+    eligibility: campaignEligibilitySchema.default({
+      canView: true,
+      canProgress: true,
+      reason: 'AVAILABLE',
+    }),
   })
   .strict();
 
@@ -271,14 +289,37 @@ export const campaignListQuerySchema = z
   })
   .strict();
 
-export const createCampaignDraftItemInputSchema = z
+const entityIdSchema = z.string().trim().min(1);
+
+export const campaignDraftComponentItemSchema = z
   .object({
-    campaignItemId: idParamSchema.optional(),
+    itemType: z.literal('COMPONENT').optional().default('COMPONENT'),
+    campaignItemId: entityIdSchema.optional(),
     componentType: campaignComponentTypeSchema,
-    contentId: idParamSchema,
+    contentId: entityIdSchema,
     isRequired: z.boolean().optional().default(true),
   })
   .strict();
+
+export const campaignDraftGroupItemSchema = z
+  .object({
+    itemType: z.literal('GROUP'),
+    campaignItemId: entityIdSchema.optional(),
+    title: titleSchema,
+    description: descriptionSchema.nullish(),
+    groupType: campaignGroupTypeSchema,
+    completionRule: completionRuleSchema,
+    isRequired: z.boolean().optional().default(true),
+    children: z.array(campaignDraftComponentItemSchema).min(2),
+  })
+  .strict();
+
+export const campaignDraftItemSchema = z.union([
+  campaignDraftComponentItemSchema,
+  campaignDraftGroupItemSchema,
+]);
+
+export const createCampaignDraftItemInputSchema = campaignDraftComponentItemSchema;
 
 export const createCampaignDraftRequestSchema = z
   .object({
@@ -287,8 +328,177 @@ export const createCampaignDraftRequestSchema = z
     accentColor: hexColorSchema,
     startDate: z.string().datetime().nullish(),
     endDate: z.string().datetime().nullish(),
-    items: z.array(createCampaignDraftItemInputSchema),
+    items: z.array(campaignDraftItemSchema),
   })
   .strict();
 
-export const updateCampaignDraftRequestSchema = createCampaignDraftRequestSchema;
+export const updateCampaignDraftRequestSchema = createCampaignDraftRequestSchema
+  .extend({
+    expectedUpdatedAt: z.string().datetime(),
+  })
+  .strict();
+
+export const campaignMutationPreconditionSchema = z
+  .object({
+    expectedUpdatedAt: z.string().datetime().optional(),
+  })
+  .strict();
+
+export const paginationMetadataSchema = z
+  .object({
+    page: z.number().int().positive(),
+    limit: z.number().int().positive(),
+    totalItems: z.number().int().nonnegative(),
+    totalPages: z.number().int().nonnegative(),
+    hasNextPage: z.boolean(),
+    hasPreviousPage: z.boolean(),
+  })
+  .strict();
+
+export const trainingDocumentCatalogueItemSchema = z
+  .object({
+    id: entityIdSchema,
+    type: z.literal('TRAINING_DOCUMENT'),
+    title: titleSchema,
+    description: descriptionSchema.nullish(),
+    contentType: z.enum(['POLICY', 'PROCEDURE', 'AWARENESS_BRIEF', 'BEST_PRACTICE_GUIDE']),
+    estimatedReadTimeMinutes: z.number().int().positive().nullish(),
+    difficultyLevel: difficultyLevelSchema,
+    status: z.enum(['DRAFT', 'AVAILABLE', 'UNAVAILABLE', 'ARCHIVED']),
+  })
+  .strict();
+
+export const quizCatalogueItemSchema = z
+  .object({
+    id: entityIdSchema,
+    type: z.literal('QUIZ'),
+    title: titleSchema,
+    description: descriptionSchema.nullish(),
+    passThresholdPercentage: z.number().min(0).max(100),
+    questionCount: z.number().int().nonnegative().nullish(),
+    difficultyLevel: difficultyLevelSchema,
+    status: z.enum(['DRAFT', 'PUBLISHED', 'ARCHIVED']),
+  })
+  .strict();
+
+export const simulatedInboxCatalogueItemSchema = z
+  .object({
+    id: entityIdSchema,
+    type: z.literal('SIMULATED_INBOX'),
+    title: titleSchema,
+    description: descriptionSchema.nullish(),
+    emailCount: z.number().int().nonnegative().nullish(),
+    difficultyLevel: difficultyLevelSchema,
+    status: z.string(),
+  })
+  .strict();
+
+export const campaignCatalogueItemSchema = z.union([
+  trainingDocumentCatalogueItemSchema,
+  quizCatalogueItemSchema,
+  simulatedInboxCatalogueItemSchema,
+]);
+
+export const getCampaignCatalogueResponseSchema = z
+  .object({
+    items: z.array(campaignCatalogueItemSchema),
+    pagination: paginationMetadataSchema,
+  })
+  .strict();
+
+export const campaignListRowSchema = z
+  .object({
+    id: entityIdSchema,
+    name: campaignNameSchema,
+    description: descriptionSchema.nullish(),
+    accentColor: hexColorSchema.nullish(),
+    campaignType: campaignTypeSchema,
+    status: campaignStatusSchema,
+    itemCount: z.number().int().nonnegative(),
+    startDate: z.string().datetime().nullish(),
+    endDate: z.string().datetime().nullish(),
+    createdBy: z
+      .object({
+        id: entityIdSchema,
+        displayName: z.string(),
+        email: z.string().email().optional(),
+      })
+      .nullish(),
+    createdAt: z.string().datetime(),
+    updatedAt: z.string().datetime(),
+    allowedActions: z.array(campaignAllowedActionSchema),
+  })
+  .strict();
+
+export const getCampaignsResponseSchema = z
+  .object({
+    items: z.array(campaignListRowSchema),
+    pagination: paginationMetadataSchema,
+  })
+  .strict();
+
+export const campaignDetailComponentItemSchema = z
+  .object({
+    itemType: z.literal('COMPONENT').default('COMPONENT'),
+    campaignItemId: entityIdSchema,
+    componentType: campaignComponentTypeSchema,
+    contentId: entityIdSchema,
+    title: titleSchema,
+    description: descriptionSchema.nullish(),
+    position: z.number().int().nonnegative(),
+    isRequired: z.boolean(),
+    sourceAvailable: z.boolean(),
+  })
+  .strict();
+
+export const campaignDetailGroupItemSchema = z
+  .object({
+    itemType: z.literal('GROUP'),
+    campaignItemId: entityIdSchema,
+    title: titleSchema,
+    description: descriptionSchema.nullish(),
+    groupType: campaignGroupTypeSchema,
+    completionRule: completionRuleSchema,
+    position: z.number().int().nonnegative(),
+    isRequired: z.boolean(),
+    children: z.array(campaignDetailComponentItemSchema),
+  })
+  .strict();
+
+export const campaignDetailItemSchema = z.union([
+  campaignDetailComponentItemSchema,
+  campaignDetailGroupItemSchema,
+]);
+
+export const campaignDetailResponseSchema = z
+  .object({
+    id: entityIdSchema,
+    organisationId: entityIdSchema.nullish(),
+    name: campaignNameSchema,
+    description: descriptionSchema.nullish(),
+    accentColor: hexColorSchema.nullish(),
+    campaignType: campaignTypeSchema,
+    status: campaignStatusSchema,
+    startDate: z.string().datetime().nullish(),
+    endDate: z.string().datetime().nullish(),
+    createdBy: z
+      .object({
+        id: entityIdSchema,
+        displayName: z.string(),
+      })
+      .nullish(),
+    createdAt: z.string().datetime(),
+    updatedAt: z.string().datetime(),
+    allowedActions: z.array(campaignAllowedActionSchema),
+    items: z.array(campaignDetailItemSchema),
+  })
+  .strict();
+
+export const campaignLifecycleActionResponseSchema = z
+  .object({
+    success: z.boolean(),
+    campaignId: entityIdSchema,
+    status: campaignStatusSchema,
+    allowedActions: z.array(campaignAllowedActionSchema),
+  })
+  .strict();
