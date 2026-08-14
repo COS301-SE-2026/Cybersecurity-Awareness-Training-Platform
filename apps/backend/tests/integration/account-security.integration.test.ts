@@ -1,9 +1,11 @@
 import request from 'supertest';
+import { readFile } from 'node:fs/promises';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../../src/app.js';
 import { clearAuthRateLimitStore } from '../../src/middleware/authRateLimit.js';
 import { prisma } from '../../src/lib/prisma.js';
 import { issueActionToken } from '../../src/services/action-token.service.js';
+import { verifyPassword } from '../../src/services/password.service.js';
 import { testUserPassword } from '../helpers/auth.js';
 import {
   createAccountSecuritySession,
@@ -17,6 +19,7 @@ import {
 const app = createApp();
 const confirmationEmailType = 'EMAIL_CHANGE_CONFIRMATION';
 const emailChangePurpose = 'EMAIL_CHANGE_VERIFICATION';
+const changedPassword = 'UpdatedPassword1!';
 
 function futureDate() {
   return new Date(Date.now() + 60 * 60 * 1000);
@@ -32,6 +35,18 @@ function changeEmailPayload(newEmail: string, password = testUserPassword) {
     confirmNewEmail: newEmail,
     password,
   };
+}
+
+function changePasswordPayload(currentPassword = testUserPassword, newPassword = changedPassword) {
+  return {
+    currentPassword,
+    newPassword,
+    confirmNewPassword: newPassword,
+  };
+}
+
+function refreshCookie(rawRefreshToken: string) {
+  return [`refreshToken=${rawRefreshToken}`];
 }
 
 async function createPendingEmailChangeToken(input: {
@@ -301,5 +316,272 @@ describe('account security integration - change email lifecycle', () => {
     const otherUserState = await readAccountSecurityUserState(otherUser.user.id);
     expect(tokenOwnerState.email).toBe(tokenOwner.user.email);
     expect(otherUserState.email).toBe(otherUser.user.email);
+  });
+});
+
+describe('account security integration - password and session lifecycle', () => {
+  beforeEach(() => {
+    clearAuthRateLimitStore();
+  });
+
+  it('rejects an incorrect current password without changing password material', async () => {
+    const fixture = await createAccountSecurityUserFixture();
+    const login = await loginAccountSecurityUser(fixture.user.email);
+
+    const response = await request(app)
+      .post('/account/change-password')
+      .set(login.headers)
+      .send(changePasswordPayload('wrong-password'));
+
+    expect(response.status).toBe(403);
+    expect(response.body).toMatchObject({
+      error: 'ACCOUNT_CURRENT_PASSWORD_INVALID',
+    });
+
+    const user = await prisma.user.findUniqueOrThrow({
+      where: { id: fixture.user.id },
+    });
+    expect(user.passwordHash).toBe(fixture.user.passwordHash);
+    expect(await verifyPassword(changedPassword, user.passwordHash)).toBe(false);
+
+    const state = await readAccountSecurityUserState(fixture.user.id);
+    expect(state.authSessions.some((session) => session.revokedAt !== null)).toBe(false);
+  });
+
+  it('changes the password, revokes active sessions and refresh tokens, and queues notification work', async () => {
+    const fixture = await createAccountSecurityUserFixture();
+    const login = await loginAccountSecurityUser(fixture.user.email);
+    const otherSession = await createAccountSecuritySession({
+      userId: fixture.user.id,
+      deviceSummary: 'Second browser',
+      locationSummary: 'Cape Town',
+    });
+
+    const response = await request(app)
+      .post('/account/change-password')
+      .set(login.headers)
+      .send(changePasswordPayload());
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      message: 'Password changed successfully.',
+      notificationQueued: true,
+      revokedSessionCount: 2,
+    });
+
+    const state = await readAccountSecurityUserState(fixture.user.id);
+    expect(await verifyPassword(changedPassword, state.passwordHash)).toBe(true);
+    expect(state.authSessions).toHaveLength(2);
+    expect(state.authSessions.every((session) => session.revokedReason === 'PASSWORD_CHANGE')).toBe(
+      true,
+    );
+    expect(
+      state.authSessions
+        .flatMap((session) => session.refreshTokens)
+        .every((refreshToken) => refreshToken.revokedReason === 'PASSWORD_CHANGE'),
+    ).toBe(true);
+    expect(state.authSessions.map((session) => session.id)).toEqual(
+      expect.arrayContaining([login.currentSession.id, otherSession.session.id]),
+    );
+
+    const deliveries = await readAccountEmailDeliveries(fixture.user.id);
+    expect(deliveries).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          emailType: 'PASSWORD_CHANGED',
+          deliveryStatus: 'PENDING',
+          actionTokenId: null,
+        }),
+      ]),
+    );
+
+    const refreshResponse = await request(app)
+      .post('/auth/refresh')
+      .set('Cookie', refreshCookie(otherSession.rawRefreshToken));
+    expect(refreshResponse.status).toBe(401);
+    expect(refreshResponse.body).toMatchObject({
+      error: 'AUTH_INVALID',
+    });
+  });
+
+  it('lists only the authenticated user sessions without exposing token material', async () => {
+    const fixture = await createAccountSecurityUserFixture();
+    const otherUser = await createAccountSecurityUserFixture();
+    const login = await loginAccountSecurityUser(fixture.user.email);
+    const otherSession = await createAccountSecuritySession({
+      userId: fixture.user.id,
+      deviceSummary: 'Tablet browser',
+      locationSummary: 'Johannesburg',
+    });
+    await createAccountSecuritySession({
+      userId: otherUser.user.id,
+      deviceSummary: 'Other user browser',
+      locationSummary: 'Pretoria',
+    });
+
+    const response = await request(app).get('/account/sessions').set(login.headers);
+
+    expect(response.status).toBe(200);
+    expect(response.body.sessions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: login.currentSession.id,
+          current: true,
+        }),
+        expect.objectContaining({
+          id: otherSession.session.id,
+          current: false,
+          deviceSummary: 'Tablet browser',
+          locationSummary: 'Johannesburg',
+        }),
+      ]),
+    );
+    expect(response.body.sessions).toHaveLength(2);
+    expect(JSON.stringify(response.body)).not.toContain('tokenHash');
+    expect(JSON.stringify(response.body)).not.toContain('refreshToken');
+    expect(JSON.stringify(response.body)).not.toContain('ipAddress');
+    expect(JSON.stringify(response.body)).not.toContain('userAgent');
+  });
+
+  it('revokes an owned non-current session and its refresh tokens', async () => {
+    const fixture = await createAccountSecurityUserFixture();
+    const login = await loginAccountSecurityUser(fixture.user.email);
+    const otherSession = await createAccountSecuritySession({
+      userId: fixture.user.id,
+    });
+
+    const response = await request(app)
+      .delete(`/account/sessions/${otherSession.session.id}`)
+      .set(login.headers);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ revoked: true });
+
+    const state = await readAccountSecurityUserState(fixture.user.id);
+    const revokedSession = state.authSessions.find(
+      (session) => session.id === otherSession.session.id,
+    );
+    const currentSession = state.authSessions.find(
+      (session) => session.id === login.currentSession.id,
+    );
+    expect(revokedSession?.revokedReason).toBe('LOGOUT');
+    expect(
+      revokedSession?.refreshTokens.every(
+        (refreshToken) => refreshToken.revokedReason === 'LOGOUT',
+      ),
+    ).toBe(true);
+    expect(currentSession?.revokedAt).toBeNull();
+  });
+
+  it('does not allow a user to revoke another user session', async () => {
+    const fixture = await createAccountSecurityUserFixture();
+    const otherUser = await createAccountSecurityUserFixture();
+    const login = await loginAccountSecurityUser(fixture.user.email);
+    const otherUserSession = await createAccountSecuritySession({
+      userId: otherUser.user.id,
+    });
+
+    const response = await request(app)
+      .delete(`/account/sessions/${otherUserSession.session.id}`)
+      .set(login.headers);
+
+    expect(response.status).toBe(404);
+    expect(response.body).toMatchObject({
+      error: 'ACCOUNT_NOT_FOUND',
+    });
+    expect(JSON.stringify(response.body)).not.toContain(otherUser.user.email);
+
+    const otherUserState = await readAccountSecurityUserState(otherUser.user.id);
+    const untouchedSession = otherUserState.authSessions.find(
+      (session) => session.id === otherUserSession.session.id,
+    );
+    expect(untouchedSession?.revokedAt).toBeNull();
+  });
+
+  it('allows direct current-session revocation and rejects the revoked refresh token', async () => {
+    const fixture = await createAccountSecurityUserFixture();
+    const login = await loginAccountSecurityUser(fixture.user.email);
+
+    const response = await request(app)
+      .delete(`/account/sessions/${login.currentSession.id}`)
+      .set(login.headers);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ revoked: true });
+
+    const state = await readAccountSecurityUserState(fixture.user.id);
+    const currentSession = state.authSessions.find(
+      (session) => session.id === login.currentSession.id,
+    );
+    expect(currentSession?.revokedReason).toBe('LOGOUT');
+
+    const refreshResponse = await request(app).post('/auth/refresh').set('Cookie', login.cookies);
+    expect(refreshResponse.status).toBe(401);
+    expect(refreshResponse.body).toMatchObject({
+      error: 'AUTH_INVALID',
+    });
+  });
+
+  it('logs out other sessions while preserving the current session and refresh token', async () => {
+    const fixture = await createAccountSecurityUserFixture();
+    const login = await loginAccountSecurityUser(fixture.user.email);
+    const otherSession = await createAccountSecuritySession({
+      userId: fixture.user.id,
+    });
+
+    const response = await request(app).post('/account/sessions/logout-others').set(login.headers);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ revokedSessionCount: 1 });
+
+    const state = await readAccountSecurityUserState(fixture.user.id);
+    const currentSession = state.authSessions.find(
+      (session) => session.id === login.currentSession.id,
+    );
+    const revokedSession = state.authSessions.find(
+      (session) => session.id === otherSession.session.id,
+    );
+
+    expect(currentSession?.revokedAt).toBeNull();
+    expect(
+      currentSession?.refreshTokens.every((refreshToken) => refreshToken.revokedAt === null),
+    ).toBe(true);
+    expect(revokedSession?.revokedReason).toBe('LOGOUT_ALL');
+    expect(
+      revokedSession?.refreshTokens.every(
+        (refreshToken) => refreshToken.revokedReason === 'LOGOUT_ALL',
+      ),
+    ).toBe(true);
+
+    const refreshResponse = await request(app).post('/auth/refresh').set('Cookie', login.cookies);
+    expect(refreshResponse.status).toBe(200);
+    expect(refreshResponse.body).toMatchObject({
+      tokenType: 'Bearer',
+    });
+  });
+});
+
+describe('account security integration - account boundary checks', () => {
+  it('keeps account routes and controllers free of direct Prisma/repository access', async () => {
+    const [routesSource, controllerSource] = await Promise.all([
+      readFile(new URL('../../src/routes/account.routes.ts', import.meta.url), 'utf8'),
+      readFile(new URL('../../src/controllers/account.controller.ts', import.meta.url), 'utf8'),
+    ]);
+
+    expect(routesSource).not.toContain('../lib/prisma');
+    expect(routesSource).not.toContain('../repositories/');
+    expect(controllerSource).not.toContain('../lib/prisma');
+    expect(controllerSource).not.toContain('../repositories/');
+  });
+
+  it('keeps account service behind repository and transaction helpers instead of direct Prisma client use', async () => {
+    const serviceSource = await readFile(
+      new URL('../../src/services/account.service.ts', import.meta.url),
+      'utf8',
+    );
+
+    expect(serviceSource).not.toContain("from '../lib/prisma.js'");
+    expect(serviceSource).not.toMatch(/\bprisma\./);
+    expect(serviceSource).toContain('runAccountTransaction');
   });
 });
