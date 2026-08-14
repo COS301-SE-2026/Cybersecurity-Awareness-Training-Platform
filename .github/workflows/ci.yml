@@ -453,10 +453,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Validate deployment scripts
+      - name: Validate shell scripts
         run: |
           bash -n deploy/deploy-production.sh
           bash -n deploy/deploy-development.sh
+          bash -n dscripts/check-frozen-docs.sh
 
       - name: Validate local Docker Compose config
         run: docker compose --profile tools config --quiet
