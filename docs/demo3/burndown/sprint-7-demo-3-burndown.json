@@ -4,6 +4,13 @@
   "end": "2026-08-17",
   "issues": [
     {
+      "number": 462,
+      "title": "feat: integrate campaign management and builder with live APIs",
+      "points": 5,
+      "state": "open",
+      "closed_date": null
+    },
+    {
       "number": 458,
       "title": "chore: separate continuous integration from deployment workflows",
       "points": 5,
@@ -63,23 +70,23 @@
   "series": [
     {
       "date": "2026-08-11",
-      "remaining": 36,
-      "ideal": 36.0
+      "remaining": 41,
+      "ideal": 41.0
     },
     {
       "date": "2026-08-12",
-      "remaining": 36,
-      "ideal": 30.0
+      "remaining": 41,
+      "ideal": 34.17
     },
     {
       "date": "2026-08-13",
-      "remaining": 36,
-      "ideal": 24.0
+      "remaining": 41,
+      "ideal": 27.33
     },
     {
       "date": "2026-08-14",
-      "remaining": 36,
-      "ideal": 18.0
+      "remaining": 41,
+      "ideal": 20.5
     }
   ]
 }
