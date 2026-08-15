@@ -49,8 +49,8 @@
       "number": 453,
       "title": "feat: add campaign management lifecycle and eligibility APIs",
       "points": 5,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-08-15"
     },
     {
       "number": 452,
@@ -90,7 +90,7 @@
     },
     {
       "date": "2026-08-15",
-      "remaining": 41,
+      "remaining": 36,
       "ideal": 13.67
     }
   ]
