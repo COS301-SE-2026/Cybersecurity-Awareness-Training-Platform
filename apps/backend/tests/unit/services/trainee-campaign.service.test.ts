@@ -22,7 +22,11 @@ describe('Trainee Campaign Service - Platform Campaign Self-Enrolment', () => {
   const campaignId = '33333333-3333-4333-8333-333333333333';
   const assignmentId = '44444444-4444-4444-8444-444444444444';
 
-  const validActorScope = {
+  type ActorScope = Awaited<
+    ReturnType<typeof CampaignAssignmentRepository.findGeneralTraineeActorScope>
+  >;
+
+  const validActorScope: NonNullable<ActorScope> = {
     id: userId,
     userType: 'GENERAL_TRAINEE',
     authStatus: 'ACTIVE',
@@ -39,7 +43,7 @@ describe('Trainee Campaign Service - Platform Campaign Self-Enrolment', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(CampaignAssignmentRepository.findGeneralTraineeActorScope).mockResolvedValue(
-      validActorScope as any,
+      validActorScope,
     );
   });
 
@@ -149,7 +153,7 @@ describe('Trainee Campaign Service - Platform Campaign Self-Enrolment', () => {
           traineeStatus: 'ACTIVE',
           generalTraineeProfile: null,
         },
-      } as any);
+      });
 
       await expect(listPlatformCampaigns(userId, { page: 1, limit: 10 })).rejects.toThrow(
         TraineeCampaignForbiddenError,
@@ -164,7 +168,7 @@ describe('Trainee Campaign Service - Platform Campaign Self-Enrolment', () => {
           traineeStatus: 'INACTIVE',
           generalTraineeProfile: { id: 'g-id', accessSource: 'SELF_SIGNUP' },
         },
-      } as any);
+      });
 
       await expect(listPlatformCampaigns(userId, { page: 1, limit: 10 })).rejects.toThrow(
         TraineeCampaignForbiddenError,
