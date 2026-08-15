@@ -5,20 +5,21 @@ This section provides a view of the Insightful Phish deployments and CI/CD proce
 ## SAS Content
 
 - [0. Home](README.md)
-- [1. Architectural Requirements](architectural-requirements.md)
-- [2. Architectural Patterns](architectural-patterns.md)
-- [3. Design Patterns](design-patterns.md)
-- [4. Quality to Architecture Mapping](quality-architecture-mapping.md)
-- [5. Technology Requirements](technology-requirements.md)
+- [1. Introductions](introduction.md)
+- [2. Architectural Requirements](architectural-requirements.md)
+- [3. Architecture Overview](architecture-overview.md)
+- [4. Architectural Patterns](architectural-patterns.md)
+- [5. Design Patterns](design-patterns.md)
 - [6. Quality to Architecture Mapping](quality-architecture-mapping.md)
 - [7. Technology Requirements](technology-requirements.md)
 - [8. API Contracts](api-contracts.md)
-- **[9. Deployment and Operations](#7-deployment-and-operations)** &larr; _You are here_
-  - [9.1 Purpose](#71-purpose)
-  - [9.2 Deployment Diagrams](#72-deployment-diagrams)
-  - [9.3 Deployment Failure Behaviour](#73-deployment-failure-behaviour)
-  - [9.4 Rollback Strategy](#74-rollback-strategy)
-- [8. Changelog](changelog.md)
+- **[9. Deployment and Operations](#9-deployment-and-operations)** &larr; _You are here_
+  - [9.1 Purpose](#91-purpose)
+  - [9.2 Environment Separations](#92-environment-separation)
+  - [9.3 Deployment Diagrams](#93-deployment-diagrams)
+  - [9.4 Deployment Failure Behaviour](#94-deployment-failure-behaviour)
+  - [9.5 Rollback Strategy](#95-rollback-strategy)
+- [10. Changelog](changelog.md)
 
 ---
 
@@ -93,13 +94,17 @@ To view the full rendered version of the diagram, click [here](../diagrams/sas/c
 
 ### 9.4 Deployment Failure Behaviour
 
-Production and Development use the same guarded deployment implementation with an allow-listed target, separate application directory, Compose config, image-tag format and deployment locks. Before modifying the application, the script validates the target and the 40 character SHA, verifies the required files and runtime anvironment, creates a candidate release file, validates the rendered Compose config, pulls the immutable images and applies Prisma migrations.
+Production and Development use the same guarded deployment implementation with an allow-listed target, separate application directory, Compose config, image-tag format and deployment locks. Before modifying the application, the script validates the target and the 40 character SHA, verifies the required files and runtime environment, creates a candidate release file, validates the rendered Compose config, pulls the immutable images and applies Prisma migrations.
 
-After migration, the script recreates the application services, waits for the backend and frontend container health checks, and performs host-level HTTP smoke tests. Development additionally verifies that the backend can connect to Mailpit at `mailpit:1025`. If any phase fails, the script exists with a non-zero status and the candidate is recorded as unsuccessful. Since migrations may already have changed the database and the candidate containers may have replaced the previous containers, the `current` marker identifies the last verified SHA, but does not huarantee that its containers remain running.
+After migration, the script recreates the application services, waits for the backend and frontend container health checks, and performs host-level HTTP smoke tests. Development additionally verifies that the backend can connect to Mailpit at `mailpit:1025`.
 
-The script does not automatically restore previous containers, reverse migration or recover database data. If the Azure VM is stopped or unreachable, the bounded SSH step fails.
+If candidate recreation or health verifications fail, the script recreates the rpevious backend and frontend images using the unchaged successful `release.env`. It then repeats the container and HTTP health checks against the restored application. The candidate remains unsuccessful and the deployment returns a non-zero status even when restoration succeeds.
 
-### 9.4 Rollback Strategy
+The automatic system recovery does not reverse Prisma migration, restore database data or reset PostgreSQL volums. Because of this, automatic deployment requires that every migration be backward-compatible with the immediately previous application release.
+
+Both `Production` and `Development` use this failure behaviour.
+
+### 9.5 Rollback Strategy
 
 <!-- TODO Update once automatic rollback is implemented -->
 
@@ -110,9 +115,9 @@ The deployment script records the Git commit SHAs of the current and previous su
 
 Successful deployments are also appended to `deploy/releases/deployment-history.log`.
 
-Rollback is a manual action and is not automatic yet. The developer needs to identify the previous successful SHA and confirm that its backend image is compatible with the current database schema. If it is compatible, the previous SHA can be passed to the normal production deployment script. This causes the previous images to be pulled and deployed through the same migration, health-check, and smoke-test gates as any other release.
+If a candidate release fails, it does not replace the successful `current`, `previous` or `release.env` state. The deployment history records candidate start, candidate failure, restoration start, restoration result and successful candidate promotion without recording runtime secrets. Automatic recovery restores only the previous application containers. It does not reverse database migrations. Because of this, all database migrations must be backward compatible.
 
-Application rollback does not automatically reverse Prisma migrations or restore database data. If the previous application version is incompatible with migrations already applied by the failed release, the developer must use a compatible forward correction or a separately planned database-recovery procedure. The previous application image must not be redeployed until this compatibility has been assessed.
+Both `Production` and `Development` use this rollback strategy.
 
 ---
 
