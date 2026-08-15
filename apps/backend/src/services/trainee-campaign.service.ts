@@ -565,6 +565,7 @@ export async function enrolPlatformCampaign(
   const trainee = await resolveActiveGeneralTrainee(userId);
 
   const result = await CampaignAssignmentRepository.enrolGeneralTraineeInPlatformCampaign({
+    userId,
     traineeProfileId: trainee.traineeProfileId,
     campaignId,
   });

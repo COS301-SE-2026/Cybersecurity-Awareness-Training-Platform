@@ -1110,6 +1110,7 @@ export async function findPlatformCampaignById(campaignId: string, client: DBCli
 }
 
 export type EnrolGeneralTraineeInPlatformCampaignInput = {
+  userId?: string;
   traineeProfileId: string;
   campaignId: string;
 };
@@ -1153,119 +1154,91 @@ export async function enrolGeneralTraineeInPlatformCampaign(
   input: EnrolGeneralTraineeInPlatformCampaignInput,
   client: DBClient = prisma,
 ): Promise<EnrolGeneralTraineeInPlatformCampaignResult> {
-  // 1. Authoritative verification of active general trainee
-  const trainee = await client.traineeProfile.findFirst({
-    where: {
-      id: input.traineeProfileId,
-      traineeStatus: 'ACTIVE',
-      user: {
-        userType: 'GENERAL_TRAINEE',
-        authStatus: 'ACTIVE',
+  const runInTx = async (tx: DBClient): Promise<EnrolGeneralTraineeInPlatformCampaignResult> => {
+    // 1. Authoritative verification of active general trainee
+    const trainee = await tx.traineeProfile.findFirst({
+      where: {
+        id: input.traineeProfileId,
+        ...(input.userId ? { userId: input.userId } : {}),
+        traineeStatus: 'ACTIVE',
+        user: {
+          ...(input.userId ? { id: input.userId } : {}),
+          userType: 'GENERAL_TRAINEE',
+          authStatus: 'ACTIVE',
+        },
+        generalTraineeProfile: {
+          isNot: null,
+        },
       },
-      generalTraineeProfile: {
-        isNot: null,
+      select: { id: true },
+    });
+
+    if (!trainee) {
+      return {
+        success: false,
+        error: 'TRAINEE_NOT_ELIGIBLE',
+        message: 'Trainee is not an active general trainee',
+      };
+    }
+
+    // 2. Authoritative verification of platform campaign
+    const campaign = await tx.campaign.findFirst({
+      where: {
+        id: input.campaignId,
+        campaignType: 'PREMADE_GENERAL',
+        organisationId: null,
       },
-    },
-    select: { id: true },
-  });
-
-  if (!trainee) {
-    return {
-      success: false,
-      error: 'TRAINEE_NOT_ELIGIBLE',
-      message: 'Trainee is not an active general trainee',
-    };
-  }
-
-  // 2. Authoritative verification of platform campaign
-  const campaign = await client.campaign.findFirst({
-    where: {
-      id: input.campaignId,
-      campaignType: 'PREMADE_GENERAL',
-      organisationId: null,
-    },
-    select: {
-      id: true,
-      name: true,
-      description: true,
-      accentColor: true,
-      campaignType: true,
-      difficultyLevel: true,
-      status: true,
-      startDate: true,
-      endDate: true,
-      items: {
-        where: {
-          availabilityStatus: {
-            not: 'ARCHIVED',
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        accentColor: true,
+        campaignType: true,
+        difficultyLevel: true,
+        status: true,
+        startDate: true,
+        endDate: true,
+        items: {
+          where: {
+            availabilityStatus: {
+              not: 'ARCHIVED',
+            },
+          },
+          select: {
+            id: true,
+            availabilityStatus: true,
           },
         },
-        select: {
-          id: true,
-          availabilityStatus: true,
+      },
+    });
+
+    if (!campaign) {
+      return {
+        success: false,
+        error: 'CAMPAIGN_NOT_FOUND',
+        message: 'Platform campaign was not found',
+      };
+    }
+
+    const now = new Date();
+    const isExpired = campaign.endDate ? now.getTime() >= campaign.endDate.getTime() : false;
+    const isNotStarted = campaign.startDate ? now.getTime() < campaign.startDate.getTime() : false;
+
+    if (campaign.status !== 'ACTIVE' || isExpired || isNotStarted) {
+      return {
+        success: false,
+        error: 'CAMPAIGN_INACTIVE',
+        message: 'Campaign is not active',
+      };
+    }
+
+    // 3. Check for existing assignment
+    const existingAssignment = await tx.campaignAssignment.findUnique({
+      where: {
+        campaignId_traineeProfileId: {
+          campaignId: input.campaignId,
+          traineeProfileId: input.traineeProfileId,
         },
-      },
-    },
-  });
-
-  if (!campaign) {
-    return {
-      success: false,
-      error: 'CAMPAIGN_NOT_FOUND',
-      message: 'Platform campaign was not found',
-    };
-  }
-
-  if (campaign.status !== 'ACTIVE') {
-    return {
-      success: false,
-      error: 'CAMPAIGN_INACTIVE',
-      message: 'Campaign is not active',
-    };
-  }
-
-  // 3. Check for existing assignment
-  const existingAssignment = await client.campaignAssignment.findUnique({
-    where: {
-      campaignId_traineeProfileId: {
-        campaignId: input.campaignId,
-        traineeProfileId: input.traineeProfileId,
-      },
-    },
-    select: {
-      id: true,
-      campaignId: true,
-      traineeProfileId: true,
-      assignmentStatus: true,
-      accessType: true,
-      currentCampaignItemId: true,
-      assignedAt: true,
-      dueDate: true,
-      startedAt: true,
-      completedAt: true,
-    },
-  });
-
-  if (existingAssignment) {
-    // Idempotent: return existing assignment without altering accessType (ASSIGNED is not downgraded)
-    return {
-      success: true,
-      isNew: false,
-      assignment: existingAssignment,
-      campaign,
-    };
-  }
-
-  // 4. Create new SELF_SELECTED assignment (with concurrency handling)
-  try {
-    const newAssignment = await client.campaignAssignment.create({
-      data: {
-        id: randomUUID(),
-        campaignId: input.campaignId,
-        traineeProfileId: input.traineeProfileId,
-        assignedByUserId: null,
-        accessType: 'SELF_SELECTED',
-        assignmentStatus: 'ASSIGNED',
       },
       select: {
         id: true,
@@ -1281,25 +1254,26 @@ export async function enrolGeneralTraineeInPlatformCampaign(
       },
     });
 
-    return {
-      success: true,
-      isNew: true,
-      assignment: newAssignment,
-      campaign,
-    };
-  } catch (err: unknown) {
-    if (
-      typeof err === 'object' &&
-      err !== null &&
-      'code' in err &&
-      (err as { code: string }).code === 'P2002'
-    ) {
-      const fallbackAssignment = await client.campaignAssignment.findUnique({
-        where: {
-          campaignId_traineeProfileId: {
-            campaignId: input.campaignId,
-            traineeProfileId: input.traineeProfileId,
-          },
+    if (existingAssignment) {
+      // Idempotent: return existing assignment without altering accessType (ASSIGNED is not downgraded)
+      return {
+        success: true,
+        isNew: false,
+        assignment: existingAssignment,
+        campaign,
+      };
+    }
+
+    // 4. Create new SELF_SELECTED assignment (with concurrency handling)
+    try {
+      const newAssignment = await tx.campaignAssignment.create({
+        data: {
+          id: randomUUID(),
+          campaignId: input.campaignId,
+          traineeProfileId: input.traineeProfileId,
+          assignedByUserId: null,
+          accessType: 'SELF_SELECTED',
+          assignmentStatus: 'ASSIGNED',
         },
         select: {
           id: true,
@@ -1315,15 +1289,56 @@ export async function enrolGeneralTraineeInPlatformCampaign(
         },
       });
 
-      if (fallbackAssignment) {
-        return {
-          success: true,
-          isNew: false,
-          assignment: fallbackAssignment,
-          campaign,
-        };
+      return {
+        success: true,
+        isNew: true,
+        assignment: newAssignment,
+        campaign,
+      };
+    } catch (err: unknown) {
+      if (
+        typeof err === 'object' &&
+        err !== null &&
+        'code' in err &&
+        (err as { code: string }).code === 'P2002'
+      ) {
+        const fallbackAssignment = await tx.campaignAssignment.findUnique({
+          where: {
+            campaignId_traineeProfileId: {
+              campaignId: input.campaignId,
+              traineeProfileId: input.traineeProfileId,
+            },
+          },
+          select: {
+            id: true,
+            campaignId: true,
+            traineeProfileId: true,
+            assignmentStatus: true,
+            accessType: true,
+            currentCampaignItemId: true,
+            assignedAt: true,
+            dueDate: true,
+            startedAt: true,
+            completedAt: true,
+          },
+        });
+
+        if (fallbackAssignment) {
+          return {
+            success: true,
+            isNew: false,
+            assignment: fallbackAssignment,
+            campaign,
+          };
+        }
       }
+      throw err;
     }
-    throw err;
+  };
+
+  if ('$transaction' in client && typeof client.$transaction === 'function') {
+    return client.$transaction(async (tx) => runInTx(tx));
   }
+
+  return runInTx(client);
 }

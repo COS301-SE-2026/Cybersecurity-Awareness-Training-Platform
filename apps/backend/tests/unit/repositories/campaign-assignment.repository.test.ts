@@ -413,10 +413,20 @@ describe('CampaignAssignmentRepository', () => {
         });
 
         const result = await enrolGeneralTraineeInPlatformCampaign({
+          userId: 'user-123',
           traineeProfileId,
           campaignId,
         });
 
+        expect(prisma.$transaction).toHaveBeenCalled();
+        expect(prisma.traineeProfile.findFirst).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: expect.objectContaining({
+              id: traineeProfileId,
+              userId: 'user-123',
+            }),
+          }),
+        );
         expect(result.success).toBe(true);
         if (result.success) {
           expect(result.isNew).toBe(true);
@@ -511,6 +521,34 @@ describe('CampaignAssignmentRepository', () => {
           status: 'ARCHIVED',
           startDate: null,
           endDate: null,
+          items: [],
+        });
+
+        const result = await enrolGeneralTraineeInPlatformCampaign({
+          traineeProfileId,
+          campaignId,
+        });
+
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error).toBe('CAMPAIGN_INACTIVE');
+        }
+      });
+
+      it('returns CAMPAIGN_INACTIVE if platform campaign is expired', async () => {
+        (prisma.traineeProfile.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+          id: traineeProfileId,
+        });
+        (prisma.campaign.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+          id: campaignId,
+          name: 'Platform Campaign',
+          description: null,
+          accentColor: null,
+          campaignType: 'PREMADE_GENERAL',
+          difficultyLevel: 'BEGINNER',
+          status: 'ACTIVE',
+          startDate: null,
+          endDate: new Date(Date.now() - 100000),
           items: [],
         });
 
