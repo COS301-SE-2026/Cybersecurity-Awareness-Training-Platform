@@ -29,7 +29,9 @@ export type OrganisationPermissionKeyDto =
   | 'VIEW_ORGANISATION_TRAINEES'
   | 'INVITE_ORGANISATION_TRAINEES'
   | 'REMOVE_ORGANISATION_TRAINEES'
-  | 'ASSIGN_CAMPAIGNS';
+  | 'ASSIGN_CAMPAIGNS'
+  | 'VIEW_CAMPAIGNS'
+  | 'MANAGE_CAMPAIGNS';
 
 export type GeneralTraineeAccessSourceDto = 'SELF_SIGNUP' | 'INVITE' | 'SEED' | 'ADMIN_CREATED';
 

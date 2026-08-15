@@ -13,9 +13,15 @@ import type {
 } from '@insightful-phish/shared';
 import {
   getTraineeCampaignActivityApiPath,
+  getTraineeCampaignDetailResponseSchema,
+  getTraineeCampaignsResponseSchema,
   SUPPORTED_TRAINEE_CAMPAIGN_COMPONENT_TYPES,
 } from '@insightful-phish/shared';
 import * as TraineeCampaignRepository from '../repositories/trainee-campaign.repository.js';
+import {
+  defaultCampaignEligibilityService,
+  type CampaignEligibilityResult,
+} from './campaign-eligibility.service.js';
 
 type ActiveTraineeProfile = NonNullable<
   Awaited<ReturnType<typeof TraineeCampaignRepository.findActiveTraineeProfileByUserId>>
@@ -31,6 +37,7 @@ type CampaignItemRecord = CampaignAssignmentDetail['campaign']['items'][number];
 type TraineeCampaignSummaryWithCountsDto = TraineeCampaignSummaryDto & {
   itemCount: number;
   availableItemCount: number;
+  eligibility: CampaignEligibilityResult;
 };
 
 type GetTraineeCampaignsResponseWithCountsDto = GetTraineeCampaignsResponseDto & {
@@ -38,7 +45,7 @@ type GetTraineeCampaignsResponseWithCountsDto = GetTraineeCampaignsResponseDto &
 };
 
 export class TraineeCampaignNotFoundError extends Error {
-  constructor(message = 'Campaign was not found') {
+  constructor(message = 'Trainee campaign not found') {
     super(message);
     this.name = 'TraineeCampaignNotFoundError';
   }
@@ -62,8 +69,8 @@ async function resolveActiveTraineeProfile(userId: string): Promise<ActiveTraine
   return traineeProfile;
 }
 
-function toIsoString(value: Date | null) {
-  return value?.toISOString() ?? null;
+function toIsoString(value: Date | null | undefined): string | null {
+  return value ? value.toISOString() : null;
 }
 
 function toAssignmentSummary(
@@ -98,6 +105,9 @@ function toCampaignSummary(
   const availableItemCount = assignment.campaign.items.filter(
     (item) => item.availabilityStatus === 'AVAILABLE',
   ).length;
+  const eligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(
+    assignment.campaign,
+  );
 
   return {
     campaignId: assignment.campaign.id,
@@ -113,6 +123,7 @@ function toCampaignSummary(
     accessType: assignment.accessType,
     itemCount,
     availableItemCount,
+    eligibility,
   };
 }
 
@@ -274,13 +285,19 @@ function isComponentOpenable(item: CampaignItemRecord) {
 
 function toComponentItemSummary(input: {
   item: CampaignItemRecord & { itemType: 'COMPONENT' };
+  campaignEligibility: CampaignEligibilityResult;
   progressByItemId: Map<string, TraineeCampaignProgressStatusDto>;
 }): TraineeCampaignComponentItemSummaryDto {
-  const { item, progressByItemId } = input;
+  const { item, campaignEligibility, progressByItemId } = input;
 
   if (!isSupportedComponentType(item.componentType)) {
     throw new TraineeCampaignNotFoundError();
   }
+
+  const itemEligibility = defaultCampaignEligibilityService.evaluateItemEligibility(
+    campaignEligibility,
+    item.componentType,
+  );
 
   return {
     campaignItemId: item.id,
@@ -295,9 +312,10 @@ function toComponentItemSummary(input: {
     position: item.position,
     isRequired: item.isRequired,
     availabilityStatus: item.availabilityStatus,
-    isOpenable: isComponentOpenable(item),
+    isOpenable: isComponentOpenable(item) && itemEligibility.canView,
     activityApiPath: getTraineeCampaignActivityApiPath(item.componentType, item.id),
     progressStatus: progressByItemId.get(item.id) ?? 'NOT_STARTED',
+    eligibility: itemEligibility,
     trainingDocument: item.trainingDocument
       ? {
           id: item.trainingDocument.id,
@@ -337,6 +355,7 @@ function sortByPosition(items: CampaignItemRecord[]) {
 function toCampaignItemTree(input: {
   items: CampaignItemRecord[];
   parentGroupId: string | null;
+  campaignEligibility: CampaignEligibilityResult;
   progressByItemId: Map<string, TraineeCampaignProgressStatusDto>;
 }): TraineeCampaignItemSummaryDto[] {
   return sortByPosition(input.items.filter((item) => item.parentGroupId === input.parentGroupId))
@@ -349,20 +368,23 @@ function toCampaignItemTree(input: {
       if (item.itemType === 'COMPONENT') {
         return toComponentItemSummary({
           item: item as CampaignItemRecord & { itemType: 'COMPONENT' },
+          campaignEligibility: input.campaignEligibility,
           progressByItemId: input.progressByItemId,
         });
       }
 
-      const children = toCampaignItemTree({
-        items: input.items,
-        parentGroupId: item.id,
-        progressByItemId: input.progressByItemId,
-      }).map(
-        (child): TraineeCampaignChildItemSummaryDto => ({
-          ...child,
+      const children: TraineeCampaignChildItemSummaryDto[] = sortByPosition(
+        input.items.filter((c) => c.parentGroupId === item.id && c.itemType === 'COMPONENT'),
+      )
+        .filter((c) => c.componentType !== null && isSupportedComponentType(c.componentType))
+        .map((c) => ({
+          ...toComponentItemSummary({
+            item: c as CampaignItemRecord & { itemType: 'COMPONENT' },
+            campaignEligibility: input.campaignEligibility,
+            progressByItemId: input.progressByItemId,
+          }),
           parentGroupId: item.id,
-        }),
-      );
+        }));
 
       return {
         campaignItemId: item.id,
@@ -380,6 +402,11 @@ function toCampaignItemTree(input: {
         isOpenable: false,
         activityApiPath: null,
         progressStatus: null,
+        eligibility: {
+          canView: input.campaignEligibility.canView,
+          canProgress: input.campaignEligibility.canProgress,
+          reason: input.campaignEligibility.reason,
+        },
         children,
       } satisfies TraineeCampaignGroupItemSummaryDto;
     });
@@ -393,9 +420,11 @@ export async function getTraineeCampaigns(
     traineeProfile.id,
   );
 
-  return {
+  const parsed = getTraineeCampaignsResponseSchema.parse({
     campaigns: assignments.map(toCampaignSummary),
-  };
+  });
+
+  return parsed as GetTraineeCampaignsResponseWithCountsDto;
 }
 
 export async function getTraineeCampaignDetail(
@@ -412,18 +441,26 @@ export async function getTraineeCampaignDetail(
     throw new TraineeCampaignNotFoundError();
   }
 
+  const campaignEligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(
+    assignment.campaign,
+  );
+  if (!campaignEligibility.canView) {
+    throw new TraineeCampaignNotFoundError();
+  }
+
   const progressByItemId = await getProgressByItemId({
     traineeProfileId: traineeProfile.id,
     campaignAssignmentId: assignment.id,
     items: assignment.campaign.items,
   });
 
-  return {
+  return getTraineeCampaignDetailResponseSchema.parse({
     ...toCampaignSummary(assignment),
     items: toCampaignItemTree({
       items: assignment.campaign.items,
       parentGroupId: null,
+      campaignEligibility,
       progressByItemId,
     }),
-  };
+  });
 }

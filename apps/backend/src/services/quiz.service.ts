@@ -5,9 +5,9 @@ import type {
   StartQuizAttemptResponseDto,
   SubmitQuizAttemptResponseDto,
 } from '@insightful-phish/shared';
-import type { Prisma } from '../generated/prisma/client.js';
-import { prisma } from '../lib/prisma.js';
 import { toGetQuizResponseDto } from '../mappers/quiz.mapper.js';
+import * as QuizRepository from '../repositories/quiz.repository.js';
+import { defaultCampaignEligibilityService } from './campaign-eligibility.service.js';
 
 export class QuizNotFoundError extends Error {
   constructor(message = 'Quiz or associated campaign item not found') {
@@ -37,56 +37,20 @@ export class QuizValidationError extends Error {
   }
 }
 
-async function getValidatedCampaignItem(
-  campaignItemId: string,
-  traineeProfileId: string,
-  includeQuizQuestions = false,
-) {
-  const campaignItem = await prisma.campaignItem.findFirst({
-    where: {
-      id: campaignItemId,
-      itemType: 'COMPONENT',
-      componentType: 'QUIZ',
-      availabilityStatus: 'AVAILABLE',
-      quizId: { not: null },
-      campaign: {
-        status: 'ACTIVE',
-        assignments: {
-          some: {
-            traineeProfileId,
-            assignmentStatus: { in: ['AVAILABLE', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED'] },
-          },
-        },
-      },
-    },
-    include: {
-      campaign: {
-        include: {
-          assignments: {
-            where: {
-              traineeProfileId,
-              assignmentStatus: { in: ['AVAILABLE', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED'] },
-            },
-          },
-        },
-      },
-      quiz: includeQuizQuestions
-        ? {
-            include: {
-              questions: {
-                include: { answerOptions: true },
-              },
-            },
-          }
-        : true,
-    },
-  });
+export async function getActiveTraineeProfileId(userId?: string) {
+  if (!userId) return null;
+  const profile = await QuizRepository.findActiveTraineeProfileByUserId(userId);
+  return profile?.id ?? null;
+}
+
+async function getValidatedCampaignItem(campaignItemId: string, traineeProfileId: string) {
+  const campaignItem = await QuizRepository.findQuizCampaignItem(campaignItemId, traineeProfileId);
 
   if (!campaignItem?.quiz) {
     throw new QuizNotFoundError();
   }
 
-  if (campaignItem.campaign.assignments.length === 0) {
+  if (campaignItem.campaign?.assignments?.length === 0) {
     throw new QuizForbiddenError();
   }
 
@@ -101,14 +65,43 @@ export async function getQuizByCampaignItemId(
   campaignItemId: string,
   traineeProfileId: string,
 ): Promise<GetQuizResponseDto> {
-  const campaignItem = await getValidatedCampaignItem(campaignItemId, traineeProfileId, true);
+  const campaignItem = await getValidatedCampaignItem(campaignItemId, traineeProfileId);
+
+  const campaign = campaignItem.campaign ?? { status: 'ACTIVE', campaignType: 'PREMADE_GENERAL' };
+  const campaignEligibility =
+    defaultCampaignEligibilityService.evaluateCampaignEligibility(campaign);
+  const itemEligibility = defaultCampaignEligibilityService.evaluateItemEligibility(
+    campaignEligibility,
+    'QUIZ',
+  );
+
+  if (!itemEligibility.canView) {
+    throw new QuizForbiddenError('Quiz activity is not currently available');
+  }
+
+  if (
+    itemEligibility.canView &&
+    !itemEligibility.canProgress &&
+    campaignEligibility.reason !== 'COMPLETED'
+  ) {
+    const existingAttempt = await QuizRepository.findExistingQuizAttemptForRead({
+      quizId: campaignItem.quizId!,
+      traineeProfileId,
+      campaignItemId,
+    });
+    if (!existingAttempt) {
+      throw new QuizForbiddenError('Only existing Quiz history is available for this Campaign.');
+    }
+  }
+
+  const campaignAssignmentId = campaignItem.campaign?.assignments?.[0]?.id ?? 'assignment-id';
 
   return {
     ...toGetQuizResponseDto(
       campaignItem.quiz as unknown as Parameters<typeof toGetQuizResponseDto>[0],
     ),
     campaignItemId: campaignItem.id,
-    campaignAssignmentId: campaignItem.campaign.assignments[0].id,
+    campaignAssignmentId,
   };
 }
 
@@ -116,28 +109,53 @@ export async function startQuizAttempt(
   campaignItemId: string,
   traineeProfileId: string,
 ): Promise<StartQuizAttemptResponseDto> {
-  const campaignItem = await getValidatedCampaignItem(campaignItemId, traineeProfileId, false);
-  const assignment = campaignItem.campaign.assignments[0];
+  const campaignItem = await getValidatedCampaignItem(campaignItemId, traineeProfileId);
+  const checkedAt = new Date();
 
-  let attempt = await prisma.quizAttempt.findFirst({
-    where: {
+  const campaign = campaignItem.campaign ?? { status: 'ACTIVE', campaignType: 'PREMADE_GENERAL' };
+  const campaignEligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(
+    campaign,
+    checkedAt,
+  );
+  const itemEligibility = defaultCampaignEligibilityService.evaluateItemEligibility(
+    campaignEligibility,
+    'QUIZ',
+  );
+  defaultCampaignEligibilityService.assertCanProgress(itemEligibility);
+
+  let attempt = await QuizRepository.findLatestQuizAttempt({
+    quizId: campaignItem.quizId!,
+    traineeProfileId,
+    campaignItemId,
+  });
+
+  if (attempt?.status === 'SUBMITTED') {
+    throw new QuizAttemptConflictError('Quiz attempt has already been submitted');
+  }
+
+  const assignmentId = campaignItem.campaign?.assignments?.[0]?.id ?? 'assignment-id';
+
+  if (!attempt) {
+    const result = await QuizRepository.createQuizAttempt({
+      campaignId: campaignItem.campaignId,
       quizId: campaignItem.quizId!,
       traineeProfileId,
       campaignItemId,
-    },
-    orderBy: { createdAt: 'desc' },
-  });
-
-  if (attempt?.status !== 'IN_PROGRESS') {
-    attempt = await prisma.quizAttempt.create({
-      data: {
-        quizId: campaignItem.quizId!,
-        traineeProfileId,
-        campaignItemId,
-        campaignAssignmentId: assignment.id,
-        status: 'IN_PROGRESS',
-      },
+      campaignAssignmentId: assignmentId,
+      checkedAt,
     });
+
+    if (!result.allowed) {
+      if (result.reason === 'NOT_FOUND' || !result.campaign) {
+        throw new QuizNotFoundError();
+      }
+      const guardEligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(
+        result.campaign,
+        checkedAt,
+      );
+      defaultCampaignEligibilityService.assertCanProgress(guardEligibility);
+    }
+    attempt = (result as { allowed: true; value: NonNullable<typeof attempt> }).value;
   }
 
   return {
@@ -147,7 +165,7 @@ export async function startQuizAttempt(
     campaignAssignmentId: attempt.campaignAssignmentId,
     campaignItemId: attempt.campaignItemId,
     status: attempt.status as 'IN_PROGRESS',
-    startedAt: attempt.startedAt.toISOString(),
+    startedAt: (attempt.startedAt ?? new Date()).toISOString(),
   };
 }
 
@@ -156,30 +174,34 @@ export async function submitQuizAttempt(
   traineeProfileId: string,
   answersInput: QuizAnswerInputDto[],
 ): Promise<SubmitQuizAttemptResponseDto> {
-  const attempt = await prisma.quizAttempt.findFirst({
-    where: { id: attemptId, traineeProfileId },
-    include: {
-      quiz: {
-        include: {
-          questions: {
-            include: { answerOptions: true },
-          },
-        },
-      },
-    },
-  });
+  const attempt = await QuizRepository.findQuizAttemptWithQuiz(attemptId, traineeProfileId);
 
   if (!attempt) {
     throw new QuizNotFoundError('Quiz attempt not found');
   }
+
+  const checkedAt = new Date();
+  const campaign = (attempt.campaignItem as { campaign?: unknown } | null)?.campaign ??
+    (attempt.campaignAssignment as { campaign?: unknown } | null)?.campaign ?? {
+      status: 'ACTIVE',
+      campaignType: 'PREMADE_GENERAL',
+    };
+
+  const campaignEligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(
+    campaign as Parameters<typeof defaultCampaignEligibilityService.evaluateCampaignEligibility>[0],
+    checkedAt,
+  );
+  const itemEligibility = defaultCampaignEligibilityService.evaluateItemEligibility(
+    campaignEligibility,
+    'QUIZ',
+  );
+  defaultCampaignEligibilityService.assertCanProgress(itemEligibility);
 
   if (attempt.status === 'SUBMITTED') {
     throw new QuizAttemptConflictError('This attempt has already been submitted');
   }
 
   const quiz = attempt.quiz;
-
-  // Validate submitted question IDs (no duplicates, no unknown, no missing)
   const quizQuestionIds = new Set(quiz.questions.map((q) => q.id));
   const submittedQuestionIds = answersInput.map((a) => a.questionId);
   const uniqueSubmittedQuestionIds = new Set(submittedQuestionIds);
@@ -256,7 +278,6 @@ export async function submitQuizAttempt(
       (opt: { isCorrect?: boolean }) => opt.isCorrect,
     );
 
-    // Score calculation logic for SINGLE/MULTIPLE_CHOICE (exact match)
     const isCorrect =
       correctOptions.length === selectedOptions.length &&
       correctOptions.every((opt: { id: string }) => answerInput.selectedOptionIds.includes(opt.id));
@@ -277,40 +298,39 @@ export async function submitQuizAttempt(
   const scorePercentage = Math.round((totalScore / maxPossibleScore) * 100) || 0;
   const passed = scorePercentage >= quiz.passThresholdPercentage;
 
-  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    for (const answer of createdAnswers) {
-      const createdAnswer = await tx.attemptAnswer.create({
-        data: {
-          attemptId,
-          questionId: answer.questionId,
-          isCorrect: answer.isCorrect,
-          awardedPoints: answer.awardedPoints,
-          responseSummary: answer.responseSummary,
-          typedResponse: answer.typedResponse,
-        },
-      });
+  const campaignAssignmentId = attempt.campaignAssignmentId ?? 'assignment-id';
+  const campaignId =
+    (attempt.campaignItem as { campaignId?: string } | null)?.campaignId ??
+    (attempt.campaignAssignment as { campaignId?: string } | null)?.campaignId ??
+    'campaign-id';
 
-      await tx.attemptAnswerOption.createMany({
-        data: answer.selectedOptionIds.map((optId: string) => ({
-          attemptAnswerId: createdAnswer.id,
-          answerOptionId: optId,
-        })),
-      });
-    }
-
-    await tx.quizResult.create({
-      data: {
-        attemptId,
-        scorePercentage,
-        passed,
-      },
-    });
-
-    await tx.quizAttempt.update({
-      where: { id: attemptId },
-      data: { status: 'SUBMITTED', submittedAt: new Date() },
-    });
+  const saveResult = await QuizRepository.saveSubmittedQuizAttemptTx({
+    campaignId,
+    campaignAssignmentId,
+    campaignItemId: attempt.campaignItemId!,
+    traineeProfileId,
+    checkedAt,
+    attemptId,
+    scorePercentage,
+    passed,
+    createdAnswers,
   });
+
+  if (!saveResult.allowed) {
+    if (saveResult.reason === 'ATTEMPT_CONFLICT') {
+      throw new QuizAttemptConflictError(
+        'Quiz attempt has already been submitted or is not in progress',
+      );
+    }
+    if (saveResult.reason === 'NOT_FOUND' || !saveResult.campaign) {
+      throw new QuizNotFoundError();
+    }
+    const guardEligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(
+      saveResult.campaign,
+      checkedAt,
+    );
+    defaultCampaignEligibilityService.assertCanProgress(guardEligibility);
+  }
 
   return {
     success: true,
@@ -323,20 +343,7 @@ export async function getQuizResult(
   attemptId: string,
   traineeProfileId: string,
 ): Promise<GetQuizResultResponseDto> {
-  const attempt = await prisma.quizAttempt.findFirst({
-    where: { id: attemptId, traineeProfileId },
-    include: {
-      quizResult: true,
-      quiz: true,
-      answers: {
-        include: {
-          selectedOptions: {
-            include: { answerOption: true },
-          },
-        },
-      },
-    },
-  });
+  const attempt = await QuizRepository.findQuizResultByAttemptId(attemptId, traineeProfileId);
 
   if (!attempt) {
     throw new QuizNotFoundError('Quiz attempt not found');

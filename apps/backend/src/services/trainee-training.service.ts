@@ -5,6 +5,7 @@ import type {
 } from '@insightful-phish/shared';
 import * as TraineeTrainingRepository from '../repositories/trainee-training.repository.js';
 import { resolveContent } from './content-resolver.service.js';
+import { defaultCampaignEligibilityService } from './campaign-eligibility.service.js';
 
 type TrainingCampaignItem = NonNullable<
   Awaited<ReturnType<typeof TraineeTrainingRepository.findTrainingCampaignItemById>>
@@ -57,7 +58,7 @@ function isAccessibleTrainingDocumentItem(
 } {
   return Boolean(
     campaignItem &&
-    campaignItem.campaign.status === 'ACTIVE' &&
+    ['ACTIVE', 'ARCHIVED'].includes(campaignItem.campaign.status) &&
     campaignItem.itemType === 'COMPONENT' &&
     campaignItem.componentType === 'TRAINING_DOCUMENT' &&
     campaignItem.availabilityStatus === 'AVAILABLE' &&
@@ -105,6 +106,18 @@ export async function getTrainingDocumentForCampaignItem(
   campaignItemId: string,
 ): Promise<GetTrainingDocumentResponseDto> {
   const access = await resolveTrainingDocumentAccess(userId, campaignItemId);
+
+  const campaignEligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(
+    access.campaignItem.campaign,
+  );
+  const itemEligibility = defaultCampaignEligibilityService.evaluateItemEligibility(
+    campaignEligibility,
+    access.campaignItem.componentType,
+  );
+  if (!itemEligibility.canView) {
+    throw new TrainingDocumentAccessNotFoundError();
+  }
+
   const content = await resolveContent(
     access.trainingDocument.contentType,
     access.trainingDocument.contentRef,
@@ -123,20 +136,42 @@ export async function recordTrainingInteraction(input: {
   eventType: TrainingInteractionEventTypeDto;
 }): Promise<RecordTrainingInteractionResponseDto> {
   const access = await resolveTrainingDocumentAccess(input.userId, input.campaignItemId);
+  const checkedAt = new Date();
 
-  const eventInput = {
+  const campaignEligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(
+    access.campaignItem.campaign,
+    checkedAt,
+  );
+  const itemEligibility = defaultCampaignEligibilityService.evaluateItemEligibility(
+    campaignEligibility,
+    access.campaignItem.componentType,
+  );
+  defaultCampaignEligibilityService.assertCanProgress(itemEligibility);
+
+  const result = await TraineeTrainingRepository.createTrainingInteractionEventGuarded({
+    campaignId: access.campaignItem.campaignId,
     traineeProfileId: access.traineeProfileId,
     campaignAssignmentId: access.campaignAssignment.id,
     campaignItemId: access.campaignItem.id,
     trainingDocumentId: access.trainingDocument.id,
     eventType: input.eventType,
-  };
+    checkedAt,
+  });
 
-  const event =
-    input.eventType === 'TRAINING_COMPLETED'
-      ? ((await TraineeTrainingRepository.findExistingTrainingCompletedEvent(eventInput)) ??
-        (await TraineeTrainingRepository.createTrainingInteractionEvent(eventInput)))
-      : await TraineeTrainingRepository.createTrainingInteractionEvent(eventInput);
+  if (!result.allowed) {
+    if (result.reason === 'NOT_FOUND' || !result.campaign) {
+      throw new TrainingDocumentAccessNotFoundError();
+    }
+    const guardEligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(
+      result.campaign,
+      checkedAt,
+    );
+    defaultCampaignEligibilityService.assertCanProgress(guardEligibility);
+  }
+
+  const event = (
+    result as { allowed: true; value: { id: string; eventType: string; occurredAt: Date } }
+  ).value;
 
   return {
     success: true,
