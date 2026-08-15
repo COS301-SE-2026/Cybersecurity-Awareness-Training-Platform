@@ -11,6 +11,7 @@ import {
   createAccountSecuritySession,
   createAccountSecurityUserFixture,
   loginAccountSecurityUser,
+  readAccountAuditEntries,
   readAccountEmailDeliveries,
   readAccountSecurityUserState,
   readLatestEmailChangeRequest,
@@ -124,15 +125,13 @@ describe('account security integration - change email lifecycle', () => {
           emailType: confirmationEmailType,
           deliveryStatus: 'PENDING',
           actionTokenId: latestRequest?.actionTokens[0]?.id,
-          fallbackRelatedEntityType: 'EMAIL_CHANGE_REQUEST',
-          fallbackRelatedEntityId: latestRequest?.id,
+          userId: fixture.user.id,
         }),
         expect.objectContaining({
           emailType: 'EMAIL_CHANGE_WARNING',
           deliveryStatus: 'PENDING',
           actionTokenId: null,
-          fallbackRelatedEntityType: 'EMAIL_CHANGE_REQUEST',
-          fallbackRelatedEntityId: latestRequest?.id,
+          userId: fixture.user.id,
         }),
       ]),
     );
@@ -255,6 +254,35 @@ describe('account security integration - change email lifecycle', () => {
     });
     expect(confirmedRequest.status).toBe('CONFIRMED');
     expect(confirmedRequest.confirmedAt).toBeInstanceOf(Date);
+  });
+
+  it('returns a safe conflict when the confirmation email is taken before verification', async () => {
+    const fixture = await createAccountSecurityUserFixture();
+    const existingUser = await createAccountSecurityUserFixture();
+    const { rawToken, emailChangeRequest } = await createPendingEmailChangeToken({
+      userId: fixture.user.id,
+      currentEmail: fixture.user.email,
+      requestedEmail: existingUser.user.email,
+    });
+
+    const response = await request(app).post('/account/verify-email-change').send({
+      token: rawToken,
+    });
+
+    expect(response.status).toBe(409);
+    expect(response.body).toMatchObject({
+      error: 'AUTH_EMAIL_EXISTS',
+      message: 'The email is already in use by another account.',
+    });
+    expect(JSON.stringify(response.body)).not.toContain(existingUser.user.email);
+
+    const state = await readAccountSecurityUserState(fixture.user.id);
+    expect(state.email).toBe(fixture.user.email);
+
+    const pendingRequest = await prisma.emailChangeRequest.findUniqueOrThrow({
+      where: { id: emailChangeRequest.id },
+    });
+    expect(pendingRequest.status).toBe('PENDING');
   });
 
   it('does not allow a used confirmation token to be reused', async () => {
@@ -402,6 +430,72 @@ describe('account security integration - password and session lifecycle', () => 
     expect(refreshResponse.body).toMatchObject({
       error: 'AUTH_INVALID',
     });
+  });
+
+  it('keeps a committed password change when the notification cannot be queued', async () => {
+    const fixture = await createAccountSecurityUserFixture({
+      firstName: 'N'.repeat(101),
+    });
+    const login = await loginAccountSecurityUser(fixture.user.email);
+    const otherSession = await createAccountSecuritySession({
+      userId: fixture.user.id,
+      deviceSummary: 'Notification failure browser',
+    });
+
+    const response = await request(app)
+      .post('/account/change-password')
+      .set(login.headers)
+      .send(changePasswordPayload());
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      message: 'Password changed successfully.',
+      notificationQueued: false,
+      revokedSessionCount: 2,
+    });
+
+    const state = await readAccountSecurityUserState(fixture.user.id);
+    expect(await verifyPassword(changedPassword, state.passwordHash)).toBe(true);
+    expect(state.authSessions).toHaveLength(2);
+    expect(state.authSessions.every((session) => session.revokedReason === 'PASSWORD_CHANGE')).toBe(
+      true,
+    );
+    expect(
+      state.authSessions
+        .flatMap((session) => session.refreshTokens)
+        .every((refreshToken) => refreshToken.revokedReason === 'PASSWORD_CHANGE'),
+    ).toBe(true);
+    expect(state.authSessions.map((session) => session.id)).toEqual(
+      expect.arrayContaining([login.currentSession.id, otherSession.session.id]),
+    );
+
+    const deliveries = await readAccountEmailDeliveries(fixture.user.id);
+    expect(deliveries).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          emailType: 'PASSWORD_CHANGED',
+          deliveryStatus: 'PENDING',
+        }),
+      ]),
+    );
+
+    const auditEntries = await readAccountAuditEntries(fixture.user.id);
+    expect(auditEntries).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          targetType: 'USER',
+          targetId: fixture.user.id,
+          actionType: 'SETTINGS_CHANGED',
+          outcome: 'SUCCESS',
+          metadata: expect.objectContaining({
+            changeType: 'PASSWORD_CHANGE',
+            revokedSessionCount: 2,
+          }),
+        }),
+      ]),
+    );
+    expect(JSON.stringify(auditEntries)).not.toContain(fixture.user.passwordHash);
+    expect(JSON.stringify(auditEntries)).not.toContain(changedPassword);
   });
 
   it('lists only the authenticated user sessions without exposing token material', async () => {
@@ -558,6 +652,166 @@ describe('account security integration - password and session lifecycle', () => 
     expect(refreshResponse.body).toMatchObject({
       tokenType: 'Bearer',
     });
+  });
+});
+
+describe('account security integration - account profile and preferences coverage', () => {
+  beforeEach(() => {
+    clearAuthRateLimitStore();
+  });
+
+  it('returns the authenticated account profile, policy, preferences, and capabilities', async () => {
+    const fixture = await createAccountSecurityUserFixture({
+      firstName: 'Profile',
+      lastName: 'Reader',
+    });
+    const login = await loginAccountSecurityUser(fixture.user.email);
+
+    const response = await request(app).get('/account').set(login.headers);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(
+      expect.objectContaining({
+        profile: expect.objectContaining({
+          id: fixture.user.id,
+          firstName: 'Profile',
+          lastName: 'Reader',
+          email: fixture.user.email,
+          emailVerified: false,
+        }),
+        securityPreferences: expect.objectContaining({
+          id: null,
+          preferredRegularSessionLengthHours: null,
+          preferredRememberMeSessionLengthHours: null,
+          preferredIdleTimeoutMinutes: null,
+        }),
+        effectivePolicy: expect.objectContaining({
+          organisationId: null,
+          allowEmailChange: true,
+          requireReauthenticationForSensitiveActions: true,
+        }),
+        capabilities: expect.objectContaining({
+          canEditProfile: true,
+          canRequestEmailChange: true,
+          canChangePassword: true,
+          canEditSecurityPreferences: true,
+        }),
+      }),
+    );
+    expect(JSON.stringify(response.body)).not.toContain('passwordHash');
+    expect(JSON.stringify(response.body)).not.toContain('tokenHash');
+  });
+
+  it('updates profile fields and records a compact safe audit event', async () => {
+    const fixture = await createAccountSecurityUserFixture();
+    const login = await loginAccountSecurityUser(fixture.user.email);
+
+    const response = await request(app).patch('/account/profile').set(login.headers).send({
+      firstName: 'Updated',
+      lastName: 'Person',
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body.profile).toMatchObject({
+      id: fixture.user.id,
+      firstName: 'Updated',
+      lastName: 'Person',
+      email: fixture.user.email,
+    });
+
+    const user = await prisma.user.findUniqueOrThrow({
+      where: { id: fixture.user.id },
+    });
+    expect(user.firstName).toBe('Updated');
+    expect(user.lastName).toBe('Person');
+
+    const auditEntries = await readAccountAuditEntries(fixture.user.id);
+    expect(auditEntries).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          targetType: 'USER',
+          targetId: fixture.user.id,
+          actionType: 'UPDATED',
+          outcome: 'SUCCESS',
+        }),
+      ]),
+    );
+    expect(JSON.stringify(auditEntries)).not.toContain('password');
+    expect(JSON.stringify(auditEntries)).not.toContain('token');
+  });
+
+  it('saves allowed account security preferences and returns the effective policy source', async () => {
+    const fixture = await createAccountSecurityUserFixture();
+    const login = await loginAccountSecurityUser(fixture.user.email);
+
+    const response = await request(app)
+      .patch('/account/security-preferences')
+      .set(login.headers)
+      .send({
+        preferredRegularSessionLengthHours: 4,
+        preferredRememberMeSessionLengthHours: 48,
+        preferredIdleTimeoutMinutes: 15,
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.securityPreferences).toEqual(
+      expect.objectContaining({
+        preferredRegularSessionLengthHours: 4,
+        preferredRememberMeSessionLengthHours: 48,
+        preferredIdleTimeoutMinutes: 15,
+      }),
+    );
+    expect(response.body.effectivePolicy.sources).toMatchObject({
+      regularSession: 'USER_PREFERENCE',
+      rememberedSession: 'USER_PREFERENCE',
+      idleTimeout: 'USER_PREFERENCE',
+    });
+
+    const state = await readAccountSecurityUserState(fixture.user.id);
+    expect(state.securityPreferences).toMatchObject({
+      preferredRegularSessionLengthHours: 4,
+      preferredRememberMeSessionLengthHours: 48,
+      preferredIdleTimeoutMinutes: 15,
+    });
+  });
+
+  it('rejects security preference changes managed by organisation policy', async () => {
+    const fixture = await createAccountSecurityUserFixture({
+      role: 'ORGANISATION_TRAINEE',
+      securitySettings: {
+        enforceRememberMePolicy: true,
+        allowRememberMe: true,
+        maxRememberedSessionHours: 24,
+        enforceRegularSessionLength: true,
+        regularSessionLengthHours: 8,
+        enforceIdleTimeout: true,
+        idleTimeoutMinutes: 30,
+      },
+    });
+    const login = await loginAccountSecurityUser(fixture.user.email);
+
+    const response = await request(app)
+      .patch('/account/security-preferences')
+      .set(login.headers)
+      .send({
+        preferredRegularSessionLengthHours: 4,
+        preferredRememberMeSessionLengthHours: 48,
+        preferredIdleTimeoutMinutes: 15,
+      });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toMatchObject({
+      error: 'ACCOUNT_SECURITY_PREFERENCES_POLICY_BLOCKED',
+      details: expect.arrayContaining([
+        expect.objectContaining({ field: 'preferredRegularSessionLengthHours' }),
+        expect.objectContaining({ field: 'preferredRememberMeSessionLengthHours' }),
+        expect.objectContaining({ field: 'preferredIdleTimeoutMinutes' }),
+      ]),
+    });
+    expect(JSON.stringify(response.body)).not.toContain(fixture.user.email);
+
+    const state = await readAccountSecurityUserState(fixture.user.id);
+    expect(state.securityPreferences).toBeNull();
   });
 });
 
