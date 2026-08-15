@@ -205,29 +205,46 @@ export async function recordEmailOpenedEventTx(input: {
   });
 }
 
-export async function createSimulationInteractionEvent(input: {
+export async function createSimulationInteractionEventGuarded(input: {
+  campaignId: string;
   traineeProfileId: string;
-  assignmentId: string;
-  itemId: string;
+  campaignAssignmentId: string;
+  campaignItemId: string;
   eventType: SimulatedEmailInteractionEventType;
-  emailId: string;
+  simulatedEmailId: string;
+  checkedAt: Date;
 }) {
-  const event = await prisma.interactionEvent.create({
-    data: {
+  return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const guard = await enforceProgressWriteGuard(tx, {
+      campaignId: input.campaignId,
+      campaignAssignmentId: input.campaignAssignmentId,
+      campaignItemId: input.campaignItemId,
       traineeProfileId: input.traineeProfileId,
-      campaignAssignmentId: input.assignmentId,
-      campaignItemId: input.itemId,
-      eventType: input.eventType,
-      targetType: 'SIMULATED_EMAIL',
-      targetId: input.emailId,
-      simulatedEmailId: input.emailId,
-    },
-  });
+      checkedAt: input.checkedAt,
+      requiredStatus: 'ACTIVE',
+    });
 
-  return {
-    allowed: true as const,
-    value: event,
-  };
+    if (!guard.allowed) {
+      return guard;
+    }
+
+    const event = await tx.interactionEvent.create({
+      data: {
+        traineeProfileId: input.traineeProfileId,
+        campaignAssignmentId: input.campaignAssignmentId,
+        campaignItemId: input.campaignItemId,
+        eventType: input.eventType,
+        targetType: 'SIMULATED_EMAIL',
+        targetId: input.simulatedEmailId,
+        simulatedEmailId: input.simulatedEmailId,
+      },
+    });
+
+    return {
+      allowed: true as const,
+      value: event,
+    };
+  });
 }
 
 export async function findExistingClassificationResponse(

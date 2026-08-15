@@ -218,7 +218,9 @@ export async function findCampaignCatalogue(input: {
   combined.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
   const total = combined.length;
-  const paginatedItems = combined.slice(skip, skip + input.limit);
+  const paginatedItems = combined
+    .slice(skip, skip + input.limit)
+    .map(({ createdAt: _sortKey, ...item }) => item);
 
   return {
     items: paginatedItems,
@@ -763,46 +765,58 @@ export async function createCampaignDraft(input: {
   startDate?: Date | null;
   endDate?: Date | null;
   items: RepositoryCampaignItemInput[];
-}): Promise<string> {
-  return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    const campaign = await tx.campaign.create({
-      data: {
-        organisationId: input.organisationId,
-        createdByUserId: input.createdByUserId ?? null,
-        name: input.name,
-        description: input.description ?? null,
-        accentColor: input.accentColor ?? null,
-        campaignType: input.campaignType,
-        status: 'DRAFT',
-        startDate: input.startDate ?? null,
-        endDate: input.endDate ?? null,
-      },
-    });
+}): Promise<CampaignRepositoryResult> {
+  try {
+    return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const campaign = await tx.campaign.create({
+        data: {
+          organisationId: input.organisationId,
+          createdByUserId: input.createdByUserId ?? null,
+          name: input.name,
+          description: input.description ?? null,
+          accentColor: input.accentColor ?? null,
+          campaignType: input.campaignType,
+          status: 'DRAFT',
+          startDate: input.startDate ?? null,
+          endDate: input.endDate ?? null,
+        },
+      });
 
-    const keptItemIds = new Set<string>();
+      const keptItemIds = new Set<string>();
 
-    for (let index = 0; index < input.items.length; index++) {
-      const itemInput = input.items[index];
-      const position = (index + 1) * 10;
+      for (let index = 0; index < input.items.length; index++) {
+        const itemInput = input.items[index];
+        const position = (index + 1) * 10;
 
-      if (itemInput.itemType === 'GROUP') {
-        await persistDraftGroupItem(tx, campaign.id, itemInput, position, [], keptItemIds);
-      } else {
-        await persistDraftComponentItem(
-          tx,
-          campaign.id,
-          itemInput,
-          position,
-          [],
-          keptItemIds,
-          null,
-          index,
-        );
+        if (itemInput.itemType === 'GROUP') {
+          await persistDraftGroupItem(tx, campaign.id, itemInput, position, [], keptItemIds);
+        } else {
+          await persistDraftComponentItem(
+            tx,
+            campaign.id,
+            itemInput,
+            position,
+            [],
+            keptItemIds,
+            null,
+            index,
+          );
+        }
       }
-    }
 
-    return campaign.id;
-  });
+      return {
+        success: true as const,
+        campaignId: campaign.id,
+        status: campaign.status,
+        updatedAt: campaign.updatedAt,
+      };
+    });
+  } catch (error) {
+    if (error instanceof CampaignRepositoryAbort) {
+      return error.result;
+    }
+    throw error;
+  }
 }
 
 function validateExistingComponentItemIdentity(

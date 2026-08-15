@@ -2008,6 +2008,8 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             'INVITE_ORGANISATION_TRAINEES',
             'REMOVE_ORGANISATION_TRAINEES',
             'ASSIGN_CAMPAIGNS',
+            'VIEW_CAMPAIGNS',
+            'MANAGE_CAMPAIGNS',
           ],
           'VIEW_ORGANISATION_ADMINS',
         ),
@@ -2855,13 +2857,17 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
           ['VIEW', 'EDIT', 'ACTIVATE', 'ARCHIVE', 'REACTIVATE', 'ASSIGN'],
           'VIEW',
         ),
+        CampaignEligibilityReason: enumString(
+          ['AVAILABLE', 'NOT_STARTED', 'EXPIRED', 'CAMPAIGN_INACTIVE', 'COMPLETED'],
+          'AVAILABLE',
+        ),
         CampaignEligibility: {
           type: 'object',
-          required: ['canView', 'canProgress'],
+          required: ['canView', 'canProgress', 'reason'],
           properties: {
             canView: booleanProperty(true),
             canProgress: booleanProperty(true),
-            reason: nullableString('COMPLETED'),
+            reason: schemaRef('CampaignEligibilityReason'),
           },
         },
         CampaignMutationPrecondition: {
@@ -2887,6 +2893,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         CampaignDetailComponentItem: {
           type: 'object',
           required: [
+            'campaignItemId',
             'itemType',
             'componentType',
             'contentId',
@@ -2896,7 +2903,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             'sourceAvailable',
           ],
           properties: {
-            campaignItemId: nullableUuidString('88888888-8888-4888-8888-888888888888'),
+            campaignItemId: uuidString('88888888-8888-4888-8888-888888888888'),
             itemType: {
               type: 'string',
               enum: ['COMPONENT'],
@@ -2920,6 +2927,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         CampaignDetailGroupItem: {
           type: 'object',
           required: [
+            'campaignItemId',
             'itemType',
             'groupType',
             'completionRule',
@@ -2929,7 +2937,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             'children',
           ],
           properties: {
-            campaignItemId: nullableUuidString('66666666-6666-4666-8666-666666666666'),
+            campaignItemId: uuidString('66666666-6666-4666-8666-666666666666'),
             itemType: {
               type: 'string',
               enum: ['GROUP'],
@@ -3079,7 +3087,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         },
         CampaignCatalogueItem: {
           type: 'object',
-          required: ['id', 'type', 'title', 'difficultyLevel', 'status', 'createdAt'],
+          required: ['id', 'type', 'title', 'difficultyLevel', 'status'],
           properties: {
             id: uuidString('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
             type: schemaRef('CampaignComponentType'),
@@ -3114,7 +3122,6 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
               type: 'string',
               example: 'AVAILABLE',
             },
-            createdAt: dateTimeString('2026-05-16T08:00:00.000Z'),
           },
         },
         GetCampaignCatalogueResponse: {
@@ -3175,7 +3182,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         },
         CreateCampaignDraftRequest: {
           type: 'object',
-          required: ['name', 'items'],
+          required: ['name', 'accentColor', 'items'],
           properties: {
             name: {
               type: 'string',
@@ -3184,7 +3191,11 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
               example: 'Phishing Defense 2026',
             },
             description: nullableString('Comprehensive awareness campaign'),
-            accentColor: nullableString('#00FFA6'),
+            accentColor: {
+              type: 'string',
+              pattern: '^#[0-9A-Fa-f]{6}$',
+              example: '#00FFA6',
+            },
             startDate: {
               ...dateTimeString('2026-05-16T08:00:00.000Z'),
               nullable: true,
@@ -3195,14 +3206,13 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             },
             items: {
               type: 'array',
-              minItems: 1,
               items: schemaRef('CreateCampaignDraftItemInput'),
             },
           },
         },
         UpdateCampaignDraftRequest: {
           type: 'object',
-          required: ['expectedUpdatedAt', 'name', 'items'],
+          required: ['expectedUpdatedAt', 'name', 'accentColor', 'items'],
           properties: {
             expectedUpdatedAt: dateTimeString('2026-05-16T09:00:00.000Z'),
             name: {
@@ -3212,7 +3222,11 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
               example: 'Phishing Defense 2026',
             },
             description: nullableString('Comprehensive awareness campaign'),
-            accentColor: nullableString('#00FFA6'),
+            accentColor: {
+              type: 'string',
+              pattern: '^#[0-9A-Fa-f]{6}$',
+              example: '#00FFA6',
+            },
             startDate: {
               ...dateTimeString('2026-05-16T08:00:00.000Z'),
               nullable: true,
@@ -3223,7 +3237,6 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             },
             items: {
               type: 'array',
-              minItems: 1,
               items: schemaRef('CreateCampaignDraftItemInput'),
             },
           },

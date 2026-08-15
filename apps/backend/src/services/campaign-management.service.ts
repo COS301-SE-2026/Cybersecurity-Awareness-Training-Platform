@@ -561,7 +561,7 @@ export async function createOrganisationCampaignDraft(
 
   const { startDate, endDate } = parseAndValidateDates(input);
 
-  const createdId = await CampaignManagementRepository.createCampaignDraft({
+  const result = await CampaignManagementRepository.createCampaignDraft({
     name: input.name,
     description: input.description ?? null,
     accentColor: input.accentColor,
@@ -573,7 +573,11 @@ export async function createOrganisationCampaignDraft(
     items: mapDraftInputItems(input.items),
   });
 
-  return getOrganisationCampaignDetail(actor, organisationId, createdId);
+  if (!result.success) {
+    handleCampaignRepositoryFailure(result);
+  }
+
+  return getOrganisationCampaignDetail(actor, organisationId, result.campaignId);
 }
 
 export async function createPlatformCampaignDraft(
@@ -591,7 +595,7 @@ export async function createPlatformCampaignDraft(
     );
   }
 
-  const createdId = await CampaignManagementRepository.createCampaignDraft({
+  const result = await CampaignManagementRepository.createCampaignDraft({
     name: input.name,
     description: input.description ?? null,
     accentColor: input.accentColor,
@@ -603,7 +607,11 @@ export async function createPlatformCampaignDraft(
     items: mapDraftInputItems(input.items),
   });
 
-  return getPlatformCampaignDetail(actor, createdId);
+  if (!result.success) {
+    handleCampaignRepositoryFailure(result);
+  }
+
+  return getPlatformCampaignDetail(actor, result.campaignId);
 }
 
 export async function updateOrganisationCampaignDraft(

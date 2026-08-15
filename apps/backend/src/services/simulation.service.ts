@@ -243,13 +243,26 @@ export class SimulationService {
       };
     }
 
-    await SimulationRepository.createSimulationInteractionEvent({
+    const result = await SimulationRepository.createSimulationInteractionEventGuarded({
+      campaignId,
       traineeProfileId,
-      assignmentId,
-      itemId,
+      campaignAssignmentId: assignmentId,
+      campaignItemId: itemId,
       eventType: input.eventType,
-      emailId: email.id,
+      simulatedEmailId: email.id,
+      checkedAt,
     });
+
+    if (!result.allowed) {
+      if (result.reason === 'NOT_FOUND' || !result.campaign) {
+        throw new Error('NOT_FOUND');
+      }
+      const guardEligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility(
+        result.campaign,
+        checkedAt,
+      );
+      defaultCampaignEligibilityService.assertCanProgress(guardEligibility);
+    }
 
     return {
       success: true,

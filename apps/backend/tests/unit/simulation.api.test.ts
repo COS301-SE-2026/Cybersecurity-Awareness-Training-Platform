@@ -228,7 +228,7 @@ describe('Simulation API', () => {
   describe('POST /trainee/campaign-items/:campaignItemId/simulated-emails/:emailId/interactions', () => {
     it('records an interaction using resolved context and correctly validates UUIDs', async () => {
       prismaMock.simulatedEmail.findUnique.mockResolvedValue(createMockEmail());
-      prismaMock.interactionEvent.create.mockResolvedValue({ id: 'event-1' });
+      prismaMock.__tx.interactionEvent.create.mockResolvedValue({ id: 'event-1' });
 
       const response = await request(app)
         .post(
@@ -240,7 +240,7 @@ describe('Simulation API', () => {
         });
 
       expect(response.status).toBe(200);
-      expect(prismaMock.interactionEvent.create).toHaveBeenCalledWith(
+      expect(prismaMock.__tx.interactionEvent.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
             campaignAssignmentId: '44444444-4444-4444-4444-444444444444',
@@ -249,7 +249,7 @@ describe('Simulation API', () => {
           }),
         }),
       );
-      expect(prismaMock.$transaction).not.toHaveBeenCalled();
+      expect(prismaMock.$transaction).toHaveBeenCalled();
     });
 
     it('does not create duplicate simulated email opened events for the same trainee context', async () => {
