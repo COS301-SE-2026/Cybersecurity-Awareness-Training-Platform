@@ -1,4 +1,4 @@
-# Continuous Development Workflow
+# Continuous Deployment Workflow
 
 name: Continuous Deployment
 
@@ -224,3 +224,105 @@ jobs:
             ${{ vars.GHCR_IMAGE_PREFIX }}/frontend:dev-${{ env.TARGET_SHA }}
           cache-from: type=gha,scope=frontend-development-amd64
           cache-to: type=gha,scope=frontend-development-amd64,mode=max
+
+  deploy-production:
+    name: Deploy Production
+    if: github.event.workflow_run.head_branch == 'main' && vars.PRODUCTION_DEPLOY_ENABLED == 'true'
+    needs:
+      - docker-build-backend
+      - docker-build-frontend
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://insightfulphish.co.za
+    timeout-minutes: 20
+    concurrency:
+      group: insightfulphish-production
+      cancel-in-progress: false
+    permissions: {}
+    steps:
+      - name: Prepare SSH
+        env:
+          DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d "$HOME/.ssh"
+          printf '%s\n' "$DEPLOY_SSH_PRIVATE_KEY" > "$HOME/.ssh/id_ed25519"
+          chmod 600 "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+      - name: Deploy production release
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          ssh \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -i "$HOME/.ssh/id_ed25519" \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            "sudo /usr/local/bin/deploy-insightfulphish-production '${{ env.TARGET_SHA }}'"
+
+      - name: Remove SSH credentials
+        if: always()
+        run: |
+          rm -f "$HOME/.ssh/id_ed25519"
+
+  deploy-development:
+    name: Deploy Development
+    if: github.event.workflow_run.head_branch == 'dev' && vars.DEVELOPMENT_DEPLOY_ENABLED == 'true'
+    needs:
+      - docker-build-development-backend
+      - docker-build-development-frontend
+    runs-on: ubuntu-latest
+    environment:
+      name: development
+      url: https://dev.insightfulphish.co.za
+    timeout-minutes: 20
+    concurrency:
+      group: insightfulphish-development
+      cancel-in-progress: false
+    permissions: {}
+    steps:
+      - name: Prepare SSH
+        env:
+          DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          set -Eeuo pipefail
+          install -m 600 /dev/null "$RUNNER_TEMP/development_id_ed25519"
+          printf '%s\n' "$DEPLOY_SSH_PRIVATE_KEY" > "$RUNNER_TEMP/development_id_ed25519"
+          install -m 600 /dev/null "$RUNNER_TEMP/development_known_hosts"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$RUNNER_TEMP/development_known_hosts"
+
+      - name: Deploy development release
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          set -Eeuo pipefail
+          if ! ssh \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o ConnectTimeout=15 \
+            -o ConnectionAttempts=1 \
+            -o ServerAliveInterval=15 \
+            -o ServerAliveCountMax=2 \
+            -o "UserKnownHostsFile=$RUNNER_TEMP/development_known_hosts" \
+            -i "$RUNNER_TEMP/development_id_ed25519" \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            "sudo /usr/local/bin/deploy-insightfulphish-development '${{ env.TARGET_SHA }}'"
+          then
+            echo "Development deployment SSH connection or remote command failed" >&2
+            echo "If the server is stopped, start it and wait for SSH before retrying." >&2
+            exit 1
+          fi
+
+      - name: Remove SSH credentials
+        if: always()
+        run: |
+          rm -f "$RUNNER_TEMP/development_known_hosts"
+          rm -f "$RUNNER_TEMP/development_id_ed25519"
