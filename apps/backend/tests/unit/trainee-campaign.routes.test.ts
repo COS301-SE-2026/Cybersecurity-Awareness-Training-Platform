@@ -339,7 +339,7 @@ describe('Trainee campaign discovery routes', () => {
         where: expect.objectContaining({
           traineeProfileId,
           assignmentStatus: { in: ['AVAILABLE', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED'] },
-          campaign: { status: 'ACTIVE' },
+          campaign: { status: { in: ['ACTIVE', 'ARCHIVED'] } },
         }),
       }),
     );
@@ -415,7 +415,7 @@ describe('Trainee campaign discovery routes', () => {
           campaignId,
           traineeProfileId,
           assignmentStatus: { in: ['AVAILABLE', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED'] },
-          campaign: { status: 'ACTIVE' },
+          campaign: { status: { in: ['ACTIVE', 'ARCHIVED'] } },
         }),
       }),
     );

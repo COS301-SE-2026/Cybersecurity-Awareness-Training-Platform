@@ -73,6 +73,11 @@ function createTrainingCampaignItem(
     trainingDocument: null,
     quiz: null,
     simulation: null,
+    eligibility: {
+      canView: true,
+      canProgress: true,
+      reason: 'AVAILABLE',
+    },
     ...overrides,
   };
 }
@@ -88,6 +93,11 @@ function createCampaignsResponse(): GetTraineeCampaignsResponseDto {
         status: 'ACTIVE',
         assignment: createAssignmentSummary(),
         progressStatus: 'NOT_STARTED',
+        eligibility: {
+          canView: true,
+          canProgress: true,
+          reason: 'AVAILABLE',
+        },
       },
     ],
   };
@@ -103,6 +113,11 @@ function createCampaignDetailResponse(
     difficultyLevel: 'BEGINNER',
     status: 'ACTIVE',
     assignment: createAssignmentSummary(),
+    eligibility: {
+      canView: true,
+      canProgress: true,
+      reason: 'AVAILABLE',
+    },
     items: [createTrainingCampaignItem()],
     ...overrides,
   };

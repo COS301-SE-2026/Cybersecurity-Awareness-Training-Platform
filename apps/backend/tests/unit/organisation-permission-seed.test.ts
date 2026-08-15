@@ -84,7 +84,7 @@ describe('organisation admin permission seed', () => {
 
     expect(summary).toEqual({
       organisationCount: 1,
-      permissionCount: 9,
+      permissionCount: 11,
       initialAdminGrantCount: 9,
     });
 
@@ -101,6 +101,8 @@ describe('organisation admin permission seed', () => {
     expect(serializedExecuteValues).toContain('INVITE_ORGANISATION_TRAINEES');
     expect(serializedExecuteValues).toContain('REMOVE_ORGANISATION_TRAINEES');
     expect(serializedExecuteValues).toContain('ASSIGN_CAMPAIGNS');
+    expect(serializedExecuteValues).toContain('VIEW_CAMPAIGNS');
+    expect(serializedExecuteValues).toContain('MANAGE_CAMPAIGNS');
     expect(serializedExecuteValues).not.toContain('password');
     expect(serializedExecuteValues).not.toContain('token');
 
@@ -108,7 +110,7 @@ describe('organisation admin permission seed', () => {
       seedClient.executeCalls.filter((call) =>
         call.sql.includes('INSERT INTO "OrganisationPermission"'),
       ),
-    ).toHaveLength(9);
+    ).toHaveLength(11);
     expect(
       seedClient.executeCalls.filter((call) =>
         call.sql.includes('INSERT INTO "OrganisationAdminPermission"'),
@@ -127,7 +129,7 @@ describe('organisation admin permission seed', () => {
 
     expect(summary).toEqual({
       organisationCount: 1,
-      permissionCount: 9,
+      permissionCount: 11,
       initialAdminGrantCount: 0,
     });
     expect(
@@ -151,16 +153,18 @@ describe('organisation admin permission seed', () => {
         { id: 'permission-invite-trainees' },
         { id: 'permission-remove-trainees' },
         { id: 'permission-assign-campaigns' },
+        { id: 'permission-view-campaigns' },
+        { id: 'permission-manage-campaigns' },
       ],
-      adminGrantInsertCounts: [1, 0, 1, 0, 1, 1, 0, 1, 1],
+      adminGrantInsertCounts: [1, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1],
     });
 
     const summary = await seedOrganisationAdminPermissions(seedClient.client);
 
     expect(summary).toEqual({
       organisationCount: 1,
-      permissionCount: 9,
-      initialAdminGrantCount: 6,
+      permissionCount: 11,
+      initialAdminGrantCount: 8,
     });
   });
 });

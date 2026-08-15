@@ -6,6 +6,8 @@ import {
 } from '../services/trainee-training.service.js';
 import { TrainingContentResolveError } from '../services/content-resolver.service.js';
 
+import { CampaignEligibilityDenialError } from '../services/campaign-eligibility.service.js';
+
 function requireAuthenticatedUserId(req: Request, res: Response) {
   if (!req.auth) {
     res.status(401).json({
@@ -19,6 +21,13 @@ function requireAuthenticatedUserId(req: Request, res: Response) {
 }
 
 function handleTrainingError(error: unknown, res: Response) {
+  if (error instanceof CampaignEligibilityDenialError) {
+    return res.status(error.status).json({
+      error: error.error,
+      message: error.message,
+    });
+  }
+
   if (error instanceof TrainingDocumentAccessNotFoundError) {
     return res.status(404).json({
       error: 'TRAINING_DOCUMENT_NOT_FOUND',

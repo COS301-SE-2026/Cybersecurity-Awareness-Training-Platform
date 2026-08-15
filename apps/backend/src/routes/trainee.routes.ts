@@ -119,6 +119,8 @@ router.get(
  *         $ref: '#/components/responses/Forbidden'
  *       404:
  *         $ref: '#/components/responses/SimulationNotFound'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
  *       429:
  *         $ref: '#/components/responses/TooManyRequests'
  *       500:

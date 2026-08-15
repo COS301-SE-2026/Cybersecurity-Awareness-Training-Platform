@@ -52,7 +52,7 @@ beforeEach(async () => {
   const { resetTestDatabase } = await getDatabaseHelper();
 
   await resetTestDatabase();
-});
+}, 30000);
 
 afterAll(async () => {
   const { disconnectTestPrisma } = await getDatabaseHelper();
