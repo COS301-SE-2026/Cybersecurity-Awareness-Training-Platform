@@ -1,6 +1,4 @@
 # Continuous Integration Workflow
-# This workflow runs on pull requests and pushes to main and dev branches.
-# It includes formatting, linting, typechecking, testing, and building.
 
 name: Continuous Integration
 
@@ -457,7 +455,7 @@ jobs:
         run: |
           bash -n deploy/deploy-production.sh
           bash -n deploy/deploy-development.sh
-          bash -n dscripts/check-frozen-docs.sh
+          bash -n scripts/check-frozen-docs.sh
 
       - name: Validate local Docker Compose config
         run: docker compose --profile tools config --quiet
@@ -466,6 +464,25 @@ jobs:
         run: |
           docker compose --env-file deploy/.env.example -f docker-compose.deploy.yml config --quiet
           docker compose --env-file deploy/dev.env.example -f docker-compose.deploy.yml -f docker-compose.development.yml config --quiet
+
+  required-ci:
+    name: Required CI
+    needs:
+      - format
+      - lint
+      - typecheck
+      - unit-tests-backend
+      - unit-tests-frontend
+      - unit-tests-shared
+      - integration-tests
+      - build
+      - docker-compose-config
+    runs-on: ubuntu-latest
+    permissions: {}
+    timeout-minutes: 2
+    steps:
+      - name: Confirm required CI passed
+        run: echo "All required CI checks passed for $GITHUB_SHA"
 
   docker-build-backend:
     name: Docker Build & Publish (Backend)
