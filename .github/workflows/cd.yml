@@ -1,0 +1,58 @@
+# Continuous Development Workflow
+
+name: Continuous Deployment
+
+on:
+  workflow_run:
+    workflows:
+      - Continuous Integration
+    types:
+      - completed
+    branches:
+      - main
+      - dev
+
+permissions: {}
+
+env:
+  TARGET_SHA: ${{ github.event.workflow_run.head_sha }}
+  TARGET_BRANCH: ${{ github.event.workflow_run.head_branch }}
+
+jobs:
+  deployment-eligibility:
+    name: Verify Deployment Eligibility
+    runs-on: ubunuty-latest
+    permissions:
+      actions: read
+    timeout-minutes: 10
+
+    steps:
+      - name: Verify trigerring CI run
+        env:
+          UPSTREAM_WORKFLOW: ${{ github.event.workflow_run.name }}
+          UPSTREAM_EVENT: ${{ github.event.workflow_run.event }}
+          UPSTREAM_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+        run: |
+          set -Eeuo pipefail 
+          if [[ "$UPSTREAM_WORKFLOW" != 'Continuous Integration' ]]; then
+            echo "Deployment was not triggered by Continuous Integration" >&2
+            exit 1
+          fi
+          if [[ "$UPSTREAM_EVENT" != 'push' ]]; then
+            echo "Only CI runs triggered by a push can deploy" >&2
+            exit 1
+          fi
+          if [[ "$UPSTREAM_CONCLUSION" != 'success' ]]; then
+            echo "CI did not succeed for deployment SHA $TARGET_SHA" >&2
+            exit 1
+          fi
+          if [[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Deployment SHA must be 40 lowercase hex characters" >&2
+            exit 1
+          fi
+          if [[ "$TARGET_BRANCH" != 'dev' && "$TARGET_BRANCH" != 'main' ]]; then
+            echo "Deployment branch must be dev or main" >&2
+            exit 1
+          fi
+          echo "CI passed for deployment SHA $TARGET_SHA"
+          echo "Deployment branch: $TARGET_BRANCH"
