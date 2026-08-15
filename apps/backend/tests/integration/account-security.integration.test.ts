@@ -182,14 +182,14 @@ describe('account security integration - change email lifecycle', () => {
     expect(latestRequest).toBeNull();
   });
 
-  it('rejects an expired confirmation request without changing the user email', async () => {
+  it('rejects an expired confirmation token without changing the user email', async () => {
     const fixture = await createAccountSecurityUserFixture();
     const requestedEmail = 'expired-change@example.com';
     const { rawToken, emailChangeRequest } = await createPendingEmailChangeToken({
       userId: fixture.user.id,
       currentEmail: fixture.user.email,
       requestedEmail,
-      requestExpiresAt: pastDate(),
+      tokenExpiresAt: pastDate(),
     });
 
     const response = await request(app).post('/account/verify-email-change').send({
@@ -205,11 +205,12 @@ describe('account security integration - change email lifecycle', () => {
     const updatedRequest = await prisma.emailChangeRequest.findUniqueOrThrow({
       where: { id: emailChangeRequest.id },
     });
-    expect(updatedRequest.status).toBe('EXPIRED');
+    expect(updatedRequest.status).toBe('PENDING');
 
     const token = await prisma.actionToken.findFirstOrThrow({
       where: { emailChangeRequestId: emailChangeRequest.id },
     });
+    expect(token.expiresAt.getTime()).toBeLessThanOrEqual(Date.now());
     expect(token.usedAt).toBeNull();
   });
 

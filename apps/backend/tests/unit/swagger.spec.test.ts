@@ -790,6 +790,12 @@ describe('swaggerSpec', () => {
     const verifyEmailChangeResponse = JSON.stringify(
       spec.components?.schemas?.AccountVerifyEmailChangeResponse,
     );
+    const emailChangeRequest = spec.components?.schemas?.AccountChangeEmailRequest as
+      | { properties?: Record<string, Record<string, unknown>> }
+      | undefined;
+    const passwordChangeRequest = spec.components?.schemas?.AccountChangePasswordRequest as
+      | { properties?: Record<string, Record<string, unknown>> }
+      | undefined;
 
     expect(emailChangeResponse).toContain('durably queued');
     expect(emailChangeResponse).toContain('not that the provider has delivered');
@@ -798,6 +804,22 @@ describe('swaggerSpec', () => {
     expect(sessionRevocationResponse).toContain('current session is permitted');
     expect(logoutOthersResponse).toContain('except the current session');
     expect(verifyEmailChangeResponse).toContain('active sessions/refresh tokens were revoked');
+    expect(emailChangeRequest?.properties?.newEmail?.maxLength).toBe(254);
+    expect(emailChangeRequest?.properties?.confirmNewEmail?.maxLength).toBe(254);
+    expect(passwordChangeRequest?.properties?.newPassword).toEqual(
+      expect.objectContaining({
+        minLength: 12,
+        maxLength: 128,
+        pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^\\sA-Za-z0-9]).+$',
+      }),
+    );
+    expect(passwordChangeRequest?.properties?.confirmNewPassword).toEqual(
+      expect.objectContaining({
+        minLength: 12,
+        maxLength: 128,
+        pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^\\sA-Za-z0-9]).+$',
+      }),
+    );
   });
 
   it('documents approve and reject requests with proper request body refs', () => {

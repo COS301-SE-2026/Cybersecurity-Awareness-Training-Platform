@@ -826,11 +826,13 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             newEmail: {
               type: 'string',
               format: 'email',
+              maxLength: 254,
               example: 'johan.new@example.com',
             },
             confirmNewEmail: {
               type: 'string',
               format: 'email',
+              maxLength: 254,
               example: 'johan.new@example.com',
             },
             password: {
@@ -873,6 +875,9 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
               format: 'password',
               minLength: 12,
               maxLength: 128,
+              pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^\\sA-Za-z0-9]).+$',
+              description:
+                'Must include at least one lowercase letter, one uppercase letter, one number, and one special character.',
               example: 'UpdatedLocalPassword1!',
             },
             confirmNewPassword: {
@@ -880,6 +885,9 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
               format: 'password',
               minLength: 12,
               maxLength: 128,
+              pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^\\sA-Za-z0-9]).+$',
+              description:
+                'Must match newPassword and include at least one lowercase letter, one uppercase letter, one number, and one special character.',
               example: 'UpdatedLocalPassword1!',
             },
           },
