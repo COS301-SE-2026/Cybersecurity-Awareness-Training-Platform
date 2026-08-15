@@ -22,12 +22,17 @@ import type {
   campaignListRowSchema,
   campaignMutationPreconditionSchema,
   createCampaignDraftRequestSchema,
+  enrolPlatformCampaignParamsSchema,
+  enrolPlatformCampaignResponseSchema,
   getCampaignCatalogueResponseSchema,
   getCampaignsResponseSchema,
+  getPlatformCampaignsResponseSchema,
   getTraineeCampaignDetailResponseSchema,
   getTraineeCampaignRequestParamsSchema,
   getTraineeCampaignsResponseSchema,
+  listPlatformCampaignsQuerySchema,
   listTraineeCampaignsRequestSchema,
+  platformCampaignSummarySchema,
   quizCatalogueItemSchema,
   simulatedInboxCatalogueItemSchema,
   traineeCampaignComponentItemSummarySchema,
@@ -42,6 +47,12 @@ import type {
 export type GetTraineeCampaignRequestParamsDto = z.infer<
   typeof getTraineeCampaignRequestParamsSchema
 >;
+
+export type ListPlatformCampaignsQueryDto = z.infer<typeof listPlatformCampaignsQuerySchema>;
+export type EnrolPlatformCampaignParamsDto = z.infer<typeof enrolPlatformCampaignParamsSchema>;
+export type PlatformCampaignSummaryDto = z.infer<typeof platformCampaignSummarySchema>;
+export type GetPlatformCampaignsResponseDto = z.infer<typeof getPlatformCampaignsResponseSchema>;
+export type EnrolPlatformCampaignResponseDto = z.infer<typeof enrolPlatformCampaignResponseSchema>;
 
 export type TraineeCampaignItemRequestParamsDto = z.infer<
   typeof traineeCampaignItemRequestParamsSchema

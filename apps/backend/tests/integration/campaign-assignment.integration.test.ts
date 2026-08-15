@@ -161,6 +161,52 @@ async function loginAsTrainee(input: {
   return { user, traineeProfile, orgTraineeProfile, token };
 }
 
+async function loginAsGeneralTrainee(
+  input: {
+    firstName?: string;
+    lastName?: string;
+    traineeStatus?: TraineeStatus;
+    authStatus?: AuthStatus;
+  } = {},
+) {
+  const email = generateTestEmail(`gen-trainee-${randomUUID()}`);
+  const userId = randomUUID();
+
+  const user = await prisma.user.create({
+    data: {
+      id: userId,
+      firstName: input.firstName ?? 'General',
+      lastName: input.lastName ?? 'Trainee',
+      email,
+      passwordHash: precalculatedHash,
+      userType: UserType.GENERAL_TRAINEE,
+      authStatus: input.authStatus ?? AuthStatus.ACTIVE,
+      emailVerifiedAt: new Date(),
+    },
+  });
+
+  const traineeProfile = await prisma.traineeProfile.create({
+    data: {
+      id: randomUUID(),
+      userId,
+      traineeStatus: input.traineeStatus ?? TraineeStatus.ACTIVE,
+    },
+  });
+
+  const generalTraineeProfile = await prisma.generalTraineeProfile.create({
+    data: {
+      id: randomUUID(),
+      traineeProfileId: traineeProfile.id,
+      accessSource: 'SELF_SIGNUP',
+    },
+  });
+
+  const loginRes = await request(app).post('/auth/login').send({ email, password: PASSWORD });
+  const token = (loginRes.body.token as string) ?? '';
+
+  return { user, traineeProfile, generalTraineeProfile, token };
+}
+
 async function loginAsPlatformSuperAdmin() {
   const email = generateTestEmail(`superadmin-${randomUUID()}`);
   const userId = randomUUID();
@@ -1260,4 +1306,291 @@ describe('Campaign Assignment API Integration Tests', () => {
       expect(itemEvents).toHaveLength(0);
     });
   });
+
+  describe('12. General Trainee Platform Campaign Discovery and Self-Enrolment Integration', () => {
+    it('discovers only active premade platform campaigns with pagination and search', async () => {
+      const generalTrainee = await loginAsGeneralTrainee();
+      const orgAdmin = await loginAsOrgAdmin();
+
+      // 1. Create active premade general platform campaign
+      const platformActive = await createCampaign({
+        name: `Premade Platform Security ${randomUUID()}`,
+        campaignType: CampaignType.PREMADE_GENERAL,
+        status: CampaignStatus.ACTIVE,
+      });
+
+      // 2. Create draft premade general platform campaign (should not be discoverable)
+      await createCampaign({
+        name: `Premade Draft ${randomUUID()}`,
+        campaignType: CampaignType.PREMADE_GENERAL,
+        status: CampaignStatus.DRAFT,
+      });
+
+      // 3. Create archived premade general platform campaign (should not be discoverable)
+      await createCampaign({
+        name: `Premade Archived ${randomUUID()}`,
+        campaignType: CampaignType.PREMADE_GENERAL,
+        status: CampaignStatus.ARCHIVED,
+      });
+
+      // 4. Create active organisation custom campaign (should not be discoverable by general trainee)
+      await createCampaign({
+        name: `Org Custom ${randomUUID()}`,
+        campaignType: CampaignType.ORGANISATION_CUSTOM,
+        status: CampaignStatus.ACTIVE,
+        organisationId: orgAdmin.organisation.id,
+      });
+
+      const res = await request(app)
+        .get('/trainee/platform-campaigns?page=1&limit=50')
+        .set('Authorization', `Bearer ${generalTrainee.token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.pagination).toBeDefined();
+      expect(res.body.items).toBeInstanceOf(Array);
+
+      const foundCampaignIds = res.body.items.map((i: any) => i.campaignId);
+      expect(foundCampaignIds).toContain(platformActive.id);
+
+      // Verify no draft, archived, or custom campaigns leak in
+      const allFound = res.body.items;
+      for (const item of allFound) {
+        expect(item.campaignType).toBe('PREMADE_GENERAL');
+        expect(item.status).toBe('ACTIVE');
+      }
+
+      // Search filter
+      const searchRes = await request(app)
+        .get(`/trainee/platform-campaigns?search=${encodeURIComponent(platformActive.name.slice(0, 15))}`)
+        .set('Authorization', `Bearer ${generalTrainee.token}`);
+
+      expect(searchRes.status).toBe(200);
+      const searchIds = searchRes.body.items.map((i: any) => i.campaignId);
+      expect(searchIds).toContain(platformActive.id);
+    });
+
+    it('denies organisation trainees from accessing platform campaign discovery with 403', async () => {
+      const orgAdmin = await loginAsOrgAdmin();
+      const orgTrainee = await loginAsTrainee({ organisationId: orgAdmin.organisation.id });
+
+      const res = await request(app)
+        .get('/trainee/platform-campaigns')
+        .set('Authorization', `Bearer ${orgTrainee.token}`);
+
+      expect(res.status).toBe(403);
+    });
+
+    it('enrols general trainee in platform campaign with SELF_SELECTED access and visible in trainee campaign list', async () => {
+      const generalTrainee = await loginAsGeneralTrainee();
+
+      const platformCampaign = await createCampaign({
+        name: `Platform Self-Enrol Campaign ${randomUUID()}`,
+        campaignType: CampaignType.PREMADE_GENERAL,
+        status: CampaignStatus.ACTIVE,
+      });
+
+      // 1. Initial discovery shows isEnrolled: false
+      const discoveryRes1 = await request(app)
+        .get(`/trainee/platform-campaigns?search=${encodeURIComponent(platformCampaign.name)}`)
+        .set('Authorization', `Bearer ${generalTrainee.token}`);
+
+      expect(discoveryRes1.status).toBe(200);
+      const itemBefore = discoveryRes1.body.items.find((i: any) => i.campaignId === platformCampaign.id);
+      expect(itemBefore).toBeDefined();
+      expect(itemBefore.isEnrolled).toBe(false);
+      expect(itemBefore.assignment).toBeNull();
+
+      // 2. Perform self-enrolment
+      const enrolRes = await request(app)
+        .post(`/trainee/platform-campaigns/${platformCampaign.id}/enrol`)
+        .set('Authorization', `Bearer ${generalTrainee.token}`);
+
+      expect(enrolRes.status).toBe(200);
+      expect(enrolRes.body.campaignId).toBe(platformCampaign.id);
+      expect(enrolRes.body.accessType).toBe('SELF_SELECTED');
+      expect(enrolRes.body.assignment).toMatchObject({
+        accessType: 'SELF_SELECTED',
+        assignmentStatus: 'ASSIGNED',
+      });
+
+      // Verify in database
+      const dbAssignment = await prisma.campaignAssignment.findUnique({
+        where: {
+          campaignId_traineeProfileId: {
+            campaignId: platformCampaign.id,
+            traineeProfileId: generalTrainee.traineeProfile.id,
+          },
+        },
+      });
+      expect(dbAssignment).not.toBeNull();
+      expect(dbAssignment?.accessType).toBe(CampaignAccessType.SELF_SELECTED);
+      expect(dbAssignment?.assignedByUserId).toBeNull();
+
+      // 3. Discovery now shows isEnrolled: true
+      const discoveryRes2 = await request(app)
+        .get(`/trainee/platform-campaigns?search=${encodeURIComponent(platformCampaign.name)}`)
+        .set('Authorization', `Bearer ${generalTrainee.token}`);
+
+      const itemAfter = discoveryRes2.body.items.find((i: any) => i.campaignId === platformCampaign.id);
+      expect(itemAfter.isEnrolled).toBe(true);
+      expect(itemAfter.accessType).toBe('SELF_SELECTED');
+      expect(itemAfter.assignment).toBeDefined();
+
+      // 4. Campaign list (GET /trainee/campaigns) contains the enrolled campaign
+      const traineeCampaignsRes = await request(app)
+        .get('/trainee/campaigns')
+        .set('Authorization', `Bearer ${generalTrainee.token}`);
+
+      expect(traineeCampaignsRes.status).toBe(200);
+      const enrolledInList = traineeCampaignsRes.body.campaigns.find(
+        (c: any) => c.campaignId === platformCampaign.id,
+      );
+      expect(enrolledInList).toBeDefined();
+      expect(enrolledInList.accessType).toBe('SELF_SELECTED');
+
+      // 5. Campaign detail (GET /trainee/campaigns/:campaignId) is accessible
+      const traineeDetailRes = await request(app)
+        .get(`/trainee/campaigns/${platformCampaign.id}`)
+        .set('Authorization', `Bearer ${generalTrainee.token}`);
+
+      expect(traineeDetailRes.status).toBe(200);
+      expect(traineeDetailRes.body.campaignId).toBe(platformCampaign.id);
+      expect(traineeDetailRes.body.accessType).toBe('SELF_SELECTED');
+    });
+
+    it('is idempotent on duplicate enrolment and does not reset progress', async () => {
+      const generalTrainee = await loginAsGeneralTrainee();
+
+      const platformCampaign = await createCampaign({
+        name: `Idempotent Platform Campaign ${randomUUID()}`,
+        campaignType: CampaignType.PREMADE_GENERAL,
+        status: CampaignStatus.ACTIVE,
+      });
+
+      // First enrolment
+      const enrolRes1 = await request(app)
+        .post(`/trainee/platform-campaigns/${platformCampaign.id}/enrol`)
+        .set('Authorization', `Bearer ${generalTrainee.token}`);
+
+      expect(enrolRes1.status).toBe(200);
+      const assignmentId = enrolRes1.body.assignment.assignmentId;
+
+      // Simulate progress update on assignment
+      await prisma.campaignAssignment.update({
+        where: { id: assignmentId },
+        data: {
+          assignmentStatus: 'IN_PROGRESS',
+          startedAt: new Date(),
+        },
+      });
+
+      // Second enrolment (idempotent duplicate)
+      const enrolRes2 = await request(app)
+        .post(`/trainee/platform-campaigns/${platformCampaign.id}/enrol`)
+        .set('Authorization', `Bearer ${generalTrainee.token}`);
+
+      expect(enrolRes2.status).toBe(200);
+      expect(enrolRes2.body.assignment.assignmentId).toBe(assignmentId);
+      expect(enrolRes2.body.assignment.assignmentStatus).toBe('IN_PROGRESS');
+
+      // Assert total assignments count in DB is still 1
+      const count = await prisma.campaignAssignment.count({
+        where: {
+          campaignId: platformCampaign.id,
+          traineeProfileId: generalTrainee.traineeProfile.id,
+        },
+      });
+      expect(count).toBe(1);
+    });
+
+    it('preserves existing ASSIGNED accessType when trainee self-enrols in an admin-assigned platform campaign', async () => {
+      const generalTrainee = await loginAsGeneralTrainee();
+      const adminFixture = await loginAsOrgAdmin();
+
+      const platformCampaign = await createCampaign({
+        name: `Admin Pre-assigned Platform Campaign ${randomUUID()}`,
+        campaignType: CampaignType.PREMADE_GENERAL,
+        status: CampaignStatus.ACTIVE,
+      });
+
+      // Admin assigns campaign
+      const existingAssignment = await prisma.campaignAssignment.create({
+        data: {
+          id: randomUUID(),
+          campaignId: platformCampaign.id,
+          traineeProfileId: generalTrainee.traineeProfile.id,
+          assignedByUserId: adminFixture.user.id,
+          accessType: CampaignAccessType.ASSIGNED,
+          assignmentStatus: 'ASSIGNED',
+        },
+      });
+
+      // Trainee calls self-enrol
+      const enrolRes = await request(app)
+        .post(`/trainee/platform-campaigns/${platformCampaign.id}/enrol`)
+        .set('Authorization', `Bearer ${generalTrainee.token}`);
+
+      expect(enrolRes.status).toBe(200);
+      expect(enrolRes.body.accessType).toBe('ASSIGNED');
+      expect(enrolRes.body.assignment.accessType).toBe('ASSIGNED');
+
+      // Verify DB record is unchanged
+      const refreshed = await prisma.campaignAssignment.findUniqueOrThrow({
+        where: { id: existingAssignment.id },
+      });
+      expect(refreshed.accessType).toBe(CampaignAccessType.ASSIGNED);
+      expect(refreshed.assignedByUserId).toBe(adminFixture.user.id);
+    });
+
+    it('rejects enrolment in organisation-owned custom campaigns with 404', async () => {
+      const generalTrainee = await loginAsGeneralTrainee();
+      const orgAdmin = await loginAsOrgAdmin();
+
+      const orgCampaign = await createCampaign({
+        name: `Private Org Campaign ${randomUUID()}`,
+        campaignType: CampaignType.ORGANISATION_CUSTOM,
+        status: CampaignStatus.ACTIVE,
+        organisationId: orgAdmin.organisation.id,
+      });
+
+      const enrolRes = await request(app)
+        .post(`/trainee/platform-campaigns/${orgCampaign.id}/enrol`)
+        .set('Authorization', `Bearer ${generalTrainee.token}`);
+
+      expect(enrolRes.status).toBe(404);
+      expect(enrolRes.body.error).toBe('CAMPAIGN_NOT_FOUND');
+    });
+
+    it('handles concurrent enrol requests safely with exactly 1 assignment created', async () => {
+      const generalTrainee = await loginAsGeneralTrainee();
+
+      const platformCampaign = await createCampaign({
+        name: `Concurrent Platform Campaign ${randomUUID()}`,
+        campaignType: CampaignType.PREMADE_GENERAL,
+        status: CampaignStatus.ACTIVE,
+      });
+
+      const [res1, res2] = await Promise.all([
+        request(app)
+          .post(`/trainee/platform-campaigns/${platformCampaign.id}/enrol`)
+          .set('Authorization', `Bearer ${generalTrainee.token}`),
+        request(app)
+          .post(`/trainee/platform-campaigns/${platformCampaign.id}/enrol`)
+          .set('Authorization', `Bearer ${generalTrainee.token}`),
+      ]);
+
+      expect(res1.status).toBe(200);
+      expect(res2.status).toBe(200);
+      expect(res1.body.assignment.assignmentId).toBe(res2.body.assignment.assignmentId);
+
+      const dbAssignments = await prisma.campaignAssignment.findMany({
+        where: {
+          campaignId: platformCampaign.id,
+          traineeProfileId: generalTrainee.traineeProfile.id,
+        },
+      });
+      expect(dbAssignments).toHaveLength(1);
+    });
+  });
 });
+

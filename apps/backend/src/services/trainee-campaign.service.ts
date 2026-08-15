@@ -1,7 +1,15 @@
 import type {
+  AssignmentStatusDto,
+  CampaignAccessTypeDto,
   CampaignComponentTypeDto,
+  CampaignStatusDto,
+  CampaignTypeDto,
+  DifficultyLevelDto,
+  GetPlatformCampaignsResponseDto,
   GetTraineeCampaignDetailResponseDto,
   GetTraineeCampaignsResponseDto,
+  ListPlatformCampaignsQueryDto,
+  PlatformCampaignSummaryDto,
   SupportedTraineeCampaignComponentTypeDto,
   TraineeCampaignAssignmentSummaryDto,
   TraineeCampaignChildItemSummaryDto,
@@ -12,11 +20,14 @@ import type {
   TraineeCampaignSummaryDto,
 } from '@insightful-phish/shared';
 import {
+  getPlatformCampaignsResponseSchema,
   getTraineeCampaignActivityApiPath,
   getTraineeCampaignDetailResponseSchema,
   getTraineeCampaignsResponseSchema,
   SUPPORTED_TRAINEE_CAMPAIGN_COMPONENT_TYPES,
+  traineeCampaignSummarySchema,
 } from '@insightful-phish/shared';
+import * as CampaignAssignmentRepository from '../repositories/campaign-assignment.repository.js';
 import * as TraineeCampaignRepository from '../repositories/trainee-campaign.repository.js';
 import {
   defaultCampaignEligibilityService,
@@ -51,6 +62,15 @@ export class TraineeCampaignNotFoundError extends Error {
   }
 }
 
+export class TraineeCampaignForbiddenError extends Error {
+  public readonly statusCode = 403;
+  public readonly errorCode = 'FORBIDDEN';
+  constructor(message = 'Only active general trainees can access this resource') {
+    super(message);
+    this.name = 'TraineeCampaignForbiddenError';
+  }
+}
+
 function isSupportedComponentType(
   componentType: CampaignComponentTypeDto | null,
 ): componentType is SupportedTraineeCampaignComponentTypeDto {
@@ -74,22 +94,21 @@ function toIsoString(value: Date | null | undefined): string | null {
 }
 
 function toAssignmentSummary(
-  assignment: Pick<
-    CampaignAssignmentSummary,
-    | 'id'
-    | 'assignmentStatus'
-    | 'accessType'
-    | 'currentCampaignItemId'
-    | 'assignedAt'
-    | 'dueDate'
-    | 'startedAt'
-    | 'completedAt'
-  >,
+  assignment: {
+    id: string;
+    assignmentStatus: string;
+    accessType: string;
+    currentCampaignItemId: string | null;
+    assignedAt: Date;
+    dueDate?: Date | null;
+    startedAt?: Date | null;
+    completedAt?: Date | null;
+  },
 ): TraineeCampaignAssignmentSummaryDto {
   return {
     assignmentId: assignment.id,
-    assignmentStatus: assignment.assignmentStatus,
-    accessType: assignment.accessType,
+    assignmentStatus: assignment.assignmentStatus as AssignmentStatusDto,
+    accessType: assignment.accessType as CampaignAccessTypeDto,
     currentCampaignItemId: assignment.currentCampaignItemId,
     assignedAt: assignment.assignedAt.toISOString(),
     dueDate: toIsoString(assignment.dueDate),
@@ -464,3 +483,143 @@ export async function getTraineeCampaignDetail(
     }),
   });
 }
+
+async function resolveActiveGeneralTrainee(userId: string) {
+  const actor = await CampaignAssignmentRepository.findGeneralTraineeActorScope(userId);
+  if (!actor || actor.authStatus !== 'ACTIVE') {
+    throw new TraineeCampaignForbiddenError('User is not active');
+  }
+  if (actor.userType !== 'GENERAL_TRAINEE' || !actor.traineeProfile?.generalTraineeProfile) {
+    throw new TraineeCampaignForbiddenError('Only general trainees can access this resource');
+  }
+  if (actor.traineeProfile.traineeStatus !== 'ACTIVE') {
+    throw new TraineeCampaignForbiddenError('Trainee profile is inactive');
+  }
+  return {
+    traineeProfileId: actor.traineeProfile.id,
+    userId: actor.id,
+  };
+}
+
+export async function listPlatformCampaigns(
+  userId: string,
+  query: ListPlatformCampaignsQueryDto,
+): Promise<GetPlatformCampaignsResponseDto> {
+  const trainee = await resolveActiveGeneralTrainee(userId);
+
+  const { items, total } = await CampaignAssignmentRepository.findPlatformCampaignsForDiscovery({
+    page: query.page,
+    limit: query.limit,
+    search: query.search,
+    traineeProfileId: trainee.traineeProfileId,
+  });
+
+  const campaignItems: PlatformCampaignSummaryDto[] = items.map((item) => {
+    const eligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility({
+      campaignType: item.campaignType as CampaignTypeDto,
+      status: item.status as CampaignStatusDto,
+      startDate: item.startDate,
+      endDate: item.endDate,
+    });
+
+    const assignment = item.assignment ? toAssignmentSummary(item.assignment) : null;
+
+    return {
+      campaignId: item.id,
+      name: item.name,
+      description: item.description,
+      accentColor: item.accentColor,
+      campaignType: 'PREMADE_GENERAL' as const,
+      difficultyLevel: item.difficultyLevel as DifficultyLevelDto,
+      status: 'ACTIVE' as const,
+      startDate: toIsoString(item.startDate),
+      endDate: toIsoString(item.endDate),
+      assignment,
+      accessType: assignment?.accessType ?? null,
+      isEnrolled: Boolean(assignment),
+      progressStatus: null,
+      itemCount: item.items.length,
+      availableItemCount: item.items.filter((i) => i.availabilityStatus === 'AVAILABLE').length,
+      eligibility,
+    };
+  });
+
+  const totalPages = total > 0 ? Math.ceil(total / query.limit) : 0;
+  const pagination = {
+    page: query.page,
+    limit: query.limit,
+    totalItems: total,
+    totalPages,
+    hasNextPage: query.page < totalPages,
+    hasPreviousPage: query.page > 1,
+  };
+
+  return getPlatformCampaignsResponseSchema.parse({
+    items: campaignItems,
+    pagination,
+  });
+}
+
+export async function enrolPlatformCampaign(
+  userId: string,
+  campaignId: string,
+): Promise<TraineeCampaignSummaryDto> {
+  const trainee = await resolveActiveGeneralTrainee(userId);
+
+  const result = await CampaignAssignmentRepository.enrolGeneralTraineeInPlatformCampaign({
+    traineeProfileId: trainee.traineeProfileId,
+    campaignId,
+  });
+
+  if (!result.success) {
+    if (result.error === 'CAMPAIGN_NOT_FOUND') {
+      throw new TraineeCampaignNotFoundError('Campaign was not found');
+    }
+    if (result.error === 'TRAINEE_NOT_ELIGIBLE') {
+      throw new TraineeCampaignForbiddenError('Trainee is not eligible for self-enrolment');
+    }
+    if (result.error === 'CAMPAIGN_INACTIVE') {
+      const eligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility({
+        campaignType: 'PREMADE_GENERAL',
+        status: 'ARCHIVED',
+        startDate: null,
+        endDate: null,
+      });
+      defaultCampaignEligibilityService.assertCanProgress(eligibility);
+    }
+    throw new TraineeCampaignNotFoundError('Campaign was not found');
+  }
+
+  const campaignEligibility = defaultCampaignEligibilityService.evaluateCampaignEligibility({
+    campaignType: result.campaign.campaignType as CampaignTypeDto,
+    status: result.campaign.status as CampaignStatusDto,
+    startDate: result.campaign.startDate,
+    endDate: result.campaign.endDate,
+  });
+
+  defaultCampaignEligibilityService.assertCanProgress(campaignEligibility);
+
+  const assignmentSummary = toAssignmentSummary(result.assignment);
+  const itemCount = result.campaign.items.length;
+  const availableItemCount = result.campaign.items.filter(
+    (item) => item.availabilityStatus === 'AVAILABLE',
+  ).length;
+
+  return traineeCampaignSummarySchema.parse({
+    campaignId: result.campaign.id,
+    name: result.campaign.name,
+    description: result.campaign.description,
+    accentColor: result.campaign.accentColor,
+    campaignType: 'PREMADE_GENERAL' as const,
+    difficultyLevel: result.campaign.difficultyLevel as DifficultyLevelDto,
+    status: 'ACTIVE' as const,
+    startDate: toIsoString(result.campaign.startDate),
+    endDate: toIsoString(result.campaign.endDate),
+    assignment: assignmentSummary,
+    accessType: assignmentSummary.accessType,
+    itemCount,
+    availableItemCount,
+    eligibility: campaignEligibility,
+  });
+}
+

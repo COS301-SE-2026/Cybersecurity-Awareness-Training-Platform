@@ -3609,6 +3609,110 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             },
           ],
         },
+        PaginationMetadata: {
+          type: 'object',
+          required: [
+            'page',
+            'limit',
+            'totalItems',
+            'totalPages',
+            'hasNextPage',
+            'hasPreviousPage',
+          ],
+          properties: {
+            page: { type: 'integer', minimum: 1, example: 1 },
+            limit: { type: 'integer', minimum: 1, example: 10 },
+            totalItems: { type: 'integer', minimum: 0, example: 45 },
+            totalPages: { type: 'integer', minimum: 0, example: 5 },
+            hasNextPage: { type: 'boolean', example: true },
+            hasPreviousPage: { type: 'boolean', example: false },
+          },
+        },
+        PlatformCampaignSummary: {
+          type: 'object',
+          required: [
+            'campaignId',
+            'name',
+            'campaignType',
+            'difficultyLevel',
+            'status',
+            'eligibility',
+          ],
+          properties: {
+            campaignId: {
+              ...uuidString('44444444-4444-4444-8444-444444444444'),
+            },
+            name: {
+              type: 'string',
+              example: 'Phishing Fundamentals',
+            },
+            description: {
+              ...nullableString('Build safe email habits.'),
+            },
+            accentColor: {
+              ...nullableString('#00FFA6'),
+              pattern: '^#[0-9A-Fa-f]{6}$',
+            },
+            campaignType: {
+              type: 'string',
+              enum: ['PREMADE_GENERAL'],
+              example: 'PREMADE_GENERAL',
+            },
+            difficultyLevel: {
+              $ref: '#/components/schemas/DifficultyLevel',
+            },
+            status: {
+              type: 'string',
+              enum: ['ACTIVE'],
+              example: 'ACTIVE',
+            },
+            startDate: {
+              ...dateTimeString('2026-05-16T08:00:00.000Z'),
+              nullable: true,
+            },
+            endDate: {
+              ...dateTimeString('2026-06-16T08:00:00.000Z'),
+              nullable: true,
+            },
+            assignment: {
+              nullable: true,
+              allOf: [schemaRef('TraineeCampaignAssignmentSummary')],
+            },
+            accessType: {
+              nullable: true,
+              allOf: [schemaRef('CampaignAccessType')],
+            },
+            isEnrolled: {
+              type: 'boolean',
+              example: false,
+            },
+            progressStatus: {
+              nullable: true,
+              allOf: [schemaRef('TraineeCampaignProgressStatus')],
+            },
+            itemCount: {
+              type: 'integer',
+              minimum: 0,
+              example: 4,
+            },
+            availableItemCount: {
+              type: 'integer',
+              minimum: 0,
+              example: 3,
+            },
+            eligibility: schemaRef('CampaignEligibility'),
+          },
+        },
+        GetPlatformCampaignsResponse: {
+          type: 'object',
+          required: ['items', 'pagination'],
+          properties: {
+            items: {
+              ...arrayOf(schemaRef('PlatformCampaignSummary')),
+            },
+            pagination: schemaRef('PaginationMetadata'),
+          },
+        },
         TrainingDocument: {
           type: 'object',
           required: [
@@ -4895,6 +4999,14 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         TraineeCampaignDetailOk: responseComponent(
           'Campaign detail with ordered trainee-safe item tree.',
           'GetTraineeCampaignDetailResponse',
+        ),
+        GetPlatformCampaignsOk: responseComponent(
+          'Paginated list of active platform campaigns discoverable by the authenticated active general trainee.',
+          'GetPlatformCampaignsResponse',
+        ),
+        EnrolPlatformCampaignOk: responseComponent(
+          'Platform campaign self-enrolment created or existing assignment returned idempotently.',
+          'TraineeCampaignSummary',
         ),
         TraineeCampaignNotFound: responseComponent(
           'Campaign is missing, inactive, or not accessible to the trainee.',
