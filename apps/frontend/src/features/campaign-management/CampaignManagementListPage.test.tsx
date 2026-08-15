@@ -161,4 +161,23 @@ describe('CampaignManagementListPage', () => {
     expect(await screen.findByText('Active phishing campaign')).toBeInTheDocument();
     expect(screen.queryByText('Draft awareness campaign')).not.toBeInTheDocument();
   });
+
+  it('links Create and editable Draft actions to working Campaign routes', async () => {
+    renderPage({
+      async listCampaigns() {
+        return createResponse([DRAFT_CAMPAIGN, ACTIVE_CAMPAIGN]);
+      },
+    });
+
+    expect(await screen.findByText('Draft awareness campaign')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Create Campaign' })).toHaveAttribute(
+      'href',
+      '/organisations/11111111-1111-4111-8111-111111111111/campaigns/new',
+    );
+    expect(screen.getByRole('link', { name: 'Continue Editing' })).toHaveAttribute(
+      'href',
+      '/organisations/11111111-1111-4111-8111-111111111111/campaigns/10000000-0000-4000-8000-000000000001',
+    );
+    expect(screen.queryByRole('link', { name: 'View Campaign' })).not.toBeInTheDocument();
+  });
 });

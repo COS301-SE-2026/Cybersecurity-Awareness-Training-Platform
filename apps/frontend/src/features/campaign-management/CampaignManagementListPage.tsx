@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Navigate, useParams } from 'react-router-dom';
+import { Link, Navigate, useParams } from 'react-router-dom';
 
 import AdminPagesSearchSVG from '../../components/AdminPagesSearchSVG';
 import LoadingSpinnerSVG from '../../components/LoadingSpinnerSVG';
@@ -143,6 +143,11 @@ function CampaignManagementListPage({
     return <Navigate to="/" replace />;
   }
 
+  const campaignListPath =
+    context.kind === 'organisation'
+      ? `/organisations/${context.organisationId}/campaigns`
+      : '/platform/campaigns';
+
   const hasFilters = Boolean(query.search?.trim() || query.status);
   const isEmpty = !isLoading && !loadError && result !== null && result.pagination.totalItems === 0;
 
@@ -152,6 +157,10 @@ function CampaignManagementListPage({
         <header className="campaign-page__header">
           <h1 className="campaign-page__title">{heading}</h1>
           <p className="campaign-page__helper">{helper}</p>
+          {/* temp until issue 460 supplies MANAGE_CAMPAIGNS */}
+          <Link className="campaign-button campaign-button--primary" to={`${campaignListPath}/new`}>
+            Create Campaign
+          </Link>
         </header>
 
         <section className="campaign-filters" aria-label="Campaign search and filters">
@@ -241,65 +250,84 @@ function CampaignManagementListPage({
             <h2 className="campaign-list__heading">Campaigns ({result.pagination.totalItems})</h2>
 
             <div className="campaign-list">
-              {result.items.map((campaign) => (
-                <article className="campaign-card" key={campaign.id}>
-                  <div
-                    className="campaign-card__accent"
-                    style={{
-                      backgroundColor: campaign.accentColor ?? '#837Dc3',
-                    }}
-                    aria-hidden="true"
-                  />
+              {result.items.map((campaign) => {
+                const draftActionLabel =
+                  campaign.status !== 'DRAFT'
+                    ? null
+                    : campaign.allowedActions.includes('EDIT')
+                      ? 'Continue Editing'
+                      : campaign.allowedActions.includes('VIEW')
+                        ? 'View Draft'
+                        : null;
 
-                  <div className="campaign-card__body">
-                    <div className="campaign-card__heading">
-                      <div>
-                        <h3>{campaign.name}</h3>
-                        <p>{campaign.description || 'No description provided.'}</p>
+                return (
+                  <article className="campaign-card" key={campaign.id}>
+                    <div
+                      className="campaign-card__accent"
+                      style={{
+                        backgroundColor: campaign.accentColor ?? '#837Dc3',
+                      }}
+                      aria-hidden="true"
+                    />
+
+                    <div className="campaign-card__body">
+                      <div className="campaign-card__heading">
+                        <div>
+                          <h3>{campaign.name}</h3>
+                          <p>{campaign.description || 'No description provided.'}</p>
+                        </div>
+
+                        <span className={STATUS_CLASSES[campaign.status]}>
+                          {STATUS_LABELS[campaign.status]}
+                        </span>
                       </div>
 
-                      <span className={STATUS_CLASSES[campaign.status]}>
-                        {STATUS_LABELS[campaign.status]}
-                      </span>
+                      <dl className="campaign-metadata">
+                        <div>
+                          <dt>Ownership</dt>
+                          <dd>{getOwnershipLabel(campaign)}</dd>
+                        </div>
+
+                        <div>
+                          <dt>Items</dt>
+                          <dd>{campaign.itemCount}</dd>
+                        </div>
+
+                        {context.kind === 'organisation' && (
+                          <>
+                            <div>
+                              <dt>Start date</dt>
+                              <dd>{formatDate(campaign.startDate)}</dd>
+                            </div>
+
+                            <div>
+                              <dt>End date</dt>
+                              <dd>{formatDate(campaign.endDate)}</dd>
+                            </div>
+                          </>
+                        )}
+
+                        <div>
+                          <dt>Last updated</dt>
+                          <dd>{formatUpdatedAt(campaign.updatedAt)}</dd>
+                        </div>
+                      </dl>
+
+                      <div className="campaign-card__footer">
+                        <span>
+                          Created by {campaign.createdBy?.displayName ?? 'Unknown administrator'}
+                        </span>
+
+                        {draftActionLabel && (
+                          <Link className="campaign-link" to={`${campaignListPath}/${campaign.id}`}>
+                            {draftActionLabel}
+                          </Link>
+                        )}
+                      </div>
                     </div>
-
-                    <dl className="campaign-metadata">
-                      <div>
-                        <dt>Ownership</dt>
-                        <dd>{getOwnershipLabel(campaign)}</dd>
-                      </div>
-
-                      <div>
-                        <dt>Items</dt>
-                        <dd>{campaign.itemCount}</dd>
-                      </div>
-
-                      {context.kind === 'organisation' && (
-                        <>
-                          <div>
-                            <dt>Start date</dt>
-                            <dd>{formatDate(campaign.startDate)}</dd>
-                          </div>
-
-                          <div>
-                            <dt>End date</dt>
-                            <dd>{formatDate(campaign.endDate)}</dd>
-                          </div>
-                        </>
-                      )}
-
-                      <div>
-                        <dt>Last updated</dt>
-                        <dd>{formatUpdatedAt(campaign.updatedAt)}</dd>
-                      </div>
-                    </dl>
-
-                    <div className="campaign-card__footer">
-                      Created by {campaign.createdBy?.displayName ?? 'Unknown administrator'}
-                    </div>
-                  </div>
-                </article>
-              ))}
+                  </article>
+                );
+              })}
             </div>
           </>
         )}

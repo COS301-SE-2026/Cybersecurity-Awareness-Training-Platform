@@ -27,6 +27,7 @@ import PlatformAdministratorsPage from '../pages/PlatformAdministratorsPage';
 import BrandPage from '../pages/BrandPage';
 import CampaignAssignmentPage from '../pages/CampaignAssignmentPage';
 import CampaignManagementListPage from '../features/campaign-management/CampaignManagementListPage';
+import CampaignManagementDetailPage from '../features/campaign-management/CampaignManagementDetailPage';
 
 function AppRoutes() {
   return (
@@ -79,6 +80,14 @@ function AppRoutes() {
           path="/organisations/:organisationId/campaigns"
           element={<CampaignManagementListPage contextKind="organisation" />}
         />
+        <Route
+          path="/organisations/:organisationId/campaigns/new"
+          element={<CampaignManagementDetailPage contextKind="organisation" />}
+        />
+        <Route
+          path="/organisations/:organisationId/campaigns/:campaignId"
+          element={<CampaignManagementDetailPage contextKind="organisation" />}
+        />
       </Route>
 
       {/* PLATFORM ADMIN PROTECTED ROUTES */}
@@ -123,6 +132,14 @@ function AppRoutes() {
         <Route
           path="/platform/campaigns"
           element={<CampaignManagementListPage contextKind="platform" />}
+        />
+        <Route
+          path="/platform/campaigns/new"
+          element={<CampaignManagementDetailPage contextKind="platform" />}
+        />
+        <Route
+          path="/platform/campaigns/:campaignId"
+          element={<CampaignManagementDetailPage contextKind="platform" />}
         />
       </Route>
 

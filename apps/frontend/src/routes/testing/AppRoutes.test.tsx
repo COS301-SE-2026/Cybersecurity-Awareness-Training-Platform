@@ -471,4 +471,53 @@ describe('AppRoutes', () => {
       screen.getByText('Create and manage campaigns available through Insightful Phish.'),
     ).toBeInTheDocument();
   });
+
+  it('renders the organisation Create Campaign shell', async () => {
+    const organisationId = '11111111-1111-4111-8111-111111111111';
+
+    renderCampaignManagementRoutes(
+      `/organisations/${organisationId}/campaigns/new`,
+      'ORGANISATION_ADMIN',
+      organisationId,
+    );
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: /^Create Campaign$/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Build a campaign by selecting and organising campaign items.'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Back to Campaigns' })).toHaveAttribute(
+      'href',
+      `/organisations/${organisationId}/campaigns`,
+    );
+  });
+
+  it('renders the platform Create Campaign shell', async () => {
+    renderCampaignManagementRoutes('/platform/campaigns/new', 'IP_ADMIN', null);
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: /^Create Campaign$/ }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Back to Campaigns' })).toHaveAttribute(
+      'href',
+      '/platform/campaigns',
+    );
+  });
+
+  it('renders the shared neutral Campaign detail shell', async () => {
+    const organisationId = '11111111-1111-4111-8111-111111111111';
+    const campaignId = '10000000-0000-4000-8000-000000000001';
+
+    renderCampaignManagementRoutes(
+      `/organisations/${organisationId}/campaigns/${campaignId}`,
+      'ORGANISATION_ADMIN',
+      organisationId,
+    );
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: /^Campaign$/ }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Campaign details will load here.')).toBeInTheDocument();
+  });
 });
