@@ -7,19 +7,21 @@ import AppLayout from '../../components/layout/AppLayout';
 import type {
   CampaignListQueryDto,
   CampaignListRowDto,
-  CampaignListStatusFilterDto,
   CampaignStatusDto,
   GetCampaignsResponseDto,
-} from './campaignManagement.contract';
+} from '@insightful-phish/shared';
 import type { CampaignManagementClient } from './campaignManagementClient';
 import type { CampaignManagementContext } from './campaignManagement.types';
 import { developmentCampaignManagementClient } from './developmentCampaignManagementClient';
+import { useAuth } from '../../context/useAuth';
 import './campaign-management.css';
 
 type CampaignManagementListPageProps = Readonly<{
   contextKind: CampaignManagementContext['kind'];
   client?: CampaignManagementClient;
 }>;
+
+type CampaignListStatusFilter = NonNullable<CampaignListQueryDto['status']>;
 
 const STATUS_LABELS: Record<CampaignStatusDto, string> = {
   DRAFT: 'Draft',
@@ -73,6 +75,7 @@ function CampaignManagementListPage({
   client = developmentCampaignManagementClient,
 }: CampaignManagementListPageProps) {
   const { organisationId } = useParams<{ organisationId: string }>();
+  const { permissions } = useAuth();
 
   const context = useMemo<CampaignManagementContext | null>(() => {
     if (contextKind === 'platform') {
@@ -150,6 +153,8 @@ function CampaignManagementListPage({
 
   const hasFilters = Boolean(query.search?.trim() || query.status);
   const isEmpty = !isLoading && !loadError && result !== null && result.pagination.totalItems === 0;
+  const canManageCampaigns =
+    context.kind === 'platform' || permissions.includes('MANAGE_CAMPAIGNS');
 
   return (
     <AppLayout>
@@ -157,10 +162,14 @@ function CampaignManagementListPage({
         <header className="campaign-page__header">
           <h1 className="campaign-page__title">{heading}</h1>
           <p className="campaign-page__helper">{helper}</p>
-          {/* temp until issue 460 supplies MANAGE_CAMPAIGNS */}
-          <Link className="campaign-button campaign-button--primary" to={`${campaignListPath}/new`}>
-            Create Campaign
-          </Link>
+          {canManageCampaigns && (
+            <Link
+              className="campaign-button campaign-button--primary"
+              to={`${campaignListPath}/new`}
+            >
+              Create Campaign
+            </Link>
+          )}
         </header>
 
         <section className="campaign-filters" aria-label="Campaign search and filters">
@@ -195,7 +204,7 @@ function CampaignManagementListPage({
                 const status =
                   event.target.value === ''
                     ? undefined
-                    : (event.target.value as CampaignListStatusFilterDto);
+                    : (event.target.value as CampaignListStatusFilter);
 
                 setQuery((current) => ({
                   ...current,
@@ -254,7 +263,7 @@ function CampaignManagementListPage({
                 const draftActionLabel =
                   campaign.status !== 'DRAFT'
                     ? null
-                    : campaign.allowedActions.includes('EDIT')
+                    : canManageCampaigns && campaign.allowedActions.includes('EDIT')
                       ? 'Continue Editing'
                       : campaign.allowedActions.includes('VIEW')
                         ? 'View Draft'
@@ -265,7 +274,7 @@ function CampaignManagementListPage({
                     <div
                       className="campaign-card__accent"
                       style={{
-                        backgroundColor: campaign.accentColor ?? '#837Dc3',
+                        backgroundColor: campaign.accentColor ?? '#837DC3',
                       }}
                       aria-hidden="true"
                     />

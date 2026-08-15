@@ -1,5 +1,5 @@
 import { Navigate, Outlet } from 'react-router-dom';
-import type { UserTypeDto } from '@insightful-phish/shared';
+import type { OrganisationPermissionKeyDto, UserTypeDto } from '@insightful-phish/shared';
 
 import { useAuth } from '../context/useAuth';
 
@@ -7,7 +7,8 @@ type ProtectedRouteProps = Readonly<{
   requiredRole?: UserTypeDto;
   allowedRoles?: readonly UserTypeDto[];
   requireOrganisation?: boolean;
-  requiredPermission?: string;
+  requiredPermission?: OrganisationPermissionKeyDto;
+  requiredAnyPermission?: readonly OrganisationPermissionKeyDto[];
   redirectTo?: string;
 }>;
 
@@ -16,6 +17,7 @@ function ProtectedRoute({
   allowedRoles,
   requireOrganisation,
   requiredPermission,
+  requiredAnyPermission,
   redirectTo,
 }: ProtectedRouteProps) {
   const { isAuthenticated, isAuthLoading, authContext, permissions, user } = useAuth();
@@ -49,8 +51,16 @@ function ProtectedRoute({
   const hasRequiredRole = !requiredRole || authContext?.role === requiredRole;
   const hasRequiredOrganisation = !requireOrganisation || Boolean(authContext?.organisation?.id);
   const hasRequiredPermission = !requiredPermission || permissions.includes(requiredPermission);
+  const hasAnyRequiredPermission =
+    !requiredAnyPermission ||
+    requiredAnyPermission.some((permission) => permissions.includes(permission));
 
-  if (!hasRequiredRole || !hasRequiredOrganisation || !hasRequiredPermission) {
+  if (
+    !hasRequiredRole ||
+    !hasRequiredOrganisation ||
+    !hasRequiredPermission ||
+    !hasAnyRequiredPermission
+  ) {
     return <Navigate to="/" replace />;
   }
 

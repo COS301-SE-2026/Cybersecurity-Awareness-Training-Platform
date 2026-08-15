@@ -76,18 +76,33 @@ function AppRoutes() {
         />
         <Route path="/organisation-trainees" element={<OrganisationTraineesPage />} />
         <Route path="/organisation-administrators" element={<OrganisationAdministratorsPage />} />
+
         <Route
-          path="/organisations/:organisationId/campaigns"
-          element={<CampaignManagementListPage contextKind="organisation" />}
-        />
+          element={
+            <ProtectedRoute
+              requireOrganisation
+              requiredAnyPermission={['VIEW_CAMPAIGNS', 'MANAGE_CAMPAIGNS']}
+            />
+          }
+        >
+          <Route
+            path="/organisations/:organisationId/campaigns"
+            element={<CampaignManagementListPage contextKind="organisation" />}
+          />
+          <Route
+            path="/organisations/:organisationId/campaigns/:campaignId"
+            element={<CampaignManagementDetailPage contextKind="organisation" />}
+          />
+        </Route>
+
         <Route
-          path="/organisations/:organisationId/campaigns/new"
-          element={<CampaignManagementDetailPage contextKind="organisation" />}
-        />
-        <Route
-          path="/organisations/:organisationId/campaigns/:campaignId"
-          element={<CampaignManagementDetailPage contextKind="organisation" />}
-        />
+          element={<ProtectedRoute requireOrganisation requiredPermission="MANAGE_CAMPAIGNS" />}
+        >
+          <Route
+            path="/organisations/:organisationId/campaigns/new"
+            element={<CampaignManagementDetailPage contextKind="organisation" />}
+          />
+        </Route>
       </Route>
 
       {/* PLATFORM ADMIN PROTECTED ROUTES */}

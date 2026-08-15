@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithRouter } from '../../testing/render';
+import type { OrganisationPermissionKeyDto } from '@insightful-phish/shared';
 
 vi.mock('../../App', () => ({
   StatusPage: () => <h1>Status Page</h1>,
@@ -150,43 +151,50 @@ function renderCampaignManagementRoutes(
   initialEntry: string,
   role: 'ORGANISATION_ADMIN' | 'IP_ADMIN',
   organisationId: string | null,
+  permissions: OrganisationPermissionKeyDto[] = [],
 ) {
-  return renderWithRouter(<AppRoutes />, {
-    initialEntry,
-    auth: {
-      user: {
-        id: 'campaign-admin-user',
-        firstName: 'Campaign',
-        lastName: 'Administrator',
-        email: 'campaign-admin@example.com',
-        userType: role,
-        authStatus: 'ACTIVE',
-        traineeProfile: null,
-        adminProfile: null,
-        createdAt: '2026-08-01T00:00:00.00Z',
-      },
-      authContext: {
+  return renderWithRouter(
+    <>
+      <LocationDisplay />
+      <AppRoutes />
+    </>,
+    {
+      initialEntry,
+      auth: {
         user: {
           id: 'campaign-admin-user',
+          firstName: 'Campaign',
+          lastName: 'Administrator',
+          email: 'campaign-admin@example.com',
           userType: role,
           authStatus: 'ACTIVE',
+          traineeProfile: null,
+          adminProfile: null,
+          createdAt: '2026-08-01T00:00:00.00Z',
         },
-        role,
-        organisation: organisationId
-          ? {
-              id: organisationId,
-              name: 'Example Organisation',
-              status: 'ACTIVE',
-            }
-          : null,
-        platformAdminRole: role === 'IP_ADMIN' ? 'NORMAL_ADMIN' : null,
-        permissions: [],
-        redirectTo: role === 'IP_ADMIN' ? '/platform/campaigns' : '/organisation-information',
+        authContext: {
+          user: {
+            id: 'campaign-admin-user',
+            userType: role,
+            authStatus: 'ACTIVE',
+          },
+          role,
+          organisation: organisationId
+            ? {
+                id: organisationId,
+                name: 'Example Organisation',
+                status: 'ACTIVE',
+              }
+            : null,
+          platformAdminRole: role === 'IP_ADMIN' ? 'NORMAL_ADMIN' : null,
+          permissions,
+          redirectTo: role === 'IP_ADMIN' ? '/platform/campaigns' : '/organisation-information',
+        },
+        permissions,
+        redirectTo: role === 'IP_ADMIN' ? '/platform/campaigns' : 'organisation-information',
       },
-      permissions: [],
-      redirectTo: role === 'IP_ADMIN' ? '/platform/campaigns' : 'organisation-information',
     },
-  });
+  );
 }
 
 describe('AppRoutes', () => {
@@ -471,6 +479,7 @@ describe('AppRoutes', () => {
       `/organisations/${organisationId}/campaigns`,
       'ORGANISATION_ADMIN',
       organisationId,
+      ['VIEW_CAMPAIGNS'],
     );
 
     expect(
@@ -499,6 +508,7 @@ describe('AppRoutes', () => {
       `/organisations/${organisationId}/campaigns/new`,
       'ORGANISATION_ADMIN',
       organisationId,
+      ['MANAGE_CAMPAIGNS'],
     );
 
     expect(
@@ -533,11 +543,60 @@ describe('AppRoutes', () => {
       `/organisations/${organisationId}/campaigns/${campaignId}`,
       'ORGANISATION_ADMIN',
       organisationId,
+      ['VIEW_CAMPAIGNS'],
     );
 
     expect(
       await screen.findByRole('heading', { level: 1, name: /^Campaign$/ }),
     ).toBeInTheDocument();
     expect(screen.getByText('Campaign details will load here.')).toBeInTheDocument();
+  });
+
+  it('allows an organisation Campaign list user with MANAGE_CAMPAIGNS', async () => {
+    const organisationId = '11111111-1111-4111-8111-111111111111';
+
+    renderCampaignManagementRoutes(
+      `/organisations/${organisationId}/campaigns`,
+      'ORGANISATION_ADMIN',
+      organisationId,
+      ['MANAGE_CAMPAIGNS'],
+    );
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: /^Campaigns$/ }),
+    ).toBeInTheDocument();
+  });
+
+  it('denies organisation Campaign list access without a Campaign permission', async () => {
+    const organisationId = '11111111-1111-4111-8111-111111111111';
+
+    renderCampaignManagementRoutes(
+      `/organisations/${organisationId}/campaigns`,
+      'ORGANISATION_ADMIN',
+      organisationId,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('location-path')).toHaveTextContent('/');
+    });
+  });
+
+  it('requires MANAGE_CAMPAIGNS for the organisation Create Campaign route', async () => {
+    const organisationId = '11111111-1111-4111-8111-111111111111';
+
+    renderCampaignManagementRoutes(
+      `/organisations/${organisationId}/campaigns/new`,
+      'ORGANISATION_ADMIN',
+      organisationId,
+      ['VIEW_CAMPAIGNS'],
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('location-path')).toHaveTextContent('/');
+    });
+
+    expect(
+      screen.queryByRole('heading', { level: 1, name: /^Create Campaign$/ }),
+    ).not.toBeInTheDocument();
   });
 });

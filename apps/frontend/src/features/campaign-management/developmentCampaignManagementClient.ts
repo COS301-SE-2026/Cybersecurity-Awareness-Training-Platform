@@ -2,7 +2,7 @@ import type {
   CampaignListQueryDto,
   CampaignListRowDto,
   GetCampaignsResponseDto,
-} from './campaignManagement.contract';
+} from '@insightful-phish/shared';
 import type { CampaignManagementClient } from './campaignManagementClient';
 import type { CampaignManagementContext } from './campaignManagement.types';
 
@@ -62,7 +62,7 @@ const DEVELOPMENT_CAMPAIGNS: readonly DevelopmentCampaignFixture[] = [
       },
       createdAt: '2026-08-10T08:00:00.000Z',
       updatedAt: '2026-08-14T09:30:00.000Z',
-      allowedActions: ['VIEW', 'EDIT', 'ACTIVATE'],
+      allowedActions: ['VIEW', 'ARCHIVE', 'ASSIGN'],
     },
   },
   {
@@ -72,7 +72,7 @@ const DEVELOPMENT_CAMPAIGNS: readonly DevelopmentCampaignFixture[] = [
     },
     campaign: {
       id: '10000000-0000-4000-8000-000000000003',
-      name: 'Archives awareness campaign',
+      name: 'Archived awareness campaign',
       description: 'Archived organisation awareness campaign.',
       accentColor: '#837DC3',
       campaignType: 'ORGANISATION_CUSTOM',
@@ -97,8 +97,8 @@ const DEVELOPMENT_CAMPAIGNS: readonly DevelopmentCampaignFixture[] = [
     },
     campaign: {
       id: '10000000-0000-4000-8000-000000000004',
-      name: 'Platform draft campaign',
-      description: 'Draft platform awareness campaign.',
+      name: 'Secondary organisation draft',
+      description: 'Draft awareness campaign for a secondary organisation.',
       accentColor: '#00D1FF',
       campaignType: 'ORGANISATION_CUSTOM',
       status: 'DRAFT',
@@ -121,14 +121,14 @@ const DEVELOPMENT_CAMPAIGNS: readonly DevelopmentCampaignFixture[] = [
     },
     campaign: {
       id: '30000000-0000-4000-8000-000000000001',
-      name: 'Secondary campaign',
-      description: 'Active quarterly awareness campaign.',
+      name: 'Platform draft campaign',
+      description: 'Draft platform awareness campaign.',
       accentColor: '#00D1FF',
       campaignType: 'PREMADE_GENERAL',
       status: 'DRAFT',
       itemCount: 5,
-      startDate: '2026-07-01T08:00:00.000Z',
-      endDate: '2026-09-30T17:00:00.000Z',
+      startDate: null,
+      endDate: null,
       createdBy: {
         id: '20000000-0000-4000-8000-000000000001',
         displayName: 'Organisation Administrator',
@@ -145,7 +145,7 @@ const DEVELOPMENT_CAMPAIGNS: readonly DevelopmentCampaignFixture[] = [
     },
     campaign: {
       id: '30000000-0000-4000-8000-000000000002',
-      name: 'Archives platfrom campaign',
+      name: 'Archived platform campaign',
       description: 'Archived platform awareness campaign.',
       accentColor: '#837DC3',
       campaignType: 'PREMADE_GENERAL',

@@ -1,4 +1,4 @@
-import type { CampaignListQueryDto, GetCampaignsResponseDto } from './campaignManagement.contract';
+import type { CampaignListQueryDto, GetCampaignsResponseDto } from '@insightful-phish/shared';
 import type { CampaignManagementContext } from './campaignManagement.types';
 
 export interface CampaignManagementClient {

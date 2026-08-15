@@ -7,7 +7,7 @@ import type {
   CampaignListQueryDto,
   CampaignListRowDto,
   GetCampaignsResponseDto,
-} from './campaignManagement.contract';
+} from '@insightful-phish/shared';
 import type { CampaignManagementClient } from './campaignManagementClient';
 import CampaignManagementListPage from './CampaignManagementListPage';
 import { createDeferred, renderWithRouter } from '../../testing/render';
@@ -60,14 +60,17 @@ function createResponse(items: CampaignListRowDto[]): GetCampaignsResponseDto {
   };
 }
 
-function renderPage(client: CampaignManagementClient) {
+function renderPage(
+  client: CampaignManagementClient,
+  permissions: string[] = ['MANAGE_CAMPAIGNS'],
+) {
   return renderWithRouter(
     <CampaignManagementListPage contextKind="organisation" client={client} />,
     {
       initialEntry: ORGANISATION_PATH,
       routePath: ORGANISATION_ROUTE,
       auth: {
-        permissions: [],
+        permissions,
       },
     },
   );
@@ -162,7 +165,7 @@ describe('CampaignManagementListPage', () => {
     expect(screen.queryByText('Draft awareness campaign')).not.toBeInTheDocument();
   });
 
-  it('links Create and editable Draft actions to working Campaign routes', async () => {
+  it('shows Create and editable Draft actions to an organisation manager', async () => {
     renderPage({
       async listCampaigns() {
         return createResponse([DRAFT_CAMPAIGN, ACTIVE_CAMPAIGN]);
@@ -179,5 +182,24 @@ describe('CampaignManagementListPage', () => {
       '/organisations/11111111-1111-4111-8111-111111111111/campaigns/10000000-0000-4000-8000-000000000001',
     );
     expect(screen.queryByRole('link', { name: 'View Campaign' })).not.toBeInTheDocument();
+  });
+
+  it('shows View Draft but not Create or Continue Editing to an organisation viewer', async () => {
+    renderPage(
+      {
+        async listCampaigns() {
+          return createResponse([DRAFT_CAMPAIGN]);
+        },
+      },
+      ['VIEW_CAMPAIGNS'],
+    );
+
+    expect(await screen.findByText('Draft awareness campaign')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Create Campaign' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Continue Editing' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'View Draft' })).toHaveAttribute(
+      'href',
+      `${ORGANISATION_PATH}/${DRAFT_CAMPAIGN.id}`,
+    );
   });
 });
