@@ -16,7 +16,13 @@ This section provides a view of the Insightful Phish deployments and CI/CD proce
 - **[9. Deployment and Operations](#9-deployment-and-operations)** &larr; _You are here_
   - [9.1 Purpose](#91-purpose)
   - [9.2 Environment Separations](#92-environment-separation)
+    - [Production Environment](#production-environment)
+    - [Development Environment](#development-environment)
+    - [CI/CD Workflow Separation](#cicd-workflow-separation)
   - [9.3 Deployment Diagrams](#93-deployment-diagrams)
+    - [9.3.1 Production Deployment](#931-production-deployment)
+    - [9.3.2 Development Deployment](#932-development-deployment)
+    - [9.3.3 CI/CD Pipeline](#933-cicd-pipeline)
   - [9.4 Deployment Failure Behaviour](#94-deployment-failure-behaviour)
   - [9.5 Rollback Strategy](#95-rollback-strategy)
 - [10. Changelog](changelog.md)
@@ -31,7 +37,7 @@ Insightful Phish has distinct production and development environments. Productio
 
 Both environments use Docker Engine and Docker Compose to run the application. Application HTTP traffic reaches each host through a separate Cloudflare Tunnel. Github Actions uses native SSH to invoke a restricted deployment wrapper on the appropriate host. Deployment SSH does not pass through the Cloudflare Tunnel.
 
-Backend and Frontend environments are build by Github Actions and are stored in the Github Container Registry (GHCR). Each environment uses immutable image tags derived from the full Git commit SHA. Production uses `<full SHA>` tags, while development uses `dev-<full SHA>` tags.
+Backend and Frontend container images are built and published by the separate Continuous Deployment workflow, after Continuous Integration succeeded for the exact deployment commit. Images are stored in the Github Container Registry (GHCR). Each environment uses immutable image tags derived from the full Git commit SHA. Production uses `<full SHA>` tags, while development uses `dev-<full SHA>` tags.
 
 <!-- TODO Add a section here desribing how to complete host bootstrap and deployment reproducibility -->
 
@@ -43,14 +49,14 @@ Production and Development are completely separate. They do not share deployment
 
 The Production frontend is publicly available at [insightfulphish.co.za](https://insightfulphish.co.za), and the Production API is available at [api.insightfulphish.co.za](https://api.insightfulphish.co.za).
 
-Production is deployed from successful pushes to `main`. After all required jobs succeed, Github Actions publishes the following images to GHCR:
+Production becomes eligible after a push to `main` completes Continuous Integration successfully. The completed CI run triggers Continuous Deployment for that exact commit SHA, which publishes the following images to GHCR:
 
 - `backend:<full SHA>`
 - `frontend:<full SHA>`
 
 The production frontend is built with `https://api.insightfulphish.co.za` as its `VITE_API_BASE_URL`. This is build-time configuration compiled into the frontend image rather than a runtime environment variable.
 
-Automatic deployment occurs only when `PRODUCTION_DEPLOY_ENABLED` is `true`. The deployment job uses the GitHub Environment named `production` and the concurrency group `insightfulphish-production`. Once a production deployment starts, a newer workflow run does not cancel it.
+Continuous Deployment invokes production deployment only when `PRODUCTION_DEPLOY_ENABLED` is `true`. The deployment job uses the GitHub Environment named `production` and the concurrency group `insightfulphish-production`. Once a production deployment starts, a newer workflow run does not cancel it.
 
 #### Development Environment
 
@@ -58,14 +64,24 @@ The Development frontend is publicly available at [dev.insightfulphish.co.za](ht
 
 The Development frontend and Mailpit UI are protected by Cloudflare Access. To gain access to these Development environment pages, use your email address. If you are allowed to access the development environment, you will receive an OTP and can use that to gain access to the Development pages.
 
-Production is deployed from successful pushes to `dev`. After all required jobs succeed, Github Actions publishes AMD64 images to GHCR using these tags:
+Development becomes eligible after a push to `dev` completes Continuous Integration successfully. The completed CI run triggers Continuous Deployment for that exact commit SHA, which publishes AMD64 images to GHCR using these tags:
 
 - `backend:dev-<full SHA>`
 - `frontend:dev-<full SHA>`
 
 The development frontend is built with the repository variable `DEVELOPMENT_FRONTEND_API_URL`, whose deployed value is `https://api-dev.insightfulphish.co.za`. Because this URL is compiled into the frontend image, the `dev-` tag prefix prevents development frontend content from overwriting a production image created from the same Git commit.
 
-Automatic deployment occurs only when `DEVELOPMENT_DEPLOY_ENABLED` is `true`. The deployment job uses the GitHub Environment named `development` and the concurrency group `insightfulphish-development`. Once a development deployment starts, a newer workflow run does not cancel it.
+Continuous Deployment invokes development deployment only when `DEVELOPMENT_DEPLOY_ENABLED` is `true`. The deployment job uses the GitHub Environment named `development` and the concurrency group `insightfulphish-development`. Once a development deployment starts, a newer workflow run does not cancel it.
+
+#### CI/CD Workflow Separation
+
+Pull Requests to `dev` and `main` run Continuous Integration and Policy independently. Pull Requests stop after validation and cannot publish images, request a deployment environment, access deployment SSH credentials or invoke a deployment wrapper.
+
+Continuous Integration owns formatting, linting, typechecking, unit tests, integration tests, application builds and deployment-configuration validation. Policy independently checks forbidden environment files and frozen Demo documentation directories. Policy reports its result separately and does not form part of the Continuous Deployment eligibility gate.
+
+A completed Continuous Integration run triggers Continuous Deployment. Before publication, the deployment eligibility job checks that the triggering workflow is Continuous Integration, that the triggering event was a push, and that the branch is either `dev` or `main`. It also checks that Continuous Integration succeeded and that the target SHA is valid. A failed, cancelled, manually triggered, branch mismatched or invalid CI result cannot publish or deploy.
+
+Once Continuous Deployment has verified that eligibility has succeeded correctly, it will check out the `head_sha` reported by the Continuous Integration run. It builds each multi-stage Docker image once, publishes the environment specific SHA tag to GHCR and passes the same SHA to the appropriate remote deployment wrapper. The deployment host pulls the published image and does not rebuild it.
 
 ### 9.3 Deployment Diagrams
 
@@ -88,6 +104,7 @@ To view the full rendered version of the diagram, click [here](../diagrams/sas/d
 #### 9.3.3 CI/CD Pipeline
 
 ![CICD Pipeline Diagram](../diagrams/sas/cicd-diagram.drawio.svg)
+
 _Figure 9.3: Continuous-integration and production-deployment flow for Insightful Phish._
 
 To view the full rendered version of the diagram, click [here](../diagrams/sas/cicd-diagram.drawio.svg).
@@ -105,8 +122,6 @@ The automatic system recovery does not reverse Prisma migration, restore databas
 Both `Production` and `Development` use this failure behaviour.
 
 ### 9.5 Rollback Strategy
-
-<!-- TODO Update once automatic rollback is implemented -->
 
 The deployment script records the Git commit SHAs of the current and previous successful releases in:
 
