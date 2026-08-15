@@ -1,4 +1,5 @@
 import type {
+  CampaignDetailResponseDto,
   CampaignListQueryDto,
   CampaignListRowDto,
   GetCampaignsResponseDto,
@@ -179,6 +180,32 @@ function isInContext(
   return true;
 }
 
+function toCampaignDetail(fixture: DevelopmentCampaignFixture): CampaignDetailResponseDto {
+  const { campaign, scope } = fixture;
+
+  return {
+    id: campaign.id,
+    organisationId: scope.kind === 'organisation' ? scope.organisationId : null,
+    name: campaign.name,
+    description: campaign.description,
+    accentColor: campaign.accentColor,
+    campaignType: campaign.campaignType,
+    status: campaign.status,
+    startDate: campaign.startDate,
+    endDate: campaign.endDate,
+    createdBy: campaign.createdBy
+      ? {
+          id: campaign.createdBy.id,
+          displayName: campaign.createdBy.displayName,
+        }
+      : null,
+    createdAt: campaign.createdAt,
+    updatedAt: campaign.updatedAt,
+    allowedActions: campaign.allowedActions,
+    items: [],
+  };
+}
+
 function matchesQuery(campaign: CampaignListRowDto, query: CampaignListQueryDto): boolean {
   if (query.status && campaign.status !== query.status) {
     return false;
@@ -221,5 +248,19 @@ export const developmentCampaignManagementClient: CampaignManagementClient = {
         hasPreviousPage: query.page > 1,
       },
     };
+  },
+  async getCampaignDetail(
+    context: CampaignManagementContext,
+    campaignId: string,
+  ): Promise<CampaignDetailResponseDto> {
+    const fixture = DEVELOPMENT_CAMPAIGNS.find(
+      (candidate) => candidate.campaign.id === campaignId && isInContext(candidate, context),
+    );
+
+    if (!fixture) {
+      throw new Error('Campaign not found.');
+    }
+
+    return toCampaignDetail(fixture);
   },
 };

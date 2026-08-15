@@ -61,7 +61,7 @@ function createResponse(items: CampaignListRowDto[]): GetCampaignsResponseDto {
 }
 
 function renderPage(
-  client: CampaignManagementClient,
+  client: Pick<CampaignManagementClient, 'listCampaigns'>,
   permissions: string[] = ['MANAGE_CAMPAIGNS'],
 ) {
   return renderWithRouter(

@@ -18,7 +18,7 @@ import './campaign-management.css';
 
 type CampaignManagementListPageProps = Readonly<{
   contextKind: CampaignManagementContext['kind'];
-  client?: CampaignManagementClient;
+  client?: Pick<CampaignManagementClient, 'listCampaigns'>;
 }>;
 
 type CampaignListStatusFilter = NonNullable<CampaignListQueryDto['status']>;
