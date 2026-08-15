@@ -7,38 +7,62 @@ BACKEND_HEALTH_URL='http://127.0.0.1:4000/health'
 FRONTEND_HEALTH_URL='http://127.0.0.1:5173/'
 HEALTH_ATTEMPTS=24
 HEALTH_RETRY_SECONDS=5
+# Note that all DB migrations must be backwards compatible
 
 phase='argument-validation'
 temporary_file=''
-
 candidate_started=false
-migration_started=false
-migration_state_before=''
-migration_state_after=''
-migration_change='not-run'
-application_recreated=false
+recovery_needed=false
 previous_release_available=false
-migration_compatibility='unknown'
 active_compose=()
 
+record_history(){
+	local event="$1"
+
+	if [[ -z "${HISTORY_FILE:-}" || ! -d "${RELEASES_DIR:-}" ]]; then
+		return 0
+	fi 
+
+	printf '%s candidate=%s target=%s event=%s previous=%s phase=%s\n'\
+	"$(date -u +'%Y-%m-%dT%H:%M:%SZ')"\
+	"${release_sha:-unknown}"\
+	"${deployment_target:-unknown}"\
+	"$event"\
+	"${current_sha:-none}"\
+	"${phase:-unknown}" >> "$HISTORY_FILE"
+}
 finish() {
 	local status=$?
+	local failed_phase="$phase"
+	 
 	trap - EXIT
+
 	if [[ -n "$temporary_file" && -e "$temporary_file" ]]; then
 		rm -f "$temporary_file"
 	fi
 
 	if ((status != 0)); then
-		echo "Deployment failed during phase: $phase" >&2
-		if [[ -n "${CURRENT_FILE:-}" && -f "${CURRENT_FILE:-}" ]]; then
-			echo "Current successful SHA: $(cat "$CURRENT_FILE")" >&2
-		else
-			echo "No current successful SHA has been recorded" >&2
+		echo "Deployment failed during phase: $failed_phase" >&2
+		echo "Candidate SHA: ${release_sha:-unknown}" >&2
+		echo "Current successful SHA: ${current_sha:-none}" >&2
+		
+		if [[ "$candidate_started" == true ]]; then
+			phase="$failed_phase"
+			record_history 'candidate-failed'
 		fi
-		if [[ "$phase" == "migration" || "$phase" == "application-recreation" || "$phase" == "health-checks" || "$phase" == "smoke-tests" ]]; then
-			echo "The migration may have changed the database. Do not roll back automatically without confirming DB compatibility." >&2
+
+		if [[ "$recovery_needed" == true && "$previous_release_available" == true ]]; then 
+			echo "Restoring previous application release: $current_sha">&2
+
+			if ! restore_previous_application; then 
+				echo "Previous application restoration failed too" >&2
+				report_running_images
+			fi 
+		elif [[ "$recovery_needed" == true ]]; then
+			echo "No previous successful release available to restore" >&2
+			report_running_images
 		fi
-	fi
+	fi 
 
 	exit "$status"
 }
@@ -46,43 +70,29 @@ finish() {
 trap finish EXIT
 
 deployment_target='production'
-migration_compatibility='unkown'
 
-while (( "$#" > 1 )); do
-	case "$1" in
-		--target)
-			deployment_target="$2"
-			shift 2
-			;;
-		--migration-compatibility)
-			migration_compatibility="$2"
-			shift 2
-			;;
-		*)
-			echo "Unkown deployment option: $1" >&2
+case "$#" in
+	1)
+		release_sha="$1"
+		;;
+	3)
+		if [[ "$1" != '--target' ]]; then
+			echo "Usage: ${0##*/} [--target production|development] <40-character-sha>" >&2
 			exit 64
-			;;
-	esac
-done
-
-if [[ "$#" -ne 1 ]]; then
-	echo "Usage: ${0##*/} [--target production|development] [--migration-compatibility unkown|backward-compatible] <40-character-sha>" >&2
-	exit 64
-fi
-release_sha="$1"
+		fi
+		deployment_target="$2"
+		release_sha="$3"
+		;;
+	*)
+		echo "Usage: ${0##*/} [--target production|development] <40-character-sha>" >&2
+		exit 64
+		;;
+esac
 
 if [[ ! "$release_sha" =~ ^[0-9a-f]{40}$ ]]; then
 	echo "Release SHA must be 40 lowercase characters" >&2
 	exit 64
 fi
-case "$migration_compatibility" in
-	unknown|backward-compatible)
-		;;
-	*)
-		echo "Migration compatibility must be unkown or backward-compatible" >&2
-		exit 64
-		;;
-esac
 
 case "$deployment_target" in 
 	production)
@@ -135,11 +145,10 @@ fi
 
 for compose_file in "${COMPOSE_FILES[@]}"; do 
 	if [[ ! -f "$compose_file" ]]; then
-		echo "Compose file does not exit: $compose_file" >&2
+		echo "Compose file does not exist: $compose_file" >&2
 		exit 1
 	fi
 done
-
 
 if [[ ! -f "$RUNTIME_ENV" ]]; then
 	echo "Runtime env file does not exist: $RUNTIME_ENV" >&2
@@ -147,6 +156,43 @@ if [[ ! -f "$RUNTIME_ENV" ]]; then
 fi
 
 install -d -o root -g root -m 700 "$RELEASES_DIR"
+
+phase="current-release-validation"
+current_sha=''
+previous_sha=''
+
+if [[ -f "$CURRENT_FILE" ]]; then
+	current_sha="$(<"$CURRENT_FILE")"
+	if [[ -n "$current_sha" && ! "$current_sha" =~ ^[0-9a-f]{40}$ ]]; then
+		echo "Existing (current) release marker is NOT valid" >&2
+		exit 1
+	fi
+fi
+
+if [[ -n "$current_sha" ]]; then
+	if [[ ! -f "$RELEASE_ENV" ]]; then 
+		echo "Current release $current_sha has no release env file">&2
+		exit 1
+	fi
+	if ! grep -Fxq "DEPLOYED_SHA=$current_sha" "$RELEASE_ENV"; then
+		echo "Current release env does not muatch current SHA $current_sha" >&2
+		exit 1
+	fi
+
+	previous_release_available=true
+	
+fi
+
+if [[ -n "$current_sha" && "$current_sha" != "$release_sha" ]]; then
+	previous_sha="$current_sha"
+elif [[ -f "$PREVIOUS_FILE" ]]; then
+	previous_sha="$(<"$PREVIOUS_FILE")"
+
+	if [[ -n "$previous_sha" && ! "$previous_sha" =~ ^[0-9a-f]{40}$ ]]; then 
+		echo "Existing previous release marker is not valid" >&2
+		exit 1
+	fi
+fi
 
 phase="candidate-release-file"
 temporary_file="$(mktemp "$APP_DIR/deploy/.release.next.env.XXXXXX")"
@@ -159,6 +205,26 @@ mv -f "$temporary_file" "$CANDIDATE_ENV"
 temporary_file=""
 chmod 600 "$CANDIDATE_ENV"
 chown root:root "$CANDIDATE_ENV"
+candidate_started=true
+record_history 'candidate-started'
+
+for compose_file in "${COMPOSE_FILES[@]}"; do 
+	compose_candidate+=(-f "$compose_file")
+done
+
+compose_previous=()
+if [[ "$previous_release_available" == true ]]; then 
+	compose_previous=(docker compose --env-file "$RUNTIME_ENV" --env-file "$RELEASE_ENV")
+
+	for compose_file in "${COMPOSE_FILES[@]}"; do
+		compose_previous+=(-f "$compose_file")
+	done
+
+	phase="previous-compose-validation"
+	"${compose_previous[@]}" config --quiet
+	
+	active_compose=("${compose_candidate[@]}")
+fi
 
 compose_candidate=(docker compose --env-file "$RUNTIME_ENV" --env-file "$CANDIDATE_ENV")
 for compose_file in "${COMPOSE_FILES[@]}"; do
@@ -264,26 +330,26 @@ if [[ "$deployment_target" == 'development' ]]; then
 	echo "Backend can reach mailpit"
 fi
 
-phase="release-state-validation"
-current_sha=""
-previous_sha=""
+# phase="release-state-validation"
+# current_sha=""
+# previous_sha=""
 
-if [[ -f "$CURRENT_FILE" ]]; then
-	current_sha="$(<"$CURRENT_FILE")"
-	if [[ -n "$current_sha" && ! "$current_sha" =~ ^[0-9a-f]{40}$ ]]; then
-		echo "Existing (current) release marker is NOT valid" >&2
-		exit 1
-	fi
-fi 
-if [[ -n "$current_sha" && "$current_sha" != "$release_sha" ]]; then
-	previous_sha="$current_sha"
-elif [[ -f "$PREVIOUS_FILE" ]]; then
-	previous_sha="$(<"$PREVIOUS_FILE")"
-	if [[ -n "$previous_sha" && ! "$previous_sha" =~ ^[0-9a-f]{40}$ ]]; then
-		echo "Existing (previous) release marker is NOT valid" >&2
-		exit 1
-	fi
-fi
+# if [[ -f "$CURRENT_FILE" ]]; then
+# 	current_sha="$(<"$CURRENT_FILE")"
+# 	if [[ -n "$current_sha" && ! "$current_sha" =~ ^[0-9a-f]{40}$ ]]; then
+# 		echo "Existing (current) release marker is NOT valid" >&2
+# 		exit 1
+# 	fi
+# fi 
+# if [[ -n "$current_sha" && "$current_sha" != "$release_sha" ]]; then
+# 	previous_sha="$current_sha"
+# elif [[ -f "$PREVIOUS_FILE" ]]; then
+# 	previous_sha="$(<"$PREVIOUS_FILE")"
+# 	if [[ -n "$previous_sha" && ! "$previous_sha" =~ ^[0-9a-f]{40}$ ]]; then
+# 		echo "Existing (previous) release marker is NOT valid" >&2
+# 		exit 1
+# 	fi
+# fi
 
 phase="release-promotion"
 
