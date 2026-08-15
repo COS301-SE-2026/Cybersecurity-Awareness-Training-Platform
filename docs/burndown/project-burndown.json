@@ -1528,8 +1528,8 @@
           "number": 456,
           "title": "feat: add general trainee platform campaign self-enrolment",
           "points": 3,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-08-15"
         },
         {
           "number": 455,
@@ -2122,7 +2122,7 @@
     },
     {
       "date": "2026-08-15",
-      "remaining": 44,
+      "remaining": 41,
       "ideal": 10.59
     }
   ]
