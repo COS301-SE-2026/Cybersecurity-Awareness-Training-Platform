@@ -1,9 +1,11 @@
-import { screen } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import type { CampaignDetailResponseDto } from '@insightful-phish/shared';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { renderWithRouter } from '../../testing/render';
+import { createDeferred, renderWithRouter } from '../../testing/render';
 import type { CampaignManagementClient } from './campaignManagementClient';
 import CampaignManagementDetailPage from './CampaignManagementDetailPage';
 
@@ -19,6 +21,8 @@ const NEW_ROUTE = '/organisations/:organisationId/campaigns/new';
 const DETAIL_ROUTE = '/organisations/:organisationId/campaigns/:campaignId';
 const NEW_PATH = `/organisations/${ORGANISATION_ID}/campaigns/new`;
 const DETAIL_PATH = `/organisations/${ORGANISATION_ID}/campaigns/${CAMPAIGN_ID}`;
+const SECOND_CAMPAIGN_ID = '10000000-0000-4000-8000-000000000002';
+const SECOND_DETAIL_PATH = `/organisations/${ORGANISATION_ID}/campaigns/${SECOND_CAMPAIGN_ID}`;
 
 const DRAFT_DETAIL: CampaignDetailResponseDto = {
   id: CAMPAIGN_ID,
@@ -47,6 +51,30 @@ function renderPage(path: string, routePath: string, client: DetailClient) {
       initialEntry: path,
       routePath,
     },
+  );
+}
+
+function DetailRouteHarness({ client }: { client: DetailClient }) {
+  const navigate = useNavigate();
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => {
+          navigate(SECOND_DETAIL_PATH);
+        }}
+      >
+        Load second Campaign
+      </button>
+
+      <Routes>
+        <Route
+          path={DETAIL_ROUTE}
+          element={<CampaignManagementDetailPage contextKind="organisation" client={client} />}
+        />
+      </Routes>
+    </>
   );
 }
 
@@ -109,5 +137,86 @@ describe('CampaignManagementDetailPage', () => {
     expect(screen.getByText('Status: ACTIVE')).toBeInTheDocument();
     expect(screen.getByText('This Campaign is currently read-only.')).toBeInTheDocument();
     expect(screen.queryByText('Campaign could not be loaded. Try again.')).not.toBeInTheDocument();
+  });
+
+  it('retries a failed detail request through the same client boundary', async () => {
+    const user = userEvent.setup();
+    const getCampaignDetail = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('Unavailable'))
+      .mockResolvedValueOnce(DRAFT_DETAIL);
+
+    renderPage(DETAIL_PATH, DETAIL_ROUTE, { getCampaignDetail });
+
+    expect(await screen.findByText('Campaign could not be loaded. Try again.')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Retry' }));
+
+    expect(
+      await screen.findByRole('heading', { level: 2, name: DRAFT_DETAIL.name }),
+    ).toBeInTheDocument();
+    expect(getCampaignDetail).toHaveBeenCalledTimes(2);
+  });
+
+  it('ignores an older response after the route changes', async () => {
+    const user = userEvent.setup();
+    const firstRequest = createDeferred<CampaignDetailResponseDto>();
+    const secondRequest = createDeferred<CampaignDetailResponseDto>();
+
+    const secondDetail: CampaignDetailResponseDto = {
+      ...DRAFT_DETAIL,
+      id: SECOND_CAMPAIGN_ID,
+      name: 'Second authoritative Campaign',
+    };
+
+    const getCampaignDetail = vi.fn(async (_context, campaignId: string) =>
+      campaignId === CAMPAIGN_ID ? firstRequest.promise : secondRequest.promise,
+    );
+
+    render(
+      <MemoryRouter initialEntries={[DETAIL_PATH]}>
+        <DetailRouteHarness client={{ getCampaignDetail }} />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(getCampaignDetail).toHaveBeenCalledWith(expect.anything(), CAMPAIGN_ID);
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Load second Campaign' }));
+
+    await waitFor(() => {
+      expect(getCampaignDetail).toHaveBeenCalledWith(expect.anything(), SECOND_CAMPAIGN_ID);
+    });
+
+    await act(async () => {
+      secondRequest.resolve(secondDetail);
+      await secondRequest.promise;
+    });
+
+    expect(
+      await screen.findByRole('heading', {
+        level: 2,
+        name: secondDetail.name,
+      }),
+    ).toBeInTheDocument();
+
+    await act(async () => {
+      firstRequest.resolve(DRAFT_DETAIL);
+      await firstRequest.promise;
+    });
+
+    expect(
+      screen.getByRole('heading', {
+        level: 2,
+        name: secondDetail.name,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', {
+        level: 2,
+        name: DRAFT_DETAIL.name,
+      }),
+    ).not.toBeInTheDocument();
   });
 });

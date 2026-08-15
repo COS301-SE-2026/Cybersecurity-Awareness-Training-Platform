@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import type { CampaignDetailResponseDto } from '@insightful-phish/shared';
 
@@ -13,6 +13,22 @@ type CampaignManagementDetailPageProps = Readonly<{
   contextKind: CampaignManagementContext['kind'];
   client?: Pick<CampaignManagementClient, 'getCampaignDetail'>;
 }>;
+
+type CampaignDetailLoadState =
+  | {
+      campaignId: string;
+      status: 'loaded';
+      detail: CampaignDetailResponseDto;
+    }
+  | {
+      campaignId: string;
+      status: 'error';
+      message: string;
+    }
+  | {
+      campaignId: string;
+      status: 'loading';
+    };
 
 function CampaignManagementDetailPage({
   contextKind,
@@ -39,9 +55,18 @@ function CampaignManagementDetailPage({
   }, [contextKind, organisationId]);
 
   const isNew = campaignId === undefined;
-  const [detail, setDetail] = useState<CampaignDetailResponseDto | null>(null);
-  const [isLoading, setIsLoading] = useState(!isNew);
-  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const [loadState, setLoadState] = useState<CampaignDetailLoadState | null>(null);
+  const requestIdRef = useRef(0);
+  const [retryAttempt, setRetryAttempt] = useState(0);
+
+  const currentLoadState = campaignId && loadState?.campaignId === campaignId ? loadState : null;
+
+  const detail = currentLoadState?.status === 'loaded' ? currentLoadState.detail : null;
+
+  const isLoading = !isNew && (!currentLoadState || currentLoadState.status === 'loading');
+
+  const loadError = currentLoadState?.status === 'error' ? currentLoadState.message : null;
 
   const canEditDraft = detail?.status === 'DRAFT' && detail.allowedActions.includes('EDIT');
 
@@ -54,24 +79,37 @@ function CampaignManagementDetailPage({
         : 'Campaign';
 
   useEffect(() => {
-    if (!context || !campaignId) {
+    if (!campaignId || !context) {
       return;
     }
+
+    const requestId = ++requestIdRef.current;
 
     void client
       .getCampaignDetail(context, campaignId)
       .then((response) => {
-        setDetail(response);
-        setLoadError(null);
+        if (requestIdRef.current === requestId) {
+          setLoadState({
+            campaignId,
+            status: 'loaded',
+            detail: response,
+          });
+        }
       })
       .catch(() => {
-        setDetail(null);
-        setLoadError('Campaign could not be loaded. Try again.');
-      })
-      .finally(() => {
-        setIsLoading(false);
+        if (requestIdRef.current === requestId) {
+          setLoadState({
+            campaignId,
+            status: 'error',
+            message: 'Campaign could not be loaded. Try again.',
+          });
+        }
       });
-  }, [campaignId, client, context]);
+
+    return () => {
+      requestIdRef.current += 1;
+    };
+  }, [campaignId, client, context, retryAttempt]);
 
   if (!context) {
     return <Navigate to="/" replace />;
@@ -117,6 +155,22 @@ function CampaignManagementDetailPage({
         {!isNew && !isLoading && loadError && (
           <section className="campaign-error" role="alert">
             <p>{loadError}</p>
+            <button
+              type="button"
+              onClick={() => {
+                if (!campaignId) {
+                  return;
+                }
+
+                setLoadState({
+                  campaignId,
+                  status: 'loading',
+                });
+                setRetryAttempt((current) => current + 1);
+              }}
+            >
+              Retry
+            </button>
           </section>
         )}
 
