@@ -175,7 +175,7 @@ if [[ -n "$current_sha" ]]; then
 		exit 1
 	fi
 	if ! grep -Fxq "DEPLOYED_SHA=$current_sha" "$RELEASE_ENV"; then
-		echo "Current release env does not muatch current SHA $current_sha" >&2
+		echo "Current release env does not match current SHA $current_sha" >&2
 		exit 1
 	fi
 
@@ -208,10 +208,10 @@ chown root:root "$CANDIDATE_ENV"
 candidate_started=true
 record_history 'candidate-started'
 
-for compose_file in "${COMPOSE_FILES[@]}"; do 
+compose_candidate=(docker compose --env-file "$RUNTIME_ENV" --env-file "$CANDIDATE_ENV")
+for compose_file in "${COMPOSE_FILES[@]}"; do
 	compose_candidate+=(-f "$compose_file")
 done
-
 compose_previous=()
 if [[ "$previous_release_available" == true ]]; then 
 	compose_previous=(docker compose --env-file "$RUNTIME_ENV" --env-file "$RELEASE_ENV")
@@ -223,8 +223,9 @@ if [[ "$previous_release_available" == true ]]; then
 	phase="previous-compose-validation"
 	"${compose_previous[@]}" config --quiet
 	
-	active_compose=("${compose_candidate[@]}")
 fi
+
+active_compose=("${compose_candidate[@]}")
 
 compose_candidate=(docker compose --env-file "$RUNTIME_ENV" --env-file "$CANDIDATE_ENV")
 for compose_file in "${COMPOSE_FILES[@]}"; do
@@ -242,23 +243,22 @@ phase="image-pull"
 phase="migration"
 "${compose_candidate[@]}" --profile migration run --rm backend-migrate
 
-phase="application-recreation"
-
-"${compose_candidate[@]}" up -d --no-build --remove-orphans "${application_services[@]}"
-
 service_is_healthy() {
 	local service_name="$1"
 	local container_id
 	local health_status
 
-	container_id="$("${compose_candidate[@]}" ps -q "$service_name")"
+	container_id="$("${active_compose[@]}" ps -q "$service_name")"
 	if [[ -z "$container_id" ]]; then
 		return 1
 	fi
 
 	health_status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$container_id" 2>/dev/null)"
 
-	[[ "$health_status" == "healthy" ]]
+	if [[ "$health_status" == "healthy" ]]; then 
+		return 0
+	fi 
+	return 1
 }
 
 wait_for_service_health() {
@@ -275,14 +275,9 @@ wait_for_service_health() {
 		fi
 	done 
 	echo "$service_name did not become healthy within the allowed time!">&2
-	"${compose_candidate[@]}" ps >&2
+	"${active_compose[@]}" ps >&2
 	return 1
 }
-
-phase="health-checks"
-"${compose_candidate[@]}" ps
-wait_for_service_health backend
-wait_for_service_health frontend
 
 wait_for_http(){
 	local service_name="$1"
@@ -302,6 +297,79 @@ wait_for_http(){
 	echo "$service_name did NOT pass the HTTP smoke test: $url" >&2
 	return 1
 }
+
+report_running_images(){
+	local service_name
+	local container_id
+	local running_image 
+
+	for service_name in backend frontend; do 
+		if ! container_id="$("${active_compose[@]}" ps -q "$service_name" 2>/dev/null)"; then 
+			echo "Running $service_name image: unavailable"
+			continue
+		fi
+		if [[ -z "$container_id" ]]; then 
+			echo "Running $service_name image: unavailable"
+			continue
+		fi
+		if ! running_image="$(docker inspect --format '{{.Config.Image}}' "$container_id" 2>/dev/null)"; then
+			echo "Running $service_name image: unavailable"
+			continue
+		fi
+
+		echo "Running $service_name image: $running_image"
+	done
+
+}
+
+restore_previous_application(){
+	phase="application-restoration"
+	active_compose=("${compose_previous[@]}")
+	record_history 'restoration-started'
+
+	if ! "${active_compose[@]}" up -d --no-build --remove-orphans backend frontend; then 
+		record_history 'restoration-failed'
+		return 1
+	fi 
+
+	phase="restoration-health-checks"
+	if ! wait_for_service_health backend; then 
+		record_history 'restoration-failed'
+		return 1
+	fi
+
+	phase="restoration-health-checks"
+	if ! wait_for_service_health frontend; then 
+		record_history 'restoration-failed'
+		return 1
+	fi
+
+	if ! wait_for_http backend "$BACKEND_HEALTH_URL"; then
+		record_history 'restoration-failed'
+		return 1
+	fi
+
+	if ! wait_for_http frontend "$FRONTEND_HEALTH_URL"; then
+		record_history 'restoration-failed'
+		return 1
+	fi
+
+	record_history 'restoration-succeeded'
+	echo "Previous application release restored successfully"
+	echo "Restored SHA: $current_sha"
+	report_running_images
+	return 0
+}
+
+phase="application-recreation"
+recovery_needed=true 
+active_compose=("${compose_candidate[@]}")
+"${compose_candidate[@]}" up -d --no-build --remove-orphans "${application_services[@]}"
+
+phase="health-checks"
+"${compose_candidate[@]}" ps
+wait_for_service_health backend
+wait_for_service_health frontend
 
 phase="smoke-tests"
 wait_for_http backend "$BACKEND_HEALTH_URL"
@@ -330,26 +398,8 @@ if [[ "$deployment_target" == 'development' ]]; then
 	echo "Backend can reach mailpit"
 fi
 
-# phase="release-state-validation"
-# current_sha=""
-# previous_sha=""
+recovery_needed=false
 
-# if [[ -f "$CURRENT_FILE" ]]; then
-# 	current_sha="$(<"$CURRENT_FILE")"
-# 	if [[ -n "$current_sha" && ! "$current_sha" =~ ^[0-9a-f]{40}$ ]]; then
-# 		echo "Existing (current) release marker is NOT valid" >&2
-# 		exit 1
-# 	fi
-# fi 
-# if [[ -n "$current_sha" && "$current_sha" != "$release_sha" ]]; then
-# 	previous_sha="$current_sha"
-# elif [[ -f "$PREVIOUS_FILE" ]]; then
-# 	previous_sha="$(<"$PREVIOUS_FILE")"
-# 	if [[ -n "$previous_sha" && ! "$previous_sha" =~ ^[0-9a-f]{40}$ ]]; then
-# 		echo "Existing (previous) release marker is NOT valid" >&2
-# 		exit 1
-# 	fi
-# fi
 
 phase="release-promotion"
 
@@ -371,14 +421,15 @@ chown root:root "$temporary_file"
 mv -f "$temporary_file" "$CURRENT_FILE"
 temporary_file=""
 
-deployment_timestamp="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
-printf '%s %s success previous=%s target=%s\n' "$deployment_timestamp" "$release_sha" "${previous_sha:-none}" "$deployment_target" >> "$HISTORY_FILE"
+record_history 'candidate-promoted'
+candidate_started=false
 
 chmod 600 "$CURRENT_FILE" "$PREVIOUS_FILE" "$HISTORY_FILE"
 chown root:root "$CURRENT_FILE" "$PREVIOUS_FILE" "$HISTORY_FILE"
 
 phase="complete"
-
+active_compose=("${compose_candidate[@]}")
+report_running_images
 echo "Deployment completed successfully"
 echo "Deployment target: $deployment_target"
 echo "Deployed SHA: $release_sha"
