@@ -347,6 +347,12 @@ write_release_marker(){
 		temporary_file=''
 		return 1
 	fi
+	if ! printd '%s\n' "$marker_value" > "$temporary_file"; then
+		echo "Could not write temp $marker_name release marker" >&2
+		rm -f "$temporary_file"
+		temporary_file=''
+		return 1
+	fi
 	if ! chmod 600 "$temporary_file"; then
 		echo "Could not protect temp $marker_name release marker" >&2
 		rm -f "$temporary_file"
