@@ -2008,6 +2008,8 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             'INVITE_ORGANISATION_TRAINEES',
             'REMOVE_ORGANISATION_TRAINEES',
             'ASSIGN_CAMPAIGNS',
+            'VIEW_CAMPAIGNS',
+            'MANAGE_CAMPAIGNS',
           ],
           'VIEW_ORGANISATION_ADMINS',
         ),
@@ -2851,9 +2853,404 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             },
           },
         },
+        CampaignAllowedAction: enumString(
+          ['VIEW', 'EDIT', 'ACTIVATE', 'ARCHIVE', 'REACTIVATE', 'ASSIGN'],
+          'VIEW',
+        ),
+        CampaignEligibilityReason: enumString(
+          ['AVAILABLE', 'NOT_STARTED', 'EXPIRED', 'CAMPAIGN_INACTIVE', 'COMPLETED'],
+          'AVAILABLE',
+        ),
+        CampaignEligibility: {
+          type: 'object',
+          required: ['canView', 'canProgress', 'reason'],
+          properties: {
+            canView: booleanProperty(true),
+            canProgress: booleanProperty(true),
+            reason: schemaRef('CampaignEligibilityReason'),
+          },
+        },
+        CampaignMutationPrecondition: {
+          type: 'object',
+          required: ['expectedUpdatedAt'],
+          properties: {
+            expectedUpdatedAt: dateTimeString('2026-05-16T09:00:00.000Z'),
+          },
+        },
+        CampaignLifecycleActionResponse: {
+          type: 'object',
+          required: ['success', 'campaignId', 'status', 'updatedAt', 'allowedActions'],
+          properties: {
+            success: trueSuccessProperty(),
+            campaignId: uuidString('44444444-4444-4444-8444-444444444444'),
+            status: schemaRef('CampaignStatus'),
+            updatedAt: dateTimeString('2026-05-16T09:00:00.000Z'),
+            allowedActions: {
+              ...arrayOf(schemaRef('CampaignAllowedAction')),
+            },
+          },
+        },
+        CampaignDetailComponentItem: {
+          type: 'object',
+          required: [
+            'campaignItemId',
+            'itemType',
+            'componentType',
+            'contentId',
+            'title',
+            'position',
+            'isRequired',
+            'sourceAvailable',
+          ],
+          properties: {
+            campaignItemId: uuidString('88888888-8888-4888-8888-888888888888'),
+            itemType: {
+              type: 'string',
+              enum: ['COMPONENT'],
+              example: 'COMPONENT',
+            },
+            componentType: schemaRef('CampaignComponentType'),
+            contentId: uuidString('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
+            title: {
+              type: 'string',
+              example: 'Phishing Awareness Video',
+            },
+            description: nullableString('Core training content'),
+            position: {
+              type: 'integer',
+              example: 10,
+            },
+            isRequired: booleanProperty(true),
+            sourceAvailable: booleanProperty(true),
+          },
+        },
+        CampaignDetailGroupItem: {
+          type: 'object',
+          required: [
+            'campaignItemId',
+            'itemType',
+            'groupType',
+            'completionRule',
+            'title',
+            'position',
+            'isRequired',
+            'children',
+          ],
+          properties: {
+            campaignItemId: uuidString('66666666-6666-4666-8666-666666666666'),
+            itemType: {
+              type: 'string',
+              enum: ['GROUP'],
+              example: 'GROUP',
+            },
+            title: {
+              type: 'string',
+              example: 'Module 1: Phishing Basics',
+            },
+            description: nullableString('Core concepts and quiz'),
+            groupType: schemaRef('CampaignGroupType'),
+            completionRule: schemaRef('CampaignCompletionRule'),
+            position: {
+              type: 'integer',
+              example: 10,
+            },
+            isRequired: booleanProperty(true),
+            children: {
+              type: 'array',
+              minItems: 2,
+              items: schemaRef('CampaignDetailComponentItem'),
+            },
+          },
+        },
+        CampaignDetailItem: {
+          oneOf: [schemaRef('CampaignDetailComponentItem'), schemaRef('CampaignDetailGroupItem')],
+        },
+        CampaignDetailResponse: {
+          type: 'object',
+          required: [
+            'id',
+            'name',
+            'campaignType',
+            'status',
+            'createdAt',
+            'updatedAt',
+            'allowedActions',
+            'items',
+          ],
+          properties: {
+            id: uuidString('44444444-4444-4444-8444-444444444444'),
+            organisationId: nullableUuidString('11111111-1111-4111-8111-111111111111'),
+            name: {
+              type: 'string',
+              example: 'Phishing Defense 2026',
+            },
+            description: nullableString('Comprehensive phishing simulation and quiz'),
+            accentColor: nullableString('#00FFA6'),
+            campaignType: schemaRef('CampaignType'),
+            status: schemaRef('CampaignStatus'),
+            startDate: {
+              ...dateTimeString('2026-05-16T08:00:00.000Z'),
+              nullable: true,
+            },
+            endDate: {
+              ...dateTimeString('2026-06-16T08:00:00.000Z'),
+              nullable: true,
+            },
+            createdBy: {
+              type: 'object',
+              nullable: true,
+              properties: {
+                id: uuidString('33333333-3333-4333-8333-333333333333'),
+                displayName: {
+                  type: 'string',
+                  example: 'Alex Security',
+                },
+              },
+            },
+            createdAt: dateTimeString('2026-05-16T08:00:00.000Z'),
+            updatedAt: dateTimeString('2026-05-16T09:00:00.000Z'),
+            allowedActions: {
+              ...arrayOf(schemaRef('CampaignAllowedAction')),
+            },
+            items: {
+              ...arrayOf(schemaRef('CampaignDetailItem')),
+            },
+          },
+        },
+        CampaignListRow: {
+          type: 'object',
+          required: [
+            'id',
+            'name',
+            'campaignType',
+            'status',
+            'itemCount',
+            'createdAt',
+            'updatedAt',
+            'allowedActions',
+          ],
+          properties: {
+            id: uuidString('44444444-4444-4444-8444-444444444444'),
+            name: {
+              type: 'string',
+              example: 'Phishing Defense 2026',
+            },
+            description: nullableString('Comprehensive phishing simulation and quiz'),
+            accentColor: nullableString('#00FFA6'),
+            campaignType: schemaRef('CampaignType'),
+            status: schemaRef('CampaignStatus'),
+            itemCount: {
+              type: 'integer',
+              minimum: 0,
+              example: 3,
+            },
+            startDate: {
+              ...dateTimeString('2026-05-16T08:00:00.000Z'),
+              nullable: true,
+            },
+            endDate: {
+              ...dateTimeString('2026-06-16T08:00:00.000Z'),
+              nullable: true,
+            },
+            createdBy: {
+              type: 'object',
+              nullable: true,
+              properties: {
+                id: uuidString('33333333-3333-4333-8333-333333333333'),
+                displayName: {
+                  type: 'string',
+                  example: 'Alex Security',
+                },
+                email: {
+                  type: 'string',
+                  format: 'email',
+                  example: 'alex@example.com',
+                },
+              },
+            },
+            createdAt: dateTimeString('2026-05-16T08:00:00.000Z'),
+            updatedAt: dateTimeString('2026-05-16T09:00:00.000Z'),
+            allowedActions: {
+              ...arrayOf(schemaRef('CampaignAllowedAction')),
+            },
+          },
+        },
+        GetCampaignsResponse: {
+          type: 'object',
+          required: ['items', 'pagination'],
+          properties: {
+            items: {
+              ...arrayOf(schemaRef('CampaignListRow')),
+            },
+            pagination: schemaRef('PaginationMetadata'),
+          },
+        },
+        CampaignCatalogueItem: {
+          type: 'object',
+          required: ['id', 'type', 'title', 'difficultyLevel', 'status'],
+          properties: {
+            id: uuidString('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
+            type: schemaRef('CampaignComponentType'),
+            title: {
+              type: 'string',
+              example: 'Phishing Indicators',
+            },
+            description: nullableString('Common indicators in corporate emails'),
+            contentType: nullableString('MARKDOWN'),
+            estimatedReadTimeMinutes: nullableIntegerRange({
+              minimum: 1,
+              maximum: 120,
+              example: 8,
+            }),
+            passThresholdPercentage: nullableIntegerRange({
+              minimum: 0,
+              maximum: 100,
+              example: 80,
+            }),
+            questionCount: {
+              type: 'integer',
+              nullable: true,
+              example: 5,
+            },
+            emailCount: {
+              type: 'integer',
+              nullable: true,
+              example: 3,
+            },
+            difficultyLevel: schemaRef('DifficultyLevel'),
+            status: {
+              type: 'string',
+              example: 'AVAILABLE',
+            },
+          },
+        },
+        GetCampaignCatalogueResponse: {
+          type: 'object',
+          required: ['items', 'pagination'],
+          properties: {
+            items: {
+              ...arrayOf(schemaRef('CampaignCatalogueItem')),
+            },
+            pagination: schemaRef('PaginationMetadata'),
+          },
+        },
+        CreateCampaignDraftComponentItemInput: {
+          type: 'object',
+          required: ['componentType', 'contentId'],
+          properties: {
+            itemType: {
+              type: 'string',
+              enum: ['COMPONENT'],
+              example: 'COMPONENT',
+            },
+            campaignItemId: nullableUuidString('88888888-8888-4888-8888-888888888888'),
+            componentType: schemaRef('CampaignComponentType'),
+            contentId: uuidString('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
+            isRequired: booleanProperty(true),
+          },
+        },
+        CreateCampaignDraftGroupItemInput: {
+          type: 'object',
+          required: ['itemType', 'title', 'groupType', 'completionRule', 'children'],
+          properties: {
+            itemType: {
+              type: 'string',
+              enum: ['GROUP'],
+              example: 'GROUP',
+            },
+            campaignItemId: nullableUuidString('66666666-6666-4666-8666-666666666666'),
+            title: {
+              type: 'string',
+              example: 'Module 1: Phishing Basics',
+            },
+            description: nullableString('Core training concepts'),
+            groupType: schemaRef('CampaignGroupType'),
+            completionRule: schemaRef('CampaignCompletionRule'),
+            isRequired: booleanProperty(true),
+            children: {
+              type: 'array',
+              minItems: 2,
+              items: schemaRef('CreateCampaignDraftComponentItemInput'),
+            },
+          },
+        },
+        CreateCampaignDraftItemInput: {
+          oneOf: [
+            schemaRef('CreateCampaignDraftComponentItemInput'),
+            schemaRef('CreateCampaignDraftGroupItemInput'),
+          ],
+        },
+        CreateCampaignDraftRequest: {
+          type: 'object',
+          required: ['name', 'accentColor', 'items'],
+          properties: {
+            name: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 120,
+              example: 'Phishing Defense 2026',
+            },
+            description: nullableString('Comprehensive awareness campaign'),
+            accentColor: {
+              type: 'string',
+              pattern: '^#[0-9A-Fa-f]{6}$',
+              example: '#00FFA6',
+            },
+            startDate: {
+              ...dateTimeString('2026-05-16T08:00:00.000Z'),
+              nullable: true,
+            },
+            endDate: {
+              ...dateTimeString('2026-06-16T08:00:00.000Z'),
+              nullable: true,
+            },
+            items: {
+              type: 'array',
+              items: schemaRef('CreateCampaignDraftItemInput'),
+            },
+          },
+        },
+        UpdateCampaignDraftRequest: {
+          type: 'object',
+          required: ['expectedUpdatedAt', 'name', 'accentColor', 'items'],
+          properties: {
+            expectedUpdatedAt: dateTimeString('2026-05-16T09:00:00.000Z'),
+            name: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 120,
+              example: 'Phishing Defense 2026',
+            },
+            description: nullableString('Comprehensive awareness campaign'),
+            accentColor: {
+              type: 'string',
+              pattern: '^#[0-9A-Fa-f]{6}$',
+              example: '#00FFA6',
+            },
+            startDate: {
+              ...dateTimeString('2026-05-16T08:00:00.000Z'),
+              nullable: true,
+            },
+            endDate: {
+              ...dateTimeString('2026-06-16T08:00:00.000Z'),
+              nullable: true,
+            },
+            items: {
+              type: 'array',
+              items: schemaRef('CreateCampaignDraftItemInput'),
+            },
+          },
+        },
         TraineeCampaignSummary: {
           type: 'object',
-          required: ['campaignId', 'name', 'campaignType', 'difficultyLevel', 'status'],
+          required: [
+            'campaignId',
+            'name',
+            'campaignType',
+            'difficultyLevel',
+            'status',
+            'eligibility',
+          ],
           properties: {
             campaignId: {
               ...uuidString('44444444-4444-4444-8444-444444444444'),
@@ -2908,6 +3305,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
               minimum: 0,
               example: 3,
             },
+            eligibility: schemaRef('CampaignEligibility'),
           },
         },
         CampaignTrainingDocumentSummary: {
@@ -3009,6 +3407,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             'availabilityStatus',
             'isOpenable',
             'activityApiPath',
+            'eligibility',
           ],
           properties: {
             campaignItemId: {
@@ -3071,6 +3470,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
               nullable: true,
               allOf: [schemaRef('TraineeCampaignProgressStatus')],
             },
+            eligibility: schemaRef('CampaignEligibility'),
             trainingDocument: {
               nullable: true,
               allOf: [schemaRef('CampaignTrainingDocumentSummary')],
@@ -3098,6 +3498,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             'isRequired',
             'availabilityStatus',
             'isOpenable',
+            'eligibility',
             'children',
           ],
           properties: {
@@ -3158,6 +3559,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
               nullable: true,
               allOf: [schemaRef('TraineeCampaignProgressStatus')],
             },
+            eligibility: schemaRef('CampaignEligibility'),
             children: {
               ...arrayOf(schemaRef('TraineeCampaignItemSummary')),
             },

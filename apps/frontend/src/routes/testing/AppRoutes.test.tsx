@@ -159,6 +159,11 @@ describe('AppRoutes', () => {
           difficultyLevel: 'BEGINNER',
           status: 'ACTIVE',
           progressStatus: 'IN_PROGRESS',
+          eligibility: {
+            canView: true,
+            canProgress: true,
+            reason: 'AVAILABLE',
+          },
         },
       ],
     });
@@ -170,6 +175,11 @@ describe('AppRoutes', () => {
       difficultyLevel: 'BEGINNER',
       status: 'ACTIVE',
       progressStatus: 'IN_PROGRESS',
+      eligibility: {
+        canView: true,
+        canProgress: true,
+        reason: 'AVAILABLE',
+      },
       items: [],
     });
   });
@@ -314,6 +324,11 @@ describe('AppRoutes', () => {
       difficultyLevel: 'BEGINNER',
       status: 'ACTIVE',
       progressStatus: 'IN_PROGRESS',
+      eligibility: {
+        canView: true,
+        canProgress: true,
+        reason: 'AVAILABLE',
+      },
       items: [
         {
           campaignItemId: TRAINING_CAMPAIGN_ITEM_ID,
@@ -327,6 +342,11 @@ describe('AppRoutes', () => {
           progressStatus: 'NOT_STARTED',
           componentType: 'TRAINING_DOCUMENT',
           activityApiPath: backendTrainingApiPath,
+          eligibility: {
+            canView: true,
+            canProgress: true,
+            reason: 'AVAILABLE',
+          },
           trainingDocument: {
             id: '44444444-4444-4444-8444-444444444441',
             title: 'Phishing warning signs',

@@ -86,6 +86,11 @@ describe('CampaignsPage', () => {
           difficultyLevel: 'BEGINNER',
           status: 'ACTIVE',
           progressStatus: 'IN_PROGRESS',
+          eligibility: {
+            canView: true,
+            canProgress: true,
+            reason: 'AVAILABLE',
+          },
         },
       ],
     });
@@ -97,6 +102,11 @@ describe('CampaignsPage', () => {
       difficultyLevel: 'BEGINNER',
       status: 'ACTIVE',
       progressStatus: 'IN_PROGRESS',
+      eligibility: {
+        canView: true,
+        canProgress: true,
+        reason: 'AVAILABLE',
+      },
       items: [
         {
           campaignItemId: '33333333-3333-4333-8333-333333333333',
@@ -111,6 +121,11 @@ describe('CampaignsPage', () => {
           componentType: 'TRAINING_DOCUMENT',
           activityApiPath:
             '/trainee/campaign-items/33333333-3333-4333-8333-333333333333/training-document',
+          eligibility: {
+            canView: true,
+            canProgress: true,
+            reason: 'AVAILABLE',
+          },
           trainingDocument: {
             id: '44444444-4444-4444-8444-444444444441',
             title: 'Phishing warning signs',
@@ -132,6 +147,11 @@ describe('CampaignsPage', () => {
           progressStatus: 'NOT_STARTED',
           componentType: 'QUIZ',
           activityApiPath: '/trainee/campaign-items/33333333-3333-4333-8333-333333333334/quiz',
+          eligibility: {
+            canView: true,
+            canProgress: true,
+            reason: 'AVAILABLE',
+          },
           quiz: {
             id: '55555555-5555-4555-8555-555555555551',
             title: 'Phishing basics quiz',
@@ -153,6 +173,11 @@ describe('CampaignsPage', () => {
           componentType: 'SIMULATED_INBOX',
           activityApiPath:
             '/trainee/campaign-items/33333333-3333-4333-8333-333333333335/simulated-inbox',
+          eligibility: {
+            canView: true,
+            canProgress: true,
+            reason: 'AVAILABLE',
+          },
           simulation: {
             id: '66666666-6666-4666-8666-666666666661',
             title: 'Inbox simulation',
@@ -184,6 +209,11 @@ describe('CampaignsPage', () => {
           difficultyLevel: 'BEGINNER',
           status: 'ACTIVE',
           progressStatus: 'IN_PROGRESS',
+          eligibility: {
+            canView: true,
+            canProgress: true,
+            reason: 'AVAILABLE',
+          },
         },
       ],
     });

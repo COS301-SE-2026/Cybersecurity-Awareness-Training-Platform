@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import { simulationService } from '../services/simulation.service.js';
+import { CampaignEligibilityDenialError } from '../services/campaign-eligibility.service.js';
 
 function getSimulationErrorStatus(msg: string): number {
   switch (msg) {
@@ -8,6 +9,9 @@ function getSimulationErrorStatus(msg: string): number {
     case 'FORBIDDEN':
       return 403;
     case 'ALREADY_CLASSIFIED':
+    case 'CAMPAIGN_NOT_STARTED':
+    case 'CAMPAIGN_EXPIRED':
+    case 'CAMPAIGN_ARCHIVED':
       return 409;
     case 'VALIDATION_ERROR':
       return 400;
@@ -32,6 +36,13 @@ export class SimulationController {
       const response = await handler(traineeProfile.id);
       return res.json(response);
     } catch (error: unknown) {
+      if (error instanceof CampaignEligibilityDenialError) {
+        return res.status(409).json({
+          error: error.errorCode,
+          message: error.message,
+        });
+      }
+
       const msg = error instanceof Error ? error.message : 'INTERNAL_SERVER_ERROR';
       const status = getSimulationErrorStatus(msg);
       return res.status(status).json({ error: msg });
