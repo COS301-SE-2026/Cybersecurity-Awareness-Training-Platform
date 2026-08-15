@@ -1264,76 +1264,57 @@ export async function enrolGeneralTraineeInPlatformCampaign(
       };
     }
 
-    // 4. Create new SELF_SELECTED assignment (with concurrency handling)
-    try {
-      const newAssignment = await tx.campaignAssignment.create({
-        data: {
-          id: randomUUID(),
+    // 4. Create new SELF_SELECTED assignment (with atomic ON CONFLICT DO NOTHING concurrency handling)
+    const newAssignmentId = randomUUID();
+    await tx.campaignAssignment.createMany({
+      data: [
+        {
+          id: newAssignmentId,
           campaignId: input.campaignId,
           traineeProfileId: input.traineeProfileId,
           assignedByUserId: null,
           accessType: 'SELF_SELECTED',
           assignmentStatus: 'ASSIGNED',
         },
-        select: {
-          id: true,
-          campaignId: true,
-          traineeProfileId: true,
-          assignmentStatus: true,
-          accessType: true,
-          currentCampaignItemId: true,
-          assignedAt: true,
-          dueDate: true,
-          startedAt: true,
-          completedAt: true,
+      ],
+      skipDuplicates: true,
+    });
+
+    const persistedAssignment = await tx.campaignAssignment.findUnique({
+      where: {
+        campaignId_traineeProfileId: {
+          campaignId: input.campaignId,
+          traineeProfileId: input.traineeProfileId,
         },
-      });
+      },
+      select: {
+        id: true,
+        campaignId: true,
+        traineeProfileId: true,
+        assignmentStatus: true,
+        accessType: true,
+        currentCampaignItemId: true,
+        assignedAt: true,
+        dueDate: true,
+        startedAt: true,
+        completedAt: true,
+      },
+    });
 
+    if (!persistedAssignment) {
       return {
-        success: true,
-        isNew: true,
-        assignment: newAssignment,
-        campaign,
+        success: false,
+        error: 'CAMPAIGN_NOT_FOUND',
+        message: 'Could not create or find assignment',
       };
-    } catch (err: unknown) {
-      if (
-        typeof err === 'object' &&
-        err !== null &&
-        'code' in err &&
-        (err as { code: string }).code === 'P2002'
-      ) {
-        const fallbackAssignment = await tx.campaignAssignment.findUnique({
-          where: {
-            campaignId_traineeProfileId: {
-              campaignId: input.campaignId,
-              traineeProfileId: input.traineeProfileId,
-            },
-          },
-          select: {
-            id: true,
-            campaignId: true,
-            traineeProfileId: true,
-            assignmentStatus: true,
-            accessType: true,
-            currentCampaignItemId: true,
-            assignedAt: true,
-            dueDate: true,
-            startedAt: true,
-            completedAt: true,
-          },
-        });
-
-        if (fallbackAssignment) {
-          return {
-            success: true,
-            isNew: false,
-            assignment: fallbackAssignment,
-            campaign,
-          };
-        }
-      }
-      throw err;
     }
+
+    return {
+      success: true,
+      isNew: persistedAssignment.id === newAssignmentId,
+      assignment: persistedAssignment,
+      campaign,
+    };
   };
 
   if ('$transaction' in client && typeof client.$transaction === 'function') {

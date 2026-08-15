@@ -29,6 +29,7 @@ const prismaMock = vi.hoisted(() => {
       findFirst: vi.fn(),
       findUnique: vi.fn(),
       create: vi.fn(),
+      createMany: vi.fn(),
     },
     interactionEvent: {
       findMany: vi.fn(),
@@ -915,18 +916,24 @@ describe('General trainee platform campaign self-enrolment (POST /trainee/platfo
 
     prismaMock.campaign.findFirst.mockResolvedValue(activePlatformCampaign);
     prismaMock.campaignAssignment.findUnique.mockResolvedValue(null);
-    prismaMock.campaignAssignment.create.mockResolvedValue({
-      id: assignmentId,
-      campaignId: platformCampaignId,
-      traineeProfileId,
-      assignmentStatus: 'ASSIGNED',
-      accessType: 'SELF_SELECTED',
-      currentCampaignItemId: null,
-      assignedAt: new Date('2026-05-16T08:00:00.000Z'),
-      dueDate: null,
-      startedAt: null,
-      completedAt: null,
-    });
+    prismaMock.campaignAssignment.createMany.mockImplementation(
+      (args: { data: Array<{ id: string }> }) => {
+        const insertedId = args.data?.[0]?.id ?? assignmentId;
+        prismaMock.campaignAssignment.findUnique.mockResolvedValue({
+          id: insertedId,
+          campaignId: platformCampaignId,
+          traineeProfileId,
+          assignmentStatus: 'ASSIGNED',
+          accessType: 'SELF_SELECTED',
+          currentCampaignItemId: null,
+          assignedAt: new Date('2026-05-16T08:00:00.000Z'),
+          dueDate: null,
+          startedAt: null,
+          completedAt: null,
+        });
+        return Promise.resolve({ count: 1 });
+      },
+    );
   });
 
   it('successfully enrols active general trainee with SELF_SELECTED access type', async () => {
@@ -935,15 +942,18 @@ describe('General trainee platform campaign self-enrolment (POST /trainee/platfo
       .set('Authorization', authHeader());
 
     expect(response.status).toBe(200);
-    expect(prismaMock.campaignAssignment.create).toHaveBeenCalledWith(
+    expect(prismaMock.campaignAssignment.createMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({
-          campaignId: platformCampaignId,
-          traineeProfileId,
-          assignedByUserId: null,
-          accessType: 'SELF_SELECTED',
-          assignmentStatus: 'ASSIGNED',
-        }),
+        data: expect.arrayContaining([
+          expect.objectContaining({
+            campaignId: platformCampaignId,
+            traineeProfileId,
+            assignedByUserId: null,
+            accessType: 'SELF_SELECTED',
+            assignmentStatus: 'ASSIGNED',
+          }),
+        ]),
+        skipDuplicates: true,
       }),
     );
     expect(response.body).toMatchObject({
@@ -953,7 +963,7 @@ describe('General trainee platform campaign self-enrolment (POST /trainee/platfo
       status: 'ACTIVE',
       accessType: 'SELF_SELECTED',
       assignment: {
-        assignmentId,
+        assignmentId: expect.any(String),
         accessType: 'SELF_SELECTED',
         assignmentStatus: 'ASSIGNED',
       },
@@ -986,7 +996,7 @@ describe('General trainee platform campaign self-enrolment (POST /trainee/platfo
       .set('Authorization', authHeader());
 
     expect(response.status).toBe(200);
-    expect(prismaMock.campaignAssignment.create).not.toHaveBeenCalled();
+    expect(prismaMock.campaignAssignment.createMany).not.toHaveBeenCalled();
     expect(response.body).toMatchObject({
       campaignId: platformCampaignId,
       accessType: 'SELF_SELECTED',
@@ -1017,7 +1027,7 @@ describe('General trainee platform campaign self-enrolment (POST /trainee/platfo
       .set('Authorization', authHeader());
 
     expect(response.status).toBe(200);
-    expect(prismaMock.campaignAssignment.create).not.toHaveBeenCalled();
+    expect(prismaMock.campaignAssignment.createMany).not.toHaveBeenCalled();
     expect(response.body).toMatchObject({
       campaignId: platformCampaignId,
       accessType: 'ASSIGNED',

@@ -399,18 +399,26 @@ describe('CampaignAssignmentRepository', () => {
         (prisma.campaignAssignment.findUnique as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
           null,
         );
-        (prisma.campaignAssignment.create as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-          id: 'new-assignment-id',
-          campaignId,
-          traineeProfileId,
-          assignmentStatus: 'ASSIGNED',
-          accessType: 'SELF_SELECTED',
-          currentCampaignItemId: null,
-          assignedAt: new Date(),
-          dueDate: null,
-          startedAt: null,
-          completedAt: null,
-        });
+        (prisma.campaignAssignment.createMany as ReturnType<typeof vi.fn>).mockImplementationOnce(
+          (args) => {
+            const insertedId = args.data[0].id;
+            (
+              prisma.campaignAssignment.findUnique as ReturnType<typeof vi.fn>
+            ).mockResolvedValueOnce({
+              id: insertedId,
+              campaignId,
+              traineeProfileId,
+              assignmentStatus: 'ASSIGNED',
+              accessType: 'SELF_SELECTED',
+              currentCampaignItemId: null,
+              assignedAt: new Date(),
+              dueDate: null,
+              startedAt: null,
+              completedAt: null,
+            });
+            return Promise.resolve({ count: 1 });
+          },
+        );
 
         const result = await enrolGeneralTraineeInPlatformCampaign({
           userId: 'user-123',
@@ -473,7 +481,7 @@ describe('CampaignAssignmentRepository', () => {
           expect(result.isNew).toBe(false);
           expect(result.assignment.assignmentStatus).toBe('IN_PROGRESS');
         }
-        expect(prisma.campaignAssignment.create).not.toHaveBeenCalled();
+        expect(prisma.campaignAssignment.createMany).not.toHaveBeenCalled();
       });
 
       it('returns TRAINEE_NOT_ELIGIBLE if trainee is not an active general trainee', async () => {
@@ -563,7 +571,7 @@ describe('CampaignAssignmentRepository', () => {
         }
       });
 
-      it('handles P2002 race condition on concurrent assignment creation gracefully', async () => {
+      it('handles race condition on concurrent assignment creation gracefully', async () => {
         (prisma.traineeProfile.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
           id: traineeProfileId,
         });
@@ -582,7 +590,7 @@ describe('CampaignAssignmentRepository', () => {
         (prisma.campaignAssignment.findUnique as ReturnType<typeof vi.fn>)
           .mockResolvedValueOnce(null) // first check
           .mockResolvedValueOnce({
-            // fallback after P2002
+            // fallback persisted row created concurrently by other request
             id: 'concurrent-assignment-id',
             campaignId,
             traineeProfileId,
@@ -595,10 +603,9 @@ describe('CampaignAssignmentRepository', () => {
             completedAt: null,
           });
 
-        const p2002Error = Object.assign(new Error('Unique constraint failed'), { code: 'P2002' });
-        (prisma.campaignAssignment.create as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
-          p2002Error,
-        );
+        (prisma.campaignAssignment.createMany as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+          count: 0,
+        });
 
         const result = await enrolGeneralTraineeInPlatformCampaign({
           traineeProfileId,
