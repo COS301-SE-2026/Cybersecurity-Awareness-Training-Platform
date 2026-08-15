@@ -911,3 +911,415 @@ export async function deleteCampaignAssignment(
 
   return runInTx(client);
 }
+
+export async function findGeneralTraineeActorScope(userId: string, client: DBClient = prisma) {
+  return client.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      userType: true,
+      authStatus: true,
+      traineeProfile: {
+        select: {
+          id: true,
+          traineeStatus: true,
+          generalTraineeProfile: {
+            select: {
+              id: true,
+              accessSource: true,
+            },
+          },
+        },
+      },
+    },
+  });
+}
+
+export async function findActiveGeneralTraineeByUserId(userId: string, client: DBClient = prisma) {
+  return client.traineeProfile.findFirst({
+    where: {
+      userId,
+      traineeStatus: 'ACTIVE',
+      user: {
+        userType: 'GENERAL_TRAINEE',
+        authStatus: 'ACTIVE',
+      },
+      generalTraineeProfile: {
+        isNot: null,
+      },
+    },
+    select: {
+      id: true,
+      userId: true,
+      traineeStatus: true,
+    },
+  });
+}
+
+export type FindPlatformCampaignsForDiscoveryInput = {
+  page: number;
+  limit: number;
+  search?: string;
+  traineeProfileId: string;
+};
+
+export type PlatformCampaignDiscoveryRepositoryItem = {
+  id: string;
+  name: string;
+  description: string | null;
+  accentColor: string | null;
+  campaignType: string;
+  difficultyLevel: string;
+  status: string;
+  startDate: Date | null;
+  endDate: Date | null;
+  items: Array<{ id: string; availabilityStatus: string }>;
+  assignment: {
+    id: string;
+    assignmentStatus: string;
+    accessType: string;
+    currentCampaignItemId: string | null;
+    assignedAt: Date;
+    dueDate: Date | null;
+    startedAt: Date | null;
+    completedAt: Date | null;
+  } | null;
+};
+
+export type FindPlatformCampaignsForDiscoveryResult = {
+  items: PlatformCampaignDiscoveryRepositoryItem[];
+  total: number;
+};
+
+export async function findPlatformCampaignsForDiscovery(
+  input: FindPlatformCampaignsForDiscoveryInput,
+  client: DBClient = prisma,
+): Promise<FindPlatformCampaignsForDiscoveryResult> {
+  const trimmedSearch = input.search?.trim();
+  const skip = (input.page - 1) * input.limit;
+
+  const where: Prisma.CampaignWhereInput = {
+    campaignType: 'PREMADE_GENERAL',
+    organisationId: null,
+    status: 'ACTIVE',
+    ...(trimmedSearch
+      ? {
+          name: {
+            contains: trimmedSearch,
+            mode: 'insensitive',
+          },
+        }
+      : {}),
+  };
+
+  const [campaigns, total] = await Promise.all([
+    client.campaign.findMany({
+      where,
+      orderBy: [{ name: 'asc' }, { id: 'asc' }],
+      skip,
+      take: input.limit,
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        accentColor: true,
+        campaignType: true,
+        difficultyLevel: true,
+        status: true,
+        startDate: true,
+        endDate: true,
+        items: {
+          where: {
+            availabilityStatus: {
+              not: 'ARCHIVED',
+            },
+          },
+          select: {
+            id: true,
+            availabilityStatus: true,
+          },
+        },
+        assignments: {
+          where: {
+            traineeProfileId: input.traineeProfileId,
+          },
+          select: {
+            id: true,
+            assignmentStatus: true,
+            accessType: true,
+            currentCampaignItemId: true,
+            assignedAt: true,
+            dueDate: true,
+            startedAt: true,
+            completedAt: true,
+          },
+          take: 1,
+        },
+      },
+    }),
+    client.campaign.count({ where }),
+  ]);
+
+  const items: PlatformCampaignDiscoveryRepositoryItem[] = campaigns.map((c) => ({
+    id: c.id,
+    name: c.name,
+    description: c.description,
+    accentColor: c.accentColor,
+    campaignType: c.campaignType,
+    difficultyLevel: c.difficultyLevel,
+    status: c.status,
+    startDate: c.startDate,
+    endDate: c.endDate,
+    items: c.items,
+    assignment: c.assignments[0] ?? null,
+  }));
+
+  return { items, total };
+}
+
+export async function findPlatformCampaignById(campaignId: string, client: DBClient = prisma) {
+  return client.campaign.findFirst({
+    where: {
+      id: campaignId,
+      campaignType: 'PREMADE_GENERAL',
+      organisationId: null,
+    },
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      accentColor: true,
+      campaignType: true,
+      difficultyLevel: true,
+      status: true,
+      startDate: true,
+      endDate: true,
+      items: {
+        where: {
+          availabilityStatus: {
+            not: 'ARCHIVED',
+          },
+        },
+        select: {
+          id: true,
+          availabilityStatus: true,
+        },
+      },
+    },
+  });
+}
+
+export type EnrolGeneralTraineeInPlatformCampaignInput = {
+  userId?: string;
+  traineeProfileId: string;
+  campaignId: string;
+};
+
+export type EnrolGeneralTraineeInPlatformCampaignResult =
+  | {
+      success: true;
+      isNew: boolean;
+      assignment: {
+        id: string;
+        campaignId: string;
+        traineeProfileId: string;
+        assignmentStatus: string;
+        accessType: string;
+        currentCampaignItemId: string | null;
+        assignedAt: Date;
+        dueDate: Date | null;
+        startedAt: Date | null;
+        completedAt: Date | null;
+      };
+      campaign: {
+        id: string;
+        name: string;
+        description: string | null;
+        accentColor: string | null;
+        campaignType: string;
+        difficultyLevel: string;
+        status: string;
+        startDate: Date | null;
+        endDate: Date | null;
+        items: Array<{ id: string; availabilityStatus: string }>;
+      };
+    }
+  | {
+      success: false;
+      error: 'TRAINEE_NOT_ELIGIBLE' | 'CAMPAIGN_NOT_FOUND' | 'CAMPAIGN_INACTIVE';
+      message: string;
+    };
+
+export async function enrolGeneralTraineeInPlatformCampaign(
+  input: EnrolGeneralTraineeInPlatformCampaignInput,
+  client: DBClient = prisma,
+): Promise<EnrolGeneralTraineeInPlatformCampaignResult> {
+  const runInTx = async (tx: DBClient): Promise<EnrolGeneralTraineeInPlatformCampaignResult> => {
+    // 1. Authoritative verification of active general trainee
+    const trainee = await tx.traineeProfile.findFirst({
+      where: {
+        id: input.traineeProfileId,
+        ...(input.userId ? { userId: input.userId } : {}),
+        traineeStatus: 'ACTIVE',
+        user: {
+          ...(input.userId ? { id: input.userId } : {}),
+          userType: 'GENERAL_TRAINEE',
+          authStatus: 'ACTIVE',
+        },
+        generalTraineeProfile: {
+          isNot: null,
+        },
+      },
+      select: { id: true },
+    });
+
+    if (!trainee) {
+      return {
+        success: false,
+        error: 'TRAINEE_NOT_ELIGIBLE',
+        message: 'Trainee is not an active general trainee',
+      };
+    }
+
+    // 2. Authoritative verification of platform campaign
+    const campaign = await tx.campaign.findFirst({
+      where: {
+        id: input.campaignId,
+        campaignType: 'PREMADE_GENERAL',
+        organisationId: null,
+      },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        accentColor: true,
+        campaignType: true,
+        difficultyLevel: true,
+        status: true,
+        startDate: true,
+        endDate: true,
+        items: {
+          where: {
+            availabilityStatus: {
+              not: 'ARCHIVED',
+            },
+          },
+          select: {
+            id: true,
+            availabilityStatus: true,
+          },
+        },
+      },
+    });
+
+    if (!campaign) {
+      return {
+        success: false,
+        error: 'CAMPAIGN_NOT_FOUND',
+        message: 'Platform campaign was not found',
+      };
+    }
+
+    const now = new Date();
+    const isExpired = campaign.endDate ? now.getTime() >= campaign.endDate.getTime() : false;
+    const isNotStarted = campaign.startDate ? now.getTime() < campaign.startDate.getTime() : false;
+
+    if (campaign.status !== 'ACTIVE' || isExpired || isNotStarted) {
+      return {
+        success: false,
+        error: 'CAMPAIGN_INACTIVE',
+        message: 'Campaign is not active',
+      };
+    }
+
+    // 3. Check for existing assignment
+    const existingAssignment = await tx.campaignAssignment.findUnique({
+      where: {
+        campaignId_traineeProfileId: {
+          campaignId: input.campaignId,
+          traineeProfileId: input.traineeProfileId,
+        },
+      },
+      select: {
+        id: true,
+        campaignId: true,
+        traineeProfileId: true,
+        assignmentStatus: true,
+        accessType: true,
+        currentCampaignItemId: true,
+        assignedAt: true,
+        dueDate: true,
+        startedAt: true,
+        completedAt: true,
+      },
+    });
+
+    if (existingAssignment) {
+      // Idempotent: return existing assignment without altering accessType (ASSIGNED is not downgraded)
+      return {
+        success: true,
+        isNew: false,
+        assignment: existingAssignment,
+        campaign,
+      };
+    }
+
+    // 4. Create new SELF_SELECTED assignment (with atomic ON CONFLICT DO NOTHING concurrency handling)
+    const newAssignmentId = randomUUID();
+    await tx.campaignAssignment.createMany({
+      data: [
+        {
+          id: newAssignmentId,
+          campaignId: input.campaignId,
+          traineeProfileId: input.traineeProfileId,
+          assignedByUserId: null,
+          accessType: 'SELF_SELECTED',
+          assignmentStatus: 'ASSIGNED',
+        },
+      ],
+      skipDuplicates: true,
+    });
+
+    const persistedAssignment = await tx.campaignAssignment.findUnique({
+      where: {
+        campaignId_traineeProfileId: {
+          campaignId: input.campaignId,
+          traineeProfileId: input.traineeProfileId,
+        },
+      },
+      select: {
+        id: true,
+        campaignId: true,
+        traineeProfileId: true,
+        assignmentStatus: true,
+        accessType: true,
+        currentCampaignItemId: true,
+        assignedAt: true,
+        dueDate: true,
+        startedAt: true,
+        completedAt: true,
+      },
+    });
+
+    if (!persistedAssignment) {
+      return {
+        success: false,
+        error: 'CAMPAIGN_NOT_FOUND',
+        message: 'Could not create or find assignment',
+      };
+    }
+
+    return {
+      success: true,
+      isNew: persistedAssignment.id === newAssignmentId,
+      assignment: persistedAssignment,
+      campaign,
+    };
+  };
+
+  if ('$transaction' in client && typeof client.$transaction === 'function') {
+    return client.$transaction(async (tx) => runInTx(tx));
+  }
+
+  return runInTx(client);
+}

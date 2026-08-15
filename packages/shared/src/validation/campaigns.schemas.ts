@@ -495,3 +495,47 @@ export const campaignLifecycleActionResponseSchema = z
     allowedActions: z.array(campaignAllowedActionSchema),
   })
   .strict();
+
+export const listPlatformCampaignsQuerySchema = z
+  .object({
+    page: pageQueryPreprocessor,
+    limit: limitQueryPreprocessor,
+    search: optionalTrimmedStringSchema(100),
+  })
+  .strict();
+
+export const enrolPlatformCampaignParamsSchema = z
+  .object({
+    campaignId: idParamSchema,
+  })
+  .strict();
+
+export const platformCampaignSummarySchema = z
+  .object({
+    campaignId: idParamSchema,
+    name: campaignNameSchema,
+    description: descriptionSchema.nullish(),
+    accentColor: hexColorSchema.nullish(),
+    campaignType: z.literal('PREMADE_GENERAL'),
+    difficultyLevel: difficultyLevelSchema,
+    status: z.literal('ACTIVE'),
+    startDate: z.string().datetime().nullish(),
+    endDate: z.string().datetime().nullish(),
+    assignment: traineeCampaignAssignmentSummarySchema.nullish(),
+    accessType: campaignAccessTypeSchema.nullish(),
+    isEnrolled: z.boolean().optional(),
+    progressStatus: traineeCampaignProgressStatusSchema.nullish(),
+    itemCount: z.number().int().nonnegative().nullish(),
+    availableItemCount: z.number().int().nonnegative().nullish(),
+    eligibility: campaignEligibilitySchema,
+  })
+  .strict();
+
+export const getPlatformCampaignsResponseSchema = z
+  .object({
+    items: z.array(platformCampaignSummarySchema),
+    pagination: paginationMetadataSchema,
+  })
+  .strict();
+
+export const enrolPlatformCampaignResponseSchema = traineeCampaignSummarySchema;

@@ -165,6 +165,9 @@ const expectedSchemas = [
   'CreateCampaignAssignmentsResponse',
   'CampaignAssignmentReadRow',
   'GetCampaignAssignmentsResponse',
+  'PlatformCampaignSummary',
+  'GetPlatformCampaignsResponse',
+  'PaginationMetadata',
 ] as const;
 
 const expectedResponses = [
@@ -178,6 +181,8 @@ const expectedResponses = [
   'InternalServerError',
   'GetAssignableCampaignsOk',
   'GetCampaignAssignmentCandidatesOk',
+  'GetPlatformCampaignsOk',
+  'EnrolPlatformCampaignOk',
   'CreateCampaignAssignmentsOk',
   'GetCampaignAssignmentsOk',
   'InvitationContextOk',
@@ -367,6 +372,12 @@ const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
   ],
   ['get', '/trainee/campaigns', ['200', '401', '429', '500']],
   ['get', '/trainee/campaigns/{campaignId}', ['200', '400', '401', '404', '429', '500']],
+  ['get', '/trainee/platform-campaigns', ['200', '400', '401', '403', '429', '500']],
+  [
+    'post',
+    '/trainee/platform-campaigns/{campaignId}/enrol',
+    ['200', '400', '401', '403', '404', '409', '429', '500'],
+  ],
   [
     'get',
     '/trainee/campaign-items/{campaignItemId}/training-document',
@@ -502,8 +513,12 @@ describe('swaggerSpec', () => {
   it('documents trainee campaign routes with bearer auth', () => {
     expectPathExists('/trainee/campaigns', 'get');
     expectPathExists('/trainee/campaigns/{campaignId}', 'get');
+    expectPathExists('/trainee/platform-campaigns', 'get');
+    expectPathExists('/trainee/platform-campaigns/{campaignId}/enrol', 'post');
     expectBearerAuth('/trainee/campaigns', 'get');
     expectBearerAuth('/trainee/campaigns/{campaignId}', 'get');
+    expectBearerAuth('/trainee/platform-campaigns', 'get');
+    expectBearerAuth('/trainee/platform-campaigns/{campaignId}/enrol', 'post');
   });
 
   it('documents setup endpoints as public token-authorized flows', () => {
