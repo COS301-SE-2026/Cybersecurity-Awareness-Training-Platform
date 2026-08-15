@@ -557,8 +557,7 @@ describe('CampaignAssignmentRepository', () => {
             completedAt: null,
           });
 
-        const p2002Error = new Error('Unique constraint failed');
-        (p2002Error as any).code = 'P2002';
+        const p2002Error = Object.assign(new Error('Unique constraint failed'), { code: 'P2002' });
         (prisma.campaignAssignment.create as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
           p2002Error,
         );

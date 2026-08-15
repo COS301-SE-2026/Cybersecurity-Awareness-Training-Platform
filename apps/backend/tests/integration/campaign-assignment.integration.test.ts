@@ -1349,11 +1349,13 @@ describe('Campaign Assignment API Integration Tests', () => {
       expect(res.body.pagination).toBeDefined();
       expect(res.body.items).toBeInstanceOf(Array);
 
-      const foundCampaignIds = res.body.items.map((i: any) => i.campaignId);
+      const foundCampaignIds = (res.body.items as Array<{ campaignId: string }>).map(
+        (i) => i.campaignId,
+      );
       expect(foundCampaignIds).toContain(platformActive.id);
 
       // Verify no draft, archived, or custom campaigns leak in
-      const allFound = res.body.items;
+      const allFound = res.body.items as Array<{ campaignType: string; status: string }>;
       for (const item of allFound) {
         expect(item.campaignType).toBe('PREMADE_GENERAL');
         expect(item.status).toBe('ACTIVE');
@@ -1367,7 +1369,9 @@ describe('Campaign Assignment API Integration Tests', () => {
         .set('Authorization', `Bearer ${generalTrainee.token}`);
 
       expect(searchRes.status).toBe(200);
-      const searchIds = searchRes.body.items.map((i: any) => i.campaignId);
+      const searchIds = (searchRes.body.items as Array<{ campaignId: string }>).map(
+        (i) => i.campaignId,
+      );
       expect(searchIds).toContain(platformActive.id);
     });
 
@@ -1397,12 +1401,15 @@ describe('Campaign Assignment API Integration Tests', () => {
         .set('Authorization', `Bearer ${generalTrainee.token}`);
 
       expect(discoveryRes1.status).toBe(200);
-      const itemBefore = discoveryRes1.body.items.find(
-        (i: any) => i.campaignId === platformCampaign.id,
-      );
+      const itemsBefore = discoveryRes1.body.items as Array<{
+        campaignId: string;
+        isEnrolled: boolean;
+        assignment: unknown;
+      }>;
+      const itemBefore = itemsBefore.find((i) => i.campaignId === platformCampaign.id);
       expect(itemBefore).toBeDefined();
-      expect(itemBefore.isEnrolled).toBe(false);
-      expect(itemBefore.assignment).toBeNull();
+      expect(itemBefore?.isEnrolled).toBe(false);
+      expect(itemBefore?.assignment).toBeNull();
 
       // 2. Perform self-enrolment
       const enrolRes = await request(app)
@@ -1435,12 +1442,16 @@ describe('Campaign Assignment API Integration Tests', () => {
         .get(`/trainee/platform-campaigns?search=${encodeURIComponent(platformCampaign.name)}`)
         .set('Authorization', `Bearer ${generalTrainee.token}`);
 
-      const itemAfter = discoveryRes2.body.items.find(
-        (i: any) => i.campaignId === platformCampaign.id,
-      );
-      expect(itemAfter.isEnrolled).toBe(true);
-      expect(itemAfter.accessType).toBe('SELF_SELECTED');
-      expect(itemAfter.assignment).toBeDefined();
+      const itemsAfter = discoveryRes2.body.items as Array<{
+        campaignId: string;
+        isEnrolled: boolean;
+        accessType: string;
+        assignment: unknown;
+      }>;
+      const itemAfter = itemsAfter.find((i) => i.campaignId === platformCampaign.id);
+      expect(itemAfter?.isEnrolled).toBe(true);
+      expect(itemAfter?.accessType).toBe('SELF_SELECTED');
+      expect(itemAfter?.assignment).toBeDefined();
 
       // 4. Campaign list (GET /trainee/campaigns) contains the enrolled campaign
       const traineeCampaignsRes = await request(app)
@@ -1448,11 +1459,13 @@ describe('Campaign Assignment API Integration Tests', () => {
         .set('Authorization', `Bearer ${generalTrainee.token}`);
 
       expect(traineeCampaignsRes.status).toBe(200);
-      const enrolledInList = traineeCampaignsRes.body.campaigns.find(
-        (c: any) => c.campaignId === platformCampaign.id,
-      );
+      const campaignsList = traineeCampaignsRes.body.campaigns as Array<{
+        campaignId: string;
+        accessType: string;
+      }>;
+      const enrolledInList = campaignsList.find((c) => c.campaignId === platformCampaign.id);
       expect(enrolledInList).toBeDefined();
-      expect(enrolledInList.accessType).toBe('SELF_SELECTED');
+      expect(enrolledInList?.accessType).toBe('SELF_SELECTED');
 
       // 5. Campaign detail (GET /trainee/campaigns/:campaignId) is accessible
       const traineeDetailRes = await request(app)

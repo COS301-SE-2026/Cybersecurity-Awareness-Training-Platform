@@ -12,7 +12,7 @@ import { createApp } from '../../src/app.js';
 import { generateAuthToken } from '../../src/services/auth-token.service.js';
 
 const prismaMock = vi.hoisted(() => {
-  const mock: any = {
+  const mock = {
     user: {
       findUnique: vi.fn(),
     },
@@ -39,8 +39,9 @@ const prismaMock = vi.hoisted(() => {
     emailClassificationResponse: {
       findMany: vi.fn(),
     },
+    $transaction: vi.fn(),
   };
-  mock.$transaction = vi.fn((cb: any) => cb(mock));
+  mock.$transaction.mockImplementation((cb: (tx: typeof mock) => unknown) => cb(mock));
   return mock;
 });
 
@@ -584,13 +585,14 @@ describe('Trainee campaign discovery routes', () => {
   });
 
   it('derives lightweight training status from interaction events', async () => {
-    prismaMock.interactionEvent.findMany.mockImplementation((query: any) =>
-      query.where.eventType.in.includes('TRAINING_COMPLETED')
-        ? Promise.resolve([
-            { campaignItemId: trainingItemId, eventType: 'TRAINING_VIEWED' },
-            { campaignItemId: trainingItemId, eventType: 'TRAINING_COMPLETED' },
-          ])
-        : Promise.resolve([]),
+    prismaMock.interactionEvent.findMany.mockImplementation(
+      (query: { where?: { eventType?: { in?: string[] } } }) =>
+        query.where?.eventType?.in?.includes('TRAINING_COMPLETED')
+          ? Promise.resolve([
+              { campaignItemId: trainingItemId, eventType: 'TRAINING_VIEWED' },
+              { campaignItemId: trainingItemId, eventType: 'TRAINING_COMPLETED' },
+            ])
+          : Promise.resolve([]),
     );
 
     const response = await request(createApp())
@@ -614,13 +616,14 @@ describe('Trainee campaign discovery routes', () => {
   });
 
   it('derives lightweight simulated inbox status from events and classification responses', async () => {
-    prismaMock.interactionEvent.findMany.mockImplementation((query: any) =>
-      query.where.eventType.in.includes('SIMULATED_EMAIL_CLASSIFIED')
-        ? Promise.resolve([
-            { campaignItemId: simulationItemId, eventType: 'SIMULATED_EMAIL_OPENED' },
-            { campaignItemId: simulationItemId, eventType: 'SIMULATED_EMAIL_LINK_CLICKED' },
-          ])
-        : Promise.resolve([]),
+    prismaMock.interactionEvent.findMany.mockImplementation(
+      (query: { where?: { eventType?: { in?: string[] } } }) =>
+        query.where?.eventType?.in?.includes('SIMULATED_EMAIL_CLASSIFIED')
+          ? Promise.resolve([
+              { campaignItemId: simulationItemId, eventType: 'SIMULATED_EMAIL_OPENED' },
+              { campaignItemId: simulationItemId, eventType: 'SIMULATED_EMAIL_LINK_CLICKED' },
+            ])
+          : Promise.resolve([]),
     );
     prismaMock.emailClassificationResponse.findMany.mockResolvedValue([
       { campaignItemId: simulationItemId },
