@@ -4,11 +4,9 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    include: ['tests/integration/**/*.test.ts'],
+    include: ['tests/integration/account-security.integration.test.ts'],
     setupFiles: ['tests/setup.integration.ts'],
     fileParallelism: false,
-    hookTimeout: 30000,
-    testTimeout: 30000,
     env: {
       TEST_DATABASE_URL:
         process.env.TEST_DATABASE_URL ||
@@ -18,6 +16,19 @@ export default defineConfig({
         process.env.DATABASE_URL ||
         process.env.TEST_DATABASE_URL ||
         'postgresql://insightful_phish:insightful_phish@localhost:5432/insightful_phish_test',
+    },
+    coverage: {
+      all: true,
+      include: [
+        'src/routes/account.routes.ts',
+        'src/controllers/account.controller.ts',
+        'src/services/account.service.ts',
+        'src/repositories/account.repository.ts',
+      ],
+      reporter: ['text', 'json-summary', 'lcov'],
+      thresholds: {
+        lines: 80,
+      },
     },
   },
 });
