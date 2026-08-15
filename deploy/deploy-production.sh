@@ -23,13 +23,13 @@ record_history(){
 		return 0
 	fi 
 
-	printf '%s candidate=%s target=%s event=%s previous=%s phase=%s\n'\
-	"$(date -u +'%Y-%m-%dT%H:%M:%SZ')"\
-	"${release_sha:-unknown}"\
-	"${deployment_target:-unknown}"\
-	"$event"\
-	"${current_sha:-none}"\
-	"${phase:-unknown}" >> "$HISTORY_FILE"
+	printf '%s candidate=%s target=%s event=%s previous=%s phase=%s\n' \
+		"$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+		"${release_sha:-unknown}" \
+		"${deployment_target:-unknown}" \
+		"$event" \
+		"${current_sha:-none}" \
+		"${phase:-unknown}" >> "$HISTORY_FILE"
 }
 finish() {
 	local status=$?
@@ -227,11 +227,6 @@ fi
 
 active_compose=("${compose_candidate[@]}")
 
-compose_candidate=(docker compose --env-file "$RUNTIME_ENV" --env-file "$CANDIDATE_ENV")
-for compose_file in "${COMPOSE_FILES[@]}"; do
-	compose_candidate+=(-f "$compose_file")
-done
-
 phase="compose-validation"
 
 "${compose_candidate[@]}" config --quiet
@@ -338,7 +333,6 @@ restore_previous_application(){
 		return 1
 	fi
 
-	phase="restoration-health-checks"
 	if ! wait_for_service_health frontend; then 
 		record_history 'restoration-failed'
 		return 1
