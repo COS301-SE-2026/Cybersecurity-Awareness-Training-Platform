@@ -245,14 +245,14 @@ const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
   ['post', '/auth/refresh', ['200', '401', '403', '429', '500']],
   ['post', '/auth/resend-verification', ['200', '400', '429', '500']],
   ['post', '/auth/verify-email', ['200', '400', '429', '500']],
-  ['get', '/account', ['200', '401', '403', '404', '500']],
-  ['patch', '/account/profile', ['200', '401', '403', '404', '422', '500']],
-  ['post', '/account/change-email', ['200', '401', '403', '409', '422', '500']],
-  ['post', '/account/change-password', ['200', '401', '403', '404', '422', '500']],
-  ['get', '/account/sessions', ['200', '401', '500']],
-  ['delete', '/account/sessions/{sessionId}', ['200', '400', '401', '404', '409', '500']],
-  ['post', '/account/sessions/logout-others', ['200', '401', '500']],
-  ['patch', '/account/security-preferences', ['200', '401', '403', '404', '422', '500']],
+  ['get', '/account', ['200', '401', '403', '404', '429', '500']],
+  ['patch', '/account/profile', ['200', '401', '403', '404', '422', '429', '500']],
+  ['post', '/account/change-email', ['200', '401', '403', '409', '422', '429', '500']],
+  ['post', '/account/change-password', ['200', '401', '403', '404', '422', '429', '500']],
+  ['get', '/account/sessions', ['200', '401', '429', '500']],
+  ['delete', '/account/sessions/{sessionId}', ['200', '400', '401', '404', '409', '429', '500']],
+  ['post', '/account/sessions/logout-others', ['200', '401', '429', '500']],
+  ['patch', '/account/security-preferences', ['200', '401', '403', '404', '422', '429', '500']],
   ['post', '/account/verify-email-change', ['200', '400', '409', '429', '500']],
   ['post', '/auth/forgot-password', ['200', '400', '429', '500']],
   ['post', '/auth/reset-password', ['200', '400', '401', '403', '409', '422', '429', '500']],
@@ -738,6 +738,66 @@ describe('swaggerSpec', () => {
     expect(meSchema?.properties).not.toHaveProperty('token');
     expect(meSchema?.properties).not.toHaveProperty('tokenType');
     expect(meSchema?.properties).not.toHaveProperty('expiresAt');
+  });
+
+  it('documents account-security lifecycle contracts without exposing sensitive session or token fields', () => {
+    for (const [method, path] of [
+      ['get', '/account'] as const,
+      ['post', '/account/change-email'] as const,
+      ['post', '/account/change-password'] as const,
+      ['get', '/account/sessions'] as const,
+      ['delete', '/account/sessions/{sessionId}'] as const,
+      ['post', '/account/sessions/logout-others'] as const,
+      ['patch', '/account/security-preferences'] as const,
+    ]) {
+      expectBearerAuth(path, method);
+    }
+
+    expect(JSON.stringify(getPath('/account/verify-email-change', 'post'))).toContain(
+      '"security":[]',
+    );
+
+    const accountSessionSchema = spec.components?.schemas?.AccountSession as
+      | { properties?: Record<string, unknown> }
+      | undefined;
+    expect(accountSessionSchema?.properties).toHaveProperty('deviceSummary');
+    expect(accountSessionSchema?.properties).toHaveProperty('locationSummary');
+    expectSchemaNotToContain('AccountSession', [
+      'refreshToken',
+      'tokenHash',
+      'ipAddress',
+      'userAgent',
+    ]);
+    expectSchemaNotToContain('AccountSessionsResponse', [
+      'refreshToken',
+      'tokenHash',
+      'ipAddress',
+      'userAgent',
+    ]);
+
+    const emailChangeResponse = JSON.stringify(
+      spec.components?.schemas?.AccountChangeEmailResponse,
+    );
+    const passwordChangeResponse = JSON.stringify(
+      spec.components?.schemas?.AccountChangePasswordResponse,
+    );
+    const sessionRevocationResponse = JSON.stringify(
+      spec.components?.schemas?.AccountSessionRevocationResponse,
+    );
+    const logoutOthersResponse = JSON.stringify(
+      spec.components?.schemas?.AccountLogoutOthersResponse,
+    );
+    const verifyEmailChangeResponse = JSON.stringify(
+      spec.components?.schemas?.AccountVerifyEmailChangeResponse,
+    );
+
+    expect(emailChangeResponse).toContain('durably queued');
+    expect(emailChangeResponse).toContain('not that the provider has delivered');
+    expect(passwordChangeResponse).toContain('durably queued');
+    expect(passwordChangeResponse).toContain('not that the provider has delivered');
+    expect(sessionRevocationResponse).toContain('current session is permitted');
+    expect(logoutOthersResponse).toContain('except the current session');
+    expect(verifyEmailChangeResponse).toContain('active sessions/refresh tokens were revoked');
   });
 
   it('documents approve and reject requests with proper request body refs', () => {

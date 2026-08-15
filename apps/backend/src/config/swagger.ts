@@ -844,6 +844,8 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         },
         AccountChangeEmailResponse: {
           type: 'object',
+          description:
+            'Confirms the email-change request was accepted locally. A true emailQueued value means notification work was durably queued, not that the provider has delivered the email.',
           required: ['message', 'emailQueued'],
           properties: {
             message: {
@@ -884,6 +886,8 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         },
         AccountChangePasswordResponse: {
           type: 'object',
+          description:
+            'Confirms the password change committed. A true notificationQueued value means the password-changed notification was durably queued, not that the provider has delivered it.',
           required: ['message', 'notificationQueued', 'revokedSessionCount'],
           properties: {
             message: {
@@ -1119,6 +1123,8 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         },
         AccountSession: {
           type: 'object',
+          description:
+            'Safe account-session summary. Refresh tokens, token hashes, IP addresses, and raw user-agent strings are never returned.',
           required: [
             'id',
             'rememberMe',
@@ -1151,6 +1157,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         },
         AccountSessionsResponse: {
           type: 'object',
+          description: 'Active, non-expired, non-idle sessions owned by the authenticated user.',
           required: ['sessions'],
           properties: {
             sessions: arrayOf(schemaRef('AccountSession')),
@@ -1158,6 +1165,8 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         },
         AccountSessionRevocationResponse: {
           type: 'object',
+          description:
+            'Confirms that the selected owned session was revoked. Revoking the current session is permitted and invalidates its refresh token.',
           required: ['revoked'],
           properties: {
             revoked: trueSuccessProperty(),
@@ -1165,6 +1174,8 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         },
         AccountLogoutOthersResponse: {
           type: 'object',
+          description:
+            'Confirms that active sessions except the current session were revoked with their refresh tokens.',
           required: ['revokedSessionCount'],
           properties: {
             revokedSessionCount: {
@@ -1190,6 +1201,8 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         },
         AccountVerifyEmailChangeResponse: {
           type: 'object',
+          description:
+            'Token verification state. A VALID state means the account email was updated and active sessions/refresh tokens were revoked.',
           required: ['state'],
           properties: {
             state: enumString(['VALID', 'INVALID', 'EXPIRED', 'USED', 'REVOKED'], 'VALID'),
