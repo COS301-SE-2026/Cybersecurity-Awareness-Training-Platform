@@ -535,7 +535,7 @@ describe('AppRoutes', () => {
     );
   });
 
-  it('renders the shared neutral Campaign detail shell', async () => {
+  it('renders authoritative organisation Campaign detail', async () => {
     const organisationId = '11111111-1111-4111-8111-111111111111';
     const campaignId = '10000000-0000-4000-8000-000000000001';
 
@@ -547,9 +547,11 @@ describe('AppRoutes', () => {
     );
 
     expect(
-      await screen.findByRole('heading', { level: 1, name: /^Campaign$/ }),
+      await screen.findByRole('heading', { level: 1, name: 'Edit Draft Campaign' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('Campaign details will load here.')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'New starter security' }),
+    ).toBeInTheDocument();
   });
 
   it('allows an organisation Campaign list user with MANAGE_CAMPAIGNS', async () => {
