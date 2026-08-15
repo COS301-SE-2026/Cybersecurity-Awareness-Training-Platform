@@ -3611,14 +3611,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         },
         PaginationMetadata: {
           type: 'object',
-          required: [
-            'page',
-            'limit',
-            'totalItems',
-            'totalPages',
-            'hasNextPage',
-            'hasPreviousPage',
-          ],
+          required: ['page', 'limit', 'totalItems', 'totalPages', 'hasNextPage', 'hasPreviousPage'],
           properties: {
             page: { type: 'integer', minimum: 1, example: 1 },
             limit: { type: 'integer', minimum: 1, example: 10 },

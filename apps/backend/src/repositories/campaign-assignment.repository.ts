@@ -935,10 +935,7 @@ export async function findGeneralTraineeActorScope(userId: string, client: DBCli
   });
 }
 
-export async function findActiveGeneralTraineeByUserId(
-  userId: string,
-  client: DBClient = prisma,
-) {
+export async function findActiveGeneralTraineeByUserId(userId: string, client: DBClient = prisma) {
   return client.traineeProfile.findFirst({
     where: {
       userId,
@@ -1080,10 +1077,7 @@ export async function findPlatformCampaignsForDiscovery(
   return { items, total };
 }
 
-export async function findPlatformCampaignById(
-  campaignId: string,
-  client: DBClient = prisma,
-) {
+export async function findPlatformCampaignById(campaignId: string, client: DBClient = prisma) {
   return client.campaign.findFirst({
     where: {
       id: campaignId,
@@ -1341,4 +1335,3 @@ export async function enrolGeneralTraineeInPlatformCampaign(
 
   return runInTx(client);
 }
-

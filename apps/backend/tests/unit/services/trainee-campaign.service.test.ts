@@ -45,7 +45,9 @@ describe('Trainee Campaign Service - Platform Campaign Self-Enrolment', () => {
 
   describe('listPlatformCampaigns', () => {
     it('returns discoverable platform campaigns with mapped items and pagination', async () => {
-      vi.mocked(CampaignAssignmentRepository.findPlatformCampaignsForDiscovery).mockResolvedValueOnce({
+      vi.mocked(
+        CampaignAssignmentRepository.findPlatformCampaignsForDiscovery,
+      ).mockResolvedValueOnce({
         items: [
           {
             id: campaignId,
@@ -97,7 +99,9 @@ describe('Trainee Campaign Service - Platform Campaign Self-Enrolment', () => {
     });
 
     it('maps assignment details and isEnrolled true when trainee is already enrolled', async () => {
-      vi.mocked(CampaignAssignmentRepository.findPlatformCampaignsForDiscovery).mockResolvedValueOnce({
+      vi.mocked(
+        CampaignAssignmentRepository.findPlatformCampaignsForDiscovery,
+      ).mockResolvedValueOnce({
         items: [
           {
             id: campaignId,

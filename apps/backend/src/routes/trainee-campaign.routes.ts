@@ -156,4 +156,3 @@ traineeCampaignRouter.post(
   validateParams(enrolPlatformCampaignParamsSchema),
   asyncHandler(enrolPlatformCampaignController),
 );
-

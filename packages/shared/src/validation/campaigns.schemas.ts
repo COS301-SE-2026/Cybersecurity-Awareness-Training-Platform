@@ -539,4 +539,3 @@ export const getPlatformCampaignsResponseSchema = z
   .strict();
 
 export const enrolPlatformCampaignResponseSchema = traineeCampaignSummarySchema;
-

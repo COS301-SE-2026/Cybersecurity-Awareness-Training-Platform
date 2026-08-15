@@ -93,18 +93,16 @@ function toIsoString(value: Date | null | undefined): string | null {
   return value ? value.toISOString() : null;
 }
 
-function toAssignmentSummary(
-  assignment: {
-    id: string;
-    assignmentStatus: string;
-    accessType: string;
-    currentCampaignItemId: string | null;
-    assignedAt: Date;
-    dueDate?: Date | null;
-    startedAt?: Date | null;
-    completedAt?: Date | null;
-  },
-): TraineeCampaignAssignmentSummaryDto {
+function toAssignmentSummary(assignment: {
+  id: string;
+  assignmentStatus: string;
+  accessType: string;
+  currentCampaignItemId: string | null;
+  assignedAt: Date;
+  dueDate?: Date | null;
+  startedAt?: Date | null;
+  completedAt?: Date | null;
+}): TraineeCampaignAssignmentSummaryDto {
   return {
     assignmentId: assignment.id,
     assignmentStatus: assignment.assignmentStatus as AssignmentStatusDto,
@@ -622,4 +620,3 @@ export async function enrolPlatformCampaign(
     eligibility: campaignEligibility,
   });
 }
-

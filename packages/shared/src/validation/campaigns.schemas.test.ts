@@ -331,9 +331,9 @@ describe('campaign validation schemas', () => {
 
     it('validates enrol platform campaign params', () => {
       expect(enrolPlatformCampaignParamsSchema.safeParse({ campaignId }).success).toBe(true);
-      expect(enrolPlatformCampaignParamsSchema.safeParse({ campaignId: 'invalid-id' }).success).toBe(
-        false,
-      );
+      expect(
+        enrolPlatformCampaignParamsSchema.safeParse({ campaignId: 'invalid-id' }).success,
+      ).toBe(false);
     });
 
     it('validates platform campaign summary and response schemas', () => {

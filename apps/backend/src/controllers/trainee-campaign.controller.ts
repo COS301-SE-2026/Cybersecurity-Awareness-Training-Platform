@@ -120,4 +120,3 @@ export async function enrolPlatformCampaignController(req: Request, res: Respons
     return handleTraineeCampaignError(error, res);
   }
 }
-

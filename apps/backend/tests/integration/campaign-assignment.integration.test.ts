@@ -1361,7 +1361,9 @@ describe('Campaign Assignment API Integration Tests', () => {
 
       // Search filter
       const searchRes = await request(app)
-        .get(`/trainee/platform-campaigns?search=${encodeURIComponent(platformActive.name.slice(0, 15))}`)
+        .get(
+          `/trainee/platform-campaigns?search=${encodeURIComponent(platformActive.name.slice(0, 15))}`,
+        )
         .set('Authorization', `Bearer ${generalTrainee.token}`);
 
       expect(searchRes.status).toBe(200);
@@ -1395,7 +1397,9 @@ describe('Campaign Assignment API Integration Tests', () => {
         .set('Authorization', `Bearer ${generalTrainee.token}`);
 
       expect(discoveryRes1.status).toBe(200);
-      const itemBefore = discoveryRes1.body.items.find((i: any) => i.campaignId === platformCampaign.id);
+      const itemBefore = discoveryRes1.body.items.find(
+        (i: any) => i.campaignId === platformCampaign.id,
+      );
       expect(itemBefore).toBeDefined();
       expect(itemBefore.isEnrolled).toBe(false);
       expect(itemBefore.assignment).toBeNull();
@@ -1431,7 +1435,9 @@ describe('Campaign Assignment API Integration Tests', () => {
         .get(`/trainee/platform-campaigns?search=${encodeURIComponent(platformCampaign.name)}`)
         .set('Authorization', `Bearer ${generalTrainee.token}`);
 
-      const itemAfter = discoveryRes2.body.items.find((i: any) => i.campaignId === platformCampaign.id);
+      const itemAfter = discoveryRes2.body.items.find(
+        (i: any) => i.campaignId === platformCampaign.id,
+      );
       expect(itemAfter.isEnrolled).toBe(true);
       expect(itemAfter.accessType).toBe('SELF_SELECTED');
       expect(itemAfter.assignment).toBeDefined();
@@ -1593,4 +1599,3 @@ describe('Campaign Assignment API Integration Tests', () => {
     });
   });
 });
-

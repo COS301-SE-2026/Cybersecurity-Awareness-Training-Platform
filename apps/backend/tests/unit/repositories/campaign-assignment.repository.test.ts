@@ -299,7 +299,9 @@ describe('CampaignAssignmentRepository', () => {
           userId,
           traineeStatus: 'ACTIVE',
         };
-        (prisma.traineeProfile.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce(expected);
+        (prisma.traineeProfile.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+          expected,
+        );
 
         const result = await findActiveGeneralTraineeByUserId(userId);
         expect(result).toEqual(expected);
@@ -394,7 +396,9 @@ describe('CampaignAssignmentRepository', () => {
           endDate: null,
           items: [],
         });
-        (prisma.campaignAssignment.findUnique as ReturnType<typeof vi.fn>).mockResolvedValueOnce(null);
+        (prisma.campaignAssignment.findUnique as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+          null,
+        );
         (prisma.campaignAssignment.create as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
           id: 'new-assignment-id',
           campaignId,
@@ -573,4 +577,3 @@ describe('CampaignAssignmentRepository', () => {
     });
   });
 });
-

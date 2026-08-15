@@ -58,7 +58,9 @@ describe('Campaign Assignment Architecture Isolation', () => {
   });
 
   it('ensures trainee campaign controller and routes do not import Prisma or repositories directly', () => {
-    const traineeControllerPath = resolveBackendFilePath('controllers/trainee-campaign.controller.ts');
+    const traineeControllerPath = resolveBackendFilePath(
+      'controllers/trainee-campaign.controller.ts',
+    );
     const traineeRoutesPath = resolveBackendFilePath('routes/trainee-campaign.routes.ts');
 
     const controllerContent = fs.readFileSync(traineeControllerPath, 'utf-8');
