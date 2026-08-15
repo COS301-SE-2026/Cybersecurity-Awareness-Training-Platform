@@ -11,27 +11,40 @@ import {
 import { createApp } from '../../src/app.js';
 import { generateAuthToken } from '../../src/services/auth-token.service.js';
 
-const prismaMock = vi.hoisted(() => ({
-  user: {
-    findUnique: vi.fn(),
-  },
-  traineeProfile: {
-    findFirst: vi.fn(),
-  },
-  campaignAssignment: {
-    findMany: vi.fn(),
-    findFirst: vi.fn(),
-  },
-  interactionEvent: {
-    findMany: vi.fn(),
-  },
-  quizAttempt: {
-    findMany: vi.fn(),
-  },
-  emailClassificationResponse: {
-    findMany: vi.fn(),
-  },
-}));
+const prismaMock = vi.hoisted(() => {
+  const mock = {
+    user: {
+      findUnique: vi.fn(),
+    },
+    traineeProfile: {
+      findFirst: vi.fn(),
+    },
+    campaign: {
+      findMany: vi.fn(),
+      count: vi.fn(),
+      findFirst: vi.fn(),
+    },
+    campaignAssignment: {
+      findMany: vi.fn(),
+      findFirst: vi.fn(),
+      findUnique: vi.fn(),
+      create: vi.fn(),
+      createMany: vi.fn(),
+    },
+    interactionEvent: {
+      findMany: vi.fn(),
+    },
+    quizAttempt: {
+      findMany: vi.fn(),
+    },
+    emailClassificationResponse: {
+      findMany: vi.fn(),
+    },
+    $transaction: vi.fn(),
+  };
+  mock.$transaction.mockImplementation((cb: (tx: typeof mock) => unknown) => cb(mock));
+  return mock;
+});
 
 vi.mock('../../src/lib/prisma.js', () => ({
   prisma: prismaMock,
@@ -68,7 +81,12 @@ const user = {
   createdAt: new Date('2026-05-16T08:00:00.000Z'),
   updatedAt: new Date('2026-05-16T08:00:00.000Z'),
   traineeProfile: {
+    id: traineeProfileId,
     traineeStatus: 'ACTIVE',
+    generalTraineeProfile: {
+      id: '33333333-3333-4333-8333-111111111111',
+      accessSource: 'SELF_SIGNUP',
+    },
   },
 };
 
@@ -568,13 +586,14 @@ describe('Trainee campaign discovery routes', () => {
   });
 
   it('derives lightweight training status from interaction events', async () => {
-    prismaMock.interactionEvent.findMany.mockImplementation((query) =>
-      query.where.eventType.in.includes('TRAINING_COMPLETED')
-        ? Promise.resolve([
-            { campaignItemId: trainingItemId, eventType: 'TRAINING_VIEWED' },
-            { campaignItemId: trainingItemId, eventType: 'TRAINING_COMPLETED' },
-          ])
-        : Promise.resolve([]),
+    prismaMock.interactionEvent.findMany.mockImplementation(
+      (query: { where?: { eventType?: { in?: string[] } } }) =>
+        query.where?.eventType?.in?.includes('TRAINING_COMPLETED')
+          ? Promise.resolve([
+              { campaignItemId: trainingItemId, eventType: 'TRAINING_VIEWED' },
+              { campaignItemId: trainingItemId, eventType: 'TRAINING_COMPLETED' },
+            ])
+          : Promise.resolve([]),
     );
 
     const response = await request(createApp())
@@ -598,13 +617,14 @@ describe('Trainee campaign discovery routes', () => {
   });
 
   it('derives lightweight simulated inbox status from events and classification responses', async () => {
-    prismaMock.interactionEvent.findMany.mockImplementation((query) =>
-      query.where.eventType.in.includes('SIMULATED_EMAIL_CLASSIFIED')
-        ? Promise.resolve([
-            { campaignItemId: simulationItemId, eventType: 'SIMULATED_EMAIL_OPENED' },
-            { campaignItemId: simulationItemId, eventType: 'SIMULATED_EMAIL_LINK_CLICKED' },
-          ])
-        : Promise.resolve([]),
+    prismaMock.interactionEvent.findMany.mockImplementation(
+      (query: { where?: { eventType?: { in?: string[] } } }) =>
+        query.where?.eventType?.in?.includes('SIMULATED_EMAIL_CLASSIFIED')
+          ? Promise.resolve([
+              { campaignItemId: simulationItemId, eventType: 'SIMULATED_EMAIL_OPENED' },
+              { campaignItemId: simulationItemId, eventType: 'SIMULATED_EMAIL_LINK_CLICKED' },
+            ])
+          : Promise.resolve([]),
     );
     prismaMock.emailClassificationResponse.findMany.mockResolvedValue([
       { campaignItemId: simulationItemId },
@@ -649,5 +669,460 @@ describe('Trainee campaign discovery routes', () => {
     expect(serializedBody).not.toContain('TrainingProgress');
     expect(serializedBody).not.toContain('GeneralLearningAccess');
     expect(serializedBody).not.toContain('userOwnedInbox');
+  });
+});
+
+describe('General trainee platform campaign discovery (GET /trainee/platform-campaigns)', () => {
+  const platformCampaignId = '77777777-1111-4777-8777-777777777777';
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAuthenticatedTrainee();
+    mockNoProgress();
+
+    prismaMock.campaign.findMany.mockResolvedValue([
+      {
+        id: platformCampaignId,
+        name: 'Platform Phishing Fundamentals',
+        description: 'Premade platform awareness training',
+        accentColor: '#10B981',
+        campaignType: 'PREMADE_GENERAL',
+        difficultyLevel: 'BEGINNER',
+        status: 'ACTIVE',
+        startDate: new Date('2026-05-16T08:00:00.000Z'),
+        endDate: null,
+        items: [
+          { id: trainingItemId, availabilityStatus: 'AVAILABLE' },
+          { id: quizItemId, availabilityStatus: 'AVAILABLE' },
+        ],
+        assignments: [],
+      },
+    ]);
+    prismaMock.campaign.count.mockResolvedValue(1);
+  });
+
+  it('lists active platform campaigns for an authenticated active general trainee', async () => {
+    const response = await request(createApp())
+      .get('/trainee/platform-campaigns')
+      .set('Authorization', authHeader());
+
+    expect(response.status).toBe(200);
+    expect(prismaMock.campaign.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          campaignType: 'PREMADE_GENERAL',
+          organisationId: null,
+          status: 'ACTIVE',
+        }),
+        skip: 0,
+        take: 10,
+      }),
+    );
+    expect(response.body).toMatchObject({
+      items: [
+        {
+          campaignId: platformCampaignId,
+          name: 'Platform Phishing Fundamentals',
+          campaignType: 'PREMADE_GENERAL',
+          status: 'ACTIVE',
+          isEnrolled: false,
+          assignment: null,
+          accessType: null,
+          itemCount: 2,
+          availableItemCount: 2,
+          eligibility: {
+            canView: true,
+            canProgress: true,
+            reason: 'AVAILABLE',
+          },
+        },
+      ],
+      pagination: {
+        page: 1,
+        limit: 10,
+        totalItems: 1,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      },
+    });
+  });
+
+  it('supports pagination and search query parameters', async () => {
+    const response = await request(createApp())
+      .get('/trainee/platform-campaigns?page=2&limit=5&search=phishing')
+      .set('Authorization', authHeader());
+
+    expect(response.status).toBe(200);
+    expect(prismaMock.campaign.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          campaignType: 'PREMADE_GENERAL',
+          organisationId: null,
+          status: 'ACTIVE',
+          name: {
+            contains: 'phishing',
+            mode: 'insensitive',
+          },
+        }),
+        skip: 5,
+        take: 5,
+      }),
+    );
+  });
+
+  it('indicates when a platform campaign is already enrolled by the trainee', async () => {
+    prismaMock.campaign.findMany.mockResolvedValue([
+      {
+        id: platformCampaignId,
+        name: 'Platform Phishing Fundamentals',
+        description: 'Premade platform awareness training',
+        accentColor: '#10B981',
+        campaignType: 'PREMADE_GENERAL',
+        difficultyLevel: 'BEGINNER',
+        status: 'ACTIVE',
+        startDate: new Date('2026-05-16T08:00:00.000Z'),
+        endDate: null,
+        items: [{ id: trainingItemId, availabilityStatus: 'AVAILABLE' }],
+        assignments: [
+          {
+            id: assignmentId,
+            assignmentStatus: 'ASSIGNED',
+            accessType: 'SELF_SELECTED',
+            currentCampaignItemId: null,
+            assignedAt: new Date('2026-05-16T08:00:00.000Z'),
+            dueDate: null,
+            startedAt: null,
+            completedAt: null,
+          },
+        ],
+      },
+    ]);
+
+    const response = await request(createApp())
+      .get('/trainee/platform-campaigns')
+      .set('Authorization', authHeader());
+
+    expect(response.status).toBe(200);
+    expect(response.body.items[0]).toMatchObject({
+      campaignId: platformCampaignId,
+      isEnrolled: true,
+      accessType: 'SELF_SELECTED',
+      assignment: {
+        assignmentId,
+        accessType: 'SELF_SELECTED',
+        assignmentStatus: 'ASSIGNED',
+      },
+    });
+  });
+
+  it('rejects unauthenticated requests with 401', async () => {
+    const response = await request(createApp()).get('/trainee/platform-campaigns');
+
+    expect(response.status).toBe(401);
+    expect(response.body).toHaveProperty('error', 'AUTH_REQUIRED');
+  });
+
+  it('denies organisation trainees from accessing platform campaign discovery with 403', async () => {
+    prismaMock.user.findUnique.mockResolvedValue({
+      ...user,
+      userType: 'ORGANISATION_TRAINEE',
+      traineeProfile: {
+        id: traineeProfileId,
+        traineeStatus: 'ACTIVE',
+        generalTraineeProfile: null,
+        organisationTraineeProfile: {
+          id: 'org-trainee-id',
+          membershipStatus: 'ACTIVE',
+          organisation: {
+            id: 'org-id',
+            status: 'ACTIVE',
+            name: 'Acme Corp',
+          },
+        },
+      },
+    });
+
+    const response = await request(createApp())
+      .get('/trainee/platform-campaigns')
+      .set('Authorization', authHeader());
+
+    expect(response.status).toBe(403);
+    expect(response.body).toHaveProperty('error', 'FORBIDDEN');
+  });
+
+  it('denies inactive general trainees with 403', async () => {
+    prismaMock.user.findUnique.mockResolvedValue({
+      ...user,
+      traineeProfile: {
+        id: traineeProfileId,
+        traineeStatus: 'INACTIVE',
+        generalTraineeProfile: { id: 'some-id', accessSource: 'SELF_SIGNUP' },
+      },
+    });
+
+    const response = await request(createApp())
+      .get('/trainee/platform-campaigns')
+      .set('Authorization', authHeader());
+
+    expect(response.status).toBe(403);
+    expect(['FORBIDDEN', 'TRAINEE_PROFILE_INACTIVE']).toContain(response.body.error);
+  });
+
+  it('returns 400 validation error for invalid query parameters', async () => {
+    const response = await request(createApp())
+      .get('/trainee/platform-campaigns?page=0&limit=101')
+      .set('Authorization', authHeader());
+
+    expect(response.status).toBe(400);
+    expect(response.body).toHaveProperty('error', 'VALIDATION_ERROR');
+  });
+
+  it('does not leak internal creator, audit, or draft catalogue fields in discovery output', async () => {
+    const response = await request(createApp())
+      .get('/trainee/platform-campaigns')
+      .set('Authorization', authHeader());
+
+    const serialized = JSON.stringify(response.body);
+    expect(serialized).not.toContain('createdByUserId');
+    expect(serialized).not.toContain('creator');
+    expect(serialized).not.toContain('auditLog');
+  });
+});
+
+describe('General trainee platform campaign self-enrolment (POST /trainee/platform-campaigns/:campaignId/enrol)', () => {
+  const platformCampaignId = '77777777-1111-4777-8777-777777777777';
+
+  const activePlatformCampaign = {
+    id: platformCampaignId,
+    name: 'Platform Phishing Fundamentals',
+    description: 'Premade platform awareness training',
+    accentColor: '#10B981',
+    campaignType: 'PREMADE_GENERAL',
+    difficultyLevel: 'BEGINNER',
+    status: 'ACTIVE',
+    startDate: new Date('2026-05-16T08:00:00.000Z'),
+    endDate: null,
+    items: [
+      { id: trainingItemId, availabilityStatus: 'AVAILABLE' },
+      { id: quizItemId, availabilityStatus: 'AVAILABLE' },
+    ],
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAuthenticatedTrainee();
+    mockNoProgress();
+
+    prismaMock.campaign.findFirst.mockResolvedValue(activePlatformCampaign);
+    prismaMock.campaignAssignment.findUnique.mockResolvedValue(null);
+    prismaMock.campaignAssignment.createMany.mockImplementation(
+      (args: { data: Array<{ id: string }> }) => {
+        const insertedId = args.data?.[0]?.id ?? assignmentId;
+        prismaMock.campaignAssignment.findUnique.mockResolvedValue({
+          id: insertedId,
+          campaignId: platformCampaignId,
+          traineeProfileId,
+          assignmentStatus: 'ASSIGNED',
+          accessType: 'SELF_SELECTED',
+          currentCampaignItemId: null,
+          assignedAt: new Date('2026-05-16T08:00:00.000Z'),
+          dueDate: null,
+          startedAt: null,
+          completedAt: null,
+        });
+        return Promise.resolve({ count: 1 });
+      },
+    );
+  });
+
+  it('successfully enrols active general trainee with SELF_SELECTED access type', async () => {
+    const response = await request(createApp())
+      .post(`/trainee/platform-campaigns/${platformCampaignId}/enrol`)
+      .set('Authorization', authHeader());
+
+    expect(response.status).toBe(200);
+    expect(prismaMock.campaignAssignment.createMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.arrayContaining([
+          expect.objectContaining({
+            campaignId: platformCampaignId,
+            traineeProfileId,
+            assignedByUserId: null,
+            accessType: 'SELF_SELECTED',
+            assignmentStatus: 'ASSIGNED',
+          }),
+        ]),
+        skipDuplicates: true,
+      }),
+    );
+    expect(response.body).toMatchObject({
+      campaignId: platformCampaignId,
+      name: 'Platform Phishing Fundamentals',
+      campaignType: 'PREMADE_GENERAL',
+      status: 'ACTIVE',
+      accessType: 'SELF_SELECTED',
+      assignment: {
+        assignmentId: expect.any(String),
+        accessType: 'SELF_SELECTED',
+        assignmentStatus: 'ASSIGNED',
+      },
+      itemCount: 2,
+      availableItemCount: 2,
+      eligibility: {
+        canView: true,
+        canProgress: true,
+        reason: 'AVAILABLE',
+      },
+    });
+  });
+
+  it('is idempotent on duplicate enrolment and returns existing assignment without resetting progress', async () => {
+    prismaMock.campaignAssignment.findUnique.mockResolvedValue({
+      id: assignmentId,
+      campaignId: platformCampaignId,
+      traineeProfileId,
+      assignmentStatus: 'IN_PROGRESS',
+      accessType: 'SELF_SELECTED',
+      currentCampaignItemId: trainingItemId,
+      assignedAt: new Date('2026-05-16T08:00:00.000Z'),
+      dueDate: null,
+      startedAt: new Date('2026-05-16T08:30:00.000Z'),
+      completedAt: null,
+    });
+
+    const response = await request(createApp())
+      .post(`/trainee/platform-campaigns/${platformCampaignId}/enrol`)
+      .set('Authorization', authHeader());
+
+    expect(response.status).toBe(200);
+    expect(prismaMock.campaignAssignment.createMany).not.toHaveBeenCalled();
+    expect(response.body).toMatchObject({
+      campaignId: platformCampaignId,
+      accessType: 'SELF_SELECTED',
+      assignment: {
+        assignmentId,
+        assignmentStatus: 'IN_PROGRESS',
+        accessType: 'SELF_SELECTED',
+      },
+    });
+  });
+
+  it('preserves existing admin-assigned ASSIGNED accessType and never downgrades to SELF_SELECTED', async () => {
+    prismaMock.campaignAssignment.findUnique.mockResolvedValue({
+      id: assignmentId,
+      campaignId: platformCampaignId,
+      traineeProfileId,
+      assignmentStatus: 'ASSIGNED',
+      accessType: 'ASSIGNED',
+      currentCampaignItemId: null,
+      assignedAt: new Date('2026-05-16T08:00:00.000Z'),
+      dueDate: null,
+      startedAt: null,
+      completedAt: null,
+    });
+
+    const response = await request(createApp())
+      .post(`/trainee/platform-campaigns/${platformCampaignId}/enrol`)
+      .set('Authorization', authHeader());
+
+    expect(response.status).toBe(200);
+    expect(prismaMock.campaignAssignment.createMany).not.toHaveBeenCalled();
+    expect(response.body).toMatchObject({
+      campaignId: platformCampaignId,
+      accessType: 'ASSIGNED',
+      assignment: {
+        assignmentId,
+        accessType: 'ASSIGNED',
+      },
+    });
+  });
+
+  it('returns 404 if platform campaign does not exist or belongs to an organisation', async () => {
+    prismaMock.campaign.findFirst.mockResolvedValue(null);
+
+    const response = await request(createApp())
+      .post(`/trainee/platform-campaigns/${platformCampaignId}/enrol`)
+      .set('Authorization', authHeader());
+
+    expect(response.status).toBe(404);
+    expect(response.body).toHaveProperty('error', 'CAMPAIGN_NOT_FOUND');
+  });
+
+  it('returns 409 or 404 when attempting to enrol in an inactive or archived campaign', async () => {
+    prismaMock.campaign.findFirst.mockResolvedValue({
+      ...activePlatformCampaign,
+      status: 'ARCHIVED',
+    });
+
+    const response = await request(createApp())
+      .post(`/trainee/platform-campaigns/${platformCampaignId}/enrol`)
+      .set('Authorization', authHeader());
+
+    expect([404, 409]).toContain(response.status);
+  });
+
+  it('denies organisation trainees from self-enrolment with 403', async () => {
+    prismaMock.user.findUnique.mockResolvedValue({
+      ...user,
+      userType: 'ORGANISATION_TRAINEE',
+      traineeProfile: {
+        id: traineeProfileId,
+        traineeStatus: 'ACTIVE',
+        generalTraineeProfile: null,
+        organisationTraineeProfile: {
+          id: 'org-trainee-id',
+          membershipStatus: 'ACTIVE',
+          organisation: {
+            id: 'org-id',
+            status: 'ACTIVE',
+            name: 'Acme Corp',
+          },
+        },
+      },
+    });
+
+    const response = await request(createApp())
+      .post(`/trainee/platform-campaigns/${platformCampaignId}/enrol`)
+      .set('Authorization', authHeader());
+
+    expect(response.status).toBe(403);
+    expect(response.body).toHaveProperty('error', 'FORBIDDEN');
+  });
+
+  it('denies inactive general trainees from self-enrolment with 403', async () => {
+    prismaMock.user.findUnique.mockResolvedValue({
+      ...user,
+      traineeProfile: {
+        id: traineeProfileId,
+        traineeStatus: 'INACTIVE',
+        generalTraineeProfile: { id: 'some-id', accessSource: 'SELF_SIGNUP' },
+      },
+    });
+
+    const response = await request(createApp())
+      .post(`/trainee/platform-campaigns/${platformCampaignId}/enrol`)
+      .set('Authorization', authHeader());
+
+    expect(response.status).toBe(403);
+    expect(['FORBIDDEN', 'TRAINEE_PROFILE_INACTIVE']).toContain(response.body.error);
+  });
+
+  it('returns 400 validation error for malformed campaignId', async () => {
+    const response = await request(createApp())
+      .post('/trainee/platform-campaigns/invalid-uuid/enrol')
+      .set('Authorization', authHeader());
+
+    expect(response.status).toBe(400);
+    expect(response.body).toHaveProperty('error', 'VALIDATION_ERROR');
+  });
+
+  it('rejects unauthenticated enrol requests with 401', async () => {
+    const response = await request(createApp()).post(
+      `/trainee/platform-campaigns/${platformCampaignId}/enrol`,
+    );
+
+    expect(response.status).toBe(401);
+    expect(response.body).toHaveProperty('error', 'AUTH_REQUIRED');
   });
 });
