@@ -1,0 +1,333 @@
+# Continuous Deployment Workflow
+
+name: Continuous Deployment
+
+on:
+  workflow_run:
+    workflows:
+      - Continuous Integration
+    types:
+      - completed
+    branches:
+      - main
+      - dev
+
+permissions: {}
+
+env:
+  TARGET_SHA: ${{ github.event.workflow_run.head_sha }}
+  TARGET_BRANCH: ${{ github.event.workflow_run.head_branch }}
+
+jobs:
+  deployment-eligibility:
+    name: Verify Deployment Eligibility
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+    timeout-minutes: 10
+
+    steps:
+      - name: Verify triggering CI run
+        env:
+          UPSTREAM_WORKFLOW: ${{ github.event.workflow_run.name }}
+          UPSTREAM_EVENT: ${{ github.event.workflow_run.event }}
+          UPSTREAM_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          UPSTREAM_REPOSITORY: ${{ github.event.workflow_run.head_repository.full_name }}
+        run: |
+          set -Eeuo pipefail 
+          if [[ "$UPSTREAM_WORKFLOW" != 'Continuous Integration' ]]; then
+            echo "Deployment was not triggered by Continuous Integration" >&2
+            exit 1
+          fi
+          if [[ "$UPSTREAM_REPOSITORY" != "$GITHUB_REPOSITORY" ]]; then
+            echo "Deployment source repo must be $GITHUB_REPOSITORY" >&2
+            exit 1
+          fi
+          if [[ "$UPSTREAM_EVENT" != 'push' ]]; then
+            echo "Only CI runs triggered by a push can deploy" >&2
+            exit 1
+          fi
+          if [[ "$UPSTREAM_CONCLUSION" != 'success' ]]; then
+            echo "CI did not succeed for deployment SHA $TARGET_SHA" >&2
+            exit 1
+          fi
+          if [[ ! "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Deployment SHA must be 40 lowercase hex characters" >&2
+            exit 1
+          fi
+          if [[ "$TARGET_BRANCH" != 'dev' && "$TARGET_BRANCH" != 'main' ]]; then
+            echo "Deployment branch must be dev or main" >&2
+            exit 1
+          fi
+          echo "CI passed for deployment SHA $TARGET_SHA"
+          echo "Deployment branch: $TARGET_BRANCH"
+
+  docker-build-backend:
+    name: Docker Build & Publish (Backend)
+    if: github.event.workflow_run.event == 'push' && github.event.workflow_run.head_repository.full_name == github.repository && github.event.workflow_run.head_branch == 'main'
+    needs:
+      - deployment-eligibility
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout deployment SHA
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ env.TARGET_SHA }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f95db51fddba0c2d1ec667646a06c2ce06100226 # v3.0.0
+
+      - name: Log into GHCR
+        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # 4.4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Publish Backend Image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: .
+          file: apps/backend/Dockerfile
+          push: true
+          tags: |
+            ${{ vars.GHCR_IMAGE_PREFIX }}/backend:${{ env.TARGET_SHA }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,scope=backend,mode=max
+
+  docker-build-frontend:
+    name: Docker Build & Publish (Frontend)
+    if: github.event.workflow_run.event == 'push' && github.event.workflow_run.head_repository.full_name == github.repository && github.event.workflow_run.head_branch == 'main'
+    needs:
+      - deployment-eligibility
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout deployment SHA
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ env.TARGET_SHA }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f95db51fddba0c2d1ec667646a06c2ce06100226 # v3.0.0
+
+      - name: Log into GHCR
+        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # 4.4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Publish Frontend Image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: .
+          file: apps/frontend/Dockerfile
+          push: true
+          build-args: |
+            VITE_API_BASE_URL=https://api.insightfulphish.co.za
+          tags: |
+            ${{ vars.GHCR_IMAGE_PREFIX }}/frontend:${{ env.TARGET_SHA }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,scope=frontend,mode=max
+
+  docker-build-development-backend:
+    name: Docker Build & Publish Development (Backend)
+    if: github.event.workflow_run.event == 'push' && github.event.workflow_run.head_repository.full_name == github.repository && github.event.workflow_run.head_branch == 'dev'
+    needs:
+      - deployment-eligibility
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout deployment SHA
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ env.TARGET_SHA }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f95db51fddba0c2d1ec667646a06c2ce06100226 # v3.0.0
+
+      - name: Log into GHCR
+        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # 4.4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Publish Development Backend Image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: .
+          file: apps/backend/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ vars.GHCR_IMAGE_PREFIX }}/backend:dev-${{ env.TARGET_SHA }}
+          cache-from: type=gha,scope=backend-development-amd64
+          cache-to: type=gha,scope=backend-development-amd64,mode=max
+
+  docker-build-development-frontend:
+    name: Docker Build & Publish Development (Frontend)
+    if: github.event.workflow_run.event == 'push' && github.event.workflow_run.head_repository.full_name == github.repository && github.event.workflow_run.head_branch == 'dev'
+    needs:
+      - deployment-eligibility
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ env.TARGET_SHA }}
+
+      - name: Require Development Frontend API URL
+        env:
+          DEVELOPMENT_FRONTEND_API_URL: ${{ vars.DEVELOPMENT_FRONTEND_API_URL }}
+        run: |
+          set -Eeuo pipefail
+          if [[ -z "$DEVELOPMENT_FRONTEND_API_URL" ]]; then
+            echo "DEVELOPMENT_FRONTEND_API_URL is required" >&2
+            exit 1
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f95db51fddba0c2d1ec667646a06c2ce06100226 # v3.0.0
+
+      - name: Log into GHCR
+        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # 4.4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Publish Development Frontend Image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: .
+          file: apps/frontend/Dockerfile
+          platforms: linux/amd64
+          push: true
+          build-args: |
+            VITE_API_BASE_URL=${{ vars.DEVELOPMENT_FRONTEND_API_URL }}
+          tags: |
+            ${{ vars.GHCR_IMAGE_PREFIX }}/frontend:dev-${{ env.TARGET_SHA }}
+          cache-from: type=gha,scope=frontend-development-amd64
+          cache-to: type=gha,scope=frontend-development-amd64,mode=max
+
+  deploy-production:
+    name: Deploy Production
+    if: github.event.workflow_run.head_branch == 'main' && vars.PRODUCTION_DEPLOY_ENABLED == 'true'
+    needs:
+      - docker-build-backend
+      - docker-build-frontend
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://insightfulphish.co.za
+    timeout-minutes: 20
+    concurrency:
+      group: insightfulphish-production
+      cancel-in-progress: false
+    permissions: {}
+    steps:
+      - name: Prepare SSH
+        env:
+          DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d "$HOME/.ssh"
+          printf '%s\n' "$DEPLOY_SSH_PRIVATE_KEY" > "$HOME/.ssh/id_ed25519"
+          chmod 600 "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+      - name: Deploy production release
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          ssh \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -i "$HOME/.ssh/id_ed25519" \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            "sudo /usr/local/bin/deploy-insightfulphish-production '${{ env.TARGET_SHA }}'"
+
+      - name: Remove SSH credentials
+        if: always()
+        run: |
+          rm -f "$HOME/.ssh/id_ed25519"
+
+  deploy-development:
+    name: Deploy Development
+    if: github.event.workflow_run.head_branch == 'dev' && vars.DEVELOPMENT_DEPLOY_ENABLED == 'true'
+    needs:
+      - docker-build-development-backend
+      - docker-build-development-frontend
+    runs-on: ubuntu-latest
+    environment:
+      name: development
+      url: https://dev.insightfulphish.co.za
+    timeout-minutes: 20
+    concurrency:
+      group: insightfulphish-development
+      cancel-in-progress: false
+    permissions: {}
+    steps:
+      - name: Prepare SSH
+        env:
+          DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          set -Eeuo pipefail
+          install -m 600 /dev/null "$RUNNER_TEMP/development_id_ed25519"
+          printf '%s\n' "$DEPLOY_SSH_PRIVATE_KEY" > "$RUNNER_TEMP/development_id_ed25519"
+          install -m 600 /dev/null "$RUNNER_TEMP/development_known_hosts"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$RUNNER_TEMP/development_known_hosts"
+
+      - name: Deploy development release
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          set -Eeuo pipefail
+          if ! ssh \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o ConnectTimeout=15 \
+            -o ConnectionAttempts=1 \
+            -o ServerAliveInterval=15 \
+            -o ServerAliveCountMax=2 \
+            -o "UserKnownHostsFile=$RUNNER_TEMP/development_known_hosts" \
+            -i "$RUNNER_TEMP/development_id_ed25519" \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            "sudo /usr/local/bin/deploy-insightfulphish-development '${{ env.TARGET_SHA }}'"
+          then
+            echo "Development deployment SSH connection or remote command failed" >&2
+            echo "If the server is stopped, start it and wait for SSH before retrying." >&2
+            exit 1
+          fi
+
+      - name: Remove SSH credentials
+        if: always()
+        run: |
+          rm -f "$RUNNER_TEMP/development_known_hosts"
+          rm -f "$RUNNER_TEMP/development_id_ed25519"
