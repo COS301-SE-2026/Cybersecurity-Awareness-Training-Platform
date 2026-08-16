@@ -8,6 +8,7 @@ import CampaignBuilder from './CampaignBuilder';
 import type { CampaignManagementClient } from './campaignManagementClient';
 import type { CampaignManagementContext } from './campaignManagement.types';
 import { developmentCampaignManagementClient } from './developmentCampaignManagementClient';
+import { toDateTimeLocal } from './campaignDraftDate';
 import './campaign-management.css';
 
 type CampaignManagementDetailPageProps = Readonly<{
@@ -144,7 +145,11 @@ function CampaignManagementDetailPage({
             initialDraft={{
               name: '',
               description: '',
+              accentColor: '#8400FF',
+              startDate: '',
+              endDate: '',
             }}
+            contextKind={context.kind}
           />
         )}
 
@@ -185,7 +190,11 @@ function CampaignManagementDetailPage({
             initialDraft={{
               name: detail.name,
               description: detail.description ?? '',
+              accentColor: detail.accentColor ?? '#8400FF',
+              startDate: toDateTimeLocal(detail.startDate),
+              endDate: toDateTimeLocal(detail.endDate),
             }}
+            contextKind={context.kind}
           />
         )}
 

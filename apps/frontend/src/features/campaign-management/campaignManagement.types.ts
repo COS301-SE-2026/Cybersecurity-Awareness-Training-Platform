@@ -10,4 +10,7 @@ export type CampaignManagementContext =
 export type CampaignDraftFormState = {
   name: string;
   description: string;
+  accentColor: string;
+  startDate: string;
+  endDate: string;
 };

@@ -351,6 +351,58 @@
   outline-offset: 1px;
 }
 
+.campaign-colour-field,
+.campaign-schedule {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.campaign-colour-field legend,
+.campaign-schedule legend {
+  margin-bottom: 0.75rem;
+  color: #2d1b46;
+  font-family: var(--jost);
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.campaign-colour-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.campaign-colour-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid #d1d5db;
+  font-family: var(--overpass);
+  cursor: pointer;
+}
+
+.campaign-colour-option__swatch {
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 1px solid #6b7280;
+}
+
+.campaign-schedule__fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.campaign-form-error {
+  margin: 0;
+  color: #991b1b;
+  font-family: var(--overpass);
+  font-size: 0.9rem;
+}
+
 @media (max-width: 48rem) {
   .campaign-filters,
   .campaign-card__heading {
@@ -368,5 +420,9 @@
 
   .campaign-metadata {
     grid-template-columns: repeat(2, minmax(8rem, 1fr));
+  }
+
+  .campaign-schedule__fields {
+    grid-template-columns: 1fr;
   }
 }
