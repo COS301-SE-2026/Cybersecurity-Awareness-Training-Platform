@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import type { CampaignDetailResponseDto } from '@insightful-phish/shared';
@@ -212,5 +212,68 @@ describe('CampaignManagementDetailPage', () => {
     });
 
     expect(screen.getByRole('textbox', { name: 'Campaign name' })).toHaveValue(secondDetail.name);
+  });
+
+  it('starts a new Campaign clean with Discard disabled', () => {
+    renderPage(NEW_PATH, NEW_ROUTE, {
+      getCampaignDetail: vi.fn(),
+    });
+
+    expect(
+      screen.getByRole('button', {
+        name: 'Discard',
+      }),
+    ).toBeDisabled();
+  });
+
+  it('preserves local changes when Discard is cancelled', async () => {
+    const user = userEvent.setup();
+
+    renderPage(DETAIL_PATH, DETAIL_ROUTE, {
+      getCampaignDetail: vi.fn().mockResolvedValue(DRAFT_DETAIL),
+    });
+
+    const name = await screen.findByRole('textbox', { name: 'Campaign name' });
+
+    await user.clear(name);
+    await user.type(name, 'Changed Campaign');
+
+    await user.click(screen.getByRole('button', { name: 'Discard' }));
+
+    const title = screen.getByText('Discard unsaved changes?');
+    const modal = title.closest('#popup-modal');
+
+    expect(modal).not.toBeNull();
+
+    await user.click(within(modal as HTMLElement).getByText('Cancel'));
+
+    expect(screen.queryByText('Discard unsaved changes?')).not.toBeInTheDocument();
+    expect(name).toHaveValue('Changed Campaign');
+  });
+
+  it('restores authoritative values when Discard is confirmed', async () => {
+    const user = userEvent.setup();
+
+    renderPage(DETAIL_PATH, DETAIL_ROUTE, {
+      getCampaignDetail: vi.fn().mockResolvedValue(DRAFT_DETAIL),
+    });
+
+    const name = await screen.findByRole('textbox', { name: 'Campaign name' });
+
+    await user.clear(name);
+    await user.type(name, 'Changed Campaign');
+
+    await user.click(screen.getByRole('button', { name: 'Discard' }));
+
+    const title = screen.getByText('Discard unsaved changes?');
+    const modal = title.closest('#popup-modal');
+
+    expect(modal).not.toBeNull();
+
+    await user.click(within(modal as HTMLElement).getByText('Discard'));
+
+    expect(screen.queryByText('Discard unsaved changes?')).not.toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Campaign name' })).toHaveValue(DRAFT_DETAIL.name);
+    expect(screen.getByRole('button', { name: 'Discard' })).toBeDisabled();
   });
 });

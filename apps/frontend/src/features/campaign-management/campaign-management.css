@@ -403,6 +403,31 @@
   font-size: 0.9rem;
 }
 
+.campaign-builder__actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 0.5rem;
+}
+
+.campaign-builder__discard {
+  padding: 0.65rem 1rem;
+  border: 1px solid #991b1b;
+  color: #991b1b;
+  background: white;
+  font-family: var(--jost);
+  cursor: pointer;
+}
+
+.campaign-builder__discard:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.campaign-builder__discard:focus-visible {
+  outline: 3px solid var(--ip-faint-purple);
+  outline-offset: 2px;
+}
+
 @media (max-width: 48rem) {
   .campaign-filters,
   .campaign-card__heading {

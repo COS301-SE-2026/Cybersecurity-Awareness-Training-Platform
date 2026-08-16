@@ -9,6 +9,7 @@ import type { CampaignManagementClient } from './campaignManagementClient';
 import type { CampaignManagementContext } from './campaignManagement.types';
 import { developmentCampaignManagementClient } from './developmentCampaignManagementClient';
 import { toDateTimeLocal } from './campaignDraftDate';
+import BasicConfirmationModal from '../../components/layout/modals/BasicConfirmationModal';
 import './campaign-management.css';
 
 type CampaignManagementDetailPageProps = Readonly<{
@@ -31,6 +32,13 @@ type CampaignDetailLoadState =
       campaignId: string;
       status: 'loading';
     };
+
+type EditorDirtyState = {
+  editorKey: string;
+  isDirty: boolean;
+};
+
+type ConfirmationIntent = 'reset' | null;
 
 function CampaignManagementDetailPage({
   contextKind,
@@ -61,10 +69,15 @@ function CampaignManagementDetailPage({
   const [loadState, setLoadState] = useState<CampaignDetailLoadState | null>(null);
   const requestIdRef = useRef(0);
   const [retryAttempt, setRetryAttempt] = useState(0);
+  const [, setEditorDirtyState] = useState<EditorDirtyState | null>(null);
+  const [resetVersion, setResetVersion] = useState(0);
+  const [confirmationIntent, setConfirmationIntent] = useState<ConfirmationIntent>(null);
 
   const currentLoadState = campaignId && loadState?.campaignId === campaignId ? loadState : null;
 
   const detail = currentLoadState?.status === 'loaded' ? currentLoadState.detail : null;
+
+  const editorKey = isNew ? 'new' : (detail?.id ?? null);
 
   const isLoading = !isNew && (!currentLoadState || currentLoadState.status === 'loading');
 
@@ -141,7 +154,8 @@ function CampaignManagementDetailPage({
 
         {isNew && (
           <CampaignBuilder
-            key="new"
+            key={`new:${resetVersion}`}
+            contextKind={context.kind}
             initialDraft={{
               name: '',
               description: '',
@@ -149,7 +163,15 @@ function CampaignManagementDetailPage({
               startDate: '',
               endDate: '',
             }}
-            contextKind={context.kind}
+            onDirtyChange={(isDirty) => {
+              setEditorDirtyState({
+                editorKey: 'new',
+                isDirty,
+              });
+            }}
+            onRequestDiscard={() => {
+              setConfirmationIntent('reset');
+            }}
           />
         )}
 
@@ -186,7 +208,8 @@ function CampaignManagementDetailPage({
 
         {!isNew && !isLoading && !loadError && detail && canEditDraft && (
           <CampaignBuilder
-            key={detail.id}
+            key={`${detail.id}:${resetVersion}`}
+            contextKind={context.kind}
             initialDraft={{
               name: detail.name,
               description: detail.description ?? '',
@@ -194,7 +217,15 @@ function CampaignManagementDetailPage({
               startDate: toDateTimeLocal(detail.startDate),
               endDate: toDateTimeLocal(detail.endDate),
             }}
-            contextKind={context.kind}
+            onDirtyChange={(isDirty) => {
+              setEditorDirtyState({
+                editorKey: detail.id,
+                isDirty,
+              });
+            }}
+            onRequestDiscard={() => {
+              setConfirmationIntent('reset');
+            }}
           />
         )}
 
@@ -216,6 +247,29 @@ function CampaignManagementDetailPage({
             <p>Status: {detail.status}</p>
             <p>This Campaign is currently read-only.</p>
           </section>
+        )}
+
+        {confirmationIntent === 'reset' && (
+          <BasicConfirmationModal
+            title="Discard unsaved changes"
+            message="Your local Campaign Draft changes will be lost."
+            confirmButtonText="Discard"
+            confirmButtonVariant="danger"
+            onCancel={() => {
+              setConfirmationIntent(null);
+            }}
+            onConfirm={() => {
+              if (editorKey) {
+                setEditorDirtyState({
+                  editorKey,
+                  isDirty: false,
+                });
+              }
+
+              setConfirmationIntent(null);
+              setResetVersion((current) => current + 1);
+            }}
+          />
         )}
       </main>
     </AppLayout>

@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import CampaignBuilder from './CampaignBuilder';
 
@@ -123,5 +123,84 @@ describe('CampaignBuilder', () => {
     ).not.toBeInTheDocument();
     expect(endDate).toHaveAttribute('aria-invalid', 'false');
     expect(endDate).not.toHaveAttribute('aria-describedby');
+  });
+
+  it('starts clean with Discard disabled', () => {
+    render(<CampaignBuilder contextKind="organisation" initialDraft={INITIAL_DRAFT} />);
+
+    expect(screen.getByRole('button', { name: 'Discard' })).toBeDisabled();
+  });
+
+  it('enables Discard after a field changes', async () => {
+    const user = userEvent.setup();
+    const onDirtyChange = vi.fn();
+
+    render(
+      <CampaignBuilder
+        contextKind="organisation"
+        initialDraft={INITIAL_DRAFT}
+        onDirtyChange={onDirtyChange}
+      />,
+    );
+
+    await user.type(screen.getByRole('textbox', { name: 'Campaign name' }), 'updated');
+    expect(screen.getByRole('button', { name: 'Discard' })).toBeEnabled();
+    expect(onDirtyChange).toHaveBeenLastCalledWith(true);
+  });
+
+  it('becomes clean again when a field returns exactly to its baseline', async () => {
+    const user = userEvent.setup();
+    const onDirtyChange = vi.fn();
+
+    render(
+      <CampaignBuilder
+        contextKind="organisation"
+        initialDraft={INITIAL_DRAFT}
+        onDirtyChange={onDirtyChange}
+      />,
+    );
+
+    const name = screen.getByRole('textbox', { name: 'Campaign name' });
+    const discard = screen.getByRole('button', { name: 'Discard' });
+
+    await user.clear(name);
+    await user.type(name, 'Changed Campaign');
+
+    expect(discard).toBeEnabled();
+    expect(onDirtyChange).toHaveBeenLastCalledWith(true);
+
+    await user.clear(name);
+    await user.type(name, INITIAL_DRAFT.name);
+
+    expect(discard).toBeDisabled();
+    expect(onDirtyChange).toHaveBeenLastCalledWith(false);
+  });
+
+  it('requests confirmation instead of immediately resetting', async () => {
+    const user = userEvent.setup();
+    const onRequestDiscard = vi.fn();
+
+    render(
+      <CampaignBuilder
+        contextKind="organisation"
+        initialDraft={INITIAL_DRAFT}
+        onRequestDiscard={onRequestDiscard}
+      />,
+    );
+
+    const name = screen.getByRole('textbox', { name: 'Campaign name' });
+
+    await user.clear(name);
+    await user.type(name, 'Changed Campaign');
+    await user.click(screen.getByRole('button', { name: 'Discard' }));
+
+    expect(onRequestDiscard).toHaveBeenCalledOnce();
+    expect(name).toHaveValue('Changed Campaign');
+  });
+
+  it('provides Discard for a pllatform Campaing', () => {
+    render(<CampaignBuilder contextKind="platform" initialDraft={INITIAL_DRAFT} />);
+
+    expect(screen.getByRole('button', { name: 'Discard' })).toBeDisabled();
   });
 });

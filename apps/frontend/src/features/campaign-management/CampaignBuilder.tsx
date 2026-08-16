@@ -6,15 +6,47 @@ import type { CampaignDraftFormState, CampaignManagementContext } from './campai
 type CampaignBuilderProps = Readonly<{
   contextKind: CampaignManagementContext['kind'];
   initialDraft: CampaignDraftFormState;
+  onDirtyChange?: (isDirty: boolean) => void;
+  onRequestDiscard?: () => void;
 }>;
 
-function CampaignBuilder({ contextKind, initialDraft }: CampaignBuilderProps) {
+function areDraftsEqual(left: CampaignDraftFormState, right: CampaignDraftFormState): boolean {
+  return (
+    left.name === right.name &&
+    left.description === right.description &&
+    left.accentColor === right.accentColor &&
+    left.startDate === right.startDate &&
+    left.endDate === right.endDate
+  );
+}
+
+function CampaignBuilder({
+  contextKind,
+  initialDraft,
+  onDirtyChange,
+  onRequestDiscard,
+}: CampaignBuilderProps) {
+  const [persistedDraft] = useState<CampaignDraftFormState>(() => ({
+    ...initialDraft,
+  }));
   const [draft, setDraft] = useState<CampaignDraftFormState>(() => ({
     ...initialDraft,
   }));
 
   const hasScheduleError =
     Boolean(draft.startDate) && Boolean(draft.endDate) && draft.endDate <= draft.startDate;
+
+  const isDirty = !areDraftsEqual(persistedDraft, draft);
+
+  function updateDraft(patch: Partial<CampaignDraftFormState>) {
+    const nextDraft: CampaignDraftFormState = {
+      ...draft,
+      ...patch,
+    };
+
+    setDraft(nextDraft);
+    onDirtyChange?.(!areDraftsEqual(persistedDraft, nextDraft));
+  }
 
   return (
     <section className="campaign-builder" aria-label="Campaign details">
@@ -28,10 +60,9 @@ function CampaignBuilder({ contextKind, initialDraft }: CampaignBuilderProps) {
           maxLength={200}
           value={draft.name}
           onChange={(event) => {
-            setDraft((current) => ({
-              ...current,
+            updateDraft({
               name: event.target.value,
-            }));
+            });
           }}
         />
       </div>
@@ -45,20 +76,16 @@ function CampaignBuilder({ contextKind, initialDraft }: CampaignBuilderProps) {
           rows={6}
           value={draft.description}
           onChange={(event) => {
-            setDraft((current) => ({
-              ...current,
+            updateDraft({
               description: event.target.value,
-            }));
+            });
           }}
         />
       </div>
       <CampaignColourField
         value={draft.accentColor}
         onChange={(accentColor) => {
-          setDraft((current) => ({
-            ...current,
-            accentColor,
-          }));
+          updateDraft({ accentColor });
         }}
       />
 
@@ -75,10 +102,9 @@ function CampaignBuilder({ contextKind, initialDraft }: CampaignBuilderProps) {
                 type="datetime-local"
                 value={draft.startDate}
                 onChange={(event) => {
-                  setDraft((current) => ({
-                    ...current,
+                  updateDraft({
                     startDate: event.target.value,
-                  }));
+                  });
                 }}
               />
             </div>
@@ -93,10 +119,9 @@ function CampaignBuilder({ contextKind, initialDraft }: CampaignBuilderProps) {
                 aria-invalid={hasScheduleError}
                 aria-describedby={hasScheduleError ? 'campaign-end-date-error' : undefined}
                 onChange={(event) => {
-                  setDraft((current) => ({
-                    ...current,
+                  updateDraft({
                     endDate: event.target.value,
-                  }));
+                  });
                 }}
               />
 
@@ -109,6 +134,18 @@ function CampaignBuilder({ contextKind, initialDraft }: CampaignBuilderProps) {
           </div>
         </fieldset>
       )}
+      <div className="campaign-builder__actions">
+        <button
+          type="button"
+          className="campaign-builder__discard"
+          disabled={!isDirty}
+          onClick={() => {
+            onRequestDiscard?.();
+          }}
+        >
+          Discard
+        </button>
+      </div>
     </section>
   );
 }
