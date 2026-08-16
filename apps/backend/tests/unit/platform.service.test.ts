@@ -25,6 +25,7 @@ const prismaMock = vi.hoisted(() => ({
   },
   organisation: {
     findUnique: vi.fn(),
+    findFirst: vi.fn(),
     create: vi.fn(),
   },
   organisationPermission: {
@@ -39,27 +40,27 @@ const prismaMock = vi.hoisted(() => ({
   },
   actionToken: {
     findUnique: vi.fn(),
+    create: vi.fn(),
     updateMany: vi.fn(),
   },
   emailDeliveryLog: {
     findFirst: vi.fn(),
     findMany: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+  },
+  emailDeliveryJob: {
+    create: vi.fn(),
+    update: vi.fn(),
   },
   organisationAdminProfile: {
     findMany: vi.fn(),
   },
   auditLogEntry: {
+    create: vi.fn(),
     findMany: vi.fn(),
   },
   $transaction: vi.fn((callback) => callback(prismaMock)),
-}));
-
-const repositoryMock = vi.hoisted(() => ({
-  findOrganisationByName: vi.fn(),
-  findActiveRequestByOrganisationName: vi.fn(),
-  findActiveRequestByWebsiteOrDomain: vi.fn(),
-  findActiveRequestByRepresentativeEmail: vi.fn(),
-  createOrganisationRegistrationRequest: vi.fn(),
 }));
 
 const actionTokenServiceMock = vi.hoisted(() => ({
@@ -86,11 +87,6 @@ const notificationFailureEventMock = vi.hoisted(() => ({
 vi.mock('../../src/lib/prisma.js', () => ({
   prisma: prismaMock,
 }));
-
-vi.mock(
-  '../../src/repositories/organisation-registration-request.repository.js',
-  () => repositoryMock,
-);
 
 vi.mock('../../src/services/action-token.service.js', () => actionTokenServiceMock);
 vi.mock('../../src/repositories/security-settings.repository.js', () => securitySettingsMock);
@@ -410,7 +406,7 @@ describe('platform organisation registration request service', () => {
 
   describe('approveOrganisationRequest', () => {
     beforeEach(() => {
-      repositoryMock.findOrganisationByName.mockResolvedValue(null);
+      prismaMock.organisation.findFirst.mockResolvedValue(null);
       prismaMock.user.findUnique.mockImplementation(async (args) => {
         // mock requirePlatformAdmin check
         if (args.where.id === actorUserId) {
@@ -441,10 +437,13 @@ describe('platform organisation registration request service', () => {
         recipientFirstName: 'John',
         expiresAt: new Date(),
       });
-      actionTokenServiceMock.issueActionToken.mockResolvedValue({
-        rawToken: 'token123',
-        token: { id: 'token-id-1', expiresAt: new Date() },
+      prismaMock.actionToken.create.mockResolvedValue({
+        id: 'token-id-1',
+        expiresAt: new Date(),
       });
+      prismaMock.emailDeliveryLog.create.mockResolvedValue({ id: 'email-log-1' });
+      prismaMock.emailDeliveryJob.create.mockResolvedValue({ id: 'email-job-1' });
+      prismaMock.auditLogEntry.create.mockResolvedValue({ id: 'audit-1' });
       prismaMock.invitation.updateMany.mockResolvedValue({ count: 1 });
       prismaMock.invitation.findUnique.mockResolvedValue({ status: 'FAILED_TO_SEND' });
       prismaMock.actionToken.updateMany.mockResolvedValue({ count: 1 });
@@ -488,10 +487,13 @@ describe('platform organisation registration request service', () => {
         recipientFirstName: 'John',
         expiresAt: new Date(),
       });
-      actionTokenServiceMock.issueActionToken.mockResolvedValue({
-        rawToken: 'token123',
-        token: { id: 'token-id-1', expiresAt: new Date() },
+      prismaMock.actionToken.create.mockResolvedValue({
+        id: 'token-id-1',
+        expiresAt: new Date(),
       });
+      prismaMock.emailDeliveryLog.create.mockResolvedValue({ id: 'email-log-1' });
+      prismaMock.emailDeliveryJob.create.mockResolvedValue({ id: 'email-job-1' });
+      prismaMock.auditLogEntry.create.mockResolvedValue({ id: 'audit-1' });
       prismaMock.organisationRegistrationRequest.update.mockResolvedValue({
         id: requestId,
         status: 'APPROVED',
@@ -508,13 +510,6 @@ describe('platform organisation registration request service', () => {
         representativeEmail: 'john@acme.com',
         submittedOrganisationName: 'Acme',
       });
-      emailHookMock.requestAuthEmailSend.mockResolvedValue({
-        status: 'QUEUED',
-        queueAccepted: true,
-        queued: true,
-        deliveryLogId: 'email-log-1',
-        jobId: 'email-job-1',
-      });
 
       const response = await approveOrganisationRequest(actorUserId, requestId, {
         organisationName: 'Acme Corp',
@@ -523,43 +518,41 @@ describe('platform organisation registration request service', () => {
 
       expect(response.status).toBe('APPROVED');
       expect(prismaMock.organisation.create).toHaveBeenCalledWith({
-        data: { name: 'Acme Corp', status: 'PENDING_ONBOARDING' },
+        data: {
+          name: 'Acme Corp',
+          status: 'PENDING_ONBOARDING',
+          approximateSize: undefined,
+          description: undefined,
+          primaryDomain: undefined,
+          website: undefined,
+        },
       });
       expect(prismaMock.organisationPermission.createMany).toHaveBeenCalled();
       expect(securitySettingsMock.ensureDefaultOrganisationSecuritySettings).toHaveBeenCalled();
       expect(prismaMock.invitation.create).toHaveBeenCalled();
-      expect(actionTokenServiceMock.issueActionToken).toHaveBeenCalled();
-      expect(emailHookMock.requestAuthEmailSend).toHaveBeenCalled();
+      expect(prismaMock.actionToken.create).toHaveBeenCalled();
+      expect(prismaMock.emailDeliveryLog.create).toHaveBeenCalled();
+      expect(prismaMock.emailDeliveryJob.create).toHaveBeenCalled();
       expect(response.setupEmailQueued).toBe(true);
       expect(actionTokenServiceMock.revokeActionTokenById).not.toHaveBeenCalled();
     });
 
     it('rejects approval when the required setup email cannot be queued', async () => {
       mockApprovalPersistence();
-      emailHookMock.requestAuthEmailSend.mockResolvedValue({
-        status: 'NOT_QUEUED',
-        queueAccepted: false,
-        queued: false,
-        deliveryLogId: 'email-log-1',
-        reason: 'EMAIL_QUEUE_FAILED',
-      });
+      prismaMock.emailDeliveryJob.create.mockRejectedValue(
+        new Error('Required email could not be queued for delivery'),
+      );
 
       await expect(
         approveOrganisationRequest(actorUserId, requestId, {
           organisationName: 'Acme Corp',
           initialAdminEmail: 'john@acme.com',
         }),
-      ).rejects.toThrowError(
-        new OrganisationRegistrationRequestError(
-          409,
-          'EMAIL_QUEUE_FAILED',
-          'Required email could not be queued for delivery',
-        ),
-      );
+      ).rejects.toThrowError('Required email could not be queued for delivery');
 
       expect(prismaMock.organisation.create).toHaveBeenCalled();
       expect(prismaMock.invitation.create).toHaveBeenCalled();
-      expect(actionTokenServiceMock.issueActionToken).toHaveBeenCalled();
+      expect(prismaMock.actionToken.create).toHaveBeenCalled();
       expect(prismaMock.invitation.updateMany).not.toHaveBeenCalled();
       expect(prismaMock.actionToken.updateMany).not.toHaveBeenCalled();
       expect(notificationFailureEventMock.recordNotificationFailureEvent).not.toHaveBeenCalled();
@@ -579,26 +572,16 @@ describe('platform organisation registration request service', () => {
         revokedAt: null,
         revokedReason: null,
       });
-      emailHookMock.requestAuthEmailSend.mockResolvedValue({
-        status: 'NOT_QUEUED',
-        queueAccepted: false,
-        queued: false,
-        deliveryLogId: 'email-log-1',
-        reason: 'EMAIL_QUEUE_FAILED',
-      });
+      prismaMock.emailDeliveryJob.create.mockRejectedValue(
+        new Error('Required email could not be queued for delivery'),
+      );
 
       await expect(
         approveOrganisationRequest(actorUserId, requestId, {
           organisationName: 'Acme Corp',
           initialAdminEmail: 'john@acme.com',
         }),
-      ).rejects.toThrowError(
-        new OrganisationRegistrationRequestError(
-          409,
-          'EMAIL_QUEUE_FAILED',
-          'Required email could not be queued for delivery',
-        ),
-      );
+      ).rejects.toThrowError('Required email could not be queued for delivery');
 
       expect(notificationFailureEventMock.recordNotificationFailureEvent).not.toHaveBeenCalled();
       expect(actionTokenServiceMock.revokeActionTokenById).not.toHaveBeenCalled();
@@ -606,13 +589,6 @@ describe('platform organisation registration request service', () => {
 
     it('preserves the first setup token when SMTP acceptance is persisted successfully', async () => {
       mockApprovalPersistence();
-      emailHookMock.requestAuthEmailSend.mockResolvedValue({
-        status: 'QUEUED',
-        queueAccepted: true,
-        queued: true,
-        deliveryLogId: 'email-log-1',
-        jobId: 'email-job-1',
-      });
 
       const response = await approveOrganisationRequest(actorUserId, requestId, {
         organisationName: 'Acme Corp',
@@ -630,7 +606,7 @@ describe('platform organisation registration request service', () => {
         submittedOrganisationName: 'Acme',
         representativeEmail: 'john@acme.com',
       });
-      repositoryMock.findOrganisationByName.mockResolvedValue({ id: 'org-1' });
+      prismaMock.organisation.findFirst.mockResolvedValue({ id: 'org-1' });
 
       await expect(
         approveOrganisationRequest(actorUserId, requestId, {
@@ -682,6 +658,8 @@ describe('platform organisation registration request service', () => {
         id: requestId,
         status: 'PENDING_REVIEW',
         submittedOrganisationName: 'Acme',
+        representativeFirstName: 'John',
+        representativeLastName: 'Doe',
         representativeEmail: 'john@acme.com',
       });
       prismaMock.organisationRegistrationRequest.updateMany.mockResolvedValue({ count: 0 });
@@ -704,6 +682,8 @@ describe('platform organisation registration request service', () => {
         id: requestId,
         status: 'PENDING_REVIEW',
         submittedOrganisationName: 'Acme',
+        representativeFirstName: 'John',
+        representativeLastName: 'Doe',
         representativeEmail: 'john@acme.com',
       });
       const error = new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
@@ -731,6 +711,8 @@ describe('platform organisation registration request service', () => {
         id: requestId,
         status: 'PENDING_REVIEW',
         submittedOrganisationName: 'Acme',
+        representativeFirstName: 'John',
+        representativeLastName: 'Doe',
         representativeEmail: 'john@acme.com',
       });
       const error = new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
