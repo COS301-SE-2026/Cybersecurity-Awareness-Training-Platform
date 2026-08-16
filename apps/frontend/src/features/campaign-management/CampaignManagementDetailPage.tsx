@@ -6,15 +6,16 @@ import LoadingSpinnerSVG from '../../components/LoadingSpinnerSVG';
 import AppLayout from '../../components/layout/AppLayout';
 import CampaignBuilder from './CampaignBuilder';
 import type { CampaignManagementClient } from './campaignManagementClient';
-import type { CampaignManagementContext } from './campaignManagement.types';
+import type { CampaignDraftFormState, CampaignManagementContext } from './campaignManagement.types';
 import { developmentCampaignManagementClient } from './developmentCampaignManagementClient';
 import { toDateTimeLocal } from './campaignDraftDate';
+import { toCreateCampaignDraftRequest } from './campaignDraftRequest';
 import BasicConfirmationModal from '../../components/layout/modals/BasicConfirmationModal';
 import './campaign-management.css';
 
 type CampaignManagementDetailPageProps = Readonly<{
   contextKind: CampaignManagementContext['kind'];
-  client?: Pick<CampaignManagementClient, 'getCampaignDetail'>;
+  client?: Pick<CampaignManagementClient, 'getCampaignDetail' | 'createCampaignDraft'>;
 }>;
 
 type CampaignDetailLoadState =
@@ -73,6 +74,7 @@ function CampaignManagementDetailPage({
   const [editorDirtyState, setEditorDirtyState] = useState<EditorDirtyState | null>(null);
   const [resetVersion, setResetVersion] = useState(0);
   const [confirmationIntent, setConfirmationIntent] = useState<ConfirmationIntent>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const currentLoadState = campaignId && loadState?.campaignId === campaignId ? loadState : null;
 
@@ -151,10 +153,29 @@ function CampaignManagementDetailPage({
     return <Navigate to="/" replace />;
   }
 
+  const campaignContext = context;
+
   const campaignListPath =
     context.kind === 'organisation'
       ? `/organisations/${context.organisationId}/campaigns`
       : '/platform/campaigns';
+
+  async function handleCreateCampaignDraft(draft: CampaignDraftFormState) {
+    setSaveError(null);
+
+    try {
+      const created = await client.createCampaignDraft(
+        campaignContext,
+        toCreateCampaignDraftRequest(campaignContext, draft),
+      );
+
+      navigate(`${campaignListPath}/${created.id}`, {
+        replace: true,
+      });
+    } catch {
+      setSaveError('Campaign could not be saved.');
+    }
+  }
 
   const confirmationConfiguration =
     confirmationIntent === 'leave'
@@ -214,7 +235,15 @@ function CampaignManagementDetailPage({
             onRequestDiscard={() => {
               setConfirmationIntent('discard-new');
             }}
+            onSave={handleCreateCampaignDraft}
+            saveButtonText="Save Draft"
           />
+        )}
+
+        {isNew && saveError && (
+          <section className="campaign-error" role="alert">
+            <p>{saveError}</p>
+          </section>
         )}
 
         {!isNew && isLoading && (

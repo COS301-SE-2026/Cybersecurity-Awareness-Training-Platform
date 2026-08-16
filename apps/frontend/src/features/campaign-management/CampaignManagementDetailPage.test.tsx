@@ -2,7 +2,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import type { CampaignDetailResponseDto } from '@insightful-phish/shared';
-import type { ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { createDeferred, renderWithRouter } from '../../testing/render';
@@ -13,7 +13,9 @@ vi.mock('../../components/layout/AppLayout', () => ({
   default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
 
-type DetailClient = Pick<CampaignManagementClient, 'getCampaignDetail'>;
+type DetailClient = Pick<CampaignManagementClient, 'getCampaignDetail' | 'createCampaignDraft'>;
+
+type DetailClientFixture = Pick<CampaignManagementClient, 'getCampaignDetail'>;
 
 const ORGANISATION_ID = '11111111-1111-4111-8111-111111111111';
 const CAMPAIGN_ID = '10000000-0000-4000-8000-000000000001';
@@ -44,9 +46,17 @@ const DRAFT_DETAIL: CampaignDetailResponseDto = {
   items: [],
 };
 
-function renderPage(path: string, routePath: string, client: DetailClient) {
+function withCreateClient(fixture: DetailClientFixture): DetailClient {
+  return {
+    ...fixture,
+    createCampaignDraft: vi.fn(),
+  };
+}
+
+function renderPage(path: string, routePath: string, client: DetailClientFixture) {
+  const detailClient = withCreateClient(client);
   return renderWithRouter(
-    <CampaignManagementDetailPage contextKind="organisation" client={client} />,
+    <CampaignManagementDetailPage contextKind="organisation" client={detailClient} />,
     {
       initialEntry: path,
       routePath,
@@ -54,13 +64,16 @@ function renderPage(path: string, routePath: string, client: DetailClient) {
   );
 }
 
-function renderNavigatePage(path: string, routePath: string, client: DetailClient) {
+function renderNavigatePage(path: string, routePath: string, client: DetailClientFixture) {
+  const detailClient = withCreateClient(client);
   return render(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route
           path={routePath}
-          element={<CampaignManagementDetailPage contextKind="organisation" client={client} />}
+          element={
+            <CampaignManagementDetailPage contextKind="organisation" client={detailClient} />
+          }
         />
         <Route
           path="/organisations/:organisationId/campaigns"
@@ -71,8 +84,9 @@ function renderNavigatePage(path: string, routePath: string, client: DetailClien
   );
 }
 
-function DetailRouteHarness({ client }: { client: DetailClient }) {
+function DetailRouteHarness({ client }: { client: DetailClientFixture }) {
   const navigate = useNavigate();
+  const detailClient = useMemo(() => withCreateClient(client), [client]);
 
   return (
     <>
@@ -88,7 +102,9 @@ function DetailRouteHarness({ client }: { client: DetailClient }) {
       <Routes>
         <Route
           path={DETAIL_ROUTE}
-          element={<CampaignManagementDetailPage contextKind="organisation" client={client} />}
+          element={
+            <CampaignManagementDetailPage contextKind="organisation" client={detailClient} />
+          }
         />
       </Routes>
     </>

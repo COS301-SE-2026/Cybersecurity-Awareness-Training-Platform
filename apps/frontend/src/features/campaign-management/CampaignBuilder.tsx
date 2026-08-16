@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState, type FormEvent } from 'react';
 
 import CampaignColourField from './CampaignColourField';
 import type { CampaignDraftFormState, CampaignManagementContext } from './campaignManagement.types';
@@ -8,6 +8,8 @@ type CampaignBuilderProps = Readonly<{
   initialDraft: CampaignDraftFormState;
   onDirtyChange?: (isDirty: boolean) => void;
   onRequestDiscard?: () => void;
+  onSave?: (draft: CampaignDraftFormState) => void | Promise<void>;
+  saveButtonText?: string;
 }>;
 
 function areDraftsEqual(left: CampaignDraftFormState, right: CampaignDraftFormState): boolean {
@@ -25,18 +27,24 @@ function CampaignBuilder({
   initialDraft,
   onDirtyChange,
   onRequestDiscard,
+  onSave,
+  saveButtonText = 'Save Draft',
 }: CampaignBuilderProps) {
+  const nameInputId = useId();
+  const nameErrorId = `${nameInputId}-error`;
   const [persistedDraft] = useState<CampaignDraftFormState>(() => ({
     ...initialDraft,
   }));
   const [draft, setDraft] = useState<CampaignDraftFormState>(() => ({
     ...initialDraft,
   }));
+  const [hasSubmitted, setHasSubmitted] = useState(false);
 
   const hasScheduleError =
     Boolean(draft.startDate) && Boolean(draft.endDate) && draft.endDate <= draft.startDate;
 
   const isDirty = !areDraftsEqual(persistedDraft, draft);
+  const hasNameError = hasSubmitted && draft.name.trim().length === 0;
 
   function updateDraft(patch: Partial<CampaignDraftFormState>) {
     const nextDraft: CampaignDraftFormState = {
@@ -48,23 +56,47 @@ function CampaignBuilder({
     onDirtyChange?.(!areDraftsEqual(persistedDraft, nextDraft));
   }
 
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setHasSubmitted(true);
+
+    if (!draft.name.trim() || hasScheduleError) {
+      return;
+    }
+
+    void onSave?.(draft);
+  }
+
   return (
-    <section className="campaign-builder" aria-label="Campaign details">
+    <form
+      className="campaign-builder"
+      aria-label="Campaign details"
+      noValidate
+      onSubmit={handleSubmit}
+    >
       <div className="campaign-form-field">
-        <label htmlFor="campaign-name">Campaign name</label>
+        <label htmlFor={nameInputId}>Campaign name</label>
         <input
-          id="campaign-name"
+          id={nameInputId}
           name="campaign-name"
           type="text"
           required
           maxLength={200}
           value={draft.name}
+          aria-invalid={hasNameError}
+          aria-describedby={hasNameError ? nameErrorId : undefined}
           onChange={(event) => {
             updateDraft({
               name: event.target.value,
             });
           }}
         />
+
+        {hasNameError && (
+          <p id={nameErrorId} className="campaign-form-error" role="alert">
+            Please enter a Campaign name.
+          </p>
+        )}
       </div>
 
       <div className="campaign-form-field">
@@ -145,8 +177,14 @@ function CampaignBuilder({
         >
           Discard
         </button>
+
+        {onSave && (
+          <button type="submit" className="campaign-button campaign-button--primary">
+            {saveButtonText}
+          </button>
+        )}
       </div>
-    </section>
+    </form>
   );
 }
 
