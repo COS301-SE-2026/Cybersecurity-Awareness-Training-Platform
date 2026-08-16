@@ -2,6 +2,7 @@ import type {
   CampaignDetailResponseDto,
   CampaignListQueryDto,
   CampaignListRowDto,
+  CreateCampaignDraftRequestDto,
   GetCampaignsResponseDto,
 } from '@insightful-phish/shared';
 import type { CampaignManagementClient } from './campaignManagementClient';
@@ -15,7 +16,7 @@ type DevelopmentCampaignFixture = {
 const PRIMARY_ORGANISATION_ID = '11111111-1111-4111-8111-111111111111';
 const SECONDARY_ORGANISATION_ID = '22222222-2222-4222-8222-222222222222';
 
-const DEVELOPMENT_CAMPAIGNS: readonly DevelopmentCampaignFixture[] = [
+const DEVELOPMENT_CAMPAIGN_FIXTURES: readonly DevelopmentCampaignFixture[] = [
   {
     scope: {
       kind: 'organisation',
@@ -220,47 +221,98 @@ function matchesQuery(campaign: CampaignListRowDto, query: CampaignListQueryDto)
   return [campaign.name, campaign.description ?? ''].join(' ').toLowerCase().includes(search);
 }
 
-export const developmentCampaignManagementClient: CampaignManagementClient = {
-  async listCampaigns(
-    context: CampaignManagementContext,
-    query: CampaignListQueryDto,
-  ): Promise<GetCampaignsResponseDto> {
-    const matchingCampaigns = DEVELOPMENT_CAMPAIGNS.filter((fixture) =>
-      isInContext(fixture, context),
-    )
-      .map((fixture) => fixture.campaign)
-      .filter((campaign) => matchesQuery(campaign, query))
-      .sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt));
+type DevelopmentCampaignManagementClientOptions = Readonly<{
+  generateCampaignId?: () => string;
+  now?: () => Date;
+}>;
 
-    const startIndex = (query.page - 1) * query.limit;
-    const items = matchingCampaigns.slice(startIndex, startIndex + query.limit);
-    const totalPages =
-      matchingCampaigns.length === 0 ? 0 : Math.ceil(matchingCampaigns.length / query.limit);
+export function createDevelopmentCampaignManagementClient(
+  options: DevelopmentCampaignManagementClientOptions = {},
+): CampaignManagementClient {
+  const generateCampaignId = options.generateCampaignId ?? (() => crypto.randomUUID());
+  const now = options.now ?? (() => new Date());
+  const campaigns = [...DEVELOPMENT_CAMPAIGN_FIXTURES];
 
-    return {
-      items,
-      pagination: {
-        page: query.page,
-        limit: query.limit,
-        totalItems: matchingCampaigns.length,
-        totalPages,
-        hasNextPage: query.page < totalPages,
-        hasPreviousPage: query.page > 1,
-      },
-    };
-  },
-  async getCampaignDetail(
-    context: CampaignManagementContext,
-    campaignId: string,
-  ): Promise<CampaignDetailResponseDto> {
-    const fixture = DEVELOPMENT_CAMPAIGNS.find(
-      (candidate) => candidate.campaign.id === campaignId && isInContext(candidate, context),
-    );
+  return {
+    async listCampaigns(
+      context: CampaignManagementContext,
+      query: CampaignListQueryDto,
+    ): Promise<GetCampaignsResponseDto> {
+      const matchingCampaigns = campaigns
+        .filter((fixture) => isInContext(fixture, context))
+        .map((fixture) => fixture.campaign)
+        .filter((campaign) => matchesQuery(campaign, query))
+        .sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt));
 
-    if (!fixture) {
-      throw new Error('Campaign not found.');
-    }
+      const startIndex = (query.page - 1) * query.limit;
+      const items = matchingCampaigns.slice(startIndex, startIndex + query.limit);
+      const totalPages =
+        matchingCampaigns.length === 0 ? 0 : Math.ceil(matchingCampaigns.length / query.limit);
 
-    return toCampaignDetail(fixture);
-  },
-};
+      return {
+        items,
+        pagination: {
+          page: query.page,
+          limit: query.limit,
+          totalItems: matchingCampaigns.length,
+          totalPages,
+          hasNextPage: query.page < totalPages,
+          hasPreviousPage: query.page > 1,
+        },
+      };
+    },
+
+    async getCampaignDetail(
+      context: CampaignManagementContext,
+      campaignId: string,
+    ): Promise<CampaignDetailResponseDto> {
+      const fixture = campaigns.find(
+        (candidate) => candidate.campaign.id === campaignId && isInContext(candidate, context),
+      );
+
+      if (!fixture) {
+        throw new Error('Campaign not found.');
+      }
+      return toCampaignDetail(fixture);
+    },
+
+    async createCampaignDraft(
+      context: CampaignManagementContext,
+      request: CreateCampaignDraftRequestDto,
+    ): Promise<CampaignDetailResponseDto> {
+      if (context.kind === 'platform' && (request.startDate || request.endDate)) {
+        throw new Error('Platform campaigns cannot have dates.');
+      }
+
+      const timestamp = now().toISOString();
+      const fixture: DevelopmentCampaignFixture = {
+        scope: context,
+        campaign: {
+          id: generateCampaignId(),
+          name: request.name,
+          description: request.description ?? null,
+          accentColor: request.accentColor,
+          campaignType: context.kind === 'organisation' ? 'ORGANISATION_CUSTOM' : 'PREMADE_GENERAL',
+          status: 'DRAFT',
+          itemCount: request.items.length,
+          startDate: context.kind === 'organisation' ? (request.startDate ?? null) : null,
+          endDate: context.kind === 'organisation' ? (request.endDate ?? null) : null,
+          createdBy: {
+            id: '20000000-0000-4000-8000-000000000001',
+            displayName: 'Organisation Administrator',
+            email: 'admin@example.org',
+          },
+          createdAt: timestamp,
+          updatedAt: timestamp,
+          allowedActions: ['VIEW', 'EDIT'],
+        },
+      };
+
+      campaigns.push(fixture);
+
+      return toCampaignDetail(fixture);
+    },
+  };
+}
+
+export const developmentCampaignManagementClient = createDevelopmentCampaignManagementClient();
