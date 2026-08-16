@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import type {
   GetSimulatedInboxResponseDto,
   GetSimulatedEmailResponseDto,
@@ -10,11 +9,6 @@ import type {
 } from '@insightful-phish/shared';
 import * as SimulationRepository from '../repositories/simulation.repository.js';
 import { defaultCampaignEligibilityService } from './campaign-eligibility.service.js';
-
-function advisoryLockKey(parts: string[]): [number, number] {
-  const hash = createHash('sha256').update(parts.join('\0')).digest();
-  return [hash.readInt32BE(0), hash.readInt32BE(4)];
-}
 
 export class SimulationService {
   async getTraineeProfile(userId: string) {
@@ -70,7 +64,7 @@ export class SimulationService {
     });
 
     return {
-      emails: emails.map((email: (typeof emails)[0]) => ({
+      emails: emails.map((email) => ({
         id: email.id,
         campaignAssignmentId,
         campaignItemId,
@@ -103,7 +97,7 @@ export class SimulationService {
     }
 
     const matchedItem = email.inbox.simulation.campaignItems.find(
-      (item: (typeof email.inbox.simulation.campaignItems)[0]) =>
+      (item) =>
         item.id === campaignItemId &&
         (!item.campaign?.assignments || item.campaign.assignments.length > 0) &&
         item.itemType === 'COMPONENT' &&
@@ -207,22 +201,12 @@ export class SimulationService {
     const campaignId = matchedItem.campaignId;
 
     if (input.eventType === 'SIMULATED_EMAIL_OPENED') {
-      const [lockKeyA, lockKeyB] = advisoryLockKey([
-        'SIMULATED_EMAIL_OPENED',
-        traineeProfileId,
-        assignmentId,
-        itemId,
-        email.id,
-      ]);
-
       const result = await SimulationRepository.recordEmailOpenedEventTx({
         campaignId,
         traineeProfileId,
         assignmentId,
         itemId,
         emailId: email.id,
-        lockKeyA,
-        lockKeyB,
         checkedAt,
       });
 
@@ -309,7 +293,7 @@ export class SimulationService {
     }
 
     if (input.selectedRedFlagIds?.length) {
-      const validRedFlagIds = new Set(email.redFlags.map((rf: { id: string }) => rf.id));
+      const validRedFlagIds = new Set(email.redFlags.map((rf) => rf.id));
       const invalidFlags = input.selectedRedFlagIds.filter((id) => !validRedFlagIds.has(id));
       if (invalidFlags.length > 0) {
         throw new Error('VALIDATION_ERROR');
@@ -356,7 +340,7 @@ export class SimulationService {
       feedback: isCorrect
         ? 'Great job! You correctly identified the email.'
         : 'Not quite. Take a closer look at the red flags.',
-      redFlags: email.redFlags.map((rf: (typeof email.redFlags)[0]) => ({
+      redFlags: email.redFlags.map((rf) => ({
         id: rf.id,
         redFlagType: rf.redFlagType,
         label: rf.label,
