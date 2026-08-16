@@ -25,6 +25,7 @@ const prismaMock = vi.hoisted(() => ({
   },
   organisation: {
     findUnique: vi.fn(),
+    findFirst: vi.fn(),
     create: vi.fn(),
   },
   organisationPermission: {
@@ -54,14 +55,6 @@ const prismaMock = vi.hoisted(() => ({
   $transaction: vi.fn((callback) => callback(prismaMock)),
 }));
 
-const repositoryMock = vi.hoisted(() => ({
-  findOrganisationByName: vi.fn(),
-  findActiveRequestByOrganisationName: vi.fn(),
-  findActiveRequestByWebsiteOrDomain: vi.fn(),
-  findActiveRequestByRepresentativeEmail: vi.fn(),
-  createOrganisationRegistrationRequest: vi.fn(),
-}));
-
 const actionTokenServiceMock = vi.hoisted(() => ({
   issueActionToken: vi.fn(),
   revokeActionTokenById: vi.fn(),
@@ -86,11 +79,6 @@ const notificationFailureEventMock = vi.hoisted(() => ({
 vi.mock('../../src/lib/prisma.js', () => ({
   prisma: prismaMock,
 }));
-
-vi.mock(
-  '../../src/repositories/organisation-registration-request.repository.js',
-  () => repositoryMock,
-);
 
 vi.mock('../../src/services/action-token.service.js', () => actionTokenServiceMock);
 vi.mock('../../src/repositories/security-settings.repository.js', () => securitySettingsMock);
@@ -410,7 +398,7 @@ describe('platform organisation registration request service', () => {
 
   describe('approveOrganisationRequest', () => {
     beforeEach(() => {
-      repositoryMock.findOrganisationByName.mockResolvedValue(null);
+      prismaMock.organisation.findFirst.mockResolvedValue(null);
       prismaMock.user.findUnique.mockImplementation(async (args) => {
         // mock requirePlatformAdmin check
         if (args.where.id === actorUserId) {
@@ -630,7 +618,7 @@ describe('platform organisation registration request service', () => {
         submittedOrganisationName: 'Acme',
         representativeEmail: 'john@acme.com',
       });
-      repositoryMock.findOrganisationByName.mockResolvedValue({ id: 'org-1' });
+      prismaMock.organisation.findFirst.mockResolvedValue({ id: 'org-1' });
 
       await expect(
         approveOrganisationRequest(actorUserId, requestId, {

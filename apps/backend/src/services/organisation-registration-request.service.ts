@@ -9,11 +9,6 @@ import * as OrganisationRequestRepository from '../repositories/organisation-reg
 import * as UserRepository from '../repositories/user.repository.js';
 import { recordAuditLog } from './audit-log.service.js';
 import { requestAuthEmailSend } from './auth-email-hook.service.js';
-import { prisma } from '../lib/prisma.js';
-import { Prisma } from '../generated/prisma/client.js';
-import { issueActionToken } from './action-token.service.js';
-import { ensureDefaultOrganisationSecuritySettings } from '../repositories/security-settings.repository.js';
-import { ORGANISATION_PERMISSION_SEEDS } from '../constants/organisation-permission-seeds.js';
 
 export class OrganisationRegistrationRequestError extends Error {
   constructor(
@@ -26,21 +21,17 @@ export class OrganisationRegistrationRequestError extends Error {
   }
 }
 
-function assertRequiredEmailQueued(result: Awaited<ReturnType<typeof requestAuthEmailSend>>) {
-  if (result.status === 'NOT_QUEUED') {
-    throw new OrganisationRegistrationRequestError(
-      409,
-      'EMAIL_QUEUE_FAILED',
-      'Required email could not be queued for delivery',
-    );
+function rethrowAsServiceError(error: unknown): never {
+  if (
+    error instanceof OrganisationRequestRepository.OrganisationRegistrationRequestRepositoryError
+  ) {
+    throw new OrganisationRegistrationRequestError(error.statusCode, error.errorKey, error.message);
   }
+  throw error;
 }
 
 export async function requirePlatformAdminUser(userId: string) {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    include: { ipAdminProfile: true },
-  });
+  const user = await OrganisationRequestRepository.findUserWithIpAdminProfile(userId);
   if (user?.userType !== 'IP_ADMIN' || user?.ipAdminProfile?.adminStatus !== 'ACTIVE') {
     throw new OrganisationRegistrationRequestError(
       403,
@@ -59,104 +50,14 @@ export async function listOrganisationRequests(
 
   const { status, search, sort, page = 1, limit = 10 } = query;
 
-  const where: Prisma.OrganisationRegistrationRequestWhereInput = {};
-
-  if (status) {
-    where.status = status;
-  }
-
-  if (search) {
-    where.OR = [
-      { submittedOrganisationName: { contains: search, mode: 'insensitive' } },
-      { representativeEmail: { contains: search, mode: 'insensitive' } },
-      { representativeFirstName: { contains: search, mode: 'insensitive' } },
-      { representativeLastName: { contains: search, mode: 'insensitive' } },
-    ];
-  }
-
-  let orderBy: Prisma.OrganisationRegistrationRequestOrderByWithRelationInput = {
-    createdAt: 'desc',
-  };
-
-  if (sort) {
-    const [field, order] = sort.split(':');
-    if (field && (order === 'asc' || order === 'desc')) {
-      const allowedFields: Record<
-        string,
-        keyof Prisma.OrganisationRegistrationRequestOrderByWithRelationInput
-      > = {
-        organisationName: 'submittedOrganisationName',
-        submittedOrganisationName: 'submittedOrganisationName',
-        representativeEmail: 'representativeEmail',
-        status: 'status',
-        createdAt: 'createdAt',
-        updatedAt: 'updatedAt',
-      };
-      const prismaField = allowedFields[field];
-      if (prismaField) {
-        orderBy = { [prismaField]: order };
-      }
-    }
-  }
-
-  const skip = (page - 1) * limit;
-
-  const [requests, total] = await Promise.all([
-    prisma.organisationRegistrationRequest.findMany({
-      where,
-      orderBy,
-      skip,
-      take: limit,
-      include: {
-        approvedOrganisation: {
-          select: {
-            status: true,
-          },
-        },
-        initialAdminInvitations: {
-          where: {
-            purpose: 'INITIAL_ORGANISATION_ADMIN_SETUP',
-          },
-          orderBy: {
-            createdAt: 'desc',
-          },
-          take: 1,
-          include: {
-            actionTokens: {
-              orderBy: {
-                createdAt: 'desc',
-              },
-              take: 1,
-              select: {
-                id: true,
-                expiresAt: true,
-                usedAt: true,
-                revokedAt: true,
-              },
-            },
-            emailDeliveryLogs: {
-              where: {
-                emailType: 'INITIAL_ORGANISATION_ADMIN_SETUP',
-              },
-              orderBy: {
-                createdAt: 'desc',
-              },
-              take: 1,
-              select: {
-                id: true,
-                deliveryStatus: true,
-                sentAt: true,
-                failedAt: true,
-                failureReason: true,
-                actionTokenId: true,
-              },
-            },
-          },
-        },
-      },
-    }),
-    prisma.organisationRegistrationRequest.count({ where }),
-  ]);
+  const { requests, total } =
+    await OrganisationRequestRepository.findOrganisationRegistrationRequestsForPlatform({
+      status,
+      search,
+      sort,
+      page,
+      limit,
+    });
 
   const getDerivedStatus = (
     requestStatus: string,
@@ -281,26 +182,8 @@ export const formatRegistrationRequestBase = (req: RegistrationRequestBase) => {
 export async function getOrganisationRequest(actorUserId: string, requestId: string) {
   await requirePlatformAdminUser(actorUserId);
 
-  const request = await prisma.organisationRegistrationRequest.findUnique({
-    where: { id: requestId },
-    include: {
-      contactedBy: {
-        include: {
-          user: true,
-        },
-      },
-      approvedBy: {
-        include: {
-          user: true,
-        },
-      },
-      rejectedBy: {
-        include: {
-          user: true,
-        },
-      },
-    },
-  });
+  const request =
+    await OrganisationRequestRepository.findOrganisationRegistrationRequestWithReviewers(requestId);
 
   if (!request) {
     throw new OrganisationRegistrationRequestError(
@@ -342,51 +225,17 @@ export async function getOrganisationRequest(actorUserId: string, requestId: str
 export async function markRequestContacted(actorUserId: string, requestId: string) {
   const ipAdminProfile = await requirePlatformAdminUser(actorUserId);
 
-  const updateResult = await prisma.organisationRegistrationRequest.updateMany({
-    where: {
-      id: requestId,
-      status: 'PENDING_REVIEW',
-    },
-    data: {
-      status: 'CONTACTED',
-      contactedByIpAdminId: ipAdminProfile.id,
-      contactedAt: new Date(),
-    },
-  });
-
-  if (updateResult.count === 0) {
-    const exists = await prisma.organisationRegistrationRequest.findUnique({
-      where: { id: requestId },
-    });
-    if (!exists) {
-      throw new OrganisationRegistrationRequestError(
-        404,
-        'REQUEST_NOT_FOUND',
-        'Organisation registration request not found',
-      );
-    }
-    throw new OrganisationRegistrationRequestError(
-      409,
-      'REQUEST_ALREADY_RESOLVED',
-      'Request has already been processed or status has changed',
-    );
-  }
-
-  const updatedRequest = await prisma.organisationRegistrationRequest.findUnique({
-    where: { id: requestId },
-    include: {
-      contactedBy: { include: { user: true } },
-      approvedBy: { include: { user: true } },
-      rejectedBy: { include: { user: true } },
-    },
-  });
-
-  if (!updatedRequest) {
-    throw new OrganisationRegistrationRequestError(
-      404,
-      'REQUEST_NOT_FOUND',
-      'Organisation registration request not found',
-    );
+  let updatedRequest: Awaited<
+    ReturnType<typeof OrganisationRequestRepository.markOrganisationRegistrationRequestContacted>
+  >;
+  try {
+    updatedRequest =
+      await OrganisationRequestRepository.markOrganisationRegistrationRequestContacted({
+        requestId,
+        ipAdminProfileId: ipAdminProfile.id,
+      });
+  } catch (error) {
+    rethrowAsServiceError(error);
   }
 
   await recordAuditLog({
@@ -415,52 +264,17 @@ export async function rejectOrganisationRequest(
 ) {
   const ipAdminProfile = await requirePlatformAdminUser(actorUserId);
 
-  const updateResult = await prisma.organisationRegistrationRequest.updateMany({
-    where: {
-      id: requestId,
-      status: { in: ['PENDING_REVIEW', 'CONTACTED'] },
-    },
-    data: {
-      status: 'REJECTED',
-      rejectedByIpAdminId: ipAdminProfile.id,
-      rejectedAt: new Date(),
+  let updatedRequest: Awaited<
+    ReturnType<typeof OrganisationRequestRepository.rejectOrganisationRegistrationRequest>
+  >;
+  try {
+    updatedRequest = await OrganisationRequestRepository.rejectOrganisationRegistrationRequest({
+      requestId,
+      ipAdminProfileId: ipAdminProfile.id,
       rejectionReason: input.rejectionReason,
-    },
-  });
-
-  if (updateResult.count === 0) {
-    const exists = await prisma.organisationRegistrationRequest.findUnique({
-      where: { id: requestId },
     });
-    if (!exists) {
-      throw new OrganisationRegistrationRequestError(
-        404,
-        'REQUEST_NOT_FOUND',
-        'Organisation registration request not found',
-      );
-    }
-    throw new OrganisationRegistrationRequestError(
-      409,
-      'REQUEST_ALREADY_RESOLVED',
-      'Request has already been processed or status has changed',
-    );
-  }
-
-  const updatedRequest = await prisma.organisationRegistrationRequest.findUnique({
-    where: { id: requestId },
-    include: {
-      contactedBy: { include: { user: true } },
-      approvedBy: { include: { user: true } },
-      rejectedBy: { include: { user: true } },
-    },
-  });
-
-  if (!updatedRequest) {
-    throw new OrganisationRegistrationRequestError(
-      404,
-      'REQUEST_NOT_FOUND',
-      'Organisation registration request not found',
-    );
+  } catch (error) {
+    rethrowAsServiceError(error);
   }
 
   await recordAuditLog({
@@ -501,9 +315,8 @@ export async function approveOrganisationRequest(
 ) {
   const ipAdminProfile = await requirePlatformAdminUser(actorUserId);
 
-  const freshRequest = await prisma.organisationRegistrationRequest.findUnique({
-    where: { id: requestId },
-  });
+  const freshRequest =
+    await OrganisationRequestRepository.findOrganisationRegistrationRequestById(requestId);
   if (!freshRequest) {
     throw new OrganisationRegistrationRequestError(
       404,
@@ -535,9 +348,6 @@ export async function approveOrganisationRequest(
   }
 
   // Enforce that the designated initial admin email matches the submitted representative email.
-  // Allowing a different address would create an invitation inconsistent with the registration
-  // request, immediately breaking the resend consistency check and setup-completion target
-  // validation.
   if (input.initialAdminEmail !== freshRequest.representativeEmail) {
     throw new OrganisationRegistrationRequestError(
       409,
@@ -546,9 +356,7 @@ export async function approveOrganisationRequest(
     );
   }
 
-  const existingUser = await prisma.user.findUnique({
-    where: { email: input.initialAdminEmail },
-  });
+  const existingUser = await OrganisationRequestRepository.findUserByEmail(input.initialAdminEmail);
   if (existingUser) {
     throw new OrganisationRegistrationRequestError(
       409,
@@ -557,196 +365,20 @@ export async function approveOrganisationRequest(
     );
   }
 
-  let result;
+  let result: Awaited<
+    ReturnType<typeof OrganisationRequestRepository.approveOrganisationRegistrationRequestTx>
+  >;
   try {
-    result = await prisma.$transaction(async (tx) => {
-      const updateResult = await tx.organisationRegistrationRequest.updateMany({
-        where: {
-          id: requestId,
-          status: { in: ['PENDING_REVIEW', 'CONTACTED'] },
-        },
-        data: {
-          status: 'APPROVED',
-          approvedByIpAdminId: ipAdminProfile.id,
-          approvedAt: new Date(),
-        },
-      });
-
-      if (updateResult.count === 0) {
-        const exists = await tx.organisationRegistrationRequest.findUnique({
-          where: { id: requestId },
-        });
-        if (!exists) {
-          throw new OrganisationRegistrationRequestError(
-            404,
-            'REQUEST_NOT_FOUND',
-            'Organisation registration request not found',
-          );
-        }
-        throw new OrganisationRegistrationRequestError(
-          409,
-          'REQUEST_ALREADY_RESOLVED',
-          'Request has already been processed or status has changed',
-        );
-      }
-
-      const organisation = await tx.organisation.create({
-        data: {
-          name: orgName,
-          status: 'PENDING_ONBOARDING',
-          description: freshRequest.submittedOrganisationDescription,
-          approximateSize: freshRequest.submittedOrganisationSize,
-          website: freshRequest.submittedWebsite,
-          primaryDomain: freshRequest.submittedPrimaryDomain,
-        },
-      });
-
-      const permissionData = ORGANISATION_PERMISSION_SEEDS.map((perm) => ({
-        id: ['organisation-permission', organisation.id, perm.key].join('-'),
-        organisationId: organisation.id,
-        key: perm.key,
-        displayName: perm.displayName,
-        description: perm.description,
-        isCritical: perm.isCritical,
-      }));
-      await tx.organisationPermission.createMany({
-        data: permissionData,
-      });
-
-      await ensureDefaultOrganisationSecuritySettings({ organisationId: organisation.id }, tx);
-
-      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-      const invitation = await tx.invitation.create({
-        data: {
-          organisationId: organisation.id,
-          organisationRegistrationRequestId: requestId,
-          recipientEmail: input.initialAdminEmail,
-          recipientFirstName: freshRequest.representativeFirstName,
-          recipientLastName: freshRequest.representativeLastName,
-          purpose: 'INITIAL_ORGANISATION_ADMIN_SETUP',
-          status: 'PENDING',
-          expiresAt,
-        },
-      });
-
-      const actionTokenResult = await issueActionToken(
-        {
-          purpose: 'INITIAL_ORGANISATION_ADMIN_SETUP',
-          expiresAt,
-          targetEmail: input.initialAdminEmail,
-          invitationId: invitation.id,
-          organisationRegistrationRequestId: requestId,
-        },
-        tx,
-      );
-
-      const updatedRequest = await tx.organisationRegistrationRequest.update({
-        where: { id: requestId },
-        data: {
-          approvedOrganisationId: organisation.id,
-        },
-      });
-
-      await recordAuditLog(
-        {
-          actorUserId,
-          actorType: 'IP_ADMIN',
-          targetType: 'ORGANISATION_REGISTRATION_REQUEST',
-          targetId: requestId,
-          actionType: 'APPROVED',
-          outcome: 'SUCCESS',
-          organisationId: organisation.id,
-        },
-        tx,
-      );
-
-      await recordAuditLog(
-        {
-          actorUserId,
-          actorType: 'IP_ADMIN',
-          targetType: 'ORGANISATION',
-          targetId: organisation.id,
-          actionType: 'CREATED',
-          outcome: 'SUCCESS',
-          organisationId: organisation.id,
-        },
-        tx,
-      );
-
-      // Record the initial-admin invitation creation so it appears in the onboarding timeline.
-      await recordAuditLog(
-        {
-          actorUserId,
-          actorType: 'IP_ADMIN',
-          targetType: 'INVITATION',
-          targetId: invitation.id,
-          actionType: 'CREATED',
-          outcome: 'SUCCESS',
-          organisationId: organisation.id,
-        },
-        tx,
-      );
-
-      const emailResult = await requestAuthEmailSend(
-        {
-          emailType: 'INITIAL_ORGANISATION_ADMIN_SETUP',
-          recipientEmail: input.initialAdminEmail,
-          organisationId: organisation.id,
-          invitationId: invitation.id,
-          actionTokenId: actionTokenResult.token.id,
-          organisationRegistrationRequestId: requestId,
-          templateData: {
-            firstName: invitation.recipientFirstName ?? '',
-            organisationName: organisation.name,
-            actionToken: actionTokenResult.rawToken,
-            actionTokenExpiresAt: actionTokenResult.token.expiresAt,
-          },
-        },
-        tx,
-      );
-      assertRequiredEmailQueued(emailResult);
-
-      return {
-        updatedRequest,
-        organisation,
-        invitation,
-        actionToken: actionTokenResult,
-        emailResult,
-      };
+    result = await OrganisationRequestRepository.approveOrganisationRegistrationRequestTx({
+      actorUserId,
+      requestId,
+      ipAdminProfileId: ipAdminProfile.id,
+      orgName,
+      initialAdminEmail: input.initialAdminEmail,
+      request: freshRequest,
     });
-  } catch (error: unknown) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-      const target = error.meta?.target;
-      const targetList = Array.isArray(target)
-        ? target
-        : typeof target === 'string'
-          ? [target]
-          : [];
-      const errorMessage = error.message || '';
-      if (
-        targetList.includes('name') ||
-        errorMessage.includes('name') ||
-        errorMessage.includes('Organisation_name_key')
-      ) {
-        throw new OrganisationRegistrationRequestError(
-          409,
-          'ORGANISATION_ALREADY_EXISTS',
-          'An organisation with this name already exists',
-        );
-      }
-      if (
-        targetList.includes('email') ||
-        errorMessage.includes('email') ||
-        errorMessage.includes('User_email_key')
-      ) {
-        throw new OrganisationRegistrationRequestError(
-          409,
-          'REPRESENTATIVE_CONFLICT',
-          'A user with this email address already exists',
-        );
-      }
-    }
-    throw error;
+  } catch (error) {
+    rethrowAsServiceError(error);
   }
 
   return {
@@ -767,9 +399,8 @@ export async function approveOrganisationRequest(
 export async function deleteOrganisationRequest(actorUserId: string, requestId: string) {
   await requirePlatformAdminUser(actorUserId);
 
-  const request = await prisma.organisationRegistrationRequest.findUnique({
-    where: { id: requestId },
-  });
+  const request =
+    await OrganisationRequestRepository.findOrganisationRegistrationRequestById(requestId);
 
   if (!request) {
     throw new OrganisationRegistrationRequestError(
@@ -787,9 +418,7 @@ export async function deleteOrganisationRequest(actorUserId: string, requestId: 
     );
   }
 
-  await prisma.organisationRegistrationRequest.delete({
-    where: { id: requestId },
-  });
+  await OrganisationRequestRepository.deleteOrganisationRegistrationRequest(requestId);
 
   return { success: true };
 }
