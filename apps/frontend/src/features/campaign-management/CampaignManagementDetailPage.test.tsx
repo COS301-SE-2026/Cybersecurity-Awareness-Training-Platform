@@ -271,7 +271,7 @@ describe('CampaignManagementDetailPage', () => {
   it('restores authoritative values when Discard is confirmed', async () => {
     const user = userEvent.setup();
 
-    renderPage(DETAIL_PATH, DETAIL_ROUTE, {
+    renderNavigatePage(DETAIL_PATH, DETAIL_ROUTE, {
       getCampaignDetail: vi.fn().mockResolvedValue(DRAFT_DETAIL),
     });
 
@@ -289,9 +289,35 @@ describe('CampaignManagementDetailPage', () => {
 
     await user.click(within(modal as HTMLElement).getByText('Discard'));
 
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Edit Draft Campaign' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Campaign list destination')).not.toBeInTheDocument();
+
     expect(screen.queryByText('Discard unsaved changes?')).not.toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Campaign name' })).toHaveValue(DRAFT_DETAIL.name);
     expect(screen.getByRole('button', { name: 'Discard' })).toBeDisabled();
+  });
+
+  it('returns to the Campaign list when unsaved new-Campaign Discard is confirmed', async () => {
+    const user = userEvent.setup();
+
+    renderNavigatePage(NEW_PATH, NEW_ROUTE, {
+      getCampaignDetail: vi.fn(),
+    });
+
+    await user.type(screen.getByRole('textbox', { name: 'Campaign name' }), 'Unsaved Campaign');
+
+    await user.click(screen.getByRole('button', { name: 'Discard' }));
+
+    const dialog = screen.getByRole('dialog', { name: 'Discard unsaved changes?' });
+
+    await user.click(within(dialog).getByRole('button', { name: 'Discard' }));
+
+    expect(screen.getByText('Campaign list destination')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { level: 1, name: 'Create Campaign' }),
+    ).not.toBeInTheDocument();
   });
 
   it('navigates back immediately when the editor is clean', async () => {

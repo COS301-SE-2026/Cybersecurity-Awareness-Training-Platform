@@ -38,7 +38,7 @@ type EditorDirtyState = {
   isDirty: boolean;
 };
 
-type ConfirmationIntent = 'reset' | 'leave' | null;
+type ConfirmationIntent = 'reset' | 'discard-new' | 'leave' | null;
 
 function CampaignManagementDetailPage({
   contextKind,
@@ -212,7 +212,7 @@ function CampaignManagementDetailPage({
               });
             }}
             onRequestDiscard={() => {
-              setConfirmationIntent('reset');
+              setConfirmationIntent('discard-new');
             }}
           />
         )}
@@ -301,7 +301,7 @@ function CampaignManagementDetailPage({
               setConfirmationIntent(null);
             }}
             onConfirm={() => {
-              if (confirmationIntent === 'leave') {
+              if (confirmationIntent === 'leave' || confirmationIntent === 'discard-new') {
                 setConfirmationIntent(null);
                 navigate(campaignListPath);
                 return;
