@@ -10,7 +10,6 @@ import type {
   TraineeListItemDto,
 } from '@insightful-phish/shared';
 import { OrganisationPermissionKey } from '../generated/prisma/enums.js';
-import { prisma } from '../lib/prisma.js';
 import { generateOpaqueToken, hashOpaqueToken } from './token-hash.service.js';
 import { recordAuditLog } from './audit-log.service.js';
 import { sendEmail } from './email.service.js';
@@ -21,18 +20,22 @@ import {
 } from './organisation-admin.service.js';
 import { verifyPassword } from './password.service.js';
 import {
-  disableOrganisationTraineeProfile,
+  createOrganisationTraineeInvitationTx,
+  disableOrganisationTraineeTx,
+  findAuthoritativeInvitationById,
+  findAuthoritativeResentInvitation,
   findOrganisationTraineeByEmail,
-  findOrganisationTraineeById,
   findOrganisationTraineeInvitations,
   findOrganisationTrainees,
   findPendingTraineeInvitationByEmail,
+  OrganisationTraineeRepositoryError,
+  resendOrganisationTraineeInvitationTx,
+  revokeOrganisationTraineeInvitationTx,
 } from '../repositories/organisation-trainee.repository.js';
 import {
   findInvitationById,
   findUserByEmailWithProfiles,
 } from '../repositories/invitation.repository.js';
-import { revokeUserAuthSessions } from '../repositories/auth-session.repository.js';
 import {
   ACTIVE_INVITATION_STATUSES,
   deriveInvitationLifecycleState,
@@ -54,14 +57,11 @@ export class OrganisationTraineeServiceError extends Error {
   }
 }
 
-function assertEmailQueued(result: Awaited<ReturnType<typeof sendEmail>>) {
-  if (result.status === 'NOT_QUEUED') {
-    throw new OrganisationTraineeServiceError(
-      503,
-      'EMAIL_QUEUE_FAILED',
-      'Invitation email could not be queued for delivery.',
-    );
+function rethrowAsServiceError(error: unknown): never {
+  if (error instanceof OrganisationTraineeRepositoryError) {
+    throw new OrganisationTraineeServiceError(error.statusCode, error.errorKey, error.message);
   }
+  throw error;
 }
 
 function assertTraineeMutationAllowed(status: string) {
@@ -165,7 +165,14 @@ function assertInvitationCreateEligibility(input: {
 }) {
   const { organisationId, existingTrainee, existingInvite, existingUser } = input;
 
-  if (existingTrainee && !isOrganisationTraineeActive(existingTrainee)) {
+  if (existingTrainee) {
+    if (isOrganisationTraineeActive(existingTrainee)) {
+      throw new OrganisationTraineeServiceError(
+        409,
+        'CANNOT_INVITE_USER',
+        'User is already a trainee in this organisation.',
+      );
+    }
     throw new OrganisationTraineeServiceError(
       409,
       'CANNOT_INVITE_USER',
@@ -434,99 +441,32 @@ export async function createOrganisationTraineeInvitation(
     existingUser,
   });
 
-  const txResult = await prisma.$transaction(async (tx) => {
-    if (typeof tx.$executeRaw === 'function') {
-      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${organisationId + ':' + normalisedEmail}))`;
-    }
-    const [txTrainee, txInvite] = await Promise.all([
-      findOrganisationTraineeByEmail(organisationId, normalisedEmail, tx),
-      findPendingTraineeInvitationByEmail(organisationId, normalisedEmail, tx),
-    ]);
-    if (txTrainee && txTrainee.membershipStatus !== 'DISABLED' && !txTrainee.disabledAt) {
-      throw new OrganisationTraineeServiceError(
-        409,
-        'CANNOT_INVITE_USER',
-        'User is already a trainee in this organisation.',
-      );
-    }
-    if (txInvite) {
-      throw new OrganisationTraineeServiceError(
-        409,
-        'CANNOT_INVITE_USER',
-        'A pending invitation already exists for this email address.',
-      );
-    }
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const rawToken = generateOpaqueToken();
+  const tokenHash = hashOpaqueToken(rawToken);
 
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    const invitation = await tx.invitation.create({
-      data: {
-        organisationId,
-        recipientEmail: normalisedEmail,
-        recipientFirstName: input.firstName ?? null,
-        recipientLastName: input.lastName ?? null,
-        purpose: 'ORGANISATION_TRAINEE_INVITE',
-        status: 'PENDING',
-        expiresAt,
-      },
+  let txResult: Awaited<ReturnType<typeof createOrganisationTraineeInvitationTx>>;
+  try {
+    txResult = await createOrganisationTraineeInvitationTx({
+      actorUserId,
+      organisationId,
+      recipientEmail: normalisedEmail,
+      recipientFirstName: input.firstName ?? null,
+      recipientLastName: input.lastName ?? null,
+      organisationName: actor.organisation.name,
+      requiresAccountConflictResolution,
+      expiresAt,
+      rawToken,
+      tokenHash,
     });
+  } catch (error) {
+    rethrowAsServiceError(error);
+  }
 
-    const rawToken = generateOpaqueToken();
-    const tokenHash = hashOpaqueToken(rawToken);
-    const actionToken = await tx.actionToken.create({
-      data: {
-        tokenHash,
-        purpose: 'ORGANISATION_TRAINEE_INVITE',
-        invitationId: invitation.id,
-        expiresAt,
-      },
-    });
-
-    await recordAuditLog(
-      {
-        actorUserId,
-        actorType: 'ORGANISATION_ADMIN',
-        organisationId,
-        targetType: 'INVITATION',
-        targetId: invitation.id,
-        actionType: 'INVITED',
-        newValues: {
-          recipientEmail: normalisedEmail,
-          purpose: 'ORGANISATION_TRAINEE_INVITE',
-        },
-      },
-      tx,
-    );
-
-    const emailResult = await sendEmail(
-      {
-        emailType: 'ORGANISATION_TRAINEE_INVITE',
-        recipientEmail: normalisedEmail,
-        relatedEntity: {
-          organisationId,
-          invitationId: invitation.id,
-          actionTokenId: actionToken.id,
-        },
-        templateData: {
-          firstName: input.firstName,
-          organisationName: actor.organisation.name,
-          actionToken: rawToken,
-          actionTokenExpiresAt: expiresAt,
-          requiresAccountConflictResolution,
-        },
-      },
-      tx,
-    );
-    assertEmailQueued(emailResult);
-
-    return { invitation, actionToken, rawToken, expiresAt, emailResult };
-  });
-
-  const finalInvite = await prisma.invitation.findUnique({
-    where: { id: txResult.invitation.id },
-  });
+  const finalInvite = await findAuthoritativeInvitationById(txResult.invitation.id);
 
   const invitationLifecycleState = deriveInvitationLifecycleState(
-    finalInvite ?? { status: 'PENDING', expiresAt: txResult.expiresAt },
+    finalInvite ?? { status: 'PENDING', expiresAt },
   );
 
   const canResend =
@@ -545,7 +485,7 @@ export async function createOrganisationTraineeInvitation(
     ? 'Invitation email queued for delivery.'
     : 'Invitation created, but email delivery could not be queued.';
 
-  const invitationExpiresAt = (finalInvite?.expiresAt ?? txResult.expiresAt).toISOString();
+  const invitationExpiresAt = (finalInvite?.expiresAt ?? expiresAt).toISOString();
   const createdAt = txResult.invitation.createdAt.toISOString();
 
   return {
@@ -627,106 +567,38 @@ export async function resendTraineeInvitation(
   });
 
   const observedUpdatedAt = invitation.updatedAt;
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const rawToken = generateOpaqueToken();
+  const tokenHash = hashOpaqueToken(rawToken);
 
-  const txResult = await prisma.$transaction(async (tx) => {
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    const claimedAt = new Date();
-    const claimedInv = await tx.invitation.updateMany({
-      where: {
-        id: invitation.id,
-        status: { in: [...ACTIVE_INVITATION_STATUSES] },
-        updatedAt: observedUpdatedAt,
-      },
-      data: {
-        status: 'PENDING',
-        expiresAt,
-        updatedAt: claimedAt,
-      },
+  let txResult: Awaited<ReturnType<typeof resendOrganisationTraineeInvitationTx>>;
+  try {
+    txResult = await resendOrganisationTraineeInvitationTx({
+      actorUserId,
+      invitationId: invitation.id,
+      organisationId: invitation.organisationId,
+      recipientEmail: invitation.recipientEmail,
+      recipientFirstName: invitation.recipientFirstName ?? null,
+      organisationName: actor.organisation.name,
+      observedUpdatedAt,
+      requiresAccountConflictResolution,
+      expiresAt,
+      rawToken,
+      tokenHash,
     });
-
-    if (claimedInv.count === 0) {
-      throw new OrganisationTraineeServiceError(
-        409,
-        'INVITATION_NOT_RESENDABLE',
-        'Invitation was modified concurrently or is no longer in a resendable state.',
-      );
-    }
-
-    await tx.actionToken.updateMany({
-      where: {
-        invitationId: invitation.id,
-        revokedAt: null,
-        usedAt: null,
-      },
-      data: {
-        revokedAt: new Date(),
-      },
-    });
-
-    const rawToken = generateOpaqueToken();
-    const tokenHash = hashOpaqueToken(rawToken);
-    const actionToken = await tx.actionToken.create({
-      data: {
-        tokenHash,
-        purpose: 'ORGANISATION_TRAINEE_INVITE',
-        invitationId: invitation.id,
-        expiresAt,
-      },
-    });
-
-    await recordAuditLog(
-      {
-        actorUserId,
-        actorType: 'ORGANISATION_ADMIN',
-        organisationId: invitation.organisationId,
-        targetType: 'INVITATION',
-        targetId: invitation.id,
-        actionType: 'RESENT',
-        newValues: {
-          expiresAt: expiresAt.toISOString(),
-        },
-      },
-      tx,
-    );
-
-    const emailResult = await sendEmail(
-      {
-        emailType: 'ORGANISATION_TRAINEE_INVITE',
-        recipientEmail: invitation.recipientEmail,
-        relatedEntity: {
-          organisationId: invitation.organisationId,
-          invitationId: invitation.id,
-          actionTokenId: actionToken.id,
-          invitationStateVersion: claimedAt.toISOString(),
-        },
-        templateData: {
-          firstName: invitation.recipientFirstName ?? undefined,
-          organisationName: actor.organisation.name,
-          actionToken: rawToken,
-          actionTokenExpiresAt: expiresAt,
-          requiresAccountConflictResolution,
-        },
-      },
-      tx,
-    );
-    assertEmailQueued(emailResult);
-
-    return { actionToken, rawToken, expiresAt, claimedAt, emailResult };
-  });
+  } catch (error) {
+    rethrowAsServiceError(error);
+  }
 
   const emailQueued = txResult.emailResult.status === 'QUEUED';
   const deliveryState: 'PENDING' | 'SENT' | 'FAILED' | 'UNKNOWN' = emailQueued
     ? 'PENDING'
     : 'FAILED';
 
-  const finalInvitation = await prisma.invitation.findUnique({
-    where: { id: invitation.id },
-    include: {
-      actionTokens: {
-        where: { id: txResult.actionToken.id },
-      },
-    },
-  });
+  const finalInvitation = await findAuthoritativeResentInvitation(
+    invitation.id,
+    txResult.actionToken.id,
+  );
 
   const finalActionToken = finalInvitation?.actionTokens[0];
 
@@ -870,69 +742,26 @@ export async function revokeTraineeInvitation(
     };
   }
 
-  return prisma.$transaction(async (tx) => {
-    const claimedInv = await tx.invitation.updateMany({
-      where: {
-        id: invitation.id,
-        status: { in: [...ACTIVE_INVITATION_STATUSES] },
-      },
-      data: {
-        status: 'REVOKED',
-      },
-    });
-
-    if (claimedInv.count === 0) {
-      const txInv = await findInvitationById(invitation.id, tx);
-      if (txInv?.status === 'REVOKED') {
-        return {
-          success: true,
-          message: 'Invitation has already been revoked.',
-          invitationId: txInv.id,
-          status: 'REVOKED' as const,
-          revokedAt: txInv.updatedAt.toISOString(),
-        };
-      }
-      throw new OrganisationTraineeServiceError(
-        409,
-        'INVITATION_ALREADY_ACCEPTED',
-        'Cannot revoke an invitation that has already been accepted or mutated concurrently.',
-      );
-    }
-
-    await tx.actionToken.updateMany({
-      where: {
-        invitationId: invitation.id,
-        revokedAt: null,
-        usedAt: null,
-      },
-      data: {
-        revokedAt: new Date(),
-      },
-    });
-
-    await recordAuditLog(
-      {
-        actorUserId,
-        actorType: 'ORGANISATION_ADMIN',
-        organisationId: invitation.organisationId,
-        targetType: 'INVITATION',
-        targetId: invitation.id,
-        actionType: 'REVOKED',
-        newValues: {
-          status: 'REVOKED',
-        },
-      },
-      tx,
-    );
-
-    return {
-      success: true,
-      message: 'Invitation revoked successfully.',
+  let txResult: Awaited<ReturnType<typeof revokeOrganisationTraineeInvitationTx>>;
+  try {
+    txResult = await revokeOrganisationTraineeInvitationTx({
+      actorUserId,
+      organisationId: invitation.organisationId,
       invitationId: invitation.id,
-      status: 'REVOKED',
-      revokedAt: new Date().toISOString(),
-    };
-  });
+    });
+  } catch (error) {
+    rethrowAsServiceError(error);
+  }
+
+  return {
+    success: true,
+    message: txResult.alreadyRevoked
+      ? 'Invitation has already been revoked.'
+      : 'Invitation revoked successfully.',
+    invitationId: txResult.invitationId,
+    status: 'REVOKED',
+    revokedAt: txResult.revokedAt,
+  };
 }
 
 export async function disableOrganisationTrainee(
@@ -970,54 +799,19 @@ export async function disableOrganisationTrainee(
     );
   }
 
-  const txResult = await prisma.$transaction(async (tx) => {
-    const txTrainee = await findOrganisationTraineeById(organisationId, traineeId, tx);
-    if (!txTrainee) {
-      throw new OrganisationTraineeServiceError(
-        404,
-        'TRAINEE_NOT_FOUND',
-        'Organisation trainee profile not found.',
-      );
-    }
-    if (txTrainee.membershipStatus === 'DISABLED' || txTrainee.disabledAt) {
-      throw new OrganisationTraineeServiceError(
-        409,
-        'TRAINEE_ALREADY_DISABLED',
-        'Trainee profile is already disabled.',
-      );
-    }
+  const reason = input?.disabledReason ?? 'Disabled by organisation admin';
 
-    const reason = input?.disabledReason ?? 'Disabled by organisation admin';
-    await disableOrganisationTraineeProfile(txTrainee.id, reason, tx);
-
-    await revokeUserAuthSessions(
-      {
-        userId: txTrainee.traineeProfile.userId,
-        revokedReason: 'ADMIN_DISABLED',
-      },
-      tx,
-    );
-
-    await recordAuditLog(
-      {
-        actorUserId,
-        actorType: 'ORGANISATION_ADMIN',
-        organisationId,
-        targetType: 'USER',
-        targetId: txTrainee.traineeProfile.userId,
-        actionType: 'DISABLED',
-        outcome: 'SUCCESS',
-        metadata: {
-          organisationTraineeProfileId: txTrainee.id,
-          traineeProfileId: txTrainee.traineeProfileId,
-          disabledReason: reason,
-        },
-      },
-      tx,
-    );
-
-    return { txTrainee, reason };
-  });
+  let txResult: Awaited<ReturnType<typeof disableOrganisationTraineeTx>>;
+  try {
+    txResult = await disableOrganisationTraineeTx({
+      actorUserId,
+      organisationId,
+      traineeId,
+      disabledReason: reason,
+    });
+  } catch (error) {
+    rethrowAsServiceError(error);
+  }
 
   await sendEmail({
     emailType: 'ROLE_CHANGED_NOTIFICATION',
