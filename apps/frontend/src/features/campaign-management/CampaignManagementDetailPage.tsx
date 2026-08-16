@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, Navigate, useParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import type { CampaignDetailResponseDto } from '@insightful-phish/shared';
 
 import LoadingSpinnerSVG from '../../components/LoadingSpinnerSVG';
@@ -38,7 +38,7 @@ type EditorDirtyState = {
   isDirty: boolean;
 };
 
-type ConfirmationIntent = 'reset' | null;
+type ConfirmationIntent = 'reset' | 'leave' | null;
 
 function CampaignManagementDetailPage({
   contextKind,
@@ -65,11 +65,12 @@ function CampaignManagementDetailPage({
   }, [contextKind, organisationId]);
 
   const isNew = campaignId === undefined;
+  const navigate = useNavigate();
 
   const [loadState, setLoadState] = useState<CampaignDetailLoadState | null>(null);
   const requestIdRef = useRef(0);
   const [retryAttempt, setRetryAttempt] = useState(0);
-  const [, setEditorDirtyState] = useState<EditorDirtyState | null>(null);
+  const [editorDirtyState, setEditorDirtyState] = useState<EditorDirtyState | null>(null);
   const [resetVersion, setResetVersion] = useState(0);
   const [confirmationIntent, setConfirmationIntent] = useState<ConfirmationIntent>(null);
 
@@ -84,6 +85,9 @@ function CampaignManagementDetailPage({
   const loadError = currentLoadState?.status === 'error' ? currentLoadState.message : null;
 
   const canEditDraft = detail?.status === 'DRAFT' && detail.allowedActions.includes('EDIT');
+
+  const isEditorDirty =
+    Boolean(editorKey) && editorDirtyState?.editorKey === editorKey && editorDirtyState.isDirty;
 
   const heading = isNew
     ? 'Create Campaign'
@@ -126,6 +130,23 @@ function CampaignManagementDetailPage({
     };
   }, [campaignId, client, context, retryAttempt]);
 
+  useEffect(() => {
+    if (!isEditorDirty) {
+      return;
+    }
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isEditorDirty]);
+
   if (!context) {
     return <Navigate to="/" replace />;
   }
@@ -135,10 +156,31 @@ function CampaignManagementDetailPage({
       ? `/organisations/${context.organisationId}/campaigns`
       : '/platform/campaigns';
 
+  const confirmationConfiguration =
+    confirmationIntent === 'leave'
+      ? {
+          title: 'Leave without saving',
+          confirmButtonText: 'Leave without saving',
+        }
+      : {
+          title: 'Discard unsaved changes',
+          confirmButtonText: 'Discard',
+        };
+
   return (
     <AppLayout>
       <main className="campaign-detail-shell">
-        <Link className="campaign-back-link" to={campaignListPath}>
+        <Link
+          className="campaign-back-link"
+          to={campaignListPath}
+          onClick={(event) => {
+            if (!isEditorDirty) {
+              return;
+            }
+            event.preventDefault();
+            setConfirmationIntent('leave');
+          }}
+        >
           <span aria-hidden="true">←</span>
           <span>Back to Campaigns</span>
         </Link>
@@ -249,16 +291,22 @@ function CampaignManagementDetailPage({
           </section>
         )}
 
-        {confirmationIntent === 'reset' && (
+        {confirmationIntent && (
           <BasicConfirmationModal
-            title="Discard unsaved changes"
+            title={confirmationConfiguration.title}
             message="Your local Campaign Draft changes will be lost."
-            confirmButtonText="Discard"
+            confirmButtonText={confirmationConfiguration.confirmButtonText}
             confirmButtonVariant="danger"
             onCancel={() => {
               setConfirmationIntent(null);
             }}
             onConfirm={() => {
+              if (confirmationIntent === 'leave') {
+                setConfirmationIntent(null);
+                navigate(campaignListPath);
+                return;
+              }
+
               if (editorKey) {
                 setEditorDirtyState({
                   editorKey,

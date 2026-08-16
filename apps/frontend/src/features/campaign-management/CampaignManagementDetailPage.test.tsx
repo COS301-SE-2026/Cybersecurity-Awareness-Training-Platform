@@ -54,6 +54,23 @@ function renderPage(path: string, routePath: string, client: DetailClient) {
   );
 }
 
+function renderNavigatePage(path: string, routePath: string, client: DetailClient) {
+  return render(
+    <MemoryRouter initialEntries={[path]}>
+      <Routes>
+        <Route
+          path={routePath}
+          element={<CampaignManagementDetailPage contextKind="organisation" client={client} />}
+        />
+        <Route
+          path="/organisations/:organisationId/campaigns"
+          element={<div>Campaign list destination</div>}
+        />
+      </Routes>
+    </MemoryRouter>,
+  );
+}
+
 function DetailRouteHarness({ client }: { client: DetailClient }) {
   const navigate = useNavigate();
 
@@ -275,5 +292,125 @@ describe('CampaignManagementDetailPage', () => {
     expect(screen.queryByText('Discard unsaved changes?')).not.toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Campaign name' })).toHaveValue(DRAFT_DETAIL.name);
     expect(screen.getByRole('button', { name: 'Discard' })).toBeDisabled();
+  });
+
+  it('navigates back immediately when the editor is clean', async () => {
+    const user = userEvent.setup();
+
+    renderNavigatePage(NEW_PATH, NEW_ROUTE, {
+      getCampaignDetail: vi.fn(),
+    });
+
+    await user.click(screen.getByRole('link', { name: 'Back to Campaigns' }));
+
+    expect(screen.getByText('Campaign list destination')).toBeInTheDocument();
+    expect(screen.queryByText('Leave without saving?')).not.toBeInTheDocument();
+  });
+
+  it('asks for confirmation instead of navigating back when dirty', async () => {
+    const user = userEvent.setup();
+
+    renderNavigatePage(NEW_PATH, NEW_ROUTE, {
+      getCampaignDetail: vi.fn(),
+    });
+
+    const name = await screen.findByRole('textbox', { name: 'Campaign name' });
+
+    await user.clear(name);
+    await user.type(name, 'Changed Campaign');
+
+    await user.click(screen.getByRole('link', { name: 'Back to Campaigns' }));
+
+    expect(screen.getByText('Leave without saving?')).toBeInTheDocument();
+    expect(screen.queryByText('Campaign list destination')).not.toBeInTheDocument();
+    expect(name).toHaveValue('Changed Campaign');
+  });
+
+  it('preserves changes when leaving is cancelled', async () => {
+    const user = userEvent.setup();
+
+    renderNavigatePage(NEW_PATH, NEW_ROUTE, {
+      getCampaignDetail: vi.fn().mockResolvedValue(DRAFT_DETAIL),
+    });
+
+    const name = await screen.findByRole('textbox', { name: 'Campaign name' });
+
+    await user.clear(name);
+    await user.type(name, 'Changed Campaign');
+
+    await user.click(screen.getByRole('link', { name: 'Back to Campaigns' }));
+
+    const title = screen.getByText('Leave without saving?');
+    const modal = title.closest('#popup-modal');
+
+    expect(modal).not.toBeNull();
+
+    await user.click(within(modal as HTMLElement).getByText('Cancel'));
+
+    expect(screen.queryByText('Leave without saving?')).not.toBeInTheDocument();
+    expect(screen.queryByText('Campaign list destination')).not.toBeInTheDocument();
+    expect(name).toHaveValue('Changed Campaign');
+  });
+
+  it('navigates to the Campaign list when leaving is confirmed', async () => {
+    const user = userEvent.setup();
+
+    renderNavigatePage(NEW_PATH, NEW_ROUTE, {
+      getCampaignDetail: vi.fn().mockResolvedValue(DRAFT_DETAIL),
+    });
+
+    const name = await screen.findByRole('textbox', { name: 'Campaign name' });
+
+    await user.clear(name);
+    await user.type(name, 'Changed Campaign');
+
+    await user.click(screen.getByRole('link', { name: 'Back to Campaigns' }));
+
+    const title = screen.getByText('Leave without saving?');
+    const modal = title.closest('#popup-modal');
+
+    expect(modal).not.toBeNull();
+
+    await user.click(within(modal as HTMLElement).getByText('Leave without saving'));
+
+    expect(screen.getByText('Campaign list destination')).toBeInTheDocument();
+    expect(screen.queryByText('Leave without saving?')).not.toBeInTheDocument();
+  });
+
+  it('does not prevent browser unload while clean', () => {
+    renderPage(NEW_PATH, NEW_ROUTE, {
+      getCampaignDetail: vi.fn(),
+    });
+
+    const event = new Event('beforeunload', {
+      bubbles: false,
+      cancelable: true,
+    });
+
+    window.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(false);
+  });
+
+  it('prevents browser unload while dirty', async () => {
+    const user = userEvent.setup();
+
+    renderPage(NEW_PATH, NEW_ROUTE, {
+      getCampaignDetail: vi.fn().mockResolvedValue(DRAFT_DETAIL),
+    });
+
+    const name = await screen.findByRole('textbox', { name: 'Campaign name' });
+
+    await user.clear(name);
+    await user.type(name, 'Changed Campaign');
+
+    const event = new Event('beforeunload', {
+      bubbles: false,
+      cancelable: true,
+    });
+
+    window.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(true);
   });
 });
