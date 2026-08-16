@@ -307,6 +307,50 @@
   outline-offset: 2px;
 }
 
+.campaign-builder {
+  display: grid;
+  gap: 1.5rem;
+  max-width: 52rem;
+  padding: 1.5rem;
+  border: 1px solid #d1d5db;
+  background: white;
+}
+
+.campaign-form-field {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.campaign-form-field label {
+  color: #2d1b46;
+  font-family: var(--jost);
+  font-size: 1.1rem;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+}
+
+.campaign-form-field input,
+.campaign-form-field textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  color: #2d1b46;
+  background: #fafafa;
+  font-family: var(--overpass);
+  font-size: 1rem;
+}
+
+.campaign-form-field textarea {
+  resize: vertical;
+}
+
+.campaign-form-field input:focus-visible,
+.campaign-form-field textarea:focus-visible {
+  border-color: var(--ip-purple);
+  outline: 3px solid var(--ip-faint-purple);
+  outline-offset: 1px;
+}
+
 @media (max-width: 48rem) {
   .campaign-filters,
   .campaign-card__heading {

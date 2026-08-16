@@ -4,6 +4,7 @@ import type { CampaignDetailResponseDto } from '@insightful-phish/shared';
 
 import LoadingSpinnerSVG from '../../components/LoadingSpinnerSVG';
 import AppLayout from '../../components/layout/AppLayout';
+import CampaignBuilder from './CampaignBuilder';
 import type { CampaignManagementClient } from './campaignManagementClient';
 import type { CampaignManagementContext } from './campaignManagement.types';
 import { developmentCampaignManagementClient } from './developmentCampaignManagementClient';
@@ -138,9 +139,13 @@ function CampaignManagementDetailPage({
         </header>
 
         {isNew && (
-          <section className="campaign-state">
-            Campaign Draft details will be configured here.
-          </section>
+          <CampaignBuilder
+            key="new"
+            initialDraft={{
+              name: '',
+              description: '',
+            }}
+          />
         )}
 
         {!isNew && isLoading && (
@@ -175,10 +180,13 @@ function CampaignManagementDetailPage({
         )}
 
         {!isNew && !isLoading && !loadError && detail && canEditDraft && (
-          <section className="campaign-state">
-            <h2>{detail.name}</h2>
-            <p>Draft details will be editable in the next commit.</p>
-          </section>
+          <CampaignBuilder
+            key={detail.id}
+            initialDraft={{
+              name: detail.name,
+              description: detail.description ?? '',
+            }}
+          />
         )}
 
         {!isNew &&

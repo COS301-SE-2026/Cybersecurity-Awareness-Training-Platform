@@ -86,6 +86,8 @@ describe('CampaignManagementDetailPage', () => {
 
     expect(screen.getByRole('heading', { level: 1, name: 'Create Campaign' })).toBeInTheDocument();
     expect(getCampaignDetail).not.toHaveBeenCalled();
+    expect(screen.getByRole('textbox', { name: 'Campaign name' })).toHaveValue('');
+    expect(screen.getByRole('textbox', { name: 'Description' })).toHaveValue('');
   });
 
   it('shows authoritative editable Draft detail', async () => {
@@ -97,7 +99,10 @@ describe('CampaignManagementDetailPage', () => {
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Edit Draft Campaign' }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 2, name: DRAFT_DETAIL.name })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Campaign name' })).toHaveValue(DRAFT_DETAIL.name);
+    expect(screen.getByRole('textbox', { name: 'Description' })).toHaveValue(
+      DRAFT_DETAIL.description,
+    );
   });
 
   it('keeps a Draft without EDIT authority read-only', async () => {
@@ -136,6 +141,7 @@ describe('CampaignManagementDetailPage', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Status: ACTIVE')).toBeInTheDocument();
     expect(screen.getByText('This Campaign is currently read-only.')).toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: 'Campaign name' })).not.toBeInTheDocument();
     expect(screen.queryByText('Campaign could not be loaded. Try again.')).not.toBeInTheDocument();
   });
 
@@ -152,9 +158,9 @@ describe('CampaignManagementDetailPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Retry' }));
 
-    expect(
-      await screen.findByRole('heading', { level: 2, name: DRAFT_DETAIL.name }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('textbox', { name: 'Campaign name' })).toHaveValue(
+      DRAFT_DETAIL.name,
+    );
     expect(getCampaignDetail).toHaveBeenCalledTimes(2);
   });
 
@@ -195,28 +201,16 @@ describe('CampaignManagementDetailPage', () => {
     });
 
     expect(
-      await screen.findByRole('heading', {
-        level: 2,
-        name: secondDetail.name,
+      await screen.findByRole('textbox', {
+        name: 'Campaign name',
       }),
-    ).toBeInTheDocument();
+    ).toHaveValue(secondDetail.name);
 
     await act(async () => {
       firstRequest.resolve(DRAFT_DETAIL);
       await firstRequest.promise;
     });
 
-    expect(
-      screen.getByRole('heading', {
-        level: 2,
-        name: secondDetail.name,
-      }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('heading', {
-        level: 2,
-        name: DRAFT_DETAIL.name,
-      }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Campaign name' })).toHaveValue(secondDetail.name);
   });
 });

@@ -6,3 +6,8 @@ export type CampaignManagementContext =
   | {
       kind: 'platform';
     };
+
+export type CampaignDraftFormState = {
+  name: string;
+  description: string;
+};
