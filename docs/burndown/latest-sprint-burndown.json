@@ -16,8 +16,8 @@
       "number": 458,
       "title": "chore: separate continuous integration from deployment workflows",
       "points": 5,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-08-16"
     },
     {
       "number": 457,
@@ -37,8 +37,8 @@
       "number": 455,
       "title": "fix: make frozen documentation policy terminate deterministically",
       "points": 3,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-08-16"
     },
     {
       "number": 454,
@@ -97,7 +97,7 @@
     },
     {
       "date": "2026-08-16",
-      "remaining": 33,
+      "remaining": 25,
       "ideal": 6.83
     }
   ]
