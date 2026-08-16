@@ -1501,7 +1501,7 @@
       "demo_no": 3,
       "milestone": "Sprint 7 (Demo 3)",
       "start": "2026-08-11",
-      "end": "2026-08-17",
+      "end": "2026-08-19",
       "issues": [
         {
           "number": 462,
@@ -1565,6 +1565,41 @@
           "points": 5,
           "state": "open",
           "closed_date": null
+        },
+        {
+          "number": 436,
+          "title": "fix: make production deployment failure recoverable",
+          "points": 5,
+          "state": "closed",
+          "closed_date": "2026-08-16"
+        },
+        {
+          "number": 426,
+          "title": "chore: complete the organisation onboarding request repository boundary",
+          "points": 5,
+          "state": "closed",
+          "closed_date": "2026-08-16"
+        },
+        {
+          "number": 425,
+          "title": "chore: complete the organisation trainee repository boundary",
+          "points": 5,
+          "state": "closed",
+          "closed_date": "2026-08-16"
+        },
+        {
+          "number": 418,
+          "title": "chore: cover trainee campaign progress mapping branches",
+          "points": 2,
+          "state": "closed",
+          "closed_date": "2026-08-16"
+        },
+        {
+          "number": 413,
+          "title": "chore: move simulation persistence behind a repository",
+          "points": 5,
+          "state": "closed",
+          "closed_date": "2026-08-16"
         }
       ]
     }
@@ -1572,563 +1607,563 @@
   "series": [
     {
       "date": "2026-04-27",
-      "remaining": 593,
-      "ideal": 593.0
+      "remaining": 615,
+      "ideal": 615.0
     },
     {
       "date": "2026-04-28",
-      "remaining": 590,
-      "ideal": 587.71
+      "remaining": 612,
+      "ideal": 609.61
     },
     {
       "date": "2026-04-29",
-      "remaining": 590,
-      "ideal": 582.41
+      "remaining": 612,
+      "ideal": 604.21
     },
     {
       "date": "2026-04-30",
-      "remaining": 579,
-      "ideal": 577.12
+      "remaining": 601,
+      "ideal": 598.82
     },
     {
       "date": "2026-05-01",
-      "remaining": 574,
-      "ideal": 571.82
+      "remaining": 596,
+      "ideal": 593.42
     },
     {
       "date": "2026-05-02",
-      "remaining": 574,
-      "ideal": 566.53
+      "remaining": 596,
+      "ideal": 588.03
     },
     {
       "date": "2026-05-03",
-      "remaining": 568,
-      "ideal": 561.23
+      "remaining": 590,
+      "ideal": 582.63
     },
     {
       "date": "2026-05-04",
-      "remaining": 568,
-      "ideal": 555.94
+      "remaining": 590,
+      "ideal": 577.24
     },
     {
       "date": "2026-05-05",
-      "remaining": 567,
-      "ideal": 550.64
+      "remaining": 589,
+      "ideal": 571.84
     },
     {
       "date": "2026-05-06",
-      "remaining": 567,
-      "ideal": 545.35
+      "remaining": 589,
+      "ideal": 566.45
     },
     {
       "date": "2026-05-07",
-      "remaining": 564,
-      "ideal": 540.05
+      "remaining": 586,
+      "ideal": 561.05
     },
     {
       "date": "2026-05-08",
-      "remaining": 550,
-      "ideal": 534.76
+      "remaining": 572,
+      "ideal": 555.66
     },
     {
       "date": "2026-05-09",
-      "remaining": 534,
-      "ideal": 529.46
+      "remaining": 556,
+      "ideal": 550.26
     },
     {
       "date": "2026-05-10",
-      "remaining": 506,
-      "ideal": 524.17
+      "remaining": 528,
+      "ideal": 544.87
     },
     {
       "date": "2026-05-11",
-      "remaining": 497,
-      "ideal": 518.88
+      "remaining": 519,
+      "ideal": 539.47
     },
     {
       "date": "2026-05-12",
-      "remaining": 485,
-      "ideal": 513.58
+      "remaining": 507,
+      "ideal": 534.08
     },
     {
       "date": "2026-05-13",
-      "remaining": 480,
-      "ideal": 508.29
+      "remaining": 502,
+      "ideal": 528.68
     },
     {
       "date": "2026-05-14",
-      "remaining": 480,
-      "ideal": 502.99
+      "remaining": 502,
+      "ideal": 523.29
     },
     {
       "date": "2026-05-15",
-      "remaining": 479,
-      "ideal": 497.7
+      "remaining": 501,
+      "ideal": 517.89
     },
     {
       "date": "2026-05-16",
-      "remaining": 474,
-      "ideal": 492.4
+      "remaining": 496,
+      "ideal": 512.5
     },
     {
       "date": "2026-05-17",
-      "remaining": 469,
-      "ideal": 487.11
+      "remaining": 491,
+      "ideal": 507.11
     },
     {
       "date": "2026-05-18",
-      "remaining": 448,
-      "ideal": 481.81
+      "remaining": 470,
+      "ideal": 501.71
     },
     {
       "date": "2026-05-19",
-      "remaining": 432,
-      "ideal": 476.52
+      "remaining": 454,
+      "ideal": 496.32
     },
     {
       "date": "2026-05-20",
-      "remaining": 421,
-      "ideal": 471.22
+      "remaining": 443,
+      "ideal": 490.92
     },
     {
       "date": "2026-05-21",
-      "remaining": 397,
-      "ideal": 465.93
+      "remaining": 419,
+      "ideal": 485.53
     },
     {
       "date": "2026-05-22",
-      "remaining": 397,
-      "ideal": 460.63
+      "remaining": 419,
+      "ideal": 480.13
     },
     {
       "date": "2026-05-23",
-      "remaining": 397,
-      "ideal": 455.34
+      "remaining": 419,
+      "ideal": 474.74
     },
     {
       "date": "2026-05-24",
-      "remaining": 397,
-      "ideal": 450.04
+      "remaining": 419,
+      "ideal": 469.34
     },
     {
       "date": "2026-05-25",
-      "remaining": 397,
-      "ideal": 444.75
+      "remaining": 419,
+      "ideal": 463.95
     },
     {
       "date": "2026-05-26",
-      "remaining": 395,
-      "ideal": 439.46
+      "remaining": 417,
+      "ideal": 458.55
     },
     {
       "date": "2026-05-27",
-      "remaining": 395,
-      "ideal": 434.16
+      "remaining": 417,
+      "ideal": 453.16
     },
     {
       "date": "2026-05-28",
-      "remaining": 395,
-      "ideal": 428.87
+      "remaining": 417,
+      "ideal": 447.76
     },
     {
       "date": "2026-05-29",
-      "remaining": 392,
-      "ideal": 423.57
+      "remaining": 414,
+      "ideal": 442.37
     },
     {
       "date": "2026-05-30",
-      "remaining": 392,
-      "ideal": 418.28
+      "remaining": 414,
+      "ideal": 436.97
     },
     {
       "date": "2026-05-31",
-      "remaining": 392,
-      "ideal": 412.98
+      "remaining": 414,
+      "ideal": 431.58
     },
     {
       "date": "2026-06-01",
-      "remaining": 392,
-      "ideal": 407.69
+      "remaining": 414,
+      "ideal": 426.18
     },
     {
       "date": "2026-06-02",
-      "remaining": 392,
-      "ideal": 402.39
+      "remaining": 414,
+      "ideal": 420.79
     },
     {
       "date": "2026-06-03",
-      "remaining": 389,
-      "ideal": 397.1
+      "remaining": 411,
+      "ideal": 415.39
     },
     {
       "date": "2026-06-04",
-      "remaining": 389,
-      "ideal": 391.8
+      "remaining": 411,
+      "ideal": 410.0
     },
     {
       "date": "2026-06-05",
-      "remaining": 389,
-      "ideal": 386.51
+      "remaining": 411,
+      "ideal": 404.61
     },
     {
       "date": "2026-06-06",
-      "remaining": 389,
-      "ideal": 381.21
+      "remaining": 411,
+      "ideal": 399.21
     },
     {
       "date": "2026-06-07",
-      "remaining": 389,
-      "ideal": 375.92
+      "remaining": 411,
+      "ideal": 393.82
     },
     {
       "date": "2026-06-08",
-      "remaining": 389,
-      "ideal": 370.62
+      "remaining": 411,
+      "ideal": 388.42
     },
     {
       "date": "2026-06-09",
-      "remaining": 389,
-      "ideal": 365.33
+      "remaining": 411,
+      "ideal": 383.03
     },
     {
       "date": "2026-06-10",
-      "remaining": 389,
-      "ideal": 360.04
+      "remaining": 411,
+      "ideal": 377.63
     },
     {
       "date": "2026-06-11",
-      "remaining": 389,
-      "ideal": 354.74
+      "remaining": 411,
+      "ideal": 372.24
     },
     {
       "date": "2026-06-12",
-      "remaining": 389,
-      "ideal": 349.45
+      "remaining": 411,
+      "ideal": 366.84
     },
     {
       "date": "2026-06-13",
-      "remaining": 389,
-      "ideal": 344.15
+      "remaining": 411,
+      "ideal": 361.45
     },
     {
       "date": "2026-06-14",
-      "remaining": 389,
-      "ideal": 338.86
+      "remaining": 411,
+      "ideal": 356.05
     },
     {
       "date": "2026-06-15",
-      "remaining": 389,
-      "ideal": 333.56
+      "remaining": 411,
+      "ideal": 350.66
     },
     {
       "date": "2026-06-16",
-      "remaining": 368,
-      "ideal": 328.27
+      "remaining": 390,
+      "ideal": 345.26
     },
     {
       "date": "2026-06-17",
-      "remaining": 338,
-      "ideal": 322.97
+      "remaining": 360,
+      "ideal": 339.87
     },
     {
       "date": "2026-06-18",
-      "remaining": 320,
-      "ideal": 317.68
+      "remaining": 342,
+      "ideal": 334.47
     },
     {
       "date": "2026-06-19",
-      "remaining": 318,
-      "ideal": 312.38
+      "remaining": 340,
+      "ideal": 329.08
     },
     {
       "date": "2026-06-20",
-      "remaining": 318,
-      "ideal": 307.09
+      "remaining": 340,
+      "ideal": 323.68
     },
     {
       "date": "2026-06-21",
-      "remaining": 318,
-      "ideal": 301.79
+      "remaining": 340,
+      "ideal": 318.29
     },
     {
       "date": "2026-06-22",
-      "remaining": 316,
-      "ideal": 296.5
+      "remaining": 338,
+      "ideal": 312.89
     },
     {
       "date": "2026-06-23",
-      "remaining": 304,
-      "ideal": 291.21
+      "remaining": 326,
+      "ideal": 307.5
     },
     {
       "date": "2026-06-24",
-      "remaining": 302,
-      "ideal": 285.91
+      "remaining": 324,
+      "ideal": 302.11
     },
     {
       "date": "2026-06-25",
-      "remaining": 298,
-      "ideal": 280.62
+      "remaining": 320,
+      "ideal": 296.71
     },
     {
       "date": "2026-06-26",
-      "remaining": 296,
-      "ideal": 275.32
+      "remaining": 318,
+      "ideal": 291.32
     },
     {
       "date": "2026-06-27",
-      "remaining": 296,
-      "ideal": 270.03
+      "remaining": 318,
+      "ideal": 285.92
     },
     {
       "date": "2026-06-28",
-      "remaining": 293,
-      "ideal": 264.73
+      "remaining": 315,
+      "ideal": 280.53
     },
     {
       "date": "2026-06-29",
-      "remaining": 285,
-      "ideal": 259.44
+      "remaining": 307,
+      "ideal": 275.13
     },
     {
       "date": "2026-06-30",
-      "remaining": 274,
-      "ideal": 254.14
+      "remaining": 296,
+      "ideal": 269.74
     },
     {
       "date": "2026-07-01",
-      "remaining": 260,
-      "ideal": 248.85
+      "remaining": 282,
+      "ideal": 264.34
     },
     {
       "date": "2026-07-02",
-      "remaining": 253,
-      "ideal": 243.55
+      "remaining": 275,
+      "ideal": 258.95
     },
     {
       "date": "2026-07-03",
-      "remaining": 251,
-      "ideal": 238.26
+      "remaining": 273,
+      "ideal": 253.55
     },
     {
       "date": "2026-07-04",
-      "remaining": 251,
-      "ideal": 232.96
+      "remaining": 273,
+      "ideal": 248.16
     },
     {
       "date": "2026-07-05",
-      "remaining": 251,
-      "ideal": 227.67
+      "remaining": 273,
+      "ideal": 242.76
     },
     {
       "date": "2026-07-06",
-      "remaining": 241,
-      "ideal": 222.38
+      "remaining": 263,
+      "ideal": 237.37
     },
     {
       "date": "2026-07-07",
-      "remaining": 239,
-      "ideal": 217.08
+      "remaining": 261,
+      "ideal": 231.97
     },
     {
       "date": "2026-07-08",
-      "remaining": 235,
-      "ideal": 211.79
+      "remaining": 257,
+      "ideal": 226.58
     },
     {
       "date": "2026-07-09",
-      "remaining": 235,
-      "ideal": 206.49
+      "remaining": 257,
+      "ideal": 221.18
     },
     {
       "date": "2026-07-10",
-      "remaining": 235,
-      "ideal": 201.2
+      "remaining": 257,
+      "ideal": 215.79
     },
     {
       "date": "2026-07-11",
-      "remaining": 235,
-      "ideal": 195.9
+      "remaining": 257,
+      "ideal": 210.39
     },
     {
       "date": "2026-07-12",
-      "remaining": 235,
-      "ideal": 190.61
+      "remaining": 257,
+      "ideal": 205.0
     },
     {
       "date": "2026-07-13",
-      "remaining": 229,
-      "ideal": 185.31
+      "remaining": 251,
+      "ideal": 199.61
     },
     {
       "date": "2026-07-14",
-      "remaining": 227,
-      "ideal": 180.02
+      "remaining": 249,
+      "ideal": 194.21
     },
     {
       "date": "2026-07-15",
-      "remaining": 225,
-      "ideal": 174.72
+      "remaining": 247,
+      "ideal": 188.82
     },
     {
       "date": "2026-07-16",
-      "remaining": 223,
-      "ideal": 169.43
+      "remaining": 245,
+      "ideal": 183.42
     },
     {
       "date": "2026-07-17",
-      "remaining": 223,
-      "ideal": 164.13
+      "remaining": 245,
+      "ideal": 178.03
     },
     {
       "date": "2026-07-18",
-      "remaining": 223,
-      "ideal": 158.84
+      "remaining": 245,
+      "ideal": 172.63
     },
     {
       "date": "2026-07-19",
-      "remaining": 218,
-      "ideal": 153.54
+      "remaining": 240,
+      "ideal": 167.24
     },
     {
       "date": "2026-07-20",
-      "remaining": 205,
-      "ideal": 148.25
+      "remaining": 227,
+      "ideal": 161.84
     },
     {
       "date": "2026-07-21",
-      "remaining": 201,
-      "ideal": 142.96
+      "remaining": 223,
+      "ideal": 156.45
     },
     {
       "date": "2026-07-22",
-      "remaining": 197,
-      "ideal": 137.66
+      "remaining": 219,
+      "ideal": 151.05
     },
     {
       "date": "2026-07-23",
-      "remaining": 192,
-      "ideal": 132.37
+      "remaining": 214,
+      "ideal": 145.66
     },
     {
       "date": "2026-07-24",
-      "remaining": 188,
-      "ideal": 127.07
+      "remaining": 210,
+      "ideal": 140.26
     },
     {
       "date": "2026-07-25",
-      "remaining": 184,
-      "ideal": 121.78
+      "remaining": 206,
+      "ideal": 134.87
     },
     {
       "date": "2026-07-26",
-      "remaining": 170,
-      "ideal": 116.48
+      "remaining": 192,
+      "ideal": 129.47
     },
     {
       "date": "2026-07-27",
-      "remaining": 155,
-      "ideal": 111.19
+      "remaining": 177,
+      "ideal": 124.08
     },
     {
       "date": "2026-07-28",
-      "remaining": 151,
-      "ideal": 105.89
+      "remaining": 173,
+      "ideal": 118.68
     },
     {
       "date": "2026-07-29",
-      "remaining": 122,
-      "ideal": 100.6
+      "remaining": 144,
+      "ideal": 113.29
     },
     {
       "date": "2026-07-30",
-      "remaining": 104,
-      "ideal": 95.3
+      "remaining": 126,
+      "ideal": 107.89
     },
     {
       "date": "2026-07-31",
-      "remaining": 80,
-      "ideal": 90.01
+      "remaining": 102,
+      "ideal": 102.5
     },
     {
       "date": "2026-08-01",
-      "remaining": 80,
-      "ideal": 84.71
+      "remaining": 102,
+      "ideal": 97.11
     },
     {
       "date": "2026-08-02",
-      "remaining": 80,
-      "ideal": 79.42
+      "remaining": 102,
+      "ideal": 91.71
     },
     {
       "date": "2026-08-03",
-      "remaining": 80,
-      "ideal": 74.12
+      "remaining": 102,
+      "ideal": 86.32
     },
     {
       "date": "2026-08-04",
-      "remaining": 80,
-      "ideal": 68.83
+      "remaining": 102,
+      "ideal": 80.92
     },
     {
       "date": "2026-08-05",
-      "remaining": 80,
-      "ideal": 63.54
+      "remaining": 102,
+      "ideal": 75.53
     },
     {
       "date": "2026-08-06",
-      "remaining": 80,
-      "ideal": 58.24
+      "remaining": 102,
+      "ideal": 70.13
     },
     {
       "date": "2026-08-07",
-      "remaining": 77,
-      "ideal": 52.95
+      "remaining": 99,
+      "ideal": 64.74
     },
     {
       "date": "2026-08-08",
-      "remaining": 72,
-      "ideal": 47.65
+      "remaining": 94,
+      "ideal": 59.34
     },
     {
       "date": "2026-08-09",
-      "remaining": 67,
-      "ideal": 42.36
+      "remaining": 89,
+      "ideal": 53.95
     },
     {
       "date": "2026-08-10",
-      "remaining": 62,
-      "ideal": 37.06
+      "remaining": 84,
+      "ideal": 48.55
     },
     {
       "date": "2026-08-11",
-      "remaining": 54,
-      "ideal": 31.77
+      "remaining": 76,
+      "ideal": 43.16
     },
     {
       "date": "2026-08-12",
-      "remaining": 54,
-      "ideal": 26.47
+      "remaining": 76,
+      "ideal": 37.76
     },
     {
       "date": "2026-08-13",
-      "remaining": 54,
-      "ideal": 21.18
+      "remaining": 76,
+      "ideal": 32.37
     },
     {
       "date": "2026-08-14",
-      "remaining": 49,
-      "ideal": 15.88
+      "remaining": 71,
+      "ideal": 26.97
     },
     {
       "date": "2026-08-15",
-      "remaining": 41,
-      "ideal": 10.59
+      "remaining": 63,
+      "ideal": 21.58
     },
     {
       "date": "2026-08-16",
       "remaining": 33,
-      "ideal": 5.29
+      "ideal": 16.18
     }
   ]
 }

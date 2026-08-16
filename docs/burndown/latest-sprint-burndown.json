@@ -3,7 +3,7 @@
   "demo_no": 3,
   "milestone": "Sprint 7 (Demo 3)",
   "start": "2026-08-11",
-  "end": "2026-08-17",
+  "end": "2026-08-19",
   "issues": [
     {
       "number": 462,
@@ -67,38 +67,73 @@
       "points": 5,
       "state": "open",
       "closed_date": null
+    },
+    {
+      "number": 436,
+      "title": "fix: make production deployment failure recoverable",
+      "points": 5,
+      "state": "closed",
+      "closed_date": "2026-08-16"
+    },
+    {
+      "number": 426,
+      "title": "chore: complete the organisation onboarding request repository boundary",
+      "points": 5,
+      "state": "closed",
+      "closed_date": "2026-08-16"
+    },
+    {
+      "number": 425,
+      "title": "chore: complete the organisation trainee repository boundary",
+      "points": 5,
+      "state": "closed",
+      "closed_date": "2026-08-16"
+    },
+    {
+      "number": 418,
+      "title": "chore: cover trainee campaign progress mapping branches",
+      "points": 2,
+      "state": "closed",
+      "closed_date": "2026-08-16"
+    },
+    {
+      "number": 413,
+      "title": "chore: move simulation persistence behind a repository",
+      "points": 5,
+      "state": "closed",
+      "closed_date": "2026-08-16"
     }
   ],
   "series": [
     {
       "date": "2026-08-11",
-      "remaining": 41,
-      "ideal": 41.0
+      "remaining": 63,
+      "ideal": 63.0
     },
     {
       "date": "2026-08-12",
-      "remaining": 41,
-      "ideal": 34.17
+      "remaining": 63,
+      "ideal": 55.12
     },
     {
       "date": "2026-08-13",
-      "remaining": 41,
-      "ideal": 27.33
+      "remaining": 63,
+      "ideal": 47.25
     },
     {
       "date": "2026-08-14",
-      "remaining": 41,
-      "ideal": 20.5
+      "remaining": 63,
+      "ideal": 39.38
     },
     {
       "date": "2026-08-15",
-      "remaining": 33,
-      "ideal": 13.67
+      "remaining": 55,
+      "ideal": 31.5
     },
     {
       "date": "2026-08-16",
       "remaining": 25,
-      "ideal": 6.83
+      "ideal": 23.62
     }
   ]
 }
