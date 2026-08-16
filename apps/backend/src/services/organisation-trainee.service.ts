@@ -471,9 +471,12 @@ export async function createOrganisationTraineeInvitation(
         targetType: 'INVITATION',
         actionType: 'INVITED',
         outcome: 'SUCCESS',
+        newValues: {
+          recipientEmail: normalisedEmail,
+          purpose: 'ORGANISATION_TRAINEE_INVITE',
+        },
         metadata: {
           requiresAccountConflictResolution,
-          recipientEmail: normalisedEmail,
         },
       },
       emailDeliveryData: {
@@ -613,6 +616,9 @@ export async function resendTraineeInvitation(
         targetType: 'INVITATION',
         actionType: 'RESENT',
         outcome: 'SUCCESS',
+        newValues: {
+          expiresAt: expiresAt.toISOString(),
+        },
         metadata: {
           requiresAccountConflictResolution,
           invitationId: invitation.id,
@@ -790,6 +796,9 @@ export async function revokeTraineeInvitation(
         targetType: 'INVITATION',
         actionType: 'REVOKED',
         outcome: 'SUCCESS',
+        newValues: {
+          status: 'REVOKED',
+        },
         metadata: {
           invitationId: invitation.id,
         },

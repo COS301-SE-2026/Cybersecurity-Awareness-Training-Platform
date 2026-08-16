@@ -300,6 +300,10 @@ describe('organisation-trainee.repository unit tests', () => {
         expect.objectContaining({
           actionType: 'INVITED',
           targetId: 'inv-1',
+          newValues: {
+            recipientEmail: 'trainee@example.com',
+            purpose: 'ORGANISATION_TRAINEE_INVITE',
+          },
         }),
         txMock,
       );
@@ -307,6 +311,11 @@ describe('organisation-trainee.repository unit tests', () => {
         expect.objectContaining({
           emailType: 'ORGANISATION_TRAINEE_INVITE',
           recipientEmail: 'trainee@example.com',
+          relatedEntity: {
+            invitationId: 'inv-1',
+            actionTokenId: 'token-1',
+            organisationId: 'org-1',
+          },
         }),
         txMock,
       );
@@ -314,6 +323,19 @@ describe('organisation-trainee.repository unit tests', () => {
         invitation: { id: 'inv-1', createdAt: expect.any(Date) },
         actionToken: { id: 'token-1' },
         pendingDelivery: { deliveryLogId: 'dl-1', jobId: 'job-1' },
+      });
+    });
+
+    it('throws 503 EMAIL_QUEUE_FAILED when enqueueEmailDelivery fails in transaction', async () => {
+      txMock.organisationTraineeProfile.findFirst.mockResolvedValue(null);
+      txMock.invitation.findFirst.mockResolvedValue(null);
+      txMock.invitation.create.mockResolvedValue({ id: 'inv-1', createdAt: new Date() });
+      vi.mocked(createActionToken).mockResolvedValue({ id: 'token-1' } as never);
+      vi.mocked(enqueueEmailDelivery).mockRejectedValue(new Error('Queue unavailable'));
+
+      await expect(createOrganisationTraineeInvitationTx(input)).rejects.toMatchObject({
+        statusCode: 503,
+        errorKey: 'EMAIL_QUEUE_FAILED',
       });
     });
 
@@ -396,13 +418,42 @@ describe('organisation-trainee.repository unit tests', () => {
         },
       });
       expect(createAuditLogEntry).toHaveBeenCalledWith(
-        expect.objectContaining({ actionType: 'RESENT', targetId: 'inv-1' }),
+        expect.objectContaining({
+          actionType: 'RESENT',
+          targetId: 'inv-1',
+          newValues: {
+            expiresAt: input.expiresAt.toISOString(),
+          },
+        }),
+        txMock,
+      );
+      expect(enqueueEmailDelivery).toHaveBeenCalledWith(
+        expect.objectContaining({
+          relatedEntity: expect.objectContaining({
+            invitationId: 'inv-1',
+            actionTokenId: 'new-token',
+            organisationId: 'org-1',
+            invitationStateVersion: expect.any(String),
+          }),
+        }),
         txMock,
       );
       expect(result).toEqual({
         actionToken: { id: 'new-token' },
         claimedAt: expect.any(Date),
         pendingDelivery: { deliveryLogId: 'dl-1', jobId: 'job-1' },
+      });
+    });
+
+    it('throws 503 EMAIL_QUEUE_FAILED when enqueueEmailDelivery fails during resend', async () => {
+      txMock.invitation.updateMany.mockResolvedValue({ count: 1 });
+      txMock.actionToken.updateMany.mockResolvedValue({ count: 1 });
+      vi.mocked(createActionToken).mockResolvedValue({ id: 'new-token' } as never);
+      vi.mocked(enqueueEmailDelivery).mockRejectedValue(new Error('Queue unavailable'));
+
+      await expect(resendOrganisationTraineeInvitationTx(input)).rejects.toMatchObject({
+        statusCode: 503,
+        errorKey: 'EMAIL_QUEUE_FAILED',
       });
     });
 
@@ -457,7 +508,13 @@ describe('organisation-trainee.repository unit tests', () => {
         },
       });
       expect(createAuditLogEntry).toHaveBeenCalledWith(
-        expect.objectContaining({ actionType: 'REVOKED', targetId: 'inv-1' }),
+        expect.objectContaining({
+          actionType: 'REVOKED',
+          targetId: 'inv-1',
+          newValues: {
+            status: 'REVOKED',
+          },
+        }),
         txMock,
       );
       expect(result).toEqual({
@@ -547,6 +604,11 @@ describe('organisation-trainee.repository unit tests', () => {
           actionType: 'DISABLED',
           outcome: 'SUCCESS',
           targetId: 'user-1',
+          metadata: {
+            organisationTraineeProfileId: 'trainee-1',
+            traineeProfileId: 'tp-1',
+            disabledReason: 'Departed',
+          },
         }),
         txMock,
       );

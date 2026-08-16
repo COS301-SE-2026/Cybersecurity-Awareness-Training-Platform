@@ -264,21 +264,35 @@ export async function createOrganisationTraineeInvitationTx(
       {
         ...input.auditLogData,
         targetId: invitation.id,
-      },
-      tx,
-    );
-
-    const pendingDelivery = await enqueueEmailDelivery(
-      {
-        ...input.emailDeliveryData,
-        relatedEntity: {
-          invitationId: invitation.id,
-          actionTokenId: actionToken.id,
-          organisationId: input.organisationId,
+        newValues: {
+          recipientEmail: input.recipientEmail,
+          purpose: 'ORGANISATION_TRAINEE_INVITE',
+          ...(input.auditLogData.newValues as Record<string, unknown> | undefined),
         },
       },
       tx,
     );
+
+    let pendingDelivery: Awaited<ReturnType<typeof enqueueEmailDelivery>>;
+    try {
+      pendingDelivery = await enqueueEmailDelivery(
+        {
+          ...input.emailDeliveryData,
+          relatedEntity: {
+            invitationId: invitation.id,
+            actionTokenId: actionToken.id,
+            organisationId: input.organisationId,
+          },
+        },
+        tx,
+      );
+    } catch {
+      throw new OrganisationTraineeRepositoryError(
+        503,
+        'EMAIL_QUEUE_FAILED',
+        'Invitation email could not be queued for delivery.',
+      );
+    }
 
     return {
       invitation,
@@ -350,21 +364,35 @@ export async function resendOrganisationTraineeInvitationTx(
       {
         ...input.auditLogData,
         targetId: input.invitationId,
-      },
-      tx,
-    );
-
-    const pendingDelivery = await enqueueEmailDelivery(
-      {
-        ...input.emailDeliveryData,
-        relatedEntity: {
-          invitationId: input.invitationId,
-          actionTokenId: actionToken.id,
-          organisationId: input.organisationId,
+        newValues: {
+          expiresAt: input.expiresAt.toISOString(),
+          ...(input.auditLogData.newValues as Record<string, unknown> | undefined),
         },
       },
       tx,
     );
+
+    let pendingDelivery: Awaited<ReturnType<typeof enqueueEmailDelivery>>;
+    try {
+      pendingDelivery = await enqueueEmailDelivery(
+        {
+          ...input.emailDeliveryData,
+          relatedEntity: {
+            invitationId: input.invitationId,
+            actionTokenId: actionToken.id,
+            organisationId: input.organisationId,
+            invitationStateVersion: claimedAt.toISOString(),
+          },
+        },
+        tx,
+      );
+    } catch {
+      throw new OrganisationTraineeRepositoryError(
+        503,
+        'EMAIL_QUEUE_FAILED',
+        'Invitation email could not be queued for delivery.',
+      );
+    }
 
     return {
       actionToken,
@@ -428,6 +456,10 @@ export async function revokeOrganisationTraineeInvitationTx(
       {
         ...input.auditLogData,
         targetId: input.invitationId,
+        newValues: {
+          status: 'REVOKED',
+          ...(input.auditLogData.newValues as Record<string, unknown> | undefined),
+        },
       },
       tx,
     );
@@ -508,6 +540,12 @@ export async function disableOrganisationTraineeTx(
       {
         ...input.auditLogData,
         targetId: txTrainee.traineeProfile.userId,
+        metadata: {
+          organisationTraineeProfileId: txTrainee.id,
+          traineeProfileId: txTrainee.traineeProfileId,
+          disabledReason: input.disabledReason,
+          ...(input.auditLogData.metadata as Record<string, unknown> | undefined),
+        },
       },
       tx,
     );

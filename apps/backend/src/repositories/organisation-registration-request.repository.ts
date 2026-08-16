@@ -566,18 +566,27 @@ export async function approveOrganisationRegistrationRequestTx(
         );
       }
 
-      const pendingDelivery = await enqueueEmailDelivery(
-        {
-          ...input.emailDeliveryData,
-          relatedEntity: {
-            organisationId: organisation.id,
-            invitationId: invitation.id,
-            actionTokenId: actionToken.id,
-            organisationRegistrationRequestId: input.requestId,
+      let pendingDelivery: Awaited<ReturnType<typeof enqueueEmailDelivery>>;
+      try {
+        pendingDelivery = await enqueueEmailDelivery(
+          {
+            ...input.emailDeliveryData,
+            relatedEntity: {
+              organisationId: organisation.id,
+              invitationId: invitation.id,
+              actionTokenId: actionToken.id,
+              organisationRegistrationRequestId: input.requestId,
+            },
           },
-        },
-        tx,
-      );
+          tx,
+        );
+      } catch {
+        throw new OrganisationRegistrationRequestRepositoryError(
+          409,
+          'EMAIL_QUEUE_FAILED',
+          'Required email could not be queued for delivery',
+        );
+      }
 
       return {
         updatedRequest,

@@ -524,5 +524,20 @@ describe('organisation registration request repository', () => {
         errorKey: 'REPRESENTATIVE_CONFLICT',
       });
     });
+
+    it('throws 409 EMAIL_QUEUE_FAILED when enqueueEmailDelivery fails in transaction', async () => {
+      txMock.organisationRegistrationRequest.updateMany.mockResolvedValue({ count: 1 });
+      txMock.organisation.create.mockResolvedValue({ id: 'org-1', name: 'Acme Corp' });
+      txMock.organisationPermission.createMany.mockResolvedValue({ count: 5 });
+      txMock.invitation.create.mockResolvedValue({ id: 'inv-1', status: 'PENDING' });
+      vi.mocked(createActionToken).mockResolvedValue({ id: 'tok-1' } as never);
+      vi.mocked(createAuditLogEntry).mockResolvedValue({ id: 'aud-1' } as never);
+      vi.mocked(enqueueEmailDelivery).mockRejectedValue(new Error('Queue connection failure'));
+
+      await expect(approveOrganisationRegistrationRequestTx(input)).rejects.toMatchObject({
+        statusCode: 409,
+        errorKey: 'EMAIL_QUEUE_FAILED',
+      });
+    });
   });
 });
