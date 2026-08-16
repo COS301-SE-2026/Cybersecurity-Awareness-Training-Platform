@@ -9,9 +9,11 @@ import type {
   TraineeListResponseDto,
   TraineeListItemDto,
 } from '@insightful-phish/shared';
+import { env } from '../config/env.js';
 import { OrganisationPermissionKey } from '../generated/prisma/enums.js';
 import { generateOpaqueToken, hashOpaqueToken } from './token-hash.service.js';
 import { recordAuditLog } from './audit-log.service.js';
+import { renderEmail } from './email-template-renderer.js';
 import { sendEmail } from './email.service.js';
 import {
   permissionKeysForAdmin,
@@ -445,19 +447,43 @@ export async function createOrganisationTraineeInvitation(
   const rawToken = generateOpaqueToken();
   const tokenHash = hashOpaqueToken(rawToken);
 
+  const renderedEmail = renderEmail('ORGANISATION_TRAINEE_INVITE', {
+    firstName: input.firstName ?? '',
+    organisationName: actor.organisation.name,
+    actionToken: rawToken,
+    actionTokenExpiresAt: expiresAt,
+    requiresAccountConflictResolution,
+  });
+
   let txResult: Awaited<ReturnType<typeof createOrganisationTraineeInvitationTx>>;
   try {
     txResult = await createOrganisationTraineeInvitationTx({
-      actorUserId,
       organisationId,
       recipientEmail: normalisedEmail,
       recipientFirstName: input.firstName ?? null,
       recipientLastName: input.lastName ?? null,
-      organisationName: actor.organisation.name,
-      requiresAccountConflictResolution,
       expiresAt,
-      rawToken,
       tokenHash,
+      auditLogData: {
+        actorUserId,
+        actorType: 'ORGANISATION_ADMIN',
+        organisationId,
+        targetType: 'INVITATION',
+        actionType: 'INVITED',
+        outcome: 'SUCCESS',
+        metadata: {
+          requiresAccountConflictResolution,
+          recipientEmail: normalisedEmail,
+        },
+      },
+      emailDeliveryData: {
+        emailType: 'ORGANISATION_TRAINEE_INVITE',
+        recipientEmail: normalisedEmail,
+        subject: renderedEmail.subject,
+        text: renderedEmail.text,
+        html: renderedEmail.html,
+        maxAttempts: env.EMAIL_DISPATCHER_MAX_ATTEMPTS,
+      },
     });
   } catch (error) {
     rethrowAsServiceError(error);
@@ -474,16 +500,9 @@ export async function createOrganisationTraineeInvitation(
     invitationLifecycleState === 'SENT' ||
     invitationLifecycleState === 'FAILED_TO_SEND';
   const canRevoke = canResend;
-  const emailQueued = txResult.emailResult.status === 'QUEUED';
-  const deliveryState: 'PENDING' | 'SENT' | 'FAILED' | 'UNKNOWN' = emailQueued
-    ? 'PENDING'
-    : 'FAILED';
-
-  const invitationStatus = emailQueued ? 'INVITE_PENDING' : 'INVITE_FAILED';
-
-  const resendMessage = emailQueued
-    ? 'Invitation email queued for delivery.'
-    : 'Invitation created, but email delivery could not be queued.';
+  const deliveryState: 'PENDING' | 'SENT' | 'FAILED' | 'UNKNOWN' = 'PENDING';
+  const invitationStatus = 'INVITE_PENDING';
+  const resendMessage = 'Invitation email queued for delivery.';
 
   const invitationExpiresAt = (finalInvite?.expiresAt ?? expiresAt).toISOString();
   const createdAt = txResult.invitation.createdAt.toISOString();
@@ -571,29 +590,46 @@ export async function resendTraineeInvitation(
   const rawToken = generateOpaqueToken();
   const tokenHash = hashOpaqueToken(rawToken);
 
+  const renderedEmail = renderEmail('ORGANISATION_TRAINEE_INVITE', {
+    firstName: invitation.recipientFirstName ?? '',
+    organisationName: actor.organisation.name,
+    actionToken: rawToken,
+    actionTokenExpiresAt: expiresAt,
+    requiresAccountConflictResolution,
+  });
+
   let txResult: Awaited<ReturnType<typeof resendOrganisationTraineeInvitationTx>>;
   try {
     txResult = await resendOrganisationTraineeInvitationTx({
-      actorUserId,
       invitationId: invitation.id,
       organisationId: invitation.organisationId,
-      recipientEmail: invitation.recipientEmail,
-      recipientFirstName: invitation.recipientFirstName ?? null,
-      organisationName: actor.organisation.name,
       observedUpdatedAt,
-      requiresAccountConflictResolution,
       expiresAt,
-      rawToken,
       tokenHash,
+      auditLogData: {
+        actorUserId,
+        actorType: 'ORGANISATION_ADMIN',
+        organisationId,
+        targetType: 'INVITATION',
+        actionType: 'RESENT',
+        outcome: 'SUCCESS',
+        metadata: {
+          requiresAccountConflictResolution,
+          invitationId: invitation.id,
+        },
+      },
+      emailDeliveryData: {
+        emailType: 'ORGANISATION_TRAINEE_INVITE',
+        recipientEmail: invitation.recipientEmail,
+        subject: renderedEmail.subject,
+        text: renderedEmail.text,
+        html: renderedEmail.html,
+        maxAttempts: env.EMAIL_DISPATCHER_MAX_ATTEMPTS,
+      },
     });
   } catch (error) {
     rethrowAsServiceError(error);
   }
-
-  const emailQueued = txResult.emailResult.status === 'QUEUED';
-  const deliveryState: 'PENDING' | 'SENT' | 'FAILED' | 'UNKNOWN' = emailQueued
-    ? 'PENDING'
-    : 'FAILED';
 
   const finalInvitation = await findAuthoritativeResentInvitation(
     invitation.id,
@@ -633,9 +669,7 @@ export async function resendTraineeInvitation(
   }
 
   const invitationLifecycleState = deriveInvitationLifecycleState(finalInvitation);
-  const resendMessage = emailQueued
-    ? 'Invitation email queued for delivery.'
-    : 'Invitation action token rotated, but email delivery could not be queued.';
+  const resendMessage = 'Invitation email queued for delivery.';
   const resendStatus =
     finalInvitation.status === 'SENT'
       ? 'SENT'
@@ -649,7 +683,8 @@ export async function resendTraineeInvitation(
   const canRevoke = canResend;
   const invitationExpiresAt = finalInvitation.expiresAt.toISOString();
   const createdAt = invitation.createdAt.toISOString();
-  const invitationStatus = emailQueued ? 'INVITE_PENDING' : 'INVITE_FAILED';
+  const invitationStatus = 'INVITE_PENDING';
+  const deliveryState: 'PENDING' | 'SENT' | 'FAILED' | 'UNKNOWN' = 'PENDING';
 
   return {
     success: true,
@@ -748,6 +783,17 @@ export async function revokeTraineeInvitation(
       actorUserId,
       organisationId: invitation.organisationId,
       invitationId: invitation.id,
+      auditLogData: {
+        actorUserId,
+        actorType: 'ORGANISATION_ADMIN',
+        organisationId,
+        targetType: 'INVITATION',
+        actionType: 'REVOKED',
+        outcome: 'SUCCESS',
+        metadata: {
+          invitationId: invitation.id,
+        },
+      },
     });
   } catch (error) {
     rethrowAsServiceError(error);
@@ -808,6 +854,18 @@ export async function disableOrganisationTrainee(
       organisationId,
       traineeId,
       disabledReason: reason,
+      auditLogData: {
+        actorUserId,
+        actorType: 'ORGANISATION_ADMIN',
+        organisationId,
+        targetType: 'USER',
+        actionType: 'DISABLED',
+        outcome: 'SUCCESS',
+        metadata: {
+          reason,
+          traineeId,
+        },
+      },
     });
   } catch (error) {
     rethrowAsServiceError(error);

@@ -55,4 +55,10 @@ describe('Organisation Trainee Architecture Boundaries', () => {
     expect(routesContent).not.toMatch(/from\s+['"].*prisma.*['"]/i);
     expect(routesContent).not.toMatch(/from\s+['"].*repository.*['"]/i);
   });
+
+  it('ensures organisation trainee repository does not import application services', () => {
+    const repoPath = resolveBackendFilePath('repositories/organisation-trainee.repository.ts');
+    const repoContent = fs.readFileSync(repoPath, 'utf-8');
+    expect(repoContent).not.toMatch(/from\s+['"]\.\.\/services\/.*['"]/i);
+  });
 });

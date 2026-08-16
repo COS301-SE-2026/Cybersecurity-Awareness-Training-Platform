@@ -58,7 +58,7 @@ const orgAdminRepoMock = vi.hoisted(() => ({
 }));
 
 const tokenHashMock = vi.hoisted(() => ({
-  generateOpaqueToken: vi.fn().mockReturnValue('raw-opaque-token-12345'),
+  generateOpaqueToken: vi.fn().mockReturnValue('raw-opaque-token-12345-67890-abcdef123456'),
   hashOpaqueToken: vi.fn().mockReturnValue('hashed-opaque-token-12345'),
 }));
 
@@ -196,13 +196,19 @@ describe('OrganisationTraineeService', () => {
       expect(result.success).toBe(true);
       expect(traineeRepoMock.createOrganisationTraineeInvitationTx).toHaveBeenCalledWith(
         expect.objectContaining({
-          actorUserId: mockActorUserId,
           organisationId: mockOrgId,
           recipientEmail: 'trainee@example.com',
           recipientFirstName: 'Alex',
           recipientLastName: 'Trainee',
-          rawToken: 'raw-opaque-token-12345',
           tokenHash: 'hashed-opaque-token-12345',
+          auditLogData: expect.objectContaining({
+            actorUserId: mockActorUserId,
+            actionType: 'INVITED',
+          }),
+          emailDeliveryData: expect.objectContaining({
+            emailType: 'ORGANISATION_TRAINEE_INVITE',
+            recipientEmail: 'trainee@example.com',
+          }),
         }),
       );
       expect(traineeRepoMock.findAuthoritativeInvitationById).toHaveBeenCalledWith(
@@ -338,11 +344,17 @@ describe('OrganisationTraineeService', () => {
       expect(result.invitationId).toBe(mockInvitationId);
       expect(traineeRepoMock.resendOrganisationTraineeInvitationTx).toHaveBeenCalledWith(
         expect.objectContaining({
-          actorUserId: mockActorUserId,
           organisationId: mockOrgId,
           invitationId: mockInvitationId,
-          rawToken: 'raw-opaque-token-12345',
           tokenHash: 'hashed-opaque-token-12345',
+          auditLogData: expect.objectContaining({
+            actorUserId: mockActorUserId,
+            actionType: 'RESENT',
+          }),
+          emailDeliveryData: expect.objectContaining({
+            emailType: 'ORGANISATION_TRAINEE_INVITE',
+            recipientEmail: invitation.recipientEmail,
+          }),
         }),
       );
       expect(traineeRepoMock.findAuthoritativeResentInvitation).toHaveBeenCalledWith(
@@ -439,11 +451,17 @@ describe('OrganisationTraineeService', () => {
 
       expect(result.success).toBe(true);
       expect(result.status).toBe('REVOKED');
-      expect(traineeRepoMock.revokeOrganisationTraineeInvitationTx).toHaveBeenCalledWith({
-        actorUserId: mockActorUserId,
-        organisationId: mockOrgId,
-        invitationId: mockInvitationId,
-      });
+      expect(traineeRepoMock.revokeOrganisationTraineeInvitationTx).toHaveBeenCalledWith(
+        expect.objectContaining({
+          actorUserId: mockActorUserId,
+          organisationId: mockOrgId,
+          invitationId: mockInvitationId,
+          auditLogData: expect.objectContaining({
+            actorUserId: mockActorUserId,
+            actionType: 'REVOKED',
+          }),
+        }),
+      );
     });
 
     it('behaves idempotently when invitation is already revoked without hitting database mutations', async () => {
@@ -515,12 +533,18 @@ describe('OrganisationTraineeService', () => {
       expect(result.success).toBe(true);
       expect(result.traineeId).toBe(trainee.id);
       expect(result.status).toBe('DISABLED');
-      expect(traineeRepoMock.disableOrganisationTraineeTx).toHaveBeenCalledWith({
-        actorUserId: mockActorUserId,
-        organisationId: mockOrgId,
-        traineeId: mockTraineeId,
-        disabledReason: 'Disabled by organisation admin',
-      });
+      expect(traineeRepoMock.disableOrganisationTraineeTx).toHaveBeenCalledWith(
+        expect.objectContaining({
+          actorUserId: mockActorUserId,
+          organisationId: mockOrgId,
+          traineeId: mockTraineeId,
+          disabledReason: 'Disabled by organisation admin',
+          auditLogData: expect.objectContaining({
+            actorUserId: mockActorUserId,
+            actionType: 'DISABLED',
+          }),
+        }),
+      );
       expect(emailMock.sendEmail).toHaveBeenCalledWith(
         expect.objectContaining({
           emailType: 'ROLE_CHANGED_NOTIFICATION',

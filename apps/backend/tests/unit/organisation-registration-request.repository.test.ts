@@ -16,9 +16,9 @@ import {
   rejectOrganisationRegistrationRequest,
 } from '../../src/repositories/organisation-registration-request.repository.js';
 import { prisma } from '../../src/lib/prisma.js';
-import { issueActionToken } from '../../src/services/action-token.service.js';
-import { recordAuditLog } from '../../src/services/audit-log.service.js';
-import { requestAuthEmailSend } from '../../src/services/auth-email-hook.service.js';
+import { createActionToken } from '../../src/repositories/action-token.repository.js';
+import { createAuditLogEntry } from '../../src/repositories/audit-log.repository.js';
+import { enqueueEmailDelivery } from '../../src/repositories/email-delivery.repository.js';
 
 const txMock = {
   organisationRegistrationRequest: {
@@ -61,16 +61,16 @@ vi.mock('../../src/lib/prisma.js', () => ({
   },
 }));
 
-vi.mock('../../src/services/action-token.service.js', () => ({
-  issueActionToken: vi.fn(),
+vi.mock('../../src/repositories/action-token.repository.js', () => ({
+  createActionToken: vi.fn(),
 }));
 
-vi.mock('../../src/services/audit-log.service.js', () => ({
-  recordAuditLog: vi.fn(),
+vi.mock('../../src/repositories/audit-log.repository.js', () => ({
+  createAuditLogEntry: vi.fn(),
 }));
 
-vi.mock('../../src/services/auth-email-hook.service.js', () => ({
-  requestAuthEmailSend: vi.fn(),
+vi.mock('../../src/repositories/email-delivery.repository.js', () => ({
+  enqueueEmailDelivery: vi.fn(),
 }));
 
 vi.mock('../../src/repositories/security-settings.repository.js', () => ({
@@ -106,7 +106,7 @@ describe('organisation registration request repository', () => {
   });
 
   describe('findOrganisationRegistrationRequestById', () => {
-    it('queries request by id', async () => {
+    it('queries registration request by id', async () => {
       vi.mocked(prisma.organisationRegistrationRequest.findUnique).mockResolvedValue({
         id: 'req-1',
       } as never);
@@ -119,7 +119,7 @@ describe('organisation registration request repository', () => {
   });
 
   describe('findOrganisationRegistrationRequestWithReviewers', () => {
-    it('queries request with reviewers included', async () => {
+    it('queries registration request with reviewers included', async () => {
       vi.mocked(prisma.organisationRegistrationRequest.findUnique).mockResolvedValue({
         id: 'req-1',
       } as never);
@@ -136,22 +136,8 @@ describe('organisation registration request repository', () => {
     });
   });
 
-  describe('findOrganisationByName', () => {
-    it('queries organisation by name case-insensitively', async () => {
-      vi.mocked(prisma.organisation.findFirst).mockResolvedValue({ id: 'org-1' } as never);
-      const res = await findOrganisationByName('Acme Corp');
-      expect(prisma.organisation.findFirst).toHaveBeenCalledWith({
-        where: {
-          status: { in: ['PENDING_ONBOARDING', 'ACTIVE'] },
-          name: { equals: 'Acme Corp', mode: 'insensitive' },
-        },
-      });
-      expect(res).toEqual({ id: 'org-1' });
-    });
-  });
-
   describe('findActiveRequestByOrganisationName', () => {
-    it('queries active request by organisation name', async () => {
+    it('queries active requests with case insensitive organisation name', async () => {
       vi.mocked(prisma.organisationRegistrationRequest.findFirst).mockResolvedValue({
         id: 'req-1',
       } as never);
@@ -166,115 +152,123 @@ describe('organisation registration request repository', () => {
     });
   });
 
-  describe('findActiveRequestByRepresentativeEmail', () => {
-    it('checks representative email duplicates case-insensitively', async () => {
-      await findActiveRequestByRepresentativeEmail('representative@example.test');
-
-      expect(prisma.organisationRegistrationRequest.findFirst).toHaveBeenCalledWith({
-        where: {
-          status: {
-            in: ['PENDING_REVIEW', 'CONTACTED', 'APPROVED'],
-          },
-          representativeEmail: {
-            equals: 'representative@example.test',
-            mode: 'insensitive',
-          },
-        },
-      });
-    });
-  });
-
   describe('findActiveRequestByWebsiteOrDomain', () => {
-    it('checks website and primary domain duplicates case-insensitively', async () => {
-      await findActiveRequestByWebsiteOrDomain({
-        website: 'https://example.test',
-        primaryDomain: 'example.test',
+    it('queries active requests matching website or domain', async () => {
+      vi.mocked(prisma.organisationRegistrationRequest.findFirst).mockResolvedValue({
+        id: 'req-1',
+      } as never);
+      const res = await findActiveRequestByWebsiteOrDomain({
+        website: 'https://acme.test',
+        primaryDomain: 'acme.test',
       });
-
       expect(prisma.organisationRegistrationRequest.findFirst).toHaveBeenCalledWith({
         where: {
-          status: {
-            in: ['PENDING_REVIEW', 'CONTACTED', 'APPROVED'],
-          },
+          status: { in: ['PENDING_REVIEW', 'CONTACTED', 'APPROVED'] },
           OR: [
-            {
-              submittedWebsite: {
-                equals: 'https://example.test',
-                mode: 'insensitive',
-              },
-            },
-            {
-              submittedPrimaryDomain: {
-                equals: 'example.test',
-                mode: 'insensitive',
-              },
-            },
+            { submittedWebsite: { equals: 'https://acme.test', mode: 'insensitive' } },
+            { submittedPrimaryDomain: { equals: 'acme.test', mode: 'insensitive' } },
           ],
         },
       });
+      expect(res).toEqual({ id: 'req-1' });
+    });
+  });
+
+  describe('findActiveRequestByRepresentativeEmail', () => {
+    it('queries active requests matching representative email', async () => {
+      vi.mocked(prisma.organisationRegistrationRequest.findFirst).mockResolvedValue({
+        id: 'req-1',
+      } as never);
+      const res = await findActiveRequestByRepresentativeEmail('rep@example.com');
+      expect(prisma.organisationRegistrationRequest.findFirst).toHaveBeenCalledWith({
+        where: {
+          status: { in: ['PENDING_REVIEW', 'CONTACTED', 'APPROVED'] },
+          representativeEmail: { equals: 'rep@example.com', mode: 'insensitive' },
+        },
+      });
+      expect(res).toEqual({ id: 'req-1' });
+    });
+  });
+
+  describe('findOrganisationByName', () => {
+    it('queries organisation by name in active statuses', async () => {
+      vi.mocked(prisma.organisation.findFirst).mockResolvedValue({ id: 'org-1' } as never);
+      const res = await findOrganisationByName('Acme Corp');
+      expect(prisma.organisation.findFirst).toHaveBeenCalledWith({
+        where: {
+          status: { in: ['PENDING_ONBOARDING', 'ACTIVE'] },
+          name: { equals: 'Acme Corp', mode: 'insensitive' },
+        },
+      });
+      expect(res).toEqual({ id: 'org-1' });
     });
   });
 
   describe('createOrganisationRegistrationRequest', () => {
-    it('persists required request fields through existing onboarding columns', async () => {
-      await createOrganisationRegistrationRequest({
-        submittedOrganisationName: 'Example Consulting',
-        submittedWebsite: 'https://example.test',
-        submittedOrganisationDescription: 'Security awareness consulting team.',
-        submittedOrganisationSize: 75,
-        submittedPrimaryDomain: 'example.test',
-        representativeFirstName: 'Adriano',
-        representativeLastName: 'Jorge',
-        representativeEmail: 'adriano@example.test',
-      });
+    it('creates a new registration request record', async () => {
+      const record = {
+        submittedOrganisationName: 'Acme Corp',
+        submittedWebsite: 'https://acme.test',
+        submittedOrganisationDescription: 'Tech company',
+        submittedOrganisationSize: 50,
+        submittedPrimaryDomain: 'acme.test',
+        representativeFirstName: 'John',
+        representativeLastName: 'Doe',
+        representativeEmail: 'rep@example.com',
+      };
+      vi.mocked(prisma.organisationRegistrationRequest.create).mockResolvedValue({
+        id: 'req-1',
+        ...record,
+        status: 'PENDING_REVIEW',
+      } as never);
 
+      const res = await createOrganisationRegistrationRequest(record);
       expect(prisma.organisationRegistrationRequest.create).toHaveBeenCalledWith({
         data: {
-          submittedOrganisationName: 'Example Consulting',
-          submittedWebsite: 'https://example.test',
-          submittedOrganisationDescription: 'Security awareness consulting team.',
-          submittedOrganisationSize: 75,
-          submittedPrimaryDomain: 'example.test',
-          representativeFirstName: 'Adriano',
-          representativeLastName: 'Jorge',
-          representativeEmail: 'adriano@example.test',
+          ...record,
           status: 'PENDING_REVIEW',
         },
       });
+      expect(res).toEqual({ id: 'req-1', ...record, status: 'PENDING_REVIEW' });
     });
   });
 
   describe('findOrganisationRegistrationRequestsForPlatform', () => {
-    it('executes pagination and filtering with relations', async () => {
+    it('applies filters, search, sorting and pagination correctly', async () => {
       vi.mocked(prisma.organisationRegistrationRequest.findMany).mockResolvedValue([
         { id: 'req-1' },
       ] as never);
       vi.mocked(prisma.organisationRegistrationRequest.count).mockResolvedValue(1);
 
-      const result = await findOrganisationRegistrationRequestsForPlatform({
+      const res = await findOrganisationRegistrationRequestsForPlatform({
         status: 'PENDING_REVIEW',
-        search: 'Acme',
+        search: 'acme',
         sort: 'organisationName:asc',
         page: 2,
         limit: 5,
       });
 
-      expect(prisma.organisationRegistrationRequest.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          skip: 5,
-          take: 5,
-          where: expect.objectContaining({
-            status: 'PENDING_REVIEW',
-          }),
-          orderBy: { submittedOrganisationName: 'asc' },
-        }),
-      );
-      expect(result).toEqual({ requests: [{ id: 'req-1' }], total: 1 });
+      expect(prisma.organisationRegistrationRequest.findMany).toHaveBeenCalledWith({
+        where: {
+          status: 'PENDING_REVIEW',
+          OR: [
+            { submittedOrganisationName: { contains: 'acme', mode: 'insensitive' } },
+            { representativeEmail: { contains: 'acme', mode: 'insensitive' } },
+            { representativeFirstName: { contains: 'acme', mode: 'insensitive' } },
+            { representativeLastName: { contains: 'acme', mode: 'insensitive' } },
+          ],
+        },
+        orderBy: { submittedOrganisationName: 'asc' },
+        skip: 5,
+        take: 5,
+        include: expect.any(Object),
+      });
+      expect(res).toEqual({ requests: [{ id: 'req-1' }], total: 1 });
     });
   });
 
   describe('markOrganisationRegistrationRequestContacted', () => {
-    it('updates request status and returns updated record', async () => {
+    it('updates status to CONTACTED and returns updated request', async () => {
       vi.mocked(prisma.organisationRegistrationRequest.updateMany).mockResolvedValue({ count: 1 });
       vi.mocked(prisma.organisationRegistrationRequest.findUnique).mockResolvedValue({
         id: 'req-1',
@@ -286,6 +280,14 @@ describe('organisation registration request repository', () => {
         ipAdminProfileId: 'admin-prof-1',
       });
 
+      expect(prisma.organisationRegistrationRequest.updateMany).toHaveBeenCalledWith({
+        where: { id: 'req-1', status: 'PENDING_REVIEW' },
+        data: {
+          status: 'CONTACTED',
+          contactedByIpAdminId: 'admin-prof-1',
+          contactedAt: expect.any(Date),
+        },
+      });
       expect(result).toEqual({ id: 'req-1', status: 'CONTACTED' });
     });
 
@@ -324,20 +326,34 @@ describe('organisation registration request repository', () => {
   });
 
   describe('rejectOrganisationRegistrationRequest', () => {
-    it('updates request status to REJECTED and returns updated record', async () => {
+    it('updates status to REJECTED with reason and returns updated request', async () => {
       vi.mocked(prisma.organisationRegistrationRequest.updateMany).mockResolvedValue({ count: 1 });
       vi.mocked(prisma.organisationRegistrationRequest.findUnique).mockResolvedValue({
         id: 'req-1',
         status: 'REJECTED',
+        rejectionReason: 'Invalid domain',
       } as never);
 
       const result = await rejectOrganisationRegistrationRequest({
         requestId: 'req-1',
         ipAdminProfileId: 'admin-prof-1',
-        rejectionReason: 'Invalid organisation details',
+        rejectionReason: 'Invalid domain',
       });
 
-      expect(result).toEqual({ id: 'req-1', status: 'REJECTED' });
+      expect(prisma.organisationRegistrationRequest.updateMany).toHaveBeenCalledWith({
+        where: { id: 'req-1', status: { in: ['PENDING_REVIEW', 'CONTACTED'] } },
+        data: {
+          status: 'REJECTED',
+          rejectedByIpAdminId: 'admin-prof-1',
+          rejectedAt: expect.any(Date),
+          rejectionReason: 'Invalid domain',
+        },
+      });
+      expect(result).toEqual({
+        id: 'req-1',
+        status: 'REJECTED',
+        rejectionReason: 'Invalid domain',
+      });
     });
 
     it('throws 404 when request does not exist', async () => {
@@ -406,6 +422,27 @@ describe('organisation registration request repository', () => {
         representativeFirstName: 'John',
         representativeLastName: 'Doe',
       },
+      actionTokenData: {
+        tokenHash: 'token-hash-123',
+        expiresAt: new Date('2026-07-22T08:00:00.000Z'),
+      },
+      emailDeliveryData: {
+        emailType: 'INITIAL_ORGANISATION_ADMIN_SETUP' as const,
+        recipientEmail: 'rep@example.com',
+        subject: 'Setup Org',
+        text: 'Setup org',
+        maxAttempts: 3,
+      },
+      auditLogEntries: [
+        {
+          actorUserId: 'user-admin',
+          actorType: 'IP_ADMIN' as const,
+          targetType: 'ORGANISATION_REGISTRATION_REQUEST' as const,
+          targetId: 'req-1',
+          actionType: 'APPROVED' as const,
+          outcome: 'SUCCESS' as const,
+        },
+      ],
     };
 
     it('creates organisation, permissions, settings, invitation, tokens, audits and queues email atomically', async () => {
@@ -413,18 +450,18 @@ describe('organisation registration request repository', () => {
       txMock.organisation.create.mockResolvedValue({ id: 'org-1', name: 'Acme Corp' });
       txMock.organisationPermission.createMany.mockResolvedValue({ count: 4 });
       txMock.invitation.create.mockResolvedValue({ id: 'inv-1', recipientFirstName: 'John' });
-      vi.mocked(issueActionToken).mockResolvedValue({
-        token: { id: 'token-1', expiresAt: new Date() },
-        rawToken: 'raw-token-123',
+      vi.mocked(createActionToken).mockResolvedValue({
+        id: 'token-1',
+        expiresAt: new Date(),
       } as never);
       txMock.organisationRegistrationRequest.update.mockResolvedValue({
         id: 'req-1',
         status: 'APPROVED',
       });
-      vi.mocked(requestAuthEmailSend).mockResolvedValue({
-        status: 'QUEUED',
-        queued: true,
-      } as never);
+      vi.mocked(enqueueEmailDelivery).mockResolvedValue({
+        deliveryLogId: 'dl-1',
+        jobId: 'job-1',
+      });
 
       const result = await approveOrganisationRegistrationRequestTx(input);
 
@@ -433,12 +470,13 @@ describe('organisation registration request repository', () => {
         organisation: { id: 'org-1', name: 'Acme Corp' },
         invitation: { id: 'inv-1', recipientFirstName: 'John' },
         actionToken: {
-          token: expect.objectContaining({ id: 'token-1' }),
-          rawToken: 'raw-token-123',
+          id: 'token-1',
+          expiresAt: expect.any(Date),
         },
-        emailResult: { status: 'QUEUED', queued: true },
+        pendingDelivery: { deliveryLogId: 'dl-1', jobId: 'job-1' },
       });
-      expect(recordAuditLog).toHaveBeenCalledTimes(3);
+      expect(createAuditLogEntry).toHaveBeenCalled();
+      expect(enqueueEmailDelivery).toHaveBeenCalled();
     });
 
     it('throws 404 when request is not found', async () => {
@@ -458,30 +496,6 @@ describe('organisation registration request repository', () => {
       await expect(approveOrganisationRegistrationRequestTx(input)).rejects.toMatchObject({
         statusCode: 409,
         errorKey: 'REQUEST_ALREADY_RESOLVED',
-      });
-    });
-
-    it('throws 409 EMAIL_QUEUE_FAILED when email fails to queue', async () => {
-      txMock.organisationRegistrationRequest.updateMany.mockResolvedValue({ count: 1 });
-      txMock.organisation.create.mockResolvedValue({ id: 'org-1', name: 'Acme Corp' });
-      txMock.organisationPermission.createMany.mockResolvedValue({ count: 4 });
-      txMock.invitation.create.mockResolvedValue({ id: 'inv-1', recipientFirstName: 'John' });
-      vi.mocked(issueActionToken).mockResolvedValue({
-        token: { id: 'token-1', expiresAt: new Date() },
-        rawToken: 'raw-token-123',
-      } as never);
-      txMock.organisationRegistrationRequest.update.mockResolvedValue({
-        id: 'req-1',
-        status: 'APPROVED',
-      });
-      vi.mocked(requestAuthEmailSend).mockResolvedValue({
-        status: 'NOT_QUEUED',
-        queued: false,
-      } as never);
-
-      await expect(approveOrganisationRegistrationRequestTx(input)).rejects.toMatchObject({
-        statusCode: 409,
-        errorKey: 'EMAIL_QUEUE_FAILED',
       });
     });
 

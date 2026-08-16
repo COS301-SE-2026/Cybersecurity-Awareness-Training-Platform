@@ -57,4 +57,12 @@ describe('Organisation Registration Request Architecture Boundaries', () => {
     expect(routesContent).not.toMatch(/from\s+['"].*prisma.*['"]/i);
     expect(routesContent).not.toMatch(/from\s+['"].*repository.*['"]/i);
   });
+
+  it('ensures organisation registration request repository does not import application services', () => {
+    const repoPath = resolveBackendFilePath(
+      'repositories/organisation-registration-request.repository.ts',
+    );
+    const repoContent = fs.readFileSync(repoPath, 'utf-8');
+    expect(repoContent).not.toMatch(/from\s+['"]\.\.\/services\/.*['"]/i);
+  });
 });

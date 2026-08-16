@@ -1,12 +1,16 @@
 import type { Prisma, PrismaClient } from '../generated/prisma/client.js';
+import { ACTIVE_INVITATION_STATUSES } from '@insightful-phish/shared';
 import { prisma } from '../lib/prisma.js';
-import { ACTIVE_INVITATION_STATUSES } from '../services/invitation-state-policy.js';
-import { recordAuditLog } from '../services/audit-log.service.js';
-import { sendEmail } from '../services/email.service.js';
 import { findInvitationById } from './invitation.repository.js';
 import { revokeUserAuthSessions } from './auth-session.repository.js';
+import { createAuditLogEntry, type CreateAuditLogEntryInput } from './audit-log.repository.js';
+import {
+  enqueueEmailDelivery,
+  type EnqueueEmailDeliveryInput,
+} from './email-delivery.repository.js';
+import { createActionToken } from './action-token.repository.js';
 
-export type OrganisationTraineeClient = PrismaClient | Prisma.TransactionClient;
+type OrganisationTraineeClient = PrismaClient | Prisma.TransactionClient;
 
 export class OrganisationTraineeRepositoryError extends Error {
   constructor(
@@ -58,7 +62,9 @@ export function findOrganisationTraineeInvitations(
     },
     include: {
       emailDeliveryLogs: {
-        orderBy: { createdAt: 'desc' },
+        orderBy: {
+          createdAt: 'desc',
+        },
         take: 1,
       },
     },
@@ -73,13 +79,12 @@ export function findOrganisationTraineeByEmail(
   email: string,
   client: OrganisationTraineeClient = prisma,
 ) {
-  const normalisedEmail = email.trim().toLowerCase();
   return client.organisationTraineeProfile.findFirst({
     where: {
       organisationId,
       traineeProfile: {
         user: {
-          email: normalisedEmail,
+          email: email.trim().toLowerCase(),
         },
       },
     },
@@ -98,14 +103,13 @@ export function findPendingTraineeInvitationByEmail(
   email: string,
   client: OrganisationTraineeClient = prisma,
 ) {
-  const normalisedEmail = email.trim().toLowerCase();
   return client.invitation.findFirst({
     where: {
       organisationId,
       purpose: 'ORGANISATION_TRAINEE_INVITE',
-      recipientEmail: normalisedEmail,
+      recipientEmail: email.trim().toLowerCase(),
       status: {
-        in: [...ACTIVE_INVITATION_STATUSES],
+        in: ['PENDING', 'SENT', 'FAILED_TO_SEND'],
       },
     },
   });
@@ -137,7 +141,7 @@ export function findOrganisationTraineeById(
 
 export function disableOrganisationTraineeProfile(
   id: string,
-  disabledReason?: string | null,
+  disabledReason = 'Disabled by organisation admin',
   client: OrganisationTraineeClient = prisma,
 ) {
   return client.organisationTraineeProfile.update({
@@ -145,17 +149,17 @@ export function disableOrganisationTraineeProfile(
     data: {
       membershipStatus: 'DISABLED',
       disabledAt: new Date(),
-      disabledReason: disabledReason ?? 'Disabled by organisation admin',
+      disabledReason,
     },
   });
 }
 
 export function findAuthoritativeInvitationById(
-  id: string,
+  invitationId: string,
   client: OrganisationTraineeClient = prisma,
 ) {
   return client.invitation.findUnique({
-    where: { id },
+    where: { id: invitationId },
   });
 }
 
@@ -175,16 +179,14 @@ export function findAuthoritativeResentInvitation(
 }
 
 export type CreateOrganisationTraineeInvitationTxInput = {
-  actorUserId: string;
   organisationId: string;
   recipientEmail: string;
-  recipientFirstName?: string | null;
-  recipientLastName?: string | null;
-  organisationName: string;
-  requiresAccountConflictResolution: boolean;
+  recipientFirstName: string | null;
+  recipientLastName: string | null;
   expiresAt: Date;
-  rawToken: string;
   tokenHash: string;
+  auditLogData: CreateAuditLogEntryInput;
+  emailDeliveryData: Omit<EnqueueEmailDeliveryInput, 'relatedEntity'>;
 };
 
 export async function createOrganisationTraineeInvitationTx(
@@ -192,14 +194,22 @@ export async function createOrganisationTraineeInvitationTx(
   client: PrismaClient = prisma,
 ) {
   return client.$transaction(async (tx) => {
-    if (typeof tx.$executeRaw === 'function') {
-      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${input.organisationId + ':' + input.recipientEmail}))`;
-    }
+    const lockKey = Array.from(`${input.organisationId}:${input.recipientEmail}`).reduce(
+      (acc, char) => (acc * 31 + char.charCodeAt(0)) | 0,
+      0,
+    );
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(${lockKey})`;
 
-    const [txTrainee, txInvite] = await Promise.all([
-      findOrganisationTraineeByEmail(input.organisationId, input.recipientEmail, tx),
-      findPendingTraineeInvitationByEmail(input.organisationId, input.recipientEmail, tx),
-    ]);
+    const txTrainee = await tx.organisationTraineeProfile.findFirst({
+      where: {
+        organisationId: input.organisationId,
+        traineeProfile: {
+          user: {
+            email: input.recipientEmail,
+          },
+        },
+      },
+    });
 
     if (txTrainee && txTrainee.membershipStatus !== 'DISABLED' && !txTrainee.disabledAt) {
       throw new OrganisationTraineeRepositoryError(
@@ -208,6 +218,17 @@ export async function createOrganisationTraineeInvitationTx(
         'User is already a trainee in this organisation.',
       );
     }
+
+    const txInvite = await tx.invitation.findFirst({
+      where: {
+        organisationId: input.organisationId,
+        purpose: 'ORGANISATION_TRAINEE_INVITE',
+        recipientEmail: input.recipientEmail,
+        status: {
+          in: ['PENDING', 'SENT', 'FAILED_TO_SEND'],
+        },
+      },
+    });
 
     if (txInvite) {
       throw new OrganisationTraineeRepositoryError(
@@ -221,83 +242,60 @@ export async function createOrganisationTraineeInvitationTx(
       data: {
         organisationId: input.organisationId,
         recipientEmail: input.recipientEmail,
-        recipientFirstName: input.recipientFirstName ?? null,
-        recipientLastName: input.recipientLastName ?? null,
+        recipientFirstName: input.recipientFirstName,
+        recipientLastName: input.recipientLastName,
         purpose: 'ORGANISATION_TRAINEE_INVITE',
         status: 'PENDING',
         expiresAt: input.expiresAt,
       },
     });
 
-    const actionToken = await tx.actionToken.create({
-      data: {
+    const actionToken = await createActionToken(
+      {
         tokenHash: input.tokenHash,
         purpose: 'ORGANISATION_TRAINEE_INVITE',
         invitationId: invitation.id,
         expiresAt: input.expiresAt,
       },
-    });
+      tx,
+    );
 
-    await recordAuditLog(
+    await createAuditLogEntry(
       {
-        actorUserId: input.actorUserId,
-        actorType: 'ORGANISATION_ADMIN',
-        organisationId: input.organisationId,
-        targetType: 'INVITATION',
+        ...input.auditLogData,
         targetId: invitation.id,
-        actionType: 'INVITED',
-        newValues: {
-          recipientEmail: input.recipientEmail,
-          purpose: 'ORGANISATION_TRAINEE_INVITE',
-        },
       },
       tx,
     );
 
-    const emailResult = await sendEmail(
+    const pendingDelivery = await enqueueEmailDelivery(
       {
-        emailType: 'ORGANISATION_TRAINEE_INVITE',
-        recipientEmail: input.recipientEmail,
+        ...input.emailDeliveryData,
         relatedEntity: {
-          organisationId: input.organisationId,
           invitationId: invitation.id,
           actionTokenId: actionToken.id,
-        },
-        templateData: {
-          firstName: input.recipientFirstName ?? undefined,
-          organisationName: input.organisationName,
-          actionToken: input.rawToken,
-          actionTokenExpiresAt: input.expiresAt,
-          requiresAccountConflictResolution: input.requiresAccountConflictResolution,
+          organisationId: input.organisationId,
         },
       },
       tx,
     );
 
-    if (emailResult.status === 'NOT_QUEUED') {
-      throw new OrganisationTraineeRepositoryError(
-        503,
-        'EMAIL_QUEUE_FAILED',
-        'Invitation email could not be queued for delivery.',
-      );
-    }
-
-    return { invitation, actionToken, emailResult };
+    return {
+      invitation,
+      actionToken,
+      pendingDelivery,
+    };
   });
 }
 
 export type ResendOrganisationTraineeInvitationTxInput = {
-  actorUserId: string;
   invitationId: string;
   organisationId: string;
-  recipientEmail: string;
-  recipientFirstName?: string | null;
-  organisationName: string;
   observedUpdatedAt: Date;
-  requiresAccountConflictResolution: boolean;
   expiresAt: Date;
-  rawToken: string;
   tokenHash: string;
+  auditLogData: CreateAuditLogEntryInput;
+  emailDeliveryData: Omit<EnqueueEmailDeliveryInput, 'relatedEntity'>;
 };
 
 export async function resendOrganisationTraineeInvitationTx(
@@ -306,10 +304,10 @@ export async function resendOrganisationTraineeInvitationTx(
 ) {
   return client.$transaction(async (tx) => {
     const claimedAt = new Date();
-    const claimedInv = await tx.invitation.updateMany({
+    const updateResult = await tx.invitation.updateMany({
       where: {
         id: input.invitationId,
-        status: { in: [...ACTIVE_INVITATION_STATUSES] },
+        status: { in: ['PENDING', 'SENT', 'FAILED_TO_SEND'] },
         updatedAt: input.observedUpdatedAt,
       },
       data: {
@@ -319,7 +317,7 @@ export async function resendOrganisationTraineeInvitationTx(
       },
     });
 
-    if (claimedInv.count === 0) {
+    if (updateResult.count === 0) {
       throw new OrganisationTraineeRepositoryError(
         409,
         'INVITATION_NOT_RESENDABLE',
@@ -334,64 +332,45 @@ export async function resendOrganisationTraineeInvitationTx(
         usedAt: null,
       },
       data: {
-        revokedAt: new Date(),
+        revokedAt: claimedAt,
       },
     });
 
-    const actionToken = await tx.actionToken.create({
-      data: {
+    const actionToken = await createActionToken(
+      {
         tokenHash: input.tokenHash,
         purpose: 'ORGANISATION_TRAINEE_INVITE',
         invitationId: input.invitationId,
         expiresAt: input.expiresAt,
       },
-    });
+      tx,
+    );
 
-    await recordAuditLog(
+    await createAuditLogEntry(
       {
-        actorUserId: input.actorUserId,
-        actorType: 'ORGANISATION_ADMIN',
-        organisationId: input.organisationId,
-        targetType: 'INVITATION',
+        ...input.auditLogData,
         targetId: input.invitationId,
-        actionType: 'RESENT',
-        newValues: {
-          expiresAt: input.expiresAt.toISOString(),
-        },
       },
       tx,
     );
 
-    const emailResult = await sendEmail(
+    const pendingDelivery = await enqueueEmailDelivery(
       {
-        emailType: 'ORGANISATION_TRAINEE_INVITE',
-        recipientEmail: input.recipientEmail,
+        ...input.emailDeliveryData,
         relatedEntity: {
-          organisationId: input.organisationId,
           invitationId: input.invitationId,
           actionTokenId: actionToken.id,
-          invitationStateVersion: claimedAt.toISOString(),
-        },
-        templateData: {
-          firstName: input.recipientFirstName ?? undefined,
-          organisationName: input.organisationName,
-          actionToken: input.rawToken,
-          actionTokenExpiresAt: input.expiresAt,
-          requiresAccountConflictResolution: input.requiresAccountConflictResolution,
+          organisationId: input.organisationId,
         },
       },
       tx,
     );
 
-    if (emailResult.status === 'NOT_QUEUED') {
-      throw new OrganisationTraineeRepositoryError(
-        503,
-        'EMAIL_QUEUE_FAILED',
-        'Invitation email could not be queued for delivery.',
-      );
-    }
-
-    return { actionToken, claimedAt, emailResult };
+    return {
+      actionToken,
+      claimedAt,
+      pendingDelivery,
+    };
   });
 }
 
@@ -399,26 +378,15 @@ export type RevokeOrganisationTraineeInvitationTxInput = {
   actorUserId: string;
   organisationId: string;
   invitationId: string;
+  auditLogData: CreateAuditLogEntryInput;
 };
-
-export type RevokeOrganisationTraineeInvitationTxResult =
-  | {
-      alreadyRevoked: true;
-      invitationId: string;
-      revokedAt: string;
-    }
-  | {
-      alreadyRevoked: false;
-      invitationId: string;
-      revokedAt: string;
-    };
 
 export async function revokeOrganisationTraineeInvitationTx(
   input: RevokeOrganisationTraineeInvitationTxInput,
   client: PrismaClient = prisma,
-): Promise<RevokeOrganisationTraineeInvitationTxResult> {
+) {
   return client.$transaction(async (tx) => {
-    const claimedInv = await tx.invitation.updateMany({
+    const updateResult = await tx.invitation.updateMany({
       where: {
         id: input.invitationId,
         status: { in: [...ACTIVE_INVITATION_STATUSES] },
@@ -428,13 +396,13 @@ export async function revokeOrganisationTraineeInvitationTx(
       },
     });
 
-    if (claimedInv.count === 0) {
-      const txInv = await findInvitationById(input.invitationId, tx);
-      if (txInv?.status === 'REVOKED') {
+    if (updateResult.count === 0) {
+      const freshInvite = await findInvitationById(input.invitationId, tx);
+      if (freshInvite?.status === 'REVOKED') {
         return {
           alreadyRevoked: true,
-          invitationId: txInv.id,
-          revokedAt: txInv.updatedAt.toISOString(),
+          invitationId: input.invitationId,
+          revokedAt: freshInvite.updatedAt.toISOString(),
         };
       }
       throw new OrganisationTraineeRepositoryError(
@@ -444,6 +412,7 @@ export async function revokeOrganisationTraineeInvitationTx(
       );
     }
 
+    const now = new Date();
     await tx.actionToken.updateMany({
       where: {
         invitationId: input.invitationId,
@@ -451,21 +420,14 @@ export async function revokeOrganisationTraineeInvitationTx(
         usedAt: null,
       },
       data: {
-        revokedAt: new Date(),
+        revokedAt: now,
       },
     });
 
-    await recordAuditLog(
+    await createAuditLogEntry(
       {
-        actorUserId: input.actorUserId,
-        actorType: 'ORGANISATION_ADMIN',
-        organisationId: input.organisationId,
-        targetType: 'INVITATION',
+        ...input.auditLogData,
         targetId: input.invitationId,
-        actionType: 'REVOKED',
-        newValues: {
-          status: 'REVOKED',
-        },
       },
       tx,
     );
@@ -473,7 +435,7 @@ export async function revokeOrganisationTraineeInvitationTx(
     return {
       alreadyRevoked: false,
       invitationId: input.invitationId,
-      revokedAt: new Date().toISOString(),
+      revokedAt: now.toISOString(),
     };
   });
 }
@@ -483,6 +445,7 @@ export type DisableOrganisationTraineeTxInput = {
   organisationId: string;
   traineeId: string;
   disabledReason: string;
+  auditLogData: CreateAuditLogEntryInput;
 };
 
 export async function disableOrganisationTraineeTx(
@@ -490,7 +453,24 @@ export async function disableOrganisationTraineeTx(
   client: PrismaClient = prisma,
 ) {
   return client.$transaction(async (tx) => {
-    const txTrainee = await findOrganisationTraineeById(input.organisationId, input.traineeId, tx);
+    const txTrainee = await tx.organisationTraineeProfile.findFirst({
+      where: {
+        organisationId: input.organisationId,
+        OR: [
+          { id: input.traineeId },
+          { traineeProfileId: input.traineeId },
+          { traineeProfile: { userId: input.traineeId } },
+        ],
+      },
+      include: {
+        traineeProfile: {
+          include: {
+            user: true,
+          },
+        },
+      },
+    });
+
     if (!txTrainee) {
       throw new OrganisationTraineeRepositoryError(
         404,
@@ -498,7 +478,8 @@ export async function disableOrganisationTraineeTx(
         'Organisation trainee profile not found.',
       );
     }
-    if (txTrainee.membershipStatus === 'DISABLED' || txTrainee.disabledAt) {
+
+    if (txTrainee.membershipStatus === 'DISABLED' || txTrainee.disabledAt !== null) {
       throw new OrganisationTraineeRepositoryError(
         409,
         'TRAINEE_ALREADY_DISABLED',
@@ -506,7 +487,14 @@ export async function disableOrganisationTraineeTx(
       );
     }
 
-    await disableOrganisationTraineeProfile(txTrainee.id, input.disabledReason, tx);
+    await tx.organisationTraineeProfile.update({
+      where: { id: txTrainee.id },
+      data: {
+        membershipStatus: 'DISABLED',
+        disabledAt: new Date(),
+        disabledReason: input.disabledReason,
+      },
+    });
 
     await revokeUserAuthSessions(
       {
@@ -516,24 +504,17 @@ export async function disableOrganisationTraineeTx(
       tx,
     );
 
-    await recordAuditLog(
+    await createAuditLogEntry(
       {
-        actorUserId: input.actorUserId,
-        actorType: 'ORGANISATION_ADMIN',
-        organisationId: input.organisationId,
-        targetType: 'USER',
+        ...input.auditLogData,
         targetId: txTrainee.traineeProfile.userId,
-        actionType: 'DISABLED',
-        outcome: 'SUCCESS',
-        metadata: {
-          organisationTraineeProfileId: txTrainee.id,
-          traineeProfileId: txTrainee.traineeProfileId,
-          disabledReason: input.disabledReason,
-        },
       },
       tx,
     );
 
-    return { txTrainee, disabledReason: input.disabledReason };
+    return {
+      txTrainee,
+      disabledReason: input.disabledReason,
+    };
   });
 }

@@ -5,10 +5,13 @@ import type {
   ApproveOrganisationRequestDto,
   RejectOrganisationRequestDto,
 } from '@insightful-phish/shared';
+import { env } from '../config/env.js';
 import * as OrganisationRequestRepository from '../repositories/organisation-registration-request.repository.js';
 import * as UserRepository from '../repositories/user.repository.js';
 import { recordAuditLog } from './audit-log.service.js';
 import { requestAuthEmailSend } from './auth-email-hook.service.js';
+import { renderEmail } from './email-template-renderer.js';
+import { generateOpaqueToken, hashOpaqueToken } from './token-hash.service.js';
 
 export class OrganisationRegistrationRequestError extends Error {
   constructor(
@@ -365,6 +368,17 @@ export async function approveOrganisationRequest(
     );
   }
 
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const rawToken = generateOpaqueToken();
+  const tokenHash = hashOpaqueToken(rawToken);
+
+  const renderedEmail = renderEmail('INITIAL_ORGANISATION_ADMIN_SETUP', {
+    firstName: freshRequest.representativeFirstName,
+    organisationName: orgName,
+    actionToken: rawToken,
+    actionTokenExpiresAt: expiresAt,
+  });
+
   let result: Awaited<
     ReturnType<typeof OrganisationRequestRepository.approveOrganisationRegistrationRequestTx>
   >;
@@ -376,6 +390,44 @@ export async function approveOrganisationRequest(
       orgName,
       initialAdminEmail: input.initialAdminEmail,
       request: freshRequest,
+      actionTokenData: {
+        tokenHash,
+        expiresAt,
+      },
+      emailDeliveryData: {
+        emailType: 'INITIAL_ORGANISATION_ADMIN_SETUP',
+        recipientEmail: input.initialAdminEmail,
+        subject: renderedEmail.subject,
+        text: renderedEmail.text,
+        html: renderedEmail.html,
+        maxAttempts: env.EMAIL_DISPATCHER_MAX_ATTEMPTS,
+      },
+      auditLogEntries: [
+        {
+          actorUserId,
+          actorType: 'IP_ADMIN',
+          targetType: 'ORGANISATION_REGISTRATION_REQUEST',
+          targetId: requestId,
+          actionType: 'APPROVED',
+          outcome: 'SUCCESS',
+        },
+        {
+          actorUserId,
+          actorType: 'IP_ADMIN',
+          targetType: 'ORGANISATION',
+          targetId: null,
+          actionType: 'CREATED',
+          outcome: 'SUCCESS',
+        },
+        {
+          actorUserId,
+          actorType: 'IP_ADMIN',
+          targetType: 'INVITATION',
+          targetId: null,
+          actionType: 'CREATED',
+          outcome: 'SUCCESS',
+        },
+      ],
     });
   } catch (error) {
     rethrowAsServiceError(error);
@@ -392,7 +444,7 @@ export async function approveOrganisationRequest(
       id: result.organisation.id,
       name: result.organisation.name,
     },
-    setupEmailQueued: result.emailResult.queued,
+    setupEmailQueued: true,
   };
 }
 

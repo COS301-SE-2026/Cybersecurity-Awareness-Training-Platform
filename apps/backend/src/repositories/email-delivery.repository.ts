@@ -7,7 +7,7 @@ import type {
   PrismaClient,
 } from '../generated/prisma/client.js';
 import { prisma } from '../lib/prisma.js';
-import { ACTIVE_INVITATION_STATUSES } from '../services/invitation-state-policy.js';
+import { ACTIVE_INVITATION_STATUSES } from '@insightful-phish/shared';
 
 export type EmailDeliveryRelatedEntity = {
   fallbackType?: EmailRelatedEntityType;

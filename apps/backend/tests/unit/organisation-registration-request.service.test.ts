@@ -348,14 +348,19 @@ describe('organisation-registration-request service', () => {
 
       expect(result.approvedOrganisation).toEqual({ id: 'org-1', name: 'Acme Corp' });
       expect(result.setupEmailQueued).toBe(true);
-      expect(repositoryMock.approveOrganisationRegistrationRequestTx).toHaveBeenCalledWith({
-        actorUserId: 'admin-user-1',
-        requestId: 'req-1',
-        ipAdminProfileId: 'admin-prof-1',
-        orgName: 'Acme Corp',
-        initialAdminEmail: 'rep@acme.test',
-        request: mockFreshRequest,
-      });
+      expect(repositoryMock.approveOrganisationRegistrationRequestTx).toHaveBeenCalledWith(
+        expect.objectContaining({
+          actorUserId: 'admin-user-1',
+          requestId: 'req-1',
+          ipAdminProfileId: 'admin-prof-1',
+          orgName: 'Acme Corp',
+          initialAdminEmail: 'rep@acme.test',
+          request: mockFreshRequest,
+          actionTokenData: expect.any(Object),
+          emailDeliveryData: expect.any(Object),
+          auditLogEntries: expect.any(Array),
+        }),
+      );
     });
 
     it('throws 404 when request is not found', async () => {

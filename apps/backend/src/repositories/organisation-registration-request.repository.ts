@@ -5,9 +5,12 @@ import type {
   PrismaClient,
 } from '../generated/prisma/client.js';
 import { prisma } from '../lib/prisma.js';
-import { issueActionToken } from '../services/action-token.service.js';
-import { recordAuditLog } from '../services/audit-log.service.js';
-import { requestAuthEmailSend } from '../services/auth-email-hook.service.js';
+import { createActionToken } from './action-token.repository.js';
+import { createAuditLogEntry, type CreateAuditLogEntryInput } from './audit-log.repository.js';
+import {
+  enqueueEmailDelivery,
+  type EnqueueEmailDeliveryInput,
+} from './email-delivery.repository.js';
 import { ensureDefaultOrganisationSecuritySettings } from './security-settings.repository.js';
 import { ORGANISATION_PERMISSION_SEEDS } from '../constants/organisation-permission-seeds.js';
 
@@ -446,6 +449,12 @@ export type ApproveOrganisationRegistrationRequestTxInput = {
     representativeFirstName: string;
     representativeLastName: string;
   };
+  actionTokenData: {
+    tokenHash: string;
+    expiresAt: Date;
+  };
+  emailDeliveryData: Omit<EnqueueEmailDeliveryInput, 'relatedEntity'>;
+  auditLogEntries: CreateAuditLogEntryInput[];
 };
 
 export async function approveOrganisationRegistrationRequestTx(
@@ -509,7 +518,6 @@ export async function approveOrganisationRegistrationRequestTx(
 
       await ensureDefaultOrganisationSecuritySettings({ organisationId: organisation.id }, tx);
 
-      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
       const invitation = await tx.invitation.create({
         data: {
           organisationId: organisation.id,
@@ -519,14 +527,15 @@ export async function approveOrganisationRegistrationRequestTx(
           recipientLastName: input.request.representativeLastName,
           purpose: 'INITIAL_ORGANISATION_ADMIN_SETUP',
           status: 'PENDING',
-          expiresAt,
+          expiresAt: input.actionTokenData.expiresAt,
         },
       });
 
-      const actionTokenResult = await issueActionToken(
+      const actionToken = await createActionToken(
         {
+          tokenHash: input.actionTokenData.tokenHash,
           purpose: 'INITIAL_ORGANISATION_ADMIN_SETUP',
-          expiresAt,
+          expiresAt: input.actionTokenData.expiresAt,
           targetEmail: input.initialAdminEmail,
           invitationId: invitation.id,
           organisationRegistrationRequestId: input.requestId,
@@ -541,77 +550,41 @@ export async function approveOrganisationRegistrationRequestTx(
         },
       });
 
-      await recordAuditLog(
-        {
-          actorUserId: input.actorUserId,
-          actorType: 'IP_ADMIN',
-          targetType: 'ORGANISATION_REGISTRATION_REQUEST',
-          targetId: input.requestId,
-          actionType: 'APPROVED',
-          outcome: 'SUCCESS',
-          organisationId: organisation.id,
-        },
-        tx,
-      );
+      for (const entry of input.auditLogEntries) {
+        await createAuditLogEntry(
+          {
+            ...entry,
+            organisationId: organisation.id,
+            targetId:
+              entry.targetType === 'ORGANISATION'
+                ? organisation.id
+                : entry.targetType === 'INVITATION'
+                  ? invitation.id
+                  : entry.targetId,
+          },
+          tx,
+        );
+      }
 
-      await recordAuditLog(
+      const pendingDelivery = await enqueueEmailDelivery(
         {
-          actorUserId: input.actorUserId,
-          actorType: 'IP_ADMIN',
-          targetType: 'ORGANISATION',
-          targetId: organisation.id,
-          actionType: 'CREATED',
-          outcome: 'SUCCESS',
-          organisationId: organisation.id,
-        },
-        tx,
-      );
-
-      await recordAuditLog(
-        {
-          actorUserId: input.actorUserId,
-          actorType: 'IP_ADMIN',
-          targetType: 'INVITATION',
-          targetId: invitation.id,
-          actionType: 'CREATED',
-          outcome: 'SUCCESS',
-          organisationId: organisation.id,
-        },
-        tx,
-      );
-
-      const emailResult = await requestAuthEmailSend(
-        {
-          emailType: 'INITIAL_ORGANISATION_ADMIN_SETUP',
-          recipientEmail: input.initialAdminEmail,
-          organisationId: organisation.id,
-          invitationId: invitation.id,
-          actionTokenId: actionTokenResult.token.id,
-          organisationRegistrationRequestId: input.requestId,
-          templateData: {
-            firstName: invitation.recipientFirstName ?? '',
-            organisationName: organisation.name,
-            actionToken: actionTokenResult.rawToken,
-            actionTokenExpiresAt: actionTokenResult.token.expiresAt,
+          ...input.emailDeliveryData,
+          relatedEntity: {
+            organisationId: organisation.id,
+            invitationId: invitation.id,
+            actionTokenId: actionToken.id,
+            organisationRegistrationRequestId: input.requestId,
           },
         },
         tx,
       );
 
-      if (emailResult.status === 'NOT_QUEUED') {
-        throw new OrganisationRegistrationRequestRepositoryError(
-          409,
-          'EMAIL_QUEUE_FAILED',
-          'Required email could not be queued for delivery',
-        );
-      }
-
       return {
         updatedRequest,
         organisation,
         invitation,
-        actionToken: actionTokenResult,
-        emailResult,
+        actionToken,
+        pendingDelivery,
       };
     });
   } catch (error: unknown) {

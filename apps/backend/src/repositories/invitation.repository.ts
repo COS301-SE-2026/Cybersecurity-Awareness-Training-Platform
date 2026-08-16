@@ -1,6 +1,6 @@
 import type { Prisma, PrismaClient } from '../generated/prisma/client.js';
 import type { InvitationRoleGrantedDto } from '@insightful-phish/shared';
-import { ACTIVE_INVITATION_STATUSES } from '../services/invitation-state-policy.js';
+import { ACTIVE_INVITATION_STATUSES } from '@insightful-phish/shared';
 import { prisma } from '../lib/prisma.js';
 import { ensureDefaultOrganisationSecuritySettings } from './security-settings.repository.js';
 

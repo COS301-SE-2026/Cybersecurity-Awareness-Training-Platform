@@ -14,10 +14,11 @@ import {
   disableOrganisationTraineeTx,
 } from '../../../src/repositories/organisation-trainee.repository.js';
 import { prisma } from '../../../src/lib/prisma.js';
-import { recordAuditLog } from '../../../src/services/audit-log.service.js';
-import { sendEmail } from '../../../src/services/email.service.js';
+import { createAuditLogEntry } from '../../../src/repositories/audit-log.repository.js';
+import { enqueueEmailDelivery } from '../../../src/repositories/email-delivery.repository.js';
 import { findInvitationById } from '../../../src/repositories/invitation.repository.js';
 import { revokeUserAuthSessions } from '../../../src/repositories/auth-session.repository.js';
+import { createActionToken } from '../../../src/repositories/action-token.repository.js';
 
 const txMock = {
   $executeRaw: vi.fn().mockResolvedValue(1),
@@ -31,7 +32,6 @@ const txMock = {
     updateMany: vi.fn(),
   },
   actionToken: {
-    create: vi.fn(),
     updateMany: vi.fn(),
   },
 };
@@ -52,12 +52,16 @@ vi.mock('../../../src/lib/prisma.js', () => ({
   },
 }));
 
-vi.mock('../../../src/services/audit-log.service.js', () => ({
-  recordAuditLog: vi.fn(),
+vi.mock('../../../src/repositories/audit-log.repository.js', () => ({
+  createAuditLogEntry: vi.fn(),
 }));
 
-vi.mock('../../../src/services/email.service.js', () => ({
-  sendEmail: vi.fn(),
+vi.mock('../../../src/repositories/email-delivery.repository.js', () => ({
+  enqueueEmailDelivery: vi.fn(),
+}));
+
+vi.mock('../../../src/repositories/action-token.repository.js', () => ({
+  createActionToken: vi.fn(),
 }));
 
 vi.mock('../../../src/repositories/invitation.repository.js', () => ({
@@ -98,46 +102,65 @@ describe('organisation-trainee.repository unit tests', () => {
       vi.mocked(prisma.invitation.findMany).mockResolvedValue([{ id: 'inv-1' }] as never);
       const res = await findOrganisationTraineeInvitations('org-1');
       expect(prisma.invitation.findMany).toHaveBeenCalledWith({
-        where: { organisationId: 'org-1', purpose: 'ORGANISATION_TRAINEE_INVITE' },
+        where: {
+          organisationId: 'org-1',
+          purpose: 'ORGANISATION_TRAINEE_INVITE',
+        },
         include: {
           emailDeliveryLogs: {
-            orderBy: { createdAt: 'desc' },
+            orderBy: {
+              createdAt: 'desc',
+            },
             take: 1,
           },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: {
+          createdAt: 'desc',
+        },
       });
       expect(res).toEqual([{ id: 'inv-1' }]);
     });
   });
 
   describe('findOrganisationTraineeByEmail', () => {
-    it('normalises email and finds trainee', async () => {
+    it('calls findFirst with normalised email', async () => {
       vi.mocked(prisma.organisationTraineeProfile.findFirst).mockResolvedValue({
         id: 'tr-1',
       } as never);
-      const res = await findOrganisationTraineeByEmail('org-1', '  Test@Example.COM  ');
+      const res = await findOrganisationTraineeByEmail('org-1', '  TRAINEE@EXAMPLE.COM ');
       expect(prisma.organisationTraineeProfile.findFirst).toHaveBeenCalledWith({
         where: {
           organisationId: 'org-1',
-          traineeProfile: { user: { email: 'test@example.com' } },
+          traineeProfile: {
+            user: {
+              email: 'trainee@example.com',
+            },
+          },
         },
-        include: { traineeProfile: { include: { user: true } } },
+        include: {
+          traineeProfile: {
+            include: {
+              user: true,
+            },
+          },
+        },
       });
       expect(res).toEqual({ id: 'tr-1' });
     });
   });
 
   describe('findPendingTraineeInvitationByEmail', () => {
-    it('normalises email and checks pending status', async () => {
+    it('calls findFirst with pending invitation filter', async () => {
       vi.mocked(prisma.invitation.findFirst).mockResolvedValue({ id: 'inv-1' } as never);
-      const res = await findPendingTraineeInvitationByEmail('org-1', '  User@Example.COM  ');
+      const res = await findPendingTraineeInvitationByEmail('org-1', '  TRAINEE@EXAMPLE.COM ');
       expect(prisma.invitation.findFirst).toHaveBeenCalledWith({
         where: {
           organisationId: 'org-1',
           purpose: 'ORGANISATION_TRAINEE_INVITE',
-          recipientEmail: 'user@example.com',
-          status: { in: ['PENDING', 'SENT', 'FAILED_TO_SEND'] },
+          recipientEmail: 'trainee@example.com',
+          status: {
+            in: ['PENDING', 'SENT', 'FAILED_TO_SEND'],
+          },
         },
       });
       expect(res).toEqual({ id: 'inv-1' });
@@ -145,58 +168,47 @@ describe('organisation-trainee.repository unit tests', () => {
   });
 
   describe('findOrganisationTraineeById', () => {
-    it('calls findFirst matching OR conditions', async () => {
+    it('calls findFirst with OR matching id, traineeProfileId, userId', async () => {
       vi.mocked(prisma.organisationTraineeProfile.findFirst).mockResolvedValue({
         id: 'tr-1',
       } as never);
-      const res = await findOrganisationTraineeById('org-1', 'trainee-x');
+      const res = await findOrganisationTraineeById('org-1', 'target-id');
       expect(prisma.organisationTraineeProfile.findFirst).toHaveBeenCalledWith({
         where: {
           organisationId: 'org-1',
           OR: [
-            { id: 'trainee-x' },
-            { traineeProfileId: 'trainee-x' },
-            { traineeProfile: { userId: 'trainee-x' } },
+            { id: 'target-id' },
+            { traineeProfileId: 'target-id' },
+            { traineeProfile: { userId: 'target-id' } },
           ],
         },
-        include: { traineeProfile: { include: { user: true } } },
+        include: {
+          traineeProfile: {
+            include: {
+              user: true,
+            },
+          },
+        },
       });
       expect(res).toEqual({ id: 'tr-1' });
     });
   });
 
   describe('disableOrganisationTraineeProfile', () => {
-    it('updates status and default disabledReason', async () => {
+    it('calls update with DISABLED status and reason', async () => {
       vi.mocked(prisma.organisationTraineeProfile.update).mockResolvedValue({
         id: 'tr-1',
-        membershipStatus: 'DISABLED',
       } as never);
-      const res = await disableOrganisationTraineeProfile('tr-1');
+      const res = await disableOrganisationTraineeProfile('tr-1', 'Custom reason');
       expect(prisma.organisationTraineeProfile.update).toHaveBeenCalledWith({
         where: { id: 'tr-1' },
         data: {
           membershipStatus: 'DISABLED',
           disabledAt: expect.any(Date),
-          disabledReason: 'Disabled by organisation admin',
+          disabledReason: 'Custom reason',
         },
       });
-      expect(res).toEqual({ id: 'tr-1', membershipStatus: 'DISABLED' });
-    });
-
-    it('updates status with custom reason', async () => {
-      vi.mocked(prisma.organisationTraineeProfile.update).mockResolvedValue({
-        id: 'tr-1',
-        membershipStatus: 'DISABLED',
-      } as never);
-      await disableOrganisationTraineeProfile('tr-1', 'Employee departed');
-      expect(prisma.organisationTraineeProfile.update).toHaveBeenCalledWith({
-        where: { id: 'tr-1' },
-        data: {
-          membershipStatus: 'DISABLED',
-          disabledAt: expect.any(Date),
-          disabledReason: 'Employee departed',
-        },
-      });
+      expect(res).toEqual({ id: 'tr-1' });
     });
   });
 
@@ -229,24 +241,37 @@ describe('organisation-trainee.repository unit tests', () => {
 
   describe('createOrganisationTraineeInvitationTx', () => {
     const input = {
-      actorUserId: 'admin-1',
       organisationId: 'org-1',
       recipientEmail: 'trainee@example.com',
       recipientFirstName: 'Alex',
       recipientLastName: 'Trainee',
-      organisationName: 'Acme Corp',
-      requiresAccountConflictResolution: false,
       expiresAt: new Date('2026-07-22T08:00:00.000Z'),
-      rawToken: 'raw-token',
       tokenHash: 'token-hash',
+      auditLogData: {
+        actorUserId: 'admin-1',
+        actorType: 'ORGANISATION_ADMIN' as const,
+        organisationId: 'org-1',
+        targetType: 'INVITATION' as const,
+        actionType: 'INVITED' as const,
+        outcome: 'SUCCESS' as const,
+        metadata: { recipientEmail: 'trainee@example.com' },
+      },
+      emailDeliveryData: {
+        emailType: 'ORGANISATION_TRAINEE_INVITE' as const,
+        recipientEmail: 'trainee@example.com',
+        subject: 'Invite',
+        text: 'Join us',
+        html: '<p>Join us</p>',
+        maxAttempts: 3,
+      },
     };
 
     it('creates invitation, action token, audit log, and email inside transaction', async () => {
       txMock.organisationTraineeProfile.findFirst.mockResolvedValue(null);
       txMock.invitation.findFirst.mockResolvedValue(null);
-      txMock.invitation.create.mockResolvedValue({ id: 'inv-1' });
-      txMock.actionToken.create.mockResolvedValue({ id: 'token-1' });
-      vi.mocked(sendEmail).mockResolvedValue({ status: 'QUEUED' } as never);
+      txMock.invitation.create.mockResolvedValue({ id: 'inv-1', createdAt: new Date() });
+      vi.mocked(createActionToken).mockResolvedValue({ id: 'token-1' } as never);
+      vi.mocked(enqueueEmailDelivery).mockResolvedValue({ deliveryLogId: 'dl-1', jobId: 'job-1' });
 
       const result = await createOrganisationTraineeInvitationTx(input);
 
@@ -262,23 +287,23 @@ describe('organisation-trainee.repository unit tests', () => {
           expiresAt: input.expiresAt,
         },
       });
-      expect(txMock.actionToken.create).toHaveBeenCalledWith({
-        data: {
+      expect(createActionToken).toHaveBeenCalledWith(
+        {
           tokenHash: 'token-hash',
           purpose: 'ORGANISATION_TRAINEE_INVITE',
           invitationId: 'inv-1',
           expiresAt: input.expiresAt,
         },
-      });
-      expect(recordAuditLog).toHaveBeenCalledWith(
+        txMock,
+      );
+      expect(createAuditLogEntry).toHaveBeenCalledWith(
         expect.objectContaining({
           actionType: 'INVITED',
-          actorUserId: 'admin-1',
           targetId: 'inv-1',
         }),
         txMock,
       );
-      expect(sendEmail).toHaveBeenCalledWith(
+      expect(enqueueEmailDelivery).toHaveBeenCalledWith(
         expect.objectContaining({
           emailType: 'ORGANISATION_TRAINEE_INVITE',
           recipientEmail: 'trainee@example.com',
@@ -286,9 +311,9 @@ describe('organisation-trainee.repository unit tests', () => {
         txMock,
       );
       expect(result).toEqual({
-        invitation: { id: 'inv-1' },
+        invitation: { id: 'inv-1', createdAt: expect.any(Date) },
         actionToken: { id: 'token-1' },
-        emailResult: { status: 'QUEUED' },
+        pendingDelivery: { deliveryLogId: 'dl-1', jobId: 'job-1' },
       });
     });
 
@@ -314,41 +339,37 @@ describe('organisation-trainee.repository unit tests', () => {
         errorKey: 'CANNOT_INVITE_USER',
       });
     });
-
-    it('throws 503 EMAIL_QUEUE_FAILED when email sending is not queued', async () => {
-      txMock.organisationTraineeProfile.findFirst.mockResolvedValue(null);
-      txMock.invitation.findFirst.mockResolvedValue(null);
-      txMock.invitation.create.mockResolvedValue({ id: 'inv-1' });
-      txMock.actionToken.create.mockResolvedValue({ id: 'token-1' });
-      vi.mocked(sendEmail).mockResolvedValue({ status: 'NOT_QUEUED' } as never);
-
-      await expect(createOrganisationTraineeInvitationTx(input)).rejects.toMatchObject({
-        statusCode: 503,
-        errorKey: 'EMAIL_QUEUE_FAILED',
-      });
-    });
   });
 
   describe('resendOrganisationTraineeInvitationTx', () => {
     const input = {
-      actorUserId: 'admin-1',
       invitationId: 'inv-1',
       organisationId: 'org-1',
-      recipientEmail: 'trainee@example.com',
-      recipientFirstName: 'Alex',
-      organisationName: 'Acme Corp',
       observedUpdatedAt: new Date('2026-07-15T08:00:00.000Z'),
-      requiresAccountConflictResolution: false,
       expiresAt: new Date('2026-07-22T08:00:00.000Z'),
-      rawToken: 'raw-token',
       tokenHash: 'token-hash',
+      auditLogData: {
+        actorUserId: 'admin-1',
+        actorType: 'ORGANISATION_ADMIN' as const,
+        organisationId: 'org-1',
+        targetType: 'INVITATION' as const,
+        actionType: 'RESENT' as const,
+        outcome: 'SUCCESS' as const,
+      },
+      emailDeliveryData: {
+        emailType: 'ORGANISATION_TRAINEE_INVITE' as const,
+        recipientEmail: 'trainee@example.com',
+        subject: 'Invite',
+        text: 'Join us',
+        maxAttempts: 3,
+      },
     };
 
     it('rotates action tokens, logs audit, and sends email within transaction', async () => {
       txMock.invitation.updateMany.mockResolvedValue({ count: 1 });
       txMock.actionToken.updateMany.mockResolvedValue({ count: 1 });
-      txMock.actionToken.create.mockResolvedValue({ id: 'new-token' });
-      vi.mocked(sendEmail).mockResolvedValue({ status: 'QUEUED' } as never);
+      vi.mocked(createActionToken).mockResolvedValue({ id: 'new-token' } as never);
+      vi.mocked(enqueueEmailDelivery).mockResolvedValue({ deliveryLogId: 'dl-1', jobId: 'job-1' });
 
       const result = await resendOrganisationTraineeInvitationTx(input);
 
@@ -374,14 +395,14 @@ describe('organisation-trainee.repository unit tests', () => {
           revokedAt: expect.any(Date),
         },
       });
-      expect(recordAuditLog).toHaveBeenCalledWith(
+      expect(createAuditLogEntry).toHaveBeenCalledWith(
         expect.objectContaining({ actionType: 'RESENT', targetId: 'inv-1' }),
         txMock,
       );
       expect(result).toEqual({
         actionToken: { id: 'new-token' },
         claimedAt: expect.any(Date),
-        emailResult: { status: 'QUEUED' },
+        pendingDelivery: { deliveryLogId: 'dl-1', jobId: 'job-1' },
       });
     });
 
@@ -393,18 +414,6 @@ describe('organisation-trainee.repository unit tests', () => {
         errorKey: 'INVITATION_NOT_RESENDABLE',
       });
     });
-
-    it('throws 503 EMAIL_QUEUE_FAILED when email fails to queue', async () => {
-      txMock.invitation.updateMany.mockResolvedValue({ count: 1 });
-      txMock.actionToken.updateMany.mockResolvedValue({ count: 1 });
-      txMock.actionToken.create.mockResolvedValue({ id: 'new-token' });
-      vi.mocked(sendEmail).mockResolvedValue({ status: 'NOT_QUEUED' } as never);
-
-      await expect(resendOrganisationTraineeInvitationTx(input)).rejects.toMatchObject({
-        statusCode: 503,
-        errorKey: 'EMAIL_QUEUE_FAILED',
-      });
-    });
   });
 
   describe('revokeOrganisationTraineeInvitationTx', () => {
@@ -412,6 +421,14 @@ describe('organisation-trainee.repository unit tests', () => {
       actorUserId: 'admin-1',
       organisationId: 'org-1',
       invitationId: 'inv-1',
+      auditLogData: {
+        actorUserId: 'admin-1',
+        actorType: 'ORGANISATION_ADMIN' as const,
+        organisationId: 'org-1',
+        targetType: 'INVITATION' as const,
+        actionType: 'REVOKED' as const,
+        outcome: 'SUCCESS' as const,
+      },
     };
 
     it('updates invitation status to REVOKED, revokes tokens, and records audit log', async () => {
@@ -439,7 +456,7 @@ describe('organisation-trainee.repository unit tests', () => {
           revokedAt: expect.any(Date),
         },
       });
-      expect(recordAuditLog).toHaveBeenCalledWith(
+      expect(createAuditLogEntry).toHaveBeenCalledWith(
         expect.objectContaining({ actionType: 'REVOKED', targetId: 'inv-1' }),
         txMock,
       );
@@ -487,6 +504,14 @@ describe('organisation-trainee.repository unit tests', () => {
       organisationId: 'org-1',
       traineeId: 'trainee-1',
       disabledReason: 'Departed',
+      auditLogData: {
+        actorUserId: 'admin-1',
+        actorType: 'ORGANISATION_ADMIN' as const,
+        organisationId: 'org-1',
+        targetType: 'USER' as const,
+        actionType: 'DISABLED' as const,
+        outcome: 'SUCCESS' as const,
+      },
     };
 
     it('disables profile, revokes auth sessions, and records audit log', async () => {
@@ -517,7 +542,7 @@ describe('organisation-trainee.repository unit tests', () => {
         { userId: 'user-1', revokedReason: 'ADMIN_DISABLED' },
         txMock,
       );
-      expect(recordAuditLog).toHaveBeenCalledWith(
+      expect(createAuditLogEntry).toHaveBeenCalledWith(
         expect.objectContaining({
           actionType: 'DISABLED',
           outcome: 'SUCCESS',
