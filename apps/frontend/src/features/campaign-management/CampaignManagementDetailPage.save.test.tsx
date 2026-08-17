@@ -19,7 +19,10 @@ const LIST_PATH = `/organisations/${ORGANISATION_ID}/campaigns`;
 const NEW_PATH = `${LIST_PATH}/new`;
 const DETAIL_PATH = `${LIST_PATH}/${CAMPAIGN_ID}`;
 
-type DetailClient = Pick<CampaignManagementClient, 'getCampaignDetail' | 'createCampaignDraft'>;
+type DetailClient = Pick<
+  CampaignManagementClient,
+  'getCampaignDetail' | 'createCampaignDraft' | 'updateCampaignDraft'
+>;
 
 const CREATED_DETAIL: CampaignDetailResponseDto = {
   id: CAMPAIGN_ID,
@@ -86,6 +89,7 @@ describe('CampaignManagementDetailPage new Draft saving', () => {
     renderNewPage({
       getCampaignDetail: vi.fn(),
       createCampaignDraft,
+      updateCampaignDraft: vi.fn(),
     });
 
     await user.type(
@@ -140,6 +144,7 @@ describe('CampaignManagementDetailPage new Draft saving', () => {
     renderNewPage({
       getCampaignDetail: vi.fn(),
       createCampaignDraft,
+      updateCampaignDraft: vi.fn(),
     });
 
     const name = screen.getByRole('textbox', { name: 'Campaign name' });

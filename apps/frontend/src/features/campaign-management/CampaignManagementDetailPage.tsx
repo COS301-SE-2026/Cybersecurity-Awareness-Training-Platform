@@ -9,13 +9,16 @@ import type { CampaignManagementClient } from './campaignManagementClient';
 import type { CampaignDraftFormState, CampaignManagementContext } from './campaignManagement.types';
 import { developmentCampaignManagementClient } from './developmentCampaignManagementClient';
 import { toDateTimeLocal } from './campaignDraftDate';
-import { toCreateCampaignDraftRequest } from './campaignDraftRequest';
+import { toCreateCampaignDraftRequest, toUpdateCampaignDraftRequest } from './campaignDraftRequest';
 import BasicConfirmationModal from '../../components/layout/modals/BasicConfirmationModal';
 import './campaign-management.css';
 
 type CampaignManagementDetailPageProps = Readonly<{
   contextKind: CampaignManagementContext['kind'];
-  client?: Pick<CampaignManagementClient, 'getCampaignDetail' | 'createCampaignDraft'>;
+  client?: Pick<
+    CampaignManagementClient,
+    'getCampaignDetail' | 'createCampaignDraft' | 'updateCampaignDraft'
+  >;
 }>;
 
 type CampaignDetailLoadState =
@@ -177,6 +180,34 @@ function CampaignManagementDetailPage({
     }
   }
 
+  async function handleUpdateCampaignDraft(
+    draft: CampaignDraftFormState,
+    authoritativeDetail: CampaignDetailResponseDto,
+  ) {
+    setSaveError(null);
+
+    try {
+      const updated = await client.updateCampaignDraft(
+        campaignContext,
+        authoritativeDetail.id,
+        toUpdateCampaignDraftRequest(campaignContext, draft, authoritativeDetail.updatedAt),
+      );
+
+      setLoadState({
+        campaignId: updated.id,
+        status: 'loaded',
+        detail: updated,
+      });
+      setEditorDirtyState({
+        editorKey: updated.id,
+        isDirty: false,
+      });
+      setResetVersion((current) => current + 1);
+    } catch {
+      setSaveError('Campaign could not be saved.');
+    }
+  }
+
   const confirmationConfiguration =
     confirmationIntent === 'leave'
       ? {
@@ -240,7 +271,7 @@ function CampaignManagementDetailPage({
           />
         )}
 
-        {isNew && saveError && (
+        {saveError && (
           <section className="campaign-error" role="alert">
             <p>{saveError}</p>
           </section>
@@ -297,6 +328,8 @@ function CampaignManagementDetailPage({
             onRequestDiscard={() => {
               setConfirmationIntent('reset');
             }}
+            onSave={(draft) => handleUpdateCampaignDraft(draft, detail)}
+            saveButtonText="Save Changes"
           />
         )}
 

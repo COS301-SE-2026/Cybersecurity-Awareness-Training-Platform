@@ -4,6 +4,7 @@ import type {
   CampaignListRowDto,
   CreateCampaignDraftRequestDto,
   GetCampaignsResponseDto,
+  UpdateCampaignDraftRequestDto,
 } from '@insightful-phish/shared';
 import type { CampaignManagementClient } from './campaignManagementClient';
 import type { CampaignManagementContext } from './campaignManagement.types';
@@ -40,6 +41,31 @@ const DEVELOPMENT_CAMPAIGN_FIXTURES: readonly DevelopmentCampaignFixture[] = [
       createdAt: '2026-08-10T08:00:00.000Z',
       updatedAt: '2026-08-14T09:30:00.000Z',
       allowedActions: ['VIEW', 'EDIT', 'ACTIVATE'],
+    },
+  },
+  {
+    scope: {
+      kind: 'organisation',
+      organisationId: PRIMARY_ORGANISATION_ID,
+    },
+    campaign: {
+      id: '10000000-0000-4000-8000-000000000005',
+      name: 'View-only organisation draft',
+      description: 'Draft without edit authority.',
+      accentColor: '#837DC3',
+      campaignType: 'ORGANISATION_CUSTOM',
+      status: 'DRAFT',
+      itemCount: 0,
+      startDate: null,
+      endDate: null,
+      createdBy: {
+        id: '20000000-0000-4000-8000-000000000001',
+        displayName: 'Organisation Administrator',
+        email: 'admin@example.org',
+      },
+      createdAt: '2026-08-10T08:00:00.000Z',
+      updatedAt: '2026-08-14T09:30:00.000Z',
+      allowedActions: ['VIEW'],
     },
   },
   {
@@ -283,6 +309,9 @@ export function createDevelopmentCampaignManagementClient(
       if (context.kind === 'platform' && (request.startDate || request.endDate)) {
         throw new Error('Platform campaigns cannot have dates.');
       }
+      if (request.items.length > 0) {
+        throw new Error('Development Campaign items are not supported yet.');
+      }
 
       const timestamp = now().toISOString();
       const fixture: DevelopmentCampaignFixture = {
@@ -294,7 +323,7 @@ export function createDevelopmentCampaignManagementClient(
           accentColor: request.accentColor,
           campaignType: context.kind === 'organisation' ? 'ORGANISATION_CUSTOM' : 'PREMADE_GENERAL',
           status: 'DRAFT',
-          itemCount: request.items.length,
+          itemCount: 0,
           startDate: context.kind === 'organisation' ? (request.startDate ?? null) : null,
           endDate: context.kind === 'organisation' ? (request.endDate ?? null) : null,
           createdBy: {
@@ -309,6 +338,56 @@ export function createDevelopmentCampaignManagementClient(
       };
 
       campaigns.push(fixture);
+
+      return toCampaignDetail(fixture);
+    },
+
+    async updateCampaignDraft(
+      context: CampaignManagementContext,
+      campaignId: string,
+      request: UpdateCampaignDraftRequestDto,
+    ): Promise<CampaignDetailResponseDto> {
+      const fixture = campaigns.find(
+        (candidate) => candidate.campaign.id === campaignId && isInContext(candidate, context),
+      );
+
+      if (!fixture) {
+        throw new Error('CAMPAIGN_NOT_FOUND');
+      }
+
+      if (
+        fixture.campaign.status !== 'DRAFT' ||
+        !fixture.campaign.allowedActions.includes('EDIT')
+      ) {
+        throw new Error('CAMPAIGN_IMMUTABLE');
+      }
+
+      if (fixture.campaign.updatedAt !== request.expectedUpdatedAt) {
+        throw new Error('CAMPAIGN_CHANGED');
+      }
+
+      if (context.kind === 'platform' && (request.startDate || request.endDate)) {
+        throw new Error('Platform campaigns cannot have dates.');
+      }
+
+      if (request.items.length > 0) {
+        throw new Error('Development Campaign items are not supported yet.');
+      }
+
+      const requestedTimestamp = now().getTime();
+      const currentTimestamp = Date.parse(fixture.campaign.updatedAt);
+      const updatedAt = new Date(Math.max(requestedTimestamp, currentTimestamp + 1)).toISOString();
+
+      fixture.campaign = {
+        ...fixture.campaign,
+        name: request.name,
+        description: request.description ?? null,
+        accentColor: request.accentColor,
+        startDate: context.kind === 'organisation' ? (request.startDate ?? null) : null,
+        endDate: context.kind === 'organisation' ? (request.endDate ?? null) : null,
+        itemCount: 0,
+        updatedAt,
+      };
 
       return toCampaignDetail(fixture);
     },

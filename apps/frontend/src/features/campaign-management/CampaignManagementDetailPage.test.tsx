@@ -13,7 +13,10 @@ vi.mock('../../components/layout/AppLayout', () => ({
   default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
 
-type DetailClient = Pick<CampaignManagementClient, 'getCampaignDetail' | 'createCampaignDraft'>;
+type DetailClient = Pick<
+  CampaignManagementClient,
+  'getCampaignDetail' | 'createCampaignDraft' | 'updateCampaignDraft'
+>;
 
 type DetailClientFixture = Pick<CampaignManagementClient, 'getCampaignDetail'>;
 
@@ -50,6 +53,7 @@ function withCreateClient(fixture: DetailClientFixture): DetailClient {
   return {
     ...fixture,
     createCampaignDraft: vi.fn(),
+    updateCampaignDraft: vi.fn(),
   };
 }
 
