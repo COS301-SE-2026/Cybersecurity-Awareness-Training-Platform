@@ -1,4 +1,8 @@
-import { mockCampaignAssignmentCandidatesResponse } from '../../testing/fixtures/campaignAssignmentFixtures';
+import { useEffect, useState } from 'react';
+import type { CampaignAssignmentCandidateOptionDto } from '@insightful-phish/shared';
+import { useAuth } from '../../context/useAuth';
+import { getCampaignAssignmentCandidates } from '../../services/campaign-assignment.service';
+import LoadingSpinnerSVG from '../../components/LoadingSpinnerSVG';
 
 type DisplayStatus =
   | 'Active'
@@ -46,7 +50,60 @@ function OrganisationTraineeSelectionPage({
   setSelectedTraineesIds,
   onContinue,
 }: OrganisationTraineeSelectionPageProps) {
-  const trainees = mockCampaignAssignmentCandidatesResponse.items;
+  const { authContext } = useAuth();
+  const organisationId = authContext?.organisation?.id ?? null;
+
+  const [trainees, setTrainees] = useState<CampaignAssignmentCandidateOptionDto[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!organisationId) {
+      setTrainees([]);
+      setIsLoading(false);
+      setError('Unable To Determine The Current Organisation');
+      return;
+    }
+
+    const currentOrganisationId = organisationId;
+
+    let isCurrent = true;
+
+    async function loadTrainees() {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const response = await getCampaignAssignmentCandidates(currentOrganisationId, {
+          page: 1,
+          limit: 20,
+          ...(searchTerm.trim() ? { search: searchTerm.trim() } : {}),
+        });
+
+        if (!isCurrent) {
+          return;
+        }
+        setTrainees(response.items);
+      } catch {
+        if (!isCurrent) {
+          return;
+        }
+
+        setTrainees([]);
+        setError('Unable To Load Organisation Trainees. Please Try Again');
+      } finally {
+        if (isCurrent) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void loadTrainees();
+    return () => {
+      isCurrent = false;
+    };
+  }, [organisationId, searchTerm]);
 
   const handleTraineeSelection = (traineeProfileId: string) => {
     setSelectedTraineesIds((currentSelectedIds) => {
@@ -142,6 +199,8 @@ function OrganisationTraineeSelectionPage({
                     <input
                       type="text"
                       id="simple-search"
+                      value={searchTerm}
+                      onChange={(event) => setSearchTerm(event.target.value)}
                       className="font-jost tracking-wide block w-full p-2 pl-10 text-[1.1rem] h-[2.55rem] text-black border border-gray-300 bg-white focus:ring-primary-500 focus:border-primary-500"
                       placeholder="Search Organisation Trainees"
                     />
@@ -192,33 +251,69 @@ function OrganisationTraineeSelectionPage({
               </tr>
             </thead>
             <tbody className="font-overpass font-regular text-[1rem] tracking-wider">
-              {trainees.map((trainee) => (
-                <tr
-                  key={trainee.traineeProfileId}
-                  className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default"
-                >
-                  <td className="px-6 py-3">
-                    <div className="flex items-center">
-                      <label htmlFor={`trainee-${trainee.traineeProfileId}`} className="sr-only">
-                        Select {trainee.displayName}
-                      </label>
-                      <input
-                        id={`trainee-${trainee.traineeProfileId}`}
-                        type="checkbox"
-                        checked={selectedTraineeIds.includes(trainee.traineeProfileId)}
-                        onChange={() => handleTraineeSelection(trainee.traineeProfileId)}
-                        className="accent-[#8400ff] w-5 h-5 border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
-                      />
-                    </div>
+              {isLoading && (
+                <tr>
+                  <td
+                    colSpan={4}
+                    className="py-8 text-center text-[1.2rem] tracking-wider text-gray-600 font-jost"
+                  >
+                    <LoadingSpinnerSVG />
+                    Loading Organisation Trainees...
                   </td>
-
-                  <td className="px-6 py-2">{trainee.displayName}</td>
-
-                  <td className="px-6 py-2">{trainee.email}</td>
-
-                  <td className="px-6 py-2">{getStatusBadge('Active')}</td>
                 </tr>
-              ))}
+              )}
+
+              {!isLoading && error && (
+                <tr>
+                  <td
+                    colSpan={4}
+                    className="py-8 text-center text-[1.2rem] tracking-wider text-red-600 font-jost"
+                  >
+                    {error}
+                  </td>
+                </tr>
+              )}
+
+              {!isLoading && !error && trainees.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={4}
+                    className="py-8 text-center text-[1.2rem] tracking-wider text-red-600 font-jost"
+                  >
+                    No Organisation Trainees Found
+                  </td>
+                </tr>
+              )}
+
+              {!isLoading &&
+                !error &&
+                trainees.map((trainee) => (
+                  <tr
+                    key={trainee.traineeProfileId}
+                    className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default"
+                  >
+                    <td className="px-6 py-3">
+                      <div className="flex items-center">
+                        <label htmlFor={`trainee-${trainee.traineeProfileId}`} className="sr-only">
+                          Select {trainee.displayName}
+                        </label>
+                        <input
+                          id={`trainee-${trainee.traineeProfileId}`}
+                          type="checkbox"
+                          checked={selectedTraineeIds.includes(trainee.traineeProfileId)}
+                          onChange={() => handleTraineeSelection(trainee.traineeProfileId)}
+                          className="accent-[#8400ff] w-5 h-5 border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
+                        />
+                      </div>
+                    </td>
+
+                    <td className="px-6 py-2">{trainee.displayName}</td>
+
+                    <td className="px-6 py-2">{trainee.email}</td>
+
+                    <td className="px-6 py-2">{getStatusBadge('Active')}</td>
+                  </tr>
+                ))}
             </tbody>
           </table>
         </div>

@@ -2,7 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-
+import { AuthProvider } from '../../context/AuthContext';
 import OrganisationTraineeSelectionPage from '../campaign-assignment/OrganisationTraineeSelectionPage';
 import { mockTraineeCandidates } from '../../testing/fixtures/campaignAssignmentFixtures';
 
@@ -24,7 +24,11 @@ function TestHarness({ initialSelectedTraineeIds = [], onContinue = vi.fn() }: R
 }
 
 function renderPage(options: RenderPageOptions = {}) {
-  return render(<TestHarness {...options} />);
+  return render(
+    <AuthProvider>
+      <TestHarness {...options} />
+    </AuthProvider>,
+  );
 }
 
 describe('OrganisationTraineeSelectionPage', () => {
