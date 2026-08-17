@@ -58,8 +58,8 @@
       "number": 452,
       "title": "feat: add a reusable organisation scope service",
       "points": 5,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-08-17"
     },
     {
       "number": 451,
@@ -137,8 +137,13 @@
     },
     {
       "date": "2026-08-17",
-      "remaining": 25,
+      "remaining": 20,
       "ideal": 15.75
+    },
+    {
+      "date": "2026-08-18",
+      "remaining": 20,
+      "ideal": 7.88
     }
   ]
 }
