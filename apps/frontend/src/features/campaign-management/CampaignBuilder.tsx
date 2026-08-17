@@ -9,7 +9,9 @@ type CampaignBuilderProps = Readonly<{
   onDirtyChange?: (isDirty: boolean) => void;
   onRequestDiscard?: () => void;
   onSave?: (draft: CampaignDraftFormState) => void | Promise<void>;
+  isSaving?: boolean;
   saveButtonText?: string;
+  savingButtonText?: string;
 }>;
 
 function areDraftsEqual(left: CampaignDraftFormState, right: CampaignDraftFormState): boolean {
@@ -28,7 +30,9 @@ function CampaignBuilder({
   onDirtyChange,
   onRequestDiscard,
   onSave,
+  isSaving,
   saveButtonText = 'Save Draft',
+  savingButtonText = 'Saving...',
 }: CampaignBuilderProps) {
   const nameInputId = useId();
   const nameErrorId = `${nameInputId}-error`;
@@ -60,7 +64,7 @@ function CampaignBuilder({
     event.preventDefault();
     setHasSubmitted(true);
 
-    if (!draft.name.trim() || hasScheduleError) {
+    if (isSaving || !draft.name.trim() || hasScheduleError) {
       return;
     }
 
@@ -71,6 +75,7 @@ function CampaignBuilder({
     <form
       className="campaign-builder"
       aria-label="Campaign details"
+      aria-busy={isSaving}
       noValidate
       onSubmit={handleSubmit}
     >
@@ -170,7 +175,7 @@ function CampaignBuilder({
         <button
           type="button"
           className="campaign-builder__discard"
-          disabled={!isDirty}
+          disabled={!isDirty || isSaving}
           onClick={() => {
             onRequestDiscard?.();
           }}
@@ -179,8 +184,12 @@ function CampaignBuilder({
         </button>
 
         {onSave && (
-          <button type="submit" className="campaign-button campaign-button--primary">
-            {saveButtonText}
+          <button
+            type="submit"
+            className="campaign-button campaign-button--primary"
+            disabled={isSaving}
+          >
+            {isSaving ? savingButtonText : saveButtonText}
           </button>
         )}
       </div>

@@ -1,11 +1,12 @@
 import type { CampaignDetailResponseDto } from '@insightful-phish/shared';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { type ReactNode } from 'react';
 
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createDeferred } from '../../testing/render';
 import CampaignManagementDetailPage from './CampaignManagementDetailPage';
 import type { CampaignManagementClient } from './campaignManagementClient';
 
@@ -82,7 +83,7 @@ describe('CampaignManagementDetailPage new Draft saving', () => {
     vi.unstubAllEnvs();
   });
 
-  it('created a Draft and replaces /new with the authoritative ID', async () => {
+  it('creates a Draft and replaces /new with the authoritative ID', async () => {
     const user = userEvent.setup();
     const createCampaignDraft = vi.fn().mockResolvedValue(CREATED_DETAIL);
 
@@ -137,9 +138,45 @@ describe('CampaignManagementDetailPage new Draft saving', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('preserves the dirty local Draft after create failure', async () => {
+  it('blocks duplicate create submissions while saving', async () => {
     const user = userEvent.setup();
-    const createCampaignDraft = vi.fn().mockRejectedValue(new Error('Unavailable'));
+    const createRequest = createDeferred<CampaignDetailResponseDto>();
+    const createCampaignDraft = vi.fn(() => createRequest.promise);
+
+    renderNewPage({
+      getCampaignDetail: vi.fn(),
+      createCampaignDraft,
+      updateCampaignDraft: vi.fn(),
+    });
+
+    await user.type(screen.getByRole('textbox', { name: 'Campaign name' }), 'Pending Campaign');
+    await user.click(screen.getByRole('button', { name: 'Save Draft' }));
+
+    const form = screen.getByRole('form', { name: 'Campaign details' });
+    const save = screen.getByRole('button', { name: 'Saving Draft…' });
+
+    expect(form).toHaveAttribute('aria-busy', 'true');
+    expect(save).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Discard' })).toBeDisabled();
+
+    fireEvent.submit(form);
+
+    expect(createCampaignDraft).toHaveBeenCalledOnce();
+
+    await act(async () => {
+      createRequest.resolve(CREATED_DETAIL);
+      await createRequest.promise;
+    });
+
+    expect(await screen.findByText(`Saved destination: ${DETAIL_PATH}`)).toBeInTheDocument();
+  });
+
+  it('preserves local values and clears a retryable error after successful retry', async () => {
+    const user = userEvent.setup();
+    const createCampaignDraft = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('Unavailable'))
+      .mockResolvedValueOnce(CREATED_DETAIL);
 
     renderNewPage({
       getCampaignDetail: vi.fn(),
@@ -152,8 +189,17 @@ describe('CampaignManagementDetailPage new Draft saving', () => {
     await user.type(name, 'Unsaved local Campaign');
     await user.click(screen.getByRole('button', { name: 'Save Draft' }));
 
-    expect(await screen.findByText('Campaign could not be saved.')).toBeInTheDocument();
+    expect(await screen.findByText('Campaign could not be saved. Try again.')).toBeInTheDocument();
     expect(name).toHaveValue('Unsaved local Campaign');
+    expect(screen.getByRole('button', { name: 'Save Draft' })).toBeEnabled();
     expect(screen.getByRole('button', { name: 'Discard' })).toBeEnabled();
+
+    await user.click(screen.getByRole('button', { name: 'Save Draft' }));
+
+    await waitFor(() => {
+      expect(createCampaignDraft).toHaveBeenCalledTimes(2);
+    });
+    expect(screen.queryByText('Campaign could not be saved. Try again.')).not.toBeInTheDocument();
+    expect(await screen.findByText(`Saved destination: ${DETAIL_PATH}`)).toBeInTheDocument();
   });
 });

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { CampaignManagementClientError } from './campaignManagementClient';
 import { createDevelopmentCampaignManagementClient } from './developmentCampaignManagementClient';
 import type {
   CreateCampaignDraftRequestDto,
@@ -232,19 +233,25 @@ describe('developmentCampaignManagementClient.getCampaignDetail', () => {
   it('rejects an update with a stale authoritative timestamp', async () => {
     const client = createClient();
 
-    await expect(
-      client.updateCampaignDraft(ORGANISATION_CONTEXT, DRAFT_CAMPAIGN_ID, {
+    const error = await client
+      .updateCampaignDraft(ORGANISATION_CONTEXT, DRAFT_CAMPAIGN_ID, {
         ...UPDATE_REQUEST,
         expectedUpdatedAt: '2026-08-01T00:00:00.000Z',
-      }),
-    ).rejects.toThrow('CAMPAIGN_CHANGED');
+      })
+      .catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(CampaignManagementClientError);
+    expect(error).toMatchObject({ code: 'CAMPAIGN_CHANGED' });
   });
 
   it('rejects a Draft without authoritative EDIT permission', async () => {
     const client = createClient();
 
-    await expect(
-      client.updateCampaignDraft(ORGANISATION_CONTEXT, VIEW_ONLY_DRAFT_ID, UPDATE_REQUEST),
-    ).rejects.toThrow('CAMPAIGN_IMMUTABLE');
+    const error = await client
+      .updateCampaignDraft(ORGANISATION_CONTEXT, VIEW_ONLY_DRAFT_ID, UPDATE_REQUEST)
+      .catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(CampaignManagementClientError);
+    expect(error).toMatchObject({ code: 'CAMPAIGN_IMMUTABLE' });
   });
 });

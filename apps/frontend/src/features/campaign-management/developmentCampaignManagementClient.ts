@@ -6,7 +6,10 @@ import type {
   GetCampaignsResponseDto,
   UpdateCampaignDraftRequestDto,
 } from '@insightful-phish/shared';
-import type { CampaignManagementClient } from './campaignManagementClient';
+import {
+  CampaignManagementClientError,
+  type CampaignManagementClient,
+} from './campaignManagementClient';
 import type { CampaignManagementContext } from './campaignManagement.types';
 
 type DevelopmentCampaignFixture = {
@@ -359,11 +362,11 @@ export function createDevelopmentCampaignManagementClient(
         fixture.campaign.status !== 'DRAFT' ||
         !fixture.campaign.allowedActions.includes('EDIT')
       ) {
-        throw new Error('CAMPAIGN_IMMUTABLE');
+        throw new CampaignManagementClientError('CAMPAIGN_IMMUTABLE');
       }
 
       if (fixture.campaign.updatedAt !== request.expectedUpdatedAt) {
-        throw new Error('CAMPAIGN_CHANGED');
+        throw new CampaignManagementClientError('CAMPAIGN_CHANGED');
       }
 
       if (context.kind === 'platform' && (request.startDate || request.endDate)) {

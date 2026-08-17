@@ -1,5 +1,5 @@
 import type { CampaignDetailResponseDto } from '@insightful-phish/shared';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { type ReactNode } from 'react';
 
@@ -7,7 +7,10 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
 import CampaignManagementDetailPage from './CampaignManagementDetailPage';
-import type { CampaignManagementClient } from './campaignManagementClient';
+import {
+  CampaignManagementClientError,
+  type CampaignManagementClient,
+} from './campaignManagementClient';
 
 vi.mock('../../components/layout/AppLayout', () => ({
   default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
@@ -49,6 +52,14 @@ const SECOND_UPDATE: CampaignDetailResponseDto = {
   ...FIRST_UPDATE,
   name: 'Second saved name',
   updatedAt: '2026-08-16T10:00:01.000Z',
+};
+
+const ACTIVE_DETAIL: CampaignDetailResponseDto = {
+  ...INITIAL_DETAIL,
+  name: 'Authoritative Active Campaign',
+  status: 'ACTIVE',
+  updatedAt: '2026-08-16T11:00:00.000Z',
+  allowedActions: ['VIEW'],
 };
 
 function renderPage(client: DetailClient) {
@@ -130,5 +141,89 @@ describe('CampaignManagementDetailPage Draft updates', () => {
 
     expect(screen.getByRole('textbox', { name: 'Campaign name' })).toHaveValue(SECOND_UPDATE.name);
     expect(screen.getByRole('button', { name: 'Discard' })).toBeDisabled();
+  });
+
+  it('preserves conflicting edits until authoritative reload is confirmed', async () => {
+    const user = userEvent.setup();
+    const getCampaignDetail = vi
+      .fn()
+      .mockResolvedValueOnce(INITIAL_DETAIL)
+      .mockResolvedValueOnce({
+        ...INITIAL_DETAIL,
+        name: 'Authoritative Campaign',
+        updatedAt: '2026-08-16T12:00:00.000Z',
+      });
+    const updateCampaignDraft = vi
+      .fn()
+      .mockRejectedValue(new CampaignManagementClientError('CAMPAIGN_CHANGED'));
+
+    renderPage({
+      getCampaignDetail,
+      createCampaignDraft: vi.fn(),
+      updateCampaignDraft,
+    });
+
+    const name = await screen.findByRole('textbox', { name: 'Campaign name' });
+
+    await user.clear(name);
+    await user.type(name, 'Local conflicting name');
+    await user.click(screen.getByRole('button', { name: 'Save Changes' }));
+
+    expect(
+      await screen.findByText('This Draft has changed since you opened it.'),
+    ).toBeInTheDocument();
+    expect(name).toHaveValue('Local conflicting name');
+
+    await user.click(screen.getByRole('button', { name: 'Reload Draft' }));
+
+    const dialog = screen.getByRole('dialog', { name: 'Reload Draft?' });
+
+    expect(
+      within(dialog).getByText('Reloading will replace your local Campaign Draft changes.'),
+    ).toBeInTheDocument();
+
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(name).toHaveValue('Local conflicting name');
+
+    await user.click(screen.getByRole('button', { name: 'Reload Draft' }));
+    await user.click(
+      within(screen.getByRole('dialog', { name: 'Reload Draft?' })).getByRole('button', {
+        name: 'Reload Draft',
+      }),
+    );
+
+    expect(await screen.findByDisplayValue('Authoritative Campaign')).toBeInTheDocument();
+    expect(getCampaignDetail).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole('button', { name: 'Discard' })).toBeDisabled();
+  });
+
+  it('reloads authoritative read-only state when the Draft become immutable', async () => {
+    const user = userEvent.setup();
+    const getCampaignDetail = vi
+      .fn()
+      .mockResolvedValueOnce(INITIAL_DETAIL)
+      .mockResolvedValueOnce(ACTIVE_DETAIL);
+    const updateCampaignDraft = vi
+      .fn()
+      .mockRejectedValue(new CampaignManagementClientError('CAMPAIGN_IMMUTABLE'));
+
+    renderPage({
+      getCampaignDetail,
+      createCampaignDraft: vi.fn(),
+      updateCampaignDraft,
+    });
+
+    const name = await screen.findByRole('textbox', { name: 'Campaign name' });
+
+    await user.clear(name);
+    await user.type(name, 'Local edited Campaign');
+    await user.click(screen.getByRole('button', { name: 'Save Changes' }));
+
+    expect(await screen.findByText('Status: ACTIVE')).toBeInTheDocument();
+    expect(screen.getByText('Authoritative Active Campaign')).toBeInTheDocument();
+    expect(screen.queryByRole('form', { name: 'Campaign details' })).not.toBeInTheDocument();
+    expect(getCampaignDetail).toHaveBeenCalledTimes(2);
   });
 });

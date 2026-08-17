@@ -5,7 +5,10 @@ import type { CampaignDetailResponseDto } from '@insightful-phish/shared';
 import LoadingSpinnerSVG from '../../components/LoadingSpinnerSVG';
 import AppLayout from '../../components/layout/AppLayout';
 import CampaignBuilder from './CampaignBuilder';
-import type { CampaignManagementClient } from './campaignManagementClient';
+import {
+  CampaignManagementClientError,
+  type CampaignManagementClient,
+} from './campaignManagementClient';
 import type { CampaignDraftFormState, CampaignManagementContext } from './campaignManagement.types';
 import { developmentCampaignManagementClient } from './developmentCampaignManagementClient';
 import { toDateTimeLocal } from './campaignDraftDate';
@@ -42,7 +45,7 @@ type EditorDirtyState = {
   isDirty: boolean;
 };
 
-type ConfirmationIntent = 'reset' | 'discard-new' | 'leave' | null;
+type ConfirmationIntent = 'reset' | 'discard-new' | 'leave' | 'reload' | null;
 
 function CampaignManagementDetailPage({
   contextKind,
@@ -78,6 +81,19 @@ function CampaignManagementDetailPage({
   const [resetVersion, setResetVersion] = useState(0);
   const [confirmationIntent, setConfirmationIntent] = useState<ConfirmationIntent>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const saveRequestIdRef = useRef(0);
+  const saveInFlightRef = useRef(false);
+
+  const routeOwnershipKey = `${contextKind}:${organisationId ?? ''}:${campaignId ?? 'new'}`;
+  const [activeRouteOwnershipKey, setActiveRouteOwnershipKey] = useState(routeOwnershipKey);
+
+  if (activeRouteOwnershipKey !== routeOwnershipKey) {
+    setActiveRouteOwnershipKey(routeOwnershipKey);
+    setIsSaving(false);
+    setSaveError(null);
+    setConfirmationIntent(null);
+  }
 
   const currentLoadState = campaignId && loadState?.campaignId === campaignId ? loadState : null;
 
@@ -136,6 +152,13 @@ function CampaignManagementDetailPage({
   }, [campaignId, client, context, retryAttempt]);
 
   useEffect(() => {
+    return () => {
+      saveRequestIdRef.current += 1;
+      saveInFlightRef.current = false;
+    };
+  }, [routeOwnershipKey]);
+
+  useEffect(() => {
     if (!isEditorDirty) {
       return;
     }
@@ -163,7 +186,29 @@ function CampaignManagementDetailPage({
       ? `/organisations/${context.organisationId}/campaigns`
       : '/platform/campaigns';
 
+  function reloadAuthoritativeDetail() {
+    if (!campaignId) {
+      return;
+    }
+
+    setSaveError(null);
+    setEditorDirtyState(null);
+    setLoadState({
+      campaignId,
+      status: 'loading',
+    });
+    setRetryAttempt((current) => current + 1);
+  }
+
   async function handleCreateCampaignDraft(draft: CampaignDraftFormState) {
+    if (saveInFlightRef.current) {
+      return;
+    }
+
+    saveInFlightRef.current = true;
+    const saveRequestId = ++saveRequestIdRef.current;
+
+    setIsSaving(true);
     setSaveError(null);
 
     try {
@@ -172,11 +217,24 @@ function CampaignManagementDetailPage({
         toCreateCampaignDraftRequest(campaignContext, draft),
       );
 
+      if (saveRequestIdRef.current !== saveRequestId) {
+        return;
+      }
+
       navigate(`${campaignListPath}/${created.id}`, {
         replace: true,
       });
     } catch {
-      setSaveError('Campaign could not be saved.');
+      if (saveRequestIdRef.current !== saveRequestId) {
+        return;
+      }
+
+      setSaveError('Campaign could not be saved. Try again.');
+    } finally {
+      if (saveRequestIdRef.current === saveRequestId) {
+        saveInFlightRef.current = false;
+        setIsSaving(false);
+      }
     }
   }
 
@@ -184,6 +242,14 @@ function CampaignManagementDetailPage({
     draft: CampaignDraftFormState,
     authoritativeDetail: CampaignDetailResponseDto,
   ) {
+    if (saveInFlightRef.current) {
+      return;
+    }
+
+    saveInFlightRef.current = true;
+    const saveRequestId = ++saveRequestIdRef.current;
+
+    setIsSaving(true);
     setSaveError(null);
 
     try {
@@ -192,6 +258,10 @@ function CampaignManagementDetailPage({
         authoritativeDetail.id,
         toUpdateCampaignDraftRequest(campaignContext, draft, authoritativeDetail.updatedAt),
       );
+
+      if (saveRequestIdRef.current !== saveRequestId) {
+        return;
+      }
 
       setLoadState({
         campaignId: updated.id,
@@ -203,8 +273,29 @@ function CampaignManagementDetailPage({
         isDirty: false,
       });
       setResetVersion((current) => current + 1);
-    } catch {
-      setSaveError('Campaign could not be saved.');
+    } catch (error) {
+      if (saveRequestIdRef.current !== saveRequestId) {
+        return;
+      }
+
+      if (error instanceof CampaignManagementClientError) {
+        if (error.code === 'CAMPAIGN_CHANGED') {
+          setSaveError('This Draft has changed since you opened it.');
+          return;
+        }
+
+        if (error.code === 'CAMPAIGN_IMMUTABLE') {
+          reloadAuthoritativeDetail();
+          return;
+        }
+      }
+
+      setSaveError('Campaign could not be saved. Try again.');
+    } finally {
+      if (saveRequestIdRef.current === saveRequestId) {
+        saveInFlightRef.current = false;
+        setIsSaving(false);
+      }
     }
   }
 
@@ -212,12 +303,20 @@ function CampaignManagementDetailPage({
     confirmationIntent === 'leave'
       ? {
           title: 'Leave without saving',
+          message: 'Your local Campaign Draft changes will be lost.',
           confirmButtonText: 'Leave without saving',
         }
-      : {
-          title: 'Discard unsaved changes',
-          confirmButtonText: 'Discard',
-        };
+      : confirmationIntent === 'reload'
+        ? {
+            title: 'Reload Draft',
+            message: 'Reloading will replace your local Campaign Draft changes.',
+            confirmButtonText: 'Reload Draft',
+          }
+        : {
+            title: 'Discard unsaved changes',
+            message: 'Your local Campaign Draft changes will be lost.',
+            confirmButtonText: 'Discard',
+          };
 
   return (
     <AppLayout>
@@ -267,13 +366,21 @@ function CampaignManagementDetailPage({
               setConfirmationIntent('discard-new');
             }}
             onSave={handleCreateCampaignDraft}
+            isSaving={isSaving}
             saveButtonText="Save Draft"
+            savingButtonText="Saving Draft…"
           />
         )}
 
         {saveError && (
           <section className="campaign-error" role="alert">
             <p>{saveError}</p>
+
+            {saveError === 'This Draft has changed since you opened it.' && (
+              <button type="button" onClick={() => setConfirmationIntent('reload')}>
+                Reload Draft
+              </button>
+            )}
           </section>
         )}
 
@@ -329,7 +436,9 @@ function CampaignManagementDetailPage({
               setConfirmationIntent('reset');
             }}
             onSave={(draft) => handleUpdateCampaignDraft(draft, detail)}
+            isSaving={isSaving}
             saveButtonText="Save Changes"
+            savingButtonText="Saving Changes…"
           />
         )}
 
@@ -356,13 +465,18 @@ function CampaignManagementDetailPage({
         {confirmationIntent && (
           <BasicConfirmationModal
             title={confirmationConfiguration.title}
-            message="Your local Campaign Draft changes will be lost."
+            message={confirmationConfiguration.message}
             confirmButtonText={confirmationConfiguration.confirmButtonText}
             confirmButtonVariant="danger"
             onCancel={() => {
               setConfirmationIntent(null);
             }}
             onConfirm={() => {
+              if (confirmationIntent === 'reload') {
+                setConfirmationIntent(null);
+                reloadAuthoritativeDetail();
+                return;
+              }
               if (confirmationIntent === 'leave' || confirmationIntent === 'discard-new') {
                 setConfirmationIntent(null);
                 navigate(campaignListPath);
