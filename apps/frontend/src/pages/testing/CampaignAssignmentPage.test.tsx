@@ -1,16 +1,35 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
-
 import CampaignAssignmentPage from '../CampaignAssignmentPage';
+import { getCampaignAssignmentCandidates } from '../../services/campaign-assignment.service';
+import { mockCampaignAssignmentCandidatesResponse } from '../../testing/fixtures/campaignAssignmentFixtures';
 
 vi.mock('../../components/layout/AppLayout', () => ({
   default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
 
+vi.mock('../../context/useAuth', () => ({
+  useAuth: () => ({
+    authContext: {
+      organisation: {
+        id: 'test-organisation-id',
+      },
+    },
+  }),
+}));
+
+vi.mock('../../services/campaign-assignment.service', () => ({
+  getCampaignAssignmentCandidates: vi.fn(),
+}));
+
+const mockedGetCampaignAssignmentCandidates = vi.mocked(getCampaignAssignmentCandidates);
+
 function renderPage() {
+  mockedGetCampaignAssignmentCandidates.mockResolvedValue(mockCampaignAssignmentCandidatesResponse);
+
   return render(
     <MemoryRouter>
       <CampaignAssignmentPage />
@@ -18,15 +37,17 @@ function renderPage() {
   );
 }
 
+async function waitForTraineesToLoad() {
+  await waitFor(() => {
+    expect(screen.getAllByRole('checkbox').length).toBeGreaterThan(0);
+  });
+}
+
 describe('CampaignAssignmentPage', () => {
   it('renders the page heading and instructions', () => {
     renderPage();
 
-    expect(
-      screen.getByRole('heading', {
-        name: /assign training campaigns/i,
-      }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /assign training campaigns/i })).toBeInTheDocument();
     expect(
       screen.getByText(
         /select the organisation trainees you want to assign training campaigns to/i,
@@ -34,20 +55,25 @@ describe('CampaignAssignmentPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('starts on trainee selection and disables later steps until prerequisites are selected', () => {
+  it('starts on trainee selection and disables later steps until prerequisites are selected', async () => {
     renderPage();
 
     expect(screen.getByRole('heading', { name: /organisation trainee selection/i })).toBeVisible();
+
     expect(screen.getByRole('button', { name: /2\. training campaign selection/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /3\. review assignment/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /^continue$/i })).toBeDisabled();
     expect(screen.getByText(/no organisation trainees selected/i)).toBeInTheDocument();
+
+    await waitForTraineesToLoad();
   });
 
   it('selects trainees, clears them, and returns to the first step if trainee selection is removed', async () => {
     const user = userEvent.setup();
+
     renderPage();
 
+    await waitForTraineesToLoad();
     await user.click(within(screen.getAllByRole('row')[1]).getByRole('checkbox'));
 
     expect(screen.getByText(/1 organisation trainee selected/i)).toBeInTheDocument();
@@ -55,6 +81,7 @@ describe('CampaignAssignmentPage', () => {
     expect(screen.getByRole('button', { name: /^continue$/i })).toBeEnabled();
 
     await user.click(screen.getByRole('button', { name: /^continue$/i }));
+
     expect(screen.getByRole('heading', { name: /training campaign selection/i })).toBeVisible();
 
     await user.click(screen.getByRole('button', { name: /1\. organisation trainee selection/i }));
@@ -67,9 +94,13 @@ describe('CampaignAssignmentPage', () => {
 
   it('walks through trainee and campaign selection into the review step', async () => {
     const user = userEvent.setup();
+
     renderPage();
 
+    await waitForTraineesToLoad();
+
     const traineeRows = screen.getAllByRole('row');
+
     await user.click(within(traineeRows[1]).getByRole('checkbox'));
     await user.click(screen.getByRole('button', { name: /^continue$/i }));
 
@@ -78,6 +109,7 @@ describe('CampaignAssignmentPage', () => {
     expect(screen.getByRole('button', { name: /3\. review assignment/i })).toBeDisabled();
 
     const campaignRows = screen.getAllByRole('row');
+
     await user.click(within(campaignRows[1]).getByRole('checkbox'));
 
     expect(screen.getByText(/1 training campaign selected/i)).toBeInTheDocument();
@@ -97,13 +129,14 @@ describe('CampaignAssignmentPage', () => {
 
   it('goes back from review to campaign selection without losing campaign selection', async () => {
     const user = userEvent.setup();
+
     renderPage();
 
+    await waitForTraineesToLoad();
     await user.click(within(screen.getAllByRole('row')[1]).getByRole('checkbox'));
     await user.click(screen.getByRole('button', { name: /^continue$/i }));
     await user.click(within(screen.getAllByRole('row')[1]).getByRole('checkbox'));
     await user.click(screen.getByRole('button', { name: /^continue$/i }));
-
     await user.click(screen.getByRole('button', { name: /^back$/i }));
 
     expect(screen.getByRole('heading', { name: /training campaign selection/i })).toBeVisible();
