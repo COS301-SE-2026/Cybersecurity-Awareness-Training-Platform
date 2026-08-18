@@ -23,7 +23,7 @@ const PATH_B = `/organisations/${ORGANISATION_ID}/campaigns/${CAMPAIGN_B_ID}`;
 
 type DetailClient = Pick<
   CampaignManagementClient,
-  'getCampaignDetail' | 'createCampaignDraft' | 'updateCampaignDraft'
+  'getCampaignCatalogue' | 'getCampaignDetail' | 'createCampaignDraft' | 'updateCampaignDraft'
 >;
 
 function createDetail(id: string, name: string): CampaignDetailResponseDto {
@@ -89,10 +89,23 @@ describe('CampaignManagementDetailPage save ownership', () => {
       campaignId === CAMPAIGN_A_ID ? saveA.promise : saveB.promise,
     );
 
+    const EMPTY_CATALOGUE = {
+      items: [],
+      pagination: {
+        page: 1,
+        limit: 10,
+        totalItems: 0,
+        totalPages: 0,
+        hasNextPage: false,
+        hasPreviousePage: false,
+      },
+    };
+
     render(
       <MemoryRouter initialEntries={[PATH_A]}>
         <RouteHarness
           client={{
+            getCampaignCatalogue: vi.fn().mockResolvedValue(EMPTY_CATALOGUE),
             getCampaignDetail,
             createCampaignDraft: vi.fn(),
             updateCampaignDraft,

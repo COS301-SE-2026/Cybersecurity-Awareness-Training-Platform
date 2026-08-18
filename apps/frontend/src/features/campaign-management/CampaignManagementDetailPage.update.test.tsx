@@ -22,7 +22,7 @@ const DETAIL_PATH = `/organisations/${ORGANISATION_ID}/campaigns/${CAMPAIGN_ID}`
 
 type DetailClient = Pick<
   CampaignManagementClient,
-  'getCampaignDetail' | 'createCampaignDraft' | 'updateCampaignDraft'
+  'getCampaignCatalogue' | 'getCampaignDetail' | 'createCampaignDraft' | 'updateCampaignDraft'
 >;
 
 const INITIAL_DETAIL: CampaignDetailResponseDto = {
@@ -75,6 +75,18 @@ function renderPage(client: DetailClient) {
   );
 }
 
+const EMPTY_CATALOGUE = {
+  items: [],
+  pagination: {
+    page: 1,
+    limit: 10,
+    totalItems: 0,
+    totalPages: 0,
+    hasNextPage: false,
+    hasPreviousePage: false,
+  },
+};
+
 describe('CampaignManagementDetailPage Draft updates', () => {
   it('uses each authoritative response as the next baseline and update token', async () => {
     const user = userEvent.setup();
@@ -84,6 +96,7 @@ describe('CampaignManagementDetailPage Draft updates', () => {
       .mockResolvedValueOnce(SECOND_UPDATE);
 
     renderPage({
+      getCampaignCatalogue: vi.fn().mockResolvedValue(EMPTY_CATALOGUE),
       getCampaignDetail: vi.fn().mockResolvedValue(INITIAL_DETAIL),
       createCampaignDraft: vi.fn(),
       updateCampaignDraft,
@@ -158,6 +171,7 @@ describe('CampaignManagementDetailPage Draft updates', () => {
       .mockRejectedValue(new CampaignManagementClientError('CAMPAIGN_CHANGED'));
 
     renderPage({
+      getCampaignCatalogue: vi.fn().mockResolvedValue(EMPTY_CATALOGUE),
       getCampaignDetail,
       createCampaignDraft: vi.fn(),
       updateCampaignDraft,
@@ -210,6 +224,7 @@ describe('CampaignManagementDetailPage Draft updates', () => {
       .mockRejectedValue(new CampaignManagementClientError('CAMPAIGN_IMMUTABLE'));
 
     renderPage({
+      getCampaignCatalogue: vi.fn().mockResolvedValue(EMPTY_CATALOGUE),
       getCampaignDetail,
       createCampaignDraft: vi.fn(),
       updateCampaignDraft,

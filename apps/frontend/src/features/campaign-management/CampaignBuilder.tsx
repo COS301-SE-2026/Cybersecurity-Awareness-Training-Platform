@@ -1,5 +1,6 @@
 import { useId, useState, type FormEvent } from 'react';
 
+import CampaignCatalogue, { type CampaignCatalogueState } from './CampaignCatalogue';
 import CampaignColourField from './CampaignColourField';
 import type { CampaignDraftFormState, CampaignManagementContext } from './campaignManagement.types';
 
@@ -9,6 +10,8 @@ type CampaignBuilderProps = Readonly<{
   onDirtyChange?: (isDirty: boolean) => void;
   onRequestDiscard?: () => void;
   onSave?: (draft: CampaignDraftFormState) => void | Promise<void>;
+  catalogueState?: CampaignCatalogueState;
+  onRetryCatalogue?: () => void;
   isSaving?: boolean;
   saveButtonText?: string;
   savingButtonText?: string;
@@ -30,6 +33,8 @@ function CampaignBuilder({
   onDirtyChange,
   onRequestDiscard,
   onSave,
+  catalogueState,
+  onRetryCatalogue,
   isSaving,
   saveButtonText = 'Save Draft',
   savingButtonText = 'Saving...',
@@ -171,6 +176,11 @@ function CampaignBuilder({
           </div>
         </fieldset>
       )}
+
+      {catalogueState && onRetryCatalogue && (
+        <CampaignCatalogue state={catalogueState} onRetry={onRetryCatalogue} />
+      )}
+
       <div className="campaign-builder__actions">
         <button
           type="button"

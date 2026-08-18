@@ -15,7 +15,7 @@ vi.mock('../../components/layout/AppLayout', () => ({
 
 type DetailClient = Pick<
   CampaignManagementClient,
-  'getCampaignDetail' | 'createCampaignDraft' | 'updateCampaignDraft'
+  'getCampaignCatalogue' | 'getCampaignDetail' | 'createCampaignDraft' | 'updateCampaignDraft'
 >;
 
 type DetailClientFixture = Pick<CampaignManagementClient, 'getCampaignDetail'>;
@@ -49,9 +49,22 @@ const DRAFT_DETAIL: CampaignDetailResponseDto = {
   items: [],
 };
 
+const EMPTY_CATALOGUE = {
+  items: [],
+  pagination: {
+    page: 1,
+    limit: 10,
+    totalItems: 0,
+    totalPages: 0,
+    hasNextPage: false,
+    hasPreviousPage: false,
+  },
+};
+
 function withCreateClient(fixture: DetailClientFixture): DetailClient {
   return {
     ...fixture,
+    getCampaignCatalogue: vi.fn().mockResolvedValue(EMPTY_CATALOGUE),
     createCampaignDraft: vi.fn(),
     updateCampaignDraft: vi.fn(),
   };

@@ -22,8 +22,10 @@ const DETAIL_PATH = `${LIST_PATH}/${CAMPAIGN_ID}`;
 
 type DetailClient = Pick<
   CampaignManagementClient,
-  'getCampaignDetail' | 'createCampaignDraft' | 'updateCampaignDraft'
+  'getCampaignCatalogue' | 'getCampaignDetail' | 'createCampaignDraft' | 'updateCampaignDraft'
 >;
+
+type DetailClientFixture = Omit<DetailClient, 'getCampaignCatalogue'>;
 
 const CREATED_DETAIL: CampaignDetailResponseDto = {
   id: CAMPAIGN_ID,
@@ -42,6 +44,18 @@ const CREATED_DETAIL: CampaignDetailResponseDto = {
   items: [],
 };
 
+const EMPTY_CATALOGUE = {
+  items: [],
+  pagination: {
+    page: 1,
+    limit: 10,
+    totalItems: 0,
+    totalPages: 0,
+    hasNextPage: false,
+    hasPreviousePage: false,
+  },
+};
+
 function SavedDestination() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -56,14 +70,21 @@ function SavedDestination() {
   );
 }
 
-function renderNewPage(client: DetailClient) {
+function renderNewPage(client: DetailClientFixture) {
+  const detailClient: DetailClient = {
+    ...client,
+    getCampaignCatalogue: vi.fn().mockResolvedValue(EMPTY_CATALOGUE),
+  };
+
   return render(
     <MemoryRouter initialEntries={[LIST_PATH, NEW_PATH]} initialIndex={1}>
       <Routes>
         <Route path={LIST_PATH} element={<div>Campaign list destination</div>} />
         <Route
           path="/organisations/:organisationId/campaigns/new"
-          element={<CampaignManagementDetailPage contextKind="organisation" client={client} />}
+          element={
+            <CampaignManagementDetailPage contextKind="organisation" client={detailClient} />
+          }
         />
         <Route
           path="/organisations/:organisationId/campaigns/:campaignId"
