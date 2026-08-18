@@ -1,8 +1,11 @@
 import type {
+  CampaignCatalogueItemDto,
+  CampaignCatalogueQueryDto,
   CampaignDetailResponseDto,
   CampaignListQueryDto,
   CampaignListRowDto,
   CreateCampaignDraftRequestDto,
+  GetCampaignCatalogueResponseDto,
   GetCampaignsResponseDto,
   UpdateCampaignDraftRequestDto,
 } from '@insightful-phish/shared';
@@ -11,6 +14,7 @@ import {
   type CampaignManagementClient,
 } from './campaignManagementClient';
 import type { CampaignManagementContext } from './campaignManagement.types';
+import { DEVELOPMENT_CAMPAIGN_CATALOGUE } from './developmentCampaignCatalogue';
 
 type DevelopmentCampaignFixture = {
   scope: CampaignManagementContext;
@@ -250,6 +254,19 @@ function matchesQuery(campaign: CampaignListRowDto, query: CampaignListQueryDto)
   return [campaign.name, campaign.description ?? ''].join(' ').toLowerCase().includes(search);
 }
 
+function matchesCatalogueQuery(
+  item: CampaignCatalogueItemDto,
+  query: CampaignCatalogueQueryDto,
+): boolean {
+  if (query.type && item.type !== query.type) {
+    return false;
+  }
+
+  const search = query.search?.trim().toLowerCase();
+
+  return !search || [item.title, item.description ?? ''].join(' ').toLowerCase().includes(search);
+}
+
 type DevelopmentCampaignManagementClientOptions = Readonly<{
   generateCampaignId?: () => string;
   now?: () => Date;
@@ -284,6 +301,31 @@ export function createDevelopmentCampaignManagementClient(
           page: query.page,
           limit: query.limit,
           totalItems: matchingCampaigns.length,
+          totalPages,
+          hasNextPage: query.page < totalPages,
+          hasPreviousPage: query.page > 1,
+        },
+      };
+    },
+
+    async getCampaignCatalogue(
+      _context: CampaignManagementContext,
+      query: CampaignCatalogueQueryDto,
+    ): Promise<GetCampaignCatalogueResponseDto> {
+      const matchingItems = DEVELOPMENT_CAMPAIGN_CATALOGUE.filter((item) =>
+        matchesCatalogueQuery(item, query),
+      );
+      const startIndex = (query.page - 1) * query.limit;
+      const items = matchingItems.slice(startIndex, startIndex + query.limit);
+      const totalPages =
+        matchingItems.length === 0 ? 0 : Math.ceil(matchingItems.length / query.limit);
+
+      return {
+        items,
+        pagination: {
+          page: query.page,
+          limit: query.limit,
+          totalItems: matchingItems.length,
           totalPages,
           hasNextPage: query.page < totalPages,
           hasPreviousPage: query.page > 1,

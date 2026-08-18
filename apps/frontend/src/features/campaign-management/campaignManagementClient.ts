@@ -1,7 +1,9 @@
 import type {
+  CampaignCatalogueQueryDto,
   CampaignDetailResponseDto,
   CampaignListQueryDto,
   CreateCampaignDraftRequestDto,
+  GetCampaignCatalogueResponseDto,
   GetCampaignsResponseDto,
   UpdateCampaignDraftRequestDto,
 } from '@insightful-phish/shared';
@@ -24,6 +26,10 @@ export interface CampaignManagementClient {
     context: CampaignManagementContext,
     query: CampaignListQueryDto,
   ): Promise<GetCampaignsResponseDto>;
+  getCampaignCatalogue(
+    context: CampaignManagementContext,
+    query: CampaignCatalogueQueryDto,
+  ): Promise<GetCampaignCatalogueResponseDto>;
   getCampaignDetail(
     context: CampaignManagementContext,
     campaignId: string,
