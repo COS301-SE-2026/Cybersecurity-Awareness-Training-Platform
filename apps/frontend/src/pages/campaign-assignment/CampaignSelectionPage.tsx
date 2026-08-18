@@ -69,7 +69,7 @@ function CampaignSelectionPage({
           </h3>
 
           {/* SUB-HEADING */}
-          <p className="font-regular tracking-wider text-[1.1rem] font-justify font-jost mt-1 text-gray-500 mb-4">
+          <p className="font-regular tracking-wider text-[1.1rem] font-justify font-jost mt-1 text-gray-500 mb-2">
             Select the training campaigns you wish to assign to the selected organisation trainees.
           </p>
         </div>
@@ -108,7 +108,7 @@ function CampaignSelectionPage({
 
       <div>
         {/* SEARCH AND FILTER BAR */}
-        <div className="w-full mb-4">
+        <div className="w-full mb-2">
           <div className="relative bg-white-purple border border-gray-200">
             <div className="flex flex-col items-center justify-between p-4 space-y-3 md:flex-row md:space-y-0 md:space-x-4">
               {/* ==== SEARCH BAR ==== */}
@@ -294,6 +294,68 @@ function CampaignSelectionPage({
             </tbody>
           </table>
         </div>
+
+        <nav className="mt-2 -mb-5" aria-label="Organisation Trainee Selection Table Pagination">
+          <ul className="flex -space-x-px text-sm">
+            <li>
+              <a
+                href="#"
+                className="flex items-center justify-center text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading font-medium text-sm px-3 h-10 focus:outline-none tracking-wider"
+              >
+                Previous
+              </a>
+            </li>
+            <li>
+              <a
+                href="#"
+                className="flex items-center justify-center text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading font-medium text-sm w-10 h-10 focus:outline-none"
+              >
+                1
+              </a>
+            </li>
+            <li>
+              <a
+                href="#"
+                className="flex items-center justify-center text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading font-medium text-sm w-10 h-10 focus:outline-none"
+              >
+                2
+              </a>
+            </li>
+            <li>
+              <a
+                href="#"
+                aria-current="page"
+                className="flex items-center justify-center text-purple bg-neutral-tertiary-medium box-border border border-default-medium hover:text-purple font-medium text-sm w-10 h-10 focus:outline-none"
+              >
+                3
+              </a>
+            </li>
+            <li>
+              <a
+                href="#"
+                className="flex items-center justify-center text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading font-medium text-sm w-10 h-10 focus:outline-none"
+              >
+                4
+              </a>
+            </li>
+            <li>
+              <a
+                href="#"
+                className="flex items-center justify-center text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading font-medium text-sm w-10 h-10 focus:outline-none"
+              >
+                5
+              </a>
+            </li>
+            <li>
+              <a
+                href="#"
+                className="flex items-center justify-center text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading font-medium text-sm px-3 h-10 focus:outline-none tracking-wider"
+              >
+                Next
+              </a>
+            </li>
+          </ul>
+        </nav>
       </div>
     </div>
   );

@@ -70,7 +70,7 @@ function CampaignAssignmentPage() {
             padding: '1.4rem',
             boxSizing: 'border-box',
             flexShrink: 0,
-            paddingBottom: '0.8rem',
+            paddingBottom: '0.4rem',
           }}
         >
           {/* Back to Organisation Trainees Page Button */}
@@ -107,7 +107,7 @@ function CampaignAssignmentPage() {
           <h1
             style={{
               margin: 0,
-              marginBottom: '0.8rem',
+              marginBottom: '0.4rem',
               fontWeight: 500,
               fontSize: '2.8rem',
               lineHeight: 1,
