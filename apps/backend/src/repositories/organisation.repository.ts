@@ -1,7 +1,7 @@
-import type { Prisma, PrismaClient } from '../generated/prisma/client.js';
+import type { Prisma, PrismaClient, InvitationStatus } from '../generated/prisma/client.js';
 import { prisma } from '../lib/prisma.js';
 
-type OrganisationClient = PrismaClient | Prisma.TransactionClient;
+export type OrganisationClient = PrismaClient | Prisma.TransactionClient;
 
 const TIMELINE_REGISTRATION_REQUEST_ACTIONS = [
   'CREATED',
@@ -86,10 +86,6 @@ export function findOrganisationAdmins(
   });
 }
 
-/**
- * Finds the authoritative INITIAL_ORGANISATION_ADMIN_SETUP invitation for an organisation
- * or registration request. Queries are scoped by purpose to enforce the partial unique index.
- */
 export function findSetupInvitationAndEmailLog(
   input: { organisationId: string } | { organisationRegistrationRequestId: string },
   client: OrganisationClient = prisma,
@@ -125,10 +121,6 @@ export function findLatestEmailLogForInvitation(
   });
 }
 
-/**
- * Finds audit logs for the onboarding timeline. Each clause is scoped to the authoritative
- * registration request, initial-admin invitation, or organisation lifecycle target.
- */
 export function findAuditLogsForTimeline(
   input: {
     organisationId: string | null;
@@ -173,7 +165,6 @@ export function findAuditLogsForTimeline(
         select: {
           firstName: true,
           lastName: true,
-          // email intentionally excluded from the timeline
         },
       },
     },
@@ -182,10 +173,6 @@ export function findAuditLogsForTimeline(
   });
 }
 
-/**
- * Finds email delivery logs for the onboarding timeline. Scoped to the authoritative
- * INITIAL_ORGANISATION_ADMIN_SETUP invitation only.
- */
 export function findEmailLogsForTimeline(
   invitationId: string | null,
   client: OrganisationClient = prisma,
@@ -202,4 +189,88 @@ export function findEmailLogsForTimeline(
     orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
     take: 50,
   });
+}
+
+export function findUserForSetupValidation(email: string, client: OrganisationClient = prisma) {
+  return client.user.findUnique({
+    where: { email },
+    include: {
+      organisationAdminProfile: true,
+      traineeProfile: {
+        include: {
+          organisationTraineeProfile: true,
+        },
+      },
+    },
+  });
+}
+
+export async function claimInvitationForResend(
+  input: {
+    id: string;
+    status: InvitationStatus;
+    updatedAt: Date;
+    expiresAt: Date;
+  },
+  client: OrganisationClient = prisma,
+) {
+  const result = await client.invitation.updateMany({
+    where: {
+      id: input.id,
+      status: input.status,
+      updatedAt: input.updatedAt,
+    },
+    data: {
+      status: 'PENDING',
+      expiresAt: input.expiresAt,
+    },
+  });
+
+  return result.count === 1;
+}
+
+export function revokeActiveActionTokensForInvitation(
+  invitationId: string,
+  revokedReason: string = 'SUPERSEDED_BY_RESEND',
+  client: OrganisationClient = prisma,
+) {
+  return client.actionToken.updateMany({
+    where: {
+      invitationId,
+      usedAt: null,
+      revokedAt: null,
+    },
+    data: {
+      revokedAt: new Date(),
+      revokedReason,
+    },
+  });
+}
+
+export function markActionTokenRevoked(
+  tokenId: string,
+  revokedReason: string = 'EMAIL_SEND_FAILED',
+  client: OrganisationClient = prisma,
+) {
+  return client.actionToken.updateMany({
+    where: {
+      id: tokenId,
+      usedAt: null,
+      revokedAt: null,
+    },
+    data: {
+      revokedAt: new Date(),
+      revokedReason,
+    },
+  });
+}
+
+export function runInTransaction<T>(
+  action: (tx: Prisma.TransactionClient) => Promise<T>,
+  client: OrganisationClient = prisma,
+): Promise<T> {
+  if ('$transaction' in client && typeof client.$transaction === 'function') {
+    return client.$transaction(async (tx) => action(tx));
+  }
+  return action(client);
 }

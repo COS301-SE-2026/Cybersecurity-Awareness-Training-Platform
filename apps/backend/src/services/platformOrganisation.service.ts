@@ -1,4 +1,3 @@
-import { prisma } from '../lib/prisma.js';
 import * as OrganisationRepository from '../repositories/organisation.repository.js';
 import { recordAuditLog } from './audit-log.service.js';
 import { requestAuthEmailSend } from './auth-email-hook.service.js';
@@ -210,7 +209,6 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
     );
   }
 
-  // Validate that the registered request representative email is consistent with the invitation.
   const registrationRequest =
     await OrganisationRepository.findRegistrationRequestByOrganisationId(organisationId);
   if (
@@ -224,27 +222,15 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
     );
   }
 
-  // Early setup compatibility checks -- reject rather than reassign
-  const existingUser = await prisma.user.findUnique({
-    where: { email: invitation.recipientEmail },
-    include: {
-      organisationAdminProfile: true,
-      traineeProfile: {
-        include: {
-          organisationTraineeProfile: true,
-        },
-      },
-    },
-  });
+  const existingUser = await OrganisationRepository.findUserForSetupValidation(
+    invitation.recipientEmail,
+  );
 
   assertNoSetupRoleConflict(existingUser, organisationId);
 
-  const newExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+  const newExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-  const result = await prisma.$transaction(async (tx) => {
-    // Atomic claim: update the invitation only if it is still in an eligible state.
-    // A concurrent resend that already updated the invitation will cause this to match 0 rows,
-    // which means we lost the race -- return a stable 409 without revoking the winning token.
+  const result = await OrganisationRepository.runInTransaction(async (tx) => {
     const invitationTx = await OrganisationRepository.findSetupInvitationAndEmailLog(
       {
         organisationId,
@@ -259,13 +245,10 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
       );
     }
 
-    const latestEmailLogTx = await tx.emailDeliveryLog.findFirst({
-      where: {
-        invitationId: invitationTx.id,
-        emailType: 'INITIAL_ORGANISATION_ADMIN_SETUP',
-      },
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-    });
+    const latestEmailLogTx = await OrganisationRepository.findLatestEmailLogForInvitation(
+      invitationTx.id,
+      tx,
+    );
 
     const eligibilityTx = getResendEligibility(organisation.status, invitationTx, latestEmailLogTx);
     if (!eligibilityTx.isEligible) {
@@ -276,22 +259,17 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
       );
     }
 
-    // Atomic claim via conditional update. If another request already updated updatedAt
-    // past the value we read outside, the WHERE won't match and count will be 0.
-    const claimResult = await tx.invitation.updateMany({
-      where: {
+    const claimed = await OrganisationRepository.claimInvitationForResend(
+      {
         id: invitationTx.id,
         status: invitationTx.status,
         updatedAt: invitationTx.updatedAt,
-      },
-      data: {
-        status: 'PENDING',
         expiresAt: newExpiresAt,
       },
-    });
+      tx,
+    );
 
-    if (claimResult.count === 0) {
-      // Another concurrent resend won the race
+    if (!claimed) {
       throw new OrganisationRegistrationRequestError(
         409,
         'RESEND_NOT_ELIGIBLE',
@@ -299,20 +277,12 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
       );
     }
 
-    // Revoke any existing active action tokens for this invitation
-    await tx.actionToken.updateMany({
-      where: {
-        invitationId: invitationTx.id,
-        usedAt: null,
-        revokedAt: null,
-      },
-      data: {
-        revokedAt: new Date(),
-        revokedReason: 'SUPERSEDED_BY_RESEND',
-      },
-    });
+    await OrganisationRepository.revokeActiveActionTokensForInvitation(
+      invitationTx.id,
+      'SUPERSEDED_BY_RESEND',
+      tx,
+    );
 
-    // Generate a new action token
     const actionTokenResult = await issueActionToken(
       {
         purpose: 'INITIAL_ORGANISATION_ADMIN_SETUP',
@@ -325,7 +295,6 @@ export async function resendInitialAdminSetup(actorUserId: string, organisationI
       tx,
     );
 
-    // Log audit entry inside the transaction
     await recordAuditLog(
       {
         actorUserId,
@@ -440,20 +409,17 @@ async function buildPlatformTimeline(
   requestId: string | null,
   invitationId: string | null,
 ) {
-  // Both queries push their allowlist filters into the DB -- no in-memory filtering needed.
   const auditLogs = await OrganisationRepository.findAuditLogsForTimeline({
     organisationId,
     requestId,
     invitationId,
   });
 
-  // Email logs scoped to the authoritative initial-admin invitation only.
   const emailLogs = await OrganisationRepository.findEmailLogsForTimeline(invitationId);
 
   const timeline: InternalPlatformTimelineEvent[] = [];
 
   for (const log of auditLogs) {
-    // Actor name uses firstName + lastName only -- no email fallback to avoid leaking addresses.
     let actorName: string | null = null;
     if (log.actorUser) {
       const fullName = `${log.actorUser.firstName} ${log.actorUser.lastName}`.trim();
@@ -473,7 +439,6 @@ async function buildPlatformTimeline(
   }
 
   for (const log of emailLogs) {
-    // Recipient email intentionally excluded from timeline entries.
     timeline.push({
       id: log.id,
       type: 'EMAIL_DELIVERY',
@@ -500,11 +465,6 @@ async function buildPlatformTimeline(
   return timeline.map(publicTimelineEvent);
 }
 
-/**
- * Asserts that an existing user account does not conflict with the setup invitation.
- * Throws SETUP_ROLE_CONFLICT if the account is disabled, has the wrong role,
- * or is already bound to a different organisation.
- */
 function assertNoSetupRoleConflict(
   existingUser: {
     authStatus: string;

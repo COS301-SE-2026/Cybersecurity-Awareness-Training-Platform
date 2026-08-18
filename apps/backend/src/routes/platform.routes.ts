@@ -504,59 +504,11 @@ platformRouter.post(
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: List of platform administrators
+ *         description: List of platform administrators with capability flags and row actions
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 admins:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       id:
- *                         type: string
- *                         format: uuid
- *                       firstName:
- *                         type: string
- *                       lastName:
- *                         type: string
- *                       email:
- *                         type: string
- *                       platformAdminRole:
- *                         type: string
- *                         enum: [SUPER_ADMIN, NORMAL_ADMIN]
- *                       adminStatus:
- *                         type: string
- *                         enum: [ACTIVE, DISABLED]
- *                       authStatus:
- *                         type: string
- *                       invitationStatus:
- *                         type: string
- *                         enum: [PENDING, SENT, FAILED_TO_SEND, ACCEPTED, COMPLETED, EXPIRED, REVOKED, REJECTED, PENDING_UPGRADE]
- *                         nullable: true
- *                       inviteId:
- *                         type: string
- *                         format: uuid
- *                         nullable: true
- *                       allowedActions:
- *                         type: object
- *                         properties:
- *                           canTransferSuperAdmin:
- *                             type: boolean
- *                           canDemote:
- *                             type: boolean
- *                           canResendInvite:
- *                             type: boolean
- *                 allowedToInvite:
- *                   type: boolean
- *                 allowedToTransfer:
- *                   type: boolean
- *                 allowedToDemote:
- *                   type: boolean
- *                 allowedToResendInvites:
- *                   type: boolean
+ *               $ref: '#/components/schemas/PlatformAdminsListResponse'
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  *       403:
@@ -574,42 +526,20 @@ platformRouter.get('/platform/admins', asyncHandler(listPlatformAdmins));
  *   post:
  *     tags: [Platform Admins]
  *     summary: Invite a new platform admin or request trainee upgrade
- *     description: Invites a new platform administrator or requests upgrade of an existing trainee account.
+ *     description: Invites a new platform administrator or requests upgrade of an existing trainee account. Requires super admin privileges.
  *     security:
  *       - bearerAuth: []
  *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [email]
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *               firstName:
- *                 type: string
- *               lastName:
- *                 type: string
- *               confirmUpgrade:
- *                 type: boolean
+ *       $ref: '#/components/requestBodies/InvitePlatformAdmin'
  *     responses:
  *       201:
  *         description: Invitation email queued for delivery
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 type:
- *                   type: string
- *                   enum: [new-invite, upgrade-confirmation]
- *                 userId:
- *                   type: string
- *                   format: uuid
- *                 email:
- *                   type: string
+ *               $ref: '#/components/schemas/InvitePlatformAdminResponse'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  *       403:
@@ -635,7 +565,7 @@ platformRouter.post(
  *   post:
  *     tags: [Platform Admins]
  *     summary: Resend platform admin invite
- *     description: Revokes the old invite token and queues a new platform admin invitation or upgrade email for delivery.
+ *     description: Revokes the old invite token and queues a new platform admin invitation or upgrade email for delivery. Requires super admin privileges.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -652,12 +582,9 @@ platformRouter.post(
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 emailQueued:
- *                   type: boolean
+ *               $ref: '#/components/schemas/ResendPlatformAdminInviteResponse'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  *       403:
@@ -683,25 +610,11 @@ platformRouter.post(
  *   post:
  *     tags: [Platform Admins]
  *     summary: Transfer super admin role
- *     description: Swaps the super admin role of the current actor user to the target user.
+ *     description: Swaps the super admin role of the current actor user to the target user. Requires super admin password confirmation.
  *     security:
  *       - bearerAuth: []
  *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [targetUserId, password, confirmation]
- *             properties:
- *               targetUserId:
- *                 type: string
- *                 format: uuid
- *               password:
- *                 type: string
- *               confirmation:
- *                 type: string
- *                 enum: [TRANSFER]
+ *       $ref: '#/components/requestBodies/TransferSuperAdmin'
  *     responses:
  *       200:
  *         description: Role transfer completed. Returns updated actor user context.
@@ -709,6 +622,8 @@ platformRouter.post(
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/AuthMeResponse'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  *       403:
@@ -734,7 +649,7 @@ platformRouter.post(
  *   post:
  *     tags: [Platform Admins]
  *     summary: Demote a normal platform admin
- *     description: Disables the target normal platform admin, revoking all active sessions.
+ *     description: Disables the target normal platform admin, revoking all active sessions. Requires super admin password confirmation.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -746,35 +661,16 @@ platformRouter.post(
  *           format: uuid
  *         description: The user ID of the platform admin to demote
  *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [password, confirmation]
- *             properties:
- *               password:
- *                 type: string
- *               confirmation:
- *                 type: string
- *                 enum: [DEMOTE]
+ *       $ref: '#/components/requestBodies/DemotePlatformAdmin'
  *     responses:
  *       200:
  *         description: Platform admin successfully demoted
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 userId:
- *                   type: string
- *                   format: uuid
- *                 email:
- *                   type: string
- *                 adminStatus:
- *                   type: string
- *                 authStatus:
- *                   type: string
+ *               $ref: '#/components/schemas/DemotePlatformAdminResponse'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  *       403:
