@@ -3,6 +3,7 @@ import { useId, useState, type FormEvent } from 'react';
 import CampaignCatalogue, { type CampaignCatalogueState } from './CampaignCatalogue';
 import CampaignColourField from './CampaignColourField';
 import type { CampaignDraftFormState, CampaignManagementContext } from './campaignManagement.types';
+import type { CampaignCatalogueQueryDto } from '@insightful-phish/shared';
 
 type CampaignBuilderProps = Readonly<{
   contextKind: CampaignManagementContext['kind'];
@@ -15,6 +16,10 @@ type CampaignBuilderProps = Readonly<{
   isSaving?: boolean;
   saveButtonText?: string;
   savingButtonText?: string;
+  catalogueQuery?: CampaignCatalogueQueryDto;
+  onCatalogueSearchChange?: (search: string) => void;
+  onCatalogueTypeChange?: (type: CampaignCatalogueQueryDto['type']) => void;
+  onCataloguePageChange?: (page: number) => void;
 }>;
 
 function areDraftsEqual(left: CampaignDraftFormState, right: CampaignDraftFormState): boolean {
@@ -34,7 +39,11 @@ function CampaignBuilder({
   onRequestDiscard,
   onSave,
   catalogueState,
+  catalogueQuery,
   onRetryCatalogue,
+  onCatalogueSearchChange,
+  onCatalogueTypeChange,
+  onCataloguePageChange,
   isSaving,
   saveButtonText = 'Save Draft',
   savingButtonText = 'Saving...',
@@ -177,9 +186,21 @@ function CampaignBuilder({
         </fieldset>
       )}
 
-      {catalogueState && onRetryCatalogue && (
-        <CampaignCatalogue state={catalogueState} onRetry={onRetryCatalogue} />
-      )}
+      {catalogueState &&
+        catalogueQuery &&
+        onRetryCatalogue &&
+        onCatalogueSearchChange &&
+        onCatalogueTypeChange &&
+        onCataloguePageChange && (
+          <CampaignCatalogue
+            state={catalogueState}
+            query={catalogueQuery}
+            onRetry={onRetryCatalogue}
+            onSearchChange={onCatalogueSearchChange}
+            onTypeChange={onCatalogueTypeChange}
+            onPageChange={onCataloguePageChange}
+          />
+        )}
 
       <div className="campaign-builder__actions">
         <button

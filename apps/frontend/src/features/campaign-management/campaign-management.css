@@ -448,6 +448,35 @@
   margin: 0;
 }
 
+.campaign-catalogue__controls {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+}
+
+.campaign-catalogue__search {
+  flex: 1;
+}
+
+.campaign-catalogue__filter {
+  width: 14rem;
+}
+
+.campaign-catalogue__search,
+.campaign-catalogue__filter {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.campaign-catalogue__search input,
+.campaign-catalogue__filter select {
+  width: 100%;
+  min-height: 2.65rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  background: white;
+}
+
 .campaign-catalogue__state {
   display: flex;
   align-items: center;
@@ -482,6 +511,18 @@
   font-size: 0.875rem;
 }
 
+.campaign-catalogue__pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.campaign-catalogue__pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 @media (max-width: 48rem) {
   .campaign-filters,
   .campaign-card__heading {
@@ -503,5 +544,14 @@
 
   .campaign-schedule__fields {
     grid-template-columns: 1fr;
+  }
+
+  .campaign-catalogue__controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .campaign-catalogue__filter {
+    width: 100%;
   }
 }

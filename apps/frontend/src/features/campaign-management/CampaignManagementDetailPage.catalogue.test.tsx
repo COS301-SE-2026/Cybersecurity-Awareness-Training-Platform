@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import type {
@@ -122,7 +122,7 @@ describe('CampaignManagementDetailPage catalogue', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Training Document')).toBeInTheDocument();
     expect(screen.getByText('Quiz')).toBeInTheDocument();
-    expect(screen.getByText('Simulated Inbox')).toBeInTheDocument();
+    expect(screen.getAllByText('Simulated Inbox')).toHaveLength(2);
     expect(getCampaignCatalogue).toHaveBeenCalledWith(
       {
         kind: 'organisation',
@@ -135,7 +135,7 @@ describe('CampaignManagementDetailPage catalogue', () => {
     );
   });
 
-  it('retires a failed catalogue load and displays the returned items', async () => {
+  it('retries a failed catalogue load and displays the returned items', async () => {
     const user = userEvent.setup();
     const getCampaignCatalogue = vi
       .fn()
@@ -160,7 +160,221 @@ describe('CampaignManagementDetailPage catalogue', () => {
     ).toBeInTheDocument();
     expect(getCampaignCatalogue).toHaveBeenCalledTimes(2);
     expect(
-      screen.queryByText('Campaign catalogue could not be laoded. Try again.'),
+      screen.queryByText('Campaign catalogue could not be loaded. Try again.'),
     ).not.toBeInTheDocument();
+  });
+
+  it('resets pagination for search and type changes without submitting the Campaign', async () => {
+    const user = userEvent.setup();
+    const updateCampaignDraft = vi.fn();
+    const firstPage = {
+      ...CATALOGUE_RESPONSE,
+      pagination: {
+        page: 1,
+        limit: 10,
+        totalItems: 13,
+        totalPages: 2,
+        hasNextPage: true,
+        hasPreviousPage: false,
+      },
+    };
+    const secondPage = {
+      ...CATALOGUE_RESPONSE,
+      pagination: {
+        page: 2,
+        limit: 10,
+        totalItems: 13,
+        totalPages: 2,
+        hasNextPage: false,
+        hasPreviousPage: true,
+      },
+    };
+    const getCampaignCatalogue = vi
+      .fn()
+      .mockResolvedValueOnce(firstPage)
+      .mockResolvedValueOnce(secondPage)
+      .mockResolvedValueOnce(CATALOGUE_RESPONSE)
+      .mockResolvedValueOnce(CATALOGUE_RESPONSE);
+
+    renderPage({
+      getCampaignCatalogue,
+      getCampaignDetail: vi.fn().mockResolvedValue(DRAFT_DETAIL),
+      createCampaignDraft: vi.fn(),
+      updateCampaignDraft,
+    });
+
+    expect(await screen.findByText('Page 1 of 2')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+
+    await waitFor(() => {
+      expect(getCampaignCatalogue).toHaveBeenLastCalledWith(expect.anything(), {
+        page: 2,
+        limit: 10,
+        search: undefined,
+      });
+    });
+    expect(await screen.findByText('Page 2 of 2')).toBeInTheDocument();
+
+    const search = screen.getByRole('searchbox', { name: 'Search catalogue' });
+
+    fireEvent.change(search, { target: { value: 'password' } });
+
+    await waitFor(() => {
+      expect(getCampaignCatalogue).toHaveBeenLastCalledWith(expect.anything(), {
+        page: 1,
+        limit: 10,
+        search: 'password',
+      });
+    });
+
+    await user.type(search, `{enter}`);
+
+    expect(updateCampaignDraft).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByRole('combobox', { name: 'Content type' }), {
+      target: { value: 'QUIZ' },
+    });
+
+    await waitFor(() => {
+      expect(getCampaignCatalogue).toHaveBeenLastCalledWith(expect.anything(), {
+        page: 1,
+        limit: 10,
+        search: 'password',
+        type: 'QUIZ',
+      });
+    });
+  });
+
+  it('uses authoritative pagination metadata for Previous and Next', async () => {
+    const user = userEvent.setup();
+    const firstPage = {
+      ...CATALOGUE_RESPONSE,
+      pagination: {
+        page: 1,
+        limit: 10,
+        totalItems: 13,
+        totalPages: 2,
+        hasNextPage: true,
+        hasPreviousPage: false,
+      },
+    };
+    const secondPage = {
+      ...CATALOGUE_RESPONSE,
+      pagination: {
+        page: 2,
+        limit: 10,
+        totalItems: 13,
+        totalPages: 2,
+        hasNextPage: false,
+        hasPreviousPage: true,
+      },
+    };
+    const getCampaignCatalogue = vi
+      .fn()
+      .mockResolvedValueOnce(firstPage)
+      .mockResolvedValueOnce(secondPage);
+
+    renderPage({
+      getCampaignCatalogue,
+      getCampaignDetail: vi.fn().mockResolvedValue(DRAFT_DETAIL),
+      createCampaignDraft: vi.fn(),
+      updateCampaignDraft: vi.fn(),
+    });
+
+    expect(await screen.findByText('Page 1 of 2')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled();
+
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+
+    await waitFor(() => {
+      expect(getCampaignCatalogue).toHaveBeenLastCalledWith(expect.anything(), {
+        page: 2,
+        limit: 10,
+        search: undefined,
+      });
+    });
+
+    expect(await screen.findByText('Page 2 of 2')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Previous' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+  });
+
+  it('ignores an older catalogue response after a newer query resolves', async () => {
+    const olderRequest = createDeferred<GetCampaignCatalogueResponseDto>();
+    const newerRequest = createDeferred<GetCampaignCatalogueResponseDto>();
+    const emptyResponse: GetCampaignCatalogueResponseDto = {
+      items: [],
+      pagination: {
+        page: 1,
+        limit: 10,
+        totalItems: 0,
+        totalPages: 0,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      },
+    };
+    const olderResponse: GetCampaignCatalogueResponseDto = {
+      ...emptyResponse,
+      items: [
+        {
+          ...CATALOGUE_RESPONSE.items[0],
+          title: 'Older search result',
+        },
+      ],
+    };
+    const newerResponse: GetCampaignCatalogueResponseDto = {
+      ...emptyResponse,
+      items: [
+        {
+          ...CATALOGUE_RESPONSE.items[0],
+          title: 'Newer search result',
+        },
+      ],
+    };
+    const getCampaignCatalogue = vi
+      .fn()
+      .mockResolvedValueOnce(emptyResponse)
+      .mockImplementationOnce(() => olderRequest.promise)
+      .mockImplementationOnce(() => newerRequest.promise);
+
+    renderPage({
+      getCampaignCatalogue,
+      getCampaignDetail: vi.fn().mockResolvedValue(DRAFT_DETAIL),
+      createCampaignDraft: vi.fn(),
+      updateCampaignDraft: vi.fn(),
+    });
+
+    await screen.findByText('No catalogue items found.');
+
+    const search = screen.getByRole('searchbox', { name: 'Search catalogue' });
+
+    fireEvent.change(search, { target: { value: 'older' } });
+
+    await waitFor(() => {
+      expect(getCampaignCatalogue).toHaveBeenCalledTimes(2);
+    });
+
+    fireEvent.change(search, { target: { value: 'newer' } });
+
+    await waitFor(() => {
+      expect(getCampaignCatalogue).toHaveBeenCalledTimes(3);
+    });
+
+    await act(async () => {
+      newerRequest.resolve(newerResponse);
+      await newerRequest.promise;
+    });
+
+    expect(await screen.findByRole('heading', { name: 'Newer search result' })).toBeInTheDocument();
+
+    await act(async () => {
+      olderRequest.resolve(olderResponse);
+      await olderRequest.promise;
+    });
+
+    expect(screen.getByRole('heading', { name: 'Newer search result' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Older search result' })).not.toBeInTheDocument();
   });
 });

@@ -1,4 +1,8 @@
-import type { CampaignCatalogueItemDto } from '@insightful-phish/shared';
+import type {
+  CampaignCatalogueItemDto,
+  CampaignCatalogueQueryDto,
+  GetCampaignCatalogueResponseDto,
+} from '@insightful-phish/shared';
 
 import LoadingSpinnerSVG from '../../components/LoadingSpinnerSVG';
 
@@ -8,11 +12,16 @@ export type CampaignCatalogueState =
   | {
       status: 'loaded';
       items: readonly CampaignCatalogueItemDto[];
+      pagination: GetCampaignCatalogueResponseDto['pagination'];
     };
 
 type CampaignCatalogueProps = Readonly<{
   state: CampaignCatalogueState;
+  query: CampaignCatalogueQueryDto;
   onRetry: () => void;
+  onSearchChange: (search: string) => void;
+  onTypeChange: (type: CampaignCatalogueQueryDto['type']) => void;
+  onPageChange: (page: number) => void;
 }>;
 
 const TYPE_LABELS: Record<CampaignCatalogueItemDto['type'], string> = {
@@ -21,12 +30,55 @@ const TYPE_LABELS: Record<CampaignCatalogueItemDto['type'], string> = {
   SIMULATED_INBOX: 'Simulated Inbox',
 };
 
-function CampaignCatalogue({ state, onRetry }: CampaignCatalogueProps) {
+function CampaignCatalogue({
+  state,
+  query,
+  onRetry,
+  onSearchChange,
+  onTypeChange,
+  onPageChange,
+}: CampaignCatalogueProps) {
   return (
     <section className="campaign-catalogue" aria-labelledby="campaign-catalogue-heading">
       <div className="campaign-catalogue__heading">
         <h2 id="campaign-catalogue-heading">Catalogue</h2>
         <p>Browse available content to include in this Campaign.</p>
+      </div>
+
+      <div className="campaign-catalogue__controls">
+        <label className="campaign-catalogue__search">
+          <span>Search catalogue</span>
+          <input
+            type="search"
+            maxLength={100}
+            value={query.search ?? ''}
+            onChange={(event) => onSearchChange(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+              }
+            }}
+          />
+        </label>
+        <label className="campaign-catalogue__filter">
+          <span>Content type</span>
+          <select
+            value={query.type ?? ''}
+            onChange={(event) => {
+              const value = event.target.value;
+              onTypeChange(
+                value === ''
+                  ? undefined
+                  : (value as NonNullable<CampaignCatalogueQueryDto['type']>),
+              );
+            }}
+          >
+            <option value="">All content</option>
+            <option value="TRAINING_DOCUMENT">Training Documents</option>
+            <option value="QUIZ">Quizzes</option>
+            <option value="SIMULATED_INBOX">Simulated Inbox</option>
+          </select>
+        </label>
       </div>
 
       {state.status === 'loading' && (
@@ -64,6 +116,30 @@ function CampaignCatalogue({ state, onRetry }: CampaignCatalogueProps) {
             </li>
           ))}
         </ul>
+      )}
+
+      {state.status === 'loaded' && state.pagination.totalPages > 1 && (
+        <nav className="campaign-catalogue__pagination" aria-label="Catalogue pagination">
+          <button
+            type="button"
+            disabled={!state.pagination.hasPreviousPage}
+            onClick={() => onPageChange(state.pagination.page - 1)}
+          >
+            Previous
+          </button>
+
+          <span>
+            Page {state.pagination.page} of {state.pagination.totalPages}
+          </span>
+
+          <button
+            type="button"
+            disabled={!state.pagination.hasNextPage}
+            onClick={() => onPageChange(state.pagination.page + 1)}
+          >
+            Next
+          </button>
+        </nav>
       )}
     </section>
   );
