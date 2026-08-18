@@ -344,7 +344,7 @@ function OrganisationTraineeSelectionPage({
                 type="button"
                 onClick={handlePreviousPage}
                 disabled={currentPage === 1 || isLoading}
-                className="flex items-center justify-center text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading font-medium text-sm px-3 h-10 focus:outline-none tracking-wider"
+                className="disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-neutral-secondary-medium disabled:hover:text-body flex items-center justify-center text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading font-medium text-sm px-3 h-10 focus:outline-none tracking-wider"
               >
                 Previous
               </button>
@@ -371,7 +371,7 @@ function OrganisationTraineeSelectionPage({
                 type="button"
                 onClick={handleNextPage}
                 disabled={currentPage === totalPages || isLoading}
-                className="flex items-center justify-center text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading font-medium text-sm px-3 h-10 focus:outline-none tracking-wider"
+                className="disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-neutral-secondary-medium disabled:hover:text-body flex items-center justify-center text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading font-medium text-sm px-3 h-10 focus:outline-none tracking-wider"
               >
                 Next
               </button>
