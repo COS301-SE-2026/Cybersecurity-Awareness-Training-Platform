@@ -58,6 +58,9 @@ function OrganisationTraineeSelectionPage({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
   useEffect(() => {
     if (!organisationId) {
       setTrainees([]);
@@ -76,8 +79,8 @@ function OrganisationTraineeSelectionPage({
 
       try {
         const response = await getCampaignAssignmentCandidates(currentOrganisationId, {
-          page: 1,
-          limit: 20,
+          page: currentPage,
+          limit: 3,
           ...(searchTerm.trim() ? { search: searchTerm.trim() } : {}),
         });
 
@@ -85,6 +88,7 @@ function OrganisationTraineeSelectionPage({
           return;
         }
         setTrainees(response.items);
+        setTotalPages(response.pagination.totalPages);
       } catch {
         if (!isCurrent) {
           return;
@@ -103,7 +107,7 @@ function OrganisationTraineeSelectionPage({
     return () => {
       isCurrent = false;
     };
-  }, [organisationId, searchTerm]);
+  }, [organisationId, searchTerm, currentPage]);
 
   const handleTraineeSelection = (traineeProfileId: string) => {
     setSelectedTraineesIds((currentSelectedIds) => {
@@ -113,6 +117,18 @@ function OrganisationTraineeSelectionPage({
 
       return [...currentSelectedIds, traineeProfileId];
     });
+  };
+
+  const handlePreviousPage = () => {
+    setCurrentPage((page) => Math.max(page - 1, 1));
+  };
+
+  const handleNextPage = () => {
+    setCurrentPage((page) => Math.min(page + 1, totalPages));
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
   };
 
   let traineeSelectionText = 'No Organisation Trainees Selected';
@@ -200,7 +216,10 @@ function OrganisationTraineeSelectionPage({
                       type="text"
                       id="simple-search"
                       value={searchTerm}
-                      onChange={(event) => setSearchTerm(event.target.value)}
+                      onChange={(event) => {
+                        setSearchTerm(event.target.value);
+                        setCurrentPage(1);
+                      }}
                       className="font-jost tracking-wide block w-full p-2 pl-10 text-[1.1rem] h-[2.55rem] text-black border border-gray-300 bg-white focus:ring-primary-500 focus:border-primary-500"
                       placeholder="Search Organisation Trainees"
                     />
@@ -222,7 +241,7 @@ function OrganisationTraineeSelectionPage({
         </div>
 
         {/* TABLE */}
-        <div className="relative max-h-[11.45rem] overflow-y-auto overflow-x-auto bg-neutral-primary-soft border border-default">
+        <div className="relative max-h-[12rem] overflow-y-auto overflow-x-auto bg-neutral-primary-soft border border-default">
           <table className="w-full text-sm text-left rtl:text-right text-body">
             <thead className="bg-faint-purple border-b border-default">
               <tr>
@@ -321,61 +340,41 @@ function OrganisationTraineeSelectionPage({
         <nav className="mt-2 -mb-4" aria-label="Organisation Trainee Selection Table Pagination">
           <ul className="flex -space-x-px text-sm">
             <li>
-              <a
-                href="#"
+              <button
+                type="button"
+                onClick={handlePreviousPage}
+                disabled={currentPage === 1 || isLoading}
                 className="flex items-center justify-center text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading font-medium text-sm px-3 h-10 focus:outline-none tracking-wider"
               >
                 Previous
-              </a>
+              </button>
             </li>
+            {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+              <li key={page}>
+                <button
+                  type="button"
+                  onClick={() => handlePageChange(page)}
+                  disabled={currentPage === page || isLoading}
+                  aria-current={currentPage === page ? 'page' : undefined}
+                  className={`flex items-center justify-center box-border border border-default-medium font-medium text-sm w-10 h-10 focus:outline-none ${
+                    currentPage === page
+                      ? 'text-purple bg-neutral-tertiary-medium'
+                      : 'text-body bg-neutral-secondary-medium hover:bg-neutral-tertiary-medium hover:text-heading'
+                  }`}
+                >
+                  {page}
+                </button>
+              </li>
+            ))}
             <li>
-              <a
-                href="#"
-                className="flex items-center justify-center text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading font-medium text-sm w-10 h-10 focus:outline-none"
-              >
-                1
-              </a>
-            </li>
-            <li>
-              <a
-                href="#"
-                className="flex items-center justify-center text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading font-medium text-sm w-10 h-10 focus:outline-none"
-              >
-                2
-              </a>
-            </li>
-            <li>
-              <a
-                href="#"
-                aria-current="page"
-                className="flex items-center justify-center text-purple bg-neutral-tertiary-medium box-border border border-default-medium hover:text-purple font-medium text-sm w-10 h-10 focus:outline-none"
-              >
-                3
-              </a>
-            </li>
-            <li>
-              <a
-                href="#"
-                className="flex items-center justify-center text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading font-medium text-sm w-10 h-10 focus:outline-none"
-              >
-                4
-              </a>
-            </li>
-            <li>
-              <a
-                href="#"
-                className="flex items-center justify-center text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading font-medium text-sm w-10 h-10 focus:outline-none"
-              >
-                5
-              </a>
-            </li>
-            <li>
-              <a
-                href="#"
+              <button
+                type="button"
+                onClick={handleNextPage}
+                disabled={currentPage === totalPages || isLoading}
                 className="flex items-center justify-center text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading font-medium text-sm px-3 h-10 focus:outline-none tracking-wider"
               >
                 Next
-              </a>
+              </button>
             </li>
           </ul>
         </nav>
