@@ -27,6 +27,8 @@ function getStatusBadge(status: DisplayStatus) {
 type CampaignAssignmentPageProps = Readonly<{
   selectedCampaignIds: string[];
   setSelectedCampaignIds: React.Dispatch<React.SetStateAction<string[]>>;
+  selectedCampaigns: AssignableCampaignOptionDto[];
+  setSelectedCampaigns: React.Dispatch<React.SetStateAction<AssignableCampaignOptionDto[]>>;
   onBack: () => void;
   onContinue: () => void;
 }>;
@@ -34,6 +36,8 @@ type CampaignAssignmentPageProps = Readonly<{
 function CampaignSelectionPage({
   selectedCampaignIds,
   setSelectedCampaignIds,
+  selectedCampaigns,
+  setSelectedCampaigns,
   onBack,
   onContinue,
 }: CampaignAssignmentPageProps) {
@@ -110,12 +114,26 @@ function CampaignSelectionPage({
     setCurrentPage(page);
   };
 
-  const handleCampaignSelection = (campaignId: string) => {
-    setSelectedCampaignIds((current) =>
-      current.includes(campaignId)
-        ? current.filter((id) => id !== campaignId)
-        : [...current, campaignId],
+  const handleCampaignSelection = (campaign: AssignableCampaignOptionDto) => {
+    setSelectedCampaignIds((currentSelectedIds) =>
+      currentSelectedIds.includes(campaign.campaignId)
+        ? currentSelectedIds.filter((id) => id !== campaign.campaignId)
+        : [...currentSelectedIds, campaign.campaignId],
     );
+
+    setSelectedCampaigns((currentSelectedCampaigns) => {
+      const alreadySelected = currentSelectedCampaigns.some(
+        (selectedCampaign) => selectedCampaign.campaignId === campaign.campaignId,
+      );
+
+      if (alreadySelected) {
+        return currentSelectedCampaigns.filter(
+          (selectedCampaign) => selectedCampaign.campaignId !== campaign.campaignId,
+        );
+      }
+
+      return [...currentSelectedCampaigns, campaign];
+    });
   };
 
   let campaignSelectionText = 'No Training Campaigns Selected';
@@ -230,7 +248,10 @@ function CampaignSelectionPage({
               <button
                 type="button"
                 disabled={selectedCampaignIds.length === 0}
-                onClick={() => setSelectedCampaignIds([])}
+                onClick={() => {
+                  setSelectedCampaignIds([]);
+                  setSelectedCampaigns([]);
+                }}
                 className="disabled:hover:bg-gray-200 disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer w-60 font-jost tracking-wider text-xl text-body font-regular bg-gray-200 hover:bg-gray-300 leading-5 px-4 py-2.5 focus:outline-none"
               >
                 Clear Selection
@@ -344,7 +365,7 @@ function CampaignSelectionPage({
                           id={`campaign-${campaign.campaignId}`}
                           type="checkbox"
                           checked={selectedCampaignIds.includes(campaign.campaignId)}
-                          onChange={() => handleCampaignSelection(campaign.campaignId)}
+                          onChange={() => handleCampaignSelection(campaign)}
                           className="accent-[#8400ff] w-5 h-5 border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
                         />
                       </div>

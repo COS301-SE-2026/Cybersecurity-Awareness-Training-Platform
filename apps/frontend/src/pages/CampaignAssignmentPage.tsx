@@ -201,6 +201,8 @@ function CampaignAssignmentPage() {
               <CampaignSelectionPage
                 selectedCampaignIds={selectedCampaignIds}
                 setSelectedCampaignIds={handleCampaignSelectionChange}
+                selectedCampaigns={selectedCampaigns}
+                setSelectedCampaigns={setSelectedCampaigns}
                 onBack={() => setCurrentTab(1)}
                 onContinue={() => setCurrentTab(3)}
               />
