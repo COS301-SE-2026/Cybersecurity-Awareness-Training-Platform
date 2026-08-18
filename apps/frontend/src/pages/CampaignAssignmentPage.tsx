@@ -118,7 +118,7 @@ function CampaignAssignmentPage() {
             Assign Training Campaigns
           </h1>
 
-          <p className="font-regular tracking-wider text-[1.3rem] font-justify font-jost text-gray-500">
+          <p className="font-regular tracking-wider text-[1.1rem] font-justify font-jost text-gray-500 mb-2">
             Select the organisation trainees you want to assign training campaigns to, then choose
             the campaigns and review your assignments before submitting. Assigning new campaigns
             will not affect campaigns already assigned to organisation trainees or reset their

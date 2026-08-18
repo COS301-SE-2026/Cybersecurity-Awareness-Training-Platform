@@ -191,7 +191,7 @@ function OrganisationTraineeSelectionPage({
               <div className="w-full">
                 <div className="flex items-center">
                   {/* Search Input Label */}
-                  <label htmlFor="simple-search" className="sr-only">
+                  <label htmlFor="organisation-trainee-search" className="sr-only">
                     Search Organisation Trainees
                   </label>
                   <div className="relative w-full">
@@ -214,7 +214,7 @@ function OrganisationTraineeSelectionPage({
                     {/* Search Input */}
                     <input
                       type="text"
-                      id="simple-search"
+                      id="organisation-trainee-search"
                       value={searchTerm}
                       onChange={(event) => {
                         setSearchTerm(event.target.value);
@@ -343,10 +343,13 @@ function OrganisationTraineeSelectionPage({
               <button
                 type="button"
                 onClick={handlePreviousPage}
+                title="Previous"
                 disabled={currentPage === 1 || isLoading}
                 className="disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-neutral-secondary-medium disabled:hover:text-body flex items-center justify-center text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading font-medium text-sm px-3 h-10 focus:outline-none tracking-wider"
               >
-                Previous
+                <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>
+                  arrow_back_ios
+                </span>
               </button>
             </li>
             {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
@@ -370,10 +373,13 @@ function OrganisationTraineeSelectionPage({
               <button
                 type="button"
                 onClick={handleNextPage}
+                title="Next"
                 disabled={currentPage === totalPages || isLoading}
                 className="disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-neutral-secondary-medium disabled:hover:text-body flex items-center justify-center text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading font-medium text-sm px-3 h-10 focus:outline-none tracking-wider"
               >
-                Next
+                <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>
+                  arrow_forward_ios
+                </span>
               </button>
             </li>
           </ul>

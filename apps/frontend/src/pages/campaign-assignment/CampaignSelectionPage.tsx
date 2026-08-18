@@ -1,4 +1,8 @@
-import { mockAssignableCampaignsResponse } from '../../testing/fixtures/campaignAssignmentFixtures';
+import { useAuth } from '../../context/useAuth';
+import type { AssignableCampaignOptionDto } from '@insightful-phish/shared';
+import { useEffect, useState } from 'react';
+import { getAssignableCampaigns } from '../../services/campaign-assignment.service';
+import LoadingSpinnerSVG from '../../components/LoadingSpinnerSVG';
 
 type DisplayStatus = 'ACTIVE' | 'DRAFT' | 'PAUSED' | 'COMPLETED' | 'ARCHIVED';
 
@@ -33,7 +37,78 @@ function CampaignSelectionPage({
   onBack,
   onContinue,
 }: CampaignAssignmentPageProps) {
-  const campaigns = mockAssignableCampaignsResponse.items;
+  const { authContext } = useAuth();
+  const organisationId = authContext?.organisation?.id ?? null;
+
+  const [campaigns, setCampaigns] = useState<AssignableCampaignOptionDto[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  useEffect(() => {
+    if (!organisationId) {
+      setCampaigns([]);
+      setIsLoading(false);
+      setError('Unable To Determine The Current Organisation');
+      return;
+    }
+
+    const currentOrganisationId = organisationId;
+
+    let isCurrent = true;
+
+    async function loadCampaigns() {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const response = await getAssignableCampaigns(currentOrganisationId, {
+          page: currentPage,
+          limit: 3,
+          ...(searchTerm.trim() ? { search: searchTerm.trim() } : {}),
+        });
+
+        if (!isCurrent) {
+          return;
+        }
+
+        setCampaigns(response.items);
+        setTotalPages(response.pagination.totalPages);
+      } catch {
+        if (!isCurrent) {
+          return;
+        }
+
+        setCampaigns([]);
+        setError('Unable To Load Training Campaigns. Please Try Again.');
+      } finally {
+        if (isCurrent) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void loadCampaigns();
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [organisationId, searchTerm, currentPage]);
+
+  const handlePreviousPage = () => {
+    setCurrentPage((page) => Math.max(page - 1, 1));
+  };
+
+  const handleNextPage = () => {
+    setCurrentPage((page) => Math.min(page + 1, totalPages));
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
 
   const handleCampaignSelection = (campaignId: string) => {
     setSelectedCampaignIds((current) =>
@@ -115,7 +190,7 @@ function CampaignSelectionPage({
               <div className="w-full">
                 <div className="flex items-center">
                   {/* Search Input Label */}
-                  <label htmlFor="simple-search" className="sr-only">
+                  <label htmlFor="campaign-search" className="sr-only">
                     Search Training Campaigns
                   </label>
                   <div className="relative w-full">
@@ -138,7 +213,12 @@ function CampaignSelectionPage({
                     {/* Search Input */}
                     <input
                       type="text"
-                      id="simple-search"
+                      value={searchTerm}
+                      onChange={(event) => {
+                        setSearchTerm(event.target.value);
+                        setCurrentPage(1);
+                      }}
+                      id="campaign-search"
                       className="font-jost tracking-wide block w-full p-2 pl-10 text-[1.1rem] h-[2.55rem] text-black border border-gray-300 bg-white focus:ring-primary-500 focus:border-primary-500"
                       placeholder="Search Training Campaigns"
                     />
@@ -213,84 +293,116 @@ function CampaignSelectionPage({
               </tr>
             </thead>
             <tbody className="font-overpass font-regular text-[1rem] tracking-wider">
-              {campaigns.map((campaign) => (
-                <tr
-                  key={campaign.campaignId}
-                  className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default"
-                >
-                  <td className="px-3 py-3">
-                    <div className="flex items-center">
-                      <label htmlFor={`trainee-${campaign.campaignId}`} className="sr-only">
-                        Select {campaign.name}
-                      </label>
-
-                      <input
-                        id={`campaign-${campaign.campaignId}`}
-                        type="checkbox"
-                        checked={selectedCampaignIds.includes(campaign.campaignId)}
-                        onChange={() => handleCampaignSelection(campaign.campaignId)}
-                        className="accent-[#8400ff] w-5 h-5 border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
-                      />
-                    </div>
-                  </td>
-
-                  <td className="truncate max-w-[12rem] px-3 py-3" title={campaign.name}>
-                    {campaign.name}
-                  </td>
-
+              {isLoading && (
+                <tr>
                   <td
-                    className="truncate max-w-[12rem] px-3 py-3"
-                    title={campaign.description ?? 'No Description'}
+                    colSpan={8}
+                    className="py-8 text-center text-[1.2rem] tracking-wider text-gray-600 font-jost"
                   >
-                    {campaign.description ?? '—'}
-                  </td>
-
-                  {/* STATUS */}
-                  <td className="px-3 py-2">{getStatusBadge(campaign.status)}</td>
-
-                  {/* TYPE */}
-                  <td
-                    className="truncate max-w-[12rem] px-3 py-3"
-                    title={
-                      campaign.type === 'PREMADE_GENERAL'
-                        ? 'Premade General'
-                        : 'Organisation Custom'
-                    }
-                  >
-                    {campaign.type === 'PREMADE_GENERAL'
-                      ? 'Premade General'
-                      : 'Organisation Custom'}
-                  </td>
-
-                  <td className="px-3 py-3">{campaign.itemCount}</td>
-
-                  <td className="px-3 py-3">{campaign.assignmentCount}</td>
-
-                  <td className="px-3 py-3">
-                    {campaign.startDate && campaign.endDate ? (
-                      <>
-                        <span className="font-google_sans_code">
-                          {new Date(campaign.startDate).toLocaleDateString('en-GB', {
-                            day: '2-digit',
-                            month: 'short',
-                            year: 'numeric',
-                          })}
-                        </span>{' '}
-                        to{' '}
-                        <span className="font-google_sans_code">
-                          {new Date(campaign.endDate).toLocaleDateString('en-GB', {
-                            day: '2-digit',
-                            month: 'short',
-                            year: 'numeric',
-                          })}
-                        </span>
-                      </>
-                    ) : (
-                      '—'
-                    )}
+                    <LoadingSpinnerSVG />
+                    Loading Training Campaigns...
                   </td>
                 </tr>
-              ))}
+              )}
+
+              {!isLoading && error && (
+                <tr>
+                  <td
+                    colSpan={4}
+                    className="py-8 text-center text-[1.2rem] tracking-wider text-red-600 font-jost"
+                  >
+                    {error}
+                  </td>
+                </tr>
+              )}
+
+              {!isLoading && !error && campaigns.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={8}
+                    className="py-8 text-center text-[1.2rem] tracking-wider text-red-600 font-jost"
+                  >
+                    No Training Campaigns Found
+                  </td>
+                </tr>
+              )}
+
+              {!isLoading &&
+                !error &&
+                campaigns.map((campaign) => (
+                  <tr
+                    key={campaign.campaignId}
+                    className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default"
+                  >
+                    <td className="px-3 py-3">
+                      <div className="flex items-center">
+                        <label htmlFor={`campaign-${campaign.campaignId}`} className="sr-only">
+                          Select {campaign.name}
+                        </label>
+
+                        <input
+                          id={`campaign-${campaign.campaignId}`}
+                          type="checkbox"
+                          checked={selectedCampaignIds.includes(campaign.campaignId)}
+                          onChange={() => handleCampaignSelection(campaign.campaignId)}
+                          className="accent-[#8400ff] w-5 h-5 border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
+                        />
+                      </div>
+                    </td>
+
+                    <td className="truncate max-w-[12rem] px-3 py-3" title={campaign.name}>
+                      {campaign.name}
+                    </td>
+
+                    <td
+                      className="truncate max-w-[12rem] px-3 py-3"
+                      title={campaign.description ?? 'No Description'}
+                    >
+                      {campaign.description ?? '—'}
+                    </td>
+
+                    {/* STATUS */}
+                    <td className="px-3 py-2">{getStatusBadge(campaign.status)}</td>
+
+                    {/* TYPE */}
+                    <td
+                      className="truncate max-w-[12rem] px-3 py-3"
+                      title={
+                        campaign.type === 'PREMADE_GENERAL' ? 'Insightful Phish' : 'Organisation'
+                      }
+                    >
+                      {campaign.type === 'PREMADE_GENERAL' ? 'Insightful Phish' : 'Organisation'}
+                    </td>
+
+                    <td className="px-3 py-3">{campaign.itemCount}</td>
+
+                    <td className="px-3 py-3">{campaign.assignmentCount}</td>
+
+                    <td className="px-3 py-3">
+                      {campaign.startDate && campaign.endDate ? (
+                        <>
+                          <span className="font-google_sans_code">
+                            {new Date(campaign.startDate).toLocaleDateString('en-GB', {
+                              day: '2-digit',
+                              month: 'short',
+                              year: 'numeric',
+                            })}
+                          </span>{' '}
+                          to{' '}
+                          <span className="font-google_sans_code">
+                            {new Date(campaign.endDate).toLocaleDateString('en-GB', {
+                              day: '2-digit',
+                              month: 'short',
+                              year: 'numeric',
+                            })}
+                          </span>
+                        </>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
+                  </tr>
+                ))}
             </tbody>
           </table>
         </div>
@@ -298,61 +410,47 @@ function CampaignSelectionPage({
         <nav className="mt-2 -mb-5" aria-label="Organisation Trainee Selection Table Pagination">
           <ul className="flex -space-x-px text-sm">
             <li>
-              <a
-                href="#"
-                className="flex items-center justify-center text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading font-medium text-sm px-3 h-10 focus:outline-none tracking-wider"
+              <button
+                type="button"
+                onClick={handlePreviousPage}
+                title="Previous"
+                disabled={currentPage === 1 || isLoading}
+                className="disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-neutral-secondary-medium disabled:hover:text-body flex items-center justify-center text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading font-medium text-sm px-3 h-10 focus:outline-none tracking-wider"
               >
-                Previous
-              </a>
+                <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>
+                  arrow_back_ios
+                </span>
+              </button>
             </li>
+            {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+              <li key={page}>
+                <button
+                  type="button"
+                  onClick={() => handlePageChange(page)}
+                  disabled={currentPage === page || isLoading}
+                  aria-current={currentPage === page ? 'page' : undefined}
+                  className={`flex items-center justify-center box-border border border-default-medium font-medium text-sm w-10 h-10 focus:outline-none ${
+                    currentPage === page
+                      ? 'text-purple bg-neutral-tertiary-medium'
+                      : 'text-body bg-neutral-secondary-medium hover:bg-neutral-tertiary-medium hover:text-heading'
+                  }`}
+                >
+                  {page}
+                </button>
+              </li>
+            ))}
             <li>
-              <a
-                href="#"
-                className="flex items-center justify-center text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading font-medium text-sm w-10 h-10 focus:outline-none"
+              <button
+                type="button"
+                title="Next"
+                onClick={handleNextPage}
+                disabled={currentPage === totalPages || isLoading}
+                className="disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-neutral-secondary-medium disabled:hover:text-body flex items-center justify-center text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading font-medium text-sm px-3 h-10 focus:outline-none tracking-wider"
               >
-                1
-              </a>
-            </li>
-            <li>
-              <a
-                href="#"
-                className="flex items-center justify-center text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading font-medium text-sm w-10 h-10 focus:outline-none"
-              >
-                2
-              </a>
-            </li>
-            <li>
-              <a
-                href="#"
-                aria-current="page"
-                className="flex items-center justify-center text-purple bg-neutral-tertiary-medium box-border border border-default-medium hover:text-purple font-medium text-sm w-10 h-10 focus:outline-none"
-              >
-                3
-              </a>
-            </li>
-            <li>
-              <a
-                href="#"
-                className="flex items-center justify-center text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading font-medium text-sm w-10 h-10 focus:outline-none"
-              >
-                4
-              </a>
-            </li>
-            <li>
-              <a
-                href="#"
-                className="flex items-center justify-center text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading font-medium text-sm w-10 h-10 focus:outline-none"
-              >
-                5
-              </a>
-            </li>
-            <li>
-              <a
-                href="#"
-                className="flex items-center justify-center text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading font-medium text-sm px-3 h-10 focus:outline-none tracking-wider"
-              >
-                Next
-              </a>
+                <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>
+                  arrow_forward_ios
+                </span>
+              </button>
             </li>
           </ul>
         </nav>
