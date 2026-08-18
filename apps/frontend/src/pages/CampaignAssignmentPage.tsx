@@ -6,6 +6,11 @@ import ReviewCampaignAssignmentPage from './campaign-assignment/ReviewCampaignAs
 import { useNavigate } from 'react-router-dom';
 import BasicConfirmationModal from '../components/layout/modals/BasicConfirmationModal';
 
+import type {
+  CampaignAssignmentCandidateOptionDto,
+  AssignableCampaignOptionDto,
+} from '@insightful-phish/shared';
+
 function CampaignAssignmentPage() {
   const [currentTab, setCurrentTab] = useState<1 | 2 | 3>(1);
   const [selectedTraineeIds, setSelectedTraineeIds] = useState<string[]>([]);
@@ -15,6 +20,11 @@ function CampaignAssignmentPage() {
   const hasSelectedTrainees = selectedTraineeIds.length > 0;
   const hasSelectedCampaigns = selectedCampaignIds.length > 0;
   const hasUnsubmittedSelection = hasSelectedTrainees || hasSelectedCampaigns;
+
+  const [selectedTrainees, setSelectedTrainees] = useState<CampaignAssignmentCandidateOptionDto[]>(
+    [],
+  );
+  const [selectedCampaigns, setSelectedCampaigns] = useState<AssignableCampaignOptionDto[]>([]);
 
   const navigate = useNavigate();
 
@@ -181,6 +191,8 @@ function CampaignAssignmentPage() {
               <OrganisationTraineeSelectionPage
                 selectedTraineeIds={selectedTraineeIds}
                 setSelectedTraineesIds={handleTraineeSelectionChange}
+                selectedTrainees={selectedTrainees}
+                setSelectedTrainees={setSelectedTrainees}
                 onContinue={() => setCurrentTab(2)}
               />
             )}

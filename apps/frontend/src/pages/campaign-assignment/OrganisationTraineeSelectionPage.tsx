@@ -42,12 +42,16 @@ function getStatusBadge(status: DisplayStatus) {
 type OrganisationTraineeSelectionPageProps = Readonly<{
   selectedTraineeIds: string[];
   setSelectedTraineesIds: React.Dispatch<React.SetStateAction<string[]>>;
+  selectedTrainees: CampaignAssignmentCandidateOptionDto[];
+  setSelectedTrainees: React.Dispatch<React.SetStateAction<CampaignAssignmentCandidateOptionDto[]>>;
   onContinue: () => void;
 }>;
 
 function OrganisationTraineeSelectionPage({
   selectedTraineeIds,
   setSelectedTraineesIds,
+  selectedTrainees,
+  setSelectedTrainees,
   onContinue,
 }: OrganisationTraineeSelectionPageProps) {
   const { authContext } = useAuth();
@@ -109,13 +113,27 @@ function OrganisationTraineeSelectionPage({
     };
   }, [organisationId, searchTerm, currentPage]);
 
-  const handleTraineeSelection = (traineeProfileId: string) => {
+  const handleTraineeSelection = (trainee: CampaignAssignmentCandidateOptionDto) => {
     setSelectedTraineesIds((currentSelectedIds) => {
-      if (currentSelectedIds.includes(traineeProfileId)) {
-        return currentSelectedIds.filter((id) => id !== traineeProfileId);
+      if (currentSelectedIds.includes(trainee.traineeProfileId)) {
+        return currentSelectedIds.filter((id) => id !== trainee.traineeProfileId);
       }
 
-      return [...currentSelectedIds, traineeProfileId];
+      return [...currentSelectedIds, trainee.traineeProfileId];
+    });
+
+    setSelectedTrainees((currentSelectedTrainees) => {
+      const alreadySelected = currentSelectedTrainees.some(
+        (selectedTrainee) => selectedTrainee.traineeProfileId === trainee.traineeProfileId,
+      );
+
+      if (alreadySelected) {
+        return currentSelectedTrainees.filter(
+          (selectedTrainee) => selectedTrainee.traineeProfileId !== trainee.traineeProfileId,
+        );
+      }
+
+      return [...currentSelectedTrainees, trainee];
     });
   };
 
@@ -231,7 +249,10 @@ function OrganisationTraineeSelectionPage({
               <button
                 type="button"
                 disabled={selectedTraineeIds.length === 0}
-                onClick={() => setSelectedTraineesIds([])}
+                onClick={() => {
+                  setSelectedTraineesIds([]);
+                  setSelectedTrainees([]);
+                }}
                 className="disabled:hover:bg-gray-200 disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer w-60 font-jost tracking-wider text-xl text-body font-regular bg-gray-200 hover:bg-gray-300 leading-5 px-4 py-2.5 focus:outline-none"
               >
                 Clear Selection
@@ -320,7 +341,7 @@ function OrganisationTraineeSelectionPage({
                           id={`trainee-${trainee.traineeProfileId}`}
                           type="checkbox"
                           checked={selectedTraineeIds.includes(trainee.traineeProfileId)}
-                          onChange={() => handleTraineeSelection(trainee.traineeProfileId)}
+                          onChange={() => handleTraineeSelection(trainee)}
                           className="accent-[#8400ff] w-5 h-5 border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
                         />
                       </div>
