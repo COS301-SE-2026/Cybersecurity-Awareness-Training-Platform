@@ -18,6 +18,8 @@ export type CampaignCatalogueState =
 type CampaignCatalogueProps = Readonly<{
   state: CampaignCatalogueState;
   query: CampaignCatalogueQueryDto;
+  selectedItems: readonly CampaignCatalogueItemDto[];
+  onSelectItem: (item: CampaignCatalogueItemDto) => void;
   onRetry: () => void;
   onSearchChange: (search: string) => void;
   onTypeChange: (type: CampaignCatalogueQueryDto['type']) => void;
@@ -33,6 +35,8 @@ const TYPE_LABELS: Record<CampaignCatalogueItemDto['type'], string> = {
 function CampaignCatalogue({
   state,
   query,
+  selectedItems,
+  onSelectItem,
   onRetry,
   onSearchChange,
   onTypeChange,
@@ -44,6 +48,10 @@ function CampaignCatalogue({
         <h2 id="campaign-catalogue-heading">Catalogue</h2>
         <p>Browse available content to include in this Campaign.</p>
       </div>
+
+      <p className="campaign-catalogue__selection-status" aria-live="polite">
+        {selectedItems.length} {selectedItems.length === 1 ? 'item' : 'items'} selected
+      </p>
 
       <div className="campaign-catalogue__controls">
         <label className="campaign-catalogue__search">
@@ -103,18 +111,35 @@ function CampaignCatalogue({
 
       {state.status === 'loaded' && state.items.length > 0 && (
         <ul className="campaign-catalogue__items">
-          {state.items.map((item) => (
-            <li key={`${item.type}:${item.id}`}>
-              <article className="campaign-catalogue-item">
-                <span className="campaign-catalogue-item__type">{TYPE_LABELS[item.type]}</span>
-                <h3>{item.title}</h3>
-                {item.description && <p>{item.description}</p>}
-                <span className="campaign-catalogue-item__difficulty">
-                  Difficulty: {item.difficultyLevel}
-                </span>
-              </article>
-            </li>
-          ))}
+          {state.items.map((item) => {
+            const isSelected = selectedItems.some(
+              (selectedItem) => selectedItem.type === item.type && selectedItem.id === item.id,
+            );
+
+            return (
+              <li key={`${item.type}:${item.id}`}>
+                <article className="campaign-catalogue-item">
+                  <span className="campaign-catalogue-item__type">{TYPE_LABELS[item.type]}</span>
+                  <h3>{item.title}</h3>
+                  {item.description && <p>{item.description}</p>}
+                  <span className="campaign-catalogue-item__difficulty">
+                    Difficulty: {item.difficultyLevel}
+                  </span>
+                  <button
+                    type="button"
+                    aria-pressed={isSelected}
+                    aria-label={
+                      isSelected ? `${item.title} selected` : `Add ${item.title} to Campaign`
+                    }
+                    disabled={isSelected}
+                    onClick={() => onSelectItem(item)}
+                  >
+                    {isSelected ? 'Selected' : 'Add to Campaign'}
+                  </button>
+                </article>
+              </li>
+            );
+          })}
         </ul>
       )}
 

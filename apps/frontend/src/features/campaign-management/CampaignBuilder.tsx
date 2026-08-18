@@ -3,7 +3,7 @@ import { useId, useState, type FormEvent } from 'react';
 import CampaignCatalogue, { type CampaignCatalogueState } from './CampaignCatalogue';
 import CampaignColourField from './CampaignColourField';
 import type { CampaignDraftFormState, CampaignManagementContext } from './campaignManagement.types';
-import type { CampaignCatalogueQueryDto } from '@insightful-phish/shared';
+import type { CampaignCatalogueItemDto, CampaignCatalogueQueryDto } from '@insightful-phish/shared';
 
 type CampaignBuilderProps = Readonly<{
   contextKind: CampaignManagementContext['kind'];
@@ -17,6 +17,8 @@ type CampaignBuilderProps = Readonly<{
   saveButtonText?: string;
   savingButtonText?: string;
   catalogueQuery?: CampaignCatalogueQueryDto;
+  selectedCatalogueItems?: readonly CampaignCatalogueItemDto[];
+  onSelectCatalogueItem?: (item: CampaignCatalogueItemDto) => void;
   onCatalogueSearchChange?: (search: string) => void;
   onCatalogueTypeChange?: (type: CampaignCatalogueQueryDto['type']) => void;
   onCataloguePageChange?: (page: number) => void;
@@ -40,6 +42,8 @@ function CampaignBuilder({
   onSave,
   catalogueState,
   catalogueQuery,
+  selectedCatalogueItems,
+  onSelectCatalogueItem,
   onRetryCatalogue,
   onCatalogueSearchChange,
   onCatalogueTypeChange,
@@ -188,6 +192,8 @@ function CampaignBuilder({
 
       {catalogueState &&
         catalogueQuery &&
+        selectedCatalogueItems &&
+        onSelectCatalogueItem &&
         onRetryCatalogue &&
         onCatalogueSearchChange &&
         onCatalogueTypeChange &&
@@ -195,6 +201,8 @@ function CampaignBuilder({
           <CampaignCatalogue
             state={catalogueState}
             query={catalogueQuery}
+            selectedItems={selectedCatalogueItems}
+            onSelectItem={onSelectCatalogueItem}
             onRetry={onRetryCatalogue}
             onSearchChange={onCatalogueSearchChange}
             onTypeChange={onCatalogueTypeChange}

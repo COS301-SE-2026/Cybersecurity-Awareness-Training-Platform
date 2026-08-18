@@ -511,6 +511,22 @@
   font-size: 0.875rem;
 }
 
+.campaign-catalogue__selection-status {
+  margin: 0;
+  font-weight: 500;
+}
+
+.campaign-catalogue-item button {
+  justify-self: start;
+  margin-top: auto;
+  padding: 0.5rem 0.75rem;
+}
+
+.campaign-catalogue-item button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
 .campaign-catalogue__pagination {
   display: flex;
   align-items: center;

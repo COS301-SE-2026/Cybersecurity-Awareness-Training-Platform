@@ -18,6 +18,8 @@ vi.mock('../../components/layout/AppLayout', () => ({
 
 const ORGANISATION_ID = '11111111-1111-4111-8111-111111111111';
 const CAMPAIGN_ID = '10000000-0000-4000-8000-000000000001';
+const NEW_PATH = `/organisations/${ORGANISATION_ID}/campaigns/new`;
+const NEW_ROUTE = '/organisations/:organisationId/campaigns/new';
 const DETAIL_PATH = `/organisations/${ORGANISATION_ID}/campaigns/${CAMPAIGN_ID}`;
 const DETAIL_ROUTE = '/organisations/:organisationId/campaigns/:campaignId';
 
@@ -85,14 +87,14 @@ const CATALOGUE_RESPONSE: GetCampaignCatalogueResponseDto = {
   },
 };
 
-function renderPage(client: DetailClient) {
+function renderPage(client: DetailClient, initialEntry = DETAIL_PATH) {
+  const page = <CampaignManagementDetailPage contextKind="organisation" client={client} />;
+
   return render(
-    <MemoryRouter initialEntries={[DETAIL_PATH]}>
+    <MemoryRouter initialEntries={[initialEntry]}>
       <Routes>
-        <Route
-          path={DETAIL_ROUTE}
-          element={<CampaignManagementDetailPage contextKind="organisation" client={client} />}
-        />
+        <Route path={NEW_ROUTE} element={page} />
+        <Route path={DETAIL_ROUTE} element={page} />
       </Routes>
     </MemoryRouter>,
   );
@@ -162,6 +164,129 @@ describe('CampaignManagementDetailPage catalogue', () => {
     expect(
       screen.queryByText('Campaign catalogue could not be loaded. Try again.'),
     ).not.toBeInTheDocument();
+  });
+
+  it('marks a selected catalogue item and prevents reselection', async () => {
+    const user = userEvent.setup();
+
+    renderPage({
+      getCampaignCatalogue: vi.fn().mockResolvedValue(CATALOGUE_RESPONSE),
+      getCampaignDetail: vi.fn().mockResolvedValue(DRAFT_DETAIL),
+      createCampaignDraft: vi.fn(),
+      updateCampaignDraft: vi.fn(),
+    });
+
+    await user.click(
+      await screen.findByRole('button', { name: 'Add Password security essentials to Campaign' }),
+    );
+
+    expect(screen.getByText('1 item selected')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Password security essentials selected' }),
+    ).toBeDisabled();
+  });
+
+  it('preserves selection across catalogue queries and an authoritative Builder reset', async () => {
+    const user = userEvent.setup();
+    const getCampaignCatalogue = vi.fn().mockResolvedValue(CATALOGUE_RESPONSE);
+    const updateCampaignDraft = vi.fn().mockResolvedValue({
+      ...DRAFT_DETAIL,
+      name: 'Saved Campaign',
+      updatedAt: '2026-08-18T12:00:00.000Z',
+    });
+
+    renderPage({
+      getCampaignCatalogue,
+      getCampaignDetail: vi.fn().mockResolvedValue(DRAFT_DETAIL),
+      createCampaignDraft: vi.fn(),
+      updateCampaignDraft,
+    });
+
+    await user.click(
+      await screen.findByRole('button', { name: 'Add Password security essentials to Campaign' }),
+    );
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'Content type' }),
+      'TRAINING_DOCUMENT',
+    );
+
+    await waitFor(() => {
+      expect(getCampaignCatalogue).toHaveBeenLastCalledWith(expect.anything(), {
+        page: 1,
+        limit: 10,
+        search: undefined,
+        type: 'TRAINING_DOCUMENT',
+      });
+    });
+
+    expect(
+      await screen.findByRole('button', { name: 'Password security essentials selected' }),
+    ).toBeDisabled();
+    expect(screen.getByText('1 item selected')).toBeInTheDocument();
+
+    const name = screen.getByRole('textbox', { name: 'Campaign name' });
+    await user.clear(name);
+    await user.type(name, 'Saved Campaign');
+    await user.click(screen.getByRole('button', { name: 'Save Changes' }));
+
+    await waitFor(() => {
+      expect(updateCampaignDraft).toHaveBeenCalledOnce();
+    });
+
+    expect(await screen.findByRole('textbox', { name: 'Campaign name' })).toHaveValue(
+      'Saved Campaign',
+    );
+    expect(screen.getByText('1 item selected')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Password security essentials selected' }),
+    ).toBeDisabled();
+  });
+
+  it('preserves selection when a new Draft receives its authoritative Campaign ID', async () => {
+    const user = userEvent.setup();
+    const createCampaignDraft = vi.fn().mockResolvedValue(DRAFT_DETAIL);
+    const getCampaignDetail = vi.fn().mockResolvedValue(DRAFT_DETAIL);
+
+    renderPage(
+      {
+        getCampaignCatalogue: vi.fn().mockResolvedValue(CATALOGUE_RESPONSE),
+        getCampaignDetail,
+        createCampaignDraft,
+        updateCampaignDraft: vi.fn(),
+      },
+      NEW_PATH,
+    );
+
+    await user.click(
+      await screen.findByRole('button', { name: 'Add Password security essentials to Campaign' }),
+    );
+    expect(screen.getByText('1 item selected')).toBeInTheDocument();
+
+    await user.type(screen.getByRole('textbox', { name: 'Campaign name' }), 'Created Campaign');
+    await user.click(screen.getByRole('button', { name: 'Save Draft' }));
+
+    await waitFor(() => {
+      expect(createCampaignDraft).toHaveBeenCalledOnce();
+    });
+
+    expect(
+      await screen.findByRole('heading', {
+        level: 1,
+        name: 'Edit Draft Campaign',
+      }),
+    ).toBeInTheDocument();
+
+    expect(getCampaignDetail).toHaveBeenCalledWith(
+      {
+        kind: 'organisation',
+        organisationId: ORGANISATION_ID,
+      },
+      CAMPAIGN_ID,
+    );
+    expect(screen.getByText('1 item selected')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Password security essentials selected' }),
+    ).toBeDisabled();
   });
 
   it('resets pagination for search and type changes without submitting the Campaign', async () => {
