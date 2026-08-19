@@ -10,6 +10,7 @@ const INITIAL_DRAFT = {
   accentColor: '#8400FF',
   startDate: '',
   endDate: '',
+  items: [],
 };
 
 describe('CampaignBuilder', () => {
@@ -25,6 +26,7 @@ describe('CampaignBuilder', () => {
           accentColor: '#8400FF',
           startDate: '',
           endDate: '',
+          items: [],
         }}
       />,
     );

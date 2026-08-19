@@ -24,13 +24,21 @@ type CampaignBuilderProps = Readonly<{
   onCataloguePageChange?: (page: number) => void;
 }>;
 
+function areDraftItemsEqual(
+  left: CampaignDraftFormState['items'],
+  right: CampaignDraftFormState['items'],
+): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
 function areDraftsEqual(left: CampaignDraftFormState, right: CampaignDraftFormState): boolean {
   return (
     left.name === right.name &&
     left.description === right.description &&
     left.accentColor === right.accentColor &&
     left.startDate === right.startDate &&
-    left.endDate === right.endDate
+    left.endDate === right.endDate &&
+    areDraftItemsEqual(left.items, right.items)
   );
 }
 

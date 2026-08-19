@@ -15,6 +15,7 @@ import {
   type CampaignManagementClient,
 } from './campaignManagementClient';
 import type { CampaignDraftFormState, CampaignManagementContext } from './campaignManagement.types';
+import { toCampaignDraftItems } from './campaignDraftItems';
 import { developmentCampaignManagementClient } from './developmentCampaignManagementClient';
 import { toDateTimeLocal } from './campaignDraftDate';
 import { toCreateCampaignDraftRequest, toUpdateCampaignDraftRequest } from './campaignDraftRequest';
@@ -511,6 +512,7 @@ function CampaignManagementDetailPage({
               accentColor: '#8400FF',
               startDate: '',
               endDate: '',
+              items: [],
             }}
             onDirtyChange={(isDirty) => {
               setEditorDirtyState({
@@ -589,6 +591,7 @@ function CampaignManagementDetailPage({
               accentColor: detail.accentColor ?? '#8400FF',
               startDate: toDateTimeLocal(detail.startDate),
               endDate: toDateTimeLocal(detail.endDate),
+              items: toCampaignDraftItems(detail.items),
             }}
             onDirtyChange={(isDirty) => {
               setEditorDirtyState({

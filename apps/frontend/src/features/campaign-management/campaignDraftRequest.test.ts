@@ -9,6 +9,7 @@ const DRAFT: CampaignDraftFormState = {
   accentColor: '#8400FF',
   startDate: '2026-09-01T10:00',
   endDate: '2026-10-01T19:00',
+  items: [],
 };
 
 describe('Campaign Draft request mapping', () => {
@@ -97,5 +98,91 @@ describe('Campaign Draft request mapping', () => {
       items: [],
       expectedUpdatedAt,
     });
+  });
+
+  it('maps ordered components and preserved groups to exact request shapes', () => {
+    const request = toCreateCampaignDraftRequest(
+      { kind: 'platform' },
+      {
+        ...DRAFT,
+        items: [
+          {
+            itemType: 'COMPONENT',
+            componentType: 'QUIZ',
+            contentId: 'quiz-new',
+            title: 'New quiz',
+            description: 'Display-only description',
+            isRequired: true,
+            sourceAvailable: true,
+          },
+          {
+            itemType: 'GROUP',
+            campaignItemId: 'group-existing',
+            title: 'Existing module',
+            description: 'Preserved group',
+            groupType: 'MODULE',
+            completionRule: 'COMPLETE_REQUIRED_ONLY',
+            isRequired: false,
+            children: [
+              {
+                itemType: 'COMPONENT',
+                campaignItemId: 'child-one',
+                componentType: 'TRAINING_DOCUMENT',
+                contentId: 'document-one',
+                title: 'Document one',
+                description: null,
+                isRequired: true,
+                sourceAvailable: false,
+              },
+              {
+                itemType: 'COMPONENT',
+                campaignItemId: 'child-two',
+                componentType: 'QUIZ',
+                contentId: 'quiz-two',
+                title: 'Quiz two',
+                description: null,
+                isRequired: false,
+                sourceAvailable: true,
+              },
+            ],
+          },
+        ],
+      },
+    );
+
+    expect(request.items).toEqual([
+      {
+        itemType: 'COMPONENT',
+        campaignItemId: undefined,
+        componentType: 'QUIZ',
+        contentId: 'quiz-new',
+        isRequired: true,
+      },
+      {
+        itemType: 'GROUP',
+        campaignItemId: 'group-existing',
+        title: 'Existing module',
+        description: 'Preserved group',
+        groupType: 'MODULE',
+        completionRule: 'COMPLETE_REQUIRED_ONLY',
+        isRequired: false,
+        children: [
+          {
+            itemType: 'COMPONENT',
+            campaignItemId: 'child-one',
+            componentType: 'TRAINING_DOCUMENT',
+            contentId: 'document-one',
+            isRequired: true,
+          },
+          {
+            itemType: 'COMPONENT',
+            campaignItemId: 'child-two',
+            componentType: 'QUIZ',
+            contentId: 'quiz-two',
+            isRequired: false,
+          },
+        ],
+      },
+    ]);
   });
 });

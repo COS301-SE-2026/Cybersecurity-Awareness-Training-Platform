@@ -42,4 +42,5 @@ export type CampaignDraftFormState = {
   accentColor: string;
   startDate: string;
   endDate: string;
+  items: readonly CampaignDraftItemState[];
 };

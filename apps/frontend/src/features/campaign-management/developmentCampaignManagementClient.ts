@@ -8,6 +8,10 @@ import type {
   GetCampaignCatalogueResponseDto,
   GetCampaignsResponseDto,
   UpdateCampaignDraftRequestDto,
+  CampaignDetailComponentItemDto,
+  CampaignDetailItemDto,
+  CampaignDraftComponentItemInputDto,
+  CampaignDraftItemInputDto,
 } from '@insightful-phish/shared';
 import {
   CampaignManagementClientError,
@@ -19,6 +23,7 @@ import { DEVELOPMENT_CAMPAIGN_CATALOGUE } from './developmentCampaignCatalogue';
 type DevelopmentCampaignFixture = {
   scope: CampaignManagementContext;
   campaign: CampaignListRowDto;
+  items?: CampaignDetailItemDto[];
 };
 
 const PRIMARY_ORGANISATION_ID = '11111111-1111-4111-8111-111111111111';
@@ -236,7 +241,12 @@ function toCampaignDetail(fixture: DevelopmentCampaignFixture): CampaignDetailRe
     createdAt: campaign.createdAt,
     updatedAt: campaign.updatedAt,
     allowedActions: campaign.allowedActions,
-    items: [],
+    items:
+      fixture.items?.map((item) =>
+        item.itemType === 'GROUP'
+          ? { ...item, children: item.children.map((child) => ({ ...child })) }
+          : { ...item },
+      ) ?? [],
   };
 }
 
@@ -269,13 +279,188 @@ function matchesCatalogueQuery(
 
 type DevelopmentCampaignManagementClientOptions = Readonly<{
   generateCampaignId?: () => string;
+  generateCampaignItemId?: () => string;
   now?: () => Date;
 }>;
+
+function getComponentSourceKey(
+  componentType: CampaignDraftComponentItemInputDto['componentType'],
+  contentId: string,
+): string {
+  return `${componentType}:${contentId}`;
+}
+
+function getExistingItemsById(
+  items: readonly CampaignDetailItemDto[],
+): ReadonlyMap<string, CampaignDetailItemDto | CampaignDetailComponentItemDto> {
+  const itemsById = new Map<string, CampaignDetailItemDto | CampaignDetailComponentItemDto>();
+
+  for (const item of items) {
+    itemsById.set(item.campaignItemId, item);
+
+    if (item.itemType === 'GROUP') {
+      for (const child of item.children) {
+        itemsById.set(child.campaignItemId, child);
+      }
+    }
+  }
+
+  return itemsById;
+}
+
+function validateDevelopmentCampaignItems(
+  items: readonly CampaignDraftItemInputDto[],
+  existingItems: readonly CampaignDetailItemDto[],
+): void {
+  const existingById = getExistingItemsById(existingItems);
+  const seenIds = new Set<string>();
+  const seenSources = new Set<string>();
+
+  const validateId = (campaignItemId: string | undefined) => {
+    if (!campaignItemId) {
+      return;
+    }
+    if (seenIds.has(campaignItemId)) {
+      throw new Error('The same Campaign Item ID cannot appear more than once.');
+    }
+    seenIds.add(campaignItemId);
+  };
+
+  const validateComponent = (item: CampaignDraftComponentItemInputDto) => {
+    validateId(item.campaignItemId);
+
+    const sourceKey = getComponentSourceKey(item.componentType, item.contentId);
+    if (seenSources.has(sourceKey)) {
+      throw new Error('The same reusable content cannot appear more than once in a Campaign.');
+    }
+    seenSources.add(sourceKey);
+
+    if (!item.campaignItemId || existingItems.length === 0) {
+      return;
+    }
+
+    const existing = existingById.get(item.campaignItemId);
+    if (!existing) {
+      throw new Error('One or more Campaign Item IDs do not belong to this Campaign.');
+    }
+    if (
+      existing.itemType !== 'COMPONENT' ||
+      existing.componentType !== item.componentType ||
+      existing.contentId !== item.contentId
+    ) {
+      throw new Error(
+        'An existing Campaign Item cannot be reassigned to different reusable content.',
+      );
+    }
+  };
+
+  for (const item of items) {
+    if (item.itemType !== 'GROUP') {
+      validateComponent(item);
+      continue;
+    }
+
+    validateId(item.campaignItemId);
+
+    if (item.campaignItemId && existingItems.length > 0) {
+      const existing = existingById.get(item.campaignItemId);
+
+      if (!existing) {
+        throw new Error('One or more Campaign Item IDs do not belong to this Campaign.');
+      }
+
+      if (existing.itemType !== 'GROUP') {
+        throw new Error('An existing Campaign Item cannot change its item type.');
+      }
+    }
+
+    for (const child of item.children) {
+      validateComponent(child);
+    }
+  }
+}
+
+function toDevelopmentComponentItem(
+  item: CampaignDraftComponentItemInputDto,
+  position: number,
+  existingItemsById: ReadonlyMap<string, CampaignDetailItemDto | CampaignDetailComponentItemDto>,
+  generateCampaignItemId: () => string,
+): CampaignDetailComponentItemDto {
+  const source = DEVELOPMENT_CAMPAIGN_CATALOGUE.find(
+    (candidate) => candidate.type === item.componentType && candidate.id === item.contentId,
+  );
+
+  if (!source) {
+    throw new Error('Campaign catalogue item not found.');
+  }
+
+  const existing = item.campaignItemId ? existingItemsById.get(item.campaignItemId) : undefined;
+
+  return {
+    itemType: 'COMPONENT',
+    campaignItemId:
+      existing?.itemType === 'COMPONENT' ? existing.campaignItemId : generateCampaignItemId(),
+    componentType: item.componentType,
+    contentId: item.contentId,
+    title: source.title,
+    description: source.description ?? null,
+    position,
+    isRequired: item.isRequired,
+    sourceAvailable: true,
+  };
+}
+
+function countDevelopmentCampaignItems(items: readonly CampaignDetailItemDto[]): number {
+  return items.reduce(
+    (count, item) => count + 1 + (item.itemType === 'GROUP' ? item.children.length : 0),
+    0,
+  );
+}
+
+function toDevelopmentCampaignItems(
+  items: readonly CampaignDraftItemInputDto[],
+  existingItems: readonly CampaignDetailItemDto[],
+  generateCampaignItemId: () => string,
+): CampaignDetailItemDto[] {
+  validateDevelopmentCampaignItems(items, existingItems);
+  const existingById = getExistingItemsById(existingItems);
+
+  return items.map((item, index) => {
+    const position = (index + 1) * 10;
+
+    if (item.itemType !== 'GROUP') {
+      return toDevelopmentComponentItem(item, position, existingById, generateCampaignItemId);
+    }
+
+    const existing = item.campaignItemId ? existingById.get(item.campaignItemId) : undefined;
+
+    return {
+      itemType: 'GROUP',
+      campaignItemId:
+        existing?.itemType === 'GROUP' ? existing.campaignItemId : generateCampaignItemId(),
+      title: item.title,
+      description: item.description ?? null,
+      groupType: item.groupType,
+      completionRule: item.completionRule,
+      position,
+      isRequired: item.isRequired,
+      children: item.children.map((child, childIndex) =>
+        toDevelopmentComponentItem(
+          child,
+          (childIndex + 1) * 10,
+          existingById,
+          generateCampaignItemId,
+        ),
+      ),
+    };
+  });
+}
 
 export function createDevelopmentCampaignManagementClient(
   options: DevelopmentCampaignManagementClientOptions = {},
 ): CampaignManagementClient {
   const generateCampaignId = options.generateCampaignId ?? (() => crypto.randomUUID());
+  const generatedCampaignItemId = options.generateCampaignItemId ?? (() => crypto.randomUUID());
   const now = options.now ?? (() => new Date());
   const campaigns = [...DEVELOPMENT_CAMPAIGN_FIXTURES];
 
@@ -354,9 +539,7 @@ export function createDevelopmentCampaignManagementClient(
       if (context.kind === 'platform' && (request.startDate || request.endDate)) {
         throw new Error('Platform campaigns cannot have dates.');
       }
-      if (request.items.length > 0) {
-        throw new Error('Development Campaign items are not supported yet.');
-      }
+      const items = toDevelopmentCampaignItems(request.items, [], generatedCampaignItemId);
 
       const timestamp = now().toISOString();
       const fixture: DevelopmentCampaignFixture = {
@@ -368,7 +551,7 @@ export function createDevelopmentCampaignManagementClient(
           accentColor: request.accentColor,
           campaignType: context.kind === 'organisation' ? 'ORGANISATION_CUSTOM' : 'PREMADE_GENERAL',
           status: 'DRAFT',
-          itemCount: 0,
+          itemCount: countDevelopmentCampaignItems(items),
           startDate: context.kind === 'organisation' ? (request.startDate ?? null) : null,
           endDate: context.kind === 'organisation' ? (request.endDate ?? null) : null,
           createdBy: {
@@ -380,6 +563,7 @@ export function createDevelopmentCampaignManagementClient(
           updatedAt: timestamp,
           allowedActions: ['VIEW', 'EDIT'],
         },
+        items,
       };
 
       campaigns.push(fixture);
@@ -415,9 +599,11 @@ export function createDevelopmentCampaignManagementClient(
         throw new Error('Platform campaigns cannot have dates.');
       }
 
-      if (request.items.length > 0) {
-        throw new Error('Development Campaign items are not supported yet.');
-      }
+      const items = toDevelopmentCampaignItems(
+        request.items,
+        fixture.items ?? [],
+        generatedCampaignItemId,
+      );
 
       const requestedTimestamp = now().getTime();
       const currentTimestamp = Date.parse(fixture.campaign.updatedAt);
@@ -430,10 +616,11 @@ export function createDevelopmentCampaignManagementClient(
         accentColor: request.accentColor,
         startDate: context.kind === 'organisation' ? (request.startDate ?? null) : null,
         endDate: context.kind === 'organisation' ? (request.endDate ?? null) : null,
-        itemCount: 0,
+        itemCount: countDevelopmentCampaignItems(items),
         updatedAt,
       };
 
+      fixture.items = items;
       return toCampaignDetail(fixture);
     },
   };

@@ -15,6 +15,7 @@ const CREATED_CAMPAIGN_ID = '40000000-0000-4000-8000-000000000001';
 const CREATED_AT = '2026-08-16T10:00:00.000Z';
 const VIEW_ONLY_DRAFT_ID = '10000000-0000-4000-8000-000000000005';
 const ORIGINAL_UPDATED_AT = '2026-08-14T09:30:00.000Z';
+const CREATED_ITEM_ID = '60000000-0000-4000-8000-000000000001';
 
 const ORGANISATION_CONTEXT = {
   kind: 'organisation' as const,
@@ -40,6 +41,7 @@ const UPDATE_REQUEST: UpdateCampaignDraftRequestDto = {
 function createClient() {
   return createDevelopmentCampaignManagementClient({
     generateCampaignId: () => CREATED_CAMPAIGN_ID,
+    generateCampaignItemId: () => CREATED_ITEM_ID,
     now: () => new Date(CREATED_AT),
   });
 }
@@ -253,5 +255,128 @@ describe('developmentCampaignManagementClient.getCampaignDetail', () => {
 
     expect(error).toBeInstanceOf(CampaignManagementClientError);
     expect(error).toMatchObject({ code: 'CAMPAIGN_IMMUTABLE' });
+  });
+
+  it('assigns and preserves an authoritative Campaign item ID', async () => {
+    const client = createClient();
+    const created = await client.createCampaignDraft(ORGANISATION_CONTEXT, {
+      ...ORGANISATION_REQUEST,
+      items: [
+        {
+          itemType: 'COMPONENT',
+          componentType: 'QUIZ',
+          contentId: '50000000-0000-4000-8000-000000000002',
+          isRequired: true,
+        },
+      ],
+    });
+
+    expect(created.items[0]?.campaignItemId).toBe(CREATED_ITEM_ID);
+
+    const updated = await client.updateCampaignDraft(ORGANISATION_CONTEXT, created.id, {
+      ...ORGANISATION_REQUEST,
+      expectedUpdatedAt: created.updatedAt,
+      items: [
+        {
+          itemType: 'COMPONENT',
+          campaignItemId: CREATED_ITEM_ID,
+          componentType: 'QUIZ',
+          contentId: '50000000-0000-4000-8000-000000000002',
+          isRequired: true,
+        },
+      ],
+    });
+
+    expect(updated.items[0]?.campaignItemId).toBe(CREATED_ITEM_ID);
+
+    const list = await client.listCampaigns(ORGANISATION_CONTEXT, {
+      page: 1,
+      limit: 10,
+      search: ORGANISATION_REQUEST.name,
+    });
+    expect(list.items[0]?.itemCount).toBe(1);
+  });
+
+  it('rejects persisted ID source reassignment without mutating stored items', async () => {
+    const client = createClient();
+    const created = await client.createCampaignDraft(ORGANISATION_CONTEXT, {
+      ...ORGANISATION_REQUEST,
+      items: [
+        {
+          itemType: 'COMPONENT',
+          componentType: 'QUIZ',
+          contentId: '50000000-0000-4000-8000-000000000002',
+          isRequired: true,
+        },
+      ],
+    });
+
+    await expect(
+      client.updateCampaignDraft(ORGANISATION_CONTEXT, created.id, {
+        ...ORGANISATION_REQUEST,
+        expectedUpdatedAt: created.updatedAt,
+        items: [
+          {
+            itemType: 'COMPONENT',
+            campaignItemId: CREATED_ITEM_ID,
+            componentType: 'TRAINING_DOCUMENT',
+            contentId: '50000000-0000-4000-8000-000000000001',
+            isRequired: true,
+          },
+        ],
+      }),
+    ).rejects.toThrow(
+      'An existing Campaign Item cannot be reassigned to different reusable content.',
+    );
+
+    const detail = await client.getCampaignDetail(ORGANISATION_CONTEXT, created.id);
+    expect(detail.items[0]).toMatchObject({
+      campaignItemId: CREATED_ITEM_ID,
+      componentType: 'QUIZ',
+      contentId: '50000000-0000-4000-8000-000000000002',
+    });
+  });
+
+  it('rejects duplicate Campaign content sources', async () => {
+    const client = createClient();
+    const duplicate = {
+      itemType: 'COMPONENT' as const,
+      componentType: 'QUIZ' as const,
+      contentId: '50000000-0000-4000-8000-000000000002',
+      isRequired: true,
+    };
+
+    await expect(
+      client.createCampaignDraft(ORGANISATION_CONTEXT, {
+        ...ORGANISATION_REQUEST,
+        items: [duplicate, { ...duplicate }],
+      }),
+    ).rejects.toThrow('The same reusable content cannot appear more than once in a Campaign.');
+  });
+
+  it('rejects duplicate persisted Campaign Item IDs', async () => {
+    const client = createClient();
+
+    await expect(
+      client.createCampaignDraft(ORGANISATION_CONTEXT, {
+        ...ORGANISATION_REQUEST,
+        items: [
+          {
+            itemType: 'COMPONENT',
+            campaignItemId: 'supplied-duplicate-id',
+            componentType: 'QUIZ',
+            contentId: '50000000-0000-4000-8000-000000000002',
+            isRequired: true,
+          },
+          {
+            itemType: 'COMPONENT',
+            campaignItemId: 'supplied-duplicate-id',
+            componentType: 'TRAINING_DOCUMENT',
+            contentId: '50000000-0000-4000-8000-000000000001',
+            isRequired: true,
+          },
+        ],
+      }),
+    ).rejects.toThrow('The same Campaign Item ID cannot appear more than once.');
   });
 });

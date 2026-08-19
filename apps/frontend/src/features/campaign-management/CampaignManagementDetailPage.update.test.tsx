@@ -25,6 +25,18 @@ type DetailClient = Pick<
   'getCampaignCatalogue' | 'getCampaignDetail' | 'createCampaignDraft' | 'updateCampaignDraft'
 >;
 
+const PERSISTED_ITEM = {
+  itemType: 'COMPONENT',
+  campaignItemId: '90000000-0000-4000-8000-000000000001',
+  componentType: 'QUIZ',
+  contentId: '50000000-0000-4000-8000-000000000002',
+  title: 'Password safety quiz',
+  description: 'Check understanding of password security practices.',
+  position: 10,
+  isRequired: true,
+  sourceAvailable: true,
+} as const;
+
 const INITIAL_DETAIL: CampaignDetailResponseDto = {
   id: CAMPAIGN_ID,
   organisationId: ORGANISATION_ID,
@@ -39,7 +51,7 @@ const INITIAL_DETAIL: CampaignDetailResponseDto = {
   createdAt: '2026-08-10T08:00:00.000Z',
   updatedAt: '2026-08-14T09:30:00.000Z',
   allowedActions: ['VIEW', 'EDIT'],
-  items: [],
+  items: [PERSISTED_ITEM],
 };
 
 const FIRST_UPDATE: CampaignDetailResponseDto = {
@@ -122,7 +134,15 @@ describe('CampaignManagementDetailPage Draft updates', () => {
           accentColor: '#8400FF',
           startDate: null,
           endDate: null,
-          items: [],
+          items: [
+            {
+              itemType: 'COMPONENT',
+              campaignItemId: PERSISTED_ITEM.campaignItemId,
+              componentType: PERSISTED_ITEM.componentType,
+              contentId: PERSISTED_ITEM.contentId,
+              isRequired: true,
+            },
+          ],
           expectedUpdatedAt: INITIAL_DETAIL.updatedAt,
         },
       );
