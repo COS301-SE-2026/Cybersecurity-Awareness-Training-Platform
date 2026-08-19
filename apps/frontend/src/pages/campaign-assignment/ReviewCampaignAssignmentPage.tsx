@@ -7,6 +7,7 @@ import { useAuth } from '../../context/useAuth';
 import { createCampaignAssignments } from '../../services/campaign-assignment.service';
 import LoadingSpinnerSVG from '../../components/LoadingSpinnerSVG';
 import BasicAlert from '../../components/alerts/BasicAlert';
+import BasicConfirmationModal from '../../components/layout/modals/BasicConfirmationModal';
 
 type ReviewCampaignAssignmentPageProps = Readonly<{
   selectedTraineeIds: string[];
@@ -14,6 +15,7 @@ type ReviewCampaignAssignmentPageProps = Readonly<{
   selectedTrainees: CampaignAssignmentCandidateOptionDto[];
   selectedCampaigns: AssignableCampaignOptionDto[];
   onBack: () => void;
+  onAssignmentSuccess: () => void;
 }>;
 
 function ReviewCampaignAssignmentPage({
@@ -22,6 +24,7 @@ function ReviewCampaignAssignmentPage({
   selectedTrainees,
   selectedCampaigns,
   onBack,
+  onAssignmentSuccess,
 }: ReviewCampaignAssignmentPageProps) {
   const traineeCount = selectedTraineeIds.length; // # Trainees
   const campaignCount = selectedCampaignIds.length; // # Campaigns
@@ -32,8 +35,7 @@ function ReviewCampaignAssignmentPage({
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const [success, setSuccess] = useState<string | null>(null);
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   const handleCompleteAssignment = async () => {
     if (!organisationId || traineeCount === 0 || campaignCount === 0) {
@@ -48,6 +50,8 @@ function ReviewCampaignAssignmentPage({
         campaignIds: selectedCampaignIds,
         traineeProfileIds: selectedTraineeIds,
       });
+
+      onAssignmentSuccess();
     } catch {
       setError('Unable To Complete Campaign Assignment. Please Try Again.');
     } finally {
@@ -62,10 +66,21 @@ function ReviewCampaignAssignmentPage({
         </BasicAlert>
       )}
 
-      {success && (
-        <BasicAlert variant="success" onClose={() => setSuccess(null)}>
-          {success}
-        </BasicAlert>
+      {showConfirmation && (
+        <BasicConfirmationModal
+          title="Confirm Campaign Assignment"
+          message={`You are about to assign ${campaignCount} training campaign(s) to ${traineeCount} organisation trainee(s), creating ${assignmentCount} total assignment(s). Are you sure you want to continue?`}
+          confirmButtonText="Confirm Assignment"
+          confirmButtonVariant="default"
+          onConfirm={() => {
+            setShowConfirmation(false);
+            void handleCompleteAssignment();
+          }}
+          onCancel={() => setShowConfirmation(false)}
+          isConfirming={isSubmitting}
+          isConfirmDisabled={isSubmitting}
+          isDismissDisabled={isSubmitting}
+        />
       )}
 
       <div className="-mt-5 -ml-4">
@@ -113,7 +128,7 @@ function ReviewCampaignAssignmentPage({
                 disabled={
                   traineeCount === 0 || campaignCount === 0 || isSubmitting || !organisationId
                 }
-                onClick={() => void handleCompleteAssignment()}
+                onClick={() => setShowConfirmation(true)}
                 className="disabled:opacity-20 inline-flex gap-2 items-center justify-center disabled:cursor-not-allowed cursor-pointer w-60 font-jost tracking-wider text-xl text-white font-regular bg-main-purple leading-5 px-4 py-3 focus:outline-none"
               >
                 {isSubmitting && <LoadingSpinnerSVG />}
@@ -122,8 +137,6 @@ function ReviewCampaignAssignmentPage({
             </div>
           </div>
         </div>
-        {/* // SHOW {error} USING BASIC ALERT PLEASE!!!! COME BACK  */}
-        {/* SHOW SUCCESS WITH BASIC ALERT TOO PLEASE!! AND THEN CLEAR ALLES AND GO BACK TO THE FIRST STEP...  */}
         <div>
           <div className="grid grid-cols-2 gap-6">
             <div>
