@@ -63,8 +63,8 @@
       "number": 451,
       "title": "feat: bootstrap reusable starter campaign content",
       "points": 5,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-08-19"
     },
     {
       "number": 436,
@@ -145,7 +145,7 @@
     },
     {
       "date": "2026-08-19",
-      "remaining": 20,
+      "remaining": 15,
       "ideal": 0.0
     }
   ]
