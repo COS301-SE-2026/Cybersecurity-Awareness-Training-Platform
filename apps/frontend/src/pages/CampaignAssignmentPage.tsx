@@ -191,7 +191,6 @@ function CampaignAssignmentPage() {
               <OrganisationTraineeSelectionPage
                 selectedTraineeIds={selectedTraineeIds}
                 setSelectedTraineesIds={handleTraineeSelectionChange}
-                selectedTrainees={selectedTrainees}
                 setSelectedTrainees={setSelectedTrainees}
                 onContinue={() => setCurrentTab(2)}
               />
@@ -201,7 +200,6 @@ function CampaignAssignmentPage() {
               <CampaignSelectionPage
                 selectedCampaignIds={selectedCampaignIds}
                 setSelectedCampaignIds={handleCampaignSelectionChange}
-                selectedCampaigns={selectedCampaigns}
                 setSelectedCampaigns={setSelectedCampaigns}
                 onBack={() => setCurrentTab(1)}
                 onContinue={() => setCurrentTab(3)}

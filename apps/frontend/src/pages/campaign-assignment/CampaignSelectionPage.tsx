@@ -27,7 +27,6 @@ function getStatusBadge(status: DisplayStatus) {
 type CampaignAssignmentPageProps = Readonly<{
   selectedCampaignIds: string[];
   setSelectedCampaignIds: React.Dispatch<React.SetStateAction<string[]>>;
-  selectedCampaigns: AssignableCampaignOptionDto[];
   setSelectedCampaigns: React.Dispatch<React.SetStateAction<AssignableCampaignOptionDto[]>>;
   onBack: () => void;
   onContinue: () => void;
@@ -36,7 +35,6 @@ type CampaignAssignmentPageProps = Readonly<{
 function CampaignSelectionPage({
   selectedCampaignIds,
   setSelectedCampaignIds,
-  selectedCampaigns,
   setSelectedCampaigns,
   onBack,
   onContinue,
@@ -115,18 +113,16 @@ function CampaignSelectionPage({
   };
 
   const handleCampaignSelection = (campaign: AssignableCampaignOptionDto) => {
+    const isAlreadySelected = selectedCampaignIds.includes(campaign.campaignId);
+
     setSelectedCampaignIds((currentSelectedIds) =>
-      currentSelectedIds.includes(campaign.campaignId)
+      isAlreadySelected
         ? currentSelectedIds.filter((id) => id !== campaign.campaignId)
         : [...currentSelectedIds, campaign.campaignId],
     );
 
     setSelectedCampaigns((currentSelectedCampaigns) => {
-      const alreadySelected = currentSelectedCampaigns.some(
-        (selectedCampaign) => selectedCampaign.campaignId === campaign.campaignId,
-      );
-
-      if (alreadySelected) {
+      if (isAlreadySelected) {
         return currentSelectedCampaigns.filter(
           (selectedCampaign) => selectedCampaign.campaignId !== campaign.campaignId,
         );

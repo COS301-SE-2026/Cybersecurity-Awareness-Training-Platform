@@ -42,7 +42,6 @@ function getStatusBadge(status: DisplayStatus) {
 type OrganisationTraineeSelectionPageProps = Readonly<{
   selectedTraineeIds: string[];
   setSelectedTraineesIds: React.Dispatch<React.SetStateAction<string[]>>;
-  selectedTrainees: CampaignAssignmentCandidateOptionDto[];
   setSelectedTrainees: React.Dispatch<React.SetStateAction<CampaignAssignmentCandidateOptionDto[]>>;
   onContinue: () => void;
 }>;
@@ -50,7 +49,6 @@ type OrganisationTraineeSelectionPageProps = Readonly<{
 function OrganisationTraineeSelectionPage({
   selectedTraineeIds,
   setSelectedTraineesIds,
-  selectedTrainees,
   setSelectedTrainees,
   onContinue,
 }: OrganisationTraineeSelectionPageProps) {
@@ -114,8 +112,10 @@ function OrganisationTraineeSelectionPage({
   }, [organisationId, searchTerm, currentPage]);
 
   const handleTraineeSelection = (trainee: CampaignAssignmentCandidateOptionDto) => {
+    const isAlreadySelected = selectedTraineeIds.includes(trainee.traineeProfileId);
+
     setSelectedTraineesIds((currentSelectedIds) => {
-      if (currentSelectedIds.includes(trainee.traineeProfileId)) {
+      if (isAlreadySelected) {
         return currentSelectedIds.filter((id) => id !== trainee.traineeProfileId);
       }
 
@@ -123,11 +123,7 @@ function OrganisationTraineeSelectionPage({
     });
 
     setSelectedTrainees((currentSelectedTrainees) => {
-      const alreadySelected = currentSelectedTrainees.some(
-        (selectedTrainee) => selectedTrainee.traineeProfileId === trainee.traineeProfileId,
-      );
-
-      if (alreadySelected) {
+      if (isAlreadySelected) {
         return currentSelectedTrainees.filter(
           (selectedTrainee) => selectedTrainee.traineeProfileId !== trainee.traineeProfileId,
         );
