@@ -1,30 +1,56 @@
-import {
-  mockTraineeCandidates,
-  mockAssignableCampaigns,
-} from '../../testing/fixtures/campaignAssignmentFixtures';
+import type {
+  AssignableCampaignOptionDto,
+  CampaignAssignmentCandidateOptionDto,
+} from '@insightful-phish/shared';
+import { useState } from 'react';
+import { useAuth } from '../../context/useAuth';
+import { createCampaignAssignments } from '../../services/campaign-assignment.service';
+import LoadingSpinnerSVG from '../../components/LoadingSpinnerSVG';
 
 type ReviewCampaignAssignmentPageProps = Readonly<{
   selectedTraineeIds: string[];
   selectedCampaignIds: string[];
+  selectedTrainees: CampaignAssignmentCandidateOptionDto[];
+  selectedCampaigns: AssignableCampaignOptionDto[];
   onBack: () => void;
 }>;
 
 function ReviewCampaignAssignmentPage({
   selectedTraineeIds,
   selectedCampaignIds,
+  selectedTrainees,
+  selectedCampaigns,
   onBack,
 }: ReviewCampaignAssignmentPageProps) {
   const traineeCount = selectedTraineeIds.length; // # Trainees
   const campaignCount = selectedCampaignIds.length; // # Campaigns
   const assignmentCount = traineeCount * campaignCount; // Total Assignments
 
-  const selectedTrainees = mockTraineeCandidates.filter((trainee) =>
-    selectedTraineeIds.includes(trainee.traineeProfileId),
-  );
-  const selectedCampaigns = mockAssignableCampaigns.filter((campaign) =>
-    selectedCampaignIds.includes(campaign.campaignId),
-  );
+  const { authContext } = useAuth();
+  const organisationId = authContext?.organisation?.id ?? null;
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleCompleteAssignment = async () => {
+    if (!organisationId || traineeCount === 0 || campaignCount === 0) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      await createCampaignAssignments(organisationId, {
+        campaignIds: selectedCampaignIds,
+        traineeProfileIds: selectedTraineeIds,
+      });
+    } catch {
+      setError('Unable To Complete Campaign Assignment. Please Try Again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   return (
     <div className="-mt-5 -ml-4">
       <div className="grid grid-cols-[1fr_auto] mb-4">
@@ -67,15 +93,20 @@ function ReviewCampaignAssignmentPage({
             {/* CONTINUE BUTTON (TO STEP 3) */}
             <button
               type="button"
-              disabled={traineeCount === 0 || campaignCount === 0}
-              className="disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer w-60 font-jost tracking-wider text-xl text-white font-regular bg-main-purple leading-5 px-4 py-3 focus:outline-none"
+              disabled={
+                traineeCount === 0 || campaignCount === 0 || isSubmitting || !organisationId
+              }
+              onClick={() => void handleCompleteAssignment()}
+              className="disabled:opacity-20 inline-flex gap-2 items-center justify-center disabled:cursor-not-allowed cursor-pointer w-60 font-jost tracking-wider text-xl text-white font-regular bg-main-purple leading-5 px-4 py-3 focus:outline-none"
             >
-              Complete Assignment
+              {isSubmitting && <LoadingSpinnerSVG />}
+              <span>{isSubmitting ? 'Assigning...' : 'Complete Assignment'}</span>
             </button>
           </div>
         </div>
       </div>
-
+      {/* // SHOW {error} USING BASIC ALERT PLEASE!!!! COME BACK  */}
+      {/* SHOW SUCCESS WITH BASIC ALERT TOO PLEASE!! AND THEN CLEAR ALLES AND GO BACK TO THE FIRST STEP...  */}
       <div>
         <div className="grid grid-cols-2 gap-6">
           <div>

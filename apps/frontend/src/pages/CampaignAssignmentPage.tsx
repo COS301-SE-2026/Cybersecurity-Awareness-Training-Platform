@@ -212,6 +212,8 @@ function CampaignAssignmentPage() {
               <ReviewCampaignAssignmentPage
                 selectedTraineeIds={selectedTraineeIds}
                 selectedCampaignIds={selectedCampaignIds}
+                selectedCampaigns={selectedCampaigns}
+                selectedTrainees={selectedTrainees}
                 onBack={() => setCurrentTab(2)}
               />
             )}
