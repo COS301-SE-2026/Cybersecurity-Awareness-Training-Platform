@@ -163,7 +163,7 @@ function OrganisationTraineeSelectionPage({
         </div>
 
         {/* TABLE */}
-        <div className="relative max-h-[11.45rem] overflow-y-auto overflow-x-auto bg-neutral-primary-soft border border-default">
+        <div className="relative overflow-x-auto bg-neutral-primary-soft border border-default">
           <table className="w-full text-sm text-left rtl:text-right text-body">
             <thead className="bg-faint-purple border-b border-default">
               <tr>
