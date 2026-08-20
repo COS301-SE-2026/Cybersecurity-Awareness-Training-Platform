@@ -117,6 +117,14 @@ export function findLatestEmailLogForInvitation(
       invitationId,
       emailType: 'INITIAL_ORGANISATION_ADMIN_SETUP',
     },
+    include: {
+      deliveryJob: {
+        select: {
+          lastProviderOutcome: true,
+          lastReasonCode: true,
+        },
+      },
+    },
     orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
   });
 }

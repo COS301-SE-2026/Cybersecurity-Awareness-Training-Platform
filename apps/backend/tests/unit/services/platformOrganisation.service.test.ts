@@ -533,7 +533,7 @@ describe('platformOrganisation service', () => {
         {
           id: 'invite-123',
           status: 'PENDING',
-          recipientEmail: 'admin@target.com',
+          recipientEmail: 'rudolph@capetown-cyber.co.za',
           expiresAt: new Date(Date.now() + 100_000),
           actionTokens: [
             {
@@ -557,6 +557,117 @@ describe('platformOrganisation service', () => {
       expect(eligibility).toEqual({
         isEligible: false,
         reason: 'ACTIVE_SETUP_TOKEN_EXISTS',
+      });
+    });
+
+    it('does not make invitation resend-eligible when delivery failure was ambiguous', () => {
+      const eligibility = getResendEligibility(
+        'PENDING_ONBOARDING',
+        {
+          id: 'invite-za-123',
+          status: 'PENDING',
+          recipientEmail: 'johan@protea-security.co.za',
+          expiresAt: new Date(Date.now() + 100_000),
+          actionTokens: [
+            {
+              id: 'token-za-123',
+              expiresAt: new Date(Date.now() + 100_000),
+              usedAt: null,
+              revokedAt: null,
+            },
+          ],
+        },
+        {
+          id: 'email-log-za-123',
+          deliveryStatus: 'FAILED',
+          sentAt: null,
+          failedAt: new Date(),
+          failureReason: 'SMTP_AMBIGUOUS_TRANSPORT_FAILURE',
+          actionTokenId: 'token-za-123',
+          deliveryJob: {
+            lastProviderOutcome: 'PROVIDER_AMBIGUOUS',
+            lastReasonCode: 'SMTP_AMBIGUOUS_TRANSPORT_FAILURE',
+          },
+        },
+      );
+
+      expect(eligibility).toEqual({
+        isEligible: false,
+        reason: 'ACTIVE_SETUP_TOKEN_EXISTS',
+      });
+    });
+
+    it('does not make invitation resend-eligible when delivery failed due to expired lease', () => {
+      const eligibility = getResendEligibility(
+        'PENDING_ONBOARDING',
+        {
+          id: 'invite-za-456',
+          status: 'PENDING',
+          recipientEmail: 'conner@springbok-tech.co.za',
+          expiresAt: new Date(Date.now() + 100_000),
+          actionTokens: [
+            {
+              id: 'token-za-456',
+              expiresAt: new Date(Date.now() + 100_000),
+              usedAt: null,
+              revokedAt: null,
+            },
+          ],
+        },
+        {
+          id: 'email-log-za-456',
+          deliveryStatus: 'FAILED',
+          sentAt: null,
+          failedAt: new Date(),
+          failureReason: 'EMAIL_PROCESSING_LEASE_EXPIRED',
+          actionTokenId: 'token-za-456',
+          deliveryJob: {
+            lastProviderOutcome: 'PROVIDER_AMBIGUOUS',
+            lastReasonCode: 'EMAIL_PROCESSING_LEASE_EXPIRED',
+          },
+        },
+      );
+
+      expect(eligibility).toEqual({
+        isEligible: false,
+        reason: 'ACTIVE_SETUP_TOKEN_EXISTS',
+      });
+    });
+
+    it('makes invitation resend-eligible when delivery failure is an authoritative provider rejection', () => {
+      const eligibility = getResendEligibility(
+        'PENDING_ONBOARDING',
+        {
+          id: 'invite-za-789',
+          status: 'PENDING',
+          recipientEmail: 'rudolph@capetown-cyber.co.za',
+          expiresAt: new Date(Date.now() + 100_000),
+          actionTokens: [
+            {
+              id: 'token-za-789',
+              expiresAt: new Date(Date.now() + 100_000),
+              usedAt: null,
+              revokedAt: null,
+            },
+          ],
+        },
+        {
+          id: 'email-log-za-789',
+          deliveryStatus: 'FAILED',
+          sentAt: null,
+          failedAt: new Date(),
+          failureReason: 'SMTP_PERMANENT_FAILURE',
+          actionTokenId: 'token-za-789',
+          deliveryJob: {
+            lastProviderOutcome: 'PROVIDER_REJECTED',
+            lastReasonCode: 'SMTP_PERMANENT_FAILURE',
+          },
+        },
+      );
+
+      expect(eligibility).toEqual({
+        isEligible: true,
+        reason: 'SETUP_EMAIL_FAILED',
       });
     });
 

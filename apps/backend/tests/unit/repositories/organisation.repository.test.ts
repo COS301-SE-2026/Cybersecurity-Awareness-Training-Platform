@@ -173,6 +173,14 @@ describe('organisation repository', () => {
         invitationId: 'invite-1',
         emailType: 'INITIAL_ORGANISATION_ADMIN_SETUP',
       },
+      include: {
+        deliveryJob: {
+          select: {
+            lastProviderOutcome: true,
+            lastReasonCode: true,
+          },
+        },
+      },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
     });
     expect(result).toEqual({ id: 'log-1' });
