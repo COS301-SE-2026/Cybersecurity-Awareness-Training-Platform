@@ -82,7 +82,7 @@ function ReviewCampaignAssignmentPage({
             <h3 className="font-jost text-xl text-purple tracking-wider font-regular mb-1">
               Organisation Trainee Selection
             </h3>
-            <div className="relative max-h-[11.80rem] overflow-y-auto overflow-x-auto bg-neutral-primary-soft border border-default">
+            <div className="relative overflow-x-auto bg-neutral-primary-soft border border-default">
               {/* SELECTED ORGANISATION TRAINEES TABLE */}
               <table className="w-full min-w-full text-sm text-left rtl:text-right text-body">
                 <thead className="bg-faint-purple border-b border-default">
@@ -133,7 +133,7 @@ function ReviewCampaignAssignmentPage({
               Training Campaign Selection
             </h3>
             {/* SELECTED TRAINING CAMPAIGNS TABLE */}
-            <div className="relative max-h-[11.80rem] overflow-y-auto overflow-x-auto bg-neutral-primary-soft border border-default">
+            <div className="relative overflow-x-auto bg-neutral-primary-soft border border-default">
               {/* SELECTED ORGANISATION TRAINEES TABLE */}
               <table className="w-full min-w-full text-sm text-left rtl:text-right text-body">
                 <thead className="bg-faint-purple border-b border-default">
