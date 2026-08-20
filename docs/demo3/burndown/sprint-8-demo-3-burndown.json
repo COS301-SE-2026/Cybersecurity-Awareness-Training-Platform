@@ -79,13 +79,20 @@
       "points": 5,
       "state": "open",
       "closed_date": null
+    },
+    {
+      "number": 431,
+      "title": "chore: restore skipped backend configuration and auth-subject tests",
+      "points": 2,
+      "state": "closed",
+      "closed_date": "2026-08-20"
     }
   ],
   "series": [
     {
       "date": "2026-08-20",
       "remaining": 41,
-      "ideal": 41.0
+      "ideal": 43.0
     }
   ]
 }
