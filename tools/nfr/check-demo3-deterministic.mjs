@@ -1,0 +1,368 @@
+import { access, readFile, readdir, stat } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
+const projectRoot = path.resolve(scriptDirectory, '../..');
+
+const expectedQualityRequirementIds = [
+  'QR-AUTH-01',
+  'QR-DATA-01',
+  'QR-ACCESS-01',
+  'QR-RELIABILITY-01',
+  'QR-PERF-01',
+  'QR-TRACE-01',
+  'QR-AUDIT-01',
+  'QR-DEPLOY-01',
+];
+
+const routeChecks = [
+  {
+    file: 'apps/backend/src/routes/account.routes.ts',
+    route: "'/account'",
+    middleware: ['authRateLimit', 'requireAuth'],
+  },
+  {
+    file: 'apps/backend/src/routes/account.routes.ts',
+    route: "'/account/profile'",
+    middleware: ['authRateLimit', 'requireAuth'],
+  },
+  {
+    file: 'apps/backend/src/routes/account.routes.ts',
+    route: "'/account/change-email'",
+    middleware: ['authRateLimit', 'requireAuth'],
+  },
+  {
+    file: 'apps/backend/src/routes/account.routes.ts',
+    route: "'/account/change-password'",
+    middleware: ['authRateLimit', 'requireAuth'],
+  },
+  {
+    file: 'apps/backend/src/routes/account.routes.ts',
+    route: "'/account/sessions'",
+    middleware: ['authRateLimit', 'requireAuth'],
+  },
+  {
+    file: 'apps/backend/src/routes/account.routes.ts',
+    route: "'/account/sessions/:sessionId'",
+    middleware: ['authRateLimit', 'requireAuth'],
+  },
+  {
+    file: 'apps/backend/src/routes/account.routes.ts',
+    route: "'/account/sessions/logout-others'",
+    middleware: ['authRateLimit', 'requireAuth'],
+  },
+  {
+    file: 'apps/backend/src/routes/account.routes.ts',
+    route: "'/account/security-preferences'",
+    middleware: ['authRateLimit', 'requireAuth'],
+  },
+  {
+    file: 'apps/backend/src/routes/organisation-trainee.routes.ts',
+    route: "'/organisations/:organisationId/trainees'",
+    middleware: ['organisationTraineeReadRateLimit', 'requireAuth'],
+  },
+  {
+    file: 'apps/backend/src/routes/organisation-trainee.routes.ts',
+    route: "'/organisations/:organisationId/trainee-invitations'",
+    middleware: ['organisationTraineeMutationRateLimit', 'requireAuth'],
+  },
+  {
+    file: 'apps/backend/src/routes/organisation-admin.routes.ts',
+    route: "'/organisations/:organisationId/admins'",
+    middleware: ['organisationAdminReadRateLimit', 'requireAuth'],
+  },
+  {
+    file: 'apps/backend/src/routes/organisation-admin.routes.ts',
+    route: "'/organisations/:organisationId/admin-promotions'",
+    middleware: ['organisationAdminMutationRateLimit', 'requireAuth'],
+  },
+];
+
+const fileLevelRouteChecks = [
+  {
+    file: 'apps/backend/src/routes/platform.routes.ts',
+    description: 'platform routes',
+    requiredText: [
+      "platformRouter.use('/platform', apiRateLimit, requireAuth, requirePlatformAdmin)",
+    ],
+  },
+];
+
+const auditTestExpectations = [
+  'redacts sensitive fields from oldValues, newValues and metadata',
+  'rejects SYSTEM audit entries that have an actorUserId',
+  'rejects audit entries that do not have a targetId unless the targetType is OTHER',
+  'uses the transaction client if provided',
+];
+
+const sensitiveEvidencePatterns = [
+  { label: 'raw token field', pattern: /\brawToken\b\s*[:=]/i },
+  { label: 'token hash field', pattern: /\btokenHash\b\s*[:=]/i },
+  { label: 'SMTP password assignment', pattern: /\bSMTP_PASSWORD\b\s*[:=]\s*[^<\s][^\s]*/i },
+  { label: 'database URL assignment', pattern: /\bDATABASE_URL\b\s*[:=]\s*[^<\s][^\s]*/i },
+  { label: 'bearer token', pattern: /\bBearer\s+[A-Za-z0-9._~+/=-]{16,}/i },
+];
+
+const evidenceDirectories = [
+  'docs/demo3/nfr/evidence',
+  'docs/demo3/nfr/evidence/generated',
+  'apps/backend/test-results',
+  'apps/frontend/test-results',
+];
+
+const args = new Set(process.argv.slice(2));
+const strictTraceability = args.has('--strict');
+const selectedChecks = new Set(
+  [...args].filter((arg) => arg !== '--strict').map((arg) => arg.replace(/^--/, '')),
+);
+
+const checkNames = ['traceability', 'security', 'routes', 'audit'];
+const checksToRun = selectedChecks.size
+  ? checkNames.filter((name) => selectedChecks.has(name))
+  : checkNames;
+
+const results = [];
+
+function result(check, status, detail) {
+  results.push({ check, status, detail });
+}
+
+function fail(message) {
+  throw new Error(message);
+}
+
+function projectPath(relativePath) {
+  return path.join(projectRoot, relativePath);
+}
+
+async function pathExists(relativePath) {
+  try {
+    await access(projectPath(relativePath));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function readProjectFile(relativePath) {
+  return readFile(projectPath(relativePath), 'utf8');
+}
+
+function unique(values) {
+  return [...new Set(values)].sort();
+}
+
+function extractQualityRequirementIds(content) {
+  return unique([...content.matchAll(/`(QR-[A-Z]+-\d{2})`/g)].map((match) => match[1]));
+}
+
+function extractMarkdownLinks(content) {
+  return [...content.matchAll(/\[[^\]]+\]\(([^)#][^)]+\.md(?:#[^)]+)?)\)/g)].map(
+    (match) => match[1],
+  );
+}
+
+async function assertLocalMarkdownLinksExist(sourceFile, content) {
+  const sourceDirectory = path.dirname(sourceFile);
+  const links = extractMarkdownLinks(content);
+  const missing = [];
+
+  for (const link of links) {
+    if (/^[a-z]+:/i.test(link)) {
+      continue;
+    }
+
+    const [targetFile] = link.split('#');
+    const targetPath = path.normalize(path.join(sourceDirectory, targetFile));
+    if (!(await pathExists(targetPath))) {
+      missing.push(link);
+    }
+  }
+
+  if (missing.length > 0) {
+    fail(`Missing local markdown targets from ${sourceFile}: ${missing.join(', ')}`);
+  }
+}
+
+async function runTraceabilityCheck() {
+  const qualityRequirementsPath = 'docs/demo3/srs/quality-requirements.md';
+  const qualityRequirements = await readProjectFile(qualityRequirementsPath);
+  const ids = extractQualityRequirementIds(qualityRequirements);
+  const missingIds = expectedQualityRequirementIds.filter((id) => !ids.includes(id));
+  const unexpectedOldIds = [...qualityRequirements.matchAll(/`(QR-\d{2})`/g)].map(
+    (match) => match[1],
+  );
+
+  if (missingIds.length > 0) {
+    fail(`Missing retained Demo 3 QR IDs: ${missingIds.join(', ')}`);
+  }
+
+  if (unexpectedOldIds.length > 0) {
+    fail(
+      `Old numeric QR IDs remain in the SRS quality requirements: ${unexpectedOldIds.join(', ')}`,
+    );
+  }
+
+  await assertLocalMarkdownLinksExist(qualityRequirementsPath, qualityRequirements);
+
+  const matrixPath = 'docs/demo3/nfr/traceability-matrix.md';
+  if (await pathExists(matrixPath)) {
+    const matrix = await readProjectFile(matrixPath);
+    const matrixMissing = expectedQualityRequirementIds.filter((id) => !matrix.includes(id));
+    if (matrixMissing.length > 0) {
+      fail(`NFR traceability matrix is missing QR IDs: ${matrixMissing.join(', ')}`);
+    }
+  } else if (strictTraceability) {
+    fail('Strict traceability requires docs/demo3/nfr/traceability-matrix.md');
+  }
+
+  result(
+    'traceability',
+    'PASS',
+    `Validated ${expectedQualityRequirementIds.length} retained QR IDs and local SRS quality links.`,
+  );
+}
+
+function routeBlockFor(content, route) {
+  const routeIndex = content.indexOf(route);
+  if (routeIndex === -1) {
+    return null;
+  }
+
+  const endIndex = content.indexOf('\n);', routeIndex);
+  if (endIndex === -1) {
+    return content.slice(routeIndex);
+  }
+
+  return content.slice(routeIndex, endIndex);
+}
+
+async function runProtectedRouteCheck() {
+  for (const check of routeChecks) {
+    const content = await readProjectFile(check.file);
+    const block = routeBlockFor(content, check.route);
+    if (!block) {
+      fail(`Could not find route ${check.route} in ${check.file}`);
+    }
+
+    const missingMiddleware = check.middleware.filter((middleware) => !block.includes(middleware));
+    if (missingMiddleware.length > 0) {
+      fail(`Route ${check.route} in ${check.file} is missing ${missingMiddleware.join(', ')}`);
+    }
+  }
+
+  for (const check of fileLevelRouteChecks) {
+    const content = await readProjectFile(check.file);
+    const missingText = check.requiredText.filter((text) => !content.includes(text));
+    if (missingText.length > 0) {
+      fail(`${check.description} in ${check.file} is missing required route guard wiring.`);
+    }
+  }
+
+  result(
+    'routes',
+    'PASS',
+    `Validated guard and rate-limit middleware for ${routeChecks.length} selected protected route declarations plus platform route group wiring.`,
+  );
+}
+
+async function runAuditIntegrityCheck() {
+  const repository = await readProjectFile('apps/backend/src/repositories/audit-log.repository.ts');
+  const tests = await readProjectFile('apps/backend/tests/unit/audit-log.service.test.ts');
+
+  for (const sensitiveKey of ['password', 'token', 'secret']) {
+    if (!repository.includes(`'${sensitiveKey}'`)) {
+      fail(`Audit sanitiser is missing sensitive key fragment: ${sensitiveKey}`);
+    }
+  }
+
+  for (const expectation of auditTestExpectations) {
+    if (!tests.includes(expectation)) {
+      fail(`Audit unit tests are missing expectation: ${expectation}`);
+    }
+  }
+
+  result(
+    'audit',
+    'PASS',
+    'Validated audit sanitiser key coverage and focused audit integrity unit-test expectations.',
+  );
+}
+
+async function listEvidenceFiles(relativeDirectory) {
+  if (!(await pathExists(relativeDirectory))) {
+    return [];
+  }
+
+  const absoluteDirectory = projectPath(relativeDirectory);
+  const entries = await readdir(absoluteDirectory, { withFileTypes: true });
+  const files = [];
+
+  for (const entry of entries) {
+    const relativeEntryPath = path.join(relativeDirectory, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...(await listEvidenceFiles(relativeEntryPath)));
+      continue;
+    }
+
+    if (!/\.(json|log|md|txt)$/i.test(entry.name)) {
+      continue;
+    }
+
+    const info = await stat(projectPath(relativeEntryPath));
+    if (info.size <= 512 * 1024) {
+      files.push(relativeEntryPath);
+    }
+  }
+
+  return files;
+}
+
+async function runSecurityLeakageCheck() {
+  const files = (
+    await Promise.all(evidenceDirectories.map((directory) => listEvidenceFiles(directory)))
+  ).flat();
+  const findings = [];
+
+  for (const file of files) {
+    const content = await readProjectFile(file);
+    for (const { label, pattern } of sensitiveEvidencePatterns) {
+      if (pattern.test(content)) {
+        findings.push(`${file}: ${label}`);
+      }
+    }
+  }
+
+  if (findings.length > 0) {
+    fail(`Potential sensitive value in bounded NFR/test evidence: ${findings.join('; ')}`);
+  }
+
+  result(
+    'security',
+    'PASS',
+    files.length === 0
+      ? 'No bounded generated NFR/test evidence files are present yet.'
+      : `Scanned ${files.length} bounded generated NFR/test evidence files for sensitive-value leakage.`,
+  );
+}
+
+const checkRunners = {
+  traceability: runTraceabilityCheck,
+  security: runSecurityLeakageCheck,
+  routes: runProtectedRouteCheck,
+  audit: runAuditIntegrityCheck,
+};
+
+for (const check of checksToRun) {
+  const runner = checkRunners[check];
+  if (!runner) {
+    fail(`Unknown deterministic NFR check: ${check}`);
+  }
+
+  await runner();
+}
+
+for (const entry of results) {
+  console.log(`[${entry.status}] ${entry.check}: ${entry.detail}`);
+}
