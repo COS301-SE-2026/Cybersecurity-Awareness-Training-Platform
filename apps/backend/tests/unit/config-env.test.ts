@@ -27,7 +27,6 @@ describe('parseEnv', () => {
     expect(() =>
       parseEnv({
         ...productionEnv,
-        NODE_ENV: 'production',
         AUTH_TOKEN_SECRET: 'this-is-a-demo-auth-secret-token-change-before-production',
       }),
     ).toThrowError('AUTH_TOKEN_SECRET must be changed before deploying to production');

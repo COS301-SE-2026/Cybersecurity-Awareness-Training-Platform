@@ -127,6 +127,30 @@ describe('user repository auth subject helpers', () => {
     });
   });
 
+  it('maps organisation admin permissions to permission keys', () => {
+    const user = authSubjectUser({
+      userType: 'ORGANISATION_ADMIN',
+      organisationAdminProfile: {
+        adminStatus: 'ACTIVE',
+        permissionGrants: [{ organisationPermission: { key: 'MANAGE_CAMPAIGNS' } }],
+        organisation: { id: 'org01', status: 'ACTIVE' },
+      },
+    });
+
+    expect(toGuardAuthSubject(user)).toMatchObject({
+      user: {
+        id: 'user01',
+        userType: 'ORGANISATION_ADMIN',
+        authStatus: 'ACTIVE',
+      },
+      organisationAdminProfile: {
+        adminStatus: 'ACTIVE',
+        permissionKeys: ['MANAGE_CAMPAIGNS'],
+        organisation: { id: 'org01', status: 'ACTIVE' },
+      },
+    });
+  });
+
   it('maps a IP admin subject with admin status', () => {
     const user = authSubjectUser({
       userType: 'IP_ADMIN',
