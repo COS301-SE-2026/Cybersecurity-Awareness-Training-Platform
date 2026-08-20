@@ -10,12 +10,13 @@
 <line x1="65" y1="115.0" x2="870" y2="115.0" stroke="#EEDEFF"/><text x="58" y="119.0" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="end" fill="#3A3A3A">40</text>
 <line x1="65" y1="55.0" x2="870" y2="55.0" stroke="#EEDEFF"/><text x="58" y="59.0" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="end" fill="#3A3A3A">50</text>
 <line x1="70.0" y1="355" x2="70.0" y2="360" stroke="#3A3A3A"/><text x="70.0" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#3A3A3A">20 Aug</text>
+<line x1="870.0" y1="355" x2="870.0" y2="360" stroke="#3A3A3A"/><text x="870.0" y="382" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#3A3A3A">21 Aug</text>
 <line x1="70" y1="55" x2="70" y2="355" stroke="#3A3A3A"/>
 <line x1="70" y1="355" x2="870" y2="355" stroke="#3A3A3A"/>
 <text x="18" y="205.0" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="13" text-anchor="middle" transform="rotate(-90 18 205.0)" fill="#3A3A3A">Story Points Remaining</text>
 <text x="470.0" y="408" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="13" text-anchor="middle" fill="#3A3A3A">Sprint Timeline</text>
-<polyline points="70.0,97.0" fill="none" stroke="#B37DFF" stroke-width="3" stroke-dasharray="8 6"/>
-<polyline points="70.0,109.0" fill="none" stroke="#8400FF" stroke-width="4"/>
+<polyline points="70.0,97.0 870.0,120.5" fill="none" stroke="#B37DFF" stroke-width="3" stroke-dasharray="8 6"/>
+<polyline points="70.0,109.0 870.0,109.0" fill="none" stroke="#8400FF" stroke-width="4"/>
 <line x1="610" y1="75" x2="645" y2="75" stroke="#8400FF" stroke-width="4"/>
 <text x="655" y="80" font-family="Overpass, Arial, Helvetica, sans-serif" font-size="13" fill="#3A3A3A">Remaining work</text>
 <line x1="610" y1="97" x2="645" y2="97" stroke="#B37DFF" stroke-width="3" stroke-dasharray="8 6"/>
