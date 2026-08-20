@@ -1050,9 +1050,15 @@ describe('swaggerSpec', () => {
 
     const platformAdmin = spec.components?.schemas?.PlatformAdmin as {
       required?: string[];
-      properties?: Record<string, { nullable?: boolean; type?: string; format?: string }>;
+      additionalProperties?: boolean;
+      properties?: Record<
+        string,
+        { nullable?: boolean; type?: string; format?: string; $ref?: string }
+      >;
     };
     expect(platformAdmin).toBeDefined();
+    expect(platformAdmin.additionalProperties).toBe(false);
+    expect(platformAdmin.properties?.authStatus?.$ref).toBe('#/components/schemas/AuthStatus');
     expect(platformAdmin.required).toEqual(
       expect.arrayContaining([
         'id',
@@ -1072,9 +1078,11 @@ describe('swaggerSpec', () => {
 
     const allowedActions = spec.components?.schemas?.PlatformAdminAllowedActions as {
       required?: string[];
+      additionalProperties?: boolean;
       properties?: Record<string, unknown>;
     };
     expect(allowedActions).toBeDefined();
+    expect(allowedActions.additionalProperties).toBe(false);
     expect(allowedActions.required).toEqual(
       expect.arrayContaining(['canTransferSuperAdmin', 'canDemote', 'canResendInvite']),
     );
@@ -1100,51 +1108,91 @@ describe('swaggerSpec', () => {
       'PENDING_UPGRADE',
     ]);
 
+    const platformAdminsList = spec.components?.schemas?.PlatformAdminsListResponse as {
+      additionalProperties?: boolean;
+    };
+    expect(platformAdminsList?.additionalProperties).toBe(false);
+
     const inviteRequest = spec.components?.schemas?.InvitePlatformAdminRequest as {
       required?: string[];
-      properties?: Record<string, unknown>;
+      additionalProperties?: boolean;
+      properties?: {
+        email?: { minLength?: number; maxLength?: number };
+        firstName?: { minLength?: number; maxLength?: number };
+        lastName?: { minLength?: number; maxLength?: number };
+        confirmUpgrade?: unknown;
+      };
     };
     expect(inviteRequest).toBeDefined();
     expect(inviteRequest.required).toEqual(['email']);
+    expect(inviteRequest.additionalProperties).toBe(false);
+    expect(inviteRequest.properties?.email?.minLength).toBe(1);
+    expect(inviteRequest.properties?.email?.maxLength).toBe(254);
+    expect(inviteRequest.properties?.firstName?.minLength).toBe(1);
+    expect(inviteRequest.properties?.firstName?.maxLength).toBe(100);
+    expect(inviteRequest.properties?.lastName?.minLength).toBe(1);
+    expect(inviteRequest.properties?.lastName?.maxLength).toBe(100);
     expect(inviteRequest.properties).toHaveProperty('confirmUpgrade');
 
     const inviteResponse = spec.components?.schemas?.InvitePlatformAdminResponse as {
       required?: string[];
+      additionalProperties?: boolean;
       properties?: { type?: { enum?: string[] } };
     };
     expect(inviteResponse).toBeDefined();
     expect(inviteResponse.required).toEqual(['type', 'userId', 'email']);
+    expect(inviteResponse.additionalProperties).toBe(false);
     expect(inviteResponse.properties?.type?.enum).toEqual(['new-invite', 'upgrade-confirmation']);
 
     const resendResponse = spec.components?.schemas?.ResendPlatformAdminInviteResponse as {
       required?: string[];
+      additionalProperties?: boolean;
     };
     expect(resendResponse).toBeDefined();
     expect(resendResponse.required).toEqual(['success', 'emailQueued']);
+    expect(resendResponse.additionalProperties).toBe(false);
 
     const transferRequest = spec.components?.schemas?.TransferSuperAdminRequest as {
       required?: string[];
-      properties?: { confirmation?: { enum?: string[] } };
+      additionalProperties?: boolean;
+      properties?: {
+        password?: { minLength?: number };
+        confirmation?: { enum?: string[] };
+      };
     };
     expect(transferRequest).toBeDefined();
     expect(transferRequest.required).toEqual(['targetUserId', 'password', 'confirmation']);
+    expect(transferRequest.additionalProperties).toBe(false);
+    expect(transferRequest.properties?.password?.minLength).toBe(1);
     expect(transferRequest.properties?.confirmation?.enum).toEqual(['TRANSFER']);
 
     const demoteRequest = spec.components?.schemas?.DemotePlatformAdminRequest as {
       required?: string[];
-      properties?: { confirmation?: { enum?: string[] } };
+      additionalProperties?: boolean;
+      properties?: {
+        password?: { minLength?: number };
+        confirmation?: { enum?: string[] };
+      };
     };
     expect(demoteRequest).toBeDefined();
     expect(demoteRequest.required).toEqual(['password', 'confirmation']);
+    expect(demoteRequest.additionalProperties).toBe(false);
+    expect(demoteRequest.properties?.password?.minLength).toBe(1);
     expect(demoteRequest.properties?.confirmation?.enum).toEqual(['DEMOTE']);
 
     const demoteResponse = spec.components?.schemas?.DemotePlatformAdminResponse as {
       required?: string[];
-      properties?: { adminStatus?: { enum?: string[] } };
+      additionalProperties?: boolean;
+      properties?: {
+        adminStatus?: { enum?: string[] };
+        authStatus?: { $ref?: string };
+      };
     };
     expect(demoteResponse).toBeDefined();
     expect(demoteResponse.required).toEqual(['userId', 'email', 'adminStatus', 'authStatus']);
+    expect(demoteResponse.additionalProperties).toBe(false);
     expect(demoteResponse.properties?.adminStatus?.enum).toEqual(['DISABLED']);
+    expect(demoteResponse.properties?.authStatus?.$ref).toBe('#/components/schemas/AuthStatus');
 
     expect(spec.components?.requestBodies).toHaveProperty('InvitePlatformAdmin');
     expect(spec.components?.requestBodies).toHaveProperty('TransferSuperAdmin');
@@ -1155,6 +1203,18 @@ describe('swaggerSpec', () => {
     expect(spec.components?.responses).toHaveProperty('ResendPlatformAdminInviteOk');
     expect(spec.components?.responses).toHaveProperty('TransferSuperAdminOk');
     expect(spec.components?.responses).toHaveProperty('DemotePlatformAdminOk');
+
+    const inviteCreatedResponse = spec.components?.responses?.InvitePlatformAdminCreated as {
+      description?: string;
+    };
+    expect(inviteCreatedResponse?.description).toContain(
+      'invitation or upgrade request created successfully',
+    );
+
+    const resendOkResponse = spec.components?.responses?.ResendPlatformAdminInviteOk as {
+      description?: string;
+    };
+    expect(resendOkResponse?.description).toContain('emailQueued');
 
     expectSchemaNotToContain('PlatformAdmin', ['passwordHash', 'password', 'tokenHash']);
     expectSchemaNotToContain('InvitePlatformAdminResponse', [

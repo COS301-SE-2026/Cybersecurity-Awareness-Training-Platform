@@ -21,6 +21,14 @@ export const platformAdminInvitationStatusSchema = z.enum([
 ]);
 export type PlatformAdminInvitationStatus = z.infer<typeof platformAdminInvitationStatusSchema>;
 
+export const authStatusSchema = z.enum([
+  'PENDING_EMAIL_VERIFICATION',
+  'PENDING_INVITE_SETUP',
+  'ACTIVE',
+  'DISABLED',
+]);
+export type AuthStatus = z.infer<typeof authStatusSchema>;
+
 export const platformAdminAllowedActionsSchema = z
   .object({
     canTransferSuperAdmin: z.boolean(),
@@ -38,7 +46,7 @@ export const platformAdminRowSchema = z
     email: z.string().email(),
     platformAdminRole: platformAdminRoleSchema,
     adminStatus: platformAdminStatusSchema,
-    authStatus: z.string(),
+    authStatus: authStatusSchema,
     invitationStatus: platformAdminInvitationStatusSchema.nullable(),
     inviteId: idParamSchema.nullable(),
     allowedActions: platformAdminAllowedActionsSchema,
@@ -122,7 +130,7 @@ export const demotePlatformAdminResponseSchema = z
     userId: idParamSchema,
     email: z.string().email(),
     adminStatus: z.literal('DISABLED'),
-    authStatus: z.string(),
+    authStatus: authStatusSchema,
   })
   .strict();
 export type DemotePlatformAdminResponseDto = z.infer<typeof demotePlatformAdminResponseSchema>;

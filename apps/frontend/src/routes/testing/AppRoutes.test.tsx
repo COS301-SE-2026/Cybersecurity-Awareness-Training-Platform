@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { UserTypeDto } from '@insightful-phish/shared';
+import * as organisationDetailsService from '../../services/organisation-details.service';
 import { renderWithRouter } from '../../testing/render';
 
 vi.mock('../../App', () => ({
@@ -94,10 +95,6 @@ vi.mock('../../pages/ResetPasswordPage', () => ({
 
 vi.mock('../../pages/ForgotPasswordPage', () => ({
   default: () => <h1>Forgot Password</h1>,
-}));
-
-vi.mock('../../pages/OrganisationInformationPage', () => ({
-  default: () => <h1>Organisation Information</h1>,
 }));
 
 vi.mock('../../pages/OrganisationSecuritySettingsPage', () => ({
@@ -271,6 +268,55 @@ describe('AppRoutes', () => {
       },
       items: [],
     });
+
+    vi.spyOn(organisationDetailsService, 'getPlatformOrganisationDetail').mockResolvedValue({
+      id: 'org-gauteng-123',
+      name: 'Protea Security Gauteng',
+      status: 'ACTIVE',
+      detailType: 'active organisation',
+      description: 'Cybersecurity service provider in Gauteng',
+      approximateSize: 100,
+      website: 'https://proteasecurity.co.za',
+      primaryDomain: 'proteasecurity.co.za',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-02T00:00:00.000Z',
+      _count: { adminProfiles: 2, traineeProfiles: 45 },
+      registrationRequest: null,
+      setupStatus: null,
+      resendEligibility: { isEligible: false, reason: null },
+      admins: [],
+      timeline: [],
+    });
+
+    vi.spyOn(organisationDetailsService, 'getPlatformOrganisationRequestDetails').mockResolvedValue(
+      {
+        id: 'req-durban-456',
+        submittedOrganisationName: 'Cyber Jan Pending Request',
+        submittedOrganisationDescription: 'Pending approval',
+        submittedWebsite: 'https://cyberjan.co.za',
+        submittedPrimaryDomain: 'cyberjan.co.za',
+        submittedOrganisationSize: 20,
+        status: 'PENDING',
+        detailType: 'request-only',
+        createdAt: '2026-06-19T00:00:00.000Z',
+        updatedAt: '2026-06-19T00:00:00.000Z',
+        representativeFirstName: 'Rudolph',
+        representativeLastName: 'van der Merwe',
+        representativeEmail: 'rudolph@springbokcyber.co.za',
+        representativePhone: null,
+        contactedByIpAdminId: null,
+        approvedByIpAdminId: null,
+        rejectedByIpAdminId: null,
+        approvedOrganisationId: null,
+        contactedAt: null,
+        approvedAt: null,
+        rejectedAt: null,
+        rejectionReason: null,
+        setupStatus: null,
+        resendEligibility: { isEligible: false, reason: 'ORGANISATION_NOT_ONBOARDING' },
+        timeline: [],
+      },
+    );
   });
 
   describe('Public routes', () => {
@@ -485,7 +531,6 @@ describe('AppRoutes', () => {
 
     const forbiddenRoutesForTrainee = [
       '/organisation-information',
-      '/organisation-information/org-1',
       '/organisation-security-preferences',
       '/organisation-trainees',
       '/organisation-administrators',
@@ -588,8 +633,7 @@ describe('AppRoutes', () => {
     };
 
     const authorizedOrgAdminRoutes = [
-      ['/organisation-information', /^organisation information$/i],
-      ['/organisation-information/org-gauteng-123', /^organisation information$/i],
+      ['/organisation-information', /^(organisation information|Protea Security Gauteng)$/i],
       ['/organisation-security-preferences', /^organisation security settings$/i],
       ['/organisation-trainees', /^organisation trainees$/i],
       ['/organisation-administrators', /^organisation administrators$/i],
@@ -610,6 +654,28 @@ describe('AppRoutes', () => {
         ).toBeInTheDocument();
       },
     );
+
+    it('ensures organisation admin visiting /organisation-information does not call platform detail or request services', async () => {
+      const platformDetailSpy = vi.spyOn(
+        organisationDetailsService,
+        'getPlatformOrganisationDetail',
+      );
+      const platformRequestSpy = vi.spyOn(
+        organisationDetailsService,
+        'getPlatformOrganisationRequestDetails',
+      );
+
+      renderAppRoutes({
+        initialEntry: '/organisation-information',
+        ...orgAdminContext,
+      });
+
+      expect(
+        await screen.findByRole('heading', { level: 1, name: /Protea Security Gauteng/i }),
+      ).toBeInTheDocument();
+      expect(platformDetailSpy).not.toHaveBeenCalled();
+      expect(platformRequestSpy).not.toHaveBeenCalled();
+    });
 
     const forbiddenRoutesForOrgAdmin = [
       '/campaigns',
@@ -671,7 +737,6 @@ describe('AppRoutes', () => {
 
     const orgContextRequiredRoutes = [
       '/organisation-information',
-      '/organisation-information/org-gauteng-123',
       '/organisation-security-preferences',
       '/organisation-trainees',
       '/organisation-administrators',
@@ -685,6 +750,7 @@ describe('AppRoutes', () => {
           initialEntry: path,
           role: 'ORGANISATION_ADMIN',
           organisation: null,
+          redirectTo: '/organisation-information',
         });
 
         await waitFor(() => {
@@ -705,8 +771,14 @@ describe('AppRoutes', () => {
     const authorizedPlatformRoutes = [
       ['/platform-administrators', /^platform administrators$/i],
       ['/organisation-management', /^platform organisation management$/i],
-      ['/platform/organisations/org-gauteng-123', /^organisation information$/i],
-      ['/platform/organisation-requests/req-durban-456', /^organisation information$/i],
+      [
+        '/platform/organisations/org-gauteng-123',
+        /^(organisation information|Protea Security Gauteng)$/i,
+      ],
+      [
+        '/platform/organisation-requests/req-durban-456',
+        /^(organisation information|Cyber Jan Pending Request)$/i,
+      ],
       ['/account-management', /^account management$/i],
     ] as const;
 
@@ -729,7 +801,6 @@ describe('AppRoutes', () => {
       `/quizzes/${QUIZ_CAMPAIGN_ITEM_ID}`,
       `/quiz-attempts/${ATTEMPT_ID}/results`,
       '/organisation-information',
-      '/organisation-information/org-gauteng-123',
       '/organisation-security-preferences',
       '/organisation-trainees',
       '/organisation-administrators',
@@ -769,7 +840,10 @@ describe('AppRoutes', () => {
         expect(screen.getByTestId('location-path')).toHaveTextContent('/organisation-information');
       });
       expect(
-        await screen.findByRole('heading', { level: 1, name: /organisation information/i }),
+        await screen.findByRole('heading', {
+          level: 1,
+          name: /^(organisation information|Protea Security Gauteng)$/i,
+        }),
       ).toBeInTheDocument();
     });
 

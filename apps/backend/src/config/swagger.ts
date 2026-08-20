@@ -2047,6 +2047,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         PlatformAdminAllowedActions: {
           type: 'object',
           required: ['canTransferSuperAdmin', 'canDemote', 'canResendInvite'],
+          additionalProperties: false,
           properties: {
             canTransferSuperAdmin: booleanProperty(false),
             canDemote: booleanProperty(true),
@@ -2067,6 +2068,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             'inviteId',
             'allowedActions',
           ],
+          additionalProperties: false,
           properties: {
             id: uuidString('9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
             firstName: { type: 'string', example: 'Connor' },
@@ -2074,7 +2076,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             email: { type: 'string', format: 'email', example: 'connor.bell@example.com' },
             platformAdminRole: schemaRef('PlatformAdminRole'),
             adminStatus: schemaRef('PlatformAdminStatus'),
-            authStatus: { type: 'string', example: 'ACTIVE' },
+            authStatus: schemaRef('AuthStatus'),
             invitationStatus: {
               ...schemaRef('PlatformAdminInvitationStatus'),
               nullable: true,
@@ -2092,6 +2094,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             'allowedToDemote',
             'allowedToResendInvites',
           ],
+          additionalProperties: false,
           properties: {
             admins: {
               type: 'array',
@@ -2106,16 +2109,34 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         InvitePlatformAdminRequest: {
           type: 'object',
           required: ['email'],
+          additionalProperties: false,
           properties: {
-            email: { type: 'string', format: 'email', example: 'newadmin@example.com' },
-            firstName: { type: 'string', example: 'Jane' },
-            lastName: { type: 'string', example: 'Doe' },
+            email: {
+              type: 'string',
+              format: 'email',
+              minLength: 1,
+              maxLength: 254,
+              example: 'newadmin@example.com',
+            },
+            firstName: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 100,
+              example: 'Jane',
+            },
+            lastName: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 100,
+              example: 'Doe',
+            },
             confirmUpgrade: booleanProperty(false),
           },
         },
         InvitePlatformAdminResponse: {
           type: 'object',
           required: ['type', 'userId', 'email'],
+          additionalProperties: false,
           properties: {
             type: enumString(['new-invite', 'upgrade-confirmation'], 'new-invite'),
             userId: uuidString('9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
@@ -2125,6 +2146,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         ResendPlatformAdminInviteResponse: {
           type: 'object',
           required: ['success', 'emailQueued'],
+          additionalProperties: false,
           properties: {
             success: trueSuccessProperty(),
             emailQueued: booleanProperty(true),
@@ -2133,28 +2155,41 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         TransferSuperAdminRequest: {
           type: 'object',
           required: ['targetUserId', 'password', 'confirmation'],
+          additionalProperties: false,
           properties: {
             targetUserId: uuidString('c3fdeb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
-            password: { type: 'string', format: 'password', example: 'SuperAdminPassword123!' },
+            password: {
+              type: 'string',
+              format: 'password',
+              minLength: 1,
+              example: 'SuperAdminPassword123!',
+            },
             confirmation: enumString(['TRANSFER'], 'TRANSFER'),
           },
         },
         DemotePlatformAdminRequest: {
           type: 'object',
           required: ['password', 'confirmation'],
+          additionalProperties: false,
           properties: {
-            password: { type: 'string', format: 'password', example: 'SuperAdminPassword123!' },
+            password: {
+              type: 'string',
+              format: 'password',
+              minLength: 1,
+              example: 'SuperAdminPassword123!',
+            },
             confirmation: enumString(['DEMOTE'], 'DEMOTE'),
           },
         },
         DemotePlatformAdminResponse: {
           type: 'object',
           required: ['userId', 'email', 'adminStatus', 'authStatus'],
+          additionalProperties: false,
           properties: {
             userId: uuidString('c3fdeb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
             email: { type: 'string', format: 'email', example: 'demotedadmin@example.com' },
             adminStatus: enumString(['DISABLED'], 'DISABLED'),
-            authStatus: { type: 'string', example: 'ACTIVE' },
+            authStatus: schemaRef('AuthStatus'),
           },
         },
         OrganisationPermissionKey: enumString(
@@ -5157,11 +5192,11 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
           'PlatformAdminsListResponse',
         ),
         InvitePlatformAdminCreated: responseComponent(
-          'Platform administrator invitation or upgrade confirmation queued.',
+          'Platform administrator invitation or upgrade request created successfully.',
           'InvitePlatformAdminResponse',
         ),
         ResendPlatformAdminInviteOk: responseComponent(
-          'Platform administrator invitation email resent.',
+          'Platform administrator invitation resend attempt completed, with emailQueued indicating queue status.',
           'ResendPlatformAdminInviteResponse',
         ),
         TransferSuperAdminOk: responseComponent(

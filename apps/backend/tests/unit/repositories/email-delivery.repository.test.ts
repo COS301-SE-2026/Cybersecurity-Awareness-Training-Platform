@@ -113,7 +113,7 @@ describe('email-delivery.repository terminal transitions', () => {
     });
   });
 
-  it('marks the related invitation failed when the dispatcher records terminal failure', async () => {
+  it('marks the related invitation failed when the dispatcher records terminal failure with definite rejection', async () => {
     await recordEmailDeliveryTerminalFailure({
       jobId: 'email-job-1',
       deliveryLogId: 'email-log-1',
@@ -155,6 +155,61 @@ describe('email-delivery.repository terminal transitions', () => {
       data: { status: 'FAILED_TO_SEND' },
     });
   });
+
+  it('leaves the related invitation unchanged when terminal failure outcome is ambiguous', async () => {
+    await recordEmailDeliveryTerminalFailure({
+      jobId: 'email-job-1',
+      deliveryLogId: 'email-log-1',
+      providerOutcome: 'PROVIDER_AMBIGUOUS',
+      reasonCode: 'SMTP_TIMEOUT_AMBIGUOUS',
+      leaseOwner: 'dispatcher-1',
+      now: new Date('2026-08-09T10:00:00.000Z'),
+    });
+
+    expect(txMock.emailDeliveryLog.update).toHaveBeenCalledWith({
+      where: { id: 'email-log-1' },
+      data: {
+        deliveryStatus: 'FAILED',
+        failedAt: expect.any(Date),
+        failureReason: 'SMTP_TIMEOUT_AMBIGUOUS',
+      },
+    });
+    expect(txMock.emailDeliveryJob.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'email-job-1',
+        status: 'PROCESSING',
+        leaseOwner: 'dispatcher-1',
+        leaseExpiresAt: { gt: new Date('2026-08-09T10:00:00.000Z') },
+        terminalAt: null,
+      },
+      data: expect.objectContaining({
+        status: 'FAILED',
+        terminalAt: expect.any(Date),
+        lastProviderOutcome: 'PROVIDER_AMBIGUOUS',
+        lastReasonCode: 'SMTP_TIMEOUT_AMBIGUOUS',
+      }),
+    });
+    expect(txMock.invitation.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('does not alter the related invitation when the associated token was already revoked', async () => {
+    txMock.actionToken.findUnique.mockResolvedValueOnce({
+      id: 'action-token-1',
+      revokedAt: new Date('2026-08-05T10:00:00.000Z'),
+      usedAt: null,
+    });
+
+    await recordEmailDeliveryTerminalFailure({
+      jobId: 'email-job-1',
+      deliveryLogId: 'email-log-1',
+      providerOutcome: 'PROVIDER_REJECTED',
+      reasonCode: 'SMTP_PERMANENT_FAILURE',
+      leaseOwner: 'dispatcher-1',
+      now: new Date('2026-08-09T10:00:00.000Z'),
+    });
+
+    expect(txMock.invitation.updateMany).not.toHaveBeenCalled();
+  });
 });
 
 describe('email-delivery.repository queue claiming', () => {
@@ -163,7 +218,7 @@ describe('email-delivery.repository queue claiming', () => {
     prismaMock.emailDeliveryJob.findMany.mockResolvedValue([]);
   });
 
-  it('marks expired processing leases terminal ambiguous instead of retrying', async () => {
+  it('marks expired processing leases terminal ambiguous instead of retrying without marking invitation failed', async () => {
     const now = new Date('2026-08-09T10:00:00.000Z');
     prismaMock.emailDeliveryJob.findMany.mockResolvedValue([
       {
@@ -216,6 +271,7 @@ describe('email-delivery.repository queue claiming', () => {
         failureReason: 'EMAIL_PROCESSING_LEASE_EXPIRED',
       },
     });
+    expect(txMock.invitation.updateMany).not.toHaveBeenCalled();
   });
 
   it('atomically claims due jobs with lease and retry deadline fields', async () => {

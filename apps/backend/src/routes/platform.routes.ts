@@ -533,7 +533,7 @@ platformRouter.get('/platform/admins', asyncHandler(listPlatformAdmins));
  *       $ref: '#/components/requestBodies/InvitePlatformAdmin'
  *     responses:
  *       201:
- *         description: Invitation email queued for delivery
+ *         description: Invitation or upgrade request created successfully
  *         content:
  *           application/json:
  *             schema:
@@ -578,7 +578,7 @@ platformRouter.post(
  *         description: The action token ID of the invitation to resend
  *     responses:
  *       200:
- *         description: Invitation email queued for delivery
+ *         description: Platform administrator invitation resend attempt completed
  *         content:
  *           application/json:
  *             schema:
