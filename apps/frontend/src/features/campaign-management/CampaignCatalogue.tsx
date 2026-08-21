@@ -20,6 +20,7 @@ type CampaignCatalogueProps = Readonly<{
   query: CampaignCatalogueQueryDto;
   selectedItems: readonly Pick<CampaignCatalogueItemDto, 'id' | 'type'>[];
   onSelectItem: (item: CampaignCatalogueItemDto) => void;
+  disabled?: boolean;
   onRetry: () => void;
   onSearchChange: (search: string) => void;
   onTypeChange: (type: CampaignCatalogueQueryDto['type']) => void;
@@ -36,6 +37,7 @@ function CampaignCatalogue({
   state,
   query,
   selectedItems,
+  disabled = false,
   onSelectItem,
   onRetry,
   onSearchChange,
@@ -131,7 +133,7 @@ function CampaignCatalogue({
                     aria-label={
                       isSelected ? `${item.title} selected` : `Add ${item.title} to Campaign`
                     }
-                    disabled={isSelected}
+                    disabled={disabled || isSelected}
                     onClick={() => onSelectItem(item)}
                   >
                     {isSelected ? 'Selected' : 'Add to Campaign'}

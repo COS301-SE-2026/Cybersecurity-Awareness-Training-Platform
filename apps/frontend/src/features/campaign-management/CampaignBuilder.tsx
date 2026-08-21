@@ -20,6 +20,7 @@ type CampaignBuilderProps = Readonly<{
   catalogueState?: CampaignCatalogueState;
   onRetryCatalogue?: () => void;
   isSaving?: boolean;
+  isMutationPending?: boolean;
   saveButtonText?: string;
   savingButtonText?: string;
   catalogueQuery?: CampaignCatalogueQueryDto;
@@ -65,6 +66,7 @@ function CampaignBuilder({
   onCatalogueTypeChange,
   onCataloguePageChange,
   isSaving,
+  isMutationPending = false,
   saveButtonText = 'Save Draft',
   savingButtonText = 'Saving...',
 }: CampaignBuilderProps) {
@@ -78,6 +80,7 @@ function CampaignBuilder({
     ...initialDraft,
   }));
   const [hasSubmitted, setHasSubmitted] = useState(false);
+  const isDraftMutationPending = Boolean(isSaving) || isMutationPending;
 
   const hasScheduleError =
     Boolean(draft.startDate) && Boolean(draft.endDate) && draft.endDate <= draft.startDate;
@@ -104,7 +107,7 @@ function CampaignBuilder({
   }
 
   function addCatalogueItem(item: CampaignCatalogueItemDto) {
-    if (isSaving) {
+    if (isDraftMutationPending) {
       return;
     }
 
@@ -134,7 +137,7 @@ function CampaignBuilder({
   }
 
   function moveCampaignItem(index: number, direction: -1 | 1) {
-    if (isSaving) {
+    if (isDraftMutationPending) {
       return;
     }
 
@@ -165,7 +168,7 @@ function CampaignBuilder({
   }
 
   function changeCampaignItemRequirement(index: number, isRequired: boolean) {
-    if (isSaving) {
+    if (isDraftMutationPending) {
       return;
     }
 
@@ -184,7 +187,7 @@ function CampaignBuilder({
   }
 
   function removeCampaignItem(index: number) {
-    if (isSaving) {
+    if (isDraftMutationPending) {
       return;
     }
 
@@ -204,7 +207,7 @@ function CampaignBuilder({
     event.preventDefault();
     setHasSubmitted(true);
 
-    if (isSaving || !draft.name.trim() || hasScheduleError) {
+    if (isDraftMutationPending || !draft.name.trim() || hasScheduleError) {
       return;
     }
 
@@ -215,7 +218,7 @@ function CampaignBuilder({
     <form
       className="campaign-builder"
       aria-label="Campaign details"
-      aria-busy={isSaving}
+      aria-busy={isDraftMutationPending}
       noValidate
       onSubmit={handleSubmit}
     >
@@ -314,7 +317,7 @@ function CampaignBuilder({
 
       <CampaignOrder
         items={draft.items}
-        disabled={isSaving}
+        disabled={isDraftMutationPending}
         onMoveItem={moveCampaignItem}
         onRemoveItem={removeCampaignItem}
         onRequiredChange={changeCampaignItemRequirement}
@@ -329,6 +332,7 @@ function CampaignBuilder({
             state={catalogueState}
             query={catalogueQuery}
             selectedItems={selectedCatalogueItems}
+            disabled={isDraftMutationPending}
             onSelectItem={addCatalogueItem}
             onRetry={onRetryCatalogue}
             onSearchChange={onCatalogueSearchChange}
@@ -341,7 +345,7 @@ function CampaignBuilder({
         <button
           type="button"
           className="campaign-builder__discard"
-          disabled={!isDirty || isSaving}
+          disabled={!isDirty || isDraftMutationPending}
           onClick={() => {
             onRequestDiscard?.();
           }}
@@ -353,7 +357,7 @@ function CampaignBuilder({
           <button
             type="submit"
             className="campaign-button campaign-button--primary"
-            disabled={isSaving}
+            disabled={isDraftMutationPending}
           >
             {isSaving ? savingButtonText : saveButtonText}
           </button>

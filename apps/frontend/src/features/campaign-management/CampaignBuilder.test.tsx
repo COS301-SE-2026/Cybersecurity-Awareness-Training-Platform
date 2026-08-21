@@ -13,6 +13,30 @@ const INITIAL_DRAFT = {
   items: [],
 };
 
+const CATALOGUE_STATE = {
+  status: 'loaded',
+  items: [
+    {
+      id: '50000000-0000-4000-8000-000000000001',
+      type: 'TRAINING_DOCUMENT',
+      title: 'Password security essentials',
+      description: 'Practical password guidance.',
+      contentType: 'AWARENESS_BRIEF',
+      estimatedReadTimeMinutes: 8,
+      difficultyLevel: 'BEGINNER',
+      status: 'AVAILABLE',
+    },
+  ],
+  pagination: {
+    page: 1,
+    limit: 10,
+    totalItems: 1,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPreviousPage: false,
+  },
+} as const;
+
 describe('CampaignBuilder', () => {
   it('initializes and edits Campaign name and description', async () => {
     const user = userEvent.setup();
@@ -198,6 +222,57 @@ describe('CampaignBuilder', () => {
 
     expect(onRequestDiscard).toHaveBeenCalledOnce();
     expect(name).toHaveValue('Changed Campaign');
+  });
+
+  it('locks Draft mutations without showing Save progress', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn();
+
+    render(
+      <CampaignBuilder
+        contextKind="platform"
+        initialDraft={{
+          ...INITIAL_DRAFT,
+          items: [
+            {
+              itemType: 'COMPONENT',
+              campaignItemId: 'item-quiz',
+              componentType: 'QUIZ',
+              contentId: 'quiz-one',
+              title: 'Password quiz',
+              description: null,
+              isRequired: true,
+              sourceAvailable: true,
+            },
+          ],
+        }}
+        onSave={onSave}
+        isSaving={false}
+        isMutationPending
+        catalogueState={CATALOGUE_STATE}
+        catalogueQuery={{ page: 1, limit: 10 }}
+        onRetryCatalogue={vi.fn()}
+        onCatalogueSearchChange={vi.fn()}
+        onCatalogueTypeChange={vi.fn()}
+        onCataloguePageChange={vi.fn()}
+      />,
+    );
+
+    const save = screen.getByRole('button', { name: 'Save Draft' });
+
+    expect(save).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Saving...' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Discard' })).toBeDisabled();
+    expect(screen.getByRole('combobox', { name: 'Requirement for Password quiz' })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Remove Password quiz from Campaign' }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Add Password security essentials to Campaign' }),
+    ).toBeDisabled();
+
+    await user.click(save);
+    expect(onSave).not.toHaveBeenCalled();
   });
 
   it('provides Discard for a pllatform Campaing', () => {
