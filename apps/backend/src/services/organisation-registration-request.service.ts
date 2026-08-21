@@ -641,6 +641,11 @@ export interface FormatEmailLogInput {
   failedAt: Date | null;
   failureReason: string | null;
   actionTokenId?: string | null;
+  providerOutcome?: string | null;
+  deliveryJob?: {
+    lastProviderOutcome?: string | null;
+    lastReasonCode?: string | null;
+  } | null;
 }
 
 type FormatActionTokenInput = FormatInvitationInput['actionTokens'][number];
@@ -660,6 +665,20 @@ function isFailedDeliveryForCurrentSetupToken(
   activeToken: FormatActionTokenInput | undefined,
 ) {
   if (latestEmailLog?.deliveryStatus !== 'FAILED') {
+    return false;
+  }
+
+  const providerOutcome =
+    latestEmailLog.providerOutcome ?? latestEmailLog.deliveryJob?.lastProviderOutcome ?? null;
+
+  const reasonCode =
+    latestEmailLog.failureReason ?? latestEmailLog.deliveryJob?.lastReasonCode ?? null;
+
+  if (providerOutcome === 'PROVIDER_AMBIGUOUS' || reasonCode === 'EMAIL_PROCESSING_LEASE_EXPIRED') {
+    return false;
+  }
+
+  if (providerOutcome && providerOutcome !== 'PROVIDER_REJECTED') {
     return false;
   }
 

@@ -302,6 +302,12 @@ export async function findOrganisationRegistrationRequestsForPlatform(
                 failedAt: true,
                 failureReason: true,
                 actionTokenId: true,
+                deliveryJob: {
+                  select: {
+                    lastProviderOutcome: true,
+                    lastReasonCode: true,
+                  },
+                },
               },
             },
           },
