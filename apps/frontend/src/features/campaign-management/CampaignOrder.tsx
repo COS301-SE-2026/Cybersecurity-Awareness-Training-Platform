@@ -5,6 +5,7 @@ type CampaignOrderProps = Readonly<{
   disabled?: boolean;
   onMoveItem: (index: number, direction: -1 | 1) => void;
   onRemoveItem: (index: number) => void;
+  onRequiredChange: (index: number, isRequired: boolean) => void;
 }>;
 
 const TYPE_LABELS = {
@@ -13,7 +14,13 @@ const TYPE_LABELS = {
   SIMULATED_INBOX: 'Simulated Inbox',
 } as const;
 
-function CampaignOrder({ items, disabled = false, onMoveItem, onRemoveItem }: CampaignOrderProps) {
+function CampaignOrder({
+  items,
+  disabled = false,
+  onMoveItem,
+  onRemoveItem,
+  onRequiredChange,
+}: CampaignOrderProps) {
   return (
     <section className="campaign-order" aria-labelledby="campaign-order-heading">
       <div className="campaign-order__heading">
@@ -43,6 +50,19 @@ function CampaignOrder({ items, disabled = false, onMoveItem, onRemoveItem }: Ca
                     {item.description && <p>{item.description}</p>}
 
                     {item.itemType === 'GROUP' && <p>{item.children.length} grouped items</p>}
+                    <label className="campaign-order-item__requirement">
+                      <span>Requirement for {item.title}</span>
+                      <select
+                        value={item.isRequired ? 'required' : 'optional'}
+                        disabled={disabled}
+                        onChange={(event) => {
+                          onRequiredChange(index, event.target.value === 'required');
+                        }}
+                      >
+                        <option value="required">Required</option>
+                        <option value="optional">Optional</option>
+                      </select>
+                    </label>
                     {item.itemType === 'COMPONENT' && !item.sourceAvailable && (
                       <p className="campaign-order-item__warning">
                         This source is no longer available.

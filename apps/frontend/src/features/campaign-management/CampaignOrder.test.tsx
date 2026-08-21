@@ -7,6 +7,7 @@ import userEvent from '@testing-library/user-event';
 it('displays components and preserves existing groups as opaque order entries', () => {
   const onMoveItem = vi.fn();
   const onRemoveItem = vi.fn();
+  const onRequiredChange = vi.fn();
 
   render(
     <CampaignOrder
@@ -54,6 +55,7 @@ it('displays components and preserves existing groups as opaque order entries', 
       ]}
       onMoveItem={onMoveItem}
       onRemoveItem={onRemoveItem}
+      onRequiredChange={onRequiredChange}
     />,
   );
 
@@ -62,18 +64,25 @@ it('displays components and preserves existing groups as opaque order entries', 
   expect(within(order).getByRole('heading', { name: 'Password quiz' })).toBeInTheDocument();
   expect(within(order).getByRole('heading', { name: 'Existing module' })).toBeInTheDocument();
   expect(within(order).getByText('2 grouped items')).toBeInTheDocument();
+  expect(screen.getByRole('combobox', { name: 'Requirement for Password quiz' })).toHaveValue(
+    'required',
+  );
   expect(screen.getByRole('button', { name: 'Move Password quiz up' })).toBeDisabled();
   expect(screen.getByRole('button', { name: 'Move Password quiz down' })).toBeEnabled();
   expect(screen.getByRole('button', { name: 'Move Existing module down' })).toBeDisabled();
   expect(
     screen.getByRole('button', { name: 'Remove Existing module from Campaign' }),
   ).toBeEnabled();
+  expect(screen.getByRole('combobox', { name: 'Requirement for Existing module' })).toHaveValue(
+    'required',
+  );
 });
 
 it('requests movement and removal using top-level indexes', async () => {
   const user = userEvent.setup();
   const onMoveItem = vi.fn();
   const onRemoveItem = vi.fn();
+  const onRequiredChange = vi.fn();
 
   render(
     <CampaignOrder
@@ -99,6 +108,7 @@ it('requests movement and removal using top-level indexes', async () => {
       ]}
       onMoveItem={onMoveItem}
       onRemoveItem={onRemoveItem}
+      onRequiredChange={onRequiredChange}
     />,
   );
 
@@ -107,4 +117,9 @@ it('requests movement and removal using top-level indexes', async () => {
 
   expect(onMoveItem).toHaveBeenCalledWith(1, -1);
   expect(onRemoveItem).toHaveBeenCalledWith(0);
+  await user.selectOptions(
+    screen.getByRole('combobox', { name: 'Requirement for Password guide' }),
+    'optional',
+  );
+  expect(onRequiredChange).toHaveBeenCalledWith(1, false);
 });

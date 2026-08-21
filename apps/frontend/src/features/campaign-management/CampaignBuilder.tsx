@@ -164,6 +164,25 @@ function CampaignBuilder({
     });
   }
 
+  function changeCampaignItemRequirement(index: number, isRequired: boolean) {
+    if (isSaving) {
+      return;
+    }
+
+    setDraft((currentDraft) => {
+      const item = currentDraft.items[index];
+
+      if (!item || item.isRequired === isRequired) {
+        return currentDraft;
+      }
+
+      const items = [...currentDraft.items];
+      items[index] = { ...item, isRequired };
+
+      return { ...currentDraft, items };
+    });
+  }
+
   function removeCampaignItem(index: number) {
     if (isSaving) {
       return;
@@ -298,6 +317,7 @@ function CampaignBuilder({
         disabled={isSaving}
         onMoveItem={moveCampaignItem}
         onRemoveItem={removeCampaignItem}
+        onRequiredChange={changeCampaignItemRequirement}
       />
       {catalogueState &&
         catalogueQuery &&

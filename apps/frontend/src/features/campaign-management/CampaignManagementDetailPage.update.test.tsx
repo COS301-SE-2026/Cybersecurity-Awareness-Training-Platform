@@ -58,6 +58,7 @@ const FIRST_UPDATE: CampaignDetailResponseDto = {
   ...INITIAL_DETAIL,
   name: 'First saved name',
   updatedAt: '2026-08-16T10:00:00.000Z',
+  items: [{ ...PERSISTED_ITEM, isRequired: false }],
 };
 
 const SECOND_UPDATE: CampaignDetailResponseDto = {
@@ -118,6 +119,10 @@ describe('CampaignManagementDetailPage Draft updates', () => {
 
     await user.clear(name);
     await user.type(name, 'First saved name');
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'Requirement for Password safety quiz' }),
+      'optional',
+    );
     await user.click(screen.getByRole('button', { name: 'Save Changes' }));
 
     await waitFor(() => {
@@ -140,7 +145,7 @@ describe('CampaignManagementDetailPage Draft updates', () => {
               campaignItemId: PERSISTED_ITEM.campaignItemId,
               componentType: PERSISTED_ITEM.componentType,
               contentId: PERSISTED_ITEM.contentId,
-              isRequired: true,
+              isRequired: false,
             },
           ],
           expectedUpdatedAt: INITIAL_DETAIL.updatedAt,
@@ -149,6 +154,9 @@ describe('CampaignManagementDetailPage Draft updates', () => {
     });
 
     expect(screen.getByRole('textbox', { name: 'Campaign name' })).toHaveValue(FIRST_UPDATE.name);
+    expect(
+      screen.getByRole('combobox', { name: 'Requirement for Password safety quiz' }),
+    ).toHaveValue('optional');
     expect(screen.getByRole('button', { name: 'Discard' })).toBeDisabled();
 
     const updatedName = await screen.findByRole('textbox', { name: 'Campaign name' });
@@ -174,6 +182,36 @@ describe('CampaignManagementDetailPage Draft updates', () => {
 
     expect(screen.getByRole('textbox', { name: 'Campaign name' })).toHaveValue(SECOND_UPDATE.name);
     expect(screen.getByRole('button', { name: 'Discard' })).toBeDisabled();
+  });
+
+  it('restores the authoritative item requirement on Discard', async () => {
+    const user = userEvent.setup();
+    const updateCampaignDraft = vi.fn();
+
+    renderPage({
+      getCampaignCatalogue: vi.fn().mockResolvedValue(EMPTY_CATALOGUE),
+      getCampaignDetail: vi.fn().mockResolvedValue(INITIAL_DETAIL),
+      createCampaignDraft: vi.fn(),
+      updateCampaignDraft,
+    });
+
+    const requirement = await screen.findByRole('combobox', {
+      name: 'Requirement for Password safety quiz',
+    });
+
+    expect(requirement).toHaveValue('required');
+    await user.selectOptions(requirement, 'optional');
+    expect(screen.getByRole('button', { name: 'Discard' })).toBeEnabled();
+
+    await user.click(screen.getByRole('button', { name: 'Discard' }));
+
+    const dialog = screen.getByRole('dialog', { name: 'Discard unsaved changes?' });
+    await user.click(within(dialog).getByRole('button', { name: 'Discard' }));
+    expect(
+      screen.getByRole('combobox', { name: 'Requirement for Password safety quiz' }),
+    ).toHaveValue('required');
+    expect(screen.getByRole('button', { name: 'Discard' })).toBeDisabled();
+    expect(updateCampaignDraft).not.toHaveBeenCalled();
   });
 
   it('preserves conflicting edits until authoritative reload is confirmed', async () => {
