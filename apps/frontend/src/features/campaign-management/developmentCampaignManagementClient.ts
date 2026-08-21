@@ -12,6 +12,9 @@ import type {
   CampaignDetailItemDto,
   CampaignDraftComponentItemInputDto,
   CampaignDraftItemInputDto,
+  CampaignAllowedActionDto,
+  CampaignLifecycleActionResponseDto,
+  CampaignMutationPreconditionDto,
 } from '@insightful-phish/shared';
 import {
   CampaignManagementClientError,
@@ -417,6 +420,35 @@ function countDevelopmentCampaignItems(items: readonly CampaignDetailItemDto[]):
   );
 }
 
+function hasUnavailableCampaignContent(items: readonly CampaignDetailItemDto[]): boolean {
+  return items.some((item) =>
+    item.itemType === 'COMPONENT'
+      ? !item.sourceAvailable
+      : item.children.some((child) => !child.sourceAvailable),
+  );
+}
+
+function getDevelopmentAllowedActions(
+  fixture: DevelopmentCampaignFixture,
+  currentTime: Date,
+): CampaignAllowedActionDto[] {
+  const items = fixture.items ?? [];
+  const isExpired = fixture.campaign.endDate
+    ? Date.parse(fixture.campaign.endDate) <= currentTime.getTime()
+    : false;
+  const canActivate = items.length > 0 && !hasUnavailableCampaignContent(items) && !isExpired;
+
+  if (fixture.campaign.status === 'DRAFT') {
+    return canActivate ? ['VIEW', 'EDIT', 'ACTIVATE'] : ['VIEW', 'EDIT'];
+  }
+
+  if (fixture.campaign.status === 'ACTIVE') {
+    return ['VIEW', 'ARCHIVE'];
+  }
+
+  return fixture.campaign.allowedActions;
+}
+
 function toDevelopmentCampaignItems(
   items: readonly CampaignDraftItemInputDto[],
   existingItems: readonly CampaignDetailItemDto[],
@@ -566,6 +598,7 @@ export function createDevelopmentCampaignManagementClient(
         items,
       };
 
+      fixture.campaign.allowedActions = getDevelopmentAllowedActions(fixture, now());
       campaigns.push(fixture);
 
       return toCampaignDetail(fixture);
@@ -621,7 +654,59 @@ export function createDevelopmentCampaignManagementClient(
       };
 
       fixture.items = items;
+      fixture.campaign.allowedActions = getDevelopmentAllowedActions(fixture, now());
       return toCampaignDetail(fixture);
+    },
+
+    async activateCampaign(
+      context: CampaignManagementContext,
+      campaignId: string,
+      request: CampaignMutationPreconditionDto,
+    ): Promise<CampaignLifecycleActionResponseDto> {
+      const fixture = campaigns.find(
+        (candidate) => candidate.campaign.id === campaignId && isInContext(candidate, context),
+      );
+
+      if (!fixture) {
+        throw new Error('CAMPAIGN_NOT_FOUND');
+      }
+
+      if (fixture.campaign.status !== 'DRAFT') {
+        throw new CampaignManagementClientError('LIFECYCLE_CONFLICT');
+      }
+
+      if (fixture.campaign.updatedAt !== request.expectedUpdatedAt) {
+        throw new CampaignManagementClientError('CAMPAIGN_CHANGED');
+      }
+
+      const items = fixture.items ?? [];
+
+      if (items.length === 0) {
+        throw new CampaignManagementClientError('EMPTY_CAMPAIGN');
+      }
+
+      if (hasUnavailableCampaignContent(items)) {
+        throw new CampaignManagementClientError('UNAVAILABLE_CAMPAIGN_CONTENT');
+      }
+
+      const requestedTimestamp = now().getTime();
+      const currentTimestamp = Date.parse(fixture.campaign.updatedAt);
+      const updatedAt = new Date(Math.max(requestedTimestamp, currentTimestamp + 1)).toISOString();
+
+      fixture.campaign = {
+        ...fixture.campaign,
+        status: 'ACTIVE',
+        updatedAt,
+      };
+      fixture.campaign.allowedActions = getDevelopmentAllowedActions(fixture, now());
+
+      return {
+        success: true,
+        campaignId,
+        status: fixture.campaign.status,
+        updatedAt,
+        allowedActions: fixture.campaign.allowedActions,
+      };
     },
   };
 }

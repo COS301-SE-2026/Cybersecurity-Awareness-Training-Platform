@@ -379,4 +379,77 @@ describe('developmentCampaignManagementClient.getCampaignDetail', () => {
       }),
     ).rejects.toThrow('The same Campaign Item ID cannot appear more than once.');
   });
+
+  it('activates a valid Draft with authoritative lifecycle state', async () => {
+    const client = createClient();
+    const created = await client.createCampaignDraft(ORGANISATION_CONTEXT, {
+      ...ORGANISATION_REQUEST,
+      items: [
+        {
+          itemType: 'COMPONENT',
+          componentType: 'QUIZ',
+          contentId: '50000000-0000-4000-8000-000000000002',
+          isRequired: true,
+        },
+      ],
+    });
+
+    expect(created.allowedActions).toContain('ACTIVATE');
+
+    const activated = await client.activateCampaign(ORGANISATION_CONTEXT, created.id, {
+      expectedUpdatedAt: created.updatedAt,
+    });
+
+    expect(activated.status).toBe('ACTIVE');
+    expect(Date.parse(activated.updatedAt)).toBeGreaterThan(Date.parse(created.updatedAt));
+    expect(activated.allowedActions).toEqual(['VIEW', 'ARCHIVE']);
+  });
+
+  it('leaves an empty Draft unchanged after failed activation', async () => {
+    const client = createClient();
+    const created = await client.createCampaignDraft(ORGANISATION_CONTEXT, ORGANISATION_REQUEST);
+    const originalActions = [...created.allowedActions];
+
+    const error = await client
+      .activateCampaign(ORGANISATION_CONTEXT, created.id, {
+        expectedUpdatedAt: created.updatedAt,
+      })
+      .catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(CampaignManagementClientError);
+    expect(error).toMatchObject({ code: 'EMPTY_CAMPAIGN' });
+
+    const unchanged = await client.getCampaignDetail(ORGANISATION_CONTEXT, created.id);
+
+    expect(unchanged.status).toBe('DRAFT');
+    expect(unchanged.updatedAt).toBe(created.updatedAt);
+    expect(unchanged.items).toEqual(created.items);
+    expect(unchanged.allowedActions).toEqual(originalActions);
+  });
+
+  it('mirrors direct backend activation for an expired Draft', async () => {
+    const client = createClient();
+    const created = await client.createCampaignDraft(ORGANISATION_CONTEXT, {
+      ...ORGANISATION_REQUEST,
+      startDate: '2026-07-01T08:00:00.000Z',
+      endDate: '2026-08-01T17:00:00.000Z',
+      items: [
+        {
+          itemType: 'COMPONENT',
+          componentType: 'QUIZ',
+          contentId: '50000000-0000-4000-8000-000000000002',
+          isRequired: true,
+        },
+      ],
+    });
+
+    expect(created.allowedActions).not.toContain('ACTIVATE');
+
+    const activated = await client.activateCampaign(ORGANISATION_CONTEXT, created.id, {
+      expectedUpdatedAt: created.updatedAt,
+    });
+
+    expect(activated.status).toBe('ACTIVE');
+    expect(activated.allowedActions).toEqual(['VIEW', 'ARCHIVE']);
+  });
 });

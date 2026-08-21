@@ -1,7 +1,9 @@
 import type {
   CampaignCatalogueQueryDto,
   CampaignDetailResponseDto,
+  CampaignLifecycleActionResponseDto,
   CampaignListQueryDto,
+  CampaignMutationPreconditionDto,
   CreateCampaignDraftRequestDto,
   GetCampaignCatalogueResponseDto,
   GetCampaignsResponseDto,
@@ -9,7 +11,12 @@ import type {
 } from '@insightful-phish/shared';
 import type { CampaignManagementContext } from './campaignManagement.types';
 
-export type CampaignManagementErrorCode = 'CAMPAIGN_CHANGED' | 'CAMPAIGN_IMMUTABLE';
+export type CampaignManagementErrorCode =
+  | 'CAMPAIGN_CHANGED'
+  | 'CAMPAIGN_IMMUTABLE'
+  | 'LIFECYCLE_CONFLICT'
+  | 'EMPTY_CAMPAIGN'
+  | 'UNAVAILABLE_CAMPAIGN_CONTENT';
 
 export class CampaignManagementClientError extends Error {
   readonly code: CampaignManagementErrorCode;
@@ -43,4 +50,9 @@ export interface CampaignManagementClient {
     campaignId: string,
     request: UpdateCampaignDraftRequestDto,
   ): Promise<CampaignDetailResponseDto>;
+  activateCampaign(
+    context: CampaignManagementContext,
+    campaignId: string,
+    request: CampaignMutationPreconditionDto,
+  ): Promise<CampaignLifecycleActionResponseDto>;
 }
