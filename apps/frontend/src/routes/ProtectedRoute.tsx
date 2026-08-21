@@ -1,5 +1,5 @@
 import { Navigate, Outlet } from 'react-router-dom';
-import type { UserTypeDto } from '@insightful-phish/shared';
+import type { UserTypeDto, AuthContextDto } from '@insightful-phish/shared';
 
 import { useAuth } from '../context/useAuth';
 
@@ -10,6 +10,36 @@ type ProtectedRouteProps = Readonly<{
   requiredPermission?: string;
   redirectTo?: string;
 }>;
+
+function getDefaultRedirect(
+  userRole?: UserTypeDto | null,
+  authContext?: AuthContextDto | null,
+): string {
+  if (authContext?.redirectTo) {
+    if (
+      userRole === 'ORGANISATION_ADMIN' &&
+      !authContext.organisation?.id &&
+      authContext.redirectTo.startsWith('/organisation')
+    ) {
+      return '/';
+    }
+    return authContext.redirectTo;
+  }
+
+  if (userRole === 'IP_ADMIN') {
+    return '/platform-administrators';
+  }
+
+  if (userRole === 'ORGANISATION_ADMIN') {
+    return authContext?.organisation?.id ? '/organisation-information' : '/';
+  }
+
+  if (userRole === 'ORGANISATION_TRAINEE' || userRole === 'GENERAL_TRAINEE') {
+    return '/campaigns';
+  }
+
+  return '/';
+}
 
 function ProtectedRoute({
   requiredRole,
@@ -46,16 +76,18 @@ function ProtectedRoute({
 
   const userRole = authContext?.role ?? user?.userType;
 
-  const hasRequiredRole = !requiredRole || authContext?.role === requiredRole;
+  const hasRequiredRole = !requiredRole || userRole === requiredRole;
+  const hasAllowedRole =
+    !allowedRoles ||
+    allowedRoles.length === 0 ||
+    (Boolean(userRole) && allowedRoles.includes(userRole!));
   const hasRequiredOrganisation = !requireOrganisation || Boolean(authContext?.organisation?.id);
   const hasRequiredPermission = !requiredPermission || permissions.includes(requiredPermission);
 
-  if (!hasRequiredRole || !hasRequiredOrganisation || !hasRequiredPermission) {
-    return <Navigate to="/" replace />;
-  }
+  const fallbackRedirect = redirectTo ?? getDefaultRedirect(userRole, authContext);
 
-  if (allowedRoles && allowedRoles.length > 0 && (!userRole || !allowedRoles.includes(userRole))) {
-    return <Navigate to={redirectTo ?? '/campaigns'} replace />;
+  if (!hasRequiredRole || !hasAllowedRole || !hasRequiredOrganisation || !hasRequiredPermission) {
+    return <Navigate to={fallbackRedirect} replace />;
   }
 
   return <Outlet />;
