@@ -605,4 +605,80 @@ describe('CampaignManagementDetailPage catalogue', () => {
     expect(screen.getByText('2 items selected')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Discard' })).toBeDisabled();
   });
+
+  it('makes removed content addable and restores authoritative order on Discard', async () => {
+    const user = userEvent.setup();
+    const orderedDetail: CampaignDetailResponseDto = {
+      ...DRAFT_DETAIL,
+      items: [
+        {
+          itemType: 'COMPONENT',
+          campaignItemId: 'document-item',
+          componentType: 'TRAINING_DOCUMENT',
+          contentId: '50000000-0000-4000-8000-000000000001',
+          title: 'Password security essentials',
+          description: null,
+          position: 10,
+          isRequired: true,
+          sourceAvailable: true,
+        },
+        {
+          itemType: 'COMPONENT',
+          campaignItemId: 'quiz-item',
+          componentType: 'QUIZ',
+          contentId: '50000000-0000-4000-8000-000000000002',
+          title: 'Password safety quiz',
+          description: null,
+          position: 20,
+          isRequired: true,
+          sourceAvailable: true,
+        },
+      ],
+    };
+
+    renderPage({
+      getCampaignCatalogue: vi.fn().mockResolvedValue(CATALOGUE_RESPONSE),
+      getCampaignDetail: vi.fn().mockResolvedValue(orderedDetail),
+      createCampaignDraft: vi.fn(),
+      updateCampaignDraft: vi.fn(),
+    });
+
+    let order = await screen.findByRole('region', { name: 'Campaign Order' });
+
+    expect(
+      within(order)
+        .getAllByRole('heading', { level: 3 })
+        .map((heading) => heading.textContent),
+    ).toEqual(['Password security essentials', 'Password safety quiz']);
+
+    await user.click(
+      screen.getByRole('button', { name: 'Remove Password security essentials from Campaign' }),
+    );
+
+    expect(
+      within(order).queryByRole('heading', { name: 'Password security essentials' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Add Password security essentials to Campaign' }),
+    ).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Discard' })).toBeEnabled();
+
+    await user.click(screen.getByRole('button', { name: 'Discard' }));
+
+    const dialog = screen.getByRole('dialog', { name: 'Discard unsaved changes?' });
+    await user.click(within(dialog).getByRole('button', { name: 'Discard' }));
+
+    order = screen.getByRole('region', { name: 'Campaign Order' });
+
+    expect(
+      within(order)
+        .getAllByRole('heading', { level: 3 })
+        .map((heading) => heading.textContent),
+    ).toEqual(['Password security essentials', 'Password safety quiz']);
+
+    expect(
+      screen.getByRole('button', { name: 'Password security essentials selected' }),
+    ).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Discard' })).toBeDisabled();
+  });
 });

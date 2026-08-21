@@ -2,6 +2,9 @@ import type { CampaignDraftItemState } from './campaignManagement.types';
 
 type CampaignOrderProps = Readonly<{
   items: readonly CampaignDraftItemState[];
+  disabled?: boolean;
+  onMoveItem: (index: number, direction: -1 | 1) => void;
+  onRemoveItem: (index: number) => void;
 }>;
 
 const TYPE_LABELS = {
@@ -10,7 +13,7 @@ const TYPE_LABELS = {
   SIMULATED_INBOX: 'Simulated Inbox',
 } as const;
 
-function CampaignOrder({ items }: CampaignOrderProps) {
+function CampaignOrder({ items, disabled = false, onMoveItem, onRemoveItem }: CampaignOrderProps) {
   return (
     <section className="campaign-order" aria-labelledby="campaign-order-heading">
       <div className="campaign-order__heading">
@@ -45,6 +48,32 @@ function CampaignOrder({ items }: CampaignOrderProps) {
                         This source is no longer available.
                       </p>
                     )}
+                  </div>
+                  <div className="campaign-order-item__controls">
+                    <button
+                      type="button"
+                      aria-label={`Move ${item.title} up`}
+                      disabled={disabled || index === 0}
+                      onClick={() => onMoveItem(index, -1)}
+                    >
+                      Move up
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Move ${item.title} down`}
+                      disabled={disabled || index === items.length - 1}
+                      onClick={() => onMoveItem(index, 1)}
+                    >
+                      Move down
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Remove ${item.title} from Campaign`}
+                      disabled={disabled}
+                      onClick={() => onRemoveItem(index)}
+                    >
+                      Remove
+                    </button>
                   </div>
                 </article>
               </li>

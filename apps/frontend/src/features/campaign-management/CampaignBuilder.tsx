@@ -1,4 +1,4 @@
-import { useId, useState, type FormEvent } from 'react';
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 
 import CampaignCatalogue, { type CampaignCatalogueState } from './CampaignCatalogue';
 import CampaignColourField from './CampaignColourField';
@@ -70,6 +70,7 @@ function CampaignBuilder({
 }: CampaignBuilderProps) {
   const nameInputId = useId();
   const nameErrorId = `${nameInputId}-error`;
+  const onDirtyChangeRef = useRef(onDirtyChange);
   const [persistedDraft] = useState<CampaignDraftFormState>(() => ({
     ...initialDraft,
   }));
@@ -88,37 +89,95 @@ function CampaignBuilder({
     id: item.contentId,
   }));
 
-  function updateDraft(patch: Partial<CampaignDraftFormState>) {
-    const nextDraft: CampaignDraftFormState = {
-      ...draft,
-      ...patch,
-    };
+  useEffect(() => {
+    onDirtyChangeRef.current = onDirtyChange;
+  }, [onDirtyChange]);
+  useEffect(() => {
+    onDirtyChangeRef.current?.(isDirty);
+  }, [isDirty]);
 
-    setDraft(nextDraft);
-    onDirtyChange?.(!areDraftsEqual(persistedDraft, nextDraft));
+  function updateDraft(patch: Partial<CampaignDraftFormState>) {
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      ...patch,
+    }));
   }
 
   function addCatalogueItem(item: CampaignCatalogueItemDto) {
-    const alreadyAdded = getDraftComponents(draft.items).some(
-      (draftItem) => draftItem.componentType === item.type && draftItem.contentId === item.id,
-    );
-
-    if (alreadyAdded) {
+    if (isSaving) {
       return;
     }
 
-    const draftItem: CampaignDraftComponentItemState = {
-      itemType: 'COMPONENT',
-      componentType: item.type,
-      contentId: item.id,
-      title: item.title,
-      description: item.description ?? null,
-      isRequired: true,
-      sourceAvailable: true,
-    };
+    setDraft((currentDraft) => {
+      const alreadyAdded = getDraftComponents(currentDraft.items).some(
+        (draftItem) => draftItem.componentType === item.type && draftItem.contentId === item.id,
+      );
 
-    updateDraft({
-      items: [...draft.items, draftItem],
+      if (alreadyAdded) {
+        return currentDraft;
+      }
+
+      const draftItem: CampaignDraftComponentItemState = {
+        itemType: 'COMPONENT',
+        componentType: item.type,
+        contentId: item.id,
+        title: item.title,
+        description: item.description ?? null,
+        isRequired: true,
+        sourceAvailable: true,
+      };
+      return {
+        ...currentDraft,
+        items: [...currentDraft.items, draftItem],
+      };
+    });
+  }
+
+  function moveCampaignItem(index: number, direction: -1 | 1) {
+    if (isSaving) {
+      return;
+    }
+
+    setDraft((currentDraft) => {
+      const destination = index + direction;
+
+      if (
+        index < 0 ||
+        index >= currentDraft.items.length ||
+        destination < 0 ||
+        destination >= currentDraft.items.length
+      ) {
+        return currentDraft;
+      }
+      const items = [...currentDraft.items];
+      const [movedItem] = items.splice(index, 1);
+
+      if (!movedItem) {
+        return currentDraft;
+      }
+
+      items.splice(destination, 0, movedItem);
+      return {
+        ...currentDraft,
+        items,
+      };
+    });
+  }
+
+  function removeCampaignItem(index: number) {
+    if (isSaving) {
+      return;
+    }
+
+    setDraft((currentDraft) => {
+      if (index < 0 || index >= currentDraft.items.length) {
+        return currentDraft;
+      }
+
+      return {
+        ...currentDraft,
+        items: currentDraft.items.filter((_, itemIndex) => itemIndex !== index),
+      };
     });
   }
 
@@ -234,7 +293,12 @@ function CampaignBuilder({
         </fieldset>
       )}
 
-      <CampaignOrder items={draft.items} />
+      <CampaignOrder
+        items={draft.items}
+        disabled={isSaving}
+        onMoveItem={moveCampaignItem}
+        onRemoveItem={removeCampaignItem}
+      />
       {catalogueState &&
         catalogueQuery &&
         onRetryCatalogue &&
