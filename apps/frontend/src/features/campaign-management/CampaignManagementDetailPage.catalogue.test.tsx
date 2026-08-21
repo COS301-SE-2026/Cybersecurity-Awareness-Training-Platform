@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import type {
@@ -85,6 +85,23 @@ const CATALOGUE_RESPONSE: GetCampaignCatalogueResponseDto = {
     hasNextPage: false,
     hasPreviousPage: false,
   },
+};
+
+const SELECTED_DETAIL: CampaignDetailResponseDto = {
+  ...DRAFT_DETAIL,
+  items: [
+    {
+      itemType: 'COMPONENT',
+      campaignItemId: '90000000-0000-4000-8000-000000000001',
+      componentType: 'TRAINING_DOCUMENT',
+      contentId: '50000000-0000-4000-8000-000000000001',
+      title: 'Password security essentials',
+      description: 'Practical guidance for creating and protecting strong passwords.',
+      position: 10,
+      isRequired: true,
+      sourceAvailable: true,
+    },
+  ],
 };
 
 function renderPage(client: DetailClient, initialEntry = DETAIL_PATH) {
@@ -184,13 +201,18 @@ describe('CampaignManagementDetailPage catalogue', () => {
     expect(
       screen.getByRole('button', { name: 'Password security essentials selected' }),
     ).toBeDisabled();
+    const order = screen.getByRole('region', { name: 'Campaign Order' });
+    expect(
+      within(order).getByRole('heading', { name: 'Password security essentials' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Discard' })).toBeEnabled();
   });
 
   it('preserves selection across catalogue queries and an authoritative Builder reset', async () => {
     const user = userEvent.setup();
     const getCampaignCatalogue = vi.fn().mockResolvedValue(CATALOGUE_RESPONSE);
     const updateCampaignDraft = vi.fn().mockResolvedValue({
-      ...DRAFT_DETAIL,
+      ...SELECTED_DETAIL,
       name: 'Saved Campaign',
       updatedAt: '2026-08-18T12:00:00.000Z',
     });
@@ -233,6 +255,19 @@ describe('CampaignManagementDetailPage catalogue', () => {
       expect(updateCampaignDraft).toHaveBeenCalledOnce();
     });
 
+    expect(updateCampaignDraft).toHaveBeenCalledWith(
+      expect.anything(),
+      CAMPAIGN_ID,
+      expect.objectContaining({
+        items: [
+          expect.objectContaining({
+            componentType: 'TRAINING_DOCUMENT',
+            contentId: '50000000-0000-4000-8000-000000000001',
+          }),
+        ],
+      }),
+    );
+
     expect(await screen.findByRole('textbox', { name: 'Campaign name' })).toHaveValue(
       'Saved Campaign',
     );
@@ -244,8 +279,8 @@ describe('CampaignManagementDetailPage catalogue', () => {
 
   it('preserves selection when a new Draft receives its authoritative Campaign ID', async () => {
     const user = userEvent.setup();
-    const createCampaignDraft = vi.fn().mockResolvedValue(DRAFT_DETAIL);
-    const getCampaignDetail = vi.fn().mockResolvedValue(DRAFT_DETAIL);
+    const createCampaignDraft = vi.fn().mockResolvedValue(SELECTED_DETAIL);
+    const getCampaignDetail = vi.fn().mockResolvedValue(SELECTED_DETAIL);
 
     renderPage(
       {
@@ -269,6 +304,18 @@ describe('CampaignManagementDetailPage catalogue', () => {
       expect(createCampaignDraft).toHaveBeenCalledOnce();
     });
 
+    expect(createCampaignDraft).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        items: [
+          expect.objectContaining({
+            componentType: 'TRAINING_DOCUMENT',
+            contentId: '50000000-0000-4000-8000-000000000001',
+          }),
+        ],
+      }),
+    );
+
     expect(
       await screen.findByRole('heading', {
         level: 1,
@@ -285,7 +332,7 @@ describe('CampaignManagementDetailPage catalogue', () => {
     );
     expect(screen.getByText('1 item selected')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Password security essentials selected' }),
+      await screen.findByRole('button', { name: 'Password security essentials selected' }),
     ).toBeDisabled();
   });
 
@@ -501,5 +548,61 @@ describe('CampaignManagementDetailPage catalogue', () => {
 
     expect(screen.getByRole('heading', { name: 'Newer search result' })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Older search result' })).not.toBeInTheDocument();
+  });
+
+  it('prevents adding content already present inside an authoritative group', async () => {
+    const groupedDetail: CampaignDetailResponseDto = {
+      ...DRAFT_DETAIL,
+      items: [
+        {
+          itemType: 'GROUP',
+          campaignItemId: 'group-one',
+          title: 'Existing module',
+          description: null,
+          groupType: 'MODULE',
+          completionRule: 'COMPLETE_REQUIRED_ONLY',
+          position: 10,
+          isRequired: true,
+          children: [
+            {
+              itemType: 'COMPONENT',
+              campaignItemId: 'child-one',
+              componentType: 'TRAINING_DOCUMENT',
+              contentId: '50000000-0000-4000-8000-000000000001',
+              title: 'Password security essentials',
+              description: null,
+              position: 10,
+              isRequired: true,
+              sourceAvailable: true,
+            },
+            {
+              itemType: 'COMPONENT',
+              campaignItemId: 'child-two',
+              componentType: 'QUIZ',
+              contentId: '50000000-0000-4000-8000-000000000002',
+              title: 'Password safety quiz',
+              description: null,
+              position: 20,
+              isRequired: true,
+              sourceAvailable: true,
+            },
+          ],
+        },
+      ],
+    };
+
+    renderPage({
+      getCampaignCatalogue: vi.fn().mockResolvedValue(CATALOGUE_RESPONSE),
+      getCampaignDetail: vi.fn().mockResolvedValue(groupedDetail),
+      createCampaignDraft: vi.fn(),
+      updateCampaignDraft: vi.fn(),
+    });
+
+    expect(
+      await screen.findByRole('button', { name: 'Password security essentials selected' }),
+    ).toBeDisabled();
+
+    expect(screen.getByText('2 items selected')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Discard' })).toBeDisabled();
   });
 });

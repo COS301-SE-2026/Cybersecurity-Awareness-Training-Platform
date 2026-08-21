@@ -18,7 +18,7 @@ export type CampaignCatalogueState =
 type CampaignCatalogueProps = Readonly<{
   state: CampaignCatalogueState;
   query: CampaignCatalogueQueryDto;
-  selectedItems: readonly CampaignCatalogueItemDto[];
+  selectedItems: readonly Pick<CampaignCatalogueItemDto, 'id' | 'type'>[];
   onSelectItem: (item: CampaignCatalogueItemDto) => void;
   onRetry: () => void;
   onSearchChange: (search: string) => void;

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import type {
-  CampaignCatalogueItemDto,
   CampaignCatalogueQueryDto,
   CampaignDetailResponseDto,
 } from '@insightful-phish/shared';
@@ -54,11 +53,6 @@ type EditorDirtyState = {
 type OwnedCatalogueState = {
   ownerKey: string;
   state: CampaignCatalogueState;
-};
-
-type CatalogueSelectionState = {
-  ownerKey: string;
-  items: readonly CampaignCatalogueItemDto[];
 };
 
 type ConfirmationIntent = 'reset' | 'discard-new' | 'leave' | 'reload' | null;
@@ -118,10 +112,6 @@ function CampaignManagementDetailPage({
 
   const routeOwnershipKey = getRouteOwnershipKey(contextKind, organisationId, campaignId);
   const [activeRouteOwnershipKey, setActiveRouteOwnershipKey] = useState(routeOwnershipKey);
-  const [catalogueSelection, setCatalogueSelection] = useState<CatalogueSelectionState>({
-    ownerKey: routeOwnershipKey,
-    items: [],
-  });
 
   const catalogueQueryKey = [
     routeOwnershipKey,
@@ -131,15 +121,7 @@ function CampaignManagementDetailPage({
     catalogueQuery.type ?? '',
   ].join(':');
 
-  const selectedCatalogueItems =
-    catalogueSelection.ownerKey === routeOwnershipKey ? catalogueSelection.items : [];
-
   if (activeRouteOwnershipKey !== routeOwnershipKey) {
-    setCatalogueSelection((currentSelection) =>
-      currentSelection.ownerKey === routeOwnershipKey
-        ? currentSelection
-        : { ownerKey: routeOwnershipKey, items: [] },
-    );
     setActiveRouteOwnershipKey(routeOwnershipKey);
     setIsSaving(false);
     setSaveError(null);
@@ -333,22 +315,6 @@ function CampaignManagementDetailPage({
     }));
   }
 
-  function selectCatalogueItem(item: CampaignCatalogueItemDto) {
-    setCatalogueSelection((currentSelection) => {
-      const currentItems =
-        currentSelection.ownerKey === routeOwnershipKey ? currentSelection.items : [];
-
-      const alreadySelected = currentItems.some(
-        (selectedItem) => selectedItem.type === item.type && selectedItem.id === item.id,
-      );
-
-      return {
-        ownerKey: routeOwnershipKey,
-        items: alreadySelected ? currentItems : [...currentItems, item],
-      };
-    });
-  }
-
   async function handleCreateCampaignDraft(draft: CampaignDraftFormState) {
     if (saveInFlightRef.current) {
       return;
@@ -369,14 +335,6 @@ function CampaignManagementDetailPage({
       if (saveRequestIdRef.current !== saveRequestId) {
         return;
       }
-
-      const destinationOwnershipKey = getRouteOwnershipKey(contextKind, organisationId, created.id);
-
-      setCatalogueSelection((currentSelection) =>
-        currentSelection.ownerKey === routeOwnershipKey
-          ? { ...currentSelection, ownerKey: destinationOwnershipKey }
-          : currentSelection,
-      );
 
       navigate(`${campaignListPath}/${created.id}`, {
         replace: true,
@@ -529,8 +487,6 @@ function CampaignManagementDetailPage({
             savingButtonText="Saving Draft…"
             catalogueState={currentCatalogueState}
             catalogueQuery={catalogueQuery}
-            selectedCatalogueItems={selectedCatalogueItems}
-            onSelectCatalogueItem={selectCatalogueItem}
             onRetryCatalogue={retryCampaignCatalogue}
             onCatalogueSearchChange={updateCatalogueSearch}
             onCatalogueTypeChange={updateCatalogueType}
@@ -608,8 +564,6 @@ function CampaignManagementDetailPage({
             savingButtonText="Saving Changes…"
             catalogueState={currentCatalogueState}
             catalogueQuery={catalogueQuery}
-            selectedCatalogueItems={selectedCatalogueItems}
-            onSelectCatalogueItem={selectCatalogueItem}
             onRetryCatalogue={retryCampaignCatalogue}
             onCatalogueSearchChange={updateCatalogueSearch}
             onCatalogueTypeChange={updateCatalogueType}

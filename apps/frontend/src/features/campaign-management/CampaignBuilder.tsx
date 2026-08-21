@@ -2,7 +2,13 @@ import { useId, useState, type FormEvent } from 'react';
 
 import CampaignCatalogue, { type CampaignCatalogueState } from './CampaignCatalogue';
 import CampaignColourField from './CampaignColourField';
-import type { CampaignDraftFormState, CampaignManagementContext } from './campaignManagement.types';
+import CampaignOrder from './CampaignOrder';
+import type {
+  CampaignDraftComponentItemState,
+  CampaignDraftFormState,
+  CampaignDraftItemState,
+  CampaignManagementContext,
+} from './campaignManagement.types';
 import type { CampaignCatalogueItemDto, CampaignCatalogueQueryDto } from '@insightful-phish/shared';
 
 type CampaignBuilderProps = Readonly<{
@@ -17,8 +23,6 @@ type CampaignBuilderProps = Readonly<{
   saveButtonText?: string;
   savingButtonText?: string;
   catalogueQuery?: CampaignCatalogueQueryDto;
-  selectedCatalogueItems?: readonly CampaignCatalogueItemDto[];
-  onSelectCatalogueItem?: (item: CampaignCatalogueItemDto) => void;
   onCatalogueSearchChange?: (search: string) => void;
   onCatalogueTypeChange?: (type: CampaignCatalogueQueryDto['type']) => void;
   onCataloguePageChange?: (page: number) => void;
@@ -29,6 +33,12 @@ function areDraftItemsEqual(
   right: CampaignDraftFormState['items'],
 ): boolean {
   return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function getDraftComponents(
+  items: readonly CampaignDraftItemState[],
+): readonly CampaignDraftComponentItemState[] {
+  return items.flatMap((item) => (item.itemType === 'GROUP' ? item.children : [item]));
 }
 
 function areDraftsEqual(left: CampaignDraftFormState, right: CampaignDraftFormState): boolean {
@@ -50,8 +60,6 @@ function CampaignBuilder({
   onSave,
   catalogueState,
   catalogueQuery,
-  selectedCatalogueItems,
-  onSelectCatalogueItem,
   onRetryCatalogue,
   onCatalogueSearchChange,
   onCatalogueTypeChange,
@@ -75,6 +83,10 @@ function CampaignBuilder({
 
   const isDirty = !areDraftsEqual(persistedDraft, draft);
   const hasNameError = hasSubmitted && draft.name.trim().length === 0;
+  const selectedCatalogueItems = getDraftComponents(draft.items).map((item) => ({
+    type: item.componentType,
+    id: item.contentId,
+  }));
 
   function updateDraft(patch: Partial<CampaignDraftFormState>) {
     const nextDraft: CampaignDraftFormState = {
@@ -84,6 +96,30 @@ function CampaignBuilder({
 
     setDraft(nextDraft);
     onDirtyChange?.(!areDraftsEqual(persistedDraft, nextDraft));
+  }
+
+  function addCatalogueItem(item: CampaignCatalogueItemDto) {
+    const alreadyAdded = getDraftComponents(draft.items).some(
+      (draftItem) => draftItem.componentType === item.type && draftItem.contentId === item.id,
+    );
+
+    if (alreadyAdded) {
+      return;
+    }
+
+    const draftItem: CampaignDraftComponentItemState = {
+      itemType: 'COMPONENT',
+      componentType: item.type,
+      contentId: item.id,
+      title: item.title,
+      description: item.description ?? null,
+      isRequired: true,
+      sourceAvailable: true,
+    };
+
+    updateDraft({
+      items: [...draft.items, draftItem],
+    });
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -198,10 +234,9 @@ function CampaignBuilder({
         </fieldset>
       )}
 
+      <CampaignOrder items={draft.items} />
       {catalogueState &&
         catalogueQuery &&
-        selectedCatalogueItems &&
-        onSelectCatalogueItem &&
         onRetryCatalogue &&
         onCatalogueSearchChange &&
         onCatalogueTypeChange &&
@@ -210,7 +245,7 @@ function CampaignBuilder({
             state={catalogueState}
             query={catalogueQuery}
             selectedItems={selectedCatalogueItems}
-            onSelectItem={onSelectCatalogueItem}
+            onSelectItem={addCatalogueItem}
             onRetry={onRetryCatalogue}
             onSearchChange={onCatalogueSearchChange}
             onTypeChange={onCatalogueTypeChange}
