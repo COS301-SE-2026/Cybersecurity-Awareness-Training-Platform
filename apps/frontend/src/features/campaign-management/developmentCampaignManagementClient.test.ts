@@ -2,15 +2,16 @@ import { describe, expect, it } from 'vitest';
 
 import { CampaignManagementClientError } from './campaignManagementClient';
 import { createDevelopmentCampaignManagementClient } from './developmentCampaignManagementClient';
-import type {
-  CreateCampaignDraftRequestDto,
-  UpdateCampaignDraftRequestDto,
+import {
+  type CreateCampaignDraftRequestDto,
+  type UpdateCampaignDraftRequestDto,
 } from '@insightful-phish/shared';
 
 const PRIMARY_ORGANISATION_ID = '11111111-1111-4111-8111-111111111111';
 const SECONDARY_ORGANISATION_ID = '22222222-2222-4222-8222-222222222222';
 const DRAFT_CAMPAIGN_ID = '10000000-0000-4000-8000-000000000001';
 const ACTIVE_CAMPAIGN_ID = '10000000-0000-4000-8000-000000000002';
+const ARCHIVED_CAMPAIGN_ID = '10000000-0000-4000-8000-000000000003';
 const CREATED_CAMPAIGN_ID = '40000000-0000-4000-8000-000000000001';
 const CREATED_AT = '2026-08-16T10:00:00.000Z';
 const VIEW_ONLY_DRAFT_ID = '10000000-0000-4000-8000-000000000005';
@@ -451,5 +452,181 @@ describe('developmentCampaignManagementClient.getCampaignDetail', () => {
 
     expect(activated.status).toBe('ACTIVE');
     expect(activated.allowedActions).toEqual(['VIEW', 'ARCHIVE']);
+  });
+
+  it('isolated lifecycle state between development client instances', async () => {
+    const firstClient = createClient();
+    const active = await firstClient.getCampaignDetail(ORGANISATION_CONTEXT, ACTIVE_CAMPAIGN_ID);
+
+    await firstClient.archiveCampaign(ORGANISATION_CONTEXT, active.id, {
+      expectedUpdatedAt: active.updatedAt,
+    });
+
+    expect(
+      await firstClient.getCampaignDetail(ORGANISATION_CONTEXT, ACTIVE_CAMPAIGN_ID),
+    ).toMatchObject({
+      status: 'ARCHIVED',
+    });
+
+    const secondClient = createClient();
+
+    expect(
+      await secondClient.getCampaignDetail(ORGANISATION_CONTEXT, ACTIVE_CAMPAIGN_ID),
+    ).toMatchObject({
+      status: 'ACTIVE',
+      updatedAt: ORIGINAL_UPDATED_AT,
+      allowedActions: ['VIEW', 'ARCHIVE', 'ASSIGN'],
+    });
+  });
+
+  it('archives an eligible Active Campaign with authoritative Reactivate capability', async () => {
+    const client = createClient();
+    const created = await client.createCampaignDraft(ORGANISATION_CONTEXT, {
+      ...ORGANISATION_REQUEST,
+      startDate: '2026-08-17T08:00:00.000Z',
+      endDate: '2026-09-30T17:00:00.000Z',
+      items: [
+        {
+          itemType: 'COMPONENT',
+          componentType: 'QUIZ',
+          contentId: '50000000-0000-4000-8000-000000000002',
+          isRequired: true,
+        },
+      ],
+    });
+    const activated = await client.activateCampaign(ORGANISATION_CONTEXT, created.id, {
+      expectedUpdatedAt: created.updatedAt,
+    });
+    const archived = await client.archiveCampaign(ORGANISATION_CONTEXT, activated.campaignId, {
+      expectedUpdatedAt: activated.updatedAt,
+    });
+
+    expect(archived).toMatchObject({
+      success: true,
+      campaignId: created.id,
+      status: 'ARCHIVED',
+      allowedActions: ['VIEW', 'REACTIVATE'],
+    });
+    expect(Date.parse(archived.updatedAt)).toBeGreaterThan(Date.parse(activated.updatedAt));
+
+    const stored = await client.getCampaignDetail(ORGANISATION_CONTEXT, created.id);
+
+    expect(stored.status).toBe('ARCHIVED');
+    expect(stored.updatedAt).toBe(archived.updatedAt);
+    expect(stored.allowedActions).toEqual(['VIEW', 'REACTIVATE']);
+  });
+
+  it('preserves Archive error precedence and does not mutate failed requests', async () => {
+    const lifecycleConflictClient = createClient();
+    const archived = await lifecycleConflictClient.getCampaignDetail(
+      ORGANISATION_CONTEXT,
+      ARCHIVED_CAMPAIGN_ID,
+    );
+
+    const lifecycleError = await lifecycleConflictClient
+      .archiveCampaign(ORGANISATION_CONTEXT, archived.id, {
+        expectedUpdatedAt: '2026-08-01T00:00:00.000Z',
+      })
+      .catch((caught: unknown) => caught);
+
+    expect(lifecycleError).toBeInstanceOf(CampaignManagementClientError);
+    expect(lifecycleError).toMatchObject({ code: 'LIFECYCLE_CONFLICT' });
+    expect(
+      await lifecycleConflictClient.getCampaignDetail(ORGANISATION_CONTEXT, archived.id),
+    ).toEqual(archived);
+
+    const staleClient = createClient();
+    const active = await staleClient.getCampaignDetail(ORGANISATION_CONTEXT, ACTIVE_CAMPAIGN_ID);
+
+    const staleError = await staleClient
+      .archiveCampaign(ORGANISATION_CONTEXT, active.id, {
+        expectedUpdatedAt: '2026-08-01T00:00:00.000Z',
+      })
+      .catch((caught: unknown) => caught);
+
+    expect(staleError).toBeInstanceOf(CampaignManagementClientError);
+    expect(staleError).toMatchObject({ code: 'CAMPAIGN_CHANGED' });
+    expect(await staleClient.getCampaignDetail(ORGANISATION_CONTEXT, active.id)).toEqual(active);
+  });
+
+  it('allows direct Reactivate for expired usable content while omitting the action', async () => {
+    const client = createClient();
+    const created = await client.createCampaignDraft(ORGANISATION_CONTEXT, {
+      ...ORGANISATION_REQUEST,
+      startDate: '2026-07-01T08:00:00.000Z',
+      endDate: '2026-08-01T17:00:00.000Z',
+      items: [
+        {
+          itemType: 'COMPONENT',
+          componentType: 'QUIZ',
+          contentId: '50000000-0000-4000-8000-000000000002',
+          isRequired: true,
+        },
+      ],
+    });
+    const activated = await client.activateCampaign(ORGANISATION_CONTEXT, created.id, {
+      expectedUpdatedAt: created.updatedAt,
+    });
+    const archived = await client.archiveCampaign(ORGANISATION_CONTEXT, activated.campaignId, {
+      expectedUpdatedAt: activated.updatedAt,
+    });
+
+    expect(archived.allowedActions).toEqual(['VIEW']);
+
+    const reactivated = await client.reactivateCampaign(ORGANISATION_CONTEXT, created.id, {
+      expectedUpdatedAt: archived.updatedAt,
+    });
+
+    expect(reactivated).toMatchObject({
+      success: true,
+      campaignId: created.id,
+      status: 'ACTIVE',
+      allowedActions: ['VIEW', 'ARCHIVE'],
+    });
+    expect(Date.parse(reactivated.updatedAt)).toBeGreaterThan(Date.parse(archived.updatedAt));
+
+    const stored = await client.getCampaignDetail(ORGANISATION_CONTEXT, created.id);
+
+    expect(stored.status).toBe('ACTIVE');
+    expect(stored.updatedAt).toBe(reactivated.updatedAt);
+    expect(stored.allowedActions).toEqual(reactivated.allowedActions);
+  });
+
+  it('preserves Reactivate error precedence and does not mutate failed requests', async () => {
+    const lifecycleConflictClient = createClient();
+    const active = await lifecycleConflictClient.getCampaignDetail(
+      ORGANISATION_CONTEXT,
+      ACTIVE_CAMPAIGN_ID,
+    );
+
+    const lifecycleError = await lifecycleConflictClient
+      .reactivateCampaign(ORGANISATION_CONTEXT, active.id, {
+        expectedUpdatedAt: '2026-08-01T00:00:00.000Z',
+      })
+      .catch((caught: unknown) => caught);
+
+    expect(lifecycleError).toBeInstanceOf(CampaignManagementClientError);
+    expect(lifecycleError).toMatchObject({ code: 'LIFECYCLE_CONFLICT' });
+    expect(
+      await lifecycleConflictClient.getCampaignDetail(ORGANISATION_CONTEXT, active.id),
+    ).toEqual(active);
+
+    const staleClient = createClient();
+    const archived = await staleClient.getCampaignDetail(
+      ORGANISATION_CONTEXT,
+      ARCHIVED_CAMPAIGN_ID,
+    );
+
+    const staleError = await staleClient
+      .reactivateCampaign(ORGANISATION_CONTEXT, archived.id, {
+        expectedUpdatedAt: '2026-08-01T00:00:00.000Z',
+      })
+      .catch((caught: unknown) => caught);
+
+    expect(staleError).toBeInstanceOf(CampaignManagementClientError);
+    expect(staleError).toMatchObject({ code: 'CAMPAIGN_CHANGED' });
+    expect(await staleClient.getCampaignDetail(ORGANISATION_CONTEXT, archived.id)).toEqual(
+      archived,
+    );
   });
 });

@@ -222,6 +222,24 @@ function isInContext(
   return true;
 }
 
+function cloneDevelopmentCampaignFixture(
+  fixture: DevelopmentCampaignFixture,
+): DevelopmentCampaignFixture {
+  return {
+    scope: { ...fixture.scope },
+    campaign: {
+      ...fixture.campaign,
+      createdBy: fixture.campaign.createdBy ? { ...fixture.campaign.createdBy } : null,
+      allowedActions: [...fixture.campaign.allowedActions],
+    },
+    items: fixture.items?.map((item) =>
+      item.itemType === 'GROUP'
+        ? { ...item, children: item.children.map((child) => ({ ...child })) }
+        : { ...item },
+    ),
+  };
+}
+
 function toCampaignDetail(fixture: DevelopmentCampaignFixture): CampaignDetailResponseDto {
   const { campaign, scope } = fixture;
 
@@ -446,7 +464,7 @@ function getDevelopmentAllowedActions(
     return ['VIEW', 'ARCHIVE'];
   }
 
-  return fixture.campaign.allowedActions;
+  return canActivate ? ['VIEW', 'REACTIVATE'] : ['VIEW'];
 }
 
 function toDevelopmentCampaignItems(
@@ -494,7 +512,64 @@ export function createDevelopmentCampaignManagementClient(
   const generateCampaignId = options.generateCampaignId ?? (() => crypto.randomUUID());
   const generatedCampaignItemId = options.generateCampaignItemId ?? (() => crypto.randomUUID());
   const now = options.now ?? (() => new Date());
-  const campaigns = [...DEVELOPMENT_CAMPAIGN_FIXTURES];
+  const campaigns = DEVELOPMENT_CAMPAIGN_FIXTURES.map(cloneDevelopmentCampaignFixture);
+
+  async function transitionCampaign(
+    context: CampaignManagementContext,
+    campaignId: string,
+    request: CampaignMutationPreconditionDto,
+    expectedStatus: 'DRAFT' | 'ACTIVE' | 'ARCHIVED',
+    targetStatus: 'ACTIVE' | 'ARCHIVED',
+    requirements: Readonly<{
+      requireItems: boolean;
+      requireAvailableSources: boolean;
+    }>,
+  ): Promise<CampaignLifecycleActionResponseDto> {
+    const fixture = campaigns.find(
+      (candidate) => candidate.campaign.id === campaignId && isInContext(candidate, context),
+    );
+
+    if (!fixture) {
+      throw new Error('CAMPAIGN_NOT_FOUND');
+    }
+
+    if (fixture.campaign.status !== expectedStatus) {
+      throw new CampaignManagementClientError('LIFECYCLE_CONFLICT');
+    }
+
+    if (fixture.campaign.updatedAt !== request.expectedUpdatedAt) {
+      throw new CampaignManagementClientError('CAMPAIGN_CHANGED');
+    }
+
+    const items = fixture.items ?? [];
+
+    if (requirements.requireItems && items.length === 0) {
+      throw new CampaignManagementClientError('EMPTY_CAMPAIGN');
+    }
+
+    if (requirements.requireAvailableSources && hasUnavailableCampaignContent(items)) {
+      throw new CampaignManagementClientError('UNAVAILABLE_CAMPAIGN_CONTENT');
+    }
+
+    const requestedTimestamp = now().getTime();
+    const currentTimestamp = Date.parse(fixture.campaign.updatedAt);
+    const updatedAt = new Date(Math.max(requestedTimestamp, currentTimestamp + 1)).toISOString();
+
+    fixture.campaign = {
+      ...fixture.campaign,
+      status: targetStatus,
+      updatedAt,
+    };
+    fixture.campaign.allowedActions = getDevelopmentAllowedActions(fixture, now());
+
+    return {
+      success: true,
+      campaignId,
+      status: fixture.campaign.status,
+      updatedAt,
+      allowedActions: fixture.campaign.allowedActions,
+    };
+  }
 
   return {
     async listCampaigns(
@@ -663,50 +738,32 @@ export function createDevelopmentCampaignManagementClient(
       campaignId: string,
       request: CampaignMutationPreconditionDto,
     ): Promise<CampaignLifecycleActionResponseDto> {
-      const fixture = campaigns.find(
-        (candidate) => candidate.campaign.id === campaignId && isInContext(candidate, context),
-      );
+      return transitionCampaign(context, campaignId, request, 'DRAFT', 'ACTIVE', {
+        requireItems: true,
+        requireAvailableSources: true,
+      });
+    },
 
-      if (!fixture) {
-        throw new Error('CAMPAIGN_NOT_FOUND');
-      }
+    async archiveCampaign(
+      context: CampaignManagementContext,
+      campaignId: string,
+      request: CampaignMutationPreconditionDto,
+    ): Promise<CampaignLifecycleActionResponseDto> {
+      return transitionCampaign(context, campaignId, request, 'ACTIVE', 'ARCHIVED', {
+        requireItems: false,
+        requireAvailableSources: false,
+      });
+    },
 
-      if (fixture.campaign.status !== 'DRAFT') {
-        throw new CampaignManagementClientError('LIFECYCLE_CONFLICT');
-      }
-
-      if (fixture.campaign.updatedAt !== request.expectedUpdatedAt) {
-        throw new CampaignManagementClientError('CAMPAIGN_CHANGED');
-      }
-
-      const items = fixture.items ?? [];
-
-      if (items.length === 0) {
-        throw new CampaignManagementClientError('EMPTY_CAMPAIGN');
-      }
-
-      if (hasUnavailableCampaignContent(items)) {
-        throw new CampaignManagementClientError('UNAVAILABLE_CAMPAIGN_CONTENT');
-      }
-
-      const requestedTimestamp = now().getTime();
-      const currentTimestamp = Date.parse(fixture.campaign.updatedAt);
-      const updatedAt = new Date(Math.max(requestedTimestamp, currentTimestamp + 1)).toISOString();
-
-      fixture.campaign = {
-        ...fixture.campaign,
-        status: 'ACTIVE',
-        updatedAt,
-      };
-      fixture.campaign.allowedActions = getDevelopmentAllowedActions(fixture, now());
-
-      return {
-        success: true,
-        campaignId,
-        status: fixture.campaign.status,
-        updatedAt,
-        allowedActions: fixture.campaign.allowedActions,
-      };
+    async reactivateCampaign(
+      context: CampaignManagementContext,
+      campaignId: string,
+      request: CampaignMutationPreconditionDto,
+    ): Promise<CampaignLifecycleActionResponseDto> {
+      return transitionCampaign(context, campaignId, request, 'ARCHIVED', 'ACTIVE', {
+        requireItems: false,
+        requireAvailableSources: true,
+      });
     },
   };
 }

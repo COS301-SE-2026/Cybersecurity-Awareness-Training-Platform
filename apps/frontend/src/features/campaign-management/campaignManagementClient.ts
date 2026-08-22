@@ -55,4 +55,14 @@ export interface CampaignManagementClient {
     campaignId: string,
     request: CampaignMutationPreconditionDto,
   ): Promise<CampaignLifecycleActionResponseDto>;
+  archiveCampaign(
+    context: CampaignManagementContext,
+    campaignId: string,
+    request: CampaignMutationPreconditionDto,
+  ): Promise<CampaignLifecycleActionResponseDto>;
+  reactivateCampaign(
+    context: CampaignManagementContext,
+    campaignId: string,
+    request: CampaignMutationPreconditionDto,
+  ): Promise<CampaignLifecycleActionResponseDto>;
 }
