@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import type {
   CampaignCatalogueQueryDto,
+  CampaignDetailItemDto,
   CampaignDetailResponseDto,
 } from '@insightful-phish/shared';
 
@@ -26,7 +27,8 @@ type CampaignManagementDetailPageProps = Readonly<{
   client?: Pick<
     CampaignManagementClient,
     'getCampaignCatalogue' | 'getCampaignDetail' | 'createCampaignDraft' | 'updateCampaignDraft'
-  >;
+  > &
+    Partial<Pick<CampaignManagementClient, 'activateCampaign'>>;
 }>;
 
 type CampaignDetailLoadState =
@@ -56,6 +58,14 @@ type OwnedCatalogueState = {
 };
 
 type ConfirmationIntent = 'reset' | 'discard-new' | 'leave' | 'reload' | null;
+
+function hasUnavailableCampaignContent(items: readonly CampaignDetailItemDto[]): boolean {
+  return items.some((item) =>
+    item.itemType === 'COMPONENT'
+      ? !item.sourceAvailable
+      : item.children.some((child) => !child.sourceAvailable),
+  );
+}
 
 function getRouteOwnershipKey(
   contextKind: CampaignManagementContext['kind'],
@@ -102,6 +112,10 @@ function CampaignManagementDetailPage({
   const [isSaving, setIsSaving] = useState(false);
   const saveRequestIdRef = useRef(0);
   const saveInFlightRef = useRef(false);
+  const [lifecycleError, setLifecycleError] = useState<string | null>(null);
+  const [isActivating, setIsActivating] = useState(false);
+  const lifecycleRequestIdRef = useRef(0);
+  const lifecycleInFlightRef = useRef(false);
   const [catalogueLoadState, setCatalogueLoadState] = useState<OwnedCatalogueState | null>(null);
   const catalogueRequestIdRef = useRef(0);
   const [catalogueRetryAttempt, setCatalogueRetryAttempt] = useState(0);
@@ -125,6 +139,8 @@ function CampaignManagementDetailPage({
     setActiveRouteOwnershipKey(routeOwnershipKey);
     setIsSaving(false);
     setSaveError(null);
+    setIsActivating(false);
+    setLifecycleError(null);
     setConfirmationIntent(null);
   }
 
@@ -148,6 +164,24 @@ function CampaignManagementDetailPage({
 
   const isEditorDirty =
     Boolean(editorKey) && editorDirtyState?.editorKey === editorKey && editorDirtyState.isDirty;
+
+  const isMutationPending = isSaving || isActivating;
+  const hasActivationItems = Boolean(detail?.items.length);
+  const hasUnavailableActivationContent = Boolean(
+    detail && hasUnavailableCampaignContent(detail.items),
+  );
+  const hasActivationAction = Boolean(detail?.allowedActions.includes('ACTIVATE'));
+  const hasOtherActivationRestriction =
+    !hasActivationAction &&
+    hasActivationItems &&
+    !hasUnavailableActivationContent &&
+    !isEditorDirty;
+  const canRequestActivation =
+    hasActivationAction &&
+    hasActivationItems &&
+    !hasUnavailableActivationContent &&
+    !isEditorDirty &&
+    !isMutationPending;
 
   const heading = isNew
     ? 'Create Campaign'
@@ -239,6 +273,8 @@ function CampaignManagementDetailPage({
     return () => {
       saveRequestIdRef.current += 1;
       saveInFlightRef.current = false;
+      lifecycleRequestIdRef.current += 1;
+      lifecycleInFlightRef.current = false;
     };
   }, [routeOwnershipKey]);
 
@@ -276,6 +312,7 @@ function CampaignManagementDetailPage({
     }
 
     setSaveError(null);
+    setLifecycleError(null);
     setEditorDirtyState(null);
     setLoadState({
       campaignId,
@@ -316,7 +353,7 @@ function CampaignManagementDetailPage({
   }
 
   async function handleCreateCampaignDraft(draft: CampaignDraftFormState) {
-    if (saveInFlightRef.current) {
+    if (saveInFlightRef.current || lifecycleInFlightRef.current) {
       return;
     }
 
@@ -325,6 +362,7 @@ function CampaignManagementDetailPage({
 
     setIsSaving(true);
     setSaveError(null);
+    setLifecycleError(null);
 
     try {
       const created = await client.createCampaignDraft(
@@ -357,7 +395,7 @@ function CampaignManagementDetailPage({
     draft: CampaignDraftFormState,
     authoritativeDetail: CampaignDetailResponseDto,
   ) {
-    if (saveInFlightRef.current) {
+    if (saveInFlightRef.current || lifecycleInFlightRef.current) {
       return;
     }
 
@@ -366,6 +404,7 @@ function CampaignManagementDetailPage({
 
     setIsSaving(true);
     setSaveError(null);
+    setLifecycleError(null);
 
     try {
       const updated = await client.updateCampaignDraft(
@@ -410,6 +449,85 @@ function CampaignManagementDetailPage({
       if (saveRequestIdRef.current === saveRequestId) {
         saveInFlightRef.current = false;
         setIsSaving(false);
+      }
+    }
+  }
+
+  async function handleActivateCampaign(authoritativeDetail: CampaignDetailResponseDto) {
+    const activateCampaign = client.activateCampaign;
+
+    if (
+      !activateCampaign ||
+      lifecycleInFlightRef.current ||
+      saveInFlightRef.current ||
+      isEditorDirty ||
+      authoritativeDetail.status !== 'DRAFT' ||
+      !authoritativeDetail.allowedActions.includes('ACTIVATE') ||
+      authoritativeDetail.items.length === 0 ||
+      hasUnavailableCampaignContent(authoritativeDetail.items)
+    ) {
+      return;
+    }
+
+    lifecycleInFlightRef.current = true;
+    const requestId = ++lifecycleRequestIdRef.current;
+
+    setIsActivating(true);
+    setLifecycleError(null);
+    setSaveError(null);
+
+    try {
+      const activated = await activateCampaign(campaignContext, authoritativeDetail.id, {
+        expectedUpdatedAt: authoritativeDetail.updatedAt,
+      });
+
+      if (lifecycleRequestIdRef.current !== requestId) {
+        return;
+      }
+
+      setLoadState({
+        campaignId: activated.campaignId,
+        status: 'loaded',
+        detail: {
+          ...authoritativeDetail,
+          status: activated.status,
+          updatedAt: activated.updatedAt,
+          allowedActions: activated.allowedActions,
+        },
+      });
+      setEditorDirtyState(null);
+    } catch (error) {
+      if (lifecycleRequestIdRef.current !== requestId) {
+        return;
+      }
+
+      if (error instanceof CampaignManagementClientError) {
+        if (error.code === 'CAMPAIGN_CHANGED') {
+          setLifecycleError('This Draft has changed since you opened it.');
+          return;
+        }
+
+        if (error.code === 'LIFECYCLE_CONFLICT') {
+          reloadAuthoritativeDetail();
+          return;
+        }
+
+        if (error.code === 'EMPTY_CAMPAIGN') {
+          setLifecycleError('Add at least one Campaign item before activation.');
+          return;
+        }
+
+        if (error.code === 'UNAVAILABLE_CAMPAIGN_CONTENT') {
+          setLifecycleError('Remove unavailable Campaign content before activation.');
+          return;
+        }
+      }
+
+      setLifecycleError('Campaign could not be activated. Try again.');
+    } finally {
+      if (lifecycleRequestIdRef.current === requestId) {
+        lifecycleInFlightRef.current = false;
+        setIsActivating(false);
       }
     }
   }
@@ -483,6 +601,7 @@ function CampaignManagementDetailPage({
             }}
             onSave={handleCreateCampaignDraft}
             isSaving={isSaving}
+            isMutationPending={isMutationPending}
             saveButtonText="Save Draft"
             savingButtonText="Saving Draft…"
             catalogueState={currentCatalogueState}
@@ -499,6 +618,18 @@ function CampaignManagementDetailPage({
             <p>{saveError}</p>
 
             {saveError === 'This Draft has changed since you opened it.' && (
+              <button type="button" onClick={() => setConfirmationIntent('reload')}>
+                Reload Draft
+              </button>
+            )}
+          </section>
+        )}
+
+        {lifecycleError && (
+          <section className="campaign-error" role="alert">
+            <p>{lifecycleError}</p>
+
+            {lifecycleError === 'This Draft has changed since you opened it.' && (
               <button type="button" onClick={() => setConfirmationIntent('reload')}>
                 Reload Draft
               </button>
@@ -560,6 +691,7 @@ function CampaignManagementDetailPage({
             }}
             onSave={(draft) => handleUpdateCampaignDraft(draft, detail)}
             isSaving={isSaving}
+            isMutationPending={isMutationPending}
             saveButtonText="Save Changes"
             savingButtonText="Saving Changes…"
             catalogueState={currentCatalogueState}
@@ -570,6 +702,34 @@ function CampaignManagementDetailPage({
             onCataloguePageChange={updateCataloguePage}
           />
         )}
+
+        {!isNew &&
+          !isLoading &&
+          !loadError &&
+          detail &&
+          canEditDraft &&
+          client.activateCampaign && (
+            <section className="campaign-lifecycle" aria-label="Campaign activation">
+              <button
+                type="button"
+                className="campaign-button campaign-button--primary"
+                disabled={!canRequestActivation}
+                onClick={() => void handleActivateCampaign(detail)}
+              >
+                {isActivating ? 'Activating…' : 'Activate Campaign'}
+              </button>
+
+              {!hasActivationItems ? (
+                <p>Add at least one Campaign item before activation.</p>
+              ) : hasUnavailableActivationContent ? (
+                <p>Remove unavailable Campaign content before activation.</p>
+              ) : isEditorDirty ? (
+                <p>Save changes before activation.</p>
+              ) : hasOtherActivationRestriction ? (
+                <p>Activation is not available for this Campaign.</p>
+              ) : null}
+            </section>
+          )}
 
         {!isNew &&
           !isLoading &&
