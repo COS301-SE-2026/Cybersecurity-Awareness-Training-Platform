@@ -16,7 +16,9 @@ type PermissionKey =
   | 'VIEW_ORGANISATION_TRAINEES'
   | 'INVITE_ORGANISATION_TRAINEES'
   | 'REMOVE_ORGANISATION_TRAINEES'
-  | 'ASSIGN_CAMPAIGNS';
+  | 'ASSIGN_CAMPAIGNS'
+  | 'VIEW_CAMPAIGNS'
+  | 'MANAGE_CAMPAIGNS';
 
 function testId(prefix: string): string {
   return `${prefix}-${randomUUID()}`;
@@ -322,8 +324,10 @@ describe('organisation admin permission Prisma relations', () => {
       'CHANGE_ORGANISATION_SECURITY_SETTINGS',
       'INVITE_ORGANISATION_ADMINS',
       'INVITE_ORGANISATION_TRAINEES',
+      'MANAGE_CAMPAIGNS',
       'REMOVE_ORGANISATION_ADMINS',
       'REMOVE_ORGANISATION_TRAINEES',
+      'VIEW_CAMPAIGNS',
       'VIEW_ORGANISATION_ADMINS',
       'VIEW_ORGANISATION_TRAINEES',
     ]);

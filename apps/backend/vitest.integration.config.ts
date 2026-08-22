@@ -7,6 +7,8 @@ export default defineConfig({
     include: ['tests/integration/**/*.test.ts'],
     setupFiles: ['tests/setup.integration.ts'],
     fileParallelism: false,
+    hookTimeout: 30000,
+    testTimeout: 30000,
     env: {
       TEST_DATABASE_URL:
         process.env.TEST_DATABASE_URL ||

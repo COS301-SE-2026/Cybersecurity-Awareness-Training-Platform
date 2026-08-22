@@ -268,6 +268,16 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         name: 'Trainee Quiz',
         description: 'Trainee quiz retrieval, attempts, submissions, and results.',
       },
+      {
+        name: 'Platform Organisation Requests',
+        description:
+          'Platform administration of organisation registration requests and onboarding organisations.',
+      },
+      {
+        name: 'Platform Admins',
+        description:
+          'Platform administrator management, invitations, super admin transfer, and demotion workflows.',
+      },
     ],
     components: {
       securitySchemes: {
@@ -826,11 +836,13 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             newEmail: {
               type: 'string',
               format: 'email',
+              maxLength: 254,
               example: 'johan.new@example.com',
             },
             confirmNewEmail: {
               type: 'string',
               format: 'email',
+              maxLength: 254,
               example: 'johan.new@example.com',
             },
             password: {
@@ -844,6 +856,8 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         },
         AccountChangeEmailResponse: {
           type: 'object',
+          description:
+            'Confirms the email-change request was accepted locally. A true emailQueued value means notification work was durably queued, not that the provider has delivered the email.',
           required: ['message', 'emailQueued'],
           properties: {
             message: {
@@ -871,6 +885,9 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
               format: 'password',
               minLength: 12,
               maxLength: 128,
+              pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^\\sA-Za-z0-9]).+$',
+              description:
+                'Must include at least one lowercase letter, one uppercase letter, one number, and one special character.',
               example: 'UpdatedLocalPassword1!',
             },
             confirmNewPassword: {
@@ -878,12 +895,17 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
               format: 'password',
               minLength: 12,
               maxLength: 128,
+              pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^\\sA-Za-z0-9]).+$',
+              description:
+                'Must match newPassword and include at least one lowercase letter, one uppercase letter, one number, and one special character.',
               example: 'UpdatedLocalPassword1!',
             },
           },
         },
         AccountChangePasswordResponse: {
           type: 'object',
+          description:
+            'Confirms the password change committed. A true notificationQueued value means the password-changed notification was durably queued, not that the provider has delivered it.',
           required: ['message', 'notificationQueued', 'revokedSessionCount'],
           properties: {
             message: {
@@ -1119,6 +1141,8 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         },
         AccountSession: {
           type: 'object',
+          description:
+            'Safe account-session summary. Refresh tokens, token hashes, IP addresses, and raw user-agent strings are never returned.',
           required: [
             'id',
             'rememberMe',
@@ -1151,6 +1175,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         },
         AccountSessionsResponse: {
           type: 'object',
+          description: 'Active, non-expired, non-idle sessions owned by the authenticated user.',
           required: ['sessions'],
           properties: {
             sessions: arrayOf(schemaRef('AccountSession')),
@@ -1158,6 +1183,8 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         },
         AccountSessionRevocationResponse: {
           type: 'object',
+          description:
+            'Confirms that the selected owned session was revoked. Revoking the current session is permitted and invalidates its refresh token.',
           required: ['revoked'],
           properties: {
             revoked: trueSuccessProperty(),
@@ -1165,6 +1192,8 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         },
         AccountLogoutOthersResponse: {
           type: 'object',
+          description:
+            'Confirms that active sessions except the current session were revoked with their refresh tokens.',
           required: ['revokedSessionCount'],
           properties: {
             revokedSessionCount: {
@@ -1190,6 +1219,8 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         },
         AccountVerifyEmailChangeResponse: {
           type: 'object',
+          description:
+            'Token verification state. A VALID state means the account email was updated and active sessions/refresh tokens were revoked.',
           required: ['state'],
           properties: {
             state: enumString(['VALID', 'INVALID', 'EXPIRED', 'USED', 'REVOKED'], 'VALID'),
@@ -1997,6 +2028,170 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             },
           ],
         },
+        PlatformAdminRole: enumString(['SUPER_ADMIN', 'NORMAL_ADMIN'], 'SUPER_ADMIN'),
+        PlatformAdminStatus: enumString(['ACTIVE', 'DISABLED'], 'ACTIVE'),
+        PlatformAdminInvitationStatus: enumString(
+          [
+            'PENDING',
+            'SENT',
+            'FAILED_TO_SEND',
+            'ACCEPTED',
+            'COMPLETED',
+            'EXPIRED',
+            'REVOKED',
+            'REJECTED',
+            'PENDING_UPGRADE',
+          ],
+          'SENT',
+        ),
+        PlatformAdminAllowedActions: {
+          type: 'object',
+          required: ['canTransferSuperAdmin', 'canDemote', 'canResendInvite'],
+          additionalProperties: false,
+          properties: {
+            canTransferSuperAdmin: booleanProperty(false),
+            canDemote: booleanProperty(true),
+            canResendInvite: booleanProperty(false),
+          },
+        },
+        PlatformAdmin: {
+          type: 'object',
+          required: [
+            'id',
+            'firstName',
+            'lastName',
+            'email',
+            'platformAdminRole',
+            'adminStatus',
+            'authStatus',
+            'invitationStatus',
+            'inviteId',
+            'allowedActions',
+          ],
+          additionalProperties: false,
+          properties: {
+            id: uuidString('9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+            firstName: { type: 'string', example: 'Connor' },
+            lastName: { type: 'string', example: 'Bell' },
+            email: { type: 'string', format: 'email', example: 'connor.bell@example.com' },
+            platformAdminRole: schemaRef('PlatformAdminRole'),
+            adminStatus: schemaRef('PlatformAdminStatus'),
+            authStatus: schemaRef('AuthStatus'),
+            invitationStatus: {
+              ...schemaRef('PlatformAdminInvitationStatus'),
+              nullable: true,
+            },
+            inviteId: nullableUuidString('a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d'),
+            allowedActions: schemaRef('PlatformAdminAllowedActions'),
+          },
+        },
+        PlatformAdminsListResponse: {
+          type: 'object',
+          required: [
+            'admins',
+            'allowedToInvite',
+            'allowedToTransfer',
+            'allowedToDemote',
+            'allowedToResendInvites',
+          ],
+          additionalProperties: false,
+          properties: {
+            admins: {
+              type: 'array',
+              items: schemaRef('PlatformAdmin'),
+            },
+            allowedToInvite: booleanProperty(true),
+            allowedToTransfer: booleanProperty(true),
+            allowedToDemote: booleanProperty(true),
+            allowedToResendInvites: booleanProperty(true),
+          },
+        },
+        InvitePlatformAdminRequest: {
+          type: 'object',
+          required: ['email'],
+          additionalProperties: false,
+          properties: {
+            email: {
+              type: 'string',
+              format: 'email',
+              minLength: 1,
+              maxLength: 254,
+              example: 'newadmin@example.com',
+            },
+            firstName: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 100,
+              example: 'Jane',
+            },
+            lastName: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 100,
+              example: 'Doe',
+            },
+            confirmUpgrade: booleanProperty(false),
+          },
+        },
+        InvitePlatformAdminResponse: {
+          type: 'object',
+          required: ['type', 'userId', 'email'],
+          additionalProperties: false,
+          properties: {
+            type: enumString(['new-invite', 'upgrade-confirmation'], 'new-invite'),
+            userId: uuidString('9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+            email: { type: 'string', format: 'email', example: 'newadmin@example.com' },
+          },
+        },
+        ResendPlatformAdminInviteResponse: {
+          type: 'object',
+          required: ['success', 'emailQueued'],
+          additionalProperties: false,
+          properties: {
+            success: trueSuccessProperty(),
+            emailQueued: booleanProperty(true),
+          },
+        },
+        TransferSuperAdminRequest: {
+          type: 'object',
+          required: ['targetUserId', 'password', 'confirmation'],
+          additionalProperties: false,
+          properties: {
+            targetUserId: uuidString('c3fdeb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+            password: {
+              type: 'string',
+              format: 'password',
+              minLength: 1,
+              example: 'SuperAdminPassword123!',
+            },
+            confirmation: enumString(['TRANSFER'], 'TRANSFER'),
+          },
+        },
+        DemotePlatformAdminRequest: {
+          type: 'object',
+          required: ['password', 'confirmation'],
+          additionalProperties: false,
+          properties: {
+            password: {
+              type: 'string',
+              format: 'password',
+              minLength: 1,
+              example: 'SuperAdminPassword123!',
+            },
+            confirmation: enumString(['DEMOTE'], 'DEMOTE'),
+          },
+        },
+        DemotePlatformAdminResponse: {
+          type: 'object',
+          required: ['userId', 'email', 'adminStatus', 'authStatus'],
+          additionalProperties: false,
+          properties: {
+            userId: uuidString('c3fdeb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+            email: { type: 'string', format: 'email', example: 'demotedadmin@example.com' },
+            adminStatus: enumString(['DISABLED'], 'DISABLED'),
+            authStatus: schemaRef('AuthStatus'),
+          },
+        },
         OrganisationPermissionKey: enumString(
           [
             'VIEW_ORGANISATION_ADMINS',
@@ -2008,6 +2203,8 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             'INVITE_ORGANISATION_TRAINEES',
             'REMOVE_ORGANISATION_TRAINEES',
             'ASSIGN_CAMPAIGNS',
+            'VIEW_CAMPAIGNS',
+            'MANAGE_CAMPAIGNS',
           ],
           'VIEW_ORGANISATION_ADMINS',
         ),
@@ -2851,9 +3048,404 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             },
           },
         },
+        CampaignAllowedAction: enumString(
+          ['VIEW', 'EDIT', 'ACTIVATE', 'ARCHIVE', 'REACTIVATE', 'ASSIGN'],
+          'VIEW',
+        ),
+        CampaignEligibilityReason: enumString(
+          ['AVAILABLE', 'NOT_STARTED', 'EXPIRED', 'CAMPAIGN_INACTIVE', 'COMPLETED'],
+          'AVAILABLE',
+        ),
+        CampaignEligibility: {
+          type: 'object',
+          required: ['canView', 'canProgress', 'reason'],
+          properties: {
+            canView: booleanProperty(true),
+            canProgress: booleanProperty(true),
+            reason: schemaRef('CampaignEligibilityReason'),
+          },
+        },
+        CampaignMutationPrecondition: {
+          type: 'object',
+          required: ['expectedUpdatedAt'],
+          properties: {
+            expectedUpdatedAt: dateTimeString('2026-05-16T09:00:00.000Z'),
+          },
+        },
+        CampaignLifecycleActionResponse: {
+          type: 'object',
+          required: ['success', 'campaignId', 'status', 'updatedAt', 'allowedActions'],
+          properties: {
+            success: trueSuccessProperty(),
+            campaignId: uuidString('44444444-4444-4444-8444-444444444444'),
+            status: schemaRef('CampaignStatus'),
+            updatedAt: dateTimeString('2026-05-16T09:00:00.000Z'),
+            allowedActions: {
+              ...arrayOf(schemaRef('CampaignAllowedAction')),
+            },
+          },
+        },
+        CampaignDetailComponentItem: {
+          type: 'object',
+          required: [
+            'campaignItemId',
+            'itemType',
+            'componentType',
+            'contentId',
+            'title',
+            'position',
+            'isRequired',
+            'sourceAvailable',
+          ],
+          properties: {
+            campaignItemId: uuidString('88888888-8888-4888-8888-888888888888'),
+            itemType: {
+              type: 'string',
+              enum: ['COMPONENT'],
+              example: 'COMPONENT',
+            },
+            componentType: schemaRef('CampaignComponentType'),
+            contentId: uuidString('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
+            title: {
+              type: 'string',
+              example: 'Phishing Awareness Video',
+            },
+            description: nullableString('Core training content'),
+            position: {
+              type: 'integer',
+              example: 10,
+            },
+            isRequired: booleanProperty(true),
+            sourceAvailable: booleanProperty(true),
+          },
+        },
+        CampaignDetailGroupItem: {
+          type: 'object',
+          required: [
+            'campaignItemId',
+            'itemType',
+            'groupType',
+            'completionRule',
+            'title',
+            'position',
+            'isRequired',
+            'children',
+          ],
+          properties: {
+            campaignItemId: uuidString('66666666-6666-4666-8666-666666666666'),
+            itemType: {
+              type: 'string',
+              enum: ['GROUP'],
+              example: 'GROUP',
+            },
+            title: {
+              type: 'string',
+              example: 'Module 1: Phishing Basics',
+            },
+            description: nullableString('Core concepts and quiz'),
+            groupType: schemaRef('CampaignGroupType'),
+            completionRule: schemaRef('CampaignCompletionRule'),
+            position: {
+              type: 'integer',
+              example: 10,
+            },
+            isRequired: booleanProperty(true),
+            children: {
+              type: 'array',
+              minItems: 2,
+              items: schemaRef('CampaignDetailComponentItem'),
+            },
+          },
+        },
+        CampaignDetailItem: {
+          oneOf: [schemaRef('CampaignDetailComponentItem'), schemaRef('CampaignDetailGroupItem')],
+        },
+        CampaignDetailResponse: {
+          type: 'object',
+          required: [
+            'id',
+            'name',
+            'campaignType',
+            'status',
+            'createdAt',
+            'updatedAt',
+            'allowedActions',
+            'items',
+          ],
+          properties: {
+            id: uuidString('44444444-4444-4444-8444-444444444444'),
+            organisationId: nullableUuidString('11111111-1111-4111-8111-111111111111'),
+            name: {
+              type: 'string',
+              example: 'Phishing Defense 2026',
+            },
+            description: nullableString('Comprehensive phishing simulation and quiz'),
+            accentColor: nullableString('#00FFA6'),
+            campaignType: schemaRef('CampaignType'),
+            status: schemaRef('CampaignStatus'),
+            startDate: {
+              ...dateTimeString('2026-05-16T08:00:00.000Z'),
+              nullable: true,
+            },
+            endDate: {
+              ...dateTimeString('2026-06-16T08:00:00.000Z'),
+              nullable: true,
+            },
+            createdBy: {
+              type: 'object',
+              nullable: true,
+              properties: {
+                id: uuidString('33333333-3333-4333-8333-333333333333'),
+                displayName: {
+                  type: 'string',
+                  example: 'Alex Security',
+                },
+              },
+            },
+            createdAt: dateTimeString('2026-05-16T08:00:00.000Z'),
+            updatedAt: dateTimeString('2026-05-16T09:00:00.000Z'),
+            allowedActions: {
+              ...arrayOf(schemaRef('CampaignAllowedAction')),
+            },
+            items: {
+              ...arrayOf(schemaRef('CampaignDetailItem')),
+            },
+          },
+        },
+        CampaignListRow: {
+          type: 'object',
+          required: [
+            'id',
+            'name',
+            'campaignType',
+            'status',
+            'itemCount',
+            'createdAt',
+            'updatedAt',
+            'allowedActions',
+          ],
+          properties: {
+            id: uuidString('44444444-4444-4444-8444-444444444444'),
+            name: {
+              type: 'string',
+              example: 'Phishing Defense 2026',
+            },
+            description: nullableString('Comprehensive phishing simulation and quiz'),
+            accentColor: nullableString('#00FFA6'),
+            campaignType: schemaRef('CampaignType'),
+            status: schemaRef('CampaignStatus'),
+            itemCount: {
+              type: 'integer',
+              minimum: 0,
+              example: 3,
+            },
+            startDate: {
+              ...dateTimeString('2026-05-16T08:00:00.000Z'),
+              nullable: true,
+            },
+            endDate: {
+              ...dateTimeString('2026-06-16T08:00:00.000Z'),
+              nullable: true,
+            },
+            createdBy: {
+              type: 'object',
+              nullable: true,
+              properties: {
+                id: uuidString('33333333-3333-4333-8333-333333333333'),
+                displayName: {
+                  type: 'string',
+                  example: 'Alex Security',
+                },
+                email: {
+                  type: 'string',
+                  format: 'email',
+                  example: 'alex@example.com',
+                },
+              },
+            },
+            createdAt: dateTimeString('2026-05-16T08:00:00.000Z'),
+            updatedAt: dateTimeString('2026-05-16T09:00:00.000Z'),
+            allowedActions: {
+              ...arrayOf(schemaRef('CampaignAllowedAction')),
+            },
+          },
+        },
+        GetCampaignsResponse: {
+          type: 'object',
+          required: ['items', 'pagination'],
+          properties: {
+            items: {
+              ...arrayOf(schemaRef('CampaignListRow')),
+            },
+            pagination: schemaRef('PaginationMetadata'),
+          },
+        },
+        CampaignCatalogueItem: {
+          type: 'object',
+          required: ['id', 'type', 'title', 'difficultyLevel', 'status'],
+          properties: {
+            id: uuidString('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
+            type: schemaRef('CampaignComponentType'),
+            title: {
+              type: 'string',
+              example: 'Phishing Indicators',
+            },
+            description: nullableString('Common indicators in corporate emails'),
+            contentType: nullableString('MARKDOWN'),
+            estimatedReadTimeMinutes: nullableIntegerRange({
+              minimum: 1,
+              maximum: 120,
+              example: 8,
+            }),
+            passThresholdPercentage: nullableIntegerRange({
+              minimum: 0,
+              maximum: 100,
+              example: 80,
+            }),
+            questionCount: {
+              type: 'integer',
+              nullable: true,
+              example: 5,
+            },
+            emailCount: {
+              type: 'integer',
+              nullable: true,
+              example: 3,
+            },
+            difficultyLevel: schemaRef('DifficultyLevel'),
+            status: {
+              type: 'string',
+              example: 'AVAILABLE',
+            },
+          },
+        },
+        GetCampaignCatalogueResponse: {
+          type: 'object',
+          required: ['items', 'pagination'],
+          properties: {
+            items: {
+              ...arrayOf(schemaRef('CampaignCatalogueItem')),
+            },
+            pagination: schemaRef('PaginationMetadata'),
+          },
+        },
+        CreateCampaignDraftComponentItemInput: {
+          type: 'object',
+          required: ['componentType', 'contentId'],
+          properties: {
+            itemType: {
+              type: 'string',
+              enum: ['COMPONENT'],
+              example: 'COMPONENT',
+            },
+            campaignItemId: nullableUuidString('88888888-8888-4888-8888-888888888888'),
+            componentType: schemaRef('CampaignComponentType'),
+            contentId: uuidString('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
+            isRequired: booleanProperty(true),
+          },
+        },
+        CreateCampaignDraftGroupItemInput: {
+          type: 'object',
+          required: ['itemType', 'title', 'groupType', 'completionRule', 'children'],
+          properties: {
+            itemType: {
+              type: 'string',
+              enum: ['GROUP'],
+              example: 'GROUP',
+            },
+            campaignItemId: nullableUuidString('66666666-6666-4666-8666-666666666666'),
+            title: {
+              type: 'string',
+              example: 'Module 1: Phishing Basics',
+            },
+            description: nullableString('Core training concepts'),
+            groupType: schemaRef('CampaignGroupType'),
+            completionRule: schemaRef('CampaignCompletionRule'),
+            isRequired: booleanProperty(true),
+            children: {
+              type: 'array',
+              minItems: 2,
+              items: schemaRef('CreateCampaignDraftComponentItemInput'),
+            },
+          },
+        },
+        CreateCampaignDraftItemInput: {
+          oneOf: [
+            schemaRef('CreateCampaignDraftComponentItemInput'),
+            schemaRef('CreateCampaignDraftGroupItemInput'),
+          ],
+        },
+        CreateCampaignDraftRequest: {
+          type: 'object',
+          required: ['name', 'accentColor', 'items'],
+          properties: {
+            name: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 120,
+              example: 'Phishing Defense 2026',
+            },
+            description: nullableString('Comprehensive awareness campaign'),
+            accentColor: {
+              type: 'string',
+              pattern: '^#[0-9A-Fa-f]{6}$',
+              example: '#00FFA6',
+            },
+            startDate: {
+              ...dateTimeString('2026-05-16T08:00:00.000Z'),
+              nullable: true,
+            },
+            endDate: {
+              ...dateTimeString('2026-06-16T08:00:00.000Z'),
+              nullable: true,
+            },
+            items: {
+              type: 'array',
+              items: schemaRef('CreateCampaignDraftItemInput'),
+            },
+          },
+        },
+        UpdateCampaignDraftRequest: {
+          type: 'object',
+          required: ['expectedUpdatedAt', 'name', 'accentColor', 'items'],
+          properties: {
+            expectedUpdatedAt: dateTimeString('2026-05-16T09:00:00.000Z'),
+            name: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 120,
+              example: 'Phishing Defense 2026',
+            },
+            description: nullableString('Comprehensive awareness campaign'),
+            accentColor: {
+              type: 'string',
+              pattern: '^#[0-9A-Fa-f]{6}$',
+              example: '#00FFA6',
+            },
+            startDate: {
+              ...dateTimeString('2026-05-16T08:00:00.000Z'),
+              nullable: true,
+            },
+            endDate: {
+              ...dateTimeString('2026-06-16T08:00:00.000Z'),
+              nullable: true,
+            },
+            items: {
+              type: 'array',
+              items: schemaRef('CreateCampaignDraftItemInput'),
+            },
+          },
+        },
         TraineeCampaignSummary: {
           type: 'object',
-          required: ['campaignId', 'name', 'campaignType', 'difficultyLevel', 'status'],
+          required: [
+            'campaignId',
+            'name',
+            'campaignType',
+            'difficultyLevel',
+            'status',
+            'eligibility',
+          ],
           properties: {
             campaignId: {
               ...uuidString('44444444-4444-4444-8444-444444444444'),
@@ -2908,6 +3500,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
               minimum: 0,
               example: 3,
             },
+            eligibility: schemaRef('CampaignEligibility'),
           },
         },
         CampaignTrainingDocumentSummary: {
@@ -3009,6 +3602,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             'availabilityStatus',
             'isOpenable',
             'activityApiPath',
+            'eligibility',
           ],
           properties: {
             campaignItemId: {
@@ -3071,6 +3665,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
               nullable: true,
               allOf: [schemaRef('TraineeCampaignProgressStatus')],
             },
+            eligibility: schemaRef('CampaignEligibility'),
             trainingDocument: {
               nullable: true,
               allOf: [schemaRef('CampaignTrainingDocumentSummary')],
@@ -3098,6 +3693,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             'isRequired',
             'availabilityStatus',
             'isOpenable',
+            'eligibility',
             'children',
           ],
           properties: {
@@ -3158,6 +3754,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
               nullable: true,
               allOf: [schemaRef('TraineeCampaignProgressStatus')],
             },
+            eligibility: schemaRef('CampaignEligibility'),
             children: {
               ...arrayOf(schemaRef('TraineeCampaignItemSummary')),
             },
@@ -3185,6 +3782,103 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
               },
             },
           ],
+        },
+        PaginationMetadata: {
+          type: 'object',
+          required: ['page', 'limit', 'totalItems', 'totalPages', 'hasNextPage', 'hasPreviousPage'],
+          properties: {
+            page: { type: 'integer', minimum: 1, example: 1 },
+            limit: { type: 'integer', minimum: 1, example: 10 },
+            totalItems: { type: 'integer', minimum: 0, example: 45 },
+            totalPages: { type: 'integer', minimum: 0, example: 5 },
+            hasNextPage: { type: 'boolean', example: true },
+            hasPreviousPage: { type: 'boolean', example: false },
+          },
+        },
+        PlatformCampaignSummary: {
+          type: 'object',
+          required: [
+            'campaignId',
+            'name',
+            'campaignType',
+            'difficultyLevel',
+            'status',
+            'eligibility',
+          ],
+          properties: {
+            campaignId: {
+              ...uuidString('44444444-4444-4444-8444-444444444444'),
+            },
+            name: {
+              type: 'string',
+              example: 'Phishing Fundamentals',
+            },
+            description: {
+              ...nullableString('Build safe email habits.'),
+            },
+            accentColor: {
+              ...nullableString('#00FFA6'),
+              pattern: '^#[0-9A-Fa-f]{6}$',
+            },
+            campaignType: {
+              type: 'string',
+              enum: ['PREMADE_GENERAL'],
+              example: 'PREMADE_GENERAL',
+            },
+            difficultyLevel: {
+              $ref: '#/components/schemas/DifficultyLevel',
+            },
+            status: {
+              type: 'string',
+              enum: ['ACTIVE'],
+              example: 'ACTIVE',
+            },
+            startDate: {
+              ...dateTimeString('2026-05-16T08:00:00.000Z'),
+              nullable: true,
+            },
+            endDate: {
+              ...dateTimeString('2026-06-16T08:00:00.000Z'),
+              nullable: true,
+            },
+            assignment: {
+              nullable: true,
+              allOf: [schemaRef('TraineeCampaignAssignmentSummary')],
+            },
+            accessType: {
+              nullable: true,
+              allOf: [schemaRef('CampaignAccessType')],
+            },
+            isEnrolled: {
+              type: 'boolean',
+              example: false,
+            },
+            progressStatus: {
+              nullable: true,
+              allOf: [schemaRef('TraineeCampaignProgressStatus')],
+            },
+            itemCount: {
+              type: 'integer',
+              minimum: 0,
+              example: 4,
+            },
+            availableItemCount: {
+              type: 'integer',
+              minimum: 0,
+              example: 3,
+            },
+            eligibility: schemaRef('CampaignEligibility'),
+          },
+        },
+        GetPlatformCampaignsResponse: {
+          type: 'object',
+          required: ['items', 'pagination'],
+          properties: {
+            items: {
+              ...arrayOf(schemaRef('PlatformCampaignSummary')),
+            },
+            pagination: schemaRef('PaginationMetadata'),
+          },
         },
         TrainingDocument: {
           type: 'object',
@@ -4316,6 +5010,18 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
           required: true,
           ...jsonContent(schemaRef('CreateCampaignAssignmentsRequest')),
         },
+        InvitePlatformAdmin: {
+          required: true,
+          ...jsonContent(schemaRef('InvitePlatformAdminRequest')),
+        },
+        TransferSuperAdmin: {
+          required: true,
+          ...jsonContent(schemaRef('TransferSuperAdminRequest')),
+        },
+        DemotePlatformAdmin: {
+          required: true,
+          ...jsonContent(schemaRef('DemotePlatformAdminRequest')),
+        },
       },
       responses: {
         GetAssignableCampaignsOk: responseComponent(
@@ -4472,6 +5178,34 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         TraineeCampaignDetailOk: responseComponent(
           'Campaign detail with ordered trainee-safe item tree.',
           'GetTraineeCampaignDetailResponse',
+        ),
+        GetPlatformCampaignsOk: responseComponent(
+          'Paginated list of active platform campaigns discoverable by the authenticated active general trainee.',
+          'GetPlatformCampaignsResponse',
+        ),
+        EnrolPlatformCampaignOk: responseComponent(
+          'Platform campaign self-enrolment created or existing assignment returned idempotently.',
+          'TraineeCampaignSummary',
+        ),
+        PlatformAdminsListOk: responseComponent(
+          'List of platform administrators with capability flags and row actions.',
+          'PlatformAdminsListResponse',
+        ),
+        InvitePlatformAdminCreated: responseComponent(
+          'Platform administrator invitation or upgrade request created successfully.',
+          'InvitePlatformAdminResponse',
+        ),
+        ResendPlatformAdminInviteOk: responseComponent(
+          'Platform administrator invitation resend attempt completed, with emailQueued indicating queue status.',
+          'ResendPlatformAdminInviteResponse',
+        ),
+        TransferSuperAdminOk: responseComponent(
+          'Super administrator role transferred. Returns updated actor user profile.',
+          'AuthMeResponse',
+        ),
+        DemotePlatformAdminOk: responseComponent(
+          'Platform administrator demoted to disabled status and sessions revoked.',
+          'DemotePlatformAdminResponse',
         ),
         TraineeCampaignNotFound: responseComponent(
           'Campaign is missing, inactive, or not accessible to the trainee.',

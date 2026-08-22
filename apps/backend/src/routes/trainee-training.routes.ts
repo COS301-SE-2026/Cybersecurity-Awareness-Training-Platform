@@ -71,6 +71,8 @@ traineeTrainingRouter.get(
  *         $ref: '#/components/responses/Unauthorized'
  *       404:
  *         $ref: '#/components/responses/TrainingDocumentNotFound'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
  *       429:
  *         $ref: '#/components/responses/TrainingRateLimited'
  *       500:
@@ -107,6 +109,8 @@ traineeTrainingRouter.post(
  *         $ref: '#/components/responses/Unauthorized'
  *       404:
  *         $ref: '#/components/responses/TrainingDocumentNotFound'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
  *       429:
  *         $ref: '#/components/responses/TrainingRateLimited'
  *       500:

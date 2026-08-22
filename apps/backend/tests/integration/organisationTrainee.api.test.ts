@@ -426,7 +426,9 @@ describe('Organisation Trainee API Integration Tests', () => {
 
     it('records failed delivery after queued invitation email SMTP rejection', async () => {
       sendMailMock.mockReset();
-      sendMailMock.mockRejectedValue(new Error('SMTP rejected the message'));
+      sendMailMock.mockRejectedValue(
+        Object.assign(new Error('SMTP rejected the message'), { responseCode: 550 }),
+      );
 
       const response = await request(app)
         .post(`/organisations/${fixture.organisation.id}/trainee-invitations`)

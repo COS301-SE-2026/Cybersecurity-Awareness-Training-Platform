@@ -60,8 +60,8 @@ export async function clearCampaignAssignmentRateLimitStores(): Promise<void> {
  * /organisations/{organisationId}/campaigns/assignable:
  *   get:
  *     tags: [Organisation Campaign Assignment]
- *     summary: Get assignable custom campaigns for organisation
- *     description: Returns paginated active organisation-owned custom campaigns eligible for assignment, guarded by ASSIGN_CAMPAIGNS.
+ *     summary: Get assignable campaigns for organisation
+ *     description: Returns paginated active organisation-owned custom or general premade campaigns eligible for assignment, guarded by ASSIGN_CAMPAIGNS.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -178,8 +178,8 @@ campaignAssignmentRouter.get(
  * /organisations/{organisationId}/campaign-assignments:
  *   post:
  *     tags: [Organisation Campaign Assignment]
- *     summary: Bulk assign organisation campaigns to trainees
- *     description: Transactionally assigns bounded list of active custom campaigns to active same-organisation trainees, guarded by ASSIGN_CAMPAIGNS.
+ *     summary: Bulk assign campaigns to organisation trainees
+ *     description: Transactionally assigns bounded list of active campaigns to active same-organisation trainees, guarded by ASSIGN_CAMPAIGNS.
  *     security:
  *       - bearerAuth: []
  *     parameters:

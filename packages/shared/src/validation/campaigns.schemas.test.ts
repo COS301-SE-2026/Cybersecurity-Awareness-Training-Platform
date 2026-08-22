@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { getTraineeCampaignActivityApiPath } from '../campaigns.js';
 import {
+  enrolPlatformCampaignParamsSchema,
+  getPlatformCampaignsResponseSchema,
   getTraineeCampaignRequestParamsSchema,
-  listTraineeCampaignsRequestSchema,
-  traineeCampaignComponentItemSummarySchema,
   getTraineeCampaignsResponseSchema,
+  listPlatformCampaignsQuerySchema,
+  listTraineeCampaignsRequestSchema,
+  platformCampaignSummarySchema,
+  traineeCampaignComponentItemSummarySchema,
   traineeCampaignItemRequestParamsSchema,
   traineeCampaignItemSummarySchema,
 } from './campaigns.schemas.js';
@@ -87,6 +91,11 @@ describe('campaign validation schemas', () => {
           status: 'ACTIVE',
           accessType: 'ASSIGNED',
           progressStatus: 'IN_PROGRESS',
+          eligibility: {
+            canView: true,
+            canProgress: true,
+            reason: 'AVAILABLE',
+          },
         },
         {
           campaignId: '44444444-4444-4444-8444-444444444444',
@@ -96,6 +105,11 @@ describe('campaign validation schemas', () => {
           campaignType: 'PREMADE_GENERAL',
           difficultyLevel: 'BEGINNER',
           status: 'ACTIVE',
+          eligibility: {
+            canView: true,
+            canProgress: true,
+            reason: 'AVAILABLE',
+          },
         },
       ],
     });
@@ -111,6 +125,11 @@ describe('campaign validation schemas', () => {
           campaignType: 'PREMADE_GENERAL',
           difficultyLevel: 'BEGINNER',
           status: 'ACTIVE',
+          eligibility: {
+            canView: true,
+            canProgress: true,
+            reason: 'AVAILABLE',
+          },
         },
       ],
     });
@@ -156,6 +175,11 @@ describe('campaign validation schemas', () => {
       availabilityStatus: 'AVAILABLE',
       isOpenable: true,
       progressStatus: 'IN_PROGRESS',
+      eligibility: {
+        canView: true,
+        canProgress: true,
+        reason: 'AVAILABLE',
+      },
     });
 
     expect(result.success).toBe(false);
@@ -173,6 +197,11 @@ describe('campaign validation schemas', () => {
       availabilityStatus: 'AVAILABLE',
       isOpenable: true,
       activityApiPath: getTraineeCampaignActivityApiPath('QUIZ', campaignItemId),
+      eligibility: {
+        canView: true,
+        canProgress: true,
+        reason: 'AVAILABLE',
+      },
     });
 
     expect(result.success).toBe(false);
@@ -184,6 +213,7 @@ describe('campaign validation schemas', () => {
   });
 
   it('accepts group items with child campaign items', () => {
+    const secondChildItemId = '55555555-5555-4555-8555-555555555555';
     const result = traineeCampaignItemSummarySchema.safeParse({
       campaignItemId,
       campaignId,
@@ -195,6 +225,11 @@ describe('campaign validation schemas', () => {
       isRequired: true,
       availabilityStatus: 'AVAILABLE',
       isOpenable: false,
+      eligibility: {
+        canView: true,
+        canProgress: true,
+        reason: 'AVAILABLE',
+      },
       children: [
         {
           campaignItemId: childCampaignItemId,
@@ -212,6 +247,30 @@ describe('campaign validation schemas', () => {
             childCampaignItemId,
           ),
           progressStatus: 'VIEWED',
+          eligibility: {
+            canView: true,
+            canProgress: true,
+            reason: 'AVAILABLE',
+          },
+        },
+        {
+          campaignItemId: secondChildItemId,
+          campaignId,
+          parentGroupId: campaignItemId,
+          itemType: 'COMPONENT',
+          componentType: 'QUIZ',
+          title: 'Module 1 Quiz',
+          position: 1,
+          isRequired: true,
+          availabilityStatus: 'AVAILABLE',
+          isOpenable: true,
+          activityApiPath: getTraineeCampaignActivityApiPath('QUIZ', secondChildItemId),
+          progressStatus: 'NOT_STARTED',
+          eligibility: {
+            canView: true,
+            canProgress: true,
+            reason: 'AVAILABLE',
+          },
         },
       ],
     });
@@ -237,5 +296,107 @@ describe('campaign validation schemas', () => {
     });
 
     expect(result.success).toBe(false);
+  });
+
+  describe('platform campaign self-enrolment schemas', () => {
+    it('validates default platform campaign query parameters', () => {
+      const parsed = listPlatformCampaignsQuerySchema.parse({});
+      expect(parsed).toEqual({
+        page: 1,
+        limit: 10,
+      });
+    });
+
+    it('validates custom bounded platform campaign query parameters', () => {
+      const parsed = listPlatformCampaignsQuerySchema.parse({
+        page: '2',
+        limit: '25',
+        search: '  phishing  ',
+      });
+      expect(parsed).toEqual({
+        page: 2,
+        limit: 25,
+        search: 'phishing',
+      });
+    });
+
+    it('rejects invalid platform campaign query parameters', () => {
+      expect(listPlatformCampaignsQuerySchema.safeParse({ page: 0 }).success).toBe(false);
+      expect(listPlatformCampaignsQuerySchema.safeParse({ limit: 101 }).success).toBe(false);
+      expect(listPlatformCampaignsQuerySchema.safeParse({ page: -1 }).success).toBe(false);
+      expect(listPlatformCampaignsQuerySchema.safeParse({ unexpected: 'field' }).success).toBe(
+        false,
+      );
+    });
+
+    it('validates enrol platform campaign params', () => {
+      expect(enrolPlatformCampaignParamsSchema.safeParse({ campaignId }).success).toBe(true);
+      expect(
+        enrolPlatformCampaignParamsSchema.safeParse({ campaignId: 'invalid-id' }).success,
+      ).toBe(false);
+    });
+
+    it('validates platform campaign summary and response schemas', () => {
+      const item = {
+        campaignId,
+        name: 'Platform Awareness Campaign',
+        description: 'Safe discovery summary',
+        accentColor: '#10B981',
+        campaignType: 'PREMADE_GENERAL' as const,
+        difficultyLevel: 'INTERMEDIATE' as const,
+        status: 'ACTIVE' as const,
+        startDate: '2026-05-16T08:00:00.000Z',
+        endDate: null,
+        assignment: null,
+        accessType: null,
+        isEnrolled: false,
+        progressStatus: null,
+        itemCount: 3,
+        availableItemCount: 2,
+        eligibility: {
+          canView: true,
+          canProgress: true,
+          reason: 'AVAILABLE' as const,
+        },
+      };
+
+      expect(platformCampaignSummarySchema.safeParse(item).success).toBe(true);
+
+      const responsePayload = {
+        items: [item],
+        pagination: {
+          page: 1,
+          limit: 10,
+          totalItems: 1,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
+      };
+
+      expect(getPlatformCampaignsResponseSchema.safeParse(responsePayload).success).toBe(true);
+    });
+
+    it('rejects non-premade or non-active campaigns from platform campaign summary', () => {
+      const customCampaign = {
+        campaignId,
+        name: 'Custom Org Campaign',
+        campaignType: 'ORGANISATION_CUSTOM',
+        difficultyLevel: 'BEGINNER',
+        status: 'ACTIVE',
+        eligibility: { canView: true, canProgress: true, reason: 'AVAILABLE' },
+      };
+      expect(platformCampaignSummarySchema.safeParse(customCampaign).success).toBe(false);
+
+      const draftCampaign = {
+        campaignId,
+        name: 'Draft Campaign',
+        campaignType: 'PREMADE_GENERAL',
+        difficultyLevel: 'BEGINNER',
+        status: 'DRAFT',
+        eligibility: { canView: false, canProgress: false, reason: 'CAMPAIGN_INACTIVE' },
+      };
+      expect(platformCampaignSummarySchema.safeParse(draftCampaign).success).toBe(false);
+    });
   });
 });
