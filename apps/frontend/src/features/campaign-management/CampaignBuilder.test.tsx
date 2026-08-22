@@ -154,7 +154,7 @@ describe('CampaignBuilder', () => {
   it('starts clean with Discard disabled', () => {
     render(<CampaignBuilder contextKind="organisation" initialDraft={INITIAL_DRAFT} />);
 
-    expect(screen.getByRole('button', { name: 'Discard' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Discard Changes' })).toBeDisabled();
   });
 
   it('enables Discard after a field changes', async () => {
@@ -170,36 +170,55 @@ describe('CampaignBuilder', () => {
     );
 
     await user.type(screen.getByRole('textbox', { name: 'Campaign name' }), 'updated');
-    expect(screen.getByRole('button', { name: 'Discard' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Discard Changes' })).toBeEnabled();
     expect(onDirtyChange).toHaveBeenLastCalledWith(true);
   });
 
-  it('becomes clean again when a field returns exactly to its baseline', async () => {
+  it('gates existing-Draft Save by the persisted dirty state', async () => {
     const user = userEvent.setup();
     const onDirtyChange = vi.fn();
+    const onSave = vi.fn();
 
     render(
       <CampaignBuilder
         contextKind="organisation"
         initialDraft={INITIAL_DRAFT}
         onDirtyChange={onDirtyChange}
+        onSave={onSave}
+        requireDirtyToSave
+        saveButtonText="Save Changes"
       />,
     );
 
+    const form = screen.getByRole('form', { name: 'Campaign details' });
     const name = screen.getByRole('textbox', { name: 'Campaign name' });
-    const discard = screen.getByRole('button', { name: 'Discard' });
+    const save = screen.getByRole('button', { name: 'Save Changes' });
+    const discard = screen.getByRole('button', { name: 'Discard Changes' });
+
+    expect(save).toBeDisabled();
+    expect(discard).toBeDisabled();
+
+    fireEvent.submit(form);
+
+    expect(onSave).not.toHaveBeenCalled();
 
     await user.clear(name);
     await user.type(name, 'Changed Campaign');
 
+    expect(save).toBeEnabled();
     expect(discard).toBeEnabled();
     expect(onDirtyChange).toHaveBeenLastCalledWith(true);
 
     await user.clear(name);
     await user.type(name, INITIAL_DRAFT.name);
 
+    expect(save).toBeDisabled();
     expect(discard).toBeDisabled();
     expect(onDirtyChange).toHaveBeenLastCalledWith(false);
+
+    fireEvent.submit(form);
+
+    expect(onSave).not.toHaveBeenCalled();
   });
 
   it('requests confirmation instead of immediately resetting', async () => {
@@ -218,7 +237,7 @@ describe('CampaignBuilder', () => {
 
     await user.clear(name);
     await user.type(name, 'Changed Campaign');
-    await user.click(screen.getByRole('button', { name: 'Discard' }));
+    await user.click(screen.getByRole('button', { name: 'Discard Changes' }));
 
     expect(onRequestDiscard).toHaveBeenCalledOnce();
     expect(name).toHaveValue('Changed Campaign');
@@ -262,7 +281,7 @@ describe('CampaignBuilder', () => {
 
     expect(save).toBeDisabled();
     expect(screen.queryByRole('button', { name: 'Saving...' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Discard' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Discard Changes' })).toBeDisabled();
     expect(screen.getByRole('combobox', { name: 'Requirement for Password quiz' })).toBeDisabled();
     expect(
       screen.getByRole('button', { name: 'Remove Password quiz from Campaign' }),
@@ -278,6 +297,6 @@ describe('CampaignBuilder', () => {
   it('provides Discard for a pllatform Campaing', () => {
     render(<CampaignBuilder contextKind="platform" initialDraft={INITIAL_DRAFT} />);
 
-    expect(screen.getByRole('button', { name: 'Discard' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Discard Changes' })).toBeDisabled();
   });
 });

@@ -692,6 +692,7 @@ function CampaignManagementDetailPage({
             onSave={(draft) => handleUpdateCampaignDraft(draft, detail)}
             isSaving={isSaving}
             isMutationPending={isMutationPending}
+            requireDirtyToSave
             saveButtonText="Save Changes"
             savingButtonText="Saving Changes…"
             catalogueState={currentCatalogueState}

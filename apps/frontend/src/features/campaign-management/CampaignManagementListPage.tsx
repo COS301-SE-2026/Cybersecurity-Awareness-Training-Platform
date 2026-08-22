@@ -260,14 +260,13 @@ function CampaignManagementListPage({
 
             <div className="campaign-list">
               {result.items.map((campaign) => {
-                const draftActionLabel =
-                  campaign.status !== 'DRAFT'
-                    ? null
-                    : canManageCampaigns && campaign.allowedActions.includes('EDIT')
+                const campaignActionLabel = campaign.allowedActions.includes('VIEW')
+                  ? campaign.status === 'DRAFT'
+                    ? canManageCampaigns && campaign.allowedActions.includes('EDIT')
                       ? 'Continue Editing'
-                      : campaign.allowedActions.includes('VIEW')
-                        ? 'View Draft'
-                        : null;
+                      : 'View Draft'
+                    : 'View Campaign'
+                  : null;
 
                 return (
                   <article className="campaign-card" key={campaign.id}>
@@ -327,9 +326,9 @@ function CampaignManagementListPage({
                           Created by {campaign.createdBy?.displayName ?? 'Unknown administrator'}
                         </span>
 
-                        {draftActionLabel && (
+                        {campaignActionLabel && (
                           <Link className="campaign-link" to={`${campaignListPath}/${campaign.id}`}>
-                            {draftActionLabel}
+                            {campaignActionLabel}
                           </Link>
                         )}
                       </div>

@@ -154,7 +154,7 @@ describe('CampaignManagementDetailPage save ownership', () => {
         'Saved Campaign B',
       );
     });
-    expect(screen.getByRole('button', { name: 'Save Changes' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Discard' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Save Changes' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Discard Changes' })).toBeDisabled();
   });
 });

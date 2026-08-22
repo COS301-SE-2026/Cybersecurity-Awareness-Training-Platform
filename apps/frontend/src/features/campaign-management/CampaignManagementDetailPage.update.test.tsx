@@ -157,7 +157,8 @@ describe('CampaignManagementDetailPage Draft updates', () => {
     expect(
       screen.getByRole('combobox', { name: 'Requirement for Password safety quiz' }),
     ).toHaveValue('optional');
-    expect(screen.getByRole('button', { name: 'Discard' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Save Changes' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Discard Changes' })).toBeDisabled();
 
     const updatedName = await screen.findByRole('textbox', { name: 'Campaign name' });
 
@@ -181,7 +182,7 @@ describe('CampaignManagementDetailPage Draft updates', () => {
     });
 
     expect(screen.getByRole('textbox', { name: 'Campaign name' })).toHaveValue(SECOND_UPDATE.name);
-    expect(screen.getByRole('button', { name: 'Discard' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Discard Changes' })).toBeDisabled();
   });
 
   it('restores the authoritative item requirement on Discard', async () => {
@@ -201,16 +202,16 @@ describe('CampaignManagementDetailPage Draft updates', () => {
 
     expect(requirement).toHaveValue('required');
     await user.selectOptions(requirement, 'optional');
-    expect(screen.getByRole('button', { name: 'Discard' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Discard Changes' })).toBeEnabled();
 
-    await user.click(screen.getByRole('button', { name: 'Discard' }));
+    await user.click(screen.getByRole('button', { name: 'Discard Changes' }));
 
     const dialog = screen.getByRole('dialog', { name: 'Discard unsaved changes?' });
     await user.click(within(dialog).getByRole('button', { name: 'Discard' }));
     expect(
       screen.getByRole('combobox', { name: 'Requirement for Password safety quiz' }),
     ).toHaveValue('required');
-    expect(screen.getByRole('button', { name: 'Discard' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Discard Changes' })).toBeDisabled();
     expect(updateCampaignDraft).not.toHaveBeenCalled();
   });
 
@@ -245,6 +246,7 @@ describe('CampaignManagementDetailPage Draft updates', () => {
       await screen.findByText('This Draft has changed since you opened it.'),
     ).toBeInTheDocument();
     expect(name).toHaveValue('Local conflicting name');
+    expect(screen.getByRole('button', { name: 'Save Changes' })).toBeEnabled();
 
     await user.click(screen.getByRole('button', { name: 'Reload Draft' }));
 
@@ -268,7 +270,7 @@ describe('CampaignManagementDetailPage Draft updates', () => {
 
     expect(await screen.findByDisplayValue('Authoritative Campaign')).toBeInTheDocument();
     expect(getCampaignDetail).toHaveBeenCalledTimes(2);
-    expect(screen.getByRole('button', { name: 'Discard' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Discard Changes' })).toBeDisabled();
   });
 
   it('reloads authoritative read-only state when the Draft become immutable', async () => {

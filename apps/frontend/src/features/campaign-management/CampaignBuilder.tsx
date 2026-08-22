@@ -21,6 +21,7 @@ type CampaignBuilderProps = Readonly<{
   onRetryCatalogue?: () => void;
   isSaving?: boolean;
   isMutationPending?: boolean;
+  requireDirtyToSave?: boolean;
   saveButtonText?: string;
   savingButtonText?: string;
   catalogueQuery?: CampaignCatalogueQueryDto;
@@ -67,6 +68,7 @@ function CampaignBuilder({
   onCataloguePageChange,
   isSaving,
   isMutationPending = false,
+  requireDirtyToSave = false,
   saveButtonText = 'Save Draft',
   savingButtonText = 'Saving...',
 }: CampaignBuilderProps) {
@@ -86,6 +88,7 @@ function CampaignBuilder({
     Boolean(draft.startDate) && Boolean(draft.endDate) && draft.endDate <= draft.startDate;
 
   const isDirty = !areDraftsEqual(persistedDraft, draft);
+  const isSaveDisabled = isDraftMutationPending || (requireDirtyToSave && !isDirty);
   const hasNameError = hasSubmitted && draft.name.trim().length === 0;
   const selectedCatalogueItems = getDraftComponents(draft.items).map((item) => ({
     type: item.componentType,
@@ -207,7 +210,7 @@ function CampaignBuilder({
     event.preventDefault();
     setHasSubmitted(true);
 
-    if (isDraftMutationPending || !draft.name.trim() || hasScheduleError) {
+    if (isSaveDisabled || !draft.name.trim() || hasScheduleError) {
       return;
     }
 
@@ -350,14 +353,14 @@ function CampaignBuilder({
             onRequestDiscard?.();
           }}
         >
-          Discard
+          Discard Changes
         </button>
 
         {onSave && (
           <button
             type="submit"
             className="campaign-button campaign-button--primary"
-            disabled={isDraftMutationPending}
+            disabled={isSaveDisabled}
           >
             {isSaving ? savingButtonText : saveButtonText}
           </button>

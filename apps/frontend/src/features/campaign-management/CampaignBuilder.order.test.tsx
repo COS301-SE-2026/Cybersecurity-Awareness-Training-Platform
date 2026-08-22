@@ -75,7 +75,7 @@ it('reorders and removes the latest Draft items before saving', async () => {
   ).toEqual(['Inbox simulation', 'Password quiz']);
 
   expect(onDirtyChange).toHaveBeenLastCalledWith(true);
-  expect(screen.getByRole('button', { name: 'Discard' })).toBeEnabled();
+  expect(screen.getByRole('button', { name: 'Discard Changes' })).toBeEnabled();
 
   await user.click(screen.getByRole('button', { name: 'Save Draft' }));
 

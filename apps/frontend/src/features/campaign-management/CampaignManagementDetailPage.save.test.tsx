@@ -178,7 +178,7 @@ describe('CampaignManagementDetailPage new Draft saving', () => {
 
     expect(form).toHaveAttribute('aria-busy', 'true');
     expect(save).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Discard' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Discard Changes' })).toBeDisabled();
 
     fireEvent.submit(form);
 
@@ -213,7 +213,7 @@ describe('CampaignManagementDetailPage new Draft saving', () => {
     expect(await screen.findByText('Campaign could not be saved. Try again.')).toBeInTheDocument();
     expect(name).toHaveValue('Unsaved local Campaign');
     expect(screen.getByRole('button', { name: 'Save Draft' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Discard' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Discard Changes' })).toBeEnabled();
 
     await user.click(screen.getByRole('button', { name: 'Save Draft' }));
 

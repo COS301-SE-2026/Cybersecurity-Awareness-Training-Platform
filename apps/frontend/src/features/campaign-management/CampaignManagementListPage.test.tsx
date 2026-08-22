@@ -37,6 +37,15 @@ const DRAFT_CAMPAIGN: CampaignListRowDto = {
   allowedActions: ['VIEW', 'EDIT'],
 };
 
+const ARCHIVED_CAMPAIGN: CampaignListRowDto = {
+  ...DRAFT_CAMPAIGN,
+  id: '10000000-0000-4000-8000-000000000003',
+  name: 'Archived phishing campaign',
+  description: 'Archived campaign',
+  status: 'ARCHIVED',
+  allowedActions: ['VIEW', 'REACTIVATE'],
+};
+
 const ACTIVE_CAMPAIGN: CampaignListRowDto = {
   ...DRAFT_CAMPAIGN,
   id: '10000000-0000-4000-8000-000000000002',
@@ -168,7 +177,7 @@ describe('CampaignManagementListPage', () => {
   it('shows Create and editable Draft actions to an organisation manager', async () => {
     renderPage({
       async listCampaigns() {
-        return createResponse([DRAFT_CAMPAIGN, ACTIVE_CAMPAIGN]);
+        return createResponse([DRAFT_CAMPAIGN]);
       },
     });
 
@@ -200,6 +209,23 @@ describe('CampaignManagementListPage', () => {
     expect(screen.getByRole('link', { name: 'View Draft' })).toHaveAttribute(
       'href',
       `${ORGANISATION_PATH}/${DRAFT_CAMPAIGN.id}`,
+    );
+  });
+
+  it.each([
+    ['ACTIVE', ACTIVE_CAMPAIGN],
+    ['ARCHIVED', ARCHIVED_CAMPAIGN],
+  ] as const)('shows View Campaign for a viewable %s Campaign', async (_status, campaign) => {
+    renderPage({
+      async listCampaigns() {
+        return createResponse([campaign]);
+      },
+    });
+
+    expect(await screen.findByText(campaign.name)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'View Campaign' })).toHaveAttribute(
+      'href',
+      `${ORGANISATION_PATH}/${campaign.id}`,
     );
   });
 });

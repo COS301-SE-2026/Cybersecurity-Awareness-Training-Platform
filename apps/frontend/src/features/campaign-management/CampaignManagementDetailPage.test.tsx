@@ -271,7 +271,7 @@ describe('CampaignManagementDetailPage', () => {
 
     expect(
       screen.getByRole('button', {
-        name: 'Discard',
+        name: 'Discard Changes',
       }),
     ).toBeDisabled();
   });
@@ -288,7 +288,7 @@ describe('CampaignManagementDetailPage', () => {
     await user.clear(name);
     await user.type(name, 'Changed Campaign');
 
-    await user.click(screen.getByRole('button', { name: 'Discard' }));
+    await user.click(screen.getByRole('button', { name: 'Discard Changes' }));
 
     const title = screen.getByText('Discard unsaved changes?');
     const modal = title.closest('#popup-modal');
@@ -313,7 +313,7 @@ describe('CampaignManagementDetailPage', () => {
     await user.clear(name);
     await user.type(name, 'Changed Campaign');
 
-    await user.click(screen.getByRole('button', { name: 'Discard' }));
+    await user.click(screen.getByRole('button', { name: 'Discard Changes' }));
 
     const title = screen.getByText('Discard unsaved changes?');
     const modal = title.closest('#popup-modal');
@@ -329,7 +329,7 @@ describe('CampaignManagementDetailPage', () => {
 
     expect(screen.queryByText('Discard unsaved changes?')).not.toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Campaign name' })).toHaveValue(DRAFT_DETAIL.name);
-    expect(screen.getByRole('button', { name: 'Discard' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Discard Changes' })).toBeDisabled();
   });
 
   it('returns to the Campaign list when unsaved new-Campaign Discard is confirmed', async () => {
@@ -341,7 +341,7 @@ describe('CampaignManagementDetailPage', () => {
 
     await user.type(screen.getByRole('textbox', { name: 'Campaign name' }), 'Unsaved Campaign');
 
-    await user.click(screen.getByRole('button', { name: 'Discard' }));
+    await user.click(screen.getByRole('button', { name: 'Discard Changes' }));
 
     const dialog = screen.getByRole('dialog', { name: 'Discard unsaved changes?' });
 

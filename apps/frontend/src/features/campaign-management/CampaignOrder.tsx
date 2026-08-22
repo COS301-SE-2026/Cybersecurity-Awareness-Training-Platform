@@ -25,7 +25,7 @@ function CampaignOrder({
     <section className="campaign-order" aria-labelledby="campaign-order-heading">
       <div className="campaign-order__heading">
         <h2 id="campaign-order-heading">Campaign Order</h2>
-        <p>Content will be completed in the order shown.</p>
+        <p>Arrange the order in which campaign items are presented.</p>
       </div>
 
       {items.length === 0 ? (

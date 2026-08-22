@@ -47,8 +47,8 @@ function CampaignCatalogue({
   return (
     <section className="campaign-catalogue" aria-labelledby="campaign-catalogue-heading">
       <div className="campaign-catalogue__heading">
-        <h2 id="campaign-catalogue-heading">Catalogue</h2>
-        <p>Browse available content to include in this Campaign.</p>
+        <h2 id="campaign-catalogue-heading">Campaign Items</h2>
+        <p>Select the training, quiz, and simulated inbox items to include.</p>
       </div>
 
       <p className="campaign-catalogue__selection-status" aria-live="polite">
@@ -57,7 +57,7 @@ function CampaignCatalogue({
 
       <div className="campaign-catalogue__controls">
         <label className="campaign-catalogue__search">
-          <span>Search catalogue</span>
+          <span>Search campaign items</span>
           <input
             type="search"
             maxLength={100}
@@ -83,10 +83,10 @@ function CampaignCatalogue({
               );
             }}
           >
-            <option value="">All content</option>
-            <option value="TRAINING_DOCUMENT">Training Documents</option>
+            <option value="">All</option>
+            <option value="TRAINING_DOCUMENT">Training</option>
             <option value="QUIZ">Quizzes</option>
-            <option value="SIMULATED_INBOX">Simulated Inbox</option>
+            <option value="SIMULATED_INBOX">Simulated Inboxes</option>
           </select>
         </label>
       </div>
@@ -131,12 +131,12 @@ function CampaignCatalogue({
                     type="button"
                     aria-pressed={isSelected}
                     aria-label={
-                      isSelected ? `${item.title} selected` : `Add ${item.title} to Campaign`
+                      isSelected ? `${item.title} added` : `Add ${item.title} to Campaign`
                     }
                     disabled={disabled || isSelected}
                     onClick={() => onSelectItem(item)}
                   >
-                    {isSelected ? 'Selected' : 'Add to Campaign'}
+                    {isSelected ? 'Added' : 'Add to Campaign'}
                   </button>
                 </article>
               </li>

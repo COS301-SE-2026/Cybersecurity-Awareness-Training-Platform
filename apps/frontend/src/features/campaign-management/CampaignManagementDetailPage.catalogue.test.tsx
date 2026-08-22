@@ -141,7 +141,7 @@ describe('CampaignManagementDetailPage catalogue', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Training Document')).toBeInTheDocument();
     expect(screen.getByText('Quiz')).toBeInTheDocument();
-    expect(screen.getAllByText('Simulated Inbox')).toHaveLength(2);
+    expect(screen.getByText('Simulated Inbox')).toBeInTheDocument();
     expect(getCampaignCatalogue).toHaveBeenCalledWith(
       {
         kind: 'organisation',
@@ -199,13 +199,13 @@ describe('CampaignManagementDetailPage catalogue', () => {
 
     expect(screen.getByText('1 item selected')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Password security essentials selected' }),
+      screen.getByRole('button', { name: 'Password security essentials added' }),
     ).toBeDisabled();
     const order = screen.getByRole('region', { name: 'Campaign Order' });
     expect(
       within(order).getByRole('heading', { name: 'Password security essentials' }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Discard' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Discard Changes' })).toBeEnabled();
   });
 
   it('preserves selection across catalogue queries and an authoritative Builder reset', async () => {
@@ -242,7 +242,7 @@ describe('CampaignManagementDetailPage catalogue', () => {
     });
 
     expect(
-      await screen.findByRole('button', { name: 'Password security essentials selected' }),
+      await screen.findByRole('button', { name: 'Password security essentials added' }),
     ).toBeDisabled();
     expect(screen.getByText('1 item selected')).toBeInTheDocument();
 
@@ -273,7 +273,7 @@ describe('CampaignManagementDetailPage catalogue', () => {
     );
     expect(screen.getByText('1 item selected')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Password security essentials selected' }),
+      screen.getByRole('button', { name: 'Password security essentials added' }),
     ).toBeDisabled();
   });
 
@@ -332,7 +332,7 @@ describe('CampaignManagementDetailPage catalogue', () => {
     );
     expect(screen.getByText('1 item selected')).toBeInTheDocument();
     expect(
-      await screen.findByRole('button', { name: 'Password security essentials selected' }),
+      await screen.findByRole('button', { name: 'Password security essentials added' }),
     ).toBeDisabled();
   });
 
@@ -388,7 +388,7 @@ describe('CampaignManagementDetailPage catalogue', () => {
     });
     expect(await screen.findByText('Page 2 of 2')).toBeInTheDocument();
 
-    const search = screen.getByRole('searchbox', { name: 'Search catalogue' });
+    const search = screen.getByRole('searchbox', { name: 'Search campaign items' });
 
     fireEvent.change(search, { target: { value: 'password' } });
 
@@ -520,7 +520,7 @@ describe('CampaignManagementDetailPage catalogue', () => {
 
     await screen.findByText('No catalogue items found.');
 
-    const search = screen.getByRole('searchbox', { name: 'Search catalogue' });
+    const search = screen.getByRole('searchbox', { name: 'Search campaign items' });
 
     fireEvent.change(search, { target: { value: 'older' } });
 
@@ -599,11 +599,11 @@ describe('CampaignManagementDetailPage catalogue', () => {
     });
 
     expect(
-      await screen.findByRole('button', { name: 'Password security essentials selected' }),
+      await screen.findByRole('button', { name: 'Password security essentials added' }),
     ).toBeDisabled();
 
     expect(screen.getByText('2 items selected')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Discard' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Discard Changes' })).toBeDisabled();
   });
 
   it('makes removed content addable and restores authoritative order on Discard', async () => {
@@ -661,9 +661,9 @@ describe('CampaignManagementDetailPage catalogue', () => {
     expect(
       screen.getByRole('button', { name: 'Add Password security essentials to Campaign' }),
     ).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Discard' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Discard Changes' })).toBeEnabled();
 
-    await user.click(screen.getByRole('button', { name: 'Discard' }));
+    await user.click(screen.getByRole('button', { name: 'Discard Changes' }));
 
     const dialog = screen.getByRole('dialog', { name: 'Discard unsaved changes?' });
     await user.click(within(dialog).getByRole('button', { name: 'Discard' }));
@@ -677,8 +677,8 @@ describe('CampaignManagementDetailPage catalogue', () => {
     ).toEqual(['Password security essentials', 'Password safety quiz']);
 
     expect(
-      screen.getByRole('button', { name: 'Password security essentials selected' }),
+      screen.getByRole('button', { name: 'Password security essentials added' }),
     ).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Discard' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Discard Changes' })).toBeDisabled();
   });
 });

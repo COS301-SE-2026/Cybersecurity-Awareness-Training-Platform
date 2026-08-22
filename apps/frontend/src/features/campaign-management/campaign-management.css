@@ -39,6 +39,11 @@
   background: var(--ip-purple);
 }
 
+.campaign-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .campaign-link {
   color: var(--ip-purple);
   font-weight: 500;
