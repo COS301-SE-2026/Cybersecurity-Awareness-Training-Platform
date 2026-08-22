@@ -16,66 +16,53 @@ const expectedQualityRequirementIds = [
   'QR-DEPLOY-01',
 ];
 
-const routeChecks = [
+const routeCheckGroups = [
   {
     file: 'apps/backend/src/routes/account.routes.ts',
-    route: "'/account'",
+    router: 'accountRouter',
     middleware: ['authRateLimit', 'requireAuth'],
-  },
-  {
-    file: 'apps/backend/src/routes/account.routes.ts',
-    route: "'/account/profile'",
-    middleware: ['authRateLimit', 'requireAuth'],
-  },
-  {
-    file: 'apps/backend/src/routes/account.routes.ts',
-    route: "'/account/change-email'",
-    middleware: ['authRateLimit', 'requireAuth'],
-  },
-  {
-    file: 'apps/backend/src/routes/account.routes.ts',
-    route: "'/account/change-password'",
-    middleware: ['authRateLimit', 'requireAuth'],
-  },
-  {
-    file: 'apps/backend/src/routes/account.routes.ts',
-    route: "'/account/sessions'",
-    middleware: ['authRateLimit', 'requireAuth'],
-  },
-  {
-    file: 'apps/backend/src/routes/account.routes.ts',
-    route: "'/account/sessions/:sessionId'",
-    middleware: ['authRateLimit', 'requireAuth'],
-  },
-  {
-    file: 'apps/backend/src/routes/account.routes.ts',
-    route: "'/account/sessions/logout-others'",
-    middleware: ['authRateLimit', 'requireAuth'],
-  },
-  {
-    file: 'apps/backend/src/routes/account.routes.ts',
-    route: "'/account/security-preferences'",
-    middleware: ['authRateLimit', 'requireAuth'],
+    routes: [
+      { method: 'get', path: '/account' },
+      { method: 'patch', path: '/account/profile' },
+      { method: 'post', path: '/account/change-email' },
+      { method: 'post', path: '/account/change-password' },
+      { method: 'get', path: '/account/sessions' },
+      { method: 'delete', path: '/account/sessions/:sessionId' },
+      { method: 'post', path: '/account/sessions/logout-others' },
+      { method: 'patch', path: '/account/security-preferences' },
+    ],
   },
   {
     file: 'apps/backend/src/routes/organisation-trainee.routes.ts',
-    route: "'/organisations/:organisationId/trainees'",
-    middleware: ['organisationTraineeReadRateLimit', 'requireAuth'],
-  },
-  {
-    file: 'apps/backend/src/routes/organisation-trainee.routes.ts',
-    route: "'/organisations/:organisationId/trainee-invitations'",
-    middleware: ['organisationTraineeMutationRateLimit', 'requireAuth'],
+    router: 'organisationTraineeRouter',
+    routes: [
+      {
+        method: 'get',
+        path: '/organisations/:organisationId/trainees',
+        middleware: ['organisationTraineeReadRateLimit', 'requireAuth'],
+      },
+      {
+        method: 'post',
+        path: '/organisations/:organisationId/trainee-invitations',
+        middleware: ['organisationTraineeMutationRateLimit', 'requireAuth'],
+      },
+    ],
   },
   {
     file: 'apps/backend/src/routes/organisation-admin.routes.ts',
-    route: "'/organisations/:organisationId/admins'",
-    middleware: ['organisationAdminReadRateLimit', 'requireAuth'],
-  },
-  {
-    file: 'apps/backend/src/routes/organisation-admin.routes.ts',
-    route: "'/organisations/:organisationId/admin-promotions'",
-    middleware: ['organisationAdminMutationRateLimit', 'requireAuth'],
+    router: 'organisationAdminRouter',
+    routes: [
+      {
+        method: 'get',
+        path: '/organisations/:organisationId/admins',
+        middleware: ['organisationAdminReadRateLimit', 'requireAuth'],
+      },
+      {
+        method: 'post',
+        path: '/organisations/:organisationId/admin-promotions',
+        middleware: ['organisationAdminMutationRateLimit', 'requireAuth'],
+      },
+    ],
   },
 ];
 
@@ -157,6 +144,14 @@ function extractQualityRequirementIds(content) {
   return unique([...content.matchAll(/`(QR-[A-Z]+-\d{2})`/g)].map((match) => match[1]));
 }
 
+function extractOldQualityRequirementIds(content) {
+  return unique(
+    [...content.matchAll(/`(QR-\d{2})`/g), ...content.matchAll(/`(QR-[A-Z]+-\d{3})`/g)].map(
+      (match) => match[1],
+    ),
+  );
+}
+
 function extractMarkdownLinks(content) {
   return [...content.matchAll(/\[[^\]]+\]\(([^)#][^)]+\.md(?:#[^)]+)?)\)/g)].map(
     (match) => match[1],
@@ -190,9 +185,7 @@ async function runTraceabilityCheck() {
   const qualityRequirements = await readProjectFile(qualityRequirementsPath);
   const ids = extractQualityRequirementIds(qualityRequirements);
   const missingIds = expectedQualityRequirementIds.filter((id) => !ids.includes(id));
-  const unexpectedOldIds = [...qualityRequirements.matchAll(/`(QR-\d{2})`/g)].map(
-    (match) => match[1],
-  );
+  const unexpectedOldIds = extractOldQualityRequirementIds(qualityRequirements);
 
   if (missingIds.length > 0) {
     fail(`Missing retained Demo 3 QR IDs: ${missingIds.join(', ')}`);
@@ -206,49 +199,161 @@ async function runTraceabilityCheck() {
 
   await assertLocalMarkdownLinksExist(qualityRequirementsPath, qualityRequirements);
 
-  const matrixPath = 'docs/demo3/nfr/traceability-matrix.md';
-  if (await pathExists(matrixPath)) {
-    const matrix = await readProjectFile(matrixPath);
-    const matrixMissing = expectedQualityRequirementIds.filter((id) => !matrix.includes(id));
-    if (matrixMissing.length > 0) {
-      fail(`NFR traceability matrix is missing QR IDs: ${matrixMissing.join(', ')}`);
+  const parityFiles = [
+    'docs/demo3/nfr/traceability-matrix.md',
+    'docs/demo3/sas/quality-architecture-mapping.md',
+  ];
+
+  for (const file of parityFiles) {
+    if (!(await pathExists(file))) {
+      if (strictTraceability) {
+        fail(`Strict traceability requires ${file}`);
+      }
+
+      continue;
     }
-  } else if (strictTraceability) {
-    fail('Strict traceability requires docs/demo3/nfr/traceability-matrix.md');
+
+    const content = await readProjectFile(file);
+    const fileIds = extractQualityRequirementIds(content);
+    const missingFromFile = expectedQualityRequirementIds.filter((id) => !fileIds.includes(id));
+    const oldIds = extractOldQualityRequirementIds(content);
+
+    if (oldIds.length > 0) {
+      fail(`Old Demo 3 QR identifiers remain in ${file}: ${oldIds.join(', ')}`);
+    }
+
+    if (missingFromFile.length > 0) {
+      fail(`${file} is missing QR IDs: ${missingFromFile.join(', ')}`);
+    }
+
+    await assertLocalMarkdownLinksExist(file, content);
+  }
+
+  const additionalQualityDocs = ['docs/demo3/sas/design-patterns.md'];
+
+  for (const file of additionalQualityDocs) {
+    if (!(await pathExists(file))) {
+      continue;
+    }
+
+    const content = await readProjectFile(file);
+    const oldIds = extractOldQualityRequirementIds(content);
+
+    if (oldIds.length > 0) {
+      fail(`Old Demo 3 QR identifiers remain in ${file}: ${oldIds.join(', ')}`);
+    }
+
+    await assertLocalMarkdownLinksExist(file, content);
   }
 
   result(
     'traceability',
     'PASS',
-    `Validated ${expectedQualityRequirementIds.length} retained QR IDs and local SRS quality links.`,
+    `Validated ${expectedQualityRequirementIds.length} retained QR IDs, SRS/NFR/SAS parity, and local quality links.`,
   );
 }
 
-function routeBlockFor(content, route) {
-  const routeIndex = content.indexOf(route);
-  if (routeIndex === -1) {
-    return null;
+function findCallEnd(content, openParenthesisIndex) {
+  let depth = 0;
+  let quote = null;
+  let escaped = false;
+
+  for (let index = openParenthesisIndex; index < content.length; index += 1) {
+    const character = content[index];
+
+    if (quote) {
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+
+      if (character === '\\') {
+        escaped = true;
+        continue;
+      }
+
+      if (character === quote) {
+        quote = null;
+      }
+
+      continue;
+    }
+
+    if (character === "'" || character === '"' || character === '`') {
+      quote = character;
+      continue;
+    }
+
+    if (character === '(') {
+      depth += 1;
+      continue;
+    }
+
+    if (character === ')') {
+      depth -= 1;
+      if (depth === 0) {
+        return index + 1;
+      }
+    }
   }
 
-  const endIndex = content.indexOf('\n);', routeIndex);
-  if (endIndex === -1) {
-    return content.slice(routeIndex);
+  return -1;
+}
+
+function routeCallFor(content, { router, method, path: routePath }) {
+  const callPattern = new RegExp(`${router}\\.${method}\\s*\\(`, 'g');
+  let match = callPattern.exec(content);
+
+  while (match) {
+    const openParenthesisIndex = content.indexOf('(', match.index);
+    const endIndex = findCallEnd(content, openParenthesisIndex);
+
+    if (endIndex === -1) {
+      fail(`Could not parse ${router}.${method} call for ${routePath}`);
+    }
+
+    const block = content.slice(match.index, endIndex);
+    const firstStringArgument = block.match(/\(\s*(['"`])([^'"`]+)\1/);
+    if (firstStringArgument?.[2] === routePath) {
+      return block;
+    }
+
+    match = callPattern.exec(content);
   }
 
-  return content.slice(routeIndex, endIndex);
+  return null;
 }
 
 async function runProtectedRouteCheck() {
-  for (const check of routeChecks) {
-    const content = await readProjectFile(check.file);
-    const block = routeBlockFor(content, check.route);
-    if (!block) {
-      fail(`Could not find route ${check.route} in ${check.file}`);
-    }
+  let checkedRouteCount = 0;
 
-    const missingMiddleware = check.middleware.filter((middleware) => !block.includes(middleware));
-    if (missingMiddleware.length > 0) {
-      fail(`Route ${check.route} in ${check.file} is missing ${missingMiddleware.join(', ')}`);
+  for (const group of routeCheckGroups) {
+    const content = await readProjectFile(group.file);
+
+    for (const route of group.routes) {
+      const block = routeCallFor(content, {
+        router: group.router,
+        method: route.method,
+        path: route.path,
+      });
+
+      if (!block) {
+        fail(`Could not find ${group.router}.${route.method}('${route.path}') in ${group.file}`);
+      }
+
+      const requiredMiddleware = route.middleware ?? group.middleware ?? [];
+      const missingMiddleware = requiredMiddleware.filter(
+        (middleware) => !block.includes(middleware),
+      );
+      if (missingMiddleware.length > 0) {
+        fail(
+          `${group.router}.${route.method}('${route.path}') in ${group.file} is missing ${missingMiddleware.join(
+            ', ',
+          )}`,
+        );
+      }
+
+      checkedRouteCount += 1;
     }
   }
 
@@ -263,7 +368,7 @@ async function runProtectedRouteCheck() {
   result(
     'routes',
     'PASS',
-    `Validated guard and rate-limit middleware for ${routeChecks.length} selected protected route declarations plus platform route group wiring.`,
+    `Validated exact guard and rate-limit middleware wiring for ${checkedRouteCount} selected protected route declarations plus platform route group wiring.`,
   );
 }
 

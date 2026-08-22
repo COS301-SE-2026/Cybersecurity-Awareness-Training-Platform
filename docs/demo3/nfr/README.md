@@ -44,9 +44,9 @@ The current evidence summary is [2026-08-21-summary.md](evidence/2026-08-21-summ
 At the time of this update:
 
 - deterministic NFR checks pass;
-- the performance check configuration passes dry-run validation;
+- the authenticated seeded API performance check configuration passes dry-run validation;
 - the accessibility check is executable, but currently reports one critical violation on the registration page;
-- full local performance smoke was not run because it needs the frontend and backend services running.
+- full local performance smoke was not run because it needs the backend, seeded Demo 3 data, and a short-lived local bearer token.
 
 ## 4. How to Read Results
 

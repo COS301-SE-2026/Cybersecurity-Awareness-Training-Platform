@@ -12,9 +12,9 @@ This folder stores small, reviewable summaries for Demo 3 non-functional checks.
 
 ## Evidence Summaries
 
-| Evidence file                                  | Scope                                                 | Result summary                                                                                                                                                              |
-| ---------------------------------------------- | ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [2026-08-21-summary.md](2026-08-21-summary.md) | Initial Demo 3 NFR tooling and documentation evidence | Deterministic checks pass; performance dry-run passes; accessibility check runs with one registration-page failure; full performance and deployment checks are not run yet. |
+| Evidence file                                  | Scope                                                 | Result summary                                                                                                                                                                                       |
+| ---------------------------------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [2026-08-21-summary.md](2026-08-21-summary.md) | Initial Demo 3 NFR tooling and documentation evidence | Deterministic checks pass; authenticated seeded API performance dry-run passes; accessibility check runs with one registration-page failure; full performance and deployment checks are not run yet. |
 
 ## Related Documents
 

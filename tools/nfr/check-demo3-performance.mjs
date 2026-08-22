@@ -9,46 +9,106 @@ const projectRoot = path.resolve(scriptDirectory, '../..');
 const defaultBackendUrl = 'http://localhost:4000';
 const defaultFrontendUrl = 'http://localhost:5173';
 const requestCount = Number.parseInt(process.env.DEMO3_NFR_PERF_REQUESTS ?? '10', 10);
+const concurrency = Number.parseInt(process.env.DEMO3_NFR_PERF_CONCURRENCY ?? '2', 10);
+const timeoutMs = Number.parseInt(process.env.DEMO3_NFR_PERF_TIMEOUT_MS ?? '5000', 10);
 const p95TargetMs = Number.parseInt(process.env.DEMO3_NFR_PERF_P95_TARGET_MS ?? '2000', 10);
 const errorRateTarget = Number.parseFloat(process.env.DEMO3_NFR_PERF_ERROR_RATE_TARGET ?? '0.01');
 const backendBaseUrl = withoutTrailingSlash(process.env.DEMO3_NFR_BACKEND_URL ?? defaultBackendUrl);
 const frontendBaseUrl = withoutTrailingSlash(
   process.env.DEMO3_NFR_FRONTEND_URL ?? defaultFrontendUrl,
 );
+const authToken = process.env.DEMO3_NFR_AUTH_TOKEN;
+const organisationId = process.env.DEMO3_NFR_ORGANISATION_ID;
 
 const args = new Set(process.argv.slice(2));
 const dryRun = args.has('--dry-run');
+const publicSmoke = args.has('--public-smoke');
 const outputArg = process.argv.find((arg) => arg.startsWith('--output='));
 const outputPath = outputArg ? outputArg.slice('--output='.length) : null;
 
-const routeSet = [
+const authenticatedRouteSet = [
+  {
+    id: 'account-profile',
+    method: 'GET',
+    path: '/account',
+    authentication: 'bearer-token',
+    expectedStatus: 200,
+  },
+  {
+    id: 'account-sessions',
+    method: 'GET',
+    path: '/account/sessions',
+    authentication: 'bearer-token',
+    expectedStatus: 200,
+  },
+  {
+    id: 'organisation-trainees',
+    method: 'GET',
+    path: `/organisations/${organisationId ?? '<DEMO3_NFR_ORGANISATION_ID>'}/trainees?page=1&pageSize=10`,
+    authentication: 'bearer-token',
+    expectedStatus: 200,
+    requiresOrganisationId: true,
+  },
+  {
+    id: 'organisation-admins',
+    method: 'GET',
+    path: `/organisations/${organisationId ?? '<DEMO3_NFR_ORGANISATION_ID>'}/admins?page=1&pageSize=10`,
+    authentication: 'bearer-token',
+    expectedStatus: 200,
+    requiresOrganisationId: true,
+  },
+  {
+    id: 'organisation-campaigns',
+    method: 'GET',
+    path: `/organisations/${organisationId ?? '<DEMO3_NFR_ORGANISATION_ID>'}/campaigns?page=1&pageSize=10`,
+    authentication: 'bearer-token',
+    expectedStatus: 200,
+    requiresOrganisationId: true,
+  },
+  {
+    id: 'campaign-assignment-candidates',
+    method: 'GET',
+    path: `/organisations/${
+      organisationId ?? '<DEMO3_NFR_ORGANISATION_ID>'
+    }/campaign-assignment-candidates?page=1&pageSize=10`,
+    authentication: 'bearer-token',
+    expectedStatus: 200,
+    requiresOrganisationId: true,
+  },
+];
+
+const publicRouteSet = [
   {
     id: 'backend-health',
     method: 'GET',
-    url: `${backendBaseUrl}/health`,
+    path: '/health',
     authentication: 'none',
     expectedStatus: 200,
+    baseUrl: backendBaseUrl,
   },
   {
     id: 'frontend-login',
     method: 'GET',
-    url: `${frontendBaseUrl}/login`,
+    path: '/login',
     authentication: 'none',
     expectedStatus: 200,
+    baseUrl: frontendBaseUrl,
   },
   {
     id: 'frontend-register',
     method: 'GET',
-    url: `${frontendBaseUrl}/register`,
+    path: '/register',
     authentication: 'none',
     expectedStatus: 200,
+    baseUrl: frontendBaseUrl,
   },
   {
     id: 'frontend-forgot-password',
     method: 'GET',
-    url: `${frontendBaseUrl}/forgot-password`,
+    path: '/forgot-password',
     authentication: 'none',
     expectedStatus: 200,
+    baseUrl: frontendBaseUrl,
   },
 ];
 
@@ -64,10 +124,43 @@ function validatePositiveInteger(name, value) {
 
 function validateThresholds() {
   validatePositiveInteger('DEMO3_NFR_PERF_REQUESTS', requestCount);
+  validatePositiveInteger('DEMO3_NFR_PERF_CONCURRENCY', concurrency);
+  validatePositiveInteger('DEMO3_NFR_PERF_TIMEOUT_MS', timeoutMs);
   validatePositiveInteger('DEMO3_NFR_PERF_P95_TARGET_MS', p95TargetMs);
 
   if (!Number.isFinite(errorRateTarget) || errorRateTarget < 0 || errorRateTarget > 1) {
     throw new Error('DEMO3_NFR_PERF_ERROR_RATE_TARGET must be between 0 and 1.');
+  }
+}
+
+function selectedRouteSet() {
+  return publicSmoke ? publicRouteSet : authenticatedRouteSet;
+}
+
+function routeUrl(route) {
+  return `${route.baseUrl ?? backendBaseUrl}${route.path}`;
+}
+
+function assertAuthenticatedEnvironment() {
+  if (publicSmoke || dryRun) {
+    return;
+  }
+
+  const missing = [];
+  if (!authToken) {
+    missing.push('DEMO3_NFR_AUTH_TOKEN');
+  }
+
+  if (!organisationId) {
+    missing.push('DEMO3_NFR_ORGANISATION_ID');
+  }
+
+  if (missing.length > 0) {
+    throw new Error(
+      `Authenticated Demo 3 performance smoke requires ${missing.join(
+        ', ',
+      )}. Seed the local Demo 3 data, log in as an organisation admin with campaign-assignment access, and provide a short-lived local bearer token.`,
+    );
   }
 }
 
@@ -83,11 +176,23 @@ function percentile(values, percentileRank) {
 
 async function timedFetch(route) {
   const startedAt = performance.now();
+  const abortController = new AbortController();
+  const timeout = setTimeout(() => abortController.abort(), timeoutMs);
 
   try {
-    const response = await fetch(route.url, { method: route.method });
-    const durationMs = performance.now() - startedAt;
+    const headers =
+      route.authentication === 'bearer-token'
+        ? {
+            Authorization: `Bearer ${authToken}`,
+          }
+        : undefined;
+    const response = await fetch(routeUrl(route), {
+      method: route.method,
+      headers,
+      signal: abortController.signal,
+    });
     await response.arrayBuffer();
+    const durationMs = performance.now() - startedAt;
 
     return {
       durationMs,
@@ -101,15 +206,27 @@ async function timedFetch(route) {
       status: null,
       error: error instanceof Error ? error.name : 'UnknownError',
     };
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
 async function runRoute(route) {
   const attempts = [];
+  let nextAttempt = 0;
 
-  for (let index = 0; index < requestCount; index += 1) {
-    attempts.push(await timedFetch(route));
+  async function worker() {
+    while (nextAttempt < requestCount) {
+      nextAttempt += 1;
+      attempts.push(await timedFetch(route));
+    }
   }
+
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, requestCount) }, async () => {
+      await worker();
+    }),
+  );
 
   const durations = attempts.map((attempt) => attempt.durationMs);
   const failures = attempts.filter((attempt) => !attempt.ok);
@@ -118,7 +235,10 @@ async function runRoute(route) {
 
   return {
     ...route,
+    url: routeUrl(route),
     requestCount,
+    concurrency,
+    timeoutMs,
     p95Ms: Math.round(p95Ms),
     errorRate: Number(errorRate.toFixed(4)),
     passed: p95Ms <= p95TargetMs && errorRate <= errorRateTarget,
@@ -140,6 +260,8 @@ async function writeJsonOutput(report) {
 }
 
 function buildDryRunReport() {
+  const routes = selectedRouteSet();
+
   return {
     check: 'demo3-performance',
     mode: 'dry-run',
@@ -147,29 +269,41 @@ function buildDryRunReport() {
       backendBaseUrl,
       frontendBaseUrl,
       requestCount,
+      concurrency,
+      timeoutMs,
       p95TargetMs,
       errorRateTarget,
+      authenticationContext: publicSmoke
+        ? 'none'
+        : 'requires short-lived local bearer token for a seeded Demo 3 organisation admin',
+      seededData: publicSmoke
+        ? 'not required'
+        : 'requires DEMO3_NFR_ORGANISATION_ID for the seeded organisation under test',
     },
-    routeSet,
+    routeSet: routes.map((route) => ({ ...route, url: routeUrl(route) })),
     passed: true,
   };
 }
 
 async function main() {
   validateThresholds();
+  assertAuthenticatedEnvironment();
 
   if (dryRun) {
     const report = buildDryRunReport();
     await writeJsonOutput(report);
     console.log(
-      `[PASS] performance dry-run: ${routeSet.length} routes configured with p95 <= ${p95TargetMs}ms and error rate <= ${errorRateTarget}.`,
+      `[PASS] performance dry-run: ${selectedRouteSet().length} ${
+        publicSmoke ? 'public/static' : 'authenticated seeded API'
+      } routes configured with ${requestCount} requests, concurrency ${concurrency}, timeout ${timeoutMs}ms, p95 <= ${p95TargetMs}ms, and error rate <= ${errorRateTarget}.`,
     );
     return;
   }
 
   const routeResults = [];
+  const routes = selectedRouteSet();
 
-  for (const route of routeSet) {
+  for (const route of routes) {
     routeResults.push(await runRoute(route));
   }
 
@@ -181,8 +315,14 @@ async function main() {
       backendBaseUrl,
       frontendBaseUrl,
       requestCount,
+      concurrency,
+      timeoutMs,
       p95TargetMs,
       errorRateTarget,
+      authenticationContext: publicSmoke
+        ? 'none'
+        : 'short-lived local bearer token for a seeded Demo 3 organisation admin',
+      seededData: publicSmoke ? 'not required' : `seeded organisation ${organisationId}`,
     },
     routeResults,
     passed: failedRoutes.length === 0,
