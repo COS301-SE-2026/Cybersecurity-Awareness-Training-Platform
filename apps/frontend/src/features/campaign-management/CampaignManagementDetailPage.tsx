@@ -57,7 +57,7 @@ type OwnedCatalogueState = {
   state: CampaignCatalogueState;
 };
 
-type ConfirmationIntent = 'reset' | 'discard-new' | 'leave' | 'reload' | null;
+type ConfirmationIntent = 'reset' | 'discard-new' | 'leave' | 'reload' | 'activate' | null;
 
 function hasUnavailableCampaignContent(items: readonly CampaignDetailItemDto[]): boolean {
   return items.some((item) =>
@@ -528,28 +528,35 @@ function CampaignManagementDetailPage({
       if (lifecycleRequestIdRef.current === requestId) {
         lifecycleInFlightRef.current = false;
         setIsActivating(false);
+        setConfirmationIntent(null);
       }
     }
   }
 
   const confirmationConfiguration =
-    confirmationIntent === 'leave'
+    confirmationIntent === 'activate' && detail
       ? {
-          title: 'Leave without saving',
-          message: 'Your local Campaign Draft changes will be lost.',
-          confirmButtonText: 'Leave without saving',
+          title: `Activate ${detail.name}`,
+          message: 'Activating this Campaign will make its details and items read-only.',
+          confirmButtonText: 'Activate Campaign',
         }
-      : confirmationIntent === 'reload'
+      : confirmationIntent === 'leave'
         ? {
-            title: 'Reload Draft',
-            message: 'Reloading will replace your local Campaign Draft changes.',
-            confirmButtonText: 'Reload Draft',
-          }
-        : {
-            title: 'Discard unsaved changes',
+            title: 'Leave without saving',
             message: 'Your local Campaign Draft changes will be lost.',
-            confirmButtonText: 'Discard',
-          };
+            confirmButtonText: 'Leave without saving',
+          }
+        : confirmationIntent === 'reload'
+          ? {
+              title: 'Reload Draft',
+              message: 'Reloading will replace your local Campaign Draft changes.',
+              confirmButtonText: 'Reload Draft',
+            }
+          : {
+              title: 'Discard unsaved changes',
+              message: 'Your local Campaign Draft changes will be lost.',
+              confirmButtonText: 'Discard',
+            };
 
   return (
     <AppLayout>
@@ -715,7 +722,7 @@ function CampaignManagementDetailPage({
                 type="button"
                 className="campaign-button campaign-button--primary"
                 disabled={!canRequestActivation}
-                onClick={() => void handleActivateCampaign(detail)}
+                onClick={() => setConfirmationIntent('activate')}
               >
                 {isActivating ? 'Activating…' : 'Activate Campaign'}
               </button>
@@ -757,11 +764,21 @@ function CampaignManagementDetailPage({
             title={confirmationConfiguration.title}
             message={confirmationConfiguration.message}
             confirmButtonText={confirmationConfiguration.confirmButtonText}
-            confirmButtonVariant="danger"
+            cancelButtonText={confirmationIntent === 'activate' ? 'Keep Editing' : undefined}
+            confirmButtonVariant={confirmationIntent === 'activate' ? 'default' : 'danger'}
+            isConfirming={confirmationIntent === 'activate' && isActivating}
+            isConfirmDisabled={
+              confirmationIntent === 'activate' && (!canRequestActivation || isActivating)
+            }
+            isDismissDisabled={confirmationIntent === 'activate' && isActivating}
             onCancel={() => {
               setConfirmationIntent(null);
             }}
             onConfirm={() => {
+              if (confirmationIntent === 'activate' && detail) {
+                void handleActivateCampaign(detail);
+                return;
+              }
               if (confirmationIntent === 'reload') {
                 setConfirmationIntent(null);
                 reloadAuthoritativeDetail();

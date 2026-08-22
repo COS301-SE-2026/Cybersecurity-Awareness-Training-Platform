@@ -4,6 +4,7 @@ type BasicConfirmationModalProps = Readonly<{
   title: string;
   message: string;
   confirmButtonText: string;
+  cancelButtonText?: string;
   onConfirm: () => void;
   onCancel: () => void;
   confirmButtonVariant: 'danger' | 'success' | 'default';
@@ -23,6 +24,7 @@ function BasicConfirmationModal({
   title,
   message,
   confirmButtonText,
+  cancelButtonText = 'Cancel',
   onConfirm,
   onCancel,
   confirmButtonVariant,
@@ -171,7 +173,7 @@ function BasicConfirmationModal({
                 disabled={isDismissDisabled}
                 className="text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading focus:ring-4 focus:ring-neutral-tertiary shadow-xs font-jost tracking-wider cursor-pointer font-regular leading-5 text-[1.1rem] px-4 py-2.5 focus:outline-none"
               >
-                Cancel
+                {cancelButtonText}
               </button>
             </div>
           </div>

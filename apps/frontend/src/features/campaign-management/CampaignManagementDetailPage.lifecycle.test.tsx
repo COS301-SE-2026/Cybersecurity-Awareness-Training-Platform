@@ -2,7 +2,7 @@ import type {
   CampaignDetailResponseDto,
   CampaignLifecycleActionResponseDto,
 } from '@insightful-phish/shared';
-import { act, render, screen } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { type ReactNode } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -170,7 +170,7 @@ describe('CampaignManagementDetailPage activation', () => {
     ).toBeInTheDocument();
   });
 
-  it('locks Draft mutations while adopting a successful activation response', async () => {
+  it('confirms activation before locking Draft mutations and adopting the response', async () => {
     const user = userEvent.setup();
     const activationRequest = createDeferred<CampaignLifecycleActionResponseDto>();
     const activateCampaign = vi.fn(() => activationRequest.promise);
@@ -178,6 +178,19 @@ describe('CampaignManagementDetailPage activation', () => {
     renderPage(VALID_DRAFT, activateCampaign);
 
     await user.click(await screen.findByRole('button', { name: 'Activate Campaign' }));
+
+    const dialog = screen.getByRole('dialog', { name: `Activate ${VALID_DRAFT.name}?` });
+
+    expect(
+      within(dialog).getByText(
+        'Activating this Campaign will make its details and items read-only.',
+      ),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Keep Editing' })).toBeEnabled();
+    expect(within(dialog).getByRole('button', { name: 'Activate Campaign' })).toBeEnabled();
+    expect(activateCampaign).not.toHaveBeenCalled();
+
+    await user.click(within(dialog).getByRole('button', { name: 'Activate Campaign' }));
 
     expect(activateCampaign).toHaveBeenCalledWith(
       {
@@ -190,18 +203,16 @@ describe('CampaignManagementDetailPage activation', () => {
       },
     );
 
-    expect(screen.getByRole('button', { name: 'Activating…' })).toBeDisabled();
+    expect(within(dialog).getByRole('button', { name: 'Processing...' })).toBeDisabled();
+    expect(within(dialog).getByRole('button', { name: 'Keep Editing' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Save Changes' })).toBeDisabled();
-    expect(
-      screen.getByRole('combobox', { name: 'Requirement for Password safety quiz' }),
-    ).toBeDisabled();
 
     await act(async () => {
       activationRequest.resolve({
         success: true,
         campaignId: CAMPAIGN_ID,
         status: 'ACTIVE',
-        updatedAt: '2026-08-10T08:00:00.000Z',
+        updatedAt: '2026-08-14T10:00:00.000Z',
         allowedActions: ['VIEW', 'ARCHIVE'],
       });
       await activationRequest.promise;
@@ -209,9 +220,29 @@ describe('CampaignManagementDetailPage activation', () => {
 
     expect(screen.getByText('Status: ACTIVE')).toBeInTheDocument();
     expect(screen.queryByRole('form', { name: 'Campaign details' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('offers authoritative reload when activation detects a changed Draft', async () => {
+  it('keeps the saved Draft editable when activation is cancelled', async () => {
+    const user = userEvent.setup();
+    const activateCampaign = vi.fn();
+
+    renderPage(VALID_DRAFT, activateCampaign);
+
+    await user.click(await screen.findByRole('button', { name: 'Activate Campaign' }));
+
+    const dialog = screen.getByRole('dialog', { name: `Activate ${VALID_DRAFT.name}?` });
+
+    expect(activateCampaign).not.toHaveBeenCalled();
+
+    await user.click(within(dialog).getByRole('button', { name: 'Keep Editing' }));
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(activateCampaign).not.toHaveBeenCalled();
+    expect(screen.getByRole('textbox', { name: 'Campaign name' })).toHaveValue(VALID_DRAFT.name);
+  });
+
+  it('closes confirmation and offers authoritative reload for a changed Draft', async () => {
     const user = userEvent.setup();
     const activateCampaign = vi
       .fn()
@@ -220,9 +251,15 @@ describe('CampaignManagementDetailPage activation', () => {
     renderPage(VALID_DRAFT, activateCampaign);
 
     await user.click(await screen.findByRole('button', { name: 'Activate Campaign' }));
+
+    const dialog = screen.getByRole('dialog', { name: `Activate ${VALID_DRAFT.name}?` });
+
+    await user.click(within(dialog).getByRole('button', { name: 'Activate Campaign' }));
+
     expect(
       await screen.findByText('This Draft has changed since you opened it.'),
     ).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Reload Draft' })).toBeEnabled();
   });
 });
