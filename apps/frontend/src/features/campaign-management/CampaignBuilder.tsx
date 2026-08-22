@@ -3,6 +3,7 @@ import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import CampaignCatalogue, { type CampaignCatalogueState } from './CampaignCatalogue';
 import CampaignColourField from './CampaignColourField';
 import CampaignOrder from './CampaignOrder';
+import CampaignReviewSummary from './CampaignReviewSummary';
 import type {
   CampaignDraftComponentItemState,
   CampaignDraftFormState,
@@ -343,6 +344,8 @@ function CampaignBuilder({
             onPageChange={onCataloguePageChange}
           />
         )}
+
+      <CampaignReviewSummary contextKind={contextKind} draft={draft} />
 
       <div className="campaign-builder__actions">
         <button

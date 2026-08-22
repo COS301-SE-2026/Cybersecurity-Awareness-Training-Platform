@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
@@ -549,9 +549,8 @@ describe('AppRoutes', () => {
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Edit Draft Campaign' }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', { level: 2, name: 'New starter security' }),
-    ).toBeInTheDocument();
+    const review = screen.getByRole('region', { name: 'Review Campaign' });
+    expect(within(review).getByText('New starter security')).toBeInTheDocument();
   });
 
   it('allows an organisation Campaign list user with MANAGE_CAMPAIGNS', async () => {

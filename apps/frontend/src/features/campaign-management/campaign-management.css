@@ -421,6 +421,74 @@
   font-size: 0.9rem;
 }
 
+.campaign-review {
+  display: grid;
+  gap: 1rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--color-border, #d9d4e8);
+}
+
+.campaign-review h2,
+.campaign-review h3,
+.campaign-review h4,
+.campaign-review p {
+  margin: 0;
+}
+
+.campaign-review__metadata {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 1rem;
+  margin: 0;
+}
+
+.campaign-review__metadata div {
+  display: grid;
+  align-content: start;
+  gap: 0.25rem;
+}
+
+.campaign-review__metadata dt {
+  color: #2d1b46;
+  font-family: var(--jost);
+  font-weight: 600;
+}
+
+.campaign-review__metadata dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.campaign-review__colour {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.campaign-review__colour-swatch {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: 0 0 auto;
+  border: 1px solid #6b7280;
+}
+
+.campaign-review__items {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.campaign-review__items ol {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+.campaign-review__items li {
+  padding-left: 0.25rem;
+}
+
 .campaign-builder__actions {
   display: flex;
   justify-content: flex-end;

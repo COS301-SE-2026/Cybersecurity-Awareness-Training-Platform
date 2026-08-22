@@ -1,3 +1,4 @@
+import { getCampaignDraftItemTypeLabel } from './campaignDraftPresentation';
 import type { CampaignDraftItemState } from './campaignManagement.types';
 
 type CampaignOrderProps = Readonly<{
@@ -7,12 +8,6 @@ type CampaignOrderProps = Readonly<{
   onRemoveItem: (index: number) => void;
   onRequiredChange: (index: number, isRequired: boolean) => void;
 }>;
-
-const TYPE_LABELS = {
-  TRAINING_DOCUMENT: 'Training Document',
-  QUIZ: 'Quiz',
-  SIMULATED_INBOX: 'Simulated Inbox',
-} as const;
 
 function CampaignOrder({
   items,
@@ -44,7 +39,7 @@ function CampaignOrder({
                   <span className="campaign-order-item__position">{index + 1}</span>
                   <div>
                     <span className="campaign-order-item__type">
-                      {item.itemType === 'GROUP' ? 'Group' : TYPE_LABELS[item.componentType]}
+                      {getCampaignDraftItemTypeLabel(item)}
                     </span>
                     <h3>{item.title}</h3>
                     {item.description && <p>{item.description}</p>}

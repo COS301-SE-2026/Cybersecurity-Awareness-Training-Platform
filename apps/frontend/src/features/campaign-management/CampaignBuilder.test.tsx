@@ -1,8 +1,9 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
 import CampaignBuilder from './CampaignBuilder';
+import type { CampaignDraftFormState } from './campaignManagement.types';
 
 const INITIAL_DRAFT = {
   name: 'Initial Campaign',
@@ -12,6 +13,36 @@ const INITIAL_DRAFT = {
   endDate: '',
   items: [],
 };
+
+const REVIEW_DRAFT = {
+  name: 'Quarterly Security Awareness',
+  description: '',
+  accentColor: '#3100E4',
+  startDate: '2026-09-01T09:00',
+  endDate: '2026-09-30T17:00',
+  items: [
+    {
+      itemType: 'COMPONENT',
+      campaignItemId: 'item-quiz',
+      componentType: 'QUIZ',
+      contentId: 'quiz-one',
+      title: 'Password Security Quiz',
+      description: null,
+      isRequired: true,
+      sourceAvailable: true,
+    },
+    {
+      itemType: 'GROUP',
+      campaignItemId: 'group-security-basics',
+      title: 'Security Basics',
+      description: null,
+      groupType: 'MODULE',
+      completionRule: 'COMPLETE_ALL',
+      isRequired: false,
+      children: [],
+    },
+  ],
+} satisfies CampaignDraftFormState;
 
 const CATALOGUE_STATE = {
   status: 'loaded',
@@ -298,5 +329,76 @@ describe('CampaignBuilder', () => {
     render(<CampaignBuilder contextKind="platform" initialDraft={INITIAL_DRAFT} />);
 
     expect(screen.getByRole('button', { name: 'Discard Changes' })).toBeDisabled();
+  });
+
+  it('shows current Campaign metadata and ordered component/group summary', () => {
+    render(<CampaignBuilder contextKind="organisation" initialDraft={REVIEW_DRAFT} />);
+
+    const review = screen.getByRole('region', { name: 'Review Campaign' });
+
+    expect(within(review).getByText('Organisation Campaign')).toBeInTheDocument();
+    expect(within(review).getByText('Quarterly Security Awareness')).toBeInTheDocument();
+    expect(within(review).getByText('No description provided.')).toBeInTheDocument();
+    expect(within(review).getByText('#3100E4')).toBeInTheDocument();
+    expect(within(review).getByText('2 items')).toBeInTheDocument();
+
+    expect(
+      Array.from(review.querySelectorAll('time'), (date) => date.getAttribute('datetime')),
+    ).toEqual(['2026-09-01T09:00', '2026-09-30T17:00']);
+
+    const summary = within(review).getByRole('list', { name: 'Campaign item summary' });
+    const items = within(summary).getAllByRole('listitem');
+
+    expect(items).toHaveLength(2);
+    expect(
+      within(items[0]!).getByRole('heading', { name: 'Password Security Quiz' }),
+    ).toBeInTheDocument();
+    expect(within(items[0]!).getByText('Quiz')).toBeInTheDocument();
+    expect(within(items[0]!).getByText('Required')).toBeInTheDocument();
+
+    expect(within(items[1]!).getByRole('heading', { name: 'Security Basics' })).toBeInTheDocument();
+    expect(within(items[1]!).getByText('Group')).toBeInTheDocument();
+    expect(within(items[1]!).getByText('Optional')).toBeInTheDocument();
+  });
+
+  it('updates the review from unsaved local Draft changes', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn();
+
+    render(<CampaignBuilder contextKind="platform" initialDraft={REVIEW_DRAFT} onSave={onSave} />);
+
+    const review = screen.getByRole('region', { name: 'Review Campaign' });
+    const name = screen.getByRole('textbox', { name: 'Campaign name' });
+
+    await user.clear(name);
+    await user.type(name, 'Updated Security Campaign');
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'Requirement for Password Security Quiz' }),
+      'optional',
+    );
+    await user.click(screen.getByRole('button', { name: 'Move Security Basics up' }));
+
+    expect(within(review).getByText('Updated Security Campaign')).toBeInTheDocument();
+
+    const summary = within(review).getByRole('list', { name: 'Campaign item summary' });
+    const items = within(summary).getAllByRole('listitem');
+
+    expect(within(items[0]!).getByRole('heading', { name: 'Security Basics' })).toBeInTheDocument();
+    expect(
+      within(items[1]!).getByRole('heading', { name: 'Password Security Quiz' }),
+    ).toBeInTheDocument();
+    expect(within(items[1]!).getByText('Optional')).toBeInTheDocument();
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it('shows an empty platform Campaign review without organisation dates', () => {
+    render(<CampaignBuilder contextKind="platform" initialDraft={INITIAL_DRAFT} />);
+    const review = screen.getByRole('region', { name: 'Review Campaign' });
+
+    expect(within(review).getByText('Platform Campaign')).toBeInTheDocument();
+    expect(within(review).getByText('0 items')).toBeInTheDocument();
+    expect(within(review).getByText('No Campaign items added yet.')).toBeInTheDocument();
+    expect(within(review).queryByText('Start date')).not.toBeInTheDocument();
+    expect(within(review).queryByText('End date')).not.toBeInTheDocument();
   });
 });
