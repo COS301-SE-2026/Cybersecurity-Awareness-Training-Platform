@@ -187,8 +187,6 @@ function CampaignManagementDetailPage({
     setPendingLifecycleAction(null);
     setLifecycleError(null);
     setConfirmationIntent(null);
-    blockedNavigationRef.current = null;
-    allowedNextNavigationRef.current = false;
   }
 
   const currentLoadState = campaignId && loadState?.campaignId === campaignId ? loadState : null;
@@ -337,6 +335,8 @@ function CampaignManagementDetailPage({
   ]);
 
   useEffect(() => {
+    blockedNavigationRef.current = null;
+    allowedNextNavigationRef.current = false;
     return () => {
       saveRequestIdRef.current += 1;
       saveInFlightRef.current = false;
