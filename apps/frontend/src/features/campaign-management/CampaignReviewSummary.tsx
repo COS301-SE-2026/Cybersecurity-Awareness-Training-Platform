@@ -42,7 +42,7 @@ function CampaignReviewSummary({ contextKind, draft }: CampaignReviewSummaryProp
         </div>
         <div>
           <dt>Colour</dt>
-          <dd className="camapaign-review__colour">
+          <dd className="campaign-review__colour">
             <span
               className="campaign-review__colour-swatch"
               style={{ backgroundColor: draft.accentColor }}

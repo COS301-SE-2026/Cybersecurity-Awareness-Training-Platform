@@ -218,7 +218,8 @@ describe('CampaignManagementDetailPage activation', () => {
       await activationRequest.promise;
     });
 
-    expect(screen.getByText('Status: ACTIVE')).toBeInTheDocument();
+    const readOnlyDetail = screen.getByRole('region', { name: VALID_DRAFT.name });
+    expect(within(readOnlyDetail).getByText('Active')).toBeInTheDocument();
     expect(screen.queryByRole('form', { name: 'Campaign details' })).not.toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });

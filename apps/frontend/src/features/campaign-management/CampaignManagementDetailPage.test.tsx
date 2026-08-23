@@ -155,7 +155,7 @@ describe('CampaignManagementDetailPage', () => {
     );
   });
 
-  it('keeps a Draft without EDIT authority read-only', async () => {
+  it('renders a Draft without EDIT authority as complete read-only Detail', async () => {
     const viewOnlyDraft: CampaignDetailResponseDto = {
       ...DRAFT_DETAIL,
       allowedActions: ['VIEW'],
@@ -168,31 +168,168 @@ describe('CampaignManagementDetailPage', () => {
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Draft Campaign' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('This Campaign is currently read-only.')).toBeInTheDocument();
-    expect(
-      screen.queryByRole('heading', { level: 1, name: 'Edit Draft Campaign' }),
-    ).not.toBeInTheDocument();
+
+    const readOnlyDetail = screen.getByRole('region', { name: viewOnlyDraft.name });
+
+    expect(within(readOnlyDetail).getByText('Draft')).toBeInTheDocument();
+    expect(within(readOnlyDetail).getByText('Organisation Campaign')).toBeInTheDocument();
+    expect(within(readOnlyDetail).getByText('0 items')).toBeInTheDocument();
+    expect(within(readOnlyDetail).getByText('No Campaign items added.')).toBeInTheDocument();
+    expect(screen.queryByRole('form', { name: 'Campaign details' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save Changes' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Discard Changes' })).not.toBeInTheDocument();
   });
 
-  it('treats an Active Campaign as successful read-only detail', async () => {
+  it('renders complete ordered Active Campaign Detail including unavailable content', async () => {
     const activeDetail: CampaignDetailResponseDto = {
       ...DRAFT_DETAIL,
       name: 'Authoritative Active Campaign',
+      description: null,
+      accentColor: '#3100E4',
       status: 'ACTIVE',
+      startDate: '2026-09-01T08:00:00.000Z',
+      endDate: '2026-09-30T17:00:00.000Z',
       allowedActions: ['VIEW', 'ARCHIVE'],
+      items: [
+        {
+          itemType: 'COMPONENT',
+          campaignItemId: '30000000-0000-4000-8000-000000000003',
+          componentType: 'QUIZ',
+          contentId: '50000000-0000-4000-8000-000000000003',
+          title: 'Final Quiz',
+          description: null,
+          position: 1,
+          isRequired: false,
+          sourceAvailable: false,
+        },
+        {
+          itemType: 'GROUP',
+          campaignItemId: '30000000-0000-4000-8000-000000000001',
+          title: 'Security Essentials',
+          description: 'Core security material.',
+          groupType: 'MODULE',
+          completionRule: 'COMPLETE_ALL',
+          position: 0,
+          isRequired: true,
+          children: [
+            {
+              itemType: 'COMPONENT',
+              campaignItemId: '30000000-0000-4000-8000-000000000002',
+              componentType: 'TRAINING_DOCUMENT',
+              contentId: '50000000-0000-4000-8000-000000000002',
+              title: 'Unavailable Guide',
+              description: null,
+              position: 1,
+              isRequired: false,
+              sourceAvailable: false,
+            },
+            {
+              itemType: 'COMPONENT',
+              campaignItemId: '30000000-0000-4000-8000-000000000004',
+              componentType: 'SIMULATED_INBOX',
+              contentId: '50000000-0000-4000-8000-000000000004',
+              title: 'Inbox Simulation',
+              description: null,
+              position: 0,
+              isRequired: false,
+              sourceAvailable: true,
+            },
+          ],
+        },
+      ],
     };
 
     renderPage(DETAIL_PATH, DETAIL_ROUTE, {
       getCampaignDetail: vi.fn().mockResolvedValue(activeDetail),
     });
 
+    const readOnlyDetail = await screen.findByRole('region', { name: activeDetail.name });
+
+    expect(within(readOnlyDetail).getByText('Active')).toBeInTheDocument();
+    expect(within(readOnlyDetail).getByText('No description provided.')).toBeInTheDocument();
+    expect(within(readOnlyDetail).getByText('#3100E4')).toBeInTheDocument();
+    expect(within(readOnlyDetail).getByText('Organisation Campaign')).toBeInTheDocument();
+    expect(within(readOnlyDetail).getByText('Organisation Administrator')).toBeInTheDocument();
+    expect(within(readOnlyDetail).getByText('2 items')).toBeInTheDocument();
+
     expect(
-      await screen.findByRole('heading', { level: 2, name: activeDetail.name }),
-    ).toBeInTheDocument();
-    expect(screen.getByText('Status: ACTIVE')).toBeInTheDocument();
-    expect(screen.getByText('This Campaign is currently read-only.')).toBeInTheDocument();
-    expect(screen.queryByRole('textbox', { name: 'Campaign name' })).not.toBeInTheDocument();
-    expect(screen.queryByText('Campaign could not be loaded. Try again.')).not.toBeInTheDocument();
+      Array.from(readOnlyDetail.querySelectorAll('time'), (time) => time.getAttribute('datetime')),
+    ).toEqual([
+      activeDetail.createdAt,
+      activeDetail.updatedAt,
+      activeDetail.startDate,
+      activeDetail.endDate,
+    ]);
+
+    const itemHeadings = within(readOnlyDetail).getAllByRole('heading', { level: 4 });
+
+    expect(itemHeadings.map((heading) => heading.textContent)).toEqual([
+      'Security Essentials',
+      'Final Quiz',
+    ]);
+
+    const group = within(readOnlyDetail)
+      .getByRole('heading', { name: 'Security Essentials' })
+      .closest('article');
+    const component = within(readOnlyDetail)
+      .getByRole('heading', { name: 'Final Quiz' })
+      .closest('article');
+
+    expect(group).not.toBeNull();
+    expect(component).not.toBeNull();
+    expect(within(group as HTMLElement).getByText('Module Group')).toBeInTheDocument();
+    expect(within(group as HTMLElement).getByText('Required')).toBeInTheDocument();
+
+    const childHeadings = within(group as HTMLElement).getAllByRole('heading', { level: 6 });
+
+    expect(childHeadings.map((heading) => heading.textContent)).toEqual([
+      'Inbox Simulation',
+      'Unavailable Guide',
+    ]);
+    expect(within(group as HTMLElement).getByText('Source unavailable')).toBeInTheDocument();
+
+    expect(within(component as HTMLElement).getByText('Quiz')).toBeInTheDocument();
+    expect(within(component as HTMLElement).getByText('Optional')).toBeInTheDocument();
+    expect(within(component as HTMLElement).getByText('Source unavailable')).toBeInTheDocument();
+
+    expect(screen.queryByRole('form', { name: 'Campaign details' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: /Requirement for/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Move .* up/ })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Remove .* from Campaign/ }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Archive Campaign' })).not.toBeInTheDocument();
+  });
+
+  it('renders an Archived platform Campaign read-only without Reactivate', async () => {
+    const archivedDetail: CampaignDetailResponseDto = {
+      ...DRAFT_DETAIL,
+      id: '30000000-0000-4000-8000-000000000002',
+      organisationId: null,
+      name: 'Authoritative Archived Platform Campaign',
+      campaignType: 'PREMADE_GENERAL',
+      status: 'ARCHIVED',
+      startDate: null,
+      endDate: null,
+      allowedActions: ['VIEW', 'REACTIVATE'],
+    };
+    const client = withCreateClient({
+      getCampaignDetail: vi.fn().mockResolvedValue(archivedDetail),
+    });
+
+    renderWithRouter(<CampaignManagementDetailPage contextKind="platform" client={client} />, {
+      initialEntry: `/platform/campaigns/${archivedDetail.id}`,
+      routePath: '/platform/campaigns/:campaignId',
+    });
+
+    const readOnlyDetail = await screen.findByRole('region', { name: archivedDetail.name });
+
+    expect(within(readOnlyDetail).getByText('Platform Campaign')).toBeInTheDocument();
+    expect(within(readOnlyDetail).getByText('Archived')).toBeInTheDocument();
+    expect(within(readOnlyDetail).queryByText('Start date')).not.toBeInTheDocument();
+    expect(within(readOnlyDetail).queryByText('End date')).not.toBeInTheDocument();
+    expect(screen.queryByRole('form', { name: 'Campaign details' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Reactivate Campaign' })).not.toBeInTheDocument();
   });
 
   it('retries a failed detail request through the same client boundary', async () => {

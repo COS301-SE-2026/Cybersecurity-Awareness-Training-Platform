@@ -296,8 +296,11 @@ describe('CampaignManagementDetailPage Draft updates', () => {
     await user.type(name, 'Local edited Campaign');
     await user.click(screen.getByRole('button', { name: 'Save Changes' }));
 
-    expect(await screen.findByText('Status: ACTIVE')).toBeInTheDocument();
-    expect(screen.getByText('Authoritative Active Campaign')).toBeInTheDocument();
+    const readOnlyDetail = await screen.findByRole('region', {
+      name: 'Authoritative Active Campaign',
+    });
+
+    expect(within(readOnlyDetail).getByText('Active')).toBeInTheDocument();
     expect(screen.queryByRole('form', { name: 'Campaign details' })).not.toBeInTheDocument();
     expect(getCampaignDetail).toHaveBeenCalledTimes(2);
   });

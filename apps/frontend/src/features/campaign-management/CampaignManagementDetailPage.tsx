@@ -10,6 +10,7 @@ import LoadingSpinnerSVG from '../../components/LoadingSpinnerSVG';
 import AppLayout from '../../components/layout/AppLayout';
 import type { CampaignCatalogueState } from './CampaignCatalogue';
 import CampaignBuilder from './CampaignBuilder';
+import CampaignReadOnlyDetail from './CampaignReadOnlyDetail';
 import {
   CampaignManagementClientError,
   type CampaignManagementClient,
@@ -580,7 +581,9 @@ function CampaignManagementDetailPage({
           <div>
             <h1 className="campaign-page__title">{heading}</h1>
             <p className="campaign-page__helper">
-              Build a campaign by selecting and organising campaign items.
+              {isNew || canEditDraft
+                ? 'Build a campaign by selecting and organising campaign items.'
+                : 'Review Campaign details and ordered content.'}
             </p>
           </div>
         </header>
@@ -739,24 +742,8 @@ function CampaignManagementDetailPage({
             </section>
           )}
 
-        {!isNew &&
-          !isLoading &&
-          !loadError &&
-          detail &&
-          !canEditDraft &&
-          detail.status === 'DRAFT' && (
-            <section className="campaign-state">
-              <h2>{detail.name}</h2>
-              <p>This Campaign is currently read-only.</p>
-            </section>
-          )}
-
-        {!isNew && !isLoading && !loadError && detail && detail.status !== 'DRAFT' && (
-          <section className="campaign-state">
-            <h2>{detail.name}</h2>
-            <p>Status: {detail.status}</p>
-            <p>This Campaign is currently read-only.</p>
-          </section>
+        {!isNew && !isLoading && !loadError && detail && !canEditDraft && (
+          <CampaignReadOnlyDetail detail={detail} />
         )}
 
         {confirmationIntent && (
