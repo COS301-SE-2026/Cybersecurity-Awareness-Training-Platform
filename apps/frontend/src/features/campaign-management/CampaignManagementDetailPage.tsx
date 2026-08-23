@@ -29,7 +29,9 @@ type CampaignManagementDetailPageProps = Readonly<{
     CampaignManagementClient,
     'getCampaignCatalogue' | 'getCampaignDetail' | 'createCampaignDraft' | 'updateCampaignDraft'
   > &
-    Partial<Pick<CampaignManagementClient, 'activateCampaign'>>;
+    Partial<
+      Pick<CampaignManagementClient, 'activateCampaign' | 'archiveCampaign' | 'reactivateCampaign'>
+    >;
 }>;
 
 type CampaignDetailLoadState =
@@ -58,7 +60,9 @@ type OwnedCatalogueState = {
   state: CampaignCatalogueState;
 };
 
-type ConfirmationIntent = 'reset' | 'discard-new' | 'leave' | 'reload' | 'activate' | null;
+type LifecycleMutation = 'activate' | 'archive' | 'reactivate';
+
+type ConfirmationIntent = 'reset' | 'discard-new' | 'leave' | 'reload' | LifecycleMutation | null;
 
 function hasUnavailableCampaignContent(items: readonly CampaignDetailItemDto[]): boolean {
   return items.some((item) =>
@@ -114,7 +118,9 @@ function CampaignManagementDetailPage({
   const saveRequestIdRef = useRef(0);
   const saveInFlightRef = useRef(false);
   const [lifecycleError, setLifecycleError] = useState<string | null>(null);
-  const [isActivating, setIsActivating] = useState(false);
+  const [pendingLifecycleAction, setPendingLifecycleAction] = useState<LifecycleMutation | null>(
+    null,
+  );
   const lifecycleRequestIdRef = useRef(0);
   const lifecycleInFlightRef = useRef(false);
   const [catalogueLoadState, setCatalogueLoadState] = useState<OwnedCatalogueState | null>(null);
@@ -140,7 +146,7 @@ function CampaignManagementDetailPage({
     setActiveRouteOwnershipKey(routeOwnershipKey);
     setIsSaving(false);
     setSaveError(null);
-    setIsActivating(false);
+    setPendingLifecycleAction(null);
     setLifecycleError(null);
     setConfirmationIntent(null);
   }
@@ -166,7 +172,7 @@ function CampaignManagementDetailPage({
   const isEditorDirty =
     Boolean(editorKey) && editorDirtyState?.editorKey === editorKey && editorDirtyState.isDirty;
 
-  const isMutationPending = isSaving || isActivating;
+  const isMutationPending = isSaving || pendingLifecycleAction !== null;
   const hasActivationItems = Boolean(detail?.items.length);
   const hasUnavailableActivationContent = Boolean(
     detail && hasUnavailableCampaignContent(detail.items),
@@ -183,6 +189,11 @@ function CampaignManagementDetailPage({
     !hasUnavailableActivationContent &&
     !isEditorDirty &&
     !isMutationPending;
+  const hasArchiveAction = detail?.status === 'ACTIVE' && detail.allowedActions.includes('ARCHIVE');
+  const hasReactivateAction =
+    detail?.status === 'ARCHIVED' && detail.allowedActions.includes('REACTIVATE');
+  const canRequestArchive = Boolean(hasArchiveAction) && !isMutationPending;
+  const canRequestReactivate = Boolean(hasReactivateAction) && !isMutationPending;
 
   const heading = isNew
     ? 'Create Campaign'
@@ -454,18 +465,35 @@ function CampaignManagementDetailPage({
     }
   }
 
-  async function handleActivateCampaign(authoritativeDetail: CampaignDetailResponseDto) {
-    const activateCampaign = client.activateCampaign;
+  async function handleLifecycleMutation(
+    action: LifecycleMutation,
+    authoritativeDetail: CampaignDetailResponseDto,
+  ) {
+    const lifecycleMethod =
+      action === 'activate'
+        ? client.activateCampaign
+        : action === 'archive'
+          ? client.archiveCampaign
+          : client.reactivateCampaign;
+
+    const isRequestable =
+      action === 'activate'
+        ? !isEditorDirty &&
+          authoritativeDetail.status === 'DRAFT' &&
+          authoritativeDetail.allowedActions.includes('ACTIVATE') &&
+          authoritativeDetail.items.length > 0 &&
+          !hasUnavailableCampaignContent(authoritativeDetail.items)
+        : action === 'archive'
+          ? authoritativeDetail.status === 'ACTIVE' &&
+            authoritativeDetail.allowedActions.includes('ARCHIVE')
+          : authoritativeDetail.status === 'ARCHIVED' &&
+            authoritativeDetail.allowedActions.includes('REACTIVATE');
 
     if (
-      !activateCampaign ||
+      !lifecycleMethod ||
       lifecycleInFlightRef.current ||
       saveInFlightRef.current ||
-      isEditorDirty ||
-      authoritativeDetail.status !== 'DRAFT' ||
-      !authoritativeDetail.allowedActions.includes('ACTIVATE') ||
-      authoritativeDetail.items.length === 0 ||
-      hasUnavailableCampaignContent(authoritativeDetail.items)
+      !isRequestable
     ) {
       return;
     }
@@ -473,12 +501,12 @@ function CampaignManagementDetailPage({
     lifecycleInFlightRef.current = true;
     const requestId = ++lifecycleRequestIdRef.current;
 
-    setIsActivating(true);
+    setPendingLifecycleAction(action);
     setLifecycleError(null);
     setSaveError(null);
 
     try {
-      const activated = await activateCampaign(campaignContext, authoritativeDetail.id, {
+      const lifecycleResult = await lifecycleMethod(campaignContext, authoritativeDetail.id, {
         expectedUpdatedAt: authoritativeDetail.updatedAt,
       });
 
@@ -487,16 +515,19 @@ function CampaignManagementDetailPage({
       }
 
       setLoadState({
-        campaignId: activated.campaignId,
+        campaignId: lifecycleResult.campaignId,
         status: 'loaded',
         detail: {
           ...authoritativeDetail,
-          status: activated.status,
-          updatedAt: activated.updatedAt,
-          allowedActions: activated.allowedActions,
+          status: lifecycleResult.status,
+          updatedAt: lifecycleResult.updatedAt,
+          allowedActions: lifecycleResult.allowedActions,
         },
       });
-      setEditorDirtyState(null);
+
+      if (action === 'activate') {
+        setEditorDirtyState(null);
+      }
     } catch (error) {
       if (lifecycleRequestIdRef.current !== requestId) {
         return;
@@ -504,7 +535,11 @@ function CampaignManagementDetailPage({
 
       if (error instanceof CampaignManagementClientError) {
         if (error.code === 'CAMPAIGN_CHANGED') {
-          setLifecycleError('This Draft has changed since you opened it.');
+          setLifecycleError(
+            action === 'activate'
+              ? 'This Draft has changed since you opened it.'
+              : 'This Campaign has changed since you opened it.',
+          );
           return;
         }
 
@@ -513,22 +548,32 @@ function CampaignManagementDetailPage({
           return;
         }
 
-        if (error.code === 'EMPTY_CAMPAIGN') {
+        if (action === 'activate' && error.code === 'EMPTY_CAMPAIGN') {
           setLifecycleError('Add at least one Campaign item before activation.');
           return;
         }
 
         if (error.code === 'UNAVAILABLE_CAMPAIGN_CONTENT') {
-          setLifecycleError('Remove unavailable Campaign content before activation.');
+          setLifecycleError(
+            action === 'reactivate'
+              ? 'This Campaign contains content that is no longer available and cannot be reactivated.'
+              : 'Remove unavailable Campaign content before activation.',
+          );
           return;
         }
       }
 
-      setLifecycleError('Campaign could not be activated. Try again.');
+      setLifecycleError(
+        action === 'activate'
+          ? 'Campaign could not be activated. Try again.'
+          : action === 'archive'
+            ? 'Campaign could not be archived. Try again.'
+            : 'Campaign could not be reactivated. Try again.',
+      );
     } finally {
       if (lifecycleRequestIdRef.current === requestId) {
         lifecycleInFlightRef.current = false;
-        setIsActivating(false);
+        setPendingLifecycleAction(null);
         setConfirmationIntent(null);
       }
     }
@@ -540,24 +585,53 @@ function CampaignManagementDetailPage({
           title: `Activate ${detail.name}`,
           message: 'Activating this Campaign will make its details and items read-only.',
           confirmButtonText: 'Activate Campaign',
+          cancelButtonText: 'Keep Editing',
+          confirmButtonVariant: 'default' as const,
         }
-      : confirmationIntent === 'leave'
+      : confirmationIntent === 'archive' && detail
         ? {
-            title: 'Leave without saving',
-            message: 'Your local Campaign Draft changes will be lost.',
-            confirmButtonText: 'Leave without saving',
+            title: `Archive ${detail.name}`,
+            message:
+              'Archiving this Campaign stops new assignments and new trainee progress. Existing assignments and progress remain available read-only.',
+            confirmButtonText: 'Archive Campaign',
+            cancelButtonText: 'Keep Active',
+            confirmButtonVariant: 'danger' as const,
           }
-        : confirmationIntent === 'reload'
+        : confirmationIntent === 'reactivate' && detail
           ? {
-              title: 'Reload Draft',
-              message: 'Reloading will replace your local Campaign Draft changes.',
-              confirmButtonText: 'Reload Draft',
+              title: `Reactivate ${detail.name}`,
+              message: `Reactivating this Campaign restores its eligibility without changing its content.${
+                detail.campaignType === 'ORGANISATION_CUSTOM'
+                  ? ' Organisation Campaign dates still apply.'
+                  : ''
+              }`,
+              confirmButtonText: 'Reactivate Campaign',
+              cancelButtonText: 'Keep Archived',
+              confirmButtonVariant: 'default' as const,
             }
-          : {
-              title: 'Discard unsaved changes',
-              message: 'Your local Campaign Draft changes will be lost.',
-              confirmButtonText: 'Discard',
-            };
+          : confirmationIntent === 'leave'
+            ? {
+                title: 'Leave without saving',
+                message: 'Your local Campaign Draft changes will be lost.',
+                confirmButtonText: 'Leave without saving',
+                cancelButtonText: undefined,
+                confirmButtonVariant: 'danger' as const,
+              }
+            : confirmationIntent === 'reload'
+              ? {
+                  title: 'Reload Draft',
+                  message: 'Reloading will replace your local Campaign Draft changes.',
+                  confirmButtonText: 'Reload Draft',
+                  cancelButtonText: undefined,
+                  confirmButtonVariant: 'danger' as const,
+                }
+              : {
+                  title: 'Discard unsaved changes',
+                  message: 'Your local Campaign Draft changes will be lost.',
+                  confirmButtonText: 'Discard',
+                  cancelButtonText: undefined,
+                  confirmButtonVariant: 'danger' as const,
+                };
 
   return (
     <AppLayout>
@@ -639,9 +713,22 @@ function CampaignManagementDetailPage({
           <section className="campaign-error" role="alert">
             <p>{lifecycleError}</p>
 
-            {lifecycleError === 'This Draft has changed since you opened it.' && (
-              <button type="button" onClick={() => setConfirmationIntent('reload')}>
-                Reload Draft
+            {(lifecycleError === 'This Draft has changed since you opened it.' ||
+              lifecycleError === 'This Campaign has changed since you opened it.') && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (lifecycleError === 'This Draft has changed since you opened it.') {
+                    setConfirmationIntent('reload');
+                    return;
+                  }
+
+                  reloadAuthoritativeDetail();
+                }}
+              >
+                {lifecycleError === 'This Draft has changed since you opened it.'
+                  ? 'Reload Draft'
+                  : 'Reload Campaign'}
               </button>
             )}
           </section>
@@ -727,7 +814,7 @@ function CampaignManagementDetailPage({
                 disabled={!canRequestActivation}
                 onClick={() => setConfirmationIntent('activate')}
               >
-                {isActivating ? 'Activating…' : 'Activate Campaign'}
+                {pendingLifecycleAction === 'activate' ? 'Activating…' : 'Activate Campaign'}
               </button>
 
               {!hasActivationItems ? (
@@ -746,24 +833,69 @@ function CampaignManagementDetailPage({
           <CampaignReadOnlyDetail detail={detail} />
         )}
 
+        {!isNew &&
+          !isLoading &&
+          !loadError &&
+          detail &&
+          !canEditDraft &&
+          ((hasArchiveAction && client.archiveCampaign) ||
+            (hasReactivateAction && client.reactivateCampaign)) && (
+            <section className="campaign-lifecycle" aria-label="Campaign lifecycle actions">
+              {hasArchiveAction && client.archiveCampaign && (
+                <button
+                  type="button"
+                  className="campaign-button campaign-button--primary"
+                  disabled={!canRequestArchive}
+                  onClick={() => setConfirmationIntent('archive')}
+                >
+                  {pendingLifecycleAction === 'archive' ? 'Archiving…' : 'Archive Campaign'}
+                </button>
+              )}
+
+              {hasReactivateAction && client.reactivateCampaign && (
+                <button
+                  type="button"
+                  className="campaign-button campaign-button--primary"
+                  disabled={!canRequestReactivate}
+                  onClick={() => setConfirmationIntent('reactivate')}
+                >
+                  {pendingLifecycleAction === 'reactivate'
+                    ? 'Reactivating…'
+                    : 'Reactivate Campaign'}
+                </button>
+              )}
+            </section>
+          )}
+
         {confirmationIntent && (
           <BasicConfirmationModal
             title={confirmationConfiguration.title}
             message={confirmationConfiguration.message}
             confirmButtonText={confirmationConfiguration.confirmButtonText}
-            cancelButtonText={confirmationIntent === 'activate' ? 'Keep Editing' : undefined}
-            confirmButtonVariant={confirmationIntent === 'activate' ? 'default' : 'danger'}
-            isConfirming={confirmationIntent === 'activate' && isActivating}
+            cancelButtonText={confirmationConfiguration.cancelButtonText}
+            confirmButtonVariant={confirmationConfiguration.confirmButtonVariant}
+            isConfirming={pendingLifecycleAction === confirmationIntent}
             isConfirmDisabled={
-              confirmationIntent === 'activate' && (!canRequestActivation || isActivating)
+              confirmationIntent === 'activate'
+                ? !canRequestActivation
+                : confirmationIntent === 'archive'
+                  ? !canRequestArchive
+                  : confirmationIntent === 'reactivate'
+                    ? !canRequestReactivate
+                    : false
             }
-            isDismissDisabled={confirmationIntent === 'activate' && isActivating}
+            isDismissDisabled={pendingLifecycleAction === confirmationIntent}
             onCancel={() => {
               setConfirmationIntent(null);
             }}
             onConfirm={() => {
-              if (confirmationIntent === 'activate' && detail) {
-                void handleActivateCampaign(detail);
+              if (
+                (confirmationIntent === 'activate' ||
+                  confirmationIntent === 'archive' ||
+                  confirmationIntent === 'reactivate') &&
+                detail
+              ) {
+                void handleLifecycleMutation(confirmationIntent, detail);
                 return;
               }
               if (confirmationIntent === 'reload') {

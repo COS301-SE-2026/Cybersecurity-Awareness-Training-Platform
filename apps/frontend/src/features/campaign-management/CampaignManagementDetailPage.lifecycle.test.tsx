@@ -30,6 +30,13 @@ type LifecycleClient = Pick<
   | 'createCampaignDraft'
   | 'updateCampaignDraft'
   | 'activateCampaign'
+> &
+  Partial<
+    Pick<CampaignManagementClient, 'activateCampaign' | 'archiveCampaign' | 'reactivateCampaign'>
+  >;
+
+type LifecycleMethods = Partial<
+  Pick<CampaignManagementClient, 'activateCampaign' | 'archiveCampaign' | 'reactivateCampaign'>
 >;
 
 const PERSISTED_ITEM = {
@@ -67,6 +74,13 @@ const EMPTY_DRAFT: CampaignDetailResponseDto = {
   items: [],
 };
 
+const ACTIVE_CAMPAIGN: CampaignDetailResponseDto = {
+  ...VALID_DRAFT,
+  name: 'Active Awareness Campaign',
+  status: 'ACTIVE',
+  allowedActions: ['VIEW', 'ARCHIVE'],
+};
+
 const EMPTY_CATALOGUE = {
   items: [],
   pagination: {
@@ -79,13 +93,14 @@ const EMPTY_CATALOGUE = {
   },
 };
 
-function renderPage(detail: CampaignDetailResponseDto, activateCampaign = vi.fn()) {
+function renderPage(detail: CampaignDetailResponseDto, lifecycleMethods: LifecycleMethods = {}) {
   const client: LifecycleClient = {
     getCampaignCatalogue: vi.fn().mockResolvedValue(EMPTY_CATALOGUE),
     getCampaignDetail: vi.fn().mockResolvedValue(detail),
     createCampaignDraft: vi.fn(),
     updateCampaignDraft: vi.fn(),
-    activateCampaign,
+    activateCampaign: lifecycleMethods.activateCampaign ?? vi.fn(),
+    ...lifecycleMethods,
   };
 
   render(
@@ -106,7 +121,7 @@ describe('CampaignManagementDetailPage activation', () => {
   it('explains why an empty saved Draft cannot be activated', async () => {
     const activateCampaign = vi.fn();
 
-    renderPage(EMPTY_DRAFT, activateCampaign);
+    renderPage(EMPTY_DRAFT, { activateCampaign });
 
     const activate = await screen.findByRole('button', { name: 'Activate Campaign' });
 
@@ -175,7 +190,7 @@ describe('CampaignManagementDetailPage activation', () => {
     const activationRequest = createDeferred<CampaignLifecycleActionResponseDto>();
     const activateCampaign = vi.fn(() => activationRequest.promise);
 
-    renderPage(VALID_DRAFT, activateCampaign);
+    renderPage(VALID_DRAFT, { activateCampaign });
 
     await user.click(await screen.findByRole('button', { name: 'Activate Campaign' }));
 
@@ -228,7 +243,7 @@ describe('CampaignManagementDetailPage activation', () => {
     const user = userEvent.setup();
     const activateCampaign = vi.fn();
 
-    renderPage(VALID_DRAFT, activateCampaign);
+    renderPage(VALID_DRAFT, { activateCampaign });
 
     await user.click(await screen.findByRole('button', { name: 'Activate Campaign' }));
 
@@ -249,7 +264,7 @@ describe('CampaignManagementDetailPage activation', () => {
       .fn()
       .mockRejectedValue(new CampaignManagementClientError('CAMPAIGN_CHANGED'));
 
-    renderPage(VALID_DRAFT, activateCampaign);
+    renderPage(VALID_DRAFT, { activateCampaign });
 
     await user.click(await screen.findByRole('button', { name: 'Activate Campaign' }));
 
@@ -262,5 +277,27 @@ describe('CampaignManagementDetailPage activation', () => {
     ).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Reload Draft' })).toBeEnabled();
+  });
+
+  it('offers authoritative reload after an Archive conflict', async () => {
+    const user = userEvent.setup();
+    const archiveCampaign = vi
+      .fn()
+      .mockRejectedValue(new CampaignManagementClientError('CAMPAIGN_CHANGED'));
+
+    renderPage(ACTIVE_CAMPAIGN, { archiveCampaign });
+
+    await user.click(await screen.findByRole('button', { name: 'Archive Campaign' }));
+
+    const dialog = screen.getByRole('dialog', { name: `Archive ${ACTIVE_CAMPAIGN.name}?` });
+
+    await user.click(within(dialog).getByRole('button', { name: 'Archive Campaign' }));
+
+    expect(
+      await screen.findByText('This Campaign has changed since you opened it.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Reload Campaign' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Archive Campaign' })).toBeEnabled();
   });
 });
