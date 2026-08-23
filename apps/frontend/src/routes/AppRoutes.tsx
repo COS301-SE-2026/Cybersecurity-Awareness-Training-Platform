@@ -1,5 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { StatusPage } from '../App';
+import { useAuth } from '../context/useAuth';
+import type { CampaignManagementContext } from '../features/campaign-management/campaignManagement.types';
 import LoginPage from '../pages/LoginPage';
 import RegisterPage from '../pages/RegisterPage';
 import InboxPage from '../pages/InboxPage';
@@ -28,6 +30,21 @@ import BrandPage from '../pages/BrandPage';
 import CampaignAssignmentPage from '../pages/CampaignAssignmentPage';
 import CampaignManagementListPage from '../features/campaign-management/CampaignManagementListPage';
 import CampaignManagementDetailPage from '../features/campaign-management/CampaignManagementDetailPage';
+
+function CampaignManagementDetailRoute({
+  contextKind,
+}: Readonly<{ contextKind: CampaignManagementContext['kind'] }>) {
+  const { permissions } = useAuth();
+  const canManageCampaigns = contextKind === 'platform' || permissions.includes('MANAGE_CAMPAIGNS');
+
+  return (
+    <CampaignManagementDetailPage
+      contextKind={contextKind}
+      canManageCampaigns={canManageCampaigns}
+      blockUnsavedNavigation
+    />
+  );
+}
 
 function AppRoutes() {
   return (
@@ -91,7 +108,7 @@ function AppRoutes() {
           />
           <Route
             path="/organisations/:organisationId/campaigns/:campaignId"
-            element={<CampaignManagementDetailPage contextKind="organisation" />}
+            element={<CampaignManagementDetailRoute contextKind="organisation" />}
           />
         </Route>
 
@@ -100,7 +117,7 @@ function AppRoutes() {
         >
           <Route
             path="/organisations/:organisationId/campaigns/new"
-            element={<CampaignManagementDetailPage contextKind="organisation" />}
+            element={<CampaignManagementDetailRoute contextKind="organisation" />}
           />
         </Route>
       </Route>
@@ -150,11 +167,11 @@ function AppRoutes() {
         />
         <Route
           path="/platform/campaigns/new"
-          element={<CampaignManagementDetailPage contextKind="platform" />}
+          element={<CampaignManagementDetailRoute contextKind="platform" />}
         />
         <Route
           path="/platform/campaigns/:campaignId"
-          element={<CampaignManagementDetailPage contextKind="platform" />}
+          element={<CampaignManagementDetailRoute contextKind="platform" />}
         />
       </Route>
 

@@ -1,10 +1,9 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
-import { useLocation } from 'react-router-dom';
+import { createMemoryRouter, RouterProvider, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { renderWithRouter } from '../../testing/render';
-import type { OrganisationPermissionKeyDto } from '@insightful-phish/shared';
+import { createAuthContextValue, renderWithRouter } from '../../testing/render';
 
 vi.mock('../../App', () => ({
   StatusPage: () => <h1>Status Page</h1>,
@@ -99,6 +98,8 @@ vi.mock('../../lib/campaignsApi', () => ({
 
 import AppRoutes from '../AppRoutes';
 import { getTraineeCampaignDetail, getTraineeCampaigns } from '../../lib/campaignsApi';
+import { AuthContext } from '../../context/auth-context';
+import type { OrganisationPermissionKeyDto } from '@insightful-phish/shared';
 
 const mockedGetTraineeCampaigns = vi.mocked(getTraineeCampaigns);
 const mockedGetTraineeCampaignDetail = vi.mocked(getTraineeCampaignDetail);
@@ -153,47 +154,61 @@ function renderCampaignManagementRoutes(
   organisationId: string | null,
   permissions: OrganisationPermissionKeyDto[] = [],
 ) {
-  return renderWithRouter(
-    <>
-      <LocationDisplay />
-      <AppRoutes />
-    </>,
-    {
-      initialEntry,
-      auth: {
-        user: {
-          id: 'campaign-admin-user',
-          firstName: 'Campaign',
-          lastName: 'Administrator',
-          email: 'campaign-admin@example.com',
-          userType: role,
-          authStatus: 'ACTIVE',
-          traineeProfile: null,
-          adminProfile: null,
-          createdAt: '2026-08-01T00:00:00.00Z',
-        },
-        authContext: {
-          user: {
-            id: 'campaign-admin-user',
-            userType: role,
-            authStatus: 'ACTIVE',
-          },
-          role,
-          organisation: organisationId
-            ? {
-                id: organisationId,
-                name: 'Example Organisation',
-                status: 'ACTIVE',
-              }
-            : null,
-          platformAdminRole: role === 'IP_ADMIN' ? 'NORMAL_ADMIN' : null,
-          permissions,
-          redirectTo: role === 'IP_ADMIN' ? '/platform/campaigns' : '/organisation-information',
-        },
-        permissions,
-        redirectTo: role === 'IP_ADMIN' ? '/platform/campaigns' : 'organisation-information',
-      },
+  const authValue = createAuthContextValue({
+    user: {
+      id: 'user-one',
+      firstName: 'Campaign',
+      lastName: 'Administrator',
+      email: 'campaign-admin@example.com',
+      userType: role,
+      authStatus: 'ACTIVE',
+      traineeProfile: null,
+      adminProfile: null,
+      createdAt: '2026-08-01T00:00:00.000Z',
     },
+    authContext: {
+      user: {
+        id: 'Campaign-admin-user',
+        userType: role,
+        authStatus: 'ACTIVE',
+      },
+      role,
+      organisation: organisationId
+        ? {
+            id: organisationId,
+            name: 'Example Organisation',
+            status: 'ACTIVE',
+          }
+        : null,
+      platformAdminRole: role === 'IP_ADMIN' ? 'NORMAL_ADMIN' : null,
+      permissions,
+      redirectTo: role === 'IP_ADMIN' ? '/platform/campaigns' : 'organisation-information',
+    },
+    permissions,
+    redirectTo: role === 'IP_ADMIN' ? '/platform/campaigns' : 'organisation-information',
+  });
+
+  const router = createMemoryRouter(
+    [
+      {
+        path: '*',
+        element: (
+          <>
+            <LocationDisplay />
+            <AppRoutes />
+          </>
+        ),
+      },
+    ],
+    {
+      initialEntries: [initialEntry],
+    },
+  );
+
+  return render(
+    <AuthContext.Provider value={authValue}>
+      <RouterProvider router={router} />
+    </AuthContext.Provider>,
   );
 }
 
@@ -547,10 +562,12 @@ describe('AppRoutes', () => {
     );
 
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Edit Draft Campaign' }),
+      await screen.findByRole('heading', { level: 1, name: 'Draft Campaign' }),
     ).toBeInTheDocument();
-    const review = screen.getByRole('region', { name: 'Review Campaign' });
-    expect(within(review).getByText('New starter security')).toBeInTheDocument();
+
+    const detail = screen.getByRole('region', { name: 'New starter security' });
+    expect(within(detail).getByText('Draft')).toBeInTheDocument();
+    expect(screen.queryByRole('form', { name: 'Campaign details' })).not.toBeInTheDocument();
   });
 
   it('allows an organisation Campaign list user with MANAGE_CAMPAIGNS', async () => {

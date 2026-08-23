@@ -233,6 +233,7 @@ function CampaignBuilder({
           name="campaign-name"
           type="text"
           required
+          disabled={isDraftMutationPending}
           maxLength={200}
           value={draft.name}
           aria-invalid={hasNameError}
@@ -259,6 +260,7 @@ function CampaignBuilder({
           maxLength={2000}
           rows={6}
           value={draft.description}
+          disabled={isDraftMutationPending}
           onChange={(event) => {
             updateDraft({
               description: event.target.value,
@@ -268,6 +270,7 @@ function CampaignBuilder({
       </div>
       <CampaignColourField
         value={draft.accentColor}
+        disabled={isDraftMutationPending}
         onChange={(accentColor) => {
           updateDraft({ accentColor });
         }}
@@ -284,6 +287,7 @@ function CampaignBuilder({
                 id="campaign-start-date"
                 name="campaign-start-date"
                 type="datetime-local"
+                disabled={isDraftMutationPending}
                 value={draft.startDate}
                 onChange={(event) => {
                   updateDraft({
@@ -299,6 +303,7 @@ function CampaignBuilder({
                 id="campaign-end-date"
                 name="campaign-end-date"
                 type="datetime-local"
+                disabled={isDraftMutationPending}
                 value={draft.endDate}
                 aria-invalid={hasScheduleError}
                 aria-describedby={hasScheduleError ? 'campaign-end-date-error' : undefined}

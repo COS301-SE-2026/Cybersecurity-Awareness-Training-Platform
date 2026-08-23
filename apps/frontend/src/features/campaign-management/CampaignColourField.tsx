@@ -9,9 +9,10 @@ const CAMPAIGN_COLOURS = [
 type CampaignColourFieldProps = Readonly<{
   value: string;
   onChange: (value: string) => void;
+  disabled?: boolean;
 }>;
 
-function CampaignColourField({ value, onChange }: CampaignColourFieldProps) {
+function CampaignColourField({ value, onChange, disabled = false }: CampaignColourFieldProps) {
   return (
     <fieldset className="campaign-colour-field">
       <legend>Campaign colour</legend>
@@ -22,6 +23,7 @@ function CampaignColourField({ value, onChange }: CampaignColourFieldProps) {
             <input
               type="radio"
               name="campaign-colour"
+              disabled={disabled}
               value={colour.value}
               checked={value === colour.value}
               onChange={() => {

@@ -1,6 +1,13 @@
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
+import {
+  createMemoryRouter,
+  MemoryRouter,
+  Route,
+  RouterProvider,
+  Routes,
+  useNavigate,
+} from 'react-router-dom';
 import type { CampaignDetailResponseDto } from '@insightful-phish/shared';
 import { useMemo, type ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -83,22 +90,29 @@ function renderPage(path: string, routePath: string, client: DetailClientFixture
 
 function renderNavigatePage(path: string, routePath: string, client: DetailClientFixture) {
   const detailClient = withCreateClient(client);
-  return render(
-    <MemoryRouter initialEntries={[path]}>
-      <Routes>
-        <Route
-          path={routePath}
-          element={
-            <CampaignManagementDetailPage contextKind="organisation" client={detailClient} />
-          }
-        />
-        <Route
-          path="/organisations/:organisationId/campaigns"
-          element={<div>Campaign list destination</div>}
-        />
-      </Routes>
-    </MemoryRouter>,
+  const router = createMemoryRouter(
+    [
+      {
+        path: routePath,
+        element: (
+          <CampaignManagementDetailPage
+            contextKind="organisation"
+            client={detailClient}
+            blockUnsavedNavigation
+          />
+        ),
+      },
+      {
+        path: '/organisations/:organisationId/campaigns',
+        element: <div>Campaign list destination</div>,
+      },
+    ],
+    {
+      initialEntries: [path],
+    },
   );
+
+  return render(<RouterProvider router={router} />);
 }
 
 function DetailRouteHarness({ client }: { client: DetailClientFixture }) {

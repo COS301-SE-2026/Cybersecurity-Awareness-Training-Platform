@@ -1,5 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Link,
+  Navigate,
+  useBlocker,
+  useNavigate,
+  useParams,
+  type BlockerFunction,
+} from 'react-router-dom';
 import type {
   CampaignCatalogueQueryDto,
   CampaignDetailItemDto,
@@ -32,6 +39,8 @@ type CampaignManagementDetailPageProps = Readonly<{
     Partial<
       Pick<CampaignManagementClient, 'activateCampaign' | 'archiveCampaign' | 'reactivateCampaign'>
     >;
+  canManageCampaigns?: boolean;
+  blockUnsavedNavigation?: boolean;
 }>;
 
 type CampaignDetailLoadState =
@@ -80,9 +89,36 @@ function getRouteOwnershipKey(
   return `${contextKind}:${organisationId ?? ''}:${campaignId ?? 'new'}`;
 }
 
+type BlockedNavigation = Readonly<{
+  proceed: () => void;
+  reset: () => void;
+}>;
+
+type CampaignNavigationBlockerProps = Readonly<{
+  shouldBlock: BlockerFunction;
+  onBlocked: (navigation: BlockedNavigation) => void;
+}>;
+
+function CampaignNavigationBlocker({ shouldBlock, onBlocked }: CampaignNavigationBlockerProps) {
+  const blocker = useBlocker(shouldBlock);
+
+  useEffect(() => {
+    if (blocker.state === 'blocked') {
+      onBlocked({
+        proceed: blocker.proceed,
+        reset: blocker.reset,
+      });
+    }
+  }, [blocker, onBlocked]);
+
+  return null;
+}
+
 function CampaignManagementDetailPage({
   contextKind,
   client = developmentCampaignManagementClient,
+  canManageCampaigns = true,
+  blockUnsavedNavigation = false,
 }: CampaignManagementDetailPageProps) {
   const { organisationId, campaignId } = useParams<{
     organisationId: string;
@@ -106,6 +142,8 @@ function CampaignManagementDetailPage({
 
   const isNew = campaignId === undefined;
   const navigate = useNavigate();
+  const blockedNavigationRef = useRef<BlockedNavigation | null>(null);
+  const allowedNextNavigationRef = useRef(false);
 
   const [loadState, setLoadState] = useState<CampaignDetailLoadState | null>(null);
   const requestIdRef = useRef(0);
@@ -149,6 +187,8 @@ function CampaignManagementDetailPage({
     setPendingLifecycleAction(null);
     setLifecycleError(null);
     setConfirmationIntent(null);
+    blockedNavigationRef.current = null;
+    allowedNextNavigationRef.current = false;
   }
 
   const currentLoadState = campaignId && loadState?.campaignId === campaignId ? loadState : null;
@@ -161,7 +201,8 @@ function CampaignManagementDetailPage({
 
   const loadError = currentLoadState?.status === 'error' ? currentLoadState.message : null;
 
-  const canEditDraft = detail?.status === 'DRAFT' && detail.allowedActions.includes('EDIT');
+  const canEditDraft =
+    canManageCampaigns && detail?.status === 'DRAFT' && detail.allowedActions.includes('EDIT');
 
   const shouldLoadCatalogue = isNew || canEditDraft;
   const currentCatalogueState =
@@ -172,12 +213,23 @@ function CampaignManagementDetailPage({
   const isEditorDirty =
     Boolean(editorKey) && editorDirtyState?.editorKey === editorKey && editorDirtyState.isDirty;
 
+  const shouldBlockNavigation = useCallback<BlockerFunction>(
+    () => isEditorDirty && !allowedNextNavigationRef.current,
+    [isEditorDirty],
+  );
+
+  const handleBlockedNavigation = useCallback((navigation: BlockedNavigation) => {
+    blockedNavigationRef.current = navigation;
+    setConfirmationIntent('leave');
+  }, []);
+
   const isMutationPending = isSaving || pendingLifecycleAction !== null;
   const hasActivationItems = Boolean(detail?.items.length);
   const hasUnavailableActivationContent = Boolean(
     detail && hasUnavailableCampaignContent(detail.items),
   );
-  const hasActivationAction = Boolean(detail?.allowedActions.includes('ACTIVATE'));
+  const hasActivationAction =
+    canManageCampaigns && Boolean(detail?.allowedActions.includes('ACTIVATE'));
   const hasOtherActivationRestriction =
     !hasActivationAction &&
     hasActivationItems &&
@@ -189,9 +241,12 @@ function CampaignManagementDetailPage({
     !hasUnavailableActivationContent &&
     !isEditorDirty &&
     !isMutationPending;
-  const hasArchiveAction = detail?.status === 'ACTIVE' && detail.allowedActions.includes('ARCHIVE');
+  const hasArchiveAction =
+    canManageCampaigns && detail?.status === 'ACTIVE' && detail.allowedActions.includes('ARCHIVE');
   const hasReactivateAction =
-    detail?.status === 'ARCHIVED' && detail.allowedActions.includes('REACTIVATE');
+    canManageCampaigns &&
+    detail?.status === 'ARCHIVED' &&
+    detail.allowedActions.includes('REACTIVATE');
   const canRequestArchive = Boolean(hasArchiveAction) && !isMutationPending;
   const canRequestReactivate = Boolean(hasReactivateAction) && !isMutationPending;
 
@@ -386,6 +441,7 @@ function CampaignManagementDetailPage({
         return;
       }
 
+      allowedNextNavigationRef.current = true;
       navigate(`${campaignListPath}/${created.id}`, {
         replace: true,
       });
@@ -636,17 +692,7 @@ function CampaignManagementDetailPage({
   return (
     <AppLayout>
       <main className="campaign-detail-shell">
-        <Link
-          className="campaign-back-link"
-          to={campaignListPath}
-          onClick={(event) => {
-            if (!isEditorDirty) {
-              return;
-            }
-            event.preventDefault();
-            setConfirmationIntent('leave');
-          }}
-        >
+        <Link className="campaign-back-link" to={campaignListPath}>
           <span aria-hidden="true">←</span>
           <span>Back to Campaigns</span>
         </Link>
@@ -886,6 +932,11 @@ function CampaignManagementDetailPage({
             }
             isDismissDisabled={pendingLifecycleAction === confirmationIntent}
             onCancel={() => {
+              if (confirmationIntent === 'leave') {
+                blockedNavigationRef.current?.reset();
+                blockedNavigationRef.current = null;
+              }
+
               setConfirmationIntent(null);
             }}
             onConfirm={() => {
@@ -903,7 +954,15 @@ function CampaignManagementDetailPage({
                 reloadAuthoritativeDetail();
                 return;
               }
-              if (confirmationIntent === 'leave' || confirmationIntent === 'discard-new') {
+              if (confirmationIntent === 'leave') {
+                const blockedNavigation = blockedNavigationRef.current;
+                blockedNavigationRef.current = null;
+                setConfirmationIntent(null);
+                blockedNavigation?.proceed();
+                return;
+              }
+              if (confirmationIntent === 'discard-new') {
+                allowedNextNavigationRef.current = true;
                 setConfirmationIntent(null);
                 navigate(campaignListPath);
                 return;
@@ -922,6 +981,13 @@ function CampaignManagementDetailPage({
           />
         )}
       </main>
+
+      {blockUnsavedNavigation && (
+        <CampaignNavigationBlocker
+          shouldBlock={shouldBlockNavigation}
+          onBlocked={handleBlockedNavigation}
+        />
+      )}
     </AppLayout>
   );
 }
