@@ -4,7 +4,7 @@ import type {
   Prisma,
   PrismaClient,
 } from '../generated/prisma/client.js';
-import { ACTIVE_INVITATION_STATUSES } from '../services/invitation-state-policy.js';
+import { ACTIVE_INVITATION_STATUSES } from '@insightful-phish/shared';
 
 import { prisma } from '../lib/prisma.js';
 

@@ -7,10 +7,16 @@ import * as service from '../../services/organisation-details.service';
 
 // unit and integration tests for organisation information page with South Africa context
 
+let mockAuthContext: Record<string, unknown> = {
+  role: 'IP_ADMIN',
+  organisation: { id: 'org-123-abc', name: 'Cyber Jan Technologies', status: 'ACTIVE' },
+};
+
 vi.mock('../../context/useAuth', () => ({
   useAuth: () => ({
     token: 'mock-token-xyz',
-    authContext: { organisation: { id: 'org-123-abc' } },
+    authContext: mockAuthContext,
+    user: { userType: mockAuthContext?.role ?? 'IP_ADMIN' },
   }),
 }));
 
@@ -40,6 +46,10 @@ function renderWithRouter(initialRoute = '/platform/organisations/org-123-abc') 
 describe('OrganisationInformationPage Integration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAuthContext = {
+      role: 'IP_ADMIN',
+      organisation: { id: 'org-123-abc', name: 'Cyber Jan Technologies', status: 'ACTIVE' },
+    };
   });
 
   it('renders loading state initially and then fetches org detail data', async () => {
@@ -232,5 +242,34 @@ describe('OrganisationInformationPage Integration', () => {
     expect(
       screen.getByRole('heading', { name: /Organisation Event Timeline/i }),
     ).toBeInTheDocument();
+  });
+
+  it('renders organisation information for ORGANISATION_ADMIN without calling platform APIs or rendering platform tabs', async () => {
+    const platformDetailSpy = vi.spyOn(service, 'getPlatformOrganisationDetail');
+    const platformRequestSpy = vi.spyOn(service, 'getPlatformOrganisationRequestDetails');
+
+    mockAuthContext = {
+      role: 'ORGANISATION_ADMIN',
+      organisation: {
+        id: 'org-123-abc',
+        name: 'Protea Security Gauteng',
+        status: 'ACTIVE',
+      },
+    };
+
+    renderWithRouter('/organisation-information');
+
+    expect(
+      await screen.findByRole('heading', { name: /Protea Security Gauteng/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Status: ACTIVE/i)).toBeInTheDocument();
+    expect(platformDetailSpy).not.toHaveBeenCalled();
+    expect(platformRequestSpy).not.toHaveBeenCalled();
+    expect(
+      screen.queryByRole('button', { name: /Representative Information/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Administrators/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Timeline/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Danger Zone/i)).not.toBeInTheDocument();
   });
 });

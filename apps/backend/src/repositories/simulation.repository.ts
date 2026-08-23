@@ -1,7 +1,14 @@
+import { createHash } from 'node:crypto';
 import { prisma } from '../lib/prisma.js';
 import type { Prisma, AssignmentStatus, InteractionEventType } from '../generated/prisma/client.js';
 import { enforceProgressWriteGuard } from './campaign-progress-guard.repository.js';
+
 type SimulatedEmailInteractionEventType = InteractionEventType;
+
+function computeAdvisoryLockKey(parts: string[]): [number, number] {
+  const hash = createHash('sha256').update(parts.join('\0')).digest();
+  return [hash.readInt32BE(0), hash.readInt32BE(4)];
+}
 
 export async function findTraineeProfileByUserId(userId: string) {
   return prisma.traineeProfile.findUnique({
@@ -150,12 +157,23 @@ export async function recordEmailOpenedEventTx(input: {
   assignmentId: string;
   itemId: string;
   emailId: string;
-  lockKeyA: number;
-  lockKeyB: number;
+  lockKeyA?: number;
+  lockKeyB?: number;
   checkedAt: Date;
 }) {
+  const [lockKeyA, lockKeyB] =
+    input.lockKeyA !== undefined && input.lockKeyB !== undefined
+      ? [input.lockKeyA, input.lockKeyB]
+      : computeAdvisoryLockKey([
+          'SIMULATED_EMAIL_OPENED',
+          input.traineeProfileId,
+          input.assignmentId,
+          input.itemId,
+          input.emailId,
+        ]);
+
   return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(${input.lockKeyA}, ${input.lockKeyB})`;
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(${lockKeyA}, ${lockKeyB})`;
 
     const guard = await enforceProgressWriteGuard(tx, {
       campaignId: input.campaignId,

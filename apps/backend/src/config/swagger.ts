@@ -268,6 +268,16 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         name: 'Trainee Quiz',
         description: 'Trainee quiz retrieval, attempts, submissions, and results.',
       },
+      {
+        name: 'Platform Organisation Requests',
+        description:
+          'Platform administration of organisation registration requests and onboarding organisations.',
+      },
+      {
+        name: 'Platform Admins',
+        description:
+          'Platform administrator management, invitations, super admin transfer, and demotion workflows.',
+      },
     ],
     components: {
       securitySchemes: {
@@ -2018,6 +2028,170 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             },
           ],
         },
+        PlatformAdminRole: enumString(['SUPER_ADMIN', 'NORMAL_ADMIN'], 'SUPER_ADMIN'),
+        PlatformAdminStatus: enumString(['ACTIVE', 'DISABLED'], 'ACTIVE'),
+        PlatformAdminInvitationStatus: enumString(
+          [
+            'PENDING',
+            'SENT',
+            'FAILED_TO_SEND',
+            'ACCEPTED',
+            'COMPLETED',
+            'EXPIRED',
+            'REVOKED',
+            'REJECTED',
+            'PENDING_UPGRADE',
+          ],
+          'SENT',
+        ),
+        PlatformAdminAllowedActions: {
+          type: 'object',
+          required: ['canTransferSuperAdmin', 'canDemote', 'canResendInvite'],
+          additionalProperties: false,
+          properties: {
+            canTransferSuperAdmin: booleanProperty(false),
+            canDemote: booleanProperty(true),
+            canResendInvite: booleanProperty(false),
+          },
+        },
+        PlatformAdmin: {
+          type: 'object',
+          required: [
+            'id',
+            'firstName',
+            'lastName',
+            'email',
+            'platformAdminRole',
+            'adminStatus',
+            'authStatus',
+            'invitationStatus',
+            'inviteId',
+            'allowedActions',
+          ],
+          additionalProperties: false,
+          properties: {
+            id: uuidString('9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+            firstName: { type: 'string', example: 'Connor' },
+            lastName: { type: 'string', example: 'Bell' },
+            email: { type: 'string', format: 'email', example: 'connor.bell@example.com' },
+            platformAdminRole: schemaRef('PlatformAdminRole'),
+            adminStatus: schemaRef('PlatformAdminStatus'),
+            authStatus: schemaRef('AuthStatus'),
+            invitationStatus: {
+              ...schemaRef('PlatformAdminInvitationStatus'),
+              nullable: true,
+            },
+            inviteId: nullableUuidString('a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d'),
+            allowedActions: schemaRef('PlatformAdminAllowedActions'),
+          },
+        },
+        PlatformAdminsListResponse: {
+          type: 'object',
+          required: [
+            'admins',
+            'allowedToInvite',
+            'allowedToTransfer',
+            'allowedToDemote',
+            'allowedToResendInvites',
+          ],
+          additionalProperties: false,
+          properties: {
+            admins: {
+              type: 'array',
+              items: schemaRef('PlatformAdmin'),
+            },
+            allowedToInvite: booleanProperty(true),
+            allowedToTransfer: booleanProperty(true),
+            allowedToDemote: booleanProperty(true),
+            allowedToResendInvites: booleanProperty(true),
+          },
+        },
+        InvitePlatformAdminRequest: {
+          type: 'object',
+          required: ['email'],
+          additionalProperties: false,
+          properties: {
+            email: {
+              type: 'string',
+              format: 'email',
+              minLength: 1,
+              maxLength: 254,
+              example: 'newadmin@example.com',
+            },
+            firstName: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 100,
+              example: 'Jane',
+            },
+            lastName: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 100,
+              example: 'Doe',
+            },
+            confirmUpgrade: booleanProperty(false),
+          },
+        },
+        InvitePlatformAdminResponse: {
+          type: 'object',
+          required: ['type', 'userId', 'email'],
+          additionalProperties: false,
+          properties: {
+            type: enumString(['new-invite', 'upgrade-confirmation'], 'new-invite'),
+            userId: uuidString('9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+            email: { type: 'string', format: 'email', example: 'newadmin@example.com' },
+          },
+        },
+        ResendPlatformAdminInviteResponse: {
+          type: 'object',
+          required: ['success', 'emailQueued'],
+          additionalProperties: false,
+          properties: {
+            success: trueSuccessProperty(),
+            emailQueued: booleanProperty(true),
+          },
+        },
+        TransferSuperAdminRequest: {
+          type: 'object',
+          required: ['targetUserId', 'password', 'confirmation'],
+          additionalProperties: false,
+          properties: {
+            targetUserId: uuidString('c3fdeb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+            password: {
+              type: 'string',
+              format: 'password',
+              minLength: 1,
+              example: 'SuperAdminPassword123!',
+            },
+            confirmation: enumString(['TRANSFER'], 'TRANSFER'),
+          },
+        },
+        DemotePlatformAdminRequest: {
+          type: 'object',
+          required: ['password', 'confirmation'],
+          additionalProperties: false,
+          properties: {
+            password: {
+              type: 'string',
+              format: 'password',
+              minLength: 1,
+              example: 'SuperAdminPassword123!',
+            },
+            confirmation: enumString(['DEMOTE'], 'DEMOTE'),
+          },
+        },
+        DemotePlatformAdminResponse: {
+          type: 'object',
+          required: ['userId', 'email', 'adminStatus', 'authStatus'],
+          additionalProperties: false,
+          properties: {
+            userId: uuidString('c3fdeb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+            email: { type: 'string', format: 'email', example: 'demotedadmin@example.com' },
+            adminStatus: enumString(['DISABLED'], 'DISABLED'),
+            authStatus: schemaRef('AuthStatus'),
+          },
+        },
         OrganisationPermissionKey: enumString(
           [
             'VIEW_ORGANISATION_ADMINS',
@@ -3609,6 +3783,103 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             },
           ],
         },
+        PaginationMetadata: {
+          type: 'object',
+          required: ['page', 'limit', 'totalItems', 'totalPages', 'hasNextPage', 'hasPreviousPage'],
+          properties: {
+            page: { type: 'integer', minimum: 1, example: 1 },
+            limit: { type: 'integer', minimum: 1, example: 10 },
+            totalItems: { type: 'integer', minimum: 0, example: 45 },
+            totalPages: { type: 'integer', minimum: 0, example: 5 },
+            hasNextPage: { type: 'boolean', example: true },
+            hasPreviousPage: { type: 'boolean', example: false },
+          },
+        },
+        PlatformCampaignSummary: {
+          type: 'object',
+          required: [
+            'campaignId',
+            'name',
+            'campaignType',
+            'difficultyLevel',
+            'status',
+            'eligibility',
+          ],
+          properties: {
+            campaignId: {
+              ...uuidString('44444444-4444-4444-8444-444444444444'),
+            },
+            name: {
+              type: 'string',
+              example: 'Phishing Fundamentals',
+            },
+            description: {
+              ...nullableString('Build safe email habits.'),
+            },
+            accentColor: {
+              ...nullableString('#00FFA6'),
+              pattern: '^#[0-9A-Fa-f]{6}$',
+            },
+            campaignType: {
+              type: 'string',
+              enum: ['PREMADE_GENERAL'],
+              example: 'PREMADE_GENERAL',
+            },
+            difficultyLevel: {
+              $ref: '#/components/schemas/DifficultyLevel',
+            },
+            status: {
+              type: 'string',
+              enum: ['ACTIVE'],
+              example: 'ACTIVE',
+            },
+            startDate: {
+              ...dateTimeString('2026-05-16T08:00:00.000Z'),
+              nullable: true,
+            },
+            endDate: {
+              ...dateTimeString('2026-06-16T08:00:00.000Z'),
+              nullable: true,
+            },
+            assignment: {
+              nullable: true,
+              allOf: [schemaRef('TraineeCampaignAssignmentSummary')],
+            },
+            accessType: {
+              nullable: true,
+              allOf: [schemaRef('CampaignAccessType')],
+            },
+            isEnrolled: {
+              type: 'boolean',
+              example: false,
+            },
+            progressStatus: {
+              nullable: true,
+              allOf: [schemaRef('TraineeCampaignProgressStatus')],
+            },
+            itemCount: {
+              type: 'integer',
+              minimum: 0,
+              example: 4,
+            },
+            availableItemCount: {
+              type: 'integer',
+              minimum: 0,
+              example: 3,
+            },
+            eligibility: schemaRef('CampaignEligibility'),
+          },
+        },
+        GetPlatformCampaignsResponse: {
+          type: 'object',
+          required: ['items', 'pagination'],
+          properties: {
+            items: {
+              ...arrayOf(schemaRef('PlatformCampaignSummary')),
+            },
+            pagination: schemaRef('PaginationMetadata'),
+          },
+        },
         TrainingDocument: {
           type: 'object',
           required: [
@@ -4739,6 +5010,18 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
           required: true,
           ...jsonContent(schemaRef('CreateCampaignAssignmentsRequest')),
         },
+        InvitePlatformAdmin: {
+          required: true,
+          ...jsonContent(schemaRef('InvitePlatformAdminRequest')),
+        },
+        TransferSuperAdmin: {
+          required: true,
+          ...jsonContent(schemaRef('TransferSuperAdminRequest')),
+        },
+        DemotePlatformAdmin: {
+          required: true,
+          ...jsonContent(schemaRef('DemotePlatformAdminRequest')),
+        },
       },
       responses: {
         GetAssignableCampaignsOk: responseComponent(
@@ -4895,6 +5178,34 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         TraineeCampaignDetailOk: responseComponent(
           'Campaign detail with ordered trainee-safe item tree.',
           'GetTraineeCampaignDetailResponse',
+        ),
+        GetPlatformCampaignsOk: responseComponent(
+          'Paginated list of active platform campaigns discoverable by the authenticated active general trainee.',
+          'GetPlatformCampaignsResponse',
+        ),
+        EnrolPlatformCampaignOk: responseComponent(
+          'Platform campaign self-enrolment created or existing assignment returned idempotently.',
+          'TraineeCampaignSummary',
+        ),
+        PlatformAdminsListOk: responseComponent(
+          'List of platform administrators with capability flags and row actions.',
+          'PlatformAdminsListResponse',
+        ),
+        InvitePlatformAdminCreated: responseComponent(
+          'Platform administrator invitation or upgrade request created successfully.',
+          'InvitePlatformAdminResponse',
+        ),
+        ResendPlatformAdminInviteOk: responseComponent(
+          'Platform administrator invitation resend attempt completed, with emailQueued indicating queue status.',
+          'ResendPlatformAdminInviteResponse',
+        ),
+        TransferSuperAdminOk: responseComponent(
+          'Super administrator role transferred. Returns updated actor user profile.',
+          'AuthMeResponse',
+        ),
+        DemotePlatformAdminOk: responseComponent(
+          'Platform administrator demoted to disabled status and sessions revoked.',
+          'DemotePlatformAdminResponse',
         ),
         TraineeCampaignNotFound: responseComponent(
           'Campaign is missing, inactive, or not accessible to the trainee.',

@@ -3,6 +3,8 @@ import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { createMemoryRouter, RouterProvider, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { UserTypeDto } from '@insightful-phish/shared';
+import * as organisationDetailsService from '../../services/organisation-details.service';
 import { createAuthContextValue, renderWithRouter } from '../../testing/render';
 
 vi.mock('../../App', () => ({
@@ -91,6 +93,50 @@ vi.mock('../../pages/ResetPasswordPage', () => ({
   default: () => <h1>Reset Password</h1>,
 }));
 
+vi.mock('../../pages/ForgotPasswordPage', () => ({
+  default: () => <h1>Forgot Password</h1>,
+}));
+
+vi.mock('../../pages/OrganisationSecuritySettingsPage', () => ({
+  default: () => <h1>Organisation Security Settings</h1>,
+}));
+
+vi.mock('../../pages/OrganisationTraineesPage', () => ({
+  default: () => <h1>Organisation Trainees</h1>,
+}));
+
+vi.mock('../../pages/OrganisationAdministratorsPage', () => ({
+  default: () => <h1>Organisation Administrators</h1>,
+}));
+
+vi.mock('../../pages/PlatformOrganisationManagementPage', () => ({
+  default: () => <h1>Platform Organisation Management</h1>,
+}));
+
+vi.mock('../../pages/PlatformAdministratorsPage', () => ({
+  default: () => <h1>Platform Administrators</h1>,
+}));
+
+vi.mock('../../pages/CampaignAssignmentPage', () => ({
+  default: () => <h1>Campaign Assignment</h1>,
+}));
+
+vi.mock('../../pages/AccountManagementPage', () => ({
+  default: () => <h1>Account Management</h1>,
+}));
+
+vi.mock('../../pages/OrganisationRegistrationRequestPage', () => ({
+  default: () => <h1>Organisation Registration Request</h1>,
+}));
+
+vi.mock('../../pages/AcceptInvitePage', () => ({
+  default: () => <h1>Accept Invite</h1>,
+}));
+
+vi.mock('../../pages/BrandPage', () => ({
+  default: () => <h1>Brand Page</h1>,
+}));
+
 vi.mock('../../lib/campaignsApi', () => ({
   getTraineeCampaigns: vi.fn(),
   getTraineeCampaignDetail: vi.fn(),
@@ -115,13 +161,35 @@ function LocationDisplay() {
   return <div data-testid="location-path">{location.pathname}</div>;
 }
 
+type RenderAppRoutesOptions = {
+  initialEntry: string;
+  isAuthenticated?: boolean;
+  role?: UserTypeDto;
+  platformAdminRole?: 'SUPER_ADMIN' | 'NORMAL_ADMIN' | null;
+  organisation?: { id: string; name: string; status: 'ACTIVE' | 'SUSPENDED' | 'DISABLED' } | null;
+  permissions?: string[];
+  redirectTo?: string | null;
+};
+
 function renderAppRoutes({
   initialEntry,
   isAuthenticated = true,
-}: {
-  initialEntry: string;
-  isAuthenticated?: boolean;
-}) {
+  role = 'GENERAL_TRAINEE',
+  platformAdminRole = null,
+  organisation = null,
+  permissions = [role],
+  redirectTo,
+}: RenderAppRoutesOptions) {
+  const defaultRedirect =
+    redirectTo ??
+    (role === 'IP_ADMIN'
+      ? '/platform-administrators'
+      : role === 'ORGANISATION_ADMIN'
+        ? organisation?.id
+          ? '/organisation-information'
+          : '/'
+        : '/campaigns');
+
   return renderWithRouter(
     <>
       <LocationDisplay />
@@ -131,18 +199,36 @@ function renderAppRoutes({
       initialEntry,
       auth: {
         isAuthenticated,
-        token: isAuthenticated ? 'demo-token' : null,
+        token: isAuthenticated ? 'demo-token-za' : null,
         user: isAuthenticated
           ? {
-              id: 'user-1',
-              firstName: 'Jane',
-              lastName: 'Doe',
-              email: 'trainee@example.com',
-              userType: 'GENERAL_TRAINEE',
+              id: 'user-rudolph-za-1',
+              firstName: 'Rudolph',
+              lastName: 'van der Merwe',
+              email: `${role.toLowerCase()}.rudolph@insightful-phish.co.za`,
+              userType: role,
               authStatus: 'ACTIVE',
+              traineeProfile: null,
+              adminProfile: null,
               createdAt: '2026-01-01T00:00:00.000Z',
             }
           : null,
+        authContext: isAuthenticated
+          ? {
+              user: {
+                id: 'user-rudolph-za-1',
+                userType: role,
+                authStatus: 'ACTIVE',
+              },
+              role,
+              organisation,
+              platformAdminRole,
+              permissions,
+              redirectTo: defaultRedirect,
+            }
+          : null,
+        permissions: isAuthenticated ? permissions : [],
+        redirectTo: isAuthenticated ? defaultRedirect : null,
       },
     },
   );
@@ -220,7 +306,7 @@ describe('AppRoutes', () => {
       campaigns: [
         {
           campaignId: CAMPAIGN_ID,
-          name: 'Quarterly Awareness',
+          name: 'Highveld Awareness Campaign',
           campaignType: 'PREMADE_GENERAL',
           difficultyLevel: 'BEGINNER',
           status: 'ACTIVE',
@@ -236,7 +322,7 @@ describe('AppRoutes', () => {
 
     mockedGetTraineeCampaignDetail.mockResolvedValue({
       campaignId: CAMPAIGN_ID,
-      name: 'Quarterly Awareness',
+      name: 'Highveld Awareness Campaign',
       campaignType: 'PREMADE_GENERAL',
       difficultyLevel: 'BEGINNER',
       status: 'ACTIVE',
@@ -248,242 +334,718 @@ describe('AppRoutes', () => {
       },
       items: [],
     });
-  });
 
-  it('renders the login screen at /login', async () => {
-    renderAppRoutes({
-      initialEntry: '/login',
-      isAuthenticated: false,
-    });
-
-    expect(
-      await screen.findByRole('heading', { level: 1, name: /welcome back/i }),
-    ).toBeInTheDocument();
-  });
-
-  it('renders the register screen at /register', async () => {
-    renderAppRoutes({
-      initialEntry: '/register',
-    });
-
-    expect(
-      await screen.findByRole('heading', { level: 1, name: /^Get Started$/i }),
-    ).toBeInTheDocument();
-  });
-
-  it('renders the setup screen at /setup/token/:token', async () => {
-    renderAppRoutes({
-      initialEntry: '/setup/token/exampleSetupTokenValueWithAtLeast32Chars',
-      isAuthenticated: false,
-    });
-
-    expect(
-      await screen.findByRole('heading', { level: 1, name: /complete setup/i }),
-    ).toBeInTheDocument();
-  });
-
-  it('renders the verify email screen at /verify-email', async () => {
-    renderAppRoutes({
-      initialEntry: '/verify-email?token=exampleVerificationTokenValueWithAtLeast32Chars',
-      isAuthenticated: false,
-    });
-
-    expect(
-      await screen.findByRole('heading', { level: 1, name: /verify email/i }),
-    ).toBeInTheDocument();
-  });
-
-  it('renders the confirm email screen at /confirm-email-change', async () => {
-    renderAppRoutes({
-      initialEntry: '/confirm-email-change?token=exampleEmailChangeTokenValueWithAtLeast32Chars',
-      isAuthenticated: false,
-    });
-
-    expect(
-      await screen.findByRole('heading', { level: 1, name: /confirm email change/i }),
-    ).toBeInTheDocument();
-  });
-
-  it('renders the reset password screen with a token query parameter', async () => {
-    renderAppRoutes({
-      initialEntry: '/reset-password?token=exampleResetTokenValueWithAtLeast32Chars',
-      isAuthenticated: false,
-    });
-
-    expect(
-      await screen.findByRole('heading', {
-        level: 1,
-        name: /^reset password$/i,
-      }),
-    ).toBeInTheDocument();
-  });
-
-  it('renders the campaigns screen at /campaigns', async () => {
-    renderAppRoutes({
-      initialEntry: '/campaigns',
-    });
-
-    expect(
-      await screen.findByRole('heading', { level: 1, name: /campaigns/i }),
-    ).toBeInTheDocument();
-  });
-
-  it('renders the simulated inbox at the mounted inbox route', async () => {
-    renderAppRoutes({
-      initialEntry: `/trainee/campaign-items/${TRAINING_CAMPAIGN_ITEM_ID}/simulated-inbox`,
-    });
-
-    expect(
-      await screen.findByRole('heading', { level: 1, name: /simulated email inbox/i }),
-    ).toBeInTheDocument();
-  });
-
-  it('renders the simulated email detail at the mounted email detail route', async () => {
-    renderAppRoutes({
-      initialEntry: `/trainee/campaign-items/${TRAINING_CAMPAIGN_ITEM_ID}/simulated-emails/email-123`,
-    });
-
-    expect(
-      await screen.findByRole('heading', { level: 1, name: /simulated email/i }),
-    ).toBeInTheDocument();
-  });
-
-  it('renders the training document page at the mounted training route', async () => {
-    renderAppRoutes({
-      initialEntry: `/training/${TRAINING_CAMPAIGN_ITEM_ID}`,
-    });
-
-    expect(
-      await screen.findByRole('heading', { level: 1, name: /training document page/i }),
-    ).toBeInTheDocument();
-  });
-
-  it('renders the quiz page at /quizzes/:quizId', async () => {
-    renderAppRoutes({
-      initialEntry: `/quizzes/${QUIZ_CAMPAIGN_ITEM_ID}`,
-    });
-
-    expect(
-      await screen.findByRole('heading', { level: 1, name: /quiz page/i }),
-    ).toBeInTheDocument();
-  });
-
-  it('renders the quiz results page at /quiz-attempts/:attemptId/results', async () => {
-    renderAppRoutes({
-      initialEntry: `/quiz-attempts/${ATTEMPT_ID}/results`,
-    });
-
-    expect(
-      await screen.findByRole('heading', { level: 1, name: /quiz results/i }),
-    ).toBeInTheDocument();
-  });
-
-  it('navigates from a campaign training item to the mounted frontend training route, not the backend activity path', async () => {
-    const user = userEvent.setup();
-    const backendTrainingApiPath = `/trainee/campaign-items/${TRAINING_CAMPAIGN_ITEM_ID}/training-document`;
-    const frontendTrainingPath = `/training/${TRAINING_CAMPAIGN_ITEM_ID}`;
-
-    mockedGetTraineeCampaignDetail.mockResolvedValueOnce({
-      campaignId: CAMPAIGN_ID,
-      name: 'Quarterly Awareness',
-      campaignType: 'PREMADE_GENERAL',
-      difficultyLevel: 'BEGINNER',
+    vi.spyOn(organisationDetailsService, 'getPlatformOrganisationDetail').mockResolvedValue({
+      id: 'org-gauteng-123',
+      name: 'Protea Security Gauteng',
       status: 'ACTIVE',
-      progressStatus: 'IN_PROGRESS',
-      eligibility: {
-        canView: true,
-        canProgress: true,
-        reason: 'AVAILABLE',
+      detailType: 'active organisation',
+      description: 'Cybersecurity service provider in Gauteng',
+      approximateSize: 100,
+      website: 'https://proteasecurity.co.za',
+      primaryDomain: 'proteasecurity.co.za',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-02T00:00:00.000Z',
+      _count: { adminProfiles: 2, traineeProfiles: 45 },
+      registrationRequest: null,
+      setupStatus: null,
+      resendEligibility: { isEligible: false, reason: null },
+      admins: [],
+      timeline: [],
+    });
+
+    vi.spyOn(organisationDetailsService, 'getPlatformOrganisationRequestDetails').mockResolvedValue(
+      {
+        id: 'req-durban-456',
+        submittedOrganisationName: 'Cyber Jan Pending Request',
+        submittedOrganisationDescription: 'Pending approval',
+        submittedWebsite: 'https://cyberjan.co.za',
+        submittedPrimaryDomain: 'cyberjan.co.za',
+        submittedOrganisationSize: 20,
+        status: 'PENDING',
+        detailType: 'request-only',
+        createdAt: '2026-06-19T00:00:00.000Z',
+        updatedAt: '2026-06-19T00:00:00.000Z',
+        representativeFirstName: 'Rudolph',
+        representativeLastName: 'van der Merwe',
+        representativeEmail: 'rudolph@springbokcyber.co.za',
+        representativePhone: null,
+        contactedByIpAdminId: null,
+        approvedByIpAdminId: null,
+        rejectedByIpAdminId: null,
+        approvedOrganisationId: null,
+        contactedAt: null,
+        approvedAt: null,
+        rejectedAt: null,
+        rejectionReason: null,
+        setupStatus: null,
+        resendEligibility: { isEligible: false, reason: 'ORGANISATION_NOT_ONBOARDING' },
+        timeline: [],
       },
-      items: [
-        {
-          campaignItemId: TRAINING_CAMPAIGN_ITEM_ID,
-          campaignId: CAMPAIGN_ID,
-          itemType: 'COMPONENT',
-          title: 'Read phishing warning signs',
-          position: 0,
-          isRequired: true,
-          availabilityStatus: 'AVAILABLE',
-          isOpenable: true,
-          progressStatus: 'NOT_STARTED',
-          componentType: 'TRAINING_DOCUMENT',
-          activityApiPath: backendTrainingApiPath,
-          eligibility: {
-            canView: true,
-            canProgress: true,
-            reason: 'AVAILABLE',
-          },
-          trainingDocument: {
-            id: '44444444-4444-4444-8444-444444444441',
-            title: 'Phishing warning signs',
-            contentSummary: 'Learn how to spot suspicious messages.',
-            estimatedReadTimeMinutes: 4,
-            difficultyLevel: 'BEGINNER',
-            status: 'AVAILABLE',
-          },
-        },
+    );
+  });
+
+  describe('Public routes', () => {
+    it('renders the login screen at /login', async () => {
+      renderAppRoutes({
+        initialEntry: '/login',
+        isAuthenticated: false,
+      });
+
+      expect(
+        await screen.findByRole('heading', { level: 1, name: /welcome back/i }),
+      ).toBeInTheDocument();
+    });
+
+    it('renders the register screen at /register', async () => {
+      renderAppRoutes({
+        initialEntry: '/register',
+        isAuthenticated: false,
+      });
+
+      expect(
+        await screen.findByRole('heading', { level: 1, name: /^Get Started$/i }),
+      ).toBeInTheDocument();
+    });
+
+    it('renders the setup screen at /setup/token/:token', async () => {
+      renderAppRoutes({
+        initialEntry: '/setup/token/exampleSetupTokenValueWithAtLeast32Chars',
+        isAuthenticated: false,
+      });
+
+      expect(
+        await screen.findByRole('heading', { level: 1, name: /complete setup/i }),
+      ).toBeInTheDocument();
+    });
+
+    it('renders the verify email screen at /verify-email', async () => {
+      renderAppRoutes({
+        initialEntry: '/verify-email?token=exampleVerificationTokenValueWithAtLeast32Chars',
+        isAuthenticated: false,
+      });
+
+      expect(
+        await screen.findByRole('heading', { level: 1, name: /verify email/i }),
+      ).toBeInTheDocument();
+    });
+
+    it('renders the confirm email screen at /confirm-email-change', async () => {
+      renderAppRoutes({
+        initialEntry: '/confirm-email-change?token=exampleEmailChangeTokenValueWithAtLeast32Chars',
+        isAuthenticated: false,
+      });
+
+      expect(
+        await screen.findByRole('heading', { level: 1, name: /confirm email change/i }),
+      ).toBeInTheDocument();
+    });
+
+    it('renders the reset password screen at /reset-password', async () => {
+      renderAppRoutes({
+        initialEntry: '/reset-password?token=exampleResetTokenValueWithAtLeast32Chars',
+        isAuthenticated: false,
+      });
+
+      expect(
+        await screen.findByRole('heading', { level: 1, name: /^reset password$/i }),
+      ).toBeInTheDocument();
+    });
+
+    it('renders the forgot password screen at /forgot-password', async () => {
+      renderAppRoutes({
+        initialEntry: '/forgot-password',
+        isAuthenticated: false,
+      });
+
+      expect(
+        await screen.findByRole('heading', { level: 1, name: /forgot password/i }),
+      ).toBeInTheDocument();
+    });
+
+    it('renders the organisation registration request screen at /organisation-registration-request', async () => {
+      renderAppRoutes({
+        initialEntry: '/organisation-registration-request',
+        isAuthenticated: false,
+      });
+
+      expect(
+        await screen.findByRole('heading', {
+          level: 1,
+          name: /organisation registration request/i,
+        }),
+      ).toBeInTheDocument();
+    });
+
+    it('renders the accept invite screen at /accept-invite', async () => {
+      renderAppRoutes({
+        initialEntry: '/accept-invite',
+        isAuthenticated: false,
+      });
+
+      expect(
+        await screen.findByRole('heading', { level: 1, name: /accept invite/i }),
+      ).toBeInTheDocument();
+    });
+
+    it('renders the brand page at /brand', async () => {
+      renderAppRoutes({
+        initialEntry: '/brand',
+        isAuthenticated: false,
+      });
+
+      expect(
+        await screen.findByRole('heading', { level: 1, name: /brand page/i }),
+      ).toBeInTheDocument();
+    });
+
+    it('renders the status page at /status', async () => {
+      renderAppRoutes({
+        initialEntry: '/status',
+        isAuthenticated: false,
+      });
+
+      expect(
+        await screen.findByRole('heading', { level: 1, name: /status page/i }),
+      ).toBeInTheDocument();
+    });
+
+    it('renders the landing page at /', async () => {
+      renderAppRoutes({
+        initialEntry: '/',
+        isAuthenticated: false,
+      });
+
+      expect(await screen.findByText(/DON'T TAKE THE BAIT/i)).toBeInTheDocument();
+    });
+
+    it('redirects unknown routes to /', async () => {
+      renderAppRoutes({
+        initialEntry: '/not-a-real-route',
+        isAuthenticated: false,
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('location-path')).toHaveTextContent('/');
+      });
+      expect(await screen.findByText(/DON'T TAKE THE BAIT/i)).toBeInTheDocument();
+    });
+  });
+
+  describe('Unauthenticated access to protected routes', () => {
+    const protectedRoutes = [
+      '/campaigns',
+      `/trainee/campaign-items/${TRAINING_CAMPAIGN_ITEM_ID}/simulated-inbox`,
+      `/trainee/campaign-items/${TRAINING_CAMPAIGN_ITEM_ID}/simulated-emails/email-1`,
+      `/training/${TRAINING_CAMPAIGN_ITEM_ID}`,
+      `/quizzes/${QUIZ_CAMPAIGN_ITEM_ID}`,
+      `/quiz-attempts/${ATTEMPT_ID}/results`,
+      '/organisation-information',
+      '/organisation-security-preferences',
+      '/organisation-trainees',
+      '/organisation-administrators',
+      '/organisations/org-1/campaign-assignments/new',
+      '/platform-administrators',
+      '/organisation-management',
+      '/platform/organisations/org-1',
+      '/platform/organisation-requests/req-1',
+      '/account-management',
+    ];
+
+    it.each(protectedRoutes)('redirects unauthenticated users from %s to /', async (path) => {
+      renderAppRoutes({
+        initialEntry: path,
+        isAuthenticated: false,
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('location-path')).toHaveTextContent('/');
+      });
+    });
+  });
+
+  describe('GENERAL_TRAINEE role access', () => {
+    const authorizedTraineeRoutes = [
+      ['/campaigns', /^campaigns$/i],
+      [
+        `/trainee/campaign-items/${TRAINING_CAMPAIGN_ITEM_ID}/simulated-inbox`,
+        /^simulated email inbox$/i,
       ],
-    });
+      [
+        `/trainee/campaign-items/${TRAINING_CAMPAIGN_ITEM_ID}/simulated-emails/email-123`,
+        /^simulated email$/i,
+      ],
+      [`/training/${TRAINING_CAMPAIGN_ITEM_ID}`, /^training document page$/i],
+      [`/quizzes/${QUIZ_CAMPAIGN_ITEM_ID}`, /^quiz page$/i],
+      [`/quiz-attempts/${ATTEMPT_ID}/results`, /^quiz results$/i],
+      ['/account-management', /^account management$/i],
+    ] as const;
 
-    renderAppRoutes({
-      initialEntry: '/campaigns',
-    });
+    it.each(authorizedTraineeRoutes)(
+      'renders %s for GENERAL_TRAINEE',
+      async (path, headingRegex) => {
+        renderAppRoutes({
+          initialEntry: path,
+          role: 'GENERAL_TRAINEE',
+        });
 
-    await user.click(
-      await screen.findByRole('button', {
-        name: /quarterly awareness/i,
-      }),
+        expect(
+          await screen.findByRole('heading', { level: 1, name: headingRegex }),
+        ).toBeInTheDocument();
+      },
     );
 
-    await user.click(
-      await screen.findByRole('button', {
-        name: /learn: "read phishing warning signs"/i,
-      }),
+    const forbiddenRoutesForTrainee = [
+      '/organisation-information',
+      '/organisation-security-preferences',
+      '/organisation-trainees',
+      '/organisation-administrators',
+      '/organisations/org-1/campaign-assignments/new',
+      '/platform-administrators',
+      '/organisation-management',
+      '/platform/organisations/org-1',
+      '/platform/organisation-requests/req-1',
+    ];
+
+    it.each(forbiddenRoutesForTrainee)(
+      'redirects trainee away from forbidden route %s to /campaigns',
+      async (path) => {
+        renderAppRoutes({
+          initialEntry: path,
+          role: 'GENERAL_TRAINEE',
+        });
+
+        await waitFor(() => {
+          expect(screen.getByTestId('location-path')).toHaveTextContent('/campaigns');
+        });
+      },
+    );
+  });
+
+  describe('ORGANISATION_TRAINEE role access', () => {
+    const authorizedOrgTraineeRoutes = [
+      ['/campaigns', /^campaigns$/i],
+      [`/training/${TRAINING_CAMPAIGN_ITEM_ID}`, /^training document page$/i],
+      ['/account-management', /^account management$/i],
+    ] as const;
+
+    it.each(authorizedOrgTraineeRoutes)(
+      'renders %s for ORGANISATION_TRAINEE',
+      async (path, headingRegex) => {
+        renderAppRoutes({
+          initialEntry: path,
+          role: 'ORGANISATION_TRAINEE',
+          organisation: {
+            id: 'org-stellenbosch-1',
+            name: 'Springbok Cyber Technologies',
+            status: 'ACTIVE',
+          },
+        });
+
+        expect(
+          await screen.findByRole('heading', { level: 1, name: headingRegex }),
+        ).toBeInTheDocument();
+      },
     );
 
-    await waitFor(() => {
-      expect(screen.getByTestId('location-path')).toHaveTextContent(frontendTrainingPath);
-    });
+    const forbiddenRoutesForOrgTrainee = [
+      '/organisation-information',
+      '/organisation-security-preferences',
+      '/organisation-trainees',
+      '/organisation-administrators',
+      '/organisations/org-stellenbosch-1/campaign-assignments/new',
+      '/platform-administrators',
+      '/organisation-management',
+      '/platform/organisations/org-stellenbosch-1',
+      '/platform/organisation-requests/req-stellenbosch-1',
+    ];
 
-    expect(screen.getByTestId('location-path')).not.toHaveTextContent(backendTrainingApiPath);
-    expect(
-      await screen.findByRole('heading', { level: 1, name: /training document page/i }),
-    ).toBeInTheDocument();
+    it.each(forbiddenRoutesForOrgTrainee)(
+      'redirects organisation trainee away from forbidden route %s to /campaigns',
+      async (path) => {
+        renderAppRoutes({
+          initialEntry: path,
+          role: 'ORGANISATION_TRAINEE',
+          organisation: {
+            id: 'org-stellenbosch-1',
+            name: 'Springbok Cyber Technologies',
+            status: 'ACTIVE',
+          },
+        });
+
+        await waitFor(() => {
+          expect(screen.getByTestId('location-path')).toHaveTextContent('/campaigns');
+        });
+      },
+    );
   });
 
-  // unknown route redirects to '/'
-  it('redirects unknown routes to /', async () => {
-    renderAppRoutes({
-      initialEntry: '/not-a-real-route',
+  describe('ORGANISATION_ADMIN role access', () => {
+    const orgAdminContext = {
+      role: 'ORGANISATION_ADMIN' as const,
+      organisation: {
+        id: 'org-gauteng-123',
+        name: 'Protea Security Gauteng',
+        status: 'ACTIVE' as const,
+      },
+      permissions: [
+        'ORGANISATION_ADMIN',
+        'VIEW_ORGANISATION_TRAINEES',
+        'VIEW_ORGANISATION_ADMINS',
+        'ASSIGN_CAMPAIGNS',
+        'CHANGE_ORGANISATION_SECURITY_SETTINGS',
+      ],
+      redirectTo: '/organisation-information',
+    };
+
+    const authorizedOrgAdminRoutes = [
+      ['/organisation-information', /^(organisation information|Protea Security Gauteng)$/i],
+      ['/organisation-security-preferences', /^organisation security settings$/i],
+      ['/organisation-trainees', /^organisation trainees$/i],
+      ['/organisation-administrators', /^organisation administrators$/i],
+      ['/organisations/org-gauteng-123/campaign-assignments/new', /^campaign assignment$/i],
+      ['/account-management', /^account management$/i],
+    ] as const;
+
+    it.each(authorizedOrgAdminRoutes)(
+      'renders %s for ORGANISATION_ADMIN with required permissions',
+      async (path, headingRegex) => {
+        renderAppRoutes({
+          initialEntry: path,
+          ...orgAdminContext,
+        });
+
+        expect(
+          await screen.findByRole('heading', { level: 1, name: headingRegex }),
+        ).toBeInTheDocument();
+      },
+    );
+
+    it('ensures organisation admin visiting /organisation-information does not call platform detail or request services', async () => {
+      const platformDetailSpy = vi.spyOn(
+        organisationDetailsService,
+        'getPlatformOrganisationDetail',
+      );
+      const platformRequestSpy = vi.spyOn(
+        organisationDetailsService,
+        'getPlatformOrganisationRequestDetails',
+      );
+
+      renderAppRoutes({
+        initialEntry: '/organisation-information',
+        ...orgAdminContext,
+      });
+
+      expect(
+        await screen.findByRole('heading', { level: 1, name: /Protea Security Gauteng/i }),
+      ).toBeInTheDocument();
+      expect(platformDetailSpy).not.toHaveBeenCalled();
+      expect(platformRequestSpy).not.toHaveBeenCalled();
     });
 
-    await waitFor(() => {
-      expect(screen.getByTestId('location-path')).toHaveTextContent('/');
-    });
+    const forbiddenRoutesForOrgAdmin = [
+      '/campaigns',
+      `/trainee/campaign-items/${TRAINING_CAMPAIGN_ITEM_ID}/simulated-inbox`,
+      `/trainee/campaign-items/${TRAINING_CAMPAIGN_ITEM_ID}/simulated-emails/email-1`,
+      `/training/${TRAINING_CAMPAIGN_ITEM_ID}`,
+      `/quizzes/${QUIZ_CAMPAIGN_ITEM_ID}`,
+      `/quiz-attempts/${ATTEMPT_ID}/results`,
+      '/platform-administrators',
+      '/organisation-management',
+      '/platform/organisations/org-gauteng-123',
+      '/platform/organisation-requests/req-durban-456',
+    ];
 
-    expect(await screen.findByText(/DON'T TAKE THE BAIT/i)).toBeInTheDocument();
+    it.each(forbiddenRoutesForOrgAdmin)(
+      'redirects organisation admin away from %s to /organisation-information',
+      async (path) => {
+        renderAppRoutes({
+          initialEntry: path,
+          ...orgAdminContext,
+        });
+
+        await waitFor(() => {
+          expect(screen.getByTestId('location-path')).toHaveTextContent(
+            '/organisation-information',
+          );
+        });
+      },
+    );
+
+    const permissionRestrictedRoutes = [
+      ['/organisation-trainees', 'VIEW_ORGANISATION_TRAINEES'],
+      ['/organisation-administrators', 'VIEW_ORGANISATION_ADMINS'],
+      ['/organisations/org-gauteng-123/campaign-assignments/new', 'ASSIGN_CAMPAIGNS'],
+    ] as const;
+
+    it.each(permissionRestrictedRoutes)(
+      'redirects organisation admin lacking %s from %s to /organisation-information',
+      async (path) => {
+        renderAppRoutes({
+          initialEntry: path,
+          role: 'ORGANISATION_ADMIN',
+          organisation: {
+            id: 'org-gauteng-123',
+            name: 'Protea Security Gauteng',
+            status: 'ACTIVE',
+          },
+          permissions: ['ORGANISATION_ADMIN'],
+          redirectTo: '/organisation-information',
+        });
+
+        await waitFor(() => {
+          expect(screen.getByTestId('location-path')).toHaveTextContent(
+            '/organisation-information',
+          );
+        });
+      },
+    );
+
+    const orgContextRequiredRoutes = [
+      '/organisation-information',
+      '/organisation-security-preferences',
+      '/organisation-trainees',
+      '/organisation-administrators',
+      '/organisations/org-gauteng-123/campaign-assignments/new',
+    ];
+
+    it.each(orgContextRequiredRoutes)(
+      'redirects organisation admin without organisation context from %s to /',
+      async (path) => {
+        renderAppRoutes({
+          initialEntry: path,
+          role: 'ORGANISATION_ADMIN',
+          organisation: null,
+          redirectTo: '/organisation-information',
+        });
+
+        await waitFor(() => {
+          expect(screen.getByTestId('location-path')).toHaveTextContent('/');
+        });
+      },
+    );
   });
 
-  // unauthenticated users redirected to '/'
-  it('redirects unauthenticated users to the landing page', async () => {
-    renderAppRoutes({
-      initialEntry: '/campaigns',
-      isAuthenticated: false,
+  describe('IP_ADMIN (Platform Administrator) role access', () => {
+    const platformAdminContext = {
+      role: 'IP_ADMIN' as const,
+      platformAdminRole: 'SUPER_ADMIN' as const,
+      permissions: ['PLATFORM_ADMIN'],
+      redirectTo: '/platform-administrators',
+    };
+
+    const authorizedPlatformRoutes = [
+      ['/platform-administrators', /^platform administrators$/i],
+      ['/organisation-management', /^platform organisation management$/i],
+      [
+        '/platform/organisations/org-gauteng-123',
+        /^(organisation information|Protea Security Gauteng)$/i,
+      ],
+      [
+        '/platform/organisation-requests/req-durban-456',
+        /^(organisation information|Cyber Jan Pending Request)$/i,
+      ],
+      ['/account-management', /^account management$/i],
+    ] as const;
+
+    it.each(authorizedPlatformRoutes)('renders %s for IP_ADMIN', async (path, headingRegex) => {
+      renderAppRoutes({
+        initialEntry: path,
+        ...platformAdminContext,
+      });
+
+      expect(
+        await screen.findByRole('heading', { level: 1, name: headingRegex }),
+      ).toBeInTheDocument();
     });
 
-    await waitFor(() => {
-      expect(screen.getByTestId('location-path')).toHaveTextContent('/');
+    const forbiddenRoutesForPlatformAdmin = [
+      '/campaigns',
+      `/trainee/campaign-items/${TRAINING_CAMPAIGN_ITEM_ID}/simulated-inbox`,
+      `/trainee/campaign-items/${TRAINING_CAMPAIGN_ITEM_ID}/simulated-emails/email-1`,
+      `/training/${TRAINING_CAMPAIGN_ITEM_ID}`,
+      `/quizzes/${QUIZ_CAMPAIGN_ITEM_ID}`,
+      `/quiz-attempts/${ATTEMPT_ID}/results`,
+      '/organisation-information',
+      '/organisation-security-preferences',
+      '/organisation-trainees',
+      '/organisation-administrators',
+      '/organisations/org-gauteng-123/campaign-assignments/new',
+    ];
+
+    it.each(forbiddenRoutesForPlatformAdmin)(
+      'redirects platform admin away from %s to /platform-administrators',
+      async (path) => {
+        renderAppRoutes({
+          initialEntry: path,
+          ...platformAdminContext,
+        });
+
+        await waitFor(() => {
+          expect(screen.getByTestId('location-path')).toHaveTextContent('/platform-administrators');
+        });
+      },
+    );
+  });
+
+  describe('Direct navigation and stale bookmarks', () => {
+    it('redirects an organisation admin arriving at a stale bookmarked /campaigns URL to /organisation-information', async () => {
+      renderAppRoutes({
+        initialEntry: '/campaigns',
+        role: 'ORGANISATION_ADMIN',
+        organisation: {
+          id: 'org-gauteng-123',
+          name: 'Protea Security Gauteng',
+          status: 'ACTIVE',
+        },
+        permissions: ['ORGANISATION_ADMIN'],
+        redirectTo: '/organisation-information',
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('location-path')).toHaveTextContent('/organisation-information');
+      });
+      expect(
+        await screen.findByRole('heading', {
+          level: 1,
+          name: /^(organisation information|Protea Security Gauteng)$/i,
+        }),
+      ).toBeInTheDocument();
+    });
+
+    it('redirects a platform admin arriving at a stale bookmarked /organisation-trainees URL to /platform-administrators', async () => {
+      renderAppRoutes({
+        initialEntry: '/organisation-trainees',
+        role: 'IP_ADMIN',
+        platformAdminRole: 'SUPER_ADMIN',
+        permissions: ['PLATFORM_ADMIN'],
+        redirectTo: '/platform-administrators',
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('location-path')).toHaveTextContent('/platform-administrators');
+      });
+      expect(
+        await screen.findByRole('heading', { level: 1, name: /platform administrators/i }),
+      ).toBeInTheDocument();
+    });
+
+    it('redirects an authenticated trainee visiting /login directly to /campaigns', async () => {
+      renderAppRoutes({
+        initialEntry: '/login',
+        role: 'GENERAL_TRAINEE',
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('location-path')).toHaveTextContent('/campaigns');
+      });
+    });
+
+    it('redirects an authenticated organisation admin visiting /login directly to /organisation-information', async () => {
+      renderAppRoutes({
+        initialEntry: '/login',
+        role: 'ORGANISATION_ADMIN',
+        organisation: {
+          id: 'org-gauteng-123',
+          name: 'Protea Security Gauteng',
+          status: 'ACTIVE',
+        },
+        permissions: ['ORGANISATION_ADMIN'],
+        redirectTo: '/organisation-information',
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('location-path')).toHaveTextContent('/organisation-information');
+      });
+    });
+
+    it('redirects an authenticated platform admin visiting /login directly to /platform-administrators', async () => {
+      renderAppRoutes({
+        initialEntry: '/login',
+        role: 'IP_ADMIN',
+        platformAdminRole: 'SUPER_ADMIN',
+        permissions: ['PLATFORM_ADMIN'],
+        redirectTo: '/platform-administrators',
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('location-path')).toHaveTextContent('/platform-administrators');
+      });
     });
   });
 
-  it('redirects authenticated users away from the login page', async () => {
-    renderAppRoutes({
-      initialEntry: '/login',
-      isAuthenticated: true,
-    });
+  describe('Campaign activity navigation', () => {
+    it('navigates from a campaign training item to the mounted frontend training route, not the backend activity path', async () => {
+      const user = userEvent.setup();
+      const backendTrainingApiPath = `/trainee/campaign-items/${TRAINING_CAMPAIGN_ITEM_ID}/training-document`;
+      const frontendTrainingPath = `/training/${TRAINING_CAMPAIGN_ITEM_ID}`;
 
-    await waitFor(() => {
-      expect(screen.getByTestId('location-path')).toHaveTextContent('/campaigns');
+      mockedGetTraineeCampaignDetail.mockResolvedValueOnce({
+        campaignId: CAMPAIGN_ID,
+        name: 'Highveld Awareness Campaign',
+        campaignType: 'PREMADE_GENERAL',
+        difficultyLevel: 'BEGINNER',
+        status: 'ACTIVE',
+        progressStatus: 'IN_PROGRESS',
+        eligibility: {
+          canView: true,
+          canProgress: true,
+          reason: 'AVAILABLE',
+        },
+        items: [
+          {
+            campaignItemId: TRAINING_CAMPAIGN_ITEM_ID,
+            campaignId: CAMPAIGN_ID,
+            itemType: 'COMPONENT',
+            title: 'Read SARS and banking warning signs',
+            position: 0,
+            isRequired: true,
+            availabilityStatus: 'AVAILABLE',
+            isOpenable: true,
+            progressStatus: 'NOT_STARTED',
+            componentType: 'TRAINING_DOCUMENT',
+            activityApiPath: backendTrainingApiPath,
+            eligibility: {
+              canView: true,
+              canProgress: true,
+              reason: 'AVAILABLE',
+            },
+            trainingDocument: {
+              id: '44444444-4444-4444-8444-444444444441',
+              title: 'SARS & Banking warning signs',
+              contentSummary: 'Learn how to spot suspicious SARS refund notices and fake EFTs.',
+              estimatedReadTimeMinutes: 4,
+              difficultyLevel: 'BEGINNER',
+              status: 'AVAILABLE',
+            },
+          },
+        ],
+      });
+
+      renderAppRoutes({
+        initialEntry: '/campaigns',
+      });
+
+      await user.click(
+        await screen.findByRole('button', {
+          name: /highveld awareness campaign/i,
+        }),
+      );
+
+      await user.click(
+        await screen.findByRole('button', {
+          name: /learn: "read sars and banking warning signs"/i,
+        }),
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('location-path')).toHaveTextContent(frontendTrainingPath);
+      });
+
+      expect(screen.getByTestId('location-path')).not.toHaveTextContent(backendTrainingApiPath);
+      expect(
+        await screen.findByRole('heading', { level: 1, name: /training document page/i }),
+      ).toBeInTheDocument();
     });
   });
 
