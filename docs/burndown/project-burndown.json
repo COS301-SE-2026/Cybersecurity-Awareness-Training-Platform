@@ -1542,8 +1542,8 @@
           "number": 454,
           "title": "feat: build the shared campaign management and builder page",
           "points": 5,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-08-24"
         },
         {
           "number": 453,
@@ -2295,7 +2295,7 @@
     },
     {
       "date": "2026-08-24",
-      "remaining": 61,
+      "remaining": 56,
       "ideal": 36.56
     }
   ]
