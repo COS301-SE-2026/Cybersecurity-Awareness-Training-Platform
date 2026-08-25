@@ -12,7 +12,7 @@ import type {
 } from '@insightful-phish/shared';
 import type { CampaignManagementClient } from './campaignManagementClient';
 import type { CampaignManagementContext } from './campaignManagement.types';
-import { developmentCampaignManagementClient } from './developmentCampaignManagementClient';
+import { apiCampaignManagementClient } from './apiCampaignManagementClient';
 import { useAuth } from '../../context/useAuth';
 import './campaign-management.css';
 
@@ -72,7 +72,7 @@ function getOwnershipLabel(campaign: CampaignListRowDto): string {
 
 function CampaignManagementListPage({
   contextKind,
-  client = developmentCampaignManagementClient,
+  client = apiCampaignManagementClient,
 }: CampaignManagementListPageProps) {
   const { organisationId } = useParams<{ organisationId: string }>();
   const { permissions } = useAuth();

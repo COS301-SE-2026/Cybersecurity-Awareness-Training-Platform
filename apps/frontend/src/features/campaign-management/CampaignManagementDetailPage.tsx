@@ -24,7 +24,7 @@ import {
 } from './campaignManagementClient';
 import type { CampaignDraftFormState, CampaignManagementContext } from './campaignManagement.types';
 import { toCampaignDraftItems } from './campaignDraftItems';
-import { developmentCampaignManagementClient } from './developmentCampaignManagementClient';
+import { apiCampaignManagementClient } from './apiCampaignManagementClient';
 import { toDateTimeLocal } from './campaignDraftDate';
 import { toCreateCampaignDraftRequest, toUpdateCampaignDraftRequest } from './campaignDraftRequest';
 import BasicConfirmationModal from '../../components/layout/modals/BasicConfirmationModal';
@@ -116,7 +116,7 @@ function CampaignNavigationBlocker({ shouldBlock, onBlocked }: CampaignNavigatio
 
 function CampaignManagementDetailPage({
   contextKind,
-  client = developmentCampaignManagementClient,
+  client = apiCampaignManagementClient,
   canManageCampaigns = true,
   blockUnsavedNavigation = false,
 }: CampaignManagementDetailPageProps) {
