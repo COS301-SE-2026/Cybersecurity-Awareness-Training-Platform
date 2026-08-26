@@ -4,6 +4,7 @@ import {
   campaignCatalogueQuerySchema,
   campaignListQuerySchema,
   campaignMutationPreconditionSchema,
+  campaignStatisticsQuerySchema,
   createCampaignDraftRequestSchema,
   updateCampaignDraftRequestSchema,
   idParamSchema,
@@ -22,6 +23,7 @@ import {
   createPlatformCampaignDraftHandler,
   getOrganisationCampaignCatalogueHandler,
   getOrganisationCampaignDetailHandler,
+  getOrganisationCampaignStatisticsHandler,
   getOrganisationCampaignsHandler,
   getPlatformCampaignCatalogueHandler,
   getPlatformCampaignDetailHandler,
@@ -307,6 +309,59 @@ campaignManagementRouter.get(
   requireAuth,
   validateParams(organisationAndCampaignIdParamsSchema),
   asyncHandler(getOrganisationCampaignDetailHandler),
+);
+
+/**
+ * @openapi
+ * /organisations/{organisationId}/campaigns/{campaignId}/statistics:
+ *   get:
+ *     tags: [Campaign Management]
+ *     summary: Get organisation campaign statistics
+ *     description: Returns structured campaign identity, full-cohort summary statistics, and paginated per-trainee progress statistics, guarded by VIEW_CAMPAIGNS.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/OrganisationIdPathParam'
+ *       - $ref: '#/components/parameters/CampaignIdPathParam'
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100000
+ *           default: 1
+ *         description: 1-based page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 20
+ *         description: Maximum records per page
+ *     responses:
+ *       200:
+ *         $ref: '#/components/responses/GetCampaignStatisticsOk'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       422:
+ *         $ref: '#/components/responses/UnprocessableEntity'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+campaignManagementRouter.get(
+  '/organisations/:organisationId/campaigns/:campaignId/statistics',
+  campaignManagementRateLimit,
+  requireAuth,
+  validateParams(organisationAndCampaignIdParamsSchema),
+  validateQuery(campaignStatisticsQuerySchema, { statusCode: 422 }),
+  asyncHandler(getOrganisationCampaignStatisticsHandler),
 );
 
 /**

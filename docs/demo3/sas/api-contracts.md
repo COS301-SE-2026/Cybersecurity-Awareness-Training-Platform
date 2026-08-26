@@ -15,6 +15,7 @@ This section provides a brief overview of the Insightful Phish API boundary.
 - **[8. API Contracts](#8-api-contracts)** &larr; _You are here_
   - [8.1 Purpose](#81-purpose)
   - [8.2 Swagger Documentation](#82-swagger-documentation)
+  - [8.3 Service Contracts](#83-service-contracts)
 - [9. Deployment and Operations](deployment.md)
 - [10. Changelog](changelog.md)
 
@@ -31,6 +32,14 @@ The API provides the boundary between the Presentation layer and the server appl
 The current interactive API documentation is available at: **[swagger.insightfulphish.co.za](https://swagger.insightfulphish.co.za)**
 
 Please use this interactive documentation for more details on the API contracts.
+
+### 8.3 Service Contracts
+
+Key service contracts and shared schemas are maintained in `@insightful-phish/shared` and documented in OpenAPI:
+
+| Operation                        | Method | Route                                                               | Shared Schemas                                                                                                  | Permissions                                                                    |
+| :------------------------------- | :----- | :------------------------------------------------------------------ | :-------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------- |
+| Organisation Campaign Statistics | `GET`  | `/organisations/{organisationId}/campaigns/{campaignId}/statistics` | `packages/shared/src/campaign-statistics.ts`<br>`packages/shared/src/validation/campaign-statistics.schemas.ts` | `VIEW_CAMPAIGNS` (read statistics)<br>`ASSIGN_CAMPAIGNS` (Unassign capability) |
 
 ---
 

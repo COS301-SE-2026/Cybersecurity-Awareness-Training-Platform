@@ -3,6 +3,7 @@ import {
   campaignCatalogueQuerySchema,
   campaignListQuerySchema,
   campaignMutationPreconditionSchema,
+  campaignStatisticsQuerySchema,
   createCampaignDraftRequestSchema,
   updateCampaignDraftRequestSchema,
 } from '@insightful-phish/shared';
@@ -380,6 +381,34 @@ export async function reactivatePlatformCampaignHandler(req: Request, res: Respo
       actor,
       campaignId,
       precondition,
+    );
+    return res.status(200).json(result);
+  } catch (err) {
+    return handleControllerError(res, err);
+  }
+}
+
+export async function getOrganisationCampaignStatisticsHandler(req: Request, res: Response) {
+  try {
+    const actor = extractActor(req);
+    const organisationId = String(req.params.organisationId);
+    const campaignId = String(req.params.campaignId);
+
+    const parseResult = campaignStatisticsQuerySchema.safeParse(req.query);
+    if (!parseResult.success) {
+      return res.status(422).json({
+        success: false,
+        error: 'VALIDATION_ERROR',
+        message: 'Invalid pagination query parameters',
+        details: parseResult.error.flatten(),
+      });
+    }
+
+    const result = await CampaignManagementService.getOrganisationCampaignStatistics(
+      actor,
+      organisationId,
+      campaignId,
+      parseResult.data,
     );
     return res.status(200).json(result);
   } catch (err) {
