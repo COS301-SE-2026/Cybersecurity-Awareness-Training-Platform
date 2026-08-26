@@ -52,7 +52,7 @@ const CATALOGUE_STATE = {
       type: 'TRAINING_DOCUMENT',
       title: 'Password security essentials',
       description: 'Practical password guidance.',
-      contentType: 'AWARENESS_BRIEF',
+      contentType: 'MARKDOWN',
       estimatedReadTimeMinutes: 8,
       difficultyLevel: 'BEGINNER',
       status: 'AVAILABLE',
