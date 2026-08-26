@@ -351,7 +351,7 @@ export const trainingDocumentCatalogueItemSchema = z
     type: z.literal('TRAINING_DOCUMENT'),
     title: titleSchema,
     description: descriptionSchema.nullish(),
-    contentType: z.enum(['POLICY', 'PROCEDURE', 'AWARENESS_BRIEF', 'BEST_PRACTICE_GUIDE']),
+    contentType: z.enum(['PDF', 'MARKDOWN', 'HTML', 'URL', 'INTERACTIVE']),
     estimatedReadTimeMinutes: z.number().int().positive().nullish(),
     difficultyLevel: difficultyLevelSchema,
     status: z.enum(['DRAFT', 'AVAILABLE', 'UNAVAILABLE', 'ARCHIVED']),

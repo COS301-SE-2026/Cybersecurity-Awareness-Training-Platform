@@ -52,7 +52,7 @@ const CATALOGUE_RESPONSE: GetCampaignCatalogueResponseDto = {
       type: 'TRAINING_DOCUMENT',
       title: 'Password security essentials',
       description: 'Practical guidance for creating and protecting strong passwords.',
-      contentType: 'AWARENESS_BRIEF',
+      contentType: 'MARKDOWN',
       estimatedReadTimeMinutes: 8,
       difficultyLevel: 'BEGINNER',
       status: 'AVAILABLE',
