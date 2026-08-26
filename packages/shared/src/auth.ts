@@ -152,4 +152,5 @@ export type AuthMeResponseDto = AuthContextResponseDto;
 
 export interface AuthLoginResponseDto extends AuthContextResponseDto {
   accessToken: string;
+  idleTimeoutMinutes: number | null;
 }

@@ -111,6 +111,7 @@ describe('Auth Integration Tests', () => {
 
     expect(response.status).toBe(200);
     expect(response.body.accessToken).toBeDefined();
+    expect(response.body.idleTimeoutMinutes).toBe(30);
     expect(response.body.token).toBeDefined();
     expect(response.body.tokenType).toBe('Bearer');
     expect(response.body.user).toBeDefined();

@@ -57,6 +57,7 @@ function createLoginApiError(status: number, errorCode: string) {
 const successfulAuthResponse = {
   accessToken: 'demo-token',
   token: 'demo-token',
+  idleTimeoutMinutes: 30,
   user: {
     id: 'user-1',
     firstName: 'Jane',

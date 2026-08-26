@@ -245,6 +245,7 @@ describe('Auth routes', () => {
     });
     expect(response.body).toEqual({
       accessToken: expect.any(String),
+      idleTimeoutMinutes: 30,
       user: {
         id: 'id-123',
         firstName: 'Johan',
@@ -585,6 +586,7 @@ describe('Auth routes', () => {
       expect(response.status).toBe(200);
       expect(response.body).toEqual({
         accessToken: expect.any(String),
+        idleTimeoutMinutes: 30,
         user: {
           id: 'user-123',
           firstName: 'Johan',

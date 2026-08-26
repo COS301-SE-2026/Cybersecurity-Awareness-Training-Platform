@@ -4,7 +4,6 @@ import type {
   AuthMeResponseDto,
   AuthRegisterRequestDto,
   AuthRegisterResponseDto,
-  AuthContextResponseDto,
   PublicUserDto,
 } from '@insightful-phish/shared';
 import type { AuthSessionRevokedReason } from '../generated/prisma/enums.js';
@@ -321,6 +320,7 @@ export async function loginUser(
   return {
     response: {
       accessToken,
+      idleTimeoutMinutes: policy.idleTimeoutMinutes,
       user: publicUser,
       context: authContext,
       permissions: authContext.permissions,
@@ -405,7 +405,7 @@ export async function refreshUserToken(
   ipAddress?: string | null,
   userAgent?: string | null,
 ): Promise<{
-  response: AuthContextResponseDto;
+  response: AuthLoginResponseDto;
   accessTokenExpiresAt: string;
   rawRefreshToken: string;
   sessionExpiresAt: Date;
@@ -515,6 +515,7 @@ export async function refreshUserToken(
   return {
     response: {
       accessToken,
+      idleTimeoutMinutes: policy.idleTimeoutMinutes,
       user: publicUser,
       context: authContext,
       permissions: authContext.permissions,

@@ -759,7 +759,7 @@ describe('swaggerSpec', () => {
 
   it('enforces that token fields are returned on login/refresh schemas but not on /auth/me schema', () => {
     const loginSchema = spec.components?.schemas?.AuthLoginResponse as
-      | { properties?: Record<string, unknown> }
+      | { properties?: Record<string, unknown>; required?: string[] }
       | undefined;
     const meSchema = spec.components?.schemas?.AuthMeResponse as
       | { properties?: Record<string, unknown> }
@@ -767,12 +767,15 @@ describe('swaggerSpec', () => {
 
     expect(loginSchema).toBeDefined();
     expect(loginSchema?.properties).toHaveProperty('accessToken');
+    expect(loginSchema?.properties).toHaveProperty('idleTimeoutMinutes');
+    expect(loginSchema?.required).toContain('idleTimeoutMinutes');
 
     expect(meSchema).toBeDefined();
     expect(meSchema?.properties).not.toHaveProperty('accessToken');
     expect(meSchema?.properties).not.toHaveProperty('token');
     expect(meSchema?.properties).not.toHaveProperty('tokenType');
     expect(meSchema?.properties).not.toHaveProperty('expiresAt');
+    expect(meSchema?.properties).not.toHaveProperty('idleTimeoutMinutes');
   });
 
   it('documents account-security lifecycle contracts without exposing sensitive session or token fields', () => {
