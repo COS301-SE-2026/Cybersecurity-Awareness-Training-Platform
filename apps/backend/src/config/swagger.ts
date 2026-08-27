@@ -400,6 +400,11 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
           'TRAINING_RATE_LIMITED',
           'Too many training requests. Please try again later.',
         ),
+        CampaignManagementRateLimitErrorResponse: errorResponseSchema(
+          'RateLimitErrorResponse',
+          'CAMPAIGN_MANAGEMENT_RATE_LIMITED',
+          'Too many campaign management requests. Please try again later.',
+        ),
         EmptyRequestBody: {
           type: 'object',
           additionalProperties: false,
@@ -5208,6 +5213,10 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         GetCampaignStatisticsOk: responseComponent(
           'Campaign identity, full-cohort summary statistics, and paginated per-trainee statistics retrieved successfully.',
           'GetCampaignStatisticsResponse',
+        ),
+        CampaignManagementRateLimited: responseComponent(
+          'Too many campaign management requests. Please try again later.',
+          'CampaignManagementRateLimitErrorResponse',
         ),
 
         HealthOk: responseComponent('API and database are reachable.', 'HealthStatus'),

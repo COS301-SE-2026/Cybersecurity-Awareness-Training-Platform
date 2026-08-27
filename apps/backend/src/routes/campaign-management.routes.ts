@@ -351,7 +351,7 @@ campaignManagementRouter.get(
  *       422:
  *         $ref: '#/components/responses/UnprocessableEntity'
  *       429:
- *         $ref: '#/components/responses/TooManyRequests'
+ *         $ref: '#/components/responses/CampaignManagementRateLimited'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
@@ -359,7 +359,7 @@ campaignManagementRouter.get(
   '/organisations/:organisationId/campaigns/:campaignId/statistics',
   campaignManagementRateLimit,
   requireAuth,
-  validateParams(organisationAndCampaignIdParamsSchema),
+  validateParams(organisationAndCampaignIdParamsSchema, { statusCode: 422 }),
   validateQuery(campaignStatisticsQuerySchema, { statusCode: 422 }),
   asyncHandler(getOrganisationCampaignStatisticsHandler),
 );

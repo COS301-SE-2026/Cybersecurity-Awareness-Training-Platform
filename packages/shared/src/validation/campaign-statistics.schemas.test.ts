@@ -132,6 +132,18 @@ describe('campaignStatisticsCampaignSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  it('requires description to be explicitly provided as a string or null (rejects omitted or undefined description)', () => {
+    const { description: _omitted, ...missingDescription } = validCampaign;
+    expect(campaignStatisticsCampaignSchema.safeParse(missingDescription).success).toBe(false);
+
+    expect(
+      campaignStatisticsCampaignSchema.safeParse({
+        ...validCampaign,
+        description: undefined,
+      }).success,
+    ).toBe(false);
+  });
+
   it('rejects negative itemCount or quizCount', () => {
     expect(
       campaignStatisticsCampaignSchema.safeParse({

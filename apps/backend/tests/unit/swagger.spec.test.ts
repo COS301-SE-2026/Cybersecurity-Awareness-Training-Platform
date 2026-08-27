@@ -186,6 +186,7 @@ const expectedSchemas = [
   'CampaignStatisticsTraineeActions',
   'CampaignStatisticsTraineeRow',
   'GetCampaignStatisticsResponse',
+  'CampaignManagementRateLimitErrorResponse',
 ] as const;
 
 const expectedResponses = [
@@ -196,6 +197,7 @@ const expectedResponses = [
   'Conflict',
   'UnprocessableEntity',
   'TooManyRequests',
+  'CampaignManagementRateLimited',
   'InternalServerError',
   'GetAssignableCampaignsOk',
   'GetCampaignAssignmentCandidatesOk',

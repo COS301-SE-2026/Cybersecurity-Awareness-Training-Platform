@@ -92,19 +92,19 @@ describe('Campaign Statistics Route Contract (GET /organisations/:organisationId
     expect(res.body.error).toBe('UNAUTHENTICATED');
   });
 
-  it('returns 400 when organisationId is not a valid UUID', async () => {
+  it('returns 422 when organisationId is not a valid UUID', async () => {
     const res = await request(app).get(
       `/organisations/invalid-uuid/campaigns/${campaignId}/statistics`,
     );
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(422);
     expect(res.body.error).toBe('VALIDATION_ERROR');
   });
 
-  it('returns 400 when campaignId is not a valid UUID', async () => {
+  it('returns 422 when campaignId is not a valid UUID', async () => {
     const res = await request(app).get(
       `/organisations/${organisationId}/campaigns/invalid-uuid/statistics`,
     );
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(422);
     expect(res.body.error).toBe('VALIDATION_ERROR');
   });
 
@@ -266,5 +266,21 @@ describe('Campaign Statistics Route Contract (GET /organisations/:organisationId
 
     const schemaValidation = getCampaignStatisticsResponseSchema.safeParse(res.body);
     expect(schemaValidation.success).toBe(true);
+  });
+
+  it('delegates unexpected errors to central error handling returning safe 500 without leaking exception details', async () => {
+    serviceMock.getOrganisationCampaignStatistics.mockRejectedValue(
+      new Error('Secret database connection string failure: postgresql://root:pass@secret'),
+    );
+
+    const res = await request(app).get(
+      `/organisations/${organisationId}/campaigns/${campaignId}/statistics`,
+    );
+
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({
+      error: 'INTERNAL_SERVER_ERROR',
+      message: 'An unexpected error occurred',
+    });
   });
 });

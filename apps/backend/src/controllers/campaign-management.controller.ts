@@ -28,7 +28,6 @@ function extractActor(req: Request): CampaignManagementService.UserActorContext 
 function handleControllerError(res: Response, err: unknown) {
   if (err instanceof CampaignManagementService.CampaignManagementServiceError) {
     return res.status(err.statusCode).json({
-      success: false,
       error: err.error,
       message: err.message,
     });
@@ -36,18 +35,12 @@ function handleControllerError(res: Response, err: unknown) {
 
   if (err instanceof OrganisationScopeServiceError) {
     return res.status(err.statusCode).json({
-      success: false,
       error: err.error,
       message: err.message,
     });
   }
 
-  const message = err instanceof Error ? err.message : String(err);
-  return res.status(500).json({
-    success: false,
-    error: 'INTERNAL_SERVER_ERROR',
-    message,
-  });
+  throw err;
 }
 
 export async function getOrganisationCampaignCatalogueHandler(req: Request, res: Response) {
@@ -397,10 +390,12 @@ export async function getOrganisationCampaignStatisticsHandler(req: Request, res
     const parseResult = campaignStatisticsQuerySchema.safeParse(req.query);
     if (!parseResult.success) {
       return res.status(422).json({
-        success: false,
         error: 'VALIDATION_ERROR',
-        message: 'Invalid pagination query parameters',
-        details: parseResult.error.flatten(),
+        message: 'Invalid request query parameters',
+        details: parseResult.error.issues.map((issue) => ({
+          field: issue.path.join('.'),
+          message: issue.message,
+        })),
       });
     }
 
