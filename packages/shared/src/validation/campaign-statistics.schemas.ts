@@ -44,10 +44,9 @@ const nullableDescriptionSchema = z
  * Campaign identity and metadata schema for statistics.
  *
  * Semantic rules:
- * - `itemCount`: Count of all consumable campaign items (Training Documents, Quizzes, Simulated Inboxes).
- *   Structural/folder groups do not contribute to itemCount. All consumable items count toward denominator,
- *   including items where `isRequired` is false in Sprint 8 reporting definitions.
- * - `quizCount`: Total number of Quiz component items in the campaign.
+ * - `itemCount`: Number of consumable component items in the campaign. Training Documents, Quizzes,
+ *   and Simulated Inboxes count; structural/group records do not. All consumable items count regardless of isRequired.
+ * - `quizCount`: Number of Quiz component items in the campaign.
  */
 export const campaignStatisticsCampaignSchema = z
   .object({
@@ -69,15 +68,17 @@ export const campaignStatisticsCampaignSchema = z
  * Semantic rules:
  * - `assignedTraineeCount`: Total qualifying campaign assignments for this campaign. Disabled organisation
  *   trainees remain included in the cohort and all metrics until explicitly unassigned.
- * - `startedTraineeCount`: Trainees with at least 1 persisted interaction on any consumable campaign item
- *   (viewing a Training Document, beginning a Quiz attempt, opening at least 1 Simulated Inbox email).
- *   Does not use `CampaignAssignment.startedAt`.
- * - `completedTraineeCount`: Trainees who have completed all consumable campaign items (100% item progress).
- * - `overallProgressPercentage`: Arithmetic mean of all assigned trainees' already-rounded integer progress
- *   percentages (0..100). Returns `null` if assignedTraineeCount is 0 (no cohort).
- * - `averageQuizScorePercentage`: Arithmetic mean of contributing trainees' average quiz scores (0..100).
- *   Calculated by first averaging each contributing trainee's submitted quiz scores and then averaging those
- *   per-trainee averages. Returns `null` if no trainees have submitted any quiz scores.
+ * - `startedTraineeCount`: Number of assigned trainees with at least one authoritative persisted progress fact:
+ *   a TRAINING_VIEWED or TRAINING_COMPLETED event, an IN_PROGRESS or SUBMITTED QuizAttempt, or a SIMULATED_EMAIL_OPENED event.
+ *   CampaignAssignment.startedAt is not used.
+ * - `completedTraineeCount`: Number of assigned trainees who completed every consumable campaign item.
+ *   A Training Document requires TRAINING_COMPLETED; a Quiz requires a SUBMITTED attempt with its completed result;
+ *   a Simulated Inbox requires every email in that inbox to have a SIMULATED_EMAIL_OPENED progress fact.
+ * - `overallProgressPercentage`: Arithmetic mean of the already-rounded integer progressPercentage values for every assigned
+ *   trainee in the complete cohort, rounded again to the nearest whole integer. Returns null when no trainees are assigned.
+ * - `averageQuizScorePercentage`: Arithmetic mean of the already-rounded per-trainee averageQuizScorePercentage values for
+ *   contributing trainees, rounded again to the nearest whole integer. Raw Quiz results are not averaged directly across the cohort.
+ *   Returns null when no trainee has a qualifying submitted score.
  */
 export const campaignStatisticsSummarySchema = z
   .object({
@@ -93,11 +94,9 @@ export const campaignStatisticsSummarySchema = z
  * Per-trainee consumable item progress schema.
  *
  * Completion rules:
- * - Training Document: Requires authoritative completed progress event.
- * - Quiz: Requires authoritative submitted/completed attempt/result.
- * - Simulated Inbox: Requires every simulated email in the inbox to have an authoritative read/open event.
- * - Partial quiz attempts or partial inbox reads make a trainee started, but do not grant fractional item completion.
- * - `progressPercentage`: Integer 0..100 calculated as `Math.round((completedItemCount / totalItemCount) * 100)`.
+ * - `progressPercentage`: Completed consumable items divided by total consumable items, rounded to the nearest whole percentage.
+ *   Partial Quiz attempts and partially opened Simulated Inboxes make the trainee started but do not partially complete an item.
+ *   Returns 0 when totalItemCount is 0.
  */
 export const campaignStatisticsTraineeProgressSchema = z
   .object({
@@ -133,7 +132,10 @@ export const campaignStatisticsTraineeRowSchema = z
       maxMessage: 'Display name must be at most 200 characters.',
     }),
     email: z.string().trim().email('Invalid email format.'),
-    traineeStatus: z.enum(['ACTIVE', 'INACTIVE']),
+    // Organisation membership status derived from
+    // OrganisationTraineeProfile.membershipStatus.
+    // DISABLED trainees remain in the cohort while their assignment exists.
+    traineeStatus: z.enum(['ACTIVE', 'INACTIVE', 'DISABLED']),
     assignmentStatus: z.enum([
       'AVAILABLE',
       'ASSIGNED',

@@ -187,6 +187,7 @@ const expectedSchemas = [
   'CampaignStatisticsTraineeRow',
   'GetCampaignStatisticsResponse',
   'CampaignManagementRateLimitErrorResponse',
+  'CampaignStatisticsNotImplementedErrorResponse',
 ] as const;
 
 const expectedResponses = [
@@ -198,6 +199,7 @@ const expectedResponses = [
   'UnprocessableEntity',
   'TooManyRequests',
   'CampaignManagementRateLimited',
+  'CampaignStatisticsNotImplemented',
   'InternalServerError',
   'GetAssignableCampaignsOk',
   'GetCampaignAssignmentCandidatesOk',
@@ -402,7 +404,7 @@ const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
   [
     'get',
     '/organisations/{organisationId}/campaigns/{campaignId}/statistics',
-    ['200', '401', '403', '404', '422', '429', '500'],
+    ['200', '401', '403', '404', '422', '429', '500', '501'],
   ],
   ['get', '/trainee/campaigns', ['200', '401', '429', '500']],
   ['get', '/trainee/campaigns/{campaignId}', ['200', '400', '401', '404', '429', '500']],
@@ -1408,7 +1410,11 @@ describe('swaggerSpec', () => {
         'allowedActions',
       ]),
     );
-    expect(traineeRowSchema.properties?.traineeStatus?.enum).toEqual(['ACTIVE', 'INACTIVE']);
+    expect(traineeRowSchema.properties?.traineeStatus?.enum).toEqual([
+      'ACTIVE',
+      'INACTIVE',
+      'DISABLED',
+    ]);
     expect(traineeRowSchema.properties?.assignmentStatus?.enum).toEqual([
       'AVAILABLE',
       'ASSIGNED',

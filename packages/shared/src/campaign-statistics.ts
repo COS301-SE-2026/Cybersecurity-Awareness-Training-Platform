@@ -55,9 +55,9 @@ export function roundPercentageToInteger(value: number): number {
  * Rules:
  * - All consumable component items count toward denominator, including items whose `isRequired` is false.
  * - Structural/group items do not contribute to totalItemCount.
- * - Training documents require authoritative completed events.
- * - Quizzes require authoritative submitted results.
- * - Simulated inboxes require all constituent emails to be opened/read.
+ * - Training documents require authoritative TRAINING_COMPLETED progress events.
+ * - Quizzes require authoritative SUBMITTED attempt results.
+ * - Simulated inboxes require all constituent emails to have SIMULATED_EMAIL_OPENED progress facts.
  * - Returns 0 if totalItemCount is 0 or negative.
  */
 export function calculateItemProgressPercentage(

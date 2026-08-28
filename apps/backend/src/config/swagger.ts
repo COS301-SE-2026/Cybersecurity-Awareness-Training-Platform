@@ -401,9 +401,14 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
           'Too many training requests. Please try again later.',
         ),
         CampaignManagementRateLimitErrorResponse: errorResponseSchema(
-          'RateLimitErrorResponse',
+          'ApiErrorResponse',
           'CAMPAIGN_MANAGEMENT_RATE_LIMITED',
           'Too many campaign management requests. Please try again later.',
+        ),
+        CampaignStatisticsNotImplementedErrorResponse: errorResponseSchema(
+          'ApiErrorResponse',
+          'NOT_IMPLEMENTED',
+          'Organisation campaign statistics runtime implementation is scheduled for #500',
         ),
         EmptyRequestBody: {
           type: 'object',
@@ -4814,8 +4819,19 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
               nullable: true,
               example: '2026-09-30T23:59:59.000Z',
             },
-            itemCount: { type: 'integer', minimum: 0, example: 4 },
-            quizCount: { type: 'integer', minimum: 0, example: 2 },
+            itemCount: {
+              type: 'integer',
+              minimum: 0,
+              example: 4,
+              description:
+                'Number of consumable component items in the campaign. Training Documents, Quizzes, and Simulated Inboxes count; structural/group records do not. All consumable items count regardless of isRequired.',
+            },
+            quizCount: {
+              type: 'integer',
+              minimum: 0,
+              example: 2,
+              description: 'Number of Quiz component items in the campaign.',
+            },
           },
         },
         CampaignStatisticsSummary: {
@@ -4830,8 +4846,20 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
           additionalProperties: false,
           properties: {
             assignedTraineeCount: { type: 'integer', minimum: 0, example: 25 },
-            startedTraineeCount: { type: 'integer', minimum: 0, example: 18 },
-            completedTraineeCount: { type: 'integer', minimum: 0, example: 12 },
+            startedTraineeCount: {
+              type: 'integer',
+              minimum: 0,
+              example: 18,
+              description:
+                'Number of assigned trainees with at least one authoritative persisted progress fact: a TRAINING_VIEWED or TRAINING_COMPLETED event, an IN_PROGRESS or SUBMITTED QuizAttempt, or a SIMULATED_EMAIL_OPENED event. CampaignAssignment.startedAt is not used.',
+            },
+            completedTraineeCount: {
+              type: 'integer',
+              minimum: 0,
+              example: 12,
+              description:
+                'Number of assigned trainees who completed every consumable campaign item. A Training Document requires TRAINING_COMPLETED; a Quiz requires a SUBMITTED attempt with its completed result; a Simulated Inbox requires every email in that inbox to have a SIMULATED_EMAIL_OPENED progress fact.',
+            },
             overallProgressPercentage: {
               type: 'integer',
               nullable: true,
@@ -4839,7 +4867,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
               maximum: 100,
               example: 68,
               description:
-                'Arithmetic mean of all assigned Trainee progress percentages (0-100), or null if no trainees are assigned.',
+                'Arithmetic mean of the already-rounded integer progressPercentage values for every assigned trainee in the complete cohort, rounded again to the nearest whole integer. Returns null when no trainees are assigned.',
             },
             averageQuizScorePercentage: {
               type: 'integer',
@@ -4848,7 +4876,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
               maximum: 100,
               example: 85,
               description:
-                'Arithmetic mean of per-Trainee submitted quiz averages (0-100), or null if no quizzes have been submitted.',
+                'Arithmetic mean of the already-rounded per-trainee averageQuizScorePercentage values for contributing trainees, rounded again to the nearest whole integer. Raw Quiz results are not averaged directly across the cohort. Returns null when no trainee has a qualifying submitted score.',
             },
           },
         },
@@ -4865,7 +4893,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
               maximum: 100,
               example: 75,
               description:
-                'Completed consumable items divided by total consumable items rounded to nearest whole percentage (0-100).',
+                'Completed consumable items divided by total consumable items, rounded to the nearest whole percentage. Partial Quiz attempts and partially opened Simulated Inboxes make the trainee started but do not partially complete an item. Returns 0 when totalItemCount is 0.',
             },
           },
         },
@@ -4904,7 +4932,11 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
               format: 'email',
               example: 'sipho.ndlovu@rustenburg-cyber.co.za',
             },
-            traineeStatus: enumString(['ACTIVE', 'INACTIVE'], 'ACTIVE'),
+            traineeStatus: {
+              ...enumString(['ACTIVE', 'INACTIVE', 'DISABLED'], 'ACTIVE'),
+              description:
+                'Organisation trainee membership status. DISABLED trainees remain in the statistics cohort while their campaign assignment exists.',
+            },
             assignmentStatus: enumString(
               ['AVAILABLE', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'EXPIRED'],
               'IN_PROGRESS',
@@ -4921,7 +4953,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
               maximum: 100,
               example: 90,
               description:
-                'Arithmetic mean of submitted quiz scores (0-100), or null if no quizzes have been submitted.',
+                'Arithmetic mean of this trainee’s qualifying submitted campaign Quiz scores, rounded to the nearest whole integer. Unsubmitted attempts are omitted. Returns null when the trainee has no qualifying submitted score.',
             },
             allowedActions: schemaRef('CampaignStatisticsTraineeActions'),
           },
@@ -5217,6 +5249,10 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         CampaignManagementRateLimited: responseComponent(
           'Too many campaign management requests. Please try again later.',
           'CampaignManagementRateLimitErrorResponse',
+        ),
+        CampaignStatisticsNotImplemented: responseComponent(
+          'The final contract is published, but runtime statistics aggregation is deferred to #500.',
+          'CampaignStatisticsNotImplementedErrorResponse',
         ),
 
         HealthOk: responseComponent('API and database are reachable.', 'HealthStatus'),

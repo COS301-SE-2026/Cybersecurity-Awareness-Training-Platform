@@ -330,6 +330,16 @@ describe('campaignStatisticsTraineeRowSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  it('accepts ACTIVE, INACTIVE, and DISABLED traineeStatus values', () => {
+    for (const status of ['ACTIVE', 'INACTIVE', 'DISABLED'] as const) {
+      const result = campaignStatisticsTraineeRowSchema.safeParse({
+        ...validRow,
+        traineeStatus: status,
+      });
+      expect(result.success).toBe(true);
+    }
+  });
+
   it('rejects invalid email, invalid UUID, or invalid enums', () => {
     expect(
       campaignStatisticsTraineeRowSchema.safeParse({
