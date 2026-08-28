@@ -1663,8 +1663,8 @@
           "number": 499,
           "title": "feat: define the organisation campaign statistics service contract",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-08-28"
         },
         {
           "number": 498,
@@ -2315,7 +2315,7 @@
     },
     {
       "date": "2026-08-28",
-      "remaining": 56,
+      "remaining": 54,
       "ideal": 15.67
     }
   ]
