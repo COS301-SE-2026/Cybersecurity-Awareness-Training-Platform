@@ -1,6 +1,6 @@
 # Testing Policy
 
-This document describes how Insightful Phish tests Demo 3 work. It combines the repository's current Vitest, Playwright, Docker, coverage, Lighthouse, and CI setup with the testing principles covered in the course material.
+This document describes how Insightful Phish tests Demo 3 work. It combines the repository's current Vitest, Playwright, Docker, coverage, Lighthouse, NFR checks, and CI setup with the testing principles covered in the course material.
 
 ## Contents
 
@@ -38,7 +38,7 @@ This policy explains the levels of testing expected for Demo 3 work and how they
 
 ## Testing Principles
 
-The dev team must add or update unit tests when they add or change behaviour of a feature. Databasen and backend integration testing is planned through separate, focused integration-test issues. Integration tests are used to complement rather than replace unit tests. Documentation-only changes may not need automated tests, but they still need review and formatting checks.
+Developers must add or update unit tests when they add or change behaviour. Database-backed and cross-component backend integration testing is planned through separate, focused integration-test issues. Integration tests complement rather than replace feature-level unit tests. Documentation-only changes may not need automated tests, but they still need review and formatting checks.
 
 The team follows these principles:
 
@@ -70,14 +70,14 @@ The right test type depends on the risk. A pure schema rule belongs in a schema 
 
 ## Unit Testing
 
-Unit tests focus on the smallest practical testable unit. They should be fast, isolated, deterministic, and granular enough that failures are easy to understand.
+Unit tests focus on the smallest practical testable unit. They should run quickly, stay isolated, remain deterministic, and be granular enough that failures are easy to understand.
 
 Expected unit-test practices:
 
 - Keep setup local to the behaviour under test.
 - Mock external boundaries such as repositories, mailers, and provider calls when the unit is not meant to test those systems.
 - Use realistic but safe fixtures. Do not use real passwords, real tokens, real email credentials, or production data.
-- Use relative future or past dates when the test depends on expiry behaviour.
+- Use relative dates in the needed direction when the test depends on expiry behaviour.
 - Assert success and failure paths that matter to the use case.
 - Avoid weakening assertions to accept both correct and incorrect outcomes.
 - Avoid snapshots unless the output is intentionally stable and a snapshot is the clearest review tool.
@@ -168,7 +168,7 @@ Good candidates for Demo 3 smoke coverage include:
 - Trainee campaign participation paths.
 - Account security flows where browser behaviour matters.
 
-Fully mocked or intercepted UI tests should not be called true full-stack E2E tests. They can still be useful frontend smoke, accessibility, component, or page tests, but the label should match what the test actually proves.The team is aware of this and will make it a priority to complete for demo 3.
+Fully mocked or intercepted UI tests should not be called true full-stack E2E tests. They can still be useful frontend smoke, accessibility, component, or page tests, but the label should match what the test actually proves. Full-stack E2E coverage should be added through focused work that runs the real frontend, backend, and test database together.
 
 ## Manual Acceptance Testing
 
@@ -213,13 +213,15 @@ Tests must use safe, deterministic data and must not depend on production secret
 
 Expected environments:
 
-| Environment                        | Purpose                                                          | Data rules                                                                                                                                                                  |
-| ---------------------------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Local unit test run                | Fast package-level checks during development.                    | Use local fixtures, mocks, and safe generated values. Do not depend on running services unless the test type says so.                                                       |
-| Backend integration test database  | Database-backed backend checks.                                  | Use `insightful_phish_test` or another database whose name clearly contains `test`. Create records through setup or factories. Do not use Demo 1 seed data as a dependency. |
-| Frontend Playwright preview server | Frontend browser smoke and accessibility checks.                 | Playwright builds the frontend and runs against the Vite preview server at `http://127.0.0.1:4173`; API-dependent flows currently use intercepted responses.                |
-| CI test environment                | Repeatable verification on pull requests and protected branches. | CI installs with the lockfile, generates Prisma client where needed, runs migrations against the test database, and uploads coverage or test reports where configured.      |
-| Manual local environment           | Human acceptance and demo readiness checks.                      | Record the branch or build, roles used, local services such as MailPit, and the exact flow checked.                                                                         |
+| Environment                         | Purpose                                                          | Data rules                                                                                                                                                                |
+| ----------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Local unit test run                 | Fast package-level checks during development.                    | Use local fixtures, mocks, and safe generated values. Do not depend on running services unless the test type says so.                                                     |
+| Backend integration test database   | Database-backed backend checks.                                  | Use `insightful_phish_test` or another database whose name clearly contains `test`. Create records through setup or factories. Do not use demo seed data as a dependency. |
+| Frontend Playwright preview server  | Frontend browser smoke and accessibility checks.                 | Playwright builds the frontend and runs against the Vite preview server at `http://127.0.0.1:4173`; API-dependent flows currently use intercepted responses.              |
+| NFR deterministic check environment | Traceability, security, route wiring, and audit checks.          | Use a clean local repository checkout. These checks should not require production secrets, database state, or running services.                                           |
+| NFR release/manual environment      | Accessibility, performance, and deployment reproducibility.      | Record the exact services, base URLs, viewport, build, branch, and configuration used. Keep evidence bounded and free of sensitive values.                                |
+| CI test environment                 | Repeatable verification on pull requests and protected branches. | CI installs with the lockfile, generates Prisma client where needed, runs migrations against the test database, and uploads coverage or test reports where configured.    |
+| Manual local environment            | Human acceptance and demo readiness checks.                      | Record the branch or build, roles used, local services such as MailPit, and the exact flow checked.                                                                       |
 
 The backend integration setup is deliberately defensive. It sets `NODE_ENV` to `test`, copies `TEST_DATABASE_URL` into `DATABASE_URL` when present, refuses cleanup unless the database name contains `test`, rejects known development or system databases, rejects production-like hosts, excludes `_prisma_migrations`, and truncates application tables before tests.
 
@@ -233,7 +235,7 @@ Test data should be:
 
 ## Responsibilities
 
-The developer who changes behaviour owns the feature's unit test update. Reviewers check whether the evidence matches the risk, whether the PR notes honestly describe what was and was not tested and what was tested. All must be accepted by two reviewers to allow the pr to be successfully merged into dev.
+The developer who changes behaviour owns the feature's unit test update. Reviewers check whether the evidence matches the risk, whether the PR notes honestly describe what was and was not tested, and whether the submitted testing evidence supports acceptance. All must be accepted by two reviewers to allow the PR to be successfully merged into `dev`.
 
 Responsibilities:
 
@@ -244,7 +246,7 @@ Responsibilities:
 | Feature owner | Decide when a larger flow needs follow-up database-backed integration, cross-component integration, full-stack E2E, or manual acceptance work beyond the first feature slice.          |
 | Team          | Keep flaky tests visible and fix them promptly instead of normalising ignored failures.                                                                                                |
 
-If a change cannot reasonably be covered by automated unit tests in the same slice, the PR should explain why and describe the manual acceptance evidence or follow-up issue. Again database and integration tests should be tracked through their focused issues.
+If a change cannot reasonably be covered by automated unit tests in the same slice, the PR should explain why and describe the manual acceptance evidence or follow-up issue. Database-backed and cross-component integration tests should be tracked through their focused issues.
 
 ## CI and Reporting
 
@@ -264,7 +266,9 @@ The current CI workflow provides these checks:
 | Build                     | Builds shared, backend, and frontend packages.                                                               |
 | Lighthouse                | Builds the frontend and runs Lighthouse against configured public routes as a non-blocking quality check.    |
 
-The checked-in CI workflow does not currently run `pnpm test:e2e:frontend`. Playwright evidence should therefore be described as local frontend browser smoke or accessibility evidence until a future sprint issue adds full-stack E2E execution.
+The checked-in CI workflow does not currently run `pnpm test:e2e:frontend`. Playwright evidence should therefore be described as local frontend browser smoke or accessibility evidence until a later sprint issue adds full-stack E2E execution.
+
+The checked-in CI workflow does not currently run the new Demo 3 NFR commands. The deterministic commands are stable CI candidates, but this slice does not wire them into PR CI. Accessibility, performance, and deployment reproducibility remain local, manual, or release checks because they depend on browser execution, running services, or a release-preparation environment.
 
 Codecov upload steps are configured for coverage reports and test results, but their upload failures are currently allowed not to fail CI. That means Codecov is useful reporting evidence, not proof that a numeric coverage gate is enforced by this repository.
 
