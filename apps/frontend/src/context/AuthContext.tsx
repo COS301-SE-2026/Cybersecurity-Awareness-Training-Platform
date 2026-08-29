@@ -3,10 +3,21 @@ import type { ReactNode } from 'react';
 import { logoutSession, refreshSession } from '../services/auth.service';
 import { AuthContext } from './auth-context';
 import type { AuthUser } from './auth-context';
-import type { AuthContextDto, AuthContextResponseDto } from '@insightful-phish/shared';
+import type { AuthContextDto, AuthLoginResponseDto } from '@insightful-phish/shared';
 
 type AuthProviderProps = {
   children: ReactNode;
+};
+type StoredAuth = {
+  token: string | null;
+  user: AuthUser | null;
+  authContext: AuthContextDto | null;
+  permissions: string[];
+  redirectTo: string | null;
+  expiresAt: string | null;
+  sessionExpiresAt: string | null;
+  idleTimeoutMinutes: number | null;
+  isAuthenticated: boolean;
 };
 
 function getStorage() {
@@ -17,6 +28,18 @@ function getStorage() {
   return typeof globalThis.localStorage.getItem === 'function' ? globalThis.localStorage : null;
 }
 
+function parseStoredIdleTimeoutMinutes(storedValue: string | null): number | null {
+  if (storedValue === null) {
+    return null;
+  }
+  const idleTimeoutMinutes = Number(storedValue);
+
+  if (Number.isInteger(idleTimeoutMinutes) === false || idleTimeoutMinutes <= 0) {
+    return null;
+  }
+  return idleTimeoutMinutes;
+}
+
 function clearStoredAuth() {
   getStorage()?.removeItem('token');
   getStorage()?.removeItem('user');
@@ -25,18 +48,10 @@ function clearStoredAuth() {
   getStorage()?.removeItem('redirectTo');
   getStorage()?.removeItem('expiresAt');
   getStorage()?.removeItem('sessionExpiresAt');
+  getStorage()?.removeItem('idleTimeoutMinutes');
 }
 
-function getStoredAuth(): {
-  token: string | null;
-  user: AuthUser | null;
-  authContext: AuthContextDto | null;
-  permissions: string[];
-  redirectTo: string | null;
-  expiresAt: string | null;
-  sessionExpiresAt: string | null;
-  isAuthenticated: boolean;
-} {
+function getStoredAuth(): StoredAuth {
   const storage = getStorage();
 
   const storedToken = storage?.getItem('token') ?? null;
@@ -46,6 +61,8 @@ function getStoredAuth(): {
   const storedRedirectTo = storage?.getItem('redirectTo') ?? null;
   const storedExpiresAt = storage?.getItem('expiresAt') ?? null;
   const storedSessionExpiresAt = storage?.getItem('sessionExpiresAt') ?? null;
+  const storedIdleTimeoutMinutes = storage?.getItem('idleTimeoutMinutes') ?? null;
+  const idleTimeoutMinutes = parseStoredIdleTimeoutMinutes(storedIdleTimeoutMinutes);
 
   if (!storedToken) {
     storage?.removeItem('user');
@@ -58,6 +75,7 @@ function getStoredAuth(): {
       redirectTo: null,
       expiresAt: null,
       sessionExpiresAt: null,
+      idleTimeoutMinutes: null,
       isAuthenticated: false,
     };
   }
@@ -73,6 +91,7 @@ function getStoredAuth(): {
       redirectTo: null,
       expiresAt: null,
       sessionExpiresAt: null,
+      idleTimeoutMinutes: null,
       isAuthenticated: false,
     };
   }
@@ -92,6 +111,7 @@ function getStoredAuth(): {
       redirectTo: storedRedirectTo,
       expiresAt: storedExpiresAt,
       sessionExpiresAt: storedSessionExpiresAt,
+      idleTimeoutMinutes,
       isAuthenticated: true,
     };
   } catch {
@@ -105,12 +125,13 @@ function getStoredAuth(): {
       redirectTo: null,
       expiresAt: null,
       sessionExpiresAt: null,
+      idleTimeoutMinutes: null,
       isAuthenticated: false,
     };
   }
 }
 
-function getAuthResponseToken(authResponse: AuthContextResponseDto): string | null {
+function getAuthResponseToken(authResponse: AuthLoginResponseDto): string | null {
   return authResponse.accessToken ?? authResponse.token ?? null;
 }
 
@@ -147,6 +168,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     storedAuth.sessionExpiresAt,
   );
 
+  const [idleTimeoutMinutes, setIdleTimeoutMinutes] = useState<number | null>(
+    storedAuth.idleTimeoutMinutes,
+  );
+
   const [isAuthenticated, setIsAuthenticated] = useState(storedAuth.isAuthenticated);
 
   const [isAuthLoading, setIsAuthLoading] = useState(
@@ -162,6 +187,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setRedirectTo(null);
     setExpiresAt(null);
     setSessionExpiresAt(null);
+    setIdleTimeoutMinutes(null);
     setIsAuthenticated(false);
   }, [
     setAuthContext,
@@ -170,12 +196,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setPermissions,
     setRedirectTo,
     setSessionExpiresAt,
+    setIdleTimeoutMinutes,
     setToken,
     setUser,
   ]);
 
   const login = useCallback(
-    (authResponse: AuthContextResponseDto) => {
+    (authResponse: AuthLoginResponseDto) => {
       const newToken = getAuthResponseToken(authResponse);
 
       if (!newToken) {
@@ -183,7 +210,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return;
       }
 
-      getStorage()?.setItem('token', newToken);
       getStorage()?.setItem('user', JSON.stringify(authResponse.user));
       getStorage()?.setItem('authContext', JSON.stringify(authResponse.context));
       getStorage()?.setItem('permissions', JSON.stringify(authResponse.permissions));
@@ -201,6 +227,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
         getStorage()?.removeItem('sessionExpiresAt');
       }
 
+      if (authResponse.idleTimeoutMinutes === null) {
+        getStorage()?.removeItem('idleTimeoutMinutes');
+      } else {
+        getStorage()?.setItem('idleTimeoutMinutes', String(authResponse.idleTimeoutMinutes));
+      }
+
+      getStorage()?.setItem('token', newToken);
+
       setToken(newToken);
       setUser(authResponse.user);
       setAuthContext(authResponse.context);
@@ -208,6 +242,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setRedirectTo(authResponse.redirectTo);
       setExpiresAt(authResponse.expiresAt ?? null);
       setSessionExpiresAt(authResponse.sessionExpiresAt ?? null);
+      setIdleTimeoutMinutes(authResponse.idleTimeoutMinutes);
       setIsAuthenticated(true);
     },
     [
@@ -218,6 +253,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setPermissions,
       setRedirectTo,
       setSessionExpiresAt,
+      setIdleTimeoutMinutes,
       setToken,
       setUser,
     ],
@@ -274,6 +310,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       redirectTo,
       expiresAt,
       sessionExpiresAt,
+      idleTimeoutMinutes,
       login,
       clearAuth,
       logout,
@@ -288,6 +325,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       redirectTo,
       expiresAt,
       sessionExpiresAt,
+      idleTimeoutMinutes,
       login,
       clearAuth,
       logout,
