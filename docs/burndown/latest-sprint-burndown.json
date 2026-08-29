@@ -51,8 +51,8 @@
       "number": 500,
       "title": "feat: implement the organisation campaign statistics API",
       "points": 5,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-08-29"
     },
     {
       "number": 499,
@@ -138,7 +138,7 @@
     },
     {
       "date": "2026-08-29",
-      "remaining": 34,
+      "remaining": 29,
       "ideal": 7.82
     }
   ]
