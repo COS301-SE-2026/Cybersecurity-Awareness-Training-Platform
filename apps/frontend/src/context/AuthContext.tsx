@@ -345,32 +345,84 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
   }, [applyAuthResponse, clearAuth]);
 
+  const renewSession = useCallback(async (): Promise<void> => {
+    if (renewalPromiseRef.current !== null) {
+      await renewalPromiseRef.current;
+      return;
+    }
+
+    const tokenBeforeRenewal = activeTokenRef.current;
+
+    const renewalPromise = runWithRefreshLock(async () => {
+      const latestStoredAuth = getStoredAuth();
+
+      if (
+        latestStoredAuth.isAuthenticated === true &&
+        latestStoredAuth.token !== null &&
+        latestStoredAuth.token !== tokenBeforeRenewal &&
+        isAccessTokenExpired(latestStoredAuth.expiresAt) == false
+      ) {
+        applyStoredAuth(latestStoredAuth);
+        return;
+      }
+
+      const authResponse = await refreshSession();
+
+      if (activeTokenRef.current !== tokenBeforeRenewal) {
+        return;
+      }
+
+      applyAuthResponse(authResponse);
+
+      const message: AuthChannelMessage = {
+        type: 'AUTH_UPDATED',
+        authResponse,
+      };
+
+      authChannelRef.current?.postMessage(message);
+    });
+
+    renewalPromiseRef.current = renewalPromise;
+
+    try {
+      await renewalPromise;
+    } catch (error) {
+      if (activeTokenRef.current === tokenBeforeRenewal) {
+        clearAuth();
+
+        const message: AuthChannelMessage = { type: 'SIGNED_OUT' };
+
+        authChannelRef.current?.postMessage(message);
+      }
+
+      throw error;
+    } finally {
+      if (renewalPromiseRef.current === renewalPromise) {
+        renewalPromiseRef.current = null;
+      }
+    }
+  }, [applyAuthResponse, applyStoredAuth, clearAuth]);
+
   const logout = useCallback(async () => {
     try {
-      await logoutSession();
+      await runWithRefreshLock(async () => {
+        await logoutSession();
+      });
     } finally {
       clearAuth();
+      const message: AuthChannelMessage = { type: 'SIGNED_OUT' };
+      authChannelRef.current?.postMessage(message);
     }
   }, [clearAuth]);
 
   useEffect(() => {
-    if (storedAuth.isAuthenticated && !isAccessTokenExpired(storedAuth.expiresAt)) {
-      return;
-    }
-
     let isMounted = true;
 
-    async function bootstrapAuth() {
+    async function bootstrapAuth(): Promise<void> {
       try {
-        const authResponse = await refreshSession();
-
-        if (isMounted) {
-          login(authResponse);
-        }
+        await renewSession();
       } catch {
-        if (isMounted) {
-          clearAuth();
-        }
+        //renewsession already fixes stuff if something bad happens
       } finally {
         if (isMounted) {
           setIsAuthLoading(false);
@@ -383,7 +435,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return () => {
       isMounted = false;
     };
-  }, [clearAuth, login, storedAuth.expiresAt, storedAuth.isAuthenticated]);
+  }, [renewSession]);
 
   const value = useMemo(
     () => ({
@@ -398,6 +450,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       sessionExpiresAt,
       idleTimeoutMinutes,
       login,
+      renewSession,
       clearAuth,
       logout,
     }),
@@ -413,6 +466,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       sessionExpiresAt,
       idleTimeoutMinutes,
       login,
+      renewSession,
       clearAuth,
       logout,
     ],
