@@ -400,6 +400,16 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
           'TRAINING_RATE_LIMITED',
           'Too many training requests. Please try again later.',
         ),
+        CampaignManagementRateLimitErrorResponse: errorResponseSchema(
+          'ApiErrorResponse',
+          'CAMPAIGN_MANAGEMENT_RATE_LIMITED',
+          'Too many campaign management requests. Please try again later.',
+        ),
+        CampaignStatisticsNotImplementedErrorResponse: errorResponseSchema(
+          'ApiErrorResponse',
+          'NOT_IMPLEMENTED',
+          'Organisation campaign statistics runtime implementation is scheduled for #500',
+        ),
         EmptyRequestBody: {
           type: 'object',
           additionalProperties: false,
@@ -4787,6 +4797,194 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             deletedProgress: schemaRef('DeletedProgressCounts'),
           },
         },
+        CampaignStatisticsCampaign: {
+          type: 'object',
+          required: [
+            'id',
+            'name',
+            'description',
+            'campaignType',
+            'status',
+            'startDate',
+            'endDate',
+            'itemCount',
+            'quizCount',
+          ],
+          additionalProperties: false,
+          properties: {
+            id: uuidString('9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+            name: {
+              type: 'string',
+              example: 'Checkers Sixty60 Phishing Awareness Training',
+            },
+            description: nullableString('South African retail security awareness campaign'),
+            campaignType: enumString(
+              ['PREMADE_GENERAL', 'ORGANISATION_CUSTOM'],
+              'ORGANISATION_CUSTOM',
+            ),
+            status: enumString(['DRAFT', 'ACTIVE', 'PAUSED', 'COMPLETED', 'ARCHIVED'], 'ACTIVE'),
+            startDate: {
+              type: 'string',
+              format: 'date-time',
+              nullable: true,
+              example: '2026-09-01T00:00:00.000Z',
+            },
+            endDate: {
+              type: 'string',
+              format: 'date-time',
+              nullable: true,
+              example: '2026-09-30T23:59:59.000Z',
+            },
+            itemCount: {
+              type: 'integer',
+              minimum: 0,
+              example: 4,
+              description:
+                'Number of consumable component items in the campaign. Training Documents, Quizzes, and Simulated Inboxes count; structural/group records do not. All consumable items count regardless of isRequired.',
+            },
+            quizCount: {
+              type: 'integer',
+              minimum: 0,
+              example: 2,
+              description: 'Number of Quiz component items in the campaign.',
+            },
+          },
+        },
+        CampaignStatisticsSummary: {
+          type: 'object',
+          required: [
+            'assignedTraineeCount',
+            'startedTraineeCount',
+            'completedTraineeCount',
+            'overallProgressPercentage',
+            'averageQuizScorePercentage',
+          ],
+          additionalProperties: false,
+          properties: {
+            assignedTraineeCount: { type: 'integer', minimum: 0, example: 25 },
+            startedTraineeCount: {
+              type: 'integer',
+              minimum: 0,
+              example: 18,
+              description:
+                'Number of assigned trainees with at least one authoritative persisted progress fact: a TRAINING_VIEWED or TRAINING_COMPLETED event, an IN_PROGRESS or SUBMITTED QuizAttempt, or a SIMULATED_EMAIL_OPENED event. CampaignAssignment.startedAt is not used.',
+            },
+            completedTraineeCount: {
+              type: 'integer',
+              minimum: 0,
+              example: 12,
+              description:
+                'Number of assigned trainees who completed every consumable campaign item. A Training Document requires TRAINING_COMPLETED; a Quiz requires a SUBMITTED attempt with its completed result; a Simulated Inbox requires every email in that inbox to have a SIMULATED_EMAIL_OPENED progress fact.',
+            },
+            overallProgressPercentage: {
+              type: 'integer',
+              nullable: true,
+              minimum: 0,
+              maximum: 100,
+              example: 68,
+              description:
+                'Arithmetic mean of the already-rounded integer progressPercentage values for every assigned trainee in the complete cohort, rounded again to the nearest whole integer. Returns null when no trainees are assigned.',
+            },
+            averageQuizScorePercentage: {
+              type: 'integer',
+              nullable: true,
+              minimum: 0,
+              maximum: 100,
+              example: 85,
+              description:
+                'Arithmetic mean of the already-rounded per-trainee averageQuizScorePercentage values for contributing trainees, rounded again to the nearest whole integer. Raw Quiz results are not averaged directly across the cohort. Returns null when no trainee has a qualifying submitted score.',
+            },
+          },
+        },
+        CampaignStatisticsTraineeProgress: {
+          type: 'object',
+          required: ['completedItemCount', 'totalItemCount', 'progressPercentage'],
+          additionalProperties: false,
+          properties: {
+            completedItemCount: { type: 'integer', minimum: 0, example: 3 },
+            totalItemCount: { type: 'integer', minimum: 0, example: 4 },
+            progressPercentage: {
+              type: 'integer',
+              minimum: 0,
+              maximum: 100,
+              example: 75,
+              description:
+                'Completed consumable items divided by total consumable items, rounded to the nearest whole percentage. Partial Quiz attempts and partially opened Simulated Inboxes make the trainee started but do not partially complete an item. Returns 0 when totalItemCount is 0.',
+            },
+          },
+        },
+        CampaignStatisticsTraineeActions: {
+          type: 'object',
+          required: ['canUnassign'],
+          additionalProperties: false,
+          properties: {
+            canUnassign: booleanProperty(true),
+          },
+        },
+        CampaignStatisticsTraineeRow: {
+          type: 'object',
+          required: [
+            'assignmentId',
+            'traineeProfileId',
+            'displayName',
+            'email',
+            'traineeStatus',
+            'assignmentStatus',
+            'accessType',
+            'assignedAt',
+            'progress',
+            'completedQuizCount',
+            'totalQuizCount',
+            'averageQuizScorePercentage',
+            'allowedActions',
+          ],
+          additionalProperties: false,
+          properties: {
+            assignmentId: uuidString('55555555-5555-4555-8555-555555555555'),
+            traineeProfileId: uuidString('a1b2c3d4-e5f6-47a8-b9c0-d1e2f3a4b5c6'),
+            displayName: { type: 'string', example: 'Sipho Ndlovu' },
+            email: {
+              type: 'string',
+              format: 'email',
+              example: 'sipho.ndlovu@rustenburg-cyber.co.za',
+            },
+            traineeStatus: {
+              ...enumString(['ACTIVE', 'INACTIVE', 'DISABLED'], 'ACTIVE'),
+              description:
+                'Organisation trainee membership status. DISABLED trainees remain in the statistics cohort while their campaign assignment exists.',
+            },
+            assignmentStatus: enumString(
+              ['AVAILABLE', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'EXPIRED'],
+              'IN_PROGRESS',
+            ),
+            accessType: enumString(['ASSIGNED', 'SELF_SELECTED'], 'ASSIGNED'),
+            assignedAt: dateTimeString('2026-08-07T12:00:00.000Z'),
+            progress: schemaRef('CampaignStatisticsTraineeProgress'),
+            completedQuizCount: { type: 'integer', minimum: 0, example: 1 },
+            totalQuizCount: { type: 'integer', minimum: 0, example: 2 },
+            averageQuizScorePercentage: {
+              type: 'integer',
+              nullable: true,
+              minimum: 0,
+              maximum: 100,
+              example: 90,
+              description:
+                'Arithmetic mean of this trainee’s qualifying submitted campaign Quiz scores, rounded to the nearest whole integer. Unsubmitted attempts are omitted. Returns null when the trainee has no qualifying submitted score.',
+            },
+            allowedActions: schemaRef('CampaignStatisticsTraineeActions'),
+          },
+        },
+        GetCampaignStatisticsResponse: {
+          type: 'object',
+          required: ['campaign', 'summary', 'trainees', 'pagination'],
+          additionalProperties: false,
+          properties: {
+            campaign: schemaRef('CampaignStatisticsCampaign'),
+            summary: schemaRef('CampaignStatisticsSummary'),
+            trainees: arrayOf(schemaRef('CampaignStatisticsTraineeRow')),
+            pagination: schemaRef('PaginationMeta'),
+          },
+        },
       },
 
       parameters: {
@@ -5059,6 +5257,18 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         DeleteCampaignAssignmentOk: responseComponent(
           'Campaign assignment and all associated trainee progress permanently removed.',
           'DeleteCampaignAssignmentResponse',
+        ),
+        GetCampaignStatisticsOk: responseComponent(
+          'Campaign identity, full-cohort summary statistics, and paginated per-trainee statistics retrieved successfully.',
+          'GetCampaignStatisticsResponse',
+        ),
+        CampaignManagementRateLimited: responseComponent(
+          'Too many campaign management requests. Please try again later.',
+          'CampaignManagementRateLimitErrorResponse',
+        ),
+        CampaignStatisticsNotImplemented: responseComponent(
+          'The final contract is published, but runtime statistics aggregation is deferred to #500.',
+          'CampaignStatisticsNotImplementedErrorResponse',
         ),
 
         HealthOk: responseComponent('API and database are reachable.', 'HealthStatus'),

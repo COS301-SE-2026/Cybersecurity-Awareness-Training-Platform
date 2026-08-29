@@ -180,6 +180,14 @@ const expectedSchemas = [
   'TransferSuperAdminRequest',
   'DemotePlatformAdminRequest',
   'DemotePlatformAdminResponse',
+  'CampaignStatisticsCampaign',
+  'CampaignStatisticsSummary',
+  'CampaignStatisticsTraineeProgress',
+  'CampaignStatisticsTraineeActions',
+  'CampaignStatisticsTraineeRow',
+  'GetCampaignStatisticsResponse',
+  'CampaignManagementRateLimitErrorResponse',
+  'CampaignStatisticsNotImplementedErrorResponse',
 ] as const;
 
 const expectedResponses = [
@@ -190,6 +198,8 @@ const expectedResponses = [
   'Conflict',
   'UnprocessableEntity',
   'TooManyRequests',
+  'CampaignManagementRateLimited',
+  'CampaignStatisticsNotImplemented',
   'InternalServerError',
   'GetAssignableCampaignsOk',
   'GetCampaignAssignmentCandidatesOk',
@@ -202,6 +212,7 @@ const expectedResponses = [
   'DemotePlatformAdminOk',
   'CreateCampaignAssignmentsOk',
   'GetCampaignAssignmentsOk',
+  'GetCampaignStatisticsOk',
   'InvitationContextOk',
   'InvitationAcceptOk',
   'InvitationRejectOk',
@@ -389,6 +400,11 @@ const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
     'patch',
     '/organisations/{organisationId}/trainees/{traineeId}/disable',
     ['200', '400', '401', '403', '404', '409', '422', '429', '500'],
+  ],
+  [
+    'get',
+    '/organisations/{organisationId}/campaigns/{campaignId}/statistics',
+    ['200', '401', '403', '404', '422', '429', '500', '501'],
   ],
   ['get', '/trainee/campaigns', ['200', '401', '429', '500']],
   ['get', '/trainee/campaigns/{campaignId}', ['200', '400', '401', '404', '429', '500']],
@@ -1229,6 +1245,200 @@ describe('swaggerSpec', () => {
       'passwordHash',
       'password',
       'tokenHash',
+    ]);
+  });
+
+  it('documents organisation campaign statistics OpenAPI contracts with full required, nullable, integer percentage, and capability parity', () => {
+    const routePath = '/organisations/{organisationId}/campaigns/{campaignId}/statistics';
+    expectPathExists(routePath, 'get');
+    expectBearerAuth(routePath, 'get');
+
+    const routeDoc = getPath(routePath, 'get');
+    expect(routeDoc).toBeDefined();
+
+    const responseSchema = spec.components?.schemas?.GetCampaignStatisticsResponse as {
+      required?: string[];
+      additionalProperties?: boolean;
+      properties?: Record<string, unknown>;
+    };
+    expect(responseSchema).toBeDefined();
+    expect(responseSchema.additionalProperties).toBe(false);
+    expect(responseSchema.required).toEqual(
+      expect.arrayContaining(['campaign', 'summary', 'trainees', 'pagination']),
+    );
+
+    const campaignSchema = spec.components?.schemas?.CampaignStatisticsCampaign as {
+      required?: string[];
+      additionalProperties?: boolean;
+      properties?: Record<
+        string,
+        {
+          type?: string;
+          format?: string;
+          nullable?: boolean;
+          enum?: string[];
+          minimum?: number;
+        }
+      >;
+    };
+    expect(campaignSchema).toBeDefined();
+    expect(campaignSchema.additionalProperties).toBe(false);
+    expect(campaignSchema.required).toEqual(
+      expect.arrayContaining([
+        'id',
+        'name',
+        'description',
+        'campaignType',
+        'status',
+        'startDate',
+        'endDate',
+        'itemCount',
+        'quizCount',
+      ]),
+    );
+    expect(campaignSchema.properties?.description?.nullable).toBe(true);
+    expect(campaignSchema.properties?.startDate?.nullable).toBe(true);
+    expect(campaignSchema.properties?.endDate?.nullable).toBe(true);
+    expect(campaignSchema.properties?.itemCount?.minimum).toBe(0);
+    expect(campaignSchema.properties?.quizCount?.minimum).toBe(0);
+    expect(campaignSchema.properties?.campaignType?.enum).toEqual([
+      'PREMADE_GENERAL',
+      'ORGANISATION_CUSTOM',
+    ]);
+    expect(campaignSchema.properties?.status?.enum).toEqual([
+      'DRAFT',
+      'ACTIVE',
+      'PAUSED',
+      'COMPLETED',
+      'ARCHIVED',
+    ]);
+
+    const summarySchema = spec.components?.schemas?.CampaignStatisticsSummary as {
+      required?: string[];
+      additionalProperties?: boolean;
+      properties?: Record<
+        string,
+        {
+          type?: string;
+          nullable?: boolean;
+          minimum?: number;
+          maximum?: number;
+        }
+      >;
+    };
+    expect(summarySchema).toBeDefined();
+    expect(summarySchema.additionalProperties).toBe(false);
+    expect(summarySchema.required).toEqual(
+      expect.arrayContaining([
+        'assignedTraineeCount',
+        'startedTraineeCount',
+        'completedTraineeCount',
+        'overallProgressPercentage',
+        'averageQuizScorePercentage',
+      ]),
+    );
+    expect(summarySchema.properties?.assignedTraineeCount?.minimum).toBe(0);
+    expect(summarySchema.properties?.startedTraineeCount?.minimum).toBe(0);
+    expect(summarySchema.properties?.completedTraineeCount?.minimum).toBe(0);
+    expect(summarySchema.properties?.overallProgressPercentage?.nullable).toBe(true);
+    expect(summarySchema.properties?.overallProgressPercentage?.minimum).toBe(0);
+    expect(summarySchema.properties?.overallProgressPercentage?.maximum).toBe(100);
+    expect(summarySchema.properties?.averageQuizScorePercentage?.nullable).toBe(true);
+    expect(summarySchema.properties?.averageQuizScorePercentage?.minimum).toBe(0);
+    expect(summarySchema.properties?.averageQuizScorePercentage?.maximum).toBe(100);
+
+    const progressSchema = spec.components?.schemas?.CampaignStatisticsTraineeProgress as {
+      required?: string[];
+      additionalProperties?: boolean;
+      properties?: Record<
+        string,
+        {
+          type?: string;
+          minimum?: number;
+          maximum?: number;
+        }
+      >;
+    };
+    expect(progressSchema).toBeDefined();
+    expect(progressSchema.additionalProperties).toBe(false);
+    expect(progressSchema.required).toEqual(
+      expect.arrayContaining(['completedItemCount', 'totalItemCount', 'progressPercentage']),
+    );
+    expect(progressSchema.properties?.completedItemCount?.minimum).toBe(0);
+    expect(progressSchema.properties?.totalItemCount?.minimum).toBe(0);
+    expect(progressSchema.properties?.progressPercentage?.minimum).toBe(0);
+    expect(progressSchema.properties?.progressPercentage?.maximum).toBe(100);
+
+    const actionsSchema = spec.components?.schemas?.CampaignStatisticsTraineeActions as {
+      required?: string[];
+      additionalProperties?: boolean;
+      properties?: Record<string, { type?: string }>;
+    };
+    expect(actionsSchema).toBeDefined();
+    expect(actionsSchema.additionalProperties).toBe(false);
+    expect(actionsSchema.required).toEqual(expect.arrayContaining(['canUnassign']));
+    expect(actionsSchema.properties?.canUnassign?.type).toBe('boolean');
+
+    const traineeRowSchema = spec.components?.schemas?.CampaignStatisticsTraineeRow as {
+      required?: string[];
+      additionalProperties?: boolean;
+      properties?: Record<
+        string,
+        {
+          type?: string;
+          format?: string;
+          nullable?: boolean;
+          enum?: string[];
+          minimum?: number;
+          maximum?: number;
+        }
+      >;
+    };
+    expect(traineeRowSchema).toBeDefined();
+    expect(traineeRowSchema.additionalProperties).toBe(false);
+    expect(traineeRowSchema.required).toEqual(
+      expect.arrayContaining([
+        'assignmentId',
+        'traineeProfileId',
+        'displayName',
+        'email',
+        'traineeStatus',
+        'assignmentStatus',
+        'accessType',
+        'assignedAt',
+        'progress',
+        'completedQuizCount',
+        'totalQuizCount',
+        'averageQuizScorePercentage',
+        'allowedActions',
+      ]),
+    );
+    expect(traineeRowSchema.properties?.traineeStatus?.enum).toEqual([
+      'ACTIVE',
+      'INACTIVE',
+      'DISABLED',
+    ]);
+    expect(traineeRowSchema.properties?.assignmentStatus?.enum).toEqual([
+      'AVAILABLE',
+      'ASSIGNED',
+      'IN_PROGRESS',
+      'COMPLETED',
+      'CANCELLED',
+      'EXPIRED',
+    ]);
+    expect(traineeRowSchema.properties?.accessType?.enum).toEqual(['ASSIGNED', 'SELF_SELECTED']);
+    expect(traineeRowSchema.properties?.averageQuizScorePercentage?.nullable).toBe(true);
+    expect(traineeRowSchema.properties?.averageQuizScorePercentage?.minimum).toBe(0);
+    expect(traineeRowSchema.properties?.averageQuizScorePercentage?.maximum).toBe(100);
+
+    expect(spec.components?.responses).toHaveProperty('GetCampaignStatisticsOk');
+
+    expectSchemaNotToContain('CampaignStatisticsCampaign', ['password', 'passwordHash', 'prisma']);
+    expectSchemaNotToContain('CampaignStatisticsTraineeRow', [
+      'password',
+      'passwordHash',
+      'answers',
+      'selectedClassification',
     ]);
   });
 });

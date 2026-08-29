@@ -23,6 +23,7 @@ This is the Insightful Phish Demo 3 documentation. Below you can find each aspec
 
 ### Other Documentation
 
+- **[Non-Functional Verification](nfr/README.md)**
 - **[Coding Standards](coding-standards.md)**
 - **[Testing Policy](testing-policy.md)**
 - **[User Manual](https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/wiki/Demo-2-User-Manual)**
@@ -34,3 +35,4 @@ This folder contains implementation notes for Demo 3 changes. The documents focu
 ## Contents
 
 - [Asynchronous Email Delivery](async-email-delivery.md)
+- [Non-Functional Verification](nfr/README.md)
