@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { logoutSession, refreshSession } from '../services/auth.service';
 import { AuthContext } from './auth-context';
@@ -19,6 +19,12 @@ type StoredAuth = {
   idleTimeoutMinutes: number | null;
   isAuthenticated: boolean;
 };
+type AuthChannelMessage =
+  | { type: 'AUTH_UPDATED'; authResponse: AuthLoginResponseDto }
+  | { type: 'SIGNED_OUT' };
+
+const AUTH_CHANNEL_NAME = 'insightful-phish-auth';
+const REFRESH_LOCK_NAME = 'insightful-phish-refresh';
 
 function getStorage() {
   if (globalThis.localStorage === undefined) {
@@ -149,8 +155,21 @@ function isAccessTokenExpired(expiresAt?: string | null): boolean {
   return expiresAtTime <= Date.now() + 30_000;
 }
 
+async function runWithRefreshLock(callback: () => Promise<void>): Promise<void> {
+  const lockManager = globalThis.navigator?.locks;
+  if (lockManager === undefined) {
+    await callback();
+    return;
+  }
+  await lockManager.request(REFRESH_LOCK_NAME, callback);
+}
+
 export function AuthProvider({ children }: AuthProviderProps) {
   const storedAuth = getStoredAuth();
+
+  const activeTokenRef = useRef<string | null>(storedAuth.token);
+  const authChannelRef = useRef<BroadcastChannel | null>(null);
+  const renewalPromiseRef = useRef<Promise<void> | null>(null);
 
   const [token, setToken] = useState<string | null>(storedAuth.token);
 
@@ -174,12 +193,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const [isAuthenticated, setIsAuthenticated] = useState(storedAuth.isAuthenticated);
 
-  const [isAuthLoading, setIsAuthLoading] = useState(
-    !storedAuth.isAuthenticated || isAccessTokenExpired(storedAuth.expiresAt),
-  );
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   const clearAuth = useCallback(() => {
     clearStoredAuth();
+    activeTokenRef.current = null;
     setToken(null);
     setUser(null);
     setAuthContext(null);
@@ -201,7 +219,34 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setUser,
   ]);
 
-  const login = useCallback(
+  const applyStoredAuth = useCallback(
+    (newStoredAuth: StoredAuth) => {
+      activeTokenRef.current = newStoredAuth.token;
+      setToken(newStoredAuth.token);
+      setUser(newStoredAuth.user);
+      setAuthContext(newStoredAuth.authContext);
+      setPermissions(newStoredAuth.permissions);
+      setRedirectTo(newStoredAuth.redirectTo);
+      setExpiresAt(newStoredAuth.expiresAt);
+      setSessionExpiresAt(newStoredAuth.sessionExpiresAt);
+      setIdleTimeoutMinutes(newStoredAuth.idleTimeoutMinutes);
+      setIsAuthenticated(newStoredAuth.isAuthenticated);
+    },
+    [
+      setAuthContext,
+      setExpiresAt,
+      setIsAuthenticated,
+      setPermissions,
+      setRedirectTo,
+      setSessionExpiresAt,
+      setIdleTimeoutMinutes,
+      setToken,
+      setUser,
+    ],
+  );
+
+  const applyAuthResponse = useCallback(
+    //Was previously login.. login is now below and calls this function
     (authResponse: AuthLoginResponseDto) => {
       const newToken = getAuthResponseToken(authResponse);
 
@@ -209,6 +254,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         clearAuth();
         return;
       }
+
+      activeTokenRef.current = newToken;
 
       getStorage()?.setItem('user', JSON.stringify(authResponse.user));
       getStorage()?.setItem('authContext', JSON.stringify(authResponse.context));
@@ -258,6 +305,45 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setUser,
     ],
   );
+
+  const login = useCallback(
+    (authResponse: AuthLoginResponseDto) => {
+      applyAuthResponse(authResponse);
+
+      const message: AuthChannelMessage = {
+        type: 'AUTH_UPDATED',
+        authResponse,
+      };
+
+      authChannelRef.current?.postMessage(message);
+    },
+    [applyAuthResponse],
+  );
+
+  useEffect(() => {
+    if (typeof globalThis.BroadcastChannel !== 'function') {
+      return;
+    }
+
+    const authChannel = new BroadcastChannel(AUTH_CHANNEL_NAME);
+    authChannelRef.current = authChannel;
+    authChannel.onmessage = (event: MessageEvent<AuthChannelMessage>) => {
+      const message = event.data;
+      if (message.type === 'AUTH_UPDATED') {
+        applyAuthResponse(message.authResponse);
+        return;
+      } else if (message.type === 'SIGNED_OUT') {
+        clearAuth();
+      }
+    };
+
+    return () => {
+      authChannel.close();
+      if (authChannelRef.current === authChannel) {
+        authChannelRef.current = null;
+      }
+    };
+  }, [applyAuthResponse, clearAuth]);
 
   const logout = useCallback(async () => {
     try {
