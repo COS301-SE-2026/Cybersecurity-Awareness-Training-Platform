@@ -1,6 +1,6 @@
 # Testing Policy
 
-This document describes how Insightful Phish tests Demo 2 work. It combines the repository's current Vitest, Playwright, Docker, coverage, Lighthouse, and CI setup with the testing principles covered in the course material.
+This document describes how Insightful Phish tests Demo 3 work. It combines the repository's current Vitest, Playwright, Docker, coverage, Lighthouse, and CI setup with the testing principles covered in the course material.
 
 ## Contents
 
@@ -27,7 +27,7 @@ Testing gives the team evidence that Insightful Phish behaves as required and th
 
 Testing does not prove that the system is defect-free. It also does not replace debugging, formatting, linting, type checking, accessibility checks, or code review. Those activities support quality, but they answer different questions from tests.
 
-This policy explains the levels of testing expected for Demo 2 work and how they relate to the repository structure:
+This policy explains the levels of testing expected for Demo 3 work and how they relate to the repository structure:
 
 | Area                            | Main evidence                                                                                                                             |
 | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
@@ -160,7 +160,7 @@ The current Playwright suite provides frontend smoke and accessibility checks. A
 
 E2E and smoke tests should stay small and valuable. They are not the place to retest every validation branch already covered by unit or integration tests.
 
-Good candidates for Demo 2 smoke coverage include:
+Good candidates for Demo 3 smoke coverage include:
 
 - Authentication entry and protected-route behaviour.
 - Organisation registration and onboarding flows.
@@ -191,9 +191,9 @@ A test passes when the observed result matches its documented expected result. M
 
 Non-functional checks look at quality properties such as accessibility, security, reliability, maintainability, portability, and selected performance concerns. These checks should be reported separately from functional test results because they do not answer the same question as a unit, integration, or E2E test.
 
-Functional tests check what the system does. Non-functional checks ask whether the system is safe, usable, reliable, maintainable, and portable to run. For Demo 2, these checks should be tied to the repo evidence and the SRS quality requirements.
+Functional tests check what the system does. Non-functional checks ask whether the system is safe, usable, reliable, maintainable, and portable to run. For Demo 3, these checks should be tied to the repo evidence and the SRS quality requirements.
 
-| Quality area                | Demo 2 policy                                                                                                                                                                                                                                                                                |
+| Quality area                | Demo 3 policy                                                                                                                                                                                                                                                                                |
 | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Accessibility and usability | Frontend work should support keyboard access, labels, useful errors, visible focus, clear navigation, and responsive layouts. Playwright accessibility tests and Lighthouse checks are useful evidence where configured.                                                                     |
 | Security                    | Security checks should cover authentication, authorisation, rate limiting, session handling, data integrity, safe audit metadata, safe logging, and the absence of leaked secrets or tokens.                                                                                                 |
@@ -205,7 +205,7 @@ Functional tests check what the system does. Non-functional checks ask whether t
 
 Lighthouse is configured for the frontend through [`apps/frontend/lighthouserc.json`](../../apps/frontend/lighthouserc.json). It checks the login and registration routes for accessibility, best practices, and SEO, with performance disabled in that configuration. The workflow is currently non-blocking, so Lighthouse evidence should be reported honestly as a quality signal unless the workflow is changed to enforce it.
 
-The older [Demo 2 testing plan](testing.md) is still useful for manual demo thinking, especially around happy paths, negative paths, seeded data, and pass/fail notes. This policy does not copy that plan wholesale; it keeps the reusable testing rules and leaves feature-specific manual checklists in the older document until those are replaced by more current Demo 2 acceptance notes.
+The older [Demo 2 testing plan](testing.md) remains available as historical context for manual demo thinking, especially around happy paths, negative paths, seeded data, and pass/fail notes. This Demo 3 policy does not copy that plan wholesale; it keeps the reusable testing rules and leaves feature-specific manual checklists in the older document until those are replaced by current Demo 3 acceptance notes.
 
 ## Test Environments and Data
 
@@ -313,11 +313,11 @@ Flaky tests should not be quietly accepted. If a test is unreliable because it d
 - [Backend test database helper](../../apps/backend/tests/helpers/database.ts)
 - [Continuous Integration workflow](../../.github/workflows/ci.yml)
 - [Lighthouse workflow](../../.github/workflows/lighthouse.yml)
-- [Demo 2 Coding Standards](coding-standards.md)
+- [Demo 3 Coding Standards](coding-standards.md)
 - Lecture guidance: Unit Testing / Software Testing, Integration Testing, Non-functional Testing, and Design Systems and CI/CD.
 
 ---
 
 Previous section: [Coding Standards](coding-standards.md)
 
-Next section: [Demo 2 Documentation Home](README.md)
+Next section: [Demo 3 Documentation Home](README.md)
