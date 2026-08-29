@@ -3,6 +3,7 @@ import {
   campaignCatalogueQuerySchema,
   campaignListQuerySchema,
   campaignMutationPreconditionSchema,
+  campaignStatisticsQuerySchema,
   createCampaignDraftRequestSchema,
   updateCampaignDraftRequestSchema,
 } from '@insightful-phish/shared';
@@ -27,7 +28,6 @@ function extractActor(req: Request): CampaignManagementService.UserActorContext 
 function handleControllerError(res: Response, err: unknown) {
   if (err instanceof CampaignManagementService.CampaignManagementServiceError) {
     return res.status(err.statusCode).json({
-      success: false,
       error: err.error,
       message: err.message,
     });
@@ -35,18 +35,12 @@ function handleControllerError(res: Response, err: unknown) {
 
   if (err instanceof OrganisationScopeServiceError) {
     return res.status(err.statusCode).json({
-      success: false,
       error: err.error,
       message: err.message,
     });
   }
 
-  const message = err instanceof Error ? err.message : String(err);
-  return res.status(500).json({
-    success: false,
-    error: 'INTERNAL_SERVER_ERROR',
-    message,
-  });
+  throw err;
 }
 
 export async function getOrganisationCampaignCatalogueHandler(req: Request, res: Response) {
@@ -380,6 +374,36 @@ export async function reactivatePlatformCampaignHandler(req: Request, res: Respo
       actor,
       campaignId,
       precondition,
+    );
+    return res.status(200).json(result);
+  } catch (err) {
+    return handleControllerError(res, err);
+  }
+}
+
+export async function getOrganisationCampaignStatisticsHandler(req: Request, res: Response) {
+  try {
+    const actor = extractActor(req);
+    const organisationId = String(req.params.organisationId);
+    const campaignId = String(req.params.campaignId);
+
+    const parseResult = campaignStatisticsQuerySchema.safeParse(req.query);
+    if (!parseResult.success) {
+      return res.status(422).json({
+        error: 'VALIDATION_ERROR',
+        message: 'Invalid request query parameters',
+        details: parseResult.error.issues.map((issue) => ({
+          field: issue.path.join('.'),
+          message: issue.message,
+        })),
+      });
+    }
+
+    const result = await CampaignManagementService.getOrganisationCampaignStatistics(
+      actor,
+      organisationId,
+      campaignId,
+      parseResult.data,
     );
     return res.status(200).json(result);
   } catch (err) {
