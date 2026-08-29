@@ -1,11 +1,12 @@
 # Coding Standards
 
-This document records the coding standards used for Demo 2 work on Insightful Phish. It is based on the current pnpm workspace, TypeScript, ESLint, Prettier, testing scripts, Git hooks, and pull request template in the repository.
+This document records the coding standards used for Demo 3 work on Insightful Phish. It applies to the current TypeScript monorepo and separates rules enforced by tooling from standards that still depend on careful review.
 
 ## Contents
 
 - [Purpose](#purpose)
-- [Repository Organisation](#repository-organisation)
+- [Applicability](#applicability)
+- [Tooling and Enforcement](#tooling-and-enforcement)
 - [General TypeScript and Formatting Standards](#general-typescript-and-formatting-standards)
 - [Naming](#naming)
 - [Frontend Standards](#frontend-standards)
@@ -16,16 +17,16 @@ This document records the coding standards used for Demo 2 work on Insightful Ph
 - [Generated Artefacts](#generated-artefacts)
 - [Security-Sensitive Code](#security-sensitive-code)
 - [Git and Pull Requests](#git-and-pull-requests)
-- [Commands and Enforcement](#commands-and-enforcement)
+- [Commands](#commands)
 - [References](#references)
 
 ## Purpose
 
-The goal of these standards is to keep Demo 2 code consistent, reviewable, and safe to change. It describes what is enforced by the repository configuration and what the team should follow when the tools do not enforce it directly.
+The goal of these standards is to keep Demo 3 code consistent, reviewable, and safe to change across the Insightful Phish monorepo. They describe the baseline expected for React frontend work, Express backend work, shared Zod contracts, Prisma-backed persistence, tests, scripts, and supporting documentation.
 
 These standards are not a replacement for testing or design review. Formatting, linting, and type checking help catch a variety of mistakes early, while tests and manual review still need to check behaviour, security, accessibility, and requirements fit.
 
-## Repository Organisation
+## Applicability
 
 Insightful Phish is a pnpm workspace. The root [`pnpm-workspace.yaml`](../../pnpm-workspace.yaml) includes:
 
@@ -37,7 +38,31 @@ Insightful Phish is a pnpm workspace. The root [`pnpm-workspace.yaml`](../../pnp
 
 The root [`package.json`](../../package.json) provides workspace-wide scripts that run the relevant package scripts through pnpm filters.
 
-Documentation for Demo 2 lives under `docs/demo2`. The coding standards and testing policy sit alongside the SRS, SAS, API, traceability, Lighthouse, user interface, and user manual documentation.
+These standards apply to application code, package-level tests, repository scripts, generated-source inputs, and documentation that supports Demo 3 implementation. Earlier demo documentation is treated as a frozen baseline unless a reviewer explicitly requests a correction there.
+
+The coding standards and [Testing Policy](testing-policy.md) sit alongside the Demo 3 SRS, SAS, NFR evidence, user interface notes, and user manual references. Testing details stay in the Testing Policy; this document only states the coding expectations that affect how changes should be written and reviewed.
+
+## Tooling and Enforcement
+
+Repository automation reduces review noise and catches common defects, but it does not prove that a change is architecturally correct, secure, accessible, or aligned with the SRS. The table below describes the current enforcement boundary based on the checked-in config.
+
+| Tool or check                                    | Role in this repository                                                                                                                                   | Enforcement boundary                                                                                                               |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Prettier                                         | Applies the configured whitespace, quote, semicolon, trailing-comma, and print-width style.                                                               | Runs through `pnpm format`, `pnpm format:check`, CI formatting, and lint-staged on staged matching files.                          |
+| ESLint                                           | Checks TypeScript and JavaScript rules, unused variables, promise misuse, type-import consistency, React Hooks, and React Refresh rules where configured. | Runs through package lint scripts and CI. Pull requests into `dev` lint changed files; other configured CI cases run full linting. |
+| TypeScript                                       | Checks static types in the backend, frontend, and shared package.                                                                                         | Runs through package typecheck scripts and CI typecheck jobs. Runtime input still needs Zod or backend validation.                 |
+| Vitest                                           | Runs backend unit tests, frontend unit/component tests, shared schema tests, and backend integration tests where configured.                              | Unit coverage commands run in CI for all packages. Backend integration tests run in CI against PostgreSQL with migrations.         |
+| Playwright                                       | Provides frontend browser smoke and accessibility-oriented checks from the frontend package.                                                              | The root `pnpm test:e2e:frontend` command exists for local runs; the checked-in CI workflow does not currently run it.             |
+| Lighthouse CI                                    | Audits configured frontend public routes for accessibility, best practices, and SEO, with performance disabled in the frontend Lighthouse config.         | Runs in a separate workflow with `continue-on-error: true`, so it is advisory evidence, not a blocking gate.                       |
+| GitHub Actions CI                                | Installs with the lockfile, checks formatting, linting, type checking, unit tests, integration tests, builds, and Docker Compose config.                  | The `required-ci` job depends on those CI jobs passing.                                                                            |
+| Policy workflow                                  | Checks committed environment-file policy and frozen historic documentation directories.                                                                   | Runs separately from CI on pull requests, pushes to protected branches, and manual dispatch.                                       |
+| Codecov                                          | Receives coverage reports and test results from CI jobs.                                                                                                  | Upload failures are configured as non-blocking, so Codecov is reporting evidence rather than a repository-enforced numeric gate.   |
+| SonarCloud, CodeQL, and GitHub Advanced Security | Provide platform-level static-analysis and security feedback when enabled on GitHub.                                                                      | Findings should be reviewed, but this repository does not define them as local commands in `package.json`.                         |
+| Husky                                            | Runs local Git hooks for branch safety, Git identity, environment-file policy, staged-file policy, lint-staged formatting, and commit-message validation. | Local hook enforcement depends on installed dependencies and hooks being active; CI and review still verify important outcomes.    |
+| Commitlint                                       | Enforces the configured commit-message shape and allowed commit types.                                                                                    | Runs from the Husky `commit-msg` hook together with the repository's custom commit-message check.                                  |
+| lint-staged                                      | Formats staged matching files with Prettier before commit.                                                                                                | Runs from the Husky `pre-commit` hook only for staged files.                                                                       |
+
+Review remains responsible for boundaries that tools cannot fully prove: correct layer ownership, safe error handling, backend-authoritative permissions, organisation isolation, appropriate tests, accessible user-visible behaviour, accurate documentation, and keeping unrelated work out of a change.
 
 ## General TypeScript and Formatting Standards
 
@@ -95,7 +120,7 @@ Frontend standards:
 - Sanitise rendered HTML where the existing code path handles rich content. The project already uses DOMPurify for this kind of boundary.
 - Write accessible controls with useful labels, keyboard interaction, visible focus, and understandable validation feedback.
 - Prefer assertions about user-visible behaviour in tests. Avoid tests that only prove a particular utility-class string is present unless the styling contract itself is the behaviour under review.
-- Keep design consistency with the Demo 2 UI and brand documentation without treating coding standards as a separate design-system specification.
+- Keep design consistency with the current UI and hosted brand documentation without treating coding standards as a separate design-system specification.
 
 ## Backend Standards
 
@@ -152,7 +177,7 @@ Database standards:
 
 Developers must add or update unit tests when they add or change any behaviour. Documentation-only changes may not need automated tests, but they still need review and formatting checks. Testing expectations are expanded in the [Testing Policy](testing-policy.md).
 
-At coding-standard level, the expectation is simple: the developer who changes behaviour owns that features unit tests for that change they made. Database and backend integration testing is planned through separate, focused integration-test issues created by the team lead. Integration tests are used to complement rather than replace unit tests.Additionally E2E or smoke tests should be reserved for important user-visible flows.
+At coding-standard level, the expectation is simple: the developer who changes behaviour owns the feature's unit tests for that change. Database-backed and cross-component backend integration testing is planned through separate, focused integration-test issues. Integration tests complement rather than replace feature-level unit tests. E2E or smoke tests should be reserved for important user-visible flows.
 
 Tests should be deterministic. Avoid stale hard-coded dates, production data, arbitrary sleeps, broad snapshots, and assertions that only prove an implementation detail. When a bug is fixed, add or update a regression test that would have failed before the fix.
 
@@ -205,9 +230,9 @@ Pull requests should use the repository template and include:
 - Review notes, assumptions, accessibility impact, and deployment impact where relevant.
 - Confirmation that no secrets or sensitive values were committed.
 
-## Commands and Enforcement
+## Commands
 
-The following root commands exist in [`package.json`](../../package.json) and are the main local checks for this standard:
+The following root commands exist in [`package.json`](../../package.json) and are the main local commands for this standard:
 
 | Command             | Purpose                                             | Evidence                                                               |
 | ------------------- | --------------------------------------------------- | ---------------------------------------------------------------------- |
@@ -227,7 +252,7 @@ Focused commands also exist for package-level checks:
 | `pnpm docker:test:integration:backend` | Creates or reuses the Docker test database, applies migrations, and runs backend integration tests. |
 | `pnpm test:e2e:frontend`               | Runs frontend Playwright tests through the frontend package script.                                 |
 
-These commands are evidence of the current repository configuration. They should not be described as complete proof of quality: linting, formatting, type checking, unit tests, integration tests, E2E tests, and manual review each cover different risks.
+These commands are evidence of the current repository configuration. They should not be described as complete proof of quality: linting, formatting, type checking, unit tests, integration tests, local Playwright runs, advisory checks, and manual review each cover different risks.
 
 ## References
 
@@ -241,12 +266,12 @@ These commands are evidence of the current repository configuration. They should
 - [Commitlint configuration](../../commitlint.config.cjs)
 - [Pull request template](../../.github/pull_request_template.md)
 - [Backend testing notes](../../apps/backend/TESTING.md)
-- [Demo 2 Testing Policy](testing-policy.md)
-- [Demo 2 Documentation Home](README.md)
+- [Demo 3 Testing Policy](testing-policy.md)
+- [Demo 3 Documentation Home](README.md)
 - Lecture guidance: Unit Testing / Software Testing, Integration Testing, Non-functional Testing, and Design Systems and CI/CD.
 
 ---
 
-Previous section: [Demo 2 Documentation Home](README.md)
+Previous section: [Demo 3 Documentation Home](README.md)
 
 Next section: [Testing Policy](testing-policy.md)
