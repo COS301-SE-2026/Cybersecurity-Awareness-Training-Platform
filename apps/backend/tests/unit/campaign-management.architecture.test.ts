@@ -22,7 +22,6 @@ describe('Campaign Management Architecture Boundaries', () => {
     const campaignServices = [
       join(servicesDir, 'campaign-management.service.ts'),
       join(servicesDir, 'campaign-eligibility.service.ts'),
-      join(servicesDir, 'campaign-statistics.service.ts'),
       join(servicesDir, 'organisation-scope.service.ts'),
       join(servicesDir, 'quiz.service.ts'),
       join(servicesDir, 'simulation.service.ts'),
