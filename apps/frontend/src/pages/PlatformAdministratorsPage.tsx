@@ -12,6 +12,7 @@ import type {
   PlatformAdminListResponseDto,
   TransferSuperAdminRequestDto,
   DemotePlatformAdminRequestDto,
+  InvitePlatformAdminResponseDto,
 } from '@insightful-phish/shared';
 import {
   getPlatformAdmins,
@@ -315,9 +316,13 @@ function PlatformAdministratorsPage() {
     restoreModalFocus();
   };
 
-  const handleInvitationSuccess = async (email: string) => {
+  const handleInvitationSuccess = async (response: InvitePlatformAdminResponseDto) => {
     await reloadPlatformAdministrators();
-    setPlatformAdminFeedback(`Invitation created for ${email}.`);
+    setPlatformAdminFeedback(
+      response.type === 'new-invite'
+        ? `Invitation created for ${response.email}.`
+        : `Upgrade confirmation created for ${response.email}.`,
+    );
   };
 
   const resetTransferWorkflow = () => {
@@ -526,13 +531,17 @@ function PlatformAdministratorsPage() {
     setIsResendingInvite(true);
 
     try {
-      await resendPlatformAdminInvite(inviteId, token);
+      const response = await resendPlatformAdminInvite(inviteId, token);
       setShowBasicConfirmationModal(false);
       setSelectedActionTarget(null);
       setResendError(null);
 
       await reloadPlatformAdministrators();
-      setPlatformAdminFeedback(`A new invitation was queued for ${email}.`);
+      setPlatformAdminFeedback(
+        response.emailQueued
+          ? `A new invitation was queued for ${email}.`
+          : `A new invitation was created for ${email}, but the email could not be queued.`,
+      );
       restoreModalFocus();
     } catch (error: unknown) {
       setResendError(getResendErrorMessage(error));

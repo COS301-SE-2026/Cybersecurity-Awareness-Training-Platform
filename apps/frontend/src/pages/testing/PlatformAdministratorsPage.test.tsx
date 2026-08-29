@@ -663,8 +663,12 @@ describe('PlatformAdministratorsPage', () => {
     });
 
     expect(
-      await screen.findByText('Invitation created for trainee@example.com.'),
+      await screen.findByText('Upgrade confirmation created for trainee@example.com.'),
     ).toBeInTheDocument();
+    expect(mockGetPlatformAdmins).toHaveBeenCalledTimes(2);
+    expect(
+      screen.queryByRole('dialog', { name: 'Invite platform administrator' }),
+    ).not.toBeInTheDocument();
   });
 
   it('does not treat an ordinary conflict as upgradeable', async () => {
@@ -1191,5 +1195,44 @@ describe('PlatformAdministratorsPage', () => {
     expect(await within(modal).findByRole('alert')).toHaveTextContent('Platform admin not found');
     await waitFor(() => expect(mockGetPlatformAdmins).toHaveBeenCalledTimes(2));
     expect(mockDemotePlatformAdmin).toHaveBeenCalledTimes(1);
+  });
+
+  it('reloads after resend delivery failure without claiming the email was queued', async () => {
+    const inviteId = '83333333-3333-4333-8333-333333333333';
+    const resendRow = buildRow({
+      email: 'resend@example.com',
+      authStatus: 'PENDING_INVITE_SETUP',
+      invitationStatus: 'SENT',
+      inviteId,
+      allowedActions: {
+        canTransferSuperAdmin: false,
+        canDemote: false,
+        canResendInvite: true,
+      },
+    });
+
+    mockGetPlatformAdmins.mockResolvedValue(buildResponse([resendRow]));
+    mockResendPlatformAdminInvite.mockResolvedValueOnce({
+      success: true,
+      emailQueued: false,
+    });
+
+    renderPage();
+    const row = (await screen.findByText('Ada Lovelace')).closest('tr');
+    fireEvent.click(within(row!).getByRole('button', { name: 'Resend invitation' }));
+
+    const modal = await screen.findByRole('dialog', { name: 'Resend invitation' });
+    fireEvent.click(within(modal).getByRole('button', { name: 'Resend invitation' }));
+
+    expect(
+      await screen.findByText(
+        'A new invitation was created for resend@example.com, but the email could not be queued.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('A new invitation was queued for resend@example.com.'),
+    ).not.toBeInTheDocument();
+    expect(mockResendPlatformAdminInvite).toHaveBeenCalledWith(inviteId, 'platform-admin-token');
+    expect(mockGetPlatformAdmins).toHaveBeenCalledTimes(2);
   });
 });

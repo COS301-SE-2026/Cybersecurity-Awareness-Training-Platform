@@ -2,6 +2,7 @@ import { type FormEvent, useEffect, useRef, useState } from 'react';
 import {
   invitePlatformAdminRequestSchema,
   type InvitePlatformAdminRequestDto,
+  type InvitePlatformAdminResponseDto,
 } from '@insightful-phish/shared';
 import { ApiError } from '../../../lib/apiClient';
 import { invitePlatformAdmin } from '../../../services/platform-admin.service';
@@ -21,7 +22,7 @@ type InvitePlatformAdministratorModalProps = Readonly<{
   isOpen: boolean;
   token: string;
   onClose: () => void;
-  onSuccess: (email: string) => Promise<void>;
+  onSuccess: (response: InvitePlatformAdminResponseDto) => Promise<void>;
 }>;
 
 function InvitePlatformAdministratorModal({
@@ -85,7 +86,7 @@ function InvitePlatformAdministratorModal({
       const response = await invitePlatformAdmin(parsed.data, token);
       resetForm();
       onClose();
-      await onSuccess(response.email);
+      await onSuccess(response);
     } catch (error: unknown) {
       if (getApiErrorCode(error) === 'UPGRADE_CONFIRMATION_REQUIRED') {
         setRequiresUpgrade(true);
