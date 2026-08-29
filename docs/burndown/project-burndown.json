@@ -1684,8 +1684,8 @@
           "number": 496,
           "title": "chore: quantify and verify Demo 3 non-functional requirements",
           "points": 5,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-08-29"
         },
         {
           "number": 431,
@@ -2320,7 +2320,7 @@
     },
     {
       "date": "2026-08-29",
-      "remaining": 54,
+      "remaining": 49,
       "ideal": 10.44
     }
   ]
