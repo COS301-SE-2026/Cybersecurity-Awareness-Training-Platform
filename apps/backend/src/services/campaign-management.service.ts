@@ -858,14 +858,10 @@ export async function reactivatePlatformCampaign(
 export async function getOrganisationCampaignStatistics(
   actor: UserActorContext,
   organisationId: string,
-  _campaignId: string,
-  _query: CampaignStatisticsQueryDto,
+  campaignId: string,
+  query: CampaignStatisticsQueryDto,
 ): Promise<GetCampaignStatisticsResponseDto> {
-  await validateOrganisationAdminActor(actor, organisationId, 'VIEW_CAMPAIGNS');
-
-  throw new CampaignManagementServiceError(
-    501,
-    'NOT_IMPLEMENTED',
-    'Organisation campaign statistics runtime implementation is scheduled for #500',
-  );
+  const { getOrganisationCampaignStatistics: fetchStatistics } =
+    await import('./campaign-statistics.service.js');
+  return fetchStatistics(actor, organisationId, campaignId, query);
 }
