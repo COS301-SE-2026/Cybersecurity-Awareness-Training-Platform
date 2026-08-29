@@ -444,7 +444,7 @@ function validateDraftStructure(items: CreateCampaignDraftRequestDto['items']): 
   };
 
   for (const item of items) {
-    if (item.campaignItemId) {
+    if (item.itemType === 'GROUP' && item.campaignItemId) {
       if (seenItemIds.has(item.campaignItemId)) {
         throw new CampaignManagementServiceError(
           422,
