@@ -20,6 +20,9 @@ This document records the coding standards used for Demo 3 work on Insightful Ph
 - [Security-Sensitive Code](#security-sensitive-code)
 - [Project Examples](#project-examples)
 - [Git and Pull Requests](#git-and-pull-requests)
+- [Review Responsibilities](#review-responsibilities)
+- [Documentation Integrity](#documentation-integrity)
+- [Comments and TODOs](#comments-and-todos)
 - [Commands](#commands)
 - [References](#references)
 
@@ -350,13 +353,23 @@ The repository includes Husky hooks, Commitlint configuration, lint-staged forma
 
 Pull requests should stay focused on their linked issue, include the commands or manual checks that were run, and call out assumptions that reviewers should verify. Commit messages should follow the configured Commitlint convention.
 
+Working branches must follow the configured branch-name pattern:
+
+```text
+<type>/<short-kebab-description>/<developer>
+```
+
+Allowed branch types in the current hook are `feature`, `feat`, `docs`, `fix`, and `chore`. Shared branches `main` and `dev` are recognised by the hook, while the protected-branch hook blocks direct local commits and pushes on those branches.
+
 The current Commitlint configuration accepts only these commit types: `feat`, `fix`, `docs`, and `chore`. The scope is intentionally empty, so commit subjects should follow the form:
 
 ```text
 docs: update Demo 3 coding standards
 ```
 
-The configured hooks check branch safety, Git identity, environment-file policy, staged-file policy, Prettier formatting through lint-staged, and commit-message format. The hooks help, but they do not replace review. Reviewers should still check whether the change is scoped, supported by tests or manual evidence, and free from unrelated edits.
+Commit messages must not include `Co-authored-by:` trailers because the custom commit-message check rejects them. Commits should be small enough to review, tied to the relevant issue slice, and free of unrelated formatting or generated-output churn.
+
+The configured hooks check branch safety, Git identity, environment-file policy, staged-file policy, Prettier formatting through lint-staged, and commit-message format. The hooks help, but they do not replace review.
 
 Pull requests should use the repository template and include:
 
@@ -366,6 +379,41 @@ Pull requests should use the repository template and include:
 - Commands or manual checks run.
 - Review notes, assumptions, accessibility impact, and deployment impact where relevant.
 - Confirmation that no secrets or sensitive values were committed.
+
+Documentation-only work and code or configuration work should be separated when the project is tracking them as different issue slices. If a behaviour change requires documentation, keep the documentation update in the same feature slice only when it helps reviewers verify the changed behaviour.
+
+## Review Responsibilities
+
+Reviewers should treat automation as evidence, not as a substitute for reading the change. Checks can confirm formatting, linting, type safety, tests, builds, and policy rules, but review still owns the judgement-heavy parts of the standard.
+
+Review responsibilities:
+
+- Confirm that backend changes preserve the route/controller/service/repository boundary and do not introduce direct Prisma access outside repositories.
+- Check security-sensitive flows for backend-authoritative authorisation, Organisation isolation, session or token impact, safe audit metadata, safe logging, and rate limiting where relevant.
+- Check maintainability: focused functions, readable control flow, limited duplication, and no broad unrelated refactors.
+- Check frontend changes for accessible controls, clear loading/error/empty states, service/client API usage, shared-contract alignment, and human-readable status labels.
+- Check API contracts, shared schemas, Swagger/OpenAPI wording, examples, and documentation whenever request or response behaviour changes.
+- Confirm that generated artefacts, local planning files, real environment files, secrets, and unrelated files are not included.
+
+These expectations are review-enforced unless a specific tool or workflow in this document says otherwise.
+
+## Documentation Integrity
+
+Demo 3 documentation should stay modular, linked, and internally consistent. Update the document that owns the concept rather than copying large blocks between the SRS, SAS, Testing Policy, Coding Standards, user manual, and NFR evidence.
+
+Documentation standards:
+
+- Do not change Demo 1 or Demo 2 documentation unless the issue or reviewer explicitly asks for a correction there.
+- Do not leave stale Demo 2 wording in completed Demo 3 material.
+- Keep relative links and previous/next navigation predictable when a document moves or a new section is added.
+- Update shared contracts, API examples, validation notes, commands, and screenshots when the implemented behaviour changes.
+- Keep the Coding Standards focused on code and review expectations. Testing strategy belongs in the [Testing Policy](testing-policy.md), and visual identity belongs in the hosted [`/brand`](https://brand.insightfulphish.co.za) guide.
+
+## Comments and TODOs
+
+Comments should explain intent, constraints, non-obvious decisions, or security and architecture reasoning that would otherwise be easy to miss. They should not restate syntax or describe obvious assignments.
+
+Completed work should not leave stale TODOs, temporary development notes, misleading comments, or comments that contradict shared contracts and current documentation. Any TODO that remains should be intentional, scoped, and linked to follow-up work where that context is needed.
 
 ## Commands
 
