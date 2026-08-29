@@ -3,7 +3,7 @@ import {
   CampaignManagementServiceError,
   getOrganisationCampaignStatistics,
   type UserActorContext,
-} from '../../../src/services/campaign-statistics.service.js';
+} from '../../../src/services/campaign-management.service.js';
 import * as CampaignStatisticsRepository from '../../../src/repositories/campaign-statistics.repository.js';
 import * as OrganisationScopeRepository from '../../../src/repositories/organisation-scope.repository.js';
 import { getCampaignStatisticsResponseSchema } from '@insightful-phish/shared';
@@ -11,7 +11,7 @@ import { getCampaignStatisticsResponseSchema } from '@insightful-phish/shared';
 vi.mock('../../../src/repositories/campaign-statistics.repository.js');
 vi.mock('../../../src/repositories/organisation-scope.repository.js');
 
-describe('CampaignStatisticsService', () => {
+describe('CampaignStatistics in CampaignManagementService', () => {
   const organisationId = '11111111-1111-4111-8111-111111111111';
   const campaignId = '22222222-2222-4222-8222-222222222222';
   const adminActor: UserActorContext = {
@@ -19,17 +19,22 @@ describe('CampaignStatisticsService', () => {
     userType: 'ORGANISATION_ADMIN',
   };
 
-  const mockAdminScope = {
-    id: 'admin-scope-1',
-    userId: adminActor.userId,
-    organisationId,
-    adminStatus: 'ACTIVE',
-    organisation: { id: organisationId, name: 'Cyber Org', status: 'ACTIVE' },
-    permissionGrants: [
-      { organisationPermission: { key: 'VIEW_CAMPAIGNS' } },
-      { organisationPermission: { key: 'ASSIGN_CAMPAIGNS' } },
-    ],
-  };
+  function mockAdminScopeWithPermissions(
+    permissions: string[] = ['VIEW_CAMPAIGNS', 'ASSIGN_CAMPAIGNS'],
+  ) {
+    vi.mocked(OrganisationScopeRepository.findOrganisationAdminActorScope).mockResolvedValue({
+      id: 'mocked-stats-admin-scope',
+      userId: adminActor.userId,
+      organisationId,
+      adminStatus: 'ACTIVE',
+      organisation: { id: organisationId, name: 'Cyber Org', status: 'ACTIVE' },
+      permissionGrants: permissions.map((key) => ({
+        organisationPermission: { key },
+      })),
+    } as unknown as Awaited<
+      ReturnType<typeof OrganisationScopeRepository.findOrganisationAdminActorScope>
+    >);
+  }
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -57,12 +62,7 @@ describe('CampaignStatisticsService', () => {
   });
 
   it('throws 403 FORBIDDEN if actor lacks VIEW_CAMPAIGNS and MANAGE_CAMPAIGNS permissions', async () => {
-    vi.mocked(OrganisationScopeRepository.findOrganisationAdminActorScope).mockResolvedValue({
-      ...mockAdminScope,
-      permissionGrants: [{ organisationPermission: { key: 'VIEW_ORGANISATION_TRAINEES' } }],
-    } as unknown as Awaited<
-      ReturnType<typeof OrganisationScopeRepository.findOrganisationAdminActorScope>
-    >);
+    mockAdminScopeWithPermissions(['VIEW_ORGANISATION_TRAINEES']);
 
     await expect(
       getOrganisationCampaignStatistics(adminActor, organisationId, campaignId, {
@@ -83,12 +83,7 @@ describe('CampaignStatisticsService', () => {
   });
 
   it('allows access if actor has MANAGE_CAMPAIGNS permission without explicit VIEW_CAMPAIGNS', async () => {
-    vi.mocked(OrganisationScopeRepository.findOrganisationAdminActorScope).mockResolvedValue({
-      ...mockAdminScope,
-      permissionGrants: [{ organisationPermission: { key: 'MANAGE_CAMPAIGNS' } }],
-    } as unknown as Awaited<
-      ReturnType<typeof OrganisationScopeRepository.findOrganisationAdminActorScope>
-    >);
+    mockAdminScopeWithPermissions(['MANAGE_CAMPAIGNS']);
 
     vi.mocked(CampaignStatisticsRepository.findCampaignWithConsumableItems).mockResolvedValue({
       id: campaignId,
@@ -113,11 +108,7 @@ describe('CampaignStatisticsService', () => {
   });
 
   it('throws 404 CAMPAIGN_NOT_FOUND if campaign is not found or belongs to another organisation', async () => {
-    vi.mocked(OrganisationScopeRepository.findOrganisationAdminActorScope).mockResolvedValue(
-      mockAdminScope as unknown as Awaited<
-        ReturnType<typeof OrganisationScopeRepository.findOrganisationAdminActorScope>
-      >,
-    );
+    mockAdminScopeWithPermissions();
 
     vi.mocked(CampaignStatisticsRepository.findCampaignWithConsumableItems).mockResolvedValue(null);
 
@@ -140,11 +131,7 @@ describe('CampaignStatisticsService', () => {
   });
 
   it('returns empty cohort response with null percentages when no trainees are assigned', async () => {
-    vi.mocked(OrganisationScopeRepository.findOrganisationAdminActorScope).mockResolvedValue(
-      mockAdminScope as unknown as Awaited<
-        ReturnType<typeof OrganisationScopeRepository.findOrganisationAdminActorScope>
-      >,
-    );
+    mockAdminScopeWithPermissions();
 
     vi.mocked(CampaignStatisticsRepository.findCampaignWithConsumableItems).mockResolvedValue({
       id: campaignId,
@@ -191,11 +178,7 @@ describe('CampaignStatisticsService', () => {
   });
 
   it('accurately calculates started, item completions, percentages, quiz averages, unassign permissions, and full-cohort summary across multi-component items', async () => {
-    vi.mocked(OrganisationScopeRepository.findOrganisationAdminActorScope).mockResolvedValue(
-      mockAdminScope as unknown as Awaited<
-        ReturnType<typeof OrganisationScopeRepository.findOrganisationAdminActorScope>
-      >,
-    );
+    mockAdminScopeWithPermissions();
 
     // 4 consumable items: 1 Training Document, 2 Quizzes, 1 Simulation Inbox (with 2 emails)
     const consumableItems: CampaignStatisticsRepository.CampaignConsumableItemSummary[] = [
@@ -299,30 +282,6 @@ describe('CampaignStatisticsService', () => {
     vi.mocked(CampaignStatisticsRepository.findCampaignCohortAssignments).mockResolvedValue(
       cohortAssignments,
     );
-
-    // Progress Facts:
-    // Trainee 1 (Alice):
-    // - Training doc: TRAINING_VIEWED only (started, but item incomplete)
-    // - Quiz 1: SUBMITTED with 80% (item complete)
-    // - Quiz 2: IN_PROGRESS attempt (item incomplete)
-    // - Simulation: email-1 opened (started, but only 1 of 2 emails opened, item incomplete)
-    // Completed items: 1/4 (25%), isStarted: true, Completed Quiz: 1/2, Trainee Avg Quiz: 80%
-    //
-    // Trainee 2 (Bob):
-    // - Training doc: TRAINING_COMPLETED (item complete)
-    // - Quiz 1: SUBMITTED with 100% (item complete)
-    // - Quiz 2: SUBMITTED with 90% (item complete)
-    // - Simulation: email-1 and email-2 opened (item complete)
-    // Completed items: 4/4 (100%), isStarted: true, isCompleted: true, Completed Quiz: 2/2, Trainee Avg Quiz: 95%
-    //
-    // Trainee 3 (Charlie):
-    // - No events/attempts
-    // Completed items: 0/4 (0%), isStarted: false, isCompleted: false, Completed Quiz: 0/2, Trainee Avg Quiz: null
-    //
-    // Trainee 4 (Diana - Disabled):
-    // - Training doc: TRAINING_COMPLETED (item complete)
-    // - Quiz 1: SUBMITTED with 70% (item complete)
-    // Completed items: 2/4 (50%), isStarted: true, isCompleted: false, Completed Quiz: 1/2, Trainee Avg Quiz: 70%
 
     vi.mocked(CampaignStatisticsRepository.findCampaignProgressFacts).mockResolvedValue({
       trainingEvents: [
@@ -456,7 +415,7 @@ describe('CampaignStatisticsService', () => {
     expect(aliceRow.completedQuizCount).toBe(1);
     expect(aliceRow.totalQuizCount).toBe(2);
     expect(aliceRow.averageQuizScorePercentage).toBe(80);
-    expect(aliceRow.allowedActions.canUnassign).toBe(true); // ASSIGNED accessType + ASSIGN_CAMPAIGNS
+    expect(aliceRow.allowedActions.canUnassign).toBe(true);
 
     const bobRow = result.trainees[1];
     expect(bobRow.displayName).toBe('Bob Khumalo');
@@ -468,7 +427,7 @@ describe('CampaignStatisticsService', () => {
     expect(bobRow.completedQuizCount).toBe(2);
     expect(bobRow.totalQuizCount).toBe(2);
     expect(bobRow.averageQuizScorePercentage).toBe(95);
-    expect(bobRow.allowedActions.canUnassign).toBe(false); // SELF_SELECTED cannot be unassigned
+    expect(bobRow.allowedActions.canUnassign).toBe(false);
 
     expect(getCampaignStatisticsResponseSchema.safeParse(result).success).toBe(true);
 
