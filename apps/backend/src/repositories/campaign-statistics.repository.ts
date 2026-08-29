@@ -3,9 +3,11 @@ import type { PrismaClient, Prisma } from '../generated/prisma/client.js';
 
 type DBClient = PrismaClient | Prisma.TransactionClient;
 
-export type CampaignConsumableItemSummary = {
+export type CampaignItemFact = {
   id: string;
-  componentType: 'TRAINING_DOCUMENT' | 'QUIZ' | 'SIMULATED_INBOX';
+  itemType: 'COMPONENT' | 'GROUP';
+  componentType: 'TRAINING_DOCUMENT' | 'QUIZ' | 'SIMULATED_INBOX' | null;
+  isRequired: boolean;
   trainingDocumentId: string | null;
   quizId: string | null;
   simulationId: string | null;
@@ -20,7 +22,7 @@ export type CampaignStatisticsCampaignEntity = {
   status: 'DRAFT' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'ARCHIVED';
   startDate: Date | null;
   endDate: Date | null;
-  consumableItems: CampaignConsumableItemSummary[];
+  items: CampaignItemFact[];
 };
 
 export type CampaignStatisticsAssignmentEntity = {
@@ -43,25 +45,26 @@ export type CampaignStatisticsAssignmentEntity = {
 
 export type TrainingProgressFact = {
   traineeProfileId: string;
-  campaignAssignmentId: string | null;
-  campaignItemId: string | null;
+  campaignAssignmentId: string;
+  campaignItemId: string;
   trainingDocumentId: string | null;
   eventType: 'TRAINING_VIEWED' | 'TRAINING_COMPLETED';
 };
 
 export type QuizProgressFact = {
   traineeProfileId: string;
-  campaignAssignmentId: string | null;
-  campaignItemId: string | null;
+  campaignAssignmentId: string;
+  campaignItemId: string;
   quizId: string | null;
   status: 'IN_PROGRESS' | 'SUBMITTED';
+  hasResult: boolean;
   scorePercentage: number | null;
 };
 
 export type SimulationProgressFact = {
   traineeProfileId: string;
-  campaignAssignmentId: string | null;
-  campaignItemId: string | null;
+  campaignAssignmentId: string;
+  campaignItemId: string;
   simulatedEmailId: string | null;
   targetId: string;
 };
@@ -73,10 +76,10 @@ export type CampaignProgressFactsResult = {
 };
 
 /**
- * Loads campaign identity and all consumable component items with their constituent definitions.
- * Safe organisation isolation: Only matches custom campaigns for the organisation or premade platform campaigns.
+ * Loads campaign identity and all persisted campaign items with their component configurations.
+ * Isolation: Scoped to the organisation's custom campaign or platform premade campaigns.
  */
-export async function findCampaignWithConsumableItems(
+export async function findCampaignWithItems(
   organisationId: string,
   campaignId: string,
   client: DBClient = prisma,
@@ -95,12 +98,11 @@ export async function findCampaignWithConsumableItems(
       startDate: true,
       endDate: true,
       items: {
-        where: {
-          itemType: 'COMPONENT',
-        },
         select: {
           id: true,
+          itemType: true,
           componentType: true,
+          isRequired: true,
           trainingDocumentId: true,
           quizId: true,
           simulationId: true,
@@ -129,26 +131,16 @@ export async function findCampaignWithConsumableItems(
     return null;
   }
 
-  const consumableItems: CampaignConsumableItemSummary[] = campaign.items
-    .filter(
-      (
-        item,
-      ): item is typeof item & {
-        componentType: 'TRAINING_DOCUMENT' | 'QUIZ' | 'SIMULATED_INBOX';
-      } =>
-        item.componentType === 'TRAINING_DOCUMENT' ||
-        item.componentType === 'QUIZ' ||
-        item.componentType === 'SIMULATED_INBOX',
-    )
-    .map((item) => ({
-      id: item.id,
-      componentType: item.componentType,
-      trainingDocumentId: item.trainingDocumentId,
-      quizId: item.quizId,
-      simulationId: item.simulationId,
-      simulatedInboxEmailIds:
-        item.simulation?.simulatedInbox?.emails.map((email) => email.id) ?? [],
-    }));
+  const items: CampaignItemFact[] = campaign.items.map((item) => ({
+    id: item.id,
+    itemType: item.itemType,
+    componentType: item.componentType,
+    isRequired: item.isRequired,
+    trainingDocumentId: item.trainingDocumentId,
+    quizId: item.quizId,
+    simulationId: item.simulationId,
+    simulatedInboxEmailIds: item.simulation?.simulatedInbox?.emails.map((email) => email.id) ?? [],
+  }));
 
   return {
     id: campaign.id,
@@ -158,7 +150,7 @@ export async function findCampaignWithConsumableItems(
     status: campaign.status,
     startDate: campaign.startDate,
     endDate: campaign.endDate,
-    consumableItems,
+    items,
   };
 }
 
@@ -233,18 +225,26 @@ export async function findCampaignCohortAssignments(
 }
 
 /**
- * Loads interaction events, quiz attempts, and simulation open events for the complete cohort
- * in bounded bulk queries without per-trainee N+1 calls.
+ * Loads interaction events, quiz attempts, and simulation open events strictly scoped
+ * to the specified assignments and campaign items to prevent cross-campaign content bleed.
  */
 export async function findCampaignProgressFacts(
   input: {
     traineeProfileIds: string[];
     assignmentIds: string[];
-    consumableItems: CampaignConsumableItemSummary[];
+    trainingItemIds: string[];
+    quizItemIds: string[];
+    simulationItemIds: string[];
   },
   client: DBClient = prisma,
 ): Promise<CampaignProgressFactsResult> {
-  if (input.traineeProfileIds.length === 0 || input.consumableItems.length === 0) {
+  if (
+    input.traineeProfileIds.length === 0 ||
+    input.assignmentIds.length === 0 ||
+    (input.trainingItemIds.length === 0 &&
+      input.quizItemIds.length === 0 &&
+      input.simulationItemIds.length === 0)
+  ) {
     return {
       trainingEvents: [],
       quizAttempts: [],
@@ -252,44 +252,15 @@ export async function findCampaignProgressFacts(
     };
   }
 
-  const trainingDocIds = input.consumableItems
-    .filter((i) => i.componentType === 'TRAINING_DOCUMENT' && Boolean(i.trainingDocumentId))
-    .map((i) => i.trainingDocumentId as string);
-
-  const trainingItemIds = input.consumableItems
-    .filter((i) => i.componentType === 'TRAINING_DOCUMENT')
-    .map((i) => i.id);
-
-  const quizIds = input.consumableItems
-    .filter((i) => i.componentType === 'QUIZ' && Boolean(i.quizId))
-    .map((i) => i.quizId as string);
-
-  const quizItemIds = input.consumableItems
-    .filter((i) => i.componentType === 'QUIZ')
-    .map((i) => i.id);
-
-  const simulationItemIds = input.consumableItems
-    .filter((i) => i.componentType === 'SIMULATED_INBOX')
-    .map((i) => i.id);
-
-  const simulatedEmailIds = input.consumableItems
-    .filter((i) => i.componentType === 'SIMULATED_INBOX')
-    .flatMap((i) => i.simulatedInboxEmailIds);
-
   const [rawTrainingEvents, rawQuizAttempts, rawSimulatedEmailEvents] = await Promise.all([
-    // Training Events
-    trainingItemIds.length > 0 || trainingDocIds.length > 0
+    // Training Events strictly scoped to cohort assignment and campaign item
+    input.trainingItemIds.length > 0
       ? client.interactionEvent.findMany({
           where: {
             traineeProfileId: { in: input.traineeProfileIds },
+            campaignAssignmentId: { in: input.assignmentIds },
+            campaignItemId: { in: input.trainingItemIds },
             eventType: { in: ['TRAINING_VIEWED', 'TRAINING_COMPLETED'] },
-            OR: [
-              { campaignAssignmentId: { in: input.assignmentIds } },
-              { campaignItemId: { in: trainingItemIds } },
-              ...(trainingDocIds.length > 0
-                ? [{ trainingDocumentId: { in: trainingDocIds } }]
-                : []),
-            ],
           },
           select: {
             traineeProfileId: true,
@@ -301,17 +272,14 @@ export async function findCampaignProgressFacts(
         })
       : Promise.resolve([]),
 
-    // Quiz Attempts
-    quizItemIds.length > 0 || quizIds.length > 0
+    // Quiz Attempts strictly scoped to cohort assignment and campaign item
+    input.quizItemIds.length > 0
       ? client.quizAttempt.findMany({
           where: {
             traineeProfileId: { in: input.traineeProfileIds },
+            campaignAssignmentId: { in: input.assignmentIds },
+            campaignItemId: { in: input.quizItemIds },
             status: { in: ['IN_PROGRESS', 'SUBMITTED'] },
-            OR: [
-              { campaignAssignmentId: { in: input.assignmentIds } },
-              { campaignItemId: { in: quizItemIds } },
-              ...(quizIds.length > 0 ? [{ quizId: { in: quizIds } }] : []),
-            ],
           },
           select: {
             traineeProfileId: true,
@@ -328,19 +296,14 @@ export async function findCampaignProgressFacts(
         })
       : Promise.resolve([]),
 
-    // Simulation Email Open Events
-    simulationItemIds.length > 0 || simulatedEmailIds.length > 0
+    // Simulation Email Open Events strictly scoped to cohort assignment and campaign item
+    input.simulationItemIds.length > 0
       ? client.interactionEvent.findMany({
           where: {
             traineeProfileId: { in: input.traineeProfileIds },
+            campaignAssignmentId: { in: input.assignmentIds },
+            campaignItemId: { in: input.simulationItemIds },
             eventType: 'SIMULATED_EMAIL_OPENED',
-            OR: [
-              { campaignAssignmentId: { in: input.assignmentIds } },
-              { campaignItemId: { in: simulationItemIds } },
-              ...(simulatedEmailIds.length > 0
-                ? [{ simulatedEmailId: { in: simulatedEmailIds } }]
-                : []),
-            ],
           },
           select: {
             traineeProfileId: true,
@@ -354,33 +317,46 @@ export async function findCampaignProgressFacts(
   ]);
 
   const trainingEvents: TrainingProgressFact[] = rawTrainingEvents
-    .filter((e) => e.eventType === 'TRAINING_VIEWED' || e.eventType === 'TRAINING_COMPLETED')
+    .filter(
+      (e) =>
+        e.campaignAssignmentId !== null &&
+        e.campaignItemId !== null &&
+        (e.eventType === 'TRAINING_VIEWED' || e.eventType === 'TRAINING_COMPLETED'),
+    )
     .map((e) => ({
       traineeProfileId: e.traineeProfileId,
-      campaignAssignmentId: e.campaignAssignmentId,
-      campaignItemId: e.campaignItemId,
+      campaignAssignmentId: e.campaignAssignmentId as string,
+      campaignItemId: e.campaignItemId as string,
       trainingDocumentId: e.trainingDocumentId,
       eventType: e.eventType as 'TRAINING_VIEWED' | 'TRAINING_COMPLETED',
     }));
 
   const quizAttempts: QuizProgressFact[] = rawQuizAttempts
-    .filter((a) => a.status === 'IN_PROGRESS' || a.status === 'SUBMITTED')
+    .filter(
+      (a) =>
+        a.campaignAssignmentId !== null &&
+        a.campaignItemId !== null &&
+        (a.status === 'IN_PROGRESS' || a.status === 'SUBMITTED'),
+    )
     .map((a) => ({
       traineeProfileId: a.traineeProfileId,
-      campaignAssignmentId: a.campaignAssignmentId,
-      campaignItemId: a.campaignItemId,
+      campaignAssignmentId: a.campaignAssignmentId as string,
+      campaignItemId: a.campaignItemId as string,
       quizId: a.quizId,
       status: a.status,
+      hasResult: a.quizResult !== null,
       scorePercentage: a.quizResult?.scorePercentage ?? null,
     }));
 
-  const simulatedEmailEvents: SimulationProgressFact[] = rawSimulatedEmailEvents.map((e) => ({
-    traineeProfileId: e.traineeProfileId,
-    campaignAssignmentId: e.campaignAssignmentId,
-    campaignItemId: e.campaignItemId,
-    simulatedEmailId: e.simulatedEmailId,
-    targetId: e.targetId,
-  }));
+  const simulatedEmailEvents: SimulationProgressFact[] = rawSimulatedEmailEvents
+    .filter((e) => e.campaignAssignmentId !== null && e.campaignItemId !== null)
+    .map((e) => ({
+      traineeProfileId: e.traineeProfileId,
+      campaignAssignmentId: e.campaignAssignmentId as string,
+      campaignItemId: e.campaignItemId as string,
+      simulatedEmailId: e.simulatedEmailId,
+      targetId: e.targetId,
+    }));
 
   return {
     trainingEvents,

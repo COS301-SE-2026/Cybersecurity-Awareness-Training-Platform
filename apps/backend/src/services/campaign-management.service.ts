@@ -874,7 +874,7 @@ export async function getOrganisationCampaignStatistics(
     (grant) => grant.organisationPermission.key === 'ASSIGN_CAMPAIGNS',
   );
 
-  const campaign = await CampaignStatisticsRepository.findCampaignWithConsumableItems(
+  const campaign = await CampaignStatisticsRepository.findCampaignWithItems(
     organisationId,
     campaignId,
   );
@@ -887,7 +887,20 @@ export async function getOrganisationCampaignStatistics(
     );
   }
 
-  const consumableItems = campaign.consumableItems;
+  // Service defines consumable item reporting policy: only COMPONENT items with valid component types
+  // count toward progress and quiz totals. Structural GROUP items are excluded.
+  const consumableItems = campaign.items.filter(
+    (
+      item,
+    ): item is typeof item & {
+      componentType: 'TRAINING_DOCUMENT' | 'QUIZ' | 'SIMULATED_INBOX';
+    } =>
+      item.itemType === 'COMPONENT' &&
+      (item.componentType === 'TRAINING_DOCUMENT' ||
+        item.componentType === 'QUIZ' ||
+        item.componentType === 'SIMULATED_INBOX'),
+  );
+
   const itemCount = consumableItems.length;
   const quizCount = consumableItems.filter((i) => i.componentType === 'QUIZ').length;
 
@@ -928,43 +941,50 @@ export async function getOrganisationCampaignStatistics(
 
   const traineeProfileIds = cohortAssignments.map((a) => a.traineeProfileId);
   const assignmentIds = cohortAssignments.map((a) => a.assignmentId);
+  const trainingItemIds = consumableItems
+    .filter((i) => i.componentType === 'TRAINING_DOCUMENT')
+    .map((i) => i.id);
+  const quizItemIds = consumableItems.filter((i) => i.componentType === 'QUIZ').map((i) => i.id);
+  const simulationItemIds = consumableItems
+    .filter((i) => i.componentType === 'SIMULATED_INBOX')
+    .map((i) => i.id);
 
   const progressFacts = await CampaignStatisticsRepository.findCampaignProgressFacts({
     traineeProfileIds,
     assignmentIds,
-    consumableItems,
+    trainingItemIds,
+    quizItemIds,
+    simulationItemIds,
   });
 
-  const trainingEventsByTrainee = new Map<
+  const trainingEventsByAssignment = new Map<
     string,
     CampaignStatisticsRepository.TrainingProgressFact[]
   >();
   for (const event of progressFacts.trainingEvents) {
-    const list = trainingEventsByTrainee.get(event.traineeProfileId) ?? [];
+    const list = trainingEventsByAssignment.get(event.campaignAssignmentId) ?? [];
     list.push(event);
-    trainingEventsByTrainee.set(event.traineeProfileId, list);
+    trainingEventsByAssignment.set(event.campaignAssignmentId, list);
   }
 
-  const quizAttemptsByTrainee = new Map<string, CampaignStatisticsRepository.QuizProgressFact[]>();
+  const quizAttemptsByAssignment = new Map<
+    string,
+    CampaignStatisticsRepository.QuizProgressFact[]
+  >();
   for (const attempt of progressFacts.quizAttempts) {
-    const list = quizAttemptsByTrainee.get(attempt.traineeProfileId) ?? [];
+    const list = quizAttemptsByAssignment.get(attempt.campaignAssignmentId) ?? [];
     list.push(attempt);
-    quizAttemptsByTrainee.set(attempt.traineeProfileId, list);
+    quizAttemptsByAssignment.set(attempt.campaignAssignmentId, list);
   }
 
-  const simulationOpenedEmailsByTrainee = new Map<string, Set<string>>();
-  for (const emailEvent of progressFacts.simulatedEmailEvents) {
-    let set = simulationOpenedEmailsByTrainee.get(emailEvent.traineeProfileId);
-    if (!set) {
-      set = new Set<string>();
-      simulationOpenedEmailsByTrainee.set(emailEvent.traineeProfileId, set);
-    }
-    if (emailEvent.simulatedEmailId) {
-      set.add(emailEvent.simulatedEmailId);
-    }
-    if (emailEvent.targetId) {
-      set.add(emailEvent.targetId);
-    }
+  const simulationEventsByAssignment = new Map<
+    string,
+    CampaignStatisticsRepository.SimulationProgressFact[]
+  >();
+  for (const simEvent of progressFacts.simulatedEmailEvents) {
+    const list = simulationEventsByAssignment.get(simEvent.campaignAssignmentId) ?? [];
+    list.push(simEvent);
+    simulationEventsByAssignment.set(simEvent.campaignAssignmentId, list);
   }
 
   const allTraineeRows: CampaignStatisticsTraineeRowDto[] = [];
@@ -975,10 +995,9 @@ export async function getOrganisationCampaignStatistics(
   let completedTraineeCount = 0;
 
   for (const assignment of cohortAssignments) {
-    const traineeId = assignment.traineeProfileId;
-    const tTrainingEvents = trainingEventsByTrainee.get(traineeId) ?? [];
-    const tQuizAttempts = quizAttemptsByTrainee.get(traineeId) ?? [];
-    const tOpenedEmails = simulationOpenedEmailsByTrainee.get(traineeId) ?? new Set<string>();
+    const tTrainingEvents = trainingEventsByAssignment.get(assignment.assignmentId) ?? [];
+    const tQuizAttempts = quizAttemptsByAssignment.get(assignment.assignmentId) ?? [];
+    const tSimEvents = simulationEventsByAssignment.get(assignment.assignmentId) ?? [];
 
     const hasTrainingActivity = tTrainingEvents.some(
       (e) => e.eventType === 'TRAINING_VIEWED' || e.eventType === 'TRAINING_COMPLETED',
@@ -986,7 +1005,7 @@ export async function getOrganisationCampaignStatistics(
     const hasQuizActivity = tQuizAttempts.some(
       (a) => a.status === 'IN_PROGRESS' || a.status === 'SUBMITTED',
     );
-    const hasSimulationActivity = tOpenedEmails.size > 0;
+    const hasSimulationActivity = tSimEvents.length > 0;
 
     const isStarted = hasTrainingActivity || hasQuizActivity || hasSimulationActivity;
     if (isStarted) {
@@ -999,29 +1018,30 @@ export async function getOrganisationCampaignStatistics(
     for (const item of consumableItems) {
       if (item.componentType === 'TRAINING_DOCUMENT') {
         const hasCompletedTraining = tTrainingEvents.some(
-          (e) =>
-            e.eventType === 'TRAINING_COMPLETED' &&
-            (e.campaignItemId === item.id ||
-              (item.trainingDocumentId && e.trainingDocumentId === item.trainingDocumentId)),
+          (e) => e.eventType === 'TRAINING_COMPLETED' && e.campaignItemId === item.id,
         );
         if (hasCompletedTraining) {
           completedItemCount++;
         }
       } else if (item.componentType === 'QUIZ') {
-        const hasSubmittedQuiz = tQuizAttempts.some(
-          (a) =>
-            a.status === 'SUBMITTED' &&
-            (a.campaignItemId === item.id || (item.quizId && a.quizId === item.quizId)),
+        // Quiz is complete ONLY with a SUBMITTED attempt AND an authoritative result (score 0 is valid)
+        const hasSubmittedQuizWithResult = tQuizAttempts.some(
+          (a) => a.status === 'SUBMITTED' && a.hasResult && a.campaignItemId === item.id,
         );
-        if (hasSubmittedQuiz) {
+        if (hasSubmittedQuizWithResult) {
           completedItemCount++;
           completedQuizCount++;
         }
       } else if (item.componentType === 'SIMULATED_INBOX') {
         const requiredEmailIds = item.simulatedInboxEmailIds;
+        const itemOpenedEmailIds = new Set(
+          tSimEvents
+            .filter((e) => e.campaignItemId === item.id)
+            .map((e) => e.simulatedEmailId || e.targetId),
+        );
         if (
           requiredEmailIds.length > 0 &&
-          requiredEmailIds.every((emailId) => tOpenedEmails.has(emailId))
+          requiredEmailIds.every((emailId) => itemOpenedEmailIds.has(emailId))
         ) {
           completedItemCount++;
         }
@@ -1040,12 +1060,9 @@ export async function getOrganisationCampaignStatistics(
       .filter(
         (a) =>
           a.status === 'SUBMITTED' &&
+          a.hasResult &&
           typeof a.scorePercentage === 'number' &&
-          consumableItems.some(
-            (i) =>
-              i.componentType === 'QUIZ' &&
-              (a.campaignItemId === i.id || (i.quizId && a.quizId === i.quizId)),
-          ),
+          quizItemIds.includes(a.campaignItemId),
       )
       .map((a) => a.scorePercentage as number);
 

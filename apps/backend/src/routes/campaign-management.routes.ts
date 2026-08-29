@@ -361,8 +361,6 @@ campaignManagementRouter.get(
  *         $ref: '#/components/responses/CampaignManagementRateLimited'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
- *       501:
- *         $ref: '#/components/responses/CampaignStatisticsNotImplemented'
  */
 campaignManagementRouter.get(
   '/organisations/:organisationId/campaigns/:campaignId/statistics',

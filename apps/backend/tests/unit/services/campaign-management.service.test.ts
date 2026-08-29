@@ -136,9 +136,7 @@ describe('CampaignManagementService Unit Tests', () => {
 
     it('throws 404 CAMPAIGN_NOT_FOUND when campaign does not exist in organisation', async () => {
       mockAdminScope(['VIEW_CAMPAIGNS']);
-      vi.mocked(CampaignStatisticsRepository.findCampaignWithConsumableItems).mockResolvedValue(
-        null,
-      );
+      vi.mocked(CampaignStatisticsRepository.findCampaignWithItems).mockResolvedValue(null);
 
       await expect(
         CampaignManagementService.getOrganisationCampaignStatistics(adminActor, orgId, campaignId, {
@@ -150,7 +148,7 @@ describe('CampaignManagementService Unit Tests', () => {
 
     it('returns empty cohort response when no assignments exist', async () => {
       mockAdminScope(['VIEW_CAMPAIGNS']);
-      vi.mocked(CampaignStatisticsRepository.findCampaignWithConsumableItems).mockResolvedValue({
+      vi.mocked(CampaignStatisticsRepository.findCampaignWithItems).mockResolvedValue({
         id: campaignId,
         name: 'Empty Cohort Campaign',
         description: null,
@@ -158,7 +156,7 @@ describe('CampaignManagementService Unit Tests', () => {
         status: 'ACTIVE',
         startDate: null,
         endDate: null,
-        consumableItems: [],
+        items: [],
       });
       vi.mocked(CampaignStatisticsRepository.findCampaignCohortAssignments).mockResolvedValue([]);
 
@@ -174,13 +172,308 @@ describe('CampaignManagementService Unit Tests', () => {
       expect(getCampaignStatisticsResponseSchema.safeParse(result).success).toBe(true);
     });
 
+    it('excludes GROUP items from consumable denominator and includes optional items', async () => {
+      mockAdminScope(['VIEW_CAMPAIGNS']);
+
+      vi.mocked(CampaignStatisticsRepository.findCampaignWithItems).mockResolvedValue({
+        id: campaignId,
+        name: 'Mixed Items Campaign',
+        description: null,
+        campaignType: 'ORGANISATION_CUSTOM',
+        status: 'ACTIVE',
+        startDate: null,
+        endDate: null,
+        items: [
+          {
+            id: 'group-item-1',
+            itemType: 'GROUP',
+            componentType: null,
+            isRequired: true,
+            trainingDocumentId: null,
+            quizId: null,
+            simulationId: null,
+            simulatedInboxEmailIds: [],
+          },
+          {
+            id: 'item-doc-1',
+            itemType: 'COMPONENT',
+            componentType: 'TRAINING_DOCUMENT',
+            isRequired: true,
+            trainingDocumentId: 'doc-1',
+            quizId: null,
+            simulationId: null,
+            simulatedInboxEmailIds: [],
+          },
+          {
+            id: 'item-quiz-optional',
+            itemType: 'COMPONENT',
+            componentType: 'QUIZ',
+            isRequired: false,
+            trainingDocumentId: null,
+            quizId: 'quiz-1',
+            simulationId: null,
+            simulatedInboxEmailIds: [],
+          },
+        ],
+      });
+
+      vi.mocked(CampaignStatisticsRepository.findCampaignCohortAssignments).mockResolvedValue([
+        {
+          assignmentId: '55555555-0001-4555-8555-555555555555',
+          traineeProfileId: '11111111-1111-4111-8111-111111111111',
+          firstName: 'Alice',
+          lastName: 'Ndlovu',
+          email: 'alice@example.com',
+          traineeStatus: 'ACTIVE',
+          assignmentStatus: 'ASSIGNED',
+          accessType: 'ASSIGNED',
+          assignedAt: new Date('2026-08-01T10:00:00.000Z'),
+        },
+      ]);
+
+      vi.mocked(CampaignStatisticsRepository.findCampaignProgressFacts).mockResolvedValue({
+        trainingEvents: [],
+        quizAttempts: [],
+        simulatedEmailEvents: [],
+      });
+
+      const result = await CampaignManagementService.getOrganisationCampaignStatistics(
+        adminActor,
+        orgId,
+        campaignId,
+        { page: 1, limit: 20 },
+      );
+
+      // GROUP is excluded, doc + optional quiz = 2 consumable items, 1 quiz
+      expect(result.campaign.itemCount).toBe(2);
+      expect(result.campaign.quizCount).toBe(1);
+      expect(result.trainees[0].progress.totalItemCount).toBe(2);
+      expect(result.trainees[0].totalQuizCount).toBe(1);
+    });
+
+    it('requires authoritative quiz result for quiz completion (differentiating resultless vs score of 0)', async () => {
+      mockAdminScope(['VIEW_CAMPAIGNS']);
+
+      vi.mocked(CampaignStatisticsRepository.findCampaignWithItems).mockResolvedValue({
+        id: campaignId,
+        name: 'Quiz Test Campaign',
+        description: null,
+        campaignType: 'ORGANISATION_CUSTOM',
+        status: 'ACTIVE',
+        startDate: null,
+        endDate: null,
+        items: [
+          {
+            id: 'item-quiz-1',
+            itemType: 'COMPONENT',
+            componentType: 'QUIZ',
+            isRequired: true,
+            trainingDocumentId: null,
+            quizId: 'quiz-1',
+            simulationId: null,
+            simulatedInboxEmailIds: [],
+          },
+        ],
+      });
+
+      const traineeBob = '11111111-1111-4111-8111-111111111111';
+      const traineeCharlie = '22222222-2222-4222-8222-222222222222';
+
+      vi.mocked(CampaignStatisticsRepository.findCampaignCohortAssignments).mockResolvedValue([
+        {
+          assignmentId: '55555555-0001-4555-8555-555555555551',
+          traineeProfileId: traineeBob,
+          firstName: 'Bob',
+          lastName: 'Smith',
+          email: 'bob@example.com',
+          traineeStatus: 'ACTIVE',
+          assignmentStatus: 'IN_PROGRESS',
+          accessType: 'ASSIGNED',
+          assignedAt: new Date('2026-08-01T10:00:00.000Z'),
+        },
+        {
+          assignmentId: '55555555-0002-4555-8555-555555555552',
+          traineeProfileId: traineeCharlie,
+          firstName: 'Charlie',
+          lastName: 'Mokoena',
+          email: 'charlie@example.com',
+          traineeStatus: 'ACTIVE',
+          assignmentStatus: 'COMPLETED',
+          accessType: 'ASSIGNED',
+          assignedAt: new Date('2026-08-01T10:00:00.000Z'),
+        },
+      ]);
+
+      vi.mocked(CampaignStatisticsRepository.findCampaignProgressFacts).mockResolvedValue({
+        trainingEvents: [],
+        quizAttempts: [
+          // Bob: SUBMITTED without result (legacy/inconsistent data) -> NOT completed, score null
+          {
+            traineeProfileId: traineeBob,
+            campaignAssignmentId: '55555555-0001-4555-8555-555555555551',
+            campaignItemId: 'item-quiz-1',
+            quizId: 'quiz-1',
+            status: 'SUBMITTED',
+            hasResult: false,
+            scorePercentage: null,
+          },
+          // Charlie: SUBMITTED with valid result of 0% -> IS completed, score 0
+          {
+            traineeProfileId: traineeCharlie,
+            campaignAssignmentId: '55555555-0002-4555-8555-555555555552',
+            campaignItemId: 'item-quiz-1',
+            quizId: 'quiz-1',
+            status: 'SUBMITTED',
+            hasResult: true,
+            scorePercentage: 0,
+          },
+        ],
+        simulatedEmailEvents: [],
+      });
+
+      const result = await CampaignManagementService.getOrganisationCampaignStatistics(
+        adminActor,
+        orgId,
+        campaignId,
+        { page: 1, limit: 10 },
+      );
+
+      const bobRow = result.trainees.find((t) => t.traineeProfileId === traineeBob)!;
+      expect(bobRow.progress.completedItemCount).toBe(0);
+      expect(bobRow.completedQuizCount).toBe(0);
+      expect(bobRow.averageQuizScorePercentage).toBeNull();
+
+      const charlieRow = result.trainees.find((t) => t.traineeProfileId === traineeCharlie)!;
+      expect(charlieRow.progress.completedItemCount).toBe(1);
+      expect(charlieRow.completedQuizCount).toBe(1);
+      expect(charlieRow.averageQuizScorePercentage).toBe(0);
+
+      expect(result.summary.completedTraineeCount).toBe(1);
+      expect(result.summary.averageQuizScorePercentage).toBe(0);
+    });
+
+    it('prevents cross-campaign activity bleed when content is reused across multiple campaigns', async () => {
+      mockAdminScope(['VIEW_CAMPAIGNS']);
+
+      const campaign1Id = '11111111-1111-4111-8111-111111111111';
+      const sharedDocId = 'doc-shared-1';
+      const sharedQuizId = 'quiz-shared-1';
+
+      // Campaign 1 uses shared doc & quiz
+      vi.mocked(CampaignStatisticsRepository.findCampaignWithItems).mockResolvedValue({
+        id: campaign1Id,
+        name: 'Campaign 1',
+        description: null,
+        campaignType: 'ORGANISATION_CUSTOM',
+        status: 'ACTIVE',
+        startDate: null,
+        endDate: null,
+        items: [
+          {
+            id: 'c1-item-doc',
+            itemType: 'COMPONENT',
+            componentType: 'TRAINING_DOCUMENT',
+            isRequired: true,
+            trainingDocumentId: sharedDocId,
+            quizId: null,
+            simulationId: null,
+            simulatedInboxEmailIds: [],
+          },
+          {
+            id: 'c1-item-quiz',
+            itemType: 'COMPONENT',
+            componentType: 'QUIZ',
+            isRequired: true,
+            trainingDocumentId: null,
+            quizId: sharedQuizId,
+            simulationId: null,
+            simulatedInboxEmailIds: [],
+          },
+        ],
+      });
+
+      const traineeId = '33333333-3333-4333-8333-333333333333';
+      const assignment1Id = '55555555-0001-4555-8555-555555555551';
+      const assignment2Id = '55555555-0002-4555-8555-555555555552';
+
+      vi.mocked(CampaignStatisticsRepository.findCampaignCohortAssignments).mockResolvedValue([
+        {
+          assignmentId: assignment1Id,
+          traineeProfileId: traineeId,
+          firstName: 'Alice',
+          lastName: 'Ndlovu',
+          email: 'alice@example.com',
+          traineeStatus: 'ACTIVE',
+          assignmentStatus: 'ASSIGNED',
+          accessType: 'ASSIGNED',
+          assignedAt: new Date('2026-08-01T10:00:00.000Z'),
+        },
+      ]);
+
+      // Progress facts repository only returns facts strictly for assignment1 and c1 items
+      // (Even if Alice completed doc & quiz in Campaign 2 / assignment2)
+      vi.mocked(CampaignStatisticsRepository.findCampaignProgressFacts).mockImplementation(
+        async (input) => {
+          // If input contains assignment2Id, return Campaign 2 facts; if input only contains assignment1Id, return empty
+          if (input.assignmentIds.includes(assignment2Id)) {
+            return {
+              trainingEvents: [
+                {
+                  traineeProfileId: traineeId,
+                  campaignAssignmentId: assignment2Id,
+                  campaignItemId: 'c2-item-doc',
+                  trainingDocumentId: sharedDocId,
+                  eventType: 'TRAINING_COMPLETED',
+                },
+              ],
+              quizAttempts: [
+                {
+                  traineeProfileId: traineeId,
+                  campaignAssignmentId: assignment2Id,
+                  campaignItemId: 'c2-item-quiz',
+                  quizId: sharedQuizId,
+                  status: 'SUBMITTED',
+                  hasResult: true,
+                  scorePercentage: 95,
+                },
+              ],
+              simulatedEmailEvents: [],
+            };
+          }
+          return {
+            trainingEvents: [],
+            quizAttempts: [],
+            simulatedEmailEvents: [],
+          };
+        },
+      );
+
+      const result = await CampaignManagementService.getOrganisationCampaignStatistics(
+        adminActor,
+        orgId,
+        campaign1Id,
+        { page: 1, limit: 10 },
+      );
+
+      // Alice's statistics for Campaign 1 must not be contaminated by Campaign 2 activity
+      expect(result.summary.startedTraineeCount).toBe(0);
+      expect(result.summary.completedTraineeCount).toBe(0);
+      expect(result.summary.overallProgressPercentage).toBe(0);
+      expect(result.summary.averageQuizScorePercentage).toBeNull();
+      expect(result.trainees[0].progress.completedItemCount).toBe(0);
+      expect(result.trainees[0].completedQuizCount).toBe(0);
+      expect(result.trainees[0].averageQuizScorePercentage).toBeNull();
+    });
+
     it('correctly calculates started, completed, scores, unassign actions, and pagination across full cohort', async () => {
       mockAdminScope(['VIEW_CAMPAIGNS', 'ASSIGN_CAMPAIGNS']);
 
-      const consumableItems: CampaignStatisticsRepository.CampaignConsumableItemSummary[] = [
+      const items: CampaignStatisticsRepository.CampaignItemFact[] = [
         {
           id: 'item-doc-1',
+          itemType: 'COMPONENT',
           componentType: 'TRAINING_DOCUMENT',
+          isRequired: true,
           trainingDocumentId: 'doc-1',
           quizId: null,
           simulationId: null,
@@ -188,7 +481,9 @@ describe('CampaignManagementService Unit Tests', () => {
         },
         {
           id: 'item-quiz-1',
+          itemType: 'COMPONENT',
           componentType: 'QUIZ',
+          isRequired: true,
           trainingDocumentId: null,
           quizId: 'quiz-1',
           simulationId: null,
@@ -196,7 +491,9 @@ describe('CampaignManagementService Unit Tests', () => {
         },
         {
           id: 'item-quiz-2',
+          itemType: 'COMPONENT',
           componentType: 'QUIZ',
+          isRequired: true,
           trainingDocumentId: null,
           quizId: 'quiz-2',
           simulationId: null,
@@ -204,7 +501,9 @@ describe('CampaignManagementService Unit Tests', () => {
         },
         {
           id: 'item-sim-1',
+          itemType: 'COMPONENT',
           componentType: 'SIMULATED_INBOX',
+          isRequired: true,
           trainingDocumentId: null,
           quizId: null,
           simulationId: 'sim-1',
@@ -212,7 +511,7 @@ describe('CampaignManagementService Unit Tests', () => {
         },
       ];
 
-      vi.mocked(CampaignStatisticsRepository.findCampaignWithConsumableItems).mockResolvedValue({
+      vi.mocked(CampaignStatisticsRepository.findCampaignWithItems).mockResolvedValue({
         id: campaignId,
         name: 'Full Campaign',
         description: 'Comprehensive Test',
@@ -220,7 +519,7 @@ describe('CampaignManagementService Unit Tests', () => {
         status: 'ACTIVE',
         startDate: new Date('2026-09-01T00:00:00.000Z'),
         endDate: new Date('2026-09-30T23:59:59.000Z'),
-        consumableItems,
+        items,
       });
 
       const trainee1Id = '11111111-1111-4111-8111-111111111111';
@@ -306,6 +605,7 @@ describe('CampaignManagementService Unit Tests', () => {
             campaignItemId: 'item-quiz-1',
             quizId: 'quiz-1',
             status: 'SUBMITTED',
+            hasResult: true,
             scorePercentage: 80,
           },
           {
@@ -314,6 +614,7 @@ describe('CampaignManagementService Unit Tests', () => {
             campaignItemId: 'item-quiz-2',
             quizId: 'quiz-2',
             status: 'IN_PROGRESS',
+            hasResult: false,
             scorePercentage: null,
           },
           {
@@ -322,6 +623,7 @@ describe('CampaignManagementService Unit Tests', () => {
             campaignItemId: 'item-quiz-1',
             quizId: 'quiz-1',
             status: 'SUBMITTED',
+            hasResult: true,
             scorePercentage: 100,
           },
           {
@@ -330,6 +632,7 @@ describe('CampaignManagementService Unit Tests', () => {
             campaignItemId: 'item-quiz-2',
             quizId: 'quiz-2',
             status: 'SUBMITTED',
+            hasResult: true,
             scorePercentage: 90,
           },
           {
@@ -338,6 +641,7 @@ describe('CampaignManagementService Unit Tests', () => {
             campaignItemId: 'item-quiz-1',
             quizId: 'quiz-1',
             status: 'SUBMITTED',
+            hasResult: true,
             scorePercentage: 70,
           },
         ],
