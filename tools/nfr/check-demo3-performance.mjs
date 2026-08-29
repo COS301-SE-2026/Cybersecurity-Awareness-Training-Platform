@@ -44,7 +44,7 @@ const authenticatedRouteSet = [
   {
     id: 'organisation-trainees',
     method: 'GET',
-    path: `/organisations/${organisationId ?? '<DEMO3_NFR_ORGANISATION_ID>'}/trainees?page=1&pageSize=10`,
+    path: `/organisations/${organisationId ?? '<DEMO3_NFR_ORGANISATION_ID>'}/trainees`,
     authentication: 'bearer-token',
     expectedStatus: 200,
     requiresOrganisationId: true,
@@ -52,7 +52,7 @@ const authenticatedRouteSet = [
   {
     id: 'organisation-admins',
     method: 'GET',
-    path: `/organisations/${organisationId ?? '<DEMO3_NFR_ORGANISATION_ID>'}/admins?page=1&pageSize=10`,
+    path: `/organisations/${organisationId ?? '<DEMO3_NFR_ORGANISATION_ID>'}/admins`,
     authentication: 'bearer-token',
     expectedStatus: 200,
     requiresOrganisationId: true,
@@ -60,7 +60,7 @@ const authenticatedRouteSet = [
   {
     id: 'organisation-campaigns',
     method: 'GET',
-    path: `/organisations/${organisationId ?? '<DEMO3_NFR_ORGANISATION_ID>'}/campaigns?page=1&pageSize=10`,
+    path: `/organisations/${organisationId ?? '<DEMO3_NFR_ORGANISATION_ID>'}/campaigns?page=1&limit=10`,
     authentication: 'bearer-token',
     expectedStatus: 200,
     requiresOrganisationId: true,
@@ -70,7 +70,7 @@ const authenticatedRouteSet = [
     method: 'GET',
     path: `/organisations/${
       organisationId ?? '<DEMO3_NFR_ORGANISATION_ID>'
-    }/campaign-assignment-candidates?page=1&pageSize=10`,
+    }/campaign-assignment-candidates?page=1&limit=10`,
     authentication: 'bearer-token',
     expectedStatus: 200,
     requiresOrganisationId: true,

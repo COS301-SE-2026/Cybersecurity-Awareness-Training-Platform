@@ -84,10 +84,16 @@ const auditTestExpectations = [
 ];
 
 const sensitiveEvidencePatterns = [
-  { label: 'raw token field', pattern: /\brawToken\b\s*[:=]/i },
-  { label: 'token hash field', pattern: /\btokenHash\b\s*[:=]/i },
-  { label: 'SMTP password assignment', pattern: /\bSMTP_PASSWORD\b\s*[:=]\s*[^<\s][^\s]*/i },
-  { label: 'database URL assignment', pattern: /\bDATABASE_URL\b\s*[:=]\s*[^<\s][^\s]*/i },
+  { label: 'raw token field', pattern: /["']?\brawToken\b["']?\s*[:=]/i },
+  { label: 'token hash field', pattern: /["']?\btokenHash\b["']?\s*[:=]/i },
+  {
+    label: 'SMTP password assignment',
+    pattern: /["']?\bSMTP_PASSWORD\b["']?\s*[:=]\s*["']?[^<\s"'][^\s"']*/i,
+  },
+  {
+    label: 'database URL assignment',
+    pattern: /["']?\bDATABASE_URL\b["']?\s*[:=]\s*["']?[^<\s"'][^\s"']*/i,
+  },
   { label: 'bearer token', pattern: /\bBearer\s+[A-Za-z0-9._~+/=-]{16,}/i },
 ];
 
@@ -397,17 +403,23 @@ async function runAuditIntegrityCheck() {
 
 async function listEvidenceFiles(relativeDirectory) {
   if (!(await pathExists(relativeDirectory))) {
-    return [];
+    return {
+      files: [],
+      oversizedFiles: [],
+    };
   }
 
   const absoluteDirectory = projectPath(relativeDirectory);
   const entries = await readdir(absoluteDirectory, { withFileTypes: true });
   const files = [];
+  const oversizedFiles = [];
 
   for (const entry of entries) {
     const relativeEntryPath = path.join(relativeDirectory, entry.name);
     if (entry.isDirectory()) {
-      files.push(...(await listEvidenceFiles(relativeEntryPath)));
+      const nested = await listEvidenceFiles(relativeEntryPath);
+      files.push(...nested.files);
+      oversizedFiles.push(...nested.oversizedFiles);
       continue;
     }
 
@@ -418,17 +430,28 @@ async function listEvidenceFiles(relativeDirectory) {
     const info = await stat(projectPath(relativeEntryPath));
     if (info.size <= 512 * 1024) {
       files.push(relativeEntryPath);
+    } else {
+      oversizedFiles.push(`${relativeEntryPath} (${info.size} bytes)`);
     }
   }
 
-  return files;
+  return {
+    files,
+    oversizedFiles,
+  };
 }
 
 async function runSecurityLeakageCheck() {
-  const files = (
-    await Promise.all(evidenceDirectories.map((directory) => listEvidenceFiles(directory)))
-  ).flat();
+  const evidenceFileResults = await Promise.all(
+    evidenceDirectories.map((directory) => listEvidenceFiles(directory)),
+  );
+  const files = evidenceFileResults.flatMap((entry) => entry.files);
+  const oversizedFiles = evidenceFileResults.flatMap((entry) => entry.oversizedFiles);
   const findings = [];
+
+  if (oversizedFiles.length > 0) {
+    fail(`Eligible evidence files exceed the 512 KiB scan limit: ${oversizedFiles.join('; ')}`);
+  }
 
   for (const file of files) {
     const content = await readProjectFile(file);
