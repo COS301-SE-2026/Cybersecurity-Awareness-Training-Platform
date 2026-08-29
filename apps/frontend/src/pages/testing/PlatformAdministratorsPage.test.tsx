@@ -559,6 +559,40 @@ describe('PlatformAdministratorsPage', () => {
     expect(screen.queryByText(/Re-enable administrator/i)).not.toBeInTheDocument();
   });
 
+  it('hides management actions for an unknown role', async () => {
+    mockGetPlatformAdmins.mockResolvedValueOnce(
+      buildResponse([
+        buildRow({
+          platformAdminRole: 'FUTURE_ADMIN_ROLE',
+          authStatus: 'PENDING_INVITE_SETUP',
+          invitationStatus: 'SENT',
+          inviteId: '83333333-3333-4333-8333-333333333333',
+          allowedActions: {
+            canTransferSuperAdmin: true,
+            canDemote: true,
+            canResendInvite: true,
+          },
+        }),
+      ]),
+    );
+
+    renderPage('SUPER_ADMIN');
+
+    const unknownRole = await screen.findByRole('cell', { name: 'Unknown role' });
+    const row = unknownRole.closest('tr');
+
+    expect(row).not.toBeNull();
+    expect(
+      within(row!).queryByRole('button', { name: 'Resend invitation' }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(row!).queryByRole('button', { name: 'Transfer super administrator role' }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(row!).queryByRole('button', { name: 'Demote administrator' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('submits one invitation, reloads the list, and shows success feedback', async () => {
     mockGetPlatformAdmins.mockResolvedValue(buildResponse([buildRow()]));
     const invitation = createDeferred<InvitePlatformAdminResponseDto>();
@@ -836,6 +870,7 @@ describe('PlatformAdministratorsPage', () => {
       id: targetId,
       firstName: 'Target',
       lastName: 'Name',
+      email: 'target@example.com',
       platformAdminRole: 'NORMAL_ADMIN',
       allowedActions: {
         canTransferSuperAdmin: true,
@@ -868,6 +903,9 @@ describe('PlatformAdministratorsPage', () => {
 
     const modal = document.getElementById('popup-modal');
     expect(modal).not.toBeNull();
+    expect(modal).toHaveTextContent(
+      'Transfer the super administrator role to Target Name (target@example.com).',
+    );
 
     const submit = within(modal!).getByRole('button', {
       name: 'Transfer super administrator role',
@@ -1009,6 +1047,7 @@ describe('PlatformAdministratorsPage', () => {
       id: targetId,
       firstName: 'Demote',
       lastName: 'Target',
+      email: 'demote@example.com',
       platformAdminRole: 'NORMAL_ADMIN',
       allowedActions: {
         canTransferSuperAdmin: false,
@@ -1029,6 +1068,9 @@ describe('PlatformAdministratorsPage', () => {
 
     const modal = document.getElementById('popup-modal');
     expect(modal).not.toBeNull();
+    expect(modal).toHaveTextContent(
+      'Remove platform administrator privileges from Demote Target (demote@example.com)? Their active sessions will be revoked.',
+    );
 
     fireEvent.change(screen.getByLabelText('Password', { selector: 'input' }), {
       target: { value: 'current-password' },
@@ -1056,7 +1098,7 @@ describe('PlatformAdministratorsPage', () => {
 
     demotion.resolve({
       userId: targetId,
-      email: 'ada@example.com',
+      email: 'demote@example.com',
       adminStatus: 'DISABLED',
       authStatus: 'ACTIVE',
     });

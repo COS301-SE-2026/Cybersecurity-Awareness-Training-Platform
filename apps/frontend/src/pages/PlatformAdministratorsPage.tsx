@@ -39,6 +39,7 @@ type DisplayAdministrator = {
   lastName: string;
   fullName: string;
   email: string;
+  platformAdminRole: string;
   role: DisplayRole;
   status: DisplayStatus;
   inviteId: string | null;
@@ -52,6 +53,10 @@ type SelectedActionTarget = {
   email: string;
   name: string;
 };
+
+function isRecognisedPlatformAdminRole(platformAdminRole: string): boolean {
+  return platformAdminRole === 'SUPER_ADMIN' || platformAdminRole === 'NORMAL_ADMIN';
+}
 
 function getDisplayRole(platformAdminRole: string): DisplayRole {
   if (platformAdminRole === 'SUPER_ADMIN') {
@@ -113,6 +118,7 @@ function toDisplayAdministrator(administrator: PlatformAdminListItemDto): Displa
     lastName,
     fullName: fullName || 'Not provided',
     email: administrator.email,
+    platformAdminRole: administrator.platformAdminRole,
     role: getDisplayRole(administrator.platformAdminRole),
     status: getDisplayStatus(administrator),
     inviteId: administrator.inviteId,
@@ -467,17 +473,20 @@ function PlatformAdministratorsPage() {
   };
 
   const canResendAdministratorInvite = (administrator: DisplayAdministrator) =>
+    isRecognisedPlatformAdminRole(administrator.platformAdminRole) &&
     administrator.status !== 'Unknown status' &&
     canResendInvites &&
     administrator.allowedActions.canResendInvite &&
     administrator.inviteId !== null;
 
   const canTransferToAdministrator = (administrator: DisplayAdministrator) =>
+    isRecognisedPlatformAdminRole(administrator.platformAdminRole) &&
     administrator.status !== 'Unknown status' &&
     canTransfer &&
     administrator.allowedActions.canTransferSuperAdmin;
 
   const canDemoteAdministrator = (administrator: DisplayAdministrator) =>
+    isRecognisedPlatformAdminRole(administrator.platformAdminRole) &&
     administrator.status !== 'Unknown status' &&
     canDemote &&
     administrator.allowedActions.canDemote;
@@ -678,7 +687,7 @@ function PlatformAdministratorsPage() {
     });
     setConfirmationTitle('Demote administrator');
     setConfirmationMessage(
-      `Remove platform administrator privileges from ${administrator.fullName}?`,
+      `Remove platform administrator privileges from ${administrator.fullName} (${administrator.email})? Their active sessions will be revoked.`,
     );
     setConfirmationButtonText('Demote administrator');
     setConfirmationVariant('danger');
@@ -1097,6 +1106,7 @@ function PlatformAdministratorsPage() {
         <TransferSuperAdministratorRoleModal
           isOpen={showTransferSuperAdminModal}
           targetName={selectedActionTarget.name}
+          targetEmail={selectedActionTarget.email}
           password={transferPassword}
           confirmation={transferConfirmation}
           errorMessage={transferError}

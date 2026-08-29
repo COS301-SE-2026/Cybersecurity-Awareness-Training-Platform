@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 type TransferSuperAdministratorRoleModalProps = Readonly<{
   isOpen: boolean;
   targetName: string;
+  targetEmail: string;
   password: string;
   confirmation: string;
   errorMessage: string | null;
@@ -17,6 +18,7 @@ type TransferSuperAdministratorRoleModalProps = Readonly<{
 function TransferSuperAdministratorRoleModal({
   isOpen,
   targetName,
+  targetEmail,
   password,
   confirmation,
   errorMessage,
@@ -85,7 +87,8 @@ function TransferSuperAdministratorRoleModal({
             </h3>
 
             <h3 className="mb-4 text-body text-dark-pink font-medium font-overpass text-[1.1rem] tracking-wider">
-              Transfer the super administrator role to <strong>{targetName}</strong>.
+              Transfer the super administrator role to <strong>{targetName}</strong> ({targetEmail}
+              ).
             </h3>
 
             <div className="mb-4 text-left">
