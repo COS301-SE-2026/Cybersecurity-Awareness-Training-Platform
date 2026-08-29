@@ -157,7 +157,7 @@ function CampaignManagementListPage({
     context.kind === 'platform' || permissions.includes('MANAGE_CAMPAIGNS');
 
   return (
-    <AppLayout>
+    <AppLayout contentStyle={{ backgroundColor: 'white' }}>
       <div className="campaign-page" aria-busy={isLoading}>
         <header className="campaign-page__header">
           <h1 className="campaign-page__title">{heading}</h1>

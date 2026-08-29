@@ -690,7 +690,7 @@ function CampaignManagementDetailPage({
                 };
 
   return (
-    <AppLayout>
+    <AppLayout contentStyle={{ backgroundColor: 'white' }}>
       <main className="campaign-detail-shell">
         <Link className="campaign-back-link" to={campaignListPath}>
           <span aria-hidden="true">←</span>
@@ -854,9 +854,10 @@ function CampaignManagementDetailPage({
           canEditDraft &&
           client.activateCampaign && (
             <section className="campaign-lifecycle" aria-label="Campaign activation">
+              <h2>Ready to activate</h2>
               <button
                 type="button"
-                className="campaign-button campaign-button--primary"
+                className="campaign-button campaign-lifecycle__action campaign-lifecycle__action--activate"
                 disabled={!canRequestActivation}
                 onClick={() => setConfirmationIntent('activate')}
               >
@@ -887,10 +888,11 @@ function CampaignManagementDetailPage({
           ((hasArchiveAction && client.archiveCampaign) ||
             (hasReactivateAction && client.reactivateCampaign)) && (
             <section className="campaign-lifecycle" aria-label="Campaign lifecycle actions">
+              <h2>Campaign lifecycle</h2>
               {hasArchiveAction && client.archiveCampaign && (
                 <button
                   type="button"
-                  className="campaign-button campaign-button--primary"
+                  className="campaign-button campaign-lifecycle__action campaign-lifecycle__action--archive"
                   disabled={!canRequestArchive}
                   onClick={() => setConfirmationIntent('archive')}
                 >
@@ -901,7 +903,7 @@ function CampaignManagementDetailPage({
               {hasReactivateAction && client.reactivateCampaign && (
                 <button
                   type="button"
-                  className="campaign-button campaign-button--primary"
+                  className="campaign-button campaign-lifecycle__action campaign-lifecycle__action--reactivate"
                   disabled={!canRequestReactivate}
                   onClick={() => setConfirmationIntent('reactivate')}
                 >

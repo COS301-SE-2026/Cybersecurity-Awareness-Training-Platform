@@ -33,6 +33,12 @@ const TYPE_LABELS: Record<CampaignCatalogueItemDto['type'], string> = {
   SIMULATED_INBOX: 'Simulated Inbox',
 };
 
+const TYPE_CLASS_NAMES: Record<CampaignCatalogueItemDto['type'], string> = {
+  TRAINING_DOCUMENT: 'campaign-item--training-document',
+  QUIZ: 'campaign-item--quiz',
+  SIMULATED_INBOX: 'campaign-item--simulated-inbox',
+};
+
 function CampaignCatalogue({
   state,
   query,
@@ -120,8 +126,8 @@ function CampaignCatalogue({
 
             return (
               <li key={`${item.type}:${item.id}`}>
-                <article className="campaign-catalogue-item">
-                  <span className="campaign-catalogue-item__type">{TYPE_LABELS[item.type]}</span>
+                <article className={`campaign-catalogue-item ${TYPE_CLASS_NAMES[item.type]}`}>
+                  <span className="campaign-item-type">{TYPE_LABELS[item.type]}</span>
                   <h3>{item.title}</h3>
                   {item.description && <p>{item.description}</p>}
                   <span className="campaign-catalogue-item__difficulty">
