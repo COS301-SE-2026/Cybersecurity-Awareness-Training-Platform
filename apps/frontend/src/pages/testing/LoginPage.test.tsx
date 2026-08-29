@@ -1,16 +1,30 @@
 import '@testing-library/jest-dom/vitest';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import LoginPage from '../LoginPage';
 import { ApiError } from '../../lib/apiClient';
+import { useContext } from 'react';
+import type { AuthLoginResponseDto } from '@insightful-phish/shared';
+import { AuthContext, type AuthContextType } from '../../context/auth-context';
+import { AuthProvider } from '../../context/AuthContext';
+import { createDeferred } from '../../testing/render';
 
-const { navigateMock, loginMock, loginUserMock, resendVerificationMock } = vi.hoisted(() => ({
+const {
+  navigateMock,
+  loginMock,
+  loginUserMock,
+  resendVerificationMock,
+  refreshSessionMock,
+  logoutSessionMock,
+} = vi.hoisted(() => ({
   navigateMock: vi.fn(),
   loginMock: vi.fn(),
   loginUserMock: vi.fn(),
   resendVerificationMock: vi.fn(),
+  refreshSessionMock: vi.fn(),
+  logoutSessionMock: vi.fn(),
 }));
 
 vi.mock('react-router-dom', async () => {
@@ -31,6 +45,8 @@ vi.mock('../../context/useAuth', () => ({
 vi.mock('../../services/auth.service', () => ({
   loginUser: loginUserMock,
   resendVerification: resendVerificationMock,
+  refreshSession: refreshSessionMock,
+  logoutSession: logoutSessionMock,
 }));
 
 function renderLoginPage() {
@@ -79,12 +95,13 @@ const successfulAuthResponse = {
     organisation: null,
     permissions: ['GENERAL_TRAINEE'],
     redirectTo: '/trainee/campaigns',
+    platformAdminRole: null,
   },
   permissions: ['GENERAL_TRAINEE'],
   redirectTo: '/trainee/campaigns',
   expiresAt: '2026-01-01T01:00:00.000Z',
   sessionExpiresAt: '2026-01-08T00:00:00.000Z',
-};
+} satisfies AuthLoginResponseDto;
 
 describe('LoginPage', () => {
   beforeEach(() => {
@@ -552,4 +569,172 @@ describe('LoginPage', () => {
       ),
     ).toBeInTheDocument();
   });
+
+  let currentAuthContext: AuthContextType | null = null;
+  const authStorageValues = new Map<string, string>();
+
+  const localStorageMock = {
+    getItem: vi.fn((key: string) => authStorageValues.get(key) ?? null),
+    setItem: vi.fn((key: string, value: string) => {
+      authStorageValues.set(key, value);
+    }),
+    removeItem: vi.fn((key: string) => {
+      authStorageValues.delete(key);
+    }),
+  };
+
+  class TestBroadCastChannel {
+    static instances: TestBroadCastChannel[] = [];
+    onmessage: ((event: MessageEvent) => void) | null = null;
+    readonly postMessage = vi.fn();
+    readonly close = vi.fn();
+    readonly name: string;
+
+    constructor(name: string) {
+      this.name = name;
+      TestBroadCastChannel.instances.push(this);
+    }
+    receive(message: unknown): void {
+      this.onmessage?.({ data: message } as MessageEvent);
+    }
+  }
+
+  const lockRequestMock = vi.fn();
+
+  function AuthContextObserver(): null {
+    currentAuthContext = useContext(AuthContext);
+    return null;
+  }
+  function renderAuthProvider(): void {
+    render(
+      <AuthProvider>
+        {' '}
+        <AuthContextObserver />
+      </AuthProvider>,
+    );
+  }
+
+  const renewedAuthResponse = {
+    ...successfulAuthResponse,
+    accessToken: 'renewed-access-token',
+    token: 'renewed-access-token',
+    expiresAt: '2099-08-29T12:00:00.000Z',
+    sessionExpiresAt: '2099-08-29T12:00:00.000Z',
+  } satisfies AuthLoginResponseDto;
+
+  describe('AuthProvider renewal', () => {
+    beforeEach(() => {
+      authStorageValues.clear();
+      currentAuthContext = null;
+      TestBroadCastChannel.instances.length = 0;
+      refreshSessionMock.mockReset();
+      refreshSessionMock.mockResolvedValue(renewedAuthResponse);
+      logoutSessionMock.mockReset();
+      logoutSessionMock.mockResolvedValue({ success: true });
+      lockRequestMock.mockReset();
+      lockRequestMock.mockImplementation(async (_name: string, callback: () => Promise<void>) =>
+        callback(),
+      );
+      vi.stubGlobal('localStorage', localStorageMock);
+      vi.stubGlobal('BroadcastChannel', TestBroadCastChannel);
+      vi.stubGlobal('navigator', { locks: { request: lockRequestMock } });
+    }); //beforeEach
+
+    it('confirms stored authentication through and after refresh', async () => {
+      authStorageValues.set('token', 'stored-access-token');
+      authStorageValues.set('user', JSON.stringify(successfulAuthResponse.user));
+      authStorageValues.set('expiresAt', '2099-08-29T11:00:00.000Z');
+      renderAuthProvider();
+
+      await waitFor(() => {
+        expect(currentAuthContext?.isAuthLoading).toBe(false);
+      });
+      expect(refreshSessionMock).toHaveBeenCalledTimes(1);
+      expect(lockRequestMock).toHaveBeenCalledWith(
+        'insightful-phish-refresh',
+        expect.any(Function),
+      );
+      expect(currentAuthContext?.token).toBe('renewed-access-token');
+      expect(currentAuthContext?.idleTimeoutMinutes).toBe(30);
+    });
+
+    it('handles concurrent renewal calls properly in one tab', async () => {
+      renderAuthProvider();
+
+      await waitFor(() => {
+        expect(currentAuthContext?.isAuthLoading).toBe(false);
+      });
+
+      refreshSessionMock.mockReset();
+
+      const deferredRefresh = createDeferred<AuthLoginResponseDto>();
+      refreshSessionMock.mockResolvedValue(deferredRefresh.promise);
+
+      let firstRenewal!: Promise<void>;
+      let secondRenewal!: Promise<void>;
+
+      act(() => {
+        firstRenewal = currentAuthContext!.renewSession();
+        secondRenewal = currentAuthContext!.renewSession();
+      });
+
+      expect(refreshSessionMock).toHaveBeenCalledTimes(1);
+      deferredRefresh.resolve(renewedAuthResponse);
+
+      await act(async () => {
+        await Promise.all([firstRenewal, secondRenewal]);
+      });
+    });
+
+    it('syncs auth messages from another tab', async () => {
+      renderAuthProvider();
+      await waitFor(() => {
+        expect(currentAuthContext?.isAuthLoading).toBe(false);
+      });
+
+      refreshSessionMock.mockClear();
+
+      const channelResponse = {
+        ...renewedAuthResponse,
+        accessToken: 'channel-access-token',
+        token: 'channel-access-token',
+      } satisfies AuthLoginResponseDto;
+
+      act(() => {
+        TestBroadCastChannel.instances[0].receive({
+          type: 'AUTH_UPDATED',
+          authResponse: channelResponse,
+        });
+      });
+
+      expect(currentAuthContext?.token).toBe('channel-access-token');
+      expect(refreshSessionMock).not.toHaveBeenCalled();
+
+      act(() => {
+        TestBroadCastChannel.instances[0].receive({ type: 'SIGNED_OUT' });
+      });
+      expect(currentAuthContext?.isAuthenticated).toBe(false);
+      expect(currentAuthContext?.token).toBeNull();
+      expect(logoutSessionMock).not.toHaveBeenCalled();
+    });
+
+    it('clears auth when renewal fails', async () => {
+      renderAuthProvider();
+      await waitFor(() => {
+        expect(currentAuthContext?.isAuthLoading).toBe(false);
+      });
+
+      refreshSessionMock.mockRejectedValueOnce(new Error('Refresh failed'));
+
+      await act(async () => {
+        await expect(currentAuthContext!.renewSession()).rejects.toThrow('Refresh failed');
+      });
+
+      expect(currentAuthContext?.isAuthenticated).toBe(false);
+      expect(currentAuthContext?.token).toBeNull();
+      expect(TestBroadCastChannel.instances[0].postMessage).toHaveBeenCalledWith({
+        type: 'SIGNED_OUT',
+      });
+    });
+  }); //AuthProvider renewal
 });
