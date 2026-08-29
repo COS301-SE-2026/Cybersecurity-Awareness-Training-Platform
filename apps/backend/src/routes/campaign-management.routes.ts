@@ -4,6 +4,7 @@ import {
   campaignCatalogueQuerySchema,
   campaignListQuerySchema,
   campaignMutationPreconditionSchema,
+  campaignStatisticsQuerySchema,
   createCampaignDraftRequestSchema,
   updateCampaignDraftRequestSchema,
   idParamSchema,
@@ -22,6 +23,7 @@ import {
   createPlatformCampaignDraftHandler,
   getOrganisationCampaignCatalogueHandler,
   getOrganisationCampaignDetailHandler,
+  getOrganisationCampaignStatisticsHandler,
   getOrganisationCampaignsHandler,
   getPlatformCampaignCatalogueHandler,
   getPlatformCampaignDetailHandler,
@@ -307,6 +309,69 @@ campaignManagementRouter.get(
   requireAuth,
   validateParams(organisationAndCampaignIdParamsSchema),
   asyncHandler(getOrganisationCampaignDetailHandler),
+);
+
+/**
+ * @openapi
+ * /organisations/{organisationId}/campaigns/{campaignId}/statistics:
+ *   get:
+ *     tags: [Campaign Management]
+ *     summary: Get organisation campaign statistics
+ *     description: >
+ *       Defines the final campaign statistics response contract. Runtime aggregation
+ *       is deferred to #500; until that implementation is merged, an authorised
+ *       request returns 501 NOT_IMPLEMENTED. Summary values are calculated across
+ *       the complete qualifying assignment cohort before trainee pagination is
+ *       applied. Disabled Organisation Trainees remain in the cohort while their
+ *       campaign assignment exists. CampaignAssignment.startedAt is not used as the
+ *       statistics source of truth. VIEW_CAMPAIGNS authorises the read, and
+ *       MANAGE_CAMPAIGNS satisfies view access.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/OrganisationIdPathParam'
+ *       - $ref: '#/components/parameters/CampaignIdPathParam'
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100000
+ *           default: 1
+ *         description: 1-based page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 20
+ *         description: Maximum records per page
+ *     responses:
+ *       200:
+ *         $ref: '#/components/responses/GetCampaignStatisticsOk'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       422:
+ *         $ref: '#/components/responses/UnprocessableEntity'
+ *       429:
+ *         $ref: '#/components/responses/CampaignManagementRateLimited'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ *       501:
+ *         $ref: '#/components/responses/CampaignStatisticsNotImplemented'
+ */
+campaignManagementRouter.get(
+  '/organisations/:organisationId/campaigns/:campaignId/statistics',
+  campaignManagementRateLimit,
+  requireAuth,
+  validateParams(organisationAndCampaignIdParamsSchema, { statusCode: 422 }),
+  validateQuery(campaignStatisticsQuerySchema, { statusCode: 422 }),
+  asyncHandler(getOrganisationCampaignStatisticsHandler),
 );
 
 /**

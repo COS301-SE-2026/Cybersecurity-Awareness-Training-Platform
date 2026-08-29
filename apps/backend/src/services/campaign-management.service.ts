@@ -6,9 +6,11 @@ import type {
   CampaignListQueryDto,
   CampaignListRowDto,
   CampaignMutationPreconditionDto,
+  CampaignStatisticsQueryDto,
   CreateCampaignDraftRequestDto,
   GetCampaignCatalogueResponseDto,
   GetCampaignsResponseDto,
+  GetCampaignStatisticsResponseDto,
   PaginationMetadataDto,
   UpdateCampaignDraftRequestDto,
 } from '@insightful-phish/shared';
@@ -435,7 +437,7 @@ function validateDraftStructure(items: CreateCampaignDraftRequestDto['items']): 
   };
 
   for (const item of items) {
-    if (item.campaignItemId) {
+    if (item.itemType === 'GROUP' && item.campaignItemId) {
       if (seenItemIds.has(item.campaignItemId)) {
         throw new CampaignManagementServiceError(
           422,
@@ -851,4 +853,19 @@ export async function reactivatePlatformCampaign(
     },
     fetchDetail: (act, id) => getPlatformCampaignDetail(act, id),
   });
+}
+
+export async function getOrganisationCampaignStatistics(
+  actor: UserActorContext,
+  organisationId: string,
+  _campaignId: string,
+  _query: CampaignStatisticsQueryDto,
+): Promise<GetCampaignStatisticsResponseDto> {
+  await validateOrganisationAdminActor(actor, organisationId, 'VIEW_CAMPAIGNS');
+
+  throw new CampaignManagementServiceError(
+    501,
+    'NOT_IMPLEMENTED',
+    'Organisation campaign statistics runtime implementation is scheduled for #500',
+  );
 }
