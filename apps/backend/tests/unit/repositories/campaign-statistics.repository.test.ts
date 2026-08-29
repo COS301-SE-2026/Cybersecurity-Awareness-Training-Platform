@@ -49,15 +49,15 @@ describe('CampaignStatisticsRepository', () => {
     it('returns mapped campaign entity with all items including GROUP, COMPONENT, and simulation inbox emails', async () => {
       vi.mocked(prisma.campaign.findFirst).mockResolvedValue({
         id: campaignId,
-        name: 'Test Campaign',
-        description: 'Test Description',
+        name: 'Repo Campaign',
+        description: 'Repo Desc',
         campaignType: 'ORGANISATION_CUSTOM',
         status: 'ACTIVE',
         startDate: new Date('2026-09-01T00:00:00.000Z'),
         endDate: new Date('2026-09-30T23:59:59.000Z'),
         items: [
           {
-            id: 'item-group-1',
+            id: 'g-1',
             itemType: 'GROUP',
             componentType: null,
             isRequired: true,
@@ -67,38 +67,34 @@ describe('CampaignStatisticsRepository', () => {
             simulation: null,
           },
           {
-            id: 'item-doc-1',
+            id: 'd-1',
             itemType: 'COMPONENT',
             componentType: 'TRAINING_DOCUMENT',
             isRequired: true,
-            trainingDocumentId: 'doc-1',
+            trainingDocumentId: 'doc-10',
             quizId: null,
             simulationId: null,
             simulation: null,
           },
           {
-            id: 'item-quiz-1',
+            id: 'q-1',
             itemType: 'COMPONENT',
             componentType: 'QUIZ',
             isRequired: false,
             trainingDocumentId: null,
-            quizId: 'quiz-1',
+            quizId: 'quiz-20',
             simulationId: null,
             simulation: null,
           },
           {
-            id: 'item-sim-1',
+            id: 's-1',
             itemType: 'COMPONENT',
             componentType: 'SIMULATED_INBOX',
             isRequired: true,
             trainingDocumentId: null,
             quizId: null,
-            simulationId: 'sim-1',
-            simulation: {
-              simulatedInbox: {
-                emails: [{ id: 'email-1' }, { id: 'email-2' }],
-              },
-            },
+            simulationId: 'sim-30',
+            simulation: { simulatedInbox: { emails: [{ id: 'em-1' }, { id: 'em-2' }] } },
           },
         ],
       } as unknown as Awaited<ReturnType<typeof prisma.campaign.findFirst>>);
@@ -106,15 +102,15 @@ describe('CampaignStatisticsRepository', () => {
       const result = await findCampaignWithItems(organisationId, campaignId);
       expect(result).toEqual({
         id: campaignId,
-        name: 'Test Campaign',
-        description: 'Test Description',
+        name: 'Repo Campaign',
+        description: 'Repo Desc',
         campaignType: 'ORGANISATION_CUSTOM',
         status: 'ACTIVE',
         startDate: new Date('2026-09-01T00:00:00.000Z'),
         endDate: new Date('2026-09-30T23:59:59.000Z'),
         items: [
           {
-            id: 'item-group-1',
+            id: 'g-1',
             itemType: 'GROUP',
             componentType: null,
             isRequired: true,
@@ -124,34 +120,34 @@ describe('CampaignStatisticsRepository', () => {
             simulatedInboxEmailIds: [],
           },
           {
-            id: 'item-doc-1',
+            id: 'd-1',
             itemType: 'COMPONENT',
             componentType: 'TRAINING_DOCUMENT',
             isRequired: true,
-            trainingDocumentId: 'doc-1',
+            trainingDocumentId: 'doc-10',
             quizId: null,
             simulationId: null,
             simulatedInboxEmailIds: [],
           },
           {
-            id: 'item-quiz-1',
+            id: 'q-1',
             itemType: 'COMPONENT',
             componentType: 'QUIZ',
             isRequired: false,
             trainingDocumentId: null,
-            quizId: 'quiz-1',
+            quizId: 'quiz-20',
             simulationId: null,
             simulatedInboxEmailIds: [],
           },
           {
-            id: 'item-sim-1',
+            id: 's-1',
             itemType: 'COMPONENT',
             componentType: 'SIMULATED_INBOX',
             isRequired: true,
             trainingDocumentId: null,
             quizId: null,
-            simulationId: 'sim-1',
-            simulatedInboxEmailIds: ['email-1', 'email-2'],
+            simulationId: 'sim-30',
+            simulatedInboxEmailIds: ['em-1', 'em-2'],
           },
         ],
       });
@@ -163,8 +159,8 @@ describe('CampaignStatisticsRepository', () => {
       const now = new Date('2026-08-01T10:00:00.000Z');
       vi.mocked(prisma.campaignAssignment.findMany).mockResolvedValue([
         {
-          id: 'asg-1',
-          traineeProfileId: 'trainee-1',
+          id: 'asg-active',
+          traineeProfileId: 'tp-1',
           assignmentStatus: 'IN_PROGRESS',
           accessType: 'ASSIGNED',
           assignedAt: now,
@@ -174,8 +170,8 @@ describe('CampaignStatisticsRepository', () => {
           },
         },
         {
-          id: 'asg-2',
-          traineeProfileId: 'trainee-2',
+          id: 'asg-disabled',
+          traineeProfileId: 'tp-2',
           assignmentStatus: 'COMPLETED',
           accessType: 'SELF_SELECTED',
           assignedAt: now,
@@ -189,8 +185,8 @@ describe('CampaignStatisticsRepository', () => {
       const result = await findCampaignCohortAssignments(organisationId, campaignId);
       expect(result).toEqual([
         {
-          assignmentId: 'asg-1',
-          traineeProfileId: 'trainee-1',
+          assignmentId: 'asg-active',
+          traineeProfileId: 'tp-1',
           firstName: 'Alice',
           lastName: 'Ndlovu',
           email: 'alice@example.com',
@@ -200,8 +196,8 @@ describe('CampaignStatisticsRepository', () => {
           assignedAt: now,
         },
         {
-          assignmentId: 'asg-2',
-          traineeProfileId: 'trainee-2',
+          assignmentId: 'asg-disabled',
+          traineeProfileId: 'tp-2',
           firstName: 'Bob',
           lastName: 'Khumalo',
           email: 'bob@example.com',
@@ -216,69 +212,61 @@ describe('CampaignStatisticsRepository', () => {
 
   describe('findCampaignProgressFacts', () => {
     it('returns empty results when traineeProfileIds, assignmentIds, or item IDs are empty', async () => {
-      const result1 = await findCampaignProgressFacts({
+      const r1 = await findCampaignProgressFacts({
         traineeProfileIds: [],
         assignmentIds: ['asg-1'],
         trainingItemIds: ['item-1'],
         quizItemIds: [],
         simulationItemIds: [],
       });
-      expect(result1).toEqual({
-        trainingEvents: [],
-        quizAttempts: [],
-        simulatedEmailEvents: [],
-      });
+      expect(r1).toEqual({ trainingEvents: [], quizAttempts: [], simulatedEmailEvents: [] });
 
-      const result2 = await findCampaignProgressFacts({
-        traineeProfileIds: ['trainee-1'],
+      const r2 = await findCampaignProgressFacts({
+        traineeProfileIds: ['tp-1'],
         assignmentIds: ['asg-1'],
         trainingItemIds: [],
         quizItemIds: [],
         simulationItemIds: [],
       });
-      expect(result2).toEqual({
-        trainingEvents: [],
-        quizAttempts: [],
-        simulatedEmailEvents: [],
-      });
+      expect(r2).toEqual({ trainingEvents: [], quizAttempts: [], simulatedEmailEvents: [] });
     });
 
     it('queries facts strictly scoped to assignment and campaign item IDs without cross-campaign bleed', async () => {
       vi.mocked(prisma.interactionEvent.findMany)
         .mockResolvedValueOnce([
           {
-            traineeProfileId: 'trainee-1',
+            traineeProfileId: 'tp-1',
             campaignAssignmentId: 'asg-1',
-            campaignItemId: 'item-doc-1',
+            campaignItemId: 'd-1',
             trainingDocumentId: 'doc-1',
             eventType: 'TRAINING_COMPLETED',
           },
         ] as unknown as Awaited<ReturnType<typeof prisma.interactionEvent.findMany>>)
         .mockResolvedValueOnce([
           {
-            traineeProfileId: 'trainee-1',
+            traineeProfileId: 'tp-1',
             campaignAssignmentId: 'asg-1',
-            campaignItemId: 'item-sim-1',
-            simulatedEmailId: 'email-1',
-            targetId: 'email-1',
+            campaignItemId: 's-1',
+            simulatedEmailId: 'em-1',
+            targetId: 'em-1',
           },
         ] as unknown as Awaited<ReturnType<typeof prisma.interactionEvent.findMany>>);
 
       vi.mocked(prisma.quizAttempt.findMany).mockResolvedValueOnce([
         {
-          id: 'attempt-1',
-          traineeProfileId: 'trainee-1',
+          id: 'att-1',
+          traineeProfileId: 'tp-1',
           campaignAssignmentId: 'asg-1',
-          campaignItemId: 'item-quiz-1',
+          campaignItemId: 'q-1',
           quizId: 'quiz-1',
           status: 'SUBMITTED',
           quizResult: { scorePercentage: 85 },
         },
         {
-          id: 'attempt-2',
-          traineeProfileId: 'trainee-1',
+          id: 'att-2',
+          traineeProfileId: 'tp-1',
           campaignAssignmentId: 'asg-1',
-          campaignItemId: 'item-quiz-2',
+          campaignItemId: 'q-2',
           quizId: 'quiz-2',
           status: 'SUBMITTED',
           quizResult: null,
@@ -286,18 +274,18 @@ describe('CampaignStatisticsRepository', () => {
       ] as unknown as Awaited<ReturnType<typeof prisma.quizAttempt.findMany>>);
 
       const result = await findCampaignProgressFacts({
-        traineeProfileIds: ['trainee-1'],
+        traineeProfileIds: ['tp-1'],
         assignmentIds: ['asg-1'],
-        trainingItemIds: ['item-doc-1'],
-        quizItemIds: ['item-quiz-1', 'item-quiz-2'],
-        simulationItemIds: ['item-sim-1'],
+        trainingItemIds: ['d-1'],
+        quizItemIds: ['q-1', 'q-2'],
+        simulationItemIds: ['s-1'],
       });
 
       expect(prisma.interactionEvent.findMany).toHaveBeenCalledWith({
         where: {
-          traineeProfileId: { in: ['trainee-1'] },
+          traineeProfileId: { in: ['tp-1'] },
           campaignAssignmentId: { in: ['asg-1'] },
-          campaignItemId: { in: ['item-doc-1'] },
+          campaignItemId: { in: ['d-1'] },
           eventType: { in: ['TRAINING_VIEWED', 'TRAINING_COMPLETED'] },
         },
         select: expect.any(Object),
@@ -305,9 +293,9 @@ describe('CampaignStatisticsRepository', () => {
 
       expect(prisma.quizAttempt.findMany).toHaveBeenCalledWith({
         where: {
-          traineeProfileId: { in: ['trainee-1'] },
+          traineeProfileId: { in: ['tp-1'] },
           campaignAssignmentId: { in: ['asg-1'] },
-          campaignItemId: { in: ['item-quiz-1', 'item-quiz-2'] },
+          campaignItemId: { in: ['q-1', 'q-2'] },
           status: { in: ['IN_PROGRESS', 'SUBMITTED'] },
         },
         select: expect.any(Object),
@@ -315,27 +303,27 @@ describe('CampaignStatisticsRepository', () => {
 
       expect(result.trainingEvents).toEqual([
         {
-          traineeProfileId: 'trainee-1',
+          traineeProfileId: 'tp-1',
           campaignAssignmentId: 'asg-1',
-          campaignItemId: 'item-doc-1',
+          campaignItemId: 'd-1',
           trainingDocumentId: 'doc-1',
           eventType: 'TRAINING_COMPLETED',
         },
       ]);
       expect(result.quizAttempts).toEqual([
         {
-          traineeProfileId: 'trainee-1',
+          traineeProfileId: 'tp-1',
           campaignAssignmentId: 'asg-1',
-          campaignItemId: 'item-quiz-1',
+          campaignItemId: 'q-1',
           quizId: 'quiz-1',
           status: 'SUBMITTED',
           hasResult: true,
           scorePercentage: 85,
         },
         {
-          traineeProfileId: 'trainee-1',
+          traineeProfileId: 'tp-1',
           campaignAssignmentId: 'asg-1',
-          campaignItemId: 'item-quiz-2',
+          campaignItemId: 'q-2',
           quizId: 'quiz-2',
           status: 'SUBMITTED',
           hasResult: false,
@@ -344,11 +332,11 @@ describe('CampaignStatisticsRepository', () => {
       ]);
       expect(result.simulatedEmailEvents).toEqual([
         {
-          traineeProfileId: 'trainee-1',
+          traineeProfileId: 'tp-1',
           campaignAssignmentId: 'asg-1',
-          campaignItemId: 'item-sim-1',
-          simulatedEmailId: 'email-1',
-          targetId: 'email-1',
+          campaignItemId: 's-1',
+          simulatedEmailId: 'em-1',
+          targetId: 'em-1',
         },
       ]);
     });

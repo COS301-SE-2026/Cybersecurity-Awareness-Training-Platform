@@ -37,6 +37,48 @@ describe('CampaignManagementService Unit Tests', () => {
     >);
   }
 
+  function makeItem(
+    id: string,
+    itemType: 'COMPONENT' | 'GROUP',
+    componentType: 'TRAINING_DOCUMENT' | 'QUIZ' | 'SIMULATED_INBOX' | null,
+    isRequired = true,
+    extra: { docId?: string; quizId?: string; emailIds?: string[] } = {},
+  ): CampaignStatisticsRepository.CampaignItemFact {
+    return {
+      id,
+      itemType,
+      componentType,
+      isRequired,
+      trainingDocumentId: extra.docId ?? null,
+      quizId: extra.quizId ?? null,
+      simulationId: componentType === 'SIMULATED_INBOX' ? 'sim-ref' : null,
+      simulatedInboxEmailIds: extra.emailIds ?? [],
+    };
+  }
+
+  function makeAssignment(
+    assignmentId: string,
+    traineeProfileId: string,
+    firstName: string,
+    lastName: string,
+    email: string,
+    traineeStatus: 'ACTIVE' | 'DISABLED' | 'INACTIVE' = 'ACTIVE',
+    assignmentStatus: 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' = 'IN_PROGRESS',
+    accessType: 'ASSIGNED' | 'SELF_SELECTED' = 'ASSIGNED',
+  ): CampaignStatisticsRepository.CampaignStatisticsAssignmentEntity {
+    return {
+      assignmentId,
+      traineeProfileId,
+      firstName,
+      lastName,
+      email,
+      traineeStatus,
+      assignmentStatus,
+      accessType,
+      assignedAt: new Date('2026-08-01T10:00:00.000Z'),
+    };
+  }
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -184,51 +226,22 @@ describe('CampaignManagementService Unit Tests', () => {
         startDate: null,
         endDate: null,
         items: [
-          {
-            id: 'group-item-1',
-            itemType: 'GROUP',
-            componentType: null,
-            isRequired: true,
-            trainingDocumentId: null,
-            quizId: null,
-            simulationId: null,
-            simulatedInboxEmailIds: [],
-          },
-          {
-            id: 'item-doc-1',
-            itemType: 'COMPONENT',
-            componentType: 'TRAINING_DOCUMENT',
-            isRequired: true,
-            trainingDocumentId: 'doc-1',
-            quizId: null,
-            simulationId: null,
-            simulatedInboxEmailIds: [],
-          },
-          {
-            id: 'item-quiz-optional',
-            itemType: 'COMPONENT',
-            componentType: 'QUIZ',
-            isRequired: false,
-            trainingDocumentId: null,
-            quizId: 'quiz-1',
-            simulationId: null,
-            simulatedInboxEmailIds: [],
-          },
+          makeItem('grp-1', 'GROUP', null, true),
+          makeItem('c-doc-1', 'COMPONENT', 'TRAINING_DOCUMENT', true, { docId: 'doc-1' }),
+          makeItem('c-quiz-opt', 'COMPONENT', 'QUIZ', false, { quizId: 'quiz-1' }),
         ],
       });
 
       vi.mocked(CampaignStatisticsRepository.findCampaignCohortAssignments).mockResolvedValue([
-        {
-          assignmentId: '55555555-0001-4555-8555-555555555555',
-          traineeProfileId: '11111111-1111-4111-8111-111111111111',
-          firstName: 'Alice',
-          lastName: 'Ndlovu',
-          email: 'alice@example.com',
-          traineeStatus: 'ACTIVE',
-          assignmentStatus: 'ASSIGNED',
-          accessType: 'ASSIGNED',
-          assignedAt: new Date('2026-08-01T10:00:00.000Z'),
-        },
+        makeAssignment(
+          '55555555-0001-4555-8555-555555555555',
+          '11111111-1111-4111-8111-111111111111',
+          'Alice',
+          'Ndlovu',
+          'alice@example.com',
+          'ACTIVE',
+          'ASSIGNED',
+        ),
       ]);
 
       vi.mocked(CampaignStatisticsRepository.findCampaignProgressFacts).mockResolvedValue({
@@ -244,7 +257,6 @@ describe('CampaignManagementService Unit Tests', () => {
         { page: 1, limit: 20 },
       );
 
-      // GROUP is excluded, doc + optional quiz = 2 consumable items, 1 quiz
       expect(result.campaign.itemCount).toBe(2);
       expect(result.campaign.quizCount).toBe(1);
       expect(result.trainees[0].progress.totalItemCount).toBe(2);
@@ -262,66 +274,49 @@ describe('CampaignManagementService Unit Tests', () => {
         status: 'ACTIVE',
         startDate: null,
         endDate: null,
-        items: [
-          {
-            id: 'item-quiz-1',
-            itemType: 'COMPONENT',
-            componentType: 'QUIZ',
-            isRequired: true,
-            trainingDocumentId: null,
-            quizId: 'quiz-1',
-            simulationId: null,
-            simulatedInboxEmailIds: [],
-          },
-        ],
+        items: [makeItem('c-quiz-main', 'COMPONENT', 'QUIZ', true, { quizId: 'quiz-1' })],
       });
 
       const traineeBob = '11111111-1111-4111-8111-111111111111';
       const traineeCharlie = '22222222-2222-4222-8222-222222222222';
 
       vi.mocked(CampaignStatisticsRepository.findCampaignCohortAssignments).mockResolvedValue([
-        {
-          assignmentId: '55555555-0001-4555-8555-555555555551',
-          traineeProfileId: traineeBob,
-          firstName: 'Bob',
-          lastName: 'Smith',
-          email: 'bob@example.com',
-          traineeStatus: 'ACTIVE',
-          assignmentStatus: 'IN_PROGRESS',
-          accessType: 'ASSIGNED',
-          assignedAt: new Date('2026-08-01T10:00:00.000Z'),
-        },
-        {
-          assignmentId: '55555555-0002-4555-8555-555555555552',
-          traineeProfileId: traineeCharlie,
-          firstName: 'Charlie',
-          lastName: 'Mokoena',
-          email: 'charlie@example.com',
-          traineeStatus: 'ACTIVE',
-          assignmentStatus: 'COMPLETED',
-          accessType: 'ASSIGNED',
-          assignedAt: new Date('2026-08-01T10:00:00.000Z'),
-        },
+        makeAssignment(
+          '55555555-0001-4555-8555-555555555551',
+          traineeBob,
+          'Bob',
+          'Smith',
+          'bob@example.com',
+          'ACTIVE',
+          'IN_PROGRESS',
+        ),
+        makeAssignment(
+          '55555555-0002-4555-8555-555555555552',
+          traineeCharlie,
+          'Charlie',
+          'Mokoena',
+          'charlie@example.com',
+          'ACTIVE',
+          'COMPLETED',
+        ),
       ]);
 
       vi.mocked(CampaignStatisticsRepository.findCampaignProgressFacts).mockResolvedValue({
         trainingEvents: [],
         quizAttempts: [
-          // Bob: SUBMITTED without result (legacy/inconsistent data) -> NOT completed, score null
           {
             traineeProfileId: traineeBob,
             campaignAssignmentId: '55555555-0001-4555-8555-555555555551',
-            campaignItemId: 'item-quiz-1',
+            campaignItemId: 'c-quiz-main',
             quizId: 'quiz-1',
             status: 'SUBMITTED',
             hasResult: false,
             scorePercentage: null,
           },
-          // Charlie: SUBMITTED with valid result of 0% -> IS completed, score 0
           {
             traineeProfileId: traineeCharlie,
             campaignAssignmentId: '55555555-0002-4555-8555-555555555552',
-            campaignItemId: 'item-quiz-1',
+            campaignItemId: 'c-quiz-main',
             quizId: 'quiz-1',
             status: 'SUBMITTED',
             hasResult: true,
@@ -359,7 +354,6 @@ describe('CampaignManagementService Unit Tests', () => {
       const sharedDocId = 'doc-shared-1';
       const sharedQuizId = 'quiz-shared-1';
 
-      // Campaign 1 uses shared doc & quiz
       vi.mocked(CampaignStatisticsRepository.findCampaignWithItems).mockResolvedValue({
         id: campaign1Id,
         name: 'Campaign 1',
@@ -369,26 +363,8 @@ describe('CampaignManagementService Unit Tests', () => {
         startDate: null,
         endDate: null,
         items: [
-          {
-            id: 'c1-item-doc',
-            itemType: 'COMPONENT',
-            componentType: 'TRAINING_DOCUMENT',
-            isRequired: true,
-            trainingDocumentId: sharedDocId,
-            quizId: null,
-            simulationId: null,
-            simulatedInboxEmailIds: [],
-          },
-          {
-            id: 'c1-item-quiz',
-            itemType: 'COMPONENT',
-            componentType: 'QUIZ',
-            isRequired: true,
-            trainingDocumentId: null,
-            quizId: sharedQuizId,
-            simulationId: null,
-            simulatedInboxEmailIds: [],
-          },
+          makeItem('c1-item-doc', 'COMPONENT', 'TRAINING_DOCUMENT', true, { docId: sharedDocId }),
+          makeItem('c1-item-quiz', 'COMPONENT', 'QUIZ', true, { quizId: sharedQuizId }),
         ],
       });
 
@@ -397,24 +373,19 @@ describe('CampaignManagementService Unit Tests', () => {
       const assignment2Id = '55555555-0002-4555-8555-555555555552';
 
       vi.mocked(CampaignStatisticsRepository.findCampaignCohortAssignments).mockResolvedValue([
-        {
-          assignmentId: assignment1Id,
-          traineeProfileId: traineeId,
-          firstName: 'Alice',
-          lastName: 'Ndlovu',
-          email: 'alice@example.com',
-          traineeStatus: 'ACTIVE',
-          assignmentStatus: 'ASSIGNED',
-          accessType: 'ASSIGNED',
-          assignedAt: new Date('2026-08-01T10:00:00.000Z'),
-        },
+        makeAssignment(
+          assignment1Id,
+          traineeId,
+          'Alice',
+          'Ndlovu',
+          'alice@example.com',
+          'ACTIVE',
+          'ASSIGNED',
+        ),
       ]);
 
-      // Progress facts repository only returns facts strictly for assignment1 and c1 items
-      // (Even if Alice completed doc & quiz in Campaign 2 / assignment2)
       vi.mocked(CampaignStatisticsRepository.findCampaignProgressFacts).mockImplementation(
         async (input) => {
-          // If input contains assignment2Id, return Campaign 2 facts; if input only contains assignment1Id, return empty
           if (input.assignmentIds.includes(assignment2Id)) {
             return {
               trainingEvents: [
@@ -455,7 +426,6 @@ describe('CampaignManagementService Unit Tests', () => {
         { page: 1, limit: 10 },
       );
 
-      // Alice's statistics for Campaign 1 must not be contaminated by Campaign 2 activity
       expect(result.summary.startedTraineeCount).toBe(0);
       expect(result.summary.completedTraineeCount).toBe(0);
       expect(result.summary.overallProgressPercentage).toBe(0);
@@ -469,46 +439,10 @@ describe('CampaignManagementService Unit Tests', () => {
       mockAdminScope(['VIEW_CAMPAIGNS', 'ASSIGN_CAMPAIGNS']);
 
       const items: CampaignStatisticsRepository.CampaignItemFact[] = [
-        {
-          id: 'item-doc-1',
-          itemType: 'COMPONENT',
-          componentType: 'TRAINING_DOCUMENT',
-          isRequired: true,
-          trainingDocumentId: 'doc-1',
-          quizId: null,
-          simulationId: null,
-          simulatedInboxEmailIds: [],
-        },
-        {
-          id: 'item-quiz-1',
-          itemType: 'COMPONENT',
-          componentType: 'QUIZ',
-          isRequired: true,
-          trainingDocumentId: null,
-          quizId: 'quiz-1',
-          simulationId: null,
-          simulatedInboxEmailIds: [],
-        },
-        {
-          id: 'item-quiz-2',
-          itemType: 'COMPONENT',
-          componentType: 'QUIZ',
-          isRequired: true,
-          trainingDocumentId: null,
-          quizId: 'quiz-2',
-          simulationId: null,
-          simulatedInboxEmailIds: [],
-        },
-        {
-          id: 'item-sim-1',
-          itemType: 'COMPONENT',
-          componentType: 'SIMULATED_INBOX',
-          isRequired: true,
-          trainingDocumentId: null,
-          quizId: null,
-          simulationId: 'sim-1',
-          simulatedInboxEmailIds: ['email-1', 'email-2'],
-        },
+        makeItem('i-doc', 'COMPONENT', 'TRAINING_DOCUMENT', true, { docId: 'doc-1' }),
+        makeItem('i-quiz-a', 'COMPONENT', 'QUIZ', true, { quizId: 'quiz-1' }),
+        makeItem('i-quiz-b', 'COMPONENT', 'QUIZ', true, { quizId: 'quiz-2' }),
+        makeItem('i-sim', 'COMPONENT', 'SIMULATED_INBOX', true, { emailIds: ['em-1', 'em-2'] }),
       ];
 
       vi.mocked(CampaignStatisticsRepository.findCampaignWithItems).mockResolvedValue({
@@ -522,123 +456,119 @@ describe('CampaignManagementService Unit Tests', () => {
         items,
       });
 
-      const trainee1Id = '11111111-1111-4111-8111-111111111111';
-      const trainee2Id = '22222222-2222-4222-8222-222222222222';
-      const trainee3Id = '33333333-3333-4333-8333-333333333333';
-      const trainee4Id = '44444444-4444-4444-8444-444444444444';
+      const t1 = '11111111-1111-4111-8111-111111111111';
+      const t2 = '22222222-2222-4222-8222-222222222222';
+      const t3 = '33333333-3333-4333-8333-333333333333';
+      const t4 = '44444444-4444-4444-8444-444444444444';
 
       vi.mocked(CampaignStatisticsRepository.findCampaignCohortAssignments).mockResolvedValue([
-        {
-          assignmentId: '55555555-0001-4555-8555-555555555555',
-          traineeProfileId: trainee1Id,
-          firstName: 'Alice',
-          lastName: 'Ndlovu',
-          email: 'alice@example.com',
-          traineeStatus: 'ACTIVE',
-          assignmentStatus: 'IN_PROGRESS',
-          accessType: 'ASSIGNED',
-          assignedAt: new Date('2026-08-01T10:00:00.000Z'),
-        },
-        {
-          assignmentId: '55555555-0002-4555-8555-555555555555',
-          traineeProfileId: trainee2Id,
-          firstName: 'Bob',
-          lastName: 'Khumalo',
-          email: 'bob@example.com',
-          traineeStatus: 'ACTIVE',
-          assignmentStatus: 'COMPLETED',
-          accessType: 'SELF_SELECTED',
-          assignedAt: new Date('2026-08-02T10:00:00.000Z'),
-        },
-        {
-          assignmentId: '55555555-0003-4555-8555-555555555555',
-          traineeProfileId: trainee3Id,
-          firstName: 'Charlie',
-          lastName: 'Smith',
-          email: 'charlie@example.com',
-          traineeStatus: 'INACTIVE',
-          assignmentStatus: 'ASSIGNED',
-          accessType: 'ASSIGNED',
-          assignedAt: new Date('2026-08-03T10:00:00.000Z'),
-        },
-        {
-          assignmentId: '55555555-0004-4555-8555-555555555555',
-          traineeProfileId: trainee4Id,
-          firstName: 'Diana',
-          lastName: 'Zuma',
-          email: 'diana@example.com',
-          traineeStatus: 'DISABLED',
-          assignmentStatus: 'IN_PROGRESS',
-          accessType: 'ASSIGNED',
-          assignedAt: new Date('2026-08-04T10:00:00.000Z'),
-        },
+        makeAssignment(
+          '55555555-0001-4555-8555-555555555555',
+          t1,
+          'Alice',
+          'Ndlovu',
+          'alice@example.com',
+          'ACTIVE',
+          'IN_PROGRESS',
+          'ASSIGNED',
+        ),
+        makeAssignment(
+          '55555555-0002-4555-8555-555555555555',
+          t2,
+          'Bob',
+          'Khumalo',
+          'bob@example.com',
+          'ACTIVE',
+          'COMPLETED',
+          'SELF_SELECTED',
+        ),
+        makeAssignment(
+          '55555555-0003-4555-8555-555555555555',
+          t3,
+          'Charlie',
+          'Smith',
+          'charlie@example.com',
+          'INACTIVE',
+          'ASSIGNED',
+          'ASSIGNED',
+        ),
+        makeAssignment(
+          '55555555-0004-4555-8555-555555555555',
+          t4,
+          'Diana',
+          'Zuma',
+          'diana@example.com',
+          'DISABLED',
+          'IN_PROGRESS',
+          'ASSIGNED',
+        ),
       ]);
 
       vi.mocked(CampaignStatisticsRepository.findCampaignProgressFacts).mockResolvedValue({
         trainingEvents: [
           {
-            traineeProfileId: trainee1Id,
+            traineeProfileId: t1,
             campaignAssignmentId: '55555555-0001-4555-8555-555555555555',
-            campaignItemId: 'item-doc-1',
+            campaignItemId: 'i-doc',
             trainingDocumentId: 'doc-1',
             eventType: 'TRAINING_VIEWED',
           },
           {
-            traineeProfileId: trainee2Id,
+            traineeProfileId: t2,
             campaignAssignmentId: '55555555-0002-4555-8555-555555555555',
-            campaignItemId: 'item-doc-1',
+            campaignItemId: 'i-doc',
             trainingDocumentId: 'doc-1',
             eventType: 'TRAINING_COMPLETED',
           },
           {
-            traineeProfileId: trainee4Id,
+            traineeProfileId: t4,
             campaignAssignmentId: '55555555-0004-4555-8555-555555555555',
-            campaignItemId: 'item-doc-1',
+            campaignItemId: 'i-doc',
             trainingDocumentId: 'doc-1',
             eventType: 'TRAINING_COMPLETED',
           },
         ],
         quizAttempts: [
           {
-            traineeProfileId: trainee1Id,
+            traineeProfileId: t1,
             campaignAssignmentId: '55555555-0001-4555-8555-555555555555',
-            campaignItemId: 'item-quiz-1',
+            campaignItemId: 'i-quiz-a',
             quizId: 'quiz-1',
             status: 'SUBMITTED',
             hasResult: true,
             scorePercentage: 80,
           },
           {
-            traineeProfileId: trainee1Id,
+            traineeProfileId: t1,
             campaignAssignmentId: '55555555-0001-4555-8555-555555555555',
-            campaignItemId: 'item-quiz-2',
+            campaignItemId: 'i-quiz-b',
             quizId: 'quiz-2',
             status: 'IN_PROGRESS',
             hasResult: false,
             scorePercentage: null,
           },
           {
-            traineeProfileId: trainee2Id,
+            traineeProfileId: t2,
             campaignAssignmentId: '55555555-0002-4555-8555-555555555555',
-            campaignItemId: 'item-quiz-1',
+            campaignItemId: 'i-quiz-a',
             quizId: 'quiz-1',
             status: 'SUBMITTED',
             hasResult: true,
             scorePercentage: 100,
           },
           {
-            traineeProfileId: trainee2Id,
+            traineeProfileId: t2,
             campaignAssignmentId: '55555555-0002-4555-8555-555555555555',
-            campaignItemId: 'item-quiz-2',
+            campaignItemId: 'i-quiz-b',
             quizId: 'quiz-2',
             status: 'SUBMITTED',
             hasResult: true,
             scorePercentage: 90,
           },
           {
-            traineeProfileId: trainee4Id,
+            traineeProfileId: t4,
             campaignAssignmentId: '55555555-0004-4555-8555-555555555555',
-            campaignItemId: 'item-quiz-1',
+            campaignItemId: 'i-quiz-a',
             quizId: 'quiz-1',
             status: 'SUBMITTED',
             hasResult: true,
@@ -647,25 +577,25 @@ describe('CampaignManagementService Unit Tests', () => {
         ],
         simulatedEmailEvents: [
           {
-            traineeProfileId: trainee1Id,
+            traineeProfileId: t1,
             campaignAssignmentId: '55555555-0001-4555-8555-555555555555',
-            campaignItemId: 'item-sim-1',
-            simulatedEmailId: 'email-1',
-            targetId: 'email-1',
+            campaignItemId: 'i-sim',
+            simulatedEmailId: 'em-1',
+            targetId: 'em-1',
           },
           {
-            traineeProfileId: trainee2Id,
+            traineeProfileId: t2,
             campaignAssignmentId: '55555555-0002-4555-8555-555555555555',
-            campaignItemId: 'item-sim-1',
-            simulatedEmailId: 'email-1',
-            targetId: 'email-1',
+            campaignItemId: 'i-sim',
+            simulatedEmailId: 'em-1',
+            targetId: 'em-1',
           },
           {
-            traineeProfileId: trainee2Id,
+            traineeProfileId: t2,
             campaignAssignmentId: '55555555-0002-4555-8555-555555555555',
-            campaignItemId: 'item-sim-1',
-            simulatedEmailId: 'email-2',
-            targetId: 'email-2',
+            campaignItemId: 'i-sim',
+            simulatedEmailId: 'em-2',
+            targetId: 'em-2',
           },
         ],
       });
