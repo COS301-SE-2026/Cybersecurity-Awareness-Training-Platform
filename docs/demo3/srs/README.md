@@ -17,6 +17,8 @@ The Software Requirements Specification is split into separate focused sections 
 
 If you are looking for the **Software Architectural Specification**, you can find it [here](../sas/README.md).
 
+If you are looking for the **Demo 3 Non-Functional Verification** pack, you can find it [here](../nfr/README.md).
+
 ---
 
 Next section: [Introduction and Scope](introduction.md)

@@ -20,8 +20,9 @@ This README is the ordered entry point to the Demo 3 Software Architecture Speci
 - [Demo 3 Software Requirements Specification](../srs/README.md)
 - [SRS Function Requirements](../srs/functional-requirements.md)
 - [SRS Quality Requirements](../srs/quality-requirements.md)
+- [Demo 3 Non-Functional Verification](../nfr/README.md)
 - [SRS Domain Model](../srs/domain-model.md)
-- [Demo 3 Domain Model Source](../domain-model-demo2.txt)
+- [Demo 3 Domain Model Source](../domain-model-demo3.txt)
 - [Demo 3 Documentation Home](../README.md)
 
 ---
