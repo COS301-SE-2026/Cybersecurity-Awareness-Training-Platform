@@ -1,45 +1,52 @@
-import type {
-  AuthMeResponseDto,
-  DemotePlatformAdminRequestDto,
-  DemotePlatformAdminResponseDto,
-  InvitePlatformAdminRequestDto,
-  InvitePlatformAdminResponseDto,
-  PlatformAdminListResponseDto,
-  ResendPlatformAdminInviteResponseDto,
-  TransferSuperAdminRequestDto,
+import {
+  demotePlatformAdminResponseSchema,
+  invitePlatformAdminResponseSchema,
+  platformAdminListResponseSchema,
+  resendPlatformAdminInviteResponseSchema,
+  type AuthMeResponseDto,
+  type DemotePlatformAdminRequestDto,
+  type DemotePlatformAdminResponseDto,
+  type InvitePlatformAdminRequestDto,
+  type InvitePlatformAdminResponseDto,
+  type PlatformAdminListResponseDto,
+  type ResendPlatformAdminInviteResponseDto,
+  type TransferSuperAdminRequestDto,
 } from '@insightful-phish/shared';
 import { apiClient } from '../lib/apiClient';
 
-export function getPlatformAdmins(token: string): Promise<PlatformAdminListResponseDto> {
-  return apiClient.get<PlatformAdminListResponseDto>('/platform/admins', {
+export async function getPlatformAdmins(token: string): Promise<PlatformAdminListResponseDto> {
+  const response = await apiClient.get<unknown>('/platform/admins', {
     authToken: token,
   });
+  return platformAdminListResponseSchema.parse(response);
 }
 
-export function invitePlatformAdmin(
+export async function invitePlatformAdmin(
   input: InvitePlatformAdminRequestDto,
   token: string,
 ): Promise<InvitePlatformAdminResponseDto> {
-  return apiClient.post<InvitePlatformAdminResponseDto, InvitePlatformAdminRequestDto>(
+  const response = await apiClient.post<unknown, InvitePlatformAdminRequestDto>(
     '/platform/admin-invitations',
     input,
     {
       authToken: token,
     },
   );
+  return invitePlatformAdminResponseSchema.parse(response);
 }
 
-export function resendPlatformAdminInvite(
+export async function resendPlatformAdminInvite(
   inviteId: string,
   token: string,
 ): Promise<ResendPlatformAdminInviteResponseDto> {
-  return apiClient.post<ResendPlatformAdminInviteResponseDto>(
+  const response = await apiClient.post<unknown>(
     `/platform/admin-invitations/${encodeURIComponent(inviteId)}/resend`,
     undefined,
     {
       authToken: token,
     },
   );
+  return resendPlatformAdminInviteResponseSchema.parse(response);
 }
 
 export function transferSuperAdmin(
@@ -55,16 +62,17 @@ export function transferSuperAdmin(
   );
 }
 
-export function demotePlatformAdmin(
+export async function demotePlatformAdmin(
   userId: string,
   input: DemotePlatformAdminRequestDto,
   token: string,
 ): Promise<DemotePlatformAdminResponseDto> {
-  return apiClient.post<DemotePlatformAdminResponseDto, DemotePlatformAdminRequestDto>(
+  const response = await apiClient.post<unknown, DemotePlatformAdminRequestDto>(
     `/platform/admins/${encodeURIComponent(userId)}/demote`,
     input,
     {
       authToken: token,
     },
   );
+  return demotePlatformAdminResponseSchema.parse(response);
 }
