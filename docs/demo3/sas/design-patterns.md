@@ -43,7 +43,7 @@ A pattern is used in this catalogue when it satisfies the following points:
 
 ### 3.2 Design Patterns
 
-The selected patterns are Facade, State, Strategy, Proxy, and Adapter for Demo 2. They support the five-layer architecture from different angles: workflow coordination, lifecycle control, policy variation, controlled access, and external-service translation that we use.
+The selected patterns are Facade, State, Strategy, Proxy, and Adapter for Demo 3. They support the five-layer architecture from different angles: workflow coordination, lifecycle control, policy variation, controlled access, and external-service translation that we use.
 
 #### 3.2.1 Facade
 
@@ -184,27 +184,28 @@ These patterns should stay useful, not decorative. The main risk is over-design:
 
 ### 3.5 Quality Traceability
 
-The quality requirements below use the identifiers and wording from the Demo 2 SRS quality notes where they are explicit, plus the numbered quality sections in the consolidated SRS. Each mapping explains the mechanism rather than listing broad quality names.
+The quality requirements below use the retained Demo 3 SRS identifiers. Each mapping explains the mechanism rather than listing broad quality names.
 
-| Pattern  | Quality requirement                        | Pattern contribution                                                                                                                                                                                               |
-| -------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Facade   | `QR-SEC-001` Security, Privacy, and Safety | Facade-style account, onboarding, invitation, and organisation operations centralise current-password checks, organisation-scope checks, token lifecycle checks, and safe audit recording for sensitive workflows. |
-| Facade   | `QR-REL-001` Error Handling and Resilience | Workflow operations can apply conditional updates and transactional steps together, reducing duplicate setup, stale token, repeated submission, and partial-update risks.                                          |
-| State    | `QR-REL-001` Error Handling and Resilience | Explicit lifecycle checks protect against stale tokens, expired invitations, duplicate quiz submissions, revoked sessions, and invalid organisation transitions.                                                   |
-| State    | `QR-TST-001` Testability and Traceability  | State-based workflows give tests clear success, failure, stale, and repeated-action cases to verify.                                                                                                               |
-| Strategy | `QR-SEC-001` Security, Privacy, and Safety | Policy strategies keep organisation security settings, invitation rules, session preferences, and campaign access decisions tied to authenticated context.                                                         |
-| Strategy | SRS 9.5 Maintainability                    | Context-specific rules can evolve without scattering policy branches through controllers and unrelated workflows.                                                                                                  |
-| Proxy    | `QR-SEC-001` Security, Privacy, and Safety | Proxy-style API boundaries enforce authentication, rate limiting, validation, role checks, permission checks, and organisation scope before sensitive services are reached.                                        |
-| Proxy    | `QR-ACC-001` Accessibility                 | Consistent request validation and safe rejection responses help the frontend present field-level and action-level feedback in predictable places.                                                                  |
-| Adapter  | `QR-PRV-001` Privacy and data minimisation | The email adapter returns stable delivery outcomes and prevents raw provider responses, credentials, tokens, and unnecessary personal content from leaking into logs or audit records.                             |
-| Adapter  | SRS 9.4 Error Handling and Resilience      | Email provider failures can be translated into safe application outcomes so workflows can decide whether to retry, report a safe error, or record a delivery failure without exposing internals.                   |
+| Pattern  | Quality requirement               | Pattern contribution                                                                                                                                                                                    |
+| -------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Facade   | `QR-AUTH-01` Access control       | Facade-style account, onboarding, invitation, and organisation operations centralise current-password checks, organisation-scope checks, role checks, and safe audit recording for sensitive workflows. |
+| Facade   | `QR-RELIABILITY-01` Reliability   | Workflow operations can apply conditional updates and transactional steps together, reducing duplicate setup, stale token, repeated submission, and partial-update risks.                               |
+| State    | `QR-RELIABILITY-01` Reliability   | Explicit lifecycle checks protect against stale tokens, expired invitations, duplicate quiz submissions, revoked sessions, and invalid organisation transitions.                                        |
+| State    | `QR-TRACE-01` Traceability        | State-based workflows give tests clear success, failure, stale, and repeated-action cases to verify and document.                                                                                       |
+| Strategy | `QR-AUTH-01` Access control       | Policy strategies keep organisation security settings, invitation rules, session preferences, and campaign access decisions tied to authenticated context.                                              |
+| Strategy | `QR-TRACE-01` Traceability        | Context-specific rules can evolve without scattering policy branches through controllers and unrelated workflows, making reviews easier to follow.                                                      |
+| Proxy    | `QR-AUTH-01` Access control       | Proxy-style API boundaries enforce authentication, rate limiting, validation, role checks, permission checks, and organisation scope before sensitive services are reached.                             |
+| Proxy    | `QR-ACCESS-01` Accessibility      | Consistent request validation and safe rejection responses help the frontend present field-level and action-level feedback in predictable places.                                                       |
+| Adapter  | `QR-DATA-01` Sensitive data       | The email adapter returns stable delivery outcomes and prevents raw provider responses, credentials, tokens, and unnecessary personal content from leaking into logs or audit records.                  |
+| Adapter  | `QR-RELIABILITY-01` Reliability   | Email provider failures can be translated into safe application outcomes so workflows can decide whether to retry, report a safe error, or record a delivery failure without exposing internals.        |
+| Adapter  | `QR-AUDIT-01` Audit record safety | Stable adapter outcomes allow account, invitation, onboarding, and outbox workflows to record compact audit or delivery metadata without copying raw provider responses.                                |
 
 ### 3.6 References
 
 - [SRS Quality Requirements](../srs/quality-requirements.md)
-- [Consolidated Demo 2 SRS](../srs/README.md)
+- [Consolidated Demo 3 SRS](../srs/README.md)
 - [SRS Domain Model](../srs/domain-model.md)
-- [Demo 2 Domain Model Source](../domain-model-demo2.txt)
+- [Demo 3 Domain Model Source](../domain-model-demo3.txt)
 - [Architectural Requirements](architectural-requirements.md)
 - [Architectural Patterns](architectural-patterns.md)
 - [Technology Requirements](technology-requirements.md)

@@ -1,15 +1,27 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   deleteCampaignAssignment,
+  enrolGeneralTraineeInPlatformCampaign,
   executeBulkCampaignAssignment,
+  findActiveGeneralTraineeByUserId,
+  findGeneralTraineeActorScope,
+  findPlatformCampaignById,
+  findPlatformCampaignsForDiscovery,
 } from '../../../src/repositories/campaign-assignment.repository.js';
 import { prisma } from '../../../src/lib/prisma.js';
 
 vi.mock('../../../src/lib/prisma.js', () => ({
   prisma: {
+    user: {
+      findUnique: vi.fn(),
+    },
+    traineeProfile: {
+      findFirst: vi.fn(),
+    },
     campaign: {
       findMany: vi.fn(),
       findFirst: vi.fn(),
+      count: vi.fn(),
     },
     campaignItem: {
       findMany: vi.fn(),
@@ -21,6 +33,7 @@ vi.mock('../../../src/lib/prisma.js', () => ({
     campaignAssignment: {
       findMany: vi.fn(),
       findFirst: vi.fn(),
+      findUnique: vi.fn(),
       create: vi.fn(),
       createMany: vi.fn(),
       count: vi.fn(),
@@ -248,6 +261,363 @@ describe('CampaignAssignmentRepository', () => {
       await expect(
         deleteCampaignAssignment({ organisationId, assignmentId, actorUserId }),
       ).rejects.toThrow('Database write failure on audit entry');
+    });
+  });
+
+  describe('General Trainee Platform Campaign Repository Methods', () => {
+    const userId = '11111111-1111-4111-8111-111111111111';
+
+    describe('findGeneralTraineeActorScope', () => {
+      it('fetches user with trainee profile and general trainee profile', async () => {
+        const expected = {
+          id: userId,
+          userType: 'GENERAL_TRAINEE',
+          authStatus: 'ACTIVE',
+          traineeProfile: {
+            id: traineeProfileId,
+            traineeStatus: 'ACTIVE',
+            generalTraineeProfile: {
+              id: 'gen-prof-id',
+              accessSource: 'SELF_SIGNUP',
+            },
+          },
+        };
+        (prisma.user.findUnique as ReturnType<typeof vi.fn>).mockResolvedValueOnce(expected);
+
+        const result = await findGeneralTraineeActorScope(userId);
+        expect(result).toEqual(expected);
+        expect(prisma.user.findUnique).toHaveBeenCalledWith(
+          expect.objectContaining({ where: { id: userId } }),
+        );
+      });
+    });
+
+    describe('findActiveGeneralTraineeByUserId', () => {
+      it('queries active trainee profile with general trainee profile', async () => {
+        const expected = {
+          id: traineeProfileId,
+          userId,
+          traineeStatus: 'ACTIVE',
+        };
+        (prisma.traineeProfile.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+          expected,
+        );
+
+        const result = await findActiveGeneralTraineeByUserId(userId);
+        expect(result).toEqual(expected);
+        expect(prisma.traineeProfile.findFirst).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: expect.objectContaining({
+              userId,
+              traineeStatus: 'ACTIVE',
+              user: { userType: 'GENERAL_TRAINEE', authStatus: 'ACTIVE' },
+              generalTraineeProfile: { isNot: null },
+            }),
+          }),
+        );
+      });
+    });
+
+    describe('findPlatformCampaignsForDiscovery', () => {
+      it('queries active premade platform campaigns with bounded pagination', async () => {
+        (prisma.campaign.findMany as ReturnType<typeof vi.fn>).mockResolvedValueOnce([
+          {
+            id: campaignId,
+            name: 'Platform Phishing',
+            description: 'Basics',
+            accentColor: '#10B981',
+            campaignType: 'PREMADE_GENERAL',
+            difficultyLevel: 'BEGINNER',
+            status: 'ACTIVE',
+            startDate: null,
+            endDate: null,
+            items: [{ id: 'item-1', availabilityStatus: 'AVAILABLE' }],
+            assignments: [],
+          },
+        ]);
+        (prisma.campaign.count as ReturnType<typeof vi.fn>).mockResolvedValueOnce(1);
+
+        const result = await findPlatformCampaignsForDiscovery({
+          page: 1,
+          limit: 10,
+          traineeProfileId,
+          search: 'phishing',
+        });
+
+        expect(result.total).toBe(1);
+        expect(result.items).toHaveLength(1);
+        expect(result.items[0].id).toBe(campaignId);
+        expect(result.items[0].assignment).toBeNull();
+        expect(prisma.campaign.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: expect.objectContaining({
+              campaignType: 'PREMADE_GENERAL',
+              organisationId: null,
+              status: 'ACTIVE',
+              name: { contains: 'phishing', mode: 'insensitive' },
+            }),
+            skip: 0,
+            take: 10,
+          }),
+        );
+      });
+    });
+
+    describe('findPlatformCampaignById', () => {
+      it('queries platform campaign by id', async () => {
+        (prisma.campaign.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+          id: campaignId,
+          name: 'Platform Campaign',
+          campaignType: 'PREMADE_GENERAL',
+          organisationId: null,
+          status: 'ACTIVE',
+        });
+
+        const result = await findPlatformCampaignById(campaignId);
+        expect(result).not.toBeNull();
+        expect(result?.id).toBe(campaignId);
+      });
+    });
+
+    describe('enrolGeneralTraineeInPlatformCampaign', () => {
+      it('creates SELF_SELECTED assignment when trainee and platform campaign are valid', async () => {
+        (prisma.traineeProfile.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+          id: traineeProfileId,
+        });
+        (prisma.campaign.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+          id: campaignId,
+          name: 'Platform Campaign',
+          description: null,
+          accentColor: null,
+          campaignType: 'PREMADE_GENERAL',
+          difficultyLevel: 'BEGINNER',
+          status: 'ACTIVE',
+          startDate: null,
+          endDate: null,
+          items: [],
+        });
+        (prisma.campaignAssignment.findUnique as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+          null,
+        );
+        (prisma.campaignAssignment.createMany as ReturnType<typeof vi.fn>).mockImplementationOnce(
+          (args) => {
+            const insertedId = args.data[0].id;
+            (
+              prisma.campaignAssignment.findUnique as ReturnType<typeof vi.fn>
+            ).mockResolvedValueOnce({
+              id: insertedId,
+              campaignId,
+              traineeProfileId,
+              assignmentStatus: 'ASSIGNED',
+              accessType: 'SELF_SELECTED',
+              currentCampaignItemId: null,
+              assignedAt: new Date(),
+              dueDate: null,
+              startedAt: null,
+              completedAt: null,
+            });
+            return Promise.resolve({ count: 1 });
+          },
+        );
+
+        const result = await enrolGeneralTraineeInPlatformCampaign({
+          userId: 'user-123',
+          traineeProfileId,
+          campaignId,
+        });
+
+        expect(prisma.$transaction).toHaveBeenCalled();
+        expect(prisma.traineeProfile.findFirst).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: expect.objectContaining({
+              id: traineeProfileId,
+              userId: 'user-123',
+            }),
+          }),
+        );
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.isNew).toBe(true);
+          expect(result.assignment.accessType).toBe('SELF_SELECTED');
+        }
+      });
+
+      it('returns existing assignment without error when duplicate enrolment is requested', async () => {
+        (prisma.traineeProfile.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+          id: traineeProfileId,
+        });
+        (prisma.campaign.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+          id: campaignId,
+          name: 'Platform Campaign',
+          description: null,
+          accentColor: null,
+          campaignType: 'PREMADE_GENERAL',
+          difficultyLevel: 'BEGINNER',
+          status: 'ACTIVE',
+          startDate: null,
+          endDate: null,
+          items: [],
+        });
+        (prisma.campaignAssignment.findUnique as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+          id: 'existing-assignment-id',
+          campaignId,
+          traineeProfileId,
+          assignmentStatus: 'IN_PROGRESS',
+          accessType: 'SELF_SELECTED',
+          currentCampaignItemId: null,
+          assignedAt: new Date(),
+          dueDate: null,
+          startedAt: null,
+          completedAt: null,
+        });
+
+        const result = await enrolGeneralTraineeInPlatformCampaign({
+          traineeProfileId,
+          campaignId,
+        });
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.isNew).toBe(false);
+          expect(result.assignment.assignmentStatus).toBe('IN_PROGRESS');
+        }
+        expect(prisma.campaignAssignment.createMany).not.toHaveBeenCalled();
+      });
+
+      it('returns TRAINEE_NOT_ELIGIBLE if trainee is not an active general trainee', async () => {
+        (prisma.traineeProfile.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce(null);
+
+        const result = await enrolGeneralTraineeInPlatformCampaign({
+          traineeProfileId,
+          campaignId,
+        });
+
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error).toBe('TRAINEE_NOT_ELIGIBLE');
+        }
+      });
+
+      it('returns CAMPAIGN_NOT_FOUND if platform campaign does not exist', async () => {
+        (prisma.traineeProfile.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+          id: traineeProfileId,
+        });
+        (prisma.campaign.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce(null);
+
+        const result = await enrolGeneralTraineeInPlatformCampaign({
+          traineeProfileId,
+          campaignId,
+        });
+
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error).toBe('CAMPAIGN_NOT_FOUND');
+        }
+      });
+
+      it('returns CAMPAIGN_INACTIVE if platform campaign is not active', async () => {
+        (prisma.traineeProfile.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+          id: traineeProfileId,
+        });
+        (prisma.campaign.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+          id: campaignId,
+          name: 'Platform Campaign',
+          description: null,
+          accentColor: null,
+          campaignType: 'PREMADE_GENERAL',
+          difficultyLevel: 'BEGINNER',
+          status: 'ARCHIVED',
+          startDate: null,
+          endDate: null,
+          items: [],
+        });
+
+        const result = await enrolGeneralTraineeInPlatformCampaign({
+          traineeProfileId,
+          campaignId,
+        });
+
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error).toBe('CAMPAIGN_INACTIVE');
+        }
+      });
+
+      it('returns CAMPAIGN_INACTIVE if platform campaign is expired', async () => {
+        (prisma.traineeProfile.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+          id: traineeProfileId,
+        });
+        (prisma.campaign.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+          id: campaignId,
+          name: 'Platform Campaign',
+          description: null,
+          accentColor: null,
+          campaignType: 'PREMADE_GENERAL',
+          difficultyLevel: 'BEGINNER',
+          status: 'ACTIVE',
+          startDate: null,
+          endDate: new Date(Date.now() - 100000),
+          items: [],
+        });
+
+        const result = await enrolGeneralTraineeInPlatformCampaign({
+          traineeProfileId,
+          campaignId,
+        });
+
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error).toBe('CAMPAIGN_INACTIVE');
+        }
+      });
+
+      it('handles race condition on concurrent assignment creation gracefully', async () => {
+        (prisma.traineeProfile.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+          id: traineeProfileId,
+        });
+        (prisma.campaign.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+          id: campaignId,
+          name: 'Platform Campaign',
+          description: null,
+          accentColor: null,
+          campaignType: 'PREMADE_GENERAL',
+          difficultyLevel: 'BEGINNER',
+          status: 'ACTIVE',
+          startDate: null,
+          endDate: null,
+          items: [],
+        });
+        (prisma.campaignAssignment.findUnique as ReturnType<typeof vi.fn>)
+          .mockResolvedValueOnce(null) // first check
+          .mockResolvedValueOnce({
+            // fallback persisted row created concurrently by other request
+            id: 'concurrent-assignment-id',
+            campaignId,
+            traineeProfileId,
+            assignmentStatus: 'ASSIGNED',
+            accessType: 'SELF_SELECTED',
+            currentCampaignItemId: null,
+            assignedAt: new Date(),
+            dueDate: null,
+            startedAt: null,
+            completedAt: null,
+          });
+
+        (prisma.campaignAssignment.createMany as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+          count: 0,
+        });
+
+        const result = await enrolGeneralTraineeInPlatformCampaign({
+          traineeProfileId,
+          campaignId,
+        });
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.isNew).toBe(false);
+          expect(result.assignment.id).toBe('concurrent-assignment-id');
+        }
+      });
     });
   });
 });

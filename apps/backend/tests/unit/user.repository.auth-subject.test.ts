@@ -97,11 +97,12 @@ describe('user repository auth subject helpers', () => {
     });
   });
 
-  it.skip('maps organisation admin subject with organisation context', () => {
+  it('maps organisation admin subject with organisation context', () => {
     const user = authSubjectUser({
       userType: 'ORGANISATION_ADMIN',
       organisationAdminProfile: {
         adminStatus: 'ACTIVE',
+        permissionGrants: [],
         organisation: {
           id: 'org01',
           status: 'ACTIVE',
@@ -117,10 +118,35 @@ describe('user repository auth subject helpers', () => {
       },
       organisationAdminProfile: {
         adminStatus: 'ACTIVE',
+        permissionKeys: [],
         organisation: {
           id: 'org01',
           status: 'ACTIVE',
         },
+      },
+    });
+  });
+
+  it('maps organisation admin permissions to permission keys', () => {
+    const user = authSubjectUser({
+      userType: 'ORGANISATION_ADMIN',
+      organisationAdminProfile: {
+        adminStatus: 'ACTIVE',
+        permissionGrants: [{ organisationPermission: { key: 'MANAGE_CAMPAIGNS' } }],
+        organisation: { id: 'org01', status: 'ACTIVE' },
+      },
+    });
+
+    expect(toGuardAuthSubject(user)).toMatchObject({
+      user: {
+        id: 'user01',
+        userType: 'ORGANISATION_ADMIN',
+        authStatus: 'ACTIVE',
+      },
+      organisationAdminProfile: {
+        adminStatus: 'ACTIVE',
+        permissionKeys: ['MANAGE_CAMPAIGNS'],
+        organisation: { id: 'org01', status: 'ACTIVE' },
       },
     });
   });

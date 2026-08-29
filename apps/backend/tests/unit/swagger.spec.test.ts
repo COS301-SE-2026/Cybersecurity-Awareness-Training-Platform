@@ -165,6 +165,28 @@ const expectedSchemas = [
   'CreateCampaignAssignmentsResponse',
   'CampaignAssignmentReadRow',
   'GetCampaignAssignmentsResponse',
+  'PlatformCampaignSummary',
+  'GetPlatformCampaignsResponse',
+  'PaginationMetadata',
+  'PlatformAdminRole',
+  'PlatformAdminStatus',
+  'PlatformAdminInvitationStatus',
+  'PlatformAdminAllowedActions',
+  'PlatformAdmin',
+  'PlatformAdminsListResponse',
+  'InvitePlatformAdminRequest',
+  'InvitePlatformAdminResponse',
+  'ResendPlatformAdminInviteResponse',
+  'TransferSuperAdminRequest',
+  'DemotePlatformAdminRequest',
+  'DemotePlatformAdminResponse',
+  'CampaignStatisticsCampaign',
+  'CampaignStatisticsSummary',
+  'CampaignStatisticsTraineeProgress',
+  'CampaignStatisticsTraineeActions',
+  'CampaignStatisticsTraineeRow',
+  'GetCampaignStatisticsResponse',
+  'CampaignManagementRateLimitErrorResponse',
 ] as const;
 
 const expectedResponses = [
@@ -175,11 +197,20 @@ const expectedResponses = [
   'Conflict',
   'UnprocessableEntity',
   'TooManyRequests',
+  'CampaignManagementRateLimited',
   'InternalServerError',
   'GetAssignableCampaignsOk',
   'GetCampaignAssignmentCandidatesOk',
+  'GetPlatformCampaignsOk',
+  'EnrolPlatformCampaignOk',
+  'PlatformAdminsListOk',
+  'InvitePlatformAdminCreated',
+  'ResendPlatformAdminInviteOk',
+  'TransferSuperAdminOk',
+  'DemotePlatformAdminOk',
   'CreateCampaignAssignmentsOk',
   'GetCampaignAssignmentsOk',
+  'GetCampaignStatisticsOk',
   'InvitationContextOk',
   'InvitationAcceptOk',
   'InvitationRejectOk',
@@ -234,6 +265,9 @@ const expectedRequestBodies = [
   'CreateTraineeInvitation',
   'DisableTrainee',
   'CreateCampaignAssignments',
+  'InvitePlatformAdmin',
+  'TransferSuperAdmin',
+  'DemotePlatformAdmin',
 ] as const;
 
 const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
@@ -245,14 +279,14 @@ const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
   ['post', '/auth/refresh', ['200', '401', '403', '429', '500']],
   ['post', '/auth/resend-verification', ['200', '400', '429', '500']],
   ['post', '/auth/verify-email', ['200', '400', '429', '500']],
-  ['get', '/account', ['200', '401', '403', '404', '500']],
-  ['patch', '/account/profile', ['200', '401', '403', '404', '422', '500']],
-  ['post', '/account/change-email', ['200', '401', '403', '409', '422', '500']],
-  ['post', '/account/change-password', ['200', '401', '403', '404', '422', '500']],
-  ['get', '/account/sessions', ['200', '401', '500']],
-  ['delete', '/account/sessions/{sessionId}', ['200', '400', '401', '404', '409', '500']],
-  ['post', '/account/sessions/logout-others', ['200', '401', '500']],
-  ['patch', '/account/security-preferences', ['200', '401', '403', '404', '422', '500']],
+  ['get', '/account', ['200', '401', '403', '404', '429', '500']],
+  ['patch', '/account/profile', ['200', '401', '403', '404', '422', '429', '500']],
+  ['post', '/account/change-email', ['200', '401', '403', '409', '422', '429', '500']],
+  ['post', '/account/change-password', ['200', '401', '403', '404', '422', '429', '500']],
+  ['get', '/account/sessions', ['200', '401', '429', '500']],
+  ['delete', '/account/sessions/{sessionId}', ['200', '400', '401', '404', '409', '429', '500']],
+  ['post', '/account/sessions/logout-others', ['200', '401', '429', '500']],
+  ['patch', '/account/security-preferences', ['200', '401', '403', '404', '422', '429', '500']],
   ['post', '/account/verify-email-change', ['200', '400', '409', '429', '500']],
   ['post', '/auth/forgot-password', ['200', '400', '429', '500']],
   ['post', '/auth/reset-password', ['200', '400', '401', '403', '409', '422', '429', '500']],
@@ -302,21 +336,21 @@ const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
     ['200', '401', '403', '404', '409', '429', '500'],
   ],
   ['get', '/platform/admins', ['200', '401', '403', '429', '500']],
-  ['post', '/platform/admin-invitations', ['201', '401', '403', '409', '422', '429', '500']],
+  ['post', '/platform/admin-invitations', ['201', '400', '401', '403', '409', '422', '429', '500']],
   [
     'post',
     '/platform/admin-invitations/{id}/resend',
-    ['200', '401', '403', '404', '409', '429', '500'],
+    ['200', '400', '401', '403', '404', '409', '429', '500'],
   ],
   [
     'post',
     '/platform/admins/transfer-super-admin',
-    ['200', '401', '403', '409', '422', '429', '500'],
+    ['200', '400', '401', '403', '409', '422', '429', '500'],
   ],
   [
     'post',
     '/platform/admins/{userId}/demote',
-    ['200', '401', '403', '404', '409', '422', '429', '500'],
+    ['200', '400', '401', '403', '404', '409', '422', '429', '500'],
   ],
   ['get', '/organisations/{organisationId}/admins', ['200', '400', '401', '403', '429', '500']],
   [
@@ -365,8 +399,19 @@ const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
     '/organisations/{organisationId}/trainees/{traineeId}/disable',
     ['200', '400', '401', '403', '404', '409', '422', '429', '500'],
   ],
+  [
+    'get',
+    '/organisations/{organisationId}/campaigns/{campaignId}/statistics',
+    ['200', '401', '403', '404', '422', '429', '500'],
+  ],
   ['get', '/trainee/campaigns', ['200', '401', '429', '500']],
   ['get', '/trainee/campaigns/{campaignId}', ['200', '400', '401', '404', '429', '500']],
+  ['get', '/trainee/platform-campaigns', ['200', '400', '401', '403', '429', '500']],
+  [
+    'post',
+    '/trainee/platform-campaigns/{campaignId}/enrol',
+    ['200', '400', '401', '403', '404', '409', '429', '500'],
+  ],
   [
     'get',
     '/trainee/campaign-items/{campaignItemId}/training-document',
@@ -502,8 +547,12 @@ describe('swaggerSpec', () => {
   it('documents trainee campaign routes with bearer auth', () => {
     expectPathExists('/trainee/campaigns', 'get');
     expectPathExists('/trainee/campaigns/{campaignId}', 'get');
+    expectPathExists('/trainee/platform-campaigns', 'get');
+    expectPathExists('/trainee/platform-campaigns/{campaignId}/enrol', 'post');
     expectBearerAuth('/trainee/campaigns', 'get');
     expectBearerAuth('/trainee/campaigns/{campaignId}', 'get');
+    expectBearerAuth('/trainee/platform-campaigns', 'get');
+    expectBearerAuth('/trainee/platform-campaigns/{campaignId}/enrol', 'post');
   });
 
   it('documents setup endpoints as public token-authorized flows', () => {
@@ -740,6 +789,88 @@ describe('swaggerSpec', () => {
     expect(meSchema?.properties).not.toHaveProperty('expiresAt');
   });
 
+  it('documents account-security lifecycle contracts without exposing sensitive session or token fields', () => {
+    for (const [method, path] of [
+      ['get', '/account'] as const,
+      ['post', '/account/change-email'] as const,
+      ['post', '/account/change-password'] as const,
+      ['get', '/account/sessions'] as const,
+      ['delete', '/account/sessions/{sessionId}'] as const,
+      ['post', '/account/sessions/logout-others'] as const,
+      ['patch', '/account/security-preferences'] as const,
+    ]) {
+      expectBearerAuth(path, method);
+    }
+
+    expect(JSON.stringify(getPath('/account/verify-email-change', 'post'))).toContain(
+      '"security":[]',
+    );
+
+    const accountSessionSchema = spec.components?.schemas?.AccountSession as
+      | { properties?: Record<string, unknown> }
+      | undefined;
+    expect(accountSessionSchema?.properties).toHaveProperty('deviceSummary');
+    expect(accountSessionSchema?.properties).toHaveProperty('locationSummary');
+    expectSchemaNotToContain('AccountSession', [
+      'refreshToken',
+      'tokenHash',
+      'ipAddress',
+      'userAgent',
+    ]);
+    expectSchemaNotToContain('AccountSessionsResponse', [
+      'refreshToken',
+      'tokenHash',
+      'ipAddress',
+      'userAgent',
+    ]);
+
+    const emailChangeResponse = JSON.stringify(
+      spec.components?.schemas?.AccountChangeEmailResponse,
+    );
+    const passwordChangeResponse = JSON.stringify(
+      spec.components?.schemas?.AccountChangePasswordResponse,
+    );
+    const sessionRevocationResponse = JSON.stringify(
+      spec.components?.schemas?.AccountSessionRevocationResponse,
+    );
+    const logoutOthersResponse = JSON.stringify(
+      spec.components?.schemas?.AccountLogoutOthersResponse,
+    );
+    const verifyEmailChangeResponse = JSON.stringify(
+      spec.components?.schemas?.AccountVerifyEmailChangeResponse,
+    );
+    const emailChangeRequest = spec.components?.schemas?.AccountChangeEmailRequest as
+      | { properties?: Record<string, Record<string, unknown>> }
+      | undefined;
+    const passwordChangeRequest = spec.components?.schemas?.AccountChangePasswordRequest as
+      | { properties?: Record<string, Record<string, unknown>> }
+      | undefined;
+
+    expect(emailChangeResponse).toContain('durably queued');
+    expect(emailChangeResponse).toContain('not that the provider has delivered');
+    expect(passwordChangeResponse).toContain('durably queued');
+    expect(passwordChangeResponse).toContain('not that the provider has delivered');
+    expect(sessionRevocationResponse).toContain('current session is permitted');
+    expect(logoutOthersResponse).toContain('except the current session');
+    expect(verifyEmailChangeResponse).toContain('active sessions/refresh tokens were revoked');
+    expect(emailChangeRequest?.properties?.newEmail?.maxLength).toBe(254);
+    expect(emailChangeRequest?.properties?.confirmNewEmail?.maxLength).toBe(254);
+    expect(passwordChangeRequest?.properties?.newPassword).toEqual(
+      expect.objectContaining({
+        minLength: 12,
+        maxLength: 128,
+        pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^\\sA-Za-z0-9]).+$',
+      }),
+    );
+    expect(passwordChangeRequest?.properties?.confirmNewPassword).toEqual(
+      expect.objectContaining({
+        minLength: 12,
+        maxLength: 128,
+        pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^\\sA-Za-z0-9]).+$',
+      }),
+    );
+  });
+
   it('documents approve and reject requests with proper request body refs', () => {
     const approveDoc = getPath('/platform/organisation-requests/{requestId}/approve', 'post');
     expect(approveDoc).toBeDefined();
@@ -902,5 +1033,407 @@ describe('swaggerSpec', () => {
       additionalProperties?: boolean;
     };
     expect(candidatesResponse?.additionalProperties).toBe(false);
+  });
+
+  it('documents platform administrator OpenAPI contracts with full required, nullable, enum, capability, and auth parity', () => {
+    for (const [method, path] of [
+      ['get', '/platform/admins'] as const,
+      ['post', '/platform/admin-invitations'] as const,
+      ['post', '/platform/admin-invitations/{id}/resend'] as const,
+      ['post', '/platform/admins/transfer-super-admin'] as const,
+      ['post', '/platform/admins/{userId}/demote'] as const,
+    ]) {
+      expectPathExists(path, method);
+      expectBearerAuth(path, method);
+    }
+
+    const listResponse = spec.components?.schemas?.PlatformAdminsListResponse as {
+      required?: string[];
+      properties?: Record<string, unknown>;
+    };
+    expect(listResponse).toBeDefined();
+    expect(listResponse.required).toEqual(
+      expect.arrayContaining([
+        'admins',
+        'allowedToInvite',
+        'allowedToTransfer',
+        'allowedToDemote',
+        'allowedToResendInvites',
+      ]),
+    );
+
+    const platformAdmin = spec.components?.schemas?.PlatformAdmin as {
+      required?: string[];
+      additionalProperties?: boolean;
+      properties?: Record<
+        string,
+        { nullable?: boolean; type?: string; format?: string; $ref?: string }
+      >;
+    };
+    expect(platformAdmin).toBeDefined();
+    expect(platformAdmin.additionalProperties).toBe(false);
+    expect(platformAdmin.properties?.authStatus?.$ref).toBe('#/components/schemas/AuthStatus');
+    expect(platformAdmin.required).toEqual(
+      expect.arrayContaining([
+        'id',
+        'firstName',
+        'lastName',
+        'email',
+        'platformAdminRole',
+        'adminStatus',
+        'authStatus',
+        'invitationStatus',
+        'inviteId',
+        'allowedActions',
+      ]),
+    );
+    expect(platformAdmin.properties?.inviteId?.nullable).toBe(true);
+    expect(platformAdmin.properties?.invitationStatus?.nullable).toBe(true);
+
+    const allowedActions = spec.components?.schemas?.PlatformAdminAllowedActions as {
+      required?: string[];
+      additionalProperties?: boolean;
+      properties?: Record<string, unknown>;
+    };
+    expect(allowedActions).toBeDefined();
+    expect(allowedActions.additionalProperties).toBe(false);
+    expect(allowedActions.required).toEqual(
+      expect.arrayContaining(['canTransferSuperAdmin', 'canDemote', 'canResendInvite']),
+    );
+
+    const roleEnum = spec.components?.schemas?.PlatformAdminRole as { enum?: string[] };
+    expect(roleEnum?.enum).toEqual(['SUPER_ADMIN', 'NORMAL_ADMIN']);
+
+    const statusEnum = spec.components?.schemas?.PlatformAdminStatus as { enum?: string[] };
+    expect(statusEnum?.enum).toEqual(['ACTIVE', 'DISABLED']);
+
+    const invitationStatusEnum = spec.components?.schemas?.PlatformAdminInvitationStatus as {
+      enum?: string[];
+    };
+    expect(invitationStatusEnum?.enum).toEqual([
+      'PENDING',
+      'SENT',
+      'FAILED_TO_SEND',
+      'ACCEPTED',
+      'COMPLETED',
+      'EXPIRED',
+      'REVOKED',
+      'REJECTED',
+      'PENDING_UPGRADE',
+    ]);
+
+    const platformAdminsList = spec.components?.schemas?.PlatformAdminsListResponse as {
+      additionalProperties?: boolean;
+    };
+    expect(platformAdminsList?.additionalProperties).toBe(false);
+
+    const inviteRequest = spec.components?.schemas?.InvitePlatformAdminRequest as {
+      required?: string[];
+      additionalProperties?: boolean;
+      properties?: {
+        email?: { minLength?: number; maxLength?: number };
+        firstName?: { minLength?: number; maxLength?: number };
+        lastName?: { minLength?: number; maxLength?: number };
+        confirmUpgrade?: unknown;
+      };
+    };
+    expect(inviteRequest).toBeDefined();
+    expect(inviteRequest.required).toEqual(['email']);
+    expect(inviteRequest.additionalProperties).toBe(false);
+    expect(inviteRequest.properties?.email?.minLength).toBe(1);
+    expect(inviteRequest.properties?.email?.maxLength).toBe(254);
+    expect(inviteRequest.properties?.firstName?.minLength).toBe(1);
+    expect(inviteRequest.properties?.firstName?.maxLength).toBe(100);
+    expect(inviteRequest.properties?.lastName?.minLength).toBe(1);
+    expect(inviteRequest.properties?.lastName?.maxLength).toBe(100);
+    expect(inviteRequest.properties).toHaveProperty('confirmUpgrade');
+
+    const inviteResponse = spec.components?.schemas?.InvitePlatformAdminResponse as {
+      required?: string[];
+      additionalProperties?: boolean;
+      properties?: { type?: { enum?: string[] } };
+    };
+    expect(inviteResponse).toBeDefined();
+    expect(inviteResponse.required).toEqual(['type', 'userId', 'email']);
+    expect(inviteResponse.additionalProperties).toBe(false);
+    expect(inviteResponse.properties?.type?.enum).toEqual(['new-invite', 'upgrade-confirmation']);
+
+    const resendResponse = spec.components?.schemas?.ResendPlatformAdminInviteResponse as {
+      required?: string[];
+      additionalProperties?: boolean;
+    };
+    expect(resendResponse).toBeDefined();
+    expect(resendResponse.required).toEqual(['success', 'emailQueued']);
+    expect(resendResponse.additionalProperties).toBe(false);
+
+    const transferRequest = spec.components?.schemas?.TransferSuperAdminRequest as {
+      required?: string[];
+      additionalProperties?: boolean;
+      properties?: {
+        password?: { minLength?: number };
+        confirmation?: { enum?: string[] };
+      };
+    };
+    expect(transferRequest).toBeDefined();
+    expect(transferRequest.required).toEqual(['targetUserId', 'password', 'confirmation']);
+    expect(transferRequest.additionalProperties).toBe(false);
+    expect(transferRequest.properties?.password?.minLength).toBe(1);
+    expect(transferRequest.properties?.confirmation?.enum).toEqual(['TRANSFER']);
+
+    const demoteRequest = spec.components?.schemas?.DemotePlatformAdminRequest as {
+      required?: string[];
+      additionalProperties?: boolean;
+      properties?: {
+        password?: { minLength?: number };
+        confirmation?: { enum?: string[] };
+      };
+    };
+    expect(demoteRequest).toBeDefined();
+    expect(demoteRequest.required).toEqual(['password', 'confirmation']);
+    expect(demoteRequest.additionalProperties).toBe(false);
+    expect(demoteRequest.properties?.password?.minLength).toBe(1);
+    expect(demoteRequest.properties?.confirmation?.enum).toEqual(['DEMOTE']);
+
+    const demoteResponse = spec.components?.schemas?.DemotePlatformAdminResponse as {
+      required?: string[];
+      additionalProperties?: boolean;
+      properties?: {
+        adminStatus?: { enum?: string[] };
+        authStatus?: { $ref?: string };
+      };
+    };
+    expect(demoteResponse).toBeDefined();
+    expect(demoteResponse.required).toEqual(['userId', 'email', 'adminStatus', 'authStatus']);
+    expect(demoteResponse.additionalProperties).toBe(false);
+    expect(demoteResponse.properties?.adminStatus?.enum).toEqual(['DISABLED']);
+    expect(demoteResponse.properties?.authStatus?.$ref).toBe('#/components/schemas/AuthStatus');
+
+    expect(spec.components?.requestBodies).toHaveProperty('InvitePlatformAdmin');
+    expect(spec.components?.requestBodies).toHaveProperty('TransferSuperAdmin');
+    expect(spec.components?.requestBodies).toHaveProperty('DemotePlatformAdmin');
+
+    expect(spec.components?.responses).toHaveProperty('PlatformAdminsListOk');
+    expect(spec.components?.responses).toHaveProperty('InvitePlatformAdminCreated');
+    expect(spec.components?.responses).toHaveProperty('ResendPlatformAdminInviteOk');
+    expect(spec.components?.responses).toHaveProperty('TransferSuperAdminOk');
+    expect(spec.components?.responses).toHaveProperty('DemotePlatformAdminOk');
+
+    const inviteCreatedResponse = spec.components?.responses?.InvitePlatformAdminCreated as {
+      description?: string;
+    };
+    expect(inviteCreatedResponse?.description).toContain(
+      'invitation or upgrade request created successfully',
+    );
+
+    const resendOkResponse = spec.components?.responses?.ResendPlatformAdminInviteOk as {
+      description?: string;
+    };
+    expect(resendOkResponse?.description).toContain('emailQueued');
+
+    expectSchemaNotToContain('PlatformAdmin', ['passwordHash', 'password', 'tokenHash']);
+    expectSchemaNotToContain('InvitePlatformAdminResponse', [
+      'passwordHash',
+      'password',
+      'tokenHash',
+    ]);
+    expectSchemaNotToContain('DemotePlatformAdminResponse', [
+      'passwordHash',
+      'password',
+      'tokenHash',
+    ]);
+  });
+
+  it('documents organisation campaign statistics OpenAPI contracts with full required, nullable, integer percentage, and capability parity', () => {
+    const routePath = '/organisations/{organisationId}/campaigns/{campaignId}/statistics';
+    expectPathExists(routePath, 'get');
+    expectBearerAuth(routePath, 'get');
+
+    const routeDoc = getPath(routePath, 'get');
+    expect(routeDoc).toBeDefined();
+
+    const responseSchema = spec.components?.schemas?.GetCampaignStatisticsResponse as {
+      required?: string[];
+      additionalProperties?: boolean;
+      properties?: Record<string, unknown>;
+    };
+    expect(responseSchema).toBeDefined();
+    expect(responseSchema.additionalProperties).toBe(false);
+    expect(responseSchema.required).toEqual(
+      expect.arrayContaining(['campaign', 'summary', 'trainees', 'pagination']),
+    );
+
+    const campaignSchema = spec.components?.schemas?.CampaignStatisticsCampaign as {
+      required?: string[];
+      additionalProperties?: boolean;
+      properties?: Record<
+        string,
+        {
+          type?: string;
+          format?: string;
+          nullable?: boolean;
+          enum?: string[];
+          minimum?: number;
+        }
+      >;
+    };
+    expect(campaignSchema).toBeDefined();
+    expect(campaignSchema.additionalProperties).toBe(false);
+    expect(campaignSchema.required).toEqual(
+      expect.arrayContaining([
+        'id',
+        'name',
+        'description',
+        'campaignType',
+        'status',
+        'startDate',
+        'endDate',
+        'itemCount',
+        'quizCount',
+      ]),
+    );
+    expect(campaignSchema.properties?.description?.nullable).toBe(true);
+    expect(campaignSchema.properties?.startDate?.nullable).toBe(true);
+    expect(campaignSchema.properties?.endDate?.nullable).toBe(true);
+    expect(campaignSchema.properties?.itemCount?.minimum).toBe(0);
+    expect(campaignSchema.properties?.quizCount?.minimum).toBe(0);
+    expect(campaignSchema.properties?.campaignType?.enum).toEqual([
+      'PREMADE_GENERAL',
+      'ORGANISATION_CUSTOM',
+    ]);
+    expect(campaignSchema.properties?.status?.enum).toEqual([
+      'DRAFT',
+      'ACTIVE',
+      'PAUSED',
+      'COMPLETED',
+      'ARCHIVED',
+    ]);
+
+    const summarySchema = spec.components?.schemas?.CampaignStatisticsSummary as {
+      required?: string[];
+      additionalProperties?: boolean;
+      properties?: Record<
+        string,
+        {
+          type?: string;
+          nullable?: boolean;
+          minimum?: number;
+          maximum?: number;
+        }
+      >;
+    };
+    expect(summarySchema).toBeDefined();
+    expect(summarySchema.additionalProperties).toBe(false);
+    expect(summarySchema.required).toEqual(
+      expect.arrayContaining([
+        'assignedTraineeCount',
+        'startedTraineeCount',
+        'completedTraineeCount',
+        'overallProgressPercentage',
+        'averageQuizScorePercentage',
+      ]),
+    );
+    expect(summarySchema.properties?.assignedTraineeCount?.minimum).toBe(0);
+    expect(summarySchema.properties?.startedTraineeCount?.minimum).toBe(0);
+    expect(summarySchema.properties?.completedTraineeCount?.minimum).toBe(0);
+    expect(summarySchema.properties?.overallProgressPercentage?.nullable).toBe(true);
+    expect(summarySchema.properties?.overallProgressPercentage?.minimum).toBe(0);
+    expect(summarySchema.properties?.overallProgressPercentage?.maximum).toBe(100);
+    expect(summarySchema.properties?.averageQuizScorePercentage?.nullable).toBe(true);
+    expect(summarySchema.properties?.averageQuizScorePercentage?.minimum).toBe(0);
+    expect(summarySchema.properties?.averageQuizScorePercentage?.maximum).toBe(100);
+
+    const progressSchema = spec.components?.schemas?.CampaignStatisticsTraineeProgress as {
+      required?: string[];
+      additionalProperties?: boolean;
+      properties?: Record<
+        string,
+        {
+          type?: string;
+          minimum?: number;
+          maximum?: number;
+        }
+      >;
+    };
+    expect(progressSchema).toBeDefined();
+    expect(progressSchema.additionalProperties).toBe(false);
+    expect(progressSchema.required).toEqual(
+      expect.arrayContaining(['completedItemCount', 'totalItemCount', 'progressPercentage']),
+    );
+    expect(progressSchema.properties?.completedItemCount?.minimum).toBe(0);
+    expect(progressSchema.properties?.totalItemCount?.minimum).toBe(0);
+    expect(progressSchema.properties?.progressPercentage?.minimum).toBe(0);
+    expect(progressSchema.properties?.progressPercentage?.maximum).toBe(100);
+
+    const actionsSchema = spec.components?.schemas?.CampaignStatisticsTraineeActions as {
+      required?: string[];
+      additionalProperties?: boolean;
+      properties?: Record<string, { type?: string }>;
+    };
+    expect(actionsSchema).toBeDefined();
+    expect(actionsSchema.additionalProperties).toBe(false);
+    expect(actionsSchema.required).toEqual(expect.arrayContaining(['canUnassign']));
+    expect(actionsSchema.properties?.canUnassign?.type).toBe('boolean');
+
+    const traineeRowSchema = spec.components?.schemas?.CampaignStatisticsTraineeRow as {
+      required?: string[];
+      additionalProperties?: boolean;
+      properties?: Record<
+        string,
+        {
+          type?: string;
+          format?: string;
+          nullable?: boolean;
+          enum?: string[];
+          minimum?: number;
+          maximum?: number;
+        }
+      >;
+    };
+    expect(traineeRowSchema).toBeDefined();
+    expect(traineeRowSchema.additionalProperties).toBe(false);
+    expect(traineeRowSchema.required).toEqual(
+      expect.arrayContaining([
+        'assignmentId',
+        'traineeProfileId',
+        'displayName',
+        'email',
+        'traineeStatus',
+        'assignmentStatus',
+        'accessType',
+        'assignedAt',
+        'progress',
+        'completedQuizCount',
+        'totalQuizCount',
+        'averageQuizScorePercentage',
+        'allowedActions',
+      ]),
+    );
+    expect(traineeRowSchema.properties?.traineeStatus?.enum).toEqual([
+      'ACTIVE',
+      'INACTIVE',
+      'DISABLED',
+    ]);
+    expect(traineeRowSchema.properties?.assignmentStatus?.enum).toEqual([
+      'AVAILABLE',
+      'ASSIGNED',
+      'IN_PROGRESS',
+      'COMPLETED',
+      'CANCELLED',
+      'EXPIRED',
+    ]);
+    expect(traineeRowSchema.properties?.accessType?.enum).toEqual(['ASSIGNED', 'SELF_SELECTED']);
+    expect(traineeRowSchema.properties?.averageQuizScorePercentage?.nullable).toBe(true);
+    expect(traineeRowSchema.properties?.averageQuizScorePercentage?.minimum).toBe(0);
+    expect(traineeRowSchema.properties?.averageQuizScorePercentage?.maximum).toBe(100);
+
+    expect(spec.components?.responses).toHaveProperty('GetCampaignStatisticsOk');
+
+    expectSchemaNotToContain('CampaignStatisticsCampaign', ['password', 'passwordHash', 'prisma']);
+    expectSchemaNotToContain('CampaignStatisticsTraineeRow', [
+      'password',
+      'passwordHash',
+      'answers',
+      'selectedClassification',
+    ]);
   });
 });

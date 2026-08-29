@@ -53,6 +53,18 @@ export const ORGANISATION_PERMISSION_SEEDS = [
     description: 'Assign campaigns to eligible organisation trainees.',
     isCritical: false,
   },
+  {
+    key: 'VIEW_CAMPAIGNS',
+    displayName: 'View campaigns',
+    description: 'View organisation campaigns and draft configurations.',
+    isCritical: false,
+  },
+  {
+    key: 'MANAGE_CAMPAIGNS',
+    displayName: 'Manage campaigns',
+    description: 'Create, edit, save, activate, archive, and reactivate organisation campaigns.',
+    isCritical: false,
+  },
 ] as const;
 
 export type OrganisationPermissionSeed = (typeof ORGANISATION_PERMISSION_SEEDS)[number];

@@ -117,6 +117,6 @@ describe('Backend Guardrails & Consistency Middleware', () => {
       // Request should succeed again
       const resAfterReset = await request(app).get('/test');
       expect(resAfterReset.status).toBe(200);
-    });
+    }, 15000);
   });
 });

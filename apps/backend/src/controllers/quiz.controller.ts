@@ -4,22 +4,19 @@ import {
   QuizForbiddenError,
   QuizNotFoundError,
   QuizValidationError,
+  getActiveTraineeProfileId,
   getQuizByCampaignItemId,
   getQuizResult,
   startQuizAttempt,
   submitQuizAttempt,
 } from '../services/quiz.service.js';
-import { prisma } from '../lib/prisma.js';
 
-async function getTraineeProfileId(userId?: string) {
-  if (!userId) return null;
-  const profile = await prisma.traineeProfile.findFirst({
-    where: { userId, traineeStatus: 'ACTIVE' },
-  });
-  return profile?.id;
-}
+import { CampaignEligibilityDenialError } from '../services/campaign-eligibility.service.js';
 
 function handleError(res: Response, error: unknown) {
+  if (error instanceof CampaignEligibilityDenialError) {
+    return res.status(error.status).json({ error: error.error, message: error.message });
+  }
   if (error instanceof QuizNotFoundError) {
     return res.status(404).json({ error: 'NOT_FOUND', message: error.message });
   }
@@ -42,7 +39,7 @@ async function withTraineeProfile(
   successStatus = 200,
 ) {
   try {
-    const traineeProfileId = await getTraineeProfileId(req.auth?.userId);
+    const traineeProfileId = await getActiveTraineeProfileId(req.auth?.userId);
     if (!traineeProfileId) {
       return res.status(403).json({ error: 'FORBIDDEN', message: 'User is not a trainee' });
     }

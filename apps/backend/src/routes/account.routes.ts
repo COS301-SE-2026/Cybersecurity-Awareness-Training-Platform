@@ -91,7 +91,7 @@ accountRouter.patch(
  *   post:
  *     tags: [Account Settings]
  *     summary: Request an account email change
- *     description: Verifies the current password, checks policy, creates a pending email-change request and verification token, and sends confirmation through the central email service.
+ *     description: Verifies the current password, checks policy, creates a pending email-change request and verification token, and queues confirmation/warning notifications through the central email service. The response reports local queue acceptance only, not final provider delivery.
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -126,7 +126,7 @@ accountRouter.post(
  *   post:
  *     tags: [Account Settings]
  *     summary: Change account password
- *     description: Verifies the current password, updates the password hash, revokes active sessions and refresh tokens, sends a password-changed notification, and records an audit event.
+ *     description: Verifies the current password, updates the password hash, revokes active sessions and refresh tokens, queues a password-changed notification, and records an audit event. The response reports local queue acceptance only, not final provider delivery.
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -187,7 +187,7 @@ accountRouter.get(
  *   delete:
  *     tags: [Account Settings]
  *     summary: Revoke an account session
- *     description: Revokes one active session owned by the authenticated user and revokes its refresh tokens.
+ *     description: Revokes one active session owned by the authenticated user and revokes its refresh tokens. Revoking the current session is permitted and invalidates the current refresh token.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -222,7 +222,7 @@ accountRouter.delete(
  *   post:
  *     tags: [Account Settings]
  *     summary: Log out other sessions
- *     description: Revokes all active sessions for the authenticated user except the current session.
+ *     description: Revokes all active sessions and refresh tokens for the authenticated user except the current session.
  *     security:
  *       - bearerAuth: []
  *     responses:

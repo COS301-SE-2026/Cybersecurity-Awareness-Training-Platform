@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi, afterEach } from 'vitest';
-import { prisma } from '../../../src/lib/prisma.js';
 import { OrganisationPermissionKey } from '../../../src/generated/prisma/enums.js';
 import { OrganisationAdminServiceError } from '../../../src/services/organisation-admin.service.js';
 import {
@@ -27,6 +26,22 @@ const traineeRepoMock = vi.hoisted(() => ({
   findPendingTraineeInvitationByEmail: vi.fn(),
   findOrganisationTraineeById: vi.fn(),
   disableOrganisationTraineeProfile: vi.fn(),
+  findAuthoritativeInvitationById: vi.fn(),
+  findAuthoritativeResentInvitation: vi.fn(),
+  createOrganisationTraineeInvitationTx: vi.fn(),
+  resendOrganisationTraineeInvitationTx: vi.fn(),
+  revokeOrganisationTraineeInvitationTx: vi.fn(),
+  disableOrganisationTraineeTx: vi.fn(),
+  OrganisationTraineeRepositoryError: class OrganisationTraineeRepositoryError extends Error {
+    constructor(
+      public readonly statusCode: number,
+      public readonly errorKey: string,
+      message: string,
+    ) {
+      super(message);
+      this.name = 'OrganisationTraineeRepositoryError';
+    }
+  },
 }));
 
 const invitationRepoMock = vi.hoisted(() => ({
@@ -43,7 +58,7 @@ const orgAdminRepoMock = vi.hoisted(() => ({
 }));
 
 const tokenHashMock = vi.hoisted(() => ({
-  generateOpaqueToken: vi.fn().mockReturnValue('raw-opaque-token-12345'),
+  generateOpaqueToken: vi.fn().mockReturnValue('raw-opaque-token-12345-67890-abcdef123456'),
   hashOpaqueToken: vi.fn().mockReturnValue('hashed-opaque-token-12345'),
 }));
 
@@ -67,31 +82,6 @@ vi.mock('../../../src/services/token-hash.service.js', () => tokenHashMock);
 vi.mock('../../../src/services/audit-log.service.js', () => auditLogMock);
 vi.mock('../../../src/services/email.service.js', () => emailMock);
 vi.mock('../../../src/services/password.service.js', () => passwordMock);
-
-const txMock = {
-  $queryRaw: vi.fn().mockResolvedValue([{}]),
-  invitation: {
-    create: vi.fn(),
-    update: vi.fn(),
-    updateMany: vi.fn().mockResolvedValue({ count: 1 }),
-    findUnique: vi.fn(),
-  },
-  actionToken: {
-    create: vi.fn(),
-    updateMany: vi.fn().mockResolvedValue({ count: 1 }),
-  },
-};
-
-vi.mock('../../../src/lib/prisma.js', () => ({
-  prisma: {
-    $transaction: vi.fn(async (cb: (tx: typeof txMock) => unknown) => cb(txMock)),
-    invitation: {
-      findUnique: vi.fn().mockResolvedValue({ status: 'SENT' }),
-      update: vi.fn(),
-      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
-    },
-  },
-}));
 
 describe('OrganisationTraineeService', () => {
   beforeEach(() => {
@@ -186,35 +176,43 @@ describe('OrganisationTraineeService', () => {
       lastName: 'Trainee',
     };
 
-    it('creates invitation and action token inside transaction, logs audit, and sends email on success', async () => {
+    it('delegates creation to repository transaction and returns authoritative response on success', async () => {
       traineeRepoMock.findOrganisationTraineeByEmail.mockResolvedValue(null);
       traineeRepoMock.findPendingTraineeInvitationByEmail.mockResolvedValue(null);
       invitationRepoMock.findUserByEmailWithProfiles.mockResolvedValue(null);
 
-      txMock.invitation.create.mockResolvedValue(buildMockInvitation({ id: mockInvitationId }));
-      txMock.actionToken.create.mockResolvedValue({ id: mockActionTokenId });
-      txMock.invitation.findUnique.mockResolvedValue(
+      const mockInvitation = buildMockInvitation({ id: mockInvitationId });
+      traineeRepoMock.createOrganisationTraineeInvitationTx.mockResolvedValue({
+        invitation: mockInvitation,
+        actionToken: { id: mockActionTokenId },
+        emailResult: { status: 'QUEUED' },
+      });
+      traineeRepoMock.findAuthoritativeInvitationById.mockResolvedValue(
         buildMockInvitation({ id: mockInvitationId, status: 'PENDING' }),
       );
 
       const result = await createOrganisationTraineeInvitation(mockActorUserId, mockOrgId, input);
 
       expect(result.success).toBe(true);
-      expect(txMock.invitation.create).toHaveBeenCalled();
-      expect(txMock.actionToken.create).toHaveBeenCalled();
-      expect(auditLogMock.recordAuditLog).toHaveBeenCalledWith(
+      expect(traineeRepoMock.createOrganisationTraineeInvitationTx).toHaveBeenCalledWith(
         expect.objectContaining({
-          actionType: 'INVITED',
-          targetId: mockInvitationId,
-        }),
-        txMock,
-      );
-      expect(emailMock.sendEmail).toHaveBeenCalledWith(
-        expect.objectContaining({
-          emailType: 'ORGANISATION_TRAINEE_INVITE',
+          organisationId: mockOrgId,
           recipientEmail: 'trainee@example.com',
+          recipientFirstName: 'Alex',
+          recipientLastName: 'Trainee',
+          tokenHash: 'hashed-opaque-token-12345',
+          auditLogData: expect.objectContaining({
+            actorUserId: mockActorUserId,
+            actionType: 'INVITED',
+          }),
+          emailDeliveryData: expect.objectContaining({
+            emailType: 'ORGANISATION_TRAINEE_INVITE',
+            recipientEmail: 'trainee@example.com',
+          }),
         }),
-        txMock,
+      );
+      expect(traineeRepoMock.findAuthoritativeInvitationById).toHaveBeenCalledWith(
+        mockInvitationId,
       );
     });
 
@@ -288,6 +286,27 @@ describe('OrganisationTraineeService', () => {
       });
     });
 
+    it('throws 409 when repository transaction reports duplicate conflict', async () => {
+      traineeRepoMock.findOrganisationTraineeByEmail.mockResolvedValue(null);
+      traineeRepoMock.findPendingTraineeInvitationByEmail.mockResolvedValue(null);
+      invitationRepoMock.findUserByEmailWithProfiles.mockResolvedValue(null);
+
+      traineeRepoMock.createOrganisationTraineeInvitationTx.mockRejectedValue(
+        new traineeRepoMock.OrganisationTraineeRepositoryError(
+          409,
+          'CANNOT_INVITE_USER',
+          'A pending invitation already exists for this email address.',
+        ),
+      );
+
+      await expect(
+        createOrganisationTraineeInvitation(mockActorUserId, mockOrgId, input),
+      ).rejects.toMatchObject({
+        statusCode: 409,
+        error: 'CANNOT_INVITE_USER',
+      });
+    });
+
     it('throws 403 ORGANISATION_NOT_ACTIVE when organisation is not active', async () => {
       orgAdminRepoMock.findActorOrganisationAdmin.mockResolvedValue(
         buildMockActorAdmin([OrganisationPermissionKey.INVITE_ORGANISATION_TRAINEES], {
@@ -305,29 +324,42 @@ describe('OrganisationTraineeService', () => {
   });
 
   describe('resendTraineeInvitation', () => {
-    it('revokes existing unused tokens, renews expiration, logs audit, and sends email', async () => {
+    it('delegates token rotation to repository transaction and performs authoritative check', async () => {
       const invitation = buildMockInvitation({ id: mockInvitationId, status: 'PENDING' });
       invitationRepoMock.findInvitationById.mockResolvedValue(invitation);
       invitationRepoMock.findUserByEmailWithProfiles.mockResolvedValue(null);
-      txMock.actionToken.create.mockResolvedValue({ id: mockActionTokenId });
-      vi.mocked(prisma.invitation.findUnique).mockResolvedValue({
+      traineeRepoMock.resendOrganisationTraineeInvitationTx.mockResolvedValue({
+        actionToken: { id: mockActionTokenId },
+        claimedAt: new Date(),
+        emailResult: { status: 'QUEUED' },
+      });
+      traineeRepoMock.findAuthoritativeResentInvitation.mockResolvedValue({
         ...buildMockInvitation({ id: mockInvitationId, status: 'PENDING' }),
         actionTokens: [{ id: mockActionTokenId, revokedAt: null, usedAt: null }],
-      } as unknown as never);
+      });
 
       const result = await resendTraineeInvitation(mockActorUserId, mockOrgId, mockInvitationId);
 
       expect(result.success).toBe(true);
       expect(result.invitationId).toBe(mockInvitationId);
-      expect(txMock.actionToken.updateMany).toHaveBeenCalledWith(
+      expect(traineeRepoMock.resendOrganisationTraineeInvitationTx).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { invitationId: mockInvitationId, revokedAt: null, usedAt: null },
+          organisationId: mockOrgId,
+          invitationId: mockInvitationId,
+          tokenHash: 'hashed-opaque-token-12345',
+          auditLogData: expect.objectContaining({
+            actorUserId: mockActorUserId,
+            actionType: 'RESENT',
+          }),
+          emailDeliveryData: expect.objectContaining({
+            emailType: 'ORGANISATION_TRAINEE_INVITE',
+            recipientEmail: invitation.recipientEmail,
+          }),
         }),
       );
-      expect(txMock.invitation.updateMany).toHaveBeenCalled();
-      expect(auditLogMock.recordAuditLog).toHaveBeenCalledWith(
-        expect.objectContaining({ actionType: 'RESENT' }),
-        txMock,
+      expect(traineeRepoMock.findAuthoritativeResentInvitation).toHaveBeenCalledWith(
+        mockInvitationId,
+        mockActionTokenId,
       );
     });
 
@@ -371,6 +403,26 @@ describe('OrganisationTraineeService', () => {
       });
     });
 
+    it('throws 409 when repository transaction reports concurrent mutation conflict', async () => {
+      const invitation = buildMockInvitation({ id: mockInvitationId, status: 'PENDING' });
+      invitationRepoMock.findInvitationById.mockResolvedValue(invitation);
+      invitationRepoMock.findUserByEmailWithProfiles.mockResolvedValue(null);
+      traineeRepoMock.resendOrganisationTraineeInvitationTx.mockRejectedValue(
+        new traineeRepoMock.OrganisationTraineeRepositoryError(
+          409,
+          'INVITATION_NOT_RESENDABLE',
+          'Invitation was modified concurrently or is no longer in a resendable state.',
+        ),
+      );
+
+      await expect(
+        resendTraineeInvitation(mockActorUserId, mockOrgId, mockInvitationId),
+      ).rejects.toMatchObject({
+        statusCode: 409,
+        error: 'INVITATION_NOT_RESENDABLE',
+      });
+    });
+
     it('enforces cross-tenant security on resend', async () => {
       invitationRepoMock.findInvitationById.mockResolvedValue(
         buildMockInvitation({ organisationId: 'org-other' }),
@@ -387,23 +439,28 @@ describe('OrganisationTraineeService', () => {
   });
 
   describe('revokeTraineeInvitation', () => {
-    it('marks invitation and tokens as revoked and records audit log', async () => {
+    it('delegates revocation to repository transaction and returns success', async () => {
       invitationRepoMock.findInvitationById.mockResolvedValue(buildMockInvitation());
+      traineeRepoMock.revokeOrganisationTraineeInvitationTx.mockResolvedValue({
+        alreadyRevoked: false,
+        invitationId: mockInvitationId,
+        revokedAt: '2026-07-15T08:00:00.000Z',
+      });
 
       const result = await revokeTraineeInvitation(mockActorUserId, mockOrgId, mockInvitationId);
 
       expect(result.success).toBe(true);
       expect(result.status).toBe('REVOKED');
-      expect(txMock.invitation.updateMany).toHaveBeenCalledWith(
+      expect(traineeRepoMock.revokeOrganisationTraineeInvitationTx).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: expect.objectContaining({ id: mockInvitationId }),
-          data: { status: 'REVOKED' },
+          actorUserId: mockActorUserId,
+          organisationId: mockOrgId,
+          invitationId: mockInvitationId,
+          auditLogData: expect.objectContaining({
+            actorUserId: mockActorUserId,
+            actionType: 'REVOKED',
+          }),
         }),
-      );
-      expect(txMock.actionToken.updateMany).toHaveBeenCalled();
-      expect(auditLogMock.recordAuditLog).toHaveBeenCalledWith(
-        expect.objectContaining({ actionType: 'REVOKED' }),
-        txMock,
       );
     });
 
@@ -416,12 +473,30 @@ describe('OrganisationTraineeService', () => {
 
       expect(result.success).toBe(true);
       expect(result.status).toBe('REVOKED');
-      expect(txMock.invitation.update).not.toHaveBeenCalled();
+      expect(traineeRepoMock.revokeOrganisationTraineeInvitationTx).not.toHaveBeenCalled();
     });
 
     it('throws 409 when attempting to revoke an already accepted invitation', async () => {
       invitationRepoMock.findInvitationById.mockResolvedValue(
         buildMockInvitation({ status: 'ACCEPTED' }),
+      );
+
+      await expect(
+        revokeTraineeInvitation(mockActorUserId, mockOrgId, mockInvitationId),
+      ).rejects.toMatchObject({
+        statusCode: 409,
+        error: 'INVITATION_ALREADY_ACCEPTED',
+      });
+    });
+
+    it('throws 409 when repository transaction reports concurrent conflict', async () => {
+      invitationRepoMock.findInvitationById.mockResolvedValue(buildMockInvitation());
+      traineeRepoMock.revokeOrganisationTraineeInvitationTx.mockRejectedValue(
+        new traineeRepoMock.OrganisationTraineeRepositoryError(
+          409,
+          'INVITATION_ALREADY_ACCEPTED',
+          'Cannot revoke an invitation that has already been accepted or mutated concurrently.',
+        ),
       );
 
       await expect(
@@ -440,10 +515,13 @@ describe('OrganisationTraineeService', () => {
       confirmation: true as const,
     };
 
-    it('atomically disables profile, revokes sessions, logs audit, and sends role notification', async () => {
+    it('atomically disables profile, revokes sessions, logs audit, and sends role notification via repository transaction', async () => {
       passwordMock.verifyPassword.mockResolvedValue(true);
       const trainee = buildMockTraineeProfile({ membershipStatus: 'ACTIVE' });
-      traineeRepoMock.findOrganisationTraineeById.mockResolvedValue(trainee);
+      traineeRepoMock.disableOrganisationTraineeTx.mockResolvedValue({
+        txTrainee: trainee,
+        disabledReason: 'Disabled by organisation admin',
+      });
 
       const result = await disableOrganisationTrainee(
         mockActorUserId,
@@ -455,24 +533,17 @@ describe('OrganisationTraineeService', () => {
       expect(result.success).toBe(true);
       expect(result.traineeId).toBe(trainee.id);
       expect(result.status).toBe('DISABLED');
-      expect(traineeRepoMock.disableOrganisationTraineeProfile).toHaveBeenCalledWith(
-        trainee.id,
-        'Disabled by organisation admin',
-        txMock,
-      );
-      expect(authSessionRepoMock.revokeUserAuthSessions).toHaveBeenCalledWith(
-        {
-          userId: trainee.traineeProfile.userId,
-          revokedReason: 'ADMIN_DISABLED',
-        },
-        txMock,
-      );
-      expect(auditLogMock.recordAuditLog).toHaveBeenCalledWith(
+      expect(traineeRepoMock.disableOrganisationTraineeTx).toHaveBeenCalledWith(
         expect.objectContaining({
-          actionType: 'DISABLED',
-          outcome: 'SUCCESS',
+          actorUserId: mockActorUserId,
+          organisationId: mockOrgId,
+          traineeId: mockTraineeId,
+          disabledReason: 'Disabled by organisation admin',
+          auditLogData: expect.objectContaining({
+            actorUserId: mockActorUserId,
+            actionType: 'DISABLED',
+          }),
         }),
-        txMock,
       );
       expect(emailMock.sendEmail).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -515,10 +586,14 @@ describe('OrganisationTraineeService', () => {
       );
     });
 
-    it('throws 409 TRAINEE_ALREADY_DISABLED when trainee is already disabled', async () => {
+    it('throws 409 TRAINEE_ALREADY_DISABLED when repository transaction reports already disabled', async () => {
       passwordMock.verifyPassword.mockResolvedValue(true);
-      traineeRepoMock.findOrganisationTraineeById.mockResolvedValue(
-        buildMockTraineeProfile({ membershipStatus: 'DISABLED' }),
+      traineeRepoMock.disableOrganisationTraineeTx.mockRejectedValue(
+        new traineeRepoMock.OrganisationTraineeRepositoryError(
+          409,
+          'TRAINEE_ALREADY_DISABLED',
+          'Trainee profile is already disabled.',
+        ),
       );
 
       await expect(
@@ -529,9 +604,15 @@ describe('OrganisationTraineeService', () => {
       });
     });
 
-    it('enforces cross-tenant security by verifying trainee belongs to actor organisation', async () => {
+    it('enforces cross-tenant security when trainee is not found in organisation', async () => {
       passwordMock.verifyPassword.mockResolvedValue(true);
-      traineeRepoMock.findOrganisationTraineeById.mockResolvedValue(null);
+      traineeRepoMock.disableOrganisationTraineeTx.mockRejectedValue(
+        new traineeRepoMock.OrganisationTraineeRepositoryError(
+          404,
+          'TRAINEE_NOT_FOUND',
+          'Organisation trainee profile not found.',
+        ),
+      );
 
       await expect(
         disableOrganisationTrainee(mockActorUserId, mockOrgId, mockTraineeId, input),

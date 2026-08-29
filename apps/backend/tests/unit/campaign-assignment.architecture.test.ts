@@ -56,4 +56,37 @@ describe('Campaign Assignment Architecture Isolation', () => {
     expect(routesContent).not.toMatch(/from\s+['"].*prisma.*['"]/i);
     expect(routesContent).not.toMatch(/from\s+['"].*repository.*['"]/i);
   });
+
+  it('ensures trainee campaign controller and routes do not import Prisma or repositories directly', () => {
+    const traineeControllerPath = resolveBackendFilePath(
+      'controllers/trainee-campaign.controller.ts',
+    );
+    const traineeRoutesPath = resolveBackendFilePath('routes/trainee-campaign.routes.ts');
+
+    const controllerContent = fs.readFileSync(traineeControllerPath, 'utf-8');
+    const routesContent = fs.readFileSync(traineeRoutesPath, 'utf-8');
+
+    expect(controllerContent).not.toMatch(/from\s+['"].*prisma.*['"]/i);
+    expect(controllerContent).not.toMatch(/from\s+['"].*repository.*['"]/i);
+    expect(routesContent).not.toMatch(/from\s+['"].*prisma.*['"]/i);
+    expect(routesContent).not.toMatch(/from\s+['"].*repository.*['"]/i);
+  });
+
+  it('ensures trainee campaign service does not import Prisma directly', () => {
+    const traineeServicePath = resolveBackendFilePath('services/trainee-campaign.service.ts');
+    const serviceContent = fs.readFileSync(traineeServicePath, 'utf-8');
+
+    const importStatements = serviceContent
+      .split(/import\s+/g)
+      .slice(1)
+      .map((s) => s.split(';')[0].replace(/\s+/g, ' '));
+
+    for (const statement of importStatements) {
+      expect(statement).not.toMatch(/@prisma\/client/i);
+      expect(statement).not.toMatch(/lib\/prisma/i);
+    }
+
+    expect(serviceContent).not.toMatch(/\bprisma\./i);
+    expect(serviceContent).not.toMatch(/\$(queryRaw|executeRaw|transaction)\b/i);
+  });
 });

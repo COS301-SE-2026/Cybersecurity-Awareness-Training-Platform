@@ -1,9 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useId, useRef } from 'react';
 
 type BasicConfirmationModalProps = Readonly<{
   title: string;
   message: string;
   confirmButtonText: string;
+  cancelButtonText?: string;
   onConfirm: () => void;
   onCancel: () => void;
   confirmButtonVariant: 'danger' | 'success' | 'default';
@@ -24,6 +25,7 @@ function BasicConfirmationModal({
   title,
   message,
   confirmButtonText,
+  cancelButtonText = 'Cancel',
   onConfirm,
   onCancel,
   confirmButtonVariant,
@@ -41,6 +43,7 @@ function BasicConfirmationModal({
 }: BasicConfirmationModalProps) {
   const passwordInputRef = useRef<HTMLInputElement | null>(null);
   const cancelButtonRef = useRef<HTMLButtonElement | null>(null);
+  const titleId = useId();
 
   useEffect(() => {
     (passwordInputRef.current ?? cancelButtonRef.current)?.focus();
@@ -61,7 +64,7 @@ function BasicConfirmationModal({
       tabIndex={-1}
       role="dialog"
       aria-modal="true"
-      aria-labelledby="basic-confirmation-title"
+      aria-labelledby={titleId}
       className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/50 backdrop-blur-xl"
     >
       <div className="relative p-2 w-full max-w-md max-h-full">
@@ -87,7 +90,7 @@ function BasicConfirmationModal({
 
             {/* Heading */}
             <h3
-              id="basic-confirmation-title"
+              id={titleId}
               className="mb-4 text-body text-purple font-jost text-2xl tracking-wider font-medium"
             >
               {title}
@@ -182,7 +185,7 @@ function BasicConfirmationModal({
                 disabled={isDismissDisabled}
                 className="text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading focus:ring-4 focus:ring-neutral-tertiary shadow-xs font-jost tracking-wider cursor-pointer font-regular leading-5 text-[1.1rem] px-4 py-2.5 focus:outline-none"
               >
-                Cancel
+                {cancelButtonText}
               </button>
             </div>
           </div>
