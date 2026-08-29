@@ -9,13 +9,16 @@ This document records the coding standards used for Demo 3 work on Insightful Ph
 - [Tooling and Enforcement](#tooling-and-enforcement)
 - [General TypeScript and Formatting Standards](#general-typescript-and-formatting-standards)
 - [Naming](#naming)
+- [Maintainability and Control Flow](#maintainability-and-control-flow)
 - [Frontend Standards](#frontend-standards)
 - [Backend Standards](#backend-standards)
+- [Error Handling](#error-handling)
 - [Shared Contracts and Validation](#shared-contracts-and-validation)
 - [Database and Migrations](#database-and-migrations)
 - [Testing Expectations](#testing-expectations)
 - [Generated Artefacts](#generated-artefacts)
 - [Security-Sensitive Code](#security-sensitive-code)
+- [Project Examples](#project-examples)
 - [Git and Pull Requests](#git-and-pull-requests)
 - [Commands](#commands)
 - [References](#references)
@@ -83,6 +86,15 @@ ESLint is configured separately for the workspace packages. The shared root ESLi
 
 Formatting and linting in Insightful Phish are quality checks, not tests. A file can be formatted and lint-clean while still having obvious incorrect behaviour, so feature work still needs appropriate testing.
 
+TypeScript standards:
+
+- Prefer strong domain types and narrow interfaces over loose objects that can drift between layers.
+- Validate untrusted input at trust boundaries with shared or backend Zod schemas before treating it as typed application data.
+- Handle `null` and `undefined` deliberately. Avoid non-null assertions unless the invariant is clear and already checked.
+- Keep asynchronous control flow explicit: awaited work should either be awaited, returned, or intentionally detached with a visible reason.
+- Avoid unnecessary `any`, unchecked casts, and broad `unknown` handling that is not followed by validation or type narrowing.
+- Reuse shared contracts where they exist instead of copying similar request or response types into one package.
+
 ## Naming
 
 Names should match the surrounding package and domain language. Use `organisation`, `behaviour`, `authorised`, `unauthorised`, `enrolment`, `licence`, and `artefacts` in documentation and user-facing project language unless a dependency, API field, or existing code identifier uses another spelling.
@@ -103,6 +115,19 @@ The current codebase uses these broad naming conventions:
 
 Names should be stable enough for tests, documentation, Swagger/OpenAPI references, and audit records to stay understandable. Avoid vague names such as `data`, `payload`, or `item` when a stronger domain name is available.
 
+## Maintainability and Control Flow
+
+Code should be easy to review in the issue where it changes. The repository does not configure a numeric complexity threshold, so maintainability is checked through ESLint, tests, and review rather than a single score.
+
+Maintainability standards:
+
+- Keep functions, React components, services, and repository operations focused on one clear responsibility.
+- Prefer understandable branches and early returns when they make validation, permission checks, or terminal states easier to follow.
+- Limit nesting in request handlers, service workflows, and JSX. Extract named helpers when a condition or mapping starts to hide the intent.
+- Decompose oversized React components into presentational pieces, state helpers, or feature-specific components when a page becomes hard to scan.
+- Decompose large backend workflows into service helpers and repository operations without moving business rules into repositories.
+- Keep refactors close to the behaviour being changed. Broad unrelated rewrites make review, regression testing, and rollback harder.
+
 ## Frontend Standards
 
 Frontend code should follow the current React, Vite, TypeScript, shared-validation, accessibility, and styling conventions already used in `apps/frontend`.
@@ -114,13 +139,15 @@ The frontend source is organised around `components`, `pages`, `routes`, `servic
 Frontend standards:
 
 - Keep page components focused on screen composition and flow.
-- Put reusable UI in component folders where the existing feature or shared UI structure already expects it.
-- Keep API calls in service or client helpers instead of spreading raw `fetch` calls through components.
-- Use shared schemas from `packages/shared` when the frontend and backend need the same validation contract.
+- Put reusable UI in component folders where the existing feature or shared UI structure already expects it before adding page-local duplicates.
+- Keep API calls in established service or client helpers, such as the current `apiClient` pattern, instead of spreading raw `fetch` calls through components.
+- Use shared schemas from `packages/shared` when the frontend and backend need the same validation contract, especially at form and API boundaries.
+- Show explicit loading, error, empty, and success states for user-visible data flows.
 - Sanitise rendered HTML where the existing code path handles rich content. The project already uses DOMPurify for this kind of boundary.
-- Write accessible controls with useful labels, keyboard interaction, visible focus, and understandable validation feedback.
+- Write accessible controls with useful labels, semantic buttons, keyboard interaction, visible focus, and understandable validation feedback.
+- Present backend enum and lifecycle values through typed user-facing labels instead of rendering raw values such as `PENDING_ONBOARDING`.
 - Prefer assertions about user-visible behaviour in tests. Avoid tests that only prove a particular utility-class string is present unless the styling contract itself is the behaviour under review.
-- Keep design consistency with the current UI and hosted brand documentation without treating coding standards as a separate design-system specification.
+- Keep design consistency with the current UI and hosted `/brand` guide without turning coding standards into a second Brand Guide.
 
 ## Backend Standards
 
@@ -130,17 +157,46 @@ Backend changes should keep request handling, business workflow, persistence, an
 
 The backend source is organised into `routes`, `controllers`, `services`, `repositories`, `middleware`, `mappers`, `config`, `errors`, `lib`, `types`, `constants`, `content`, and generated Prisma client output. New backend work should respect those boundaries.
 
+The required backend dependency direction is:
+
+```text
+Controller -> Service -> Repository -> Database
+```
+
 Backend standards:
 
 - Routes should register middleware, rate limits where required, request validation, and controller handlers. They should not contain business workflows.
-- Controllers should translate HTTP requests into service inputs and translate service outcomes into HTTP responses.
-- Services should own use-case decisions, transaction boundaries, policy checks, audit recording, email hooks, token handling, and error mapping where those behaviours belong to the application workflow.
-- Repositories should isolate Prisma queries and accept a transaction client when the service needs multiple writes to succeed or fail together.
+- Controllers should own HTTP concerns: request parsing, authenticated context extraction, response codes, and mapping service outcomes or service errors to HTTP responses.
+- Services should own use cases: business workflows, permission checks, lifecycle classification, application policy, domain errors, transaction orchestration, audit recording, email hooks, and token or session decisions.
+- Repositories should own persistence: Prisma/database access, transaction-aware operations, scoped queries, authoritative post-write reads, and persistence-focused errors.
+- Only repositories should access Prisma or database state directly.
 - Validation should use existing shared or backend Zod schemas rather than ad hoc request parsing.
-- Error responses should use the existing error handling style and avoid exposing raw provider, Prisma, SMTP, authentication, or token details.
 - Authentication, authorisation, organisation scope, state transitions, and rate limiting should be checked deliberately on protected or sensitive routes.
 - Audit metadata should stay compact and safe. It should not contain names, email addresses, raw tokens, token hashes, permission sets, full request bodies, raw database errors, or raw provider errors unless a documented safe exception exists.
 - Email delivery should go through the central backend email or mail service. Feature code should not call SMTP directly.
+
+Prohibited backend shortcuts:
+
+- Controller-to-Repository shortcuts.
+- Controller-to-Database or Controller-to-Prisma shortcuts.
+- Service-to-Prisma shortcuts.
+- Business workflows embedded in controllers.
+- Business or permission policy hidden in repositories.
+- Ad hoc database access outside repositories.
+
+## Error Handling
+
+Errors should make the failure understandable without turning sensitive internals into user-visible output or logs.
+
+Error-handling standards:
+
+- Do not swallow failures with empty `catch` blocks or convert unknown failures into fake success.
+- Do not expose stack traces, SQL details, raw Prisma errors, provider responses, SMTP diagnostics, credentials, passwords, tokens, cookies, auth headers, or private request bodies.
+- Controllers should map known service outcomes and application errors to HTTP responses. Unknown failures should continue to the established error-handling path.
+- Services should use existing domain or application error types and keep recovery decisions close to the workflow that owns them.
+- Repositories may surface persistence-focused errors that services can translate, but they should not decide business permissions.
+- Frontend service clients and pages should use the established API error mapping path instead of each page guessing raw response shapes.
+- Logs should be useful for diagnosis while using stable identifiers, error categories, and safe flags rather than sensitive values.
 
 ## Shared Contracts and Validation
 
@@ -156,6 +212,7 @@ The shared package currently keeps validation files and schema tests under `pack
 - Avoid weakening schemas just to make one caller easier. If a caller has different rules, name that difference clearly.
 - Include focused schema tests for non-trivial validation behaviour.
 - Keep generated API, DTO, and Swagger wording aligned with the schema where the endpoint is documented.
+- Avoid broad `unknown` pass-through objects when a stable DTO or discriminated union would keep frontend and backend behaviour clearer.
 
 ## Database and Migrations
 
@@ -166,18 +223,21 @@ Migrations should be reviewed as behavioural changes, not treated as incidental 
 Database standards:
 
 - Keep Prisma schema, migration, repository, service, and test updates in the same feature slice when the behaviour depends on a schema change.
-- Use committed migrations for persistent schema changes. Do not rely on local database drift.
-- Use transaction-aware repository functions when several writes must succeed together.
+- Use backwards-compatible migration plans where possible and commit persistent migration history. Do not rely on local database drift.
+- Use transaction-aware repository functions when several writes must succeed together or when an authoritative post-write read is needed.
 - Guard lifecycle updates with the current state where stale updates could overwrite a newer decision.
 - Keep seed data and test fixtures deterministic and safe. Do not commit real credentials, production data, or private organisation data.
 - Use the backend integration-test database flow for database-backed integration behaviour where repository evidence supports it.
 - Do not manually edit generated Prisma client files under generated output.
+- Do not hide destructive data changes, local-only assumptions, or manual production shortcuts inside normal committed code or documentation.
 
 ## Testing Expectations
 
 Developers must add or update unit tests when they add or change any behaviour. Documentation-only changes may not need automated tests, but they still need review and formatting checks. Testing expectations are expanded in the [Testing Policy](testing-policy.md).
 
 At coding-standard level, the expectation is simple: the developer who changes behaviour owns the feature's unit tests for that change. Database-backed and cross-component backend integration testing is planned through separate, focused integration-test issues. Integration tests complement rather than replace feature-level unit tests. E2E or smoke tests should be reserved for important user-visible flows.
+
+Important new behaviour needs meaningful success and failure coverage. Permission checks and Organisation-isolation paths are security-sensitive and should not be left to happy-path tests only. Tests should verify behaviour rather than pad coverage numbers.
 
 Tests should be deterministic. Avoid stale hard-coded dates, production data, arbitrary sleeps, broad snapshots, and assertions that only prove an implementation detail. When a bug is fixed, add or update a regression test that would have failed before the fix.
 
@@ -204,8 +264,85 @@ Security-sensitive standards:
 - Keep authentication and account-security flows behind the existing middleware and rate-limiting patterns.
 - Do not log full request bodies or raw external-service errors.
 - Avoid user-controlled HTML unless it goes through an established sanitisation path.
+- Treat untrusted input as untrusted until it has been validated at the correct boundary.
+- Keep authorisation backend-authoritative. Frontend route guards and disabled buttons improve usability, but they are not security boundaries.
+- Enforce Organisation isolation on the server for every organisation-scoped action or read.
 - Keep access-control checks in the service layer even when middleware already rejects obviously invalid requests.
+- Use established session and token services instead of custom shortcuts.
 - Use environment variables or CI secrets for secrets. Do not document real secret values in examples.
+
+## Project Examples
+
+These examples are intentionally small. They show the preferred shape without replacing the surrounding feature's real types, imports, or tests.
+
+### Backend Layer Boundary
+
+Avoid controllers that reach into Prisma or repositories:
+
+```ts
+// Bad: controller owns persistence and business rules.
+export async function disableTrainee(req: Request, res: Response) {
+  const trainee = await prisma.organisationTraineeProfile.update({
+    where: { id: req.params.traineeId },
+    data: { membershipStatus: 'DISABLED' },
+  });
+
+  res.status(200).json(trainee);
+}
+```
+
+Prefer the existing controller/service/repository direction:
+
+```ts
+// Good: controller maps HTTP, service owns policy, repository owns Prisma.
+export async function disableTrainee(req: Request, res: Response) {
+  const result = await disableOrganisationTrainee(
+    req.auth.userId,
+    req.params.organisationId,
+    req.params.traineeId,
+    req.body,
+  );
+
+  res.status(200).json(result);
+}
+```
+
+### User-Facing Status Labels
+
+Avoid exposing raw lifecycle values directly to users:
+
+```tsx
+// Bad: raw backend enum leaks into the table.
+<td>{request.derivedStatus}</td>
+```
+
+Prefer a typed mapping with intentional wording:
+
+```tsx
+const statusLabels: Record<string, string> = {
+  PENDING_ONBOARDING: 'Approved - Waiting For Setup',
+  ACTIVE: 'Active',
+};
+
+<td>{statusLabels[request.derivedStatus] ?? 'Unknown'}</td>;
+```
+
+### Frontend API Boundary
+
+Avoid page-local raw `fetch` calls that bypass shared error handling:
+
+```tsx
+// Bad: the page guesses URL, auth, parsing, and errors itself.
+const response = await fetch(`/organisations/${organisationId}/trainees`);
+const trainees = await response.json();
+```
+
+Prefer the established service/client path:
+
+```tsx
+// Good: service helper uses the shared apiClient and DTO types.
+const result = await getOrganisationTrainees(organisationId, token);
+```
 
 ## Git and Pull Requests
 
@@ -216,7 +353,7 @@ Pull requests should stay focused on their linked issue, include the commands or
 The current Commitlint configuration accepts only these commit types: `feat`, `fix`, `docs`, and `chore`. The scope is intentionally empty, so commit subjects should follow the form:
 
 ```text
-docs: update demo 2 coding standards
+docs: update Demo 3 coding standards
 ```
 
 The configured hooks check branch safety, Git identity, environment-file policy, staged-file policy, Prettier formatting through lint-staged, and commit-message format. The hooks help, but they do not replace review. Reviewers should still check whether the change is scoped, supported by tests or manual evidence, and free from unrelated edits.
