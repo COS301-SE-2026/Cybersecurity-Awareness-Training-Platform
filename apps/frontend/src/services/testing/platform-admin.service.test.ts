@@ -51,7 +51,7 @@ describe('platform-admin.service', () => {
     expect(apiClient.get).toHaveBeenCalledWith('/platform/admins', {
       authToken: token,
     });
-    expect(result).toBe(response);
+    expect(result).toEqual(response);
   });
 
   it('sends only the supplied invitation request fields', async () => {
@@ -79,7 +79,7 @@ describe('platform-admin.service', () => {
         authToken: token,
       },
     );
-    expect(result).toBe(response);
+    expect(result).toEqual(response);
   });
 
   it('preserves confirmUpgrade when supplied by the caller', async () => {
@@ -101,7 +101,7 @@ describe('platform-admin.service', () => {
     expect(apiClient.post).toHaveBeenCalledWith('/platform/admin-invitations', input, {
       authToken: token,
     });
-    expect(result).toBe(response);
+    expect(result).toEqual(response);
   });
 
   it('resends an invitation by encoded invite ID without a request body', async () => {
@@ -120,7 +120,7 @@ describe('platform-admin.service', () => {
         authToken: token,
       },
     );
-    expect(result).toBe(response);
+    expect(result).toEqual(response);
   });
 
   it('transfers the super administrator role and returns the auth-me response', async () => {
@@ -182,7 +182,53 @@ describe('platform-admin.service', () => {
     expect(apiClient.post).toHaveBeenCalledWith('/platform/admins/user%2Fid/demote', input, {
       authToken: token,
     });
-    expect(result).toBe(response);
+    expect(result).toEqual(response);
+  });
+
+  it('rejects malformed responses for runtime-parsed platform admin endpoints', async () => {
+    vi.mocked(apiClient.get).mockResolvedValueOnce({ allowedToInvite: true });
+
+    await expect(getPlatformAdmins(token)).rejects.toMatchObject({
+      name: 'ZodError',
+    });
+
+    vi.mocked(apiClient.post).mockResolvedValueOnce({
+      type: 'unknown-result',
+      userId,
+      email: 'admin@example.com',
+    });
+
+    await expect(invitePlatformAdmin({ email: 'admin@example.com' }, token)).rejects.toMatchObject({
+      name: 'ZodError',
+    });
+
+    vi.mocked(apiClient.post).mockResolvedValueOnce({
+      success: false,
+      emailQueued: true,
+    });
+
+    await expect(resendPlatformAdminInvite(inviteId, token)).rejects.toMatchObject({
+      name: 'ZodError',
+    });
+
+    vi.mocked(apiClient.post).mockResolvedValueOnce({
+      email: 'admin@example.com',
+      adminStatus: 'DISABLED',
+      authStatus: 'ACTIVE',
+    });
+
+    await expect(
+      demotePlatformAdmin(
+        userId,
+        {
+          password: 'current-password',
+          confirmation: 'DEMOTE',
+        },
+        token,
+      ),
+    ).rejects.toMatchObject({
+      name: 'ZodError',
+    });
   });
 
   it('propogates ApiError without rewriting it', async () => {
