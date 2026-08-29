@@ -318,9 +318,8 @@ campaignManagementRouter.get(
  *     tags: [Campaign Management]
  *     summary: Get organisation campaign statistics
  *     description: >
- *       Defines the final campaign statistics response contract. Runtime aggregation
- *       is deferred to #500; until that implementation is merged, an authorised
- *       request returns 501 NOT_IMPLEMENTED. Summary values are calculated across
+ *       Retrieves authoritative campaign-level and per-trainee progress statistics
+ *       for an organisation campaign. Summary values are calculated across
  *       the complete qualifying assignment cohort before trainee pagination is
  *       applied. Disabled Organisation Trainees remain in the cohort while their
  *       campaign assignment exists. CampaignAssignment.startedAt is not used as the
@@ -362,8 +361,6 @@ campaignManagementRouter.get(
  *         $ref: '#/components/responses/CampaignManagementRateLimited'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
- *       501:
- *         $ref: '#/components/responses/CampaignStatisticsNotImplemented'
  */
 campaignManagementRouter.get(
   '/organisations/:organisationId/campaigns/:campaignId/statistics',
