@@ -116,12 +116,10 @@ describe('CampaignManagementService Unit Tests', () => {
       );
 
       await expect(
-        CampaignManagementService.getOrganisationCampaignStatistics(
-          adminActor,
-          orgId,
-          campaignId,
-          { page: 1, limit: 20 },
-        ),
+        CampaignManagementService.getOrganisationCampaignStatistics(adminActor, orgId, campaignId, {
+          page: 1,
+          limit: 20,
+        }),
       ).rejects.toThrow(CampaignManagementService.CampaignManagementServiceError);
     });
 
@@ -129,12 +127,10 @@ describe('CampaignManagementService Unit Tests', () => {
       mockAdminScope(['VIEW_ORGANISATION_TRAINEES']);
 
       await expect(
-        CampaignManagementService.getOrganisationCampaignStatistics(
-          adminActor,
-          orgId,
-          campaignId,
-          { page: 1, limit: 20 },
-        ),
+        CampaignManagementService.getOrganisationCampaignStatistics(adminActor, orgId, campaignId, {
+          page: 1,
+          limit: 20,
+        }),
       ).rejects.toThrow(CampaignManagementService.CampaignManagementServiceError);
     });
 
@@ -145,12 +141,10 @@ describe('CampaignManagementService Unit Tests', () => {
       );
 
       await expect(
-        CampaignManagementService.getOrganisationCampaignStatistics(
-          adminActor,
-          orgId,
-          campaignId,
-          { page: 1, limit: 20 },
-        ),
+        CampaignManagementService.getOrganisationCampaignStatistics(adminActor, orgId, campaignId, {
+          page: 1,
+          limit: 20,
+        }),
       ).rejects.toThrow(CampaignManagementService.CampaignManagementServiceError);
     });
 
