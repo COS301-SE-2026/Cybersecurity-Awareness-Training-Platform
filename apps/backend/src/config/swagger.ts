@@ -405,11 +405,6 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
           'CAMPAIGN_MANAGEMENT_RATE_LIMITED',
           'Too many campaign management requests. Please try again later.',
         ),
-        CampaignStatisticsNotImplementedErrorResponse: errorResponseSchema(
-          'ApiErrorResponse',
-          'NOT_IMPLEMENTED',
-          'Organisation campaign statistics runtime implementation is scheduled for #500',
-        ),
         EmptyRequestBody: {
           type: 'object',
           additionalProperties: false,
@@ -5249,10 +5244,6 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         CampaignManagementRateLimited: responseComponent(
           'Too many campaign management requests. Please try again later.',
           'CampaignManagementRateLimitErrorResponse',
-        ),
-        CampaignStatisticsNotImplemented: responseComponent(
-          'The final contract is published, but runtime statistics aggregation is deferred to #500.',
-          'CampaignStatisticsNotImplementedErrorResponse',
         ),
 
         HealthOk: responseComponent('API and database are reachable.', 'HealthStatus'),
