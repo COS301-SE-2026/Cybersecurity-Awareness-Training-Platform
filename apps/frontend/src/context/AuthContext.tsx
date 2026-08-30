@@ -25,6 +25,7 @@ type AuthChannelMessage =
 
 const AUTH_CHANNEL_NAME = 'insightful-phish-auth';
 const REFRESH_LOCK_NAME = 'insightful-phish-refresh';
+const ACCESS_TOKEN_RENEWAL_MARGIN_MS = 60_000;
 
 function getStorage() {
   if (globalThis.localStorage === undefined) {
@@ -331,7 +332,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const message = event.data;
       if (message.type === 'AUTH_UPDATED') {
         applyAuthResponse(message.authResponse);
-        return;
       } else if (message.type === 'SIGNED_OUT') {
         clearAuth();
       }
@@ -360,7 +360,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         latestStoredAuth.isAuthenticated === true &&
         latestStoredAuth.token !== null &&
         latestStoredAuth.token !== tokenBeforeRenewal &&
-        isAccessTokenExpired(latestStoredAuth.expiresAt) == false
+        !isAccessTokenExpired(latestStoredAuth.expiresAt)
       ) {
         applyStoredAuth(latestStoredAuth);
         return;
@@ -436,6 +436,52 @@ export function AuthProvider({ children }: AuthProviderProps) {
       isMounted = false;
     };
   }, [renewSession]);
+
+  useEffect(() => {
+    if (isAuthenticated === false || expiresAt === null) {
+      return;
+    }
+
+    const expiresAtTime = Date.parse(expiresAt);
+
+    const renewalDelay = Number.isNaN(expiresAtTime)
+      ? 0
+      : Math.max(0, expiresAtTime - Date.now() - ACCESS_TOKEN_RENEWAL_MARGIN_MS);
+
+    const renewalTimer = globalThis.setTimeout(() => {
+      void renewSession().catch(() => undefined);
+    }, renewalDelay);
+
+    return () => {
+      globalThis.clearTimeout(renewalTimer);
+    };
+  }, [expiresAt, isAuthenticated, renewSession]);
+
+  useEffect(() => {
+    if (isAuthenticated === false || expiresAt === null) {
+      return;
+    }
+
+    const expiresAtTime = Date.parse(expiresAt);
+    function handleVisibilityChange(): void {
+      if (document.visibilityState !== 'visible') {
+        return;
+      }
+
+      if (
+        Number.isNaN(expiresAtTime) ||
+        expiresAtTime <= Date.now() + ACCESS_TOKEN_RENEWAL_MARGIN_MS
+      ) {
+        void renewSession().catch(() => undefined);
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [expiresAt, isAuthenticated, renewSession]);
 
   const value = useMemo(
     () => ({
