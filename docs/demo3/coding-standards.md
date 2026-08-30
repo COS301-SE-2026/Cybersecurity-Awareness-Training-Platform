@@ -127,6 +127,7 @@ Maintainability standards:
 - Keep functions, React components, services, and repository operations focused on one clear responsibility.
 - Prefer understandable branches and early returns when they make validation, permission checks, or terminal states easier to follow.
 - Limit nesting in request handlers, service workflows, and JSX. Extract named helpers when a condition or mapping starts to hide the intent.
+- Use the clearest iteration construct for the job. Prefer array methods for simple transformations, `for...of` for ordered imperative work, and avoid `for...in` for arrays. Async loops must be deliberate: use sequential `for...of` when order, rate limits, or transactions matter, and use bounded parallel work only when the operations are independent. Every loop should have an obvious termination condition, and complex loop bodies should be extracted into named helpers.
 - Decompose oversized React components into presentational pieces, state helpers, or feature-specific components when a page becomes hard to scan.
 - Decompose large backend workflows into service helpers and repository operations without moving business rules into repositories.
 - Keep refactors close to the behaviour being changed. Broad unrelated rewrites make review, regression testing, and rollback harder.
@@ -226,7 +227,7 @@ Migrations should be reviewed as behavioural changes, not treated as incidental 
 Database standards:
 
 - Keep Prisma schema, migration, repository, service, and test updates in the same feature slice when the behaviour depends on a schema change.
-- Use backwards-compatible migration plans where possible and commit persistent migration history. Do not rely on local database drift.
+- Use backwards-compatible migration plans and commit persistent migration history. Do not rely on local database drift.
 - Use transaction-aware repository functions when several writes must succeed together or when an authoritative post-write read is needed.
 - Guard lifecycle updates with the current state where stale updates could overwrite a newer decision.
 - Keep seed data and test fixtures deterministic and safe. Do not commit real credentials, production data, or private organisation data.
@@ -322,12 +323,14 @@ Avoid exposing raw lifecycle values directly to users:
 Prefer a typed mapping with intentional wording:
 
 ```tsx
-const statusLabels: Record<string, string> = {
+type PlatformOrganisationStatus = 'PENDING_ONBOARDING' | 'ACTIVE';
+
+const statusLabels: Record<PlatformOrganisationStatus, string> = {
   PENDING_ONBOARDING: 'Approved - Waiting For Setup',
   ACTIVE: 'Active',
 };
 
-<td>{statusLabels[request.derivedStatus] ?? 'Unknown'}</td>;
+<td>{statusLabels[request.derivedStatus]}</td>;
 ```
 
 ### Frontend API Boundary
