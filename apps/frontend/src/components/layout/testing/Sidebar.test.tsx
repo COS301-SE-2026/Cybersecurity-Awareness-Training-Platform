@@ -48,6 +48,7 @@ function createAuthValue(
     expiresAt: null,
     sessionExpiresAt: null,
     login: vi.fn(),
+    refreshAuthContext: vi.fn().mockResolvedValue(undefined),
     clearAuth: vi.fn(),
     logout: vi.fn().mockResolvedValue(undefined),
   };
