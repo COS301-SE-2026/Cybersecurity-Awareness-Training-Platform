@@ -15,15 +15,21 @@ Demo 3 documentation should describe the integrated product only. Screenshots re
   - [Verify Your Email Address](#verify-your-email-address)
   - [Reset a Forgotten Password](#reset-a-forgotten-password)
   - [Complete Account Setup From an Invitation](#complete-account-setup-from-an-invitation)
+  - [Accept an Organisation Invitation](#accept-an-organisation-invitation)
 - [Account Management and Security](#account-management-and-security)
   - [Open Account Management](#open-account-management)
+  - [Update Personal Information](#update-personal-information)
   - [Request an Email Change](#request-an-email-change)
   - [Change Your Password](#change-your-password)
   - [Review Active Sessions](#review-active-sessions)
+  - [Update Session Settings](#update-session-settings)
 - [General Trainee Tasks](#general-trainee-tasks)
 - [Organisation Trainee Tasks](#organisation-trainee-tasks)
 - [Organisation Admin Tasks](#organisation-admin-tasks)
 - [Insightful Phish Admin Tasks](#insightful-phish-admin-tasks)
+  - [Review Organisation Requests](#review-organisation-requests)
+  - [Review Request or Organisation Details](#review-request-or-organisation-details)
+  - [Manage Platform Administrators](#manage-platform-administrators)
 - [Troubleshooting](#troubleshooting)
 - [Security and Privacy](#security-and-privacy)
 - [Glossary](#glossary)
@@ -135,6 +141,24 @@ Use a modern desktop browser such as Chrome, Edge, Brave, Firefox, or Safari. Th
 
 **Screenshot:** ![Complete setup page](user-interface/public-account/06-complete-setup.png)
 
+### Accept an Organisation Invitation
+
+**Audience:** signed-in users who have been invited to join an Organisation.
+
+**Preconditions:** you are signed in with the account that should receive the Organisation role, and the invitation link is valid.
+
+**Navigation:** open the invitation link from your email.
+
+1. Review the Organisation and role shown on the invitation page.
+2. Confirm that you want to accept the invitation.
+3. Follow any instruction to sign in again if the page says your role or session has changed.
+
+**Expected result:** the platform links your account to the Organisation role allowed by the invitation, or shows a safe reason why the invitation cannot be accepted.
+
+**Warning:** invitation links are single-use and role-sensitive. Do not forward them to another person.
+
+**Troubleshooting:** if the invitation is expired, revoked, already used, or blocked because the Organisation is suspended, ask the Organisation Admin who invited you to send a new invitation or confirm that the Organisation is active.
+
 ## Account Management and Security
 
 Account Management contains personal details, account actions, security preferences, and session controls where they are available for the signed-in user.
@@ -155,6 +179,23 @@ Account Management contains personal details, account actions, security preferen
 
 **Screenshot:** ![Account management tabs](user-interface/public-account/07-account-management-tabs.png)
 
+### Update Personal Information
+
+**Audience:** signed-in users.
+
+**Preconditions:** you are signed in and the account page has loaded successfully.
+
+**Navigation:** **Account Management** > **Personal**.
+
+1. Review the current first name and last name.
+2. Update the fields that need to change.
+3. Select the update action on the page.
+4. Check the success or validation message.
+
+**Expected result:** the platform saves the updated profile details and keeps the account email unchanged.
+
+**Troubleshooting:** if the page cannot load, use **Retry Loading Account**. If validation fails, correct the highlighted fields and submit again.
+
 ### Request an Email Change
 
 **Audience:** signed-in users whose policy allows email changes.
@@ -173,6 +214,8 @@ Account Management contains personal details, account actions, security preferen
 **Expected result:** the platform records a pending email-change request and changes the account email only after verification succeeds.
 
 **Warning:** email changes are security-sensitive and may revoke active sessions according to policy.
+
+**Troubleshooting:** if **Change Email** is disabled, email changes are managed by Organisation policy. If the new address is already in use, use another address or contact the responsible administrator.
 
 **Screenshot:** ![Change email modal](user-interface/public-account/08-change-email-modal.png)
 
@@ -193,6 +236,8 @@ Account Management contains personal details, account actions, security preferen
 
 **Warning:** do not enter passwords into screenshots or share password-change confirmation messages that contain private account details.
 
+**Troubleshooting:** if the current password is rejected, use **Forgot Password** from the login area. If the new password is rejected, follow the password rules shown in the form.
+
 **Screenshot:** ![Change password modal](user-interface/public-account/09-change-password-modal.png)
 
 ### Review Active Sessions
@@ -211,7 +256,28 @@ Account Management contains personal details, account actions, security preferen
 
 **Warning:** logging out other sessions can interrupt active work on another device.
 
+**Troubleshooting:** if a session was already revoked or the list is stale, refresh the sessions tab and try again only if the session still appears.
+
 **Screenshot:** ![Session settings](user-interface/public-account/10-session-settings.png)
+
+### Update Session Settings
+
+**Audience:** signed-in users whose Organisation policy allows session preference changes.
+
+**Preconditions:** you are signed in and the **Sessions** tab is available.
+
+**Navigation:** **Account Management** > **Sessions**.
+
+1. Review **Session Preferences**.
+2. Adjust the editable regular session, remember-me, or idle-timeout preferences shown by the page.
+3. Select **Update Session Settings**.
+4. Check the confirmation or validation message.
+
+**Expected result:** editable session preferences are saved. Policy-controlled settings remain read-only or disabled.
+
+**Warning:** shorter session settings may require you to sign in more often. Longer settings should only be used where Organisation policy allows them.
+
+**Troubleshooting:** if a control says **Disabled by Policy** or cannot be changed, the Organisation policy is controlling that setting.
 
 ## General Trainee Tasks
 
@@ -258,6 +324,10 @@ Organisation Admins manage their Organisation's information, security preference
 
 **Expected result:** the platform records the request and shows a safe confirmation message.
 
+**Note:** the representative listed in the request is the person expected to complete the first Organisation Admin setup if the request is approved.
+
+**Troubleshooting:** if the request cannot be submitted, correct the field errors shown on the page. If the Organisation is already registered, use the existing Organisation access path instead of submitting a duplicate request.
+
 **Screenshots:**
 
 ![Organisation registration step one](user-interface/organisation-onboarding/01-organisation-registration-step-one.png)
@@ -281,6 +351,8 @@ Organisation Admins manage their Organisation's information, security preference
 
 **Warning:** the setup link is single-use and should not be shared.
 
+**Troubleshooting:** if the setup link is expired, revoked, or already used, an Insightful Phish Admin may need to resend the setup email from the Organisation detail page.
+
 **Screenshot:** ![Initial administrator setup](user-interface/organisation-onboarding/04-initial-admin-setup.png)
 
 ### Review Organisation Information
@@ -295,6 +367,8 @@ Organisation Admins manage their Organisation's information, security preference
 2. Use the tabs to review basic information, representative information, administrators, and timeline details.
 
 **Expected result:** the platform shows Organisation information available to your role.
+
+**Note:** Organisation status and timeline entries are review information. They should not be edited from this page unless the UI provides an explicit action.
 
 **Screenshots:**
 
@@ -317,6 +391,10 @@ Organisation Admins manage their Organisation's information, security preference
 
 **Expected result:** editable settings are saved, and read-only settings remain unchanged.
 
+**Warning:** Organisation security settings can affect user sessions and account-change permissions across the Organisation.
+
+**Troubleshooting:** if the page says settings cannot be modified because the Organisation is suspended, inactive, or disabled, resolve the Organisation status before trying to save changes.
+
 **Screenshot:** ![Organisation security preferences](user-interface/organisation-admin/03-security-preferences.png)
 
 ### Review Organisation Trainees
@@ -333,6 +411,18 @@ Organisation Admins manage their Organisation's information, security preference
 4. Follow any confirmation prompts shown for row actions.
 
 **Expected result:** the platform shows current trainee memberships and actionable invitations according to their lifecycle state.
+
+**Available actions:**
+
+- Use **Invite Trainee** when the Organisation is allowed to send a new trainee invitation.
+- Use **Log Out Session** or session-related account controls from Account Management, not from the trainee table.
+- Use **Disable Trainee** only when the UI shows that the action is available and you can confirm it with your password.
+- Use **Revoke Invitation** for an invitation that should no longer be usable.
+- Use resend actions only for invitations that still support setup or acceptance.
+
+**Warning:** disabling a trainee can revoke active sessions. Revoking an invitation prevents that invitation link from being used.
+
+**Troubleshooting:** if invitation actions are unavailable, check your permissions, the Organisation status, and the invitation state. Accepted or completed invitations may remain as history but should not be treated as new actionable invites.
 
 **Screenshots:**
 
@@ -353,6 +443,17 @@ Organisation Admins manage their Organisation's information, security preference
 4. Open the invite or edit permissions modal when needed.
 
 **Expected result:** the platform shows Organisation administrators and available invitation or permission actions.
+
+**Available actions:**
+
+- Use **Invite Organisation Administrator** to invite a new administrator when you have the required permission.
+- Use **View Permissions** to inspect visible permissions for an administrator.
+- Use **Edit Permissions** to change an administrator's permission set when the action is available.
+- Use removal or disable actions only when the UI offers them and the action is appropriate for the Organisation.
+
+**Warning:** administrator permissions can grant access to sensitive Organisation settings, invitations, and Campaign workflows. Review selected permissions before saving.
+
+**Troubleshooting:** if the invite or edit action is hidden, your account does not have the required permission or the current Organisation state does not allow that action.
 
 **Screenshots:**
 
@@ -382,6 +483,16 @@ Insightful Phish Admins, also referred to as Platform Administrators in some int
 
 **Warning:** approval can trigger the initial Organisation Admin setup process. Rejection should be used only after checking the request details.
 
+**Available actions:**
+
+- Use **Review Request** to inspect a pending request before deciding.
+- Use **Mark As Contacted** when the representative has been contacted outside the platform.
+- Use **Approve Request** only after checking the Organisation and representative information.
+- Use **Reject Request** with a clear reason when the request should not continue.
+- Use **Delete Request** only when the page offers it and the request should be removed from the active review queue.
+
+**Troubleshooting:** if a request cannot be loaded or updated, close the modal, refresh the list, and check whether another admin has already changed the request.
+
 **Screenshots:**
 
 ![Organisation management](user-interface/platform-admin/01-organisation-management.png)
@@ -404,6 +515,8 @@ Insightful Phish Admins, also referred to as Platform Administrators in some int
 
 **Warning:** setup email resend actions are security-sensitive. Do not expose private email addresses or setup links in screenshots.
 
+**Troubleshooting:** if the setup email could not be queued during approval, open the Organisation detail page and use the resend action only when the page shows that it is available.
+
 **Screenshots:**
 
 ![Request detail](user-interface/platform-admin/03-request-detail.png)
@@ -411,7 +524,26 @@ Insightful Phish Admins, also referred to as Platform Administrators in some int
 ![Onboarding timeline](user-interface/platform-admin/05-onboarding-timeline.png)
 ![Resend initial administrator setup](user-interface/platform-admin/06-resend-initial-admin-setup.png)
 
-Platform Administrator management content will be verified against the integrated Demo 3 UI in a later commit before final manual completion.
+### Manage Platform Administrators
+
+**Audience:** Insightful Phish Admins with access to Platform Administrator management.
+
+**Preconditions:** you are signed in as an Insightful Phish Admin. Some actions, such as inviting a Platform Administrator or transferring the Super Platform Administrator role, may require elevated platform privileges.
+
+**Navigation:** **Platform Administrators**.
+
+1. Open **Platform Administrators**.
+2. Use the search field or status filters such as **Active**, **Invited**, **Disabled**, or **Failed Invitation** to find an administrator.
+3. Use **Invite Platform Administrator** when the button is available and a new administrator needs access.
+4. For invited administrators, use resend or revoke actions only when the row shows that the invitation is still actionable.
+5. Use **Demote Administrator Role**, **Disable Administrator**, **Re-Enable**, or **Transfer Super Administrator Role** only when the UI shows that the action is allowed.
+6. Review the confirmation dialog before completing any role or status change.
+
+**Expected result:** the platform updates the administrator list or invitation state and shows the changed status.
+
+**Warning:** Platform Administrator actions can change who controls Organisation approvals and platform-level records. Transfer and demotion actions should be reviewed carefully before confirmation.
+
+**Troubleshooting:** if an action is hidden or unavailable, your current platform role may not allow it, the administrator may be in the wrong lifecycle state, or the list may need to be refreshed.
 
 ## Troubleshooting
 
@@ -420,24 +552,40 @@ Platform Administrator management content will be verified against the integrate
 - Check that the email and password are entered correctly.
 - If the password is forgotten, use the password reset flow.
 - If the account has not been verified yet, complete email verification first.
+- If you recently changed your password or email address, sign out in any open tabs and sign in again with the latest details.
 
 ### Verification Link Has Expired
 
 - Use the resend option if it is shown.
 - If resend is not available, request a new link from the relevant registration, setup, or invitation flow.
+- If the link has already been used, sign in and check whether the expected account change has already completed.
 
 ### Setup Link Is Invalid or Already Used
 
 - Setup links can expire, be revoked, or be used only once. Ask the admin who sent the invitation to send a new setup link.
+- If you are already signed in with a different account, sign out before opening the setup link again.
 
 ### A Setting Is Read-Only
 
 - Some account or security settings may be controlled by Organisation policy.
 - If a setting is read-only, follow the message shown on the page or contact an Organisation Admin.
 
+### An Action Button Is Missing or Disabled
+
+- Check that you are signed in with the role that owns the task.
+- Check whether the record is in a state that still allows the action. Completed, expired, revoked, rejected, disabled, or suspended records may limit available actions.
+- Refresh the page if another administrator may have changed the record while you were viewing it.
+
+### A Request Fails or Rate Limits
+
+- Read the message shown on the page and correct any field-level validation errors.
+- If the page says there were too many requests, wait briefly before trying again.
+- If the page cannot load data, use the retry action where it is provided or sign out and sign in again.
+
 ### A Page Shows No Data
 
 - Refresh the page and check that you are signed in with the correct role. Some pages are role-specific and only show information for users with the required access.
+- If the empty state remains, there may be no current records for the selected filter.
 
 ## Security and Privacy
 
