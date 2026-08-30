@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
 import type { CampaignAssignmentCandidateOptionDto } from '@insightful-phish/shared';
-import { useAuth } from '../../context/useAuth';
 import { getCampaignAssignmentCandidates } from '../../services/campaign-assignment.service';
 import LoadingSpinnerSVG from '../../components/LoadingSpinnerSVG';
+import CampaignAssignmentPagination from './CampaignAssignmentPagination';
+import useCampaignAssignmentOptions from './useCampaignAssignmentOptions';
 
 type DisplayStatus =
   | 'Active'
@@ -52,66 +52,19 @@ function OrganisationTraineeSelectionPage({
   setSelectedTrainees,
   onContinue,
 }: OrganisationTraineeSelectionPageProps) {
-  const { authContext } = useAuth();
-  const organisationId = authContext?.organisation?.id ?? null;
-
-  const [loadedTrainees, setLoadedTrainees] = useState<CampaignAssignmentCandidateOptionDto[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [requestIsLoading, setRequestIsLoading] = useState(true);
-  const [requestError, setRequestError] = useState<string | null>(null);
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const hasOrganisationId = organisationId !== null && organisationId.length > 0;
-  const trainees = hasOrganisationId === true ? loadedTrainees : [];
-  const isLoading = hasOrganisationId === true ? requestIsLoading : false;
-  const error =
-    hasOrganisationId === true ? requestError : 'Unable To Determine The Current Organisation';
-
-  useEffect(() => {
-    if (organisationId === null || organisationId.length === 0) {
-      return;
-    }
-
-    const currentOrganisationId = organisationId;
-
-    let isCurrent = true;
-
-    async function loadTrainees() {
-      setRequestIsLoading(true);
-      setRequestError(null);
-
-      try {
-        const response = await getCampaignAssignmentCandidates(currentOrganisationId, {
-          page: currentPage,
-          limit: 3,
-          ...(searchTerm.trim() ? { search: searchTerm.trim() } : {}),
-        });
-
-        if (!isCurrent) {
-          return;
-        }
-        setLoadedTrainees(response.items);
-        setTotalPages(response.pagination.totalPages);
-      } catch {
-        if (!isCurrent) {
-          return;
-        }
-
-        setLoadedTrainees([]);
-        setRequestError('Unable To Load Organisation Trainees. Please Try Again');
-      } finally {
-        if (isCurrent) {
-          setRequestIsLoading(false);
-        }
-      }
-    }
-
-    void loadTrainees();
-    return () => {
-      isCurrent = false;
-    };
-  }, [organisationId, searchTerm, currentPage]);
+  const {
+    items: trainees,
+    searchTerm,
+    setSearchTerm,
+    isLoading,
+    error,
+    currentPage,
+    setCurrentPage,
+    totalPages,
+  } = useCampaignAssignmentOptions<CampaignAssignmentCandidateOptionDto>({
+    loadOptions: getCampaignAssignmentCandidates,
+    loadErrorMessage: 'Unable To Load Organisation Trainees. Please Try Again',
+  });
 
   const handleTraineeSelection = (trainee: CampaignAssignmentCandidateOptionDto) => {
     const isAlreadySelected = selectedTraineeIds.includes(trainee.traineeProfileId);
@@ -133,18 +86,6 @@ function OrganisationTraineeSelectionPage({
 
       return [...currentSelectedTrainees, trainee];
     });
-  };
-
-  const handlePreviousPage = () => {
-    setCurrentPage((page) => Math.max(page - 1, 1));
-  };
-
-  const handleNextPage = () => {
-    setCurrentPage((page) => Math.min(page + 1, totalPages));
-  };
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
   };
 
   let traineeSelectionText = 'No Organisation Trainees Selected';
@@ -356,53 +297,14 @@ function OrganisationTraineeSelectionPage({
           </table>
         </div>
 
-        <nav className="mt-2 -mb-4" aria-label="Organisation Trainee Selection Table Pagination">
-          <ul className="flex -space-x-px text-sm">
-            <li>
-              <button
-                type="button"
-                onClick={handlePreviousPage}
-                title="Previous"
-                disabled={currentPage === 1 || isLoading}
-                className="disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-neutral-secondary-medium disabled:hover:text-body flex items-center justify-center text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading font-medium text-sm px-3 h-10 focus:outline-none tracking-wider"
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>
-                  arrow_back_ios
-                </span>
-              </button>
-            </li>
-            {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
-              <li key={page}>
-                <button
-                  type="button"
-                  onClick={() => handlePageChange(page)}
-                  disabled={currentPage === page || isLoading}
-                  aria-current={currentPage === page ? 'page' : undefined}
-                  className={`flex items-center justify-center box-border border border-default-medium font-medium text-sm w-10 h-10 focus:outline-none ${
-                    currentPage === page
-                      ? 'text-purple bg-neutral-tertiary-medium'
-                      : 'text-body bg-neutral-secondary-medium hover:bg-neutral-tertiary-medium hover:text-heading'
-                  }`}
-                >
-                  {page}
-                </button>
-              </li>
-            ))}
-            <li>
-              <button
-                type="button"
-                onClick={handleNextPage}
-                title="Next"
-                disabled={currentPage === totalPages || isLoading}
-                className="disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-neutral-secondary-medium disabled:hover:text-body flex items-center justify-center text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading font-medium text-sm px-3 h-10 focus:outline-none tracking-wider"
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>
-                  arrow_forward_ios
-                </span>
-              </button>
-            </li>
-          </ul>
-        </nav>
+        <CampaignAssignmentPagination
+          className="mt-2 -mb-4"
+          ariaLabel="Organisation Trainee Selection Table Pagination"
+          currentPage={currentPage}
+          totalPages={totalPages}
+          isLoading={isLoading}
+          setCurrentPage={setCurrentPage}
+        />
       </div>
     </div>
   );
