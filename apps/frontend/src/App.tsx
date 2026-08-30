@@ -3,10 +3,11 @@ import { getHealth } from './lib/api';
 import { AuthProvider } from './context/AuthContext';
 import './App.css';
 
-import { BrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import AppRoutes from './routes/AppRoutes';
 
 const queryClient = new QueryClient();
+const router = createBrowserRouter([{ path: '*', element: <AppRoutes /> }]);
 
 export function StatusPage() {
   const health = useQuery({
@@ -52,9 +53,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
+        <RouterProvider router={router} />
       </AuthProvider>
     </QueryClientProvider>
   );

@@ -1,7 +1,10 @@
+import { useEffect, useId, useRef } from 'react';
+
 type BasicConfirmationModalProps = Readonly<{
   title: string;
   message: string;
   confirmButtonText: string;
+  cancelButtonText?: string;
   onConfirm: () => void;
   onCancel: () => void;
   confirmButtonVariant: 'danger' | 'success' | 'default';
@@ -9,6 +12,7 @@ type BasicConfirmationModalProps = Readonly<{
   isConfirmDisabled?: boolean;
   isDismissDisabled?: boolean;
   errorMessage?: string | null;
+  appendQuestionMark?: boolean;
   passwordValue?: string;
   onPasswordChange?: (value: string) => void;
   passwordError?: string | null;
@@ -21,6 +25,7 @@ function BasicConfirmationModal({
   title,
   message,
   confirmButtonText,
+  cancelButtonText = 'Cancel',
   onConfirm,
   onCancel,
   confirmButtonVariant,
@@ -28,6 +33,7 @@ function BasicConfirmationModal({
   isConfirmDisabled = false,
   isDismissDisabled = false,
   errorMessage = null,
+  appendQuestionMark = true,
   passwordValue,
   onPasswordChange,
   passwordError = null,
@@ -35,6 +41,14 @@ function BasicConfirmationModal({
   onConfirmationChange,
   expectedConfirmationText,
 }: BasicConfirmationModalProps) {
+  const passwordInputRef = useRef<HTMLInputElement | null>(null);
+  const cancelButtonRef = useRef<HTMLButtonElement | null>(null);
+  const titleId = useId();
+
+  useEffect(() => {
+    (passwordInputRef.current ?? cancelButtonRef.current)?.focus();
+  }, []);
+
   const confirmButtonClasses = {
     danger:
       'text-white bg-danger box-border border border-transparent hover:bg-danger-strong focus:ring-4 focus:ring-danger-medium shadow-xs font-regular cursor-pointer tracking-wider leading-5 text-[1.1rem] px-4 py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed',
@@ -48,7 +62,9 @@ function BasicConfirmationModal({
     <div
       id="popup-modal"
       tabIndex={-1}
-      aria-hidden="true"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
       className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/50 backdrop-blur-xl"
     >
       <div className="relative p-2 w-full max-w-md max-h-full">
@@ -73,8 +89,12 @@ function BasicConfirmationModal({
             </span>
 
             {/* Heading */}
-            <h3 className="mb-4 text-body text-purple font-jost text-2xl tracking-wider font-medium">
-              {title}?
+            <h3
+              id={titleId}
+              className="mb-4 text-body text-purple font-jost text-2xl tracking-wider font-medium"
+            >
+              {title}
+              {appendQuestionMark ? '?' : ''}
             </h3>
 
             {/* Message */}
@@ -91,6 +111,7 @@ function BasicConfirmationModal({
                 </label>
                 <input
                   id="confirmation-password"
+                  ref={passwordInputRef}
                   type="password"
                   autoComplete="current-password"
                   value={passwordValue}
@@ -160,10 +181,11 @@ function BasicConfirmationModal({
               <button
                 onClick={onCancel}
                 type="button"
+                ref={cancelButtonRef}
                 disabled={isDismissDisabled}
                 className="text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading focus:ring-4 focus:ring-neutral-tertiary shadow-xs font-jost tracking-wider cursor-pointer font-regular leading-5 text-[1.1rem] px-4 py-2.5 focus:outline-none"
               >
-                Cancel
+                {cancelButtonText}
               </button>
             </div>
           </div>

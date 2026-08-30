@@ -186,9 +186,11 @@ async function fetchOrganisationOrRequestDetail(
 
 function OrganisationInformationPage() {
   const [currentTab, setCurrentTab] = useState<1 | 2 | 3 | 4>(1);
-  const { token, authContext } = useAuth();
+  const { token, authContext, user } = useAuth();
   const params = useParams<{ organisationId?: string; requestId?: string; id?: string }>();
   const [searchParams] = useSearchParams();
+
+  const isPlatformAdmin = authContext?.role === 'IP_ADMIN' || user?.userType === 'IP_ADMIN';
 
   const routeOrgId =
     params.organisationId ||
@@ -196,15 +198,44 @@ function OrganisationInformationPage() {
     searchParams.get('organisationId') ||
     searchParams.get('id');
   const routeReqId = params.requestId || searchParams.get('requestId');
-  const targetId = routeOrgId || routeReqId || authContext?.organisation?.id || null;
+  const targetId = isPlatformAdmin
+    ? routeOrgId || routeReqId || authContext?.organisation?.id || null
+    : authContext?.organisation?.id || null;
 
   const currentTargetIdRef = useRef<string | null>(targetId);
 
-  const [isLoading, setIsLoading] = useState<boolean>(Boolean(targetId && token));
+  const orgAdminDetailData: OrganisationDetailData | null = authContext?.organisation
+    ? {
+        id: authContext.organisation.id,
+        name: authContext.organisation.name,
+        description: '',
+        website: '',
+        size: '',
+        registeredTrainees: '',
+        registrationDate: '',
+        status: authContext.organisation.status,
+        detailType: 'active organisation',
+        representative: {
+          fullName: '',
+          email: '',
+        },
+        setupStatus: '',
+        resendEligibility: null,
+        admins: [],
+        timeline: [],
+        isRequestOnly: false,
+        organisationIdForResend: null,
+      }
+    : null;
+
+  const [platformDetailData, setPlatformDetailData] = useState<OrganisationDetailData | null>(null);
+  const detailData = isPlatformAdmin ? platformDetailData : orgAdminDetailData;
+
+  const [isLoading, setIsLoading] = useState<boolean>(
+    Boolean(isPlatformAdmin && targetId && token),
+  );
   const [errorStatus, setErrorStatus] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  const [detailData, setDetailData] = useState<OrganisationDetailData | null>(null);
 
   const [isResending, setIsResending] = useState<boolean>(false);
   const [resendSuccessMessage, setResendSuccessMessage] = useState<string | null>(null);
@@ -214,24 +245,28 @@ function OrganisationInformationPage() {
   const activeTab = detailData?.isRequestOnly && currentTab === 3 ? 1 : currentTab;
 
   const reloadData = useCallback(async () => {
-    if (!token || !targetId) return;
+    if (!isPlatformAdmin || !token || !targetId) return;
 
     try {
       const data = await fetchOrganisationOrRequestDetail(routeReqId, targetId, token);
       if (currentTargetIdRef.current === targetId) {
-        setDetailData(data);
+        setPlatformDetailData(data);
       }
     } catch {
       // ignore reload error
     }
-  }, [token, targetId, routeReqId]);
+  }, [isPlatformAdmin, token, targetId, routeReqId]);
 
   useEffect(() => {
+    if (!isPlatformAdmin) {
+      return;
+    }
+
     let isMounted = true;
     currentTargetIdRef.current = targetId;
 
     const loadAsync = async () => {
-      setDetailData(null);
+      setPlatformDetailData(null);
       setErrorMessage(null);
       setErrorStatus(null);
       setResendSuccessMessage(null);
@@ -248,7 +283,7 @@ function OrganisationInformationPage() {
       try {
         const data = await fetchOrganisationOrRequestDetail(routeReqId, targetId, token);
         if (!isMounted || currentTargetIdRef.current !== targetId) return;
-        setDetailData(data);
+        setPlatformDetailData(data);
       } catch (err: unknown) {
         if (!isMounted || currentTargetIdRef.current !== targetId) return;
         const status =
@@ -269,7 +304,7 @@ function OrganisationInformationPage() {
     return () => {
       isMounted = false;
     };
-  }, [token, targetId, routeReqId]);
+  }, [isPlatformAdmin, token, targetId, routeReqId]);
 
   // handle resend initial admin setup email action button
   const handleResendSetup = async () => {
@@ -362,7 +397,7 @@ function OrganisationInformationPage() {
         )}
 
         {/* DANGER AREA FOR SPRINT 4 DISABLED ACTIONS - GATED TO ACTIVE ORGANISATIONS ONLY */}
-        {detailData && !detailData.isRequestOnly && (
+        {isPlatformAdmin && detailData && !detailData.isRequestOnly && (
           <div className="mb-6 p-4 bg-white border border-red-200 rounded-none shadow-xs font-overpass">
             <h4 className="text-lg font-medium text-red-600 font-jost mb-1">
               Danger Zone (Sprint 4)
@@ -410,46 +445,48 @@ function OrganisationInformationPage() {
         ) : errorMessage && !detailData ? null : (
           <>
             {/* TAB BUTTONS */}
-            <ul className="hidden text-sm font-medium text-center text-body sm:flex -space-x-px">
-              <li className="w-full focus-within:z-10">
-                <button
-                  onClick={() => setCurrentTab(1)}
-                  className={getTabButtonClass(activeTab === 1)}
-                >
-                  Basic Information
-                </button>
-              </li>
-              <li className="w-full focus-within:z-10">
-                <button
-                  onClick={() => setCurrentTab(2)}
-                  className={getTabButtonClass(activeTab === 2)}
-                >
-                  Representative Information
-                </button>
-              </li>
-              {!detailData?.isRequestOnly && (
+            {isPlatformAdmin && (
+              <ul className="hidden text-sm font-medium text-center text-body sm:flex -space-x-px">
                 <li className="w-full focus-within:z-10">
                   <button
-                    onClick={() => setCurrentTab(3)}
-                    className={getTabButtonClass(activeTab === 3)}
+                    onClick={() => setCurrentTab(1)}
+                    className={getTabButtonClass(activeTab === 1)}
                   >
-                    Administrators
+                    Basic Information
                   </button>
                 </li>
-              )}
-              <li className="w-full focus-within:z-10">
-                <button
-                  onClick={() => setCurrentTab(4)}
-                  className={getTabButtonClass(activeTab === 4)}
-                >
-                  Timeline
-                </button>
-              </li>
-            </ul>
+                <li className="w-full focus-within:z-10">
+                  <button
+                    onClick={() => setCurrentTab(2)}
+                    className={getTabButtonClass(activeTab === 2)}
+                  >
+                    Representative Information
+                  </button>
+                </li>
+                {!detailData?.isRequestOnly && (
+                  <li className="w-full focus-within:z-10">
+                    <button
+                      onClick={() => setCurrentTab(3)}
+                      className={getTabButtonClass(activeTab === 3)}
+                    >
+                      Administrators
+                    </button>
+                  </li>
+                )}
+                <li className="w-full focus-within:z-10">
+                  <button
+                    onClick={() => setCurrentTab(4)}
+                    className={getTabButtonClass(activeTab === 4)}
+                  >
+                    Timeline
+                  </button>
+                </li>
+              </ul>
+            )}
 
             {/* CONTENT BOX */}
             <div className="w-full p-6 bg-white md:mt-0 bg-neutral-primary-soft border-default border-x border-b rounded-none">
-              {activeTab === 1 && (
+              {(!isPlatformAdmin || activeTab === 1) && (
                 <BasicOrganisationInformationPage
                   name={detailData?.name}
                   description={detailData?.description}
@@ -462,7 +499,7 @@ function OrganisationInformationPage() {
                 />
               )}
 
-              {activeTab === 2 && (
+              {isPlatformAdmin && activeTab === 2 && (
                 <RepresentativeInformationPage
                   fullName={detailData?.representative?.fullName}
                   email={detailData?.representative?.email}
@@ -476,14 +513,16 @@ function OrganisationInformationPage() {
                 />
               )}
 
-              {activeTab === 3 && !detailData?.isRequestOnly && (
+              {isPlatformAdmin && activeTab === 3 && !detailData?.isRequestOnly && (
                 <OrganisationAdminInformationPage
                   admins={detailData?.admins}
                   isRequestOnly={detailData?.isRequestOnly}
                 />
               )}
 
-              {activeTab === 4 && <OrganisationTimelinePage timeline={detailData?.timeline} />}
+              {isPlatformAdmin && activeTab === 4 && (
+                <OrganisationTimelinePage timeline={detailData?.timeline} />
+              )}
             </div>
           </>
         )}

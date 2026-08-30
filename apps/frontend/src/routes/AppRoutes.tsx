@@ -1,5 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { StatusPage } from '../App';
+import { useAuth } from '../context/useAuth';
+import type { CampaignManagementContext } from '../features/campaign-management/campaignManagement.types';
 import LoginPage from '../pages/LoginPage';
 import RegisterPage from '../pages/RegisterPage';
 import InboxPage from '../pages/InboxPage';
@@ -26,30 +28,49 @@ import OrganisationAdministratorsPage from '../pages/OrganisationAdministratorsP
 import PlatformAdministratorsPage from '../pages/PlatformAdministratorsPage';
 import BrandPage from '../pages/BrandPage';
 import CampaignAssignmentPage from '../pages/CampaignAssignmentPage';
+import CampaignManagementListPage from '../features/campaign-management/CampaignManagementListPage';
+import CampaignManagementDetailPage from '../features/campaign-management/CampaignManagementDetailPage';
+
+function CampaignManagementDetailRoute({
+  contextKind,
+}: Readonly<{ contextKind: CampaignManagementContext['kind'] }>) {
+  const { permissions } = useAuth();
+  const canManageCampaigns = contextKind === 'platform' || permissions.includes('MANAGE_CAMPAIGNS');
+
+  return (
+    <CampaignManagementDetailPage
+      contextKind={contextKind}
+      canManageCampaigns={canManageCampaigns}
+      blockUnsavedNavigation
+    />
+  );
+}
 
 function AppRoutes() {
   return (
     <Routes>
+      <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/verify-email" element={<VerifyEmailPage />} />
       <Route path="/confirm-email-change" element={<ConfirmEmailChangePage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/setup/token/:token" element={<SetupPage />} />
-      <Route path="/status" element={<StatusPage />} />
-
-      {/* TRAINEE / COMMON PROTECTED ROUTES */}
       <Route
-        element={
-          <ProtectedRoute
-            allowedRoles={[
-              'GENERAL_TRAINEE',
-              'ORGANISATION_TRAINEE',
-              'ORGANISATION_ADMIN',
-              'IP_ADMIN',
-            ]}
-          />
-        }
+        path="/organisation-registration-request"
+        element={<OrganisationRegistrationRequestPage />}
+      />
+      <Route path="/accept-invite" element={<AcceptInvitePage />} />
+      <Route path="/accept-invite/:token" element={<AcceptInvitePage />} />
+      <Route path="/status" element={<StatusPage />} />
+      <Route path="/brand" element={<BrandPage />} />
+
+      {/* TRAINEE PROTECTED ROUTES */}
+      <Route
+        element={<ProtectedRoute allowedRoles={['GENERAL_TRAINEE', 'ORGANISATION_TRAINEE']} />}
       >
+        <Route path="/campaigns" element={<CampaignsPage />} />
         <Route
           path="/trainee/campaign-items/:campaignItemId/simulated-inbox"
           element={<InboxPage />}
@@ -61,19 +82,78 @@ function AppRoutes() {
         <Route path="/training/:campaignItemId" element={<TrainingDocumentPage />} />
         <Route path="/quizzes/:quizId" element={<QuizPage />} />
         <Route path="/quiz-attempts/:attemptId/results" element={<ResultsPage />} />
-        <Route path="/campaigns" element={<CampaignsPage />} />
       </Route>
 
       {/* ORGANISATION ADMIN PROTECTED ROUTES */}
-      <Route element={<ProtectedRoute allowedRoles={['ORGANISATION_ADMIN', 'IP_ADMIN']} />}>
+      <Route element={<ProtectedRoute allowedRoles={['ORGANISATION_ADMIN']} requireOrganisation />}>
         <Route path="/organisation-information" element={<OrganisationInformationPage />} />
-        <Route path="/organisation-information/:id" element={<OrganisationInformationPage />} />
         <Route
           path="/organisation-security-preferences"
           element={<OrganisationSecuritySettingsPage />}
         />
-        <Route path="/organisation-trainees" element={<OrganisationTraineesPage />} />
-        <Route path="/organisation-administrators" element={<OrganisationAdministratorsPage />} />
+        <Route
+          element={
+            <ProtectedRoute
+              allowedRoles={['ORGANISATION_ADMIN']}
+              requireOrganisation
+              requiredPermission="VIEW_ORGANISATION_TRAINEES"
+            />
+          }
+        >
+          <Route path="/organisation-trainees" element={<OrganisationTraineesPage />} />
+        </Route>
+        <Route
+          element={
+            <ProtectedRoute
+              allowedRoles={['ORGANISATION_ADMIN']}
+              requireOrganisation
+              requiredPermission="VIEW_ORGANISATION_ADMINS"
+            />
+          }
+        >
+          <Route path="/organisation-administrators" element={<OrganisationAdministratorsPage />} />
+        </Route>
+        <Route
+          element={
+            <ProtectedRoute
+              allowedRoles={['ORGANISATION_ADMIN']}
+              requireOrganisation
+              requiredPermission="ASSIGN_CAMPAIGNS"
+            />
+          }
+        >
+          <Route
+            path="/organisations/:organisationId/campaign-assignments/new"
+            element={<CampaignAssignmentPage />}
+          />
+        </Route>
+
+        <Route
+          element={
+            <ProtectedRoute
+              requireOrganisation
+              requiredAnyPermission={['VIEW_CAMPAIGNS', 'MANAGE_CAMPAIGNS']}
+            />
+          }
+        >
+          <Route
+            path="/organisations/:organisationId/campaigns"
+            element={<CampaignManagementListPage contextKind="organisation" />}
+          />
+          <Route
+            path="/organisations/:organisationId/campaigns/:campaignId"
+            element={<CampaignManagementDetailRoute contextKind="organisation" />}
+          />
+        </Route>
+
+        <Route
+          element={<ProtectedRoute requireOrganisation requiredPermission="MANAGE_CAMPAIGNS" />}
+        >
+          <Route
+            path="/organisations/:organisationId/campaigns/new"
+            element={<CampaignManagementDetailRoute contextKind="organisation" />}
+          />
+        </Route>
       </Route>
 
       {/* PLATFORM ADMIN PROTECTED ROUTES */}
@@ -87,70 +167,27 @@ function AppRoutes() {
           path="/platform/organisation-requests/:requestId"
           element={<OrganisationInformationPage />}
         />
-        <Route
-          path="/organisation-security-preferences"
-          element={<OrganisationSecuritySettingsPage />}
-        />
-        <Route path="/organisation-management" element={<PlatformOrganisationManagementPage />} />
-        <Route
-          element={
-            <ProtectedRoute
-              requiredRole="ORGANISATION_ADMIN"
-              requireOrganisation
-              requiredPermission="VIEW_ORGANISATION_TRAINEES"
-            />
-          }
-        >
-          <Route path="/organisation-trainees" element={<OrganisationTraineesPage />} />
-        </Route>
-        <Route
-          element={
-            <ProtectedRoute
-              requiredRole="ORGANISATION_ADMIN"
-              requireOrganisation
-              requiredPermission="VIEW_ORGANISATION_ADMINS"
-            />
-          }
-        >
-          <Route path="/organisation-administrators" element={<OrganisationAdministratorsPage />} />
-        </Route>
         <Route path="/platform-administrators" element={<PlatformAdministratorsPage />} />
+        <Route
+          path="/platform/campaigns"
+          element={<CampaignManagementListPage contextKind="platform" />}
+        />
+        <Route
+          path="/platform/campaigns/new"
+          element={<CampaignManagementDetailRoute contextKind="platform" />}
+        />
+        <Route
+          path="/platform/campaigns/:campaignId"
+          element={<CampaignManagementDetailRoute contextKind="platform" />}
+        />
       </Route>
 
       {/* GENERAL PROTECTED ROUTES (ANY AUTHENTICATED USER) */}
       <Route element={<ProtectedRoute />}>
         <Route path="/account-management" element={<AccountManagementPage />} />
       </Route>
-      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-      <Route path="/reset-password" element={<ResetPasswordPage />} />
-      <Route
-        path="/organisation-registration-request"
-        element={<OrganisationRegistrationRequestPage />}
-      />
 
-      {/* ACCEPT INVITE ROUTE */}
-      <Route path="/accept-invite" element={<AcceptInvitePage />} />
-      <Route path="/accept-invite/:token" element={<AcceptInvitePage />} />
-
-      <Route path="/" element={<LandingPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
-      <Route path="/brand" element={<BrandPage />} />
-
-      {/* <Route path="/campaign-assignment" element={<CampaignAssignmentPage />} /> */}
-      <Route
-        element={
-          <ProtectedRoute
-            requiredRole="ORGANISATION_ADMIN"
-            requireOrganisation
-            requiredPermission="ASSIGN_CAMPAIGNS"
-          />
-        }
-      >
-        <Route
-          path="/organisations/:organisationId/campaign-assignments/new"
-          element={<CampaignAssignmentPage />}
-        />
-      </Route>
     </Routes>
   );
 }
