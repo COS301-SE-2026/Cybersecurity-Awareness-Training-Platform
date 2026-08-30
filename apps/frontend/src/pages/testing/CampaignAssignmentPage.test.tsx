@@ -4,8 +4,14 @@ import type { ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import CampaignAssignmentPage from '../CampaignAssignmentPage';
-import { getCampaignAssignmentCandidates } from '../../services/campaign-assignment.service';
-import { mockCampaignAssignmentCandidatesResponse } from '../../testing/fixtures/campaignAssignmentFixtures';
+import {
+  getAssignableCampaigns,
+  getCampaignAssignmentCandidates,
+} from '../../services/campaign-assignment.service';
+import {
+  mockAssignableCampaignsResponse,
+  mockCampaignAssignmentCandidatesResponse,
+} from '../../testing/fixtures/campaignAssignmentFixtures';
 
 vi.mock('../../components/layout/AppLayout', () => ({
   default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
@@ -23,12 +29,16 @@ vi.mock('../../context/useAuth', () => ({
 
 vi.mock('../../services/campaign-assignment.service', () => ({
   getCampaignAssignmentCandidates: vi.fn(),
+  getAssignableCampaigns: vi.fn(),
+  createCampaignAssignments: vi.fn(),
 }));
 
 const mockedGetCampaignAssignmentCandidates = vi.mocked(getCampaignAssignmentCandidates);
+const mockedGetAssignableCampaigns = vi.mocked(getAssignableCampaigns);
 
 function renderPage() {
   mockedGetCampaignAssignmentCandidates.mockResolvedValue(mockCampaignAssignmentCandidatesResponse);
+  mockedGetAssignableCampaigns.mockResolvedValue(mockAssignableCampaignsResponse);
 
   return render(
     <MemoryRouter>
@@ -38,6 +48,12 @@ function renderPage() {
 }
 
 async function waitForTraineesToLoad() {
+  await waitFor(() => {
+    expect(screen.getAllByRole('checkbox').length).toBeGreaterThan(0);
+  });
+}
+
+async function waitForCampaignsToLoad() {
   await waitFor(() => {
     expect(screen.getAllByRole('checkbox').length).toBeGreaterThan(0);
   });
@@ -108,6 +124,7 @@ describe('CampaignAssignmentPage', () => {
     expect(screen.getByText(/no training campaigns selected/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /3\. review assignment/i })).toBeDisabled();
 
+    await waitForCampaignsToLoad();
     const campaignRows = screen.getAllByRole('row');
 
     await user.click(within(campaignRows[1]).getByRole('checkbox'));
@@ -135,6 +152,7 @@ describe('CampaignAssignmentPage', () => {
     await waitForTraineesToLoad();
     await user.click(within(screen.getAllByRole('row')[1]).getByRole('checkbox'));
     await user.click(screen.getByRole('button', { name: /^continue$/i }));
+    await waitForCampaignsToLoad();
     await user.click(within(screen.getAllByRole('row')[1]).getByRole('checkbox'));
     await user.click(screen.getByRole('button', { name: /^continue$/i }));
     await user.click(screen.getByRole('button', { name: /^back$/i }));
