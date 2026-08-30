@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { ReactElement } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Menu,
@@ -11,13 +12,17 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../../context/useAuth';
 
+type InternalNavItem = { icon: ReactElement; label: string; path: string };
+type ExternalNavItem = { icon: ReactElement; label: string; href: string };
+type NavItem = InternalNavItem | ExternalNavItem;
+
 function Sidebar() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const navigate = useNavigate();
   const { user, authContext } = useAuth();
   const role = authContext?.role || user?.userType;
 
-  const getNavItems = () => {
+  const getNavItems = (): NavItem[] => {
     if (role === 'IP_ADMIN') {
       return [
         {
@@ -65,7 +70,7 @@ function Sidebar() {
       {
         icon: <HelpOutlineSharp />,
         label: 'Help',
-        path: 'https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/wiki/Demo-2-User-Manual',
+        href: 'https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/wiki/Demo-2-User-Manual',
       },
     ];
   };
@@ -115,70 +120,79 @@ function Sidebar() {
 
       {/* NAV ItEMS */}
 
-      {navItems.map((item) => (
-        <button
-          key={item.label}
-          onClick={() => navigate(item.path)}
-          type="button"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: drawerOpen ? 'flex-start' : 'center',
-            gap: '1.38rem',
-            height: '56px',
-            paddingLeft: drawerOpen ? '1.56rem' : '0',
-            paddingRight: '0',
-            paddingTop: '0',
-            paddingBottom: '0',
-            marginBottom: '1.16rem',
-            cursor: 'pointer',
-            whiteSpace: 'nowrap',
-            color: 'white',
-            transition: '0.22s ease',
-            boxSizing: 'border-box',
-            background: 'none',
-            border: 'none',
-            width: '100%',
-          }}
-        >
-          {/* IC0N */}
+      {navItems.map((item) => {
+        const NavigationItem = 'href' in item ? 'a' : 'button';
 
-          <div
+        return (
+          <NavigationItem
+            key={item.label}
+            href={'href' in item ? item.href : undefined}
+            target={'href' in item ? '_blank' : undefined}
+            rel={'href' in item ? 'noopener noreferrer' : undefined}
+            onClick={'path' in item ? () => navigate(item.path) : undefined}
+            type={'path' in item ? 'button' : undefined}
+            aria-label={item.label}
             style={{
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              minWidth: '35px',
+              justifyContent: drawerOpen ? 'flex-start' : 'center',
+              gap: '1.38rem',
+              height: '56px',
+              paddingLeft: drawerOpen ? '1.56rem' : '0',
+              paddingRight: '0',
+              paddingTop: '0',
+              paddingBottom: '0',
+              marginBottom: '1.16rem',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              color: 'white',
+              transition: '0.22s ease',
+              boxSizing: 'border-box',
+              background: 'none',
+              border: 'none',
+              width: '100%',
+              textDecoration: 'none',
             }}
           >
-            {item.icon.type && (
-              <item.icon.type
-                style={{
-                  fontSize: '2.1rem',
-                }}
-              />
-            )}
-          </div>
+            {/* IC0N */}
 
-          {/* LABEL */}
-
-          {drawerOpen && (
-            <span
+            <div
               style={{
-                fontFamily: 'Jost',
-                fontSize: '1.6rem',
-                fontWeight: 400,
-                letterSpacing: '0.012em',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                textAlign: 'left',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minWidth: '35px',
               }}
             >
-              {item.label}
-            </span>
-          )}
-        </button>
-      ))}
+              {item.icon.type && (
+                <item.icon.type
+                  style={{
+                    fontSize: '2.1rem',
+                  }}
+                />
+              )}
+            </div>
+
+            {/* LABEL */}
+
+            {drawerOpen && (
+              <span
+                style={{
+                  fontFamily: 'Jost',
+                  fontSize: '1.6rem',
+                  fontWeight: 400,
+                  letterSpacing: '0.012em',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  textAlign: 'left',
+                }}
+              >
+                {item.label}
+              </span>
+            )}
+          </NavigationItem>
+        );
+      })}
     </aside>
   );
 }

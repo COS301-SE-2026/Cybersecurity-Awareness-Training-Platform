@@ -450,24 +450,6 @@ export async function recoverExpiredEmailDeliveryLeases(input: { now?: Date } = 
           failureReason: 'EMAIL_PROCESSING_LEASE_EXPIRED',
         },
       });
-
-      await markInvitationIfRelevant(
-        {
-          emailType: job.emailType,
-          relatedEntity: {
-            fallbackType: job.deliveryLog.fallbackRelatedEntityType ?? undefined,
-            fallbackId: job.deliveryLog.fallbackRelatedEntityId,
-            userId: job.deliveryLog.userId,
-            actionTokenId: job.deliveryLog.actionTokenId,
-            organisationId: job.deliveryLog.organisationId,
-            organisationRegistrationRequestId: job.deliveryLog.organisationRegistrationRequestId,
-            invitationId: job.deliveryLog.invitationId,
-            invitationStateVersion: job.invitationStateVersion?.toISOString() ?? null,
-          },
-          status: 'FAILED_TO_SEND',
-        },
-        tx,
-      );
     });
   }
 }
@@ -790,7 +772,7 @@ export async function recordEmailDeliveryTerminalFailure(
       },
     });
 
-    if (job) {
+    if (job && input.providerOutcome !== 'PROVIDER_AMBIGUOUS') {
       await markInvitationIfRelevant(
         {
           emailType: job.emailType,

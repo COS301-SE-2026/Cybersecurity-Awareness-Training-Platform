@@ -1,35 +1,56 @@
-import { Dropdown, DropdownItem } from 'flowbite-react';
-import { useState } from 'react';
+import { useEffect, useRef } from 'react';
 
 type TransferSuperAdministratorRoleModalProps = Readonly<{
   isOpen: boolean;
+  targetName: string;
+  targetEmail: string;
+  password: string;
+  confirmation: string;
+  errorMessage: string | null;
+  passwordError: string | null;
+  isSubmitting: boolean;
+  onPasswordChange: (value: string) => void;
+  onConfirmationChange: (value: string) => void;
   onClose: () => void;
   onConfirm: () => void;
 }>;
 
-// MOCK DATA. REPLACE WITH REAL DATA DURING INTEGRATION
-const currentPlatformAdministrators = ['Connor Bell', 'Adriano Jorge', 'Johan Nel'];
-
 function TransferSuperAdministratorRoleModal({
   isOpen,
+  targetName,
+  targetEmail,
+  password,
+  confirmation,
+  errorMessage,
+  passwordError,
+  isSubmitting,
+  onPasswordChange,
+  onConfirmationChange,
   onClose,
   onConfirm,
 }: TransferSuperAdministratorRoleModalProps) {
-  const [newSuperAdministrator, setNewSuperAdministrator] = useState('');
-  const [newSuperAdministratorSelected, setNewSuperAdministratorSelected] = useState(false);
+  const passwordInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (isOpen) passwordInputRef.current?.focus();
+  }, [isOpen]);
+
   return (
     <div
       id="popup-modal"
       tabIndex={-1}
-      aria-hidden={!isOpen}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="transfer-super-administrator-title"
       className="fixed inset-0 z-999 flex items-center justify-center bg-black/50 backdrop-blur-xl"
     >
       <div className="relative p-2 w-full max-w-md max-h-full">
         <div className="relative bg-white-purple border border-default shadow-xl p-4 md:p-6">
           {/* CLOSE MODAL Button */}
           <button
+            disabled={isSubmitting}
             type="button"
-            className="absolute top-3 end-2.5 text-body bg-transparent hover:bg-neutral-tertiary hover:text-heading text-sm w-9 h-9 ms-auto inline-flex justify-center items-center"
+            className="absolute top-3 end-2.5 text-body bg-transparent hover:bg-neutral-tertiary hover:text-heading text-sm w-9 h-9 ms-auto inline-flex justify-center items-center disabled:opacity-60 disabled:cursor-not-allowed"
             onClick={onClose}
           >
             <span className="material-icons-sharp">close</span>
@@ -45,7 +66,10 @@ function TransferSuperAdministratorRoleModal({
             </span>
 
             {/* Heading */}
-            <h3 className="mb-4 text-body text-purple font-jost text-2xl tracking-wider font-medium">
+            <h3
+              id="transfer-super-administrator-title"
+              className="mb-4 text-body text-purple font-jost text-2xl tracking-wider font-medium"
+            >
               Transfer Super Administrator Role?
             </h3>
 
@@ -63,44 +87,61 @@ function TransferSuperAdministratorRoleModal({
             </h3>
 
             <h3 className="mb-4 text-body text-dark-pink font-medium font-overpass text-[1.1rem] tracking-wider">
-              Select a new{' '}
-              <strong>
-                <em>Super Platform Administrator</em>
-              </strong>{' '}
-              from the list of current <em>Platform Administrators</em> below to continue.
+              Transfer the super administrator role to <strong>{targetName}</strong> ({targetEmail}
+              ).
             </h3>
 
-            <Dropdown
-              label={
-                <span className="flex items-center gap-2">
-                  {!newSuperAdministrator
-                    ? 'Select a new Super Administrator'
-                    : newSuperAdministrator}
-                </span>
-              }
-              className={`w-90 -ml-2 ${newSuperAdministratorSelected ? 'mb-4' : 'mb-6'} font-jost tracking-wide text-[1.1rem] font-light text-gray-500 border border-gray-300 bg-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white rounded-none`}
-            >
-              {currentPlatformAdministrators.map((currentPlatformAdministrator) => (
-                <DropdownItem
-                  key={currentPlatformAdministrator}
-                  onClick={() => {
-                    setNewSuperAdministrator(`${currentPlatformAdministrator}`);
-                    setNewSuperAdministratorSelected(true);
-                  }}
-                  className="font-jost text-gray-600 text-[1.1rem]"
-                >
-                  {currentPlatformAdministrator}
-                </DropdownItem>
-              ))}
-            </Dropdown>
+            <div className="mb-4 text-left">
+              <label
+                htmlFor="transfer-current-password"
+                className="block mb-2 font-jost tracking-wide text-[1.1rem] font-medium text-pink"
+              >
+                Current password
+              </label>
+              <input
+                id="transfer-current-password"
+                ref={passwordInputRef}
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                disabled={isSubmitting}
+                onChange={(event) => onPasswordChange(event.target.value)}
+                aria-invalid={Boolean(passwordError)}
+                aria-describedby={passwordError ? 'transfer-password-error' : undefined}
+                className="font-overpass text-[1.1rem] bg-gray-50 border border-gray-300 text-deep-purple block w-full p-2.5 disabled:opacity-60"
+              />
+              {passwordError && (
+                <p id="transfer-password-error" role="alert" className="mt-2 text-sm text-red-600">
+                  {passwordError}
+                </p>
+              )}
+            </div>
 
-            {newSuperAdministratorSelected && (
-              <h3 className="mb-6 text-body text-gray-400 font-regular font-overpass text-[0.8rem] tracking-wider">
-                will be the new{' '}
-                <em>
-                  Insightful Phish <strong>Super Platform Administrator.</strong>
-                </em>
-              </h3>
+            <div className="mb-4 text-left">
+              <label
+                htmlFor="transfer-confirmation"
+                className="block mb-2 font-jost tracking-wide text-[1.1rem] font-medium text-pink"
+              >
+                Type TRANSFER to confirm
+              </label>
+              <input
+                id="transfer-confirmation"
+                type="text"
+                autoComplete="off"
+                value={confirmation}
+                disabled={isSubmitting}
+                onChange={(event) => onConfirmationChange(event.target.value)}
+                className="font-overpass text-[1.1rem] bg-gray-50 border border-gray-300 text-deep-purple block w-full p-2.5 disabled:opacity-60"
+              />
+            </div>
+
+            {errorMessage && (
+              <div
+                role="alert"
+                className="p-3 mb-6 text-red-800 bg-red-50 border border-red-200 font-overpass text-[1rem] tracking-wide"
+              >
+                {errorMessage}
+              </div>
             )}
 
             {/* Buttons */}
@@ -109,16 +150,18 @@ function TransferSuperAdministratorRoleModal({
               <button
                 onClick={onConfirm}
                 type="button"
-                className="text-white bg-main-purple box-border border border-transparent hover:bg-main-purple focus:ring-4 focus:ring-danger-medium shadow-xs font-regular cursor-pointer tracking-wider leading-5 text-[1.1rem] px-4 py-2.5 focus:outline-none"
+                disabled={isSubmitting || !password || confirmation !== 'TRANSFER'}
+                className="text-white bg-main-purple box-border border border-transparent hover:bg-main-purple focus:ring-4 focus:ring-danger-medium shadow-xs font-regular cursor-pointer tracking-wider leading-5 text-[1.1rem] px-4 py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Transfer Role
+                {isSubmitting ? 'Processing...' : 'Transfer super administrator role'}
               </button>
 
               {/* NO CANCEL Button */}
               <button
                 onClick={onClose}
                 type="button"
-                className="text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading focus:ring-4 focus:ring-neutral-tertiary shadow-xs font-jost tracking-wider cursor-pointer font-regular leading-5 text-[1.1rem] px-4 py-2.5 focus:outline-none"
+                disabled={isSubmitting}
+                className="text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading focus:ring-4 focus:ring-neutral-tertiary shadow-xs font-jost tracking-wider cursor-pointer font-regular leading-5 text-[1.1rem] px-4 py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
