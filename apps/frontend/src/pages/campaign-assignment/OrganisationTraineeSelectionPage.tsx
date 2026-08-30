@@ -55,10 +55,10 @@ function OrganisationTraineeSelectionPage({
   const { authContext } = useAuth();
   const organisationId = authContext?.organisation?.id ?? null;
 
-  const [loadedTrainees, setTrainees] = useState<CampaignAssignmentCandidateOptionDto[]>([]);
+  const [loadedTrainees, setLoadedTrainees] = useState<CampaignAssignmentCandidateOptionDto[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [requestIsLoading, setIsLoading] = useState(true);
-  const [requestError, setError] = useState<string | null>(null);
+  const [requestIsLoading, setRequestIsLoading] = useState(true);
+  const [requestError, setRequestError] = useState<string | null>(null);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -78,8 +78,8 @@ function OrganisationTraineeSelectionPage({
     let isCurrent = true;
 
     async function loadTrainees() {
-      setIsLoading(true);
-      setError(null);
+      setRequestIsLoading(true);
+      setRequestError(null);
 
       try {
         const response = await getCampaignAssignmentCandidates(currentOrganisationId, {
@@ -91,18 +91,18 @@ function OrganisationTraineeSelectionPage({
         if (!isCurrent) {
           return;
         }
-        setTrainees(response.items);
+        setLoadedTrainees(response.items);
         setTotalPages(response.pagination.totalPages);
       } catch {
         if (!isCurrent) {
           return;
         }
 
-        setTrainees([]);
-        setError('Unable To Load Organisation Trainees. Please Try Again');
+        setLoadedTrainees([]);
+        setRequestError('Unable To Load Organisation Trainees. Please Try Again');
       } finally {
         if (isCurrent) {
-          setIsLoading(false);
+          setRequestIsLoading(false);
         }
       }
     }

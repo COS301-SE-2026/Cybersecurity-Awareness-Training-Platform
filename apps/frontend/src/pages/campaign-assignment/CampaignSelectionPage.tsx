@@ -42,10 +42,10 @@ function CampaignSelectionPage({
   const { authContext } = useAuth();
   const organisationId = authContext?.organisation?.id ?? null;
 
-  const [loadedCampaigns, setCampaigns] = useState<AssignableCampaignOptionDto[]>([]);
+  const [loadedCampaigns, setLoadedCampaigns] = useState<AssignableCampaignOptionDto[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [requestIsLoading, setIsLoading] = useState(true);
-  const [requestError, setError] = useState<string | null>(null);
+  const [requestIsLoading, setRequestIsLoading] = useState(true);
+  const [requestError, setRequestError] = useState<string | null>(null);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -65,8 +65,8 @@ function CampaignSelectionPage({
     let isCurrent = true;
 
     async function loadCampaigns() {
-      setIsLoading(true);
-      setError(null);
+      setRequestIsLoading(true);
+      setRequestError(null);
 
       try {
         const response = await getAssignableCampaigns(currentOrganisationId, {
@@ -79,18 +79,18 @@ function CampaignSelectionPage({
           return;
         }
 
-        setCampaigns(response.items);
+        setLoadedCampaigns(response.items);
         setTotalPages(response.pagination.totalPages);
       } catch {
         if (!isCurrent) {
           return;
         }
 
-        setCampaigns([]);
-        setError('Unable To Load Training Campaigns. Please Try Again.');
+        setLoadedCampaigns([]);
+        setRequestError('Unable To Load Training Campaigns. Please Try Again.');
       } finally {
         if (isCurrent) {
-          setIsLoading(false);
+          setRequestIsLoading(false);
         }
       }
     }
