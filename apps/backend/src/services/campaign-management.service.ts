@@ -7,6 +7,7 @@ import type {
   CampaignListRowDto,
   CampaignMutationPreconditionDto,
   CampaignStatisticsQueryDto,
+  CampaignStatisticsTraineeRowDto,
   CreateCampaignDraftRequestDto,
   GetCampaignCatalogueResponseDto,
   GetCampaignsResponseDto,
@@ -15,13 +16,19 @@ import type {
   UpdateCampaignDraftRequestDto,
 } from '@insightful-phish/shared';
 import {
+  calculateCampaignAverageQuizScore,
+  calculateCampaignOverallProgress,
+  calculateItemProgressPercentage,
+  calculateTraineeAverageQuizScore,
   campaignDetailResponseSchema,
   campaignLifecycleActionResponseSchema,
   getCampaignCatalogueResponseSchema,
   getCampaignsResponseSchema,
+  getCampaignStatisticsResponseSchema,
 } from '@insightful-phish/shared';
 
 import * as CampaignManagementRepository from '../repositories/campaign-management.repository.js';
+import * as CampaignStatisticsRepository from '../repositories/campaign-statistics.repository.js';
 import * as OrganisationScopeRepository from '../repositories/organisation-scope.repository.js';
 
 export type UserActorContext = {
@@ -437,7 +444,7 @@ function validateDraftStructure(items: CreateCampaignDraftRequestDto['items']): 
   };
 
   for (const item of items) {
-    if (item.campaignItemId) {
+    if (item.itemType === 'GROUP' && item.campaignItemId) {
       if (seenItemIds.has(item.campaignItemId)) {
         throw new CampaignManagementServiceError(
           422,
@@ -858,14 +865,270 @@ export async function reactivatePlatformCampaign(
 export async function getOrganisationCampaignStatistics(
   actor: UserActorContext,
   organisationId: string,
-  _campaignId: string,
-  _query: CampaignStatisticsQueryDto,
+  campaignId: string,
+  query: CampaignStatisticsQueryDto,
 ): Promise<GetCampaignStatisticsResponseDto> {
-  await validateOrganisationAdminActor(actor, organisationId, 'VIEW_CAMPAIGNS');
+  const adminScope = await validateOrganisationAdminActor(actor, organisationId, 'VIEW_CAMPAIGNS');
 
-  throw new CampaignManagementServiceError(
-    501,
-    'NOT_IMPLEMENTED',
-    'Organisation campaign statistics runtime implementation is scheduled for #500',
+  const hasAssignPermission = adminScope.permissionGrants.some(
+    (grant) => grant.organisationPermission.key === 'ASSIGN_CAMPAIGNS',
   );
+
+  const campaign = await CampaignStatisticsRepository.findCampaignWithItems(
+    organisationId,
+    campaignId,
+  );
+
+  if (!campaign) {
+    throw new CampaignManagementServiceError(
+      404,
+      'CAMPAIGN_NOT_FOUND',
+      'Campaign was not found in this organisation',
+    );
+  }
+
+  // Service defines consumable item reporting policy: only COMPONENT items with valid component types
+  // count toward progress and quiz totals. Structural GROUP items are excluded.
+  const consumableItems = campaign.items.filter(
+    (
+      item,
+    ): item is typeof item & {
+      componentType: 'TRAINING_DOCUMENT' | 'QUIZ' | 'SIMULATED_INBOX';
+    } =>
+      item.itemType === 'COMPONENT' &&
+      (item.componentType === 'TRAINING_DOCUMENT' ||
+        item.componentType === 'QUIZ' ||
+        item.componentType === 'SIMULATED_INBOX'),
+  );
+
+  const itemCount = consumableItems.length;
+  const quizCount = consumableItems.filter((i) => i.componentType === 'QUIZ').length;
+
+  const cohortAssignments = await CampaignStatisticsRepository.findCampaignCohortAssignments(
+    organisationId,
+    campaignId,
+  );
+
+  if (cohortAssignments.length === 0) {
+    return getCampaignStatisticsResponseSchema.parse({
+      campaign: {
+        id: campaign.id,
+        name: campaign.name,
+        description: campaign.description,
+        campaignType: campaign.campaignType,
+        status: campaign.status,
+        startDate: campaign.startDate ? campaign.startDate.toISOString() : null,
+        endDate: campaign.endDate ? campaign.endDate.toISOString() : null,
+        itemCount,
+        quizCount,
+      },
+      summary: {
+        assignedTraineeCount: 0,
+        startedTraineeCount: 0,
+        completedTraineeCount: 0,
+        overallProgressPercentage: null,
+        averageQuizScorePercentage: null,
+      },
+      trainees: [],
+      pagination: {
+        page: query.page,
+        limit: query.limit,
+        total: 0,
+        totalPages: 0,
+      },
+    });
+  }
+
+  const traineeProfileIds = cohortAssignments.map((a) => a.traineeProfileId);
+  const assignmentIds = cohortAssignments.map((a) => a.assignmentId);
+  const trainingItemIds = consumableItems
+    .filter((i) => i.componentType === 'TRAINING_DOCUMENT')
+    .map((i) => i.id);
+  const quizItemIds = consumableItems.filter((i) => i.componentType === 'QUIZ').map((i) => i.id);
+  const simulationItemIds = consumableItems
+    .filter((i) => i.componentType === 'SIMULATED_INBOX')
+    .map((i) => i.id);
+
+  const progressFacts = await CampaignStatisticsRepository.findCampaignProgressFacts({
+    traineeProfileIds,
+    assignmentIds,
+    trainingItemIds,
+    quizItemIds,
+    simulationItemIds,
+  });
+
+  const trainingEventsByAssignment = new Map<
+    string,
+    CampaignStatisticsRepository.TrainingProgressFact[]
+  >();
+  for (const event of progressFacts.trainingEvents) {
+    const list = trainingEventsByAssignment.get(event.campaignAssignmentId) ?? [];
+    list.push(event);
+    trainingEventsByAssignment.set(event.campaignAssignmentId, list);
+  }
+
+  const quizAttemptsByAssignment = new Map<
+    string,
+    CampaignStatisticsRepository.QuizProgressFact[]
+  >();
+  for (const attempt of progressFacts.quizAttempts) {
+    const list = quizAttemptsByAssignment.get(attempt.campaignAssignmentId) ?? [];
+    list.push(attempt);
+    quizAttemptsByAssignment.set(attempt.campaignAssignmentId, list);
+  }
+
+  const simulationEventsByAssignment = new Map<
+    string,
+    CampaignStatisticsRepository.SimulationProgressFact[]
+  >();
+  for (const simEvent of progressFacts.simulatedEmailEvents) {
+    const list = simulationEventsByAssignment.get(simEvent.campaignAssignmentId) ?? [];
+    list.push(simEvent);
+    simulationEventsByAssignment.set(simEvent.campaignAssignmentId, list);
+  }
+
+  const allTraineeRows: CampaignStatisticsTraineeRowDto[] = [];
+  const allTraineeProgressPercentages: number[] = [];
+  const contributingTraineeQuizAverages: number[] = [];
+
+  let startedTraineeCount = 0;
+  let completedTraineeCount = 0;
+
+  for (const assignment of cohortAssignments) {
+    const tTrainingEvents = trainingEventsByAssignment.get(assignment.assignmentId) ?? [];
+    const tQuizAttempts = quizAttemptsByAssignment.get(assignment.assignmentId) ?? [];
+    const tSimEvents = simulationEventsByAssignment.get(assignment.assignmentId) ?? [];
+
+    const hasTrainingActivity = tTrainingEvents.some(
+      (e) => e.eventType === 'TRAINING_VIEWED' || e.eventType === 'TRAINING_COMPLETED',
+    );
+    const hasQuizActivity = tQuizAttempts.some(
+      (a) => a.status === 'IN_PROGRESS' || a.status === 'SUBMITTED',
+    );
+    const hasSimulationActivity = tSimEvents.length > 0;
+
+    const isStarted = hasTrainingActivity || hasQuizActivity || hasSimulationActivity;
+    if (isStarted) {
+      startedTraineeCount++;
+    }
+
+    let completedItemCount = 0;
+    let completedQuizCount = 0;
+
+    for (const item of consumableItems) {
+      if (item.componentType === 'TRAINING_DOCUMENT') {
+        const hasCompletedTraining = tTrainingEvents.some(
+          (e) => e.eventType === 'TRAINING_COMPLETED' && e.campaignItemId === item.id,
+        );
+        if (hasCompletedTraining) {
+          completedItemCount++;
+        }
+      } else if (item.componentType === 'QUIZ') {
+        // Quiz is complete ONLY with a SUBMITTED attempt AND an authoritative result (score 0 is valid)
+        const hasSubmittedQuizWithResult = tQuizAttempts.some(
+          (a) => a.status === 'SUBMITTED' && a.hasResult && a.campaignItemId === item.id,
+        );
+        if (hasSubmittedQuizWithResult) {
+          completedItemCount++;
+          completedQuizCount++;
+        }
+      } else if (item.componentType === 'SIMULATED_INBOX') {
+        const requiredEmailIds = item.simulatedInboxEmailIds;
+        const itemOpenedEmailIds = new Set(
+          tSimEvents
+            .filter((e) => e.campaignItemId === item.id)
+            .map((e) => e.simulatedEmailId || e.targetId),
+        );
+        if (
+          requiredEmailIds.length > 0 &&
+          requiredEmailIds.every((emailId) => itemOpenedEmailIds.has(emailId))
+        ) {
+          completedItemCount++;
+        }
+      }
+    }
+
+    const progressPercentage = calculateItemProgressPercentage(completedItemCount, itemCount);
+    allTraineeProgressPercentages.push(progressPercentage);
+
+    const isTraineeCompleted = itemCount > 0 && completedItemCount === itemCount;
+    if (isTraineeCompleted) {
+      completedTraineeCount++;
+    }
+
+    const submittedQuizScores = tQuizAttempts
+      .filter(
+        (a) =>
+          a.status === 'SUBMITTED' &&
+          a.hasResult &&
+          typeof a.scorePercentage === 'number' &&
+          quizItemIds.includes(a.campaignItemId),
+      )
+      .map((a) => a.scorePercentage as number);
+
+    const averageQuizScorePercentage = calculateTraineeAverageQuizScore(submittedQuizScores);
+    if (averageQuizScorePercentage !== null) {
+      contributingTraineeQuizAverages.push(averageQuizScorePercentage);
+    }
+
+    allTraineeRows.push({
+      assignmentId: assignment.assignmentId,
+      traineeProfileId: assignment.traineeProfileId,
+      displayName: `${assignment.firstName} ${assignment.lastName}`.trim(),
+      email: assignment.email,
+      traineeStatus: assignment.traineeStatus,
+      assignmentStatus: assignment.assignmentStatus,
+      accessType: assignment.accessType,
+      assignedAt: assignment.assignedAt.toISOString(),
+      progress: {
+        completedItemCount,
+        totalItemCount: itemCount,
+        progressPercentage,
+      },
+      completedQuizCount,
+      totalQuizCount: quizCount,
+      averageQuizScorePercentage,
+      allowedActions: {
+        canUnassign: hasAssignPermission && assignment.accessType === 'ASSIGNED',
+      },
+    });
+  }
+
+  const overallProgressPercentage = calculateCampaignOverallProgress(allTraineeProgressPercentages);
+  const campaignAverageQuizScorePercentage = calculateCampaignAverageQuizScore(
+    contributingTraineeQuizAverages,
+  );
+
+  const total = cohortAssignments.length;
+  const totalPages = total > 0 ? Math.ceil(total / query.limit) : 0;
+  const skip = (query.page - 1) * query.limit;
+  const paginatedTrainees = allTraineeRows.slice(skip, skip + query.limit);
+
+  return getCampaignStatisticsResponseSchema.parse({
+    campaign: {
+      id: campaign.id,
+      name: campaign.name,
+      description: campaign.description,
+      campaignType: campaign.campaignType,
+      status: campaign.status,
+      startDate: campaign.startDate ? campaign.startDate.toISOString() : null,
+      endDate: campaign.endDate ? campaign.endDate.toISOString() : null,
+      itemCount,
+      quizCount,
+    },
+    summary: {
+      assignedTraineeCount: total,
+      startedTraineeCount,
+      completedTraineeCount,
+      overallProgressPercentage,
+      averageQuizScorePercentage: campaignAverageQuizScorePercentage,
+    },
+    trainees: paginatedTrainees,
+    pagination: {
+      page: query.page,
+      limit: query.limit,
+      total,
+      totalPages,
+    },
+  });
 }
