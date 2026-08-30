@@ -112,6 +112,8 @@ describe('LoginPage', () => {
 
   afterEach(() => {
     cleanup();
+    vi.useRealTimers();
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
 
@@ -618,7 +620,7 @@ describe('LoginPage', () => {
     ...successfulAuthResponse,
     accessToken: 'renewed-access-token',
     token: 'renewed-access-token',
-    expiresAt: '2099-08-29T12:00:00.000Z',
+    expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
     sessionExpiresAt: '2099-08-29T12:00:00.000Z',
   } satisfies AuthLoginResponseDto;
 
@@ -643,7 +645,7 @@ describe('LoginPage', () => {
     it('confirms stored authentication through and after refresh', async () => {
       authStorageValues.set('token', 'stored-access-token');
       authStorageValues.set('user', JSON.stringify(successfulAuthResponse.user));
-      authStorageValues.set('expiresAt', '2099-08-29T11:00:00.000Z');
+      authStorageValues.set('expiresAt', new Date(Date.now() + 30 * 60 * 1000).toISOString());
       renderAuthProvider();
 
       await waitFor(() => {
@@ -735,6 +737,72 @@ describe('LoginPage', () => {
       expect(TestBroadCastChannel.instances[0].postMessage).toHaveBeenCalledWith({
         type: 'SIGNED_OUT',
       });
+    });
+
+    it('renews the session one minute before the access token expires', async () => {
+      vi.useFakeTimers();
+      const now = new Date('2026-08-30T10:00:00.000Z');
+      vi.setSystemTime(now);
+
+      refreshSessionMock.mockResolvedValue({
+        ...renewedAuthResponse,
+        expiresAt: new Date(now.getTime() + 2 * 60 * 1000).toISOString(),
+      });
+
+      renderAuthProvider();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+
+      expect(currentAuthContext?.isAuthLoading).toBe(false);
+
+      refreshSessionMock.mockClear();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(59_999);
+      });
+      expect(refreshSessionMock).not.toHaveBeenCalled();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1);
+      });
+
+      expect(refreshSessionMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('renews a token that is near expiry when the tab becomes visible', async () => {
+      vi.useFakeTimers();
+      const now = new Date('2026-08-30T10:00:00.000Z');
+      vi.setSystemTime(now);
+      refreshSessionMock.mockResolvedValue({
+        ...renewedAuthResponse,
+        expiresAt: new Date(now.getTime() + 2 * 60 * 1000).toISOString(),
+      });
+
+      let visibilityState: DocumentVisibilityState = 'hidden';
+
+      vi.spyOn(document, 'visibilityState', 'get').mockImplementation(() => visibilityState);
+      renderAuthProvider();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+      refreshSessionMock.mockClear();
+      vi.setSystemTime(new Date(now.getTime() + 90_000));
+
+      await act(async () => {
+        document.dispatchEvent(new Event('visibilitychange'));
+      });
+
+      expect(refreshSessionMock).not.toHaveBeenCalled();
+
+      visibilityState = 'visible';
+
+      await act(async () => {
+        document.dispatchEvent(new Event('visibilitychange'));
+      });
+
+      expect(refreshSessionMock).toHaveBeenCalledTimes(1);
     });
   }); //AuthProvider renewal
 });
