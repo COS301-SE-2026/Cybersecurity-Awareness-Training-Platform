@@ -8,6 +8,20 @@ import {
   mockTraineeCandidates,
 } from '../../testing/fixtures/campaignAssignmentFixtures';
 
+vi.mock('../../context/useAuth', () => ({
+  useAuth: () => ({
+    authContext: {
+      organisation: {
+        id: 'test-organisation-id',
+      },
+    },
+  }),
+}));
+
+vi.mock('../../services/campaign-assignment.service', () => ({
+  createCampaignAssignments: vi.fn(),
+}));
+
 const originalCampaignCount = mockAssignableCampaigns.length;
 
 type RenderPageOptions = {
@@ -25,7 +39,14 @@ function renderPage({
     <ReviewCampaignAssignmentPage
       selectedTraineeIds={selectedTraineeIds}
       selectedCampaignIds={selectedCampaignIds}
+      selectedTrainees={mockTraineeCandidates.filter((trainee) =>
+        selectedTraineeIds.includes(trainee.traineeProfileId),
+      )}
+      selectedCampaigns={mockAssignableCampaigns.filter((campaign) =>
+        selectedCampaignIds.includes(campaign.campaignId),
+      )}
       onBack={onBack}
+      onAssignmentSuccess={vi.fn()}
     />,
   );
 }
@@ -120,7 +141,10 @@ describe('ReviewCampaignAssignmentPage', () => {
       <ReviewCampaignAssignmentPage
         selectedTraineeIds={[mockTraineeCandidates[0].traineeProfileId]}
         selectedCampaignIds={[]}
+        selectedTrainees={[mockTraineeCandidates[0]]}
+        selectedCampaigns={[]}
         onBack={vi.fn()}
+        onAssignmentSuccess={vi.fn()}
       />,
     );
 
@@ -131,7 +155,10 @@ describe('ReviewCampaignAssignmentPage', () => {
       <ReviewCampaignAssignmentPage
         selectedTraineeIds={[]}
         selectedCampaignIds={[mockAssignableCampaigns[0].campaignId]}
+        selectedTrainees={[]}
+        selectedCampaigns={[mockAssignableCampaigns[0]]}
         onBack={vi.fn()}
+        onAssignmentSuccess={vi.fn()}
       />,
     );
 
