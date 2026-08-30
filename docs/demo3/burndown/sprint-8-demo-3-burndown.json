@@ -4,6 +4,13 @@
   "end": "2026-08-31",
   "issues": [
     {
+      "number": 519,
+      "title": "feat: add campaign insights to organisation campaign details",
+      "points": 2,
+      "state": "open",
+      "closed_date": null
+    },
+    {
       "number": 506,
       "title": "fix: complete Demo 3 role page reachability",
       "points": 2,
@@ -70,8 +77,8 @@
       "number": 497,
       "title": "docs: update Demo 3 coding standards",
       "points": 3,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-08-30"
     },
     {
       "number": 496,
@@ -98,58 +105,58 @@
   "series": [
     {
       "date": "2026-08-20",
-      "remaining": 46,
-      "ideal": 48.0
+      "remaining": 48,
+      "ideal": 50.0
     },
     {
       "date": "2026-08-21",
-      "remaining": 46,
-      "ideal": 43.64
+      "remaining": 48,
+      "ideal": 45.45
     },
     {
       "date": "2026-08-22",
-      "remaining": 46,
-      "ideal": 39.27
+      "remaining": 48,
+      "ideal": 40.91
     },
     {
       "date": "2026-08-23",
-      "remaining": 46,
-      "ideal": 34.91
+      "remaining": 48,
+      "ideal": 36.36
     },
     {
       "date": "2026-08-24",
-      "remaining": 46,
-      "ideal": 30.55
+      "remaining": 48,
+      "ideal": 31.82
     },
     {
       "date": "2026-08-25",
-      "remaining": 46,
-      "ideal": 26.18
+      "remaining": 48,
+      "ideal": 27.27
     },
     {
       "date": "2026-08-26",
-      "remaining": 46,
-      "ideal": 21.82
+      "remaining": 48,
+      "ideal": 22.73
     },
     {
       "date": "2026-08-27",
-      "remaining": 46,
-      "ideal": 17.45
+      "remaining": 48,
+      "ideal": 18.18
     },
     {
       "date": "2026-08-28",
-      "remaining": 44,
-      "ideal": 13.09
+      "remaining": 46,
+      "ideal": 13.64
     },
     {
       "date": "2026-08-29",
-      "remaining": 34,
-      "ideal": 8.73
+      "remaining": 36,
+      "ideal": 9.09
     },
     {
       "date": "2026-08-30",
-      "remaining": 34,
-      "ideal": 4.36
+      "remaining": 33,
+      "ideal": 4.55
     }
   ]
 }
