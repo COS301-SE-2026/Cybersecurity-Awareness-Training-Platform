@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import CampaignAssignmentPage from '../CampaignAssignmentPage';
 import {
+  createCampaignAssignments,
   getAssignableCampaigns,
   getCampaignAssignmentCandidates,
 } from '../../services/campaign-assignment.service';
@@ -35,6 +36,7 @@ vi.mock('../../services/campaign-assignment.service', () => ({
 
 const mockedGetCampaignAssignmentCandidates = vi.mocked(getCampaignAssignmentCandidates);
 const mockedGetAssignableCampaigns = vi.mocked(getAssignableCampaigns);
+const mockedCreateCampaignAssignments = vi.mocked(createCampaignAssignments);
 
 function renderPage() {
   mockedGetCampaignAssignmentCandidates.mockResolvedValue(mockCampaignAssignmentCandidatesResponse);
@@ -57,6 +59,17 @@ async function waitForCampaignsToLoad() {
   await waitFor(() => {
     expect(screen.getAllByRole('checkbox').length).toBeGreaterThan(0);
   });
+}
+
+async function completeOneAssignment(user: ReturnType<typeof userEvent.setup>) {
+  await waitForTraineesToLoad();
+  await user.click(within(screen.getAllByRole('row')[1]).getByRole('checkbox'));
+  await user.click(screen.getByRole('button', { name: /^continue$/i }));
+  await waitForCampaignsToLoad();
+  await user.click(within(screen.getAllByRole('row')[1]).getByRole('checkbox'));
+  await user.click(screen.getByRole('button', { name: /^continue$/i }));
+  await user.click(screen.getByRole('button', { name: /complete assignment/i }));
+  await user.click(screen.getByRole('button', { name: /confirm assignment/i }));
 }
 
 describe('CampaignAssignmentPage', () => {
@@ -161,4 +174,44 @@ describe('CampaignAssignmentPage', () => {
     expect(screen.getByText(/1 training campaign selected/i)).toBeInTheDocument();
     expect(within(screen.getAllByRole('row')[1]).getByRole('checkbox')).toBeChecked();
   });
+
+  it.each([
+    [1, 0, '1 assignment(s) were created successfully.'],
+    [0, 1, 'No new assignments were created. All 1 requested assignment(s) were already assigned.'],
+    [1, 1, '1 assignment(s) were created and 1 were already assigned.'],
+  ])(
+    'keeps the authoritative result visible for created=%i and already-assigned=%i',
+    async (createdCount, alreadyAssignedCount, expectedMessage) => {
+      const user = userEvent.setup();
+      mockedCreateCampaignAssignments.mockResolvedValue({
+        created: Array.from({ length: createdCount }, () => ({
+          assignmentId: '51111111-1111-4111-8111-111111111111',
+          campaignId: mockAssignableCampaignsResponse.items[0].campaignId,
+          traineeProfileId: mockCampaignAssignmentCandidatesResponse.items[0].traineeProfileId,
+        })),
+        alreadyAssigned: Array.from({ length: alreadyAssignedCount }, () => ({
+          assignmentId: '51111111-1111-4111-8111-111111111112',
+          campaignId: mockAssignableCampaignsResponse.items[0].campaignId,
+          traineeProfileId: mockCampaignAssignmentCandidatesResponse.items[0].traineeProfileId,
+        })),
+        summary: {
+          requestedCampaigns: 1,
+          requestedTrainees: createdCount + alreadyAssignedCount,
+          requestedPairs: createdCount + alreadyAssignedCount,
+          createdCount,
+          alreadyAssignedCount,
+        },
+      });
+
+      renderPage();
+      await completeOneAssignment(user);
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(expectedMessage);
+      expect(
+        screen.getByRole('heading', { name: /organisation trainee selection/i }),
+      ).toBeVisible();
+      expect(screen.getByText(/no organisation trainees selected/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument();
+    },
+  );
 });
