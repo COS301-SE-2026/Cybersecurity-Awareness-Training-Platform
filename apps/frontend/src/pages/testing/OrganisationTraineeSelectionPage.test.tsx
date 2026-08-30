@@ -34,11 +34,17 @@ type RenderPageOptions = {
 
 function TestHarness({ initialSelectedTraineeIds = [], onContinue = vi.fn() }: RenderPageOptions) {
   const [selectedTraineeIds, setSelectedTraineesIds] = useState(initialSelectedTraineeIds);
+  const [, setSelectedTrainees] = useState(
+    mockTraineeCandidates.filter((trainee) =>
+      initialSelectedTraineeIds.includes(trainee.traineeProfileId),
+    ),
+  );
 
   return (
     <OrganisationTraineeSelectionPage
       selectedTraineeIds={selectedTraineeIds}
       setSelectedTraineesIds={setSelectedTraineesIds}
+      setSelectedTrainees={setSelectedTrainees}
       onContinue={onContinue}
     />
   );
