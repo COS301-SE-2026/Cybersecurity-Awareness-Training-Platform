@@ -13,6 +13,7 @@ import type {
 import type { CampaignManagementClient } from './campaignManagementClient';
 import type { CampaignManagementContext } from './campaignManagement.types';
 import { apiCampaignManagementClient } from './apiCampaignManagementClient';
+import { getCampaignErrorPresentation } from './campaignManagementError';
 import { useAuth } from '../../context/useAuth';
 import './campaign-management.css';
 
@@ -119,10 +120,15 @@ function CampaignManagementListPage({
       if (requestIdRef.current === requestId) {
         setResult(response);
       }
-    } catch {
+    } catch (error) {
       if (requestIdRef.current === requestId) {
+        const presentation = getCampaignErrorPresentation(error, {
+          fallback: 'Campaigns could not be loaded. Try again.',
+          forbidden: 'You no longer have permission to view Campaigns.',
+        });
+
         setResult(null);
-        setLoadError('Campaigns could not be loaded. Try again.');
+        setLoadError(presentation.message);
       }
     } finally {
       if (requestIdRef.current === requestId) {

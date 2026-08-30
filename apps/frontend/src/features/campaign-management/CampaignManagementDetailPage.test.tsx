@@ -13,7 +13,10 @@ import { useMemo, type ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { createDeferred, renderWithRouter } from '../../testing/render';
-import type { CampaignManagementClient } from './campaignManagementClient';
+import {
+  CampaignManagementClientError,
+  type CampaignManagementClient,
+} from './campaignManagementClient';
 import CampaignManagementDetailPage from './CampaignManagementDetailPage';
 
 vi.mock('../../components/layout/AppLayout', () => ({
@@ -167,6 +170,21 @@ describe('CampaignManagementDetailPage', () => {
     expect(screen.getByRole('textbox', { name: 'Description' })).toHaveValue(
       DRAFT_DETAIL.description,
     );
+  });
+
+  it('shows a not-found state without rendering an editable builder', async () => {
+    renderPage(DETAIL_PATH, DETAIL_ROUTE, {
+      getCampaignDetail: vi.fn().mockRejectedValue(
+        new CampaignManagementClientError('CAMPAIGN_NOT_FOUND', {
+          status: 404,
+          message: 'Campaign does not exist.',
+        }),
+      ),
+    });
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Campaign not found.');
+    expect(screen.queryByRole('form', { name: 'Campaign details' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save Changes' })).not.toBeInTheDocument();
   });
 
   it('renders a Draft without EDIT authority as complete read-only Detail', async () => {

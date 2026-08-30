@@ -8,7 +8,7 @@ import LoadingSpinnerSVG from '../../components/LoadingSpinnerSVG';
 
 export type CampaignCatalogueState =
   | { status: 'loading' }
-  | { status: 'error' }
+  | { status: 'error'; message: string }
   | {
       status: 'loaded';
       items: readonly CampaignCatalogueItemDto[];
@@ -106,7 +106,7 @@ function CampaignCatalogue({
 
       {state.status === 'error' && (
         <div className="campaign-catalogue__state campaign-catalogue__state--error" role="alert">
-          <p>Campaign catalogue could not be loaded. Try again.</p>
+          <p>{state.message}</p>
           <button type="button" onClick={onRetry}>
             Retry
           </button>

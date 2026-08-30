@@ -300,4 +300,39 @@ describe('CampaignManagementDetailPage activation', () => {
     expect(screen.getByRole('button', { name: 'Reload Campaign' })).toBeEnabled();
     expect(screen.getByRole('button', { name: 'Archive Campaign' })).toBeEnabled();
   });
+
+  it('locks Campaign mutation controls after a forbidden lifecycle response', async () => {
+    const user = userEvent.setup();
+    const activateCampaign = vi.fn().mockRejectedValue(
+      new CampaignManagementClientError('FORBIDDEN', {
+        status: 403,
+        message: 'Missing required permission: MANAGE_CAMPAIGNS',
+      }),
+    );
+
+    renderPage(VALID_DRAFT, { activateCampaign });
+
+    await user.click(await screen.findByRole('button', { name: 'Activate Campaign' }));
+    await user.click(
+      within(screen.getByRole('dialog', { name: `Activate ${VALID_DRAFT.name}?` })).getByRole(
+        'button',
+        { name: 'Activate Campaign' },
+      ),
+    );
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Your Campaign permissions have changed. You no longer have permission to make changes.',
+    );
+    expect(screen.getByRole('textbox', { name: 'Campaign name' })).toBeDisabled();
+    expect(
+      screen.getByRole('combobox', { name: 'Requirement for Password safety quiz' }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Remove Password safety quiz from Campaign' }),
+    ).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Save Changes' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Activate Campaign' })).toBeDisabled();
+
+    await user.click(screen.getByRole('button', { name: 'Activate Campaign' }));
+    expect(activateCampaign).toHaveBeenCalledOnce();
+  });
 });

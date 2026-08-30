@@ -8,7 +8,10 @@ import type {
   CampaignListRowDto,
   GetCampaignsResponseDto,
 } from '@insightful-phish/shared';
-import type { CampaignManagementClient } from './campaignManagementClient';
+import {
+  CampaignManagementClientError,
+  type CampaignManagementClient,
+} from './campaignManagementClient';
 import CampaignManagementListPage from './CampaignManagementListPage';
 import { createDeferred, renderWithRouter } from '../../testing/render';
 
@@ -90,6 +93,22 @@ function renderPage(
 }
 
 describe('CampaignManagementListPage', () => {
+  it.each([
+    [401, 'Your session is no longer valid. Sign in again.'],
+    [403, 'You no longer have permission to view Campaigns.'],
+  ])('shows a meaningful message for a structured %i list error', async (status, message) => {
+    renderPage({
+      async listCampaigns() {
+        throw new CampaignManagementClientError(status === 401 ? 'UNAUTHORIZED' : 'FORBIDDEN', {
+          status,
+          message: 'Backend transport message',
+        });
+      },
+    });
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(message);
+  });
+
   it('passes search and status through the list query', async () => {
     const user = userEvent.setup();
     const queries: CampaignListQueryDto[] = [];
