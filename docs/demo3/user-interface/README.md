@@ -1,16 +1,16 @@
-# Demo 2 User Interface Screenshot Catalogue
+# Demo 3 User Interface Screenshot Catalogue
 
 ## Purpose
 
-This catalogue lists the screenshots used by the demo 2 user manual. Screenshots will show usable and implemented screenshots only.
+This catalogue lists the screenshots used by the Demo 3 user manual. Screenshots should show usable, implemented screens only.
 
 ## Capture and Privacy Rules
 
-Use demo accounts and sample organisations only. Before comitting a screenshot, check that it does not show real personal data, tokens, or credentials.
+Use demo accounts and sample organisations only. Before committing a screenshot, check that it does not show real personal data, tokens, or credentials.
 
-## Public and account flows
+## Public and Account Flows
 
-Screenshots in this groups cover public access, registration, verification, password recovery and account management.
+Screenshots in this group cover public access, registration, verification, password recovery, and account management.
 
 | Screenshot                                      | Manual section                              | Notes                                       |
 | ----------------------------------------------- | ------------------------------------------- | ------------------------------------------- |
@@ -20,8 +20,8 @@ Screenshots in this groups cover public access, registration, verification, pass
 | `public-account/04-forgot-password.png`         | Reset a forgotten password                  | Use a sample email address.                 |
 | `public-account/05-reset-password.png`          | Reset a forgotten password                  | Do not show a real reset token.             |
 | `public-account/06-complete-setup.png`          | Complete account setup from invitation link | Crop or hide the setup token.               |
-| `public-account/07-account-management-tabs.png` | Open account management                     | use demo profile data only.                 |
-| `public-account/08-change-email-modal.png`      | Request an email change                     | use sample email adresses only.             |
+| `public-account/07-account-management-tabs.png` | Open account management                     | Use demo profile data only.                 |
+| `public-account/08-change-email-modal.png`      | Request an email change                     | Use sample email addresses only.            |
 | `public-account/09-change-password-modal.png`   | Change your password                        | Leave password fields blank.                |
 | `public-account/10-session-settings.png`        | Review Sessions                             | Avoid real device, Ip, or location details. |
 
@@ -32,7 +32,7 @@ Screenshots cover campaigns, training content, quizzes, results, simulated inbox
 | ScreenShot                              | Manual section                 | Notes                                    |
 | --------------------------------------- | ------------------------------ | ---------------------------------------- |
 | `trainee/01-campaigns.png`              | View assigned campaigns        | Use demo campaigns only                  |
-| `trainee/02-open-campaign.png`          | View assigned campaigns        | show availible and locked campaigns      |
+| `trainee/02-open-campaign.png`          | View assigned campaigns        | Show available and locked campaigns      |
 | `trainee/03-training-document.png`      | Read a training document       | Do not include private training material |
 | `trainee/04-quiz.png`                   | Use demo questions only        | Use demo questions only                  |
 | `trainee/05-quiz-results.png`           | Complete a quiz                | Use sample source data only              |
@@ -57,9 +57,9 @@ Screenshots cover org registration, initial admin setup, org information, org se
 | `organisation-admin/06-administrator-management.png`                | Review organisation admins       | Use demo administrator rows only  |
 | `organisation-admin/07-admin-permissions-popover.png`               | Review organisation admins       | Use demo permission details       |
 
-## Platform Admin flows
+## Insightful Phish Admin Flows
 
-Screenshots cover org request review, org details, onboarding timeline reviews, setup resend, and org management screens.
+Screenshots cover Organisation request review, Organisation details, onboarding timeline reviews, setup resend, and platform management screens.
 
 | Screenshot                                         | Manual Section                         | Notes                          |
 | -------------------------------------------------- | -------------------------------------- | ------------------------------ |
@@ -70,8 +70,8 @@ Screenshots cover org request review, org details, onboarding timeline reviews, 
 | `platform-admin/05-onboarding-timeline.png`        | Review request or organisation details | Do not expose private metadata |
 | `platform-admin/06-resend-initial-admin-setup.png` | Review request or organisation details | Hide setup tokens and emails   |
 
-## User manual reuse
+## User Manual Reuse
 
 When a screenshot is used please keep the same file name in this catalogue so reviewers can trace every image back to its workflow.
 
-- **[User Manual](user-manual.md)**
+- **[User Manual](../user-manual.md)**
