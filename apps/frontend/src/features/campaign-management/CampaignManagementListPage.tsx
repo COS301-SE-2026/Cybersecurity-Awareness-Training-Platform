@@ -337,6 +337,40 @@ function CampaignManagementListPage({
                 );
               })}
             </div>
+
+            {result.pagination.totalPages > 1 && (
+              <nav className="campaign-list__pagination" aria-label="Campaign pagination">
+                <button
+                  type="button"
+                  disabled={!result.pagination.hasPreviousPage}
+                  onClick={() => {
+                    setQuery((current) => ({
+                      ...current,
+                      page: Math.max(1, result.pagination.page - 1),
+                    }));
+                  }}
+                >
+                  Previous
+                </button>
+
+                <span>
+                  Page {result.pagination.page} of {result.pagination.totalPages}
+                </span>
+
+                <button
+                  type="button"
+                  disabled={!result.pagination.hasNextPage}
+                  onClick={() => {
+                    setQuery((current) => ({
+                      ...current,
+                      page: result.pagination.page + 1,
+                    }));
+                  }}
+                >
+                  Next
+                </button>
+              </nav>
+            )}
           </>
         )}
       </div>

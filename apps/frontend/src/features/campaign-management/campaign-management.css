@@ -143,6 +143,20 @@
   gap: 1rem;
 }
 
+.campaign-list__pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.campaign-list__pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .campaign-card {
   display: grid;
   grid-template-columns: 0.6rem minmax(0, 1fr);

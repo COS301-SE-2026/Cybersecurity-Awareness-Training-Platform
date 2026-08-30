@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -55,7 +55,10 @@ const ACTIVE_CAMPAIGN: CampaignListRowDto = {
   allowedActions: ['VIEW', 'ARCHIVE'],
 };
 
-function createResponse(items: CampaignListRowDto[]): GetCampaignsResponseDto {
+function createResponse(
+  items: CampaignListRowDto[],
+  pagination: Partial<GetCampaignsResponseDto['pagination']> = {},
+): GetCampaignsResponseDto {
   return {
     items,
     pagination: {
@@ -65,6 +68,7 @@ function createResponse(items: CampaignListRowDto[]): GetCampaignsResponseDto {
       totalPages: items.length === 0 ? 0 : 1,
       hasNextPage: false,
       hasPreviousPage: false,
+      ...pagination,
     },
   };
 }
@@ -120,6 +124,91 @@ describe('CampaignManagementListPage', () => {
       limit: 10,
       search: 'Active',
       status: 'DRAFT',
+    });
+  });
+
+  it('uses authoritative pagination metadata for Previous and Next', async () => {
+    const user = userEvent.setup();
+    const queries: CampaignListQueryDto[] = [];
+
+    renderPage({
+      async listCampaigns(_context, query) {
+        queries.push(query);
+        const page = query.page;
+
+        return createResponse([page === 1 ? DRAFT_CAMPAIGN : ACTIVE_CAMPAIGN], {
+          page,
+          totalItems: 11,
+          totalPages: 2,
+          hasNextPage: page === 1,
+          hasPreviousPage: page === 2,
+        });
+      },
+    });
+
+    expect(await screen.findByText('Page 1 of 2')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled();
+
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+
+    expect(await screen.findByText('Page 2 of 2')).toBeInTheDocument();
+    expect(queries.at(-1)).toMatchObject({ page: 2, limit: 10 });
+    expect(screen.getByRole('button', { name: 'Previous' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+
+    await user.click(screen.getByRole('button', { name: 'Previous' }));
+
+    expect(await screen.findByText('Page 1 of 2')).toBeInTheDocument();
+    expect(queries.at(-1)).toMatchObject({ page: 1, limit: 10 });
+  });
+
+  it('resets pagination when search or status changes', async () => {
+    const user = userEvent.setup();
+    const queries: CampaignListQueryDto[] = [];
+
+    renderPage({
+      async listCampaigns(_context, query) {
+        queries.push(query);
+        const page = query.page;
+
+        return createResponse([DRAFT_CAMPAIGN], {
+          page,
+          totalItems: 11,
+          totalPages: 2,
+          hasNextPage: page === 1,
+          hasPreviousPage: page === 2,
+        });
+      },
+    });
+
+    expect(await screen.findByText('Page 1 of 2')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    expect(await screen.findByText('Page 2 of 2')).toBeInTheDocument();
+
+    await user.type(screen.getByRole('searchbox', { name: /search campaigns/i }), 'draft');
+
+    await waitFor(() => {
+      expect(queries.at(-1)).toMatchObject({
+        page: 1,
+        limit: 10,
+        search: 'draft',
+      });
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    expect(await screen.findByText('Page 2 of 2')).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText('Campaign status'), 'DRAFT');
+
+    await waitFor(() => {
+      expect(queries.at(-1)).toMatchObject({
+        page: 1,
+        limit: 10,
+        search: 'draft',
+        status: 'DRAFT',
+      });
     });
   });
 
