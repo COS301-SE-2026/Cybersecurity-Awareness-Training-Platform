@@ -83,6 +83,13 @@
       "closed_date": "2026-08-29"
     },
     {
+      "number": 488,
+      "title": "fix: correct idle session timeout behaviour",
+      "points": 5,
+      "state": "open",
+      "closed_date": null
+    },
+    {
       "number": 431,
       "title": "chore: restore skipped backend configuration and auth-subject tests",
       "points": 2,
@@ -93,53 +100,58 @@
   "series": [
     {
       "date": "2026-08-20",
-      "remaining": 41,
-      "ideal": 43.0
+      "remaining": 46,
+      "ideal": 48.0
     },
     {
       "date": "2026-08-21",
-      "remaining": 41,
-      "ideal": 39.09
+      "remaining": 46,
+      "ideal": 43.64
     },
     {
       "date": "2026-08-22",
-      "remaining": 41,
-      "ideal": 35.18
+      "remaining": 46,
+      "ideal": 39.27
     },
     {
       "date": "2026-08-23",
-      "remaining": 41,
-      "ideal": 31.27
+      "remaining": 46,
+      "ideal": 34.91
     },
     {
       "date": "2026-08-24",
-      "remaining": 41,
-      "ideal": 27.36
+      "remaining": 46,
+      "ideal": 30.55
     },
     {
       "date": "2026-08-25",
-      "remaining": 41,
-      "ideal": 23.45
+      "remaining": 46,
+      "ideal": 26.18
     },
     {
       "date": "2026-08-26",
-      "remaining": 41,
-      "ideal": 19.55
+      "remaining": 46,
+      "ideal": 21.82
     },
     {
       "date": "2026-08-27",
-      "remaining": 41,
-      "ideal": 15.64
+      "remaining": 46,
+      "ideal": 17.45
     },
     {
       "date": "2026-08-28",
-      "remaining": 39,
-      "ideal": 11.73
+      "remaining": 44,
+      "ideal": 13.09
     },
     {
       "date": "2026-08-29",
-      "remaining": 29,
-      "ideal": 7.82
+      "remaining": 34,
+      "ideal": 8.73
+    },
+    {
+      "date": "2026-08-30",
+      "remaining": 34,
+      "ideal": 4.36
     }
   ]
 }
