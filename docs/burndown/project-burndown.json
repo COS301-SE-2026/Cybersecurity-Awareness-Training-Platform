@@ -1449,8 +1449,8 @@
           "number": 410,
           "title": "feat: integrate the platform administrator management page",
           "points": 5,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-08-30"
         },
         {
           "number": 409,
@@ -2332,7 +2332,7 @@
     },
     {
       "date": "2026-08-30",
-      "remaining": 49,
+      "remaining": 44,
       "ideal": 5.26
     }
   ]
