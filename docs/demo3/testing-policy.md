@@ -226,7 +226,7 @@ Evidence retention rules:
 
 Lighthouse is configured for the frontend through [`apps/frontend/lighthouserc.json`](../../apps/frontend/lighthouserc.json). It checks the login and registration routes for accessibility, best practices, and SEO, with performance disabled in that configuration. The workflow is currently non-blocking, so Lighthouse evidence should be reported honestly as a quality signal unless the workflow is changed to enforce it.
 
-The older [testing plan](testing.md) remains useful for manual demo thinking, especially around happy paths, negative paths, seeded data, and pass/fail notes. This policy does not copy that plan wholesale; it keeps the reusable testing rules and leaves feature-specific manual checklists in their owning documents.
+The older [Demo 1 testing plan](../demo1/testing.md) remains useful for manual demo thinking, especially around happy paths, negative paths, seeded data, and pass/fail notes. This policy does not copy that plan wholesale; it keeps the reusable testing rules and leaves feature-specific manual checklists in their owning documents.
 
 ## Test Environments and Data
 
