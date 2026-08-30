@@ -55,19 +55,21 @@ function OrganisationTraineeSelectionPage({
   const { authContext } = useAuth();
   const organisationId = authContext?.organisation?.id ?? null;
 
-  const [trainees, setTrainees] = useState<CampaignAssignmentCandidateOptionDto[]>([]);
+  const [loadedTrainees, setTrainees] = useState<CampaignAssignmentCandidateOptionDto[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [requestIsLoading, setIsLoading] = useState(true);
+  const [requestError, setError] = useState<string | null>(null);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const hasOrganisationId = organisationId !== null && organisationId.length > 0;
+  const trainees = hasOrganisationId === true ? loadedTrainees : [];
+  const isLoading = hasOrganisationId === true ? requestIsLoading : false;
+  const error =
+    hasOrganisationId === true ? requestError : 'Unable To Determine The Current Organisation';
 
   useEffect(() => {
-    if (!organisationId) {
-      setTrainees([]);
-      setIsLoading(false);
-      setError('Unable To Determine The Current Organisation');
+    if (organisationId === null || organisationId.length === 0) {
       return;
     }
 
