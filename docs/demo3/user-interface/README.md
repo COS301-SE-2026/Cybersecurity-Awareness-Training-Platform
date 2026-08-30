@@ -14,7 +14,7 @@ Screenshots in this group cover public access, registration, verification, passw
 
 | Screenshot                                      | Manual section                              | Notes                                       |
 | ----------------------------------------------- | ------------------------------------------- | ------------------------------------------- |
-| `public-account/01-login-page.png`              | Sign In                                     | use a demo email only.                      |
+| `public-account/01-login-page.png`              | Sign In                                     | Use a demo email only.                      |
 | `public-account/02-registration-form.png`       | Create an individual account                | Do not show a real password.                |
 | `public-account/03-email-verification.png`      | Verify your email                           | Do not show a raw verification token.       |
 | `public-account/04-forgot-password.png`         | Reset a forgotten password                  | Use a sample email address.                 |
@@ -23,7 +23,7 @@ Screenshots in this group cover public access, registration, verification, passw
 | `public-account/07-account-management-tabs.png` | Open account management                     | Use demo profile data only.                 |
 | `public-account/08-change-email-modal.png`      | Request an email change                     | Use sample email addresses only.            |
 | `public-account/09-change-password-modal.png`   | Change your password                        | Leave password fields blank.                |
-| `public-account/10-session-settings.png`        | Review Sessions                             | Avoid real device, Ip, or location details. |
+| `public-account/10-session-settings.png`        | Review Sessions                             | Avoid real device, IP, or location details. |
 
 ## Trainee Campaign Workflows
 
@@ -41,37 +41,38 @@ Screenshots cover the integrated Campaigns page, training content, quizzes, resu
 
 ## Organisation Admin Flows
 
-Screenshots cover org registration, initial admin setup, org information, org security preferences, trainee management, and admin management screens.
+Screenshots cover Organisation registration, initial admin setup, Organisation information, Organisation security preferences, trainee management, and admin management screens.
 
-| Screenshot                                                          | Manual Section                   | Notes                             |
-| ------------------------------------------------------------------- | -------------------------------- | --------------------------------- |
-| `organisation-onboarding/01-organisation-registration-step-one.png` | Request Organisation Access      | Use a sample organisation         |
-| `organisation-onboarding/02-organisation-registration-step-two.png` | Request Organisation Access      | Use a representative email only   |
-| `organisation-onboarding/03-organisation-registration-success.png`  | Request Organisation Access      | Avoid real submitted details      |
-| `organisation-onboarding/04-initial-admin-setup.png`                | Complete initial org admin setup | Hide setup token from address bar |
-| `organisation-admin/01-organisation-information.png`                | Review organisation information  | Use sample organisation data      |
-| `organisation-admin/02-organisation-timeline.png`                   | Review organisation information  | Do not show private audit data    |
-| `organisation-admin/03-security-preferences.png`                    | Update security preferences      | Show editable demo settings       |
-| `organisation-admin/04-trainee-management.png`                      | Review organisation trainees     | Use demo trainee rows only        |
-| `organisation-admin/05-invite-trainee-modal.png`                    | Review organisation trainees     | Use sample invitation details     |
-| `organisation-admin/06-administrator-management.png`                | Review organisation admins       | Use demo administrator rows only  |
-| `organisation-admin/07-admin-permissions-popover.png`               | Review organisation admins       | Use demo permission details       |
+| Screenshot                                                          | Manual Section                            | Notes                             |
+| ------------------------------------------------------------------- | ----------------------------------------- | --------------------------------- |
+| `organisation-onboarding/01-organisation-registration-step-one.png` | Request Organisation Access               | Use a sample organisation         |
+| `organisation-onboarding/02-organisation-registration-step-two.png` | Request Organisation Access               | Use a representative email only   |
+| `organisation-onboarding/03-organisation-registration-success.png`  | Request Organisation Access               | Avoid real submitted details      |
+| `organisation-onboarding/04-initial-admin-setup.png`                | Complete initial Organisation Admin setup | Hide setup token from address bar |
+| `organisation-admin/01-organisation-information.png`                | Review organisation information           | Use sample organisation data      |
+| `organisation-admin/02-organisation-timeline.png`                   | Review organisation information           | Do not show private audit data    |
+| `organisation-admin/03-security-preferences.png`                    | Update security preferences               | Show editable demo settings       |
+| `organisation-admin/04-trainee-management.png`                      | Review Organisation Trainees              | Use demo trainee rows only        |
+| `organisation-admin/05-invite-trainee-modal.png`                    | Review Organisation Trainees              | Use sample invitation details     |
+| `organisation-admin/06-administrator-management.png`                | Review Organisation Admins                | Use demo administrator rows only  |
+| `organisation-admin/07-admin-permissions-popover.png`               | Review Organisation Admins                | Use demo permission details       |
 
 ## Insightful Phish Admin Flows
 
 Screenshots cover Organisation request review, Organisation details, onboarding timeline reviews, setup resend, and platform management screens.
 
-| Screenshot                                         | Manual Section                         | Notes                          |
-| -------------------------------------------------- | -------------------------------------- | ------------------------------ |
-| `platform-admin/01-organisation-management.png`    | Review organisation requests           | Use sample organisation data   |
-| `platform-admin/02-review-request-modal.png`       | Review organisation requests           | Avoid real representative data |
-| `platform-admin/03-request-detail.png`             | Review request or organisation details | Use a seeded request           |
-| `platform-admin/04-organisation-detail.png`        | Review request or organisation details | Use a seeded organisation      |
-| `platform-admin/05-onboarding-timeline.png`        | Review request or organisation details | Do not expose private metadata |
-| `platform-admin/06-resend-initial-admin-setup.png` | Review request or organisation details | Hide setup tokens and emails   |
+| Screenshot                                         | Manual Section                         | Notes                                                   |
+| -------------------------------------------------- | -------------------------------------- | ------------------------------------------------------- |
+| `platform-admin/01-organisation-management.png`    | Review organisation requests           | Use sample organisation data                            |
+| `platform-admin/02-review-request-modal.png`       | Review organisation requests           | Avoid real representative data                          |
+| `platform-admin/03-request-detail.png`             | Review request or organisation details | Use a seeded request                                    |
+| `platform-admin/04-organisation-detail.png`        | Review request or organisation details | Use a seeded organisation                               |
+| `platform-admin/05-onboarding-timeline.png`        | Review request or organisation details | Do not expose private metadata                          |
+| `platform-admin/06-resend-initial-admin-setup.png` | Review request or organisation details | Use sample representative details and hide setup tokens |
 
 ## User Manual Reuse
 
 When a screenshot is used please keep the same file name in this catalogue so reviewers can trace every image back to its workflow.
 
 - **[User Manual](../user-manual.md)**
+- **[Demo 3 Documentation Home](../README.md)**

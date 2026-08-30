@@ -314,7 +314,7 @@ General Trainees use the platform for their own training activity. In the curren
 
 **Expected result:** the platform shows Campaigns available to your account and opens available activities without exposing internal Campaign IDs or setup details.
 
-**Note:** if no Campaign is shown, there may be no current Campaign available to your account yet. Self-enrolment is not exposed as a separate completed user-facing workflow in the inspected Demo 3 navigation, so this manual does not describe a separate enrolment button.
+**Note:** if no Campaign is shown, there may be no current Campaign available to your account yet. Self-enrolment is not exposed as a separate completed user-facing workflow in the current Demo 3 navigation, so this manual does not describe a separate enrolment button.
 
 **Screenshot:** ![Campaigns](user-interface/trainee/01-campaigns.png)
 
@@ -780,6 +780,13 @@ Insightful Phish Admins, also referred to as Platform Administrators in some int
 
 - Refresh the page and check that you are signed in with the correct role. Some pages are role-specific and only show information for users with the required access.
 - If the empty state remains, there may be no current records for the selected filter.
+- If there are no eligible Campaigns or Organisation Trainees, ask the relevant administrator to check Campaign status, trainee status, and assignment permissions.
+- If Campaign statistics are unavailable or empty, check whether a statistics page is exposed for your role and whether the Campaign has activity to report.
+
+### Help Link Opens Older Manual Content
+
+- Use this Demo 3 User Manual as the current manual for Demo 3 workflows.
+- Some in-product Help links may still open an older wiki manual until the product navigation is updated.
 
 ## Security and Privacy
 
