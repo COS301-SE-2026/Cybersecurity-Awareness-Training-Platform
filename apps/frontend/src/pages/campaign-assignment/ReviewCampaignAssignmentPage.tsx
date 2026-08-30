@@ -1,6 +1,7 @@
 import type {
   AssignableCampaignOptionDto,
   CampaignAssignmentCandidateOptionDto,
+  CreateCampaignAssignmentsResponseDto,
 } from '@insightful-phish/shared';
 import { useState } from 'react';
 import { useAuth } from '../../context/useAuth';
@@ -15,7 +16,7 @@ type ReviewCampaignAssignmentPageProps = Readonly<{
   selectedTrainees: CampaignAssignmentCandidateOptionDto[];
   selectedCampaigns: AssignableCampaignOptionDto[];
   onBack: () => void;
-  onAssignmentSuccess: () => void;
+  onAssignmentSuccess: (result: CreateCampaignAssignmentsResponseDto) => void;
 }>;
 
 function ReviewCampaignAssignmentPage({
@@ -38,7 +39,7 @@ function ReviewCampaignAssignmentPage({
   const [showConfirmation, setShowConfirmation] = useState(false);
 
   const handleCompleteAssignment = async () => {
-    if (!organisationId || traineeCount === 0 || campaignCount === 0) {
+    if (organisationId === null || traineeCount === 0 || campaignCount === 0) {
       return;
     }
 
@@ -46,12 +47,12 @@ function ReviewCampaignAssignmentPage({
     setError(null);
 
     try {
-      await createCampaignAssignments(organisationId, {
+      const result = await createCampaignAssignments(organisationId, {
         campaignIds: selectedCampaignIds,
         traineeProfileIds: selectedTraineeIds,
       });
 
-      onAssignmentSuccess();
+      onAssignmentSuccess(result);
     } catch {
       setError('Unable To Complete Campaign Assignment. Please Try Again.');
     } finally {

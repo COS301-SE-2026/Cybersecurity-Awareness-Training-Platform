@@ -10,13 +10,30 @@ import BasicAlert from '../components/alerts/BasicAlert';
 import type {
   CampaignAssignmentCandidateOptionDto,
   AssignableCampaignOptionDto,
+  CreateCampaignAssignmentsResponseDto,
 } from '@insightful-phish/shared';
+
+function getAssignmentResultMessage(result: CreateCampaignAssignmentsResponseDto): string {
+  const { createdCount, alreadyAssignedCount } = result.summary;
+
+  if (createdCount === 0) {
+    return `No New Assignments Were Created. All ${alreadyAssignedCount} Requested Assignment(s) Were Already Assigned`;
+  }
+
+  if (alreadyAssignedCount > 0) {
+    return `${createdCount} Assignment(s) Were Created And ${alreadyAssignedCount} Were Already Assigned`;
+  }
+
+  return `${createdCount} Assignment(s) Were Created Successfully`;
+}
 
 function CampaignAssignmentPage() {
   const [currentTab, setCurrentTab] = useState<1 | 2 | 3>(1);
   const [selectedTraineeIds, setSelectedTraineeIds] = useState<string[]>([]);
   const [selectedCampaignIds, setSelectedCampaignIds] = useState<string[]>([]);
   const [showLeaveConfirmation, setShowLeaveConfirmation] = useState(false);
+  const [assignmentResult, setAssignmentResult] =
+    useState<CreateCampaignAssignmentsResponseDto | null>(null);
 
   const hasSelectedTrainees = selectedTraineeIds.length > 0;
   const hasSelectedCampaigns = selectedCampaignIds.length > 0;
@@ -28,15 +45,14 @@ function CampaignAssignmentPage() {
   const [selectedCampaigns, setSelectedCampaigns] = useState<AssignableCampaignOptionDto[]>([]);
 
   const navigate = useNavigate();
-  const [success, setSuccess] = useState<string | null>(null);
 
-  const handleAssignmentSuccess = () => {
+  const handleAssignmentSuccess = (result: CreateCampaignAssignmentsResponseDto) => {
     setSelectedTraineeIds([]);
     setSelectedCampaignIds([]);
     setSelectedTrainees([]);
     setSelectedCampaigns([]);
     setCurrentTab(1);
-    setSuccess('Campaign Assignment(s) Completed Successfully');
+    setAssignmentResult(result);
   };
 
   const handleTraineeSelectionChange = (ids: SetStateAction<string[]>) => {
@@ -80,9 +96,12 @@ function CampaignAssignmentPage() {
 
   return (
     <>
-      {success && (
-        <BasicAlert variant="success" onClose={() => setSuccess(null)}>
-          {success}
+      {assignmentResult !== null && (
+        <BasicAlert
+          variant={assignmentResult.summary.alreadyAssignedCount > 0 ? 'warning' : 'success'}
+          onClose={() => setAssignmentResult(null)}
+        >
+          {getAssignmentResultMessage(assignmentResult)}
         </BasicAlert>
       )}
 
