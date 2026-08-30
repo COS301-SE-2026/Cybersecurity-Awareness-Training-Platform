@@ -25,19 +25,19 @@ Screenshots in this group cover public access, registration, verification, passw
 | `public-account/09-change-password-modal.png`   | Change your password                        | Leave password fields blank.                |
 | `public-account/10-session-settings.png`        | Review Sessions                             | Avoid real device, Ip, or location details. |
 
-## Trainee Workflows
+## Trainee Campaign Workflows
 
-Screenshots cover campaigns, training content, quizzes, results, simulated inbox and details page.
+Screenshots cover the integrated Campaigns page, training content, quizzes, results, simulated inbox and details page.
 
-| ScreenShot                              | Manual section                 | Notes                                    |
-| --------------------------------------- | ------------------------------ | ---------------------------------------- |
-| `trainee/01-campaigns.png`              | View assigned campaigns        | Use demo campaigns only                  |
-| `trainee/02-open-campaign.png`          | View assigned campaigns        | Show available and locked campaigns      |
-| `trainee/03-training-document.png`      | Read a training document       | Do not include private training material |
-| `trainee/04-quiz.png`                   | Use demo questions only        | Use demo questions only                  |
-| `trainee/05-quiz-results.png`           | Complete a quiz                | Use sample source data only              |
-| `trainee/06-simulated-inbox.png`        | work through a simulated inbox | Use seeded demo emails only              |
-| `trainee/07-simualted-email-detail.png` | work through a simulated inbox | Do not show real links or credentials    |
+| Screenshot                              | Manual section                       | Notes                                    |
+| --------------------------------------- | ------------------------------------ | ---------------------------------------- |
+| `trainee/01-campaigns.png`              | View available or assigned Campaigns | Use demo campaigns only                  |
+| `trainee/02-open-campaign.png`          | Open Campaign activities             | Show available and locked campaigns      |
+| `trainee/03-training-document.png`      | Read a training document             | Do not include private training material |
+| `trainee/04-quiz.png`                   | Complete a quiz                      | Use demo questions only                  |
+| `trainee/05-quiz-results.png`           | Complete a quiz                      | Use sample source data only              |
+| `trainee/06-simulated-inbox.png`        | Work through a simulated inbox       | Use seeded demo emails only              |
+| `trainee/07-simulated-email-detail.png` | Work through a simulated inbox       | Do not show real links or credentials    |
 
 ## Organisation Admin Flows
 

@@ -4,7 +4,7 @@
 
 This manual explains how people use the Demo 3 Insightful Phish platform. It is organised by role and task so that each user can find the part of the product that applies to them without reading the whole document.
 
-Demo 3 documentation should describe the integrated product only. Screenshots referenced in this manual are kept under [`user-interface/`](user-interface/README.md) and will be verified or replaced during the later screenshot-focused commits for this issue.
+Demo 3 documentation should describe the integrated product only. Screenshots referenced in this manual are kept under [`user-interface/`](user-interface/README.md) and should use demo data that is safe to share.
 
 ## Contents
 
@@ -24,8 +24,24 @@ Demo 3 documentation should describe the integrated product only. Screenshots re
   - [Review Active Sessions](#review-active-sessions)
   - [Update Session Settings](#update-session-settings)
 - [General Trainee Tasks](#general-trainee-tasks)
+  - [View Available Campaigns](#view-available-campaigns)
+  - [Open Campaign Activities](#open-campaign-activities)
 - [Organisation Trainee Tasks](#organisation-trainee-tasks)
+  - [View Assigned Organisation Campaigns](#view-assigned-organisation-campaigns)
+  - [Read a Training Document](#read-a-training-document)
+  - [Complete a Quiz](#complete-a-quiz)
+  - [Work Through a Simulated Inbox](#work-through-a-simulated-inbox)
 - [Organisation Admin Tasks](#organisation-admin-tasks)
+  - [Request Organisation Access](#request-organisation-access)
+  - [Complete Initial Organisation Admin Setup](#complete-initial-organisation-admin-setup)
+  - [Review Organisation Information](#review-organisation-information)
+  - [Update Organisation Security Preferences](#update-organisation-security-preferences)
+  - [Review Organisation Trainees](#review-organisation-trainees)
+  - [Review Organisation Administrators](#review-organisation-administrators)
+  - [Manage Campaigns](#manage-campaigns)
+  - [Build or Edit a Campaign Draft](#build-or-edit-a-campaign-draft)
+  - [Assign Campaigns to Organisation Trainees](#assign-campaigns-to-organisation-trainees)
+  - [Review Campaign Statistics](#review-campaign-statistics)
 - [Insightful Phish Admin Tasks](#insightful-phish-admin-tasks)
   - [Review Organisation Requests](#review-organisation-requests)
   - [Review Request or Organisation Details](#review-request-or-organisation-details)
@@ -281,28 +297,138 @@ Account Management contains personal details, account actions, security preferen
 
 ## General Trainee Tasks
 
-General Trainees use the platform for their own training activity. Detailed General Trainee campaign discovery and self-enrolment instructions will be verified against the final integrated Demo 3 UI in the campaign workflow commit.
+General Trainees use the platform for their own training activity. In the current integrated Demo 3 UI, General Trainees use the same **Campaigns** area as assigned trainees to review available training and open activities that are available to them.
 
-Current task areas for this role:
+### View Available Campaigns
 
-- sign in and manage account access;
-- review available or assigned Campaigns where the UI exposes them;
-- complete training, quiz, or simulation activities where assigned;
-- use Account Management and Sessions where policy allows.
+**Audience:** General Trainees.
+
+**Preconditions:** you are signed in as a General Trainee and at least one Campaign is available to your account.
+
+**Navigation:** **Campaigns**.
+
+1. Open **Campaigns** from the signed-in navigation.
+2. Review the Campaign cards and their progress status.
+3. Open a Campaign to see its training activities.
+4. Select an available activity when you are ready to start.
+
+**Expected result:** the platform shows Campaigns available to your account and opens available activities without exposing internal Campaign IDs or setup details.
+
+**Note:** if no Campaign is shown, there may be no current Campaign available to your account yet. Self-enrolment is not exposed as a separate completed user-facing workflow in the inspected Demo 3 navigation, so this manual does not describe a separate enrolment button.
+
+**Screenshot:** ![Campaigns](user-interface/trainee/01-campaigns.png)
+
+### Open Campaign Activities
+
+**Audience:** General Trainees.
+
+**Preconditions:** a Campaign is visible on the **Campaigns** page.
+
+**Navigation:** **Campaigns** > open a Campaign.
+
+1. Select the Campaign row or accordion to reveal its activity list.
+2. Review which activities are available and which are locked.
+3. Open the available training document, quiz, or simulation activity shown by the Campaign.
+4. Return to **Campaigns** when you need to choose another activity.
+
+**Expected result:** the selected activity opens if it is available. Locked or unavailable activities remain visible but cannot be started.
+
+**Troubleshooting:** if an activity cannot be opened, complete the earlier required activity first or refresh the Campaigns page to load the latest progress.
+
+**Screenshot:** ![Open Campaign](user-interface/trainee/02-open-campaign.png)
 
 ## Organisation Trainee Tasks
 
 Organisation Trainees are linked to an Organisation and use the platform for Organisation-assigned awareness training.
 
-Current task areas for this role:
+### View Assigned Organisation Campaigns
 
-- complete invited account setup;
-- sign in to the Organisation-linked account;
-- view assigned Campaigns;
-- complete training documents, quizzes, and simulated inbox activities where available;
-- use Account Management and Sessions where Organisation policy allows.
+**Audience:** Organisation Trainees.
 
-Campaign participation instructions and screenshots will be verified in the later campaign workflow commit.
+**Preconditions:** you are signed in as an Organisation Trainee and your Organisation has assigned at least one Campaign to you.
+
+**Navigation:** **Campaigns**.
+
+1. Open **Campaigns** from the signed-in navigation.
+2. Review each Campaign's name and progress status.
+3. Open a Campaign to view its ordered activities.
+4. Start the next available activity.
+
+**Expected result:** assigned Campaigns appear with their current progress. Activities that are not yet available remain locked until their prerequisites are met.
+
+**Troubleshooting:** if no Campaign appears, check that you are signed in with the Organisation-linked account and ask an Organisation Admin whether a Campaign has been assigned.
+
+**Screenshots:**
+
+![Assigned Campaigns](user-interface/trainee/01-campaigns.png)
+![Open assigned Campaign](user-interface/trainee/02-open-campaign.png)
+
+### Read a Training Document
+
+**Audience:** General Trainees and Organisation Trainees.
+
+**Preconditions:** the Campaign contains an available training document.
+
+**Navigation:** **Campaigns** > open Campaign > select the training document activity.
+
+1. Open the training document from the Campaign activity list.
+2. Read the content shown on the page.
+3. Use the available completion or navigation control when you have finished.
+4. Return to the Campaign if you need to continue with the next activity.
+
+**Expected result:** the platform records the training document progress and unlocks any later activity when the Campaign rules allow it.
+
+**Troubleshooting:** if the document does not load, return to **Campaigns**, reopen the Campaign, and retry the activity. If it remains unavailable, the content source may need administrator attention.
+
+**Screenshot:** ![Training document](user-interface/trainee/03-training-document.png)
+
+### Complete a Quiz
+
+**Audience:** General Trainees and Organisation Trainees.
+
+**Preconditions:** the Campaign contains an available quiz.
+
+**Navigation:** **Campaigns** > open Campaign > select the quiz activity.
+
+1. Open the quiz from the Campaign activity list.
+2. Answer each visible question.
+3. Submit the quiz.
+4. Review the results page.
+
+**Expected result:** the platform records the quiz attempt and shows the result available to your account.
+
+**Warning:** submit only when your answers are ready. If the page shows that a quiz is locked, complete the required earlier activity first.
+
+**Troubleshooting:** if the submit action fails, check the message shown on the page and retry only after the page has finished loading.
+
+**Screenshots:**
+
+![Quiz](user-interface/trainee/04-quiz.png)
+![Quiz results](user-interface/trainee/05-quiz-results.png)
+
+### Work Through a Simulated Inbox
+
+**Audience:** General Trainees and Organisation Trainees.
+
+**Preconditions:** the Campaign contains an available simulated inbox activity.
+
+**Navigation:** **Campaigns** > open Campaign > select the simulation activity.
+
+1. Open the simulated inbox from the Campaign activity list.
+2. Review the simulated messages.
+3. Open a message to inspect its details.
+4. Use the safe interaction controls provided by the page.
+
+**Expected result:** the platform records safe simulation interactions without asking for real credentials or exposing real email content.
+
+**Warning:** simulated emails are training content. Do not enter real passwords, payment details, or private information into simulation screens.
+
+**Troubleshooting:** if a simulated message cannot be opened, return to the inbox and try again. If the activity is locked, complete the prerequisite Campaign activity first.
+
+**Screenshots:**
+
+![Simulated inbox](user-interface/trainee/06-simulated-inbox.png)
+![Simulated email detail](user-interface/trainee/07-simulated-email-detail.png)
 
 ## Organisation Admin Tasks
 
@@ -460,7 +586,75 @@ Organisation Admins manage their Organisation's information, security preference
 ![Organisation administrator management](user-interface/organisation-admin/06-administrator-management.png)
 ![Administrator permissions](user-interface/organisation-admin/07-admin-permissions-popover.png)
 
-Campaign management, Campaign Builder, assignment, and statistics workflows for Organisation Admins will be verified and documented in the campaign workflow commit.
+### Manage Campaigns
+
+**Audience:** Organisation Admins with Campaign viewing or management permission.
+
+**Preconditions:** you are signed in as an Organisation Admin and the Campaign management area is available to your role.
+
+**Navigation:** use the Campaign management entry point exposed by the application for your Organisation.
+
+1. Open the Campaign management page.
+2. Use **Search campaigns** or **Campaign status** to narrow the list.
+3. Select **View Campaign**, **View Draft**, or **Continue Editing** for the Campaign you need to inspect.
+4. Select **Create Campaign** only when the page shows the action and your role is allowed to manage Campaigns.
+
+**Expected result:** the platform shows Campaigns in their current lifecycle state and exposes only the actions allowed for your role.
+
+**Warning:** Campaign lifecycle actions affect trainee access to training content. Review the Campaign status, items, start date, and end date before changing it.
+
+**Troubleshooting:** if the Campaign management entry point or action is unavailable, your account may not have the required Campaign permission or the Organisation state may not allow the action.
+
+### Build or Edit a Campaign Draft
+
+**Audience:** Organisation Admins with Campaign management permission.
+
+**Preconditions:** you can open **Create Campaign** or **Continue Editing** from the Campaign management page.
+
+**Navigation:** Campaign management > **Create Campaign** or **Continue Editing**.
+
+1. Enter a Campaign name and optional description.
+2. Choose the Campaign colour and schedule fields where the form shows them.
+3. Add Campaign items from **Campaign Items**.
+4. Review the Campaign order and adjust required or optional items where the builder allows it.
+5. Select **Save Draft** or **Save Changes**.
+6. Use **Activate Campaign** only after the draft has at least one available item and the page shows activation as available.
+
+**Expected result:** the draft is saved with the selected items and can be activated when it meets the Campaign rules.
+
+**Warning:** activating a Campaign can make it visible for assignment or participation. Save and review changes before activating.
+
+**Troubleshooting:** if activation is disabled, check the message below the button. The page may require items, available source content, saved changes, or a valid schedule.
+
+### Assign Campaigns to Organisation Trainees
+
+**Audience:** Organisation Admins with Campaign assignment permission.
+
+**Preconditions:** the Organisation has eligible Organisation Trainees and assignable Campaigns, and the application exposes a completed assignment entry point for your role.
+
+**Navigation:** use the assignment action shown by the Organisation management area when that action is available.
+
+The current Demo 3 UI includes a three-step assignment screen with **Organisation Trainee Selection**, **Training Campaign Selection**, and **Review Campaign Assignment** views. The final submit path is not presented here as a completed user workflow until it is exposed as a finished action from the application.
+
+**Expected result:** when the completed assignment action is exposed in the integrated UI, the user should be able to select trainees, select Campaigns, review the total assignment count, and submit without resetting existing progress.
+
+**Warning:** assignment changes who can access Campaign content. Confirm the selected trainees and Campaigns before completing an assignment in a completed flow.
+
+**Troubleshooting:** if the assignment action is not visible, the completed flow may not be enabled for your role yet, your account may not have Campaign assignment permission, or the Organisation may not have eligible trainees and Campaigns.
+
+### Review Campaign Statistics
+
+**Audience:** Organisation Admins with Campaign visibility permission.
+
+**Preconditions:** Campaign statistics must be exposed from a role-appropriate Campaign page.
+
+**Navigation:** use the statistics or reporting action shown by the Campaign page.
+
+The current Demo 3 UI contains Campaign management and trainee Campaign activity pages, but no separate Campaign statistics navigation label or statistics page is exposed as a normal user workflow yet.
+
+**Expected result:** when a statistics view is added to the integrated UI, it should be reachable from the Campaign page and should show progress or outcome information without exposing private trainee data unnecessarily.
+
+**Troubleshooting:** if you cannot find statistics, use the Campaign list and Campaign detail pages for current lifecycle and item information, then check whether the statistics feature has been enabled for your role.
 
 ## Insightful Phish Admin Tasks
 
