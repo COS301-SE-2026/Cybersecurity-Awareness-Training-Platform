@@ -9,6 +9,12 @@ import { createCampaignAssignments } from '../../services/campaign-assignment.se
 import LoadingSpinnerSVG from '../../components/LoadingSpinnerSVG';
 import BasicAlert from '../../components/alerts/BasicAlert';
 import BasicConfirmationModal from '../../components/layout/modals/BasicConfirmationModal';
+import { ApiError } from '../../lib/apiClient';
+
+type SubmissionError = Readonly<{
+  message: string;
+  variant: 'danger' | 'warning';
+}>;
 
 type ReviewCampaignAssignmentPageProps = Readonly<{
   selectedTraineeIds: string[];
@@ -31,11 +37,11 @@ function ReviewCampaignAssignmentPage({
   const campaignCount = selectedCampaignIds.length; // # Campaigns
   const assignmentCount = traineeCount * campaignCount; // Total Assignments
 
-  const { authContext } = useAuth();
+  const { authContext, clearAuth } = useAuth();
   const organisationId = authContext?.organisation?.id ?? null;
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<SubmissionError | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
 
   const handleCompleteAssignment = async () => {
@@ -53,17 +59,33 @@ function ReviewCampaignAssignmentPage({
       });
 
       onAssignmentSuccess(result);
-    } catch {
-      setError('Unable To Complete Campaign Assignment. Please Try Again.');
+    } catch (requestError: unknown) {
+      if (requestError instanceof ApiError && requestError.status === 401) {
+        clearAuth();
+        return;
+      }
+
+      if (requestError instanceof ApiError && requestError.status === 429) {
+        setError({
+          message: requestError.message,
+          variant: 'warning',
+        });
+        return;
+      }
+
+      setError({
+        message: 'Unable To Complete Campaign Assignment. Please Try Again.',
+        variant: 'danger',
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
   return (
     <>
-      {error && (
-        <BasicAlert variant="danger" onClose={() => setError(null)}>
-          {error}
+      {error !== null && (
+        <BasicAlert variant={error.variant} onClose={() => setError(null)}>
+          {error.message}
         </BasicAlert>
       )}
 
