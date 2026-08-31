@@ -18,6 +18,12 @@ type InternalNavItem = { icon: ReactElement; label: string; path: string };
 type ExternalNavItem = { icon: ReactElement; label: string; href: string };
 type NavItem = InternalNavItem | ExternalNavItem;
 
+const helpNavItem: ExternalNavItem = {
+  icon: <HelpOutlineSharp />,
+  label: 'Help',
+  href: 'https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/wiki/Demo-2-User-Manual',
+};
+
 function Sidebar() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const navigate = useNavigate();
@@ -52,6 +58,7 @@ function Sidebar() {
           label: 'Campaigns',
           path: '/platform/campaigns',
         },
+        helpNavItem,
       ];
     }
     if (role === 'ORGANISATION_ADMIN') {
@@ -95,6 +102,8 @@ function Sidebar() {
         });
       }
 
+      organisationItems.push(helpNavItem);
+
       return organisationItems;
     }
 
@@ -104,11 +113,7 @@ function Sidebar() {
         label: 'Campaigns',
         path: '/campaigns',
       },
-      {
-        icon: <HelpOutlineSharp />,
-        label: 'Help',
-        href: 'https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/wiki/Demo-2-User-Manual',
-      },
+      helpNavItem,
     ];
   };
 
