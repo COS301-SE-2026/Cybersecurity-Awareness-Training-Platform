@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import { StatusPage } from '../App';
 import { useAuth } from '../context/useAuth';
 import type { CampaignManagementContext } from '../features/campaign-management/campaignManagement.types';
@@ -12,6 +12,7 @@ import ResultsPage from '../pages/ResultsPage';
 import ProtectedRoute from './ProtectedRoute';
 import CampaignsPage from '../pages/CampaignsPage';
 import LandingPage from '../pages/LandingPage';
+import NotFoundPage from '../pages/NotFoundPage';
 import ForgotPasswordPage from '../pages/ForgotPasswordPage';
 import ResetPasswordPage from '../pages/ResetPasswordPage';
 import OrganisationRegistrationRequestPage from '../pages/OrganisationRegistrationRequestPage';
@@ -187,7 +188,7 @@ function AppRoutes() {
         <Route path="/account-management" element={<AccountManagementPage />} />
       </Route>
 
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }

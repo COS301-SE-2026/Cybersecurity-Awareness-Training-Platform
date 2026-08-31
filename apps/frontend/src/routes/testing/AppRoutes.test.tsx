@@ -519,17 +519,34 @@ describe('AppRoutes', () => {
       expect(await screen.findByText(/DON'T TAKE THE BAIT/i)).toBeInTheDocument();
     });
 
-    it('redirects unknown routes to /', async () => {
+    it('renders the Not Found page without changing an unknown route', async () => {
       renderAppRoutes({
         initialEntry: '/not-a-real-route',
         isAuthenticated: false,
       });
 
-      await waitFor(() => {
-        expect(screen.getByTestId('location-path')).toHaveTextContent('/');
-      });
-      expect(await screen.findByText(/DON'T TAKE THE BAIT/i)).toBeInTheDocument();
+      expect(
+        await screen.findByRole('heading', { level: 1, name: /page not found/i }),
+      ).toBeInTheDocument();
+      expect(screen.getByTestId('location-path')).toHaveTextContent(/^\/not-a-real-route$/);
+      expect(screen.getByRole('link', { name: /return to home/i })).toHaveAttribute('href', '/');
     });
+  });
+
+  it('renders the authenticated Not Found page with the normal application destination', async () => {
+    renderAppRoutes({
+      initialEntry: '/not-a-real-route',
+      redirectTo: '/campaigns',
+    });
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: /page not found/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('location-path')).toHaveTextContent(/^\/not-a-real-route$/);
+    expect(screen.getByRole('link', { name: /return to dashboard/i })).toHaveAttribute(
+      'href',
+      '/campaigns',
+    );
   });
 
   describe('Unauthenticated access to protected routes', () => {
