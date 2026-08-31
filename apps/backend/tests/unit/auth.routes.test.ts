@@ -293,14 +293,14 @@ describe('Auth routes', () => {
     expect(response.body).toHaveProperty('error', 'AUTH_INVALID');
   });
 
-  it('returns the current authenticated user without exposing the password hash', async () => {
+  it('returns the authenticated user despite old request activityy', async () => {
     const token = generateAuthToken('id-123', 'session-123').token;
 
     prismaMock.authSession.findUnique.mockResolvedValue({
       id: 'session-123',
       userId: 'id-123',
       expiresAt: new Date(Date.now() + 60000),
-      lastActiveAt: new Date(),
+      lastActiveAt: new Date(Date.now() - 60 * 60 * 1000),
       revokedAt: null,
       idleTimeoutMinutes: 30,
     });
