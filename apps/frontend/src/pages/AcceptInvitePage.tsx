@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { InvitationContextResponseDto } from '@insightful-phish/shared';
-import AcceptInviteResultModal, {
-  type InvitationErrorType,
-} from '../components/layout/modals/AcceptInviteResultModal';
+import AcceptInviteResultModal from '../components/layout/modals/AcceptInviteResultModal';
 import InvitationRoleChangePanel from '../components/invitation/InvitationRoleChangePanel';
+import {
+  getInvitationErrorMessage,
+  type InvitationErrorType,
+} from '../components/layout/modals/invitationResultCopy';
 import { useAuth } from '../context/useAuth';
 import { ApiError } from '../lib/apiClient';
 import {
@@ -261,9 +263,7 @@ function AcceptInvitePage() {
           Invitation {errorType || 'Invalid'}
         </h3>
         <p className="font-overpass text-left text-regular text-[1.1rem] tracking-wider text-purple mb-8">
-          This <span className="font-semibold">invitation</span> is <strong>no longer valid</strong>{' '}
-          because it has either <em>expired</em>, <em>is invalid</em>,{' '}
-          <em>has already been used</em>, or <em>has been revoked</em>.
+          {getInvitationErrorMessage(errorType)}
         </p>
         <Link
           to="/"
