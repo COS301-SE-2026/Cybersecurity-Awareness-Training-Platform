@@ -110,6 +110,17 @@ describe('LoginPage', () => {
     expect(loginUserMock).not.toHaveBeenCalled();
   });
 
+  it('uses the responsive light auth frame', () => {
+    renderLoginPage();
+
+    expect(screen.getByRole('main')).toHaveClass(
+      'min-h-screen',
+      'overflow-y-auto',
+      'bg-light-purple',
+      'lg:flex-row',
+    );
+  });
+
   it('logs the trainee in and routes to campaigns after a successful login', async () => {
     const user = userEvent.setup();
 

@@ -130,6 +130,19 @@ describe('OrganisationRegistrationRequestPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('uses a mobile-friendly light layout for the organisation request form', () => {
+    renderOrganisationRegistrationRequestPage();
+
+    expect(screen.getByRole('region', { name: /organisation registration request/i })).toHaveClass(
+      'min-h-screen',
+      'bg-light-purple',
+    );
+    expect(screen.getByRole('form', { name: /organisation information/i })).toHaveClass(
+      'grid-cols-1',
+      'md:grid-cols-2',
+    );
+  });
+
   // Test 2: Representative tab initially disabled
   it('disables the representative information tab initially', () => {
     render(

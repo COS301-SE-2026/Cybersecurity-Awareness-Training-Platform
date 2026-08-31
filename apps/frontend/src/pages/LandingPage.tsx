@@ -9,7 +9,7 @@ function LandingPage() {
     <main>
       {/* NAVBAR */}
       <LandingNavbar />
-      <div className="pt-32">
+      <div className="pt-44 sm:pt-36">
         {/* HERO SECTION */}
         <section id="home">
           <HeroSection />

@@ -71,6 +71,17 @@ describe('RegisterPage', () => {
     expect(registerUser).not.toHaveBeenCalled();
   });
 
+  it('uses the responsive light auth frame', () => {
+    renderRegisterPage();
+
+    expect(screen.getByRole('main')).toHaveClass(
+      'min-h-screen',
+      'overflow-y-auto',
+      'bg-light-purple',
+      'lg:flex-row',
+    );
+  });
+
   it('blocks submission when the confirmation password does not match', async () => {
     const user = userEvent.setup();
 

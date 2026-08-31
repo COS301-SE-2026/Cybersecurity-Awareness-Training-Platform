@@ -13,7 +13,12 @@ import {
 import {
   authFieldRowStyle,
   authFormStyle,
+  authLightFieldInputStyle,
+  authLightFieldLabelStyle,
+  authLightTitleStyle,
   authPrimaryButtonStyle,
+  authResponsiveActionRowStyle,
+  authResponsiveFieldRowStyle,
 } from '../components/auth/authStyles';
 import { ApiError } from '../lib/apiClient';
 import { registerUser, resendVerification } from '../services/auth.service';
@@ -149,31 +154,31 @@ function RegisterPage() {
   }
 
   const passwordPolicyPopover = (
-    <div className="w-100 bg-faint-purple shadow-lg">
+    <div className="w-80 max-w-[calc(100vw-2rem)] bg-faint-purple shadow-lg">
       <div className="bg-gray-100 bg-light-purple px-3 py-2">
-        <h3 className="font-semibold font-jost text-[1.4rem] text-purple tracking-wider">
+        <h3 className="font-semibold font-jost text-[1.2rem] text-purple tracking-wider sm:text-[1.4rem]">
           Password Requirements
         </h3>
       </div>
 
       <div className="px-3 py-2">
-        <p className="text-sm font-overpass font-medium text-[1.05rem] text-dark-pink">
-          ● At Least 12 Characters
+        <p className="text-sm font-overpass font-medium text-[0.95rem] text-dark-pink sm:text-[1.05rem]">
+          - At Least 12 Characters
         </p>
-        <p className="text-sm font-overpass font-medium text-[1.05rem] text-dark-pink">
-          ● At Most 128 Characters
+        <p className="text-sm font-overpass font-medium text-[0.95rem] text-dark-pink sm:text-[1.05rem]">
+          - At Most 128 Characters
         </p>
-        <p className="text-sm font-overpass font-medium text-[1.05rem] text-dark-pink">
-          ● At Least ONE Uppercase Letter (A–Z)
+        <p className="text-sm font-overpass font-medium text-[0.95rem] text-dark-pink sm:text-[1.05rem]">
+          - At Least ONE Uppercase Letter (A-Z)
         </p>
-        <p className="text-sm font-overpass font-medium text-[1.05rem] text-dark-pink">
-          ● At Least ONE Lowercase Letter (a–z)
+        <p className="text-sm font-overpass font-medium text-[0.95rem] text-dark-pink sm:text-[1.05rem]">
+          - At Least ONE Lowercase Letter (a-z)
         </p>
-        <p className="text-sm font-overpass font-medium text-[1.05rem] text-dark-pink">
-          ● At Least ONE Number (0–9)
+        <p className="text-sm font-overpass font-medium text-[0.95rem] text-dark-pink sm:text-[1.05rem]">
+          - At Least ONE Number (0-9)
         </p>
-        <p className="text-sm font-overpass font-medium text-[1.05rem] text-dark-pink">
-          ● At Least ONE Special Character (e.g. ! @ # $ %)
+        <p className="text-sm font-overpass font-medium text-[0.95rem] text-dark-pink sm:text-[1.05rem]">
+          - At Least ONE Special Character (e.g. ! @ # $ %)
         </p>
       </div>
     </div>
@@ -183,11 +188,18 @@ function RegisterPage() {
     <AuthPageFrame
       leftWidth="78%"
       rightWidth="22%"
+      responsive
+      leftPanelClassName="lg:basis-[78%]"
+      rightPanelClassName="lg:basis-[22%]"
       rightPanelStyle={{ padding: '2rem' }}
       leftChildren={
         <>
           <AuthPageIntro
             title="Get Started"
+            titleStyle={{
+              ...authLightTitleStyle,
+              fontSize: 'clamp(2.55rem, 10vw, 5rem)',
+            }}
             dividerStyle={{ marginBottom: '0.9rem' }}
             afterDivider={
               <AuthActionLink
@@ -195,6 +207,12 @@ function RegisterPage() {
                 prefix="ORGANISATION?"
                 emphasis="Get Started as an Organisation"
                 outerStyle={{ marginBottom: '1.5rem' }}
+                rowStyle={{
+                  color: 'var(--ip-dark-pink)',
+                  fontSize: 'clamp(1.05rem, 3.8vw, 1.4rem)',
+                }}
+                emphasisStyle={{ color: 'var(--ip-dark-pink)' }}
+                iconStyle={{ color: 'var(--ip-dark-pink)' }}
               />
             }
           />
@@ -225,6 +243,7 @@ function RegisterPage() {
             <div
               style={{
                 ...authFieldRowStyle,
+                ...authResponsiveFieldRowStyle,
                 marginBottom: '1.8rem',
               }}
             >
@@ -236,6 +255,8 @@ function RegisterPage() {
                 onChange={(event) => setFirstName(event.target.value)}
                 autoComplete="given-name"
                 wrapperStyle={{ flex: 1 }}
+                labelStyle={authLightFieldLabelStyle}
+                inputStyle={authLightFieldInputStyle}
               />
 
               <AuthFormField
@@ -246,6 +267,8 @@ function RegisterPage() {
                 onChange={(event) => setLastName(event.target.value)}
                 autoComplete="family-name"
                 wrapperStyle={{ flex: 1 }}
+                labelStyle={authLightFieldLabelStyle}
+                inputStyle={authLightFieldInputStyle}
               />
             </div>
 
@@ -257,11 +280,14 @@ function RegisterPage() {
               onChange={(event) => setEmail(event.target.value)}
               autoComplete="email"
               wrapperStyle={{ marginBottom: '1.8rem' }}
+              labelStyle={authLightFieldLabelStyle}
+              inputStyle={authLightFieldInputStyle}
             />
 
             <div
               style={{
                 ...authFieldRowStyle,
+                ...authResponsiveFieldRowStyle,
                 marginBottom: '2.5rem',
               }}
             >
@@ -281,7 +307,7 @@ function RegisterPage() {
                   >
                     <span
                       className="material-icons-outlined cursor-pointer text-light-pink"
-                      style={{ fontSize: '2rem' }}
+                      style={{ fontSize: 'clamp(1.5rem, 5vw, 2rem)' }}
                     >
                       info
                     </span>
@@ -290,6 +316,8 @@ function RegisterPage() {
                 onChange={(event) => setPassword(event.target.value)}
                 autoComplete="new-password"
                 wrapperStyle={{ flex: 1 }}
+                labelStyle={authLightFieldLabelStyle}
+                inputStyle={authLightFieldInputStyle}
               />
 
               <AuthFormField
@@ -300,24 +328,24 @@ function RegisterPage() {
                 onChange={(event) => setConfirmPassword(event.target.value)}
                 autoComplete="new-password"
                 wrapperStyle={{ flex: 1 }}
+                labelStyle={authLightFieldLabelStyle}
+                inputStyle={authLightFieldInputStyle}
               />
             </div>
 
             <div
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '2.5rem',
+                ...authResponsiveActionRowStyle,
               }}
             >
               <button
                 type="submit"
                 disabled={isLoading}
+                className="w-full sm:w-72"
                 style={{
                   ...authPrimaryButtonStyle,
-                  width: '48%',
                   height: '60px',
-                  fontSize: '1.7rem',
+                  fontSize: 'clamp(1.35rem, 4.5vw, 1.7rem)',
                   cursor: isLoading ? 'not-allowed' : 'pointer',
                   opacity: isLoading ? 0.6 : 1,
                   display: 'flex',
@@ -346,14 +374,24 @@ function RegisterPage() {
                 {isLoading ? 'Creating Account...' : 'Register'}
               </button>
 
-              <AuthActionLink to="/login" prefix="ALREADY REGISTERED?" emphasis="Log In" />
+              <AuthActionLink
+                to="/login"
+                prefix="ALREADY REGISTERED?"
+                emphasis="Log In"
+                rowStyle={{
+                  color: 'var(--ip-dark-pink)',
+                  fontSize: 'clamp(1.05rem, 3.8vw, 1.4rem)',
+                }}
+                emphasisStyle={{ color: 'var(--ip-dark-pink)' }}
+                iconStyle={{ color: 'var(--ip-dark-pink)' }}
+              />
             </div>
           </form>
         </>
       }
       rightChildren={
         <img
-          src="/logo-motto.png"
+          src="/main_logo_light_motto.png"
           alt="Insightful Phish Logo"
           style={{
             width: '100%',
