@@ -82,6 +82,15 @@ describe('RegisterPage', () => {
     );
   });
 
+  it('uses an accessible password requirements popover trigger', () => {
+    renderRegisterPage();
+
+    const trigger = screen.getByRole('button', { name: 'Show password requirements' });
+    expect(trigger).toHaveAttribute('type', 'button');
+    expect(trigger).toHaveClass('text-dark-pink');
+    expect(trigger).not.toHaveClass('text-light-pink');
+  });
+
   it('blocks submission when the confirmation password does not match', async () => {
     const user = userEvent.setup();
 

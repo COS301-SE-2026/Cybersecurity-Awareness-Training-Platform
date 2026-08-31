@@ -305,12 +305,14 @@ function RegisterPage() {
                       content: 'relative overflow-hidden rounded-none',
                     }}
                   >
-                    <span
-                      className="material-icons-outlined cursor-pointer text-light-pink"
+                    <button
+                      type="button"
+                      aria-label="Show password requirements"
+                      className="material-icons-outlined cursor-pointer border-0 bg-transparent p-0 text-dark-pink focus:outline-none focus:ring-2 focus:ring-brand-medium"
                       style={{ fontSize: 'clamp(1.5rem, 5vw, 2rem)' }}
                     >
                       info
-                    </span>
+                    </button>
                   </Popover>
                 }
                 onChange={(event) => setPassword(event.target.value)}
