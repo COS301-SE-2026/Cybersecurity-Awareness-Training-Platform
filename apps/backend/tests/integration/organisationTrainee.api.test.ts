@@ -361,6 +361,10 @@ describe('Organisation Trainee API Integration Tests', () => {
         where: { id: invId },
         data: { status: 'REJECTED' },
       });
+      await prisma.emailDeliveryLog.updateMany({
+        where: { invitationId: invId },
+        data: { createdAt: new Date(Date.now() - 61_000) },
+      });
 
       const listResponse = await request(app)
         .get(`/organisations/${fixture.organisation.id}/trainees`)
