@@ -34,6 +34,7 @@ function CampaignAssignmentPage() {
   const [showLeaveConfirmation, setShowLeaveConfirmation] = useState(false);
   const [assignmentResult, setAssignmentResult] =
     useState<CreateCampaignAssignmentsResponseDto | null>(null);
+  const [eligibilityWarning, setEligibilityWarning] = useState<string | null>(null);
 
   const hasSelectedTrainees = selectedTraineeIds.length > 0;
   const hasSelectedCampaigns = selectedCampaignIds.length > 0;
@@ -53,6 +54,24 @@ function CampaignAssignmentPage() {
     setSelectedCampaigns([]);
     setCurrentTab(1);
     setAssignmentResult(result);
+    setEligibilityWarning(null);
+  };
+
+  const handleEligibilityChanged = (target: 'campaign' | 'trainee') => {
+    setAssignmentResult(null);
+    setSelectedCampaignIds([]);
+    setSelectedCampaigns([]);
+
+    if (target === 'campaign') {
+      setCurrentTab(2);
+      setEligibilityWarning('Campaign Eligibility Changed. Available Campaigns Have Been Reloaded');
+      return;
+    }
+
+    setSelectedTraineeIds([]);
+    setSelectedTrainees([]);
+    setCurrentTab(1);
+    setEligibilityWarning('Trainee Eligibility Changed. Available Trainees Have Been Reloaded');
   };
 
   const handleTraineeSelectionChange = (ids: SetStateAction<string[]>) => {
@@ -102,6 +121,12 @@ function CampaignAssignmentPage() {
           onClose={() => setAssignmentResult(null)}
         >
           {getAssignmentResultMessage(assignmentResult)}
+        </BasicAlert>
+      )}
+
+      {eligibilityWarning !== null && (
+        <BasicAlert variant="warning" onClose={() => setEligibilityWarning(null)}>
+          {eligibilityWarning}
         </BasicAlert>
       )}
 
@@ -251,6 +276,7 @@ function CampaignAssignmentPage() {
                   selectedTrainees={selectedTrainees}
                   onBack={() => setCurrentTab(2)}
                   onAssignmentSuccess={handleAssignmentSuccess}
+                  onEligibilityChanged={handleEligibilityChanged}
                 />
               )}
             </div>

@@ -16,6 +16,30 @@ type SubmissionError = Readonly<{
   variant: 'danger' | 'warning';
 }>;
 
+function getStaleEligibilityTarget(error: ApiError): 'campaign' | 'trainee' | null {
+  const body =
+    error.body !== null && typeof error.body === 'object'
+      ? (error.body as { error?: unknown })
+      : null;
+  const errorCode = typeof body?.error === 'string' ? body.error : null;
+
+  if (
+    (error.status === 404 || error.status === 409) &&
+    (errorCode === 'CAMPAIGN_NOT_FOUND' || errorCode === 'CAMPAIGN_INACTIVE')
+  ) {
+    return 'campaign';
+  }
+
+  if (
+    (error.status === 404 || error.status === 409) &&
+    (errorCode === 'TRAINEE_NOT_FOUND' || errorCode === 'TRAINEE_DISABLED')
+  ) {
+    return 'trainee';
+  }
+
+  return null;
+}
+
 type ReviewCampaignAssignmentPageProps = Readonly<{
   selectedTraineeIds: string[];
   selectedCampaignIds: string[];
@@ -23,6 +47,7 @@ type ReviewCampaignAssignmentPageProps = Readonly<{
   selectedCampaigns: AssignableCampaignOptionDto[];
   onBack: () => void;
   onAssignmentSuccess: (result: CreateCampaignAssignmentsResponseDto) => void;
+  onEligibilityChanged: (target: 'campaign' | 'trainee') => void;
 }>;
 
 function ReviewCampaignAssignmentPage({
@@ -32,6 +57,7 @@ function ReviewCampaignAssignmentPage({
   selectedCampaigns,
   onBack,
   onAssignmentSuccess,
+  onEligibilityChanged,
 }: ReviewCampaignAssignmentPageProps) {
   const traineeCount = selectedTraineeIds.length; // # Trainees
   const campaignCount = selectedCampaignIds.length; // # Campaigns
@@ -63,6 +89,15 @@ function ReviewCampaignAssignmentPage({
       if (requestError instanceof ApiError && requestError.status === 401) {
         clearAuth();
         return;
+      }
+
+      if (requestError instanceof ApiError) {
+        const staleTarget = getStaleEligibilityTarget(requestError);
+
+        if (staleTarget !== null) {
+          onEligibilityChanged(staleTarget);
+          return;
+        }
       }
 
       if (requestError instanceof ApiError && requestError.status === 429) {
