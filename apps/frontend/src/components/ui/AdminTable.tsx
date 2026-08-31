@@ -109,9 +109,15 @@ type TruncatedValueProps = Readonly<{
   value: string;
   className?: string;
   children?: ReactNode;
+  focusable?: boolean;
 }>;
 
-export function TruncatedValue({ value, className, children }: TruncatedValueProps) {
+export function TruncatedValue({
+  value,
+  className,
+  children,
+  focusable = true,
+}: TruncatedValueProps) {
   return (
     <span
       className={classes(
@@ -120,7 +126,7 @@ export function TruncatedValue({ value, className, children }: TruncatedValuePro
       )}
       title={value}
       aria-label={value}
-      tabIndex={0}
+      tabIndex={focusable ? 0 : undefined}
     >
       {children ?? value}
     </span>
