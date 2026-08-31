@@ -349,18 +349,6 @@ function sessionExpiresAtForPolicy(input: {
   });
 }
 
-function isIdleExpired(input: {
-  lastActiveAt: Date;
-  idleTimeoutMinutes: number | null;
-  now: Date;
-}): boolean {
-  if (input.idleTimeoutMinutes === null) {
-    return false;
-  }
-
-  return input.lastActiveAt.getTime() + input.idleTimeoutMinutes * 60 * 1000 <= input.now.getTime();
-}
-
 async function revokeSessionForPolicyFailure(input: {
   sessionId: string;
   sessionReason: AuthSessionRevokedReason;
@@ -464,20 +452,6 @@ export async function refreshUserToken(
   });
 
   if (policyExpiresAt.getTime() <= now.getTime()) {
-    await revokeSessionForPolicyFailure({
-      sessionId: token.authSessionId,
-      sessionReason: 'EXPIRED',
-    });
-    throw new AuthRefreshTokenInvalidError();
-  }
-
-  if (
-    isIdleExpired({
-      lastActiveAt: token.authSession.lastActiveAt,
-      idleTimeoutMinutes: policy.idleTimeoutMinutes,
-      now,
-    })
-  ) {
     await revokeSessionForPolicyFailure({
       sessionId: token.authSessionId,
       sessionReason: 'EXPIRED',
