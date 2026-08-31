@@ -1521,8 +1521,8 @@
           "number": 457,
           "title": "feat: integrate organisation campaign assignments with live APIs",
           "points": 5,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-08-31"
         },
         {
           "number": 456,
@@ -2344,7 +2344,7 @@
     },
     {
       "date": "2026-08-31",
-      "remaining": 43,
+      "remaining": 38,
       "ideal": 0.0
     }
   ]
