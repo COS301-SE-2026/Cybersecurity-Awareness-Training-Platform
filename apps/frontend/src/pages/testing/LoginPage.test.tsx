@@ -671,6 +671,20 @@ describe('LoginPage', () => {
       expect(currentAuthContext?.idleTimeoutMinutes).toBe(30);
     });
 
+    it('does not not confirm stored authentication when bootstrap refresh fails', async () => {
+      authStorageValues.set('token', 'stored-access-token');
+      authStorageValues.set('user', JSON.stringify(successfulAuthResponse.user));
+
+      refreshSessionMock.mockRejectedValueOnce(new Error('Temporary refresh failure'));
+      renderAuthProvider();
+
+      await waitFor(() => {
+        expect(currentAuthContext?.isAuthLoading).toBe(false);
+      });
+
+      expect(currentAuthContext?.isAuthenticated).toBe(false);
+    });
+
     it('handles concurrent renewal calls properly in one tab', async () => {
       renderAuthProvider();
 
@@ -761,7 +775,7 @@ describe('LoginPage', () => {
       });
     });
 
-    it('renews the session one minute before the access token expires', async () => {
+    it('retries proactive access token renewal if it fails', async () => {
       vi.useFakeTimers();
       const now = new Date('2026-08-30T10:00:00.000Z');
       vi.setSystemTime(now);
@@ -780,6 +794,7 @@ describe('LoginPage', () => {
       expect(currentAuthContext?.isAuthLoading).toBe(false);
 
       refreshSessionMock.mockClear();
+      refreshSessionMock.mockRejectedValueOnce(new Error('Temp refresh fail'));
 
       await act(async () => {
         await vi.advanceTimersByTimeAsync(59_999);
@@ -790,6 +805,18 @@ describe('LoginPage', () => {
       });
 
       expect(refreshSessionMock).toHaveBeenCalledTimes(1);
+
+      expect(currentAuthContext?.isAuthenticated).toBe(true);
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(9_999);
+      });
+      expect(refreshSessionMock).toHaveBeenCalledTimes(1);
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1);
+      });
+      expect(refreshSessionMock).toHaveBeenCalledTimes(2);
     });
 
     it('renews a token that is near expiry when the tab becomes visible', async () => {
