@@ -243,6 +243,15 @@ function assertInvitationResendEligibility(input: {
     );
   }
 
+  const managementPolicy = getInvitationActionPolicy(invitation);
+  if (!managementPolicy.canResend) {
+    throw new OrganisationTraineeServiceError(
+      409,
+      'INVITATION_NOT_RESENDABLE',
+      'Invitation is no longer eligible to be resent.',
+    );
+  }
+
   const isPlatformAdmin = existingUser?.userType === 'IP_ADMIN';
   const orgId = existingUser?.traineeProfile?.organisationTraineeProfile?.organisationId;
   const belongsToAnotherOrg = orgId !== undefined && orgId !== invitation.organisationId;
@@ -385,6 +394,11 @@ function buildInvitationRow(invitation: TraineeListInvitation, now: Date): Train
   };
 }
 
+function shouldShowInvitationManagementRow(invitation: TraineeListInvitation, now: Date) {
+  const managementPolicy = getInvitationActionPolicy(invitation, now);
+  return managementPolicy.canResend || managementPolicy.canRevoke;
+}
+
 export async function listOrganisationTrainees(
   actorUserId: string,
   organisationId: string,
@@ -405,9 +419,9 @@ export async function listOrganisationTrainees(
     buildActiveTraineeRow(trainee),
   );
 
-  const invitationRows: TraineeListItemDto[] = invitations.map((invitation) =>
-    buildInvitationRow(invitation, now),
-  );
+  const invitationRows: TraineeListItemDto[] = invitations
+    .filter((invitation) => shouldShowInvitationManagementRow(invitation, now))
+    .map((invitation) => buildInvitationRow(invitation, now));
 
   return {
     trainees,

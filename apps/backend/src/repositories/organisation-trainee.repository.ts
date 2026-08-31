@@ -12,6 +12,14 @@ import { createActionToken } from './action-token.repository.js';
 
 type OrganisationTraineeClient = PrismaClient | Prisma.TransactionClient;
 
+const RESENDABLE_TRAINEE_INVITATION_STATUSES = [
+  'PENDING',
+  'SENT',
+  'FAILED_TO_SEND',
+  'EXPIRED',
+  'REJECTED',
+] as const;
+
 export class OrganisationTraineeRepositoryError extends Error {
   constructor(
     public readonly statusCode: number,
@@ -321,7 +329,7 @@ export async function resendOrganisationTraineeInvitationTx(
     const updateResult = await tx.invitation.updateMany({
       where: {
         id: input.invitationId,
-        status: { in: ['PENDING', 'SENT', 'FAILED_TO_SEND'] },
+        status: { in: [...RESENDABLE_TRAINEE_INVITATION_STATUSES] },
         updatedAt: input.observedUpdatedAt,
       },
       data: {
