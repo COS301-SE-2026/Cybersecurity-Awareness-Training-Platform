@@ -7,7 +7,14 @@ import {
   AuthPageFrame,
   AuthPageIntro,
 } from '../components/auth/AuthPrimitives';
-import { authFormStyle, authPrimaryButtonStyle } from '../components/auth/authStyles';
+import {
+  authFormStyle,
+  authLightFieldInputStyle,
+  authLightFieldLabelStyle,
+  authLightMessageStyle,
+  authLightTitleStyle,
+  authPrimaryButtonStyle,
+} from '../components/auth/authStyles';
 import { useAuth } from '../context/useAuth';
 import BasicAlert from '../components/alerts/BasicAlert';
 import { authLoginRequestSchema } from '@insightful-phish/shared';
@@ -228,6 +235,9 @@ function LoginPage() {
       <AuthPageFrame
         leftWidth="50%"
         rightWidth="50%"
+        responsive
+        leftPanelClassName="lg:basis-1/2"
+        rightPanelClassName="lg:basis-1/2"
         rightPanelStyle={{
           justifyContent: 'flex-end',
           paddingRight: '6vw',
@@ -238,7 +248,7 @@ function LoginPage() {
               title="Welcome Back"
               logo={
                 <img
-                  src="/logo.png"
+                  src="/main_logo_light_motto.png"
                   alt="Insightful Phish Logo"
                   style={{
                     width: '200px',
@@ -248,7 +258,11 @@ function LoginPage() {
                 />
               }
               dividerStyle={{ marginBottom: '2rem' }}
-              messageStyle={{ marginBottom: '1rem' }}
+              titleStyle={{
+                ...authLightTitleStyle,
+                fontSize: 'clamp(2.55rem, 10vw, 5rem)',
+              }}
+              messageStyle={{ ...authLightMessageStyle, marginBottom: '1rem' }}
             />
 
             {alertMessage && (
@@ -266,10 +280,10 @@ function LoginPage() {
                   style={{
                     background: 'transparent',
                     border: 0,
-                    color: '#cca7ff',
+                    color: 'var(--ip-dark-pink)',
                     cursor: isResendingVerification ? 'not-allowed' : 'pointer',
                     fontFamily: 'Jost',
-                    fontSize: '1.2rem',
+                    fontSize: 'clamp(1rem, 3.5vw, 1.2rem)',
                     letterSpacing: '0.04em',
                     opacity: isResendingVerification ? 0.6 : 1,
                     padding: 0,
@@ -280,13 +294,13 @@ function LoginPage() {
                 </button>
 
                 {resendVerificationMessage ? (
-                  <p style={{ color: '#86efac', fontFamily: 'Overpass', fontSize: '1rem' }}>
+                  <p style={{ color: '#166534', fontFamily: 'Overpass', fontSize: '1rem' }}>
                     {resendVerificationMessage}
                   </p>
                 ) : null}
 
                 {resendVerificationError ? (
-                  <p style={{ color: '#fca5a5', fontFamily: 'Overpass', fontSize: '1rem' }}>
+                  <p style={{ color: '#b91c1c', fontFamily: 'Overpass', fontSize: '1rem' }}>
                     {resendVerificationError}
                   </p>
                 ) : null}
@@ -302,7 +316,8 @@ function LoginPage() {
                 onChange={(event) => setEmail(event.target.value)}
                 autoComplete="email"
                 wrapperStyle={{ marginBottom: '1.5rem' }}
-                inputStyle={{ height: '52px' }}
+                labelStyle={authLightFieldLabelStyle}
+                inputStyle={{ ...authLightFieldInputStyle, height: '52px' }}
               />
 
               <AuthFormField
@@ -312,11 +327,11 @@ function LoginPage() {
                   <Link
                     to="/forgot-password"
                     style={{
-                      color: '#cca7ff',
+                      color: 'var(--ip-dark-pink)',
                       fontFamily: 'Jost',
                       fontWeight: 400,
                       letterSpacing: '0.05em',
-                      fontSize: '1.4rem',
+                      fontSize: 'clamp(1.1rem, 3.8vw, 1.4rem)',
                       textDecoration: 'none',
                       cursor: 'pointer',
                     }}
@@ -329,7 +344,8 @@ function LoginPage() {
                 onChange={(event) => setPassword(event.target.value)}
                 autoComplete="current-password"
                 wrapperStyle={{ marginBottom: '2rem' }}
-                inputStyle={{ height: '52px' }}
+                labelStyle={authLightFieldLabelStyle}
+                inputStyle={{ ...authLightFieldInputStyle, height: '52px' }}
               />
 
               <button
@@ -343,7 +359,7 @@ function LoginPage() {
                   justifyContent: 'center',
                   gap: '0.75rem',
                   height: '56px',
-                  fontSize: '1.7rem',
+                  fontSize: 'clamp(1.35rem, 4.5vw, 1.7rem)',
                   marginBottom: '1rem',
                   cursor: isLoading ? 'not-allowed' : 'pointer',
                   opacity: isLoading ? 0.6 : 1,
@@ -383,7 +399,7 @@ function LoginPage() {
                 />
                 <label
                   htmlFor="default-checkbox"
-                  className="select-none ms-2 text-[1.4rem] font-jost text-[#b37dff] tracking-wide font-regular"
+                  className="select-none ms-2 text-[1.2rem] font-jost text-dark-pink tracking-wide font-regular sm:text-[1.4rem]"
                 >
                   Remember Me
                 </label>
@@ -394,13 +410,20 @@ function LoginPage() {
                 prefix="NEW?"
                 onClick={(event) => {
                   event.preventDefault();
-                  console.log('CLICKED');
                   setIsRegisterModalOpen(true);
                 }}
                 emphasis="Register an Account"
                 rowStyle={{
                   gap: '0.4rem',
                   cursor: 'pointer',
+                  color: 'var(--ip-dark-pink)',
+                  fontSize: 'clamp(1.1rem, 3.8vw, 1.4rem)',
+                }}
+                emphasisStyle={{
+                  color: 'var(--ip-dark-pink)',
+                }}
+                iconStyle={{
+                  color: 'var(--ip-dark-pink)',
                 }}
               />
             </form>
@@ -412,11 +435,11 @@ function LoginPage() {
               margin: 0,
               fontFamily: 'Jost',
               fontWeight: 400,
-              fontSize: '9rem',
+              fontSize: 'clamp(5rem, 9vw, 9rem)',
               letterSpacing: '0.02em',
               lineHeight: 1.1,
               textAlign: 'right',
-              color: '#8400ff',
+              color: 'var(--ip-pink)',
             }}
           >
             DON&apos;T

@@ -71,6 +71,26 @@ describe('RegisterPage', () => {
     expect(registerUser).not.toHaveBeenCalled();
   });
 
+  it('uses the responsive light auth frame', () => {
+    renderRegisterPage();
+
+    expect(screen.getByRole('main')).toHaveClass(
+      'min-h-screen',
+      'overflow-y-auto',
+      'bg-light-purple',
+      'lg:flex-row',
+    );
+  });
+
+  it('uses an accessible password requirements popover trigger', () => {
+    renderRegisterPage();
+
+    const trigger = screen.getByRole('button', { name: 'Show password requirements' });
+    expect(trigger).toHaveAttribute('type', 'button');
+    expect(trigger).toHaveClass('text-dark-pink');
+    expect(trigger).not.toHaveClass('text-light-pink');
+  });
+
   it('blocks submission when the confirmation password does not match', async () => {
     const user = userEvent.setup();
 

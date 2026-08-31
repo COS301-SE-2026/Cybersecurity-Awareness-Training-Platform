@@ -1,10 +1,9 @@
-import type {
-  CampaignDetailGroupItemDto,
-  CampaignDetailItemDto,
-  CampaignDetailResponseDto,
-} from '@insightful-phish/shared';
+import type { CampaignDetailItemDto, CampaignDetailResponseDto } from '@insightful-phish/shared';
 
-import { getCampaignDraftItemTypeLabel } from './campaignDraftPresentation';
+import {
+  getCampaignDraftItemTypeClassName,
+  getCampaignDraftItemTypeLabel,
+} from './campaignDraftPresentation';
 
 type CampaignReadOnlyDetailProps = Readonly<{
   detail: CampaignDetailResponseDto;
@@ -24,14 +23,6 @@ const STATUS_CLASSES: Record<CampaignDetailResponseDto['status'], string> = {
   PAUSED: 'campaign-status campaign-status--paused',
   COMPLETED: 'campaign-status campaign-status--completed',
   ARCHIVED: 'campaign-status campaign-status--archived',
-};
-
-const GROUP_TYPE_LABELS: Record<CampaignDetailGroupItemDto['groupType'], string> = {
-  SECTION: 'Section',
-  MODULE: 'Module',
-  REVISION_SET: 'Revision Set',
-  ASSESSMENT_SET: 'Assessment Set',
-  SIMULATION_SET: 'Simulation Set',
 };
 
 function formatTimestamp(value: string): string {
@@ -154,17 +145,12 @@ function CampaignReadOnlyDetail({ detail }: CampaignReadOnlyDetailProps) {
           <ol>
             {orderedItems.map((item) => (
               <li key={getItemKey(item)}>
-                <article className="campaign-read-only-item">
+                <article
+                  className={`campaign-read-only-item ${getCampaignDraftItemTypeClassName(item)}`}
+                >
+                  <span className="campaign-item-type">{getCampaignDraftItemTypeLabel(item)}</span>
                   <h4>{item.title}</h4>
-                  <p>
-                    <span>
-                      {item.itemType === 'GROUP'
-                        ? `${GROUP_TYPE_LABELS[item.groupType]} Group`
-                        : getCampaignDraftItemTypeLabel(item)}
-                    </span>
-                    {' · '}
-                    <span>{item.isRequired ? 'Required' : 'Optional'}</span>
-                  </p>
+                  <p>{item.isRequired ? 'Required' : 'Optional'}</p>
 
                   {item.description && <p>{item.description}</p>}
 
@@ -181,13 +167,14 @@ function CampaignReadOnlyDetail({ detail }: CampaignReadOnlyDetailProps) {
                       <ol>
                         {sortByPosition(item.children).map((child) => (
                           <li key={child.campaignItemId}>
-                            <article className="campaign-read-only-group-item">
+                            <article
+                              className={`campaign-read-only-group-item ${getCampaignDraftItemTypeClassName(child)}`}
+                            >
+                              <span className="campaign-item-type">
+                                {getCampaignDraftItemTypeLabel(child)}
+                              </span>
                               <h6>{child.title}</h6>
-                              <p>
-                                <span>{getCampaignDraftItemTypeLabel(child)}</span>
-                                {' · '}
-                                <span>{child.isRequired ? 'Required' : 'Optional'}</span>
-                              </p>
+                              <p>{child.isRequired ? 'Required' : 'Optional'}</p>
 
                               {!child.sourceAvailable && (
                                 <p className="campaign-read-only-item__warning">
