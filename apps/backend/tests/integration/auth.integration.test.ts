@@ -220,12 +220,16 @@ describe('Auth Integration Tests', () => {
     expect(response.headers['set-cookie'][0]).toContain('refreshToken=;');
   });
 
-  it('rotates refresh token and returns new access token/context on valid cookie', async () => {
+  it('rotates refresh token after old request activity', async () => {
     const email = 'refresh-test@example.com';
     await createTrainee({ user: { email } });
 
     const loginResponse = await loginTestUser(email);
     const cookies = loginResponse.headers['set-cookie'];
+    await prisma.authSession.updateMany({
+      where: { userId: loginResponse.body.user.id },
+      data: { lastActiveAt: new Date(Date.now() - 60 * 60 * 1000) },
+    });
 
     const response = await request(createApp()).post('/auth/refresh').set('Cookie', cookies);
 

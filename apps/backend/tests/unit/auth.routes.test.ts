@@ -533,8 +533,9 @@ describe('Auth routes', () => {
       });
     });
 
-    it('rotates refresh token and returns new access token/context on valid cookie', async () => {
+    it('rotates refresh token despite old request activity', async () => {
       const expiresAt = new Date(Date.now() + 60000);
+      const lastActiveAt = new Date(Date.now() - 60 * 60 * 1000);
       prismaMock.refreshToken.findUnique.mockResolvedValue({
         id: 'token-123',
         tokenHash: 'somehash',
@@ -546,7 +547,7 @@ describe('Auth routes', () => {
           id: 'session-123',
           userId: 'user-123',
           expiresAt,
-          lastActiveAt: new Date(),
+          lastActiveAt,
           revokedAt: null,
           user: {
             id: 'user-123',
@@ -563,7 +564,7 @@ describe('Auth routes', () => {
         id: 'session-123',
         userId: 'user-123',
         expiresAt,
-        lastActiveAt: new Date(),
+        lastActiveAt,
         revokedAt: null,
         idleTimeoutMinutes: 30,
       });
