@@ -28,9 +28,6 @@ function Sidebar() {
   const canAccessOrganisationCampaigns = permissions.some(
     (permission) => permission === 'VIEW_CAMPAIGNS' || permission === 'MANAGE_CAMPAIGNS',
   );
-  const { user, authContext, permissions } = useAuth();
-  const role = authContext?.role || user?.userType;
-  const organisationId = authContext?.organisation?.id;
   const campaignAssignmentPath = `/organisations/${encodeURIComponent(organisationId ?? '')}/campaign-assignments/new`;
   const canAssignTrainingCampaigns =
     role === 'ORGANISATION_ADMIN' &&
