@@ -8,7 +8,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createDeferred } from '../../testing/render';
 import CampaignManagementDetailPage from './CampaignManagementDetailPage';
-import type { CampaignManagementClient } from './campaignManagementClient';
+import {
+  CampaignManagementClientError,
+  type CampaignManagementClient,
+} from './campaignManagementClient';
 
 vi.mock('../../components/layout/AppLayout', () => ({
   default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
@@ -222,5 +225,41 @@ describe('CampaignManagementDetailPage new Draft saving', () => {
     });
     expect(screen.queryByText('Campaign could not be saved. Try again.')).not.toBeInTheDocument();
     expect(await screen.findByText(`Saved destination: ${DETAIL_PATH}`)).toBeInTheDocument();
+  });
+
+  it('shows useful validation details while preserving the local Draft', async () => {
+    const user = userEvent.setup();
+    const createCampaignDraft = vi.fn().mockRejectedValue(
+      new CampaignManagementClientError('VALIDATION_ERROR', {
+        status: 422,
+        message: 'Invalid campaign draft input',
+        details: [
+          {
+            field: 'endDate',
+            message: 'End date must be after start date.',
+          },
+        ],
+      }),
+    );
+
+    renderNewPage({
+      getCampaignDetail: vi.fn(),
+      createCampaignDraft,
+      updateCampaignDraft: vi.fn(),
+    });
+
+    const name = screen.getByRole('textbox', { name: 'Campaign name' });
+
+    await user.type(name, 'Unsaved validation Draft');
+    await user.click(screen.getByRole('button', { name: 'Save Draft' }));
+
+    expect(
+      await screen.findByText(
+        'Invalid campaign draft input: endDate: End date must be after start date.',
+      ),
+    ).toBeInTheDocument();
+    expect(name).toHaveValue('Unsaved validation Draft');
+    expect(screen.getByRole('button', { name: 'Save Draft' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Discard Changes' })).toBeEnabled();
   });
 });

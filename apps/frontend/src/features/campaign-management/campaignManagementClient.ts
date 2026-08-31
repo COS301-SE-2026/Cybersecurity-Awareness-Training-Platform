@@ -16,15 +16,27 @@ export type CampaignManagementErrorCode =
   | 'CAMPAIGN_IMMUTABLE'
   | 'LIFECYCLE_CONFLICT'
   | 'EMPTY_CAMPAIGN'
-  | 'UNAVAILABLE_CAMPAIGN_CONTENT';
+  | 'UNAVAILABLE_CAMPAIGN_CONTENT'
+  | (string & Record<never, never>);
 
 export class CampaignManagementClientError extends Error {
   readonly code: CampaignManagementErrorCode;
+  readonly status: number | undefined;
+  readonly details?: unknown;
 
-  constructor(code: CampaignManagementErrorCode) {
-    super(code);
+  constructor(
+    code: CampaignManagementErrorCode,
+    options: Readonly<{
+      message?: string;
+      status?: number;
+      details?: unknown;
+    }> = {},
+  ) {
+    super(options.message ?? code);
     this.name = 'CampaignManagementClientError';
     this.code = code;
+    this.status = options.status;
+    this.details = options.details;
   }
 }
 

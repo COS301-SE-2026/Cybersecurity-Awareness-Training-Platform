@@ -357,7 +357,7 @@ describe('CampaignBuilder', () => {
     expect(within(items[0]!).getByText('Required')).toBeInTheDocument();
 
     expect(within(items[1]!).getByRole('heading', { name: 'Security Basics' })).toBeInTheDocument();
-    expect(within(items[1]!).getByText('Group')).toBeInTheDocument();
+    expect(within(items[1]!).getByText('Module Group')).toBeInTheDocument();
     expect(within(items[1]!).getByText('Optional')).toBeInTheDocument();
   });
 

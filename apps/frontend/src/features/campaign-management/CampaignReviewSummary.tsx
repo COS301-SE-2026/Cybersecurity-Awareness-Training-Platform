@@ -1,4 +1,7 @@
-import { getCampaignDraftItemTypeLabel } from './campaignDraftPresentation';
+import {
+  getCampaignDraftItemTypeClassName,
+  getCampaignDraftItemTypeLabel,
+} from './campaignDraftPresentation';
 import type { CampaignDraftFormState, CampaignManagementContext } from './campaignManagement.types';
 
 type CampaignReviewSummaryProps = Readonly<{
@@ -36,7 +39,7 @@ function CampaignReviewSummary({ contextKind, draft }: CampaignReviewSummaryProp
           <dt>Name</dt>
           <dd>{draft.name || 'Not set'}</dd>
         </div>
-        <div>
+        <div className="campaign-review__description">
           <dt>Description</dt>
           <dd>{draft.description.trim() || 'No description provided.'}</dd>
         </div>
@@ -99,13 +102,10 @@ function CampaignReviewSummary({ contextKind, draft }: CampaignReviewSummaryProp
                   : (item.campaignItemId ?? `${item.componentType}:${item.contentId}`);
 
               return (
-                <li key={key}>
+                <li key={key} className={getCampaignDraftItemTypeClassName(item)}>
+                  <span className="campaign-item-type">{getCampaignDraftItemTypeLabel(item)}</span>
                   <h4>{item.title}</h4>
-                  <p>
-                    <span>{getCampaignDraftItemTypeLabel(item)}</span>
-                    {' · '}
-                    <span>{item.isRequired ? 'Required' : 'Optional'}</span>
-                  </p>
+                  <p>{item.isRequired ? 'Required' : 'Optional'}</p>
                 </li>
               );
             })}
