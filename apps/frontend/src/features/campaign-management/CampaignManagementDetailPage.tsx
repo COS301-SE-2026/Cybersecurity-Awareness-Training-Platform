@@ -42,6 +42,7 @@ type CampaignManagementDetailPageProps = Readonly<{
     >;
   canManageCampaigns?: boolean;
   blockUnsavedNavigation?: boolean;
+  onAuthenticationExpired?: () => void;
 }>;
 
 type CampaignDetailLoadState =
@@ -126,6 +127,7 @@ function CampaignManagementDetailPage({
   client = apiCampaignManagementClient,
   canManageCampaigns = true,
   blockUnsavedNavigation = false,
+  onAuthenticationExpired,
 }: CampaignManagementDetailPageProps) {
   const { organisationId, campaignId } = useParams<{
     organisationId: string;
@@ -293,6 +295,10 @@ function CampaignManagementDetailPage({
             notFound: 'Campaign not found.',
           });
 
+          if (presentation.kind === 'unauthorized') {
+            onAuthenticationExpired?.();
+          }
+
           setLoadState({
             campaignId,
             status: 'error',
@@ -304,7 +310,7 @@ function CampaignManagementDetailPage({
     return () => {
       requestIdRef.current += 1;
     };
-  }, [campaignId, client, context, retryAttempt]);
+  }, [campaignId, client, context, onAuthenticationExpired, retryAttempt]);
 
   useEffect(() => {
     if (!context || !shouldLoadCatalogue) {
@@ -338,7 +344,9 @@ function CampaignManagementDetailPage({
               'Your Campaign permissions have changed. You no longer have permission to make changes.',
           });
 
-          if (presentation.kind === 'forbidden') {
+          if (presentation.kind === 'unauthorized') {
+            onAuthenticationExpired?.();
+          } else if (presentation.kind === 'forbidden') {
             setIsMutationLocked(true);
           }
 
@@ -361,6 +369,7 @@ function CampaignManagementDetailPage({
     catalogueRetryAttempt,
     client,
     context,
+    onAuthenticationExpired,
     shouldLoadCatalogue,
   ]);
 
@@ -411,7 +420,9 @@ function CampaignManagementDetailPage({
       notFound: 'This Campaign is no longer available.',
     });
 
-    if (presentation.kind === 'forbidden' || presentation.kind === 'not-found') {
+    if (presentation.kind === 'unauthorized') {
+      onAuthenticationExpired?.();
+    } else if (presentation.kind === 'forbidden' || presentation.kind === 'not-found') {
       setIsMutationLocked(true);
     }
 

@@ -76,7 +76,7 @@ function CampaignManagementListPage({
   client = apiCampaignManagementClient,
 }: CampaignManagementListPageProps) {
   const { organisationId } = useParams<{ organisationId: string }>();
-  const { permissions } = useAuth();
+  const { clearAuth, permissions } = useAuth();
 
   const context = useMemo<CampaignManagementContext | null>(() => {
     if (contextKind === 'platform') {
@@ -103,6 +103,7 @@ function CampaignManagementListPage({
   const [result, setResult] = useState<GetCampaignsResponseDto | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [isListAccessRevoked, setIsListAccessRevoked] = useState(false);
   const requestIdRef = useRef(0);
 
   const loadCampaigns = useCallback(async () => {
@@ -127,6 +128,12 @@ function CampaignManagementListPage({
           forbidden: 'You no longer have permission to view Campaigns.',
         });
 
+        if (presentation.kind === 'unauthorized') {
+          clearAuth();
+        } else if (presentation.kind === 'forbidden') {
+          setIsListAccessRevoked(true);
+        }
+
         setResult(null);
         setLoadError(presentation.message);
       }
@@ -135,7 +142,7 @@ function CampaignManagementListPage({
         setIsLoading(false);
       }
     }
-  }, [client, context, query]);
+  }, [clearAuth, client, context, query]);
 
   useEffect(() => {
     // The asynchronous client request is effect-owned and guarded by requestIdRef
@@ -160,7 +167,8 @@ function CampaignManagementListPage({
   const hasFilters = Boolean(query.search?.trim() || query.status);
   const isEmpty = !isLoading && !loadError && result !== null && result.pagination.totalItems === 0;
   const canManageCampaigns =
-    context.kind === 'platform' || permissions.includes('MANAGE_CAMPAIGNS');
+    !isListAccessRevoked &&
+    (context.kind === 'platform' || permissions.includes('MANAGE_CAMPAIGNS'));
 
   return (
     <AppLayout contentStyle={{ backgroundColor: 'white' }}>

@@ -13,6 +13,7 @@ import {
   type CampaignManagementClient,
 } from './campaignManagementClient';
 import CampaignManagementListPage from './CampaignManagementListPage';
+import type { AuthContextType } from '../../context/auth-context';
 import { createDeferred, renderWithRouter } from '../../testing/render';
 
 vi.mock('../../components/layout/AppLayout', () => ({
@@ -79,6 +80,7 @@ function createResponse(
 function renderPage(
   client: Pick<CampaignManagementClient, 'listCampaigns'>,
   permissions: string[] = ['MANAGE_CAMPAIGNS'],
+  auth: Partial<AuthContextType> = {},
 ) {
   return renderWithRouter(
     <CampaignManagementListPage contextKind="organisation" client={client} />,
@@ -87,26 +89,57 @@ function renderPage(
       routePath: ORGANISATION_ROUTE,
       auth: {
         permissions,
+        ...auth,
       },
     },
   );
 }
 
 describe('CampaignManagementListPage', () => {
-  it.each([
-    [401, 'Your session is no longer valid. Sign in again.'],
-    [403, 'You no longer have permission to view Campaigns.'],
-  ])('shows a meaningful message for a structured %i list error', async (status, message) => {
-    renderPage({
-      async listCampaigns() {
-        throw new CampaignManagementClientError(status === 401 ? 'UNAUTHORIZED' : 'FORBIDDEN', {
-          status,
-          message: 'Backend transport message',
-        });
-      },
-    });
+  it('clears stale frontend auth for a structured 401 list error', async () => {
+    const clearAuth = vi.fn();
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(message);
+    renderPage(
+      {
+        async listCampaigns() {
+          throw new CampaignManagementClientError('UNAUTHORIZED', {
+            status: 401,
+            message: 'Backend transport message',
+          });
+        },
+      },
+      ['MANAGE_CAMPAIGNS'],
+      { clearAuth },
+    );
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Your session is no longer valid. Sign in again.',
+    );
+    expect(clearAuth).toHaveBeenCalledTimes(1);
+  });
+
+  it('revokes stale Create access without logging out after a structured 403 list error', async () => {
+    const clearAuth = vi.fn();
+
+    renderPage(
+      {
+        async listCampaigns() {
+          throw new CampaignManagementClientError('FORBIDDEN', {
+            status: 403,
+            message: 'Backend transport message',
+          });
+        },
+      },
+      ['MANAGE_CAMPAIGNS'],
+      { clearAuth },
+    );
+
+    expect(screen.getByRole('link', { name: 'Create Campaign' })).toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'You no longer have permission to view Campaigns.',
+    );
+    expect(screen.queryByRole('link', { name: 'Create Campaign' })).not.toBeInTheDocument();
+    expect(clearAuth).not.toHaveBeenCalled();
   });
 
   it('passes search and status through the list query', async () => {
