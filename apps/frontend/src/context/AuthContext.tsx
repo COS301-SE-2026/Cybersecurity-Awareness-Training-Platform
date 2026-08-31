@@ -2,8 +2,9 @@ import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { logoutSession, refreshSession } from '../services/auth.service';
 import { AuthContext } from './auth-context';
-import type { AuthUser } from './auth-context';
+import type { AuthUser, RenewSessionOptions } from './auth-context';
 import type { AuthContextDto, AuthLoginResponseDto } from '@insightful-phish/shared';
+import { ApiError } from '../lib/apiClient';
 
 type AuthProviderProps = {
   children: ReactNode;
@@ -154,6 +155,11 @@ function isAccessTokenExpired(expiresAt?: string | null): boolean {
   }
 
   return expiresAtTime <= Date.now() + 30_000;
+}
+
+//the server rejected the auth or session
+function isAuthoratitiveAuthFailure(error: unknown): boolean {
+  return error instanceof ApiError && (error.status === 401 || error.status === 403);
 }
 
 async function runWithRefreshLock(callback: () => Promise<void>): Promise<void> {
@@ -345,63 +351,68 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
   }, [applyAuthResponse, clearAuth]);
 
-  const renewSession = useCallback(async (): Promise<void> => {
-    if (renewalPromiseRef.current !== null) {
-      await renewalPromiseRef.current;
-      return;
-    }
-
-    const tokenBeforeRenewal = activeTokenRef.current;
-
-    const renewalPromise = runWithRefreshLock(async () => {
-      const latestStoredAuth = getStoredAuth();
-
-      if (
-        latestStoredAuth.isAuthenticated === true &&
-        latestStoredAuth.token !== null &&
-        latestStoredAuth.token !== tokenBeforeRenewal &&
-        !isAccessTokenExpired(latestStoredAuth.expiresAt)
-      ) {
-        applyStoredAuth(latestStoredAuth);
+  const renewSession = useCallback(
+    async (options?: RenewSessionOptions): Promise<void> => {
+      const forceServerConfirmation = options?.forceServerConfirmation ?? false;
+      if (renewalPromiseRef.current !== null) {
+        await renewalPromiseRef.current;
         return;
       }
 
-      const authResponse = await refreshSession();
+      const tokenBeforeRenewal = activeTokenRef.current;
 
-      if (activeTokenRef.current !== tokenBeforeRenewal) {
-        return;
-      }
+      const renewalPromise = runWithRefreshLock(async () => {
+        const latestStoredAuth = getStoredAuth();
 
-      applyAuthResponse(authResponse);
+        if (
+          forceServerConfirmation === false &&
+          latestStoredAuth.isAuthenticated === true &&
+          latestStoredAuth.token !== null &&
+          latestStoredAuth.token !== tokenBeforeRenewal &&
+          !isAccessTokenExpired(latestStoredAuth.expiresAt)
+        ) {
+          applyStoredAuth(latestStoredAuth);
+          return;
+        }
 
-      const message: AuthChannelMessage = {
-        type: 'AUTH_UPDATED',
-        authResponse,
-      };
+        const authResponse = await refreshSession();
 
-      authChannelRef.current?.postMessage(message);
-    });
+        if (activeTokenRef.current !== tokenBeforeRenewal) {
+          return;
+        }
 
-    renewalPromiseRef.current = renewalPromise;
+        applyAuthResponse(authResponse);
 
-    try {
-      await renewalPromise;
-    } catch (error) {
-      if (activeTokenRef.current === tokenBeforeRenewal) {
-        clearAuth();
-
-        const message: AuthChannelMessage = { type: 'SIGNED_OUT' };
+        const message: AuthChannelMessage = {
+          type: 'AUTH_UPDATED',
+          authResponse,
+        };
 
         authChannelRef.current?.postMessage(message);
-      }
+      });
 
-      throw error;
-    } finally {
-      if (renewalPromiseRef.current === renewalPromise) {
-        renewalPromiseRef.current = null;
+      renewalPromiseRef.current = renewalPromise;
+
+      try {
+        await renewalPromise;
+      } catch (error) {
+        if (activeTokenRef.current === tokenBeforeRenewal && isAuthoratitiveAuthFailure(error)) {
+          clearAuth();
+
+          const message: AuthChannelMessage = { type: 'SIGNED_OUT' };
+
+          authChannelRef.current?.postMessage(message);
+        }
+
+        throw error;
+      } finally {
+        if (renewalPromiseRef.current === renewalPromise) {
+          renewalPromiseRef.current = null;
+        }
       }
-    }
-  }, [applyAuthResponse, applyStoredAuth, clearAuth]);
+    },
+    [applyAuthResponse, applyStoredAuth, clearAuth],
+  );
 
   const logout = useCallback(async () => {
     try {
