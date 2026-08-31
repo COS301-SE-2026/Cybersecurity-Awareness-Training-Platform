@@ -176,9 +176,9 @@ describe('CampaignAssignmentPage', () => {
   });
 
   it.each([
-    [1, 0, '1 assignment(s) were created successfully.'],
-    [0, 1, 'No new assignments were created. All 1 requested assignment(s) were already assigned.'],
-    [1, 1, '1 assignment(s) were created and 1 were already assigned.'],
+    [1, 0, '1 Assignment(s) Were Created Successfully'],
+    [0, 1, 'No New Assignments Were Created. All 1 Requested Assignment(s) Were Already Assigned'],
+    [1, 1, '1 Assignment(s) Were Created And 1 Were Already Assigned'],
   ])(
     'keeps the authoritative result visible for created=%i and already-assigned=%i',
     async (createdCount, alreadyAssignedCount, expectedMessage) => {
