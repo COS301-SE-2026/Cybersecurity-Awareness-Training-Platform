@@ -231,6 +231,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const clearAuth = useCallback(() => {
     clearStoredAuth();
     activeTokenRef.current = null;
+    lastActivityAtRef.current = null;
     if (idleWarningTimerRef.current !== null) {
       globalThis.clearTimeout(idleWarningTimerRef.current);
       idleWarningTimerRef.current = null;
@@ -349,44 +350,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setUser,
     ],
   );
-
-  // const login = useCallback(
-  //   (authResponse: AuthLoginResponseDto) => {
-  //     applyAuthResponse(authResponse);
-
-  //     const message: AuthChannelMessage = {
-  //       type: 'AUTH_UPDATED',
-  //       authResponse,
-  //     };
-
-  //     authChannelRef.current?.postMessage(message);
-  //   },
-  //   [applyAuthResponse],
-  // );
-
-  // useEffect(() => {
-  //   if (typeof globalThis.BroadcastChannel !== 'function') {
-  //     return;
-  //   }
-
-  //   const authChannel = new BroadcastChannel(AUTH_CHANNEL_NAME);
-  //   authChannelRef.current = authChannel;
-  //   authChannel.onmessage = (event: MessageEvent<AuthChannelMessage>) => {
-  //     const message = event.data;
-  //     if (message.type === 'AUTH_UPDATED') {
-  //       applyAuthResponse(message.authResponse);
-  //     } else if (message.type === 'SIGNED_OUT') {
-  //       clearAuth();
-  //     }
-  //   };
-
-  //   return () => {
-  //     authChannel.close();
-  //     if (authChannelRef.current === authChannel) {
-  //       authChannelRef.current = null;
-  //     }
-  //   };
-  // }, [applyAuthResponse, clearAuth]);
 
   const renewSession = useCallback(
     async (options?: RenewSessionOptions): Promise<void> => {
@@ -715,7 +678,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return;
     }
     scheduleIdleTimers(lastActivityAt);
-    resetIdlePeriod(Date.now(), true);
     return () => {
       if (idleWarningTimerRef.current !== null) {
         globalThis.clearTimeout(idleWarningTimerRef.current);
@@ -726,10 +688,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         idleExpiryTimerRef.current = null;
       }
     };
-  }, [scheduleIdleTimers, resetIdlePeriod]);
+  }, [scheduleIdleTimers]);
 
   useEffect(() => {
-    if (isAuthenticated === false) {
+    if (isAuthenticated === false || isAuthLoading) {
       return;
     }
 
@@ -737,6 +699,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (isIdleWarningVisible) {
         return;
       }
+
+      resetIdlePeriod(Date.now(), true);
     }
 
     const activityEvents = [
@@ -755,7 +719,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
         globalThis.removeEventListener(eventName, handleMeaningfulActivity);
       }
     };
-  }, [isAuthenticated, isIdleWarningVisible, resetIdlePeriod]);
+  }, [isAuthenticated, isIdleWarningVisible, resetIdlePeriod, isAuthLoading]);
+
+  useEffect(() => {
+    if (isAuthenticated === false) {
+      return;
+    }
+    function reconcileIdleTimeout(): void {
+      if (document.visibilityState !== 'visible') {
+        return;
+      }
+      const lastActivityAt = lastActivityAtRef.current;
+      if (lastActivityAt !== null) {
+        scheduleIdleTimers(lastActivityAt);
+      }
+    }
+    document.addEventListener('visibilitychange', reconcileIdleTimeout);
+    return () => {
+      document.removeEventListener('visibilitychange', reconcileIdleTimeout);
+    };
+  }, [isAuthenticated, scheduleIdleTimers]);
 
   const handleStaySignedIn = useCallback(async (): Promise<void> => {
     setIsIdleRenewing(true);
