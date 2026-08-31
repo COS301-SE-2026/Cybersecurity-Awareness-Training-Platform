@@ -15,8 +15,9 @@ export type AuthContextType = {
   expiresAt: string | null;
   sessionExpiresAt: string | null;
   idleTimeoutMinutes: number | null;
-  login: (authResponse: AuthLoginResponseDto) => void;
+  login: (authResponse?: AuthLoginResponseDto) => void;
   renewSession: (options?: RenewSessionOptions) => Promise<void>;
+  refreshAuthContext: () => Promise<void>;
   clearAuth: () => void;
   logout: () => Promise<void>;
 };

@@ -371,6 +371,10 @@ function getDisplayStatus(row: TraineeListItemDto): DisplayStatus {
   return getInvitationDisplayStatus(row.invitationLifecycleState);
 }
 
+function getDisplayRole(row: TraineeListItemDto): string {
+  return row.rowType === 'INVITATION' ? 'Trainee Invitation' : 'Trainee';
+}
+
 function getDisplayName(row: TraineeListItemDto): string {
   const nameParts = [row.firstName?.trim(), row.lastName?.trim()].filter((name): name is string =>
     Boolean(name),
@@ -2092,7 +2096,7 @@ function OrganisationTraineesPage() {
                         <td className="px-6 py-4">{trainee.emailAddress}</td>
 
                         {/* Representative */}
-                        <td className="px-6 py-4">Trainee</td>
+                        <td className="px-6 py-4">{getDisplayRole(trainee.source)}</td>
 
                         {/* Request Status */}
                         <td className="px-6 py-4">{getStatusBadge(trainee.status)}</td>

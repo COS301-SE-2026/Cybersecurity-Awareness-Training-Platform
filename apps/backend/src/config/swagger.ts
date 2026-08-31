@@ -2649,9 +2649,21 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
           type: 'object',
           required: ['trainees', 'invitations'],
           properties: {
-            trainees: arrayOf(schemaRef('TraineeListItem')),
-            invitations: arrayOf(schemaRef('TraineeListItem')),
-            pendingInvitations: arrayOf(schemaRef('TraineeListItem')),
+            trainees: {
+              ...arrayOf(schemaRef('TraineeListItem')),
+              description:
+                'Current organisation trainee membership rows, including disabled memberships where supported.',
+            },
+            invitations: {
+              ...arrayOf(schemaRef('TraineeListItem')),
+              description:
+                'Visible trainee invitation rows that still support management actions. Accepted or completed invitation history is not returned here.',
+            },
+            pendingInvitations: {
+              ...arrayOf(schemaRef('TraineeListItem')),
+              description:
+                'Compatibility alias for the same visible/actionable invitation rows returned in invitations.',
+            },
           },
         },
         CreateTraineeInvitationRequest: {
