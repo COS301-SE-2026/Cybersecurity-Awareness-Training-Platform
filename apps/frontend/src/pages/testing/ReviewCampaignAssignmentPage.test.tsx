@@ -3,13 +3,20 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import ReviewCampaignAssignmentPage from '../campaign-assignment/ReviewCampaignAssignmentPage';
+import { createCampaignAssignments } from '../../services/campaign-assignment.service';
+import { ApiError } from '../../lib/apiClient';
 import {
   mockAssignableCampaigns,
   mockTraineeCandidates,
 } from '../../testing/fixtures/campaignAssignmentFixtures';
 
+const { mockClearAuth } = vi.hoisted(() => ({
+  mockClearAuth: vi.fn(),
+}));
+
 vi.mock('../../context/useAuth', () => ({
   useAuth: () => ({
+    clearAuth: mockClearAuth,
     authContext: {
       organisation: {
         id: 'test-organisation-id',
@@ -23,6 +30,7 @@ vi.mock('../../services/campaign-assignment.service', () => ({
 }));
 
 const originalCampaignCount = mockAssignableCampaigns.length;
+const mockedCreateCampaignAssignments = vi.mocked(createCampaignAssignments);
 
 type RenderPageOptions = {
   selectedTraineeIds?: string[];
@@ -54,6 +62,8 @@ function renderPage({
 describe('ReviewCampaignAssignmentPage', () => {
   afterEach(() => {
     mockAssignableCampaigns.splice(originalCampaignCount);
+    mockedCreateCampaignAssignments.mockReset();
+    mockClearAuth.mockReset();
   });
 
   it('renders the review step heading, instructions, and table headings', () => {
@@ -201,5 +211,68 @@ describe('ReviewCampaignAssignmentPage', () => {
     expect(
       within(customCampaignRow as HTMLTableRowElement).getByText('Organisation Custom'),
     ).toBeInTheDocument();
+  });
+
+  it('uses the existing authentication-expiry handling for a 401 response', async () => {
+    const user = userEvent.setup();
+    mockedCreateCampaignAssignments.mockRejectedValue(
+      new ApiError('Authentication credentials are required', {
+        status: 401,
+        statusText: 'Unauthorized',
+        method: 'POST',
+        url: '/campaign-assignments',
+      }),
+    );
+    renderPage({
+      selectedTraineeIds: [mockTraineeCandidates[0].traineeProfileId],
+      selectedCampaignIds: [mockAssignableCampaigns[0].campaignId],
+    });
+
+    await user.click(screen.getByRole('button', { name: /complete assignment/i }));
+    await user.click(screen.getByRole('button', { name: /confirm assignment/i }));
+
+    expect(mockClearAuth).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('shows a warning alert when assignment submission is rate limited', async () => {
+    const user = userEvent.setup();
+    mockedCreateCampaignAssignments.mockRejectedValue(
+      new ApiError('Too many campaign assignment requests. Please try again later.', {
+        status: 429,
+        statusText: 'Too Many Requests',
+        method: 'POST',
+        url: '/campaign-assignments',
+      }),
+    );
+    renderPage({
+      selectedTraineeIds: [mockTraineeCandidates[0].traineeProfileId],
+      selectedCampaignIds: [mockAssignableCampaigns[0].campaignId],
+    });
+
+    await user.click(screen.getByRole('button', { name: /complete assignment/i }));
+    await user.click(screen.getByRole('button', { name: /confirm assignment/i }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Too many campaign assignment requests. Please try again later.',
+    );
+    expect(screen.getByRole('alert')).toHaveClass('text-fg-warning');
+  });
+
+  it('keeps recoverable failures retryable through the existing assignment action', async () => {
+    const user = userEvent.setup();
+    mockedCreateCampaignAssignments.mockRejectedValue(new TypeError('Failed to fetch'));
+    renderPage({
+      selectedTraineeIds: [mockTraineeCandidates[0].traineeProfileId],
+      selectedCampaignIds: [mockAssignableCampaigns[0].campaignId],
+    });
+
+    await user.click(screen.getByRole('button', { name: /complete assignment/i }));
+    await user.click(screen.getByRole('button', { name: /confirm assignment/i }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Unable To Complete Campaign Assignment. Please Try Again.',
+    );
+    expect(screen.getByRole('button', { name: /complete assignment/i })).toBeEnabled();
   });
 });
