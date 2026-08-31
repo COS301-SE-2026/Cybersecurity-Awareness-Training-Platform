@@ -55,6 +55,7 @@ function renderPage({
       )}
       onBack={onBack}
       onAssignmentSuccess={vi.fn()}
+      onEligibilityChanged={vi.fn()}
     />,
   );
 }
@@ -155,6 +156,7 @@ describe('ReviewCampaignAssignmentPage', () => {
         selectedCampaigns={[]}
         onBack={vi.fn()}
         onAssignmentSuccess={vi.fn()}
+        onEligibilityChanged={vi.fn()}
       />,
     );
 
@@ -169,6 +171,7 @@ describe('ReviewCampaignAssignmentPage', () => {
         selectedCampaigns={[mockAssignableCampaigns[0]]}
         onBack={vi.fn()}
         onAssignmentSuccess={vi.fn()}
+        onEligibilityChanged={vi.fn()}
       />,
     );
 

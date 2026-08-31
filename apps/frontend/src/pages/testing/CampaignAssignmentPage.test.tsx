@@ -13,6 +13,7 @@ import {
   mockAssignableCampaignsResponse,
   mockCampaignAssignmentCandidatesResponse,
 } from '../../testing/fixtures/campaignAssignmentFixtures';
+import { ApiError } from '../../lib/apiClient';
 
 vi.mock('../../components/layout/AppLayout', () => ({
   default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
@@ -212,6 +213,45 @@ describe('CampaignAssignmentPage', () => {
       ).toBeVisible();
       expect(screen.getByText(/no organisation trainees selected/i)).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument();
+    },
+  );
+
+  it.each([
+    ['CAMPAIGN_NOT_FOUND', 404, 'campaign'],
+    ['TRAINEE_DISABLED', 409, 'trainee'],
+  ] as const)(
+    'reloads authoritative %s options after stale eligibility',
+    async (errorCode, status, target) => {
+      const user = userEvent.setup();
+      mockedGetCampaignAssignmentCandidates.mockClear();
+      mockedGetAssignableCampaigns.mockClear();
+      mockedCreateCampaignAssignments.mockRejectedValue(
+        new ApiError('The selected option is no longer eligible', {
+          status,
+          statusText: status === 404 ? 'Not Found' : 'Conflict',
+          method: 'POST',
+          url: '/campaign-assignments',
+          body: { error: errorCode },
+        }),
+      );
+
+      renderPage();
+      await completeOneAssignment(user);
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(/eligibility changed/i);
+
+      if (target === 'campaign') {
+        expect(screen.getByRole('heading', { name: /training campaign selection/i })).toBeVisible();
+        expect(screen.getByText(/no training campaigns selected/i)).toBeInTheDocument();
+        await waitFor(() => expect(mockedGetAssignableCampaigns).toHaveBeenCalledTimes(2));
+        return;
+      }
+
+      expect(
+        screen.getByRole('heading', { name: /organisation trainee selection/i }),
+      ).toBeVisible();
+      expect(screen.getByText(/no organisation trainees selected/i)).toBeInTheDocument();
+      await waitFor(() => expect(mockedGetCampaignAssignmentCandidates).toHaveBeenCalledTimes(2));
     },
   );
 });
