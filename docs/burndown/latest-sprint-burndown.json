@@ -97,9 +97,93 @@
       "closed_date": null
     },
     {
+      "number": 485,
+      "title": "fix: separate current trainees from terminal invitation history",
+      "points": 3,
+      "state": "closed",
+      "closed_date": "2026-08-31"
+    },
+    {
+      "number": 482,
+      "title": "fix: standardise form controls and read-only information",
+      "points": 3,
+      "state": "closed",
+      "closed_date": "2026-08-31"
+    },
+    {
+      "number": 480,
+      "title": "fix: prevent tables from trapping page scrolling",
+      "points": 2,
+      "state": "closed",
+      "closed_date": "2026-08-20"
+    },
+    {
+      "number": 469,
+      "title": "fix: repair trainee help navigation",
+      "points": 1,
+      "state": "closed",
+      "closed_date": "2026-08-21"
+    },
+    {
+      "number": 468,
+      "title": "fix: add a dedicated not found page",
+      "points": 1,
+      "state": "closed",
+      "closed_date": "2026-08-31"
+    },
+    {
+      "number": 445,
+      "title": "chore: make production host setup reproducible",
+      "points": 5,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 435,
+      "title": "feat: migrate login and registration to responsive Flowbite forms",
+      "points": 3,
+      "state": "closed",
+      "closed_date": "2026-08-31"
+    },
+    {
+      "number": 434,
+      "title": "feat: make the authenticated shell and account pages mobile friendly",
+      "points": 5,
+      "state": "closed",
+      "closed_date": "2026-08-31"
+    },
+    {
+      "number": 433,
+      "title": "fix: enforce role-correct frontend routes",
+      "points": 2,
+      "state": "closed",
+      "closed_date": "2026-08-21"
+    },
+    {
       "number": 431,
       "title": "chore: restore skipped backend configuration and auth-subject tests",
       "points": 2,
+      "state": "closed",
+      "closed_date": "2026-08-20"
+    },
+    {
+      "number": 428,
+      "title": "docs: complete platform administrator OpenAPI parity pass",
+      "points": 2,
+      "state": "closed",
+      "closed_date": "2026-08-21"
+    },
+    {
+      "number": 427,
+      "title": "chore: complete the platform organisation repository boundary",
+      "points": 3,
+      "state": "closed",
+      "closed_date": "2026-08-21"
+    },
+    {
+      "number": 423,
+      "title": "chore: add platform administrator database integration tests",
+      "points": 3,
       "state": "closed",
       "closed_date": "2026-08-20"
     }
@@ -107,62 +191,62 @@
   "series": [
     {
       "date": "2026-08-20",
-      "remaining": 48,
-      "ideal": 50.0
+      "remaining": 76,
+      "ideal": 83.0
     },
     {
       "date": "2026-08-21",
-      "remaining": 48,
-      "ideal": 45.45
+      "remaining": 68,
+      "ideal": 75.45
     },
     {
       "date": "2026-08-22",
-      "remaining": 48,
-      "ideal": 40.91
+      "remaining": 68,
+      "ideal": 67.91
     },
     {
       "date": "2026-08-23",
-      "remaining": 48,
-      "ideal": 36.36
+      "remaining": 68,
+      "ideal": 60.36
     },
     {
       "date": "2026-08-24",
-      "remaining": 48,
-      "ideal": 31.82
+      "remaining": 68,
+      "ideal": 52.82
     },
     {
       "date": "2026-08-25",
-      "remaining": 48,
-      "ideal": 27.27
+      "remaining": 68,
+      "ideal": 45.27
     },
     {
       "date": "2026-08-26",
-      "remaining": 48,
-      "ideal": 22.73
+      "remaining": 68,
+      "ideal": 37.73
     },
     {
       "date": "2026-08-27",
-      "remaining": 48,
-      "ideal": 18.18
+      "remaining": 68,
+      "ideal": 30.18
     },
     {
       "date": "2026-08-28",
-      "remaining": 46,
-      "ideal": 13.64
+      "remaining": 66,
+      "ideal": 22.64
     },
     {
       "date": "2026-08-29",
-      "remaining": 36,
-      "ideal": 9.09
+      "remaining": 56,
+      "ideal": 15.09
     },
     {
       "date": "2026-08-30",
-      "remaining": 33,
-      "ideal": 4.55
+      "remaining": 53,
+      "ideal": 7.55
     },
     {
       "date": "2026-08-31",
-      "remaining": 33,
+      "remaining": 38,
       "ideal": 0.0
     }
   ]
