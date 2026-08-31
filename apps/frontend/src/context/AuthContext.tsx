@@ -32,6 +32,8 @@ const AUTH_CHANNEL_NAME = 'insightful-phish-auth';
 const REFRESH_LOCK_NAME = 'insightful-phish-refresh';
 const LOGOUT_LOCK_NAME = 'insightful-phish-logout';
 const ACCESS_TOKEN_RENEWAL_MARGIN_MS = 60_000;
+const ACCESS_TOKEN_RENEWAL_DELAY_MS = 10_000;
+const ACCESS_TOKEN_RENEWAL_MAX_ATTEMPTS = 3;
 const IDLE_WARNING_LEAD_MS = 60_000;
 
 function getStorage() {
@@ -218,7 +220,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     storedAuth.idleTimeoutMinutes,
   );
 
-  const [isAuthenticated, setIsAuthenticated] = useState(storedAuth.isAuthenticated);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
@@ -810,12 +812,29 @@ export function AuthProvider({ children }: AuthProviderProps) {
       ? 0
       : Math.max(0, expiresAtTime - Date.now() - ACCESS_TOKEN_RENEWAL_MARGIN_MS);
 
-    const renewalTimer = globalThis.setTimeout(() => {
-      void renewSession().catch(() => undefined);
-    }, renewalDelay);
+    let renewalRetryTimer: ReturnType<typeof setTimeout> | null = null;
+    let renewalAttemptCount = 0;
+
+    function attemptRenewal(): void {
+      renewalAttemptCount += 1;
+      void renewSession().catch((error: unknown) => {
+        if (isAuthoratitiveAuthFailure(error)) {
+          return;
+        }
+        if (renewalAttemptCount >= ACCESS_TOKEN_RENEWAL_MAX_ATTEMPTS) {
+          return;
+        }
+        renewalRetryTimer = globalThis.setTimeout(attemptRenewal, ACCESS_TOKEN_RENEWAL_DELAY_MS);
+      });
+    }
+
+    const renewalTimer = globalThis.setTimeout(attemptRenewal, renewalDelay);
 
     return () => {
       globalThis.clearTimeout(renewalTimer);
+      if (renewalRetryTimer !== null) {
+        globalThis.clearTimeout(renewalRetryTimer);
+      }
     };
   }, [expiresAt, isAuthenticated, renewSession]);
 
