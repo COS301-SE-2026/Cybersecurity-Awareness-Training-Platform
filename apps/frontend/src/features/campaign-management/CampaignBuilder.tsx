@@ -22,6 +22,7 @@ type CampaignBuilderProps = Readonly<{
   onRetryCatalogue?: () => void;
   isSaving?: boolean;
   isMutationPending?: boolean;
+  isMutationLocked?: boolean;
   requireDirtyToSave?: boolean;
   saveButtonText?: string;
   savingButtonText?: string;
@@ -69,6 +70,7 @@ function CampaignBuilder({
   onCataloguePageChange,
   isSaving,
   isMutationPending = false,
+  isMutationLocked = false,
   requireDirtyToSave = false,
   saveButtonText = 'Save Draft',
   savingButtonText = 'Saving...',
@@ -84,12 +86,13 @@ function CampaignBuilder({
   }));
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const isDraftMutationPending = Boolean(isSaving) || isMutationPending;
+  const isDraftMutationDisabled = isDraftMutationPending || isMutationLocked;
 
   const hasScheduleError =
     Boolean(draft.startDate) && Boolean(draft.endDate) && draft.endDate <= draft.startDate;
 
   const isDirty = !areDraftsEqual(persistedDraft, draft);
-  const isSaveDisabled = isDraftMutationPending || (requireDirtyToSave && !isDirty);
+  const isSaveDisabled = isDraftMutationDisabled || (requireDirtyToSave && !isDirty);
   const hasNameError = hasSubmitted && draft.name.trim().length === 0;
   const selectedCatalogueItems = getDraftComponents(draft.items).map((item) => ({
     type: item.componentType,
@@ -111,7 +114,7 @@ function CampaignBuilder({
   }
 
   function addCatalogueItem(item: CampaignCatalogueItemDto) {
-    if (isDraftMutationPending) {
+    if (isDraftMutationDisabled) {
       return;
     }
 
@@ -141,7 +144,7 @@ function CampaignBuilder({
   }
 
   function moveCampaignItem(index: number, direction: -1 | 1) {
-    if (isDraftMutationPending) {
+    if (isDraftMutationDisabled) {
       return;
     }
 
@@ -172,7 +175,7 @@ function CampaignBuilder({
   }
 
   function changeCampaignItemRequirement(index: number, isRequired: boolean) {
-    if (isDraftMutationPending) {
+    if (isDraftMutationDisabled) {
       return;
     }
 
@@ -191,7 +194,7 @@ function CampaignBuilder({
   }
 
   function removeCampaignItem(index: number) {
-    if (isDraftMutationPending) {
+    if (isDraftMutationDisabled) {
       return;
     }
 
@@ -233,7 +236,7 @@ function CampaignBuilder({
           name="campaign-name"
           type="text"
           required
-          disabled={isDraftMutationPending}
+          disabled={isDraftMutationDisabled}
           maxLength={200}
           value={draft.name}
           aria-invalid={hasNameError}
@@ -260,7 +263,7 @@ function CampaignBuilder({
           maxLength={2000}
           rows={6}
           value={draft.description}
-          disabled={isDraftMutationPending}
+          disabled={isDraftMutationDisabled}
           onChange={(event) => {
             updateDraft({
               description: event.target.value,
@@ -270,7 +273,7 @@ function CampaignBuilder({
       </div>
       <CampaignColourField
         value={draft.accentColor}
-        disabled={isDraftMutationPending}
+        disabled={isDraftMutationDisabled}
         onChange={(accentColor) => {
           updateDraft({ accentColor });
         }}
@@ -287,7 +290,7 @@ function CampaignBuilder({
                 id="campaign-start-date"
                 name="campaign-start-date"
                 type="datetime-local"
-                disabled={isDraftMutationPending}
+                disabled={isDraftMutationDisabled}
                 value={draft.startDate}
                 onChange={(event) => {
                   updateDraft({
@@ -303,7 +306,7 @@ function CampaignBuilder({
                 id="campaign-end-date"
                 name="campaign-end-date"
                 type="datetime-local"
-                disabled={isDraftMutationPending}
+                disabled={isDraftMutationDisabled}
                 value={draft.endDate}
                 aria-invalid={hasScheduleError}
                 aria-describedby={hasScheduleError ? 'campaign-end-date-error' : undefined}
@@ -326,7 +329,7 @@ function CampaignBuilder({
 
       <CampaignOrder
         items={draft.items}
-        disabled={isDraftMutationPending}
+        disabled={isDraftMutationDisabled}
         onMoveItem={moveCampaignItem}
         onRemoveItem={removeCampaignItem}
         onRequiredChange={changeCampaignItemRequirement}
@@ -341,7 +344,7 @@ function CampaignBuilder({
             state={catalogueState}
             query={catalogueQuery}
             selectedItems={selectedCatalogueItems}
-            disabled={isDraftMutationPending}
+            disabled={isDraftMutationDisabled}
             onSelectItem={addCatalogueItem}
             onRetry={onRetryCatalogue}
             onSearchChange={onCatalogueSearchChange}

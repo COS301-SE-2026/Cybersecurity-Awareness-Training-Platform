@@ -18,13 +18,14 @@ import AppLayout from '../../components/layout/AppLayout';
 import type { CampaignCatalogueState } from './CampaignCatalogue';
 import CampaignBuilder from './CampaignBuilder';
 import CampaignReadOnlyDetail from './CampaignReadOnlyDetail';
+import { getCampaignErrorPresentation } from './campaignManagementError';
 import {
   CampaignManagementClientError,
   type CampaignManagementClient,
 } from './campaignManagementClient';
 import type { CampaignDraftFormState, CampaignManagementContext } from './campaignManagement.types';
 import { toCampaignDraftItems } from './campaignDraftItems';
-import { developmentCampaignManagementClient } from './developmentCampaignManagementClient';
+import { apiCampaignManagementClient } from './apiCampaignManagementClient';
 import { toDateTimeLocal } from './campaignDraftDate';
 import { toCreateCampaignDraftRequest, toUpdateCampaignDraftRequest } from './campaignDraftRequest';
 import BasicConfirmationModal from '../../components/layout/modals/BasicConfirmationModal';
@@ -41,6 +42,7 @@ type CampaignManagementDetailPageProps = Readonly<{
     >;
   canManageCampaigns?: boolean;
   blockUnsavedNavigation?: boolean;
+  onAuthenticationExpired?: () => void;
 }>;
 
 type CampaignDetailLoadState =
@@ -70,6 +72,12 @@ type OwnedCatalogueState = {
 };
 
 type LifecycleMutation = 'activate' | 'archive' | 'reactivate';
+
+const LIFECYCLE_FAILURE_MESSAGES: Record<LifecycleMutation, string> = {
+  activate: 'Campaign could not be activated. Try again.',
+  archive: 'Campaign could not be archived. Try again.',
+  reactivate: 'Campaign could not be reactivated. Try again.',
+};
 
 type ConfirmationIntent = 'reset' | 'discard-new' | 'leave' | 'reload' | LifecycleMutation | null;
 
@@ -116,9 +124,10 @@ function CampaignNavigationBlocker({ shouldBlock, onBlocked }: CampaignNavigatio
 
 function CampaignManagementDetailPage({
   contextKind,
-  client = developmentCampaignManagementClient,
+  client = apiCampaignManagementClient,
   canManageCampaigns = true,
   blockUnsavedNavigation = false,
+  onAuthenticationExpired,
 }: CampaignManagementDetailPageProps) {
   const { organisationId, campaignId } = useParams<{
     organisationId: string;
@@ -153,6 +162,7 @@ function CampaignManagementDetailPage({
   const [confirmationIntent, setConfirmationIntent] = useState<ConfirmationIntent>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isMutationLocked, setIsMutationLocked] = useState(false);
   const saveRequestIdRef = useRef(0);
   const saveInFlightRef = useRef(false);
   const [lifecycleError, setLifecycleError] = useState<string | null>(null);
@@ -184,6 +194,7 @@ function CampaignManagementDetailPage({
     setActiveRouteOwnershipKey(routeOwnershipKey);
     setIsSaving(false);
     setSaveError(null);
+    setIsMutationLocked(false);
     setPendingLifecycleAction(null);
     setLifecycleError(null);
     setConfirmationIntent(null);
@@ -238,15 +249,17 @@ function CampaignManagementDetailPage({
     hasActivationItems &&
     !hasUnavailableActivationContent &&
     !isEditorDirty &&
-    !isMutationPending;
+    !isMutationPending &&
+    !isMutationLocked;
   const hasArchiveAction =
     canManageCampaigns && detail?.status === 'ACTIVE' && detail.allowedActions.includes('ARCHIVE');
   const hasReactivateAction =
     canManageCampaigns &&
     detail?.status === 'ARCHIVED' &&
     detail.allowedActions.includes('REACTIVATE');
-  const canRequestArchive = Boolean(hasArchiveAction) && !isMutationPending;
-  const canRequestReactivate = Boolean(hasReactivateAction) && !isMutationPending;
+  const canRequestArchive = Boolean(hasArchiveAction) && !isMutationPending && !isMutationLocked;
+  const canRequestReactivate =
+    Boolean(hasReactivateAction) && !isMutationPending && !isMutationLocked;
 
   const heading = isNew
     ? 'Create Campaign'
@@ -274,12 +287,22 @@ function CampaignManagementDetailPage({
           });
         }
       })
-      .catch(() => {
+      .catch((error) => {
         if (requestIdRef.current === requestId) {
+          const presentation = getCampaignErrorPresentation(error, {
+            fallback: 'Campaign could not be loaded. Try again.',
+            forbidden: 'You no longer have permission to view this Campaign.',
+            notFound: 'Campaign not found.',
+          });
+
+          if (presentation.kind === 'unauthorized') {
+            onAuthenticationExpired?.();
+          }
+
           setLoadState({
             campaignId,
             status: 'error',
-            message: 'Campaign could not be loaded. Try again.',
+            message: presentation.message,
           });
         }
       });
@@ -287,7 +310,7 @@ function CampaignManagementDetailPage({
     return () => {
       requestIdRef.current += 1;
     };
-  }, [campaignId, client, context, retryAttempt]);
+  }, [campaignId, client, context, onAuthenticationExpired, retryAttempt]);
 
   useEffect(() => {
     if (!context || !shouldLoadCatalogue) {
@@ -313,11 +336,26 @@ function CampaignManagementDetailPage({
           });
         }
       })
-      .catch(() => {
+      .catch((error) => {
         if (catalogueRequestIdRef.current === requestId) {
+          const presentation = getCampaignErrorPresentation(error, {
+            fallback: 'Campaign catalogue could not be loaded. Try again.',
+            forbidden:
+              'Your Campaign permissions have changed. You no longer have permission to make changes.',
+          });
+
+          if (presentation.kind === 'unauthorized') {
+            onAuthenticationExpired?.();
+          } else if (presentation.kind === 'forbidden') {
+            setIsMutationLocked(true);
+          }
+
           setCatalogueLoadState({
             ownerKey: catalogueQueryKey,
-            state: { status: 'error' },
+            state: {
+              status: 'error',
+              message: presentation.message,
+            },
           });
         }
       });
@@ -331,6 +369,7 @@ function CampaignManagementDetailPage({
     catalogueRetryAttempt,
     client,
     context,
+    onAuthenticationExpired,
     shouldLoadCatalogue,
   ]);
 
@@ -372,6 +411,23 @@ function CampaignManagementDetailPage({
     context.kind === 'organisation'
       ? `/organisations/${context.organisationId}/campaigns`
       : '/platform/campaigns';
+
+  function presentMutationError(error: unknown, fallback: string) {
+    const presentation = getCampaignErrorPresentation(error, {
+      fallback,
+      forbidden:
+        'Your Campaign permissions have changed. You no longer have permission to make changes.',
+      notFound: 'This Campaign is no longer available.',
+    });
+
+    if (presentation.kind === 'unauthorized') {
+      onAuthenticationExpired?.();
+    } else if (presentation.kind === 'forbidden' || presentation.kind === 'not-found') {
+      setIsMutationLocked(true);
+    }
+
+    return presentation;
+  }
 
   function reloadAuthoritativeDetail() {
     if (!campaignId) {
@@ -420,7 +476,7 @@ function CampaignManagementDetailPage({
   }
 
   async function handleCreateCampaignDraft(draft: CampaignDraftFormState) {
-    if (saveInFlightRef.current || lifecycleInFlightRef.current) {
+    if (isMutationLocked || saveInFlightRef.current || lifecycleInFlightRef.current) {
       return;
     }
 
@@ -445,12 +501,12 @@ function CampaignManagementDetailPage({
       navigate(`${campaignListPath}/${created.id}`, {
         replace: true,
       });
-    } catch {
+    } catch (error) {
       if (saveRequestIdRef.current !== saveRequestId) {
         return;
       }
 
-      setSaveError('Campaign could not be saved. Try again.');
+      setSaveError(presentMutationError(error, 'Campaign could not be saved. Try again.').message);
     } finally {
       if (saveRequestIdRef.current === saveRequestId) {
         saveInFlightRef.current = false;
@@ -463,7 +519,7 @@ function CampaignManagementDetailPage({
     draft: CampaignDraftFormState,
     authoritativeDetail: CampaignDetailResponseDto,
   ) {
-    if (saveInFlightRef.current || lifecycleInFlightRef.current) {
+    if (isMutationLocked || saveInFlightRef.current || lifecycleInFlightRef.current) {
       return;
     }
 
@@ -497,6 +553,13 @@ function CampaignManagementDetailPage({
       setResetVersion((current) => current + 1);
     } catch (error) {
       if (saveRequestIdRef.current !== saveRequestId) {
+        return;
+      }
+
+      const presentation = presentMutationError(error, 'Campaign could not be saved. Try again.');
+
+      if (presentation.kind !== 'unknown') {
+        setSaveError(presentation.message);
         return;
       }
 
@@ -547,6 +610,7 @@ function CampaignManagementDetailPage({
 
     if (
       !lifecycleMethod ||
+      isMutationLocked ||
       lifecycleInFlightRef.current ||
       saveInFlightRef.current ||
       !isRequestable
@@ -589,6 +653,13 @@ function CampaignManagementDetailPage({
         return;
       }
 
+      const presentation = presentMutationError(error, LIFECYCLE_FAILURE_MESSAGES[action]);
+
+      if (presentation.kind !== 'unknown') {
+        setLifecycleError(presentation.message);
+        return;
+      }
+
       if (error instanceof CampaignManagementClientError) {
         if (error.code === 'CAMPAIGN_CHANGED') {
           setLifecycleError(
@@ -619,13 +690,7 @@ function CampaignManagementDetailPage({
         }
       }
 
-      setLifecycleError(
-        action === 'activate'
-          ? 'Campaign could not be activated. Try again.'
-          : action === 'archive'
-            ? 'Campaign could not be archived. Try again.'
-            : 'Campaign could not be reactivated. Try again.',
-      );
+      setLifecycleError(LIFECYCLE_FAILURE_MESSAGES[action]);
     } finally {
       if (lifecycleRequestIdRef.current === requestId) {
         lifecycleInFlightRef.current = false;
@@ -690,7 +755,7 @@ function CampaignManagementDetailPage({
                 };
 
   return (
-    <AppLayout>
+    <AppLayout contentStyle={{ backgroundColor: 'white' }}>
       <main className="campaign-detail-shell">
         <Link className="campaign-back-link" to={campaignListPath}>
           <span aria-hidden="true">←</span>
@@ -732,6 +797,7 @@ function CampaignManagementDetailPage({
             onSave={handleCreateCampaignDraft}
             isSaving={isSaving}
             isMutationPending={isMutationPending}
+            isMutationLocked={isMutationLocked}
             saveButtonText="Save Draft"
             savingButtonText="Saving Draft…"
             catalogueState={currentCatalogueState}
@@ -835,6 +901,7 @@ function CampaignManagementDetailPage({
             onSave={(draft) => handleUpdateCampaignDraft(draft, detail)}
             isSaving={isSaving}
             isMutationPending={isMutationPending}
+            isMutationLocked={isMutationLocked}
             requireDirtyToSave
             saveButtonText="Save Changes"
             savingButtonText="Saving Changes…"
@@ -854,9 +921,10 @@ function CampaignManagementDetailPage({
           canEditDraft &&
           client.activateCampaign && (
             <section className="campaign-lifecycle" aria-label="Campaign activation">
+              <h2>Ready to activate</h2>
               <button
                 type="button"
-                className="campaign-button campaign-button--primary"
+                className="campaign-button campaign-lifecycle__action campaign-lifecycle__action--activate"
                 disabled={!canRequestActivation}
                 onClick={() => setConfirmationIntent('activate')}
               >
@@ -887,10 +955,11 @@ function CampaignManagementDetailPage({
           ((hasArchiveAction && client.archiveCampaign) ||
             (hasReactivateAction && client.reactivateCampaign)) && (
             <section className="campaign-lifecycle" aria-label="Campaign lifecycle actions">
+              <h2>Campaign lifecycle</h2>
               {hasArchiveAction && client.archiveCampaign && (
                 <button
                   type="button"
-                  className="campaign-button campaign-button--primary"
+                  className="campaign-button campaign-lifecycle__action campaign-lifecycle__action--archive"
                   disabled={!canRequestArchive}
                   onClick={() => setConfirmationIntent('archive')}
                 >
@@ -901,7 +970,7 @@ function CampaignManagementDetailPage({
               {hasReactivateAction && client.reactivateCampaign && (
                 <button
                   type="button"
-                  className="campaign-button campaign-button--primary"
+                  className="campaign-button campaign-lifecycle__action campaign-lifecycle__action--reactivate"
                   disabled={!canRequestReactivate}
                   onClick={() => setConfirmationIntent('reactivate')}
                 >
