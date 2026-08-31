@@ -1,6 +1,6 @@
 # Burndown Check Report
 
-Last run: 2026-08-31 13:11:12 SAST
+Last run: 2026-08-31 19:44:01 SAST
 
 - #207 fix: seed campaign creator relation after Prisma schema update closed 1 day after Sprint 3 (Demo 2) ended.
 - #184 chore: clean trainee terminology and small frontend test warnings closed 1 day after Sprint 3 (Demo 2) ended.
@@ -44,5 +44,6 @@ Last run: 2026-08-31 13:11:12 SAST
 - #408 feat: build organisation campaign assignment selection page closed 4 days after Sprint 6 (Demo 3) ended.
 - #405 feat: add Resend API fallback for queued production email closed 1 day after Sprint 6 (Demo 3) ended.
 - #404 feat: queue transactional email delivery through a durable asynchronous outbox closed 1 day after Sprint 6 (Demo 3) ended.
+- #462 feat: integrate campaign management and builder with live APIs closed 12 days after Sprint 7 (Demo 3) ended.
 - #457 feat: integrate organisation campaign assignments with live APIs closed 12 days after Sprint 7 (Demo 3) ended.
 - #454 feat: build the shared campaign management and builder page closed 5 days after Sprint 7 (Demo 3) ended.

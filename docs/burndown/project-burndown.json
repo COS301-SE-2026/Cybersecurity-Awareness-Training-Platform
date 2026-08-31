@@ -1507,8 +1507,8 @@
           "number": 462,
           "title": "feat: integrate campaign management and builder with live APIs",
           "points": 5,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-08-31"
         },
         {
           "number": 458,
@@ -2344,7 +2344,7 @@
     },
     {
       "date": "2026-08-31",
-      "remaining": 38,
+      "remaining": 33,
       "ideal": 0.0
     }
   ]
