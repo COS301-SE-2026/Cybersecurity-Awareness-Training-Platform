@@ -1,4 +1,4 @@
-import { type ReactNode, useId } from 'react';
+import { type ChangeEventHandler, type ReactNode, useId } from 'react';
 
 export type FormFieldControlProps = {
   id: string;
@@ -91,6 +91,73 @@ export function ReadOnlyField({
           value={displayValue}
           className={`font-overpass text-[1.2rem] bg-faint-purple border border-default text-deep-purple block w-full min-w-0 p-2.5 cursor-text select-text overflow-x-auto focus:outline-none focus:ring-4 focus:ring-brand-medium ${valueClassName}`}
         />
+      )}
+    </FormField>
+  );
+}
+
+export type SelectFieldOption = Readonly<{
+  value: string;
+  label: string;
+  disabled?: boolean;
+}>;
+
+export type SelectFieldProps = Readonly<{
+  id?: string;
+  label: ReactNode;
+  value: string;
+  options: readonly SelectFieldOption[];
+  onChange: (value: string) => void;
+  disabled?: boolean;
+  helperText?: ReactNode;
+  errorText?: ReactNode;
+  className?: string;
+  selectClassName?: string;
+}>;
+
+export function SelectField({
+  id,
+  label,
+  value,
+  options,
+  onChange,
+  disabled = false,
+  helperText,
+  errorText,
+  className = '',
+  selectClassName = '',
+}: SelectFieldProps) {
+  const handleChange: ChangeEventHandler<HTMLSelectElement> = (event) => {
+    onChange(event.target.value);
+  };
+
+  return (
+    <FormField
+      id={id}
+      label={label}
+      helperText={helperText}
+      errorText={errorText}
+      className={className}
+    >
+      {(controlProps) => (
+        <select
+          {...controlProps}
+          value={value}
+          onChange={handleChange}
+          disabled={disabled}
+          className={`font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple block w-full min-w-0 p-2.5 focus:outline-none focus:ring-4 focus:ring-brand-medium disabled:opacity-60 disabled:cursor-not-allowed ${selectClassName}`}
+        >
+          {options.map((option) => (
+            <option
+              key={option.value}
+              value={option.value}
+              disabled={option.disabled}
+              className="bg-white text-deep-purple"
+            >
+              {option.label}
+            </option>
+          ))}
+        </select>
       )}
     </FormField>
   );
