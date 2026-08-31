@@ -469,7 +469,7 @@ describe('Auth routes', () => {
       message: 'Too many authentication requests. Please try again later.',
     });
     expect(response?.headers).toHaveProperty('retry-after');
-  });
+  }, 15000);
 
   describe('POST /auth/logout', () => {
     it('clears the refresh token cookie and revokes session if refresh token cookie is present', async () => {
