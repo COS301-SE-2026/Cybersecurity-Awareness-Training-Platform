@@ -67,8 +67,8 @@ export async function clearOrganisationTraineeRateLimitStores(): Promise<void> {
  * /organisations/{organisationId}/trainees:
  *   get:
  *     tags: [Organisation Trainees]
- *     summary: List organisation trainees and pending invitations
- *     description: Returns a list of all active, inactive, and disabled trainees along with pending, sent, or expired invitations for the organisation. Requires VIEW_ORGANISATION_TRAINEES permission.
+ *     summary: List organisation trainee memberships and actionable invitations
+ *     description: Returns current organisation trainee membership rows, including disabled memberships, together with visible trainee invitation rows that still support management actions such as resend or revoke. Accepted or completed invitation history remains persisted but is not returned as an active management invitation row. Requires VIEW_ORGANISATION_TRAINEES permission.
  *     security:
  *       - bearerAuth: []
  *     parameters:
