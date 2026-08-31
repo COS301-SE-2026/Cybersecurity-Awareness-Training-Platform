@@ -726,7 +726,18 @@ describe('LoginPage', () => {
         expect(currentAuthContext?.isAuthLoading).toBe(false);
       });
 
-      refreshSessionMock.mockRejectedValueOnce(new Error('Refresh failed'));
+      const activeChannel =
+        TestBroadCastChannel.instances[TestBroadCastChannel.instances.length - 1];
+
+      refreshSessionMock.mockRejectedValueOnce(
+        new ApiError('Refresh failed', {
+          status: 401,
+          statusText: 'Unauthorized',
+          method: 'POST',
+          url: 'http://localhost:4000/auth/refresh',
+          body: { error: 'AUTH_INVALID', message: 'Refresh failed' },
+        }),
+      );
 
       await act(async () => {
         await expect(currentAuthContext!.renewSession()).rejects.toThrow('Refresh failed');
@@ -734,7 +745,7 @@ describe('LoginPage', () => {
 
       expect(currentAuthContext?.isAuthenticated).toBe(false);
       expect(currentAuthContext?.token).toBeNull();
-      expect(TestBroadCastChannel.instances[0].postMessage).toHaveBeenCalledWith({
+      expect(activeChannel.postMessage).toHaveBeenCalledWith({
         type: 'SIGNED_OUT',
       });
     });

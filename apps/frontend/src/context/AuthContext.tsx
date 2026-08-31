@@ -192,7 +192,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const activeTokenRef = useRef<string | null>(storedAuth.token);
   const authChannelRef = useRef<BroadcastChannel | null>(null);
   const renewalPromiseRef = useRef<Promise<void> | null>(null);
-  const lastActivityAtRef = useRef(Date.now());
+  const lastActivityAtRef = useRef<number | null>(null);
 
   const idleWarningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const idleExpiryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -639,20 +639,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return;
       }
       if (message.type === 'ACTIVITY') {
-        if (message.observedAt > lastActivityAtRef.current) {
+        if (lastActivityAtRef.current === null || message.observedAt > lastActivityAtRef.current) {
           resetIdlePeriod(message.observedAt, false);
         }
         return;
       }
       if (message.type === 'IDLE_WARNING') {
-        if (message.lastActivityAt < lastActivityAtRef.current) {
+        if (
+          lastActivityAtRef.current !== null &&
+          message.lastActivityAt < lastActivityAtRef.current
+        ) {
           return;
         }
         resetIdlePeriod(message.lastActivityAt, false);
         setIsIdleWarningVisible(true);
         return;
       }
-      if (message.lastActivityAt < lastActivityAtRef.current) {
+      if (
+        lastActivityAtRef.current !== null &&
+        message.lastActivityAt < lastActivityAtRef.current
+      ) {
         return;
       }
 
@@ -675,9 +681,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     async function bootstrapAuth(): Promise<void> {
       try {
         await renewSession();
-        if (isMounted) {
-          resetIdlePeriod(Date.now(), true);
-        }
       } catch {
         //renewsession already fixes stuff if something bad happens
       } finally {
@@ -692,10 +695,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return () => {
       isMounted = false;
     };
-  }, [renewSession, resetIdlePeriod]);
+  }, [renewSession]);
 
   useEffect(() => {
-    scheduleIdleTimers(lastActivityAtRef.current);
+    if (isAuthLoading) {
+      return;
+    }
+
+    if (isAuthenticated === false || lastActivityAtRef.current !== null) {
+      return;
+    }
+
+    resetIdlePeriod(Date.now(), true);
+  }, [isAuthLoading, isAuthenticated, resetIdlePeriod]);
+
+  useEffect(() => {
+    const lastActivityAt = lastActivityAtRef.current;
+    if (lastActivityAt === null) {
+      return;
+    }
+    scheduleIdleTimers(lastActivityAt);
+    resetIdlePeriod(Date.now(), true);
     return () => {
       if (idleWarningTimerRef.current !== null) {
         globalThis.clearTimeout(idleWarningTimerRef.current);
@@ -706,7 +726,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         idleExpiryTimerRef.current = null;
       }
     };
-  }, [scheduleIdleTimers]);
+  }, [scheduleIdleTimers, resetIdlePeriod]);
 
   useEffect(() => {
     if (isAuthenticated === false) {
@@ -717,7 +737,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (isIdleWarningVisible) {
         return;
       }
-      resetIdlePeriod(Date.now(), true);
     }
 
     const activityEvents = [
