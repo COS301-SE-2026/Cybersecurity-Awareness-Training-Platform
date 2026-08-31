@@ -1,4 +1,7 @@
-import { getCampaignDraftItemTypeLabel } from './campaignDraftPresentation';
+import {
+  getCampaignDraftItemTypeClassName,
+  getCampaignDraftItemTypeLabel,
+} from './campaignDraftPresentation';
 import type { CampaignDraftItemState } from './campaignManagement.types';
 
 type CampaignOrderProps = Readonly<{
@@ -35,10 +38,12 @@ function CampaignOrder({
 
             return (
               <li key={key}>
-                <article className="campaign-order-item">
+                <article
+                  className={`campaign-order-item ${getCampaignDraftItemTypeClassName(item)}`}
+                >
                   <span className="campaign-order-item__position">{index + 1}</span>
                   <div>
-                    <span className="campaign-order-item__type">
+                    <span className="campaign-item-type">
                       {getCampaignDraftItemTypeLabel(item)}
                     </span>
                     <h3>{item.title}</h3>
