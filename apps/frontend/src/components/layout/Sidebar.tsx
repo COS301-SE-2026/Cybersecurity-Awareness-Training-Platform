@@ -7,6 +7,7 @@ import {
   BusinessOutlined,
   AdminPanelSettingsOutlined,
   CampaignOutlined,
+  AssignmentTurnedInOutlined,
   SecurityOutlined,
   InfoOutlined,
   HelpOutlineSharp,
@@ -27,6 +28,14 @@ function Sidebar() {
   const canAccessOrganisationCampaigns = permissions.some(
     (permission) => permission === 'VIEW_CAMPAIGNS' || permission === 'MANAGE_CAMPAIGNS',
   );
+  const { user, authContext, permissions } = useAuth();
+  const role = authContext?.role || user?.userType;
+  const organisationId = authContext?.organisation?.id;
+  const campaignAssignmentPath = `/organisations/${encodeURIComponent(organisationId ?? '')}/campaign-assignments/new`;
+  const canAssignTrainingCampaigns =
+    role === 'ORGANISATION_ADMIN' &&
+    typeof organisationId === 'string' &&
+    permissions.includes('ASSIGN_CAMPAIGNS');
 
   const getNavItems = (): NavItem[] => {
     if (role === 'IP_ADMIN') {
@@ -65,6 +74,15 @@ function Sidebar() {
           label: 'Trainees',
           path: '/organisation-trainees',
         },
+        ...(canAssignTrainingCampaigns === true
+          ? [
+              {
+                icon: <AssignmentTurnedInOutlined />,
+                label: 'Assign Training Campaigns',
+                path: campaignAssignmentPath,
+              },
+            ]
+          : []),
         {
           icon: <AdminPanelSettingsOutlined />,
           label: 'Administrators',
