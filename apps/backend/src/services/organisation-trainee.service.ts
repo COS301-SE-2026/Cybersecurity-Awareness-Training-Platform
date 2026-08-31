@@ -243,6 +243,15 @@ function assertInvitationResendEligibility(input: {
     );
   }
 
+  const managementPolicy = getInvitationActionPolicy(invitation);
+  if (!managementPolicy.canResend) {
+    throw new OrganisationTraineeServiceError(
+      409,
+      'INVITATION_NOT_RESENDABLE',
+      'Invitation is no longer eligible to be resent.',
+    );
+  }
+
   const isPlatformAdmin = existingUser?.userType === 'IP_ADMIN';
   const orgId = existingUser?.traineeProfile?.organisationTraineeProfile?.organisationId;
   const belongsToAnotherOrg = orgId !== undefined && orgId !== invitation.organisationId;

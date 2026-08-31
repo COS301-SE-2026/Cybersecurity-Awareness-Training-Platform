@@ -381,6 +381,32 @@ describe('OrganisationTraineeService', () => {
       );
     });
 
+    it('resends a rejected invitation when the lifecycle policy allows resend', async () => {
+      const invitation = buildMockInvitation({ id: mockInvitationId, status: 'REJECTED' });
+      invitationRepoMock.findInvitationById.mockResolvedValue(invitation);
+      invitationRepoMock.findUserByEmailWithProfiles.mockResolvedValue(null);
+      traineeRepoMock.resendOrganisationTraineeInvitationTx.mockResolvedValue({
+        actionToken: { id: mockActionTokenId },
+        claimedAt: new Date(),
+        emailResult: { status: 'QUEUED' },
+      });
+      traineeRepoMock.findAuthoritativeResentInvitation.mockResolvedValue({
+        ...buildMockInvitation({ id: mockInvitationId, status: 'PENDING' }),
+        actionTokens: [{ id: mockActionTokenId, revokedAt: null, usedAt: null }],
+      });
+
+      const result = await resendTraineeInvitation(mockActorUserId, mockOrgId, mockInvitationId);
+
+      expect(result.success).toBe(true);
+      expect(result.invitationId).toBe(mockInvitationId);
+      expect(traineeRepoMock.resendOrganisationTraineeInvitationTx).toHaveBeenCalledWith(
+        expect.objectContaining({
+          invitationId: mockInvitationId,
+          observedUpdatedAt: invitation.updatedAt,
+        }),
+      );
+    });
+
     it('throws 403 when actor only has VIEW_ORGANISATION_TRAINEES permission', async () => {
       invitationRepoMock.findInvitationById.mockResolvedValue(buildMockInvitation());
       orgAdminRepoMock.findActorOrganisationAdmin.mockResolvedValue(
@@ -406,6 +432,21 @@ describe('OrganisationTraineeService', () => {
         statusCode: 409,
         error: 'INVITATION_ALREADY_ACCEPTED',
       });
+    });
+
+    it('throws 409 when attempting to resend a completed invitation', async () => {
+      invitationRepoMock.findInvitationById.mockResolvedValue(
+        buildMockInvitation({ status: 'COMPLETED' }),
+      );
+      invitationRepoMock.findUserByEmailWithProfiles.mockResolvedValue(null);
+
+      await expect(
+        resendTraineeInvitation(mockActorUserId, mockOrgId, mockInvitationId),
+      ).rejects.toMatchObject({
+        statusCode: 409,
+        error: 'INVITATION_NOT_RESENDABLE',
+      });
+      expect(traineeRepoMock.resendOrganisationTraineeInvitationTx).not.toHaveBeenCalled();
     });
 
     it('throws 409 when attempting to resend an already revoked invitation', async () => {

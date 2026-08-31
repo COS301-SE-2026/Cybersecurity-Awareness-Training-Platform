@@ -348,6 +348,55 @@ describe('Organisation Trainee API Integration Tests', () => {
       expect(auditLog.outcome).toBe('SUCCESS');
     });
 
+    it('resends a rejected invitation that the management list advertises as actionable', async () => {
+      const inviteRes = await request(app)
+        .post(`/organisations/${fixture.organisation.id}/trainee-invitations`)
+        .set('Authorization', `Bearer ${fixture.token}`)
+        .send({ email: 'rejected.resend@example.com' });
+
+      expect(inviteRes.status).toBe(201);
+      const invId = inviteRes.body.invitation.id;
+
+      await prisma.invitation.update({
+        where: { id: invId },
+        data: { status: 'REJECTED' },
+      });
+
+      const listResponse = await request(app)
+        .get(`/organisations/${fixture.organisation.id}/trainees`)
+        .set('Authorization', `Bearer ${fixture.token}`);
+
+      expect(listResponse.status).toBe(200);
+      expect(listResponse.body.invitations).toContainEqual(
+        expect.objectContaining({
+          id: invId,
+          invitationStatus: 'REJECTED',
+          eligibility: expect.objectContaining({
+            canResend: true,
+          }),
+        }),
+      );
+
+      const resendResponse = await request(app)
+        .post(`/organisations/${fixture.organisation.id}/trainee-invitations/${invId}/resend`)
+        .set('Authorization', `Bearer ${fixture.token}`);
+
+      expect(resendResponse.status).toBe(200);
+      expect(resendResponse.body).toMatchObject({
+        success: true,
+        invitationId: invId,
+        invitation: expect.objectContaining({
+          invitationStatus: 'PENDING',
+          status: 'INVITE_PENDING',
+        }),
+      });
+
+      const resentInvitation = await prisma.invitation.findUniqueOrThrow({
+        where: { id: invId },
+      });
+      expect(resentInvitation.status).toBe('PENDING');
+    });
+
     it('revokes a trainee invitation, updating status to REVOKED and revoking active tokens', async () => {
       const inviteRes = await request(app)
         .post(`/organisations/${fixture.organisation.id}/trainee-invitations`)
