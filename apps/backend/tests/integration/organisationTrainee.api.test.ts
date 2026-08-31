@@ -159,7 +159,7 @@ describe('Organisation Trainee API Integration Tests', () => {
       );
     });
 
-    it('includes terminal invitation lifecycle rows in the management list', async () => {
+    it('lists memberships and actionable invitations without terminal invitation history', async () => {
       const accepted = await request(app)
         .post(`/organisations/${fixture.organisation.id}/trainee-invitations`)
         .set('Authorization', `Bearer ${fixture.token}`)
@@ -172,6 +172,32 @@ describe('Organisation Trainee API Integration Tests', () => {
         .post(`/organisations/${fixture.organisation.id}/trainee-invitations`)
         .set('Authorization', `Bearer ${fixture.token}`)
         .send({ email: 'revoked.trainee@example.com' });
+      const completed = await request(app)
+        .post(`/organisations/${fixture.organisation.id}/trainee-invitations`)
+        .set('Authorization', `Bearer ${fixture.token}`)
+        .send({ email: 'completed.trainee@example.com' });
+
+      await createTrainee({
+        user: {
+          email: 'accepted.trainee@example.com',
+          firstName: 'Accepted',
+          lastName: 'Member',
+        },
+        organisationProfile: {
+          organisationId: fixture.organisation.id,
+        },
+      });
+      const disabledMembership = await createTrainee({
+        user: {
+          email: 'disabled.member@example.com',
+          firstName: 'Disabled',
+          lastName: 'Member',
+        },
+        organisationProfile: {
+          organisationId: fixture.organisation.id,
+          membershipStatus: 'DISABLED',
+        },
+      });
 
       await prisma.invitation.update({
         where: { id: accepted.body.invitation.id },
@@ -184,6 +210,17 @@ describe('Organisation Trainee API Integration Tests', () => {
       await prisma.invitation.update({
         where: { id: revoked.body.invitation.id },
         data: { status: 'REVOKED', revokedAt: new Date() },
+      });
+      await prisma.invitation.update({
+        where: { id: completed.body.invitation.id },
+        data: { status: 'COMPLETED', acceptedAt: new Date() },
+      });
+      await prisma.organisationTraineeProfile.update({
+        where: { id: disabledMembership.organisationTraineeProfile!.id },
+        data: {
+          disabledAt: new Date(),
+          disabledReason: 'No longer active',
+        },
       });
       await prisma.invitation.update({
         where: { id: accepted.body.invitation.id },
@@ -203,22 +240,50 @@ describe('Organisation Trainee API Integration Tests', () => {
         .set('Authorization', `Bearer ${fixture.token}`);
 
       expect(response.status).toBe(200);
-      expect(response.body.invitations).toEqual(
+      expect(response.body.trainees).toContainEqual(
+        expect.objectContaining({
+          email: 'accepted.trainee@example.com',
+          rowType: 'ACTIVE_TRAINEE',
+          status: 'ACTIVE',
+        }),
+      );
+      expect(response.body.trainees).toContainEqual(
+        expect.objectContaining({
+          email: 'disabled.member@example.com',
+          rowType: 'ACTIVE_TRAINEE',
+          status: 'DISABLED',
+        }),
+      );
+      expect(response.body.invitations).toContainEqual(
+        expect.objectContaining({
+          email: 'rejected.trainee@example.com',
+          rowType: 'INVITATION',
+          invitationStatus: 'REJECTED',
+        }),
+      );
+      expect(response.body.pendingInvitations).toEqual(response.body.invitations);
+      expect(response.body.invitations).not.toEqual(
         expect.arrayContaining([
-          expect.objectContaining({
-            email: 'accepted.trainee@example.com',
-            invitationStatus: 'ACCEPTED',
-          }),
-          expect.objectContaining({
-            email: 'rejected.trainee@example.com',
-            invitationStatus: 'REJECTED',
-          }),
-          expect.objectContaining({
-            email: 'revoked.trainee@example.com',
-            invitationStatus: 'REVOKED',
-          }),
+          expect.objectContaining({ email: 'accepted.trainee@example.com' }),
+          expect.objectContaining({ email: 'completed.trainee@example.com' }),
+          expect.objectContaining({ email: 'revoked.trainee@example.com' }),
         ]),
       );
+
+      const persistedInvitationCount = await prisma.invitation.count({
+        where: {
+          organisationId: fixture.organisation.id,
+          recipientEmail: {
+            in: [
+              'accepted.trainee@example.com',
+              'completed.trainee@example.com',
+              'rejected.trainee@example.com',
+              'revoked.trainee@example.com',
+            ],
+          },
+        },
+      });
+      expect(persistedInvitationCount).toBe(4);
     });
   });
 
@@ -281,6 +346,59 @@ describe('Organisation Trainee API Integration Tests', () => {
       expect(auditLog.targetId).toBe(invId);
       expect(auditLog.targetType).toBe('INVITATION');
       expect(auditLog.outcome).toBe('SUCCESS');
+    });
+
+    it('resends a rejected invitation that the management list advertises as actionable', async () => {
+      const inviteRes = await request(app)
+        .post(`/organisations/${fixture.organisation.id}/trainee-invitations`)
+        .set('Authorization', `Bearer ${fixture.token}`)
+        .send({ email: 'rejected.resend@example.com' });
+
+      expect(inviteRes.status).toBe(201);
+      const invId = inviteRes.body.invitation.id;
+
+      await prisma.invitation.update({
+        where: { id: invId },
+        data: { status: 'REJECTED' },
+      });
+      await prisma.emailDeliveryLog.updateMany({
+        where: { invitationId: invId },
+        data: { createdAt: new Date(Date.now() - 61_000) },
+      });
+
+      const listResponse = await request(app)
+        .get(`/organisations/${fixture.organisation.id}/trainees`)
+        .set('Authorization', `Bearer ${fixture.token}`);
+
+      expect(listResponse.status).toBe(200);
+      expect(listResponse.body.invitations).toContainEqual(
+        expect.objectContaining({
+          id: invId,
+          invitationStatus: 'REJECTED',
+          eligibility: expect.objectContaining({
+            canResend: true,
+          }),
+        }),
+      );
+
+      const resendResponse = await request(app)
+        .post(`/organisations/${fixture.organisation.id}/trainee-invitations/${invId}/resend`)
+        .set('Authorization', `Bearer ${fixture.token}`);
+
+      expect(resendResponse.status).toBe(200);
+      expect(resendResponse.body).toMatchObject({
+        success: true,
+        invitationId: invId,
+        invitation: expect.objectContaining({
+          invitationStatus: 'PENDING',
+          status: 'INVITE_PENDING',
+        }),
+      });
+
+      const resentInvitation = await prisma.invitation.findUniqueOrThrow({
+        where: { id: invId },
+      });
+      expect(resentInvitation.status).toBe('PENDING');
     });
 
     it('revokes a trainee invitation, updating status to REVOKED and revoking active tokens', async () => {

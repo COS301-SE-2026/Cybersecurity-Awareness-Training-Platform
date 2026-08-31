@@ -398,7 +398,7 @@ describe('organisation-trainee.repository unit tests', () => {
       expect(txMock.invitation.updateMany).toHaveBeenCalledWith({
         where: {
           id: 'inv-1',
-          status: { in: ['PENDING', 'SENT', 'FAILED_TO_SEND'] },
+          status: { in: ['PENDING', 'SENT', 'FAILED_TO_SEND', 'EXPIRED', 'REJECTED'] },
           updatedAt: input.observedUpdatedAt,
         },
         data: {
