@@ -4,6 +4,7 @@ import {
   organisationInvitationParamsSchema,
   organisationTraineeParamsSchema,
   organisationTraineesParamsSchema,
+  reenableTraineeRequestSchema,
 } from '@insightful-phish/shared';
 import { Router } from 'express';
 import rateLimit, { MemoryStore } from 'express-rate-limit';
@@ -11,6 +12,7 @@ import {
   createTraineeInvitation,
   disableTrainee,
   getOrganisationTrainees,
+  reenableTrainee,
   resendInvitation,
   revokeInvitation,
 } from '../controllers/organisation-trainee.controller.js';
@@ -252,4 +254,13 @@ organisationTraineeRouter.patch(
   validateParams(organisationTraineeParamsSchema),
   validateBody(disableTraineeRequestSchema, { statusCode: 422 }),
   asyncHandler(disableTrainee),
+);
+
+organisationTraineeRouter.patch(
+  '/organisations/:organisationId/trainees/:traineeId/enable',
+  organisationTraineeSensitiveActionRateLimit,
+  requireAuth,
+  validateParams(organisationTraineeParamsSchema),
+  validateBody(reenableTraineeRequestSchema, { statusCode: 422 }),
+  asyncHandler(reenableTrainee),
 );

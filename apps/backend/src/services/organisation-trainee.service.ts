@@ -6,6 +6,8 @@ import type {
   InvitationActionUnavailableReasonCode,
   InvitationResendResponseDto,
   InvitationRevokeResponseDto,
+  ReenableTraineeRequestDto,
+  ReenableTraineeResponseDto,
   TraineeListResponseDto,
   TraineeListItemDto,
 } from '@insightful-phish/shared';
@@ -31,6 +33,7 @@ import {
   findOrganisationTrainees,
   findPendingTraineeInvitationByEmail,
   OrganisationTraineeRepositoryError,
+  reenableOrganisationTraineeTx,
   resendOrganisationTraineeInvitationTx,
   revokeOrganisationTraineeInvitationTx,
 } from '../repositories/organisation-trainee.repository.js';
@@ -913,5 +916,68 @@ export async function disableOrganisationTrainee(
     message: 'Trainee account disabled successfully.',
     traineeId: txResult.txTrainee.id,
     status: 'DISABLED',
+  };
+}
+
+export async function reenableOrganisationTrainee(
+  actorUserId: string,
+  organisationId: string,
+  traineeId: string,
+  input: ReenableTraineeRequestDto,
+): Promise<ReenableTraineeResponseDto> {
+  const actor = await requireActorAdmin(actorUserId, organisationId);
+  requirePermission(
+    permissionKeysForAdmin(actor),
+    OrganisationPermissionKey.REMOVE_ORGANISATION_TRAINEES,
+  );
+  assertTraineeMutationAllowed(actor.organisation.status);
+
+  const passwordMatches = await verifyPassword(input.password, actor.user.passwordHash);
+  if (!passwordMatches) {
+    await recordAuditLog({
+      actorUserId,
+      actorType: 'ORGANISATION_ADMIN',
+      organisationId,
+      targetType: 'USER',
+      targetId: traineeId,
+      actionType: 'REACTIVATED',
+      outcome: 'FAILURE',
+      metadata: {
+        reason: 'INCORRECT_PASSWORD',
+        traineeId,
+      },
+    });
+    throw new OrganisationTraineeServiceError(
+      403,
+      'ORG_TRAINEE_PASSWORD_INVALID',
+      'Password confirmation failed',
+    );
+  }
+
+  let txResult: Awaited<ReturnType<typeof reenableOrganisationTraineeTx>>;
+  try {
+    txResult = await reenableOrganisationTraineeTx({
+      actorUserId,
+      organisationId,
+      traineeId,
+      auditLogData: {
+        actorUserId,
+        actorType: 'ORGANISATION_ADMIN',
+        organisationId,
+        targetType: 'USER',
+        actionType: 'REACTIVATED',
+        outcome: 'SUCCESS',
+        metadata: { traineeId },
+      },
+    });
+  } catch (error) {
+    rethrowAsServiceError(error);
+  }
+
+  return {
+    success: true,
+    message: 'Trainee account re-enabled successfully.',
+    traineeId: txResult.txTrainee.id,
+    status: 'ACTIVE',
   };
 }
