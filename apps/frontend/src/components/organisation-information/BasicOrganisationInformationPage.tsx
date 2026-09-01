@@ -12,6 +12,26 @@ export interface BasicOrganisationInfoProps {
   isRequestOnly?: boolean;
 }
 
+const statusLabels: Record<string, string> = {
+  PENDING_ONBOARDING: 'Approved - Waiting for Setup',
+  PENDING: 'Pending Approval',
+  PENDING_REVIEW: 'Pending Review',
+  CONTACTED: 'Contacted',
+  APPROVED: 'Approved',
+  REJECTED: 'Rejected',
+  CANCELLED: 'Cancelled',
+  ACTIVE: 'Active',
+  INACTIVE: 'Inactive',
+  SUSPENDED: 'Suspended',
+  DISABLED: 'Disabled',
+  ARCHIVED: 'Archived',
+};
+
+function formatStatus(status?: string): string {
+  if (!status) return '';
+  return statusLabels[status] ?? status;
+}
+
 function BasicOrganisationInformationPage({
   name = '',
   description = '',
@@ -22,8 +42,8 @@ function BasicOrganisationInformationPage({
   status = '',
   isRequestOnly = false,
 }: Readonly<BasicOrganisationInfoProps>) {
-  // convert ISO timestamp string to YYYY-MM-DD format for date input
   const formattedDate = registrationDate ? registrationDate.split('T')[0] : '';
+  const displayStatus = formatStatus(status);
 
   return (
     <div className="-mt-2 -ml-2">
@@ -182,7 +202,7 @@ function BasicOrganisationInformationPage({
             name="status"
             id="status"
             disabled={true}
-            value={status}
+            value={displayStatus}
             readOnly
             className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 rounded-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
             placeholder="Organisation Status"

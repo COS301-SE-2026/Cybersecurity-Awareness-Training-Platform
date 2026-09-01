@@ -33,12 +33,20 @@ const editableCapabilities: AccountCapabilitiesResponse = {
   canRequestEmailChange: true,
   canChangePassword: true,
   canEditSecurityPreferences: true,
+  canDeleteAccount: false,
   securityPreferenceEditable: {
     preferredRegularSessionLengthHours: true,
     preferredRememberMeSessionLengthHours: true,
     preferredIdleTimeoutMinutes: true,
   },
-  blockedReasons: {},
+  blockedReasons: {
+    emailChange: null,
+    securityPreferences: null,
+    preferredRegularSessionLengthHours: null,
+    preferredRememberMeSessionLengthHours: null,
+    preferredIdleTimeoutMinutes: null,
+    deleteAccount: 'SELF_DELETION_NOT_SUPPORTED',
+  },
 };
 
 const securityPreferences: AccountSecurityPreferencesResponse = {

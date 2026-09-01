@@ -1108,6 +1108,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             'canRequestEmailChange',
             'canChangePassword',
             'canEditSecurityPreferences',
+            'canDeleteAccount',
             'securityPreferenceEditable',
             'blockedReasons',
           ],
@@ -1116,6 +1117,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             canRequestEmailChange: booleanProperty(true),
             canChangePassword: booleanProperty(true),
             canEditSecurityPreferences: booleanProperty(true),
+            canDeleteAccount: booleanProperty(false),
             securityPreferenceEditable: {
               type: 'object',
               required: [
@@ -1137,6 +1139,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
                 'preferredRegularSessionLengthHours',
                 'preferredRememberMeSessionLengthHours',
                 'preferredIdleTimeoutMinutes',
+                'deleteAccount',
               ],
               properties: {
                 emailChange: nullableString('ORGANISATION_POLICY_BLOCKED'),
@@ -1146,6 +1149,17 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
                   'ORGANISATION_POLICY_ENFORCED',
                 ),
                 preferredIdleTimeoutMinutes: nullableString('ORGANISATION_POLICY_ENFORCED'),
+                deleteAccount: {
+                  type: 'string',
+                  nullable: true,
+                  enum: [
+                    'PLATFORM_SELF_DELETION_NOT_SUPPORTED',
+                    'ORGANISATION_ADMIN_MANAGED',
+                    'ORGANISATION_TRAINEE_MANAGED',
+                    'SELF_DELETION_NOT_SUPPORTED',
+                  ],
+                  example: 'PLATFORM_SELF_DELETION_NOT_SUPPORTED',
+                },
               },
             },
           },

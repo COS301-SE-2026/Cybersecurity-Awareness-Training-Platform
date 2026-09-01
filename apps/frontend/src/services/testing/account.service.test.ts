@@ -25,23 +25,86 @@ vi.mock('../../lib/apiClient', async () => {
   };
 });
 
+const mockAccountData = {
+  profile: {
+    id: 'user-1',
+    firstName: 'John',
+    lastName: 'Doe',
+    email: 'john@example.com',
+    userType: 'GENERAL_TRAINEE',
+    authStatus: 'ACTIVE',
+    emailVerified: true,
+    emailVerifiedAt: null,
+    createdAt: '2026-08-01T00:00:00.000Z',
+    updatedAt: '2026-08-01T00:00:00.000Z',
+  },
+  securityPreferences: {
+    id: null,
+    preferredRegularSessionLengthHours: null,
+    preferredRememberMeSessionLengthHours: null,
+    preferredIdleTimeoutMinutes: null,
+    updatedAt: null,
+  },
+  effectivePolicy: {
+    organisationId: null,
+    rememberMeRequested: false,
+    rememberMeAllowed: true,
+    rememberMeApplied: false,
+    regularSessionSeconds: 900,
+    rememberedSessionSeconds: 604800,
+    effectiveSessionSeconds: 900,
+    idleTimeoutMinutes: null,
+    requireReauthenticationForSensitiveActions: true,
+    allowEmailChange: true,
+    sources: {},
+  },
+  capabilities: {
+    canEditProfile: true,
+    canRequestEmailChange: true,
+    canChangePassword: true,
+    canEditSecurityPreferences: true,
+    canDeleteAccount: false,
+    securityPreferenceEditable: {
+      preferredRegularSessionLengthHours: true,
+      preferredRememberMeSessionLengthHours: true,
+      preferredIdleTimeoutMinutes: true,
+    },
+    blockedReasons: {
+      emailChange: null,
+      securityPreferences: null,
+      preferredRegularSessionLengthHours: null,
+      preferredRememberMeSessionLengthHours: null,
+      preferredIdleTimeoutMinutes: null,
+      deleteAccount: 'SELF_DELETION_NOT_SUPPORTED' as const,
+    },
+  },
+};
+
 describe('account.service', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('fetches account details', async () => {
-    const mockData = { profile: { id: '1', firstName: 'John', lastName: 'Doe' } };
-    vi.mocked(apiClient.get).mockResolvedValueOnce(mockData);
+  it('fetches and validates account details at runtime boundary', async () => {
+    vi.mocked(apiClient.get).mockResolvedValueOnce(mockAccountData);
 
     const res = await getAccount();
     expect(apiClient.get).toHaveBeenCalledWith('/account', { credentials: 'include' });
-    expect(res).toEqual(mockData);
+    expect(res).toEqual(mockAccountData);
   });
 
-  it('updates account profile', async () => {
-    const mockData = { profile: { id: '1', firstName: 'Jane', lastName: 'Doe' } };
-    vi.mocked(apiClient.patch).mockResolvedValueOnce(mockData);
+  it('fails safely when getAccount receives an invalid schema payload', async () => {
+    vi.mocked(apiClient.get).mockResolvedValueOnce({ invalid: 'payload' });
+
+    await expect(getAccount()).rejects.toThrow();
+  });
+
+  it('updates account profile and validates response', async () => {
+    const updatedMockData = {
+      ...mockAccountData,
+      profile: { ...mockAccountData.profile, firstName: 'Jane' },
+    };
+    vi.mocked(apiClient.patch).mockResolvedValueOnce(updatedMockData);
 
     const res = await updateAccountProfile({ firstName: 'Jane', lastName: 'Doe' });
     expect(apiClient.patch).toHaveBeenCalledWith(
@@ -49,7 +112,7 @@ describe('account.service', () => {
       { firstName: 'Jane', lastName: 'Doe' },
       { credentials: 'include' },
     );
-    expect(res).toEqual(mockData);
+    expect(res).toEqual(updatedMockData);
   });
 
   it('requests account email change', async () => {
@@ -120,15 +183,21 @@ describe('account.service', () => {
   });
 
   it('updates security preferences', async () => {
-    const mockData = { securityPreferences: { preferredIdleTimeoutMinutes: 15 } };
-    vi.mocked(apiClient.patch).mockResolvedValueOnce(mockData);
+    const updatedPreferencesData = {
+      ...mockAccountData,
+      securityPreferences: {
+        ...mockAccountData.securityPreferences,
+        preferredIdleTimeoutMinutes: 15,
+      },
+    };
+    vi.mocked(apiClient.patch).mockResolvedValueOnce(updatedPreferencesData);
 
     const payload = { preferredIdleTimeoutMinutes: 15 };
     const res = await updateAccountSecurityPreferences(payload);
     expect(apiClient.patch).toHaveBeenCalledWith('/account/security-preferences', payload, {
       credentials: 'include',
     });
-    expect(res).toEqual(mockData);
+    expect(res).toEqual(updatedPreferencesData);
   });
 
   it('extracts error message from ApiError and standard errors', () => {
