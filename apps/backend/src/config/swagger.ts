@@ -2809,6 +2809,38 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             status: enumString(['DISABLED'], 'DISABLED'),
           },
         },
+        ReenableTraineeRequest: {
+          type: 'object',
+          required: ['password', 'confirmation'],
+          additionalProperties: false,
+          properties: {
+            password: {
+              type: 'string',
+              format: 'password',
+              minLength: 1,
+              description: 'Current password of the acting Organisation Admin.',
+            },
+            confirmation: {
+              type: 'boolean',
+              enum: [true],
+              example: true,
+              description: 'Explicit confirmation of the membership re-enable action.',
+            },
+          },
+        },
+        ReenableTraineeResponse: {
+          type: 'object',
+          required: ['success', 'message'],
+          properties: {
+            success: booleanProperty(true),
+            message: {
+              type: 'string',
+              example: 'Trainee account re-enabled successfully.',
+            },
+            traineeId: uuidString('44444444-4444-4444-8444-444444444444'),
+            status: enumString(['ACTIVE'], 'ACTIVE'),
+          },
+        },
         OrganisationSecuritySettings: {
           type: 'object',
           required: [
@@ -5251,6 +5283,10 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
           required: true,
           ...jsonContent(schemaRef('DisableTraineeRequest')),
         },
+        ReenableTrainee: {
+          required: true,
+          ...jsonContent(schemaRef('ReenableTraineeRequest')),
+        },
         CreateCampaignAssignments: {
           required: true,
           ...jsonContent(schemaRef('CreateCampaignAssignmentsRequest')),
@@ -5387,6 +5423,10 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         OrganisationTraineeDisabled: responseComponent(
           'Trainee account disabled successfully.',
           'DisableTraineeResponse',
+        ),
+        OrganisationTraineeReenabled: responseComponent(
+          'Trainee account re-enabled successfully.',
+          'ReenableTraineeResponse',
         ),
         OrganisationRegistrationRequestCreated: responseComponent(
           'Organisation registration request submitted for review.',

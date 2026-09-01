@@ -4,6 +4,7 @@ import {
   organisationInvitationParamsSchema,
   organisationTraineeParamsSchema,
   organisationTraineesParamsSchema,
+  reenableTraineeRequestSchema,
 } from '@insightful-phish/shared';
 import { Router } from 'express';
 import rateLimit, { MemoryStore } from 'express-rate-limit';
@@ -11,6 +12,7 @@ import {
   createTraineeInvitation,
   disableTrainee,
   getOrganisationTrainees,
+  reenableTrainee,
   resendInvitation,
   revokeInvitation,
 } from '../controllers/organisation-trainee.controller.js';
@@ -252,4 +254,47 @@ organisationTraineeRouter.patch(
   validateParams(organisationTraineeParamsSchema),
   validateBody(disableTraineeRequestSchema, { statusCode: 422 }),
   asyncHandler(disableTrainee),
+);
+
+/**
+ * @openapi
+ * /organisations/{organisationId}/trainees/{traineeId}/enable:
+ *   patch:
+ *     tags: [Organisation Trainees]
+ *     summary: Re-enable a disabled trainee membership
+ *     description: Re-enables an existing Organisation Trainee membership through the exact DISABLED to ACTIVE transition. Requires REMOVE_ORGANISATION_TRAINEES permission and confirmation using the acting Organisation Admin's current password. The operation updates the existing membership and records an audit event; it does not create a profile or invitation and does not restore revoked sessions.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/OrganisationIdPathParam'
+ *       - $ref: '#/components/parameters/TraineeIdPathParam'
+ *     requestBody:
+ *       $ref: '#/components/requestBodies/ReenableTrainee'
+ *     responses:
+ *       200:
+ *         $ref: '#/components/responses/OrganisationTraineeReenabled'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         description: The actor is unauthorised, lacks the required permission, or failed password re-authentication.
+ *       404:
+ *         description: The membership was not found in the actor's Organisation.
+ *       409:
+ *         description: The membership is not in the DISABLED state required for this transition.
+ *       422:
+ *         $ref: '#/components/responses/UnprocessableEntity'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+organisationTraineeRouter.patch(
+  '/organisations/:organisationId/trainees/:traineeId/enable',
+  organisationTraineeSensitiveActionRateLimit,
+  requireAuth,
+  validateParams(organisationTraineeParamsSchema),
+  validateBody(reenableTraineeRequestSchema, { statusCode: 422 }),
+  asyncHandler(reenableTrainee),
 );
