@@ -383,7 +383,7 @@ function OrganisationInformationPage() {
         {detailData?.status === 'SUSPENDED' && (
           <div className="mb-6 p-4 bg-amber-50 border border-amber-300 text-amber-900 rounded-none font-overpass">
             <span className="font-semibold">Warning:</span> This organisation is currently
-            SUSPENDED. Lifecycle actions are restricted.
+            suspended. Lifecycle actions are restricted.
           </div>
         )}
 

@@ -1,62 +1,24 @@
-import type {
-  AccountChangeEmailRequestDto,
-  AccountChangePasswordRequestDto,
-  AccountProfileUpdateRequestDto,
-  AccountSecurityPreferencesRequestDto,
+import {
+  accountResponseSchema,
+  type AccountChangeEmailRequestDto,
+  type AccountChangePasswordRequestDto,
+  type AccountProfileUpdateRequestDto,
+  type AccountSecurityPreferencesRequestDto,
+  type AccountCapabilitiesResponseDto,
+  type AccountResponseDto,
+  type AccountPolicyResponseDto,
+  type AccountProfileResponseDto,
+  type AccountSecurityPreferencesResponseDto,
+  type AccountDeletionBlockedReasonDto,
 } from '@insightful-phish/shared';
 import { apiClient, ApiError } from '../lib/apiClient';
 
-export type AccountPolicyResponse = {
-  organisationId: string | null;
-  rememberMeRequested: boolean;
-  rememberMeAllowed: boolean;
-  rememberMeApplied: boolean;
-  regularSessionSeconds: number;
-  rememberedSessionSeconds: number;
-  effectiveSessionSeconds: number;
-  idleTimeoutMinutes: number | null;
-  requireReauthenticationForSensitiveActions: boolean;
-  allowEmailChange: boolean;
-  sources: Record<string, string>;
-};
-
-export type AccountCapabilitiesResponse = {
-  canEditProfile: boolean;
-  canRequestEmailChange: boolean;
-  canChangePassword: boolean;
-  canEditSecurityPreferences: boolean;
-  canDeleteAccount?: boolean;
-  securityPreferenceEditable: Record<string, boolean>;
-  blockedReasons: Record<string, string | null>;
-};
-
-export type AccountProfileResponse = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  userType: string;
-  authStatus: string;
-  emailVerified: boolean;
-  emailVerifiedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-};
-
-export type AccountSecurityPreferencesResponse = {
-  id: string | null;
-  preferredRegularSessionLengthHours: number | null;
-  preferredRememberMeSessionLengthHours: number | null;
-  preferredIdleTimeoutMinutes: number | null;
-  updatedAt: string | null;
-};
-
-export type AccountResponse = {
-  profile: AccountProfileResponse;
-  securityPreferences: AccountSecurityPreferencesResponse;
-  effectivePolicy: AccountPolicyResponse;
-  capabilities: AccountCapabilitiesResponse;
-};
+export type AccountPolicyResponse = AccountPolicyResponseDto;
+export type AccountCapabilitiesResponse = AccountCapabilitiesResponseDto;
+export type AccountProfileResponse = AccountProfileResponseDto;
+export type AccountSecurityPreferencesResponse = AccountSecurityPreferencesResponseDto;
+export type AccountResponse = AccountResponseDto;
+export type { AccountDeletionBlockedReasonDto };
 
 export type AccountChangeEmailResponse = { message: string; emailQueued: boolean };
 export type AccountChangePasswordResponse = {
@@ -81,20 +43,22 @@ export type AccountSessionsResponse = { sessions: AccountSessionResponse[] };
 export type AccountSessionRevocationResponse = { revoked: true };
 export type AccountLogoutOthersResponse = { revokedSessionCount: number };
 
-export function getAccount(): Promise<AccountResponse> {
-  return apiClient.get<AccountResponse>('/account', {
+export async function getAccount(): Promise<AccountResponse> {
+  const raw = await apiClient.get<unknown>('/account', {
     credentials: 'include',
   });
+  return accountResponseSchema.parse(raw);
 }
 
-export function updateAccountProfile(
+export async function updateAccountProfile(
   payload: AccountProfileUpdateRequestDto,
 ): Promise<AccountResponse> {
-  return apiClient.patch<AccountResponse, AccountProfileUpdateRequestDto>(
+  const raw = await apiClient.patch<unknown, AccountProfileUpdateRequestDto>(
     '/account/profile',
     payload,
     { credentials: 'include' },
   );
+  return accountResponseSchema.parse(raw);
 }
 
 export function requestAccountEmailChange(
@@ -136,14 +100,15 @@ export function logoutOtherAccountSessions(): Promise<AccountLogoutOthersRespons
   });
 }
 
-export function updateAccountSecurityPreferences(
+export async function updateAccountSecurityPreferences(
   payload: AccountSecurityPreferencesRequestDto,
 ): Promise<AccountResponse> {
-  return apiClient.patch<AccountResponse, AccountSecurityPreferencesRequestDto>(
+  const raw = await apiClient.patch<unknown, AccountSecurityPreferencesRequestDto>(
     '/account/security-preferences',
     payload,
     { credentials: 'include' },
   );
+  return accountResponseSchema.parse(raw);
 }
 
 export function extractErrorMessage(error: unknown): string {

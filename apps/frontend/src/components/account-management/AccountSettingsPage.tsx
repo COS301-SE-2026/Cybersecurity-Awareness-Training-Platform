@@ -6,6 +6,7 @@ import { ReadOnlyField } from '../ui/FormField';
 import {
   type AccountProfileResponse,
   type AccountCapabilitiesResponse,
+  type AccountDeletionBlockedReasonDto,
 } from '../../services/account.service';
 
 type AccountSettingsPageProps = Readonly<{
@@ -17,38 +18,18 @@ type AccountSettingsPageProps = Readonly<{
 }>;
 
 function getDeleteAccountUnavailableReason(
-  blockedReason?: string | null,
-  userType?: string | null,
+  blockedReason?: AccountDeletionBlockedReasonDto | string | null,
 ): string {
   switch (blockedReason) {
     case 'PLATFORM_SELF_DELETION_NOT_SUPPORTED':
-    case 'PLATFORM_ACCOUNT_NOT_SELF_DELETABLE':
-    case 'PLATFORM_MANAGED':
       return 'Platform accounts do not support self-deletion.';
     case 'ORGANISATION_ADMIN_MANAGED':
-      return 'Account deletion is managed by your platform administrator.';
+      return 'Account deletion is managed by another organisation administrator.';
     case 'ORGANISATION_TRAINEE_MANAGED':
       return 'Account deletion is managed by your organisation administrator.';
-    case 'ORGANISATION_MANAGED':
-      return userType === 'ORGANISATION_ADMIN'
-        ? 'Account deletion is managed by your platform administrator.'
-        : 'Account deletion is managed by your organisation administrator.';
     case 'SELF_DELETION_NOT_SUPPORTED':
-    case 'SELF_SERVICE_DELETION_UNAVAILABLE':
       return 'Account self-deletion is currently unavailable.';
     default:
-      if (userType === 'IP_ADMIN') {
-        return 'Platform accounts do not support self-deletion.';
-      }
-      if (userType === 'ORGANISATION_ADMIN') {
-        return 'Account deletion is managed by your platform administrator.';
-      }
-      if (userType === 'ORGANISATION_TRAINEE') {
-        return 'Account deletion is managed by your organisation administrator.';
-      }
-      if (userType === 'GENERAL_TRAINEE') {
-        return 'Account self-deletion is currently unavailable.';
-      }
       return 'Account deletion is currently unavailable.';
   }
 }
@@ -68,7 +49,6 @@ function AccountSettingsPage({
   const canDeleteAccount = capabilities?.canDeleteAccount ?? false;
   const deleteAccountUnavailableReason = getDeleteAccountUnavailableReason(
     capabilities?.blockedReasons?.deleteAccount,
-    profile?.userType,
   );
 
   function handleEmailSuccess(msg: string) {

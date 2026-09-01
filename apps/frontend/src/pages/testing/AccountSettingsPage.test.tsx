@@ -115,7 +115,7 @@ describe('AccountSettingsPage', () => {
     {
       userType: 'ORGANISATION_ADMIN',
       deleteReason: 'ORGANISATION_ADMIN_MANAGED',
-      expectedExplanation: 'Account deletion is managed by your platform administrator.',
+      expectedExplanation: 'Account deletion is managed by another organisation administrator.',
       assertNoOrgWord: false,
     },
   ])(

@@ -30,6 +30,45 @@ function formatTimelineAction(action: string): string {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
+const timelineSummaryMappings: Record<string, string> = {
+  'CREATED on ORGANISATION_REGISTRATION_REQUEST': 'Organisation registration request submitted.',
+  'CONTACTED on ORGANISATION_REGISTRATION_REQUEST': 'Representative contacted for registration.',
+  'APPROVED on ORGANISATION_REGISTRATION_REQUEST': 'Organisation registration request approved.',
+  'REJECTED on ORGANISATION_REGISTRATION_REQUEST': 'Organisation registration request rejected.',
+  'CREATED on INVITATION': 'Initial administrator setup invitation created.',
+  'RESENT on INVITATION': 'Initial administrator setup invitation resent.',
+  'ACCEPTED on INVITATION': 'Setup invitation accepted by representative.',
+  'COMPLETED on INVITATION': 'Administrator account setup completed.',
+  'CREATED on ORGANISATION': 'Organisation record created.',
+  'ENABLED on ORGANISATION': 'Organisation enabled on the platform.',
+  'SUSPENDED on ORGANISATION': 'Organisation suspended on the platform.',
+  'REACTIVATED on ORGANISATION': 'Organisation reactivated on the platform.',
+};
+
+function formatTimelineSummary(summary: string): string {
+  if (!summary) return '';
+  if (timelineSummaryMappings[summary]) {
+    return timelineSummaryMappings[summary];
+  }
+
+  const onMatch = summary.match(/^([A-Z_]+)\s+on\s+([A-Z_]+)$/);
+  if (onMatch) {
+    const [, rawAction, rawTarget] = onMatch;
+    const actionClean = rawAction.replace(/_/g, ' ').toLowerCase();
+    const targetClean = rawTarget.replace(/_/g, ' ').toLowerCase();
+    return `${actionClean.charAt(0).toUpperCase() + actionClean.slice(1)} on ${targetClean}.`;
+  }
+
+  return summary
+    .replace(/\bSUSPENDED\b/g, 'Suspended')
+    .replace(/\bORGANISATION\b/g, 'Organisation')
+    .replace(/\bACTIVE\b/g, 'Active')
+    .replace(/\bPENDING_ONBOARDING\b/g, 'Approved - Waiting for Setup')
+    .replace(/\bPENDING\b/g, 'Pending')
+    .replace(/\bCOMPLETED\b/g, 'Completed')
+    .replace(/\bSENT\b/g, 'Sent');
+}
+
 function OrganisationTimelinePage({ timeline }: Readonly<OrganisationTimelineProps>) {
   const hasTimelineEvents = Boolean(timeline && timeline.length > 0);
 
@@ -54,7 +93,7 @@ function OrganisationTimelinePage({ timeline }: Readonly<OrganisationTimelinePro
     id: item.id,
     timestamp: new Date(item.timestamp).toLocaleString(),
     action: formatTimelineAction(item.action),
-    summary: item.summary,
+    summary: formatTimelineSummary(item.summary),
     actor: item.actor,
   }));
 

@@ -169,7 +169,7 @@ describe('OrganisationInformationPage Integration', () => {
     renderWithRouter('/platform/organisations/org-suspended-1');
 
     await waitFor(() => {
-      expect(screen.getByText(/This organisation is currently SUSPENDED/i)).toBeInTheDocument();
+      expect(screen.getByText(/This organisation is currently suspended/i)).toBeInTheDocument();
     });
   });
 

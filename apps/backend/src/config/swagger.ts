@@ -1133,7 +1133,17 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
                   'ORGANISATION_POLICY_ENFORCED',
                 ),
                 preferredIdleTimeoutMinutes: nullableString('ORGANISATION_POLICY_ENFORCED'),
-                deleteAccount: nullableString('PLATFORM_SELF_DELETION_NOT_SUPPORTED'),
+                deleteAccount: {
+                  type: 'string',
+                  nullable: true,
+                  enum: [
+                    'PLATFORM_SELF_DELETION_NOT_SUPPORTED',
+                    'ORGANISATION_ADMIN_MANAGED',
+                    'ORGANISATION_TRAINEE_MANAGED',
+                    'SELF_DELETION_NOT_SUPPORTED',
+                  ],
+                  example: 'PLATFORM_SELF_DELETION_NOT_SUPPORTED',
+                },
               },
             },
           },

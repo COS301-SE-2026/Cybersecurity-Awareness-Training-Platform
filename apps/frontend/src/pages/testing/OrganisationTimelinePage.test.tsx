@@ -57,4 +57,24 @@ describe('OrganisationTimelinePage', () => {
     expect(screen.getByText('Actor: jan@cyberjan.co.za')).toBeInTheDocument();
     expect(screen.getByText('Actor: admin@platform.co.za')).toBeInTheDocument();
   });
+
+  it('maps raw audit summary patterns to human-readable text', () => {
+    const mockTimeline = [
+      {
+        id: 'evt-raw-1',
+        type: 'AUDIT_LOG' as const,
+        timestamp: '2026-06-19T12:00:00.000Z',
+        action: 'SUSPENDED',
+        summary: 'SUSPENDED on ORGANISATION',
+        actor: 'superadmin@insightfulphish.com',
+        outcome: 'SUCCESS',
+        metadata: null,
+      },
+    ];
+
+    render(<OrganisationTimelinePage timeline={mockTimeline} />);
+    expect(screen.getByText('Organisation Suspended')).toBeInTheDocument();
+    expect(screen.getByText('Organisation suspended on the platform.')).toBeInTheDocument();
+    expect(screen.queryByText('SUSPENDED on ORGANISATION')).not.toBeInTheDocument();
+  });
 });
