@@ -237,7 +237,9 @@ function OrganisationInformationPage() {
   const [ownOrgDetailData, setOwnOrgDetailData] = useState<OrganisationDetailData | null>(null);
   const detailData = isPlatformAdmin ? platformDetailData : ownOrgDetailData;
 
-  const [isLoading, setIsLoading] = useState<boolean>(Boolean(targetId && token));
+  const [isLoading, setIsLoading] = useState<boolean>(
+    Boolean(targetId && token),
+  );
   const [errorStatus, setErrorStatus] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -379,19 +381,26 @@ function OrganisationInformationPage() {
           flexShrink: 0,
         }}
       >
-        <h1
-          style={{
-            margin: 0,
-            marginBottom: '0.5rem',
-            fontSize: '3.8rem',
-            fontWeight: 500,
-            lineHeight: 1,
-            color: 'rgb(132, 25, 255)',
-            fontFamily: 'Jost',
-          }}
-        >
-          {detailData ? detailData.name : 'Organisation Information'}
-        </h1>
+        <div className="flex items-center justify-between">
+          <h1
+            style={{
+              margin: 0,
+              marginBottom: '0.5rem',
+              fontSize: '3.8rem',
+              fontWeight: 500,
+              lineHeight: 1,
+              color: 'rgb(132, 25, 255)',
+              fontFamily: 'Jost',
+            }}
+          >
+            {detailData ? detailData.name : 'Organisation Information'}
+          </h1>
+          {isPlatformAdmin && detailData?.status && (
+            <span className="inline-flex justify-center items-center px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-brand-subtle text-fg-brand-strong text-sm font-medium bg-brand-softer rounded-none font-overpass">
+              Status: {detailData.status}
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-col flex-1 p-5 -mt-5 w-full">

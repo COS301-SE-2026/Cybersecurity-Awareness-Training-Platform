@@ -360,3 +360,4 @@ describe('SessionSettingsPage', () => {
     expect(idleTimeout).toHaveTextContent('Platform Default (15 Minutes)');
   });
 });
+

@@ -247,9 +247,8 @@ describe('organisation validation schemas', () => {
       };
 
       expect(ownOrganisationDetailSchema.parse(withNulls)).toEqual(withNulls);
-      expect(() =>
-        ownOrganisationDetailSchema.parse({ ...validOwnDetail, id: 'invalid-uuid' }),
-      ).toThrow();
+      expect(() => ownOrganisationDetailSchema.parse({ ...validOwnDetail, id: 'invalid-uuid' })).toThrow();
     });
   });
 });
+

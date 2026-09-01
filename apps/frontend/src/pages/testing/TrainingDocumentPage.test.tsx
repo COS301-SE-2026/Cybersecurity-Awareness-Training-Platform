@@ -112,6 +112,7 @@ function createCampaignDetailResponse(
     campaignType: 'PREMADE_GENERAL',
     difficultyLevel: 'BEGINNER',
     status: 'ACTIVE',
+    progressStatus: 'NOT_STARTED',
     assignment: createAssignmentSummary(),
     eligibility: {
       canView: true,

@@ -221,3 +221,4 @@ export const ownOrganisationDetailSchema = z
   .strict();
 
 export type OwnOrganisationDetailDto = z.infer<typeof ownOrganisationDetailSchema>;
+

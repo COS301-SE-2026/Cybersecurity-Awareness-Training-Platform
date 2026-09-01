@@ -165,7 +165,9 @@ describe('UC-03 Quiz Integration Tests', () => {
     expect(finalAttemptsCount).toBe(1);
   });
 
-  async function startAndSubmitQuizAttempt(fixture: Awaited<ReturnType<typeof setupQuizFixture>>) {
+  async function startAndSubmitQuizAttempt(
+    fixture: Awaited<ReturnType<typeof setupQuizFixture>>,
+  ) {
     const startResponse = await request(createApp())
       .post(`/trainee/campaign-items/${fixture.campaignItem.id}/quiz/attempts`)
       .set('Authorization', `Bearer ${fixture.token}`)
