@@ -1,7 +1,5 @@
 import AppLayout from '../components/layout/AppLayout';
 import { useState } from 'react';
-import LoadingSpinnerSVG from '../components/LoadingSpinnerSVG';
-import { Popover } from 'flowbite-react';
 
 type DisplayStatus =
   | 'Active'
@@ -39,8 +37,8 @@ function getStatusBadge(status: DisplayStatus) {
 }
 
 function CampaignInsightsPage() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(false);
+  const [isLoading] = useState(false);
+  const [error] = useState(false);
 
   return (
     <AppLayout
