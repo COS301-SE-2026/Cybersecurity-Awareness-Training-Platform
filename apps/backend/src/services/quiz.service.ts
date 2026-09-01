@@ -79,10 +79,13 @@ export async function getQuizByCampaignItemId(
     throw new QuizForbiddenError('Quiz activity is not currently available');
   }
 
+  const campaignAssignmentId = campaignItem.campaign?.assignments?.[0]?.id ?? 'assignment-id';
+
   const latestAttempt = await QuizRepository.findLatestQuizAttempt({
     quizId: campaignItem.quizId!,
     traineeProfileId,
     campaignItemId,
+    campaignAssignmentId,
   });
 
   if (
@@ -94,8 +97,6 @@ export async function getQuizByCampaignItemId(
       throw new QuizForbiddenError('Only existing Quiz history is available for this Campaign.');
     }
   }
-
-  const campaignAssignmentId = campaignItem.campaign?.assignments?.[0]?.id ?? 'assignment-id';
 
   const currentAttempt = latestAttempt
     ? {
@@ -133,17 +134,18 @@ export async function startQuizAttempt(
   );
   defaultCampaignEligibilityService.assertCanProgress(itemEligibility);
 
+  const assignmentId = campaignItem.campaign?.assignments?.[0]?.id ?? 'assignment-id';
+
   let attempt = await QuizRepository.findLatestQuizAttempt({
     quizId: campaignItem.quizId!,
     traineeProfileId,
     campaignItemId,
+    campaignAssignmentId: assignmentId,
   });
 
   if (attempt?.status === 'SUBMITTED') {
     throw new QuizAttemptConflictError('Quiz attempt has already been submitted');
   }
-
-  const assignmentId = campaignItem.campaign?.assignments?.[0]?.id ?? 'assignment-id';
 
   if (!attempt) {
     const result = await QuizRepository.createQuizAttempt({

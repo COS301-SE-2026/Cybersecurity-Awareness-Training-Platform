@@ -146,19 +146,12 @@ function SessionSettingsPage({
   const [userIdleMins, setUserIdleMins] = useState<number | null | undefined>(undefined);
 
   const selectedRegularHours =
-    userRegularHours !== undefined
-      ? userRegularHours
-      : (securityPreferences?.preferredRegularSessionLengthHours ?? effectiveRegularHours);
+    userRegularHours !== undefined ? userRegularHours : effectiveRegularHours;
 
   const selectedRememberHours =
-    userRememberHours !== undefined
-      ? userRememberHours
-      : (securityPreferences?.preferredRememberMeSessionLengthHours ?? effectiveRememberHours);
+    userRememberHours !== undefined ? userRememberHours : effectiveRememberHours;
 
-  const selectedIdleMins =
-    userIdleMins !== undefined
-      ? userIdleMins
-      : (securityPreferences?.preferredIdleTimeoutMinutes ?? effectiveIdleMins);
+  const selectedIdleMins = userIdleMins !== undefined ? userIdleMins : effectiveIdleMins;
 
   const regularSessionOptions = includeSelectedPreferenceOption(
     [

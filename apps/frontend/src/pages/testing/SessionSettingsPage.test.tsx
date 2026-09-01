@@ -359,4 +359,32 @@ describe('SessionSettingsPage', () => {
     expect(rememberMe).toHaveTextContent('30 Days');
     expect(idleTimeout).toHaveTextContent('15 Minutes');
   });
+
+  it('displays effective policy duration instead of stale stored user preferences', () => {
+    renderPage({
+      securityPreferences: {
+        id: 'preferences-1',
+        preferredRegularSessionLengthHours: 12,
+        preferredRememberMeSessionLengthHours: 720,
+        preferredIdleTimeoutMinutes: 60,
+        updatedAt: '2026-08-31T08:00:00.000Z',
+      },
+      effectivePolicy: {
+        ...effectivePolicy,
+        regularSessionSeconds: 8 * 3600,
+        rememberedSessionSeconds: 168 * 3600,
+        idleTimeoutMinutes: 30,
+        sources: {
+          regularSession: 'ORGANISATION_POLICY',
+          rememberedSession: 'ORGANISATION_POLICY',
+          idleTimeout: 'ORGANISATION_POLICY',
+        },
+      },
+    });
+
+    const [regular, rememberMe, idleTimeout] = getSessionControls();
+    expect(regular).toHaveTextContent('8 Hours');
+    expect(rememberMe).toHaveTextContent('7 Days');
+    expect(idleTimeout).toHaveTextContent('30 Minutes');
+  });
 });

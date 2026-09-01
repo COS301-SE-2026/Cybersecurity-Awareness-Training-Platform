@@ -51,12 +51,14 @@ export async function findLatestQuizAttempt(input: {
   quizId: string;
   traineeProfileId: string;
   campaignItemId: string;
+  campaignAssignmentId?: string;
 }) {
   return prisma.quizAttempt.findFirst({
     where: {
       quizId: input.quizId,
       traineeProfileId: input.traineeProfileId,
       campaignItemId: input.campaignItemId,
+      ...(input.campaignAssignmentId ? { campaignAssignmentId: input.campaignAssignmentId } : {}),
     },
     include: {
       quizResult: {
@@ -73,12 +75,14 @@ export function findExistingQuizAttemptForRead(input: {
   quizId: string;
   traineeProfileId: string;
   campaignItemId: string;
+  campaignAssignmentId?: string;
 }) {
   return prisma.quizAttempt.findFirst({
     where: {
       quizId: input.quizId,
       traineeProfileId: input.traineeProfileId,
       campaignItemId: input.campaignItemId,
+      ...(input.campaignAssignmentId ? { campaignAssignmentId: input.campaignAssignmentId } : {}),
     },
     orderBy: {
       createdAt: 'desc',
