@@ -5,7 +5,7 @@ import type {
 } from '@insightful-phish/shared';
 import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { type ReactNode } from 'react';
+import { type ComponentProps, type ReactNode } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -39,6 +39,10 @@ type LifecycleClient = Pick<
 
 type LifecycleMethods = Partial<
   Pick<CampaignManagementClient, 'activateCampaign' | 'archiveCampaign' | 'reactivateCampaign'>
+>;
+
+type StatisticsClient = NonNullable<
+  ComponentProps<typeof CampaignInsightsPage>['statisticsClient']
 >;
 
 const PERSISTED_ITEM = {
@@ -101,6 +105,50 @@ const EMPTY_CATALOGUE = {
   },
 };
 
+const ACTIVE_TRAINEE: GetOrganisationCampaignStatisticsResponseDto['trainees'][number] = {
+  assignmentId: '30000000-0000-4000-8000-000000000001',
+  traineeProfileId: '40000000-0000-4000-8000-000000000001',
+  displayName: 'Sipho Ndlovu',
+  email: 'sipho.ndlovu@example.com',
+  traineeStatus: 'ACTIVE',
+  assignmentStatus: 'IN_PROGRESS',
+  accessType: 'ASSIGNED',
+  assignedAt: '2026-08-12T09:00:00.000Z',
+  progress: {
+    completedItemCount: 3,
+    totalItemCount: 8,
+    progressPercentage: 38,
+  },
+  completedQuizCount: 1,
+  totalQuizCount: 2,
+  averageQuizScorePercentage: 79,
+  allowedActions: {
+    canUnassign: true,
+  },
+};
+
+const DISABLED_TRAINEE: GetOrganisationCampaignStatisticsResponseDto['trainees'][number] = {
+  assignmentId: '30000000-0000-4000-8000-000000000002',
+  traineeProfileId: '40000000-0000-4000-8000-000000000002',
+  displayName: 'Naledi Molefe',
+  email: 'naledi.molefe@example.com',
+  traineeStatus: 'DISABLED',
+  assignmentStatus: 'COMPLETED',
+  accessType: 'ASSIGNED',
+  assignedAt: '2026-08-12T10:00:00.000Z',
+  progress: {
+    completedItemCount: 8,
+    totalItemCount: 8,
+    progressPercentage: 100,
+  },
+  completedQuizCount: 0,
+  totalQuizCount: 2,
+  averageQuizScorePercentage: null,
+  allowedActions: {
+    canUnassign: false,
+  },
+};
+
 const STATISTICS_RESPONSE: GetOrganisationCampaignStatisticsResponseDto = {
   campaign: {
     id: CAMPAIGN_ID,
@@ -114,17 +162,17 @@ const STATISTICS_RESPONSE: GetOrganisationCampaignStatisticsResponseDto = {
     quizCount: 2,
   },
   summary: {
-    assignedTraineeCount: 14,
-    startedTraineeCount: 9,
-    completedTraineeCount: 4,
+    assignedTraineeCount: 2,
+    startedTraineeCount: 2,
+    completedTraineeCount: 1,
     overallProgressPercentage: 63,
     averageQuizScorePercentage: 87,
   },
-  trainees: [],
+  trainees: [ACTIVE_TRAINEE, DISABLED_TRAINEE],
   pagination: {
     page: 1,
-    limit: 20,
-    total: 14,
+    limit: 100,
+    total: 2,
     totalPages: 1,
   },
 };
@@ -133,6 +181,7 @@ function renderPage(
   detail: CampaignDetailResponseDto,
   lifecycleMethods: LifecycleMethods = {},
   statisticsResponse: GetOrganisationCampaignStatisticsResponseDto = STATISTICS_RESPONSE,
+  statisticsClient: StatisticsClient = vi.fn().mockResolvedValue(statisticsResponse),
 ) {
   const client: LifecycleClient = {
     getCampaignCatalogue: vi.fn().mockResolvedValue(EMPTY_CATALOGUE),
@@ -152,11 +201,7 @@ function renderPage(
         />
         <Route
           path="/organisations/:organisationId/campaigns/:campaignId/statistics"
-          element={
-            <CampaignInsightsPage
-              statisticsClient={vi.fn().mockResolvedValue(statisticsResponse)}
-            />
-          }
+          element={<CampaignInsightsPage statisticsClient={statisticsClient} />}
         />
       </Routes>
     </MemoryRouter>,
@@ -176,7 +221,7 @@ describe('CampaignManagementDetailPage activation', () => {
     );
 
     expect(
-      screen.getByRole('heading', { level: 1, name: `"${ACTIVE_CAMPAIGN.name}"` }),
+      screen.getByRole('heading', { level: 1, name: ACTIVE_CAMPAIGN.name }),
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Back to Campaign' })).toHaveAttribute(
       'href',
@@ -195,14 +240,30 @@ describe('CampaignManagementDetailPage activation', () => {
     expect(within(statusField).getByText('Active')).toBeInTheDocument();
 
     const description = screen.getByText(ACTIVE_CAMPAIGN_DESCRIPTION);
-    expect(description).toHaveClass('max-h-[3.3rem]', 'overflow-y-auto');
+    expect(description).toHaveClass('max-h-[5rem]', 'overflow-y-auto');
 
     const statistics = await screen.findByLabelText('Campaign summary statistics');
-    expect(within(statistics).getByText('14')).toBeInTheDocument();
-    expect(within(statistics).getByText('9')).toBeInTheDocument();
-    expect(within(statistics).getByText('4')).toBeInTheDocument();
+    expect(within(statistics).getAllByText('2')).toHaveLength(2);
+    expect(within(statistics).getByText('1')).toBeInTheDocument();
     expect(within(statistics).getByText('63%')).toBeInTheDocument();
     expect(within(statistics).getByText('87%')).toBeInTheDocument();
+
+    const activeTraineeRow = screen.getByRole('row', { name: /Sipho Ndlovu/ });
+    expect(within(activeTraineeRow).getByText('sipho.ndlovu@example.com')).toHaveAttribute(
+      'href',
+      'mailto:sipho.ndlovu@example.com',
+    );
+    expect(within(activeTraineeRow).getByText('38%')).toBeInTheDocument();
+    expect(within(activeTraineeRow).getByText('3/8')).toBeInTheDocument();
+    expect(within(activeTraineeRow).getByText('79%')).toBeInTheDocument();
+    expect(within(activeTraineeRow).getByText('Active')).toBeInTheDocument();
+
+    const disabledTraineeRow = screen.getByRole('row', { name: /Naledi Molefe/ });
+    expect(within(disabledTraineeRow).getByText('100%')).toBeInTheDocument();
+    expect(within(disabledTraineeRow).getByText('8/8')).toBeInTheDocument();
+    expect(within(disabledTraineeRow).getByTitle('No submitted Quiz score')).toHaveTextContent('—');
+    expect(within(disabledTraineeRow).getByText('Disabled')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Unassign' })).toHaveLength(2);
   });
 
   it('shows an em dash when the selected Campaign has no duration', async () => {
@@ -242,9 +303,10 @@ describe('CampaignManagementDetailPage activation', () => {
         overallProgressPercentage: null,
         averageQuizScorePercentage: null,
       },
+      trainees: [],
       pagination: {
         page: 1,
-        limit: 20,
+        limit: 100,
         total: 0,
         totalPages: 0,
       },
@@ -260,6 +322,55 @@ describe('CampaignManagementDetailPage activation', () => {
     expect(within(statistics).getAllByText('0')).toHaveLength(3);
     expect(within(statistics).getAllByText('—')).toHaveLength(2);
     expect(within(statistics).queryByText('0%')).not.toBeInTheDocument();
+    expect(screen.getByText('No Assigned Trainees')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Assign Trainees' })).toHaveAttribute(
+      'href',
+      `/organisations/${ORGANISATION_ID}/campaign-assignments/new`,
+    );
+  });
+
+  it('loads every backend Trainee page into the unpaginated table', async () => {
+    const user = userEvent.setup();
+    const firstResponse: GetOrganisationCampaignStatisticsResponseDto = {
+      ...STATISTICS_RESPONSE,
+      trainees: [ACTIVE_TRAINEE],
+      pagination: {
+        page: 1,
+        limit: 100,
+        total: 2,
+        totalPages: 2,
+      },
+    };
+    const secondResponse: GetOrganisationCampaignStatisticsResponseDto = {
+      ...STATISTICS_RESPONSE,
+      trainees: [DISABLED_TRAINEE],
+      pagination: {
+        page: 2,
+        limit: 100,
+        total: 2,
+        totalPages: 2,
+      },
+    };
+    const statisticsClient: StatisticsClient = vi.fn(async (_organisationId, _campaignId, query) =>
+      query?.page === 2 ? secondResponse : firstResponse,
+    );
+
+    renderPage(ACTIVE_CAMPAIGN, { archiveCampaign: vi.fn() }, firstResponse, statisticsClient);
+
+    await user.click(
+      await screen.findByRole('button', { name: 'View Assigned Trainees & Insights' }),
+    );
+
+    expect(await screen.findByText(ACTIVE_TRAINEE.displayName)).toBeInTheDocument();
+    expect(await screen.findByText(DISABLED_TRAINEE.displayName)).toBeInTheDocument();
+    expect(statisticsClient).toHaveBeenNthCalledWith(1, ORGANISATION_ID, CAMPAIGN_ID, {
+      page: 1,
+      limit: 100,
+    });
+    expect(statisticsClient).toHaveBeenNthCalledWith(2, ORGANISATION_ID, CAMPAIGN_ID, {
+      page: 2,
+      limit: 100,
+    });
   });
 
   it('explains why an empty saved Draft cannot be activated', async () => {

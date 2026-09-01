@@ -2,6 +2,7 @@ export type DisplayStatus =
   | 'Active'
   | 'Disabled'
   | 'Invited'
+  | 'Inactive'
   | 'Failed to Send'
   | 'Accepted'
   | 'Archived'
@@ -21,6 +22,7 @@ const variants: Record<DisplayStatus, string> = {
   Active: 'ring-success-subtle text-fg-success-strong bg-success-soft',
   Disabled: 'ring-default-medium text-heading bg-neutral-secondary-medium',
   Invited: 'ring-brand-subtle text-fg-brand-strong bg-brand-softer',
+  Inactive: 'ring-default-medium text-heading bg-neutral-secondary-medium',
   'Failed to Send': 'ring-danger-subtle text-fg-danger-strong bg-danger-soft',
   Accepted: 'ring-success-subtle text-fg-success-strong bg-success-soft',
   Archived: 'ring-default-medium text-heading bg-neutral-secondary-medium',

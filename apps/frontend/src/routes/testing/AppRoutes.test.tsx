@@ -1208,9 +1208,7 @@ describe('AppRoutes', () => {
       ['VIEW_CAMPAIGNS'],
     );
 
-    expect(
-      await screen.findByRole('heading', { level: 1, name: '"Campaign"' }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Campaign' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Back to Campaign' })).toHaveAttribute(
       'href',
       `/organisations/${organisationId}/campaigns/${campaignId}`,
@@ -1231,7 +1229,7 @@ describe('AppRoutes', () => {
       expect(screen.getByTestId('location-path')).toHaveTextContent('/');
     });
 
-    expect(screen.queryByRole('heading', { level: 1, name: '"Campaign"' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { level: 1, name: 'Campaign' })).not.toBeInTheDocument();
   });
 
   it('allows an organisation Campaign list user with MANAGE_CAMPAIGNS', async () => {
