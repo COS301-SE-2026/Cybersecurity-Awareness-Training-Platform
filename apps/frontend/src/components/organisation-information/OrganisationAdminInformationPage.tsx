@@ -1,7 +1,6 @@
 import type { OrganisationAdminSummaryDto } from '@insightful-phish/shared';
 import {
   AdminTable,
-  AdminTableActions,
   AdminTableCell,
   AdminTableContainer,
   AdminTableEmptyRow,
@@ -35,7 +34,6 @@ function renderAdminContent(isRequestOnly: boolean, displayAdmins: OrganisationA
             <AdminTableHeaderCell>Full Name</AdminTableHeaderCell>
             <AdminTableHeaderCell>Email Address</AdminTableHeaderCell>
             <AdminTableHeaderCell>Administrator Status</AdminTableHeaderCell>
-            <AdminTableHeaderCell>Actions</AdminTableHeaderCell>
           </tr>
         </AdminTableHeader>
         <tbody className="font-overpass font-regular text-[1rem] tracking-wide">
@@ -71,33 +69,11 @@ function renderAdminContent(isRequestOnly: boolean, displayAdmins: OrganisationA
                     {isActive ? 'Active' : 'Pending/Disabled'}
                   </span>
                 </AdminTableCell>
-                <AdminTableCell>
-                  <AdminTableActions className="flex-wrap">
-                    <button
-                      type="button"
-                      className="cursor-pointer font-medium text-red-600 hover:underline"
-                    >
-                      Remove
-                    </button>
-                    <button
-                      type="button"
-                      className="cursor-pointer font-medium text-fg-brand hover:underline"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      className="cursor-pointer font-medium text-fg-brand hover:underline"
-                    >
-                      Re-Send Invite
-                    </button>
-                  </AdminTableActions>
-                </AdminTableCell>
               </tr>
             );
           })}
           {displayAdmins.length === 0 && (
-            <AdminTableEmptyRow colSpan={4}>
+            <AdminTableEmptyRow colSpan={3}>
               No Organisation Administrators Found
             </AdminTableEmptyRow>
           )}
