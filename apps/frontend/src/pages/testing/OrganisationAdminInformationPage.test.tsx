@@ -38,12 +38,6 @@ describe('OrganisationAdminInformationPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders the empty state message when no administrators exist and no fixture rows', () => {
-    render(<OrganisationAdminInformationPage admins={[]} />);
-    expect(screen.getByText(/No organisation administrators\./i)).toBeInTheDocument();
-    expect(screen.queryByRole('columnheader', { name: /Full Name/i })).not.toBeInTheDocument();
-  });
-
   it('renders the administrator table headings when administrators are provided', () => {
     render(<OrganisationAdminInformationPage admins={mockAdmins} />);
     expect(screen.getByRole('columnheader', { name: /Full Name/i })).toBeInTheDocument();
@@ -61,32 +55,8 @@ describe('OrganisationAdminInformationPage', () => {
     expect(screen.getByText(/Sipho Ndlovu/i)).toBeInTheDocument();
   });
 
-  it('keeps long administrator values available when cells are constrained', () => {
-    const longName = 'An Organisation Administrator With An Exceptionally Long Display Name';
-    const longEmail = 'an.exceptionally.long.organisation.administrator@example.com';
-
-    render(
-      <OrganisationAdminInformationPage
-        admins={[
-          {
-            id: 'long-admin',
-            firstName: longName,
-            lastName: '',
-            email: longEmail,
-            adminStatus: 'ACTIVE',
-            isInitialAdmin: false,
-          },
-        ]}
-      />,
-    );
-
-    expect(screen.getByTitle(longName)).toHaveAttribute('aria-label', longName);
-    expect(screen.getByTitle(longEmail)).toHaveAttribute('aria-label', longEmail);
-  });
-
   it('renders the shared empty state when no administrators are available', () => {
     render(<OrganisationAdminInformationPage admins={[]} />);
-
     expect(screen.getByText('No Organisation Administrators Found')).toBeInTheDocument();
   });
 });

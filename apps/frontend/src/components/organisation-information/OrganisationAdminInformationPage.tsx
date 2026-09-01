@@ -4,6 +4,7 @@ import {
   AdminTableActions,
   AdminTableCell,
   AdminTableContainer,
+  AdminTableEmptyRow,
   AdminTableHeader,
   AdminTableHeaderCell,
   TruncatedValue,
@@ -22,14 +23,6 @@ function renderAdminContent(isRequestOnly: boolean, displayAdmins: OrganisationA
           Pending Request: Organisation has not been fully created yet. High-level administrator
           list will appear once onboarding begins.
         </p>
-      </div>
-    );
-  }
-
-  if (displayAdmins.length === 0) {
-    return (
-      <div className="p-4 bg-gray-50 border border-gray-200 text-gray-600 font-overpass rounded-none mt-4">
-        No organisation administrators.
       </div>
     );
   }
@@ -103,6 +96,11 @@ function renderAdminContent(isRequestOnly: boolean, displayAdmins: OrganisationA
               </tr>
             );
           })}
+          {displayAdmins.length === 0 && (
+            <AdminTableEmptyRow colSpan={4}>
+              No Organisation Administrators Found
+            </AdminTableEmptyRow>
+          )}
         </tbody>
       </AdminTable>
     </AdminTableContainer>
