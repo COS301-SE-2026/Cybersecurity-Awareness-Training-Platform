@@ -68,24 +68,18 @@ function toSessionDisplayMetadata(deviceSummary: string | null): {
   return { deviceName: parts[0]!, browserName: parts[1]! };
 }
 
-function getSourceLabel(source?: string | null): string {
-  if (source === 'PLATFORM_DEFAULT') return 'Platform Default';
-  if (source === 'USER_PREFERENCE') return 'User Preference';
-  return 'Organisation Default';
-}
-
-function getEffectiveRegularText(seconds?: number | null): string {
-  if (!seconds) return '15 Minutes';
-  if (seconds < 3600) return `${Math.round(seconds / 60)} Minutes`;
-  const hours = Math.round(seconds / 3600);
+function getRegularDurationText(hours: number | null | undefined): string {
+  if (hours === null || hours === undefined) return '8 Hours';
   if (hours === 24) return '24 Hours (1 Day)';
   return `${hours} Hours`;
 }
 
-function getEffectiveRememberText(seconds?: number | null): string {
-  if (!seconds) return '30 Days';
-  if (seconds < 3600) return `${Math.round(seconds / 60)} Minutes`;
-  const hours = Math.round(seconds / 3600);
+function getRememberDurationText(
+  hours: number | null | undefined,
+  isPolicyDisabled = false,
+): string {
+  if (isPolicyDisabled) return 'Disabled by Policy';
+  if (hours === null || hours === undefined) return '7 Days';
   if (hours === 24) return '1 Day';
   if (hours === 168) return '7 Days';
   if (hours === 336) return '14 Days';
@@ -94,63 +88,11 @@ function getEffectiveRememberText(seconds?: number | null): string {
   return `${hours} Hours`;
 }
 
-function getEffectiveIdleText(minutes?: number | null): string {
-  if (minutes === null || minutes === undefined) return 'Disabled';
+function getIdleDurationText(minutes: number | null | undefined): string {
+  if (minutes === null || minutes === undefined || minutes === 0) return 'Disabled';
   if (minutes === 60) return '1 Hour';
   if (minutes === 120) return '2 Hours';
   return `${minutes} Minutes`;
-}
-
-function getRegularLabel(
-  hours: number | null | undefined,
-  effectiveSeconds?: number | null,
-  source?: string | null,
-): string {
-  if (hours === null || hours === undefined) {
-    return `${getSourceLabel(source)} (${getEffectiveRegularText(effectiveSeconds)})`;
-  }
-  if (hours === 24) return '24 Hours (1 Day)';
-  return `${hours} Hours`;
-}
-
-function getRememberLabel(
-  hours: number | null | undefined,
-  isPolicyDisabled = false,
-  effectiveSeconds?: number | null,
-  source?: string | null,
-): string {
-  if (isPolicyDisabled) return 'Disabled by Policy';
-  if (hours === null || hours === undefined) {
-    return `${getSourceLabel(source)} (${getEffectiveRememberText(effectiveSeconds)})`;
-  }
-  if (hours === 24) return '1 Day';
-  if (hours === 168) return '7 Days';
-  if (hours === 336) return '14 Days';
-  if (hours === 720) return '30 Days';
-  return `${hours} Hours`;
-}
-
-function getIdleLabel(
-  minutes: number | null | undefined,
-  effectiveMinutes?: number | null,
-  source?: string | null,
-): string {
-  if (minutes === null || minutes === undefined) {
-    return `${getSourceLabel(source)} (${getEffectiveIdleText(effectiveMinutes)})`;
-  }
-  if (minutes === 60) return '1 Hour';
-  if (minutes === 120) return '2 Hours';
-  return `${minutes} Minutes`;
-}
-
-const DEFAULT_PREFERENCE_VALUE = 'default';
-
-function toPreferenceSelectValue(value: number | null | undefined): string {
-  return value === null || value === undefined ? DEFAULT_PREFERENCE_VALUE : String(value);
-}
-
-function fromPreferenceSelectValue(value: string): number | null {
-  return value === DEFAULT_PREFERENCE_VALUE ? null : Number(value);
 }
 
 function includeSelectedPreferenceOption(
@@ -186,81 +128,65 @@ function SessionSettingsPage({
   const idleTimeoutEditable =
     capabilities?.securityPreferenceEditable?.preferredIdleTimeoutMinutes ?? true;
 
-  const defaultRegular = regularSessionEditable
-    ? (securityPreferences?.preferredRegularSessionLengthHours ?? null)
-    : null;
+  const isRememberDisabledByPolicy =
+    !rememberMeEditable && effectivePolicy?.rememberMeAllowed === false;
 
-  const defaultRemember = rememberMeEditable
-    ? (securityPreferences?.preferredRememberMeSessionLengthHours ?? null)
-    : null;
+  const effectiveRegularHours = effectivePolicy?.regularSessionSeconds
+    ? Math.round(effectivePolicy.regularSessionSeconds / 3600)
+    : 8;
 
-  const defaultIdle = idleTimeoutEditable
-    ? (securityPreferences?.preferredIdleTimeoutMinutes ?? null)
-    : null;
+  const effectiveRememberHours = effectivePolicy?.rememberedSessionSeconds
+    ? Math.round(effectivePolicy.rememberedSessionSeconds / 3600)
+    : 168;
+
+  const effectiveIdleMins = effectivePolicy?.idleTimeoutMinutes ?? null;
 
   const [userRegularHours, setUserRegularHours] = useState<number | null | undefined>(undefined);
   const [userRememberHours, setUserRememberHours] = useState<number | null | undefined>(undefined);
   const [userIdleMins, setUserIdleMins] = useState<number | null | undefined>(undefined);
 
-  const selectedRegularHours = userRegularHours !== undefined ? userRegularHours : defaultRegular;
+  const selectedRegularHours =
+    userRegularHours !== undefined
+      ? userRegularHours
+      : (securityPreferences?.preferredRegularSessionLengthHours ?? effectiveRegularHours);
+
   const selectedRememberHours =
-    userRememberHours !== undefined ? userRememberHours : defaultRemember;
-  const selectedIdleMins = userIdleMins !== undefined ? userIdleMins : defaultIdle;
+    userRememberHours !== undefined
+      ? userRememberHours
+      : (securityPreferences?.preferredRememberMeSessionLengthHours ?? effectiveRememberHours);
 
-  const regularSource = effectivePolicy?.sources?.regularSession;
-  const rememberSource =
-    effectivePolicy?.sources?.rememberedSession ?? effectivePolicy?.sources?.rememberMe;
-  const idleSource = effectivePolicy?.sources?.idleTimeout;
-
-  const isRememberDisabledByPolicy =
-    !rememberMeEditable && effectivePolicy?.rememberMeAllowed === false;
+  const selectedIdleMins =
+    userIdleMins !== undefined
+      ? userIdleMins
+      : (securityPreferences?.preferredIdleTimeoutMinutes ?? effectiveIdleMins);
 
   const regularSessionOptions = includeSelectedPreferenceOption(
     [
-      {
-        value: DEFAULT_PREFERENCE_VALUE,
-        label: getRegularLabel(null, effectivePolicy?.regularSessionSeconds, regularSource),
-      },
       { value: '4', label: '4 Hours' },
       { value: '8', label: '8 Hours' },
       { value: '12', label: '12 Hours' },
       { value: '24', label: '24 Hours (1 Day)' },
     ],
     selectedRegularHours,
-    getRegularLabel(selectedRegularHours, effectivePolicy?.regularSessionSeconds, regularSource),
+    getRegularDurationText(selectedRegularHours),
   );
-  const rememberMeOptions = includeSelectedPreferenceOption(
-    [
-      {
-        value: DEFAULT_PREFERENCE_VALUE,
-        label: isRememberDisabledByPolicy
-          ? 'Disabled by Policy'
-          : getRememberLabel(
-              null,
-              false,
-              effectivePolicy?.rememberedSessionSeconds,
-              rememberSource,
-            ),
-      },
-      { value: '24', label: '1 Day' },
-      { value: '168', label: '7 Days' },
-      { value: '336', label: '14 Days' },
-      { value: '720', label: '30 Days' },
-    ],
-    selectedRememberHours,
-    getRememberLabel(
-      selectedRememberHours,
-      isRememberDisabledByPolicy,
-      effectivePolicy?.rememberedSessionSeconds,
-      rememberSource,
-    ),
-  );
+
+  const rememberMeOptions = isRememberDisabledByPolicy
+    ? [{ value: '0', label: 'Disabled by Policy' }]
+    : includeSelectedPreferenceOption(
+        [
+          { value: '24', label: '1 Day' },
+          { value: '168', label: '7 Days' },
+          { value: '336', label: '14 Days' },
+          { value: '720', label: '30 Days' },
+        ],
+        selectedRememberHours,
+        getRememberDurationText(selectedRememberHours, isRememberDisabledByPolicy),
+      );
+
   const idleTimeoutOptions = includeSelectedPreferenceOption(
     [
-      {
-        value: DEFAULT_PREFERENCE_VALUE,
-        label: getIdleLabel(null, effectivePolicy?.idleTimeoutMinutes, idleSource),
-      },
+      { value: '0', label: 'Disabled' },
       { value: '5', label: '5 Minutes' },
       { value: '15', label: '15 Minutes' },
       { value: '30', label: '30 Minutes' },
@@ -268,7 +194,7 @@ function SessionSettingsPage({
       { value: '120', label: '2 Hours' },
     ],
     selectedIdleMins,
-    getIdleLabel(selectedIdleMins, effectivePolicy?.idleTimeoutMinutes, idleSource),
+    getIdleDurationText(selectedIdleMins),
   );
 
   const fetchSessionsData = useCallback(() => {
@@ -475,9 +401,9 @@ function SessionSettingsPage({
           <SelectField
             id="regular-session-duration"
             label="Regular Session Duration"
-            value={toPreferenceSelectValue(selectedRegularHours)}
+            value={String(selectedRegularHours ?? 8)}
             options={regularSessionOptions}
-            onChange={(value) => setUserRegularHours(fromPreferenceSelectValue(value))}
+            onChange={(value) => setUserRegularHours(Number(value))}
             disabled={!regularSessionEditable}
             helperText={!regularSessionEditable ? 'Managed by organisation policy.' : undefined}
           />
@@ -485,9 +411,9 @@ function SessionSettingsPage({
           <SelectField
             id="remember-me-duration"
             label='"Remember Me" Duration'
-            value={toPreferenceSelectValue(selectedRememberHours)}
+            value={isRememberDisabledByPolicy ? '0' : String(selectedRememberHours ?? 168)}
             options={rememberMeOptions}
-            onChange={(value) => setUserRememberHours(fromPreferenceSelectValue(value))}
+            onChange={(value) => setUserRememberHours(Number(value))}
             disabled={!rememberMeEditable}
             helperText={!rememberMeEditable ? 'Managed by organisation policy.' : undefined}
           />
@@ -495,9 +421,12 @@ function SessionSettingsPage({
           <SelectField
             id="idle-timeout-duration"
             label="Idle Timeout Duration"
-            value={toPreferenceSelectValue(selectedIdleMins)}
+            value={String(selectedIdleMins ?? 0)}
             options={idleTimeoutOptions}
-            onChange={(value) => setUserIdleMins(fromPreferenceSelectValue(value))}
+            onChange={(value) => {
+              const num = Number(value);
+              setUserIdleMins(num === 0 ? null : num);
+            }}
             disabled={!idleTimeoutEditable}
             helperText={!idleTimeoutEditable ? 'Managed by organisation policy.' : undefined}
           />

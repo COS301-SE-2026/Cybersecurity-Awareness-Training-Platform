@@ -316,7 +316,7 @@ describe('SessionSettingsPage', () => {
     updatedAt: '2026-08-31T08:00:00.000Z',
   };
 
-  it('renders effective policy values and source labels when preferences are unset', () => {
+  it('renders effective policy values directly when preferences are unset', () => {
     renderPage({
       securityPreferences: nullSecurityPreferences,
       effectivePolicy: {
@@ -333,12 +333,12 @@ describe('SessionSettingsPage', () => {
     });
 
     const [regular, rememberMe, idleTimeout] = getSessionControls();
-    expect(regular).toHaveTextContent('Organisation Default (8 Hours)');
-    expect(rememberMe).toHaveTextContent('Organisation Default (7 Days)');
-    expect(idleTimeout).toHaveTextContent('Organisation Default (30 Minutes)');
+    expect(regular).toHaveTextContent('8 Hours');
+    expect(rememberMe).toHaveTextContent('7 Days');
+    expect(idleTimeout).toHaveTextContent('30 Minutes');
   });
 
-  it('renders Platform Default source labels when policy source is PLATFORM_DEFAULT', () => {
+  it('renders effective duration directly regardless of policy source', () => {
     renderPage({
       securityPreferences: nullSecurityPreferences,
       effectivePolicy: {
@@ -355,8 +355,8 @@ describe('SessionSettingsPage', () => {
     });
 
     const [regular, rememberMe, idleTimeout] = getSessionControls();
-    expect(regular).toHaveTextContent('Platform Default (12 Hours)');
-    expect(rememberMe).toHaveTextContent('Platform Default (30 Days)');
-    expect(idleTimeout).toHaveTextContent('Platform Default (15 Minutes)');
+    expect(regular).toHaveTextContent('12 Hours');
+    expect(rememberMe).toHaveTextContent('30 Days');
+    expect(idleTimeout).toHaveTextContent('15 Minutes');
   });
 });

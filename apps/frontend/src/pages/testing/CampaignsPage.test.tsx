@@ -353,7 +353,7 @@ describe('CampaignsPage', () => {
     );
     expect(await screen.findByTestId('status-In Progress Campaign')).toHaveTextContent('STARTED');
     expect(await screen.findByTestId('status-Classified Campaign')).toHaveTextContent('STARTED');
-    expect(await screen.findByTestId('status-Submitted Campaign')).toHaveTextContent('STARTED');
+    expect(await screen.findByTestId('status-Submitted Campaign')).toHaveTextContent('SUBMITTED');
     expect(await screen.findByTestId('status-Unknown Progress Campaign')).toHaveTextContent(
       'UNKNOWN',
     );

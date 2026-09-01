@@ -288,13 +288,23 @@ export default function TrainingDocumentPage() {
                   void handleComplete();
                 }}
                 disabled={isCompleting || isCompleted}
-                style={primaryButtonStyle}
+                style={{
+                  ...primaryButtonStyle,
+                  ...(isCompleting || isCompleted
+                    ? {
+                        cursor: 'not-allowed',
+                        opacity: 0.65,
+                        backgroundColor: '#520099',
+                        borderColor: '#9A7AB8',
+                      }
+                    : {}),
+                }}
               >
                 {isCompleted ? 'Completed' : isCompleting ? 'Recording...' : 'Mark as completed'}
               </button>
 
               <Link to="/campaigns" style={secondaryLinkStyle}>
-                Continue
+                Back to Campaign
               </Link>
             </div>
           </>

@@ -24,11 +24,13 @@ function formatCampaignStatus(status?: string | null): string {
     case 'COMPLETED':
       return 'COMPLETED';
 
+    case 'SUBMITTED':
+      return 'SUBMITTED';
+
     case 'IN_PROGRESS':
     case 'VIEWED':
     case 'INTERACTED':
     case 'CLASSIFIED':
-    case 'SUBMITTED':
       return 'STARTED';
 
     case 'NOT_STARTED':
