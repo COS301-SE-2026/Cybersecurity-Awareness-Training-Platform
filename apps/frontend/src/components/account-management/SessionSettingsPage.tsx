@@ -109,7 +109,6 @@ function includeSelectedPreferenceOption(
 }
 
 function SessionSettingsPage({
-  securityPreferences,
   effectivePolicy,
   capabilities,
   onNotification,
