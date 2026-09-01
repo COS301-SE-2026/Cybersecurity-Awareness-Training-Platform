@@ -274,7 +274,7 @@ describe('OrganisationInformationPage Integration', () => {
       await screen.findByRole('heading', { name: /Protea Security Gauteng/i }),
     ).toBeInTheDocument();
     expect(screen.queryByText(/^Status:/i)).not.toBeInTheDocument();
-    expect(screen.getByLabelText(/Status/i)).toHaveValue('ACTIVE');
+    expect(screen.getByLabelText(/Status/i)).toHaveValue('Active');
     expect(ownOrgDetailSpy).toHaveBeenCalledWith('org-123-abc', 'mock-token-xyz');
     expect(platformDetailSpy).not.toHaveBeenCalled();
     expect(platformRequestSpy).not.toHaveBeenCalled();
