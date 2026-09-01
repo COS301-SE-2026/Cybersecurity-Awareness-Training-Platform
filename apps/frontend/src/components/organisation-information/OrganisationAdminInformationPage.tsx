@@ -1,4 +1,14 @@
 import type { OrganisationAdminSummaryDto } from '@insightful-phish/shared';
+import {
+  AdminTable,
+  AdminTableActions,
+  AdminTableCell,
+  AdminTableContainer,
+  AdminTableEmptyRow,
+  AdminTableHeader,
+  AdminTableHeaderCell,
+  TruncatedValue,
+} from '../ui/AdminTable';
 
 export interface OrganisationAdminInfoProps {
   admins?: OrganisationAdminSummaryDto[];
@@ -17,45 +27,17 @@ function renderAdminContent(isRequestOnly: boolean, displayAdmins: OrganisationA
     );
   }
 
-  if (displayAdmins.length === 0) {
-    return (
-      <div className="p-4 bg-gray-50 border border-gray-200 text-gray-600 font-overpass rounded-none mt-4">
-        No organisation administrators.
-      </div>
-    );
-  }
-
   return (
-    <div className="relative overflow-x-auto bg-neutral-primary-soft border border-default mt-7 rounded-none">
-      <table className="w-full text-sm text-left rtl:text-right text-body">
-        <thead className="bg-faint-purple border-b border-default">
+    <AdminTableContainer className="mt-7">
+      <AdminTable>
+        <AdminTableHeader>
           <tr>
-            <th
-              scope="col"
-              className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-            >
-              Full Name
-            </th>
-            <th
-              scope="col"
-              className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-            >
-              Email Address
-            </th>
-            <th
-              scope="col"
-              className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-            >
-              Administrator Status
-            </th>
-            <th
-              scope="col"
-              className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-            >
-              Actions
-            </th>
+            <AdminTableHeaderCell>Full Name</AdminTableHeaderCell>
+            <AdminTableHeaderCell>Email Address</AdminTableHeaderCell>
+            <AdminTableHeaderCell>Administrator Status</AdminTableHeaderCell>
+            <AdminTableHeaderCell>Actions</AdminTableHeaderCell>
           </tr>
-        </thead>
+        </AdminTableHeader>
         <tbody className="font-overpass font-regular text-[1rem] tracking-wide">
           {displayAdmins.map((admin) => {
             const fullName =
@@ -69,11 +51,16 @@ function renderAdminContent(isRequestOnly: boolean, displayAdmins: OrganisationA
                 key={admin.id}
                 className="odd:bg-neutral-primary font-overpass even:bg-neutral-secondary-soft border-b border-default"
               >
-                <th scope="row" className="px-6 py-4 font-medium text-gray-600 whitespace-nowrap">
-                  {fullName} {admin.isInitialAdmin ? '(Initial Admin)' : ''}
+                <th scope="row" className="px-6 py-4 font-medium text-gray-600">
+                  <TruncatedValue
+                    value={`${fullName}${admin.isInitialAdmin ? ' (Initial Admin)' : ''}`}
+                    className="max-w-64"
+                  />
                 </th>
-                <td className="px-6 py-4">{admin.email}</td>
-                <td className="px-6 py-4">
+                <AdminTableCell>
+                  <TruncatedValue value={admin.email} />
+                </AdminTableCell>
+                <AdminTableCell>
                   <span
                     className={`inline-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset text-sm font-medium rounded-none ${
                       isActive
@@ -83,24 +70,40 @@ function renderAdminContent(isRequestOnly: boolean, displayAdmins: OrganisationA
                   >
                     {isActive ? 'Active' : 'Pending/Disabled'}
                   </span>
-                </td>
-                <td className="px-6 py-4">
-                  <button className="cursor-pointer font-medium text-red-600 hover:underline mr-6">
-                    Remove
-                  </button>
-                  <button className="cursor-pointer font-medium text-fg-brand hover:underline mr-6">
-                    Edit
-                  </button>
-                  <button className="cursor-pointer font-medium text-fg-brand hover:underline">
-                    Re-Send Invite
-                  </button>
-                </td>
+                </AdminTableCell>
+                <AdminTableCell>
+                  <AdminTableActions className="flex-wrap">
+                    <button
+                      type="button"
+                      className="cursor-pointer font-medium text-red-600 hover:underline"
+                    >
+                      Remove
+                    </button>
+                    <button
+                      type="button"
+                      className="cursor-pointer font-medium text-fg-brand hover:underline"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      className="cursor-pointer font-medium text-fg-brand hover:underline"
+                    >
+                      Re-Send Invite
+                    </button>
+                  </AdminTableActions>
+                </AdminTableCell>
               </tr>
             );
           })}
+          {displayAdmins.length === 0 && (
+            <AdminTableEmptyRow colSpan={4}>
+              No Organisation Administrators Found
+            </AdminTableEmptyRow>
+          )}
         </tbody>
-      </table>
-    </div>
+      </AdminTable>
+    </AdminTableContainer>
   );
 }
 
