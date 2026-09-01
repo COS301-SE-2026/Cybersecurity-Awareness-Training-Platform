@@ -21,6 +21,17 @@ import AppLayout from '../components/layout/AppLayout';
 import ReviewOrganisationRegistrationRequstModal from '../components/layout/modals/ReviewOrganisationRegistrationRequestModal';
 import RejectOrganisationRegistrationRequestModal from '../components/layout/modals/RejectOrganisationRegistrationRequestModal';
 import BasicConfirmationModal from '../components/layout/modals/BasicConfirmationModal';
+import {
+  AdminTable,
+  AdminTableActions,
+  AdminTableCell,
+  AdminTableContainer,
+  AdminTableEmptyRow,
+  AdminTableHeader,
+  AdminTableHeaderCell,
+  AdminTableLoadingRow,
+  TruncatedValue,
+} from '../components/ui/AdminTable';
 
 type RequestStatusFilter = 'ALL' | OrganisationRequestStatus;
 type OrganisationStatusFilter = 'ALL' | PlatformOrganisationStatus;
@@ -568,64 +579,29 @@ function PlatformOrganisationManagementPage() {
           </h3>
 
           {/* TABLE */}
-          <div className="relative overflow-x-auto bg-neutral-primary-soft border border-default">
-            <table className="w-full text-sm text-left rtl:text-right text-body">
-              <thead className="bg-faint-purple border-b border-default">
+          <AdminTableContainer>
+            <AdminTable>
+              <AdminTableHeader>
                 <tr>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                  >
-                    Name
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                  >
-                    Size
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                  >
-                    Website
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                  >
-                    Representative
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                  >
-                    Request Status
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                  >
-                    Organisation Status
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                  >
-                    Actions
-                  </th>
+                  <AdminTableHeaderCell>Name</AdminTableHeaderCell>
+                  <AdminTableHeaderCell>Size</AdminTableHeaderCell>
+                  <AdminTableHeaderCell>Website</AdminTableHeaderCell>
+                  <AdminTableHeaderCell>Representative</AdminTableHeaderCell>
+                  <AdminTableHeaderCell>Request Status</AdminTableHeaderCell>
+                  <AdminTableHeaderCell>Organisation Status</AdminTableHeaderCell>
+                  <AdminTableHeaderCell>Actions</AdminTableHeaderCell>
                 </tr>
-              </thead>
+              </AdminTableHeader>
               <tbody className="font-overpass font-regular text-[1rem] tracking-wide">
                 {isLoading && (
-                  <tr>
-                    <td colSpan={7} className="px-6 py-10 text-center">
+                  <AdminTableLoadingRow colSpan={7}>
+                    <span className="inline-flex items-center gap-3">
                       <span className="inline-flex bg-purple p-2">
                         <LoadingSpinnerSVG />
                       </span>
                       <span>Loading Organisation Requests...</span>
-                    </td>{' '}
-                  </tr>
+                    </span>
+                  </AdminTableLoadingRow>
                 )}
                 {!isLoading &&
                   !loadError &&
@@ -635,54 +611,61 @@ function PlatformOrganisationManagementPage() {
                       className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default"
                     >
                       {/* Organisation Name */}
-                      <td className="px-6 py-4">{request.submittedOrganisationName}</td>
+                      <AdminTableCell>
+                        <TruncatedValue
+                          value={request.submittedOrganisationName}
+                          className="max-w-64"
+                        />
+                      </AdminTableCell>
 
                       {/* Organisation Size (Approx. # of Employees) */}
-                      <td className="px-6 py-4">{request.submittedOrganisationSize ?? '-'}</td>
+                      <AdminTableCell>{request.submittedOrganisationSize ?? '-'}</AdminTableCell>
 
                       {/* Website */}
-                      <td className="px-6 py-4">
+                      <AdminTableCell>
                         {request.submittedWebsite ? (
                           <a
                             href={request.submittedWebsite}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-fg-brand hover:underline font-google_sans_code"
+                            className="block max-w-56 text-fg-brand hover:underline font-google_sans_code"
                           >
-                            {request.submittedWebsite}
+                            <TruncatedValue value={request.submittedWebsite} focusable={false} />
                           </a>
                         ) : (
                           <span className="text-gray-500">-</span>
                         )}
-                      </td>
+                      </AdminTableCell>
 
                       {/* Representative */}
-                      <td className="px-6 py-4">
+                      <AdminTableCell>
                         <div>
-                          {request.representativeFirstName} {request.representativeLastName}
+                          <TruncatedValue
+                            value={`${request.representativeFirstName} ${request.representativeLastName}`}
+                          />
                         </div>
                         <a
                           href={`mailto:${request.representativeEmail}`}
-                          className="text-sm text-fg-brand hover:underline font-google_sans_code"
+                          className="block max-w-56 text-sm text-fg-brand hover:underline font-google_sans_code"
                         >
-                          {request.representativeEmail}
+                          <TruncatedValue value={request.representativeEmail} focusable={false} />
                         </a>
-                      </td>
+                      </AdminTableCell>
 
                       {/* Request Status */}
-                      <td className="px-6 py-4">{getStatusBadge(request.derivedStatus)}</td>
+                      <AdminTableCell>{getStatusBadge(request.derivedStatus)}</AdminTableCell>
 
                       {/* Organisation Status */}
-                      <td className="px-6 py-4">
+                      <AdminTableCell>
                         {request.organisationStatus
                           ? getStatusBadge(request.organisationStatus)
                           : 'Not Created'}
-                      </td>
+                      </AdminTableCell>
 
                       {/* Actions */}
-                      <td className="px-6 py-4">
+                      <AdminTableCell>
                         {/* PLEASE NOTE THAT THIS WILL CHANGE DEPENDING ON THE STATE */}
-                        <div className="grid grid-cols-1 gap-1 justify-items-start">
+                        <AdminTableActions className="flex-col items-start gap-1">
                           {(request.status === 'PENDING_REVIEW' ||
                             request.status === 'CONTACTED') && (
                             <button
@@ -719,26 +702,20 @@ function PlatformOrganisationManagementPage() {
                               <strong>Delete</strong> Request
                             </button>
                           )}
-                        </div>
-                      </td>
+                        </AdminTableActions>
+                      </AdminTableCell>
                     </tr>
                   ))}
                 {!isLoading && !loadError && filteredRequests.length === 0 && (
-                  <tr>
-                    {' '}
-                    <td
-                      colSpan={7}
-                      className="py-8 text-center text-[1.2rem] tracking-wider text-gray-500 font-jost"
-                    >
-                      {requests.length === 0
-                        ? 'No organisation registration requests are available.'
-                        : 'No organisations match the current search and filters'}
-                    </td>{' '}
-                  </tr>
+                  <AdminTableEmptyRow colSpan={7}>
+                    {requests.length === 0
+                      ? 'No organisation registration requests are available.'
+                      : 'No organisations match the current search and filters'}
+                  </AdminTableEmptyRow>
                 )}
               </tbody>
-            </table>
-          </div>
+            </AdminTable>
+          </AdminTableContainer>
         </div>
       </div>
       {selectedRequestId && (

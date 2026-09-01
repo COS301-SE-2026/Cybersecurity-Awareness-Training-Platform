@@ -5,6 +5,17 @@ import BasicConfirmationModal from '../components/layout/modals/BasicConfirmatio
 import InvitePlatformAdministratorModal from '../components/layout/platform-administrators-page/InvitePlatformAdministratorModal';
 import TransferSuperAdministratorRoleModal from '../components/layout/platform-administrators-page/TransferSuperAdministratorRoleModal';
 import AdminPagesSearchSVG from '../components/AdminPagesSearchSVG';
+import {
+  AdminTable,
+  AdminTableActions,
+  AdminTableCell,
+  AdminTableContainer,
+  AdminTableEmptyRow,
+  AdminTableHeader,
+  AdminTableHeaderCell,
+  AdminTableLoadingRow,
+  TruncatedValue,
+} from '../components/ui/AdminTable';
 import { useAuth } from '../context/useAuth';
 import { ApiError } from '../lib/apiClient';
 import type {
@@ -895,11 +906,7 @@ function PlatformAdministratorsPage() {
             Platform Administrators ({filteredPlatformAdministrators.length})
           </h3>
 
-          {isLoading ? (
-            <p className="py-8 text-center font-jost text-[1.2rem] tracking-wider">
-              Loading platform administrators…
-            </p>
-          ) : hasLoadError ? (
+          {hasLoadError ? (
             <div className="py-8 text-center font-jost text-[1.2rem] tracking-wider">
               <p>Platform administrators could not be loaded. Try again.</p>
               <button
@@ -911,133 +918,114 @@ function PlatformAdministratorsPage() {
               </button>
             </div>
           ) : (
-            <div className="overflow-x-auto bg-neutral-primary-soft border border-default">
-              <table className="w-full text-sm text-left rtl:text-right text-body">
+            <AdminTableContainer>
+              <AdminTable>
                 {/* Table Headings  */}
-                <thead className="bg-faint-purple border-b border-default">
+                <AdminTableHeader>
                   <tr>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                    >
-                      Administrator
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                    >
-                      Email
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                    >
-                      Role
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                    >
-                      Status
-                    </th>
-                    {showActionsColumn && (
-                      <th
-                        scope="col"
-                        className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                      >
-                        Actions
-                      </th>
-                    )}
+                    <AdminTableHeaderCell>Administrator</AdminTableHeaderCell>
+                    <AdminTableHeaderCell>Email</AdminTableHeaderCell>
+                    <AdminTableHeaderCell>Role</AdminTableHeaderCell>
+                    <AdminTableHeaderCell>Status</AdminTableHeaderCell>
+                    {showActionsColumn && <AdminTableHeaderCell>Actions</AdminTableHeaderCell>}
                   </tr>
-                </thead>
+                </AdminTableHeader>
                 {/* Table Content */}
                 <tbody className="font-overpass font-regular text-[1rem] tracking-wide">
-                  {filteredPlatformAdministrators.map((platformAdministrator) => (
-                    <tr
-                      key={platformAdministrator.id}
-                      className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default"
-                    >
-                      {/* Full Name */}
-                      <td className="px-6 py-4">{platformAdministrator.fullName}</td>
+                  {isLoading && (
+                    <AdminTableLoadingRow colSpan={showActionsColumn ? 5 : 4}>
+                      Loading platform administrators…
+                    </AdminTableLoadingRow>
+                  )}
+                  {!isLoading &&
+                    filteredPlatformAdministrators.map((platformAdministrator) => (
+                      <tr
+                        key={platformAdministrator.id}
+                        className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default"
+                      >
+                        {/* Full Name */}
+                        <AdminTableCell>
+                          <TruncatedValue
+                            value={platformAdministrator.fullName}
+                            className="max-w-64"
+                          />
+                        </AdminTableCell>
 
-                      {/* Email Address */}
-                      <td className="px-6 py-4">{platformAdministrator.email}</td>
+                        {/* Email Address */}
+                        <AdminTableCell>
+                          <TruncatedValue value={platformAdministrator.email} />
+                        </AdminTableCell>
 
-                      {/* Role */}
-                      <td className="px-6 py-4">{platformAdministrator.role}</td>
+                        {/* Role */}
+                        <AdminTableCell>{platformAdministrator.role}</AdminTableCell>
 
-                      {/* Status */}
-                      <td className="px-6 py-4">
-                        <StatusBadge status={platformAdministrator.status} />
-                      </td>
+                        {/* Status */}
+                        <AdminTableCell>
+                          <StatusBadge status={platformAdministrator.status} />
+                        </AdminTableCell>
 
-                      {showActionsColumn && (
-                        <td className="px-6 py-4">
-                          <div className="grid grid-cols-1 gap-1 justify-items-start">
-                            {canResendAdministratorInvite(platformAdministrator) && (
-                              <button
-                                type="button"
-                                onClick={(event) =>
-                                  openResendInvitationModal(
-                                    platformAdministrator,
-                                    event.currentTarget,
-                                  )
-                                }
-                                className="cursor-pointer font-medium text-purple hover:underline"
-                              >
-                                Resend invitation
-                              </button>
-                            )}
+                        {showActionsColumn && (
+                          <AdminTableCell>
+                            <AdminTableActions className="flex-col items-start gap-1">
+                              {canResendAdministratorInvite(platformAdministrator) && (
+                                <button
+                                  type="button"
+                                  onClick={(event) =>
+                                    openResendInvitationModal(
+                                      platformAdministrator,
+                                      event.currentTarget,
+                                    )
+                                  }
+                                  className="cursor-pointer font-medium text-purple hover:underline"
+                                >
+                                  Resend invitation
+                                </button>
+                              )}
 
-                            {canTransferToAdministrator(platformAdministrator) && (
-                              <button
-                                type="button"
-                                onClick={(event) =>
-                                  openTransferSuperAdministratorModal(
-                                    platformAdministrator,
-                                    event.currentTarget,
-                                  )
-                                }
-                                className="cursor-pointer font-medium text-purple hover:underline"
-                              >
-                                Transfer super administrator role
-                              </button>
-                            )}
+                              {canTransferToAdministrator(platformAdministrator) && (
+                                <button
+                                  type="button"
+                                  onClick={(event) =>
+                                    openTransferSuperAdministratorModal(
+                                      platformAdministrator,
+                                      event.currentTarget,
+                                    )
+                                  }
+                                  className="cursor-pointer font-medium text-purple hover:underline"
+                                >
+                                  Transfer super administrator role
+                                </button>
+                              )}
 
-                            {canDemoteAdministrator(platformAdministrator) && (
-                              <button
-                                type="button"
-                                onClick={(event) =>
-                                  openDemoteAdministratorModal(
-                                    platformAdministrator,
-                                    event.currentTarget,
-                                  )
-                                }
-                                className="cursor-pointer font-medium text-red-600 hover:underline"
-                              >
-                                Demote administrator
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      )}
-                    </tr>
-                  ))}
+                              {canDemoteAdministrator(platformAdministrator) && (
+                                <button
+                                  type="button"
+                                  onClick={(event) =>
+                                    openDemoteAdministratorModal(
+                                      platformAdministrator,
+                                      event.currentTarget,
+                                    )
+                                  }
+                                  className="cursor-pointer font-medium text-red-600 hover:underline"
+                                >
+                                  Demote administrator
+                                </button>
+                              )}
+                            </AdminTableActions>
+                          </AdminTableCell>
+                        )}
+                      </tr>
+                    ))}
 
                   {/* Empty Table Message */}
-                  {filteredPlatformAdministrators.length === 0 && (
-                    <tr>
-                      <td
-                        colSpan={showActionsColumn ? 5 : 4}
-                        className="py-8 text-center text-[1.2rem] tracking-wider text-red-500 font-jost"
-                      >
-                        {emptyMessage}
-                      </td>
-                    </tr>
+                  {!isLoading && filteredPlatformAdministrators.length === 0 && (
+                    <AdminTableEmptyRow colSpan={showActionsColumn ? 5 : 4}>
+                      {emptyMessage}
+                    </AdminTableEmptyRow>
                   )}
                 </tbody>
-              </table>
-            </div>
+              </AdminTable>
+            </AdminTableContainer>
           )}
         </div>
       </div>
