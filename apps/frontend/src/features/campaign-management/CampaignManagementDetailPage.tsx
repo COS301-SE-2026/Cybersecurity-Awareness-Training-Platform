@@ -963,7 +963,16 @@ function CampaignManagementDetailPage({
                   onClick={() =>
                     navigate(
                       `/organisations/${context.organisationId}/campaigns/${detail.id}/statistics`,
-                      { state: { campaignName: detail.name } },
+                      {
+                        state: {
+                          campaignName: detail.name,
+                          campaignDescription: detail.description,
+                          campaignStatus: detail.status,
+                          campaignType: detail.campaignType,
+                          startDate: detail.startDate,
+                          endDate: detail.endDate,
+                        },
+                      },
                     )
                   }
                 >

@@ -1,20 +1,92 @@
 import AppLayout from '../components/layout/AppLayout';
 import { useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import StatusBadge from '../components/ui/StatusBadge';
+import type { CampaignStatusDto, CampaignTypeDto } from '@insightful-phish/shared';
+import StatusBadge, { type DisplayStatus } from '../components/ui/StatusBadge';
 
-function getCampaignName(state: unknown): string | null {
+type CampaignInsightsNavigationState = Readonly<{
+  campaignName: string;
+  campaignDescription: string | null;
+  campaignStatus: CampaignStatusDto;
+  campaignType: CampaignTypeDto;
+  startDate: string | null;
+  endDate: string | null;
+}>;
+
+const STATUS_LABELS: Record<CampaignStatusDto, DisplayStatus> = {
+  DRAFT: 'Draft',
+  ACTIVE: 'Active',
+  PAUSED: 'Paused',
+  COMPLETED: 'Completed',
+  ARCHIVED: 'Archived',
+};
+
+function isNullableString(value: unknown): value is string | null {
+  return value === null || typeof value === 'string';
+}
+
+function getCampaignInformation(state: unknown): CampaignInsightsNavigationState | null {
   if (
     typeof state !== 'object' ||
     state === null ||
     'campaignName' in state === false ||
     typeof state.campaignName !== 'string' ||
-    state.campaignName.trim() === ''
+    state.campaignName.trim() === '' ||
+    'campaignDescription' in state === false ||
+    isNullableString(state.campaignDescription) === false ||
+    'campaignStatus' in state === false ||
+    (state.campaignStatus !== 'DRAFT' &&
+      state.campaignStatus !== 'ACTIVE' &&
+      state.campaignStatus !== 'PAUSED' &&
+      state.campaignStatus !== 'COMPLETED' &&
+      state.campaignStatus !== 'ARCHIVED') ||
+    'campaignType' in state === false ||
+    (state.campaignType !== 'PREMADE_GENERAL' && state.campaignType !== 'ORGANISATION_CUSTOM') ||
+    'startDate' in state === false ||
+    isNullableString(state.startDate) === false ||
+    'endDate' in state === false ||
+    isNullableString(state.endDate) === false
   ) {
     return null;
   }
 
-  return state.campaignName;
+  return {
+    campaignName: state.campaignName,
+    campaignDescription: state.campaignDescription,
+    campaignStatus: state.campaignStatus,
+    campaignType: state.campaignType,
+    startDate: state.startDate,
+    endDate: state.endDate,
+  };
+}
+
+function formatDate(value: string): string | null {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return date.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
+function formatDuration(startDate: string | null, endDate: string | null): string {
+  if (startDate === null || endDate === null) {
+    return '—';
+  }
+
+  const formattedStartDate = formatDate(startDate);
+  const formattedEndDate = formatDate(endDate);
+
+  if (formattedStartDate === null || formattedEndDate === null) {
+    return '—';
+  }
+
+  return `${formattedStartDate} to ${formattedEndDate}`;
 }
 
 function CampaignInsightsPage() {
@@ -25,7 +97,27 @@ function CampaignInsightsPage() {
     campaignId: string;
   }>();
   const location = useLocation();
-  const campaignName = getCampaignName(location.state) ?? 'Campaign';
+  const campaignInformation = getCampaignInformation(location.state);
+  const campaignName = campaignInformation?.campaignName ?? 'Campaign';
+  const campaignStatus =
+    campaignInformation === null ? 'Unknown' : STATUS_LABELS[campaignInformation.campaignStatus];
+  const duration =
+    campaignInformation === null
+      ? '—'
+      : formatDuration(campaignInformation.startDate, campaignInformation.endDate);
+  const campaignType =
+    campaignInformation === null
+      ? '—'
+      : campaignInformation.campaignType === 'PREMADE_GENERAL'
+        ? 'Platform Campaign'
+        : 'Organisation Campaign';
+  const campaignOwner =
+    campaignInformation === null
+      ? '—'
+      : campaignInformation.campaignType === 'PREMADE_GENERAL'
+        ? 'Insightful Phish'
+        : 'Organisation';
+  const description = campaignInformation?.campaignDescription?.trim() || '—';
   const campaignPath =
     organisationId === undefined || campaignId === undefined
       ? '/'
@@ -57,6 +149,9 @@ function CampaignInsightsPage() {
             <span className="hover:underline"> Back to Campaign</span>
           </Link>
 
+          <p className="font-regular tracking-wider text-[1.1rem] font-justify font-medium font-jost text-dark-pink mt-4 mb-1">
+            Campaign
+          </p>
           <h1
             style={{
               margin: 0,
@@ -68,7 +163,7 @@ function CampaignInsightsPage() {
               color: 'rgb(132, 25, 255)',
             }}
           >
-            {campaignName}
+            "{campaignName}"
           </h1>
 
           <div className="grid grid-cols-4 gap-3">
@@ -77,7 +172,7 @@ function CampaignInsightsPage() {
                 Status
               </p>
               <div className="font-overpass tracking-wider">
-                <StatusBadge status="Active" />
+                <StatusBadge status={campaignStatus} />
               </div>
             </div>
 
@@ -86,7 +181,7 @@ function CampaignInsightsPage() {
                 Duration
               </p>
               <p className="font-regular tracking-wider text-md font-google_sans_code text-gray-500">
-                12 Aug 2026 to 30 Sep 2026
+                {duration}
               </p>
             </div>
 
@@ -95,7 +190,7 @@ function CampaignInsightsPage() {
                 Campaign Type
               </p>
               <p className="font-regular tracking-wider text-md font-google_sans_code text-gray-500">
-                Training
+                {campaignType}
               </p>
             </div>
 
@@ -104,7 +199,7 @@ function CampaignInsightsPage() {
                 Campaign Owner
               </p>
               <p className="font-regular tracking-wider text-md font-google_sans_code text-gray-500">
-                Organisation
+                {campaignOwner}
               </p>
             </div>
           </div>
@@ -114,10 +209,9 @@ function CampaignInsightsPage() {
             Description
           </p>
           <div className="bg-neutral-secondary-medium border border-default-medium p-2 font-regular tracking-wider shadow-xs text-[1.1rem] font-justify font-jost text-gray-500 mb-2">
-            Select the organisation trainees you want to assign training campaigns to, then choose
-            the campaigns and review your assignments before submitting. Assigning new campaigns
-            will not affect campaigns already assigned to organisation trainees or reset their
-            progress.
+            <p className="m-0 max-h-[3.3rem] overflow-y-auto whitespace-pre-wrap leading-[1.65rem]">
+              {description}
+            </p>
           </div>
 
           <div className="grid grid-cols-5 gap-3 py-2 px-4 bg-white border border-default-medium p-2 font-regular tracking-wider shadow-xs text-[1.1rem] font-justify font-jost text-gray-500 mb-2">

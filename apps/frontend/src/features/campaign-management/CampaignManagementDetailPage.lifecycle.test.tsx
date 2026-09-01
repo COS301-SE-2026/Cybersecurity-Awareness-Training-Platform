@@ -75,10 +75,16 @@ const EMPTY_DRAFT: CampaignDetailResponseDto = {
   items: [],
 };
 
+const ACTIVE_CAMPAIGN_DESCRIPTION =
+  'A detailed security awareness campaign for every member of the organisation.';
+
 const ACTIVE_CAMPAIGN: CampaignDetailResponseDto = {
   ...VALID_DRAFT,
   name: 'Active Awareness Campaign',
+  description: ACTIVE_CAMPAIGN_DESCRIPTION,
   status: 'ACTIVE',
+  startDate: '2026-08-12T08:00:00.000Z',
+  endDate: '2026-09-30T17:00:00.000Z',
   allowedActions: ['VIEW', 'ARCHIVE'],
 };
 
@@ -139,6 +145,46 @@ describe('CampaignManagementDetailPage activation', () => {
       'href',
       DETAIL_PATH,
     );
+    expect(screen.getByText('12 Aug 2026 to 30 Sept 2026')).toBeInTheDocument();
+    expect(screen.getByText('Organisation Campaign')).toBeInTheDocument();
+    expect(screen.getByText('Organisation')).toBeInTheDocument();
+
+    const statusField = screen.getByText('Status', { selector: 'p' }).parentElement;
+
+    if (statusField === null) {
+      throw new Error('Expected the Campaign status field to be rendered.');
+    }
+
+    expect(within(statusField).getByText('Active')).toBeInTheDocument();
+
+    const description = screen.getByText(ACTIVE_CAMPAIGN_DESCRIPTION);
+    expect(description).toHaveClass('max-h-[3.3rem]', 'overflow-y-auto');
+  });
+
+  it('shows an em dash when the selected Campaign has no duration', async () => {
+    const user = userEvent.setup();
+
+    renderPage(
+      {
+        ...ACTIVE_CAMPAIGN,
+        startDate: null,
+        endDate: null,
+      },
+      { archiveCampaign: vi.fn() },
+    );
+
+    await user.click(
+      await screen.findByRole('button', { name: 'View Assigned Trainees & Insights' }),
+    );
+
+    const durationLabel = screen.getByText('Duration');
+    const durationField = durationLabel.parentElement;
+
+    if (durationField === null) {
+      throw new Error('Expected the Campaign duration field to be rendered.');
+    }
+
+    expect(within(durationField).getByText('—')).toBeInTheDocument();
   });
 
   it('explains why an empty saved Draft cannot be activated', async () => {
