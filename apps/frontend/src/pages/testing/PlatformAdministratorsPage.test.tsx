@@ -212,6 +212,25 @@ describe('PlatformAdministratorsPage', () => {
     expect(mockGetPlatformAdmins).toHaveBeenCalledWith('platform-admin-token');
   });
 
+  it('keeps long administrator values available when cells are constrained', async () => {
+    const longName = 'A Platform Administrator With An Exceptionally Long Display Name';
+    const longEmail = 'an.exceptionally.long.platform.administrator@example.com';
+    mockGetPlatformAdmins.mockResolvedValueOnce(
+      buildResponse([
+        buildRow({
+          firstName: longName,
+          lastName: '',
+          email: longEmail,
+        }),
+      ]),
+    );
+
+    renderPage();
+
+    expect(await screen.findByTitle(longName)).toHaveAttribute('aria-label', longName);
+    expect(screen.getByTitle(longEmail)).toHaveAttribute('aria-label', longEmail);
+  });
+
   it('shows the true-empty message', async () => {
     mockGetPlatformAdmins.mockResolvedValueOnce(buildResponse([]));
 

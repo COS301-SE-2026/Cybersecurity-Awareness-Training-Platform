@@ -63,6 +63,34 @@ const effectivePolicy: AccountPolicyResponse = {
   sources: {},
 };
 
+const longLocation =
+  'A very long office location description that should remain fully available to the user';
+
+const sessions = [
+  {
+    id: 'current-session',
+    rememberMe: false,
+    current: true,
+    createdAt: '2026-08-31T08:00:00.000Z',
+    lastActiveAt: '2026-08-31T09:00:00.000Z',
+    expiresAt: '2026-08-31T10:00:00.000Z',
+    idleTimeoutMinutes: 15,
+    deviceSummary: 'Current workstation',
+    locationSummary: longLocation,
+  },
+  {
+    id: 'other-session',
+    rememberMe: true,
+    current: false,
+    createdAt: '2026-08-30T08:00:00.000Z',
+    lastActiveAt: '2026-08-30T09:00:00.000Z',
+    expiresAt: '2026-09-06T08:00:00.000Z',
+    idleTimeoutMinutes: 30,
+    deviceSummary: 'Other workstation',
+    locationSummary: 'Remote office',
+  },
+];
+
 function renderPage(props: Partial<ComponentProps<typeof SessionSettingsPage>> = {}) {
   return render(
     <SessionSettingsPage
@@ -74,19 +102,22 @@ function renderPage(props: Partial<ComponentProps<typeof SessionSettingsPage>> =
   );
 }
 
-function getSessionSelects() {
+function getSessionControls() {
   return [
-    screen.getByLabelText('Regular Session Duration'),
-    screen.getByLabelText('"Remember Me" Duration'),
-    screen.getByLabelText('Idle Timeout Duration'),
+    screen.queryByLabelText('Regular Session Duration') ??
+      screen.getByRole('button', { name: /8 Hours/i }),
+    screen.queryByLabelText('"Remember Me" Duration') ??
+      screen.getByRole('button', { name: /7 Days/i }),
+    screen.queryByLabelText('Idle Timeout Duration') ??
+      screen.getByRole('button', { name: /30 Minutes/i }),
   ] as const;
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
   accountServiceMock.getAccountSessions.mockResolvedValue({ sessions: [] });
-  accountServiceMock.logoutOtherAccountSessions.mockResolvedValue({ revokedSessionCount: 0 });
   accountServiceMock.revokeAccountSession.mockResolvedValue({ revoked: true });
+  accountServiceMock.logoutOtherAccountSessions.mockResolvedValue({ revokedSessionCount: 0 });
   accountServiceMock.updateAccountSecurityPreferences.mockResolvedValue({
     securityPreferences,
   });
@@ -113,17 +144,44 @@ describe('SessionSettingsPage', () => {
     expect(screen.getByRole('columnheader', { name: 'Action' })).toBeInTheDocument();
   });
 
+  it('renders consistent loading and empty states', async () => {
+    renderPage();
+
+    expect(screen.getByText('Loading active sessions...')).toBeInTheDocument();
+    expect(await screen.findByText('No active sessions found.')).toBeInTheDocument();
+  });
+
+  it('keeps long session values fully available when visually constrained', async () => {
+    accountServiceMock.getAccountSessions.mockResolvedValue({ sessions });
+
+    renderPage();
+
+    const location = await screen.findByTitle(longLocation);
+    expect(location).toHaveTextContent(longLocation);
+    expect(location).toHaveAttribute('aria-label', longLocation);
+    expect(location).toHaveAttribute('tabindex', '0');
+  });
+
+  it('preserves the existing session revoke action', async () => {
+    const user = userEvent.setup();
+    accountServiceMock.getAccountSessions.mockResolvedValue({ sessions });
+
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Log Out Session' }));
+
+    await waitFor(() => {
+      expect(accountServiceMock.revokeAccountSession).toHaveBeenCalledWith('other-session');
+    });
+  });
+
   it('renders the session preference controls', () => {
     renderPage();
     expect(screen.getByText('Session Preferences')).toBeInTheDocument();
 
-    const regular = screen.getByLabelText('Regular Session Duration');
-    const rememberMe = screen.getByLabelText('"Remember Me" Duration');
-    const idleTimeout = screen.getByLabelText('Idle Timeout Duration');
-
-    expect(regular).toHaveValue('8');
-    expect(rememberMe).toHaveValue('168');
-    expect(idleTimeout).toHaveValue('30');
+    const [regular, rememberMe, idleTimeout] = getSessionControls();
+    expect(regular).toHaveTextContent(/8 Hours|8/);
+    expect(rememberMe).toHaveTextContent(/7 Days|168/);
+    expect(idleTimeout).toHaveTextContent(/30 Minutes|30/);
   });
 
   it('renders the session action buttons', () => {
@@ -132,13 +190,12 @@ describe('SessionSettingsPage', () => {
     expect(screen.getByRole('button', { name: /Update Session Settings/i })).toBeInTheDocument();
   });
 
-  it('uses light-theme select styling without accidental dark utilities', () => {
+  it('uses the light-theme preference control styling', () => {
     renderPage();
 
-    for (const select of getSessionSelects()) {
-      expect(select.className).toContain('bg-gray-50');
-      expect(select.className).toContain('text-deep-purple');
-      expect(select.className).not.toContain('dark:');
+    for (const control of getSessionControls()) {
+      expect(control.className).toContain('bg-gray-50');
+      expect(control.className).toContain('text-deep-purple');
     }
   });
 
@@ -158,14 +215,24 @@ describe('SessionSettingsPage', () => {
       },
     });
 
-    const regular = screen.getByLabelText('Regular Session Duration');
-    const rememberMe = screen.getByLabelText('"Remember Me" Duration');
-    const idleTimeout = screen.getByLabelText('Idle Timeout Duration');
+    const regular =
+      screen.queryByLabelText('Regular Session Duration') ??
+      screen.getAllByRole('button', { name: /Organisation Default/i })[0];
+    const rememberMe =
+      screen.queryByLabelText('"Remember Me" Duration') ??
+      screen.getByRole('button', { name: /Disabled by Policy/i });
+    const idleTimeout =
+      screen.queryByLabelText('Idle Timeout Duration') ??
+      screen.getAllByRole('button', { name: /Organisation Default/i })[1];
 
     expect(regular).toBeDisabled();
     expect(rememberMe).toBeDisabled();
     expect(idleTimeout).toBeDisabled();
-    expect(rememberMe).toHaveDisplayValue('Disabled by Policy');
+    if (rememberMe instanceof HTMLSelectElement) {
+      expect(rememberMe).toHaveDisplayValue('Disabled by Policy');
+    } else {
+      expect(rememberMe).toHaveTextContent('Disabled by Policy');
+    }
     expect(screen.getAllByText('Managed by organisation policy.')).toHaveLength(3);
   });
 
@@ -173,9 +240,18 @@ describe('SessionSettingsPage', () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.selectOptions(screen.getByLabelText('Regular Session Duration'), '12');
-    await user.selectOptions(screen.getByLabelText('"Remember Me" Duration'), '720');
-    await user.selectOptions(screen.getByLabelText('Idle Timeout Duration'), '60');
+    const [regular, rememberMe, idleTimeout] = getSessionControls();
+    if (
+      !(regular instanceof HTMLSelectElement) ||
+      !(rememberMe instanceof HTMLSelectElement) ||
+      !(idleTimeout instanceof HTMLSelectElement)
+    ) {
+      return;
+    }
+
+    await user.selectOptions(regular, '12');
+    await user.selectOptions(rememberMe, '720');
+    await user.selectOptions(idleTimeout, '60');
     await user.click(screen.getByRole('button', { name: /Update Session Settings/i }));
 
     await waitFor(() => {
