@@ -49,6 +49,17 @@ function CampaignManagementDetailRoute({
   );
 }
 
+function CampaignInsightsRoute() {
+  const { clearAuth, permissions } = useAuth();
+
+  return (
+    <CampaignInsightsPage
+      canAssignCampaigns={permissions.includes('ASSIGN_CAMPAIGNS')}
+      onAuthenticationExpired={clearAuth}
+    />
+  );
+}
+
 function AppRoutes() {
   return (
     <Routes>
@@ -147,6 +158,10 @@ function AppRoutes() {
             path="/organisations/:organisationId/campaigns/:campaignId"
             element={<CampaignManagementDetailRoute contextKind="organisation" />}
           />
+          <Route
+            path="/organisations/:organisationId/campaigns/:campaignId/statistics"
+            element={<CampaignInsightsRoute />}
+          />
         </Route>
 
         <Route
@@ -189,9 +204,6 @@ function AppRoutes() {
       <Route element={<ProtectedRoute />}>
         <Route path="/account-management" element={<AccountManagementPage />} />
       </Route>
-
-      {/* REMOVE BEFORE FLIGHT */}
-      <Route path="/campaign-insights" element={<CampaignInsightsPage />} />
 
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
