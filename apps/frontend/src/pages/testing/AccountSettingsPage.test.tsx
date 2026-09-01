@@ -1,8 +1,13 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import AccountSettingsPage from '../../components/account-management/AccountSettingsPage';
+import type {
+  AccountCapabilitiesResponse,
+  AccountDeletionBlockedReasonDto,
+  AccountProfileResponse,
+} from '../../services/account.service';
 
-const baseProfile = {
+const baseProfile: AccountProfileResponse = {
   id: 'user-1',
   firstName: 'Avery',
   lastName: 'User',
@@ -15,15 +20,58 @@ const baseProfile = {
   updatedAt: '2026-08-31T08:00:00.000Z',
 };
 
-const baseCapabilities = {
+const baseCapabilities: AccountCapabilitiesResponse = {
   canEditProfile: true,
   canRequestEmailChange: true,
   canChangePassword: true,
   canEditSecurityPreferences: true,
   canDeleteAccount: false,
-  securityPreferenceEditable: {},
-  blockedReasons: {},
+  securityPreferenceEditable: {
+    preferredRegularSessionLengthHours: true,
+    preferredRememberMeSessionLengthHours: true,
+    preferredIdleTimeoutMinutes: true,
+  },
+  blockedReasons: {
+    emailChange: null,
+    securityPreferences: null,
+    preferredRegularSessionLengthHours: null,
+    preferredRememberMeSessionLengthHours: null,
+    preferredIdleTimeoutMinutes: null,
+    deleteAccount: 'SELF_DELETION_NOT_SUPPORTED',
+  },
 };
+
+const testCases: Array<{
+  userType: string;
+  deleteReason: AccountDeletionBlockedReasonDto;
+  expectedExplanation: string;
+  assertNoOrgWord: boolean;
+}> = [
+  {
+    userType: 'IP_ADMIN',
+    deleteReason: 'PLATFORM_SELF_DELETION_NOT_SUPPORTED',
+    expectedExplanation: 'Platform accounts do not support self-deletion.',
+    assertNoOrgWord: true,
+  },
+  {
+    userType: 'ORGANISATION_TRAINEE',
+    deleteReason: 'ORGANISATION_TRAINEE_MANAGED',
+    expectedExplanation: 'Account deletion is managed by your organisation administrator.',
+    assertNoOrgWord: false,
+  },
+  {
+    userType: 'GENERAL_TRAINEE',
+    deleteReason: 'SELF_DELETION_NOT_SUPPORTED',
+    expectedExplanation: 'Account self-deletion is currently unavailable.',
+    assertNoOrgWord: false,
+  },
+  {
+    userType: 'ORGANISATION_ADMIN',
+    deleteReason: 'ORGANISATION_ADMIN_MANAGED',
+    expectedExplanation: 'Account deletion is managed by another organisation administrator.',
+    assertNoOrgWord: false,
+  },
+];
 
 describe('AccountSettingsPage', () => {
   it('renders the heading and description', () => {
@@ -79,7 +127,10 @@ describe('AccountSettingsPage', () => {
         capabilities={{
           ...baseCapabilities,
           canRequestEmailChange: false,
-          blockedReasons: { canRequestEmailChange: 'ORGANISATION_POLICY' },
+          blockedReasons: {
+            ...baseCapabilities.blockedReasons,
+            emailChange: 'ORGANISATION_POLICY',
+          },
         }}
       />,
     );
@@ -93,32 +144,7 @@ describe('AccountSettingsPage', () => {
     expect(screen.getByText('Email change is managed by organisation policy.')).toBeInTheDocument();
   });
 
-  it.each([
-    {
-      userType: 'IP_ADMIN',
-      deleteReason: 'PLATFORM_SELF_DELETION_NOT_SUPPORTED',
-      expectedExplanation: 'Platform accounts do not support self-deletion.',
-      assertNoOrgWord: true,
-    },
-    {
-      userType: 'ORGANISATION_TRAINEE',
-      deleteReason: 'ORGANISATION_TRAINEE_MANAGED',
-      expectedExplanation: 'Account deletion is managed by your organisation administrator.',
-      assertNoOrgWord: false,
-    },
-    {
-      userType: 'GENERAL_TRAINEE',
-      deleteReason: 'SELF_DELETION_NOT_SUPPORTED',
-      expectedExplanation: 'Account self-deletion is currently unavailable.',
-      assertNoOrgWord: false,
-    },
-    {
-      userType: 'ORGANISATION_ADMIN',
-      deleteReason: 'ORGANISATION_ADMIN_MANAGED',
-      expectedExplanation: 'Account deletion is managed by another organisation administrator.',
-      assertNoOrgWord: false,
-    },
-  ])(
+  it.each(testCases)(
     'displays accurate delete account explanation for $userType',
     ({ userType, deleteReason, expectedExplanation, assertNoOrgWord }) => {
       render(
@@ -126,7 +152,10 @@ describe('AccountSettingsPage', () => {
           profile={{ ...baseProfile, userType }}
           capabilities={{
             ...baseCapabilities,
-            blockedReasons: { deleteAccount: deleteReason },
+            blockedReasons: {
+              ...baseCapabilities.blockedReasons,
+              deleteAccount: deleteReason,
+            },
           }}
         />,
       );

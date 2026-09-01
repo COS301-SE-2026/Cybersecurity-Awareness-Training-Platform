@@ -1,8 +1,5 @@
 import type { TimelineEventDto } from '@insightful-phish/shared';
 
-// props for organisation event timeline component
-// timeline component for rendering chronological audit event log entries
-
 export interface OrganisationTimelineProps {
   timeline?: TimelineEventDto[];
 }
@@ -25,7 +22,7 @@ function formatTimelineAction(action: string): string {
     return timelineActionLabels[action];
   }
   return action
-    .replace(/_/g, ' ')
+    .replaceAll('_', ' ')
     .toLowerCase()
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
@@ -51,22 +48,22 @@ function formatTimelineSummary(summary: string): string {
     return timelineSummaryMappings[summary];
   }
 
-  const onMatch = summary.match(/^([A-Z_]+)\s+on\s+([A-Z_]+)$/);
+  const onMatch = /^([A-Z_]+)\s+on\s+([A-Z_]+)$/.exec(summary);
   if (onMatch) {
     const [, rawAction, rawTarget] = onMatch;
-    const actionClean = rawAction.replace(/_/g, ' ').toLowerCase();
-    const targetClean = rawTarget.replace(/_/g, ' ').toLowerCase();
+    const actionClean = rawAction.replaceAll('_', ' ').toLowerCase();
+    const targetClean = rawTarget.replaceAll('_', ' ').toLowerCase();
     return `${actionClean.charAt(0).toUpperCase() + actionClean.slice(1)} on ${targetClean}.`;
   }
 
   return summary
-    .replace(/\bSUSPENDED\b/g, 'Suspended')
-    .replace(/\bORGANISATION\b/g, 'Organisation')
-    .replace(/\bACTIVE\b/g, 'Active')
-    .replace(/\bPENDING_ONBOARDING\b/g, 'Approved - Waiting for Setup')
-    .replace(/\bPENDING\b/g, 'Pending')
-    .replace(/\bCOMPLETED\b/g, 'Completed')
-    .replace(/\bSENT\b/g, 'Sent');
+    .replaceAll('SUSPENDED', 'Suspended')
+    .replaceAll('ORGANISATION', 'Organisation')
+    .replaceAll('ACTIVE', 'Active')
+    .replaceAll('PENDING_ONBOARDING', 'Approved - Waiting for Setup')
+    .replaceAll('PENDING', 'Pending')
+    .replaceAll('COMPLETED', 'Completed')
+    .replaceAll('SENT', 'Sent');
 }
 
 function OrganisationTimelinePage({ timeline }: Readonly<OrganisationTimelineProps>) {
@@ -99,12 +96,10 @@ function OrganisationTimelinePage({ timeline }: Readonly<OrganisationTimelinePro
 
   return (
     <div className="-mt-2 -ml-2">
-      {/* HEADING */}
       <h3 className="font-jost text-2xl text-dark-pink tracking-wider font-medium">
         Organisation Event Timeline
       </h3>
 
-      {/* SUB-HEADING */}
       <p className="font-regular tracking-wider text-[1.1rem] font-justify font-jost text-gray-500 mb-6">
         View the chronological history of organisation registration, onboarding, and platform
         events.
@@ -116,31 +111,25 @@ function OrganisationTimelinePage({ timeline }: Readonly<OrganisationTimelinePro
             {eventsToDisplay.map((event, index) => (
               <li key={event.id || index} className="relative mb-6 sm:mb-0 sm:flex-1 min-w-[14rem]">
                 <div className="flex items-center">
-                  {/* Dot */}
                   <div className="z-10 flex items-center justify-center w-3 h-3 bg-main-purple rounded-none ring-0 ring-buffer sm:ring-8 shrink-0"></div>
-                  {/* Line */}
                   {index < eventsToDisplay.length - 1 && (
                     <div className="hidden sm:flex w-full bg-gray-300 h-px"></div>
                   )}
                 </div>
 
                 <div className="mt-3 sm:pe-8">
-                  {/* Date and Time */}
                   <time className="bg-neutral-secondary-medium border border-default-medium text-[0.9rem] font-regular text-gray-600 font-overpass px-1.5 pt-1 py-0.5 rounded-none">
                     {event.timestamp}
                   </time>
 
-                  {/* Event Title */}
                   <h3 className="text-lg max-w-3xs font-medium text-pink my-2 tracking-wider font-jost">
                     {event.action}
                   </h3>
 
-                  {/* Event Description */}
                   <p className="text-body max-w-3xs mb-2 tracking text-dark-pink font-overpass text-[0.95rem]">
                     {event.summary}
                   </p>
 
-                  {/* Actor context */}
                   {event.actor && (
                     <p className="text-xs text-gray-500 font-overpass">Actor: {event.actor}</p>
                   )}

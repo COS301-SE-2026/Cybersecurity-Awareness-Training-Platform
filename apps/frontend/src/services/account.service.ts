@@ -9,16 +9,15 @@ import {
   type AccountPolicyResponseDto,
   type AccountProfileResponseDto,
   type AccountSecurityPreferencesResponseDto,
-  type AccountDeletionBlockedReasonDto,
 } from '@insightful-phish/shared';
 import { apiClient, ApiError } from '../lib/apiClient';
 
+export type { AccountDeletionBlockedReasonDto } from '@insightful-phish/shared';
 export type AccountPolicyResponse = AccountPolicyResponseDto;
 export type AccountCapabilitiesResponse = AccountCapabilitiesResponseDto;
 export type AccountProfileResponse = AccountProfileResponseDto;
 export type AccountSecurityPreferencesResponse = AccountSecurityPreferencesResponseDto;
 export type AccountResponse = AccountResponseDto;
-export type { AccountDeletionBlockedReasonDto };
 
 export type AccountChangeEmailResponse = { message: string; emailQueued: boolean };
 export type AccountChangePasswordResponse = {
