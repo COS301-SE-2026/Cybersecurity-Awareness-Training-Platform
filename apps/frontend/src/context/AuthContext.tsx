@@ -33,7 +33,8 @@ const REFRESH_LOCK_NAME = 'insightful-phish-refresh';
 const LOGOUT_LOCK_NAME = 'insightful-phish-logout';
 const ACCESS_TOKEN_RENEWAL_MARGIN_MS = 60_000;
 const ACCESS_TOKEN_RENEWAL_DELAY_MS = 10_000;
-const ACCESS_TOKEN_RENEWAL_MAX_ATTEMPTS = 3;
+const ACCESS_TOKEN_RENEWAL_MAX_ATTEMPTS = 4;
+const ACCESS_TOKEN_FINAL_RENEWAL_MARGIN_MS = 10_000;
 const IDLE_WARNING_LEAD_MS = 60_000;
 
 function getStorage() {
@@ -824,7 +825,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (renewalAttemptCount >= ACCESS_TOKEN_RENEWAL_MAX_ATTEMPTS) {
           return;
         }
-        renewalRetryTimer = globalThis.setTimeout(attemptRenewal, ACCESS_TOKEN_RENEWAL_DELAY_MS);
+        const retryDelay =
+          renewalAttemptCount === ACCESS_TOKEN_RENEWAL_MAX_ATTEMPTS - 1
+            ? Math.max(0, expiresAtTime - Date.now() - ACCESS_TOKEN_FINAL_RENEWAL_MARGIN_MS)
+            : ACCESS_TOKEN_RENEWAL_DELAY_MS;
+        renewalRetryTimer = globalThis.setTimeout(attemptRenewal, retryDelay);
       });
     }
 
