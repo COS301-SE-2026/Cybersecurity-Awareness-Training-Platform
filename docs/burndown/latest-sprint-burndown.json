@@ -6,11 +6,32 @@
   "end": "2026-09-02",
   "issues": [
     {
+      "number": 532,
+      "title": "fix: Show organisation and session policy information",
+      "points": 5,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 531,
+      "title": "fix: Restore an existing quiz attempt",
+      "points": 3,
+      "state": "open",
+      "closed_date": null
+    },
+    {
+      "number": 530,
+      "title": "fix: Show correct trainee campaign progress",
+      "points": 3,
+      "state": "open",
+      "closed_date": null
+    },
+    {
       "number": 519,
       "title": "feat: add campaign insights to organisation campaign details",
       "points": 2,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-09-01"
     },
     {
       "number": 506,
@@ -191,68 +212,68 @@
   "series": [
     {
       "date": "2026-08-20",
-      "remaining": 76,
-      "ideal": 83.0
+      "remaining": 87,
+      "ideal": 94.0
     },
     {
       "date": "2026-08-21",
-      "remaining": 68,
-      "ideal": 76.62
+      "remaining": 79,
+      "ideal": 86.77
     },
     {
       "date": "2026-08-22",
-      "remaining": 68,
-      "ideal": 70.23
+      "remaining": 79,
+      "ideal": 79.54
     },
     {
       "date": "2026-08-23",
-      "remaining": 68,
-      "ideal": 63.85
+      "remaining": 79,
+      "ideal": 72.31
     },
     {
       "date": "2026-08-24",
-      "remaining": 68,
-      "ideal": 57.46
+      "remaining": 79,
+      "ideal": 65.08
     },
     {
       "date": "2026-08-25",
-      "remaining": 68,
-      "ideal": 51.08
+      "remaining": 79,
+      "ideal": 57.85
     },
     {
       "date": "2026-08-26",
-      "remaining": 68,
-      "ideal": 44.69
+      "remaining": 79,
+      "ideal": 50.62
     },
     {
       "date": "2026-08-27",
-      "remaining": 68,
-      "ideal": 38.31
+      "remaining": 79,
+      "ideal": 43.38
     },
     {
       "date": "2026-08-28",
-      "remaining": 66,
-      "ideal": 31.92
+      "remaining": 77,
+      "ideal": 36.15
     },
     {
       "date": "2026-08-29",
-      "remaining": 56,
-      "ideal": 25.54
+      "remaining": 67,
+      "ideal": 28.92
     },
     {
       "date": "2026-08-30",
-      "remaining": 53,
-      "ideal": 19.15
+      "remaining": 64,
+      "ideal": 21.69
     },
     {
       "date": "2026-08-31",
-      "remaining": 38,
-      "ideal": 12.77
+      "remaining": 49,
+      "ideal": 14.46
     },
     {
       "date": "2026-09-01",
-      "remaining": 28,
-      "ideal": 6.38
+      "remaining": 37,
+      "ideal": 7.23
     }
   ]
 }
