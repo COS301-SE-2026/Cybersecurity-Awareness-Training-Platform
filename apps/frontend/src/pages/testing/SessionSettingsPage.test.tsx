@@ -263,15 +263,17 @@ describe('SessionSettingsPage', () => {
     });
   });
 
+  const nullSecurityPreferences = {
+    id: 'preferences-1',
+    preferredRegularSessionLengthHours: null,
+    preferredRememberMeSessionLengthHours: null,
+    preferredIdleTimeoutMinutes: null,
+    updatedAt: '2026-08-31T08:00:00.000Z',
+  };
+
   it('renders effective policy values and source labels when preferences are unset', () => {
     renderPage({
-      securityPreferences: {
-        id: 'preferences-1',
-        preferredRegularSessionLengthHours: null,
-        preferredRememberMeSessionLengthHours: null,
-        preferredIdleTimeoutMinutes: null,
-        updatedAt: '2026-08-31T08:00:00.000Z',
-      },
+      securityPreferences: nullSecurityPreferences,
       effectivePolicy: {
         ...effectivePolicy,
         regularSessionSeconds: 8 * 3600,
@@ -293,13 +295,7 @@ describe('SessionSettingsPage', () => {
 
   it('renders Platform Default source labels when policy source is PLATFORM_DEFAULT', () => {
     renderPage({
-      securityPreferences: {
-        id: 'preferences-1',
-        preferredRegularSessionLengthHours: null,
-        preferredRememberMeSessionLengthHours: null,
-        preferredIdleTimeoutMinutes: null,
-        updatedAt: '2026-08-31T08:00:00.000Z',
-      },
+      securityPreferences: nullSecurityPreferences,
       effectivePolicy: {
         ...effectivePolicy,
         regularSessionSeconds: 12 * 3600,
@@ -319,4 +315,3 @@ describe('SessionSettingsPage', () => {
     expect(idleTimeout).toHaveTextContent('Platform Default (15 Minutes)');
   });
 });
-

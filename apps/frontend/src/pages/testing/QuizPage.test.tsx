@@ -321,7 +321,9 @@ describe('QuizPage', () => {
     renderQuizPage();
 
     expect(await screen.findByText('Results page')).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: /phishing basics quiz/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: /phishing basics quiz/i }),
+    ).not.toBeInTheDocument();
     expect(mockedStartQuizAttempt).not.toHaveBeenCalled();
     expect(mockedSubmitQuizAttempt).not.toHaveBeenCalled();
   });

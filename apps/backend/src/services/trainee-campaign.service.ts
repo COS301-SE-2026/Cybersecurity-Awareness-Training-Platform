@@ -125,8 +125,7 @@ function deriveAggregateProgressStatus(
   const isCompleted = (status: TraineeCampaignProgressStatusDto) =>
     status === 'COMPLETED' || status === 'SUBMITTED';
 
-  const isStarted = (status: TraineeCampaignProgressStatusDto) =>
-    status !== 'NOT_STARTED';
+  const isStarted = (status: TraineeCampaignProgressStatusDto) => status !== 'NOT_STARTED';
 
   if (itemStatuses.every(isCompleted)) {
     return 'COMPLETED';
@@ -239,9 +238,7 @@ function deriveSimulationProgressStatus(input: {
     const requiredEmailIds = item.simulation?.simulatedInbox?.emails?.map((e) => e.id) ?? [];
     const openedEmailIds = new Set(
       input.events
-        .filter(
-          (e) => e.campaignItemId === item.id && e.eventType === 'SIMULATED_EMAIL_OPENED',
-        )
+        .filter((e) => e.campaignItemId === item.id && e.eventType === 'SIMULATED_EMAIL_OPENED')
         .map((e) => e.simulatedEmailId || e.targetId)
         .filter((id): id is string => typeof id === 'string' && id.length > 0),
     );
@@ -258,8 +255,7 @@ function deriveSimulationProgressStatus(input: {
     const hasClassification =
       input.classificationResponses.some((r) => r.campaignItemId === item.id) ||
       input.events.some(
-        (e) =>
-          e.campaignItemId === item.id && e.eventType === 'SIMULATED_EMAIL_CLASSIFIED',
+        (e) => e.campaignItemId === item.id && e.eventType === 'SIMULATED_EMAIL_CLASSIFIED',
       );
 
     if (hasClassification) {
@@ -301,9 +297,7 @@ async function getProgressByItemId(input: {
   const quizItemIds = componentItems
     .filter((item) => item.componentType === 'QUIZ')
     .map((item) => item.id);
-  const simulationItems = componentItems.filter(
-    (item) => item.componentType === 'SIMULATED_INBOX',
-  );
+  const simulationItems = componentItems.filter((item) => item.componentType === 'SIMULATED_INBOX');
   const simulationItemIds = simulationItems.map((item) => item.id);
 
   const [trainingEvents, quizAttempts, simulationEvents, classificationResponses] =

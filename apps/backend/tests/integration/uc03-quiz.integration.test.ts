@@ -165,17 +165,13 @@ describe('UC-03 Quiz Integration Tests', () => {
     expect(finalAttemptsCount).toBe(1);
   });
 
-  it('submits a quiz attempt, grading answers and persisting options', async () => {
-    const fixture = await setupQuizFixture();
-
-    // Start the attempt
+  async function startAndSubmitQuizAttempt(fixture: Awaited<ReturnType<typeof setupQuizFixture>>) {
     const startResponse = await request(createApp())
       .post(`/trainee/campaign-items/${fixture.campaignItem.id}/quiz/attempts`)
       .set('Authorization', `Bearer ${fixture.token}`)
       .send();
     const attemptId = startResponse.body.attemptId;
 
-    // Submit with correct option selected
     const submitResponse = await request(createApp())
       .post(`/quiz-attempts/${attemptId}/submit`)
       .set('Authorization', `Bearer ${fixture.token}`)
@@ -187,6 +183,13 @@ describe('UC-03 Quiz Integration Tests', () => {
           },
         ],
       });
+
+    return { attemptId, startResponse, submitResponse };
+  }
+
+  it('submits a quiz attempt, grading answers and persisting options', async () => {
+    const fixture = await setupQuizFixture();
+    const { attemptId, submitResponse } = await startAndSubmitQuizAttempt(fixture);
 
     expect(submitResponse.status).toBe(200);
     expect(submitResponse.body.success).toBe(true);
@@ -224,25 +227,7 @@ describe('UC-03 Quiz Integration Tests', () => {
 
   it('retrieves graded quiz attempt results successfully', async () => {
     const fixture = await setupQuizFixture();
-
-    // Start and submit the attempt
-    const startResponse = await request(createApp())
-      .post(`/trainee/campaign-items/${fixture.campaignItem.id}/quiz/attempts`)
-      .set('Authorization', `Bearer ${fixture.token}`)
-      .send();
-    const attemptId = startResponse.body.attemptId;
-
-    await request(createApp())
-      .post(`/quiz-attempts/${attemptId}/submit`)
-      .set('Authorization', `Bearer ${fixture.token}`)
-      .send({
-        answers: [
-          {
-            questionId: fixture.question.id,
-            selectedOptionIds: [fixture.correctOption.id],
-          },
-        ],
-      });
+    const { attemptId } = await startAndSubmitQuizAttempt(fixture);
 
     // Fetch results
     const response = await request(createApp())
@@ -269,24 +254,7 @@ describe('UC-03 Quiz Integration Tests', () => {
 
   it('returns existing submitted currentAttempt summary when reopening quiz', async () => {
     const fixture = await setupQuizFixture();
-
-    const startResponse = await request(createApp())
-      .post(`/trainee/campaign-items/${fixture.campaignItem.id}/quiz/attempts`)
-      .set('Authorization', `Bearer ${fixture.token}`)
-      .send();
-    const attemptId = startResponse.body.attemptId;
-
-    await request(createApp())
-      .post(`/quiz-attempts/${attemptId}/submit`)
-      .set('Authorization', `Bearer ${fixture.token}`)
-      .send({
-        answers: [
-          {
-            questionId: fixture.question.id,
-            selectedOptionIds: [fixture.correctOption.id],
-          },
-        ],
-      });
+    const { attemptId } = await startAndSubmitQuizAttempt(fixture);
 
     const getResponse = await request(createApp())
       .get(`/trainee/campaign-items/${fixture.campaignItem.id}/quiz`)

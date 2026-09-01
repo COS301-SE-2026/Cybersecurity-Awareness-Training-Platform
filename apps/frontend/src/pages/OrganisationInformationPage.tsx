@@ -239,9 +239,7 @@ function OrganisationInformationPage() {
   const [ownOrgDetailData, setOwnOrgDetailData] = useState<OrganisationDetailData | null>(null);
   const detailData = isPlatformAdmin ? platformDetailData : ownOrgDetailData;
 
-  const [isLoading, setIsLoading] = useState<boolean>(
-    Boolean(targetId && token),
-  );
+  const [isLoading, setIsLoading] = useState<boolean>(Boolean(targetId && token));
   const [errorStatus, setErrorStatus] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 

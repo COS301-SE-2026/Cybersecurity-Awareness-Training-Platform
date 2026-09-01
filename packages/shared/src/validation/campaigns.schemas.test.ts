@@ -371,7 +371,10 @@ describe('campaign validation schemas', () => {
           isRequired: true,
           availabilityStatus: 'AVAILABLE',
           isOpenable: true,
-          activityApiPath: getTraineeCampaignActivityApiPath('QUIZ', '55555555-5555-4555-8555-555555555555'),
+          activityApiPath: getTraineeCampaignActivityApiPath(
+            'QUIZ',
+            '55555555-5555-4555-8555-555555555555',
+          ),
           progressStatus: 'NOT_STARTED',
           eligibility: {
             canView: true,
