@@ -111,8 +111,29 @@
       "closed_date": "2026-08-29"
     },
     {
+      "number": 493,
+      "title": "fix: provide supported session device and browser metadata",
+      "points": 3,
+      "state": "closed",
+      "closed_date": "2026-09-01"
+    },
+    {
+      "number": 490,
+      "title": "fix: standardise administration tables and row actions",
+      "points": 3,
+      "state": "closed",
+      "closed_date": "2026-09-01"
+    },
+    {
       "number": 488,
       "title": "fix: correct idle session timeout behaviour",
+      "points": 5,
+      "state": "closed",
+      "closed_date": "2026-09-01"
+    },
+    {
+      "number": 487,
+      "title": "fix: support re-enabling disabled organisation trainees",
       "points": 5,
       "state": "closed",
       "closed_date": "2026-09-01"
@@ -137,6 +158,34 @@
       "points": 2,
       "state": "closed",
       "closed_date": "2026-08-20"
+    },
+    {
+      "number": 476,
+      "title": "fix: correct account deletion capability wording",
+      "points": 2,
+      "state": "closed",
+      "closed_date": "2026-09-01"
+    },
+    {
+      "number": 473,
+      "title": "fix: restore account management presentation",
+      "points": 2,
+      "state": "closed",
+      "closed_date": "2026-09-01"
+    },
+    {
+      "number": 472,
+      "title": "fix: restore organisation information presentation",
+      "points": 3,
+      "state": "closed",
+      "closed_date": "2026-09-01"
+    },
+    {
+      "number": 470,
+      "title": "fix: show precise invitation unavailable reasons",
+      "points": 1,
+      "state": "closed",
+      "closed_date": "2026-08-31"
     },
     {
       "number": 469,
@@ -212,68 +261,73 @@
   "series": [
     {
       "date": "2026-08-20",
-      "remaining": 87,
-      "ideal": 94.0
+      "remaining": 106,
+      "ideal": 113.0
     },
     {
       "date": "2026-08-21",
-      "remaining": 79,
-      "ideal": 86.77
+      "remaining": 98,
+      "ideal": 104.31
     },
     {
       "date": "2026-08-22",
-      "remaining": 79,
-      "ideal": 79.54
+      "remaining": 98,
+      "ideal": 95.62
     },
     {
       "date": "2026-08-23",
-      "remaining": 79,
-      "ideal": 72.31
+      "remaining": 98,
+      "ideal": 86.92
     },
     {
       "date": "2026-08-24",
-      "remaining": 79,
-      "ideal": 65.08
+      "remaining": 98,
+      "ideal": 78.23
     },
     {
       "date": "2026-08-25",
-      "remaining": 79,
-      "ideal": 57.85
+      "remaining": 98,
+      "ideal": 69.54
     },
     {
       "date": "2026-08-26",
-      "remaining": 79,
-      "ideal": 50.62
+      "remaining": 98,
+      "ideal": 60.85
     },
     {
       "date": "2026-08-27",
-      "remaining": 79,
-      "ideal": 43.38
+      "remaining": 98,
+      "ideal": 52.15
     },
     {
       "date": "2026-08-28",
-      "remaining": 77,
-      "ideal": 36.15
+      "remaining": 96,
+      "ideal": 43.46
     },
     {
       "date": "2026-08-29",
-      "remaining": 67,
-      "ideal": 28.92
+      "remaining": 86,
+      "ideal": 34.77
     },
     {
       "date": "2026-08-30",
-      "remaining": 64,
-      "ideal": 21.69
+      "remaining": 83,
+      "ideal": 26.08
     },
     {
       "date": "2026-08-31",
-      "remaining": 49,
-      "ideal": 14.46
+      "remaining": 67,
+      "ideal": 17.38
     },
     {
       "date": "2026-09-01",
       "remaining": 34,
-      "ideal": 7.23
+      "ideal": 8.69
+    },
+    {
+      "date": "2026-09-02",
+      "remaining": 34,
+      "ideal": 0.0
     }
   ]
 }
