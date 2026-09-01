@@ -5,6 +5,7 @@ import {
   disableOrganisationTrainee,
   listOrganisationTrainees,
   OrganisationTraineeServiceError,
+  reenableOrganisationTrainee,
   resendTraineeInvitation,
   revokeTraineeInvitation,
 } from '../services/organisation-trainee.service.js';
@@ -127,6 +128,25 @@ export async function disableTrainee(req: Request, res: Response) {
 
   try {
     const result = await disableOrganisationTrainee(
+      actorUserId,
+      requiredParam(req, 'organisationId'),
+      requiredParam(req, 'traineeId'),
+      req.body,
+    );
+    return res.status(200).json(result);
+  } catch (error) {
+    return handleOrganisationTraineeError(error, res);
+  }
+}
+
+export async function reenableTrainee(req: Request, res: Response) {
+  const actorUserId = requireActorUserId(req, res);
+  if (!actorUserId) {
+    return;
+  }
+
+  try {
+    const result = await reenableOrganisationTrainee(
       actorUserId,
       requiredParam(req, 'organisationId'),
       requiredParam(req, 'traineeId'),
