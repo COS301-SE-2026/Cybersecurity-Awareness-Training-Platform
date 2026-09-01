@@ -72,4 +72,3 @@ describe('Organisation Details Service', () => {
     expect(result).toEqual(mockResponse);
   });
 });
-

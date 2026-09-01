@@ -312,22 +312,50 @@ describe('CampaignsPage', () => {
   it('formats every shared progress status value correctly and defaults unknown values to UNKNOWN', async () => {
     mockedGetTraineeCampaigns.mockResolvedValue({
       campaigns: [
-        buildMockCampaign('11111111-1111-4111-8111-111111111111', 'Completed Campaign', 'COMPLETED'),
-        buildMockCampaign('22222222-2222-4222-8222-222222222222', 'Not Started Campaign', 'NOT_STARTED'),
-        buildMockCampaign('33333333-3333-4333-8333-333333333333', 'In Progress Campaign', 'IN_PROGRESS'),
-        buildMockCampaign('44444444-4444-4444-8444-444444444444', 'Classified Campaign', 'CLASSIFIED'),
-        buildMockCampaign('55555555-5555-4555-8555-555555555555', 'Submitted Campaign', 'SUBMITTED'),
-        buildMockCampaign('66666666-6666-4666-8666-666666666666', 'Unknown Progress Campaign', 'SOMETHING_ELSE' as unknown as 'NOT_STARTED'),
+        buildMockCampaign(
+          '11111111-1111-4111-8111-111111111111',
+          'Completed Campaign',
+          'COMPLETED',
+        ),
+        buildMockCampaign(
+          '22222222-2222-4222-8222-222222222222',
+          'Not Started Campaign',
+          'NOT_STARTED',
+        ),
+        buildMockCampaign(
+          '33333333-3333-4333-8333-333333333333',
+          'In Progress Campaign',
+          'IN_PROGRESS',
+        ),
+        buildMockCampaign(
+          '44444444-4444-4444-8444-444444444444',
+          'Classified Campaign',
+          'CLASSIFIED',
+        ),
+        buildMockCampaign(
+          '55555555-5555-4555-8555-555555555555',
+          'Submitted Campaign',
+          'SUBMITTED',
+        ),
+        buildMockCampaign(
+          '66666666-6666-4666-8666-666666666666',
+          'Unknown Progress Campaign',
+          'SOMETHING_ELSE' as unknown as 'NOT_STARTED',
+        ),
       ],
     });
 
     render(<CampaignsPage />);
 
     expect(await screen.findByTestId('status-Completed Campaign')).toHaveTextContent('COMPLETED');
-    expect(await screen.findByTestId('status-Not Started Campaign')).toHaveTextContent('NOT STARTED');
+    expect(await screen.findByTestId('status-Not Started Campaign')).toHaveTextContent(
+      'NOT STARTED',
+    );
     expect(await screen.findByTestId('status-In Progress Campaign')).toHaveTextContent('STARTED');
     expect(await screen.findByTestId('status-Classified Campaign')).toHaveTextContent('STARTED');
     expect(await screen.findByTestId('status-Submitted Campaign')).toHaveTextContent('STARTED');
-    expect(await screen.findByTestId('status-Unknown Progress Campaign')).toHaveTextContent('UNKNOWN');
+    expect(await screen.findByTestId('status-Unknown Progress Campaign')).toHaveTextContent(
+      'UNKNOWN',
+    );
   });
 });
