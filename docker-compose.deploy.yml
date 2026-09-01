@@ -51,6 +51,7 @@ services:
       SUPPORT_EMAIL_ADDRESS: ${SUPPORT_EMAIL_ADDRESS:? Set SUPPORT_EMAIL_ADDRESS in deploy/.env}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      DEMO3_TRAINING_CONTENT_DIR: ${DEMO3_TRAINING_CONTENT_DIR:-}
     ports:
       - '127.0.0.1:${BACKEND_PORT:-4000}:4000'
     healthcheck:
@@ -65,6 +66,8 @@ services:
       timeout: 5s
       retries: 12
       start_period: 30s
+    volumes:
+      - ${DEMO3_SEED_BUNDLE_DIR:-demo3_seed_bundle_unavailable}:/app/.project_planning/demo3-seed:ro
     logging:
       options:
         max-size: '10m'
@@ -103,3 +106,4 @@ services:
 volumes:
   deploy_postgres_data:
     name: insightful_phish_deploy_postgres_data
+  demo3_seed_bundle_unavailable:
