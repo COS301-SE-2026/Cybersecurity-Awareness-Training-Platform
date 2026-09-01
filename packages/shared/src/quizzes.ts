@@ -32,6 +32,12 @@ export interface SafeQuizQuestionDto {
   options: SafeQuizAnswerOptionDto[];
 }
 
+export interface CurrentQuizAttemptSummaryDto {
+  attemptId: string;
+  status: QuizAttemptStatusDto;
+  hasResult: boolean;
+}
+
 export interface GetQuizResponseDto {
   id: string;
   campaignItemId?: string | null;
@@ -42,6 +48,7 @@ export interface GetQuizResponseDto {
   difficultyLevel: DifficultyLevelDto;
   status: QuizStatusDto;
   questions: SafeQuizQuestionDto[];
+  currentAttempt?: CurrentQuizAttemptSummaryDto | null;
 }
 
 export type StartQuizAttemptRequestParamsDto = z.infer<typeof startQuizAttemptRequestParamsSchema>;

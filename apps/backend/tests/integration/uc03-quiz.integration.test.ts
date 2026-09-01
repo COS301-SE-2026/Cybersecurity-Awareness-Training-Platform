@@ -266,4 +266,37 @@ describe('UC-03 Quiz Integration Tests', () => {
       fixture.correctOption.feedbackText,
     );
   });
+
+  it('returns existing submitted currentAttempt summary when reopening quiz', async () => {
+    const fixture = await setupQuizFixture();
+
+    const startResponse = await request(createApp())
+      .post(`/trainee/campaign-items/${fixture.campaignItem.id}/quiz/attempts`)
+      .set('Authorization', `Bearer ${fixture.token}`)
+      .send();
+    const attemptId = startResponse.body.attemptId;
+
+    await request(createApp())
+      .post(`/quiz-attempts/${attemptId}/submit`)
+      .set('Authorization', `Bearer ${fixture.token}`)
+      .send({
+        answers: [
+          {
+            questionId: fixture.question.id,
+            selectedOptionIds: [fixture.correctOption.id],
+          },
+        ],
+      });
+
+    const getResponse = await request(createApp())
+      .get(`/trainee/campaign-items/${fixture.campaignItem.id}/quiz`)
+      .set('Authorization', `Bearer ${fixture.token}`);
+
+    expect(getResponse.status).toBe(200);
+    expect(getResponse.body.currentAttempt).toEqual({
+      attemptId,
+      status: 'SUBMITTED',
+      hasResult: true,
+    });
+  });
 });

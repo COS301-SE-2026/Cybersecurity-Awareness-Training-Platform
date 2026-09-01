@@ -8,12 +8,14 @@ import OrganisationTimelinePage from '../components/organisation-information/Org
 import LoadingSpinnerSVG from '../components/LoadingSpinnerSVG';
 import { useAuth } from '../context/useAuth';
 import {
+  getOwnOrganisationDetail,
   getPlatformOrganisationDetail,
   getPlatformOrganisationRequestDetails,
   resendInitialAdminSetup,
 } from '../services/organisation-details.service';
 import type {
   OrganisationAdminSummaryDto,
+  OwnOrganisationDetailDto,
   PlatformOrganisationDetailDto,
   PlatformOrganisationRequestDetailsResponseDto,
   ResendEligibilityDto,
@@ -106,6 +108,35 @@ function mapOrganisationDetailsToState(
     timeline: orgData.timeline || [],
     isRequestOnly: false,
     organisationIdForResend: orgData.id,
+  };
+}
+
+function mapOwnOrganisationDetailsToState(
+  orgData: OwnOrganisationDetailDto,
+): OrganisationDetailData {
+  return {
+    id: orgData.id,
+    name: orgData.name,
+    description: orgData.description || '',
+    website: orgData.website || '',
+    size:
+      orgData.approximateSize !== null && orgData.approximateSize !== undefined
+        ? String(orgData.approximateSize)
+        : '',
+    registeredTrainees: String(orgData.registeredTraineeCount ?? 0),
+    registrationDate: orgData.registrationDate,
+    status: orgData.status,
+    detailType: 'active organisation',
+    representative: {
+      fullName: '',
+      email: '',
+    },
+    setupStatus: '',
+    resendEligibility: null,
+    admins: [],
+    timeline: [],
+    isRequestOnly: false,
+    organisationIdForResend: null,
   };
 }
 
@@ -204,35 +235,12 @@ function OrganisationInformationPage() {
 
   const currentTargetIdRef = useRef<string | null>(targetId);
 
-  const orgAdminDetailData: OrganisationDetailData | null = authContext?.organisation
-    ? {
-        id: authContext.organisation.id,
-        name: authContext.organisation.name,
-        description: '',
-        website: '',
-        size: '',
-        registeredTrainees: '',
-        registrationDate: '',
-        status: authContext.organisation.status,
-        detailType: 'active organisation',
-        representative: {
-          fullName: '',
-          email: '',
-        },
-        setupStatus: '',
-        resendEligibility: null,
-        admins: [],
-        timeline: [],
-        isRequestOnly: false,
-        organisationIdForResend: null,
-      }
-    : null;
-
   const [platformDetailData, setPlatformDetailData] = useState<OrganisationDetailData | null>(null);
-  const detailData = isPlatformAdmin ? platformDetailData : orgAdminDetailData;
+  const [ownOrgDetailData, setOwnOrgDetailData] = useState<OrganisationDetailData | null>(null);
+  const detailData = isPlatformAdmin ? platformDetailData : ownOrgDetailData;
 
   const [isLoading, setIsLoading] = useState<boolean>(
-    Boolean(isPlatformAdmin && targetId && token),
+    Boolean(targetId && token),
   );
   const [errorStatus, setErrorStatus] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -245,12 +253,19 @@ function OrganisationInformationPage() {
   const activeTab = detailData?.isRequestOnly && currentTab === 3 ? 1 : currentTab;
 
   const reloadData = useCallback(async () => {
-    if (!isPlatformAdmin || !token || !targetId) return;
+    if (!token || !targetId) return;
 
     try {
-      const data = await fetchOrganisationOrRequestDetail(routeReqId, targetId, token);
-      if (currentTargetIdRef.current === targetId) {
-        setPlatformDetailData(data);
+      if (isPlatformAdmin) {
+        const data = await fetchOrganisationOrRequestDetail(routeReqId, targetId, token);
+        if (currentTargetIdRef.current === targetId) {
+          setPlatformDetailData(data);
+        }
+      } else {
+        const data = await getOwnOrganisationDetail(targetId, token);
+        if (currentTargetIdRef.current === targetId) {
+          setOwnOrgDetailData(mapOwnOrganisationDetailsToState(data));
+        }
       }
     } catch {
       // ignore reload error
@@ -258,15 +273,12 @@ function OrganisationInformationPage() {
   }, [isPlatformAdmin, token, targetId, routeReqId]);
 
   useEffect(() => {
-    if (!isPlatformAdmin) {
-      return;
-    }
-
     let isMounted = true;
     currentTargetIdRef.current = targetId;
 
     const loadAsync = async () => {
       setPlatformDetailData(null);
+      setOwnOrgDetailData(null);
       setErrorMessage(null);
       setErrorStatus(null);
       setResendSuccessMessage(null);
@@ -281,9 +293,15 @@ function OrganisationInformationPage() {
       }
 
       try {
-        const data = await fetchOrganisationOrRequestDetail(routeReqId, targetId, token);
-        if (!isMounted || currentTargetIdRef.current !== targetId) return;
-        setPlatformDetailData(data);
+        if (isPlatformAdmin) {
+          const data = await fetchOrganisationOrRequestDetail(routeReqId, targetId, token);
+          if (!isMounted || currentTargetIdRef.current !== targetId) return;
+          setPlatformDetailData(data);
+        } else {
+          const data = await getOwnOrganisationDetail(targetId, token);
+          if (!isMounted || currentTargetIdRef.current !== targetId) return;
+          setOwnOrgDetailData(mapOwnOrganisationDetailsToState(data));
+        }
       } catch (err: unknown) {
         if (!isMounted || currentTargetIdRef.current !== targetId) return;
         const status =

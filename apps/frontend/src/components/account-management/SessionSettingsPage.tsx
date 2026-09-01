@@ -49,6 +49,12 @@ function formatLastActive(dateString: string): string {
   }
 }
 
+function getSourceLabel(source?: string | null): string {
+  if (source === 'PLATFORM_DEFAULT') return 'Platform Default';
+  if (source === 'USER_PREFERENCE') return 'User Preference';
+  return 'Organisation Default';
+}
+
 function getEffectiveRegularText(seconds?: number | null): string {
   if (!seconds) return '15 Minutes';
   if (seconds < 3600) return `${Math.round(seconds / 60)} Minutes`;
@@ -57,20 +63,47 @@ function getEffectiveRegularText(seconds?: number | null): string {
   return `${hours} Hours`;
 }
 
+function getEffectiveRememberText(seconds?: number | null): string {
+  if (!seconds) return '30 Days';
+  if (seconds < 3600) return `${Math.round(seconds / 60)} Minutes`;
+  const hours = Math.round(seconds / 3600);
+  if (hours === 24) return '1 Day';
+  if (hours === 168) return '7 Days';
+  if (hours === 336) return '14 Days';
+  if (hours === 720) return '30 Days';
+  if (hours % 24 === 0) return `${hours / 24} Days`;
+  return `${hours} Hours`;
+}
+
+function getEffectiveIdleText(minutes?: number | null): string {
+  if (minutes === null || minutes === undefined) return 'Disabled';
+  if (minutes === 60) return '1 Hour';
+  if (minutes === 120) return '2 Hours';
+  return `${minutes} Minutes`;
+}
+
 function getRegularLabel(
   hours: number | null | undefined,
   effectiveSeconds?: number | null,
+  source?: string | null,
 ): string {
   if (hours === null || hours === undefined) {
-    return `Organisation Default (${getEffectiveRegularText(effectiveSeconds)})`;
+    return `${getSourceLabel(source)} (${getEffectiveRegularText(effectiveSeconds)})`;
   }
   if (hours === 24) return '24 Hours (1 Day)';
   return `${hours} Hours`;
 }
 
-function getRememberLabel(hours: number | null | undefined, isPolicyDisabled = false): string {
+function getRememberLabel(
+  hours: number | null | undefined,
+  isPolicyDisabled = false,
+  effectiveSeconds?: number | null,
+  source?: string | null,
+): string {
   if (isPolicyDisabled) return 'Disabled by Policy';
-  if (hours === null || hours === undefined) return 'Organisation Default';
+  if (hours === null || hours === undefined) {
+    return `${getSourceLabel(source)} (${getEffectiveRememberText(effectiveSeconds)})`;
+  }
   if (hours === 24) return '1 Day';
   if (hours === 168) return '7 Days';
   if (hours === 336) return '14 Days';
@@ -78,8 +111,14 @@ function getRememberLabel(hours: number | null | undefined, isPolicyDisabled = f
   return `${hours} Hours`;
 }
 
-function getIdleLabel(minutes: number | null | undefined): string {
-  if (minutes === null || minutes === undefined) return 'Organisation Default';
+function getIdleLabel(
+  minutes: number | null | undefined,
+  effectiveMinutes?: number | null,
+  source?: string | null,
+): string {
+  if (minutes === null || minutes === undefined) {
+    return `${getSourceLabel(source)} (${getEffectiveIdleText(effectiveMinutes)})`;
+  }
   if (minutes === 60) return '1 Hour';
   if (minutes === 120) return '2 Hours';
   return `${minutes} Minutes`;
@@ -148,11 +187,20 @@ function SessionSettingsPage({
   const selectedRememberHours =
     userRememberHours !== undefined ? userRememberHours : defaultRemember;
   const selectedIdleMins = userIdleMins !== undefined ? userIdleMins : defaultIdle;
+
+  const regularSource = effectivePolicy?.sources?.regularSession;
+  const rememberSource =
+    effectivePolicy?.sources?.rememberedSession ?? effectivePolicy?.sources?.rememberMe;
+  const idleSource = effectivePolicy?.sources?.idleTimeout;
+
+  const isRememberDisabledByPolicy =
+    !rememberMeEditable && effectivePolicy?.rememberMeAllowed === false;
+
   const regularSessionOptions = includeSelectedPreferenceOption(
     [
       {
         value: DEFAULT_PREFERENCE_VALUE,
-        label: getRegularLabel(null, effectivePolicy?.regularSessionSeconds),
+        label: getRegularLabel(null, effectivePolicy?.regularSessionSeconds, regularSource),
       },
       { value: '4', label: '4 Hours' },
       { value: '8', label: '8 Hours' },
@@ -160,16 +208,20 @@ function SessionSettingsPage({
       { value: '24', label: '24 Hours (1 Day)' },
     ],
     selectedRegularHours,
-    getRegularLabel(selectedRegularHours, effectivePolicy?.regularSessionSeconds),
+    getRegularLabel(selectedRegularHours, effectivePolicy?.regularSessionSeconds, regularSource),
   );
   const rememberMeOptions = includeSelectedPreferenceOption(
     [
       {
         value: DEFAULT_PREFERENCE_VALUE,
-        label:
-          !rememberMeEditable && effectivePolicy?.rememberMeAllowed === false
-            ? 'Disabled by Policy'
-            : 'Organisation Default',
+        label: isRememberDisabledByPolicy
+          ? 'Disabled by Policy'
+          : getRememberLabel(
+              null,
+              false,
+              effectivePolicy?.rememberedSessionSeconds,
+              rememberSource,
+            ),
       },
       { value: '24', label: '1 Day' },
       { value: '168', label: '7 Days' },
@@ -179,12 +231,17 @@ function SessionSettingsPage({
     selectedRememberHours,
     getRememberLabel(
       selectedRememberHours,
-      !rememberMeEditable && effectivePolicy?.rememberMeAllowed === false,
+      isRememberDisabledByPolicy,
+      effectivePolicy?.rememberedSessionSeconds,
+      rememberSource,
     ),
   );
   const idleTimeoutOptions = includeSelectedPreferenceOption(
     [
-      { value: DEFAULT_PREFERENCE_VALUE, label: 'Organisation Default' },
+      {
+        value: DEFAULT_PREFERENCE_VALUE,
+        label: getIdleLabel(null, effectivePolicy?.idleTimeoutMinutes, idleSource),
+      },
       { value: '5', label: '5 Minutes' },
       { value: '15', label: '15 Minutes' },
       { value: '30', label: '30 Minutes' },
@@ -192,7 +249,7 @@ function SessionSettingsPage({
       { value: '120', label: '2 Hours' },
     ],
     selectedIdleMins,
-    getIdleLabel(selectedIdleMins),
+    getIdleLabel(selectedIdleMins, effectivePolicy?.idleTimeoutMinutes, idleSource),
   );
 
   const fetchSessionsData = useCallback(() => {

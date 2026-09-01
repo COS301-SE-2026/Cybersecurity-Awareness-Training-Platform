@@ -135,6 +135,24 @@ describe('Quiz Service', () => {
       expect(result.questions[0].options[0]).not.toHaveProperty('feedbackText');
       expect(result.questions[0].options[0]).toHaveProperty('id', 'opt-1');
       expect(result.questions[0].options[0]).toHaveProperty('text', 'Bad');
+      expect(result.currentAttempt).toBeNull();
+    });
+
+    it('returns currentAttempt summary when attempt exists', async () => {
+      mockPrisma.campaignItem.findFirst.mockResolvedValue(mockCampaignItem());
+      mockPrisma.quizAttempt.findFirst.mockResolvedValue({
+        id: 'attempt-1',
+        status: 'SUBMITTED',
+        quizResult: { id: 'result-1' },
+      });
+
+      const result = await getQuizByCampaignItemId('ci-1', 'trainee-1');
+
+      expect(result.currentAttempt).toEqual({
+        attemptId: 'attempt-1',
+        status: 'SUBMITTED',
+        hasResult: true,
+      });
     });
 
     it('throws QuizForbiddenError if trainee is not assigned', async () => {

@@ -115,8 +115,33 @@ function toAssignmentSummary(assignment: {
   };
 }
 
+function deriveAggregateProgressStatus(
+  itemStatuses: TraineeCampaignProgressStatusDto[],
+): TraineeCampaignProgressStatusDto {
+  if (itemStatuses.length === 0) {
+    return 'NOT_STARTED';
+  }
+
+  const isCompleted = (status: TraineeCampaignProgressStatusDto) =>
+    status === 'COMPLETED' || status === 'SUBMITTED';
+
+  const isStarted = (status: TraineeCampaignProgressStatusDto) =>
+    status !== 'NOT_STARTED';
+
+  if (itemStatuses.every(isCompleted)) {
+    return 'COMPLETED';
+  }
+
+  if (itemStatuses.some(isStarted)) {
+    return 'IN_PROGRESS';
+  }
+
+  return 'NOT_STARTED';
+}
+
 function toCampaignSummary(
   assignment: CampaignAssignmentSummary,
+  progressStatus: TraineeCampaignProgressStatusDto,
 ): TraineeCampaignSummaryWithCountsDto {
   const itemCount = assignment.campaign.items.length;
   const availableItemCount = assignment.campaign.items.filter(
@@ -138,6 +163,7 @@ function toCampaignSummary(
     endDate: toIsoString(assignment.campaign.endDate),
     assignment: toAssignmentSummary(assignment),
     accessType: assignment.accessType,
+    progressStatus,
     itemCount,
     availableItemCount,
     eligibility,
@@ -181,20 +207,27 @@ function deriveQuizProgressStatus(
   const progressByItemId = new Map<string, TraineeCampaignProgressStatusDto>();
 
   for (const attempt of attempts) {
-    if (attempt.status === 'SUBMITTED') {
+    if (!attempt.campaignItemId) {
+      continue;
+    }
+
+    if (attempt.status === 'SUBMITTED' && attempt.quizResult !== null) {
       setProgressStatus(progressByItemId, attempt.campaignItemId, 'SUBMITTED');
       continue;
     }
 
-    if (!progressByItemId.has(attempt.campaignItemId ?? '')) {
-      setProgressStatus(progressByItemId, attempt.campaignItemId, 'IN_PROGRESS');
+    if (progressByItemId.get(attempt.campaignItemId) === 'SUBMITTED') {
+      continue;
     }
+
+    setProgressStatus(progressByItemId, attempt.campaignItemId, 'IN_PROGRESS');
   }
 
   return progressByItemId;
 }
 
 function deriveSimulationProgressStatus(input: {
+  items: CampaignItemRecord[];
   events: Awaited<ReturnType<typeof TraineeCampaignRepository.findSimulationInteractionEvents>>;
   classificationResponses: Awaited<
     ReturnType<typeof TraineeCampaignRepository.findEmailClassificationResponses>
@@ -202,30 +235,54 @@ function deriveSimulationProgressStatus(input: {
 }) {
   const progressByItemId = new Map<string, TraineeCampaignProgressStatusDto>();
 
-  for (const response of input.classificationResponses) {
-    setProgressStatus(progressByItemId, response.campaignItemId, 'CLASSIFIED');
-  }
+  for (const item of input.items) {
+    const requiredEmailIds = item.simulation?.simulatedInbox?.emails?.map((e) => e.id) ?? [];
+    const openedEmailIds = new Set(
+      input.events
+        .filter(
+          (e) => e.campaignItemId === item.id && e.eventType === 'SIMULATED_EMAIL_OPENED',
+        )
+        .map((e) => e.simulatedEmailId || e.targetId)
+        .filter((id): id is string => typeof id === 'string' && id.length > 0),
+    );
 
-  for (const event of input.events) {
-    if (event.eventType === 'SIMULATED_EMAIL_CLASSIFIED') {
-      setProgressStatus(progressByItemId, event.campaignItemId, 'CLASSIFIED');
+    const isFullyOpened =
+      requiredEmailIds.length > 0 &&
+      requiredEmailIds.every((emailId) => openedEmailIds.has(emailId));
+
+    if (isFullyOpened) {
+      setProgressStatus(progressByItemId, item.id, 'COMPLETED');
       continue;
     }
 
-    if (progressByItemId.get(event.campaignItemId ?? '') === 'CLASSIFIED') {
+    const hasClassification =
+      input.classificationResponses.some((r) => r.campaignItemId === item.id) ||
+      input.events.some(
+        (e) =>
+          e.campaignItemId === item.id && e.eventType === 'SIMULATED_EMAIL_CLASSIFIED',
+      );
+
+    if (hasClassification) {
+      setProgressStatus(progressByItemId, item.id, 'CLASSIFIED');
       continue;
     }
 
-    if (
-      event.eventType === 'SIMULATED_EMAIL_LINK_CLICKED' ||
-      event.eventType === 'CREDENTIAL_SUBMISSION_ATTEMPTED'
-    ) {
-      setProgressStatus(progressByItemId, event.campaignItemId, 'INTERACTED');
+    const hasInteracted = input.events.some(
+      (e) =>
+        e.campaignItemId === item.id &&
+        (e.eventType === 'SIMULATED_EMAIL_LINK_CLICKED' ||
+          e.eventType === 'CREDENTIAL_SUBMISSION_ATTEMPTED'),
+    );
+
+    if (hasInteracted) {
+      setProgressStatus(progressByItemId, item.id, 'INTERACTED');
       continue;
     }
 
-    if (!progressByItemId.has(event.campaignItemId ?? '')) {
-      setProgressStatus(progressByItemId, event.campaignItemId, 'VIEWED');
+    const hasViewed = input.events.some((e) => e.campaignItemId === item.id);
+
+    if (hasViewed) {
+      setProgressStatus(progressByItemId, item.id, 'VIEWED');
     }
   }
 
@@ -244,36 +301,50 @@ async function getProgressByItemId(input: {
   const quizItemIds = componentItems
     .filter((item) => item.componentType === 'QUIZ')
     .map((item) => item.id);
-  const simulationItemIds = componentItems
-    .filter((item) => item.componentType === 'SIMULATED_INBOX')
-    .map((item) => item.id);
+  const simulationItems = componentItems.filter(
+    (item) => item.componentType === 'SIMULATED_INBOX',
+  );
+  const simulationItemIds = simulationItems.map((item) => item.id);
 
   const [trainingEvents, quizAttempts, simulationEvents, classificationResponses] =
     await Promise.all([
-      TraineeCampaignRepository.findTrainingInteractionEvents({
-        traineeProfileId: input.traineeProfileId,
-        campaignAssignmentId: input.campaignAssignmentId,
-        campaignItemIds: trainingItemIds,
-      }),
-      TraineeCampaignRepository.findQuizAttempts({
-        traineeProfileId: input.traineeProfileId,
-        campaignItemIds: quizItemIds,
-      }),
-      TraineeCampaignRepository.findSimulationInteractionEvents({
-        traineeProfileId: input.traineeProfileId,
-        campaignAssignmentId: input.campaignAssignmentId,
-        campaignItemIds: simulationItemIds,
-      }),
-      TraineeCampaignRepository.findEmailClassificationResponses({
-        traineeProfileId: input.traineeProfileId,
-        campaignItemIds: simulationItemIds,
-      }),
+      trainingItemIds.length > 0
+        ? TraineeCampaignRepository.findTrainingInteractionEvents({
+            traineeProfileId: input.traineeProfileId,
+            campaignAssignmentId: input.campaignAssignmentId,
+            campaignItemIds: trainingItemIds,
+          })
+        : Promise.resolve([]),
+      quizItemIds.length > 0
+        ? TraineeCampaignRepository.findQuizAttempts({
+            traineeProfileId: input.traineeProfileId,
+            campaignAssignmentId: input.campaignAssignmentId,
+            campaignItemIds: quizItemIds,
+          })
+        : Promise.resolve([]),
+      simulationItemIds.length > 0
+        ? TraineeCampaignRepository.findSimulationInteractionEvents({
+            traineeProfileId: input.traineeProfileId,
+            campaignAssignmentId: input.campaignAssignmentId,
+            campaignItemIds: simulationItemIds,
+          })
+        : Promise.resolve([]),
+      simulationItemIds.length > 0
+        ? TraineeCampaignRepository.findEmailClassificationResponses({
+            traineeProfileId: input.traineeProfileId,
+            campaignItemIds: simulationItemIds,
+          })
+        : Promise.resolve([]),
     ]);
 
   return new Map<string, TraineeCampaignProgressStatusDto>([
     ...deriveTrainingProgressStatus(trainingEvents),
     ...deriveQuizProgressStatus(quizAttempts),
-    ...deriveSimulationProgressStatus({ events: simulationEvents, classificationResponses }),
+    ...deriveSimulationProgressStatus({
+      items: simulationItems,
+      events: simulationEvents,
+      classificationResponses,
+    }),
   ]);
 }
 
@@ -403,6 +474,10 @@ function toCampaignItemTree(input: {
           parentGroupId: item.id,
         }));
 
+      const groupProgressStatus = deriveAggregateProgressStatus(
+        children.map((child) => child.progressStatus),
+      );
+
       return {
         campaignItemId: item.id,
         campaignId: item.campaignId,
@@ -418,7 +493,7 @@ function toCampaignItemTree(input: {
         availabilityStatus: item.availabilityStatus,
         isOpenable: false,
         activityApiPath: null,
-        progressStatus: null,
+        progressStatus: groupProgressStatus,
         eligibility: {
           canView: input.campaignEligibility.canView,
           canProgress: input.campaignEligibility.canProgress,
@@ -437,8 +512,28 @@ export async function getTraineeCampaigns(
     traineeProfile.id,
   );
 
+  const campaignSummaries = await Promise.all(
+    assignments.map(async (assignment) => {
+      const progressByItemId = await getProgressByItemId({
+        traineeProfileId: traineeProfile.id,
+        campaignAssignmentId: assignment.id,
+        items: assignment.campaign.items,
+      });
+
+      const consumableItems = assignment.campaign.items.filter(
+        (item) => item.itemType === 'COMPONENT' && isSupportedComponentType(item.componentType),
+      );
+      const itemStatuses = consumableItems.map(
+        (item) => progressByItemId.get(item.id) ?? 'NOT_STARTED',
+      );
+      const progressStatus = deriveAggregateProgressStatus(itemStatuses);
+
+      return toCampaignSummary(assignment, progressStatus);
+    }),
+  );
+
   const parsed = getTraineeCampaignsResponseSchema.parse({
-    campaigns: assignments.map(toCampaignSummary),
+    campaigns: campaignSummaries,
   });
 
   return parsed as GetTraineeCampaignsResponseWithCountsDto;
@@ -471,8 +566,16 @@ export async function getTraineeCampaignDetail(
     items: assignment.campaign.items,
   });
 
+  const consumableItems = assignment.campaign.items.filter(
+    (item) => item.itemType === 'COMPONENT' && isSupportedComponentType(item.componentType),
+  );
+  const itemStatuses = consumableItems.map(
+    (item) => progressByItemId.get(item.id) ?? 'NOT_STARTED',
+  );
+  const progressStatus = deriveAggregateProgressStatus(itemStatuses);
+
   return getTraineeCampaignDetailResponseSchema.parse({
-    ...toCampaignSummary(assignment),
+    ...toCampaignSummary(assignment, progressStatus),
     items: toCampaignItemTree({
       items: assignment.campaign.items,
       parentGroupId: null,
@@ -616,6 +719,7 @@ export async function enrolPlatformCampaign(
     endDate: toIsoString(result.campaign.endDate),
     assignment: assignmentSummary,
     accessType: assignmentSummary.accessType,
+    progressStatus: 'NOT_STARTED',
     itemCount,
     availableItemCount,
     eligibility: campaignEligibility,

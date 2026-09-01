@@ -3,6 +3,7 @@ import {
   changeAdminPermissions,
   createAdminPromotion,
   getOrganisationAdmins,
+  getOwnOrganisation,
   removeAdmin,
 } from '../../src/services/organisation-admin.service.js';
 
@@ -26,6 +27,10 @@ const repositoryMock = vi.hoisted(() => ({
   updatePromotionInvitationStatus: vi.fn(),
 }));
 
+const orgRepositoryMock = vi.hoisted(() => ({
+  findOrganisationWithCount: vi.fn(),
+}));
+
 const actionTokenMock = vi.hoisted(() => ({
   issueActionToken: vi.fn(),
 }));
@@ -47,6 +52,7 @@ const passwordMock = vi.hoisted(() => ({
 }));
 
 vi.mock('../../src/repositories/organisation-admin.repository.js', () => repositoryMock);
+vi.mock('../../src/repositories/organisation.repository.js', () => orgRepositoryMock);
 vi.mock('../../src/services/action-token.service.js', () => actionTokenMock);
 vi.mock('../../src/services/audit-log.service.js', () => auditLogMock);
 vi.mock('../../src/services/auth-email-hook.service.js', () => emailHookMock);
@@ -725,4 +731,75 @@ describe('organisation admin service', () => {
     expect(repositoryMock.disableOrganisationAdmin).not.toHaveBeenCalled();
     expect(sessionMock.revokeSessionsForUser).not.toHaveBeenCalled();
   });
+
+  describe('getOwnOrganisation', () => {
+    it('returns own organisation information for an active organisation admin', async () => {
+      repositoryMock.findActorOrganisationAdmin.mockResolvedValue(actorAdmin());
+      orgRepositoryMock.findOrganisationWithCount.mockResolvedValue({
+        id: organisationId,
+        name: 'Acme Security',
+        description: 'Leading provider of training',
+        website: 'https://acme.example.test',
+        approximateSize: 200,
+        status: 'ACTIVE',
+        createdAt: new Date('2026-05-16T09:00:00.000Z'),
+        _count: {
+          adminProfiles: 3,
+          traineeProfiles: 25,
+        },
+      });
+
+      const result = await getOwnOrganisation(actorUserId, organisationId);
+
+      expect(repositoryMock.findActorOrganisationAdmin).toHaveBeenCalledWith({
+        userId: actorUserId,
+        organisationId,
+      });
+      expect(orgRepositoryMock.findOrganisationWithCount).toHaveBeenCalledWith(organisationId);
+      expect(result).toEqual({
+        id: organisationId,
+        name: 'Acme Security',
+        description: 'Leading provider of training',
+        website: 'https://acme.example.test',
+        approximateSize: 200,
+        registeredTraineeCount: 25,
+        registrationDate: '2026-05-16T09:00:00.000Z',
+        status: 'ACTIVE',
+      });
+    });
+
+    it('rejects with 403 when user is not an active admin for that organisation', async () => {
+      repositoryMock.findActorOrganisationAdmin.mockResolvedValue(null);
+
+      await expect(getOwnOrganisation(actorUserId, organisationId)).rejects.toMatchObject({
+        statusCode: 403,
+        error: 'ORG_ADMIN_REQUIRED',
+      });
+      expect(orgRepositoryMock.findOrganisationWithCount).not.toHaveBeenCalled();
+    });
+
+    it('rejects with 403 when the organisation is not active', async () => {
+      repositoryMock.findActorOrganisationAdmin.mockResolvedValue({
+        ...actorAdmin(),
+        organisation: { id: organisationId, name: 'Acme Security', status: 'SUSPENDED' },
+      });
+
+      await expect(getOwnOrganisation(actorUserId, organisationId)).rejects.toMatchObject({
+        statusCode: 403,
+        error: 'ORGANISATION_NOT_ACTIVE',
+      });
+      expect(orgRepositoryMock.findOrganisationWithCount).not.toHaveBeenCalled();
+    });
+
+    it('rejects with 404 when organisation record is not found in database', async () => {
+      repositoryMock.findActorOrganisationAdmin.mockResolvedValue(actorAdmin());
+      orgRepositoryMock.findOrganisationWithCount.mockResolvedValue(null);
+
+      await expect(getOwnOrganisation(actorUserId, organisationId)).rejects.toMatchObject({
+        statusCode: 404,
+        error: 'ORGANISATION_NOT_FOUND',
+      });
+    });
+  });
 });
+

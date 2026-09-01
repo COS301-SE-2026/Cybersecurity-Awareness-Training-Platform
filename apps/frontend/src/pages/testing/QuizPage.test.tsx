@@ -268,4 +268,61 @@ describe('QuizPage', () => {
       status: 'SUBMITTED',
     });
   });
+
+  it('resumes an in-progress attempt without creating a new attempt', async () => {
+    mockedGetQuiz.mockResolvedValueOnce({
+      ...quizFixture,
+      currentAttempt: {
+        attemptId: 'in-progress-attempt-id',
+        status: 'IN_PROGRESS',
+        hasResult: false,
+      },
+    });
+
+    renderQuizPage();
+
+    expect(
+      await screen.findByRole('heading', { name: /phishing basics quiz/i }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByLabelText(/A\. A message asking you to verify your password urgently\./i),
+    );
+    fireEvent.click(screen.getByLabelText(/A\. The sender and link destination\./i));
+    fireEvent.click(screen.getByRole('button', { name: /submit quiz/i }));
+
+    await waitFor(() => {
+      expect(mockedStartQuizAttempt).not.toHaveBeenCalled();
+      expect(mockedSubmitQuizAttempt).toHaveBeenCalledWith('in-progress-attempt-id', [
+        {
+          questionId: 'question-1',
+          selectedOptionIds: ['option-1'],
+        },
+        {
+          questionId: 'question-2',
+          selectedOptionIds: ['option-3'],
+        },
+      ]);
+    });
+
+    expect(await screen.findByText('Results page')).toBeInTheDocument();
+  });
+
+  it('redirects to results when a submitted attempt exists', async () => {
+    mockedGetQuiz.mockResolvedValueOnce({
+      ...quizFixture,
+      currentAttempt: {
+        attemptId: 'submitted-attempt-id',
+        status: 'SUBMITTED',
+        hasResult: true,
+      },
+    });
+
+    renderQuizPage();
+
+    expect(await screen.findByText('Results page')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /phishing basics quiz/i })).not.toBeInTheDocument();
+    expect(mockedStartQuizAttempt).not.toHaveBeenCalled();
+    expect(mockedSubmitQuizAttempt).not.toHaveBeenCalled();
+  });
 });

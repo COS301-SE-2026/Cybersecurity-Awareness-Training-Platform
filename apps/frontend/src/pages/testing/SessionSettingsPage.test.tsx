@@ -262,4 +262,61 @@ describe('SessionSettingsPage', () => {
       });
     });
   });
+
+  it('renders effective policy values and source labels when preferences are unset', () => {
+    renderPage({
+      securityPreferences: {
+        id: 'preferences-1',
+        preferredRegularSessionLengthHours: null,
+        preferredRememberMeSessionLengthHours: null,
+        preferredIdleTimeoutMinutes: null,
+        updatedAt: '2026-08-31T08:00:00.000Z',
+      },
+      effectivePolicy: {
+        ...effectivePolicy,
+        regularSessionSeconds: 8 * 3600,
+        rememberedSessionSeconds: 168 * 3600,
+        idleTimeoutMinutes: 30,
+        sources: {
+          regularSession: 'ORGANISATION_POLICY',
+          rememberedSession: 'ORGANISATION_POLICY',
+          idleTimeout: 'ORGANISATION_POLICY',
+        },
+      },
+    });
+
+    const [regular, rememberMe, idleTimeout] = getSessionControls();
+    expect(regular).toHaveTextContent('Organisation Default (8 Hours)');
+    expect(rememberMe).toHaveTextContent('Organisation Default (7 Days)');
+    expect(idleTimeout).toHaveTextContent('Organisation Default (30 Minutes)');
+  });
+
+  it('renders Platform Default source labels when policy source is PLATFORM_DEFAULT', () => {
+    renderPage({
+      securityPreferences: {
+        id: 'preferences-1',
+        preferredRegularSessionLengthHours: null,
+        preferredRememberMeSessionLengthHours: null,
+        preferredIdleTimeoutMinutes: null,
+        updatedAt: '2026-08-31T08:00:00.000Z',
+      },
+      effectivePolicy: {
+        ...effectivePolicy,
+        regularSessionSeconds: 12 * 3600,
+        rememberedSessionSeconds: 720 * 3600,
+        idleTimeoutMinutes: 15,
+        sources: {
+          regularSession: 'PLATFORM_DEFAULT',
+          rememberedSession: 'PLATFORM_DEFAULT',
+          idleTimeout: 'PLATFORM_DEFAULT',
+        },
+      },
+    });
+
+    const [regular, rememberMe, idleTimeout] = getSessionControls();
+    expect(regular).toHaveTextContent('Platform Default (12 Hours)');
+    expect(rememberMe).toHaveTextContent('Platform Default (30 Days)');
+    expect(idleTimeout).toHaveTextContent('Platform Default (15 Minutes)');
+  });
 });
+

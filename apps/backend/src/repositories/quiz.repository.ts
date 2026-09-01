@@ -58,6 +58,13 @@ export async function findLatestQuizAttempt(input: {
       traineeProfileId: input.traineeProfileId,
       campaignItemId: input.campaignItemId,
     },
+    include: {
+      quizResult: {
+        select: {
+          id: true,
+        },
+      },
+    },
     orderBy: { createdAt: 'desc' },
   });
 }

@@ -105,6 +105,7 @@ describe('campaign validation schemas', () => {
           campaignType: 'PREMADE_GENERAL',
           difficultyLevel: 'BEGINNER',
           status: 'ACTIVE',
+          progressStatus: 'NOT_STARTED',
           eligibility: {
             canView: true,
             canProgress: true,
@@ -225,6 +226,7 @@ describe('campaign validation schemas', () => {
       isRequired: true,
       availabilityStatus: 'AVAILABLE',
       isOpenable: false,
+      progressStatus: 'IN_PROGRESS',
       eligibility: {
         canView: true,
         canProgress: true,
@@ -296,6 +298,90 @@ describe('campaign validation schemas', () => {
     });
 
     expect(result.success).toBe(false);
+  });
+
+  it('rejects trainee campaign summary and group items when progressStatus is missing', () => {
+    const summaryResult = getTraineeCampaignsResponseSchema.safeParse({
+      campaigns: [
+        {
+          campaignId,
+          name: 'Missing Progress Campaign',
+          description: null,
+          accentColor: '#2563EB',
+          campaignType: 'PREMADE_GENERAL',
+          difficultyLevel: 'BEGINNER',
+          status: 'ACTIVE',
+          eligibility: {
+            canView: true,
+            canProgress: true,
+            reason: 'AVAILABLE',
+          },
+        },
+      ],
+    });
+    expect(summaryResult.success).toBe(false);
+
+    const groupResult = traineeCampaignItemSummarySchema.safeParse({
+      campaignItemId,
+      campaignId,
+      itemType: 'GROUP',
+      groupType: 'MODULE',
+      completionRule: 'COMPLETE_ALL',
+      title: 'Missing Progress Group',
+      position: 0,
+      isRequired: true,
+      availabilityStatus: 'AVAILABLE',
+      isOpenable: false,
+      eligibility: {
+        canView: true,
+        canProgress: true,
+        reason: 'AVAILABLE',
+      },
+      children: [
+        {
+          campaignItemId: childCampaignItemId,
+          campaignId,
+          parentGroupId: campaignItemId,
+          itemType: 'COMPONENT',
+          componentType: 'TRAINING_DOCUMENT',
+          title: 'Doc',
+          position: 0,
+          isRequired: true,
+          availabilityStatus: 'AVAILABLE',
+          isOpenable: true,
+          activityApiPath: getTraineeCampaignActivityApiPath(
+            'TRAINING_DOCUMENT',
+            childCampaignItemId,
+          ),
+          progressStatus: 'VIEWED',
+          eligibility: {
+            canView: true,
+            canProgress: true,
+            reason: 'AVAILABLE',
+          },
+        },
+        {
+          campaignItemId: '55555555-5555-4555-8555-555555555555',
+          campaignId,
+          parentGroupId: campaignItemId,
+          itemType: 'COMPONENT',
+          componentType: 'QUIZ',
+          title: 'Quiz',
+          position: 1,
+          isRequired: true,
+          availabilityStatus: 'AVAILABLE',
+          isOpenable: true,
+          activityApiPath: getTraineeCampaignActivityApiPath('QUIZ', '55555555-5555-4555-8555-555555555555'),
+          progressStatus: 'NOT_STARTED',
+          eligibility: {
+            canView: true,
+            canProgress: true,
+            reason: 'AVAILABLE',
+          },
+        },
+      ],
+    });
+    expect(groupResult.success).toBe(false);
   });
 
   describe('platform campaign self-enrolment schemas', () => {
