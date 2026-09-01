@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ComponentProps } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -83,7 +83,7 @@ const sessions = [
     lastActiveAt: '2026-08-31T09:00:00.000Z',
     expiresAt: '2026-08-31T10:00:00.000Z',
     idleTimeoutMinutes: 15,
-    deviceSummary: 'Current workstation',
+    deviceSummary: 'Windows · Chrome',
     locationSummary: longLocation,
   },
   {
@@ -94,7 +94,7 @@ const sessions = [
     lastActiveAt: '2026-08-30T09:00:00.000Z',
     expiresAt: '2026-09-06T08:00:00.000Z',
     idleTimeoutMinutes: 30,
-    deviceSummary: 'Other workstation',
+    deviceSummary: 'macOS · Safari',
     locationSummary: 'Remote office',
   },
 ];
@@ -168,6 +168,43 @@ describe('SessionSettingsPage', () => {
     expect(location).toHaveTextContent(longLocation);
     expect(location).toHaveAttribute('aria-label', longLocation);
     expect(location).toHaveAttribute('tabindex', '0');
+  });
+
+  it('renders recognised metadata with current-session status kept separate', async () => {
+    accountServiceMock.getAccountSessions.mockResolvedValue({ sessions });
+
+    renderPage();
+
+    const currentRow = (await screen.findByText('Windows')).closest('tr');
+    expect(currentRow).not.toBeNull();
+    expect(within(currentRow!).getByText('Chrome')).toBeInTheDocument();
+    expect(within(currentRow!).getAllByText(/Current Session/)).toHaveLength(2);
+
+    const otherRow = screen.getByText('macOS').closest('tr');
+    expect(otherRow).not.toBeNull();
+    expect(within(otherRow!).getByText('Safari')).toBeInTheDocument();
+  });
+
+  it('uses safe fallbacks for null and malformed metadata', async () => {
+    const unsafeSummary = 'private-client/1.0 confidential-fragment';
+    accountServiceMock.getAccountSessions.mockResolvedValue({
+      sessions: [
+        { ...sessions[0], deviceSummary: null, locationSummary: null },
+        {
+          ...sessions[1],
+          deviceSummary: unsafeSummary,
+          locationSummary: null,
+        },
+      ],
+    });
+
+    renderPage();
+
+    expect(await screen.findAllByText('Unknown device')).toHaveLength(2);
+    expect(screen.getAllByText('Unknown browser')).toHaveLength(2);
+    expect(screen.getAllByText('Location unavailable')).toHaveLength(2);
+    expect(screen.queryByText(unsafeSummary)).not.toBeInTheDocument();
+    expect(document.body).not.toHaveTextContent('confidential-fragment');
   });
 
   it('preserves the existing session revoke action', async () => {
