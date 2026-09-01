@@ -1,11 +1,8 @@
 import { createContext } from 'react';
-import type {
-  AuthContextDto,
-  AuthContextResponseDto,
-  PublicUserDto,
-} from '@insightful-phish/shared';
+import type { AuthContextDto, AuthLoginResponseDto, PublicUserDto } from '@insightful-phish/shared';
 
 export type AuthUser = PublicUserDto;
+export type RenewSessionOptions = Readonly<{ forceServerConfirmation?: boolean }>;
 
 export type AuthContextType = {
   isAuthenticated: boolean;
@@ -17,7 +14,9 @@ export type AuthContextType = {
   redirectTo: string | null;
   expiresAt: string | null;
   sessionExpiresAt: string | null;
-  login: (authResponse: AuthContextResponseDto) => void;
+  idleTimeoutMinutes: number | null;
+  login: (authResponse: AuthLoginResponseDto) => void;
+  renewSession: (options?: RenewSessionOptions) => Promise<void>;
   refreshAuthContext: () => Promise<void>;
   clearAuth: () => void;
   logout: () => Promise<void>;

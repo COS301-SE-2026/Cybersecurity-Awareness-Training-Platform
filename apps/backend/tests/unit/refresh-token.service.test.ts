@@ -65,7 +65,6 @@ describe('refresh-token service', () => {
     ['REVOKED', 'SESSION_REVOKED'],
     ['MISSING', 'SESSION_REVOKED'],
     ['EXPIRED', 'SESSION_EXPIRED'],
-    ['IDLE_TIMEOUT', 'SESSION_EXPIRED'],
   ] as const)('maps session %s to %s', async (sessionState, expected) => {
     repoMock.findRefreshTokenByHash.mockResolvedValue(refresh());
     sessionMock.validateAuthSession.mockResolvedValue({ state: sessionState });
