@@ -1,6 +1,7 @@
 import AppLayout from '../components/layout/AppLayout';
 import { useState } from 'react';
 import LoadingSpinnerSVG from '../components/LoadingSpinnerSVG';
+import { Popover } from 'flowbite-react';
 
 type DisplayStatus =
   | 'Active'
@@ -78,6 +79,42 @@ function CampaignInsightsPage() {
           >
             {'Campaign Name'}
           </h1>
+
+          <div className="grid grid-cols-4 gap-3">
+            <div>
+              <p className="font-regular tracking-wider text-[1.1rem] font-justify font-jost font-medium text-dark-pink mt-4 mb-1">
+                Status
+              </p>
+              <div className="font-overpass tracking-wider">{getStatusBadge('Active')}</div>
+            </div>
+
+            <div>
+              <p className="font-regular tracking-wider text-[1.1rem] font-justify font-medium font-jost text-dark-pink mt-4 mb-1">
+                Duration
+              </p>
+              <p className="font-regular tracking-wider text-md font-google_sans_code text-gray-500">
+                12 Aug 2026 to 30 Sep 2026
+              </p>
+            </div>
+
+            <div>
+              <p className="font-regular tracking-wider text-[1.1rem] font-justify font-medium font-jost text-dark-pink mt-4 mb-1">
+                Campaign Type
+              </p>
+              <p className="font-regular tracking-wider text-md font-google_sans_code text-gray-500">
+                Training
+              </p>
+            </div>
+
+            <div>
+              <p className="font-regular tracking-wider text-[1.1rem] font-justify font-medium font-jost text-dark-pink mt-4 mb-1">
+                Campaign Owner
+              </p>
+              <p className="font-regular tracking-wider text-md font-google_sans_code text-gray-500">
+                Organisation
+              </p>
+            </div>
+          </div>
 
           {/* CAMPAIGN DESCRIPTION */}
           <p className="font-regular tracking-wider text-[1.1rem] font-justify font-medium font-jost text-dark-pink mt-4 mb-1">
@@ -160,7 +197,7 @@ function CampaignInsightsPage() {
 
           {/* Table Heading */}
           <h3 className="font-jost text-2xl text-dark-pink tracking-wider font-medium mb-3 mt-8">
-            Assigned Trainees (3)
+            Assigned Trainees (Assigned Trainee Count Here)
           </h3>
 
           {/* Assigned Trainees Table */}
@@ -208,7 +245,7 @@ function CampaignInsightsPage() {
                     scope="col"
                     className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
                   >
-                    Actions
+                    Action(s)
                   </th>
                 </tr>
               </thead>
@@ -220,7 +257,7 @@ function CampaignInsightsPage() {
                       className="py-8 text-center text-[1.2rem] tracking-wider text-gray-600 font-jost"
                     >
                       <LoadingSpinnerSVG />
-                      Loading Organisation Trainees...
+                      Loading Assigned Trainees...
                     </td>
                   </tr>
                 )} */}
@@ -242,7 +279,7 @@ function CampaignInsightsPage() {
                       colSpan={4}
                       className="py-8 text-center text-[1.2rem] tracking-wider text-red-600 font-jost"
                     >
-                      No Organisation Trainees Found
+                      No Assigned Trainees Found
                     </td>
                   </tr>
                 )} */}
@@ -272,7 +309,7 @@ function CampaignInsightsPage() {
 
                     {/* Progress */}
                     <td className="px-6 py-2">
-                      <span className="text-sm font-google_sans_code text-gray-500">50%</span>
+                      <span className="text-sm font-google_sans_code text-purple">50%</span>
                       <div className="w-full bg-neutral-quaternary h-2.5">
                         <div className="bg-main-purple h-2.5" style={{ width: 50 }}></div>
                       </div>
@@ -281,25 +318,33 @@ function CampaignInsightsPage() {
                     {/* Items Completed */}
                     <td
                       className="truncate max-w-[4rem] px-6 py-2 font-google_sans_code"
-                      title={'6/12 Campaign Items Completed'}
+                      title={'6 out of 12 Campaign Items Completed'}
                     >
                       6/12
                     </td>
 
                     {/* Quiz Percentage */}
-                    <td className="px-6 py-2 font-google_sans_code">100%</td>
+                    <td
+                      className="px-6 py-2 font-google_sans_code"
+                      title={'100% Overall Quiz Average'}
+                    >
+                      100%
+                    </td>
 
-                    {/* Status Badge  */}
+                    {/* Status Badge */}
                     <td className="px-6 py-2">{getStatusBadge('Active')}</td>
 
                     {/* Actions Dropdown */}
                     <td className="px-6 py-2">
-                      <span
-                        className="cursor-pointer material-symbols-sharp"
-                        style={{ fontSize: '1.6rem', marginTop: '0.4rem', marginLeft: '1rem' }}
+                      <button
+                        className="cursor-pointer font-jost text-[1.1rem] text-red-600 hover:underline"
+                        type="button"
+                        title={
+                          'Unassign this Trainee (Adriano Roberto Da Costa Jorge) from the Current Campaign (Campaign Name)'
+                        }
                       >
-                        more_vert
-                      </span>
+                        <strong>Unassign</strong>
+                      </button>
                     </td>
                   </tr>
                 )}
