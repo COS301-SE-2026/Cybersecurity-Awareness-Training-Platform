@@ -207,7 +207,9 @@ describe('CampaignAssignmentPage', () => {
       renderPage();
       await completeOneAssignment(user);
 
-      expect(await screen.findByRole('alert')).toHaveTextContent(expectedMessage);
+      expect(
+        await screen.findByRole(alreadyAssignedCount > 0 ? 'alert' : 'status'),
+      ).toHaveTextContent(expectedMessage);
       expect(
         screen.getByRole('heading', { name: /organisation trainee selection/i }),
       ).toBeVisible();

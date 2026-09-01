@@ -2028,6 +2028,12 @@ function OrganisationTraineesPage() {
       }
 
       setInviteCreated(true);
+      setActionFeedback({
+        organisationId: requestTarget.organisationId,
+        token: requestTarget.token,
+        variant: 'success',
+        message: response.message,
+      });
 
       const refreshResult = await reloadOrganisationTrainees();
 
@@ -2051,13 +2057,6 @@ function OrganisationTraineesPage() {
       if (refreshResult === 'stale') {
         return;
       }
-
-      setActionFeedback({
-        organisationId: requestTarget.organisationId,
-        token: requestTarget.token,
-        variant: 'success',
-        message: response.message,
-      });
 
       setShowInviteTraineeModal(false);
       resetInviteModal();
