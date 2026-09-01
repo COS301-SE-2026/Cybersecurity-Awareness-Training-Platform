@@ -7,12 +7,15 @@ import type {
   CampaignStatusDto,
   CampaignTypeDto,
 } from '@insightful-phish/shared';
+import BasicConfirmationModal from '../components/layout/modals/BasicConfirmationModal';
 import StatusBadge, { type DisplayStatus } from '../components/ui/StatusBadge';
 import { getOrganisationCampaignStatistics } from '../lib/campaignsApi';
 import { ApiError } from '../lib/apiClient';
+import { deleteCampaignAssignment } from '../services/campaign-assignment.service';
 
 type CampaignInsightsPageProps = Readonly<{
   statisticsClient?: typeof getOrganisationCampaignStatistics;
+  unassignClient?: typeof deleteCampaignAssignment;
   onAuthenticationExpired?: () => void;
 }>;
 
@@ -141,14 +144,43 @@ function getStatisticsErrorMessage(error: unknown): string {
   return 'Campaign statistics could not be loaded. Try again.';
 }
 
+function getUnassignErrorMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    if (error.status === 401) {
+      return 'Your session is no longer valid. Sign in again.';
+    }
+
+    if (error.status === 403) {
+      return 'You no longer have permission to unassign this trainee.';
+    }
+
+    if (error.status === 422) {
+      return 'This trainee could not be unassigned. Refresh and try again.';
+    }
+
+    if (error.status === 429) {
+      return 'Too many unassignment requests. Wait a moment and try again.';
+    }
+  }
+
+  return 'This trainee could not be unassigned. Try again.';
+}
+
 function CampaignInsightsPage({
   statisticsClient = getOrganisationCampaignStatistics,
+  unassignClient = deleteCampaignAssignment,
   onAuthenticationExpired,
 }: CampaignInsightsPageProps) {
   const [statisticsState, setStatisticsState] = useState<StatisticsState>({
     status: 'loading',
   });
+  const [selectedTrainee, setSelectedTrainee] = useState<CampaignStatisticsTraineeRowDto | null>(
+    null,
+  );
+  const [isUnassigning, setIsUnassigning] = useState(false);
+  const [unassignError, setUnassignError] = useState<string | null>(null);
   const statisticsRequestIdRef = useRef(0);
+  const unassignRequestInFlightRef = useRef(false);
   const { organisationId, campaignId } = useParams<{
     organisationId: string;
     campaignId: string;
@@ -231,6 +263,46 @@ function CampaignInsightsPage({
       }
     }
   }, [campaignId, onAuthenticationExpired, organisationId, statisticsClient]);
+
+  const refreshStatistics = useCallback(async () => {
+    setStatisticsState({ status: 'loading' });
+    await requestStatistics();
+  }, [requestStatistics]);
+
+  const handleConfirmUnassign = useCallback(async () => {
+    if (
+      organisationId === undefined ||
+      selectedTrainee === null ||
+      unassignRequestInFlightRef.current === true
+    ) {
+      return;
+    }
+
+    unassignRequestInFlightRef.current = true;
+    setIsUnassigning(true);
+    setUnassignError(null);
+
+    try {
+      await unassignClient(organisationId, selectedTrainee.assignmentId);
+      setSelectedTrainee(null);
+      await refreshStatistics();
+    } catch (requestError) {
+      if (requestError instanceof ApiError && requestError.status === 404) {
+        setSelectedTrainee(null);
+        await refreshStatistics();
+        return;
+      }
+
+      if (requestError instanceof ApiError && requestError.status === 401) {
+        onAuthenticationExpired?.();
+      }
+
+      setUnassignError(getUnassignErrorMessage(requestError));
+    } finally {
+      unassignRequestInFlightRef.current = false;
+      setIsUnassigning(false);
+    }
+  }, [onAuthenticationExpired, organisationId, refreshStatistics, selectedTrainee, unassignClient]);
 
   useEffect(() => {
     const requestTimeout = globalThis.setTimeout(() => {
@@ -606,13 +678,21 @@ function CampaignInsightsPage({
                         <StatusBadge status={TRAINEE_STATUS_LABELS[trainee.traineeStatus]} />
                       </td>
                       <td className="px-6 py-2">
-                        <button
-                          className="cursor-pointer font-jost text-[1.1rem] text-red-600 hover:underline"
-                          type="button"
-                          title={`Unassign ${trainee.displayName} from ${campaignName}`}
-                        >
-                          <strong>Unassign</strong>
-                        </button>
+                        {trainee.allowedActions.canUnassign === true ? (
+                          <button
+                            className="cursor-pointer font-jost text-[1.1rem] text-red-600 hover:underline"
+                            type="button"
+                            title={`Unassign ${trainee.displayName} from ${campaignName}`}
+                            onClick={() => {
+                              setSelectedTrainee(trainee);
+                              setUnassignError(null);
+                            }}
+                          >
+                            <strong>Unassign</strong>
+                          </button>
+                        ) : (
+                          <span aria-label="Unassign unavailable">—</span>
+                        )}
                       </td>
                     </tr>
                   );
@@ -622,6 +702,27 @@ function CampaignInsightsPage({
           </div>
         </div>
       </div>
+      {selectedTrainee !== null && (
+        <BasicConfirmationModal
+          title="Unassign Trainee from Campaign"
+          message={`Are you sure that you want to unassign ${selectedTrainee.displayName} from ${campaignName}? Their campaign progress will be permanently removed.`}
+          confirmButtonText="Unassign"
+          cancelButtonText="Keep Assigned"
+          confirmButtonVariant="danger"
+          onConfirm={() => {
+            void handleConfirmUnassign();
+          }}
+          onCancel={() => {
+            setSelectedTrainee(null);
+            setUnassignError(null);
+          }}
+          isConfirming={isUnassigning}
+          isConfirmDisabled={isUnassigning}
+          isDismissDisabled={isUnassigning}
+          errorMessage={unassignError}
+          appendQuestionMark={false}
+        />
+      )}
     </AppLayout>
   );
 }

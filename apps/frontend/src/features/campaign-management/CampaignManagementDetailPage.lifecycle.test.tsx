@@ -1,6 +1,7 @@
 import type {
   CampaignDetailResponseDto,
   CampaignLifecycleActionResponseDto,
+  DeleteCampaignAssignmentResponseDto,
   GetOrganisationCampaignStatisticsResponseDto,
 } from '@insightful-phish/shared';
 import { act, render, screen, within } from '@testing-library/react';
@@ -44,6 +45,8 @@ type LifecycleMethods = Partial<
 type StatisticsClient = NonNullable<
   ComponentProps<typeof CampaignInsightsPage>['statisticsClient']
 >;
+
+type UnassignClient = NonNullable<ComponentProps<typeof CampaignInsightsPage>['unassignClient']>;
 
 const PERSISTED_ITEM = {
   itemType: 'COMPONENT',
@@ -182,6 +185,7 @@ function renderPage(
   lifecycleMethods: LifecycleMethods = {},
   statisticsResponse: GetOrganisationCampaignStatisticsResponseDto = STATISTICS_RESPONSE,
   statisticsClient: StatisticsClient = vi.fn().mockResolvedValue(statisticsResponse),
+  unassignClient: UnassignClient = vi.fn(),
 ) {
   const client: LifecycleClient = {
     getCampaignCatalogue: vi.fn().mockResolvedValue(EMPTY_CATALOGUE),
@@ -201,7 +205,12 @@ function renderPage(
         />
         <Route
           path="/organisations/:organisationId/campaigns/:campaignId/statistics"
-          element={<CampaignInsightsPage statisticsClient={statisticsClient} />}
+          element={
+            <CampaignInsightsPage
+              statisticsClient={statisticsClient}
+              unassignClient={unassignClient}
+            />
+          }
         />
       </Routes>
     </MemoryRouter>,
@@ -263,7 +272,88 @@ describe('CampaignManagementDetailPage activation', () => {
     expect(within(disabledTraineeRow).getByText('8/8')).toBeInTheDocument();
     expect(within(disabledTraineeRow).getByTitle('No submitted Quiz score')).toHaveTextContent('—');
     expect(within(disabledTraineeRow).getByText('Disabled')).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: 'Unassign' })).toHaveLength(2);
+    expect(screen.getAllByRole('button', { name: 'Unassign' })).toHaveLength(1);
+    expect(within(disabledTraineeRow).getByLabelText('Unassign unavailable')).toHaveTextContent(
+      '—',
+    );
+  });
+
+  it('confirms a permitted unassignment and refreshes authoritative statistics', async () => {
+    const user = userEvent.setup();
+    const unassignRequest = createDeferred<DeleteCampaignAssignmentResponseDto>();
+    const unassignClient: UnassignClient = vi.fn(() => unassignRequest.promise);
+    const refreshedStatistics: GetOrganisationCampaignStatisticsResponseDto = {
+      ...STATISTICS_RESPONSE,
+      summary: {
+        assignedTraineeCount: 1,
+        startedTraineeCount: 1,
+        completedTraineeCount: 1,
+        overallProgressPercentage: 100,
+        averageQuizScorePercentage: null,
+      },
+      trainees: [DISABLED_TRAINEE],
+      pagination: {
+        page: 1,
+        limit: 100,
+        total: 1,
+        totalPages: 1,
+      },
+    };
+    const statisticsClient: StatisticsClient = vi
+      .fn()
+      .mockResolvedValueOnce(STATISTICS_RESPONSE)
+      .mockResolvedValueOnce(refreshedStatistics);
+
+    renderPage(
+      ACTIVE_CAMPAIGN,
+      { archiveCampaign: vi.fn() },
+      STATISTICS_RESPONSE,
+      statisticsClient,
+      unassignClient,
+    );
+
+    await user.click(
+      await screen.findByRole('button', { name: 'View Assigned Trainees & Insights' }),
+    );
+    await user.click(await screen.findByRole('button', { name: 'Unassign' }));
+
+    const dialog = screen.getByRole('dialog', { name: 'Unassign Trainee from Campaign' });
+    expect(
+      within(dialog).getByText(
+        `Are you sure that you want to unassign ${ACTIVE_TRAINEE.displayName} from ${ACTIVE_CAMPAIGN.name}? Their Campaign progress will be permanently removed.`,
+      ),
+    ).toBeInTheDocument();
+
+    await user.click(within(dialog).getByRole('button', { name: 'Unassign' }));
+
+    expect(unassignClient).toHaveBeenCalledTimes(1);
+    expect(unassignClient).toHaveBeenCalledWith(ORGANISATION_ID, ACTIVE_TRAINEE.assignmentId);
+    expect(within(dialog).getByRole('button', { name: 'Processing...' })).toBeDisabled();
+    expect(within(dialog).getByRole('button', { name: 'Keep Assigned' })).toBeDisabled();
+
+    await act(async () => {
+      unassignRequest.resolve({
+        assignmentId: ACTIVE_TRAINEE.assignmentId,
+        campaignId: CAMPAIGN_ID,
+        traineeProfileId: ACTIVE_TRAINEE.traineeProfileId,
+        unassigned: true,
+        deletedProgress: {
+          quizAttempts: 1,
+          emailClassificationResponses: 0,
+          interactionEvents: 2,
+        },
+      });
+      await unassignRequest.promise;
+    });
+
+    expect(await screen.findByText(DISABLED_TRAINEE.displayName)).toBeInTheDocument();
+    expect(screen.queryByText(ACTIVE_TRAINEE.displayName)).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(statisticsClient).toHaveBeenCalledTimes(2);
+    expect(statisticsClient).toHaveBeenLastCalledWith(ORGANISATION_ID, CAMPAIGN_ID, {
+      page: 1,
+      limit: 100,
+    });
   });
 
   it('shows an em dash when the selected Campaign has no duration', async () => {
