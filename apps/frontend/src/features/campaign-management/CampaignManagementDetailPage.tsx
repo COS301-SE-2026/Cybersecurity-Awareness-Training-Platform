@@ -257,6 +257,8 @@ function CampaignManagementDetailPage({
     canManageCampaigns &&
     detail?.status === 'ARCHIVED' &&
     detail.allowedActions.includes('REACTIVATE');
+  const hasInsightsAction =
+    context?.kind === 'organisation' && Boolean(detail?.allowedActions.includes('VIEW'));
   const canRequestArchive = Boolean(hasArchiveAction) && !isMutationPending && !isMutationLocked;
   const canRequestReactivate =
     Boolean(hasReactivateAction) && !isMutationPending && !isMutationLocked;
@@ -952,10 +954,25 @@ function CampaignManagementDetailPage({
           !loadError &&
           detail &&
           !canEditDraft &&
-          ((hasArchiveAction && client.archiveCampaign) ||
+          (hasInsightsAction ||
+            (hasArchiveAction && client.archiveCampaign) ||
             (hasReactivateAction && client.reactivateCampaign)) && (
             <section className="campaign-lifecycle" aria-label="Campaign lifecycle actions">
               <h2>Campaign lifecycle</h2>
+              {hasInsightsAction && context.kind === 'organisation' && (
+                <button
+                  type="button"
+                  className="campaign-button campaign-button--primary campaign-lifecycle__insights"
+                  onClick={() =>
+                    navigate(
+                      `/organisations/${context.organisationId}/campaigns/${detail.id}/statistics`,
+                    )
+                  }
+                >
+                  View Assigned Trainees &amp; Insights
+                </button>
+              )}
+
               {hasArchiveAction && client.archiveCampaign && (
                 <button
                   type="button"
