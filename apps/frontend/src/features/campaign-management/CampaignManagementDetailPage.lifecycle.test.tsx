@@ -9,6 +9,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
 import { createDeferred } from '../../testing/render';
+import CampaignInsightsPage from '../../pages/CampaignInsightsPage';
 import CampaignManagementDetailPage from './CampaignManagementDetailPage';
 import {
   CampaignManagementClientError,
@@ -110,6 +111,10 @@ function renderPage(detail: CampaignDetailResponseDto, lifecycleMethods: Lifecyc
           path="/organisations/:organisationId/campaigns/:campaignId"
           element={<CampaignManagementDetailPage contextKind="organisation" client={client} />}
         />
+        <Route
+          path="/organisations/:organisationId/campaigns/:campaignId/statistics"
+          element={<CampaignInsightsPage />}
+        />
       </Routes>
     </MemoryRouter>,
   );
@@ -118,6 +123,24 @@ function renderPage(detail: CampaignDetailResponseDto, lifecycleMethods: Lifecyc
 }
 
 describe('CampaignManagementDetailPage activation', () => {
+  it('opens the selected Organisation Campaign statistics page with list navigation', async () => {
+    const user = userEvent.setup();
+
+    renderPage(ACTIVE_CAMPAIGN, { archiveCampaign: vi.fn() });
+
+    await user.click(
+      await screen.findByRole('button', { name: 'View Assigned Trainees & Insights' }),
+    );
+
+    expect(
+      screen.getByRole('heading', { level: 1, name: ACTIVE_CAMPAIGN.name }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Back to Campaign' })).toHaveAttribute(
+      'href',
+      DETAIL_PATH,
+    );
+  });
+
   it('explains why an empty saved Draft cannot be activated', async () => {
     const activateCampaign = vi.fn();
 

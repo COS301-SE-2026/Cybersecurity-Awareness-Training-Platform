@@ -1158,6 +1158,41 @@ describe('AppRoutes', () => {
     expect(screen.queryByRole('form', { name: 'Campaign details' })).not.toBeInTheDocument();
   });
 
+  it('renders the protected Organisation Campaign statistics route', async () => {
+    const organisationId = '11111111-1111-4111-8111-111111111111';
+    const campaignId = '10000000-0000-4000-8000-000000000001';
+
+    renderCampaignManagementRoutes(
+      `/organisations/${organisationId}/campaigns/${campaignId}/statistics`,
+      'ORGANISATION_ADMIN',
+      organisationId,
+      ['VIEW_CAMPAIGNS'],
+    );
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Campaign' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Back to Campaign' })).toHaveAttribute(
+      'href',
+      `/organisations/${organisationId}/campaigns/${campaignId}`,
+    );
+  });
+
+  it('denies Organisation Campaign statistics without a Campaign permission', async () => {
+    const organisationId = '11111111-1111-4111-8111-111111111111';
+    const campaignId = '10000000-0000-4000-8000-000000000001';
+
+    renderCampaignManagementRoutes(
+      `/organisations/${organisationId}/campaigns/${campaignId}/statistics`,
+      'ORGANISATION_ADMIN',
+      organisationId,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('location-path')).toHaveTextContent('/');
+    });
+
+    expect(screen.queryByRole('heading', { level: 1, name: 'Campaign' })).not.toBeInTheDocument();
+  });
+
   it('allows an organisation Campaign list user with MANAGE_CAMPAIGNS', async () => {
     const organisationId = '11111111-1111-4111-8111-111111111111';
 

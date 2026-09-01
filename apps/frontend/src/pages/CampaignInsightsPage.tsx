@@ -1,10 +1,35 @@
 import AppLayout from '../components/layout/AppLayout';
 import { useState } from 'react';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import StatusBadge from '../components/ui/StatusBadge';
+
+function getCampaignName(state: unknown): string | null {
+  if (
+    typeof state !== 'object' ||
+    state === null ||
+    'campaignName' in state === false ||
+    typeof state.campaignName !== 'string' ||
+    state.campaignName.trim() === ''
+  ) {
+    return null;
+  }
+
+  return state.campaignName;
+}
 
 function CampaignInsightsPage() {
   const [isLoading] = useState(false);
   const [error] = useState(false);
+  const { organisationId, campaignId } = useParams<{
+    organisationId: string;
+    campaignId: string;
+  }>();
+  const location = useLocation();
+  const campaignName = getCampaignName(location.state) ?? 'Campaign';
+  const campaignPath =
+    organisationId === undefined || campaignId === undefined
+      ? '/'
+      : `/organisations/${organisationId}/campaigns/${campaignId}`;
 
   return (
     <AppLayout
@@ -22,13 +47,15 @@ function CampaignInsightsPage() {
             paddingBottom: '0.4rem',
           }}
         >
-          <button
-            type="button"
+          <Link
+            to={campaignPath}
             className="-mt-4 inline-flex items-center gap-2 font-jost text-xl font-regular tracking-wide text-purple hover:text-purple cursor-pointer transition-colours"
           >
-            <span className="material-icons-sharp">arrow_back</span>
-            <span className="hover:underline"> Back to Campaigns</span>
-          </button>
+            <span className="material-icons-sharp" aria-hidden="true">
+              arrow_back
+            </span>
+            <span className="hover:underline"> Back to Campaign</span>
+          </Link>
 
           <h1
             style={{
@@ -41,7 +68,7 @@ function CampaignInsightsPage() {
               color: 'rgb(132, 25, 255)',
             }}
           >
-            {'Campaign Name'}
+            {campaignName}
           </h1>
 
           <div className="grid grid-cols-4 gap-3">
