@@ -2,36 +2,100 @@
   "milestone": "Sprint 6 (Demo 3)",
   "start": "2026-08-05",
   "end": "2026-08-10",
-  "issues": [],
+  "issues": [
+    {
+      "number": 412,
+      "title": "feat: add an organisation campaign unassignment flow",
+      "points": 3,
+      "state": "closed",
+      "closed_date": "2026-08-19"
+    },
+    {
+      "number": 411,
+      "title": "feat: unassign an organisation campaign and delete its progress",
+      "points": 5,
+      "state": "closed",
+      "closed_date": "2026-08-10"
+    },
+    {
+      "number": 410,
+      "title": "feat: integrate the platform administrator management page",
+      "points": 5,
+      "state": "closed",
+      "closed_date": "2026-08-30"
+    },
+    {
+      "number": 409,
+      "title": "chore: deploy dev to an isolated secondary server",
+      "points": 5,
+      "state": "closed",
+      "closed_date": "2026-08-09"
+    },
+    {
+      "number": 408,
+      "title": "feat: build organisation campaign assignment selection page",
+      "points": 5,
+      "state": "closed",
+      "closed_date": "2026-08-14"
+    },
+    {
+      "number": 407,
+      "title": "feat: manage organisation campaign assignments transactionally",
+      "points": 5,
+      "state": "closed",
+      "closed_date": "2026-08-08"
+    },
+    {
+      "number": 406,
+      "title": "feat: add organisation campaign assignment permission and option endpoints",
+      "points": 3,
+      "state": "closed",
+      "closed_date": "2026-08-07"
+    },
+    {
+      "number": 405,
+      "title": "feat: add Resend API fallback for queued production email",
+      "points": 3,
+      "state": "closed",
+      "closed_date": "2026-08-11"
+    },
+    {
+      "number": 404,
+      "title": "feat: queue transactional email delivery through a durable asynchronous outbox",
+      "points": 5,
+      "state": "closed",
+      "closed_date": "2026-08-11"
+    }
+  ],
   "series": [
     {
       "date": "2026-08-05",
-      "remaining": 0,
-      "ideal": 0.0
+      "remaining": 39,
+      "ideal": 39.0
     },
     {
       "date": "2026-08-06",
-      "remaining": 0,
-      "ideal": 0.0
+      "remaining": 39,
+      "ideal": 31.2
     },
     {
       "date": "2026-08-07",
-      "remaining": 0,
-      "ideal": 0.0
+      "remaining": 36,
+      "ideal": 23.4
     },
     {
       "date": "2026-08-08",
-      "remaining": 0,
-      "ideal": 0.0
+      "remaining": 31,
+      "ideal": 15.6
     },
     {
       "date": "2026-08-09",
-      "remaining": 0,
-      "ideal": 0.0
+      "remaining": 26,
+      "ideal": 7.8
     },
     {
       "date": "2026-08-10",
-      "remaining": 0,
+      "remaining": 21,
       "ideal": 0.0
     }
   ]
