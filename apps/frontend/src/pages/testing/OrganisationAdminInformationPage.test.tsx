@@ -38,21 +38,24 @@ describe('OrganisationAdminInformationPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders the administrator table headings when administrators are provided', () => {
+  it('renders the administrator information without management actions', () => {
     render(<OrganisationAdminInformationPage admins={mockAdmins} />);
+
     expect(screen.getByRole('columnheader', { name: /Full Name/i })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: /Email Address/i })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: /Administrator Status/i })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: /Actions/i })).toBeInTheDocument();
-  });
 
-  it('renders action buttons and rows for each administrator', () => {
-    render(<OrganisationAdminInformationPage admins={mockAdmins} />);
-    expect(screen.getAllByRole('button', { name: /Remove/i })).not.toHaveLength(0);
-    expect(screen.getAllByRole('button', { name: /Edit/i })).not.toHaveLength(0);
-    expect(screen.getAllByRole('button', { name: /Re-Send Invite/i })).not.toHaveLength(0);
     expect(screen.getByText(/Jan van der Merwe/i)).toBeInTheDocument();
     expect(screen.getByText(/Sipho Ndlovu/i)).toBeInTheDocument();
+    expect(screen.getByText('jan@cyberjan.co.za')).toBeInTheDocument();
+    expect(screen.getByText('sipho@cyberjan.co.za')).toBeInTheDocument();
+    expect(screen.getByText('Active')).toBeInTheDocument();
+    expect(screen.getByText('Pending/Disabled')).toBeInTheDocument();
+
+    expect(screen.queryByRole('columnheader', { name: /Actions/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Remove/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Edit/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Re-Send Invite/i })).not.toBeInTheDocument();
   });
 
   it('renders the shared empty state when no administrators are available', () => {
