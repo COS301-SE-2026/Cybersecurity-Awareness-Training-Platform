@@ -92,7 +92,8 @@ describe('OrganisationInformationPage Integration', () => {
       expect(screen.getByRole('heading', { name: /Cyber Jan Technologies/i })).toBeInTheDocument();
     });
 
-    expect(screen.getByText(/Status: ACTIVE/i)).toBeInTheDocument();
+    expect(screen.queryByText(/^Status:/i)).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/Status/i)).toHaveValue('Active');
     expect(screen.getByRole('button', { name: /Basic Information/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Representative Information/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Administrators/i })).toBeInTheDocument();
@@ -168,7 +169,7 @@ describe('OrganisationInformationPage Integration', () => {
     renderWithRouter('/platform/organisations/org-suspended-1');
 
     await waitFor(() => {
-      expect(screen.getByText(/This organisation is currently SUSPENDED/i)).toBeInTheDocument();
+      expect(screen.getByText(/This organisation is currently suspended/i)).toBeInTheDocument();
     });
   });
 
@@ -287,5 +288,45 @@ describe('OrganisationInformationPage Integration', () => {
     expect(screen.queryByRole('button', { name: /Administrators/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Timeline/i })).not.toBeInTheDocument();
     expect(screen.queryByText(/Danger Zone/i)).not.toBeInTheDocument();
+  });
+
+  it('renders Approved - Waiting for Setup for PENDING_ONBOARDING status and clean Danger Zone', async () => {
+    vi.spyOn(service, 'getPlatformOrganisationDetail').mockResolvedValue({
+      id: 'org-onboarding-1',
+      name: 'Onboarding Org',
+      status: 'PENDING_ONBOARDING',
+      detailType: 'onboarding organisation',
+      description: 'New org waiting for setup',
+      approximateSize: 15,
+      website: 'https://onboarding.co.za',
+      primaryDomain: 'onboarding.co.za',
+      createdAt: '2026-06-19T00:00:00.000Z',
+      updatedAt: '2026-06-20T00:00:00.000Z',
+      _count: { adminProfiles: 0, traineeProfiles: 0 },
+      registrationRequest: null,
+      setupStatus: {
+        id: 'setup-2',
+        status: 'SENT',
+        recipientEmail: 'admin@onboarding.co.za',
+        expiresAt: '2026-12-31T00:00:00.000Z',
+        latestActionToken: null,
+        latestEmailDelivery: null,
+      },
+      resendEligibility: { isEligible: false, reason: 'ACTIVE_SETUP_TOKEN_EXISTS' },
+      admins: [],
+      timeline: [],
+    });
+
+    renderWithRouter('/platform/organisations/org-onboarding-1');
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Onboarding Org/i })).toBeInTheDocument();
+    });
+
+    expect(screen.getByLabelText(/Status/i)).toHaveValue('Approved - Waiting for Setup');
+    expect(screen.getByRole('heading', { name: 'Danger Zone' })).toBeInTheDocument();
+    expect(screen.queryByText(/Sprint 4/i)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Suspend Organisation' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Delete Organisation' })).toBeInTheDocument();
   });
 });

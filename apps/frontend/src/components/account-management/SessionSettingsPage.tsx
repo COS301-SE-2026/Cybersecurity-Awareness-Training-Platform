@@ -436,7 +436,7 @@ function SessionSettingsPage({
                       <TruncatedValue value={browserName} />
                     </AdminTableCell>
                     <AdminTableCell>
-                      <TruncatedValue value={session.locationSummary || 'Unknown Location'} />
+                      <TruncatedValue value={session.locationSummary || 'Location unavailable'} />
                     </AdminTableCell>
                     <AdminTableCell>
                       <TruncatedValue value={formatLastActive(session.lastActiveAt)} />

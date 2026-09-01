@@ -29,6 +29,7 @@ import {
   touchSession,
   updateSessionPolicy,
 } from './auth-session.service.js';
+import { summariseAuthSessionMetadata } from './auth-session-metadata.service.js';
 import {
   issueRefreshToken,
   rotateRefreshToken,
@@ -286,6 +287,7 @@ export async function loginUser(
     regularSessionSeconds: policy.regularSessionSeconds,
     rememberedSessionSeconds: policy.rememberedSessionSeconds,
   });
+  const sessionMetadata = summariseAuthSessionMetadata(input.userAgent);
 
   const session = await issueAuthSession({
     userId: user.id,
@@ -294,6 +296,8 @@ export async function loginUser(
     idleTimeoutMinutes: policy.idleTimeoutMinutes,
     userAgent: input.userAgent ?? null,
     ipAddress: input.ipAddress ?? null,
+    deviceSummary: sessionMetadata.deviceSummary,
+    locationSummary: sessionMetadata.locationSummary,
   });
 
   const refreshResult = await issueRefreshToken({
