@@ -86,11 +86,13 @@ function buildEligibility(input: {
   canResend: boolean;
   canRevoke: boolean;
   canDisable: boolean;
+  canReenable: boolean;
   canPromote: boolean;
   resendCooldownSeconds: number;
   resendDisabledReason: string | null;
   revokeDisabledReason: string | null;
   disableDisabledReason: string | null;
+  reenableUnavailableReason: string | null;
   promoteDisabledReason: string | null;
   resendDisabledReasonCode: InvitationActionUnavailableReasonCode | null;
   revokeDisabledReasonCode: InvitationActionUnavailableReasonCode | null;
@@ -278,6 +280,7 @@ function buildActiveTraineeRow(
   trainee: Awaited<ReturnType<typeof findOrganisationTrainees>>[number],
 ): TraineeListItemDto {
   const active = isOrganisationTraineeActive(trainee);
+  const canReenable = trainee.membershipStatus === 'DISABLED';
   return {
     id: trainee.id,
     rowType: 'ACTIVE_TRAINEE' as const,
@@ -306,11 +309,13 @@ function buildActiveTraineeRow(
       canResend: false,
       canRevoke: false,
       canDisable: active,
+      canReenable,
       canPromote: active,
       resendCooldownSeconds: 0,
       resendDisabledReason: 'Resend is only available for invitations.',
       revokeDisabledReason: 'Revoke is only available for invitations.',
       disableDisabledReason: getTraineeEligibilityMessage(trainee),
+      reenableUnavailableReason: canReenable ? null : 'Only disabled trainees can be re-enabled.',
       promoteDisabledReason: active ? null : 'Only active trainees can be promoted.',
       resendDisabledReasonCode: 'NOT_APPLICABLE',
       revokeDisabledReasonCode: 'NOT_APPLICABLE',
@@ -374,6 +379,7 @@ function buildInvitationRow(invitation: TraineeListInvitation, now: Date): Train
       canResend,
       canRevoke,
       canDisable: false,
+      canReenable: false,
       canPromote: false,
       resendCooldownSeconds,
       resendDisabledReason: getInvitationResendDisabledReason(
@@ -383,6 +389,7 @@ function buildInvitationRow(invitation: TraineeListInvitation, now: Date): Train
       ),
       revokeDisabledReason: !canRevoke ? 'Invitation is no longer active.' : null,
       disableDisabledReason: 'Cannot disable a pending invitation.',
+      reenableUnavailableReason: 'Re-enable is only available for disabled memberships.',
       promoteDisabledReason: 'Only active trainees can be promoted.',
       resendDisabledReasonCode: getInvitationResendDisabledReasonCode(
         canResend,
@@ -558,11 +565,13 @@ export async function createOrganisationTraineeInvitation(
         canResend: false,
         canRevoke,
         canDisable: false,
+        canReenable: false,
         canPromote: false,
         resendCooldownSeconds: 60,
         resendDisabledReason: 'Resend cooldown is currently active.',
         revokeDisabledReason: !canRevoke ? 'Invitation is no longer active.' : null,
         disableDisabledReason: 'Cannot disable a pending invitation.',
+        reenableUnavailableReason: 'Re-enable is only available for disabled memberships.',
         promoteDisabledReason: 'Only active trainees can be promoted.',
         resendDisabledReasonCode: 'COOLDOWN_ACTIVE',
         revokeDisabledReasonCode: !canRevoke ? 'INVITATION_NOT_ACTIVE' : null,
@@ -743,11 +752,13 @@ export async function resendTraineeInvitation(
         canResend: false,
         canRevoke,
         canDisable: false,
+        canReenable: false,
         canPromote: false,
         resendCooldownSeconds: 60,
         resendDisabledReason: 'Resend cooldown is currently active.',
         revokeDisabledReason: !canRevoke ? 'Invitation is no longer active.' : null,
         disableDisabledReason: 'Cannot disable a pending invitation.',
+        reenableUnavailableReason: 'Re-enable is only available for disabled memberships.',
         promoteDisabledReason: 'Only active trainees can be promoted.',
         resendDisabledReasonCode: 'COOLDOWN_ACTIVE',
         revokeDisabledReasonCode: !canRevoke ? 'INVITATION_NOT_ACTIVE' : null,

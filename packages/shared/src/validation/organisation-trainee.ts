@@ -138,6 +138,7 @@ export const eligibilitySchema = z.object({
   canResend: z.boolean(),
   canRevoke: z.boolean(),
   canDisable: z.boolean(),
+  canReenable: z.boolean(),
   canPromote: z.boolean(),
   resendCooldownSeconds: z.number(),
   resendDisabledReason: z.string().nullable().optional(),
@@ -146,6 +147,7 @@ export const eligibilitySchema = z.object({
   revokeDisabledReasonCode: invitationEligibilityReasonCodeSchema.nullable().optional(),
   disableDisabledReason: z.string().nullable().optional(),
   disableDisabledReasonCode: invitationEligibilityReasonCodeSchema.nullable().optional(),
+  reenableUnavailableReason: z.string().nullable().optional(),
   promoteDisabledReason: z.string().nullable().optional(),
   promoteDisabledReasonCode: invitationEligibilityReasonCodeSchema.nullable().optional(),
 });
