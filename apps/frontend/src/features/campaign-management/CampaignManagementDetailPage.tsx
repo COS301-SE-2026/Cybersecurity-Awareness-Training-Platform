@@ -956,6 +956,13 @@ function CampaignManagementDetailPage({
             (hasReactivateAction && client.reactivateCampaign)) && (
             <section className="campaign-lifecycle" aria-label="Campaign lifecycle actions">
               <h2>Campaign lifecycle</h2>
+              <button
+                type="button"
+                className="campaign-button campaign-button--primary campaign-lifecycle__insights"
+              >
+                View Assigned Trainees &amp; Insights
+              </button>
+
               {hasArchiveAction && client.archiveCampaign && (
                 <button
                   type="button"
