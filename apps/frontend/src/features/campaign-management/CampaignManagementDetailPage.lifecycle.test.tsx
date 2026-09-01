@@ -1,6 +1,7 @@
 import type {
   CampaignDetailResponseDto,
   CampaignLifecycleActionResponseDto,
+  GetOrganisationCampaignStatisticsResponseDto,
 } from '@insightful-phish/shared';
 import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -100,7 +101,39 @@ const EMPTY_CATALOGUE = {
   },
 };
 
-function renderPage(detail: CampaignDetailResponseDto, lifecycleMethods: LifecycleMethods = {}) {
+const STATISTICS_RESPONSE: GetOrganisationCampaignStatisticsResponseDto = {
+  campaign: {
+    id: CAMPAIGN_ID,
+    name: ACTIVE_CAMPAIGN.name,
+    description: ACTIVE_CAMPAIGN.description,
+    campaignType: ACTIVE_CAMPAIGN.campaignType,
+    status: ACTIVE_CAMPAIGN.status,
+    startDate: ACTIVE_CAMPAIGN.startDate,
+    endDate: ACTIVE_CAMPAIGN.endDate,
+    itemCount: 8,
+    quizCount: 2,
+  },
+  summary: {
+    assignedTraineeCount: 14,
+    startedTraineeCount: 9,
+    completedTraineeCount: 4,
+    overallProgressPercentage: 63,
+    averageQuizScorePercentage: 87,
+  },
+  trainees: [],
+  pagination: {
+    page: 1,
+    limit: 20,
+    total: 14,
+    totalPages: 1,
+  },
+};
+
+function renderPage(
+  detail: CampaignDetailResponseDto,
+  lifecycleMethods: LifecycleMethods = {},
+  statisticsResponse: GetOrganisationCampaignStatisticsResponseDto = STATISTICS_RESPONSE,
+) {
   const client: LifecycleClient = {
     getCampaignCatalogue: vi.fn().mockResolvedValue(EMPTY_CATALOGUE),
     getCampaignDetail: vi.fn().mockResolvedValue(detail),
@@ -119,7 +152,11 @@ function renderPage(detail: CampaignDetailResponseDto, lifecycleMethods: Lifecyc
         />
         <Route
           path="/organisations/:organisationId/campaigns/:campaignId/statistics"
-          element={<CampaignInsightsPage />}
+          element={
+            <CampaignInsightsPage
+              statisticsClient={vi.fn().mockResolvedValue(statisticsResponse)}
+            />
+          }
         />
       </Routes>
     </MemoryRouter>,
@@ -139,7 +176,7 @@ describe('CampaignManagementDetailPage activation', () => {
     );
 
     expect(
-      screen.getByRole('heading', { level: 1, name: ACTIVE_CAMPAIGN.name }),
+      screen.getByRole('heading', { level: 1, name: `"${ACTIVE_CAMPAIGN.name}"` }),
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Back to Campaign' })).toHaveAttribute(
       'href',
@@ -159,6 +196,13 @@ describe('CampaignManagementDetailPage activation', () => {
 
     const description = screen.getByText(ACTIVE_CAMPAIGN_DESCRIPTION);
     expect(description).toHaveClass('max-h-[3.3rem]', 'overflow-y-auto');
+
+    const statistics = await screen.findByLabelText('Campaign summary statistics');
+    expect(within(statistics).getByText('14')).toBeInTheDocument();
+    expect(within(statistics).getByText('9')).toBeInTheDocument();
+    expect(within(statistics).getByText('4')).toBeInTheDocument();
+    expect(within(statistics).getByText('63%')).toBeInTheDocument();
+    expect(within(statistics).getByText('87%')).toBeInTheDocument();
   });
 
   it('shows an em dash when the selected Campaign has no duration', async () => {
@@ -185,6 +229,37 @@ describe('CampaignManagementDetailPage activation', () => {
     }
 
     expect(within(durationField).getByText('—')).toBeInTheDocument();
+  });
+
+  it('shows no-cohort percentage values as em dashes rather than zero scores', async () => {
+    const user = userEvent.setup();
+    const emptyStatisticsResponse: GetOrganisationCampaignStatisticsResponseDto = {
+      ...STATISTICS_RESPONSE,
+      summary: {
+        assignedTraineeCount: 0,
+        startedTraineeCount: 0,
+        completedTraineeCount: 0,
+        overallProgressPercentage: null,
+        averageQuizScorePercentage: null,
+      },
+      pagination: {
+        page: 1,
+        limit: 20,
+        total: 0,
+        totalPages: 0,
+      },
+    };
+
+    renderPage(ACTIVE_CAMPAIGN, { archiveCampaign: vi.fn() }, emptyStatisticsResponse);
+
+    await user.click(
+      await screen.findByRole('button', { name: 'View Assigned Trainees & Insights' }),
+    );
+
+    const statistics = await screen.findByLabelText('Campaign summary statistics');
+    expect(within(statistics).getAllByText('0')).toHaveLength(3);
+    expect(within(statistics).getAllByText('—')).toHaveLength(2);
+    expect(within(statistics).queryByText('0%')).not.toBeInTheDocument();
   });
 
   it('explains why an empty saved Draft cannot be activated', async () => {

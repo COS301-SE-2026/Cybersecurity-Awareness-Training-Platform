@@ -264,7 +264,7 @@ function CampaignInsightsPage({
               margin: 0,
               marginBottom: '0.2rem',
               fontWeight: 500,
-              fontSize: '2.8rem',
+              fontSize: '2.2rem',
               lineHeight: 1,
               fontFamily: 'Jost',
               color: 'rgb(132, 25, 255)',
@@ -272,6 +272,9 @@ function CampaignInsightsPage({
           >
             {campaignName}
           </h1>
+
+          {/* DIVIDER */}
+          <div className="border border-b border-gray-300 mt-4 -mb-2"> </div>
 
           <div className="grid grid-cols-4 gap-3">
             <div>
@@ -320,6 +323,9 @@ function CampaignInsightsPage({
               {description}
             </p>
           </div>
+
+          {/* DIVIDER */}
+          <div className="border border-b border-gray-300 mb-4 mt-1"> </div>
 
           <div
             className="grid grid-cols-5 gap-3 py-2 px-4 bg-white border border-default-medium p-2 font-regular tracking-wider shadow-xs text-[1.1rem] font-justify font-jost text-gray-500 mb-2"
