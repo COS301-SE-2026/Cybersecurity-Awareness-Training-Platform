@@ -1656,8 +1656,8 @@
           "number": 501,
           "title": "feat: design the organisation campaign information and statistics page",
           "points": 5,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-09-01"
         },
         {
           "number": 500,
@@ -2433,7 +2433,7 @@
     },
     {
       "date": "2026-09-01",
-      "remaining": 33,
+      "remaining": 28,
       "ideal": 5.45
     }
   ]
