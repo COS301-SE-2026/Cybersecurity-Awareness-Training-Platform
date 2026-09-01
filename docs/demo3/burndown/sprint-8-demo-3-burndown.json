@@ -63,8 +63,8 @@
       "number": 502,
       "title": "feat: integrate the organisation campaign information and statistics page",
       "points": 3,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-09-01"
     },
     {
       "number": 501,
@@ -270,7 +270,7 @@
     },
     {
       "date": "2026-09-01",
-      "remaining": 37,
+      "remaining": 34,
       "ideal": 7.23
     }
   ]
