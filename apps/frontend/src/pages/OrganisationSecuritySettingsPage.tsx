@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import AppLayout from '../components/layout/AppLayout';
+import BasicAlert from '../components/alerts/BasicAlert';
 import { useAuth } from '../context/useAuth';
 import { ApiError } from '../lib/apiClient';
 import {
@@ -215,8 +216,21 @@ function OrganisationSecuritySettingsPage() {
   }, [token, organisationId, populateForm]);
 
   // server derived capabilities control page epitable state
+
   const canEdit = Boolean(capabilities?.canEdit && capabilities?.readOnlyReason === null);
   const isReadOnly = !canEdit;
+  const isDirty =
+    initialSettings !== null &&
+    (enforceRememberMePolicy !== initialSettings.enforceRememberMePolicy ||
+      allowRememberMe !== initialSettings.allowRememberMe ||
+      maxRememberedSessionHours !== (initialSettings.maxRememberedSessionHours ?? null) ||
+      enforceRegularSessionLength !== initialSettings.enforceRegularSessionLength ||
+      regularSessionLengthHours !== (initialSettings.regularSessionLengthHours ?? null) ||
+      enforceIdleTimeout !== initialSettings.enforceIdleTimeout ||
+      idleTimeoutMinutes !== (initialSettings.idleTimeoutMinutes ?? null) ||
+      allowTraineeEmailChange !== initialSettings.allowTraineeEmailChange ||
+      requireReauthenticationForSensitiveActions !==
+        initialSettings.requireReauthenticationForSensitiveActions);
 
   const handleEnforceRememberMeChange = (checked: boolean) => {
     setEnforceRememberMePolicy(checked);
@@ -350,31 +364,29 @@ function OrganisationSecuritySettingsPage() {
           )}
 
           {errorMessage && (
-            <div
-              role="alert"
-              className="p-4 mb-6 text-red-800 bg-red-50 border border-red-200 rounded-none font-jost text-[1.1rem] flex flex-col gap-1"
+            <BasicAlert
+              variant="danger"
+              onClose={() => {
+                setErrorMessage(null);
+                setValidationDetails([]);
+              }}
             >
-              <div className="flex items-center gap-2 font-medium">
-                <span className="material-symbols-sharp">error</span>
-                <span>{errorMessage}</span>
-              </div>
-              {validationDetails.length > 0 && (
-                <ul className="list-disc list-inside ml-6 text-sm">
-                  {validationDetails.map((detail) => (
-                    <li key={`${detail.field}-${detail.message}`}>
-                      <strong className="capitalize">{detail.field}:</strong> {detail.message}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+              {validationDetails[0]?.message
+                ? `$errorMessage}: ${validationDetails[0].message}`
+                : errorMessage}
+            </BasicAlert>
           )}
 
           {successMessage && (
-            <output className="p-4 mb-6 text-green-800 bg-green-50 border border-green-200 rounded-none font-jost text-[1.1rem] flex items-center gap-3 w-full block">
-              <span className="material-symbols-sharp">check_circle</span>
-              <span>{successMessage}</span>
-            </output>
+            <BasicAlert
+              variant="success"
+              onClose={() => {
+                setErrorMessage(null);
+                setValidationDetails([]);
+              }}
+            >
+              {successMessage}
+            </BasicAlert>
           )}
 
           {isLoading ? (
@@ -670,7 +682,7 @@ function OrganisationSecuritySettingsPage() {
                 <button
                   type="button"
                   onClick={handleReset}
-                  disabled={isReadOnly || isSaving}
+                  disabled={isReadOnly || isSaving || !isDirty}
                   className="cursor-pointer px-6 inline-flex gap-2 items-center justify-center text-gray-700 font-jost text-[1.2rem] font-regular tracking-wider bg-gray-100 hover:bg-gray-200 box-border border border-gray-300 focus:ring-2 focus:ring-gray-300 leading-5 text-sm py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   <span className="material-icons-sharp">restart_alt</span>

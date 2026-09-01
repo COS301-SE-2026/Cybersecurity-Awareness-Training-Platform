@@ -1,4 +1,5 @@
 import AppLayout from '../components/layout/AppLayout';
+import BasicAlert from '../components/alerts/BasicAlert';
 import { Dropdown, DropdownItem } from 'flowbite-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import InviteTraineeModal from '../components/layout/modals/InviteTraineeModal';
@@ -83,11 +84,6 @@ type InviteRequestOwner = {
   token: string;
 };
 
-type InviteSuccessState = {
-  target: InviteModalTarget;
-  message: string;
-};
-
 type InviteErrorBody = {
   error?: unknown;
   message?: unknown;
@@ -120,7 +116,7 @@ type InvitationActionRequestOwner = InvitationActionTarget & {
   requestId: number;
 };
 
-type InvitationActionFeedback = {
+type ActionFeedback = {
   organisationId: string;
   token: string;
   variant: 'success' | 'error' | 'warning';
@@ -160,13 +156,6 @@ type DisableDialogState = {
   isSubmitting: boolean;
 };
 
-type DisableFeedback = {
-  organisationId: string;
-  token: string;
-  variant: 'success' | 'warning' | 'error';
-  message: string;
-};
-
 type DisableActionsUnavailableTarget = {
   organisationId: string;
   token: string;
@@ -183,13 +172,6 @@ type ReenableDialogState = {
   passwordError: string | null;
   generalError: string | null;
   isSubmitting: boolean;
-};
-
-type ReenableFeedback = {
-  organisationId: string;
-  token: string;
-  variant: 'success' | 'warning' | 'error';
-  message: string;
 };
 
 function reenableTargetMatchesContext(
@@ -678,8 +660,7 @@ function OrganisationTraineesPage() {
   const invitationActionOwnerRef = useRef<InvitationActionRequestOwner | null>(null);
 
   const [invitationAction, setInvitationAction] = useState<InvitationActionState | null>(null);
-  const [invitationActionFeedback, setInvitationActionFeedback] =
-    useState<InvitationActionFeedback | null>(null);
+  const [ActionFeedback, setActionFeedback] = useState<ActionFeedback | null>(null);
   const [invitationActionsUnavailableTarget, setInvitationActionsUnavailableTarget] =
     useState<InvitationActionsUnavailableTarget | null>(null);
 
@@ -720,13 +701,10 @@ function OrganisationTraineesPage() {
   const [inviteGeneralError, setInviteGeneralError] = useState<string | null>(null);
   const [isInviting, setIsInviting] = useState(false);
   const [inviteCreated, setInviteCreated] = useState(false);
-  const [inviteSuccess, setInviteSuccess] = useState<InviteSuccessState | null>(null);
   const [disableDialog, setDisableDialog] = useState<DisableDialogState | null>(null);
-  const [disableFeedback, setDisableFeedback] = useState<DisableFeedback | null>(null);
   const [disableActionsUnavailableTarget, setDisableActionsUnavailableTarget] =
     useState<DisableActionsUnavailableTarget | null>(null);
   const [reenableDialog, setReenableDialog] = useState<ReenableDialogState | null>(null);
-  const [reenableFeedback, setReenableFeedback] = useState<ReenableFeedback | null>(null);
   const [reenableActionsUnavailable, setReenableActionsUnavailable] = useState(false);
 
   const hasDisablePermission = permissions.includes('REMOVE_ORGANISATION_TRAINEES');
@@ -934,29 +912,18 @@ function OrganisationTraineesPage() {
     ? invitationAction
     : null;
 
-  const currentInvitationActionFeedback =
-    invitationActionFeedback &&
-    actionBelongsToContext(invitationActionFeedback, organisationId, token)
-      ? invitationActionFeedback
+  const currentActionFeedback =
+    actionFeedback && actionBelongsToContext(actionFeedback, organisationId, token)
+      ? actionFeedback
       : null;
 
   const currentDisableDialog = disableTargetMatchesContext(disableDialog, organisationId, token)
     ? disableDialog
     : null;
 
-  const currentDisableFeedback =
-    disableFeedback && disableTargetMatchesContext(disableFeedback, organisationId, token)
-      ? disableFeedback
-      : null;
-
   const currentReenableDialog = reenableTargetMatchesContext(reenableDialog, organisationId, token)
     ? reenableDialog
     : null;
-
-  const currentReenableFeedback =
-    reenableFeedback && reenableTargetMatchesContext(reenableFeedback, organisationId, token)
-      ? reenableFeedback
-      : null;
 
   const isCurrentActionOwned = (requestId: number, target: InvitationActionTarget): boolean => {
     const owner = invitationActionOwnerRef.current;
@@ -994,7 +961,7 @@ function OrganisationTraineesPage() {
       phase: 'pending',
       errorMessage: null,
     });
-    setInvitationActionFeedback(null);
+    setActionFeedback(null);
 
     try {
       const response =
@@ -1028,7 +995,7 @@ function OrganisationTraineesPage() {
 
       if (refreshResult === 'applied') {
         clearMatchingInvitationAction(target);
-        setInvitationActionFeedback({
+        setActionFeedback({
           organisationId: target.organisationId,
           token: target.token,
           variant: 'success',
@@ -1053,7 +1020,7 @@ function OrganisationTraineesPage() {
           phase: 'completed-refresh-failed',
           errorMessage: refreshFailureMessage,
         });
-        setInvitationActionFeedback({
+        setActionFeedback({
           organisationId: target.organisationId,
           token: target.token,
           variant: 'warning',
@@ -1062,7 +1029,7 @@ function OrganisationTraineesPage() {
         return;
       }
       clearMatchingInvitationAction(target);
-      setInvitationActionFeedback({
+      setActionFeedback({
         organisationId: target.organisationId,
         token: target.token,
         variant: 'success',
@@ -1081,7 +1048,7 @@ function OrganisationTraineesPage() {
           phase: 'reconciling',
           errorMessage: null,
         });
-        setInvitationActionFeedback({
+        setActionFeedback({
           organisationId: target.organisationId,
           token: target.token,
           variant: error.status === 409 ? 'warning' : 'error',
@@ -1115,7 +1082,7 @@ function OrganisationTraineesPage() {
             phase: 'conflict-refresh-failed',
             errorMessage: reconciliationMessage,
           });
-          setInvitationActionFeedback({
+          setActionFeedback({
             organisationId: target.organisationId,
             token: target.token,
             variant: error.status === 409 ? 'warning' : 'error',
@@ -1139,7 +1106,7 @@ function OrganisationTraineesPage() {
           phase: 'reconciling',
           errorMessage: null,
         });
-        setInvitationActionFeedback({
+        setActionFeedback({
           organisationId: target.organisationId,
           token: target.token,
           variant: 'error',
@@ -1153,7 +1120,7 @@ function OrganisationTraineesPage() {
         }
 
         if (refreshResult === 'failed') {
-          setInvitationActionFeedback({
+          setActionFeedback({
             organisationId: target.organisationId,
             token: target.token,
             variant: 'error',
@@ -1167,7 +1134,7 @@ function OrganisationTraineesPage() {
         return;
       }
 
-      setInvitationActionFeedback({
+      setActionFeedback({
         organisationId: target.organisationId,
         token: target.token,
         variant: 'error',
@@ -1209,7 +1176,7 @@ function OrganisationTraineesPage() {
       email: row.email,
     };
 
-    setInvitationActionFeedback(null);
+    setActionFeedback(null);
 
     if (actionType === 'revoke') {
       setInvitationAction({
@@ -1257,7 +1224,7 @@ function OrganisationTraineesPage() {
       return;
     }
 
-    setDisableFeedback(null);
+    setActionFeedback(null);
     setDisableDialog({
       traineeId: row.id,
       organisationId,
@@ -1325,7 +1292,7 @@ function OrganisationTraineesPage() {
       !currentRow.eligibility.canDisable
     ) {
       setDisableDialog(null);
-      setDisableFeedback({
+      setActionFeedback({
         organisationId: target.organisationId,
         token: target.token,
         variant: 'warning',
@@ -1341,7 +1308,7 @@ function OrganisationTraineesPage() {
           token: target.token,
           reason: 'refresh-failed',
         });
-        setDisableFeedback({
+        setActionFeedback({
           organisationId: target.organisationId,
           token: target.token,
           variant: 'error',
@@ -1411,7 +1378,7 @@ function OrganisationTraineesPage() {
           }
         : current,
     );
-    setDisableFeedback(null);
+    setActionFeedback(null);
 
     try {
       const payload: DisableTraineeRequestDto = validationResult.data;
@@ -1429,7 +1396,7 @@ function OrganisationTraineesPage() {
 
       // Successful mutation closes the modal immediately.
       setDisableDialog(null);
-      setDisableFeedback({
+      setActionFeedback({
         organisationId: target.organisationId,
         token: target.token,
         variant: 'success',
@@ -1448,7 +1415,7 @@ function OrganisationTraineesPage() {
           token: target.token,
           reason: 'refresh-failed',
         });
-        setDisableFeedback({
+        setActionFeedback({
           organisationId: target.organisationId,
           token: target.token,
           variant: 'warning',
@@ -1519,7 +1486,7 @@ function OrganisationTraineesPage() {
 
       if (error instanceof ApiError && (error.status === 404 || error.status === 409)) {
         setDisableDialog(null);
-        setDisableFeedback({
+        setActionFeedback({
           organisationId: target.organisationId,
           token: target.token,
           variant: error.status === 409 ? 'warning' : 'error',
@@ -1538,7 +1505,7 @@ function OrganisationTraineesPage() {
             token: target.token,
             reason: 'refresh-failed',
           });
-          setDisableFeedback({
+          setActionFeedback({
             organisationId: target.organisationId,
             token: target.token,
             variant: 'error',
@@ -1562,7 +1529,7 @@ function OrganisationTraineesPage() {
           token: target.token,
           reason: 'permission-denied',
         });
-        setDisableFeedback({
+        setActionFeedback({
           organisationId: target.organisationId,
           token: target.token,
           variant: 'error',
@@ -1586,7 +1553,7 @@ function OrganisationTraineesPage() {
             }
           : current,
       );
-      setDisableFeedback({
+      setActionFeedback({
         organisationId: target.organisationId,
         token: target.token,
         variant: 'error',
@@ -1622,7 +1589,7 @@ function OrganisationTraineesPage() {
       return;
     }
 
-    setReenableFeedback(null);
+    setActionFeedback(null);
     setReenableDialog({
       traineeId: row.id,
       organisationId,
@@ -1667,7 +1634,7 @@ function OrganisationTraineesPage() {
       currentRow.eligibility.canReenable !== true
     ) {
       setReenableDialog(null);
-      setReenableFeedback({
+      setActionFeedback({
         organisationId: target.organisationId,
         token: target.token,
         variant: 'warning',
@@ -1720,7 +1687,7 @@ function OrganisationTraineesPage() {
         ? { ...current, isSubmitting: true, passwordError: null, generalError: null }
         : current,
     );
-    setReenableFeedback(null);
+    setActionFeedback(null);
 
     try {
       const payload: ReenableTraineeRequestDto = validationResult.data;
@@ -1735,7 +1702,7 @@ function OrganisationTraineesPage() {
       }
 
       setReenableDialog(null);
-      setReenableFeedback({
+      setActionFeedback({
         organisationId: target.organisationId,
         token: target.token,
         variant: 'success',
@@ -1744,7 +1711,7 @@ function OrganisationTraineesPage() {
 
       if ((await reloadOrganisationTrainees()) === 'failed' && ownsRequest()) {
         setReenableActionsUnavailable(true);
-        setReenableFeedback({
+        setActionFeedback({
           organisationId: target.organisationId,
           token: target.token,
           variant: 'warning',
@@ -1781,7 +1748,7 @@ function OrganisationTraineesPage() {
 
       if (error instanceof ApiError && (error.status === 404 || error.status === 409)) {
         setReenableDialog(null);
-        setReenableFeedback({
+        setActionFeedback({
           organisationId: target.organisationId,
           token: target.token,
           variant: error.status === 409 ? 'warning' : 'error',
@@ -1796,7 +1763,7 @@ function OrganisationTraineesPage() {
       if (error instanceof ApiError && error.status === 403) {
         setReenableDialog(null);
         setReenableActionsUnavailable(true);
-        setReenableFeedback({
+        setActionFeedback({
           organisationId: target.organisationId,
           token: target.token,
           variant: 'error',
@@ -1940,7 +1907,7 @@ function OrganisationTraineesPage() {
     }
 
     resetInviteModal();
-    setInviteSuccess(null);
+    setActionFeedback(null);
     setInviteModalTarget({
       organisationId,
       token,
@@ -2000,7 +1967,7 @@ function OrganisationTraineesPage() {
     }
     setInviteFieldErrors({});
     setInviteGeneralError(null);
-    setInviteSuccess(null);
+    setActionFeedback(null);
 
     const firstName = inviteValues.firstName.trim();
     const lastName = inviteValues.lastName.trim();
@@ -2054,10 +2021,10 @@ function OrganisationTraineesPage() {
       }
 
       setInviteCreated(true);
-      setInviteSuccess({
-        target: requestTarget,
-        message: response.message,
-      });
+      // setActionFeedback({
+      //   target: requestTarget,
+      //   message: response.message,
+      // });
 
       const refreshResult = await reloadOrganisationTrainees();
 
@@ -2178,7 +2145,7 @@ function OrganisationTraineesPage() {
 
               <button
                 type="button"
-                onClick={() => setDisableFeedback(null)}
+                onClick={() => setActionFeedback(null)}
                 className="shrink-0 cursor-pointer"
                 aria-label="Dismiss disable trainee message"
               >
@@ -2201,7 +2168,7 @@ function OrganisationTraineesPage() {
               <span>{currentReenableFeedback.message}</span>
               <button
                 type="button"
-                onClick={() => setReenableFeedback(null)}
+                onClick={() => setActionFeedback(null)}
                 className="shrink-0 cursor-pointer"
                 aria-label="Dismiss re-enable trainee message"
               >
@@ -2225,7 +2192,7 @@ function OrganisationTraineesPage() {
 
               <button
                 type="button"
-                onClick={() => setInvitationActionFeedback(null)}
+                onClick={() => setActionFeedback(null)}
                 className="shrink-0 cursor-pointer"
                 aria-label="Dismiss invitation action message"
               >
