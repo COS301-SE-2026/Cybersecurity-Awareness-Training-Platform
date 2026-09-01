@@ -378,6 +378,10 @@
   font-weight: 600;
 }
 
+.campaign-lifecycle__insights {
+  cursor: pointer;
+}
+
 .campaign-lifecycle__action--activate {
   background: var(--ip-purple);
   box-shadow: 0 0 0 3px var(--ip-faint-purple);
