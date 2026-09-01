@@ -80,6 +80,24 @@ export const disableTraineeRequestSchema = z
 
 export type DisableTraineeRequestDto = z.infer<typeof disableTraineeRequestSchema>;
 
+export const reenableTraineeRequestSchema = z
+  .object({
+    password: z
+      .string({
+        required_error: 'Admin password is required to confirm identity for trainee re-enablement.',
+        invalid_type_error: 'Admin password must be a string.',
+      })
+      .min(1, 'Admin password is required to confirm identity for trainee re-enablement.'),
+    confirmation: z.literal(true, {
+      errorMap: () => ({
+        message: 'Confirmation must be explicitly set to true to re-enable this trainee account.',
+      }),
+    }),
+  })
+  .strict();
+
+export type ReenableTraineeRequestDto = z.infer<typeof reenableTraineeRequestSchema>;
+
 export const traineeStatusSchema = z.enum([
   'ACTIVE',
   'DISABLED',
@@ -219,6 +237,17 @@ export const disableTraineeResponseSchema = z
   .strict();
 
 export type DisableTraineeResponseDto = z.infer<typeof disableTraineeResponseSchema>;
+
+export const reenableTraineeResponseSchema = z
+  .object({
+    success: z.literal(true),
+    message: z.string().trim().min(1),
+    traineeId: z.string().uuid().optional(),
+    status: z.literal('ACTIVE').optional(),
+  })
+  .strict();
+
+export type ReenableTraineeResponseDto = z.infer<typeof reenableTraineeResponseSchema>;
 
 export const createTraineeInvitationResponseSchema = z
   .object({
