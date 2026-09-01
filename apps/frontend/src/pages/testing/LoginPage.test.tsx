@@ -775,7 +775,7 @@ describe('LoginPage', () => {
       });
     });
 
-    it('retries proactive access token renewal if it fails', async () => {
+    it('makes a final renewel attempt shotly before expiry', async () => {
       vi.useFakeTimers();
       const now = new Date('2026-08-30T10:00:00.000Z');
       vi.setSystemTime(now);
@@ -794,7 +794,10 @@ describe('LoginPage', () => {
       expect(currentAuthContext?.isAuthLoading).toBe(false);
 
       refreshSessionMock.mockClear();
-      refreshSessionMock.mockRejectedValueOnce(new Error('Temp refresh fail'));
+      refreshSessionMock
+        .mockRejectedValueOnce(new Error('Temp refresh fail'))
+        .mockRejectedValueOnce(new Error('Temp refresh fail'))
+        .mockRejectedValueOnce(new Error('Temp refresh fail'));
 
       await act(async () => {
         await vi.advanceTimersByTimeAsync(59_999);
@@ -817,6 +820,21 @@ describe('LoginPage', () => {
         await vi.advanceTimersByTimeAsync(1);
       });
       expect(refreshSessionMock).toHaveBeenCalledTimes(2);
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10_000);
+      });
+      expect(refreshSessionMock).toHaveBeenCalledTimes(3);
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(29_999);
+      });
+      expect(refreshSessionMock).toHaveBeenCalledTimes(3);
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1);
+      });
+      expect(refreshSessionMock).toHaveBeenCalledTimes(4);
     });
 
     it('renews a token that is near expiry when the tab becomes visible', async () => {
