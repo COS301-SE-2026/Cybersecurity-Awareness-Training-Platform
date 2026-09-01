@@ -87,6 +87,7 @@ export type AccountCapabilitiesResponse = {
   canRequestEmailChange: boolean;
   canChangePassword: boolean;
   canEditSecurityPreferences: boolean;
+  canDeleteAccount: boolean;
   securityPreferenceEditable: {
     preferredRegularSessionLengthHours: boolean;
     preferredRememberMeSessionLengthHours: boolean;
@@ -98,6 +99,7 @@ export type AccountCapabilitiesResponse = {
     preferredRegularSessionLengthHours: string | null;
     preferredRememberMeSessionLengthHours: string | null;
     preferredIdleTimeoutMinutes: string | null;
+    deleteAccount: string | null;
   };
 };
 
@@ -266,6 +268,7 @@ function toPreferencesResponse(
 
 function buildCapabilities(input: {
   effectivePolicy: AccountPolicyResponse;
+  userType?: string;
 }): AccountCapabilitiesResponse {
   const regularSessionEditable =
     input.effectivePolicy.sources.regularSession !== 'ORGANISATION_POLICY';
@@ -276,11 +279,23 @@ function buildCapabilities(input: {
   const canEditSecurityPreferences =
     regularSessionEditable || rememberMeEditable || idleTimeoutEditable;
 
+  let deleteAccountBlockedReason: string;
+  if (input.userType === 'IP_ADMIN') {
+    deleteAccountBlockedReason = 'PLATFORM_SELF_DELETION_NOT_SUPPORTED';
+  } else if (input.userType === 'ORGANISATION_ADMIN') {
+    deleteAccountBlockedReason = 'ORGANISATION_ADMIN_MANAGED';
+  } else if (input.userType === 'ORGANISATION_TRAINEE') {
+    deleteAccountBlockedReason = 'ORGANISATION_TRAINEE_MANAGED';
+  } else {
+    deleteAccountBlockedReason = 'SELF_DELETION_NOT_SUPPORTED';
+  }
+
   return {
     canEditProfile: true,
     canRequestEmailChange: input.effectivePolicy.allowEmailChange,
     canChangePassword: true,
     canEditSecurityPreferences,
+    canDeleteAccount: false,
     securityPreferenceEditable: {
       preferredRegularSessionLengthHours: regularSessionEditable,
       preferredRememberMeSessionLengthHours: rememberMeEditable,
@@ -296,6 +311,7 @@ function buildCapabilities(input: {
         ? null
         : SECURITY_PREFERENCE_BLOCKED_REASON,
       preferredIdleTimeoutMinutes: idleTimeoutEditable ? null : SECURITY_PREFERENCE_BLOCKED_REASON,
+      deleteAccount: deleteAccountBlockedReason,
     },
   };
 }
@@ -332,6 +348,7 @@ function buildAccountResponse(input: {
     effectivePolicy: policy,
     capabilities: buildCapabilities({
       effectivePolicy: policy,
+      userType: input.user.userType,
     }),
   };
 }

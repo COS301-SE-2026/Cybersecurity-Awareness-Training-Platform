@@ -7,6 +7,29 @@ export interface OrganisationTimelineProps {
   timeline?: TimelineEventDto[];
 }
 
+const timelineActionLabels: Record<string, string> = {
+  CREATED: 'Organisation Created',
+  CONTACTED: 'Representative Contacted',
+  APPROVED: 'Registration Approved',
+  REJECTED: 'Registration Rejected',
+  RESENT: 'Setup Invite Resent',
+  ACCEPTED: 'Invite Accepted',
+  COMPLETED: 'Setup Completed',
+  ENABLED: 'Organisation Enabled',
+  SUSPENDED: 'Organisation Suspended',
+  REACTIVATED: 'Organisation Reactivated',
+};
+
+function formatTimelineAction(action: string): string {
+  if (timelineActionLabels[action]) {
+    return timelineActionLabels[action];
+  }
+  return action
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
 function OrganisationTimelinePage({ timeline }: Readonly<OrganisationTimelineProps>) {
   const hasTimelineEvents = Boolean(timeline && timeline.length > 0);
 
@@ -30,8 +53,9 @@ function OrganisationTimelinePage({ timeline }: Readonly<OrganisationTimelinePro
   const eventsToDisplay = (timeline ?? []).map((item) => ({
     id: item.id,
     timestamp: new Date(item.timestamp).toLocaleString(),
-    action: item.action,
+    action: formatTimelineAction(item.action),
     summary: item.summary,
+    actor: item.actor,
   }));
 
   return (
@@ -49,14 +73,16 @@ function OrganisationTimelinePage({ timeline }: Readonly<OrganisationTimelinePro
 
       <div className="w-full overflow-x-auto -mt-3">
         <div className="min-w-max py-4">
-          <ol className="items-center sm:flex">
+          <ol className="items-start sm:flex">
             {eventsToDisplay.map((event, index) => (
-              <li key={event.id || index} className="relative mb-6 sm:mb-0">
+              <li key={event.id || index} className="relative mb-6 sm:mb-0 sm:flex-1 min-w-[14rem]">
                 <div className="flex items-center">
                   {/* Dot */}
                   <div className="z-10 flex items-center justify-center w-3 h-3 bg-main-purple rounded-none ring-0 ring-buffer sm:ring-8 shrink-0"></div>
                   {/* Line */}
-                  <div className="hidden sm:flex w-full bg-gray-300 h-px"></div>
+                  {index < eventsToDisplay.length - 1 && (
+                    <div className="hidden sm:flex w-full bg-gray-300 h-px"></div>
+                  )}
                 </div>
 
                 <div className="mt-3 sm:pe-8">
@@ -71,9 +97,14 @@ function OrganisationTimelinePage({ timeline }: Readonly<OrganisationTimelinePro
                   </h3>
 
                   {/* Event Description */}
-                  <p className="text-body max-w-3xs mb-4 tracking text-dark-pink font-overpass text-[0.95rem]">
+                  <p className="text-body max-w-3xs mb-2 tracking text-dark-pink font-overpass text-[0.95rem]">
                     {event.summary}
                   </p>
+
+                  {/* Actor context */}
+                  {event.actor && (
+                    <p className="text-xs text-gray-500 font-overpass">Actor: {event.actor}</p>
+                  )}
                 </div>
               </li>
             ))}

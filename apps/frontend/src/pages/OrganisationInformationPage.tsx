@@ -52,13 +52,11 @@ function mapRequestDetailsToState(
   return {
     id: reqData.id,
     name: reqData.submittedOrganisationName,
-    description: reqData.submittedOrganisationDescription || 'N/A',
-    website: reqData.submittedWebsite || 'N/A',
+    description: reqData.submittedOrganisationDescription || '',
+    website: reqData.submittedWebsite || '',
     size:
-      reqData.submittedOrganisationSize !== null
-        ? String(reqData.submittedOrganisationSize)
-        : 'N/A',
-    registeredTrainees: 'N/A (Pending Request)',
+      reqData.submittedOrganisationSize !== null ? String(reqData.submittedOrganisationSize) : '',
+    registeredTrainees: '',
     registrationDate: reqData.createdAt,
     status: reqData.status || 'PENDING',
     detailType: reqData.detailType,
@@ -67,7 +65,7 @@ function mapRequestDetailsToState(
       email: reqData.representativeEmail,
       phone: reqData.representativePhone,
     },
-    setupStatus: reqData.setupStatus?.status || 'PENDING',
+    setupStatus: reqData.setupStatus?.status || '',
     resendEligibility: reqData.resendEligibility,
     admins: [],
     timeline: reqData.timeline || [],
@@ -81,17 +79,17 @@ function mapOrganisationDetailsToState(
 ): OrganisationDetailData {
   const repName = orgData.registrationRequest
     ? `${orgData.registrationRequest.representativeFirstName} ${orgData.registrationRequest.representativeLastName}`
-    : 'N/A';
+    : '';
   const repEmail = orgData.registrationRequest
     ? orgData.registrationRequest.representativeEmail
-    : 'N/A';
+    : '';
 
   return {
     id: orgData.id,
     name: orgData.name,
-    description: orgData.description || 'N/A',
-    website: orgData.website || 'N/A',
-    size: orgData.approximateSize !== null ? String(orgData.approximateSize) : 'N/A',
+    description: orgData.description || '',
+    website: orgData.website || '',
+    size: orgData.approximateSize !== null ? String(orgData.approximateSize) : '',
     registeredTrainees: String(orgData._count?.traineeProfiles ?? 0),
     registrationDate: orgData.createdAt,
     status: orgData.status,
@@ -100,7 +98,7 @@ function mapOrganisationDetailsToState(
       fullName: repName,
       email: repEmail,
     },
-    setupStatus: orgData.setupStatus?.status || 'N/A',
+    setupStatus: orgData.setupStatus?.status || '',
     resendEligibility: orgData.resendEligibility,
     admins: orgData.admins || [],
     timeline: orgData.timeline || [],
@@ -365,26 +363,19 @@ function OrganisationInformationPage() {
           flexShrink: 0,
         }}
       >
-        <div className="flex items-center justify-between">
-          <h1
-            style={{
-              margin: 0,
-              marginBottom: '0.5rem',
-              fontSize: '3.8rem',
-              fontWeight: 500,
-              lineHeight: 1,
-              color: 'rgb(132, 25, 255)',
-              fontFamily: 'Jost',
-            }}
-          >
-            {detailData ? detailData.name : 'Organisation Information'}
-          </h1>
-          {detailData?.status && (
-            <span className="inline-flex justify-center items-center px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-brand-subtle text-fg-brand-strong text-sm font-medium bg-brand-softer rounded-none font-overpass">
-              Status: {detailData.status}
-            </span>
-          )}
-        </div>
+        <h1
+          style={{
+            margin: 0,
+            marginBottom: '0.5rem',
+            fontSize: '3.8rem',
+            fontWeight: 500,
+            lineHeight: 1,
+            color: 'rgb(132, 25, 255)',
+            fontFamily: 'Jost',
+          }}
+        >
+          {detailData ? detailData.name : 'Organisation Information'}
+        </h1>
       </div>
 
       <div className="flex flex-col flex-1 p-5 -mt-5 w-full">
@@ -393,35 +384,6 @@ function OrganisationInformationPage() {
           <div className="mb-6 p-4 bg-amber-50 border border-amber-300 text-amber-900 rounded-none font-overpass">
             <span className="font-semibold">Warning:</span> This organisation is currently
             SUSPENDED. Lifecycle actions are restricted.
-          </div>
-        )}
-
-        {/* DANGER AREA FOR SPRINT 4 DISABLED ACTIONS - GATED TO ACTIVE ORGANISATIONS ONLY */}
-        {isPlatformAdmin && detailData && !detailData.isRequestOnly && (
-          <div className="mb-6 p-4 bg-white border border-red-200 rounded-none shadow-xs font-overpass">
-            <h4 className="text-lg font-medium text-red-600 font-jost mb-1">
-              Danger Zone (Sprint 4)
-            </h4>
-            <p className="text-sm text-gray-600 mb-3">
-              Organisation lifecycle actions. Note: Suspend and Delete actions are disabled for
-              Sprint 4 release.
-            </p>
-            <div className="flex gap-4">
-              <button
-                type="button"
-                disabled
-                className="px-4 py-2 text-sm font-medium text-gray-400 bg-gray-100 border border-gray-300 rounded-none cursor-not-allowed"
-              >
-                Suspend Organisation (Disabled for Sprint 4)
-              </button>
-              <button
-                type="button"
-                disabled
-                className="px-4 py-2 text-sm font-medium text-gray-400 bg-gray-100 border border-gray-300 rounded-none cursor-not-allowed"
-              >
-                Delete Organisation (Disabled for Sprint 4)
-              </button>
-            </div>
           </div>
         )}
 
@@ -485,7 +447,7 @@ function OrganisationInformationPage() {
             )}
 
             {/* CONTENT BOX */}
-            <div className="w-full p-6 bg-white md:mt-0 bg-neutral-primary-soft border-default border-x border-b rounded-none">
+            <div className="w-full p-6 bg-white md:mt-0 bg-neutral-primary-soft border-default border-x border-b rounded-none min-h-[22rem]">
               {(!isPlatformAdmin || activeTab === 1) && (
                 <BasicOrganisationInformationPage
                   name={detailData?.name}
@@ -524,6 +486,33 @@ function OrganisationInformationPage() {
                 <OrganisationTimelinePage timeline={detailData?.timeline} />
               )}
             </div>
+
+            {/* DANGER ZONE - GATED TO ACTIVE ORGANISATIONS ONLY */}
+            {isPlatformAdmin && detailData && !detailData.isRequestOnly && (
+              <div className="mt-6 p-4 bg-white border border-red-200 rounded-none shadow-xs font-overpass">
+                <h4 className="text-lg font-medium text-red-600 font-jost mb-1">Danger Zone</h4>
+                <p className="text-sm text-gray-600 mb-3">
+                  Organisation lifecycle actions. Suspend and delete actions are currently
+                  unavailable for this organisation.
+                </p>
+                <div className="flex gap-4">
+                  <button
+                    type="button"
+                    disabled
+                    className="px-4 py-2 text-sm font-medium text-gray-400 bg-gray-100 border border-gray-300 rounded-none cursor-not-allowed"
+                  >
+                    Suspend Organisation
+                  </button>
+                  <button
+                    type="button"
+                    disabled
+                    className="px-4 py-2 text-sm font-medium text-gray-400 bg-gray-100 border border-gray-300 rounded-none cursor-not-allowed"
+                  >
+                    Delete Organisation
+                  </button>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>

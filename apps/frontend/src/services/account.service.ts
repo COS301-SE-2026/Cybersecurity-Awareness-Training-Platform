@@ -25,6 +25,7 @@ export type AccountCapabilitiesResponse = {
   canRequestEmailChange: boolean;
   canChangePassword: boolean;
   canEditSecurityPreferences: boolean;
+  canDeleteAccount?: boolean;
   securityPreferenceEditable: Record<string, boolean>;
   blockedReasons: Record<string, string | null>;
 };

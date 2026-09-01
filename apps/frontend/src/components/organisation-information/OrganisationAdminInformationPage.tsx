@@ -12,25 +12,7 @@ function OrganisationAdminInformationPage({
   admins,
   isRequestOnly = false,
 }: Readonly<OrganisationAdminInfoProps>) {
-  // if admins not passed, use fallback list so unit tests pass clean
-  const displayAdmins = admins ?? [
-    {
-      id: '1',
-      firstName: 'Jan',
-      lastName: 'van der Merwe',
-      email: 'jan@cyberjan.co.za',
-      adminStatus: 'ACTIVE' as const,
-      isInitialAdmin: true,
-    },
-    {
-      id: '2',
-      firstName: 'Sipho',
-      lastName: 'Ndlovu',
-      email: 'sipho@cyberjan.co.za',
-      adminStatus: 'DISABLED' as const,
-      isInitialAdmin: false,
-    },
-  ];
+  const displayAdmins = admins ?? [];
 
   return (
     <div className="-mt-2 -ml-2">
@@ -50,6 +32,10 @@ function OrganisationAdminInformationPage({
             Pending Request: Organisation has not been fully created yet. High-level administrator
             list will appear once onboarding begins.
           </p>
+        </div>
+      ) : displayAdmins.length === 0 ? (
+        <div className="p-4 bg-gray-50 border border-gray-200 text-gray-600 font-overpass rounded-none mt-4">
+          No organisation administrators.
         </div>
       ) : (
         /* Admin Table */
