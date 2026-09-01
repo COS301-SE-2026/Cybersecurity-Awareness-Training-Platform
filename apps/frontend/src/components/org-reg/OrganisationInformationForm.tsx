@@ -28,28 +28,32 @@ function OrganisationInformationForm({
   onNext,
 }: OrganisationInformationFormProps) {
   return (
-    <div className="-mt-5 -ml-4">
+    <div className="w-full">
       {/* PROGRESS HEADING */}
-      <h3 className="font-overpass font-regular text-[1.2rem] text-gray-600 tracking-wider font-regular">
+      <h3 className="font-overpass font-regular text-[1rem] text-gray-600 tracking-wider sm:text-[1.2rem]">
         Step 1 of 2
       </h3>
 
       {/* HEADING */}
-      <h3 className="font-jost text-2xl text-dark-pink tracking-wider font-medium">
+      <h3 className="font-jost text-xl text-dark-pink tracking-wider font-medium sm:text-2xl">
         Organisation Information
       </h3>
 
       {/* SUB-HEADING */}
-      <p className="font-regular tracking-wider text-[1.1rem] font-justify font-jost mt-1 text-gray-500 mb-4">
+      <p className="font-regular tracking-wider text-[1rem] font-justify font-jost mt-1 text-gray-500 mb-4 sm:text-[1.1rem]">
         Provide some basic information about your organisation to begin the registration process.
       </p>
 
-      <form className="mt-4 grid grid-cols-2 gap-6" noValidate>
+      <form
+        className="mt-4 grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-6"
+        aria-label="Organisation information"
+        noValidate
+      >
         {/* Organisation Name*/}
         <div>
           <label
             htmlFor="organisation-name"
-            className=" block mb-2 font-jost tracking-wide text-xl font-medium text-pink"
+            className="block mb-2 font-jost tracking-wide text-[1.1rem] font-medium text-pink sm:text-xl"
           >
             Organisation Name <span className="font-light text-red-500">(Required)</span>
           </label>
@@ -60,7 +64,7 @@ function OrganisationInformationForm({
             id="organisation-name"
             value={orgName}
             onChange={(e) => setOrgName(e.target.value)}
-            className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+            className="font-overpass text-[1.05rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 sm:text-[1.2rem]"
             placeholder="Enter the Organisation Name"
           />
         </div>
@@ -69,7 +73,7 @@ function OrganisationInformationForm({
         <div>
           <label
             htmlFor="organisation-size"
-            className=" block mb-2 font-jost tracking-wide text-xl font-medium text-pink"
+            className="block mb-2 font-jost tracking-wide text-[1.1rem] font-medium text-pink sm:text-xl"
           >
             Organisation Size <span className="font-light text-red-500">(Required)</span>
           </label>
@@ -81,7 +85,7 @@ function OrganisationInformationForm({
             id="organisation-size"
             value={orgSize}
             onChange={(e) => setOrgSize(e.target.value === '' ? '' : Number(e.target.value))}
-            className="block w-full px-3 py-2.5 bg-gray-50 border border-gray-300 text-deep-purple font-overpass text-[1.2rem] focus:ring-brand focus:border-brand"
+            className="block w-full px-3 py-2.5 bg-gray-50 border border-gray-300 text-deep-purple font-overpass text-[1.05rem] focus:ring-brand focus:border-brand sm:text-[1.2rem]"
             placeholder="Approximate Number of Employees"
             required
           />
@@ -91,7 +95,7 @@ function OrganisationInformationForm({
         <div>
           <label
             htmlFor="organisation-description"
-            className=" block mb-2 font-jost tracking-wide text-xl font-medium text-pink"
+            className="block mb-2 font-jost tracking-wide text-[1.1rem] font-medium text-pink sm:text-xl"
           >
             Organisation Description
           </label>
@@ -101,7 +105,7 @@ function OrganisationInformationForm({
             id="organisation-description"
             value={orgDescrip}
             onChange={(e) => setOrgDescrip(e.target.value)}
-            className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
+            className="font-overpass text-[1.05rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 sm:text-[1.2rem]"
             placeholder="Enter an Organisation Description"
           />
         </div>
@@ -110,7 +114,7 @@ function OrganisationInformationForm({
         <div>
           <label
             htmlFor="organisation-website-url"
-            className=" block mb-2 font-jost tracking-wide text-xl font-medium text-pink"
+            className="block mb-2 font-jost tracking-wide text-[1.1rem] font-medium text-pink sm:text-xl"
           >
             Organisation URL
           </label>
@@ -120,13 +124,13 @@ function OrganisationInformationForm({
             id="organisation-website-url"
             value={orgWeb}
             onChange={(e) => setOrgWeb(e.target.value)}
-            className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+            className="font-overpass text-[1.05rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 sm:text-[1.2rem]"
             placeholder="Enter the Organisation URL"
           />
         </div>
       </form>
 
-      <div className="mt-8 flex items-center justify-between">
+      <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         {/* BACK TO LOGIN LINK */}
         <BackToLoginButton />
 
@@ -134,7 +138,7 @@ function OrganisationInformationForm({
         <button
           type="button"
           onClick={onNext}
-          className="cursor-pointer px-6 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm px-4 py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
+          className="cursor-pointer inline-flex w-full gap-2 items-center justify-center text-white font-jost text-[1.05rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 px-4 py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed sm:w-auto sm:text-[1.2rem]"
         >
           <span> Next </span>
           <span className="material-icons-sharp">arrow_forward</span>

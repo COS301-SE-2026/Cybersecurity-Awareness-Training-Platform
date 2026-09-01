@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Dropdown, DropdownItem } from 'flowbite-react';
 import BasicAlert from '../alerts/BasicAlert';
+import { SelectField, type SelectFieldOption } from '../ui/FormField';
 import {
   AdminTable,
   AdminTableActions,
@@ -64,9 +64,6 @@ function getRegularLabel(
   if (hours === null || hours === undefined) {
     return `Organisation Default (${getEffectiveRegularText(effectiveSeconds)})`;
   }
-  if (hours === 4) return '4 Hours';
-  if (hours === 8) return '8 Hours';
-  if (hours === 12) return '12 Hours';
   if (hours === 24) return '24 Hours (1 Day)';
   return `${hours} Hours`;
 }
@@ -81,14 +78,34 @@ function getRememberLabel(hours: number | null | undefined, isPolicyDisabled = f
   return `${hours} Hours`;
 }
 
-function getIdleLabel(mins: number | null | undefined): string {
-  if (mins === null || mins === undefined) return 'Organisation Default';
-  if (mins === 5) return '5 Minutes';
-  if (mins === 15) return '15 Minutes';
-  if (mins === 30) return '30 Minutes';
-  if (mins === 60) return '1 Hour';
-  if (mins === 120) return '2 Hours';
-  return `${mins} Minutes`;
+function getIdleLabel(minutes: number | null | undefined): string {
+  if (minutes === null || minutes === undefined) return 'Organisation Default';
+  if (minutes === 60) return '1 Hour';
+  if (minutes === 120) return '2 Hours';
+  return `${minutes} Minutes`;
+}
+
+const DEFAULT_PREFERENCE_VALUE = 'default';
+
+function toPreferenceSelectValue(value: number | null | undefined): string {
+  return value === null || value === undefined ? DEFAULT_PREFERENCE_VALUE : String(value);
+}
+
+function fromPreferenceSelectValue(value: string): number | null {
+  return value === DEFAULT_PREFERENCE_VALUE ? null : Number(value);
+}
+
+function includeSelectedPreferenceOption(
+  options: readonly SelectFieldOption[],
+  value: number | null | undefined,
+  label: string,
+): readonly SelectFieldOption[] {
+  if (value === null || value === undefined) return options;
+
+  const selectedValue = String(value);
+  if (options.some((option) => option.value === selectedValue)) return options;
+
+  return [{ value: selectedValue, label }, ...options];
 }
 
 function SessionSettingsPage({
@@ -131,6 +148,52 @@ function SessionSettingsPage({
   const selectedRememberHours =
     userRememberHours !== undefined ? userRememberHours : defaultRemember;
   const selectedIdleMins = userIdleMins !== undefined ? userIdleMins : defaultIdle;
+  const regularSessionOptions = includeSelectedPreferenceOption(
+    [
+      {
+        value: DEFAULT_PREFERENCE_VALUE,
+        label: getRegularLabel(null, effectivePolicy?.regularSessionSeconds),
+      },
+      { value: '4', label: '4 Hours' },
+      { value: '8', label: '8 Hours' },
+      { value: '12', label: '12 Hours' },
+      { value: '24', label: '24 Hours (1 Day)' },
+    ],
+    selectedRegularHours,
+    getRegularLabel(selectedRegularHours, effectivePolicy?.regularSessionSeconds),
+  );
+  const rememberMeOptions = includeSelectedPreferenceOption(
+    [
+      {
+        value: DEFAULT_PREFERENCE_VALUE,
+        label:
+          !rememberMeEditable && effectivePolicy?.rememberMeAllowed === false
+            ? 'Disabled by Policy'
+            : 'Organisation Default',
+      },
+      { value: '24', label: '1 Day' },
+      { value: '168', label: '7 Days' },
+      { value: '336', label: '14 Days' },
+      { value: '720', label: '30 Days' },
+    ],
+    selectedRememberHours,
+    getRememberLabel(
+      selectedRememberHours,
+      !rememberMeEditable && effectivePolicy?.rememberMeAllowed === false,
+    ),
+  );
+  const idleTimeoutOptions = includeSelectedPreferenceOption(
+    [
+      { value: DEFAULT_PREFERENCE_VALUE, label: 'Organisation Default' },
+      { value: '5', label: '5 Minutes' },
+      { value: '15', label: '15 Minutes' },
+      { value: '30', label: '30 Minutes' },
+      { value: '60', label: '1 Hour' },
+      { value: '120', label: '2 Hours' },
+    ],
+    selectedIdleMins,
+    getIdleLabel(selectedIdleMins),
+  );
 
   const fetchSessionsData = useCallback(() => {
     getAccountSessions()
@@ -333,173 +396,37 @@ function SessionSettingsPage({
       </h3>
 
       <div className="flex items-end justify-between">
-        {/* DROPDOWNS  */}
+        {/* Preference controls */}
         <div className="mt-4 grid grid-cols-3 flex-1 max-w-4xl gap-6">
-          {/* DROPDOWN 1: Regular Session Length Dropdown */}
-          <div>
-            <label
-              htmlFor="regular-session-duration"
-              className=" block mb-2 font-jost tracking-wide text-[1.2rem] font-regular text-dark-pink"
-            >
-              Regular Session Duration
-            </label>
+          <SelectField
+            id="regular-session-duration"
+            label="Regular Session Duration"
+            value={toPreferenceSelectValue(selectedRegularHours)}
+            options={regularSessionOptions}
+            onChange={(value) => setUserRegularHours(fromPreferenceSelectValue(value))}
+            disabled={!regularSessionEditable}
+            helperText={!regularSessionEditable ? 'Managed by organisation policy.' : undefined}
+          />
 
-            <Dropdown
-              label={getRegularLabel(selectedRegularHours, effectivePolicy?.regularSessionSeconds)}
-              disabled={!regularSessionEditable}
-              className="border border-gray-300 bg-gray-50 text-deep-purple font-overpass text-[1.2rem] block w-full p-2.5 disabled:opacity-50"
-            >
-              <DropdownItem
-                className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setUserRegularHours(null)}
-              >
-                Organisation Default (
-                {getEffectiveRegularText(effectivePolicy?.regularSessionSeconds)})
-              </DropdownItem>
-              <DropdownItem
-                className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setUserRegularHours(4)}
-              >
-                4 Hours
-              </DropdownItem>
-              <DropdownItem
-                className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setUserRegularHours(8)}
-              >
-                8 Hours
-              </DropdownItem>
-              <DropdownItem
-                className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setUserRegularHours(12)}
-              >
-                12 Hours
-              </DropdownItem>
-              <DropdownItem
-                className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setUserRegularHours(24)}
-              >
-                24 Hours (1 Day)
-              </DropdownItem>
-            </Dropdown>
-            {!regularSessionEditable && (
-              <p className="font-overpass text-xs text-red-600 mt-1">
-                Managed by organisation policy.
-              </p>
-            )}
-          </div>
+          <SelectField
+            id="remember-me-duration"
+            label='"Remember Me" Duration'
+            value={toPreferenceSelectValue(selectedRememberHours)}
+            options={rememberMeOptions}
+            onChange={(value) => setUserRememberHours(fromPreferenceSelectValue(value))}
+            disabled={!rememberMeEditable}
+            helperText={!rememberMeEditable ? 'Managed by organisation policy.' : undefined}
+          />
 
-          {/* DROPDOWN 2: Remember Me Duration */}
-          <div>
-            <label
-              htmlFor="remember-me-duration"
-              className=" block mb-2 font-jost tracking-wide text-[1.2rem] font-regular text-dark-pink"
-            >
-              "Remember Me" Duration
-            </label>
-
-            <Dropdown
-              label={getRememberLabel(
-                selectedRememberHours,
-                !rememberMeEditable && effectivePolicy?.rememberMeAllowed === false,
-              )}
-              disabled={!rememberMeEditable}
-              className="border border-gray-300 bg-gray-50 text-deep-purple font-overpass text-[1.2rem] block w-full p-2.5 disabled:opacity-50"
-            >
-              <DropdownItem
-                className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setUserRememberHours(null)}
-              >
-                Organisation Default
-              </DropdownItem>
-              <DropdownItem
-                className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setUserRememberHours(24)}
-              >
-                1 Day
-              </DropdownItem>
-              <DropdownItem
-                className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setUserRememberHours(168)}
-              >
-                7 Days
-              </DropdownItem>
-              <DropdownItem
-                className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setUserRememberHours(336)}
-              >
-                14 Days
-              </DropdownItem>
-              <DropdownItem
-                className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setUserRememberHours(720)}
-              >
-                30 Days
-              </DropdownItem>
-            </Dropdown>
-            {!rememberMeEditable && (
-              <p className="font-overpass text-xs text-red-600 mt-1">
-                Managed by organisation policy.
-              </p>
-            )}
-          </div>
-
-          {/* DROPDOWN 3: Idle Timeout */}
-          <div>
-            <label
-              htmlFor="idle-timeout-duration"
-              className=" block mb-2 font-jost tracking-wide text-[1.2rem] font-regular text-dark-pink"
-            >
-              Idle Timeout Duration
-            </label>
-
-            <Dropdown
-              label={getIdleLabel(selectedIdleMins)}
-              disabled={!idleTimeoutEditable}
-              className="border border-gray-300 bg-gray-50 text-deep-purple font-overpass text-[1.2rem] block w-full p-2.5 disabled:opacity-50"
-            >
-              <DropdownItem
-                className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setUserIdleMins(null)}
-              >
-                Organisation Default
-              </DropdownItem>
-              <DropdownItem
-                className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setUserIdleMins(5)}
-              >
-                5 Minutes
-              </DropdownItem>
-              <DropdownItem
-                className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setUserIdleMins(15)}
-              >
-                15 Minutes
-              </DropdownItem>
-              <DropdownItem
-                className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setUserIdleMins(30)}
-              >
-                30 Minutes
-              </DropdownItem>
-              <DropdownItem
-                className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setUserIdleMins(60)}
-              >
-                1 Hour
-              </DropdownItem>
-              <DropdownItem
-                className="font-overpass text-[1rem] hover:bg-faint-purple hover:text-dark-pink text-deep-purple"
-                onClick={() => setUserIdleMins(120)}
-              >
-                2 Hours
-              </DropdownItem>
-            </Dropdown>
-            {!idleTimeoutEditable && (
-              <p className="font-overpass text-xs text-red-600 mt-1">
-                Managed by organisation policy.
-              </p>
-            )}
-          </div>
+          <SelectField
+            id="idle-timeout-duration"
+            label="Idle Timeout Duration"
+            value={toPreferenceSelectValue(selectedIdleMins)}
+            options={idleTimeoutOptions}
+            onChange={(value) => setUserIdleMins(fromPreferenceSelectValue(value))}
+            disabled={!idleTimeoutEditable}
+            helperText={!idleTimeoutEditable ? 'Managed by organisation policy.' : undefined}
+          />
         </div>
 
         <div className="mt-8 flex items-center justify-between">

@@ -4,6 +4,10 @@ const CAMPAIGN_COLOURS = [
   { name: 'Night Club Purple', value: '#6D45FF' },
   { name: 'Bonito Violet', value: '#B37DFF' },
   { name: 'Bruised Purple', value: '#837DC3' },
+  { name: 'Rose', value: '#E94B9A' },
+  { name: 'Ocean Blue', value: '#2563EB' },
+  { name: 'Emerald', value: '#059669' },
+  { name: 'Amber', value: '#D97706' },
 ] as const;
 
 type CampaignColourFieldProps = Readonly<{

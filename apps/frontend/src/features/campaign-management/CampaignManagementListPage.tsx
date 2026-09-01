@@ -12,7 +12,8 @@ import type {
 } from '@insightful-phish/shared';
 import type { CampaignManagementClient } from './campaignManagementClient';
 import type { CampaignManagementContext } from './campaignManagement.types';
-import { developmentCampaignManagementClient } from './developmentCampaignManagementClient';
+import { apiCampaignManagementClient } from './apiCampaignManagementClient';
+import { getCampaignErrorPresentation } from './campaignManagementError';
 import { useAuth } from '../../context/useAuth';
 import './campaign-management.css';
 
@@ -72,10 +73,10 @@ function getOwnershipLabel(campaign: CampaignListRowDto): string {
 
 function CampaignManagementListPage({
   contextKind,
-  client = developmentCampaignManagementClient,
+  client = apiCampaignManagementClient,
 }: CampaignManagementListPageProps) {
   const { organisationId } = useParams<{ organisationId: string }>();
-  const { permissions } = useAuth();
+  const { clearAuth, permissions } = useAuth();
 
   const context = useMemo<CampaignManagementContext | null>(() => {
     if (contextKind === 'platform') {
@@ -102,6 +103,7 @@ function CampaignManagementListPage({
   const [result, setResult] = useState<GetCampaignsResponseDto | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [isListAccessRevoked, setIsListAccessRevoked] = useState(false);
   const requestIdRef = useRef(0);
 
   const loadCampaigns = useCallback(async () => {
@@ -119,17 +121,28 @@ function CampaignManagementListPage({
       if (requestIdRef.current === requestId) {
         setResult(response);
       }
-    } catch {
+    } catch (error) {
       if (requestIdRef.current === requestId) {
+        const presentation = getCampaignErrorPresentation(error, {
+          fallback: 'Campaigns could not be loaded. Try again.',
+          forbidden: 'You no longer have permission to view Campaigns.',
+        });
+
+        if (presentation.kind === 'unauthorized') {
+          clearAuth();
+        } else if (presentation.kind === 'forbidden') {
+          setIsListAccessRevoked(true);
+        }
+
         setResult(null);
-        setLoadError('Campaigns could not be loaded. Try again.');
+        setLoadError(presentation.message);
       }
     } finally {
       if (requestIdRef.current === requestId) {
         setIsLoading(false);
       }
     }
-  }, [client, context, query]);
+  }, [clearAuth, client, context, query]);
 
   useEffect(() => {
     // The asynchronous client request is effect-owned and guarded by requestIdRef
@@ -154,10 +167,11 @@ function CampaignManagementListPage({
   const hasFilters = Boolean(query.search?.trim() || query.status);
   const isEmpty = !isLoading && !loadError && result !== null && result.pagination.totalItems === 0;
   const canManageCampaigns =
-    context.kind === 'platform' || permissions.includes('MANAGE_CAMPAIGNS');
+    !isListAccessRevoked &&
+    (context.kind === 'platform' || permissions.includes('MANAGE_CAMPAIGNS'));
 
   return (
-    <AppLayout>
+    <AppLayout contentStyle={{ backgroundColor: 'white' }}>
       <div className="campaign-page" aria-busy={isLoading}>
         <header className="campaign-page__header">
           <h1 className="campaign-page__title">{heading}</h1>
@@ -337,6 +351,40 @@ function CampaignManagementListPage({
                 );
               })}
             </div>
+
+            {result.pagination.totalPages > 1 && (
+              <nav className="campaign-list__pagination" aria-label="Campaign pagination">
+                <button
+                  type="button"
+                  disabled={!result.pagination.hasPreviousPage}
+                  onClick={() => {
+                    setQuery((current) => ({
+                      ...current,
+                      page: Math.max(1, result.pagination.page - 1),
+                    }));
+                  }}
+                >
+                  Previous
+                </button>
+
+                <span>
+                  Page {result.pagination.page} of {result.pagination.totalPages}
+                </span>
+
+                <button
+                  type="button"
+                  disabled={!result.pagination.hasNextPage}
+                  onClick={() => {
+                    setQuery((current) => ({
+                      ...current,
+                      page: result.pagination.page + 1,
+                    }));
+                  }}
+                >
+                  Next
+                </button>
+              </nav>
+            )}
           </>
         )}
       </div>
