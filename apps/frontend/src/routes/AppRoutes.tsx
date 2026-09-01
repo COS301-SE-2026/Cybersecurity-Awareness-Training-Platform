@@ -31,6 +31,7 @@ import BrandPage from '../pages/BrandPage';
 import CampaignAssignmentPage from '../pages/CampaignAssignmentPage';
 import CampaignManagementListPage from '../features/campaign-management/CampaignManagementListPage';
 import CampaignManagementDetailPage from '../features/campaign-management/CampaignManagementDetailPage';
+import CampaignInsightsPage from '../pages/CampaignInsightsPage';
 
 function CampaignManagementDetailRoute({
   contextKind,
@@ -188,6 +189,9 @@ function AppRoutes() {
       <Route element={<ProtectedRoute />}>
         <Route path="/account-management" element={<AccountManagementPage />} />
       </Route>
+
+      {/* REMOVE BEFORE FLIGHT */}
+      <Route path="/campaign-insights" element={<CampaignInsightsPage />} />
 
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
