@@ -61,6 +61,7 @@ type TraineeDisplayRow = {
 type ListResultState = {
   organisationId: string | null;
   rows: TraineeListItemDto[];
+  loadedAtMs: number;
   errorMessage: string | null;
 };
 
@@ -709,8 +710,10 @@ function OrganisationTraineesPage() {
   const [listResult, setListResult] = useState<ListResultState>({
     organisationId: null,
     rows: [],
+    loadedAtMs: 0,
     errorMessage: null,
   });
+  const [cooldownNowMs, setCooldownNowMs] = useState(() => Date.now());
   const [searchTerm, setSearchTerm] = useState('');
   const [inviteStatusFilter, setInviteStatusFilter] = useState<'ALL' | DisplayStatus>('ALL');
   const [showInviteTraineeModal, setShowInviteTraineeModal] = useState(false);
@@ -746,10 +749,13 @@ function OrganisationTraineesPage() {
       }
 
       const refreshRows = [...response.trainees, ...response.invitations];
+      const loadedAtMs = Date.now();
 
+      setCooldownNowMs(loadedAtMs);
       setListResult({
         organisationId,
         rows: refreshRows,
+        loadedAtMs,
         errorMessage: null,
       });
       setReenableActionsUnavailable(false);
@@ -841,6 +847,7 @@ function OrganisationTraineesPage() {
       setListResult({
         organisationId,
         rows: [],
+        loadedAtMs: Date.now(),
         errorMessage: getListErrorMessage(error),
       });
       return 'failed';
@@ -861,6 +868,49 @@ function OrganisationTraineesPage() {
       listRequestIdRef.current += 1;
     };
   }, [reloadOrganisationTrainees]);
+
+  useEffect(() => {
+    if (listResult.organisationId !== organisationId) {
+      return;
+    }
+
+    const cooldownExpiries = listResult.rows.flatMap((row) =>
+      row.rowType === 'INVITATION' && row.eligibility.resendCooldownSeconds > 0
+        ? [listResult.loadedAtMs + row.eligibility.resendCooldownSeconds * 1000]
+        : [],
+    );
+
+    if (cooldownExpiries.length === 0) {
+      return;
+    }
+
+    const nextExpiryMs = Math.min(...cooldownExpiries);
+    let revalidationStarted = false;
+
+    const updateCooldowns = () => {
+      const nowMs = Date.now();
+      setCooldownNowMs(nowMs);
+
+      if (!revalidationStarted && nowMs >= nextExpiryMs) {
+        revalidationStarted = true;
+        window.clearInterval(timerId);
+        void reloadOrganisationTrainees();
+      }
+    };
+
+    const timerId = window.setInterval(updateCooldowns, 250);
+    updateCooldowns();
+
+    return () => {
+      window.clearInterval(timerId);
+    };
+  }, [
+    organisationId,
+    listResult.loadedAtMs,
+    listResult.organisationId,
+    listResult.rows,
+    reloadOrganisationTrainees,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -1884,6 +1934,14 @@ function OrganisationTraineesPage() {
       currentInvitationAction?.actionType === 'revoke' &&
       currentInvitationAction.phase === 'pending';
 
+    const resendCooldownSeconds = Math.max(
+      0,
+      Math.ceil(
+        (listResult.loadedAtMs + row.eligibility.resendCooldownSeconds * 1000 - cooldownNowMs) /
+          1000,
+      ),
+    );
+
     const showResend =
       row.eligibility.canResend ||
       (!row.eligibility.canResend && row.eligibility.resendCooldownSeconds > 0);
@@ -1899,14 +1957,14 @@ function OrganisationTraineesPage() {
         {showResend && (
           <button
             type="button"
-            disabled={!row.eligibility.canResend || actionOwnsRow}
+            disabled={!row.eligibility.canResend || resendCooldownSeconds > 0 || actionOwnsRow}
             onClick={() => beginInvitationAction(row, 'resend')}
             className="px-3 py-1.5 text-white bg-main-purple hover:bg-hover-purple font-jost tracking-wide disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {resendPending
               ? 'Resending...'
-              : !row.eligibility.canResend && row.eligibility.resendCooldownSeconds > 0
-                ? `Resend (${row.eligibility.resendCooldownSeconds}s)`
+              : resendCooldownSeconds > 0
+                ? `Resend (${resendCooldownSeconds}s)`
                 : 'Resend'}
           </button>
         )}
