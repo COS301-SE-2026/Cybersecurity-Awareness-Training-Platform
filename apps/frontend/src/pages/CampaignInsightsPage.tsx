@@ -245,9 +245,7 @@ function CampaignTraineeRow({ trainee, campaignName, onUnassign }: CampaignTrain
           aria-label={`${trainee.displayName} progress`}
           max={100}
           value={trainee.progress.progressPercentage}
-        >
-          {trainee.progress.progressPercentage}%
-        </progress>
+        />
       </td>
       <td
         className="truncate max-w-[4rem] px-6 py-2 font-google_sans_code"

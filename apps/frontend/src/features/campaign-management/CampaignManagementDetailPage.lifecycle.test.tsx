@@ -374,15 +374,21 @@ describe('CampaignManagementDetailPage activation', () => {
 
   it('shows an em dash when the selected Campaign has no duration', async () => {
     const user = userEvent.setup();
-
-    renderPage(
-      {
-        ...ACTIVE_CAMPAIGN,
+    const campaignWithoutDuration: CampaignDetailResponseDto = {
+      ...ACTIVE_CAMPAIGN,
+      startDate: null,
+      endDate: null,
+    };
+    const statisticsWithoutDuration: GetOrganisationCampaignStatisticsResponseDto = {
+      ...STATISTICS_RESPONSE,
+      campaign: {
+        ...STATISTICS_RESPONSE.campaign,
         startDate: null,
         endDate: null,
       },
-      { archiveCampaign: vi.fn() },
-    );
+    };
+
+    renderPage(campaignWithoutDuration, { archiveCampaign: vi.fn() }, statisticsWithoutDuration);
 
     await user.click(
       await screen.findByRole('button', { name: 'View Assigned Trainees & Insights' }),
