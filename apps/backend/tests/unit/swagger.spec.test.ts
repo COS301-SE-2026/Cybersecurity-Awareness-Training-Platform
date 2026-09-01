@@ -810,10 +810,26 @@ describe('swaggerSpec', () => {
     );
 
     const accountSessionSchema = spec.components?.schemas?.AccountSession as
-      | { properties?: Record<string, unknown> }
+      | {
+          properties?: Record<
+            string,
+            { description?: string; example?: unknown; nullable?: boolean }
+          >;
+        }
       | undefined;
     expect(accountSessionSchema?.properties).toHaveProperty('deviceSummary');
     expect(accountSessionSchema?.properties).toHaveProperty('locationSummary');
+    expect(accountSessionSchema?.properties?.deviceSummary?.description).toContain(
+      'raw user-agent strings are never returned',
+    );
+    expect(accountSessionSchema?.properties?.deviceSummary?.example).toBe('Windows · Chrome');
+    expect(accountSessionSchema?.properties?.locationSummary).toMatchObject({
+      nullable: true,
+      example: null,
+    });
+    expect(accountSessionSchema?.properties?.locationSummary?.description).toContain(
+      'IP addresses are not presented as physical locations',
+    );
     expectSchemaNotToContain('AccountSession', [
       'refreshToken',
       'tokenHash',
