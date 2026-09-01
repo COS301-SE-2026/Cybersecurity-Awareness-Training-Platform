@@ -115,3 +115,87 @@ export type AccountSessionIdParamsDto = z.infer<typeof accountSessionIdParamsSch
 export type AccountSecurityPreferencesRequestDto = z.infer<
   typeof accountSecurityPreferencesRequestSchema
 >;
+
+export const accountDeletionBlockedReasonSchema = z.enum([
+  'PLATFORM_SELF_DELETION_NOT_SUPPORTED',
+  'ORGANISATION_ADMIN_MANAGED',
+  'ORGANISATION_TRAINEE_MANAGED',
+  'SELF_DELETION_NOT_SUPPORTED',
+]);
+
+export type AccountDeletionBlockedReasonDto = z.infer<typeof accountDeletionBlockedReasonSchema>;
+
+export const accountCapabilitiesResponseSchema = z.object({
+  canEditProfile: z.boolean(),
+  canRequestEmailChange: z.boolean(),
+  canChangePassword: z.boolean(),
+  canEditSecurityPreferences: z.boolean(),
+  canDeleteAccount: z.boolean(),
+  securityPreferenceEditable: z.object({
+    preferredRegularSessionLengthHours: z.boolean(),
+    preferredRememberMeSessionLengthHours: z.boolean(),
+    preferredIdleTimeoutMinutes: z.boolean(),
+  }),
+  blockedReasons: z.object({
+    emailChange: z.string().nullable(),
+    securityPreferences: z.string().nullable(),
+    preferredRegularSessionLengthHours: z.string().nullable(),
+    preferredRememberMeSessionLengthHours: z.string().nullable(),
+    preferredIdleTimeoutMinutes: z.string().nullable(),
+    deleteAccount: accountDeletionBlockedReasonSchema.nullable(),
+  }),
+});
+
+export type AccountCapabilitiesResponseDto = z.infer<typeof accountCapabilitiesResponseSchema>;
+
+export const accountProfileResponseSchema = z.object({
+  id: z.string(),
+  firstName: z.string(),
+  lastName: z.string(),
+  email: z.string(),
+  userType: z.string(),
+  authStatus: z.string(),
+  emailVerified: z.boolean(),
+  emailVerifiedAt: z.string().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+export type AccountProfileResponseDto = z.infer<typeof accountProfileResponseSchema>;
+
+export const accountSecurityPreferencesResponseSchema = z.object({
+  id: z.string().nullable(),
+  preferredRegularSessionLengthHours: z.number().nullable(),
+  preferredRememberMeSessionLengthHours: z.number().nullable(),
+  preferredIdleTimeoutMinutes: z.number().nullable(),
+  updatedAt: z.string().nullable(),
+});
+
+export type AccountSecurityPreferencesResponseDto = z.infer<
+  typeof accountSecurityPreferencesResponseSchema
+>;
+
+export const accountPolicyResponseSchema = z.object({
+  organisationId: z.string().nullable(),
+  rememberMeRequested: z.boolean(),
+  rememberMeAllowed: z.boolean(),
+  rememberMeApplied: z.boolean(),
+  regularSessionSeconds: z.number(),
+  rememberedSessionSeconds: z.number(),
+  effectiveSessionSeconds: z.number(),
+  idleTimeoutMinutes: z.number().nullable(),
+  requireReauthenticationForSensitiveActions: z.boolean(),
+  allowEmailChange: z.boolean(),
+  sources: z.record(z.string(), z.string()),
+});
+
+export type AccountPolicyResponseDto = z.infer<typeof accountPolicyResponseSchema>;
+
+export const accountResponseSchema = z.object({
+  profile: accountProfileResponseSchema,
+  securityPreferences: accountSecurityPreferencesResponseSchema,
+  effectivePolicy: accountPolicyResponseSchema,
+  capabilities: accountCapabilitiesResponseSchema,
+});
+
+export type AccountResponseDto = z.infer<typeof accountResponseSchema>;

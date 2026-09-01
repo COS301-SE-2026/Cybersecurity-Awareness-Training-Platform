@@ -6,6 +6,7 @@ import { ReadOnlyField } from '../ui/FormField';
 import {
   type AccountProfileResponse,
   type AccountCapabilitiesResponse,
+  type AccountDeletionBlockedReasonDto,
 } from '../../services/account.service';
 
 type AccountSettingsPageProps = Readonly<{
@@ -15,6 +16,23 @@ type AccountSettingsPageProps = Readonly<{
   onRefresh?: () => void;
   onApiError?: (err: unknown) => boolean;
 }>;
+
+function getDeleteAccountUnavailableReason(
+  blockedReason?: AccountDeletionBlockedReasonDto | string | null,
+): string {
+  switch (blockedReason) {
+    case 'PLATFORM_SELF_DELETION_NOT_SUPPORTED':
+      return 'Platform accounts do not support self-deletion.';
+    case 'ORGANISATION_ADMIN_MANAGED':
+      return 'Account deletion is managed by another organisation administrator.';
+    case 'ORGANISATION_TRAINEE_MANAGED':
+      return 'Account deletion is managed by your organisation administrator.';
+    case 'SELF_DELETION_NOT_SUPPORTED':
+      return 'Account self-deletion is currently unavailable.';
+    default:
+      return 'Account deletion is currently unavailable.';
+  }
+}
 
 function AccountSettingsPage({
   profile,
@@ -28,6 +46,10 @@ function AccountSettingsPage({
   const [alertMessage, setAlertMessage] = useState('');
 
   const canRequestEmailChange = capabilities?.canRequestEmailChange ?? true;
+  const canDeleteAccount = capabilities?.canDeleteAccount ?? false;
+  const deleteAccountUnavailableReason = getDeleteAccountUnavailableReason(
+    capabilities?.blockedReasons?.deleteAccount,
+  );
 
   function handleEmailSuccess(msg: string) {
     setShowChangeEmailModal(false);
@@ -66,7 +88,7 @@ function AccountSettingsPage({
       />
 
       {/* SUB-HEADING */}
-      <p className="font-regular tracking-wider text-[1.1rem] font-justify font-jost text-gray-500 mb-4">
+      <p className="font-regular tracking-wider text-[1.1rem] font-justify font-jost text-gray-500 mb-6">
         Settings and security controls associated with your account on the platform.
       </p>
 
@@ -76,8 +98,9 @@ function AccountSettingsPage({
         </BasicAlert>
       )}
 
-      <div className="mb-6 max-w-lg">
-        <div className="flex items-center gap-4">
+      {/* NORMAL ACCOUNT SETTINGS */}
+      <div className="mb-6 max-w-xl">
+        <div className="flex items-start gap-4">
           <ReadOnlyField
             id="email-address"
             label="Email Address"
@@ -90,27 +113,27 @@ function AccountSettingsPage({
             className="min-w-0 flex-1"
           />
 
-          <button
-            type="button"
-            disabled={!canRequestEmailChange}
-            onClick={() => setShowChangeEmailModal(true)}
-            className="cursor-pointer whitespace-nowrap px-6 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm py-2.5 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <span className="material-symbols-sharp">mail</span>
-            <span>Change Email</span>
-          </button>
+          <div className="pt-8">
+            <button
+              type="button"
+              disabled={!canRequestEmailChange}
+              onClick={() => setShowChangeEmailModal(true)}
+              className="cursor-pointer whitespace-nowrap px-6 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm py-2.5 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span className="material-symbols-sharp">mail</span>
+              <span>Change Email</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* FIELD 2: CHANGE PASSWORD */}
-      <div className="mb-6 max-w-lg">
-        <label
-          htmlFor="password"
-          className=" block mb-2 font-jost tracking-wide text-[1.2rem] font-regular text-dark-pink"
-        >
+      <div className="mb-8 max-w-xl">
+        <h4 className="block mb-2 font-jost tracking-wide text-[1.2rem] font-regular text-dark-pink">
           Password
-        </label>
-
+        </h4>
+        <p className="font-overpass text-xs text-gray-600 mb-3">
+          Manage your account password and security credentials.
+        </p>
         <button
           type="button"
           onClick={() => setShowChangePasswordModal(true)}
@@ -121,28 +144,29 @@ function AccountSettingsPage({
         </button>
       </div>
 
-      {/* FIELD 3: DELETE ACCOUNT */}
-      <div className="mb-6 max-w-lg">
-        <label
-          htmlFor="delete-account"
-          className=" block mb-2 font-jost tracking-wide text-[1.2rem] font-regular text-dark-pink"
-        >
-          Delete Account
-        </label>
-
-        <p className="font-overpass text-left text-regular text-[0.95rem] tracking-wider text-gray-500 mb-2">
-          Permanently remove your account and all associated personal data from the platform.
+      {/* DANGER ZONE */}
+      <div className="mt-8 p-4 bg-white border border-red-200 shadow-xs font-overpass max-w-2xl">
+        <h4 className="text-lg font-medium text-red-600 font-jost mb-1">Danger Zone</h4>
+        <p className="text-sm text-gray-600 mb-4">
+          Permanently remove your account and all associated personal data from the platform. This
+          action cannot be undone.
         </p>
 
-        <button
-          type="button"
-          disabled
-          title="Account deletion is currently managed by your platform administrator."
-          className="opacity-60 cursor-not-allowed whitespace-nowrap px-6 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-red-600 box-border border border-transparent focus:outline-none"
-        >
-          <span className="material-symbols-sharp">delete</span>
-          <span>Delete Account (Managed)</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-4">
+          <button
+            type="button"
+            disabled={!canDeleteAccount}
+            className="cursor-not-allowed whitespace-nowrap px-6 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-red-600 box-border border border-transparent focus:ring-4 focus:ring-red-300 shadow-xs leading-5 text-sm py-2.5 focus:outline-none disabled:opacity-50"
+          >
+            <span className="material-symbols-sharp">delete</span>
+            <span>Delete Account</span>
+          </button>
+          {!canDeleteAccount && (
+            <span className="text-xs text-gray-500 font-overpass">
+              {deleteAccountUnavailableReason}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -505,8 +505,15 @@ describe('account security integration - password and session lifecycle', () => 
     const login = await loginAccountSecurityUser(fixture.user.email);
     const otherSession = await createAccountSecuritySession({
       userId: fixture.user.id,
-      deviceSummary: 'Tablet browser',
-      locationSummary: 'Johannesburg',
+      deviceSummary: null,
+      locationSummary: null,
+    });
+    await prisma.authSession.update({
+      where: { id: otherSession.session.id },
+      data: {
+        userAgent: 'private-legacy-client/1.0',
+        ipAddress: '192.0.2.10',
+      },
     });
     await createAccountSecuritySession({
       userId: otherUser.user.id,
@@ -526,8 +533,8 @@ describe('account security integration - password and session lifecycle', () => 
         expect.objectContaining({
           id: otherSession.session.id,
           current: false,
-          deviceSummary: 'Tablet browser',
-          locationSummary: 'Johannesburg',
+          deviceSummary: null,
+          locationSummary: null,
         }),
       ]),
     );
@@ -536,6 +543,42 @@ describe('account security integration - password and session lifecycle', () => 
     expect(JSON.stringify(response.body)).not.toContain('refreshToken');
     expect(JSON.stringify(response.body)).not.toContain('ipAddress');
     expect(JSON.stringify(response.body)).not.toContain('userAgent');
+    expect(JSON.stringify(response.body)).not.toContain('private-legacy-client');
+    expect(JSON.stringify(response.body)).not.toContain('192.0.2.10');
+  });
+
+  it('persists and returns prepared metadata for a newly logged-in session', async () => {
+    const fixture = await createAccountSecurityUserFixture();
+    const rawUserAgent =
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126.0 Safari/537.36';
+    const loginResponse = await request(app)
+      .post('/auth/login')
+      .set('User-Agent', rawUserAgent)
+      .send({ email: fixture.user.email, password: testUserPassword });
+
+    expect(loginResponse.status).toBe(200);
+    const session = await prisma.authSession.findFirstOrThrow({
+      where: { userId: fixture.user.id, revokedAt: null },
+      orderBy: { createdAt: 'desc' },
+    });
+    expect(session.deviceSummary).toBe('Windows · Chrome');
+    expect(session.locationSummary).toBeNull();
+
+    const response = await request(app)
+      .get('/account/sessions')
+      .set('Authorization', `Bearer ${loginResponse.body.accessToken as string}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.sessions).toContainEqual(
+      expect.objectContaining({
+        id: session.id,
+        deviceSummary: 'Windows · Chrome',
+        locationSummary: null,
+      }),
+    );
+    expect(JSON.stringify(response.body)).not.toContain(rawUserAgent);
+    expect(JSON.stringify(response.body)).not.toContain('userAgent');
+    expect(JSON.stringify(response.body)).not.toContain('ipAddress');
   });
 
   it('revokes an owned non-current session and its refresh tokens', async () => {

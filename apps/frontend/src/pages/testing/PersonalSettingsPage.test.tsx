@@ -23,4 +23,27 @@ describe('PersonalSettingsPage', () => {
     render(<PersonalSettingsPage />);
     expect(screen.getByRole('button', { name: /Save Personal Information/i })).toBeInTheDocument();
   });
+
+  it('renders the email as a selectable read-only value', () => {
+    render(
+      <PersonalSettingsPage
+        profile={{
+          id: 'user-1',
+          firstName: 'John',
+          lastName: 'Doe',
+          email: 'john.doe@example.com',
+          userType: 'ORGANISATION_ADMIN',
+          authStatus: 'ACTIVE',
+          emailVerified: true,
+          emailVerifiedAt: null,
+          createdAt: '2026-08-01T08:00:00.000Z',
+          updatedAt: '2026-08-31T08:00:00.000Z',
+        }}
+      />,
+    );
+    const email = screen.getByLabelText('Email Address');
+    expect(email).toHaveValue('john.doe@example.com');
+    expect(email).toHaveAttribute('readonly');
+    expect(email).not.toBeDisabled();
+  });
 });

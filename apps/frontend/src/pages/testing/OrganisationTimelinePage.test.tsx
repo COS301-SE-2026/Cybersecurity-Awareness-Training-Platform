@@ -18,4 +18,63 @@ describe('OrganisationTimelinePage', () => {
       ),
     ).toBeInTheDocument();
   });
+
+  it('renders the empty state message when no timeline events exist', () => {
+    render(<OrganisationTimelinePage timeline={[]} />);
+    expect(
+      screen.getByText(/No timeline events recorded for this organisation yet\./i),
+    ).toBeInTheDocument();
+  });
+
+  it('renders formatted timeline action descriptions, summary, and actor context', () => {
+    const mockTimeline = [
+      {
+        id: 'evt-1',
+        type: 'AUDIT_LOG' as const,
+        timestamp: '2026-06-19T10:00:00.000Z',
+        action: 'CREATED',
+        summary: 'Organisation registration submitted.',
+        actor: 'jan@cyberjan.co.za',
+        outcome: 'SUCCESS',
+        metadata: null,
+      },
+      {
+        id: 'evt-2',
+        type: 'AUDIT_LOG' as const,
+        timestamp: '2026-06-19T11:00:00.000Z',
+        action: 'RESENT',
+        summary: 'Initial admin setup email resent.',
+        actor: 'admin@platform.co.za',
+        outcome: 'SUCCESS',
+        metadata: null,
+      },
+    ];
+
+    render(<OrganisationTimelinePage timeline={mockTimeline} />);
+    expect(screen.getByText('Organisation Created')).toBeInTheDocument();
+    expect(screen.getByText('Setup Invite Resent')).toBeInTheDocument();
+    expect(screen.getByText('Organisation registration submitted.')).toBeInTheDocument();
+    expect(screen.getByText('Actor: jan@cyberjan.co.za')).toBeInTheDocument();
+    expect(screen.getByText('Actor: admin@platform.co.za')).toBeInTheDocument();
+  });
+
+  it('maps raw audit summary patterns to human-readable text', () => {
+    const mockTimeline = [
+      {
+        id: 'evt-raw-1',
+        type: 'AUDIT_LOG' as const,
+        timestamp: '2026-06-19T12:00:00.000Z',
+        action: 'SUSPENDED',
+        summary: 'SUSPENDED on ORGANISATION',
+        actor: 'superadmin@insightfulphish.com',
+        outcome: 'SUCCESS',
+        metadata: null,
+      },
+    ];
+
+    render(<OrganisationTimelinePage timeline={mockTimeline} />);
+    expect(screen.getByText('Organisation Suspended')).toBeInTheDocument();
+    expect(screen.getByText('Organisation suspended on the platform.')).toBeInTheDocument();
+    expect(screen.queryByText('SUSPENDED on ORGANISATION')).not.toBeInTheDocument();
+  });
 });
