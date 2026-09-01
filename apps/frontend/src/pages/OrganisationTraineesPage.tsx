@@ -21,6 +21,17 @@ import {
   disableOrganisationTrainee,
 } from '../services/organisation-trainee.service';
 import { Navigate } from 'react-router-dom';
+import {
+  AdminTable,
+  AdminTableActions,
+  AdminTableCell,
+  AdminTableContainer,
+  AdminTableEmptyRow,
+  AdminTableHeader,
+  AdminTableHeaderCell,
+  AdminTableLoadingRow,
+  TruncatedValue,
+} from '../components/ui/AdminTable';
 
 type ActiveTraineeRow = Extract<TraineeListItemDto, { rowType: 'ACTIVE_TRAINEE' }>;
 type InvitationTraineeRow = Extract<TraineeListItemDto, { rowType: 'INVITATION' }>;
@@ -1559,7 +1570,7 @@ function OrganisationTraineesPage() {
     }
 
     return (
-      <div className="flex flex-wrap items-center gap-2">
+      <AdminTableActions className="flex-wrap gap-2">
         {showResend && (
           <button
             type="button"
@@ -1585,7 +1596,7 @@ function OrganisationTraineesPage() {
             {revokePending ? 'Revoking...' : 'Revoke'}
           </button>
         )}
-      </div>
+      </AdminTableActions>
     );
   };
 
@@ -1891,9 +1902,15 @@ function OrganisationTraineesPage() {
           )}
 
           {isLoading && (
-            <div className="py-12 flex justify-center items-center font-jost text-gray-500 text-[1.2rem]">
-              <span>Loading organisation trainees...</span>
-            </div>
+            <AdminTableContainer>
+              <AdminTable aria-label="Organisation trainees">
+                <tbody>
+                  <AdminTableLoadingRow colSpan={5}>
+                    Loading organisation trainees...
+                  </AdminTableLoadingRow>
+                </tbody>
+              </AdminTable>
+            </AdminTableContainer>
           )}
 
           {!isLoading && !loadError && (
@@ -2047,42 +2064,17 @@ function OrganisationTraineesPage() {
               </h3>
 
               {/* TABLE */}
-              <div className="relative overflow-x-auto bg-neutral-primary-soft border border-default">
-                <table className="w-full text-sm text-left rtl:text-right text-body">
-                  <thead className="bg-faint-purple border-b border-default">
+              <AdminTableContainer>
+                <AdminTable>
+                  <AdminTableHeader>
                     <tr>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                      >
-                        Full Name
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                      >
-                        Email Address
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                      >
-                        Role
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                      >
-                        Status
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                      >
-                        Actions
-                      </th>
+                      <AdminTableHeaderCell>Full Name</AdminTableHeaderCell>
+                      <AdminTableHeaderCell>Email Address</AdminTableHeaderCell>
+                      <AdminTableHeaderCell>Role</AdminTableHeaderCell>
+                      <AdminTableHeaderCell>Status</AdminTableHeaderCell>
+                      <AdminTableHeaderCell>Actions</AdminTableHeaderCell>
                     </tr>
-                  </thead>
+                  </AdminTableHeader>
                   <tbody className="font-overpass font-regular text-[1rem] tracking-wide">
                     {filteredTrainees.map((trainee) => (
                       <tr
@@ -2090,37 +2082,36 @@ function OrganisationTraineesPage() {
                         className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default"
                       >
                         {/* Trainee Full Name */}
-                        <td className="px-6 py-4">{trainee.fullName}</td>
+                        <AdminTableCell>
+                          <TruncatedValue value={trainee.fullName} className="max-w-64" />
+                        </AdminTableCell>
 
                         {/* Trainee Email Address */}
-                        <td className="px-6 py-4">{trainee.emailAddress}</td>
+                        <AdminTableCell>
+                          <TruncatedValue value={trainee.emailAddress} />
+                        </AdminTableCell>
 
                         {/* Representative */}
-                        <td className="px-6 py-4">{getDisplayRole(trainee.source)}</td>
+                        <AdminTableCell>{getDisplayRole(trainee.source)}</AdminTableCell>
 
                         {/* Request Status */}
-                        <td className="px-6 py-4">{getStatusBadge(trainee.status)}</td>
+                        <AdminTableCell>{getStatusBadge(trainee.status)}</AdminTableCell>
 
                         {/* Actions */}
-                        <td className="px-6 py-4">{renderRowActions(trainee.source)}</td>
+                        <AdminTableCell>{renderRowActions(trainee.source)}</AdminTableCell>
                       </tr>
                     ))}
 
                     {filteredTrainees.length === 0 && (
-                      <tr>
-                        <td
-                          colSpan={5}
-                          className="py-8 text-center text-[1.2rem] tracking-wider text-red-500 font-jost"
-                        >
-                          {displayRows.length === 0
-                            ? 'No Organisation Trainees Found'
-                            : 'No Organisation Trainees Match the Current Search or Filter'}
-                        </td>
-                      </tr>
+                      <AdminTableEmptyRow colSpan={5}>
+                        {displayRows.length === 0
+                          ? 'No Organisation Trainees Found'
+                          : 'No Organisation Trainees Match the Current Search or Filter'}
+                      </AdminTableEmptyRow>
                     )}
                   </tbody>
-                </table>
-              </div>
+                </AdminTable>
+              </AdminTableContainer>
             </>
           )}
         </div>

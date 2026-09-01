@@ -2,6 +2,17 @@ import { useState, useEffect, useCallback } from 'react';
 import BasicAlert from '../alerts/BasicAlert';
 import { SelectField, type SelectFieldOption } from '../ui/FormField';
 import {
+  AdminTable,
+  AdminTableActions,
+  AdminTableCell,
+  AdminTableContainer,
+  AdminTableEmptyRow,
+  AdminTableHeader,
+  AdminTableHeaderCell,
+  AdminTableLoadingRow,
+  TruncatedValue,
+} from '../ui/AdminTable';
+import {
   getAccountSessions,
   revokeAccountSession,
   logoutOtherAccountSessions,
@@ -309,55 +320,22 @@ function SessionSettingsPage({
       </div>
 
       {/* SESSIONS TABLE */}
-      <div className="relative overflow-x-auto bg-neutral-primary-soft border border-default">
-        <table className="w-full text-sm text-left rtl:text-right text-body">
-          <thead className="bg-faint-purple border-b border-default">
+      <AdminTableContainer>
+        <AdminTable>
+          <AdminTableHeader>
             <tr>
-              <th
-                scope="col"
-                className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-              >
-                Device
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-              >
-                Browser
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-              >
-                Location
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-              >
-                Last Active
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-              >
-                Action
-              </th>
+              <AdminTableHeaderCell>Device</AdminTableHeaderCell>
+              <AdminTableHeaderCell>Browser</AdminTableHeaderCell>
+              <AdminTableHeaderCell>Location</AdminTableHeaderCell>
+              <AdminTableHeaderCell>Last Active</AdminTableHeaderCell>
+              <AdminTableHeaderCell>Action</AdminTableHeaderCell>
             </tr>
-          </thead>
+          </AdminTableHeader>
           <tbody className="font-overpass font-regular text-[1rem] tracking-wide">
             {loadingSessions ? (
-              <tr className="bg-neutral-primary border-b border-default">
-                <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
-                  Loading active sessions...
-                </td>
-              </tr>
+              <AdminTableLoadingRow colSpan={5}>Loading active sessions...</AdminTableLoadingRow>
             ) : sessions.length === 0 ? (
-              <tr className="bg-neutral-primary border-b border-default">
-                <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
-                  No active sessions found.
-                </td>
-              </tr>
+              <AdminTableEmptyRow colSpan={5}>No active sessions found.</AdminTableEmptyRow>
             ) : (
               sessions.map((session, index) => {
                 const parts = (session.deviceSummary || '').split('·').map((s: string) => s.trim());
@@ -369,36 +347,48 @@ function SessionSettingsPage({
                     key={session.id}
                     className={`${index % 2 === 0 ? 'bg-neutral-primary' : 'bg-neutral-secondary-soft'} font-overpass border-b border-default`}
                   >
-                    <th
-                      scope="row"
-                      className="px-6 py-4 font-medium text-gray-600 whitespace-nowrap"
-                    >
-                      {deviceName}{' '}
-                      {session.current && <span className="text-fg-brand">(Current Session)</span>}
+                    <th scope="row" className="px-6 py-4 font-medium text-gray-600">
+                      <TruncatedValue
+                        value={session.current ? `${deviceName} (Current Session)` : deviceName}
+                        className="max-w-64"
+                      >
+                        {deviceName}{' '}
+                        {session.current && (
+                          <span className="text-fg-brand">(Current Session)</span>
+                        )}
+                      </TruncatedValue>
                     </th>
-                    <td className="px-6 py-4">{browserName}</td>
-                    <td className="px-6 py-4">{session.locationSummary || 'Unknown Location'}</td>
-                    <td className="px-6 py-4">{formatLastActive(session.lastActiveAt)}</td>
-                    <td className="px-6 py-4">
-                      {session.current ? (
-                        <span className="text-gray-400 font-medium">Current Session</span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => handleRevokeSession(session.id)}
-                          className="cursor-pointer font-medium text-red-600 hover:underline"
-                        >
-                          Log Out Session
-                        </button>
-                      )}
-                    </td>
+                    <AdminTableCell>
+                      <TruncatedValue value={browserName} />
+                    </AdminTableCell>
+                    <AdminTableCell>
+                      <TruncatedValue value={session.locationSummary || 'Unknown Location'} />
+                    </AdminTableCell>
+                    <AdminTableCell>
+                      <TruncatedValue value={formatLastActive(session.lastActiveAt)} />
+                    </AdminTableCell>
+                    <AdminTableCell>
+                      <AdminTableActions>
+                        {session.current ? (
+                          <span className="font-medium text-gray-400">Current Session</span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleRevokeSession(session.id)}
+                            className="cursor-pointer font-medium text-red-600 hover:underline"
+                          >
+                            Log Out Session
+                          </button>
+                        )}
+                      </AdminTableActions>
+                    </AdminTableCell>
                   </tr>
                 );
               })
             )}
           </tbody>
-        </table>
-      </div>
+        </AdminTable>
+      </AdminTableContainer>
 
       {/* HEADING */}
       <h3 className="font-jost text-[1.3rem] text-purple tracking-wider font-medium mt-12 -mb-3">

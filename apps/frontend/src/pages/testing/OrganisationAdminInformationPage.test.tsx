@@ -60,4 +60,33 @@ describe('OrganisationAdminInformationPage', () => {
     expect(screen.getByText(/Jan van der Merwe/i)).toBeInTheDocument();
     expect(screen.getByText(/Sipho Ndlovu/i)).toBeInTheDocument();
   });
+
+  it('keeps long administrator values available when cells are constrained', () => {
+    const longName = 'An Organisation Administrator With An Exceptionally Long Display Name';
+    const longEmail = 'an.exceptionally.long.organisation.administrator@example.com';
+
+    render(
+      <OrganisationAdminInformationPage
+        admins={[
+          {
+            id: 'long-admin',
+            firstName: longName,
+            lastName: '',
+            email: longEmail,
+            adminStatus: 'ACTIVE',
+            isInitialAdmin: false,
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByTitle(longName)).toHaveAttribute('aria-label', longName);
+    expect(screen.getByTitle(longEmail)).toHaveAttribute('aria-label', longEmail);
+  });
+
+  it('renders the shared empty state when no administrators are available', () => {
+    render(<OrganisationAdminInformationPage admins={[]} />);
+
+    expect(screen.getByText('No Organisation Administrators Found')).toBeInTheDocument();
+  });
 });

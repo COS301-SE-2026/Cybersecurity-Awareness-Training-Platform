@@ -697,13 +697,29 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         },
         AuthLoginResponse: {
           type: 'object',
-          required: ['accessToken', 'user', 'context', 'permissions', 'redirectTo'],
+          required: [
+            'accessToken',
+            'idleTimeoutMinutes',
+            'user',
+            'context',
+            'permissions',
+            'redirectTo',
+          ],
           properties: {
             accessToken: {
               type: 'string',
               description: 'Bearer access token for authenticated requests.',
               example:
                 'eyJ1c2VySWQiOiJ1c2VyLTEyMyIsImV4cGlyZXNBdCI6IjIwMjYtMDUtMTJUMjA6NDQ6NTQuMDAwWiJ9.signature',
+            },
+            idleTimeoutMinutes: {
+              ...nullableIntegerRange({
+                minimum: 5,
+                maximum: 480,
+                example: 30,
+              }),
+              description:
+                'Effective browser-observed inactivity in timeout minutes. Null disabled browser idle timeout.',
             },
             user: {
               $ref: '#/components/schemas/PublicUser',

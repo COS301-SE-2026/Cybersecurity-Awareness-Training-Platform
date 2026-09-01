@@ -428,13 +428,6 @@ async function sendEmailChangeWarning(input: {
   }
 }
 
-function isSessionIdleExpired(session: AccountSessionRecord, now: Date) {
-  return (
-    session.idleTimeoutMinutes !== null &&
-    session.lastActiveAt.getTime() + session.idleTimeoutMinutes * 60 * 1000 <= now.getTime()
-  );
-}
-
 function toSessionResponse(
   session: AccountSessionRecord,
   currentSessionId: string,
@@ -725,9 +718,10 @@ export async function listAccountSessionSummaries(
   currentSessionId: string,
 ): Promise<AccountSessionsResponse> {
   const now = new Date();
-  const sessions = (await listAccountSessions(userId, now))
-    .filter((session) => !isSessionIdleExpired(session, now))
-    .map((session) => toSessionResponse(session, currentSessionId));
+
+  const sessions = (await listAccountSessions(userId, now)).map((session) =>
+    toSessionResponse(session, currentSessionId),
+  );
 
   return {
     sessions,
