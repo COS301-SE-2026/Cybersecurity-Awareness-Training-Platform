@@ -1,12 +1,21 @@
 import AppLayout from '../components/layout/AppLayout';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useLocation, useParams } from 'react-router-dom';
+import {
+  type Dispatch,
+  type SetStateAction,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
+import { Link, useParams } from 'react-router-dom';
 import type {
+  CampaignStatisticsCampaignDto,
   CampaignStatisticsSummaryDto,
   CampaignStatisticsTraineeRowDto,
   CampaignStatusDto,
   CampaignTypeDto,
 } from '@insightful-phish/shared';
+import BasicAlert from '../components/alerts/BasicAlert';
 import BasicConfirmationModal from '../components/layout/modals/BasicConfirmationModal';
 import StatusBadge, { type DisplayStatus } from '../components/ui/StatusBadge';
 import { getOrganisationCampaignStatistics } from '../lib/campaignsApi';
@@ -20,15 +29,6 @@ type CampaignInsightsPageProps = Readonly<{
   onAuthenticationExpired?: () => void;
 }>;
 
-type CampaignInsightsNavigationState = Readonly<{
-  campaignName: string;
-  campaignDescription: string | null;
-  campaignStatus: CampaignStatusDto;
-  campaignType: CampaignTypeDto;
-  startDate: string | null;
-  endDate: string | null;
-}>;
-
 const STATUS_LABELS: Record<CampaignStatusDto, DisplayStatus> = {
   DRAFT: 'Draft',
   ACTIVE: 'Active',
@@ -37,14 +37,11 @@ const STATUS_LABELS: Record<CampaignStatusDto, DisplayStatus> = {
   ARCHIVED: 'Archived',
 };
 
-type StatisticsState =
-  | Readonly<{ status: 'loading' }>
-  | Readonly<{
-      status: 'loaded';
-      summary: CampaignStatisticsSummaryDto;
-      trainees: readonly CampaignStatisticsTraineeRowDto[];
-    }>
-  | Readonly<{ status: 'error'; message: string }>;
+type StatisticsData = Readonly<{
+  campaign: CampaignStatisticsCampaignDto;
+  summary: CampaignStatisticsSummaryDto;
+  trainees: readonly CampaignStatisticsTraineeRowDto[];
+}>;
 
 const TRAINEE_STATUS_LABELS: Record<
   CampaignStatisticsTraineeRowDto['traineeStatus'],
@@ -54,45 +51,6 @@ const TRAINEE_STATUS_LABELS: Record<
   INACTIVE: 'Inactive',
   DISABLED: 'Disabled',
 };
-
-function isNullableString(value: unknown): value is string | null {
-  return value === null || typeof value === 'string';
-}
-
-function getCampaignInformation(state: unknown): CampaignInsightsNavigationState | null {
-  if (
-    typeof state !== 'object' ||
-    state === null ||
-    'campaignName' in state === false ||
-    typeof state.campaignName !== 'string' ||
-    state.campaignName.trim() === '' ||
-    'campaignDescription' in state === false ||
-    isNullableString(state.campaignDescription) === false ||
-    'campaignStatus' in state === false ||
-    (state.campaignStatus !== 'DRAFT' &&
-      state.campaignStatus !== 'ACTIVE' &&
-      state.campaignStatus !== 'PAUSED' &&
-      state.campaignStatus !== 'COMPLETED' &&
-      state.campaignStatus !== 'ARCHIVED') ||
-    'campaignType' in state === false ||
-    (state.campaignType !== 'PREMADE_GENERAL' && state.campaignType !== 'ORGANISATION_CUSTOM') ||
-    'startDate' in state === false ||
-    isNullableString(state.startDate) === false ||
-    'endDate' in state === false ||
-    isNullableString(state.endDate) === false
-  ) {
-    return null;
-  }
-
-  return {
-    campaignName: state.campaignName,
-    campaignDescription: state.campaignDescription,
-    campaignStatus: state.campaignStatus,
-    campaignType: state.campaignType,
-    startDate: state.startDate,
-    endDate: state.endDate,
-  };
-}
 
 function formatDate(value: string): string | null {
   const date = new Date(value);
@@ -167,14 +125,251 @@ function getUnassignErrorMessage(error: unknown): string {
   return 'This trainee could not be unassigned. Try again.';
 }
 
+function getCampaignTypeLabel(campaignType: CampaignTypeDto | undefined): string {
+  if (campaignType === undefined) {
+    return '—';
+  }
+
+  if (campaignType === 'PREMADE_GENERAL') {
+    return 'Platform Campaign';
+  }
+
+  return 'Organisation Campaign';
+}
+
+function getCampaignOwnerLabel(campaignType: CampaignTypeDto | undefined): string {
+  if (campaignType === undefined) {
+    return '—';
+  }
+
+  if (campaignType === 'PREMADE_GENERAL') {
+    return 'Insightful Phish';
+  }
+
+  return 'Organisation';
+}
+
+type CampaignPresentation = Readonly<{
+  name: string;
+  status: DisplayStatus;
+  duration: string;
+  type: string;
+  owner: string;
+  description: string;
+}>;
+
+function getCampaignPresentation(
+  campaign: CampaignStatisticsCampaignDto | undefined,
+): CampaignPresentation {
+  if (campaign === undefined) {
+    return {
+      name: 'Campaign',
+      status: 'Unknown',
+      duration: '—',
+      type: '—',
+      owner: '—',
+      description: '—',
+    };
+  }
+
+  return {
+    name: campaign.name,
+    status: STATUS_LABELS[campaign.status],
+    duration: formatDuration(campaign.startDate, campaign.endDate),
+    type: getCampaignTypeLabel(campaign.campaignType),
+    owner: getCampaignOwnerLabel(campaign.campaignType),
+    description: campaign.description?.trim() || '—',
+  };
+}
+
+function getCampaignPath(organisationId: string | undefined, campaignId: string | undefined) {
+  if (organisationId === undefined || campaignId === undefined) {
+    return '/';
+  }
+
+  return `/organisations/${organisationId}/campaigns/${campaignId}`;
+}
+
+function getAssignmentPath(organisationId: string | undefined) {
+  if (organisationId === undefined) {
+    return '/';
+  }
+
+  return `/organisations/${organisationId}/campaign-assignments/new`;
+}
+
+function getPercentageDisplay(value: number | null | undefined, isInitialLoading: boolean): string {
+  if (value === undefined) {
+    return isInitialLoading ? '…' : '—';
+  }
+
+  if (value === null) {
+    return '—';
+  }
+
+  return `${value}%`;
+}
+
+type CampaignTraineeRowProps = Readonly<{
+  trainee: CampaignStatisticsTraineeRowDto;
+  campaignName: string;
+  onUnassign: (trainee: CampaignStatisticsTraineeRowDto) => void;
+}>;
+
+function CampaignTraineeRow({ trainee, campaignName, onUnassign }: CampaignTraineeRowProps) {
+  const quizAverage = getPercentageDisplay(trainee.averageQuizScorePercentage, false);
+  const quizAverageTitle =
+    trainee.averageQuizScorePercentage === null
+      ? 'No submitted Quiz score'
+      : `${trainee.averageQuizScorePercentage}% Overall Quiz Average`;
+
+  return (
+    <tr className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default">
+      <td className="truncate max-w-[4rem] px-6 py-2" title={trainee.displayName}>
+        {trainee.displayName}
+      </td>
+      <td className="truncate max-w-[4rem] px-6 py-2" title={trainee.email}>
+        <a
+          href={`mailto:${trainee.email}`}
+          className="text-fg-brand hover:underline font-google_sans_code"
+        >
+          {trainee.email}
+        </a>
+      </td>
+      <td className="px-6 py-2">
+        <span className="text-sm font-google_sans_code text-purple">
+          {trainee.progress.progressPercentage}%
+        </span>
+        <progress
+          className="block h-2.5 w-full appearance-none overflow-hidden bg-neutral-quaternary accent-[#8400ff] [&::-webkit-progress-bar]:bg-neutral-quaternary [&::-webkit-progress-value]:bg-main-purple [&::-moz-progress-bar]:bg-main-purple"
+          aria-label={`${trainee.displayName} progress`}
+          max={100}
+          value={trainee.progress.progressPercentage}
+        >
+          {trainee.progress.progressPercentage}%
+        </progress>
+      </td>
+      <td
+        className="truncate max-w-[4rem] px-6 py-2 font-google_sans_code"
+        title={`${trainee.progress.completedItemCount} out of ${trainee.progress.totalItemCount} Campaign Items Completed`}
+      >
+        {trainee.progress.completedItemCount}/{trainee.progress.totalItemCount}
+      </td>
+      <td className="px-6 py-2 font-google_sans_code" title={quizAverageTitle}>
+        {quizAverage}
+      </td>
+      <td className="px-6 py-2">
+        <StatusBadge status={TRAINEE_STATUS_LABELS[trainee.traineeStatus]} />
+      </td>
+      <td className="px-6 py-2">
+        {trainee.allowedActions.canUnassign === true ? (
+          <button
+            className="cursor-pointer font-jost text-[1.1rem] text-red-600 hover:underline"
+            type="button"
+            title={`Unassign ${trainee.displayName} from ${campaignName}`}
+            onClick={() => onUnassign(trainee)}
+          >
+            <strong>Unassign</strong>
+          </button>
+        ) : (
+          <span aria-label="Unassign unavailable">—</span>
+        )}
+      </td>
+    </tr>
+  );
+}
+
+type AssignedTraineesTableBodyProps = Readonly<{
+  statisticsData: StatisticsData | null;
+  isLoading: boolean;
+  assignmentPath: string;
+  campaignName: string;
+  onUnassign: (trainee: CampaignStatisticsTraineeRowDto) => void;
+  onRetry: () => void;
+}>;
+
+function AssignedTraineesTableBody({
+  statisticsData,
+  isLoading,
+  assignmentPath,
+  campaignName,
+  onUnassign,
+  onRetry,
+}: AssignedTraineesTableBodyProps) {
+  if (statisticsData === null && isLoading) {
+    return (
+      <tr>
+        <td
+          colSpan={7}
+          className="py-8 text-center text-[1.2rem] tracking-wider text-gray-600 font-jost"
+        >
+          Loading Assigned Trainees…
+        </td>
+      </tr>
+    );
+  }
+
+  if (statisticsData === null) {
+    return (
+      <tr>
+        <td
+          colSpan={7}
+          className="py-8 text-center text-[1.2rem] tracking-wider text-red-600 font-jost"
+        >
+          <div className="flex flex-col items-center gap-2">
+            <p>Assigned trainees could not be loaded.</p>
+            <button
+              type="button"
+              className="cursor-pointer font-jost font-medium text-purple hover:underline"
+              onClick={onRetry}
+            >
+              Retry Statistics
+            </button>
+          </div>
+        </td>
+      </tr>
+    );
+  }
+
+  if (statisticsData.trainees.length === 0) {
+    return (
+      <tr>
+        <td
+          colSpan={7}
+          className="py-8 text-center text-[1.2rem] tracking-wider text-gray-600 font-jost"
+        >
+          <div className="flex flex-col items-center gap-2">
+            <p className="text-red-600">No Assigned Trainees</p>
+            <Link to={assignmentPath} className="inline-flex items-center gap-1 text-purple">
+              <span className="hover:underline">Assign Trainees</span>
+              <span className="material-symbols-outlined" aria-hidden="true">
+                arrow_forward
+              </span>
+            </Link>
+          </div>
+        </td>
+      </tr>
+    );
+  }
+
+  return statisticsData.trainees.map((trainee) => (
+    <CampaignTraineeRow
+      key={trainee.assignmentId}
+      trainee={trainee}
+      campaignName={campaignName}
+      onUnassign={onUnassign}
+    />
+  ));
+}
+
 function CampaignInsightsPage({
   statisticsClient = getOrganisationCampaignStatistics,
   unassignClient = deleteCampaignAssignment,
   onAuthenticationExpired,
 }: CampaignInsightsPageProps) {
-  const [statisticsState, setStatisticsState] = useState<StatisticsState>({
-    status: 'loading',
-  });
+  const [statisticsData, setStatisticsData] = useState<StatisticsData | null>(null);
+  const [isStatisticsLoading, setIsStatisticsLoading] = useState(true);
+  const [statisticsError, setStatisticsError] = useState<string | null>(null);
   const [selectedTrainee, setSelectedTrainee] = useState<CampaignStatisticsTraineeRowDto | null>(
     null,
   );
@@ -188,43 +383,25 @@ function CampaignInsightsPage({
     organisationId: string;
     campaignId: string;
   }>();
-  const location = useLocation();
-  const campaignInformation = getCampaignInformation(location.state);
-  const campaignName = campaignInformation?.campaignName ?? 'Campaign';
-  const campaignStatus =
-    campaignInformation === null ? 'Unknown' : STATUS_LABELS[campaignInformation.campaignStatus];
-  const duration =
-    campaignInformation === null
-      ? '—'
-      : formatDuration(campaignInformation.startDate, campaignInformation.endDate);
-  const campaignType =
-    campaignInformation === null
-      ? '—'
-      : campaignInformation.campaignType === 'PREMADE_GENERAL'
-        ? 'Platform Campaign'
-        : 'Organisation Campaign';
-  const campaignOwner =
-    campaignInformation === null
-      ? '—'
-      : campaignInformation.campaignType === 'PREMADE_GENERAL'
-        ? 'Insightful Phish'
-        : 'Organisation';
-  const description = campaignInformation?.campaignDescription?.trim() || '—';
-  const campaignPath =
-    organisationId === undefined || campaignId === undefined
-      ? '/'
-      : `/organisations/${organisationId}/campaigns/${campaignId}`;
-  const assignmentPath =
-    organisationId === undefined
-      ? '/'
-      : `/organisations/${organisationId}/campaign-assignments/new`;
+  const campaignPresentation = getCampaignPresentation(statisticsData?.campaign);
+  const campaignPath = getCampaignPath(organisationId, campaignId);
+  const assignmentPath = getAssignmentPath(organisationId);
+
+  const handleSetCurrentPage: Dispatch<SetStateAction<number>> = useCallback((nextPage) => {
+    setIsStatisticsLoading(true);
+    setStatisticsError(null);
+    setCurrentPage(nextPage);
+  }, []);
 
   const requestStatistics = useCallback(async () => {
     if (organisationId === undefined || campaignId === undefined) {
+      setStatisticsError('Campaign statistics are unavailable.');
+      setIsStatisticsLoading(false);
       return;
     }
 
     const requestId = ++statisticsRequestIdRef.current;
+    let pageCorrectionPending = false;
 
     try {
       const response = await statisticsClient(organisationId, campaignId, {
@@ -236,15 +413,18 @@ function CampaignInsightsPage({
         const nearestValidPage = Math.max(response.pagination.totalPages, 1);
 
         if (currentPage > nearestValidPage) {
-          setCurrentPage(nearestValidPage);
+          pageCorrectionPending = true;
+          setTotalPages(response.pagination.totalPages);
+          handleSetCurrentPage(nearestValidPage);
           return;
         }
 
-        setStatisticsState({
-          status: 'loaded',
+        setStatisticsData({
+          campaign: response.campaign,
           summary: response.summary,
           trainees: response.trainees,
         });
+        setStatisticsError(null);
         setTotalPages(response.pagination.totalPages);
       }
     } catch (requestError) {
@@ -253,16 +433,25 @@ function CampaignInsightsPage({
           onAuthenticationExpired?.();
         }
 
-        setStatisticsState({
-          status: 'error',
-          message: getStatisticsErrorMessage(requestError),
-        });
+        setStatisticsError(getStatisticsErrorMessage(requestError));
+      }
+    } finally {
+      if (statisticsRequestIdRef.current === requestId && pageCorrectionPending !== true) {
+        setIsStatisticsLoading(false);
       }
     }
-  }, [campaignId, currentPage, onAuthenticationExpired, organisationId, statisticsClient]);
+  }, [
+    campaignId,
+    currentPage,
+    handleSetCurrentPage,
+    onAuthenticationExpired,
+    organisationId,
+    statisticsClient,
+  ]);
 
   const refreshStatistics = useCallback(async () => {
-    setStatisticsState({ status: 'loading' });
+    setIsStatisticsLoading(true);
+    setStatisticsError(null);
     await requestStatistics();
   }, [requestStatistics]);
 
@@ -302,35 +491,56 @@ function CampaignInsightsPage({
   }, [onAuthenticationExpired, organisationId, refreshStatistics, selectedTrainee, unassignClient]);
 
   useEffect(() => {
-    const requestTimeout = globalThis.setTimeout(() => {
-      setStatisticsState({ status: 'loading' });
-      void requestStatistics();
-    }, 0);
+    let isCurrent = true;
+
+    globalThis.queueMicrotask(() => {
+      if (isCurrent === true) {
+        void requestStatistics();
+      }
+    });
 
     return () => {
-      globalThis.clearTimeout(requestTimeout);
+      isCurrent = false;
       statisticsRequestIdRef.current += 1;
     };
   }, [requestStatistics]);
 
-  const statisticsSummary = statisticsState.status === 'loaded' ? statisticsState.summary : null;
-  const assignedTrainees = statisticsState.status === 'loaded' ? statisticsState.trainees : [];
-  const pendingStatisticsValue = statisticsState.status === 'loading' ? '…' : '—';
+  const statisticsSummary = statisticsData?.summary;
+  const isInitialLoading = statisticsData === null && isStatisticsLoading;
+  const pendingStatisticsValue = isInitialLoading ? '…' : '—';
   const assignedTraineeCount = statisticsSummary?.assignedTraineeCount ?? pendingStatisticsValue;
   const startedTraineeCount = statisticsSummary?.startedTraineeCount ?? pendingStatisticsValue;
   const completedTraineeCount = statisticsSummary?.completedTraineeCount ?? pendingStatisticsValue;
-  const overallProgressPercentage =
-    statisticsSummary === null
-      ? pendingStatisticsValue
-      : statisticsSummary.overallProgressPercentage === null
-        ? '—'
-        : `${statisticsSummary.overallProgressPercentage}%`;
-  const averageQuizScorePercentage =
-    statisticsSummary === null
-      ? pendingStatisticsValue
-      : statisticsSummary.averageQuizScorePercentage === null
-        ? '—'
-        : `${statisticsSummary.averageQuizScorePercentage}%`;
+  const overallProgressPercentage = getPercentageDisplay(
+    statisticsSummary?.overallProgressPercentage,
+    isInitialLoading,
+  );
+  const averageQuizScorePercentage = getPercentageDisplay(
+    statisticsSummary?.averageQuizScorePercentage,
+    isInitialLoading,
+  );
+
+  const handleSelectTraineeForUnassign = useCallback((trainee: CampaignStatisticsTraineeRowDto) => {
+    setSelectedTrainee(trainee);
+    setUnassignError(null);
+  }, []);
+
+  const handleRetryStatistics = useCallback(() => {
+    void refreshStatistics();
+  }, [refreshStatistics]);
+
+  const handleDismissStatisticsError = useCallback(() => {
+    setStatisticsError(null);
+  }, []);
+
+  const handleSubmitUnassign = useCallback(() => {
+    void handleConfirmUnassign();
+  }, [handleConfirmUnassign]);
+
+  const handleCancelUnassign = useCallback(() => {
+    setSelectedTrainee(null);
+    setUnassignError(null);
+  }, []);
 
   return (
     <AppLayout
@@ -372,7 +582,7 @@ function CampaignInsightsPage({
               color: 'rgb(132, 25, 255)',
             }}
           >
-            {campaignName}
+            {campaignPresentation.name}
           </h1>
 
           {/* DIVIDER */}
@@ -384,7 +594,7 @@ function CampaignInsightsPage({
                 Status
               </p>
               <div className="font-overpass tracking-wider">
-                <StatusBadge status={campaignStatus} />
+                <StatusBadge status={campaignPresentation.status} />
               </div>
             </div>
 
@@ -393,7 +603,7 @@ function CampaignInsightsPage({
                 Duration
               </p>
               <p className="font-regular tracking-wider text-md font-google_sans_code text-gray-500">
-                {duration}
+                {campaignPresentation.duration}
               </p>
             </div>
 
@@ -402,7 +612,7 @@ function CampaignInsightsPage({
                 Campaign Type
               </p>
               <p className="font-regular tracking-wider text-md font-google_sans_code text-gray-500">
-                {campaignType}
+                {campaignPresentation.type}
               </p>
             </div>
 
@@ -411,7 +621,7 @@ function CampaignInsightsPage({
                 Campaign Owner
               </p>
               <p className="font-regular tracking-wider text-md font-google_sans_code text-gray-500">
-                {campaignOwner}
+                {campaignPresentation.owner}
               </p>
             </div>
           </div>
@@ -422,7 +632,7 @@ function CampaignInsightsPage({
           </p>
           <div className="bg-neutral-secondary-medium border border-default-medium p-2 font-regular tracking-wider shadow-xs text-[1.1rem] font-justify font-jost text-gray-500 mb-2">
             <p className="m-0 max-h-[3.3rem] overflow-y-auto whitespace-pre-wrap leading-[1.65rem]">
-              {description}
+              {campaignPresentation.description}
             </p>
           </div>
 
@@ -432,7 +642,7 @@ function CampaignInsightsPage({
           <div
             className="grid grid-cols-5 gap-3 py-2 px-4 bg-white border border-default-medium p-2 font-regular tracking-wider shadow-xs text-[1.1rem] font-justify font-jost text-gray-500 mb-2"
             aria-label="Campaign summary statistics"
-            aria-busy={statisticsState.status === 'loading'}
+            aria-busy={isStatisticsLoading}
           >
             {/* Assigned Count */}
             <div>
@@ -501,20 +711,19 @@ function CampaignInsightsPage({
             </div>
           </div>
 
-          {statisticsState.status === 'error' && (
-            <div className="mb-2 flex items-center gap-3 text-red-600" role="alert">
-              <span>{statisticsState.message}</span>
-              <button
-                type="button"
-                className="cursor-pointer font-jost font-medium text-purple hover:underline"
-                onClick={() => {
-                  setStatisticsState({ status: 'loading' });
-                  void requestStatistics();
-                }}
-              >
-                Retry Statistics
-              </button>
-            </div>
+          {statisticsError !== null && (
+            <BasicAlert variant="danger" onClose={handleDismissStatisticsError}>
+              <div className="flex items-center gap-3">
+                <span>{statisticsError}</span>
+                <button
+                  type="button"
+                  className="cursor-pointer font-jost font-medium text-purple hover:underline"
+                  onClick={handleRetryStatistics}
+                >
+                  Retry Statistics
+                </button>
+              </div>
+            </BasicAlert>
           )}
 
           {/* Table Heading */}
@@ -572,129 +781,14 @@ function CampaignInsightsPage({
                 </tr>
               </thead>
               <tbody className="font-overpass font-regular text-[1rem] tracking-wider">
-                {statisticsState.status === 'loading' && (
-                  <tr>
-                    <td
-                      colSpan={7}
-                      className="py-8 text-center text-[1.2rem] tracking-wider text-gray-600 font-jost"
-                    >
-                      Loading Assigned Trainees…
-                    </td>
-                  </tr>
-                )}
-
-                {statisticsState.status === 'error' && (
-                  <tr>
-                    <td
-                      colSpan={7}
-                      className="py-8 text-center text-[1.2rem] tracking-wider text-red-600 font-jost"
-                    >
-                      Assigned trainees could not be loaded.
-                    </td>
-                  </tr>
-                )}
-
-                {statisticsState.status === 'loaded' && assignedTrainees.length === 0 && (
-                  <tr>
-                    <td
-                      colSpan={7}
-                      className="py-8 text-center text-[1.2rem] tracking-wider text-gray-600 font-jost"
-                    >
-                      <div className="flex flex-col items-center gap-2">
-                        <p className="text-red-600">No Assigned Trainees</p>
-                        <Link
-                          to={assignmentPath}
-                          className="inline-flex items-center gap-1 text-purple"
-                        >
-                          <span className="hover:underline">Assign Trainees</span>
-                          <span className="material-symbols-outlined" aria-hidden="true">
-                            arrow_forward
-                          </span>
-                        </Link>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-
-                {assignedTrainees.map((trainee) => {
-                  const quizAverage =
-                    trainee.averageQuizScorePercentage === null
-                      ? '—'
-                      : `${trainee.averageQuizScorePercentage}%`;
-
-                  return (
-                    <tr
-                      key={trainee.assignmentId}
-                      className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default"
-                    >
-                      <td className="truncate max-w-[4rem] px-6 py-2" title={trainee.displayName}>
-                        {trainee.displayName}
-                      </td>
-                      <td className="truncate max-w-[4rem] px-6 py-2" title={trainee.email}>
-                        <a
-                          href={`mailto:${trainee.email}`}
-                          className="text-fg-brand hover:underline font-google_sans_code"
-                        >
-                          {trainee.email}
-                        </a>
-                      </td>
-                      <td className="px-6 py-2">
-                        <span className="text-sm font-google_sans_code text-purple">
-                          {trainee.progress.progressPercentage}%
-                        </span>
-                        <div
-                          className="w-full bg-neutral-quaternary h-2.5"
-                          role="progressbar"
-                          aria-label={`${trainee.displayName} progress`}
-                          aria-valuemin={0}
-                          aria-valuemax={100}
-                          aria-valuenow={trainee.progress.progressPercentage}
-                        >
-                          <div
-                            className="bg-main-purple h-2.5"
-                            style={{ width: `${trainee.progress.progressPercentage}%` }}
-                          />
-                        </div>
-                      </td>
-                      <td
-                        className="truncate max-w-[4rem] px-6 py-2 font-google_sans_code"
-                        title={`${trainee.progress.completedItemCount} out of ${trainee.progress.totalItemCount} Campaign Items Completed`}
-                      >
-                        {trainee.progress.completedItemCount}/{trainee.progress.totalItemCount}
-                      </td>
-                      <td
-                        className="px-6 py-2 font-google_sans_code"
-                        title={
-                          trainee.averageQuizScorePercentage === null
-                            ? 'No submitted Quiz score'
-                            : `${trainee.averageQuizScorePercentage}% Overall Quiz Average`
-                        }
-                      >
-                        {quizAverage}
-                      </td>
-                      <td className="px-6 py-2">
-                        <StatusBadge status={TRAINEE_STATUS_LABELS[trainee.traineeStatus]} />
-                      </td>
-                      <td className="px-6 py-2">
-                        {trainee.allowedActions.canUnassign === true ? (
-                          <button
-                            className="cursor-pointer font-jost text-[1.1rem] text-red-600 hover:underline"
-                            type="button"
-                            title={`Unassign ${trainee.displayName} from ${campaignName}`}
-                            onClick={() => {
-                              setSelectedTrainee(trainee);
-                              setUnassignError(null);
-                            }}
-                          >
-                            <strong>Unassign</strong>
-                          </button>
-                        ) : (
-                          <span aria-label="Unassign unavailable">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
+                <AssignedTraineesTableBody
+                  statisticsData={statisticsData}
+                  isLoading={isStatisticsLoading}
+                  assignmentPath={assignmentPath}
+                  campaignName={campaignPresentation.name}
+                  onUnassign={handleSelectTraineeForUnassign}
+                  onRetry={handleRetryStatistics}
+                />
               </tbody>
             </table>
           </div>
@@ -703,25 +797,20 @@ function CampaignInsightsPage({
             ariaLabel="Assigned Trainees Table Pagination"
             currentPage={currentPage}
             totalPages={totalPages}
-            isLoading={statisticsState.status === 'loading'}
-            setCurrentPage={setCurrentPage}
+            isLoading={isStatisticsLoading}
+            setCurrentPage={handleSetCurrentPage}
           />
         </div>
       </div>
       {selectedTrainee !== null && (
         <BasicConfirmationModal
           title="Unassign Trainee from Campaign"
-          message={`Are you sure that you want to unassign ${selectedTrainee.displayName} from ${campaignName}? Their campaign progress will be permanently removed.`}
+          message={`Are you sure that you want to unassign ${selectedTrainee.displayName} from ${campaignPresentation.name}? Their campaign progress will be permanently removed.`}
           confirmButtonText="Unassign"
           cancelButtonText="Keep Assigned"
           confirmButtonVariant="danger"
-          onConfirm={() => {
-            void handleConfirmUnassign();
-          }}
-          onCancel={() => {
-            setSelectedTrainee(null);
-            setUnassignError(null);
-          }}
+          onConfirm={handleSubmitUnassign}
+          onCancel={handleCancelUnassign}
           isConfirming={isUnassigning}
           isConfirmDisabled={isUnassigning}
           isDismissDisabled={isUnassigning}
