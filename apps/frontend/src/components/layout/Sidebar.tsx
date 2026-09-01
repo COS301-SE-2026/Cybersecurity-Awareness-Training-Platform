@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import type { ReactElement } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Menu,
   SchoolOutlined,
   BusinessOutlined,
   AdminPanelSettingsOutlined,
+  CampaignOutlined,
   AssignmentTurnedInOutlined,
   SecurityOutlined,
   InfoOutlined,
@@ -20,9 +21,13 @@ type NavItem = InternalNavItem | ExternalNavItem;
 function Sidebar() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, authContext, permissions } = useAuth();
   const role = authContext?.role || user?.userType;
   const organisationId = authContext?.organisation?.id;
+  const canAccessOrganisationCampaigns = permissions.some(
+    (permission) => permission === 'VIEW_CAMPAIGNS' || permission === 'MANAGE_CAMPAIGNS',
+  );
   const campaignAssignmentPath = `/organisations/${encodeURIComponent(organisationId ?? '')}/campaign-assignments/new`;
   const canAssignTrainingCampaigns =
     role === 'ORGANISATION_ADMIN' &&
@@ -42,10 +47,15 @@ function Sidebar() {
           label: 'Organisation Management',
           path: '/organisation-management',
         },
+        {
+          icon: <CampaignOutlined />,
+          label: 'Campaigns',
+          path: '/platform/campaigns',
+        },
       ];
     }
     if (role === 'ORGANISATION_ADMIN') {
-      return [
+      const organisationItems: NavItem[] = [
         {
           icon: <InfoOutlined />,
           label: 'Organisation Information',
@@ -76,7 +86,18 @@ function Sidebar() {
           path: '/organisation-administrators',
         },
       ];
+
+      if (organisationId && canAccessOrganisationCampaigns) {
+        organisationItems.push({
+          icon: <CampaignOutlined />,
+          label: 'Campaigns',
+          path: `/organisations/${organisationId}/campaigns`,
+        });
+      }
+
+      return organisationItems;
     }
+
     return [
       {
         icon: <SchoolOutlined />,
@@ -138,6 +159,9 @@ function Sidebar() {
 
       {navItems.map((item) => {
         const NavigationItem = 'href' in item ? 'a' : 'button';
+        const isActive =
+          'path' in item &&
+          (location.pathname === item.path || location.pathname.startsWith(`${item.path}/`));
 
         return (
           <NavigationItem
@@ -148,6 +172,7 @@ function Sidebar() {
             onClick={'path' in item ? () => navigate(item.path) : undefined}
             type={'path' in item ? 'button' : undefined}
             aria-label={item.label}
+            aria-current={isActive ? 'page' : undefined}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -164,8 +189,9 @@ function Sidebar() {
               color: 'white',
               transition: '0.22s ease',
               boxSizing: 'border-box',
-              background: 'none',
+              background: isActive ? 'rgba(255, 255, 255, 0.14)' : 'none',
               border: 'none',
+              borderLeft: isActive ? '4px solid #cca7ff' : '4px solid transparent',
               width: '100%',
               textDecoration: 'none',
             }}

@@ -9,6 +9,9 @@ type AuthPageFrameProps = Readonly<{
   rightChildren: ReactNode;
   leftPanelStyle?: CSSProperties;
   rightPanelStyle?: CSSProperties;
+  responsive?: boolean;
+  leftPanelClassName?: string;
+  rightPanelClassName?: string;
 }>;
 
 type AuthPageIntroProps = Readonly<{
@@ -52,7 +55,30 @@ export function AuthPageFrame({
   rightChildren,
   leftPanelStyle,
   rightPanelStyle,
+  responsive = false,
+  leftPanelClassName = '',
+  rightPanelClassName = '',
 }: AuthPageFrameProps) {
+  if (responsive) {
+    return (
+      <main className="flex min-h-screen w-full flex-col overflow-y-auto bg-light-purple lg:flex-row">
+        <section
+          className={`flex w-full flex-col justify-center bg-white-purple px-6 py-8 sm:px-10 lg:min-h-screen ${leftPanelClassName}`}
+          style={leftPanelStyle}
+        >
+          {leftChildren}
+        </section>
+
+        <section
+          className={`hidden bg-faint-purple px-6 py-8 lg:flex lg:min-h-screen lg:items-center lg:justify-center ${rightPanelClassName}`}
+          style={rightPanelStyle}
+        >
+          {rightChildren}
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main style={pageFrameStyle}>
       <section

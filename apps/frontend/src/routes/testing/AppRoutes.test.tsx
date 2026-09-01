@@ -142,6 +142,15 @@ vi.mock('../../lib/campaignsApi', () => ({
   getTraineeCampaignDetail: vi.fn(),
 }));
 
+vi.mock('../../features/campaign-management/apiCampaignManagementClient', async () => {
+  const { developmentCampaignManagementClient } =
+    await import('../../features/campaign-management/developmentCampaignManagementClient');
+
+  return {
+    apiCampaignManagementClient: developmentCampaignManagementClient,
+  };
+});
+
 import AppRoutes from '../AppRoutes';
 import { getTraineeCampaignDetail, getTraineeCampaigns } from '../../lib/campaignsApi';
 import { AuthContext } from '../../context/auth-context';

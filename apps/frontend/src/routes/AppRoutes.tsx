@@ -36,7 +36,7 @@ import CampaignInsightsPage from '../pages/CampaignInsightsPage';
 function CampaignManagementDetailRoute({
   contextKind,
 }: Readonly<{ contextKind: CampaignManagementContext['kind'] }>) {
-  const { permissions } = useAuth();
+  const { clearAuth, permissions } = useAuth();
   const canManageCampaigns = contextKind === 'platform' || permissions.includes('MANAGE_CAMPAIGNS');
 
   return (
@@ -44,6 +44,7 @@ function CampaignManagementDetailRoute({
       contextKind={contextKind}
       canManageCampaigns={canManageCampaigns}
       blockUnsavedNavigation
+      onAuthenticationExpired={clearAuth}
     />
   );
 }

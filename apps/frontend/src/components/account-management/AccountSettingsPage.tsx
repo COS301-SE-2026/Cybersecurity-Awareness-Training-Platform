@@ -2,6 +2,7 @@ import { useState } from 'react';
 import ChangeEmailModal from './ChangeEmailModal';
 import ChangePasswordModal from './ChangePasswordModal';
 import BasicAlert from '../alerts/BasicAlert';
+import { ReadOnlyField } from '../ui/FormField';
 import {
   type AccountProfileResponse,
   type AccountCapabilitiesResponse,
@@ -75,22 +76,18 @@ function AccountSettingsPage({
         </BasicAlert>
       )}
 
-      {/* FIELD 1: EMAIL ADDRESS */}
       <div className="mb-6 max-w-lg">
-        <label
-          htmlFor="email-address"
-          className=" block mb-2 font-jost tracking-wide text-[1.2rem] font-regular text-dark-pink"
-        >
-          Email Address
-        </label>
         <div className="flex items-center gap-4">
-          <input
-            disabled
-            type="email"
-            name="email-address"
-            id="email-address-acc"
-            value={profile?.email || ''}
-            className="font-overpass text-[1.2rem] bg-gray-200 border border-gray-300 text-gray-500 block w-full p-2.5 cursor-not-allowed"
+          <ReadOnlyField
+            id="email-address"
+            label="Email Address"
+            value={profile?.email}
+            helperText={
+              canRequestEmailChange
+                ? 'Use Change Email to request a verified email address update.'
+                : 'Email change is managed by organisation policy.'
+            }
+            className="min-w-0 flex-1"
           />
 
           <button
@@ -103,11 +100,6 @@ function AccountSettingsPage({
             <span>Change Email</span>
           </button>
         </div>
-        {!canRequestEmailChange && (
-          <p className="font-overpass text-xs text-red-600 mt-1">
-            Email change is managed by organisation policy.
-          </p>
-        )}
       </div>
 
       {/* FIELD 2: CHANGE PASSWORD */}
