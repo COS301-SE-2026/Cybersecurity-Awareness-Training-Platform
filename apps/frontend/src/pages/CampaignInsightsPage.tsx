@@ -1,8 +1,19 @@
 import AppLayout from '../components/layout/AppLayout';
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import type { CampaignStatusDto, CampaignTypeDto } from '@insightful-phish/shared';
+import type {
+  CampaignStatisticsSummaryDto,
+  CampaignStatusDto,
+  CampaignTypeDto,
+} from '@insightful-phish/shared';
 import StatusBadge, { type DisplayStatus } from '../components/ui/StatusBadge';
+import { getOrganisationCampaignStatistics } from '../lib/campaignsApi';
+import { ApiError } from '../lib/apiClient';
+
+type CampaignInsightsPageProps = Readonly<{
+  statisticsClient?: typeof getOrganisationCampaignStatistics;
+  onAuthenticationExpired?: () => void;
+}>;
 
 type CampaignInsightsNavigationState = Readonly<{
   campaignName: string;
@@ -20,6 +31,11 @@ const STATUS_LABELS: Record<CampaignStatusDto, DisplayStatus> = {
   COMPLETED: 'Completed',
   ARCHIVED: 'Archived',
 };
+
+type StatisticsSummaryState =
+  | Readonly<{ status: 'loading' }>
+  | Readonly<{ status: 'loaded'; summary: CampaignStatisticsSummaryDto }>
+  | Readonly<{ status: 'error'; message: string }>;
 
 function isNullableString(value: unknown): value is string | null {
   return value === null || typeof value === 'string';
@@ -89,9 +105,38 @@ function formatDuration(startDate: string | null, endDate: string | null): strin
   return `${formattedStartDate} to ${formattedEndDate}`;
 }
 
-function CampaignInsightsPage() {
+function getStatisticsErrorMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    if (error.status === 401) {
+      return 'Your session is no longer valid. Sign in again.';
+    }
+
+    if (error.status === 403 || error.status === 404) {
+      return 'Campaign statistics are unavailable.';
+    }
+
+    if (error.status === 422) {
+      return 'Campaign statistics could not be requested. Try again.';
+    }
+
+    if (error.status === 429) {
+      return 'Too many statistics requests. Wait a moment and try again.';
+    }
+  }
+
+  return 'Campaign statistics could not be loaded. Try again.';
+}
+
+function CampaignInsightsPage({
+  statisticsClient = getOrganisationCampaignStatistics,
+  onAuthenticationExpired,
+}: CampaignInsightsPageProps) {
   const [isLoading] = useState(false);
   const [error] = useState(false);
+  const [statisticsState, setStatisticsState] = useState<StatisticsSummaryState>({
+    status: 'loading',
+  });
+  const statisticsRequestIdRef = useRef(0);
   const { organisationId, campaignId } = useParams<{
     organisationId: string;
     campaignId: string;
@@ -123,6 +168,68 @@ function CampaignInsightsPage() {
       ? '/'
       : `/organisations/${organisationId}/campaigns/${campaignId}`;
 
+  const requestStatistics = useCallback(async () => {
+    if (organisationId === undefined || campaignId === undefined) {
+      return;
+    }
+
+    const requestId = ++statisticsRequestIdRef.current;
+
+    try {
+      const response = await statisticsClient(organisationId, campaignId, {
+        page: 1,
+        limit: 20,
+      });
+
+      if (statisticsRequestIdRef.current === requestId) {
+        setStatisticsState({
+          status: 'loaded',
+          summary: response.summary,
+        });
+      }
+    } catch (requestError) {
+      if (statisticsRequestIdRef.current === requestId) {
+        if (requestError instanceof ApiError && requestError.status === 401) {
+          onAuthenticationExpired?.();
+        }
+
+        setStatisticsState({
+          status: 'error',
+          message: getStatisticsErrorMessage(requestError),
+        });
+      }
+    }
+  }, [campaignId, onAuthenticationExpired, organisationId, statisticsClient]);
+
+  useEffect(() => {
+    const requestTimeout = globalThis.setTimeout(() => {
+      void requestStatistics();
+    }, 0);
+
+    return () => {
+      globalThis.clearTimeout(requestTimeout);
+      statisticsRequestIdRef.current += 1;
+    };
+  }, [requestStatistics]);
+
+  const statisticsSummary = statisticsState.status === 'loaded' ? statisticsState.summary : null;
+  const pendingStatisticsValue = statisticsState.status === 'loading' ? '…' : '—';
+  const assignedTraineeCount = statisticsSummary?.assignedTraineeCount ?? pendingStatisticsValue;
+  const startedTraineeCount = statisticsSummary?.startedTraineeCount ?? pendingStatisticsValue;
+  const completedTraineeCount = statisticsSummary?.completedTraineeCount ?? pendingStatisticsValue;
+  const overallProgressPercentage =
+    statisticsSummary === null
+      ? pendingStatisticsValue
+      : statisticsSummary.overallProgressPercentage === null
+        ? '—'
+        : `${statisticsSummary.overallProgressPercentage}%`;
+  const averageQuizScorePercentage =
+    statisticsSummary === null
+      ? pendingStatisticsValue
+      : statisticsSummary.averageQuizScorePercentage === null
+        ? '—'
+        : `${statisticsSummary.averageQuizScorePercentage}%`;
+
   return (
     <AppLayout
       contentStyle={{
@@ -149,13 +256,13 @@ function CampaignInsightsPage() {
             <span className="hover:underline"> Back to Campaign</span>
           </Link>
 
-          <p className="font-regular tracking-wider text-[1.1rem] font-justify font-medium font-jost text-dark-pink mt-4 mb-1">
+          <p className="font-regular tracking-wider text-[1.1rem] font-justify font-medium font-jost text-dark-pink mb-1">
             Campaign
           </p>
           <h1
             style={{
               margin: 0,
-              marginBottom: '0.4rem',
+              marginBottom: '0.2rem',
               fontWeight: 500,
               fontSize: '2.8rem',
               lineHeight: 1,
@@ -163,7 +270,7 @@ function CampaignInsightsPage() {
               color: 'rgb(132, 25, 255)',
             }}
           >
-            "{campaignName}"
+            {campaignName}
           </h1>
 
           <div className="grid grid-cols-4 gap-3">
@@ -209,12 +316,16 @@ function CampaignInsightsPage() {
             Description
           </p>
           <div className="bg-neutral-secondary-medium border border-default-medium p-2 font-regular tracking-wider shadow-xs text-[1.1rem] font-justify font-jost text-gray-500 mb-2">
-            <p className="m-0 max-h-[3.3rem] overflow-y-auto whitespace-pre-wrap leading-[1.65rem]">
+            <p className="m-0 max-h-[5rem] overflow-y-auto whitespace-pre-wrap leading-[1.65rem]">
               {description}
             </p>
           </div>
 
-          <div className="grid grid-cols-5 gap-3 py-2 px-4 bg-white border border-default-medium p-2 font-regular tracking-wider shadow-xs text-[1.1rem] font-justify font-jost text-gray-500 mb-2">
+          <div
+            className="grid grid-cols-5 gap-3 py-2 px-4 bg-white border border-default-medium p-2 font-regular tracking-wider shadow-xs text-[1.1rem] font-justify font-jost text-gray-500 mb-2"
+            aria-label="Campaign summary statistics"
+            aria-busy={statisticsState.status === 'loading'}
+          >
             {/* Assigned Count */}
             <div>
               <div>
@@ -222,7 +333,7 @@ function CampaignInsightsPage() {
                   Assigned
                 </p>
                 <p className="font-regular tracking-wider text-[1.3rem] font-justify font-medium font-google_sans_code text-purple">
-                  16
+                  {assignedTraineeCount}
                 </p>
               </div>
             </div>
@@ -234,7 +345,7 @@ function CampaignInsightsPage() {
                   Started
                 </p>
                 <p className="font-regular tracking-wider text-[1.3rem] font-justify font-medium font-google_sans_code text-purple">
-                  6
+                  {startedTraineeCount}
                 </p>
               </div>
             </div>
@@ -246,7 +357,7 @@ function CampaignInsightsPage() {
                   Completed
                 </p>
                 <p className="font-regular tracking-wider text-[1.3rem] font-justify font-medium font-google_sans_code text-purple">
-                  2
+                  {completedTraineeCount}
                 </p>
               </div>
             </div>
@@ -261,7 +372,7 @@ function CampaignInsightsPage() {
                   Progression
                 </p>
                 <p className="font-regular tracking-wider text-[1.3rem] font-justify font-medium font-google_sans_code text-purple">
-                  58%
+                  {overallProgressPercentage}
                 </p>
               </div>
             </div>
@@ -276,15 +387,31 @@ function CampaignInsightsPage() {
                   Quiz Average
                 </p>
                 <p className="font-regular tracking-wider text-[1.3rem] font-justify font-medium font-google_sans_code text-purple">
-                  72%
+                  {averageQuizScorePercentage}
                 </p>
               </div>
             </div>
           </div>
 
+          {statisticsState.status === 'error' && (
+            <div className="mb-2 flex items-center gap-3 text-red-600" role="alert">
+              <span>{statisticsState.message}</span>
+              <button
+                type="button"
+                className="cursor-pointer font-jost font-medium text-purple hover:underline"
+                onClick={() => {
+                  setStatisticsState({ status: 'loading' });
+                  void requestStatistics();
+                }}
+              >
+                Retry Statistics
+              </button>
+            </div>
+          )}
+
           {/* Table Heading */}
-          <h3 className="font-jost text-2xl text-dark-pink tracking-wider font-medium mb-3 mt-8">
-            Assigned Trainees (Assigned Trainee Count Here)
+          <h3 className="font-jost text-xl text-dark-pink tracking-wider font-medium mb-3 mt-4">
+            Assigned Trainees ({assignedTraineeCount})
           </h3>
 
           {/* Assigned Trainees Table */}

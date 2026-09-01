@@ -49,6 +49,12 @@ function CampaignManagementDetailRoute({
   );
 }
 
+function CampaignInsightsRoute() {
+  const { clearAuth } = useAuth();
+
+  return <CampaignInsightsPage onAuthenticationExpired={clearAuth} />;
+}
+
 function AppRoutes() {
   return (
     <Routes>
@@ -149,7 +155,7 @@ function AppRoutes() {
           />
           <Route
             path="/organisations/:organisationId/campaigns/:campaignId/statistics"
-            element={<CampaignInsightsPage />}
+            element={<CampaignInsightsRoute />}
           />
         </Route>
 
