@@ -26,6 +26,7 @@ test('logs in through the backend auth contract and redirects to campaigns', asy
       },
       body: JSON.stringify({
         accessToken: 'demo-access-token',
+        idleTimeoutMinutes: 30,
         token: 'demo-access-token',
         tokenType: 'Bearer',
         expiresAt: '2026-01-01T01:00:00.000Z',

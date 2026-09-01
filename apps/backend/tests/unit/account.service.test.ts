@@ -345,7 +345,7 @@ describe('account service', () => {
     expectNoSensitiveAccountAuditMetadata();
   });
 
-  it('lists only non-idle active session summaries and marks the current session', async () => {
+  it('lists active session summaries regardless of request activity and marks the current session', async () => {
     const now = Date.now();
     const activeSession = {
       id: 'session-current',
@@ -359,14 +359,14 @@ describe('account service', () => {
       deviceSummary: 'Chrome on Windows',
       locationSummary: 'Johannesburg, ZA',
     };
-    const idleExpiredSession = {
+    const oldActivitySession = {
       ...activeSession,
-      id: 'session-idle-expired',
+      id: 'session-old-activity',
       lastActiveAt: new Date(now - 60 * 60 * 1000),
     };
     accountRepositoryMock.listAccountSessions.mockResolvedValue([
       activeSession,
-      idleExpiredSession,
+      oldActivitySession,
     ]);
 
     const result = await listAccountSessionSummaries('user-1', 'session-current');
@@ -375,6 +375,11 @@ describe('account service', () => {
       expect.objectContaining({
         id: 'session-current',
         current: true,
+        deviceSummary: 'Chrome on Windows',
+      }),
+      expect.objectContaining({
+        id: 'session-old-activity',
+        current: false,
         deviceSummary: 'Chrome on Windows',
       }),
     ]);

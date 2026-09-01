@@ -12,7 +12,7 @@ import {
 
 export type AuthSessionInput = CreateAuthSessionInput;
 
-export type AuthSessionState = 'ACTIVE' | 'MISSING' | 'EXPIRED' | 'IDLE_TIMEOUT' | 'REVOKED';
+export type AuthSessionState = 'ACTIVE' | 'MISSING' | 'EXPIRED' | 'REVOKED';
 
 export type ValidateAuthSessionResult =
   | { state: 'ACTIVE'; session: AuthSessionModel }
@@ -49,13 +49,6 @@ export async function validateAuthSession(input: {
   const now = input.now ?? new Date();
   if (session.expiresAt.getTime() <= now.getTime()) {
     return { state: 'EXPIRED', session };
-  }
-
-  if (
-    session.idleTimeoutMinutes !== null &&
-    session.lastActiveAt.getTime() + session.idleTimeoutMinutes * 60 * 1000 <= now.getTime()
-  ) {
-    return { state: 'IDLE_TIMEOUT', session };
   }
 
   if (input.touch ?? true) {

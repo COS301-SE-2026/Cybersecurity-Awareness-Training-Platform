@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
-import type { AuthContextResponseDto, AuthMeResponseDto } from '@insightful-phish/shared';
+import type { AuthLoginResponseDto, AuthMeResponseDto } from '@insightful-phish/shared';
 import { AuthProvider } from '../AuthContext';
 import { useAuth } from '../useAuth';
 
@@ -93,7 +93,7 @@ describe('AuthProvider authenticated-context refresh', () => {
   it('uses the rotated current token and authoritatively replaces privileges', async () => {
     seedAuthenticatedSession('old-token', '2000-01-01T00:00:00.000Z');
 
-    const restoredSession: AuthContextResponseDto = {
+    const restoredSession: AuthLoginResponseDto = {
       accessToken: 'new-token',
       user,
       context: privilegedContext,
@@ -101,6 +101,7 @@ describe('AuthProvider authenticated-context refresh', () => {
       redirectTo: privilegedContext.redirectTo,
       expiresAt: '2099-01-01T01:00:00.000Z',
       sessionExpiresAt: '2099-01-08T00:00:00.000Z',
+      idleTimeoutMinutes: 30,
     };
 
     refreshSessionMock.mockResolvedValueOnce(restoredSession);
