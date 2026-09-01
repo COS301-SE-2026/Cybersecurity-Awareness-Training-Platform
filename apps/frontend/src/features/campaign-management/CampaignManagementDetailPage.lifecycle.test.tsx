@@ -202,6 +202,7 @@ function renderPage(
   statisticsResponse: GetOrganisationCampaignStatisticsResponseDto = STATISTICS_RESPONSE,
   statisticsClient: StatisticsClient = vi.fn().mockResolvedValue(statisticsResponse),
   unassignClient: UnassignClient = vi.fn(),
+  canAssignCampaigns = true,
 ) {
   const client: LifecycleClient = {
     getCampaignCatalogue: vi.fn().mockResolvedValue(EMPTY_CATALOGUE),
@@ -223,6 +224,7 @@ function renderPage(
           path="/organisations/:organisationId/campaigns/:campaignId/statistics"
           element={
             <CampaignInsightsPage
+              canAssignCampaigns={canAssignCampaigns}
               statisticsClient={statisticsClient}
               unassignClient={unassignClient}
             />
@@ -439,6 +441,43 @@ describe('CampaignManagementDetailPage activation', () => {
       'href',
       `/organisations/${ORGANISATION_ID}/campaign-assignments/new`,
     );
+  });
+
+  it('does not offer assignment to a view-only administrator', async () => {
+    const user = userEvent.setup();
+    const emptyStatisticsResponse: GetOrganisationCampaignStatisticsResponseDto = {
+      ...STATISTICS_RESPONSE,
+      summary: {
+        assignedTraineeCount: 0,
+        startedTraineeCount: 0,
+        completedTraineeCount: 0,
+        overallProgressPercentage: null,
+        averageQuizScorePercentage: null,
+      },
+      trainees: [],
+      pagination: {
+        page: 1,
+        limit: 3,
+        total: 0,
+        totalPages: 0,
+      },
+    };
+
+    renderPage(
+      ACTIVE_CAMPAIGN,
+      { archiveCampaign: vi.fn() },
+      emptyStatisticsResponse,
+      undefined,
+      undefined,
+      false,
+    );
+
+    await user.click(
+      await screen.findByRole('button', { name: 'View Assigned Trainees & Insights' }),
+    );
+
+    expect(screen.getByText('No Assigned Trainees')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Assign Trainees' })).not.toBeInTheDocument();
   });
 
   it('shows exactly three Trainees per backend-driven page', async () => {

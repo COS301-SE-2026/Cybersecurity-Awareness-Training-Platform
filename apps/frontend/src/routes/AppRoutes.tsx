@@ -50,9 +50,14 @@ function CampaignManagementDetailRoute({
 }
 
 function CampaignInsightsRoute() {
-  const { clearAuth } = useAuth();
+  const { clearAuth, permissions } = useAuth();
 
-  return <CampaignInsightsPage onAuthenticationExpired={clearAuth} />;
+  return (
+    <CampaignInsightsPage
+      canAssignCampaigns={permissions.includes('ASSIGN_CAMPAIGNS')}
+      onAuthenticationExpired={clearAuth}
+    />
+  );
 }
 
 function AppRoutes() {

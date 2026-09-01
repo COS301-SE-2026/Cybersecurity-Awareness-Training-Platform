@@ -24,6 +24,7 @@ import CampaignAssignmentPagination from './campaign-assignment/CampaignAssignme
 import { deleteCampaignAssignment } from '../services/campaign-assignment.service';
 
 type CampaignInsightsPageProps = Readonly<{
+  canAssignCampaigns: boolean;
   statisticsClient?: typeof getOrganisationCampaignStatistics;
   unassignClient?: typeof deleteCampaignAssignment;
   onAuthenticationExpired?: () => void;
@@ -281,6 +282,7 @@ type AssignedTraineesTableBodyProps = Readonly<{
   statisticsData: StatisticsData | null;
   isLoading: boolean;
   assignmentPath: string;
+  canAssignCampaigns: boolean;
   campaignName: string;
   onUnassign: (trainee: CampaignStatisticsTraineeRowDto) => void;
   onRetry: () => void;
@@ -290,6 +292,7 @@ function AssignedTraineesTableBody({
   statisticsData,
   isLoading,
   assignmentPath,
+  canAssignCampaigns,
   campaignName,
   onUnassign,
   onRetry,
@@ -338,12 +341,14 @@ function AssignedTraineesTableBody({
         >
           <div className="flex flex-col items-center gap-2">
             <p className="text-red-600">No Assigned Trainees</p>
-            <Link to={assignmentPath} className="inline-flex items-center gap-1 text-purple">
-              <span className="hover:underline">Assign Trainees</span>
-              <span className="material-symbols-outlined" aria-hidden="true">
-                arrow_forward
-              </span>
-            </Link>
+            {canAssignCampaigns === true && (
+              <Link to={assignmentPath} className="inline-flex items-center gap-1 text-purple">
+                <span className="hover:underline">Assign Trainees</span>
+                <span className="material-symbols-outlined" aria-hidden="true">
+                  arrow_forward
+                </span>
+              </Link>
+            )}
           </div>
         </td>
       </tr>
@@ -361,6 +366,7 @@ function AssignedTraineesTableBody({
 }
 
 function CampaignInsightsPage({
+  canAssignCampaigns,
   statisticsClient = getOrganisationCampaignStatistics,
   unassignClient = deleteCampaignAssignment,
   onAuthenticationExpired,
@@ -783,6 +789,7 @@ function CampaignInsightsPage({
                   statisticsData={statisticsData}
                   isLoading={isStatisticsLoading}
                   assignmentPath={assignmentPath}
+                  canAssignCampaigns={canAssignCampaigns}
                   campaignName={campaignPresentation.name}
                   onUnassign={handleSelectTraineeForUnassign}
                   onRetry={handleRetryStatistics}
