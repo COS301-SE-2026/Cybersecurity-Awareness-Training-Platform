@@ -11,6 +11,7 @@ import BasicConfirmationModal from '../components/layout/modals/BasicConfirmatio
 import StatusBadge, { type DisplayStatus } from '../components/ui/StatusBadge';
 import { getOrganisationCampaignStatistics } from '../lib/campaignsApi';
 import { ApiError } from '../lib/apiClient';
+import CampaignAssignmentPagination from './campaign-assignment/CampaignAssignmentPagination';
 import { deleteCampaignAssignment } from '../services/campaign-assignment.service';
 
 type CampaignInsightsPageProps = Readonly<{
@@ -179,6 +180,8 @@ function CampaignInsightsPage({
   );
   const [isUnassigning, setIsUnassigning] = useState(false);
   const [unassignError, setUnassignError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const statisticsRequestIdRef = useRef(0);
   const unassignRequestInFlightRef = useRef(false);
   const { organisationId, campaignId } = useParams<{
@@ -224,31 +227,25 @@ function CampaignInsightsPage({
     const requestId = ++statisticsRequestIdRef.current;
 
     try {
-      const firstResponse = await statisticsClient(organisationId, campaignId, {
-        page: 1,
-        limit: 100,
+      const response = await statisticsClient(organisationId, campaignId, {
+        page: currentPage,
+        limit: 3,
       });
-      const trainees = [...firstResponse.trainees];
 
-      for (let page = 2; page <= firstResponse.pagination.totalPages; page += 1) {
-        if (statisticsRequestIdRef.current !== requestId) {
+      if (statisticsRequestIdRef.current === requestId) {
+        const nearestValidPage = Math.max(response.pagination.totalPages, 1);
+
+        if (currentPage > nearestValidPage) {
+          setCurrentPage(nearestValidPage);
           return;
         }
 
-        const pageResponse = await statisticsClient(organisationId, campaignId, {
-          page,
-          limit: 100,
-        });
-
-        trainees.push(...pageResponse.trainees);
-      }
-
-      if (statisticsRequestIdRef.current === requestId) {
         setStatisticsState({
           status: 'loaded',
-          summary: firstResponse.summary,
-          trainees,
+          summary: response.summary,
+          trainees: response.trainees,
         });
+        setTotalPages(response.pagination.totalPages);
       }
     } catch (requestError) {
       if (statisticsRequestIdRef.current === requestId) {
@@ -262,7 +259,7 @@ function CampaignInsightsPage({
         });
       }
     }
-  }, [campaignId, onAuthenticationExpired, organisationId, statisticsClient]);
+  }, [campaignId, currentPage, onAuthenticationExpired, organisationId, statisticsClient]);
 
   const refreshStatistics = useCallback(async () => {
     setStatisticsState({ status: 'loading' });
@@ -306,6 +303,7 @@ function CampaignInsightsPage({
 
   useEffect(() => {
     const requestTimeout = globalThis.setTimeout(() => {
+      setStatisticsState({ status: 'loading' });
       void requestStatistics();
     }, 0);
 
@@ -423,7 +421,7 @@ function CampaignInsightsPage({
             Description
           </p>
           <div className="bg-neutral-secondary-medium border border-default-medium p-2 font-regular tracking-wider shadow-xs text-[1.1rem] font-justify font-jost text-gray-500 mb-2">
-            <p className="m-0 max-h-[5rem] overflow-y-auto whitespace-pre-wrap leading-[1.65rem]">
+            <p className="m-0 max-h-[3.3rem] overflow-y-auto whitespace-pre-wrap leading-[1.65rem]">
               {description}
             </p>
           </div>
@@ -525,7 +523,7 @@ function CampaignInsightsPage({
           </h3>
 
           {/* Assigned Trainees Table */}
-          <div className="relative max-h-[12.5rem] overflow-y-auto overflow-x-auto bg-neutral-primary-soft border border-default">
+          <div className="relative max-h-[12.2rem] overflow-y-hidden overflow-x-auto bg-neutral-primary-soft border border-default">
             <table className="w-full text-sm text-left rtl:text-right text-body">
               <thead className="bg-faint-purple border-b border-default">
                 <tr>
@@ -603,12 +601,12 @@ function CampaignInsightsPage({
                       className="py-8 text-center text-[1.2rem] tracking-wider text-gray-600 font-jost"
                     >
                       <div className="flex flex-col items-center gap-2">
-                        <p>No Assigned Trainees</p>
+                        <p className="text-red-600">No Assigned Trainees</p>
                         <Link
                           to={assignmentPath}
-                          className="inline-flex items-center gap-1 text-purple hover:underline"
+                          className="inline-flex items-center gap-1 text-purple"
                         >
-                          <span>Assign Trainees</span>
+                          <span className="hover:underline">Assign Trainees</span>
                           <span className="material-symbols-outlined" aria-hidden="true">
                             arrow_forward
                           </span>
@@ -700,6 +698,14 @@ function CampaignInsightsPage({
               </tbody>
             </table>
           </div>
+          <CampaignAssignmentPagination
+            className="mt-2 -mb-4"
+            ariaLabel="Assigned Trainees Table Pagination"
+            currentPage={currentPage}
+            totalPages={totalPages}
+            isLoading={statisticsState.status === 'loading'}
+            setCurrentPage={setCurrentPage}
+          />
         </div>
       </div>
       {selectedTrainee !== null && (

@@ -152,6 +152,22 @@ const DISABLED_TRAINEE: GetOrganisationCampaignStatisticsResponseDto['trainees']
   },
 };
 
+const THIRD_TRAINEE: GetOrganisationCampaignStatisticsResponseDto['trainees'][number] = {
+  ...DISABLED_TRAINEE,
+  assignmentId: '30000000-0000-4000-8000-000000000003',
+  traineeProfileId: '40000000-0000-4000-8000-000000000003',
+  displayName: 'Zinhle Dlamini',
+  email: 'zinhle.dlamini@example.com',
+};
+
+const FOURTH_TRAINEE: GetOrganisationCampaignStatisticsResponseDto['trainees'][number] = {
+  ...ACTIVE_TRAINEE,
+  assignmentId: '30000000-0000-4000-8000-000000000004',
+  traineeProfileId: '40000000-0000-4000-8000-000000000004',
+  displayName: 'Thabo Mokoena',
+  email: 'thabo.mokoena@example.com',
+};
+
 const STATISTICS_RESPONSE: GetOrganisationCampaignStatisticsResponseDto = {
   campaign: {
     id: CAMPAIGN_ID,
@@ -174,7 +190,7 @@ const STATISTICS_RESPONSE: GetOrganisationCampaignStatisticsResponseDto = {
   trainees: [ACTIVE_TRAINEE, DISABLED_TRAINEE],
   pagination: {
     page: 1,
-    limit: 100,
+    limit: 3,
     total: 2,
     totalPages: 1,
   },
@@ -249,7 +265,7 @@ describe('CampaignManagementDetailPage activation', () => {
     expect(within(statusField).getByText('Active')).toBeInTheDocument();
 
     const description = screen.getByText(ACTIVE_CAMPAIGN_DESCRIPTION);
-    expect(description).toHaveClass('max-h-[5rem]', 'overflow-y-auto');
+    expect(description).toHaveClass('max-h-[3.3rem]', 'overflow-y-auto');
 
     const statistics = await screen.findByLabelText('Campaign summary statistics');
     expect(within(statistics).getAllByText('2')).toHaveLength(2);
@@ -294,7 +310,7 @@ describe('CampaignManagementDetailPage activation', () => {
       trainees: [DISABLED_TRAINEE],
       pagination: {
         page: 1,
-        limit: 100,
+        limit: 3,
         total: 1,
         totalPages: 1,
       },
@@ -320,7 +336,7 @@ describe('CampaignManagementDetailPage activation', () => {
     const dialog = screen.getByRole('dialog', { name: 'Unassign Trainee from Campaign' });
     expect(
       within(dialog).getByText(
-        `Are you sure that you want to unassign ${ACTIVE_TRAINEE.displayName} from ${ACTIVE_CAMPAIGN.name}? Their Campaign progress will be permanently removed.`,
+        `Are you sure that you want to unassign ${ACTIVE_TRAINEE.displayName} from ${ACTIVE_CAMPAIGN.name}? Their campaign progress will be permanently removed.`,
       ),
     ).toBeInTheDocument();
 
@@ -352,7 +368,7 @@ describe('CampaignManagementDetailPage activation', () => {
     expect(statisticsClient).toHaveBeenCalledTimes(2);
     expect(statisticsClient).toHaveBeenLastCalledWith(ORGANISATION_ID, CAMPAIGN_ID, {
       page: 1,
-      limit: 100,
+      limit: 3,
     });
   });
 
@@ -396,7 +412,7 @@ describe('CampaignManagementDetailPage activation', () => {
       trainees: [],
       pagination: {
         page: 1,
-        limit: 100,
+        limit: 3,
         total: 0,
         totalPages: 0,
       },
@@ -419,25 +435,29 @@ describe('CampaignManagementDetailPage activation', () => {
     );
   });
 
-  it('loads every backend Trainee page into the unpaginated table', async () => {
+  it('shows exactly three Trainees per backend-driven page', async () => {
     const user = userEvent.setup();
     const firstResponse: GetOrganisationCampaignStatisticsResponseDto = {
       ...STATISTICS_RESPONSE,
-      trainees: [ACTIVE_TRAINEE],
+      summary: {
+        ...STATISTICS_RESPONSE.summary,
+        assignedTraineeCount: 4,
+      },
+      trainees: [ACTIVE_TRAINEE, DISABLED_TRAINEE, THIRD_TRAINEE],
       pagination: {
         page: 1,
-        limit: 100,
-        total: 2,
+        limit: 3,
+        total: 4,
         totalPages: 2,
       },
     };
     const secondResponse: GetOrganisationCampaignStatisticsResponseDto = {
-      ...STATISTICS_RESPONSE,
-      trainees: [DISABLED_TRAINEE],
+      ...firstResponse,
+      trainees: [FOURTH_TRAINEE],
       pagination: {
         page: 2,
-        limit: 100,
-        total: 2,
+        limit: 3,
+        total: 4,
         totalPages: 2,
       },
     };
@@ -452,14 +472,140 @@ describe('CampaignManagementDetailPage activation', () => {
     );
 
     expect(await screen.findByText(ACTIVE_TRAINEE.displayName)).toBeInTheDocument();
-    expect(await screen.findByText(DISABLED_TRAINEE.displayName)).toBeInTheDocument();
+    expect(screen.getByText(DISABLED_TRAINEE.displayName)).toBeInTheDocument();
+    expect(screen.getByText(THIRD_TRAINEE.displayName)).toBeInTheDocument();
+    expect(screen.queryByText(FOURTH_TRAINEE.displayName)).not.toBeInTheDocument();
     expect(statisticsClient).toHaveBeenNthCalledWith(1, ORGANISATION_ID, CAMPAIGN_ID, {
       page: 1,
-      limit: 100,
+      limit: 3,
     });
+
+    const pagination = screen.getByRole('navigation', {
+      name: 'Assigned Trainees Table Pagination',
+    });
+    expect(within(pagination).getByRole('button', { name: '1' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+
+    await user.click(within(pagination).getByRole('button', { name: '2' }));
+
+    expect(await screen.findByText(FOURTH_TRAINEE.displayName)).toBeInTheDocument();
+    expect(screen.queryByText(ACTIVE_TRAINEE.displayName)).not.toBeInTheDocument();
+    expect(screen.queryByText(DISABLED_TRAINEE.displayName)).not.toBeInTheDocument();
+    expect(screen.queryByText(THIRD_TRAINEE.displayName)).not.toBeInTheDocument();
     expect(statisticsClient).toHaveBeenNthCalledWith(2, ORGANISATION_ID, CAMPAIGN_ID, {
       page: 2,
-      limit: 100,
+      limit: 3,
+    });
+    expect(within(pagination).getByRole('button', { name: '2' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+  });
+
+  it('returns to the nearest valid page when unassignment empties the current page', async () => {
+    const user = userEvent.setup();
+    const firstPage: GetOrganisationCampaignStatisticsResponseDto = {
+      ...STATISTICS_RESPONSE,
+      summary: {
+        ...STATISTICS_RESPONSE.summary,
+        assignedTraineeCount: 4,
+      },
+      trainees: [ACTIVE_TRAINEE, DISABLED_TRAINEE, THIRD_TRAINEE],
+      pagination: {
+        page: 1,
+        limit: 3,
+        total: 4,
+        totalPages: 2,
+      },
+    };
+    const secondPage: GetOrganisationCampaignStatisticsResponseDto = {
+      ...firstPage,
+      trainees: [FOURTH_TRAINEE],
+      pagination: {
+        page: 2,
+        limit: 3,
+        total: 4,
+        totalPages: 2,
+      },
+    };
+    const emptyRemovedPage: GetOrganisationCampaignStatisticsResponseDto = {
+      ...firstPage,
+      summary: {
+        ...firstPage.summary,
+        assignedTraineeCount: 3,
+      },
+      trainees: [],
+      pagination: {
+        page: 2,
+        limit: 3,
+        total: 3,
+        totalPages: 1,
+      },
+    };
+    const correctedFirstPage: GetOrganisationCampaignStatisticsResponseDto = {
+      ...emptyRemovedPage,
+      trainees: [ACTIVE_TRAINEE, DISABLED_TRAINEE, THIRD_TRAINEE],
+      pagination: {
+        page: 1,
+        limit: 3,
+        total: 3,
+        totalPages: 1,
+      },
+    };
+    const statisticsClient: StatisticsClient = vi
+      .fn()
+      .mockResolvedValueOnce(firstPage)
+      .mockResolvedValueOnce(secondPage)
+      .mockResolvedValueOnce(emptyRemovedPage)
+      .mockResolvedValueOnce(correctedFirstPage);
+    const unassignClient: UnassignClient = vi.fn().mockResolvedValue({
+      assignmentId: FOURTH_TRAINEE.assignmentId,
+      campaignId: CAMPAIGN_ID,
+      traineeProfileId: FOURTH_TRAINEE.traineeProfileId,
+      unassigned: true,
+      deletedProgress: {
+        quizAttempts: 1,
+        emailClassificationResponses: 0,
+        interactionEvents: 2,
+      },
+    });
+
+    renderPage(
+      ACTIVE_CAMPAIGN,
+      { archiveCampaign: vi.fn() },
+      firstPage,
+      statisticsClient,
+      unassignClient,
+    );
+
+    await user.click(
+      await screen.findByRole('button', { name: 'View Assigned Trainees & Insights' }),
+    );
+
+    const pagination = await screen.findByRole('navigation', {
+      name: 'Assigned Trainees Table Pagination',
+    });
+    await user.click(within(pagination).getByRole('button', { name: '2' }));
+    expect(await screen.findByText(FOURTH_TRAINEE.displayName)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Unassign' }));
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Unassign' }));
+
+    expect(await screen.findByText(ACTIVE_TRAINEE.displayName)).toBeInTheDocument();
+    expect(screen.queryByText(FOURTH_TRAINEE.displayName)).not.toBeInTheDocument();
+    expect(within(pagination).getByRole('button', { name: '1' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(statisticsClient).toHaveBeenNthCalledWith(3, ORGANISATION_ID, CAMPAIGN_ID, {
+      page: 2,
+      limit: 3,
+    });
+    expect(statisticsClient).toHaveBeenNthCalledWith(4, ORGANISATION_ID, CAMPAIGN_ID, {
+      page: 1,
+      limit: 3,
     });
   });
 
