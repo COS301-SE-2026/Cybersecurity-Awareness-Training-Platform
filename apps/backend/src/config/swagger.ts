@@ -1190,8 +1190,18 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
               maximum: 480,
               example: 30,
             }),
-            deviceSummary: nullableString('Chrome on Windows'),
-            locationSummary: nullableString('Johannesburg, ZA'),
+            deviceSummary: {
+              ...nullableString('Windows · Chrome'),
+              description:
+                'Conservative prepared device and browser summary. Null may be returned for legacy sessions; raw user-agent strings are never returned.',
+            },
+            locationSummary: {
+              type: 'string',
+              nullable: true,
+              example: null,
+              description:
+                'Prepared location summary when supported. Currently null because IP addresses are not presented as physical locations.',
+            },
           },
         },
         AccountSessionsResponse: {

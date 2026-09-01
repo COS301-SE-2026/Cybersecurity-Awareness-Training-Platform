@@ -49,6 +49,25 @@ function formatLastActive(dateString: string): string {
   }
 }
 
+const SUPPORTED_SESSION_DEVICES = new Set(['Windows', 'macOS', 'Linux', 'Android', 'iOS']);
+const SUPPORTED_SESSION_BROWSERS = new Set(['Edge', 'Chrome', 'Firefox', 'Safari']);
+
+function toSessionDisplayMetadata(deviceSummary: string | null): {
+  deviceName: string;
+  browserName: string;
+} {
+  const parts = deviceSummary?.split('·').map((part) => part.trim()) ?? [];
+  if (
+    parts.length !== 2 ||
+    !SUPPORTED_SESSION_DEVICES.has(parts[0] ?? '') ||
+    !SUPPORTED_SESSION_BROWSERS.has(parts[1] ?? '')
+  ) {
+    return { deviceName: 'Unknown device', browserName: 'Unknown browser' };
+  }
+
+  return { deviceName: parts[0]!, browserName: parts[1]! };
+}
+
 function getEffectiveRegularText(seconds?: number | null): string {
   if (!seconds) return '15 Minutes';
   if (seconds < 3600) return `${Math.round(seconds / 60)} Minutes`;
@@ -338,9 +357,7 @@ function SessionSettingsPage({
               <AdminTableEmptyRow colSpan={5}>No active sessions found.</AdminTableEmptyRow>
             ) : (
               sessions.map((session, index) => {
-                const parts = (session.deviceSummary || '').split('·').map((s: string) => s.trim());
-                const deviceName = parts[0] || session.deviceSummary || 'Active Session';
-                const browserName = parts[1] || 'Web Browser';
+                const { deviceName, browserName } = toSessionDisplayMetadata(session.deviceSummary);
 
                 return (
                   <tr
@@ -362,7 +379,7 @@ function SessionSettingsPage({
                       <TruncatedValue value={browserName} />
                     </AdminTableCell>
                     <AdminTableCell>
-                      <TruncatedValue value={session.locationSummary || 'Unknown Location'} />
+                      <TruncatedValue value={session.locationSummary || 'Location unavailable'} />
                     </AdminTableCell>
                     <AdminTableCell>
                       <TruncatedValue value={formatLastActive(session.lastActiveAt)} />
