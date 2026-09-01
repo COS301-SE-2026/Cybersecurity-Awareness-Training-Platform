@@ -660,7 +660,7 @@ function OrganisationTraineesPage() {
   const invitationActionOwnerRef = useRef<InvitationActionRequestOwner | null>(null);
 
   const [invitationAction, setInvitationAction] = useState<InvitationActionState | null>(null);
-  const [ActionFeedback, setActionFeedback] = useState<ActionFeedback | null>(null);
+  const [actionFeedback, setActionFeedback] = useState<ActionFeedback | null>(null);
   const [invitationActionsUnavailableTarget, setInvitationActionsUnavailableTarget] =
     useState<InvitationActionsUnavailableTarget | null>(null);
 
@@ -1777,6 +1777,13 @@ function OrganisationTraineesPage() {
           ? { ...current, generalError: message, isSubmitting: false }
           : current,
       );
+
+      setActionFeedback({
+        organisationId: target.organisationId,
+        token: target.token,
+        variant: 'error',
+        message,
+      });
     } finally {
       if (ownsRequest()) {
         reenableRequestOwnerRef.current = null;
@@ -2021,10 +2028,6 @@ function OrganisationTraineesPage() {
       }
 
       setInviteCreated(true);
-      // setActionFeedback({
-      //   target: requestTarget,
-      //   message: response.message,
-      // });
 
       const refreshResult = await reloadOrganisationTrainees();
 
@@ -2033,15 +2036,28 @@ function OrganisationTraineesPage() {
       }
 
       if (refreshResult === 'failed') {
-        setInviteGeneralError(
-          `${response.message} The invitation was created, but the trainee list could not be refreshed. Close this dialog and reload the page before trying again.`,
-        );
+        const refreshFailureMessage = `${response.message} The invitation was created, but the trainee list could not be refreshed. Close this dialog and reload the page before trying again.`;
+        setInviteGeneralError(refreshFailureMessage);
+        setActionFeedback({
+          organisationId: requestTarget.organisationId,
+          token: requestTarget.token,
+          variant: 'warning',
+          message: refreshFailureMessage,
+        });
+
         return;
       }
 
       if (refreshResult === 'stale') {
         return;
       }
+
+      setActionFeedback({
+        organisationId: requestTarget.organisationId,
+        token: requestTarget.token,
+        variant: 'success',
+        message: response.message,
+      });
 
       setShowInviteTraineeModal(false);
       resetInviteModal();
@@ -2062,13 +2078,27 @@ function OrganisationTraineesPage() {
         }
 
         if (error.status === 409 && errorCode === 'CANNOT_INVITE_USER') {
-          setInviteGeneralError(getInviteApiErrorMessage(error));
+          const message = getInviteApiErrorMessage(error);
+          setInviteGeneralError(message);
+          setActionFeedback({
+            organisationId: requestTarget.organisationId,
+            token: requestTarget.token,
+            variant: 'error',
+            message,
+          });
           void reloadOrganisationTrainees();
           return;
         }
       }
 
-      setInviteGeneralError(getInviteApiErrorMessage(error));
+      const message = getInviteApiErrorMessage(error);
+      setInviteGeneralError(message);
+      setActionFeedback({
+        organisationId: requestTarget.organisationId,
+        token: requestTarget.token,
+        variant: 'error',
+        message,
+      });
     } finally {
       if (isCurrentRequest()) {
         inviteRequestOwnerRef.current = null;
@@ -2130,81 +2160,15 @@ function OrganisationTraineesPage() {
         </div>
 
         <div className="px-6 pb-6">
-          {currentDisableFeedback && (
-            <div
-              role={currentDisableFeedback.variant === 'success' ? 'status' : 'alert'}
-              className={`p-4 mb-6 border rounded-none font-jost text-[1.1rem] flex items-center justify-between gap-3 w-full ${
-                currentDisableFeedback.variant === 'success'
-                  ? 'text-green-800 bg-green-50 border-green-200'
-                  : currentDisableFeedback.variant === 'warning'
-                    ? 'text-amber-800 bg-amber-50 border-amber-200'
-                    : 'text-red-800 bg-red-50 border-red-200'
-              }`}
+          {currentActionFeedback && (
+            <BasicAlert
+              variant={
+                currentActionFeedback.variant === 'error' ? 'danger' : currentActionFeedback.variant
+              }
+              onClose={() => setActionFeedback(null)}
             >
-              <span>{currentDisableFeedback.message}</span>
-
-              <button
-                type="button"
-                onClick={() => setActionFeedback(null)}
-                className="shrink-0 cursor-pointer"
-                aria-label="Dismiss disable trainee message"
-              >
-                <span className="material-symbols-sharp">close</span>
-              </button>
-            </div>
-          )}
-
-          {currentReenableFeedback && (
-            <div
-              role={currentReenableFeedback.variant === 'success' ? 'status' : 'alert'}
-              className={`p-4 mb-6 border rounded-none font-jost text-[1.1rem] flex items-center justify-between gap-3 w-full ${
-                currentReenableFeedback.variant === 'success'
-                  ? 'text-green-800 bg-green-50 border-green-200'
-                  : currentReenableFeedback.variant === 'warning'
-                    ? 'text-amber-800 bg-amber-50 border-amber-200'
-                    : 'text-red-800 bg-red-50 border-red-200'
-              }`}
-            >
-              <span>{currentReenableFeedback.message}</span>
-              <button
-                type="button"
-                onClick={() => setActionFeedback(null)}
-                className="shrink-0 cursor-pointer"
-                aria-label="Dismiss re-enable trainee message"
-              >
-                <span className="material-symbols-sharp">close</span>
-              </button>
-            </div>
-          )}
-
-          {currentInvitationActionFeedback && (
-            <div
-              role={currentInvitationActionFeedback.variant === 'success' ? 'status' : 'alert'}
-              className={`p-4 mb-6 border rounded-none font-jost text-[1.1rem] flex items-center justify-between gap-3 w-full ${
-                currentInvitationActionFeedback.variant === 'success'
-                  ? 'text-green-800 bg-green-50 border-green-200'
-                  : currentInvitationActionFeedback.variant === 'warning'
-                    ? 'text-amber-800 bg-amber-50 border-amber-200'
-                    : 'text-red-800 bg-red-50 border-red-200'
-              }`}
-            >
-              <span>{currentInvitationActionFeedback.message}</span>
-
-              <button
-                type="button"
-                onClick={() => setActionFeedback(null)}
-                className="shrink-0 cursor-pointer"
-                aria-label="Dismiss invitation action message"
-              >
-                <span className="material-symbols-sharp">close</span>
-              </button>
-            </div>
-          )}
-          {inviteSuccess && inviteTargetsMatch(inviteSuccess.target, currentInviteTarget) && (
-            <output className="p-4 mb-6 text-green-800 bg-green-50 border border-green-200 rounded-none font-jost text-[1.1rem] flex items-center gap-3 w-full">
-              <span className="material-symbols-sharp">check_circle</span>
-              <span>{inviteSuccess.message}</span>
-            </output>
+              {currentActionFeedback.message}
+            </BasicAlert>
           )}
           {loadError && (
             <div

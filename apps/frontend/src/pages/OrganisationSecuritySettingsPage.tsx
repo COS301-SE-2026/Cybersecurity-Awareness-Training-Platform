@@ -372,19 +372,13 @@ function OrganisationSecuritySettingsPage() {
               }}
             >
               {validationDetails[0]?.message
-                ? `$errorMessage}: ${validationDetails[0].message}`
+                ? `${errorMessage}: ${validationDetails[0].message}`
                 : errorMessage}
             </BasicAlert>
           )}
 
           {successMessage && (
-            <BasicAlert
-              variant="success"
-              onClose={() => {
-                setErrorMessage(null);
-                setValidationDetails([]);
-              }}
-            >
+            <BasicAlert variant="success" onClose={() => setSuccessMessage(null)}>
               {successMessage}
             </BasicAlert>
           )}
