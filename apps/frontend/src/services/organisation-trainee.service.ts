@@ -5,6 +5,8 @@ import type {
   DisableTraineeResponseDto,
   InvitationResendResponseDto,
   InvitationRevokeResponseDto,
+  ReenableTraineeRequestDto,
+  ReenableTraineeResponseDto,
   TraineeListResponseDto,
 } from '@insightful-phish/shared';
 import { apiClient } from '../lib/apiClient';
@@ -71,6 +73,21 @@ export function disableOrganisationTrainee(
 ): Promise<DisableTraineeResponseDto> {
   return apiClient.patch<DisableTraineeResponseDto, DisableTraineeRequestDto>(
     `/organisations/${organisationId}/trainees/${traineeId}/disable`,
+    input,
+    {
+      authToken: token,
+    },
+  );
+}
+
+export function reenableOrganisationTrainee(
+  organisationId: string,
+  traineeId: string,
+  input: ReenableTraineeRequestDto,
+  token: string,
+): Promise<ReenableTraineeResponseDto> {
+  return apiClient.patch<ReenableTraineeResponseDto, ReenableTraineeRequestDto>(
+    `/organisations/${organisationId}/trainees/${traineeId}/enable`,
     input,
     {
       authToken: token,
