@@ -236,7 +236,7 @@ function LoginPage() {
         leftWidth="50%"
         rightWidth="50%"
         responsive
-        leftPanelClassName="lg:basis-1/2"
+        leftPanelClassName="lg:basis-1/2 lg:justify-start"
         rightPanelClassName="lg:basis-1/2"
         rightPanelStyle={{
           justifyContent: 'flex-end',
@@ -250,9 +250,10 @@ function LoginPage() {
                 <img
                   src="/main_logo_light_motto.png"
                   alt="Insightful Phish Logo"
+                  className="lg:-mt-14"
                   style={{
                     width: '200px',
-                    marginBottom: '2rem',
+                    marginBottom: '0.75rem',
                     marginLeft: '-12px',
                   }}
                 />

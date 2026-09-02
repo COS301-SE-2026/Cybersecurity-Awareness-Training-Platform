@@ -83,13 +83,13 @@ function RepresentativeInformationPage({
 
       {/* ALERTS FOR RESEND RESULT */}
       {resendSuccessMessage && (
-        <div className="mb-4 p-4 text-sm text-green-800 bg-green-50 border border-green-300 rounded-none dark:bg-gray-800 dark:text-green-400 dark:border-green-800 font-overpass">
+        <div className="mb-4 p-4 text-sm text-green-800 bg-green-50 border border-green-300 rounded-none font-overpass">
           <span className="font-medium">Success:</span> {resendSuccessMessage}
         </div>
       )}
 
       {resendErrorMessage && (
-        <div className="mb-4 p-4 text-sm text-red-800 bg-red-50 border border-red-300 rounded-none dark:bg-gray-800 dark:text-red-400 dark:border-red-800 font-overpass">
+        <div className="mb-4 p-4 text-sm text-red-800 bg-red-50 border border-red-300 rounded-none font-overpass">
           <span className="font-medium">Notice:</span> {resendErrorMessage}
         </div>
       )}
@@ -111,7 +111,7 @@ function RepresentativeInformationPage({
             disabled={true}
             value={fullName}
             readOnly
-            className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 rounded-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+            className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 rounded-none"
             placeholder="Representative Full Name"
           />
         </div>
@@ -132,7 +132,7 @@ function RepresentativeInformationPage({
             disabled={true}
             value={email}
             readOnly
-            className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 rounded-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+            className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 rounded-none"
             placeholder="Representative Email Address"
           />
         </div>
@@ -153,7 +153,7 @@ function RepresentativeInformationPage({
             disabled={true}
             value={displaySetupStatus}
             readOnly
-            className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 rounded-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+            className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 rounded-none"
             placeholder="Initial Administrator Setup Status"
           />
         </div>

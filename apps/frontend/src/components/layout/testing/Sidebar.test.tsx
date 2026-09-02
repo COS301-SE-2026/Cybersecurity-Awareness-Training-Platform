@@ -94,6 +94,19 @@ describe('Sidebar Campaign navigation', () => {
     },
   );
 
+  it('stays compact and exposes each navigation label on hover', () => {
+    mockedUseAuth.mockReturnValue(createAuthValue('IP_ADMIN'));
+
+    renderSidebar('/platform-administrators');
+
+    const campaignsButton = screen.getByRole('button', { name: 'Campaigns' });
+
+    expect(campaignsButton.closest('aside')).toHaveStyle({ width: '84px' });
+    expect(campaignsButton).toHaveStyle({ height: '84px' });
+    expect(campaignsButton).toHaveAttribute('title', 'Campaigns');
+    expect(screen.queryByTestId('MenuIcon')).not.toBeInTheDocument();
+  });
+
   it.each(['VIEW_CAMPAIGNS', 'MANAGE_CAMPAIGNS'])(
     'uses the authenticated organisation ID for authorized Organisation Campaigns with %s',
     async (permission) => {
@@ -101,7 +114,6 @@ describe('Sidebar Campaign navigation', () => {
       mockedUseAuth.mockReturnValue(
         createAuthValue('ORGANISATION_ADMIN', [permission], ORGANISATION_ID),
       );
-
       renderSidebar('/organisation-information');
 
       await user.click(screen.getByRole('button', { name: 'Campaigns' }));

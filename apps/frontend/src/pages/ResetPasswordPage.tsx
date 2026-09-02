@@ -513,7 +513,7 @@ function ResetPasswordFlow({ token }: ResetPasswordFlowProps) {
   }
 
   return (
-    <section className="bg-light-purple dark:bg-gray-900">
+    <section className="bg-light-purple">
       <div className="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0">
         {formError && (
           <BasicAlert variant="danger" onClose={() => setFormError('')}>
@@ -533,7 +533,7 @@ function ResetPasswordFlow({ token }: ResetPasswordFlowProps) {
           </span>
         </div>
 
-        <div className="w-full p-6 bg-white-purple shadow dark:border md:mt-0 sm:max-w-md dark:bg-gray-800 dark:border-gray-700 sm:p-8">
+        <div className="w-full p-6 bg-white-purple shadow md:mt-0 sm:max-w-md sm:p-8">
           {/* HEADING */}
           <h3 className="font-jost text-3xl text-purple tracking-wider font-medium text-heading">
             Reset your Password
@@ -593,7 +593,7 @@ function ResetPasswordFlow({ token }: ResetPasswordFlowProps) {
                 autoComplete="new-password"
                 aria-invalid={fieldErrors.newPassword ? true : undefined}
                 aria-describedby={fieldErrors.newPassword ? NEW_FIELD_ERROR_ID : undefined}
-                className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
                 placeholder="Enter a New Password"
               />
               {fieldErrors.newPassword && (
@@ -632,7 +632,7 @@ function ResetPasswordFlow({ token }: ResetPasswordFlowProps) {
                 aria-describedby={
                   fieldErrors.confirmNewPassword ? CONFIRMATION_FIELD_ERROR_ID : undefined
                 }
-                className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
                 placeholder="Re-Enter New Password"
               />
               {fieldErrors.confirmNewPassword && (

@@ -24,7 +24,7 @@ function PageBackButton({ marginBottom = '-1.2rem' }: PageBackButtonProps) {
         width: 'fit-content',
         cursor: 'pointer',
         marginBottom,
-        color: '#b882ff',
+        color: 'var(--ip-deep-purple)',
         transition: '0.18s ease',
         userSelect: 'none',
         background: 'none',
