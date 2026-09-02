@@ -42,3 +42,11 @@ export const submitQuizAttemptRequestSchema = z
     answers: z.array(quizAnswerInputSchema).min(1, 'Please select at least one answer.'),
   })
   .strict();
+
+export const currentQuizAttemptSummarySchema = z
+  .object({
+    attemptId: idParamSchema,
+    status: z.enum(['IN_PROGRESS', 'SUBMITTED']),
+    hasResult: z.boolean(),
+  })
+  .strict();

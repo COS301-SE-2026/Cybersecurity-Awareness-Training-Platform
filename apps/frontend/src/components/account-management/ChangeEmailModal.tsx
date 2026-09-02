@@ -152,7 +152,7 @@ function ChangeEmailModal({ isOpen, onClose, onSuccess, onApiError }: ChangeEmai
                 id="new-email-address"
                 value={newEmail}
                 onChange={(e) => setNewEmail(e.target.value)}
-                className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
                 placeholder="Enter a New Email Address"
               />
             </div>
@@ -172,7 +172,7 @@ function ChangeEmailModal({ isOpen, onClose, onSuccess, onApiError }: ChangeEmai
                 id="confirm-new-email-address"
                 value={confirmNewEmail}
                 onChange={(e) => setConfirmNewEmail(e.target.value)}
-                className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
                 placeholder="Re-Enter New Email Address"
               />
             </div>
@@ -192,7 +192,7 @@ function ChangeEmailModal({ isOpen, onClose, onSuccess, onApiError }: ChangeEmai
                 id="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
                 placeholder="Enter your Password"
               />
             </div>

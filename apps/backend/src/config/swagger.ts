@@ -400,6 +400,11 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
           'TRAINING_RATE_LIMITED',
           'Too many training requests. Please try again later.',
         ),
+        CampaignManagementRateLimitErrorResponse: errorResponseSchema(
+          'ApiErrorResponse',
+          'CAMPAIGN_MANAGEMENT_RATE_LIMITED',
+          'Too many campaign management requests. Please try again later.',
+        ),
         EmptyRequestBody: {
           type: 'object',
           additionalProperties: false,
@@ -692,13 +697,29 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         },
         AuthLoginResponse: {
           type: 'object',
-          required: ['accessToken', 'user', 'context', 'permissions', 'redirectTo'],
+          required: [
+            'accessToken',
+            'idleTimeoutMinutes',
+            'user',
+            'context',
+            'permissions',
+            'redirectTo',
+          ],
           properties: {
             accessToken: {
               type: 'string',
               description: 'Bearer access token for authenticated requests.',
               example:
                 'eyJ1c2VySWQiOiJ1c2VyLTEyMyIsImV4cGlyZXNBdCI6IjIwMjYtMDUtMTJUMjA6NDQ6NTQuMDAwWiJ9.signature',
+            },
+            idleTimeoutMinutes: {
+              ...nullableIntegerRange({
+                minimum: 5,
+                maximum: 480,
+                example: 30,
+              }),
+              description:
+                'Effective browser-observed inactivity in timeout minutes. Null disabled browser idle timeout.',
             },
             user: {
               $ref: '#/components/schemas/PublicUser',
@@ -1087,6 +1108,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             'canRequestEmailChange',
             'canChangePassword',
             'canEditSecurityPreferences',
+            'canDeleteAccount',
             'securityPreferenceEditable',
             'blockedReasons',
           ],
@@ -1095,6 +1117,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             canRequestEmailChange: booleanProperty(true),
             canChangePassword: booleanProperty(true),
             canEditSecurityPreferences: booleanProperty(true),
+            canDeleteAccount: booleanProperty(false),
             securityPreferenceEditable: {
               type: 'object',
               required: [
@@ -1116,6 +1139,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
                 'preferredRegularSessionLengthHours',
                 'preferredRememberMeSessionLengthHours',
                 'preferredIdleTimeoutMinutes',
+                'deleteAccount',
               ],
               properties: {
                 emailChange: nullableString('ORGANISATION_POLICY_BLOCKED'),
@@ -1125,6 +1149,17 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
                   'ORGANISATION_POLICY_ENFORCED',
                 ),
                 preferredIdleTimeoutMinutes: nullableString('ORGANISATION_POLICY_ENFORCED'),
+                deleteAccount: {
+                  type: 'string',
+                  nullable: true,
+                  enum: [
+                    'PLATFORM_SELF_DELETION_NOT_SUPPORTED',
+                    'ORGANISATION_ADMIN_MANAGED',
+                    'ORGANISATION_TRAINEE_MANAGED',
+                    'SELF_DELETION_NOT_SUPPORTED',
+                  ],
+                  example: 'PLATFORM_SELF_DELETION_NOT_SUPPORTED',
+                },
               },
             },
           },
@@ -1169,8 +1204,18 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
               maximum: 480,
               example: 30,
             }),
-            deviceSummary: nullableString('Chrome on Windows'),
-            locationSummary: nullableString('Johannesburg, ZA'),
+            deviceSummary: {
+              ...nullableString('Windows · Chrome'),
+              description:
+                'Conservative prepared device and browser summary. Null may be returned for legacy sessions; raw user-agent strings are never returned.',
+            },
+            locationSummary: {
+              type: 'string',
+              nullable: true,
+              example: null,
+              description:
+                'Prepared location summary when supported. Currently null because IP addresses are not presented as physical locations.',
+            },
           },
         },
         AccountSessionsResponse: {
@@ -2028,6 +2073,32 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             },
           ],
         },
+        OwnOrganisationDetail: {
+          type: 'object',
+          required: [
+            'id',
+            'name',
+            'status',
+            'description',
+            'approximateSize',
+            'website',
+            'registeredTraineeCount',
+            'registrationDate',
+          ],
+          properties: {
+            id: uuidString('f6fdeb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+            name: { type: 'string', example: 'Example Consulting' },
+            status: enumString(
+              ['PENDING_ONBOARDING', 'ACTIVE', 'INACTIVE', 'SUSPENDED', 'DISABLED', 'ARCHIVED'],
+              'ACTIVE',
+            ),
+            description: nullableString('A consulting company'),
+            approximateSize: { type: 'integer', nullable: true, example: 150 },
+            website: nullableString('https://example.com'),
+            registeredTraineeCount: { type: 'integer', example: 15 },
+            registrationDate: dateTimeString('2026-05-16T09:00:00.000Z'),
+          },
+        },
         PlatformAdminRole: enumString(['SUPER_ADMIN', 'NORMAL_ADMIN'], 'SUPER_ADMIN'),
         PlatformAdminStatus: enumString(['ACTIVE', 'DISABLED'], 'ACTIVE'),
         PlatformAdminInvitationStatus: enumString(
@@ -2628,9 +2699,21 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
           type: 'object',
           required: ['trainees', 'invitations'],
           properties: {
-            trainees: arrayOf(schemaRef('TraineeListItem')),
-            invitations: arrayOf(schemaRef('TraineeListItem')),
-            pendingInvitations: arrayOf(schemaRef('TraineeListItem')),
+            trainees: {
+              ...arrayOf(schemaRef('TraineeListItem')),
+              description:
+                'Current organisation trainee membership rows, including disabled memberships where supported.',
+            },
+            invitations: {
+              ...arrayOf(schemaRef('TraineeListItem')),
+              description:
+                'Visible trainee invitation rows that still support management actions. Accepted or completed invitation history is not returned here.',
+            },
+            pendingInvitations: {
+              ...arrayOf(schemaRef('TraineeListItem')),
+              description:
+                'Compatibility alias for the same visible/actionable invitation rows returned in invitations.',
+            },
           },
         },
         CreateTraineeInvitationRequest: {
@@ -2750,6 +2833,38 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             },
             traineeId: uuidString('44444444-4444-4444-8444-444444444444'),
             status: enumString(['DISABLED'], 'DISABLED'),
+          },
+        },
+        ReenableTraineeRequest: {
+          type: 'object',
+          required: ['password', 'confirmation'],
+          additionalProperties: false,
+          properties: {
+            password: {
+              type: 'string',
+              format: 'password',
+              minLength: 1,
+              description: 'Current password of the acting Organisation Admin.',
+            },
+            confirmation: {
+              type: 'boolean',
+              enum: [true],
+              example: true,
+              description: 'Explicit confirmation of the membership re-enable action.',
+            },
+          },
+        },
+        ReenableTraineeResponse: {
+          type: 'object',
+          required: ['success', 'message'],
+          properties: {
+            success: booleanProperty(true),
+            message: {
+              type: 'string',
+              example: 'Trainee account re-enabled successfully.',
+            },
+            traineeId: uuidString('44444444-4444-4444-8444-444444444444'),
+            status: enumString(['ACTIVE'], 'ACTIVE'),
           },
         },
         OrganisationSecuritySettings: {
@@ -3444,6 +3559,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             'campaignType',
             'difficultyLevel',
             'status',
+            'progressStatus',
             'eligibility',
           ],
           properties: {
@@ -3487,7 +3603,6 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
               allOf: [schemaRef('CampaignAccessType')],
             },
             progressStatus: {
-              nullable: true,
               allOf: [schemaRef('TraineeCampaignProgressStatus')],
             },
             itemCount: {
@@ -3602,6 +3717,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             'availabilityStatus',
             'isOpenable',
             'activityApiPath',
+            'progressStatus',
             'eligibility',
           ],
           properties: {
@@ -3662,7 +3778,6 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
                 '/trainee/campaign-items/88888888-8888-4888-8888-888888888888/training-document',
             },
             progressStatus: {
-              nullable: true,
               allOf: [schemaRef('TraineeCampaignProgressStatus')],
             },
             eligibility: schemaRef('CampaignEligibility'),
@@ -3693,6 +3808,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             'isRequired',
             'availabilityStatus',
             'isOpenable',
+            'progressStatus',
             'eligibility',
             'children',
           ],
@@ -3751,7 +3867,6 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
               example: null,
             },
             progressStatus: {
-              nullable: true,
               allOf: [schemaRef('TraineeCampaignProgressStatus')],
             },
             eligibility: schemaRef('CampaignEligibility'),
@@ -4306,6 +4421,22 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             },
           },
         },
+        CurrentQuizAttemptSummary: {
+          type: 'object',
+          required: ['attemptId', 'status', 'hasResult'],
+          properties: {
+            attemptId: {
+              ...uuidString('22222222-2222-2222-2222-222222222222'),
+            },
+            status: {
+              $ref: '#/components/schemas/QuizAttemptStatus',
+            },
+            hasResult: {
+              type: 'boolean',
+              example: true,
+            },
+          },
+        },
         GetQuizResponse: {
           type: 'object',
           required: [
@@ -4352,6 +4483,10 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             },
             questions: {
               ...arrayOf(schemaRef('QuizQuestionForTrainee')),
+            },
+            currentAttempt: {
+              nullable: true,
+              allOf: [schemaRef('CurrentQuizAttemptSummary')],
             },
           },
         },
@@ -4771,6 +4906,194 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             deletedProgress: schemaRef('DeletedProgressCounts'),
           },
         },
+        CampaignStatisticsCampaign: {
+          type: 'object',
+          required: [
+            'id',
+            'name',
+            'description',
+            'campaignType',
+            'status',
+            'startDate',
+            'endDate',
+            'itemCount',
+            'quizCount',
+          ],
+          additionalProperties: false,
+          properties: {
+            id: uuidString('9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+            name: {
+              type: 'string',
+              example: 'Checkers Sixty60 Phishing Awareness Training',
+            },
+            description: nullableString('South African retail security awareness campaign'),
+            campaignType: enumString(
+              ['PREMADE_GENERAL', 'ORGANISATION_CUSTOM'],
+              'ORGANISATION_CUSTOM',
+            ),
+            status: enumString(['DRAFT', 'ACTIVE', 'PAUSED', 'COMPLETED', 'ARCHIVED'], 'ACTIVE'),
+            startDate: {
+              type: 'string',
+              format: 'date-time',
+              nullable: true,
+              example: '2026-09-01T00:00:00.000Z',
+            },
+            endDate: {
+              type: 'string',
+              format: 'date-time',
+              nullable: true,
+              example: '2026-09-30T23:59:59.000Z',
+            },
+            itemCount: {
+              type: 'integer',
+              minimum: 0,
+              example: 4,
+              description:
+                'Number of consumable component items in the campaign. Training Documents, Quizzes, and Simulated Inboxes count; structural/group records do not. All consumable items count regardless of isRequired.',
+            },
+            quizCount: {
+              type: 'integer',
+              minimum: 0,
+              example: 2,
+              description: 'Number of Quiz component items in the campaign.',
+            },
+          },
+        },
+        CampaignStatisticsSummary: {
+          type: 'object',
+          required: [
+            'assignedTraineeCount',
+            'startedTraineeCount',
+            'completedTraineeCount',
+            'overallProgressPercentage',
+            'averageQuizScorePercentage',
+          ],
+          additionalProperties: false,
+          properties: {
+            assignedTraineeCount: { type: 'integer', minimum: 0, example: 25 },
+            startedTraineeCount: {
+              type: 'integer',
+              minimum: 0,
+              example: 18,
+              description:
+                'Number of assigned trainees with at least one authoritative persisted progress fact: a TRAINING_VIEWED or TRAINING_COMPLETED event, an IN_PROGRESS or SUBMITTED QuizAttempt, or a SIMULATED_EMAIL_OPENED event. CampaignAssignment.startedAt is not used.',
+            },
+            completedTraineeCount: {
+              type: 'integer',
+              minimum: 0,
+              example: 12,
+              description:
+                'Number of assigned trainees who completed every consumable campaign item. A Training Document requires TRAINING_COMPLETED; a Quiz requires a SUBMITTED attempt with its completed result; a Simulated Inbox requires every email in that inbox to have a SIMULATED_EMAIL_OPENED progress fact.',
+            },
+            overallProgressPercentage: {
+              type: 'integer',
+              nullable: true,
+              minimum: 0,
+              maximum: 100,
+              example: 68,
+              description:
+                'Arithmetic mean of the already-rounded integer progressPercentage values for every assigned trainee in the complete cohort, rounded again to the nearest whole integer. Returns null when no trainees are assigned.',
+            },
+            averageQuizScorePercentage: {
+              type: 'integer',
+              nullable: true,
+              minimum: 0,
+              maximum: 100,
+              example: 85,
+              description:
+                'Arithmetic mean of the already-rounded per-trainee averageQuizScorePercentage values for contributing trainees, rounded again to the nearest whole integer. Raw Quiz results are not averaged directly across the cohort. Returns null when no trainee has a qualifying submitted score.',
+            },
+          },
+        },
+        CampaignStatisticsTraineeProgress: {
+          type: 'object',
+          required: ['completedItemCount', 'totalItemCount', 'progressPercentage'],
+          additionalProperties: false,
+          properties: {
+            completedItemCount: { type: 'integer', minimum: 0, example: 3 },
+            totalItemCount: { type: 'integer', minimum: 0, example: 4 },
+            progressPercentage: {
+              type: 'integer',
+              minimum: 0,
+              maximum: 100,
+              example: 75,
+              description:
+                'Completed consumable items divided by total consumable items, rounded to the nearest whole percentage. Partial Quiz attempts and partially opened Simulated Inboxes make the trainee started but do not partially complete an item. Returns 0 when totalItemCount is 0.',
+            },
+          },
+        },
+        CampaignStatisticsTraineeActions: {
+          type: 'object',
+          required: ['canUnassign'],
+          additionalProperties: false,
+          properties: {
+            canUnassign: booleanProperty(true),
+          },
+        },
+        CampaignStatisticsTraineeRow: {
+          type: 'object',
+          required: [
+            'assignmentId',
+            'traineeProfileId',
+            'displayName',
+            'email',
+            'traineeStatus',
+            'assignmentStatus',
+            'accessType',
+            'assignedAt',
+            'progress',
+            'completedQuizCount',
+            'totalQuizCount',
+            'averageQuizScorePercentage',
+            'allowedActions',
+          ],
+          additionalProperties: false,
+          properties: {
+            assignmentId: uuidString('55555555-5555-4555-8555-555555555555'),
+            traineeProfileId: uuidString('a1b2c3d4-e5f6-47a8-b9c0-d1e2f3a4b5c6'),
+            displayName: { type: 'string', example: 'Sipho Ndlovu' },
+            email: {
+              type: 'string',
+              format: 'email',
+              example: 'sipho.ndlovu@rustenburg-cyber.co.za',
+            },
+            traineeStatus: {
+              ...enumString(['ACTIVE', 'INACTIVE', 'DISABLED'], 'ACTIVE'),
+              description:
+                'Organisation trainee membership status. DISABLED trainees remain in the statistics cohort while their campaign assignment exists.',
+            },
+            assignmentStatus: enumString(
+              ['AVAILABLE', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'EXPIRED'],
+              'IN_PROGRESS',
+            ),
+            accessType: enumString(['ASSIGNED', 'SELF_SELECTED'], 'ASSIGNED'),
+            assignedAt: dateTimeString('2026-08-07T12:00:00.000Z'),
+            progress: schemaRef('CampaignStatisticsTraineeProgress'),
+            completedQuizCount: { type: 'integer', minimum: 0, example: 1 },
+            totalQuizCount: { type: 'integer', minimum: 0, example: 2 },
+            averageQuizScorePercentage: {
+              type: 'integer',
+              nullable: true,
+              minimum: 0,
+              maximum: 100,
+              example: 90,
+              description:
+                'Arithmetic mean of this trainee’s qualifying submitted campaign Quiz scores, rounded to the nearest whole integer. Unsubmitted attempts are omitted. Returns null when the trainee has no qualifying submitted score.',
+            },
+            allowedActions: schemaRef('CampaignStatisticsTraineeActions'),
+          },
+        },
+        GetCampaignStatisticsResponse: {
+          type: 'object',
+          required: ['campaign', 'summary', 'trainees', 'pagination'],
+          additionalProperties: false,
+          properties: {
+            campaign: schemaRef('CampaignStatisticsCampaign'),
+            summary: schemaRef('CampaignStatisticsSummary'),
+            trainees: arrayOf(schemaRef('CampaignStatisticsTraineeRow')),
+            pagination: schemaRef('PaginationMeta'),
+          },
+        },
       },
 
       parameters: {
@@ -5006,6 +5329,10 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
           required: true,
           ...jsonContent(schemaRef('DisableTraineeRequest')),
         },
+        ReenableTrainee: {
+          required: true,
+          ...jsonContent(schemaRef('ReenableTraineeRequest')),
+        },
         CreateCampaignAssignments: {
           required: true,
           ...jsonContent(schemaRef('CreateCampaignAssignmentsRequest')),
@@ -5043,6 +5370,14 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         DeleteCampaignAssignmentOk: responseComponent(
           'Campaign assignment and all associated trainee progress permanently removed.',
           'DeleteCampaignAssignmentResponse',
+        ),
+        GetCampaignStatisticsOk: responseComponent(
+          'Campaign identity, full-cohort summary statistics, and paginated per-trainee statistics retrieved successfully.',
+          'GetCampaignStatisticsResponse',
+        ),
+        CampaignManagementRateLimited: responseComponent(
+          'Too many campaign management requests. Please try again later.',
+          'CampaignManagementRateLimitErrorResponse',
         ),
 
         HealthOk: responseComponent('API and database are reachable.', 'HealthStatus'),
@@ -5135,6 +5470,10 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
           'Trainee account disabled successfully.',
           'DisableTraineeResponse',
         ),
+        OrganisationTraineeReenabled: responseComponent(
+          'Trainee account re-enabled successfully.',
+          'ReenableTraineeResponse',
+        ),
         OrganisationRegistrationRequestCreated: responseComponent(
           'Organisation registration request submitted for review.',
           'OrganisationRegistrationRequestCreatedResponse',
@@ -5146,6 +5485,10 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         TraineeInvitationConflict: responseComponent(
           'Cannot invite user to the organisation.',
           'TraineeInvitationConflictErrorResponse',
+        ),
+        OwnOrganisationDetailOk: responseComponent(
+          'Restricted organisation details for the authenticated organisation administrator.',
+          'OwnOrganisationDetail',
         ),
         OrganisationAdminsOk: responseComponent(
           'Organisation admins and available permissions.',

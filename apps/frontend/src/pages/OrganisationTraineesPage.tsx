@@ -1,4 +1,5 @@
 import AppLayout from '../components/layout/AppLayout';
+import BasicAlert from '../components/alerts/BasicAlert';
 import { Dropdown, DropdownItem } from 'flowbite-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import InviteTraineeModal from '../components/layout/modals/InviteTraineeModal';
@@ -7,8 +8,10 @@ import DisableTraineeModal from '../components/layout/modals/DisableTraineeModal
 import {
   createTraineeInvitationRequestSchema,
   disableTraineeRequestSchema,
+  reenableTraineeRequestSchema,
   type CreateTraineeInvitationRequestDto,
   type DisableTraineeRequestDto,
+  type ReenableTraineeRequestDto,
   type TraineeListItemDto,
 } from '@insightful-phish/shared';
 import { ApiError } from '../lib/apiClient';
@@ -19,8 +22,20 @@ import {
   resendOrganisationTraineeInvitation,
   revokeOrganisationTraineeInvitation,
   disableOrganisationTrainee,
+  reenableOrganisationTrainee,
 } from '../services/organisation-trainee.service';
 import { Navigate } from 'react-router-dom';
+import {
+  AdminTable,
+  AdminTableActions,
+  AdminTableCell,
+  AdminTableContainer,
+  AdminTableEmptyRow,
+  AdminTableHeader,
+  AdminTableHeaderCell,
+  AdminTableLoadingRow,
+  TruncatedValue,
+} from '../components/ui/AdminTable';
 
 type ActiveTraineeRow = Extract<TraineeListItemDto, { rowType: 'ACTIVE_TRAINEE' }>;
 type InvitationTraineeRow = Extract<TraineeListItemDto, { rowType: 'INVITATION' }>;
@@ -47,6 +62,7 @@ type TraineeDisplayRow = {
 type ListResultState = {
   organisationId: string | null;
   rows: TraineeListItemDto[];
+  loadedAtMs: number;
   errorMessage: string | null;
 };
 
@@ -67,11 +83,6 @@ type InviteRequestOwner = {
   requestId: number;
   organisationId: string;
   token: string;
-};
-
-type InviteSuccessState = {
-  target: InviteModalTarget;
-  message: string;
 };
 
 type InviteErrorBody = {
@@ -106,7 +117,7 @@ type InvitationActionRequestOwner = InvitationActionTarget & {
   requestId: number;
 };
 
-type InvitationActionFeedback = {
+type ActionFeedback = {
   organisationId: string;
   token: string;
   variant: 'success' | 'error' | 'warning';
@@ -146,18 +157,37 @@ type DisableDialogState = {
   isSubmitting: boolean;
 };
 
-type DisableFeedback = {
-  organisationId: string;
-  token: string;
-  variant: 'success' | 'warning' | 'error';
-  message: string;
-};
-
 type DisableActionsUnavailableTarget = {
   organisationId: string;
   token: string;
   reason: 'permission-denied' | 'refresh-failed';
 };
+
+type ReenableDialogState = {
+  traineeId: string;
+  organisationId: string;
+  token: string;
+  displayName: string;
+  email: string;
+  password: string;
+  passwordError: string | null;
+  generalError: string | null;
+  isSubmitting: boolean;
+};
+
+function reenableTargetMatchesContext(
+  target: Pick<ReenableDialogState, 'organisationId' | 'token'> | null,
+  organisationId: string | null,
+  token: string | null,
+): boolean {
+  return (
+    target !== null &&
+    organisationId !== null &&
+    token !== null &&
+    target.organisationId === organisationId &&
+    target.token === token
+  );
+}
 
 function disableTargetMatchesContext(
   target: Pick<DisableDialogState, 'organisationId' | 'token'> | null,
@@ -229,6 +259,36 @@ function getDisableErrorMessage(error: unknown): string {
   }
 
   return bodyMessage || 'The trainee could not be disabled.';
+}
+
+function getReenableErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) {
+    return 'Unable to connect to the server while re-enabling the trainee.';
+  }
+
+  const body = getDisableErrorBody(error);
+  const bodyMessage =
+    typeof body?.message === 'string' && body.message.trim() ? body.message : null;
+
+  if (error.status === 401) {
+    return bodyMessage || 'Your session is no longer authorised. Please sign in again.';
+  }
+  if (error.status === 403) {
+    return bodyMessage || 'You do not have permission to re-enable organisation trainees.';
+  }
+  if (error.status === 404) {
+    return 'This trainee is no longer available. The trainee list is being refreshed.';
+  }
+  if (error.status === 409) {
+    return 'The trainee state changed before this action completed. The trainee list is being refreshed.';
+  }
+  if (error.status === 429) {
+    return bodyMessage || 'Too many trainee-management requests. Please try again later.';
+  }
+  if (error.status >= 500) {
+    return 'The server could not re-enable the trainee. Please try again later.';
+  }
+  return bodyMessage || 'The trainee could not be re-enabled.';
 }
 
 const EMPTY_INVITE_VALUES: InviteValues = {
@@ -369,6 +429,10 @@ function getDisplayStatus(row: TraineeListItemDto): DisplayStatus {
   }
 
   return getInvitationDisplayStatus(row.invitationLifecycleState);
+}
+
+function getDisplayRole(row: TraineeListItemDto): string {
+  return row.rowType === 'INVITATION' ? 'Trainee Invitation' : 'Trainee';
 }
 
 function getDisplayName(row: TraineeListItemDto): string {
@@ -597,8 +661,7 @@ function OrganisationTraineesPage() {
   const invitationActionOwnerRef = useRef<InvitationActionRequestOwner | null>(null);
 
   const [invitationAction, setInvitationAction] = useState<InvitationActionState | null>(null);
-  const [invitationActionFeedback, setInvitationActionFeedback] =
-    useState<InvitationActionFeedback | null>(null);
+  const [actionFeedback, setActionFeedback] = useState<ActionFeedback | null>(null);
   const [invitationActionsUnavailableTarget, setInvitationActionsUnavailableTarget] =
     useState<InvitationActionsUnavailableTarget | null>(null);
 
@@ -617,12 +680,21 @@ function OrganisationTraineesPage() {
     organisationId: string;
     token: string;
   } | null>(null);
+  const reenableRequestIdRef = useRef(0);
+  const reenableRequestOwnerRef = useRef<{
+    requestId: number;
+    traineeId: string;
+    organisationId: string;
+    token: string;
+  } | null>(null);
 
   const [listResult, setListResult] = useState<ListResultState>({
     organisationId: null,
     rows: [],
+    loadedAtMs: 0,
     errorMessage: null,
   });
+  const [cooldownNowMs, setCooldownNowMs] = useState(() => Date.now());
   const [searchTerm, setSearchTerm] = useState('');
   const [inviteStatusFilter, setInviteStatusFilter] = useState<'ALL' | DisplayStatus>('ALL');
   const [showInviteTraineeModal, setShowInviteTraineeModal] = useState(false);
@@ -632,11 +704,11 @@ function OrganisationTraineesPage() {
   const [inviteGeneralError, setInviteGeneralError] = useState<string | null>(null);
   const [isInviting, setIsInviting] = useState(false);
   const [inviteCreated, setInviteCreated] = useState(false);
-  const [inviteSuccess, setInviteSuccess] = useState<InviteSuccessState | null>(null);
   const [disableDialog, setDisableDialog] = useState<DisableDialogState | null>(null);
-  const [disableFeedback, setDisableFeedback] = useState<DisableFeedback | null>(null);
   const [disableActionsUnavailableTarget, setDisableActionsUnavailableTarget] =
     useState<DisableActionsUnavailableTarget | null>(null);
+  const [reenableDialog, setReenableDialog] = useState<ReenableDialogState | null>(null);
+  const [reenableActionsUnavailable, setReenableActionsUnavailable] = useState(false);
 
   const hasDisablePermission = permissions.includes('REMOVE_ORGANISATION_TRAINEES');
 
@@ -655,12 +727,16 @@ function OrganisationTraineesPage() {
       }
 
       const refreshRows = [...response.trainees, ...response.invitations];
+      const loadedAtMs = Date.now();
 
+      setCooldownNowMs(loadedAtMs);
       setListResult({
         organisationId,
         rows: refreshRows,
+        loadedAtMs,
         errorMessage: null,
       });
+      setReenableActionsUnavailable(false);
 
       setInvitationActionsUnavailableTarget((current) => {
         if (
@@ -749,6 +825,7 @@ function OrganisationTraineesPage() {
       setListResult({
         organisationId,
         rows: [],
+        loadedAtMs: Date.now(),
         errorMessage: getListErrorMessage(error),
       });
       return 'failed';
@@ -771,9 +848,59 @@ function OrganisationTraineesPage() {
   }, [reloadOrganisationTrainees]);
 
   useEffect(() => {
+    if (listResult.organisationId !== organisationId) {
+      return;
+    }
+
+    const cooldownExpiries = listResult.rows.flatMap((row) =>
+      row.rowType === 'INVITATION' && row.eligibility.resendCooldownSeconds > 0
+        ? [listResult.loadedAtMs + row.eligibility.resendCooldownSeconds * 1000]
+        : [],
+    );
+
+    if (cooldownExpiries.length === 0) {
+      return;
+    }
+
+    const nextExpiryMs = Math.min(...cooldownExpiries);
+    let revalidationStarted = false;
+
+    const updateCooldowns = () => {
+      const nowMs = Date.now();
+      setCooldownNowMs(nowMs);
+
+      if (!revalidationStarted && nowMs >= nextExpiryMs) {
+        revalidationStarted = true;
+        window.clearInterval(timerId);
+        void reloadOrganisationTrainees();
+      }
+    };
+
+    const timerId = window.setInterval(updateCooldowns, 250);
+    updateCooldowns();
+
+    return () => {
+      window.clearInterval(timerId);
+    };
+  }, [
+    organisationId,
+    listResult.loadedAtMs,
+    listResult.organisationId,
+    listResult.rows,
+    reloadOrganisationTrainees,
+  ]);
+
+  useEffect(() => {
     return () => {
       inviteRequestIdRef.current += 1;
       inviteRequestOwnerRef.current = null;
+    };
+  }, [organisationId, token]);
+
+  useEffect(() => {
+    return () => {
+      reenableRequestIdRef.current += 1;
+      reenableRequestOwnerRef.current = null;
     };
   }, [organisationId, token]);
 
@@ -797,6 +924,7 @@ function OrganisationTraineesPage() {
     token,
   );
   const canUseDisableActions = hasDisablePermission && !disableActionsUnavailable;
+  const canUseReenableActions = hasDisablePermission && !reenableActionsUnavailable;
 
   const hasCurrentResult = listResult.organisationId === organisationId;
   const isLoading = Boolean(token && organisationId && !hasCurrentResult);
@@ -834,20 +962,18 @@ function OrganisationTraineesPage() {
     ? invitationAction
     : null;
 
-  const currentInvitationActionFeedback =
-    invitationActionFeedback &&
-    actionBelongsToContext(invitationActionFeedback, organisationId, token)
-      ? invitationActionFeedback
+  const currentActionFeedback =
+    actionFeedback && actionBelongsToContext(actionFeedback, organisationId, token)
+      ? actionFeedback
       : null;
 
   const currentDisableDialog = disableTargetMatchesContext(disableDialog, organisationId, token)
     ? disableDialog
     : null;
 
-  const currentDisableFeedback =
-    disableFeedback && disableTargetMatchesContext(disableFeedback, organisationId, token)
-      ? disableFeedback
-      : null;
+  const currentReenableDialog = reenableTargetMatchesContext(reenableDialog, organisationId, token)
+    ? reenableDialog
+    : null;
 
   const isCurrentActionOwned = (requestId: number, target: InvitationActionTarget): boolean => {
     const owner = invitationActionOwnerRef.current;
@@ -885,7 +1011,7 @@ function OrganisationTraineesPage() {
       phase: 'pending',
       errorMessage: null,
     });
-    setInvitationActionFeedback(null);
+    setActionFeedback(null);
 
     try {
       const response =
@@ -919,7 +1045,7 @@ function OrganisationTraineesPage() {
 
       if (refreshResult === 'applied') {
         clearMatchingInvitationAction(target);
-        setInvitationActionFeedback({
+        setActionFeedback({
           organisationId: target.organisationId,
           token: target.token,
           variant: 'success',
@@ -944,7 +1070,7 @@ function OrganisationTraineesPage() {
           phase: 'completed-refresh-failed',
           errorMessage: refreshFailureMessage,
         });
-        setInvitationActionFeedback({
+        setActionFeedback({
           organisationId: target.organisationId,
           token: target.token,
           variant: 'warning',
@@ -953,7 +1079,7 @@ function OrganisationTraineesPage() {
         return;
       }
       clearMatchingInvitationAction(target);
-      setInvitationActionFeedback({
+      setActionFeedback({
         organisationId: target.organisationId,
         token: target.token,
         variant: 'success',
@@ -972,7 +1098,7 @@ function OrganisationTraineesPage() {
           phase: 'reconciling',
           errorMessage: null,
         });
-        setInvitationActionFeedback({
+        setActionFeedback({
           organisationId: target.organisationId,
           token: target.token,
           variant: error.status === 409 ? 'warning' : 'error',
@@ -1006,7 +1132,7 @@ function OrganisationTraineesPage() {
             phase: 'conflict-refresh-failed',
             errorMessage: reconciliationMessage,
           });
-          setInvitationActionFeedback({
+          setActionFeedback({
             organisationId: target.organisationId,
             token: target.token,
             variant: error.status === 409 ? 'warning' : 'error',
@@ -1030,7 +1156,7 @@ function OrganisationTraineesPage() {
           phase: 'reconciling',
           errorMessage: null,
         });
-        setInvitationActionFeedback({
+        setActionFeedback({
           organisationId: target.organisationId,
           token: target.token,
           variant: 'error',
@@ -1044,7 +1170,7 @@ function OrganisationTraineesPage() {
         }
 
         if (refreshResult === 'failed') {
-          setInvitationActionFeedback({
+          setActionFeedback({
             organisationId: target.organisationId,
             token: target.token,
             variant: 'error',
@@ -1058,7 +1184,7 @@ function OrganisationTraineesPage() {
         return;
       }
 
-      setInvitationActionFeedback({
+      setActionFeedback({
         organisationId: target.organisationId,
         token: target.token,
         variant: 'error',
@@ -1100,7 +1226,7 @@ function OrganisationTraineesPage() {
       email: row.email,
     };
 
-    setInvitationActionFeedback(null);
+    setActionFeedback(null);
 
     if (actionType === 'revoke') {
       setInvitationAction({
@@ -1148,7 +1274,7 @@ function OrganisationTraineesPage() {
       return;
     }
 
-    setDisableFeedback(null);
+    setActionFeedback(null);
     setDisableDialog({
       traineeId: row.id,
       organisationId,
@@ -1216,7 +1342,7 @@ function OrganisationTraineesPage() {
       !currentRow.eligibility.canDisable
     ) {
       setDisableDialog(null);
-      setDisableFeedback({
+      setActionFeedback({
         organisationId: target.organisationId,
         token: target.token,
         variant: 'warning',
@@ -1232,7 +1358,7 @@ function OrganisationTraineesPage() {
           token: target.token,
           reason: 'refresh-failed',
         });
-        setDisableFeedback({
+        setActionFeedback({
           organisationId: target.organisationId,
           token: target.token,
           variant: 'error',
@@ -1302,7 +1428,7 @@ function OrganisationTraineesPage() {
           }
         : current,
     );
-    setDisableFeedback(null);
+    setActionFeedback(null);
 
     try {
       const payload: DisableTraineeRequestDto = validationResult.data;
@@ -1320,7 +1446,7 @@ function OrganisationTraineesPage() {
 
       // Successful mutation closes the modal immediately.
       setDisableDialog(null);
-      setDisableFeedback({
+      setActionFeedback({
         organisationId: target.organisationId,
         token: target.token,
         variant: 'success',
@@ -1339,7 +1465,7 @@ function OrganisationTraineesPage() {
           token: target.token,
           reason: 'refresh-failed',
         });
-        setDisableFeedback({
+        setActionFeedback({
           organisationId: target.organisationId,
           token: target.token,
           variant: 'warning',
@@ -1410,7 +1536,7 @@ function OrganisationTraineesPage() {
 
       if (error instanceof ApiError && (error.status === 404 || error.status === 409)) {
         setDisableDialog(null);
-        setDisableFeedback({
+        setActionFeedback({
           organisationId: target.organisationId,
           token: target.token,
           variant: error.status === 409 ? 'warning' : 'error',
@@ -1429,7 +1555,7 @@ function OrganisationTraineesPage() {
             token: target.token,
             reason: 'refresh-failed',
           });
-          setDisableFeedback({
+          setActionFeedback({
             organisationId: target.organisationId,
             token: target.token,
             variant: 'error',
@@ -1453,7 +1579,7 @@ function OrganisationTraineesPage() {
           token: target.token,
           reason: 'permission-denied',
         });
-        setDisableFeedback({
+        setActionFeedback({
           organisationId: target.organisationId,
           token: target.token,
           variant: 'error',
@@ -1477,7 +1603,7 @@ function OrganisationTraineesPage() {
             }
           : current,
       );
-      setDisableFeedback({
+      setActionFeedback({
         organisationId: target.organisationId,
         token: target.token,
         variant: 'error',
@@ -1501,8 +1627,246 @@ function OrganisationTraineesPage() {
     }
   };
 
+  const openReenableDialog = (row: ActiveTraineeRow) => {
+    if (
+      !organisationId ||
+      !token ||
+      !canUseReenableActions ||
+      reenableRequestOwnerRef.current !== null ||
+      row.status !== 'DISABLED' ||
+      row.eligibility.canReenable !== true
+    ) {
+      return;
+    }
+
+    setActionFeedback(null);
+    setReenableDialog({
+      traineeId: row.id,
+      organisationId,
+      token,
+      displayName: getDisplayName(row),
+      email: row.email,
+      password: '',
+      passwordError: null,
+      generalError: null,
+      isSubmitting: false,
+    });
+  };
+
+  const closeReenableDialog = () => {
+    if (!currentReenableDialog || currentReenableDialog.isSubmitting) {
+      return;
+    }
+    setReenableDialog(null);
+  };
+
+  const changeReenablePassword = (password: string) => {
+    setReenableDialog((current) =>
+      current && reenableTargetMatchesContext(current, organisationId, token)
+        ? { ...current, password, passwordError: null, generalError: null }
+        : current,
+    );
+  };
+
+  const executeReenableDialog = async () => {
+    const target = currentReenableDialog;
+    if (!target || !canUseReenableActions || reenableRequestOwnerRef.current !== null) {
+      return;
+    }
+
+    const currentRow = listResult.rows.find(
+      (row) => row.rowType === 'ACTIVE_TRAINEE' && row.id === target.traineeId,
+    );
+    if (
+      !currentRow ||
+      currentRow.rowType !== 'ACTIVE_TRAINEE' ||
+      currentRow.status !== 'DISABLED' ||
+      currentRow.eligibility.canReenable !== true
+    ) {
+      setReenableDialog(null);
+      setActionFeedback({
+        organisationId: target.organisationId,
+        token: target.token,
+        variant: 'warning',
+        message: 'The trainee state changed. The trainee list is being refreshed.',
+      });
+      if ((await reloadOrganisationTrainees()) === 'failed') {
+        setReenableActionsUnavailable(true);
+      }
+      return;
+    }
+
+    const validationResult = reenableTraineeRequestSchema.safeParse({
+      password: target.password,
+      confirmation: true,
+    });
+    if (!validationResult.success) {
+      const passwordIssue = validationResult.error.issues.find(
+        (issue) => issue.path[0] === 'password',
+      );
+      setReenableDialog((current) =>
+        current && reenableTargetMatchesContext(current, organisationId, token)
+          ? {
+              ...current,
+              passwordError: passwordIssue?.message ?? 'Administrator password is required.',
+            }
+          : current,
+      );
+      return;
+    }
+
+    const requestId = ++reenableRequestIdRef.current;
+    reenableRequestOwnerRef.current = {
+      requestId,
+      traineeId: target.traineeId,
+      organisationId: target.organisationId,
+      token: target.token,
+    };
+    const ownsRequest = () => {
+      const owner = reenableRequestOwnerRef.current;
+      return (
+        owner?.requestId === requestId &&
+        owner.traineeId === target.traineeId &&
+        owner.organisationId === target.organisationId &&
+        owner.token === target.token
+      );
+    };
+
+    setReenableDialog((current) =>
+      current && reenableTargetMatchesContext(current, organisationId, token)
+        ? { ...current, isSubmitting: true, passwordError: null, generalError: null }
+        : current,
+    );
+    setActionFeedback(null);
+
+    try {
+      const payload: ReenableTraineeRequestDto = validationResult.data;
+      const response = await reenableOrganisationTrainee(
+        target.organisationId,
+        target.traineeId,
+        payload,
+        target.token,
+      );
+      if (!ownsRequest()) {
+        return;
+      }
+
+      setReenableDialog(null);
+      setActionFeedback({
+        organisationId: target.organisationId,
+        token: target.token,
+        variant: 'success',
+        message: response.message,
+      });
+
+      if ((await reloadOrganisationTrainees()) === 'failed' && ownsRequest()) {
+        setReenableActionsUnavailable(true);
+        setActionFeedback({
+          organisationId: target.organisationId,
+          token: target.token,
+          variant: 'warning',
+          message: `${response.message} Reload the page to view the authoritative trainee state.`,
+        });
+      }
+    } catch (error: unknown) {
+      if (!ownsRequest()) {
+        return;
+      }
+
+      const body = error instanceof ApiError ? getDisableErrorBody(error) : null;
+      const errorCode = typeof body?.error === 'string' ? body.error : null;
+      const message = getReenableErrorMessage(error);
+
+      if (
+        error instanceof ApiError &&
+        error.status === 403 &&
+        errorCode === 'ORG_TRAINEE_PASSWORD_INVALID'
+      ) {
+        setReenableDialog((current) =>
+          current && reenableTargetMatchesContext(current, organisationId, token)
+            ? {
+                ...current,
+                password: '',
+                passwordError: message,
+                generalError: null,
+                isSubmitting: false,
+              }
+            : current,
+        );
+        return;
+      }
+
+      if (error instanceof ApiError && (error.status === 404 || error.status === 409)) {
+        setReenableDialog(null);
+        setActionFeedback({
+          organisationId: target.organisationId,
+          token: target.token,
+          variant: error.status === 409 ? 'warning' : 'error',
+          message,
+        });
+        if ((await reloadOrganisationTrainees()) === 'failed' && ownsRequest()) {
+          setReenableActionsUnavailable(true);
+        }
+        return;
+      }
+
+      if (error instanceof ApiError && error.status === 403) {
+        setReenableDialog(null);
+        setReenableActionsUnavailable(true);
+        setActionFeedback({
+          organisationId: target.organisationId,
+          token: target.token,
+          variant: 'error',
+          message,
+        });
+        return;
+      }
+
+      setReenableDialog((current) =>
+        current && reenableTargetMatchesContext(current, organisationId, token)
+          ? { ...current, generalError: message, isSubmitting: false }
+          : current,
+      );
+
+      setActionFeedback({
+        organisationId: target.organisationId,
+        token: target.token,
+        variant: 'error',
+        message,
+      });
+    } finally {
+      if (ownsRequest()) {
+        reenableRequestOwnerRef.current = null;
+        setReenableDialog((current) =>
+          current && reenableTargetMatchesContext(current, organisationId, token)
+            ? { ...current, isSubmitting: false }
+            : current,
+        );
+      }
+    }
+  };
+
   const renderRowActions = (row: TraineeListItemDto) => {
     if (row.rowType === 'ACTIVE_TRAINEE') {
+      if (
+        canUseReenableActions &&
+        row.status === 'DISABLED' &&
+        row.eligibility.canReenable === true
+      ) {
+        const isThisTraineeSubmitting =
+          currentReenableDialog?.traineeId === row.id && currentReenableDialog.isSubmitting;
+        return (
+          <button
+            type="button"
+            disabled={isThisTraineeSubmitting}
+            onClick={() => openReenableDialog(row)}
+            className="cursor-pointer font-medium text-purple hover:underline focus:outline-none focus:ring-2 focus:ring-brand-medium disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {isThisTraineeSubmitting ? 'Re-enabling...' : 'Re-enable'}
+          </button>
+        );
+      }
+
       if (!canUseDisableActions || row.status !== 'ACTIVE' || !row.eligibility.canDisable) {
         return 'N/A';
       }
@@ -1515,7 +1879,7 @@ function OrganisationTraineesPage() {
           type="button"
           disabled={isThisTraineeSubmitting}
           onClick={() => openDisableDialog(row)}
-          className="px-3 py-1.5 text-white bg-danger hover:bg-danger-strong font-jost tracking-wide disabled:opacity-60 disabled:cursor-not-allowed"
+          className="cursor-pointer font-medium text-red-600 hover:underline focus:outline-none focus:ring-2 focus:ring-brand-medium disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {isThisTraineeSubmitting ? 'Disabling...' : 'Disable'}
         </button>
@@ -1544,6 +1908,14 @@ function OrganisationTraineesPage() {
       currentInvitationAction?.actionType === 'revoke' &&
       currentInvitationAction.phase === 'pending';
 
+    const resendCooldownSeconds = Math.max(
+      0,
+      Math.ceil(
+        (listResult.loadedAtMs + row.eligibility.resendCooldownSeconds * 1000 - cooldownNowMs) /
+          1000,
+      ),
+    );
+
     const showResend =
       row.eligibility.canResend ||
       (!row.eligibility.canResend && row.eligibility.resendCooldownSeconds > 0);
@@ -1555,18 +1927,18 @@ function OrganisationTraineesPage() {
     }
 
     return (
-      <div className="flex flex-wrap items-center gap-2">
+      <AdminTableActions className="flex-col items-start gap-1">
         {showResend && (
           <button
             type="button"
-            disabled={!row.eligibility.canResend || actionOwnsRow}
+            disabled={!row.eligibility.canResend || resendCooldownSeconds > 0 || actionOwnsRow}
             onClick={() => beginInvitationAction(row, 'resend')}
-            className="px-3 py-1.5 text-white bg-main-purple hover:bg-hover-purple font-jost tracking-wide disabled:opacity-60 disabled:cursor-not-allowed"
+            className="cursor-pointer font-medium text-purple hover:underline focus:outline-none focus:ring-2 focus:ring-brand-medium disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {resendPending
               ? 'Resending...'
-              : !row.eligibility.canResend && row.eligibility.resendCooldownSeconds > 0
-                ? `Resend (${row.eligibility.resendCooldownSeconds}s)`
+              : resendCooldownSeconds > 0
+                ? `Resend (${resendCooldownSeconds}s)`
                 : 'Resend'}
           </button>
         )}
@@ -1576,12 +1948,12 @@ function OrganisationTraineesPage() {
             type="button"
             disabled={actionOwnsRow}
             onClick={() => beginInvitationAction(row, 'revoke')}
-            className="px-3 py-1.5 text-white bg-danger hover:bg-danger-strong font-jost tracking-wide disabled:opacity-60 disabled:cursor-not-allowed"
+            className="cursor-pointer font-medium text-red-600 hover:underline focus:outline-none focus:ring-2 focus:ring-brand-medium disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {revokePending ? 'Revoking...' : 'Revoke'}
           </button>
         )}
-      </div>
+      </AdminTableActions>
     );
   };
 
@@ -1600,7 +1972,7 @@ function OrganisationTraineesPage() {
     }
 
     resetInviteModal();
-    setInviteSuccess(null);
+    setActionFeedback(null);
     setInviteModalTarget({
       organisationId,
       token,
@@ -1660,7 +2032,7 @@ function OrganisationTraineesPage() {
     }
     setInviteFieldErrors({});
     setInviteGeneralError(null);
-    setInviteSuccess(null);
+    setActionFeedback(null);
 
     const firstName = inviteValues.firstName.trim();
     const lastName = inviteValues.lastName.trim();
@@ -1714,8 +2086,10 @@ function OrganisationTraineesPage() {
       }
 
       setInviteCreated(true);
-      setInviteSuccess({
-        target: requestTarget,
+      setActionFeedback({
+        organisationId: requestTarget.organisationId,
+        token: requestTarget.token,
+        variant: 'success',
         message: response.message,
       });
 
@@ -1726,9 +2100,15 @@ function OrganisationTraineesPage() {
       }
 
       if (refreshResult === 'failed') {
-        setInviteGeneralError(
-          `${response.message} The invitation was created, but the trainee list could not be refreshed. Close this dialog and reload the page before trying again.`,
-        );
+        const refreshFailureMessage = `${response.message} The invitation was created, but the trainee list could not be refreshed. Close this dialog and reload the page before trying again.`;
+        setInviteGeneralError(refreshFailureMessage);
+        setActionFeedback({
+          organisationId: requestTarget.organisationId,
+          token: requestTarget.token,
+          variant: 'warning',
+          message: refreshFailureMessage,
+        });
+
         return;
       }
 
@@ -1755,13 +2135,27 @@ function OrganisationTraineesPage() {
         }
 
         if (error.status === 409 && errorCode === 'CANNOT_INVITE_USER') {
-          setInviteGeneralError(getInviteApiErrorMessage(error));
+          const message = getInviteApiErrorMessage(error);
+          setInviteGeneralError(message);
+          setActionFeedback({
+            organisationId: requestTarget.organisationId,
+            token: requestTarget.token,
+            variant: 'error',
+            message,
+          });
           void reloadOrganisationTrainees();
           return;
         }
       }
 
-      setInviteGeneralError(getInviteApiErrorMessage(error));
+      const message = getInviteApiErrorMessage(error);
+      setInviteGeneralError(message);
+      setActionFeedback({
+        organisationId: requestTarget.organisationId,
+        token: requestTarget.token,
+        variant: 'error',
+        message,
+      });
     } finally {
       if (isCurrentRequest()) {
         inviteRequestOwnerRef.current = null;
@@ -1810,7 +2204,7 @@ function OrganisationTraineesPage() {
               fontSize: '3.8rem',
               lineHeight: 1,
               fontFamily: 'Jost',
-              color: 'rgb(132, 25, 255)',
+              color: 'rgb(70, 0, 151)',
             }}
           >
             Organisation Trainees
@@ -1823,58 +2217,15 @@ function OrganisationTraineesPage() {
         </div>
 
         <div className="px-6 pb-6">
-          {currentDisableFeedback && (
-            <div
-              role={currentDisableFeedback.variant === 'success' ? 'status' : 'alert'}
-              className={`p-4 mb-6 border rounded-none font-jost text-[1.1rem] flex items-center justify-between gap-3 w-full ${
-                currentDisableFeedback.variant === 'success'
-                  ? 'text-green-800 bg-green-50 border-green-200'
-                  : currentDisableFeedback.variant === 'warning'
-                    ? 'text-amber-800 bg-amber-50 border-amber-200'
-                    : 'text-red-800 bg-red-50 border-red-200'
-              }`}
+          {currentActionFeedback && (
+            <BasicAlert
+              variant={
+                currentActionFeedback.variant === 'error' ? 'danger' : currentActionFeedback.variant
+              }
+              onClose={() => setActionFeedback(null)}
             >
-              <span>{currentDisableFeedback.message}</span>
-
-              <button
-                type="button"
-                onClick={() => setDisableFeedback(null)}
-                className="shrink-0 cursor-pointer"
-                aria-label="Dismiss disable trainee message"
-              >
-                <span className="material-symbols-sharp">close</span>
-              </button>
-            </div>
-          )}
-
-          {currentInvitationActionFeedback && (
-            <div
-              role={currentInvitationActionFeedback.variant === 'success' ? 'status' : 'alert'}
-              className={`p-4 mb-6 border rounded-none font-jost text-[1.1rem] flex items-center justify-between gap-3 w-full ${
-                currentInvitationActionFeedback.variant === 'success'
-                  ? 'text-green-800 bg-green-50 border-green-200'
-                  : currentInvitationActionFeedback.variant === 'warning'
-                    ? 'text-amber-800 bg-amber-50 border-amber-200'
-                    : 'text-red-800 bg-red-50 border-red-200'
-              }`}
-            >
-              <span>{currentInvitationActionFeedback.message}</span>
-
-              <button
-                type="button"
-                onClick={() => setInvitationActionFeedback(null)}
-                className="shrink-0 cursor-pointer"
-                aria-label="Dismiss invitation action message"
-              >
-                <span className="material-symbols-sharp">close</span>
-              </button>
-            </div>
-          )}
-          {inviteSuccess && inviteTargetsMatch(inviteSuccess.target, currentInviteTarget) && (
-            <output className="p-4 mb-6 text-green-800 bg-green-50 border border-green-200 rounded-none font-jost text-[1.1rem] flex items-center gap-3 w-full">
-              <span className="material-symbols-sharp">check_circle</span>
-              <span>{inviteSuccess.message}</span>
-            </output>
+              {currentActionFeedback.message}
+            </BasicAlert>
           )}
           {loadError && (
             <div
@@ -1887,9 +2238,15 @@ function OrganisationTraineesPage() {
           )}
 
           {isLoading && (
-            <div className="py-12 flex justify-center items-center font-jost text-gray-500 text-[1.2rem]">
-              <span>Loading organisation trainees...</span>
-            </div>
+            <AdminTableContainer>
+              <AdminTable aria-label="Organisation trainees">
+                <tbody>
+                  <AdminTableLoadingRow colSpan={5}>
+                    Loading organisation trainees...
+                  </AdminTableLoadingRow>
+                </tbody>
+              </AdminTable>
+            </AdminTableContainer>
           )}
 
           {!isLoading && !loadError && (
@@ -1910,7 +2267,7 @@ function OrganisationTraineesPage() {
                             {/* SVG (Search Icon) */}
                             <svg
                               aria-hidden="true"
-                              className="w-5 h-5 text-gray-400 dark:text-gray-400"
+                              className="w-5 h-5 text-gray-400"
                               fill="currentColor"
                               viewBox="0 0 20 20"
                               xmlns="http://www.w3.org/2000/svg"
@@ -2043,42 +2400,17 @@ function OrganisationTraineesPage() {
               </h3>
 
               {/* TABLE */}
-              <div className="relative overflow-x-auto bg-neutral-primary-soft border border-default">
-                <table className="w-full text-sm text-left rtl:text-right text-body">
-                  <thead className="bg-faint-purple border-b border-default">
+              <AdminTableContainer>
+                <AdminTable>
+                  <AdminTableHeader>
                     <tr>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                      >
-                        Full Name
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                      >
-                        Email Address
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                      >
-                        Role
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                      >
-                        Status
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                      >
-                        Actions
-                      </th>
+                      <AdminTableHeaderCell>Full Name</AdminTableHeaderCell>
+                      <AdminTableHeaderCell>Email Address</AdminTableHeaderCell>
+                      <AdminTableHeaderCell>Role</AdminTableHeaderCell>
+                      <AdminTableHeaderCell>Status</AdminTableHeaderCell>
+                      <AdminTableHeaderCell>Actions</AdminTableHeaderCell>
                     </tr>
-                  </thead>
+                  </AdminTableHeader>
                   <tbody className="font-overpass font-regular text-[1rem] tracking-wide">
                     {filteredTrainees.map((trainee) => (
                       <tr
@@ -2086,37 +2418,36 @@ function OrganisationTraineesPage() {
                         className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default"
                       >
                         {/* Trainee Full Name */}
-                        <td className="px-6 py-4">{trainee.fullName}</td>
+                        <AdminTableCell>
+                          <TruncatedValue value={trainee.fullName} className="max-w-64" />
+                        </AdminTableCell>
 
                         {/* Trainee Email Address */}
-                        <td className="px-6 py-4">{trainee.emailAddress}</td>
+                        <AdminTableCell>
+                          <TruncatedValue value={trainee.emailAddress} />
+                        </AdminTableCell>
 
                         {/* Representative */}
-                        <td className="px-6 py-4">Trainee</td>
+                        <AdminTableCell>{getDisplayRole(trainee.source)}</AdminTableCell>
 
                         {/* Request Status */}
-                        <td className="px-6 py-4">{getStatusBadge(trainee.status)}</td>
+                        <AdminTableCell>{getStatusBadge(trainee.status)}</AdminTableCell>
 
                         {/* Actions */}
-                        <td className="px-6 py-4">{renderRowActions(trainee.source)}</td>
+                        <AdminTableCell>{renderRowActions(trainee.source)}</AdminTableCell>
                       </tr>
                     ))}
 
                     {filteredTrainees.length === 0 && (
-                      <tr>
-                        <td
-                          colSpan={5}
-                          className="py-8 text-center text-[1.2rem] tracking-wider text-red-500 font-jost"
-                        >
-                          {displayRows.length === 0
-                            ? 'No Organisation Trainees Found'
-                            : 'No Organisation Trainees Match the Current Search or Filter'}
-                        </td>
-                      </tr>
+                      <AdminTableEmptyRow colSpan={5}>
+                        {displayRows.length === 0
+                          ? 'No Organisation Trainees Found'
+                          : 'No Organisation Trainees Match the Current Search or Filter'}
+                      </AdminTableEmptyRow>
                     )}
                   </tbody>
-                </table>
-              </div>
+                </AdminTable>
+              </AdminTableContainer>
             </>
           )}
         </div>
@@ -2151,6 +2482,29 @@ function OrganisationTraineesPage() {
             void executeDisableDialog();
           }}
           onCancel={closeDisableDialog}
+        />
+      )}
+
+      {currentReenableDialog && (
+        <BasicConfirmationModal
+          title="Re-enable trainee membership"
+          message={`Re-enable the existing membership for ${currentReenableDialog.displayName} (${currentReenableDialog.email})? Revoked sessions will remain revoked, so the trainee must sign in again.`}
+          confirmButtonText="Re-enable Trainee"
+          confirmButtonVariant="success"
+          appendQuestionMark={false}
+          isConfirming={currentReenableDialog.isSubmitting}
+          isConfirmDisabled={
+            currentReenableDialog.isSubmitting || !currentReenableDialog.password.trim()
+          }
+          isDismissDisabled={currentReenableDialog.isSubmitting}
+          passwordValue={currentReenableDialog.password}
+          passwordError={currentReenableDialog.passwordError}
+          errorMessage={currentReenableDialog.generalError}
+          onPasswordChange={changeReenablePassword}
+          onConfirm={() => {
+            void executeReenableDialog();
+          }}
+          onCancel={closeReenableDialog}
         />
       )}
 

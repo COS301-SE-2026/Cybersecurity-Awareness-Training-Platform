@@ -76,7 +76,7 @@ function InviteTraineeModal({
                 disabled={isSubmitting || hasSubmittedSuccessfully}
                 aria-invalid={Boolean(fieldErrors.firstName)}
                 aria-describedby={fieldErrors.firstName ? 'trainee-first-name-error' : undefined}
-                className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
                 placeholder="Enter the trainee's first name"
                 autoComplete="given-name"
               />
@@ -105,7 +105,7 @@ function InviteTraineeModal({
                 disabled={isSubmitting || hasSubmittedSuccessfully}
                 aria-invalid={Boolean(fieldErrors.lastName)}
                 aria-describedby={fieldErrors.lastName ? 'trainee-last-name-error' : undefined}
-                className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
                 placeholder="Enter the trainee's last name"
                 autoComplete="family-name"
               />
@@ -136,7 +136,7 @@ function InviteTraineeModal({
                 aria-invalid={Boolean(fieldErrors.email)}
                 aria-describedby={fieldErrors.email ? 'trainee-email-address-error' : undefined}
                 autoComplete="email"
-                className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
                 placeholder="Enter the trainee's email address"
               />
               {fieldErrors.email && (

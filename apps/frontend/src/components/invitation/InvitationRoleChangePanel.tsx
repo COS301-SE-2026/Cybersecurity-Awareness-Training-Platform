@@ -60,7 +60,7 @@ function InvitationRoleChangePanel({
   const displayGrantedRole = formatGrantedRole(grantedRole);
 
   return (
-    <div className="w-full p-6 bg-white-purple shadow dark:border md:mt-0 sm:max-w-md dark:bg-gray-800 dark:border-gray-700 sm:p-8">
+    <div className="w-full p-6 bg-white-purple shadow md:mt-0 sm:max-w-md sm:p-8">
       {/* HEADING */}
       <h3 className="font-jost text-3xl text-purple tracking-wider font-medium text-heading">
         Accept Invitation
@@ -74,7 +74,7 @@ function InvitationRoleChangePanel({
 
       {/* Invitation Type */}
       <p className="block font-jost tracking-wide text-xl font-medium text-pink">Invitation Type</p>
-      <p className="font-google_sans_code text-left font-regular text-[1rem] tracking-wider text-gray-600 dark:text-gray-300 mb-4">
+      <p className="font-google_sans_code text-left font-regular text-[1rem] tracking-wider text-gray-600 mb-4">
         {displayInvitationType}
       </p>
 
@@ -84,7 +84,7 @@ function InvitationRoleChangePanel({
           <p className="block font-jost tracking-wide text-xl font-medium text-pink">
             Current Account
           </p>
-          <p className="font-google_sans_code text-left font-semibold text-[1rem] tracking-wider text-dark-pink dark:text-gray-300 mb-4">
+          <p className="font-google_sans_code text-left font-semibold text-[1rem] tracking-wider text-dark-pink mb-4">
             {currentAccountEmail}
           </p>
         </>
@@ -96,7 +96,7 @@ function InvitationRoleChangePanel({
           <p className="block font-jost tracking-wide text-xl font-medium text-pink">
             Organisation
           </p>
-          <p className="font-google_sans_code text-left font-regular text-[1rem] tracking-wider text-gray-600 dark:text-gray-300 mb-4">
+          <p className="font-google_sans_code text-left font-regular text-[1rem] tracking-wider text-gray-600 mb-4">
             {organisationName}
           </p>
         </>
@@ -104,7 +104,7 @@ function InvitationRoleChangePanel({
 
       {/* Granted Role */}
       <p className="block font-jost tracking-wide text-xl font-medium text-pink">Granted Role</p>
-      <p className="font-google_sans_code text-left font-regular text-[1rem] tracking-wider text-gray-600 dark:text-gray-300 mb-4">
+      <p className="font-google_sans_code text-left font-regular text-[1rem] tracking-wider text-gray-600 mb-4">
         {displayGrantedRole}
       </p>
 
@@ -114,7 +114,7 @@ function InvitationRoleChangePanel({
           <p className="block font-jost tracking-wide text-xl font-medium text-pink">
             Permissions Granted
           </p>
-          <ul className="list-disc list-inside font-google_sans_code text-left font-regular text-[0.95rem] tracking-wider text-gray-600 dark:text-gray-300 mb-4">
+          <ul className="list-disc list-inside font-google_sans_code text-left font-regular text-[0.95rem] tracking-wider text-gray-600 mb-4">
             {permissions.map((perm) => (
               <li key={perm}>{perm}</li>
             ))}

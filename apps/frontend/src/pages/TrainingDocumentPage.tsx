@@ -190,7 +190,7 @@ export default function TrainingDocumentPage() {
   }
 
   return (
-    <AppLayout showSidebar={false}>
+    <AppLayout showSidebar={false} contentStyle={{ backgroundColor: '#F3F4F6' }}>
       <div
         style={{
           padding: '1.5rem 2rem 2.5rem',
@@ -201,7 +201,7 @@ export default function TrainingDocumentPage() {
         <Link
           to="/campaigns"
           style={{
-            color: '#D8CCE8',
+            color: 'var(--ip-deep-purple)',
             fontFamily: 'Jost',
             textDecoration: 'none',
             width: 'fit-content',
@@ -229,7 +229,7 @@ export default function TrainingDocumentPage() {
               <h1
                 style={{
                   margin: 0,
-                  color: '#FFFFFF',
+                  color: 'var(--ip-dark-pink)',
                   fontFamily: 'Jost',
                   fontSize: '2.8rem',
                   fontWeight: 500,
@@ -244,7 +244,7 @@ export default function TrainingDocumentPage() {
                 <p
                   style={{
                     margin: 0,
-                    color: '#D8CCE8',
+                    color: '#4B5563',
                     fontFamily: 'Overpass',
                     lineHeight: 1.7,
                     maxWidth: '52rem',
@@ -288,13 +288,23 @@ export default function TrainingDocumentPage() {
                   void handleComplete();
                 }}
                 disabled={isCompleting || isCompleted}
-                style={primaryButtonStyle}
+                style={{
+                  ...primaryButtonStyle,
+                  ...(isCompleting || isCompleted
+                    ? {
+                        cursor: 'not-allowed',
+                        opacity: 0.65,
+                        backgroundColor: '#520099',
+                        borderColor: '#9A7AB8',
+                      }
+                    : {}),
+                }}
               >
                 {isCompleted ? 'Completed' : isCompleting ? 'Recording...' : 'Mark as completed'}
               </button>
 
               <Link to="/campaigns" style={secondaryLinkStyle}>
-                Continue
+                Back to Campaign
               </Link>
             </div>
           </>
@@ -306,7 +316,7 @@ export default function TrainingDocumentPage() {
 
 const eyebrowStyle = {
   margin: 0,
-  color: '#FF00D4',
+  color: 'var(--ip-dark-pink)',
   fontFamily: 'Jost',
   fontSize: '0.9rem',
   fontWeight: 700,
@@ -316,22 +326,22 @@ const eyebrowStyle = {
 
 const pageMessageStyle = {
   margin: 0,
-  color: '#D8CCE8',
+  color: '#4B5563',
   fontFamily: 'Overpass',
 } as const;
 
 const pageAlertStyle = {
   border: '1px solid rgba(255, 107, 138, 0.7)',
   backgroundColor: 'rgba(255, 107, 138, 0.12)',
-  color: '#FFB7C8',
+  color: '#991B1B',
   padding: '1rem 1.2rem',
   fontFamily: 'Overpass',
 } as const;
 
 const successStyle = {
-  border: '1px solid rgba(0, 255, 166, 0.55)',
-  backgroundColor: 'rgba(0, 255, 166, 0.12)',
-  color: '#B7FFD9',
+  border: '1px solid #86EFAC',
+  backgroundColor: '#F0FDF4',
+  color: '#166534',
   padding: '1rem 1.2rem',
   fontFamily: 'Overpass',
 } as const;
@@ -350,8 +360,9 @@ const secondaryLinkStyle = {
   display: 'inline-flex',
   alignItems: 'center',
   padding: '0.9rem 1.2rem',
-  border: '1px solid rgba(255, 255, 255, 0.16)',
-  color: '#D8CCE8',
+  border: '1px solid var(--ip-bg-purple)',
+  backgroundColor: '#FFFFFF',
+  color: 'var(--ip-deep-purple)',
   fontFamily: 'Jost',
   fontWeight: 700,
   textDecoration: 'none',

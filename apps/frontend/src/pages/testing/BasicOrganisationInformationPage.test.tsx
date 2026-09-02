@@ -39,5 +39,10 @@ describe('BasicOrganisationInformationPage', () => {
     expect(screen.getByLabelText(/Registration Date/i)).toBeDisabled();
     expect(screen.getByLabelText(/Status/i)).toBeDisabled();
   });
+
+  it('formats raw status enums to human readable presentation', () => {
+    render(<BasicOrganisationInformationPage status="PENDING_ONBOARDING" />);
+    expect(screen.getByLabelText(/Status/i)).toHaveValue('Approved - Waiting for Setup');
+  });
 });
 // === END TESTING ===

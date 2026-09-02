@@ -12,6 +12,14 @@ import { createActionToken } from './action-token.repository.js';
 
 type OrganisationTraineeClient = PrismaClient | Prisma.TransactionClient;
 
+const RESENDABLE_TRAINEE_INVITATION_STATUSES = [
+  'PENDING',
+  'SENT',
+  'FAILED_TO_SEND',
+  'EXPIRED',
+  'REJECTED',
+] as const;
+
 export class OrganisationTraineeRepositoryError extends Error {
   constructor(
     public readonly statusCode: number,
@@ -321,7 +329,7 @@ export async function resendOrganisationTraineeInvitationTx(
     const updateResult = await tx.invitation.updateMany({
       where: {
         id: input.invitationId,
-        status: { in: ['PENDING', 'SENT', 'FAILED_TO_SEND'] },
+        status: { in: [...RESENDABLE_TRAINEE_INVITATION_STATUSES] },
         updatedAt: input.observedUpdatedAt,
       },
       data: {
@@ -554,5 +562,100 @@ export async function disableOrganisationTraineeTx(
       txTrainee,
       disabledReason: input.disabledReason,
     };
+  });
+}
+
+export type ReenableOrganisationTraineeTxInput = {
+  actorUserId: string;
+  organisationId: string;
+  traineeId: string;
+  auditLogData: CreateAuditLogEntryInput;
+};
+
+export async function reenableOrganisationTraineeTx(
+  input: ReenableOrganisationTraineeTxInput,
+  client: PrismaClient = prisma,
+) {
+  return client.$transaction(async (tx) => {
+    const existingMembership = await tx.organisationTraineeProfile.findFirst({
+      where: {
+        organisationId: input.organisationId,
+        OR: [
+          { id: input.traineeId },
+          { traineeProfileId: input.traineeId },
+          { traineeProfile: { userId: input.traineeId } },
+        ],
+      },
+      include: {
+        traineeProfile: {
+          include: {
+            user: true,
+          },
+        },
+      },
+    });
+
+    if (!existingMembership) {
+      throw new OrganisationTraineeRepositoryError(
+        404,
+        'TRAINEE_NOT_FOUND',
+        'Organisation trainee profile not found.',
+      );
+    }
+
+    if (existingMembership.membershipStatus !== 'DISABLED') {
+      throw new OrganisationTraineeRepositoryError(
+        409,
+        'TRAINEE_NOT_DISABLED',
+        'Trainee profile is not disabled.',
+      );
+    }
+
+    const updateResult = await tx.organisationTraineeProfile.updateMany({
+      where: {
+        id: existingMembership.id,
+        organisationId: input.organisationId,
+        membershipStatus: 'DISABLED',
+      },
+      data: {
+        membershipStatus: 'ACTIVE',
+        disabledAt: null,
+        disabledReason: null,
+      },
+    });
+
+    if (updateResult.count !== 1) {
+      throw new OrganisationTraineeRepositoryError(
+        409,
+        'TRAINEE_NOT_DISABLED',
+        'Trainee profile is not disabled.',
+      );
+    }
+
+    const reenabledMembership = await tx.organisationTraineeProfile.findUniqueOrThrow({
+      where: { id: existingMembership.id },
+      include: {
+        traineeProfile: {
+          include: {
+            user: true,
+          },
+        },
+      },
+    });
+
+    await createAuditLogEntry(
+      {
+        ...input.auditLogData,
+        targetId: reenabledMembership.traineeProfile.userId,
+        metadata: {
+          organisationTraineeProfileId: reenabledMembership.id,
+          traineeProfileId: reenabledMembership.traineeProfileId,
+          ...(input.auditLogData.metadata as Record<string, unknown> | undefined),
+        },
+      },
+      tx,
+    );
+
+    return { txTrainee: reenabledMembership };
   });
 }

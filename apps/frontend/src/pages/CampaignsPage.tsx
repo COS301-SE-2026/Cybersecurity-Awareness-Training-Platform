@@ -24,14 +24,20 @@ function formatCampaignStatus(status?: string | null): string {
     case 'COMPLETED':
       return 'COMPLETED';
 
+    case 'SUBMITTED':
+      return 'SUBMITTED';
+
     case 'IN_PROGRESS':
     case 'VIEWED':
     case 'INTERACTED':
+    case 'CLASSIFIED':
       return 'STARTED';
 
     case 'NOT_STARTED':
-    default:
       return 'NOT STARTED';
+
+    default:
+      return 'UNKNOWN';
   }
 }
 
@@ -214,7 +220,7 @@ function CampaignsPage() {
   }
 
   return (
-    <AppLayout>
+    <AppLayout contentStyle={{ backgroundColor: '#F3F4F6' }}>
       <div
         style={{
           padding: '1.4rem',
@@ -233,7 +239,7 @@ function CampaignsPage() {
             fontSize: '3.8rem',
             fontWeight: 500,
             lineHeight: 1,
-            color: 'white',
+            color: 'var(--ip-dark-pink)',
             fontFamily: 'Jost',
           }}
         >
@@ -243,7 +249,7 @@ function CampaignsPage() {
         {loading && (
           <div
             style={{
-              color: '#C98FFF',
+              color: 'var(--ip-dark-pink)',
               fontFamily: 'Jost',
               fontSize: '1.2rem',
             }}
@@ -279,7 +285,7 @@ function CampaignsPage() {
               {loadingCampaignDetails[campaign.campaignId] && (
                 <div
                   style={{
-                    color: '#C98FFF',
+                    color: 'var(--ip-dark-pink)',
                     fontFamily: 'Jost',
                     padding: '1rem',
                   }}

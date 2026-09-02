@@ -15,6 +15,7 @@ COPY packages/shared/package.json packages/shared/package.json
 RUN pnpm install --frozen-lockfile --filter @insightful-phish/frontend...
 
 COPY apps/frontend/index.html apps/frontend/vite.config.ts apps/frontend/tsconfig.json apps/frontend/tsconfig.app.json apps/frontend/tsconfig.node.json apps/frontend/
+COPY apps/frontend/.flowbite-react apps/frontend/.flowbite-react
 COPY apps/frontend/public apps/frontend/public
 COPY apps/frontend/src apps/frontend/src
 

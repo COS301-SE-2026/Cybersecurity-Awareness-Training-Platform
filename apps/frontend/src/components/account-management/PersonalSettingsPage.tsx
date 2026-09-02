@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import BasicAlert from '../alerts/BasicAlert';
+import { ReadOnlyField } from '../ui/FormField';
 import {
   updateAccountProfile,
   extractErrorMessage,
@@ -91,7 +92,7 @@ function PersonalSettingsPage({
           id="first-name"
           value={firstName}
           onChange={(e) => setCustomFirstName(e.target.value)}
-          className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+          className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
           placeholder="First Name"
         />
       </div>
@@ -111,26 +112,18 @@ function PersonalSettingsPage({
           id="last-name"
           value={lastName}
           onChange={(e) => setCustomLastName(e.target.value)}
-          className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+          className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
           placeholder="Last Name"
         />
       </div>
 
       {/* INPUT 3: EMAIL ADDRESS */}
       <div className="mb-6 max-w-sm">
-        <label
-          htmlFor="email-address"
-          className=" block mb-2 font-jost tracking-wide text-[1.2rem] font-regular text-dark-pink"
-        >
-          Email Address
-        </label>
-        <input
-          disabled
-          type="email"
-          name="email-address"
+        <ReadOnlyField
           id="email-address"
-          value={profile?.email || ''}
-          className="font-overpass text-[1.2rem] bg-gray-200 border border-gray-300 text-gray-500 block w-full p-2.5 cursor-not-allowed"
+          label="Email Address"
+          value={profile?.email}
+          helperText="Email address can be updated under the Account tab."
         />
       </div>
 

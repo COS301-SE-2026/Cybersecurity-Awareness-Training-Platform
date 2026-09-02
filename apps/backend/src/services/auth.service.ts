@@ -4,7 +4,6 @@ import type {
   AuthMeResponseDto,
   AuthRegisterRequestDto,
   AuthRegisterResponseDto,
-  AuthContextResponseDto,
   PublicUserDto,
 } from '@insightful-phish/shared';
 import type { AuthSessionRevokedReason } from '../generated/prisma/enums.js';
@@ -30,6 +29,7 @@ import {
   touchSession,
   updateSessionPolicy,
 } from './auth-session.service.js';
+import { summariseAuthSessionMetadata } from './auth-session-metadata.service.js';
 import {
   issueRefreshToken,
   rotateRefreshToken,
@@ -287,6 +287,7 @@ export async function loginUser(
     regularSessionSeconds: policy.regularSessionSeconds,
     rememberedSessionSeconds: policy.rememberedSessionSeconds,
   });
+  const sessionMetadata = summariseAuthSessionMetadata(input.userAgent);
 
   const session = await issueAuthSession({
     userId: user.id,
@@ -295,6 +296,8 @@ export async function loginUser(
     idleTimeoutMinutes: policy.idleTimeoutMinutes,
     userAgent: input.userAgent ?? null,
     ipAddress: input.ipAddress ?? null,
+    deviceSummary: sessionMetadata.deviceSummary,
+    locationSummary: sessionMetadata.locationSummary,
   });
 
   const refreshResult = await issueRefreshToken({
@@ -321,6 +324,7 @@ export async function loginUser(
   return {
     response: {
       accessToken,
+      idleTimeoutMinutes: policy.idleTimeoutMinutes,
       user: publicUser,
       context: authContext,
       permissions: authContext.permissions,
@@ -347,18 +351,6 @@ function sessionExpiresAtForPolicy(input: {
     regularSessionSeconds: input.policy.regularSessionSeconds,
     rememberedSessionSeconds: input.policy.rememberedSessionSeconds,
   });
-}
-
-function isIdleExpired(input: {
-  lastActiveAt: Date;
-  idleTimeoutMinutes: number | null;
-  now: Date;
-}): boolean {
-  if (input.idleTimeoutMinutes === null) {
-    return false;
-  }
-
-  return input.lastActiveAt.getTime() + input.idleTimeoutMinutes * 60 * 1000 <= input.now.getTime();
 }
 
 async function revokeSessionForPolicyFailure(input: {
@@ -405,7 +397,7 @@ export async function refreshUserToken(
   ipAddress?: string | null,
   userAgent?: string | null,
 ): Promise<{
-  response: AuthContextResponseDto;
+  response: AuthLoginResponseDto;
   accessTokenExpiresAt: string;
   rawRefreshToken: string;
   sessionExpiresAt: Date;
@@ -471,20 +463,6 @@ export async function refreshUserToken(
     throw new AuthRefreshTokenInvalidError();
   }
 
-  if (
-    isIdleExpired({
-      lastActiveAt: token.authSession.lastActiveAt,
-      idleTimeoutMinutes: policy.idleTimeoutMinutes,
-      now,
-    })
-  ) {
-    await revokeSessionForPolicyFailure({
-      sessionId: token.authSessionId,
-      sessionReason: 'EXPIRED',
-    });
-    throw new AuthRefreshTokenInvalidError();
-  }
-
   const nextSessionExpiresAt = earlierDate(token.authSession.expiresAt, policyExpiresAt);
   await updateSessionPolicy({
     sessionId: token.authSessionId,
@@ -515,6 +493,7 @@ export async function refreshUserToken(
   return {
     response: {
       accessToken,
+      idleTimeoutMinutes: policy.idleTimeoutMinutes,
       user: publicUser,
       context: authContext,
       permissions: authContext.permissions,

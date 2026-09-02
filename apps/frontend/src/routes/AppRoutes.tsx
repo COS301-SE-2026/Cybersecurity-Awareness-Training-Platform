@@ -1,5 +1,7 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import { StatusPage } from '../App';
+import { useAuth } from '../context/useAuth';
+import type { CampaignManagementContext } from '../features/campaign-management/campaignManagement.types';
 import LoginPage from '../pages/LoginPage';
 import RegisterPage from '../pages/RegisterPage';
 import InboxPage from '../pages/InboxPage';
@@ -10,6 +12,7 @@ import ResultsPage from '../pages/ResultsPage';
 import ProtectedRoute from './ProtectedRoute';
 import CampaignsPage from '../pages/CampaignsPage';
 import LandingPage from '../pages/LandingPage';
+import NotFoundPage from '../pages/NotFoundPage';
 import ForgotPasswordPage from '../pages/ForgotPasswordPage';
 import ResetPasswordPage from '../pages/ResetPasswordPage';
 import OrganisationRegistrationRequestPage from '../pages/OrganisationRegistrationRequestPage';
@@ -26,6 +29,36 @@ import OrganisationAdministratorsPage from '../pages/OrganisationAdministratorsP
 import PlatformAdministratorsPage from '../pages/PlatformAdministratorsPage';
 import BrandPage from '../pages/BrandPage';
 import CampaignAssignmentPage from '../pages/CampaignAssignmentPage';
+import CampaignManagementListPage from '../features/campaign-management/CampaignManagementListPage';
+import CampaignManagementDetailPage from '../features/campaign-management/CampaignManagementDetailPage';
+import CampaignInsightsPage from '../pages/CampaignInsightsPage';
+
+function CampaignManagementDetailRoute({
+  contextKind,
+}: Readonly<{ contextKind: CampaignManagementContext['kind'] }>) {
+  const { clearAuth, permissions } = useAuth();
+  const canManageCampaigns = contextKind === 'platform' || permissions.includes('MANAGE_CAMPAIGNS');
+
+  return (
+    <CampaignManagementDetailPage
+      contextKind={contextKind}
+      canManageCampaigns={canManageCampaigns}
+      blockUnsavedNavigation
+      onAuthenticationExpired={clearAuth}
+    />
+  );
+}
+
+function CampaignInsightsRoute() {
+  const { clearAuth, permissions } = useAuth();
+
+  return (
+    <CampaignInsightsPage
+      canAssignCampaigns={permissions.includes('ASSIGN_CAMPAIGNS')}
+      onAuthenticationExpired={clearAuth}
+    />
+  );
+}
 
 function AppRoutes() {
   return (
@@ -108,6 +141,37 @@ function AppRoutes() {
             element={<CampaignAssignmentPage />}
           />
         </Route>
+
+        <Route
+          element={
+            <ProtectedRoute
+              requireOrganisation
+              requiredAnyPermission={['VIEW_CAMPAIGNS', 'MANAGE_CAMPAIGNS']}
+            />
+          }
+        >
+          <Route
+            path="/organisations/:organisationId/campaigns"
+            element={<CampaignManagementListPage contextKind="organisation" />}
+          />
+          <Route
+            path="/organisations/:organisationId/campaigns/:campaignId"
+            element={<CampaignManagementDetailRoute contextKind="organisation" />}
+          />
+          <Route
+            path="/organisations/:organisationId/campaigns/:campaignId/statistics"
+            element={<CampaignInsightsRoute />}
+          />
+        </Route>
+
+        <Route
+          element={<ProtectedRoute requireOrganisation requiredPermission="MANAGE_CAMPAIGNS" />}
+        >
+          <Route
+            path="/organisations/:organisationId/campaigns/new"
+            element={<CampaignManagementDetailRoute contextKind="organisation" />}
+          />
+        </Route>
       </Route>
 
       {/* PLATFORM ADMIN PROTECTED ROUTES */}
@@ -122,6 +186,18 @@ function AppRoutes() {
           element={<OrganisationInformationPage />}
         />
         <Route path="/platform-administrators" element={<PlatformAdministratorsPage />} />
+        <Route
+          path="/platform/campaigns"
+          element={<CampaignManagementListPage contextKind="platform" />}
+        />
+        <Route
+          path="/platform/campaigns/new"
+          element={<CampaignManagementDetailRoute contextKind="platform" />}
+        />
+        <Route
+          path="/platform/campaigns/:campaignId"
+          element={<CampaignManagementDetailRoute contextKind="platform" />}
+        />
       </Route>
 
       {/* GENERAL PROTECTED ROUTES (ANY AUTHENTICATED USER) */}
@@ -129,7 +205,7 @@ function AppRoutes() {
         <Route path="/account-management" element={<AccountManagementPage />} />
       </Route>
 
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }

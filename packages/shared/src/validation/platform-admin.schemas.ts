@@ -4,9 +4,10 @@ import { emailSchema, firstNameSchema, lastNameSchema } from './auth.schemas.js'
 
 export const platformAdminRoleSchema = z.enum(['SUPER_ADMIN', 'NORMAL_ADMIN']);
 export type PlatformAdminRole = z.infer<typeof platformAdminRoleSchema>;
-
+const platformAdminRoleResponseSchema = z.union([platformAdminRoleSchema, z.string()]);
 export const platformAdminStatusSchema = z.enum(['ACTIVE', 'DISABLED']);
 export type PlatformAdminStatus = z.infer<typeof platformAdminStatusSchema>;
+const platformAdminStatusResponseSchema = z.union([platformAdminStatusSchema, z.string()]);
 
 export const platformAdminInvitationStatusSchema = z.enum([
   'PENDING',
@@ -20,6 +21,10 @@ export const platformAdminInvitationStatusSchema = z.enum([
   'PENDING_UPGRADE',
 ]);
 export type PlatformAdminInvitationStatus = z.infer<typeof platformAdminInvitationStatusSchema>;
+const platformAdminInvitationStatusResponseSchema = z.union([
+  platformAdminInvitationStatusSchema,
+  z.string(),
+]);
 
 export const authStatusSchema = z.enum([
   'PENDING_EMAIL_VERIFICATION',
@@ -28,42 +33,50 @@ export const authStatusSchema = z.enum([
   'DISABLED',
 ]);
 export type AuthStatus = z.infer<typeof authStatusSchema>;
+const platformAdminAuthStatusResponseSchema = z.union([authStatusSchema, z.string()]);
 
-export const platformAdminAllowedActionsSchema = z
+export const platformAdminAllowedActionSchema = z
   .object({
     canTransferSuperAdmin: z.boolean(),
     canDemote: z.boolean(),
     canResendInvite: z.boolean(),
   })
   .strict();
-export type PlatformAdminAllowedActionsDto = z.infer<typeof platformAdminAllowedActionsSchema>;
+export type PlatformAdminAllowedActionDto = z.infer<typeof platformAdminAllowedActionSchema>;
 
-export const platformAdminRowSchema = z
+export const platformAdminAllowedActionsSchema = platformAdminAllowedActionSchema;
+export type PlatformAdminAllowedActionsDto = PlatformAdminAllowedActionDto;
+
+export const platformAdminListItemSchema = z
   .object({
     id: idParamSchema,
     firstName: z.string(),
     lastName: z.string(),
     email: z.string().email(),
-    platformAdminRole: platformAdminRoleSchema,
-    adminStatus: platformAdminStatusSchema,
-    authStatus: authStatusSchema,
-    invitationStatus: platformAdminInvitationStatusSchema.nullable(),
+    platformAdminRole: platformAdminRoleResponseSchema,
+    adminStatus: platformAdminStatusResponseSchema,
+    authStatus: platformAdminAuthStatusResponseSchema,
+    invitationStatus: platformAdminInvitationStatusResponseSchema.nullable(),
     inviteId: idParamSchema.nullable(),
-    allowedActions: platformAdminAllowedActionsSchema,
+    allowedActions: platformAdminAllowedActionSchema,
   })
   .strict();
-export type PlatformAdminRowDto = z.infer<typeof platformAdminRowSchema>;
+export type PlatformAdminListItemDto = z.infer<typeof platformAdminListItemSchema>;
+export const platformAdminRowSchema = platformAdminListItemSchema;
+export type PlatformAdminRowDto = PlatformAdminListItemDto;
 
-export const listPlatformAdminsResponseSchema = z
+export const platformAdminListResponseSchema = z
   .object({
-    admins: z.array(platformAdminRowSchema),
+    admins: z.array(platformAdminListItemSchema),
     allowedToInvite: z.boolean(),
     allowedToTransfer: z.boolean(),
     allowedToDemote: z.boolean(),
     allowedToResendInvites: z.boolean(),
   })
   .strict();
-export type ListPlatformAdminsResponseDto = z.infer<typeof listPlatformAdminsResponseSchema>;
+export type PlatformAdminListResponseDto = z.infer<typeof platformAdminListResponseSchema>;
+export const listPlatformAdminsResponseSchema = platformAdminListResponseSchema;
+export type ListPlatformAdminsResponseDto = PlatformAdminListResponseDto;
 
 export const platformAdminUserIdParamsSchema = z.object({
   userId: idParamSchema,
@@ -85,18 +98,27 @@ export const invitePlatformAdminRequestSchema = z
   .strict();
 export type InvitePlatformAdminRequestDto = z.infer<typeof invitePlatformAdminRequestSchema>;
 
-export const invitePlatformAdminResponseSchema = z
-  .object({
-    type: z.enum(['new-invite', 'upgrade-confirmation']),
-    userId: idParamSchema,
-    email: z.string().email(),
-  })
-  .strict();
+export const invitePlatformAdminResponseSchema = z.discriminatedUnion('type', [
+  z
+    .object({
+      type: z.literal('new-invite'),
+      userId: idParamSchema,
+      email: z.string().email(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('upgrade-confirmation'),
+      userId: idParamSchema,
+      email: z.string().email(),
+    })
+    .strict(),
+]);
 export type InvitePlatformAdminResponseDto = z.infer<typeof invitePlatformAdminResponseSchema>;
 
 export const resendPlatformAdminInviteResponseSchema = z
   .object({
-    success: z.boolean(),
+    success: z.literal(true),
     emailQueued: z.boolean(),
   })
   .strict();
@@ -130,7 +152,7 @@ export const demotePlatformAdminResponseSchema = z
     userId: idParamSchema,
     email: z.string().email(),
     adminStatus: z.literal('DISABLED'),
-    authStatus: authStatusSchema,
+    authStatus: platformAdminAuthStatusResponseSchema,
   })
   .strict();
 export type DemotePlatformAdminResponseDto = z.infer<typeof demotePlatformAdminResponseSchema>;

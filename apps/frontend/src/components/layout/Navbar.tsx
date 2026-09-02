@@ -4,41 +4,19 @@ import { useAuth } from '../../context/useAuth';
 
 import { ExpandLess, ExpandMore, Logout, Settings, PersonOutlined } from '@mui/icons-material';
 
-function getRoleLabel(role?: string | null, platformAdminRole?: string | null) {
-  if (role === 'IP_ADMIN') {
-    return platformAdminRole === 'SUPER_ADMIN' ? 'Super Admin' : 'Platform Admin';
-  }
-  if (role === 'ORGANISATION_ADMIN') {
-    return 'Organisation Admin';
-  }
-  if (role === 'ORGANISATION_TRAINEE') {
-    return 'Organisation Trainee';
-  }
-  if (role === 'GENERAL_TRAINEE') {
-    return 'General Trainee';
-  }
-  return 'Trainee';
-}
-
 function Navbar() {
   const [profileOpen, setProfileOpen] = useState(false);
 
   const navigate = useNavigate();
 
-  const { logout, user, authContext } = useAuth();
-  const roleLabel = getRoleLabel(
-    authContext?.role || user?.userType,
-    authContext?.platformAdminRole,
-  );
-  const orgName = authContext?.organisation?.name;
+  const { logout, user } = useAuth();
 
   return (
     <nav
       style={{
         width: '100%',
         height: '82px',
-        backgroundColor: '#090054',
-        borderBottom: '5px solid #8400FF',
+        backgroundColor: 'var(--ip-faint-purple)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -52,10 +30,10 @@ function Navbar() {
       {/* LOGO */}
 
       <img
-        src="/logo-long-dark.png"
+        src="/Phish Logo Light.png"
         alt="Insightful Phish"
         style={{
-          height: '68px',
+          height: '67px',
           objectFit: 'contain',
         }}
       />
@@ -71,13 +49,13 @@ function Navbar() {
           onClick={() => setProfileOpen(!profileOpen)}
           style={{
             height: '50px',
-            backgroundColor: '#2E0090',
+            backgroundColor: 'var(--ip-light-bg-purple)',
             border: '0px solid rgba(255,255,255,0.00)',
             padding: '1rem',
             display: 'flex',
             alignItems: 'center',
             gap: '1.1rem',
-            color: 'white',
+            color: 'var(--ip-deep-purple)',
             fontFamily: 'Jost',
             fontSize: '1.3rem',
             fontWeight: 400,
@@ -92,12 +70,6 @@ function Navbar() {
           />
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
             <span>{user ? `${user.firstName} ${user.lastName}` : 'Account'}</span>
-            {user && (
-              <span style={{ fontSize: '0.8rem', color: '#c9a2ff', opacity: 0.9 }}>
-                {roleLabel}
-                {orgName ? ` • ${orgName}` : ''}
-              </span>
-            )}
           </div>
           {profileOpen ? (
             <ExpandLess
@@ -120,8 +92,8 @@ function Navbar() {
               position: 'absolute',
               right: 0,
               minWidth: '100%',
-              backgroundColor: '#1F0047',
-              border: '2px solid #42008C',
+              backgroundColor: 'var(--ip-light-bg-purple)',
+              border: '2px solid var(--ip-bg-purple)',
               boxShadow: '0px 10px 30px rgba(0,0,0,0.50)',
               overflow: 'hidden',
             }}
@@ -136,23 +108,26 @@ function Navbar() {
                 }
               }}
               style={{
+                width: '100%',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.7rem',
                 padding: '1rem',
+                border: 'none',
+                backgroundColor: 'var(--ip-light-bg-purple)',
                 fontFamily: 'Overpass',
                 fontWeight: '600',
                 fontSize: '1.1rem',
-                color: 'white',
+                color: 'var(--ip-deep-purple)',
                 cursor: 'pointer',
                 transition: '0.2s ease',
                 textAlign: 'left',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#2b0056';
+                e.currentTarget.style.backgroundColor = 'var(--ip-bg-purple)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#1F0047';
+                e.currentTarget.style.backgroundColor = 'var(--ip-light-bg-purple)';
               }}
               onClick={() => {
                 navigate('/account-management');
@@ -177,15 +152,15 @@ function Navbar() {
                 fontFamily: 'Overpass',
                 fontWeight: '600',
                 fontSize: '1.1rem',
-                color: 'white',
+                color: 'var(--ip-deep-purple)',
                 cursor: 'pointer',
                 transition: '0.2s ease',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#2b0056';
+                e.currentTarget.style.backgroundColor = 'var(--ip-bg-purple)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#1F0047';
+                e.currentTarget.style.backgroundColor = 'var(--ip-light-bg-purple)';
               }}
               onClick={() => {
                 logout();

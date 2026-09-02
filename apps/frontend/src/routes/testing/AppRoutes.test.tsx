@@ -1,11 +1,14 @@
-import { screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
-import { useLocation } from 'react-router-dom';
+import { createMemoryRouter, RouterProvider, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { UserTypeDto } from '@insightful-phish/shared';
+import type {
+  GetOrganisationCampaignStatisticsResponseDto,
+  UserTypeDto,
+} from '@insightful-phish/shared';
 import * as organisationDetailsService from '../../services/organisation-details.service';
-import { renderWithRouter } from '../../testing/render';
+import { createAuthContextValue, renderWithRouter } from '../../testing/render';
 
 vi.mock('../../App', () => ({
   StatusPage: () => <h1>Status Page</h1>,
@@ -140,18 +143,63 @@ vi.mock('../../pages/BrandPage', () => ({
 vi.mock('../../lib/campaignsApi', () => ({
   getTraineeCampaigns: vi.fn(),
   getTraineeCampaignDetail: vi.fn(),
+  getOrganisationCampaignStatistics: vi.fn(),
 }));
 
+vi.mock('../../features/campaign-management/apiCampaignManagementClient', async () => {
+  const { developmentCampaignManagementClient } =
+    await import('../../features/campaign-management/developmentCampaignManagementClient');
+
+  return {
+    apiCampaignManagementClient: developmentCampaignManagementClient,
+  };
+});
+
 import AppRoutes from '../AppRoutes';
-import { getTraineeCampaignDetail, getTraineeCampaigns } from '../../lib/campaignsApi';
+import {
+  getOrganisationCampaignStatistics,
+  getTraineeCampaignDetail,
+  getTraineeCampaigns,
+} from '../../lib/campaignsApi';
+import { AuthContext } from '../../context/auth-context';
+import type { OrganisationPermissionKeyDto } from '@insightful-phish/shared';
 
 const mockedGetTraineeCampaigns = vi.mocked(getTraineeCampaigns);
 const mockedGetTraineeCampaignDetail = vi.mocked(getTraineeCampaignDetail);
+const mockedGetOrganisationCampaignStatistics = vi.mocked(getOrganisationCampaignStatistics);
 
 const CAMPAIGN_ID = '11111111-1111-4111-8111-111111111111';
 const TRAINING_CAMPAIGN_ITEM_ID = '33333333-3333-4333-8333-333333333333';
 const QUIZ_CAMPAIGN_ITEM_ID = '33333333-3333-4333-8333-333333333334';
 const ATTEMPT_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+
+const CAMPAIGN_STATISTICS_RESPONSE: GetOrganisationCampaignStatisticsResponseDto = {
+  campaign: {
+    id: '10000000-0000-4000-8000-000000000001',
+    name: 'New starter security',
+    description: 'Security awareness for new starters.',
+    campaignType: 'ORGANISATION_CUSTOM',
+    status: 'ACTIVE',
+    startDate: null,
+    endDate: null,
+    itemCount: 4,
+    quizCount: 1,
+  },
+  summary: {
+    assignedTraineeCount: 8,
+    startedTraineeCount: 5,
+    completedTraineeCount: 2,
+    overallProgressPercentage: 54,
+    averageQuizScorePercentage: 76,
+  },
+  trainees: [],
+  pagination: {
+    page: 1,
+    limit: 20,
+    total: 8,
+    totalPages: 1,
+  },
+};
 
 function LocationDisplay() {
   const location = useLocation();
@@ -232,6 +280,70 @@ function renderAppRoutes({
   );
 }
 
+function renderCampaignManagementRoutes(
+  initialEntry: string,
+  role: 'ORGANISATION_ADMIN' | 'IP_ADMIN',
+  organisationId: string | null,
+  permissions: OrganisationPermissionKeyDto[] = [],
+) {
+  const authValue = createAuthContextValue({
+    user: {
+      id: 'user-one',
+      firstName: 'Campaign',
+      lastName: 'Administrator',
+      email: 'campaign-admin@example.com',
+      userType: role,
+      authStatus: 'ACTIVE',
+      traineeProfile: null,
+      adminProfile: null,
+      createdAt: '2026-08-01T00:00:00.000Z',
+    },
+    authContext: {
+      user: {
+        id: 'Campaign-admin-user',
+        userType: role,
+        authStatus: 'ACTIVE',
+      },
+      role,
+      organisation: organisationId
+        ? {
+            id: organisationId,
+            name: 'Example Organisation',
+            status: 'ACTIVE',
+          }
+        : null,
+      platformAdminRole: role === 'IP_ADMIN' ? 'NORMAL_ADMIN' : null,
+      permissions,
+      redirectTo: role === 'IP_ADMIN' ? '/platform/campaigns' : 'organisation-information',
+    },
+    permissions,
+    redirectTo: role === 'IP_ADMIN' ? '/platform/campaigns' : 'organisation-information',
+  });
+
+  const router = createMemoryRouter(
+    [
+      {
+        path: '*',
+        element: (
+          <>
+            <LocationDisplay />
+            <AppRoutes />
+          </>
+        ),
+      },
+    ],
+    {
+      initialEntries: [initialEntry],
+    },
+  );
+
+  return render(
+    <AuthContext.Provider value={authValue}>
+      <RouterProvider router={router} />
+    </AuthContext.Provider>,
+  );
+}
+
 describe('AppRoutes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -268,6 +380,8 @@ describe('AppRoutes', () => {
       },
       items: [],
     });
+
+    mockedGetOrganisationCampaignStatistics.mockResolvedValue(CAMPAIGN_STATISTICS_RESPONSE);
 
     vi.spyOn(organisationDetailsService, 'getPlatformOrganisationDetail').mockResolvedValue({
       id: 'org-gauteng-123',
@@ -453,17 +567,34 @@ describe('AppRoutes', () => {
       expect(await screen.findByText(/DON'T TAKE THE BAIT/i)).toBeInTheDocument();
     });
 
-    it('redirects unknown routes to /', async () => {
+    it('renders the Not Found page without changing an unknown route', async () => {
       renderAppRoutes({
         initialEntry: '/not-a-real-route',
         isAuthenticated: false,
       });
 
-      await waitFor(() => {
-        expect(screen.getByTestId('location-path')).toHaveTextContent('/');
-      });
-      expect(await screen.findByText(/DON'T TAKE THE BAIT/i)).toBeInTheDocument();
+      expect(
+        await screen.findByRole('heading', { level: 1, name: /page not found/i }),
+      ).toBeInTheDocument();
+      expect(screen.getByTestId('location-path')).toHaveTextContent(/^\/not-a-real-route$/);
+      expect(screen.getByRole('link', { name: /return to home/i })).toHaveAttribute('href', '/');
     });
+  });
+
+  it('renders the authenticated Not Found page with the normal application destination', async () => {
+    renderAppRoutes({
+      initialEntry: '/not-a-real-route',
+      redirectTo: '/campaigns',
+    });
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: /page not found/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('location-path')).toHaveTextContent(/^\/not-a-real-route$/);
+    expect(screen.getByRole('link', { name: /return to dashboard/i })).toHaveAttribute(
+      'href',
+      '/campaigns',
+    );
   });
 
   describe('Unauthenticated access to protected routes', () => {
@@ -664,6 +795,16 @@ describe('AppRoutes', () => {
         organisationDetailsService,
         'getPlatformOrganisationRequestDetails',
       );
+      vi.spyOn(organisationDetailsService, 'getOwnOrganisationDetail').mockResolvedValue({
+        id: 'org-123-abc',
+        name: 'Protea Security Gauteng',
+        status: 'ACTIVE',
+        description: 'Gauteng cybersecurity security provider',
+        approximateSize: 120,
+        website: 'https://proteasecurity.co.za',
+        registeredTraineeCount: 18,
+        registrationDate: '2026-06-19T00:00:00.000Z',
+      });
 
       renderAppRoutes({
         initialEntry: '/organisation-information',
@@ -981,5 +1122,171 @@ describe('AppRoutes', () => {
         await screen.findByRole('heading', { level: 1, name: /training document page/i }),
       ).toBeInTheDocument();
     });
+  });
+
+  it('renders the shared organisation Campaign list with organisation copy', async () => {
+    const organisationId = '11111111-1111-4111-8111-111111111111';
+
+    renderCampaignManagementRoutes(
+      `/organisations/${organisationId}/campaigns`,
+      'ORGANISATION_ADMIN',
+      organisationId,
+      ['VIEW_CAMPAIGNS'],
+    );
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: /^Campaigns$/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Create and manage campaigns for your organisation.'),
+    ).toBeInTheDocument();
+  });
+
+  it('renders the shared platform Campaign list with platform copy', async () => {
+    renderCampaignManagementRoutes('/platform/campaigns', 'IP_ADMIN', null);
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: /^Platform Campaigns$/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Create and manage campaigns available through Insightful Phish.'),
+    ).toBeInTheDocument();
+  });
+
+  it('renders the organisation Create Campaign shell', async () => {
+    const organisationId = '11111111-1111-4111-8111-111111111111';
+
+    renderCampaignManagementRoutes(
+      `/organisations/${organisationId}/campaigns/new`,
+      'ORGANISATION_ADMIN',
+      organisationId,
+      ['MANAGE_CAMPAIGNS'],
+    );
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: /^Create Campaign$/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Build a campaign by selecting and organising campaign items.'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Back to Campaigns' })).toHaveAttribute(
+      'href',
+      `/organisations/${organisationId}/campaigns`,
+    );
+  });
+
+  it('renders the platform Create Campaign shell', async () => {
+    renderCampaignManagementRoutes('/platform/campaigns/new', 'IP_ADMIN', null);
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: /^Create Campaign$/ }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Back to Campaigns' })).toHaveAttribute(
+      'href',
+      '/platform/campaigns',
+    );
+  });
+
+  it('renders authoritative organisation Campaign detail', async () => {
+    const organisationId = '11111111-1111-4111-8111-111111111111';
+    const campaignId = '10000000-0000-4000-8000-000000000001';
+
+    renderCampaignManagementRoutes(
+      `/organisations/${organisationId}/campaigns/${campaignId}`,
+      'ORGANISATION_ADMIN',
+      organisationId,
+      ['VIEW_CAMPAIGNS'],
+    );
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Draft Campaign' }),
+    ).toBeInTheDocument();
+
+    const detail = screen.getByRole('region', { name: 'New starter security' });
+    expect(within(detail).getByText('Draft')).toBeInTheDocument();
+    expect(screen.queryByRole('form', { name: 'Campaign details' })).not.toBeInTheDocument();
+  });
+
+  it('renders the protected Organisation Campaign statistics route', async () => {
+    const organisationId = '11111111-1111-4111-8111-111111111111';
+    const campaignId = '10000000-0000-4000-8000-000000000001';
+
+    renderCampaignManagementRoutes(
+      `/organisations/${organisationId}/campaigns/${campaignId}/statistics`,
+      'ORGANISATION_ADMIN',
+      organisationId,
+      ['VIEW_CAMPAIGNS'],
+    );
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Campaign' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Back to Campaign' })).toHaveAttribute(
+      'href',
+      `/organisations/${organisationId}/campaigns/${campaignId}`,
+    );
+  });
+
+  it('denies Organisation Campaign statistics without a Campaign permission', async () => {
+    const organisationId = '11111111-1111-4111-8111-111111111111';
+    const campaignId = '10000000-0000-4000-8000-000000000001';
+
+    renderCampaignManagementRoutes(
+      `/organisations/${organisationId}/campaigns/${campaignId}/statistics`,
+      'ORGANISATION_ADMIN',
+      organisationId,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('location-path')).toHaveTextContent('/');
+    });
+
+    expect(screen.queryByRole('heading', { level: 1, name: 'Campaign' })).not.toBeInTheDocument();
+  });
+
+  it('allows an organisation Campaign list user with MANAGE_CAMPAIGNS', async () => {
+    const organisationId = '11111111-1111-4111-8111-111111111111';
+
+    renderCampaignManagementRoutes(
+      `/organisations/${organisationId}/campaigns`,
+      'ORGANISATION_ADMIN',
+      organisationId,
+      ['MANAGE_CAMPAIGNS'],
+    );
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: /^Campaigns$/ }),
+    ).toBeInTheDocument();
+  });
+
+  it('denies organisation Campaign list access without a Campaign permission', async () => {
+    const organisationId = '11111111-1111-4111-8111-111111111111';
+
+    renderCampaignManagementRoutes(
+      `/organisations/${organisationId}/campaigns`,
+      'ORGANISATION_ADMIN',
+      organisationId,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('location-path')).toHaveTextContent('/');
+    });
+  });
+
+  it('requires MANAGE_CAMPAIGNS for the organisation Create Campaign route', async () => {
+    const organisationId = '11111111-1111-4111-8111-111111111111';
+
+    renderCampaignManagementRoutes(
+      `/organisations/${organisationId}/campaigns/new`,
+      'ORGANISATION_ADMIN',
+      organisationId,
+      ['VIEW_CAMPAIGNS'],
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('location-path')).toHaveTextContent('/');
+    });
+
+    expect(
+      screen.queryByRole('heading', { level: 1, name: /^Create Campaign$/ }),
+    ).not.toBeInTheDocument();
   });
 });

@@ -1,5 +1,9 @@
 import { Navigate, Outlet } from 'react-router-dom';
-import type { UserTypeDto, AuthContextDto } from '@insightful-phish/shared';
+import type {
+  AuthContextDto,
+  OrganisationPermissionKeyDto,
+  UserTypeDto,
+} from '@insightful-phish/shared';
 
 import { useAuth } from '../context/useAuth';
 
@@ -7,7 +11,8 @@ type ProtectedRouteProps = Readonly<{
   requiredRole?: UserTypeDto;
   allowedRoles?: readonly UserTypeDto[];
   requireOrganisation?: boolean;
-  requiredPermission?: string;
+  requiredPermission?: OrganisationPermissionKeyDto;
+  requiredAnyPermission?: readonly OrganisationPermissionKeyDto[];
   redirectTo?: string;
 }>;
 
@@ -46,6 +51,7 @@ function ProtectedRoute({
   allowedRoles,
   requireOrganisation,
   requiredPermission,
+  requiredAnyPermission,
   redirectTo,
 }: ProtectedRouteProps) {
   const { isAuthenticated, isAuthLoading, authContext, permissions, user } = useAuth();
@@ -56,16 +62,16 @@ function ProtectedRoute({
         style={{
           width: '100vw',
           height: '100vh',
-          backgroundColor: '#0E0020',
+          backgroundColor: '#F3F4F6',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: 'rgb(201, 143, 255)',
+          color: 'var(--ip-dark-pink)',
           fontFamily: 'Jost',
           fontSize: '1.5rem',
         }}
       >
-        Loading current user...
+        Loading Current User...
       </div>
     );
   }
@@ -83,10 +89,19 @@ function ProtectedRoute({
     (Boolean(userRole) && allowedRoles.includes(userRole!));
   const hasRequiredOrganisation = !requireOrganisation || Boolean(authContext?.organisation?.id);
   const hasRequiredPermission = !requiredPermission || permissions.includes(requiredPermission);
+  const hasAnyRequiredPermission =
+    !requiredAnyPermission ||
+    requiredAnyPermission.some((permission) => permissions.includes(permission));
 
   const fallbackRedirect = redirectTo ?? getDefaultRedirect(userRole, authContext);
 
-  if (!hasRequiredRole || !hasAllowedRole || !hasRequiredOrganisation || !hasRequiredPermission) {
+  if (
+    !hasRequiredRole ||
+    !hasAllowedRole ||
+    !hasRequiredOrganisation ||
+    !hasRequiredPermission ||
+    !hasAnyRequiredPermission
+  ) {
     return <Navigate to={fallbackRedirect} replace />;
   }
 

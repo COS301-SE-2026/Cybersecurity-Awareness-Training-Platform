@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import {
+  getOwnOrganisationDetail,
   getPlatformOrganisationDetail,
   getPlatformOrganisationRequestDetails,
   resendInitialAdminSetup,
@@ -19,6 +20,18 @@ vi.mock('../../lib/apiClient', () => ({
 describe('Organisation Details Service', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('calls GET /organisations/:organisationId with auth token', async () => {
+    const mockResponse = { id: 'org-123', name: 'Cyber Jan Technologies' };
+    vi.mocked(apiClient.get).mockResolvedValue(mockResponse);
+
+    const result = await getOwnOrganisationDetail('org-123', 'test-token');
+
+    expect(apiClient.get).toHaveBeenCalledWith('/organisations/org-123', {
+      authToken: 'test-token',
+    });
+    expect(result).toEqual(mockResponse);
   });
 
   it('calls GET /platform/organisations/:organisationId with auth token', async () => {

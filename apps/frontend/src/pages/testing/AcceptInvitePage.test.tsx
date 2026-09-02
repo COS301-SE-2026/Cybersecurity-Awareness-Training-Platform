@@ -1,4 +1,4 @@
-import { screen, waitFor, fireEvent } from '@testing-library/react';
+import { screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import AcceptInvitePage from '../AcceptInvitePage';
 import { renderWithRouter } from '../../testing/render';
@@ -295,14 +295,83 @@ describe('AcceptInvitePage', () => {
     });
   });
 
-  it('renders privacy-minimised error state when token is invalid or expired', async () => {
+  it('shows matching revoked title and body copy in the result modal', async () => {
+    vi.spyOn(invitationService, 'getInvitationContext').mockResolvedValue({
+      requiredAction: 'CONFIRM_ROLE_CHANGE',
+      rejectAllowed: true,
+      status: 'PENDING',
+      invitationType: 'PLATFORM_ADMIN',
+      roleGranted: 'PLATFORM_ADMIN',
+    });
+    vi.spyOn(invitationService, 'acceptInvitation').mockRejectedValue(
+      new ApiError('Invitation revoked', {
+        status: 409,
+        statusText: 'Conflict',
+        method: 'POST',
+        url: '/accept',
+        body: { error: 'INVITATION_REVOKED', message: 'Invitation has been revoked.' },
+      }),
+    );
+
+    renderWithRouter(<AcceptInvitePage />, {
+      initialEntry: `/accept-invite?token=${testToken}`,
+      auth: { isAuthLoading: false },
+    });
+
+    fireEvent.click(await screen.findByRole('button', { name: /Accept Invite/i }));
+
+    await waitFor(() => {
+      expect(document.querySelector('#select-modal')).not.toBeNull();
+    });
+
+    const modal = document.querySelector('#select-modal') as HTMLElement;
+    expect(within(modal).getByRole('heading', { name: 'Invitation Revoked' })).toBeInTheDocument();
+    expect(
+      within(modal).getByText(
+        'This invitation cannot be accepted because the organisation revoked it.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it.each([
+    [
+      'INVITATION_REVOKED',
+      'Invitation Revoked',
+      'This invitation cannot be accepted because the organisation revoked it.',
+    ],
+    [
+      'INVITATION_EXPIRED',
+      'Invitation Expired',
+      'This invitation cannot be accepted because its validity period has ended.',
+    ],
+    [
+      'TOKEN_USED',
+      'Invitation Already Used',
+      'This invitation cannot be accepted because it has already been accepted or otherwise used.',
+    ],
+    [
+      'TOKEN_INVALID',
+      'Invitation Invalid',
+      'This invitation cannot be accepted because the invitation link is invalid or unavailable.',
+    ],
+    [
+      'INVALID',
+      'Invitation Invalid',
+      'This invitation cannot be accepted because the invitation link is invalid or unavailable.',
+    ],
+    [
+      'UNRECOGNISED_RESPONSE',
+      'Invitation Invalid',
+      'This invitation cannot be accepted because the invitation link is invalid or unavailable.',
+    ],
+  ])('renders accurate privacy-safe copy for %s', async (error, title, message) => {
     vi.spyOn(invitationService, 'getInvitationContext').mockRejectedValue(
-      new ApiError('Token expired', {
+      new ApiError('Invitation unavailable', {
         status: 409,
         statusText: 'Conflict',
         method: 'GET',
         url: '/context',
-        body: { error: 'INVITATION_EXPIRED', message: 'Invitation action token has expired.' },
+        body: { error, message: 'Invitation unavailable.' },
       }),
     );
 
@@ -312,8 +381,8 @@ describe('AcceptInvitePage', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /Invitation Expired/i })).toBeInTheDocument();
-      expect(screen.getByText(/no longer valid/i)).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: title })).toBeInTheDocument();
+      expect(screen.getByText(message)).toBeInTheDocument();
     });
 
     expect(screen.queryByText(/CyberCorp/i)).not.toBeInTheDocument();

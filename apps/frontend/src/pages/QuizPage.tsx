@@ -113,7 +113,6 @@ function navigateToResults(
 function QuizHeader({ quiz, answeredQuestionCount }: QuizHeaderProps) {
   return (
     <section style={headerStyle}>
-      <p style={eyebrowStyle}>UC-03 Quiz</p>
       <h1 style={titleStyle}>{quiz.title}</h1>
       {quiz.description ? <p style={descriptionStyle}>{quiz.description}</p> : null}
       <p style={metaStyle}>{getQuizMetaText(quiz, answeredQuestionCount)}</p>
@@ -172,10 +171,8 @@ function QuizForm({
                   htmlFor={inputId}
                   style={{
                     ...optionStyle,
-                    borderColor: isSelected ? '#FF00D4' : 'rgba(255, 255, 255, 0.14)',
-                    backgroundColor: isSelected
-                      ? 'rgba(132, 0, 255, 0.28)'
-                      : 'rgba(255, 255, 255, 0.04)',
+                    borderColor: isSelected ? 'var(--ip-purple)' : '#D1D5DB',
+                    backgroundColor: isSelected ? 'var(--ip-faint-purple)' : '#FFFFFF',
                   }}
                 >
                   <input
@@ -186,7 +183,7 @@ function QuizForm({
                     aria-label={`${option.label}. ${option.text}`}
                     checked={isSelected}
                     onChange={() => onSelectAnswer(question.id, option.id)}
-                    style={{ accentColor: '#FF00D4' }}
+                    style={{ accentColor: 'var(--ip-purple)' }}
                   />
                   <span style={optionLabelStyle}>{option.label}</span>
                   <span>{option.text}</span>
@@ -237,9 +234,18 @@ export function QuizPage() {
   const [reloadToken, setReloadToken] = useState(0);
 
   const applyLoadedQuiz = useEffectEvent((loadedQuiz: CampaignItemQuiz) => {
+    if (loadedQuiz.currentAttempt?.status === 'SUBMITTED') {
+      navigateToResults(loadedQuiz.currentAttempt.attemptId, navigate, hasNavigatedToResultsRef);
+      return;
+    }
+
     setQuiz(loadedQuiz);
     setSelectedAnswers({});
-    setAttemptId(null);
+    setAttemptId(
+      loadedQuiz.currentAttempt?.status === 'IN_PROGRESS'
+        ? loadedQuiz.currentAttempt.attemptId
+        : null,
+    );
     setHasSubmitted(false);
     submitInFlightRef.current = false;
     hasNavigatedToResultsRef.current = false;
@@ -354,6 +360,7 @@ export function QuizPage() {
       contentStyle={{
         overflowY: 'auto',
         padding: '2rem',
+        backgroundColor: '#F3F4F6',
       }}
     >
       <TrainingAsyncContent
@@ -401,7 +408,7 @@ export default QuizPage;
 const pageShellStyle = {
   width: 'min(1180px, 100%)',
   margin: '0 auto',
-  color: '#FFFFFF',
+  color: '#1F2937',
   fontFamily: 'Overpass',
 } satisfies CSSProperties;
 
@@ -409,18 +416,9 @@ const headerStyle = {
   marginBottom: '1.5rem',
 } satisfies CSSProperties;
 
-const eyebrowStyle = {
-  margin: 0,
-  color: '#FF00D4',
-  fontFamily: 'Jost',
-  fontSize: '0.8rem',
-  fontWeight: 700,
-  letterSpacing: '0.12em',
-  textTransform: 'uppercase',
-} satisfies CSSProperties;
-
 const titleStyle = {
   margin: '0.4rem 0',
+  color: 'var(--ip-dark-pink)',
   fontFamily: 'Jost',
   fontSize: '2.4rem',
   lineHeight: 1.1,
@@ -428,12 +426,12 @@ const titleStyle = {
 
 const descriptionStyle = {
   maxWidth: '720px',
-  color: '#D8CCE8',
+  color: '#4B5563',
   lineHeight: 1.6,
 } satisfies CSSProperties;
 
 const metaStyle = {
-  color: '#BFA9DD',
+  color: 'var(--ip-text-bruised-purple)',
   fontSize: '0.95rem',
 } satisfies CSSProperties;
 
@@ -442,7 +440,7 @@ const alertStyle = {
   padding: '1rem',
   border: '1px solid #FF6B8A',
   backgroundColor: 'rgba(255, 107, 138, 0.12)',
-  color: '#FFFFFF',
+  color: '#991B1B',
 } satisfies CSSProperties;
 
 const formStyle = {
@@ -452,13 +450,13 @@ const formStyle = {
 
 const questionCardStyle = {
   padding: '1.4rem',
-  border: '1px solid rgba(255, 255, 255, 0.16)',
-  backgroundColor: 'rgba(255, 255, 255, 0.06)',
+  border: '1px solid #D1D5DB',
+  backgroundColor: '#FFFFFF',
 } satisfies CSSProperties;
 
 const questionLegendStyle = {
   padding: '0 0.5rem',
-  color: '#FF00D4',
+  color: 'var(--ip-dark-pink)',
   fontFamily: 'Jost',
   fontWeight: 700,
 } satisfies CSSProperties;
@@ -480,12 +478,12 @@ const optionStyle = {
   alignItems: 'center',
   gap: '0.75rem',
   padding: '0.9rem 1rem',
-  border: '1px solid rgba(255, 255, 255, 0.14)',
+  border: '1px solid #D1D5DB',
   cursor: 'pointer',
 } satisfies CSSProperties;
 
 const optionLabelStyle = {
-  color: '#FF00D4',
+  color: 'var(--ip-dark-pink)',
   fontFamily: 'Jost',
   fontWeight: 700,
 } satisfies CSSProperties;

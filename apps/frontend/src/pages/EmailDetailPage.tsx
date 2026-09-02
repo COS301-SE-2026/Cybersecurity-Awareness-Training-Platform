@@ -9,7 +9,7 @@ import { getSimulatedEmail, recordSimulatedEmailInteraction } from '../services/
 import { sanitizeSafeHtml } from '../lib/safeHtml';
 
 const emailMetaLabelStyle = {
-  color: '#CE9AFF',
+  color: 'var(--ip-dark-pink)',
   fontFamily: 'Jost',
   fontSize: '1.2rem',
   fontWeight: 500,
@@ -71,11 +71,11 @@ function EmailDetailPage() {
 
   if (loading) {
     return (
-      <AppLayout>
+      <AppLayout contentStyle={{ backgroundColor: '#F3F4F6' }}>
         <div
           style={{
             padding: '1.4rem',
-            color: 'white',
+            color: '#4B5563',
             fontFamily: 'Overpass',
             fontSize: '1.2rem',
           }}
@@ -88,11 +88,11 @@ function EmailDetailPage() {
 
   if (!email) {
     return (
-      <AppLayout>
+      <AppLayout contentStyle={{ backgroundColor: '#F3F4F6' }}>
         <div
           style={{
             padding: '1.4rem',
-            color: 'white',
+            color: '#B91C1C',
             fontFamily: 'Overpass',
             fontSize: '1.2rem',
           }}
@@ -104,7 +104,7 @@ function EmailDetailPage() {
   }
 
   return (
-    <AppLayout>
+    <AppLayout contentStyle={{ backgroundColor: '#F3F4F6' }}>
       <div
         style={{
           padding: '1.4rem',
@@ -114,6 +114,8 @@ function EmailDetailPage() {
           flexDirection: 'column',
           gap: '1.2rem',
           height: '100%',
+          minHeight: 0,
+          overflow: 'hidden',
           userSelect: 'none',
         }}
       >
@@ -121,7 +123,7 @@ function EmailDetailPage() {
 
         <h1
           style={{
-            color: 'white',
+            color: 'var(--ip-dark-pink)',
             fontFamily: 'Jost',
             fontSize: '3.8rem',
             fontWeight: 500,
@@ -135,13 +137,17 @@ function EmailDetailPage() {
 
         <div
           style={{
-            backgroundColor: 'rgba(46, 0, 85, 0.56)',
-            border: '4px solid #7700ff47',
+            backgroundColor: '#FFFFFF',
+            border: '1px solid #D1D5DB',
+            borderLeft: '6px solid var(--ip-purple)',
             padding: '1.1rem 1.2rem',
             marginBottom: '1rem',
             display: 'flex',
             justifyContent: 'space-between',
             gap: '2rem',
+            width: '100%',
+            boxSizing: 'border-box',
+            flexShrink: 0,
           }}
         >
           <div style={{ flex: 1 }}>
@@ -149,7 +155,7 @@ function EmailDetailPage() {
 
             <div
               style={{
-                color: 'white',
+                color: 'var(--ip-deep-purple)',
                 fontFamily: 'Overpass',
                 fontSize: '2rem',
                 fontWeight: 400,
@@ -161,7 +167,7 @@ function EmailDetailPage() {
 
             <div
               style={{
-                color: 'white',
+                color: '#6B7280',
                 fontFamily: 'Overpass',
                 fontSize: '1.4rem',
                 fontWeight: 200,
@@ -175,7 +181,7 @@ function EmailDetailPage() {
 
             <div
               style={{
-                color: 'white',
+                color: '#1F2937',
                 fontFamily: 'Overpass',
                 fontSize: '1.6rem',
                 fontWeight: 400,
@@ -188,7 +194,7 @@ function EmailDetailPage() {
 
           <div
             style={{
-              minWidth: '240px',
+              minWidth: '200px',
               textAlign: 'right',
             }}
           >
@@ -196,7 +202,7 @@ function EmailDetailPage() {
 
             <div
               style={{
-                color: 'white',
+                color: '#4B5563',
                 fontFamily: 'Overpass',
                 fontSize: '1.2rem',
                 fontWeight: 400,
@@ -207,18 +213,32 @@ function EmailDetailPage() {
           </div>
         </div>
 
-        <div>
-          <div style={emailMetaLabelStyle}>Body</div>
-
+        <div
+          style={{
+            width: '100%',
+            backgroundColor: '#FFFFFF',
+            border: '1px solid #D1D5DB',
+            padding: '1.25rem',
+            boxSizing: 'border-box',
+            display: 'flex',
+            flexDirection: 'column',
+            flex: '1 1 auto',
+            minHeight: 0,
+            overflow: 'hidden',
+          }}
+        >
           <div
             className="email-body"
             style={{
-              color: 'white',
+              color: '#1F2937',
               fontFamily: 'Overpass',
               fontSize: '1.5rem',
               fontWeight: 400,
               lineHeight: 1.7,
-              maxWidth: '1100px',
+              flex: '1 1 auto',
+              minHeight: 0,
+              overflowY: 'auto',
+              paddingRight: '0.75rem',
             }}
             dangerouslySetInnerHTML={{ __html: sanitizedBodyHtml }}
           />
@@ -230,7 +250,7 @@ function EmailDetailPage() {
               }
 
               .email-body a {
-                color: #CE9AFF;
+                color: var(--ip-purple);
               }
             `}
           </style>

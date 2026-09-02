@@ -16,6 +16,17 @@ import {
 import { ApiError } from '../lib/apiClient';
 import { useAuth } from '../context/useAuth';
 import AdminPagesSearchSVG from '../components/AdminPagesSearchSVG';
+import {
+  AdminTable,
+  AdminTableActions,
+  AdminTableCell,
+  AdminTableContainer,
+  AdminTableEmptyRow,
+  AdminTableHeader,
+  AdminTableHeaderCell,
+  AdminTableLoadingRow,
+  TruncatedValue,
+} from '../components/ui/AdminTable';
 
 interface OrganisationAdministrator {
   source: OrganisationAdminListItem;
@@ -784,7 +795,7 @@ function OrganisationAdministratorsPage() {
               fontSize: '3.8rem',
               lineHeight: 1,
               fontFamily: 'Jost',
-              color: 'rgb(132, 25, 255)',
+              color: 'rgb(70, 0, 151)',
             }}
           >
             Organisation Administrators
@@ -901,9 +912,15 @@ function OrganisationAdministratorsPage() {
           )}
 
           {isLoading && (
-            <div className="py-12 flex justify-center items-center font-jost text-gray-500 text-[1.2rem]">
-              <span>Loading organisation administrators...</span>
-            </div>
+            <AdminTableContainer>
+              <AdminTable aria-label="Organisation administrators">
+                <tbody>
+                  <AdminTableLoadingRow colSpan={5}>
+                    Loading organisation administrators...
+                  </AdminTableLoadingRow>
+                </tbody>
+              </AdminTable>
+            </AdminTableContainer>
           )}
 
           {!isLoading && !loadError && (
@@ -913,42 +930,17 @@ function OrganisationAdministratorsPage() {
               </h3>
 
               {/* TABLE */}
-              <div className="overflow-x-auto bg-neutral-primary-soft border border-default">
-                <table className="w-full text-sm text-left rtl:text-right text-body">
-                  <thead className="bg-faint-purple border-b border-default">
+              <AdminTableContainer>
+                <AdminTable>
+                  <AdminTableHeader>
                     <tr>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                      >
-                        Full Name
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                      >
-                        Email Address
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                      >
-                        Status
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                      >
-                        Permissions
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                      >
-                        Actions
-                      </th>
+                      <AdminTableHeaderCell>Full Name</AdminTableHeaderCell>
+                      <AdminTableHeaderCell>Email Address</AdminTableHeaderCell>
+                      <AdminTableHeaderCell>Status</AdminTableHeaderCell>
+                      <AdminTableHeaderCell>Permissions</AdminTableHeaderCell>
+                      <AdminTableHeaderCell>Actions</AdminTableHeaderCell>
                     </tr>
-                  </thead>
+                  </AdminTableHeader>
                   <tbody className="font-overpass font-regular text-[1rem] tracking-wide">
                     {filteredOrganisationAdministrators.map((organisationAdministrator) => (
                       <tr
@@ -956,18 +948,25 @@ function OrganisationAdministratorsPage() {
                         className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default"
                       >
                         {/* Full Name */}
-                        <td className="px-6 py-4">{organisationAdministrator.fullName}</td>
+                        <AdminTableCell>
+                          <TruncatedValue
+                            value={organisationAdministrator.fullName}
+                            className="max-w-64"
+                          />
+                        </AdminTableCell>
 
                         {/* Email Address */}
-                        <td className="px-6 py-4">{organisationAdministrator.emailAddress}</td>
+                        <AdminTableCell>
+                          <TruncatedValue value={organisationAdministrator.emailAddress} />
+                        </AdminTableCell>
 
                         {/* Status */}
-                        <td className="px-6 py-4">
+                        <AdminTableCell>
                           {getStatusBadge(organisationAdministrator.status)}
-                        </td>
+                        </AdminTableCell>
 
                         {/* Permissions */}
-                        <td className="px-6 py-4">
+                        <AdminTableCell>
                           <Popover
                             content={
                               <PermissionsPopover
@@ -1006,11 +1005,11 @@ function OrganisationAdministratorsPage() {
                               </span>
                             </button>
                           </Popover>
-                        </td>
+                        </AdminTableCell>
 
                         {/* Actions */}
-                        <td className="px-6 py-4">
-                          <div className="grid grid-cols-1 gap-1 justify-items-start">
+                        <AdminTableCell>
+                          <AdminTableActions className="flex-col items-start gap-1">
                             {organisationAdministrator.status === 'Active' &&
                               canChangeAdministratorPermissions && (
                                 <button
@@ -1044,24 +1043,18 @@ function OrganisationAdministratorsPage() {
                             {organisationAdministrator.status === 'Active' &&
                               !canChangeAdministratorPermissions &&
                               !canRemoveAdministrators && <span aria-hidden="true">—</span>}
-                          </div>
-                        </td>
+                          </AdminTableActions>
+                        </AdminTableCell>
                       </tr>
                     ))}
-                  </tbody>
-
-                  {filteredOrganisationAdministrators.length === 0 && (
-                    <tr>
-                      <td
-                        colSpan={5}
-                        className="py-8 text-center text-[1.2rem] tracking-wider text-red-500 font-jost"
-                      >
+                    {filteredOrganisationAdministrators.length === 0 && (
+                      <AdminTableEmptyRow colSpan={5}>
                         No Organisation Administrators Found
-                      </td>
-                    </tr>
-                  )}
-                </table>
-              </div>
+                      </AdminTableEmptyRow>
+                    )}
+                  </tbody>
+                </AdminTable>
+              </AdminTableContainer>
             </>
           )}
         </div>

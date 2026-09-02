@@ -6,6 +6,8 @@ import type {
   InvitationActionUnavailableReasonCode,
   InvitationResendResponseDto,
   InvitationRevokeResponseDto,
+  ReenableTraineeRequestDto,
+  ReenableTraineeResponseDto,
   TraineeListResponseDto,
   TraineeListItemDto,
 } from '@insightful-phish/shared';
@@ -31,6 +33,7 @@ import {
   findOrganisationTrainees,
   findPendingTraineeInvitationByEmail,
   OrganisationTraineeRepositoryError,
+  reenableOrganisationTraineeTx,
   resendOrganisationTraineeInvitationTx,
   revokeOrganisationTraineeInvitationTx,
 } from '../repositories/organisation-trainee.repository.js';
@@ -83,11 +86,13 @@ function buildEligibility(input: {
   canResend: boolean;
   canRevoke: boolean;
   canDisable: boolean;
+  canReenable: boolean;
   canPromote: boolean;
   resendCooldownSeconds: number;
   resendDisabledReason: string | null;
   revokeDisabledReason: string | null;
   disableDisabledReason: string | null;
+  reenableUnavailableReason: string | null;
   promoteDisabledReason: string | null;
   resendDisabledReasonCode: InvitationActionUnavailableReasonCode | null;
   revokeDisabledReasonCode: InvitationActionUnavailableReasonCode | null;
@@ -243,6 +248,15 @@ function assertInvitationResendEligibility(input: {
     );
   }
 
+  const managementPolicy = getInvitationActionPolicy(invitation);
+  if (!managementPolicy.canResend) {
+    throw new OrganisationTraineeServiceError(
+      409,
+      'INVITATION_NOT_RESENDABLE',
+      'Invitation is no longer eligible to be resent.',
+    );
+  }
+
   const isPlatformAdmin = existingUser?.userType === 'IP_ADMIN';
   const orgId = existingUser?.traineeProfile?.organisationTraineeProfile?.organisationId;
   const belongsToAnotherOrg = orgId !== undefined && orgId !== invitation.organisationId;
@@ -266,6 +280,7 @@ function buildActiveTraineeRow(
   trainee: Awaited<ReturnType<typeof findOrganisationTrainees>>[number],
 ): TraineeListItemDto {
   const active = isOrganisationTraineeActive(trainee);
+  const canReenable = trainee.membershipStatus === 'DISABLED';
   return {
     id: trainee.id,
     rowType: 'ACTIVE_TRAINEE' as const,
@@ -294,11 +309,13 @@ function buildActiveTraineeRow(
       canResend: false,
       canRevoke: false,
       canDisable: active,
+      canReenable,
       canPromote: active,
       resendCooldownSeconds: 0,
       resendDisabledReason: 'Resend is only available for invitations.',
       revokeDisabledReason: 'Revoke is only available for invitations.',
       disableDisabledReason: getTraineeEligibilityMessage(trainee),
+      reenableUnavailableReason: canReenable ? null : 'Only disabled trainees can be re-enabled.',
       promoteDisabledReason: active ? null : 'Only active trainees can be promoted.',
       resendDisabledReasonCode: 'NOT_APPLICABLE',
       revokeDisabledReasonCode: 'NOT_APPLICABLE',
@@ -362,6 +379,7 @@ function buildInvitationRow(invitation: TraineeListInvitation, now: Date): Train
       canResend,
       canRevoke,
       canDisable: false,
+      canReenable: false,
       canPromote: false,
       resendCooldownSeconds,
       resendDisabledReason: getInvitationResendDisabledReason(
@@ -371,6 +389,7 @@ function buildInvitationRow(invitation: TraineeListInvitation, now: Date): Train
       ),
       revokeDisabledReason: !canRevoke ? 'Invitation is no longer active.' : null,
       disableDisabledReason: 'Cannot disable a pending invitation.',
+      reenableUnavailableReason: 'Re-enable is only available for disabled memberships.',
       promoteDisabledReason: 'Only active trainees can be promoted.',
       resendDisabledReasonCode: getInvitationResendDisabledReasonCode(
         canResend,
@@ -383,6 +402,11 @@ function buildInvitationRow(invitation: TraineeListInvitation, now: Date): Train
       promoteDisabledReasonCode: 'NOT_APPLICABLE',
     }),
   };
+}
+
+function shouldShowInvitationManagementRow(invitation: TraineeListInvitation, now: Date) {
+  const managementPolicy = getInvitationActionPolicy(invitation, now);
+  return managementPolicy.canResend || managementPolicy.canRevoke;
 }
 
 export async function listOrganisationTrainees(
@@ -405,9 +429,9 @@ export async function listOrganisationTrainees(
     buildActiveTraineeRow(trainee),
   );
 
-  const invitationRows: TraineeListItemDto[] = invitations.map((invitation) =>
-    buildInvitationRow(invitation, now),
-  );
+  const invitationRows: TraineeListItemDto[] = invitations
+    .filter((invitation) => shouldShowInvitationManagementRow(invitation, now))
+    .map((invitation) => buildInvitationRow(invitation, now));
 
   return {
     trainees,
@@ -541,11 +565,13 @@ export async function createOrganisationTraineeInvitation(
         canResend: false,
         canRevoke,
         canDisable: false,
+        canReenable: false,
         canPromote: false,
         resendCooldownSeconds: 60,
         resendDisabledReason: 'Resend cooldown is currently active.',
         revokeDisabledReason: !canRevoke ? 'Invitation is no longer active.' : null,
         disableDisabledReason: 'Cannot disable a pending invitation.',
+        reenableUnavailableReason: 'Re-enable is only available for disabled memberships.',
         promoteDisabledReason: 'Only active trainees can be promoted.',
         resendDisabledReasonCode: 'COOLDOWN_ACTIVE',
         revokeDisabledReasonCode: !canRevoke ? 'INVITATION_NOT_ACTIVE' : null,
@@ -726,11 +752,13 @@ export async function resendTraineeInvitation(
         canResend: false,
         canRevoke,
         canDisable: false,
+        canReenable: false,
         canPromote: false,
         resendCooldownSeconds: 60,
         resendDisabledReason: 'Resend cooldown is currently active.',
         revokeDisabledReason: !canRevoke ? 'Invitation is no longer active.' : null,
         disableDisabledReason: 'Cannot disable a pending invitation.',
+        reenableUnavailableReason: 'Re-enable is only available for disabled memberships.',
         promoteDisabledReason: 'Only active trainees can be promoted.',
         resendDisabledReasonCode: 'COOLDOWN_ACTIVE',
         revokeDisabledReasonCode: !canRevoke ? 'INVITATION_NOT_ACTIVE' : null,
@@ -899,5 +927,68 @@ export async function disableOrganisationTrainee(
     message: 'Trainee account disabled successfully.',
     traineeId: txResult.txTrainee.id,
     status: 'DISABLED',
+  };
+}
+
+export async function reenableOrganisationTrainee(
+  actorUserId: string,
+  organisationId: string,
+  traineeId: string,
+  input: ReenableTraineeRequestDto,
+): Promise<ReenableTraineeResponseDto> {
+  const actor = await requireActorAdmin(actorUserId, organisationId);
+  requirePermission(
+    permissionKeysForAdmin(actor),
+    OrganisationPermissionKey.REMOVE_ORGANISATION_TRAINEES,
+  );
+  assertTraineeMutationAllowed(actor.organisation.status);
+
+  const passwordMatches = await verifyPassword(input.password, actor.user.passwordHash);
+  if (!passwordMatches) {
+    await recordAuditLog({
+      actorUserId,
+      actorType: 'ORGANISATION_ADMIN',
+      organisationId,
+      targetType: 'USER',
+      targetId: traineeId,
+      actionType: 'REACTIVATED',
+      outcome: 'FAILURE',
+      metadata: {
+        reason: 'INCORRECT_PASSWORD',
+        traineeId,
+      },
+    });
+    throw new OrganisationTraineeServiceError(
+      403,
+      'ORG_TRAINEE_PASSWORD_INVALID',
+      'Password confirmation failed',
+    );
+  }
+
+  let txResult: Awaited<ReturnType<typeof reenableOrganisationTraineeTx>>;
+  try {
+    txResult = await reenableOrganisationTraineeTx({
+      actorUserId,
+      organisationId,
+      traineeId,
+      auditLogData: {
+        actorUserId,
+        actorType: 'ORGANISATION_ADMIN',
+        organisationId,
+        targetType: 'USER',
+        actionType: 'REACTIVATED',
+        outcome: 'SUCCESS',
+        metadata: { traineeId },
+      },
+    });
+  } catch (error) {
+    rethrowAsServiceError(error);
+  }
+
+  return {
+    success: true,
+    message: 'Trainee account re-enabled successfully.',
+    traineeId: txResult.txTrainee.id,
+    status: 'ACTIVE',
   };
 }

@@ -92,7 +92,12 @@ describe('OrganisationInformationPage Integration', () => {
       expect(screen.getByRole('heading', { name: /Cyber Jan Technologies/i })).toBeInTheDocument();
     });
 
-    expect(screen.getByText(/Status: ACTIVE/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Back to Organisation Management' })).toHaveAttribute(
+      'href',
+      '/organisation-management',
+    );
+    expect(screen.queryByText(/^Status:/i)).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/Status/i)).toHaveValue('Active');
     expect(screen.getByRole('button', { name: /Basic Information/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Representative Information/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Administrators/i })).toBeInTheDocument();
@@ -136,6 +141,11 @@ describe('OrganisationInformationPage Integration', () => {
       ).toBeInTheDocument();
     });
 
+    expect(screen.getByRole('link', { name: 'Back to Organisation Management' })).toHaveAttribute(
+      'href',
+      '/organisation-management',
+    );
+
     // Request submission date label check and absence of Registered Trainees
     expect(screen.getByText(/Request Submission Date/i)).toBeInTheDocument();
     expect(screen.queryByText(/Registered Trainees/i)).not.toBeInTheDocument();
@@ -168,7 +178,7 @@ describe('OrganisationInformationPage Integration', () => {
     renderWithRouter('/platform/organisations/org-suspended-1');
 
     await waitFor(() => {
-      expect(screen.getByText(/This organisation is currently SUSPENDED/i)).toBeInTheDocument();
+      expect(screen.getByText(/This organisation is currently suspended/i)).toBeInTheDocument();
     });
   });
 
@@ -247,6 +257,16 @@ describe('OrganisationInformationPage Integration', () => {
   it('renders organisation information for ORGANISATION_ADMIN without calling platform APIs or rendering platform tabs', async () => {
     const platformDetailSpy = vi.spyOn(service, 'getPlatformOrganisationDetail');
     const platformRequestSpy = vi.spyOn(service, 'getPlatformOrganisationRequestDetails');
+    const ownOrgDetailSpy = vi.spyOn(service, 'getOwnOrganisationDetail').mockResolvedValue({
+      id: 'org-123-abc',
+      name: 'Protea Security Gauteng',
+      status: 'ACTIVE',
+      description: 'Gauteng cybersecurity security provider',
+      approximateSize: 120,
+      website: 'https://proteasecurity.co.za',
+      registeredTraineeCount: 18,
+      registrationDate: '2026-06-19T00:00:00.000Z',
+    });
 
     mockAuthContext = {
       role: 'ORGANISATION_ADMIN',
@@ -262,14 +282,64 @@ describe('OrganisationInformationPage Integration', () => {
     expect(
       await screen.findByRole('heading', { name: /Protea Security Gauteng/i }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Status: ACTIVE/i)).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Back to Organisation Management' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Status:/i)).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/Status/i)).toHaveValue('Active');
+    expect(ownOrgDetailSpy).toHaveBeenCalledWith('org-123-abc', 'mock-token-xyz');
     expect(platformDetailSpy).not.toHaveBeenCalled();
     expect(platformRequestSpy).not.toHaveBeenCalled();
+    expect(screen.getByDisplayValue('Gauteng cybersecurity security provider')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('https://proteasecurity.co.za')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('120')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('18')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('2026-06-19')).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: /Representative Information/i }),
     ).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Administrators/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Timeline/i })).not.toBeInTheDocument();
     expect(screen.queryByText(/Danger Zone/i)).not.toBeInTheDocument();
+  });
+
+  it('renders Approved - Waiting for Setup for PENDING_ONBOARDING status and clean Danger Zone', async () => {
+    vi.spyOn(service, 'getPlatformOrganisationDetail').mockResolvedValue({
+      id: 'org-onboarding-1',
+      name: 'Onboarding Org',
+      status: 'PENDING_ONBOARDING',
+      detailType: 'onboarding organisation',
+      description: 'New org waiting for setup',
+      approximateSize: 15,
+      website: 'https://onboarding.co.za',
+      primaryDomain: 'onboarding.co.za',
+      createdAt: '2026-06-19T00:00:00.000Z',
+      updatedAt: '2026-06-20T00:00:00.000Z',
+      _count: { adminProfiles: 0, traineeProfiles: 0 },
+      registrationRequest: null,
+      setupStatus: {
+        id: 'setup-2',
+        status: 'SENT',
+        recipientEmail: 'admin@onboarding.co.za',
+        expiresAt: '2026-12-31T00:00:00.000Z',
+        latestActionToken: null,
+        latestEmailDelivery: null,
+      },
+      resendEligibility: { isEligible: false, reason: 'ACTIVE_SETUP_TOKEN_EXISTS' },
+      admins: [],
+      timeline: [],
+    });
+
+    renderWithRouter('/platform/organisations/org-onboarding-1');
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Onboarding Org/i })).toBeInTheDocument();
+    });
+
+    expect(screen.getByLabelText(/Status/i)).toHaveValue('Approved - Waiting for Setup');
+    expect(screen.getByRole('heading', { name: 'Danger Zone' })).toBeInTheDocument();
+    expect(screen.queryByText(/Sprint 4/i)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Suspend Organisation' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Delete Organisation' })).toBeInTheDocument();
   });
 });
