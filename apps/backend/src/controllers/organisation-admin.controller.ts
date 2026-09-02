@@ -3,6 +3,7 @@ import {
   changeAdminPermissions,
   createAdminPromotion,
   getOrganisationAdmins,
+  getOwnOrganisation as getOwnOrganisationService,
   OrganisationAdminServiceError,
   removeAdmin,
 } from '../services/organisation-admin.service.js';
@@ -41,6 +42,23 @@ function requiredParam(req: Request, name: string) {
   }
 
   return value;
+}
+
+export async function getOwnOrganisation(req: Request, res: Response) {
+  const actorUserId = requireActorUserId(req, res);
+  if (!actorUserId) {
+    return;
+  }
+
+  try {
+    const result = await getOwnOrganisationService(
+      actorUserId,
+      requiredParam(req, 'organisationId'),
+    );
+    return res.status(200).json(result);
+  } catch (error) {
+    return handleOrganisationAdminError(error, res);
+  }
 }
 
 export async function listOrganisationAdmins(req: Request, res: Response) {

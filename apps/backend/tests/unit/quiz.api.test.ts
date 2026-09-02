@@ -239,6 +239,27 @@ describe('Quiz API Routes', () => {
       expect(response.body.questions[0].options[0]).toHaveProperty('id', optionId1);
       expect(response.body.questions[0].options[0]).not.toHaveProperty('isCorrect');
       expect(response.body.questions[0].options[0]).not.toHaveProperty('feedbackText');
+      expect(response.body.currentAttempt).toBeNull();
+    });
+
+    it('returns existing currentAttempt summary when attempt exists', async () => {
+      mockPrisma.campaignItem.findFirst.mockResolvedValue(mockCampaignItem());
+      mockPrisma.quizAttempt.findFirst.mockResolvedValue({
+        id: attemptId,
+        status: 'SUBMITTED',
+        quizResult: { id: 'result-1' },
+      });
+
+      const response = await request(createApp())
+        .get(`/trainee/campaign-items/${campaignItemId}/quiz`)
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.currentAttempt).toEqual({
+        attemptId,
+        status: 'SUBMITTED',
+        hasResult: true,
+      });
     });
 
     it('returns 403 Forbidden for inactive trainee profile', async () => {

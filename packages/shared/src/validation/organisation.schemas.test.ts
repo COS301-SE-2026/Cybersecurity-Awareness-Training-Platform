@@ -8,6 +8,7 @@ import {
   initialAdminSetupStatusSchema,
   organisationAdminSummarySchema,
   platformOrganisationDetailSchema,
+  ownOrganisationDetailSchema,
 } from './organisation.js';
 import {
   getOrganisationRequestDetailsParamsSchema,
@@ -218,6 +219,37 @@ describe('organisation validation schemas', () => {
       expect(platformOrganisationRequestDetailsResponseSchema.parse(validRequestDetail)).toEqual(
         validRequestDetail,
       );
+    });
+
+    it('validates ownOrganisationDetailSchema', () => {
+      const validOwnDetail = {
+        id: validUuid,
+        name: 'Cyber Jan Technologies',
+        description: 'South African consultancy',
+        website: 'https://cyberjan.co.za',
+        approximateSize: 250,
+        registeredTraineeCount: 45,
+        registrationDate: '2026-07-01T08:00:00.000Z',
+        status: 'ACTIVE' as const,
+      };
+
+      expect(ownOrganisationDetailSchema.parse(validOwnDetail)).toEqual(validOwnDetail);
+
+      const withNulls = {
+        id: validUuid,
+        name: 'Cyber Jan Technologies',
+        description: null,
+        website: null,
+        approximateSize: null,
+        registeredTraineeCount: 0,
+        registrationDate: '2026-07-01T08:00:00.000Z',
+        status: 'ACTIVE' as const,
+      };
+
+      expect(ownOrganisationDetailSchema.parse(withNulls)).toEqual(withNulls);
+      expect(() =>
+        ownOrganisationDetailSchema.parse({ ...validOwnDetail, id: 'invalid-uuid' }),
+      ).toThrow();
     });
   });
 });
