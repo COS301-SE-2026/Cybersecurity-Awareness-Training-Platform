@@ -9,22 +9,22 @@
       "number": 532,
       "title": "fix: Show organisation and session policy information",
       "points": 5,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-09-02"
     },
     {
       "number": 531,
       "title": "fix: Restore an existing quiz attempt",
       "points": 3,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-09-02"
     },
     {
       "number": 530,
       "title": "fix: Show correct trainee campaign progress",
       "points": 3,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-09-02"
     },
     {
       "number": 519,
@@ -326,7 +326,7 @@
     },
     {
       "date": "2026-09-02",
-      "remaining": 34,
+      "remaining": 23,
       "ideal": 0.0
     }
   ]
