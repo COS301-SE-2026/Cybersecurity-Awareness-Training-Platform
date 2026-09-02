@@ -148,7 +148,7 @@ function InvitePlatformAdministratorModal({
                 value={firstName}
                 disabled={isSubmitting}
                 onChange={(event) => setFirstName(event.target.value)}
-                className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
                 placeholder="Enter the Administrator's First Name"
               />
             </div>
@@ -168,7 +168,7 @@ function InvitePlatformAdministratorModal({
                 value={lastName}
                 disabled={isSubmitting}
                 onChange={(event) => setLastName(event.target.value)}
-                className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
                 placeholder="Enter the Administrator's Last Name"
               />
             </div>
@@ -190,7 +190,7 @@ function InvitePlatformAdministratorModal({
                 name="admin-email-address"
                 id="admin-email-address"
                 ref={emailInputRef}
-                className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
                 placeholder="Enter the Administrator's Email Address"
               />
             </div>

@@ -24,7 +24,7 @@ function CampaignAccordion({
     <div
       style={{
         border: `4px solid ${accentColor}33`,
-        backgroundColor: `${accentColor}13`,
+        backgroundColor: 'white',
         position: 'relative',
         overflow: 'visible',
       }}
@@ -62,7 +62,7 @@ function CampaignAccordion({
         <div>
           <div
             style={{
-              color: 'white',
+              color: 'var(--ip-deep-purple)',
               fontFamily: 'Overpass',
               fontSize: '1.6rem',
               fontWeight: 400,
@@ -116,14 +116,14 @@ function CampaignAccordion({
           {isOpen ? (
             <KeyboardArrowUp
               style={{
-                color: 'white',
+                color: 'var(--ip-deep-purple)',
                 fontSize: '3rem',
               }}
             />
           ) : (
             <KeyboardArrowDown
               style={{
-                color: 'white',
+                color: 'var(--ip-deep-purple)',
                 fontSize: '3rem',
               }}
             />

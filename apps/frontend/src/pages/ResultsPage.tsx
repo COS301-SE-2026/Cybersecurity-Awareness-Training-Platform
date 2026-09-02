@@ -64,6 +64,7 @@ export function ResultsPage() {
       contentStyle={{
         overflowY: 'auto',
         padding: '2rem',
+        backgroundColor: '#F3F4F6',
       }}
     >
       <TrainingAsyncContent
@@ -118,8 +119,8 @@ export function ResultsPage() {
                         <span
                           style={{
                             ...statusPillStyle,
-                            borderColor: answer.isCorrect ? '#00E6A8' : '#FF6B8A',
-                            color: answer.isCorrect ? '#00E6A8' : '#FF9FB3',
+                            borderColor: answer.isCorrect ? '#16A34A' : '#DC2626',
+                            color: answer.isCorrect ? '#166534' : '#991B1B',
                           }}
                         >
                           {answer.isCorrect ? 'Correct' : 'Needs Review'}
@@ -145,7 +146,7 @@ export function ResultsPage() {
                             <p
                               style={{
                                 ...optionStatusStyle,
-                                color: option.isCorrect ? '#00E6A8' : '#FF9FB3',
+                                color: option.isCorrect ? '#166534' : '#991B1B',
                               }}
                             >
                               {option.isCorrect
@@ -182,20 +183,20 @@ export default ResultsPage;
 const pageShellStyle = {
   width: 'min(980px, 100%)',
   margin: '0 auto',
-  color: '#FFFFFF',
+  color: '#1F2937',
   fontFamily: 'Overpass',
 } satisfies CSSProperties;
 
 const summaryCardStyle = {
   padding: '1.6rem',
-  border: '1px solid rgba(255, 255, 255, 0.16)',
-  backgroundColor: 'rgba(255, 255, 255, 0.06)',
+  border: '1px solid #D1D5DB',
+  backgroundColor: '#FFFFFF',
   marginBottom: '1.5rem',
 } satisfies CSSProperties;
 
 const eyebrowStyle = {
   margin: 0,
-  color: '#FF00D4',
+  color: 'var(--ip-dark-pink)',
   fontFamily: 'Jost',
   fontSize: '0.8rem',
   fontWeight: 700,
@@ -205,13 +206,14 @@ const eyebrowStyle = {
 
 const titleStyle = {
   margin: '0.4rem 0',
+  color: 'var(--ip-dark-pink)',
   fontFamily: 'Jost',
   fontSize: '2.4rem',
 } satisfies CSSProperties;
 
 const scoreStyle = {
   margin: '1rem 0',
-  color: '#FFFFFF',
+  color: 'var(--ip-deep-purple)',
   fontFamily: 'Jost',
   fontSize: '3rem',
   fontWeight: 700,
@@ -219,12 +221,12 @@ const scoreStyle = {
 
 const descriptionStyle = {
   maxWidth: '720px',
-  color: '#D8CCE8',
+  color: '#4B5563',
   lineHeight: 1.6,
 } satisfies CSSProperties;
 
 const metaStyle = {
-  color: '#BFA9DD',
+  color: 'var(--ip-text-bruised-purple)',
   fontSize: '0.95rem',
 } satisfies CSSProperties;
 
@@ -235,14 +237,15 @@ const feedbackSectionStyle = {
 
 const sectionTitleStyle = {
   margin: 0,
+  color: 'var(--ip-deep-purple)',
   fontFamily: 'Jost',
   fontSize: '1.5rem',
 } satisfies CSSProperties;
 
 const emptyFeedbackStyle = {
   padding: '1rem',
-  border: '1px solid rgba(255, 255, 255, 0.16)',
-  backgroundColor: 'rgba(255, 255, 255, 0.04)',
+  border: '1px solid #D1D5DB',
+  backgroundColor: '#FFFFFF',
 } satisfies CSSProperties;
 
 const answerListStyle = {
@@ -252,8 +255,8 @@ const answerListStyle = {
 
 const answerCardStyle = {
   padding: '1.2rem',
-  border: '1px solid rgba(255, 255, 255, 0.16)',
-  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  border: '1px solid #D1D5DB',
+  backgroundColor: '#FFFFFF',
 } satisfies CSSProperties;
 
 const answerHeaderStyle = {
@@ -280,7 +283,7 @@ const statusPillStyle = {
 } satisfies CSSProperties;
 
 const feedbackTextStyle = {
-  color: '#D8CCE8',
+  color: '#4B5563',
   lineHeight: 1.6,
 } satisfies CSSProperties;
 
@@ -292,8 +295,8 @@ const selectedOptionsStyle = {
 
 const selectedOptionStyle = {
   padding: '0.85rem',
-  border: '1px solid rgba(255, 255, 255, 0.14)',
-  backgroundColor: 'rgba(14, 0, 32, 0.58)',
+  border: '1px solid var(--ip-bg-purple)',
+  backgroundColor: 'var(--ip-faint-purple)',
 } satisfies CSSProperties;
 
 const selectedOptionHeaderStyle = {
@@ -303,7 +306,7 @@ const selectedOptionHeaderStyle = {
 } satisfies CSSProperties;
 
 const optionLabelStyle = {
-  color: '#FF00D4',
+  color: 'var(--ip-dark-pink)',
   fontFamily: 'Jost',
   fontWeight: 700,
 } satisfies CSSProperties;
@@ -320,8 +323,9 @@ const actionRowStyle = {
 } satisfies CSSProperties;
 
 const secondaryLinkStyle = {
-  color: '#FFFFFF',
-  border: '1px solid #FF00D4',
+  color: 'var(--ip-deep-purple)',
+  border: '1px solid var(--ip-purple)',
+  backgroundColor: '#FFFFFF',
   padding: '0.85rem 1.2rem',
   textDecoration: 'none',
   fontFamily: 'Jost',
