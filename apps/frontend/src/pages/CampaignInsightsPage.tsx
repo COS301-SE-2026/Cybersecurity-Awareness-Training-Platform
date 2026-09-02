@@ -583,7 +583,7 @@ function CampaignInsightsPage({
               fontSize: '2.2rem',
               lineHeight: 1,
               fontFamily: 'Jost',
-              color: 'rgb(132, 25, 255)',
+              color: 'rgb(70, 0, 151)',
             }}
           >
             {campaignPresentation.name}

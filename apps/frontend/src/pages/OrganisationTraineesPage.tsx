@@ -2146,7 +2146,7 @@ function OrganisationTraineesPage() {
               fontSize: '3.8rem',
               lineHeight: 1,
               fontFamily: 'Jost',
-              color: 'rgb(132, 25, 255)',
+              color: 'rgb(70, 0, 151)',
             }}
           >
             Organisation Trainees
