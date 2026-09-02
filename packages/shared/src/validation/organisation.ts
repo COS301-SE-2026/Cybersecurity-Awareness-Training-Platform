@@ -163,24 +163,26 @@ export const organisationStatusSchema = z.enum([
   'ARCHIVED',
 ]);
 
-export const platformOrganisationDetailSchema = z
-  .object({
-    id: z.string().uuid(),
-    name: z.string(),
-    status: organisationStatusSchema,
-    // request-only is excluded -- organisations always have a status, never request-only.
-    detailType: z.enum([
-      'onboarding organisation',
-      'active organisation',
-      'suspended organisation',
-      'disabled organisation',
-    ]),
-    description: z.string().nullable(),
-    approximateSize: z.number().int().nullable(),
-    website: z.string().nullable(),
-    primaryDomain: z.string().nullable(),
-    createdAt: z.string().datetime(),
-    updatedAt: z.string().datetime(),
+export const baseOrganisationDetailSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  status: organisationStatusSchema,
+  detailType: z.enum([
+    'onboarding organisation',
+    'active organisation',
+    'suspended organisation',
+    'disabled organisation',
+  ]),
+  description: z.string().nullable(),
+  approximateSize: z.number().int().nullable(),
+  website: z.string().nullable(),
+  primaryDomain: z.string().nullable(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
+export const platformOrganisationDetailSchema = baseOrganisationDetailSchema
+  .extend({
     _count: z
       .object({
         adminProfiles: z.number().int().nonnegative(),
@@ -207,23 +209,8 @@ export const platformOrganisationDetailSchema = z
 
 export type PlatformOrganisationDetailDto = z.infer<typeof platformOrganisationDetailSchema>;
 
-export const organisationInformationSchema = z
-  .object({
-    id: z.string().uuid(),
-    name: z.string(),
-    status: organisationStatusSchema,
-    detailType: z.enum([
-      'onboarding organisation',
-      'active organisation',
-      'suspended organisation',
-      'disabled organisation',
-    ]),
-    description: z.string().nullable(),
-    approximateSize: z.number().int().nullable(),
-    website: z.string().nullable(),
-    primaryDomain: z.string().nullable(),
-    createdAt: z.string().datetime(),
-    updatedAt: z.string().datetime(),
+export const organisationInformationSchema = baseOrganisationDetailSchema
+  .extend({
     _count: z
       .object({
         traineeProfiles: z.number().int().nonnegative(),

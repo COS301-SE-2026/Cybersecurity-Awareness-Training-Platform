@@ -3,6 +3,10 @@ import { recordAuditLog } from './audit-log.service.js';
 import { requestAuthEmailSend } from './auth-email-hook.service.js';
 import { issueActionToken } from './action-token.service.js';
 import {
+  toBaseOrganisationDto,
+  resolveOrganisationDetailType,
+} from '../mappers/organisation.mapper.js';
+import {
   OrganisationRegistrationRequestError,
   requirePlatformAdminUser,
   formatRegistrationRequestBase,
@@ -65,31 +69,8 @@ export async function getPlatformOrganisationDetail(actorUserId: string, organis
     invitation?.id ?? null,
   );
 
-  let detailType:
-    | 'onboarding organisation'
-    | 'active organisation'
-    | 'suspended organisation'
-    | 'disabled organisation' = 'disabled organisation';
-
-  if (organisation.status === 'PENDING_ONBOARDING') {
-    detailType = 'onboarding organisation';
-  } else if (organisation.status === 'ACTIVE') {
-    detailType = 'active organisation';
-  } else if (organisation.status === 'SUSPENDED') {
-    detailType = 'suspended organisation';
-  }
-
   return {
-    id: organisation.id,
-    name: organisation.name,
-    status: organisation.status,
-    detailType,
-    description: organisation.description,
-    approximateSize: organisation.approximateSize,
-    website: organisation.website,
-    primaryDomain: organisation.primaryDomain,
-    createdAt: organisation.createdAt.toISOString(),
-    updatedAt: organisation.updatedAt.toISOString(),
+    ...toBaseOrganisationDto(organisation),
     _count: organisation._count,
     registrationRequest: registrationRequest
       ? {
@@ -150,24 +131,14 @@ export async function getOrganisationRequestDetails(actorUserId: string, request
     invitation?.id ?? null,
   );
 
-  let detailType:
+  const detailType:
     | 'request-only'
     | 'onboarding organisation'
     | 'active organisation'
     | 'suspended organisation'
-    | 'disabled organisation' = 'request-only';
-
-  if (organisation) {
-    if (organisation.status === 'PENDING_ONBOARDING') {
-      detailType = 'onboarding organisation';
-    } else if (organisation.status === 'ACTIVE') {
-      detailType = 'active organisation';
-    } else if (organisation.status === 'SUSPENDED') {
-      detailType = 'suspended organisation';
-    } else {
-      detailType = 'disabled organisation';
-    }
-  }
+    | 'disabled organisation' = organisation
+    ? resolveOrganisationDetailType(organisation.status)
+    : 'request-only';
 
   return {
     ...formatRegistrationRequestBase(request),

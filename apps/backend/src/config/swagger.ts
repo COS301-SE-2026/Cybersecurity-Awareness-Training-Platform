@@ -200,6 +200,43 @@ function organisationSecuritySettingsValueProperties(): Record<string, OpenApiSc
   };
 }
 
+const baseOrganisationSwaggerProperties: Record<string, OpenApiSchema> = {
+  id: uuidString('f6fdeb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+  name: { type: 'string', example: 'Example Consulting' },
+  status: enumString(
+    ['PENDING_ONBOARDING', 'ACTIVE', 'INACTIVE', 'SUSPENDED', 'DISABLED', 'ARCHIVED'],
+    'ACTIVE',
+  ),
+  detailType: enumString(
+    [
+      'onboarding organisation',
+      'active organisation',
+      'suspended organisation',
+      'disabled organisation',
+    ],
+    'active organisation',
+  ),
+  description: nullableString('A consulting company'),
+  approximateSize: { type: 'integer', nullable: true, example: 150 },
+  website: nullableString('https://example.com'),
+  primaryDomain: nullableString('example.com'),
+  createdAt: dateTimeString('2026-05-16T09:00:00.000Z'),
+  updatedAt: dateTimeString('2026-05-16T09:00:00.000Z'),
+};
+
+const baseOrganisationSwaggerRequired = [
+  'id',
+  'name',
+  'status',
+  'detailType',
+  'description',
+  'approximateSize',
+  'website',
+  'primaryDomain',
+  'createdAt',
+  'updatedAt',
+];
+
 const options: swaggerJsdoc.Options = {
   definition: {
     openapi: '3.0.0',
@@ -1940,41 +1977,9 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         },
         OrganisationInformation: {
           type: 'object',
-          required: [
-            'id',
-            'name',
-            'status',
-            'detailType',
-            'description',
-            'approximateSize',
-            'website',
-            'primaryDomain',
-            'createdAt',
-            'updatedAt',
-            '_count',
-          ],
+          required: [...baseOrganisationSwaggerRequired, '_count'],
           properties: {
-            id: uuidString('f6fdeb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
-            name: { type: 'string', example: 'Example Consulting' },
-            status: enumString(
-              ['PENDING_ONBOARDING', 'ACTIVE', 'INACTIVE', 'SUSPENDED', 'DISABLED', 'ARCHIVED'],
-              'ACTIVE',
-            ),
-            detailType: enumString(
-              [
-                'onboarding organisation',
-                'active organisation',
-                'suspended organisation',
-                'disabled organisation',
-              ],
-              'active organisation',
-            ),
-            description: nullableString('A consulting company'),
-            approximateSize: { type: 'integer', nullable: true, example: 150 },
-            website: nullableString('https://example.com'),
-            primaryDomain: nullableString('example.com'),
-            createdAt: dateTimeString('2026-05-16T09:00:00.000Z'),
-            updatedAt: dateTimeString('2026-05-16T09:00:00.000Z'),
+            ...baseOrganisationSwaggerProperties,
             _count: {
               type: 'object',
               required: ['traineeProfiles'],
@@ -1987,16 +1992,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         PlatformOrganisationDetail: {
           type: 'object',
           required: [
-            'id',
-            'name',
-            'status',
-            'detailType',
-            'description',
-            'approximateSize',
-            'website',
-            'primaryDomain',
-            'createdAt',
-            'updatedAt',
+            ...baseOrganisationSwaggerRequired,
             '_count',
             'registrationRequest',
             'setupStatus',
@@ -2005,27 +2001,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             'timeline',
           ],
           properties: {
-            id: uuidString('f6fdeb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
-            name: { type: 'string', example: 'Example Consulting' },
-            status: enumString(
-              ['PENDING_ONBOARDING', 'ACTIVE', 'INACTIVE', 'SUSPENDED', 'DISABLED', 'ARCHIVED'],
-              'PENDING_ONBOARDING',
-            ),
-            detailType: enumString(
-              [
-                'onboarding organisation',
-                'active organisation',
-                'suspended organisation',
-                'disabled organisation',
-              ],
-              'onboarding organisation',
-            ),
-            description: nullableString('A consulting company'),
-            approximateSize: { type: 'integer', nullable: true, example: 150 },
-            website: nullableString('https://example.com'),
-            primaryDomain: nullableString('example.com'),
-            createdAt: dateTimeString('2026-05-16T09:00:00.000Z'),
-            updatedAt: dateTimeString('2026-05-16T09:00:00.000Z'),
+            ...baseOrganisationSwaggerProperties,
             _count: {
               type: 'object',
               required: ['adminProfiles', 'traineeProfiles'],

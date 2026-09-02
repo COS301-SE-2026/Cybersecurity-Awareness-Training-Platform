@@ -9,6 +9,7 @@ import {
   requireOrganisationAdminScope,
   OrganisationScopeServiceError,
 } from './organisation-scope.service.js';
+import { toBaseOrganisationDto } from '../mappers/organisation.mapper.js';
 import { OrganisationPermissionKey } from '../generated/prisma/enums.js';
 import type { OrganisationPermissionKey as OrganisationPermissionKeyValue } from '../generated/prisma/enums.js';
 import { issueActionToken } from './action-token.service.js';
@@ -78,31 +79,8 @@ export async function getOrganisationInformation(
     );
   }
 
-  let detailType:
-    | 'onboarding organisation'
-    | 'active organisation'
-    | 'suspended organisation'
-    | 'disabled organisation' = 'disabled organisation';
-
-  if (organisation.status === 'PENDING_ONBOARDING') {
-    detailType = 'onboarding organisation';
-  } else if (organisation.status === 'ACTIVE') {
-    detailType = 'active organisation';
-  } else if (organisation.status === 'SUSPENDED') {
-    detailType = 'suspended organisation';
-  }
-
   return {
-    id: organisation.id,
-    name: organisation.name,
-    status: organisation.status,
-    detailType,
-    description: organisation.description,
-    approximateSize: organisation.approximateSize,
-    website: organisation.website,
-    primaryDomain: organisation.primaryDomain,
-    createdAt: organisation.createdAt.toISOString(),
-    updatedAt: organisation.updatedAt.toISOString(),
+    ...toBaseOrganisationDto(organisation),
     _count: {
       traineeProfiles: organisation._count.traineeProfiles,
     },
