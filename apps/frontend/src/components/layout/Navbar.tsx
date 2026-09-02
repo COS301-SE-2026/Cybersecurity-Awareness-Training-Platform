@@ -17,7 +17,6 @@ function Navbar() {
         width: '100%',
         height: '82px',
         backgroundColor: 'var(--ip-faint-purple)',
-        // borderBottom: '5px solid #8400FF',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -31,10 +30,10 @@ function Navbar() {
       {/* LOGO */}
 
       <img
-        src="/secondary_logo_light_motto.png"
+        src="/Phish Logo Light.png"
         alt="Insightful Phish"
         style={{
-          height: '78px',
+          height: '67px',
           objectFit: 'contain',
         }}
       />
