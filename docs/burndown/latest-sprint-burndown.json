@@ -93,8 +93,8 @@
       "number": 498,
       "title": "docs: update the Demo 3 User Manual",
       "points": 5,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-09-02"
     },
     {
       "number": 497,
@@ -326,7 +326,7 @@
     },
     {
       "date": "2026-09-02",
-      "remaining": 23,
+      "remaining": 18,
       "ideal": 0.0
     }
   ]
