@@ -71,7 +71,6 @@ Organisation Admins manage their Organisation's information, security preference
 **Screenshots:**
 
 ![Organisation information](user-interface/organisation-admin/01-organisation-information.png)
-![Organisation timeline](user-interface/organisation-admin/02-organisation-timeline.png)
 
 ### Update Organisation Security Preferences
 
@@ -198,6 +197,8 @@ Organisation Admins manage their Organisation's information, security preference
 
 **Troubleshooting:** an incorrect password, changed membership state, insufficient permission, or inactive Organisation can prevent the action. Refresh the list before retrying a conflict.
 
+**Screenshot:** ![Disable trainee confirmation](user-interface/organisation-admin/06-trainee-lifecycle-confirmation.png)
+
 ### Re-enable an Organisation Trainee
 
 **Audience:** Organisation Admin.
@@ -317,8 +318,8 @@ Organisation Admins manage their Organisation's information, security preference
 
 **Screenshots:**
 
-![Organisation administrator management](user-interface/organisation-admin/06-administrator-management.png)
-![Administrator permissions](user-interface/organisation-admin/07-admin-permissions-popover.png)
+![Organisation administrator management](user-interface/organisation-admin/07-administrator-management.png)
+![Administrator permissions](user-interface/organisation-admin/08-promotion-permissions.png)
 
 ### Browse and Open Campaigns
 
@@ -344,6 +345,8 @@ Organisation Admins manage their Organisation's information, security preference
 **Note:** Organisation Campaigns belong to the signed-in Organisation. Platform Campaigns are managed from the platform Campaign list and do not use an Organisation URL or Organisation schedule.
 
 **Troubleshooting:** if the Campaign entry or **Create Campaign** action is missing, check your role and Campaign permissions. Clear search or status filters if an expected Campaign is absent, then refresh the list.
+
+**Screenshot:** ![Organisation Campaign list](user-interface/organisation-campaigns/01-campaign-list.png)
 
 ### Build or Edit a Campaign Draft
 
@@ -372,6 +375,8 @@ Organisation Admins manage their Organisation's information, security preference
 **Warning:** removing an item or changing its order can alter the intended training sequence. Review the full item order before saving.
 
 **Troubleshooting:** if saving is unavailable, enter a Campaign name, correct invalid Organisation dates, and wait for any current save to finish. If an item reports that its source is unavailable, remove or replace it before activation.
+
+**Screenshot:** ![Campaign Builder](user-interface/organisation-campaigns/02-campaign-builder.png)
 
 ### Manage the Campaign Lifecycle
 
@@ -420,6 +425,8 @@ Organisation Admins manage their Organisation's information, security preference
 
 **Troubleshooting:** a lifecycle action may be hidden or disabled when your permission changed, the Campaign is in a different state, source content is unavailable, the draft has no items, or edits remain unsaved. Refresh the detail page and follow the reason shown near the action.
 
+**Screenshot:** ![Campaign detail and lifecycle](user-interface/organisation-campaigns/03-campaign-detail-lifecycle.png)
+
 ### Assign Campaigns to Organisation Trainees
 
 **Audience:** Organisation Admins.
@@ -453,6 +460,12 @@ Organisation Admins manage their Organisation's information, security preference
 - If the result reports already-assigned combinations, no duplicate assignment is created; review only the newly created count.
 - If the action is absent, confirm that your role still has Assign Campaigns permission.
 
+**Screenshots:**
+
+![Select Organisation Trainees](user-interface/organisation-campaigns/04-assignment-trainees.png)
+![Select Training Campaigns](user-interface/organisation-campaigns/05-assignment-campaigns.png)
+![Review Campaign assignment](user-interface/organisation-campaigns/06-assignment-review.png)
+
 ### Review Campaign Insights
 
 **Audience:** Organisation Admins with Campaign visibility permission.
@@ -474,6 +487,8 @@ Organisation Admins manage their Organisation's information, security preference
 7. Select **Back to Campaign** when you have finished reviewing the insights.
 
 **Expected result:** the page shows authoritative Campaign summary metrics and the current paginated trainee progress rows. A missing quiz average is shown as unavailable rather than as a calculated score.
+
+**Screenshot:** ![Campaign insights](user-interface/organisation-campaigns/07-campaign-insights.png)
 
 #### Unassign a Trainee
 

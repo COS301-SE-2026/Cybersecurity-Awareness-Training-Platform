@@ -51,12 +51,26 @@ Screenshots cover Organisation registration and initial setup in the [User Manua
 | `organisation-onboarding/03-organisation-registration-success.png`  | Request Organisation Access               | Avoid real submitted details      |
 | `organisation-onboarding/04-initial-admin-setup.png`                | Complete initial Organisation Admin setup | Hide setup token from address bar |
 | `organisation-admin/01-organisation-information.png`                | Review organisation information           | Use sample organisation data      |
-| `organisation-admin/02-organisation-timeline.png`                   | Review organisation information           | Do not show private audit data    |
 | `organisation-admin/03-security-preferences.png`                    | Update security preferences               | Show editable demo settings       |
 | `organisation-admin/04-trainee-management.png`                      | Review Organisation Trainees              | Use demo trainee rows only        |
 | `organisation-admin/05-invite-trainee-modal.png`                    | Review Organisation Trainees              | Use sample invitation details     |
-| `organisation-admin/06-administrator-management.png`                | Review Organisation Admins                | Use demo administrator rows only  |
-| `organisation-admin/07-admin-permissions-popover.png`               | Review Organisation Admins                | Use demo permission details       |
+| `organisation-admin/06-trainee-lifecycle-confirmation.png`          | Disable an Organisation Trainee           | Leave the password field blank    |
+| `organisation-admin/07-administrator-management.png`                | Review Organisation Admins                | Use demo administrator rows only  |
+| `organisation-admin/08-promotion-permissions.png`                   | Review Organisation Admin permissions     | Use demo permission details       |
+
+## Organisation Campaign Workflows
+
+These [Admin User Manual](../admin-user-manual.md) screenshots cover Organisation Campaign management, assignment, and insights.
+
+| Screenshot                                                | Manual Section                 | Notes                                   |
+| --------------------------------------------------------- | ------------------------------ | --------------------------------------- |
+| `organisation-campaigns/01-campaign-list.png`             | Browse and open Campaigns      | Use demo Campaigns only                 |
+| `organisation-campaigns/02-campaign-builder.png`          | Build or edit a Campaign draft | Leave new Campaign fields blank         |
+| `organisation-campaigns/03-campaign-detail-lifecycle.png` | Manage the Campaign lifecycle  | Show a current integrated Campaign      |
+| `organisation-campaigns/04-assignment-trainees.png`       | Assign Campaigns               | Use eligible demo trainees              |
+| `organisation-campaigns/05-assignment-campaigns.png`      | Assign Campaigns               | Use assignable demo Campaigns           |
+| `organisation-campaigns/06-assignment-review.png`         | Review Campaign assignment     | Do not submit during screenshot capture |
+| `organisation-campaigns/07-campaign-insights.png`         | Review Campaign insights       | Use demo progress data only             |
 
 ## Insightful Phish Admin Flows
 
