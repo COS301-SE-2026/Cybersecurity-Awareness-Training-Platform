@@ -39,7 +39,7 @@ function TrainingActionRow({
       disabled={disabled}
       type="button"
       style={{
-        backgroundColor: disabled ? '#2A0844' : 'rgba(53, 0, 94, 0.75)',
+        backgroundColor: disabled ? 'var(--ip-faint-purple)' : 'white',
         opacity: disabled ? 0.64 : 1,
         padding: large ? '1.5rem 1.8rem' : '1rem 1.4rem',
         display: 'flex',
@@ -47,7 +47,7 @@ function TrainingActionRow({
         alignItems: 'center',
         cursor: disabled ? 'not-allowed' : 'pointer',
         transition: '0.2s ease',
-        border: 'none',
+        border: '1px solid var(--ip-bg-purple)',
         width: '100%',
         textAlign: 'left',
         boxSizing: 'border-box',
@@ -63,7 +63,7 @@ function TrainingActionRow({
         {iconType === 'learn' && (
           <MenuBookSharp
             style={{
-              color: disabled ? '#9A7AB8' : '#C98FFF',
+              color: disabled ? '#9A7AB8' : 'var(--ip-dark-pink)',
               fontSize: large ? '2rem' : '1.8rem',
             }}
           />
@@ -71,7 +71,7 @@ function TrainingActionRow({
         {iconType === 'quiz' && (
           <QuizSharp
             style={{
-              color: disabled ? '#9A7AB8' : '#C98FFF',
+              color: disabled ? '#9A7AB8' : 'var(--ip-dark-pink)',
               fontSize: large ? '2rem' : '1.8rem',
             }}
           />
@@ -79,14 +79,14 @@ function TrainingActionRow({
         {iconType === 'simulation' && (
           <GamepadSharp
             style={{
-              color: disabled ? '#9A7AB8' : '#C98FFF',
+              color: disabled ? '#9A7AB8' : 'var(--ip-dark-pink)',
               fontSize: large ? '2rem' : '1.8rem',
             }}
           />
         )}
         <div
           style={{
-            color: disabled ? '#9A7AB8' : 'white',
+            color: disabled ? '#9A7AB8' : 'var(--ip-deep-purple)',
             fontFamily: 'Overpass',
             fontSize: large ? '1.8rem' : '1.4rem',
             letterSpacing: '0.08rem',
@@ -101,7 +101,7 @@ function TrainingActionRow({
           <span
             style={{
               fontWeight: 800,
-              color: disabled ? '#9A7AB8' : '#c383ff',
+              color: disabled ? '#9A7AB8' : 'var(--ip-purple)',
             }}
           >
             {labelPrefix}
@@ -110,7 +110,7 @@ function TrainingActionRow({
           <span
             style={{
               fontWeight: 100,
-              color: disabled ? '#9A7AB8' : 'white',
+              color: disabled ? '#9A7AB8' : 'var(--ip-deep-purple)',
             }}
           >
             {labelTitle}
@@ -127,7 +127,7 @@ function TrainingActionRow({
       >
         <div
           style={{
-            color: disabled ? '#8E63B3' : '#C98FFF',
+            color: disabled ? '#8E63B3' : 'var(--ip-dark-pink)',
             fontFamily: 'Jost',
             fontSize: '1rem',
             fontWeight: 500,
@@ -146,7 +146,7 @@ function TrainingActionRow({
         ) : (
           <ChevronRight
             style={{
-              color: disabled ? '#8E63B3' : '#C98FFF',
+              color: disabled ? '#8E63B3' : 'var(--ip-dark-pink)',
               fontSize: '2.5rem',
             }}
           />

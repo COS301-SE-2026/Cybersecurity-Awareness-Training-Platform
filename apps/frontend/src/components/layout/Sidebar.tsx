@@ -115,10 +115,10 @@ function Sidebar() {
     <aside
       style={{
         width: '84px',
-        backgroundColor: '#25004E',
+        backgroundColor: 'var(--ip-faint-purple)',
         display: 'flex',
         flexDirection: 'column',
-        color: 'white',
+        color: 'var(--ip-deep-purple)',
         flexShrink: 0,
         boxSizing: 'border-box',
       }}
@@ -155,12 +155,12 @@ function Sidebar() {
               flexShrink: 0,
               cursor: 'pointer',
               whiteSpace: 'nowrap',
-              color: 'white',
+              color: 'var(--ip-deep-purple)',
               transition: '0.22s ease',
               boxSizing: 'border-box',
-              background: isActive ? 'rgba(255, 255, 255, 0.14)' : 'none',
+              background: isActive ? 'rgba(13, 0, 134, 0.1)' : 'none',
               border: 'none',
-              borderLeft: isActive ? '4px solid #cca7ff' : '4px solid transparent',
+              borderLeft: isActive ? '4px solid var(--ip-purple)' : '4px solid transparent',
               width: '100%',
               textDecoration: 'none',
             }}

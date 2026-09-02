@@ -16,7 +16,7 @@ function Navbar() {
       style={{
         width: '100%',
         height: '82px',
-        backgroundColor: '#090054',
+        backgroundColor: 'var(--ip-faint-purple)',
         // borderBottom: '5px solid #8400FF',
         display: 'flex',
         alignItems: 'center',
@@ -31,10 +31,10 @@ function Navbar() {
       {/* LOGO */}
 
       <img
-        src="/logo-long-dark.png"
+        src="/secondary_logo_light_motto.png"
         alt="Insightful Phish"
         style={{
-          height: '68px',
+          height: '78px',
           objectFit: 'contain',
         }}
       />
@@ -50,13 +50,13 @@ function Navbar() {
           onClick={() => setProfileOpen(!profileOpen)}
           style={{
             height: '50px',
-            backgroundColor: '#2E0090',
+            backgroundColor: 'var(--ip-light-bg-purple)',
             border: '0px solid rgba(255,255,255,0.00)',
             padding: '1rem',
             display: 'flex',
             alignItems: 'center',
             gap: '1.1rem',
-            color: 'white',
+            color: 'var(--ip-deep-purple)',
             fontFamily: 'Jost',
             fontSize: '1.3rem',
             fontWeight: 400,
@@ -93,8 +93,8 @@ function Navbar() {
               position: 'absolute',
               right: 0,
               minWidth: '100%',
-              backgroundColor: '#1F0047',
-              border: '2px solid #42008C',
+              backgroundColor: 'var(--ip-light-bg-purple)',
+              border: '2px solid var(--ip-bg-purple)',
               boxShadow: '0px 10px 30px rgba(0,0,0,0.50)',
               overflow: 'hidden',
             }}
@@ -115,20 +115,20 @@ function Navbar() {
                 gap: '0.7rem',
                 padding: '1rem',
                 border: 'none',
-                backgroundColor: '#1F0047',
+                backgroundColor: 'var(--ip-light-bg-purple)',
                 fontFamily: 'Overpass',
                 fontWeight: '600',
                 fontSize: '1.1rem',
-                color: 'white',
+                color: 'var(--ip-deep-purple)',
                 cursor: 'pointer',
                 transition: '0.2s ease',
                 textAlign: 'left',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#2b0056';
+                e.currentTarget.style.backgroundColor = 'var(--ip-bg-purple)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#1F0047';
+                e.currentTarget.style.backgroundColor = 'var(--ip-light-bg-purple)';
               }}
               onClick={() => {
                 navigate('/account-management');
@@ -153,15 +153,15 @@ function Navbar() {
                 fontFamily: 'Overpass',
                 fontWeight: '600',
                 fontSize: '1.1rem',
-                color: 'white',
+                color: 'var(--ip-deep-purple)',
                 cursor: 'pointer',
                 transition: '0.2s ease',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#2b0056';
+                e.currentTarget.style.backgroundColor = 'var(--ip-bg-purple)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#1F0047';
+                e.currentTarget.style.backgroundColor = 'var(--ip-light-bg-purple)';
               }}
               onClick={() => {
                 logout();
