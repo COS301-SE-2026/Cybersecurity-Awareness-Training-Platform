@@ -448,7 +448,7 @@ function PlatformOrganisationManagementPage() {
               fontWeight: 500,
               lineHeight: 1,
               // color: 'white',
-              color: 'rgb(132, 25, 255)',
+              color: 'rgb(70, 0, 151)',
               fontFamily: 'Jost',
             }}
           >
@@ -478,7 +478,7 @@ function PlatformOrganisationManagementPage() {
                         {/* SVG (Search Icon) */}
                         <svg
                           aria-hidden="true"
-                          className="w-5 h-5 text-gray-400 dark:text-gray-400"
+                          className="w-5 h-5 text-gray-400"
                           fill="currentColor"
                           viewBox="0 0 20 20"
                           xmlns="http://www.w3.org/2000/svg"

@@ -92,7 +92,7 @@ function PersonalSettingsPage({
           id="first-name"
           value={firstName}
           onChange={(e) => setCustomFirstName(e.target.value)}
-          className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+          className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
           placeholder="First Name"
         />
       </div>
@@ -112,7 +112,7 @@ function PersonalSettingsPage({
           id="last-name"
           value={lastName}
           onChange={(e) => setCustomLastName(e.target.value)}
-          className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+          className="font-overpass text-[1.2rem] bg-gray-50 border border-gray-300 text-deep-purple focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
           placeholder="Last Name"
         />
       </div>

@@ -341,7 +341,7 @@ function OrganisationSecuritySettingsPage() {
               fontSize: '3.8rem',
               fontWeight: 500,
               lineHeight: 1,
-              color: 'rgb(132, 25, 255)',
+              color: 'rgb(70, 0, 151)',
               fontFamily: 'Jost',
             }}
           >

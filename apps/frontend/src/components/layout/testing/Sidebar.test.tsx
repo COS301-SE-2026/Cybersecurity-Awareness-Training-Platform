@@ -86,6 +86,19 @@ describe('Sidebar Campaign navigation', () => {
     expect(screen.getByLabelText('Current path')).toHaveTextContent('/platform/campaigns');
   });
 
+  it('stays compact and exposes each navigation label on hover', () => {
+    mockedUseAuth.mockReturnValue(createAuthValue('IP_ADMIN'));
+
+    renderSidebar('/platform-administrators');
+
+    const campaignsButton = screen.getByRole('button', { name: 'Campaigns' });
+
+    expect(campaignsButton.closest('aside')).toHaveStyle({ width: '84px' });
+    expect(campaignsButton).toHaveStyle({ height: '84px' });
+    expect(campaignsButton).toHaveAttribute('title', 'Campaigns');
+    expect(screen.queryByTestId('MenuIcon')).not.toBeInTheDocument();
+  });
+
   it('uses the authenticated organisation ID for authorized Organisation Campaigns', async () => {
     const user = userEvent.setup();
     mockedUseAuth.mockReturnValue(

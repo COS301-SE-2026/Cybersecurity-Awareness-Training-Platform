@@ -35,7 +35,7 @@ function TrainingPartAccordion({
       return (
         <KeyboardArrowUp
           style={{
-            color: '#C98FFF',
+            color: 'var(--ip-dark-pink)',
             fontSize: '2.4rem',
           }}
         />
@@ -45,7 +45,7 @@ function TrainingPartAccordion({
     return (
       <KeyboardArrowDown
         style={{
-          color: '#C98FFF',
+          color: 'var(--ip-dark-pink)',
           fontSize: '2.4rem',
         }}
       />
@@ -55,7 +55,7 @@ function TrainingPartAccordion({
   return (
     <div
       style={{
-        backgroundColor: 'rgba(49, 0, 90, 0.54)',
+        backgroundColor: 'var(--ip-faint-purple)',
       }}
     >
       {/* HEADER */}
@@ -80,7 +80,7 @@ function TrainingPartAccordion({
       >
         <div
           style={{
-            color: 'white',
+            color: 'var(--ip-deep-purple)',
             fontFamily: 'Jost',
             fontSize: '1.8rem',
             letterSpacing: '0.08rem',
@@ -99,7 +99,7 @@ function TrainingPartAccordion({
         >
           <div
             style={{
-              color: '#C98FFF',
+              color: 'var(--ip-dark-pink)',
               fontFamily: 'Jost',
               fontSize: '1.1rem',
               letterSpacing: '0.08rem',

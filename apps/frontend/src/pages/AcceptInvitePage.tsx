@@ -193,7 +193,7 @@ function AcceptInvitePage() {
 
   if (isLoadingContext || isAuthLoading) {
     content = (
-      <div className="w-full p-6 bg-white-purple shadow dark:border md:mt-0 sm:max-w-md dark:bg-gray-800 dark:border-gray-700 sm:p-8 text-center">
+      <div className="w-full p-6 bg-white-purple shadow md:mt-0 sm:max-w-md sm:p-8 text-center">
         <h3 className="font-jost text-3xl text-purple tracking-wider font-medium mb-4">
           Validating Invitation...
         </h3>
@@ -204,7 +204,7 @@ function AcceptInvitePage() {
     );
   } else if (errorType === 'RateLimited') {
     content = (
-      <div className="w-full p-6 bg-white-purple shadow dark:border md:mt-0 sm:max-w-md dark:bg-gray-800 dark:border-gray-700 sm:p-8">
+      <div className="w-full p-6 bg-white-purple shadow md:mt-0 sm:max-w-md sm:p-8">
         <h3 className="font-jost text-3xl text-red-600 tracking-wider font-medium mb-4">
           Too Many Requests
         </h3>
@@ -222,7 +222,7 @@ function AcceptInvitePage() {
     );
   } else if (errorType === 'OrganisationSuspended') {
     content = (
-      <div className="w-full p-6 bg-white-purple shadow dark:border md:mt-0 sm:max-w-md dark:bg-gray-800 dark:border-gray-700 sm:p-8">
+      <div className="w-full p-6 bg-white-purple shadow md:mt-0 sm:max-w-md sm:p-8">
         <h3 className="font-jost text-3xl text-red-600 tracking-wider font-medium mb-4">
           Organisation Suspended
         </h3>
@@ -240,7 +240,7 @@ function AcceptInvitePage() {
     );
   } else if (errorType === 'RoleConflict') {
     content = (
-      <div className="w-full p-6 bg-white-purple shadow dark:border md:mt-0 sm:max-w-md dark:bg-gray-800 dark:border-gray-700 sm:p-8">
+      <div className="w-full p-6 bg-white-purple shadow md:mt-0 sm:max-w-md sm:p-8">
         <h3 className="font-jost text-3xl text-red-600 tracking-wider font-medium mb-4">
           Role Conflict
         </h3>
@@ -258,7 +258,7 @@ function AcceptInvitePage() {
     );
   } else if (errorType || context?.requiredAction === 'TOKEN_UNAVAILABLE') {
     content = (
-      <div className="w-full p-6 bg-white-purple shadow dark:border md:mt-0 sm:max-w-md dark:bg-gray-800 dark:border-gray-700 sm:p-8">
+      <div className="w-full p-6 bg-white-purple shadow md:mt-0 sm:max-w-md sm:p-8">
         <h3 className="font-jost text-3xl text-red-600 tracking-wider font-medium mb-4">
           Invitation {errorType || 'Invalid'}
         </h3>
@@ -276,7 +276,7 @@ function AcceptInvitePage() {
     );
   } else if (context?.requiredAction === 'LOGIN_REQUIRED') {
     content = (
-      <div className="w-full p-6 bg-white-purple shadow dark:border md:mt-0 sm:max-w-md dark:bg-gray-800 dark:border-gray-700 sm:p-8">
+      <div className="w-full p-6 bg-white-purple shadow md:mt-0 sm:max-w-md sm:p-8">
         <h3 className="font-jost text-3xl text-purple tracking-wider font-medium text-heading mb-4">
           Authentication Required
         </h3>
@@ -294,7 +294,7 @@ function AcceptInvitePage() {
     );
   } else if (context?.requiredAction === 'SWITCH_ACCOUNT') {
     content = (
-      <div className="w-full p-6 bg-white-purple shadow dark:border md:mt-0 sm:max-w-md dark:bg-gray-800 dark:border-gray-700 sm:p-8">
+      <div className="w-full p-6 bg-white-purple shadow md:mt-0 sm:max-w-md sm:p-8">
         <h3 className="font-jost text-3xl text-purple tracking-wider font-medium text-heading mb-4">
           Wrong Account Signed In
         </h3>
@@ -333,7 +333,7 @@ function AcceptInvitePage() {
   }
 
   return (
-    <section className="bg-light-purple dark:bg-gray-900 min-h-screen">
+    <section className="bg-light-purple min-h-screen">
       <div className="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0">
         {/* LOGO */}
         <div className="mb-4 flex items-center space-x-3 rtl:space-x-reverse">

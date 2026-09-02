@@ -62,16 +62,16 @@ function ProtectedRoute({
         style={{
           width: '100vw',
           height: '100vh',
-          backgroundColor: '#0E0020',
+          backgroundColor: '#F3F4F6',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: 'rgb(201, 143, 255)',
+          color: 'var(--ip-dark-pink)',
           fontFamily: 'Jost',
           fontSize: '1.5rem',
         }}
       >
-        Loading current user...
+        Loading Current User...
       </div>
     );
   }
