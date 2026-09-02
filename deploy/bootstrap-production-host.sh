@@ -13,6 +13,17 @@ SOURCE_DEPLOY_SCRIPT="$REPOSITORY_ROOT/deploy/deploy-production.sh"
 DEPLOY_LOCK='/run/lock/insightfulphish-production.lock'
 DOCKER_KEYRING='/etc/apt/keyrings/docker.asc'
 DOCKER_SOURCE='/etc/apt/sources.list.d/docker.sources'
+DEPLOY_USER='insightful-deploy'
+DEPLOY_HOME='/home/insightful-deploy'
+DEPLOY_SSH_DIR="$DEPLOY_HOME/.ssh"
+DEPLOY_AUTHORISED_KEYS="$DEPLOY_SSH_DIR/authorized_keys"
+APP_ROOT='/var/www/insightfulphish'
+APP_DIR="$APP_ROOT/app"
+DEPLOY_DIR="$APP_DIR/deploy"
+TARGET_COMPOSE_FILE="$APP_DIR/docker-compose.deploy.yml"
+TARGET_ENV_EXAMPLE="$DEPLOY_DIR/.env.example"
+DEPLOY_ENTRYPOINT='/usr/local/bin/deploy-insightfulphish-production'
+SUDOERS_FILE='/etc/sudoers.d/insightfulphish-production-deploy'
 
 temporary_file=''
 
@@ -41,12 +52,6 @@ validate_bootstrap(){
 		fail 'Run this script as root with sudo'
 	fi
 
-	if ! command -v bash >/dev/null 2>&1; then
-		fail 'Bash is required to install the production deployment script'
-	fi
-	if ! command -v dpkg >/dev/null 2>&1; then
-		fail 'dpkg is required to deviry the production host architecture'
-	fi
 	if [[ ! -f /etc/os-release ]]; then 
 		fail 'The production host does not provide /etc/os-release'
 	fi
@@ -74,28 +79,15 @@ validate_bootstrap(){
 	local -a repository_files=("$SOURCE_COMPOSE_FILE" "$SOURCE_ENV_EXAMPLE" "$SOURCE_DEPLOY_SCRIPT")
 
 	for repository_file in "${repository_files[@]}"; do
-		if [[ -L "$repository_file" ]]; then 
-			fail "Repository source must not be a symbolic link: $repository_file"
-		fi
 		if [[ ! -f "$repository_file" ]]; then 
 			fail "Required repository source is missing: $repository_file"
 		fi
 	done
-
-	if ! bash -n "$SOURCE_DEPLOY_SCRIPT"; then 
-		fail "The repository production deployment script has invalid syntax"
-	fi
 }
 
 acquire_deployment_lock() {
 	if ! command -v flock >/dev/null 2>&1; then 
 		fail 'flock is required to coordinate bootstrap and production deployment'
-	fi
-	if [[ -L "$DEPLOY_LOCK" ]]; then 
-		fail "Production deployment lock must not be a symbolic link: $DEPLOY_LOCK"
-	fi
-	if [[ -e "$DEPLOY_LOCK" && ! -f "$DEPLOY_LOCK" ]]; then 
-		fail "Production deployment lock is not a regular file: $DEPLOY_LOCK"
 	fi
 	exec 9>"$DEPLOY_LOCK"
 
@@ -105,43 +97,14 @@ acquire_deployment_lock() {
 	fi
 }
 
-is_package_installed(){
-	local package_name="$1"
-	local package_status 
-
-	if ! package_status="$(dpkg-query -W -f='${Status}' "$package_name" 2>/dev/null)"; then
-		return 1
-	fi
-	if [[ "$package_status" != 'install ok installed' ]]; then
-		return 1
-	fi 
-	return 0
-}
-
 prepare_docker_host(){
-	if ! command -v apt-get >/dev/null 2>&1; then
-		fail 'apt-get is required to install host prodction dependencies'
-	fi
-	if ! command -v dpkg-query >/dev/null 2>&1; then 
-		fail 'dpkg-query is required to inspect host prodction dependencies'
-	fi
 	if ! command -v systemctl >/dev/null 2>&1; then 
 		fail 'systemctl is required to manage docker services'
 	fi
 
-	local package_name 
-	local -a missing_packages=()
-	local -a required_packages=(ca-certificates curl sudo util-linux)
-
-	for package_name in "${required_packages[@]}"; do 
-		if ! is_package_installed "$package_name"; then 
-			missing_packages+=("$package_name")
-		fi
-	done 
-
-	if ((${#missing_packages[@]} > 0)); then
-		apt-get update
-		DEBIAN_FRONTEND=noninteractive apt-get install -y "${missing_packages[@]}"
+	if command -v docker >/dev/null 2>&1; then
+		apt-get update 
+		DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl sudo
 	fi
 
 	if command -v docker >/dev/null 2>&1; then 
@@ -159,18 +122,6 @@ prepare_docker_host(){
 		return 0
 	fi
 
-	local -a docker_packages=(docker-ce docker-ce-cli docker.io docker-compose-plugin containerd.io docker-buildx-plugin)
-
-	for package_name in "${docker_packages[@]}"; do 
-		if is_package_installed "$package_name"; then
-			fail "A partial Docker installation exists: $package_name"
-		fi
-	done
-
-	if [[ -e "$DOCKER_KEYRING" || -L "$DOCKER_KEYRING" || -e "$DOCKER_SOURCE" || -L "$DOCKER_SOURCE" ]]; then 
-		fail 'Partial Docker apt repository config already exists. Review it before rerunning this bootstrap'
-	fi
-
 	local VERSION_CODENAME=''
 	local UBUNTU_CODENAME=''
 
@@ -186,15 +137,12 @@ prepare_docker_host(){
 	temporary_file="$(mktemp)"
 	curl --fail --silent --show-error --location https://download.docker.com/linux/ubuntu/gpg --output "$temporary_file"
 
-	if [[ ! -s "$temporary_file" ]]; then 
-		fail 'The downloaded Docker repository signing key is empty'
-	fi
 	install -o root -g root -m 0644 "$temporary_file" "$DOCKER_KEYRING"
 	rm -f -- "$temporary_file"
 	temporary_file=''
 
 	install -o root -g root -m 0644 /dev/null "$DOCKER_SOURCE"
-	printf '%s\n' 'Types: deb' 'URIs: https://download.docker.com/linux/ubuntu' "Suites: $ubuntu_codename" 'Components: stable' "Architectures:$SUPPORTED_ACRHITECTYRE" "Signed-By: $DOCKER_KEYRING" > "$DOCKER_SOURCE"
+	printf '%s\n' 'Types: deb' 'URIs: https://download.docker.com/linux/ubuntu' "Suites: $ubuntu_codename" 'Components: stable' "Architectures: $SUPPORTED_ACRHITECTYRE" "Signed-By: $DOCKER_KEYRING" > "$DOCKER_SOURCE"
 
 	apt-get update 
 	DEBIAN_FRONTEND=noninteractive apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin 
@@ -211,12 +159,121 @@ prepare_docker_host(){
 
 }
 
+prepare_deployment_account(){
+	local account_details
+	if account_details="$(getent passwd "$DEPLOY_USER")"; then
+		local home_dir
+		local login_shell 
+
+		IFS=: read -r _ _ _ _ _ home_dir login_shell <<< "$account_details"
+
+		if [[ $home_dir != "$DEPLOY_HOME" ]]; then 
+			fail "Deployment account has unexpected home directory: $home_dir"
+		fi
+		if [[ "$login_shell" != '/bin/bash' ]]; then 
+			fail "Deployment account has unexpected login shell: $login_shell"
+		fi
+	else
+		useradd --create-home --home-dir "$DEPLOY_HOME" --shell /bin/bash --user-group "$DEPLOY_USER"
+	fi
+	passwd --lock "$DEPLOY_USER" >/dev/null
+
+	local group_name 
+	for group_name in $(id -nG "$DEPLOY_USER"); do
+		if [[ "$group_name" == 'docker' ]]; then 
+			fail 'The deployment account must not belong to the docker group'
+		fi
+	done
+
+	if [[ -L "$DEPLOY_HOME" || -L "$DEPLOY_SSH_DIR" ]]; then
+		fail 'Deployment home and SSH directories must not be symbolic links'
+	fi
+	if [[ -e "$DEPLOY_HOME" && ! -d "$DEPLOY_HOME" ]]; then
+		fail "Deployment home is not a directory: $DEPLOY_HOME"
+	fi
+	if [[ -e "$DEPLOY_SSH_DIR" && ! -d "$DEPLOY_SSH_DIR" ]]; then
+		fail "Deployment SSH path is not a directory: $DEPLOY_SSH_DIR"
+	fi
+
+	install -d -o "$DEPLOY_USER" -g "$DEPLOY_USER" -m 0750 "$DEPLOY_HOME"
+	install -d -o "$DEPLOY_USER" -g "$DEPLOY_USER" -m 0700 "$DEPLOY_SSH_DIR"
+
+	if [[ -L "$DEPLOY_AUTHORISED_KEYS" ]]; then
+		fail "Deployment authorized_keys must not be a symbolic link: $DEPLOY_AUTHORISED_KEYS"
+	fi
+	if [[ -e "$DEPLOY_AUTHORISED_KEYS" && ! -f "$DEPLOY_AUTHORISED_KEYS" ]]; then
+		fail "Deployment authorized_keys is not a regular file: $DEPLOY_AUTHORISED_KEYS"
+	fi
+
+	if [[ ! -e "$DEPLOY_AUTHORISED_KEYS" ]]; then
+		install -o "$DEPLOY_USER" -g "$DEPLOY_USER" -m 0600 /dev/null "$DEPLOY_AUTHORISED_KEYS"
+	else
+		chown "$DEPLOY_USER:$DEPLOY_USER" "$DEPLOY_AUTHORISED_KEYS"
+		chmod 0600 "$DEPLOY_AUTHORISED_KEYS"
+	fi
+}
+
+install_production_contract(){
+	local production_directory
+	local -a production_directories=(/var/www "$APP_ROOT" "$APP_DIR" "$DEPLOY_DIR")
+	for production_directory in "${production_directories[@]}"; do
+		if [[ -L "$production_directory" ]]; then
+			fail "Production directory must not be a symbolic link: $production_directory"
+		fi
+		if [[ -e "$production_directory" && ! -d "$production_directory" ]]; then
+			fail "Production path is not a directory: $production_directory"
+		fi
+	done
+
+	install -d -o root -g root -m 0755 /var/www
+	install -d -o root -g root -m 0755 "$APP_ROOT"
+	install -d -o root -g root -m 0755 "$APP_DIR"
+	install -d -o root -g root -m 0700 "$DEPLOY_DIR" 
+
+	local managed_file
+	local -a managed_files=("$TARGET_COMPOSE_FILE" "$TARGET_ENV_EXAMPLE" "$DEPLOY_ENTRYPOINT" "$SUDOERS_FILE")
+
+	for managed_file in "${managed_files[@]}"; do
+		if [[ -L "$managed_file" ]]; then
+			fail "Managed production file must not be a symbolic link: $managed_file"
+		fi
+		if [[ ! -e "$managed_file" && ! -f "$managed_file" ]]; then
+			fail "Managed production path is not a regular file: $managed_file"
+		fi
+	done
+
+	install -o root -g root -m 0644 "$SOURCE_COMPOSE_FILE" "$TARGET_COMPOSE_FILE"
+	install -o root -g root -m 0644 "$SOURCE_ENV_EXAMPLE" "$TARGET_ENV_EXAMPLE"
+	install -o root -g root -m 0755 "$SOURCE_DEPLOY_SCRIPT" "$DEPLOY_ENTRYPOINT"
+
+	if ! bash -n "$DEPLOY_ENTRYPOINT"; then
+		fail 'The installed production deployment entrypoint has invalid Bash syntax'
+	fi
+
+	local sudoers_rule
+	sudoers_rule="$DEPLOY_USER ALL=(root) NOPASSWD: $DEPLOY_ENTRYPOINT [0-9a-f]*"
+	temporary_file="$(mktemp)"
+	printf '%s\n' "$sudoers_rule" > "$temporary_file"
+	chmod 0440 "$temporary_file"
+	if ! visudo -cf "$temporary_file" >/dev/null; then
+		fail 'The generated production sudoers rule is not valid'
+	fi
+	install -o root -g root -m 0440 "$temporary_file" "$SUDOERS_FILE"
+	rm -f -- "$temporary_file" 
+	temporary_file=''
+
+}
+
+
+
 main() {
 	validate_bootstrap "$@"
 	acquire_deployment_lock
 	prepare_docker_host
+	prepare_deployment_account
+	install_production_contract
 
-	printf 'Production Docker host prerequisites are ready\n'
+	printf 'Production host bootstrap completed. Complete the manual secret and ingress setup in deployment.md'
 }
 
 main "$@"
