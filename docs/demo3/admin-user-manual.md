@@ -23,8 +23,9 @@ Screenshots referenced in this manual are catalogued under [`user-interface/`](u
   - [Promote an Organisation Trainee](#promote-an-organisation-trainee)
   - [Edit Administrator Permissions](#edit-administrator-permissions)
   - [Remove Administrator Privileges](#remove-administrator-privileges)
-  - [Manage Campaigns](#manage-campaigns)
+  - [Browse and Open Campaigns](#browse-and-open-campaigns)
   - [Build or Edit a Campaign Draft](#build-or-edit-a-campaign-draft)
+  - [Manage the Campaign Lifecycle](#manage-the-campaign-lifecycle)
   - [Assign Campaigns to Organisation Trainees](#assign-campaigns-to-organisation-trainees)
   - [Review Campaign Statistics](#review-campaign-statistics)
 - [Insightful Phish Admin Tasks](#insightful-phish-admin-tasks)
@@ -310,45 +311,105 @@ Organisation Admins manage their Organisation's information, security preference
 ![Organisation administrator management](user-interface/organisation-admin/06-administrator-management.png)
 ![Administrator permissions](user-interface/organisation-admin/07-admin-permissions-popover.png)
 
-### Manage Campaigns
+### Browse and Open Campaigns
 
-**Audience:** Organisation Admins with Campaign viewing or management permission.
+**Audience:** Organisation Admins and Insightful Phish Admins.
 
-**Preconditions:** you are signed in as an Organisation Admin and the Campaign management area is available to your role.
+**Preconditions:** you are signed in and Campaign management is available to your role.
 
-**Navigation:** use the Campaign management entry point exposed by the application for your Organisation.
+**Required permission:** Organisation Admins require Campaign viewing or management permission. Insightful Phish Admins use their platform Campaign access.
 
-1. Open the Campaign management page.
+**Navigation:** Organisation Admins select **Campaigns** for their Organisation. Insightful Phish Admins select **Campaigns** to open **Platform Campaigns**.
+
+**Purpose:** find Campaigns, review their lifecycle state, and open the appropriate read-only or editing view.
+
+1. Open **Campaigns** or **Platform Campaigns** from the signed-in navigation.
 2. Use **Search campaigns** or **Campaign status** to narrow the list.
-3. Select **View Campaign**, **View Draft**, or **Continue Editing** for the Campaign you need to inspect.
-4. Select **Create Campaign** only when the page shows the action and your role is allowed to manage Campaigns.
+3. Move between result pages when pagination controls are available.
+4. Select **View Campaign** for an active or archived Campaign.
+5. For a draft, select **Continue Editing** when you can manage it or **View Draft** when you have view-only access.
+6. Select **Create Campaign** when the action is available and you need a new draft.
 
-**Expected result:** the platform shows Campaigns in their current lifecycle state and exposes only the actions allowed for your role.
+**Expected result:** the selected Campaign opens in the builder or read-only detail view appropriate to its lifecycle state and your permissions.
 
-**Warning:** Campaign lifecycle actions affect trainee access to training content. Review the Campaign status, items, start date, and end date before changing it.
+**Note:** Organisation Campaigns belong to the signed-in Organisation. Platform Campaigns are managed from the platform Campaign list and do not use an Organisation URL or Organisation schedule.
 
-**Troubleshooting:** if the Campaign management entry point or action is unavailable, your account may not have the required Campaign permission or the Organisation state may not allow the action.
+**Troubleshooting:** if the Campaign entry or **Create Campaign** action is missing, check your role and Campaign permissions. Clear search or status filters if an expected Campaign is absent, then refresh the list.
 
 ### Build or Edit a Campaign Draft
 
-**Audience:** Organisation Admins with Campaign management permission.
+**Audience:** Organisation Admins with Campaign management permission and Insightful Phish Admins managing Platform Campaigns.
 
-**Preconditions:** you can open **Create Campaign** or **Continue Editing** from the Campaign management page.
+**Preconditions:** you can open **Create Campaign** or **Continue Editing**, and the Campaign is a draft that permits editing.
 
-**Navigation:** Campaign management > **Create Campaign** or **Continue Editing**.
+**Required permission:** Organisation Admins require Manage Campaigns. Insightful Phish Admins use platform Campaign management access.
 
-1. Enter a Campaign name and optional description.
-2. Choose the Campaign colour and schedule fields where the form shows them.
-3. Add Campaign items from **Campaign Items**.
-4. Review the Campaign order and adjust required or optional items where the builder allows it.
-5. Select **Save Draft** or **Save Changes**.
-6. Use **Activate Campaign** only after the draft has at least one available item and the page shows activation as available.
+**Navigation:** **Campaigns** or **Platform Campaigns** > **Create Campaign** or **Continue Editing**.
 
-**Expected result:** the draft is saved with the selected items and can be activated when it meets the Campaign rules.
+**Purpose:** define Campaign details and arrange the training activities participants will complete.
 
-**Warning:** activating a Campaign can make it visible for assignment or participation. Save and review changes before activating.
+1. Enter the required **Campaign name** and an optional description.
+2. Select the Campaign colour.
+3. For an Organisation Campaign, set the **Start date and time** and **End date and time**. The end must be after the start.
+4. Find available training content under **Campaign Items** and add the items needed for the Campaign.
+5. Use **Move up** and **Move down** to place the items in the intended order.
+6. Set each item's requirement to **Required** or **Optional**.
+7. Use **Remove** to take an unwanted item out of the draft.
+8. Review the Campaign summary.
+9. Select **Save Draft** for a new Campaign or **Save Changes** for an existing draft.
 
-**Troubleshooting:** if activation is disabled, check the message below the button. The page may require items, available source content, saved changes, or a valid schedule.
+**Expected result:** the saved draft retains its details, Organisation schedule where applicable, ordered items, and required or optional settings.
+
+**Warning:** removing an item or changing its order can alter the intended training sequence. Review the full item order before saving.
+
+**Troubleshooting:** if saving is unavailable, enter a Campaign name, correct invalid Organisation dates, and wait for any current save to finish. If an item reports that its source is unavailable, remove or replace it before activation.
+
+### Manage the Campaign Lifecycle
+
+**Audience:** Organisation Admins with Campaign management permission and Insightful Phish Admins managing Platform Campaigns.
+
+**Preconditions:** the Campaign has been saved and its current state permits the requested lifecycle action.
+
+**Required permission:** Organisation Admins require Manage Campaigns. Insightful Phish Admins use platform Campaign management access.
+
+**Navigation:** **Campaigns** or **Platform Campaigns** > open the Campaign.
+
+**Purpose:** move a Campaign between draft, active, and archived states through the actions allowed by its current state.
+
+#### Activate a Campaign
+
+1. Open a saved draft using **Continue Editing**.
+2. Confirm that it contains at least one available Campaign item.
+3. Save any unsaved changes.
+4. Select **Activate Campaign**.
+5. Review the confirmation and select **Activate Campaign** again.
+
+**Expected result:** the Campaign becomes **Active** and its detail page shows the actions available for an active Campaign.
+
+**Warning:** activation can make an Organisation Campaign available for assignment or participation. Confirm its content, item order, and Organisation schedule before proceeding.
+
+#### Archive a Campaign
+
+1. Open an active Campaign using **View Campaign**.
+2. Select **Archive Campaign**.
+3. Review the confirmation and confirm the archive action.
+
+**Expected result:** the Campaign becomes **Archived** and is no longer treated as active.
+
+**Warning:** archiving changes Campaign availability. Check its current use before confirming.
+
+#### Reactivate a Campaign
+
+1. Find the Campaign using the **Archived** status filter when necessary.
+2. Open it using **View Campaign**.
+3. Select **Reactivate Campaign**.
+4. Review the confirmation and confirm reactivation.
+
+**Expected result:** the Campaign returns to **Active** when the transition remains valid.
+
+**Warning:** reactivation makes the Campaign active again. Review its content and Organisation schedule, where applicable, before confirming.
+
+**Troubleshooting:** a lifecycle action may be hidden or disabled when your permission changed, the Campaign is in a different state, source content is unavailable, the draft has no items, or edits remain unsaved. Refresh the detail page and follow the reason shown near the action.
 
 ### Assign Campaigns to Organisation Trainees
 
