@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout';
 import BasicOrganisationInformationPage from '../components/organisation-information/BasicOrganisationInformationPage';
 import RepresentativeInformationPage from '../components/organisation-information/RepresentativeInformationPage';
@@ -227,6 +227,7 @@ function OrganisationInformationPage() {
     searchParams.get('organisationId') ||
     searchParams.get('id');
   const routeReqId = params.requestId || searchParams.get('requestId');
+  const isPlatformDetail = Boolean(params.organisationId || params.requestId);
   const targetId = isPlatformAdmin
     ? routeOrgId || routeReqId || authContext?.organisation?.id || null
     : authContext?.organisation?.id || null;
@@ -379,6 +380,18 @@ function OrganisationInformationPage() {
           flexShrink: 0,
         }}
       >
+        {isPlatformDetail && (
+          <Link
+            to="/organisation-management"
+            className="mb-2 inline-flex items-center gap-2 font-jost text-xl font-regular tracking-wide text-purple hover:text-purple cursor-pointer transition-colours"
+          >
+            <span className="material-icons-sharp" aria-hidden="true">
+              arrow_back
+            </span>
+            <span className="hover:underline">Back to Organisation Management</span>
+          </Link>
+        )}
+
         <h1
           style={{
             margin: 0,
