@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This catalogue lists the screenshots used by the Demo 3 user manual. Screenshots should show usable, implemented screens only.
+This catalogue lists the screenshots used by the Demo 3 User Manual and Admin User Manual. Screenshots should show usable, implemented screens only.
 
 ## Capture and Privacy Rules
 
@@ -10,7 +10,7 @@ Use demo accounts and sample organisations only. Before committing a screenshot,
 
 ## Public and Account Flows
 
-Screenshots in this group cover public access, registration, verification, password recovery, and account management.
+Screenshots in this group support the [User Manual](../user-manual.md) and cover public access, registration, verification, password recovery, and account management.
 
 | Screenshot                                      | Manual section                              | Notes                                       |
 | ----------------------------------------------- | ------------------------------------------- | ------------------------------------------- |
@@ -27,7 +27,7 @@ Screenshots in this group cover public access, registration, verification, passw
 
 ## Trainee Campaign Workflows
 
-Screenshots cover the integrated Campaigns page, training content, quizzes, results, simulated inbox and details page.
+These [User Manual](../user-manual.md) screenshots cover the integrated Campaigns page, training content, quizzes, results, simulated inbox and details page.
 
 | Screenshot                              | Manual section                       | Notes                                    |
 | --------------------------------------- | ------------------------------------ | ---------------------------------------- |
@@ -41,7 +41,7 @@ Screenshots cover the integrated Campaigns page, training content, quizzes, resu
 
 ## Organisation Admin Flows
 
-Screenshots cover Organisation registration, initial admin setup, Organisation information, Organisation security preferences, trainee management, and admin management screens.
+Screenshots cover Organisation registration and initial setup in the [User Manual](../user-manual.md), plus Organisation management screens in the [Admin User Manual](../admin-user-manual.md).
 
 | Screenshot                                                          | Manual Section                            | Notes                             |
 | ------------------------------------------------------------------- | ----------------------------------------- | --------------------------------- |
@@ -59,7 +59,7 @@ Screenshots cover Organisation registration, initial admin setup, Organisation i
 
 ## Insightful Phish Admin Flows
 
-Screenshots cover Organisation request review, Organisation details, onboarding timeline reviews, setup resend, and platform management screens.
+These [Admin User Manual](../admin-user-manual.md) screenshots cover Organisation request review, Organisation details, onboarding timeline reviews, setup resend, and platform management screens.
 
 | Screenshot                                         | Manual Section                         | Notes                                                   |
 | -------------------------------------------------- | -------------------------------------- | ------------------------------------------------------- |
@@ -70,9 +70,10 @@ Screenshots cover Organisation request review, Organisation details, onboarding 
 | `platform-admin/05-onboarding-timeline.png`        | Review request or organisation details | Do not expose private metadata                          |
 | `platform-admin/06-resend-initial-admin-setup.png` | Review request or organisation details | Use sample representative details and hide setup tokens |
 
-## User Manual Reuse
+## Manual Reuse
 
 When a screenshot is used please keep the same file name in this catalogue so reviewers can trace every image back to its workflow.
 
 - **[User Manual](../user-manual.md)**
+- **[Admin User Manual](../admin-user-manual.md)**
 - **[Demo 3 Documentation Home](../README.md)**

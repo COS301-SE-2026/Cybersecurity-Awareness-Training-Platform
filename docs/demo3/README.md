@@ -27,6 +27,7 @@ This is the Insightful Phish Demo 3 documentation. Below you can find each aspec
 - **[Coding Standards](coding-standards.md)**
 - **[Testing Policy](testing-policy.md)**
 - **[User Manual](user-manual.md)**
+- **[Admin User Manual](admin-user-manual.md)**
 - **[Brand Style Guide](https://brand.insightfulphish.co.za)**
 - **[User Interface](user-interface/README.md)**
 
