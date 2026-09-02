@@ -109,10 +109,13 @@ function Navbar() {
                 }
               }}
               style={{
+                width: '100%',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.7rem',
                 padding: '1rem',
+                border: 'none',
+                backgroundColor: '#1F0047',
                 fontFamily: 'Overpass',
                 fontWeight: '600',
                 fontSize: '1.1rem',
