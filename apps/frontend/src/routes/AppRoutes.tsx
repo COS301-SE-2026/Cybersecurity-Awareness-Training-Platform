@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import { StatusPage } from '../App';
 import { useAuth } from '../context/useAuth';
 import type { CampaignManagementContext } from '../features/campaign-management/campaignManagement.types';
@@ -12,6 +12,7 @@ import ResultsPage from '../pages/ResultsPage';
 import ProtectedRoute from './ProtectedRoute';
 import CampaignsPage from '../pages/CampaignsPage';
 import LandingPage from '../pages/LandingPage';
+import NotFoundPage from '../pages/NotFoundPage';
 import ForgotPasswordPage from '../pages/ForgotPasswordPage';
 import ResetPasswordPage from '../pages/ResetPasswordPage';
 import OrganisationRegistrationRequestPage from '../pages/OrganisationRegistrationRequestPage';
@@ -30,11 +31,12 @@ import BrandPage from '../pages/BrandPage';
 import CampaignAssignmentPage from '../pages/CampaignAssignmentPage';
 import CampaignManagementListPage from '../features/campaign-management/CampaignManagementListPage';
 import CampaignManagementDetailPage from '../features/campaign-management/CampaignManagementDetailPage';
+import CampaignInsightsPage from '../pages/CampaignInsightsPage';
 
 function CampaignManagementDetailRoute({
   contextKind,
 }: Readonly<{ contextKind: CampaignManagementContext['kind'] }>) {
-  const { permissions } = useAuth();
+  const { clearAuth, permissions } = useAuth();
   const canManageCampaigns = contextKind === 'platform' || permissions.includes('MANAGE_CAMPAIGNS');
 
   return (
@@ -42,6 +44,18 @@ function CampaignManagementDetailRoute({
       contextKind={contextKind}
       canManageCampaigns={canManageCampaigns}
       blockUnsavedNavigation
+      onAuthenticationExpired={clearAuth}
+    />
+  );
+}
+
+function CampaignInsightsRoute() {
+  const { clearAuth, permissions } = useAuth();
+
+  return (
+    <CampaignInsightsPage
+      canAssignCampaigns={permissions.includes('ASSIGN_CAMPAIGNS')}
+      onAuthenticationExpired={clearAuth}
     />
   );
 }
@@ -144,6 +158,10 @@ function AppRoutes() {
             path="/organisations/:organisationId/campaigns/:campaignId"
             element={<CampaignManagementDetailRoute contextKind="organisation" />}
           />
+          <Route
+            path="/organisations/:organisationId/campaigns/:campaignId/statistics"
+            element={<CampaignInsightsRoute />}
+          />
         </Route>
 
         <Route
@@ -187,7 +205,7 @@ function AppRoutes() {
         <Route path="/account-management" element={<AccountManagementPage />} />
       </Route>
 
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }

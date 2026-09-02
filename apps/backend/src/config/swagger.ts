@@ -697,13 +697,29 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         },
         AuthLoginResponse: {
           type: 'object',
-          required: ['accessToken', 'user', 'context', 'permissions', 'redirectTo'],
+          required: [
+            'accessToken',
+            'idleTimeoutMinutes',
+            'user',
+            'context',
+            'permissions',
+            'redirectTo',
+          ],
           properties: {
             accessToken: {
               type: 'string',
               description: 'Bearer access token for authenticated requests.',
               example:
                 'eyJ1c2VySWQiOiJ1c2VyLTEyMyIsImV4cGlyZXNBdCI6IjIwMjYtMDUtMTJUMjA6NDQ6NTQuMDAwWiJ9.signature',
+            },
+            idleTimeoutMinutes: {
+              ...nullableIntegerRange({
+                minimum: 5,
+                maximum: 480,
+                example: 30,
+              }),
+              description:
+                'Effective browser-observed inactivity in timeout minutes. Null disabled browser idle timeout.',
             },
             user: {
               $ref: '#/components/schemas/PublicUser',
@@ -1092,6 +1108,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             'canRequestEmailChange',
             'canChangePassword',
             'canEditSecurityPreferences',
+            'canDeleteAccount',
             'securityPreferenceEditable',
             'blockedReasons',
           ],
@@ -1100,6 +1117,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             canRequestEmailChange: booleanProperty(true),
             canChangePassword: booleanProperty(true),
             canEditSecurityPreferences: booleanProperty(true),
+            canDeleteAccount: booleanProperty(false),
             securityPreferenceEditable: {
               type: 'object',
               required: [
@@ -1121,6 +1139,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
                 'preferredRegularSessionLengthHours',
                 'preferredRememberMeSessionLengthHours',
                 'preferredIdleTimeoutMinutes',
+                'deleteAccount',
               ],
               properties: {
                 emailChange: nullableString('ORGANISATION_POLICY_BLOCKED'),
@@ -1130,6 +1149,17 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
                   'ORGANISATION_POLICY_ENFORCED',
                 ),
                 preferredIdleTimeoutMinutes: nullableString('ORGANISATION_POLICY_ENFORCED'),
+                deleteAccount: {
+                  type: 'string',
+                  nullable: true,
+                  enum: [
+                    'PLATFORM_SELF_DELETION_NOT_SUPPORTED',
+                    'ORGANISATION_ADMIN_MANAGED',
+                    'ORGANISATION_TRAINEE_MANAGED',
+                    'SELF_DELETION_NOT_SUPPORTED',
+                  ],
+                  example: 'PLATFORM_SELF_DELETION_NOT_SUPPORTED',
+                },
               },
             },
           },
@@ -1174,8 +1204,18 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
               maximum: 480,
               example: 30,
             }),
-            deviceSummary: nullableString('Chrome on Windows'),
-            locationSummary: nullableString('Johannesburg, ZA'),
+            deviceSummary: {
+              ...nullableString('Windows · Chrome'),
+              description:
+                'Conservative prepared device and browser summary. Null may be returned for legacy sessions; raw user-agent strings are never returned.',
+            },
+            locationSummary: {
+              type: 'string',
+              nullable: true,
+              example: null,
+              description:
+                'Prepared location summary when supported. Currently null because IP addresses are not presented as physical locations.',
+            },
           },
         },
         AccountSessionsResponse: {
@@ -2633,9 +2673,21 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
           type: 'object',
           required: ['trainees', 'invitations'],
           properties: {
-            trainees: arrayOf(schemaRef('TraineeListItem')),
-            invitations: arrayOf(schemaRef('TraineeListItem')),
-            pendingInvitations: arrayOf(schemaRef('TraineeListItem')),
+            trainees: {
+              ...arrayOf(schemaRef('TraineeListItem')),
+              description:
+                'Current organisation trainee membership rows, including disabled memberships where supported.',
+            },
+            invitations: {
+              ...arrayOf(schemaRef('TraineeListItem')),
+              description:
+                'Visible trainee invitation rows that still support management actions. Accepted or completed invitation history is not returned here.',
+            },
+            pendingInvitations: {
+              ...arrayOf(schemaRef('TraineeListItem')),
+              description:
+                'Compatibility alias for the same visible/actionable invitation rows returned in invitations.',
+            },
           },
         },
         CreateTraineeInvitationRequest: {
@@ -2755,6 +2807,38 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             },
             traineeId: uuidString('44444444-4444-4444-8444-444444444444'),
             status: enumString(['DISABLED'], 'DISABLED'),
+          },
+        },
+        ReenableTraineeRequest: {
+          type: 'object',
+          required: ['password', 'confirmation'],
+          additionalProperties: false,
+          properties: {
+            password: {
+              type: 'string',
+              format: 'password',
+              minLength: 1,
+              description: 'Current password of the acting Organisation Admin.',
+            },
+            confirmation: {
+              type: 'boolean',
+              enum: [true],
+              example: true,
+              description: 'Explicit confirmation of the membership re-enable action.',
+            },
+          },
+        },
+        ReenableTraineeResponse: {
+          type: 'object',
+          required: ['success', 'message'],
+          properties: {
+            success: booleanProperty(true),
+            message: {
+              type: 'string',
+              example: 'Trainee account re-enabled successfully.',
+            },
+            traineeId: uuidString('44444444-4444-4444-8444-444444444444'),
+            status: enumString(['ACTIVE'], 'ACTIVE'),
           },
         },
         OrganisationSecuritySettings: {
@@ -5199,6 +5283,10 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
           required: true,
           ...jsonContent(schemaRef('DisableTraineeRequest')),
         },
+        ReenableTrainee: {
+          required: true,
+          ...jsonContent(schemaRef('ReenableTraineeRequest')),
+        },
         CreateCampaignAssignments: {
           required: true,
           ...jsonContent(schemaRef('CreateCampaignAssignmentsRequest')),
@@ -5335,6 +5423,10 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         OrganisationTraineeDisabled: responseComponent(
           'Trainee account disabled successfully.',
           'DisableTraineeResponse',
+        ),
+        OrganisationTraineeReenabled: responseComponent(
+          'Trainee account re-enabled successfully.',
+          'ReenableTraineeResponse',
         ),
         OrganisationRegistrationRequestCreated: responseComponent(
           'Organisation registration request submitted for review.',

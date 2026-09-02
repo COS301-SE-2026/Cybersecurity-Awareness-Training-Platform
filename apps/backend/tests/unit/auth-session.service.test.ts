@@ -56,10 +56,6 @@ describe('auth-session serivce', () => {
     ['MISSING', null],
     ['REVOKED', session({ revokedAt: now })],
     ['EXPIRED', session({ expiresAt: now })],
-    [
-      'IDLE_TIMEOUT',
-      session({ idleTimeoutMinutes: 5, lastActiveAt: new Date('2026-06-26T09:55:00.000Z') }),
-    ],
   ] as const)('return %s for invalid sessions', async (state, value) => {
     repoMock.findAuthSessionById.mockResolvedValue(value);
     await expect(validateAuthSession({ sessionId: 'session01', now })).resolves.toMatchObject({
@@ -68,8 +64,11 @@ describe('auth-session serivce', () => {
     expect(repoMock.touchAuthSession).not.toHaveBeenCalled();
   });
 
-  it('returns active and touches by default', async () => {
-    const active = session();
+  it('returns active and touches despite old request activty', async () => {
+    const active = session({
+      idleTimeoutMinutes: 5,
+      lastActiveAt: new Date('2026-06-26T09:00:00.000Z'),
+    });
     repoMock.findAuthSessionById.mockResolvedValue(active);
     await expect(validateAuthSession({ sessionId: 'session01', now })).resolves.toEqual({
       state: 'ACTIVE',

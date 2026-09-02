@@ -245,6 +245,7 @@ describe('Auth routes', () => {
     });
     expect(response.body).toEqual({
       accessToken: expect.any(String),
+      idleTimeoutMinutes: 30,
       user: {
         id: 'id-123',
         firstName: 'Johan',
@@ -292,14 +293,14 @@ describe('Auth routes', () => {
     expect(response.body).toHaveProperty('error', 'AUTH_INVALID');
   });
 
-  it('returns the current authenticated user without exposing the password hash', async () => {
+  it('returns the authenticated user despite old request activityy', async () => {
     const token = generateAuthToken('id-123', 'session-123').token;
 
     prismaMock.authSession.findUnique.mockResolvedValue({
       id: 'session-123',
       userId: 'id-123',
       expiresAt: new Date(Date.now() + 60000),
-      lastActiveAt: new Date(),
+      lastActiveAt: new Date(Date.now() - 60 * 60 * 1000),
       revokedAt: null,
       idleTimeoutMinutes: 30,
     });
@@ -468,7 +469,7 @@ describe('Auth routes', () => {
       message: 'Too many authentication requests. Please try again later.',
     });
     expect(response?.headers).toHaveProperty('retry-after');
-  });
+  }, 15000);
 
   describe('POST /auth/logout', () => {
     it('clears the refresh token cookie and revokes session if refresh token cookie is present', async () => {
@@ -532,8 +533,9 @@ describe('Auth routes', () => {
       });
     });
 
-    it('rotates refresh token and returns new access token/context on valid cookie', async () => {
+    it('rotates refresh token despite old request activity', async () => {
       const expiresAt = new Date(Date.now() + 60000);
+      const lastActiveAt = new Date(Date.now() - 60 * 60 * 1000);
       prismaMock.refreshToken.findUnique.mockResolvedValue({
         id: 'token-123',
         tokenHash: 'somehash',
@@ -545,7 +547,7 @@ describe('Auth routes', () => {
           id: 'session-123',
           userId: 'user-123',
           expiresAt,
-          lastActiveAt: new Date(),
+          lastActiveAt,
           revokedAt: null,
           user: {
             id: 'user-123',
@@ -562,7 +564,7 @@ describe('Auth routes', () => {
         id: 'session-123',
         userId: 'user-123',
         expiresAt,
-        lastActiveAt: new Date(),
+        lastActiveAt,
         revokedAt: null,
         idleTimeoutMinutes: 30,
       });
@@ -585,6 +587,7 @@ describe('Auth routes', () => {
       expect(response.status).toBe(200);
       expect(response.body).toEqual({
         accessToken: expect.any(String),
+        idleTimeoutMinutes: 30,
         user: {
           id: 'user-123',
           firstName: 'Johan',

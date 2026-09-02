@@ -98,6 +98,7 @@ function accountResponse() {
       canRequestEmailChange: true,
       canChangePassword: true,
       canEditSecurityPreferences: true,
+      canDeleteAccount: false,
       securityPreferenceEditable: {
         preferredRegularSessionLengthHours: true,
         preferredRememberMeSessionLengthHours: true,
@@ -109,6 +110,7 @@ function accountResponse() {
         preferredRegularSessionLengthHours: null,
         preferredRememberMeSessionLengthHours: null,
         preferredIdleTimeoutMinutes: null,
+        deleteAccount: 'SELF_DELETION_NOT_SUPPORTED',
       },
     },
   };

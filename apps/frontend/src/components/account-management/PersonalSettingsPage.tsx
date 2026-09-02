@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import BasicAlert from '../alerts/BasicAlert';
+import { ReadOnlyField } from '../ui/FormField';
 import {
   updateAccountProfile,
   extractErrorMessage,
@@ -118,19 +119,11 @@ function PersonalSettingsPage({
 
       {/* INPUT 3: EMAIL ADDRESS */}
       <div className="mb-6 max-w-sm">
-        <label
-          htmlFor="email-address"
-          className=" block mb-2 font-jost tracking-wide text-[1.2rem] font-regular text-dark-pink"
-        >
-          Email Address
-        </label>
-        <input
-          disabled
-          type="email"
-          name="email-address"
+        <ReadOnlyField
           id="email-address"
-          value={profile?.email || ''}
-          className="font-overpass text-[1.2rem] bg-gray-200 border border-gray-300 text-gray-500 block w-full p-2.5 cursor-not-allowed"
+          label="Email Address"
+          value={profile?.email}
+          helperText="Email address can be updated under the Account tab."
         />
       </div>
 

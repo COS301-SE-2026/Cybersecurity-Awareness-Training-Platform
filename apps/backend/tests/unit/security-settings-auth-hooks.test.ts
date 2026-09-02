@@ -171,6 +171,8 @@ describe('security settings auth hooks', () => {
       email: 'org.trainee@example.test',
       password: 'correct-password',
       rememberMe: true,
+      userAgent:
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126.0 Safari/537.36',
     });
 
     expect(securityPolicyServiceMock.resolveEffectiveSecurityPolicy).toHaveBeenCalledWith({
@@ -187,6 +189,8 @@ describe('security settings auth hooks', () => {
         userId: 'user-1',
         rememberMe: false,
         idleTimeoutMinutes: 10,
+        deviceSummary: 'Windows · Chrome',
+        locationSummary: null,
       }),
     );
     expect(refreshTokenServiceMock.issueRefreshToken).toHaveBeenCalledWith({

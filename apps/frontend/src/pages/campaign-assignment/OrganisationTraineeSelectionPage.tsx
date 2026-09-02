@@ -1,60 +1,56 @@
-import { mockCampaignAssignmentCandidatesResponse } from '../../testing/fixtures/campaignAssignmentFixtures';
-
-type DisplayStatus =
-  | 'Active'
-  | 'Disabled'
-  | 'Invited'
-  | 'Failed to Send'
-  | 'Accepted'
-  | 'Completed'
-  | 'Expired'
-  | 'Revoked'
-  | 'Rejected'
-  | 'Unknown';
-
-function getStatusBadge(status: DisplayStatus) {
-  const variants: Record<DisplayStatus, string> = {
-    Active: 'ring-success-subtle text-fg-success-strong bg-success-soft',
-    Disabled: 'ring-default-medium text-heading bg-neutral-secondary-medium',
-    Invited: 'ring-brand-subtle text-fg-brand-strong bg-brand-softer',
-    'Failed to Send': 'ring-danger-subtle text-fg-danger-strong bg-danger-soft',
-    Accepted: 'ring-success-subtle text-fg-success-strong bg-success-soft',
-    Completed: 'ring-success-subtle text-fg-success-strong bg-success-soft',
-    Expired: 'ring-default-medium text-heading bg-neutral-secondary-medium',
-    Revoked: 'ring-danger-subtle text-fg-danger-strong bg-danger-soft',
-    Rejected: 'ring-warning-subtle text-fg-warning bg-warning-soft',
-    Unknown: 'ring-default-medium text-fg-heading bg-neutral-secondary-medium',
-  };
-
-  return (
-    <span
-      className={`items-flex justify-center items-center w-32 px-4 py-1 pt-[0.4rem] ring-2 ring-inset text-sm font-medium ${variants[status]}`}
-    >
-      {status}
-    </span>
-  );
-}
+import type { CampaignAssignmentCandidateOptionDto } from '@insightful-phish/shared';
+import { getCampaignAssignmentCandidates } from '../../services/campaign-assignment.service';
+import LoadingSpinnerSVG from '../../components/LoadingSpinnerSVG';
+import CampaignAssignmentPagination from './CampaignAssignmentPagination';
+import useCampaignAssignmentOptions from './useCampaignAssignmentOptions';
+import StatusBadge from '../../components/ui/StatusBadge';
 
 type OrganisationTraineeSelectionPageProps = Readonly<{
   selectedTraineeIds: string[];
   setSelectedTraineesIds: React.Dispatch<React.SetStateAction<string[]>>;
+  setSelectedTrainees: React.Dispatch<React.SetStateAction<CampaignAssignmentCandidateOptionDto[]>>;
   onContinue: () => void;
 }>;
 
 function OrganisationTraineeSelectionPage({
   selectedTraineeIds,
   setSelectedTraineesIds,
+  setSelectedTrainees,
   onContinue,
 }: OrganisationTraineeSelectionPageProps) {
-  const trainees = mockCampaignAssignmentCandidatesResponse.items;
+  const {
+    items: trainees,
+    searchTerm,
+    setSearchTerm,
+    isLoading,
+    error,
+    currentPage,
+    setCurrentPage,
+    totalPages,
+  } = useCampaignAssignmentOptions<CampaignAssignmentCandidateOptionDto>({
+    loadOptions: getCampaignAssignmentCandidates,
+    loadErrorMessage: 'Unable To Load Organisation Trainees. Please Try Again',
+  });
 
-  const handleTraineeSelection = (traineeProfileId: string) => {
+  const handleTraineeSelection = (trainee: CampaignAssignmentCandidateOptionDto) => {
+    const isAlreadySelected = selectedTraineeIds.includes(trainee.traineeProfileId);
+
     setSelectedTraineesIds((currentSelectedIds) => {
-      if (currentSelectedIds.includes(traineeProfileId)) {
-        return currentSelectedIds.filter((id) => id !== traineeProfileId);
+      if (isAlreadySelected) {
+        return currentSelectedIds.filter((id) => id !== trainee.traineeProfileId);
       }
 
-      return [...currentSelectedIds, traineeProfileId];
+      return [...currentSelectedIds, trainee.traineeProfileId];
+    });
+
+    setSelectedTrainees((currentSelectedTrainees) => {
+      if (isAlreadySelected) {
+        return currentSelectedTrainees.filter(
+          (selectedTrainee) => selectedTrainee.traineeProfileId !== trainee.traineeProfileId,
+        );
+      }
+
+      return [...currentSelectedTrainees, trainee];
     });
   };
 
@@ -84,7 +80,7 @@ function OrganisationTraineeSelectionPage({
           </h3>
 
           {/* SUB-HEADING */}
-          <p className="font-regular tracking-wider text-[1.1rem] font-justify font-jost mt-1 text-gray-500 mb-4">
+          <p className="font-regular tracking-wider text-[1.1rem] font-justify font-jost mt-1 text-gray-500 mb-2">
             Select the organisation trainees you wish to assign campaigns to.
           </p>
         </div>
@@ -111,14 +107,14 @@ function OrganisationTraineeSelectionPage({
 
       <div>
         {/* SEARCH AND FILTER BAR */}
-        <div className="w-full mb-4">
+        <div className="w-full mb-2">
           <div className="relative bg-white-purple border border-gray-200">
             <div className="flex flex-col items-center justify-between p-4 space-y-3 md:flex-row md:space-y-0 md:space-x-4">
               {/* ==== SEARCH BAR ==== */}
               <div className="w-full">
                 <div className="flex items-center">
                   {/* Search Input Label */}
-                  <label htmlFor="simple-search" className="sr-only">
+                  <label htmlFor="organisation-trainee-search" className="sr-only">
                     Search Organisation Trainees
                   </label>
                   <div className="relative w-full">
@@ -141,7 +137,12 @@ function OrganisationTraineeSelectionPage({
                     {/* Search Input */}
                     <input
                       type="text"
-                      id="simple-search"
+                      id="organisation-trainee-search"
+                      value={searchTerm}
+                      onChange={(event) => {
+                        setSearchTerm(event.target.value);
+                        setCurrentPage(1);
+                      }}
                       className="font-jost tracking-wide block w-full p-2 pl-10 text-[1.1rem] h-[2.55rem] text-black border border-gray-300 bg-white focus:ring-primary-500 focus:border-primary-500"
                       placeholder="Search Organisation Trainees"
                     />
@@ -153,7 +154,10 @@ function OrganisationTraineeSelectionPage({
               <button
                 type="button"
                 disabled={selectedTraineeIds.length === 0}
-                onClick={() => setSelectedTraineesIds([])}
+                onClick={() => {
+                  setSelectedTraineesIds([]);
+                  setSelectedTrainees([]);
+                }}
                 className="disabled:hover:bg-gray-200 disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer w-60 font-jost tracking-wider text-xl text-body font-regular bg-gray-200 hover:bg-gray-300 leading-5 px-4 py-2.5 focus:outline-none"
               >
                 Clear Selection
@@ -163,7 +167,7 @@ function OrganisationTraineeSelectionPage({
         </div>
 
         {/* TABLE */}
-        <div className="relative overflow-x-auto bg-neutral-primary-soft border border-default">
+        <div className="relative max-h-[12rem] overflow-y-auto overflow-x-auto bg-neutral-primary-soft border border-default">
           <table className="w-full text-sm text-left rtl:text-right text-body">
             <thead className="bg-faint-purple border-b border-default">
               <tr>
@@ -192,36 +196,83 @@ function OrganisationTraineeSelectionPage({
               </tr>
             </thead>
             <tbody className="font-overpass font-regular text-[1rem] tracking-wider">
-              {trainees.map((trainee) => (
-                <tr
-                  key={trainee.traineeProfileId}
-                  className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default"
-                >
-                  <td className="px-6 py-3">
-                    <div className="flex items-center">
-                      <label htmlFor={`trainee-${trainee.traineeProfileId}`} className="sr-only">
-                        Select {trainee.displayName}
-                      </label>
-                      <input
-                        id={`trainee-${trainee.traineeProfileId}`}
-                        type="checkbox"
-                        checked={selectedTraineeIds.includes(trainee.traineeProfileId)}
-                        onChange={() => handleTraineeSelection(trainee.traineeProfileId)}
-                        className="accent-[#8400ff] w-5 h-5 border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
-                      />
-                    </div>
+              {isLoading && (
+                <tr>
+                  <td
+                    colSpan={4}
+                    className="py-8 text-center text-[1.2rem] tracking-wider text-gray-600 font-jost"
+                  >
+                    <LoadingSpinnerSVG />
+                    Loading Organisation Trainees...
                   </td>
-
-                  <td className="px-6 py-2">{trainee.displayName}</td>
-
-                  <td className="px-6 py-2">{trainee.email}</td>
-
-                  <td className="px-6 py-2">{getStatusBadge('Active')}</td>
                 </tr>
-              ))}
+              )}
+
+              {!isLoading && error && (
+                <tr>
+                  <td
+                    colSpan={4}
+                    className="py-8 text-center text-[1.2rem] tracking-wider text-red-600 font-jost"
+                  >
+                    {error}
+                  </td>
+                </tr>
+              )}
+
+              {!isLoading && !error && trainees.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={4}
+                    className="py-8 text-center text-[1.2rem] tracking-wider text-red-600 font-jost"
+                  >
+                    No Organisation Trainees Found
+                  </td>
+                </tr>
+              )}
+
+              {!isLoading &&
+                !error &&
+                trainees.map((trainee) => (
+                  <tr
+                    key={trainee.traineeProfileId}
+                    className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default"
+                  >
+                    <td className="px-6 py-3">
+                      <div className="flex items-center">
+                        <label htmlFor={`trainee-${trainee.traineeProfileId}`} className="sr-only">
+                          Select {trainee.displayName}
+                        </label>
+                        <input
+                          id={`trainee-${trainee.traineeProfileId}`}
+                          type="checkbox"
+                          checked={selectedTraineeIds.includes(trainee.traineeProfileId)}
+                          onChange={() => handleTraineeSelection(trainee)}
+                          className="accent-[#8400ff] w-5 h-5 border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
+                        />
+                      </div>
+                    </td>
+
+                    <td className="px-6 py-2">{trainee.displayName}</td>
+
+                    <td className="px-6 py-2">{trainee.email}</td>
+
+                    <td className="px-6 py-2">
+                      <StatusBadge status="Active" />
+                    </td>
+                  </tr>
+                ))}
             </tbody>
           </table>
         </div>
+
+        <CampaignAssignmentPagination
+          className="mt-2 -mb-4"
+          ariaLabel="Organisation Trainee Selection Table Pagination"
+          currentPage={currentPage}
+          totalPages={totalPages}
+          isLoading={isLoading}
+          setCurrentPage={setCurrentPage}
+        />
       </div>
     </div>
   );

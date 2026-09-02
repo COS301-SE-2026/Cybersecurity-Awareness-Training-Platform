@@ -1,116 +1,178 @@
 import AppLayout from '../components/layout/AppLayout';
 import { Dropdown, DropdownItem } from 'flowbite-react';
-import { useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import BasicConfirmationModal from '../components/layout/modals/BasicConfirmationModal';
 import InvitePlatformAdministratorModal from '../components/layout/platform-administrators-page/InvitePlatformAdministratorModal';
 import TransferSuperAdministratorRoleModal from '../components/layout/platform-administrators-page/TransferSuperAdministratorRoleModal';
 import AdminPagesSearchSVG from '../components/AdminPagesSearchSVG';
+import {
+  AdminTable,
+  AdminTableActions,
+  AdminTableCell,
+  AdminTableContainer,
+  AdminTableEmptyRow,
+  AdminTableHeader,
+  AdminTableHeaderCell,
+  AdminTableLoadingRow,
+  TruncatedValue,
+} from '../components/ui/AdminTable';
 import { useAuth } from '../context/useAuth';
+import { ApiError } from '../lib/apiClient';
+import type {
+  PlatformAdminListItemDto,
+  PlatformAdminListResponseDto,
+  TransferSuperAdminRequestDto,
+  DemotePlatformAdminRequestDto,
+  InvitePlatformAdminResponseDto,
+} from '@insightful-phish/shared';
+import {
+  getPlatformAdmins,
+  resendPlatformAdminInvite,
+  transferSuperAdmin,
+  demotePlatformAdmin,
+} from '../services/platform-admin.service';
 
-// IMPORTANT NOTE FOR INTEGRATION
-/* 
-ONLY THE SUPER-ADMIN CAN: 
-  View the ACTIONS part of the the table... 
-  So, if they are NOT a super-admin, then you MUST hide the ACTIONS section of the table. 
-  Also, please hide the "+ Invite Platform Administrator" if they are NOT a super-admin!
-  
-  This is easy to do.
-  Just set a flag based on their role... 
-  If they ARE super-admin, then TRUE...
-  If they ARE NOT super-admin, then FALSE... 
-  Then do: 
-  {superAdministrator && (
-    // Component... 
-  )}
-  // PLEASE DO THE SAME FOR THE HEADING!! It is currently commented out. But when you do the flag thing during integration, please
-  // just add that to the other heading too if they are NOT a super-admin
-*/
+type DisplayStatus =
+  | 'Active'
+  | 'Invited'
+  | 'Failed invitation'
+  | 'Disabled'
+  | 'Pending upgrade'
+  | 'Unknown status';
 
-interface PlatformAdministrator {
-  id: number;
+type DisplayRole = 'Super Administrator' | 'Administrator' | 'Unknown role';
+type RoleFilter = 'All' | 'Super Administrator' | 'Administrator';
+type StatusFilter = 'All' | DisplayStatus;
+
+type DisplayAdministrator = {
+  id: string;
+  firstName: string;
+  lastName: string;
   fullName: string;
-  emailAddress: string;
-  status: 'Active' | 'Invited' | 'Disabled' | 'Failed Invitation';
-  role: 'Administrator' | 'Super Administrator';
-}
-
-// MOCK DATA
-// REPLACE WITH THE REAL DEAL
-const mockPlatformAdministrators: PlatformAdministrator[] = [
-  {
-    id: 1,
-    fullName: 'Adriano Jorge',
-    emailAddress: 'adriano.jorge@tuks.co.za',
-    status: 'Active',
-    role: 'Administrator',
-  },
-  {
-    id: 2,
-    fullName: 'Connor Bell',
-    emailAddress: 'connor.bell@tuks.co.za',
-    status: 'Active',
-    role: 'Super Administrator',
-  },
-  {
-    id: 3,
-    fullName: 'Johan Nel',
-    emailAddress: 'johan.nel@tuks.co.za',
-    status: 'Disabled',
-    role: 'Administrator',
-  },
-  {
-    id: 4,
-    fullName: 'Zoë Joubert',
-    emailAddress: 'zoë.joubert@tuks.co.za',
-    status: 'Invited',
-    role: 'Administrator',
-  },
-  {
-    id: 5,
-    fullName: 'Rudolph Last Name',
-    emailAddress: 'rudolph.last_name@tuks.co.za',
-    status: 'Failed Invitation',
-    role: 'Administrator',
-  },
-];
-
-const getStatusBadge = (status: PlatformAdministrator['status']) => {
-  switch (status) {
-    case 'Disabled':
-      // GREY
-      return (
-        <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-default-medium text-heading text-sm font-medium bg-neutral-secondary-medium">
-          Disabled
-        </span>
-      );
-
-    case 'Invited':
-      // BLUE
-      return (
-        <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-brand-subtle text-fg-brand-strong text-sm font-medium bg-brand-softer">
-          Invited
-        </span>
-      );
-
-    case 'Active':
-      // GREEN
-      return (
-        <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-success-subtle text-fg-success-strong text-sm font-medium bg-success-soft">
-          Active
-        </span>
-      );
-
-    case 'Failed Invitation':
-      // RED
-      return (
-        <span className="items-flex justify-center items-center w-28 px-4 py-1 pt-[0.4rem] ring-1 ring-inset ring-danger-subtle text-fg-danger-strong text-sm font-medium bg-danger-soft">
-          Failed Invitation
-        </span>
-      );
-  }
+  email: string;
+  platformAdminRole: string;
+  role: DisplayRole;
+  status: DisplayStatus;
+  inviteId: string | null;
+  allowedActions: PlatformAdminListItemDto['allowedActions'];
 };
 
+type SelectedActionTarget = {
+  action: 'resend' | 'transfer' | 'demote';
+  userId: string;
+  inviteId: string | null;
+  email: string;
+  name: string;
+};
+
+function isRecognisedPlatformAdminRole(platformAdminRole: string): boolean {
+  return platformAdminRole === 'SUPER_ADMIN' || platformAdminRole === 'NORMAL_ADMIN';
+}
+
+function getDisplayRole(platformAdminRole: string): DisplayRole {
+  if (platformAdminRole === 'SUPER_ADMIN') {
+    return 'Super Administrator';
+  }
+
+  if (platformAdminRole === 'NORMAL_ADMIN') {
+    return 'Administrator';
+  }
+
+  return 'Unknown role';
+}
+
+function getDisplayStatus(administrator: PlatformAdminListItemDto): DisplayStatus {
+  if (administrator.adminStatus === 'DISABLED') {
+    return 'Disabled';
+  }
+
+  if (administrator.adminStatus !== 'ACTIVE') {
+    return 'Unknown status';
+  }
+
+  if (
+    administrator.authStatus === 'ACTIVE' &&
+    administrator.invitationStatus === 'PENDING_UPGRADE'
+  ) {
+    return 'Pending upgrade';
+  }
+
+  if (
+    administrator.invitationStatus === 'FAILED_TO_SEND' &&
+    (administrator.authStatus === 'ACTIVE' || administrator.authStatus === 'PENDING_INVITE_SETUP')
+  ) {
+    return 'Failed invitation';
+  }
+
+  if (
+    administrator.authStatus === 'PENDING_INVITE_SETUP' &&
+    (administrator.invitationStatus === 'PENDING' || administrator.invitationStatus === 'SENT')
+  ) {
+    return 'Invited';
+  }
+
+  if (administrator.authStatus === 'ACTIVE' && administrator.invitationStatus === null) {
+    return 'Active';
+  }
+
+  return 'Unknown status';
+}
+
+function toDisplayAdministrator(administrator: PlatformAdminListItemDto): DisplayAdministrator {
+  const firstName = administrator.firstName.trim();
+  const lastName = administrator.lastName.trim();
+  const fullName = [firstName, lastName].filter(Boolean).join(' ');
+
+  return {
+    id: administrator.id,
+    firstName,
+    lastName,
+    fullName: fullName || 'Not provided',
+    email: administrator.email,
+    platformAdminRole: administrator.platformAdminRole,
+    role: getDisplayRole(administrator.platformAdminRole),
+    status: getDisplayStatus(administrator),
+    inviteId: administrator.inviteId,
+    allowedActions: administrator.allowedActions,
+  };
+}
+
+function getResendErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) return 'Unable to connect to the server. Please try again.';
+  if (error.status >= 500) return 'The server could not resend this invitation. Please try again.';
+  return error.message.trim() || 'The invitation could not be resent. Please try again.';
+}
+
+function StatusBadge({ status }: Readonly<{ status: DisplayStatus }>) {
+  const variants: Record<DisplayStatus, string> = {
+    Active: 'ring-success-subtle text-fg-success-strong bg-success-soft',
+    Invited: 'ring-brand-subtle text-fg-brand-strong bg-brand-softer',
+    'Failed invitation': 'ring-danger-subtle text-fg-danger-strong bg-danger-soft',
+    Disabled: 'ring-default-medium text-heading bg-neutral-secondary-medium',
+    'Pending upgrade': 'ring-brand-subtle text-fg-brand-strong bg-brand-softer',
+    'Unknown status': 'ring-default-medium text-heading bg-neutral-secondary-medium',
+  };
+
+  return (
+    <span
+      className={`inline-flex min-w-28 justify-center items-center px-4 py-1 pt-[0.4rem] ring-1 ring-inset text-sm font-medium ${variants[status]}`}
+    >
+      {status}
+    </span>
+  );
+}
+
 function PlatformAdministratorsPage() {
+  const { token, authContext, refreshAuthContext, clearAuth } = useAuth();
+  const requestIdRef = useRef(0);
+  const modalOpenerRef = useRef<HTMLButtonElement | null>(null);
+  const pageHeadingRef = useRef<HTMLHeadingElement | null>(null);
+
+  const [platformAdminResponse, setPlatformAdminResponse] =
+    useState<PlatformAdminListResponseDto | null>(null);
+  const [isLoading, setIsLoading] = useState(Boolean(token));
+  const [hasLoadError, setHasLoadError] = useState(false);
+
   const [showBasicConfirmationModal, setShowBasicConfirmationModal] = useState(false);
   const [confirmationTitle, setConfirmationTitle] = useState('');
   const [confirmationMessage, setConfirmationMessage] = useState('');
@@ -119,117 +181,528 @@ function PlatformAdministratorsPage() {
     'default',
   );
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<
-    'All' | 'Invited' | 'Active' | 'Disabled' | 'Failed Invitation'
-  >('All');
-  const [roleFilter, setRoleFilter] = useState<'All' | 'Super Administrator' | 'Administrator'>(
-    'All',
-  );
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('All');
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>('All');
 
-  // RETURNS THE CURRENT USER'S AUTH CONTEXT (SO WE KNOW WHAT KIND OF USER IS LOGGED IN)
-  const { authContext } = useAuth();
+  const [selectedActionTarget, setSelectedActionTarget] = useState<SelectedActionTarget | null>(
+    null,
+  );
+  const [isResendingInvite, setIsResendingInvite] = useState(false);
+  const [resendError, setResendError] = useState<string | null>(null);
+  const [showPlatformAdministratorModal, setShowPlatformAdministratorModal] = useState(false);
+  const [platformAdminFeedback, setPlatformAdminFeedback] = useState<string | null>(null);
+  const [showTransferSuperAdminModal, setShowTransferSuperAdminModal] = useState(false);
+  const [transferPassword, setTransferPassword] = useState('');
+  const [transferConfirmation, setTransferConfirmation] = useState('');
+  const [transferError, setTransferError] = useState<string | null>(null);
+  const [transferPasswordError, setTransferPasswordError] = useState<string | null>(null);
+  const [isTransferring, setIsTransferring] = useState(false);
+  const [isRefreshingAfterTransfer, setIsRefreshingAfterTransfer] = useState(false);
+  const [demotePassword, setDemotePassword] = useState('');
+  const [demoteConfirmation, setDemoteConfirmation] = useState('');
+  const [demoteError, setDemoteError] = useState<string | null>(null);
+  const [demotePasswordError, setDemotePasswordError] = useState<string | null>(null);
+  const [isDemoting, setIsDemoting] = useState(false);
 
   // BOOLEAN FLAGS FOR ROLES
   const isSuperAdministrator = authContext?.platformAdminRole === 'SUPER_ADMIN';
 
-  const filteredPlatformAdministrators = mockPlatformAdministrators.filter(
-    (platformAdministrator) => {
-      const search = searchTerm.toLowerCase();
+  const managementActionsLocked = isRefreshingAfterTransfer;
 
-      const matchesSearch = [
-        platformAdministrator.fullName,
-        platformAdministrator.emailAddress,
-        platformAdministrator.status,
-        platformAdministrator.role,
-      ]
-        .join(' ')
-        .toLowerCase()
-        .includes(search);
+  const canInvite =
+    !managementActionsLocked &&
+    isSuperAdministrator &&
+    platformAdminResponse?.allowedToInvite === true;
+  const canResendInvites =
+    !managementActionsLocked &&
+    isSuperAdministrator &&
+    platformAdminResponse?.allowedToResendInvites === true;
+  const canTransfer =
+    !managementActionsLocked &&
+    isSuperAdministrator &&
+    platformAdminResponse?.allowedToTransfer === true;
+  const canDemote =
+    !managementActionsLocked &&
+    isSuperAdministrator &&
+    platformAdminResponse?.allowedToDemote === true;
 
-      const matchesStatus = statusFilter === 'All' || platformAdministrator.status === statusFilter;
+  const reloadPlatformAdministrators = useCallback(async () => {
+    if (!token) {
+      setPlatformAdminResponse(null);
+      setIsLoading(false);
+      setHasLoadError(false);
+      return;
+    }
 
-      const matchesRole = roleFilter === 'All' || platformAdministrator.role === roleFilter;
+    const requestId = ++requestIdRef.current;
+    setIsLoading(true);
+    setHasLoadError(false);
 
-      return matchesSearch && matchesStatus && matchesRole;
-    },
+    try {
+      const response = await getPlatformAdmins(token);
+
+      if (requestIdRef.current !== requestId) {
+        return;
+      }
+
+      setPlatformAdminResponse(response);
+    } catch {
+      if (requestIdRef.current !== requestId) {
+        return;
+      }
+
+      setPlatformAdminResponse(null);
+      setHasLoadError(true);
+    } finally {
+      if (requestIdRef.current === requestId) {
+        setIsLoading(false);
+      }
+    }
+  }, [token]);
+
+  useEffect(() => {
+    let isCurrent = true;
+
+    queueMicrotask(() => {
+      if (isCurrent) {
+        void reloadPlatformAdministrators();
+      }
+    });
+
+    return () => {
+      isCurrent = false;
+      requestIdRef.current += 1;
+    };
+  }, [reloadPlatformAdministrators]);
+
+  const displayAdministrators = useMemo(
+    () => (platformAdminResponse?.admins ?? []).map(toDisplayAdministrator),
+    [platformAdminResponse],
   );
 
-  const [showPlatformAdministratorModal, setShowPlatformAdministratorModal] = useState(false);
-  const [showTransferSuperAdminModal, setShowTransferSuperAdminModal] = useState(false);
+  const filteredPlatformAdministrators = useMemo(() => {
+    const search = searchTerm.trim().toLowerCase();
 
-  const openPlatformAdministratorModal = () => {
+    return displayAdministrators.filter((administrator) => {
+      const matchesSearch =
+        !search ||
+        [
+          administrator.firstName,
+          administrator.lastName,
+          administrator.fullName,
+          administrator.email,
+        ]
+          .join(' ')
+          .toLowerCase()
+          .includes(search);
+
+      const matchesStatus = statusFilter === 'All' || administrator.status === statusFilter;
+
+      const matchesRole = roleFilter === 'All' || administrator.role === roleFilter;
+
+      return matchesSearch && matchesStatus && matchesRole;
+    });
+  }, [displayAdministrators, roleFilter, searchTerm, statusFilter]);
+
+  const hasActiveSearchOrFilter =
+    searchTerm.trim().length > 0 || roleFilter !== 'All' || statusFilter !== 'All';
+
+  const emptyMessage =
+    platformAdminResponse?.admins.length === 0 && !hasActiveSearchOrFilter
+      ? 'No platform administrators have been added.'
+      : 'No platform administrators match your search or filters.';
+
+  const restoreModalFocus = () => {
+    const opener = modalOpenerRef.current;
+    modalOpenerRef.current = null;
+
+    queueMicrotask(() => {
+      if (opener?.isConnected) opener.focus();
+      else pageHeadingRef.current?.focus();
+    });
+  };
+
+  const openPlatformAdministratorModal = (opener: HTMLButtonElement) => {
+    modalOpenerRef.current = opener;
+    setPlatformAdminFeedback(null);
     setShowPlatformAdministratorModal(true);
   };
 
   const closePlatformAdministratorModal = () => {
     setShowPlatformAdministratorModal(false);
+    restoreModalFocus();
   };
 
-  const openTranserSuperAdministratorModal = () => {
-    setShowTransferSuperAdminModal(true);
+  const handleInvitationSuccess = async (response: InvitePlatformAdminResponseDto) => {
+    await reloadPlatformAdministrators();
+    setPlatformAdminFeedback(
+      response.type === 'new-invite'
+        ? `Invitation created for ${response.email}.`
+        : `Upgrade confirmation created for ${response.email}.`,
+    );
+  };
+
+  const resetTransferWorkflow = () => {
+    setShowTransferSuperAdminModal(false);
+    setSelectedActionTarget(null);
+    setTransferPassword('');
+    setTransferConfirmation('');
+    setTransferError(null);
+    setTransferPasswordError(null);
+    restoreModalFocus();
   };
 
   const closeTranserSuperAdministratorModal = () => {
-    setShowTransferSuperAdminModal(false);
+    if (isTransferring) return;
+    resetTransferWorkflow();
   };
 
-  const openConfirmationModal = () => {
-    setShowBasicConfirmationModal(true);
-  };
-
-  // DIFFERENT KINDS OF BASIC CONFIRMATION MODALS
-  const showResendInviteModal = () => {
-    setConfirmationButtonText('Re–Send');
-    setConfirmationTitle('Re–Send Invitation');
-    setConfirmationMessage('Are you sure you want to re–send the invitation?');
-    setConfirmationVariant('default');
-    openConfirmationModal();
-  };
-
-  const showRevokeInviteModal = () => {
-    setConfirmationButtonText('Revoke');
-    setConfirmationTitle('Revoke Invitation');
-    setConfirmationMessage('Are you sure you want to revoke the invitation?');
-    setConfirmationVariant('danger');
-    openConfirmationModal();
-  };
-
-  const showDemoteAdministratorModal = () => {
-    setConfirmationButtonText('Demote');
-    setConfirmationTitle('Demote Administrator Role');
-    setConfirmationMessage('Are you sure you want to demote this administrator?');
-    setConfirmationVariant('danger');
-    openConfirmationModal();
+  const resetDemotionWorkFlow = () => {
+    setShowBasicConfirmationModal(false);
+    setSelectedActionTarget(null);
+    setDemotePassword('');
+    setDemoteConfirmation('');
+    setDemoteError(null);
+    setDemotePasswordError(null);
+    restoreModalFocus();
   };
 
   const confirmBasicConfirmation = () => {
-    closePlatformAdministratorModal();
+    if (selectedActionTarget?.action === 'resend') {
+      void confirmResendInvitation();
+      return;
+    }
+    if (selectedActionTarget?.action === 'demote') {
+      void confirmDemoteAdministrator();
+      return;
+    }
+    setShowBasicConfirmationModal(false);
+    setSelectedActionTarget(null);
   };
 
-  const confirmTransferSuperAdminRole = () => {
-    closeTranserSuperAdministratorModal();
-  };
+  const confirmTransferSuperAdminRole = async () => {
+    if (!token || isTransferring || selectedActionTarget?.action !== 'transfer') {
+      return;
+    }
 
-  // Re–Enable Platform Administrator Modal
-  const showEnablePlatformAdministratorModal = () => {
-    setConfirmationButtonText('Re–Enable');
-    setConfirmationTitle('Re–Enable Platform Administrator');
-    setConfirmationMessage('Are you sure you want to enable this platform administrator?');
-    setConfirmationVariant('success');
-    openConfirmationModal();
-  };
+    setTransferError(null);
+    setTransferPasswordError(null);
+    setPlatformAdminFeedback(null);
 
-  // Disable Platform Administrator Modal
-  const showDisablePlatformAdministratorModal = () => {
-    setConfirmationButtonText('Disable');
-    setConfirmationTitle('Disable Platform Administrator');
-    setConfirmationMessage('Are you sure you want to disable this platform administrator?');
-    setConfirmationVariant('danger');
-    openConfirmationModal();
+    if (!transferPassword) {
+      setTransferPasswordError('Password is required.');
+      return;
+    }
+
+    if (transferConfirmation !== 'TRANSFER') {
+      setTransferError('Type TRANSFER exactly to confirm.');
+      return;
+    }
+
+    const target = selectedActionTarget;
+    const input: TransferSuperAdminRequestDto = {
+      targetUserId: target.userId,
+      password: transferPassword,
+      confirmation: 'TRANSFER',
+    };
+
+    setIsTransferring(true);
+
+    try {
+      await transferSuperAdmin(input, token);
+    } catch (error: unknown) {
+      const errorCode =
+        error instanceof ApiError &&
+        error.body &&
+        typeof error.body === 'object' &&
+        'error' in error.body &&
+        typeof error.body.error === 'string'
+          ? error.body.error
+          : null;
+
+      if (
+        error instanceof ApiError &&
+        error.status === 403 &&
+        errorCode === 'PLATFORM_ADMIN_PASSWORD_INVALID'
+      ) {
+        setTransferPasswordError(error.message.trim() || 'The password is incorrect.');
+      } else {
+        setTransferError(
+          error instanceof ApiError && error.status < 500
+            ? error.message.trim() || 'The role could not be transferred.'
+            : 'The role could not be transferred. Please try again.',
+        );
+
+        if (
+          error instanceof ApiError &&
+          error.status === 409 &&
+          errorCode === 'STALE_SUPER_ADMIN_TRANSFER'
+        ) {
+          await reloadPlatformAdministrators();
+        }
+      }
+
+      setIsTransferring(false);
+      return;
+    }
+
+    setIsRefreshingAfterTransfer(true);
+
+    try {
+      await refreshAuthContext();
+    } catch {
+      resetTransferWorkflow();
+      setIsRefreshingAfterTransfer(false);
+      setIsTransferring(false);
+      setPlatformAdminFeedback(
+        'Super administrator role was transferred, but current access could not be refreshed. Please sign in again.',
+      );
+      clearAuth();
+      return;
+    }
+
+    await reloadPlatformAdministrators();
+
+    resetTransferWorkflow();
+    setIsRefreshingAfterTransfer(false);
+    setIsTransferring(false);
+    setPlatformAdminFeedback(`Super administrator role transferred to ${target.name}.`);
   };
 
   const closePlatformAdministratorPageConfirmationModal = () => {
+    if (isResendingInvite || isDemoting) return;
+
     setShowBasicConfirmationModal(false);
+    setSelectedActionTarget(null);
+    setResendError(null);
+    setIsResendingInvite(false);
+    setDemotePassword('');
+    setDemoteConfirmation('');
+    setDemoteError(null);
+    setDemotePasswordError(null);
+    restoreModalFocus();
+  };
+
+  const canResendAdministratorInvite = (administrator: DisplayAdministrator) =>
+    isRecognisedPlatformAdminRole(administrator.platformAdminRole) &&
+    administrator.status !== 'Unknown status' &&
+    canResendInvites &&
+    administrator.allowedActions.canResendInvite &&
+    administrator.inviteId !== null;
+
+  const canTransferToAdministrator = (administrator: DisplayAdministrator) =>
+    isRecognisedPlatformAdminRole(administrator.platformAdminRole) &&
+    administrator.status !== 'Unknown status' &&
+    canTransfer &&
+    administrator.allowedActions.canTransferSuperAdmin;
+
+  const canDemoteAdministrator = (administrator: DisplayAdministrator) =>
+    isRecognisedPlatformAdminRole(administrator.platformAdminRole) &&
+    administrator.status !== 'Unknown status' &&
+    canDemote &&
+    administrator.allowedActions.canDemote;
+
+  const administratorHasAction = (administrator: DisplayAdministrator) =>
+    canResendAdministratorInvite(administrator) ||
+    canTransferToAdministrator(administrator) ||
+    canDemoteAdministrator(administrator);
+
+  const showActionsColumn = filteredPlatformAdministrators.some(administratorHasAction);
+
+  const openResendInvitationModal = (
+    administrator: DisplayAdministrator,
+    opener: HTMLButtonElement,
+  ) => {
+    if (!canResendAdministratorInvite(administrator)) {
+      return;
+    }
+    modalOpenerRef.current = opener;
+    setPlatformAdminFeedback(null);
+    setResendError(null);
+
+    setSelectedActionTarget({
+      action: 'resend',
+      userId: administrator.id,
+      inviteId: administrator.inviteId,
+      email: administrator.email,
+      name: administrator.fullName,
+    });
+    setConfirmationTitle('Resend invitation');
+    setConfirmationMessage(
+      `Send a new invitation link to ${administrator.email}? The previous link will no longer be valid.`,
+    );
+    setConfirmationButtonText('Resend invitation');
+    setConfirmationVariant('default');
+    setShowBasicConfirmationModal(true);
+  };
+
+  const confirmResendInvitation = async () => {
+    if (
+      !token ||
+      isResendingInvite ||
+      selectedActionTarget?.action !== 'resend' ||
+      !selectedActionTarget.inviteId
+    ) {
+      return;
+    }
+
+    const { inviteId, email } = selectedActionTarget;
+    setResendError(null);
+    setIsResendingInvite(true);
+
+    try {
+      const response = await resendPlatformAdminInvite(inviteId, token);
+      setShowBasicConfirmationModal(false);
+      setSelectedActionTarget(null);
+      setResendError(null);
+
+      await reloadPlatformAdministrators();
+      setPlatformAdminFeedback(
+        response.emailQueued
+          ? `A new invitation was queued for ${email}.`
+          : `A new invitation was created for ${email}, but the email could not be queued.`,
+      );
+      restoreModalFocus();
+    } catch (error: unknown) {
+      setResendError(getResendErrorMessage(error));
+
+      if (error instanceof ApiError && (error.status === 404 || error.status === 409)) {
+        await reloadPlatformAdministrators();
+      }
+    } finally {
+      setIsResendingInvite(false);
+    }
+  };
+
+  const confirmDemoteAdministrator = async () => {
+    if (!token || isDemoting || selectedActionTarget?.action !== 'demote') {
+      return;
+    }
+
+    setDemoteError(null);
+    setDemotePasswordError(null);
+    setPlatformAdminFeedback(null);
+
+    if (!demotePassword) {
+      setDemotePasswordError('Password is required.');
+      return;
+    }
+
+    if (demoteConfirmation !== 'DEMOTE') {
+      setDemoteError('Type DEMOTE exactly to confirm.');
+      return;
+    }
+
+    const target = selectedActionTarget;
+    const input: DemotePlatformAdminRequestDto = {
+      password: demotePassword,
+      confirmation: 'DEMOTE',
+    };
+
+    setIsDemoting(true);
+
+    try {
+      await demotePlatformAdmin(target.userId, input, token);
+    } catch (error: unknown) {
+      const errorCode =
+        error instanceof ApiError &&
+        error.body &&
+        typeof error.body === 'object' &&
+        'error' in error.body &&
+        typeof error.body.error === 'string'
+          ? error.body.error
+          : null;
+
+      if (
+        error instanceof ApiError &&
+        error.status === 403 &&
+        errorCode === 'PLATFORM_ADMIN_PASSWORD_INVALID'
+      ) {
+        setDemotePasswordError(error.message.trim() || 'The password is incorrect.');
+      } else {
+        setDemoteError(
+          error instanceof ApiError && error.status < 500
+            ? error.message.trim() || 'The administrator could not be demoted.'
+            : 'The administrator could not be demoted. Please try again.',
+        );
+
+        if (
+          error instanceof ApiError &&
+          ((error.status === 404 && errorCode === 'PLATFORM_ADMIN_NOT_FOUND') ||
+            (error.status === 409 &&
+              (errorCode === 'SELF_DEMOTION_CONFLICT' ||
+                errorCode === 'SUPER_ADMIN_DEMOTION_BLOCKED' ||
+                errorCode === 'PLATFORM_ADMIN_ALREADY_DEMOTED')))
+        ) {
+          await reloadPlatformAdministrators();
+        }
+      }
+
+      setIsDemoting(false);
+      return;
+    }
+
+    await reloadPlatformAdministrators();
+
+    resetDemotionWorkFlow();
+    setIsDemoting(false);
+    setPlatformAdminFeedback(`${target.name} is no longer a platform administrator.`);
+  };
+
+  const openTransferSuperAdministratorModal = (
+    administrator: DisplayAdministrator,
+    opener: HTMLButtonElement,
+  ) => {
+    if (!canTransferToAdministrator(administrator)) {
+      return;
+    }
+    modalOpenerRef.current = opener;
+
+    setPlatformAdminFeedback(null);
+    setTransferPassword('');
+    setTransferConfirmation('');
+    setTransferError(null);
+    setTransferPasswordError(null);
+
+    setSelectedActionTarget({
+      action: 'transfer',
+      userId: administrator.id,
+      inviteId: null,
+      email: administrator.email,
+      name: administrator.fullName,
+    });
+    setShowTransferSuperAdminModal(true);
+  };
+
+  const openDemoteAdministratorModal = (
+    administrator: DisplayAdministrator,
+    opener: HTMLButtonElement,
+  ) => {
+    if (!canDemoteAdministrator(administrator)) {
+      return;
+    }
+    modalOpenerRef.current = opener;
+
+    setPlatformAdminFeedback(null);
+    setDemotePassword('');
+    setDemoteConfirmation('');
+    setDemoteError(null);
+    setDemotePasswordError(null);
+
+    setSelectedActionTarget({
+      action: 'demote',
+      userId: administrator.id,
+      inviteId: null,
+      email: administrator.email,
+      name: administrator.fullName,
+    });
+    setConfirmationTitle('Demote administrator');
+    setConfirmationMessage(
+      `Remove platform administrator privileges from ${administrator.fullName} (${administrator.email})? Their active sessions will be revoked.`,
+    );
+    setConfirmationButtonText('Demote administrator');
+    setConfirmationVariant('danger');
+    setShowBasicConfirmationModal(true);
   };
 
   return (
@@ -250,6 +723,8 @@ function PlatformAdministratorsPage() {
           }}
         >
           <h1
+            ref={pageHeadingRef}
+            tabIndex={-1}
             style={{
               margin: 0,
               marginBottom: '0.8rem',
@@ -263,10 +738,16 @@ function PlatformAdministratorsPage() {
             Platform Administrators
           </h1>
 
-          {/* SUB-HEADING */}
-          {/* DISPLAY THIS HEADING IF THEY ARE SUPER-ADMIN */}
           <p className="font-regular tracking-wider text-[1.3rem] font-justify font-jost text-gray-500 mb-4">
-            View, invite, and manage <em>Insightful Phish</em> platform administrators.
+            {isSuperAdministrator ? (
+              <>
+                View, invite, and manage <em>Insightful Phish</em> platform administrators.
+              </>
+            ) : (
+              <>
+                View <em>Insightful Phish</em> platform administrators.
+              </>
+            )}
           </p>
 
           {/* DISPLAY THIS HEADING IF THEY ARE NOT A SUPER-ADMIN */}
@@ -275,6 +756,14 @@ function PlatformAdministratorsPage() {
           </p> */}
         </div>
 
+        {platformAdminFeedback && (
+          <div
+            role="status"
+            className="mx-6 p-4 mb-6 border font-jost text-[1.1rem] text-green-800 bg-green-50 border-green-200"
+          >
+            {platformAdminFeedback}
+          </div>
+        )}
         <div className="px-6 pb-6">
           {/* SEARCH AND FILTER BAR */}
           <div className="w-full mb-4">
@@ -284,7 +773,7 @@ function PlatformAdministratorsPage() {
                 <div className="w-full md:w-1/2">
                   <div className="flex items-center">
                     {/* Search Input Label */}
-                    <label htmlFor="simple-search" className="sr-only">
+                    <label htmlFor="simple-search-platform-admin-page" className="sr-only">
                       Search Administrators
                     </label>
                     <div className="relative w-full">
@@ -353,19 +842,7 @@ function PlatformAdministratorsPage() {
                           onClick={() => setStatusFilter('All')}
                           className="font-jost text-gray-600 text-[1.1rem]"
                         >
-                          All
-                        </DropdownItem>
-                        <DropdownItem
-                          onClick={() => setStatusFilter('Invited')}
-                          className="font-jost text-gray-600 text-[1.1rem]"
-                        >
-                          Invited
-                        </DropdownItem>
-                        <DropdownItem
-                          onClick={() => setStatusFilter('Failed Invitation')}
-                          className="font-jost text-gray-600 text-[1.1rem]"
-                        >
-                          Failed Invitation
+                          All statuses
                         </DropdownItem>
                         <DropdownItem
                           onClick={() => setStatusFilter('Active')}
@@ -374,10 +851,34 @@ function PlatformAdministratorsPage() {
                           Active
                         </DropdownItem>
                         <DropdownItem
+                          onClick={() => setStatusFilter('Invited')}
+                          className="font-jost text-gray-600 text-[1.1rem]"
+                        >
+                          Invited
+                        </DropdownItem>
+                        <DropdownItem
+                          onClick={() => setStatusFilter('Failed invitation')}
+                          className="font-jost text-gray-600 text-[1.1rem]"
+                        >
+                          Failed invitation
+                        </DropdownItem>
+                        <DropdownItem
                           onClick={() => setStatusFilter('Disabled')}
                           className="font-jost text-gray-600 text-[1.1rem]"
                         >
                           Disabled
+                        </DropdownItem>
+                        <DropdownItem
+                          onClick={() => setStatusFilter('Pending upgrade')}
+                          className="font-jost text-gray-600 text-[1.1rem]"
+                        >
+                          Pending upgrade
+                        </DropdownItem>
+                        <DropdownItem
+                          onClick={() => setStatusFilter('Unknown status')}
+                          className="font-jost text-gray-600 text-[1.1rem]"
+                        >
+                          Unknown status
                         </DropdownItem>
                       </Dropdown>
                     </div>
@@ -387,14 +888,14 @@ function PlatformAdministratorsPage() {
 
                 {/* Add (Invite) Platform Administrator Button */}
                 {/* ONLY SHOW IF SUPER ADMIN */}
-                {isSuperAdministrator && (
+                {canInvite && (
                   <button
                     type="button"
-                    onClick={openPlatformAdministratorModal}
+                    onClick={(event) => openPlatformAdministratorModal(event.currentTarget)}
                     className="cursor-pointer px-4 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm py-[0.425rem] focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     <span className="material-symbols-sharp">add_2</span>
-                    <span className="whitespace-nowrap">Invite Platform Administrator</span>
+                    <span className="whitespace-nowrap">Invite platform administrator</span>
                   </button>
                 )}
               </div>
@@ -405,203 +906,208 @@ function PlatformAdministratorsPage() {
             Platform Administrators ({filteredPlatformAdministrators.length})
           </h3>
 
-          {/* TABLE */}
-          <div className="overflow-x-auto bg-neutral-primary-soft border border-default">
-            <table className="w-full text-sm text-left rtl:text-right text-body">
-              {/* Table Headings  */}
-              <thead className="bg-faint-purple border-b border-default">
-                <tr>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                  >
-                    Full Name
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                  >
-                    Email Address
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                  >
-                    Role
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                  >
-                    Status
-                  </th>
-                  {/* ONLY SHOW IF SUPER ADMIN */}
-                  {isSuperAdministrator && (
-                    <th
-                      scope="col"
-                      className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                    >
-                      Actions
-                    </th>
-                  )}
-                </tr>
-              </thead>
-              {/* Table Content */}
-              <tbody className="font-overpass font-regular text-[1rem] tracking-wide">
-                {filteredPlatformAdministrators.map((platformAdministrator) => (
-                  <tr
-                    key={platformAdministrator.id}
-                    className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default"
-                  >
-                    {/* Full Name */}
-                    <td className="px-6 py-4">{platformAdministrator.fullName}</td>
-
-                    {/* Email Address */}
-                    <td className="px-6 py-4">{platformAdministrator.emailAddress}</td>
-
-                    {/* Role */}
-                    <td className="px-6 py-4">{platformAdministrator.role}</td>
-
-                    {/* Status */}
-                    <td className="px-6 py-4">{getStatusBadge(platformAdministrator.status)}</td>
-
-                    {/* Actions */}
-                    {/* ONLY SHOW IF SUPER ADMIN */}
-                    {isSuperAdministrator && (
-                      <td className="px-6 py-4">
-                        <div className="grid grid-cols-1 gap-1 justify-items-start">
-                          {/* ACTIONS START HERE */}
-                          {platformAdministrator.role === 'Super Administrator' &&
-                            platformAdministrator.status === 'Active' && (
-                              <button
-                                className="cursor-pointer font-medium text-red-600 hover:underline"
-                                type="button"
-                                onClick={openTranserSuperAdministratorModal}
-                              >
-                                <strong>Transer Super Administrator Role</strong>
-                              </button>
-                            )}
-
-                          {platformAdministrator.role === 'Super Administrator' &&
-                            platformAdministrator.status === 'Failed Invitation' && (
-                              <button
-                                className="cursor-pointer font-medium text-red-600 hover:underline"
-                                type="button"
-                                onClick={showResendInviteModal}
-                              >
-                                <strong>Re–Send Invitation</strong>
-                              </button>
-                            )}
-
-                          {platformAdministrator.role === 'Administrator' &&
-                            platformAdministrator.status === 'Active' && (
-                              <button
-                                className="cursor-pointer font-medium text-red-600 hover:underline"
-                                type="button"
-                                onClick={showDemoteAdministratorModal}
-                              >
-                                <strong>Demote Administrator Role</strong>
-                              </button>
-                            )}
-
-                          {platformAdministrator.role === 'Administrator' &&
-                            platformAdministrator.status === 'Invited' && (
-                              <button
-                                className="cursor-pointer font-medium text-purple hover:underline"
-                                type="button"
-                                onClick={showResendInviteModal}
-                              >
-                                <strong>Re–Send Invitation</strong>
-                              </button>
-                            )}
-
-                          {platformAdministrator.role === 'Administrator' &&
-                            platformAdministrator.status === 'Failed Invitation' && (
-                              <button
-                                className="cursor-pointer font-medium text-purple hover:underline"
-                                type="button"
-                                onClick={showResendInviteModal}
-                              >
-                                <strong>Re–Send Invitation</strong>
-                              </button>
-                            )}
-
-                          {platformAdministrator.status === 'Disabled' && (
-                            <button
-                              className="cursor-pointer font-medium text-emerald-600 hover:underline"
-                              type="button"
-                              onClick={showEnablePlatformAdministratorModal}
-                            >
-                              <strong>Re–Enable Administrator</strong>
-                            </button>
-                          )}
-
-                          {platformAdministrator.role === 'Administrator' &&
-                            platformAdministrator.status === 'Active' && (
-                              <button
-                                className="cursor-pointer font-medium text-red-600 hover:underline"
-                                type="button"
-                                onClick={showDisablePlatformAdministratorModal}
-                              >
-                                <strong>Disable Administrator</strong>
-                              </button>
-                            )}
-
-                          {platformAdministrator.role === 'Administrator' &&
-                            platformAdministrator.status === 'Invited' && (
-                              <button
-                                className="cursor-pointer font-medium text-red-600 hover:underline"
-                                type="button"
-                                onClick={showRevokeInviteModal}
-                              >
-                                <strong>Revoke Invitation</strong>
-                              </button>
-                            )}
-                        </div>
-                      </td>
-                    )}
+          {hasLoadError ? (
+            <div className="py-8 text-center font-jost text-[1.2rem] tracking-wider">
+              <p>Platform administrators could not be loaded. Try again.</p>
+              <button
+                type="button"
+                onClick={() => void reloadPlatformAdministrators()}
+                className="mt-3 cursor-pointer bg-main-purple px-4 py-2 text-white hover:bg-hover-purple"
+              >
+                Retry
+              </button>
+            </div>
+          ) : (
+            <AdminTableContainer>
+              <AdminTable>
+                {/* Table Headings  */}
+                <AdminTableHeader>
+                  <tr>
+                    <AdminTableHeaderCell>Administrator</AdminTableHeaderCell>
+                    <AdminTableHeaderCell>Email</AdminTableHeaderCell>
+                    <AdminTableHeaderCell>Role</AdminTableHeaderCell>
+                    <AdminTableHeaderCell>Status</AdminTableHeaderCell>
+                    {showActionsColumn && <AdminTableHeaderCell>Actions</AdminTableHeaderCell>}
                   </tr>
-                ))}
-              </tbody>
+                </AdminTableHeader>
+                {/* Table Content */}
+                <tbody className="font-overpass font-regular text-[1rem] tracking-wide">
+                  {isLoading && (
+                    <AdminTableLoadingRow colSpan={showActionsColumn ? 5 : 4}>
+                      Loading platform administrators…
+                    </AdminTableLoadingRow>
+                  )}
+                  {!isLoading &&
+                    filteredPlatformAdministrators.map((platformAdministrator) => (
+                      <tr
+                        key={platformAdministrator.id}
+                        className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default"
+                      >
+                        {/* Full Name */}
+                        <AdminTableCell>
+                          <TruncatedValue
+                            value={platformAdministrator.fullName}
+                            className="max-w-64"
+                          />
+                        </AdminTableCell>
 
-              {/* Empty Table Message */}
-              {filteredPlatformAdministrators.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="py-8 text-center text-[1.2rem] tracking-wider text-red-500 font-jost"
-                  >
-                    No Platform Administrators Found
-                  </td>
-                </tr>
-              )}
-            </table>
-          </div>
+                        {/* Email Address */}
+                        <AdminTableCell>
+                          <TruncatedValue value={platformAdministrator.email} />
+                        </AdminTableCell>
+
+                        {/* Role */}
+                        <AdminTableCell>{platformAdministrator.role}</AdminTableCell>
+
+                        {/* Status */}
+                        <AdminTableCell>
+                          <StatusBadge status={platformAdministrator.status} />
+                        </AdminTableCell>
+
+                        {showActionsColumn && (
+                          <AdminTableCell>
+                            <AdminTableActions className="flex-col items-start gap-1">
+                              {canResendAdministratorInvite(platformAdministrator) && (
+                                <button
+                                  type="button"
+                                  onClick={(event) =>
+                                    openResendInvitationModal(
+                                      platformAdministrator,
+                                      event.currentTarget,
+                                    )
+                                  }
+                                  className="cursor-pointer font-medium text-purple hover:underline"
+                                >
+                                  Resend invitation
+                                </button>
+                              )}
+
+                              {canTransferToAdministrator(platformAdministrator) && (
+                                <button
+                                  type="button"
+                                  onClick={(event) =>
+                                    openTransferSuperAdministratorModal(
+                                      platformAdministrator,
+                                      event.currentTarget,
+                                    )
+                                  }
+                                  className="cursor-pointer font-medium text-purple hover:underline"
+                                >
+                                  Transfer super administrator role
+                                </button>
+                              )}
+
+                              {canDemoteAdministrator(platformAdministrator) && (
+                                <button
+                                  type="button"
+                                  onClick={(event) =>
+                                    openDemoteAdministratorModal(
+                                      platformAdministrator,
+                                      event.currentTarget,
+                                    )
+                                  }
+                                  className="cursor-pointer font-medium text-red-600 hover:underline"
+                                >
+                                  Demote administrator
+                                </button>
+                              )}
+                            </AdminTableActions>
+                          </AdminTableCell>
+                        )}
+                      </tr>
+                    ))}
+
+                  {/* Empty Table Message */}
+                  {!isLoading && filteredPlatformAdministrators.length === 0 && (
+                    <AdminTableEmptyRow colSpan={showActionsColumn ? 5 : 4}>
+                      {emptyMessage}
+                    </AdminTableEmptyRow>
+                  )}
+                </tbody>
+              </AdminTable>
+            </AdminTableContainer>
+          )}
         </div>
       </div>
 
-      {/* BASIC CONFIRMATION MODAL  */}
-      {showBasicConfirmationModal && (
-        <BasicConfirmationModal
-          title={confirmationTitle}
-          message={confirmationMessage}
-          confirmButtonText={confirmationButtonText}
-          confirmButtonVariant={confirmationVariant}
-          onConfirm={confirmBasicConfirmation}
-          onCancel={closePlatformAdministratorPageConfirmationModal}
-        ></BasicConfirmationModal>
-      )}
+      {/* BASIC CONFIRMATION MODAL */}
+      {showBasicConfirmationModal &&
+        selectedActionTarget !== null &&
+        selectedActionTarget.action !== 'transfer' && (
+          <BasicConfirmationModal
+            title={confirmationTitle}
+            message={confirmationMessage}
+            confirmButtonText={confirmationButtonText}
+            confirmButtonVariant={confirmationVariant}
+            appendQuestionMark={
+              selectedActionTarget.action !== 'resend' && selectedActionTarget.action !== 'demote'
+            }
+            isConfirming={selectedActionTarget.action === 'demote' ? isDemoting : isResendingInvite}
+            isConfirmDisabled={
+              selectedActionTarget.action === 'demote'
+                ? isDemoting || !demotePassword || demoteConfirmation !== 'DEMOTE'
+                : isResendingInvite
+            }
+            isDismissDisabled={
+              selectedActionTarget.action === 'demote' ? isDemoting : isResendingInvite
+            }
+            errorMessage={selectedActionTarget.action === 'demote' ? demoteError : resendError}
+            passwordValue={selectedActionTarget.action === 'demote' ? demotePassword : undefined}
+            onPasswordChange={
+              selectedActionTarget.action === 'demote'
+                ? (value) => {
+                    setDemotePassword(value);
+                    setDemotePasswordError(null);
+                  }
+                : undefined
+            }
+            passwordError={selectedActionTarget.action === 'demote' ? demotePasswordError : null}
+            confirmationValue={
+              selectedActionTarget.action === 'demote' ? demoteConfirmation : undefined
+            }
+            onConfirmationChange={
+              selectedActionTarget.action === 'demote'
+                ? (value) => {
+                    setDemoteConfirmation(value);
+                    setDemoteError(null);
+                  }
+                : undefined
+            }
+            expectedConfirmationText={
+              selectedActionTarget.action === 'demote' ? 'DEMOTE' : undefined
+            }
+            onConfirm={confirmBasicConfirmation}
+            onCancel={closePlatformAdministratorPageConfirmationModal}
+          ></BasicConfirmationModal>
+        )}
 
-      {showPlatformAdministratorModal && (
+      {showPlatformAdministratorModal && token && (
         <InvitePlatformAdministratorModal
           isOpen={showPlatformAdministratorModal}
-          onClose={() => closePlatformAdministratorModal()}
+          token={token}
+          onClose={closePlatformAdministratorModal}
+          onSuccess={handleInvitationSuccess}
         ></InvitePlatformAdministratorModal>
       )}
 
-      {showTransferSuperAdminModal && (
+      {showTransferSuperAdminModal && selectedActionTarget?.action === 'transfer' && (
         <TransferSuperAdministratorRoleModal
           isOpen={showTransferSuperAdminModal}
+          targetName={selectedActionTarget.name}
+          targetEmail={selectedActionTarget.email}
+          password={transferPassword}
+          confirmation={transferConfirmation}
+          errorMessage={transferError}
+          passwordError={transferPasswordError}
+          isSubmitting={isTransferring}
+          onPasswordChange={(value) => {
+            setTransferPassword(value);
+            setTransferPasswordError(null);
+          }}
+          onConfirmationChange={(value) => {
+            setTransferConfirmation(value);
+            setTransferError(null);
+          }}
           onConfirm={confirmTransferSuperAdminRole}
           onClose={() => closeTranserSuperAdministratorModal()}
         ></TransferSuperAdministratorRoleModal>

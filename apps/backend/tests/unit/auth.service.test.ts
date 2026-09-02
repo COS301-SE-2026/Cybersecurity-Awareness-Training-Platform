@@ -518,6 +518,7 @@ describe('loginUser', () => {
     expect(response).toEqual({
       response: {
         accessToken: 'demo-token',
+        idleTimeoutMinutes: 30,
         user: {
           id: 'user-1',
           firstName: 'Johan',

@@ -7,8 +7,10 @@ import DisableTraineeModal from '../components/layout/modals/DisableTraineeModal
 import {
   createTraineeInvitationRequestSchema,
   disableTraineeRequestSchema,
+  reenableTraineeRequestSchema,
   type CreateTraineeInvitationRequestDto,
   type DisableTraineeRequestDto,
+  type ReenableTraineeRequestDto,
   type TraineeListItemDto,
 } from '@insightful-phish/shared';
 import { ApiError } from '../lib/apiClient';
@@ -19,8 +21,20 @@ import {
   resendOrganisationTraineeInvitation,
   revokeOrganisationTraineeInvitation,
   disableOrganisationTrainee,
+  reenableOrganisationTrainee,
 } from '../services/organisation-trainee.service';
 import { Navigate } from 'react-router-dom';
+import {
+  AdminTable,
+  AdminTableActions,
+  AdminTableCell,
+  AdminTableContainer,
+  AdminTableEmptyRow,
+  AdminTableHeader,
+  AdminTableHeaderCell,
+  AdminTableLoadingRow,
+  TruncatedValue,
+} from '../components/ui/AdminTable';
 
 type ActiveTraineeRow = Extract<TraineeListItemDto, { rowType: 'ACTIVE_TRAINEE' }>;
 type InvitationTraineeRow = Extract<TraineeListItemDto, { rowType: 'INVITATION' }>;
@@ -159,6 +173,39 @@ type DisableActionsUnavailableTarget = {
   reason: 'permission-denied' | 'refresh-failed';
 };
 
+type ReenableDialogState = {
+  traineeId: string;
+  organisationId: string;
+  token: string;
+  displayName: string;
+  email: string;
+  password: string;
+  passwordError: string | null;
+  generalError: string | null;
+  isSubmitting: boolean;
+};
+
+type ReenableFeedback = {
+  organisationId: string;
+  token: string;
+  variant: 'success' | 'warning' | 'error';
+  message: string;
+};
+
+function reenableTargetMatchesContext(
+  target: Pick<ReenableDialogState, 'organisationId' | 'token'> | null,
+  organisationId: string | null,
+  token: string | null,
+): boolean {
+  return (
+    target !== null &&
+    organisationId !== null &&
+    token !== null &&
+    target.organisationId === organisationId &&
+    target.token === token
+  );
+}
+
 function disableTargetMatchesContext(
   target: Pick<DisableDialogState, 'organisationId' | 'token'> | null,
   organisationId: string | null,
@@ -229,6 +276,36 @@ function getDisableErrorMessage(error: unknown): string {
   }
 
   return bodyMessage || 'The trainee could not be disabled.';
+}
+
+function getReenableErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) {
+    return 'Unable to connect to the server while re-enabling the trainee.';
+  }
+
+  const body = getDisableErrorBody(error);
+  const bodyMessage =
+    typeof body?.message === 'string' && body.message.trim() ? body.message : null;
+
+  if (error.status === 401) {
+    return bodyMessage || 'Your session is no longer authorised. Please sign in again.';
+  }
+  if (error.status === 403) {
+    return bodyMessage || 'You do not have permission to re-enable organisation trainees.';
+  }
+  if (error.status === 404) {
+    return 'This trainee is no longer available. The trainee list is being refreshed.';
+  }
+  if (error.status === 409) {
+    return 'The trainee state changed before this action completed. The trainee list is being refreshed.';
+  }
+  if (error.status === 429) {
+    return bodyMessage || 'Too many trainee-management requests. Please try again later.';
+  }
+  if (error.status >= 500) {
+    return 'The server could not re-enable the trainee. Please try again later.';
+  }
+  return bodyMessage || 'The trainee could not be re-enabled.';
 }
 
 const EMPTY_INVITE_VALUES: InviteValues = {
@@ -369,6 +446,10 @@ function getDisplayStatus(row: TraineeListItemDto): DisplayStatus {
   }
 
   return getInvitationDisplayStatus(row.invitationLifecycleState);
+}
+
+function getDisplayRole(row: TraineeListItemDto): string {
+  return row.rowType === 'INVITATION' ? 'Trainee Invitation' : 'Trainee';
 }
 
 function getDisplayName(row: TraineeListItemDto): string {
@@ -617,6 +698,13 @@ function OrganisationTraineesPage() {
     organisationId: string;
     token: string;
   } | null>(null);
+  const reenableRequestIdRef = useRef(0);
+  const reenableRequestOwnerRef = useRef<{
+    requestId: number;
+    traineeId: string;
+    organisationId: string;
+    token: string;
+  } | null>(null);
 
   const [listResult, setListResult] = useState<ListResultState>({
     organisationId: null,
@@ -637,6 +725,9 @@ function OrganisationTraineesPage() {
   const [disableFeedback, setDisableFeedback] = useState<DisableFeedback | null>(null);
   const [disableActionsUnavailableTarget, setDisableActionsUnavailableTarget] =
     useState<DisableActionsUnavailableTarget | null>(null);
+  const [reenableDialog, setReenableDialog] = useState<ReenableDialogState | null>(null);
+  const [reenableFeedback, setReenableFeedback] = useState<ReenableFeedback | null>(null);
+  const [reenableActionsUnavailable, setReenableActionsUnavailable] = useState(false);
 
   const hasDisablePermission = permissions.includes('REMOVE_ORGANISATION_TRAINEES');
 
@@ -661,6 +752,7 @@ function OrganisationTraineesPage() {
         rows: refreshRows,
         errorMessage: null,
       });
+      setReenableActionsUnavailable(false);
 
       setInvitationActionsUnavailableTarget((current) => {
         if (
@@ -779,6 +871,13 @@ function OrganisationTraineesPage() {
 
   useEffect(() => {
     return () => {
+      reenableRequestIdRef.current += 1;
+      reenableRequestOwnerRef.current = null;
+    };
+  }, [organisationId, token]);
+
+  useEffect(() => {
+    return () => {
       invitationActionRequestIdRef.current += 1;
       invitationActionOwnerRef.current = null;
     };
@@ -797,6 +896,7 @@ function OrganisationTraineesPage() {
     token,
   );
   const canUseDisableActions = hasDisablePermission && !disableActionsUnavailable;
+  const canUseReenableActions = hasDisablePermission && !reenableActionsUnavailable;
 
   const hasCurrentResult = listResult.organisationId === organisationId;
   const isLoading = Boolean(token && organisationId && !hasCurrentResult);
@@ -847,6 +947,15 @@ function OrganisationTraineesPage() {
   const currentDisableFeedback =
     disableFeedback && disableTargetMatchesContext(disableFeedback, organisationId, token)
       ? disableFeedback
+      : null;
+
+  const currentReenableDialog = reenableTargetMatchesContext(reenableDialog, organisationId, token)
+    ? reenableDialog
+    : null;
+
+  const currentReenableFeedback =
+    reenableFeedback && reenableTargetMatchesContext(reenableFeedback, organisationId, token)
+      ? reenableFeedback
       : null;
 
   const isCurrentActionOwned = (requestId: number, target: InvitationActionTarget): boolean => {
@@ -1501,8 +1610,239 @@ function OrganisationTraineesPage() {
     }
   };
 
+  const openReenableDialog = (row: ActiveTraineeRow) => {
+    if (
+      !organisationId ||
+      !token ||
+      !canUseReenableActions ||
+      reenableRequestOwnerRef.current !== null ||
+      row.status !== 'DISABLED' ||
+      row.eligibility.canReenable !== true
+    ) {
+      return;
+    }
+
+    setReenableFeedback(null);
+    setReenableDialog({
+      traineeId: row.id,
+      organisationId,
+      token,
+      displayName: getDisplayName(row),
+      email: row.email,
+      password: '',
+      passwordError: null,
+      generalError: null,
+      isSubmitting: false,
+    });
+  };
+
+  const closeReenableDialog = () => {
+    if (!currentReenableDialog || currentReenableDialog.isSubmitting) {
+      return;
+    }
+    setReenableDialog(null);
+  };
+
+  const changeReenablePassword = (password: string) => {
+    setReenableDialog((current) =>
+      current && reenableTargetMatchesContext(current, organisationId, token)
+        ? { ...current, password, passwordError: null, generalError: null }
+        : current,
+    );
+  };
+
+  const executeReenableDialog = async () => {
+    const target = currentReenableDialog;
+    if (!target || !canUseReenableActions || reenableRequestOwnerRef.current !== null) {
+      return;
+    }
+
+    const currentRow = listResult.rows.find(
+      (row) => row.rowType === 'ACTIVE_TRAINEE' && row.id === target.traineeId,
+    );
+    if (
+      !currentRow ||
+      currentRow.rowType !== 'ACTIVE_TRAINEE' ||
+      currentRow.status !== 'DISABLED' ||
+      currentRow.eligibility.canReenable !== true
+    ) {
+      setReenableDialog(null);
+      setReenableFeedback({
+        organisationId: target.organisationId,
+        token: target.token,
+        variant: 'warning',
+        message: 'The trainee state changed. The trainee list is being refreshed.',
+      });
+      if ((await reloadOrganisationTrainees()) === 'failed') {
+        setReenableActionsUnavailable(true);
+      }
+      return;
+    }
+
+    const validationResult = reenableTraineeRequestSchema.safeParse({
+      password: target.password,
+      confirmation: true,
+    });
+    if (!validationResult.success) {
+      const passwordIssue = validationResult.error.issues.find(
+        (issue) => issue.path[0] === 'password',
+      );
+      setReenableDialog((current) =>
+        current && reenableTargetMatchesContext(current, organisationId, token)
+          ? {
+              ...current,
+              passwordError: passwordIssue?.message ?? 'Administrator password is required.',
+            }
+          : current,
+      );
+      return;
+    }
+
+    const requestId = ++reenableRequestIdRef.current;
+    reenableRequestOwnerRef.current = {
+      requestId,
+      traineeId: target.traineeId,
+      organisationId: target.organisationId,
+      token: target.token,
+    };
+    const ownsRequest = () => {
+      const owner = reenableRequestOwnerRef.current;
+      return (
+        owner?.requestId === requestId &&
+        owner.traineeId === target.traineeId &&
+        owner.organisationId === target.organisationId &&
+        owner.token === target.token
+      );
+    };
+
+    setReenableDialog((current) =>
+      current && reenableTargetMatchesContext(current, organisationId, token)
+        ? { ...current, isSubmitting: true, passwordError: null, generalError: null }
+        : current,
+    );
+    setReenableFeedback(null);
+
+    try {
+      const payload: ReenableTraineeRequestDto = validationResult.data;
+      const response = await reenableOrganisationTrainee(
+        target.organisationId,
+        target.traineeId,
+        payload,
+        target.token,
+      );
+      if (!ownsRequest()) {
+        return;
+      }
+
+      setReenableDialog(null);
+      setReenableFeedback({
+        organisationId: target.organisationId,
+        token: target.token,
+        variant: 'success',
+        message: response.message,
+      });
+
+      if ((await reloadOrganisationTrainees()) === 'failed' && ownsRequest()) {
+        setReenableActionsUnavailable(true);
+        setReenableFeedback({
+          organisationId: target.organisationId,
+          token: target.token,
+          variant: 'warning',
+          message: `${response.message} Reload the page to view the authoritative trainee state.`,
+        });
+      }
+    } catch (error: unknown) {
+      if (!ownsRequest()) {
+        return;
+      }
+
+      const body = error instanceof ApiError ? getDisableErrorBody(error) : null;
+      const errorCode = typeof body?.error === 'string' ? body.error : null;
+      const message = getReenableErrorMessage(error);
+
+      if (
+        error instanceof ApiError &&
+        error.status === 403 &&
+        errorCode === 'ORG_TRAINEE_PASSWORD_INVALID'
+      ) {
+        setReenableDialog((current) =>
+          current && reenableTargetMatchesContext(current, organisationId, token)
+            ? {
+                ...current,
+                password: '',
+                passwordError: message,
+                generalError: null,
+                isSubmitting: false,
+              }
+            : current,
+        );
+        return;
+      }
+
+      if (error instanceof ApiError && (error.status === 404 || error.status === 409)) {
+        setReenableDialog(null);
+        setReenableFeedback({
+          organisationId: target.organisationId,
+          token: target.token,
+          variant: error.status === 409 ? 'warning' : 'error',
+          message,
+        });
+        if ((await reloadOrganisationTrainees()) === 'failed' && ownsRequest()) {
+          setReenableActionsUnavailable(true);
+        }
+        return;
+      }
+
+      if (error instanceof ApiError && error.status === 403) {
+        setReenableDialog(null);
+        setReenableActionsUnavailable(true);
+        setReenableFeedback({
+          organisationId: target.organisationId,
+          token: target.token,
+          variant: 'error',
+          message,
+        });
+        return;
+      }
+
+      setReenableDialog((current) =>
+        current && reenableTargetMatchesContext(current, organisationId, token)
+          ? { ...current, generalError: message, isSubmitting: false }
+          : current,
+      );
+    } finally {
+      if (ownsRequest()) {
+        reenableRequestOwnerRef.current = null;
+        setReenableDialog((current) =>
+          current && reenableTargetMatchesContext(current, organisationId, token)
+            ? { ...current, isSubmitting: false }
+            : current,
+        );
+      }
+    }
+  };
+
   const renderRowActions = (row: TraineeListItemDto) => {
     if (row.rowType === 'ACTIVE_TRAINEE') {
+      if (
+        canUseReenableActions &&
+        row.status === 'DISABLED' &&
+        row.eligibility.canReenable === true
+      ) {
+        const isThisTraineeSubmitting =
+          currentReenableDialog?.traineeId === row.id && currentReenableDialog.isSubmitting;
+        return (
+          <button
+            type="button"
+            disabled={isThisTraineeSubmitting}
+            onClick={() => openReenableDialog(row)}
+            className="cursor-pointer font-medium text-purple hover:underline focus:outline-none focus:ring-2 focus:ring-brand-medium disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {isThisTraineeSubmitting ? 'Re-enabling...' : 'Re-enable'}
+          </button>
+        );
+      }
+
       if (!canUseDisableActions || row.status !== 'ACTIVE' || !row.eligibility.canDisable) {
         return 'N/A';
       }
@@ -1515,7 +1855,7 @@ function OrganisationTraineesPage() {
           type="button"
           disabled={isThisTraineeSubmitting}
           onClick={() => openDisableDialog(row)}
-          className="px-3 py-1.5 text-white bg-danger hover:bg-danger-strong font-jost tracking-wide disabled:opacity-60 disabled:cursor-not-allowed"
+          className="cursor-pointer font-medium text-red-600 hover:underline focus:outline-none focus:ring-2 focus:ring-brand-medium disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {isThisTraineeSubmitting ? 'Disabling...' : 'Disable'}
         </button>
@@ -1555,13 +1895,13 @@ function OrganisationTraineesPage() {
     }
 
     return (
-      <div className="flex flex-wrap items-center gap-2">
+      <AdminTableActions className="flex-col items-start gap-1">
         {showResend && (
           <button
             type="button"
             disabled={!row.eligibility.canResend || actionOwnsRow}
             onClick={() => beginInvitationAction(row, 'resend')}
-            className="px-3 py-1.5 text-white bg-main-purple hover:bg-hover-purple font-jost tracking-wide disabled:opacity-60 disabled:cursor-not-allowed"
+            className="cursor-pointer font-medium text-purple hover:underline focus:outline-none focus:ring-2 focus:ring-brand-medium disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {resendPending
               ? 'Resending...'
@@ -1576,12 +1916,12 @@ function OrganisationTraineesPage() {
             type="button"
             disabled={actionOwnsRow}
             onClick={() => beginInvitationAction(row, 'revoke')}
-            className="px-3 py-1.5 text-white bg-danger hover:bg-danger-strong font-jost tracking-wide disabled:opacity-60 disabled:cursor-not-allowed"
+            className="cursor-pointer font-medium text-red-600 hover:underline focus:outline-none focus:ring-2 focus:ring-brand-medium disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {revokePending ? 'Revoking...' : 'Revoke'}
           </button>
         )}
-      </div>
+      </AdminTableActions>
     );
   };
 
@@ -1847,6 +2187,29 @@ function OrganisationTraineesPage() {
             </div>
           )}
 
+          {currentReenableFeedback && (
+            <div
+              role={currentReenableFeedback.variant === 'success' ? 'status' : 'alert'}
+              className={`p-4 mb-6 border rounded-none font-jost text-[1.1rem] flex items-center justify-between gap-3 w-full ${
+                currentReenableFeedback.variant === 'success'
+                  ? 'text-green-800 bg-green-50 border-green-200'
+                  : currentReenableFeedback.variant === 'warning'
+                    ? 'text-amber-800 bg-amber-50 border-amber-200'
+                    : 'text-red-800 bg-red-50 border-red-200'
+              }`}
+            >
+              <span>{currentReenableFeedback.message}</span>
+              <button
+                type="button"
+                onClick={() => setReenableFeedback(null)}
+                className="shrink-0 cursor-pointer"
+                aria-label="Dismiss re-enable trainee message"
+              >
+                <span className="material-symbols-sharp">close</span>
+              </button>
+            </div>
+          )}
+
           {currentInvitationActionFeedback && (
             <div
               role={currentInvitationActionFeedback.variant === 'success' ? 'status' : 'alert'}
@@ -1887,9 +2250,15 @@ function OrganisationTraineesPage() {
           )}
 
           {isLoading && (
-            <div className="py-12 flex justify-center items-center font-jost text-gray-500 text-[1.2rem]">
-              <span>Loading organisation trainees...</span>
-            </div>
+            <AdminTableContainer>
+              <AdminTable aria-label="Organisation trainees">
+                <tbody>
+                  <AdminTableLoadingRow colSpan={5}>
+                    Loading organisation trainees...
+                  </AdminTableLoadingRow>
+                </tbody>
+              </AdminTable>
+            </AdminTableContainer>
           )}
 
           {!isLoading && !loadError && (
@@ -2043,42 +2412,17 @@ function OrganisationTraineesPage() {
               </h3>
 
               {/* TABLE */}
-              <div className="relative overflow-x-auto bg-neutral-primary-soft border border-default">
-                <table className="w-full text-sm text-left rtl:text-right text-body">
-                  <thead className="bg-faint-purple border-b border-default">
+              <AdminTableContainer>
+                <AdminTable>
+                  <AdminTableHeader>
                     <tr>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                      >
-                        Full Name
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                      >
-                        Email Address
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                      >
-                        Role
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                      >
-                        Status
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 font-medium text-dark-pink tracking-wider text-[1rem]"
-                      >
-                        Actions
-                      </th>
+                      <AdminTableHeaderCell>Full Name</AdminTableHeaderCell>
+                      <AdminTableHeaderCell>Email Address</AdminTableHeaderCell>
+                      <AdminTableHeaderCell>Role</AdminTableHeaderCell>
+                      <AdminTableHeaderCell>Status</AdminTableHeaderCell>
+                      <AdminTableHeaderCell>Actions</AdminTableHeaderCell>
                     </tr>
-                  </thead>
+                  </AdminTableHeader>
                   <tbody className="font-overpass font-regular text-[1rem] tracking-wide">
                     {filteredTrainees.map((trainee) => (
                       <tr
@@ -2086,37 +2430,36 @@ function OrganisationTraineesPage() {
                         className="odd:bg-neutral-primary font-overpass font-light even:bg-neutral-secondary-soft border-b border-default"
                       >
                         {/* Trainee Full Name */}
-                        <td className="px-6 py-4">{trainee.fullName}</td>
+                        <AdminTableCell>
+                          <TruncatedValue value={trainee.fullName} className="max-w-64" />
+                        </AdminTableCell>
 
                         {/* Trainee Email Address */}
-                        <td className="px-6 py-4">{trainee.emailAddress}</td>
+                        <AdminTableCell>
+                          <TruncatedValue value={trainee.emailAddress} />
+                        </AdminTableCell>
 
                         {/* Representative */}
-                        <td className="px-6 py-4">Trainee</td>
+                        <AdminTableCell>{getDisplayRole(trainee.source)}</AdminTableCell>
 
                         {/* Request Status */}
-                        <td className="px-6 py-4">{getStatusBadge(trainee.status)}</td>
+                        <AdminTableCell>{getStatusBadge(trainee.status)}</AdminTableCell>
 
                         {/* Actions */}
-                        <td className="px-6 py-4">{renderRowActions(trainee.source)}</td>
+                        <AdminTableCell>{renderRowActions(trainee.source)}</AdminTableCell>
                       </tr>
                     ))}
 
                     {filteredTrainees.length === 0 && (
-                      <tr>
-                        <td
-                          colSpan={5}
-                          className="py-8 text-center text-[1.2rem] tracking-wider text-red-500 font-jost"
-                        >
-                          {displayRows.length === 0
-                            ? 'No Organisation Trainees Found'
-                            : 'No Organisation Trainees Match the Current Search or Filter'}
-                        </td>
-                      </tr>
+                      <AdminTableEmptyRow colSpan={5}>
+                        {displayRows.length === 0
+                          ? 'No Organisation Trainees Found'
+                          : 'No Organisation Trainees Match the Current Search or Filter'}
+                      </AdminTableEmptyRow>
                     )}
                   </tbody>
-                </table>
-              </div>
+                </AdminTable>
+              </AdminTableContainer>
             </>
           )}
         </div>
@@ -2151,6 +2494,29 @@ function OrganisationTraineesPage() {
             void executeDisableDialog();
           }}
           onCancel={closeDisableDialog}
+        />
+      )}
+
+      {currentReenableDialog && (
+        <BasicConfirmationModal
+          title="Re-enable trainee membership"
+          message={`Re-enable the existing membership for ${currentReenableDialog.displayName} (${currentReenableDialog.email})? Revoked sessions will remain revoked, so the trainee must sign in again.`}
+          confirmButtonText="Re-enable Trainee"
+          confirmButtonVariant="success"
+          appendQuestionMark={false}
+          isConfirming={currentReenableDialog.isSubmitting}
+          isConfirmDisabled={
+            currentReenableDialog.isSubmitting || !currentReenableDialog.password.trim()
+          }
+          isDismissDisabled={currentReenableDialog.isSubmitting}
+          passwordValue={currentReenableDialog.password}
+          passwordError={currentReenableDialog.passwordError}
+          errorMessage={currentReenableDialog.generalError}
+          onPasswordChange={changeReenablePassword}
+          onConfirm={() => {
+            void executeReenableDialog();
+          }}
+          onCancel={closeReenableDialog}
         />
       )}
 
