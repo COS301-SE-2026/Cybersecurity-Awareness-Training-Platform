@@ -239,7 +239,7 @@ function CampaignsPage() {
             fontSize: '3.8rem',
             fontWeight: 500,
             lineHeight: 1,
-            color: 'var(--ip-pink)',
+            color: 'var(--ip-dark-pink)',
             fontFamily: 'Jost',
           }}
         >

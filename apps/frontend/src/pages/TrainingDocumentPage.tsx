@@ -229,7 +229,7 @@ export default function TrainingDocumentPage() {
               <h1
                 style={{
                   margin: 0,
-                  color: 'var(--ip-pink)',
+                  color: 'var(--ip-dark-pink)',
                   fontFamily: 'Jost',
                   fontSize: '2.8rem',
                   fontWeight: 500,

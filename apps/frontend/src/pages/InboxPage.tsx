@@ -70,7 +70,7 @@ function InboxPage() {
   });
 
   return (
-    <AppLayout>
+    <AppLayout contentStyle={{ backgroundColor: '#F3F4F6' }}>
       <div
         style={{
           padding: '1.4rem',
@@ -93,7 +93,7 @@ function InboxPage() {
             fontSize: '3.8rem',
             fontWeight: 500,
             lineHeight: 1,
-            color: 'white',
+            color: 'var(--ip-dark-pink)',
             fontFamily: 'Jost',
           }}
         >
@@ -105,8 +105,8 @@ function InboxPage() {
         <div
           style={{
             height: '58px',
-            backgroundColor: 'rgba(12, 0, 99, 0.53)',
-            border: '3px solid rgb(12, 0, 99)',
+            backgroundColor: '#FFFFFF',
+            border: '2px solid #C7CCE8',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -126,7 +126,7 @@ function InboxPage() {
               background: 'transparent',
               border: 'none',
               outline: 'none',
-              color: 'white',
+              color: '#1F2937',
               fontFamily: 'Overpass',
               fontSize: '1.2rem',
               paddingLeft: '0',
@@ -148,7 +148,7 @@ function InboxPage() {
               fontFamily: 'Jost',
               fontSize: '1.15rem',
               cursor: 'pointer',
-              backgroundColor: hovered ? 'rgba(140, 0, 255, 0.24)' : 'rgba(121, 0, 220, 0.21)',
+              backgroundColor: hovered ? 'var(--ip-hover-purple)' : 'var(--ip-purple)',
 
               transition: '0.2s ease',
               letterSpacing: '0.08rem',
@@ -175,7 +175,7 @@ function InboxPage() {
           {loading ? (
             <div
               style={{
-                color: 'white',
+                color: '#4B5563',
                 fontFamily: 'Overpass',
                 fontSize: '1.2rem',
                 padding: '1rem',
@@ -186,7 +186,7 @@ function InboxPage() {
           ) : error ? (
             <div
               style={{
-                color: '#ff9a9a',
+                color: '#B91C1C',
                 fontFamily: 'Overpass',
                 fontSize: '1.1rem',
                 padding: '1rem',
@@ -197,7 +197,7 @@ function InboxPage() {
           ) : filteredEmails.length === 0 ? (
             <div
               style={{
-                color: '#CE9AFF',
+                color: 'var(--ip-dark-pink)',
                 fontFamily: 'Overpass',
                 fontSize: '1.1rem',
                 padding: '1rem',

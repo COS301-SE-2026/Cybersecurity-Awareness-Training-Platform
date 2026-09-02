@@ -418,7 +418,7 @@ const headerStyle = {
 
 const titleStyle = {
   margin: '0.4rem 0',
-  color: 'var(--ip-pink)',
+  color: 'var(--ip-dark-pink)',
   fontFamily: 'Jost',
   fontSize: '2.4rem',
   lineHeight: 1.1,
