@@ -56,16 +56,18 @@ validate_bootstrap(){
 		fail 'The production host does not provide /etc/os-release'
 	fi
 
-	local ID=''
-	local VERSION_ID=''
+	local os_id
+	local os_version_id
 
 	. /etc/os-release
+	os_id="${ID:-}"
+	os_version_id="${VERSION_ID:-}"
 
-	if [[ "$ID" != 'ubuntu' ]]; then
-		fail "Unsupported operating system: ${ID:-unkown}. Ubunty is required"
+	if [[ "$os_id" != 'ubuntu' ]]; then
+		fail "Unsupported operating system: ${os_id:-unkown}. Ubunty is required"
 	fi
-	if [[ "$VERSION_ID" != "$SUPPORTED_UBUNTU_VERSION" ]]; then
-		fail "Unsupported ubuntu version: ${VERSION_ID:-unkown}. Ubuntu $SUPPORTED_UBUNTU_VERSION is required"
+	if [[ "$os_version_id" != "$SUPPORTED_UBUNTU_VERSION" ]]; then
+		fail "Unsupported ubuntu version: ${os_version_id:-unkown}. Ubuntu $SUPPORTED_UBUNTU_VERSION is required"
 	fi
 
 	local host_architecture
@@ -102,10 +104,8 @@ prepare_docker_host(){
 		fail 'systemctl is required to manage docker services'
 	fi
 
-	if command -v docker >/dev/null 2>&1; then
-		apt-get update 
-		DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl sudo
-	fi
+	apt-get update 
+	DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl sudo
 
 	if command -v docker >/dev/null 2>&1; then 
 		if ! docker compose version >/dev/null 2>&1; then 
@@ -122,20 +122,17 @@ prepare_docker_host(){
 		return 0
 	fi
 
-	local VERSION_CODENAME=''
-	local UBUNTU_CODENAME=''
-
 	. /etc/os-release
 
 	local ubuntu_codename 
-	ubuntu_codename="${UBUNTU_CODENAME:-$VERSION_CODENAME}"
+	ubuntu_codename="${UBUNTU_CODENAME:-${VERSION_CODENAME:-}}"
 	if [[ -z "$ubuntu_codename" ]]; then 
 		fail 'The Ubuntu package codename is unavailable.'
 	fi
 
 	install -d -o root -g root -m 0755 /etc/apt/keyrings
 	temporary_file="$(mktemp)"
-	curl --fail --silent --show-error --location https://download.docker.com/linux/ubuntu/gpg --output "$temporary_file"
+	curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --output  "$temporary_file" https://download.docker.com/linux/ubuntu/gpg 
 
 	install -o root -g root -m 0644 "$temporary_file" "$DOCKER_KEYRING"
 	rm -f -- "$temporary_file"
@@ -237,7 +234,7 @@ install_production_contract(){
 		if [[ -L "$managed_file" ]]; then
 			fail "Managed production file must not be a symbolic link: $managed_file"
 		fi
-		if [[ ! -e "$managed_file" && ! -f "$managed_file" ]]; then
+		if [[ -e "$managed_file" && ! -f "$managed_file" ]]; then
 			fail "Managed production path is not a regular file: $managed_file"
 		fi
 	done
