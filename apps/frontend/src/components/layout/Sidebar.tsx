@@ -18,10 +18,16 @@ type InternalNavItem = { icon: ReactElement; label: string; path: string };
 type ExternalNavItem = { icon: ReactElement; label: string; href: string };
 type NavItem = InternalNavItem | ExternalNavItem;
 
-const helpNavItem: ExternalNavItem = {
+const adminHelpNavItem: ExternalNavItem = {
   icon: <HelpOutlineSharp />,
   label: 'Help',
-  href: 'https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/wiki/Demo-2-User-Manual',
+  href: 'https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/wiki/Demo-3-Admin-User-Manual',
+};
+
+const traineeHelpNavItem: ExternalNavItem = {
+  icon: <HelpOutlineSharp />,
+  label: 'Help',
+  href: 'https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/wiki/Demo-3-User-Manual',
 };
 
 function Sidebar() {
@@ -58,7 +64,7 @@ function Sidebar() {
           label: 'Campaigns',
           path: '/platform/campaigns',
         },
-        helpNavItem,
+        adminHelpNavItem,
       ];
     }
     if (role === 'ORGANISATION_ADMIN') {
@@ -69,24 +75,10 @@ function Sidebar() {
           path: '/organisation-information',
         },
         {
-          icon: <SecurityOutlined />,
-          label: 'Security Preferences',
-          path: '/organisation-security-preferences',
-        },
-        {
           icon: <SchoolOutlined />,
           label: 'Trainees',
           path: '/organisation-trainees',
         },
-        ...(canAssignTrainingCampaigns === true
-          ? [
-              {
-                icon: <AssignmentTurnedInOutlined />,
-                label: 'Assign Training Campaigns',
-                path: campaignAssignmentPath,
-              },
-            ]
-          : []),
         {
           icon: <AdminPanelSettingsOutlined />,
           label: 'Administrators',
@@ -102,7 +94,20 @@ function Sidebar() {
         });
       }
 
-      organisationItems.push(helpNavItem);
+      if (canAssignTrainingCampaigns) {
+        organisationItems.push({
+          icon: <AssignmentTurnedInOutlined />,
+          label: 'Assign Training Campaigns',
+          path: campaignAssignmentPath,
+        });
+      }
+
+      organisationItems.push({
+        icon: <SecurityOutlined />,
+        label: 'Security Preferences',
+        path: '/organisation-security-preferences',
+      });
+      organisationItems.push(adminHelpNavItem);
 
       return organisationItems;
     }
@@ -113,7 +118,7 @@ function Sidebar() {
         label: 'Campaigns',
         path: '/campaigns',
       },
-      helpNavItem,
+      traineeHelpNavItem,
     ];
   };
 

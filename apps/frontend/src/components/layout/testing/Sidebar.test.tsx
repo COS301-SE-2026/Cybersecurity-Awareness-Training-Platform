@@ -14,8 +14,10 @@ vi.mock('../../../context/useAuth', () => ({
 
 const mockedUseAuth = vi.mocked(useAuth);
 const ORGANISATION_ID = '11111111-1111-4111-8111-111111111111';
-const HELP_HREF =
-  'https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/wiki/Demo-2-User-Manual';
+const ADMIN_HELP_HREF =
+  'https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/wiki/Demo-3-Admin-User-Manual';
+const TRAINEE_HELP_HREF =
+  'https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/wiki/Demo-3-User-Manual';
 
 function createAuthValue(
   role: UserTypeDto,
@@ -145,7 +147,7 @@ describe('Sidebar Help navigation', () => {
 
       const helpLink = screen.getByRole('link', { name: 'Help' });
 
-      expect(helpLink).toHaveAttribute('href', HELP_HREF);
+      expect(helpLink).toHaveAttribute('href', ADMIN_HELP_HREF);
       expect(helpLink).toHaveAttribute('target', '_blank');
       expect(helpLink).toHaveAttribute('rel', 'noopener noreferrer');
     },
@@ -162,9 +164,35 @@ describe('Sidebar Help navigation', () => {
 
       const helpLink = screen.getByRole('link', { name: 'Help' });
 
-      expect(helpLink).toHaveAttribute('href', HELP_HREF);
+      expect(helpLink).toHaveAttribute('href', TRAINEE_HELP_HREF);
       expect(helpLink).toHaveAttribute('target', '_blank');
       expect(helpLink).toHaveAttribute('rel', 'noopener noreferrer');
     },
   );
+
+  it('orders Organisation Admin destinations by workflow', () => {
+    mockedUseAuth.mockReturnValue(
+      createAuthValue(
+        'ORGANISATION_ADMIN',
+        ['VIEW_CAMPAIGNS', 'ASSIGN_CAMPAIGNS'],
+        ORGANISATION_ID,
+      ),
+    );
+
+    const { container } = renderSidebar('/organisation-information');
+
+    expect(
+      Array.from(container.querySelectorAll('aside [aria-label]'), (item) =>
+        item.getAttribute('aria-label'),
+      ),
+    ).toEqual([
+      'Organisation Information',
+      'Trainees',
+      'Administrators',
+      'Campaigns',
+      'Assign Training Campaigns',
+      'Security Preferences',
+      'Help',
+    ]);
+  });
 });
