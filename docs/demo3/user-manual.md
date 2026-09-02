@@ -13,6 +13,7 @@ Organisation Admins and Insightful Phish Admins should also use the **[Demo 3 Ad
 - [Introduction](#introduction)
 - [Access and Account Basics](#access-and-account-basics)
   - [Sign In](#sign-in)
+  - [Log Out](#log-out)
   - [Create a General Trainee Account](#create-a-general-trainee-account)
   - [Verify Your Email Address](#verify-your-email-address)
   - [Reset a Forgotten Password](#reset-a-forgotten-password)
@@ -32,7 +33,9 @@ Organisation Admins and Insightful Phish Admins should also use the **[Demo 3 Ad
   - [View Assigned Organisation Campaigns](#view-assigned-organisation-campaigns)
   - [Read a Training Document](#read-a-training-document)
   - [Complete a Quiz](#complete-a-quiz)
+  - [Review Quiz Results](#review-quiz-results)
   - [Work Through a Simulated Inbox](#work-through-a-simulated-inbox)
+  - [Inspect a Simulated Email](#inspect-a-simulated-email)
 - [Organisation Access](#organisation-access)
   - [Request Organisation Access](#request-organisation-access)
   - [Complete Initial Organisation Admin Setup](#complete-initial-organisation-admin-setup)
@@ -66,13 +69,37 @@ Use a modern desktop browser such as Chrome, Edge, Brave, Firefox, or Safari. Th
 
 **Navigation:** open the login page.
 
+**Purpose:** access the areas and tasks available to your account and role.
+
 1. Enter your email address and password.
-2. Select **Login**.
+2. Select **Log In**.
 3. Wait for the platform to open the area available to your role.
 
 **Expected result:** the platform signs you in and shows the appropriate signed-in navigation.
 
+**Troubleshooting:** if sign-in fails, check the message shown on the page. Verify the email address, use **Forgot Password** when necessary, and complete email verification if the account is still pending.
+
 **Screenshot:** ![Login page](user-interface/public-account/01-login-page.png)
+
+### Log Out
+
+**Audience:** all signed-in users.
+
+**Preconditions:** you are signed in.
+
+**Navigation:** open the account menu in the top navigation.
+
+**Purpose:** end access to the current signed-in session on the device you are using.
+
+1. Open the account menu.
+2. Select **Logout**.
+3. Wait for the login page to appear.
+
+**Expected result:** the current session ends and the platform returns you to the login page.
+
+**Note:** use Account Management session controls when you need to end a different session or all other sessions.
+
+**Troubleshooting:** if a protected page remains visible, refresh the page and confirm that it redirects to the login page before leaving the device.
 
 ### Create a General Trainee Account
 
@@ -82,11 +109,17 @@ Use a modern desktop browser such as Chrome, Edge, Brave, Firefox, or Safari. Th
 
 **Navigation:** open the registration page.
 
+**Purpose:** create an individual General Trainee account using an email address you control.
+
 1. Enter your first name, last name, email address, password, and password confirmation.
 2. Select **Register**.
 3. Check your email for the verification link before using the account fully.
 
 **Expected result:** the platform creates a pending account and asks you to verify your email address.
+
+**Note:** registration being accepted does not mean the verification email has already been delivered. Check the verification guidance shown by the page.
+
+**Troubleshooting:** correct any highlighted fields before trying again. If the email address is already registered, sign in or use **Forgot Password** instead of creating a duplicate account.
 
 **Screenshot:** ![Registration form](user-interface/public-account/02-registration-form.png)
 
@@ -98,11 +131,17 @@ Use a modern desktop browser such as Chrome, Edge, Brave, Firefox, or Safari. Th
 
 **Navigation:** open the verification link from your email.
 
+**Purpose:** confirm that you control the email address associated with the account.
+
 1. Open the email verification link.
 2. Wait for the verification result.
 3. If the link has expired and the page offers a resend action, request a new verification link.
 
 **Expected result:** the platform verifies your email address or shows a safe message explaining why the link cannot be used.
+
+**Warning:** verification links are intended for the named account and should not be shared.
+
+**Troubleshooting:** if the link is expired, invalid, or already used, follow the state-specific guidance on the page. Use resend only when the page offers it.
 
 **Screenshot:** ![Email verification result](user-interface/public-account/03-email-verification.png)
 
@@ -113,6 +152,8 @@ Use a modern desktop browser such as Chrome, Edge, Brave, Firefox, or Safari. Th
 **Preconditions:** your account exists and is eligible for password reset.
 
 **Navigation:** open **Forgot Password** from the login area.
+
+**Purpose:** replace a forgotten password through the account's verified email address.
 
 1. Enter the email address for your account.
 2. Submit the password reset request.
@@ -137,6 +178,8 @@ Use a modern desktop browser such as Chrome, Edge, Brave, Firefox, or Safari. Th
 
 **Navigation:** open the setup link from your invitation email.
 
+**Purpose:** finish creating the account and credentials prepared by an Organisation invitation.
+
 1. Review the role and Organisation shown on the setup page.
 2. Enter your first name, last name, password, and password confirmation.
 3. Select **Complete Setup**.
@@ -145,6 +188,8 @@ Use a modern desktop browser such as Chrome, Edge, Brave, Firefox, or Safari. Th
 **Expected result:** the platform completes your invited account setup and lets you sign in with the new credentials.
 
 **Warning:** setup links can expire, be revoked, or be used only once.
+
+**Troubleshooting:** if the page reports that the link is unavailable, ask the responsible administrator to check the invitation state and resend it only when that action is available.
 
 **Screenshot:** ![Complete setup page](user-interface/public-account/06-complete-setup.png)
 
@@ -155,6 +200,8 @@ Use a modern desktop browser such as Chrome, Edge, Brave, Firefox, or Safari. Th
 **Preconditions:** you are signed in with the account that should receive the Organisation role, and the invitation link is valid.
 
 **Navigation:** open the invitation link from your email.
+
+**Purpose:** accept an Organisation membership or role change for your existing account.
 
 1. Review the Organisation and role shown on the invitation page.
 2. Confirm that you want to accept the invitation.
@@ -178,11 +225,15 @@ Account Management contains personal details, account actions, security preferen
 
 **Navigation:** open the account menu in the top navigation and select **Account Management**.
 
+**Purpose:** review and manage the account, security, and session controls available to you.
+
 1. Open the account menu.
 2. Select **Account Management**.
 3. Use the tabs for profile details, account settings, security preferences, and sessions.
 
 **Expected result:** the platform shows account controls that match your role and Organisation policy.
+
+**Troubleshooting:** if account information cannot be loaded, use the page's retry action or sign in again before retrying.
 
 **Screenshot:** ![Account management tabs](user-interface/public-account/07-account-management-tabs.png)
 
@@ -193,6 +244,8 @@ Account Management contains personal details, account actions, security preferen
 **Preconditions:** you are signed in and the account page has loaded successfully.
 
 **Navigation:** **Account Management** > **Personal**.
+
+**Purpose:** keep the first and last name associated with your account current.
 
 1. Review the current first name and last name.
 2. Update the fields that need to change.
@@ -210,6 +263,8 @@ Account Management contains personal details, account actions, security preferen
 **Preconditions:** you know your current password and have access to the new email address.
 
 **Navigation:** **Account Management** > **Account**.
+
+**Purpose:** request a verified change to the email address used by your account.
 
 1. Select **Change Email**.
 2. Enter the new email address.
@@ -234,6 +289,8 @@ Account Management contains personal details, account actions, security preferen
 
 **Navigation:** **Account Management** > **Account**.
 
+**Purpose:** replace your current password while signed in.
+
 1. Select **Change Password**.
 2. Enter your current password.
 3. Enter and confirm the new password.
@@ -255,6 +312,8 @@ Account Management contains personal details, account actions, security preferen
 
 **Navigation:** **Account Management** > **Sessions**.
 
+**Purpose:** identify current and recent account sessions and revoke access you no longer recognise or need.
+
 1. Review the listed sessions and recent activity.
 2. Use the available logout actions for sessions you no longer want active.
 3. Confirm any security-sensitive action when prompted.
@@ -274,6 +333,8 @@ Account Management contains personal details, account actions, security preferen
 **Preconditions:** you are signed in and the **Sessions** tab is available.
 
 **Navigation:** **Account Management** > **Sessions**.
+
+**Purpose:** choose preferred session durations where Organisation policy permits personal settings.
 
 1. Review **Session Preferences**.
 2. Adjust the editable regular session, remember-me, or idle-timeout preferences shown by the page.
@@ -298,6 +359,8 @@ General Trainees use the platform for their own training activity. In the curren
 
 **Navigation:** **Campaigns**.
 
+**Purpose:** find Campaigns currently available to your General Trainee account and open their activities.
+
 1. Open **Campaigns** from the signed-in navigation.
 2. Review the Campaign cards and their progress status.
 3. Open a Campaign to see its training activities.
@@ -305,7 +368,9 @@ General Trainees use the platform for their own training activity. In the curren
 
 **Expected result:** the platform shows Campaigns available to your account and opens available activities without exposing internal Campaign IDs or setup details.
 
-**Note:** if no Campaign is shown, there may be no current Campaign available to your account yet. Self-enrolment is not exposed as a separate completed user-facing workflow in the current Demo 3 navigation, so this manual does not describe a separate enrolment button.
+**Note:** if no Campaign is shown, there may be no current Campaign available to your account.
+
+**Troubleshooting:** refresh the page after it finishes loading. If the empty state remains, no Campaign is currently available to the account.
 
 **Screenshot:** ![Campaigns](user-interface/trainee/01-campaigns.png)
 
@@ -316,6 +381,8 @@ General Trainees use the platform for their own training activity. In the curren
 **Preconditions:** a Campaign is visible on the **Campaigns** page.
 
 **Navigation:** **Campaigns** > open a Campaign.
+
+**Purpose:** review the ordered activities in a Campaign and open the next available activity.
 
 1. Select the Campaign row or accordion to reveal its activity list.
 2. Review which activities are available and which are locked.
@@ -340,12 +407,14 @@ Organisation Trainees are linked to an Organisation and use the platform for Org
 
 **Navigation:** **Campaigns**.
 
+**Purpose:** review Campaigns assigned through your Organisation and continue available training activities.
+
 1. Open **Campaigns** from the signed-in navigation.
 2. Review each Campaign's name and progress status.
 3. Open a Campaign to view its ordered activities.
 4. Start the next available activity.
 
-**Expected result:** assigned Campaigns appear with their current progress. Activities that are not yet available remain locked until their prerequisites are met.
+**Expected result:** assigned Campaigns appear with their current progress. Activities that are currently unavailable remain locked until their prerequisites are met.
 
 **Troubleshooting:** if no Campaign appears, check that you are signed in with the Organisation-linked account and ask an Organisation Admin whether a Campaign has been assigned.
 
@@ -361,6 +430,8 @@ Organisation Trainees are linked to an Organisation and use the platform for Org
 **Preconditions:** the Campaign contains an available training document.
 
 **Navigation:** **Campaigns** > open Campaign > select the training document activity.
+
+**Purpose:** read the assigned awareness material and record progress through the Campaign.
 
 1. Open the training document from the Campaign activity list.
 2. Read the content shown on the page.
@@ -381,12 +452,14 @@ Organisation Trainees are linked to an Organisation and use the platform for Org
 
 **Navigation:** **Campaigns** > open Campaign > select the quiz activity.
 
+**Purpose:** answer the Campaign's knowledge-check questions.
+
 1. Open the quiz from the Campaign activity list.
 2. Answer each visible question.
 3. Submit the quiz.
-4. Review the results page.
+4. Wait for the results page to open.
 
-**Expected result:** the platform records the quiz attempt and shows the result available to your account.
+**Expected result:** the platform records the quiz attempt and opens the result available to your account.
 
 **Warning:** submit only when your answers are ready. If the page shows that a quiz is locked, complete the required earlier activity first.
 
@@ -395,7 +468,28 @@ Organisation Trainees are linked to an Organisation and use the platform for Org
 **Screenshots:**
 
 ![Quiz](user-interface/trainee/04-quiz.png)
-![Quiz results](user-interface/trainee/05-quiz-results.png)
+
+### Review Quiz Results
+
+**Audience:** General Trainees and Organisation Trainees.
+
+**Preconditions:** you have submitted a quiz attempt and its results are available.
+
+**Navigation:** submit an available quiz from **Campaigns**.
+
+**Purpose:** review the outcome and feedback recorded for your quiz attempt.
+
+1. Review the score and result shown after submission.
+2. Read the available question feedback.
+3. Use the page navigation to return to the Campaign when finished.
+
+**Expected result:** the page shows the authoritative result for the submitted attempt without allowing the recorded answers to be changed.
+
+**Note:** a result reflects the submitted attempt. Do not refresh or resubmit while the original submission is still processing.
+
+**Troubleshooting:** if results do not load, return to **Campaigns** and reopen the available activity or result after the current request completes.
+
+**Screenshot:** ![Quiz results](user-interface/trainee/05-quiz-results.png)
 
 ### Work Through a Simulated Inbox
 
@@ -405,12 +499,13 @@ Organisation Trainees are linked to an Organisation and use the platform for Org
 
 **Navigation:** **Campaigns** > open Campaign > select the simulation activity.
 
+**Purpose:** practise identifying suspicious messages in a controlled training inbox.
+
 1. Open the simulated inbox from the Campaign activity list.
 2. Review the simulated messages.
-3. Open a message to inspect its details.
-4. Use the safe interaction controls provided by the page.
+3. Open a message when you need to inspect it in detail.
 
-**Expected result:** the platform records safe simulation interactions without asking for real credentials or exposing real email content.
+**Expected result:** the platform displays the simulated inbox and lets you open its training messages.
 
 **Warning:** simulated emails are training content. Do not enter real passwords, payment details, or private information into simulation screens.
 
@@ -419,7 +514,29 @@ Organisation Trainees are linked to an Organisation and use the platform for Org
 **Screenshots:**
 
 ![Simulated inbox](user-interface/trainee/06-simulated-inbox.png)
-![Simulated email detail](user-interface/trainee/07-simulated-email-detail.png)
+
+### Inspect a Simulated Email
+
+**Audience:** General Trainees and Organisation Trainees.
+
+**Preconditions:** an available simulated inbox contains a message you can open.
+
+**Navigation:** **Campaigns** > open Campaign > open the simulated inbox > select a message.
+
+**Purpose:** inspect the simulated sender, content, and warning signs before choosing a training action.
+
+1. Select a message in the simulated inbox.
+2. Review the sender and simulated message content.
+3. Use only the training interactions provided by the page.
+4. Return to the simulated inbox when finished.
+
+**Expected result:** the message detail opens and the platform records supported simulation interactions as training activity.
+
+**Warning:** never enter real passwords, payment details, or private information into a simulated message or linked training interaction.
+
+**Troubleshooting:** if the detail page is unavailable, return to the Campaign, reopen the simulated inbox, and select the message again after loading completes.
+
+**Screenshot:** ![Simulated email detail](user-interface/trainee/07-simulated-email-detail.png)
 
 ## Organisation Access
 
@@ -432,6 +549,8 @@ These public and invitation-led tasks cover requesting Organisation access and c
 **Preconditions:** your Organisation is not already registered through the platform.
 
 **Navigation:** open the Organisation registration request page.
+
+**Purpose:** ask Insightful Phish to review a request for a managed Organisation account.
 
 1. Complete **Organisation Information**.
 2. Select **Next**.
@@ -458,6 +577,8 @@ These public and invitation-led tasks cover requesting Organisation access and c
 **Preconditions:** an Insightful Phish Admin has approved the Organisation request and you have a valid setup link.
 
 **Navigation:** open the setup link from the approval email.
+
+**Purpose:** activate the approved Organisation and establish its initial Organisation Admin account.
 
 1. Review the Organisation and role shown on the setup page.
 2. Enter your name and password details.
