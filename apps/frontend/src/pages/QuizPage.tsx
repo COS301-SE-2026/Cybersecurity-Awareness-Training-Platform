@@ -237,9 +237,18 @@ export function QuizPage() {
   const [reloadToken, setReloadToken] = useState(0);
 
   const applyLoadedQuiz = useEffectEvent((loadedQuiz: CampaignItemQuiz) => {
+    if (loadedQuiz.currentAttempt?.status === 'SUBMITTED') {
+      navigateToResults(loadedQuiz.currentAttempt.attemptId, navigate, hasNavigatedToResultsRef);
+      return;
+    }
+
     setQuiz(loadedQuiz);
     setSelectedAnswers({});
-    setAttemptId(null);
+    setAttemptId(
+      loadedQuiz.currentAttempt?.status === 'IN_PROGRESS'
+        ? loadedQuiz.currentAttempt.attemptId
+        : null,
+    );
     setHasSubmitted(false);
     submitInFlightRef.current = false;
     hasNavigatedToResultsRef.current = false;

@@ -1,3 +1,4 @@
+import type { Prisma } from '../generated/prisma/client.js';
 import { prisma } from '../lib/prisma.js';
 
 export const ACCESSIBLE_ASSIGNMENT_STATUSES = [
@@ -67,11 +68,16 @@ const campaignItemSelect = {
       simulatedInbox: {
         select: {
           status: true,
+          emails: {
+            select: {
+              id: true,
+            },
+          },
         },
       },
     },
   },
-} as const;
+} satisfies Prisma.CampaignItemSelect;
 
 const campaignSummarySelect = {
   id: true,
@@ -89,12 +95,10 @@ const campaignSummarySelect = {
         not: 'ARCHIVED',
       },
     },
-    select: {
-      id: true,
-      availabilityStatus: true,
-    },
+    select: campaignItemSelect,
+    orderBy: [{ parentGroupId: 'asc' }, { position: 'asc' }],
   },
-} as const;
+} satisfies Prisma.CampaignSelect;
 
 export function findAccessibleCampaignAssignments(traineeProfileId: string) {
   return prisma.campaignAssignment.findMany({
@@ -151,18 +155,7 @@ export function findAccessibleCampaignAssignment(input: {
       assignmentStatus: true,
       accessType: true,
       campaign: {
-        select: {
-          ...campaignSummarySelect,
-          items: {
-            where: {
-              availabilityStatus: {
-                not: 'ARCHIVED',
-              },
-            },
-            select: campaignItemSelect,
-            orderBy: [{ parentGroupId: 'asc' }, { position: 'asc' }],
-          },
-        },
+        select: campaignSummarySelect,
       },
     },
   });
@@ -191,10 +184,15 @@ export function findTrainingInteractionEvents(input: {
   });
 }
 
-export function findQuizAttempts(input: { traineeProfileId: string; campaignItemIds: string[] }) {
+export function findQuizAttempts(input: {
+  traineeProfileId: string;
+  campaignItemIds: string[];
+  campaignAssignmentId?: string;
+}) {
   return prisma.quizAttempt.findMany({
     where: {
       traineeProfileId: input.traineeProfileId,
+      ...(input.campaignAssignmentId ? { campaignAssignmentId: input.campaignAssignmentId } : {}),
       campaignItemId: {
         in: input.campaignItemIds,
       },
@@ -202,6 +200,12 @@ export function findQuizAttempts(input: { traineeProfileId: string; campaignItem
     select: {
       campaignItemId: true,
       status: true,
+      quizResult: {
+        select: {
+          id: true,
+          scorePercentage: true,
+        },
+      },
     },
     orderBy: {
       createdAt: 'desc',
@@ -233,6 +237,8 @@ export function findSimulationInteractionEvents(input: {
     select: {
       campaignItemId: true,
       eventType: true,
+      simulatedEmailId: true,
+      targetId: true,
     },
   });
 }

@@ -2073,6 +2073,32 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             },
           ],
         },
+        OwnOrganisationDetail: {
+          type: 'object',
+          required: [
+            'id',
+            'name',
+            'status',
+            'description',
+            'approximateSize',
+            'website',
+            'registeredTraineeCount',
+            'registrationDate',
+          ],
+          properties: {
+            id: uuidString('f6fdeb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+            name: { type: 'string', example: 'Example Consulting' },
+            status: enumString(
+              ['PENDING_ONBOARDING', 'ACTIVE', 'INACTIVE', 'SUSPENDED', 'DISABLED', 'ARCHIVED'],
+              'ACTIVE',
+            ),
+            description: nullableString('A consulting company'),
+            approximateSize: { type: 'integer', nullable: true, example: 150 },
+            website: nullableString('https://example.com'),
+            registeredTraineeCount: { type: 'integer', example: 15 },
+            registrationDate: dateTimeString('2026-05-16T09:00:00.000Z'),
+          },
+        },
         PlatformAdminRole: enumString(['SUPER_ADMIN', 'NORMAL_ADMIN'], 'SUPER_ADMIN'),
         PlatformAdminStatus: enumString(['ACTIVE', 'DISABLED'], 'ACTIVE'),
         PlatformAdminInvitationStatus: enumString(
@@ -3533,6 +3559,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             'campaignType',
             'difficultyLevel',
             'status',
+            'progressStatus',
             'eligibility',
           ],
           properties: {
@@ -3576,7 +3603,6 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
               allOf: [schemaRef('CampaignAccessType')],
             },
             progressStatus: {
-              nullable: true,
               allOf: [schemaRef('TraineeCampaignProgressStatus')],
             },
             itemCount: {
@@ -3691,6 +3717,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             'availabilityStatus',
             'isOpenable',
             'activityApiPath',
+            'progressStatus',
             'eligibility',
           ],
           properties: {
@@ -3751,7 +3778,6 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
                 '/trainee/campaign-items/88888888-8888-4888-8888-888888888888/training-document',
             },
             progressStatus: {
-              nullable: true,
               allOf: [schemaRef('TraineeCampaignProgressStatus')],
             },
             eligibility: schemaRef('CampaignEligibility'),
@@ -3782,6 +3808,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             'isRequired',
             'availabilityStatus',
             'isOpenable',
+            'progressStatus',
             'eligibility',
             'children',
           ],
@@ -3840,7 +3867,6 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
               example: null,
             },
             progressStatus: {
-              nullable: true,
               allOf: [schemaRef('TraineeCampaignProgressStatus')],
             },
             eligibility: schemaRef('CampaignEligibility'),
@@ -4395,6 +4421,22 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             },
           },
         },
+        CurrentQuizAttemptSummary: {
+          type: 'object',
+          required: ['attemptId', 'status', 'hasResult'],
+          properties: {
+            attemptId: {
+              ...uuidString('22222222-2222-2222-2222-222222222222'),
+            },
+            status: {
+              $ref: '#/components/schemas/QuizAttemptStatus',
+            },
+            hasResult: {
+              type: 'boolean',
+              example: true,
+            },
+          },
+        },
         GetQuizResponse: {
           type: 'object',
           required: [
@@ -4441,6 +4483,10 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             },
             questions: {
               ...arrayOf(schemaRef('QuizQuestionForTrainee')),
+            },
+            currentAttempt: {
+              nullable: true,
+              allOf: [schemaRef('CurrentQuizAttemptSummary')],
             },
           },
         },
@@ -5439,6 +5485,10 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         TraineeInvitationConflict: responseComponent(
           'Cannot invite user to the organisation.',
           'TraineeInvitationConflictErrorResponse',
+        ),
+        OwnOrganisationDetailOk: responseComponent(
+          'Restricted organisation details for the authenticated organisation administrator.',
+          'OwnOrganisationDetail',
         ),
         OrganisationAdminsOk: responseComponent(
           'Organisation admins and available permissions.',
