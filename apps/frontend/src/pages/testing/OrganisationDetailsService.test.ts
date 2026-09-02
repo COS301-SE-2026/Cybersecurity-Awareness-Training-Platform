@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import {
-  getOrganisationInformation,
+  getOwnOrganisationDetail,
   getPlatformOrganisationDetail,
   getPlatformOrganisationRequestDetails,
   resendInitialAdminSetup,
@@ -26,7 +26,7 @@ describe('Organisation Details Service', () => {
     const mockResponse = { id: 'org-123', name: 'Cyber Jan Technologies' };
     vi.mocked(apiClient.get).mockResolvedValue(mockResponse);
 
-    const result = await getOrganisationInformation('org-123', 'test-token');
+    const result = await getOwnOrganisationDetail('org-123', 'test-token');
 
     expect(apiClient.get).toHaveBeenCalledWith('/organisations/org-123', {
       authToken: 'test-token',

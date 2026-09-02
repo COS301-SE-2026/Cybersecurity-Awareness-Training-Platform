@@ -8,7 +8,7 @@ import {
 import { Router } from 'express';
 import rateLimit, { MemoryStore } from 'express-rate-limit';
 import {
-  getOrganisationInformation,
+  getOwnOrganisation,
   listOrganisationAdmins,
   promoteOrganisationAdmin,
   removeOrganisationAdmin,
@@ -67,15 +67,15 @@ export function clearOrganisationAdminRateLimitStores() {
  * /organisations/{organisationId}:
  *   get:
  *     tags: [Organisation Admins]
- *     summary: Get organisation information
- *     description: Returns organisation information for the authenticated organisation admin.
+ *     summary: Get own organisation information
+ *     description: Returns restricted organisation details for the authenticated organisation administrator's own organisation.
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - $ref: '#/components/parameters/OrganisationIdPathParam'
  *     responses:
  *       200:
- *         $ref: '#/components/responses/OrganisationInformationOk'
+ *         $ref: '#/components/responses/OwnOrganisationDetailOk'
  *       400:
  *         $ref: '#/components/responses/BadRequest'
  *       401:
@@ -94,7 +94,7 @@ organisationAdminRouter.get(
   organisationAdminReadRateLimit,
   requireAuth,
   validateParams(organisationIdParamsSchema),
-  asyncHandler(getOrganisationInformation),
+  asyncHandler(getOwnOrganisation),
 );
 
 /**

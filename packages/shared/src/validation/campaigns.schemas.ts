@@ -156,7 +156,7 @@ export const traineeCampaignSummarySchema = z
     endDate: z.string().datetime().nullish(),
     assignment: traineeCampaignAssignmentSummarySchema.nullish(),
     accessType: campaignAccessTypeSchema.nullish(),
-    progressStatus: traineeCampaignProgressStatusSchema.nullish(),
+    progressStatus: traineeCampaignProgressStatusSchema,
     itemCount: z.number().int().nonnegative().nullish(),
     availableItemCount: z.number().int().nonnegative().nullish(),
     eligibility: campaignEligibilitySchema,
@@ -206,7 +206,7 @@ const traineeCampaignItemSummaryBaseSchema = z
     isRequired: z.boolean(),
     availabilityStatus: campaignItemAvailabilityStatusSchema,
     isOpenable: z.boolean(),
-    progressStatus: traineeCampaignProgressStatusSchema.nullish(),
+    progressStatus: traineeCampaignProgressStatusSchema,
     eligibility: campaignEligibilitySchema,
   })
   .strict();

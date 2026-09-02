@@ -23,8 +23,8 @@ const serviceMock = vi.hoisted(() => {
 
   return {
     OrganisationAdminServiceError: MockOrganisationAdminServiceError,
-    getOrganisationInformation: vi.fn(),
     getOrganisationAdmins: vi.fn(),
+    getOwnOrganisation: vi.fn(),
     createAdminPromotion: vi.fn(),
     changeAdminPermissions: vi.fn(),
     removeAdmin: vi.fn(),
@@ -64,32 +64,24 @@ describe('organisation admin routes', () => {
     clearOrganisationAdminRateLimitStores();
   });
 
-  it('retrieves organisation information for the authenticated actor and organisation', async () => {
-    const mockOrgInfo = {
+  it('gets own organisation details for the authenticated actor and organisation', async () => {
+    const orgDetail = {
       id: organisationId,
-      name: 'Cyber Jan Technologies',
+      name: 'Acme Security',
+      description: 'Leading provider of training',
+      website: 'https://acme.example.test',
+      approximateSize: 200,
+      registeredTraineeCount: 25,
+      registrationDate: '2026-05-16T09:00:00.000Z',
       status: 'ACTIVE',
-      detailType: 'active organisation',
-      description: 'Consulting',
-      approximateSize: 100,
-      website: 'https://cyberjan.co.za',
-      primaryDomain: 'cyberjan.co.za',
-      createdAt: '2026-07-01T08:00:00.000Z',
-      updatedAt: '2026-07-01T08:00:00.000Z',
-      _count: {
-        traineeProfiles: 42,
-      },
     };
-    serviceMock.getOrganisationInformation.mockResolvedValue(mockOrgInfo);
+    serviceMock.getOwnOrganisation.mockResolvedValue(orgDetail);
 
     const response = await request(createApp()).get(`/organisations/${organisationId}`);
 
     expect(response.status).toBe(200);
-    expect(serviceMock.getOrganisationInformation).toHaveBeenCalledWith(
-      actorUserId,
-      organisationId,
-    );
-    expect(response.body).toEqual(mockOrgInfo);
+    expect(serviceMock.getOwnOrganisation).toHaveBeenCalledWith(actorUserId, organisationId);
+    expect(response.body).toEqual(orgDetail);
   });
 
   it('lists organisation admins for the authenticated actor and organisation', async () => {

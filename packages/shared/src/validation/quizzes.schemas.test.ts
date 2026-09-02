@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  currentQuizAttemptSummarySchema,
   getQuizRequestParamsSchema,
   getQuizResultRequestParamsSchema,
   startQuizAttemptRequestSchema,
@@ -157,5 +158,21 @@ describe('quiz validation schemas', () => {
     });
 
     expect(result.success).toBe(false);
+  });
+
+  it('validates currentQuizAttemptSummarySchema payloads', () => {
+    const validResult = currentQuizAttemptSummarySchema.safeParse({
+      attemptId,
+      status: 'IN_PROGRESS',
+      hasResult: false,
+    });
+    expect(validResult.success).toBe(true);
+
+    const invalidResult = currentQuizAttemptSummarySchema.safeParse({
+      attemptId: 'not-a-uuid',
+      status: 'INVALID_STATUS',
+      hasResult: 'not-a-boolean',
+    });
+    expect(invalidResult.success).toBe(false);
   });
 });

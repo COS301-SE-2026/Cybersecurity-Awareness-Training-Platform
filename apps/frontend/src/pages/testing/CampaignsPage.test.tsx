@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { TraineeCampaignSummaryDto } from '@insightful-phish/shared';
 import CampaignsPage from '../CampaignsPage';
 import { getTraineeCampaignDetail, getTraineeCampaigns } from '../../lib/campaignsApi';
 
@@ -24,21 +25,28 @@ vi.mock('../../components/layout/AppLayout', () => ({
 vi.mock('../../components/ui/CampaignAccordion', () => ({
   default: ({
     subtitle,
+    status,
     accentColor,
     children,
     isOpen,
     onToggle,
   }: {
     subtitle: string;
+    status: string;
     accentColor: string;
     children?: ReactNode;
     isOpen: boolean;
     onToggle: () => void;
   }) => (
-    <section data-testid={`campaign-${subtitle}`} data-accent-color={accentColor}>
+    <section
+      data-testid={`campaign-${subtitle}`}
+      data-accent-color={accentColor}
+      data-status={status}
+    >
       <button type="button" onClick={onToggle}>
         {subtitle}
       </button>
+      <span data-testid={`status-${subtitle}`}>{status}</span>
       {isOpen ? <div>{children}</div> : null}
     </section>
   ),
@@ -72,26 +80,40 @@ vi.mock('../../lib/campaignsApi', () => ({
 const mockedGetTraineeCampaigns = vi.mocked(getTraineeCampaigns);
 const mockedGetTraineeCampaignDetail = vi.mocked(getTraineeCampaignDetail);
 
+function buildMockCampaign(
+  campaignId: string,
+  name: string,
+  progressStatus: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'CLASSIFIED' | 'SUBMITTED',
+  accentColor?: string,
+): TraineeCampaignSummaryDto {
+  return {
+    campaignId,
+    name,
+    campaignType: 'PREMADE_GENERAL',
+    difficultyLevel: 'BEGINNER',
+    status: 'ACTIVE',
+    progressStatus,
+    accentColor,
+    eligibility: {
+      canView: true,
+      canProgress: true,
+      reason: 'AVAILABLE',
+    },
+  };
+}
+
 describe('CampaignsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
     mockedGetTraineeCampaigns.mockResolvedValue({
       campaigns: [
-        {
-          campaignId: '11111111-1111-4111-8111-111111111111',
-          name: 'Quarterly Awareness',
-          accentColor: '#2563EB',
-          campaignType: 'PREMADE_GENERAL',
-          difficultyLevel: 'BEGINNER',
-          status: 'ACTIVE',
-          progressStatus: 'IN_PROGRESS',
-          eligibility: {
-            canView: true,
-            canProgress: true,
-            reason: 'AVAILABLE',
-          },
-        },
+        buildMockCampaign(
+          '11111111-1111-4111-8111-111111111111',
+          'Quarterly Awareness',
+          'IN_PROGRESS',
+          '#2563EB',
+        ),
       ],
     });
 
@@ -202,19 +224,11 @@ describe('CampaignsPage', () => {
   it('falls back to the local accent colour palette when the API omits accent colour', async () => {
     mockedGetTraineeCampaigns.mockResolvedValue({
       campaigns: [
-        {
-          campaignId: '11111111-1111-4111-8111-111111111111',
-          name: 'Quarterly Awareness',
-          campaignType: 'PREMADE_GENERAL',
-          difficultyLevel: 'BEGINNER',
-          status: 'ACTIVE',
-          progressStatus: 'IN_PROGRESS',
-          eligibility: {
-            canView: true,
-            canProgress: true,
-            reason: 'AVAILABLE',
-          },
-        },
+        buildMockCampaign(
+          '11111111-1111-4111-8111-111111111111',
+          'Quarterly Awareness',
+          'IN_PROGRESS',
+        ),
       ],
     });
 
@@ -293,5 +307,55 @@ describe('CampaignsPage', () => {
         '/trainee/campaign-items/33333333-3333-4333-8333-333333333335/simulated-inbox',
       );
     });
+  });
+
+  it('formats every shared progress status value correctly and defaults unknown values to UNKNOWN', async () => {
+    mockedGetTraineeCampaigns.mockResolvedValue({
+      campaigns: [
+        buildMockCampaign(
+          '11111111-1111-4111-8111-111111111111',
+          'Completed Campaign',
+          'COMPLETED',
+        ),
+        buildMockCampaign(
+          '22222222-2222-4222-8222-222222222222',
+          'Not Started Campaign',
+          'NOT_STARTED',
+        ),
+        buildMockCampaign(
+          '33333333-3333-4333-8333-333333333333',
+          'In Progress Campaign',
+          'IN_PROGRESS',
+        ),
+        buildMockCampaign(
+          '44444444-4444-4444-8444-444444444444',
+          'Classified Campaign',
+          'CLASSIFIED',
+        ),
+        buildMockCampaign(
+          '55555555-5555-4555-8555-555555555555',
+          'Submitted Campaign',
+          'SUBMITTED',
+        ),
+        buildMockCampaign(
+          '66666666-6666-4666-8666-666666666666',
+          'Unknown Progress Campaign',
+          'SOMETHING_ELSE' as unknown as 'NOT_STARTED',
+        ),
+      ],
+    });
+
+    render(<CampaignsPage />);
+
+    expect(await screen.findByTestId('status-Completed Campaign')).toHaveTextContent('COMPLETED');
+    expect(await screen.findByTestId('status-Not Started Campaign')).toHaveTextContent(
+      'NOT STARTED',
+    );
+    expect(await screen.findByTestId('status-In Progress Campaign')).toHaveTextContent('STARTED');
+    expect(await screen.findByTestId('status-Classified Campaign')).toHaveTextContent('STARTED');
+    expect(await screen.findByTestId('status-Submitted Campaign')).toHaveTextContent('SUBMITTED');
+    expect(await screen.findByTestId('status-Unknown Progress Campaign')).toHaveTextContent(
+      'UNKNOWN',
+    );
   });
 });

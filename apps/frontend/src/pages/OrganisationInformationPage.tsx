@@ -8,14 +8,14 @@ import OrganisationTimelinePage from '../components/organisation-information/Org
 import LoadingSpinnerSVG from '../components/LoadingSpinnerSVG';
 import { useAuth } from '../context/useAuth';
 import {
-  getOrganisationInformation,
+  getOwnOrganisationDetail,
   getPlatformOrganisationDetail,
   getPlatformOrganisationRequestDetails,
   resendInitialAdminSetup,
 } from '../services/organisation-details.service';
 import type {
   OrganisationAdminSummaryDto,
-  OrganisationInformationDto,
+  OwnOrganisationDetailDto,
   PlatformOrganisationDetailDto,
   PlatformOrganisationRequestDetailsResponseDto,
   ResendEligibilityDto,
@@ -125,9 +125,22 @@ function mapOrganisationDetailsToState(
   };
 }
 
-function mapOrganisationInfoToState(orgData: OrganisationInformationDto): OrganisationDetailData {
+function mapOwnOrganisationDetailsToState(
+  orgData: OwnOrganisationDetailDto,
+): OrganisationDetailData {
   return {
-    ...mapBaseOrganisationFields(orgData),
+    id: orgData.id,
+    name: orgData.name,
+    description: orgData.description || '',
+    website: orgData.website || '',
+    size:
+      orgData.approximateSize !== null && orgData.approximateSize !== undefined
+        ? String(orgData.approximateSize)
+        : '',
+    registeredTrainees: String(orgData.registeredTraineeCount ?? 0),
+    registrationDate: orgData.registrationDate,
+    status: orgData.status,
+    detailType: 'active organisation',
     representative: {
       fullName: '',
       email: '',
@@ -236,7 +249,9 @@ function OrganisationInformationPage() {
 
   const currentTargetIdRef = useRef<string | null>(targetId);
 
-  const [detailData, setDetailData] = useState<OrganisationDetailData | null>(null);
+  const [platformDetailData, setPlatformDetailData] = useState<OrganisationDetailData | null>(null);
+  const [ownOrgDetailData, setOwnOrgDetailData] = useState<OrganisationDetailData | null>(null);
+  const detailData = isPlatformAdmin ? platformDetailData : ownOrgDetailData;
 
   const [isLoading, setIsLoading] = useState<boolean>(Boolean(targetId && token));
   const [errorStatus, setErrorStatus] = useState<number | null>(null);
@@ -256,12 +271,12 @@ function OrganisationInformationPage() {
       if (isPlatformAdmin) {
         const data = await fetchOrganisationOrRequestDetail(routeReqId, targetId, token);
         if (currentTargetIdRef.current === targetId) {
-          setDetailData(data);
+          setPlatformDetailData(data);
         }
       } else {
-        const data = await getOrganisationInformation(targetId, token);
+        const data = await getOwnOrganisationDetail(targetId, token);
         if (currentTargetIdRef.current === targetId) {
-          setDetailData(mapOrganisationInfoToState(data));
+          setOwnOrgDetailData(mapOwnOrganisationDetailsToState(data));
         }
       }
     } catch {
@@ -274,7 +289,8 @@ function OrganisationInformationPage() {
     currentTargetIdRef.current = targetId;
 
     const loadAsync = async () => {
-      setDetailData(null);
+      setPlatformDetailData(null);
+      setOwnOrgDetailData(null);
       setErrorMessage(null);
       setErrorStatus(null);
       setResendSuccessMessage(null);
@@ -292,11 +308,11 @@ function OrganisationInformationPage() {
         if (isPlatformAdmin) {
           const data = await fetchOrganisationOrRequestDetail(routeReqId, targetId, token);
           if (!isMounted || currentTargetIdRef.current !== targetId) return;
-          setDetailData(data);
+          setPlatformDetailData(data);
         } else {
-          const data = await getOrganisationInformation(targetId, token);
+          const data = await getOwnOrganisationDetail(targetId, token);
           if (!isMounted || currentTargetIdRef.current !== targetId) return;
-          setDetailData(mapOrganisationInfoToState(data));
+          setOwnOrgDetailData(mapOwnOrganisationDetailsToState(data));
         }
       } catch (err: unknown) {
         if (!isMounted || currentTargetIdRef.current !== targetId) return;

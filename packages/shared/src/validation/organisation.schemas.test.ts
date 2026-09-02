@@ -8,7 +8,7 @@ import {
   initialAdminSetupStatusSchema,
   organisationAdminSummarySchema,
   platformOrganisationDetailSchema,
-  organisationInformationSchema,
+  ownOrganisationDetailSchema,
 } from './organisation.js';
 import {
   getOrganisationRequestDetailsParamsSchema,
@@ -221,29 +221,34 @@ describe('organisation validation schemas', () => {
       );
     });
 
-    it('validates organisationInformationSchema', () => {
-      const validOrgInfo = {
+    it('validates ownOrganisationDetailSchema', () => {
+      const validOwnDetail = {
         id: validUuid,
-        name: 'Target Org',
-        status: 'ACTIVE',
-        detailType: 'active organisation',
-        description: 'A mock organization',
-        approximateSize: 150,
-        website: 'https://example.com',
-        primaryDomain: 'example.com',
-        createdAt: '2026-07-01T08:00:00.000Z',
-        updatedAt: '2026-07-01T08:00:00.000Z',
-        _count: {
-          traineeProfiles: 15,
-        },
+        name: 'Cyber Jan Technologies',
+        description: 'South African consultancy',
+        website: 'https://cyberjan.co.za',
+        approximateSize: 250,
+        registeredTraineeCount: 45,
+        registrationDate: '2026-07-01T08:00:00.000Z',
+        status: 'ACTIVE' as const,
       };
 
-      expect(organisationInformationSchema.parse(validOrgInfo)).toEqual(validOrgInfo);
+      expect(ownOrganisationDetailSchema.parse(validOwnDetail)).toEqual(validOwnDetail);
+
+      const withNulls = {
+        id: validUuid,
+        name: 'Cyber Jan Technologies',
+        description: null,
+        website: null,
+        approximateSize: null,
+        registeredTraineeCount: 0,
+        registrationDate: '2026-07-01T08:00:00.000Z',
+        status: 'ACTIVE' as const,
+      };
+
+      expect(ownOrganisationDetailSchema.parse(withNulls)).toEqual(withNulls);
       expect(() =>
-        organisationInformationSchema.parse({
-          ...validOrgInfo,
-          admins: [],
-        }),
+        ownOrganisationDetailSchema.parse({ ...validOwnDetail, id: 'invalid-uuid' }),
       ).toThrow();
     });
   });

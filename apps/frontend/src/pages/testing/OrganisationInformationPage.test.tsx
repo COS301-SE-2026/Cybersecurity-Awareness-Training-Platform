@@ -248,18 +248,15 @@ describe('OrganisationInformationPage Integration', () => {
   it('renders organisation information for ORGANISATION_ADMIN without calling platform APIs or rendering platform tabs', async () => {
     const platformDetailSpy = vi.spyOn(service, 'getPlatformOrganisationDetail');
     const platformRequestSpy = vi.spyOn(service, 'getPlatformOrganisationRequestDetails');
-    const orgInfoSpy = vi.spyOn(service, 'getOrganisationInformation').mockResolvedValue({
+    const ownOrgDetailSpy = vi.spyOn(service, 'getOwnOrganisationDetail').mockResolvedValue({
       id: 'org-123-abc',
       name: 'Protea Security Gauteng',
       status: 'ACTIVE',
-      detailType: 'active organisation',
-      description: 'Gauteng security consultants',
-      approximateSize: 200,
+      description: 'Gauteng cybersecurity security provider',
+      approximateSize: 120,
       website: 'https://proteasecurity.co.za',
-      primaryDomain: 'proteasecurity.co.za',
-      createdAt: '2026-06-19T00:00:00.000Z',
-      updatedAt: '2026-06-20T00:00:00.000Z',
-      _count: { traineeProfiles: 85 },
+      registeredTraineeCount: 18,
+      registrationDate: '2026-06-19T00:00:00.000Z',
     });
 
     mockAuthContext = {
@@ -278,9 +275,14 @@ describe('OrganisationInformationPage Integration', () => {
     ).toBeInTheDocument();
     expect(screen.queryByText(/^Status:/i)).not.toBeInTheDocument();
     expect(screen.getByLabelText(/Status/i)).toHaveValue('Active');
-    expect(orgInfoSpy).toHaveBeenCalledWith('org-123-abc', 'mock-token-xyz');
+    expect(ownOrgDetailSpy).toHaveBeenCalledWith('org-123-abc', 'mock-token-xyz');
     expect(platformDetailSpy).not.toHaveBeenCalled();
     expect(platformRequestSpy).not.toHaveBeenCalled();
+    expect(screen.getByDisplayValue('Gauteng cybersecurity security provider')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('https://proteasecurity.co.za')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('120')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('18')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('2026-06-19')).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: /Representative Information/i }),
     ).not.toBeInTheDocument();
@@ -291,7 +293,7 @@ describe('OrganisationInformationPage Integration', () => {
 
   it('renders access denied message when organisation-scoped API returns 403 for ORGANISATION_ADMIN', async () => {
     const error = { status: 403, message: 'Access Denied' };
-    vi.spyOn(service, 'getOrganisationInformation').mockRejectedValue(error);
+    vi.spyOn(service, 'getOwnOrganisationDetail').mockRejectedValue(error);
 
     mockAuthContext = {
       role: 'ORGANISATION_ADMIN',
