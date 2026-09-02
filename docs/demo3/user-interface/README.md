@@ -76,14 +76,29 @@ These [Admin User Manual](../admin-user-manual.md) screenshots cover Organisatio
 
 These [Admin User Manual](../admin-user-manual.md) screenshots cover Organisation request review, Organisation details, onboarding timeline reviews, setup resend, and platform management screens.
 
-| Screenshot                                         | Manual Section                         | Notes                                                   |
-| -------------------------------------------------- | -------------------------------------- | ------------------------------------------------------- |
-| `platform-admin/01-organisation-management.png`    | Review organisation requests           | Use sample organisation data                            |
-| `platform-admin/02-review-request-modal.png`       | Review organisation requests           | Avoid real representative data                          |
-| `platform-admin/03-request-detail.png`             | Review request or organisation details | Use a seeded request                                    |
-| `platform-admin/04-organisation-detail.png`        | Review request or organisation details | Use a seeded organisation                               |
-| `platform-admin/05-onboarding-timeline.png`        | Review request or organisation details | Do not expose private metadata                          |
-| `platform-admin/06-resend-initial-admin-setup.png` | Review request or organisation details | Use sample representative details and hide setup tokens |
+| Screenshot                                                | Manual Section                                 | Notes                                                   |
+| --------------------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------- |
+| `platform-admin/01-organisation-management.png`           | Review organisation requests                   | Use sample organisation data                            |
+| `platform-admin/02-review-request-modal.png`              | Review organisation requests                   | Avoid real representative data                          |
+| `platform-admin/03-request-detail.png`                    | Review request or organisation details         | Use a seeded request                                    |
+| `platform-admin/04-organisation-detail.png`               | Review request or organisation details         | Use a seeded organisation                               |
+| `platform-admin/05-current-onboarding-status.png`         | Review request or organisation details         | Use safe setup status and recipient data                |
+| `platform-admin/06-resend-initial-admin-setup.png`        | Review request or organisation details         | Use sample representative details and hide setup tokens |
+| `platform-admin/07-platform-administrators-normal.png`    | Understand Platform Administrator capabilities | Show the read-only normal administrator view            |
+| `platform-admin/08-platform-administrators-super.png`     | Understand Platform Administrator capabilities | Show eligible Super Administrator actions               |
+| `platform-admin/09-invite-upgrade-flow.png`               | Invite or upgrade a Platform Administrator     | Leave invitation fields blank                           |
+| `platform-admin/10-super-admin-transfer-confirmation.png` | Transfer the Super Administrator capability    | Leave password and confirmation fields blank            |
+| `platform-admin/11-onboarding-timeline.png`               | Review request or organisation details         | Use safe lifecycle summaries only                       |
+
+## Platform Campaign Workflows
+
+These [Admin User Manual](../admin-user-manual.md) screenshots cover the integrated Platform Campaign list, builder, and lifecycle detail.
+
+| Screenshot                                                     | Manual Section            | Notes                                  |
+| -------------------------------------------------------------- | ------------------------- | -------------------------------------- |
+| `platform-campaigns/01-platform-campaign-list.png`             | Manage Platform Campaigns | Use safe screenshot-only Campaign data |
+| `platform-campaigns/02-platform-campaign-builder.png`          | Build a Platform Campaign | Leave new Campaign fields blank        |
+| `platform-campaigns/03-platform-campaign-detail-lifecycle.png` | Manage Campaign lifecycle | Show current permitted actions         |
 
 ## Manual Reuse
 

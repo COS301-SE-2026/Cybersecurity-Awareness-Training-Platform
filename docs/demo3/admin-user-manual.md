@@ -621,8 +621,9 @@ Insightful Phish Admins, labelled Platform Administrators in management areas, r
 
 ![Request detail](user-interface/platform-admin/03-request-detail.png)
 ![Organisation detail](user-interface/platform-admin/04-organisation-detail.png)
-![Onboarding timeline](user-interface/platform-admin/05-onboarding-timeline.png)
+![Current onboarding status](user-interface/platform-admin/05-current-onboarding-status.png)
 ![Resend initial administrator setup](user-interface/platform-admin/06-resend-initial-admin-setup.png)
+![Onboarding timeline](user-interface/platform-admin/11-onboarding-timeline.png)
 
 ### Resend Initial Administrator Setup
 
@@ -665,6 +666,11 @@ Insightful Phish Admins, labelled Platform Administrators in management areas, r
 
 **Troubleshooting:** if management actions are absent, confirm whether your Platform Administrator account currently holds the Super Administrator capability and refresh the list after any transfer.
 
+**Screenshots:**
+
+![Platform Administrators viewed by a normal Platform Administrator](user-interface/platform-admin/07-platform-administrators-normal.png)
+![Platform Administrators with Super Administrator actions](user-interface/platform-admin/08-platform-administrators-super.png)
+
 ### Invite or Upgrade a Platform Administrator
 
 **Audience:** the Platform Administrator holding the Super Administrator capability.
@@ -685,6 +691,8 @@ Insightful Phish Admins, labelled Platform Administrators in management areas, r
 **Warning:** Platform Administrators can access platform-wide Organisation records and Campaign management. Verify the person and email address before proceeding.
 
 **Troubleshooting:** pending invitations, existing platform roles, ineligible accounts, or changed state can prevent the operation. Refresh the list and resolve the displayed conflict before retrying.
+
+**Screenshot:** ![Invite or upgrade a Platform Administrator](user-interface/platform-admin/09-invite-upgrade-flow.png)
 
 ### Resend a Platform Administrator Invitation
 
@@ -729,6 +737,8 @@ Insightful Phish Admins, labelled Platform Administrators in management areas, r
 
 **Troubleshooting:** an incorrect password, confirmation text, stale target, or concurrent transfer prevents the action. Refresh the page before retrying.
 
+**Screenshot:** ![Transfer Super Administrator confirmation](user-interface/platform-admin/10-super-admin-transfer-confirmation.png)
+
 ### Demote a Platform Administrator
 
 **Audience:** the Platform Administrator holding the Super Administrator capability.
@@ -771,6 +781,12 @@ Insightful Phish Admins, labelled Platform Administrators in management areas, r
 **Note:** Platform Campaigns use the shared builder without the Organisation schedule fields.
 
 **Troubleshooting:** clear list filters, refresh the detail, and follow any lifecycle restriction shown near the action. Remove unavailable content or save pending changes before activation.
+
+**Screenshots:**
+
+![Platform Campaign list](user-interface/platform-campaigns/01-platform-campaign-list.png)
+![Platform Campaign Builder](user-interface/platform-campaigns/02-platform-campaign-builder.png)
+![Platform Campaign detail and lifecycle](user-interface/platform-campaigns/03-platform-campaign-detail-lifecycle.png)
 
 ## Shared Account and Support Guidance
 
