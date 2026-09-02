@@ -10,9 +10,9 @@ export function TrainingStatePanel({ title, message, action }: TrainingStatePane
   return (
     <section
       style={{
-        border: '1px solid rgba(132, 0, 255, 0.7)',
-        backgroundColor: 'rgba(31, 0, 71, 0.72)',
-        boxShadow: '0 0 22px rgba(132, 0, 255, 0.22)',
+        border: '1px solid var(--ip-bg-purple)',
+        backgroundColor: '#FFFFFF',
+        boxShadow: '0 8px 24px rgba(70, 0, 151, 0.08)',
         padding: '2rem',
         maxWidth: '52rem',
       }}
@@ -20,7 +20,7 @@ export function TrainingStatePanel({ title, message, action }: TrainingStatePane
       <h2
         style={{
           margin: 0,
-          color: '#FFFFFF',
+          color: 'var(--ip-deep-purple)',
           fontFamily: 'Jost',
           fontSize: '2rem',
           fontWeight: 500,
@@ -32,7 +32,7 @@ export function TrainingStatePanel({ title, message, action }: TrainingStatePane
       <p
         style={{
           margin: '0.8rem 0 0',
-          color: '#D8C7FF',
+          color: '#4B5563',
           fontFamily: 'Overpass',
           fontSize: '1rem',
           lineHeight: 1.7,
