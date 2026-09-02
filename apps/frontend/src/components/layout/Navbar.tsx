@@ -17,7 +17,7 @@ function Navbar() {
         width: '100%',
         height: '82px',
         backgroundColor: '#090054',
-        borderBottom: '5px solid #8400FF',
+        // borderBottom: '5px solid #8400FF',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
