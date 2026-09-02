@@ -29,9 +29,18 @@ Screenshots referenced in this manual are catalogued under [`user-interface/`](u
   - [Assign Campaigns to Organisation Trainees](#assign-campaigns-to-organisation-trainees)
   - [Review Campaign Insights](#review-campaign-insights)
 - [Insightful Phish Admin Tasks](#insightful-phish-admin-tasks)
-  - [Review Organisation Requests](#review-organisation-requests)
+  - [Review Organisation Registration Requests](#review-organisation-registration-requests)
+  - [Approve or Reject a Registration Request](#approve-or-reject-a-registration-request)
+  - [Mark a Request as Contacted](#mark-a-request-as-contacted)
+  - [Delete an Eligible Registration Request](#delete-an-eligible-registration-request)
   - [Review Request or Organisation Details](#review-request-or-organisation-details)
-  - [Manage Platform Administrators](#manage-platform-administrators)
+  - [Resend Initial Administrator Setup](#resend-initial-administrator-setup)
+  - [Understand Platform Administrator Capabilities](#understand-platform-administrator-capabilities)
+  - [Invite or Upgrade a Platform Administrator](#invite-or-upgrade-a-platform-administrator)
+  - [Resend a Platform Administrator Invitation](#resend-a-platform-administrator-invitation)
+  - [Transfer the Super Administrator Capability](#transfer-the-super-administrator-capability)
+  - [Demote a Platform Administrator](#demote-a-platform-administrator)
+  - [Manage Platform Campaigns](#manage-platform-campaigns)
 - [Shared Account and Support Guidance](#shared-account-and-support-guidance)
 
 ## Organisation Admin Tasks
@@ -482,9 +491,9 @@ Organisation Admins manage their Organisation's information, security preference
 
 ## Insightful Phish Admin Tasks
 
-Insightful Phish Admins, also referred to as Platform Administrators in some interface areas, review Organisation registration requests and manage platform-level Organisation records.
+Insightful Phish Admins, labelled Platform Administrators in management areas, review Organisation registration requests and manage platform records. Super Administrator is an additional capability held by one Platform Administrator, not a separate user role.
 
-### Review Organisation Requests
+### Review Organisation Registration Requests
 
 **Audience:** Insightful Phish Admin.
 
@@ -492,29 +501,84 @@ Insightful Phish Admins, also referred to as Platform Administrators in some int
 
 **Navigation:** **Organisation Management**.
 
+**Purpose:** find Organisation registration requests and open the action appropriate to each request's current state.
+
 1. Open **Organisation Management**.
-2. Use the search field and filters to find a request.
-3. Select **Review Request** when the request is pending.
-4. Review the request details before taking an approval or rejection action.
+2. Search by Organisation or representative information.
+3. Use the request-status and Organisation-status filters to narrow the list.
+4. Select **Review Request** for a pending or contacted request.
+5. Select **View Information** for a request or Organisation that has moved beyond review.
 
-**Expected result:** the platform lets you approve, reject, or leave the request unchanged according to its current state.
+**Expected result:** the selected review modal or detail page opens with the authoritative request state.
 
-**Warning:** approval can trigger the initial Organisation Admin setup process. Rejection should be used only after checking the request details.
-
-**Available actions:**
-
-- Use **Review Request** to inspect a pending request before deciding.
-- Use **Mark As Contacted** when the representative has been contacted outside the platform.
-- Use **Approve Request** only after checking the Organisation and representative information.
-- Use **Reject Request** with a clear reason when the request should not continue.
-- Use **Delete Request** only when the page offers it and the request should be removed from the active review queue.
-
-**Troubleshooting:** if a request cannot be loaded or updated, close the modal, refresh the list, and check whether another admin has already changed the request.
+**Troubleshooting:** clear the search and filters if a request is missing. If an action disappears, refresh the list because another administrator may have changed the request.
 
 **Screenshots:**
 
 ![Organisation management](user-interface/platform-admin/01-organisation-management.png)
 ![Review request modal](user-interface/platform-admin/02-review-request-modal.png)
+
+### Approve or Reject a Registration Request
+
+**Audience:** Insightful Phish Admin.
+
+**Preconditions:** the request is **Pending Review** or **Contacted** and still permits a review decision.
+
+**Navigation:** **Organisation Management** > **Review Request**.
+
+**Purpose:** accept a valid Organisation request or record why it must not proceed.
+
+1. Review the Organisation, representative, submission date, and current status.
+2. To approve, select **Approve Request**, review the confirmation, and select **Approve Organisation**.
+3. To reject, select **Reject Request**, enter a clear rejection reason, and confirm the rejection.
+4. Review the result message and refreshed request state.
+
+**Expected result:** approval creates the Organisation onboarding state and queues the initial administrator setup email. Rejection records the reason and queues the representative notification when delivery preparation succeeds.
+
+**Warning:** approval starts a security-sensitive initial administrator setup process. Verify the Organisation and representative before confirming. A queued email is not proof of delivery.
+
+**Troubleshooting:** a stale request returns to the refreshed list. If approval succeeds but setup email preparation fails, open the Organisation detail and use resend only when eligible. Correct an invalid rejection reason before resubmitting.
+
+### Mark a Request as Contacted
+
+**Audience:** Insightful Phish Admin.
+
+**Preconditions:** the request is **Pending Review** and the representative has actually been contacted outside the platform.
+
+**Navigation:** **Organisation Management** > **Review Request**.
+
+**Purpose:** record that representative contact occurred without approving or rejecting the request.
+
+1. Review the pending request.
+2. Select **Mark As Contacted**.
+3. Wait for the request status and contact information to refresh.
+
+**Expected result:** the request becomes **Contacted** and remains available for a later approval or rejection decision.
+
+**Note:** marking a request as contacted is not an approval and does not create the Organisation.
+
+**Troubleshooting:** if the action is absent, the request is no longer pending review. Refresh the list and use the action supported by its current state.
+
+### Delete an Eligible Registration Request
+
+**Audience:** Insightful Phish Admin.
+
+**Preconditions:** the request is **Rejected** or **Cancelled** and the row displays **Delete Request**.
+
+**Navigation:** **Organisation Management** > locate the eligible request row.
+
+**Purpose:** permanently remove an eligible terminal registration request from the management list.
+
+1. Confirm that the row is the rejected or cancelled request you intend to remove.
+2. Select **Delete Request**.
+3. Review the Organisation and representative consequences in the confirmation dialog.
+4. Select **Delete Request** to confirm.
+
+**Expected result:** the request is deleted and disappears from the refreshed list.
+
+**Warning:** deletion cannot be undone. It allows the associated representative to use supported registration options again, so verify the correct request before confirming.
+
+**Troubleshooting:** if deletion returns a conflict or the button disappears, refresh the list. The request may no longer be in an eligible state.
 
 ### Review Request or Organisation Details
 
@@ -524,16 +588,19 @@ Insightful Phish Admins, also referred to as Platform Administrators in some int
 
 **Navigation:** **Organisation Management** > request or Organisation details.
 
+**Purpose:** review the authoritative Organisation record, representative and setup state, administrators, and onboarding timeline.
+
 1. Open the request or Organisation detail page from **Organisation Management**.
-2. Review basic information and representative information.
-3. Open the timeline tab to confirm the onboarding history.
-4. Use the resend setup action only when the page shows that resend is available.
+2. Use **Basic Information** to review the submitted Organisation details and current status.
+3. Use **Representative Information** to review the nominated representative and initial setup state.
+4. For a created Organisation, use **Administrators** to review current administrators and account statuses.
+5. Use **Timeline** to review the registration, decision, onboarding, and setup history.
 
-**Expected result:** the platform shows the detail record, lifecycle state, timeline, and safe actions for the selected request or Organisation.
+**Expected result:** the tabs show the detail appropriate to a request-only record or created Organisation. Request-only records do not show an Organisation administrator tab.
 
-**Warning:** setup email resend actions are security-sensitive. Do not expose private email addresses or setup links in screenshots.
+**Note:** unavailable Organisation lifecycle buttons shown in the danger area are not supported actions and should not be treated as available workflows.
 
-**Troubleshooting:** if the setup email could not be queued during approval, open the Organisation detail page and use the resend action only when the page shows that it is available.
+**Troubleshooting:** if the record cannot be loaded, return to **Organisation Management** and reopen it from the refreshed list. A request may have become an Organisation after approval.
 
 **Screenshots:**
 
@@ -542,26 +609,153 @@ Insightful Phish Admins, also referred to as Platform Administrators in some int
 ![Onboarding timeline](user-interface/platform-admin/05-onboarding-timeline.png)
 ![Resend initial administrator setup](user-interface/platform-admin/06-resend-initial-admin-setup.png)
 
-### Manage Platform Administrators
+### Resend Initial Administrator Setup
 
-**Audience:** Insightful Phish Admins with access to Platform Administrator management.
+**Audience:** Insightful Phish Admin.
 
-**Preconditions:** you are signed in as an Insightful Phish Admin. Some actions, such as inviting a Platform Administrator or transferring the Super Platform Administrator role, may require elevated platform privileges.
+**Preconditions:** the approved Organisation has not completed initial administrator setup and the representative section reports that resend is available.
+
+**Navigation:** **Organisation Management** > **View Information** > **Representative Information**.
+
+**Purpose:** replace an eligible initial setup link and queue a fresh setup email for the nominated representative.
+
+1. Confirm the representative and setup status.
+2. Select **Resend Initial Administrator Setup Email** when available.
+3. Wait for the result and refreshed setup state.
+
+**Expected result:** the previous unused setup link is replaced and a new setup email is queued when delivery preparation succeeds.
+
+**Warning:** setup links grant access to establish the initial Organisation Admin account. Confirm the representative before resending, and do not expose the link or private email content.
+
+**Troubleshooting:** resend may be blocked by setup completion, Organisation state, cooldown, or another resend already in progress. Follow the reason shown and refresh the detail before retrying.
+
+### Understand Platform Administrator Capabilities
+
+**Audience:** Insightful Phish Admin.
+
+**Preconditions:** you are signed in with Platform Administrator access.
 
 **Navigation:** **Platform Administrators**.
 
+**Purpose:** distinguish normal Platform Administrator access from the additional Super Administrator management capability.
+
 1. Open **Platform Administrators**.
-2. Use the search field or status filters such as **Active**, **Invited**, **Disabled**, or **Failed Invitation** to find an administrator.
-3. Use **Invite Platform Administrator** when the button is available and a new administrator needs access.
-4. For invited administrators, use resend or revoke actions only when the row shows that the invitation is still actionable.
-5. Use **Demote Administrator Role**, **Disable Administrator**, **Re-Enable**, or **Transfer Super Administrator Role** only when the UI shows that the action is allowed.
-6. Review the confirmation dialog before completing any role or status change.
+2. Use search, role filters, and status filters to inspect administrators and invitations.
+3. Review the role column to identify the Platform Administrator currently holding the **Super Administrator** capability.
+4. Use only the row actions displayed for your account and the target row.
 
-**Expected result:** the platform updates the administrator list or invitation state and shows the changed status.
+**Expected result:** a normal Platform Administrator can review the list. The Platform Administrator holding the Super Administrator capability can additionally receive eligible invite/upgrade, resend, transfer, and demotion actions.
 
-**Warning:** Platform Administrator actions can change who controls Organisation approvals and platform-level records. Transfer and demotion actions should be reviewed carefully before confirmation.
+**Note:** Super Administrator is an additional capability of a Platform Administrator, not a separate user role.
 
-**Troubleshooting:** if an action is hidden or unavailable, your current platform role may not allow it, the administrator may be in the wrong lifecycle state, or the list may need to be refreshed.
+**Troubleshooting:** if management actions are absent, confirm whether your Platform Administrator account currently holds the Super Administrator capability and refresh the list after any transfer.
+
+### Invite or Upgrade a Platform Administrator
+
+**Audience:** the Platform Administrator holding the Super Administrator capability.
+
+**Preconditions:** the target is eligible to become a Platform Administrator and no conflicting invitation or role state prevents the operation.
+
+**Navigation:** **Platform Administrators** > **Invite Platform Administrator**.
+
+**Purpose:** invite a new Platform Administrator account or deliberately upgrade an eligible existing account.
+
+1. Enter the target's first name, last name, and email address.
+2. Select **Send invitation**.
+3. If the email belongs to an eligible existing account, review the upgrade notice and select **Confirm upgrade**.
+4. Review the result message and refreshed administrator or invitation row.
+
+**Expected result:** the invitation is created and its email is queued when delivery preparation succeeds. An existing account is upgraded only after the explicit upgrade confirmation.
+
+**Warning:** Platform Administrators can access platform-wide Organisation records and Campaign management. Verify the person and email address before proceeding.
+
+**Troubleshooting:** pending invitations, existing platform roles, ineligible accounts, or changed state can prevent the operation. Refresh the list and resolve the displayed conflict before retrying.
+
+### Resend a Platform Administrator Invitation
+
+**Audience:** the Platform Administrator holding the Super Administrator capability.
+
+**Preconditions:** the invitation row exposes **Resend invitation** and is not within a resend cooldown.
+
+**Navigation:** **Platform Administrators** > locate the invited administrator row.
+
+**Purpose:** replace an eligible invitation link and queue a fresh Platform Administrator invitation email.
+
+1. Select **Resend invitation** on the eligible row.
+2. Review the target shown in the confirmation dialog.
+3. Select **Resend invitation** to confirm.
+4. Wait for the refreshed invitation state.
+
+**Expected result:** the previous unused link is replaced and a new invitation email is queued when delivery preparation succeeds.
+
+**Warning:** the older invitation link should no longer be used after a successful resend.
+
+**Troubleshooting:** if resend is missing or fails with a state conflict, refresh the list. The invitation may be completed, in cooldown, or otherwise ineligible.
+
+### Transfer the Super Administrator Capability
+
+**Audience:** the Platform Administrator currently holding the Super Administrator capability.
+
+**Preconditions:** the target is an eligible active Platform Administrator.
+
+**Navigation:** **Platform Administrators** > locate the target > **Transfer super administrator role**.
+
+**Purpose:** move the single Super Administrator capability to another active Platform Administrator.
+
+1. Confirm the target's name and email address.
+2. Enter your current password.
+3. Type `TRANSFER` exactly.
+4. Select **Transfer super administrator role**.
+5. Wait for the administrator list and your current capabilities to refresh.
+
+**Expected result:** the target receives the Super Administrator capability and your account remains a normal Platform Administrator.
+
+**Warning:** after transfer, the target controls Super Administrator actions and your account loses them. Verify the target carefully before confirming.
+
+**Troubleshooting:** an incorrect password, confirmation text, stale target, or concurrent transfer prevents the action. Refresh the page before retrying.
+
+### Demote a Platform Administrator
+
+**Audience:** the Platform Administrator holding the Super Administrator capability.
+
+**Preconditions:** the target is an eligible normal Platform Administrator and is not the current Super Administrator.
+
+**Navigation:** **Platform Administrators** > locate the target > **Demote administrator**.
+
+**Purpose:** remove platform administration privileges from the selected account.
+
+1. Confirm the target's name and email address.
+2. Enter your current password.
+3. Type `DEMOTE` exactly.
+4. Select **Demote administrator**.
+5. Wait for the authoritative administrator list to refresh.
+
+**Expected result:** the target is no longer a Platform Administrator and their active sessions are revoked.
+
+**Warning:** demotion removes platform-wide administrative access and interrupts active sessions. Confirm the correct person before proceeding.
+
+**Troubleshooting:** an incorrect password, confirmation text, protected target, stale state, or lost Super Administrator capability prevents demotion. Refresh before retrying.
+
+### Manage Platform Campaigns
+
+**Audience:** Insightful Phish Admin.
+
+**Preconditions:** you are signed in with Platform Administrator access.
+
+**Navigation:** **Campaigns** > **Platform Campaigns**.
+
+**Purpose:** create and manage reusable platform-level Campaigns.
+
+1. Search and filter the **Platform Campaigns** list.
+2. Select **Create Campaign**, **Continue Editing**, **View Draft**, or **View Campaign** as appropriate.
+3. Follow [Build or Edit a Campaign Draft](#build-or-edit-a-campaign-draft) for the shared builder controls.
+4. Follow [Manage the Campaign Lifecycle](#manage-the-campaign-lifecycle) to activate, archive, or reactivate an eligible Platform Campaign.
+
+**Expected result:** the Campaign list and detail page show the authoritative platform Campaign state and available lifecycle actions.
+
+**Note:** Platform Campaigns use the shared builder without the Organisation schedule fields.
+
+**Troubleshooting:** clear list filters, refresh the detail, and follow any lifecycle restriction shown near the action. Remove unavailable content or save pending changes before activation.
 
 ## Shared Account and Support Guidance
 

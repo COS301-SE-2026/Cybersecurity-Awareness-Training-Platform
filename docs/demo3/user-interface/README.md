@@ -12,18 +12,19 @@ Use demo accounts and sample organisations only. Before committing a screenshot,
 
 Screenshots in this group support the [User Manual](../user-manual.md) and cover public access, registration, verification, password recovery, and account management.
 
-| Screenshot                                      | Manual section                              | Notes                                       |
-| ----------------------------------------------- | ------------------------------------------- | ------------------------------------------- |
-| `public-account/01-login-page.png`              | Sign In                                     | Use a demo email only.                      |
-| `public-account/02-registration-form.png`       | Create an individual account                | Do not show a real password.                |
-| `public-account/03-email-verification.png`      | Verify your email                           | Do not show a raw verification token.       |
-| `public-account/04-forgot-password.png`         | Reset a forgotten password                  | Use a sample email address.                 |
-| `public-account/05-reset-password.png`          | Reset a forgotten password                  | Do not show a real reset token.             |
-| `public-account/06-complete-setup.png`          | Complete account setup from invitation link | Crop or hide the setup token.               |
-| `public-account/07-account-management-tabs.png` | Open account management                     | Use demo profile data only.                 |
-| `public-account/08-change-email-modal.png`      | Request an email change                     | Use sample email addresses only.            |
-| `public-account/09-change-password-modal.png`   | Change your password                        | Leave password fields blank.                |
-| `public-account/10-session-settings.png`        | Review Sessions                             | Avoid real device, IP, or location details. |
+| Screenshot                                            | Manual section                              | Notes                                       |
+| ----------------------------------------------------- | ------------------------------------------- | ------------------------------------------- |
+| `public-account/01-login-page.png`                    | Sign In                                     | Use a demo email only.                      |
+| `public-account/02-registration-form.png`             | Create an individual account                | Do not show a real password.                |
+| `public-account/03-email-verification.png`            | Verify your email                           | Do not show a raw verification token.       |
+| `public-account/04-forgot-password.png`               | Reset a forgotten password                  | Use a sample email address.                 |
+| `public-account/05-reset-password.png`                | Reset a forgotten password                  | Do not show a real reset token.             |
+| `public-account/06-complete-setup.png`                | Complete account setup from invitation link | Crop or hide the setup token.               |
+| `public-account/07-account-management-tabs.png`       | Open account management                     | Use demo profile data only.                 |
+| `public-account/08-change-email-modal.png`            | Request an email change                     | Use sample email addresses only.            |
+| `public-account/09-change-password-modal.png`         | Change your password                        | Leave password fields blank.                |
+| `public-account/10-session-settings.png`              | Review Sessions                             | Avoid real device, IP, or location details. |
+| `public-account/11-accept-invitation-unavailable.png` | Accept an Organisation invitation           | Uses an invalid non-secret example link.    |
 
 ## Trainee Campaign Workflows
 

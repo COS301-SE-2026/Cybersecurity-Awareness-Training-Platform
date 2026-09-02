@@ -213,6 +213,8 @@ Use a modern desktop browser such as Chrome, Edge, Brave, Firefox, or Safari. Th
 
 **Troubleshooting:** if the invitation is expired, revoked, already used, or blocked because the Organisation is suspended, ask the Organisation Admin who invited you to send a new invitation or confirm that the Organisation is active.
 
+**Screenshot:** ![Unavailable invitation](user-interface/public-account/11-accept-invitation-unavailable.png)
+
 ## Account Management and Security
 
 Account Management contains personal details, account actions, security preferences, and session controls where they are available for the signed-in user.
