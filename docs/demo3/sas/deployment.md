@@ -114,7 +114,7 @@ Production and Development use the same guarded deployment implementation with a
 
 After migration, the script recreates the application services, waits for the backend and frontend container health checks, and performs host-level HTTP smoke tests. Development additionally verifies that the backend can connect to Mailpit at `mailpit:1025`.
 
-If candidate recreation or health verifications fail, the script recreates the rpevious backend and frontend images using the unchaged successful `release.env`. It then repeats the container and HTTP health checks against the restored application. The candidate remains unsuccessful and the deployment returns a non-zero status even when restoration succeeds.
+If candidate recreation or health verifications fail, the script recreates the previous backend and frontend images using the unchaged successful `release.env`. It then repeats the container and HTTP health checks against the restored application. The candidate remains unsuccessful and the deployment returns a non-zero status even when restoration succeeds.
 
 The automatic system recovery does not reverse Prisma migration, restore database data or reset PostgreSQL volums. Because of this, automatic deployment requires that every migration be backward-compatible with the immediately previous application release.
 
