@@ -467,7 +467,7 @@ describe('VerifyEmailPage', () => {
     verificationRequest.resolve({ state: 'VALID' });
 
     expect(await screen.findByText('Email verified. You can now log in.')).toBeInTheDocument();
-    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(screen.queryByRole('status')).toHaveTextContent('Email verified. You can now log in.');
     expect(screen.queryByText('Checking your email verification link.')).not.toBeInTheDocument();
     expect(document.querySelector('svg[aria-hidden="true"]')).not.toBeInTheDocument();
   });
