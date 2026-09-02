@@ -116,11 +116,32 @@
       "closed_date": "2026-09-01"
     },
     {
+      "number": 492,
+      "title": "fix: consolidate frontend colours headers and spacing",
+      "points": 3,
+      "state": "closed",
+      "closed_date": "2026-09-02"
+    },
+    {
+      "number": 491,
+      "title": "fix: modernise the navbar account menu and sidebar",
+      "points": 3,
+      "state": "closed",
+      "closed_date": "2026-09-02"
+    },
+    {
       "number": 490,
       "title": "fix: standardise administration tables and row actions",
       "points": 3,
       "state": "closed",
       "closed_date": "2026-09-01"
+    },
+    {
+      "number": 489,
+      "title": "fix: define shared button and disabled action conventions",
+      "points": 3,
+      "state": "closed",
+      "closed_date": "2026-09-02"
     },
     {
       "number": 488,
@@ -144,6 +165,20 @@
       "closed_date": "2026-08-31"
     },
     {
+      "number": 484,
+      "title": "fix: resolve session policy sources by user type",
+      "points": 3,
+      "state": "closed",
+      "closed_date": "2026-09-02"
+    },
+    {
+      "number": 483,
+      "title": "fix: allow organisation admins to view their own organisation information",
+      "points": 3,
+      "state": "closed",
+      "closed_date": "2026-09-02"
+    },
+    {
       "number": 482,
       "title": "fix: standardise form controls and read-only information",
       "points": 3,
@@ -158,11 +193,39 @@
       "closed_date": "2026-08-20"
     },
     {
+      "number": 478,
+      "title": "fix: standardise asynchronous action feedback",
+      "points": 3,
+      "state": "closed",
+      "closed_date": "2026-09-02"
+    },
+    {
+      "number": 477,
+      "title": "fix: make trainee resend cooldown update in real time",
+      "points": 2,
+      "state": "closed",
+      "closed_date": "2026-09-02"
+    },
+    {
       "number": 476,
       "title": "fix: correct account deletion capability wording",
       "points": 2,
       "state": "closed",
       "closed_date": "2026-09-01"
+    },
+    {
+      "number": 475,
+      "title": "fix: restore organisation trainee row actions",
+      "points": 1,
+      "state": "closed",
+      "closed_date": "2026-09-02"
+    },
+    {
+      "number": 474,
+      "title": "fix: improve security preferences reset feedback",
+      "points": 1,
+      "state": "closed",
+      "closed_date": "2026-09-02"
     },
     {
       "number": 473,
@@ -177,6 +240,13 @@
       "points": 3,
       "state": "closed",
       "closed_date": "2026-09-01"
+    },
+    {
+      "number": 471,
+      "title": "fix: remove unsupported platform organisation administrator actions",
+      "points": 2,
+      "state": "closed",
+      "closed_date": "2026-09-02"
     },
     {
       "number": 470,
@@ -259,68 +329,68 @@
   "series": [
     {
       "date": "2026-08-20",
-      "remaining": 106,
-      "ideal": 113.0
+      "remaining": 130,
+      "ideal": 137.0
     },
     {
       "date": "2026-08-21",
-      "remaining": 98,
-      "ideal": 104.31
+      "remaining": 122,
+      "ideal": 126.46
     },
     {
       "date": "2026-08-22",
-      "remaining": 98,
-      "ideal": 95.62
+      "remaining": 122,
+      "ideal": 115.92
     },
     {
       "date": "2026-08-23",
-      "remaining": 98,
-      "ideal": 86.92
+      "remaining": 122,
+      "ideal": 105.38
     },
     {
       "date": "2026-08-24",
-      "remaining": 98,
-      "ideal": 78.23
+      "remaining": 122,
+      "ideal": 94.85
     },
     {
       "date": "2026-08-25",
-      "remaining": 98,
-      "ideal": 69.54
+      "remaining": 122,
+      "ideal": 84.31
     },
     {
       "date": "2026-08-26",
-      "remaining": 98,
-      "ideal": 60.85
+      "remaining": 122,
+      "ideal": 73.77
     },
     {
       "date": "2026-08-27",
-      "remaining": 98,
-      "ideal": 52.15
+      "remaining": 122,
+      "ideal": 63.23
     },
     {
       "date": "2026-08-28",
-      "remaining": 96,
-      "ideal": 43.46
+      "remaining": 120,
+      "ideal": 52.69
     },
     {
       "date": "2026-08-29",
-      "remaining": 86,
-      "ideal": 34.77
+      "remaining": 110,
+      "ideal": 42.15
     },
     {
       "date": "2026-08-30",
-      "remaining": 83,
-      "ideal": 26.08
+      "remaining": 107,
+      "ideal": 31.62
     },
     {
       "date": "2026-08-31",
-      "remaining": 67,
-      "ideal": 17.38
+      "remaining": 91,
+      "ideal": 21.08
     },
     {
       "date": "2026-09-01",
-      "remaining": 34,
-      "ideal": 8.69
+      "remaining": 58,
+      "ideal": 10.54
     },
     {
       "date": "2026-09-02",
