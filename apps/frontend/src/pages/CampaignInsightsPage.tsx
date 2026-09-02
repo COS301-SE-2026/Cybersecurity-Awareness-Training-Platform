@@ -569,12 +569,12 @@ function CampaignInsightsPage({
             <span className="material-icons-sharp" aria-hidden="true">
               arrow_back
             </span>
-            <span className="hover:underline"> Back to Campaign</span>
+            <span className="hover:underline">Back</span>
           </Link>
 
-          <p className="font-regular tracking-wider text-[1.1rem] font-justify font-medium font-jost text-dark-pink mb-1">
+          {/* <p className="font-regular tracking-wider text-[1.1rem] font-justify font-medium font-jost text-dark-pink mb-1">
             Campaign
-          </p>
+          </p> */}
           <h1
             style={{
               margin: 0,
