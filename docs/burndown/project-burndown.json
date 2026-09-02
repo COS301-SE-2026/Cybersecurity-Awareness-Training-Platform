@@ -1642,8 +1642,8 @@
           "number": 506,
           "title": "fix: complete Demo 3 role page reachability",
           "points": 2,
-          "state": "open",
-          "closed_date": null
+          "state": "closed",
+          "closed_date": "2026-09-02"
         },
         {
           "number": 505,
@@ -2578,7 +2578,7 @@
     },
     {
       "date": "2026-09-02",
-      "remaining": 18,
+      "remaining": 16,
       "ideal": 0.0
     }
   ]
