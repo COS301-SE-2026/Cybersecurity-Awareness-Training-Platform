@@ -1886,7 +1886,7 @@ function OrganisationTraineesPage() {
             type="button"
             disabled={isThisTraineeSubmitting}
             onClick={() => openReenableDialog(row)}
-            className="px-3 py-1.5 text-white bg-emerald-600 hover:bg-emerald-700 font-jost tracking-wide disabled:opacity-60 disabled:cursor-not-allowed"
+            className="cursor-pointer font-medium text-purple hover:underline focus:outline-none focus:ring-2 focus:ring-brand-medium disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {isThisTraineeSubmitting ? 'Re-enabling...' : 'Re-enable'}
           </button>
@@ -1905,7 +1905,7 @@ function OrganisationTraineesPage() {
           type="button"
           disabled={isThisTraineeSubmitting}
           onClick={() => openDisableDialog(row)}
-          className="px-3 py-1.5 text-white bg-danger hover:bg-danger-strong font-jost tracking-wide disabled:opacity-60 disabled:cursor-not-allowed"
+          className="cursor-pointer font-medium text-red-600 hover:underline focus:outline-none focus:ring-2 focus:ring-brand-medium disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {isThisTraineeSubmitting ? 'Disabling...' : 'Disable'}
         </button>
@@ -1953,13 +1953,13 @@ function OrganisationTraineesPage() {
     }
 
     return (
-      <AdminTableActions className="flex-wrap gap-2">
+      <AdminTableActions className="flex-col items-start gap-1">
         {showResend && (
           <button
             type="button"
             disabled={!row.eligibility.canResend || resendCooldownSeconds > 0 || actionOwnsRow}
             onClick={() => beginInvitationAction(row, 'resend')}
-            className="px-3 py-1.5 text-white bg-main-purple hover:bg-hover-purple font-jost tracking-wide disabled:opacity-60 disabled:cursor-not-allowed"
+            className="cursor-pointer font-medium text-purple hover:underline focus:outline-none focus:ring-2 focus:ring-brand-medium disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {resendPending
               ? 'Resending...'
@@ -1974,7 +1974,7 @@ function OrganisationTraineesPage() {
             type="button"
             disabled={actionOwnsRow}
             onClick={() => beginInvitationAction(row, 'revoke')}
-            className="px-3 py-1.5 text-white bg-danger hover:bg-danger-strong font-jost tracking-wide disabled:opacity-60 disabled:cursor-not-allowed"
+            className="cursor-pointer font-medium text-red-600 hover:underline focus:outline-none focus:ring-2 focus:ring-brand-medium disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {revokePending ? 'Revoking...' : 'Revoke'}
           </button>

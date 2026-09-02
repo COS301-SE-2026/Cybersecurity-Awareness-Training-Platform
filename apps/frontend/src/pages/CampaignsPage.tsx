@@ -24,14 +24,20 @@ function formatCampaignStatus(status?: string | null): string {
     case 'COMPLETED':
       return 'COMPLETED';
 
+    case 'SUBMITTED':
+      return 'SUBMITTED';
+
     case 'IN_PROGRESS':
     case 'VIEWED':
     case 'INTERACTED':
+    case 'CLASSIFIED':
       return 'STARTED';
 
     case 'NOT_STARTED':
-    default:
       return 'NOT STARTED';
+
+    default:
+      return 'UNKNOWN';
   }
 }
 

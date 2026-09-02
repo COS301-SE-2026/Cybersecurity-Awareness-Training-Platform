@@ -248,6 +248,16 @@ describe('OrganisationInformationPage Integration', () => {
   it('renders organisation information for ORGANISATION_ADMIN without calling platform APIs or rendering platform tabs', async () => {
     const platformDetailSpy = vi.spyOn(service, 'getPlatformOrganisationDetail');
     const platformRequestSpy = vi.spyOn(service, 'getPlatformOrganisationRequestDetails');
+    const ownOrgDetailSpy = vi.spyOn(service, 'getOwnOrganisationDetail').mockResolvedValue({
+      id: 'org-123-abc',
+      name: 'Protea Security Gauteng',
+      status: 'ACTIVE',
+      description: 'Gauteng cybersecurity security provider',
+      approximateSize: 120,
+      website: 'https://proteasecurity.co.za',
+      registeredTraineeCount: 18,
+      registrationDate: '2026-06-19T00:00:00.000Z',
+    });
 
     mockAuthContext = {
       role: 'ORGANISATION_ADMIN',
@@ -265,8 +275,14 @@ describe('OrganisationInformationPage Integration', () => {
     ).toBeInTheDocument();
     expect(screen.queryByText(/^Status:/i)).not.toBeInTheDocument();
     expect(screen.getByLabelText(/Status/i)).toHaveValue('Active');
+    expect(ownOrgDetailSpy).toHaveBeenCalledWith('org-123-abc', 'mock-token-xyz');
     expect(platformDetailSpy).not.toHaveBeenCalled();
     expect(platformRequestSpy).not.toHaveBeenCalled();
+    expect(screen.getByDisplayValue('Gauteng cybersecurity security provider')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('https://proteasecurity.co.za')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('120')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('18')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('2026-06-19')).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: /Representative Information/i }),
     ).not.toBeInTheDocument();

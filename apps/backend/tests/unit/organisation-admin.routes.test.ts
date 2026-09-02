@@ -24,6 +24,7 @@ const serviceMock = vi.hoisted(() => {
   return {
     OrganisationAdminServiceError: MockOrganisationAdminServiceError,
     getOrganisationAdmins: vi.fn(),
+    getOwnOrganisation: vi.fn(),
     createAdminPromotion: vi.fn(),
     changeAdminPermissions: vi.fn(),
     removeAdmin: vi.fn(),
@@ -61,6 +62,26 @@ describe('organisation admin routes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     clearOrganisationAdminRateLimitStores();
+  });
+
+  it('gets own organisation details for the authenticated actor and organisation', async () => {
+    const orgDetail = {
+      id: organisationId,
+      name: 'Acme Security',
+      description: 'Leading provider of training',
+      website: 'https://acme.example.test',
+      approximateSize: 200,
+      registeredTraineeCount: 25,
+      registrationDate: '2026-05-16T09:00:00.000Z',
+      status: 'ACTIVE',
+    };
+    serviceMock.getOwnOrganisation.mockResolvedValue(orgDetail);
+
+    const response = await request(createApp()).get(`/organisations/${organisationId}`);
+
+    expect(response.status).toBe(200);
+    expect(serviceMock.getOwnOrganisation).toHaveBeenCalledWith(actorUserId, organisationId);
+    expect(response.body).toEqual(orgDetail);
   });
 
   it('lists organisation admins for the authenticated actor and organisation', async () => {
