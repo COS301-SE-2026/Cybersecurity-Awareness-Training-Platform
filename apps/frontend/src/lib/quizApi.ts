@@ -31,6 +31,12 @@ export type QuizQuestion = {
   options: QuizOption[];
 };
 
+export type CurrentQuizAttemptSummary = {
+  attemptId: string;
+  status: string;
+  hasResult: boolean;
+};
+
 export type CampaignItemQuiz = {
   id: string;
   campaignItemId: string;
@@ -41,6 +47,7 @@ export type CampaignItemQuiz = {
   difficultyLevel?: string | null;
   status?: string | null;
   questions: QuizQuestion[];
+  currentAttempt?: CurrentQuizAttemptSummary | null;
 };
 
 export type StartQuizAttemptResponse = {
@@ -162,6 +169,7 @@ function normaliseQuiz(rawQuiz: RawCampaignItemQuiz): CampaignItemQuiz {
     passThresholdPercentage: rawQuiz.passThresholdPercentage,
     difficultyLevel: rawQuiz.difficultyLevel,
     status: rawQuiz.status,
+    currentAttempt: rawQuiz.currentAttempt ?? null,
     questions: rawQuiz.questions.map((question, questionIndex) => {
       const options = question.options ?? question.answerOptions ?? [];
 

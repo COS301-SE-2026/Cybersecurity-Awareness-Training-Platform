@@ -1,4 +1,5 @@
 import type {
+  OwnOrganisationDetailDto,
   PlatformOrganisationDetailDto,
   PlatformOrganisationRequestDetailsResponseDto,
   ResendInitialAdminSetupResponseDto,
@@ -7,6 +8,15 @@ import { apiClient } from '../lib/apiClient';
 
 // helper service for fetching org details and sending resend setup mail to backend
 // make sure token is passed in header for platform admin permissions check
+
+export async function getOwnOrganisationDetail(
+  organisationId: string,
+  token: string,
+): Promise<OwnOrganisationDetailDto> {
+  return apiClient.get<OwnOrganisationDetailDto>(`/organisations/${organisationId}`, {
+    authToken: token,
+  });
+}
 
 export async function getPlatformOrganisationDetail(
   organisationId: string,
