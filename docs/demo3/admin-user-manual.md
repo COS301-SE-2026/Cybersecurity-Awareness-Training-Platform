@@ -27,7 +27,7 @@ Screenshots referenced in this manual are catalogued under [`user-interface/`](u
   - [Build or Edit a Campaign Draft](#build-or-edit-a-campaign-draft)
   - [Manage the Campaign Lifecycle](#manage-the-campaign-lifecycle)
   - [Assign Campaigns to Organisation Trainees](#assign-campaigns-to-organisation-trainees)
-  - [Review Campaign Statistics](#review-campaign-statistics)
+  - [Review Campaign Insights](#review-campaign-insights)
 - [Insightful Phish Admin Tasks](#insightful-phish-admin-tasks)
   - [Review Organisation Requests](#review-organisation-requests)
   - [Review Request or Organisation Details](#review-request-or-organisation-details)
@@ -413,33 +413,72 @@ Organisation Admins manage their Organisation's information, security preference
 
 ### Assign Campaigns to Organisation Trainees
 
-**Audience:** Organisation Admins with Campaign assignment permission.
+**Audience:** Organisation Admins.
 
-**Preconditions:** the Organisation has eligible Organisation Trainees and assignable Campaigns, and the application exposes a completed assignment entry point for your role.
+**Preconditions:** the Organisation has at least one eligible active Organisation Trainee and at least one assignable active Campaign.
 
-**Navigation:** use the assignment action shown by the Organisation management area when that action is available.
+**Required permission:** Assign Campaigns.
 
-The current Demo 3 UI includes a three-step assignment screen with **Organisation Trainee Selection**, **Training Campaign Selection**, and **Review Campaign Assignment** views. The final submit path is not presented here as a completed user workflow until it is exposed as a finished action from the application.
+**Navigation:** select **Assign Training Campaigns** from the Organisation Admin navigation.
 
-**Expected result:** when the completed assignment action is exposed in the integrated UI, the user should be able to select trainees, select Campaigns, review the total assignment count, and submit without resetting existing progress.
+**Purpose:** assign one or more active Campaigns to eligible Organisation Trainees through a reviewed batch operation.
 
-**Warning:** assignment changes who can access Campaign content. Confirm the selected trainees and Campaigns before completing an assignment in a completed flow.
+1. On **1. Organisation Trainee Selection**, use search and pagination to find eligible trainees.
+2. Select each trainee who should receive the Campaigns, then select **Continue**.
+3. On **2. Training Campaign Selection**, review each Campaign's current assignment count and select the active Campaigns to assign.
+4. Select **Continue**.
+5. On **3. Review Assignment**, confirm the selected trainees, selected Campaigns, and calculated total number of assignments.
+6. Select **Complete Assignment**.
+7. In **Confirm Campaign Assignment**, check the trainee, Campaign, and total assignment counts, then select **Confirm Assignment**.
+8. Review the result message showing how many assignments were created and how many requested combinations were already assigned.
 
-**Troubleshooting:** if the assignment action is not visible, the completed flow may not be enabled for your role yet, your account may not have Campaign assignment permission, or the Organisation may not have eligible trainees and Campaigns.
+**Expected result:** new trainee-and-Campaign combinations are created. Existing assignments are reported as already assigned and their progress is not reset.
 
-### Review Campaign Statistics
+**Warning:** assignment gives the selected trainees access to Campaign content. Review both lists and the total assignment count before confirming. Leaving the flow discards unsubmitted selections when you confirm that you want to leave.
+
+**Troubleshooting:**
+
+- If no trainees or Campaigns appear, clear the search, check other result pages, and confirm that eligible active records exist.
+- If a selected trainee becomes disabled or unavailable, the flow returns to trainee selection so you can refresh the choice.
+- If a selected Campaign becomes inactive or unavailable, the flow returns to Campaign selection.
+- If the result reports already-assigned combinations, no duplicate assignment is created; review only the newly created count.
+- If the action is absent, confirm that your role still has Assign Campaigns permission.
+
+### Review Campaign Insights
 
 **Audience:** Organisation Admins with Campaign visibility permission.
 
-**Preconditions:** Campaign statistics must be exposed from a role-appropriate Campaign page.
+**Preconditions:** the Organisation Campaign is active or otherwise exposes its insights action, and Campaign statistics are available to your role.
 
-**Navigation:** use the statistics or reporting action shown by the Campaign page.
+**Required permission:** View Campaigns or Manage Campaigns. Unassignment additionally requires Assign Campaigns and row-level action eligibility.
 
-The current Demo 3 UI contains Campaign management and trainee Campaign activity pages, but no separate Campaign statistics navigation label or statistics page is exposed as a normal user workflow yet.
+**Navigation:** **Campaigns** > **View Campaign** > **View Assigned Trainees & Insights**.
 
-**Expected result:** when a statistics view is added to the integrated UI, it should be reachable from the Campaign page and should show progress or outcome information without exposing private trainee data unnecessarily.
+**Purpose:** review Campaign participation and progress, then remove an assignment when the permitted destructive action is necessary.
 
-**Troubleshooting:** if you cannot find statistics, use the Campaign list and Campaign detail pages for current lifecycle and item information, then check whether the statistics feature has been enabled for your role.
+1. Open the Organisation Campaign from **Campaigns**.
+2. Select **View Assigned Trainees & Insights**.
+3. Review the Campaign identity, status, duration, type, owner, and description.
+4. Review the summary values for **Assigned**, **Started**, **Completed**, **Progression**, and **Quiz Average**.
+5. Use the **Assigned Trainees** table to compare each trainee's progress percentage, completed item count, quiz average, and status.
+6. Use the table pagination when more assigned trainees are available.
+7. Select **Back to Campaign** when you have finished reviewing the insights.
+
+**Expected result:** the page shows authoritative Campaign summary metrics and the current paginated trainee progress rows. A missing quiz average is shown as unavailable rather than as a calculated score.
+
+#### Unassign a Trainee
+
+1. Find the trainee in the **Assigned Trainees** table.
+2. Select **Unassign** when the row offers the action.
+3. In **Unassign Trainee from Campaign**, verify the trainee and Campaign names.
+4. Select **Unassign**, or select **Keep Assigned** to cancel.
+5. Wait for the insights and trainee table to refresh.
+
+**Expected result:** the selected assignment is removed and the summary metrics and trainee list are reloaded from the platform.
+
+**Warning:** unassigning a trainee permanently removes that trainee's progress for the Campaign. This cannot be treated as a temporary pause. Confirm the correct trainee and Campaign before proceeding.
+
+**Troubleshooting:** use **Retry Statistics** after a retryable loading failure. If **Unassign** is absent, the assignment or your permission does not allow it. If another administrator changed the assignment, refresh the insights before trying again. Wait before retrying when the page reports too many requests.
 
 ## Insightful Phish Admin Tasks
 
