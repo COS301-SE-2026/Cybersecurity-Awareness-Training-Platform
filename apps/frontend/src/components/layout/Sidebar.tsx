@@ -1,8 +1,6 @@
-import { useState } from 'react';
 import type { ReactElement } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
-  Menu,
   SchoolOutlined,
   BusinessOutlined,
   AdminPanelSettingsOutlined,
@@ -19,7 +17,6 @@ type ExternalNavItem = { icon: ReactElement; label: string; href: string };
 type NavItem = InternalNavItem | ExternalNavItem;
 
 function Sidebar() {
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { user, authContext, permissions } = useAuth();
@@ -117,44 +114,15 @@ function Sidebar() {
   return (
     <aside
       style={{
-        width: drawerOpen ? '360px' : '84px',
+        width: '84px',
         backgroundColor: '#25004E',
-        transition: '0.22s ease',
         display: 'flex',
         flexDirection: 'column',
-        paddingTop: '1.4rem',
         color: 'white',
         flexShrink: 0,
         boxSizing: 'border-box',
       }}
     >
-      {/* HAMBUrGER */}
-
-      <button
-        onClick={() => setDrawerOpen(!drawerOpen)}
-        style={{
-          width: '100%',
-          height: '56px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: drawerOpen ? 'flex-start' : 'center',
-          paddingLeft: drawerOpen ? '1.56rem' : '0',
-          marginLeft: '0.21rem',
-          background: 'none',
-          border: 'none',
-          color: 'white',
-          cursor: 'pointer',
-          marginBottom: '1rem',
-          boxSizing: 'border-box',
-        }}
-      >
-        <Menu
-          style={{
-            fontSize: '2.2rem',
-          }}
-        />
-      </button>
-
       {/* NAV ItEMS */}
 
       {navItems.map((item) => {
@@ -173,17 +141,18 @@ function Sidebar() {
             type={'path' in item ? 'button' : undefined}
             aria-label={item.label}
             aria-current={isActive ? 'page' : undefined}
+            title={item.label}
             style={{
               display: 'flex',
               alignItems: 'center',
-              justifyContent: drawerOpen ? 'flex-start' : 'center',
-              gap: '1.38rem',
-              height: '56px',
-              paddingLeft: drawerOpen ? '1.56rem' : '0',
+              justifyContent: 'center',
+              height: '84px',
+              paddingLeft: '0',
               paddingRight: '0',
               paddingTop: '0',
               paddingBottom: '0',
               marginBottom: '1.16rem',
+              flexShrink: 0,
               cursor: 'pointer',
               whiteSpace: 'nowrap',
               color: 'white',
@@ -214,24 +183,6 @@ function Sidebar() {
                 />
               )}
             </div>
-
-            {/* LABEL */}
-
-            {drawerOpen && (
-              <span
-                style={{
-                  fontFamily: 'Jost',
-                  fontSize: '1.6rem',
-                  fontWeight: 400,
-                  letterSpacing: '0.012em',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  textAlign: 'left',
-                }}
-              >
-                {item.label}
-              </span>
-            )}
           </NavigationItem>
         );
       })}
