@@ -14,8 +14,15 @@ Screenshots referenced in this manual are catalogued under [`user-interface/`](u
 - [Organisation Admin Tasks](#organisation-admin-tasks)
   - [Review Organisation Information](#review-organisation-information)
   - [Update Organisation Security Preferences](#update-organisation-security-preferences)
-  - [Review Organisation Trainees](#review-organisation-trainees)
-  - [Review Organisation Administrators](#review-organisation-administrators)
+  - [Invite an Organisation Trainee](#invite-an-organisation-trainee)
+  - [Resend a Trainee Invitation](#resend-a-trainee-invitation)
+  - [Revoke a Trainee Invitation](#revoke-a-trainee-invitation)
+  - [Disable an Organisation Trainee](#disable-an-organisation-trainee)
+  - [Re-enable an Organisation Trainee](#re-enable-an-organisation-trainee)
+  - [View Administrator Permissions](#view-administrator-permissions)
+  - [Promote an Organisation Trainee](#promote-an-organisation-trainee)
+  - [Edit Administrator Permissions](#edit-administrator-permissions)
+  - [Remove Administrator Privileges](#remove-administrator-privileges)
   - [Manage Campaigns](#manage-campaigns)
   - [Build or Edit a Campaign Draft](#build-or-edit-a-campaign-draft)
   - [Assign Campaigns to Organisation Trainees](#assign-campaigns-to-organisation-trainees)
@@ -36,7 +43,11 @@ Organisation Admins manage their Organisation's information, security preference
 
 **Preconditions:** you are signed in as an Organisation Admin.
 
+**Required permission:** Organisation information must be available to your role.
+
 **Navigation:** **Organisation Information**.
+
+**Purpose:** review the Organisation record, representative, administrators, and lifecycle history available to your role.
 
 1. Open **Organisation Information**.
 2. Use the tabs to review basic information, representative information, administrators, and timeline details.
@@ -45,6 +56,8 @@ Organisation Admins manage their Organisation's information, security preference
 
 **Note:** Organisation status and timeline entries are review information. They should not be edited from this page unless the UI provides an explicit action.
 
+**Troubleshooting:** if a tab or value is unavailable, confirm that you are viewing your own Organisation and refresh the page. Contact an Insightful Phish Admin when the Organisation record itself needs correction.
+
 **Screenshots:**
 
 ![Organisation information](user-interface/organisation-admin/01-organisation-information.png)
@@ -52,11 +65,15 @@ Organisation Admins manage their Organisation's information, security preference
 
 ### Update Organisation Security Preferences
 
-**Audience:** Organisation Admin with the required permissions.
+**Audience:** Organisation Admin.
 
-**Preconditions:** you are signed in as an Organisation Admin and the setting is editable for your role.
+**Preconditions:** you are signed in and the Organisation is in a state that permits security changes.
+
+**Required permission:** the page must show Organisation security preferences as editable for your account.
 
 **Navigation:** **Security Preferences**.
+
+**Purpose:** configure Organisation-wide account and session policies shown by the page.
 
 1. Open **Security Preferences**.
 2. Review any read-only message at the top of the page.
@@ -72,63 +89,221 @@ Organisation Admins manage their Organisation's information, security preference
 
 **Screenshot:** ![Organisation security preferences](user-interface/organisation-admin/03-security-preferences.png)
 
-### Review Organisation Trainees
+### Invite an Organisation Trainee
 
-**Audience:** Organisation Admin with trainee-management permissions.
+**Audience:** Organisation Admin.
 
-**Preconditions:** you are signed in as an Organisation Admin.
+**Preconditions:** the person is not already an active or disabled member of the Organisation, and the Organisation permits invitations.
+
+**Required permission:** Invite Organisation Trainees.
 
 **Navigation:** **Trainees**.
 
+**Purpose:** send a new Organisation Trainee invitation to an eligible email address.
+
 1. Open **Trainees**.
-2. Use search or filters to find a trainee or invitation.
-3. Open the invite trainee modal when a new trainee invitation needs to be prepared.
-4. Follow any confirmation prompts shown for row actions.
+2. Select **Invite Trainee**.
+3. Enter the trainee's email address and optional name details shown by the form.
+4. Submit the invitation.
+5. Check the result message before closing the modal.
 
-**Expected result:** the platform shows current trainee memberships and actionable invitations according to their lifecycle state.
+**Expected result:** an actionable invitation row appears and the invitation email is queued when delivery preparation succeeds.
 
-**Available actions:**
+**Note:** a queued invitation is not proof that the email has already been delivered.
 
-- Use **Invite Trainee** when the Organisation is allowed to send a new trainee invitation.
-- Use **Log Out Session** or session-related account controls from Account Management, not from the trainee table.
-- Use **Disable Trainee** only when the UI shows that the action is available and you can confirm it with your password.
-- Use **Revoke Invitation** for an invitation that should no longer be usable.
-- Use resend actions only for invitations that still support setup or acceptance.
-
-**Warning:** disabling a trainee can revoke active sessions. Revoking an invitation prevents that invitation link from being used.
-
-**Troubleshooting:** if invitation actions are unavailable, check your permissions, the Organisation status, and the invitation state. Accepted or completed invitations may remain as history but should not be treated as new actionable invites.
+**Troubleshooting:** if the request is rejected, check whether the email belongs to an existing or disabled member, whether another actionable invitation exists, and whether the Organisation still allows invitations.
 
 **Screenshots:**
 
 ![Organisation trainee management](user-interface/organisation-admin/04-trainee-management.png)
 ![Invite trainee modal](user-interface/organisation-admin/05-invite-trainee-modal.png)
 
-### Review Organisation Administrators
+### Resend a Trainee Invitation
 
-**Audience:** Organisation Admin with administrator-management permissions.
+**Audience:** Organisation Admin.
 
-**Preconditions:** you are signed in as an Organisation Admin.
+**Preconditions:** the row represents an invitation whose current lifecycle state permits resend.
+
+**Required permission:** Invite Organisation Trainees.
+
+**Navigation:** **Trainees** > locate the invitation row.
+
+**Purpose:** replace an eligible invitation link and queue a fresh invitation email.
+
+1. Find the invitation using search or the status filter.
+2. Select **Resend** from the row actions when it is available.
+3. Confirm the resend action.
+4. Wait for the refreshed invitation state.
+
+**Expected result:** the previous unused link is replaced and the list refreshes with the authoritative invitation state.
+
+**Warning:** after a successful resend, the older invitation link should no longer be used.
+
+**Troubleshooting:** resend may be unavailable during a cooldown or after the invitation becomes terminal. Refresh the list if another administrator may have changed it.
+
+### Revoke a Trainee Invitation
+
+**Audience:** Organisation Admin.
+
+**Preconditions:** the row represents an invitation that is still eligible for revocation.
+
+**Required permission:** Invite Organisation Trainees.
+
+**Navigation:** **Trainees** > locate the invitation row.
+
+**Purpose:** prevent an outstanding Organisation Trainee invitation from being accepted.
+
+1. Find the invitation.
+2. Select **Revoke** from its row actions.
+3. Review the confirmation dialog.
+4. Select **Revoke Invitation**.
+
+**Expected result:** the invitation becomes unusable and the management list refreshes.
+
+**Warning:** revocation invalidates the outstanding invitation link. Send a new invitation only after confirming that access should be offered again.
+
+**Troubleshooting:** if the invitation was already accepted, completed, revoked, or changed by another administrator, refresh the list and use the actions shown for its current state.
+
+### Disable an Organisation Trainee
+
+**Audience:** Organisation Admin.
+
+**Preconditions:** the row represents an active Organisation Trainee membership that is eligible for disablement.
+
+**Required permission:** Remove Organisation Trainees.
+
+**Navigation:** **Trainees** > locate the active membership row.
+
+**Purpose:** suspend the existing Organisation membership without deleting or reinviting the trainee.
+
+1. Select **Disable** on the active trainee row.
+2. Review the named trainee and the access warning.
+3. Enter your current administrator password.
+4. Add a reason when the form provides that option.
+5. Confirm the disable action.
+
+**Expected result:** the existing membership is marked **Disabled**, active access is revoked, and the refreshed row remains a membership rather than becoming an invitation.
+
+**Warning:** disabling a trainee revokes their active sessions and can interrupt work in progress.
+
+**Troubleshooting:** an incorrect password, changed membership state, insufficient permission, or inactive Organisation can prevent the action. Refresh the list before retrying a conflict.
+
+### Re-enable an Organisation Trainee
+
+**Audience:** Organisation Admin.
+
+**Preconditions:** the row represents an existing disabled Organisation Trainee membership that is eligible for re-enablement.
+
+**Required permission:** Remove Organisation Trainees.
+
+**Navigation:** **Trainees** > locate the disabled membership row.
+
+**Purpose:** return the existing disabled membership to active status without creating another profile or invitation.
+
+1. Select **Re-enable** on the disabled trainee row.
+2. Review the membership and session warning.
+3. Enter your current administrator password.
+4. Select **Re-enable Trainee**.
+5. Wait for the authoritative trainee list to refresh.
+
+**Expected result:** the same membership returns to **Active** and its current disable details are cleared.
+
+**Warning:** previously revoked sessions are not restored. The trainee must sign in again.
+
+**Troubleshooting:** if the membership is no longer disabled, belongs to another Organisation, or your password or permission is rejected, the action will not proceed. Refresh the list to reconcile stale state.
+
+### View Administrator Permissions
+
+**Audience:** Organisation Admin.
+
+**Preconditions:** you are signed in and the administrator list is available.
+
+**Required permission:** View Organisation Admins.
 
 **Navigation:** **Administrators**.
 
+**Purpose:** inspect the permissions currently assigned to an Organisation Admin.
+
 1. Open **Administrators**.
-2. Search or filter the administrator list.
-3. Select **View Permissions** to inspect a user's visible permissions.
-4. Open the invite or edit permissions modal when needed.
+2. Search for the administrator when necessary.
+3. Select **View Permissions** on the row.
+4. Review the displayed permission names.
 
-**Expected result:** the platform shows Organisation administrators and available invitation or permission actions.
+**Expected result:** the page shows the administrator's current permissions without changing them.
 
-**Available actions:**
+**Troubleshooting:** if the page or action is unavailable, confirm your view permission and Organisation context, then refresh the list.
 
-- Use **Invite Organisation Administrator** to invite a new administrator when you have the required permission.
-- Use **View Permissions** to inspect visible permissions for an administrator.
-- Use **Edit Permissions** to change an administrator's permission set when the action is available.
-- Use removal or disable actions only when the UI offers them and the action is appropriate for the Organisation.
+### Promote an Organisation Trainee
 
-**Warning:** administrator permissions can grant access to sensitive Organisation settings, invitations, and Campaign workflows. Review selected permissions before saving.
+**Audience:** Organisation Admin.
 
-**Troubleshooting:** if the invite or edit action is hidden, your account does not have the required permission or the current Organisation state does not allow that action.
+**Preconditions:** the target email belongs to an active Organisation Trainee in the same Organisation, and no active administrator membership or pending promotion already exists for that user.
+
+**Required permission:** Invite Organisation Admins.
+
+**Navigation:** **Administrators**.
+
+**Purpose:** offer an existing Organisation Trainee an Organisation Admin role with a selected permission set.
+
+1. Open **Administrators**.
+2. Open the administrator promotion form.
+3. Enter the existing trainee's email address.
+4. Select at least one appropriate permission.
+5. Submit the promotion.
+6. Ask the trainee to review and accept the role-change invitation sent to their email address.
+
+**Expected result:** a promotion invitation is created for the existing trainee. The user becomes an Organisation Admin only after completing the supported acceptance flow.
+
+**Warning:** this workflow grants administrative access. Confirm the trainee's identity and select only the permissions required for their responsibilities.
+
+**Troubleshooting:** the promotion is rejected when the email is not an active trainee in the Organisation, the user is already an active admin, or a promotion is already pending. Refresh the list before retrying stale state.
+
+### Edit Administrator Permissions
+
+**Audience:** Organisation Admin.
+
+**Preconditions:** the target is an active Organisation Admin whose permissions your account is allowed to change.
+
+**Required permission:** Change Organisation Admin Permissions.
+
+**Navigation:** **Administrators** > locate the administrator row.
+
+**Purpose:** adjust the administrator's Organisation permissions without changing their account identity.
+
+1. Select **Edit Permissions**.
+2. Review the administrator named in the modal.
+3. Select or clear permissions according to the person's responsibilities.
+4. Select **Save Permissions**.
+
+**Expected result:** the updated authoritative permission set appears in the administrator list.
+
+**Warning:** permissions can grant access to security settings, people management, and Campaign workflows. Do not grant broader access than the role requires.
+
+**Troubleshooting:** protected or critical permission rules may prevent an invalid change. Refresh the list if the administrator or your own permissions changed while the modal was open.
+
+### Remove Administrator Privileges
+
+**Audience:** Organisation Admin.
+
+**Preconditions:** the target is an Organisation Admin eligible for removal and is not protected by the current Organisation administration rules.
+
+**Required permission:** Remove Organisation Admins.
+
+**Navigation:** **Administrators** > locate the administrator row.
+
+**Purpose:** remove Organisation Admin access from the selected user through the supported lifecycle operation.
+
+1. Select **Remove** on the administrator row.
+2. Review the named administrator and destructive-action warning.
+3. Enter your current administrator password.
+4. Type `REMOVE` exactly in the confirmation field.
+5. Confirm the removal.
+
+**Expected result:** the administrator privileges are removed and the authoritative administrator list refreshes.
+
+**Warning:** this is a security-sensitive access change and can revoke the person's administrative sessions. Confirm the correct person before continuing.
+
+**Troubleshooting:** removal can fail when the password is wrong, the target or Organisation state changed, the target is protected, or your permission is no longer valid. Refresh before retrying a conflict.
 
 **Screenshots:**
 
