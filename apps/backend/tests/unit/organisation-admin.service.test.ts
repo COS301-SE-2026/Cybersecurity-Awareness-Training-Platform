@@ -3,6 +3,7 @@ import {
   changeAdminPermissions,
   createAdminPromotion,
   getOrganisationAdmins,
+  getOrganisationInformation,
   removeAdmin,
 } from '../../src/services/organisation-admin.service.js';
 
@@ -26,6 +27,28 @@ const repositoryMock = vi.hoisted(() => ({
   updatePromotionInvitationStatus: vi.fn(),
 }));
 
+const orgRepositoryMock = vi.hoisted(() => ({
+  findOrganisationWithCount: vi.fn(),
+}));
+
+const orgScopeServiceMock = vi.hoisted(() => {
+  class MockOrganisationScopeServiceError extends Error {
+    constructor(
+      public readonly statusCode: 401 | 403 | 404,
+      public readonly error: string,
+      message: string,
+    ) {
+      super(message);
+      this.name = 'OrganisationScopeServiceError';
+    }
+  }
+
+  return {
+    requireOrganisationAdminScope: vi.fn(),
+    OrganisationScopeServiceError: MockOrganisationScopeServiceError,
+  };
+});
+
 const actionTokenMock = vi.hoisted(() => ({
   issueActionToken: vi.fn(),
 }));
@@ -47,6 +70,8 @@ const passwordMock = vi.hoisted(() => ({
 }));
 
 vi.mock('../../src/repositories/organisation-admin.repository.js', () => repositoryMock);
+vi.mock('../../src/repositories/organisation.repository.js', () => orgRepositoryMock);
+vi.mock('../../src/services/organisation-scope.service.js', () => orgScopeServiceMock);
 vi.mock('../../src/services/action-token.service.js', () => actionTokenMock);
 vi.mock('../../src/services/audit-log.service.js', () => auditLogMock);
 vi.mock('../../src/services/auth-email-hook.service.js', () => emailHookMock);
@@ -141,6 +166,90 @@ describe('organisation admin service', () => {
       jobId: 'email-job-1',
     });
     passwordMock.verifyPassword.mockResolvedValue(true);
+  });
+
+  describe('getOrganisationInformation', () => {
+    it('returns organisation information for an authorised organisation admin', async () => {
+      orgScopeServiceMock.requireOrganisationAdminScope.mockResolvedValue({
+        adminProfileId: actorAdminId,
+        userId: actorUserId,
+        organisationId,
+        grantedPermissions: new Set(['VIEW_ORGANISATION_ADMINS']),
+      });
+
+      orgRepositoryMock.findOrganisationWithCount.mockResolvedValue({
+        id: organisationId,
+        name: 'Cyber Jan Technologies',
+        status: 'ACTIVE',
+        description: 'Consulting',
+        approximateSize: 100,
+        website: 'https://cyberjan.co.za',
+        primaryDomain: 'cyberjan.co.za',
+        createdAt: new Date('2026-07-01T08:00:00.000Z'),
+        updatedAt: new Date('2026-07-01T08:00:00.000Z'),
+        _count: {
+          adminProfiles: 2,
+          traineeProfiles: 42,
+        },
+      });
+
+      const result = await getOrganisationInformation(actorUserId, organisationId);
+
+      expect(orgScopeServiceMock.requireOrganisationAdminScope).toHaveBeenCalledWith({
+        userId: actorUserId,
+        organisationId,
+      });
+      expect(orgRepositoryMock.findOrganisationWithCount).toHaveBeenCalledWith(organisationId);
+      expect(result).toEqual({
+        id: organisationId,
+        name: 'Cyber Jan Technologies',
+        status: 'ACTIVE',
+        detailType: 'active organisation',
+        description: 'Consulting',
+        approximateSize: 100,
+        website: 'https://cyberjan.co.za',
+        primaryDomain: 'cyberjan.co.za',
+        createdAt: '2026-07-01T08:00:00.000Z',
+        updatedAt: '2026-07-01T08:00:00.000Z',
+        _count: {
+          traineeProfiles: 42,
+        },
+      });
+    });
+
+    it('throws 404 INACCESSIBLE_ORGANISATION when organisation is not found in repository', async () => {
+      orgScopeServiceMock.requireOrganisationAdminScope.mockResolvedValue({
+        adminProfileId: actorAdminId,
+        userId: actorUserId,
+        organisationId,
+        grantedPermissions: new Set(),
+      });
+      orgRepositoryMock.findOrganisationWithCount.mockResolvedValue(null);
+
+      await expect(getOrganisationInformation(actorUserId, organisationId)).rejects.toThrow(
+        expect.objectContaining({
+          statusCode: 404,
+          error: 'INACCESSIBLE_ORGANISATION',
+        }),
+      );
+    });
+
+    it('propagates scope error when actor is not authorised or organisation is inactive', async () => {
+      orgScopeServiceMock.requireOrganisationAdminScope.mockRejectedValue(
+        new orgScopeServiceMock.OrganisationScopeServiceError(
+          404,
+          'INACCESSIBLE_ORGANISATION',
+          'Inaccessible organisation',
+        ),
+      );
+
+      await expect(getOrganisationInformation(actorUserId, 'other-org')).rejects.toThrow(
+        expect.objectContaining({
+          statusCode: 404,
+          error: 'INACCESSIBLE_ORGANISATION',
+        }),
+      );
+    });
   });
 
   it('lists admins with sorted permissions and actor permission keys', async () => {

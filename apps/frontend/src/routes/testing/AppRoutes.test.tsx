@@ -383,6 +383,20 @@ describe('AppRoutes', () => {
 
     mockedGetOrganisationCampaignStatistics.mockResolvedValue(CAMPAIGN_STATISTICS_RESPONSE);
 
+    vi.spyOn(organisationDetailsService, 'getOrganisationInformation').mockResolvedValue({
+      id: 'org-gauteng-123',
+      name: 'Protea Security Gauteng',
+      status: 'ACTIVE',
+      detailType: 'active organisation',
+      description: 'Cybersecurity service provider in Gauteng',
+      approximateSize: 100,
+      website: 'https://proteasecurity.co.za',
+      primaryDomain: 'proteasecurity.co.za',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-02T00:00:00.000Z',
+      _count: { traineeProfiles: 45 },
+    });
+
     vi.spyOn(organisationDetailsService, 'getPlatformOrganisationDetail').mockResolvedValue({
       id: 'org-gauteng-123',
       name: 'Protea Security Gauteng',

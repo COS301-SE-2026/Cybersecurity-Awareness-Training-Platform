@@ -23,6 +23,7 @@ const serviceMock = vi.hoisted(() => {
 
   return {
     OrganisationAdminServiceError: MockOrganisationAdminServiceError,
+    getOrganisationInformation: vi.fn(),
     getOrganisationAdmins: vi.fn(),
     createAdminPromotion: vi.fn(),
     changeAdminPermissions: vi.fn(),
@@ -61,6 +62,34 @@ describe('organisation admin routes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     clearOrganisationAdminRateLimitStores();
+  });
+
+  it('retrieves organisation information for the authenticated actor and organisation', async () => {
+    const mockOrgInfo = {
+      id: organisationId,
+      name: 'Cyber Jan Technologies',
+      status: 'ACTIVE',
+      detailType: 'active organisation',
+      description: 'Consulting',
+      approximateSize: 100,
+      website: 'https://cyberjan.co.za',
+      primaryDomain: 'cyberjan.co.za',
+      createdAt: '2026-07-01T08:00:00.000Z',
+      updatedAt: '2026-07-01T08:00:00.000Z',
+      _count: {
+        traineeProfiles: 42,
+      },
+    };
+    serviceMock.getOrganisationInformation.mockResolvedValue(mockOrgInfo);
+
+    const response = await request(createApp()).get(`/organisations/${organisationId}`);
+
+    expect(response.status).toBe(200);
+    expect(serviceMock.getOrganisationInformation).toHaveBeenCalledWith(
+      actorUserId,
+      organisationId,
+    );
+    expect(response.body).toEqual(mockOrgInfo);
   });
 
   it('lists organisation admins for the authenticated actor and organisation', async () => {

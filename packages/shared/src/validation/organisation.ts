@@ -206,3 +206,30 @@ export const platformOrganisationDetailSchema = z
   .strict();
 
 export type PlatformOrganisationDetailDto = z.infer<typeof platformOrganisationDetailSchema>;
+
+export const organisationInformationSchema = z
+  .object({
+    id: z.string().uuid(),
+    name: z.string(),
+    status: organisationStatusSchema,
+    detailType: z.enum([
+      'onboarding organisation',
+      'active organisation',
+      'suspended organisation',
+      'disabled organisation',
+    ]),
+    description: z.string().nullable(),
+    approximateSize: z.number().int().nullable(),
+    website: z.string().nullable(),
+    primaryDomain: z.string().nullable(),
+    createdAt: z.string().datetime(),
+    updatedAt: z.string().datetime(),
+    _count: z
+      .object({
+        traineeProfiles: z.number().int().nonnegative(),
+      })
+      .strict(),
+  })
+  .strict();
+
+export type OrganisationInformationDto = z.infer<typeof organisationInformationSchema>;

@@ -8,6 +8,7 @@ import {
   initialAdminSetupStatusSchema,
   organisationAdminSummarySchema,
   platformOrganisationDetailSchema,
+  organisationInformationSchema,
 } from './organisation.js';
 import {
   getOrganisationRequestDetailsParamsSchema,
@@ -218,6 +219,32 @@ describe('organisation validation schemas', () => {
       expect(platformOrganisationRequestDetailsResponseSchema.parse(validRequestDetail)).toEqual(
         validRequestDetail,
       );
+    });
+
+    it('validates organisationInformationSchema', () => {
+      const validOrgInfo = {
+        id: validUuid,
+        name: 'Target Org',
+        status: 'ACTIVE',
+        detailType: 'active organisation',
+        description: 'A mock organization',
+        approximateSize: 150,
+        website: 'https://example.com',
+        primaryDomain: 'example.com',
+        createdAt: '2026-07-01T08:00:00.000Z',
+        updatedAt: '2026-07-01T08:00:00.000Z',
+        _count: {
+          traineeProfiles: 15,
+        },
+      };
+
+      expect(organisationInformationSchema.parse(validOrgInfo)).toEqual(validOrgInfo);
+      expect(() =>
+        organisationInformationSchema.parse({
+          ...validOrgInfo,
+          admins: [],
+        }),
+      ).toThrow();
     });
   });
 });

@@ -8,6 +8,7 @@ import {
 import { Router } from 'express';
 import rateLimit, { MemoryStore } from 'express-rate-limit';
 import {
+  getOrganisationInformation,
   listOrganisationAdmins,
   promoteOrganisationAdmin,
   removeOrganisationAdmin,
@@ -60,6 +61,41 @@ export function clearOrganisationAdminRateLimitStores() {
   void organisationAdminMutationRateLimitStore.resetAll();
   void organisationAdminSensitiveActionRateLimitStore.resetAll();
 }
+
+/**
+ * @openapi
+ * /organisations/{organisationId}:
+ *   get:
+ *     tags: [Organisation Admins]
+ *     summary: Get organisation information
+ *     description: Returns organisation information for the authenticated organisation admin.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/OrganisationIdPathParam'
+ *     responses:
+ *       200:
+ *         $ref: '#/components/responses/OrganisationInformationOk'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+organisationAdminRouter.get(
+  '/organisations/:organisationId',
+  organisationAdminReadRateLimit,
+  requireAuth,
+  validateParams(organisationIdParamsSchema),
+  asyncHandler(getOrganisationInformation),
+);
 
 /**
  * @openapi

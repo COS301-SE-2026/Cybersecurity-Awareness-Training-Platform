@@ -3,9 +3,11 @@ import {
   changeAdminPermissions,
   createAdminPromotion,
   getOrganisationAdmins,
+  getOrganisationInformation as getOrganisationInformationService,
   OrganisationAdminServiceError,
   removeAdmin,
 } from '../services/organisation-admin.service.js';
+import { OrganisationScopeServiceError } from '../services/organisation-scope.service.js';
 
 function requireActorUserId(req: Request, res: Response): string | null {
   if (!req.auth?.userId) {
@@ -27,6 +29,13 @@ function handleOrganisationAdminError(error: unknown, res: Response) {
     });
   }
 
+  if (error instanceof OrganisationScopeServiceError) {
+    return res.status(error.statusCode).json({
+      error: error.error,
+      message: error.message,
+    });
+  }
+
   throw error;
 }
 
@@ -41,6 +50,23 @@ function requiredParam(req: Request, name: string) {
   }
 
   return value;
+}
+
+export async function getOrganisationInformation(req: Request, res: Response) {
+  const actorUserId = requireActorUserId(req, res);
+  if (!actorUserId) {
+    return;
+  }
+
+  try {
+    const result = await getOrganisationInformationService(
+      actorUserId,
+      requiredParam(req, 'organisationId'),
+    );
+    return res.status(200).json(result);
+  } catch (error) {
+    return handleOrganisationAdminError(error, res);
+  }
 }
 
 export async function listOrganisationAdmins(req: Request, res: Response) {

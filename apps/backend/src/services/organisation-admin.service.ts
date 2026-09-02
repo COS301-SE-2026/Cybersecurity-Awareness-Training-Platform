@@ -2,7 +2,13 @@ import type {
   OrganisationAdminPermissionUpdateRequestDto,
   OrganisationAdminPromotionRequestDto,
   OrganisationAdminRemoveRequestDto,
+  OrganisationInformationDto,
 } from '@insightful-phish/shared';
+import * as OrganisationRepository from '../repositories/organisation.repository.js';
+import {
+  requireOrganisationAdminScope,
+  OrganisationScopeServiceError,
+} from './organisation-scope.service.js';
 import { OrganisationPermissionKey } from '../generated/prisma/enums.js';
 import type { OrganisationPermissionKey as OrganisationPermissionKeyValue } from '../generated/prisma/enums.js';
 import { issueActionToken } from './action-token.service.js';
@@ -52,6 +58,55 @@ export class OrganisationAdminServiceError extends Error {
     super(message);
     this.name = 'OrganisationAdminServiceError';
   }
+}
+
+export async function getOrganisationInformation(
+  actorUserId: string,
+  organisationId: string,
+): Promise<OrganisationInformationDto> {
+  await requireOrganisationAdminScope({
+    userId: actorUserId,
+    organisationId,
+  });
+
+  const organisation = await OrganisationRepository.findOrganisationWithCount(organisationId);
+  if (!organisation) {
+    throw new OrganisationScopeServiceError(
+      404,
+      'INACCESSIBLE_ORGANISATION',
+      'Inaccessible organisation',
+    );
+  }
+
+  let detailType:
+    | 'onboarding organisation'
+    | 'active organisation'
+    | 'suspended organisation'
+    | 'disabled organisation' = 'disabled organisation';
+
+  if (organisation.status === 'PENDING_ONBOARDING') {
+    detailType = 'onboarding organisation';
+  } else if (organisation.status === 'ACTIVE') {
+    detailType = 'active organisation';
+  } else if (organisation.status === 'SUSPENDED') {
+    detailType = 'suspended organisation';
+  }
+
+  return {
+    id: organisation.id,
+    name: organisation.name,
+    status: organisation.status,
+    detailType,
+    description: organisation.description,
+    approximateSize: organisation.approximateSize,
+    website: organisation.website,
+    primaryDomain: organisation.primaryDomain,
+    createdAt: organisation.createdAt.toISOString(),
+    updatedAt: organisation.updatedAt.toISOString(),
+    _count: {
+      traineeProfiles: organisation._count.traineeProfiles,
+    },
+  };
 }
 
 export async function getOrganisationAdmins(actorUserId: string, organisationId: string) {

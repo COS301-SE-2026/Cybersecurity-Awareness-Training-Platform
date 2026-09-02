@@ -70,6 +70,7 @@ const expectedSchemas = [
   'PlatformOrganisationRequestsListResponse',
   'ApproveOrganisationRequest',
   'RejectOrganisationRequest',
+  'OrganisationInformation',
   'PlatformOrganisationDetail',
   'PlatformOrganisationRequestDetailsResponse',
   'OrganisationInitialSetupStatus',
@@ -225,6 +226,7 @@ const expectedResponses = [
   'OrganisationTraineeInvitationResent',
   'OrganisationTraineeInvitationRevoked',
   'OrganisationTraineeDisabled',
+  'OrganisationInformationOk',
 ] as const;
 
 const expectedParameters = [
@@ -352,6 +354,7 @@ const expectedRouteDocs: Array<[HttpMethod, string, string[]]> = [
     '/platform/admins/{userId}/demote',
     ['200', '400', '401', '403', '404', '409', '422', '429', '500'],
   ],
+  ['get', '/organisations/{organisationId}', ['200', '400', '401', '403', '404', '429', '500']],
   ['get', '/organisations/{organisationId}/admins', ['200', '400', '401', '403', '429', '500']],
   [
     'post',

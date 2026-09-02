@@ -8,12 +8,14 @@ import OrganisationTimelinePage from '../components/organisation-information/Org
 import LoadingSpinnerSVG from '../components/LoadingSpinnerSVG';
 import { useAuth } from '../context/useAuth';
 import {
+  getOrganisationInformation,
   getPlatformOrganisationDetail,
   getPlatformOrganisationRequestDetails,
   resendInitialAdminSetup,
 } from '../services/organisation-details.service';
 import type {
   OrganisationAdminSummaryDto,
+  OrganisationInformationDto,
   PlatformOrganisationDetailDto,
   PlatformOrganisationRequestDetailsResponseDto,
   ResendEligibilityDto,
@@ -44,6 +46,30 @@ export interface OrganisationDetailData {
   timeline: TimelineEventDto[];
   isRequestOnly: boolean;
   organisationIdForResend: string | null;
+}
+
+function mapBaseOrganisationFields(data: {
+  id: string;
+  name: string;
+  description: string | null;
+  website: string | null;
+  approximateSize: number | null;
+  createdAt: string;
+  status: string;
+  detailType: string;
+  _count?: { traineeProfiles?: number };
+}) {
+  return {
+    id: data.id,
+    name: data.name,
+    description: data.description || '',
+    website: data.website || '',
+    size: data.approximateSize !== null ? String(data.approximateSize) : '',
+    registeredTrainees: String(data._count?.traineeProfiles ?? 0),
+    registrationDate: data.createdAt,
+    status: data.status,
+    detailType: data.detailType,
+  };
 }
 
 function mapRequestDetailsToState(
@@ -85,15 +111,7 @@ function mapOrganisationDetailsToState(
     : '';
 
   return {
-    id: orgData.id,
-    name: orgData.name,
-    description: orgData.description || '',
-    website: orgData.website || '',
-    size: orgData.approximateSize !== null ? String(orgData.approximateSize) : '',
-    registeredTrainees: String(orgData._count?.traineeProfiles ?? 0),
-    registrationDate: orgData.createdAt,
-    status: orgData.status,
-    detailType: orgData.detailType,
+    ...mapBaseOrganisationFields(orgData),
     representative: {
       fullName: repName,
       email: repEmail,
@@ -104,6 +122,22 @@ function mapOrganisationDetailsToState(
     timeline: orgData.timeline || [],
     isRequestOnly: false,
     organisationIdForResend: orgData.id,
+  };
+}
+
+function mapOrganisationInfoToState(orgData: OrganisationInformationDto): OrganisationDetailData {
+  return {
+    ...mapBaseOrganisationFields(orgData),
+    representative: {
+      fullName: '',
+      email: '',
+    },
+    setupStatus: '',
+    resendEligibility: null,
+    admins: [],
+    timeline: [],
+    isRequestOnly: false,
+    organisationIdForResend: null,
   };
 }
 
@@ -202,36 +236,9 @@ function OrganisationInformationPage() {
 
   const currentTargetIdRef = useRef<string | null>(targetId);
 
-  const orgAdminDetailData: OrganisationDetailData | null = authContext?.organisation
-    ? {
-        id: authContext.organisation.id,
-        name: authContext.organisation.name,
-        description: '',
-        website: '',
-        size: '',
-        registeredTrainees: '',
-        registrationDate: '',
-        status: authContext.organisation.status,
-        detailType: 'active organisation',
-        representative: {
-          fullName: '',
-          email: '',
-        },
-        setupStatus: '',
-        resendEligibility: null,
-        admins: [],
-        timeline: [],
-        isRequestOnly: false,
-        organisationIdForResend: null,
-      }
-    : null;
+  const [detailData, setDetailData] = useState<OrganisationDetailData | null>(null);
 
-  const [platformDetailData, setPlatformDetailData] = useState<OrganisationDetailData | null>(null);
-  const detailData = isPlatformAdmin ? platformDetailData : orgAdminDetailData;
-
-  const [isLoading, setIsLoading] = useState<boolean>(
-    Boolean(isPlatformAdmin && targetId && token),
-  );
+  const [isLoading, setIsLoading] = useState<boolean>(Boolean(targetId && token));
   const [errorStatus, setErrorStatus] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -243,12 +250,19 @@ function OrganisationInformationPage() {
   const activeTab = detailData?.isRequestOnly && currentTab === 3 ? 1 : currentTab;
 
   const reloadData = useCallback(async () => {
-    if (!isPlatformAdmin || !token || !targetId) return;
+    if (!token || !targetId) return;
 
     try {
-      const data = await fetchOrganisationOrRequestDetail(routeReqId, targetId, token);
-      if (currentTargetIdRef.current === targetId) {
-        setPlatformDetailData(data);
+      if (isPlatformAdmin) {
+        const data = await fetchOrganisationOrRequestDetail(routeReqId, targetId, token);
+        if (currentTargetIdRef.current === targetId) {
+          setDetailData(data);
+        }
+      } else {
+        const data = await getOrganisationInformation(targetId, token);
+        if (currentTargetIdRef.current === targetId) {
+          setDetailData(mapOrganisationInfoToState(data));
+        }
       }
     } catch {
       // ignore reload error
@@ -256,15 +270,11 @@ function OrganisationInformationPage() {
   }, [isPlatformAdmin, token, targetId, routeReqId]);
 
   useEffect(() => {
-    if (!isPlatformAdmin) {
-      return;
-    }
-
     let isMounted = true;
     currentTargetIdRef.current = targetId;
 
     const loadAsync = async () => {
-      setPlatformDetailData(null);
+      setDetailData(null);
       setErrorMessage(null);
       setErrorStatus(null);
       setResendSuccessMessage(null);
@@ -279,9 +289,15 @@ function OrganisationInformationPage() {
       }
 
       try {
-        const data = await fetchOrganisationOrRequestDetail(routeReqId, targetId, token);
-        if (!isMounted || currentTargetIdRef.current !== targetId) return;
-        setPlatformDetailData(data);
+        if (isPlatformAdmin) {
+          const data = await fetchOrganisationOrRequestDetail(routeReqId, targetId, token);
+          if (!isMounted || currentTargetIdRef.current !== targetId) return;
+          setDetailData(data);
+        } else {
+          const data = await getOrganisationInformation(targetId, token);
+          if (!isMounted || currentTargetIdRef.current !== targetId) return;
+          setDetailData(mapOrganisationInfoToState(data));
+        }
       } catch (err: unknown) {
         if (!isMounted || currentTargetIdRef.current !== targetId) return;
         const status =

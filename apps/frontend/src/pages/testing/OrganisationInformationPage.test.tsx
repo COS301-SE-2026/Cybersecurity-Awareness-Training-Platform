@@ -248,6 +248,19 @@ describe('OrganisationInformationPage Integration', () => {
   it('renders organisation information for ORGANISATION_ADMIN without calling platform APIs or rendering platform tabs', async () => {
     const platformDetailSpy = vi.spyOn(service, 'getPlatformOrganisationDetail');
     const platformRequestSpy = vi.spyOn(service, 'getPlatformOrganisationRequestDetails');
+    const orgInfoSpy = vi.spyOn(service, 'getOrganisationInformation').mockResolvedValue({
+      id: 'org-123-abc',
+      name: 'Protea Security Gauteng',
+      status: 'ACTIVE',
+      detailType: 'active organisation',
+      description: 'Gauteng security consultants',
+      approximateSize: 200,
+      website: 'https://proteasecurity.co.za',
+      primaryDomain: 'proteasecurity.co.za',
+      createdAt: '2026-06-19T00:00:00.000Z',
+      updatedAt: '2026-06-20T00:00:00.000Z',
+      _count: { traineeProfiles: 85 },
+    });
 
     mockAuthContext = {
       role: 'ORGANISATION_ADMIN',
@@ -265,6 +278,7 @@ describe('OrganisationInformationPage Integration', () => {
     ).toBeInTheDocument();
     expect(screen.queryByText(/^Status:/i)).not.toBeInTheDocument();
     expect(screen.getByLabelText(/Status/i)).toHaveValue('Active');
+    expect(orgInfoSpy).toHaveBeenCalledWith('org-123-abc', 'mock-token-xyz');
     expect(platformDetailSpy).not.toHaveBeenCalled();
     expect(platformRequestSpy).not.toHaveBeenCalled();
     expect(
@@ -273,6 +287,30 @@ describe('OrganisationInformationPage Integration', () => {
     expect(screen.queryByRole('button', { name: /Administrators/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Timeline/i })).not.toBeInTheDocument();
     expect(screen.queryByText(/Danger Zone/i)).not.toBeInTheDocument();
+  });
+
+  it('renders access denied message when organisation-scoped API returns 403 for ORGANISATION_ADMIN', async () => {
+    const error = { status: 403, message: 'Access Denied' };
+    vi.spyOn(service, 'getOrganisationInformation').mockRejectedValue(error);
+
+    mockAuthContext = {
+      role: 'ORGANISATION_ADMIN',
+      organisation: {
+        id: 'org-123-abc',
+        name: 'Protea Security Gauteng',
+        status: 'ACTIVE',
+      },
+    };
+
+    renderWithRouter('/organisation-information');
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          /Access Denied. You do not have permission to view organisation details./i,
+        ),
+      ).toBeInTheDocument();
+    });
   });
 
   it('renders Approved - Waiting for Setup for PENDING_ONBOARDING status and clean Danger Zone', async () => {
