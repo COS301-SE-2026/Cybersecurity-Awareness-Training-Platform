@@ -25,6 +25,7 @@ This section provides a view of the Insightful Phish deployments and CI/CD proce
     - [9.3.3 CI/CD Pipeline](#933-cicd-pipeline)
   - [9.4 Deployment Failure Behaviour](#94-deployment-failure-behaviour)
   - [9.5 Rollback Strategy](#95-rollback-strategy)
+  - [9.6 Production Host Bootstrap](#96-production-host-bootstrap)
 - [10. Changelog](changelog.md)
 
 ---
@@ -38,8 +39,6 @@ Insightful Phish has distinct production and development environments. Productio
 Both environments use Docker Engine and Docker Compose to run the application. Application HTTP traffic reaches each host through a separate Cloudflare Tunnel. Github Actions uses native SSH to invoke a restricted deployment wrapper on the appropriate host. Deployment SSH does not pass through the Cloudflare Tunnel.
 
 Backend and Frontend container images are built and published by the separate Continuous Deployment workflow, after Continuous Integration succeeded for the exact deployment commit. Images are stored in the Github Container Registry (GHCR). Each environment uses immutable image tags derived from the full Git commit SHA. Production uses `<full SHA>` tags, while development uses `dev-<full SHA>` tags.
-
-<!-- TODO Add a section here desribing how to complete host bootstrap and deployment reproducibility -->
 
 ### 9.2 Environment Separation
 
@@ -133,6 +132,51 @@ Successful deployments are also appended to `deploy/releases/deployment-history.
 If a candidate release fails, it does not replace the successful `current`, `previous` or `release.env` state. The deployment history records candidate start, candidate failure, restoration start, restoration result and successful candidate promotion without recording runtime secrets. Automatic recovery restores only the previous application containers. It does not reverse database migrations. Because of this, all database migrations must be backward compatible.
 
 Both `Production` and `Development` use this rollback strategy.
+
+### 9.6 Production Host Bootstrap
+
+We provide a bootstrap setup script, `bootstrap-production-host.sh` to allow easy setup of the production environment on a new server.
+
+Production host setup starts when Southern Cross Solutions supplies an Ubuntu 22.04 TLS AMD64 server with administrator SSH access. In theory, another server or host with the same operating system, architecture and access would probably also work.
+
+Infrastructure provisioning, networking, DNS and Cloudflare account setup is client-controlled and assumed set up. It is not part of the bootstrap setup.
+
+To start the host bootstrap on the server, do the following:
+
+1. Ensure that you are on the server with an account that has administrator access
+2. Clone our repository to an appropriate location using
+
+```bash
+git clone https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform
+cd Cybersecurity-Awareness-Training-Platform
+git switch main
+```
+
+1. Run the provided bootstrapping script using
+
+```bash
+sudo ./deploy/bootstrap-production-host.sh
+```
+
+The boostrap does NOT create or store any credentials. Ensure you do the following before assuming that the host is properly set up:
+
+- Add the CI Deployment public key to `/home/insightful-deploy/.ssh/authorized_keys`
+- Create `/var/www/insightfulphish/app/deploy/.env` from `deploy/.env.example`. It should by owned by root with mode 600
+- Authenticate root to GHCR to ensure that it can reach the packages
+- Configure the Cloudflare Tunnel
+- Configure the Github `production` environment secrets.
+
+To check that the host is ready without starting a deployment, you can run:
+
+```bash
+docker --version
+docker compose version
+sudo visudo -cf /etc/sudoers.d/insightfulphish-production-deploy
+sudo stat -c '%a %U:%G %n' \
+  /usr/local/bin/deploy-insightfulphish-production \
+  /var/www/insightfulphish/app/docker-compose.deploy.yml \
+  /var/www/insightfulphish/app/deploy/.env
+```
 
 ---
 
