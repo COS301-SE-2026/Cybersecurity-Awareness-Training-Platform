@@ -35,6 +35,7 @@ function OrganisationAdministratorPermissionsDropdown({
       }
       dismissOnClick={false}
       disabled={disabled}
+      theme={{ content: 'max-h-[min(20rem,50dvh)] overflow-y-auto overscroll-contain' }}
       className="justify-start -px-1 px-[0.6rem] border border-gray-300 w-full font-light bg-white hover:bg-white text-bruised-purple rounded-none font-overpass text-[1.15rem]"
     >
       {availablePermissions.map((permission) => (
