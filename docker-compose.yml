@@ -38,10 +38,12 @@ services:
       SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Insightful Phish}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      DEMO3_TRAINING_CONTENT_DIR: ${DEMO3_TRAINING_CONTENT_DIR:-}
     ports:
       - '${BACKEND_PORT:-4000}:4000'
     command: sh -c "pnpm prisma:migrate:deploy && pnpm start"
-
+    volumes:
+      - ${DEMO3_SEED_BUNDLE_DIR:-demo3_seed_bundle_unavailable}:/app/.project_planning/demo3-seed:ro
   frontend:
     build:
       context: .
@@ -124,3 +126,4 @@ volumes:
   backend_node_modules:
   frontend_node_modules:
   shared_node_modules:
+  demo3_seed_bundle_unavailable:

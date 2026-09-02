@@ -4,9 +4,11 @@ import type {
   CampaignLifecycleActionResponseDto,
   CampaignListQueryDto,
   CampaignMutationPreconditionDto,
+  CampaignStatisticsQueryDto,
   CreateCampaignDraftRequestDto,
   GetCampaignCatalogueResponseDto,
   GetCampaignsResponseDto,
+  GetOrganisationCampaignStatisticsResponseDto,
   GetTraineeCampaignDetailResponseDto,
   GetTraineeCampaignsResponseDto,
   UpdateCampaignDraftRequestDto,
@@ -16,6 +18,7 @@ import {
   campaignLifecycleActionResponseSchema,
   getCampaignCatalogueResponseSchema,
   getCampaignsResponseSchema,
+  getOrganisationCampaignStatisticsResponseSchema,
   getTraineeCampaignDetailResponseSchema,
   getTraineeCampaignsResponseSchema,
 } from '@insightful-phish/shared';
@@ -93,6 +96,21 @@ export async function getOrganisationCampaignDetail(
     `/organisations/${organisationId}/campaigns/${campaignId}`,
   );
   return campaignDetailResponseSchema.parse(res);
+}
+
+export async function getOrganisationCampaignStatistics(
+  organisationId: string,
+  campaignId: string,
+  params?: CampaignStatisticsQueryDto,
+): Promise<GetOrganisationCampaignStatisticsResponseDto> {
+  const res = await apiClient.get<unknown>(
+    `/organisations/${organisationId}/campaigns/${campaignId}/statistics${buildQueryString({
+      page: params?.page,
+      limit: params?.limit,
+    })}`,
+  );
+
+  return getOrganisationCampaignStatisticsResponseSchema.parse(res);
 }
 
 export async function getPlatformCampaignDetail(

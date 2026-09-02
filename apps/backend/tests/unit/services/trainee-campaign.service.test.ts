@@ -390,7 +390,7 @@ describe('Trainee Campaign Service', () => {
         completionRule: 'COMPLETE_ALL',
         isOpenable: false,
         activityApiPath: null,
-        progressStatus: null,
+        progressStatus: 'NOT_STARTED',
       });
 
       const groupItem = result.items[0] as {
@@ -751,17 +751,41 @@ describe('Trainee Campaign Service', () => {
       ]);
 
       vi.mocked(TraineeCampaignRepository.findQuizAttempts).mockResolvedValueOnce([
-        { campaignItemId: quizSubItemId, status: 'IN_PROGRESS' },
-        { campaignItemId: quizSubItemId, status: 'SUBMITTED' },
-        { campaignItemId: quizProgItemId, status: 'IN_PROGRESS' },
-        { campaignItemId: null, status: 'IN_PROGRESS' },
+        { campaignItemId: quizSubItemId, status: 'IN_PROGRESS', quizResult: null },
+        {
+          campaignItemId: quizSubItemId,
+          status: 'SUBMITTED',
+          quizResult: { id: makeUuid(90), scorePercentage: 85 },
+        },
+        { campaignItemId: quizProgItemId, status: 'IN_PROGRESS', quizResult: null },
+        { campaignItemId: null, status: 'IN_PROGRESS', quizResult: null },
       ]);
 
       vi.mocked(TraineeCampaignRepository.findSimulationInteractionEvents).mockResolvedValueOnce([
-        { campaignItemId: simClassItemId, eventType: 'SIMULATED_EMAIL_CLASSIFIED' },
-        { campaignItemId: simInterItemId, eventType: 'SIMULATED_EMAIL_LINK_CLICKED' },
-        { campaignItemId: simViewItemId, eventType: 'SIMULATED_EMAIL_OPENED' },
-        { campaignItemId: null, eventType: 'SIMULATED_EMAIL_OPENED' },
+        {
+          campaignItemId: simClassItemId,
+          eventType: 'SIMULATED_EMAIL_CLASSIFIED',
+          targetId: makeUuid(91),
+          simulatedEmailId: makeUuid(91),
+        },
+        {
+          campaignItemId: simInterItemId,
+          eventType: 'SIMULATED_EMAIL_LINK_CLICKED',
+          targetId: makeUuid(92),
+          simulatedEmailId: makeUuid(92),
+        },
+        {
+          campaignItemId: simViewItemId,
+          eventType: 'SIMULATED_EMAIL_OPENED',
+          targetId: makeUuid(93),
+          simulatedEmailId: makeUuid(93),
+        },
+        {
+          campaignItemId: null,
+          eventType: 'SIMULATED_EMAIL_OPENED',
+          targetId: makeUuid(94),
+          simulatedEmailId: makeUuid(94),
+        },
       ]);
 
       vi.mocked(TraineeCampaignRepository.findEmailClassificationResponses).mockResolvedValueOnce([
@@ -816,12 +840,262 @@ describe('Trainee Campaign Service', () => {
       );
 
       vi.mocked(TraineeCampaignRepository.findSimulationInteractionEvents).mockResolvedValueOnce([
-        { campaignItemId: simCredItemId, eventType: 'CREDENTIAL_SUBMISSION_ATTEMPTED' },
+        {
+          campaignItemId: simCredItemId,
+          eventType: 'CREDENTIAL_SUBMISSION_ATTEMPTED',
+          targetId: makeUuid(95),
+          simulatedEmailId: makeUuid(95),
+        },
       ]);
 
       const result = await getTraineeCampaignDetail(userId, campaignId);
       const credItem = result.items[0] as { progressStatus?: string };
       expect(credItem.progressStatus).toBe('INTERACTED');
+    });
+
+    it('marks simulated inbox as COMPLETED only when all distinct emails are opened', async () => {
+      const simItemId = makeUuid(80);
+      const email1Id = makeUuid(81);
+      const email2Id = makeUuid(82);
+
+      const items = [
+        {
+          id: simItemId,
+          campaignId,
+          parentGroupId: null,
+          itemType: 'COMPONENT',
+          componentType: 'SIMULATED_INBOX',
+          title: 'Simulated Inbox Exercise',
+          position: 1,
+          isRequired: true,
+          availabilityStatus: 'AVAILABLE',
+          simulation: {
+            id: makeUuid(83),
+            title: 'Simulation',
+            safetyStatus: 'APPROVED',
+            simulatedInbox: {
+              status: 'ACTIVE',
+              emails: [{ id: email1Id }, { id: email2Id }],
+            },
+            difficultyLevel: 'BEGINNER',
+          },
+        },
+      ];
+
+      vi.mocked(TraineeCampaignRepository.findAccessibleCampaignAssignment).mockResolvedValueOnce(
+        createBaseDetailAssignment(items) as unknown as Awaited<
+          ReturnType<typeof TraineeCampaignRepository.findAccessibleCampaignAssignment>
+        >,
+      );
+
+      vi.mocked(TraineeCampaignRepository.findSimulationInteractionEvents).mockResolvedValueOnce([
+        {
+          campaignItemId: simItemId,
+          eventType: 'SIMULATED_EMAIL_OPENED',
+          targetId: email1Id,
+          simulatedEmailId: email1Id,
+        },
+      ]);
+
+      const partialResult = await getTraineeCampaignDetail(userId, campaignId);
+      const partialItem = partialResult.items[0] as { progressStatus?: string };
+      expect(partialItem.progressStatus).toBe('VIEWED');
+      expect(partialResult.progressStatus).toBe('IN_PROGRESS');
+
+      vi.mocked(TraineeCampaignRepository.findAccessibleCampaignAssignment).mockResolvedValueOnce(
+        createBaseDetailAssignment(items) as unknown as Awaited<
+          ReturnType<typeof TraineeCampaignRepository.findAccessibleCampaignAssignment>
+        >,
+      );
+
+      vi.mocked(TraineeCampaignRepository.findSimulationInteractionEvents).mockResolvedValueOnce([
+        {
+          campaignItemId: simItemId,
+          eventType: 'SIMULATED_EMAIL_OPENED',
+          targetId: email1Id,
+          simulatedEmailId: email1Id,
+        },
+        {
+          campaignItemId: simItemId,
+          eventType: 'SIMULATED_EMAIL_OPENED',
+          targetId: email2Id,
+          simulatedEmailId: email2Id,
+        },
+      ]);
+
+      const fullResult = await getTraineeCampaignDetail(userId, campaignId);
+      const fullItem = fullResult.items[0] as { progressStatus?: string };
+      expect(fullItem.progressStatus).toBe('COMPLETED');
+      expect(fullResult.progressStatus).toBe('COMPLETED');
+    });
+
+    it('marks quiz as SUBMITTED only when attempt has an authoritative quizResult', async () => {
+      const quizItemId = makeUuid(84);
+      const items = [
+        {
+          id: quizItemId,
+          campaignId,
+          parentGroupId: null,
+          itemType: 'COMPONENT',
+          componentType: 'QUIZ',
+          title: 'Quiz Item',
+          position: 1,
+          isRequired: true,
+          availabilityStatus: 'AVAILABLE',
+          quiz: {
+            id: makeUuid(85),
+            title: 'Quiz',
+            passThresholdPercentage: 80,
+            difficultyLevel: 'BEGINNER',
+            status: 'PUBLISHED',
+            _count: { questions: 5 },
+          },
+        },
+      ];
+
+      vi.mocked(TraineeCampaignRepository.findAccessibleCampaignAssignment).mockResolvedValueOnce(
+        createBaseDetailAssignment(items) as unknown as Awaited<
+          ReturnType<typeof TraineeCampaignRepository.findAccessibleCampaignAssignment>
+        >,
+      );
+
+      vi.mocked(TraineeCampaignRepository.findQuizAttempts).mockResolvedValueOnce([
+        {
+          campaignItemId: quizItemId,
+          status: 'SUBMITTED',
+          quizResult: null,
+        },
+      ]);
+
+      const uncalculatedResult = await getTraineeCampaignDetail(userId, campaignId);
+      const uncalculatedItem = uncalculatedResult.items[0] as { progressStatus?: string };
+      expect(uncalculatedItem.progressStatus).toBe('IN_PROGRESS');
+
+      vi.mocked(TraineeCampaignRepository.findAccessibleCampaignAssignment).mockResolvedValueOnce(
+        createBaseDetailAssignment(items) as unknown as Awaited<
+          ReturnType<typeof TraineeCampaignRepository.findAccessibleCampaignAssignment>
+        >,
+      );
+
+      vi.mocked(TraineeCampaignRepository.findQuizAttempts).mockResolvedValueOnce([
+        {
+          campaignItemId: quizItemId,
+          status: 'SUBMITTED',
+          quizResult: { id: makeUuid(86), scorePercentage: 90 },
+        },
+      ]);
+
+      const calculatedResult = await getTraineeCampaignDetail(userId, campaignId);
+      const calculatedItem = calculatedResult.items[0] as { progressStatus?: string };
+      expect(calculatedItem.progressStatus).toBe('SUBMITTED');
+    });
+
+    it('evaluates COMPLETE_ALL group progress and campaign progress based on child items', async () => {
+      const groupId = makeUuid(87);
+      const docItemId = makeUuid(88);
+      const quizItemId = makeUuid(89);
+
+      const items = [
+        {
+          id: groupId,
+          campaignId,
+          parentGroupId: null,
+          itemType: 'GROUP',
+          groupType: 'MODULE',
+          completionRule: 'COMPLETE_ALL',
+          title: 'Module Group',
+          position: 1,
+          isRequired: true,
+          availabilityStatus: 'AVAILABLE',
+        },
+        {
+          id: docItemId,
+          campaignId,
+          parentGroupId: groupId,
+          itemType: 'COMPONENT',
+          componentType: 'TRAINING_DOCUMENT',
+          title: 'Training Doc',
+          position: 1,
+          isRequired: true,
+          availabilityStatus: 'AVAILABLE',
+          trainingDocument: {
+            id: makeUuid(91),
+            title: 'Doc',
+            difficultyLevel: 'BEGINNER',
+            status: 'AVAILABLE',
+          },
+        },
+        {
+          id: quizItemId,
+          campaignId,
+          parentGroupId: groupId,
+          itemType: 'COMPONENT',
+          componentType: 'QUIZ',
+          title: 'Module Quiz',
+          position: 2,
+          isRequired: true,
+          availabilityStatus: 'AVAILABLE',
+          quiz: {
+            id: makeUuid(92),
+            title: 'Quiz',
+            passThresholdPercentage: 80,
+            difficultyLevel: 'BEGINNER',
+            status: 'PUBLISHED',
+            _count: { questions: 3 },
+          },
+        },
+      ];
+
+      vi.mocked(TraineeCampaignRepository.findAccessibleCampaignAssignment).mockResolvedValueOnce(
+        createBaseDetailAssignment(items) as unknown as Awaited<
+          ReturnType<typeof TraineeCampaignRepository.findAccessibleCampaignAssignment>
+        >,
+      );
+
+      const notStartedResult = await getTraineeCampaignDetail(userId, campaignId);
+      expect(notStartedResult.progressStatus).toBe('NOT_STARTED');
+      expect((notStartedResult.items[0] as { progressStatus?: string }).progressStatus).toBe(
+        'NOT_STARTED',
+      );
+
+      vi.mocked(TraineeCampaignRepository.findAccessibleCampaignAssignment).mockResolvedValueOnce(
+        createBaseDetailAssignment(items) as unknown as Awaited<
+          ReturnType<typeof TraineeCampaignRepository.findAccessibleCampaignAssignment>
+        >,
+      );
+
+      vi.mocked(TraineeCampaignRepository.findTrainingInteractionEvents).mockResolvedValueOnce([
+        { campaignItemId: docItemId, eventType: 'TRAINING_COMPLETED' },
+      ]);
+
+      const inProgressResult = await getTraineeCampaignDetail(userId, campaignId);
+      expect(inProgressResult.progressStatus).toBe('IN_PROGRESS');
+      expect((inProgressResult.items[0] as { progressStatus?: string }).progressStatus).toBe(
+        'IN_PROGRESS',
+      );
+
+      vi.mocked(TraineeCampaignRepository.findAccessibleCampaignAssignment).mockResolvedValueOnce(
+        createBaseDetailAssignment(items) as unknown as Awaited<
+          ReturnType<typeof TraineeCampaignRepository.findAccessibleCampaignAssignment>
+        >,
+      );
+
+      vi.mocked(TraineeCampaignRepository.findTrainingInteractionEvents).mockResolvedValueOnce([
+        { campaignItemId: docItemId, eventType: 'TRAINING_COMPLETED' },
+      ]);
+      vi.mocked(TraineeCampaignRepository.findQuizAttempts).mockResolvedValueOnce([
+        {
+          campaignItemId: quizItemId,
+          status: 'SUBMITTED',
+          quizResult: { id: makeUuid(93), scorePercentage: 100 },
+        },
+      ]);
+
+      const completedResult = await getTraineeCampaignDetail(userId, campaignId);
+      expect(completedResult.progressStatus).toBe('COMPLETED');
+      expect((completedResult.items[0] as { progressStatus?: string }).progressStatus).toBe(
+        'COMPLETED',
+      );
     });
   });
 

@@ -773,7 +773,7 @@ describe('swaggerSpec', () => {
 
   it('enforces that token fields are returned on login/refresh schemas but not on /auth/me schema', () => {
     const loginSchema = spec.components?.schemas?.AuthLoginResponse as
-      | { properties?: Record<string, unknown> }
+      | { properties?: Record<string, unknown>; required?: string[] }
       | undefined;
     const meSchema = spec.components?.schemas?.AuthMeResponse as
       | { properties?: Record<string, unknown> }
@@ -781,12 +781,15 @@ describe('swaggerSpec', () => {
 
     expect(loginSchema).toBeDefined();
     expect(loginSchema?.properties).toHaveProperty('accessToken');
+    expect(loginSchema?.properties).toHaveProperty('idleTimeoutMinutes');
+    expect(loginSchema?.required).toContain('idleTimeoutMinutes');
 
     expect(meSchema).toBeDefined();
     expect(meSchema?.properties).not.toHaveProperty('accessToken');
     expect(meSchema?.properties).not.toHaveProperty('token');
     expect(meSchema?.properties).not.toHaveProperty('tokenType');
     expect(meSchema?.properties).not.toHaveProperty('expiresAt');
+    expect(meSchema?.properties).not.toHaveProperty('idleTimeoutMinutes');
   });
 
   it('documents account-security lifecycle contracts without exposing sensitive session or token fields', () => {
@@ -807,10 +810,26 @@ describe('swaggerSpec', () => {
     );
 
     const accountSessionSchema = spec.components?.schemas?.AccountSession as
-      | { properties?: Record<string, unknown> }
+      | {
+          properties?: Record<
+            string,
+            { description?: string; example?: unknown; nullable?: boolean }
+          >;
+        }
       | undefined;
     expect(accountSessionSchema?.properties).toHaveProperty('deviceSummary');
     expect(accountSessionSchema?.properties).toHaveProperty('locationSummary');
+    expect(accountSessionSchema?.properties?.deviceSummary?.description).toContain(
+      'raw user-agent strings are never returned',
+    );
+    expect(accountSessionSchema?.properties?.deviceSummary?.example).toBe('Windows · Chrome');
+    expect(accountSessionSchema?.properties?.locationSummary).toMatchObject({
+      nullable: true,
+      example: null,
+    });
+    expect(accountSessionSchema?.properties?.locationSummary?.description).toContain(
+      'IP addresses are not presented as physical locations',
+    );
     expectSchemaNotToContain('AccountSession', [
       'refreshToken',
       'tokenHash',

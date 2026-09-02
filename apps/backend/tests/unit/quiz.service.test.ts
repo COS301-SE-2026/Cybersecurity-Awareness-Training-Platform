@@ -4,6 +4,7 @@ import {
   QuizForbiddenError,
   QuizValidationError,
   getQuizByCampaignItemId,
+  startQuizAttempt,
   submitQuizAttempt,
   getQuizResult,
 } from '../../src/services/quiz.service.js';
@@ -135,6 +136,43 @@ describe('Quiz Service', () => {
       expect(result.questions[0].options[0]).not.toHaveProperty('feedbackText');
       expect(result.questions[0].options[0]).toHaveProperty('id', 'opt-1');
       expect(result.questions[0].options[0]).toHaveProperty('text', 'Bad');
+      expect(result.currentAttempt).toBeNull();
+    });
+
+    it('returns currentAttempt summary when attempt exists', async () => {
+      mockPrisma.campaignItem.findFirst.mockResolvedValue(mockCampaignItem());
+      mockPrisma.quizAttempt.findFirst.mockResolvedValue({
+        id: 'attempt-1',
+        status: 'SUBMITTED',
+        quizResult: { id: 'result-1' },
+      });
+
+      const result = await getQuizByCampaignItemId('ci-1', 'trainee-1');
+
+      expect(result.currentAttempt).toEqual({
+        attemptId: 'attempt-1',
+        status: 'SUBMITTED',
+        hasResult: true,
+      });
+    });
+
+    it('scopes attempt lookup to the active campaign assignment', async () => {
+      mockPrisma.campaignItem.findFirst.mockResolvedValue(mockCampaignItem());
+      mockPrisma.quizAttempt.findFirst.mockResolvedValue({
+        id: 'attempt-1',
+        status: 'IN_PROGRESS',
+        quizResult: null,
+      });
+
+      await getQuizByCampaignItemId('ci-1', 'trainee-1');
+
+      expect(mockPrisma.quizAttempt.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            campaignAssignmentId: 'assign-1',
+          }),
+        }),
+      );
     });
 
     it('throws QuizForbiddenError if trainee is not assigned', async () => {
@@ -147,6 +185,31 @@ describe('Quiz Service', () => {
       await expect(getQuizByCampaignItemId('ci-1', 'trainee-1')).rejects.toThrow(
         QuizForbiddenError,
       );
+    });
+  });
+
+  describe('startQuizAttempt', () => {
+    it('scopes attempt lookup to the active campaign assignment', async () => {
+      mockPrisma.campaignItem.findFirst.mockResolvedValue(mockCampaignItem());
+      mockPrisma.quizAttempt.findFirst.mockResolvedValue({
+        id: 'attempt-1',
+        quizId: 'quiz-1',
+        campaignAssignmentId: 'assign-1',
+        campaignItemId: 'ci-1',
+        status: 'IN_PROGRESS',
+        startedAt: new Date('2026-08-31T08:00:00.000Z'),
+      });
+
+      const result = await startQuizAttempt('ci-1', 'trainee-1');
+
+      expect(mockPrisma.quizAttempt.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            campaignAssignmentId: 'assign-1',
+          }),
+        }),
+      );
+      expect(result.campaignAssignmentId).toBe('assign-1');
     });
   });
 

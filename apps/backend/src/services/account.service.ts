@@ -7,6 +7,12 @@ import {
   type AccountChangePasswordRequestDto,
   type AccountProfileUpdateRequestDto,
   type AccountSecurityPreferencesRequestDto,
+  type AccountDeletionBlockedReasonDto,
+  type AccountCapabilitiesResponseDto,
+  type AccountResponseDto,
+  type AccountPolicyResponseDto,
+  type AccountProfileResponseDto,
+  type AccountSecurityPreferencesResponseDto,
 } from '@insightful-phish/shared';
 import type { Prisma } from '../generated/prisma/client.js';
 import type { AuditActorType } from '../generated/prisma/enums.js';
@@ -63,71 +69,11 @@ export class AccountServiceError extends Error {
   }
 }
 
-export type AccountPolicyResponse = {
-  organisationId: string | null;
-  rememberMeRequested: boolean;
-  rememberMeAllowed: boolean;
-  rememberMeApplied: boolean;
-  regularSessionSeconds: number;
-  rememberedSessionSeconds: number;
-  effectiveSessionSeconds: number;
-  idleTimeoutMinutes: number | null;
-  requireReauthenticationForSensitiveActions: boolean;
-  allowEmailChange: boolean;
-  sources: {
-    rememberMe: string;
-    regularSession: string;
-    rememberedSession: string;
-    idleTimeout: string;
-  };
-};
-
-export type AccountCapabilitiesResponse = {
-  canEditProfile: boolean;
-  canRequestEmailChange: boolean;
-  canChangePassword: boolean;
-  canEditSecurityPreferences: boolean;
-  securityPreferenceEditable: {
-    preferredRegularSessionLengthHours: boolean;
-    preferredRememberMeSessionLengthHours: boolean;
-    preferredIdleTimeoutMinutes: boolean;
-  };
-  blockedReasons: {
-    emailChange: string | null;
-    securityPreferences: string | null;
-    preferredRegularSessionLengthHours: string | null;
-    preferredRememberMeSessionLengthHours: string | null;
-    preferredIdleTimeoutMinutes: string | null;
-  };
-};
-
-export type AccountProfileResponse = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  userType: string;
-  authStatus: string;
-  emailVerified: boolean;
-  emailVerifiedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-};
-
-export type AccountSecurityPreferencesResponse = {
-  id: string | null;
-  preferredRegularSessionLengthHours: number | null;
-  preferredRememberMeSessionLengthHours: number | null;
-  preferredIdleTimeoutMinutes: number | null;
-  updatedAt: string | null;
-};
-
-export type AccountResponse = {
-  profile: AccountProfileResponse;
-  securityPreferences: AccountSecurityPreferencesResponse;
-  effectivePolicy: AccountPolicyResponse;
-  capabilities: AccountCapabilitiesResponse;
-};
+export type AccountPolicyResponse = AccountPolicyResponseDto;
+export type AccountCapabilitiesResponse = AccountCapabilitiesResponseDto;
+export type AccountProfileResponse = AccountProfileResponseDto;
+export type AccountSecurityPreferencesResponse = AccountSecurityPreferencesResponseDto;
+export type AccountResponse = AccountResponseDto;
 
 export type AccountChangeEmailResponse = {
   message: string;
@@ -266,6 +212,7 @@ function toPreferencesResponse(
 
 function buildCapabilities(input: {
   effectivePolicy: AccountPolicyResponse;
+  userType?: string;
 }): AccountCapabilitiesResponse {
   const regularSessionEditable =
     input.effectivePolicy.sources.regularSession !== 'ORGANISATION_POLICY';
@@ -276,11 +223,23 @@ function buildCapabilities(input: {
   const canEditSecurityPreferences =
     regularSessionEditable || rememberMeEditable || idleTimeoutEditable;
 
+  let deleteAccountBlockedReason: AccountDeletionBlockedReasonDto;
+  if (input.userType === 'IP_ADMIN') {
+    deleteAccountBlockedReason = 'PLATFORM_SELF_DELETION_NOT_SUPPORTED';
+  } else if (input.userType === 'ORGANISATION_ADMIN') {
+    deleteAccountBlockedReason = 'ORGANISATION_ADMIN_MANAGED';
+  } else if (input.userType === 'ORGANISATION_TRAINEE') {
+    deleteAccountBlockedReason = 'ORGANISATION_TRAINEE_MANAGED';
+  } else {
+    deleteAccountBlockedReason = 'SELF_DELETION_NOT_SUPPORTED';
+  }
+
   return {
     canEditProfile: true,
     canRequestEmailChange: input.effectivePolicy.allowEmailChange,
     canChangePassword: true,
     canEditSecurityPreferences,
+    canDeleteAccount: false,
     securityPreferenceEditable: {
       preferredRegularSessionLengthHours: regularSessionEditable,
       preferredRememberMeSessionLengthHours: rememberMeEditable,
@@ -296,6 +255,7 @@ function buildCapabilities(input: {
         ? null
         : SECURITY_PREFERENCE_BLOCKED_REASON,
       preferredIdleTimeoutMinutes: idleTimeoutEditable ? null : SECURITY_PREFERENCE_BLOCKED_REASON,
+      deleteAccount: deleteAccountBlockedReason,
     },
   };
 }
@@ -332,6 +292,7 @@ function buildAccountResponse(input: {
     effectivePolicy: policy,
     capabilities: buildCapabilities({
       effectivePolicy: policy,
+      userType: input.user.userType,
     }),
   };
 }
@@ -465,13 +426,6 @@ async function sendEmailChangeWarning(input: {
   } catch {
     await recordNotificationFailureEvent('EMAIL_HOOK_UNEXPECTED_FAILURE');
   }
-}
-
-function isSessionIdleExpired(session: AccountSessionRecord, now: Date) {
-  return (
-    session.idleTimeoutMinutes !== null &&
-    session.lastActiveAt.getTime() + session.idleTimeoutMinutes * 60 * 1000 <= now.getTime()
-  );
 }
 
 function toSessionResponse(
@@ -764,9 +718,10 @@ export async function listAccountSessionSummaries(
   currentSessionId: string,
 ): Promise<AccountSessionsResponse> {
   const now = new Date();
-  const sessions = (await listAccountSessions(userId, now))
-    .filter((session) => !isSessionIdleExpired(session, now))
-    .map((session) => toSessionResponse(session, currentSessionId));
+
+  const sessions = (await listAccountSessions(userId, now)).map((session) =>
+    toSessionResponse(session, currentSessionId),
+  );
 
   return {
     sessions,

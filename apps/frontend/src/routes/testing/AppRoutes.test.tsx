@@ -3,7 +3,10 @@ import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { createMemoryRouter, RouterProvider, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { UserTypeDto } from '@insightful-phish/shared';
+import type {
+  GetOrganisationCampaignStatisticsResponseDto,
+  UserTypeDto,
+} from '@insightful-phish/shared';
 import * as organisationDetailsService from '../../services/organisation-details.service';
 import { createAuthContextValue, renderWithRouter } from '../../testing/render';
 
@@ -140,6 +143,7 @@ vi.mock('../../pages/BrandPage', () => ({
 vi.mock('../../lib/campaignsApi', () => ({
   getTraineeCampaigns: vi.fn(),
   getTraineeCampaignDetail: vi.fn(),
+  getOrganisationCampaignStatistics: vi.fn(),
 }));
 
 vi.mock('../../features/campaign-management/apiCampaignManagementClient', async () => {
@@ -152,17 +156,50 @@ vi.mock('../../features/campaign-management/apiCampaignManagementClient', async 
 });
 
 import AppRoutes from '../AppRoutes';
-import { getTraineeCampaignDetail, getTraineeCampaigns } from '../../lib/campaignsApi';
+import {
+  getOrganisationCampaignStatistics,
+  getTraineeCampaignDetail,
+  getTraineeCampaigns,
+} from '../../lib/campaignsApi';
 import { AuthContext } from '../../context/auth-context';
 import type { OrganisationPermissionKeyDto } from '@insightful-phish/shared';
 
 const mockedGetTraineeCampaigns = vi.mocked(getTraineeCampaigns);
 const mockedGetTraineeCampaignDetail = vi.mocked(getTraineeCampaignDetail);
+const mockedGetOrganisationCampaignStatistics = vi.mocked(getOrganisationCampaignStatistics);
 
 const CAMPAIGN_ID = '11111111-1111-4111-8111-111111111111';
 const TRAINING_CAMPAIGN_ITEM_ID = '33333333-3333-4333-8333-333333333333';
 const QUIZ_CAMPAIGN_ITEM_ID = '33333333-3333-4333-8333-333333333334';
 const ATTEMPT_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+
+const CAMPAIGN_STATISTICS_RESPONSE: GetOrganisationCampaignStatisticsResponseDto = {
+  campaign: {
+    id: '10000000-0000-4000-8000-000000000001',
+    name: 'New starter security',
+    description: 'Security awareness for new starters.',
+    campaignType: 'ORGANISATION_CUSTOM',
+    status: 'ACTIVE',
+    startDate: null,
+    endDate: null,
+    itemCount: 4,
+    quizCount: 1,
+  },
+  summary: {
+    assignedTraineeCount: 8,
+    startedTraineeCount: 5,
+    completedTraineeCount: 2,
+    overallProgressPercentage: 54,
+    averageQuizScorePercentage: 76,
+  },
+  trainees: [],
+  pagination: {
+    page: 1,
+    limit: 20,
+    total: 8,
+    totalPages: 1,
+  },
+};
 
 function LocationDisplay() {
   const location = useLocation();
@@ -343,6 +380,8 @@ describe('AppRoutes', () => {
       },
       items: [],
     });
+
+    mockedGetOrganisationCampaignStatistics.mockResolvedValue(CAMPAIGN_STATISTICS_RESPONSE);
 
     vi.spyOn(organisationDetailsService, 'getPlatformOrganisationDetail').mockResolvedValue({
       id: 'org-gauteng-123',
@@ -756,6 +795,16 @@ describe('AppRoutes', () => {
         organisationDetailsService,
         'getPlatformOrganisationRequestDetails',
       );
+      vi.spyOn(organisationDetailsService, 'getOwnOrganisationDetail').mockResolvedValue({
+        id: 'org-123-abc',
+        name: 'Protea Security Gauteng',
+        status: 'ACTIVE',
+        description: 'Gauteng cybersecurity security provider',
+        approximateSize: 120,
+        website: 'https://proteasecurity.co.za',
+        registeredTraineeCount: 18,
+        registrationDate: '2026-06-19T00:00:00.000Z',
+      });
 
       renderAppRoutes({
         initialEntry: '/organisation-information',
@@ -1156,6 +1205,41 @@ describe('AppRoutes', () => {
     const detail = screen.getByRole('region', { name: 'New starter security' });
     expect(within(detail).getByText('Draft')).toBeInTheDocument();
     expect(screen.queryByRole('form', { name: 'Campaign details' })).not.toBeInTheDocument();
+  });
+
+  it('renders the protected Organisation Campaign statistics route', async () => {
+    const organisationId = '11111111-1111-4111-8111-111111111111';
+    const campaignId = '10000000-0000-4000-8000-000000000001';
+
+    renderCampaignManagementRoutes(
+      `/organisations/${organisationId}/campaigns/${campaignId}/statistics`,
+      'ORGANISATION_ADMIN',
+      organisationId,
+      ['VIEW_CAMPAIGNS'],
+    );
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Campaign' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Back to Campaign' })).toHaveAttribute(
+      'href',
+      `/organisations/${organisationId}/campaigns/${campaignId}`,
+    );
+  });
+
+  it('denies Organisation Campaign statistics without a Campaign permission', async () => {
+    const organisationId = '11111111-1111-4111-8111-111111111111';
+    const campaignId = '10000000-0000-4000-8000-000000000001';
+
+    renderCampaignManagementRoutes(
+      `/organisations/${organisationId}/campaigns/${campaignId}/statistics`,
+      'ORGANISATION_ADMIN',
+      organisationId,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('location-path')).toHaveTextContent('/');
+    });
+
+    expect(screen.queryByRole('heading', { level: 1, name: 'Campaign' })).not.toBeInTheDocument();
   });
 
   it('allows an organisation Campaign list user with MANAGE_CAMPAIGNS', async () => {

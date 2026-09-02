@@ -697,13 +697,29 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         },
         AuthLoginResponse: {
           type: 'object',
-          required: ['accessToken', 'user', 'context', 'permissions', 'redirectTo'],
+          required: [
+            'accessToken',
+            'idleTimeoutMinutes',
+            'user',
+            'context',
+            'permissions',
+            'redirectTo',
+          ],
           properties: {
             accessToken: {
               type: 'string',
               description: 'Bearer access token for authenticated requests.',
               example:
                 'eyJ1c2VySWQiOiJ1c2VyLTEyMyIsImV4cGlyZXNBdCI6IjIwMjYtMDUtMTJUMjA6NDQ6NTQuMDAwWiJ9.signature',
+            },
+            idleTimeoutMinutes: {
+              ...nullableIntegerRange({
+                minimum: 5,
+                maximum: 480,
+                example: 30,
+              }),
+              description:
+                'Effective browser-observed inactivity in timeout minutes. Null disabled browser idle timeout.',
             },
             user: {
               $ref: '#/components/schemas/PublicUser',
@@ -1092,6 +1108,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             'canRequestEmailChange',
             'canChangePassword',
             'canEditSecurityPreferences',
+            'canDeleteAccount',
             'securityPreferenceEditable',
             'blockedReasons',
           ],
@@ -1100,6 +1117,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             canRequestEmailChange: booleanProperty(true),
             canChangePassword: booleanProperty(true),
             canEditSecurityPreferences: booleanProperty(true),
+            canDeleteAccount: booleanProperty(false),
             securityPreferenceEditable: {
               type: 'object',
               required: [
@@ -1121,6 +1139,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
                 'preferredRegularSessionLengthHours',
                 'preferredRememberMeSessionLengthHours',
                 'preferredIdleTimeoutMinutes',
+                'deleteAccount',
               ],
               properties: {
                 emailChange: nullableString('ORGANISATION_POLICY_BLOCKED'),
@@ -1130,6 +1149,17 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
                   'ORGANISATION_POLICY_ENFORCED',
                 ),
                 preferredIdleTimeoutMinutes: nullableString('ORGANISATION_POLICY_ENFORCED'),
+                deleteAccount: {
+                  type: 'string',
+                  nullable: true,
+                  enum: [
+                    'PLATFORM_SELF_DELETION_NOT_SUPPORTED',
+                    'ORGANISATION_ADMIN_MANAGED',
+                    'ORGANISATION_TRAINEE_MANAGED',
+                    'SELF_DELETION_NOT_SUPPORTED',
+                  ],
+                  example: 'PLATFORM_SELF_DELETION_NOT_SUPPORTED',
+                },
               },
             },
           },
@@ -1174,8 +1204,18 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
               maximum: 480,
               example: 30,
             }),
-            deviceSummary: nullableString('Chrome on Windows'),
-            locationSummary: nullableString('Johannesburg, ZA'),
+            deviceSummary: {
+              ...nullableString('Windows · Chrome'),
+              description:
+                'Conservative prepared device and browser summary. Null may be returned for legacy sessions; raw user-agent strings are never returned.',
+            },
+            locationSummary: {
+              type: 'string',
+              nullable: true,
+              example: null,
+              description:
+                'Prepared location summary when supported. Currently null because IP addresses are not presented as physical locations.',
+            },
           },
         },
         AccountSessionsResponse: {
@@ -2033,6 +2073,32 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             },
           ],
         },
+        OwnOrganisationDetail: {
+          type: 'object',
+          required: [
+            'id',
+            'name',
+            'status',
+            'description',
+            'approximateSize',
+            'website',
+            'registeredTraineeCount',
+            'registrationDate',
+          ],
+          properties: {
+            id: uuidString('f6fdeb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+            name: { type: 'string', example: 'Example Consulting' },
+            status: enumString(
+              ['PENDING_ONBOARDING', 'ACTIVE', 'INACTIVE', 'SUSPENDED', 'DISABLED', 'ARCHIVED'],
+              'ACTIVE',
+            ),
+            description: nullableString('A consulting company'),
+            approximateSize: { type: 'integer', nullable: true, example: 150 },
+            website: nullableString('https://example.com'),
+            registeredTraineeCount: { type: 'integer', example: 15 },
+            registrationDate: dateTimeString('2026-05-16T09:00:00.000Z'),
+          },
+        },
         PlatformAdminRole: enumString(['SUPER_ADMIN', 'NORMAL_ADMIN'], 'SUPER_ADMIN'),
         PlatformAdminStatus: enumString(['ACTIVE', 'DISABLED'], 'ACTIVE'),
         PlatformAdminInvitationStatus: enumString(
@@ -2769,6 +2835,38 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             status: enumString(['DISABLED'], 'DISABLED'),
           },
         },
+        ReenableTraineeRequest: {
+          type: 'object',
+          required: ['password', 'confirmation'],
+          additionalProperties: false,
+          properties: {
+            password: {
+              type: 'string',
+              format: 'password',
+              minLength: 1,
+              description: 'Current password of the acting Organisation Admin.',
+            },
+            confirmation: {
+              type: 'boolean',
+              enum: [true],
+              example: true,
+              description: 'Explicit confirmation of the membership re-enable action.',
+            },
+          },
+        },
+        ReenableTraineeResponse: {
+          type: 'object',
+          required: ['success', 'message'],
+          properties: {
+            success: booleanProperty(true),
+            message: {
+              type: 'string',
+              example: 'Trainee account re-enabled successfully.',
+            },
+            traineeId: uuidString('44444444-4444-4444-8444-444444444444'),
+            status: enumString(['ACTIVE'], 'ACTIVE'),
+          },
+        },
         OrganisationSecuritySettings: {
           type: 'object',
           required: [
@@ -3461,6 +3559,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             'campaignType',
             'difficultyLevel',
             'status',
+            'progressStatus',
             'eligibility',
           ],
           properties: {
@@ -3504,7 +3603,6 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
               allOf: [schemaRef('CampaignAccessType')],
             },
             progressStatus: {
-              nullable: true,
               allOf: [schemaRef('TraineeCampaignProgressStatus')],
             },
             itemCount: {
@@ -3619,6 +3717,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             'availabilityStatus',
             'isOpenable',
             'activityApiPath',
+            'progressStatus',
             'eligibility',
           ],
           properties: {
@@ -3679,7 +3778,6 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
                 '/trainee/campaign-items/88888888-8888-4888-8888-888888888888/training-document',
             },
             progressStatus: {
-              nullable: true,
               allOf: [schemaRef('TraineeCampaignProgressStatus')],
             },
             eligibility: schemaRef('CampaignEligibility'),
@@ -3710,6 +3808,7 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             'isRequired',
             'availabilityStatus',
             'isOpenable',
+            'progressStatus',
             'eligibility',
             'children',
           ],
@@ -3768,7 +3867,6 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
               example: null,
             },
             progressStatus: {
-              nullable: true,
               allOf: [schemaRef('TraineeCampaignProgressStatus')],
             },
             eligibility: schemaRef('CampaignEligibility'),
@@ -4323,6 +4421,22 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             },
           },
         },
+        CurrentQuizAttemptSummary: {
+          type: 'object',
+          required: ['attemptId', 'status', 'hasResult'],
+          properties: {
+            attemptId: {
+              ...uuidString('22222222-2222-2222-2222-222222222222'),
+            },
+            status: {
+              $ref: '#/components/schemas/QuizAttemptStatus',
+            },
+            hasResult: {
+              type: 'boolean',
+              example: true,
+            },
+          },
+        },
         GetQuizResponse: {
           type: 'object',
           required: [
@@ -4369,6 +4483,10 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
             },
             questions: {
               ...arrayOf(schemaRef('QuizQuestionForTrainee')),
+            },
+            currentAttempt: {
+              nullable: true,
+              allOf: [schemaRef('CurrentQuizAttemptSummary')],
             },
           },
         },
@@ -5211,6 +5329,10 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
           required: true,
           ...jsonContent(schemaRef('DisableTraineeRequest')),
         },
+        ReenableTrainee: {
+          required: true,
+          ...jsonContent(schemaRef('ReenableTraineeRequest')),
+        },
         CreateCampaignAssignments: {
           required: true,
           ...jsonContent(schemaRef('CreateCampaignAssignmentsRequest')),
@@ -5348,6 +5470,10 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
           'Trainee account disabled successfully.',
           'DisableTraineeResponse',
         ),
+        OrganisationTraineeReenabled: responseComponent(
+          'Trainee account re-enabled successfully.',
+          'ReenableTraineeResponse',
+        ),
         OrganisationRegistrationRequestCreated: responseComponent(
           'Organisation registration request submitted for review.',
           'OrganisationRegistrationRequestCreatedResponse',
@@ -5359,6 +5485,10 @@ This reference covers the currently mounted Demo 2 backend routes. Planned or un
         TraineeInvitationConflict: responseComponent(
           'Cannot invite user to the organisation.',
           'TraineeInvitationConflictErrorResponse',
+        ),
+        OwnOrganisationDetailOk: responseComponent(
+          'Restricted organisation details for the authenticated organisation administrator.',
+          'OwnOrganisationDetail',
         ),
         OrganisationAdminsOk: responseComponent(
           'Organisation admins and available permissions.',

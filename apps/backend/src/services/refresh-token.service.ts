@@ -97,7 +97,7 @@ export async function validateRefreshToken(input: {
     };
   }
 
-  if (sessionValidation.state === 'EXPIRED' || sessionValidation.state === 'IDLE_TIMEOUT') {
+  if (sessionValidation.state === 'EXPIRED') {
     return {
       state: 'SESSION_EXPIRED',
       token,

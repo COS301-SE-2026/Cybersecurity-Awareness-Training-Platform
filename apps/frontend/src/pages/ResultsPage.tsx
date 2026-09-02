@@ -56,10 +56,8 @@ export function ResultsPage() {
 
   const orderedAnswers = useMemo(() => result?.answers ?? [], [result]);
   const hasResult = result !== null;
-  const backToQuizPath = result?.campaignItemId
-    ? `/quizzes/${result.campaignItemId}`
-    : '/campaigns';
-  const backToQuizLabel = result?.campaignItemId ? 'Back to quiz' : 'Back to campaigns';
+  const backToCampaignPath = '/campaigns';
+  const backToCampaignLabel = 'Back to Campaign';
 
   return (
     <AppLayout
@@ -168,8 +166,8 @@ export function ResultsPage() {
             </section>
 
             <div style={actionRowStyle}>
-              <Link to={backToQuizPath} style={secondaryLinkStyle}>
-                {backToQuizLabel}
+              <Link to={backToCampaignPath} style={secondaryLinkStyle}>
+                {backToCampaignLabel}
               </Link>
             </div>
           </div>

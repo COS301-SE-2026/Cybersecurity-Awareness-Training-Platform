@@ -31,6 +31,7 @@ import BrandPage from '../pages/BrandPage';
 import CampaignAssignmentPage from '../pages/CampaignAssignmentPage';
 import CampaignManagementListPage from '../features/campaign-management/CampaignManagementListPage';
 import CampaignManagementDetailPage from '../features/campaign-management/CampaignManagementDetailPage';
+import CampaignInsightsPage from '../pages/CampaignInsightsPage';
 
 function CampaignManagementDetailRoute({
   contextKind,
@@ -43,6 +44,17 @@ function CampaignManagementDetailRoute({
       contextKind={contextKind}
       canManageCampaigns={canManageCampaigns}
       blockUnsavedNavigation
+      onAuthenticationExpired={clearAuth}
+    />
+  );
+}
+
+function CampaignInsightsRoute() {
+  const { clearAuth, permissions } = useAuth();
+
+  return (
+    <CampaignInsightsPage
+      canAssignCampaigns={permissions.includes('ASSIGN_CAMPAIGNS')}
       onAuthenticationExpired={clearAuth}
     />
   );
@@ -145,6 +157,10 @@ function AppRoutes() {
           <Route
             path="/organisations/:organisationId/campaigns/:campaignId"
             element={<CampaignManagementDetailRoute contextKind="organisation" />}
+          />
+          <Route
+            path="/organisations/:organisationId/campaigns/:campaignId/statistics"
+            element={<CampaignInsightsRoute />}
           />
         </Route>
 

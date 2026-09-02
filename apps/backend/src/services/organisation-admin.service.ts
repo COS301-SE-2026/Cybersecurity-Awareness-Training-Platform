@@ -2,6 +2,7 @@ import type {
   OrganisationAdminPermissionUpdateRequestDto,
   OrganisationAdminPromotionRequestDto,
   OrganisationAdminRemoveRequestDto,
+  OwnOrganisationDetailDto,
 } from '@insightful-phish/shared';
 import { OrganisationPermissionKey } from '../generated/prisma/enums.js';
 import type { OrganisationPermissionKey as OrganisationPermissionKeyValue } from '../generated/prisma/enums.js';
@@ -10,6 +11,7 @@ import { recordAuditLog } from './audit-log.service.js';
 import { requestAuthEmailSend } from './auth-email-hook.service.js';
 import { revokeSessionsForUser } from './auth-session.service.js';
 import { verifyPassword } from './password.service.js';
+import { findOrganisationWithCount } from '../repositories/organisation.repository.js';
 import {
   countActiveOrganisationAdminsWithPermission,
   createInvitationPermissionGrants,
@@ -52,6 +54,33 @@ export class OrganisationAdminServiceError extends Error {
     super(message);
     this.name = 'OrganisationAdminServiceError';
   }
+}
+
+export async function getOwnOrganisation(
+  actorUserId: string,
+  organisationId: string,
+): Promise<OwnOrganisationDetailDto> {
+  await requireActorAdmin(actorUserId, organisationId);
+  const organisation = await findOrganisationWithCount(organisationId);
+
+  if (!organisation) {
+    throw new OrganisationAdminServiceError(
+      404,
+      'ORGANISATION_NOT_FOUND',
+      'Organisation was not found',
+    );
+  }
+
+  return {
+    id: organisation.id,
+    name: organisation.name,
+    description: organisation.description,
+    website: organisation.website,
+    approximateSize: organisation.approximateSize,
+    registeredTraineeCount: organisation._count?.traineeProfiles ?? 0,
+    registrationDate: organisation.createdAt.toISOString(),
+    status: organisation.status,
+  };
 }
 
 export async function getOrganisationAdmins(actorUserId: string, organisationId: string) {

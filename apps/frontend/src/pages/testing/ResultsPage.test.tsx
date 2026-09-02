@@ -73,7 +73,7 @@ describe('ResultsPage', () => {
     expect(await screen.findByRole('heading', { level: 1, name: /passed/i })).toBeInTheDocument();
   });
 
-  it('renders the trainee score, feedback, and navigation back to the quiz', async () => {
+  it('renders the trainee score, feedback, and navigation back to the campaign', async () => {
     mockedGetQuizResult.mockResolvedValue(resultFixture);
 
     renderResultsPage();
@@ -84,9 +84,9 @@ describe('ResultsPage', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: /answer feedback/i })).toBeInTheDocument();
     expect(screen.getByText('Selected correct option')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /back to quiz/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /back to campaign/i })).toHaveAttribute(
       'href',
-      `/quizzes/${campaignItemId}`,
+      '/campaigns',
     );
   });
 
