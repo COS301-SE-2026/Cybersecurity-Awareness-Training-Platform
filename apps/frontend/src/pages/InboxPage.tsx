@@ -12,6 +12,7 @@ import PageBackButton from '../components/ui/PageBackButton';
 import { useAuth } from '../context/useAuth';
 import { formatEmailTime } from '../lib/email.utils';
 import { getSimulatedInbox } from '../services/campaigns.service';
+import './SimulatedEmailPages.css';
 
 function InboxPage() {
   const [hovered, setHovered] = useState(false);
@@ -70,8 +71,9 @@ function InboxPage() {
   });
 
   return (
-    <AppLayout contentStyle={{ backgroundColor: '#F3F4F6' }}>
+    <AppLayout className="simulated-inbox-layout" contentStyle={{ backgroundColor: '#F3F4F6' }}>
       <div
+        className="simulated-inbox"
         style={{
           padding: '1.4rem',
           paddingBottom: '1rem',
@@ -85,9 +87,10 @@ function InboxPage() {
       >
         {/* HEADING */}
 
-        <PageBackButton />
+        <PageBackButton className="simulated-email-back-button" marginBottom="-0.4rem" />
 
         <h1
+          className="simulated-inbox__title"
           style={{
             margin: 0,
             fontSize: '3.8rem',
@@ -103,6 +106,7 @@ function InboxPage() {
         {/* SEARCH */}
 
         <div
+          className="simulated-inbox__search"
           style={{
             height: '58px',
             backgroundColor: '#FFFFFF',
@@ -116,6 +120,7 @@ function InboxPage() {
           }}
         >
           <input
+            className="simulated-inbox__search-input"
             type="text"
             placeholder="Search"
             value={searchQuery}
@@ -135,6 +140,8 @@ function InboxPage() {
           />
 
           <button
+            className="simulated-inbox__search-button"
+            type="button"
             style={{
               height: '80%',
               width: '140px',
@@ -157,13 +164,14 @@ function InboxPage() {
             onMouseLeave={() => setHovered(false)}
           >
             <SearchOutlinedIcon />
-            SEARCH
+            <span className="simulated-inbox__search-label">SEARCH</span>
           </button>
         </div>
 
         {/* EMAIL LIST */}
 
         <div
+          className="simulated-inbox__list"
           style={{
             display: 'flex',
             flexDirection: 'column',

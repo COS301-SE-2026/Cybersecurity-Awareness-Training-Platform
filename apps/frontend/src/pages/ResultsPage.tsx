@@ -6,6 +6,7 @@ import { TrainingAsyncContent } from '../components/training/TrainingAsyncConten
 import { trainingStateActionStyle } from '../components/training/trainingStateStyles';
 import { getQuizResult } from '../lib/quizApi';
 import type { QuizResult } from '../lib/quizApi';
+import './QuizPages.css';
 
 export function ResultsPage() {
   const { attemptId } = useParams<{ attemptId: string }>();
@@ -61,6 +62,7 @@ export function ResultsPage() {
 
   return (
     <AppLayout
+      className="quiz-layout"
       contentStyle={{
         overflowY: 'auto',
         padding: '2rem',

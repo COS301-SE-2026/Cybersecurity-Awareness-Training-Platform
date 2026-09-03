@@ -123,6 +123,7 @@ function Sidebar() {
 
   return (
     <aside
+      className="app-sidebar"
       style={{
         width: '84px',
         backgroundColor: 'var(--ip-faint-purple)',
@@ -143,6 +144,7 @@ function Sidebar() {
 
         return (
           <NavigationItem
+            className="app-sidebar__item"
             key={item.label}
             href={'href' in item ? item.href : undefined}
             target={'href' in item ? '_blank' : undefined}

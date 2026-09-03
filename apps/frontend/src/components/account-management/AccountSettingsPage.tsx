@@ -64,7 +64,7 @@ function AccountSettingsPage({
   }
 
   return (
-    <div className="-mt-2 -ml-2">
+    <div className="account-settings -mt-2 -ml-2">
       {/* HEADING */}
       <h3 className="font-jost text-2xl text-dark-pink tracking-wider font-medium">
         Account Settings
@@ -100,7 +100,7 @@ function AccountSettingsPage({
 
       {/* NORMAL ACCOUNT SETTINGS */}
       <div className="mb-6 max-w-xl">
-        <div className="flex items-start gap-4">
+        <div className="account-settings__email-row flex items-start gap-4">
           <ReadOnlyField
             id="email-address"
             label="Email Address"
@@ -113,12 +113,12 @@ function AccountSettingsPage({
             className="min-w-0 flex-1"
           />
 
-          <div className="pt-8">
+          <div className="account-settings__email-action pt-8">
             <button
               type="button"
               disabled={!canRequestEmailChange}
               onClick={() => setShowChangeEmailModal(true)}
-              className="cursor-pointer whitespace-nowrap px-6 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm py-2.5 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+              className="account-management__action cursor-pointer whitespace-nowrap px-6 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm py-2.5 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span className="material-symbols-sharp">mail</span>
               <span>Change Email</span>
@@ -137,7 +137,7 @@ function AccountSettingsPage({
         <button
           type="button"
           onClick={() => setShowChangePasswordModal(true)}
-          className="cursor-pointer whitespace-nowrap px-6 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm py-2.5 focus:outline-none"
+          className="account-management__action cursor-pointer whitespace-nowrap px-6 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm py-2.5 focus:outline-none"
         >
           <span className="material-symbols-sharp">key</span>
           <span>Change Password</span>
@@ -156,7 +156,7 @@ function AccountSettingsPage({
           <button
             type="button"
             disabled={!canDeleteAccount}
-            className="cursor-not-allowed whitespace-nowrap px-6 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-red-600 box-border border border-transparent focus:ring-4 focus:ring-red-300 shadow-xs leading-5 text-sm py-2.5 focus:outline-none disabled:opacity-50"
+            className="account-management__action cursor-not-allowed whitespace-nowrap px-6 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-red-600 box-border border border-transparent focus:ring-4 focus:ring-red-300 shadow-xs leading-5 text-sm py-2.5 focus:outline-none disabled:opacity-50"
           >
             <span className="material-symbols-sharp">delete</span>
             <span>Delete Account</span>
