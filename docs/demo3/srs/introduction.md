@@ -1,6 +1,6 @@
 # Introduction and Scope
 
-This section introduces the purpose, audience, scope, assumptions, terminology, and references for the Insightful Phish Demo 2 Software Requirements Specification.
+This section introduces the purpose, audience, scope, assumptions, terminology, and references for the Insightful Phish Demo 3 Software Requirements Specification.
 
 ## SRS Content
 
@@ -11,7 +11,6 @@ This section introduces the purpose, audience, scope, assumptions, terminology, 
   - [1.3 Product Scope](#13-product-scope)
   - [1.4 Assumptions](#14-assumptions)
   - [1.5 Definitions, Acronyms, and Abbreviations](#15-definitions-acronyms-and-abbreviations)
-  - [1.6 References](#16-references)
 - [2. Users and User Stories](users-and-user-stories.md)
 - [3. Functional Requirements](functional-requirements.md)
 - [4. Use Cases](use-cases.md)
@@ -92,15 +91,6 @@ The requirements for Insightful Phish are based on the following assumptions abo
 | **`TUCBW`**            | **This use case begins with:** Defines the initial state and preconditions for the use case.                                                                                             |
 | **`TUCEW`**            | **This use case ends with:** Specifies the final state and postconditions for the use case.                                                                                              |
 | **`SRS`**              | **Software Requirements Specification:** A document that describes the software system to be developed, including functional and non-functional requirements. (This is the SRS document) |
-
-### 1.6 References
-
-- [Insightful Phish Demo 2 documentation](../README.md)
-- [Software Architectural Specification](../sas/README.md)
-- [Demo 2 API Contract Documentation](../sas/api-contracts.md)
-- [Demo 2 Design Documentation](https://brand.insightfulphish.co.za)
-- [Demo 2 Traceability Matrix](../traceability.md)
-- [Demo 1 Software Requirements Specification](../../demo1/SRS.md)
 
 ---
 

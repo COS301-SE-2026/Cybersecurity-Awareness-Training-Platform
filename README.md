@@ -81,7 +81,7 @@ Finally, the system provides configurable organisation security settings for adm
 
 <p align="left">
   <a href="https://docs.insightfulphish.co.za">
-    <img src="https://img.shields.io/badge/Demo%202-Docs%20Available-blue?style=for-the-badge" alt="Demo 3 Docs Available" />
+    <img src="https://img.shields.io/badge/Demo%203-Docs%20Available-blue?style=for-the-badge" alt="Demo 3 Docs Available" />
   </a>
   <img src="https://img.shields.io/badge/Monorepo-pnpm%20Workspaces-blue?style=for-the-badge" alt="Monorepo: pnpm workspaces" />
   <img src="https://img.shields.io/badge/Branching-Feature%20Branches%20%2B%20Dev-blue?style=for-the-badge" alt="Branching: Feature branches + dev" />
@@ -113,8 +113,6 @@ Finally, the system provides configurable organisation security settings for adm
 2. **Swagger Documentation (API Contracts)**: https://swagger.insightfulphish.co.za
 3. **Brand Guidelines**: https://brand.insightfulphish.co.za
 4. **Demo 3 Video**: Not available yet
-
-</details>
 
 ### Demo 2 Documentation
 

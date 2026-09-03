@@ -16,7 +16,6 @@ This section describes the architectural patterns used to organise Insightful Ph
   - [4.5 Pattern Interactions](#45-pattern-interactions)
   - [4.6 Limitations](#46-limitations)
   - [4.7 Quality Traceability](#47-quality-traceability)
-  - [4.8 References](#48-references)
 - [5. Design Patterns](design-patterns.md)
 - [6. Quality to Architecture Mapping](quality-architecture-mapping.md)
 - [7. Technology Requirements](technology-requirements.md)

@@ -6,11 +6,13 @@ The NFR evidence is intentionally bounded. It records the command, environment, 
 
 ## Contents
 
-1. [Purpose](#1-purpose)
-2. [Verification Structure](#2-verification-structure)
-3. [Current Evidence](#3-current-evidence)
-4. [How to Read Results](#4-how-to-read-results)
-5. [Related Documents](#5-related-documents)
+- [Demo 3 Non-Functional Verification](#demo-3-non-functional-verification)
+  - [Contents](#contents)
+  - [1. Purpose](#1-purpose)
+  - [2. Verification Structure](#2-verification-structure)
+  - [3. Current Evidence](#3-current-evidence)
+  - [4. How to Read Results](#4-how-to-read-results)
+  - [5. Related Documents](#5-related-documents)
 
 ---
 
@@ -43,10 +45,10 @@ The current evidence summary is [2026-08-21-summary.md](evidence/2026-08-21-summ
 
 At the time of this update:
 
-- deterministic NFR checks pass;
-- the authenticated seeded API performance check configuration passes dry-run validation;
-- the accessibility check is executable, but currently reports one critical violation on the registration page;
-- full local performance smoke was not run because it needs the backend, seeded Demo 3 data, and a short-lived local bearer token.
+- Deterministic NFR checks pass
+- The authenticated seeded API performance check configuration passes dry-run validation
+- The accessibility check is executable, but currently reports one critical violation on the registration page
+- Full local performance smoke was not run because it needs the backend, seeded Demo 3 data, and a short-lived local bearer token
 
 ## 4. How to Read Results
 

@@ -10,40 +10,49 @@ Organisation Admins and Insightful Phish Admins should also use the **[Demo 3 Ad
 
 ## Contents
 
-- [Introduction](#introduction)
-- [Access and Account Basics](#access-and-account-basics)
-  - [Sign In](#sign-in)
-  - [Log Out](#log-out)
-  - [Create a General Trainee Account](#create-a-general-trainee-account)
-  - [Verify Your Email Address](#verify-your-email-address)
-  - [Reset a Forgotten Password](#reset-a-forgotten-password)
-  - [Complete Account Setup From an Invitation](#complete-account-setup-from-an-invitation)
-  - [Accept an Organisation Invitation](#accept-an-organisation-invitation)
-- [Account Management and Security](#account-management-and-security)
-  - [Open Account Management](#open-account-management)
-  - [Update Personal Information](#update-personal-information)
-  - [Request an Email Change](#request-an-email-change)
-  - [Change Your Password](#change-your-password)
-  - [Review Active Sessions](#review-active-sessions)
-  - [Update Session Settings](#update-session-settings)
-- [General Trainee Tasks](#general-trainee-tasks)
-  - [View Available Campaigns](#view-available-campaigns)
-  - [Open Campaign Activities](#open-campaign-activities)
-- [Organisation Trainee Tasks](#organisation-trainee-tasks)
-  - [View Assigned Organisation Campaigns](#view-assigned-organisation-campaigns)
-  - [Read a Training Document](#read-a-training-document)
-  - [Complete a Quiz](#complete-a-quiz)
-  - [Review Quiz Results](#review-quiz-results)
-  - [Work Through a Simulated Inbox](#work-through-a-simulated-inbox)
-  - [Inspect a Simulated Email](#inspect-a-simulated-email)
-- [Organisation Access](#organisation-access)
-  - [Request Organisation Access](#request-organisation-access)
-  - [Complete Initial Organisation Admin Setup](#complete-initial-organisation-admin-setup)
-- [Admin User Manual](admin-user-manual.md)
-- [Troubleshooting](#troubleshooting)
-- [Security and Privacy](#security-and-privacy)
-- [Glossary](#glossary)
-- [Support](#support)
+- [Insightful Phish Demo 3 User Manual](#insightful-phish-demo-3-user-manual)
+  - [Introduction](#introduction)
+  - [Contents](#contents)
+  - [How to Read a Task](#how-to-read-a-task)
+  - [Access and Account Basics](#access-and-account-basics)
+    - [Sign In](#sign-in)
+    - [Log Out](#log-out)
+    - [Create a General Trainee Account](#create-a-general-trainee-account)
+    - [Verify Your Email Address](#verify-your-email-address)
+    - [Reset a Forgotten Password](#reset-a-forgotten-password)
+    - [Complete Account Setup From an Invitation](#complete-account-setup-from-an-invitation)
+    - [Accept an Organisation Invitation](#accept-an-organisation-invitation)
+  - [Account Management and Security](#account-management-and-security)
+    - [Open Account Management](#open-account-management)
+    - [Update Personal Information](#update-personal-information)
+    - [Request an Email Change](#request-an-email-change)
+    - [Change Your Password](#change-your-password)
+    - [Review Active Sessions](#review-active-sessions)
+    - [Update Session Settings](#update-session-settings)
+  - [General Trainee Tasks](#general-trainee-tasks)
+    - [View Available Campaigns](#view-available-campaigns)
+    - [Open Campaign Activities](#open-campaign-activities)
+  - [Organisation Trainee Tasks](#organisation-trainee-tasks)
+    - [View Assigned Organisation Campaigns](#view-assigned-organisation-campaigns)
+    - [Read a Training Document](#read-a-training-document)
+    - [Complete a Quiz](#complete-a-quiz)
+    - [Review Quiz Results](#review-quiz-results)
+    - [Work Through a Simulated Inbox](#work-through-a-simulated-inbox)
+    - [Inspect a Simulated Email](#inspect-a-simulated-email)
+  - [Organisation Access](#organisation-access)
+    - [Request Organisation Access](#request-organisation-access)
+    - [Complete Initial Organisation Admin Setup](#complete-initial-organisation-admin-setup)
+  - [Troubleshooting](#troubleshooting)
+    - [Login Does Not Work](#login-does-not-work)
+    - [Verification Link Has Expired](#verification-link-has-expired)
+    - [Setup Link Is Invalid or Already Used](#setup-link-is-invalid-or-already-used)
+    - [A Setting Is Read-Only](#a-setting-is-read-only)
+    - [An Action Button Is Missing or Disabled](#an-action-button-is-missing-or-disabled)
+    - [A Request Fails or Rate Limits](#a-request-fails-or-rate-limits)
+    - [A Page Shows No Data](#a-page-shows-no-data)
+  - [Security and Privacy](#security-and-privacy)
+  - [Glossary](#glossary)
+  - [Support](#support)
 
 ## How to Read a Task
 
@@ -638,11 +647,6 @@ These public and invitation-led tasks cover requesting Organisation access and c
 - If the empty state remains, there may be no current records for the selected filter.
 - If there are no eligible Campaigns or Organisation Trainees, ask the relevant administrator to check Campaign status, trainee status, and assignment permissions.
 - If Campaign statistics are unavailable or empty, check whether a statistics page is exposed for your role and whether the Campaign has activity to report.
-
-### Help Link Opens Older Manual Content
-
-- Use this Demo 3 User Manual as the current manual for Demo 3 workflows.
-- Some in-product Help links may still open an older wiki manual until the product navigation is updated.
 
 ## Security and Privacy
 
