@@ -37,22 +37,12 @@ function InviteOrganisationAdministratorModal({
     <ViewportModalShell
       id="select-modal"
       isOpen={isOpen}
+      onClose={onClose}
+      closeDisabled={isSubmitting}
       header={
-        <div className="flex items-center justify-between">
-          <h3 className="font-jost text-3xl text-purple tracking-wider font-medium text-heading">
-            Add New Administrator to Organisation
-          </h3>
-
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isSubmitting}
-            className="text-body bg-transparent hover:bg-neutral-tertiary hover:text-heading text-sm w-9 h-9 ms-auto inline-flex justify-center items-center disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            <span className="material-icons-sharp">close</span>
-            <span className="sr-only">Close modal</span>
-          </button>
-        </div>
+        <h3 className="font-jost text-3xl text-purple tracking-wider font-medium text-heading">
+          Add New Administrator to Organisation
+        </h3>
       }
       footer={
         <button

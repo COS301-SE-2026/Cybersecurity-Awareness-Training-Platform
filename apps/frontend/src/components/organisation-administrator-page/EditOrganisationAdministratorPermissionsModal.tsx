@@ -35,26 +35,16 @@ function EditOrganisationAdministratorPermissionsModal({
     <ViewportModalShell
       id="edit-organisation-admin-permissions-modal"
       isOpen={isOpen}
+      onClose={onClose}
+      closeDisabled={isSubmitting}
       header={
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="font-jost text-3xl text-purple tracking-wider font-medium text-heading">
-              Edit Permissions
-            </h3>
-            <p className="font-overpass text-sm text-gray-600">
-              {administratorName} ({administratorEmail})
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isSubmitting}
-            className="text-body bg-transparent hover:bg-neutral-tertiary hover:text-heading text-sm w-9 h-9 ms-auto inline-flex justify-center items-center disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            <span className="material-icons-sharp">close</span>
-            <span className="sr-only">Close modal</span>
-          </button>
+        <div>
+          <h3 className="font-jost text-3xl text-purple tracking-wider font-medium text-heading">
+            Edit Permissions
+          </h3>
+          <p className="font-overpass text-sm text-gray-600">
+            {administratorName} ({administratorEmail})
+          </p>
         </div>
       }
       footer={
