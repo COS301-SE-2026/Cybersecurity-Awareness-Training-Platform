@@ -4,9 +4,10 @@ import { useNavigate } from 'react-router-dom';
 
 type PageBackButtonProps = {
   readonly marginBottom?: CSSProperties['marginBottom'];
+  readonly className?: string;
 };
 
-function PageBackButton({ marginBottom = '-1.2rem' }: PageBackButtonProps) {
+function PageBackButton({ marginBottom = '-1.2rem', className }: PageBackButtonProps) {
   const navigate = useNavigate();
 
   const handleBack = () => {
@@ -15,6 +16,7 @@ function PageBackButton({ marginBottom = '-1.2rem' }: PageBackButtonProps) {
 
   return (
     <button
+      className={className}
       onClick={handleBack}
       type="button"
       style={{

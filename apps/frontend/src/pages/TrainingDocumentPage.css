@@ -1,0 +1,23 @@
+@media (max-width: 30rem) {
+  .training-document-layout .app-navbar {
+    height: 70px !important;
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+
+  .training-document-layout .app-navbar__logo {
+    height: auto !important;
+    max-height: 58px;
+    max-width: calc(100% - 76px);
+  }
+
+  .training-document-layout .app-navbar__profile-button {
+    gap: 0.25rem !important;
+    height: 46px !important;
+    padding: 0.65rem !important;
+  }
+
+  .training-document-layout .app-navbar__profile-name {
+    display: none !important;
+  }
+}

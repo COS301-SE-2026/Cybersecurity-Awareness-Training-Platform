@@ -10,8 +10,10 @@ import AppLayout from '../components/layout/AppLayout';
 import CampaignAccordion from '../components/ui/CampaignAccordion';
 import TrainingActionRow from '../components/ui/TrainingActionRow';
 import TrainingPartAccordion from '../components/ui/TrainingPartAccordion';
+import './CampaignsPage.css';
 
 import { getTraineeCampaignDetail, getTraineeCampaigns } from '../lib/campaignsApi';
+import { toTitleCase } from '../lib/text.utils';
 
 const FALLBACK_ACCENT_COLORS = ['#00FFA6', '#FF00D4', '#00D1FF', '#FF9F1C'];
 
@@ -39,12 +41,6 @@ function formatCampaignStatus(status?: string | null): string {
     default:
       return 'UNKNOWN';
   }
-}
-
-function toTitleCase(value: string): string {
-  return value.replace(/\w\S*/g, (word) => {
-    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-  });
 }
 
 function getCampaignItemRoute(
@@ -220,8 +216,9 @@ function CampaignsPage() {
   }
 
   return (
-    <AppLayout contentStyle={{ backgroundColor: '#F3F4F6' }}>
+    <AppLayout className="campaigns-layout" contentStyle={{ backgroundColor: '#F3F4F6' }}>
       <div
+        className="campaigns-page"
         style={{
           padding: '1.4rem',
           paddingBottom: '2rem',
@@ -233,6 +230,7 @@ function CampaignsPage() {
         }}
       >
         <h1
+          className="campaigns-page__title"
           style={{
             margin: 0,
             marginBottom: '0.5rem',

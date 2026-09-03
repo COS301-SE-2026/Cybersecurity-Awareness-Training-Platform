@@ -1,6 +1,7 @@
 import type { CSSProperties, FormEvent } from 'react';
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import './QuizPages.css';
 import AppLayout from '../components/layout/AppLayout';
 import { TrainingAsyncContent } from '../components/training/TrainingAsyncContent';
 import { trainingStateActionStyle } from '../components/training/trainingStateStyles';
@@ -357,6 +358,7 @@ export function QuizPage() {
 
   return (
     <AppLayout
+      className="quiz-layout"
       contentStyle={{
         overflowY: 'auto',
         padding: '2rem',

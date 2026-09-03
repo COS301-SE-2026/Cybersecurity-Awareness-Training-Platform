@@ -281,7 +281,7 @@ function SessionSettingsPage({
   }
 
   return (
-    <div className="-mt-2 -ml-2">
+    <div className="account-session-settings -mt-2 -ml-2">
       {/* HEADING */}
       <h3 className="font-jost text-2xl text-dark-pink tracking-wider font-medium">
         Session Settings
@@ -298,7 +298,7 @@ function SessionSettingsPage({
         </BasicAlert>
       )}
 
-      <div className="flex items-center justify-between">
+      <div className="account-session-settings__heading-row flex items-center justify-between">
         {/* Sessions HEADING */}
         <h3 className="font-jost text-[1.3rem] text-purple tracking-wider font-medium mb-2">
           Active Sessions ({sessions.length})
@@ -314,7 +314,7 @@ function SessionSettingsPage({
       </div>
 
       {/* SESSIONS TABLE */}
-      <AdminTableContainer>
+      <AdminTableContainer className="account-session-settings__table">
         <AdminTable>
           <AdminTableHeader>
             <tr>
@@ -387,9 +387,9 @@ function SessionSettingsPage({
         Session Preferences
       </h3>
 
-      <div className="flex items-end justify-between">
+      <div className="account-session-settings__preferences-row flex items-end justify-between">
         {/* Preference controls */}
-        <div className="mt-4 grid grid-cols-3 flex-1 max-w-4xl gap-6">
+        <div className="account-session-settings__preferences mt-4 grid grid-cols-3 flex-1 max-w-4xl gap-6">
           <SelectField
             id="regular-session-duration"
             label="Regular Session Duration"
@@ -424,7 +424,7 @@ function SessionSettingsPage({
           />
         </div>
 
-        <div className="mt-8 flex items-center justify-between">
+        <div className="account-session-settings__save mt-8 flex items-center justify-between">
           {/* Update Session Settings Button */}
           <button
             type="button"
@@ -433,7 +433,7 @@ function SessionSettingsPage({
               (!regularSessionEditable && !rememberMeEditable && !idleTimeoutEditable)
             }
             onClick={handleSavePreferences}
-            className="cursor-pointer px-6 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm px-4 py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
+            className="account-management__action cursor-pointer px-6 inline-flex gap-2 items-center justify-center text-white font-jost text-[1.2rem] font-regular tracking-wider bg-main-purple hover:bg-hover-purple box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs leading-5 text-sm px-4 py-2.5 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <span className="material-icons-sharp">save</span>
             <span> {isUpdatingPreferences ? 'Updating...' : 'Update Session Settings'} </span>

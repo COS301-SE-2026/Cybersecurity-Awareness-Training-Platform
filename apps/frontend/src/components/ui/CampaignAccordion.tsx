@@ -22,6 +22,7 @@ function CampaignAccordion({
 }: CampaignAccordionProps) {
   return (
     <div
+      className="campaign-accordion"
       style={{
         border: `4px solid ${accentColor}33`,
         backgroundColor: 'white',
@@ -30,6 +31,7 @@ function CampaignAccordion({
       }}
     >
       <div
+        className="campaign-accordion__accent"
         style={{
           position: 'absolute',
           left: '-6px',
@@ -44,6 +46,7 @@ function CampaignAccordion({
       {/* HEADER */}
 
       <button
+        className="campaign-accordion__header"
         onClick={onToggle}
         type="button"
         style={{
@@ -59,8 +62,9 @@ function CampaignAccordion({
           boxSizing: 'border-box',
         }}
       >
-        <div>
+        <div className="campaign-accordion__heading">
           <div
+            className="campaign-accordion__eyebrow"
             style={{
               color: 'var(--ip-deep-purple)',
               fontFamily: 'Overpass',
@@ -74,6 +78,7 @@ function CampaignAccordion({
           </div>
 
           <div
+            className="campaign-accordion__title"
             style={{
               color: accentColor,
               fontFamily: 'Jost',
@@ -88,6 +93,7 @@ function CampaignAccordion({
         </div>
 
         <div
+          className="campaign-accordion__summary"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -95,6 +101,7 @@ function CampaignAccordion({
           }}
         >
           <div
+            className="campaign-accordion__status"
             style={{
               backgroundColor: `${accentColor}22`,
               color: accentColor,
@@ -115,6 +122,7 @@ function CampaignAccordion({
 
           {isOpen ? (
             <KeyboardArrowUp
+              className="campaign-accordion__toggle-icon"
               style={{
                 color: 'var(--ip-deep-purple)',
                 fontSize: '3rem',
@@ -122,6 +130,7 @@ function CampaignAccordion({
             />
           ) : (
             <KeyboardArrowDown
+              className="campaign-accordion__toggle-icon"
               style={{
                 color: 'var(--ip-deep-purple)',
                 fontSize: '3rem',

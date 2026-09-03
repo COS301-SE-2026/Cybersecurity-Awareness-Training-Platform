@@ -13,6 +13,7 @@ import {
   recordTrainingDocumentCompleted,
   recordTrainingDocumentViewed,
 } from '../lib/trainingApi';
+import './TrainingDocumentPage.css';
 
 function findCampaignItemProgressStatus(
   items: ReadonlyArray<TraineeCampaignItemSummaryDto>,
@@ -190,7 +191,11 @@ export default function TrainingDocumentPage() {
   }
 
   return (
-    <AppLayout showSidebar={false} contentStyle={{ backgroundColor: '#F3F4F6' }}>
+    <AppLayout
+      className="training-document-layout"
+      showSidebar={false}
+      contentStyle={{ backgroundColor: '#F3F4F6' }}
+    >
       <div
         style={{
           padding: '1.5rem 2rem 2.5rem',

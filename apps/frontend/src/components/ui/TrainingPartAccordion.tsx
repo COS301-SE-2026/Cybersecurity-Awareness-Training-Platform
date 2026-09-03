@@ -54,6 +54,7 @@ function TrainingPartAccordion({
 
   return (
     <div
+      className="training-part-accordion"
       style={{
         backgroundColor: 'var(--ip-faint-purple)',
       }}
@@ -61,6 +62,7 @@ function TrainingPartAccordion({
       {/* HEADER */}
 
       <button
+        className="training-part-accordion__header"
         onClick={disabled ? undefined : () => setOpen(!open)}
         disabled={disabled}
         type="button"
@@ -79,6 +81,7 @@ function TrainingPartAccordion({
         }}
       >
         <div
+          className="training-part-accordion__title"
           style={{
             color: 'var(--ip-deep-purple)',
             fontFamily: 'Jost',
@@ -91,6 +94,7 @@ function TrainingPartAccordion({
         </div>
 
         <div
+          className="training-part-accordion__summary"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -98,6 +102,7 @@ function TrainingPartAccordion({
           }}
         >
           <div
+            className="training-part-accordion__status"
             style={{
               color: 'var(--ip-dark-pink)',
               fontFamily: 'Jost',
