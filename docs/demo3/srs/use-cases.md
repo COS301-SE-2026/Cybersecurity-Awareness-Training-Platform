@@ -77,32 +77,43 @@ The following high level use case diagrams group closely related use cases by sy
 ### Authentication and Account Access
 
 ![Authentication and Account Access Use Case Diagram](../diagrams/srs/use-cases/authentication-and-account-access.drawio.svg)
+
 _Figure 4.1: Supporting authentication and account access processes covering [`AUTH-01`](#auth-01-register-an-individual-account) to [`AUTH-06`](#auth-06-resend-an-account-access-email)_
 
 ### Trainee Campaign Participation
 
 ![Trainee Campaign Access Use Case Diagram](../diagrams/srs/use-cases/trainee-campaign-participation.drawio.svg)
-_Figure 4.2: Implemented trainee campaign participation processes covering [UC-01](#uc-01-view-emails-in-a-simulated-inbox), [UC-02](#uc-02-view-a-training-document) and [UC-03](#uc-03-complete-a-quiz-and-view-results)_
+
+_Figure 4.2: Implemented trainee campaign participation processes covering [UC-01](#uc-01-view-emails-in-a-simulated-inbox), [UC-02](#uc-02-view-a-training-document), [UC-03](#uc-03-complete-a-quiz-and-view-results), [UC-24](#uc-24-view-available-training-campaigns) and [UC-30](#uc-30-view-personal-campaign-progress-and-results)_
 
 ### Organisation Onboarding and Invitations
 
 ![Organisation Onboarding and Invitations Use Case Diagram](../diagrams/srs/use-cases/organisation-onboarding-and-invitations.drawio.svg)
+
 _Figure 4.3: Organisation registration, onboarding, and invitation response processes covering [UC-04](#uc-04-request-organisation-registration), [UC-05](#uc-05-review-and-manage-organisation-registrations), [UC-06](#uc-06-complete-first-organisation-administrator-setup) and [UC-07](#uc-07-accept-an-organisation-invitation-or-role-change)_
 
 ### Organisation Membership and Role Administration
 
 ![Organisation Membership and Role Administration Use Case Diagram](../diagrams/srs/use-cases/organisation-membership-and-role-administration.drawio.svg)
+
 _Figure 4.4: Organisation trainee, administrator, and permission management processes covering [UC-08](#uc-08-manage-organisation-trainees) and [UC-09](#uc-09-manage-organisation-administrators-and-permissions)_
 
 ### Platform Administrator Governance
 
 ![Platform Administrator Governance Use Case Diagram](../diagrams/srs/use-cases/platform-administrator-governance.drawio.svg)
-_Figure 4.5: Platform administrator governance processes covering [UC-10](#uc-10-manage-platform-administrators)_
+
+_Figure 4.5: Platform administrator governance processes covering [UC-10](#uc-10-manage-platform-administrators) and [UC-16](#uc-16-manage-premade-campaigns)_
 
 ### Security and Account Management
 
 ![Security and Account Management Use Case Diagram](../diagrams/srs/use-cases/security-and-account-management.drawio.svg)
+
 _Figure 4.6: Organisation security and personal account management processes covering [UC-11](#uc-11-manage-organisation-security-settings) and [UC-12](#uc-12-manage-personal-account-and-security-settings)_
+
+### Organisation Campaign Administrators
+
+![Organisation and Campaign Administrators Use Case Diagram](../diagrams/use-cases/organisation-campaign-administrators.drawio.svg)
+_Figure 4.7: Organisation campaign management, trainee assignment and reporting processes covering [UC-17](#uc-17-manage-organisation-campaigns), [UC-26](#uc-26-assign-campaigns-to-organisation-trainees) and [UC-31](#uc-31-view-organisation-training-reports)_
 
 ## 4.2 Authentication and Account Access Use Cases
 
@@ -1329,7 +1340,7 @@ We have decided to include the following use cases even though they are consider
 
 **Related User Stories:** **6.11** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration)
 
-**Related Use Case Diagram:** Not shown in the current grouped diagrams
+**Related Use Case Diagram:** [Organisation Campaign Administrators](#organisation-campaign-administrators)
 
 </details>
 
@@ -1642,7 +1653,7 @@ We have decided to include the following use cases even though they are consider
 
 **Related User Stories:** **6.13**, **6.13b** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration)
 
-**Related Use Case Diagram:** Not shown in the current grouped diagrams
+**Related Use Case Diagram:** [Organisation Campaign Administrators](#organisation-campaign-administrators)
 
 </details>
 
@@ -1812,7 +1823,7 @@ We have decided to include the following use cases even though they are consider
 
 **Related User Stories:** **6.15** in [Organisation Administration](users-and-user-stories.md#6-organisation-administration)
 
-**Related Use Case Diagram:** Not shown in the current grouped diagrams
+**Related Use Case Diagram:** [Organisation Campaign Administrators](#organisation-campaign-administrators)
 
 </details>
 
