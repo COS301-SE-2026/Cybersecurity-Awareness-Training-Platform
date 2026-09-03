@@ -13,6 +13,7 @@ import TrainingPartAccordion from '../components/ui/TrainingPartAccordion';
 import './CampaignsPage.css';
 
 import { getTraineeCampaignDetail, getTraineeCampaigns } from '../lib/campaignsApi';
+import { toTitleCase } from '../lib/text.utils';
 
 const FALLBACK_ACCENT_COLORS = ['#00FFA6', '#FF00D4', '#00D1FF', '#FF9F1C'];
 
@@ -40,12 +41,6 @@ function formatCampaignStatus(status?: string | null): string {
     default:
       return 'UNKNOWN';
   }
-}
-
-function toTitleCase(value: string): string {
-  return value.replace(/\w\S*/g, (word) => {
-    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-  });
 }
 
 function getCampaignItemRoute(
