@@ -44,22 +44,22 @@
       "number": 505,
       "title": "docs: rationalise Demo 3 scope and update use cases",
       "points": 5,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-09-03"
     },
     {
       "number": 504,
       "title": "docs: update Demo 3 deployment and CI/CD diagrams",
       "points": 3,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-09-03"
     },
     {
       "number": 503,
       "title": "docs: update the hosted Demo 3 Brand Guidelines",
       "points": 3,
-      "state": "open",
-      "closed_date": null
+      "state": "closed",
+      "closed_date": "2026-09-03"
     },
     {
       "number": 502,
