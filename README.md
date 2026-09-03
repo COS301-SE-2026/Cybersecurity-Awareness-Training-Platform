@@ -40,21 +40,17 @@ By focusing on human behaviour, the most common source of security breaches, the
 
 # <img src="https://img.icons8.com/?size=100&id=OxDyKkYjQ5Yk&format=png&color=000000" width="32"> Current Demo (Demo 3) Scope
 
-Demo 3 plans to have the base Insightful Phish product done. This section will be updated closer to the demo.
+For Demo 3, we focused on completing the base Insightful Phish product and integrating the platform's core workflows into a cohesive end to end experience.
 
-<!-- For Demo 2, we focused on the organisation onboarding, administration, and security management features of the platform.
+Platform Administrators can manage organisations and create, edit, ectivate and maintain premaide training campaigns, which contain training documents, quizzes and simulated inbox activities.
 
-An organisation representative first submits a registration request, which is then reviewed by a Platform Administrator who can approve, reject, track, and manage registration requests.
+Similarly, Organisation Administrators can manage their organisation's trainees, administrators, permissions, security settings and custom organisation training campaigns. Thy can create and edit campaigns, organise training activities, control campaign lifecycles and assign active campaigns to organisation trainees.
 
-Once approved, the invited Initial Organisation Administrator completes the organisation setup process, activates the organisation, and gains administrative access.
+Once assigned, trainees can access their campaigns, work through training documents, complete quizzes, review their results and interact with simulated phishing emails in a controlled inbox environment. Their progress and activity is recorded as they work through the campaign.
 
-The system also allows invited users to accept organisation invitations or administrator role changes, enabling them to join the organisation or receive additional permissions.
+Organisation Administrators can then monitor campaign assignments and review campaign insights, completion information, quiz permformance and simulated email activity to understand how trainees are progressing.
 
-Organisation Administrators can then manage trainees by inviting, disabling, reactivating, and monitoring employees, while also managing other administrators by assigning permissions, promoting trainees, and maintaining administrator roles.
-
-At the platform level, the Platform Super-Administrator can manage Platform Administrators by inviting new administrators, transferring the super-administrator role, and revoking or demoting existing administrators.
-
-Finally, the system provides configurable organisation security settings for administrators to manage organisation-wide security policies, alongside personal account and security settings that allow individual users to manage their own profile information, passwords, sessions, and other account security preferences. -->
+Demo 3 brings these capabilities together with the organisation onboarding, invitation, account management, security and admin workflows completed in Demo 1 and Demo2.
 
 ---
 
@@ -81,7 +77,7 @@ Finally, the system provides configurable organisation security settings for adm
 
 <p align="left">
   <a href="https://docs.insightfulphish.co.za">
-    <img src="https://img.shields.io/badge/Demo%202-Docs%20Available-blue?style=for-the-badge" alt="Demo 3 Docs Available" />
+    <img src="https://img.shields.io/badge/Demo%203-Docs%20Available-blue?style=for-the-badge" alt="Demo 3 Docs Available" />
   </a>
   <img src="https://img.shields.io/badge/Monorepo-pnpm%20Workspaces-blue?style=for-the-badge" alt="Monorepo: pnpm workspaces" />
   <img src="https://img.shields.io/badge/Branching-Feature%20Branches%20%2B%20Dev-blue?style=for-the-badge" alt="Branching: Feature branches + dev" />
@@ -112,9 +108,7 @@ Finally, the system provides configurable organisation security settings for adm
 1. **Demo 3 Documentation**: https://docs.insightfulphish.co.za
 2. **Swagger Documentation (API Contracts)**: https://swagger.insightfulphish.co.za
 3. **Brand Guidelines**: https://brand.insightfulphish.co.za
-4. **Demo 3 Video**: Not available yet
-
-</details>
+4. **Demo 3 Video**: [Youtube](https://youtu.be/dRIz7KKx5qc)
 
 ### Demo 2 Documentation
 

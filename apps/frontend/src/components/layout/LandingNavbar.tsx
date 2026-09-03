@@ -37,7 +37,7 @@ function LandingNavbar() {
           </div>
         </div>
       </nav>
-      <nav className="bg-faint-purple">
+      <nav className="bg-faint-purple shadow-[0_4px_20px_rgba(0,0,0,0.08)]">
         <div className="max-w-screen-xl px-4 py-3 mx-auto overflow-x-auto">
           <div className="flex items-center">
             <ul className="flex min-w-max flex-row gap-5 font-medium font-jost text-[1rem] tracking-wider sm:gap-8 sm:text-[1.4rem]">

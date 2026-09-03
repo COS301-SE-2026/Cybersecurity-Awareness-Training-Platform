@@ -1,0 +1,200 @@
+.campaigns-page {
+  min-width: 0;
+}
+
+.campaign-accordion__heading,
+.training-action-row__main,
+.training-part-accordion__title {
+  min-width: 0;
+}
+
+.campaign-accordion__heading {
+  flex: 1;
+}
+
+.campaign-accordion__title,
+.training-action-row__label,
+.training-part-accordion__title {
+  overflow-wrap: anywhere;
+}
+
+.campaign-accordion__summary,
+.training-action-row__summary,
+.training-part-accordion__summary,
+.training-action-row__icon {
+  flex-shrink: 0;
+}
+
+@media (max-width: 48rem) {
+  .campaigns-layout .app-layout__body {
+    flex-direction: column;
+  }
+
+  .campaigns-layout .app-layout__content {
+    height: auto !important;
+    min-height: 0;
+    order: 1;
+  }
+
+  .campaigns-layout .app-sidebar {
+    flex-direction: row !important;
+    height: 64px;
+    order: 2;
+    overflow-x: auto;
+    width: 100% !important;
+  }
+
+  .campaigns-layout .app-sidebar__item {
+    flex: 1;
+    height: 64px !important;
+    margin-bottom: 0 !important;
+    min-width: 64px;
+    width: auto !important;
+  }
+
+  .campaigns-page {
+    gap: 1rem !important;
+    padding: 1.25rem !important;
+    padding-bottom: 1.5rem !important;
+  }
+
+  .campaigns-page__title {
+    font-size: 3rem !important;
+  }
+
+  .campaign-accordion__header {
+    align-items: stretch !important;
+    flex-direction: column;
+    gap: 1.15rem;
+    padding: 1.35rem 1.25rem !important;
+  }
+
+  .campaign-accordion__title {
+    font-size: 2.2rem !important;
+  }
+
+  .campaign-accordion__summary {
+    gap: 1rem !important;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .campaign-accordion__status {
+    flex: 1;
+    height: 48px !important;
+    max-width: 180px;
+    width: auto !important;
+  }
+
+  .training-part-accordion__header {
+    align-items: stretch !important;
+    flex-direction: column;
+    gap: 0.85rem;
+    padding: 1rem 1.1rem !important;
+  }
+
+  .training-part-accordion__title {
+    font-size: 1.55rem !important;
+  }
+
+  .training-part-accordion__summary {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .training-action-row {
+    align-items: stretch !important;
+    flex-direction: column;
+    gap: 0.85rem;
+    padding: 1rem !important;
+  }
+
+  .training-action-row__main {
+    align-items: flex-start !important;
+  }
+
+  .training-action-row__label {
+    font-size: 1.2rem !important;
+  }
+
+  .training-action-row__summary {
+    justify-content: flex-end;
+  }
+
+  .training-part-accordion > .collapsible-panel .collapsible-panel__content {
+    padding: 0 1rem 1rem !important;
+  }
+}
+
+@media (max-width: 30rem) {
+  .campaigns-layout .app-navbar {
+    height: 70px !important;
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+
+  .campaigns-layout .app-navbar__logo {
+    height: auto !important;
+    max-height: 58px;
+    max-width: calc(100% - 76px);
+  }
+
+  .campaigns-layout .app-navbar__profile-button {
+    gap: 0.25rem !important;
+    height: 46px !important;
+    padding: 0.65rem !important;
+  }
+
+  .campaigns-layout .app-navbar__profile-name {
+    display: none !important;
+  }
+
+  .campaigns-page {
+    padding: 1rem !important;
+    padding-bottom: 1.25rem !important;
+  }
+
+  .campaigns-page__title {
+    font-size: 2.5rem !important;
+  }
+
+  .campaign-accordion__header {
+    padding: 1.1rem 1rem !important;
+  }
+
+  .campaign-accordion__eyebrow {
+    font-size: 1.25rem !important;
+  }
+
+  .campaign-accordion__title {
+    font-size: 1.75rem !important;
+    letter-spacing: 0.04rem !important;
+  }
+
+  .campaign-accordion__status {
+    font-size: 0.95rem !important;
+    height: 44px !important;
+  }
+
+  .campaign-accordion__toggle-icon {
+    font-size: 2.5rem !important;
+  }
+
+  .campaign-accordion > .collapsible-panel .collapsible-panel__content {
+    gap: 0.75rem !important;
+    padding: 0.75rem !important;
+  }
+
+  .training-part-accordion__title {
+    font-size: 1.35rem !important;
+  }
+
+  .training-part-accordion__summary {
+    gap: 0.75rem !important;
+  }
+
+  .training-action-row__label {
+    font-size: 1.08rem !important;
+    letter-spacing: 0.04rem !important;
+  }
+}

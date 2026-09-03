@@ -19,6 +19,7 @@ function InboxEmailRow({
 }: InboxEmailRowProps) {
   return (
     <button
+      className="inbox-email-row"
       onClick={onClick}
       type="button"
       style={{
@@ -44,6 +45,7 @@ function InboxEmailRow({
     >
       {unread && (
         <div
+          className="inbox-email-row__unread-marker"
           style={{
             position: 'absolute',
             left: '-2px',
@@ -58,6 +60,7 @@ function InboxEmailRow({
       {/* AVATAR */}
 
       <div
+        className="inbox-email-row__avatar"
         style={{
           width: '42px',
           height: '42px',
@@ -82,6 +85,7 @@ function InboxEmailRow({
       {/* SENDER */}
 
       <div
+        className="inbox-email-row__sender"
         style={{
           width: '210px',
           color: unread ? 'var(--ip-dark-pink)' : '#1F2937',
@@ -102,6 +106,7 @@ function InboxEmailRow({
       {/* SUBJECT */}
 
       <div
+        className="inbox-email-row__subject"
         style={{
           width: '380px',
           color: unread ? 'var(--ip-deep-purple)' : '#374151',
@@ -123,6 +128,7 @@ function InboxEmailRow({
       {/* PREVIEW */}
 
       <div
+        className="inbox-email-row__preview"
         style={{
           flex: 1,
           color: unread ? '#4B5563' : '#6B7280',
@@ -141,6 +147,7 @@ function InboxEmailRow({
       {/* TIME */}
 
       <div
+        className="inbox-email-row__time"
         style={{
           color: unread ? 'var(--ip-dark-pink)' : '#6B7280',
           fontFamily: 'Overpass',

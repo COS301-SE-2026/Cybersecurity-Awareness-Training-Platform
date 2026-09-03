@@ -35,8 +35,4 @@ export function formatEmailTime(dateString: string, format: EmailTimeFormat = 'd
   return `${day} ${month} ${year}, ${time}`;
 }
 
-export function toTitleCase(text: string): string {
-  return text.replace(/\w\S*/g, (word) => {
-    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-  });
-}
+export { toTitleCase } from './text.utils';

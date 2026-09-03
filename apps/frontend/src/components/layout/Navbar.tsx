@@ -13,6 +13,7 @@ function Navbar() {
 
   return (
     <nav
+      className="app-navbar"
       style={{
         width: '100%',
         height: '82px',
@@ -20,6 +21,7 @@ function Navbar() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
         paddingLeft: '1rem',
         paddingRight: '1.5rem',
         boxSizing: 'border-box',
@@ -30,6 +32,7 @@ function Navbar() {
       {/* LOGO */}
 
       <img
+        className="app-navbar__logo"
         src="/Phish Logo Light.png"
         alt="Insightful Phish"
         style={{
@@ -41,11 +44,13 @@ function Navbar() {
       {/* PROFILE */}
 
       <div
+        className="app-navbar__profile"
         style={{
           position: 'relative',
         }}
       >
         <button
+          className="app-navbar__profile-button"
           onClick={() => setProfileOpen(!profileOpen)}
           style={{
             height: '50px',
@@ -68,7 +73,10 @@ function Navbar() {
               fontSize: '1.6rem',
             }}
           />
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+          <div
+            className="app-navbar__profile-name"
+            style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}
+          >
             <span>{user ? `${user.firstName} ${user.lastName}` : 'Account'}</span>
           </div>
           {profileOpen ? (

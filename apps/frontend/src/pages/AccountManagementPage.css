@@ -1,0 +1,177 @@
+.account-management__main,
+.account-management__content,
+.account-personal-settings,
+.account-settings,
+.account-session-settings {
+  min-width: 0;
+}
+
+@media (max-width: 48rem) {
+  .account-management-layout .app-layout__body {
+    flex-direction: column;
+  }
+
+  .account-management-layout .app-layout__content {
+    height: auto !important;
+    min-height: 0;
+    order: 1;
+  }
+
+  .account-management-layout .app-sidebar {
+    flex-direction: row !important;
+    height: 64px;
+    order: 2;
+    overflow-x: auto;
+    width: 100% !important;
+  }
+
+  .account-management-layout .app-sidebar__item {
+    flex: 1;
+    height: 64px !important;
+    margin-bottom: 0 !important;
+    min-width: 64px;
+    width: auto !important;
+  }
+
+  .account-management__heading {
+    padding: 1.25rem !important;
+  }
+
+  .account-management__title {
+    font-size: 3rem !important;
+  }
+
+  .account-management__main {
+    padding: 1.25rem !important;
+  }
+
+  .account-management__tabs {
+    display: flex !important;
+  }
+
+  .account-management__content {
+    padding: 1rem !important;
+  }
+
+  .account-personal-settings,
+  .account-settings,
+  .account-session-settings {
+    margin-left: 0 !important;
+  }
+
+  .account-settings__email-row {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .account-settings__email-action {
+    padding-top: 0;
+  }
+
+  .account-management__action {
+    max-width: 100%;
+    white-space: normal !important;
+  }
+
+  .account-session-settings__heading-row {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .account-session-settings__table {
+    max-width: 100%;
+  }
+
+  .account-session-settings__preferences-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .account-session-settings__preferences {
+    grid-template-columns: minmax(0, 1fr) !important;
+    max-width: none;
+    width: 100%;
+  }
+
+  .account-session-settings__save,
+  .account-session-settings__save .account-management__action {
+    width: 100%;
+  }
+}
+
+@media (max-width: 30rem) {
+  .account-management-layout .app-navbar {
+    height: 70px !important;
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+
+  .account-management-layout .app-navbar__logo {
+    height: auto !important;
+    max-height: 58px;
+    max-width: calc(100% - 76px);
+  }
+
+  .account-management-layout .app-navbar__profile-button {
+    gap: 0.25rem !important;
+    height: 46px !important;
+    padding: 0.65rem !important;
+  }
+
+  .account-management-layout .app-navbar__profile-name {
+    display: none !important;
+  }
+
+  .account-management__heading {
+    padding: 1rem !important;
+  }
+
+  .account-management__title {
+    font-size: 2.5rem !important;
+  }
+
+  .account-management__main {
+    padding: 1rem !important;
+  }
+
+  .account-management__tabs > li > button {
+    font-size: 1rem !important;
+    letter-spacing: 1px;
+    min-height: 54px;
+    padding-left: 0.45rem !important;
+    padding-right: 0.45rem !important;
+    white-space: normal;
+  }
+
+  .account-management__tabs > li {
+    flex: 1 1 0;
+    width: auto !important;
+  }
+
+  .account-management__tabs > li:first-child {
+    flex-grow: 1.45;
+  }
+
+  .account-management__tabs > li:first-child > button {
+    font-size: 1rem !important;
+    line-height: 1.05;
+    letter-spacing: 1px;
+    padding: 0.2rem !important;
+    white-space: normal;
+  }
+
+  .account-management__personal-tab-label {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .account-management__content {
+    padding: 0.875rem !important;
+  }
+
+  .account-management__action {
+    width: 100%;
+  }
+}

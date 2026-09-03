@@ -21,7 +21,6 @@ This section explains the technology choices used to express the Insightful Phis
   - [5.9 Testing and Quality Tools](#59-testing-and-quality-tools)
   - [5.10 API Documentation](#510-api-documentation)
   - [5.11 Alternatives and Trade-offs](#511-alternatives-and-trade-offs)
-  - [5.12 References](#512-references)
 - [6. API Contracts](api-contracts.md)
 - [7. Deployment and Operations](deployment.md)
 - [8. Changelog](changelog.md)
@@ -152,20 +151,9 @@ The alternatives below focus on major architectural choices rather than every pa
 | Backend/runtime      | Express on Node.js with TypeScript                                                                  | NestJS, Fastify, Hono, or a non-TypeScript backend                                                                                 | Express is simple and familiar, but it provides fewer guardrails than an opinionated framework. The team must preserve route/controller/service/repository discipline.                |
 | Validation/contracts | Zod and shared DTO-style contracts                                                                  | Duplicated frontend/backend validation, Joi/Yup/Valibot, or OpenAPI-only contracts                                                 | Shared Zod schemas reduce drift and improve testability, but schemas must stay aligned with public API behaviour and should not expose persistence internals.                         |
 | Persistence          | PostgreSQL with Prisma and repository boundaries                                                    | Document-store persistence, raw SQL-only access, TypeORM, Drizzle, or another relational database                                  | PostgreSQL/Prisma fit the relational domain and typed access needs. Raw SQL can offer fine control, but using it everywhere would increase boilerplate and contract drift.            |
-| Email                | Central email service with SMTP, MailPit for development, and Resend as preliminary production SMTP | Direct SMTP calls scattered through services, provider-specific SDKs everywhere, or queue-backed email delivery                    | Central SMTP delivery is portable and testable. Advanced provider features, queues, retries, and dead-letter handling should be added only when the architecture requires them.       |
+| Email                | Central email service with SMTP, MailPit for development, and Resend as preliminary production SMTP | Direct SMTP calls scattered through services, provider-specific SDKs everywhere, or queue-backed email delivery                    | Central SMTP delivery is portable and testable. Advanced provider features, queues, retries, and dead-letter handling are also supported.                                             |
 | Deployment           | Ubuntu host, Docker Compose delivery, Cloudflare Tunnel, DNS, and Cloudflare Access boundaries      | Development-machine-only deployment, direct public host exposure, unmanaged manual processes, platform-as-a-service, or Kubernetes | The accepted direction is practical for the product stage and reduces direct exposure. It is less automated than a mature orchestration platform and needs clear deployment runbooks. |
 | API documentation    | Swagger JSDoc, Swagger UI, and schema-aligned tests                                                 | Postman-only documentation or generated OpenAPI from routes alone                                                                  | Swagger gives readable contracts close to routes, but comments require review discipline to avoid drift.                                                                              |
-
-### 5.12 References
-
-- [SRS Quality Requirements](../srs/quality-requirements.md)
-- [Consolidated Demo 2 SRS](../srs/README.md)
-- [Demo 2 Domain Model Source](../domain-model-demo2.txt)
-- [Architectural Requirements](architectural-requirements.md)
-- [Architectural Patterns](architectural-patterns.md)
-- [Design Patterns](design-patterns.md)
-- [Deployment and Operations](deployment.md)
-- [API Contracts](api-contracts.md)
 
 ---
 

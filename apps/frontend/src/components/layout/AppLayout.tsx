@@ -6,11 +6,13 @@ type AppLayoutProps = {
   children: ReactNode;
   showSidebar?: boolean;
   contentStyle?: CSSProperties;
+  className?: string;
 };
 
-function AppLayout({ children, showSidebar = true, contentStyle }: AppLayoutProps) {
+function AppLayout({ children, showSidebar = true, contentStyle, className }: AppLayoutProps) {
   return (
     <main
+      className={className}
       style={{
         width: '100vw',
         height: '100vh',
@@ -24,6 +26,7 @@ function AppLayout({ children, showSidebar = true, contentStyle }: AppLayoutProp
       <Navbar />
 
       <div
+        className="app-layout__body"
         style={{
           flex: 1,
           display: 'flex',
@@ -33,6 +36,7 @@ function AppLayout({ children, showSidebar = true, contentStyle }: AppLayoutProp
         {showSidebar ? <Sidebar /> : null}
 
         <section
+          className="app-layout__content"
           style={{
             flex: 1,
             display: 'flex',
