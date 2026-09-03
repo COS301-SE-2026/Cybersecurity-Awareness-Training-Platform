@@ -66,6 +66,9 @@ Each task should give the user enough information to complete the workflow from 
 - **Screenshot:** an image reference where it helps.
 - **Note or warning:** any important security, permission, expiry, or destructive-action detail.
 
+> [!Note]
+> Please note that the User Interface in this User Manual might differ slightly from the User Interface on the actual website. All tasks should still follow the same process.
+
 ## Access and Account Basics
 
 Use a modern desktop browser such as Chrome, Edge, Brave, Firefox, or Safari. The Demo 3 interface supports public visitors, General Trainees, Organisation Trainees, Organisation Admins, and Insightful Phish Admins.

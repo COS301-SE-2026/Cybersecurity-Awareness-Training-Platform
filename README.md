@@ -108,7 +108,7 @@ Demo 3 brings these capabilities together with the organisation onboarding, invi
 1. **Demo 3 Documentation**: https://docs.insightfulphish.co.za
 2. **Swagger Documentation (API Contracts)**: https://swagger.insightfulphish.co.za
 3. **Brand Guidelines**: https://brand.insightfulphish.co.za
-4. **Demo 3 Video**: Not available yet
+4. **Demo 3 Video**: [Youtube](https://youtu.be/dRIz7KKx5qc)
 
 ### Demo 2 Documentation
 
