@@ -35,6 +35,7 @@ function TrainingActionRow({
 
   return (
     <button
+      className="training-action-row"
       onClick={disabled ? undefined : onClick}
       disabled={disabled}
       type="button"
@@ -54,6 +55,7 @@ function TrainingActionRow({
       }}
     >
       <div
+        className="training-action-row__main"
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -62,6 +64,7 @@ function TrainingActionRow({
       >
         {iconType === 'learn' && (
           <MenuBookSharp
+            className="training-action-row__icon"
             style={{
               color: disabled ? '#9A7AB8' : 'var(--ip-dark-pink)',
               fontSize: large ? '2rem' : '1.8rem',
@@ -70,6 +73,7 @@ function TrainingActionRow({
         )}
         {iconType === 'quiz' && (
           <QuizSharp
+            className="training-action-row__icon"
             style={{
               color: disabled ? '#9A7AB8' : 'var(--ip-dark-pink)',
               fontSize: large ? '2rem' : '1.8rem',
@@ -78,6 +82,7 @@ function TrainingActionRow({
         )}
         {iconType === 'simulation' && (
           <GamepadSharp
+            className="training-action-row__icon"
             style={{
               color: disabled ? '#9A7AB8' : 'var(--ip-dark-pink)',
               fontSize: large ? '2rem' : '1.8rem',
@@ -85,6 +90,7 @@ function TrainingActionRow({
           />
         )}
         <div
+          className="training-action-row__label"
           style={{
             color: disabled ? '#9A7AB8' : 'var(--ip-deep-purple)',
             fontFamily: 'Overpass',
@@ -119,6 +125,7 @@ function TrainingActionRow({
       </div>
 
       <div
+        className="training-action-row__summary"
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -126,6 +133,7 @@ function TrainingActionRow({
         }}
       >
         <div
+          className="training-action-row__status"
           style={{
             color: disabled ? '#8E63B3' : 'var(--ip-dark-pink)',
             fontFamily: 'Jost',
