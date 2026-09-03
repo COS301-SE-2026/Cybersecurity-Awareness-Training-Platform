@@ -15,6 +15,8 @@ This introduction defines the purpose, scope, audience, structure, and architect
 
 ## 1. Purpose
 
+This is the Software Architecture Specification, intended for Insightful Phish developers and COS301 lecturers.
+
 ## 2. Scope
 
 The core of this specification focuses on an intended technology-neutral logical arhictecture with five layers:
@@ -50,7 +52,7 @@ This specification is intended for developers, maintainers, reviewers, testers, 
 
 ## 6. References
 
-- [Demo 2 Software Requirements Specification](../srs/README.md)
+- [Software Requirements Specification](../srs/README.md)
 - [SRS Function Requirements](../srs/functional-requirements.md)
 - [SRS Quality Requirements](../srs/quality-requirements.md)
 - [Architecture Overview](architecture-overview.md)

@@ -209,8 +209,8 @@ const options: swaggerJsdoc.Options = {
       description: `
 API documentation for ${APP_NAME}.
 
-### Demo 2 API
-This reference covers the currently mounted Demo 2 backend routes. Planned or unmounted routes are omitted.
+### Demo 3 API
+This reference covers the currently mounted Demo 3 backend routes. Planned or unmounted routes are omitted.
       `,
     },
     servers: [

@@ -1,6 +1,6 @@
 # Functional Requirements
 
-This section defines the externally visible and testable system behaviour that Insightful Phish must provide for Demo 2 and the accepted planned product scope.
+This section defines the externally visible and testable system behaviour that Insightful Phish must provide for Demo 3 and the accepted planned product scope.
 
 ## SRS Content
 
@@ -780,15 +780,6 @@ The following functional requirements define the capabilities and observable beh
   - `R23.4.2` Unassignment is an administrator action on one existing organisation assignment; it is strictly not `UC-27` progress reset, does not preserve progress history, and has no undo or restore path
   - `R23.4.3` The unassignment action itself shall record a bounded `REVOKED` audit entry without retaining deleted trainee answers, classifications, or event metadata
   - `R23.4.4` Unassignment is restricted to assignments with `accessType=ASSIGNED` and shall support active, inactive, or disabled employee cleanup within the administrator's organisation
-
-> **Sprint 6 Implementation Scope (Issue #406, #407 & Rudolph Unassignment):**
-> Sprint 6 provides candidate option read contracts (`GET /organisations/:organisationId/campaigns/assignable` and `GET /organisations/:organisationId/campaign-assignment-candidates`), transactional bulk assignment mutation (`POST /organisations/:organisationId/campaign-assignments`), paginated assignment read views (`GET /organisations/:organisationId/campaigns/:campaignId/assignments` and `GET /organisations/:organisationId/trainees/:traineeProfileId/campaign-assignments`), and destructive single assignment unassignment (`DELETE /organisations/:organisationId/campaign-assignments/:assignmentId`) guarded by `ASSIGN_CAMPAIGNS`.
->
-> - Bulk campaign assignment mutation is strictly **all-or-nothing**: every non-duplicate campaign and trainee target must be valid and eligible before any new assignment is written. Invalid, inactive, disabled, missing, forbidden, or cross-organisation targets reject the complete request with zero writes.
-> - Duplicate active assignments return HTTP 200 OK with existing pairs classified as `alreadyAssigned` without mutating existing progress (`currentCampaignItemId`, `assignmentStatus`, timestamps, quiz attempts, or interaction events).
-> - Unassignment (`DELETE /organisations/:organisationId/campaign-assignments/:assignmentId`) is an administrator action on one existing organisation assignment. It permanently deletes that employee's progress for the selected campaign and removes access in one transaction. It is not UC-27 progress reset, does not preserve progress history, and has no undo. The unassignment action itself remains auditable (`REVOKED`) without retaining deleted trainee progress content.
-> - Assignable campaigns are restricted to active `ORGANISATION_CUSTOM` campaigns owned by the actor's organisation (platform catalogue availability is deferred).
-> - Candidates are restricted to active organisation trainees (`OrganisationTraineeProfile`). Tag/group assignment remains documented future behavior.
 
 ## `R24` Reset Organisation Campaign Progress
 

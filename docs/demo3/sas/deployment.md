@@ -104,7 +104,7 @@ To view the full rendered version of the diagram, click [here](../diagrams/sas/d
 
 ![CICD Pipeline Diagram](../diagrams/sas/cicd-diagram.drawio.svg)
 
-_Figure 9.3: Continuous-integration and production-deployment flow for Insightful Phish._
+_Figure 9.3: Continuous-integration and for both development and production for Insightful Phish._
 
 To view the full rendered version of the diagram, click [here](../diagrams/sas/cicd-diagram.drawio.svg).
 
