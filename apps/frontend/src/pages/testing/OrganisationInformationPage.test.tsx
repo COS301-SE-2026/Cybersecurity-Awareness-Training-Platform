@@ -92,6 +92,10 @@ describe('OrganisationInformationPage Integration', () => {
       expect(screen.getByRole('heading', { name: /Cyber Jan Technologies/i })).toBeInTheDocument();
     });
 
+    expect(screen.getByRole('link', { name: 'Back to Organisation Management' })).toHaveAttribute(
+      'href',
+      '/organisation-management',
+    );
     expect(screen.queryByText(/^Status:/i)).not.toBeInTheDocument();
     expect(screen.getByLabelText(/Status/i)).toHaveValue('Active');
     expect(screen.getByRole('button', { name: /Basic Information/i })).toBeInTheDocument();
@@ -136,6 +140,11 @@ describe('OrganisationInformationPage Integration', () => {
         screen.getByRole('heading', { name: /Cyber Jan Pending Request/i }),
       ).toBeInTheDocument();
     });
+
+    expect(screen.getByRole('link', { name: 'Back to Organisation Management' })).toHaveAttribute(
+      'href',
+      '/organisation-management',
+    );
 
     // Request submission date label check and absence of Registered Trainees
     expect(screen.getByText(/Request Submission Date/i)).toBeInTheDocument();
@@ -273,6 +282,9 @@ describe('OrganisationInformationPage Integration', () => {
     expect(
       await screen.findByRole('heading', { name: /Protea Security Gauteng/i }),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Back to Organisation Management' }),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText(/^Status:/i)).not.toBeInTheDocument();
     expect(screen.getByLabelText(/Status/i)).toHaveValue('Active');
     expect(ownOrgDetailSpy).toHaveBeenCalledWith('org-123-abc', 'mock-token-xyz');
