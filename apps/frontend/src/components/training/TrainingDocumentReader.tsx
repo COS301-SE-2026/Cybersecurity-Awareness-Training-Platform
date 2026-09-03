@@ -35,22 +35,22 @@ function TrainingDocumentReader({
   return (
     <article
       style={{
-        border: '1px solid rgba(255, 255, 255, 0.16)',
-        backgroundColor: 'rgba(255, 255, 255, 0.04)',
+        border: '1px solid var(--ip-bg-purple)',
+        backgroundColor: '#FFFFFF',
         overflow: 'hidden',
       }}
     >
       <header
         style={{
           padding: '1.2rem 1.4rem',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
-          backgroundColor: 'rgba(255, 255, 255, 0.03)',
+          borderBottom: '1px solid var(--ip-bg-purple)',
+          backgroundColor: 'var(--ip-faint-purple)',
         }}
       >
         <h2
           style={{
             margin: 0,
-            color: '#FFFFFF',
+            color: 'var(--ip-deep-purple)',
             fontFamily: 'Jost',
             fontSize: '1.6rem',
             fontWeight: 500,
@@ -79,8 +79,8 @@ function TrainingDocumentReader({
 const metaPillStyle = {
   display: 'inline-flex',
   padding: '0.3rem 0.55rem',
-  border: '1px solid rgba(255, 255, 255, 0.18)',
-  color: '#BFA9DD',
+  border: '1px solid var(--ip-bg-purple)',
+  color: 'var(--ip-dark-pink)',
   fontFamily: 'Jost',
   fontSize: '0.75rem',
   letterSpacing: '0.05em',
@@ -88,7 +88,7 @@ const metaPillStyle = {
 
 const contentBodyStyle = {
   padding: '1.6rem 1.8rem',
-  color: '#F4EEFF',
+  color: '#374151',
   fontFamily: 'Overpass',
   lineHeight: 1.8,
 } as const;

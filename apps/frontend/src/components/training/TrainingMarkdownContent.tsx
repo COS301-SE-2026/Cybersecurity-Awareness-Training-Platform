@@ -8,7 +8,7 @@ export function TrainingMarkdownContent({ content }: TrainingMarkdownContentProp
   return (
     <div
       style={{
-        color: '#F4EEFF',
+        color: '#374151',
         fontFamily: 'Overpass',
         fontSize: '1.05rem',
         lineHeight: 1.85,
@@ -27,7 +27,7 @@ export function TrainingMarkdownContent({ content }: TrainingMarkdownContentProp
               key={index}
               style={{
                 margin: '0 0 1rem',
-                color: '#FFFFFF',
+                color: 'var(--ip-deep-purple)',
                 fontFamily: 'Jost',
                 fontSize: '2.3rem',
                 fontWeight: 500,
@@ -44,7 +44,7 @@ export function TrainingMarkdownContent({ content }: TrainingMarkdownContentProp
               key={index}
               style={{
                 margin: '1.8rem 0 0.6rem',
-                color: '#FFB7EF',
+                color: 'var(--ip-dark-pink)',
                 fontFamily: 'Jost',
                 fontSize: '1.55rem',
                 fontWeight: 500,
@@ -61,7 +61,7 @@ export function TrainingMarkdownContent({ content }: TrainingMarkdownContentProp
               key={index}
               style={{
                 margin: '0.45rem 0 0.45rem 1rem',
-                color: '#F4EEFF',
+                color: '#374151',
               }}
             >
               • {trimmed.replace('- ', '')}

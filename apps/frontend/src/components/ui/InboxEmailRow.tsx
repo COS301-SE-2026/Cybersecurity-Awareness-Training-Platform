@@ -27,8 +27,10 @@ function InboxEmailRow({
         alignItems: 'center',
         paddingLeft: '1rem',
         paddingRight: '1rem',
-        backgroundColor: unread ? 'rgba(44, 0, 79, 0.72)' : 'rgba(22, 0, 43, 0.65)',
-        border: unread ? '3px solid #3c0081' : '3px solid #210046',
+        backgroundColor: unread ? 'var(--ip-faint-purple)' : '#FFFFFF',
+        border: unread
+          ? '2px solid color-mix(in srgb, var(--ip-dark-pink) 40%, transparent)'
+          : '2px solid #D1D5DB',
         boxSizing: 'border-box',
         userSelect: 'none',
         cursor: 'pointer',
@@ -36,19 +38,19 @@ function InboxEmailRow({
         position: 'relative',
         overflow: 'visible',
         width: '100%',
+        flexShrink: 0,
         textAlign: 'left',
-        background: 'none',
       }}
     >
       {unread && (
         <div
           style={{
             position: 'absolute',
-            left: '-3px',
-            top: '-3px',
+            left: '-2px',
+            top: '-2px',
             width: '10px',
-            height: 'calc(100% + 6px)',
-            backgroundColor: '#7700ff',
+            height: 'calc(100% + 4px)',
+            backgroundColor: 'var(--ip-dark-pink)',
             zIndex: 3,
           }}
         />
@@ -65,13 +67,13 @@ function InboxEmailRow({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: unread ? 'rgba(170, 110, 255, 0.22)' : 'rgba(255,255,255,0.08)',
+          backgroundColor: unread ? '#E8DBFF' : '#EEF0F6',
           flexShrink: 0,
         }}
       >
         <AccountCircleOutlinedIcon
           style={{
-            color: unread ? '#D7A7FF' : '#B9A7CC',
+            color: unread ? 'var(--ip-purple)' : '#6B7280',
             fontSize: '2rem',
           }}
         />
@@ -82,7 +84,7 @@ function InboxEmailRow({
       <div
         style={{
           width: '210px',
-          color: unread ? '#E8D0FF' : 'white',
+          color: unread ? 'var(--ip-dark-pink)' : '#1F2937',
           fontFamily: 'Overpass',
           fontSize: '1.2rem',
           fontWeight: unread ? 500 : 400,
@@ -102,7 +104,7 @@ function InboxEmailRow({
       <div
         style={{
           width: '380px',
-          color: unread ? 'white' : '#E2D8F1',
+          color: unread ? 'var(--ip-deep-purple)' : '#374151',
           fontFamily: 'Overpass',
           fontSize: '1.2rem',
           fontWeight: unread ? 500 : 400,
@@ -123,7 +125,7 @@ function InboxEmailRow({
       <div
         style={{
           flex: 1,
-          color: unread ? '#D4B7F5' : '#A88FC2',
+          color: unread ? '#4B5563' : '#6B7280',
           fontFamily: 'Overpass',
           fontSize: '1.1rem',
           fontWeight: 50,
@@ -140,7 +142,7 @@ function InboxEmailRow({
 
       <div
         style={{
-          color: unread ? '#F2D7FF' : '#C3AFD9',
+          color: unread ? 'var(--ip-dark-pink)' : '#6B7280',
           fontFamily: 'Overpass',
           fontSize: '1rem',
           fontWeight: unread ? 600 : 400,

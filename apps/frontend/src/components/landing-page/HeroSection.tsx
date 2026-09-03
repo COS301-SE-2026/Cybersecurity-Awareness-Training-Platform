@@ -2,7 +2,7 @@ function HeroSection() {
   return (
     <section className="bg-light-purple">
       <div className="py-8 px-4 mx-auto max-w-screen-xl text-left sm:px-6 lg:py-16">
-        <h1 className="font-jost mb-4 text-[2.75rem] mt-4 font-semibold tracking-regular text-purple leading-tight sm:mt-8 sm:text-6xl lg:mt-12 lg:text-8xl">
+        <h1 className="font-jost mb-4 text-[2.75rem] mt-4 font-semibold tracking-regular text-purple leading-tight sm:mt-8 sm:text-6xl lg:mt-4 lg:text-8xl">
           DON'T TAKE THE BAIT.
         </h1>
         <h1 className="font-jost mb-2 text-3xl font-medium tracking-wide text-dark-pink leading-tight sm:text-5xl lg:text-6xl">

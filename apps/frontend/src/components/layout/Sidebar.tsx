@@ -1,8 +1,6 @@
-import { useState } from 'react';
 import type { ReactElement } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
-  Menu,
   SchoolOutlined,
   BusinessOutlined,
   AdminPanelSettingsOutlined,
@@ -18,8 +16,19 @@ type InternalNavItem = { icon: ReactElement; label: string; path: string };
 type ExternalNavItem = { icon: ReactElement; label: string; href: string };
 type NavItem = InternalNavItem | ExternalNavItem;
 
+const adminHelpNavItem: ExternalNavItem = {
+  icon: <HelpOutlineSharp />,
+  label: 'Help',
+  href: 'https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/wiki/Demo-3-Admin-User-Manual',
+};
+
+const traineeHelpNavItem: ExternalNavItem = {
+  icon: <HelpOutlineSharp />,
+  label: 'Help',
+  href: 'https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/wiki/Demo-3-User-Manual',
+};
+
 function Sidebar() {
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { user, authContext, permissions } = useAuth();
@@ -52,6 +61,7 @@ function Sidebar() {
           label: 'Campaigns',
           path: '/platform/campaigns',
         },
+        adminHelpNavItem,
       ];
     }
     if (role === 'ORGANISATION_ADMIN') {
@@ -62,24 +72,10 @@ function Sidebar() {
           path: '/organisation-information',
         },
         {
-          icon: <SecurityOutlined />,
-          label: 'Security Preferences',
-          path: '/organisation-security-preferences',
-        },
-        {
           icon: <SchoolOutlined />,
           label: 'Trainees',
           path: '/organisation-trainees',
         },
-        ...(canAssignTrainingCampaigns === true
-          ? [
-              {
-                icon: <AssignmentTurnedInOutlined />,
-                label: 'Assign Training Campaigns',
-                path: campaignAssignmentPath,
-              },
-            ]
-          : []),
         {
           icon: <AdminPanelSettingsOutlined />,
           label: 'Administrators',
@@ -95,6 +91,21 @@ function Sidebar() {
         });
       }
 
+      if (canAssignTrainingCampaigns) {
+        organisationItems.push({
+          icon: <AssignmentTurnedInOutlined />,
+          label: 'Assign Training Campaigns',
+          path: campaignAssignmentPath,
+        });
+      }
+
+      organisationItems.push({
+        icon: <SecurityOutlined />,
+        label: 'Security Preferences',
+        path: '/organisation-security-preferences',
+      });
+      organisationItems.push(adminHelpNavItem);
+
       return organisationItems;
     }
 
@@ -104,11 +115,7 @@ function Sidebar() {
         label: 'Campaigns',
         path: '/campaigns',
       },
-      {
-        icon: <HelpOutlineSharp />,
-        label: 'Help',
-        href: 'https://github.com/COS301-SE-2026/Cybersecurity-Awareness-Training-Platform/wiki/Demo-2-User-Manual',
-      },
+      traineeHelpNavItem,
     ];
   };
 
@@ -117,44 +124,15 @@ function Sidebar() {
   return (
     <aside
       style={{
-        width: drawerOpen ? '360px' : '84px',
-        backgroundColor: '#25004E',
-        transition: '0.22s ease',
+        width: '84px',
+        backgroundColor: 'var(--ip-faint-purple)',
         display: 'flex',
         flexDirection: 'column',
-        paddingTop: '1.4rem',
-        color: 'white',
+        color: 'var(--ip-deep-purple)',
         flexShrink: 0,
         boxSizing: 'border-box',
       }}
     >
-      {/* HAMBUrGER */}
-
-      <button
-        onClick={() => setDrawerOpen(!drawerOpen)}
-        style={{
-          width: '100%',
-          height: '56px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: drawerOpen ? 'flex-start' : 'center',
-          paddingLeft: drawerOpen ? '1.56rem' : '0',
-          marginLeft: '0.21rem',
-          background: 'none',
-          border: 'none',
-          color: 'white',
-          cursor: 'pointer',
-          marginBottom: '1rem',
-          boxSizing: 'border-box',
-        }}
-      >
-        <Menu
-          style={{
-            fontSize: '2.2rem',
-          }}
-        />
-      </button>
-
       {/* NAV ItEMS */}
 
       {navItems.map((item) => {
@@ -173,25 +151,26 @@ function Sidebar() {
             type={'path' in item ? 'button' : undefined}
             aria-label={item.label}
             aria-current={isActive ? 'page' : undefined}
+            title={item.label}
             style={{
               display: 'flex',
               alignItems: 'center',
-              justifyContent: drawerOpen ? 'flex-start' : 'center',
-              gap: '1.38rem',
-              height: '56px',
-              paddingLeft: drawerOpen ? '1.56rem' : '0',
+              justifyContent: 'center',
+              height: '84px',
+              paddingLeft: '0',
               paddingRight: '0',
               paddingTop: '0',
               paddingBottom: '0',
               marginBottom: '1.16rem',
+              flexShrink: 0,
               cursor: 'pointer',
               whiteSpace: 'nowrap',
-              color: 'white',
+              color: 'var(--ip-deep-purple)',
               transition: '0.22s ease',
               boxSizing: 'border-box',
-              background: isActive ? 'rgba(255, 255, 255, 0.14)' : 'none',
+              background: isActive ? 'rgba(13, 0, 134, 0.1)' : 'none',
               border: 'none',
-              borderLeft: isActive ? '4px solid #cca7ff' : '4px solid transparent',
+              borderLeft: isActive ? '4px solid var(--ip-purple)' : '4px solid transparent',
               width: '100%',
               textDecoration: 'none',
             }}
@@ -214,24 +193,6 @@ function Sidebar() {
                 />
               )}
             </div>
-
-            {/* LABEL */}
-
-            {drawerOpen && (
-              <span
-                style={{
-                  fontFamily: 'Jost',
-                  fontSize: '1.6rem',
-                  fontWeight: 400,
-                  letterSpacing: '0.012em',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  textAlign: 'left',
-                }}
-              >
-                {item.label}
-              </span>
-            )}
           </NavigationItem>
         );
       })}
