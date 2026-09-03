@@ -7,6 +7,7 @@ import { useAuth } from '../context/useAuth';
 import { formatEmailTime, toTitleCase } from '../lib/email.utils';
 import { getSimulatedEmail, recordSimulatedEmailInteraction } from '../services/campaigns.service';
 import { sanitizeSafeHtml } from '../lib/safeHtml';
+import './SimulatedEmailPages.css';
 
 const emailMetaLabelStyle = {
   color: 'var(--ip-dark-pink)',
@@ -71,8 +72,9 @@ function EmailDetailPage() {
 
   if (loading) {
     return (
-      <AppLayout contentStyle={{ backgroundColor: '#F3F4F6' }}>
+      <AppLayout className="simulated-email-layout" contentStyle={{ backgroundColor: '#F3F4F6' }}>
         <div
+          className="simulated-email-state"
           style={{
             padding: '1.4rem',
             color: '#4B5563',
@@ -88,8 +90,9 @@ function EmailDetailPage() {
 
   if (!email) {
     return (
-      <AppLayout contentStyle={{ backgroundColor: '#F3F4F6' }}>
+      <AppLayout className="simulated-email-layout" contentStyle={{ backgroundColor: '#F3F4F6' }}>
         <div
+          className="simulated-email-state"
           style={{
             padding: '1.4rem',
             color: '#B91C1C',
@@ -104,8 +107,9 @@ function EmailDetailPage() {
   }
 
   return (
-    <AppLayout contentStyle={{ backgroundColor: '#F3F4F6' }}>
+    <AppLayout className="simulated-email-layout" contentStyle={{ backgroundColor: '#F3F4F6' }}>
       <div
+        className="simulated-email-detail"
         style={{
           padding: '1.4rem',
           paddingBottom: '2rem',
@@ -119,9 +123,10 @@ function EmailDetailPage() {
           userSelect: 'none',
         }}
       >
-        <PageBackButton marginBottom="-1rem" />
+        <PageBackButton className="simulated-email-back-button" marginBottom="-0.4rem" />
 
         <h1
+          className="simulated-email-detail__title"
           style={{
             color: 'var(--ip-dark-pink)',
             fontFamily: 'Jost',
@@ -136,6 +141,7 @@ function EmailDetailPage() {
         </h1>
 
         <div
+          className="simulated-email-detail__metadata"
           style={{
             backgroundColor: '#FFFFFF',
             border: '1px solid #D1D5DB',
@@ -150,10 +156,11 @@ function EmailDetailPage() {
             flexShrink: 0,
           }}
         >
-          <div style={{ flex: 1 }}>
+          <div className="simulated-email-detail__primary-metadata" style={{ flex: 1 }}>
             <div style={emailMetaLabelStyle}>From</div>
 
             <div
+              className="simulated-email-detail__sender"
               style={{
                 color: 'var(--ip-deep-purple)',
                 fontFamily: 'Overpass',
@@ -166,6 +173,7 @@ function EmailDetailPage() {
             </div>
 
             <div
+              className="simulated-email-detail__address"
               style={{
                 color: '#6B7280',
                 fontFamily: 'Overpass',
@@ -180,6 +188,7 @@ function EmailDetailPage() {
             <div style={emailMetaLabelStyle}>Subject</div>
 
             <div
+              className="simulated-email-detail__subject"
               style={{
                 color: '#1F2937',
                 fontFamily: 'Overpass',
@@ -193,6 +202,7 @@ function EmailDetailPage() {
           </div>
 
           <div
+            className="simulated-email-detail__received"
             style={{
               minWidth: '200px',
               textAlign: 'right',
@@ -214,6 +224,7 @@ function EmailDetailPage() {
         </div>
 
         <div
+          className="simulated-email-detail__body-card"
           style={{
             width: '100%',
             backgroundColor: '#FFFFFF',
@@ -242,18 +253,6 @@ function EmailDetailPage() {
             }}
             dangerouslySetInnerHTML={{ __html: sanitizedBodyHtml }}
           />
-
-          <style>
-            {`
-              .email-body p {
-                margin: 0 0 1rem 0;
-              }
-
-              .email-body a {
-                color: var(--ip-purple);
-              }
-            `}
-          </style>
         </div>
       </div>
     </AppLayout>

@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
 import { ApiError } from '../lib/apiClient';
 import { getAccount, extractErrorMessage, type AccountResponse } from '../services/account.service';
+import './AccountManagementPage.css';
 
 function AccountManagementPage() {
   const navigate = useNavigate();
@@ -59,12 +60,14 @@ function AccountManagementPage() {
 
   return (
     <AppLayout
+      className="account-management-layout"
       contentStyle={{
         backgroundColor: '#F3F4F6',
       }}
     >
       {/* HEADING */}
       <div
+        className="account-management__heading"
         style={{
           padding: '1.4rem',
           paddingBottom: '0.8rem',
@@ -73,6 +76,7 @@ function AccountManagementPage() {
         }}
       >
         <h1
+          className="account-management__title"
           style={{
             margin: 0,
             marginBottom: '1.6rem',
@@ -111,9 +115,9 @@ function AccountManagementPage() {
         </h4>
       )}
 
-      <div className="flex flex-col flex-1 p-5 -mt-5 w-full">
+      <div className="account-management__main flex flex-col flex-1 p-5 -mt-5 w-full">
         {/* TAB BUTTONS */}
-        <ul className="hidden text-sm font-medium text-center text-body sm:flex -space-x-px">
+        <ul className="account-management__tabs hidden text-sm font-medium text-center text-body sm:flex -space-x-px">
           <li className="w-full focus-within:z-10">
             <button
               onClick={() => setCurrentTab(1)}
@@ -123,7 +127,9 @@ function AccountManagementPage() {
                   : 'bg-neutral-primary-soft text-body hover:bg-neutral-secondary-medium hover:text-[var(--ip-purple)]'
               }`}
             >
-              Personal Information
+              <span className="account-management__personal-tab-label">
+                <span>Personal</span> <span>Information</span>
+              </span>
             </button>
           </li>
           <li className="w-full focus-within:z-10">
@@ -153,7 +159,7 @@ function AccountManagementPage() {
         </ul>
 
         {/* CONTENT BOX */}
-        <div className="w-full p-6 bg-white md:mt-0 bg-neutral-primary-soft border-default border-x border-b">
+        <div className="account-management__content w-full p-6 bg-white md:mt-0 bg-neutral-primary-soft border-default border-x border-b">
           {loading ? (
             <div className="p-6 text-center text-gray-500 font-overpass text-lg">
               Loading account settings...

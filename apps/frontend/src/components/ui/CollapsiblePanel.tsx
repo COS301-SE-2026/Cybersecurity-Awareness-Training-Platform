@@ -17,6 +17,7 @@ export function CollapsiblePanel({
 }: CollapsiblePanelProps) {
   return (
     <div
+      className="collapsible-panel"
       style={{
         display: 'grid',
         gridTemplateRows: isOpen ? '1fr' : '0fr',
@@ -25,11 +26,13 @@ export function CollapsiblePanel({
       }}
     >
       <div
+        className="collapsible-panel__clip"
         style={{
           overflow: 'hidden',
         }}
       >
         <div
+          className="collapsible-panel__content"
           style={{
             padding,
             display: 'flex',
