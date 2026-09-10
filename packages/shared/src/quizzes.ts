@@ -1,6 +1,6 @@
 import type { z } from 'zod';
 import type { SuccessResponseDto } from './common.js';
-import type { DifficultyLevelDto } from './training.js';
+import type { ContentCategoryDto, DifficultyLevelDto } from './categories.js';
 import type {
   getQuizRequestParamsSchema,
   getQuizResultRequestParamsSchema,
@@ -40,11 +40,13 @@ export interface CurrentQuizAttemptSummaryDto {
 
 export interface GetQuizResponseDto {
   id: string;
+  organisationId?: string | null;
   campaignItemId?: string | null;
   campaignAssignmentId?: string | null;
   title: string;
   description?: string | null;
   passThresholdPercentage: number;
+  category?: ContentCategoryDto;
   difficultyLevel: DifficultyLevelDto;
   status: QuizStatusDto;
   questions: SafeQuizQuestionDto[];

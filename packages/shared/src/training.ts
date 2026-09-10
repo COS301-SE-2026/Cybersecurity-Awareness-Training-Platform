@@ -1,12 +1,13 @@
 import type { z } from 'zod';
 import type { SuccessResponseDto } from './common.js';
+import type { ContentCategoryDto, DifficultyLevelDto } from './categories.js';
 import type {
   getTrainingDocumentRequestParamsSchema,
   recordTrainingInteractionRequestSchema,
   recordTrainingInteractionRequestParamsSchema,
 } from './validation/training.schemas.js';
 
-export type DifficultyLevelDto = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'ADAPTIVE';
+export type { DifficultyLevelDto } from './categories.js';
 
 export type TrainingContentTypeDto = 'PDF' | 'MARKDOWN' | 'HTML' | 'URL' | 'INTERACTIVE';
 
@@ -22,12 +23,14 @@ type TrainingCampaignItemAvailabilityStatusDto =
 
 export interface TrainingDocumentContentDto {
   id: string;
+  organisationId?: string | null;
   title: string;
   contentType: TrainingContentTypeDto;
   contentRef: string;
   content: string | null;
   contentSummary?: string | null;
   estimatedReadTimeMinutes?: number | null;
+  category?: ContentCategoryDto;
   difficultyLevel: DifficultyLevelDto;
   status: TrainingDocumentStatusDto;
 }

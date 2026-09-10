@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { contentCategorySchema, difficultyLevelSchema } from '../categories.js';
 import {
   createNumericPreprocessor,
   idParamSchema,
@@ -26,13 +27,9 @@ const descriptionSchema = optionalTrimmedStringSchema(
   'Description must be at most 2000 characters.',
 );
 
-const summarySchema = optionalTrimmedStringSchema(2000, 'Summary must be at most 2000 characters.');
-
 const campaignTypeSchema = z.enum(['PREMADE_GENERAL', 'ORGANISATION_CUSTOM']);
 
 const campaignStatusSchema = z.enum(['DRAFT', 'ACTIVE', 'PAUSED', 'COMPLETED', 'ARCHIVED']);
-
-const difficultyLevelSchema = z.enum(['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ADAPTIVE']);
 
 export const hexColorSchema = z
   .string()
@@ -156,6 +153,7 @@ export const traineeCampaignSummarySchema = z
     endDate: z.string().datetime().nullish(),
     assignment: traineeCampaignAssignmentSummarySchema.nullish(),
     accessType: campaignAccessTypeSchema.nullish(),
+    isEnrolled: z.boolean().optional(),
     progressStatus: traineeCampaignProgressStatusSchema,
     itemCount: z.number().int().nonnegative().nullish(),
     availableItemCount: z.number().int().nonnegative().nullish(),
@@ -163,84 +161,76 @@ export const traineeCampaignSummarySchema = z
   })
   .strict();
 
-const campaignTrainingDocumentSummarySchema = z
-  .object({
-    id: idParamSchema,
-    title: titleSchema,
-    contentSummary: summarySchema.nullish(),
-    estimatedReadTimeMinutes: z.number().int().positive().nullish(),
-    difficultyLevel: difficultyLevelSchema,
-    status: z.enum(['DRAFT', 'AVAILABLE', 'UNAVAILABLE', 'ARCHIVED']),
-  })
-  .strict();
-
-const campaignQuizSummarySchema = z
-  .object({
-    id: idParamSchema,
-    title: titleSchema,
-    description: descriptionSchema.nullish(),
-    passThresholdPercentage: z.number().min(0).max(100),
-    questionCount: z.number().int().nonnegative().nullish(),
-    difficultyLevel: difficultyLevelSchema,
-    status: z.enum(['DRAFT', 'PUBLISHED', 'ARCHIVED']),
-  })
-  .strict();
-
-const campaignSimulationSummarySchema = z
-  .object({
-    id: idParamSchema,
-    title: titleSchema,
-    description: descriptionSchema.nullish(),
-    difficultyLevel: difficultyLevelSchema,
-  })
-  .strict();
-
-const traineeCampaignItemSummaryBaseSchema = z
+export const traineeCampaignComponentItemSummarySchema = z
   .object({
     campaignItemId: idParamSchema,
     campaignId: idParamSchema,
     parentGroupId: idParamSchema.nullish(),
+    itemType: z.literal('COMPONENT'),
+    componentType: campaignComponentTypeSchema,
+    groupType: z.null().optional(),
+    completionRule: z.null().optional(),
+    title: titleSchema,
+    description: descriptionSchema.nullish(),
+    position: z.number().int().nonnegative(),
+    difficultyLevel: difficultyLevelSchema.nullish(),
+    isRequired: z.boolean(),
+    availabilityStatus: campaignItemAvailabilityStatusSchema,
+    isOpenable: z.boolean(),
+    activityApiPath: activityApiPathSchema,
+    progressStatus: traineeCampaignProgressStatusSchema,
+    eligibility: campaignEligibilitySchema,
+    trainingDocument: z
+      .object({
+        id: idParamSchema,
+        title: titleSchema,
+        contentSummary: descriptionSchema.nullish(),
+        estimatedReadTimeMinutes: z.number().int().nullish(),
+        difficultyLevel: difficultyLevelSchema,
+        status: z.string(),
+      })
+      .nullish(),
+    quiz: z
+      .object({
+        id: idParamSchema,
+        title: titleSchema,
+        description: descriptionSchema.nullish(),
+        passThresholdPercentage: z.number().int(),
+        difficultyLevel: difficultyLevelSchema,
+        status: z.string(),
+        questionCount: z.number().int().nullish(),
+      })
+      .nullish(),
+    simulation: z
+      .object({
+        id: idParamSchema,
+        title: titleSchema,
+        description: descriptionSchema.nullish(),
+        difficultyLevel: difficultyLevelSchema,
+      })
+      .nullish(),
+  })
+  .strict();
+
+export const traineeCampaignGroupItemSummarySchema = z
+  .object({
+    campaignItemId: idParamSchema,
+    campaignId: idParamSchema,
+    parentGroupId: idParamSchema.nullish(),
+    itemType: z.literal('GROUP'),
+    componentType: z.null().optional(),
+    groupType: campaignGroupTypeSchema,
+    completionRule: completionRuleSchema,
     title: titleSchema,
     description: descriptionSchema.nullish(),
     position: z.number().int().nonnegative(),
     isRequired: z.boolean(),
     availabilityStatus: campaignItemAvailabilityStatusSchema,
     isOpenable: z.boolean(),
+    activityApiPath: z.string().nullish(),
     progressStatus: traineeCampaignProgressStatusSchema,
     eligibility: campaignEligibilitySchema,
-  })
-  .strict();
-
-export const traineeCampaignComponentItemSummarySchema = traineeCampaignItemSummaryBaseSchema
-  .extend({
-    itemType: z.literal('COMPONENT'),
-    componentType: campaignComponentTypeSchema,
-    groupType: z.null().optional(),
-    completionRule: z.null().optional(),
-    isOpenable: z.boolean(),
-    activityApiPath: activityApiPathSchema,
-    trainingDocument: campaignTrainingDocumentSummarySchema.nullish(),
-    quiz: campaignQuizSummarySchema.nullish(),
-    simulation: campaignSimulationSummarySchema.nullish(),
-  })
-  .strict();
-
-export const traineeCampaignGroupItemSummarySchema = traineeCampaignItemSummaryBaseSchema
-  .extend({
-    itemType: z.literal('GROUP'),
-    componentType: z.null().optional(),
-    groupType: campaignGroupTypeSchema,
-    completionRule: completionRuleSchema,
-    isOpenable: z.literal(false),
-    activityApiPath: z.null().optional(),
-    children: z
-      .array(
-        traineeCampaignComponentItemSummarySchema.refine(
-          (item) => typeof item.parentGroupId === 'string',
-          'Child campaign items must include parentGroupId',
-        ),
-      )
-      .min(2),
+    children: z.array(traineeCampaignComponentItemSummarySchema).min(2),
   })
   .strict();
 
@@ -248,6 +238,17 @@ export const traineeCampaignItemSummarySchema = z.discriminatedUnion('itemType',
   traineeCampaignComponentItemSummarySchema,
   traineeCampaignGroupItemSummarySchema,
 ]);
+
+export const paginationMetadataSchema = z
+  .object({
+    page: z.number().int().positive(),
+    limit: z.number().int().positive(),
+    totalItems: z.number().int().nonnegative(),
+    totalPages: z.number().int().nonnegative(),
+    hasNextPage: z.boolean(),
+    hasPreviousPage: z.boolean(),
+  })
+  .strict();
 
 export const getTraineeCampaignsResponseSchema = z
   .object({
@@ -267,6 +268,7 @@ export const campaignCatalogueQuerySchema = z
     limit: limitQueryPreprocessor,
     search: optionalTrimmedStringSchema(100),
     type: campaignComponentTypeSchema.optional(),
+    category: contentCategorySchema.optional(),
   })
   .strict();
 
@@ -275,31 +277,38 @@ export const campaignListQuerySchema = z
     page: pageQueryPreprocessor,
     limit: limitQueryPreprocessor,
     search: optionalTrimmedStringSchema(100),
-    status: z.enum(['DRAFT', 'ACTIVE', 'ARCHIVED']).optional(),
+    status: campaignStatusSchema.optional(),
+    campaignType: campaignTypeSchema.optional(),
+    startDateFrom: z.string().datetime().optional(),
+    startDateTo: z.string().datetime().optional(),
+    endDateFrom: z.string().datetime().optional(),
+    endDateTo: z.string().datetime().optional(),
   })
   .strict();
 
-const entityIdSchema = z.string().trim().min(1);
-
 export const campaignDraftComponentItemSchema = z
   .object({
-    itemType: z.literal('COMPONENT').optional().default('COMPONENT'),
-    campaignItemId: entityIdSchema.optional(),
+    campaignItemId: idParamSchema.optional(),
+    itemType: z.literal('COMPONENT').default('COMPONENT'),
     componentType: campaignComponentTypeSchema,
-    contentId: entityIdSchema,
-    isRequired: z.boolean().optional().default(true),
+    contentId: idParamSchema,
+    title: titleSchema,
+    description: descriptionSchema.nullish(),
+    position: z.number().int().nonnegative(),
+    isRequired: z.boolean().default(true),
   })
   .strict();
 
 export const campaignDraftGroupItemSchema = z
   .object({
+    campaignItemId: idParamSchema.optional(),
     itemType: z.literal('GROUP'),
-    campaignItemId: entityIdSchema.optional(),
     title: titleSchema,
     description: descriptionSchema.nullish(),
     groupType: campaignGroupTypeSchema,
-    completionRule: completionRuleSchema,
-    isRequired: z.boolean().optional().default(true),
+    completionRule: completionRuleSchema.default('COMPLETE_ALL'),
+    position: z.number().int().nonnegative(),
+    isRequired: z.boolean().default(true),
     children: z.array(campaignDraftComponentItemSchema).min(2),
   })
   .strict();
@@ -309,32 +318,40 @@ export const campaignDraftItemSchema = z.union([
   campaignDraftGroupItemSchema,
 ]);
 
-export const createCampaignDraftItemInputSchema = campaignDraftComponentItemSchema;
+export const campaignMutationPreconditionSchema = z
+  .object({
+    expectedUpdatedAt: z.string().datetime(),
+    clientMutationId: optionalTrimmedStringSchema(100),
+  })
+  .strict();
 
 export const createCampaignDraftRequestSchema = z
   .object({
     name: campaignNameSchema,
     description: descriptionSchema.nullish(),
-    accentColor: hexColorSchema,
+    accentColor: hexColorSchema.nullish(),
     startDate: z.string().datetime().nullish(),
     endDate: z.string().datetime().nullish(),
-    items: z.array(campaignDraftItemSchema),
+    items: z.array(campaignDraftItemSchema).default([]),
   })
   .strict();
 
-export const updateCampaignDraftRequestSchema = createCampaignDraftRequestSchema
-  .extend({
-    expectedUpdatedAt: z.string().datetime(),
-  })
-  .strict();
-
-export const campaignMutationPreconditionSchema = z
+export const updateCampaignDraftRequestSchema = z
   .object({
     expectedUpdatedAt: z.string().datetime(),
+    name: campaignNameSchema,
+    description: descriptionSchema.nullish(),
+    accentColor: hexColorSchema.nullish(),
+    startDate: z.string().datetime().nullish(),
+    endDate: z.string().datetime().nullish(),
+    items: z.array(campaignDraftItemSchema).default([]),
+    preconditions: campaignMutationPreconditionSchema.optional(),
   })
   .strict();
 
-export const paginationMetadataSchema = z
+const entityIdSchema = z.string().trim().min(1);
+
+export const campaignCataloguePaginationSchema = z
   .object({
     page: z.number().int().positive(),
     limit: z.number().int().positive(),
@@ -348,11 +365,13 @@ export const paginationMetadataSchema = z
 export const trainingDocumentCatalogueItemSchema = z
   .object({
     id: entityIdSchema,
+    organisationId: entityIdSchema.nullable(),
     type: z.literal('TRAINING_DOCUMENT'),
     title: titleSchema,
     description: descriptionSchema.nullish(),
     contentType: z.enum(['PDF', 'MARKDOWN', 'HTML', 'URL', 'INTERACTIVE']),
     estimatedReadTimeMinutes: z.number().int().positive().nullish(),
+    category: contentCategorySchema,
     difficultyLevel: difficultyLevelSchema,
     status: z.enum(['DRAFT', 'AVAILABLE', 'UNAVAILABLE', 'ARCHIVED']),
   })
@@ -361,11 +380,13 @@ export const trainingDocumentCatalogueItemSchema = z
 export const quizCatalogueItemSchema = z
   .object({
     id: entityIdSchema,
+    organisationId: entityIdSchema.nullable(),
     type: z.literal('QUIZ'),
     title: titleSchema,
     description: descriptionSchema.nullish(),
     passThresholdPercentage: z.number().min(0).max(100),
     questionCount: z.number().int().nonnegative().nullish(),
+    category: contentCategorySchema,
     difficultyLevel: difficultyLevelSchema,
     status: z.enum(['DRAFT', 'PUBLISHED', 'ARCHIVED']),
   })
@@ -376,10 +397,12 @@ export const inboxStatusSchema = z.enum(['ACTIVE', 'ARCHIVED']);
 export const simulatedInboxCatalogueItemSchema = z
   .object({
     id: entityIdSchema,
+    organisationId: entityIdSchema.nullable(),
     type: z.literal('SIMULATED_INBOX'),
     title: titleSchema,
     description: descriptionSchema.nullish(),
     emailCount: z.number().int().nonnegative().nullish(),
+    category: contentCategorySchema,
     difficultyLevel: difficultyLevelSchema,
     status: z.literal('ACTIVE'),
   })

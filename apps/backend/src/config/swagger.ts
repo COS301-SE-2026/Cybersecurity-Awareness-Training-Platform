@@ -3072,8 +3072,20 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
           properties: organisationSecuritySettingsValueProperties(),
         },
         DifficultyLevel: enumString(
-          ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ADAPTIVE'],
+          ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ADAPTIVE', 'EASY', 'MEDIUM', 'HARD'],
           'BEGINNER',
+        ),
+        ContentCategory: enumString(
+          [
+            'PHISHING',
+            'PASSWORD_SECURITY',
+            'SOCIAL_ENGINEERING',
+            'MALWARE',
+            'DATA_PROTECTION',
+            'DEVICE_SECURITY',
+            'INCIDENT_REPORTING',
+          ],
+          'PHISHING',
         ),
         TrainingContentType: enumString(
           ['PDF', 'MARKDOWN', 'HTML', 'URL', 'INTERACTIVE'],
@@ -3397,9 +3409,18 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
         },
         CampaignCatalogueItem: {
           type: 'object',
-          required: ['id', 'type', 'title', 'difficultyLevel', 'status'],
+          required: [
+            'id',
+            'organisationId',
+            'type',
+            'title',
+            'category',
+            'difficultyLevel',
+            'status',
+          ],
           properties: {
             id: uuidString('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
+            organisationId: nullableUuidString('11111111-1111-4111-8111-111111111111'),
             type: schemaRef('CampaignComponentType'),
             title: {
               type: 'string',
@@ -3427,6 +3448,7 @@ This reference covers the currently mounted Demo 3 backend routes. Planned or un
               nullable: true,
               example: 3,
             },
+            category: schemaRef('ContentCategory'),
             difficultyLevel: schemaRef('DifficultyLevel'),
             status: {
               type: 'string',

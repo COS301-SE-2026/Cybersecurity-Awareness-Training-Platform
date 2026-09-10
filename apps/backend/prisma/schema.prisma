@@ -229,6 +229,19 @@ enum DifficultyLevel {
   INTERMEDIATE
   ADVANCED
   ADAPTIVE
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum ContentCategory {
+  PHISHING
+  PASSWORD_SECURITY
+  SOCIAL_ENGINEERING
+  MALWARE
+  DATA_PROTECTION
+  DEVICE_SECURITY
+  INCIDENT_REPORTING
 }
 
 enum CampaignItemType {
@@ -655,8 +668,6 @@ model EmailDeliveryLog {
   id                                String                           @id @default(uuid())
   recipientEmail                    String
   emailType                         EmailDeliveryType
-  /// Typed foreign keys are authoritative when a typed relation exists.
-  /// Fallback related-entity fields are only for entities without a typed FK, legacy references, or OTHER cases.
   fallbackRelatedEntityType         EmailRelatedEntityType?          @map("relatedEntityType")
   fallbackRelatedEntityId           String?                          @map("relatedEntityId")
   userId                            String?
@@ -736,6 +747,9 @@ model Organisation {
   adminProfiles              OrganisationAdminProfile[]
   contexts                   OrganisationContext[]
   campaigns                  Campaign[]
+  trainingDocuments          TrainingDocument[]
+  quizzes                    Quiz[]
+  simulations                Simulation[]
   registrationRequests       OrganisationRegistrationRequest[]
   invitations                Invitation[]
   emailDeliveryLogs          EmailDeliveryLog[]
@@ -1042,20 +1056,25 @@ model CampaignAssignment {
 
 model TrainingDocument {
   id                       String                 @id @default(uuid())
+  organisationId           String?
   createdByUserId          String?
   title                    String
   contentType              TrainingContentType
   contentRef               String
   contentSummary           String?
   estimatedReadTimeMinutes Int?
+  category                 ContentCategory        @default(PHISHING)
   difficultyLevel          DifficultyLevel        @default(BEGINNER)
   status                   TrainingDocumentStatus @default(DRAFT)
   createdAt                DateTime               @default(now())
   updatedAt                DateTime               @updatedAt
+  organisation             Organisation?          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   createdBy                User?                  @relation("TrainingDocumentCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
   campaignItems            CampaignItem[]
   interactionEvents        InteractionEvent[]
 
+  @@index([organisationId])
+  @@index([category])
   @@index([createdByUserId])
   @@index([contentType])
   @@index([difficultyLevel])
@@ -1064,20 +1083,25 @@ model TrainingDocument {
 
 model Quiz {
   id                      String             @id @default(uuid())
+  organisationId          String?
   createdByUserId         String?
   title                   String
   description             String?
   passThresholdPercentage Int
+  category                ContentCategory    @default(PHISHING)
   difficultyLevel         DifficultyLevel    @default(BEGINNER)
   status                  QuizStatus         @default(DRAFT)
   createdAt               DateTime           @default(now())
   updatedAt               DateTime           @updatedAt
+  organisation            Organisation?      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   createdBy               User?              @relation("QuizCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
   campaignItems           CampaignItem[]
   questions               QuizQuestion[]
   attempts                QuizAttempt[]
   interactionEvents       InteractionEvent[]
 
+  @@index([organisationId])
+  @@index([category])
   @@index([createdByUserId])
   @@index([difficultyLevel])
   @@index([status])
@@ -1194,19 +1218,24 @@ model QuizResult {
 
 model Simulation {
   id              String          @id @default(uuid())
+  organisationId  String?
   createdByUserId String?
   simulationType  SimulationType
   title           String
   description     String?
   objective       String?
+  category        ContentCategory @default(PHISHING)
   safetyStatus    SafetyStatus    @default(DRAFT)
   difficultyLevel DifficultyLevel @default(BEGINNER)
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
+  organisation    Organisation?   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   createdBy       User?           @relation("SimulationCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
   campaignItems   CampaignItem[]
   simulatedInbox  SimulatedInbox?
 
+  @@index([organisationId])
+  @@index([category])
   @@index([createdByUserId])
   @@index([simulationType])
   @@index([safetyStatus])
@@ -1237,6 +1266,7 @@ model SimulatedEmail {
   hasAttachment           Boolean                       @default(false)
   receivedAt              DateTime                      @default(now())
   expectedClassification  EmailClassification
+  category                ContentCategory               @default(PHISHING)
   difficultyLevel         DifficultyLevel               @default(BEGINNER)
   createdAt               DateTime                      @default(now())
   updatedAt               DateTime                      @updatedAt
@@ -1246,6 +1276,7 @@ model SimulatedEmail {
   interactionEvents       InteractionEvent[]
 
   @@index([inboxId])
+  @@index([category])
   @@index([receivedAt])
   @@index([expectedClassification])
   @@index([difficultyLevel])

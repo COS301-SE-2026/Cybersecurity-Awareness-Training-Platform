@@ -28,6 +28,7 @@ import {
   InvitationPurpose,
   InvitationStatus,
   ActionTokenPurpose,
+  ContentCategory,
 } from '../../src/generated/prisma/enums.js';
 import type {
   CampaignComponentType,
@@ -283,12 +284,14 @@ export async function createCampaignAssignment(overrides: {
 export async function createTrainingDocument(
   overrides: {
     id?: string;
+    organisationId?: string | null;
     createdByUserId?: string;
     title?: string;
     contentType?: TrainingContentType;
     contentRef?: string;
     contentSummary?: string;
     estimatedReadTimeMinutes?: number;
+    category?: ContentCategory;
     difficultyLevel?: DifficultyLevel;
     status?: TrainingDocumentStatus;
   } = {},
@@ -299,12 +302,14 @@ export async function createTrainingDocument(
   return prisma.trainingDocument.create({
     data: {
       id,
+      organisationId: overrides.organisationId ?? null,
       createdByUserId: overrides.createdByUserId ?? null,
       title,
       contentType: overrides.contentType ?? TrainingContentType.HTML,
       contentRef: overrides.contentRef ?? `test://training/${id}`,
       contentSummary: overrides.contentSummary ?? 'Test content summary',
       estimatedReadTimeMinutes: overrides.estimatedReadTimeMinutes ?? 5,
+      category: overrides.category ?? ContentCategory.PHISHING,
       difficultyLevel: overrides.difficultyLevel ?? DifficultyLevel.BEGINNER,
       status: overrides.status ?? TrainingDocumentStatus.AVAILABLE,
     },
@@ -317,10 +322,12 @@ export async function createTrainingDocument(
 export async function createQuiz(
   overrides: {
     id?: string;
+    organisationId?: string | null;
     createdByUserId?: string;
     title?: string;
     description?: string;
     passThresholdPercentage?: number;
+    category?: ContentCategory;
     difficultyLevel?: DifficultyLevel;
     status?: QuizStatus;
   } = {},
@@ -331,10 +338,12 @@ export async function createQuiz(
   return prisma.quiz.create({
     data: {
       id,
+      organisationId: overrides.organisationId ?? null,
       createdByUserId: overrides.createdByUserId ?? null,
       title,
       description: overrides.description ?? 'Test quiz description',
       passThresholdPercentage: overrides.passThresholdPercentage ?? 80,
+      category: overrides.category ?? ContentCategory.PHISHING,
       difficultyLevel: overrides.difficultyLevel ?? DifficultyLevel.BEGINNER,
       status: overrides.status ?? QuizStatus.PUBLISHED,
     },
@@ -347,11 +356,13 @@ export async function createQuiz(
 export async function createSimulation(
   overrides: {
     id?: string;
+    organisationId?: string | null;
     createdByUserId?: string;
     simulationType?: SimulationType;
     title?: string;
     description?: string;
     objective?: string;
+    category?: ContentCategory;
     safetyStatus?: SafetyStatus;
     difficultyLevel?: DifficultyLevel;
   } = {},
@@ -362,11 +373,13 @@ export async function createSimulation(
   return prisma.simulation.create({
     data: {
       id,
+      organisationId: overrides.organisationId ?? null,
       createdByUserId: overrides.createdByUserId ?? null,
       simulationType: overrides.simulationType ?? SimulationType.SIMULATED_INBOX,
       title,
       description: overrides.description ?? 'Test simulation description',
       objective: overrides.objective ?? 'Test simulation objective',
+      category: overrides.category ?? ContentCategory.PHISHING,
       safetyStatus: overrides.safetyStatus ?? SafetyStatus.APPROVED,
       difficultyLevel: overrides.difficultyLevel ?? DifficultyLevel.BEGINNER,
     },
@@ -412,6 +425,7 @@ export async function createSimulatedEmail(overrides: {
   hasAttachment?: boolean;
   receivedAt?: Date;
   expectedClassification?: EmailClassification;
+  category?: ContentCategory;
   difficultyLevel?: DifficultyLevel;
 }) {
   const id = overrides.id ?? randomUUID();
@@ -429,6 +443,7 @@ export async function createSimulatedEmail(overrides: {
       hasAttachment: overrides.hasAttachment ?? false,
       receivedAt: overrides.receivedAt ?? new Date(),
       expectedClassification: overrides.expectedClassification ?? EmailClassification.SAFE,
+      category: overrides.category ?? ContentCategory.PHISHING,
       difficultyLevel: overrides.difficultyLevel ?? DifficultyLevel.BEGINNER,
     },
   });

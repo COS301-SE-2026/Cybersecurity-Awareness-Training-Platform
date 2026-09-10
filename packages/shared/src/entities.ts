@@ -1,4 +1,5 @@
 import type { AuthStatusDto, UserTypeDto } from './auth.js';
+import type { ContentCategoryDto } from './categories.js';
 import type { QuestionTypeDto, QuizAttemptStatusDto, QuizStatusDto } from './quizzes.js';
 import type {
   EmailClassificationDto,
@@ -98,96 +99,16 @@ export type SafetyStatusDto = 'DRAFT' | 'APPROVED' | 'BLOCKED';
 export interface HealthCheckDto {
   id: string;
   message: string;
-  createdAt: string;
+  timestamp: string;
 }
 
 export interface UserDto {
   id: string;
-  firstName: string;
-  lastName: string;
   email: string;
   userType: UserTypeDto;
   authStatus: AuthStatusDto;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface TraineeProfileDto {
-  id: string;
-  userId: string;
-  traineeStatus: TraineeStatusDto;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface GeneralTraineeProfileDto {
-  id: string;
-  traineeProfileId: string;
-  accessSource: GeneralTraineeAccessSourceDto;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface OrganisationTraineeProfileDto {
-  id: string;
-  traineeProfileId: string;
-  organisationId: string;
-  employeeLabel?: string | null;
-  joinedAt: string;
-  membershipStatus: OrganisationTraineeMembershipStatusDto;
-  createdFromInvitationId?: string | null;
-  disabledAt?: string | null;
-  disabledReason?: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface OrganisationAdminProfileDto {
-  id: string;
-  userId: string;
-  organisationId: string;
-  adminStatus: AdminStatusDto;
-  joinedAt: string;
-  isInitialAdmin: boolean;
-  createdFromInvitationId?: string | null;
-  disabledAt?: string | null;
-  disabledReason?: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface OrganisationPermissionDto {
-  id: string;
-  organisationId: string;
-  key: OrganisationPermissionKeyDto;
-  displayName: string;
-  description?: string | null;
-  isCritical: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface OrganisationAdminPermissionDto {
-  id: string;
-  organisationId: string;
-  organisationAdminId: string;
-  organisationPermissionId: string;
-  grantedAt: string;
-  grantedByOrganisationAdminId?: string | null;
-}
-
-export interface InvitationPermissionGrantDto {
-  id: string;
-  organisationId: string;
-  invitationId: string;
-  organisationPermissionId: string;
-  createdAt: string;
-}
-
-export interface IpAdminProfileDto {
-  id: string;
-  userId: string;
-  adminStatus: AdminStatusDto;
+  firstName?: string | null;
+  lastName?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -196,6 +117,60 @@ export interface OrganisationDto {
   id: string;
   name: string;
   status: OrganisationStatusDto;
+  description?: string | null;
+  approximateSize?: number | null;
+  website?: string | null;
+  primaryDomain?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OrganisationTraineeProfileDto {
+  id: string;
+  userId: string;
+  organisationId: string;
+  status: OrganisationTraineeMembershipStatusDto;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GeneralTraineeProfileDto {
+  id: string;
+  userId: string;
+  accessSource: GeneralTraineeAccessSourceDto;
+  status: TraineeStatusDto;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OrganisationAdminProfileDto {
+  id: string;
+  userId: string;
+  organisationId: string;
+  status: AdminStatusDto;
+  title?: string | null;
+  department?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface IpAdminProfileDto {
+  id: string;
+  userId: string;
+  status: AdminStatusDto;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OrganisationContextDto {
+  id: string;
+  organisationId: string;
+  contextType: OrganisationContextTypeDto;
+  label: string;
+  sourceUri?: string | null;
+  parsedSummary?: string | null;
+  processingStatus: OrganisationContextProcessingStatusDto;
+  lastProcessedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -205,40 +180,14 @@ export interface OrganisationSecuritySettingsDto {
   organisationId: string;
   enforceRememberMePolicy: boolean;
   allowRememberMe: boolean;
-  maxRememberedSessionHours?: number | null;
+  maxRememberedSessionHours: number | null;
   enforceRegularSessionLength: boolean;
-  regularSessionLengthHours?: number | null;
+  regularSessionLengthHours: number | null;
   enforceIdleTimeout: boolean;
-  idleTimeoutMinutes?: number | null;
+  idleTimeoutMinutes: number | null;
   requireReauthenticationForSensitiveActions: boolean;
   allowTraineeEmailChange: boolean;
-  updatedByOrganisationAdminId?: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface UserSecurityPreferencesDto {
-  id: string;
-  userId: string;
-  preferredRegularSessionLengthHours?: number | null;
-  preferredRememberMeSessionLengthHours?: number | null;
-  preferredIdleTimeoutMinutes?: number | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface OrganisationContextDto {
-  id: string;
-  organisationId: string;
-  uploadedByUserId?: string | null;
-  contextType: OrganisationContextTypeDto;
-  name: string;
-  description?: string | null;
-  contentSummary?: string | null;
-  contentRef?: string | null;
-  metadata?: Record<string, unknown> | null;
-  processingStatus: OrganisationContextProcessingStatusDto;
-  aiUsable: boolean;
+  updatedByOrganisationAdminId: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -306,12 +255,14 @@ export interface CampaignAssignmentDto {
 
 export interface TrainingDocumentDto {
   id: string;
+  organisationId: string | null;
   createdByUserId?: string | null;
   title: string;
   contentType: TrainingContentTypeDto;
   contentRef: string;
   contentSummary?: string | null;
   estimatedReadTimeMinutes?: number | null;
+  category: ContentCategoryDto;
   difficultyLevel: DifficultyLevelDto;
   status: TrainingDocumentStatusDto;
   createdAt: string;
@@ -320,10 +271,12 @@ export interface TrainingDocumentDto {
 
 export interface QuizDto {
   id: string;
+  organisationId: string | null;
   createdByUserId?: string | null;
   title: string;
   description?: string | null;
   passThresholdPercentage: number;
+  category: ContentCategoryDto;
   difficultyLevel: DifficultyLevelDto;
   status: QuizStatusDto;
   createdAt: string;
@@ -401,11 +354,13 @@ export interface QuizResultDto {
 
 export interface SimulationDto {
   id: string;
+  organisationId: string | null;
   createdByUserId?: string | null;
   simulationType: SimulationTypeDto;
   title: string;
   description?: string | null;
   objective?: string | null;
+  category: ContentCategoryDto;
   safetyStatus: SafetyStatusDto;
   difficultyLevel: DifficultyLevelDto;
   createdAt: string;
@@ -434,6 +389,7 @@ export interface SimulatedEmailDto {
   hasAttachment: boolean;
   receivedAt: string;
   expectedClassification: EmailClassificationDto;
+  category: ContentCategoryDto;
   difficultyLevel: DifficultyLevelDto;
   createdAt: string;
   updatedAt: string;
